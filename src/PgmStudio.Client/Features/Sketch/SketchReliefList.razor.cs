@@ -133,7 +133,7 @@ public partial class SketchReliefList
     {
         if (!mark.TryGetProperty(field, out var points) || points.ValueKind != JsonValueKind.Array) return "";
         var count = points.GetArrayLength();
-        return count == 0 ? "" : $"{count} pts";
+        return count == 0 ? "" : $"{count} points";
     }
 
     /// <summary>Pick a mark, and the group stating it with it. A height means nothing without the base it is

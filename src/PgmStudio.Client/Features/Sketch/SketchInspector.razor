@@ -17,7 +17,7 @@
 
         <div class="section-header section-header--ruled"><h2 class="section-title">Actions</h2></div>
         <Button Full OnClick="() => OnToggleOp.InvokeAsync(Shape.Id)">
-          @(Shape.Operation == "subtract" ? "Make add" : "Make subtract")
+          @(Shape.Operation == "subtract" ? "Switch to build" : "Switch to carve")
         </Button>
         <Button Full OnClick="() => OnToggleOverride.InvokeAsync(Shape.Id)">
           @(Shape.Override ? "Remove override" : "Set override")
@@ -25,7 +25,7 @@
         @if (Shape.Type == "rectangle")
         {
           <Button Full OnClick="() => OnPromoteShape.InvokeAsync(Shape.Id)"
-                  Title="Turn this rectangle into a polygon — then drag corners, insert vertices, or curve edges (P)">
+                  Title="Convert to a polygon to drag corners, add vertices, or curve edges (P)">
             <i data-lucide="pentagon"></i> Convert to polygon
           </Button>
         }
@@ -43,7 +43,7 @@
         @* How the top is decided once the group carries a relief. Ordinary ground is the default and stays
            it: a shape drawn to make a landmass IS the landmass, and the relief inside it is what the ground
            does. The other three are for a shape meant to stand in the terrain rather than be it. *@
-        <Field Label="Stands as">
+        <Field Label="Height mode">
           <Select Options="HeightModes" Value="@Shape.HeightMode" ValueChanged="HeightModeChanged" />
         </Field>
         @if (HeightModeReadout.Length > 0)
@@ -53,7 +53,7 @@
         @if (!string.IsNullOrEmpty(Shape.HeightMode))
         {
           <Field Label="Skirt">
-            <LabelHint>(how far in it eases into the ground)</LabelHint>
+            <LabelHint>(blocks to blend into the ground)</LabelHint>
             <ChildContent>
               <NumberField Value="Shape.Skirt" ValueChanged="SkirtChanged" Min="0" />
             </ChildContent>
@@ -65,7 +65,7 @@
           @* Whether the shape's ground joins its group's relief. Only asked of a shape that IS ground: one
              standing out of the field already answers it, and a raise reads the ground under its own
              footprint to know where to stand. *@
-          <Field Label="Takes part in relief">
+          <Field Label="Relief">
             <Select Options="ReliefScopeOptions" Value="@Shape.ReliefScope" ValueChanged="ReliefScopeChanged" />
           </Field>
           @if (ReliefScopeReadout.Length > 0)
@@ -87,8 +87,8 @@
           </Field>
           @if (Shape.StrokeEdge == "rough")
           {
-            <Field Label="Wander seed">
-              <LabelHint>(the same seed wanders the same way on every export)</LabelHint>
+            <Field Label="Edge seed">
+              <LabelHint>(same seed, same edge on every export)</LabelHint>
               <ChildContent>
                 <NumberField Value="Shape.StrokeSeed" ValueChanged="SeedChanged" Min="0" />
               </ChildContent>
@@ -110,8 +110,8 @@
               <i data-lucide="move-3d"></i> Apply slope
             </Button>
             <p class="plan-readout">
-              Fits a @(SlopeControls.Count == 2 ? "ramp" : "plane") through @SlopeControls.Count points · shift-click
-              a marked one to unmark it
+              Fits a @(SlopeControls.Count == 2 ? "ramp" : "plane") through @SlopeControls.Count points. Shift-click
+              a marked vertex to unmark it.
             </p>
           }
           else if (SelectedVertexIdx >= 0)
@@ -119,17 +119,17 @@
             <Field Label='@($"Vertex {SelectedVertexIdx + 1} height")'>
               <NumberField Value="SelectedVertexHeight" ValueChanged="VertexHeightChanged" Min="1" />
             </Field>
-            <p class="section-desc">Shift-click 2–3 vertices to tilt the whole surface as a slope.</p>
+            <p class="section-desc">Shift-click 2–3 vertices to tilt the surface.</p>
           }
           else
           {
-            <p class="section-desc">Click a vertex to set its height, or shift-click 2–3 vertices to tilt the surface as a slope.</p>
+            <p class="section-desc">Click a vertex to set its height, or shift-click 2–3 vertices to tilt the surface.</p>
           }
         }
         <Button Full Variant="danger" OnClick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
           <i data-lucide="trash-2"></i> Delete
         </Button>
-        <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks@(Shape.Type == "rectangle" ? " · P = to polygon" : "")@(Shape.Type == "polyline" ? " · drag the points to move the route" : "")</p>
+        <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks@(Shape.Type == "rectangle" ? " · P = convert to polygon" : "")@(Shape.Type == "polyline" ? " · drag points to reshape the path" : "")</p>
       }
       else if (Group is not null)
       {
@@ -162,7 +162,7 @@
       }
       else
       {
-        <p class="section-desc">Select a shape or group to inspect.</p>
+        <p class="section-desc">Select a shape or group to edit it.</p>
       }
     </Section>
 </Inspector>

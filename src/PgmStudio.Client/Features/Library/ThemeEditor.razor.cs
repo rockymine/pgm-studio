@@ -76,7 +76,7 @@ public partial class ThemeEditor
                 var binding = Binding(info.Id);
                 var bound = StyleOf(binding.StyleId);
                 return new EditorPart(info.Id, info.Title, "layers",
-                    Badge: !binding.Enabled ? "off" : bound?.Name ?? "built-in");
+                    Badge: !binding.Enabled ? "off" : bound?.Name ?? "default");
             })];
             // The row names the section; what the section says is in the section, so the badge is the one
             // word that tells two themes apart at a glance rather than the whole sentence.
@@ -89,7 +89,7 @@ public partial class ThemeEditor
     private string Footnote => draft is null
         ? ""
         : $"{draft.Buckets.Count(binding => binding.Enabled && binding.StyleId != Unbound)} of "
-          + $"{ThemeBucketInfo.All.Count} buckets bound";
+          + $"{ThemeBucketInfo.All.Count} parts have a style";
 
     protected override async Task OnInitializedAsync()
         => styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
@@ -109,7 +109,7 @@ public partial class ThemeEditor
         {
             if (await Library.GetAsync<ThemeDetail>(LibraryKinds.Themes, id) is not { } detail)
             {
-                note = "That theme could not be read.";
+                note = "Couldn't load this theme. Reload the page to try again.";
                 draft = null;
                 return;
             }
@@ -149,7 +149,7 @@ public partial class ThemeEditor
     {
         importError = null;
         var id = await Library.ImportThemeAsync(draftName.Trim(), importJson);
-        if (id is null) { importError = "The library could not read that theme."; return; }
+        if (id is null) { importError = "Couldn't import this JSON. Check that it is a valid theme."; return; }
         await OnSaved.InvokeAsync("saved");
         Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{id}");
     }
@@ -183,8 +183,8 @@ public partial class ThemeEditor
     /// not claim.</summary>
     private static readonly IReadOnlyList<SelectOption> BedrockModes =
     [
-        new(AbsoluteBedrock, "blocks up from the bottom"),
-        new(RelativeBedrock, "everything under the painted depth"),
+        new(AbsoluteBedrock, "Blocks up from the bottom"),
+        new(RelativeBedrock, "Everything under the painted depth"),
     ];
 
     private Task SetBedrockMode(string mode)
@@ -234,7 +234,7 @@ public partial class ThemeEditor
         var saved = editingId is { } id
             ? await Library.UpdateAsync<ThemeDetail>(LibraryKinds.Themes, id, request)
             : await Library.CreateAsync<ThemeDetail>(LibraryKinds.Themes, request);
-        if (saved is null) { note = "The library refused that theme."; return; }
+        if (saved is null) { note = "Couldn't save this theme. Try again."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{saved.Id}");
@@ -246,7 +246,7 @@ public partial class ThemeEditor
         if (draft is null) return;
         var copy = await Library.CreateAsync<ThemeDetail>(LibraryKinds.Themes,
             Saveable(draft) with { Name = $"{draftName.Trim()} copy" });
-        if (copy is null) { note = "The library refused that theme."; return; }
+        if (copy is null) { note = "Couldn't save a copy of this theme. Try again."; return; }
         Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{copy.Id}");
     }
 

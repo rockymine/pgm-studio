@@ -179,9 +179,9 @@ public partial class SketchReliefInspector
             // report a width the numbers above it do not add up to.
             var shoulder = Math.Max(0, Radius - Tread);
             var width = $"{shoulder:0.#} block{(Math.Abs(shoulder - 1) < 0.01 ? "" : "s")}";
-            return shoulder <= 0 ? "No shoulder — the whole band is held flat."
-                 : Batter > 0 ? $"{width} of shoulder either side, falling at {Batter:0}°."
-                 : $"{width} of shoulder either side, at whatever angle the passes leave it.";
+            return shoulder <= 0 ? "No shoulder. The whole band is flat."
+                 : Batter > 0 ? $"{width} of shoulder on each side, sloping at {Batter:0}°."
+                 : $"{width} of shoulder on each side, at an automatic angle.";
         }
     }
 
@@ -403,7 +403,7 @@ public partial class SketchReliefInspector
         new(Vocabulary.Landform.Rolling, "rolling",
             "Rises and falls enough to break a sight line and shape a route."),
         new(Vocabulary.Landform.Hills, "hills",
-            "Real climbs — a route goes round or over, and the choice matters."),
+            "Real climbs. A route goes round or over, and the choice matters."),
         new(Vocabulary.Landform.Mountain, "mountain",
             "Ground the map is built against rather than on: a range, a rim, a wall of land."),
     ];
@@ -496,7 +496,7 @@ public partial class SketchReliefInspector
         get
         {
             var radius = Num(MarkFields.Radius, 4);
-            return radius < 1 ? "Pins one cell — a spike, not a summit."
+            return radius < 1 ? "Pins one cell: a spike, not a summit."
                               : $"Holds a disc {Span(radius * 2)} across.";
         }
     }
@@ -508,7 +508,7 @@ public partial class SketchReliefInspector
         get
         {
             var band = $"A band {Span(Radius * 2)} wide";
-            if (HeightCount < 2) return $"{band}, level its whole run.";
+            if (HeightCount < 2) return $"{band}, level along its length.";
             double first = Height(0), last = Height(HeightCount - 1);
             return first.Equals(last) ? $"{band}, back at {Trim(first)} where it started."
                                       : $"{band}, running {Trim(first)} to {Trim(last)}.";
@@ -524,11 +524,11 @@ public partial class SketchReliefInspector
             var surface = Tilted
                 ? $"Falls {Trim(CornerHigh)} to {Trim(CornerLow)} across its corners"
                 : $"Level at {Trim(Height(0))}";
-            if (Bevel <= 0) return $"{surface}, stated to its own outline — it meets its neighbour on a step.";
+            if (Bevel <= 0) return $"{surface} up to its edge. It meets its neighbour on a step.";
             var core = RingSpan - 2 * Bevel;
             return core <= 0
-                ? $"{surface}. The bevel is wider than the ring — nothing is left flat."
-                : $"{surface}. Edge grades over {Span(Bevel)}; {Trim(core)} of its {Span(RingSpan)} stays flat.";
+                ? $"{surface}. The bevel is wider than the ring, so nothing is flat."
+                : $"{surface}. The edge slopes over {Span(Bevel)}. {Trim(core)} of its {Span(RingSpan)} stay flat.";
         }
     }
 
@@ -564,18 +564,18 @@ public partial class SketchReliefInspector
             var crown = Num(PushFields.Crown);
             var verb = amount < 0 ? "Digs" : "Lifts";
             var skirt = falloff <= 0
-                ? "a sheer edge at the ring"
-                : $"over {Span(falloff)} of skirt, {Math.Abs(amount) / falloff:0.#} a block";
+                ? "with a sheer edge at the ring"
+                : $"fading over {Span(falloff)} ({Math.Abs(amount) / falloff:0.#} a block)";
             // The crown is world height, added whatever the amount's sign: on a dig a positive one fills the
             // floor back in toward the spine.
             var top = amount < 0
-                ? crown == 0 ? "flat-floored"
-                  : crown > 0 ? $"its floor raised {Span(crown)} at its spine"
-                  : $"its floor deepened {Span(-crown)} at its spine"
-                : crown == 0 ? "flat on top"
-                  : crown > 0 ? $"domed {Span(crown)} at its spine"
-                  : $"dished {Span(-crown)} at its spine";
-            return $"{verb} {Span(Math.Abs(amount))}, {skirt} — {top}.";
+                ? crown == 0 ? "Flat floor"
+                  : crown > 0 ? $"Floor raised {Span(crown)} at its spine"
+                  : $"Floor deepened {Span(-crown)} at its spine"
+                : crown == 0 ? "Flat on top"
+                  : crown > 0 ? $"Domed {Span(crown)} at its spine"
+                  : $"Dished {Span(-crown)} at its spine";
+            return $"{verb} {Span(Math.Abs(amount))}, {skirt}. {top}.";
         }
     }
 
@@ -592,7 +592,7 @@ public partial class SketchReliefInspector
         get
         {
             var step = ReliefNum(ReliefFields.Step, 1);
-            return step <= 1 ? "" : $"Every riser the ground makes is {Span(step)} tall.";
+            return step <= 1 ? "" : $"Each step in the ground is {Span(step)} tall.";
         }
     }
 
@@ -606,10 +606,10 @@ public partial class SketchReliefInspector
             var step = (int)MarkStep;
             var group = (int)ReliefNum(ReliefFields.Step, 1);
             if (step <= 0)
-                return group <= 1 ? "" : $"Takes the group's step: every riser here is {Span(group)} tall.";
+                return group <= 1 ? "" : $"Uses the group's step: {Span(group)} tall.";
             if (step <= 1)
-                return group <= 1 ? "" : "Follows the field cell by cell, where the rest of the group steps.";
-            return $"Every riser this mark's ground makes is {Span(step)} tall.";
+                return group <= 1 ? "" : "Follows the ground smoothly, while the rest of the group steps.";
+            return $"Each step here is {Span(step)} tall.";
         }
     }
 
@@ -620,8 +620,8 @@ public partial class SketchReliefInspector
         get
         {
             var amount = GrainNum(GrainFields.Amplitude);
-            return amount <= 0 ? "Off — the surface is exactly what the marks solved."
-                 : $"Moves the solved surface up to {Span(amount)}, over features about "
+            return amount <= 0 ? "Off. The surface is exactly what the marks set."
+                 : $"Varies the surface by up to {Span(amount)}, in features about "
                    + $"{Span(GrainNum(GrainFields.Scale, 9))} across.";
         }
     }
@@ -664,17 +664,17 @@ public partial class SketchReliefInspector
     private static readonly Dictionary<string, (string Icon, string Title, string Blurb)> KindInfo = new()
     {
         [MarkKinds.Point] = ("dot", "Spot height",
-            "One position held at one height — a summit, a hollow, or a level the ground has to reach here."),
+            "Holds one spot at a height: a summit, a hollow, or a level the ground must reach."),
         [MarkKinds.Line] = ("spline", "Ridgeline",
-            "A drawn line held at a height, and a band either side of it. Give it more than one height and it falls along its own length."),
+            "Holds a line, and a band on each side, at a height. Give it several heights to make it slope."),
         [MarkKinds.Area] = ("pentagon", "Bench",
-            "A drawn ring the ground is held to — a floor, a plateau, or a shelf cut into a slope."),
+            "Holds an area at a height: a floor, a plateau, or a shelf cut into a slope."),
         [MarkKinds.Scarp] = ("triangle", "Scarp",
-            "A shelf on one side of a drawn line and open ground on the other, with the drop between them. One level each, the whole run — a scarp states a drop rather than a profile. The shelf takes the +z hand of the direction the line is drawn, and the band stops where the line stops."),
+            "A shelf on one side of a line and lower ground on the other, with a drop between them. The shelf is on the +z side of the drawing direction."),
         [MarkKinds.Rim] = ("square-dashed", "Rim",
             "The group's whole outline, held at one height."),
         [MarkKinds.Push] = ("arrows-up-from-line", "Push",
-            "A drawn ring the ground is lifted inside, falling away over the skirt outside it. It moves the surface rather than stating a height, so two over the same ground add."),
+            "Lifts the ground inside a ring, fading out over the skirt. It adds height rather than setting it, so overlapping pushes add up."),
     };
 
     private (string Icon, string Title, string Blurb) Info

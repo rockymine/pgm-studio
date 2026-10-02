@@ -107,7 +107,9 @@ canvas layer can then reuse or test it.
 
 `CanvasBase` owns the machinery every interactive surface needs and nothing else: `_scale`/`_panX`/`_panY`,
 the viewport `<g>`, wheel zoom about the cursor, middle-drag and left-drag pan, a 4px click-vs-drag dead
-zone so a sloppy click still selects, body-drag of a grabbed handle, and `_clientToSvg`.
+zone so a sloppy click still selects, body-drag of a grabbed handle, and `_clientToSvg`. It also owns the pan
+cursor: `canvas--pan` (an open hand) while the pan tool is up and `canvas--panning` (a closed one) while the
+view is dragged.
 
 Subclasses do not override behaviour; they fill in hooks. `_onToolMousedown`, `_onPointerMove`,
 `_onToolMouseup`, `_onCanvasClick`, `_onViewportChanged`, `_onZoom` and `_onMouseleave` are notifications.
@@ -300,10 +302,10 @@ that id, when `settleGroups` gives it a fresh one. `SK12` reports a layout that 
 
 **A preview that cannot run says which of the two reasons it was.** `enterIso` fails for two unrelated
 causes — the browser has no WebGL, or the server would not build the board — and for a long time both crossed
-to C# as one bare `OnIsoUnavailable()`, so the canvas answered *no WebGL* on browsers that plainly had it and
+to C# as one bare `OnIsoUnavailable()`, so the canvas answered *No WebGL* on browsers that plainly had it and
 the reader went looking in the wrong place entirely. The bridges now carry a reason: an empty string is WebGL
 itself, and anything else is the sentence the build answered with, read out of the refusal envelope
-(`message`, then `error`, then the bare status). The host shows *no WebGL* for the first and the build's own
+(`message`, then `error`, then the bare status). The host shows *No WebGL* for the first and the build's own
 words for the second. A failure with a sentence available should never be reported as a different failure.
 
 **Four interop details cost an afternoon each the first time.** `InvokeVoidAsync(name, params object?[])`

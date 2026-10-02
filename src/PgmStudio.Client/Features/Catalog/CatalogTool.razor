@@ -4,6 +4,8 @@
 @* Shape catalog (G144): the generation vocabulary as browsable cards — every approach family and body form
    the pipeline can build, rendered server-side, each badged with how far it actually gets. *@
 
+<PageTitle>Shape catalog · PGM Studio</PageTitle>
+
 <StudioShell Bare="true">
   <Bar>
     <Topbar>
@@ -15,7 +17,7 @@
     <aside class="lib-filters">
       <Section Title="Filters">
 
-        <Field Label="Box kind">
+        <Field Label="Kind">
           <div class="filter-group-options">
             @foreach (var k in Kinds)
             {
@@ -25,8 +27,7 @@
           </div>
         </Field>
 
-        <Field Label="Reach">
-          <LabelEnd><span class="text-xs text-muted">how far it gets</span></LabelEnd>
+        <Field Label="Usage">
           <ChildContent>
             <div class="filter-group-options">
               @foreach (var t in Tiers)
@@ -38,7 +39,7 @@
           </ChildContent>
         </Field>
 
-        <Field Label="Family / form">
+        <Field Label="Shape family">
           <div class="filter-group-options">
             @foreach (var family in byFamily.Keys.OrderBy(FamilyOrder))
             {
@@ -53,22 +54,18 @@
           <Button Full OnClick="ClearFilters">Clear filters</Button>
         }
 
-        <p class="section-desc">
-          The counts are the whole catalog, not the filtered slice — a chip says what it would show
-          before it is picked.
-        </p>
+        <p class="section-desc">Counts are for the whole catalog, not the filtered results.</p>
       </Section>
     </aside>
 
     <main class="lib-main">
       <p class="lib-intro">
-        Every shape the pipeline can put in a box, emitted once and drawn mouth-up. The composer docks all
-        four box edges; the other three orientations are the same shape turned, so only one is shown. Both
-        handednesses are kept — a flip is an authored variant, not a viewing angle.
+        Every shape the generator can place, drawn with its opening at the top. Rotations are not shown, but
+        mirrored versions are.
       </p>
 
       @if (error is not null) { <p class="lib-status">@error</p> }
-      else if (loading) { <p class="lib-status">Emitting the catalog…</p> }
+      else if (loading) { <p class="lib-status">Loading…</p> }
       else
       {
         <p class="lib-count">@Shown.Count of @total shape@(total == 1 ? string.Empty : "s")</p>
@@ -81,7 +78,7 @@
                 <span class="lib-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
               </div>
               <button class="lib-card-fig" @onclick="() => OpenProbe(shape)"
-                      title="Open in the knob panel">@((MarkupString)shape.Svg)</button>
+                      title="Open in shape settings">@((MarkupString)shape.Svg)</button>
               <div class="lib-card-foot">
                 <span class="lib-card-meta">@shape.BoxW×@shape.BoxH · w@(shape.CorridorCells)</span>
                 @foreach (var knob in shape.Knobs)
@@ -96,7 +93,7 @@
             </div>
           }
         </div>
-        @if (Shown.Count == 0) { <p class="lib-status">No shape matches these filters.</p> }
+        @if (Shown.Count == 0) { <p class="lib-status">No shapes match these filters.</p> }
       }
     </main>
 
@@ -107,16 +104,18 @@
            scrolling to one must not take the shape off screen. *@
         <div class="lib-rail-pin">
           <div class="lib-rail-head">
-            <span class="lib-rail-title">Knob panel</span>
+            <span class="lib-rail-title">Shape settings</span>
             <button class="lib-rail-x" @onclick="CloseProbe" title="Close"><i data-lucide="x" @key="@("probe-x")"></i></button>
           </div>
           <div class="lib-fig @(probe?.Rejection is null ? null : "cat-probe-fig--refused")">
             @if (probe?.Svg is { } svg) { @((MarkupString)svg) }
-            else { <span class="cat-probe-none">no shape</span> }
+            else { <span class="cat-probe-none">No shape</span> }
           </div>
         </div>
 
         <div class="lib-rail-body">
+        <p class="section-desc">Built with the same checks the generator uses. If the shape can't be built,
+          the reason is shown here.</p>
         @if (probe?.Rejection is { } rejection)
         {
           <div class="cat-probe-reject">
@@ -140,7 +139,7 @@
             @foreach (var f in schemaFamilies)
             {
               <Chip Active="probeFamily == f.Token"
-                    Title="@(f.OnProductionMenu ? $"min {f.MinW}×{f.MinH}" : "off the production fill menu")"
+                    Title="@(f.OnProductionMenu ? $"Minimum {f.MinW} × {f.MinH}" : "Not used by the generator")"
                     OnClick="() => PickFamily(f.Token)">@f.Token</Chip>
             }
           </div>
@@ -167,7 +166,7 @@
           </ChildContent>
         </Field>
 
-        <Field Label="Mouth">
+        <Field Label="Opening">
           <div class="filter-group-options">
             @foreach (var edge in Edges)
             {
@@ -176,13 +175,13 @@
           </div>
         </Field>
 
-        <Field Label="Knobs">
+        <Field Label="Options">
           <div class="filter-group-options">
-            <Chip Active="probeFlip" OnClick="ToggleFlip">flip</Chip>
+            <Chip Active="probeFlip" OnClick="ToggleFlip">Flip</Chip>
             <Chip Active="probeSideTuck" Disabled="@(!SideTuckAllowed)"
-                  Title="@SideTuckTitle" OnClick="ToggleSideTuck">side-tuck</Chip>
+                  Title="@SideTuckTitle" OnClick="ToggleSideTuck">Side tuck</Chip>
             <Chip Active="probeWoolAtEnd" Disabled="@(!WoolAtEndAllowed)"
-                  Title="@WoolAtEndTitle" OnClick="ToggleWoolAtEnd">wool at end</Chip>
+                  Title="@WoolAtEndTitle" OnClick="ToggleWoolAtEnd">Wool at end</Chip>
           </div>
         </Field>
 
@@ -196,10 +195,6 @@
           </Field>
         }
 
-        <p class="section-desc">
-          Emitted through <code>BoxFiller</code>, so the profile check and the docking gate run exactly as they
-          do in composition. A refusal is an answer, not an error — it is the emitter's own words.
-        </p>
         </div>
       </aside>
     }

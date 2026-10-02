@@ -54,7 +54,7 @@ public partial class PlanInfoPhase
             if (loaded.Length > 0 && loaded != Name) await OnNameChanged.InvokeAsync(loaded);
             dirty = false; saveStatus = null;
         }
-        catch { saveStatus = "Failed to load."; }
+        catch { saveStatus = "Couldn't load the plan details. Reload the page to try again."; }
     }
 
     private async Task OnNameInput(ChangeEventArgs e)
@@ -82,9 +82,9 @@ public partial class PlanInfoPhase
         {
             var resp = await Http.PatchAsJsonAsync($"api/map/{Slug}/metadata", payload);
             if (resp.IsSuccessStatusCode) { dirty = false; saveStatus = "Saved."; }
-            else saveStatus = $"Save failed ({(int)resp.StatusCode}).";
+            else saveStatus = $"Couldn't save (HTTP {(int)resp.StatusCode}). Try again.";
         }
-        catch { saveStatus = "Save failed."; }
+        catch { saveStatus = "Couldn't save. Try again."; }
         StateHasChanged();
     }
 

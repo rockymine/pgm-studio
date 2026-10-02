@@ -20,7 +20,7 @@
     @foreach (var layer in Layers)
     {
       <span class="canvas-layer-tab-wrap @(layer.Id == ActiveId ? "canvas-layer-tab-wrap--on" : null)" @key="layer.Id">
-        <button type="button" class="canvas-layer-tab" title="@($"Draw on '{layer.Name}', based at y {layer.BaseY}")"
+        <button type="button" class="canvas-layer-tab" title="@($"Draw on '{layer.Name}' (base y {layer.BaseY})")"
                 aria-pressed="@(layer.Id == ActiveId)" @onclick="() => OnSelect.InvokeAsync(layer.Id)">
           <span class="canvas-layer-tab-name">@layer.Name</span>
           <span class="canvas-layer-tab-y">y @layer.BaseY</span>

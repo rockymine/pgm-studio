@@ -21,7 +21,7 @@ public partial class LibraryTool
 
     private LibraryKind? Open => LibraryKinds.Of(Kind);
 
-    private string PageName => Open is null ? "Library" : $"{Open.Title} — library";
+    private string PageName => Open is null ? "Library" : $"{Open.Title} · Library";
 
     private string EntryName => string.IsNullOrWhiteSpace(entryName)
         ? Entry == "new" ? $"New {Open?.One}" : "Entry"

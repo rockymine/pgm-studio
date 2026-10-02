@@ -47,10 +47,10 @@ checks.add("the studio bar links the whitelist for an admin", state.users);
 await visit(BASE, "/admin/users");
 // The page says "Loading…" until it has asked who is signed in, and only then draws the form or the refusal.
 await page.waitForFunction(() => !!document.querySelector('input[placeholder="Minecraft name or uuid"]')
-  || /Only an admin/.test(document.body.textContent), null, { timeout: 15000 }).catch(() => {});
+  || /Only admins/.test(document.body.textContent), null, { timeout: 15000 }).catch(() => {});
 const adminPage = await page.evaluate(() => ({
   add: !!document.querySelector('input[placeholder="Minecraft name or uuid"]'),
-  refused: /Only an admin/.test(document.body.textContent),
+  refused: /Only admins/.test(document.body.textContent),
 }));
 checks.add("the whitelist page answers the local admin", adminPage.add && !adminPage.refused);
 checks.add("no page fault", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
@@ -97,9 +97,9 @@ try {
   checks.add("New plan is greyed", newPlan === true, String(newPlan));
 
   await visit(invited, "/admin/users");
-  await page.waitForFunction(() => /Only an admin|Minecraft name/.test(document.body.textContent), null,
+  await page.waitForFunction(() => /Only admins|Minecraft name/.test(document.body.textContent), null,
     { timeout: 20000 }).catch(() => {});
-  const refused = await page.evaluate(() => /Only an admin/.test(document.body.textContent)
+  const refused = await page.evaluate(() => /Only admins/.test(document.body.textContent)
     && !document.querySelector('input[placeholder="Minecraft name or uuid"]'));
   checks.add("the whitelist page shows nothing of the list", refused);
 } finally {

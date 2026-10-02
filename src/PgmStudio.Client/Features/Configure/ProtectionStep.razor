@@ -6,13 +6,12 @@
 <Workspace>
 
   <Sidebar>
-      <Section Title="Spawn Protection">
+      <Section Title="Spawn protection">
         @{ var rows = Rows(); }
-        <p class="section-desc">With the <strong>rectangle tool</strong>, drag a zone around a spawn — draw
-          several for a multi-part zone. The confirmed symmetry orbits it onto the other teams. Click a
-          rectangle to select it, then drag the handles on the canvas to resize.</p>
+        <p class="section-desc">Use the <strong>rectangle tool</strong> to drag a zone around a spawn. Draw
+          several to build a larger zone. The other teams get a copy by symmetry.</p>
         <div class="panel-list">
-          @if (authored.Count == 0) { <div class="list-empty">Nothing drawn yet — drag a rectangle around a spawn.</div> }
+          @if (authored.Count == 0) { <div class="list-empty">Nothing drawn yet. Drag a rectangle around a spawn.</div> }
           @foreach (var row in rows)
           {
             <ListRow Compact Selected="selectedRegionId == row.RegionId"
@@ -20,7 +19,7 @@
               <span class="list-swatch" style="background:@Hex(row.Team)"></span>
               <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
               <span class="list-label list-label--mono">@row.Name</span>
-              <Badge Class="@(row.Authored ? "badge--success" : "badge--dim")">@(row.Authored ? "authored" : "orbit")</Badge>
+              <Badge Class="@(row.Authored ? "badge--success" : "badge--dim")">@(row.Authored ? "Main" : "Copy")</Badge>
             </ListRow>
           }
         </div>
@@ -42,7 +41,7 @@
         <div class="panel-stack" @key="sel.RegionId">
           <Section>
             <DetailHeader Icon="rectangle-horizontal" IconStyle='@($"color:{Hex(sel.Team)}")' Mono Label="@sel.Name">
-              <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "authored" : "orbit")</Badge>
+              <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "Main" : "Copy")</Badge>
             </DetailHeader>
             <div class="section-body">
               <Field Label="Min">
@@ -60,28 +59,27 @@
               @if (sel.Authored)
               {
                 <p class="section-desc">Owned by <strong>@TeamName(sel.Team)</strong>. Drag the handles on the
-                  canvas to resize. Draw another rectangle to add to its zone.</p>
+                  canvas to resize it.</p>
                 <div class="section-footer section-footer--separated">
                   <Button Variant="danger" Fill OnClick="() => Remove(sel.RegionId)">Remove rectangle</Button>
                 </div>
               }
               else
               {
-                <p class="section-desc">Derived from <strong>@TeamName(authoredTeam ?? string.Empty)</strong> by
-                  symmetry — edit the authored zone to change it.</p>
+                <p class="section-desc">Copied from <strong>@TeamName(authoredTeam ?? string.Empty)</strong> by
+                  symmetry. Edit that team's zone to change it.</p>
               }
             </div>
           </Section>
 
-          <Section Title="Auto-wiring">
-            <Actions><Badge Kind="dim">derived</Badge></Actions>
+          <Section Title="Rules">
+            <Actions><Badge Kind="dim">Automatic</Badge></Actions>
             <ChildContent>
             <div class="panel-list">
               <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = only-@TeamSlug(sel.Team)</span></ListRow>
               <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = never</span></ListRow>
             </div>
-            <p class="section-desc">The generator wires these onto the whole zone — enemies can't enter and it
-              can't be edited.</p>
+            <p class="section-desc">Enemies can't enter the zone, and nobody can place or break blocks in it.</p>
             </ChildContent>
           </Section>
         </div>
@@ -90,7 +88,7 @@
       {
         <Section>
           <DetailHeader Icon="rectangle-horizontal" IconMuted Label="Spawn protection" />
-          <p class="section-desc">Draw a rectangle around a spawn, or select one to inspect and resize it.</p>
+          <p class="section-desc">Draw a rectangle around a spawn, or select one to resize it.</p>
         </Section>
       }
   </Inspector>

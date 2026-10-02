@@ -11,7 +11,7 @@
 .cat-badge--emitter-only { color: var(--text-muted, var(--text-secondary)); border-style: dashed; }
 
 .cat-knob {
-  padding: 0 5px; font-size: 10px; font-family: ui-monospace, monospace;
+  padding: 0 5px; font-size: var(--font-xs); font-family: ui-monospace, monospace;
   color: var(--text-secondary); background: var(--bg-selected); border-radius: var(--radius-sm);
 }
 
@@ -20,7 +20,7 @@
 .cat-probe-none { font-size: var(--font-xs); color: var(--text-secondary); }
 .cat-probe-reject { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .cat-probe-code {
-  padding: 1px 6px; font-size: 10px; font-family: ui-monospace, monospace;
+  padding: 1px 6px; font-size: var(--font-xs); font-family: ui-monospace, monospace;
   color: var(--warn, #d9a441); border: 1px solid var(--warn, #d9a441); border-radius: var(--radius-sm);
 }
 .cat-probe-why { margin: 0; font-size: var(--font-xs); line-height: 1.5; color: var(--text-secondary); }

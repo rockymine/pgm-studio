@@ -42,7 +42,7 @@ public partial class SketchInfoPhase
                 authors.Add(new AuthorRow { Uuid = a.Uuid, Name = a.Name ?? "", Contribution = a.Contribution ?? "" });
             dirty = false; saveStatus = null;
         }
-        catch { saveStatus = "Failed to load."; }
+        catch { saveStatus = "Couldn't load the map details. Reload the page to try again."; }
     }
 
     private void Dirty() { dirty = true; saveStatus = null; }
@@ -64,9 +64,9 @@ public partial class SketchInfoPhase
         {
             var resp = await Http.PatchAsJsonAsync($"api/map/{Slug}/metadata", payload);
             if (resp.IsSuccessStatusCode) { dirty = false; saveStatus = "Saved."; }
-            else saveStatus = $"Save failed ({(int)resp.StatusCode}).";
+            else saveStatus = $"Couldn't save (HTTP {(int)resp.StatusCode}). Try again.";
         }
-        catch { saveStatus = "Save failed."; }
+        catch { saveStatus = "Couldn't save. Try again."; }
         StateHasChanged();
     }
 }

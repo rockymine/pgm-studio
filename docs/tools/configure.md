@@ -140,7 +140,7 @@ for survives a save untouched.
 When `symmetry` is set, the generator **orbit-fills by default**: the author defines one team's unit and
 `SymmetryExpander` rotates or reflects it onto the others before projection, mapping orbit positions to
 `teams` in list order. That is why the steps below talk about placing team 0's spawn and getting the rest —
-the mirrored copies are generated, listed read-only with an *orbit* badge, and not separately editable. With
+the mirrored copies are generated, listed read-only with a *Copy* badge, and not separately editable. With
 no symmetry the intent passes through as authored and every team's units must be stated explicitly.
 
 ## What a save produces
@@ -399,7 +399,7 @@ Leak is not a block: it is an attribute on the `<core>` element and nowhere else
 that authors the element. Paired with the measured float it states the dig — a leak greater than the float
 means breaching the casing is not enough and players must cut the ground out from under it.
 
-### Review & Export — Pre-flight · Region tree · XML
+### Review and export — Pre-flight · Region tree · XML
 
 **Pre-flight** runs five checks server-side over the generated map and reports the export verdict. Two are
 blocking and three advisory:

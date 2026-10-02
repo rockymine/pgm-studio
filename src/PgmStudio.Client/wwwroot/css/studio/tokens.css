@@ -138,44 +138,52 @@
   --canvas-diff-surface:   #3db8e8;
   --canvas-diff-structure: #d04dd0;
 
+  /* ── Text size ─────────────────────────────────────────────────────── */
+  /* One multiplier behind every size below: type, icons, controls, spacing and panel widths. The reader picks
+   * it (the text-size button in the studio bar sets `data-text-size` on <html>, stored as `pgm-text-size`), so
+   * a large display does not need the browser zoomed. The overrides sit after this block. */
+  --ui-scale: 1;
+
   /* ── Type scale ─────────────────────────────────────────────────────── */
-  --font-lg:   14px;   /* body default */
-  --font-md:   13px;   /* inputs, list labels, form values */
-  --font-base: 12px;   /* most common — badges, buttons, panels */
-  --font-sm:   11px;   /* helper text, field labels, tags */
-  --font-xs:   10px;   /* smallest prose, section headers */
+  --font-2xl:  calc(26px * var(--ui-scale));   /* page hero */
+  --font-xl:   calc(20px * var(--ui-scale));   /* page heading */
+  --font-lg:   calc(15px * var(--ui-scale));   /* body default */
+  --font-md:   calc(14px * var(--ui-scale));   /* inputs, list labels, form values */
+  --font-base: calc(13px * var(--ui-scale));   /* most common — badges, buttons, panels */
+  --font-sm:   calc(12px * var(--ui-scale));   /* helper text, field labels, tags */
+  --font-xs:   calc(11px * var(--ui-scale));   /* smallest prose, section headers */
 
   /* ── Sidebar widths ─────────────────────────────────────────────────── */
-  --sidebar-width:   280px;   /* left panels — list / form content */
-  --inspector-width: 280px;   /* right panels — detail / property view */
+  --sidebar-width:   calc(280px * var(--ui-scale));   /* left panels — list / form content */
+  --inspector-width: calc(280px * var(--ui-scale));   /* right panels — detail / property view */
 
   /* ── Icon sizes ──────────────────────────────────────────────────────── */
   /* A lucide glyph's box. The app named eight sizes (11 · 13 · 14 · 15 · 16 · 20 · 22 · 24px) across twenty
    * rules with no scale behind them; these are the five they collapse to. --icon-md is the default, applied
    * to every glyph by the `svg.lucide` rule in components.css — studio.js sets the same number as an
    * attribute so a glyph is never briefly lucide's own 24px before the stylesheet lands. */
-  --icon-xs: 13px;   /* dense chrome — a close ✕, a step chip, a search adornment */
-  --icon-sm: 14px;   /* inline with a line of text — tray labels, footer links */
-  --icon-md: 16px;   /* the default — buttons, toolbars, headings */
-  --icon-lg: 20px;   /* a standalone affordance — card heads, the nav rail */
-  --icon-xl: 24px;   /* hero — the landing cards */
+  --icon-xs: calc(13px * var(--ui-scale));   /* dense chrome — a close ✕, a step chip, a search adornment */
+  --icon-sm: calc(14px * var(--ui-scale));   /* inline with a line of text — tray labels, footer links */
+  --icon-md: calc(16px * var(--ui-scale));   /* the default — buttons, toolbars, headings */
+  --icon-lg: calc(20px * var(--ui-scale));   /* a standalone affordance — card heads, the nav rail */
+  --icon-xl: calc(24px * var(--ui-scale));   /* hero — the landing cards */
 
   /* ── Control height ──────────────────────────────────────────────────── */
   /* One control tall — what a .field-input select resolves to at --font-md. A select, a text input and an
-   * icon button each land on a different intrinsic height for the same type size (31 / 29 / 26px), so a row
+   * icon button each land on a different intrinsic height for the same type size, a few pixels apart, so a row
    * that mixes them states the height once and every control in it takes that. The square ones (an icon
    * button, a colour chip, a style swatch) then read their WIDTH off it, which only works against a height
    * that is definite — `align-items: stretch` alone is not, and an aspect-ratio given nothing to measure
    * collapses the box instead. */
-  --control-height: 31px;
+  --control-height: calc(32px * var(--ui-scale));
 
   /* ── Spacing scale ───────────────────────────────────────────────────── */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
+  --space-1: calc(4px * var(--ui-scale));
+  --space-2: calc(8px * var(--ui-scale));
+  --space-3: calc(12px * var(--ui-scale));
+  --space-4: calc(16px * var(--ui-scale));
+  --space-5: calc(20px * var(--ui-scale));
+  --space-6: calc(24px * var(--ui-scale));
 
   /* ── Border radii ────────────────────────────────────────────────────── */
   --radius-sm:   3px;
@@ -185,6 +193,11 @@
   /* ── Motion ──────────────────────────────────────────────────────────── */
   --transition-fast: 0.12s ease;
 }
+
+/* Text size — the reader's choice, independent of the theme. `default` is the :root value. */
+:root[data-text-size="small"]  { --ui-scale: 0.9; }
+:root[data-text-size="large"]  { --ui-scale: 1.15; }
+:root[data-text-size="larger"] { --ui-scale: 1.3; }
 
 /* ════════════════════════════════════════════════════════════════════════════
    LIGHT THEME — colour overrides only (structural tokens inherit from :root).

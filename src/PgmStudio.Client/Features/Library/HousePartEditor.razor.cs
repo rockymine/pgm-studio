@@ -65,10 +65,10 @@ public partial class HousePartEditor
             }
             rows.AddRange(Part.Stacked.Select(piece => new EditorPart(
                 piece.Id, piece.Title, "layers",
-                Badge: Courses(piece.Id).Count is var n and > 0 ? $"{n} course{(n == 1 ? "" : "s")}" : "built-in")));
+                Badge: Courses(piece.Id).Count is var n and > 0 ? $"{n} course{(n == 1 ? "" : "s")}" : "default")));
             rows.AddRange(Part.Single.Select(piece => new EditorPart(
                 piece.Id, piece.Title, "dot",
-                Badge: StyleOf(Single(piece.Id))?.Name ?? "unbound")));
+                Badge: StyleOf(Single(piece.Id))?.Name ?? "none")));
             return rows;
         }
     }
@@ -161,10 +161,10 @@ public partial class HousePartEditor
         }
     }
 
-    private const string Unreadable = "That part could not be read.";
+    private const string Unreadable = "Couldn't load this part. Reload the page to try again.";
 
     /// <summary>What an unbound course says: a part with none keeps the finish the stamper builds in.</summary>
-    private const string Unbound = "Unbound — keeps the built-in finish";
+    private const string Unbound = "None (default finish)";
 
     private void Clear() => (roof, storey, porch) = (null, null, null);
 
@@ -350,11 +350,11 @@ public partial class HousePartEditor
     private async Task Save()
     {
         if (string.IsNullOrWhiteSpace(draftName)) return;
-        if (Draft(draftName.Trim()) is not { } request) { note = "That could not be saved."; return; }
+        if (Draft(draftName.Trim()) is not { } request) { note = "Couldn't save this part. Try again."; return; }
         var saved = editingId is { } id
             ? await Library.UpdateAsync<PartSaved>(Part.Kind, id, request)
             : await Library.CreateAsync<PartSaved>(Part.Kind, request);
-        if (saved is null) { note = "That could not be saved."; return; }
+        if (saved is null) { note = "Couldn't save this part. Try again."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{Part.Kind.Slug}/{saved.Id}");
@@ -373,8 +373,8 @@ public partial class HousePartEditor
         if (await Library.DeleteAsync(Part.Kind, id) is { Deleted: false } refused)
         {
             note = refused.BoundBy.Count > 0
-                ? $"Still worn by {string.Join(", ", refused.BoundBy)} — change those first."
-                : "That could not be forgotten.";
+                ? $"Can't delete this part. It is used by {string.Join(", ", refused.BoundBy)}. Remove it there first."
+                : "Couldn't delete this part. Try again.";
             return;
         }
         Nav.NavigateTo($"/library/{Part.Kind.Slug}");

@@ -322,11 +322,11 @@ export class ReliefDoc {
    */
   rename(id, next) {
     const wanted = String(next ?? "").trim();
-    if (!wanted) return "a mark needs a name";
+    if (!wanted) return "A mark needs a name.";
     if (wanted === id) return null;
-    if (this.#allIds().includes(wanted)) return `'${wanted}' is already a mark on this map`;
+    if (this.#allIds().includes(wanted)) return `Another mark is already named '${wanted}'.`;
     const found = this.#locate(id);
-    if (!found) return "no such mark";
+    if (!found) return "That mark no longer exists.";
     const at = found.list.findIndex(entry => entry.id === id);
     found.list[at] = { ...found.list[at], id: wanted };
     return null;

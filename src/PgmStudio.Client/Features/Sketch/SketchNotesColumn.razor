@@ -12,7 +12,7 @@
       <div class="notes-column__head">
         <div class="notes-column__title">
           <span class="notes-column__kicker">NOTES</span>
-          <span class="notes-column__name">@(ViewName ?? "This picture")</span>
+          <span class="notes-column__name">@(ViewName ?? "This view")</span>
         </div>
         <Button Variant="primary" Icon="plus" OnClick="OnNew">New note</Button>
       </div>
@@ -26,17 +26,17 @@
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
         @{ var here = OnThisPicture.Where(Passes).ToList(); }
         @foreach (var note in here) { @Row(note) }
-        @if (here.Count == 0) { <p class="notes-column__empty">No notes on this picture with this filter.</p> }
+        @if (here.Count == 0) { <p class="notes-column__empty">No matching notes on this view.</p> }
         @{ var whole = OnTheMap.Where(Passes).ToList(); }
         @if (whole.Count > 0)
         {
-          <div class="notes-column__group">ON THE WHOLE MAP</div>
+          <div class="notes-column__group">WHOLE MAP</div>
           @foreach (var note in whole) { @Row(note) }
         }
         @{ var elsewhere = Elsewhere.Where(Passes).ToList(); }
         @if (elsewhere.Count > 0)
         {
-          <div class="notes-column__group">ON OTHER PICTURES</div>
+          <div class="notes-column__group">OTHER VIEWS</div>
           @foreach (var note in elsewhere) { @Row(note) }
         }
       </div>
@@ -54,7 +54,7 @@
         @if (ChangesSince(note) is > 0 and var since)
         {
           <button type="button" class="notes-column__since" @onclick="() => OnChangesSince.InvokeAsync(LastChange(note))">
-            @since @(since == 1 ? "change" : "changes") since the last message ›
+            @since @(since == 1 ? "change" : "changes") since the last reply ›
           </button>
         }
       </div>
@@ -95,7 +95,7 @@
                   @oninput="e => reply = e.Value?.ToString() ?? string.Empty"></textarea>
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
         <div class="notes-column__send">
-          <span class="notes-column__hint">A reply hands the thread back to the agent.</span>
+          <span class="notes-column__hint">Your reply goes to the agent.</span>
           <Button Variant="primary" Disabled="@string.IsNullOrWhiteSpace(reply)" Busy="Busy" BusyLabel="Sending…"
                   OnClick="SendReplyAsync">Send</Button>
         </div>
@@ -112,7 +112,7 @@
         <div class="notes-column__anchor">
           <b>@AnchorTitle</b>
           <p>@AnchorBody</p>
-          @if (HasMark) { <Button OnClick="OnClearMark">Clear the mark</Button> }
+          @if (HasMark) { <Button OnClick="OnClearMark">Clear mark</Button> }
         </div>
         @if (!WholeMap)
         {
@@ -121,14 +121,14 @@
       </div>
       <div class="notes-column__compose">
         <label class="notes-column__label" for="note-body">Note</label>
-        <textarea id="note-body" class="field-input" rows="4" placeholder="Write a note. A tag is optional." value="@draft"
+        <textarea id="note-body" class="field-input" rows="4" placeholder="Write a note…" value="@draft"
                   @oninput="e => draft = e.Value?.ToString() ?? string.Empty"></textarea>
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
         <div class="notes-column__send">
           <label class="notes-column__label" for="note-tag">Tag</label>
           <select id="note-tag" class="field-input notes-column__tagpick" value="@(tag ?? "")"
                   @onchange="e => tag = e.Value?.ToString() is { Length: > 0 } picked ? picked : null">
-            <option value="">none</option>
+            <option value="">None</option>
             @foreach (var word in NoteTags.All) { <option value="@word">@word</option> }
           </select>
           <span class="notes-column__hint"></span>

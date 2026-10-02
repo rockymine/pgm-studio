@@ -229,7 +229,7 @@ public partial class SketchDressingInspector
     /// apart. The canvas answers the same question for the keyboard, and this is the button's half of it.</summary>
     private bool CanJoin => editingSelection && (picked > 1 || Wings > 1);
 
-    private string JoinLabel => Wings > 1 && picked <= 1 ? "Take apart" : "Join into one building";
+    private string JoinLabel => Wings > 1 && picked <= 1 ? "Split" : "Join buildings";
 
     /// <summary>The chord as the platform spells it, so the sentence naming it cannot disagree with the key
     /// that runs it.</summary>
@@ -418,13 +418,13 @@ public partial class SketchDressingInspector
     private static readonly IReadOnlyDictionary<string, (string Icon, string Title, string Blurb)> KindInfo =
         new Dictionary<string, (string, string, string)>
         {
-            [PropKinds.Stroke] = ("spline", "Stroke", "A band of surface along a line you draw. It swaps the ground it crosses rather than building on it — a road, a worn trail, a smear of dirt or a painted forest floor, depending on the brush and what it lays. Mark it as claiming its ground and trees, boulders and buildings will keep clear of it."),
-            [PropKinds.Fluid] = ("waves", "Fluid", "A channel or pool of water or lava. It cuts a bed into the ground and fills it to a level line — the one prop that takes terrain away rather than standing on it. Only existing ground is cut, and it is mirrored across the map's symmetry."),
-            [PropKinds.Flora] = ("flower", "Cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
-            [PropKinds.Tree] = ("trees", "Tree", "One tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
-            [PropKinds.Boulder] = ("mountain", "Boulder", "One erratic, standing where you put it and bedded into the ground. Mirrored across the map's symmetry, so both teams get the same cover."),
-            [PropKinds.House] = ("home", "Building", "A building on the rectangle you dragged, raised in a shell from the room-style library. It settles into the ground it covers, and it is mirrored across the map's symmetry, so both teams get the same cover."),
-            [PropKinds.Chest] = ("box", "Chest", "One chest holding the stacks you list, on the ground where you put it or at a course you state — a tower's deck, a made thing's floor. Mirrored across the map's symmetry, so both teams get the same loot."),
+            [PropKinds.Stroke] = ("spline", "Stroke", "A band of surface along a line you draw, such as a road, a trail, or a forest floor. It replaces the ground it crosses. Make it a path to keep trees, boulders, and buildings off it."),
+            [PropKinds.Fluid] = ("waves", "Fluid", "A channel or pool of water or lava. It cuts a bed into existing ground and fills it to a level line. It is mirrored across the map."),
+            [PropKinds.Flora] = ("flower", "Ground cover", "Grass, ferns, and flowers on the soil inside the area you draw. Nothing grows on paved ground."),
+            [PropKinds.Tree] = ("trees", "Tree", "One tree, where you place it. Mirrored so both teams get the same cover."),
+            [PropKinds.Boulder] = ("mountain", "Boulder", "One boulder, set into the ground where you place it. Mirrored so both teams get the same cover."),
+            [PropKinds.House] = ("home", "Building", "A building on the rectangle you drag, using a room style from the library. It settles into the ground and is mirrored so both teams get the same cover."),
+            [PropKinds.Chest] = ("box", "Chest", "One chest with the items you list, on the ground or at a set height. Mirrored so both teams get the same loot."),
         };
 
     private (string Icon, string Title, string Blurb) Info

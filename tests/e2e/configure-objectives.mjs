@@ -103,9 +103,9 @@ checks.section("a core-only map is not held behind an empty wool slice");
 
 await arrange({ wools: [], cores: [core(owner)] });
 
-await openPhase("Review & Export");
+await openPhase("Review and export");
 const reviewTitle = await page.textContent(".flow-bar-phase span");
-checks.add("Review is reachable with no wools at all", reviewTitle?.trim() === "Review & Export", reviewTitle?.trim());
+checks.add("Review is reachable with no wools at all", reviewTitle?.trim() === "Review and export", reviewTitle?.trim());
 
 const locked = await page.$$eval(".nav-btn", els =>
   els.filter(e => e.disabled).map(e => e.getAttribute("title")));

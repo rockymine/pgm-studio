@@ -83,9 +83,9 @@ public partial class Maps
 
     private static string LayerTitle(MapSummary map, string layer) => layer switch
     {
-        MapStage.Plan => "Open the plan this map was compiled from. Nothing is rebuilt by looking.",
-        MapStage.Sketch => "Open the sketch this map's geometry was drawn in. Nothing is rebuilt by looking.",
-        _ => "Open the Configure wizard on this map's world.",
+        MapStage.Plan => "Open the plan this map was built from. Opening it changes nothing.",
+        MapStage.Sketch => "Open the sketch this map was drawn in. Opening it changes nothing.",
+        _ => "Open this map's world in Configure.",
     };
 
     private string CurrentStage => MapStage.IsValid(Stage) ? Stage! : MapStage.Edit;
@@ -104,18 +104,18 @@ public partial class Maps
     // "every map at the plan stage" are different collections and the difference is the point.
     private string StageBlurb => CurrentStage switch
     {
-        MapStage.Plan => "Every map that holds a plan — including ones already built and configured. Open one to keep planning.",
-        MapStage.Sketch => "Every map that holds a drawn sketch — including ones already configured. Open one to keep sketching.",
-        MapStage.Configure => "Worlds with terrain but no finished map.xml — sketched or imported. Open one to keep configuring.",
-        _ => "Maps with a finished map.xml. Open one on the last layer it holds — its world in Configure, where it has one.",
+        MapStage.Plan => "Maps that have a plan, including finished ones.",
+        MapStage.Sketch => "Maps that have a sketch, including finished ones.",
+        MapStage.Configure => "Sketched or imported worlds that do not have a finished map.xml yet.",
+        _ => "Maps with a finished map.xml.",
     };
 
     private string EmptyMessage => CurrentStage switch
     {
-        MapStage.Plan => "No plans yet — start one above, or author one from the generator.",
-        MapStage.Sketch => "No sketches yet — start one above.",
-        MapStage.Configure => "Nothing to configure — import a world, or finish a sketch.",
-        _ => "No maps yet.",
+        MapStage.Plan => "No plans yet. Create one, or open a layout from the generator.",
+        MapStage.Sketch => "No sketches yet. Create one to get started.",
+        MapStage.Configure => "Nothing to configure yet. Import a world, or build a sketch.",
+        _ => "No finished maps yet.",
     };
 
     private IEnumerable<MapSummary> Filtered =>
@@ -128,7 +128,7 @@ public partial class Maps
     /// that they may.</summary>
     private bool mayWrite;
 
-    private string? WriteTitle => mayWrite ? null : "Sign in as someone on the whitelist to start a map";
+    private string? WriteTitle => mayWrite ? null : "Sign in with a whitelisted account to start a map";
 
     protected override async Task OnParametersSetAsync()
     {

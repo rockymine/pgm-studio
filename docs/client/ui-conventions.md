@@ -5,6 +5,8 @@ the reference for which component to reach for, what each one takes, and the han
 and the CSS from fighting each other. Where a component lives is `CLAUDE.md`'s Client folder rule
 (`Pages/`, `Features/<Tool>/`, `Components/`); this is what is *in* `Components/`.
 
+How the copy on a panel is worded is `writing-for-the-ui.md`.
+
 Read alongside:
 - `../../src/PgmStudio.Client/wwwroot/css/studio/tokens.css` — the custom properties. A component never
   hardcodes a colour, a space or a radius; it emits classes that resolve to tokens.
@@ -55,8 +57,8 @@ on its own, `ListRow` (the list row with its swatch, label, tag, go-arrow and a 
 the row carries), and `DetailHeader` (an inspector head: icon, label, trailing badges).
 
 **Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + the two bars + body + footer);
-`AppNav` is the studio's own bar on every page — home, a link per tool, the theme and `AccountMenu`, who is
-signed in; `Topbar` is the tool's bar under it — the home link, a `Crumbs` slot composed from `Crumb`, a *View
+`AppNav` is the studio's own bar on every page — home, a link per tool, `TextSizeMenu`, the theme and
+`AccountMenu`, who is signed in; `Topbar` is the tool's bar under it — the home link, a `Crumbs` slot composed from `Crumb`, a *View
 only* tag on a read-only page, and the tool's actions; `AppFooter` closes every page with the keyboard
 shortcuts, the design reference and the repository; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
@@ -95,6 +97,19 @@ goes. What the shells do not reach is recorded as `RP81`.
 
 The server refuses every write the caller may not make whatever the page shows (`docs/access.md`); this is
 what lets the page say so before an edit rather than after it.
+
+## Text size
+
+**Every size in the client is one design size times `--ui-scale`.** Type, icons, the control height, the
+spacing steps and the two panel widths in `tokens.css` are each `calc(<px> * var(--ui-scale))`, and the
+reader picks the scale from `TextSizeMenu` in the studio bar: *Small* 0.9, *Default* 1, *Large* 1.15 and
+*Larger* 1.3, kept in `localStorage` as `pgm-text-size` and applied by the inline script in `index.html`
+before any stylesheet loads. A rule that writes a raw pixel size escapes the setting, so a new size is a
+token or a `calc` over the scale. Text drawn on a canvas is outside every stylesheet and takes its size from
+`labelPx` in `js/studio/shared/ui-scale.js`, which reads the same scale.
+
+The default type scale is 15 / 14 / 13 / 12 / 11px, and a button is at least 28px tall at the default size,
+above the 24 × 24px minimum target size of WCAG 2.2 (2.5.8).
 
 ## The words a form writes, and where they are declared
 
@@ -141,7 +156,7 @@ group's ground"* — is a third vocabulary for a thing that already had one, and
 cannot look up what they just chose.
 
 **Under a control goes what the numbers work out to, not what the control is for.** `Top at 8`; `Drops 12 over
-a 2-block face: 6 a block, only ever descended`; `Edge grades over 5 blocks; 6 of its 16 blocks stays flat`.
+a 2-block face: 6 a block, only ever descended`; `The edge slopes over 5 blocks. 6 of its 16 blocks stay flat`.
 A readout is short because a fact is short, it is always true because it is computed, and it changes when the
 author changes something, which is the only way a panel teaches a knob. A paragraph explaining what a bevel is
 does none of the three, and the argument for why the knob is shaped that way is a document's job — `docs/` is
@@ -170,7 +185,7 @@ chosen. The pattern it replaces (`control-input--hidden` under a `plan-readout` 
 is in none.
 
 **What survives as prose is a keymap, an empty state, or a fact with nowhere else to live.** *Move: arrow keys
-· Shift+arrow = 16 blocks* is a keymap. *Nothing stated yet* is an empty state. *Turns with the building at
+· Shift+arrow = 16 blocks* is a keymap. *No relief yet* is an empty state. *Turns with the building at
 every mirror image* is behaviour a reader cannot see and no number states. Everything else is a note, a
 `LabelHint`, or a readout.
 
@@ -208,7 +223,7 @@ removed on its own.
 **A label states what the control can do now, not what its subject is.** Where a button's word is read off one
 fact and its enabled-ness off another, the two contradict each other the moment they disagree — a label naming
 the map's next build over a control disabled by a compile that was refused. So the label follows whatever
-disables it: the plan drawer's footer reads *Compile first* or *Fix 2 blocking problems first*, and the map's
+disables it: the plan drawer's footer reads *Compile first* or *Fix 2 problems first*, and the map's
 own word only in the state where the button can act.
 
 **A named slot forces the others to be named too.** Blazor stops treating loose markup as `ChildContent` the

@@ -15,9 +15,9 @@
     <ContentColumn MaxWidth="720">
       @if (step == 0)
       {
-        <Section Title="Map Identity">
+        <Section Title="Details">
           <Field Label="Map name" Required For="sk-name">
-            <input id="sk-name" class="field-input" type="text" placeholder="My CTW Map"
+            <input id="sk-name" class="field-input" type="text" placeholder="e.g. Harbour Run"
                    value="@name" @oninput="e => { name = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
           </Field>
         </Section>
@@ -35,7 +35,7 @@
       {
         <Section Title="Symmetry">
           <Field Label="Mode">
-            <LabelHint>(the mirror the preview draws; the board grows to fit)</LabelHint>
+            <LabelHint>(how the preview mirrors your shapes)</LabelHint>
             <ChildContent>
               <select class="field-input" value="@Mode" @onchange="OnModeChange">
                 <option value="mirror_x">Mirror X</option>

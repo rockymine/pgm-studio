@@ -58,6 +58,7 @@ import { renderDimensionPill } from "../render/canvas-chrome.js";
 import { layerStack, clearLayer } from "../render/layer-stack.js";
 import { CanvasPainter } from "../render/canvas-painter.js";
 import { CanvasBase, ZOOM_MIN, ZOOM_MAX } from "./canvas-base.js";
+import { labelPx } from "../shared/ui-scale.js";
 import { WorldDrawController } from "../controllers/world-draw-controller.js";
 import { WorldEditController, RESIZABLE_TYPES } from "../controllers/world-edit-controller.js";
 import { SelectController } from "../controllers/select-controller.js";
@@ -535,7 +536,7 @@ export class WorldCanvas extends CanvasBase {
       if (!n.bounds || n.marker || n.ghost) continue;   // mirror real rectangles only (not markers/ghosts)
       axes.forEach((ax, j) => out.push({
         id: `${n.id}~m${j}`, type: "rectangle", ghost: true,
-        color: n.color, label: `${n.label ?? n.id} (mirror)`,
+        color: n.color, label: `${n.label ?? n.id} (symmetry copy)`,
         bounds: applySymmetryToBounds(n.bounds, ax, cx, cz),
       }));
     }
@@ -611,7 +612,7 @@ export class WorldCanvas extends CanvasBase {
         x: w / 2, y: h / 2, "text-anchor": "middle", "dominant-baseline": "middle",
         "font-size": "13", fill: "#888",
       });
-      hint.textContent = "No map bounds yet — run the pipeline to view this map.";
+      hint.textContent = "This map has no world data yet, so there is nothing to show.";
       this._svg.appendChild(hint);
       return;
     }
@@ -811,7 +812,7 @@ export class WorldCanvas extends CanvasBase {
     const nameEl = svgEl("text", {
       x: left, y: top - 5,
       "text-anchor": "start", "dominant-baseline": "alphabetic",
-      "font-size": "11", "font-family": "ui-monospace, monospace",
+      "font-size": labelPx(11), "font-family": "ui-monospace, monospace",
       fill: color, "pointer-events": "none",
     });
     nameEl.textContent = labelText;

@@ -200,7 +200,7 @@ export class SideviewCanvas {
 
     if (!this.#data || !this.#offscreen) {
       painter.layer("empty", () => {
-        painter.text("No segment data", W / 2, H / 2, {
+        painter.text("No scan data", W / 2, H / 2, {
           fill: "var(--text-muted, #888)", size: 14, font: "system-ui, sans-serif",
         });
       });

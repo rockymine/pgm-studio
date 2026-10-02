@@ -14,11 +14,11 @@
     <span class="block-chip" style="background:@Hex" title="@Name"></span>
     <Select Options="Offered" Value="@SelectedKey" ValueChanged="ChooseBlock" />
     <CoordField Prefix="id" Type="number" Value="@Id" OnChange="SetId"
-                min="0" step="1" title="The block id this material places" />
+                min="0" step="1" title="Block ID" />
     @if (ShowColors)
     {
       <CoordField Prefix="data" Type="number" Value="@Data" OnChange="SetData"
-                  min="0" max="15" step="1" title="The block's data value — its shade, where it has one" />
+                  min="0" max="15" step="1" title="Data value (for example, the colour)" />
     }
   </div>
 

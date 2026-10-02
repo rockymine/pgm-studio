@@ -62,7 +62,7 @@ public partial class HouseEditor
             if (draft is null) return [];
             List<EditorPart> rows =
             [
-                new(ComposedPart, "Composed from", "blocks", Badge: BoundParts),
+                new(ComposedPart, "Saved parts", "blocks", Badge: BoundParts),
                 .. RoomPartInfo.All.Select(part => new EditorPart(
                     part.Id, part.Title, "layers", Badge: PartBadge(part))),
                 new(TrimPart, "Frame and trim", "dot", Badge: TrimBadge),
@@ -80,15 +80,15 @@ public partial class HouseEditor
         {
             var bound = (draft!.RoofStyleId is not null ? 1 : 0) + (draft.PorchStyleId is not null ? 1 : 0)
                 + (draft.StoreyStack.Count > 0 ? 1 : 0);
-            return bound == 0 ? "own" : $"{bound} bound";
+            return bound == 0 ? "none" : $"{bound} set";
         }
     }
 
     private string PartBadge(RoomPartInfo part)
     {
-        if (!part.Stacked) return StyleOf(Single(part.Id))?.Name ?? "built-in";
+        if (!part.Stacked) return StyleOf(Single(part.Id))?.Name ?? "default";
         var count = Courses(part.Id).Count;
-        return count == 0 ? "built-in" : $"{count} course{(count == 1 ? "" : "s")}";
+        return count == 0 ? "default" : $"{count} course{(count == 1 ? "" : "s")}";
     }
 
     private string TrimBadge
@@ -96,7 +96,7 @@ public partial class HouseEditor
         get
         {
             var bound = RoomPartInfo.Trim.Count(part => Single(part.Id) > 0);
-            return bound == 0 ? "plain" : $"{bound} bound";
+            return bound == 0 ? "none" : $"{bound} set";
         }
     }
 
@@ -205,7 +205,7 @@ public partial class HouseEditor
     {
         if (await Library.GetAsync<RoomStyleDetail>(LibraryKinds.Houses, id) is not { } detail)
         {
-            note = "That house could not be read.";
+            note = "Couldn't load this house. Reload the page to try again.";
             draft = null;
             return;
         }
@@ -319,7 +319,7 @@ public partial class HouseEditor
         => [.. doors.Select(door => new SelectOption(door.Slug, door.Label))];
 
     /// <summary>What an unbound course says: a part with none keeps the finish the stamper builds in.</summary>
-    private const string Unbound = "Unbound — keeps the built-in finish";
+    private const string Unbound = "None (default finish)";
 
     /// <summary>Add a storey on top. The stack reads ground-first, so a new one lands at the end — a building
     /// grows upward, and an author adding a floor is adding the one above the last.</summary>
@@ -588,7 +588,7 @@ public partial class HouseEditor
         var saved = editingId is { } id
             ? await Library.UpdateAsync<RoomStyleDetail>(LibraryKinds.Houses, id, request)
             : await Library.CreateAsync<RoomStyleDetail>(LibraryKinds.Houses, request);
-        if (saved is null) { note = "The library refused that house."; return; }
+        if (saved is null) { note = "Couldn't save this house. Try again."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{LibraryKinds.HousesSlug}/{saved.Id}");
@@ -600,7 +600,7 @@ public partial class HouseEditor
         if (draft is null) return;
         var copy = await Library.CreateAsync<RoomStyleDetail>(LibraryKinds.Houses,
             Saveable(draft) with { Name = $"{draftName.Trim()} copy" });
-        if (copy is null) { note = "The library refused that house."; return; }
+        if (copy is null) { note = "Couldn't save a copy of this house. Try again."; return; }
         Nav.NavigateTo($"/library/{LibraryKinds.HousesSlug}/{copy.Id}");
     }
 

@@ -202,7 +202,7 @@ export function defaultReference(map) { return { map, offset: [0, 0], scale: 1, 
 /** Parse a plan JSON string into a normalised document, or throw if it isn't a plan object. */
 export function fromJson(text) {
   const parsed = JSON.parse(text);
-  if (!parsed || typeof parsed !== "object" || !("plan" in parsed)) throw new Error("Not a plan document");
+  if (!parsed || typeof parsed !== "object" || !("plan" in parsed)) throw new Error("This isn't a plan file.");
   return normalizeDoc(parsed);
 }
 

@@ -256,13 +256,13 @@ reasons.
 the frontline form are columns of `composed_board`, so a filter narrows the stored set in the database and a
 strict conjunction costs what a loose one does. The response says how many boards match, and the page shows
 `M of N boards match` above the grid. **The feed ends where the library does**: scrolling and *Load more* stop
-at the last matching board, and the page says *that is every board for these settings*.
+at the last matching board, and the page says *No more layouts for these settings*.
 
 **The census is what makes an empty grid legible.** Every page carries the census over every board the library
 holds for the band and symmetry, counted before the filters, so picking a filter cannot hide the forms it
 filters against. Past 150 boards an absence is reported as an absence: a chip nothing in the library has is
-dimmed, and an empty grid says *this is not a mix these players and symmetry produce* rather than *no boards
-match*. A library with nothing for the settings says it is still being composed.
+dimmed, and an empty grid says *these players and symmetry don't produce it* rather than *none of the layouts
+match these filters*. A library with nothing for the settings says it is still being generated.
 
 **A card carries the board and its verdicts.** The picture is the whole fanned board, server-rendered from the
 same scene the PNG endpoint draws, coloured by role — hub violet, spawn green, wool amber, frontline orange —
@@ -271,7 +271,7 @@ naming every one of them. Badges along the top are the structural read, which ar
 chips use. The
 foot carries the evaluator score, the wool count, the seed, and the land spend. Opening a card gives the same
 in a drawer, with the score to two places, the per-box spend table, the top three soft terms by contribution,
-and the descriptor as copyable JSON.
+and the descriptor as JSON behind *Copy JSON*.
 
 **Land spend is two currencies and the card says so.** *Footprint* is the box rectangle, fixed when the box
 was seated; *land* is what the filled pieces actually cover, which is what the spend gate holds against the
@@ -296,7 +296,7 @@ soft sum, which is why the slider stops at 8.
 
 **Pinning and authoring are the two exits.** The pin toggle keeps the library board the descriptor names and
 refreshes the tray; the tray's thumbnails come from the stored rows rather than from the cards, so a board held in an
-earlier session looks the same as one held a moment ago. *Author this plan* pins first if the board is not
+earlier session looks the same as one held a moment ago. *Open in plan editor* pins first if the board is not
 already held, then commits the candidate to a map and navigates to `/maps/{slug}/plan`.
 
 ## What it refuses

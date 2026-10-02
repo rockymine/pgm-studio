@@ -9,19 +9,15 @@
     <DetailHeader Icon="history" Label="@Title" />
     @if (Change is null)
     {
-      <p class="plan-readout">
-        Pick a change to see what it did. Its shapes are drawn over the board — added green, taken away red,
-        reshaped amber with the old outline dashed, otherwise changed blue — and so are its props, from where they
-        stood to where they stand.
-      </p>
+      <p class="plan-readout">Pick a change to see what it did.</p>
     }
     else
     {
-      <p class="plan-readout">@SketchHistoryList.Who(Change) · @Moments.Ago(Change.At) · wrote the @string.Join(", ", Change.Documents)</p>
+      <p class="plan-readout">@SketchHistoryList.Who(Change) · @Moments.Ago(Change.At) · changed the @string.Join(", ", Change.Documents)</p>
       @if (Change.Note is { Length: > 0 } note) { <p class="change-note">“@note”</p> }
       @if (Change.Discarded is { Count: > 0 } dropped)
       {
-        <p class="plan-readout">dropped @string.Join(", ", dropped.Select(number => $"#{number}")), which its source had not seen</p>
+        <p class="plan-readout">Discarded @string.Join(", ", dropped.Select(number => $"#{number}")), which its writer hadn't seen.</p>
       }
       @if (OriginLink is { } link)
       {
@@ -31,14 +27,20 @@
   </Section>
   @if (Change is not null)
   {
-    <Section Title="What it did">
+    <Section Title="Edits">
+      <div class="change-legend" aria-label="Colours on the map">
+        <span><span class="change-legend__swatch change-legend__swatch--added"></span>Added</span>
+        <span><span class="change-legend__swatch change-legend__swatch--removed"></span>Removed</span>
+        <span><span class="change-legend__swatch change-legend__swatch--reshaped"></span>Reshaped</span>
+        <span><span class="change-legend__swatch change-legend__swatch--changed"></span>Changed</span>
+      </div>
       @if (Diff is null)
       {
-        <p class="plan-readout">Comparing the documents…</p>
+        <p class="plan-readout">Comparing…</p>
       }
       else if (Diff.Edits.Count == 0)
       {
-        <p class="plan-readout">Nothing in the documents differs.</p>
+        <p class="plan-readout">No edits.</p>
       }
       else
       {
@@ -53,11 +55,11 @@
         </div>
         @if (Diff.Edits.Count > Shown)
         {
-          <p class="plan-readout">and @(Diff.Edits.Count - Shown) more — <code>GET /api/map/…/diff?from=@From&amp;to=@To&amp;format=text</code> lists them all.</p>
+          <p class="plan-readout">And @(Diff.Edits.Count - Shown) more.</p>
         }
       }
     </Section>
-    <Section Title="What it built">
+    <Section Title="World">
       @if (World is { } world)
       {
         <div class="change-world">
@@ -65,7 +67,7 @@
           <span class="change-world__swatch change-world__swatch--surface"></span>surface @world.Surface.Columns
           <span class="change-world__swatch change-world__swatch--structure"></span>structure @world.Structure.Columns
         </div>
-        <p class="plan-readout">Columns whose ground, surface block or structure the change moved, boxed on the canvas.</p>
+        <p class="plan-readout">Changed columns, boxed on the canvas.</p>
       }
       else if (WorldError is not null)
       {
@@ -73,13 +75,13 @@
       }
       else
       {
-        <p class="plan-readout">Building the board at both changes…</p>
+        <p class="plan-readout">Building both versions…</p>
       }
     </Section>
     <Section>
       <Button Variant="primary" Icon="undo-2" Disabled="@(From == 0 || From == Latest)" Busy="Restoring"
-              BusyLabel="Putting it back…" OnClick="() => OnRestore.InvokeAsync(From)">
-        Put the board back as it stood at #@From
+              BusyLabel="Restoring…" OnClick="() => OnRestore.InvokeAsync(From)">
+        Restore to #@From
       </Button>
       <p class="plan-readout">@RestoreReadout</p>
       @if (RestoreError is not null) { <p class="dressing-refusal">@RestoreError</p> }

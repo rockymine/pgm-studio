@@ -127,7 +127,7 @@ public partial class GeneratorTool : IAsyncDisposable
                 SetCensus(page.Observed);
             }
         }
-        catch { feedError = "Could not load boards."; atEnd = true; }
+        catch { feedError = "Couldn't load layouts. Reload the page to try again."; atEnd = true; }
         finally { loading = false; StateHasChanged(); }
     }
 
@@ -167,11 +167,11 @@ public partial class GeneratorTool : IAsyncDisposable
             .Select(f => f.Label)
             .ToList();
         if (censusBoards == 0)
-            return "The board library for these settings is still being composed. Check back later.";
+            return "Layouts for these settings are still being generated. Check back later.";
         if (never.Count == 0)
-            return $"No boards match these filters among the {censusBoards} held for these settings.";
-        return $"{string.Join(" and ", never)} did not turn up in any of the {censusBoards} boards held for these "
-             + "settings — it is not a mix these players and symmetry produce.";
+            return $"None of the {censusBoards} layouts for these settings match these filters.";
+        return $"{string.Join(" and ", never)} doesn't appear in any of the {censusBoards} layouts for these "
+             + "settings. These players and symmetry don't produce it.";
     }
 
     // every structural filter currently picked, with the census it reads against
@@ -188,10 +188,10 @@ public partial class GeneratorTool : IAsyncDisposable
     private string ChipTitle(Dictionary<string, int> seen, string token, string label)
     {
         var n = seen.GetValueOrDefault(token);
-        if (n > 0) return $"{label} — {n} of the {censusBoards} boards held for these settings";
+        if (n > 0) return $"{label}: {n} of {censusBoards} layouts";
         return CensusIsTelling
-            ? $"{label} — not produced by these settings (none in {censusBoards} boards)"
-            : $"{label} — none yet in {censusBoards} board{(censusBoards == 1 ? "" : "s")} held";
+            ? $"{label}: never generated with these settings (0 of {censusBoards} layouts)"
+            : $"{label}: none yet in {censusBoards} layout{(censusBoards == 1 ? "" : "s")}";
     }
 
     // ── structural filters (chips + card badges; toggling re-sieves the feed immediately) ────────────
@@ -253,8 +253,8 @@ public partial class GeneratorTool : IAsyncDisposable
     // A held board an older composer made. Its stored plan is intact and opens as-is; what has lapsed is the
     // descriptor's claim to reproduce it, so re-composing the same seed today gives a different board.
     private static string StaleTitle(PlanSummary p) =>
-        $"Held from composer {p.ComposerVersion ?? "(unrecorded)"}. Opens as stored; its seed no longer "
-        + "re-composes to this board.";
+        $"Made by an older generator version ({p.ComposerVersion ?? "unknown"}). It opens as saved, but its seed "
+        + "no longer produces this layout.";
 
     // ── detail dialog ──────────────────────────────────────────────────────────────
     private void OpenDetail(ComposeCard c) => detail = c;
@@ -322,9 +322,9 @@ public partial class GeneratorTool : IAsyncDisposable
     {
         var kinds = string.Join(", ", spend.ByKind.Select(k =>
             $"{k.Kind}{(k.Boxes > 1 ? $" x{k.Boxes}" : string.Empty)} {k.LandCells}"));
-        return $"Band {spend.Band}: land {spend.Unit.Cells} of {spend.Unit.BudgetCells:0} budget cells, one "
-             + $"team unit (footprint {spend.FootprintCells}); mid stones {spend.Mid.Cells} of "
-             + $"{spend.Mid.BudgetCells:0}, shared. By box: {kinds}.";
+        return $"Size {spend.Band}: land {spend.Unit.Cells} of {spend.Unit.BudgetCells:0} budget cells for one "
+             + $"team (footprint {spend.FootprintCells}). Mid: {spend.Mid.Cells} of "
+             + $"{spend.Mid.BudgetCells:0} cells, shared. By box: {kinds}.";
     }
 
     public async ValueTask DisposeAsync()

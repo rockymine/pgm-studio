@@ -635,8 +635,8 @@ seconds, and a failure worded into that gap accuses the library of losing a docu
 handing over.
 
 **The outline is the document, not a menu.** Each row carries what its piece states without being opened — a
-part is *bound* or keeps the *built-in* finish, a stack says how many courses it runs, a theme bucket names
-the style it resolves through or says it is *off*. A material's outline is its own nest: a voronoi's bands, a
+part names its style or keeps the *default* finish, a stack says how many courses it runs, a theme bucket
+names the style it resolves through or says it is *off*. A material's outline is its own nest: a voronoi's bands, a
 stack's layers and a field's stops are each a row, indented by how deep they sit, so a five-entry pattern is
 five rows rather than five boxes inside one another.
 

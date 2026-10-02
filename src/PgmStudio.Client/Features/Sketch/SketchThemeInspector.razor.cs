@@ -166,7 +166,7 @@ public partial class SketchThemeInspector
             var painted = ShapeThemes.Count;
             return painted == ShapeCount
                 ? $"All {ShapeCount} shapes are painted."
-                : $"{painted} of {ShapeCount} shapes are painted; the other {ShapeCount - painted} fall through to this.";
+                : $"{painted} of {ShapeCount} shapes are painted. The other {ShapeCount - painted} use the default theme.";
         }
     }
 
@@ -176,7 +176,7 @@ public partial class SketchThemeInspector
     {
         if (Handle is null) return;
         var themeJson = await Library.DocumentAsync(LibraryKinds.Themes, picked.Id);
-        if (themeJson is null) { note = "That theme could not be read."; return; }
+        if (themeJson is null) { note = "Couldn't read that theme."; return; }
 
         // The copy this row already made is what a second copy refreshes, whatever either side has since been
         // renamed to. Only a row nothing on the board came from defines a theme, and that theme records where
@@ -252,8 +252,8 @@ public partial class SketchThemeInspector
             return;
         var id = await Library.ImportThemeAsync(InHand, node.GetRawText());
         note = id is null
-            ? "The library refused this theme."
-            : $"Saved “{InHand}” to the library, one style per bucket.";
+            ? "Couldn't save this theme to the library."
+            : $"Saved “{InHand}” to the library.";
         if (id is { } row)
         {
             // The row this theme was written out to is the row it is now a copy of, so copying it back in
@@ -295,9 +295,9 @@ public partial class SketchThemeInspector
     private IReadOnlyList<SelectOption> RoomOptions =>
     [
         new(NoBuilding, "(no building)",
-            "Leaves the pad, the chests and the monuments on open ground with nothing over them."),
+            "Leaves the pad, chests, and monuments in the open."),
         .. rooms.Select(room => new SelectOption(room.Id.ToString(), room.Name,
-            "Picking it takes a snapshot — the board holds the style, not a pointer at the library row.")),
+            "Picking it saves a copy on this map. Later library edits don't change it.")),
     ];
 
     private async Task ClearSelection()
@@ -344,7 +344,7 @@ public partial class SketchThemeInspector
     /// <summary>What the select reads where it holds no row: the built-in shell, or a shell the library
     /// cannot name.</summary>
     private string RoomPlaceholder(string kind) =>
-        RoomOffLibrary(kind) ? "(a shell the library does not hold)" : "(the built-in shell)";
+        RoomOffLibrary(kind) ? "(not in the library)" : "(built-in shell)";
 
     /// <summary>Whether this kind is bound to no building.</summary>
     private bool IsOpenRoom(string kind) => openRooms.Contains(kind);
@@ -379,7 +379,7 @@ public partial class SketchThemeInspector
 
         // The snapshot is taken here: from now on the board holds the style, not a pointer at the row.
         var styleJson = await Library.DocumentAsync(LibraryKinds.Houses, id);
-        if (styleJson is null) { note = "That room style could not be read."; return; }
+        if (styleJson is null) { note = "Couldn't read that room style."; return; }
 
         boundRooms[kind] = styleJson;
         note = null;

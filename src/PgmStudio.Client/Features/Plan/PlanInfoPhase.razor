@@ -15,7 +15,7 @@
     <ContentColumn MaxWidth="720">
       @if (step == 0)
       {
-        <Section Title="Plan Identity">
+        <Section Title="Details">
           <Field Label="Plan name" Required For="pl-name">
             <input id="pl-name" class="field-input" type="text" placeholder="Untitled plan"
                    value="@Name" @oninput="OnNameInput" />
@@ -33,16 +33,15 @@
       }
       else
       {
-        <Section Title="Symmetry &amp; globals">
-          <p class="section-desc">The mirror and grid the plan is built on. Symmetry drives the live preview
-            and the compiled team layout; the surface values set the block heights the compiler generates.</p>
+        <Section Title="Symmetry and grid">
+          <p class="section-desc">Symmetry sets how each team's half is copied. Surface values are heights in blocks.</p>
           <Field Label="Symmetry">
             <select class="field-input" value="@Symmetry" @onchange="@(e => OnSymmetryChanged.InvokeAsync(e.Value?.ToString() ?? "rot_180"))">
               <option value="rot_180">Rotate 180°</option>
               <option value="rot_90">Rotate 90°</option>
               <option value="mirror_x">Mirror X</option>
               <option value="mirror_z">Mirror Z</option>
-              <option value="none">None — single unit</option>
+              <option value="none">None</option>
             </select>
           </Field>
           <Field Label="Cell size (blocks)">

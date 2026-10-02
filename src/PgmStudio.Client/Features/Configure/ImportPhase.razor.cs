@@ -81,9 +81,9 @@ public partial class ImportPhase : IAsyncDisposable
     private bool NextEnabled => OnSource ? selected is not null
                              : OnPlan ? importedSlug is not null
                              : true;
-    private string NextLabel => OnSource ? "Scan & continue"
-                             : OnPlan ? "Start authoring"
-                             : "Next: Plan";
+    private string NextLabel => OnSource ? "Scan world"
+                             : OnPlan ? "Start setup"
+                             : "Next";
 
     // Team count the symmetry implies — its orbit order (rot_90 → 4-fold; mirror/rot_180 → 2); no symmetry → null.
     private int? SuggestedTeams => Symmetry.Order(symType) is var o && o > 1 ? o : null;
@@ -108,24 +108,26 @@ public partial class ImportPhase : IAsyncDisposable
     // How a finding was detected and what it means — the right panel's explanation.
     private string FindingExplanation(string key) => key switch
     {
-        "islands"   => "Connected landmasses found by flood-filling the cleaned-up terrain. Each island is somewhere a team can be based — you'll review them, and drop any stray rocks, in the World phase.",
-        "wool"      => "Wool already placed in the world, grouped by colour. These hint at the objective colours; you'll turn them into capturable wools in the Wools phase.",
-        "monuments" => "Likely spots where a captured wool would be placed, detected from the build patterns around them. You'll confirm and place monuments in the Wools phase.",
-        "resources" => "Ore and resource blocks found in the terrain, by type — useful context for kits and balance.",
-        "chests"    => $"Chests found in the world, holding {chestItems} item stacks in all — their contents can seed starting kits later.",
-        "spawners"  => "Mob and wool spawners found in the world. Wool spawners can feed objectives; mob spawners are usually decorative.",
+        "islands"   => "Separate areas of land found in the world. You review them and remove stray ones in the World phase.",
+        "wool"      => "Wool already placed in the world, grouped by colour. You turn them into objectives in the Wools phase.",
+        "monuments" => "Places where a captured wool is likely to be placed, found from the blocks around them. You confirm them in the Wools phase.",
+        "resources" => "Ore and other resource blocks in the terrain, by type.",
+        "chests"    => $"Chests in the world, holding {chestItems} item stacks in total.",
+        "spawners"  => "Mob and wool spawners in the world. Wool spawners can supply objectives. Mob spawners are usually decoration.",
         _ => "",
     };
 
     // What each phase does, in a sentence — leads with the studio's automation so the card sells the help.
     private static string PlanBlurb(string phaseId) => phaseId switch
     {
-        "info"   => "Name your map and credit the authors — version, mode, and objective fill in automatically.",
-        "world"  => "Confirm the islands and symmetry we detected; one click seeds your team count and spawn points.",
-        "teams"  => "Set up a single team's islands, spawn, and protection — symmetry mirrors it to every other team for you.",
-        "build"  => "Set the build height and bridge the gaps over the void. The scanned terrain is already playable.",
-        "wools"  => "Choose your wool colours and place monuments — capture rules and room defenses wire themselves.",
-        "review" => "Automatic checks for mirroring, buildability, and reachability, then your finished, PGM-ready map.xml.",
+        "info"   => "Name the map and credit its authors. Version, mode, and objective are set automatically.",
+        "world"  => "Confirm the detected islands and symmetry. The symmetry suggests how many teams to create.",
+        "teams"  => "Set up one team's islands, spawn, and protection. Symmetry copies them to the other teams.",
+        "build"  => "Set the build height and mark where players can build over the void. Island ground is already buildable.",
+        "wools"  => "Choose the wool colours and place monuments. Capture rules and wool room protection are added automatically.",
+        "dtm"    => "Confirm the destroyables found in the world, or add your own.",
+        "cores"  => "Confirm the cores found in the world and set how far their lava must fall.",
+        "review" => "Automatic checks make sure the map is playable. Then export the map.xml.",
         _ => "",
     };
 
@@ -136,7 +138,7 @@ public partial class ImportPhase : IAsyncDisposable
             candidates = await Http.GetFromJsonAsync<List<ImportCandidateDto>>("api/maps/import-candidates") ?? [];
             selected = candidates.FirstOrDefault();
         }
-        catch { error = "Couldn't list import candidates."; }
+        catch { error = "Couldn't load the list of worlds. Reload the page to try again."; }
     }
 
     private void Select(ImportCandidateDto c)
@@ -173,7 +175,7 @@ public partial class ImportPhase : IAsyncDisposable
         {
             var resp = await Http.PostAsJsonAsync("api/map/import-url",
                 new Dictionary<string, object?> { ["url"] = url });
-            if (!resp.IsSuccessStatusCode) { error = await ErrorMessage(resp, "Import failed"); return; }
+            if (!resp.IsSuccessStatusCode) { error = await ErrorMessage(resp, "Couldn't import the world."); return; }
 
             var scan = await resp.Content.ReadFromJsonAsync<WorldScanDto>();
             selected = null;   // a URL world is not a local folder candidate — drop any prior pick
@@ -184,7 +186,7 @@ public partial class ImportPhase : IAsyncDisposable
             await LoadBrief();
             SetStep(1);
         }
-        catch { error = "Import failed."; }
+        catch { error = "Couldn't import the world. Check the link and try again."; }
         finally { importingUrl = false; StateHasChanged(); }
     }
 
@@ -208,7 +210,7 @@ public partial class ImportPhase : IAsyncDisposable
             if (refusal?.Error is { Length: > 0 } msg) return char.ToUpperInvariant(msg[0]) + msg[1..] + ".";
         }
         catch { /* non-JSON body — fall through to the status code */ }
-        return $"{fallback} ({(int)resp.StatusCode}).";
+        return $"{fallback} (HTTP {(int)resp.StatusCode})";
     }
 
     // Single funnel for every step change: tear the canvas down the moment we leave Found so the next
@@ -249,12 +251,12 @@ public partial class ImportPhase : IAsyncDisposable
             {
                 importedSlug = selected.Slug;   // already a map — show what we can
             }
-            else { error = $"Scan failed ({(int)resp.StatusCode})."; return false; }
+            else { error = $"Couldn't scan the world. (HTTP {(int)resp.StatusCode})"; return false; }
 
             await LoadBrief();
             return true;
         }
-        catch { error = "Scan failed."; return false; }
+        catch { error = "Couldn't scan the world. Try again."; return false; }
         finally { importing = false; StateHasChanged(); }
     }
 

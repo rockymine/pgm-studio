@@ -84,7 +84,7 @@ try {
 
   // With nothing selected the inspector describes the board rather than a selection.
   checks.add("the inspector shows the board's defaults with nothing selected",
-    await page.locator("text=Board defaults").count() > 0
+    await page.locator("text=Map defaults").count() > 0
     && await page.locator("text=Default theme").count() > 0);
 
   // The Blocks overlay is the phase's own, on without being asked for: the paint is what the phase acts on.
@@ -100,7 +100,7 @@ try {
   await page.waitForTimeout(500);
   checks.add("a swatch clicked is in hand",
     await page.locator(".canvas-theme-swatch--on").count() === 1
-    && await page.locator("text=In hand").count() > 0);
+    && await page.locator("text=Painting with").count() > 0);
 
   // Aim at a shape the layout actually carries rather than at a fraction of the viewport: where the board
   // sits on screen is the fit's business, and a click that misses proves nothing about the brush.

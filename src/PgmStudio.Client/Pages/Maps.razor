@@ -5,7 +5,7 @@
 @inject NavigationManager Nav
 @inject StudioAccess Access
 
-<PageTitle>PGM Studio — @StageTitle</PageTitle>
+<PageTitle>@StageTitle · PGM Studio</PageTitle>
 
 @* Staged map collection — one overview, scoped by ?stage=sketch|configure|edit (default edit). The
    activity rail switches stage; each stage lists its maps with the matching resume target and a
@@ -33,10 +33,10 @@
           {
             <div class="callout">
               <span class="callout-icon"><i data-lucide="check-circle-2"></i></span>
-              <p><strong>@JustMap.Name</strong> is rasterized and saved — ready to configure into a
-                playable <code>map.xml</code> whenever you are.</p>
+              <p><strong>@JustMap.Name</strong> is built and saved. Configure it next to make a playable
+                <code>map.xml</code>.</p>
               <Button Variant="primary" Href="@($"maps/{Just}/configure")" style="margin-left:auto;">
-                <i data-lucide="settings-2"></i><span>Continue to Configure</span>
+                <i data-lucide="settings-2"></i><span>Configure</span>
               </Button>
             </div>
           }

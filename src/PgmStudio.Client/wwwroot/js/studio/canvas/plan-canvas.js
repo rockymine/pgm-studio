@@ -29,6 +29,7 @@ import { resolvePick } from "../shared/pick.js";
 // The drag holds the floor every building footprint shares. A shell needs two more on each axis,
 // which only the export knows, so that refusal stays where the style binding is read.
 import { MIN_FOOTPRINT_SPAN } from "../shared/building.js";
+import { labelPx } from "../shared/ui-scale.js";
 
 const FIT_MARGIN = 0.82;
 
@@ -760,7 +761,7 @@ export class PlanCanvas extends CanvasBase {
       const c = toS(bx, bz);
       const t = svgEl("text", {
         x: c.x, y: c.y, "text-anchor": "middle", "dominant-baseline": "middle",
-        "font-size": size, "font-family": "ui-monospace, monospace", "font-weight": "600", fill: color,
+        "font-size": labelPx(Number(size)), "font-family": "ui-monospace, monospace", "font-weight": "600", fill: color,
         "paint-order": "stroke", stroke: "var(--bg-canvas)", "stroke-width": "3", "stroke-linejoin": "round",
         "pointer-events": "none",
       });
@@ -1209,10 +1210,10 @@ export class PlanCanvas extends CanvasBase {
     Keys.register("plan-canvas", [
       { id: "plan.delete", keys: ["delete", "backspace"], label: "Delete the selection", group: "Canvas",
         when: () => live() && !!this.#sel, run: () => this.#cb.onDelete?.(this.#sel) },
-      { id: "plan.enter", keys: "enter", label: "Enter the selection's group", group: "Canvas",
+      { id: "plan.enter", keys: "enter", label: "Open the selected group", group: "Canvas",
         when: () => live() && this.#sel?.kind === "box",
         run: () => { this.#scopeBoxId = this.#sel.id; this.#refreshOverlay(); } },
-      { id: "plan.escape", keys: "escape", label: "Leave the group · deselect", group: "Canvas",
+      { id: "plan.escape", keys: "escape", label: "Leave the group or deselect", group: "Canvas",
         when: live, run: () => this.#popOut() },
     ]);
   }

@@ -48,24 +48,24 @@ public partial class Users
     // Why each control is closed to this caller, or null where it is open. The server refuses the same changes
     // (docs/access.md, "Who keeps the whitelist"); this only says so before the click.
     private string? Untouchable(StudioUserDto user) =>
-        user.Owner && !(Owner && me?.Uuid == user.Uuid) ? "An owner is named in the server's configuration; only the server changes one"
-        : !Owner && user.Role == StudioRoles.Admin ? "Only an owner changes an admin"
+        user.Owner && !(Owner && me?.Uuid == user.Uuid) ? "Owners are set in the server configuration and can only be changed there"
+        : !Owner && user.Role == StudioRoles.Admin ? "Only an owner can change an admin"
         : null;
 
     private string? RoleLocked(StudioUserDto user) =>
-        user.Owner ? "An owner is an admin by the server's configuration"
-        : Untouchable(user) ?? (Owner ? null : "Only an owner makes someone an admin");
+        user.Owner ? "Owners are always admins"
+        : Untouchable(user) ?? (Owner ? null : "Only an owner can make someone an admin");
 
     private string? InviteLocked(StudioUserDto user) =>
         Untouchable(user)
-        ?? (!Owner && user.SignsIn ? $"{user.Name} already signs in; only an owner opens a new invitation for them" : null);
+        ?? (!Owner && user.SignsIn ? $"{user.Name} can already sign in. Only an owner can send them a new invitation" : null);
 
     private string? RemoveLocked(StudioUserDto user) =>
-        user.Owner ? "An owner is named in the server's configuration; only the server changes one" : Untouchable(user);
+        user.Owner ? "Owners are set in the server configuration and can only be changed there" : Untouchable(user);
 
     private static string SignInState(StudioUserDto user) =>
         user.SignsIn ? "signs in with Discord"
-        : user.InviteExpiresAt is not null ? "invited, not signed in yet"
+        : user.InviteExpiresAt is not null ? "invited"
         : "no invitation";
 
     private async Task AddAsync()
@@ -106,7 +106,7 @@ public partial class Users
 
     private async Task RemoveAsync(StudioUserDto user)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"Take {user.Name} off the whitelist? They keep their credits and can write nothing more."))
+        if (!await JS.InvokeAsync<bool>("confirm", $"Remove {user.Name} from the whitelist? They stay credited on their maps but can no longer edit anything."))
             return;
         error = null;
         using var response = await Http.DeleteAsync($"api/users/{user.Uuid}");

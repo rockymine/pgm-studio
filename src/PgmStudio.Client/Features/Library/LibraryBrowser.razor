@@ -17,7 +17,7 @@
   </div>
 
   <div class="lib-scroll">
-    @if (Loading) { <p class="lib-status">Reading the library…</p> }
+    @if (Loading) { <p class="lib-status">Loading…</p> }
     else
     {
       <div class="lib-grid @(Wide ? "lib-grid--wide" : null)">
@@ -41,11 +41,11 @@
         <p class="lib-status">
           @if (Rows.Count == 0)
           {
-            @($"No {Kind.Title.ToLowerInvariant()} yet — start one with New {Kind.One}.")
+            @($"No {Kind.Title.ToLowerInvariant()} yet. Create one with New {Kind.One}.")
           }
           else
           {
-            @($"Nothing here matches that.")
+            @($"No matches.")
           }
         </p>
       }

@@ -11,13 +11,13 @@
 
       @if (ShowSuggestion)
       {
-        <SmartSuggestion Header="Smart Suggestion" Badge="@symMode" AcceptLabel="@($"Create {SuggestedCount} teams")"
+        <SmartSuggestion Header="Suggestion" Badge="@SymmetryInfo.Label(symMode)" AcceptLabel="@($"Create {SuggestedCount} teams")"
                          RejectLabel="Dismiss" OnAccept="CreateSuggestedTeams" OnReject="() => dismissedSuggestion = true">
-          <p class="smart-suggestion__text">@SymmetryInfo.ShortLabel(symMode) symmetry suggests @SuggestedCount teams.</p>
+          <p class="smart-suggestion__text">The map's @SymmetryInfo.ShortLabel(symMode) symmetry suggests @SuggestedCount teams.</p>
           <div class="smart-suggestion-teams">
             @foreach (var c in SuggestedColors)
             {
-              <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:@c.Hex"></span>@c.Label Team</div>
+              <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:@c.Hex"></span>@c.Label</div>
             }
           </div>
         </SmartSuggestion>
@@ -26,7 +26,7 @@
       <Section Title="Teams">
         <ChildContent>
         <div class="panel-list">
-          @if (teams.Count == 0) { <div class="list-empty">No teams yet — accept the suggestion or pick a colour below.</div> }
+          @if (teams.Count == 0) { <div class="list-empty">No teams yet. Accept the suggestion or pick a colour below.</div> }
           @for (var i = 0; i < teams.Count; i++)
           {
             var t = teams[i];
@@ -34,7 +34,7 @@
             <ListRow Compact Selected="selectedTeamId == t.Id" @key="t.Id" OnClick="() => Select(t.Id)">
               <span class="list-swatch" style="background:@Hex(t.Color)"></span>
               <span class="list-label list-label--mono">@t.Id</span>
-              <Badge Class="@(idx == 0 ? "badge--success" : "badge--dim")">@(idx == 0 ? "authored" : "orbit")</Badge>
+              <Badge Class="@(idx == 0 ? "badge--success" : "badge--dim")">@(idx == 0 ? "Main" : "Copy")</Badge>
               <button class="btn-remove btn-remove--hover-only" title="Remove" @onclick:stopPropagation="true" @onclick="() => RemoveTeam(t)"><i data-lucide="x"></i></button>
             </ListRow>
           }
@@ -48,17 +48,16 @@
         }
         @if (teams.Count > 0)
         {
-          <p class="section-desc">Team 0 is <strong>authored</strong>; the rest are <strong>orbit</strong> —
-            derived by @SymmetryInfo.ShortLabel(symMode) symmetry from team 0's spawn (next step).</p>
+          <p class="section-desc">You set up the first team. The other teams are copied from it by symmetry.</p>
         }
         </ChildContent>
       </Section>
 
-      <Section Title="Island Assignment">
-        <Actions><Badge Kind="dim">authoring help</Badge></Actions>
+      <Section Title="Island owners">
+        <Actions><Badge Kind="dim">Optional</Badge></Actions>
         <ChildContent>
-        <p class="section-desc">Select a team above, then click its islands on the canvas to tag them.
-          Tagging tints them and fixes the orbit order; untagged islands stay neutral (a contested centre).</p>
+        <p class="section-desc">Select a team, then click its islands on the canvas. Islands without an owner
+          stay neutral, such as a shared middle.</p>
         @if (teams.Count > 0)
         {
           <div class="panel-list">
@@ -75,16 +74,16 @@
         </ChildContent>
       </Section>
 
-      <Section Title="Team Size &amp; Kit">
+      <Section Title="Team size and kit">
         <div class="section-body">
-          <Field Label="Max Players">
+          <Field Label="Max players">
             <LabelHint><span class="list-tag">per team</span></LabelHint>
             <ChildContent>
               <NumberField Value="maxPlayers" ValueChanged="SetMaxPlayers" Min="1" />
             </ChildContent>
           </Field>
-          <Field Label="Spawn Kit">
-            <input class="field-input" type="text" value="Standard" disabled title="Auto-applied" />
+          <Field Label="Spawn kit">
+            <input class="field-input" type="text" value="Standard" disabled title="Set automatically" />
           </Field>
         </div>
       </Section>
@@ -103,7 +102,7 @@
       {
         <Section @key="sel.Id">
           <DetailHeader Icon="users" IconMuted Mono Label="@sel.Id">
-            <Badge Class="@(teams.IndexOf(sel) == 0 ? "badge--success" : "badge--dim")">@(teams.IndexOf(sel) == 0 ? "authored" : "orbit")</Badge>
+            <Badge Class="@(teams.IndexOf(sel) == 0 ? "badge--success" : "badge--dim")">@(teams.IndexOf(sel) == 0 ? "Main" : "Copy")</Badge>
           </DetailHeader>
           <div class="section-body">
             <Field Label="Name">
@@ -112,13 +111,13 @@
             <Field Label="Colour">
               <SwatchRow TKey="string" Selected="@sel.Color" OnPick="SetColor"
                          Swatches="@GameColors.ChatColors.Select(c => new SwatchRow<string>.Swatch(c.Value, c.Hex, c.Label)).ToList()" />
-              <p class="section-desc">The id follows the colour — recolouring renames the team across the
-                intent, unless another team already holds that name.</p>
+              <p class="section-desc">Changing the colour also changes the team's id, unless another team already
+                uses it.</p>
             </Field>
             <Field Label="Islands">
-              <div class="field-pick-row"><Badge Kind="neutral">@IslandsFor(sel.Id)</Badge><span class="list-tag">tagged</span></div>
+              <div class="field-pick-row"><Badge Kind="neutral">@IslandsFor(sel.Id)</Badge><span class="list-tag">assigned</span></div>
             </Field>
-            <p class="section-desc">Orbit position @teams.IndexOf(sel).@(teams.IndexOf(sel) == 0 ? $" The others follow by {SymmetryInfo.ShortLabel(symMode)} symmetry." : "")</p>
+            <p class="section-desc">@(teams.IndexOf(sel) == 0 ? "The other teams are copied from this one." : "Copied from the first team by symmetry.")</p>
           </div>
         </Section>
       }
@@ -126,8 +125,7 @@
       {
         <Section>
           <DetailHeader Icon="users" IconMuted Label="Teams" />
-          <p class="section-desc">Create teams, then select one to edit its name / colour and tag its
-            islands on the canvas.</p>
+          <p class="section-desc">Select a team to edit its name and colour.</p>
         </Section>
       }
   </Inspector>

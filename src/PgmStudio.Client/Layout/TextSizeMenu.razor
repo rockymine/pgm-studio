@@ -1,0 +1,23 @@
+@* The reader's text size, beside the theme switch. Sets `data-text-size` on <html> through
+   window.studioTextSize; every size token in tokens.css follows it. *@
+<div class="account text-size">
+  <button type="button" class="topbar-icon-btn" title="Text size" aria-label="Text size"
+          aria-haspopup="menu" aria-expanded="@(open ? "true" : "false")" @onclick="ToggleAsync">
+    <i data-lucide="type"></i>
+  </button>
+  @if (open)
+  {
+    <div class="account-scrim" @onclick="() => open = false"></div>
+    <div class="account-menu text-size-menu" role="menu">
+      @foreach (var (value, label) in Sizes)
+      {
+        <button type="button" class="account-menu-item@(value == current ? " text-size-item--on" : null)"
+                role="menuitemradio" aria-checked="@(value == current ? "true" : "false")"
+                @onclick="() => SetAsync(value)" @key="value">
+          <span>@label</span>
+          @if (value == current) { <span class="text-size-check">✓</span> }
+        </button>
+      }
+    </div>
+  }
+</div>

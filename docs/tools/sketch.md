@@ -940,8 +940,8 @@ and the snapshot records the row it came from (`themeSources`, keyed by the boar
 what a second copy of the same row matches by, so copying it in again refreshes the copy it already made
 rather than defining a second theme beside it — and it holds whichever of the two has since been renamed,
 where a match by name would have made a renamed pair into two themes with nothing saying they are one. A row
-the board has a copy of is badged with the name that copy carries, and its action reads **refresh** rather
-than **copy in**. Saving a board theme out records the row it was written to for the same reason.
+the board has a copy of is badged with the name that copy carries, and its action reads **Update** rather
+than **Add**. Saving a board theme out records the row it was written to for the same reason.
 
 **With a theme in hand the canvas is a brush**, and the modifiers are read against what is held rather than
 against the grouping. A click paints the shape under it; `Shift`+click widens the stroke to every shape the
@@ -952,12 +952,12 @@ cell that carries none falls to the map default, so the resolution is shape, the
 down — a thing in hand is the first thing it lets go of — and so does leaving the phase.
 
 **The inspector says what is in hand, what the selection carries, and — with nothing selected — what the board
-falls back to.** In hand: where the theme was copied from and whether it still says what that row says — the
+falls back to.** Painting with: where the theme was copied from and whether it still says what that row says — the
 row is read and the two documents compared, so a snapshot that has been edited on either side says so instead
 of reading as current — the sample plateau the theme finishes, a swatch per bucket, and the two acts that
 change the registry rather than the board — **Save to library**, which decomposes the theme into one style per
 bucket so it can be edited there, and **Remove**, which takes it off the board. Selection: what that shape or
-group is painted with, `mixed` where a group's shapes disagree, and **Unpaint**. Board defaults, when
+group is painted with, `mixed` where a group's shapes disagree, and **Unpaint**. Map defaults, when
 nothing is selected: the default theme, the board's biome, how many shapes are still falling through to the
 theme, and the two room shells, in one section rather than two. **Every row there is one library row bound to
 the whole board** — the same statement four times over — so each row carries its own button through to the
@@ -1389,7 +1389,7 @@ framed one back.
 
 **One view is the map's picture: the `map.png` a server lists the map by.** An export draws it at 290 × 246
 through the same eye, from the view marked as the picture or, where none is, from the whole board seen above
-its long side (`docs/world-export/sketch-world-export.md`, *Delivery*). **Map picture** on the shown view marks
+its long side (`docs/world-export/sketch-world-export.md`, *Delivery*). **Set as map picture** on the shown view marks
 it — a kept one in place, a suggestion by keeping it — and the view the picture is drawn from wears a *map
 picture* badge instead.
 
@@ -1418,7 +1418,7 @@ either, it is left to find its own place.
 **One picture is shown large, with the gallery under it.** The enlarged picture is drawn at 1280×720, under its
 name and where the eye stands; choosing a card in the gallery shows it instead, `←` and `→` step through the
 gallery, and **Full size** opens the 1920×1080 picture in a tab of its own. A kept view other than the board's
-own is let go from there.
+own is removed there with **Remove**.
 
 **Place a view brings the canvas back with the camera tool armed, and every camera the gallery has on it.** Each
 view is drawn as a camera where its eye stands, and nothing more — the views kept in full, the studio's
@@ -1429,7 +1429,7 @@ canvas, kept first and then suggested.
 **A press on empty ground places a new view.** It stands the eye and a drag turns it toward what it looks at; a
 click without a drag names only what to look at, and the eye finds its own place. The inspector then states the
 camera whole, in the terms and ranges PGM's spawn `yaw`, `pitch` and `angle` are written in, with every field
-filled from where the studio resolved the eye to. **Standing at** is X, Y and Z, the Y being the eye's own
+filled from where the studio resolved the eye to. **Position** is X, Y and Z, the Y being the eye's own
 height. **Facing** is a yaw from −180 to 180 (south 0, west 90, north 180, east −90, as the game's `F3` screen
 shows it) and a pitch from −90 straight up to 90 straight down; a yaw typed outside the range is wrapped into it.
 **Angle** is the block the camera looks at: it is read off the middle of the picture, and stating one turns the
@@ -1437,7 +1437,7 @@ camera onto the middle of that block from where it stands, the way PGM's `angle`
 pitch.
 
 A line under the stand says what its height is: at a player's eye over the ground, so many blocks over it, or
-over the void, and **Stand it on the ground** puts a raised eye back at a player's height. A line under the angle
+over the void, and **Move to eye height** puts a raised eye back at a player's height. A line under the angle
 says where the middle of the picture lands when that is not the angle stated — the block is open, or something
 stands before it. Changing any field draws the
 picture again, and **Keep** stores the camera as stated and returns to the gallery.
@@ -1548,7 +1548,8 @@ boxed in the colours `docs/world-scan/read-backs.md` names.
 
 **The inspector says the rest.** Who wrote the change, when, what they said, and where its documents were built,
 linked to the commit and folder where the writer stated an origin, and the earlier changes it dropped where it
-was a source that named some; then every edit it made to the four documents, one a line, the thing it is about beside the change in words; then how many columns it moved of
+was a source that named some; then a legend naming the four shape colours, and every edit it made to the four
+documents, one a line, the thing it is about beside the change in words; then how many columns it moved of
 each kind. The edits come first and the columns when both boards are built, which on a large board is seconds.
 
 **Putting the board back writes the documents as they stood at the start of what is shown, as one new change.**

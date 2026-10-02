@@ -220,16 +220,16 @@ public sealed record ThemeBucketInfo(string Id, string Title, string Blurb, stri
     public static readonly IReadOnlyList<ThemeBucketInfo> All =
     [
         new(ThemeBuckets.Rim, "Rim",
-            "The cap on the top course of every edge column — what the ground reads as from across the void.",
+            "The top block of every edge column. It is what players see from across the void.",
             "the surface", CanDisable: true),
         new(ThemeBuckets.Surface, "Surface",
-            "The stack finishing the top of interior columns, claimed downward — grass over two dirt.",
+            "The top layers of the ground away from the edges, such as grass over two dirt.",
             "the fill", CanDisable: true),
         new(ThemeBuckets.Wall, "Wall",
-            "The exposed riser under the rim, down to the shallowest drop. A team tint here is what makes a team's ground read as theirs.",
+            "The exposed side under the rim. A team colour here marks the ground as that team's.",
             "the fill", CanDisable: true),
         new(ThemeBuckets.Fill, "Fill",
-            "Every block no other bucket claimed — the body of the terrain, under the surface and behind the wall.",
+            "Every block no other part claims: the body of the terrain under the surface and behind the wall.",
             "nothing", CanDisable: false),
     ];
 
@@ -374,13 +374,13 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
     public static readonly IReadOnlyList<RoomPartInfo> All =
     [
         new(RoomParts.Floor, "Floor",
-            "Read downward from the course players stand on, so a deeper floor digs into the platform rather than lifting the room off it. The wool pad is stamped over it and is never a course.",
+            "Counted down from the course players stand on, so a deeper floor digs into the ground. The wool pad is placed on top.",
             "Courses deep"),
         new(RoomParts.Wall, "Walls",
-            "The perimeter ring, read upward from the floor. A coloured course takes the room's own colour, and a course of air is the light slit. The last course repeats, so a taller wall grows in whatever tops it.",
+            "Counted up from the floor, and the last course repeats to the top. A coloured course takes the room's colour, and an air course leaves a light slit.",
             "Courses tall"),
         new(RoomParts.Roof, "Roof",
-            "The plane over the walls — one material, not a stack: how deep it runs at a cell is whatever closes the step down to its neighbour. Its hole is measured on the shell it covers, so an overhanging eave does not move it."),
+            "One material over the walls, as deep at each point as the slope needs."),
     ];
 
     /// <summary>The floor's top course divided across the room. These are zones rather than courses because
@@ -390,11 +390,11 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
     public static readonly IReadOnlyList<RoomPartInfo> FloorZones =
     [
         new(RoomParts.Field, "Field",
-            "The open floor between the border and the inlay. Unbound, the floor part's own top course shows through."),
+            "The open floor between the border and the inlay. With no style set, the floor's top course shows."),
         new(RoomParts.Border, "Border",
-            "A ring hugging the walls, as wide as the border width below."),
+            "A ring along the walls, as wide as the border width below."),
         new(RoomParts.Inlay, "Inlay",
-            "A plate centred in the room — a hearth, a rug, a floor in the room's own colour."),
+            "A plate in the middle of the room, such as a hearth, a rug, or a patch in the room's colour."),
     ];
 
     /// <summary>What a house has that a plain shell does not: framed corners, a footing, and trim along the
@@ -403,21 +403,21 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
     public static readonly IReadOnlyList<RoomPartInfo> Trim =
     [
         new(RoomParts.Post, "Corner posts",
-            "The four columns the walls run between. Unbound, the corners are wall like the rest of the building — which is what a plain shell is."),
+            "The four corner columns. With no style set, the corners match the walls."),
         new(RoomParts.Sill, "Footing",
-            "A course ringing the walls one block proud of them. A house should not have one (HS7): it reads as a rim round the building rather than as anything it stands on — unbind it."),
+            "A course one block out from the walls. Houses should not have one, because it looks like a rim. Clear it."),
         new(RoomParts.Verge, "Verge",
-            "The roof's own border — its eave course and its two verges, and the ridge cap where the roof wears one. Unbound, it is the roof's material."),
+            "The roof's edge: its eaves, its sloped ends, and the ridge cap if it has one. With no style set, it uses the roof's material."),
         new(RoomParts.Gable, "Gable face",
-            "The triangle a sloped roof leaves standing at each end. Unbound, it is the wall's top course carried up — a wall that bands as it rises has no band left to give it, since the courses run out at the wall's top."),
+            "The triangle of wall at each end of a sloped roof. With no style set, the wall's top course continues up."),
         new(RoomParts.Deck, "Deck",
-            "The plate this storey stands on, infilled across its interior at a course the walls already span. Unbound, it is the house floor's own top material. The ground storey's deck is the building's floor, and the topmost storey has nothing over it — the roof is what closes that one. Its border, field and inlay are this storey's own, because the plate is its floor rather than the ceiling of the one below."),
+            "The floor this storey stands on. With no style set, it uses the house floor's top material. Its border, field, and inlay belong to this storey."),
     ];
 
     /// <summary>The porch's own roof material, offered with the porch rather than with the trim because only a
     /// building with a porch has a canopy.</summary>
     public static readonly RoomPartInfo Canopy = new(RoomParts.Canopy, "Canopy laid in",
-        "The roof over the deck, rim and all, in one block. Unbound, it is the house roof's own material under its verge.");
+        "The porch roof over the deck, in one block. With no style set, it uses the house roof's material.");
 
     public static RoomPartInfo Of(string part)
         => All.Concat(FloorZones).Concat(Trim).Append(Canopy).First(info => info.Id == part);
@@ -439,19 +439,19 @@ public sealed record PartKindInfo(
         // cell is however many courses close the step down to its neighbour, so there is no second course for
         // a stack to name. The body is one pass, the verge is one, the gable face is one.
         new(LibraryKinds.Roofs, "Shape",
-            "The roof is drawn on the least wall that can carry its own eave.",
+            "Shown on the smallest wall that can carry its eave.",
             [],
             [RoomPartInfo.Of(RoomParts.Roof), RoomPartInfo.Of(RoomParts.Verge), RoomPartInfo.Of(RoomParts.Gable)]),
 
-        new(LibraryKinds.Storeys, "The room",
-            "The storey is drawn as the one-storey building it makes — or, where it names a ceiling, as two of itself, since the slab it closes with only exists under something.",
+        new(LibraryKinds.Storeys, "Room",
+            "Shown as a one-storey building, or as two storeys if it has a ceiling.",
             [RoomPartInfo.Of(RoomParts.Wall)],
             [RoomPartInfo.Of(RoomParts.Post), RoomPartInfo.Of(RoomParts.Deck),
              RoomPartInfo.Of(RoomParts.Field), RoomPartInfo.Of(RoomParts.Border),
              RoomPartInfo.Of(RoomParts.Inlay)]),
 
-        new(LibraryKinds.Porches, "The deck",
-            "The porch fronts a plain gabled building.",
+        new(LibraryKinds.Porches, "Deck",
+            "Shown in front of a plain gabled building.",
             [], []),
     ];
 

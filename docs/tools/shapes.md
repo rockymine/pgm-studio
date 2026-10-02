@@ -11,7 +11,7 @@ by it. What it produces is a picture and, in its second half, an answer: given a
 knobs, what does the emitter build — or why does it refuse.
 
 That second half is the reason the page exists rather than a folder of renders. The grid is a gallery and a
-gallery can only assert; the knob panel goes through `BoxFiller`, which is the same entry point composition
+gallery can only assert; the *Shape settings* panel goes through `BoxFiller`, which is the same entry point composition
 fills a wool box through, so the profile check and the docking gate run exactly as they do in a real compose
 and **a refusal comes back as a result rather than an error**. It is the only place in the studio that
 surfaces the fill guards at all.
@@ -77,11 +77,11 @@ Every card is badged with the last stage that admits it, and this is the page's 
 catalog that drew every emittable shape as "what the generator makes" would assert a vocabulary the boards do
 not carry.
 
-| Tier | Means |
-|---|---|
-| **in the mix** | A sampler draws it, so generated boards really contain it. |
-| **reachable** | `BoxFiller` fills it and the menu lists it, but no sampler ever asks for one. |
-| **emitter only** | Only a direct emitter call builds it — the family is off the production menu, or the knob is one the fill path drops. |
+| Tier | Badge | Means |
+|---|---|---|
+| **in the mix** | *In use* | A sampler draws it, so generated boards really contain it. |
+| **reachable** | *Never picked* | `BoxFiller` fills it and the menu lists it, but no sampler ever asks for one. |
+| **emitter only** | *Preview only* | Only a direct emitter call builds it — the family is off the production menu, or the knob is one the fill path drops. |
 
 The in-mix set is **collected by running the sampler**, never by restating its laws: the catalog sweeps the
 composer's own wool request over four thousand seeds and a grid of the two inputs it reads, and keeps the
@@ -104,7 +104,7 @@ grid reads as a progression rather than alphabetically. Each carries its family 
 itself, and a foot naming the box it was emitted at, the corridor width, and any knobs set. A non-in-mix card
 adds the note explaining its tier.
 
-Three filters narrow it: box kind, reach, and family. Each is any-of within itself and all-of across facets.
+Three filters narrow it: *Kind* (the box kind), *Usage* (the reach tier), and *Shape family*. Each is any-of within itself and all-of across facets.
 The counts on the chips always describe the **whole** catalog rather than the filtered slice, so a chip says
 what it would show before it is picked.
 
@@ -118,7 +118,7 @@ it is fetched once and filtered in the page, which is what makes every chip inst
 that is 124 cards: 115 wool approaches, 6 hub bodies and 3 frontline bodies, of which 117 are in the mix, 1
 reachable and 6 emitter-only. Those numbers move whenever the tuning does.
 
-## The knob panel
+## The Shape settings panel
 
 Clicking a card opens the panel seeded from that exact shape, so editing starts from a known-good state rather
 than a guessed box. It carries the family, box width and height, corridor width, the mouth edge, the three
@@ -219,7 +219,7 @@ recorded in the data on purpose, since a wide touch resolves into multi-shape pa
 lane, and those patterns are not emittable.
 
 **Only the wool box is probeable.** The panel builds a wool box and fills it, so hub and frontline bodies can
-be looked at in the grid but not driven — there is no knob panel for a ring's wall widths or a frontline's arm
+be looked at in the grid but not driven — there is no settings panel for a ring's wall widths or a frontline's arm
 layout, which are exactly the axes that multiply those forms.
 
 **Nothing here says a shape is good.** The catalog states what is buildable and how far it reaches; whether a

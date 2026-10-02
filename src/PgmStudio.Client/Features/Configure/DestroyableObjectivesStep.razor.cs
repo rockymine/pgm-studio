@@ -208,12 +208,12 @@ public partial class DestroyableObjectivesStep
         {
             if (destroyables[i].Volume is not { } volume) continue;
             shapes.Add(Shape($"destroyable-{i}", volume, TeamHex(destroyables[i].Owner), i == selected,
-                $"destroyable · {(string.IsNullOrEmpty(destroyables[i].Owner) ? "no team" : TeamName(destroyables[i].Owner))}"));
+                $"Destroyable · {(string.IsNullOrEmpty(destroyables[i].Owner) ? "no team" : TeamName(destroyables[i].Owner))}"));
         }
         var n = 0;
         foreach (var proposal in Unconfirmed)
             if (proposal.Volume is { } volume)
-                shapes.Add(Shape($"destroyable-proposal-{n++}", volume, "#8a8f98", false, "proposed destroyable"));
+                shapes.Add(Shape($"destroyable-proposal-{n++}", volume, "#8a8f98", false, "Suggested destroyable"));
         await canvas.SetAuthorRegionsAsync(shapes);
     }
 

@@ -157,6 +157,27 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **The interface is written for a mapmaker, not for the codebase (`C71`).** A first-time reader found the
+  copy hard to parse: internal names on screen (*pipeline*, *composer*, *emitter*, *BoxFiller*), noun phrases
+  hung off em dashes, metaphors, and descriptions where the control already said enough. The standard is
+  `docs/client/writing-for-the-ui.md` — plain sentences, verbs on buttons, names for headings, errors that say
+  what happened and what to do, no em dashes, the Oxford comma, and a glossary of the terms a reader has to
+  learn — and every page, tool, inspector, tooltip, status line and canvas message in `Client` was rewritten
+  to it, with the e2e specs and tool documents that quote a label moved in the same change.
+- **Text size is the reader's choice, and the default is larger (`C72`).** Every size token in `tokens.css`
+  is a design size times `--ui-scale`, and `TextSizeMenu` in the studio bar picks *Small*, *Default*, *Large*
+  or *Larger* (0.9 · 1 · 1.15 · 1.3), stored as `pgm-text-size` and applied before any stylesheet loads. Type,
+  icons, spacing, the control height and the panel widths follow it; the default type scale rose a pixel a
+  step to 15/14/13/12/11, buttons are at least 28px tall (WCAG 2.2's target size is 24), and labels drawn on a
+  canvas take the same scale through `labelPx`, a step larger than before.
+- **The studio has its own icon and title (`C73`).** `favicon.svg` (one block, three faces) with PNG and
+  apple-touch fallbacks replaces Blazor's default, and the tab reads *PGM Studio* where it read
+  *PgmStudio.Client*.
+- **`?` opens the shortcuts, and the sheet closes like a dialog (`C74`).** A shifted symbol is its own
+  character in `chordOf`, so `?` matches on any layout where it previously arrived as `shift+?` and matched
+  nothing. The sheet carries a close button where it showed a faint *Esc to close*.
+- **Panning looks like panning (`C75`).** The pan tool shows an open hand over every canvas and a closed one
+  while the view is dragged, middle-button drags included (`canvas--pan`, `canvas--panning`).
 - **Three browser specs describe the tools the studio has (`TN17`, `TN18`, `TS106`).** Nothing had run the
   sweep, so three of them drove interactions that had moved on and the gate was red before any change.
   `plan-findings` and `plan-refusals` posted `plan: 1` where `PlanModel.CurrentVersion` is **2**, so both met

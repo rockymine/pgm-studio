@@ -100,10 +100,10 @@ export class WorldEditController {
       this.moveSelected(dx * by, dz * by);
     };
     Keys.register("world-edit", [
-      { id: "edit.nudge", keys: Object.keys(ARROWS), label: "Nudge the selected region one block",
+      { id: "edit.nudge", keys: Object.keys(ARROWS), label: "Move the selected region 1 block",
         group: "Canvas", when: live, run: (e) => step(e, 1) },
       { id: "edit.nudge16", keys: Object.keys(ARROWS).map(key => `shift+${key}`),
-        label: "Nudge the selected region sixteen blocks", group: "Canvas", when: live, run: (e) => step(e, 16) },
+        label: "Move the selected region 16 blocks", group: "Canvas", when: live, run: (e) => step(e, 16) },
     ]);
   }
 

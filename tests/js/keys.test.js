@@ -178,3 +178,10 @@ test("live() is ordered so the first match is the one that runs", () => {
   assert.equal(live()[0].label, "High");
   clear();
 });
+
+test("a shifted symbol is its character, whatever key produced it", () => {
+  const press = (key) => ({ key, shiftKey: true, ctrlKey: false, metaKey: false, altKey: false });
+  assert.equal(chordOf(press("?")), normalize("?"));
+  assert.equal(chordOf(press("P")), normalize("shift+p"));
+  assert.equal(chordOf(press("ArrowLeft")), normalize("shift+arrowleft"));
+});

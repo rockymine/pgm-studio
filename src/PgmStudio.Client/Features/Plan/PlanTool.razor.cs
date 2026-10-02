@@ -107,8 +107,8 @@ public partial class PlanTool
     private string DraftLabel
         => compiling ? "Compiling…"
          : compileErrors.Count > 0
-             ? $"Fix {compileErrors.Count} blocking problem{(compileErrors.Count == 1 ? "" : "s")} first"
-         : compileError is not null ? "The compile failed"
+             ? $"Fix {compileErrors.Count} problem{(compileErrors.Count == 1 ? "" : "s")} first"
+         : compileError is not null ? "Couldn't compile"
          : compiledLayout is null ? "Compile first"
          : BuildLabel;
 
@@ -245,7 +245,7 @@ public partial class PlanTool
         new("hub", "Hub", "#4ea3d8"),
         new("wool", "Wool", "#3fae74"),
         new("spawn", "Spawn", "#8f7bd6"),
-        new("frontline", "Frontline", "#e0714a"),
+        new("frontline", "Front line", "#e0714a"),
         new("mid", "Mid", "#9aa7b4"),
     ];
 
@@ -281,8 +281,8 @@ public partial class PlanTool
         new { id = "plan.tool.zone",   keys = "z", label = "Zone",   group = "Tools" },
         new { id = "plan.tool.box",    keys = "g", label = "Box",    group = "Tools" },
         new { id = "plan.tool.wall",   keys = "w", label = "Wall",   group = "Tools" },
-        new { id = "plan.fit",         keys = "f", label = "Fit the plan", group = "Canvas" },
-        new { id = "plan.save",        keys = "mod+s", label = "Save the plan", group = "Everywhere", inField = true },
+        new { id = "plan.fit",         keys = "f", label = "Zoom to fit", group = "Canvas" },
+        new { id = "plan.save",        keys = "mod+s", label = "Save", group = "Everywhere", inField = true },
     ];
 
     /// <summary>A chord this tool registered. The registry holds the words; this holds what the chord does.</summary>
@@ -416,7 +416,7 @@ public partial class PlanTool
     // — differing only in when it opens.
     private static DockItem[] TechnicalItems =>
     [
-        new("zone", "Build zone", SwatchClass: "canvas-dock-swatch--build"),
+        new("zone", "Build area", SwatchClass: "canvas-dock-swatch--build"),
         new("water-lane", "Water lane", SwatchClass: "canvas-dock-swatch--water-lane"),
         .. TechnicalRoles.Select(r => new DockItem(r.Id, r.Label, SwatchClass: $"canvas-dock-swatch--{r.Id}")),
     ];
@@ -808,7 +808,7 @@ public partial class PlanTool
             // A file import is a fresh, not-yet-persisted plan — saving it creates a new authored row.
             else { SyncMeta(await handle.InvokeAsync<string>("getMeta")); ResetDbBinding(); sel = null; }
         }
-        catch { importError = "Could not read the file."; }
+        catch { importError = "Couldn't read the file."; }
         StateHasChanged();
     }
 
@@ -839,7 +839,7 @@ public partial class PlanTool
             if (MapBacked)
             {
                 using var mapResp = await Http.PutAsync($"api/map/{Slug}/plan", new StringContent(planJson, Encoding.UTF8, "application/json"));
-                saveState = mapResp.IsSuccessStatusCode ? "Saved" : $"Save failed (HTTP {(int)mapResp.StatusCode}).";
+                saveState = mapResp.IsSuccessStatusCode ? "Saved" : $"Couldn't save (HTTP {(int)mapResp.StatusCode}). Try again.";
                 return;
             }
             using var resp = await Http.PostAsJsonAsync("api/plans", new PlanSaveRequest(planJson, planDbId));
@@ -853,9 +853,9 @@ public partial class PlanTool
                     saveState = "Saved";
                 }
             }
-            else { saveState = $"Save failed (HTTP {(int)resp.StatusCode})."; }
+            else { saveState = $"Couldn't save (HTTP {(int)resp.StatusCode}). Try again."; }
         }
-        catch { saveState = "Save failed."; }
+        catch { saveState = "Couldn't save. Try again."; }
         finally { saving = false; StateHasChanged(); }
     }
 
@@ -865,7 +865,7 @@ public partial class PlanTool
         dbBusy = true; dbError = null; dbPlans = [];
         StateHasChanged();
         try { dbPlans = await Http.GetFromJsonAsync<List<PlanSummary>>("api/plans") ?? []; }
-        catch { dbError = "Could not load plans."; }
+        catch { dbError = "Couldn't load plans. Try again."; }
         finally { dbBusy = false; StateHasChanged(); }
     }
 
@@ -874,8 +874,8 @@ public partial class PlanTool
     // A generated row made by an older composer opens exactly as stored — only its descriptor has stopped
     // reproducing it, which matters when re-composing that request, not when loading the row.
     private static string StaleTitle(PlanSummary p) =>
-        $"Made by composer {p.ComposerVersion ?? "(unrecorded)"}. The plan opens as stored; "
-        + "re-composing its seed on today's composer would give a different board.";
+        $"Made by generator version {p.ComposerVersion ?? "unknown"}. "
+        + "Generating it again today would give a different layout.";
 
     private async Task LoadFromDb(long id)
     {
@@ -894,7 +894,7 @@ public partial class PlanTool
             sel = null;
             showOpenDb = false;
         }
-        catch { dbError = "Could not open the plan."; }
+        catch { dbError = "Couldn't open the plan."; }
         StateHasChanged();
     }
 
@@ -930,7 +930,7 @@ public partial class PlanTool
             catch { /* metadata unreachable — keep the doc's name */ }
             sel = null;
         }
-        catch { importError = "Could not open the plan."; }
+        catch { importError = "Couldn't open the plan."; }
         StateHasChanged();
     }
 
@@ -971,7 +971,7 @@ public partial class PlanTool
     private static bool HasSubjects(Finding finding) => finding.SubjectIds.Count > 0;
 
     private static string? ShowFindingTitle(Finding finding)
-        => HasSubjects(finding) ? "Show this on the canvas" : null;
+        => HasSubjects(finding) ? "Show on the canvas" : null;
 
     // Click a compile finding to see what it is about. A finding names its subjects — pieces, zones, markers —
     // and the canvas can pulse them, but the compile drawer is modal and dims the board behind it, so the
@@ -1050,7 +1050,7 @@ public partial class PlanTool
             }
             else
             {
-                compileError = $"compile failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+                compileError = $"Couldn't compile the plan (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
             }
         }
         catch (Exception ex) { compileError = ex.Message; }
@@ -1074,7 +1074,7 @@ public partial class PlanTool
             yield return (PlanTabId, "Plan");
             if (compiledLayout is null) yield break;
             yield return (LayoutTabId, "Layout");
-            yield return (IntentTabId, "Intent");
+            yield return (IntentTabId, "Game settings");
         }
     }
 
@@ -1138,17 +1138,17 @@ public partial class PlanTool
             {
                 draftStep = "Creating draft"; StateHasChanged();
                 using var createResp = await Http.PostAsJsonAsync("api/sketch", new { name = planName });
-                if (!await Ok(createResp, "create draft")) return;
+                if (!await Ok(createResp, "create the draft")) return;
                 slug = (await createResp.Content.ReadFromJsonAsync<OriginatedDto>())?.Slug;
-                if (string.IsNullOrEmpty(slug)) { draftError = "create draft: no slug returned"; return; }
+                if (string.IsNullOrEmpty(slug)) { draftError = "Couldn't create the draft. The server didn't return its name."; return; }
             }
 
-            draftStep = "Recording the plan"; StateHasChanged();
+            draftStep = "Saving the plan"; StateHasChanged();
             var planJson = await handle.InvokeAsync<string>("exportJson");
             using var planResp = await Http.PutAsync($"api/map/{slug}/plan", new StringContent(planJson, Encoding.UTF8, "application/json"));
-            if (!await Ok(planResp, "record the plan")) return;
+            if (!await Ok(planResp, "save the plan")) return;
 
-            draftStep = "Saving layout"; StateHasChanged();
+            draftStep = "Saving the layout"; StateHasChanged();
             using var layoutResp = await Http.PutAsync(
                 discardRelief ? $"api/map/{slug}/sketch/from-plan?force=true" : $"api/map/{slug}/sketch/from-plan",
                 new StringContent(compiledLayoutRaw, Encoding.UTF8, "application/json"));
@@ -1161,16 +1161,16 @@ public partial class PlanTool
                 orphanedRelief = groups;
                 return;
             }
-            if (!await Ok(layoutResp, "save layout")) return;
+            if (!await Ok(layoutResp, "save the layout")) return;
             droppedShapes = (await layoutResp.Content.ReadFromJsonAsync<SketchFromPlanDto>())?.Dropped ?? [];
 
-            draftStep = "Rasterizing"; StateHasChanged();
+            draftStep = "Building the world"; StateHasChanged();
             using var finishResp = await Http.PostAsync($"api/map/{slug}/sketch/finish", null);
-            if (!await Ok(finishResp, "finish (rasterize)")) return;
+            if (!await Ok(finishResp, "build the world")) return;
 
-            draftStep = "Applying intent"; StateHasChanged();
+            draftStep = "Applying game settings"; StateHasChanged();
             using var intentResp = await Http.PutAsync($"api/map/{slug}/intent/from-plan", new StringContent(compiledIntentRaw, Encoding.UTF8, "application/json"));
-            if (!await Ok(intentResp, "apply intent")) return;
+            if (!await Ok(intentResp, "apply the game settings")) return;
 
             draftSlug = slug;
             await LoadStateAsync();   // the map now holds a sketch and a world — the next build is a rebuild
@@ -1182,7 +1182,7 @@ public partial class PlanTool
     private async Task<bool> Ok(HttpResponseMessage resp, string step)
     {
         if (resp.IsSuccessStatusCode) return true;
-        draftError = $"{step} failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+        draftError = $"Couldn't {step} (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
         return false;
     }
 
@@ -1198,7 +1198,7 @@ public partial class PlanTool
 
         if (!resp.IsSuccessStatusCode)
         {
-            draftError = $"export failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+            draftError = $"Couldn't download the world (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
             StateHasChanged();
             return;
         }
@@ -1239,11 +1239,11 @@ public partial class PlanTool
     }
 
     /// <summary>The chip beside the toggle: what stopped the preview, in two words.</summary>
-    private string IsoNote => isoUnavailableWhy is null ? "no WebGL" : "3-D unavailable";
+    private string IsoNote => isoUnavailableWhy is null ? "No WebGL" : "3-D unavailable";
 
     /// <summary>The whole sentence, on hover.</summary>
     private string IsoNoteTitle => isoUnavailableWhy
-        ?? "The 3-D height preview needs WebGL, which this browser can't provide.";
+        ?? "The 3-D preview needs WebGL, which this browser doesn't support.";
 
     [JSInvokable]
     public void OnZoom(int pct) { zoomLabel = $"{pct}%"; StateHasChanged(); }

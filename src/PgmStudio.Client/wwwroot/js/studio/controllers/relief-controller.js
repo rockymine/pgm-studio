@@ -139,7 +139,7 @@ export class ReliefController {
   /** Rename the selection and follow it, since the id is what the selection is. Returns the complaint the
    *  document refused with, or null. */
   renameSelected(next) {
-    if (!this.#selectedId) return "nothing selected";
+    if (!this.#selectedId) return "Nothing is selected.";
     const refused = this.#doc.rename(this.#selectedId, next);
     if (refused) return refused;
     this.#selectedId = String(next).trim();

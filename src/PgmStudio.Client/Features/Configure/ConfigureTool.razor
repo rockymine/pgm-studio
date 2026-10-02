@@ -117,20 +117,19 @@ else
   <Workspace @key="@Phase.Id">
     <Sidebar>
         <Section Title="@Phase.Title">
-          <Actions><Badge Kind="dim">@Phase.Task</Badge></Actions>
           <ChildContent>
           <p class="section-desc">
             @if (Phase.Steps.Length == 0)
             {
-              <text>Single-step phase.</text>
+              <text>This phase has one step.</text>
             }
             else
             {
-              <text>Step @(step + 1) of @Phase.Steps.Length — <strong>@StepLabel</strong>.</text>
+              <text>Step @(step + 1) of @Phase.Steps.Length: <strong>@StepLabel</strong>.</text>
             }
           </p>
           <p class="panel-empty-msg" style="text-align:left">
-            Shell scaffold — the @Phase.Title panels are built by @Phase.Task.
+            This phase isn't available yet.
           </p>
           </ChildContent>
         </Section>
@@ -140,7 +139,7 @@ else
 
     <div class="workspace-canvas">
       <div class="canvas-surface" style="display:flex;align-items:center;justify-content:center;">
-        <p class="panel-empty-msg">@Phase.Title · @StepLabel — canvas scaffold (@Phase.Task)</p>
+        <p class="panel-empty-msg">@Phase.Title · @StepLabel</p>
       </div>
     </div>
 
@@ -149,7 +148,7 @@ else
     <Inspector>
         <Section>
           <DetailHeader Icon="@Phase.Icon" IconMuted Label="Inspector" />
-          <p class="section-desc">Phase-specific inspector panels land with @Phase.Task.</p>
+          <p class="section-desc">Nothing to show yet.</p>
         </Section>
     </Inspector>
   </Workspace>

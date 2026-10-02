@@ -14,13 +14,13 @@
     }
     else if (Report is not { } report)
     {
-      <div class="report"><p class="report__note">Reading the board — every read of it, off one build…</p></div>
+      <div class="report"><p class="report__note">Building the report…</p></div>
     }
     else
     {
       <div class="report">
         <div class="report__head">
-          <span class="report__change">change @report.Change</span>
+          <span class="report__change">Change #@report.Change</span>
           <pre class="report__numbers">@string.Join("\n", report.Headline.Says)</pre>
         </div>
 
@@ -42,7 +42,7 @@
                 @if (failed)
                 {
                   <figcaption class="report__note report__note--warn">
-                    This picture could not be drawn — its route says why.
+                    Couldn't draw this picture. Open the link below to see why.
                   </figcaption>
                 }
                 else

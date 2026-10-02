@@ -17,20 +17,20 @@
     }
     else if (Views is null)
     {
-      <div class="ingame"><p class="ingame__note">Reading the board…</p></div>
+      <div class="ingame"><p class="ingame__note">Loading views…</p></div>
     }
     else if (Views.Undrawable is { } why)
     {
       <div class="ingame">
         <p class="ingame__note ingame__note--warn">
-          In-game pictures are drawn with Minecraft 1.8.9's own block textures, and this server has none: @why
+          In-game pictures need Minecraft 1.8.9's block textures, and this server doesn't have them. @why
         </p>
       </div>
     }
     else if (Views.Views.Count == 0 || Shown is not { } shown)
     {
       <div class="ingame">
-        <p class="ingame__note">There is nothing on the board to look at yet. Draw some ground, then come back.</p>
+        <p class="ingame__note">Nothing to show yet. Draw some ground first.</p>
       </div>
     }
     else
@@ -41,20 +41,20 @@
             <span class="ingame__name">@shown.Name</span>
             <span class="ingame__where">@Where(shown)</span>
             <Button Icon="external-link" Href="@FullSize(shown)" target="_blank" rel="noopener"
-                    Title="The picture at 1920 × 1080, in a tab of its own">Full size</Button>
+                    Title="Open at 1920 × 1080 in a new tab">Full size</Button>
             @if (shown.Picture)
             {
               <Badge Kind="neutral">map picture</Badge>
             }
             else
             {
-              <Button Icon="image" Busy="picturing" BusyLabel="Marking…" OnClick="() => MakePicture(shown)"
-                      Title="Draw the map's picture — the map.png an export carries — from this view">Map picture</Button>
+              <Button Icon="image" Busy="picturing" BusyLabel="Setting…" OnClick="() => MakePicture(shown)"
+                      Title="Use this view for the map's picture (map.png)">Set as map picture</Button>
             }
             @if (shown.Kept && !shown.Own)
             {
-              <Button Variant="danger" Icon="trash-2" Busy="lettingGo" BusyLabel="Letting go…"
-                      OnClick="() => LetGo(shown)">Let go</Button>
+              <Button Variant="danger" Icon="trash-2" Busy="lettingGo" BusyLabel="Removing…"
+                      OnClick="() => LetGo(shown)">Remove</Button>
             }
           </div>
 
@@ -95,14 +95,14 @@
               }
               <CanvasDock>
                 <DockGroup Viewing="true">
-                  <DockButton Icon="crosshair" Title="Point: pin a note to one block" Active="@(tool == NoteAnchors.Point)"
+                  <DockButton Icon="crosshair" Title="Point: pin a note to a block" Active="@(tool == NoteAnchors.Point)"
                               OnClick="() => Arm(NoteAnchors.Point)" />
-                  <DockButton Icon="square" Title="Box: pin a note to the ground in a rectangle" Active="@(tool == NoteAnchors.Box)"
+                  <DockButton Icon="square" Title="Box: pin a note to an area" Active="@(tool == NoteAnchors.Box)"
                               OnClick="() => Arm(NoteAnchors.Box)" />
-                  <DockButton Icon="lasso" Title="Lasso: pin a note to the ground inside an outline" Active="@(tool == NoteAnchors.Lasso)"
+                  <DockButton Icon="lasso" Title="Lasso: pin a note to an outlined area" Active="@(tool == NoteAnchors.Lasso)"
                               OnClick="() => Arm(NoteAnchors.Lasso)" />
                   <span class="ingame__divider"></span>
-                  <DockButton Icon="eye" Title="@(showMarks ? "Hide the notes' pins and marks" : "Show the notes' pins and marks")"
+                  <DockButton Icon="eye" Title="@(showMarks ? "Hide note pins" : "Show note pins")"
                               Active="showMarks" OnClick="() => showMarks = !showMarks" />
                 </DockGroup>
               </CanvasDock>

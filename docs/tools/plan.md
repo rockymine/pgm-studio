@@ -532,8 +532,8 @@ beside the sixteen dyes rather than naming a colour the compiler might not pick.
 
 Three panels share the sidebar. **Settings** holds the globals, the tracing reference and the overlay toggles
 (land interfaces, frontline edges, labels, and a height-map fill that tints pieces by surface).
-**Validation** shows the evaluator's score and every fired rule, and clicking a row isolates that rule's
-evidence on the canvas. **Feasibility** shows the producibility read per box, and clicking a box that nothing
+**Checks** shows the evaluator's score and every fired rule, and clicking a row isolates that rule's
+evidence on the canvas. **Generator check** shows the producibility read per box, and clicking a box that nothing
 reproduces paints its nearest miss — the cells a candidate emits that the box does not, and the cells the box
 has that it does not. Each panel owns its overlay and drops it on leaving. All three feeds are debounced by
 300 ms after an edit and guard against stale responses.
@@ -559,14 +559,14 @@ and build zones — and what it **keeps**: the relief on every island that survi
 corrected, the themes, room shells and dressing, and the authors.
 
 **A rebuild that would orphan a relief is asked again, not failed.** The layout write answers `409` with one
-`SK1` per group the new board has no island for, and the drawer names those groups and offers *Discard it and
+`SK1` per group the new board has no island for, and the drawer names those groups and offers *Delete and
 rebuild*, which reruns the chain with `?force=true`; *Cancel* leaves the map as it was. After a rebuild the
 drawer lists the sketch-drawn shapes the layout write reported as `dropped` (`SK29`).
 
 **The button under the panes reads the compile, not the map.** *Rebuild this map* / *Build the map* / *Create
 draft* is what it says in the one state where it can act; a compile that has not run yet reads *Compile
-first*, one that was refused reads *Fix N blocking problems first* — the count of the findings listed
-directly above it — and one that failed to answer reads *The compile failed*. The hammer goes with the word:
+first*, one that was refused reads *Fix N problems first* — the count of the findings listed
+directly above it — and one that failed to answer reads *Couldn't compile*. The hammer goes with the word:
 an icon for the act is wrong on a label that refuses it.
 
 **Compile does not open until the plan document has arrived.** The canvas and the toolbar are in the DOM

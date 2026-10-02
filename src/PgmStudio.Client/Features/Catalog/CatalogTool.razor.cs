@@ -41,18 +41,18 @@ public partial class CatalogTool
     /// width rather than adding forms of their own, so they are not a separate row yet.</summary>
     private static readonly (string Token, string Label, string Hint)[] Kinds =
     [
-        ("wool", "Wool approach", "A terminal-capped approach: the lane to a wool, dead-ending at its room."),
-        ("hub", "Hub body", "The unit's constraint-source body — terminal-free, its edge widths set every neighbour's menu."),
-        ("frontline", "Frontline body", "The join toward the axis — terminal-free, one edge marked the face."),
+        ("wool", "Wool approach", "A path that leads to a wool room and ends there."),
+        ("hub", "Hub", "The central area of a team's side. Its edge widths decide which shapes can attach to it."),
+        ("frontline", "Front line", "The area that faces the other team. One of its edges is the front."),
     ];
 
     /// <summary>The reach tiers, in narrowing order. The hints are the page's whole honesty contract, so they
     /// name the mechanism rather than grading the shape.</summary>
     private static readonly (string Token, string Label, string Hint)[] Tiers =
     [
-        ("in-mix", "In the mix", "A sampler draws this, so generated boards really contain it."),
-        ("reachable", "Reachable", "BoxFiller fills it and the menu lists it, but no sampler ever asks for one."),
-        ("emitter-only", "Emitter only", "Only a direct emitter call builds it — off the fill menu, or a knob the fill path drops."),
+        ("in-mix", "In use", "Generated layouts contain this shape."),
+        ("reachable", "Never picked", "The generator can build this shape but never chooses it."),
+        ("emitter-only", "Preview only", "Only built when asked for directly, as on this page. The generator never builds it."),
     ];
 
     /// <summary>Families in pipeline-legibility order (straight → bent → branch → enclosing → bodies), so the
@@ -68,7 +68,7 @@ public partial class CatalogTool
         try
         {
             var page = await Http.GetFromJsonAsync<CatalogPage>("api/shapes/catalog");
-            if (page is null) { error = "The catalog came back empty."; return; }
+            if (page is null) { error = "Couldn't load the catalog. Reload the page to try again."; return; }
             shapes = page.Shapes;
             total = page.Total;
             byTier = page.ByTier;
@@ -77,7 +77,7 @@ public partial class CatalogTool
         }
         catch (HttpRequestException e)
         {
-            error = $"Could not load the catalog: {e.Message}";
+            error = $"Couldn't load the catalog. Reload the page to try again. ({e.Message})";
         }
         finally
         {
@@ -148,10 +148,10 @@ public partial class CatalogTool
     private bool AttachWAllowed => ProbeFamilySchema?.Knobs.Contains("attachW") ?? false;
 
     private string SideTuckTitle =>
-        SideTuckAllowed ? "Turn the room off the end, perpendicular" : "the emitter builds side-tuck for I, Z and scythe only";
+        SideTuckAllowed ? "Turn the wool room sideways at the end" : "Only available for the I, Z, and scythe shapes";
 
     private string WoolAtEndTitle =>
-        WoolAtEndAllowed ? "Put the terminal on an end rather than the middle" : "not a knob this family takes";
+        WoolAtEndAllowed ? "Put the wool room at an end instead of the middle" : "Not available for this shape";
 
     /// <summary>Open the panel seeded from a card, so the first thing it shows is that exact shape and the
     /// author edits from a known-good state rather than guessing a starting box.</summary>

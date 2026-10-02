@@ -139,17 +139,17 @@ public partial class MaterialEditor
     /// because everything except the bend is.</summary>
     private string FieldBlurb => Kind switch
     {
-        MaterialKind.Turbulence => "A field folded at every crossing, so it creases: billowed, marbled bands.",
-        MaterialKind.Electric => "A field whose crossings are thin branching filaments, everything else falling away from them.",
-        _ => "A smooth fractal field — cloudy regions fading into one another.",
+        MaterialKind.Turbulence => "A folded field that makes creased, marbled bands.",
+        MaterialKind.Electric => "A field of thin branching lines that fade out around them.",
+        _ => "A smooth, cloudy field whose regions fade into one another.",
     };
 
     /// <summary>What the rise does, shared by every area pattern because it means the same thing in all of
     /// them: at 0 the field is of the plane, so a column resolves to one block all the way down and the pattern
     /// only ever decides the ground.</summary>
     private const string RiseNote =
-        "A rise of 0 paints the ground and leaves every wall face striped; give it a vertical period in blocks "
-        + "and the pattern carries through the depth of the terrain instead.";
+        "With a rise of 0 the pattern covers only the ground, and walls come out striped. Set a rise in blocks "
+        + "to carry the pattern down through the terrain.";
 
     /// <summary>What one of a kind's single children is called.</summary>
     private static string ChildLabel(string field) => MaterialTree.ChildLabel(field);

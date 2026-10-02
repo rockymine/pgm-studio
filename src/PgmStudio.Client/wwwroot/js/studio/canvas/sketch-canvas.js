@@ -49,6 +49,7 @@ import {
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
 import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
 import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar, renderDimensionPill, renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
+import { labelPx } from "../shared/ui-scale.js";
 // iso-webgl is loaded lazily (on first 3-D toggle) so a missing/blocked WebGL stack — or any failure
 // to load that module — degrades to "no 3-D preview" instead of breaking the whole editor at page load.
 
@@ -1292,9 +1293,9 @@ export class SketchCanvas extends CanvasBase {
     // listed by the `?` sheet and dropped with the canvas; `when` keeps a hidden canvas from answering.
     const live = () => this._wrap?.offsetParent != null && !this._isoOn;
     Keys.register("sketch-canvas", [
-      { id: "sketch.cancel", keys: "escape", label: "Put the brush down · cancel the draw · step back up a level · deselect",
+      { id: "sketch.cancel", keys: "escape", label: "Cancel, go up a level, or deselect",
         group: "Canvas", when: live, inField: false, run: () => this.#onEscape() },
-      { id: "sketch.enter", keys: "enter", label: "Go one level deeper — into a group, then into a shape's points",
+      { id: "sketch.enter", keys: "enter", label: "Open the selected group or shape",
         group: "Canvas", when: () => live() && (this.#selectedId || this.#selectedGroupId),
         run: () => this.enterSelection() },
       // Delete reaches whatever the phase in front of the author is editing. A relief phase leaves a shape
@@ -1311,13 +1312,13 @@ export class SketchCanvas extends CanvasBase {
       { id: "dressing.delete", keys: ["delete", "backspace"], label: "Delete the selected prop",
         group: "Dressing", when: () => live() && this.#dressingOn && !!this.#dressing?.selectedId,
         run: () => this.#dressing?.deleteSelected() },
-      { id: "sketch.promote", keys: "shift+p", label: "Promote the shape to its own group",
+      { id: "sketch.promote", keys: "shift+p", label: "Move the shape into its own group",
         group: "Sketch", when: () => live() && !!this.#selectedId,
         run: () => this.#callbacks.onShapePromote?.(this.#selectedId) },
       // The label says *building* rather than group: a group on this canvas is a shape's orbit, and one chord
       // listed twice under one word in the help sheet is two operations nobody can tell apart.
       { id: "dressing.join", keys: "mod+g",
-        label: "Join the selected buildings into one · take a joined one apart",
+        label: "Join or separate buildings",
         group: "Dressing", when: () => live() && this.#dressingOn && !!this.#dressing?.selectedId,
         run: () => this.joinDressing() },
     ]);
@@ -1325,7 +1326,7 @@ export class SketchCanvas extends CanvasBase {
     // A click-by-click draw ends on Enter or on a click back at its first vertex. Neither is a click count,
     // so nothing on this canvas is reached by how fast two presses land.
     Keys.register("sketch-draw", [
-      { id: "sketch.close", keys: "enter", label: "Close the polygon · end the path", group: "Sketch",
+      { id: "sketch.close", keys: "enter", label: "Finish the polygon or path", group: "Sketch",
         priority: 10, when: () => live() && (this._activeTool === "polygon" || this._activeTool === "polyline"),
         run: () => this.#draw.onDblClick() },
     ]);
@@ -1433,7 +1434,7 @@ export class SketchCanvas extends CanvasBase {
     const t = svgEl("text", {
       x: tx, y: ty, transform: `rotate(${deg.toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)})`,
       "text-anchor": "middle", "dominant-baseline": "middle",
-      "font-size": "11", "font-family": "ui-monospace, monospace", "font-weight": "600",
+      "font-size": labelPx(11), "font-family": "ui-monospace, monospace", "font-weight": "600",
       fill: "var(--canvas-axis)", "pointer-events": "none",
       "paint-order": "stroke", stroke: "var(--bg-canvas)", "stroke-width": "3", "stroke-linejoin": "round",
     });

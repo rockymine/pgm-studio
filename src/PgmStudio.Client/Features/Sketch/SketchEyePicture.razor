@@ -57,12 +57,12 @@
         try
         {
             var answer = await Http.GetAsync(Source);
-            if (answer.IsSuccessStatusCode) { why = "The picture was drawn but could not be shown."; return; }
+            if (answer.IsSuccessStatusCode) { why = "The picture couldn't be shown."; return; }
             var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
             why = refusal?.Findings.FirstOrDefault()?.Message is { Length: > 0 } sentence ? sentence
                 : refusal?.Message is { Length: > 0 } message ? message
-                : "This view could not be drawn.";
+                : "Couldn't draw this view.";
         }
-        catch { why = "The studio could not be reached."; }
+        catch { why = "Couldn't reach the studio. Check your connection."; }
     }
 }
