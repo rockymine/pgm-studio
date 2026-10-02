@@ -478,8 +478,9 @@ public sealed class SketchShape
     /// <summary>What the group lists and the theme scope names this shape by.</summary>
     [JsonPropertyName("id")]        public string Id { get; set; } = "";
 
-    /// <summary>What it is: <c>rectangle</c>, <c>circle</c>, <c>polygon</c>, <c>lasso</c>, <c>path</c> —
+    /// <summary>What it is: <c>rectangle</c>, <c>circle</c>, <c>polygon</c>, <c>lasso</c>, <c>polyline</c> —
     /// which says which of the numbers below it carries.</summary>
+    [WordSet(typeof(ShapeKinds))]
     [JsonPropertyName("type")]      public string Type { get; set; } = "";
 
     /// <summary>Whether it adds ground or takes it away: <c>add</c> or <c>subtract</c>.</summary>
