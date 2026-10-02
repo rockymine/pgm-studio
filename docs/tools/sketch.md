@@ -734,7 +734,7 @@ have its operation or its override flipped, or be deleted.
 **Height is edited three ways.** The whole shape takes a floor and a thickness. A single selected vertex takes
 its own height, which materialises the per-vertex array on first use. And two or three vertices shift-marked as
 controls fit a plane through their stated heights and fill every remaining vertex from it — a ramp from two, an
-aimed plane from three — rounding to blocks, so a slope reads as the neat straight steps of a staircase.
+aimed plane from three — rounding to blocks, so a slope reads as the neat straight steps of a staircase. Inserting a point on an edge renumbers the marked controls with the points, so each stays on the point it was placed on.
 
 Six overlays sit above the canvas: **Shapes** (the draw primitives over the fused groups), **Mirror** (the
 symmetry copies), **Chunks** (the 16-block grid), **Blocks** (the rasterized footprint — the exact cells an
