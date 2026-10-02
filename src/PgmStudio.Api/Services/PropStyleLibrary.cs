@@ -28,7 +28,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
 
     // ── trees ─────────────────────────────────────────────────────────────────────────────────────────
     public async Task<IReadOnlyList<(TreeStyleRow Row, string Card)>> ListTreesAsync(CancellationToken ct = default)
-        => [.. (await store.ListTreesAsync(ct)).Select(row => (row, Card(TreeProp(row))))];
+        => [.. (await store.ListTreesAsync(ct)).Select(row => (row, Card(TreeProp(row), TreeOf(row))))];
 
     public static TreeStyle TreeOf(TreeStyleRow row) => new()
     {
@@ -113,7 +113,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
 
     /// <summary>The draft as the editor's own stage draws it — the same recipe as a browse card, at the
     /// size a knob is judged at rather than the size a row is scanned at.</summary>
-    public static string CardOf(TreeStyleSaveRequest draft) => Card(TreeProp(RowOf(draft)), StageCell);
+    public static string CardOf(TreeStyleSaveRequest draft) => Card(TreeProp(RowOf(draft)), TreeOf(RowOf(draft)), StageCell);
 
     private static TreeProp TreeProp(TreeStyleRow row)
         => new() { Id = "sample", X = 0, Z = 0, Seed = 7, Style = TreeOf(row) };
@@ -121,7 +121,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
     // ── boulders ──────────────────────────────────────────────────────────────────────────────────────
     public async Task<IReadOnlyList<(BoulderStyleRow Row, string Card)>> ListBouldersAsync(
         CancellationToken ct = default)
-        => [.. (await store.ListBouldersAsync(ct)).Select(row => (row, Card(BoulderProp(row))))];
+        => [.. (await store.ListBouldersAsync(ct)).Select(row => (row, Card(BoulderProp(row), BoulderOf(row))))];
 
     public static BoulderStyle BoulderOf(BoulderStyleRow row) => new()
     {
@@ -167,7 +167,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
     public static BoulderStyleDetail ToDetail(BoulderStyleRow row) => new(
         row.Id, row.Name, BoulderForms.Canonical(row.Form), row.Size, row.Mossy, row.Rock, row.SeedKey is not null);
 
-    public static string CardOf(BoulderStyleSaveRequest draft) => Card(BoulderProp(RowOf(draft)), StageCell);
+    public static string CardOf(BoulderStyleSaveRequest draft) => Card(BoulderProp(RowOf(draft)), BoulderOf(RowOf(draft)), StageCell);
 
     private static BoulderProp BoulderProp(BoulderStyleRow row)
         => new() { Id = "sample", X = 0, Z = 0, Seed = 7, Style = BoulderOf(row) };
@@ -199,7 +199,8 @@ public sealed class PropStyleLibrary(PropStyleStore store)
     private const int StageCell = 9;
 
     /// <summary>One recipe's card: the section, drawn through the pass that builds it.</summary>
-    private static string Card(PlacedProp prop, int cell = 3)
-        => Drawings.Svg($"prop-card/{cell}", DressingJson.SerializeProp(prop),
+    private static string Card(PlacedProp prop, PropStyle recipe, int cell = 3)
+        => Drawings.Svg($"prop-card/{cell}",
+            DressingJson.SerializeProp(prop) + "\n" + DressingJson.SerializeStyle(recipe),
             () => DressingPreview.Views(prop, Sample, cell).Section);
 }
