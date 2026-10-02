@@ -46,16 +46,28 @@ skin the studio serves at `/api/minecraft/player/{uuid}/skin`, so a browser asks
 studio cannot get leaves the initial showing.
 
 **Forms** — `Field` is the atom the whole system is built from: it owns the label, the required mark, the
-error line and the hint slots, and the input itself is `ChildContent`. `NumberField` and `CoordField` are the
-two inputs with enough shape of their own to be components; `Select` is the dropdown, taking its rows as
-`SelectOption` values — a value, the word it is offered under, the note it carries on hover and the heading it
-sits under — so grouping and labelling are decided once rather than at each site that offers a list;
-`SwatchRow` is the control a **colour** is chosen with, generic in what a swatch stands for — a block's data
+error line and the hint slots, and the input itself is `ChildContent`. Three controls carry every number and
+every pick from a list. `NumberField` is the number box: it clamps what is typed to its `Min`/`Max` and snaps
+the box back to the clamped value, a null `Value` is a blank box, and `OnCleared` answers a box emptied where
+blank means "none". `RangeField` is the slider: `ValueChanged` follows the thumb and `OnCommit` fires once on
+release, so a live preview binds the first, a save or a reload the second, and a readout that moves while the
+work waits binds both — the readout itself is the `Field`'s `LabelEnd`. `Select` is the dropdown, taking its
+rows as `SelectOption` values — a value, the word it is offered under, the note it carries on hover and the
+heading it sits under — so grouping and labelling are decided once rather than at each site that offers a
+list; `Slim` is the narrower panel-row box and `Canvas` the floating control of the canvas chrome. `CoordField`
+is the labelled coordinate cell; `SwatchRow` is the control a **colour** is chosen with, generic in what a swatch stands for — a block's data
 value in the library, a colour word in Configure — because a set of sixteen colours is picked by clicking the
 colour and a dropdown of their names makes the author read what they can already see; and
 `AuthorsEditor` is the shared author/contributor block every tool's Identity step uses — each row's mark
 is an initial over a hue hashed from the row's own uuid or name, so a page carrying authors fetches nothing
 from outside the studio to draw them.
+
+**No raw `<input type="number">`, `<input type="range">` or `<select>` stands outside `Components/`.** A
+number, a slider and a dropdown go through `NumberField`, `RangeField` and `Select`, so restyling every one of
+them is an edit to those components and their stylesheets (`form-fields.css`, `range-field.css`, and
+`canvas-chrome.css` for the canvas dropdown) rather than a hunt through the tools. A site that needs something
+a component does not offer — an event, an id, a class — gets a parameter on the component, not raw markup
+beside it.
 
 **Data** — `Section` (`panel-section` plus its header, description, help, actions and footer), `SectionHeader`
 on its own, `BoardKey` (the role and zone colours a page of server-drawn boards is read by, drawn once beside
@@ -245,7 +257,7 @@ moment a component call uses one named `RenderFragment`, so a `Section` that car
 body in an explicit `<ChildContent>`.
 
 **`Field` owns the label, never the input.** The input is a slot, so a field can hold anything — a raw
-`<input class="field-input">`, a `NumberField`, a select, a pair of coordinate cells:
+text `<input class="field-input">`, a `NumberField`, a `RangeField`, a `Select`, a pair of coordinate cells:
 
 ```razor
 <Field Label="Map name" Required Error="@nameError" For="map-name">
@@ -254,8 +266,18 @@ body in an explicit `<ChildContent>`.
 ```
 
 **Modifiers are params, not inline styles.** A width, a `margin-left:auto`, a max-width — each is a modifier
-class the component should carry (`Fill`, `Full`, `Class="action-btn--push-end"`), not an inline `style`. 84
-inline styles remain across the client, and most of them are a missing param.
+class the component should carry (`Fill`, `Full`, `Class="action-btn--push-end"`), not an inline `style`, so a
+redesign restyles the client from its stylesheets and tokens alone. A spacing modifier is named for what it
+does to the block it sits on: `--separated` sets it apart from the block above (`panel-list--separated`,
+`section-desc--separated`, `ctrl-row--separated`).
+
+**The one inline style is a runtime value, passed as a custom property a class reads.** A team's colour, a
+confidence, a pin's position or a column's width is data rather than design, so the markup hands it over as
+`style="--swatch: @hex"` and the class decides what to paint with it: `--swatch` fills a colour swatch
+(`list-swatch`, `block-swatch`, `biome-swatch`, `canvas-dock-swatch`, `badge--team`, …), `--icon-tint` colours a `geo-type-icon`,
+`--meter-level` sizes a `meter-fill`. A component that takes such a value takes it as a param (`DockButton`'s
+`Swatch`, `DetailHeader`'s `IconTint`, `ContentColumn`'s `MaxWidth`) and sets the property itself. A `url()` in
+a custom property resolves against the stylesheet that reads it, so one carries an absolute address.
 
 **Pass-through is deliberate where it exists.** `Section` captures unmatched values so `style`, `id` and a
 `@key` reach the rendered element; `Icon` does the same for a class or a title. `@key` itself is a native

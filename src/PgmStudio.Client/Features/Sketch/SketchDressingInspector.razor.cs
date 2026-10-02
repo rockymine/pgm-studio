@@ -377,11 +377,7 @@ public partial class SketchDressingInspector
         => prop?[field]?.GetValue<bool>() ?? fallback;
 
     // A slider stores 0–100 and the model stores 0–1, so every share crosses here rather than at each caller.
-    private static double Share(ChangeEventArgs e)
-        => double.TryParse(e.Value?.ToString(), out var value) ? Math.Clamp(value / 100, 0, 1) : 0;
-
-    private static double Whole(ChangeEventArgs e)
-        => double.TryParse(e.Value?.ToString(), out var value) ? value : 0;
+    private static double Share(double percent) => Math.Clamp(percent / 100, 0, 1);
 
     /// <summary>One of this prop's material nodes — a path's paving, a boulder's rock, a channel's bank. Each
     /// is a full terrain material edited by the same <c>MaterialEditor</c> the theme phase uses, and the editor

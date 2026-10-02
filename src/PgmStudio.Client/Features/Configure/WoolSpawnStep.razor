@@ -18,7 +18,7 @@
           {
             <ListRow Compact Selected="selectedColor == w.Color"
                  @key="w.Color" OnClick="() => SelectWool(w.Color)">
-              <span class="geo-type-icon" style="color:@W.Hex(w.Color)"><i data-lucide="dot"></i></span>
+              <span class="geo-type-icon" style="--icon-tint: @W.Hex(w.Color)"><i data-lucide="dot"></i></span>
               <span class="list-label list-label--mono">@w.Color</span>
               <Badge Class="@(IsAuthored(w) ? "badge--success" : "badge--dim")">@(IsAuthored(w) ? "Main" : "Copy")</Badge>
             </ListRow>
@@ -38,7 +38,7 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Color">
-          <DetailHeader Icon="dot" IconStyle="@($"color:{W.Hex(sel.Color)}")" Mono Label="@($"{sel.Color} wool")">
+          <DetailHeader Icon="dot" IconTint="@W.Hex(sel.Color)" Mono Label="@($"{sel.Color} wool")">
             <Badge Class="@(IsAuthored(sel) ? "badge--success" : "badge--dim")">@(IsAuthored(sel) ? "Main" : "Copy")</Badge>
           </DetailHeader>
           <div class="section-body">

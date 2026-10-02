@@ -40,7 +40,7 @@
         <Button OnClick="NewPlan" Title="Start a blank plan">New</Button>
         <label class="action-btn" title="Import a *.plan.json file">
           Import
-          <InputFile OnChange="OnImport" accept=".json" style="display:none" />
+          <InputFile OnChange="OnImport" accept=".json" class="control-input--hidden" />
         </label>
         <Button OnClick="ExportPlan" Title="Download this plan as *.plan.json">Export</Button>
         <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save (Ctrl+S)">Save</Button>
@@ -111,13 +111,7 @@
 
             <Section Title="Symmetry and grid">
               <Field Label="Symmetry">
-                <select class="field-input" value="@symmetry" @onchange="OnSymmetry">
-                  <option value="rot_180">Rotate 180°</option>
-                  <option value="rot_90">Rotate 90°</option>
-                  <option value="mirror_x">Mirror X</option>
-                  <option value="mirror_z">Mirror Z</option>
-                  <option value="none">None</option>
-                </select>
+                <Select Slim="false" Options="PlanInfoPhase.SymmetryOptions" Value="@symmetry" ValueChanged="OnSymmetryChanged" />
               </Field>
               <Field Label="Cell size (blocks)">
                 <NumberField Value="cell" ValueChanged="OnCell" Min="1" />
@@ -136,16 +130,14 @@
 
             <Section Title="Reference">
               <Field Label="Trace over map">
-                <select class="field-input" value="@refMap" @onchange="OnPickReferenceMap">
-                  <option value="">None</option>
-                  @foreach (var m in traceMaps) { <option value="@m.Slug">@m.Name</option> }
-                </select>
+                <Select Slim="false" Options="TraceMapOptions" Placeholder="None" Value="@(refMap ?? "")"
+                        ValueChanged="OnPickReferenceMap" />
               </Field>
               @if (refError is not null) { <p class="section-desc plan-compile-draft-error">@refError</p> }
               @if (refMap is not null)
               {
                 <Field Label="Opacity">
-                  <input type="range" class="field-input" min="0" max="1" step="0.05" value="@refOpacity" @oninput="OnRefOpacity" />
+                  <RangeField Min="0" Max="1" Step="0.05" Value="refOpacity" ValueChanged="OnRefOpacity" />
                 </Field>
                 <Field Label="Offset X (cells)">
                   <NumberField Value="refOffsetX" ValueChanged="OnRefOffsetX" Step="1" />
@@ -380,9 +372,7 @@
                   <input class="field-input" value="@sel.Id" @onchange="OnPieceId" />
                 </Field>
                 <Field Label="Role">
-                  <select class="field-input" value="@sel.Role" @onchange="OnPieceRole">
-                    @foreach (var r in Roles) { <option value="@r.Id">@r.Label</option> }
-                  </select>
+                  <Select Slim="false" Options="RoleOptions" Value="@sel.Role" ValueChanged="OnPieceRole" />
                 </Field>
                 <Field Label="Surface (y)">
                   <div class="ctrl-row">
@@ -458,9 +448,7 @@
                   <input class="field-input" value="@sel.Id" @onchange="OnBoxId" />
                 </Field>
                 <Field Label="Kind">
-                  <select class="field-input" value="@sel.BoxKind" @onchange="OnBoxKind">
-                    @foreach (var k in BoxKinds) { <option value="@k.Id">@k.Label</option> }
-                  </select>
+                  <Select Slim="false" Options="BoxKindOptions" Value="@sel.BoxKind" ValueChanged="OnBoxKind" />
                 </Field>
                 <Field Label="@($"Members ({sel.Members?.Count ?? 0})")">
                   <div class="plan-readout">
@@ -513,43 +501,27 @@
                      this one, so the option reads as what it is rather than naming a colour. *@
                   <Field Label="Colour">
                     <div class="field-pick-row">
-                      <span class="field-swatch" style="background:@WoolSwatch"></span>
-                      <select class="field-input" value="@WoolColor"
-                              @onchange="@(e => SetMarkerText("color", e.Value?.ToString(), string.Empty))">
-                        <option value="">Auto</option>
-                        @foreach (var dye in vocabulary.Wool.Colors)
-                        {
-                          <option value="@dye.Name" selected="@(dye.Name == WoolColor)">@dye.Label</option>
-                        }
-                      </select>
+                      <span class="field-swatch" style="--swatch: @WoolSwatch"></span>
+                      <Select Slim="false" Options="WoolColorOptions" Placeholder="Auto" Value="@WoolColor"
+                              ValueChanged="@(value => SetMarkerText("color", value, string.Empty))" />
                     </div>
                   </Field>
                 }
                 @if (sel.MarkerKind == "destroyable")
                 {
                   <Field Label="Design">
-                    <select class="field-input" value="@DestroyableStyle"
-                            @onchange="@(e => SetMarkerText("style", e.Value?.ToString(), vocabulary.Destroyable.Style))">
-                      @foreach (var design in vocabulary.Destroyable.Styles)
-                      {
-                        <option value="@design" selected="@(design == DestroyableStyle)">@design</option>
-                      }
-                    </select>
+                    <Select Slim="false" Options="DestroyableStyleOptions" Value="@DestroyableStyle"
+                            ValueChanged="@(value => SetMarkerText("style", value, vocabulary.Destroyable.Style))" />
                   </Field>
                   <Field Label="Material">
-                    <select class="field-input" value="@DestroyableMaterials"
-                            @onchange="@(e => SetMarkerText("materials", e.Value?.ToString(), vocabulary.Destroyable.Materials))">
-                      @foreach (var material in vocabulary.Destroyable.MaterialChoices)
-                      {
-                        <option value="@material" selected="@(material == DestroyableMaterials)">@material</option>
-                      }
-                    </select>
+                    <Select Slim="false" Options="DestroyableMaterialOptions" Value="@DestroyableMaterials"
+                            ValueChanged="@(value => SetMarkerText("materials", value, vocabulary.Destroyable.Materials))" />
                   </Field>
                   <Field Label="Float">
                     <LabelHint>(air under it)</LabelHint>
                     <ChildContent>
-                      <input class="field-input" type="number" min="0" max="64" value="@DestroyableFloat"
-                             @onchange="@(e => SetMarkerNumber("float", Num(e.Value, DestroyableFloat), vocabulary.Destroyable.Float))" />
+                      <NumberField Min="0" Max="64" Value="DestroyableFloat"
+                                   ValueChanged="@(value => SetMarkerNumber("float", (int)value, vocabulary.Destroyable.Float))" />
                     </ChildContent>
                   </Field>
                 }
@@ -560,19 +532,15 @@
                   <Field Label="Lava footprint">
                     <LabelHint>(width and depth)</LabelHint>
                     <ChildContent>
-                      <select class="field-input" value="@CoreLava"
-                              @onchange="@(e => SetMarkerNumber("lava", Num(e.Value, CoreLava), vocabulary.Core.Lava))">
-                        @foreach (var n in vocabulary.Core.LavaRange) { <option value="@n">@n × @n</option> }
-                      </select>
+                      <Select Slim="false" Options="LavaOptions" Value="@CoreLava.ToString()"
+                              ValueChanged="@(value => SetMarkerNumber("lava", Num(value, CoreLava), vocabulary.Core.Lava))" />
                     </ChildContent>
                   </Field>
                   <Field Label="Lava height">
                     <LabelHint>(layers)</LabelHint>
                     <ChildContent>
-                      <select class="field-input" value="@CoreLavaHeight"
-                              @onchange="@(e => SetMarkerNumber("lavaHeight", Num(e.Value, CoreLavaHeight), vocabulary.Core.LavaHeight))">
-                        @foreach (var n in vocabulary.Core.LavaHeightRange) { <option value="@n">@n</option> }
-                      </select>
+                      <Select Slim="false" Options="LavaHeightOptions" Value="@CoreLavaHeight.ToString()"
+                              ValueChanged="@(value => SetMarkerNumber("lavaHeight", Num(value, CoreLavaHeight), vocabulary.Core.LavaHeight))" />
                     </ChildContent>
                   </Field>
                   <Field Label="Casing">
@@ -587,15 +555,15 @@
                   <Field Label="Float">
                     <LabelHint>(air under the casing)</LabelHint>
                     <ChildContent>
-                      <input class="field-input" type="number" min="0" max="64" value="@CoreFloat"
-                             @onchange="@(e => SetMarkerNumber("float", Num(e.Value, CoreFloat), vocabulary.Core.Float))" />
+                      <NumberField Min="0" Max="64" Value="CoreFloat"
+                                   ValueChanged="@(value => SetMarkerNumber("float", (int)value, vocabulary.Core.Float))" />
                     </ChildContent>
                   </Field>
                   <Field Label="Leak">
                     <LabelHint>(fall before it counts)</LabelHint>
                     <ChildContent>
-                      <input class="field-input" type="number" min="0" max="64" value="@CoreLeak"
-                             @onchange="@(e => SetMarkerNumber("leak", Num(e.Value, CoreLeak), vocabulary.Core.Leak))" />
+                      <NumberField Min="0" Max="64" Value="CoreLeak"
+                                   ValueChanged="@(value => SetMarkerNumber("leak", (int)value, vocabulary.Core.Leak))" />
                     </ChildContent>
                   </Field>
                   <p class="section-desc">

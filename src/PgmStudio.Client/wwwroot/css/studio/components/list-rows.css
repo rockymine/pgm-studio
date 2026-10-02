@@ -29,6 +29,7 @@ a.list-row          { color: inherit; text-decoration: none; }
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-swatch);
   display: inline-block;
+  background: var(--swatch);
 }
 
 .list-label {
@@ -99,6 +100,7 @@ a.list-row          { color: inherit; text-decoration: none; }
 
 /* Container for a vertical stack of .list-row elements inside a panel */
 .panel-list { padding: 4px 0; }
+.panel-list--separated { margin-top: var(--space-3); }
 
 /* The layers panel: the active row highlighted, and a delete inline at its end. */
 .list-row--active { background: var(--accent-light); border-left: 2px solid var(--accent); }
@@ -115,6 +117,8 @@ a.list-row          { color: inherit; text-decoration: none; }
 }
 .canvas-surface--svg > svg,
 svg.canvas-surface { display: block; width: 100%; height: 100%; }
+/* A surface holding a single line of text in its middle rather than a canvas. */
+.canvas-surface--centered { display: flex; align-items: center; justify-content: center; }
 
 /* A map row leads with the name a reader knows it by; the slug is the address, quieter after it. */
 .map-row-name { font-weight: 600; color: var(--text-bright); }

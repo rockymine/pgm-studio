@@ -255,6 +255,15 @@ public partial class PlanTool
     // The kind armed for the zone tool — build (open from the first tick) or water-lane (opens mid-match).
     private string zoneKind = "build";
 
+    private static readonly IReadOnlyList<SelectOption> RoleOptions =
+        [.. Roles.Select(role => new SelectOption(role.Id, role.Label))];
+
+    private static readonly IReadOnlyList<SelectOption> BoxKindOptions =
+        [.. BoxKinds.Select(kind => new SelectOption(kind.Id, kind.Label))];
+
+    private IReadOnlyList<SelectOption> TraceMapOptions
+        => [.. traceMaps.Select(map => new SelectOption(map.Slug, map.Name))];
+
     private string BoxKindColor => BoxKinds.FirstOrDefault(k => k.Id == boxKind)?.Color ?? "#9aa7b4";
 
     private string OffsetLabel => sel?.At is { Length: 2 } a ? $"{a[0]}, {a[1]}" : "";
@@ -264,7 +273,7 @@ public partial class PlanTool
     private static string MarkerIcon(string kind) =>
         AllMarkerItems.FirstOrDefault(item => item.Key == kind)?.Icon ?? "flag";
 
-    /// <summary>Parse a number input, keeping the current value when the box is left unreadable.</summary>
+    /// <summary>Parse a picked number, keeping the current value when the pick is unreadable.</summary>
     private static int Num(object? value, int fallback)
         => int.TryParse(value?.ToString(), out var parsed) ? parsed : fallback;
 
@@ -510,20 +519,19 @@ public partial class PlanTool
 
     // ── reference (tracing) backdrop ─────────────────────────────────────────────
 
-    private async Task OnPickReferenceMap(ChangeEventArgs e)
+    private async Task OnPickReferenceMap(string slug)
     {
         refError = null;
         if (handle is null) return;
-        var slug = e.Value?.ToString();
         var arg = string.IsNullOrEmpty(slug) ? null : slug;
         var err = await handle.InvokeAsync<string?>("setReferenceMap", arg);
         if (err is not null) refError = err;   // the bridge fires OnMeta on success, which re-syncs the form
         StateHasChanged();
     }
 
-    private async Task OnRefOpacity(ChangeEventArgs e)
+    private async Task OnRefOpacity(double opacity)
     {
-        if (double.TryParse(e.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var v)) refOpacity = v;
+        refOpacity = opacity;
         if (handle is not null) await handle.InvokeVoidAsync("setReferenceParam", "opacity", refOpacity);
     }
 
@@ -604,8 +612,6 @@ public partial class PlanTool
     /// </summary>
     private bool ObjectivesOfferable => Symmetry.Order(symmetry) == 2;
 
-    private Task OnSymmetry(ChangeEventArgs e) => OnSymmetryChanged(e.Value?.ToString() ?? "rot_180");
-
     private async Task OnSymmetryChanged(string v)
     {
         symmetry = v;
@@ -643,8 +649,8 @@ public partial class PlanTool
     private Task OnPieceId(ChangeEventArgs e)
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("setPieceId", sel.Id, e.Value?.ToString() ?? "").AsTask() : Task.CompletedTask;
 
-    private Task OnPieceRole(ChangeEventArgs e)
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setPieceRole", sel.Id, e.Value?.ToString() ?? "piece").AsTask() : Task.CompletedTask;
+    private Task OnPieceRole(string role)
+        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setPieceRole", sel.Id, role).AsTask() : Task.CompletedTask;
 
     private Task StepSurface(int delta)
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("stepPieceSurface", sel.Id, delta).AsTask() : Task.CompletedTask;
@@ -658,8 +664,8 @@ public partial class PlanTool
     private Task OnBoxId(ChangeEventArgs e)
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("setBoxId", sel.Id, e.Value?.ToString() ?? "").AsTask() : Task.CompletedTask;
 
-    private Task OnBoxKind(ChangeEventArgs e)
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setBoxKind", sel.Id, e.Value?.ToString() ?? "mid").AsTask() : Task.CompletedTask;
+    private Task OnBoxKind(string kind)
+        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setBoxKind", sel.Id, kind).AsTask() : Task.CompletedTask;
 
     private Task ToggleBoxMembers()
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("toggleBoxMembers", sel.Id).AsTask() : Task.CompletedTask;
@@ -724,6 +730,21 @@ public partial class PlanTool
     /// no default to fall back to: an unstated colour is resolved at compile time against the marker's team and
     /// the wools before it, which the editor cannot know from one marker.</summary>
     private string WoolColor => sel?.Color ?? "";
+
+    private IReadOnlyList<SelectOption> WoolColorOptions
+        => [.. vocabulary.Wool.Colors.Select(dye => new SelectOption(dye.Name, dye.Label))];
+
+    private IReadOnlyList<SelectOption> DestroyableStyleOptions
+        => [.. vocabulary.Destroyable.Styles.Select(design => new SelectOption(design, design))];
+
+    private IReadOnlyList<SelectOption> DestroyableMaterialOptions
+        => [.. vocabulary.Destroyable.MaterialChoices.Select(material => new SelectOption(material, material))];
+
+    private IReadOnlyList<SelectOption> LavaOptions
+        => [.. vocabulary.Core.LavaRange.Select(size => new SelectOption(size.ToString(), $"{size} × {size}"))];
+
+    private IReadOnlyList<SelectOption> LavaHeightOptions
+        => [.. vocabulary.Core.LavaHeightRange.Select(height => new SelectOption(height.ToString(), height.ToString()))];
 
     /// <summary>The swatch beside the picker: the stated dye's own colour, or the neutral the auto option
     /// stands for, since no one colour is what "auto" resolves to.</summary>

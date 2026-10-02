@@ -5,30 +5,45 @@
    committed value to [Min, Max] (Min/Max optional) and snaps the displayed text back to the clamped
    value, even when the clamp lands on the number already shown (the @key bump forces the input to
    re-read it; a plain controlled input would skip the DOM update). Emits the clamped value via
-   ValueChanged. Pass extra attributes (title, style, placeholder, id…) straight through. *@
+   ValueChanged. A null Value is an empty box; emptying the box raises OnCleared, or reverts where the
+   caller has no "none" to go back to. Extra attributes (title, placeholder, aria-label, disabled, id…)
+   pass straight through. *@
 
-<input @key="_rev" class="@CssClass" type="number" step="@Step" min="@FmtN(Min)" max="@FmtN(Max)"
-       value="@Value" @onchange="OnChange" @attributes="Extra" />
+<input @key="_rev" class="@Cls" type="number" step="@Step" min="@FmtN(Min)" max="@FmtN(Max)"
+       value="@FmtN(Value)" @onchange="OnChange" @attributes="Extra" />
 
 @code {
-    [Parameter] public double Value { get; set; }
+    [Parameter] public double? Value { get; set; }
     [Parameter] public EventCallback<double> ValueChanged { get; set; }
+    /// <summary>Raised when a value is emptied out of the box, for a field whose blank means "none".</summary>
+    [Parameter] public EventCallback OnCleared { get; set; }
     [Parameter] public double? Min { get; set; }
     [Parameter] public double? Max { get; set; }
     [Parameter] public string Step { get; set; } = "1";   // display only (e.g. "0.5", "any"); clamping uses Min/Max
     [Parameter] public string CssClass { get; set; } = "field-input";
+    /// <summary>The narrower box a row uses when the number shares its line with a picker or a button.</summary>
+    [Parameter] public bool Slim { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
 
     private int _rev;
 
+    private string Cls => Slim ? $"{CssClass} field-input--slim" : CssClass;
+
     private async Task OnChange(ChangeEventArgs e)
     {
         _rev++;   // re-render the input even if the clamp lands on the current Value (else the typed text sticks)
-        if (!double.TryParse(e.Value?.ToString(), out var v)) return;   // non-numeric → revert to Value
-        if (Min is { } mn && v < mn) v = mn;
-        if (Max is { } mx && v > mx) v = mx;
-        if (v != Value) await ValueChanged.InvokeAsync(v);
+        var text = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            if (Value is not null && OnCleared.HasDelegate) await OnCleared.InvokeAsync();
+            return;   // no "none" to go back to → revert to Value
+        }
+        if (!double.TryParse(text, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var number)) return;   // non-numeric → revert
+        if (Min is { } min && number < min) number = min;
+        if (Max is { } max && number > max) number = max;
+        if (number != Value) await ValueChanged.InvokeAsync(number);
     }
 
-    private static string? FmtN(double? v) => v?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private static string? FmtN(double? number) => number?.ToString(System.Globalization.CultureInfo.InvariantCulture);
 }

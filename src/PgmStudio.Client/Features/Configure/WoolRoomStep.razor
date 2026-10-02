@@ -19,7 +19,7 @@
           {
             <ListRow Compact Selected="selectedRegionId == row.RegionId"
                  @key="row.RegionId" OnClick="() => SelectRow(row.RegionId)">
-              <span class="list-swatch" style="background:@W.Hex(row.Color)"></span>
+              <span class="list-swatch" style="--swatch: @W.Hex(row.Color)"></span>
               <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
               <span class="list-label list-label--mono">@row.Name</span>
               <Badge Class="@(row.Authored ? "badge--success" : "badge--dim")">@(row.Authored ? "Main" : "Copy")</Badge>
@@ -41,7 +41,7 @@
       {
         <div class="panel-stack" @key="sel.RegionId">
           <Section>
-            <DetailHeader Icon="rectangle-horizontal" IconStyle='@($"color:{W.Hex(sel.Color)}")' Mono Label="@sel.Name">
+            <DetailHeader Icon="rectangle-horizontal" IconTint="@W.Hex(sel.Color)" Mono Label="@sel.Name">
               <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "Main" : "Copy")</Badge>
             </DetailHeader>
             <div class="section-body">

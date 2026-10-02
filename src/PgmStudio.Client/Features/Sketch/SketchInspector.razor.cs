@@ -32,18 +32,9 @@ public partial class SketchInspector
     [Parameter] public EventCallback<double> OnRotate { get; set; }
     [Parameter] public EventCallback<(string Id, double Radius, string Edge, int Seed)> OnSetStrokeBand { get; set; }
 
-    // "Rotate (°)" field: a relative rotate-by input (rotation bakes into geometry, so there's no absolute
-    // angle to hold) — apply the entered degrees about the selection's bbox centre, then clear back to blank.
-    // Bumping the @key recreates the input so it resets to "" even when the model value is unchanged (""→""),
-    // which also lets you apply the same value repeatedly (a fresh input re-fires change on re-entry).
-    private const string rotateInput = "";
-    private int rotateNonce = 0;
-    private async Task RotateChanged(ChangeEventArgs e)
-    {
-        rotateNonce++;
-        if (double.TryParse(e.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var deg) && deg != 0)
-            await OnRotate.InvokeAsync(deg);
-    }
+    // "Rotate (°)" is a rotate-by box (rotation bakes into geometry, so there is no absolute angle to hold): its
+    // value is always blank, so NumberField snaps back to blank after each entry and the same angle applies again.
+    private Task RotateChanged(double degrees) => degrees != 0 ? OnRotate.InvokeAsync(degrees) : Task.CompletedTask;
 
     private static string TypeIcon(string t) => t switch
     {

@@ -74,7 +74,7 @@
           }
         }
         <Field Label="Rotate (°)">
-          <input @key="rotateNonce" class="field-input" type="number" step="15" placeholder="0" value="@rotateInput" @onchange="RotateChanged" />
+          <NumberField Value="null" ValueChanged="RotateChanged" Step="15" placeholder="0" />
         </Field>
         @if (Shape.Type == "polyline")
         {
@@ -146,14 +146,14 @@
           @(Group.Mirrors ? "Exclude from mirror" : "Include in mirror")
         </Button>
         <Field Label="Rotate (°)">
-          <input @key="rotateNonce" class="field-input" type="number" step="15" placeholder="0" value="@rotateInput" @onchange="RotateChanged" />
+          <NumberField Value="null" ValueChanged="RotateChanged" Step="15" placeholder="0" />
         </Field>
 
         <div class="section-header section-header--ruled"><h2 class="section-title">Shapes</h2></div>
         @foreach (var s in GroupShapes())
         {
           <ListRow Compact>
-            <span class="geo-type-icon" style="@(s.Operation == "subtract" ? "color:var(--canvas-sub-fill)" : null)"><i data-lucide="@TypeIcon(s.Type)"></i></span>
+            <span class="@(s.Operation == "subtract" ? "geo-type-icon geo-type-icon--subtract" : "geo-type-icon")"><i data-lucide="@TypeIcon(s.Type)"></i></span>
             <span class="list-label">@s.Type</span>
             <span class="list-tag">@s.Dim</span>
           </ListRow>

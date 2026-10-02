@@ -200,9 +200,20 @@
 /* A player's face and hat, cut from their skin over the initial beneath; a skin that does not load leaves
    the initial showing. */
 .author-mark { position: relative; overflow: hidden; }
+/* <PlayerHead> passes its edge as --head-size and the skin as --skin. A skin is 64 pixels wide with the face
+   at (8, 8) and the hat over it at (40, 8), so it is scaled to eight edges wide and each layer shifted to its
+   square; the hat is listed first, which draws it on top. */
+.player-head {
+  width: var(--head-size);
+  height: var(--head-size);
+  font-size: round(down, calc(var(--head-size) * 5 / 8), 1px);
+}
 .player-head-face {
   position: absolute;
   inset: 0;
+  background-image: var(--skin), var(--skin);
+  background-size: calc(var(--head-size) * 8) auto;
+  background-position: calc(var(--head-size) * -5) calc(var(--head-size) * -1), calc(var(--head-size) * -1) calc(var(--head-size) * -1);
   background-repeat: no-repeat;
   image-rendering: pixelated;
 }

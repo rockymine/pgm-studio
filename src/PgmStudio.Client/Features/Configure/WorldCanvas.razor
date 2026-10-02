@@ -29,13 +29,8 @@
     }
     @if (islandIds.Count > 0)
     {
-      <select class="canvas-select" title="Zoom to fit an island" value="@islandSel" @onchange="OnFitIslandSelect">
-        <option value="">Fit island…</option>
-        @foreach (var id in islandIds)
-        {
-          <option value="@id">Island @id</option>
-        }
-      </select>
+      <Select Canvas Title="Zoom to fit an island" Options="IslandOptions" Placeholder="Fit island…"
+              Value="@islandSel" ValueChanged="OnFitIslandSelect" />
     }
     <CanvasRoundButton Icon="scan" Title="Fit whole map" OnClick="OnResetClick" />
   </CanvasLayerBar>

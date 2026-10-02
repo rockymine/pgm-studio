@@ -35,7 +35,7 @@
               <span class="callout-icon"><i data-lucide="check-circle-2"></i></span>
               <p><strong>@JustMap.Name</strong> is built and saved. Configure it next to make a playable
                 <code>map.xml</code>.</p>
-              <Button Variant="primary" Href="@($"maps/{Just}/configure")" style="margin-left:auto;">
+              <Button Variant="primary" Href="@($"maps/{Just}/configure")" Class="action-btn--push-end">
                 <i data-lucide="settings-2"></i><span>Configure</span>
               </Button>
             </div>
@@ -60,11 +60,11 @@
             <Description>@StageBlurb</Description>
             <ChildContent>
 
-            <input class="field-input" placeholder="Search…" @bind="filter" @bind:event="oninput" style="margin-top: var(--space-3);" />
+            <input class="field-input field-input--separated" placeholder="Search…" @bind="filter" @bind:event="oninput" />
 
             @* --actions: every row reserves the layer column, so the list keeps one aligned edge whatever
                a given map has been through. *@
-            <div class="panel-list panel-list--actions" style="margin-top: var(--space-3);">
+            <div class="panel-list panel-list--actions panel-list--separated">
               @if (maps is null) { <div class="list-empty">Loading…</div> }
               else if (!Filtered.Any()) { <div class="list-empty">@EmptyMessage</div> }
               else

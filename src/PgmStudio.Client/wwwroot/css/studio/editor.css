@@ -317,6 +317,8 @@
   flex-direction: column;
   overflow: hidden;
 }
+/* A sidebar that only names what the column beside it shows — the XML review's list of containers. */
+.workspace-sidebar--narrow { width: 200px; flex: 0 0 200px; }
 
 /* Right sidebar — detail / property inspector */
 .workspace-inspector {
@@ -344,6 +346,8 @@
   display: flex;
   flex-direction: column;
 }
+/* <ContentColumn>: a centred column capped at the --column-width it is given. */
+.content-column { max-width: var(--column-width); margin: 0 auto; }
 
 /* Canvas / main content column. position:relative makes it a positioning context
    for .canvas-hint and any other absolute overlays inside the canvas. */
@@ -355,6 +359,8 @@
   background: var(--bg-canvas);
   position: relative;
 }
+/* A content column that holds a document rather than a canvas. */
+.workspace-canvas--page { background: var(--bg-base); }
 
 /* Placeholder state for activities not yet implemented */
 .workspace--placeholder {
@@ -417,11 +423,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: var(--icon-tint, var(--text-muted));
   line-height: 0;
   margin-right: 6px;
 }
 .geo-type-icon--warning { color: var(--color-warning); }
+.geo-type-icon--subtract { color: var(--canvas-sub-fill); }
 .geo-type-icon--flush { margin-right: 0; }
 .geo-label {
   flex: 1;
@@ -574,6 +581,17 @@
   padding: var(--space-2) 10px;
   white-space: pre;
 }
+
+/* The pre-flight board picture, and the words in its key coloured as the board draws them. */
+.preflight-board {
+  margin-top: var(--space-3);
+  min-height: 240px;
+  max-height: 380px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.preflight-key--bridge { color: var(--canvas-add-stroke); }
+.preflight-key--cut-off { color: #e5534b; }
 
 
 /* ══════════════════════════════════════════════════════════════════════════

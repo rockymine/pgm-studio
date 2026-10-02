@@ -861,9 +861,9 @@ public partial class SketchTool
         if (handle is not null) await handle.InvokeVoidAsync("setOperation", o);
     }
 
-    private async Task OnModeChange(ChangeEventArgs e)
+    private async Task OnModeChange(string picked)
     {
-        mode = e.Value?.ToString() ?? "rot_180";
+        mode = picked;
         if (handle is not null) await handle.InvokeVoidAsync("setMode", mode);
     }
 

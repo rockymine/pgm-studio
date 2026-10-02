@@ -27,14 +27,14 @@
 
           @if (candidates.Count == 0)
           {
-            <p class="panel-empty-msg" style="text-align:left">
+            <p class="panel-empty-msg panel-empty-msg--left">
               No worlds to import yet. Add a Minecraft world folder that has terrain but no
               <code>map.xml</code>.
             </p>
           }
           else
           {
-            <div class="panel-list" style="margin-top: var(--space-3);">
+            <div class="panel-list panel-list--separated">
               @foreach (var c in candidates)
               {
                 <ListRow Compact Selected="c == selected" OnClick="() => Select(c)">
@@ -170,7 +170,7 @@
                     @foreach (var w in woolColors)
                     {
                       <ListRow Compact Class="list-row--muted">
-                        <span class="list-swatch" style="background:@w.Hex"></span>
+                        <span class="list-swatch" style="--swatch: @w.Hex"></span>
                         <span class="list-label">@w.Name</span>
                         <span class="list-tag">@w.Count</span>
                       </ListRow>

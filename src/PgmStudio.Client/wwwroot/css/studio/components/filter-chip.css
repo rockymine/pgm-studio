@@ -7,6 +7,7 @@
 
 /* Generic horizontal control row — label + inputs/buttons/chips side-by-side */
 .ctrl-row { display: flex; align-items: stretch; gap: var(--space-2); }
+.ctrl-row--separated { margin-top: var(--space-2); }
 .ctrl-row .filter-group-options,
 .ctrl-row .coord-field { flex: 1; }
 

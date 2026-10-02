@@ -48,8 +48,7 @@
                   @if (bucket.HasDepth && binding.StyleId != Unbound)
                   {
                     <Field Label="Courses deep">
-                      <input class="field-input field-input--slim" type="number" min="1" step="1"
-                             value="@binding.Depth" @onchange="e => SetDepth(bucket.Id, e)" />
+                      <NumberField Slim Min="1" Value="binding.Depth" ValueChanged="value => SetDepth(bucket.Id, value)" />
                     </Field>
                   }
                 </div>
@@ -96,8 +95,7 @@
           <Field Label="Bedrock floor">
             <div class="panel-actions">
               <Select Options="BedrockModes" Value="@BedrockMode" ValueChanged="SetBedrockMode" />
-              <input class="field-input field-input--slim" type="number" min="0" step="1"
-                     value="@draft.BedrockValue" @onchange="SetBedrockValue" />
+              <NumberField Slim Min="0" Value="draft.BedrockValue" ValueChanged="SetBedrockValue" />
             </div>
           </Field>
           <Field Label="Where the rim runs">

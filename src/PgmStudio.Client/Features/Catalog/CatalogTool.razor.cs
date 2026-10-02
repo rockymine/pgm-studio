@@ -244,15 +244,8 @@ public partial class CatalogTool
         await Emit();
     }
 
-    private Task OnWidth(ChangeEventArgs e) => SetNumber(e, v => probeW = v);
-    private Task OnHeight(ChangeEventArgs e) => SetNumber(e, v => probeH = v);
-    private Task OnCorridor(ChangeEventArgs e) => SetNumber(e, v => probeCw = v);
-    private Task OnAttachW(ChangeEventArgs e) => SetNumber(e, v => probeAttachW = v);
-
-    private async Task SetNumber(ChangeEventArgs e, Action<int> set)
-    {
-        if (!int.TryParse(e.Value?.ToString(), out var value)) return;
-        set(value);
-        await Emit();
-    }
+    private Task OnWidth(double value) { probeW = (int)value; return Emit(); }
+    private Task OnHeight(double value) { probeH = (int)value; return Emit(); }
+    private Task OnCorridor(double value) { probeCw = (int)value; return Emit(); }
+    private Task OnAttachW(double value) { probeAttachW = (int)value; return Emit(); }
 }

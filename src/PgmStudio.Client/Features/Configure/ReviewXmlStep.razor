@@ -6,7 +6,7 @@
 
 <Workspace>
 
-  <Sidebar style="width:200px;flex:0 0 200px">
+  <Sidebar Class="workspace-sidebar--narrow">
       <Section Title="Containers">
         @if (loading)
         {
@@ -35,7 +35,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-canvas" style="background:var(--bg-base)">
+  <div class="workspace-canvas workspace-canvas--page">
     <div class="workspace-scroll">
       @if (loading)
       {
@@ -60,7 +60,7 @@
       {
         @if (downloadError is not null)
         {
-          <div class="panel-warning" style="margin-bottom:12px">
+          <div class="panel-warning panel-warning--spaced">
             <strong>Couldn't download the export.</strong> Select Export to try again. @downloadError
           </div>
         }

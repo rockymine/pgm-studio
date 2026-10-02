@@ -20,8 +20,8 @@
         <Field Label="Players per team">
           <LabelEnd><strong>@players</strong></LabelEnd>
           <ChildContent>
-            <input type="range" class="field-range" min="6" max="32" step="2" value="@players"
-                   @oninput="OnPlayers" @onchange="ApplyPlayers" aria-label="Players per team" />
+            <RangeField Min="6" Max="32" Step="2" Value="players" ValueChanged="OnPlayers" OnCommit="ApplyPlayers"
+                        aria-label="Players per team" />
           </ChildContent>
         </Field>
 
@@ -39,19 +39,19 @@
         <Field Label="Highest score">
           <LabelEnd><strong>@(maxScore >= ScoreCap ? "Any" : maxScore.ToString("0.0"))</strong></LabelEnd>
           <ChildContent>
-            <input type="range" class="field-range" min="0" max="8" step="0.5" value="@maxScore"
-                   @oninput="OnMaxScore" @onchange="ApplyMaxScore" aria-label="Highest score" />
+            <RangeField Min="0" Max="8" Step="0.5" Value="maxScore" ValueChanged="OnMaxScore" OnCommit="ApplyMaxScore"
+                        aria-label="Highest score" />
             <span class="gen-hint">Lower scores are better.</span>
           </ChildContent>
         </Field>
 
         <Field Label="Wools per team">
           <div class="gen-wool">
-            <input class="field-input" type="number" min="0" max="6" value="@(woolMin > 0 ? woolMin : null)" @onchange="OnWoolMin"
-                   aria-label="At least" placeholder="Any" />
+            <NumberField Min="0" Max="6" Value="@(woolMin > 0 ? woolMin : null)" ValueChanged="OnWoolMin"
+                         OnCleared="() => OnWoolMin(0)" aria-label="At least" placeholder="Any" />
             <span>to</span>
-            <input class="field-input" type="number" min="0" max="6" value="@(woolMax > 0 ? woolMax : null)" @onchange="OnWoolMax"
-                   aria-label="At most" placeholder="Any" />
+            <NumberField Min="0" Max="6" Value="@(woolMax > 0 ? woolMax : null)" ValueChanged="OnWoolMax"
+                         OnCleared="() => OnWoolMax(0)" aria-label="At most" placeholder="Any" />
           </div>
         </Field>
       </Section>

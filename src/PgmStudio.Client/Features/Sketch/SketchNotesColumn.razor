@@ -126,11 +126,8 @@
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
         <div class="notes-column__send">
           <label class="notes-column__label" for="note-tag">Tag</label>
-          <select id="note-tag" class="field-input notes-column__tagpick" value="@(tag ?? "")"
-                  @onchange="e => tag = e.Value?.ToString() is { Length: > 0 } picked ? picked : null">
-            <option value="">None</option>
-            @foreach (var word in NoteTags.All) { <option value="@word">@word</option> }
-          </select>
+          <Select Id="note-tag" Slim="false" Class="notes-column__tagpick" Options="TagOptions" Placeholder="None"
+                  Value="@(tag ?? "")" ValueChanged="picked => tag = picked.Length > 0 ? picked : null" />
           <span class="notes-column__hint"></span>
           <Button Variant="primary" Disabled="@(string.IsNullOrWhiteSpace(draft) || !Ready)" Busy="Busy" BusyLabel="Sending…"
                   OnClick="SendNoteAsync">Send</Button>

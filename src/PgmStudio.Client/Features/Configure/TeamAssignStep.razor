@@ -17,7 +17,7 @@
           <div class="smart-suggestion-teams">
             @foreach (var c in SuggestedColors)
             {
-              <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:@c.Hex"></span>@c.Label</div>
+              <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="--swatch: @c.Hex"></span>@c.Label</div>
             }
           </div>
         </SmartSuggestion>
@@ -32,7 +32,7 @@
             var t = teams[i];
             var idx = i;
             <ListRow Compact Selected="selectedTeamId == t.Id" @key="t.Id" OnClick="() => Select(t.Id)">
-              <span class="list-swatch" style="background:@Hex(t.Color)"></span>
+              <span class="list-swatch" style="--swatch: @Hex(t.Color)"></span>
               <span class="list-label list-label--mono">@t.Id</span>
               <Badge Class="@(idx == 0 ? "badge--success" : "badge--dim")">@(idx == 0 ? "Main" : "Copy")</Badge>
               <button class="btn-remove btn-remove--hover-only" title="Remove" @onclick:stopPropagation="true" @onclick="() => RemoveTeam(t)"><i data-lucide="x"></i></button>
@@ -64,7 +64,7 @@
             @foreach (var t in teams)
             {
               <ListRow Compact Class="list-row--muted">
-                <span class="list-swatch" style="background:@Hex(t.Color)"></span>
+                <span class="list-swatch" style="--swatch: @Hex(t.Color)"></span>
                 <span class="list-label">@t.Name</span>
                 <span class="list-tag">@IslandsFor(t.Id) islands</span>
               </ListRow>

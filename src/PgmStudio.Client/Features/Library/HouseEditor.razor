@@ -65,9 +65,8 @@
         <div class="lib-bind" @key="@($"storey-{index}")">
           <Select Options="@Parts(storeys.Select(part => (part.Id, part.Name)))"
                   Value="@storey.StoreyStyleId.ToString()" ValueChanged="id => BindStorey(index, id)" />
-          <input class="field-input field-input--slim" type="number" min="0" max="16" step="1"
-                 title="Clear height for this storey here. 0 keeps the storey's own."
-                 value="@storey.Clear" @onchange="e => SetStoreyStackClear(index, e)" />
+          <NumberField Slim Min="0" Max="16" Value="storey.Clear" ValueChanged="value => SetStoreyStackClear(index, value)"
+                       title="Clear height for this storey here. 0 keeps the storey's own." />
           <Button Variant="icon" Icon="chevron-up" Title="Move down the building"
                   Disabled="@(index == 0)" OnClick="() => MoveStorey(index, -1)" />
           <Button Variant="icon" Icon="chevron-down" Title="Move up the building"
@@ -105,8 +104,7 @@
       @if (part.Stacked)
       {
       <Field Label="@part.ExtentLabel">
-        <input class="field-input field-input--slim" type="number" min="1" step="1"
-               value="@Extent(part.Id)" @onchange="e => SetExtent(part.Id, e)" />
+        <NumberField Slim Min="1" Value="Extent(part.Id)" ValueChanged="value => SetExtent(part.Id, value)" />
       </Field>
 
       @foreach (var course in Courses(part.Id))
@@ -115,9 +113,8 @@
           <StyleSelect Styles="styles" Value="@course.StyleId"
                        ValueChanged="id => BindCourse(part.Id, course.Ordinal, id)">
             <Trailing>
-              <input class="field-input field-input--slim" type="number" min="1" step="1"
-                     title="Height in courses"
-                     value="@course.Height" @onchange="e => SetCourseHeight(part.Id, course.Ordinal, e)" />
+              <NumberField Slim Min="1" Value="course.Height" ValueChanged="value => SetCourseHeight(part.Id, course.Ordinal, value)"
+                           title="Height in courses" />
               @* Icon variant: the button carries a glyph and no label, which is what that variant is —
                  as a plain action-btn it kept the text padding and drew a wide box in a row of square ones. *@
               <Button Variant="icon" Icon="trash-2" Title="Remove this course"
@@ -151,14 +148,12 @@
           </Field>
         }
         <Field Label="Border width">
-          <input class="field-input field-input--slim" type="number" min="1" max="4" step="1"
-                 title="How many blocks the border ring reaches in from the walls."
-                 value="@draft.BorderWidth" @onchange="SetBorderWidth" />
+          <NumberField Slim Min="1" Max="4" Value="draft.BorderWidth" ValueChanged="SetBorderWidth"
+                       title="How many blocks the border ring reaches in from the walls." />
         </Field>
         <Field Label="Inlay inset">
-          <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
-                 title="How far from the walls the inlay starts."
-                 value="@draft.InlayInset" @onchange="SetInlayInset" />
+          <NumberField Slim Min="1" Max="8" Value="draft.InlayInset" ValueChanged="SetInlayInset"
+                       title="How far from the walls the inlay starts." />
         </Field>
       }
 
@@ -180,9 +175,8 @@
             <BlockPicker Blocks="blocks" Id="beams.Block" Data="beams.Data" OnPick="PickBeamBlock" />
           </Field>
           <Field Label="Reach">
-            <input class="field-input field-input--slim" type="number" min="0" max="16" step="1"
-                   title="How far a beam runs from a corner, in blocks. 0 places posts at the corners only."
-                   value="@beams.Reach" @onchange="SetBeamReach" />
+            <NumberField Slim Min="0" Max="16" Value="beams.Reach" ValueChanged="SetBeamReach"
+                         title="How far a beam runs from a corner, in blocks. 0 places posts at the corners only." />
           </Field>
           <p class="section-desc">Beams must be logs. Any other block can't be saved.</p>
         }
@@ -193,16 +187,14 @@
         @* Storeys belong to the wall: they are how the wall is divided up, and the courses each one
            spends come out of the same height. *@
         <Field Label="Storeys">
-          <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
-                 title="How many floors are inside. Every floor but the top has a ceiling and a ladder."
-                 value="@draft.Storeys" @onchange="SetStoreys" />
+          <NumberField Slim Min="1" Max="8" Value="draft.Storeys" ValueChanged="SetStoreys"
+                       title="How many floors are inside. Every floor but the top has a ceiling and a ladder." />
         </Field>
         @if (draft.Storeys > 1)
         {
           <Field Label="Clear per storey">
-            <input class="field-input field-input--slim" type="number" min="0" max="16" step="1"
-                   title="Blocks of air in each storey. 0 uses the wall height above. At least 3."
-                   value="@draft.StoreyClear" @onchange="SetStoreyClear" />
+            <NumberField Slim Min="0" Max="16" Value="draft.StoreyClear" ValueChanged="SetStoreyClear"
+                         title="Blocks of air in each storey. 0 uses the wall height above. At least 3." />
           </Field>
           <p class="section-desc">@draft.Storeys storeys of @EffectiveClear clear:
             @(draft.Storeys * EffectiveClear + draft.Storeys - 1) courses of wall, with a ladder on the
@@ -219,15 +211,13 @@
         @if (Sloped)
         {
           <Field Label="Pitch">
-            <input class="field-input field-input--slim" type="number" min="1" max="4" step="1"
-                   title="Blocks of rise per block inward. 1 is 45°."
-                   value="@draft.Pitch" @onchange="SetPitch" />
+            <NumberField Slim Min="1" Max="4" Value="draft.Pitch" ValueChanged="SetPitch"
+                         title="Blocks of rise per block inward. 1 is 45°." />
           </Field>
         }
         <Field Label="Overhang">
-          <input class="field-input field-input--slim" type="number" min="0" max="4" step="1"
-                 title="How far the roof reaches past the walls, in blocks. 0 ends it flush."
-                 value="@draft.Overhang" @onchange="SetOverhang" />
+          <NumberField Slim Min="0" Max="4" Value="draft.Overhang" ValueChanged="SetOverhang"
+                       title="How far the roof reaches past the walls, in blocks. 0 ends it flush." />
         </Field>
         @if (Sloped)
         {
@@ -263,8 +253,8 @@
               edges it is placed upside down, so the edge has some depth.</p>
           }
           <Field Label="Wear"><LabelEnd><strong>@($"{draft.RoofWear * 100:0}%")</strong></LabelEnd>
-            <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
-                   value="@((int)(draft.RoofWear * 100))" @onchange="SetRoofWear" /></ChildContent></Field>
+            <ChildContent><RangeField Min="0" Max="100" Value="@((int)(draft.RoofWear * 100))"
+                   OnCommit="SetRoofWear" /></ChildContent></Field>
           @* The gable is the triangle above the wall's own top, so what is cut into it is its own opening. *@
           <Field Label="Gable windows">
             <Chip Active="@Gabled" OnClick="ToggleGableWindows">
@@ -311,14 +301,12 @@
       @if (Porch is { } deck)
       {
         <Field Label="Blocks deep">
-          <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
-                 title="How far the walls step back. The room keeps at least 3 blocks."
-                 value="@deck.Depth" @onchange="SetPorchDepth" />
+          <NumberField Slim Min="1" Max="8" Value="deck.Depth" ValueChanged="SetPorchDepth"
+                       title="How far the walls step back. The room keeps at least 3 blocks." />
         </Field>
         <Field Label="Inset">
-          <input class="field-input field-input--slim" type="number" min="0" max="8" step="1"
-                 title="How far the deck stops short of each end of that wall. 0 runs it the full width."
-                 value="@deck.Inset" @onchange="SetPorchInset" />
+          <NumberField Slim Min="0" Max="8" Value="deck.Inset" ValueChanged="SetPorchInset"
+                       title="How far the deck stops short of each end of that wall. 0 runs it the full width." />
         </Field>
         <Field Label="Wall">
           <Select Options="@Select.Words(PorchEdges.All, PorchEdges.Describe)"
@@ -354,13 +342,11 @@
         <Select Options="@Doors" Value="@draft.Door" ValueChanged="SetDoor" />
       </Field>
       <Field Label="Courses tall">
-        <input class="field-input field-input--slim" type="number" min="1" step="1"
-               value="@draft.DoorHeight" @onchange="SetDoorHeight" />
+        <NumberField Slim Min="1" Value="draft.DoorHeight" ValueChanged="SetDoorHeight" />
       </Field>
       <Field Label="Blocks wide">
-        <input class="field-input field-input--slim" type="number" min="2" max="8" step="1"
-               title="At least 2 blocks."
-               value="@draft.DoorWidth" @onchange="SetDoorWidth" />
+        <NumberField Slim Min="2" Max="8" Value="draft.DoorWidth" ValueChanged="SetDoorWidth"
+                     title="At least 2 blocks." />
       </Field>
 
       <div class="section-header section-header--ruled"><h2 class="section-title">Head</h2></div>

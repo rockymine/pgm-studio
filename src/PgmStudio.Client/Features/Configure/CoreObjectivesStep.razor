@@ -26,7 +26,7 @@
               var index = i;
               var core = cores[index];
               <ListRow Compact Selected="selected == index" @key="index" OnClick="() => Select(index)">
-                <span class="geo-type-icon" style="color:@TeamHex(core.Owner)"><i data-lucide="flame"></i></span>
+                <span class="geo-type-icon" style="--icon-tint: @TeamHex(core.Owner)"><i data-lucide="flame"></i></span>
                 <span class="list-label">@(string.IsNullOrEmpty(core.Name) ? "Core" : core.Name)</span>
                 <Badge Kind="@(string.IsNullOrEmpty(core.Owner) ? "dim" : "neutral")">@(string.IsNullOrEmpty(core.Owner) ? "No team" : TeamName(core.Owner))</Badge>
               </ListRow>
@@ -36,7 +36,7 @@
           var proposals = Unconfirmed.ToList();
           @if (proposals.Count > 0)
           {
-            <p class="section-desc" style="margin-top:var(--space-3)">
+            <p class="section-desc section-desc--separated">
               <strong>@proposals.Count</strong> suggested core@(proposals.Count == 1 ? "" : "s") to confirm. Click one
               to add it.
             </p>
@@ -74,7 +74,7 @@
       @if (Selected is { } sel)
       {
         <Section @key="selected">
-          <DetailHeader Icon="flame" IconStyle="@($"color:{TeamHex(sel.Owner)}")" Label="@(string.IsNullOrEmpty(sel.Name) ? "Core" : sel.Name)">
+          <DetailHeader Icon="flame" IconTint="@TeamHex(sel.Owner)" Label="@(string.IsNullOrEmpty(sel.Name) ? "Core" : sel.Name)">
             <Badge Class="@(sel.Volume is null ? "badge--warning" : "badge--success")">@(sel.Volume is null ? "Not built yet" : "In the world")</Badge>
           </DetailHeader>
           <div class="section-body">
@@ -82,14 +82,9 @@
               <LabelHint>(the others attack it)</LabelHint>
               <ChildContent>
                 <div class="field-pick-row">
-                  <span class="field-swatch" style="background:@(string.IsNullOrEmpty(sel.Owner) ? "transparent" : TeamHex(sel.Owner))"></span>
-                  <select class="field-input" @onchange="@(e => SetOwner(sel, e.Value?.ToString() ?? string.Empty))">
-                    <option value="" selected="@string.IsNullOrEmpty(sel.Owner)">Choose a team</option>
-                    @foreach (var t in teams)
-                    {
-                      <option value="@t.Id" selected="@(t.Id == sel.Owner)">@t.Name</option>
-                    }
-                  </select>
+                  <span class="field-swatch" style="--swatch: @(string.IsNullOrEmpty(sel.Owner) ? "transparent" : TeamHex(sel.Owner))"></span>
+                  <Select Slim="false" Options="@AuthoringContext.TeamOptions(teams)" Placeholder="Choose a team"
+                          Value="@sel.Owner" ValueChanged="@(team => SetOwner(sel, team))" />
                 </div>
               </ChildContent>
             </Field>
@@ -123,7 +118,7 @@
               </Field>
             }
 
-            <div class="ctrl-row" style="margin-top:var(--space-2)">
+            <div class="ctrl-row ctrl-row--separated">
               <Button Fill OnClick="() => Remove(sel)" Title="Remove core"><i data-lucide="trash-2"></i> Remove</Button>
             </div>
           </div>

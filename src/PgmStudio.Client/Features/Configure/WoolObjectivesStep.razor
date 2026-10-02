@@ -27,11 +27,11 @@
             {
               <ListRow Compact Selected="selectedColor == c.Color" Class="@(c.Included ? null : "list-row--muted")"
                    @key="c.Color" OnClick="() => Select(c)">
-                <span class="list-swatch" style="background:@W.Hex(c.Color)"></span>
+                <span class="list-swatch" style="--swatch: @W.Hex(c.Color)"></span>
                 <span class="list-label list-label--mono">@c.Color</span>
                 @if (c.Included)
                 {
-                  <Badge style='@("background:" + (string.IsNullOrEmpty(c.Owner) ? "transparent" : W.Hex(TeamColorOf(c.Owner))) + ";color:#fff")'>@(string.IsNullOrEmpty(c.Owner) ? "No owner" : TeamName(c.Owner))</Badge>
+                  <Badge Class="badge--team" style="@($"--swatch: {(string.IsNullOrEmpty(c.Owner) ? "transparent" : W.Hex(TeamColorOf(c.Owner)))}")">@(string.IsNullOrEmpty(c.Owner) ? "No owner" : TeamName(c.Owner))</Badge>
                 }
                 else
                 {
@@ -63,7 +63,7 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Color">
-          <DetailHeader Icon='@(sel.Signed ? "sparkles" : "square")' IconStyle='@($"color:{W.Hex(sel.Color)}")' Mono Label="@sel.Color">
+          <DetailHeader Icon='@(sel.Signed ? "sparkles" : "square")' IconTint="@W.Hex(sel.Color)" Mono Label="@sel.Color">
             <Badge Class="@(sel.Included ? "badge--success" : "badge--dim")">@(sel.Included ? "Objective" : "Excluded")</Badge>
           </DetailHeader>
           <div class="section-body">
@@ -75,14 +75,9 @@
               <LabelHint>(defends it)</LabelHint>
               <ChildContent>
                 <div class="field-pick-row">
-                  <span class="field-swatch" style="background:@(string.IsNullOrEmpty(sel.Owner) ? "transparent" : W.Hex(TeamColorOf(sel.Owner)))"></span>
-                  <select class="field-input" @onchange="@(e => SetOwner(sel, e.Value?.ToString() ?? string.Empty))">
-                    <option value="" selected="@string.IsNullOrEmpty(sel.Owner)">Choose a team</option>
-                    @foreach (var t in teams)
-                    {
-                      <option value="@t.Id" selected="@(t.Id == sel.Owner)">@t.Name</option>
-                    }
-                  </select>
+                  <span class="field-swatch" style="--swatch: @(string.IsNullOrEmpty(sel.Owner) ? "transparent" : W.Hex(TeamColorOf(sel.Owner)))"></span>
+                  <Select Slim="false" Options="@AuthoringContext.TeamOptions(teams)" Placeholder="Choose a team"
+                          Value="@sel.Owner" ValueChanged="@(team => SetOwner(sel, team))" />
                 </div>
               </ChildContent>
             </Field>
@@ -91,8 +86,8 @@
             {
               <Field Label="Sign">
                 <ChildContent>
-                  <div class="field-value" style="white-space:pre-line">@sel.Evidence.Replace("\n", " ")</div>
-                  <div class="meter" style="margin-top:var(--space-1)"><div class="meter-fill" style="width:@((int)(sel.Confidence * 100))%"></div></div>
+                  <div class="field-value field-value--wrap">@sel.Evidence.Replace("\n", " ")</div>
+                  <div class="meter meter--separated"><div class="meter-fill" style="--meter-level: @((int)(sel.Confidence * 100))%"></div></div>
                 </ChildContent>
               </Field>
             }
@@ -113,7 +108,7 @@
               </ChildContent>
             </Field>
 
-            <div class="ctrl-row" style="margin-top:var(--space-2)">
+            <div class="ctrl-row ctrl-row--separated">
               @if (sel.Included)
               {
                 <Button Fill OnClick="() => Toggle(sel)"><i data-lucide="x"></i> Exclude</Button>

@@ -188,8 +188,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   and quiets its slug; the not-found page has a heading and a way back; the plan tool's crumb names the plan;
   change history names the documents a change wrote as *sketch* and *game settings*; the plan sidebar's three
   panels are one even switch; and an In-game phase with no block textures says so in a callout.
+- **Sliders, number boxes and dropdowns are shared components (`C79`).** No raw number, range or select
+  markup stands outside `Components/`: 28 sliders are `RangeField` (live `ValueChanged`, a release-only
+  `OnCommit`), 33 number boxes join `NumberField` (now `double?`, invariant-culture, clamped, with `OnCleared`
+  where blank means none), and 20 dropdowns join `Select` (`Id`, `Class`, `Canvas`).
+- **No inline style sets a design value (`C80`).** Spacing is a modifier class in the component's stylesheet
+  (`panel-list--separated`, `meter--separated`, …); what remains inline is a runtime value handed to a class
+  as a custom property, one name per concept (`--swatch` for every swatch, `--meter-level`, `--pin-x`/`--pin-y`,
+  `--head-size`/`--skin`). `DetailHeader` takes an `IconTint` where it took a style string.
 - **One stylesheet per component (`C81`).** `components.css` is the list of imports, in cascade order, over
-  36 files under `css/studio/components/` (`buttons.css`, `form-fields.css`, `canvas-dock.css`, …); every
+  one file per component under `css/studio/components/` (`buttons.css`, `form-fields.css`, `canvas-dock.css`, …); every
   page renders pixel-identical in both themes, and a design direction restyles a component by opening its file.
 - **Every canvas colour is a token (`C82`).** Piece roles, box kinds, objectives, buildings, props, seams, rule
   evidence and refused drops are `--canvas-*` tokens in `tokens.css`, read by the canvas JS with no fallback

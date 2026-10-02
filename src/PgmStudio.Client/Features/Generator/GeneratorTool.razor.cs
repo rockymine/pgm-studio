@@ -297,12 +297,12 @@ public partial class GeneratorTool : IAsyncDisposable
 
     // ── filter inputs ──────────────────────────────────────────────────────────────
     // A slider shows its value while it moves and applies when it is let go; everything else applies at once.
-    private void OnPlayers(ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var v)) players = v; }
-    private Task ApplyPlayers(ChangeEventArgs e) { OnPlayers(e); return Reload(); }
-    private void OnMaxScore(ChangeEventArgs e) { if (double.TryParse(e.Value?.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var v)) maxScore = v; }
-    private Task ApplyMaxScore(ChangeEventArgs e) { OnMaxScore(e); return Reload(); }
-    private Task OnWoolMin(ChangeEventArgs e) { woolMin = int.TryParse(e.Value?.ToString(), out var v) ? Math.Max(0, v) : 0; return Reload(); }
-    private Task OnWoolMax(ChangeEventArgs e) { woolMax = int.TryParse(e.Value?.ToString(), out var v) ? Math.Max(0, v) : 0; return Reload(); }
+    private void OnPlayers(double value) => players = (int)value;
+    private Task ApplyPlayers(double value) { OnPlayers(value); return Reload(); }
+    private void OnMaxScore(double value) => maxScore = value;
+    private Task ApplyMaxScore(double value) { OnMaxScore(value); return Reload(); }
+    private Task OnWoolMin(double value) { woolMin = Math.Max(0, (int)value); return Reload(); }
+    private Task OnWoolMax(double value) { woolMax = Math.Max(0, (int)value); return Reload(); }
     private Task PickSymmetry(string s) { symmetry = s; return Reload(); }
 
     private bool ShapeFiltered => woolFilter.Count + hubFilter.Count + frontFilter.Count > 0;

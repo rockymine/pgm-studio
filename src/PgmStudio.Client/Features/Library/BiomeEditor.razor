@@ -32,7 +32,7 @@
           @foreach (var offered in biomes)
           {
             <Chip Active="@(SolidId == offered.Id)" @key="offered.Id" OnClick="() => SetSolid(offered.Id)">
-              <span class="biome-swatch" style="background:@offered.Hex"></span> @offered.Name
+              <span class="biome-swatch" style="--swatch: @offered.Hex"></span> @offered.Name
             </Chip>
           }
         </div>
@@ -76,7 +76,7 @@
           <div class="panel-actions">
             <Select Options="BiomeOptions" Value="@Picked[slot].ToString()"
                     ValueChanged="value => SetAt(slot, int.TryParse(value, out var id) ? id : First)" />
-            <span class="biome-swatch" style="background:@Hex(Picked[slot])"></span>
+            <span class="biome-swatch" style="--swatch: @Hex(Picked[slot])"></span>
             <Button Variant="icon" Icon="x" Title="Remove" Disabled="@(Picked.Count <= 1)"
                     OnClick="() => DropAt(slot)" />
           </div>

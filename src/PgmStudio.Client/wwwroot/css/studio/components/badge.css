@@ -18,3 +18,5 @@
 .badge--error   { color: var(--color-error);    background: var(--color-error-bg); }
 .badge--neutral { color: var(--text-secondary); background: var(--bg-panel); border: 1px solid var(--border); }
 .badge--dim     { color: var(--text-muted);       background: var(--bg-base); }
+/* Filled with a team's colour, which the call site passes as --swatch. */
+.badge--team    { color: var(--text-white);       background: var(--swatch); }

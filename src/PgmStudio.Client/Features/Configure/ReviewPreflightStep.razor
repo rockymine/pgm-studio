@@ -26,7 +26,7 @@
         }
         else if (data is { IntentMap: false })
         {
-          <p class="panel-empty-msg" style="text-align:left">This map wasn't set up in this wizard, so there is
+          <p class="panel-empty-msg panel-empty-msg--left">This map wasn't set up in this wizard, so there is
             nothing to check. It can be exported as it is.</p>
         }
         else
@@ -44,9 +44,8 @@
             @* The validated map — one static top-down image (islands · bridges · spawn↔wool connectivity). *@
             @if (view is { } v)
             {
-              <div class="canvas-surface canvas-surface--svg" style="margin-top:var(--space-3);min-height:240px;max-height:380px;border-radius:var(--radius-sm);overflow:hidden">
-                <svg viewBox="@F(v.MinX) @F(v.MinZ) @F(v.W) @F(v.H)" preserveAspectRatio="xMidYMid meet"
-                     style="width:100%;height:100%;display:block">
+              <div class="canvas-surface canvas-surface--svg preflight-board">
+                <svg viewBox="@F(v.MinX) @F(v.MinZ) @F(v.W) @F(v.H)" preserveAspectRatio="xMidYMid meet">
                   @foreach (var b in v.Bridges)
                   {
                     <rect x="@F(b.X)" y="@F(b.Z)" width="@F(b.W)" height="@F(b.H)"
@@ -92,10 +91,10 @@
                 <Badge Class="@(data?.Traversability is { Connected: true } ? "badge--success" : "badge--error")">
                   @(data?.Traversability is { Connected: true } ? "Connected" : $"{data?.Traversability?.ComponentCount} separate parts")
                 </Badge>
-                Islands · <span style="color:var(--canvas-add-stroke)">buildable bridges</span> ·
+                Islands · <span class="preflight-key--bridge">buildable bridges</span> ·
                 <strong>dashed box:</strong> spawn protection · <strong>filled box:</strong> wool room ·
                 <strong>●</strong> spawn · <strong>■</strong> wool · <strong>◆</strong> monument.
-                A <span style="color:#e5534b">red ring</span> marks a spawn or wool that is cut off.
+                A <span class="preflight-key--cut-off">red ring</span> marks a spawn or wool that is cut off.
               </p>
             }
 
@@ -118,7 +117,7 @@
               </div>
             }
 
-            <div class="console-wrap" style="margin-top:var(--space-3)">
+            <div class="console-wrap console-wrap--separated">
               <div class="console-header">
                 <span class="console-title">Check log</span>
               </div>

@@ -43,5 +43,5 @@
 
     private string SwatchCls => SwatchClass is null ? "canvas-dock-swatch" : $"canvas-dock-swatch {SwatchClass}";
 
-    private string? SwatchStyle => Swatch is null ? null : $"--swatch-color:{Swatch}";
+    private string? SwatchStyle => Swatch is null ? null : $"--swatch: {Swatch}";
 }

@@ -21,11 +21,11 @@
         @foreach (var part in Outline)
         {
           <button class="lib-outline-row @(part.Id == Selected ? "lib-outline-row--picked" : null)"
-                  style="@Indent(part)" @key="part.Id" @onclick="() => Choose(part.Id)">
+                  style="@Depth(part)" @key="part.Id" @onclick="() => Choose(part.Id)">
             <span class="lib-outline-mark">
               @if (part.Swatch is not null)
               {
-                <span class="lib-outline-swatch" style="@($"background:{part.Swatch}")"></span>
+                <span class="lib-outline-swatch" style="--swatch: @part.Swatch"></span>
               }
               else
               {

@@ -186,7 +186,4 @@ public partial class PropRecipeEditor
         if (await Library.DeleteAsync(Kind, id) is { Deleted: false }) { note = "Couldn't delete this recipe. Try again."; return; }
         Nav.NavigateTo($"/library/{Kind.Slug}");
     }
-
-    private static double Number(ChangeEventArgs e, double fallback)
-        => double.TryParse(e.Value?.ToString(), out var value) ? value : fallback;
 }

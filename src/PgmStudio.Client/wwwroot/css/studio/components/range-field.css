@@ -1,0 +1,6 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   RANGE FIELD — the RangeField slider. Its readout is the Field's LabelEnd (.field-label--split).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Full-width slider tinted to the accent. */
+.field-range { width: 100%; accent-color: var(--accent); }

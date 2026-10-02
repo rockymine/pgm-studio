@@ -36,13 +36,7 @@
         <Section Title="Symmetry and grid">
           <p class="section-desc">Symmetry sets how each team's half is copied. Surface values are heights in blocks.</p>
           <Field Label="Symmetry">
-            <select class="field-input" value="@Symmetry" @onchange="@(e => OnSymmetryChanged.InvokeAsync(e.Value?.ToString() ?? "rot_180"))">
-              <option value="rot_180">Rotate 180°</option>
-              <option value="rot_90">Rotate 90°</option>
-              <option value="mirror_x">Mirror X</option>
-              <option value="mirror_z">Mirror Z</option>
-              <option value="none">None</option>
-            </select>
+            <Select Slim="false" Options="SymmetryOptions" Value="@Symmetry" ValueChanged="OnSymmetryChanged" />
           </Field>
           <Field Label="Cell size (blocks)">
             <NumberField Value="Cell" ValueChanged="OnCellChanged" Min="1" />

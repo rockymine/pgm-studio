@@ -37,12 +37,7 @@
           <Field Label="Mode">
             <LabelHint>(how the preview mirrors your shapes)</LabelHint>
             <ChildContent>
-              <select class="field-input" value="@Mode" @onchange="OnModeChange">
-                <option value="mirror_x">Mirror X</option>
-                <option value="mirror_z">Mirror Z</option>
-                <option value="rot_180">Rotate 180°</option>
-                <option value="rot_90">Rotate 90°</option>
-              </select>
+              <Select Slim="false" Options="ModeOptions" Value="@Mode" ValueChanged="OnModeChange" />
             </ChildContent>
           </Field>
           <Field Label="Centre X">

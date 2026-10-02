@@ -155,21 +155,21 @@
         <Field Label="Box width">
           <LabelEnd><strong>@probeW</strong></LabelEnd>
           <ChildContent>
-            <input type="range" class="field-range" min="2" max="32" step="1" value="@probeW" @oninput="OnWidth" />
+            <RangeField Min="2" Max="32" Value="probeW" ValueChanged="OnWidth" />
           </ChildContent>
         </Field>
 
         <Field Label="Box height">
           <LabelEnd><strong>@probeH</strong></LabelEnd>
           <ChildContent>
-            <input type="range" class="field-range" min="2" max="32" step="1" value="@probeH" @oninput="OnHeight" />
+            <RangeField Min="2" Max="32" Value="probeH" ValueChanged="OnHeight" />
           </ChildContent>
         </Field>
 
         <Field Label="Corridor width">
           <LabelEnd><strong>w@(probeCw)</strong></LabelEnd>
           <ChildContent>
-            <input type="range" class="field-range" min="2" max="5" step="1" value="@probeCw" @oninput="OnCorridor" />
+            <RangeField Min="2" Max="5" Value="probeCw" ValueChanged="OnCorridor" />
           </ChildContent>
         </Field>
 
@@ -197,7 +197,7 @@
           <Field Label="Attachment width">
             <LabelEnd><strong>@(probeAttachW == 0 ? "default" : probeAttachW.ToString())</strong></LabelEnd>
             <ChildContent>
-              <input type="range" class="field-range" min="0" max="6" step="1" value="@probeAttachW" @oninput="OnAttachW" />
+              <RangeField Min="0" Max="6" Value="probeAttachW" ValueChanged="OnAttachW" />
             </ChildContent>
           </Field>
         }

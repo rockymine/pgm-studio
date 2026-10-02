@@ -5,7 +5,7 @@
    The browser loads it as an image, so a gallery streams in as the server draws it one picture at a time; a
    picture that will not draw is asked again as a request so the studio's own sentence can say why. *@
 
-<figure class="eye-picture @Class" style="aspect-ratio: @Width / @Height">
+<figure class="eye-picture @Class" style="--aspect: @Width / @Height">
   @if (why is not null)
   {
     <figcaption class="eye-picture__why">@why</figcaption>

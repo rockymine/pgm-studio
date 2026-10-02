@@ -47,7 +47,7 @@
           <Section Title="Whitelist">
             <Actions><Badge Kind="dim">@(users?.Count ?? 0)</Badge></Actions>
             <ChildContent>
-              <div class="panel-list" style="margin-top: var(--space-3);">
+              <div class="panel-list panel-list--separated">
                 @if (users is null) { <div class="list-empty">Loading…</div> }
                 else if (users.Count == 0) { <div class="list-empty">Nobody is on the whitelist yet. Add a player above.</div> }
                 else

@@ -17,9 +17,17 @@ public partial class SketchInfoPhase
     [Parameter] public string Mode { get; set; } = "rot_180";
     [Parameter] public double CenterX { get; set; }
     [Parameter] public double CenterZ { get; set; }
-    [Parameter] public EventCallback<ChangeEventArgs> OnModeChange { get; set; }
+    [Parameter] public EventCallback<string> OnModeChange { get; set; }
     [Parameter] public EventCallback<double> OnCenterX { get; set; }
     [Parameter] public EventCallback<double> OnCenterZ { get; set; }
+
+    private static readonly IReadOnlyList<SelectOption> ModeOptions =
+    [
+        new("mirror_x", "Mirror X"),
+        new("mirror_z", "Mirror Z"),
+        new("rot_180", "Rotate 180°"),
+        new("rot_90", "Rotate 90°"),
+    ];
 
     private int step;   // 0 = Identity, 1 = Settings
     private Task OnNextStep() { if (step < Steps.Length - 1) { step++; return Task.CompletedTask; } return OnNext.InvokeAsync(); }

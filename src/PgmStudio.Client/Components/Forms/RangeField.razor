@@ -1,0 +1,38 @@
+@namespace PgmStudio.Client.Components
+
+@* The studio's slider. ValueChanged follows the thumb while it moves; OnCommit fires once when it is let
+   go. A caller binds the one its work wants, or both where a readout moves live and the work waits for the
+   release. An event nobody binds is left off the element, so a commit-only slider is silent while dragged.
+   The readout belongs to the Field's LabelEnd; extra attributes (aria-label, id…) pass straight through. *@
+
+<input type="range" class="field-range" min="@Format(Min)" max="@Format(Max)" step="@Format(Step)"
+       value="@Format(Value)" @oninput="InputHandler" @onchange="CommitHandler" @attributes="Extra" />
+
+@code {
+    [Parameter] public double Value { get; set; }
+    /// <summary>Raised on every step the thumb takes.</summary>
+    [Parameter] public EventCallback<double> ValueChanged { get; set; }
+    /// <summary>Raised once, with the value the thumb was released at.</summary>
+    [Parameter] public EventCallback<double> OnCommit { get; set; }
+    [Parameter, EditorRequired] public double Min { get; set; }
+    [Parameter, EditorRequired] public double Max { get; set; }
+    [Parameter] public double Step { get; set; } = 1;
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+
+    private EventCallback<ChangeEventArgs> InputHandler => Handler(ValueChanged);
+    private EventCallback<ChangeEventArgs> CommitHandler => Handler(OnCommit);
+
+    // An unbound callback becomes no handler at all, which Blazor leaves off the element.
+    private EventCallback<ChangeEventArgs> Handler(EventCallback<double> callback)
+        => callback.HasDelegate
+            ? EventCallback.Factory.Create<ChangeEventArgs>(this, e => Raise(callback, e))
+            : default;
+
+    private static Task Raise(EventCallback<double> callback, ChangeEventArgs e)
+        => double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float,
+               System.Globalization.CultureInfo.InvariantCulture, out var number)
+            ? callback.InvokeAsync(number)
+            : Task.CompletedTask;
+
+    private static string Format(double number) => number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+}

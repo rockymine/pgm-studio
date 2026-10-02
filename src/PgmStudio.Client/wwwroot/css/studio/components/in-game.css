@@ -5,7 +5,7 @@
 /* One picture: the frame holds its aspect before the image arrives, so a gallery does not reflow as the
    server draws it one picture at a time. */
 .eye-picture {
-  position: relative; margin: 0; width: 100%;
+  position: relative; margin: 0; width: 100%; aspect-ratio: var(--aspect);
   background: var(--bg-canvas); border-radius: var(--radius-sm); overflow: hidden;
 }
 .eye-picture img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 120ms; }
@@ -46,7 +46,10 @@
   background: var(--canvas-float-bg); border: 1px solid var(--canvas-float-border); color: var(--text-bright);
   font-size: var(--font-sm);
 }
-.ingame__pin { position: absolute; z-index: 1; transform: translate(-50%, -100%); cursor: pointer; border: 0; }
+.ingame__pin {
+  position: absolute; left: var(--pin-x); top: var(--pin-y); z-index: 1;
+  transform: translate(-50%, -100%); cursor: pointer; border: 0;
+}
 .ingame__divider { width: 1px; height: 20px; margin: 0 4px; background: var(--canvas-float-border); }
 
 .ingame__strip { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-1); }

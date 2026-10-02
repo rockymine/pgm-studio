@@ -59,6 +59,7 @@
 .ds-section-heading h2 { margin-top: var(--space-1); color: var(--text-strong); font-size: var(--font-xl); }
 .ds-section-heading > p { max-width: 520px; text-align: right; }
 .ds-subsection { margin-bottom: var(--space-6); }
+.ds-subsection--separated { margin-top: var(--space-5); }
 .ds-subsection h3 { margin-bottom: var(--space-3); color: var(--text-primary); font-size: var(--font-base); }
 
 .ds-swatches {
@@ -203,6 +204,16 @@
 /* Smart-suggestion design-page sample: pin to sidebar width so density reads true. */
 .ds-sug-sample { max-width: 280px; }
 
+/* The card and list-row samples: the cards set apart from the list, the list framed at a panel's width. */
+.ds-card-sample { margin-bottom: var(--space-4); }
+.ds-list-sample {
+  max-width: 420px;
+  padding: var(--space-3);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
 /* /concepts/organic — the Organic-generation pipeline demo (each stage = a panel with a live svg). */
 .gen-controls {
   display: flex;
@@ -302,9 +313,9 @@
 /* The colour chip is a square reading of one block. It takes the row's height like everything else in the
    band and its width from that height, so it stands the same size as the controls beside it instead of a
    couple of pixels short of them — and stays square rather than stretching into a bar. */
-.block-chip { flex: 0 0 auto; aspect-ratio: 1; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.block-chip { flex: 0 0 auto; aspect-ratio: 1; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--swatch); }
 .block-picker-colors { display: flex; flex-wrap: wrap; gap: 3px; }
-.block-swatch { width: 1.25rem; height: 1.25rem; padding: 0; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; }
+.block-swatch { width: 1.25rem; height: 1.25rem; padding: 0; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--swatch); cursor: pointer; }
 .block-swatch:hover { outline: 1px solid var(--text-muted); }
 .block-swatch--on { outline: 2px solid var(--accent); outline-offset: 1px; }
 

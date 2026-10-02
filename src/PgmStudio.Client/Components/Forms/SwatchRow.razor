@@ -10,7 +10,7 @@
   {
     <button type="button" @key="swatch.Key" title="@swatch.Label"
             class="block-swatch @(EqualityComparer<TKey>.Default.Equals(swatch.Key, Selected) ? "block-swatch--on" : null)"
-            style="background:@swatch.Hex" @onclick="() => OnPick.InvokeAsync(swatch.Key)"></button>
+            style="--swatch: @swatch.Hex" @onclick="() => OnPick.InvokeAsync(swatch.Key)"></button>
   }
 </div>
 

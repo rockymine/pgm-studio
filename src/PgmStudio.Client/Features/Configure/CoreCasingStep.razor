@@ -16,7 +16,7 @@
             var index = i;
             var core = cores[index];
             <ListRow Compact Selected="selected == index" @key="index" OnClick="() => Select(index)">
-              <span class="geo-type-icon" style="color:@TeamHex(core.Owner)"><i data-lucide="flame"></i></span>
+              <span class="geo-type-icon" style="--icon-tint: @TeamHex(core.Owner)"><i data-lucide="flame"></i></span>
               <span class="list-label">@(string.IsNullOrEmpty(core.Name) ? "Core" : core.Name)</span>
               <Badge Kind="dim">@core.Size×@core.Height</Badge>
             </ListRow>
@@ -36,7 +36,7 @@
       @if (Selected is { } sel)
       {
         <Section @key="selected">
-          <DetailHeader Icon="flame" IconStyle="@($"color:{TeamHex(sel.Owner)}")" Label="@(string.IsNullOrEmpty(sel.Name) ? "Core" : sel.Name)">
+          <DetailHeader Icon="flame" IconTint="@TeamHex(sel.Owner)" Label="@(string.IsNullOrEmpty(sel.Name) ? "Core" : sel.Name)">
             <Badge Kind="@(string.IsNullOrEmpty(sel.Owner) ? "dim" : "neutral")">@(string.IsNullOrEmpty(sel.Owner) ? "No team" : TeamName(sel.Owner))</Badge>
           </DetailHeader>
           <div class="section-body">
@@ -68,8 +68,7 @@
             <Field Label="Leak">
               <LabelHint>(blocks the lava must fall)</LabelHint>
               <ChildContent>
-                <input class="field-input" type="number" min="0" max="64" value="@sel.Leak"
-                       @onchange="@(e => SetLeak(sel, Num(e.Value, sel.Leak)))" />
+                <NumberField Min="0" Max="64" Value="sel.Leak" ValueChanged="@(value => SetLeak(sel, (int)value))" />
               </ChildContent>
             </Field>
             <p class="section-desc">
@@ -98,8 +97,3 @@
   </Inspector>
 
 </Workspace>
-
-@code {
-    private static int Num(object? value, int fallback)
-        => int.TryParse(value?.ToString(), out var n) ? n : fallback;
-}

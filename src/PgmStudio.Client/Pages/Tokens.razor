@@ -72,7 +72,7 @@
           <Section Title="Your tokens">
             <Actions><Badge Kind="dim">@(tokens?.Count ?? 0)</Badge></Actions>
             <ChildContent>
-              <div class="panel-list" style="margin-top: var(--space-3);">
+              <div class="panel-list panel-list--separated">
                 @if (tokens is null) { <div class="list-empty">Loading…</div> }
                 else if (tokens.Count == 0) { <div class="list-empty">No tokens yet.</div> }
                 else

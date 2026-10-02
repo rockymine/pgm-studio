@@ -163,8 +163,8 @@ public partial class ThemeEditor
     private Task ToggleBucket(string bucket)
         => Rebind(bucket, binding => binding with { Enabled = !binding.Enabled });
 
-    private Task SetDepth(string bucket, ChangeEventArgs e)
-        => Rebind(bucket, binding => binding with { Depth = Math.Max(1, Parse(e, binding.Depth)) });
+    private Task SetDepth(string bucket, double value)
+        => Rebind(bucket, binding => binding with { Depth = Math.Max(1, (int)value) });
 
     private Task Rebind(string bucket, Func<ThemeBucketDto, ThemeBucketDto> edit)
     {
@@ -190,8 +190,8 @@ public partial class ThemeEditor
     private Task SetBedrockMode(string mode)
         => Knob(theme => theme with { BedrockRelative = mode == RelativeBedrock });
 
-    private Task SetBedrockValue(ChangeEventArgs e)
-        => Knob(theme => theme with { BedrockValue = Math.Max(0, Parse(e, theme.BedrockValue)) });
+    private Task SetBedrockValue(double value)
+        => Knob(theme => theme with { BedrockValue = Math.Max(0, (int)value) });
 
     private Task SetRimEdges(string edges)
         => Knob(theme => theme with { RimEdges = RimEdgeModes.Canonical(edges) });
@@ -206,8 +206,6 @@ public partial class ThemeEditor
         return Preview();
     }
 
-    private static int Parse(ChangeEventArgs e, int fallback)
-        => int.TryParse((string?)e.Value, out var value) ? value : fallback;
 
     // ── preview + save ─────────────────────────────────────────────────────────────────────────────
     // Both go through the same request value: the preview is what the save would compose to.

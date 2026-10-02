@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Components;
+using PgmStudio.Client.Components;
 using PgmStudio.Contracts;
 using PgmStudio.Vocabulary;
 
@@ -66,6 +67,8 @@ public partial class SketchNotesColumn
 
     private string draft = "";
     private string? tag;
+
+    private static readonly IReadOnlyList<SelectOption> TagOptions = Select.Words(NoteTags.All, word => word);
     private string reply = "";
 
     private IEnumerable<MapNoteDto> OnThisPicture => Notes.Where(note => note.Anchor.ViewId is { } view && view == ViewId);

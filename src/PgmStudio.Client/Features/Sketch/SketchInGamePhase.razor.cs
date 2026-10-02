@@ -463,5 +463,5 @@ public partial class SketchInGamePhase
     }
 
     private static string PinStyle(double x, double y) => string.Create(CultureInfo.InvariantCulture,
-        $"left: {x / PictureWidth * 100:0.##}%; top: {y / PictureHeight * 100:0.##}%");
+        $"--pin-x: {x / PictureWidth * 100:0.##}%; --pin-y: {y / PictureHeight * 100:0.##}%");
 }

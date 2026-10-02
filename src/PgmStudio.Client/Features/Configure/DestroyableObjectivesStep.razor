@@ -27,7 +27,7 @@
               var index = i;
               var goal = destroyables[index];
               <ListRow Compact Selected="selected == index" @key="index" OnClick="() => Select(index)">
-                <span class="geo-type-icon" style="color:@TeamHex(goal.Owner)"><i data-lucide="gem"></i></span>
+                <span class="geo-type-icon" style="--icon-tint: @TeamHex(goal.Owner)"><i data-lucide="gem"></i></span>
                 <span class="list-label">@(string.IsNullOrEmpty(goal.Name) ? "Destroyable" : goal.Name)</span>
                 <Badge Kind="@(string.IsNullOrEmpty(goal.Owner) ? "dim" : "neutral")">@(string.IsNullOrEmpty(goal.Owner) ? "No team" : TeamName(goal.Owner))</Badge>
               </ListRow>
@@ -37,7 +37,7 @@
           var proposals = Unconfirmed.ToList();
           @if (proposals.Count > 0)
           {
-            <p class="section-desc" style="margin-top:var(--space-3)">
+            <p class="section-desc section-desc--separated">
               <strong>@proposals.Count</strong> suggested destroyable@(proposals.Count == 1 ? "" : "s") to
               confirm. Click one to add it.
             </p>
@@ -75,7 +75,7 @@
       @if (Selected is { } sel)
       {
         <Section @key="selected">
-          <DetailHeader Icon="gem" IconStyle="@($"color:{TeamHex(sel.Owner)}")" Label="@(string.IsNullOrEmpty(sel.Name) ? "Destroyable" : sel.Name)">
+          <DetailHeader Icon="gem" IconTint="@TeamHex(sel.Owner)" Label="@(string.IsNullOrEmpty(sel.Name) ? "Destroyable" : sel.Name)">
             <Badge Class="@(sel.Volume is null ? "badge--warning" : "badge--success")">@(sel.Volume is null ? "Not built yet" : "In the world")</Badge>
           </DetailHeader>
           <div class="section-body">
@@ -83,14 +83,9 @@
               <LabelHint>(the others break it)</LabelHint>
               <ChildContent>
                 <div class="field-pick-row">
-                  <span class="field-swatch" style="background:@(string.IsNullOrEmpty(sel.Owner) ? "transparent" : TeamHex(sel.Owner))"></span>
-                  <select class="field-input" @onchange="@(e => SetOwner(sel, e.Value?.ToString() ?? string.Empty))">
-                    <option value="" selected="@string.IsNullOrEmpty(sel.Owner)">Choose a team</option>
-                    @foreach (var t in teams)
-                    {
-                      <option value="@t.Id" selected="@(t.Id == sel.Owner)">@t.Name</option>
-                    }
-                  </select>
+                  <span class="field-swatch" style="--swatch: @(string.IsNullOrEmpty(sel.Owner) ? "transparent" : TeamHex(sel.Owner))"></span>
+                  <Select Slim="false" Options="@AuthoringContext.TeamOptions(teams)" Placeholder="Choose a team"
+                          Value="@sel.Owner" ValueChanged="@(team => SetOwner(sel, team))" />
                 </div>
               </ChildContent>
             </Field>
@@ -105,23 +100,14 @@
 
             <Field Label="Shape">
               <div class="field-pick-row">
-                <select class="field-input" @onchange="@(e => SetStyle(sel, e.Value?.ToString() ?? string.Empty))">
-                  @foreach (var style in defaults.StyleOptions)
-                  {
-                    <option value="@style" selected="@(style == sel.Style)">@style</option>
-                  }
-                </select>
+                <Select Slim="false" Options="StyleOptions" Value="@sel.Style" ValueChanged="@(style => SetStyle(sel, style))" />
               </div>
             </Field>
 
             <Field Label="Built of">
               <div class="field-pick-row">
-                <select class="field-input" @onchange="@(e => SetMaterials(sel, e.Value?.ToString() ?? string.Empty))">
-                  @foreach (var material in defaults.MaterialOptions)
-                  {
-                    <option value="@material" selected="@(material == sel.Materials)">@material</option>
-                  }
-                </select>
+                <Select Slim="false" Options="MaterialOptions" Value="@sel.Materials"
+                        ValueChanged="@(materials => SetMaterials(sel, materials))" />
               </div>
             </Field>
 
@@ -156,7 +142,7 @@
               </Field>
             }
 
-            <div class="ctrl-row" style="margin-top:var(--space-2)">
+            <div class="ctrl-row ctrl-row--separated">
               <Button Fill OnClick="() => Remove(sel)" Title="Remove destroyable"><i data-lucide="trash-2"></i> Remove</Button>
             </div>
           </div>

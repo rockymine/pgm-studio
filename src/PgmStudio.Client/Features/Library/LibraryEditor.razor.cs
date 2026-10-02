@@ -77,7 +77,7 @@ public partial class LibraryEditor
 
     private Task OnNameInput(ChangeEventArgs e) => NameChanged.InvokeAsync(e.Value as string ?? "");
 
-    private static string Indent(EditorPart part) => part.Depth == 0 ? "" : $"padding-left:{8 + part.Depth * 14}px";
+    private static string? Depth(EditorPart part) => part.Depth == 0 ? null : $"--depth: {part.Depth}";
 
     /// <summary>Picking a row selects it either way; on a flat document it also brings the section into view,
     /// because there the row names something already drawn rather than something to draw instead.</summary>

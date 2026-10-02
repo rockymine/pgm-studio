@@ -182,6 +182,12 @@ public partial class DestroyableObjectivesStep
 
     private void SetName(D.Destroyable goal, string name) { goal.Name = name.Trim(); Write(); }
 
+    private IReadOnlyList<SelectOption> StyleOptions
+        => [.. defaults.StyleOptions.Select(style => new SelectOption(style, style))];
+
+    private IReadOnlyList<SelectOption> MaterialOptions
+        => [.. defaults.MaterialOptions.Select(materials => new SelectOption(materials, materials))];
+
     private void SetStyle(D.Destroyable goal, string style) { goal.Style = style; Write(); }
 
     private void SetMaterials(D.Destroyable goal, string materials) { goal.Materials = materials; Write(); }

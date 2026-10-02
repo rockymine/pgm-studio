@@ -32,6 +32,16 @@ public partial class PlanInfoPhase
     [Parameter] public EventCallback<double> OnSurfaceStepChanged { get; set; }
     [Parameter] public EventCallback<double> OnMaxPlayersChanged { get; set; }
 
+    /// <summary>The symmetries a plan can state, offered in this order wherever a plan's symmetry is picked.</summary>
+    internal static readonly IReadOnlyList<SelectOption> SymmetryOptions =
+    [
+        new("rot_180", "Rotate 180°"),
+        new("rot_90", "Rotate 90°"),
+        new("mirror_x", "Mirror X"),
+        new("mirror_z", "Mirror Z"),
+        new("none", "None"),
+    ];
+
     private int step;   // 0 = Identity, 1 = Settings
     private Task OnNextStep() { if (step < Steps.Length - 1) { step++; return Task.CompletedTask; } return OnNext.InvokeAsync(); }
 
