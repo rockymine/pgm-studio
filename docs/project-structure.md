@@ -102,16 +102,16 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 26 | 4,852 | `Playability/` 15 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 159 | 23,141 | `Endpoints/` 79 · `Services/` 64 · `Access/` 12 · `Http/` 3 · 1 at root |
+| `Api` | 159 | 23,205 | `Endpoints/` 79 · `Services/` 64 · `Access/` 12 · `Http/` 3 · 1 at root |
 | `Client` | 222 | 28,571 | `Features/` 127 (nested) · `Components/` 72 (nested) · `Pages/` 11 · `Layout/` 5 · `Models/` 4 · 3 at root |
 | `Contracts` | 36 | 4,126 | flat |
 | `Data` | 24 | 4,007 | `Map/` 7 · `Features/` 5 · `Theme/` 5 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 30 | 3,520 | flat |
 | `Export` | 22 | 5,052 | flat |
-| `Geom` | 53 | 6,935 | `Algorithms/` 20 · `Render/` 7 · `Relief/` 5 · 21 at root |
+| `Geom` | 53 | 6,940 | `Algorithms/` 20 · `Render/` 7 · `Relief/` 5 · 21 at root |
 | `Import` | 4 | 496 | flat |
 | `Migrations` | 62 | 4,369 | `Migrations/` 61 · 1 at root |
-| `Minecraft` | 109 | 23,533 | `Render/` 20 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 4 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
+| `Minecraft` | 111 | 23,643 | `Render/` 21 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
 | `Pgm` | 165 | 32,346 | `Compose/` 43 (nested) · `Authoring/` 28 · `Evaluate/` 22 (nested) · `Editing/` 11 · `Plan/` 11 · `Sketch/` 11 · `Shapes/` 10 · `Derive/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
 | `Vocabulary` | 25 | 1,678 | flat |
 <!-- /census -->

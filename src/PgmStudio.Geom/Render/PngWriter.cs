@@ -26,10 +26,15 @@ public static class PngWriter
 
     /// <summary>Serialises <paramref name="rgb"/> to a PNG byte array without touching disk — the path an HTTP
     /// endpoint writes into a response body.</summary>
-    public static byte[] Encode(int width, int height, byte[] rgb)
+    public static byte[] Encode(int width, int height, byte[] rgb) => Encode(width, height, rgb, channels: 3);
+
+    /// <summary>An RGBA picture, four bytes a pixel, where a zero alpha lets what is behind the image show.</summary>
+    public static byte[] EncodeRgba(int width, int height, byte[] rgba) => Encode(width, height, rgba, channels: 4);
+
+    private static byte[] Encode(int width, int height, byte[] pixels, int channels)
     {
-        if (rgb.Length != width * height * 3)
-            throw new ArgumentException($"expected {width * height * 3} bytes for {width}x{height}, got {rgb.Length}");
+        if (pixels.Length != width * height * channels)
+            throw new ArgumentException($"expected {width * height * channels} bytes for {width}x{height}, got {pixels.Length}");
 
         using var file = new MemoryStream();
         file.Write(Signature);
@@ -38,13 +43,13 @@ public static class PngWriter
         WriteBigEndian(header, 0, width);
         WriteBigEndian(header, 4, height);
         header[8] = 8;      // bit depth
-        header[9] = 2;      // colour type 2 = truecolour RGB
+        header[9] = channels == 4 ? (byte)6 : (byte)2;  // colour type 6 = RGBA, 2 = RGB
         header[10] = 0;     // deflate
         header[11] = 0;     // adaptive filtering
         header[12] = 0;     // no interlace
         WriteChunk(file, "IHDR", header);
 
-        WriteChunk(file, "IDAT", Deflate(width, height, rgb));
+        WriteChunk(file, "IDAT", Deflate(width, height, pixels, channels));
         WriteChunk(file, "IEND", []);
         return file.ToArray();
     }
@@ -52,9 +57,9 @@ public static class PngWriter
     /// <summary>Row-filtered scanlines through zlib. Each row is prefixed with filter type 2 (Up) and holds
     /// the byte-wise difference against the row above; the first row differences against implicit zeroes,
     /// which leaves it unchanged.</summary>
-    private static byte[] Deflate(int width, int height, byte[] rgb)
+    private static byte[] Deflate(int width, int height, byte[] rgb, int channels)
     {
-        var stride = width * 3;
+        var stride = width * channels;
         var filtered = new byte[height * (stride + 1)];
         for (var row = 0; row < height; row++)
         {
