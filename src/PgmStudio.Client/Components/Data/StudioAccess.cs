@@ -87,6 +87,18 @@ public sealed class StudioAccess(HttpClient http)
         await WriteReasonAsync(path)
         ?? (await IsAdminAsync() ? null : "Only an admin can delete this, because everyone shares it.");
 
+    /// <summary>
+    /// Why asking the server to build something on request (a map's export) is closed, or null where it is
+    /// open: someone on the whitelist may, whichever page they are on, since looking at a map is not changing it.
+    /// </summary>
+    public async Task<string?> BuildReasonAsync()
+    {
+        var caller = await MeAsync();
+        return caller.Role is not null ? null
+            : !caller.SignedIn ? "Sign in with a whitelisted account to download this."
+            : "Your account is not on this studio's whitelist, so you can only look.";
+    }
+
     private static string[] Segments(string path) =>
         path.Split('?', '#')[0].Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
 

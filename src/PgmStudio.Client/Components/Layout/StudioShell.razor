@@ -15,13 +15,15 @@
    reaches the body as "StudioReadOnly", which the panels, the dock and the fields that write read. Why an
    action that writes is closed (StudioAccess.WriteReasonAsync) reaches the Bar and the body both as
    "StudioWriteReason", and why deleting a shared row is closed (StudioAccess.DeleteReasonAsync) as
-   "StudioDeleteReason"; a Button marked Writes or Deletes, and a WriteGate, read them. Until the answers are
-   in, both are closed. *@
+   "StudioDeleteReason"; a Button marked Writes or Deletes, and a WriteGate, read them. Why asking the server to
+   build something, a map's export, is closed (StudioAccess.BuildReasonAsync) reaches both as
+   "StudioBuildReason", which a Button marked Builds reads. Until the answers are in, all three are closed. *@
 
 <div class="editor-page@(ReadOnly ? " studio-readonly" : "")">
     <AppNav />
     <CascadingValue Name="StudioWriteReason" Value="writeReason">
     <CascadingValue Name="StudioDeleteReason" Value="deleteReason">
+    <CascadingValue Name="StudioBuildReason" Value="buildReason">
     <CascadingValue Name="StudioReadOnlyReason" Value="readOnlyReason">
         @Bar
     </CascadingValue>
@@ -47,6 +49,7 @@
     </CascadingValue>
     </CascadingValue>
     </CascadingValue>
+    </CascadingValue>
     <AppFooter />
 </div>
 
@@ -61,6 +64,7 @@
     private const string Asking = "Checking whether you can change this…";
     private string? writeReason = Asking;
     private string? deleteReason = Asking;
+    private string? buildReason = Asking;
 
     private bool ReadOnly => readOnlyReason is not null;
 
@@ -82,6 +86,7 @@
         readOnlyReason = await Access.ReadOnlyReasonAsync(path);
         writeReason = await Access.WriteReasonAsync(path);
         deleteReason = await Access.DeleteReasonAsync(path);
+        buildReason = await Access.BuildReasonAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");

@@ -106,6 +106,8 @@ checks.add("no field is greyed", state.greyed === 0, `${state.greyed} disabled f
 checks.add("the drawing tools are there", state.rectangle);
 checks.add("the studio bar names the local admin", /local/.test(state.account), state.account);
 checks.add("the studio bar links the whitelist for an admin", state.users);
+const openDownload = await settle(/^Download map$/, false);
+checks.add("Download map is open", openDownload?.closed === false, JSON.stringify(openDownload));
 
 await visit(BASE, "/admin/users");
 // The page says "Loading…" until it has asked who is signed in, and only then draws the form or the refusal.
@@ -165,6 +167,14 @@ try {
   const importWorld = await settle(/^Import a world$/, true);
   checks.add("Import a world goes nowhere, and says why", importWorld?.closed === true
     && /Sign in/.test(importWorld.title), JSON.stringify(importWorld));
+
+  checks.section("a signed-out visitor cannot download a map");
+  await visit(invited, `/maps/${seed.sketchSlug}/sketch`);
+  const download = await settle(/^Download map$/, true);
+  checks.add("Download map is closed, and says why", download?.closed === true && /Sign in/.test(download.title),
+    JSON.stringify(download));
+  const exported = await fetch(`${invited}/api/map/${seed.sketchSlug}/export`);
+  checks.add("the export itself is refused", exported.status === 401, String(exported.status));
 
   checks.section("a signed-out visitor is offered nothing that writes");
   await checkWrites(invited, false);

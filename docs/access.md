@@ -191,8 +191,8 @@ configurator in `Program.cs` and decides from the verb and the path:
 
 | Route | Needs | Policy |
 |---|---|---|
-| `GET`, `HEAD` — any | nobody | open |
-| a `POST` that only reads, marked `[PostedRead]` | someone signed in | `member` |
+| a read that builds what it answers, marked `[CostlyRead]` — the posted sketch views, a map's export | a person on the whitelist | `member` |
+| any other `GET`, `HEAD` | nobody | open |
 | a write under `/map/{slug}` | someone who may edit that map | `map-editor` |
 | `DELETE` of anything else | an admin, since a library row is shared by every map using it | `admin` |
 | any other write | a person on the whitelist | `member` |
@@ -205,10 +205,12 @@ out is anyone's.
 **A read that carries a body is a `POST`, and it is still a read.** The Sketch page draws its paint, its relief
 contours and its 3-D world from the live layout, which it posts to `sketch/paint`, `sketch/relief` and
 `sketch/columns`; `sketch/relief/read`, `sketch/dressing`, `sketch/seats` and `sketch/probe-footprint` answer
-the same way. Each computes an answer and stores nothing, and says so with `[PostedRead]`, which gives it the
-`member` policy whichever map it names: anyone signed in sees how a map they may not change is made. A
+the same way. Each computes an answer and stores nothing, and says so with `[CostlyRead]`, which gives it the
+`member` policy whichever map it names: anyone on the whitelist sees how a map they may not change is made. A
 visitor who is not signed in is refused them with `RQ7`, because each answer is a build — `sketch/columns`
-builds the whole world — and it waits its turn like every build (below).
+builds the whole world — and it waits its turn like every build (below). `GET /map/{slug}/export` is the same
+kind of read and takes the same mark: it builds the map's world and its ZIP, so a visitor who may only look
+at a map does not download it.
 
 **Who may edit a map** is `Callers.MayEditAsync`: an admin; the map's **owner**, the person who originated it
 (`map.owner_uuid`, set by `MapOrigin` from the request that brought the row into existence); or someone the map

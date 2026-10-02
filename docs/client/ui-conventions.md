@@ -39,7 +39,7 @@ classes the markup did — which is what makes it reversible per file and checka
 By tier, each grounded in the classes it emits.
 
 **Primitives** — leaf, style-only. `Button` (`action-btn` plus its `--primary`/`--danger`/`--warn`/`--icon`
-variants, an optional lucide `Icon` name, an `Href` that switches it to an `<a>`, and `Writes`/`Deletes`, which
+variants, an optional lucide `Icon` name, an `Href` that switches it to an `<a>`, and `Writes`/`Deletes`/`Builds`, which
 close it where the caller may not, below), `WriteGate` (the same answer for a control that is not a
 `Button`), `Badge`, `Chip`
 (`filter-chip`), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, `Icon`, and `PlayerHead` —
@@ -127,7 +127,13 @@ starts something on a page that does. Until the shell has asked, every such acti
 by everyone, so a `DELETE` of one is refused to anyone but an admin; a `Button` marked `Deletes` reads
 `StudioDeleteReason` and closes the same way. A control that is not a `Button` (the generator's pin, the
 layer strip's add and remove) reads the same two answers through `WriteGate`, and a `FlowBar` whose Next
-writes takes `NextWrites`. Reading and downloading are never marked, so they stay open to a visitor.
+writes takes `NextWrites`. Reading is never marked, so it stays open to a visitor.
+
+**Downloading a map builds it, so it is closed to a visitor too.** A map's export is made on request — the
+world written, the ZIP packed — and the server gives it the `member` policy (`docs/access.md`). A `Button`
+marked `Builds` (the sketch's *Download map*, the plan's world ZIP, Configure's export, where a `FlowBar`
+takes `NextBuilds`) reads `StudioBuildReason`, which is `StudioAccess.BuildReasonAsync`: open to anyone on the
+whitelist whichever map the page is on, and closed with the reason to anyone else.
 
 The server refuses every write the caller may not make whatever the page shows (`docs/access.md`); this is
 what lets the page say so before an edit rather than after it.

@@ -16,9 +16,11 @@
    replaced instead of walked, and the detached <i> goes with its parent.
 
    Writes marks an action that creates or changes something, and Deletes one that deletes a shared row (a
-   library entry, a pinned plan), which only an admin may. Where the shell's "StudioWriteReason" or
-   "StudioDeleteReason" says the caller may not, the button is disabled and its tooltip is the reason; a link
-   is drawn without its href and with aria-disabled, so it goes nowhere. *@
+   library entry, a pinned plan), which only an admin may; Builds marks one that has the server build
+   something on request (a map's export), which needs someone on the whitelist. Where the shell's
+   "StudioWriteReason", "StudioDeleteReason" or "StudioBuildReason" says the caller may not, the button is
+   disabled and its tooltip is the reason; a link is drawn without its href and with aria-disabled, so it
+   goes nowhere. *@
 
 @if (Href is not null && Closed is not null)
 {
@@ -61,6 +63,7 @@ else
     [Parameter] public string? BusyLabel { get; set; }      // what it shows while Busy, in place of Icon + content
     [Parameter] public bool Writes { get; set; }            // creates or changes something: closed where the caller may not write
     [Parameter] public bool Deletes { get; set; }           // deletes a shared row: closed to all but an admin
+    [Parameter] public bool Builds { get; set; }            // has the server build on request: closed to all but the whitelist
     [Parameter] public bool Fill { get; set; }              // action-btn--fill
     [Parameter] public bool Full { get; set; }              // action-btn--full
     [Parameter] public string? Class { get; set; }          // extra modifiers
@@ -69,9 +72,10 @@ else
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
     [CascadingParameter(Name = "StudioWriteReason")] public string? WriteReason { get; set; }
     [CascadingParameter(Name = "StudioDeleteReason")] public string? DeleteReason { get; set; }
+    [CascadingParameter(Name = "StudioBuildReason")] public string? BuildReason { get; set; }
 
     /// <summary>Why this action is closed to the caller, or null where it is open.</summary>
-    private string? Closed => Deletes ? DeleteReason : Writes ? WriteReason : null;
+    private string? Closed => Deletes ? DeleteReason : Writes ? WriteReason : Builds ? BuildReason : null;
 
     private string Cls => string.Join(' ', new[]
     {
