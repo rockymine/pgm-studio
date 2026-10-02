@@ -501,6 +501,30 @@ and only bark showing on the slope. The roof passes its ridge rather than the wa
 ring is a different surface going a different way and off a wall it has no answer to give at all. A laid log
 carries its own whole-course rise and no slab is cut from one, so `roofSlab` over a log roof is refused.
 
+**A stair roof steps in stairs, and that is the other way a whole-course roof closes its steps.** Naming a
+**roof stair** on the style lays it on top of every column, climbing toward the neighbour the roof covers whose
+surface stands highest — across the ridge first where two stand equally high — so the slope reads as a run of
+steps rather than a staircase of cubes. The ridge is finished by its width (author): on a ridge **two blocks
+wide** each half is a stair climbing toward the other, so the two meet in a peak; on one **a block wide** a whole
+block stands too sharp, so the ridge is the column's slab, and at the gable the stair hung under it is upside
+down and faces out of the gable end rather than down either slope: its step toward whoever looks at the end,
+its raised half back under the roof (author). A
+hip line and a flat lid, with nothing higher beside them, stay whole blocks. The rim takes the stair cut from the verge (`BlockMaterials.StairOf`), or the
+body's where the verge has none, which is the rule the slab already follows. A roof climbs in halves or in
+stairs and never both, so the slab wins wherever a wing names one, and `HS3` refuses a style naming both.
+
+**A column hanging outside the building is given a block of depth.** Past the gable and past the eave nothing
+stands under a single-course column, so a stair there is half a block thick and a slab rake alternates half a
+block and a whole one. Under each such column the stamper hangs the same stair **upside down and turned the
+other way**, or under a slab the **upper half** of the course below, and the rake becomes one band of even
+thickness running eave to ridge. The lowest course of each slope takes none, because nothing beside it is lower
+to meet, and a porch canopy takes none, because under it is the porch.
+
+**A roof can be worn.** `Wear` (0–1, nought unstated) is hashed per cell, so a house restamped wears the same
+way: that share of a stair roof's slope is laid as whole blocks of the body — the grain of a roof re-laid in
+places — that share of its rim as the rim's slab, and that share of the courses hung under any roof's edge is
+left out — but never under a rim course it already cut to a slab, so the rake thins in places and never breaks. Nothing is taken out of the slope itself, so a worn roof is still a shell.
+
 The **gable is not in this rule**:
 it is the end wall carried up and it follows the wall, which is why a stone brick gable under a spruce roof is
 a house rather than a fault.

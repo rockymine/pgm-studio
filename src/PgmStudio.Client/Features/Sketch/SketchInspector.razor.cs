@@ -96,6 +96,7 @@ public partial class SketchInspector
         new("level", "Level",  "A mesa: a flat top at an absolute height, whatever the ground under it does, so its faces are cliffs."),
         new("raise", "Raise",  "A monolith: this far above the middle of the ground it covers, so it keeps its prominence wherever it is dragged."),
         new("sink",  "Sink",   "A quarry: this far below the middle of the ground it covers."),
+        new("drape", "Drape",  "A field wall or a hedge: this far above the ground at every cell, so it climbs the hillside it is laid over."),
     ];
 
     /// <summary>Where this shape's top actually lands, in its own numbers. A mode is a rule and a rule has to
@@ -106,6 +107,7 @@ public partial class SketchInspector
         "level" => $"Top cut flat at {Shape.Floor + Shape.BaseHeight}, whatever the ground under it does.",
         "raise" => $"Stands {Shape.BaseHeight} above the middle of the ground it covers.",
         "sink" => $"Cuts {Shape.BaseHeight} below the middle of the ground it covers.",
+        "drape" => $"Stands {Shape.BaseHeight} above the ground at every cell it covers.",
         _ => "",
     };
 

@@ -238,6 +238,8 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
 
         RoofSlab = req.RoofSlab,
         RoofSlabData = Math.Clamp(req.RoofSlabData, 0, 15),
+        RoofStair = req.RoofStair,
+        RoofWear = Math.Clamp(req.RoofWear, 0, 1),
 
         GableWindowForm = WindowForms.Canonical(req.GableWindows?.Form),
         GableWindowBlock = Math.Max(0, req.GableWindows?.Block ?? Blocks.GlassPane),
@@ -297,6 +299,8 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
                 // so a row saved before the row had columns for them builds exactly what it always did.
                 Slab = row.RoofSlab,
                 SlabData = row.RoofSlabData,
+                Stair = row.RoofStair,
+                Wear = row.RoofWear,
                 GableWindows = GableWindowOf(row),
             },
             // A house's three: unbound they stay what a shell is — corners that are wall like the rest of it,

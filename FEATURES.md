@@ -5978,6 +5978,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `M0056` makes a gable the database's default porch form, as it is the code's; a stored row keeps the form it
   states.
   `docs/world-export/structures.md` §7.1, §7.3, §7.6, §7.8. (`WE159`)
+
+- **Stair roofs, a rake with depth, and wear (`WE161`)** — a roof names the `roofStair` it steps in: every
+  column tops out in that stair climbing toward its ridge, the rim in the verge's own stair; a ridge two blocks
+  wide is two stairs meeting, one a block wide is a slab with an upside-down stair under it at the gable facing
+  out of the end, and a hip line and a flat lid are whole blocks. Under every single-course column hanging past the gable or the eave the
+  stamper hangs the same stair upside down and turned the other way, or on a slab roof the upper half of the
+  course below, so the rake is one block deep from the second course to the ridge. `roofWear` (0–1) lays that
+  share of a stair roof's slope as whole blocks and of its rim as slabs, and leaves that share of the hung
+  courses out, hashed per cell so a house restamps alike. `HS1` and `HS3` hold the stair to a stair of the
+  body's own material, never over a laid log and never beside a `roofSlab`. Both editors offer whole blocks,
+  stairs or slabs, the stair and the wear; `M0057` adds the two columns to house and roof rows.
+  `docs/world-export/structures.md` §7.1, `docs/tools/library.md`. (`WE161`)
 - **The library's house styles are named for what they are (TL36).** A room style's name is describing words
   then a kind of building, from the two lists `HouseNames` holds and `GET /api/room-styles/name-words` answers;
   `HS19` complains of any other on save. The library holds the author's review: the ten kept styles revised and
@@ -8364,6 +8376,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   1.8 would drop it. Podzol grows the rest of its cover as any dirt does, and mycelium nothing else. The
   Dressing inspector offers the share. `docs/world-export/decoration.md` §3. (`WE157`)
 
+- **Crops on farmland (`WE160`)** — a flora area sows the farmland inside it at `cropShare`, which the
+  meadow's density field does not thin: square plots of the cover's patch size, each one of `crops` — wheat,
+  carrots or potatoes, wheat unstated — at `ripeness` up to a stage either side, a fifth of its cells a stage
+  behind, read at the folded cell so a mirrored board's fields are sown alike. Farmland grows nothing else.
+  The Dressing inspector offers the share, the crops and the ripeness. `docs/world-export/decoration.md` §3.
+  (`WE160`)
+
 - **Lily pads on open water (`WE156`)** — a flora area floats a lily pad on the open still water inside it at
   `lilyShare`, cut from a field at the cover's patch size so the pads gather in rafts as flowers gather in
   fields, and read at the folded cell so a mirrored board's halves float alike; a fluid's dry bed and beach grow nothing and lava floats
@@ -8438,16 +8457,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   thread, the link a resolved `ruling` carries into `docs/gameplay/approaches.md`. The mapgen skills read the open
   notes first and reply on every note a drive answered. `docs/tools/sketch.md`. (`TS118`)
 
-- **Sending a note says what it is doing (`TS140`)** — Send is off until something is written, reads *Sending…*
+- **Sending a note says what it is doing (`TS147`)** — Send is off until something is written, reads *Sending…*
   from the press on and *Note sent* or *Reply sent* once it lands; one press is one note however many clicks
   follow, and Ctrl+Enter sends. The notes column owns the sending, since a busy flag handed down from the phase
-  reached the button only after the send returned. `docs/tools/sketch.md` § Notes. (`TS140`)
+  reached the button only after the send returned. `docs/tools/sketch.md` § Notes. (`TS147`)
 
-- **A note is written at the change its picture shows (`TS141`, `TS142`)** — `GET …/views` and
+- **A note is written at the change its picture shows (`TS148`, `TS149`)** — `GET …/views` and
   `GET …/render/eye/pick` each answer the map's `change`; a mark whose pick read a later change than the
   pictures were listed at is refused with both numbers and **Draw the pictures again**, which keeps the note's
   text and re-arms its tool, and the note states the change its picture shows. A note whose picture the browser
-  could not keep is not sent. `docs/tools/sketch.md` § Notes, `docs/world-scan/read-backs.md`. (`TS141`, `TS142`)
+  could not keep is not sent. `docs/tools/sketch.md` § Notes, `docs/world-scan/read-backs.md`. (`TS148`, `TS149`)
 
 - **A thread reads as a chat (`TS143`)** — each message a bubble beside its writer's mark: a person's head, the
   reader's own on the right, and an agent named by its token's label beside an *AI* mark, never by the person
@@ -8809,6 +8828,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   another shape, `id (image)` where the board's symmetry draws one, or `void` — so a pull or a bend's `edges` is
   written from a read rather than from a ring copied into a script. (`Pgm/Sketch/ShapeEdges`,
   `Api/Endpoints/SketchGeometryEndpoints`, `docs/tools/sketch.md`)
+- **A shape draped over the ground (`TS142`)** — `height_mode: "drape"` holds a shape `base_height` above the
+  ground at every cell it covers, read per cell rather than at the median `raise` reads, so a field wall, a
+  hedge or a kerb drawn as a polyline climbs the hillside instead of digging into its high side and standing
+  as a cliff on its low one. The four height modes are a published word set (`HeightModes`), so the schema and
+  the kit name them, and the shape inspector offers Drape. `docs/world-export/relief.md` §7,
+  `docs/tools/sketch.md`. (`TS142`)
+
 - **A coast placed for play is stated as pulls (`TS128`).** A point edit states `pulls: {edge: [[fraction,
   blocks], …]}`: a point that fraction of the way along each named edge, moved that many blocks into the ring or
   out of it where negative, inside asked of the ring rather than read from its centroid, every edge's points

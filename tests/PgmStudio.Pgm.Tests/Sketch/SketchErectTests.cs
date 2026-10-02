@@ -112,6 +112,53 @@ public sealed class SketchErectTests
         await Assert.That(high[(32, 32)]).IsGreaterThan(low[(8, 8)]);
     }
 
+    /// <summary><b>A draped shape stands its amount above the ground at every cell</b>: laid over a hillside it
+    /// climbs with it, so it neither digs into the high side nor stands as a cliff on the low one — the field
+    /// wall a raised shape cannot be.</summary>
+    [Test]
+    public async Task A_draped_shape_stands_its_amount_above_the_ground_at_every_cell()
+    {
+        var ground = Tops(Layout(null));
+        var draped = Tops(Layout("drape", amount: 1));
+
+        var footprint = (from x in Enumerable.Range(14, 10) from z in Enumerable.Range(14, 10) select (x, z)).ToList();
+        foreach (var cell in footprint)
+            await Assert.That(draped[cell]).IsEqualTo(ground[cell] + 1);
+        await Assert.That(draped[(23, 23)]).IsGreaterThan(draped[(14, 14)]);   // it climbs; a raised shape is flat
+    }
+
+    /// <summary>A wall drawn as a polyline across the slope, draped one block, is one block above the ground
+    /// along its whole length.</summary>
+    [Test]
+    public async Task A_draped_polyline_is_a_wall_one_block_high_along_the_whole_hillside()
+    {
+        const string wall = """
+        {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
+            "shapes": [
+              { "id": "s1", "type": "rectangle", "operation": "add",
+                "min_x": 0, "min_z": 0, "max_x": 40, "max_z": 40, "base_height": 5, "floor": 0 },
+              { "id": "w", "type": "polyline", "operation": "add", "height_mode": "drape", "skirt": 0,
+                "vertices": [[4, 6], [20, 20], [36, 34]], "radius": 0.6, "base_height": 1, "floor": 0 }
+            ],
+            "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "w"] } ]
+          } }],
+          "relief": {
+            "i1": { "base": 6, "marks": [ { "kind": "point", "at": [2, 2], "h": 6, "r": 3 },
+                                          { "kind": "point", "at": [38, 38], "h": 26, "r": 3 } ] }
+          }
+        }
+        """;
+        var bare = Tops(wall.Replace("\"height_mode\": \"drape\", ", ""));   // the same line as ordinary ground
+        var built = Tops(wall);
+
+        var raised = built.Keys.Where(cell => bare.ContainsKey(cell) && built[cell] != bare[cell]).ToList();
+        await Assert.That(raised.Count).IsGreaterThan(20);
+        foreach (var cell in raised)
+            await Assert.That(built[cell]).IsEqualTo(bare[cell] + 1);
+        await Assert.That(raised.Max(cell => built[cell]) - raised.Min(cell => built[cell])).IsGreaterThan(8);
+    }
+
     [Test]
     public async Task A_sunken_shape_cuts_down_into_the_ground_it_covers()
     {

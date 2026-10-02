@@ -273,6 +273,25 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ### Shapes
 
+- [ ] **TS141 — A room style stated as a library fork is honoured, or refused.** In `dressing.styles` a
+  house stated as `{"library": <name>, "kind": "house", "shell": <parts>}` builds the fork (`DressingJson`
+  resolves the shell over the row), but the same object under `roomStyles.spawn` stores 200, raises nothing and
+  builds the bare library row. Resolve `roomStyles.<part>` through the same reader the dressing registry uses,
+  or answer `RQ1` at the path; a second accepted shape that is silently dropped is the failure.
+  `docs/tools/sketch.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-halcyon-cays.md`, the kit section — the
+  spawn halls came out cyan clay over pink-white clay.*
+
+- [ ] **TS140 — A carve: a cave cut through ground that stays.** A subtract is a set of `(x, z)` cells
+  that empties the whole column (`SketchRasterizer.cs:349`), and underground space is that hole under a flat
+  override-add lid, so a chamber cannot keep the relief ground over it and every tunnel is a straight-walled
+  shaft. Add a carve stated in three dimensions: a polyline whose vertices each carry a radius and a centre
+  height, splined like a polyline's points so the bore swells and narrows smoothly between vertices, with a
+  `rough` seed wandering the wall; a single point is the negative boulder, a lumpy ellipsoid. It removes
+  `[y − r, y + r]` from the **built** column and leaves what is above it, so it runs after the raster the way a
+  fluid already carves built terrain (`decoration.md` §7), and its walls show the theme's fill. Decide first
+  what the plan-tier walks (`SK11`) and the export's reach say about a void they cannot see. `docs/tools/sketch.md`.
+  *Evidence: `sketch.md` "A subtract with a lid over it": the lid comes back as the column's only span.*
+
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
   then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag
@@ -569,6 +588,20 @@ server's backups and the edits a read-only page still lets start.
   failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
 ## The remainder: work no concept above has claimed
+
+- [ ] **RP97 — The sketch layout's words are published sets.** `GET /api/kit.py` checks a word only where
+  the schema lists it, and 44 of 574 string fields do: the layout an author writes most has none, so
+  `SketchShape(relief_scope="hld")` is built and sent. Mark `[WordSet]` on `SketchShape.operation`,
+  `relief_scope`, `stroke_edge`, `SketchLayer.kind`, a relief mark's `kind` and
+  `PlanGlobals.symmetry`, declaring each set in `Vocabulary` where it is not already; and publish `minimum`/
+  `maximum` for the 0–1 shares (`FloraSpec`, `RoofStyle.Wear`) so the kit refuses `coverage=5`.
+  `docs/architecture.md`. *Evidence: a constructor sweep against schema `a095aa2c71059f2c`.*
+
+- [ ] **RP98 — A stated null is a value the store refuses, not one the report trips on.** `kit.CellMaterial(
+  rise=None)` writes `"rise": null`; the store answers 200 and `GET /map/{slug}/report` then answers `400 RQ1
+  Cannot get the value of a token type 'Null' as a number @ rim.material.rise`. Refuse the null where the
+  document is stored (the material reader), and have the kit treat an argument of `None` as unstated.
+  `docs/architecture.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-pippin-coomb.md`, the kit section.*
 
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled

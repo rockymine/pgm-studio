@@ -309,6 +309,26 @@ public sealed record RoofStyle
     /// and is not part of this.</summary>
     public int SlabData { get; init; }
 
+    /// <summary>The stair a roof laid in whole courses steps in, or -1 for one laid in cubes.
+    ///
+    /// <para>Naming one lays this stair on top of every column, climbing toward the slope's higher
+    /// neighbour, so the slope reads as a run of steps rather than of blocks. A ridge two blocks wide is two
+    /// stairs climbing toward each other, one a block wide is the column's slab, and a hip line or a flat lid
+    /// stays a whole block. Under every column hanging outside
+    /// the building it lays the same stair upside down and turned the other way, so the rake and the eave
+    /// have one block of depth all the way down; the lowest course of each slope takes none. A rim column's
+    /// stair is cut from the verge where the verge has one. A roof climbing by halves is laid in its
+    /// <see cref="Slab"/> and never in stairs.</para>
+    ///
+    /// <para>A block id rather than a material, for the reason the slab is: which way a stair climbs is
+    /// geometry.</para></summary>
+    public int Stair { get; init; } = -1;
+
+    /// <summary>0–1; how weathered the roof is. On a stair roof this share of the slope's stairs is laid as
+    /// whole blocks and of the rim's as slabs; on any roof this share of the courses hung under its edge is
+    /// left out. Nought, the default, is a roof laid true.</summary>
+    public double Wear { get; init; }
+
     /// <summary>How far the roof reaches past the walls. One block is an eave; zero ends the roof flush and
     /// leaves the wall to carry the weather.</summary>
     public int Overhang { get; init; } = 1;
@@ -356,6 +376,10 @@ public sealed record RoofStyle
     /// <summary>Whether the roof climbs half a block at a time, which is what naming a slab means.</summary>
     [JsonIgnore]
     public bool InHalves => Slab >= 0;
+
+    /// <summary>Whether the roof is laid in stairs: one is named and the roof climbs in whole courses.</summary>
+    [JsonIgnore]
+    public bool InStairs => Stair >= 0 && !InHalves;
 }
 
 /// <summary>

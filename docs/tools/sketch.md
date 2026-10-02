@@ -239,9 +239,10 @@ into each lip tread — and complains where the first cell off is not within one
 a few cells of ground at the last tread's own height, **in front of** the flight rather than beside it, since
 ground reachable only by turning at the lip is the plateau the flight was cut into.
 
-Four further fields matter once a group carries a relief. `height_mode` — `level`, `raise` or `sink` — makes
-a shape stand out of the solved field rather than be part of it: a mesa cut flat at an absolute height, a
-plinth held a fixed amount above whatever ground it sits on, a quarry the same downward. `skirt` is how far in
+Four further fields matter once a group carries a relief. `height_mode` — `level`, `raise`, `sink` or `drape` —
+makes a shape stand out of the solved field rather than be part of it: a mesa cut flat at an absolute height, a
+plinth held a fixed amount above the middle of the ground it sits on, a quarry the same downward, and a field
+wall or a hedge held that amount above the ground at every cell, so it climbs the hillside it is laid over. `skirt` is how far in
 from its own outline an erected shape eases back into the ground it meets, in blocks; zero is a sheer face,
 which is right for a built thing and wrong for a landform. `relief_scope` is `follow`, `hold` or `exclude` and decides
 whether the shape's ground takes part in its group's relief at all (see *Groups and layers*); absent means

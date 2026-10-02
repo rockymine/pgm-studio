@@ -931,6 +931,128 @@ public sealed class DecoratorTests
         await Assert.That(grown.Any(cell => cell.X >= 26)).IsFalse();
     }
 
+    /// <summary>A plateau of farmland from x 13 on, grass before it.</summary>
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> SurfaceTop) Field()
+    {
+        var (world, top) = Plateau();
+        for (var z = 0; z < 40; z++)
+        for (var x = 13; x < 40; x++)
+            world.SetBlock(x, 7, z, Blocks.Farmland, 7);
+        return (world, top);
+    }
+
+    /// <summary>The farmland cells the outline <see cref="AreaOver"/>(40) covers: its far row and column fall
+    /// outside the ring.</summary>
+    private static IEnumerable<(int X, int Z)> Sown(Dictionary<(int X, int Z), int> top) =>
+        top.Keys.Where(cell => cell.X is >= 13 and < 39 && cell.Z < 39);
+
+    private static bool IsCrop(int blockId) =>
+        blockId is DressingPalette.WheatBlock or DressingPalette.CarrotsBlock or DressingPalette.PotatoesBlock;
+
+    /// <summary><b>Farmland grows a crop and nothing else, and grass never grows one.</b> A field is sown rather
+    /// than grown wild, so a thin <c>Coverage</c> does not thin it: at a crop share of 1 every farmland cell
+    /// carries a crop, and both crops the spec names come up.</summary>
+    [Test]
+    public async Task Farmland_is_sown_whole_and_grass_never_grows_a_crop()
+    {
+        var (world, top) = Field();
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp
+            {
+                Id = "f", Points = AreaOver(40), Seed = 7,
+                Spec = new FloraSpec(Coverage: 0.2, CropShare: 1.0, Crops: [CropKinds.Wheat, CropKinds.Potatoes], Scale: 6),
+            }]));
+
+        var grown = Grown(world, top);
+        await Assert.That(Sown(top).All(cell => IsCrop(world.GetBlock(cell.X, 8, cell.Z).Id))).IsTrue();
+        await Assert.That(grown.Any(cell => cell.X < 13 && IsCrop(cell.Id))).IsFalse();
+        await Assert.That(grown.Any(cell => cell.X >= 13 && !IsCrop(cell.Id))).IsFalse();
+        await Assert.That(grown.Any(cell => cell.Id == DressingPalette.WheatBlock)).IsTrue();
+        await Assert.That(grown.Any(cell => cell.Id == DressingPalette.PotatoesBlock)).IsTrue();
+        await Assert.That(grown.Any(cell => cell.Id == DressingPalette.CarrotsBlock)).IsFalse();
+    }
+
+    /// <summary><b>One crop to a plot, at one ripeness give or take a stage.</b> Every plot of
+    /// <c>Scale</c> blocks across carries a single crop, and its stages span at most three adjacent ones: the
+    /// plot's own, and a fifth of its cells one behind.</summary>
+    [Test]
+    public async Task A_plot_is_one_crop_at_one_ripeness()
+    {
+        var (world, top) = Field();
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp
+            {
+                Id = "f", Points = AreaOver(40), Seed = 11,
+                Spec = new FloraSpec(CropShare: 1.0, Crops: [.. CropKinds.All], Ripeness: 0.5, Scale: 8),
+            }]));
+
+        var plots = Sown(top).Where(cell => cell.X >= 16)
+            .Select(cell => (Plot: (cell.X / 8, cell.Z / 8), Block: world.GetBlock(cell.X, 8, cell.Z)))
+            .GroupBy(cell => cell.Plot).ToList();
+        await Assert.That(plots.All(plot => plot.Select(cell => cell.Block.Id).Distinct().Count() == 1)).IsTrue();
+        await Assert.That(plots.All(plot => plot.Max(cell => cell.Block.Data) - plot.Min(cell => cell.Block.Data) <= 1)).IsTrue();
+        await Assert.That(plots.Select(plot => plot.First().Block.Id).Distinct().Count()).IsGreaterThan(1);
+    }
+
+    /// <summary><b>Ripeness moves the whole field</b>: just sown stands at the first stages, ready at the last,
+    /// and nothing passes the crop's last stage.</summary>
+    [Test]
+    public async Task Ripeness_moves_the_whole_field()
+    {
+        IReadOnlyList<int> Stages(double ripeness)
+        {
+            var (world, top) = Field();
+            Decorator.Decorate(world, Context(top,
+                [new FloraProp { Id = "f", Points = AreaOver(40), Seed = 5, Spec = new FloraSpec(CropShare: 1.0, Ripeness: ripeness) }]));
+            return [.. Sown(top).Select(cell => world.GetBlock(cell.X, 8, cell.Z).Data)];
+        }
+
+        var sown = Stages(0.0);
+        var ready = Stages(1.0);
+        await Assert.That(sown.Max()).IsLessThanOrEqualTo(1);
+        await Assert.That(ready.Min()).IsGreaterThanOrEqualTo(DressingPalette.CropRipe - 2);
+        await Assert.That(ready.Max()).IsEqualTo(DressingPalette.CropRipe);
+        await Assert.That(ready.Count(stage => stage == DressingPalette.CropRipe)).IsGreaterThan(ready.Count / 2);
+    }
+
+    /// <summary><b>Without a crop share farmland stays bare</b>: no crop, and no grass or flower either.</summary>
+    [Test]
+    public async Task Without_a_crop_share_farmland_stays_bare()
+    {
+        var (world, top) = Field();
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 }]));
+
+        var grown = Grown(world, top);
+        await Assert.That(grown.Count(cell => cell.X < 13)).IsGreaterThan(200);
+        await Assert.That(grown.Any(cell => cell.X >= 13)).IsFalse();
+    }
+
+    /// <summary>A field fanned about the board's centre is sown alike at every image: the same crop at the
+    /// same stage.</summary>
+    [Test]
+    public async Task A_mirrored_field_is_sown_alike()
+    {
+        var (world, top) = Plateau(surfaceBlock: Blocks.Farmland);
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp
+            {
+                Id = "f", Points = [[0, 0], [40, 0], [40, 20], [0, 20]], Seed = 3,
+                Spec = new FloraSpec(CropShare: 0.8, Crops: [.. CropKinds.All], Ripeness: 0.6, Scale: 5),
+            }], symmetry: "rot_180", centerX: 20, centerZ: 20));
+
+        var sown = 0;
+        for (var x = 0; x < 40; x++)
+        for (var z = 0; z < 20; z++)
+        {
+            var cell = world.GetBlock(x, 8, z);
+            var image = world.GetBlock(39 - x, 8, 39 - z);
+            if (IsCrop(cell.Id)) sown++;
+            await Assert.That(image).IsEqualTo(cell);
+        }
+        await Assert.That(sown).IsGreaterThan(400);
+    }
+
     /// <summary>Cacti on sand stand one to four blocks tall, never beside another cactus or anything solid, and
     /// a board fanned about its centre grows each one at every image.</summary>
     [Test]

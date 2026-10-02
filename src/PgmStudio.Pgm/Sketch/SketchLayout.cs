@@ -478,8 +478,9 @@ public sealed class SketchShape
     /// <summary>What the group lists and the theme scope names this shape by.</summary>
     [JsonPropertyName("id")]        public string Id { get; set; } = "";
 
-    /// <summary>What it is: <c>rectangle</c>, <c>circle</c>, <c>polygon</c>, <c>lasso</c>, <c>path</c> —
+    /// <summary>What it is: <c>rectangle</c>, <c>circle</c>, <c>polygon</c>, <c>lasso</c>, <c>polyline</c> —
     /// which says which of the numbers below it carries.</summary>
+    [WordSet(typeof(ShapeKinds))]
     [JsonPropertyName("type")]      public string Type { get; set; } = "";
 
     /// <summary>Whether it adds ground or takes it away: <c>add</c> or <c>subtract</c>.</summary>
@@ -543,10 +544,13 @@ public sealed class SketchShape
     // flat one-block Y=0 behaviour.
     /// <summary>How this shape's top is decided, once a group carries a relief. Absent, the shape is
     /// ordinary ground and the relief is the ground — which is what a shape drawn to make a landmass wants.
-    /// The three words are for a shape that is meant to stand OUT of the field rather than be part of it:
+    /// The words are for a shape that is meant to stand OUT of the field rather than be part of it:
     /// <c>level</c> cuts a flat top at an absolute height (a mesa, whose faces are cliffs), <c>raise</c> holds
-    /// it a fixed amount above the ground under it (a monolith or a plinth, which keeps its prominence
-    /// wherever it is dragged), and <c>sink</c> the same downward (a quarry, a sunken arena).</summary>
+    /// it a fixed amount above the middle of the ground under it (a monolith or a plinth, which keeps its
+    /// prominence wherever it is dragged), <c>sink</c> the same downward (a quarry, a sunken arena), and
+    /// <c>drape</c> holds it that amount above the ground at every cell (a field wall or a hedge laid over the
+    /// hillside).</summary>
+    [WordSet(typeof(HeightModes))]
     [JsonPropertyName("height_mode")]    public string? HeightMode { get; set; }
 
     /// <summary>How far in from its own outline an erected shape eases back into the ground it meets, in
