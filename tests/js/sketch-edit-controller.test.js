@@ -108,10 +108,11 @@ const U_RING = [[0, 0], [10, 0], [10, 10], [6, 10], [6, 2], [4, 2], [4, 10], [0,
 /** A controller on the points rung over `shape`, with every callback recorded. */
 function editing(shape) {
   const g = layer();
-  const calls = { updated: 0, picked: [] };
+  const calls = { updated: 0, picked: [], marks: [] };
   const c = new SketchEditController(g, () => viewport, () => shape, {
     onShapeUpdated: () => { calls.updated++; },
     onVertexSelected: (id, idx) => { calls.picked.push([id, idx]); },
+    onSlopeControls: (id, indices) => { calls.marks.push([id, indices]); },
   });
   c.setSelected(shape.id, "points");
   c.refresh();
@@ -243,11 +244,83 @@ test("with no point picked there is nothing to remove, and a point picked off it
   assert.equal(shape.vertices.length, 4);
 });
 
-test("inserting a point drops a pick that the shift of indices would have moved", () => {
+// ── putting one point in ─────────────────────────────────────────────────────────────────────────────────
+// The invariant: after a point goes in at index j, whatever named a point k >= j names k + 1 and whatever
+// named k < j is untouched — the shift-marked slope controls and the picked point alike — and the host is
+// told the indices it now has.
+
+/** Shift-click the index-th point handle, marking it as a slope control. */
+function mark(env, index) {
+  const handles = env.g.children.filter(el => el.tagName === "circle" && el.style.cursor === "move");
+  handles[index].fire("mousedown", { shiftKey: true });
+}
+
+/** Hover the edge through (x, z) and press the insert ghost. */
+function insertAt(env, x, z) {
+  env.c.onPointerMove(x, z, "select");
+  env.g.children.find(el => el.style.cursor === "copy").fire("mousedown");
+}
+
+test("a slope-control mark above an insert follows its point, one below it stays", () => {
+  const shape = {
+    id: "s", type: "polygon", vertices: [[0, 0], [20, 0], [20, 20], [0, 20]],
+    anchor_heights: [4, 5, 6, 7],
+  };
+  const env = editing(shape);
+  mark(env, 0); mark(env, 2); mark(env, 3);
+  env.calls.marks.length = 0;
+
+  insertAt(env, 10, 0);   // the new point is index 1; 2 and 3 are now 3 and 4
+
+  assert.deepEqual(shape.vertices[1], [10, 0]);
+  assert.deepEqual(env.calls.marks, [["s", [0, 3, 4]]], "the host was not given the renumbered marks");
+  const named = [0, 3, 4].map(at => shape.vertices[at]);
+  assert.deepEqual(named, [[0, 0], [20, 20], [0, 20]], "a mark names a different point than the one it was placed on");
+});
+
+test("an insert on the closing edge puts the new point first and moves every mark up", () => {
+  const shape = { id: "s", type: "polygon", vertices: [[0, 0], [20, 0], [20, 20], [0, 20]] };
+  const env = editing(shape);
+  mark(env, 1); mark(env, 3);
+  env.calls.marks.length = 0;
+
+  insertAt(env, 0, 10);   // the edge from (0, 20) back to (0, 0)
+
+  assert.deepEqual(shape.vertices[0], [0, 10]);
+  assert.deepEqual(env.calls.marks, [["s", [2, 4]]]);
+});
+
+test("an insert after every mark leaves the marks, and the host is not told of a change", () => {
+  const shape = { id: "s", type: "polygon", vertices: [[0, 0], [20, 0], [20, 20], [0, 20]] };
+  const env = editing(shape);
+  mark(env, 0); mark(env, 1);
+  env.calls.marks.length = 0;
+
+  insertAt(env, 20, 10);   // the edge from (20, 0) to (20, 20): index 2
+
+  assert.deepEqual(env.calls.marks, []);
+});
+
+test("a picked point follows an insert that moves its index", () => {
   const shape = { id: "s", type: "polygon", vertices: [[0, 0], [20, 0], [20, 20], [0, 20]] };
   const env = editing(shape);
   pick(env, 3);
-  env.c.onPointerMove(10, 0, "select");
-  env.g.children.find(el => el.style.cursor === "copy").fire("mousedown");
-  assert.equal(env.c.selectedVertex, -1);
+  env.calls.picked.length = 0;
+
+  insertAt(env, 10, 0);
+
+  assert.deepEqual(shape.vertices[4], [0, 20]);
+  assert.deepEqual(env.calls.picked, [["s", 4]], "the inspector was not told which index the point has now");
+});
+
+test("a picked point below an insert keeps its index", () => {
+  const shape = { id: "s", type: "polygon", vertices: [[0, 0], [20, 0], [20, 20], [0, 20]] };
+  const env = editing(shape);
+  pick(env, 0);
+  env.calls.picked.length = 0;
+
+  insertAt(env, 10, 0);
+
+  assert.equal(env.c.selectedVertex, 0);
+  assert.deepEqual(env.calls.picked, []);
 });

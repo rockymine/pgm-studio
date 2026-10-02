@@ -326,8 +326,7 @@ export class SketchEditController {
       const midHeight = Math.max(1, Math.round((shape.anchor_heights[i] + shape.anchor_heights[j]) / 2));
       shape.anchor_heights.splice(j, 0, midHeight);
     }
-    // Every index from j up has moved, so a picked point at or past j no longer names the point it did.
-    if (this.#selectedVertex >= j) { this.#selectedVertex = -1; this.#callbacks.onVertexSelected?.(shapeId, -1); }
+    this.#renumberPoints(shapeId, (at) => (at >= j ? at + 1 : at));
     this.#callbacks.onShapeUpdated?.(shape);
     this.#vertexDragState = { shapeId, vertexIdx: j };
     this.#ghostEl = null;
@@ -336,9 +335,28 @@ export class SketchEditController {
   }
 
   /**
+   * Re-index everything that names a point by number after the outline gained or lost one: the picked point
+   * and the shift-marked slope controls. `remap` takes an index as it was and answers the one it has now, or
+   * -1 where that point is gone. The host is told of whichever of the two changed, so its inspector never
+   * shows a height against a point the canvas no longer draws there.
+   */
+  #renumberPoints(shapeId, remap) {
+    const marks = this.#slopeControls.map(remap).filter(at => at >= 0);
+    const marksMoved = marks.length !== this.#slopeControls.length || marks.some((at, i) => at !== this.#slopeControls[i]);
+    this.#slopeControls = marks;
+
+    const picked = this.#selectedVertex;
+    const pickedNow = picked >= 0 ? remap(picked) : -1;
+    this.#selectedVertex = pickedNow;
+
+    if (pickedNow !== picked) this.#callbacks.onVertexSelected?.(shapeId, pickedNow);
+    if (marksMoved) this.#callbacks.onSlopeControls?.(shapeId, [...marks]);
+  }
+
+  /**
    * Take the picked point out of the selected outline, joining its two neighbours. A closed ring keeps at
    * least three points and must not fold across itself; an open line keeps at least two. A refused removal
-   * changes nothing. Bézier handles and per-point heights are renumbered with the points, and the handles of
+   * changes nothing. Bézier handles, per-point heights, slope-control marks and the pick are renumbered with the points, and the handles of
    * the two points that now share an edge are dropped, since a handle is fitted to the edges it sat between.
    *
    * @returns {{ done: true } | { refused: string } | null} null where no point is picked.
@@ -380,9 +398,7 @@ export class SketchEditController {
       shape.anchor_heights.splice(index, 1);
     }
 
-    this.#selectedVertex = -1;
-    this.#clearSlopeControls(shapeId);
-    this.#callbacks.onVertexSelected?.(shapeId, -1);
+    this.#renumberPoints(shapeId, (at) => (at === index ? -1 : at > index ? at - 1 : at));
     this.#callbacks.onShapeUpdated?.(shape);
     this.refresh();
     return { done: true };
