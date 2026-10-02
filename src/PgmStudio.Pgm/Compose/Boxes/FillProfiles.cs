@@ -71,13 +71,4 @@ public static class FillProfiles
         (ShapeFamily.I, 2, 0),   // a short run-up back from the hub (~10×20)
         (ShapeFamily.L, 2, 2),   // a one-lane L hook (~20×20)
     ];
-
-    /// <summary>The land (cells) a spawn <paramref name="size"/> occupies at corridor width <paramref name="cw"/>
-    /// — its footprint, for the budget accounting. The spawn claims no weighted share; it spends only
-    /// this small fixed amount, which leaves the rest of the budget to the board.</summary>
-    public static int SpawnLand((ShapeFamily Family, int RunCells, int TurnCells) size, int cw)
-    {
-        var (w, h) = SpawnBoxEmitter.Box(size.Family, cw, size.RunCells, size.TurnCells);
-        return w * h;
-    }
 }

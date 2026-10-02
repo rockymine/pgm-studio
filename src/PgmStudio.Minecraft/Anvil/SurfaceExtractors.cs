@@ -56,28 +56,6 @@ public static class SurfaceExtractors
     /// single floor layer, which maps write as a cuboid <c>y = 0..1</c>.</summary>
     public const int FloorMarkerMaxY = 1;
 
-    /// <summary>Columns whose lowest non-air block is stained glass, with that block's Y — the measurement
-    /// behind <see cref="FloorMarkerMaxY"/>, kept because the rule is only as good as that distribution.</summary>
-    public static IEnumerable<(int X, int Z, int Y)> BaseGlassColumns(IEnumerable<AnvilRegion.Chunk> chunks)
-    {
-        foreach (var chunk in chunks)
-        {
-            var (ids, _) = BuildVolume(chunk);
-            for (var lz = 0; lz < 16; lz++)
-                for (var lx = 0; lx < 16; lx++)
-                {
-                    var col = (lz << 4) | lx;
-                    for (var y = 0; y <= 255; y++)
-                    {
-                        int id = ids[(y << 8) | col];
-                        if (id == 0) continue;
-                        if (id == 95) yield return (chunk.ChunkX * 16 + lx, chunk.ChunkZ * 16 + lz, y);
-                        break;
-                    }
-                }
-        }
-    }
-
     /// <summary>The Base extractor with the cleaned-base noise exclusion (<see cref="CleanBaseExclude"/>) —
     /// the detection layer for new-map authoring. Carries per-cell <c>WorldY</c> for the
     /// height-aware island detection that prunes floating builds.</summary>

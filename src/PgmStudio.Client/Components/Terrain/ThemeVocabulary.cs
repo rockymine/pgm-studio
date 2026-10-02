@@ -282,20 +282,6 @@ public static class JsonEdit
     /// <summary>Whether a node carries a child object at all.</summary>
     public static bool Has(JsonObject? node, string field) => node?[field] is JsonObject;
 
-    /// <summary>A string array's members, as a set the caller can test and toggle against.</summary>
-    public static HashSet<string> Texts(JsonObject? node, string field)
-        => node?[field] is JsonArray array
-            ? [.. array.OfType<JsonValue>().Select(v => v.TryGetValue<string>(out var s) ? s : null).OfType<string>()]
-            : [];
-
-    public static void SetTexts(JsonObject node, string field, IEnumerable<string> values)
-        => node[field] = new JsonArray([.. values.Select(v => (JsonNode)JsonValue.Create(v)!)]);
-
-    /// <summary>Replace a child, detaching the incoming node first — a <see cref="JsonNode"/> may have only
-    /// one parent, so anything reused has to be cloned.</summary>
-    public static void SetChild(JsonObject node, string field, JsonNode child)
-        => node[field] = child.DeepClone();
-
     /// <summary>
     /// Make <paramref name="node"/> hold exactly what <paramref name="material"/> holds, in place — the whole
     /// material swapped rather than merged, so no field the incoming kind cannot read is left behind to be

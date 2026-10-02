@@ -10,7 +10,6 @@ public static class RegionEditor
 {
     private static readonly HashSet<string> CreateTypes = ["rectangle", "cuboid", "point", "block", "cylinder", "circle"];
     private static readonly HashSet<string> CompoundTypes = ["union", "complement", "intersect", "negative"];
-    private static readonly HashSet<string> OrderedCompoundTypes = ["complement", "negative"];
 
     public static Dict CreateRegion(Dict data, Dict payload)
     {
@@ -58,7 +57,7 @@ public static class RegionEditor
         });
     }
 
-    public static Dict GroupRegions(Dict data, Dict payload)
+    public static void GroupRegions(Dict data, Dict payload)
     {
         var compType = ((payload.GetValueOrDefault("type") as string) ?? "union").Trim();
         if (compType.Length == 0) compType = "union";
@@ -76,31 +75,11 @@ public static class RegionEditor
         if (compoundId.Length == 0) { var i = 1; while (regions.ContainsKey($"{compType}_{i}")) i++; compoundId = $"{compType}_{i}"; }
         else if (regions.ContainsKey(compoundId)) throw EditException.Conflict($"id '{compoundId}' already in use", [compoundId]);
 
-        var (bounds, minX, minZ, maxX, maxZ) = RegionBuilder.BuildUnionBounds(childIds.Select(c => (Dict)regions[c]!));
+        var (bounds, _, _, _, _) = RegionBuilder.BuildUnionBounds(childIds.Select(c => (Dict)regions[c]!));
         var compound = new Dict { ["id"] = compoundId, ["type"] = compType, ["children"] = childIds.Cast<object?>().ToList() };
         if (bounds is not null) compound["bounds_2d"] = bounds;
         regions[compoundId] = compound;
         TrackCategory(data, "other", compoundId);
-        return new Dict { ["id"] = compoundId, ["bounds"] = new Dict { ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ } };
-    }
-
-    public static Dict UngroupRegion(Dict data, Dict payload)
-    {
-        var regionId = ((payload.GetValueOrDefault("region_id") as string) ?? "").Trim();
-        if (regionId.Length == 0) throw EditException.Unreadable("region_id required", "region_id");
-        var regions = Regions(data);
-        if (!regions.TryGetValue(regionId, out var compObj) || compObj is not Dict compound) throw EditException.NoSuchSubject($"region '{regionId}' not found");
-        var compType = compound.GetValueOrDefault("type") as string ?? "";
-        if (!CompoundTypes.Contains(compType)) throw EditException.Inapplicable($"region '{regionId}' is not a compound region");
-
-        var childIds = (compound.GetValueOrDefault("children") as List<object?> ?? []).Select(ChildId).Where(x => x.Length > 0).ToList();
-        regions.Remove(regionId);
-        RemoveFromCategories(data, regionId);
-
-        var result = new Dict { ["child_ids"] = childIds.Cast<object?>().ToList() };
-        if (OrderedCompoundTypes.Contains(compType))
-            result["warning"] = $"Dissolved {compType} region '{regionId}'; its base/subtrahend ordering was discarded.";
-        return result;
     }
 
     public static Dict DeleteRegion(Dict data, string regionId)
@@ -217,10 +196,5 @@ public static class RegionEditor
     private static void EnsureCategorised(Dict data, string id)
     {
         if (!Categories(data).Any(c => c.ids.Contains(id))) TrackCategory(data, "other", id);
-    }
-
-    private static void RemoveFromCategories(Dict data, string id)
-    {
-        foreach (var (_, ids) in Categories(data)) if (ids.Remove(id)) break;
     }
 }

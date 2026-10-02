@@ -90,25 +90,6 @@ public sealed record RegionPatchRequest(
     string? Id = null,
     RegionCoordsDto? Coords = null);
 
-/// <summary>Combine two or more regions into a compound one.</summary>
-/// <param name="ChildIds">The regions to combine, in order — which matters for the two types that subtract,
-/// where the first is the base. Fewer than two (one, for <c>negative</c>) is refused as <c>ED2</c>, and an
-/// id naming no stored region as <c>RQ4</c>.</param>
-/// <param name="Type">One of <c>union</c>, <c>complement</c>, <c>intersect</c>, <c>negative</c>. Absent
-/// means <c>union</c>.</param>
-/// <param name="Id">The name the compound is called by. Absent means the editor numbers one from the type —
-/// <c>union_1</c>.</param>
-public sealed record RegionGroupRequest(
-    [property: JsonPropertyName("child_ids")] IReadOnlyList<string> ChildIds,
-    string? Type = null,
-    string? Id = null);
-
-/// <summary>Dissolve a compound region, leaving its children standing on their own.</summary>
-/// <param name="RegionId">The compound to dissolve. A region that is not compound is refused as
-/// <c>ED2</c>.</param>
-public sealed record RegionUngroupRequest(
-    [property: JsonPropertyName("region_id")] string RegionId);
-
 /// <summary>Mirror a region onto the other side of the map.</summary>
 /// <param name="Mode">Which symmetry to mirror through — <c>mirror_x</c>, <c>mirror_z</c>, <c>rot_180</c> or
 /// <c>rot_90</c>.</param>

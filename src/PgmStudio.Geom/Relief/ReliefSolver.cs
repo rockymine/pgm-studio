@@ -16,10 +16,6 @@ public sealed class HeightField(Footprint footprint, double[] continuous, int[] 
 
     public int Min => Footprint.Land().Select(cell => At(cell.X, cell.Z)).DefaultIfEmpty(0).Min();
     public int Max => Footprint.Land().Select(cell => At(cell.X, cell.Z)).DefaultIfEmpty(0).Max();
-
-    /// <summary>A copy with the block surface replaced — how a composited shape or a carved bed is layered on
-    /// without losing the field it was solved from.</summary>
-    public HeightField WithBlocks(int[] blocks) => new(Footprint, Continuous, blocks);
 }
 
 /// <summary>One place two marks' ground meets, and how hard. <see cref="Step"/> is the worst height difference

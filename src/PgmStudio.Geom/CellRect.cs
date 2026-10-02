@@ -60,13 +60,5 @@ public readonly record struct CellRect(int X, int Z, int Width, int Height)
     /// <summary>The wire form the plan format stores: <c>[x, z, w, h]</c>.</summary>
     public int[] ToArray() => [X, Z, Width, Height];
 
-    /// <summary>Read the wire form. A shorter array reads as zeroes rather than throwing, matching the
-    /// tolerance the hand-written plan format had when it was a bare <c>int[]</c>.</summary>
-    public static CellRect FromArray(IReadOnlyList<int>? a) => a is null
-        ? default
-        : new(At(a, 0), At(a, 1), At(a, 2), At(a, 3));
-
-    private static int At(IReadOnlyList<int> a, int i) => i < a.Count ? a[i] : 0;
-
     public override string ToString() => $"[{X},{Z} {Width}x{Height}]";
 }

@@ -1,7 +1,7 @@
 /* editor.css — App shell, workspaces, and editor-specific UI patterns.
  * Tokens (CSS vars) live in tokens.css. Reusable components live in components.css.
  * This file owns: body/reset, topbar, activity rail, workspace layouts,
- * region tree, history panel, context menu, inspector/detail. */
+ * region tree, inspector/detail. */
 
 /* ── reset ── */
 * { box-sizing: border-box; margin: 0; padding: 0; }

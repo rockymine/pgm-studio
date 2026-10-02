@@ -20,7 +20,6 @@ public sealed class VoxelWorld
         public readonly ushort[]?[] Ids = new ushort[16][];
         public readonly byte[]?[] Data = new byte[16][];
         public readonly List<NbtCompound> TileEntities = [];
-        public readonly List<NbtCompound> Entities = [];
         public byte[]? Biomes;
     }
 
@@ -117,10 +116,6 @@ public sealed class VoxelWorld
     /// The compound must already carry its own <c>x</c>/<c>y</c>/<c>z</c> + <c>id</c> tags.</summary>
     public void AddTileEntity(int x, int z, NbtCompound tile)
         => ChunkAt(x, z, create: true)!.TileEntities.Add(tile);
-
-    /// <summary>Attach an entity (armour stand, …) to the chunk containing <paramref name="x"/>/<paramref name="z"/>.</summary>
-    public void AddEntity(int x, int z, NbtCompound entity)
-        => ChunkAt(x, z, create: true)!.Entities.Add(entity);
 
     private ChunkData? ChunkAt(int x, int z, bool create)
     {

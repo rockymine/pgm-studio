@@ -24,21 +24,6 @@ public sealed record RegionCreatedDto(string Id);
 public sealed record RegionPatchedDto(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Bounds2dDto? Bounds = null);
 
-/// <summary>Two or more regions were unioned into a compound. The id is what the caller selects next, and
-/// the bounds are the footprint the union covers.</summary>
-/// <param name="Id">The compound's name — the author's word, or one numbered from the compound type.</param>
-/// <param name="Bounds">The footprint the union covers, which is the union of its children's.</param>
-public sealed record RegionGroupedDto(string Id, Bounds2dDto Bounds);
-
-/// <summary>A compound was dissolved, and these are the children it freed — what the caller selects in its
-/// place. <see cref="Warning"/> is present only where dissolving lost something the compound carried and
-/// its children cannot: an ordered type's base/subtrahend ordering.</summary>
-/// <param name="ChildIds">The regions the compound freed, now standing on their own.</param>
-/// <param name="Warning">What dissolving lost, where it lost something.</param>
-public sealed record RegionUngroupedDto(
-    [property: JsonPropertyName("child_ids")] IReadOnlyList<string> ChildIds,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Warning = null);
-
 /// <summary>A region was fanned across the map's symmetry. <see cref="Created"/> is every counterpart made —
 /// one for a mirror or a half turn, three for a quarter turn. <see cref="Counterpart"/> names the single
 /// opposite where one counterpart was asked for, and is absent where a whole orbit was.</summary>

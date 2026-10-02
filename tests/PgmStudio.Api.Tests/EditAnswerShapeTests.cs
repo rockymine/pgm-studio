@@ -82,33 +82,6 @@ public sealed class EditAnswerShapeTests
         await Assert.That(renamed.Bounds).IsNull();
     }
 
-    [Test]
-    public async Task A_grouped_region_answers_the_compound_and_what_it_covers()
-    {
-        var grouped = Answer<RegionGroupedDto>(RegionEditor.GroupRegions(Map(),
-            new Dict { ["type"] = "union", ["child_ids"] = new List<object?> { "pad", "deck" } }));
-
-        await Assert.That(grouped.Id).IsEqualTo("union_1");
-        await Assert.That(grouped.Bounds.MaxX).IsEqualTo(9.0);
-    }
-
-    /// <summary>Dissolving frees the children; an ordered compound also loses something its children cannot
-    /// carry, and says so.</summary>
-    [Test]
-    public async Task An_ungrouped_region_answers_the_children_and_warns_only_where_order_was_lost()
-    {
-        var plain = Map();
-        RegionEditor.GroupRegions(plain, new Dict { ["type"] = "union", ["child_ids"] = new List<object?> { "pad", "deck" } });
-        var freed = Answer<RegionUngroupedDto>(RegionEditor.UngroupRegion(plain, new Dict { ["region_id"] = "union_1" }));
-        await Assert.That(freed.ChildIds).IsEquivalentTo(new[] { "pad", "deck" });
-        await Assert.That(freed.Warning).IsNull();
-
-        var ordered = Map();
-        RegionEditor.GroupRegions(ordered, new Dict { ["type"] = "negative", ["child_ids"] = new List<object?> { "pad", "hole" } });
-        var dissolved = Answer<RegionUngroupedDto>(RegionEditor.UngroupRegion(ordered, new Dict { ["region_id"] = "negative_1" }));
-        await Assert.That(dissolved.Warning).IsNotNull();
-    }
-
     /// <summary>One counterpart names its opposite; a whole orbit names only what it made.</summary>
     [Test]
     public async Task A_fanned_region_answers_what_it_created()
