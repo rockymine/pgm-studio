@@ -564,7 +564,7 @@ public sealed class AccessTests
     private static readonly HashSet<string> StatesItsOwnAccess =
     [
         "GET /api/users", "POST /api/auth/sign-out", "GET /api/auth/discord/complete",
-        "GET /api/notes", "GET /api/map/{slug}/notes", "GET /api/notes/pictures/{hash}",
+        "GET /api/notes", "GET /api/map/{slug}/notes", "GET /api/notes/pictures/{hash}", "GET /api/notes/handoff",
     ];
 
     [Test]

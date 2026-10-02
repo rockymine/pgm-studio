@@ -157,6 +157,89 @@ public sealed class NotesAcrossMapsEndpoint(MapNoteStore notes, PgmDb db) : Endp
     }
 }
 
+/// <summary>Where the author's open notes stand with the agent: how many wait, how many since the last hand-off.</summary>
+internal static class NoteHandoffs
+{
+    public static async Task<(NoteHandoffDto Standing, List<StoredNote> Open)> StandingAsync(
+        MapNoteStore notes, AgentHandoff agent, CancellationToken ct)
+    {
+        var open = await notes.AcrossMapsAsync([NoteStatuses.Open], ct: ct);
+        var last = agent.Last;
+        var fresh = open.Count(stored => last is null || stored.Note.UpdatedAt > last.At);
+        return (new NoteHandoffDto(agent.Ready, open.Count, fresh, last?.At, last?.Session), open);
+    }
+}
+
+/// <summary>GET /api/notes/handoff — whether this studio names an agent, how many notes wait for one, and the last
+/// hand-off.</summary>
+public sealed class NoteHandoffStandingEndpoint(MapNoteStore notes, AgentHandoff agent) : EndpointWithoutRequest<NoteHandoffDto>
+{
+    public override void Configure()
+    {
+        Get("/notes/handoff");
+        Policies(AccessPolicies.Notes);
+        Description(b => b.Produces<NoteHandoffDto>(200, "application/json"));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct) =>
+        await Send.OkAsync((await NoteHandoffs.StandingAsync(notes, agent, ct)).Standing, ct);
+}
+
+/// <summary>POST /api/notes/handoff — the author hands the open notes to the agent, which starts one session that
+/// answers them. Refused where nothing was written since the last hand-off unless <c>again</c> asks to repeat it,
+/// 403 to a token — the author hands notes over and an agent answers them — and 503 where this studio names no
+/// agent or the service that starts one refused.</summary>
+public sealed class NoteHandoffEndpoint(MapNoteStore notes, AgentHandoff agent, Callers callers, PgmDb db)
+    : Endpoint<NoteHandoffRequest, NoteHandoffDto>
+{
+    public override void Configure()
+    {
+        Post("/notes/handoff");
+        Policies(AccessPolicies.Notes);
+        Description(b => b.Produces<NoteHandoffDto>(200, "application/json").Refuses(403, 409, 503));
+    }
+
+    public override async Task HandleAsync(NoteHandoffRequest request, CancellationToken ct)
+    {
+        if (await callers.OfAsync(HttpContext, ct) is { ViaToken: true })
+        {
+            await Refusals.WriteAsync(HttpContext, 403, "not permitted",
+                [new Finding(RequestRules.NotPermitted, "the author hands notes to an agent, and an agent answers them")], ct);
+            return;
+        }
+        if (!agent.Ready)
+        {
+            await Refusals.WriteAsync(HttpContext, 503, "no agent",
+                [new Finding(RequestRules.AgentUnavailable,
+                    "this studio names no agent to hand notes to — set Notes:Agent:Fire and Notes:Agent:Token")], ct);
+            return;
+        }
+        var (standing, open) = await NoteHandoffs.StandingAsync(notes, agent, ct);
+        if (standing.Waiting == 0 || (standing.Fresh == 0 && !request.Again))
+        {
+            await Refusals.WriteAsync(HttpContext, 409, "nothing to hand over",
+                [new Finding(RequestRules.Conflict, standing.Waiting == 0
+                    ? "no note is waiting for an agent"
+                    : $"every open note was handed over at {standing.HandedAt:HH:mm} UTC and none was written since — "
+                      + "`again` hands them over once more")], ct);
+            return;
+        }
+
+        var names = await NoteWire.NamesAsync(db, open.Select(stored => stored.Note.MapSlug), ct);
+        var maps = open.GroupBy(stored => stored.Note.MapSlug)
+            .Select(map => $"{names.GetValueOrDefault(map.Key, map.Key)} ({map.Key}): {map.Count()}");
+        var text = $"{standing.Waiting} open note(s), {standing.Fresh} written or answered since the last hand-off, "
+            + $"on {string.Join("; ", maps)}. Read them with GET /api/notes?status=open.";
+        var (_, why) = await agent.HandAsync(text, ct);
+        if (why is not null)
+        {
+            await Refusals.WriteAsync(HttpContext, 503, "no agent", [new Finding(RequestRules.AgentUnavailable, why)], ct);
+            return;
+        }
+        await Send.OkAsync((await NoteHandoffs.StandingAsync(notes, agent, ct)).Standing, ct);
+    }
+}
+
 /// <summary>GET /api/map/{slug}/notes — one map's notes with their threads, newest change first.</summary>
 public sealed class MapNotesEndpoint(MapRepository repo, MapNoteStore notes) : EndpointWithoutRequest<List<MapNoteDto>>
 {

@@ -2132,6 +2132,8 @@ permission (`docs/access.md`). A member, and every other token, is refused `RQ8`
 | `POST /map/{slug}/notes` | the note written. Body `{body, anchor, tag?, picture?, change?}`; `change` is the map's change it was written at, and absent takes the latest. A note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a tag of no known word, a picture no upload answered, a `change` that has not landed · 404 |
 | `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, change?}`; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser. A token's `answered` reply on a picture note, at the latest change and with no `picture`, carries the note's camera drawn over the board as stored | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH`, or a `change` that has not landed · 404 no such map, or no note by that id on it |
 | `PATCH /map/{slug}/notes/{id}` | the note changed. Body `{status?, tag?}`: `resolved`, `wont-do` or `open` to reopen; a tag, or `""` to clear it | 400 `not a change` `RQ1` · 403 `RQ8` to a token — an agent answers in a reply, and only the author closes a thread · 404 |
+| `GET /notes/handoff` | `{ready, waiting, fresh, handedAt, session}` — whether this studio names an agent, how many notes on every map are open, how many of those were written or answered since the last hand-off, and when that was and the session it started | — |
+| `POST /notes/handoff` | the same, after the Routine is fired with the maps and their counts as its text. Body `{again?}`: `true` repeats a hand-off nothing was written since | 403 `RQ8` to a token — the author hands notes over · 409 `RQ5` no note waits, or none was written since the last hand-off · 503 `RQ12` no agent named, or the Routine refused |
 | `POST /notes/pictures` | `{hash, bytes}` — the picture kept under the SHA-256 of its bytes. The body is the picture itself, a WebP or a PNG sent as `image/webp`, `image/png` or `application/octet-stream`, up to 8 MB; the same bytes answer the same hash | 400 `not a picture` `RQ1` |
 | `GET /notes/pictures/{hash}` | the picture, `image/webp` or `image/png`, with a year's private cache — it never changes under its hash | 404 |
 | `GET /map/{slug}/render/eye/pick` | `{camera, query, hit, ground, columns[], sky, standing, change}` — what a mark on a `render/eye` picture is on the ground. It takes the picture's own query words, so it resolves the same camera, and `at=x,y` (one pixel: the block `hit` and the `ground` under it), `box=x,y,x,y` or `lasso=x,y;x,y;…` (every ground column the rays hit, each `[x, y, z]`); none of the three answers the camera alone. `query` is the camera exactly, as `eye=x,y,z&yaw=&pitch=&fov=&width=&height=`, which draws the same picture again. `standing` is the top of the ground under the eye, null over the void. `change` is the map's latest change when the pick was cast: the board it read, which a picture listed at an earlier change does not show. Open to anyone, like `render/eye` | 404 · 422 no place sees what `look` names · 503 `RQ10` no block textures |
@@ -2227,9 +2229,9 @@ the plain `PUT` replaces the blob, so a document that omits `themes` deletes the
 
 **An agent starts a revision by reading the open notes, and it is not done while one is still open without a
 reply.** It holds a token an admin issued with the notes permission (`docs/access.md`), and every step after the
-read is an instrument the studio already has; the note only says where to point it. The studio pushes nothing:
-a check on a schedule asks `GET /api/notes?status=open&since=<its last run>`, which answers the threads that
-moved since, and starts a revision only where one is waiting.
+read is an instrument the studio already has; the note only says where to point it. An agent is started by the
+author's hand-off (below) or by the author in a chat; `GET /api/notes?status=open&since=<instant>` answers the
+threads that moved since a given moment, for a caller that keeps one.
 
 ```
 GET   /api/notes?status=open[&since=<instant>]                 the open notes, on every map
@@ -2254,6 +2256,29 @@ built on a guess. A declined note is `"status": "wont-do"` with the reason in th
 
 ```json POST /api/map/{slug}/notes/{id}/replies
 {"body": "Read as look, not gameplay: swapped the roof to spruce slabs under a dark-oak ridge.", "status": "answered"}
+```
+
+### Handing the notes to an agent
+
+**Nothing listens between hand-offs; the author starts the agent when the notes are written.** A studio naming a
+Claude Code Routine's API trigger — `Notes:Agent:Fire` and `Notes:Agent:Token`, `docs/deployment.md` — offers
+**Hand to the agent** at the head of the notes column, counting the open notes on every map and how many were
+written or answered since the last hand-off. Pressing it calls the Routine's `/fire`, which starts one session
+that reads the open notes and answers them; the column then says when they were handed over and links the
+session. With nothing written since, the button is **Again**, for a session that stopped short.
+
+**The hand-off carries no instruction.** Its text names the maps and how many notes each holds, and the
+Routine's saved prompt is what says to answer them: the Routine receives the text as untrusted context, and it
+reads the notes themselves from `GET /api/notes?status=open`. The last hand-off is held for as long as the
+studio runs, so a restart makes every open note new again. The Routine's own limit is 30 fires an hour.
+
+```
+GET   /api/notes/handoff               {ready, waiting, fresh, handedAt, session}
+POST  /api/notes/handoff               the same, after the Routine is fired
+```
+
+```json POST /api/notes/handoff
+{"again": true}
 ```
 
 ### Reshaping ground the plan compiled

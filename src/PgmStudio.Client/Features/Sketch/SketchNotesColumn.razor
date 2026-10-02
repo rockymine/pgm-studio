@@ -22,6 +22,25 @@
           <Chip Active="@(Filter == id)" OnClick="() => OnFilter.InvokeAsync(id)">@label&nbsp;<b>@Count(id)</b></Chip>
         }
       </div>
+      @if (Handoff is { Ready: true } handoff)
+      {
+        <div class="notes-column__handoff">
+          <span class="notes-column__hint">
+            @Handed(handoff)
+            @if (handoff.Session is { } session) { <a href="@session" target="_blank" rel="noopener">Watch the session ›</a> }
+          </span>
+          @if (handoff.Fresh > 0)
+          {
+            <Button Variant="primary" Icon="sparkles" Busy="Handing" BusyLabel="Handing over…" OnClick="() => OnHandOff.InvokeAsync(false)"
+                    Title="Start one agent session that answers every open note">Hand to the agent</Button>
+          }
+          else if (handoff.Waiting > 0)
+          {
+            <Button Icon="repeat" Busy="Handing" BusyLabel="Handing over…" OnClick="() => OnHandOff.InvokeAsync(true)"
+                    Title="Start another session over the same notes — one that stopped short, asked again">Again</Button>
+          }
+        </div>
+      }
       <div class="notes-column__list">
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
         @{ var here = OnThisPicture.Where(Passes).ToList(); }

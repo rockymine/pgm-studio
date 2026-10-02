@@ -78,6 +78,8 @@ public partial class SketchInGamePhase
     private bool mayNote;
     private string? meUuid;
     private List<MapNoteDto> notes = [];
+    private NoteHandoffDto? handoff;
+    private bool handing;
     private (int Round, int Tick) notesRound = (-1, -1);
     private NotesStep step = NotesStep.Overview;
     private long? currentId;
@@ -172,9 +174,25 @@ public partial class SketchInGamePhase
         try
         {
             notes = await Http.GetFromJsonAsync<List<MapNoteDto>>($"api/map/{Slug}/notes") ?? [];
+            handoff = await Http.GetFromJsonAsync<NoteHandoffDto>("api/notes/handoff");
             notesError = null;
         }
         catch { notesError = "The notes could not be read — the studio could not be reached."; }
+    }
+
+    /// <summary>Hand the open notes to the agent; <paramref name="again"/> repeats a hand-off nothing was written since.</summary>
+    private async Task HandOffAsync(bool again)
+    {
+        handing = true;
+        notesError = null;
+        try
+        {
+            using var answer = await Http.PostAsJsonAsync("api/notes/handoff", new NoteHandoffRequest(again));
+            if (answer.IsSuccessStatusCode) handoff = await answer.Content.ReadFromJsonAsync<NoteHandoffDto>();
+            else notesError = $"The notes were not handed over: {await ServerRefusal.SentenceAsync(answer)}";
+        }
+        catch { notesError = "The notes were not handed over — the studio could not be reached."; }
+        finally { handing = false; }
     }
 
     // ── the gallery ──

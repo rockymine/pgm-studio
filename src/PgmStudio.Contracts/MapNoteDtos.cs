@@ -131,6 +131,20 @@ public sealed record NoteChangeRequest(
     [property: WordSet(typeof(NoteStatuses))] string? Status = null,
     [property: WordSet(typeof(NoteTags))] string? Tag = null);
 
+/// <summary>Where the author's notes stand with the agent (<c>GET</c> and <c>POST /api/notes/handoff</c>).</summary>
+/// <param name="Ready">Whether this studio names an agent to hand notes to.</param>
+/// <param name="Waiting">How many notes on every map are open — waiting for an agent.</param>
+/// <param name="Fresh">How many of those were written or answered since the last hand-off; all of them before the
+/// first.</param>
+/// <param name="HandedAt">When the last hand-off was taken, in UTC, or null.</param>
+/// <param name="Session">The session the last hand-off started, to watch it at, or null.</param>
+public sealed record NoteHandoffDto(bool Ready, int Waiting, int Fresh, DateTime? HandedAt, string? Session);
+
+/// <summary>A hand-off (<c>POST /api/notes/handoff</c>).</summary>
+/// <param name="Again">Hand the open notes over even where none was written since the last hand-off — a session
+/// that stopped short, asked again.</param>
+public sealed record NoteHandoffRequest(bool Again = false);
+
 /// <summary>A picture kept for a note (<c>POST /api/notes/pictures</c>).</summary>
 /// <param name="Hash">The SHA-256 of its bytes, which names it.</param>
 /// <param name="Bytes">Its size.</param>

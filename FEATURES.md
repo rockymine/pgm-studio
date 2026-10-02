@@ -8476,6 +8476,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   or status change is at or after an ISO 8601 instant, so a check on a schedule asks what is waiting and starts a
   revision only where something is. `docs/tools/sketch.md` § Answering the notes an author left. (`TS145`)
 
+- **The author hands the notes to an agent (`TS146`)** — a studio naming a Claude Code Routine's API trigger
+  (`Notes:Agent:Fire`, `Notes:Agent:Token`) offers **Hand to the agent** in the notes column, counting the open
+  notes on every map and those written since the last hand-off; pressing it fires the Routine, which starts one
+  session that answers them, and the column links that session. Nothing runs between hand-offs. A refused or
+  unnamed agent is `RQ12` at 503 (`AgentHandoff`, `GET`/`POST /api/notes/handoff`). `docs/tools/sketch.md`,
+  `docs/deployment.md`, `docs/refusals.md`. (`TS146`)
+
 - **A browser test for In game's notes (`TS139`)** — `tests/e2e/sketch-notes.mjs` writes a note, double-clicks
   Send for one note, replies, refuses a mark on a picture of a changed board and lands it after the redraw,
   resolves, compares, retags and declines a thread, opens one from `?note=` and follows its changes since into

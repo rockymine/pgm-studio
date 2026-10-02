@@ -48,6 +48,7 @@ public sealed class DocumentedBodyTests
             if (route.Contains("/notes/{id}")) route = route.Replace("{id}", await NoteAsync(client, slug));
             if (route.Contains("/changes/{number}")) route = route.Replace("{number}", await ChangeAsync(client, slug));
         }
+        if (route == "/api/notes/handoff") await NoteAsync(client, await OriginateMapAsync(client));
 
         using var request = new HttpRequestMessage(new HttpMethod(example.Verb!), route)
         {

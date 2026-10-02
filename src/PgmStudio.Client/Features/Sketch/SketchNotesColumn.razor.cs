@@ -70,6 +70,13 @@ public partial class SketchNotesColumn : IDisposable
     /// <summary>Send a reply; answers whether it landed.</summary>
     [Parameter] public Func<string, Task<bool>>? OnReply { get; set; }
 
+    /// <summary>Where the open notes stand with the agent, or null where it could not be read.</summary>
+    [Parameter] public NoteHandoffDto? Handoff { get; set; }
+    [Parameter] public bool Handing { get; set; }
+
+    /// <summary>Hand the open notes to the agent; true repeats a hand-off nothing was written since.</summary>
+    [Parameter] public EventCallback<bool> OnHandOff { get; set; }
+
     /// <summary>The caller's account, which tells their own messages from the rest; null for an open studio's
     /// local admin, whose messages are unsigned too.</summary>
     [Parameter] public string? MeUuid { get; set; }
@@ -208,6 +215,13 @@ public partial class SketchNotesColumn : IDisposable
     private static string StatusClass(string status) => $"note-status note-status--{status}";
 
     private static string Ago(DateTime at) => Moments.Ago(at);
+
+    /// <summary>What the hand-off line says beside its button.</summary>
+    private static string Handed(NoteHandoffDto handoff) =>
+        handoff.Waiting == 0 ? "No note is waiting for the agent."
+        : handoff.HandedAt is not { } at ? $"{handoff.Waiting} waiting on every map. Nothing runs until they are handed over."
+        : handoff.Fresh > 0 ? $"{handoff.Fresh} of {handoff.Waiting} written since the last hand-off, {Moments.Ago(at)}."
+        : $"All {handoff.Waiting} handed over {Moments.Ago(at)}.";
 
     /// <summary>How many of the board's changes landed after <paramref name="change"/>.</summary>
     private int Since(MapNoteDto note, long change) => note.Messages.Count == 0 ? 0 : Changes.Count(number => number > change);

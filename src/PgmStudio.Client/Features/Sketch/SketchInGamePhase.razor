@@ -156,7 +156,7 @@
                              OnReopen="() => ChangeAsync(NoteStatuses.Open)"
                              OnWontDo="() => ChangeAsync(NoteStatuses.WontDo)" OnRetag="RetagAsync" OnSend="SendNoteAsync" OnReply="ReplyAsync"
                              Changes="Changes" OnChangesSince="OnChangesSince" Stale="stale" OnRedraw="RedrawAsync"
-                             MeUuid="@meUuid" />
+                             MeUuid="@meUuid" Handoff="handoff" Handing="handing" OnHandOff="HandOffAsync" />
         }
       </div>
     }

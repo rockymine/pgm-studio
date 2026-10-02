@@ -181,6 +181,9 @@ builder.Services.AddScoped<MapArtifactStore>();
 builder.Services.AddScoped<MapChangeLog>();
 builder.Services.AddScoped<MapNoteStore>();
 builder.Services.AddSingleton<PgmStudio.Api.Services.NotePictures>();
+// The agent the author hands notes to: a Claude Code Routine fired through its API trigger (docs/tools/sketch.md).
+builder.Services.AddSingleton<PgmStudio.Api.Services.AgentHandoff>();
+builder.Services.AddHttpClient(PgmStudio.Api.Services.AgentHandoff.ClientName, c => c.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddHostedService<PgmStudio.Api.Services.NotePictureSweep>();
 builder.Services.AddScoped<PgmStudio.Data.Plan.PlanStore>();
 builder.Services.AddScoped<PgmStudio.Data.Compose.ComposedBoardStore>();
