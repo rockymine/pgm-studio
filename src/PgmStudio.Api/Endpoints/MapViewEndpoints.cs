@@ -91,7 +91,7 @@ internal static class KeptViews
 /// be drawn here, where the server has no block textures.</summary>
 [Queued]
 public sealed class MapViewListEndpoint(
-    MapRepository repo, MapReader reader, MapArtifactStore artifacts, BlockTextureStore textures)
+    MapRepository repo, MapReader reader, MapArtifactStore artifacts, BlockTextureStore textures, MapChangeLog log)
     : EndpointWithoutRequest<MapViewsDto>
 {
     public override void Configure()
@@ -103,6 +103,9 @@ public sealed class MapViewListEndpoint(
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        // Read before the world: a change landing between the two then reads as one the pictures have not seen,
+        // which asks for a redraw rather than letting a stale picture through.
+        var change = await log.LatestAsync(map.Slug, ct);
         var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
         var kept = KeptViews.Of(await KeptViews.LoadAsync(artifacts, map.Id, ct), read?.Built);
         var suggested = read is null ? [] : WorldViews.Suggested(read.Built);
@@ -114,7 +117,7 @@ public sealed class MapViewListEndpoint(
             [.. kept.Take(1).Select(view => KeptViews.Dto(view, kept: true, eyes.GetValueOrDefault(view.Id), view.Id == picture)),
              .. suggested.Select(view => KeptViews.Dto(view, kept: false, eyes.GetValueOrDefault(view.Id), view.Id == picture)),
              .. kept.Skip(1).Select(view => KeptViews.Dto(view, kept: true, eyes.GetValueOrDefault(view.Id), view.Id == picture))],
-            set is null ? reason ?? "no block textures" : null), ct);
+            set is null ? reason ?? "no block textures" : null, change), ct);
     }
 
     /// <summary>The camera each view resolves to on the scene its pictures are drawn from, by id.</summary>

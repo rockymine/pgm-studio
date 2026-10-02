@@ -228,8 +228,9 @@ measured off the built world — `reach`, `incline`, `slopes`, `column`, `walk`,
 `themes/census`, `views`, `coverage`, `traversability`, `kit-reach`, `editability`, `preflight` — the posts that build one (`sketch/columns`, `sketch/dressing`,
 `sketch/seats`, `plan/columns`) are marked `[Queued]`. Each costs seconds of CPU and a share of memory on a
 machine every caller shares: a cold export takes 3–12 s on a two-core server. `BuildQueue` holds such a request until the studio has
-a turn free and the caller has one of their own, and gives both back when the response is written. Every other
-route never waits.
+a turn free and the caller has one of their own, and gives both back when the response is written. A note's
+reply takes a turn only where it draws an after picture (`docs/tools/sketch.md`, *Answering the notes an author
+left*), since most replies build nothing. Every other route never waits.
 
 **A caller runs one build at a time, and waits behind their own.** The studio runs three queued requests at
 once and one caller one of them, so a caller who sends eight exports gets them one after another while another

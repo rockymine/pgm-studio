@@ -60,6 +60,7 @@ else
         Variant is null ? null : $"action-btn--{Variant}",
         Fill ? "action-btn--fill" : null,
         Full ? "action-btn--full" : null,
+        Busy ? "action-btn--busy" : null,
         Class
     }.Where(c => !string.IsNullOrEmpty(c)));
 }

@@ -18,9 +18,13 @@ public sealed class MapNoteStore(PgmDb db)
         ThreadsAsync(db.MapNotes.Where(note => note.MapSlug == slug), ct);
 
     /// <summary>Every note in one of <paramref name="statuses"/> on any map, newest change first; every note
-    /// where none is named.</summary>
-    public Task<List<StoredNote>> AcrossMapsAsync(IReadOnlyCollection<string> statuses, CancellationToken ct = default) =>
-        ThreadsAsync(statuses.Count == 0 ? db.MapNotes : db.MapNotes.Where(note => statuses.Contains(note.Status)), ct);
+    /// where none is named. <paramref name="since"/> keeps those whose thread moved at or after it, in UTC.</summary>
+    public Task<List<StoredNote>> AcrossMapsAsync(IReadOnlyCollection<string> statuses, DateTime? since = null,
+                                                  CancellationToken ct = default)
+    {
+        var asked = statuses.Count == 0 ? db.MapNotes : db.MapNotes.Where(note => statuses.Contains(note.Status));
+        return ThreadsAsync(since is { } after ? asked.Where(note => note.UpdatedAt >= after) : asked, ct);
+    }
 
     /// <summary>One note on <paramref name="slug"/>, or null where that map holds none by this id.</summary>
     public async Task<StoredNote?> GetAsync(string slug, long id, CancellationToken ct = default) =>

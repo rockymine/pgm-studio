@@ -140,8 +140,12 @@ and no revision needs pinning; `PW_CHROMIUM=<path>` still overrides, for a brows
 The only prerequisite is the database section above, since the script resets its own schema through `sudo -n
 mariadb` (its default admin path, which works once `sudo service mariadb start` has run). It uses its own port
 (7895) and database (`pgm_studio_e2e`), so a run cannot touch dev data. A full sweep takes about three
-minutes here over an already-built solution, fifteen suites and 273 checks; a cold tree adds the WASM build
+minutes here over an already-built solution, every spec under `tests/e2e`; a cold tree adds the WASM build
 in front of it.
+
+**Run it with `Textures__AcceptMojangEula=true`, as CI does.** The In game phase draws with block textures
+(above), and without them `sketch-notes` can check only that the phase says why; with them it writes, answers
+and resolves notes on real pictures. CI keeps the downloaded jar in its cache, so Mojang is asked once.
 
 **One check fails where the container cannot reach Mojang.** A smoke-sweep route that shows the map's author row
 reads a 404 from `/api/minecraft/player?name=Notch`, which is the studio answering honestly: `Notch` is shaped like a

@@ -1418,7 +1418,13 @@ either, it is left to find its own place.
 **One picture is shown large, with the gallery under it.** The enlarged picture is drawn at 1280×720, under its
 name and where the eye stands; choosing a card in the gallery shows it instead, `←` and `→` step through the
 gallery, and **Full size** opens the 1920×1080 picture in a tab of its own. A kept view other than the board's
-own is let go from there.
+own is let go from there, and where the studio refuses that, or refuses drawing the map's picture from a view,
+the refusal is said over the gallery.
+
+**The phase follows the board while it is open.** It reads the board's changes again every 30 seconds and
+whenever the tab comes back into view, and the notes with them. Where a change has landed that the pictures do
+not show, a line over the picture names both changes and offers **Draw the pictures again**, before anything is
+marked on a picture of a board that is gone.
 
 **Place a view brings the canvas back with the camera tool armed, and every camera the gallery has on it.** Each
 view is drawn as a camera where its eye stands, and nothing more — the views kept in full, the studio's
@@ -1491,22 +1497,48 @@ draws it again.
 so the note stores the image it was written on: the browser encodes the picture on screen as WebP at quality 85
 and posts it to `POST /api/notes/pictures`, which keeps it once under its hash. A 1280×720 picture is about
 100 KB that way, a sixth of the PNG. An agent's reply carries the same camera drawn after its change, and the
-two are the before and after.
+two are the before and after. A note whose picture cannot be kept is not sent: the box keeps its text and says
+so, since a note on a picture it does not carry points at a board nobody can see again.
+
+**A note is written at the change its picture shows.** `GET …/views` answers the change the board stood at when
+the pictures were listed, and every pick answers the change it read. A mark whose pick read a later one — a
+drive landed while the phase was open — names no ground on the picture in view, so it is refused with both
+numbers and **Draw the pictures again**, which lists the views afresh, draws every picture again, keeps the
+note's text and arms the tool the mark was drawn with. The note states that change as its `change`, so a
+thread's count of the changes since starts where the author's picture did.
 
 **The tools sit in the dock at the bottom centre of the picture**: Point, Box and Lasso, and a switch that hides
 the notes' pins and marks. Arming a tool opens a new note; the column arms none. A mark is projected as soon as it
 is drawn, and the new note says what it landed on — the block and its ground, or how many columns and how much
 sky — before it can be sent.
 
+**Send is off until there is something to send, and says what it is doing.** It reads *Sending…* from the press
+on, and *Note sent* or *Reply sent* beside it once the message lands; a press is one note however many clicks
+follow it, and Ctrl+Enter (⌘+Enter) in either box sends it.
+
 **The column works in two steps.** The overview lists the notes on the picture in view under four filters — All,
 Waiting on you, With agent, Resolved — then the notes on the whole map, then any on a picture the gallery no
 longer offers. Choosing a note, by its row or by its pin on the picture, opens its thread, and **‹ All notes**
-goes back. A thread is its messages top to bottom, each with who wrote it, the token an agent wrote it with, and
-the change it was written at; its pictures; **Resolve** or **Reopen**; and the reply box. A new note shows
+goes back. A thread is its messages top to bottom, its pictures, **Resolve** or **Reopen**, and the reply box.
+
+**A thread reads as a chat.** It opens on its newest message and follows each one that lands. A message is a
+bubble beside its writer's mark, under their name, when it was written and the change it was written at. A
+person is their head and their name, and the reader's own messages sit on the right in the accent's tint. An
+agent is named by its token's label beside an *AI* mark, in a violet bubble on the left, and the hover says
+whose token it wrote with: a token acts as the person who issued it, and naming the agent by that person would
+show one writer answering itself. A new note shows
 what it is pinned to over its text box and an optional tag. The gallery counts each view's notes that are not
 resolved, and choosing another view switches the overview with it. `?note={id}` on the route opens the phase on
 that note's thread, which is the link a ruling written into `docs/gameplay/approaches.md` carries back to where it
-was decided.
+was decided. The link is opened once and then leaves the address, so coming back to In game shows what the
+author was reading.
+
+**An open thread compares its pictures on the big picture.** A note written on a picture shows that picture in
+place of the gallery's, with **Before**, **After**, **Now** and **Wipe** over it: the picture the note was written
+on, the after the latest reply carries, and the note's own camera over the board as it stands. Wipe lays the
+after over the before up to a seam dragged across the picture, and is what a thread with an after opens on; one
+with none opens on Now. All of them are one camera at one size, so the note's mark lands on each where it landed
+on the before. Arming a tool goes back to the gallery's picture, which is what a new mark is drawn on.
 
 **A thread has one status, and only the author closes it.**
 
@@ -1518,17 +1550,18 @@ was decided.
 | `wont-do` | an agent's reply with its reason, or the author | stays visible, and the author can reopen it |
 | `resolved` | the author | done |
 
-A reply leaves the thread where its `status` says; absent, a reply written with a token is `answered` and one
-written in a browser is `open`. An agent never resolves, declines or reopens by `PATCH` — it answers, asks or
+The thread offers **Resolve**, **Won't do** and **Reopen** where each applies, and its tag can be changed or
+cleared there. A reply leaves the thread where its `status` says; absent, a reply written with a token is
+`answered` and one written in a browser is `open`. An agent never resolves, declines or reopens by `PATCH` — it answers, asks or
 declines in a reply — so a fix that looks right in a number but wrong in the game is caught by the person who
 asked. An agent may open a note too, as a question in the place it is about, and it waits for the author the
 same way.
 
-**A thread says how many changes have landed since its last message.** A message records the latest change to
-the board's documents when it was written, or the one its writer stated, so the count is every change numbered
-above the thread's last message — an agent's pass, the author's own edit, a restore. The count is a link: it
-opens History on the span from that change to the latest, which is the answer to what happened since this was
-said.
+**A thread says how many changes have landed since its note.** A message records the latest change to the
+board's documents when it was written, or the one its writer stated, so the count is every change numbered above
+the note's own — an agent's pass, the author's own edit, a restore — and stays the span the author wants to see
+however many replies follow. The count is a link: it opens History on the span from that change to the latest.
+Where a reply came later and changes have landed since it too, a second link counts and opens those alone.
 
 **A tag is optional.** A note can be only its text; the agent works out what it is about and says so in its reply,
 so a wrong reading is caught on the thread. `look`, `terrain` and `gameplay` go to the map; `studio` means the
@@ -1550,6 +1583,9 @@ boxed in the colours `docs/world-scan/read-backs.md` names.
 linked to the commit and folder where the writer stated an origin, and the earlier changes it dropped where it
 was a source that named some; then every edit it made to the four documents, one a line, the thing it is about beside the change in words; then how many columns it moved of
 each kind. The edits come first and the columns when both boards are built, which on a large board is seconds.
+For a caller who may read notes, the threads with a message written in the span are listed under it — the
+replies a change answered with, and the notes written on its board — and each opens its thread in In game.
+Leaving History and coming back draws the span it showed again.
 
 **Putting the board back writes the documents as they stood at the start of what is shown, as one new change.**
 For a single change that is the change before it, so the button takes the change back — and every change after
@@ -2077,7 +2113,7 @@ drive reads back*).
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: its own straight-down view first, then the studio's suggestions from the built board, then the others kept, each `{id, name, kept, own, lookX, lookZ, fromX, fromZ, y, pitch, yaw, query, eye, picture}`. `own` marks the straight-down view (`above`), kept by every board; `picture` the one the map's picture is drawn from — the kept view marked as it, else the `overview` suggestion; `eye` is the camera the view resolves to on the board as built — where an eye left to find its own place ends up — or null on a server with no block textures. A map with no sketch layout has no world to frame or suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server, or null | 404 |
+| `GET /map/{slug}/views` | `{views[], undrawable, change}` — every view of the board: its own straight-down view first, then the studio's suggestions from the built board, then the others kept, each `{id, name, kept, own, lookX, lookZ, fromX, fromZ, y, pitch, yaw, query, eye, picture}`. `own` marks the straight-down view (`above`), kept by every board; `picture` the one the map's picture is drawn from — the kept view marked as it, else the `overview` suggestion; `eye` is the camera the view resolves to on the board as built — where an eye left to find its own place ends up — or null on a server with no block textures. A map with no sketch layout has no world to frame or suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server, or null; `change` is the map's latest change when they were listed, the board the pictures are of | 404 |
 | `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?, picture?}`; a blank name is `View {n}`, and `picture: true` draws the map's picture from this view and from no other. `y` and `pitch` together are an aerial shot: an eye raised to `y` and tipped `pitch` degrees down, 90 straight down. `yaw` states the camera whole — it turns from `fromX`, `fromZ` at `y`, and `look` is then only where the canvas draws its target; it is wrapped into the game's −180 to 180 | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, an eye height below the world's floor or over its top, a pitch past straight up or down, or a `yaw` without its stand and `y` · 404 |
 | `PUT /map/{slug}/views/{viewId}` | the view changed in place, keeping its id. Body as for keeping one; a blank name keeps the view's own, `picture` absent keeps whether it is the map's picture and `false` stops it being. The board's own `above` is changed the same way, and the change is then kept in place of the framed one | 400 `not a view` `RQ1` · 404 no kept view has that id — a suggestion is not stored, so it cannot be changed |
 | `DELETE /map/{slug}/views/{viewId}` | the view let go. A suggestion is not kept, so it cannot be deleted; deleting a changed `above` puts the framed one back | 404 no kept view has that id · 409 `RQ5` the framed `above`, which is never let go |
@@ -2092,14 +2128,16 @@ permission (`docs/access.md`). A member, and every other token, is refused `RQ8`
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /notes?status=` | every note on every map, newest change first, each a `MapNoteDto` with its map's slug and name. `status` takes one status or several between commas — `open` is what an agent starts on | 400 `no such status` `RQ1` |
+| `GET /notes?status=&since=` | every note on every map, newest change first, each a `MapNoteDto` with its map's slug and name. `status` takes one status or several between commas — `open` is what an agent starts on; `since`, an ISO 8601 instant, keeps the threads whose last message or status change is at or after it | 400 `no such status` `RQ1` · 400 `no such instant` `RQ1` |
 | `GET /map/{slug}/notes` | the map's notes, newest change first: `[{id, map, mapName, anchor, tag, status, createdAt, updatedAt, messages[]}]`, each message `{id, author, authorUuid, token, body, change, picture, at}` — `token` is the label of the token an agent wrote it with, null for a browser | 404 |
 | `POST /map/{slug}/notes` | the note written. Body `{body, anchor, tag?, picture?, change?}`; `change` is the map's change it was written at, and absent takes the latest. A note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a tag of no known word, a picture no upload answered, a `change` that has not landed · 404 |
-| `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, change?}`; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH`, or a `change` that has not landed · 404 no such map, or no note by that id on it |
+| `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, change?}`; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser. A token's `answered` reply on a picture note, at the latest change and with no `picture`, carries the note's camera drawn over the board as stored | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH`, or a `change` that has not landed · 404 no such map, or no note by that id on it |
 | `PATCH /map/{slug}/notes/{id}` | the note changed. Body `{status?, tag?}`: `resolved`, `wont-do` or `open` to reopen; a tag, or `""` to clear it | 400 `not a change` `RQ1` · 403 `RQ8` to a token — an agent answers in a reply, and only the author closes a thread · 404 |
+| `GET /notes/handoff` | `{ready, waiting, fresh, handedAt, session}` — whether this studio names an agent, how many notes on every map are open, how many of those were written or answered since the last hand-off, and when that was and the session it started | — |
+| `POST /notes/handoff` | the same, after the Routine is fired with the maps and their counts as its text. Body `{again?}`: `true` repeats a hand-off nothing was written since | 403 `RQ8` to a token — the author hands notes over · 409 `RQ5` no note waits, or none was written since the last hand-off · 503 `RQ12` no agent named, or the Routine refused |
 | `POST /notes/pictures` | `{hash, bytes}` — the picture kept under the SHA-256 of its bytes. The body is the picture itself, a WebP or a PNG sent as `image/webp`, `image/png` or `application/octet-stream`, up to 8 MB; the same bytes answer the same hash | 400 `not a picture` `RQ1` |
 | `GET /notes/pictures/{hash}` | the picture, `image/webp` or `image/png`, with a year's private cache — it never changes under its hash | 404 |
-| `GET /map/{slug}/render/eye/pick` | `{camera, query, hit, ground, columns[], sky, standing}` — what a mark on a `render/eye` picture is on the ground. It takes the picture's own query words, so it resolves the same camera, and `at=x,y` (one pixel: the block `hit` and the `ground` under it), `box=x,y,x,y` or `lasso=x,y;x,y;…` (every ground column the rays hit, each `[x, y, z]`); none of the three answers the camera alone. `query` is the camera exactly, as `eye=x,y,z&yaw=&pitch=&fov=&width=&height=`, which draws the same picture again. `standing` is the top of the ground under the eye, null over the void. Open to anyone, like `render/eye` | 404 · 422 no place sees what `look` names · 503 `RQ10` no block textures |
+| `GET /map/{slug}/render/eye/pick` | `{camera, query, hit, ground, columns[], sky, standing, change}` — what a mark on a `render/eye` picture is on the ground. It takes the picture's own query words, so it resolves the same camera, and `at=x,y` (one pixel: the block `hit` and the `ground` under it), `box=x,y,x,y` or `lasso=x,y;x,y;…` (every ground column the rays hit, each `[x, y, z]`); none of the three answers the camera alone. `query` is the camera exactly, as `eye=x,y,z&yaw=&pitch=&fov=&width=&height=`, which draws the same picture again. `standing` is the top of the ground under the eye, null over the void. `change` is the map's latest change when the pick was cast: the board it read, which a picture listed at an earlier change does not show. Open to anyone, like `render/eye` | 404 · 422 no place sees what `look` names · 503 `RQ10` no block textures |
 
 ```json POST /api/map/{slug}/notes
 {"body": "The monuments sit too close to the spawns.", "anchor": {"kind": "map"}, "tag": "gameplay"}
@@ -2192,16 +2230,23 @@ the plain `PUT` replaces the blob, so a document that omits `themes` deletes the
 
 **An agent starts a revision by reading the open notes, and it is not done while one is still open without a
 reply.** It holds a token an admin issued with the notes permission (`docs/access.md`), and every step after the
-read is an instrument the studio already has; the note only says where to point it. The author says when there
-are new notes — nothing polls for them.
+read is an instrument the studio already has; the note only says where to point it. An agent is started by the
+author's hand-off (below) or by the author in a chat; `GET /api/notes?status=open&since=<instant>` answers the
+threads that moved since a given moment, for a caller that keeps one.
 
 ```
-GET   /api/notes?status=open                                   every open note, on every map
+GET   /api/notes?status=open[&since=<instant>]                 the open notes, on every map
 GET   /api/map/{slug}/render/eye?<anchor.camera as eye=…>      stand where the author stood
 GET   /api/map/{slug}/column?at=<anchor.hit x,z>               what is at a point
-POST  /api/notes/pictures            <the same camera drawn after the change, as PNG or WebP>
-POST  /api/map/{slug}/notes/{id}/replies   {"body": …, "status": "answered", "picture": <hash>}
+POST  /api/map/{slug}/notes/{id}/replies   {"body": …, "status": "answered"}
 ```
+
+**The studio draws the after picture.** An agent's `answered` reply on a note written on a picture, written at
+the board's latest change and naming no `picture` of its own, carries the note's camera drawn over the board as
+stored, which is the after the In game phase compares with the note's before. Drawing it takes a turn in the
+build queue, so a reply refused `429` is asked again after its `Retry-After`; a studio with no block textures
+keeps the reply without one, and a reply stating an earlier `change` is not drawn, since the board it names is
+no longer the one stored.
 
 A note's `anchor.camera` is drawn again exactly by `render/eye?eye={x},{y},{z}&yaw={yaw}&pitch={pitch}&fov={fov}&width={width}&height={height}`;
 an area's `anchor.columns` are the ground it names, each `[x, y, z]`. The reply says what changed, the change
@@ -2212,6 +2257,29 @@ built on a guess. A declined note is `"status": "wont-do"` with the reason in th
 
 ```json POST /api/map/{slug}/notes/{id}/replies
 {"body": "Read as look, not gameplay: swapped the roof to spruce slabs under a dark-oak ridge.", "status": "answered"}
+```
+
+### Handing the notes to an agent
+
+**Nothing listens between hand-offs; the author starts the agent when the notes are written.** A studio naming a
+Claude Code Routine's API trigger — `Notes:Agent:Fire` and `Notes:Agent:Token`, `docs/deployment.md` — offers
+**Hand to the agent** at the head of the notes column, counting the open notes on every map and how many were
+written or answered since the last hand-off. Pressing it calls the Routine's `/fire`, which starts one session
+that reads the open notes and answers them; the column then says when they were handed over and links the
+session. With nothing written since, the button is **Again**, for a session that stopped short.
+
+**The hand-off carries no instruction.** Its text names the maps and how many notes each holds, and the
+Routine's saved prompt is what says to answer them: the Routine receives the text as untrusted context, and it
+reads the notes themselves from `GET /api/notes?status=open`. The last hand-off is held for as long as the
+studio runs, so a restart makes every open note new again. The Routine's own limit is 30 fires an hour.
+
+```
+GET   /api/notes/handoff               {ready, waiting, fresh, handedAt, session}
+POST  /api/notes/handoff               the same, after the Routine is fired
+```
+
+```json POST /api/notes/handoff
+{"again": true}
 ```
 
 ### Reshaping ground the plan compiled

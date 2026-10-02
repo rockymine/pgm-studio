@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using PgmStudio.Client.Components;
 using PgmStudio.Contracts;
 
 namespace PgmStudio.Client.Features.Sketch;
@@ -21,7 +22,6 @@ public partial class SketchHistoryList
     internal static string Said(MapChangeDto change) =>
         change.Note is { Length: > 0 } note ? note : $"wrote the {string.Join(", ", change.Documents)}";
 
-    /// <summary>Who wrote a change: the person, and the token's label where a token wrote it.</summary>
-    internal static string Who(MapChangeDto change) =>
-        (change.Writer ?? "unsigned") + (change.Token is { } token ? $" (token “{token}”)" : "");
+    /// <summary>Who wrote a change: the person, or the agent and whose token it wrote with.</summary>
+    internal static string Who(MapChangeDto change) => Writers.Describe(change.Writer, change.Token);
 }

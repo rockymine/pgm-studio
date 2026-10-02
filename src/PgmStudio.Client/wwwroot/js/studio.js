@@ -19,6 +19,29 @@ window.studio = {
     return box ? { width: box.width, height: box.height } : { width: 0, height: 0 };
   },
 
+  // Tell a component when its tab comes back into view or into focus — when a board may have moved behind it.
+  // One watcher an owner, named as `registerKeys` names one; unwatching forgets it.
+  watchTabShown(owner, component, method) {
+    this.unwatchTabShown(owner);
+    const shown = () => { if (document.visibilityState === "visible") component.invokeMethodAsync(method); };
+    window.addEventListener("focus", shown);
+    document.addEventListener("visibilitychange", shown);
+    (this._tabWatchers ??= new Map()).set(owner, shown);
+  },
+
+  unwatchTabShown(owner) {
+    const shown = this._tabWatchers?.get(owner);
+    if (!shown) return;
+    window.removeEventListener("focus", shown);
+    document.removeEventListener("visibilitychange", shown);
+    this._tabWatchers.delete(owner);
+  },
+
+  // Scroll a scrolling element to its end — a thread to its newest message.
+  scrollToEnd(el) {
+    if (el) el.scrollTop = el.scrollHeight;
+  },
+
   // Keep a picture for a note: the image at `src` (already in the browser's cache, since it is on screen) is
   // drawn to a canvas, encoded as WebP at quality 85 — a PNG where the browser cannot encode WebP — and posted
   // to api/notes/pictures. Answers the hash the studio names it by, or null where any step failed.

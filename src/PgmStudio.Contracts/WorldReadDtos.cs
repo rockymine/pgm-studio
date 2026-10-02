@@ -176,7 +176,9 @@ public sealed record MapViewDto(string Id, string Name, bool Kept, int LookX, in
 /// <param name="Views">The views, suggestions first.</param>
 /// <param name="Undrawable">Why none of them can be drawn on this server — the block textures are not
 /// there — or null where they can.</param>
-public sealed record MapViewsDto(IReadOnlyList<MapViewDto> Views, string? Undrawable);
+/// <param name="Change">The map's latest change when the views were listed: the board their pictures are of,
+/// and the change a note written on one of them was written at. 0 is before the map's first kept change.</param>
+public sealed record MapViewsDto(IReadOnlyList<MapViewDto> Views, string? Undrawable, long Change);
 
 /// <summary>A view to keep (<c>POST /api/map/{slug}/views</c>), or what a kept view becomes
 /// (<c>PUT /api/map/{slug}/views/{viewId}</c>).</summary>

@@ -3,7 +3,8 @@
 # `checks` is everything that needs no database: the build, the seven test projects that stand alone, the JS
 # suite, the census and the file-based tool scripts. `database-and-browser` installs MariaDB on the runner the
 # way docs/cloud-setup.md does (the e2e script resets its schema through `sudo -n mariadb`, which a service
-# container cannot answer), then runs the three database test projects serially and the full browser sweep.
+# container cannot answer), then runs the three database test projects serially and the full browser sweep,
+# with Mojang's EULA accepted so the In game phase has block textures to draw with.
 #
 # Test projects run through `dotnet run --project`: `dotnet test` has no VSTest bridge on the .NET 10 SDK.
 
@@ -108,7 +109,18 @@ jobs:
           npm install -g playwright
           playwright install --with-deps chromium
 
+      # In game draws with Minecraft 1.8.9's block textures, which the studio reads out of the client jar and
+      # never ships. Accepting Mojang's EULA lets it download that jar once; the cache keeps it between runs,
+      # keyed on the hash BlockTextureStore checks it against.
+      - name: Minecraft's block textures
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pgm-studio/textures
+          key: minecraft-client-1.8.9-3870888a6c3d349d3771a3e9d16c9bf5e076b908
+
       - name: Browser sweep
+        env:
+          Textures__AcceptMojangEula: "true"
         run: ./tools/e2e.sh all
 
       - name: Server log on failure
