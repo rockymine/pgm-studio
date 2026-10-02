@@ -41,7 +41,8 @@ internal static class BiomeLibraryMapping
     /// <summary>The picture, or an empty string for a row whose stored field will not read — a library that
     /// cannot draw one row still lists the rest.</summary>
     private static string Picture(string paramsJson) =>
-        BiomeBody.Stated(paramsJson) is { } field ? StylePreview.BiomeSvg(field) : "";
+        Drawings.Svg("biome-card", paramsJson,
+            () => BiomeBody.Stated(paramsJson) is { } field ? StylePreview.BiomeSvg(field) : "");
 }
 
 /// <summary>GET /api/biome-patterns[?kind=solid|cell|noise] — the biome library, newest first, each with the

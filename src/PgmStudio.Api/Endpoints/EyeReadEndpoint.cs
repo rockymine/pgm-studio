@@ -24,7 +24,6 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
     : WorldRenderEndpoint(repo, reader, artifacts)
 {
     private BlockTextureSet? _textures;
-    private string _empty = "nothing to draw";
 
     public override void Configure()
     {
@@ -63,11 +62,21 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
             return;
         }
         _textures = set;
-        using (await EyeRenders.TurnAsync(ct))
-            await base.HandleAsync(ct);
+        await base.HandleAsync(ct);
     }
 
-    protected override string Empty => _empty;
+    protected override string DrawnWith => textures.Identity;
+
+    protected override async Task<IDisposable?> TurnAsync(CancellationToken ct) => await EyeRenders.TurnAsync(ct);
+
+    protected override string Empty
+    {
+        get
+        {
+            try { return EyeAim.Read(word => Query<string?>(word, isRequired: false)).Empty; }
+            catch (ArgumentException) { return "nothing to draw"; }
+        }
+    }
 
     protected override byte[]? Draw(BuiltRead read) => Shot(read)?.Png;
 
@@ -76,7 +85,6 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
     private EyeShot? Shot(BuiltRead read)
     {
         var aim = EyeAim.Read(word => Query<string?>(word, isRequired: false));
-        _empty = aim.Empty;
         return Shot(read.Built, _textures!, aim);
     }
 

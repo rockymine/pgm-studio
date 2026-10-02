@@ -17,6 +17,11 @@
   color: var(--text-muted); font-size: var(--font-sm);
 }
 .eye-picture__why { color: var(--color-warning); }
+.eye-picture img.eye-picture__standin { position: absolute; inset: 0; opacity: 1; }
+.eye-picture__drawing--over {
+  inset: auto var(--space-2) var(--space-2) auto; padding: var(--space-1) var(--space-2);
+  background: var(--bg-panel-glass); color: var(--text-primary); border-radius: var(--radius-sm);
+}
 
 .ingame { flex: 1; min-height: 0; overflow: auto; padding: var(--space-4); }
 .ingame__note { margin: var(--space-4) 0; max-width: 72ch; color: var(--text-secondary); }

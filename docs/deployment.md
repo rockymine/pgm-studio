@@ -24,7 +24,9 @@ and change only by hand.
 
 **The studio keeps its state in three places outside a release.** The database; `/var/lib/pgm-studio`, the
 service user's home, which holds the data-protection keys a sign-in cookie is sealed with (lose them and
-every session ends), the Minecraft texture jar, and the pictures map notes carry, under `Notes__Pictures`
+every session ends), the Minecraft texture jar, the pictures the studio has drawn (`Drawings__Folder`, by default
+`.local/share/pgm-studio/drawings` there; disposable, every one is drawn again when asked), and the pictures map
+notes carry, under `Notes__Pictures`
 (`/var/lib/pgm-studio/pictures`); and `/etc/pgm-studio/pgm-studio.env`. A release under
 `/opt/pgm-studio/releases/<commit>` holds nothing that is not rebuilt from the commit.
 

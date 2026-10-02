@@ -1397,7 +1397,11 @@ without them answers the list with the reason, and the phase says so instead of 
 
 **Entering it saves the board's unsaved edits first**, because every picture is of the board as stored. A board that has
 changed builds a new world, and every picture is drawn again the first time it is asked for; a board that has
-not answers from the pictures already drawn.
+not answers from the pictures already drawn, which the studio keeps on disk across restarts. The gallery's
+thumbnails are drawn at 480 × 270 and the enlarged picture at 1280 × 720, so the enlarged one is a drawing of its
+own: until it arrives, the thumbnail of the same view stands in for it, scaled up, with *Drawing…* in its corner.
+A picture the studio is too busy to draw (`429`) is asked for again after the `Retry-After` it names, up to four
+times, before the gallery says why.
 
 **Every board keeps one view of its own: the whole board straight down.** The eye stands over the board's
 middle, north at the top, high enough that the board's width fits across the frame and its depth down it, so
@@ -1624,8 +1628,9 @@ right by, in the report's own words; **Read again** asks for it afresh.
 
 **The pictures are drawn one at a time.** Every picture the report names is a chip, and the one picked is drawn
 under them — the isometric first — through the route the report names, so a board's renders wait their turn one
-after another as the build queue answers them. A picture that cannot be drawn on this studio, an eye view with
-no block sprites, is a dashed chip that says why.
+after another as the build queue answers them. A picture already drawn of an unchanged board is answered from
+the studio's kept pictures without a build (`docs/world-scan/read-backs.md`). A picture that cannot be drawn on
+this studio, an eye view with no block sprites, is a dashed chip that says why.
 
 **Every reading folds under its name and the route that answers it alone**, so a reading can be opened here and
 asked for again outside the tool by the same words.

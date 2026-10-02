@@ -62,7 +62,7 @@ public sealed class RoofStyleListEndpoint(HousePartLibrary library) : EndpointWi
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ComposeRoofsAsync(ct))
             .Select(entry => new RoofStyleSummary(
-                entry.Row.Id, entry.Row.Name, RoomStylePreview.Card(entry.Style, part: RoomParts.Roof)))
+                entry.Row.Id, entry.Row.Name, RoomStylePreview.CardOnce(entry.Style, part: RoomParts.Roof)))
             .ToList(), ct);
 }
 
@@ -174,7 +174,7 @@ public sealed class StoreyStyleListEndpoint(HousePartLibrary library)
         => await Send.OkAsync((await library.ComposeStoreysAsync(ct))
             .Select(entry => new StoreyStyleSummary(
                 entry.Row.Id, entry.Row.Name, entry.Row.Clear,
-                RoomStylePreview.Card(entry.Style, part: RoomParts.Wall)))
+                RoomStylePreview.CardOnce(entry.Style, part: RoomParts.Wall)))
             .ToList(), ct);
 }
 
@@ -277,7 +277,7 @@ public sealed class PorchStyleListEndpoint(HousePartLibrary library)
 
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ComposePorchesAsync(ct))
-            .Select(entry => new PorchStyleSummary(entry.Row.Id, entry.Row.Name, RoomStylePreview.Card(entry.Style)))
+            .Select(entry => new PorchStyleSummary(entry.Row.Id, entry.Row.Name, RoomStylePreview.CardOnce(entry.Style)))
             .ToList(), ct);
 }
 

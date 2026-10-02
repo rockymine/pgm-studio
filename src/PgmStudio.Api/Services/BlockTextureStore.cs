@@ -26,6 +26,11 @@ public sealed class BlockTextureStore(IConfiguration configuration, IHttpClientF
     /// <summary>The named client the download goes through.</summary>
     public const string ClientName = "mojang-jar";
 
+    /// <summary>Which jar the sprites come from, for the name a picture drawn with them is kept under.</summary>
+    public string Identity => configuration["Textures:Jar"] is { Length: > 0 } own && File.Exists(own)
+        ? $"{own} {new FileInfo(own).Length} {File.GetLastWriteTimeUtc(own).Ticks}"
+        : JarSha1;
+
     private readonly SemaphoreSlim _gate = new(1, 1);
     private BlockTextureSet? _loaded;
 
