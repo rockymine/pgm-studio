@@ -12,7 +12,7 @@
       <Section Title="Wool monuments">
         <p class="section-desc">Drag a box on the canvas to find monuments inside it. A box with none places a
           monument for the selected wool. Each wool needs <strong>@Expected</strong>, one per enemy team.</p>
-        <Button Full Class="action-btn--separated" Busy="@detecting" BusyLabel="Searching…"
+        <Button Writes Full Class="action-btn--separated" Busy="@detecting" BusyLabel="Searching…"
                 OnClick="DetectMapWide">
           <i data-lucide="scan-search"></i> Find all monuments
         </Button>
@@ -62,7 +62,7 @@
                     <CoordField Prefix="X"><NumberField Value="m.X" ValueChanged="@(v => SetCoord(m, "x", v))" Step="1" CssClass="coord-input" /></CoordField>
                     <CoordField Prefix="Y"><NumberField Value="m.Y" ValueChanged="@(v => SetCoord(m, "y", v))" Step="1" CssClass="coord-input" /></CoordField>
                     <CoordField Prefix="Z"><NumberField Value="m.Z" ValueChanged="@(v => SetCoord(m, "z", v))" Step="1" CssClass="coord-input" /></CoordField>
-                    <Button Title="Remove" OnClick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></Button>
+                    <Button Writes Title="Remove" OnClick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></Button>
                   </div>
                   @if (selectedTeam == cap.Id)
                   {
@@ -88,7 +88,7 @@
                   <div class="ctrl-row" @key="m">
                     <Select Slim="false" Options="@AuthoringContext.TeamOptions(Capturers(sel))" Placeholder="Choose a team"
                             Value="" ValueChanged="@(team => SetMonumentTeam(sel, m, team))" />
-                    <Button Title="Remove" OnClick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></Button>
+                    <Button Writes Title="Remove" OnClick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></Button>
                   </div>
                 }
                 </ChildContent>

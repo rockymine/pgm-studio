@@ -78,6 +78,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
       );
     },
     setTool(tool) { canvas.setActiveTool(tool === "select" ? null : tool); },
+    // The caller may not write this map: the canvas pans, zooms and selects, and draws, places and moves nothing.
+    setReadOnly(on) { canvas.setReadOnly(on); },
     setSelection(ids) { canvas.setSelectedRegions(ids ?? []); },
     // Block-colour overlay (C6): lazily fetch the top-surface layer (B4), then toggle visibility.
     // Returns false when no scan data is available, so the caller can leave the toggle off.

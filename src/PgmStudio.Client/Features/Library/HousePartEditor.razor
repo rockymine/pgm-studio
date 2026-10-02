@@ -195,12 +195,12 @@
     }
   </Fields>
   <Actions>
-    <Button Variant="primary" Icon="save" Disabled="@(string.IsNullOrWhiteSpace(draftName))" OnClick="Save">
+    <Button Variant="primary" Icon="save" Disabled="@(string.IsNullOrWhiteSpace(draftName))" Writes OnClick="Save">
       @(editingId is null ? "Add to library" : "Save changes")
     </Button>
     @if (editingId is not null)
     {
-      <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
+      <Button Variant="danger" Icon="trash-2" Deletes OnClick="Delete">Delete</Button>
     }
   </Actions>
 </LibraryEditor>

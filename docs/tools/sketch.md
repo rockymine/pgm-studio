@@ -29,8 +29,11 @@ the world the first time (the finish below, `POST …/sketch/finish`, which rast
 map to `stage=configure`), and saves the export — the world ZIP with its `map.xml`. A board built from a plan
 carries the plan's game settings, so its export needs nothing from Configure. Where the export is refused, the
 bar shows its sentence and offers **Open Configure**, which is where a hand-drawn board's teams, spawns and
-objectives are stated. The phases run in order, Draw's *Done* going on to Terraform. A draft that was never
-drawn on is discarded on the way out.
+objectives are stated. Building the export costs the server a world, so **Download map** needs an account on
+the whitelist and is greyed for anyone else (`docs/access.md`). The phases run in order, Draw's *Done* going on
+to Terraform. A draft that was never drawn on is discarded on the way out. A caller who may not change the map
+sees every phase read-only: the canvas pans, selects and measures and changes nothing, the fields that write
+are greyed, and nothing is saved or discarded (`docs/client/ui-conventions.md`).
 
 **The geometry follows the drawing after the first build, too.** The scan the finish writes records the layout revision it
 was rasterized from, so a layout written later (a vertex moved, a coast bent, a shape redrawn) is rasterized

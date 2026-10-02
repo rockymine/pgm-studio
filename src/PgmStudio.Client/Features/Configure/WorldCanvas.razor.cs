@@ -63,6 +63,10 @@ public partial class WorldCanvas
     private IJSObjectReference? handle;
     private DotNetObjectReference<WorldCanvas>? selfRef;
     private string tool = "move";
+    /// <summary>Why the caller may not write this map, or null. Where it is set the canvas pans, zooms and
+    /// selects, and draws, places, resizes and moves nothing.</summary>
+    [CascadingParameter(Name = "StudioWriteReason")] public string? WriteReason { get; set; }
+    private bool? pushedReadOnly;
 
     /// <summary>Island ids (from /islands) offered in the "fit island" dropdown; empty hides it.</summary>
     private List<int> islandIds = new();
@@ -108,6 +112,11 @@ public partial class WorldCanvas
             if (RectDraw)
                 await handle.InvokeVoidAsync("setTool", "rectangle");   // mount defaults to "move"; lead with the draw tool
             await OnReady.InvokeAsync();
+        }
+        if (handle is not null && pushedReadOnly != WriteReason is not null)
+        {
+            pushedReadOnly = WriteReason is not null;
+            await handle.InvokeVoidAsync("setReadOnly", pushedReadOnly);
         }
     }
 
@@ -216,7 +225,8 @@ public partial class WorldCanvas
     }
 
     /// <summary>Pick the raw clicked world point (point-pick mode, point tool) → host.</summary>
-    [JSInvokable] public Task OnCanvasPointPick(double x, double z) => OnPointPick.InvokeAsync((x, z));
+    [JSInvokable] public Task OnCanvasPointPick(double x, double z) =>
+        WriteReason is not null ? Task.CompletedTask : OnPointPick.InvokeAsync((x, z));
 
     /// <summary>Render intent-backed dummy regions (e.g. spawn-protection rects) — each
     /// { id, type, label, color, bounds:{min_x,min_z,max_x,max_z} }. Selectable + resizable like real regions.</summary>
@@ -237,6 +247,7 @@ public partial class WorldCanvas
     [JSInvokable]
     public Task OnBoundsSave(string id, JsonElement bounds)
     {
+        if (WriteReason is not null) return Task.CompletedTask;
         double N(string k) => bounds.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
         return OnGeometrySaved.InvokeAsync((id, N("min_x"), N("min_z"), N("max_x"), N("max_z")));
     }
@@ -246,7 +257,7 @@ public partial class WorldCanvas
     [JSInvokable]
     public async Task OnRegionDraw(JsonElement draw)
     {
-        if (!RectDraw || !OnRectDrawn.HasDelegate) return;
+        if (!RectDraw || !OnRectDrawn.HasDelegate || WriteReason is not null) return;
         double N(string k) => draw.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
         await OnRectDrawn.InvokeAsync((N("min_x"), N("min_z"), N("max_x"), N("max_z")));
         await SetTool("select");   // switch to select so the drawn rect can be picked + resized

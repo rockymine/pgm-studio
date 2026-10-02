@@ -80,7 +80,7 @@
                       @bind="importJson"></textarea>
           </Field>
           <div class="panel-actions">
-            <Button Variant="primary" Icon="download" OnClick="ImportJson"
+            <Button Variant="primary" Icon="download" Writes OnClick="ImportJson"
                     Disabled="@(string.IsNullOrWhiteSpace(importJson) || string.IsNullOrWhiteSpace(draftName))">
               Import
             </Button>
@@ -112,13 +112,13 @@
     }
   </Fields>
   <Actions>
-    <Button Variant="primary" Icon="save" Disabled="@(!CanSave)" OnClick="Save">
+    <Button Variant="primary" Icon="save" Disabled="@(!CanSave)" Writes OnClick="Save">
       @(editingId is null ? "Add to library" : "Save changes")
     </Button>
     @if (editingId is not null)
     {
-      <Button Icon="copy" OnClick="SaveAsCopy">Save as copy</Button>
-      <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
+      <Button Icon="copy" Writes OnClick="SaveAsCopy">Save as copy</Button>
+      <Button Variant="danger" Icon="trash-2" Deletes OnClick="Delete">Delete</Button>
     }
   </Actions>
 </LibraryEditor>

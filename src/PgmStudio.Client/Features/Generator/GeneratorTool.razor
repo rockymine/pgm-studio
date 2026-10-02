@@ -138,7 +138,10 @@
                   <span class="gen-tray-stale" title="@StaleTitle(p)">@(p.ComposerVersion ?? "?")</span>
                 }
                 <span class="gen-tray-name" title="@p.Name">@p.Name</span>
-                <button class="gen-tray-x" @onclick="() => Unpin(p.Id)" title="Unpin"><i data-lucide="x"></i></button>
+                <WriteGate Deletes Context="closed">
+                  <button class="gen-tray-x" @onclick="() => Unpin(p.Id)" disabled="@(closed is not null)"
+                          title="@(closed ?? "Unpin")"><i data-lucide="x"></i></button>
+                </WriteGate>
               </div>
             }
           </div>
@@ -173,8 +176,11 @@
                 {
                   <span class="gen-card-stat" title="@SpendTitle(spend)">Land <strong>@SpendPercent(spend.Unit)</strong></span>
                 }
-                <button class="gen-pin @(IsPinned(card) ? "gen-pin--on" : null)" @onclick="() => TogglePin(card)"
-                        title="@(IsPinned(card) ? "Unpin" : "Pin")" aria-label="@(IsPinned(card) ? "Unpin" : "Pin")"><i data-lucide="pin"></i></button>
+                <WriteGate Deletes="@IsPinned(card)" Context="closed">
+                  <button class="gen-pin @(IsPinned(card) ? "gen-pin--on" : null)" @onclick="() => TogglePin(card)"
+                          disabled="@(closed is not null)" title="@(closed ?? (IsPinned(card) ? "Unpin" : "Pin"))"
+                          aria-label="@(IsPinned(card) ? "Unpin" : "Pin")"><i data-lucide="pin"></i></button>
+                </WriteGate>
               </div>
             </div>
           </div>
@@ -262,8 +268,8 @@
       </Body>
       <Footer>
         <Button Full Icon="clipboard" OnClick="() => CopyDescriptor(d)">Copy JSON</Button>
-        <Button Full OnClick="() => TogglePin(d)">@(IsPinned(d) ? "Unpin" : "Pin")</Button>
-        <Button Variant="primary" Full Icon="file-plus-2" OnClick="() => AuthorPlan(d)">Open in plan editor</Button>
+        <Button Full Writes Deletes="@IsPinned(d)" OnClick="() => TogglePin(d)">@(IsPinned(d) ? "Unpin" : "Pin")</Button>
+        <Button Variant="primary" Full Icon="file-plus-2" Writes OnClick="() => AuthorPlan(d)">Open in plan editor</Button>
       </Footer>
     </SideDrawer>
   }

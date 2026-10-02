@@ -63,10 +63,10 @@
           </Field>
         }
         <div class="detail-header-badges">
-          <Button Variant="ghost" OnClick="AddHeight">Add a height</Button>
+          <Button Variant="ghost" Writes OnClick="AddHeight">Add a height</Button>
           @if (HeightCount > 1)
           {
-            <Button Variant="ghost" OnClick="LevelHeights">Make it level</Button>
+            <Button Variant="ghost" Writes OnClick="LevelHeights">Make it level</Button>
           }
         </div>
 
@@ -112,7 +112,7 @@
               <NumberField Value="Height(at)" ValueChanged="v => SetHeight(at, v)" />
             </Field>
           }
-          <Button Variant="ghost" OnClick="LevelHeights">Make it level</Button>
+          <Button Variant="ghost" Writes OnClick="LevelHeights">Make it level</Button>
         }
         else
         {
@@ -121,7 +121,7 @@
           </Field>
           @if (RingCount >= 3)
           {
-            <Button Variant="ghost" OnClick="TiltArea">Set per-corner heights</Button>
+            <Button Variant="ghost" Writes OnClick="TiltArea">Set per-corner heights</Button>
           }
         }
         <Field Label="Bevel">
@@ -203,7 +203,7 @@
           }
           @if (VariesAlongRing)
           {
-            <Button Variant="ghost" OnClick="LevelAmounts">Make it level</Button>
+            <Button Variant="ghost" Writes OnClick="LevelAmounts">Make it level</Button>
           }
         }
       }
@@ -226,7 +226,7 @@
 
       @if (editingSelection)
       {
-        <Button Full Variant="danger" OnClick="Delete"><i data-lucide="trash-2"></i> Delete</Button>
+        <Button Full Variant="danger" Writes OnClick="Delete"><i data-lucide="trash-2"></i> Delete</Button>
       }
     }
   </Section>

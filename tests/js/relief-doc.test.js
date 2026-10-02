@@ -95,7 +95,7 @@ test("a mark's reach counts the band it holds, not only its points", () => {
 
 // ── the tools ─────────────────────────────────────────────────────────────────
 function tools({ groupAt = () => "i1", groupTop = () => null, doc = new ReliefDoc(),
-                contours = () => null } = {}) {
+                contours = () => null, isEditable = () => true } = {}) {
   const events = [];
   const controller = new ReliefController(doc, null, () => ({ scale: 1, panX: 0, panY: 0 }), {
     onChanged: () => events.push("changed"),
@@ -104,9 +104,28 @@ function tools({ groupAt = () => "i1", groupTop = () => null, doc = new ReliefDo
     onGroupAt: groupAt,
     onGroupTop: groupTop,
     onContours: contours,
+    isEditable,
   });
   return { controller, doc, events };
 }
+
+test("on a page that may not write, a mark is picked and nothing is stated, moved or reported changed", () => {
+  let editable = true;
+  const { controller, doc, events } = tools({ isEditable: () => editable });
+  controller.onMouseDown(12, 8, "relief:point");
+  const id = doc.marks[0].id;
+  events.length = 0;
+  editable = false;
+
+  assert.equal(controller.onMouseDown(30, 30, "relief:point"), true);
+  assert.equal(doc.marks.length, 1);
+  controller.onMouseDown(12, 8, "select");
+  assert.equal(controller.selectedId, id);
+  controller.onMouseMove(20, 20, "select");
+  controller.onMouseUp();
+  assert.deepEqual(doc.byId(id).at, [12, 8]);
+  assert.ok(!events.includes("changed"));
+});
 
 test("a click places a spot height in the group under it", () => {
   const { controller, doc, events } = tools();

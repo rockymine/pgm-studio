@@ -3,7 +3,8 @@
 @* Reusable "smart suggestion" card — a sparkle-headed callout that proposes an action the studio
    inferred (e.g. an intelligent team layout from detected symmetry) with an accept/reject choice.
    Header mirrors the inspector's detail-header (icon + title + optional badge); the body (info text +
-   preview) is ChildContent so each caller supplies its own. Styled by .smart-suggestion in
+   preview) is ChildContent so each caller supplies its own. Accepting writes, so it is closed where the
+   caller may not write. Styled by .smart-suggestion in
    components/smart-suggestion.css. *@
 
 <div class="smart-suggestion">
@@ -15,6 +16,6 @@
   @ChildContent
   <div class="smart-suggestion__foot">
     <Button Disabled="@Busy" OnClick="OnReject">@RejectLabel</Button>
-    <Button Variant="primary" Disabled="@Busy" OnClick="OnAccept">@AcceptLabel</Button>
+    <Button Variant="primary" Disabled="@Busy" Writes OnClick="OnAccept">@AcceptLabel</Button>
   </div>
 </div>

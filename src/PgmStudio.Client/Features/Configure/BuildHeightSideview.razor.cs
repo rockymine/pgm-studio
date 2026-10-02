@@ -18,6 +18,9 @@ public partial class BuildHeightSideview : IAsyncDisposable
     private IJSObjectReference? handle;
     private DotNetObjectReference<BuildHeightSideview>? selfRef;
     private double? pushed;        // last height pushed to the canvas — so a drag isn't echoed back to it
+    /// <summary>Why the caller may not write this map, or null: the line is then shown and never dragged.</summary>
+    [CascadingParameter(Name = "StudioWriteReason")] public string? WriteReason { get; set; }
+    private bool? pushedReadOnly;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -32,11 +35,18 @@ public partial class BuildHeightSideview : IAsyncDisposable
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || handle is not null) return;
-        selfRef ??= DotNetObjectReference.Create(this);
-        handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountSideview", sideviewRef, selfRef, Slug, axis);
-        pushed = Height;
-        if (Height is { } y) await handle.InvokeVoidAsync("setBuildHeight", y);
+        if (firstRender && handle is null)
+        {
+            selfRef ??= DotNetObjectReference.Create(this);
+            handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountSideview", sideviewRef, selfRef, Slug, axis);
+            pushed = Height;
+            if (Height is { } y) await handle.InvokeVoidAsync("setBuildHeight", y);
+        }
+        if (handle is not null && pushedReadOnly != WriteReason is not null)
+        {
+            pushedReadOnly = WriteReason is not null;
+            await handle.InvokeVoidAsync("setReadOnly", pushedReadOnly);
+        }
     }
 
     private async Task SetAxis(string a)
@@ -50,6 +60,7 @@ public partial class BuildHeightSideview : IAsyncDisposable
     [JSInvokable]
     public async Task OnHeightChanged(double y)
     {
+        if (WriteReason is not null) return;
         var v = (double)(int)Math.Round(y);
         pushed = v;   // the canvas already moved; don't echo it back through OnParametersSet
         await HeightChanged.InvokeAsync(v);

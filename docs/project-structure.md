@@ -102,8 +102,8 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 26 | 4,916 | `Playability/` 15 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 158 | 22,567 | `Endpoints/` 79 · `Services/` 63 · `Access/` 12 · `Http/` 3 · 1 at root |
-| `Client` | 221 | 28,207 | `Features/` 127 (nested) · `Components/` 71 (nested) · `Pages/` 11 · `Layout/` 5 · `Models/` 4 · 3 at root |
+| `Api` | 158 | 22,571 | `Endpoints/` 79 · `Services/` 63 · `Access/` 12 · `Http/` 3 · 1 at root |
+| `Client` | 222 | 28,455 | `Features/` 127 (nested) · `Components/` 72 (nested) · `Pages/` 11 · `Layout/` 5 · `Models/` 4 · 3 at root |
 | `Contracts` | 36 | 4,169 | flat |
 | `Data` | 23 | 3,969 | `Map/` 7 · `Features/` 5 · `Theme/` 4 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 30 | 3,530 | flat |
@@ -256,7 +256,8 @@ lets a file-based script link the real composition instead of growing a second c
 `#:project` directives that name the `src/` projects it needs and running as `dotnet run
 tools/<folder>/<script>.cs`. **There are seven, and the count is the point** (`CLAUDE.md`, *Investigation
 stays local*): three gates over the composer in `compose/` (`reproduction-gate`, `fingerprints`,
-`unit-fingerprint`), two in `deriver/` (`figure-check` gates `model.md`'s figures, `envelope-stats` writes `seed-envelopes.md`), and two
+`unit-fingerprint`), two in `deriver/` (`figure-check` gates `model.md`'s figures, `envelope-stats` writes
+`seed-envelopes.md`), and two
 at the root: `seed-library`, an operational tool seeding a database from the library's seed folder without
 starting the studio, and `seed-trees`, the generator of that folder's `trees.json` and of the showcase snapshot
 `pgm-studio-mapgen` keeps, `corpus/tree-showcase/trees.json`. `tools/build-scripts.sh` builds exactly these and its count is the check. A script

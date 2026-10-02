@@ -3,6 +3,7 @@ using System.Text;
 using FastEndpoints;
 using Microsoft.AspNetCore.Http;
 using PgmStudio.Analysis.Playability;
+using PgmStudio.Api.Access;
 using PgmStudio.Api.Http;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Map;
@@ -27,6 +28,7 @@ using PgmStudio.Minecraft.Anvil;
 /// <see cref="MapExportLoader"/>, diverging only to bundle the world for a sketch map.
 /// </summary>
 [Queued]
+[CostlyRead]
 public sealed class MapExportEndpoint(
     MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts, PlayerLookup players,
     BlockTextureStore textures)

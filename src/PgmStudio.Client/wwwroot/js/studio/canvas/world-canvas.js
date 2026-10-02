@@ -180,6 +180,7 @@ export class WorldCanvas extends CanvasBase {
         getViewport: () => ({ scale: this._scale, panX: this._panX, panY: this._panY }),
         clientToSvg: (x, y) => this._clientToSvg(x, y),
         isVisible:   () => this._wrap?.offsetParent != null,
+        isEditable:  () => !this._readOnly,
       },
       {
         applyBounds: (node, nb) => this.updateRegionBounds(node, nb),
@@ -206,7 +207,7 @@ export class WorldCanvas extends CanvasBase {
   }
 
   _onToolMousedown(e, svgPt) {
-    if (!this.#toWorld) return;
+    if (!this.#toWorld || this._readOnly) return;   // a page the caller may not write: no draw, no placement
     const world = this.#toWorld(svgPt.x, svgPt.y);
     const bx = Math.floor(world.x), bz = Math.floor(world.z);
     if (this._activeTool === "move" || !this._activeTool) return;
@@ -243,6 +244,8 @@ export class WorldCanvas extends CanvasBase {
   _onMouseleave() {
     this.#callbacks.onCoords?.(null, null);
   }
+
+  _onReadOnlyChanged() { this.#drawCtrl?.cancel(); this.#updateOverlay(); }
 
   _onResizeMove(e) { return this.#editCtrl?.onResizeMove(e) ?? false; }
   _onResizeUp(e)   { return this.#editCtrl?.onResizeUp(e) ?? false; }
@@ -822,7 +825,7 @@ export class WorldCanvas extends CanvasBase {
       left, right, bottom, width: max_x - min_x, depth: max_z - min_z, color,
     });
 
-    if (RESIZABLE_TYPES.has(node.type)) this.#editCtrl.renderHandles(node);
+    if (RESIZABLE_TYPES.has(node.type) && !this._readOnly) this.#editCtrl.renderHandles(node);
   }
 
   // ── anchors ────────────────────────────────────────────────────────────────
