@@ -195,7 +195,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **No inline style sets a design value (`C80`).** Spacing is a modifier class in the component's stylesheet
   (`panel-list--separated`, `meter--separated`, …); what remains inline is a runtime value handed to a class
   as a custom property, one name per concept (`--swatch` for every swatch, `--meter-level`, `--pin-x`/`--pin-y`,
-  `--head-size`/`--skin`). `DetailHeader` takes an `IconTint` where it took a style string.
+  `--head-size`/`--head-image`). `DetailHeader` takes an `IconTint` where it took a style string.
 - **One stylesheet per component (`C81`).** `components.css` is the list of imports, in cascade order, over
   one file per component under `css/studio/components/` (`buttons.css`, `form-fields.css`, `canvas-dock.css`, …); every
   page renders pixel-identical in both themes, and a design direction restyles a component by opening its file.
