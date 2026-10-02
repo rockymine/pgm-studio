@@ -504,8 +504,11 @@ carries its own whole-course rise and no slab is cut from one, so `roofSlab` ove
 **A stair roof steps in stairs, and that is the other way a whole-course roof closes its steps.** Naming a
 **roof stair** on the style lays it on top of every column, climbing toward the neighbour the roof covers whose
 surface stands highest — across the ridge first where two stand equally high — so the slope reads as a run of
-steps rather than a staircase of cubes. A column with nothing higher beside it is the ridge, a hip line or a flat
-lid, and stays a whole block. The rim takes the stair cut from the verge (`BlockMaterials.StairOf`), or the
+steps rather than a staircase of cubes. The ridge is finished by its width (author): on a ridge **two blocks
+wide** each half is a stair climbing toward the other, so the two meet in a peak; on one **a block wide** a whole
+block stands too sharp, so the ridge is the column's slab, and at the gable the stair hung under it is turned
+out along the ridge rather than down either slope, which from the end reads as a whole block under the slab. A
+hip line and a flat lid, with nothing higher beside them, stay whole blocks. The rim takes the stair cut from the verge (`BlockMaterials.StairOf`), or the
 body's where the verge has none, which is the rule the slab already follows. A roof climbs in halves or in
 stairs and never both, so the slab wins wherever a wing names one, and `HS3` refuses a style naming both.
 

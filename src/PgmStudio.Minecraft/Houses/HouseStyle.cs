@@ -312,8 +312,9 @@ public sealed record RoofStyle
     /// <summary>The stair a roof laid in whole courses steps in, or -1 for one laid in cubes.
     ///
     /// <para>Naming one lays this stair on top of every column, climbing toward the slope's higher
-    /// neighbour, so the slope reads as a run of steps rather than of blocks; a column with nothing higher
-    /// beside it — the ridge, a hip line, a flat lid — stays a whole block. Under every column hanging outside
+    /// neighbour, so the slope reads as a run of steps rather than of blocks. A ridge two blocks wide is two
+    /// stairs climbing toward each other, one a block wide is the column's slab, and a hip line or a flat lid
+    /// stays a whole block. Under every column hanging outside
     /// the building it lays the same stair upside down and turned the other way, so the rake and the eave
     /// have one block of depth all the way down; the lowest course of each slope takes none. A rim column's
     /// stair is cut from the verge where the verge has one. A roof climbing by halves is laid in its

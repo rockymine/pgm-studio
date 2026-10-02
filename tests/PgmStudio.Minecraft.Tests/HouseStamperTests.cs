@@ -459,6 +459,31 @@ public sealed class HouseStamperTests
         await Assert.That(Leaks(world, 13, 9)).IsFalse();
     }
 
+    /// <summary><b>A ridge one block wide is a slab, and two blocks wide is two stairs meeting.</b> A whole block
+    /// on a single ridge stands too sharp; the slab finishes it, and at the gable a stair hung upside down and
+    /// turned out along the ridge sits under it, which from the end reads as a whole block under the slab. On a
+    /// ridge two blocks wide each half climbs toward the other.</summary>
+    [Test]
+    public async Task A_stair_roofs_ridge_is_a_slab_on_one_block_and_two_stairs_on_two()
+    {
+        var single = House(13, 9, StairRoof());
+        var ridge = Top(single, 6, 4);
+        await Assert.That(ridge.Id).IsEqualTo(Blocks.WoodenSlab);
+        await Assert.That(ridge.Data).IsEqualTo(0);
+        var west = Top(single, -1, 4);
+        await Assert.That(BlockFamilies.IsSlab(west.Id)).IsTrue();
+        await Assert.That(single.GetBlock(-1, west.Y - 1, 4))
+            .IsEqualTo((DarkOakStairs, Blocks.StairWest | Blocks.StairUpsideDown));
+        var east = Top(single, 13, 4);
+        await Assert.That(single.GetBlock(13, east.Y - 1, 4))
+            .IsEqualTo((DarkOakStairs, Blocks.StairEast | Blocks.StairUpsideDown));
+
+        var paired = House(13, 10, StairRoof());
+        await Assert.That(Top(paired, 6, 4)).IsEqualTo((Top(paired, 6, 4).Y, Blocks.OakStairs, Blocks.StairSouth));
+        await Assert.That(Top(paired, 6, 5)).IsEqualTo((Top(paired, 6, 4).Y, Blocks.OakStairs, Blocks.StairNorth));
+        await Assert.That(Leaks(paired, 13, 10)).IsFalse();
+    }
+
     /// <summary><b>Under the rake hangs the same stair upside down and turned the other way</b>, so the verge
     /// has one block of depth all the way up — except the lowest course of each slope, which has nothing below
     /// it to meet. The verge overhang at x −1 is where it shows.</summary>
