@@ -1,0 +1,121 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   LIST ROWS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 4px;
+  min-height: 34px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--radius-sm);
+}
+.list-row:hover     { background: var(--bg-selected-hover); }
+a.list-row          { color: inherit; text-decoration: none; }
+.list-row--selected {
+  background: var(--bg-selected);
+  box-shadow: var(--shadow-ring);
+}
+.list-row--selected .list-label { color: var(--text-bright); }
+.list-row--compact  { min-height: 28px; padding: 5px 4px; gap: 8px; }
+.list-row--muted    { pointer-events: none; }
+
+.list-swatch {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-swatch);
+  display: inline-block;
+}
+
+.list-label {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-label--mono { font-family: ui-monospace, monospace; font-size: var(--font-base); }
+
+.list-tag { font-size: var(--font-sm); color: var(--text-muted); flex-shrink: 0; }
+
+.list-empty {
+  padding: 10px 12px;
+  font-size: var(--font-base);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* A row that carries its own inline action: the row takes the free width and the action sits beside
+   it, so the control is never nested inside the row's link. */
+.list-row-pair { display: flex; align-items: center; gap: var(--space-2); }
+.list-row-pair > .list-row { flex: 1; min-width: 0; }
+
+/* A list of action-carrying rows. One grid whose second column is sized to the widest action and
+   shared by every row, so a row that has no action still lays its content out at the same width as one
+   that does — the rows' labels are flex-sized, so an unreserved column ragged-edges the whole list.
+   Each pair dissolves into the grid (display: contents) to put both of its parts in that grid. Every
+   row must still emit its action cell, empty or not, or auto-placement takes the column. */
+.panel-list--actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: var(--space-2);
+}
+.panel-list--actions > .list-row-pair { display: contents; }
+.panel-list--actions > .list-empty { grid-column: 1 / -1; }
+
+/* The map overview's layer cell — one link per authoring layer the map holds, right-aligned in the
+   reserved column. An imported world has only Configure; a planned, sketched, configured map has all
+   three, and each goes straight to that tool. --now marks the layer the map's stage currently names, so a
+   row says where the map stands as well as where it can be opened. */
+.map-row-action { display: flex; justify-content: flex-end; }
+
+.map-artifacts { display: flex; justify-content: flex-end; gap: var(--space-1); flex-wrap: wrap; }
+
+.map-layer {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color .12s, border-color .12s, background .12s;
+}
+
+.map-layer:hover { color: var(--text-bright); border-color: var(--text-muted); }
+
+.map-layer--now {
+  color: var(--text-bright);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Container for a vertical stack of .list-row elements inside a panel */
+.panel-list { padding: 4px 0; }
+
+/* The layers panel: the active row highlighted, and a delete inline at its end. */
+.list-row--active { background: var(--accent-light); border-left: 2px solid var(--accent); }
+.list-row-btn { margin-left: auto; display: inline-flex; align-items: center; background: none; border: none;
+  color: var(--text-muted); cursor: pointer; padding: 2px; border-radius: 3px; }
+.list-row-btn:hover { color: var(--error, var(--text)); background: var(--surface-2, transparent); }
+
+.canvas-surface {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+.canvas-surface--svg > svg,
+svg.canvas-surface { display: block; width: 100%; height: 100%; }
+
+/* A map row leads with the name a reader knows it by; the slug is the address, quieter after it. */
+.map-row-name { font-weight: 600; color: var(--text-bright); }
+.map-row-slug { color: var(--text-muted); font-size: var(--font-sm); }

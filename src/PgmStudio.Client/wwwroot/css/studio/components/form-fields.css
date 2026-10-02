@@ -1,0 +1,83 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   FORM FIELDS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.field { display: flex; flex-direction: column; gap: var(--space-1); }
+.field-row { display: flex; gap: var(--space-3); }
+.field-row > .field { flex: 1; }
+
+/* Icon-tile chooser — a row of clickable tiles replacing a select (footprint, symmetry mode). The
+   thumbnails are SVG geometry in the canvas-add colours, so a tile reads as the shape it stands for. */
+.choice-row { display: flex; gap: var(--space-2); }
+.choice-tile {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+  padding: var(--space-2) var(--space-1);
+  background: var(--surface-2, var(--surface)); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted); font-size: var(--font-xs);
+}
+.choice-tile:hover { border-color: var(--accent); color: var(--text); }
+.choice-tile--active {
+  border-color: var(--accent); color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 12%, transparent);
+}
+.choice-thumb { width: 100%; height: 30px; }
+.choice-fill    { fill: var(--canvas-add-fill); stroke: var(--canvas-add-stroke); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.choice-outline { fill: none; stroke: var(--canvas-add-stroke); stroke-width: 1.2; stroke-dasharray: 3 2; vector-effect: non-scaling-stroke; }
+.choice-axis    { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; }
+.choice-dot     { fill: var(--text-muted); }
+.choice-name { line-height: 1; white-space: nowrap; }
+.field--compact { flex: 0 0 64px !important; }
+
+.field-label { font-size: var(--font-sm); color: var(--text-secondary); user-select: none; }
+.field-required { color: var(--color-error); }
+/* A muted note after the label ("hides a player, so it is mirrored"). The margin is the separator rather
+   than a space in the markup: Razor drops whitespace between an expression and the code block that follows
+   it, so a hint written as bare text renders flush against its label. */
+.field-hint { margin-left: var(--space-1); font-size: var(--font-xs); color: var(--text-muted); }
+/* Split label row — label text left, a live value readout right (range sliders, counters). */
+.field-label--split { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.field-label--split strong { color: var(--text-bright); }
+/* Full-width range slider tinted to the accent. */
+.field-range { width: 100%; accent-color: var(--accent); }
+
+.field-value {
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field-input {
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: var(--font-md);
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.field-input:focus     { border-color: var(--accent); }
+.field-input--textarea { resize: vertical; min-height: 34px; line-height: 1.4; }
+.field-input--error    { border-color: var(--color-error) !important; }
+.field-error {
+  margin-top: var(--space-1);
+  color: var(--color-error);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+}
+
+.field-pick-row { display: flex; align-items: center; gap: var(--space-2); }
+.field-pick-row .field-input { flex: 1; }
+.field-swatch {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  border: 1px solid var(--border-swatch);
+}

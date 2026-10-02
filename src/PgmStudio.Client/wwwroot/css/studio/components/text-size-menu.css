@@ -1,0 +1,7 @@
+/* The text-size menu in the studio bar: the account menu's surface, narrower, with the current size ticked. */
+.app-nav .text-size .topbar-icon-btn { color: var(--nav-text); }
+.app-nav .text-size .topbar-icon-btn:hover { color: var(--nav-text-strong); background: var(--nav-hover); }
+.text-size-menu { width: calc(150px * var(--ui-scale)); }
+.text-size-menu .account-menu-item { justify-content: space-between; }
+.text-size-item--on { color: var(--text-strong); font-weight: 600; }
+.text-size-check { color: var(--accent-light); }

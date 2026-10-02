@@ -1,0 +1,50 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   COORDINATE INPUT WIDGET  (prefixed numeric field — X/Z/R labels)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.coord-input {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: ui-monospace, monospace;
+  font-size: var(--font-base);
+  font-variant-numeric: tabular-nums;
+  padding: 3px 6px;
+  text-align: right;
+  width: 68px;
+  outline: none;
+}
+.coord-input:focus { border-color: var(--accent); }
+
+.coord-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.coord-field:focus-within { border-color: var(--accent); }
+.coord-prefix {
+  font-size: var(--font-xs);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 4px 0 8px;
+  user-select: none;
+  flex-shrink: 0;
+}
+.coord-field .coord-input {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  padding: 3px 8px 3px 2px;
+  text-align: right;
+}
+.coord-field .coord-input:focus { border-color: transparent; }

@@ -164,7 +164,7 @@
   /* ── Icon sizes ──────────────────────────────────────────────────────── */
   /* A lucide glyph's box. The app named eight sizes (11 · 13 · 14 · 15 · 16 · 20 · 22 · 24px) across twenty
    * rules with no scale behind them; these are the five they collapse to. --icon-md is the default, applied
-   * to every glyph by the `svg.lucide` rule in components.css — studio.js sets the same number as an
+   * to every glyph by the `svg.lucide` rule in components/icons.css — studio.js sets the same number as an
    * attribute so a glyph is never briefly lucide's own 24px before the stylesheet lands. */
   --icon-xs: calc(13px * var(--ui-scale));   /* dense chrome — a close ✕, a step chip, a search adornment */
   --icon-sm: calc(14px * var(--ui-scale));   /* inline with a line of text — tray labels, footer links */

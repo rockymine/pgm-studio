@@ -188,6 +188,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   and quiets its slug; the not-found page has a heading and a way back; the plan tool's crumb names the plan;
   change history names the documents a change wrote as *sketch* and *game settings*; the plan sidebar's three
   panels are one even switch; and an In-game phase with no block textures says so in a callout.
+- **One stylesheet per component (`C81`).** `components.css` is the list of imports, in cascade order, over
+  36 files under `css/studio/components/` (`buttons.css`, `form-fields.css`, `canvas-dock.css`, …); every
+  page renders pixel-identical in both themes, and a design direction restyles a component by opening its file.
 - **Panning looks like panning (`C75`).** The pan tool shows an open hand over every canvas and a closed one
   while the view is dragged, middle-button drags included (`canvas--pan`, `canvas--panning`).
 - **Three browser specs describe the tools the studio has (`TN17`, `TN18`, `TS106`).** Nothing had run the

@@ -605,10 +605,6 @@ is the standard the copy is held to.
   already uses; a value computed at runtime (a width, a swatch colour) stays inline as a custom property the
   class reads. `docs/client/ui-conventions.md`.
 
-- [ ] **C81 — `components.css` split by component.** One 2,122-line file holds 27 component sections. Each
-  section moves to its own file under `wwwroot/css/studio/components/`, loaded in the same cascade order, so a
-  direction restyles a component by opening its file. `docs/client/ui-conventions.md`.
-
 - [ ] **C82 — Every canvas colour is a token.** The canvas JS draws a few colours as literals
   (`plan-canvas.js`'s offender and bound strokes, the `#…` fallbacks beside `var(--…)`), so a theme cannot
   reach them. Each becomes a `--canvas-*` token in `tokens.css` with a light value; Minecraft's own colour

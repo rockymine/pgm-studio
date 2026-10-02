@@ -10,6 +10,11 @@ How the copy on a panel is worded is `writing-for-the-ui.md`.
 Read alongside:
 - `../../src/PgmStudio.Client/wwwroot/css/studio/tokens.css` — the custom properties. A component never
   hardcodes a colour, a space or a radius; it emits classes that resolve to tokens.
+- `../../src/PgmStudio.Client/wwwroot/css/studio/components/` — one stylesheet per shared component
+  (`buttons.css`, `form-fields.css`, `canvas-dock.css`, …). `components.css` beside it is only the list of
+  imports, in cascade order: `icons.css` first, because a context rule such as `.thing svg` has the
+  specificity of `svg.lucide` and only source order decides between them. A new component gets its own file
+  and a line in that list; restyling a component means opening its file.
 - `canvas-interaction.md` — the canvas primitive palette, a separate visual system for things drawn on a
   canvas rather than laid out in the DOM.
 - The `/design` page (`Pages/Design.razor`) is the living style guide, and it renders the **real** components
