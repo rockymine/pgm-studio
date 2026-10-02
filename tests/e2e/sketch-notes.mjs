@@ -27,8 +27,8 @@ const views = await api(`/map/${draft.slug}/views`);
 
 if (views.undrawable) {
   checks.section("no block textures: the phase says why, and there is nothing to write on");
-  await page.waitForSelector(".ingame__note--warn", { timeout: 60000 });
-  const said = (await page.locator(".ingame__note--warn").textContent()) ?? "";
+  await page.waitForSelector(".ingame .callout", { timeout: 60000 });
+  const said = (await page.locator(".ingame .callout").textContent()) ?? "";
   checks.add("the phase names the missing textures", said.includes("textures"), said.trim());
   console.log("  SKIP  the notes themselves — this studio has no block textures to draw a picture with");
 } else {
@@ -73,7 +73,7 @@ if (views.undrawable) {
   const latest = (await api(`/map/${draft.slug}/changes`)).changes.at(-1).number;
 
   const point = async () => {
-    await page.click('[aria-label="Point: pin a note to one block"]');
+    await page.click('[aria-label="Point: pin a note to a block"]');
     const trap = page.locator(".ingame__trap");
     const box = await trap.boundingBox();
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
