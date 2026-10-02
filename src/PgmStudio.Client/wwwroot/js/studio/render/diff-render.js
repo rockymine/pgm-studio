@@ -9,10 +9,10 @@ const OUTLINE = ["type", "operation", "min_x", "min_z", "max_x", "max_z", "cente
   "vertices", "controls", "stroke_edge", "stroke_seed"];
 
 const SHAPE_COLOURS = {
-  added: "var(--canvas-diff-added, #22c55e)",
-  removed: "var(--canvas-diff-removed, #ef4444)",
-  reshaped: "var(--canvas-diff-reshaped, #f59e0b)",
-  changed: "var(--canvas-diff-changed, #38bdf8)",
+  added: "var(--canvas-diff-added)",
+  removed: "var(--canvas-diff-removed)",
+  reshaped: "var(--canvas-diff-reshaped)",
+  changed: "var(--canvas-diff-changed)",
 };
 
 const PROP_COLOURS = {
@@ -23,9 +23,9 @@ const PROP_COLOURS = {
 };
 
 const RUN_COLOURS = {
-  ground: "var(--canvas-diff-ground, #e8a33d)",
-  surface: "var(--canvas-diff-surface, #3db8e8)",
-  structure: "var(--canvas-diff-structure, #d04dd0)",
+  ground: "var(--canvas-diff-ground)",
+  surface: "var(--canvas-diff-surface)",
+  structure: "var(--canvas-diff-structure)",
 };
 
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);

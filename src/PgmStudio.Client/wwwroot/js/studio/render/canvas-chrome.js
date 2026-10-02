@@ -72,8 +72,8 @@ export function unionRect(a, b) {
 export function paintWorkArea(painter, area, { strokeAlpha = 0.45 } = {}) {
   if (!area) return;
   painter.rect(area, {
-    fill: "var(--canvas-ink, #ffffff)", fillAlpha: 0.05,
-    stroke: "var(--canvas-axis, #a78bfa)", strokeAlpha, width: 1.5,
+    fill: "var(--canvas-ink)", fillAlpha: 0.05,
+    stroke: "var(--canvas-axis)", strokeAlpha, width: 1.5,
   });
 }
 

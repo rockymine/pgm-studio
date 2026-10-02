@@ -14,10 +14,13 @@ import { applySymmetry, applySymmetryToBounds, orbitAxes } from "../geometry/sym
 // Piece roles — the drawable-role set. Pieces are anonymous by default (one neutral tint); the two
 // intent-bearing generating roles (wool-room / spawn) keep distinct tints. One non-generating annotation
 // produces no terrain: `buffer` (reserved empty space — lane spacing / holes, drawn hatched). Colours are
-// theme-independent so a piece reads the same on the dark canvas in either theme; the fill is tinted lighter
-// for a higher surface. Retired role names (lane/hub/mid/connector) map to "piece" on load.
+// tokens in tokens.css; the fill is tinted lighter for a higher surface. Retired role names
+// (lane/hub/mid/connector) map to "piece" on load.
 export const ROLES = ["piece", "wool-room", "spawn", "buffer"];
-export const ROLE_COLORS = { piece: "#7c8899", "wool-room": "#3fae74", spawn: "#8f7bd6", buffer: "#f2792b" };
+export const ROLE_COLORS = {
+  piece: "var(--canvas-role-piece)", "wool-room": "var(--canvas-role-wool-room)",
+  spawn: "var(--canvas-role-spawn)", buffer: "var(--canvas-role-buffer)",
+};
 export const ROLE_LABELS = { piece: "Piece", "wool-room": "Wool room", spawn: "Spawn", buffer: "Buffer" };
 
 // The generating (terrain-producing) roles vs the non-generating annotation roles — the G48 palette grouping.
@@ -32,7 +35,10 @@ export function canonicalRole(role) { return ROLES.includes(role) ? role : "piec
 // drawing one cannot change what a plan builds. Each kind's colour echoes what it groups (a wool box the
 // wool-room green, a spawn box the spawn purple); an unknown kind loads as the unclassified `mid`.
 export const BOX_KINDS = ["hub", "wool", "spawn", "frontline", "mid"];
-export const BOX_COLORS = { hub: "#4ea3d8", wool: "#3fae74", spawn: "#8f7bd6", frontline: "#e0714a", mid: "#9aa7b4" };
+export const BOX_COLORS = {
+  hub: "var(--canvas-box-hub)", wool: "var(--canvas-box-wool)", spawn: "var(--canvas-box-spawn)",
+  frontline: "var(--canvas-box-frontline)", mid: "var(--canvas-box-mid)",
+};
 export const BOX_LABELS = { hub: "Hub", wool: "Wool", spawn: "Spawn", frontline: "Frontline", mid: "Mid" };
 
 // Zone kinds — both are a rect over the void saying where players may bridge; they differ in *when*. A build
@@ -41,7 +47,7 @@ export const BOX_LABELS = { hub: "Hub", wool: "Wool", spawn: "Spawn", frontline:
 // left out of the buildable region, and out of every derivation that describes the starting board. The default
 // is not stored: a build zone writes no `kind` at all.
 export const ZONE_KINDS = ["build", "water-lane"];
-export const ZONE_COLORS = { build: "#5b9cff", "water-lane": "#2563eb" };
+export const ZONE_COLORS = { build: "var(--accent)", "water-lane": "var(--canvas-zone-water-lane)" };
 export const ZONE_LABELS = { build: "Build zone", "water-lane": "Water lane" };
 
 /** Fold a raw (possibly absent or unknown) zone kind down to a canonical one; anything unrecognised → build. */

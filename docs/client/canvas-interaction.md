@@ -46,6 +46,24 @@ primitives whose call sites take plain numbers: `text`, `dot`, `line`. The box-s
 for the plan's x/z axes while this surface's second axis is elevation, so `min_z` would name a Y — those
 draws are raw context calls inside a `layer()` phase, which brackets them in save/restore.
 
+**Every colour a canvas draws in is a token, except the game's own.** The axis, a piece role, a box kind, a
+zone, an objective, a building, a dressing prop, a seam, rule evidence, a diff and a refused drop are each a
+`--canvas-*` custom property in `css/studio/tokens.css`: the dark value in `:root`, and a light one under
+`:root[data-theme="light"]` wherever the dark one loses its contrast on the light viewport. A layer writes
+`var(--canvas-…)` with no fallback beside it, so the stylesheet is the one source. An svg attribute takes the
+reference as it stands; the painter resolves it through `token` and drops its cache when `data-theme` moves.
+
+The per-kind tables name those tokens rather than colours: `ROLE_COLORS`, `BOX_COLORS` and `ZONE_COLORS` in
+`plan/plan-doc.js`, `OBJECTIVE_COLORS`, `BUILDING_COLORS`, `UNKNOWN_KIND_COLOR` and `REFUSED_COLOR` in
+`render/primitive-style.js`, and `KIND_STYLE` in `render/dressing-render.js`. The role tokens stay `#rrggbb`,
+because the plan resolves one and tints it towards white by the piece's surface height.
+
+Three kinds of colour stay literal. Minecraft's chat and dye colours are game data: `render/palette.js`
+mirrors `game-colors.json`, which the C# reads too, under a drift test, and a team, a wool or a monument is
+drawn in its own. A height ramp — the plan's height map, the relief marks, the side view's depth shading — is
+a function of a value whose stops sit beside it. And the painter's fallback for a token it cannot read is a
+literal, because it is what paints when the token is missing.
+
 ## 2. Five layers, one direction
 
 Modules are grouped by archetype, and imports run strictly **downward** — verified, with no cycles:

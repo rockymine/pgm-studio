@@ -191,6 +191,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **One stylesheet per component (`C81`).** `components.css` is the list of imports, in cascade order, over
   36 files under `css/studio/components/` (`buttons.css`, `form-fields.css`, `canvas-dock.css`, …); every
   page renders pixel-identical in both themes, and a design direction restyles a component by opening its file.
+- **Every canvas colour is a token (`C82`).** Piece roles, box kinds, objectives, buildings, props, seams, rule
+  evidence and refused drops are `--canvas-*` tokens in `tokens.css`, read by the canvas JS with no fallback
+  beside them; the light theme darkens the three that lost contrast on its viewport (the mid box, the rule
+  limit, the side-view marker ring). Minecraft's chat and dye tables and the height ramps stay literal.
 - **Panning looks like panning (`C75`).** The pan tool shows an open hand over every canvas and a closed one
   while the view is dragged, middle-button drags included (`canvas--pan`, `canvas--panning`).
 - **Three browser specs describe the tools the studio has (`TN17`, `TN18`, `TS106`).** Nothing had run the

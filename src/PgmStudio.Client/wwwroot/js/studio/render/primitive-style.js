@@ -29,13 +29,20 @@ export const opColors = (operation) => (operation === "subtract" ? OP_COLORS.sub
 /** What each objective is drawn in, wherever one is drawn — the plan places them and the sketch shows where
  *  they landed, so the two read as the same thing rather than as two conventions. */
 export const OBJECTIVE_COLORS = {
-  spawn: "#e0b13c", wool: "#e6e6e6", iron: "#9aa7b4", destroyable: "#6b4f9e", core: "#d4622a",
+  spawn: "var(--canvas-objective-spawn)", wool: "var(--canvas-objective-wool)", iron: "var(--canvas-objective-iron)",
+  destroyable: "var(--canvas-objective-destroyable)", core: "var(--canvas-objective-core)",
 };
 
 /** What a building is drawn in, wherever it came from. A room's footprint is the single-wing case of the
  *  building an author draws in the Dressing phase, so a house dressed onto the ground and the shell raised on
  *  a spawn or wool room read as one kind of thing and not as two. */
-export const BUILDING_COLORS = { fill: "#b08050", stroke: "#7d5732" };
+export const BUILDING_COLORS = { fill: "var(--canvas-building-fill)", stroke: "var(--canvas-building-stroke)" };
+
+/** What a thing whose kind has no colour of its own is drawn in. */
+export const UNKNOWN_KIND_COLOR = "var(--canvas-kind-unknown)";
+
+/** What a drop or a drag the canvas will refuse is drawn in. */
+export const REFUSED_COLOR = "var(--canvas-refused)";
 
 /**
  * @param {string} treatment  — one of the treatments above.
