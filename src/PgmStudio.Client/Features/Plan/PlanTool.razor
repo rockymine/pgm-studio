@@ -66,6 +66,7 @@
     </NavRail>
   </Rail>
   <ChildContent>
+      <WriteGate OnChanged="OnWriteReason" />
       @if (InfoActive)
       {
         <PlanInfoPhase @key="@Slug" Slug="@Slug" OnNext="GoDraw"
@@ -93,7 +94,7 @@
             </div>
             @if (leftPanel == "settings")
             {
-            <Section Title="Reference">
+            <Section Title="Reference" Writes>
               <Field Label="Trace over map">
                 <Select Slim="false" Options="TraceMapOptions" Placeholder="None" Value="@(refMap ?? "")"
                         ValueChanged="OnPickReferenceMap" />

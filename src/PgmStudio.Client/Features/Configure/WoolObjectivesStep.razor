@@ -43,7 +43,7 @@
           @if (AddableColors.Count > 0)
           {
             <Field Label="Add a wool">
-              <SwatchRow TKey="string" OnPick="AddWool"
+              <SwatchRow TKey="string" Writes OnPick="AddWool"
                          Swatches="@AddableColors.Select(d => new SwatchRow<string>.Swatch(W.NormColor(d.Value), d.Hex, d.Label)).ToList()" />
             </Field>
           }

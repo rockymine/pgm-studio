@@ -45,7 +45,7 @@
         @if (AddableColors.Count > 0)
         {
           <Field Label="Add a team">
-            <SwatchRow TKey="string" OnPick="AddTeam"
+            <SwatchRow TKey="string" Writes OnPick="AddTeam"
                        Swatches="@AddableColors.Select(c => new SwatchRow<string>.Swatch(c.Value, c.Hex, c.Label)).ToList()" />
           </Field>
         }
@@ -77,7 +77,7 @@
         </ChildContent>
       </Section>
 
-      <Section Title="Team size and kit">
+      <Section Title="Team size and kit" Writes>
         <div class="section-body">
           <Field Label="Max players">
             <LabelHint><span class="list-tag">per team</span></LabelHint>

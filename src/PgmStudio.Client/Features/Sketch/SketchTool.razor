@@ -41,6 +41,7 @@
     </NavRail>
   </Rail>
   <ChildContent>
+      <WriteGate OnChanged="OnWriteReason" />
       @if (InfoActive)
       {
         <SketchInfoPhase Slug="@Slug" OnNext="GoDraw"

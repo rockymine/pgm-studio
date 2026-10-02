@@ -11,7 +11,7 @@
 
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openBrowser, newPage, clearFaults, Checks, readSeed, BASE } from "./lib/harness.mjs";
+import { openBrowser, newPage, clearFaults, Checks, readSeed, worldAimer, shapeAimPoints, BASE } from "./lib/harness.mjs";
 
 const seed = await readSeed();
 const checks = new Checks("access");
@@ -175,6 +175,59 @@ try {
     JSON.stringify(download));
   const exported = await fetch(`${invited}/api/map/${seed.sketchSlug}/export`);
   checks.add("the export itself is refused", exported.status === 401, String(exported.status));
+
+  checks.section("a signed-out visitor's sidebar and canvas change nothing");
+  await visit(invited, `/maps/${seed.sketchSlug}/sketch`);
+  await page.waitForSelector(".canvas-dock", { timeout: 20000 }).catch(() => {});
+  await page.waitForFunction(() => !!document.querySelector(".workspace-sidebar input.field-input"), null,
+    { timeout: 15000 }).catch(() => {});
+  const layerName = await page.evaluate(() => {
+    const input = document.querySelector(".workspace-sidebar input.field-input");
+    return input ? { disabled: input.matches(":disabled"), title: input.closest("fieldset")?.getAttribute("title") ?? "" } : null;
+  });
+  checks.add("the layer's name is greyed in the sidebar, and says why", layerName?.disabled === true
+    && /not signed in/.test(layerName.title), JSON.stringify(layerName));
+
+  // Pick a group from the sidebar, then drag it on the canvas with the select tool, from a point inside it. The
+  // canvas and its chrome are compared with the pointer resting where the drag ends both times, so a hover
+  // cannot be read as a move.
+  await page.click('.canvas-dock button[aria-label="Select"]').catch(() => {});
+  const stored = await fetch(`${invited}/api/map/${seed.sketchSlug}/sketch`).then(r => r.json());
+  const shapes = (stored?.layers?.[0]?.layout?.shapes ?? stored?.layout?.shapes ?? [])
+    .filter(shape => !shape.role && shape.operation !== "subtract");
+  const aim = await worldAimer(page);
+  const target = aim && shapes.flatMap(shape => shapeAimPoints(shape))[0];
+  const writes = [];
+  const onRequest = request => {
+    if (/^(PUT|PATCH|DELETE)$/.test(request.method()) && request.url().includes("/api/")) writes.push(`${request.method()} ${request.url()}`);
+  };
+  let picked = false, still = false;
+  if (target) {
+    const from = aim(target.x, target.z);
+    const to = { x: from.x + 90, y: from.y + 60 };
+    const chrome = () => page.evaluate(() =>
+      [...document.querySelectorAll('.svg-area svg [stroke-dasharray="5 3"]')]
+        .map(el => JSON.stringify(el.getBoundingClientRect())).join("|"));
+    await page.click(".workspace-sidebar .geo-row").catch(() => {});
+    await page.waitForTimeout(600);
+    await page.mouse.move(to.x, to.y);
+    await page.waitForTimeout(400);
+    const boxBefore = await chrome();
+    picked = boxBefore.length > 0;
+    const before = await page.locator(".svg-area").screenshot();
+    page.on("request", onRequest);
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(1500);   // longer than the save's debounce
+    const after = await page.locator(".svg-area").screenshot();
+    still = before.equals(after) && (await chrome()) === boxBefore;
+    page.off("request", onRequest);
+  }
+  checks.add("a group is still picked", picked, target ? "" : "no shape to aim at");
+  checks.add("dragging it moves nothing", picked && still);
+  checks.add("and sends nothing", writes.length === 0, writes.slice(0, 3).join(" | "));
 
   checks.section("a signed-out visitor is offered nothing that writes");
   await checkWrites(invited, false);

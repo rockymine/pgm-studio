@@ -2,7 +2,12 @@
 
 @* Hands a control that is not a Button why its write is closed, from the same "StudioWriteReason" and
    "StudioDeleteReason" a Button marked Writes or Deletes reads: null where the caller may, the reason where
-   not. The control disables itself on it and shows it as its tooltip. *@
+   not. The control disables itself on it and shows it as its tooltip.
+
+   OnChanged hands the same answer to code that cannot read the cascade itself: a tool renders its own
+   StudioShell, so the shell's cascade reaches the tool's markup and never the tool, and a canvas the tool
+   mounts is told through this whether it may change anything. It fires once the answer is first known and
+   again whenever it changes. *@
 
 @ChildContent?.Invoke(Closed)
 
@@ -10,8 +15,21 @@
     /// <summary>The control deletes a shared row, which only an admin may.</summary>
     [Parameter] public bool Deletes { get; set; }
     [Parameter] public RenderFragment<string?>? ChildContent { get; set; }
+    /// <summary>The reason changed: null where the caller may write, the reason where not.</summary>
+    [Parameter] public EventCallback<string?> OnChanged { get; set; }
     [CascadingParameter(Name = "StudioWriteReason")] public string? WriteReason { get; set; }
     [CascadingParameter(Name = "StudioDeleteReason")] public string? DeleteReason { get; set; }
 
     private string? Closed => Deletes ? DeleteReason : WriteReason;
+
+    private bool told;
+    private string? toldReason;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!OnChanged.HasDelegate || told && toldReason == Closed) return;
+        told = true;
+        toldReason = Closed;
+        await OnChanged.InvokeAsync(Closed);
+    }
 }

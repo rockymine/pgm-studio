@@ -113,7 +113,7 @@ Three shells answer the cascade. `Inspector` and `ContentColumn` put their conte
 which is the browser's own way of greying every input, select and button inside it at once; the library
 editor does the same over its name, fields and save. `DockGroup` is authoring unless it is marked `Viewing`,
 and an authoring group is not drawn on a read-only page — so select and pan stay, and every tool that draws
-goes. What the shells do not reach is recorded as `RP81`.
+goes.
 
 **An action that writes is marked as one, and closes where the caller may not write.** A `Button` marked
 `Writes` (a save, a *New*, an import, a build, a remove) reads the shell's `StudioWriteReason` cascade: where it
@@ -128,6 +128,19 @@ by everyone, so a `DELETE` of one is refused to anyone but an admin; a `Button` 
 `StudioDeleteReason` and closes the same way. A control that is not a `Button` (the generator's pin, the
 layer strip's add and remove) reads the same two answers through `WriteGate`, and a `FlowBar` whose Next
 writes takes `NextWrites`. Reading is never marked, so it stays open to a visitor.
+
+**A sidebar is greyed a control at a time, because it holds what is picked as well as what is changed.** A
+`Section` marked `Writes` (a sketch layer's name and base, the plan's reference trace, Configure's build height,
+team size and symmetry centre) puts its content in a disabled fieldset with the reason on hover. A `SwatchRow`
+marked `Writes` (adding a team or a wool) disables its swatches, and a `ListRow` marked `Writes` (a suggested
+core to confirm, the map's symmetry to choose) goes inert. The rows that only pick stay live.
+
+**A canvas is told whether it may change anything, and refuses at the source.** A component inside the shell
+reads `StudioWriteReason` and hands it to its canvas's `setReadOnly` (`WorldCanvas`, `SliceView`, the build
+height side view); a tool that renders the shell reads it through a `WriteGate`'s `OnChanged`. Read-only, a
+canvas pans, zooms, selects and measures, and begins no draw, drag, handle, placement, paint or chord that
+would change the document; the sketch marks nothing dirty, so nothing is saved or discarded
+(`canvas-interaction.md` §3).
 
 **Downloading a map builds it, so it is closed to a visitor too.** A map's export is made on request — the
 world written, the ZIP packed — and the server gives it the `member` policy (`docs/access.md`). A `Button`

@@ -172,7 +172,9 @@ sees one more box there, *May read and answer map notes*, and a token issued wit
 list.
 
 A page the caller may not write opens read-only: the tool's bar says *View only*, with the reason on hover, the
-panels grey their fields and the canvas keeps only the tools that look. Signed in, a read-only Sketch page
+panels and the sidebars grey every field that writes, and the canvas keeps only the tools that look: it pans,
+zooms, selects and measures, and a drag, a draw or a key that would change the map moves nothing and sends
+nothing. Signed in, a read-only Sketch page
 still draws the ground's relief, its paint and the 3-D preview; signed out, it draws the outlines alone.
 
 **An action the caller may not take is greyed wherever it sits, with the reason on hover.** That holds on a
@@ -346,10 +348,6 @@ The handler builds Discord's `redirect_uri` from the request it sees, so a studi
 honour `X-Forwarded-Proto`; the deployed one does, and `docs/deployment.md` says how.
 
 
-- **A read-only page still lets a few edits start.** The panels grey their fields, the dock drops its
-  drawing tools and every action that writes is greyed (`docs/client/ui-conventions.md`), but a sidebar's own
-  inputs and pickers and a select-and-drag on the canvas are not reached; each is refused by the server and
-  springs back. Closing them is `RP81`.
 - **A world already built still waits its turn.** The queue does not know that a request would be answered
   from the studio's store of built worlds in milliseconds, so a caller's second read of the same board waits
   behind their first.

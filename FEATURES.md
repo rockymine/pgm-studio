@@ -176,6 +176,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   Compile, the generator's Pin and Open in plan editor, and every save, build and remove in Sketch and
   Configure carry it, and `WriteGate` and `FlowBar.NextWrites` cover the controls that are not a `Button`.
   `access.mjs` checks both sides: open to the admin, closed to a visitor.
+- **A read-only page starts no edit, in a sidebar or on a canvas (`RP81`).** A `Section`, `SwatchRow` or
+  `ListRow` marked `Writes` greys or stills the sidebar controls that write (a layer's name and base, the
+  plan's reference trace, adding a team or a wool, a suggested core, the symmetry and its centre, build height
+  and team size), and the rows that only pick stay live. Every canvas takes `setReadOnly`: it pans, zooms,
+  selects and measures, and begins no draw, drag, handle, placement, paint or editing chord, and the sketch
+  marks nothing dirty, so nothing is saved or discarded. `access.mjs` drags a picked group as a visitor and
+  checks that nothing moved and nothing was sent.
 - **Downloading a map needs a whitelisted account (`C88`).** `GET /api/map/{slug}/export` builds the world it
   answers, so it is `[CostlyRead]` and takes the `member` policy like the posted sketch views; a visitor is
   refused `401`. A `Button` marked `Builds` reads `StudioBuildReason` and closes the same way: the sketch's

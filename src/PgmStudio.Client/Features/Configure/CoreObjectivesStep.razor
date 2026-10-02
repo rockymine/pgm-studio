@@ -43,7 +43,7 @@
             <div class="panel-list">
               @foreach (var proposal in proposals)
               {
-                <ListRow Compact @key="proposal" OnClick="() => Confirm(proposal)">
+                <ListRow Compact Writes @key="proposal" OnClick="() => Confirm(proposal)">
                   <span class="geo-type-icon text-muted"><i data-lucide="scan-search"></i></span>
                   <span class="list-label list-label--mono">@Where(proposal)</span>
                   <Badge Kind="dim">@proposal.Lava lava</Badge>
