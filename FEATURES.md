@@ -8456,8 +8456,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 - **A browser test for In game's notes (`TS139`)** — `tests/e2e/sketch-notes.mjs` writes a note, double-clicks
   Send for one note, replies, refuses a mark on a picture of a changed board and lands it after the redraw,
-  resolves a thread, opens one from `?note=` and follows its changes since into History. On a studio without
-  block textures it checks only that the phase says why. `docs/tools/sketch.md`. (`TS139`)
+  resolves a thread, opens one from `?note=` and follows its changes since into History. CI runs the sweep
+  with Mojang's EULA accepted and the client jar cached, so the notes are written on real pictures; a studio
+  without block textures checks only that the phase says why. `docs/tools/sketch.md`, `docs/cloud-setup.md`.
+  (`TS139`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning

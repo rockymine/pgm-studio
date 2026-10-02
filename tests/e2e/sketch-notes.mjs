@@ -6,8 +6,8 @@
  * since" open History.
  *
  * In game draws with Minecraft's block textures, which a studio has only when given them
- * (`Textures__AcceptMojangEula=true` or `Textures__Jar`). Without them there is no picture to write on, and the
- * spec checks only that the phase says why.
+ * (`Textures__AcceptMojangEula=true`, as CI runs it, or `Textures__Jar`). Without them there is no picture to
+ * write on, and the spec checks only that the phase says why.
  */
 
 import { openBrowser, newPage, Checks, readSeed, api, BASE } from "./lib/harness.mjs";

@@ -143,6 +143,10 @@ mariadb` (its default admin path, which works once `sudo service mariadb start` 
 minutes here over an already-built solution, every spec under `tests/e2e`; a cold tree adds the WASM build
 in front of it.
 
+**Run it with `Textures__AcceptMojangEula=true`, as CI does.** The In game phase draws with block textures
+(above), and without them `sketch-notes` can check only that the phase says why; with them it writes, answers
+and resolves notes on real pictures. CI keeps the downloaded jar in its cache, so Mojang is asked once.
+
 **One check fails where the container cannot reach Mojang.** A smoke-sweep route that shows the map's author row
 reads a 404 from `/api/minecraft/player?name=Notch`, which is the studio answering honestly: `Notch` is shaped like a
 Minecraft account, so the question is worth asking, and where `api.mojang.com` is unreachable there is no
