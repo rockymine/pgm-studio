@@ -285,6 +285,21 @@ public partial class SketchDressingInspector
         await RefreshPreview();
     }
 
+    /// <summary>The crops a flora spec sows; unstated is wheat, which is what the pass sows then.</summary>
+    private IReadOnlyList<string> Crops() =>
+        prop?["spec"]?[SpecFields.Crops] is JsonArray named && named.Count > 0
+            ? [.. named.Select(word => word?.GetValue<string>() ?? string.Empty)]
+            : [CropKinds.Wheat];
+
+    /// <summary>Sow or stop sowing one crop. The last one left stays, since a field sows at least one.</summary>
+    private Task ToggleCrop(string crop)
+    {
+        var crops = Crops().ToList();
+        if (crops.Contains(crop)) { if (crops.Count > 1) crops.Remove(crop); }
+        else crops.Add(crop);
+        return SetSpec(SpecFields.Crops, new JsonArray([.. CropKinds.All.Where(crops.Contains).Select(word => JsonValue.Create(word))]));
+    }
+
     private Task Delete() => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("deleteProp").AsTask();
 
     // ── a chest's stacks ─────────────────────────────────────────────────────────
@@ -495,6 +510,9 @@ public static class SpecFields
     public const string CactusShare = "cactusShare";
     public const string LilyShare = "lilyShare";
     public const string MushroomShare = "mushroomShare";
+    public const string CropShare = "cropShare";
+    public const string Crops = "crops";
+    public const string Ripeness = "ripeness";
 }
 
 /// <summary>The dressing toolbar's tools, named once. The canvas routes on these strings, so the button, the

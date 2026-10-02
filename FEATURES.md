@@ -8359,6 +8359,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   1.8 would drop it. Podzol grows the rest of its cover as any dirt does, and mycelium nothing else. The
   Dressing inspector offers the share. `docs/world-export/decoration.md` §3. (`WE157`)
 
+- **Crops on farmland (`WE160`)** — a flora area sows the farmland inside it at `cropShare`, which the
+  meadow's density field does not thin: square plots of the cover's patch size, each one of `crops` — wheat,
+  carrots or potatoes, wheat unstated — at `ripeness` up to a stage either side, a fifth of its cells a stage
+  behind, read at the folded cell so a mirrored board's fields are sown alike. Farmland grows nothing else.
+  The Dressing inspector offers the share, the crops and the ripeness. `docs/world-export/decoration.md` §3.
+  (`WE160`)
+
 - **Lily pads on open water (`WE156`)** — a flora area floats a lily pad on the open still water inside it at
   `lilyShare`, cut from a field at the cover's patch size so the pads gather in rafts as flowers gather in
   fields, and read at the folded cell so a mirrored board's halves float alike; a fluid's dry bed and beach grow nothing and lava floats

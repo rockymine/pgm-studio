@@ -267,6 +267,23 @@ meadow is lit past that every day. So on those two, `MushroomShare` of the cover
 mushroom, brown two in three and red the third; podzol grows the rest as any dirt does, and mycelium nothing
 else. The share is 0 unless stated, so a board that never asks grows none and its mycelium stays bare.
 
+**Farmland grows a crop and nothing else, and it is sown rather than grown wild.** Farmland is painted like
+any ground (`terrain-painting.md` `PT1`); on it, `CropShare` of the farmland itself carries a crop and the
+rest stays bare. The density field that thins a meadow does not read here, because a field is planted edge to
+edge, so `Coverage` leaves farmland alone. The field is cut into square plots `Scale` blocks across, read at the
+folded cell, and each plot is sown with one of `Crops` — `wheat`, `carrots` or `potatoes`, evenly; unstated is
+wheat — at `Ripeness` (0 just sown, 1 ready, the default) up to a growth stage either side, with a fifth of its
+cells a stage behind the plot. So one plot reads as one crop at one ripeness and a patchwork of plots as a
+farm, not as confetti. A crop is one block and walked through, so a goal's own ground grows it like any other
+cover. `CropShare` is 0 unless stated, so a board that never asks keeps its farmland bare.
+
+A worked flora prop sowing a field of wheat and potatoes, mostly ripe:
+
+```json
+{ "kind": "flora", "id": "fields", "seed": 3, "points": [[-20, -10], [20, -10], [20, 10], [-20, 10]],
+  "spec": { "cropShare": 0.95, "crops": ["wheat", "potatoes"], "ripeness": 0.8, "scale": 8 } }
+```
+
 **A cactus is one to four blocks tall and stands alone.** 1.8 breaks a cactus block with anything solid on any
 of its four sides, so its height — a hashed one to `DressingPalette.CactusTallest` (**4**) — is cut short at the
 first course that is hemmed in, and one hemmed in at its foot is not grown. Two cacti side by side break each

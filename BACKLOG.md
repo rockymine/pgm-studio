@@ -261,17 +261,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   parses Bukkit's (`WOOD`), so the prop needs one table between them. `docs/world-export/decoration.md` §8a;
   `docs/pgm/`.
 
-- [ ] **WE160 — Crops on farmland.** Farmland (60) is paintable ground today (`PT1`) and the palette knows
-  wheat (59), carrots (141) and potatoes (142), but nothing places a crop, so a field is bare brown cells or a
-  hand-stamped square. Add a crop share to `FloraSpec` (`DressingModel.cs`) beside `mushroomShare`, decided
-  the same way — by the block underfoot only (`Decorator.cs:837`, `DressingPalette.KeepsMushroom`): on farmland
-  the cover is a crop. It states the crop mix, and a growth-stage range (data 0–7) drawn per patch at the
-  cover's `scale` so a plot reads as one crop at one ripeness rather than confetti. Pumpkin and melon stems
-  (104, 105) are the same rule. Farmland is written at moisture 7. The Dressing inspector gets the slider, and
-  `docs/world-export/decoration.md` §3 the rule. *Author's question before building: is a crop field a player
-  tramples to dirt in a match acceptable, or does it want `keepClear` ground only?* *Evidence: no source
-  under `src/` places block 59, 141 or 142.*
-
 - [ ] **WE152 — A room's door width, stated by its style.** *Parked (author): what a stored `door_width` of 2
   means.* `WX7` cuts a room's door from its wall (`RoomFrames.DoorWidth`: 4 on an even interior of six or more,
   3 on an odd one, 2 at four across) and a style's `doorway.width` reaches only the dressing's houses. Honouring
