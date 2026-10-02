@@ -32,10 +32,3 @@
 .section-header--ruled { border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); }
 /* Compact add-button sizing when placed in any section header */
 .section-header .action-btn { padding: 2px 10px; font-size: var(--font-base); }
-
-/* Collapsible left-sidebar section — a <details> whose <summary> reads as a ruled section header, with a
-   caret that rotates when open. (No JS: native disclosure; Blazor doesn't render/touch the `open` attr.) */
-.panel-accordion > summary { cursor: pointer; list-style: none; }
-.panel-accordion > summary::-webkit-details-marker { display: none; }
-.panel-accordion > summary::after { content: "›"; color: var(--text-muted); transition: transform .15s ease; }
-.panel-accordion[open] > summary::after { transform: rotate(90deg); }

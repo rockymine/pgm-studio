@@ -152,7 +152,6 @@ a.lib-card-fig { text-decoration: none; }
   border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 4px;
 }
 
-
 /* The fields of the picked node — or of every node, on a document that does not nest. It is the widest
    column because it is the one being authored; the save bar sits against its foot, out of the scroll. */
 .lib-fields {

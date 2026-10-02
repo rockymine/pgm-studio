@@ -591,17 +591,6 @@ is the standard the copy is held to.
   one fixture folder of data read by one seeder, with one test that the seeded library equals the folder. A
   preset that is code because it is computed stays code and is named as such. `docs/tools/library.md` § the seed.
 
-- [ ] **C64 — What is left of the CSS that styles markup nobody renders.** The dashboard run is gone
-  (`FEATURES.md`); **54 of 598** selectors across the studio stylesheets are still matched by no `.razor`,
-  `.cs` or `.js` and are not a modifier a component composes at runtime — `components.css` **23**
-  (`panel-accordion`, the seven `choice-*`, `map-row-action`, `list-row-btn`), `editor.css` **18**
-  (`topbar-actions`, `topbar-changes-badge`, `map-svg`, `layer-item`, `page-placeholder`, `geo-label-input`)
-  and `design.css` **13** (the `gen-*` family). These are scattered rather than one surface, so each wants
-  its own look: a name here may be the last of a component that half-shipped rather than the leftover of one
-  that went. **Two traps.** A modifier whose stem is composed in C# — `action-btn--<variant>` — reads as dead
-  and is not, which is why the count excludes them. And a compound naming a live class inside a dead ancestor
-  reads as *live* and is not; `sidebar-import-row .field-input` was one, and a grep will never find the next.
-
 - [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
   `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,
   `PlanInspectDto:117`), and the two room families are the only ones naming a thing the rest of the studio

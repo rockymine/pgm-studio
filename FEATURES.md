@@ -231,6 +231,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   three. The tool gates its own Compile on the document arriving, and the spec waits on
   `POST /api/plan/inspect` answering ok rather than on `waitForTimeout(1500)`: a condition where a duration
   had been standing in for one. 18/18 inside a full `./tools/e2e.sh all`, twice.
+- **No stylesheet styles markup nobody renders (`C64`).** Every class and id the studio stylesheets name is
+  produced by a `.razor`, `.cs`, `.js` or `index.html`, either literally or as a modifier a component composes
+  at runtime; a compound naming a live class inside a dead ancestor went with its ancestor. **245 lines** left
+  ten stylesheets, among them the `choice-*` tile chooser, `panel-accordion`, `vis-btn`, the `detail-table`,
+  the `gen-*` organic demo, the bucket editor, the context menu, `history-entry` and `#history-panel`;
+  `detail-table.css`, `layer-options.css` and `visibility-toggle.css` emptied and were deleted.
 - **The master-detail dashboard's stylesheet goes with the page it styled (`C62`, `C64`).** `editor.css`
   carried a two-pane maps dashboard — a sidebar with search, URL import and a map list beside a detail pane
   with a thumbnail, an authors row and stacked actions — and `/maps` is `Pages/Maps.razor`, which draws a

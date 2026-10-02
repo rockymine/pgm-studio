@@ -16,7 +16,6 @@
   flex-wrap: wrap;
   gap: var(--space-1);
 }
-.detail-dot { width: 12px; height: 12px; border-radius: var(--radius-sm); flex-shrink: 0; }
 .detail-label {
   flex: 1;
   font-size: var(--font-md);

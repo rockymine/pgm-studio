@@ -168,7 +168,7 @@ table of corrections is a second place for a number to be wrong.
 | `B261` | 422 hand-maintained lines in `ThemeVocabulary.cs` | **542** | `wc -l src/PgmStudio.Client/Components/Terrain/ThemeVocabulary.cs` |
 | `A8` | the generator is 85 files, 11.5k lines | **90 files, 13,385 lines** | `find src/PgmStudio.Pgm/{Compose,Evaluate,Shapes,Derive,Plan} -name '*.cs'` |
 | `WE70` | six callers hardcode `true`; `DressingScope:216,218` | **ten** sites, of which **five are deliberate**: a plan carries no binding, so `PlanStructurePreview:60,74` and `PieceRoom:75,98` draw the shell a plan exports and `RoomStylePreview:42` previews a style. The three that read a built map were the defect (`FEATURES.md`) | `grep -rn "shellBound: true" src --include=*.cs` |
-| `C62` | `components.css:989–1004`; the grep "hits only that CSS" | **985–1001**, and the fourth site is a signpost comment rather than markup. Shipped (`FEATURES.md`); the wider reading it opened is `C64` | `grep -rn "map-author-" src/ tests/` |
+| `C62` | `components.css:989–1004`; the grep "hits only that CSS" | **985–1001**, and the fourth site is a signpost comment rather than markup. Shipped (`FEATURES.md`); the wider reading it opened, `C64`, shipped too | `grep -rn "map-author-" src/ tests/` |
 | `TE2` | `ObjectivePhase.razor.cs:201`, `:211`; `.razor:56` | **`:204`**, **`:212`**; **`:55`** — the file went with `TE3` | — |
 | `RP59` | every authored board takes six calls, because the one-call path reads as a re-import | `drive.py` stores through **one call**, under a stated slug — `PUT /map/{slug}/source` | `grep -n 'call("P' /media/sf_repos/pgm-studio-mapgen/tools/drive.py` |
 

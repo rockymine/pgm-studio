@@ -71,12 +71,8 @@ a.list-row          { color: inherit; text-decoration: none; }
 .panel-list--actions > .list-row-pair { display: contents; }
 .panel-list--actions > .list-empty { grid-column: 1 / -1; }
 
-/* The map overview's layer cell — one link per authoring layer the map holds, right-aligned in the
-   reserved column. An imported world has only Configure; a planned, sketched, configured map has all
-   three, and each goes straight to that tool. --now marks the layer the map's stage currently names, so a
-   row says where the map stands as well as where it can be opened. */
-.map-row-action { display: flex; justify-content: flex-end; }
-
+/* The map overview's layer cell: one link per authoring layer the map holds, right-aligned in the reserved
+   column, each going straight to that tool. --now marks the layer the map's stage currently names. */
 .map-artifacts { display: flex; justify-content: flex-end; gap: var(--space-1); flex-wrap: wrap; }
 
 .map-layer {
@@ -101,12 +97,6 @@ a.list-row          { color: inherit; text-decoration: none; }
 /* Container for a vertical stack of .list-row elements inside a panel */
 .panel-list { padding: 4px 0; }
 .panel-list--separated { margin-top: var(--space-3); }
-
-/* The layers panel: the active row highlighted, and a delete inline at its end. */
-.list-row--active { background: var(--accent-light); border-left: 2px solid var(--accent); }
-.list-row-btn { margin-left: auto; display: inline-flex; align-items: center; background: none; border: none;
-  color: var(--text-muted); cursor: pointer; padding: 2px; border-radius: 3px; }
-.list-row-btn:hover { color: var(--error, var(--text)); background: var(--surface-2, transparent); }
 
 .canvas-surface {
   flex: 1;

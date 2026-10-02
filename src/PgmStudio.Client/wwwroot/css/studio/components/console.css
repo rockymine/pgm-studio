@@ -9,11 +9,6 @@
   font-size: var(--font-xs); font-weight: 700; letter-spacing: .08em;
   text-transform: uppercase; color: var(--text-muted);
 }
-.console-clear-btn {
-  background: none; border: none; color: var(--text-muted); font-size: var(--font-sm);
-  cursor: pointer; font-family: inherit; padding: 0;
-}
-.console-clear-btn:hover { color: var(--text-secondary); }
 .console-output {
   background: var(--bg-base);
   border: 1px solid var(--bg-panel);
