@@ -188,6 +188,25 @@ test("dragging a placed prop moves it, and a press with nothing under it clears 
   assert.equal(tools.selectedId, null);
 });
 
+test("on a page that may not write, a prop is picked and nothing is placed, moved or reported changed", () => {
+  let editable = true, changed = 0;
+  const { doc, tools } = controller({ isEditable: () => editable, onChanged: () => changed++ });
+  tools.onMouseDown(10, 10, "dress:tree");
+  const id = tools.selectedId;
+  changed = 0;
+  editable = false;
+
+  tools.onMouseDown(30, 30, "dress:tree");
+  assert.equal(doc.props.length, 1);
+
+  tools.onMouseDown(10, 10, "select");
+  assert.equal(tools.selectedId, id);
+  tools.onMouseMove(16, 13, "select");
+  tools.onMouseUp();
+  assert.deepEqual([doc.byId(id).x, doc.byId(id).z], [10, 10]);
+  assert.equal(changed, 0);
+});
+
 test("a placement ends its tool, so the next click picks the prop instead of dropping another", () => {
   // The bug this replaced: the tree tool stayed armed, so clicking the tree you just placed planted a second
   // one on top of it and there was no obvious way to pick one up.

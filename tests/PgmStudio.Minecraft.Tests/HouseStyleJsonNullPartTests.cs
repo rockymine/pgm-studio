@@ -112,8 +112,8 @@ public sealed class HouseStyleJsonNullPartTests
     [Test]
     public async Task A_style_the_writer_produced_reads_back()
     {
-        var written = HouseStyleJson.Serialize(HousePresets.Cottage.Style);
+        var written = HouseStyleJson.Serialize(SeededHouses.Cottage);
 
-        await Assert.That(HouseStyleJson.Deserialize(written)).IsEqualTo(HousePresets.Cottage.Style);
+        await Assert.That(HouseStyleJson.Deserialize(written)).IsEqualTo(SeededHouses.Cottage);
     }
 }

@@ -82,6 +82,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // footprints; a prop was put somewhere, so the canvas owns the placements and this owns only the load/save.
   // Theme phase: the canvas is a selection surface only. Geometry is the Draw phase's to edit.
   let selectOnly = false;
+  // The caller may not write this map: the canvas refuses every edit at its source, the tools that change the
+  // board cannot be armed, the chords that do stand down, and nothing is marked dirty, so nothing is saved.
+  let readOnly = false;
+  const VIEW_TOOLS = new Set(["select", "move", "measure"]);
   // The theme a click paints while the Apply step is up; "" is no brush. Held here as well as on the canvas
   // because the assignment is the bridge's and the hit test is the canvas's.
   let themeBrush = "";
@@ -93,7 +97,17 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   const fire = (name, ...args) => fireTo(dotnetRef, name, ...args);
-  const markDirty = () => fire("OnDirty", uniqueGroups(groups).length);
+  const markDirty = () => { if (!readOnly) fire("OnDirty", uniqueGroups(groups).length); };
+
+  // Why the last point-level edit was not made, shown beside the layer bar for a few seconds and then taken
+  // down; null clears it at once.
+  const EDIT_NOTE_MS = 6000;
+  let editNoteTimer = null;
+  function noteEdit(message) {
+    clearTimeout(editNoteTimer);
+    fire("OnEditNote", message);
+    if (message) editNoteTimer = setTimeout(() => fire("OnEditNote", null), EDIT_NOTE_MS);
+  }
   const syncActive = () => { if (layers[active]) layers[active].shapes = canvas.getShapes(); };
 
   // A layer's groups from its shapes, settled against the ones it was loaded with (used for non-active
@@ -153,6 +167,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onMarkSelected:  () => fire("OnRelief", reliefState()),
     onReliefPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
     onShapeDeleted:  edit((id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); }),
+    // Taking a point out is one step, opened here because the key press that asks for it is not a pointer
+    // press and so has no step open yet; a refused removal changes nothing and costs none. Either way the
+    // author is told, because a key that does nothing reads as a dead key.
+    onVertexDelete:  (remove) => {
+      const result = history.step(remove);
+      if (result) noteEdit(result.refused ?? null);
+    },
     onShapePromote:  edit((id) => promoteShape(id)),
     onSplit:         edit((a, b) => splitAt(a, b)),
     // A view is not an edit to the board — it is kept beside it — so it is relayed rather than stepped.
@@ -547,7 +568,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   // Move the selection by whole blocks. A group moves as its shapes; a drilled shape moves alone.
   function nudge(dx, dz) {
-    if (selectOnly) return false;   // select-only: the arrows are a move, and moving belongs to Draw
+    if (selectOnly || readOnly) return false;   // select-only: the arrows are a move, and moving belongs to Draw
     return history.step(() => nudgeBy(dx, dz));
   }
 
@@ -583,11 +604,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     { id: "sketch.nudge16", keys: Object.keys(ARROWS).map(key => `shift+${key}`),
       label: "Move the selection 16 blocks", group: "Canvas", when: onCanvas, run: (e) => step(e, 16) },
     { id: "sketch.undo", keys: "mod+z", label: "Undo", group: "Everywhere",
-      when: onCanvas, inField: true, run: () => history.undo() },
+      when: () => onCanvas() && !readOnly, inField: true, run: () => history.undo() },
     { id: "sketch.redo", keys: ["mod+shift+z", "mod+y"], label: "Redo", group: "Everywhere",
-      when: onCanvas, inField: true, run: () => history.redo() },
+      when: () => onCanvas() && !readOnly, inField: true, run: () => history.redo() },
     { id: "sketch.duplicate", keys: "mod+d", label: "Duplicate the selected shape", group: "Canvas",
-      when: () => onCanvas() && !selectOnly && !!canvas.selectedId, run: () => duplicateSelected() },
+      when: () => onCanvas() && !selectOnly && !readOnly && !!canvas.selectedId, run: () => duplicateSelected() },
   ]);
 
   // ── undo ────────────────────────────────────────────────────────────────────────────────────────
@@ -916,6 +937,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   const handle = {
     setTool(tool)      {
+      if (readOnly && !VIEW_TOOLS.has(tool)) { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); return; }
       canvas.setActiveTool(tool === "select" ? "select" : tool);
       // Leaving select mode clears the selection — otherwise arrow-nudge keeps moving a shape that's no
       // longer visibly selected (you've switched to panning/drawing). Arrow-move is a select-mode action.
@@ -933,6 +955,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (selectOnly) canvas.setActiveTool("select");
     },
     setOperation(op)   { canvas.setOperation(op); },
+    // The caller may not write this map. An armed tool that changes the board is put down for select.
+    setReadOnly(on)    {
+      readOnly = !!on;
+      canvas.setReadOnly(readOnly);
+      if (readOnly && !VIEW_TOOLS.has(canvas.activeTool ?? "move")) { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); }
+    },
     // ── In game: the views kept, and the one being placed ──
     setViews(viewsJson) { try { canvas.setViews(JSON.parse(viewsJson)); } catch { canvas.setViews([]); } },
     setViewDraft(viewJson) { canvas.setViewDraft(viewJson ? JSON.parse(viewJson) : null); },

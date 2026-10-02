@@ -801,8 +801,9 @@ public static class SourceRules
     public const string UsesNoMaterial = "SR5";
 
     /// <summary>A refinement names a library row — a material, a theme, a room style, a prop style or a biome — by
-    /// a name no row of that kind carries, or one several rows carry, so there is no single row to copy.</summary>
-    /// <remarks>Name the row by a name the finding lists, or by its id where several rows share the name.</remarks>
+    /// a name or an id no row of that kind carries, so there is no row to copy. A name is one row of its kind,
+    /// compared without case.</summary>
+    /// <remarks>Name the row by a name the finding lists, or by its id.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Request)]
     public const string NamesNoLibraryRow = "SR6";
 

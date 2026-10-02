@@ -379,6 +379,8 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
 
   return {
     setTool(tool) { canvas.setTool(tool); },
+    // The caller may not write this plan: the canvas picks and measures, and changes nothing.
+    setReadOnly(on) { canvas.setReadOnly(on); },
     setRole(role) { canvasRole = ROLES.includes(role) ? role : "piece"; canvas.setPieceRole(canvasRole); },
     armBoxKind(kind) { canvasBoxKind = BOX_KINDS.includes(kind) ? kind : "hub"; canvas.setBoxKind(canvasBoxKind); },
     fit() { canvas.fit(); },

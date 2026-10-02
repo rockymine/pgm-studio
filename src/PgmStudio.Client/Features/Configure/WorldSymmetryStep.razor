@@ -13,21 +13,21 @@
         <div class="panel-list">
           @foreach (var m in Choices)
           {
-            <ListRow Compact Selected="selectedType == m.Type"
+            <ListRow Compact Writes Selected="selectedType == m.Type"
                  @key="m.Type" OnClick="() => Select(m.Type)">
               <span class="list-label">@SymmetryInfo.Label(m.Type)</span>
               <Badge Class="@(m.Confidence >= 0.999 ? "badge--success" : "badge--neutral")">@m.Confidence.ToString("P0")</Badge>
               @if (m.Type == primaryType) { <Badge Kind="dim">Detected</Badge> }
             </ListRow>
           }
-          <ListRow Compact Selected="selectedType is null"
+          <ListRow Compact Writes Selected="selectedType is null"
                @key="@("none")" OnClick="() => Select(null)">
             <span class="list-label">No symmetry</span>
           </ListRow>
         </div>
       </Section>
 
-      <Section Title="Centre">
+      <Section Title="Centre" Writes>
         <div class="field-row">
           <Field Label="X">
             <NumberField Value="centerX" ValueChanged="@(v => OnCenter(v, true))" Step="0.5" disabled="@(selectedType is null)" />

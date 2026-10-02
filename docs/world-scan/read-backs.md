@@ -640,14 +640,26 @@ too. A torch, lit or redstone, is crossed quads of its sprite, and one on a wall
 of its cell rather than leaning off the wall. Redstone wire is a sheet a sixteenth thick on the floor, in the
 cross sprite whatever it connects to, tinted by its power the way the game tints it, from a dull red at 0 to
 a bright one at 15. A carpet is a sheet of its wool, a lily pad a sheet in the game's one lily green, and a
-ladder and a vine a sheet against the side that holds them up. Those sheets are seen and never stood on: the
+ladder and a vine a sheet against the side that holds them up; a rail and a pressure plate are sheets on the
+floor, and iron bars join their neighbours the way a pane does. Those sheets are seen and never stood on: the
 eye stands on the floor under a carpet, and a sheet blocks no line of sight a framing eye is judged by.
+
+Doors, trapdoors, signs, buttons, levers and flower pots are drawn as the boards and boxes the game draws them
+as, turned by their data: a closed trapdoor is a three-texel slab at the bottom or top of its cell and an open
+one a sheet against its hinge side, a door a three-texel panel that swings about the hinge its upper half
+holds, a standing sign a post under a board turned to the nearest of four axes, a wall sign a board against
+the wall it hangs on, a button two texels deep on the face that holds it and a lever its cobblestone base. They
+share the sheets' treatment — seen, never stood on, never in the way of a line of sight. A hopper, a
+cauldron, an anvil, a bed, a cake, a snow layer, an enchanting table, an end portal frame, a daylight sensor
+and a skull are boxes with body to them and are stood on like a slab. A lever's handle, an end portal frame's
+eye, a cauldron's water, a skull's face and a rail's turn along its run are not drawn, and a skull wears the
+`stone` sprite because its texture is not a block sprite.
 
 A chest, a trapped chest and an ender chest are the game's box a sixteenth in from each side and fourteen
 sixteenths tall, wearing faces cut out of the jar's `entity/chest` textures — the lid's top, the lid over the
 base down each side, and the latch painted flat on the side the chest's data says it looks toward. Two chests
-side by side are two single chests rather than the game's double one. Signs, rails, doors, trapdoors,
-levers, buttons, pressure plates, repeaters, comparators, banners, beds and iron bars are not drawn; the only
+side by side are two single chests rather than the game's double one. A furnace, a dispenser and a dropper are furnace stone with their front sprite on the side their data faces, and none at all when a dispenser or dropper faces up or down. Repeaters,
+comparators, banners, brewing stands, tripwire hooks and the lean of a wall torch are not drawn; the only
 lighting is a shade per face; and there is no fog —
 the game as it is played with fog off at sixteen chunks, so everything within 256 blocks is drawn at full
 strength and nothing past it is. The 256 are counted from where a ray enters the built world, so an eye raised

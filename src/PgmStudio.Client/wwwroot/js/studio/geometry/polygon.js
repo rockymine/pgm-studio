@@ -17,6 +17,24 @@ export function pointInRing(px, pz, ring) {
   return inside;
 }
 
+/**
+ * Whether any two non-adjacent edges of the closed ring `[[x,z], …]` properly cross — each straddles the
+ * other's line. A shared or collinear endpoint is no crossing. The same test the server's
+ * `Polygon.SelfIntersects` applies, so a ring accepted here is a ring it accepts.
+ */
+export function ringSelfIntersects(ring) {
+  const n = ring.length;
+  const side = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+  const cross = (a, b, c, d) => side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 2; j < n; j++) {
+      if (i === 0 && j === n - 1) continue;   // the closing edge meets the first
+      if (cross(ring[i], ring[(i + 1) % n], ring[j], ring[(j + 1) % n])) return true;
+    }
+  }
+  return false;
+}
+
 /** Rasterise a polygon (exterior ring + optional holes) to a list of [x,z] block cells. */
 export function rasterisePolygon(exterior, holes = []) {
   if (!exterior.length) return [];

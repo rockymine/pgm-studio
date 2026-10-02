@@ -71,11 +71,11 @@
             </Field>
             @if (IsExcluded(sel))
             {
-              <Button Fill OnClick="() => ToggleExclude(sel)">Include island</Button>
+              <Button Writes Fill OnClick="() => ToggleExclude(sel)">Include island</Button>
             }
             else
             {
-              <Button Variant="danger" Fill OnClick="() => ToggleExclude(sel)">Exclude island</Button>
+              <Button Writes Variant="danger" Fill OnClick="() => ToggleExclude(sel)">Exclude island</Button>
             }
           </div>
         </Section>

@@ -8,7 +8,7 @@
 
 <div class="phase-body">
   <FlowBar Class="flow-bar--flush" PhaseIcon="eye" PhaseTitle="In game"
-           BackEnabled="true" NextLabel="Place a view" NextEnabled="@(Views is { Undrawable: null })"
+           BackEnabled="true" NextLabel="Place a view" NextEnabled="@(Views is { Undrawable: null })" NextWrites
            OnBack="OnBack" OnNext="OnPlace" />
   <Workspace>
     @if (Error is not null)
@@ -50,12 +50,12 @@
             }
             else
             {
-              <Button Icon="image" Busy="picturing" BusyLabel="Setting…" OnClick="() => MakePicture(shown)"
+              <Button Icon="image" Busy="picturing" BusyLabel="Setting…" Writes OnClick="() => MakePicture(shown)"
                       Title="Use this view for the map's picture (map.png)">Set as map picture</Button>
             }
             @if (shown.Kept && !shown.Own)
             {
-              <Button Variant="danger" Icon="trash-2" Busy="lettingGo" BusyLabel="Removing…"
+              <Button Variant="danger" Icon="trash-2" Busy="lettingGo" BusyLabel="Removing…" Writes
                       OnClick="() => LetGo(shown)">Remove</Button>
             }
           </div>

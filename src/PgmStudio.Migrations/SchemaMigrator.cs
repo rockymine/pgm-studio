@@ -38,12 +38,14 @@ public static class SchemaMigrator
             .AddLogging(lb => lb.AddFluentMigratorConsole())
             .BuildServiceProvider(validateScopes: false);
 
-    /// <summary>Apply all pending migrations.</summary>
-    public static void MigrateUp(string connectionString)
+    /// <summary>Apply all pending migrations, or those up to <paramref name="version"/> where one is named.</summary>
+    public static void MigrateUp(string connectionString, long? version = null)
     {
         using var sp = BuildServices(connectionString);
         using var scope = sp.CreateScope();
-        scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateUp();
+        var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+        if (version is { } target) runner.MigrateUp(target);
+        else runner.MigrateUp();
     }
 
     /// <summary>Roll back to a target version (0 = revert everything).</summary>

@@ -46,9 +46,8 @@ public sealed class StudioAccess(HttpClient http)
     /// </summary>
     public async Task<string?> ReadOnlyReasonAsync(string path)
     {
-        var segments = path.Split('?', '#')[0].Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length == 0 || segments[0] is "maps" && segments.Length == 1
-            || segments[0] is "catalog" or "design" or "not-found" or "admin")
+        var segments = Segments(path);
+        if (WritesNothing(segments))
             return null;
 
         var caller = await MeAsync();
@@ -62,6 +61,50 @@ public sealed class StudioAccess(HttpClient http)
             : !caller.SignedIn ? "You are not signed in, so this page opens read-only."
             : "You are not on this studio's whitelist, so this page opens read-only.";
     }
+
+    /// <summary>
+    /// Why an action that writes is closed on the page at <paramref name="path"/>, or null where it is open. On
+    /// a page that writes it is the page's own read-only reason; on a page that writes nothing it is whether
+    /// the caller may write at all, since an action there starts something on a page that does.
+    /// </summary>
+    public async Task<string?> WriteReasonAsync(string path)
+    {
+        if (!WritesNothing(Segments(path)))
+            return await ReadOnlyReasonAsync(path);
+
+        var caller = await MeAsync();
+        return caller.Role is not null ? null
+            : !caller.SignedIn ? "Sign in with a whitelisted account to do this."
+            : "Your account is not on this studio's whitelist, so you can only look.";
+    }
+
+    /// <summary>
+    /// Why deleting a shared row — a library entry, a pinned plan — is closed on the page at
+    /// <paramref name="path"/>, or null where it is open: the page's write reason, and past it an admin's alone,
+    /// since every map using the row loses it.
+    /// </summary>
+    public async Task<string?> DeleteReasonAsync(string path) =>
+        await WriteReasonAsync(path)
+        ?? (await IsAdminAsync() ? null : "Only an admin can delete this, because everyone shares it.");
+
+    /// <summary>
+    /// Why asking the server to build something on request (a map's export) is closed, or null where it is
+    /// open: someone on the whitelist may, whichever page they are on, since looking at a map is not changing it.
+    /// </summary>
+    public async Task<string?> BuildReasonAsync()
+    {
+        var caller = await MeAsync();
+        return caller.Role is not null ? null
+            : !caller.SignedIn ? "Sign in with a whitelisted account to download this."
+            : "Your account is not on this studio's whitelist, so you can only look.";
+    }
+
+    private static string[] Segments(string path) =>
+        path.Split('?', '#')[0].Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+    private static bool WritesNothing(string[] segments) =>
+        segments.Length == 0 || segments[0] is "maps" && segments.Length == 1
+        || segments[0] is "catalog" or "design" or "not-found" or "admin";
 
     /// <summary>The sign-in link that brings the browser back to <paramref name="returnPath"/>.</summary>
     public static string SignInHref(string returnPath) =>

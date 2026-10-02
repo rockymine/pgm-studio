@@ -332,7 +332,9 @@ that a pinned board is any good — the score is advice, and a board scoring 12 
 ## The API
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist
-([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are.
+([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The page greys *Pin* and
+*Open in plan editor* for anyone off the whitelist and unpinning for anyone but an admin, since a pin is a
+plan row and deleting one is an admin's.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|

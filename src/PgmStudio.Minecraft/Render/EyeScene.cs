@@ -46,8 +46,10 @@ public sealed record EyePicture(int Width, int Height, byte[] Rgb, IReadOnlyList
 /// with no alpha lets the ray through, which is what makes leaves and glass read as they do. A slab, a
 /// stair, a fence, a pane, a wall or a chest fills only the boxes <see cref="BlockShape"/> names for it, a
 /// fence, a pane or a wall reaching out to the neighbours it meets, and a chest wearing its front on the side
-/// it looks toward. A torch is crossed quads like a plant; a carpet, a wire, a ladder, a vine and a lily pad
-/// are sheets, drawn but neither stood on nor in the way of a line of sight. Far ground fades into the sky,
+/// it looks toward. A torch is crossed quads like a plant; a carpet, a wire, a ladder, a vine, a lily pad, a
+/// rail and a pressure plate are sheets, and a door, a trapdoor, a sign, a button, a lever and a flower pot are
+/// boards and boxes of their own, all drawn but neither stood on nor in the way of a line of sight. A hopper,
+/// a cauldron, an anvil, a bed, a cake, a snow layer and the like are boxes with body to them. Far ground fades into the sky,
 /// and a block no sprite is named for is drawn in its palette colour and counted as such.</para>
 /// </summary>
 public sealed class EyeScene
@@ -108,7 +110,12 @@ public sealed class EyeScene
                     int id = ids[i];
                     if (id == 0) continue;
                     int x = cx * 16 + (i & 15), z = cz * 16 + ((i >> 4) & 15), y = sy * 16 + (i >> 8);
-                    var nibble = data?[i] ?? 0;
+                    int nibble = data?[i] ?? 0;
+                    if (BlockShape.IsDoor(id))
+                    {
+                        var (otherId, otherData) = world.GetBlock(x, y + ((nibble & 8) != 0 ? -1 : 1), z);
+                        nibble = BlockShape.DoorData(nibble, otherId == id ? otherData : 0);
+                    }
                     var faces = id == 175 && (nibble & 8) != 0
                         ? BlockFaces.UpperHalf(world.GetBlock(x, y - 1, z).Data)
                         : BlockFaces.Of(id, nibble);
@@ -175,18 +182,19 @@ public sealed class EyeScene
     {
         var boxes = BlockShape.Of(id, data);
         var sheet = BlockShape.Sheet(boxes);
-        var ground = faces is not { Form: FaceForm.Cross } && !sheet && id is not (Blocks.Leaves or Blocks.Leaves2);
+        var detail = sheet || BlockShape.Detail(id);
+        var ground = faces is not { Form: FaceForm.Cross } && !detail && id is not (Blocks.Leaves or Blocks.Leaves2);
         if (faces is { } known && sprites.Get(known.Top, tint) is { } top)
         {
             var side = known.Form == FaceForm.Cross ? top
                 : sprites.Get(known.Side, known.SideOverlay is null ? tint : 0xFFFFFF, known.SideOverlay, tint) ?? top;
             var front = known.Front is { } named ? sprites.Get(named, tint) : null;
             return new Material(id, data, known.Form, top, side, Untextured: false,
-                                Solid: known.Form == FaceForm.Cube && !sheet, ground, boxes, known.Grain, front,
+                                Solid: known.Form == FaceForm.Cube && !detail, ground, boxes, known.Grain, front,
                                 known.Facing);
         }
         var colour = sprites.Solid((uint)BlockPalette.PackedRgb(id, data));
-        return new Material(id, data, FaceForm.Cube, colour, colour, Untextured: true, Solid: !sheet, ground, boxes,
+        return new Material(id, data, FaceForm.Cube, colour, colour, Untextured: true, Solid: !detail, ground, boxes,
                             Grain.Up);
     }
 

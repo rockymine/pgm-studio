@@ -336,6 +336,9 @@ public partial class PlanTool
     [JSInvokable]
     public async Task OnShortcut(string id)
     {
+        // The chords that draw or save stand down where the caller may not write.
+        if (writeClosed && id is "plan.tool.piece" or "plan.tool.zone" or "plan.tool.box" or "plan.tool.wall" or "plan.save")
+            return;
         switch (id)
         {
             case "plan.tool.select": await PickTool("select"); break;
@@ -361,6 +364,7 @@ public partial class PlanTool
         try
         {
             handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountPlan", svgRef, wrapRef, readout!.Cursor, selfRef);
+            await handle.InvokeVoidAsync("setReadOnly", writeClosed);
             await handle.InvokeVoidAsync("setRole", role);
             try { showBoxes = await Access.IsAdminAsync(); } catch { showBoxes = false; }
             await handle.InvokeVoidAsync("setBoxesShown", showBoxes);
@@ -1351,10 +1355,21 @@ public partial class PlanTool
             JsonSerializer.Serialize(new { extra = box.Nearest.Extra, missing = box.Nearest.Missing }, Web));
     }
 
+    /// <summary>Whether the caller may not write here, as the shell answers it (a <see cref="WriteGate"/> in
+    /// the body hands it over). Closed until the answer is in: the canvas picks and changes nothing.</summary>
+    private bool writeClosed = true;
+
+    private async Task OnWriteReason(string? reason)
+    {
+        writeClosed = reason is not null;
+        if (handle is not null) await handle.InvokeVoidAsync("setReadOnly", writeClosed);
+    }
+
     // A "New plan" draft never saved is discarded so an abandoned click doesn't linger on the dashboard; the
     // server decides whether it is untouched (default name, never saved, no one else credited).
     private async Task DiscardIfEmptyAsync(string slug)
     {
+        if (writeClosed) return;
         try { await Http.DeleteAsync($"api/map/{slug}/discard-if-empty"); } catch { }
     }
 

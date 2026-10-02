@@ -57,6 +57,12 @@
     @* Save, copy and forget sit against the foot of the column they act on, out of the scroll — a document
        long enough to scroll is exactly the one whose save should not have to be found. *@
     <div class="lib-foot">
+      @if (Seeded)
+      {
+        <p class="section-desc lib-foot-note">
+          This one comes with the studio and is reset each time the studio starts. Save a copy to change it.
+        </p>
+      }
       @if (Note is not null) { <p class="section-desc lib-foot-note">@Note</p> }
       <div class="panel-actions">@Actions</div>
     </div>

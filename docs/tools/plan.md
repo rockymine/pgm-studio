@@ -688,7 +688,7 @@ the document is empty — and `Completeness` reports it alone, returning before 
 ## The API
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist, or
-who may edit the map it names ([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. A route that builds a world waits its turn in the build queue and answers 429 when it cannot, which no row repeats either. Inspect, evaluate, feasibility and compile all take a plan
+who may edit the map it names ([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The editor greys *New*, *Import*, *Save*, *Compile* and the build for a caller who may not write there, with the reason on hover, and leaves *Open* alone. A route that builds a world waits its turn in the build queue and answers 429 when it cannot, which no row repeats either. Inspect, evaluate, feasibility and compile all take a plan
 document as the body and need no map, which is what lets a plan be checked before it is stored anywhere.
 
 **Originating and storing**
@@ -783,7 +783,7 @@ draws the board as characters.
 | `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{orphaned, dropped}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` rides beside them: what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers, and any field of the **posted** layout the reader had nowhere to keep (`RQ3`). `dropped` names every stored shape the compile does not produce and that carries no `intentRef` — a shape drawn in the sketch, which nothing carries since geometry is the plan's — with one `SK29` complaint beside it | 409 one `SK1` finding per orphaned group, subject = group id (`?force=true` accepts the loss) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes the layout into world geometry and moves the map to `stage=configure`, answering the stored document's own complaints under `warnings` on the way through | 404 unknown map · 422 the layout rasterizes to no ground · 422 `SK2` |
 | `PUT /map/{slug}/intent/from-plan` | the compiled `intent` | the projected map — carries the stored **authors and contributors** onto it and nothing else. `symmetry` and `islandTeams` are deliberately not carried, so a rebuild clears both | 404 · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |
-| `GET /map/{slug}/export` | — | the world ZIP | 404 unknown map · 409 and 422 as `/xml`, plus non-2xx with a message on a zip/IO failure |
+| `GET /map/{slug}/export` | — | the world ZIP | 401 signed out · 403 not on the whitelist · 404 unknown map · 409 and 422 as `/xml`, plus non-2xx with a message on a zip/IO failure |
 
 ## Driving it without the UI
 
