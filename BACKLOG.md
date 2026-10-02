@@ -639,8 +639,8 @@ server's backups and the edits a read-only page still lets start.
 
 - [ ] **RP97 — The sketch layout's words are published sets.** `GET /api/kit.py` checks a word only where
   the schema lists it, and 44 of 574 string fields do: the layout an author writes most has none, so
-  `SketchShape(height_mode="float")` is built and sent. Mark `[WordSet]` on `SketchShape.operation`,
-  `height_mode`, `relief_scope`, `stroke_edge`, `SketchLayer.kind`, a relief mark's `kind` and
+  `SketchShape(relief_scope="hld")` is built and sent. Mark `[WordSet]` on `SketchShape.operation`,
+  `relief_scope`, `stroke_edge`, `SketchLayer.kind`, a relief mark's `kind` and
   `PlanGlobals.symmetry`, declaring each set in `Vocabulary` where it is not already; and publish `minimum`/
   `maximum` for the 0–1 shares (`FloraSpec`, `RoofStyle.Wear`) so the kit refuses `coverage=5`.
   `docs/architecture.md`. *Evidence: a constructor sweep against schema `a095aa2c71059f2c`.*

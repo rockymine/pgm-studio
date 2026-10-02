@@ -499,6 +499,10 @@ own top through the field. One word on the shape says **how** its top is decided
   contributes its footprint but **not its own thickness** to the surface it is then read against. Otherwise it
   finds its own plate underneath itself and stands proud of that.
 - **sink** — the same, downward: a quarry, a sunken arena, a pit.
+- **drape** — the top is a fixed amount above the ground at **each** cell it covers, read per cell rather than
+  at the median. It is the blanket a monolith must not be and a built line along the ground must be: a field
+  wall, a hedge or a kerb drawn as a polyline climbs the hillside it is laid over. The same shape under `raise`
+  stands at one height, so on a slope it digs into the high side and stands as a cliff on the low one.
 
 Absent, a shape is ordinary ground and the relief is what its ground does. The default has to stay the default,
 or a drawn board would become a staircase of plates.
@@ -506,7 +510,8 @@ or a drawn board would become a staircase of plates.
 The word is orthogonal to the height function a shape already carries, and the two compose in every combination.
 Per-vertex anchor heights and the two- and three-point slopes decide what the top surface **looks like** — flat,
 tilted, folded along a diagonal — and `height_mode` decides what that surface is **measured from**: an absolute
-height for `level`, the median ground under the footprint for `raise` and `sink`. A polygon whose anchors read 8
+height for `level`, the median ground under the footprint for `raise` and `sink`, the ground at each cell for
+`drape`. A polygon whose anchors read 8
 at its west edge and 20 at its east tilts from y9 to y20 as ordinary ground, and tilts from y9 to y20 again once
 it is erected — a tilted mesa rather than a levelled one. Sunk, that same tilt is a quarry whose floor drains
 one way, which is what a pit with a flat bottom is missing.
@@ -893,7 +898,7 @@ three ring vertices never reaches the solver.
 The shape gains one word for how its own top is decided, and a number for how hard it lands:
 
 ```json
-"height_mode": "level" | "raise" | "sink",
+"height_mode": "level" | "raise" | "sink" | "drape",
 "skirt": 0
 ```
 

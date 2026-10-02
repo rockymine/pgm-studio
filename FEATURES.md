@@ -8770,6 +8770,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   another shape, `id (image)` where the board's symmetry draws one, or `void` — so a pull or a bend's `edges` is
   written from a read rather than from a ring copied into a script. (`Pgm/Sketch/ShapeEdges`,
   `Api/Endpoints/SketchGeometryEndpoints`, `docs/tools/sketch.md`)
+- **A shape draped over the ground (`TS142`)** — `height_mode: "drape"` holds a shape `base_height` above the
+  ground at every cell it covers, read per cell rather than at the median `raise` reads, so a field wall, a
+  hedge or a kerb drawn as a polyline climbs the hillside instead of digging into its high side and standing
+  as a cliff on its low one. The four height modes are a published word set (`HeightModes`), so the schema and
+  the kit name them, and the shape inspector offers Drape. `docs/world-export/relief.md` §7,
+  `docs/tools/sketch.md`. (`TS142`)
+
 - **A coast placed for play is stated as pulls (`TS128`).** A point edit states `pulls: {edge: [[fraction,
   blocks], …]}`: a point that fraction of the way along each named edge, moved that many blocks into the ring or
   out of it where negative, inside asked of the ring rather than read from its centroid, every edge's points

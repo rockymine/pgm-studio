@@ -1031,7 +1031,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setHeightMode(id, mode) {
       const s = canvas.getShape(id);
       if (!s) return;
-      if (mode === "level" || mode === "raise" || mode === "sink") s.height_mode = mode;
+      if (mode === "level" || mode === "raise" || mode === "sink" || mode === "drape") s.height_mode = mode;
       else delete s.height_mode;                    // absent, not empty: a shape without the word IS ground
       pushLayout(); dropIsoMesh(); markDirty();
     },
