@@ -527,8 +527,8 @@ up, controls that behave unlike every other tool, and the look itself. `docs/cli
 is the standard the copy is held to.
 
 - [ ] **RP99 — A searchable help page, and the terms defined where they appear.** A `/help` route rendering the
-  glossary in `docs/client/writing-for-the-ui.md` (hub, front line, mid, approach, wool room, box, theme,
-  relief…) with a search box, plus a `Term` component that underlines a word, shows its one-line definition on
+  glossary in `docs/client/writing-for-the-ui.md` (hub, front line, mid, approach, wool room, box, palette,
+  terraform…) with a search box, plus a `Term` component that underlines a word, shows its one-line definition on
   hover and links to its entry. The definitions live once, in a `Glossary` table in `Client`, and the doc's
   table is generated from or checked against it. Then the tool pages lose the explanatory paragraphs that are
   standing in for help today. *Evidence: the reviewer's last note asks for "a searchable and indexable
@@ -545,7 +545,7 @@ is the standard the copy is held to.
   in `docs/client/writing-for-the-ui.md`, keeping the rule ids and the `/api/rules` remarks as reference
   text. `docs/refusals.md`.
 
-- [ ] **C68 — Clicking the zoom readout resets the view.** The zoom percentage in `CanvasReadout` is
+- [ ] **C83 — Clicking the zoom readout resets the view.** The zoom percentage in `CanvasReadout` is
   pointer-transparent; a reader expects clicking it to return to 100% or fit. Make the zoom item a button
   (the rest of the readout stays transparent) that calls each canvas's existing fit command, in the plan,
   sketch and configure canvases. `docs/client/canvas-interaction.md`.
@@ -559,7 +559,7 @@ is the standard the copy is held to.
   hover and no way back short of a reload. Show the reason inline and keep the toggle pressable so a second
   attempt re-runs the WebGL probe. `docs/tools/plan.md`.
 
-- [ ] **TS143 — Zoom in the sketch's 3-D view.** Reported: in a map's Draw phase with 3-D on, the wheel moves
+- [ ] **TS150 — Zoom in the sketch's 3-D view.** Reported: in a map's Draw phase with 3-D on, the wheel moves
   the zoom readout and the scale bar but the picture stays still. Reproduce in the iso view
   (`sketch-canvas.js`, the lazily loaded `iso-webgl`) first; the readout and the picture must answer the same
   zoom. `docs/tools/sketch.md`.
@@ -569,7 +569,7 @@ is the standard the copy is held to.
   `ctrl-row` spacing and the JSON a `textarea` of at least twelve rows, or a collapsible block.
   `docs/tools/generator.md`.
 
-- [ ] **TS144 — The In-game phase and the change history, laid out for the work.** Both are dense by layout,
+- [ ] **TS151 — The In-game phase and the change history, laid out for the work.** Both are dense by layout,
   not by wording. In game: `.ingame__head` puts name, coordinates (`flex:1`), *Full size*, *Set as map picture*
   and *Remove* in one wrapping row; the picture is capped at `calc((100vh - 400px) * 16/9)` under a 188px strip
   beside a 360px notes column; four filter chips plus three grouped lists head the notes. Move the coordinates
@@ -578,12 +578,12 @@ is the standard the copy is held to.
   inspector's footer and show the three column counts as one row. The `InGame` and `History` boards of the
   design canvas (`C70`) draw both. `docs/tools/sketch.md` § In game, § History.
 
-- [ ] **TS145 — The Report phase reads like a tool, not a log.** The Sketch tool's Report phase captions its
+- [ ] **TS152 — The Report phase reads like a tool, not a log.** The Sketch tool's Report phase captions its
   pictures and readings with raw API routes (`render/isometric`, `POST sketch/relief/read`) and lists them as
   link text; a reader wants each reading by name, with the route behind a *Copy request* action for an agent.
   `SketchReportPhase.razor`. `docs/tools/sketch.md` § Report.
 
-- [ ] **TS146 — The sketch tool's crumb names the map.** `SketchTool.razor` shows `@Slug` in the top bar where
+- [ ] **TS153 — The sketch tool's crumb names the map.** `SketchTool.razor` shows `@Slug` in the top bar where
   the plan and configure tools show the map's name, because the sketch tool loads no map summary. Read the name
   with the layout and put it in the crumb. `docs/tools/sketch.md`.
 
