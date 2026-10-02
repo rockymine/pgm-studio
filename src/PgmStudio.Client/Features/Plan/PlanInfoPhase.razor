@@ -1,10 +1,11 @@
 @namespace PgmStudio.Client.Features.Plan
 @inject HttpClient Http
 
-@* Plan Info phase — two steps: Identity (display name + authors, saved to the map metadata via
-   GET/PATCH api/map/{slug}, since plans are map rows) and Settings (the plan globals: symmetry mode +
-   cell/surface/max-build-height/max-players, which drive the live plan document through the host's callbacks).
-   Continue on the last step advances to Draw. *@
+@* Plan Info phase — two steps: Identity (the plan's name, and on a map-backed plan the authors, saved to
+   the map metadata via GET/PATCH api/map/{slug}) and Settings (the plan globals: symmetry mode +
+   cell/surface/max-players, which drive the live plan document through the host's callbacks). A plan row has
+   no map to credit authors on, so its name is all Identity holds and the topbar's Save stores it with the
+   plan. Continue on the last step advances to Draw. *@
 
 <div class="phase-body">
   <FlowBar Class="flow-bar--flush" PhaseIcon="book-open-text" PhaseTitle="Info"
@@ -22,6 +23,8 @@
           </Field>
         </Section>
 
+        @if (MapBacked)
+        {
         <AuthorsEditor Authors="authors" OnChanged="Dirty" />
 
         <Section>
@@ -30,6 +33,7 @@
             <span class="panel-save-status">@saveStatus</span>
           </div>
         </Section>
+        }
       }
       else
       {

@@ -6,14 +6,17 @@ using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Features.Plan;
 
-// Plan Info phase (map-backed plans only): two steps. Identity — the map's display name (saved to the map
-// metadata endpoint, since a plan is a map row) + username-verified authors via the shared AuthorsEditor.
+// Plan Info phase: two steps. Identity — the plan's name; on a map-backed plan that is the map's display
+// name (saved to the map metadata endpoint) beside username-verified authors via the shared AuthorsEditor.
 // Settings — the plan globals (symmetry + cell/surface/max-build-height/max-players), which live on the plan doc:
 // the host owns the canvas bridge, so this phase renders them as parameters and raises change callbacks the
 // host forwards to the bridge (the same split the Sketch tool uses for its symmetry settings).
 public partial class PlanInfoPhase
 {
-    [Parameter] public string Slug { get; set; } = "";
+    /// <summary>The map a map-backed plan belongs to; null on a plan row, which has no metadata of its own.</summary>
+    [Parameter] public string? Slug { get; set; }
+
+    private bool MapBacked => Slug is { Length: > 0 };
     /// <summary>Advance to the Draw phase (Continue on the last step) — the rail's Draw button does the same.</summary>
     [Parameter] public EventCallback OnNext { get; set; }
 
@@ -50,9 +53,11 @@ public partial class PlanInfoPhase
     private string? saveStatus;
 
     // Load name + authors once on mount from the map metadata (not OnParametersSet — the host re-renders on
-    // canvas callbacks while this phase is up, and re-loading would wipe unsaved edits). Slug is fixed here.
+    // canvas callbacks while this phase is up, and re-loading would wipe unsaved edits). The host keys this
+    // component by its map, so Slug is fixed for an instance.
     protected override async Task OnInitializedAsync()
     {
+        if (!MapBacked) return;
         try
         {
             var doc = await Http.GetFromJsonAsync<MapDocumentDto>($"api/map/{Slug}");
@@ -71,7 +76,7 @@ public partial class PlanInfoPhase
     {
         var v = e.Value?.ToString() ?? "";
         await OnNameChanged.InvokeAsync(v);   // live-sync the plan doc (compile reads doc.meta.name)
-        Dirty();
+        if (MapBacked) Dirty();
     }
 
     private void Dirty() { dirty = true; saveStatus = null; }

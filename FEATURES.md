@@ -781,6 +781,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   map-backed topbar is down to Save. The bare `/plan-editor` route has no flow bar and keeps its full bar
   (New · Import · Export · Save · Open · Compile). (C35)
 
+- **One plan editor on two bindings (`G154`).** A map's plan (`/maps/{slug}/plan`) and a plan row
+  (`/plans/{id}` and `/plans/new`, which replace `/plan-editor`) are the same tool: Info and Draw on the rail,
+  the flow bar, the sidebar's three panel chips, and a sidebar that folds away on both. Only the topbar follows
+  the binding: Save alone on a map, and New · Import · Open · Save with the origin badge on a row, whose Save
+  forks a generated or imported row and moves the address to the copy. `docs/tools/plan.md`.
+
 - **The library's editor rail is wide enough to edit in (C36).** The rail was a fixed 320px while the grid
   beside it — which only picks what to work on — took everything else. At that width a material's own row
   could not hold a kind select, the extent it claims and a remove button at once, so the remove button fell

@@ -1,4 +1,4 @@
-// Characterization tests for the plan-editor document model + geometry (pure, no DOM).
+// Characterization tests for the plan editor's document model + geometry (pure, no DOM).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

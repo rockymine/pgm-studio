@@ -1,15 +1,17 @@
-@page "/plan-editor"
+@page "/plans/new"
+@page "/plans/{PlanId:long}"
 @page "/maps/{Slug}/plan"
 @layout StudioLayout
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @implements IAsyncDisposable
 
-@* Plan editor (the seed studio) — a coarse cell-grid layout tool. Blazor renders the topbar, a thin
-   rail that folds the collapsible left settings panel (plan name · globals · reference · overlays), the
-   canvas shell whose toolbar holds the draw tools (pieces · build · markers · technical), and the right
-   inspector; the PlanCanvas JS (via bridge/plan-bridge.js) owns the plan document, the pointer tools and
-   the live symmetry mirror ghost. Plans import/export as *.plan.json; a map-backed plan is stored by Save. *@
+@* Plan editor — a coarse cell-grid layout tool, on one of two bindings: a map's plan artifact
+   (/maps/{slug}/plan) or a plan row (/plans/{id}, /plans/new). Both render the same tool: the rail's Info and
+   Draw phases, the flow bar, and a collapsible sidebar whose chips switch between Settings, Checks and
+   Generator check. Only the topbar follows the binding, because only saving differs: a map-backed plan saves
+   into its map, a plan row saves as a row and forks when it was generated or imported. The PlanCanvas JS
+   (via bridge/plan-bridge.js) owns the plan document, the pointer tools and the live symmetry mirror ghost. *@
 
 <StudioShell>
   <Bar>
@@ -20,8 +22,7 @@
         <Crumb>@planName</Crumb>
         <Crumb Dim>Plan</Crumb>
       </Crumbs>
-      @* Save only. A map-backed plan runs under the flow bar, whose Next IS Compile, and the drawer that
-         opens carries every download — a second copy of either in the bar says the same thing twice. *@
+      @* Save only. The flow bar's Next is Compile, and the drawer it opens carries every download. *@
       <Right>
         @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
         @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
@@ -31,103 +32,65 @@
     }
     else
     {
+    @* A plan row has no map to hold it, so the bar carries what a row needs: starting one, importing a file,
+       opening a saved one, and the origin that decides whether Save writes in place or makes a copy. *@
     <Topbar>
-      <Crumbs><Crumb Sep="false" Dim>Plan editor</Crumb></Crumbs>
+      <Crumbs>
+        <Crumb Sep="false">@planName</Crumb>
+        <Crumb Dim>Plan</Crumb>
+      </Crumbs>
       <Right>
         @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
         @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
-        @if (planOrigin is not null) { <span class="topbar-crumb topbar-crumb--dim" title="Saving a generated or imported plan creates a new copy">@planOrigin</span> }
+        @if (planOrigin is not null)
+        {
+          <Badge Kind="neutral" title="@OriginTitle">@planOrigin</Badge>
+        }
         <Button OnClick="NewPlan" Title="Start a blank plan">New</Button>
         <label class="action-btn" title="Import a *.plan.json file">
           Import
           <InputFile OnChange="OnImport" accept=".json" class="control-input--hidden" />
         </label>
-        <Button OnClick="ExportPlan" Title="Download this plan as *.plan.json">Export</Button>
-        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save (Ctrl+S)">Save</Button>
         <Button OnClick="OpenDbBrowser" Title="Open a saved plan">Open</Button>
-        <Button Variant="primary" OnClick="OpenCompile" Busy="@(!documentLoaded)" BusyLabel="Loading…"
-                Title="Compile the plan, then build a draft map">
-          <i data-lucide="play"></i> Compile
-        </Button>
+        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save (Ctrl+S)">Save</Button>
       </Right>
     </Topbar>
     }
   </Bar>
   <Rail>
     <NavRail>
-      @if (MapBacked)
-      {
-        <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
-        <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
-      }
-      else
-      {
-        <NavButton Icon="sliders-horizontal" Title="Settings" Active="@(leftPanel == "settings" && leftOpen)" OnClick='() => SelectActivity("settings")' />
-        <NavButton Icon="shield-check" Title="Checks" Active="@(leftPanel == "validation" && leftOpen)" OnClick='() => SelectActivity("validation")' />
-        <NavButton Icon="factory" Title="Generator check" Active="@(leftPanel == "feasibility" && leftOpen)" OnClick='() => SelectActivity("feasibility")' />
-      }
+      <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
+      <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
     </NavRail>
   </Rail>
   <ChildContent>
       @if (InfoActive)
       {
-        <PlanInfoPhase Slug="@Slug" OnNext="GoDraw"
+        <PlanInfoPhase @key="@Slug" Slug="@Slug" OnNext="GoDraw"
                        Name="@planName" Symmetry="@symmetry" Cell="cell" Surface="surface"
                        SurfaceStep="surfaceStep" MaxPlayers="maxPlayers"
                        OnNameChanged="OnNameChanged" OnSymmetryChanged="OnSymmetryChanged"
                        OnCellChanged="OnCell" OnSurfaceChanged="OnSurface" OnSurfaceStepChanged="OnSurfaceStep"
                        OnMaxPlayersChanged="OnMaxPlayers" />
       }
-      @* Draw stays mounted (hidden, not removed) so the plan-canvas bridge + zoom survive a trip to Info
-         on a map-backed plan; SetPhase re-measures the canvas on return. The bare route has no Info phase. *@
+      @* Draw stays mounted (hidden, not removed) so the plan-canvas bridge + zoom survive a trip to Info;
+         the canvas re-measures itself when it un-hides. *@
       <div class="phase-body" hidden="@DrawHidden">
-      @if (MapBacked)
-      {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
-                 BackEnabled="true" NextLabel="Compile" NextBusy="@(!documentLoaded)" NextBusyLabel="Loading…"
-                 OnBack="GoInfo" OnNext="OpenCompile" />
-      }
+      <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
+               BackEnabled="true" NextLabel="Compile" NextBusy="@(!documentLoaded)" NextBusyLabel="Loading…"
+               OnBack="GoInfo" OnNext="OpenCompile" />
       <Workspace>
-        @if (SidebarOpen)
+        @if (sidebarOpen)
         {
         <Sidebar>
-            @if (MapBacked)
-            {
             <div class="plan-panel-switch">
               <Chip Active="@(leftPanel == "settings")" OnClick='() => SetPanel("settings")'>Settings</Chip>
               <Chip Active="@(leftPanel == "validation")" OnClick='() => SetPanel("validation")'>Checks</Chip>
               <Chip Active="@(leftPanel == "feasibility")" OnClick='() => SetPanel("feasibility")'>Generator check</Chip>
+              <Button Variant="icon" Icon="panel-left-close" Title="Hide panel" OnClick="ToggleSidebar" />
             </div>
-            }
             @if (leftPanel == "settings")
             {
-            @if (!MapBacked)
-            {
-            <Section>
-              <Field Label="Plan name">
-                <input class="field-input" value="@planName" @onchange="OnName" placeholder="Untitled plan" />
-              </Field>
-            </Section>
-
-            <Section Title="Symmetry and grid">
-              <Field Label="Symmetry">
-                <Select Slim="false" Options="PlanInfoPhase.SymmetryOptions" Value="@symmetry" ValueChanged="OnSymmetryChanged" />
-              </Field>
-              <Field Label="Cell size (blocks)">
-                <NumberField Value="cell" ValueChanged="OnCell" Min="1" />
-              </Field>
-              <Field Label="Base surface (y)">
-                <NumberField Value="surface" ValueChanged="OnSurface" Min="0" />
-              </Field>
-              <Field Label="Surface step (y)">
-                <NumberField Value="surfaceStep" ValueChanged="OnSurfaceStep" Min="1" />
-              </Field>
-              <Field Label="Max players per team">
-                <NumberField Value="maxPlayers" ValueChanged="OnMaxPlayers" Min="1" />
-              </Field>
-            </Section>
-            }
-
             <Section Title="Reference">
               <Field Label="Trace over map">
                 <Select Slim="false" Options="TraceMapOptions" Placeholder="None" Value="@(refMap ?? "")"
@@ -273,6 +236,12 @@
             }
         </Sidebar>
         <div class="sidebar-handle"></div>
+        }
+        else
+        {
+        <div class="plan-sidebar-stub">
+          <Button Variant="icon" Icon="panel-left-open" Title="Show panel" OnClick="ToggleSidebar" />
+        </div>
         }
 
         <div class="workspace-canvas">
@@ -756,7 +725,7 @@
         <div class="plan-lint-list">
           @foreach (var p in dbPlans)
           {
-            <button class="plan-lint-row" @onclick="() => LoadFromDb(p.Id)" title="Open this plan">
+            <button class="plan-lint-row" @onclick="() => OpenFromDb(p.Id)" title="Open this plan">
               <span class="plan-lint-chip">@p.Origin</span>
               <span class="plan-lint-msg plan-db-name">@(string.IsNullOrWhiteSpace(p.Name) ? "Untitled plan" : p.Name)</span>
               @if (p.StaleComposer)

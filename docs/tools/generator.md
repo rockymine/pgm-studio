@@ -46,6 +46,10 @@ map holds its own copy from that moment on, and editing the map cannot disturb t
 The hold tray is not a session — it *is* the generated half of the candidate pool. It lists every generated
 row the database holds, so a board pinned weeks ago is still in it, and unpinning is a delete.
 
+**A tray thumbnail opens its row in the Plan tool at `/plans/{id}`**, without originating a map. Looking at a
+candidate there costs nothing, and saving an edit forks it into a new `authored` row rather than altering what
+was pinned (`docs/tools/plan.md`, *What it is*).
+
 ## The request
 
 A composed board is named by five values and no geometry.

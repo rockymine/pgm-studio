@@ -130,7 +130,7 @@
             {
               <div class="gen-tray-chip">
                 <a class="gen-tray-fig @(p.StaleComposer ? "gen-tray-fig--stale" : null)"
-                   href="@($"/plan-editor?plan={p.Id}")" title="Open in plan editor">
+                   href="@($"/plans/{p.Id}")" title="Open in plan editor">
                   @if (traySvg.TryGetValue(p.Id, out var s)) { @((MarkupString)s) }
                 </a>
                 @if (p.StaleComposer)

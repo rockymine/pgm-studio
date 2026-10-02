@@ -38,7 +38,7 @@ const body = () => page.textContent(".workspace");
 
 // A blank plan opens at the origin with rot_180 — an order-2 symmetry, which is what offers the objective
 // tools at all (a goal one team defends only means something when there is exactly one other).
-await page.goto(`${BASE}/plan-editor`, { waitUntil: "networkidle", timeout: 30000 });
+await page.goto(`${BASE}/plans/new`, { waitUntil: "networkidle", timeout: 30000 });
 await page.waitForSelector(".canvas-dock", { timeout: 20000 });
 await page.waitForSelector(".map-canvas-svg", { timeout: 20000 });
 

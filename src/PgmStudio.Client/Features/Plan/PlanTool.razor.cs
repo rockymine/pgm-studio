@@ -19,27 +19,65 @@ public partial class PlanTool
 
     /// <summary>When routed as <c>/maps/{slug}/plan</c>, the plan is a <c>stage=plan</c> map row and the editor
     /// loads/saves its <c>plan_json</c> artifact (GET/PUT <c>/api/map/{slug}/plan</c>) in place — no fork doctrine.
-    /// Null on the bare <c>/plan-editor</c> route (the generator-candidate pool via <c>/api/plans</c>).</summary>
+    /// Null on a plan-row route.</summary>
     [Parameter] public string? Slug { get; set; }
+
+    /// <summary>The plan row <c>/plans/{id}</c> opens (<c>GET</c>/<c>POST /api/plans</c>). Null on
+    /// <c>/plans/new</c>, which holds a blank plan until Save stores it as a row.</summary>
+    [Parameter] public long? PlanId { get; set; }
 
     private bool MapBacked => Slug is { Length: > 0 };
 
-    // ── Phases (rail, map-backed plans only): Info (Identity + Settings steps) · Draw (the canvas). Draw
-    //    stays mounted while Info is up (hidden, not torn down) so the plan doc + zoom survive the trip. The
-    //    bare /plan-editor candidate route has no phase host — it stays on the Draw workspace. ──
+    /// <summary>What the route asks the editor to hold: a map, a plan row, or a new plan.</summary>
+    private string RouteKey => MapBacked ? $"map:{Slug}" : PlanId is { } id ? $"plan:{id}" : NewKey;
+
+    private const string NewKey = "new";
+
+    /// <summary>What the editor holds now, in <see cref="RouteKey"/>'s terms. It leads the route when Save
+    /// forks a row or Open picks one, and the URL is brought after it; it trails the route when the address
+    /// changes under a mounted editor, and <see cref="BindAsync"/> loads what the route names.</summary>
+    private string? boundKey;
+
+    /// <summary>The page component outlives a navigation between its own routes, and a route parameter
+    /// the new route does not name keeps its old value; both are cleared so each route states its binding.</summary>
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        Slug = null;
+        PlanId = null;
+        return base.SetParametersAsync(parameters);
+    }
+
+    // ── Phases (the rail): Info (Identity + Settings steps) · Draw (the canvas). Draw stays mounted while
+    //    Info is up (hidden, not torn down) so the plan doc + zoom survive the trip. ──
     [SupplyParameterFromQuery] public string? Phase { get; set; }
     private string active = "draw";
-    private bool InfoActive => MapBacked && active == "info";
-    private bool DrawActive => MapBacked && active == "draw";
+    private bool InfoActive => active == "info";
+    private bool DrawActive => active == "draw";
     // The Draw workspace stays mounted; it's hidden (not removed) on Info.
-    private bool DrawHidden => MapBacked && active != "draw";
-    // Map-backed Draw always shows its sidebar (part of the workspace); the bare route folds it via the rail.
-    private bool SidebarOpen => MapBacked || leftOpen;
+    private bool DrawHidden => active != "draw";
     private Task GoInfo() => SetPhase("info");
     private Task GoDraw() => SetPhase("draw");
 
-    // A blank map-backed plan lands on Info (?phase=info) to name it; opening an existing one goes to Draw.
-    protected override void OnInitialized() { if (Phase == "info") active = "info"; }
+    // A blank plan lands on Info (?phase=info) to name it; opening an existing one goes to Draw.
+    protected override void OnInitialized() => active = Phase == "info" ? "info" : "draw";
+
+    /// <summary>A navigation between this component's routes rebinds the mounted editor rather than
+    /// remounting it. The first binding is the first render's, once the canvas exists; a navigation that lands
+    /// while a binding loads is taken up when it finishes.</summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (handle is null || !documentLoaded || RouteKey == boundKey) return;
+        documentLoaded = false;
+        try { await BindToRouteAsync(); }
+        finally { documentLoaded = true; }
+        StateHasChanged();
+    }
+
+    private async Task BindToRouteAsync()
+    {
+        do await BindAsync();
+        while (handle is not null && RouteKey != boundKey);
+    }
 
     // Switching phases only flips which body renders: the canvas observes its own wrap and re-measures
     // (and runs a deferred fit) when Draw un-hides. Nudging it from here would run against the still-
@@ -63,7 +101,7 @@ public partial class PlanTool
     /// <summary>Whether the first render's load chain has finished. The canvas and the toolbar are in the DOM
     /// before the plan document is — nine interop round-trips and up to four reads separate them — so until
     /// this is set the editor is holding the bridge's blank default, and compiling it would post a plan with
-    /// no pieces and be told so. True on the bare route the moment the chain ends, since a plan drawn from
+    /// no pieces and be told so. True on /plans/new the moment the chain ends, since a plan drawn from
     /// scratch has nothing to wait for.</summary>
     private bool documentLoaded;
 
@@ -85,8 +123,8 @@ public partial class PlanTool
     // What the open map already holds, so the build can tell an origination from a rebuild before it runs.
     // A map with a sketch or a world has downstream work that the build replaces, which is worth saying
     // out loud once rather than discovering afterwards; a plan that has never been built has nothing to
-    // lose and gets no interruption. Null until the fetch lands, and on the bare /plan-editor route, where
-    // there is no map to ask about.
+    // lose and gets no interruption. Null until the fetch lands, and on a plan row, where there is no map to
+    // ask about.
     private MapState? state;
     private bool confirmingRebuild;
 
@@ -141,31 +179,26 @@ public partial class PlanTool
     private bool isoUnavailable;
     private string? isoUnavailableWhy;
 
-    // The left panel is a rail-selected activity — "settings" (plan name / globals / reference / overlays)
-    // or "validation" (the evaluator score + fired rules) — plus a collapse flag. Each rail icon toggles its
-    // own panel: clicking the active-and-open one collapses the sidebar, clicking any other case opens that
-    // panel (switching is just clicking the other icon). The Rules evidence layer follows an open validation
-    // panel, so validation's icon doubles as that layer's toggle.
+    // The Draw sidebar holds one of three panels — "settings" (the tracing reference), "validation" (the
+    // evaluator score + fired rules) or "feasibility" (the producibility read) — switched by the chips at its
+    // head, and folds away to give the canvas the width. Each panel's overlay follows its panel being shown.
     private string leftPanel = "settings";
-    private bool leftOpen = true;
+    private bool sidebarOpen = true;
 
-    private async Task SelectActivity(string which)
-    {
-        if (leftPanel == which && leftOpen)
-            leftOpen = false;
-        else
-            (leftPanel, leftOpen) = (which, true);
-        await SyncPanelOverlays(leftOpen && leftPanel == "validation", leftOpen && leftPanel == "feasibility");
-    }
-
-    // Map-backed Draw: an in-sidebar switch between the Settings (reference + overlays), Validation and
-    // Feasibility panels — the rail is phases, not activities, so the panel toggle moves into the sidebar. No
-    // collapse (the sidebar is part of the Draw workspace); each panel's overlay follows its own panel.
-    private async Task SetPanel(string which)
+    private Task SetPanel(string which)
     {
         leftPanel = which;
-        await SyncPanelOverlays(leftPanel == "validation", leftPanel == "feasibility");
+        return SyncPanelOverlays();
     }
+
+    private Task ToggleSidebar()
+    {
+        sidebarOpen = !sidebarOpen;
+        return SyncPanelOverlays();
+    }
+
+    private Task SyncPanelOverlays()
+        => SyncPanelOverlays(sidebarOpen && leftPanel == "validation", sidebarOpen && leftPanel == "feasibility");
 
     /// <summary>Point each canvas overlay at the panel that owns it: the Rules layer follows Validation, the
     /// nearest-miss evidence follows Feasibility. Leaving a panel drops its overlay, so the canvas never carries
@@ -325,7 +358,7 @@ public partial class PlanTool
             try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
             try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
             // The Rules layer follows an open validation panel, not the persisted overlay flag — sync it to the initial state.
-            try { await handle.InvokeVoidAsync("setOverlay", "violations", leftOpen && leftPanel == "validation"); } catch { }
+            try { await handle.InvokeVoidAsync("setOverlay", "violations", sidebarOpen && leftPanel == "validation"); } catch { }
             await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
                 System.Text.Json.JsonSerializer.Serialize(Shortcuts));
             try { heightMap = await handle.InvokeAsync<bool>("getHeightMap"); } catch { /* keep default off */ }
@@ -337,25 +370,47 @@ public partial class PlanTool
             }
             catch { /* picker just stays empty */ }
             await LoadObjectiveVocabularyAsync();
-            // A map-backed plan (/maps/{slug}/plan) loads its artifact; the bare route honours the generator
-            // hand-off (?plan=<id> loads that candidate).
-            if (MapBacked) await LoadFromMap(Slug!);
-            else if (PlanIdFromQuery() is { } planId) await LoadFromDb(planId);
+            await BindToRouteAsync();
         }
         finally { documentLoaded = true; }
         StateHasChanged();
     }
 
-    /// <summary>The <c>plan</c> query-string id, if the editor was opened with one (generator hand-off).</summary>
-    private long? PlanIdFromQuery()
+    /// <summary>Load what the route names into the editor: a map's plan artifact, a plan row, or a blank plan.
+    /// A map left behind is offered the same discard the editor's disposal gives it, and everything read off
+    /// the previous binding — the selection, the open drawers, the map state — is dropped with it.</summary>
+    private async Task BindAsync()
     {
-        var query = new Uri(Nav.Uri).Query.TrimStart('?');
-        foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        if (handle is null) return;
+        var previous = boundKey;
+        if (previous is not null && previous.StartsWith("map:", StringComparison.Ordinal))
+            await DiscardIfEmptyAsync(previous["map:".Length..]);
+
+        boundKey = RouteKey;
+        sel = null;
+        state = null;
+        showCompile = showOpenDb = false;
+        importError = null;
+        ResetDbBinding();
+        if (previous is not null) active = Phase == "info" ? "info" : "draw";
+
+        if (MapBacked) await LoadFromMap(Slug!);
+        else if (PlanId is { } planId) await LoadFromDb(planId);
+        else if (previous is not null)
         {
-            var kv = pair.Split('=', 2);
-            if (kv.Length == 2 && kv[0] == "plan" && long.TryParse(kv[1], out var id)) return id;
+            await handle.InvokeVoidAsync("newDoc");
+            SyncMeta(await handle.InvokeAsync<string>("getMeta"));
         }
-        return null;
+    }
+
+    /// <summary>Bring the address to the plan row the editor now holds, without loading it again: a save
+    /// that forked, an Open, a New and an Import each change the row first and the URL after.</summary>
+    private void ShowBindingInUrl(bool replace = false)
+    {
+        if (MapBacked) return;
+        boundKey = planDbId is { } id ? $"plan:{id}" : NewKey;
+        if (boundKey == RouteKey) return;
+        Nav.NavigateTo(planDbId is { } row ? $"plans/{row}" : "plans/new", replace: replace);
     }
 
     // ── toolbar ────────────────────────────────────────────────────────────────
@@ -591,9 +646,7 @@ public partial class PlanTool
 
     // ── globals form ─────────────────────────────────────────────────────────────
 
-    private Task OnName(ChangeEventArgs e) => OnNameChanged(e.Value?.ToString() ?? "Untitled plan");
-
-    // Value-typed entry points shared by the Info phase (map-backed) and the bare-route sidebar controls.
+    // Value-typed entry points the Info phase raises; the host owns the bridge they write through.
     private async Task OnNameChanged(string v)
     {
         planName = v;
@@ -811,6 +864,7 @@ public partial class PlanTool
         SyncMeta(await handle.InvokeAsync<string>("getMeta"));
         ResetDbBinding();
         sel = null;
+        ShowBindingInUrl();
         StateHasChanged();
     }
 
@@ -825,23 +879,20 @@ public partial class PlanTool
             var err = await handle.InvokeAsync<string?>("importJson", text);
             if (err is not null) { importError = err; }
             // A file import is a fresh, not-yet-persisted plan — saving it creates a new authored row.
-            else { SyncMeta(await handle.InvokeAsync<string>("getMeta")); ResetDbBinding(); sel = null; }
+            else { SyncMeta(await handle.InvokeAsync<string>("getMeta")); ResetDbBinding(); sel = null; ShowBindingInUrl(); }
         }
         catch { importError = "Couldn't read the file."; }
         StateHasChanged();
     }
 
-    private async Task ExportPlan()
-    {
-        if (handle is null) return;
-        var json = await handle.InvokeAsync<string>("exportJson");
-        var slug = string.IsNullOrWhiteSpace(planName) ? "plan" : planName.Trim().ToLowerInvariant().Replace(' ', '-');
-        await JS.InvokeVoidAsync("studio.downloadText", $"{slug}.plan.json", json, "application/json");
-    }
-
     // ── plan store (DB save / open-from-DB) ──────────────────────────────────────
 
     private void ResetDbBinding() { planDbId = null; planOrigin = null; saveState = null; }
+
+    /// <summary>What the origin badge means for the next Save.</summary>
+    private string OriginTitle => planOrigin == "authored"
+        ? "Saving updates this plan"
+        : "Saving a generated or imported plan creates a new copy";
 
     // Save the current plan to the DB. The server applies the fork-or-mutate doctrine: a fresh or authored
     // plan is written in place; a loaded generated/imported plan forks a new authored row. The response is
@@ -870,6 +921,7 @@ public partial class PlanTool
                     planDbId = saved.Id;
                     planOrigin = saved.Origin;
                     saveState = "Saved";
+                    ShowBindingInUrl(replace: true);
                 }
             }
             else { saveState = $"Couldn't save (HTTP {(int)resp.StatusCode}). Try again."; }
@@ -896,6 +948,13 @@ public partial class PlanTool
         $"Made by generator version {p.ComposerVersion ?? "unknown"}. "
         + "Generating it again today would give a different layout.";
 
+    // Open a plan row from the browser: load it, then bring the address to it.
+    private async Task OpenFromDb(long id)
+    {
+        await LoadFromDb(id);
+        if (planDbId == id) ShowBindingInUrl();
+    }
+
     private async Task LoadFromDb(long id)
     {
         if (handle is null) return;
@@ -903,7 +962,7 @@ public partial class PlanTool
         try
         {
             var detail = await Http.GetFromJsonAsync<PlanDetail>($"api/plans/{id}");
-            if (detail is null) { dbError = "Plan not found."; return; }
+            if (detail is null) { importError = dbError = "Plan not found."; return; }
             var err = await handle.InvokeAsync<string?>("importJson", detail.PlanJson);
             if (err is not null) { importError = err; return; }
             SyncMeta(await handle.InvokeAsync<string>("getMeta"));
@@ -913,7 +972,7 @@ public partial class PlanTool
             sel = null;
             showOpenDb = false;
         }
-        catch { dbError = "Couldn't open the plan."; }
+        catch { importError = dbError = "Couldn't open the plan."; }
         StateHasChanged();
     }
 
@@ -1131,13 +1190,11 @@ public partial class PlanTool
     // A map-backed plan builds onto its OWN row: one map carries plan → sketch → configure, keeps its plan
     // blob beside the layout it compiled into, and re-running refreshes it in place instead of leaving a
     // trail of near-identical maps. The intent write carries the plan's name, so the map's identity follows
-    // the plan without a second call. Only the candidate pool (the bare /plan-editor, which has no map row)
-    // still originates one — there the build IS the map's creation.
+    // the plan without a second call. A plan row has no map, so building one originates the map: there the
+    // build IS the map's creation.
     //
     // Either way the plan itself is written to the map first, so the map carries the document its layout was
-    // compiled from. Without it a map built from the bare route held a layout whose source was nowhere: it
-    // could not be reopened in the plan editor, and opening it there showed a blank document over a board
-    // that plainly came from one.
+    // compiled from and opens in the plan editor on the board it was built from.
     //
     // Both writes go through their from-plan route rather than the plain PUT, for the same reason: a
     // compiled pair states what the plan states and nothing else, so a straight replace deleted everything
@@ -1302,14 +1359,16 @@ public partial class PlanTool
             JsonSerializer.Serialize(new { extra = box.Nearest.Extra, missing = box.Nearest.Missing }, Web));
     }
 
+    // A "New plan" draft never saved is discarded so an abandoned click doesn't linger on the dashboard; the
+    // server decides whether it is untouched (default name, never saved, no one else credited).
+    private async Task DiscardIfEmptyAsync(string slug)
+    {
+        try { await Http.DeleteAsync($"api/map/{slug}/discard-if-empty"); } catch { }
+    }
+
     public async ValueTask DisposeAsync()
     {
-        // A "New plan" draft never saved is discarded so an abandoned click doesn't linger on the dashboard;
-        // the server decides whether it is untouched (default name, never saved, no one else credited).
-        if (MapBacked)
-        {
-            try { await Http.DeleteAsync($"api/map/{Slug}/discard-if-empty"); } catch { }
-        }
+        if (MapBacked) await DiscardIfEmptyAsync(Slug!);
         try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null)
         {

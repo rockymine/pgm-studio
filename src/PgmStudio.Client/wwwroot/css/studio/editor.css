@@ -589,6 +589,17 @@
 .plan-rebuild-mark--drop svg { color: var(--color-warning); }
 .plan-rebuild-mark--keep svg { color: var(--color-success); }
 
-/* The plan sidebar's three panels, as one even three-way switch rather than chips that wrap. */
-.plan-panel-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1); margin-bottom: var(--space-3); }
+/* The plan sidebar's three panels, as one even three-way switch rather than chips that wrap, closed by the
+   button that folds the sidebar away. */
+.plan-panel-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: var(--space-1); margin-bottom: var(--space-3); }
 .plan-panel-switch .filter-chip { justify-content: center; text-align: center; }
+/* The folded plan sidebar: a strip holding only the button that opens it again. */
+.plan-sidebar-stub {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-2) var(--space-1);
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+}

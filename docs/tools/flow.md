@@ -39,7 +39,7 @@ shipped.
 |---|---|---|---|
 | **Generator** | `/generator` | the board | nothing, until a candidate is kept |
 | **Shape catalog** | `/catalog` | — | nothing; it is the vocabulary the generator builds from |
-| **Plan** | `/maps/{slug}/plan` | the board | `plan_json` |
+| **Plan** | `/maps/{slug}/plan` · `/plans/{id}` | the board | `plan_json`, or a `plan` row |
 | **Sketch** | `/maps/{slug}/sketch` | the ground | `sketch_layout_json` |
 | **Configure** | `/maps/{slug}/configure` | the play | `map_intent_json`, and the projected document |
 | **Library** | `/library` | — | its own tables, shared across every map |
@@ -59,7 +59,8 @@ document, and it is the one an agent should reach for.
 teams, no spawns and no objective, so a map begun here arrives at Configure with geometry and nothing else.
 
 **From the generator.** `/generator` browses a library of whole boards the composer made from a size band, a
-symmetry and a seed, 500 for each band and symmetry. Keeping one stores it as a candidate; authoring it originates a map at the plan stage. From that point it is an
+symmetry and a seed, 500 for each band and symmetry. Keeping one stores it as a candidate, which the Plan tool
+opens at `/plans/{id}` without a map behind it; authoring it originates a map at the plan stage. From that point it is an
 ordinary planned map.
 
 **From a world built outside the studio.** `/maps/new` imports a Minecraft world that has terrain and no

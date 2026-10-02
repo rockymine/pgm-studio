@@ -603,23 +603,6 @@ is the standard the copy is held to.
   `SketchMaterialGate` and `PlanStructurePreview` still call the structures a wool cage and a spawn cube,
   which is the same word under a different hat and wants renaming in one pass rather than in two.
 
-- [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
-  `/maps/{slug}/plan` from a single component through six `@if (MapBacked)` branches, and the two render as
-  different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
-  the bare route gets no flow bar, no phases, the same three panels as **rail buttons**, and a collapsible
-  sidebar the map-backed one cannot have (`SidebarOpen => MapBacked || leftOpen`). Same panels, two navigation
-  models, one file — the thing the tool-consistency alignment exists to prevent.
-  Unify on the phase-rail + flow-bar + chips structure and keep the collapsible sidebar for both. The route may
-  change **only** the topbar — its crumbs and which actions exist — because that is where the binding genuinely
-  differs: a map-backed plan saves into its map's artifact, while a plan row saves as a row and forks when it
-  was generated or imported. Rename the bare route to `/plans/{id}` (and `/plans/new`), which says what it is
-  bound to where `/plan-editor` says nothing, updating the generator hand-off, the smoke sweep's route list and
-  the plan schema doc with it.
-  **Do not delete the route.** It is the only surface that opens a **plan row**, which is what the generator
-  hands a candidate off as and what `G119`'s fork-on-edit rule operates on; routing candidates through
-  `/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
-  no home on a map-backed plan.
-
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
   stretch along a boundary, an **interval** is where two things touch. `BoardStructure` breaks it —

@@ -30,7 +30,8 @@ phase a tool opens on (`?phase=info`), the row a listing should highlight (`?jus
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
 | `/maps/{slug}/configure` | `ConfigureTool` | the configure wizard |
 | `/maps/new` | `ConfigureTool` | the same tool with no slug: its Import phase, which is how a world becomes a map row |
-| `/plan-editor` | `PlanTool` | the same tool with no map: a candidate plan row, no phase host |
+| `/plans/{id}` | `PlanTool` | the same tool on a plan row rather than a map: a pinned generator candidate or a plan saved without one |
+| `/plans/new` | `PlanTool` | the same tool on a blank plan, which Save stores as a row and then moves to `/plans/{id}` |
 | `/generator` | `GeneratorTool` | the composer's browse-and-pin gallery |
 | `/catalog` | `CatalogTool` | the shape catalog |
 | `/library` | `LibraryTool` | the chooser — one card per library kind |
@@ -39,8 +40,9 @@ phase a tool opens on (`?phase=info`), the row a listing should highlight (`?jus
 | `/design` | `Design` | the component showcase |
 | `/not-found` | `NotFound` | 404 |
 
-Two of them carry a tool twice, and both times the slug-less route is the origination surface: a map has no id
-until Import creates its row, and a plan has no map until it is authored onto one. Blazor discovers routes from
+Two tools are carried more than once, and both times the slug-less route is the origination surface: a map has
+no id until Import creates its row, and a plan has no map until it is built or authored onto one. A plan row is
+a resource of its own, so it lives in the path the way a map does, and `new` stands where its id will be. Blazor discovers routes from
 `@page`, so this table is the only inventory there is — nothing in the app enumerates them.
 
 ## How the client is served
@@ -106,14 +108,15 @@ lifecycle position (no `map.xml` yet against has one), which is why the labels a
 
 **Every page carries two bars, and each answers one question.** The studio's own bar (`AppNav`) is the same
 everywhere: home, a link to each tool — Maps, Plan editor, Generator, Catalog, Library, and Users for an admin
-— lit on the page it names and every page under it, and at the right the theme and the account. The tool's bar
+— lit on the page it names and every page under it (Plan editor opens `/plans/new` and is lit on every
+`/plans/…` row), and at the right the theme and the account. The tool's bar
 (`Topbar`) under it is the trail to where the page is and the tool's own state and actions. So getting to
 another tool is always one click in the top bar, and the tool's bar holds nothing that is not the tool's.
 
 **A map tool leaves through the collection it belongs to.** Its bar's home link is that exit, and each of the
 three map tools names its own list: Sketch → *Sketches*, Plan → *Plans*, Configure → *Configuring*. The
-surfaces that hold no map — the generator, the catalog, the library, the design showcase and the maps page
-itself — carry no home link, because the studio's bar above them is already the way home.
+surfaces that hold no map — a plan row, the generator, the catalog, the library, the design showcase and the
+maps page itself — carry no home link, because the studio's bar above them is already the way home.
 
 Beside that link the tool's bar carries the trail — the map's name, then the tool or phase, dimmed. Neither is a
 link: the map is already open, so a second way to it would be a way to nowhere.
