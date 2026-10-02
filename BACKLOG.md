@@ -594,6 +594,26 @@ is the standard the copy is held to.
   front line and other become ground; their names live in the structure line under each card. Change `Key`,
   `PieceColor` and the SVG and PNG renderers together, and `--board-bg` to white. `docs/tools/generator.md`.
 
+- [ ] **C79 — Sliders, number inputs and selects go through shared components.** 103 raw `<input>` (33
+  `number`, 28 `range`) and 20 raw `<select>` sit in `Features/`, `Pages/` and `Layout/` beside `NumberField`
+  and `Select`, so a restyle has to find each one. A `RangeField` joins `Components/Forms/`, and every raw
+  number, range and select outside `Components/` routes through `NumberField`, `RangeField` or `Select`.
+  `docs/client/ui-conventions.md`.
+
+- [ ] **C80 — No inline `style` in markup.** 84 `style="…"` attributes across the razor files fix colour,
+  spacing and size where no token or class reaches them. Each becomes a class in the stylesheet its markup
+  already uses; a value computed at runtime (a width, a swatch colour) stays inline as a custom property the
+  class reads. `docs/client/ui-conventions.md`.
+
+- [ ] **C81 — `components.css` split by component.** One 2,122-line file holds 27 component sections. Each
+  section moves to its own file under `wwwroot/css/studio/components/`, loaded in the same cascade order, so a
+  direction restyles a component by opening its file. `docs/client/ui-conventions.md`.
+
+- [ ] **C82 — Every canvas colour is a token.** The canvas JS draws a few colours as literals
+  (`plan-canvas.js`'s offender and bound strokes, the `#…` fallbacks beside `var(--…)`), so a theme cannot
+  reach them. Each becomes a `--canvas-*` token in `tokens.css` with a light value; Minecraft's own colour
+  tables (`palette.js`) stay literal, since they are game data. `docs/client/canvas-interaction.md`.
+
 - [ ] **C69 — A proportional UI font.** *Parked (author): waits on the design direction.* Every page is set
   in `ui-monospace` (`.editor-page`, `editor.css`), which reads as a terminal and is wider per word at the same
   size. The alternative is a system sans for interface text with monospace kept for data: slugs, coordinates,
