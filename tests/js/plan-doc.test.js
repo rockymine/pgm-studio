@@ -15,6 +15,7 @@ import {
   pieceSurface, surfaceRange, surfaceFraction, markerList, markerAt, MARKER_KINDS,
   boxMembers, boxAtCell, boxOfPiece, boxMirrorImages, rectContainsRect,
   footprintCell, footprintAtCell, clampFootprint, pieceBlocks, FOOTPRINT_KINDS,
+  selectableAtWorld, selectableItem, itemsWithinWorldRect, toggleRef, unionRefs, translateItem,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/plan/plan-doc.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -552,6 +553,22 @@ test("pickAtWorld picks the box over its pieces, and drill reaches past it", () 
   assert.deepEqual(pickAtWorld(doc, 0, 10, { drill: true }), { kind: "marker", markerKind: "spawn", index: 0 });
 });
 
+test("a view without boxes neither picks them nor measures them", () => {
+  const doc = normalizeDoc({
+    plan: 2, globals: { symmetry: "rot_180" },
+    pieces: [{ id: "p", role: "piece", rect: [0, 0, 1, 1] }],
+    boxes: [{ id: "b", kind: "hub", rect: [0, 0, 10, 10] }],
+  });
+  assert.deepEqual(pickAtWorld(doc, 2, 2), { kind: "box", id: "b" });
+  assert.deepEqual(pickAtWorld(doc, 2, 2, { boxes: false }), { kind: "piece", id: "p" });
+  assert.deepEqual(pickAtWorld(doc, 30, 30, { boxes: false }), null);
+  assert.deepEqual(contentBounds(doc, { boxes: false }), { min_x: 0, min_z: 0, max_x: 5, max_z: 5 });
+  assert.deepEqual(viewBounds(doc, { boxes: false }), { min_x: -5, min_z: -5, max_x: 5, max_z: 5 });
+  assert.deepEqual(contentBounds(doc), { min_x: 0, min_z: 0, max_x: 50, max_z: 50 });
+  // Leaving the boxes out of the view leaves them in the document.
+  assert.equal(doc.boxes.length, 1);
+});
+
 test("an unboxed plan is unaffected by the group model", () => {
   const doc = normalizeDoc({ plan: 2, pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }] });
   assert.deepEqual(pickAtWorld(doc, 10, 10), { kind: "piece", id: "p" });
@@ -689,4 +706,85 @@ test("normalizeDoc keeps the plan's authors and contributors, the credits the co
   assert.deepEqual(doc.meta.authors, ["a"]);
   assert.deepEqual(doc.meta.contributors, [{ name: "b", contribution: "relief" }]);
   assert.equal("authors" in normalizeDoc({ meta: { name: "W" } }).meta, false);
+});
+
+// ── multi-selection ─────────────────────────────────────────────────────────
+
+const multiDoc = () => normalizeDoc({
+  plan: 2,
+  globals: { cell: 5 },
+  pieces: [
+    { id: "a", role: "piece", rect: [0, 0, 2, 2] },
+    { id: "b", role: "piece", rect: [4, 0, 2, 2] },
+    { id: "far", role: "piece", rect: [20, 20, 2, 2] },
+  ],
+  zones: [{ id: "big", rect: [-5, -5, 40, 40], holes: [[1, 1, 1, 1]] }],
+  placements: { spawns: [{ piece: "a", at: [2, 2], facing: "front" }] },
+  boxes: [{ id: "bx", kind: "hub", rect: [0, 0, 6, 2] }],
+});
+
+test("a marquee takes what lies wholly inside it and not what it merely crosses", () => {
+  const doc = multiDoc();
+  // Blocks 0..30 × 0..10 holds a and b; it crosses the big zone and misses far.
+  assert.deepEqual(itemsWithinWorldRect(doc, 0, 0, 30, 10), [{ kind: "piece", id: "a" }, { kind: "piece", id: "b" }]);
+  // Dragged from the opposite corner it is the same rectangle.
+  assert.deepEqual(itemsWithinWorldRect(doc, 30, 10, 0, 0), itemsWithinWorldRect(doc, 0, 0, 30, 10));
+  // A piece touching the rectangle's edge is inside it; one block short of covering it is not.
+  assert.deepEqual(itemsWithinWorldRect(doc, 0, 0, 10, 10), [{ kind: "piece", id: "a" }]);
+  assert.deepEqual(itemsWithinWorldRect(doc, 0, 0, 9, 10), []);
+  assert.deepEqual(itemsWithinWorldRect(doc, 1, 0, 30, 10), [{ kind: "piece", id: "b" }]);
+});
+
+test("a marquee over the whole board takes the zone too, pieces first, and never a box", () => {
+  const doc = multiDoc();
+  assert.deepEqual(itemsWithinWorldRect(doc, -30, -30, 200, 200).map(r => r.id), ["a", "b", "far", "big"]);
+});
+
+test("selectableAtWorld names the piece or zone under a point, passing markers, footprints and boxes", () => {
+  const doc = multiDoc();
+  // The spawn marker sits on piece a, and box bx covers it: the piece is what a Shift-click toggles.
+  assert.deepEqual(selectableAtWorld(doc, 10, 10), { kind: "zone", id: "big" });
+  assert.deepEqual(selectableAtWorld(doc, 2, 2), { kind: "piece", id: "a" });
+  assert.deepEqual(selectableAtWorld(doc, 105, 105), { kind: "piece", id: "far" });
+  assert.equal(selectableAtWorld(doc, 500, 500), null);
+  assert.equal(selectableItem(doc, { kind: "piece", id: "a" }), doc.pieces[0]);
+  assert.equal(selectableItem(doc, { kind: "zone", id: "big" }), doc.zones[0]);
+  assert.equal(selectableItem(doc, { kind: "box", id: "bx" }), null);
+});
+
+test("toggleRef adds what is absent and removes what is present; unionRefs keeps the base's order", () => {
+  const a = { kind: "piece", id: "a" }, b = { kind: "piece", id: "b" }, zoneA = { kind: "zone", id: "a" };
+  assert.deepEqual(toggleRef([a], b), [a, b]);
+  assert.deepEqual(toggleRef([a, b], a), [b]);
+  // A piece and a zone sharing an id are two things.
+  assert.deepEqual(toggleRef([a], zoneA), [a, zoneA]);
+  assert.deepEqual(unionRefs([a], [b, a, zoneA]), [a, b, zoneA]);
+  const base = [a];
+  toggleRef(base, b); unionRefs(base, [b]);
+  assert.deepEqual(base, [a], "neither mutates its input");
+});
+
+test("translateItem moves a zone's holes with its rect, and a piece by its rect alone", () => {
+  const doc = multiDoc();
+  translateItem(doc.zones[0], 3, -2);
+  assert.deepEqual(doc.zones[0].rect, [-2, -7, 40, 40]);
+  assert.deepEqual(doc.zones[0].holes, [[4, -1, 1, 1]]);
+  translateItem(doc.pieces[0], -1, 1);
+  assert.deepEqual(doc.pieces[0].rect, [-1, 1, 2, 2]);
+  assert.equal("holes" in doc.pieces[0], false);
+});
+
+test("moving a multi-selection by one delta keeps every member's offset to the others", () => {
+  const doc = multiDoc();
+  const refs = [{ kind: "piece", id: "a" }, { kind: "piece", id: "b" }, { kind: "zone", id: "big" }];
+  const gap = doc.pieces[1].rect[0] - doc.pieces[0].rect[0];
+  for (const ref of refs) translateItem(selectableItem(doc, ref), 7, 3);
+  assert.equal(doc.pieces[1].rect[0] - doc.pieces[0].rect[0], gap);
+  assert.deepEqual(doc.pieces[2].rect, [20, 20, 2, 2], "an unselected piece stays");
+  // The spawn rides piece a: its stored offset is unchanged and its absolute cell moved with the piece.
+  assert.deepEqual(doc.placements.spawns[0].at, [2, 2]);
+  assert.deepEqual(markerCell(doc, doc.placements.spawns[0]), [7.4, 3.4]);
+  // The hole is still inside its zone, in the same place relative to it.
+  assert.deepEqual(doc.zones[0].holes[0], [8, 4, 1, 1]);
+  assert.deepEqual(doc.zones[0].rect, [2, -2, 40, 40]);
 });

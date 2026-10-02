@@ -208,7 +208,7 @@ clipper computes, without the sweep. An edge that only touches counts, since two
 landmass. It runs on the error path alone, and the throw is logged rather than swallowed.
 
 **Sketch and Plan share one selection model built on top of these hit tests, not two.** Both are two levels: a
-plain click picks the unit its canvas states — a group in `SketchCanvas`, a box in `PlanCanvas` — and two
+plain click picks the unit its canvas states — a group in `SketchCanvas`, a box in `PlanCanvas` (an admin's view; a canvas without boxes picks pieces) — and two
 modifiers reach past it the same way in both. `Ctrl`/`⌘`+click reaches the member under the cursor directly
 and enters its group as the **scope** in the same motion; `SketchCanvas.#scopeGroupId` and
 `PlanCanvas.#scopeBoxId` are the field each canvas holds it in. `Alt`+click does the opposite: it resolves to

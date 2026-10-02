@@ -16,6 +16,13 @@ namespace PgmStudio.Client.Features.Plan;
 public partial class PlanTool
 {
     [Inject] private HttpClient Http { get; set; } = default!;
+    [Inject] private StudioAccess Access { get; set; } = default!;
+
+    /// <summary>Whether this editor shows boxes: the composer's model of a layout, which only an admin works
+    /// with. A member's canvas does not draw or pick them, and the Boxes tool, its chord, the box inspector and
+    /// the Generator check are absent; the boxes stay in the plan either way. Resolved when the canvas mounts,
+    /// before the plan is loaded into it.</summary>
+    private bool showBoxes;
 
     /// <summary>When routed as <c>/maps/{slug}/plan</c>, the plan is a <c>stage=plan</c> map row and the editor
     /// loads/saves its <c>plan_json</c> artifact (GET/PUT <c>/api/map/{slug}/plan</c>) in place — no fork doctrine.
@@ -313,13 +320,13 @@ public partial class PlanTool
 
     /// <summary>Every chord this tool answers. The registry requires the label and the group, which is what
     /// keeps the `?` sheet and the command palette complete without a second list to maintain.</summary>
-    private static readonly object[] Shortcuts =
+    private object[] Shortcuts =>
     [
         new { id = "plan.tool.select", keys = "v", label = "Select", group = "Tools" },
         new { id = "plan.tool.pan",    keys = "h", label = "Pan",    group = "Tools" },
         new { id = "plan.tool.piece",  keys = "r", label = "Piece",  group = "Tools" },
         new { id = "plan.tool.zone",   keys = "z", label = "Zone",   group = "Tools" },
-        new { id = "plan.tool.box",    keys = "g", label = "Box",    group = "Tools" },
+        .. showBoxes ? (object[])[new { id = "plan.tool.box", keys = "g", label = "Box", group = "Tools" }] : [],
         new { id = "plan.tool.wall",   keys = "w", label = "Wall",   group = "Tools" },
         new { id = "plan.fit",         keys = "f", label = "Zoom to fit", group = "Canvas" },
         new { id = "plan.save",        keys = "mod+s", label = "Save", group = "Everywhere", inField = true },
@@ -359,6 +366,8 @@ public partial class PlanTool
             handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountPlan", svgRef, wrapRef, readout!.Cursor, selfRef);
             await handle.InvokeVoidAsync("setReadOnly", writeClosed);
             await handle.InvokeVoidAsync("setRole", role);
+            try { showBoxes = await Access.IsAdminAsync(); } catch { showBoxes = false; }
+            await handle.InvokeVoidAsync("setBoxesShown", showBoxes);
             try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
             try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
             // The Rules layer follows an open validation panel, not the persisted overlay flag — sync it to the initial state.
@@ -1282,6 +1291,7 @@ public partial class PlanTool
     public void OnSelect(string? json)
     {
         sel = json is null ? null : JsonSerializer.Deserialize<PlanSelection>(json);
+        if (sel is { Kind: "box" } && !showBoxes) sel = null;
         StateHasChanged();
     }
 
@@ -1407,6 +1417,8 @@ public partial class PlanTool
         [JsonPropertyName("zoneKind")] public string ZoneKind { get; set; } = "";
         [JsonPropertyName("members")] public List<string>? Members { get; set; }
         [JsonPropertyName("membersNamed")] public bool MembersNamed { get; set; }
+        /// <summary>How many pieces and zones a <c>multi</c> selection holds.</summary>
+        [JsonPropertyName("count")] public int Count { get; set; }
     }
 
     private sealed class MetaDto
