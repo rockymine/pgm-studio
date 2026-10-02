@@ -829,11 +829,14 @@ public static class Decorator
     {
         var (fx, fz) = symmetry.Canonical(x, z);
 
+        // Farmland is sown rather than grown wild, so the meadow's density field does not thin it.
+        var soil = DressingPalette.SoilOf(groundId);
+        if (soil == Soil.Farmland) return Crop(flora, seed, fx, fz);
+
         var density = PatternNoise.Fbm(fx, fz, seed, flora.Scale, flora.Octaves);
         if (density < 1 - flora.Coverage * soilShare) return null;
 
         // A mushroom keeps by day only to podzol and mycelium, and mycelium carries nothing else.
-        var soil = DressingPalette.SoilOf(groundId);
         if (DressingPalette.KeepsMushroom(groundId, groundData) && PatternNoise.Unit(fx, fz, seed + 51) < flora.MushroomShare)
         {
             var pick = PatternNoise.Unit(fx, fz, seed + 52);
@@ -862,6 +865,26 @@ public static class Decorator
         if (groundId == Blocks.Dirt && PatternNoise.Unit(fx, fz, seed + 71) < flora.DeadBushShare) return DressingPalette.DeadBush;
         return PatternNoise.Unit(fx, fz, seed + 21) < flora.FernShare
             ? DressingPalette.Fern : DressingPalette.Grass;
+    }
+
+    /// <summary>The crop the canonical farmland cell <c>(fx, fz)</c> carries, or null where the field is left
+    /// unsown. The field is cut into square plots of the cover's <see cref="FloraSpec.Scale"/>, each sown with one
+    /// of <see cref="FloraSpec.Crops"/> and standing at <see cref="FloraSpec.Ripeness"/> up to a stage either
+    /// side; a fifth of its cells stand a stage behind the plot. A word that names no crop leaves its plot
+    /// bare.</summary>
+    private static Plant? Crop(FloraSpec flora, uint seed, int fx, int fz)
+    {
+        if (flora.CropShare <= 0 || PatternNoise.Unit(fx, fz, seed + 91) >= flora.CropShare) return null;
+        IReadOnlyList<string> crops = flora.Crops is { Count: > 0 } named ? named : [CropKinds.Wheat];
+        var plot = Math.Max(1, flora.Scale);
+        var (px, pz) = ((int)Math.Floor(fx / (double)plot), (int)Math.Floor(fz / (double)plot));
+        var pick = (int)(PatternNoise.Unit(px, pz, seed + 92) * crops.Count) % crops.Count;
+        if (DressingPalette.CropBlock(crops[pick]) is not { } block) return null;
+
+        var stage = (int)Math.Round(Math.Clamp(flora.Ripeness, 0, 1) * DressingPalette.CropRipe, MidpointRounding.AwayFromZero)
+            + (int)(PatternNoise.Unit(px, pz, seed + 93) * 3) - 1;
+        if (PatternNoise.Unit(fx, fz, seed + 94) < 0.2) stage -= 1;
+        return new Plant(block, Math.Clamp(stage, 0, DressingPalette.CropRipe), Tall: false);
     }
 
     /// <summary>Whether a lily pad floats on the still water at <c>(x, z)</c>: where the cover's density field

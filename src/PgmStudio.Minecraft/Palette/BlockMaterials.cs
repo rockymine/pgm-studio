@@ -57,6 +57,17 @@ public static class BlockMaterials
     public static (int Id, int Data)? SlabOf(int id, int data) =>
         SlabNamed.TryGetValue(Of(id, data), out var slab) ? slab : null;
 
+    // material → its stair, the same way.
+    private static readonly Dictionary<string, (int Id, int Data)> StairNamed =
+        Named.Where(entry => BlockFamilies.IsStair(entry.Key.Id))
+             .GroupBy(entry => entry.Value)
+             .ToDictionary(group => group.Key, group => group.First().Key);
+
+    /// <summary>The stair cut from the same material as <paramref name="id"/>:<paramref name="data"/>, or null
+    /// where that material has none — a dark oak verge on a stair roof steps in dark oak stairs.</summary>
+    public static int? StairOf(int id, int data) =>
+        StairNamed.TryGetValue(Of(id, data), out var stair) ? stair.Id : null;
+
     private static Dictionary<(int, int), string> Build()
     {
         var table = new Dictionary<(int, int), string>();

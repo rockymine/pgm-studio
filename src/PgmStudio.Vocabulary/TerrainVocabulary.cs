@@ -243,6 +243,16 @@ public static class BoulderForms
     public static string Canonical(string? form) => All.Contains(form) ? form! : Round;
 }
 
+/// <summary>What a flora cover sows on farmland — the wire words for <c>DressingPalette.Crops</c>.</summary>
+public static class CropKinds
+{
+    public const string Wheat = "wheat";
+    public const string Carrots = "carrots";
+    public const string Potatoes = "potatoes";
+
+    public static readonly string[] All = [Wheat, Carrots, Potatoes];
+}
+
 public static class BandAxes
 {
     /// <summary>Down from the top of the bucket: grass over two dirt.</summary>

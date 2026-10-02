@@ -163,6 +163,28 @@ public sealed class HousePartLibraryEndpointsTests
         await Assert.That(detail.RoofSlabData).IsEqualTo(0);
     }
 
+    /// <summary>A roof states the stair it steps in and its wear, and both come back as saved; a stair named
+    /// beside a slab is refused, since a roof climbs one way.</summary>
+    [Test]
+    public async Task A_roof_states_its_stair_and_its_wear()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var planks = await StyleAsync(client, "oak planks", Blocks.Planks);
+        var staired = Roof("worn-oak", RoofForms.Gable, new RoomCourseDto(RoomParts.Roof, 0, planks, 1))
+            with { RoofStair = Blocks.OakStairs, RoofWear = 0.25 };
+        var created = await (await client.PostAsJsonAsync("/api/roof-styles", staired))
+            .Content.ReadFromJsonAsync<RoofStyleDetail>();
+
+        var detail = await client.GetFromJsonAsync<RoofStyleDetail>($"/api/roof-styles/{created!.Id}");
+        await Assert.That(detail!.RoofStair).IsEqualTo(Blocks.OakStairs);
+        await Assert.That(detail.RoofWear).IsEqualTo(0.25);
+
+        var both = await client.PostAsJsonAsync("/api/roof-styles", staired with { RoofSlab = Blocks.WoodenSlab });
+        await Assert.That((int)both.StatusCode).IsEqualTo(400);
+    }
+
     [Test]
     public async Task A_storey_round_trips_and_is_drawn_as_the_room_it_makes()
     {

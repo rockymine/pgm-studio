@@ -167,7 +167,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         return new RoofStyleSaveRequest(
             Name: name, Form: RoofForms.Canonical(NameOf(roof.Form)), Pitch: roof.Pitch, Overhang: roof.Overhang,
             RoofHole: roof.Hole, RidgeCap: roof.RidgeCap, Courses: courses,
-            RoofSlab: roof.Slab, RoofSlabData: roof.SlabData);
+            RoofSlab: roof.Slab, RoofSlabData: roof.SlabData, RoofStair: roof.Stair, RoofWear: roof.Wear);
     }
 
     // ── the finishes ──────────────────────────────────────────────────────────────────────────────────
@@ -512,7 +512,9 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             GableWindows: WindowDto(style.Roof.GableWindows),
             DoorHead: new RoomDoorHeadDto(
                 NameOf(style.Doorway.Head.Form), style.Doorway.Head.Block,
-                NameOf(style.Doorway.Head.Fill), style.Doorway.Head.FillBlock, style.Doorway.Head.FillData));
+                NameOf(style.Doorway.Head.Fill), style.Doorway.Head.FillBlock, style.Doorway.Head.FillData),
+            RoofStair: style.Roof.Stair,
+            RoofWear: style.Roof.Wear);
     }
 
     // ── what the store could not hold ─────────────────────────────────────────────────────────────────
@@ -569,6 +571,8 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         Check("roofHole", preset.Roof.Hole, back.Roof.Hole);
         Check("roofSlab", preset.Roof.Slab, back.Roof.Slab);
         Check("roofSlabData", preset.Roof.SlabData, back.Roof.SlabData);
+        Check("roofStair", preset.Roof.Stair, back.Roof.Stair);
+        Check("roofWear", preset.Roof.Wear, back.Roof.Wear);
         Check("beams", preset.Beams, back.Beams);
         Check("windows", preset.Windows, back.Windows);
         Check("gableWindows", preset.Roof.GableWindows, back.Roof.GableWindows);

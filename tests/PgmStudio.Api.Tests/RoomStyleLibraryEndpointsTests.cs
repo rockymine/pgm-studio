@@ -178,6 +178,7 @@ public sealed class RoomStyleLibraryEndpointsTests
             DoorHead = new RoomDoorHeadDto(DoorHeadForms.Arched, StoneBrickStairs,
                 DoorHeadFills.UpperSlab, Blocks.StoneSlab, StoneBrickSlabData),
             DoorWidth = 3,
+            RoofWear = 0.2,
         };
 
         var created = await client.PostAsJsonAsync("/api/room-styles", draft);
@@ -197,6 +198,7 @@ public sealed class RoomStyleLibraryEndpointsTests
         await Assert.That(after.DoorHead).IsNotNull();
         await Assert.That(after.DoorHead!.Form).IsEqualTo(DoorHeadForms.Arched);
         await Assert.That(after.DoorWidth).IsEqualTo(3);
+        await Assert.That(after.RoofWear).IsEqualTo(0.2);
         await Assert.That(after.Windows.HostBlock).IsEqualTo(Blocks.Cobblestone);
     }
 

@@ -134,7 +134,7 @@ public partial class HousePartEditor
                 roof = new RoofStyleSaveRequest(
                     roofDetail.Name, roofDetail.Form, roofDetail.Pitch,
                     roofDetail.Overhang, roofDetail.RoofHole, roofDetail.RidgeCap, roofDetail.Courses,
-                    roofDetail.RoofSlab, roofDetail.RoofSlabData);
+                    roofDetail.RoofSlab, roofDetail.RoofSlabData, roofDetail.RoofStair, roofDetail.RoofWear);
                 break;
             case LibraryKinds.StoreysSlug:
                 if (await Library.GetAsync<StoreyStyleDetail>(Part.Kind, id) is not { } storeyDetail)
@@ -260,8 +260,20 @@ public partial class HousePartEditor
     /// what a row is until a slab is named.</summary>
     private bool Slabbed => (roof?.RoofSlab ?? -1) >= 0;
 
-    private Task ToggleRoofSlab()
-        => Roof(r => r with { RoofSlab = r.RoofSlab >= 0 ? -1 : 126, RoofSlabData = 0 });   // wooden slab
+    /// <summary>Whether the roof is laid in stairs. -1 is a roof laid in cubes.</summary>
+    private bool Staired => (roof?.RoofStair ?? -1) >= 0;
+
+    private Task StepInBlocks() => Roof(r => r with { RoofSlab = -1, RoofSlabData = 0, RoofStair = -1 });
+
+    private Task StepInSlabs()
+        => Roof(r => r with { RoofSlab = 126, RoofSlabData = 0, RoofStair = -1 });   // wooden slab
+
+    private Task StepInStairs() => Roof(r => r with { RoofSlab = -1, RoofSlabData = 0, RoofStair = 53 });   // oak stairs
+
+    private Task PickRoofStair(PaintBlockDto block) => Roof(r => r with { RoofStair = block.Id });
+
+    private Task SetRoofWear(ChangeEventArgs e)
+        => Roof(r => r with { RoofWear = Math.Clamp(Parse(e, (int)(r.RoofWear * 100)), 0, 100) / 100.0 });
 
     private Task PickRoofSlab(PaintBlockDto block)
         => Roof(r => r with { RoofSlab = block.Id, RoofSlabData = block.Data });

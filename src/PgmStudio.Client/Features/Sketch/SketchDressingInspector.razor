@@ -195,6 +195,25 @@
           <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
                  value="@((int)(Spec(SpecFields.LilyShare, 0) * 100))"
                  @oninput="e => SetSpec(SpecFields.LilyShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        <Field Label="Crops"><LabelHint>on farmland only, one crop to a plot the patch size across</LabelHint>
+          <LabelEnd><strong>@($"{Spec(SpecFields.CropShare, 0) * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@((int)(Spec(SpecFields.CropShare, 0) * 100))"
+                 @oninput="e => SetSpec(SpecFields.CropShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        @if (Spec(SpecFields.CropShare, 0) > 0)
+        {
+          <Field Label="Sown"><ChildContent><div class="chip-row">
+            @foreach (var crop in CropKinds.All)
+            {
+              <Chip Active="Crops().Contains(crop)" @key="crop" OnClick="() => ToggleCrop(crop)">@crop</Chip>
+            }
+          </div></ChildContent></Field>
+          <Field Label="Ripeness"><LabelHint>just sown to ready; each plot a stage either side</LabelHint>
+            <LabelEnd><strong>@($"{Spec(SpecFields.Ripeness, 1) * 100:0}%")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                   value="@((int)(Spec(SpecFields.Ripeness, 1) * 100))"
+                   @oninput="e => SetSpec(SpecFields.Ripeness, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        }
       }
       else if (kind == PropKinds.Chest)
       {

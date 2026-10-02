@@ -5973,6 +5973,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `M0056` makes a gable the database's default porch form, as it is the code's; a stored row keeps the form it
   states.
   `docs/world-export/structures.md` §7.1, §7.3, §7.6, §7.8. (`WE159`)
+
+- **Stair roofs, a rake with depth, and wear (`WE161`)** — a roof names the `roofStair` it steps in: every
+  column tops out in that stair climbing toward its ridge, the rim in the verge's own stair; a ridge two blocks
+  wide is two stairs meeting, one a block wide is a slab with an upside-down stair under it at the gable facing
+  out of the end, and a hip line and a flat lid are whole blocks. Under every single-course column hanging past the gable or the eave the
+  stamper hangs the same stair upside down and turned the other way, or on a slab roof the upper half of the
+  course below, so the rake is one block deep from the second course to the ridge. `roofWear` (0–1) lays that
+  share of a stair roof's slope as whole blocks and of its rim as slabs, and leaves that share of the hung
+  courses out, hashed per cell so a house restamps alike. `HS1` and `HS3` hold the stair to a stair of the
+  body's own material, never over a laid log and never beside a `roofSlab`. Both editors offer whole blocks,
+  stairs or slabs, the stair and the wear; `M0057` adds the two columns to house and roof rows.
+  `docs/world-export/structures.md` §7.1, `docs/tools/library.md`. (`WE161`)
 - **The library's house styles are named for what they are (TL36).** A room style's name is describing words
   then a kind of building, from the two lists `HouseNames` holds and `GET /api/room-styles/name-words` answers;
   `HS19` complains of any other on save. The library holds the author's review: the ten kept styles revised and
@@ -8358,6 +8370,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   podzol and mycelium at `mushroomShare`: the two footings a mushroom keeps by day, so none is grown where
   1.8 would drop it. Podzol grows the rest of its cover as any dirt does, and mycelium nothing else. The
   Dressing inspector offers the share. `docs/world-export/decoration.md` §3. (`WE157`)
+
+- **Crops on farmland (`WE160`)** — a flora area sows the farmland inside it at `cropShare`, which the
+  meadow's density field does not thin: square plots of the cover's patch size, each one of `crops` — wheat,
+  carrots or potatoes, wheat unstated — at `ripeness` up to a stage either side, a fifth of its cells a stage
+  behind, read at the folded cell so a mirrored board's fields are sown alike. Farmland grows nothing else.
+  The Dressing inspector offers the share, the crops and the ripeness. `docs/world-export/decoration.md` §3.
+  (`WE160`)
 
 - **Lily pads on open water (`WE156`)** — a flora area floats a lily pad on the open still water inside it at
   `lilyShare`, cut from a field at the cover's patch size so the pads gather in rafts as flowers gather in

@@ -362,8 +362,8 @@ One composer serves all three, because they are the same act — pick a kind, bi
 turn that kind's knobs — and what differs between them is data rather than a third editor.
 
 A **roof** is everything above the eave: its form, pitch and overhang, whether it carries a hole and a ridge
-cap, the `roofSlab` a half-course rise steps on every odd course, and a material for each of its `roof`,
-`verge` and `gable` parts. It has no thickness: a course stack counts upward from its part's own base, which a
+cap, the `roofSlab` a half-course rise steps on every odd course or the `roofStair` a whole-course rise steps
+in, its `roofWear`, and a material for each of its `roof`, `verge` and `gable` parts. It has no thickness: a course stack counts upward from its part's own base, which a
 wall has and a roof does not, since a slope's depth at a cell is however many courses close the step down to
 its neighbour. The slab is the roof's own rather than the house's, which is what lets the slab/pitch pairing be
 checked here as well as on a whole shell — and what makes a house binding a roof take that roof's answer, the
@@ -705,7 +705,7 @@ header:
   beam is the end of a floor timber and docks against the posts, which is what a log is for and the only thing
   it is a house material for. `doorHead.block` must be a stair; its `fillBlock` under `upperSlab`
   must be a single slab; a `windows.block` under `stairLattice` or `arched` must be a stair, and under
-  `slabBanded` a single slab; `roofSlab` itself must be a single slab when it names one at all — a **double**
+  `slabBanded` a single slab; `roofStair` must be a stair; `roofSlab` itself must be a single slab when it names one at all — a **double**
   slab (43/125/181) does not count, since it ignores the half a window or a door head writes into its data and
   is a full cube regardless. Getting it wrong used to build silently — a solid lintel instead of an arch, a
   pane/air/pane stripe instead of a band — and now answers **400**
@@ -727,7 +727,8 @@ header:
   refused outright, whichever role it is asked to fill. A **laid** log is not — a `laidLog` roof lies along the
   ridge and is one of the commonest hand-built roofs there is, and what was never a roof is the log with no
   axis rather than the log. It carries its own whole-course rise, so `roofSlab` over one is refused: no slab is
-  cut from a log. The **gable** is the end wall carried up and follows the wall, so it is not held to this.
+  cut from a log. `roofStair` is held the same way — the body's own material, never over a laid log — and a
+  roof naming both `roofStair` and `roofSlab` is refused, since it climbs one way or the other. The **gable** is the end wall carried up and follows the wall, so it is not held to this.
 
 - **`HS4` — a part built of two blocks, built of two materials.** A door head is a stair at each corner and a
   slab between them, and a window may be seated in a host block; each pair is one line of the building and is

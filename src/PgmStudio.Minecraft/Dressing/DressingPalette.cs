@@ -1,5 +1,6 @@
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Dressing;
 
@@ -29,6 +30,13 @@ public static class DressingPalette
     public const int CactusBlock = 81;
     public const int BrownMushroomBlock = 39;
     public const int RedMushroomBlock = 40;
+    public const int WheatBlock = 59;
+    public const int CarrotsBlock = 141;
+    public const int PotatoesBlock = 142;
+
+    /// <summary>A crop's last growth stage: data 0 is just sown and this is ready. Wheat, carrots and potatoes
+    /// all count eight.</summary>
+    public const int CropRipe = 7;
 
     /// <summary>The dirt variant that is podzol.</summary>
     public const int PodzolData = 2;
@@ -69,6 +77,15 @@ public static class DressingPalette
     /// <summary>The mushrooms a cover draws from, brown two in three.</summary>
     public static readonly Plant[] Mushrooms = [BrownMushroom, BrownMushroom, RedMushroom];
 
+    /// <summary>The block a crop word sows, or null for a word that is not a crop.</summary>
+    public static int? CropBlock(string crop) => crop switch
+    {
+        CropKinds.Wheat => WheatBlock,
+        CropKinds.Carrots => CarrotsBlock,
+        CropKinds.Potatoes => PotatoesBlock,
+        _ => null,
+    };
+
     // ── ground a plant will grow on ─────────────────────────────────────────────
     /// <summary>How readily a painted surface accepts flora, by the block on top of it: grass and dirt take it
     /// fully, sand and clay sparsely, and everything else — the quartz of a plaza, the wool of a monument, a
@@ -77,18 +94,19 @@ public static class DressingPalette
     public static double SoilShare(int blockId, int blockData) => SoilOf(blockId) switch
     {
         Soil.Fertile => blockId == Blocks.Dirt && blockData == PodzolData ? 0.8 : 1.0,   // podzol takes a little less
-        Soil.Mycelium => 1.0,
+        Soil.Mycelium or Soil.Farmland => 1.0,
         Soil.Sand or Soil.Clay => 0.35,
         _ => 0,
     };
 
     /// <summary>What a surface block lets grow. A 1.8 grass tuft, fern or flower stays only on grass and dirt
     /// and drops at the first update anywhere else; a dead bush takes sand, hardened and stained clay and dirt;
-    /// a cactus takes sand alone; mycelium takes a mushroom and nothing else.</summary>
+    /// a cactus takes sand alone; mycelium takes a mushroom and nothing else; farmland takes a crop.</summary>
     public static Soil SoilOf(int blockId) => blockId switch
     {
         Blocks.Grass or Blocks.Dirt => Soil.Fertile,
         Blocks.Mycelium => Soil.Mycelium,
+        Blocks.Farmland => Soil.Farmland,
         Blocks.Sand => Soil.Sand,
         Blocks.HardenedClay or Blocks.StainedClay => Soil.Clay,
         _ => Soil.None,
@@ -184,4 +202,6 @@ public enum Soil
     Sand,
     /// <summary>Hardened and stained clay: a dead bush.</summary>
     Clay,
+    /// <summary>Farmland: a crop, and nothing else.</summary>
+    Farmland,
 }
