@@ -8944,6 +8944,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   unchanged world. `pgm-studio-mapgen/corpus/tree-showcase/trees.json` is the showcase's, and a board names its
   trees from it rather than from a studio's library or a cut of its own. (`tools/seed-trees.cs`,
   `docs/tools/library.md`, `docs/world-export/tree-corpus.md`)
+- **The library is seeded from one folder, a slot holds a block or a pattern, and each pattern is held once
+  (`TL37`).** What a fresh library holds is `src/PgmStudio.Minecraft/Library` — 53 patterns, 8 themes, 57
+  houses, 4 boulders and the 94 trees cut out of the showcase — read by `SeedFolder` and put in by `LibrarySeed`,
+  matched by content so a second start changes nothing; the roofs, storeys and porches are cut out of the
+  houses, one row each however many share one, and a template tree per species and a biome per biome stay
+  computed. A theme bucket and a course hold one block in place (`block_id`, `block_data`, `block_laid`) or a
+  pattern by id: a single block is never a pattern (`LB1`), a slot names one of the two (`LB2`), and a pattern the
+  library holds is not saved twice (`LB3`); a theme import binds the pattern it finds. Patterns and parts are
+  named for what they contain (`PatternNames`, `PartNames`), and seed-only variants of one seeded pattern are one.
+  `M0058` carries a stored library: 838 rows on the deployed studio, 667 of them single blocks, become about 53
+  patterns, roofs fall from 57 to 51 and storeys from 84 to 71, and each map's current refinement follows.
+  `M0059` keeps a room style's `front`, which the store had been dropping. The editors fill every slot through
+  `SlotSelect`, and `tools/seed-trees.cs` writes the folder's `trees.json`, so a deploy carries the trees.
+  (`Minecraft/Library`, `Minecraft/Painting/PatternNames`, `Api/Services/{LibrarySeed,Slots,ThemeLibrary}`,
+  `Api/Endpoints/LibraryRules`, `Migrations/M0058_SlotsHoldBlocks`, `Migrations/M0059_RoomStyleFront`,
+  `Client/Components/Terrain/SlotSelect`, `docs/tools/library.md`, `docs/refusals.md`, `docs/deployment.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

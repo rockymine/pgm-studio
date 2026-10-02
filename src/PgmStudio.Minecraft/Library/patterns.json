@@ -1,0 +1,1583 @@
+{
+ "grass clay surface": {
+  "kind": "cell",
+  "seed": 1,
+  "cellSize": 4,
+  "jitter": 50,
+  "warp": 4,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 159,
+    "data": 5
+   },
+   {
+    "kind": "solid",
+    "id": 159,
+    "data": 13
+   }
+  ],
+  "rise": 0
+ },
+ "grass clay surface dark": {
+  "kind": "cell",
+  "seed": 1,
+  "cellSize": 4,
+  "jitter": 50,
+  "warp": 4,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 35,
+    "data": 13
+   },
+   {
+    "kind": "solid",
+    "id": 159,
+    "data": 13
+   }
+  ],
+  "rise": 0
+ },
+ "mycelium clay surface": {
+  "kind": "cell",
+  "seed": 1,
+  "cellSize": 4,
+  "jitter": 50,
+  "warp": 4,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 159,
+    "data": 3
+   },
+   {
+    "kind": "solid",
+    "id": 159,
+    "data": 8
+   }
+  ],
+  "rise": 0
+ },
+ "dark stone clay fill": {
+  "kind": "cell",
+  "seed": 1,
+  "cellSize": 4,
+  "jitter": 50,
+  "warp": 10,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 159,
+    "data": 9
+   },
+   {
+    "kind": "solid",
+    "id": 35,
+    "data": 7
+   }
+  ],
+  "rise": 3
+ },
+ "dirt clay fill": {
+  "kind": "voronoi",
+  "seed": 1,
+  "cellSize": 10,
+  "bands": [
+   {
+    "material": {
+     "kind": "solid",
+     "id": 159,
+     "data": 12
+    },
+    "depth": 1
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 5,
+     "data": 1
+    },
+    "depth": 2
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 172,
+     "data": 0
+    },
+    "depth": 1
+   }
+  ],
+  "rise": 2
+ },
+ "stone fractal": {
+  "kind": "noise",
+  "seed": 1,
+  "scale": 8,
+  "octaves": 7,
+  "stops": [
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   },
+   {
+    "kind": "solid",
+    "id": 13,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 4,
+    "data": 0
+   }
+  ],
+  "rise": 3
+ },
+ "stone dark voronoi": {
+  "kind": "voronoi",
+  "seed": 7,
+  "cellSize": 10,
+  "bands": [
+   {
+    "material": {
+     "kind": "cell",
+     "seed": 1,
+     "cellSize": 10,
+     "jitter": 50,
+     "warp": 4,
+     "palette": [
+      {
+       "kind": "solid",
+       "id": 159,
+       "data": 9
+      },
+      {
+       "kind": "noise",
+       "seed": 1,
+       "scale": 8,
+       "octaves": 7,
+       "stops": [
+        {
+         "kind": "solid",
+         "id": 1,
+         "data": 0
+        },
+        {
+         "kind": "solid",
+         "id": 1,
+         "data": 5
+        },
+        {
+         "kind": "solid",
+         "id": 13,
+         "data": 0
+        },
+        {
+         "kind": "solid",
+         "id": 4,
+         "data": 0
+        }
+       ],
+       "rise": 3
+      },
+      {
+       "kind": "solid",
+       "id": 35,
+       "data": 7
+      }
+     ],
+     "rise": 4
+    },
+    "depth": 1
+   },
+   {
+    "material": {
+     "kind": "noise",
+     "seed": 1,
+     "scale": 8,
+     "octaves": 7,
+     "stops": [
+      {
+       "kind": "solid",
+       "id": 1,
+       "data": 0
+      },
+      {
+       "kind": "solid",
+       "id": 1,
+       "data": 5
+      },
+      {
+       "kind": "solid",
+       "id": 13,
+       "data": 0
+      },
+      {
+       "kind": "solid",
+       "id": 4,
+       "data": 0
+      }
+     ],
+     "rise": 3
+    },
+    "depth": 1
+   }
+  ],
+  "rise": 4
+ },
+ "dirt fractal": {
+  "kind": "noise",
+  "seed": 1,
+  "scale": 8,
+  "octaves": 8,
+  "stops": [
+   {
+    "kind": "solid",
+    "id": 5,
+    "data": 3
+   },
+   {
+    "kind": "solid",
+    "id": 3,
+    "data": 1
+   },
+   {
+    "kind": "solid",
+    "id": 5,
+    "data": 1
+   },
+   {
+    "kind": "solid",
+    "id": 3,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 1
+   }
+  ],
+  "rise": 3
+ },
+ "rust cells": {
+  "kind": "cell",
+  "seed": 1,
+  "cellSize": 5,
+  "jitter": 50,
+  "warp": 5,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 179,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 12,
+    "data": 1
+   },
+   {
+    "kind": "solid",
+    "id": 159,
+    "data": 1
+   },
+   {
+    "kind": "solid",
+    "id": 5,
+    "data": 4
+   },
+   {
+    "kind": "solid",
+    "id": 172,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 1
+   }
+  ],
+  "rise": 3
+ },
+ "terracotta with dirt": {
+  "kind": "cell",
+  "seed": 1,
+  "cellSize": 5,
+  "jitter": 50,
+  "warp": 5,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 1
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 2
+   },
+   {
+    "kind": "solid",
+    "id": 172,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 3,
+    "data": 0
+   }
+  ],
+  "rise": 3
+ },
+ "white stone cells": {
+  "kind": "cell",
+  "seed": 1,
+  "cellSize": 5,
+  "jitter": 50,
+  "warp": 5,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 3
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 3
+   },
+   {
+    "kind": "solid",
+    "id": 82,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 35,
+    "data": 8
+   }
+  ],
+  "rise": 3
+ },
+ "ice surface": {
+  "kind": "cell",
+  "seed": 1,
+  "cellSize": 7,
+  "jitter": 45,
+  "warp": 4,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 3
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 4
+   },
+   {
+    "kind": "solid",
+    "id": 80,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 174,
+    "data": 8
+   },
+   {
+    "kind": "solid",
+    "id": 79,
+    "data": 0
+   }
+  ],
+  "rise": 3
+ },
+ "all sand": {
+  "kind": "cell",
+  "seed": 1,
+  "cellSize": 5,
+  "jitter": 50,
+  "warp": 4,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 12,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 43,
+    "data": 9
+   },
+   {
+    "kind": "solid",
+    "id": 5,
+    "data": 2
+   },
+   {
+    "kind": "solid",
+    "id": 121,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 100,
+    "data": 0
+   }
+  ],
+  "rise": 3
+ },
+ "all green": {
+  "kind": "cell",
+  "seed": 1,
+  "cellSize": 9,
+  "jitter": 65,
+  "warp": 7,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 2,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 159,
+    "data": 5
+   },
+   {
+    "kind": "solid",
+    "id": 159,
+    "data": 13
+   },
+   {
+    "kind": "solid",
+    "id": 35,
+    "data": 13
+   },
+   {
+    "kind": "solid",
+    "id": 168,
+    "data": 2
+   }
+  ],
+  "rise": 3
+ },
+ "black light gray stripes": {
+  "kind": "wallDiagonal",
+  "runs": [
+   {
+    "material": {
+     "kind": "solid",
+     "id": 35,
+     "data": 8
+    },
+    "width": 2
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 35,
+     "data": 15
+    },
+    "width": 2
+   }
+  ],
+  "slope": 1
+ },
+ "cobblestone-andesite-noise": {
+  "kind": "noise",
+  "seed": 23063,
+  "scale": 2,
+  "octaves": 1,
+  "stops": [
+   {
+    "kind": "solid",
+    "id": 4,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   }
+  ],
+  "rise": 2
+ },
+ "acacia-log-checker": {
+  "kind": "logChecker",
+  "size": 1,
+  "id": 162,
+  "data": 0
+ },
+ "stone-polished-andesite-checker": {
+  "kind": "checker",
+  "size": 1,
+  "even": {
+   "kind": "solid",
+   "id": 1,
+   "data": 0
+  },
+  "odd": {
+   "kind": "solid",
+   "id": 1,
+   "data": 6
+  }
+ },
+ "cobblestone-polished-andesite-noise": {
+  "kind": "noise",
+  "seed": 3083,
+  "scale": 2,
+  "octaves": 1,
+  "stops": [
+   {
+    "kind": "solid",
+    "id": 4,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 6
+   }
+  ],
+  "rise": 2
+ },
+ "stone-andesite-noise": {
+  "kind": "noise",
+  "seed": 20903,
+  "scale": 2,
+  "octaves": 1,
+  "stops": [
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   }
+  ],
+  "rise": 2
+ },
+ "cobblestone-andesite-cells": {
+  "kind": "cell",
+  "seed": 18,
+  "cellSize": 3,
+  "jitter": 2,
+  "warp": 2,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 4,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   }
+  ],
+  "rise": 0
+ },
+ "andesite-polished-andesite-checker": {
+  "kind": "checker",
+  "size": 1,
+  "even": {
+   "kind": "solid",
+   "id": 1,
+   "data": 5
+  },
+  "odd": {
+   "kind": "solid",
+   "id": 1,
+   "data": 6
+  }
+ },
+ "spruce-planks-dark-oak-planks-cells": {
+  "kind": "cell",
+  "seed": 71,
+  "cellSize": 3,
+  "jitter": 1,
+  "warp": 1,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 5,
+    "data": 1
+   },
+   {
+    "kind": "solid",
+    "id": 5,
+    "data": 1
+   },
+   {
+    "kind": "solid",
+    "id": 5,
+    "data": 5
+   },
+   {
+    "kind": "solid",
+    "id": 5,
+    "data": 1
+   }
+  ],
+  "rise": 0
+ },
+ "cobblestone-andesite-ringed-noise": {
+  "kind": "noise",
+  "seed": 4411,
+  "scale": 2,
+  "octaves": 1,
+  "stops": [
+   {
+    "kind": "solid",
+    "id": 4,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   },
+   {
+    "kind": "solid",
+    "id": 4,
+    "data": 0
+   }
+  ],
+  "rise": 2
+ },
+ "team-stained-clay-white-neutral": {
+  "kind": "teamTint",
+  "blockId": 159,
+  "neutral": {
+   "kind": "solid",
+   "id": 159,
+   "data": 0
+  }
+ },
+ "stone-bricks-andesite-slab-grid-cells": {
+  "kind": "cell",
+  "seed": 81,
+  "cellSize": 3,
+  "jitter": 0,
+  "warp": 0,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 98,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 6
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   },
+   {
+    "kind": "solid",
+    "id": 43,
+    "data": 0
+   }
+  ],
+  "rise": 0
+ },
+ "cobblestone-andesite-broad-noise": {
+  "kind": "noise",
+  "seed": 41,
+  "scale": 3,
+  "octaves": 1,
+  "stops": [
+   {
+    "kind": "solid",
+    "id": 4,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   }
+  ],
+  "rise": 2
+ },
+ "stone-bricks-andesite-stone-cells": {
+  "kind": "cell",
+  "seed": 337,
+  "cellSize": 3,
+  "jitter": 1,
+  "warp": 1,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 98,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 6
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 0
+   }
+  ],
+  "rise": 0
+ },
+ "dark-oak-log-air-stripes": {
+  "kind": "wallRun",
+  "runs": [
+   {
+    "material": {
+     "kind": "solid",
+     "id": 162,
+     "data": 1
+    },
+    "width": 1
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 0,
+     "data": 0
+    },
+    "width": 3
+   }
+  ]
+ },
+ "cobblestone-andesite-columnar-noise": {
+  "kind": "noise",
+  "seed": 6311,
+  "scale": 2,
+  "octaves": 1,
+  "stops": [
+   {
+    "kind": "solid",
+    "id": 4,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   }
+  ],
+  "rise": 0
+ },
+ "jungle-planks-oak-planks-checker": {
+  "kind": "checker",
+  "size": 1,
+  "even": {
+   "kind": "solid",
+   "id": 5,
+   "data": 3
+  },
+  "odd": {
+   "kind": "solid",
+   "id": 5,
+   "data": 0
+  }
+ },
+ "jungle-planks-hardened-clay-light-gray-stained-clay-noise": {
+  "kind": "noise",
+  "seed": 805,
+  "scale": 3,
+  "octaves": 2,
+  "stops": [
+   {
+    "kind": "solid",
+    "id": 5,
+    "data": 3
+   },
+   {
+    "kind": "solid",
+    "id": 172,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 172,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 159,
+    "data": 8
+   }
+  ],
+  "rise": 0
+ },
+ "oak-planks-jungle-planks-checker": {
+  "kind": "checker",
+  "size": 1,
+  "even": {
+   "kind": "solid",
+   "id": 5,
+   "data": 0
+  },
+  "odd": {
+   "kind": "solid",
+   "id": 5,
+   "data": 3
+  }
+ },
+ "cobblestone-mossy-cobblestone-stone-bricks-noise": {
+  "kind": "noise",
+  "seed": 4501,
+  "scale": 3,
+  "octaves": 2,
+  "stops": [
+   {
+    "kind": "solid",
+    "id": 4,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 4,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 48,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 98,
+    "data": 0
+   }
+  ],
+  "rise": 2
+ },
+ "team-stained-clay-light-gray-neutral": {
+  "kind": "teamTint",
+  "blockId": 159,
+  "neutral": {
+   "kind": "solid",
+   "id": 159,
+   "data": 8
+  }
+ },
+ "stone-bricks-andesite-polished-andesite-cells": {
+  "kind": "cell",
+  "seed": 5202,
+  "cellSize": 2,
+  "jitter": 1,
+  "warp": 1,
+  "palette": [
+   {
+    "kind": "solid",
+    "id": 98,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 6
+   }
+  ],
+  "rise": 0
+ },
+ "cobblestone-andesite-stone-noise": {
+  "kind": "noise",
+  "seed": 12,
+  "scale": 2,
+  "octaves": 1,
+  "stops": [
+   {
+    "kind": "solid",
+    "id": 4,
+    "data": 0
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 5
+   },
+   {
+    "kind": "solid",
+    "id": 1,
+    "data": 0
+   }
+  ],
+  "rise": 0
+ },
+ "grass-block-podzol-dirt-layers": {
+  "kind": "layered",
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "noise",
+      "seed": 21,
+      "scale": 6,
+      "octaves": 2,
+      "stops": [
+       {
+        "kind": "solid",
+        "id": 2,
+        "data": 0
+       },
+       {
+        "kind": "solid",
+        "id": 2,
+        "data": 0
+       },
+       {
+        "kind": "solid",
+        "id": 3,
+        "data": 2
+       }
+      ],
+      "rise": 0
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 3,
+      "data": 0
+     },
+     "thickness": 2
+    }
+   ],
+   "ending": "repeat"
+  },
+  "axis": "depth"
+ },
+ "andesite-stone-voronoi": {
+  "kind": "voronoi",
+  "seed": 22,
+  "cellSize": 9,
+  "bands": [
+   {
+    "material": {
+     "kind": "solid",
+     "id": 1,
+     "data": 5
+    },
+    "depth": 1
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 1,
+     "data": 0
+    },
+    "depth": 4
+   }
+  ],
+  "rise": 3
+ },
+ "sand-red-sand-sandstone-layers": {
+  "kind": "layered",
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "noise",
+      "seed": 31,
+      "scale": 7,
+      "octaves": 2,
+      "stops": [
+       {
+        "kind": "solid",
+        "id": 12,
+        "data": 0
+       },
+       {
+        "kind": "solid",
+        "id": 12,
+        "data": 0
+       },
+       {
+        "kind": "solid",
+        "id": 12,
+        "data": 1
+       }
+      ],
+      "rise": 0
+     },
+     "thickness": 2
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 24,
+      "data": 0
+     },
+     "thickness": 2
+    }
+   ],
+   "ending": "repeat"
+  },
+  "axis": "depth"
+ },
+ "team-stained-clay-brown-neutral": {
+  "kind": "teamTint",
+  "blockId": 159,
+  "neutral": {
+   "kind": "solid",
+   "id": 159,
+   "data": 12
+  }
+ },
+ "smooth-sandstone-sandstone-voronoi": {
+  "kind": "voronoi",
+  "seed": 32,
+  "cellSize": 9,
+  "bands": [
+   {
+    "material": {
+     "kind": "solid",
+     "id": 24,
+     "data": 2
+    },
+    "depth": 1
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 24,
+     "data": 0
+    },
+    "depth": 4
+   }
+  ],
+  "rise": 3
+ },
+ "gravel-coarse-dirt-andesite-layers": {
+  "kind": "layered",
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "noise",
+      "seed": 41,
+      "scale": 5,
+      "octaves": 2,
+      "stops": [
+       {
+        "kind": "solid",
+        "id": 13,
+        "data": 0
+       },
+       {
+        "kind": "solid",
+        "id": 3,
+        "data": 1
+       },
+       {
+        "kind": "solid",
+        "id": 13,
+        "data": 0
+       }
+      ],
+      "rise": 0
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 1,
+      "data": 5
+     },
+     "thickness": 2
+    }
+   ],
+   "ending": "repeat"
+  },
+  "axis": "depth"
+ },
+ "team-stained-clay-gray-neutral": {
+  "kind": "teamTint",
+  "blockId": 159,
+  "neutral": {
+   "kind": "solid",
+   "id": 159,
+   "data": 7
+  }
+ },
+ "cracked-stone-bricks-andesite-voronoi": {
+  "kind": "voronoi",
+  "seed": 42,
+  "cellSize": 9,
+  "bands": [
+   {
+    "material": {
+     "kind": "solid",
+     "id": 98,
+     "data": 2
+    },
+    "depth": 1
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 1,
+     "data": 5
+    },
+    "depth": 4
+   }
+  ],
+  "rise": 3
+ },
+ "snow-block-white-stained-clay-diorite-layers": {
+  "kind": "layered",
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "solid",
+      "id": 80,
+      "data": 0
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "noise",
+      "seed": 51,
+      "scale": 6,
+      "octaves": 2,
+      "stops": [
+       {
+        "kind": "solid",
+        "id": 159,
+        "data": 0
+       },
+       {
+        "kind": "solid",
+        "id": 1,
+        "data": 3
+       },
+       {
+        "kind": "solid",
+        "id": 159,
+        "data": 0
+       }
+      ],
+      "rise": 0
+     },
+     "thickness": 2
+    }
+   ],
+   "ending": "repeat"
+  },
+  "axis": "depth"
+ },
+ "diorite-stone-voronoi": {
+  "kind": "voronoi",
+  "seed": 52,
+  "cellSize": 9,
+  "bands": [
+   {
+    "material": {
+     "kind": "solid",
+     "id": 1,
+     "data": 3
+    },
+    "depth": 1
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 1,
+     "data": 0
+    },
+    "depth": 4
+   }
+  ],
+  "rise": 3
+ },
+ "hardened-clay-brown-stained-clay-clay-layers": {
+  "kind": "layered",
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "noise",
+      "seed": 61,
+      "scale": 5,
+      "octaves": 2,
+      "stops": [
+       {
+        "kind": "solid",
+        "id": 172,
+        "data": 0
+       },
+       {
+        "kind": "solid",
+        "id": 159,
+        "data": 12
+       },
+       {
+        "kind": "solid",
+        "id": 172,
+        "data": 0
+       }
+      ],
+      "rise": 0
+     },
+     "thickness": 2
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 82,
+      "data": 0
+     },
+     "thickness": 2
+    }
+   ],
+   "ending": "repeat"
+  },
+  "axis": "depth"
+ },
+ "granite-hardened-clay-voronoi": {
+  "kind": "voronoi",
+  "seed": 62,
+  "cellSize": 9,
+  "bands": [
+   {
+    "material": {
+     "kind": "solid",
+     "id": 1,
+     "data": 1
+    },
+    "depth": 1
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 172,
+     "data": 0
+    },
+    "depth": 4
+   }
+  ],
+  "rise": 3
+ },
+ "grass-block-andesite-dirt-layers": {
+  "kind": "layered",
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "noise",
+      "seed": 71,
+      "scale": 8,
+      "octaves": 2,
+      "stops": [
+       {
+        "kind": "solid",
+        "id": 2,
+        "data": 0
+       },
+       {
+        "kind": "solid",
+        "id": 1,
+        "data": 5
+       },
+       {
+        "kind": "solid",
+        "id": 2,
+        "data": 0
+       }
+      ],
+      "rise": 0
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 3,
+      "data": 0
+     },
+     "thickness": 2
+    }
+   ],
+   "ending": "repeat"
+  },
+  "axis": "depth"
+ },
+ "mossy-stone-bricks-stone-bricks-voronoi": {
+  "kind": "voronoi",
+  "seed": 72,
+  "cellSize": 9,
+  "bands": [
+   {
+    "material": {
+     "kind": "solid",
+     "id": 98,
+     "data": 1
+    },
+    "depth": 1
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 98,
+     "data": 0
+    },
+    "depth": 4
+   }
+  ],
+  "rise": 3
+ },
+ "green-wool-green-stained-clay-grass-block-mix-layers": {
+  "kind": "layered",
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "cell",
+      "seed": 1,
+      "cellSize": 4,
+      "jitter": 50,
+      "warp": 4,
+      "palette": [
+       {
+        "kind": "solid",
+        "id": 35,
+        "data": 13
+       },
+       {
+        "kind": "solid",
+        "id": 159,
+        "data": 13
+       },
+       {
+        "kind": "solid",
+        "id": 2,
+        "data": 0
+       }
+      ],
+      "rise": 2
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "voronoi",
+      "seed": 1,
+      "cellSize": 10,
+      "bands": [
+       {
+        "material": {
+         "kind": "solid",
+         "id": 159,
+         "data": 12
+        },
+        "depth": 1
+       },
+       {
+        "material": {
+         "kind": "solid",
+         "id": 5,
+         "data": 1
+        },
+        "depth": 2
+       },
+       {
+        "material": {
+         "kind": "solid",
+         "id": 172,
+         "data": 0
+        },
+        "depth": 1
+       }
+      ],
+      "rise": 2
+     },
+     "thickness": 3
+    },
+    {
+     "material": {
+      "kind": "voronoi",
+      "seed": 1,
+      "cellSize": 10,
+      "bands": [
+       {
+        "material": {
+         "kind": "solid",
+         "id": 159,
+         "data": 9
+        },
+        "depth": 1
+       },
+       {
+        "material": {
+         "kind": "solid",
+         "id": 159,
+         "data": 8
+        },
+        "depth": 2
+       },
+       {
+        "material": {
+         "kind": "solid",
+         "id": 35,
+         "data": 7
+        },
+        "depth": 1
+       }
+      ],
+      "rise": 3
+     },
+     "thickness": 1
+    }
+   ],
+   "ending": "repeat"
+  },
+  "axis": "depth"
+ },
+ "light-blue-stained-clay-light-gray-stained-clay-mycelium-mix-layers": {
+  "kind": "layered",
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "cell",
+      "seed": 1,
+      "cellSize": 4,
+      "jitter": 50,
+      "warp": 4,
+      "palette": [
+       {
+        "kind": "solid",
+        "id": 159,
+        "data": 3
+       },
+       {
+        "kind": "solid",
+        "id": 159,
+        "data": 8
+       },
+       {
+        "kind": "solid",
+        "id": 110,
+        "data": 0
+       }
+      ],
+      "rise": 2
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "voronoi",
+      "seed": 1,
+      "cellSize": 10,
+      "bands": [
+       {
+        "material": {
+         "kind": "solid",
+         "id": 159,
+         "data": 12
+        },
+        "depth": 1
+       },
+       {
+        "material": {
+         "kind": "solid",
+         "id": 5,
+         "data": 1
+        },
+        "depth": 2
+       },
+       {
+        "material": {
+         "kind": "solid",
+         "id": 172,
+         "data": 0
+        },
+        "depth": 1
+       }
+      ],
+      "rise": 2
+     },
+     "thickness": 3
+    },
+    {
+     "material": {
+      "kind": "voronoi",
+      "seed": 1,
+      "cellSize": 10,
+      "bands": [
+       {
+        "material": {
+         "kind": "solid",
+         "id": 159,
+         "data": 9
+        },
+        "depth": 1
+       },
+       {
+        "material": {
+         "kind": "solid",
+         "id": 159,
+         "data": 8
+        },
+        "depth": 2
+       },
+       {
+        "material": {
+         "kind": "solid",
+         "id": 35,
+         "data": 7
+        },
+        "depth": 1
+       }
+      ],
+      "rise": 3
+     },
+     "thickness": 1
+    }
+   ],
+   "ending": "repeat"
+  },
+  "axis": "depth"
+ }
+}

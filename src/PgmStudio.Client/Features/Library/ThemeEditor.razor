@@ -42,10 +42,10 @@
               <div class="lib-bucket">
                 <div class="lib-bucket-fields">
                   <Field Label="Made of">
-                    <StyleSelect Styles="styles" Value="@binding.StyleId" Unbound="Stone (default)"
-                                 ValueChanged="id => BindStyle(bucket.Id, id)" />
+                    <SlotSelect Styles="styles" Blocks="blocks" Value="@binding.StyleId" Block="binding.Block"
+                                Unbound="Stone (default)" ValueChanged="fill => Fill(bucket.Id, fill)" />
                   </Field>
-                  @if (bucket.HasDepth && binding.StyleId != Unbound)
+                  @if (bucket.HasDepth && IsBound(binding))
                   {
                     <Field Label="Courses deep">
                       <NumberField Slim Min="1" Value="binding.Depth" ValueChanged="value => SetDepth(bucket.Id, value)" />

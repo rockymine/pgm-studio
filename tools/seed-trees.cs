@@ -3,9 +3,10 @@
 #:property JsonSerializerIsReflectionEnabledByDefault=true
 // It runs under `dotnet run` and is never published ahead-of-time, so the AOT analysers have nothing to guard.
 #:property PublishAot=false
-// seed-trees: cut every hand-built tree out of a world and file each one in the tree library as a copied recipe.
+// seed-trees: cut every hand-built tree out of a world into the seed folder's trees.json, which the library seed
+// files every copied tree from.
 //
-//   dotnet run tools/seed-trees.cs <worldDir> [--builder=<name>] [--wool] [--dry] [--json=<file>] [connection string]
+//   dotnet run tools/seed-trees.cs <worldDir> [--builder=<name>] [--wool] [--dry] [--json=<file>]
 //
 // <worldDir> holds region/*.mca — a showcase world where every tree stands on its own, clear of every other,
 // so a connected-component pass over the tree blocks finds each trunk with its branches and leaves. A hand-built
@@ -15,10 +16,8 @@
 // a corpus that builds a tree out of it. A plank is tree above the world's lowest course and platform on it, which
 // is where a showcase lays its platforms. Each tree is normalised to its foot — its lowest wood nearest the
 // trunk, a plank where the trunk stands on one, or the lowest block where there is no log — and stored as
-// [x, y, z, id, data] rows, with the cut recorded beside them: the world directory, the foot's world coordinates,
-// the time of the run and, with --builder, who built the world's trees — a map a copied tree stands on credits
-// them as a contributor for its trees.
-// The cut is what makes a row `copied`; the library refuses that form to any save without one (DR-COPY).
+// [x, y, z, id, data] rows beside the foot's world coordinates and, with --builder, who built the world's trees —
+// a map a copied tree stands on credits them as a contributor for its trees.
 // A body counts as a tree when it rests on something: a solid block that is not tree material within two
 // courses under its foot. A piece with no tree within reach is a fragment, and is reported rather than filed.
 //
@@ -27,22 +26,18 @@
 // <worldDir>/kinds.json as {"rows": {"<row>": "<kind>"}, "trees": {"<row>-<place>": "<kind>"}}, the second for a
 // tree its row does not describe; a run refuses a world with a filed row the file names no kind for. A tree is
 // named <kind>-<n>, numbered through the world in row order and along x, so rows of one kind share one count.
-// A library row is matched by its cut — the world it came from and the foot it stood on — so a re-run updates the
-// same trees, a relabelled row renames them, and nothing is duplicated.
 // A row opens for a wool tree as well, whether or not --wool files it, so the rows are the world's rather than
 // the run's and one flag does not move every row behind it.
-// --json=<file> writes the same cut to a file instead of the library: every tree under its name, with the foot it
-// stands on in the world and the recipe the library answers for it, one body row to a line so a re-cut diffs by the
-// block. It is what a board copies a tree from where a studio's library is not the record.
-// The connection string falls back to PGM_STUDIO_DB, then to the local dev database.
+// The cut is written to --json=<file>, the seed folder's src/PgmStudio.Minecraft/Library/trees.json where none is
+// named: every tree under its name, with the foot it stands on in the world and the recipe the library answers for
+// it, one body row to a line so a re-cut diffs by the block. The library seed matches a stored tree by its cut — the
+// world it came from and the foot it stood on — so a re-cut updates the same rows, a relabelled row renames them,
+// and nothing is duplicated. A board copies a tree from the same file where a studio's library is not the record.
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using PgmStudio.Api.Services;
-using PgmStudio.Data;
 using PgmStudio.Data.Schema;
-using PgmStudio.Data.Theme;
-using PgmStudio.Migrations;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Palette;
@@ -50,20 +45,17 @@ using PgmStudio.Minecraft.Palette;
 var positional = args.Where(arg => !arg.StartsWith("--")).ToList();
 if (positional.Count == 0)
 {
-    Console.Error.WriteLine("usage: dotnet run tools/seed-trees.cs <worldDir> [--builder=<name>] [--wool] [--dry] [--json=<file>] [connection]");
+    Console.Error.WriteLine("usage: dotnet run tools/seed-trees.cs <worldDir> [--builder=<name>] [--wool] [--dry] [--json=<file>]");
     return 2;
 }
 var worldDir = positional[0];
 var worldName = Path.GetFileName(Path.GetFullPath(worldDir).TrimEnd('/'));
-var connection = positional.Count > 1 ? positional[1]
-    : Environment.GetEnvironmentVariable("PGM_STUDIO_DB")
-    ?? "Server=localhost;Database=pgm_studio;User ID=pgm;Password=pgm_dev_pw;";
 var withWool = args.Contains("--wool");
 var builder = args.Where(arg => arg.StartsWith("--builder=")).Select(arg => arg["--builder=".Length..].Trim())
     .LastOrDefault(named => named.Length > 0);
 var dry = args.Contains("--dry");
 var snapshot = args.Where(arg => arg.StartsWith("--json=")).Select(arg => arg["--json=".Length..].Trim())
-    .LastOrDefault(path => path.Length > 0);
+    .LastOrDefault(path => path.Length > 0) ?? "src/PgmStudio.Minecraft/Library/trees.json";
 
 // ── the world's tree blocks ─────────────────────────────────────────────────────────────────────────
 var regionDir = Directory.Exists(Path.Combine(worldDir, "region")) ? Path.Combine(worldDir, "region") : worldDir;
@@ -239,59 +231,24 @@ TreeStyleRow RowOf(string treeName, (int X, int Y, int Z) foot, int[][] blocks) 
     CutBuilder = builder,
 };
 
-// ── into a file, the cut as a board copies it ──────────────────────────────────────────────────────
-if (snapshot is not null)
-{
-    var text = new StringBuilder();
-    text.Append($"{{\n  \"world\": {JsonSerializer.Serialize(worldName)},\n  \"trees\": {{");
-    var first = true;
-    foreach (var (treeName, foot, blocks) in named)
-    {
-        var style = JsonNode.Parse(DressingJson.SerializeStyle(PropStyleLibrary.TreeOf(RowOf(treeName, foot, blocks))))!.AsObject();
-        var rows = style["body"]!.AsArray().Select(cell => cell!.ToJsonString());
-        style.Remove("body");
-        text.Append(first ? "\n" : ",\n");
-        first = false;
-        text.Append($"    {JsonSerializer.Serialize(treeName)}: {{\"foot\": [{foot.X}, {foot.Y}, {foot.Z}], \"style\": ")
-            .Append(style.ToJsonString()[..^1]).Append(",\"body\":[\n      ")
-            .Append(string.Join(",\n      ", rows)).Append("\n    ]}}");
-    }
-    text.Append("\n  }\n}\n");
-    File.WriteAllText(snapshot, text.ToString());
-    Console.WriteLine($"\n{named.Count} copied trees from '{worldName}' written to {snapshot}");
-    return 0;
-}
-
-// ── into the library, matched by the cut ───────────────────────────────────────────────────────────
-var state = SchemaMigrator.GetSchemaState(connection);
-if (state.Pending.Count > 0)
-{
-    Console.WriteLine($"applying {state.Pending.Count} pending migration(s) …");
-    SchemaMigrator.MigrateUp(connection);
-}
-await using var db = new PgmDb(PgmDataOptions.ForConnectionString(connection));
-var store = new PropStyleStore(db);
-var existing = (await store.ListTreesAsync())
-    .Where(r => r.Form == "copied" && r.CutWorld is { Length: > 0 } && r.CutX is not null && r.CutY is not null && r.CutZ is not null)
-    .GroupBy(r => (World: Path.GetFileName(r.CutWorld!.TrimEnd('/')), X: r.CutX!.Value, Y: r.CutY!.Value, Z: r.CutZ!.Value))
-    .ToDictionary(group => group.Key, group => group.First());
-int added = 0, updated = 0;
+// ── into the seed folder, the cut as the library seed and a board read it ─────────────────────────────
+var text = new StringBuilder();
+text.Append($"{{\n  \"world\": {JsonSerializer.Serialize(worldName)},\n  \"trees\": {{");
+var first = true;
 foreach (var (treeName, foot, blocks) in named)
 {
-    var stored = RowOf(treeName, foot, blocks);
-    if (existing.TryGetValue((worldName, foot.X, foot.Y, foot.Z), out var have))
-    {
-        await store.UpdateTreeAsync(have.Id, stored);
-        updated++;
-    }
-    else
-    {
-        await store.CreateTreeAsync(stored);
-        added++;
-    }
+    var style = JsonNode.Parse(DressingJson.SerializeStyle(PropStyleLibrary.TreeOf(RowOf(treeName, foot, blocks))))!.AsObject();
+    var rows = style["body"]!.AsArray().Select(cell => cell!.ToJsonString());
+    style.Remove("body");
+    text.Append(first ? "\n" : ",\n");
+    first = false;
+    text.Append($"    {JsonSerializer.Serialize(treeName)}: {{\"foot\": [{foot.X}, {foot.Y}, {foot.Z}], \"style\": ")
+        .Append(style.ToJsonString()[..^1]).Append(",\"body\":[\n      ")
+        .Append(string.Join(",\n      ", rows)).Append("\n    ]}}");
 }
-Console.WriteLine($"\n{added} added, {updated} updated — {named.Count} copied trees from '{worldName}'"
-    + (builder is null ? ", built by nobody named" : $", built by {builder}"));
+text.Append("\n  }\n}\n");
+File.WriteAllText(snapshot, text.ToString());
+Console.WriteLine($"\n{named.Count} copied trees from '{worldName}' written to {snapshot}");
 return 0;
 
 static bool IsLog(int id) => id is Blocks.Log or Blocks.Log2;

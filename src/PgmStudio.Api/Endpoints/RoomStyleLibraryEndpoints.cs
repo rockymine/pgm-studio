@@ -69,7 +69,7 @@ internal static class RoomStyleMapping
             row.RoofStyleId, row.PorchStyleId,
             [.. (stack ?? []).OrderBy(s => s.Ordinal)
                 .Select(s => new RoomStoreyDto(s.StoreyStyleId, s.Clear))],
-            courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height)).ToList(),
+            courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId ?? 0, Slots.BlockOf(c.BlockId, c.BlockData, c.BlockLaid), c.Height)).ToList(),
             // Each of the four below reads its absence off the row the way the porch does, because each has a
             // stored value that MEANS absent: no block to cut a beam from, a gable told to carry no windows, a
             // doorway with a square top. A save maps the absence back to that same value, so the pair round
@@ -88,7 +88,7 @@ internal static class RoomStyleMapping
                 ? null
                 : new RoomDoorHeadDto(row.DoorHeadForm, row.DoorHeadBlock, row.DoorHeadFill,
                     row.DoorHeadFillBlock, row.DoorHeadFillData),
-            row.DoorWidth, row.RoofStair, row.RoofWear);
+            row.DoorWidth, row.RoofStair, row.RoofWear, PorchEdges.Canonical(row.Front));
 
     /// <summary>What a saved request comes back as — read off the <em>row</em> it composes to rather than off
     /// the request, so the clamps the row applies are the numbers the editor is handed back.</summary>
@@ -183,7 +183,8 @@ public sealed class RoomStyleCreateEndpoint(RoomStyleStore store, RoomStyleLibra
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
-        var findings = HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct))
+        var findings = LibraryGate.Courses(req.Courses)
+            .And(HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct)))
             .And(HouseNames.Check(req.Name));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = await store.CreateAsync(
@@ -202,7 +203,8 @@ public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store, RoomStyleLibra
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
-        var findings = HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct))
+        var findings = LibraryGate.Courses(req.Courses)
+            .And(HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct)))
             .And(HouseNames.Check(req.Name));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");

@@ -42,6 +42,7 @@ public partial class ThemeEditor
     private const string GroundPart = "ground";
 
     private IReadOnlyList<StyleDto> styles = [];
+    private IReadOnlyList<PaintBlockDto> blocks = [];
     private ThemeSaveRequest? draft;
     private long? editingId;
     private string draftName = "";
@@ -74,9 +75,8 @@ public partial class ThemeEditor
             List<EditorPart> rows = [.. ThemeBucketInfo.All.Select(info =>
             {
                 var binding = Binding(info.Id);
-                var bound = StyleOf(binding.StyleId);
                 return new EditorPart(info.Id, info.Title, "layers",
-                    Badge: !binding.Enabled ? "off" : bound?.Name ?? "default");
+                    Badge: !binding.Enabled ? "off" : FilledWith(binding) ?? "default");
             })];
             // The row names the section; what the section says is in the section, so the badge is the one
             // word that tells two themes apart at a glance rather than the whole sentence.
@@ -88,11 +88,21 @@ public partial class ThemeEditor
 
     private string Footnote => draft is null
         ? ""
-        : $"{draft.Buckets.Count(binding => binding.Enabled && binding.StyleId != Unbound)} of "
-          + $"{ThemeBucketInfo.All.Count} parts have a pattern";
+        : $"{draft.Buckets.Count(binding => binding.Enabled && IsBound(binding))} of "
+          + $"{ThemeBucketInfo.All.Count} parts are filled";
+
+    /// <summary>Whether a block or a pattern fills the bucket.</summary>
+    private static bool IsBound(ThemeBucketDto binding) => binding.StyleId != Unbound || binding.Block is not null;
+
+    /// <summary>What fills the bucket, as the outline names it: the block, or the pattern.</summary>
+    private string? FilledWith(ThemeBucketDto binding) => new SlotFill(binding.StyleId, binding.Block).Name(styles, blocks);
 
     protected override async Task OnInitializedAsync()
-        => styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
+    {
+        var blocksAsked = Library.BlocksAsync();
+        styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
+        blocks = await blocksAsked;
+    }
 
     /// <summary>What the draft was loaded for. A parameter set that does not move the route is the host
     /// re-rendering — reloading there would re-read the row, report the name back up, and re-render the host
@@ -122,7 +132,7 @@ public partial class ThemeEditor
                 detail.WallOnTerrainFaces,
                 [.. ThemeBucketInfo.All.Select(info =>
                     detail.Buckets.FirstOrDefault(binding => binding.Bucket == info.Id)
-                    ?? new ThemeBucketDto(info.Id, Unbound, Depth: 1, Enabled: true))]);
+                    ?? new ThemeBucketDto(info.Id, Unbound, Block: null, Depth: 1, Enabled: true))]);
         }
         else
         {
@@ -131,7 +141,7 @@ public partial class ThemeEditor
             draft = new ThemeSaveRequest(
                 "", BedrockRelative: false, BedrockValue: 1, RimEdgeModes.Drop, WallOnTerrainFaces: true,
                 [.. ThemeBucketInfo.All.Select(info =>
-                    new ThemeBucketDto(info.Id, Unbound, Depth: 1, Enabled: true))]);
+                    new ThemeBucketDto(info.Id, Unbound, Block: null, Depth: 1, Enabled: true))]);
         }
         await OnName.InvokeAsync(draftName);
         await Preview();
@@ -157,8 +167,8 @@ public partial class ThemeEditor
     private void Pick(string part) => selected = part;
 
     // ── bucket bindings ────────────────────────────────────────────────────────────────────────────
-    private Task BindStyle(string bucket, long styleId)
-        => Rebind(bucket, binding => binding with { StyleId = styleId });
+    private Task Fill(string bucket, SlotFill fill)
+        => Rebind(bucket, binding => binding with { StyleId = fill.StyleId, Block = fill.Block });
 
     private Task ToggleBucket(string bucket)
         => Rebind(bucket, binding => binding with { Enabled = !binding.Enabled });
@@ -222,7 +232,7 @@ public partial class ThemeEditor
     private ThemeSaveRequest Saveable(ThemeSaveRequest current) => current with
     {
         Name = string.IsNullOrWhiteSpace(draftName) ? current.Name : draftName.Trim(),
-        Buckets = [.. current.Buckets.Where(binding => binding.StyleId != Unbound || !binding.Enabled)],
+        Buckets = [.. current.Buckets.Where(binding => IsBound(binding) || !binding.Enabled)],
     };
 
     private async Task Save()

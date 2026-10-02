@@ -1,0 +1,140 @@
+{
+ "bedrock": {
+  "relative": true,
+  "value": 12
+ },
+ "rimEdges": "drop",
+ "wallOnTerrainFaces": true,
+ "rim": {
+  "material": {
+   "kind": "solid",
+   "id": 1,
+   "data": 0
+  },
+  "depth": 1,
+  "enabled": false
+ },
+ "surface": {
+  "material": {
+   "kind": "solid",
+   "id": 1,
+   "data": 0
+  },
+  "depth": 1,
+  "enabled": false
+ },
+ "wall": {
+  "kind": "solid",
+  "id": 1,
+  "data": 0
+ },
+ "wallEnabled": false,
+ "fill": {
+  "kind": "layered",
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "cell",
+      "seed": 1,
+      "cellSize": 4,
+      "jitter": 50,
+      "warp": 4,
+      "palette": [
+       {
+        "kind": "solid",
+        "id": 35,
+        "data": 13
+       },
+       {
+        "kind": "solid",
+        "id": 159,
+        "data": 13
+       },
+       {
+        "kind": "solid",
+        "id": 2,
+        "data": 0
+       }
+      ],
+      "rise": 2
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "voronoi",
+      "seed": 1,
+      "cellSize": 10,
+      "bands": [
+       {
+        "material": {
+         "kind": "solid",
+         "id": 159,
+         "data": 12
+        },
+        "depth": 1
+       },
+       {
+        "material": {
+         "kind": "solid",
+         "id": 5,
+         "data": 1
+        },
+        "depth": 2
+       },
+       {
+        "material": {
+         "kind": "solid",
+         "id": 172,
+         "data": 0
+        },
+        "depth": 1
+       }
+      ],
+      "rise": 2
+     },
+     "thickness": 3
+    },
+    {
+     "material": {
+      "kind": "voronoi",
+      "seed": 1,
+      "cellSize": 10,
+      "bands": [
+       {
+        "material": {
+         "kind": "solid",
+         "id": 159,
+         "data": 9
+        },
+        "depth": 1
+       },
+       {
+        "material": {
+         "kind": "solid",
+         "id": 159,
+         "data": 8
+        },
+        "depth": 2
+       },
+       {
+        "material": {
+         "kind": "solid",
+         "id": 35,
+         "data": 7
+        },
+        "depth": 1
+       }
+      ],
+      "rise": 3
+     },
+     "thickness": 1
+    }
+   ],
+   "ending": "repeat"
+  },
+  "axis": "depth"
+ },
+ "edgesFromGround": false
+}

@@ -40,14 +40,6 @@ public sealed class HousePartLibraryEndpointsTests
         => new(name, clear, BorderWidth: 1, InlayInset: 2,
             new RoomWindowDto(WindowForms.None, Blocks.GlassPane, 0, 2, 2, 2, 3), courses);
 
-    private static async Task<long> StyleAsync(HttpClient client, string name, int blockId)
-    {
-        var saved = await (await client.PostAsJsonAsync("/api/styles", new StyleSaveRequest(
-                name, MaterialKind.Solid, TerrainThemeJson.Serialize(new SolidMaterial(blockId)))))
-            .Content.ReadFromJsonAsync<StyleDto>();
-        return saved!.Id;
-    }
-
     private static HashSet<string> Fills(string svg)
         => Regex.Matches(svg, "fill='(#[0-9a-f]{6})'").Select(m => m.Groups[1].Value).ToHashSet();
 
@@ -110,18 +102,18 @@ public sealed class HousePartLibraryEndpointsTests
 
         // Planks, not stone: the picture is checked for the roof's own colour, and a grey is indistinguishable
         // from the shading a section applies to anything else grey in it.
-        var shingle = await StyleAsync(client, "shingle", Blocks.Planks);
-        var trim = await StyleAsync(client, "trim", Blocks.StainedClay);
+        var shingle = new SlotBlockDto(Blocks.Planks, 0, Laid: false);
+        var trim = new SlotBlockDto(Blocks.StainedClay, 0, Laid: false);
 
         var created = await (await client.PostAsJsonAsync("/api/roof-styles", Roof("shingled", RoofForms.Gable,
-                new RoomCourseDto(RoomParts.Roof, 0, shingle, 1),
-                new RoomCourseDto(RoomParts.Verge, 0, trim, 1))))
+                new RoomCourseDto(RoomParts.Roof, 0, 0, shingle, 1),
+                new RoomCourseDto(RoomParts.Verge, 0, 0, trim, 1))))
             .Content.ReadFromJsonAsync<RoofStyleDetail>();
 
         var detail = await client.GetFromJsonAsync<RoofStyleDetail>($"/api/roof-styles/{created!.Id}");
         await Assert.That(detail!.Form).IsEqualTo(RoofForms.Gable);
         await Assert.That(detail.Courses.Count).IsEqualTo(2);
-        await Assert.That(detail.Courses.Single(c => c.Part == RoomParts.Verge).StyleId).IsEqualTo(trim);
+        await Assert.That(detail.Courses.Single(c => c.Part == RoomParts.Verge).Block).IsEqualTo(trim);
 
         // Drawn on the sample building and cut to the roof, so a roof card is a picture of a roof — the
         // material the author named for it, and none of the ground the building stands on.
@@ -142,18 +134,18 @@ public sealed class HousePartLibraryEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var slabs = await StyleAsync(client, "slabs", Blocks.WoodenSlab);
+        var slabs = new SlotBlockDto(Blocks.WoodenSlab, 0, Laid: false);
 
         // A slab body with roofSlab unset (-1) is the see-through roof.
         var refused = await client.PostAsJsonAsync("/api/roof-styles",
-            Roof("see-through", RoofForms.Gable, new RoomCourseDto(RoomParts.Roof, 0, slabs, 1)));
+            Roof("see-through", RoofForms.Gable, new RoomCourseDto(RoomParts.Roof, 0, 0, slabs, 1)));
         await Assert.That((int)refused.StatusCode).IsEqualTo(400);
         var envelope = await refused.Content.ReadFromJsonAsync<RefusalDto>();
         await Assert.That(envelope!.Findings.Select(f => f.Rule)).Contains(HouseStyleRules.RoofMaterial);
 
         // The same roof with the slab named pairs correctly, and the number round-trips. The slab is the
         // body's own wood: a roof is one material and its half-course slab continues it (HS3).
-        var paired = Roof("shingled", RoofForms.Gable, new RoomCourseDto(RoomParts.Roof, 0, slabs, 1))
+        var paired = Roof("shingled", RoofForms.Gable, new RoomCourseDto(RoomParts.Roof, 0, 0, slabs, 1))
             with { RoofSlab = Blocks.WoodenSlab, RoofSlabData = 0 };
         var created = await (await client.PostAsJsonAsync("/api/roof-styles", paired))
             .Content.ReadFromJsonAsync<RoofStyleDetail>();
@@ -171,8 +163,8 @@ public sealed class HousePartLibraryEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var planks = await StyleAsync(client, "oak planks", Blocks.Planks);
-        var staired = Roof("worn-oak", RoofForms.Gable, new RoomCourseDto(RoomParts.Roof, 0, planks, 1))
+        var planks = new SlotBlockDto(Blocks.Planks, 0, Laid: false);
+        var staired = Roof("worn-oak", RoofForms.Gable, new RoomCourseDto(RoomParts.Roof, 0, 0, planks, 1))
             with { RoofStair = Blocks.OakStairs, RoofWear = 0.25 };
         var created = await (await client.PostAsJsonAsync("/api/roof-styles", staired))
             .Content.ReadFromJsonAsync<RoofStyleDetail>();
@@ -191,11 +183,11 @@ public sealed class HousePartLibraryEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var timber = await StyleAsync(client, "timber", Blocks.Log);
+        var timber = new SlotBlockDto(Blocks.Log, 0, Laid: false);
 
         var created = await (await client.PostAsJsonAsync("/api/storey-styles", Storey("shopfront", 5,
-                new RoomCourseDto(RoomParts.Wall, 0, timber, 1),
-                new RoomCourseDto(RoomParts.Post, 0, timber, 1))))
+                new RoomCourseDto(RoomParts.Wall, 0, 0, timber, 1),
+                new RoomCourseDto(RoomParts.Post, 0, 0, timber, 1))))
             .Content.ReadFromJsonAsync<StoreyStyleDetail>();
 
         var detail = await client.GetFromJsonAsync<StoreyStyleDetail>($"/api/storey-styles/{created!.Id}");
@@ -216,13 +208,13 @@ public sealed class HousePartLibraryEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var timber = await StyleAsync(client, "timber", Blocks.Log);
-        var flags = await StyleAsync(client, "flags", Blocks.Bedrock);
+        var timber = new SlotBlockDto(Blocks.Log, 0, Laid: false);
+        var flags = new SlotBlockDto(Blocks.Bedrock, 0, Laid: false);
 
-        var plain = Storey("plain", 3, new RoomCourseDto(RoomParts.Wall, 0, timber, 1));
+        var plain = Storey("plain", 3, new RoomCourseDto(RoomParts.Wall, 0, 0, timber, 1));
         var ceiled = Storey("ceiled", 3,
-            new RoomCourseDto(RoomParts.Wall, 0, timber, 1),
-            new RoomCourseDto(RoomParts.Deck, 0, flags, 1));
+            new RoomCourseDto(RoomParts.Wall, 0, 0, timber, 1),
+            new RoomCourseDto(RoomParts.Deck, 0, 0, flags, 1));
 
         var without = (await (await client.PostAsJsonAsync("/api/storey-styles/preview", plain))
             .Content.ReadFromJsonAsync<RoomStylePreviewDto>())!;
@@ -293,9 +285,9 @@ public sealed class HousePartLibraryEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var slate = await StyleAsync(client, "slate", Blocks.StainedClay);
+        var slate = new SlotBlockDto(Blocks.StainedClay, 0, Laid: false);
         var roof = await (await client.PostAsJsonAsync("/api/roof-styles", Roof("gabled", RoofForms.Gable,
-                new RoomCourseDto(RoomParts.Roof, 0, slate, 1))))
+                new RoomCourseDto(RoomParts.Roof, 0, 0, slate, 1))))
             .Content.ReadFromJsonAsync<RoofStyleDetail>();
 
         var flat = await HousePreview(client, House("plain"));
@@ -409,8 +401,8 @@ public sealed class HousePartLibraryEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var slate = await StyleAsync(client, "slate", Blocks.StainedClay);
-        var draft = Roof("hipped", RoofForms.Hip, new RoomCourseDto(RoomParts.Roof, 0, slate, 1));
+        var slate = new SlotBlockDto(Blocks.StainedClay, 0, Laid: false);
+        var draft = Roof("hipped", RoofForms.Hip, new RoomCourseDto(RoomParts.Roof, 0, 0, slate, 1));
 
         var previewed = await (await client.PostAsJsonAsync("/api/roof-styles/preview", draft))
             .Content.ReadFromJsonAsync<RoomStylePreviewDto>();

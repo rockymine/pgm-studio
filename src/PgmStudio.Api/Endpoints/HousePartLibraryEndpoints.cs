@@ -15,7 +15,7 @@ internal static class HousePartMapping
 {
     public static RoofStyleDetail ToDetail(RoofStyleRow row, IReadOnlyList<RoofStyleCourseRow> courses) =>
         new(row.Id, row.Name, row.Form, row.Pitch, row.Overhang, row.RoofHole, row.RidgeCap,
-            [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height))],
+            [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId ?? 0, Slots.BlockOf(c.BlockId, c.BlockData, c.BlockLaid), c.Height))],
             row.RoofSlab, row.RoofSlabData, row.RoofStair, row.RoofWear);
 
     /// <summary>What a saved roof comes back as — read off the <em>row</em> it composes to rather than off the
@@ -32,7 +32,7 @@ internal static class HousePartMapping
             new RoomWindowDto(row.WindowForm, row.WindowBlock, row.WindowData, row.WindowSill,
                 row.WindowWidth, row.WindowHeight, row.WindowSpacing,
                 row.WindowHostBlock, row.WindowHostData),
-            [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height))]);
+            [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId ?? 0, Slots.BlockOf(c.BlockId, c.BlockData, c.BlockLaid), c.Height))]);
 
     public static StoreyStyleDetail ToDetail(long id, StoreyStyleSaveRequest req)
     {
@@ -92,7 +92,7 @@ public sealed class RoofStyleCreateEndpoint(HousePartStore store, HousePartLibra
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
     {
         var composed = await library.ComposeRoofDraftAsync(req, ct);
-        var findings = HouseStyleValidation.CheckRoof(composed.Roof);
+        var findings = LibraryGate.Courses(req.Courses).And(HouseStyleValidation.CheckRoof(composed.Roof));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = await store.CreateRoofAsync(
             HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
@@ -109,7 +109,7 @@ public sealed class RoofStyleUpdateEndpoint(HousePartStore store, HousePartLibra
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
     {
         var composed = await library.ComposeRoofDraftAsync(req, ct);
-        var findings = HouseStyleValidation.CheckRoof(composed.Roof);
+        var findings = LibraryGate.Courses(req.Courses).And(HouseStyleValidation.CheckRoof(composed.Roof));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
         var updated = await store.UpdateRoofAsync(
@@ -192,7 +192,8 @@ public sealed class StoreyStyleCreateEndpoint(HousePartStore store)
 
     public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
     {
-        var findings = HouseStyleValidation.CheckWindow("windows", HousePartLibrary.WindowOf(HousePartLibrary.RowOf(req)));
+        var findings = LibraryGate.Courses(req.Courses)
+            .And(HouseStyleValidation.CheckWindow("windows", HousePartLibrary.WindowOf(HousePartLibrary.RowOf(req))));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = await store.CreateStoreyAsync(
             HousePartLibrary.RowOf(req), HousePartLibrary.StoreyCourseRowsOf(req), ct);
@@ -208,7 +209,8 @@ public sealed class StoreyStyleUpdateEndpoint(HousePartStore store)
 
     public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
     {
-        var findings = HouseStyleValidation.CheckWindow("windows", HousePartLibrary.WindowOf(HousePartLibrary.RowOf(req)));
+        var findings = LibraryGate.Courses(req.Courses)
+            .And(HouseStyleValidation.CheckWindow("windows", HousePartLibrary.WindowOf(HousePartLibrary.RowOf(req))));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
         var updated = await store.UpdateStoreyAsync(

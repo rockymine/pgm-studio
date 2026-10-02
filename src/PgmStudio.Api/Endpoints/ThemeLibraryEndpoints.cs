@@ -20,7 +20,9 @@ internal static class ThemeLibraryMapping
     public static ThemeDetail ToDetail(ThemeRow row, IReadOnlyList<ThemeBucketRow> buckets) =>
         new(row.Id, row.Name, row.BedrockRelative, row.BedrockValue, RimEdgeModes.Canonical(row.RimEdges),
             row.WallOnTerrainFaces,
-            buckets.Select(b => new ThemeBucketDto(b.Bucket, b.StyleId ?? 0, b.Depth, b.Enabled)).ToList());
+            buckets.Select(b => new ThemeBucketDto(
+                b.Bucket, b.StyleId ?? 0, Slots.BlockOf(b.BlockId, b.BlockData, b.BlockLaid), b.Depth, b.Enabled))
+            .ToList());
 
     /// <summary>A style's card picture, or an empty string for params that do not form a material this build can
     /// draw. Deliberately catches everything: <c>params_json</c> is a hand-editable leaf, so it can be malformed
@@ -68,28 +70,51 @@ public sealed class StyleGetEndpoint(ThemeStore store) : EndpointWithoutRequest<
     }
 }
 
-/// <summary>POST /api/styles — save a new reusable style.</summary>
+/// <summary>POST /api/styles — save a new pattern. 400 (<c>LB1</c>) for one that lays a single block, which a
+/// slot holds directly; 409 (<c>LB3</c>) for one the library already holds, naming the row that does.</summary>
 public sealed class StyleCreateEndpoint(ThemeStore store) : Endpoint<StyleSaveRequest, StyleDto>
 {
-    public override void Configure() { Post("/styles"); }
+    public override void Configure() { Post("/styles"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(StyleSaveRequest req, CancellationToken ct)
     {
+        if (await StyleSaving.RefusedAsync(HttpContext, store, req, self: null, ct)) return;
         var row = new StyleRow { Name = req.Name, Kind = req.Kind, Params = req.Params };
         row.Id = await store.CreateStyleAsync(row, ct);
         await Send.OkAsync(ThemeLibraryMapping.ToDto(row), ct);
     }
 }
 
+/// <summary>What saving a pattern refuses, for a new row and an edited one alike.</summary>
+internal static class StyleSaving
+{
+    public static async Task<bool> RefusedAsync(
+        HttpContext http, ThemeStore store, StyleSaveRequest req, long? self, CancellationToken ct)
+    {
+        if (await Refusals.StopAsync(http, 400, "not a pattern", LibraryGate.Pattern(req.Kind, req.Params), ct))
+            return true;
+        var content = ThemeLibrary.ContentOf(req.Params);
+        var held = (await store.ListStylesAsync(ct: ct))
+            .FirstOrDefault(style => style.Id != self && ThemeLibrary.ContentOf(style.Params) == content);
+        if (held is null) return false;
+        await Refusals.WriteAsync(http, 409, "pattern held",
+            [new Finding(LibraryRules.PatternHeld,
+                $"the library already holds this pattern as `{held.Name}` (style {held.Id})",
+                Field: "params", Subjects: [held.Name])], ct);
+        return true;
+    }
+}
+
 /// <summary>PUT /api/styles/{id} — update a style in place (edits every theme that binds it — a library edit,
-/// not a map's applied snapshot).</summary>
+/// not a map's applied snapshot). Refuses what <see cref="StyleCreateEndpoint"/> does.</summary>
 public sealed class StyleUpdateEndpoint(ThemeStore store) : Endpoint<StyleSaveRequest, StyleDto>
 {
-    public override void Configure() { Put("/styles/{id}"); Description(b => b.Refuses(404)); }
+    public override void Configure() { Put("/styles/{id}"); Description(b => b.Refuses(404, 409)); }
 
     public override async Task HandleAsync(StyleSaveRequest req, CancellationToken ct)
     {
         var id = Route<long>("id");
+        if (await StyleSaving.RefusedAsync(HttpContext, store, req, self: id, ct)) return;
         if (await store.UpdateStyleAsync(id, req.Name, req.Kind, req.Params, ct) == 0)
         { await Refusals.NotFoundAsync(HttpContext, "style", ct); return; }
         await Send.OkAsync(ThemeLibraryMapping.ToDto(
@@ -97,10 +122,10 @@ public sealed class StyleUpdateEndpoint(ThemeStore store) : Endpoint<StyleSaveRe
     }
 }
 
-/// <summary>DELETE /api/styles/{id} — forget a style. Refused with 409 and the names of the themes and room
-/// styles still binding it, since a style is shared by both libraries and its bindings are what the foreign key
-/// would otherwise complain about.</summary>
-public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms) : EndpointWithoutRequest
+/// <summary>DELETE /api/styles/{id} — forget a pattern. Refused with 409 and the names of the themes, houses,
+/// roofs and storeys still binding it, since a pattern is shared by all four and its bindings are what the
+/// foreign key would otherwise complain about.</summary>
+public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms, HousePartStore parts) : EndpointWithoutRequest
 {
     public override void Configure() { Delete("/styles/{id}"); Description(b => b.Refuses(409)); }
 
@@ -108,12 +133,13 @@ public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms) 
     {
         var id = Route<long>("id");
         var users = (await store.ThemesUsingStyleAsync(id, ct))
-            .Concat(await rooms.UsingStyleAsync(id, ct)).ToList();
+            .Concat(await rooms.UsingStyleAsync(id, ct))
+            .Concat(await parts.UsingStyleAsync(id, ct)).ToList();
         if (users.Count > 0)
         {
             await Refusals.ConflictAsync(HttpContext, "style in use",
-                $"{users.Count} theme(s) and room style(s) still bind this style — unbind them before "
-                + "forgetting it", ct, holding: users);
+                $"{users.Count} theme(s), house(s), roof(s) and storey(s) still bind this pattern — unbind them "
+                + "before forgetting it", ct, holding: users);
             return;
         }
         await store.DeleteStyleAsync(id, ct);
@@ -155,6 +181,7 @@ public sealed class ThemeCreateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
 
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
     {
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid theme", LibraryGate.Buckets(req.Buckets), ct)) return;
         var id = await store.CreateThemeAsync(ThemeRowOf(req), BucketRowsOf(req), ct);
         await Send.OkAsync(new ThemeDetail(id, req.Name, req.BedrockRelative, req.BedrockValue,
             RimEdgeModes.Canonical(req.RimEdges), req.WallOnTerrainFaces, req.Buckets), ct);
@@ -167,11 +194,15 @@ public sealed class ThemeCreateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
         RimEdges = RimEdgeModes.Canonical(req.RimEdges), WallOnTerrainFaces = req.WallOnTerrainFaces,
     };
 
-    // Style id 0 on the wire is "bound to nothing": the column takes null, and the row survives to carry the
-    // bucket's depth and toggle.
+    // A bucket naming neither a block nor a pattern (style id 0) is "bound to nothing": both columns take null,
+    // and the row survives to carry the bucket's depth and toggle.
     internal static IEnumerable<ThemeBucketRow> BucketRowsOf(ThemeSaveRequest req)
         => req.Buckets.Select(b => new ThemeBucketRow
-        { Bucket = b.Bucket, StyleId = b.StyleId == 0 ? null : b.StyleId, Depth = b.Depth, Enabled = b.Enabled });
+        {
+            Bucket = b.Bucket, StyleId = b.Block is not null || b.StyleId == 0 ? null : b.StyleId,
+            BlockId = b.Block?.Id, BlockData = b.Block?.Data ?? 0, BlockLaid = b.Block?.Laid ?? false,
+            Depth = b.Depth, Enabled = b.Enabled,
+        });
 }
 
 /// <summary>PUT /api/themes/{id} — replace a theme's knobs and its whole set of bucket bindings.</summary>
@@ -182,6 +213,7 @@ public sealed class ThemeUpdateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
     {
         var id = Route<long>("id");
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid theme", LibraryGate.Buckets(req.Buckets), ct)) return;
         var updated = await store.UpdateThemeAsync(
             id, ThemeCreateEndpoint.ThemeRowOf(req), ThemeCreateEndpoint.BucketRowsOf(req), ct);
         if (!updated) { await Refusals.NotFoundAsync(HttpContext, "theme", ct); return; }

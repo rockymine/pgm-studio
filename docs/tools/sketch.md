@@ -975,9 +975,9 @@ it is bound to. The order is the order a column is built: the paint under everyt
 **The map default is the board's; the built-in is stone.** Every bucket of `TerrainTheme.Default` is stone —
 what unpainted ground already is — so a board that names no theme exports as a board that names no theme, and
 a bucket a theme leaves unbound resolves to stone rather than borrowing a finish it never asked for. The
-finishes worth starting from are named themes: `ThemePresets` holds six — `meadow`, `dunes`, `ashfall`,
-`firnline`, `claybed`, `oldstone` — and `LibrarySeed` puts them in the library, where they are picked like any
-other.
+finishes worth starting from are named themes: the library's seed folder holds eight — `meadow`, `dunes`,
+`ashfall`, `firnline`, `claybed`, `oldstone`, `clay grassland` and `clay mycelium` — and the seed puts them in the
+library, where they are picked like any other (`docs/tools/library.md`, *The seed*).
 
 **The map's biome sits with the default theme**, because it is the same kind of statement: what every column
 falls back to. A biome places no block — it is the byte a client reads to tint grass, leaves and water — so it

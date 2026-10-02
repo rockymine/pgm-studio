@@ -43,18 +43,29 @@ public sealed record BiomePatternSummary(long Id, string Name, string Kind,
 public record BiomePatternSaveRequest(string Name,
     [property: WordSet(typeof(BiomeKinds))] string Kind, string Params);
 
-/// <summary>One bucket binding of a theme (<see cref="ThemeBuckets"/>): the style that fills it, and the
-/// bucket's depth (rim/surface) and toggle. <paramref name="StyleId"/> 0 binds no style — the bucket keeps the
-/// built-in material and the binding carries only its depth and its toggle, which is how a theme says "no
-/// rim" without first being made to choose a rim material.</summary>
+/// <summary>One block filling a slot in place of a library pattern — a theme's bucket or a building's course.
+/// A single block is not a pattern: it is named by its id and variant, which the block catalogue
+/// (<c>GET /api/terrain/blocks</c>) already answers, so a slot holds it directly rather than through a row.</summary>
+/// <param name="Id">The block id.</param>
+/// <param name="Data">Its variant: a wood's species, a stone's kind, a clay's colour.</param>
+/// <param name="Laid">Whether the block is laid along the run it sits in rather than standing — a log lying
+/// with the wall or the roof, bark out, never end-on. Only a log has an axis to lay.</param>
+public sealed record SlotBlockDto(int Id, int Data, bool Laid);
+
+/// <summary>One bucket binding of a theme (<see cref="ThemeBuckets"/>): what fills it — one block, or a
+/// library pattern — and the bucket's depth (rim/surface) and toggle. Binding neither keeps the built-in
+/// material, and the binding carries only its depth and its toggle, which is how a theme says "no rim" without
+/// first being made to choose a rim material.</summary>
 /// <param name="Bucket">Which part of the ground this binding fills.</param>
-/// <param name="StyleId">The style that fills it, or <c>0</c> to bind none — which keeps the built-in
-/// material and is how a theme says "no rim" without first being made to choose a rim material.</param>
+/// <param name="StyleId">The pattern that fills it, or <c>0</c> where a block does or nothing does.</param>
+/// <param name="Block">The block that fills it, or null where a pattern does or nothing does. A binding naming
+/// both is refused.</param>
 /// <param name="Depth">How many top courses the bucket claims, where it claims a configurable number: the
 /// rim and the surface do, the wall's depth is the riser it finds, and the fill takes what is left.</param>
 /// <param name="Enabled">Whether the bucket is painted at all.</param>
 public sealed record ThemeBucketDto(
-    [property: WordSet(typeof(ThemeBuckets))] string Bucket, long StyleId, int Depth, bool Enabled);
+    [property: WordSet(typeof(ThemeBuckets))] string Bucket, long StyleId, SlotBlockDto? Block, int Depth,
+    bool Enabled);
 
 /// <summary>One row in the theme library list (GET /api/themes), with the sample plateau the theme finishes —
 /// the same reason <see cref="StyleDto.Preview"/> travels with a style.</summary>
@@ -125,16 +136,18 @@ public sealed record ThemePreviewDto(string Section, IReadOnlyDictionary<string,
 // an ordered *stack* of them rather than one, because that is what a shell's floor, wall and roof are.
 
 /// <summary>One course of a room style's part: which <see cref="RoomParts"/> it belongs to, where it sits in
-/// that part's stack (0 = the course nearest the part's own base), the style it resolves through, and how many
-/// courses it runs.</summary>
+/// that part's stack (0 = the course nearest the part's own base), what it is laid in — one block, or a library
+/// pattern — and how many courses it runs.</summary>
 /// <param name="Part">Which part of the shell the course belongs to.</param>
 /// <param name="Ordinal">Where it sits in that part's stack, 0 being the course nearest the part's own
 /// base. Counting up from the base is what pins a band: a stripe written at the fourth course stays at the
 /// fourth course when the wall grows.</param>
-/// <param name="StyleId">The library style it resolves through.</param>
+/// <param name="StyleId">The pattern it is laid in, or <c>0</c> where a block is.</param>
+/// <param name="Block">The block it is laid in, or null where a pattern is. Exactly one of the two is stated.</param>
 /// <param name="Height">How many courses it runs.</param>
 public sealed record RoomCourseDto(
-    [property: WordSet(typeof(RoomParts))] string Part, int Ordinal, long StyleId, int Height);
+    [property: WordSet(typeof(RoomParts))] string Part, int Ordinal, long StyleId, SlotBlockDto? Block,
+    int Height);
 
 /// <summary>One row in the room-style library list (GET /api/room-styles), with the shell it stamps.</summary>
 /// <param name="Id">The row number every later route names it by.</param>
@@ -414,11 +427,11 @@ public sealed record RoomStyleDetail(
     IReadOnlyList<RoomCourseDto> Courses,
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
     RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2,
-    int RoofStair = -1, double RoofWear = 0)
+    int RoofStair = -1, double RoofWear = 0, string Front = PorchEdges.Front)
     : RoomStyleSaveRequest(
         Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
         Storeys, StoreyClear, Windows, Porch, Door, DoorHeight, RoofStyleId, PorchStyleId, StoreyStack,
-        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth, RoofStair, RoofWear)
+        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth, RoofStair, RoofWear, Front)
 {
     /// <summary>The style as the request that would store it unchanged — every field, including the ones an
     /// editor draws no control for. An editor loading a row into a draft takes this rather than restating the
@@ -427,7 +440,7 @@ public sealed record RoomStyleDetail(
     public RoomStyleSaveRequest AsSaveRequest() => new(
         Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
         Storeys, StoreyClear, Windows, Porch, Door, DoorHeight, RoofStyleId, PorchStyleId, StoreyStack,
-        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth, RoofStair, RoofWear);
+        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth, RoofStair, RoofWear, Front);
 }
 
 /// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}) — a whole
@@ -483,6 +496,8 @@ public sealed record RoomStyleDetail(
 /// <param name="RoofStair">The stair a roof laid in whole courses steps in, or -1 for one laid in cubes.
 /// Never with <paramref name="RoofSlab"/>.</param>
 /// <param name="RoofWear">0–1; how weathered the roof is.</param>
+/// <param name="Front">The wall the doorway is cut through, from <see cref="PorchEdges"/>: <c>front</c> leaves the
+/// building's own, read off its footprint.</param>
 public record RoomStyleSaveRequest(
     string Name,
     int FloorDepth, int WallHeight,
@@ -497,7 +512,8 @@ public record RoomStyleSaveRequest(
     // building has none" — which is what every stored style already was.
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
     RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2,
-    int RoofStair = -1, double RoofWear = 0);
+    int RoofStair = -1, double RoofWear = 0,
+    [property: WordSet(typeof(PorchEdges))] string Front = PorchEdges.Front);
 
 /// <summary>What an editor draws a room style from: three flat pictures — from above, projected onto its
 /// front, and one plane at the scale of the pieces in it — and the building itself, as the columns a 3-D view

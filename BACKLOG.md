@@ -589,15 +589,6 @@ is the standard the copy is held to.
 
 ## Refactoring and cleanup
 
-- [ ] **TL37 — The library is seeded from one place.** What a fresh studio holds is stated in four kinds of
-  place: C# preset classes (`StylePresets`, `ThemePresets`, `HousePresets.All`), literals inside the seeder itself
-  (the boulder recipes, `LibrarySeed.cs:69`; a tree per `DressingPalette.Species`), 49 embedded JSON files
-  (`Minecraft/Houses/Kept`), and a tool run by hand at deploy that copies trees out of a world in the authoring
-  repository (`tools/seed-trees.cs` over `corpus/tree-showcase`). Inspect each and move every seeded row —
-  materials, themes, houses and their parts, tree and boulder recipes, the copied trees, the biome patterns — into
-  one fixture folder of data read by one seeder, with one test that the seeded library equals the folder. A
-  preset that is code because it is computed stays code and is named as such. `docs/tools/library.md` § the seed.
-
 - [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
   `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,
   `PlanInspectDto:117`), and the two room families are the only ones naming a thing the rest of the studio
@@ -646,6 +637,15 @@ server's backups and the edits a read-only page still lets start.
   failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
 ## The remainder: work no concept above has claimed
+
+- [ ] **WE162 — Two seeded houses stamp their doorway on other columns in a mirror image.** The stamper's
+  orbit tests (`A_room_and_its_rot_180_image_stand_on_the_same_columns`,
+  `A_room_and_its_mirror_images_stand_on_the_same_columns`, `HouseStamperTests`) run over the eight houses they
+  were written for and pass; run over every seeded house, `dark-oak-stilt-hut` (hip roof, stilts) and
+  `jungle-saltbox-cottage` (saltbox) fail, their door columns landing apart between a room and its image. Find
+  which of the two forms moves the doorway, fix it in `HouseStamper`, and widen `RoomStyles()` to
+  `SeedFolder.Houses`. `docs/world-export/structures.md`. *Evidence: `dark-oak-stilt-hut 18x9 door -z mirror_x at
+  (-9, 65, -73)`, `jungle-saltbox-cottage 14x13 door -x at (-6, 76, -78)`.*
 
 - [ ] **RP97 — The sketch layout's words are published sets.** `GET /api/kit.py` checks a word only where
   the schema lists it, and 44 of 574 string fields do: the layout an author writes most has none, so

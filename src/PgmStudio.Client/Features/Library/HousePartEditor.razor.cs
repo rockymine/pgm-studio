@@ -68,7 +68,7 @@ public partial class HousePartEditor
                 Badge: Courses(piece.Id).Count is var n and > 0 ? $"{n} course{(n == 1 ? "" : "s")}" : "default")));
             rows.AddRange(Part.Single.Select(piece => new EditorPart(
                 piece.Id, piece.Title, "dot",
-                Badge: StyleOf(Single(piece.Id))?.Name ?? "none")));
+                Badge: Single(piece.Id).Name(styles, blocks) ?? "none")));
             return rows;
         }
     }
@@ -202,18 +202,22 @@ public partial class HousePartEditor
     private List<RoomCourseDto> Courses(string part)
         => [.. Bindings.Where(course => course.Part == part).OrderBy(course => course.Ordinal)];
 
+    /// <summary>The course a stack gains: one course of stone, which is what an unpainted wall already is.</summary>
+    private static readonly SlotBlockDto NewCourse = new(1, 0, Laid: false);
+
     private Task AddCourse(string part)
     {
-        if (styles.Count == 0) return Task.CompletedTask;
         var stack = Courses(part);
-        return WriteCourses(part, [.. stack, new RoomCourseDto(part, stack.Count, styles[0].Id, 1)]);
+        return WriteCourses(part, [.. stack, new RoomCourseDto(part, stack.Count, 0, NewCourse, 1)]);
     }
 
     private Task RemoveCourse(string part, int ordinal)
         => WriteCourses(part, [.. Courses(part).Where(course => course.Ordinal != ordinal)]);
 
-    private Task BindCourse(string part, int ordinal, long styleId)
-        => EditCourse(part, ordinal, course => course with { StyleId = styleId });
+    private Task BindCourse(string part, int ordinal, SlotFill fill)
+        => fill.Bound
+            ? EditCourse(part, ordinal, course => course with { StyleId = fill.StyleId, Block = fill.Block })
+            : RemoveCourse(part, ordinal);
 
     private Task SetCourseHeight(string part, int ordinal, double value)
         => EditCourse(part, ordinal, course => course with { Height = Math.Max(1, (int)value) });
@@ -232,15 +236,16 @@ public partial class HousePartEditor
         return Preview();
     }
 
-    private long Single(string part) => Courses(part).FirstOrDefault()?.StyleId ?? 0;
+    private SlotFill Single(string part)
+        => Courses(part).FirstOrDefault() is { } course ? new SlotFill(course.StyleId, course.Block) : SlotFill.None;
 
-    /// <summary>Whether a part has a style on it. A zone is not a zone until something names it — the floor
+    /// <summary>Whether a part has a block or a pattern on it. A zone is not a zone until something names it — the floor
     /// part shows through instead — so the numbers that shape one (a border's width, an inlay's inset) decide
     /// nothing until then, and a knob that decides nothing should say so rather than sit there turning.</summary>
     private bool Bound(string part) => Courses(part).Count > 0;
 
-    private Task BindSingle(string part, long styleId)
-        => WriteCourses(part, styleId <= 0 ? [] : [new RoomCourseDto(part, 0, styleId, 1)]);
+    private Task BindSingle(string part, SlotFill fill)
+        => WriteCourses(part, fill.Bound ? [new RoomCourseDto(part, 0, fill.StyleId, fill.Block, 1)] : []);
 
     // ── the roof's knobs ───────────────────────────────────────────────────────────────────────────
     private bool Sloped => RoofForms.Canonical(roof?.Form) != RoofForms.Flat;

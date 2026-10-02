@@ -417,8 +417,8 @@ app.UseSwaggerGen(
 // SPA fallback: anything not matched by an API route or a static file serves the Blazor host page.
 app.MapFallbackToFile("index.html", staticFileOptions);
 
-// The library's built-in presets. Idempotent and keyed by name — a row already there is updated in place and
-// keeps the id maps and themes depend on, and nothing is ever deleted — so a studio nobody has run the seeder
+// The library's seed folder. Idempotent — a row already holding a seeded entry is updated in place and keeps
+// the id everything binding it depends on, and nothing is ever deleted — so a studio nobody has run the seeder
 // against stops being a state the app can be in. A failure here is reported and never fatal: an empty library
 // is a usable studio, and refusing to serve over one would be worse than opening on it.
 await using (var seeding = app.Services.CreateAsyncScope())
@@ -432,8 +432,9 @@ await using (var seeding = app.Services.CreateAsyncScope())
     {
         var tally = await seed.SeedAsync();
         app.Logger.LogInformation(
-            "library seeded: {StylesAdded} style(s), {RoomsAdded} part(s) and house(s), {ThemesAdded} theme(s) added",
-            tally.StylesAdded, tally.RoomsAdded, tally.ThemesAdded);
+            "library seeded: {Patterns} pattern(s), {Parts} part(s), {Houses} house(s), {Themes} theme(s) and "
+            + "{Recipes} recipe(s) added",
+            tally.PatternsAdded, tally.PartsAdded, tally.HousesAdded, tally.ThemesAdded, tally.RecipesAdded);
     }
     catch (Exception fault)
     {
