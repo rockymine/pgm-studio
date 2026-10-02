@@ -26,9 +26,9 @@ public sealed record EdgeInterval(int Start, int LengthCells, string Slot);
 ///
 /// <para>Whether an edge may actually <em>receive a dock</em> is a <b>rule, not a fact</b>: it must land on an
 /// entry (docking) slot, must not seal the wool, and must satisfy the family's span/count demand. Those rules
-/// are the <b>G80 docking gate</b> (<see cref="DockingGate"/>), which maps these slots to dock roles and
+/// are the <b>docking gate</b> (<see cref="DockingGate"/>), which maps these slots to dock roles and
 /// applies the demand — deliberately not baked in here, so every docking rule lives in one place (a room edge
-/// is legally docked at the elevation stage, G81, which is exactly why "room ⇒ never-dock" is a policy, not a
+/// is legally docked at the elevation stage, which is exactly why "room ⇒ never-dock" is a policy, not a
 /// fact). It is <b>shape-relative</b>: the intervals are read off the shape, so the facts move with it — a
 /// room at a different corner, an entry shift, a flipped handedness.</para>
 /// </summary>
@@ -47,12 +47,12 @@ public sealed record BoxEdgeInterface(BoxEdge Edge, EdgeSpan Span, int LengthCel
 }
 
 /// <summary>
-/// The valid-edges <b>data model</b> (G41-B, intervals G93): read a box's four edges as
+/// The valid-edges <b>data model</b>: read a box's four edges as
 /// <see cref="BoxEdgeInterface"/> <b>facts</b> off the emitted shape filling it. It <b>observes; it does not
 /// judge</b> — the multi-interval vocabulary a box exposes (four edges, each classified long/short and
 /// carrying the per-piece intervals on it), retiring both the single-mouth assumption and the flat slot list.
 /// The <b>rules</b> that turn these facts into a dockability verdict — which edges are legal docks, which
-/// slots never connect, how many a family demands — are the <see cref="DockingGate"/> (G80) over this model.
+/// slots never connect, how many a family demands — are the <see cref="DockingGate"/> over this model.
 /// The box-perimeter sibling of the shape-relative boundary read (<see cref="BodyEdges"/>): this reads the
 /// box's four edge lines, that reads the shape's whole classified outline — the two agree wherever the shape
 /// reaches the box edge.
@@ -61,7 +61,7 @@ public static class BoxInterfaces
 {
     /// <summary>The four edges of a <paramref name="boxW"/>×<paramref name="boxH"/> box as
     /// <see cref="BoxEdgeInterface"/> facts for the emitted <paramref name="shape"/> filling it (box-local
-    /// cells). Every edge is returned — the gate (G80) decides which are dockable.</summary>
+    /// cells). Every edge is returned — the gate decides which are dockable.</summary>
     public static IReadOnlyList<BoxEdgeInterface> Of(EmittedShape shape, int boxW, int boxH) =>
         Of(shape.Terrain, shape.Room, boxW, boxH);
 

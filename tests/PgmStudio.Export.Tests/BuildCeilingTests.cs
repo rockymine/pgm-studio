@@ -172,15 +172,15 @@ public sealed class BuildCeilingTests
         await Assert.That(built.World.GetBlock(-10, floor - 1, 10).Id).IsEqualTo(Blocks.Air);
     }
 
-    /// <summary><b>No goal the studio can state reaches the ceiling any more.</b> <c>OB23</c> complains when
-    /// a goal's own structure tops out over the line players may build to, and it was reachable while a core
-    /// stated its casing freely: twenty courses of obsidian at the most a goal may float cleared the cap by
-    /// eleven. A core is chosen from four interiors now, so the tallest is five courses of lava under a floor
+    /// <summary><b>No goal the studio can state reaches the ceiling.</b> <c>OB23</c> complains when
+    /// a goal's own structure tops out over the line players may build to; a core that stated its casing
+    /// freely could reach it, since twenty courses of obsidian at the most a goal may float clear the cap by
+    /// eleven. A core is chosen from four interiors, so the tallest is five courses of lava under a floor
     /// and a cap — seven — and <c>MaxFloat + 7 − 1</c> is eighteen against the ceiling's twenty. A
-    /// destroyable's own styles stop at four courses and never came near it.
+    /// destroyable's own styles stop at four courses and never come near it.
     ///
     /// <para>So this pins the arithmetic rather than the complaint. The rule stays because the numbers it
-    /// reads are the author's and may move; what no longer exists is a way to build a goal that trips it.</para></summary>
+    /// reads are the author's and may move; what does not exist is a way to build a goal that trips it.</para></summary>
     [Test]
     public async Task No_offered_core_can_stand_over_the_build_ceiling()
     {

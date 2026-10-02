@@ -315,8 +315,8 @@ the `/api/rules` payload, so their length is the answer's length; and a `Traps` 
 having cost hours. Everything else: state it, then stop.
 
 Also **never** an attribution to what a piece of code was ported from, and **never** an implementation-phase
-or task id (`NS`, `N00`, `B8`, `P5`, `ND2`, …) — 62 comment lines across 44 files still carry one. The port
-attributions are swept; the task-id half is still open on the board, and so is the history half (`RP10`).
+or task id (`NS`, `N00`, `B8`, `P5`, `ND2`, …). A rule id (`G1`–`G8`, `ST10`, a `*Rules` constant) is not
+a task id: it names a refusal the code raises, and a comment may cite it.
 
 The same rule already governs prose under `docs/` — *How a document is written*: state mechanism as fact, no
 changelog. It is one rule, and the two halves are not allowed to disagree.

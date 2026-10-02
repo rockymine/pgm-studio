@@ -100,7 +100,7 @@ public sealed class PlanEvaluateEndpointTests
     /// panel on every fresh plan — but the answer was <c>score 0, valid: true</c>, which is the shape of a
     /// perfect plan, about the emptiest document there is. <c>/plan/compile</c> refused the same body with
     /// <c>PL1</c> the whole time. The two now say the same thing, and this asserts they do it in one
-    /// sentence: the finding is the validator's, not a second copy of it (B140).</summary>
+    /// sentence: the finding is the validator's, not a second copy of it.</summary>
     [Test]
     public async Task An_empty_plan_is_not_a_perfect_plan()
     {
@@ -123,7 +123,7 @@ public sealed class PlanEvaluateEndpointTests
     /// <summary>Where several refusals fire, every one of them is on the wire under the rule id it was refused
     /// under. The structural term scores them as one hard violation citing the sentinel <c>STRUCT</c>, which no
     /// rule catalogue answers and which carried a count and one sentence — so an author was told how many
-    /// there were and shown one, and met the rest at the compile's 422 a phase later (TN2).</summary>
+    /// there were and shown one, and met the rest at the compile's 422 a phase later.</summary>
     [Test]
     public async Task Every_structural_refusal_is_answered_under_its_own_rule()
     {

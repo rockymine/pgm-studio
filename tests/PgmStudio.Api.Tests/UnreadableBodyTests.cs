@@ -98,8 +98,8 @@ public sealed class UnreadableBodyTests
         await Assert.That(body!.Findings.Select(f => f.Field)).Contains("wall");
     }
 
-    /// <summary>A misspelled discriminator used to be the one fault that crashed while a misspelled *field*
-    /// was accepted in silence — the wrong way round, and the pairing that cost an author two source reads.
+    /// <summary>A misspelled discriminator is refused by name like a misspelled *field*, rather than crashing while the field
+    /// is accepted in silence — the wrong way round, and the pairing that costs an author two source reads.
     /// The kind is polymorphic, so System.Text.Json reports it as a <c>NotSupportedException</c> rather than a
     /// parse failure; that is a difference in reporting, not in what went wrong.</summary>
     [Test]
@@ -115,8 +115,8 @@ public sealed class UnreadableBodyTests
     }
 
     /// <summary>The optional field the refusal must not swallow. <c>themes/import</c> names an unnamed import
-    /// "Imported theme", so refusing a body that omits the name would break a documented convenience — which
-    /// it did, until the DTO was made to say what the handler actually does.</summary>
+    /// "Imported theme", so refusing a body that omits the name would break a documented convenience; the DTO has to say what the
+    /// handler actually does.</summary>
     [Test]
     public async Task An_optional_field_is_still_optional()
     {

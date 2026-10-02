@@ -2,8 +2,8 @@
 //
 // `PlanModel.CurrentVersion` decides what the server accepts and `plan-doc.js` decides what the editor
 // writes, so the two are one number in two files and the editor is the half nobody compiles. When they
-// last disagreed every plan authored in the UI was born stale and `PL15` refused it at the compile gate —
-// the document was already in the current unit and only its label was wrong. This reads the constant out
+// disagree every plan authored in the UI is born stale and `PL15` refuses it at the compile gate —
+// the document is in the current unit and only its label is wrong. This reads the constant out
 // of the C# source rather than restating it, so a bump on either side fails here.
 import { test } from "node:test";
 import assert from "node:assert/strict";

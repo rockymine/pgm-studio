@@ -3,7 +3,7 @@ using FluentMigrator;
 namespace PgmStudio.Migrations.Migrations;
 
 /// <summary>
-/// A house is composed from part styles (B71, docs/world-export/structures.md §8).
+/// A house is composed from part styles (docs/world-export/structures.md §8).
 ///
 /// <para>M0012 made a room style a first-class row, but a flat one: every knob of the whole building lived on
 /// it, and <c>room_style_course</c> bound materials per part. A <b>part</b> therefore had no identity. A

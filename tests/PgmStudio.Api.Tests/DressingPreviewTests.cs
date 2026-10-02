@@ -12,7 +12,7 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The dressing stage's preview half (G161): what a prop looks like, asserted by what it <em>placed</em>
+/// The dressing stage's preview half: what a prop looks like, asserted by what it <em>placed</em>
 /// rather than by the bytes it drew. <see cref="PgmStudio.Export.Tests.DressingScopeTests"/> is the sibling
 /// for what an author placed, what the pass must leave bare, and how the map is mirrored.
 /// </summary>
@@ -26,7 +26,7 @@ public sealed class DressingPreviewTests
         => int.Parse(Regex.Match(svg, "height='(\\d+)'").Groups[1].Value);
 
     // A theme whose surface is grass — what flora needs underfoot to place at all, since the built-in default
-    // no longer paints anything organic.
+    // paints nothing organic.
     private static readonly TerrainTheme Grassed = TerrainTheme.Default with
     {
         Surface = new TopBand(new SolidMaterial(Blocks.Grass), 1),
@@ -269,7 +269,7 @@ public sealed class DressingPreviewTests
         }
     }
 
-    // ── the claims raster (TS81) ───────────────────────────────────────────────────────────────────
+    // ── the claims raster ───────────────────────────────────────────────────────────────────
     // A flat board wide enough to carry a stroke off to one side and a goal well clear of it, so the two
     // classes never overlap and each can be read in isolation.
     private const string ClaimsBoard = """
@@ -383,7 +383,7 @@ public sealed class DressingPreviewTests
         await Assert.That(text).Contains("placed 1, declined 0");
     }
 
-    // ── the raster read forwards (WE34) ────────────────────────────────────────────────────────────────
+    // ── the raster read forwards ────────────────────────────────────────────────────────────────
 
     private static Task<HttpResponseMessage> PostSeatsAsync(HttpClient client, string slug, string query) =>
         client.PostAsync($"/api/map/{slug}/sketch/seats{query}",

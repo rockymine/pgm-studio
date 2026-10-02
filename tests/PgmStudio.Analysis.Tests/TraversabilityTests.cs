@@ -122,11 +122,11 @@ public sealed class TraversabilityTests
     public async Task Every_gating_point_off_grid_is_named_isolated_rather_than_reported_as_zero()
     {
         // Both spawns sit outside the analysed bbox entirely, so every gating point comes back
-        // Component == 0 and `comps` (Component > 0 points) is empty. Before the fix, `main` stayed at
-        // its default 0 and an isolated filter of `Component != main` matched neither point (0 != 0 is
-        // false), so a fully-disconnected map reported "0 spawn/wool point(s) are not reachable" and
-        // named none of them — the one case an author most needs a name is the one the old check
-        // could not give.
+        // Component == 0 and `comps` (Component > 0 points) is empty. Without the fix, `main` stays at
+        // its default 0 and an isolated filter of `Component != main` matches neither point (0 != 0 is
+        // false), so a fully-disconnected map reports "0 spawn/wool point(s) are not reachable" and
+        // names none of them — the one case an author most needs a name is the one that check could
+        // not give.
         var regions = new Dict
         {
             ["red"] = Rect(-500, -500, -496, -496),
@@ -191,10 +191,9 @@ public sealed class TraversabilityTests
     [Test]
     public async Task A_gap_no_rule_mentions_is_void_and_not_a_crossing()
     {
-        // B247. A map grants building by naming a region; ground nobody named is not a grant. Before this,
-        // the verdict grid started at "buildable" and a rule only ever wrote a denial over it, so every cell
-        // outside every apply rule read buildable and therefore walkable — and a board could pass "all
-        // objectives connected" across a void it cannot cross. The two banks below are 11 blocks apart with
+        // A map grants building by naming a region; ground nobody named is not a grant, so a cell outside
+        // every apply rule is not walkable — otherwise a board could pass "all objectives connected" across
+        // a void it cannot cross. The two banks below are 11 blocks apart with
         // nothing over the gap and nothing said about it.
         var data = new Dict
         {

@@ -4,7 +4,7 @@ namespace PgmStudio.Export.Tests;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// OB20 (B155) — the export composer refuses a declared <c>&lt;gamemode&gt;</c> id PGM's own closed enum
+/// OB20 — the export composer refuses a declared <c>&lt;gamemode&gt;</c> id PGM's own closed enum
 /// would reject, the same shape as OB17/OB19 (<c>docs/tools/configure.md</c>). Unlike those two it needs no
 /// world and no resolved intent — it reads only the document's own <c>"gamemode"</c> list — so it is checked
 /// first, against every map regardless of origin.
@@ -33,8 +33,8 @@ public sealed class MapExportComposerGamemodeTests
         await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "not-a-real-mode" });
     }
 
-    // The exact B155 regression: two real modes must round-trip as two separate <gamemode> elements, neither
-    // of which is "dtm dtc" — the joined value the old writer produced and PGM's enum could never resolve.
+    // Two real modes must round-trip as two separate <gamemode> elements, neither
+    // of which is "dtm dtc" — a joined value PGM's enum cannot resolve.
     [Test]
     public async Task Every_id_PGM_recognizes_exports_clean_even_mixed()
     {

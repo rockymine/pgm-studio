@@ -106,8 +106,8 @@ public sealed class PlanDestroyablesTests
 
     // A destroyable is the one marker kind that may ride no piece at all — an empty `piece` reads `at`
     // as an absolute board position, so a goal can stand on ground that exists only as an authored sketch
-    // shape, with no plan piece manufactured to carry it. Under the old code this marker's piece lookup
-    // (`d.Piece("")`) returned null and the whole placement was silently dropped from the compiled intent.
+    // shape, with no plan piece manufactured to carry it. The marker's piece lookup
+    // (`d.Piece("")`) returns null, and the placement must not be silently dropped from the compiled intent.
     [Test]
     public async Task A_marker_with_no_piece_compiles_by_absolute_board_position()
     {
@@ -135,8 +135,8 @@ public sealed class PlanDestroyablesTests
     }
 
     // The compile-time gate has no ground truth for an absolute marker (the landform it will ride is
-    // sketch geometry the plan never sees), so it must not report the piece-required error the old validator
-    // raised for every marker naming an unknown/empty piece.
+    // sketch geometry the plan never sees), so it must not report the piece-required error
+    // an unknown/empty piece raises for any other marker.
     [Test]
     public async Task A_marker_with_no_piece_is_not_a_dangling_reference()
     {

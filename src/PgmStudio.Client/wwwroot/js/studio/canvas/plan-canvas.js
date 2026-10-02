@@ -503,8 +503,7 @@ export class PlanCanvas extends CanvasBase {
 
   /**
    * The cell grid, spanning the visible viewport rather than the content, so the surface is never fenced
-   * in. The `gridStep` ladder keeps the line count flat as the board is zoomed out — the memo that used to
-   * guard a DOM rebuild is gone with the DOM, but the ladder still matters, because past a few pixels
+   * in. The `gridStep` ladder keeps the line count flat as the board is zoomed out, because past a few pixels
    * apart the lines are noise whatever they cost to draw.
    */
   #paintGrid() {
@@ -1011,8 +1010,7 @@ export class PlanCanvas extends CanvasBase {
 
   /**
    * A pointer cursor over something grabbable. Painted shapes are not elements, so this cannot come from a
-   * per-rect `cursor:pointer` any more — it comes from the same world-point pick the click already uses,
-   * which is where the answer was really coming from all along.
+   * per-rect `cursor:pointer` — it comes from the same world-point pick the click uses.
    */
   #refreshHoverCursor(svgPt) {
     if (this.#tool !== "select" || this.#resize) return;

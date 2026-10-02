@@ -96,7 +96,7 @@ public sealed class CoreSuggesterWorldTests
     /// <summary><b>A thicker shell is measured, not assumed.</b> The studio's own cores are one block of wall
     /// by construction — the author states the lava and the casing follows — but a scanned map is whatever
     /// its own author built, and that is what this detector is for. So the casing is stamped straight into a
-    /// world rather than asked of a plan, which can no longer state one.</summary>
+    /// world rather than asked of a plan, which cannot state one.</summary>
     [Test]
     public async Task A_thicker_shell_is_measured_not_assumed()
     {

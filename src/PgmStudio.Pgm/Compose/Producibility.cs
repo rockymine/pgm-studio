@@ -229,7 +229,7 @@ public static class Producibility
         // the seat-separation law: no spawn/wool seats within the separation gap of another. An authored plan is
         // held to the producible lane floor rather than the band's lane width, which keeps this from
         // over-reporting on a wide board. NB the measurand is the box ENVELOPE (corner-inclusive), which
-        // G124 questions: a donut's void margins can indict a placement whose emitted terrain keeps the gap.
+        // is open to question: a donut's void margins can indict a placement whose emitted terrain keeps the gap.
         var seats = plan.Boxes.Where(b => b.Kind is PlanBoxKinds.Wool or PlanBoxKinds.Spawn).ToList();
         for (var i = 0; i < seats.Count; i++)
             for (var j = i + 1; j < seats.Count; j++)

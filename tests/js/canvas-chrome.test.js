@@ -30,7 +30,7 @@ test("a box carries four anchors, one per corner, and none on an edge", () => {
   assert.equal(found.length, 4);
   const corners = [[100, 200], [300, 200], [300, 400], [100, 400]];
   for (const c of corners) assert.ok(found.some(f => f[0] === c[0] && f[1] === c[1]), `no anchor at ${c}`);
-  // The four edge midpoints — the spots a ninth grip used to take from the insert ghost — carry none.
+  // The four edge midpoints — where the insert ghost appears — carry none.
   for (const m of [[200, 200], [300, 300], [200, 400], [100, 300]])
     assert.ok(!found.some(f => f[0] === m[0] && f[1] === m[1]), `an anchor sits on edge midpoint ${m}`);
 });

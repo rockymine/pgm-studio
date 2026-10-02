@@ -3,8 +3,8 @@ using PgmStudio.Domain;
 namespace PgmStudio.Domain.Tests;
 
 /// <summary>
-/// What a map deletes before the first tick (<see cref="PhantomErasure"/>) — the fact that replaces the
-/// material guess island detection used to make. The tests fix the two directions that matter: a build floor
+/// What a map deletes before the first tick (<see cref="PhantomErasure"/>) — the fact island detection reads instead of
+/// guessing from material. The tests fix the two directions that matter: a build floor
 /// erased at load is not terrain, and everything else still is.
 /// </summary>
 public sealed class PhantomErasureTests

@@ -212,7 +212,7 @@ function scaleControls(controls, sc) {
 }
 
 /**
- * Snap every coordinate of a shape to the block grid (S23) — the invariant that keeps the sketch
+ * Snap every coordinate of a shape to the block grid — the invariant that keeps the sketch
  * block-accurate: a placed point lands on a grid intersection, never between blocks, so what the author
  * draws is exactly what rasterizes (the same integer cells the C# `SketchRasterizer` and the export
  * consume). Pure — returns a new shape; id / operation / override / height fields ride through untouched
@@ -262,7 +262,7 @@ function segCross(a, b, p, q) {
 }
 
 /**
- * Split a shape into **two** polygons along the slice segment a→b (the S14 cut tool). The segment must
+ * Split a shape into **two** polygons along the slice segment a→b (the cut tool). The segment must
  * cross the shape's outline at least twice; the cut runs between the first and last crossing along a→b
  * (for a concave >2-crossing shape this takes the outermost pair). A rectangle is promoted via
  * {@link rectToPolygon} first; circles are unsupported. Returns `[shapeA, shapeB]` (plain polygons that

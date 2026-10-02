@@ -7,7 +7,7 @@ namespace PgmStudio.Api.Tests;
 
 /// <summary>
 /// What stands in front of Mojang. Two things do, and each of them answers a question that would otherwise
-/// cost a request: the shape of the name, and what is already known (<c>C45</c>).
+/// cost a request: the shape of the name, and what is already known.
 ///
 /// <para>Every test here proves a request was <b>not</b> made, by handing the client a handler that fails the
 /// test if it is reached. That is also the reading of the cache the author asked for — the same handful of

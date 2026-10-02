@@ -13,10 +13,10 @@ using Dict = Dictionary<string, object?>;
 ///
 /// <para>The HTTP export reaches the chain through <c>Compose</c> and the headless driver reaches
 /// <c>BuildAndCompose</c> directly, so a gate asked in front of the branch is asked of one of them and not the
-/// other. That is what these assert, from the driver's side: the two that used to sit in front — an unloadable
+/// other. That is what these assert, from the driver's side: the two that sit in front — an unloadable
 /// <c>&lt;gamemode&gt;</c> and a map that cannot be walked — refuse here.</para>
 ///
-/// <para>The traversability judgement moved with a second consequence worth naming: it now reads the ground
+/// <para>The traversability judgement reads the ground
 /// this build produced rather than whatever the last <c>sketch/finish</c> rasterized into the store, so a
 /// board cut apart after its finish is judged as it will ship rather than as it was last filed.</para>
 /// </summary>

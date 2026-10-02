@@ -36,8 +36,8 @@ public sealed class SketchLayoutStackTests
         await Assert.That(stack[0].Shapes.Count).IsEqualTo(1);
     }
 
-    /// <summary>The old document kept the ground shapes outside the stack, so this key drew a board. It is
-    /// not read any more, and a document still using it draws nothing — a reader silently accepting it would
+    /// <summary>Ground shapes kept outside the stack are not read, so a document still using that key draws
+    /// nothing — a reader silently accepting it would
     /// be the second shape this collapse exists to remove.</summary>
     [Test]
     public async Task Shapes_outside_the_stack_are_not_drawn()

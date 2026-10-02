@@ -14,7 +14,7 @@ using Dict = Dictionary<string, object?>;
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft.Palette;
 
-/// <summary>Shared surface-parquet → pixels / block-types projection (B4 + B9).</summary>
+/// <summary>Shared surface-parquet → pixels / block-types projection.</summary>
 internal static class BlockPixels
 {
     /// <summary>Parallel xs/zs/colors arrays + bounds for a column set (caller ensures non-empty).</summary>
@@ -145,10 +145,9 @@ internal static class BlockPixels
 }
 
 /// <summary>
-/// GET /api/map/{slug}/top-surface — per-column surface colour overlay (B4). Reads the cached
+/// GET /api/map/{slug}/top-surface — per-column surface colour overlay. Reads the cached
 /// <c>layer.parquet</c> artifact, maps each column's (block_id, block_data) to a hex colour, and
-/// returns parallel xs/zs/colors arrays + the bounds. Mirrors the reference <c>layer_top_surface</c>;
-/// unblocks the "Blocks" canvas overlay (C6).
+/// returns parallel xs/zs/colors arrays + the bounds, for the "Blocks" canvas overlay.
 /// </summary>
 public sealed class TopSurfaceEndpoint(MapRepository repo, FeatureData feature) : EndpointWithoutRequest<BlockPixelsDto>
 {

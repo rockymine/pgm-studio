@@ -65,12 +65,12 @@ try {
     els.filter(e => e.classList.contains("map-layer--now")).map(e => e.textContent.trim()));
   checks.add("the layer the map stands at is marked", now.length === 1 && now[0] === "Configure", now.join(",") || "(none marked)");
 
-  // The old surface: one backward hop with a hard-coded preference order. Nothing should offer that now.
+  // No surface offers a backward hop with a hard-coded preference order.
   const reopen = await page.locator('button:has-text("Reopen")').count();
   checks.add("no reopen control remains", reopen === 0, `${reopen} found`);
 
   // Straight to the plan from the Configuring list — one click, no intermediate list.
-  // The tool gates its own Compile on the document arriving, so a click here can no longer race the load.
+  // The tool gates its own Compile on the document arriving, so a click here cannot race the load.
   // What this waits for is one step further on: the bridge polls the derived reads once it holds a document,
   // so a successful /plan/inspect means the whole feed has settled and the fault check below is reading a
   // finished page. Armed before the click, because it can answer before the wait.
@@ -98,7 +98,7 @@ checks.section("a rebuild asks; a first build does not");
 
 let asked = false;
 try {
-  // Standing in the plan of the already-built map from above: the same button now means "replace the board
+  // Standing in the plan of the already-built map from above: the same button means "replace the board
   // someone has been working on", so it states the trade instead of just doing it.
   await page.click('button:has-text("Compile")');
   await page.waitForSelector(".plan-compile-json", { timeout: 20000 });

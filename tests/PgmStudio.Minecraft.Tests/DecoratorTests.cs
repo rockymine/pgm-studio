@@ -1521,7 +1521,7 @@ public sealed class DecoratorTests
         }], keptClear: hull));
 
         // The basin holds water to the line, the hull is untouched, and the course under it is water rather
-        // than the dry hole a kept-clear column used to be left as.
+        // than a dry hole.
         await Assert.That(world.GetBlock(16, 6, 20).Id).IsEqualTo(Blocks.StationaryWater);
         await Assert.That(world.GetBlock(20, 5, 20)).IsEqualTo((Blocks.Planks, 1));
         await Assert.That(world.GetBlock(20, 6, 20)).IsEqualTo((Blocks.Planks, 1));
@@ -1878,8 +1878,8 @@ public sealed class DecoratorTests
     public async Task A_tree_does_not_root_where_a_building_already_stands()
     {
         // The building is placed first, so its cells are already claimed by the time the tree is considered.
-        // The pass used to skip only the individual wood/leaf cells that landed on a non-air block,
-        // which still let the rest of the tree stand half inside the walls; now the whole tree is refused.
+        // The pass refuses the whole tree rather than skipping only the individual wood/leaf cells that land on a
+        // non-air block, which would let the rest of the tree stand half inside the walls.
         var (world, top) = Plateau();
         var house = new HouseProp { Id = "h", Wings = [new AuthoredWing([[16, 16], [24, 24]])], Style = new HouseStyle
         {
@@ -1907,7 +1907,7 @@ public sealed class DecoratorTests
         // footprint is carved to air down to the floor, and the hill outside the walls keeps its height.
         // Four courses of mound, which is a slope this building may stand on: past its own height the site
         // is refused instead (`DR-SLOPE`), and a fixture that buried the house would be testing the carve
-        // on a placement the pass no longer makes.
+        // on a placement the pass does not make.
         var (world, top) = Plateau();
         for (var x = 16; x <= 30; x++)
         for (var z = 16; z <= 24; z++)
@@ -2041,8 +2041,7 @@ public sealed class DecoratorTests
     [Test]
     public async Task The_passage_is_measured_from_the_roof_and_not_from_the_wall()
     {
-        // WE45's first fault, found on `pgm-studio-mapgen`'s `opus5-rimegarth`: its `hall` has zero clear
-        // blocks on all four sides once eaves count, and passed. A roof oversails its wall by at least one
+        // A `hall` with zero clear blocks on all four sides once eaves count must not pass. A roof oversails its wall by at least one
         // block whatever the style says (`HouseStamper.StampedCells`), and the blocks a player has to walk
         // under are the ones that were written — so the band is measured from what the building stamps.
         //
@@ -2239,7 +2238,7 @@ public sealed class DecoratorTests
     [Test]
     public async Task A_building_with_a_column_of_its_footprint_over_nothing_is_refused()
     {
-        // A building seats on the lowest column its plan covers, so a footprint half on land used to seat on
+        // A building seats on the lowest column its plan covers, so a footprint half on land would seat on
         // that half and hang off the rest. The refusal names the first bare column, which is what makes it
         // checkable against the board.
         var (world, top) = Plateau(size: 20);              // ground is x,z 0…19
@@ -2374,7 +2373,7 @@ public sealed class DecoratorTests
     [Test]
     public async Task A_prop_is_decided_once_for_its_whole_orbit_not_once_per_image()
     {
-        // Only one of the two mirrored sites is protected. The old per-image "continue" would still raise the
+        // Only one of the two mirrored sites is protected. A per-image "continue" would still raise the
         // other one, leaving a rock on one side of the board and nothing where its mirror should stand — the
         // exact asymmetry a mirrored map is not allowed to show. Deciding for the whole orbit drops both.
         var (world, top) = Plateau(80, from: -40);
@@ -2392,7 +2391,7 @@ public sealed class DecoratorTests
     {
         // Same rule, the building's own version of it: an image whose ground is missing fails the whole orbit
         // rather than raising the building on one side of a mirrored map and leaving the other bare. Only the
-        // rectangle the author actually drew loses its ground here — the old per-image "continue" would still
+        // rectangle the author actually drew loses its ground here — a per-image "continue" would still
         // have raised the mirrored copy on the far side of the map with nothing standing opposite it.
         var (world, top) = Plateau(80, from: -40);
         for (var x = 4; x <= 10; x++)

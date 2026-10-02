@@ -101,7 +101,7 @@ public static class ShapeEmitter
     /// same way, so only the shifted endpoint still reaches the edge. <paramref name="attachmentOffset"/>
     /// (donut) slides the hub attachment down the ring's edge — only the attachment moves, the ring is
     /// unchanged. <paramref name="ringWalls"/> (donut) gives the ring's four wall widths independently, so one
-    /// leg or bar can be wider than the rest (G129); <c>null</c> builds every wall at <paramref name="cw"/>.
+    /// leg or bar can be wider than the rest; <c>null</c> builds every wall at <paramref name="cw"/>.
     /// Widening consumes the box's slack — the hole is what the walls leave — so a vector too fat for the box
     /// is refused rather than squashing the ring.</summary>
     public static EmittedShape Emit(

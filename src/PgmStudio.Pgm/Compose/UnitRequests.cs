@@ -101,7 +101,7 @@ public static class UnitRequests
 
         // the frontline join: it docks the hub's front edge with a face spanning it (corner clearance aside) and
         // reaches `frontReach` toward the axis; the filler picks its form (Bar / single / twin) and orientation
-        // G123: the face is no longer pinned to the hub's full front width. A sampled width — seated anywhere
+        // The face need not span the hub's full front width. A sampled width — seated anywhere
         // along the edge and free to overhang it — is the funnel: the mid meets only part of the hub front,
         // so the two onward routes around the front cost differently. The full face stays the common draw.
         var full = Math.Max(laneWidthCells, hubV - 2 * UnitTuning.CornerClearanceCells);

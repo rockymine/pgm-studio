@@ -6,8 +6,8 @@ using System.Text.Json;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The world read-backs over HTTP (`WS6`): the eight pictures and one text read that used to exist only
-/// behind <c>PgmStudio.RoundTrip</c>'s flags.
+/// The world read-backs over HTTP: the eight pictures and one text read that <c>PgmStudio.RoundTrip</c>'s
+/// flags also reach.
 ///
 /// <para>Asserted on what comes back rather than on what is drawn — a PNG signature and a real size for a
 /// picture, the named blocks for a column — because the renderers' own tests already cover what each one

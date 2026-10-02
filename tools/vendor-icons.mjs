@@ -16,7 +16,7 @@
  *
  * The package is fetched with `npm pack` (download only — no install, no lifecycle scripts, no
  * node_modules) and pinned below. Bump VERSION deliberately: lucide renames icons between releases,
- * which is what made the old cdn.jsdelivr.net "@latest" tag unsafe as well as unreachable.
+ * which is what makes an unpinned CDN "@latest" tag unsafe as well as unreachable.
  *
  * --check re-runs the generation and exits non-zero if the committed file is stale.
  */

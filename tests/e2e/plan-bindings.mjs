@@ -1,5 +1,5 @@
 /**
- * G154 — one plan editor on two bindings. A plan opens on a map (`/maps/{slug}/plan`) or as a plan row
+ * One plan editor on two bindings. A plan opens on a map (`/maps/{slug}/plan`) or as a plan row
  * (`/plans/{id}`, `/plans/new`), and both are the same tool: the rail's Info and Draw phases, the flow bar,
  * the sidebar's three panel chips, and the sidebar folding away. Only the topbar follows the binding, because
  * only saving differs — a map-backed plan saves into its map, a plan row saves as a row and forks when it was

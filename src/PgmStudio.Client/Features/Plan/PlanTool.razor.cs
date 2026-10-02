@@ -180,7 +180,7 @@ public partial class PlanTool
     private string? dbError;
     private List<PlanSummary> dbPlans = [];
 
-    // Read-only 3-D height preview (G27): whether the iso view is on, whether it couldn't be shown (so the
+    // Read-only 3-D height preview: whether the iso view is on, whether it couldn't be shown (so the
     // toggle is disabled), and why — the build's own sentence, or null when WebGL itself is missing.
     private bool threeD;
     private bool isoUnavailable;
@@ -263,7 +263,7 @@ public partial class PlanTool
 
     private record RolePalette(string Id, string Label, string Color);
 
-    // The G48 taxonomy: true pieces (terrain-producing roles) vs technical pieces (non-generating annotations).
+    // The role taxonomy: true pieces (terrain-producing roles) vs technical pieces (non-generating annotations).
     // Both are drawn from the palette; markers (wool/spawn/iron/wall) and the build zone are separate tools.
     private static readonly RolePalette[] GeneratingRoles =
     [
@@ -568,7 +568,7 @@ public partial class PlanTool
 
     private Task Fit() => handle?.InvokeVoidAsync("fit").AsTask() ?? Task.CompletedTask;
 
-    // ── 3-D height preview (G27) ─────────────────────────────────────────────────
+    // ── 3-D height preview ─────────────────────────────────────────────────
 
     private async Task Toggle3D()
     {
@@ -991,7 +991,7 @@ public partial class PlanTool
 
     // Load a map-backed plan's artifact (GET /api/map/{slug}/plan). An empty {} body means the map has no
     // stored plan yet — a fresh blank plan; the editor keeps its default doc rather than importing garbage.
-    // That default is now genuinely blank: the bridge no longer restores a cached document at mount, so
+    // That default is blank: the bridge restores no cached document at mount, so
     // "no stored plan" renders an empty board instead of whatever this browser last drew.
     private async Task LoadFromMap(string slug)
     {

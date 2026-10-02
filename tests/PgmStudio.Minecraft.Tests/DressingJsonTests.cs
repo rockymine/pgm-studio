@@ -8,10 +8,10 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
-/// The dressing document's serialization (B130): a parse failure anywhere in the document has to surface,
+/// The dressing document's serialization: a parse failure anywhere in the document has to surface,
 /// naming the prop and the field, rather than being read as though the map carried no props at all. Every
-/// "throws" assertion below is the invariant the old code broke — before the fix, each of these inputs
-/// silently produced <see cref="DressingDoc.Empty"/> (or, for a bare prop, <c>null</c>) and a 200 export.
+/// "throws" assertion below is an invariant: each of these inputs would
+/// otherwise silently produce <see cref="DressingDoc.Empty"/> (or, for a bare prop, <c>null</c>) and a 200 export.
 /// </summary>
 public sealed class DressingJsonTests
 {
@@ -63,7 +63,7 @@ public sealed class DressingJsonTests
         await Assert.That((back.Wander, back.WanderLength)).IsEqualTo((3.0, (int?)12));
     }
 
-    // ── the first-key constraint (B130) ────────────────────────────────────────────────────────────────
+    // ── the first-key constraint ────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_copied_tree_round_trips_with_its_body_and_names_its_key_by_its_block_count()
     {
@@ -125,12 +125,12 @@ public sealed class DressingJsonTests
         await Assert.That(((StrokeProp)doc.Props[0]).Pave).IsEqualTo((TerrainMaterial)new SolidMaterial(13));
     }
 
-    // ── the house upgrade (G177) ───────────────────────────────────────────────────────────────────────
+    // ── the house upgrade ───────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_stored_house_with_two_corners_reads_as_one_wing()
     {
-        // A placed building was exactly two corners before G177; a document a map already carries — or one
-        // written against the old shape by hand — still has to build the same house.
+        // A stored building of two corners is one wing: a document a map already carries — or one
+        // written by hand with two corners — still has to build the same house.
         var doc = DressingJson.Deserialize(
             """{"props":[{"kind":"house","id":"h1","seed":1,"points":[[0,0],[10,6]]}]}""");
         var house = (HouseProp)doc.Props[0];
@@ -165,8 +165,8 @@ public sealed class DressingJsonTests
 
     /// <summary>
     /// <b>What a wing states reaches the building it raises.</b> The six are the whole of what a wing can say
-    /// about itself apart from where it stands, and until now none of them could be written down: a document
-    /// held two corners, so every authored building marched and the second gable was unreachable.
+    /// about itself apart from where it stands, and a document that held only two corners
+    /// could state none of them, so every authored building marched and the second gable was unreachable.
     /// </summary>
     [Test]
     public async Task A_wing_states_its_own_storeys_roof_ridge_and_joint()
@@ -213,7 +213,7 @@ public sealed class DressingJsonTests
         await Assert.That(style.Foundation.Footing).IsEqualTo((TerrainMaterial?)new SolidMaterial(Blocks.Cobblestone));
     }
 
-    // ── enum case (B130) ───────────────────────────────────────────────────────────────────────────────
+    // ── enum case ───────────────────────────────────────────────────────────────────────────────
     [Test]
     public async Task An_enum_value_reads_in_any_case_the_converter_is_given()
     {
@@ -342,7 +342,7 @@ public sealed class DressingJsonTests
     [Test]
     public async Task A_document_that_is_not_an_object_is_refused_rather_than_read_as_empty()
     {
-        // An older shape (a bare list of props, with no `props` wrapper) is not this document's contract —
+        // A bare list of props, with no `props` wrapper, is not this document's contract —
         // refusing it by name beats reading it as "nothing placed".
         var ex = Assert.Throws<DressingParseException>(() =>
             DressingJson.Deserialize("""[{"kind":"tree","id":"t1","seed":1,"x":0,"z":0}]"""));

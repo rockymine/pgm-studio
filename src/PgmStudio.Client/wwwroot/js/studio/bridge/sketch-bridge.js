@@ -1,5 +1,5 @@
-// sketch-bridge.js — JS-interop bridge for the Sketch tool's Layout canvas. Plays the reference's
-// "layout activity" role on the JS side: owns the live shape list + the group recompute loop
+// sketch-bridge.js — JS-interop bridge for the Sketch tool's Layout canvas. Plays the "layout activity"
+// role on the JS side: owns the live shape list + the group recompute loop
 // (geometry/boolean.js, the hot path), drives SketchCanvas, owns the arrow-key nudge, and pushes the
 // group→shape tree to the Blazor panel. Blazor owns the toolbar/panel chrome + persistence; it calls
 // the handle methods and receives OnShapeSelected / OnGroupSelected / OnLayout / OnDirty / OnToolChanged.
@@ -51,10 +51,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let groups = [];            // alias of layers[active].groups — kept current by recompute()
   let mirrorVisible = true;
   let selectedGroupId = null; // panel group selection (drives arrow-move of the whole group)
-  let selectedStructuralId = null; // the picked plan piece (S25), whose rail states the height it carries
+  let selectedStructuralId = null; // the picked plan piece, whose rail states the height it carries
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let dressingMode = false;    // the Dressing phase is up: props are, and a shape is not reachable under them
-  let view = "2d";             // "2d" | "iso" — the read-only isometric height preview (S6)
+  let view = "2d";             // "2d" | "iso" — the read-only isometric height preview
   let isoYaw = 30;
   // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override
   // rides on the shape (`shape.theme`), assigned via the Theme phase and resolved at export.
@@ -205,7 +205,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     markDirty();
   }
 
-  // Split tool (S14): the slice a→b cuts the topmost shape it crosses into two, in place. Try shapes
+  // Split tool: the slice a→b cuts the topmost shape it crosses into two, in place. Try shapes
   // top-first; the first that yields a clean two-way cut is replaced by its two halves.
   function splitAt(a, b) {
     for (const s of [...canvas.getShapes()].reverse()) {
@@ -385,7 +385,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // `column-mesh.js` turns those into triangles. The client decides nothing about height — which is the
   // point, because it cannot: a shape's top is settled by the per-group relief solve and then again by
   // whatever the shape says about being erected, and neither is derivable here without a second copy of the
-  // solver. What the browser used to extrude was the first of those three stages on its own.
+  // solver. Extruding in the browser would take only the first of those three stages.
   //
   // The build is the cost — around a second on a full board against forty milliseconds to read the columns
   // out of it — so it happens on entering the preview rather than on every edit. Nothing is drawn in 3-D, so
@@ -515,7 +515,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   function pushActiveLayer() { canvas.dressing?.setLayer(layers[active]?.id ?? ""); }
 
   // Load the active layer's shapes onto the canvas (after a switch/delete) and recompute. The active layer's
-  // locked plan pieces (S25) ride alongside as a render-only overlay — never a drawn/edited shape.
+  // locked plan pieces ride alongside as a render-only overlay — never a drawn/edited shape.
   //
   // `groups` is seeded from the layer being loaded before the recompute, because `recompute` carries
   // identity over from whatever `groups` holds: leaving the outgoing layer's there matches the incoming
@@ -1314,7 +1314,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.setReliefDoc(s.relief && typeof s.relief === "object" ? s.relief : null);
       const raw = (s.layers && s.layers.length) ? s.layers : [];
       // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
-      // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (groups, raster,
+      // — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (groups, raster,
       // mirror, edit) so they can neither be reshaped nor double-cover the ground. Everything else is terrain.
       // What the editor does not draw — a layer's `kind`, `part_of` and `seat`, and any other field the document
       // carries on a layer or its layout — is held as it was read and written back with it, so saving a board
@@ -1385,7 +1385,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
           id: L.id, name: L.name, base_y: L.baseY,
           layout: {
             ...L.layoutStated,
-            // Merge the locked plan pieces (S25) back in so they persist with the terrain they annotate.
+            // Merge the locked plan pieces back in so they persist with the terrain they annotate.
             shapes: [...L.shapes, ...(L.structural ?? [])],
             groups: uniqueGroups(L.groups ?? []),
           },

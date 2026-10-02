@@ -10,7 +10,7 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
-/// <summary>Row ↔ wire-DTO mapping for the theme/style library (B44). A style and a theme each carry their card
+/// <summary>Row ↔ wire-DTO mapping for the theme/style library. A style and a theme each carry their card
 /// picture on the wire, rendered here through <see cref="StylePreview"/> — see <see cref="StyleDto.Preview"/>
 /// for why the picture travels with the row.</summary>
 internal static class ThemeLibraryMapping

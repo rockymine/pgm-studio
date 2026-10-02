@@ -218,7 +218,7 @@ public static class MonumentSuggester
         // this alone takes thunder's candidates 2193→24, pigland 258→68, and a_new_day's frame map 186→4.)
         // The stand half checks IsMonumentLabel, not just "has a name" — else a rules/info stand (lupa's
         // "Enemy Rushers may enter…") falsely anchors the map and suppresses geometry for its real
-        // bedrock+glass monuments (A6).
+        // bedrock+glass monuments.
         var anchored = frameAnchor
             || signs.Any(s => IsMonumentLabel(s.Text)
                 && blocks.TryGetValue((s.X, s.Y, s.Z), out var sb) && sb.Id == WallSignId)

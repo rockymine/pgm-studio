@@ -5,7 +5,7 @@ using PgmStudio.Vocabulary;
 /// <summary>
 /// The role/zone colours <see cref="PlanBoardSvg"/> and <see cref="PlanBoardPng"/> both draw from — public,
 /// unlike the geometry in <see cref="PlanBoardScene"/>, because a colour that only the two renderers can name
-/// is a colour a test proving <c>B95</c>'s legibility bar cannot check against the real values.
+/// is a colour a test proving the legibility bar cannot check against the real values.
 /// </summary>
 public static class PlanBoardPalette
 {
@@ -36,7 +36,7 @@ public static class PlanBoardPalette
 
     /// <summary>A build zone's own colour — a gap open to building from the first tick. Deliberately not a
     /// shade of blue: blue is the one colour a reader brings a fixed meaning for (water) whether or not this
-    /// render intends it, and a zone that is not water must not wear its colour (<c>B95</c>). Distinguished
+    /// render intends it, and a zone that is not water must not wear its colour. Distinguished
     /// from every piece role above by hue, not merely by the shade/opacity/dash a still image loses.</summary>
     public const string BuildZoneColor = "#f472b6";
     public const int BuildZoneRgb = 0xf472b6;

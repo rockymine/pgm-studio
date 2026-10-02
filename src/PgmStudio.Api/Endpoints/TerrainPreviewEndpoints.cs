@@ -72,8 +72,8 @@ public sealed class TerrainBiomesEndpoint : EndpointWithoutRequest<List<BiomeOpt
 ///
 /// <para>Served for the reason <c>GET /api/objectives/vocabulary</c> is: the authoritative list is a set of
 /// records in <c>PgmStudio.Minecraft</c>, which neither the Blazor client nor an agent can reach, and a copy
-/// on the far side of the wire is exactly the drift it would exist to prevent. Before this the fourteen kinds
-/// appeared only inside a refusal message, so a caller could learn that <c>turbulence</c> is a word the parser
+/// on the far side of the wire is exactly the drift it would exist to prevent. The fourteen kinds otherwise
+/// appear only inside a refusal message, from which a caller learns that <c>turbulence</c> is a word the parser
 /// accepts and never what it takes or what it draws.</para>
 ///
 /// <para><b><c>reads</c> is the field worth reading first.</b> It says which fact about a cell a kind varies

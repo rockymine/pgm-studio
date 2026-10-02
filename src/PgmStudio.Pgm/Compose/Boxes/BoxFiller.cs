@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>
-/// The one profile-driven fill entry point over the box scaffold — the spine the partitioner (G63) drives.
+/// The one profile-driven fill entry point over the box scaffold — the spine the partitioner drives.
 /// Given a positioned <see cref="Box"/> (its footprint <see cref="Box.Rect"/> + its <see cref="Box.LandTargetCells"/>
 /// land target) and the edge it docks its host through, it reads the box's <see cref="FillProfiles">profile</see>
 /// to decide which families are legal, emits one into the footprint (the room taking the box kind's role), and
@@ -14,8 +14,8 @@ namespace PgmStudio.Pgm.Compose;
 ///
 /// <para>Today it fills the <b>wool</b> box (over <see cref="WoolBoxEmitter.Fill"/>) — the kind where the
 /// footprint gate decides whether a share reaches a donut / U / H. The spawn box already fills through the
-/// shared emitter in its own growth frame (<see cref="SpawnBoxEmitter"/>, G78); the hub and frontline kinds,
-/// and multi-interface docking, join this dispatch at G41-C / G80. Single-mouth docking (a top or bottom
+/// shared emitter in its own growth frame (<see cref="SpawnBoxEmitter"/>); the hub and frontline kinds,
+/// and multi-interface docking, are not dispatched here. Single-mouth docking (a top or bottom
 /// edge); the box footprint is the input, not a by-product of a budget-share solve.</para>
 /// </summary>
 public static class BoxFiller
@@ -40,7 +40,7 @@ public static class BoxFiller
         };
         if (result is not FillResult.Ok ok) return result;
 
-        // the docking law (G80): the host docks the mouth, so the mouth edge must be a legal dock. Read the
+        // the docking law: the host docks the mouth, so the mouth edge must be a legal dock. Read the
         // box's edges off the placed fill (shape-relative) and gate them — an illegal dock (a sealed wool or a
         // non-entry edge) is a directed rejection, never a placement.
         var edges = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect.Width, box.Rect.Height);
@@ -103,6 +103,6 @@ public static class BoxFiller
         a.Terrain.Sum(p => p.Rect.Width * p.Rect.Height) + a.WoolRoom.Rect.Width * a.WoolRoom.Rect.Height;
 
     /// <summary>True when the fill's land is within the box's land target — the two-currency balance a fill
-    /// under budget satisfies directly; over budget is what fragment spends down (G63).</summary>
+    /// under budget satisfies directly; over budget is what fragment spends down.</summary>
     public static bool WithinLandTarget(Box box, EmittedApproach a) => Land(a) <= box.LandTargetCells;
 }

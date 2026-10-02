@@ -699,7 +699,7 @@ internal sealed class TraversabilityReadEndpoint(MapRepository repo, MapReader r
 
 /// <summary>GET /api/map/{slug}/render/structures — the building census by block material, for a world the
 /// studio did <b>not</b> build. On one it did, <c>render/topdown?subject=structure</c> is the read to take:
-/// this one finds roofs by material and cannot see a town in stone and quartz (`B149`), while the structure
+/// this one finds roofs by material and cannot see a town in stone and quartz, while the structure
 /// layer draws what the build recorded itself placing.</summary>
 internal sealed class StructuresReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : WorldRenderEndpoint(repo, reader, artifacts)

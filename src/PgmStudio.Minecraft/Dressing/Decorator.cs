@@ -147,7 +147,7 @@ public readonly record struct DressingPlacement(
     /// not in the world, a complaint is one that is, in a state worth looking at. Never null.</summary>
     public IReadOnlyList<Finding> Declines => Declined ?? [];
 
-    /// <summary>Just the buildings — what a caller asking about <em>built</em> things wants, now that the
+    /// <summary>Just the buildings — what a caller asking about <em>built</em> things wants, since the
     /// report carries the trees and the roads beside them.</summary>
     public IEnumerable<PlacementClaim> Structures =>
         Placements.Where(claim => claim.Pass == ProvenancePass.Structure);

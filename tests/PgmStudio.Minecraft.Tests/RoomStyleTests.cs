@@ -19,8 +19,8 @@ public sealed class RoomStyleTests
     private const int Red = 14;
 
     /// <summary>The room this style describes: the shell as the flat-roofed house it is, and the pad the
-    /// structure stampers lay over it. The shell no longer lays its own pad — a spawn point and a wool are
-    /// their own stampers now — so what used to be one call is two, and these tests are about both.</summary>
+    /// structure stampers lay over it. The shell lays no pad of its own — a spawn point and a wool are
+    /// their own stampers — so the room is two calls, and these tests are about both.</summary>
     private static void Shell(VoxelWorld world, RoomFrame frame, int floorY, HouseStyle style)
     {
         HouseStamper.Stamp(world, frame, floorY, style, Red);
@@ -36,8 +36,8 @@ public sealed class RoomStyleTests
     public async Task The_shipped_styles_rebuild_the_shell_that_shipped()
     {
         // A golden over the whole volume rather than a handful of probes: the point of stage one is that a
-        // course stack is a re-description of the old stamper, so every cell it writes must match what the
-        // hard-coded layers wrote — the pad, the band, the slit, the hole and the doors included.
+        // course stack is a re-description of the hard-coded stamper, so every cell it writes must match what the
+        // hard-coded layers write — the pad, the band, the slit, the hole and the doors included.
         foreach (var (style, door, doorHeight) in ((HouseStyle Style, int Door, int Height)[])
                  [(HouseStyle.Wool, Blocks.StainedGlassPane, 3), (HouseStyle.Spawn, Blocks.Air, 4)])
         {
@@ -55,9 +55,9 @@ public sealed class RoomStyleTests
         }
     }
 
-    /// <summary>What the pre-style stamper wrote at a cell: floor bedrock + wool pad, walls bedrock with a
+    /// <summary>What the hard-coded stamper writes at a cell: floor bedrock + wool pad, walls bedrock with a
     /// coloured band at layer 4 and an open course at 6, roof bedrock with a centred hole, doors cut over the
-    /// wall. Written out here so the golden compares against the old rules rather than against the new code
+    /// wall. Written out here so the golden compares against fixed rules rather than against the code
     /// restating itself.</summary>
     private static (int Id, int Data) Shipped(
         RoomFrame frame, int x, int z, int layer, int band, int door, int doorHeight)
@@ -150,8 +150,8 @@ public sealed class RoomStyleTests
     public async Task An_overlapping_roof_reaches_the_piece_edge_and_no_further()
     {
         // The shell is its piece inset by one block (WX1), so an overhang of one lands exactly on the piece
-        // boundary — which is why it needs no negotiation with anything outside the room. What used to be a
-        // two-valued eave is that number: flush is none, overlap is one.
+        // boundary — which is why it needs no negotiation with anything outside the room. The eave is that
+        // number: flush is none, overlap is one.
         var frame = Baseline();
         var world = new VoxelWorld();
         Shell(world, frame, 64, HouseStyle.Wool with { Roof = HouseStyle.Wool.Roof with { Overhang = 1 } });

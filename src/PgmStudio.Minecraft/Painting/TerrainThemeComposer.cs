@@ -4,7 +4,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Minecraft.Painting;
 
 /// <summary>
-/// A theme decomposed into the reusable pieces the library stores (B44, docs/tools/library.md):
+/// A theme decomposed into the reusable pieces the library stores (docs/tools/library.md):
 /// the geometry knobs, and one <see cref="ThemeStyleBinding"/> per themeable bucket — a bucket, the material
 /// (as a serialized <em>style</em>), and the bucket's depth/toggle. Bedrock is fixed, never a bucket. This is the
 /// shape a <c>theme</c> row + its <c>theme_bucket</c> rows (each pointing at a <c>style</c> row) reconstruct, and
@@ -26,7 +26,7 @@ public sealed record ThemeStyleBinding(TerrainBucket Bucket, string? Kind, strin
 
 /// <summary>
 /// Splits a <see cref="TerrainTheme"/> into its reusable library pieces and puts it back together — the pure
-/// round-trip behind the theme/style tables (B44). <see cref="Decompose"/> yields one style per themeable bucket
+/// round-trip behind the theme/style tables. <see cref="Decompose"/> yields one style per themeable bucket
 /// (rim, surface, wall, fill) plus the theme's geometry knobs; <see cref="Compose"/> rebuilds the exact theme the
 /// painter reads. No persistence here — the store maps these pieces to rows, and this stays a pure Minecraft-side
 /// transform so the round-trip is testable without a database.

@@ -14,8 +14,8 @@ export const DEFAULT_OVERLAYS = { interfaces: true, labels: false, frontline: tr
 
 /**
  * Parse persisted overlay toggles. Interfaces and frontline default on (a missing key stays visible);
- * labels default off (only an explicit `true` turns them on). A blob from the earlier layout that carried a
- * `gaps` key is read cleanly — that key is ignored, its content now lives under `labels`. Garbage falls back
+ * labels default off (only an explicit `true` turns them on). A blob carrying a
+ * `gaps` key is read cleanly — that key is ignored; its content lives under `labels`. Garbage falls back
  * to the defaults.
  */
 export function parseOverlays(raw) {

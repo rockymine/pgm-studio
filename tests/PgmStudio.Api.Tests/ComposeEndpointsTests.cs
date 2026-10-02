@@ -10,10 +10,10 @@ using PgmStudio.Pgm.Compose;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The browse feed's HTTP surface (G117) over the composed-board library: GET /api/compose reads a page of the
+/// The browse feed's HTTP surface over the composed-board library: GET /api/compose reads a page of the
 /// boards the library holds, best score first, filters them as queries and ends where the library does, and
 /// composes nothing on request; POST /api/compose/pin keeps the stored board a card names as a generated row
-/// (idempotent), labelled for the player count asked, which the G119 tray endpoint then lists; GET
+/// (idempotent), labelled for the player count asked, which the tray endpoint then lists; GET
 /// /api/plans/{id}/svg re-renders a stored plan. Runs against <c>pgm_studio_test</c>; each test resets the
 /// schema and fills the few boards it reads with the library's own fill.
 /// </summary>

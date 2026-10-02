@@ -260,7 +260,7 @@ builder.Services.AddSingleton(services => PgmStudio.Api.Services.BuildQueueOptio
 builder.Services.AddSingleton<PgmStudio.Api.Services.BuildQueue>();
 builder.Services.AddScoped<PgmStudio.Api.Services.PlayerLookup>();
 
-// B8 import-from-url (docs/tools/configure.md, the Import phase): a hardcoded SSRF allowlist + a dedicated
+// Import-from-url (docs/tools/configure.md, the Import phase): a hardcoded SSRF allowlist + a dedicated
 // imports root (kept out of the curated corpus) + bounded extraction.
 var importRoot = builder.Configuration["Import:Root"] ?? Path.Combine(Path.GetTempPath(), "pgm-studio-imports");
 var importHosts = builder.Configuration.GetSection("Import:AllowedHosts").Get<string[]>()
@@ -271,7 +271,7 @@ builder.Services.AddHttpClient("import", c => c.Timeout = TimeSpan.FromSeconds(1
     .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
 
 // Corpus roots used to locate a map's Minecraft world (<root>/<slug>/region) for the world scan; the
-// imports root is searched too so scan-world finds B8-imported worlds.
+// imports root is searched too so scan-world finds imported worlds.
 var mapsRoots = (builder.Configuration.GetSection("MapsRoots").Get<string[]>() ?? [])
     .Append(importRoot).ToArray();
 builder.Services.AddSingleton(new PgmStudio.Api.Services.MapsRoots(mapsRoots));

@@ -3,7 +3,7 @@ namespace PgmStudio.Vocabulary.Tests;
 /// <summary>
 /// What a map's author may be called. The rule is here rather than in either half because the browser decides
 /// what to do with a row as it is typed and the API decides what reaches the document: a name one accepts and
-/// the other drops is exactly the fault this ends (<c>TC2</c>).
+/// the other drops is exactly the fault this prevents.
 /// </summary>
 public class AuthorNamesTests
 {

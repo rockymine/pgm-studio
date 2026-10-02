@@ -2,9 +2,9 @@ using PgmStudio.Pgm.Render;
 
 namespace PgmStudio.Pgm.Tests.Render;
 
-/// <summary>The role/zone swatches every plan render draws from — <c>B95</c>'s fix lives here: a build zone
+/// <summary>The role/zone swatches every plan render draws from: a build zone
 /// and a water lane must separate by <b>hue</b>, not merely by the shade/opacity/dash a still image can lose.
-/// The bug this replaces was specifically a hue confusion (both colours read as "blue" to a viewer), which a
+/// The failure to avoid is a hue confusion (both colours read as "blue" to a viewer), which a
 /// plain RGB distance does not reliably capture — #38bdf8 and #2563eb differ enough in brightness to score as
 /// far apart by raw distance while still sitting in the same 23-degree hue wedge, so these tests measure hue
 /// angle directly.</summary>

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Builds every file-based tool script — the `.cs` files under tools/ that carry a `#:project` directive and
 # are therefore NOT in PgmStudio.slnx. `dotnet build` at the repo root never touches them, so a rename in
-# src/ can leave a script uncompilable for months while the solution stays green: that is how 35 of them
-# broke at once (B227), including the showcase model.md is meant to be read against.
+# src/ can leave a script uncompilable for months while the solution stays green: a script a rename breaks
+# is found here, including the showcase model.md is meant to be read against.
 #
 # Usage: tools/build-scripts.sh [name-fragment]
 #   with no argument, every script; with one, only those whose path contains it.

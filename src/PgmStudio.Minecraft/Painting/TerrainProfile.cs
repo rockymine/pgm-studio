@@ -22,7 +22,7 @@ namespace PgmStudio.Minecraft.Painting;
 /// staircase of plateaus gets one set of bands running across the treads and up the hill rather than a set per
 /// tread. That is the author's call, made so the reading stays available on ground that is not flat; on flat
 /// ground, which is what the concept is reached for most of the time, the two readings coincide anyway. Nothing
-/// paints from it yet — the authored shape that spends it is `B199`/`B200`.</para>
+/// paints from it yet.</para>
 /// <para><b>Slope</b> — How steeply the surface is inclined here, in whole degrees from level, 0..89. Horn's
 /// 3×3 gradient over the surface tops <see cref="TerrainProfile.SlopeWindow"/> cells either side: level ground
 /// is 0, a ramp climbing one block a cell is 45, and the lip of a six-block face is 56. A sustained slope reads

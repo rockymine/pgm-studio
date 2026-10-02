@@ -153,7 +153,7 @@ public static class StylePreview
 
     /// <summary>The one view that shows a given kind what it does. A layer stack varies with depth, so it gets
     /// the section. A wall pattern varies along a perimeter, so it gets the section too — <b>an elevation is
-    /// what a wall material is seen as</b>, and now that the plan swatch traces its square honestly, a wall run
+    /// what a wall material is seen as</b>, and a wall run
     /// drawn in plan is a striped border round a flat middle: true, and useless for choosing between two of
     /// them. Everything else varies across the ground and gets the plan view.</summary>
     public static string CardSvg(string kind, TerrainMaterial material)

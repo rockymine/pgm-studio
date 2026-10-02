@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Tests.Compose;
 
-/// <summary>G63-C.1 — the offer-consumption seam: the hub emits first as the constraint source, and a
+/// <summary>The offer-consumption seam: the hub emits first as the constraint source, and a
 /// neighbour box fills at the width <b>its own joint</b> was granted (that offer's <c>WidthClass</c> is the
 /// neighbour's corridor width). Docking an un-offered edge is a directed error.</summary>
 public class TeamUnitFillerTests

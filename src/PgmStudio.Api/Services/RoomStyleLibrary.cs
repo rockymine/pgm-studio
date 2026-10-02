@@ -19,7 +19,7 @@ namespace PgmStudio.Api.Services;
 /// overrides the parts it names and leaves the rest, which is what makes the library worth having for a style
 /// that only changes its roof.</para>
 ///
-/// <para>Since B71 a house may also <b>bind a part style</b> — a roof, a porch, and an ordered stack of
+/// <para>A house may also <b>bind a part style</b> — a roof, a porch, and an ordered stack of
 /// storeys. A bound part takes over from the columns on the house that describe the same part, and only
 /// those. That is what keeps the level free: a house that binds nothing is exactly the building its own
 /// columns always described, so no stored row had to move to gain it.</para>

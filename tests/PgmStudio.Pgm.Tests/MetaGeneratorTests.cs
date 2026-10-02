@@ -6,8 +6,8 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// Map-identity slice. Asserts name + the auto-derived version/gamemode/objective — both of the latter
-/// following which objective modules the intent actually carries, not a fixed CTW label (B131: a destroy or
-/// core board used to ship "Capture the wool(s)!" regardless of what it actually defended). (Author
+/// following which objective modules the intent actually carries, not a fixed CTW label (a destroy or
+/// core board does not ship "Capture the wool(s)!" regardless of what it defends). (Author
 /// username→uuid resolution is async via MojangClient and lives in the intent endpoint, not here.)
 /// </summary>
 public sealed class MetaGeneratorTests
@@ -18,7 +18,7 @@ public sealed class MetaGeneratorTests
     private static CoreIntent Core(string owner = "red", string name = "") =>
         new() { Owner = owner, Name = name, Anchor = new Pt(0, 8, 0), Lava = 3, LavaHeight = 3, Float = 6, Leak = 5 };
 
-    // doc["gamemode"] is a list, one id per element — never a single joined string (B155: PGM parses
+    // doc["gamemode"] is a list, one id per element — never a single joined string (PGM parses
     // <gamemode> as a repeated element and cannot resolve several ids written into one).
     private static List<string> Gamemode(Dict doc) => ((List<object?>)doc["gamemode"]!).Select(g => (string)g!).ToList();
 
@@ -83,9 +83,8 @@ public sealed class MetaGeneratorTests
         await Assert.That(doc["objective"]).IsEqualTo("Capture the enemies' wools!");
     }
 
-    // B131 — the fault itself: a destroy board with no wool at all used to still ship "Capture the enemies'
-    // wools!" because Objective(intent) only branched on the wool count, defaulting the zero case to the
-    // plural line. This is the case that fails on the old behaviour.
+    // A destroy board with no wool at all must not ship "Capture the enemies'
+    // wools!": Objective(intent) has to branch on the objective modules, not only on the wool count.
     [Test]
     public async Task A_destroy_board_with_no_wool_declares_dtm_and_the_destroy_line_not_capture()
     {
@@ -156,11 +155,9 @@ public sealed class MetaGeneratorTests
         await Assert.That(doc["objective"]).IsEqualTo("Leak the enemy's cores!");
     }
 
-    // B155 — the fault itself: this used to assert doc["gamemode"] equalled the single joined string
-    // "ctw dtm", which XmlWriter then wrote as one <gamemode>ctw dtm</gamemode> element — a value PGM's
-    // closed enum cannot resolve (Gamemode.byId matches one id verbatim, never a space-separated pair), so
-    // MapInfoImpl.parseGamemodes threw and the map failed to load. This is the case that fails on the old
-    // behaviour: one element per mode, never several ids joined into one.
+    // One element per mode, never several ids joined into one: a joined "ctw dtm" would be written as one
+    // <gamemode>ctw dtm</gamemode> element — a value PGM's closed enum cannot resolve (Gamemode.byId matches
+    // one id verbatim, never a space-separated pair), so MapInfoImpl.parseGamemodes would throw.
     [Test]
     public async Task A_mixed_wool_and_destroy_board_declares_both_gamemodes_as_separate_entries()
     {

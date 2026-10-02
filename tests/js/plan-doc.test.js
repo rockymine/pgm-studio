@@ -388,8 +388,8 @@ test("fromJson → toJson round-trips a seed plan's data", () => {
   assert.equal(doc.placements.wools.length, 2);
 });
 
-// The kind→list dispatch used to be a ternary chain whose final branch was iron, so any kind that was not
-// "spawn" or "wool" silently resolved to the iron list — a new kind would place, select and delete the
+// A ternary chain whose final branch is iron resolves any kind that is not
+// "spawn" or "wool" silently to the iron list — a new kind would place, select and delete the
 // wrong markers rather than fail. It must be a lookup: every kind its own list, an unknown kind nothing.
 test("markerList maps each kind to its own list, and an unknown kind to nothing", () => {
   const doc = emptyDoc();

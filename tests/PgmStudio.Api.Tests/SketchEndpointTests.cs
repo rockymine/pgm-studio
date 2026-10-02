@@ -100,10 +100,9 @@ public sealed class SketchEndpointTests
     [Test]
     public async Task The_3D_preview_answers_a_clean_board_with_no_warnings_key()
     {
-        // The regression this exists for: the declines the preview carries are null when nothing was
-        // declined, and spreading that null threw straight into the endpoint's catch-all — so every board
-        // with nothing wrong answered 400 "could not build layout" and the 3-D preview went blank. Nothing
-        // in this suite posted to /sketch/columns, which is why it shipped.
+        // The declines the preview carries are null when nothing was declined, and spreading that null must
+        // not throw into the endpoint's catch-all — that would answer every board with nothing wrong
+        // 400 "could not build layout" and blank the 3-D preview.
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
@@ -297,7 +296,7 @@ public sealed class SketchEndpointTests
         await Assert.That(configureStaged!.Any(m => m.Slug == slug)).IsTrue();
 
         // And it stays in the Sketches list, because it still holds the sketch it was drawn in. Finishing
-        // moves where the map stands, not what it is made of — dropping it out of Sketches is what used to
+        // moves where the map stands, not what it is made of — dropping it out of Sketches would
         // leave the drawing unreachable from the tool that made it.
         var stillSketch = await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=sketch");
         var entry = stillSketch!.SingleOrDefault(m => m.Slug == slug);

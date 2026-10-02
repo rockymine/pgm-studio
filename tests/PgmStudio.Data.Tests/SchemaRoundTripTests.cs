@@ -11,7 +11,7 @@ using PgmStudio.Analysis.Suggest;
 namespace PgmStudio.Data.Tests;
 
 /// <summary>
-/// M1 integration tests: the FluentMigrator schema applies against a real MariaDB, and the
+/// Integration tests: the FluentMigrator schema applies against a real MariaDB, and the
 /// linq2db DAL round-trips an entity graph (FK links, JSON leaf columns, cascade delete).
 /// Runs serially — the tests share one test schema and reset it at the start of each.
 /// </summary>

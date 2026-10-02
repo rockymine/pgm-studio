@@ -1,9 +1,9 @@
 /**
  * A compile finding points at what it is about.
  *
- * The validator names the subjects of every refusal — the piece, the zone, or (since markers gained ids) the
- * marker itself — and the canvas can pulse them. Until now nothing joined the two: the findings rendered as
- * static rows, their subjects were parsed and dropped, and an author told a core "overhangs the void" had to
+ * The validator names the subjects of every refusal — the piece, the zone, or the
+ * marker itself — and the canvas can pulse them. Without a join the findings render as
+ * static rows, their subjects are parsed and dropped, and an author told a core "overhangs the void" has to
  * find that core by eye.
  *
  * The fixture is a plan built to fail one specific way: a 15-block casing on the far edge of its piece, which

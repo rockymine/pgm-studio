@@ -18,7 +18,7 @@ public static class PlanBoardPng
     private const int Background = 0x11141a;
 
     /// <summary><see cref="PlanBoardPalette.Key"/>, appended by <see cref="Legend"/> below the raster so an image
-    /// read on its own carries its key (<c>B95</c>) — the water lane hatched as the board paints it.</summary>
+    /// read on its own carries its key — the water lane hatched as the board paints it.</summary>
     private static readonly Legend.Entry[] LegendEntries =
         [.. Key.Select(entry => new Legend.Entry(entry.Label.ToUpperInvariant(), entry.Rgb, entry.Hatched))];
 

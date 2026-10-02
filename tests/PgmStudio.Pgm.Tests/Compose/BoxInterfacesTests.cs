@@ -4,10 +4,10 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The valid-edges data model (G41-B): <see cref="BoxInterfaces.Of"/> reads a box's four edges off the emitted
+/// The valid-edges data model: <see cref="BoxInterfaces.Of"/> reads a box's four edges off the emitted
 /// shape as <see cref="BoxEdgeInterface"/> <b>facts</b> — long/short span, whether the wool room touches the
 /// edge, whether terrain reaches it. It observes; it does not judge — the dockability <em>rules</em> over
-/// these facts are the G80 gate's. Shape-relative: the facts are read from the shape, so they move with the
+/// these facts are the docking gate's. Shape-relative: the facts are read from the shape, so they move with the
 /// room's position rather than naming a box coordinate.
 /// </summary>
 public sealed class BoxInterfacesTests

@@ -128,7 +128,7 @@ public partial class WorldCanvas
 
     private bool blocksOn;
 
-    /// <summary>C6: toggle the top-surface block-colour overlay. Stays off if the map has no scan data.</summary>
+    /// <summary>Toggle the top-surface block-colour overlay. Stays off if the map has no scan data.</summary>
     private async Task ToggleBlocks()
     {
         if (handle is null) return;

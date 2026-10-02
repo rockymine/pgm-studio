@@ -15,7 +15,7 @@ using Dict = Dictionary<string, object?>;
 using PgmStudio.Contracts;
 
 /// <summary>
-/// GET /api/map/{slug}/symmetry — global symmetry of the map's islands (B7). Returns the cached
+/// GET /api/map/{slug}/symmetry — global symmetry of the map's islands. Returns the cached
 /// symmetry_json artifact, or computes it on demand from the islands_json artifact (excluding the
 /// Configure-excluded islands) and caches it with status "unconfirmed".
 /// </summary>
@@ -52,9 +52,8 @@ public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db, FeatureDat
 }
 
 /// <summary>
-/// PATCH /api/map/{slug}/symmetry — confirm/reject the detected symmetry (B7). Updates status
+/// PATCH /api/map/{slug}/symmetry — confirm/reject the detected symmetry. Updates status
 /// ("confirmed"/"none"), an optional user-override confirmed_type, and an optional centre override.
-/// Mirrors the reference patch_symmetry.
 /// </summary>
 public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<AppliedDto>
 {

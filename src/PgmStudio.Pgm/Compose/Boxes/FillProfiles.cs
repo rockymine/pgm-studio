@@ -9,7 +9,7 @@ namespace PgmStudio.Pgm.Compose;
 /// <see cref="FillMenu"/> (wool) and <see cref="SpawnBoxEmitter"/> (spawn). It composes those rather than
 /// duplicating them: the <b>wool</b> profile is the §4 width→menu rule (<see cref="FillMenu.FamiliesFor"/>);
 /// the <b>spawn</b> profile is the un-escalated {I, L}. Two rows today (wool, spawn) — the hub/frontline rows,
-/// and their open-variant patterns, land at G41-C. The one filler entry point over this data is
+/// and their open-variant patterns, are not rows here. The one filler entry point over this data is
 /// <see cref="BoxFiller"/>.
 /// </summary>
 public static class FillProfiles
@@ -22,7 +22,7 @@ public static class FillProfiles
     {
         BoxKind.Wool => FillMenu.FamiliesFor(cw, laneCells),
         BoxKind.Spawn => SpawnBoxEmitter.Families,
-        _ => [],                                          // hub = HubForms (Compound-typed); frontline lands at G89
+        _ => [],                                          // hub = HubForms (Compound-typed); frontline has no profile
     };
 
     /// <summary>The <b>hub's</b> fill profile — its authored form menu as data (the <see cref="Compound"/> bodies
@@ -60,7 +60,7 @@ public static class FillProfiles
     /// The spawn box's allowed footprints — the <b>size rule as data</b>, the size facet of the profile (the
     /// counterpart to the family allowlist above). A spawn is one of these <b>small fixed SP boxes</b>
     /// (docs/generator/model.md §5 — a spawn is "small … never large", ~10×10 direct · 10×20 run-up ·
-    /// 20×20 L), <b>sampled, never stretched to absorb a land-budget share</b> the way the ported grower did.
+    /// 20×20 L), <b>sampled, never stretched to absorb a land-budget share</b>.
     /// Each entry is a <c>(family, run, turn)</c> the emitter turns into the box footprint via
     /// <see cref="SpawnBoxEmitter.Box"/> — edit this table to retune the spawn's size or add a variant; the size
     /// stays a rule, never a solver.
@@ -73,8 +73,8 @@ public static class FillProfiles
     ];
 
     /// <summary>The land (cells) a spawn <paramref name="size"/> occupies at corridor width <paramref name="cw"/>
-    /// — its footprint, for the budget accounting. The spawn no longer claims a weighted share; it spends only
-    /// this small fixed amount, and the freed budget is what stops the maps being crammed.</summary>
+    /// — its footprint, for the budget accounting. The spawn claims no weighted share; it spends only
+    /// this small fixed amount, which leaves the rest of the budget to the board.</summary>
     public static int SpawnLand((ShapeFamily Family, int RunCells, int TurnCells) size, int cw)
     {
         var (w, h) = SpawnBoxEmitter.Box(size.Family, cw, size.RunCells, size.TurnCells);

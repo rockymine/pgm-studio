@@ -86,7 +86,7 @@ internal static class PlanBoardScene
         var at = marker.At;
         if (at.Length < 2) return;
         // absolute base-unit cell = the host piece's origin plus the marker's block offset in cells, so a
-        // centred marker lands dead centre. A destroyable or a core may name no piece at all (B128), in which
+        // centred marker lands dead centre. A destroyable or a core may name no piece at all, in which
         // case `At` is already absolute about the symmetry centre.
         double bx, bz;
         if (marker.Piece.Length == 0) { bx = at[0] / (double)cell; bz = at[1] / (double)cell; }

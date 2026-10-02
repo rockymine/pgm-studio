@@ -5,8 +5,8 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
-/// The one classification every analysis pass composes from. What is gated here is the part that used to be
-/// carried eight times over and disagreed each time: which blocks stand on the ground, which of those a pass
+/// The one classification every analysis pass composes from. What is gated here is the part every pass has to agree on:
+/// which blocks stand on the ground, which of those a pass
 /// reading a build may look through, and which fill their cube.
 /// </summary>
 public sealed class BlockRolesTests
@@ -43,7 +43,7 @@ public sealed class BlockRolesTests
     [Test]
     public async Task A_log_is_a_tree_to_the_ground_and_a_post_to_a_build()
     {
-        // The distinction the old per-render lists carried by accident and never stated: a pass reading the
+        // The distinction a per-render list would carry by accident and never state: a pass reading the
         // ground steps past a trunk with the rest of its tree, and a pass reading the shape of a build must see
         // it, because the corner posts of a house are logs.
         foreach (var log in new[] { 17, 162 })

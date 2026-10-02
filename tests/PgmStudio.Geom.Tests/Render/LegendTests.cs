@@ -3,7 +3,7 @@ using PgmStudio.Geom.Render;
 namespace PgmStudio.Geom.Tests.Render;
 
 /// <summary>
-/// The key every render's PNG carries baked in (<c>B95</c>/<c>B98</c>): a render answers "did the thing come
+/// The key every render's PNG carries baked in: a render answers "did the thing come
 /// out", and a legend is what stops a reader from answering "what does this colour mean" by guessing.
 /// </summary>
 public sealed class LegendTests

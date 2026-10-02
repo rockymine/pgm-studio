@@ -43,9 +43,9 @@ public static class GridBoundary
         // so the first repeated state is the point where the loop has closed and nothing new can be found.
         // That is the termination condition: it is reached in at most 8 steps per cell, and it needs no
         // agreement about which state counts as "back at the beginning". (Jacob's criterion — stop on
-        // re-entering the start cell from the original direction — was the earlier rule here, and on a plain
-        // filled square it never fired at all: every trace ran to a millionth-iteration backstop instead, a
-        // flat ~110 ms per landmass whatever its size, while still returning the correct ring.)
+        // re-entering the start cell from the original direction — never fires on a plain
+        // filled square: every trace would run to a millionth-iteration backstop, a
+        // flat ~110 ms per landmass whatever its size.)
         var walked = new HashSet<((int, int) Cell, int Back)>();
         if (!arc.ContainsKey(start)) arc[start] = s++;
         while (walked.Add((p, backIdx)))

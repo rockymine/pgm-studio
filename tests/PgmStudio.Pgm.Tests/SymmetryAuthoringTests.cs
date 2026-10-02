@@ -5,8 +5,7 @@ namespace PgmStudio.Pgm.Tests;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// F3 counterpart tests. Expected geometry is the reference `symmetry_authoring.create_counterpart`
-/// output for the same synthetic regions about centre (0.5, 0.5) — genuine parity across the modes
+/// Counterpart tests over synthetic regions about centre (0.5, 0.5), across the modes
 /// (mirror → native PGM mirror region; rot_180 → two chained mirrors; rot_90 → baked primitive).
 /// </summary>
 public sealed class SymmetryAuthoringTests

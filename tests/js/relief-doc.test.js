@@ -702,8 +702,8 @@ test("a mark's name is never carried to the next mark of its kind", () => {
 
 // ── adding a point to a mark's own outline ────────────────────────────────────
 test("a point goes into the middle of the edge the ghost is offered on", () => {
-  // The gesture the draw stage already had, on the outline a mark is drawn as: until it existed the grips
-  // could move the points a trace left and nothing could add one.
+  // The draw stage's gesture, on the outline a mark is drawn as: the grips move the points a trace left
+  // and nothing else adds one.
   const { controller, doc } = tools();
   controller.onMouseDown(0, 0, "relief:line");
   controller.onMouseMove(20, 0, "relief:line");

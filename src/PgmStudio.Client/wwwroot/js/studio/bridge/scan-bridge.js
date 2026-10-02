@@ -1,4 +1,4 @@
-// scan-bridge.js — JS-interop bridge for the new-map landing's "Found" preview (NS / ND3).
+// scan-bridge.js — JS-interop bridge for the new-map landing's "Found" preview.
 // Reuses the existing editor ConfigureRenderer (island base + surface overlay) — no new canvas — but
 // feeds it the already-cached scan artifacts (top-surface / islands / symmetry) instead of the regions
 // tree, so it renders an xml-less world that has no regions yet. The bounding box is seeded from the

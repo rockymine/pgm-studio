@@ -8,9 +8,9 @@ using PgmStudio.Contracts;
 namespace PgmStudio.Client.Features.Generator;
 
 /// <summary>
-/// The generator browse feed (G117): page through the composed-board library the server holds, sieve it by
+/// The generator browse feed: page through the composed-board library the server holds, sieve it by
 /// size/symmetry/score/wool count, and keep the ones worth keeping. Cards carry only their descriptor + SVG;
-/// pinning or opening a card keeps the stored board the descriptor names. The hold tray is the persisted generated corpus (G119); it
+/// pinning or opening a card keeps the stored board the descriptor names. The hold tray is the persisted generated corpus; it
 /// survives reload because pinned means stored.
 /// </summary>
 public partial class GeneratorTool : IAsyncDisposable

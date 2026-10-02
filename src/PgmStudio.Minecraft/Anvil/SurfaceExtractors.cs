@@ -79,7 +79,7 @@ public static class SurfaceExtractors
     }
 
     /// <summary>The Base extractor with the cleaned-base noise exclusion (<see cref="CleanBaseExclude"/>) —
-    /// the detection layer for new-map authoring (ND2 §6a). Carries per-cell <c>WorldY</c> for the
+    /// the detection layer for new-map authoring. Carries per-cell <c>WorldY</c> for the
     /// height-aware island detection that prunes floating builds.</summary>
     public static IEnumerable<SurfaceBlock> CleanBase(IEnumerable<AnvilRegion.Chunk> chunks) =>
         Base(chunks, (ISet<int>)CleanBaseExclude);

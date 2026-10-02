@@ -57,7 +57,7 @@ public partial class ConfigureTool
     // XML phase reports (the 409 from GET /xml); every other boundary is the per-phase completeness gate.
     private bool NextEnabled => step < LastStep || (AtEnd ? exportReady : CanAdvance);
 
-    // Export wiring (Review · XML step, N06). The XML phase fetches GET /xml and registers whether the
+    // Export wiring (Review · XML step). The XML phase fetches GET /xml and registers whether the
     // export gate is open + the download action; the flow-bar Export (Next at AtEnd) invokes it.
     private bool exportReady;
     private Func<Task>? exportAction;

@@ -147,7 +147,7 @@ public static class TopDownRender
         if (result is null) { if (outPng is not null) Console.Error.WriteLine("no non-air columns"); return null; }
 
         // Whether the Ground/Structure split is a recorded fact or a material guess is the one thing a legend
-        // swatch cannot say on its own (B133), so it is baked into the picture itself rather than left to a
+        // swatch cannot say on its own, so it is baked into the picture itself rather than left to a
         // caption an image reader never sees — the same reason the legend exists at all.
         var provenanceState = colorMode != TopDownColorMode.Category ? null
             : provenance is null ? "STRUCTURE READING: MATERIAL ESTIMATE (NO RECORDED PROVENANCE)"

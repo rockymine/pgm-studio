@@ -1,8 +1,8 @@
 /**
  * The icon layer: the vendored lucide subset renders, on the real pages, offline.
  *
- * Icons used to come from cdn.jsdelivr.net at runtime, so they silently vanished wherever egress was
- * restricted — the nav rail, toolbars and chips came up blank while the app otherwise worked. The smoke
+ * Icons fetched from a CDN at runtime silently vanish wherever egress is
+ * restricted — the nav rail, toolbars and chips come up blank while the app otherwise works. The smoke
  * sweep can only see the *absence* of an error; nothing asserted that an icon actually appeared. This
  * does, positively: every <i data-lucide> placeholder on a real route must have been replaced by an svg
  * with real geometry in it.

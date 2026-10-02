@@ -6,7 +6,7 @@ using PgmStudio.Minecraft.Anvil;
 namespace PgmStudio.Export.Tests;
 
 /// <summary>
-/// A walked route's own profile (WS21): the steps that are not a plain walk, classed the way
+/// A walked route's own profile: the steps that are not a plain walk, classed the way
 /// <see cref="Walk.StepWord"/> classes them, and what the provenance record names beside the route.
 /// </summary>
 public sealed class WalkProfileTests

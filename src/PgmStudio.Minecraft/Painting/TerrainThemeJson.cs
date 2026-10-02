@@ -76,7 +76,7 @@ public static class TerrainThemeJson
     }
 
     /// <summary>
-    /// Carry a stored theme forward onto the current model, in place. Two shapes have been replaced, and a map
+    /// Carry a stored theme forward onto the current model, in place. Two stored shapes are read forward, and a map
     /// that stored either must keep painting what it painted — a silent repaint on the next export is worse than
     /// a refusal, because nothing says it happened.
     ///
@@ -84,9 +84,9 @@ public static class TerrainThemeJson
     /// "cap only the void" became sayable. <c>closed: true</c> is <c>boundary</c>; anything else is the default
     /// <c>drop</c>. Only consulted when the theme names no <c>rimEdges</c> of its own.</para>
     ///
-    /// <para><b>A voronoi's <c>palette</c>/<c>rim</c>/<c>rimWidth</c> → <c>bands</c>.</b> The pattern used to
-    /// pick one fill per region at random and trace the boundary with a separate rim; it is now a ramp inward
-    /// from that boundary. The rim becomes band 0 at its old width and the first palette entry becomes the fill,
+    /// <para><b>A voronoi's <c>palette</c>/<c>rim</c>/<c>rimWidth</c> → <c>bands</c>.</b> A stored voronoi
+    /// picks one fill per region at random and traces the boundary with a separate rim; the pattern is a ramp inward
+    /// from that boundary. The rim becomes band 0 at its stored width and the first palette entry becomes the fill,
     /// which is what such a theme already looked like wherever it read as cells at all. The rest of the palette
     /// is dropped rather than guessed at: a random per-region fill is what the <c>cell</c> pattern is now for,
     /// and inventing depths for materials that never had any would be a different picture presented as the same

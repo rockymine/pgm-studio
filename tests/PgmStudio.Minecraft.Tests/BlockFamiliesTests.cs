@@ -67,7 +67,7 @@ public sealed class BlockFamiliesTests
     [Test]
     public async Task Soil_and_natural_ground_answer_different_questions()
     {
-        // The pair whose names used to be IsGround and IsNaturalGround. Soil is a closed list of six; natural
+        // The pair IsSoil / IsNaturalGround. Soil is a closed list of six; natural
         // ground is everything left after built, liquid, log and grown are taken away — so stone is one and not
         // the other, which is exactly the difference a caller could not see at the call site.
         await Assert.That(BlockRoles.IsNaturalGround(Blocks.Stone)).IsTrue();

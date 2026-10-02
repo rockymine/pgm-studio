@@ -286,7 +286,7 @@ public static class UnitSeating
     }
 
     /// <summary>
-    /// Seat the frontline on the hub's front edge by its <b>contact patch</b> (G123). Every other neighbour docks
+    /// Seat the frontline on the hub's front edge by its <b>contact patch</b>. Every other neighbour docks
     /// by fitting wholly inside a free run; the frontline does not have to, because its face is what the mid
     /// meets rather than a corridor the hub must hold. So a position is legal when the face abuts the hub over at
     /// least <c>cw</c> contiguous cells of one free run — which admits a face narrower than the edge
@@ -363,7 +363,7 @@ public static class UnitSeating
     }
 
     /// <summary>
-    /// The <b>spanning dock</b> (G123): whether a face covering edge-local <c>[lo, hi)</c> holds the hub properly.
+    /// The <b>spanning dock</b>: whether a face covering edge-local <c>[lo, hi)</c> holds the hub properly.
     /// Its contact patches are where the face meets the edge's free <paramref name="runs"/>; it docks when there
     /// is at least one and <b>every</b> patch is at least <paramref name="laneWidthCells"/> wide.
     ///

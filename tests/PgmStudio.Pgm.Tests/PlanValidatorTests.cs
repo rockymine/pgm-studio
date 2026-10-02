@@ -236,7 +236,7 @@ public sealed class PlanValidatorTests
     /// <summary>A plan declaring no build zone is told that, once, and not that every wool is unreachable.
     /// <c>SP1</c> walks from the frontline and the frontline is the set of pieces a build zone touches, so a
     /// zone-less plan starts the walk from nowhere and refuses every wool on it — a geometry verdict about a
-    /// board whose geometry is fine, which is what sends an author redrawing it (<c>B143</c>).</summary>
+    /// board whose geometry is fine, which is what sends an author redrawing it.</summary>
     [Test]
     public async Task A_plan_with_no_build_zone_is_told_that_rather_than_that_its_wools_are_unreachable()
     {
@@ -290,7 +290,7 @@ public sealed class PlanValidatorTests
     public async Task The_pinwheel_tower_seed_is_error_free_and_its_thin_contacts_now_connect()
     {
         // Zone-union connectivity clears the pinwheel's cross-team reachability, and the narrow-seam model
-        // makes its deliberate thin contacts walkable land interfaces — so its previously-linted thin/corner
+        // makes its deliberate thin contacts walkable land interfaces — so its thin/corner
         // contacts fold into components: no errors, no PC-S (retired), and no PC-C (the corners now sit inside
         // one land component and are suppressed).
         var plan = Plan(PlanTestSupport.ReadSeed("four-team-towers-big.plan.json"));
@@ -391,10 +391,9 @@ public sealed class PlanValidatorTests
         await Assert.That(points[0][0] - points[1][0]).IsEqualTo(8).Because("a step of 3 grades over 2 × (3 + 1) blocks");
     }
 
-    /// <summary>A piece off the old odd-surface palette is not itself the fault. What the plan states is a
+    /// <summary>A piece off an odd-surface palette is not itself the fault. What the plan states is a
     /// height per rectangle; what a player meets is the step between two of them, and a lone piece has no
-    /// step. The rule used to test the piece's own delta from the global surface, which coincided with the
-    /// palette only while that global was odd (<c>G231</c>).</summary>
+    /// step. The rule tests that step, not the piece's own delta from the global surface.</summary>
     [Test]
     public async Task EL1_says_nothing_about_a_lone_piece_however_its_surface_sits()
     {
@@ -1026,8 +1025,8 @@ public sealed class PlanValidatorTests
     [Test]
     public async Task Every_seed_plan_is_a_complete_map_plan()
     {
-        // Every seed is a plan that could be finished into a map, including the three that were once pure
-        // geometry studies — they carry their spawn and wool markers now, so the corpus no longer holds an
+        // Every seed is a plan that could be finished into a map, including those that began as pure
+        // geometry studies — they carry spawn and wool markers, so the corpus holds no
         // example of the thing the gate refuses.
         foreach (var path in Directory.EnumerateFiles(PlanTestSupport.SeedDir(), "*.plan.json"))
         {

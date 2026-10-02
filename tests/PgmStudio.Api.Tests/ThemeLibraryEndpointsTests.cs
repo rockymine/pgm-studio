@@ -9,7 +9,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The theme/style library's HTTP surface (B44). The load-bearing case is the whole round-trip: POST
+/// The theme/style library's HTTP surface. The load-bearing case is the whole round-trip: POST
 /// /api/themes/import lifts a painter theme JSON into the library as a block or a pattern per bucket + a theme
 /// binding them, and GET /api/themes/{id}/json reassembles it back to the identical JSON. A single block is never
 /// saved as a pattern (<c>LB1</c>), a bucket holds a block or a pattern and never both (<c>LB2</c>), and the

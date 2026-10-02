@@ -51,8 +51,7 @@ public sealed class TopDownRenderTests
     /// <summary>A marker sheet at the world floor is a map's own bookkeeping, not a piece of board, so the
     /// frame is taken from the ground and the surface span reads from the ground up. A column whose only
     /// block lies flat at <c>y1</c> would otherwise widen the frame past the terrain and paint the margin
-    /// beside a narrow board as void — and drag the reported span down to the marker's own Y
-    /// (<c>B103</c>).</summary>
+    /// beside a narrow board as void — and drag the reported span down to the marker's own Y.</summary>
     [Test]
     public async Task A_floor_marker_beside_the_board_is_not_extent()
     {
@@ -98,7 +97,7 @@ public sealed class TopDownRenderTests
     [Test]
     public async Task Default_mode_paints_stone_and_andesite_the_same_ground_colour_even_though_the_real_blocks_differ()
     {
-        // The bug B98 reports: two near-identical greys (stone 1:0, andesite 1:5) are indistinguishable as
+        // Two near-identical greys (stone 1:0, andesite 1:5) are indistinguishable as
         // materials, and a legible render must not try to keep them apart — both are simply "ground".
         var world = new VoxelWorld();
         world.SetBlock(0, 5, 0, Blocks.Stone);

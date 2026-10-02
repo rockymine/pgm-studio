@@ -8,14 +8,14 @@ namespace PgmStudio.Export.Tests;
 /// <c>docs/tools/plan.md</c> calls "the one to read first", so a retired field in it is not a stale file —
 /// it is a lesson in a model that no longer exists, given to every reader and every agent that opens it.
 ///
-/// <para>The readers upgrade a stored document in place, which is what makes the rot silent: the seed kept
-/// loading, kept painting something, and nothing anywhere said that what it painted was not what it asked
-/// for. Its voronoi asked for three fills and got one flat band, because a <c>palette</c> of fills to pick
+/// <para>The readers upgrade a stored document in place, which is what makes the rot silent: a seed keeps
+/// loading, keeps painting something, and nothing anywhere says that what it paints is not what it asked
+/// for. A voronoi that asks for three fills gets one flat band, because a <c>palette</c> of fills to pick
 /// between became a <c>bands</c> ramp measured inward from the cell edge and the upgrade can only carry the
-/// first entry across. The map never showed the pattern it was written to show.</para>
+/// first entry across. The map never shows the pattern it was written to show.</para>
 ///
 /// <para>So this asserts the seed needs <b>no upgrade at all</b>, using the same unread-field walk
-/// <c>RQ3</c> reports on the wire (<c>B214</c>): after the reader has taken everything it understands, and
+/// <c>RQ3</c> reports on the wire: after the reader has taken everything it understands, and
 /// after every upgrade has claimed the names it carries forward, nothing may be left over. A field that is
 /// left over is one the author wrote and nothing read.</para>
 /// </summary>
