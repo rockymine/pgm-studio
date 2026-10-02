@@ -135,8 +135,17 @@ public partial class Maps
         mayWrite = await Access.MayWriteAsync();
         if (loadedStage == CurrentStage) return;   // stage unchanged → keep the loaded list
         loadedStage = CurrentStage;
+        await LoadAsync();
+    }
+
+    private string? loadError;
+
+    private async Task LoadAsync()
+    {
         maps = null;
-        maps = await Http.GetFromJsonAsync<List<MapSummary>>($"api/maps?stage={CurrentStage}");
+        loadError = null;
+        try { maps = await Http.GetFromJsonAsync<List<MapSummary>>($"api/maps?stage={CurrentStage}"); }
+        catch (HttpRequestException) { loadError = "Couldn't load the maps. The studio may be restarting; try again in a moment."; }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");

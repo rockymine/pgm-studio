@@ -20,43 +20,46 @@
     <Workspace @key="step">
       <ContentColumn MaxWidth="760">
 
-        <Section Title="World folders">
-          <Actions><Badge Kind="success">No map.xml needed</Badge></Actions>
-          <ChildContent>
-          <p class="section-desc">Worlds with terrain but no <code>map.xml</code> yet. Pick one to scan it.</p>
+        @if (localFolders)
+        {
+          <Section Title="World folders">
+            <Actions><Badge Kind="success">No map.xml needed</Badge></Actions>
+            <ChildContent>
+            <p class="section-desc">Worlds with terrain but no <code>map.xml</code> yet. Pick one to scan it.</p>
 
-          @if (candidates.Count == 0)
-          {
-            <p class="panel-empty-msg panel-empty-msg--left">
-              No worlds to import yet. Add a Minecraft world folder that has terrain but no
-              <code>map.xml</code>.
-            </p>
-          }
-          else
-          {
-            <div class="panel-list panel-list--separated">
-              @foreach (var c in candidates)
-              {
-                <ListRow Compact Selected="c == selected" OnClick="() => Select(c)">
-                  <span class="geo-type-icon"><i data-lucide="@(c == selected ? "folder-open" : "folder")"></i></span>
-                  <span class="list-label list-label--mono">@c.Folder</span>
-                  <span class="list-tag">@c.RegionFiles region files</span>
-                  @if (c == selected) { <Badge Kind="success">Selected</Badge> }
-                </ListRow>
-              }
-            </div>
-          }
+            @if (candidates.Count == 0)
+            {
+              <p class="panel-empty-msg panel-empty-msg--left">
+                No worlds to import yet. Add a Minecraft world folder that has terrain but no
+                <code>map.xml</code>.
+              </p>
+            }
+            else
+            {
+              <div class="panel-list panel-list--separated">
+                @foreach (var c in candidates)
+                {
+                  <ListRow Compact Selected="c == selected" OnClick="() => Select(c)">
+                    <span class="geo-type-icon"><i data-lucide="@(c == selected ? "folder-open" : "folder")"></i></span>
+                    <span class="list-label list-label--mono">@c.Folder</span>
+                    <span class="list-tag">@c.RegionFiles region files</span>
+                    @if (c == selected) { <Badge Kind="success">Selected</Badge> }
+                  </ListRow>
+                }
+              </div>
+            }
 
-          @if (selected is not null)
-          {
-            <div class="section-footer">
-              <span class="panel-save-status">
-                <code>@selected.Folder</code> · @selected.RegionFiles region files · no <code>map.xml</code>
-              </span>
-            </div>
-          }
-          </ChildContent>
-        </Section>
+            @if (selected is not null)
+            {
+              <div class="section-footer">
+                <span class="panel-save-status">
+                  <code>@selected.Folder</code> · @selected.RegionFiles region files · no <code>map.xml</code>
+                </span>
+              </div>
+            }
+            </ChildContent>
+          </Section>
+        }
 
         <Section Title="Download link">
           <Actions><Badge Kind="dim">Overcast or S3 zip</Badge></Actions>

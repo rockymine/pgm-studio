@@ -19,6 +19,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   region geometry — all parity-verified against the Python reference. (M5, A1)
 
 ## App shell & routing
+- **A deploy reaches a browser whole (`RP102`).** The hand-written CSS and JS and `index.html` are sent with
+  `Cache-Control: no-cache` in every environment, so a browser revalidates each one rather than keeping it for a
+  window guessed from `Last-Modified`: a deploy no longer lands as new markup over old stylesheets, or a new
+  module importing an old one. `smoke.mjs` checks the header on the page, a stylesheet and a module.
+- **A content page scrolls at the window's edge (`C84`).** `ContentColumn` and the start page scroll a
+  full-width area with the capped column inside it, so the scrollbar stands at the window's edge rather than
+  against the column; `MaxWidth` is the content's own width.
+- **`/maps` says when it could not load (`C85`).** A failed list request, such as a 502 while the studio
+  restarts, shows a sentence and *Try again* rather than taking the page down.
 - **Map-centric URL structure** — the map is the path resource, the mode a trailing segment. Live:
   dashboard `/maps`, **Edit** `/maps/{id}/edit`, **Configure** `/maps/{id}/configure`, **Sketch**
   `/maps/{id}/sketch`, origination `/maps/new`, concept showcase `/concepts`, design system `/design`.
@@ -3405,6 +3414,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the entity routes `docs/tools/flow.md` documents. (`TE3`)
 
 ## Pipeline / world import (M7)
+- **World folders only where someone can put one (`TC12`).** `/maps/new` lists the imports root's world
+  folders on an `open` studio, the one on its author's machine; an invited studio offers the download link
+  alone, since nobody but its operator can write to its disk.
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)
 - **`POST /scan-world`** — world → DB feature rows. (P3)

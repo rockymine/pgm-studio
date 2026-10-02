@@ -102,8 +102,8 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 26 | 4,916 | `Playability/` 15 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 156 | 22,240 | `Endpoints/` 78 · `Services/` 62 · `Access/` 12 · `Http/` 3 · 1 at root |
-| `Client` | 220 | 28,078 | `Features/` 127 (nested) · `Components/` 70 (nested) · `Pages/` 11 · `Layout/` 5 · `Models/` 4 · 3 at root |
+| `Api` | 156 | 22,237 | `Endpoints/` 78 · `Services/` 62 · `Access/` 12 · `Http/` 3 · 1 at root |
+| `Client` | 220 | 28,105 | `Features/` 127 (nested) · `Components/` 70 (nested) · `Pages/` 11 · `Layout/` 5 · `Models/` 4 · 3 at root |
 | `Contracts` | 36 | 4,154 | flat |
 | `Data` | 23 | 3,940 | `Map/` 7 · `Features/` 5 · `Theme/` 4 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 30 | 3,530 | flat |

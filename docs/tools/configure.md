@@ -168,10 +168,12 @@ rail locks anything further on, and jumping back is always allowed.
 
 ### Import — phase zero
 
-Only on `/maps/new`, and only for a world that has no `map.xml`. Three steps. **Source** lists the importable
-world folders under the imports root — a folder with `region/*.mca`, no `map.xml`, and no map already using
-its slug — or takes a download link, which is fetched server-side from an allowlisted host and extracted
-`region/*.mca`-only, so the browser never sees the archive. Next scans the chosen world into MariaDB, which is
+Only on `/maps/new`, and only for a world that has no `map.xml`. Three steps. **Source** takes a download
+link, which is fetched server-side from an allowlisted host and extracted `region/*.mca`-only, so the browser
+never sees the archive. On a studio in `open` access mode (`docs/access.md`), the one running on its author's
+machine, it also lists the importable world folders under the imports root — a folder with `region/*.mca`, no
+`map.xml`, and no map already using its slug. An invited studio does not show them, because nobody but the
+server's operator can put a folder on its disk. Next scans the chosen world into MariaDB, which is
 what creates the map row. **Found** is the detection brief over the scanned world: islands, wool blocks,
 monument candidates, resource blocks, chests, spawners, and the detected symmetry with its suggested team
 count, each selectable for a detail explanation. **Plan** hands off to the wizard at Identity.

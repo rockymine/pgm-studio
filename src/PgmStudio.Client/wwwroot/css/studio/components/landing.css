@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════════════════════════════════════
    LANDING  (the studio entry — a hero over the three lifecycle cards)
    ══════════════════════════════════════════════════════════════════════════ */
-.landing { max-width: 920px; margin: 0 auto; padding-top: var(--space-6); }
+.landing { width: 100%; max-width: 920px; margin: 0 auto; padding-top: var(--space-2); display: flex; flex-direction: column; gap: var(--space-6); }
 
 .landing-hero {
   display: flex;

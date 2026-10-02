@@ -54,6 +54,15 @@ the WASM runtime asks for. What serves the client instead is a path-rewrite midd
 fingerprinted `/js/…<hash>.js` back to the real file name, and JS modules are loaded by a native `import()`
 from the classic `studio.js` rather than through the framework's asset pipeline.
 
+**Every hand-written file is revalidated on every use.** The CSS and JS under `wwwroot` keep their names across
+deploys, and a module imports its siblings by those names, so nothing in a URL changes when its file does.
+`UseStaticFiles` and the `index.html` fallback therefore send `Cache-Control: no-cache` in every environment: a
+browser keeps its copy but asks before each use, and gets a 304 when nothing changed. Without it a browser
+keeps a file for a freshness window it guesses from `Last-Modified`, a hard reload does not reach a module
+imported after load, and a deploy arrives piecemeal: new markup over an old stylesheet, a new module importing
+an old one that lacks the export it asks for. `smoke.mjs` checks the header on the page, a stylesheet and a
+module.
+
 ## The collections
 
 `?stage=` selects one of four, and they are not the same kind of question. Two list **a layer a map holds**

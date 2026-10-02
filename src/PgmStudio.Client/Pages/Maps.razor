@@ -65,7 +65,11 @@
             @* --actions: every row reserves the layer column, so the list keeps one aligned edge whatever
                a given map has been through. *@
             <div class="panel-list panel-list--actions panel-list--separated">
-              @if (maps is null) { <div class="list-empty">Loading…</div> }
+              @if (loadError is not null)
+              {
+                <div class="list-empty">@loadError <Button OnClick="LoadAsync">Try again</Button></div>
+              }
+              else if (maps is null) { <div class="list-empty">Loading…</div> }
               else if (!Filtered.Any()) { <div class="list-empty">@EmptyMessage</div> }
               else
               {
