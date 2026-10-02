@@ -29,18 +29,6 @@
       <Workspace>
         <ContentColumn MaxWidth="960">
 
-          @if (Just is not null && JustMap is not null)
-          {
-            <div class="callout">
-              <span class="callout-icon"><i data-lucide="check-circle-2"></i></span>
-              <p><strong>@JustMap.Name</strong> is built and saved. Configure it next to make a playable
-                <code>map.xml</code>.</p>
-              <Button Variant="primary" Href="@($"maps/{Just}/configure")" Class="action-btn--push-end">
-                <i data-lucide="settings-2"></i><span>Configure</span>
-              </Button>
-            </div>
-          }
-
           <Section Title="@StageTitle">
             <Actions>
               <Badge Kind="dim">@(maps?.Count ?? 0)</Badge>
@@ -75,7 +63,7 @@
               {
                 @foreach (var m in Filtered)
                 {
-                  <ListRow Href="@(Opens(m) is { } layer ? $"maps/{m.Slug}/{layer}" : null)" Selected="m.Slug == Just" @key="m.Slug">
+                  <ListRow Href="@(Opens(m) is { } layer ? $"maps/{m.Slug}/{layer}" : null)" @key="m.Slug">
                     <ChildContent>
                       <span class="list-label map-row-name">@m.Name</span>
                       <span class="list-label list-label--mono map-row-slug">@m.Slug</span>

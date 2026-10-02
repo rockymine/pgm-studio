@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Features.Configure;
 
@@ -64,31 +65,11 @@ public partial class ReviewXmlStep : IDisposable
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
-    // The flow-bar Export action — fetch the server export (a {slug}/ ZIP with map.xml + level.dat +
-    // region/ for sketch maps, or plain map.xml otherwise) and save it. Fetching (rather than a blind
-    // anchor click) lets a non-2xx response surface as an in-app error instead of writing the JSON error
-    // body to disk as a bogus "export" file.
+    // The flow-bar Export action: save the server export, or say why it was refused.
     private async Task DownloadAsync()
     {
-        downloadError = null;
-        HttpResponseMessage resp;
-        try { resp = await Http.GetAsync($"api/map/{Wizard.Slug}/export"); }
-        catch (Exception ex) { downloadError = ex.Message; StateHasChanged(); return; }
-
-        if (!resp.IsSuccessStatusCode)
-        {
-            downloadError = $"(HTTP {(int)resp.StatusCode}) {Trunc(await resp.Content.ReadAsStringAsync())}";
-            StateHasChanged();
-            return;
-        }
-
-        var filename = resp.Content.Headers.ContentDisposition?.FileName?.Trim('"')
-            ?? (resp.Content.Headers.ContentType?.MediaType == "application/zip" ? $"{Wizard.Slug}.zip" : $"{Wizard.Slug}.xml");
-        var mime = resp.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
-        var bytes = await resp.Content.ReadAsByteArrayAsync();
-        using var stream = new MemoryStream(bytes);
-        using var streamRef = new DotNetStreamReference(stream);
-        await JS.InvokeVoidAsync("studio.downloadStream", filename, streamRef, mime);
+        downloadError = await MapDownload.SaveAsync(Http, JS, Wizard.Slug);
+        StateHasChanged();
     }
 
     private string SelectedXml => containers.FirstOrDefault(c => c.Key == selected)?.Xml ?? xml ?? "";

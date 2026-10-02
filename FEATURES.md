@@ -8592,6 +8592,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`TS139`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **The sketch hands over a finished map (`TS154`).** *Download map* in the top bar, on every phase, flushes
+  the layout, builds the world the first time a map has none (`sketch/finish`), and saves the export; a board
+  built from a plan carries the plan's game settings, so it needs no visit to Configure. A refused export shows
+  its sentence and *Open Configure*. Draw's *Done* goes on to Terraform, Ctrl+S saves, and the Configuring
+  list's "just finished" banner is gone with the redirect that fed it. Plan, Configure's Review and the sketch
+  save an export through one `MapDownload`.
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
   `{component}-{surface}` and each addressable — so a theme scoped per plateau paints one hillside as two or

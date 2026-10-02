@@ -17,7 +17,7 @@ query parameter reads as an optional filter, and an editor without a map is not 
 not stable across a rename.
 
 **Query parameters are transient view state only** — selection, zoom, the active layer, an open panel, the
-phase a tool opens on (`?phase=info`), the row a listing should highlight (`?just={slug}`). The maps page's
+phase a tool opens on (`?phase=info`). The maps page's
 `?stage=` fits the rule: it selects which collection is shown, not which map.
 
 ## The routes
@@ -132,7 +132,6 @@ maps page itself — carry no home link, because the studio's bar above them is 
 Beside that link the tool's bar carries the trail — the map's name, then the tool or phase, dimmed. Neither is a
 link: the map is already open, so a second way to it would be a way to nowhere.
 
-One exit is not a link at all. **Finishing a sketch** rasterizes the layout, advances the map to `configure`,
-and lands on the Configure collection with `?just={slug}`, which highlights the row and offers *Continue to
-Configure* — rather than force-marching into the wizard, since finishing the geometry and starting the
-configuration are two decisions.
+A finished sketch does not leave its tool to be handed over: **Download map** in the sketch's bar builds the
+world and saves the export where the author is (`docs/tools/sketch.md`). Configure is reached from the map's
+row, or from the bar when the export is refused for something only Configure states.

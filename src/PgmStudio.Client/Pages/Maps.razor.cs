@@ -10,7 +10,6 @@ namespace PgmStudio.Client.Pages;
 public partial class Maps
 {
     [SupplyParameterFromQuery] public string? Stage { get; set; }
-    [SupplyParameterFromQuery] public string? Just { get; set; }   // slug just finished from Sketch → Configure
 
     private List<MapSummary>? maps;
     private string filter = "";
@@ -91,7 +90,6 @@ public partial class Maps
 
     /// <summary>The collection on show: a stage word, or null for every map in the studio.</summary>
     private string? CurrentStage => MapStage.IsValid(Stage) ? Stage : null;
-    private MapSummary? JustMap => Just is null ? null : maps?.FirstOrDefault(m => m.Slug == Just);
 
     private string StageTitle => CurrentStage switch
     {
