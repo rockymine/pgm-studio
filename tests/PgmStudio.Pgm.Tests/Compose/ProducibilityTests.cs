@@ -230,10 +230,10 @@ public sealed class ProducibilityTests
         await Assert.That(Producibility.ReadPlan(plan).Unit).IsEmpty();
     }
 
-    /// <summary>The exemplar the shifted frontline was authored for now clears both of the blockers that used to
-    /// stop it (G123): its face need not span the hub's full front edge, and its faces need not mirror onto
+    /// <summary>The exemplar the shifted frontline was authored for clears both blockers:
+    /// its face need not span the hub's full front edge, and its faces need not mirror onto
     /// themselves — only their hull must sit on the axis, which this one's does. What remains is the exemplar's
-    /// unrelated scale anomalies, which G123 does not own.</summary>
+    /// unrelated scale anomalies.</summary>
     [Test]
     public async Task The_shifted_frontline_no_longer_reports_a_front_blocker()
     {
@@ -245,7 +245,7 @@ public sealed class ProducibilityTests
         await Assert.That(unit.Any(f => f.Rule == "front-hull-off-axis")).IsFalse()
             .Because("its front hull is symmetric about the axis — only the legs within it differ");
 
-        // the frontline box itself was always producible; the point is the arrangement no longer blocks it
+        // the frontline box itself is producible; the point is the arrangement does not block it
         var front = Producibility.Read(plan).First(b => b.Kind == PlanBoxKinds.Frontline);
         await Assert.That(front.IsProducible).IsTrue();
     }
@@ -271,8 +271,7 @@ public sealed class ProducibilityTests
     }
 
     /// <summary>Inside the read, an arrangement finding is a <b>refusal</b> — that is what lets
-    /// <c>IsProducible</c> ask <c>Findings.Refuses</c> instead of counting a list, and it is the whole of
-    /// <c>B211</c>. The severity is load-bearing rather than decorative: were these written as complaints at
+    /// <c>IsProducible</c> ask <c>Findings.Refuses</c> instead of counting a list. The severity is load-bearing rather than decorative: were these written as complaints at
     /// their source, the question would have no name and the next remark added to <c>UnitFindings</c> would
     /// silently turn a producible plan unproducible. They become complaints at the wire, which
     /// <c>PlanFeasibilityEndpointTests</c> holds.</summary>
@@ -343,7 +342,7 @@ public sealed class ProducibilityTests
     public async Task A_reachable_shape_with_unreachable_proportions_cites_the_width_gap()
     {
         // a ring widened past the spread law: the shape is one the emitters build, the proportions are not one
-        // the composer draws — the case that survives now that the lawful widening reproduces
+        // the composer draws — the case that survives since the lawful widening reproduces
         var hub = Producibility.Read(HubPlan(BodyEmitter.Ring(new RingWalls(2, 6, 2, 2), 13, 7))).First();
         var hubGap = hub.Findings.FirstOrDefault(f => f.Rule == "proportions-outside-the-parameter-space");
         await Assert.That(hubGap).IsNotNull().Because("a Ring whose nearest miss is a Ring is a width gap");
@@ -405,7 +404,7 @@ public sealed class ProducibilityTests
     }
 
     /// <summary>The seat-separation report says which measurand it used, because the answer depends on it — the
-    /// envelope test can indict a placement whose emitted terrain keeps the gap (the question G124 parks).</summary>
+    /// envelope test can indict a placement whose emitted terrain keeps the gap (an open question).</summary>
     [Test]
     public async Task Seat_separation_names_its_measurand_and_the_open_question()
     {

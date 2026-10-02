@@ -38,15 +38,6 @@ internal readonly record struct Frame(char PrimaryAxis, int Sign)
         return new(minX, minZ, maxX - minX, maxZ - minZ);
     }
 
-    /// <summary>The piece-relative offset (a <c>SpawnPlacement.At</c>/<c>WoolPlacement.At</c>
-    /// value) of the generalized point (u,v) within the piece occupying (uMin,uSpan,vMin,vSpan).</summary>
-    public double[] LocalAt(int uMin, int uSpan, int vMin, int vSpan, double u, double v)
-    {
-        var rect = ToRect(uMin, uSpan, vMin, vSpan);
-        var (x, z) = ToPoint(u, v);
-        return [x - rect.X, z - rect.Z];
-    }
-
     /// <summary>The inverse of <see cref="ToRect"/>: recover a cell rect's generalized
     /// (uMin, uSpan, vMin, vSpan) interval pair.</summary>
     public (int UMin, int USpan, int VMin, int VSpan) FromRect(CellRect rect) => PrimaryAxis == 'z'

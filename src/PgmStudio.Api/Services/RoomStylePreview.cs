@@ -65,6 +65,11 @@ public static class RoomStylePreview
             Stamped(style, sample), CutTo(style, Outer(style, sample), part), cell);
     }
 
+    /// <summary><see cref="Card"/> at its defaults, drawn once per distinct style and part
+    /// (<see cref="Drawings"/>) — the picture a library row lists with.</summary>
+    public static string CardOnce(HouseStyle style, string? part = null) =>
+        Drawings.Svg("house-card/" + part, HouseStyleJson.Serialize(style), () => Card(style, part: part));
+
     /// <summary>
     /// The box the views are taken over for the part an editor has open — the whole shell where none is.
     ///

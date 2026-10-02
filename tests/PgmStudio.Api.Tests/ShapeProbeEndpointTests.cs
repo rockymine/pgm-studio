@@ -7,7 +7,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The knob panel's HTTP surface (G144): GET /api/shapes/probe emits one knob combination through
+/// The knob panel's HTTP surface: GET /api/shapes/probe emits one knob combination through
 /// <see cref="BoxFiller"/> and answers with a shape <b>or</b> a refusal, and GET /api/shapes/probe/schema
 /// serves the knob surface the panel drives.
 ///
@@ -33,7 +33,7 @@ public sealed class ShapeProbeEndpointTests
             await Assert.That(tokens).Contains(family.ToString().ToLowerInvariant());
         await Assert.That(tokens).DoesNotContain("isolated");
 
-        // the menu flag is the page's honesty: Z is advertised, the scythe is not (G146)
+        // the menu flag is the page's honesty: Z is advertised, the scythe is not
         await Assert.That(schema.Families.Single(f => f.Token == "z").OnProductionMenu).IsTrue();
         await Assert.That(schema.Families.Single(f => f.Token == "scythe").OnProductionMenu).IsFalse();
 

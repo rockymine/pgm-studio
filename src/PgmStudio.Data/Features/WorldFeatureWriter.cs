@@ -180,9 +180,9 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
     }
 
     /// <summary>Persist the world-derived artifacts: the <b>Surface</b> layer → layer.parquet (the visual
-    /// top-down render), island detection on the <b>cleaned Base</b> (ND2 §6a — height-aware, with a deferred
+    /// top-down render), island detection on the <b>cleaned Base</b> (height-aware, with a deferred
     /// y0/bedrock fallback for degenerate reads) → islands.json, and the initial map_config.json. Returns the
-    /// island count. (Symmetry is derived from islands.json on demand by the B7 endpoint.)</summary>
+    /// island count. (Symmetry is derived from islands.json on demand by the symmetry endpoint.)</summary>
     private async Task<int> WriteArtifactsAsync(long mapId, IReadOnlyList<AnvilRegion.Chunk> chunks,
                                                 PhantomErasure erased, CancellationToken ct)
     {

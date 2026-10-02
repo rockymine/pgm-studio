@@ -181,8 +181,8 @@ internal static class Complaints
             byte[] bytes;
             if (body is JsonObject document)
             {
-                // One writer, or the last one wins silently. Nothing in the studio should be filling this key
-                // itself any more — an endpoint that does has grown a second channel for the same thing.
+                // One writer, or the last one wins silently. Nothing in the studio fills this key
+                // itself — an endpoint that does has grown a second channel for the same thing.
                 if (document.ContainsKey(Key)) Complain(carried, $"the body already carries '{Key}'");
                 document[Key] = JsonSerializer.SerializeToNode(carried, Json);
                 bytes = JsonSerializer.SerializeToUtf8Bytes(document, Json);

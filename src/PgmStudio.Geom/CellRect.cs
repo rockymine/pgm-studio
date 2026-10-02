@@ -9,9 +9,9 @@ namespace PgmStudio.Geom;
 /// each axis. <see cref="MaxX"/>/<see cref="MaxZ"/> are therefore <b>exclusive</b>: one past the far edge,
 /// so <c>MaxX - X == Width</c> and a rect's cells are <c>x ∈ [X, MaxX)</c>.
 ///
-/// <para>This replaces the bare <c>int[]</c> the plan layer passed around as <c>[x, z, w, h]</c>, where the
-/// convention lived only in comments — a three-element array compiled, and reading <c>[3]</c> as a depth
-/// rather than a height compiled too.</para>
+/// <para>A type rather than a bare <c>int[]</c> of <c>[x, z, w, h]</c>, whose convention would live only in
+/// comments — a three-element array compiles, and reading <c>[3]</c> as a depth rather than a height
+/// compiles too.</para>
 ///
 /// <para><b>Not <see cref="Rect"/></b>, its neighbour in this namespace, which is the opposite convention
 /// throughout: world <b>blocks</b>, fractional, and an inclusive corner pair. Nor <see cref="BlockRect"/>,
@@ -59,14 +59,6 @@ public readonly record struct CellRect(int X, int Z, int Width, int Height)
 
     /// <summary>The wire form the plan format stores: <c>[x, z, w, h]</c>.</summary>
     public int[] ToArray() => [X, Z, Width, Height];
-
-    /// <summary>Read the wire form. A shorter array reads as zeroes rather than throwing, matching the
-    /// tolerance the hand-written plan format had when it was a bare <c>int[]</c>.</summary>
-    public static CellRect FromArray(IReadOnlyList<int>? a) => a is null
-        ? default
-        : new(At(a, 0), At(a, 1), At(a, 2), At(a, 3));
-
-    private static int At(IReadOnlyList<int> a, int i) => i < a.Count ? a[i] : 0;
 
     public override string ToString() => $"[{X},{Z} {Width}x{Height}]";
 }

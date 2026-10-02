@@ -20,7 +20,7 @@ public sealed class TerrainPainterTests
         => new(top, VoidEdge: false, OpenEdge: true, ClosedEdge: true, VoidDrop: -1, TerrainDrop: neighbourTop);
 
     // A theme with a distinct, deterministic material in every bucket — what the whole-world paint tests below
-    // check the routing against, since the built-in default no longer tells buckets apart by colour.
+    // check the routing against, since the built-in default does not tell buckets apart by colour.
     private static readonly TerrainTheme Themed = TerrainTheme.Default with
     {
         Rim = new TopBand(new SolidMaterial(Blocks.QuartzBlock)),
@@ -473,7 +473,7 @@ public sealed class TerrainPainterTests
     // ── the inset is carried and not yet spent ──────────────────────────────────────────────────────
     /// <summary>The guarantee that adding the inward axis to <see cref="ColumnProfile"/> moved no paint: the
     /// resolver is handed two profiles differing in nothing but <c>Inset</c> and answers the same bands. The
-    /// field is measured for the authored shape that will read it (`B199`/`B200`) and nothing reads it yet, so
+    /// field is measured for the authored shape that will read it and nothing reads it yet, so
     /// a theme applied to a shape resolves exactly as it did before the axis existed.</summary>
     [Test]
     [Arguments(-1)]
@@ -491,7 +491,7 @@ public sealed class TerrainPainterTests
         }
     }
 
-    // ── a band stack read inward (B199/B200's axis) ─────────────────────────────────────────────────
+    // ── a band stack read inward ─────────────────────────────────────────────────
     /// <summary>A rim, two rings of the next block, a checkered ring, five of a field, and then nothing —
     /// the author's own sequence, resolved straight off the axis. The stack is the same
     /// <see cref="LayeredMaterial"/> a depth reading uses; only <see cref="BandAxis"/> differs.</summary>
@@ -782,7 +782,7 @@ public sealed class TerrainPainterTests
     /// its column from the bedrock course upward, so a storey painted before the one it stands over finds
     /// that ground already finished and leaves it alone — and the storey under it never gets its own bands.
     /// A compile emits its ground first and that ground is not the bottom of every board, so an undercroft
-    /// appended after it is listed later and stands lower (<c>WE30</c>).
+    /// appended after it is listed later and stands lower.
     /// </summary>
     [Test]
     public async Task An_undercroft_listed_after_the_ground_it_stands_under_is_still_painted_first()

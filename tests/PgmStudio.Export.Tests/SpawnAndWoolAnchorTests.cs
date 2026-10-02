@@ -6,14 +6,12 @@ namespace PgmStudio.Export.Tests;
 /// <summary>
 /// <b>Where a spawn and a wool actually end up.</b> <c>PlanCompiler</c> writes a Y onto both markers, and it
 /// is the piece's plan-space <c>Surface</c> — the flat nominal ground, the number the relief solve then
-/// abandons. Read as the answer, that is a bug: it is the same mistake the build ceiling made, and it is
-/// what <c>B222</c> was filed over.
+/// abandons. Read as the answer, that is a bug: it is the same mistake the build ceiling made.
 ///
 /// <para>It is not the answer. The world build resolves both anchors against the terrain it has just
-/// laid — <c>FrameFloor</c> over the room's own footprint — exactly the way <c>B128</c> resolved the
-/// destroyable and core anchors, and the carried number never reaches the XML. What was missing was anyone
-/// saying so: <c>ResolveGoalAnchor</c> carries a paragraph explaining it for goals, and the spawn and wool
-/// sites carried nothing, so the code read like a defect it had already stopped being.</para>
+/// laid — <c>FrameFloor</c> over the room's own footprint — exactly the way the
+/// destroyable and core anchors resolve, and the carried number never reaches the XML. <c>ResolveGoalAnchor</c>
+/// explains it for goals; these tests state it for the spawn and wool sites.</para>
 ///
 /// <para>These two tests are that paragraph made checkable. The first shows the resolved Y is <b>derived</b>
 /// (it moves when the ground moves); the second shows it is <b>not the carried one</b> (it does not move when

@@ -147,38 +147,6 @@ public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, Ma
     }
 }
 
-/// <summary>POST /api/map/{slug}/regions/group — wrap regions in a compound.</summary>
-public sealed class RegionGroupEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
-{
-    public override void Configure()
-    {
-        Post("/map/{slug}/regions/group");
-        Description(b => b.Accepts<RegionGroupRequest>("application/json").Produces<RegionGroupedDto>(200, "application/json").Refuses(404, 409, 422));
-    }
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.GroupRegions(doc, p), Revisions.Expected(HttpContext), ct);
-        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
-    }
-}
-
-/// <summary>POST /api/map/{slug}/regions/ungroup — dissolve a compound.</summary>
-public sealed class RegionUngroupEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
-{
-    public override void Configure()
-    {
-        Post("/map/{slug}/regions/ungroup");
-        Description(b => b.Accepts<RegionUngroupRequest>("application/json").Produces<RegionUngroupedDto>(200, "application/json").Refuses(404, 409, 422));
-    }
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.UngroupRegion(doc, p), Revisions.Expected(HttpContext), ct);
-        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
-    }
-}
-
 /// <summary>DELETE /api/map/{slug}/regions/{regionId} — delete a region (returns an undo snapshot).</summary>
 public sealed class RegionDeleteEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {

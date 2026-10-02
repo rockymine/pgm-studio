@@ -10,7 +10,7 @@ public enum OfferGrouping { Joint, Several }
 
 /// <summary>
 /// An <b>offer</b> (docs/generator/model.md §7) — the outward constraint a designation publishes:
-/// <b>where</b> a neighbour may attach (the edge <see cref="Interval"/>, the G93 shape-relative fact, so it
+/// <b>where</b> a neighbour may attach (the edge <see cref="Interval"/>, the shape-relative fact, so it
 /// moves with every knob), <b>at what width</b> (<see cref="WidthClass"/>, the w2/w4/w6 rung a consumer's fill
 /// menu reads as its <c>cw</c>), and <b>in which grouping</b> (<see cref="Grouping"/> over the offers sharing a
 /// <see cref="GroupId"/>). It is the forward twin of the derived <c>FrontlineRuns</c> / build-zone reads — the
@@ -28,7 +28,7 @@ public enum OfferGrouping { Joint, Several }
 /// widths, which is exactly why a grant is not the offer travelling forward.</para>
 /// </summary>
 /// <param name="Edge">The box edge the offer sits on.</param>
-/// <param name="Interval">The stretch along the edge a neighbour may dock (the G93 <see cref="EdgeInterval"/>).</param>
+/// <param name="Interval">The stretch along the edge a neighbour may dock (an <see cref="EdgeInterval"/>).</param>
 /// <param name="WidthClass">The w2/w4/w6 rung the offer sources — the consumer reads it as its corridor width.</param>
 /// <param name="Grouping">Whether the offer's <see cref="GroupId"/> group resolves jointly or severally.</param>
 /// <param name="GroupId">Offers sharing this id resolve together under <see cref="Grouping"/>.</param>

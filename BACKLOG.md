@@ -280,6 +280,23 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ### Shapes
 
+- [ ] **TS156 — An outline can be bent into a coast from the canvas.** `POST /map/{slug}/sketch/shapes/{id}/bend`
+  resamples long edges, wanders the cut points and fits Béziers, optionally only on named shore edges, keeping a
+  plan's corners fixed; the sketch canvas has no control for it, so a compiled plan's rectangles are roughened by
+  hand point by point. Add a *Bend* action on a selected polygon (edges and wander as two sliders, a preview, one
+  undo step) in `SketchInspector`, calling the route. `docs/tools/sketch.md`. *Evidence: the route is used by
+  every agent build-spec that roughens a coast; no `.razor` under `Features/Sketch` names bend or wander.*
+
+- [ ] **TS157 — The server's vertex edits keep `anchor_heights` in step.** `SketchGeometryEdit.RemoveVertex` and
+  `InsertVertex` renumber `controls` but leave `anchor_heights` untouched, so a sloped polygon edited through
+  `DELETE …/vertices/{index}` or an insert ends with an array whose length is not the vertex count. Splice
+  `anchor_heights` the way the canvas does (`sketch-edit-controller.js`, `removeSelectedVertex`/`#insertEdgeVertex`)
+  and test the invariant length == vertices. `docs/tools/sketch.md`.
+
+- [ ] **TS158 — Slope-control marks follow a vertex insert.** An insert on the points rung shifts the indices
+  above it, and the shift-click slope controls keep the old index, so the mark names the wrong point until the
+  shape is reselected. Shift them in `#insertEdgeVertex` as the removal path does. `docs/tools/sketch.md`.
+
 - [ ] **TS141 — A room style stated as a library fork is honoured, or refused.** In `dressing.styles` a
   house stated as `{"library": <name>, "kind": "house", "shell": <parts>}` builds the fork (`DressingJson`
   resolves the shell over the row), but the same object under `roomStyles.spawn` stores 200, raises nothing and
@@ -569,6 +586,19 @@ is the standard the copy is held to.
 
 ## User Experience
 
+- [ ] **C89 — A map can be deleted from `/maps`.** `DELETE /api/map/{slug}` ends a map and everything under it
+  (`docs/tools/flow.md`), and the maps list has no control for it, so abandoned drafts and variants pile up.
+  Add a delete action on a row for its owner and admins, behind a confirm naming the map, greyed with the reason
+  for anyone else (the `WriteGate` pattern). `docs/client/routing-and-ia.md`.
+
+- [ ] **TN29 — A saved plan can be deleted from the plan editor.** `DELETE /api/plans/{id}` is reached only by
+  the Generator's unpin; the plan editor's *Open a saved plan* list (`PlanTool.razor`) has no delete. Add one per
+  row, behind a confirm. `docs/tools/plan.md`.
+
+- [ ] **RP105 — An admin can issue a token that acts as another member.** `POST /api/users/{uuid}/tokens`
+  exists and `Tokens.razor` only issues the caller's own (`/users/me/tokens`). Add the member picker to the
+  admin's Tokens page. `docs/access.md`.
+
 - [ ] **TS121 — A lasso over the void carries coordinates.** `EyeScene.Project` counts a ray that hits nothing
   as sky and adds no column, so a note drawn over void has no `columns` and its place is read off the
   picture's pixels. Where a ray points down, meet it with a level plane — the median ground of the columns the
@@ -588,6 +618,22 @@ is the standard the copy is held to.
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
 
 ## Refactoring and cleanup
+
+- [ ] **RP106 — The sketch and plan tools' hosts are read for what has outgrown them.** `SketchTool.razor.cs`
+  (1476 lines), `PlanTool.razor.cs` (1444), `sketch-canvas.js` (1617), `sketch-bridge.js` (1413) and
+  `plan-canvas.js` (1256) are the largest hand-written client files. Read each for responsibilities that are not
+  the host's — a phase's state living in the tool, a second copy of a bridge concern — and file what moves where
+  as concrete tasks; move nothing on size alone. `docs/project-structure.md`.
+
+- [ ] **RP107 — The edit-route count is stated from the code.** `MapEdit.cs`, `EditException.cs` and
+  `docs/architecture.md` say "thirty-six edit routes"; there are 20 `MapEdit.RunAsync` call sites. State the
+  number nowhere, or derive it. `docs/architecture.md`.
+
+- [ ] **TL41 — A library card is a picture, not a field of rectangles.** A style card is an SVG of one `<rect>`
+  per cell, about 60 KB each and 2.1 MB for the 53 seeded styles, inlined into the page's DOM. Measure the same
+  cards as small PNGs, flat colour and with the 1.8.9 block sprites the eye already loads (`BlockTextureStore`):
+  bytes per card, draw time, the chooser's load, and whether sprites read better at card size. Adopt what the
+  numbers favour through `Drawings`. `docs/tools/library.md`.
 
 - [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
   `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,

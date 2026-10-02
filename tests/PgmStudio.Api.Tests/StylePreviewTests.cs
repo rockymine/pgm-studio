@@ -10,7 +10,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The library's pictures (B44). The load-bearing case is the one the top-down swatch could never answer: a
+/// The library's pictures. The load-bearing case is the one the top-down swatch could never answer: a
 /// layer stack varies with <em>depth</em>, so sampled one course from above it is a single flat colour and a
 /// library card for it says nothing. The section view is the answer, and these assert that the two views really
 /// do differ on a stack and agree on a solid, that a theme's cut-open sample carries every bucket's block, and

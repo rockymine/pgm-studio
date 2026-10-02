@@ -79,7 +79,8 @@
             else
             {
               <SketchEyePicture Slug="@Slug" Query="@shown.Query" Width="PictureWidth" Height="PictureHeight"
-                                Round="Round" Alt="@shown.Name" Class="ingame__picture" />
+                                Round="Round" Alt="@shown.Name" Class="ingame__picture"
+                                Standin="@SketchEyePicture.SourceOf(Slug, shown.Query, SketchEyePicture.ThumbWidth, SketchEyePicture.ThumbHeight, Round)" />
             }
             @if (mayNote)
             {

@@ -1,15 +1,15 @@
 /**
- * G152 — the plan editor shows the plan it names, and a built map keeps the plan it was built from.
+ * The plan editor shows the plan it names, and a built map keeps the plan it was built from.
  *
- * Both halves are about a document arriving from somewhere it should not. The editor used to restore a
- * localStorage copy of the last-edited plan at mount, before any route-specific load ran, so a map with no
- * stored plan yet rendered whatever that browser last drew: New opened someone else's board, the same map
- * looked different in two browsers, and saving carried the stray drawing into the map that was open. The
- * other half is the same fact from the far end — a map built from the bare route held a layout whose source
- * document was nowhere, so opening it in the plan editor showed a blank board over a plainly-authored map.
+ * Both halves are about a document arriving from somewhere it should not. An editor that restores a
+ * localStorage copy of the last-edited plan at mount, before any route-specific load runs, renders
+ * whatever that browser last drew for a map with no stored plan yet: New opens someone else's board, the
+ * same map looks different in two browsers, and saving carries the stray drawing into the map that is open.
+ * The other half is the same fact from the far end — a map built from the bare route holds a layout whose
+ * source document is nowhere, so opening it in the plan editor shows a blank board over a plainly-authored map.
  *
- * Driven through the real UI on purpose. The bug lived entirely in what the browser held at mount, which no
- * API-level test can see: every request involved was already correct.
+ * Driven through the real UI on purpose. The fault lives entirely in what the browser holds at mount, which no
+ * API-level test can see: every request involved is already correct.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE } from "./lib/harness.mjs";
@@ -57,7 +57,7 @@ try {
     keys.length ? keys.join(", ") : "(nothing stored)");
 
   // Now the blank one. Saving immediately writes back exactly what the editor was holding, which is the
-  // question: before the fix this wrote the drawn plan into the blank map.
+  // question: it must not write the drawn plan into the blank map.
   await openPlan(blank);
   await page.click('button:has-text("Save")');
   await page.waitForTimeout(1500);

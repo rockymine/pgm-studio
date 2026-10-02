@@ -23,6 +23,7 @@ import { svgEl } from "../render/svg.js";
 import { renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
 import { toScreen } from "../geometry/transform.js";
 import { toBounds, distToSegment } from "../geometry/shape.js";
+import { ringSelfIntersects } from "../geometry/polygon.js";
 
 const VERTEX_R           = 4;   // a point of an outline, drawn as a disc the size of the insert ghost
 const GHOST_R            = 4;
@@ -30,6 +31,8 @@ const EDGE_THRESHOLD     = 10;  // screen px — hover distance to show midpoint
 const BEZIER_R           = 3;   // bezier tangent handle radius (px)
 const BEZIER_COLLAPSE_PX = 5;   // screen px — collapse the handle when this close to the vertex
 const MIN_SPAN           = 1;   // blocks — an outline is never scaled thinner than this on either axis
+const MIN_RING_POINTS    = 3;   // a closed outline with fewer encloses no ground
+const MIN_LINE_POINTS    = 2;   // an open line with fewer is no line
 
 // The shapes an author edits point by point. A path joins them because it is stored as the line it was
 // drawn as — dragging one of its points moves the line, and the band follows. Its line is **open**, so the
@@ -74,11 +77,19 @@ export class SketchEditController {
    * stepping back up a rung or hitting Esc clears them just like it clears the shape selection.
    */
   setSelected(id, level = "shape") {
-    if (id !== this.#selectedId) this.#selectedVertex = -1;
+    // A picked point belongs to the points rung: off it the point is not drawn, so it must not stay armed
+    // for a key press either. The host's inspector is told when the point it shows has gone.
+    const hadVertex = this.#selectedVertex >= 0;
+    if (id !== this.#selectedId || level !== "points") this.#selectedVertex = -1;
+    if (hadVertex && this.#selectedVertex < 0 && id === this.#selectedId) this.#callbacks.onVertexSelected?.(id, -1);
     this.#clearSlopeControls(id);
     this.#selectedId = id;
     this.#level = id ? level : "group";
   }
+
+  /** The index of the point picked on the points rung, or -1 — what a key press that takes one point away
+   *  acts on. A controller with editing off has no point to take. */
+  get selectedVertex() { return this.#enabled ? this.#selectedVertex : -1; }
 
   /** Which rung the controller is drawing — the canvas asks before deciding whether to draw its own box. */
   get level() { return this.#level; }
@@ -315,11 +326,66 @@ export class SketchEditController {
       const midHeight = Math.max(1, Math.round((shape.anchor_heights[i] + shape.anchor_heights[j]) / 2));
       shape.anchor_heights.splice(j, 0, midHeight);
     }
+    // Every index from j up has moved, so a picked point at or past j no longer names the point it did.
+    if (this.#selectedVertex >= j) { this.#selectedVertex = -1; this.#callbacks.onVertexSelected?.(shapeId, -1); }
     this.#callbacks.onShapeUpdated?.(shape);
     this.#vertexDragState = { shapeId, vertexIdx: j };
     this.#ghostEl = null;
     this.#hoveredEdgeIdx = -1;
     this.refresh();
+  }
+
+  /**
+   * Take the picked point out of the selected outline, joining its two neighbours. A closed ring keeps at
+   * least three points and must not fold across itself; an open line keeps at least two. A refused removal
+   * changes nothing. Bézier handles and per-point heights are renumbered with the points, and the handles of
+   * the two points that now share an edge are dropped, since a handle is fitted to the edges it sat between.
+   *
+   * @returns {{ done: true } | { refused: string } | null} null where no point is picked.
+   */
+  removeSelectedVertex() {
+    const shapeId = this.#selectedId, index = this.#selectedVertex;
+    const shape = shapeId ? this.#getShape(shapeId) : null;
+    if (!this.#enabled || this.#level !== "points" || !vertexEdited(shape)) return null;
+    const verts = shape.vertices;
+    if (!verts || index < 0 || index >= verts.length) return null;
+
+    const closed = closedVertices(shape);
+    if (verts.length <= (closed ? MIN_RING_POINTS : MIN_LINE_POINTS)) {
+      return { refused: closed
+        ? "A shape needs at least three points. Delete the shape instead."
+        : "A path needs at least two points. Delete the path instead." };
+    }
+    const remaining = verts.filter((_, at) => at !== index);
+    if (closed && ringSelfIntersects(remaining)) {
+      return { refused: "Removing that point would fold the outline over itself." };
+    }
+
+    const count = remaining.length;
+    verts.splice(index, 1);
+    if (shape.controls && Object.keys(shape.controls).length) {
+      const stale = closed
+        ? new Set([(index - 1 + count) % count, index % count])
+        : new Set([index - 1, index]);
+      const renumbered = {};
+      for (const [key, value] of Object.entries(shape.controls)) {
+        const at = parseInt(key);
+        if (at === index) continue;
+        const to = at > index ? at - 1 : at;
+        if (!stale.has(to)) renumbered[String(to)] = value;
+      }
+      if (Object.keys(renumbered).length) shape.controls = renumbered; else delete shape.controls;
+    }
+    if (Array.isArray(shape.anchor_heights) && shape.anchor_heights.length === count + 1) {
+      shape.anchor_heights.splice(index, 1);
+    }
+
+    this.#selectedVertex = -1;
+    this.#clearSlopeControls(shapeId);
+    this.#callbacks.onVertexSelected?.(shapeId, -1);
+    this.#callbacks.onShapeUpdated?.(shape);
+    this.refresh();
+    return { done: true };
   }
 
   /**

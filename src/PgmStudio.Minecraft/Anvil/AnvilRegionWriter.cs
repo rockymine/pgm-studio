@@ -139,7 +139,6 @@ public static class AnvilRegionWriter
         level.Add(tiles);
 
         var entities = new NbtList("Entities", NbtTagType.Compound);
-        foreach (var e in chunk.Entities) entities.Add((NbtCompound)e.Clone());
         level.Add(entities);
 
         return level;

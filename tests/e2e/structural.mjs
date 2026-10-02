@@ -1,5 +1,5 @@
 /**
- * S25 — the plan's spawn/wool pieces surface as locked, labelled rectangles in the sketch.
+ * The plan's spawn/wool pieces surface as locked, labelled rectangles in the sketch.
  *
  * Two halves, both driven on a REAL composed board (the seed's plan is straight from the generator, single
  * height — so its same-plane pieces fuse into one island polygon, exactly the case where a spawn/wool would

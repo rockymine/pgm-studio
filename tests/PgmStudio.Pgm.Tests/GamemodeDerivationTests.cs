@@ -138,7 +138,7 @@ public sealed class GamemodeDerivationTests
         await Assert.That(m.Gamemodes).IsEquivalentTo(new[] { "dtm" });
     }
 
-    // B155: PGM parses <gamemode> as a REPEATED element holding one id each (MapInfoImpl.parseGamemodes
+    // PGM parses <gamemode> as a REPEATED element holding one id each (MapInfoImpl.parseGamemodes
     // loops getChildren("gamemode"), and Gamemode.byId has no notion of several ids in one string) — a board
     // declaring both dtm and dtc must write two elements, never one joined by a space. cacti_the_wool is the
     // corpus proof: it carries six separate <gamemode> elements, never a space-separated value.

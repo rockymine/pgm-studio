@@ -398,6 +398,14 @@ Boxes are **authoring annotation only**. The compiler, the validator and the der
 one can never change what a plan builds; they are how a generated board explains itself, and the unit the
 producibility read reports against. A hand-authored plan does not need them.
 
+**Boxes are an admin's view of the composer's model.** They stay in the document and are saved, loaded and
+carried by every route unchanged — an agent writes them, a composed board arrives with them — but the plan
+editor shows them to an admin only. For anyone else the canvas draws no box, ghost or label, a click never
+picks one, they do not count in the fit, and the Boxes tool, its `G` chord, the box inspector and the
+Generator check are absent; the editor does not ask for the producibility read at all. A member who edits
+such a plan leaves its boxes exactly as they were stored: a box with an explicit member list keeps naming
+its pieces wherever they move, and a containment-grouped box regroups by what lies inside it at the next read.
+
 ### Reference
 
 `reference` records the real map a plan was traced over — its slug, plus an `offset`, `scale` and `opacity`
@@ -500,10 +508,11 @@ document and the zoom survive the trip.
 
 Four families of drawing tool, one armed at a time, each remembering the option last picked from it. **Terrain**
 draws a piece in the armed role; **technical** draws a build zone, a water lane, or a buffer; **markers** drop a
-spawn, wool, iron, destroyable, core, or cycle a wall; **boxes** draw an envelope in the armed kind. The
+spawn, wool, iron, destroyable, core, or cycle a wall; **boxes** draw an envelope in the armed kind, and are
+offered to an admin only. The
 destroyable and core tools are offered only when the symmetry's order is 2, and switching to a symmetry that is
 not order 2 disarms them. `V`, `H`, `R`, `Z`, `G` and `W` arm select, pan, piece, zone, box and wall
-respectively, and `F` fits the plan to the window.
+respectively (`G` answers for an admin only), and `F` fits the plan to the window.
 
 Drawing a piece, zone or box is a click-drag over cells, always at least 1×1; the id is minted from the role
 (`piece`, `spawn`, `wool`, `buffer`, `zone`, `lane`, `<kind>-box`) and the tool reverts to select. A marker is
@@ -512,8 +521,9 @@ stays armed, and each click toggles the nearest land interface within one cell b
 which face its chests open on is derived from the seam, not chosen here.
 
 Selection is two-level, the same scope model the Sketch tool's groups use. A plain click picks the marker
-under the cursor first (markers paint on top and have a small hit radius), then the smallest containing box,
-then the piece, then the zone. `Ctrl`/`⌘`+click reaches the piece past the box, entering the box as the scope
+under the cursor first (markers paint on top and have a small hit radius), then the smallest containing box
+(an admin's canvas only; without boxes the pick runs marker, footprint, piece, zone), then the piece, then the
+zone. `Ctrl`/`⌘`+click reaches the piece past the box, entering the box as the scope
 in the same motion; `Alt`+click leaves any scope and resolves at the box, never drilling into what it groups.
 `Enter` enters a selected box as a scope from the keyboard; once entered, a click reaches the pieces it groups
 and a click outside it leaves the scope before landing normally. `Escape` leaves an entered scope, selecting
@@ -521,8 +531,26 @@ the box itself, and a further press clears the selection; Delete or Backspace re
 here is a double-click. Dragging a box carries the pieces it groups, with membership resolved at
 grab time so nothing falls out mid-drag.
 
+**Pieces and zones can be selected together.** `Shift`+click toggles the piece or zone under the cursor in or
+out of the selection, resolving past any box and treating a marker or a building as the piece it sits on. With
+the select tool, pressing on **empty canvas** — nothing under the cursor, so not over any piece, zone, marker
+or box — and dragging draws a dashed marquee; on release the selection becomes every piece and zone whose rect
+lies **wholly inside** it, so a large zone lying under everything is taken only by a marquee that encloses it,
+and `Shift` held through the drag adds to the current selection instead of replacing it. A press on empty
+canvas without a drag clears the selection, as it does for one thing. A plain click on anything replaces the
+set with that one thing, and `Escape` clears it. Pan is the Move tool or the middle button, so a drag on empty
+canvas is free for the marquee.
+
+Dragging any member of a multi-selection moves every member by the same cell delta, with the snapping a
+single move has: a zone's holes travel with its rect, and markers and buildings, which are stored relative to
+their piece, ride along. A press that does not move narrows the selection to the member pressed. Delete or
+Backspace removes every member through the same removal a single piece or zone takes, so each piece's markers,
+cliff and wall marks and box member names go with it, and the plan is re-derived once. The inspector shows
+the count and the two gestures in place of any one item's fields. On a page the caller may not write, `Shift`
+and the marquee still select, and nothing moves or deletes.
+
 The tools are armed from the keyboard as well as the toolbar — `V` select, `H` pan, `R` piece, `Z` zone, `G`
-box, `W` wall — and `F` fits the plan, `Ctrl`/`⌘`+`S` saves it. `?` lists every chord that is live and
+box (admin), `W` wall — and `F` fits the plan, `Ctrl`/`⌘`+`S` saves it. `?` lists every chord that is live and
 `Ctrl`/`⌘`+`K` runs one by name; both are drawn from the registry described in
 `docs/client/canvas-interaction.md` §9, so neither can name a chord this tool does not answer. A selected piece or zone wears the transform
 box every authoring surface uses (`docs/client/canvas-interaction.md` §5) — an anchor on each corner and a
@@ -530,21 +558,22 @@ grab band along each edge that stretches that one axis — each keeping the exte
 big it is as a pill under it, the same pill Configure draws under a region and the sketch under a shape. Clicking an already-selected spawn cycles its facing. Deleting a piece takes its
 markers, its cliff and wall marks, and its name out of any box member list with it.
 
-The inspector edits the selection: a piece's id, role, surface (stepped by the surface-step preference) and
-mirror flag; a zone's id; a box's id, kind and whether its membership is frozen to a list; a marker's position,
+The inspector edits a single selection: a piece's id, role, surface (stepped by the surface-step preference) and
+mirror flag; a zone's id; a box's id, kind and whether its membership is frozen to a list (admin); a marker's position,
 a spawn's facing, a wool's dye, and every structure field of a destroyable or a core — each shown at its
 *effective* value, so an unset field renders as the number the stamper will use rather than as blank. The dye
 is the one field with no effective value to show: a wool that states no colour has one resolved against its
 team and the wools placed before it, which no single marker knows, so the picker offers *auto* as a word
 beside the sixteen dyes rather than naming a colour the compiler might not pick.
 
-Three panels share the sidebar, switched by the chips at its head, beside the button that folds the sidebar
-away. **Settings** holds the tracing reference. The overlays — land interfaces, frontline edges, labels, and a
+Two panels share the sidebar, three for an admin, switched by the chips at its head, beside the button that
+folds the sidebar away. **Settings** holds the tracing reference. The overlays — land interfaces, frontline edges, labels, and a
 height-map fill that tints pieces by surface — are chips on the canvas itself. **Checks** shows the evaluator's score and every fired rule, and clicking a row isolates that rule's
-evidence on the canvas. **Generator check** shows the producibility read per box, and clicking a box that nothing
+evidence on the canvas. **Generator check**, an admin's panel, shows the producibility read per box, and clicking a box that nothing
 reproduces paints its nearest miss — the cells a candidate emits that the box does not, and the cells the box
-has that it does not. Each panel owns its overlay and drops it on leaving, folded away included. All three feeds are debounced by
-300 ms after an edit and guard against stale responses.
+has that it does not. Each panel owns its overlay and drops it on leaving, folded away included. The feeds are
+debounced by 300 ms after an edit and guard against stale responses; the producibility feed runs only while
+boxes are shown.
 
 A read-only 3-D preview draws **the world the plan compiles to**, not an extrusion of its pieces: entering it
 posts the document to `/api/plan/columns`, which compiles and builds it and answers every column's solid runs,
@@ -758,7 +787,7 @@ draws the board as characters.
 | `POST /plan/inspect` | `{interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps, structures, goalDistances, goalPairs, spaces}` — the derived geometry, already in block coordinates: each interface with its `delta` (the surface step across it) and wall mark; the per-piece-side `frontages` (exposed blocks, frontline blocks, share — FR8's read); the `frontlineRuns` with widths in blocks (`FR9`'s fifteen-block floor is read off the same frontages); the `islandGaps` (each bridged pair's strait in blocks, `direct` when no third landmass shares the region — CT12's read); plus the destroy-goal walks, all of them blocks over the fanned closure: `goalDistances` is each goal's walk to its own and the enemy's spawn with the enemy÷own ratio — the numbers `goal-spawn-ratio` scores against GO1's band [3.0, 4.0] and `goal-spawn-distance` against GO4's [40, 90] — and `goalPairs` is the walk between the goals themselves, each unordered pair once, `opposing` false for a pair one team defends (GO2, [35, 65]) and true for a goal against one the other team defends (GO3, [85, 150]), a monument against its own mirror being the pair every symmetric board carries; and `spaces`, every patch of empty ground the pieces leave — its `kind` (`open` · `notch` · `bay` · `hole`, the wall count), the pieces walling it, and `narrowestBlocks`, the shortest line across it that terrain closes at **both** ends, which is what a player crosses and what `WL12` measures. Never withholds over structural errors; a failure degrades `structures` and the board aggregations to empty rather than failing the feed | 400 malformed or unreadable |
 | `POST /plan/room?piece=<id>` | `{at, footprint, iron}` — the room a `spawn` or `wool-room` piece carries, as piece-relative block offsets ready to store on the placement: the marker inside the room, the footprint the building stands on, and on a spawn whose yard has room for one the iron cube, beside the door on the player's right as they leave. The answer is for the piece **as the document states it** — a placement already on it supplies the facing and the building, so a small hall stated inside a wide protection region is answered with that hall's own marker and its own iron; a piece with no placement yet takes the drawing defaults, a front door and the footprint the resolver would have defaulted to (`WX1`), sized for a shell since a plan states no room style | 404 the piece carries no room, is too small to hold one (`WX2`), or states a building that does not lie on it |
 | `POST /plan/evaluate` | `{score, valid, violations[], lint[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence, and `lint` the structural validator's complaints (an unplaceable iron `WX8`, a mid-lane spawn `SP2`, an odd elevation step `EL1`, …), which never move the score. The validator's **refusals** ride in `violations` under the `PL` id each was refused under, one entry per refusal pointing at its own subjects — so a board with four different overlaps answers four `PL4`s rather than a count, and the whole set arrives here rather than at the compile's 422 a phase later. They all carry `termId: "structural-integrity"`, the one measurement that noticed, and it is scored once however many fired. A plan with no generating piece answers `valid: false` carrying `PL1`, not an error and not an empty evaluation | 400 malformed |
-| `POST /plan/feasibility` | **a diagnostic, not a verdict on the board.** `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why, and findings citing the task that would unblock each gap. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit`. Acting on one of these as though it were a fault in the plan means editing a board to satisfy a limitation that is the studio's | 400 malformed |
+| `POST /plan/feasibility` | **a diagnostic, not a verdict on the board.** `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why, and findings citing the task that would unblock each gap. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit`. The route answers any caller; the plan editor asks it only for an admin. Acting on one of these as though it were a fault in the plan means editing a board to satisfy a limitation that is the studio's | 400 malformed |
 | `POST /plan/ascii[?every=N]` | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. **The read that shows a relation between two rectangles**, which no number can: a sixteen-cell bar reached by a four-cell build zone is a landform 60% dead, visible at a glance here and invisible in every other read of the same board. `every` draws one character per N cells for a board wider than a terminal | 400 malformed |
 | `POST /plan/columns` | `{palette, cols, min_x, min_z, max_x, max_z}` — the world the plan compiles to, as per-column runs, in the encoding `sketch.md` documents, plus, under `warnings`, every prop the dressing pass declined (`DR-*`) and everything the compiled layout names that the studio does not have (`SK3`/`SK4`/`SK5`). It compiles and builds, so it is the heaviest read here and the only one that answers what stands above the ground. It does not gate: `/plan/compile` is where a plan is refused, and a preview of an incoherent plan is still worth looking at | 400 malformed or unbuildable |
 | `GET /objectives/vocabulary` | the destroyable styles and materials, the wool dyes with their labels and swatches, and every objective default | — |

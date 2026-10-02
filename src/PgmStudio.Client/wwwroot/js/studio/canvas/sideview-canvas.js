@@ -8,11 +8,11 @@
  *   { axis, primary_min, primary_count, y_min, y_count, depth: int[] }
  *   depth[p_idx * y_count + y_idx] = 0-255 (0=nearest) or -1 (empty)
  *
- * This surface was always painted — it has no SVG DOM and no viewport matrix, so it never carried the
- * stale-rasterization artifact the other canvases were converted to fix. What it does share with them is
+ * This surface is painted — it has no SVG DOM and no viewport matrix, so it carries no
+ * stale-rasterization artifact. What it shares with the other canvases is
  * `CanvasPainter`, for the two things that are a trap in any 2-D surface written by hand: the backing
- * store is the CSS box times the device pixel ratio (its text and hairlines were soft on a HiDPI display
- * before), and colour tokens are resolved once and cached rather than re-read from the document on every
+ * store is the CSS box times the device pixel ratio (otherwise its text and hairlines are soft on a HiDPI
+ * display), and colour tokens are resolved once and cached rather than re-read from the document on every
  * paint. `layer(name, paint)` brackets each phase in save/restore, so a setting like
  * `imageSmoothingEnabled` cannot leak out of the phase that wanted it.
  *

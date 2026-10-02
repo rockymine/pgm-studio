@@ -186,7 +186,7 @@ public sealed class WoolGeneratorTests
     public async Task Multiple_wools_per_team_share_room_filters()   // intra-team symmetry (≥2 wools/team)
     {
         // red defends two differently-coloured wools. The not-/only- room filters are per-TEAM, so they
-        // must be shared — a second same-owner wool previously collided on the 'not-red' filter id.
+        // must be shared — a second same-owner wool would collide on the 'not-red' filter id.
         var doc = Map();
         WoolGenerator.Apply(doc, new MapIntent
         {

@@ -50,8 +50,7 @@ export function buildInverseTransform(bbox, svgW, svgH) {
 
 /**
  * Project a world point through a viewport (`{ scale, panX, panY }`) into screen/SVG coordinates.
- * The forward direction of `CanvasBase._clientToSvg`, and the one every surface used to re-derive:
- * it was written out verbatim in both sketch controllers, the world canvas and its edit controller.
+ * The forward direction of `CanvasBase._clientToSvg`, shared by every surface that projects a world point.
  */
 export function toScreen(wx, wz, { scale, panX, panY }) {
   return { x: wx * scale + panX, y: wz * scale + panY };

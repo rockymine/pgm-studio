@@ -428,11 +428,21 @@ GET /api/map/{slug}/render/eye?from=0,60&yaw=180&pitch=15   standing on the spaw
 GET /api/map/{slug}/render/eye?look=-17,-44&flat=1          the same frame, one colour a block
 ```
 
-**Pictures are drawn one at a time and kept with the world they were drawn from.** A picture is seconds of
-every core and a gallery asks for a dozen at once, so the read takes a turn before drawing, and every picture of
-a world — its scene and the last twenty-four pictures asked of it, by every query word but `format` — is kept
-for as long as the world is. A board that changes builds a new world, which starts with none; asking again for a
-picture of an unchanged board answers at once.
+**Every picture a render route draws is kept on disk, named by what it was drawn from.** The name is the
+SHA-256 of the route, its query words but `round` and `attempt`, the board's layout, intent and map document,
+the block sprites an eye view is drawn with, and the build of the studio. A picture already drawn is answered
+from that file without building the world, so it survives the world leaving memory, a second person's board and a
+restart; a board that changes, or a deploy that changes a drawer, is a different name and is drawn afresh. The
+answer carries that name as its `ETag` with `Cache-Control: private, no-cache`, and a request whose
+`If-None-Match` holds it is answered `304`. A picture with nothing to draw is kept too, and answers its `422` as
+fast. The folder is `Drawings:Folder` — `pgm-studio/drawings` under the service user's local application data
+by default — and is held under `Drawings:Budget` bytes, 512 MB unless set, by removing the pictures least
+recently asked for. The text twins are not kept there; they are answered from the built world.
+
+**Eye pictures are drawn one at a time.** A picture is seconds of every core and a gallery asks for a dozen at
+once, so a request that finds no kept picture takes a turn before the world is built and the picture drawn, and a
+request that finds one takes no turn. The eye's scenes, and the last twenty-four pictures asked of a world for
+the report and the text twin, are kept in memory for as long as the world is.
 
 **The text twin says where the eye ended up and what it saw.** It names the camera the read chose — its
 `x`, `y`, `z`, `yaw` and `pitch`, with the way the pitch looks beside it (the game counts degrees below the

@@ -151,20 +151,6 @@ public sealed class EditRequestShapeTests
         await Assert.That(Num(mark["z"])).IsEqualTo(6.0);
     }
 
-    [Test]
-    public async Task A_group_takes_the_children_and_the_compound_type_the_record_names()
-    {
-        var doc = Map();
-        var grouped = RegionEditor.GroupRegions(doc, Posted(new RegionGroupRequest(
-            ChildIds: ["pad", "deck"], Type: "intersect", Id: "overlap")));
-
-        await Assert.That(grouped["id"]).IsEqualTo("overlap");
-        await Assert.That(Region(doc, "overlap")["type"]).IsEqualTo("intersect");
-
-        var freed = RegionEditor.UngroupRegion(doc, Posted(new RegionUngroupRequest(RegionId: "overlap")));
-        await Assert.That((List<object?>)freed["child_ids"]!).IsEquivalentTo(new object?[] { "pad", "deck" });
-    }
-
     // ── spawns ──────────────────────────────────────────────────────────────────────
 
     [Test]

@@ -165,7 +165,7 @@ public sealed class SketchRasterizerTests
         await Assert.That(SketchRasterizer.Rasterize("""{"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[]} }]}""").Count).IsEqualTo(0);
     }
 
-    // ── height (S5) ────────────────────────────────────────────────────────────
+    // ── height ────────────────────────────────────────────────────────────
 
     [Test]
     public async Task Base_height_and_floor_give_a_uniform_column()

@@ -126,7 +126,7 @@ public static class ShapeCatalog
                 "seals it into a walled void (WL8). Elevation alternative: G81.", emitted));
         }
 
-        // knobs the emitter takes that WoolBoxEmitter.Fill does not forward (G145)
+        // knobs the emitter takes that WoolBoxEmitter.Fill does not forward
         foreach (var (family, knob, note, emit) in UnplumbedKnobs(lane))
         {
             if (SmallestBox(family, lane, emit) is not var (w, h, emitted)) continue;
@@ -170,7 +170,7 @@ public static class ShapeCatalog
             .Where(f => f != ShapeFamily.Isolated && !FillMenu.ProductionFamilies.Contains(f));
 
     /// <summary>The five knobs <see cref="ShapeEmitter.Emit"/> exposes and <see cref="WoolBoxEmitter.Fill"/>
-    /// drops (G145). Each is declared as a <b>function of the box</b>, not at a chosen size, so
+    /// drops. Each is declared as a <b>function of the box</b>, not at a chosen size, so
     /// <see cref="SmallestBox"/> can ask the emitter what the knob actually costs.</summary>
     private static IEnumerable<(ShapeFamily Family, string Knob, string Note, Func<int, int, EmittedApproach> Emit)>
         UnplumbedKnobs(int lane)

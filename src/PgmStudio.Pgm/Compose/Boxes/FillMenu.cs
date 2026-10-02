@@ -29,11 +29,11 @@ public static class FillMenu
     /// wool is clamped inside as a cut cell, so it docks through a single mouth like the U — admitted.)
     /// The <b>scythe</b> carries a bay whose mouth is its own docking edge, so a flush dock seals the bay
     /// against the host into an enclosed void walled by the wool room — exactly WL8's forbidden motif.
-    /// Its legal connections are shape-relative (the G80 docking modes, map-generation.md §4): a host on
+    /// Its legal connections are shape-relative (the docking modes, map-generation.md §4): a host on
     /// the entry's unoccupied edge parallel to the entry↔entry-run seam, or across the combined colinear
     /// head edges of entry + entry-run — both survive the entry shift, which carries the dock with it. A
     /// host touching the wool room is a hard violation (reject); the declared-bay alternative is deferred
-    /// to the elevation stage (G81: raise the wool so the entry dock is the sole approach, terrain
+    /// to the elevation stage (raise the wool so the entry dock is the sole approach, terrain
     /// stepping up entry → room). It stays fully emittable for harnesses and tests.</summary>
     public static readonly IReadOnlyList<ShapeFamily> ProductionFamilies =
     [

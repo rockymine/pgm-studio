@@ -653,7 +653,8 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `Alt`+click | Pick the parent group and leave any scope | Canvas |
 | `Enter` | Go one level deeper, or close the polygon/polyline in progress | Canvas |
 | `Escape` | Put the brush down, else cancel the draw, else step back up a level, else clear the selection | Canvas |
-| `Delete` / `Backspace` | Delete the selected shape | Canvas |
+| `Delete` / `Backspace` | Delete the selected point, where one is picked on the points rung | Canvas |
+| `Delete` / `Backspace` | Delete the selected shape, where no point is picked | Canvas |
 | Arrow keys | Nudge the selection one block (`Shift` for sixteen) | Canvas |
 | `Shift`+`P` | Promote the shape to its own group | Sketch |
 | `Ctrl`/`⌘`+`D` | Duplicate the selected shape | Canvas |
@@ -708,6 +709,15 @@ edges leaving and arriving — which is how an outline stops being rectilinear. 
 That separation is what lets every box sit ON its bounds rather than offset outside it: an edge midpoint
 carries no anchor, so the insert ghost has the spot to itself, and a corner carries no vertex handle, because
 the rung that draws vertex handles draws no corners.
+
+**A point is taken out with the key that takes a shape out.** Clicking a vertex handle picks it, and while a
+point is picked `Delete` or `Backspace` removes that point and joins its two neighbours, where with none picked
+the same keys delete the shape. A picked point belongs to the points rung: stepping up a rung, or picking
+another shape, lets it go. The removal is refused, with a sentence in the layer bar for a few seconds, where it
+would leave a ring under three points or a path under two, or would fold a ring across itself — the refusals
+`DELETE …/vertices/{index}` gives for an outline, with the same test for the fold. A removal renumbers the Bézier
+`controls` and `anchor_heights` above the removed index, drops the removed point's handles and those of the two
+points that now share an edge, and is one undo step.
 
 **A grip's shape says which rung it belongs to, and its colour says what it is.** A square scales a whole
 outline; a **disc is one point of it**, the size of the midpoint-insert ghost, because what that ghost offers
@@ -1387,7 +1397,11 @@ without them answers the list with the reason, and the phase says so instead of 
 
 **Entering it saves the board's unsaved edits first**, because every picture is of the board as stored. A board that has
 changed builds a new world, and every picture is drawn again the first time it is asked for; a board that has
-not answers from the pictures already drawn.
+not answers from the pictures already drawn, which the studio keeps on disk across restarts. The gallery's
+thumbnails are drawn at 480 × 270 and the enlarged picture at 1280 × 720, so the enlarged one is a drawing of its
+own: until it arrives, the thumbnail of the same view stands in for it, scaled up, with *Drawing…* in its corner.
+A picture the studio is too busy to draw (`429`) is asked for again after the `Retry-After` it names, up to four
+times, before the gallery says why.
 
 **Every board keeps one view of its own: the whole board straight down.** The eye stands over the board's
 middle, north at the top, high enough that the board's width fits across the frame and its depth down it, so
@@ -1614,8 +1628,9 @@ right by, in the report's own words; **Read again** asks for it afresh.
 
 **The pictures are drawn one at a time.** Every picture the report names is a chip, and the one picked is drawn
 under them — the isometric first — through the route the report names, so a board's renders wait their turn one
-after another as the build queue answers them. A picture that cannot be drawn on this studio, an eye view with
-no block sprites, is a dashed chip that says why.
+after another as the build queue answers them. A picture already drawn of an unchanged board is answered from
+the studio's kept pictures without a build (`docs/world-scan/read-backs.md`). A picture that cannot be drawn on
+this studio, an eye view with no block sprites, is a dashed chip that says why.
 
 **Every reading folds under its name and the route that answers it alone**, so a reading can be opened here and
 asked for again outside the tool by the same words.

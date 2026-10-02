@@ -13,8 +13,7 @@ public sealed class TraversabilityRenderTests
     /// <summary><b>A building is not walked over.</b> A roof carries two clear blocks of headroom like any
     /// other surface, so before the rise bound the flood climbed the wall and the route ran across the
     /// building — a road blocked by a house read as one whole component, which is the direction that looks
-    /// like an improvement. Past <see cref="Walk.WallRise"/> a face is something a player goes round
-    /// (<c>WS17</c>).</summary>
+    /// like an improvement. Past <see cref="Walk.WallRise"/> a face is something a player goes round.</summary>
     [Test]
     public async Task A_building_standing_across_a_road_splits_the_walk()
     {

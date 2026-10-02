@@ -183,8 +183,8 @@ public sealed class NavPointsTests
     // ── a control point is a goal, and it is the one nobody owns ─────────────────────────────────────────
 
     /// <summary>A document carrying hills yields one point each, seated on the capture region a player holds
-    /// them from. Before this the four families were read and the fifth was not, so every journey to a hill
-    /// went unmeasured and the ground round it read as dead.</summary>
+    /// them from. A hill is a fifth family beside the four others, so every journey to one is measured
+    /// and the ground round it does not read as dead.</summary>
     [Test]
     public async Task A_control_point_is_one_of_the_places_a_match_is_played_between()
     {

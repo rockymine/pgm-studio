@@ -228,7 +228,7 @@ public partial class HouseEditor
         => [.. draft!.Courses.Where(course => course.Part == part).OrderBy(course => course.Ordinal)];
 
     // Only the parts that stack have an extent, so the roof is not among them: its depth at a cell is whatever
-    // closes the step down to its neighbour (B72 retires the column the roof's own extent was stored in).
+    // closes the step down to its neighbour.
     private int Extent(string part) => part switch
     {
         RoomParts.Floor => draft!.FloorDepth,

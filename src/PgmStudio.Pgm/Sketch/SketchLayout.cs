@@ -587,7 +587,7 @@ public sealed class SketchShape
     /// <summary>Where the shape's base sits, in blocks.</summary>
     [JsonPropertyName("floor")]          public double? Floor { get; set; }
 
-    // Structural annotation (S25). A shape carrying a Role is not terrain the author drew — it is the spawn
+    // Structural annotation. A shape carrying a Role is not terrain the author drew — it is the spawn
     // or wool-room piece the plan already placed, projected in from the map intent so it stays visible while
     // a plan is refined. Role-tagged shapes are locked (read-only) and contribute nothing to the terrain:
     // the rasterizer skips them, so they never carve or double-cover the ground the fused group already

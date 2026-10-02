@@ -139,7 +139,7 @@ window.studio = {
     return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category);
   },
 
-  // Mount the build-height side-view canvas (C7). dotnetRef.OnHeightChanged(y) fires on drag.
+  // Mount the build-height side-view canvas. dotnetRef.OnHeightChanged(y) fires on drag.
   async mountSideview(canvasEl, dotnetRef, slug, axis) {
     const mod = await import("/js/studio/bridge/sideview-bridge.js");
     return mod.mount(canvasEl, dotnetRef, slug, axis);
@@ -158,7 +158,7 @@ window.studio = {
     return mod.mount(svgEl, wrapEl, slug);
   },
 
-  // Mount the Sketch tool's Layout canvas (S2): draw 2-D shapes → live island computation + mirror
+  // Mount the Sketch tool's Layout canvas: draw 2-D shapes → live island computation + mirror
   // preview. dotnetRef receives OnShapeSelected(id) / OnDirty(); the handle drives tool/operation/mode.
   async mountSketch(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, slug) {
     const mod = await import("/js/studio/bridge/sketch-bridge.js");
@@ -212,7 +212,7 @@ window.studio = {
   },
 };
 
-// ── Panel resize (C8) ───────────────────────────────────────────────────────
+// ── Panel resize ───────────────────────────────────────────────────────
 // Install the delegated `.sidebar-handle` drag-to-resize once at load. A native dynamic import (absolute
 // URL) bypasses Blazor's fingerprinting import map, matching the mount* helpers above; the module installs a
 // single document-level listener that serves every editor's panels.

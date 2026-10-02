@@ -177,7 +177,7 @@ public sealed class StructureStamperTests
         await Assert.That(w.GetBlock(8, 21 - 1 - StructureStamper.PlatformDepth, 8).Id).IsEqualTo(Blocks.Bedrock);
         await Assert.That(w.GetBlock(10, 21, 10).Id).IsEqualTo(Blocks.Chest);   // standing on the ground
         await Assert.That(w.GetBlock(10, 22, 10).Id).IsEqualTo(Blocks.Air);     // the lid can open
-        // and the ground the chest stands on is whole, rather than a hole where the chest used to sit
+        // and the ground the chest stands on is whole, rather than a hole where the chest sits
         await Assert.That(w.GetBlock(10, 20, 10).Id).IsEqualTo(Blocks.Stone);
         await Assert.That(w.GetBlock(10, 21 - StructureStamper.PlatformDepth, 10).Id).IsEqualTo(Blocks.Stone);
     }

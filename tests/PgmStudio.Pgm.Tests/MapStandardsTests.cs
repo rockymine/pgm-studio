@@ -178,7 +178,7 @@ public sealed class MapStandardsTests
         await Assert.That(((List<object?>)reparsed["kits"]!).Count).IsEqualTo(1);
     }
 
-    // ── what a destroy objective drops (PG4) ─────────────────────────────────────────────────────────
+    // ── what a destroy objective drops ─────────────────────────────────────────────────────────
 
     /// <summary><b>The obsidian an attacker's pick drops is what the defending team rebuilds with.</b> PGM
     /// lets the owner repair a destroyable unless the map says otherwise, and a core cannot say otherwise at

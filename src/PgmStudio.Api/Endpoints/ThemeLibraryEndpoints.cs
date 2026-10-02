@@ -10,7 +10,7 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
-/// <summary>Row ↔ wire-DTO mapping for the theme/style library (B44). A style and a theme each carry their card
+/// <summary>Row ↔ wire-DTO mapping for the theme/style library. A style and a theme each carry their card
 /// picture on the wire, rendered here through <see cref="StylePreview"/> — see <see cref="StyleDto.Preview"/>
 /// for why the picture travels with the row.</summary>
 internal static class ThemeLibraryMapping
@@ -32,7 +32,8 @@ internal static class ThemeLibraryMapping
     /// visibly the one to go and fix.</summary>
     private static string PreviewOf(StyleRow row)
     {
-        try { return StylePreview.CardSvg(row.Kind, TerrainThemeJson.DeserializeMaterial(row.Params)); }
+        try { return Drawings.Svg("style-card/" + row.Kind, row.Params,
+                () => StylePreview.CardSvg(row.Kind, TerrainThemeJson.DeserializeMaterial(row.Params))); }
         catch { return ""; }
     }
 }
@@ -165,7 +166,8 @@ public sealed class ThemeListEndpoint(ThemeLibrary library) : EndpointWithoutReq
 
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ComposeAllAsync(ct))
-            .Select(entry => new ThemeSummary(entry.Row.Id, entry.Row.Name, StylePreview.ThemeSectionSvg(entry.Theme)))
+            .Select(entry => new ThemeSummary(entry.Row.Id, entry.Row.Name,
+                Drawings.Svg("theme-card", TerrainThemeJson.Serialize(entry.Theme), () => StylePreview.ThemeSectionSvg(entry.Theme))))
             .ToList(), ct);
 }
 

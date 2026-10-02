@@ -2,8 +2,7 @@
 # Dev runner for the PgmStudio API host (serves the API + the hosted Blazor WASM client).
 #
 # Builds once, then runs the built binary directly — avoids `dotnet run`'s per-launch
-# build/JIT cold-start, which is slow on the VirtualBox shared folder. Mirrors the Python
-# app's tools/studio-dev.sh.
+# build/JIT cold-start, which is slow on the VirtualBox shared folder.
 #
 #   ./tools/dev.sh restart   # build + (re)start in the background
 #   ./tools/dev.sh start

@@ -200,5 +200,6 @@ public sealed class PropStyleLibrary(PropStyleStore store)
 
     /// <summary>One recipe's card: the section, drawn through the pass that builds it.</summary>
     private static string Card(PlacedProp prop, int cell = 3)
-        => DressingPreview.Views(prop, Sample, cell).Section;
+        => Drawings.Svg($"prop-card/{cell}", DressingJson.SerializeProp(prop),
+            () => DressingPreview.Views(prop, Sample, cell).Section);
 }

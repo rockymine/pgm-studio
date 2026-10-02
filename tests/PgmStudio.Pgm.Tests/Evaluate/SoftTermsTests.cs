@@ -32,7 +32,7 @@ public sealed class SoftTermsTests
     /// <summary><b>The fill ratio is ground over the ground's own frame.</b> A build zone is buildable void
     /// rather than land: it fills no cell, so counting it in the frame divided the same ground by a bigger
     /// box and reported a sparser board than the one that exists. What the ratio measures is the land against
-    /// the margin and the voids around it, and nothing stamped on the terrain is either (<c>B150</c>).</summary>
+    /// the margin and the voids around it, and nothing stamped on the terrain is either.</summary>
     [Test]
     public async Task Fill_ratio_frames_on_the_ground_and_not_on_a_build_zone_reaching_past_it()
     {

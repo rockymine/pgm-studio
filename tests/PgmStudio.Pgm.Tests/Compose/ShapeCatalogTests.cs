@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The shape catalog (G144) — the vocabulary as data the studio renders. What is gated here is the property
+/// The shape catalog — the vocabulary as data the studio renders. What is gated here is the property
 /// the page exists for: that a card's <see cref="CatalogTier"/> matches what the pipeline really does with
 /// that shape. A catalog whose tiers drift is worse than no catalog, because it asserts a vocabulary the
 /// boards do not carry.
@@ -55,7 +55,7 @@ public sealed class ShapeCatalogTests
     [Test]
     public async Task Z_is_on_the_menu_but_no_sampler_draws_it_so_it_reads_reachable()
     {
-        // the honesty case the page exists for: the menu advertises Z, the sampler never asks (G146)
+        // the honesty case the page exists for: the menu advertises Z, the sampler never asks
         await Assert.That(FillMenu.ProductionFamilies).Contains(ShapeFamily.Z);
         var z = Wools.Where(s => s.Family == "z").ToList();
         await Assert.That(z).IsNotEmpty();
@@ -83,7 +83,7 @@ public sealed class ShapeCatalogTests
     [Test]
     public async Task The_donut_carries_the_most_in_mix_variety()
     {
-        // the measured sampling imbalance (G144/G118): the donut's sampled hole and entry width give it more
+        // the measured sampling imbalance: the donut's sampled hole and entry width give it more
         // shapes than any other family, while U/H/L are one shape apiece. This is a fact the verdict corpus
         // inherits.
         var inMix = Wools.Where(s => s.Tier == CatalogTier.InMix).ToList();
@@ -95,7 +95,7 @@ public sealed class ShapeCatalogTests
     [Test]
     public async Task Unplumbed_knobs_are_emitter_only_and_name_the_knob()
     {
-        // the five knobs WoolBoxEmitter.Fill drops (G145) — each drawn once, labelled, never claimed in-mix
+        // the five knobs WoolBoxEmitter.Fill drops — each drawn once, labelled, never claimed in-mix
         var knobbed = Wools.Where(s => s.Knobs.Any(k => k.Contains("attach") || k.Contains("shift")
                                                         || k.Contains("extend"))).ToList();
         foreach (var shape in knobbed.Where(s => s.Tier == CatalogTier.EmitterOnly))

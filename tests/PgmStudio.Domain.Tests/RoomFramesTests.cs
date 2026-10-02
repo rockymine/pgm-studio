@@ -329,7 +329,7 @@ public sealed class RoomFramesTests
     public async Task Iron_landing_is_mirror_consistent()
     {
         // Away-from-zero rounding is what makes an orbit image of the cube cover the images of its cells
-        // instead of a row one block off. With the shell no longer yielding, this is all that has to mirror.
+        // instead of a row one block off. The shell does not yield, so this is all that has to mirror.
         var piece = new BlockRect(0, 0, 20, 20);
         var west = RoomFrames.ResolveRoom(piece, null, shellBound: true, 10, 16, [], [RoomEdge.NegZ],
             [(6.5, 1.5)], out _)!.Iron[0];

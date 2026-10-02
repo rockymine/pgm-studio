@@ -592,7 +592,7 @@ public sealed class MapArtifactRow
 /// <c>symmetry_json</c> artifact to a first-class row (one per map). The scalars are what consumers query
 /// (orbit, counterpart, team-count, the World step); <c>ModesJson</c> is the irregular candidate list;
 /// <c>center_cell</c> and the <c>primary</c> projection are derived on read. <c>ExcludedIslandsJson</c> /
-/// <c>DetectionLayer</c> are the authoring World-step inputs (populated by N01; null for existing maps).</summary>
+/// <c>DetectionLayer</c> are the authoring World-step inputs (populated by the World step; null for existing maps).</summary>
 [Table("symmetry")]
 public sealed class SymmetryRow
 {

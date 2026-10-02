@@ -52,7 +52,7 @@ internal static class PlanTestSupport
         return string.Join(";", Enumerable.Range(0, pts.Count).Select(i => pts[(start + i) % pts.Count]));
     }
 
-    // Only the terrain shapes are polygon rings; the plan's structural annotations (S25) are locked
+    // Only the terrain shapes are polygon rings; the plan's structural annotations are locked
     // rectangles with no vertices and are compared elsewhere, so the ring helpers skip them.
     private static IEnumerable<SketchShape> TerrainShapes(SketchLayout layout) =>
         (SketchLayout.Stack(layout)[0].Shapes ?? []).Where(s => s.Role is null);

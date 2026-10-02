@@ -185,7 +185,7 @@ public sealed class RoomStyleJsonTests
         await Assert.That(pattern.Bands[0].Depth).IsEqualTo(2);
     }
 
-    /// <summary>The air material that used to stand in for no footing reads forward as the state it meant, so
+    /// <summary>The air material stored as no footing reads forward as the state it meant, so
     /// a building seated into terrain still meets the ground flush rather than on a course of air.</summary>
     [Test]
     public async Task A_stored_air_sill_reads_forward_as_no_footing()

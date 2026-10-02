@@ -37,7 +37,7 @@ export function paintSketchShape(painter, shape, { selected = false, alpha = 1 }
   }
 }
 
-// Human-readable kind word for a structural role (S25). Wool rooms read as "wool"; spawn stays "spawn".
+// Human-readable kind word for a structural role. Wool rooms read as "wool"; spawn stays "spawn".
 const STRUCT_KIND = { spawn: "spawn", woolRoom: "wool" };
 
 // The plan's role tokens (plan/plan-doc.js ROLE_COLORS names the same two), so the surfaced pieces read in the
@@ -45,7 +45,7 @@ const STRUCT_KIND = { spawn: "spawn", woolRoom: "wool" };
 const ROLE_FILL = { spawn: "var(--canvas-role-spawn)", woolRoom: "var(--canvas-role-wool-room)" };
 
 /**
- * The plan's structural pieces (S25) — the spawn and wool-room regions the plan already placed, projected
+ * The plan's structural pieces — the spawn and wool-room regions the plan already placed, projected
  * from the map intent as **locked, labelled** rectangles so they stay visible while a plan is refined. They
  * are not terrain (the rasterizer skips them; the ground under them is the fused group): a filled box in the
  * plan's role colour (purple spawn / green wool), a solid border, and a centred label sized to fit. The colour
@@ -146,7 +146,7 @@ export function paintMirror(painter, polys) {
 }
 
 /**
- * The rasterized block footprint (S23) — the exact cells the shapes voxelize into, as merged horizontal
+ * The rasterized block footprint — the exact cells the shapes voxelize into, as merged horizontal
  * runs `{ x, z, w }` (see geometry/rasterize.cellRuns). Painted as a faint stone fill beneath the smooth
  * group outline, so a curve visibly reads as the blocky cells it becomes on export. This is the geometry
  * preview only; the *paint* those cells receive is the block bitmap the canvas blits over it.

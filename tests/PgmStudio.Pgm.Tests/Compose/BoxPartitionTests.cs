@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The partition constraint graph (G63): <see cref="BoxPartition"/> is typed boxes (footprint + land target)
+/// The partition constraint graph: <see cref="BoxPartition"/> is typed boxes (footprint + land target)
 /// and the joints between them, with hard invariants (<see cref="BoxPartition.Valid"/>), and
 /// <see cref="BoxPartition.Of"/> the derive-side mirror reading the partition a grown unit implies. Joints are
 /// the abutments between footprints (<see cref="BoxPartition.SharedEdge"/>); overlap is legal, a phantom joint

@@ -8,8 +8,8 @@ namespace PgmStudio.Domain;
 /// <para><b>The measurement is the terrain, averaged.</b> The ceiling is <see cref="OverGround"/> blocks over
 /// the <em>mean</em> top of the built terrain columns — the ground the match is played on, taken as a whole
 /// rather than at its highest point. Measuring what the relief actually built rather than the plan's flat
-/// nominal <c>surface</c> is what stops a board coming out with a ceiling under its own ground
-/// (<c>B104</c>, <c>B176</c>); averaging rather than maximising is what stops one peak deciding the sky over
+/// nominal <c>surface</c> is what stops a board coming out with a ceiling under its own ground;
+/// averaging rather than maximising is what stops one peak deciding the sky over
 /// the whole board, which is the generous cap <c>G6</c> warns is the sky-layer smell.</para>
 ///
 /// <para><b>Nothing standing on the ground is in it.</b> Not a tree, not a house, not a spawn hall or a wool

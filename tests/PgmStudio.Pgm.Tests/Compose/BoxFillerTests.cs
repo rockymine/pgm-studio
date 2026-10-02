@@ -6,7 +6,7 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// <summary>
 /// The profile-driven fill spine: <see cref="FillProfiles"/> (the per-<see cref="BoxKind"/> profile as data)
 /// and <see cref="BoxFiller"/> (the one profile-gated fill entry point over a positioned <see cref="Box"/>,
-/// with land-vs-target accounting). This is the machinery the partitioner (G63) drives; here it is exercised
+/// with land-vs-target accounting). This is the machinery the partitioner drives; here it is exercised
 /// directly on hand-built boxes.
 /// </summary>
 public sealed class BoxFillerTests
@@ -20,7 +20,7 @@ public sealed class BoxFillerTests
     public async Task Wool_profile_is_the_width_menu_spawn_profile_is_I_and_L()
     {
         await Assert.That(FillProfiles.Families(BoxKind.Wool, Cw, Cw)).IsEquivalentTo(FillMenu.FamiliesFor(Cw, Cw));
-        await Assert.That(FillProfiles.Families(BoxKind.Wool, Cw, Cw)).Contains(ShapeFamily.Donut);   // admitted since G79
+        await Assert.That(FillProfiles.Families(BoxKind.Wool, Cw, Cw)).Contains(ShapeFamily.Donut);   // admitted
         await Assert.That(FillProfiles.Families(BoxKind.Spawn, Cw, Cw)).IsEquivalentTo(SpawnBoxEmitter.Families);
         await Assert.That(FillProfiles.Families(BoxKind.Spawn, Cw, Cw)).IsEquivalentTo(new[] { ShapeFamily.I, ShapeFamily.L });
     }
@@ -98,7 +98,7 @@ public sealed class BoxFillerTests
     {
         var box = WoolBox(16, 22, landTarget: 1);   // an impossibly low target
         var ok = (FillResult.Ok)BoxFiller.Fill(box, BoxEdge.Top, Cw, ShapeFamily.I);
-        await Assert.That(BoxFiller.WithinLandTarget(box, ok.Approach)).IsFalse();   // over target → fragment's job (G63)
+        await Assert.That(BoxFiller.WithinLandTarget(box, ok.Approach)).IsFalse();   // over target → fragment's job
         var roomy = WoolBox(16, 22, landTarget: 10_000);
         await Assert.That(BoxFiller.WithinLandTarget(roomy, ok.Approach)).IsTrue();
     }
@@ -106,7 +106,7 @@ public sealed class BoxFillerTests
     [Test]
     public async Task Fill_gates_the_dock_through_the_mouth_admitting_the_production_menu()
     {
-        // the docking gate (G80) is wired into the fill: every production family docks cleanly through the mouth
+        // the docking gate is wired into the fill: every production family docks cleanly through the mouth
         // it exposes its entry on, top or bottom, so a legal fill still returns Ok (the wiring is byte-identical
         // for the menu). Clamp/scythe never reach the gate here — the profile stops them first (NoFamilyFits).
         foreach (var family in FillMenu.ProductionFamilies)

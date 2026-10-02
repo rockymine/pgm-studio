@@ -3,9 +3,7 @@ using PgmStudio.Analysis.Footprint;
 namespace PgmStudio.Analysis.Tests;
 
 /// <summary>
-/// B7 symmetry-detection tests. Expected values are the reference `detect_from_data`
-/// (symmetry/detection.py) output for the same synthetic islands — genuine parity on a controlled
-/// case. Broad corpus parity (port endpoint vs reference) was also verified manually.
+/// Symmetry-detection tests over synthetic islands: a controlled case of each mirror and rotation mode.
 /// </summary>
 public sealed class SymmetryDetectorTests
 {

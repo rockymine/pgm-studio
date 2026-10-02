@@ -943,6 +943,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the study was a rendering of connector-based authoring and could not outlive its subject. The generator
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
+- **Plan canvas multi-select (TN27).** Shift-click toggles a piece or zone in the selection; a drag from empty
+  canvas draws a marquee that selects every piece and zone wholly inside it; dragging any member moves them
+  all by one cell delta (a zone's holes move with it), and `Delete` removes every member. A read-only page can
+  select but not move or delete.
+- **Composer boxes are admin-only (TN28).** Boxes stay in the plan document and the API is unchanged, but a
+  member's plan canvas neither draws nor picks them, and the Boxes tools, the box inspector and the Generator
+  check are shown to admins only.
+
 ## Backend / API (B)
 - **A load missing one of its two documents names it (`RP66`).** `POST /map/from-documents` reads the layout
   and the intent as raw JSON, so a body omitting one arrived as a `default(JsonElement)` and the first reader
@@ -10093,6 +10101,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `dressing-render.js` draws a prop on another storey at `OFF_LAYER_ALPHA` and a canvas click picks only the
   active storey's props (`dressing-doc.js` `onLayer`). The author's ruling: dimmed. (`B263`)
 
+- **Delete takes the picked point out of an outline (TS155).** On the points rung a picked vertex of a polygon,
+  lasso or path is removed by `Delete`/`Backspace` and its neighbours joined, refused below three points (two for
+  a path) or where the ring would fold, with the refusal shown in the layer bar; one undo step. With no point
+  picked the same keys delete the whole shape as before.
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
   pass's five *seat* rules over every cell of a board so a placement is found rather than guessed at, and left
@@ -10563,6 +10576,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `client/ui-conventions.md` 245 → 129, now the component vocabulary and the API rules (B114), and
   `world-scan/monument-candidate-store.md` 361 → 185, keeping the hosting constraint the split was done for
   (B115).
+
+- **Every drawn picture is kept on disk, named by what it was drawn from (TL40, WS81).** `Drawings` is the one
+  store for library cards and every render route: a picture's name is the SHA-256 of the drawer, the studio
+  build and the input's bytes, so an edit or a deploy is a new name and nothing is invalidated; a render answers
+  a kept picture without building the world, with an `ETag`/`304`. The `/library` chooser's nine lists went
+  from 1.10 s every load to 0.10 s warm and 0.23 s after a restart (8.4 s on pgmstudio.de before); an eye
+  picture asked again from 6–11 s to under 0.2 s. In game shows the thumbnail while the enlarged picture draws
+  and asks again after a `429`'s `Retry-After`.
+- **Comment sweep (RP103).** About 300 task-id comments and 150 history or port-attribution sentences across
+  256 files rewritten as facts about the code; `CLAUDE.md` states the rule without a count.
+- **Dead code removed (RP104).** The never-shipped region group/ungroup routes and `monument-seat`, and 30
+  methods with no caller in `src`, `tests`, `tools` or `pgm-studio-mapgen`; the commit lists each with its
+  reason.
 
 ### Agent-drivable map generation — what sixteen agent-designed boards exposed (B78, B80–B90)
 

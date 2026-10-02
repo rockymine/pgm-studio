@@ -1,7 +1,7 @@
 // world-bridge.js — JS-interop bridge for the reused WorldCanvas (the hybrid world canvas).
 // Blazor owns the sidebar/inspector/state in C#; this drives the proven canvas JS:
 //   window.studioCanvas.mount(svgEl, wrapEl, dotnetRef, slug) → a handle Blazor calls
-//   (load / setTool / setSelection / resize). Selection + cursor + zoom call back into C#.
+//   (load / setTool / setSelection). Selection + cursor + zoom call back into C#.
 import { WorldCanvas } from "../canvas/world-canvas.js";
 import { fetchJson } from "./fetch-json.js";
 import { normalizeIslands } from "../geometry/islands.js";
@@ -46,7 +46,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     onBoundsSave: (node, bounds) => dotnetRef.invokeMethodAsync("OnBoundsSave", node.id, bounds),
   });
   canvas.setActiveTool("move");
-  let blockData = null;   // cached top-surface layer (C6), fetched on first toggle-on
+  let blockData = null;   // cached top-surface layer, fetched on first toggle-on
 
   const handle = {
     async load(slugName) {
@@ -81,7 +81,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     // The caller may not write this map: the canvas pans, zooms and selects, and draws, places and moves nothing.
     setReadOnly(on) { canvas.setReadOnly(on); },
     setSelection(ids) { canvas.setSelectedRegions(ids ?? []); },
-    // Block-colour overlay (C6): lazily fetch the top-surface layer (B4), then toggle visibility.
+    // Block-colour overlay: lazily fetch the top-surface layer, then toggle visibility.
     // Returns false when no scan data is available, so the caller can leave the toggle off.
     async setBlocks(visible) {
       if (visible && !blockData) {
@@ -103,7 +103,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
       canvas.setEditabilityVisible(visible);
       return true;
     },
-    resize() { canvas.resize(); },
     // Island selection (World authoring step).
     setIslandSelect(on) { canvas.setIslandSelect(on); },
     setSelectedIsland(id) { canvas.setSelectedIsland(id ?? null); },
@@ -116,7 +115,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     // Symmetry-orbit the authored rects into non-editable ghost previews (shared geometry/symmetry.js).
     setAuthorMirror(type, cx, cz) { canvas.setAuthorMirror(type ?? null, cx, cz); },
     fitIsland(id) { canvas.fitIsland(id); },
-    fitBounds(minX, minZ, maxX, maxZ) { canvas.fitBounds({ min_x: minX, min_z: minZ, max_x: maxX, max_z: maxZ }); },
     resetView() { canvas.resetView(); },
     // The painted surface owns a canvas element, a resize observer and a theme watcher, and every Configure
     // step that mounts this canvas mounts its own — so teardown is real work, not just dropping the reference.

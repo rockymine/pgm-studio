@@ -6,16 +6,15 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// B116: the export-time refusals <c>MapExportComposer</c> asks against a sketch-originated map's built
+/// The export-time refusals <c>MapExportComposer</c> asks against a sketch-originated map's built
 /// world, over the ground the rasterizer actually produced — <c>OB17</c> (objective placement) and
 /// <c>OB19</c> (a tree, boulder or building standing inside a goal's clearance) — each answering <b>409</b>
 /// from the one composer, with the rule id a caller can act on. Every scenario here is one the compile gate
 /// never sees: none of these maps was authored through a plan, so <c>PlanValidator</c> never runs over them —
 /// proving the export gate is the only place that catches a destroy goal authored straight into Sketch.
-/// <para>B116 also wired a third gate here, <c>OB18</c> — a kit/material mismatch, refusing an obsidian goal
-/// against an iron pickaxe as unwinnable. <c>B134</c> found the premise false (an iron pickaxe breaks
-/// obsidian, it just does not drop it, so the goal was winnable and merely slow) and removed it; the test
-/// below now asserts the export succeeds where it used to 409.</para>
+/// <para>A kit/material mismatch — an obsidian goal against an iron pickaxe — is not refused: an iron pickaxe
+/// breaks obsidian, it just does not drop it, so the goal is winnable and merely slow; a test below asserts
+/// the export succeeds.</para>
 /// </summary>
 [NotInParallel("api-db")]
 public sealed class MapExportComposerTests
@@ -227,8 +226,7 @@ public sealed class MapExportComposerTests
         var slug = await CreateFinishedSketchAsync(client, IslandLayout);
 
         // No spawns at all: TeamsGenerator only derives a kit when the map has one (GenerateKits gates on
-        // Spawns.Count > 0), so the exported document's kits carry no pickaxe whatsoever. Before B134 this
-        // was the kitless destroy map MG18/OB18 refused as "unwinnable"; an iron pickaxe (or no pickaxe at
+        // Spawns.Count > 0), so the exported document's kits carry no pickaxe whatsoever. An iron pickaxe (or no pickaxe at
         // all) still breaks obsidian, it just does not drop it, so the goal is winnable and the map exports.
         var intent = new
         {
@@ -246,9 +244,8 @@ public sealed class MapExportComposerTests
         await Assert.That((await client.PutAsJsonAsync($"/api/map/{slug}/intent", intent)).IsSuccessStatusCode).IsTrue();
 
         // The map is refused, and which rule refuses it is what this test is about. With no spawn and no
-        // observer there is nobody to put in it, which EX2 (B140) now says outright — but nothing here refuses
-        // on kit grounds, and that retirement is what is being pinned. Before B134 the same document came back
-        // as an unwinnable destroy map because its kits carried no diamond pickaxe.
+        // observer there is nobody to put in it, which EX2 says outright — but nothing here refuses
+        // on kit grounds, and that absence is what is being pinned.
         var resp = await client.GetAsync($"/api/map/{slug}/xml");
         var body = await resp.Content.ReadAsStringAsync();
         await Assert.That(body).DoesNotContain("unwinnable");

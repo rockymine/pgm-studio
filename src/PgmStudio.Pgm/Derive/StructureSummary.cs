@@ -9,8 +9,8 @@ namespace PgmStudio.Pgm.Derive;
 /// sorted wool <b>approach families</b>, the hub <b>body form</b>, and the frontline <b>body form</b> (or
 /// none). Derived from the generator's own labeled artifacts (each piece's <see cref="GrownPiece.Box"/> +
 /// <see cref="GrownPiece.Slot"/>), never from a finished map's welded terrain, so it reads uniformly off a
-/// bare unit and needs no labels stored back. It is the canonical filter fact for the browse sieve (G117) and
-/// the bucket key for verdicts (G118) / duels (G120): the same read the user sees on the card.
+/// bare unit and needs no labels stored back. It is the canonical filter fact for the browse sieve and
+/// the bucket key for verdicts / duels: the same read the user sees on the card.
 /// <para>Reuses the two validated classifier entry points: <c>ShapeClassifier.Classify</c> (approach
 /// family, per wool box) and <see cref="ShapeClassifier.ClassifyBody"/> (body form, per hub/frontline box).
 /// The wool-family scan is the pattern promoted from the box gallery tool.</para>

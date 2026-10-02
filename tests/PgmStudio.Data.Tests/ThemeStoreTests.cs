@@ -6,7 +6,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Data.Tests;
 
 /// <summary>
-/// The theme/style library store (M0011, B44): styles are browsable by kind, a theme is created with its bucket
+/// The theme/style library store (M0011): styles are browsable by kind, a theme is created with its bucket
 /// bindings in one go, its buckets join to the styles they reference, and deleting a theme cascades its bindings
 /// while leaving the styles. Runs against <c>pgm_studio_test</c>; each test resets the schema.
 /// </summary>

@@ -8,7 +8,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Services;
 
 /// <summary>
-/// The composition-root half of the theme/style library (B44): it bridges the row store
+/// The composition-root half of the theme/style library: it bridges the row store
 /// (<see cref="ThemeStore"/>) and the painter's material model (<see cref="TerrainThemeComposer"/> /
 /// <see cref="TerrainThemeJson"/>), which live in different layers. <see cref="ComposeAsync"/> assembles a
 /// library theme's rows back into the theme the painter consumes (and <see cref="ComposeJsonAsync"/> into the

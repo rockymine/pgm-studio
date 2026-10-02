@@ -407,8 +407,8 @@ public sealed class PlanBox
 /// and a marker was addressed only by its index in a list. That is enough to draw one and not enough to
 /// <em>refer</em> to one: a validator finding could name only the piece a marker sat on, and an agent holding
 /// "the second core" loses its reference the moment a different core is deleted.
-/// <para><see cref="Piece"/> is empty for a destroyable or a core placed by absolute board position (B128,
-/// <see cref="DestroyablePlacement"/>/<see cref="CorePlacement"/>) — the one exception to "the piece it
+/// <para><see cref="Piece"/> is empty for a destroyable or a core placed by absolute board position
+/// (<see cref="DestroyablePlacement"/>/<see cref="CorePlacement"/>) — the one exception to "the piece it
 /// stands on", since those two need not stand on a piece at all.</para>
 /// </summary>
 public interface IPlanMarker
@@ -545,7 +545,7 @@ public sealed class IronPlacement : IPlanMarker
 /// likewise a goal one team defends. The marker is the structure's <b>anchor column</b>; the box itself floats
 /// <see cref="Float"/> blocks above the ground the relief actually leaves under that column, so no Y is
 /// authored.
-/// <para><see cref="Piece"/> may be empty (B128): a destroyable is the one marker kind that need not ride a
+/// <para><see cref="Piece"/> may be empty: a destroyable is the one marker kind that need not ride a
 /// plan piece at all. With a piece, <see cref="At"/> is a block offset from its minimum corner, same as every
 /// other marker; with none, <see cref="At"/> is an absolute block offset from the symmetry centre — the frame a
 /// piece's own <c>rect</c> is authored in — so a goal can stand on ground that exists only as an authored
@@ -589,7 +589,7 @@ public sealed class DestroyablePlacement : IPlanMarker
 /// marker's shape, since a core is likewise one team's goal to defend, fanned to one per orbit image. The
 /// marker is the casing's anchor column; the box floats <see cref="Float"/> blocks above the ground the relief
 /// actually leaves under that column.
-/// <para><see cref="Piece"/> may be empty, the same absolute addressing a destroyable takes (B128): with a
+/// <para><see cref="Piece"/> may be empty, the same absolute addressing a destroyable takes: with a
 /// piece, <see cref="At"/> is a block offset from its minimum corner; with none, an absolute block offset from
 /// the symmetry centre, so a core can ride an authored sketch landform with no plan piece carrying it.</para>
 /// <para><see cref="Float"/> and <see cref="Leak"/> are one knob (DC2): escaping lava free-falls to the

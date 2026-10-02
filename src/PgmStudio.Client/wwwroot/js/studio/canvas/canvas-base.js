@@ -89,7 +89,7 @@ export class CanvasBase {
    */
   _onResizeUp(e) { return false; }
 
-  // ── body-drag move (shared affordance; see CV10) ─────────────────────────────
+  // ── body-drag move (shared affordance) ─────────────────────────────
   // Map an SVG point to world coords {x,z}. Default = identity (sketch: world == svg base coords);
   // canvases that fit through a transform (editor) override with their inverse.
   _toWorld(svgPt) { return { x: svgPt.x, z: svgPt.y }; }
@@ -100,7 +100,7 @@ export class CanvasBase {
   /** Called once when a body-drag begins, with the grabbed handle + the world point grabbed. */
   _moveStart(handle, world) {}
 
-  /** Absolute move (snap-aware, S9): place the handle at start + (dx,dz) world units from the grab point.
+  /** Absolute move (snap-aware): place the handle at start + (dx,dz) world units from the grab point.
    *  Return true if handled (skips the incremental path); default false → fall back to _moveBy. */
   _moveTo(handle, dx, dz) { return false; }
 
@@ -398,7 +398,7 @@ export class CanvasBase {
           const world = this._toWorld(this._clientToSvg(e.clientX, e.clientY));
           if (world) {
             const ms = this.#moveState;
-            // Absolute, snap-aware path (S9) if the subclass handles it; else incremental block deltas.
+            // Absolute, snap-aware path if the subclass handles it; else incremental block deltas.
             if (this._moveTo(ms.handle, world.x - ms.grab.x, world.z - ms.grab.z, e.altKey)) {
               ms.moved = true; this._svg.style.cursor = "grabbing";
             } else {

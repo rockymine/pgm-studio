@@ -48,4 +48,4 @@ composer edit reports the old numbers, silently. `rm -rf
 
 None of these are in `PgmStudio.slnx`, so `dotnet build` at the root does not compile
 them and a rename in `src/` can break one silently — `tools/build-scripts.sh` builds
-every script in `tools/` and is what catches that (`B227`).
+every script in `tools/` and is what catches that.

@@ -47,7 +47,7 @@ export function defaultProp(kind, seed) {
       // No style of its own until one is picked from the library: an empty object deserializes to the C#
       // HouseStyle defaults, which is the built-in shell — so a building drawn and never dressed is still a
       // building rather than nothing. `wings` is a list of rectangles rather than one — the canvas only ever
-      // drags the first, but the shape carries more the day something else authors one (G177).
+      // drags the first, but the shape carries more the day something else authors one.
       return { ...base, wings: [], front: null, style: {} };
     default:
       throw new Error(`Unknown prop kind: ${kind}`);
@@ -98,7 +98,7 @@ export const MAX_FOOTPRINT = 192;
  *  an inside, or past `MAX_FOOTPRINT`. The same floor and ceiling `HouseProp.Footprint` holds, so the canvas
  *  refuses exactly what the stamp would. Reads the wing being dragged or edited — the canvas only ever offers
  *  one at a time — so this is the live-drag and single-wing check; the server is the authority on a whole
- *  multi-wing plan's own covered area (G177). */
+ *  multi-wing plan's own covered area. */
 export function rectFootprint(prop) {
   const plan = rectPlan(prop);
   if (!plan) return null;

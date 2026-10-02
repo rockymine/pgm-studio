@@ -6,7 +6,7 @@ using PgmStudio.Contracts;
 namespace PgmStudio.Client.Features.Catalog;
 
 /// <summary>
-/// The shape catalog (G144): the generation vocabulary as cards. The catalog is a <b>bounded</b> set — it is
+/// The shape catalog: the generation vocabulary as cards. The catalog is a <b>bounded</b> set — it is
 /// derived from the emitters and the tuning constants, not composed — so the whole thing is fetched once and
 /// filtered in the page, which makes every chip instant and needs no cursor.
 ///

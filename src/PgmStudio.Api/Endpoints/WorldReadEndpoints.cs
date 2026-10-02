@@ -42,6 +42,11 @@ namespace PgmStudio.Api.Endpoints;
 internal sealed record BuiltRead(BuiltWorld Built, MapXml? Map, string Name,
     Dictionary<string, object?>? Doc = null, SymmetryIntent? LaidTo = null);
 
+/// <summary>The stored documents a world is built from. <paramref name="Doc"/> is null where the map document
+/// does not read; <paramref name="Identity"/> is every byte the world and its overlays are drawn from.</summary>
+internal sealed record WorldDocuments(string LayoutJson, MapIntent Intent, Dictionary<string, object?>? Doc,
+    byte[] Identity);
+
 /// <summary>How a world read is loaded, once, for the endpoints below to draw from.</summary>
 internal static class WorldReads
 {
@@ -49,14 +54,42 @@ internal static class WorldReads
     /// when the map has no stored sketch layout — which is every map that ships its own region files, and is
     /// a 404 rather than a fault: there is no world here to build.</summary>
     public static async Task<BuiltRead?> LoadAsync(
+        MapRow map, MapReader reader, MapArtifactStore artifacts, CancellationToken ct) =>
+        await DocumentsAsync(map, reader, artifacts, ct) is { } documents ? Build(map, documents) : null;
+
+    /// <summary>The stored documents a map's world is built from, read and not yet built, or null when the map
+    /// has no stored sketch layout. Their <see cref="WorldDocuments.Identity"/> names every picture drawn of the
+    /// world (<see cref="Drawings"/>), so a picture already drawn is answered without a build.</summary>
+    public static async Task<WorldDocuments?> DocumentsAsync(
         MapRow map, MapReader reader, MapArtifactStore artifacts, CancellationToken ct)
     {
         var layout = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         if (layout is null) return null;
 
-        var layoutJson = System.Text.Encoding.UTF8.GetString(layout);
+        var intentBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.MapIntentJson, ct) ?? [];
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
-        var built = BuiltWorlds.Of(layoutJson, intent);
+
+        Dictionary<string, object?>? doc = null;
+        byte[] docBytes;
+        try
+        {
+            doc = await reader.ReadDocAsync(map, ct);
+            docBytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(doc);
+        }
+        catch (Exception fault) when (fault is InvalidOperationException or KeyNotFoundException
+                                          or FormatException or ArgumentException or NotSupportedException)
+        {
+            docBytes = System.Text.Encoding.UTF8.GetBytes($"revision {map.Revision}");
+        }
+
+        byte[] identity = [.. layout, 0, .. intentBytes, 0, .. docBytes];
+        return new WorldDocuments(System.Text.Encoding.UTF8.GetString(layout), intent, doc, identity);
+    }
+
+    /// <summary>The world <paramref name="documents"/> build, with the map document projected onto it.</summary>
+    public static BuiltRead Build(MapRow map, WorldDocuments documents)
+    {
+        var built = BuiltWorlds.Of(documents.LayoutJson, documents.Intent);
 
         // The overlays read a map document, and the one that describes this world is the projection of the
         // intent the build just resolved — spawns snapped to the structures it placed, goal locations filled
@@ -64,21 +97,21 @@ internal static class WorldReads
         // written before any of that was known.
         MapXml? projected = null;
         Dictionary<string, object?>? asRead = null;
-        try
-        {
-            var doc = await reader.ReadDocAsync(map, ct);
-            IntentGenerator.Apply(doc, built.ResolvedIntent);
-            asRead = doc;
-            projected = Deserializer.FromDict(doc);
-        }
-        catch (Exception fault) when (fault is InvalidOperationException or KeyNotFoundException
-                                          or FormatException or ArgumentException)
-        {
-            // A document that will not project costs the overlays and not the picture. The terrain is what
-            // was asked for; the markers on top of it are the part that needs a readable document.
-        }
+        if (documents.Doc is { } doc)
+            try
+            {
+                IntentGenerator.Apply(doc, built.ResolvedIntent);
+                asRead = doc;
+                projected = Deserializer.FromDict(doc);
+            }
+            catch (Exception fault) when (fault is InvalidOperationException or KeyNotFoundException
+                                              or FormatException or ArgumentException)
+            {
+                // A document that will not project costs the overlays and not the picture. The terrain is what
+                // was asked for; the markers on top of it are the part that needs a readable document.
+            }
 
-        return new BuiltRead(built, projected, map.Slug, asRead, LaidTo(layoutJson, built.ResolvedIntent));
+        return new BuiltRead(built, projected, map.Slug, asRead, LaidTo(documents.LayoutJson, built.ResolvedIntent));
     }
 
     /// <summary>The world as chunks, with the columns its map document opens to bridging — what
@@ -141,12 +174,31 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
     /// answers the same 422 an empty picture does — a read with no text twin never overrides this.</summary>
     protected virtual string? Text(BuiltRead read) => null;
 
+    /// <summary>What a picture is drawn with beyond the world and the query, for the name it is kept under
+    /// (<see cref="Drawings"/>).</summary>
+    protected virtual string DrawnWith => "";
+
+    /// <summary>Waits for whatever a drawing needs before the world is built; the handle is given back when the
+    /// read is answered. A picture already drawn waits for nothing.</summary>
+    protected virtual Task<IDisposable?> TurnAsync(CancellationToken ct) => Task.FromResult<IDisposable?>(null);
+
+    /// <summary>The name this request's picture is kept under: the route, its query words but the browser's
+    /// <c>round</c> and <c>attempt</c>, and every byte the world is drawn from.</summary>
+    private string PictureName(WorldDocuments documents)
+    {
+        var words = HttpContext.Request.Query
+            .Where(word => word.Key is not ("round" or "attempt"))
+            .OrderBy(word => word.Key, StringComparer.Ordinal)
+            .Select(word => word.Key + "=" + word.Value);
+        return Drawings.Name($"{HttpContext.Request.Path}?{string.Join('&', words)}|{DrawnWith}", documents.Identity);
+    }
+
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
-        var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
-        if (read is null)
+        var documents = await WorldReads.DocumentsAsync(map, reader, artifacts, ct);
+        if (documents is null)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
                 [new Vocabulary.Finding(RequestRules.NoSuchSubject,
@@ -154,6 +206,22 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
                     + "read back — a map that ships its own region files is read from those instead")], ct);
             return;
         }
+
+        var wantsText = TextAnswer.Wanted(HttpContext);
+        var name = wantsText ? null : PictureName(documents);
+        if (name is not null)
+        {
+            HttpContext.Response.Headers.ETag = $"\"{name}\"";
+            HttpContext.Response.Headers.CacheControl = "private, no-cache";
+            if (Drawings.TryFind(name, out var kept))
+            {
+                await AnswerAsync(kept, ct);
+                return;
+            }
+        }
+
+        using var turn = await TurnAsync(ct);
+        var read = WorldReads.Build(map, documents);
 
         if (Storeyed && Query<string?>("layer", isRequired: false) is { Length: > 0 } asked)
         {
@@ -177,7 +245,7 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
             };
         }
 
-        if (TextAnswer.Wanted(HttpContext))
+        if (wantsText)
         {
             string? text;
             try { text = Text(read); }
@@ -204,14 +272,29 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
         catch (Exception fault) when (fault is InvalidOperationException or ArgumentException
                                           or FormatException or OverflowException)
         {
+            HttpContext.Response.Headers.Remove("ETag");
             await Refusals.UnreadableAsync(HttpContext, "cannot draw that", fault.Message, ct);
             return;
         }
 
+        Drawings.Keep(name!, png);
+        await AnswerAsync(png, ct);
+    }
+
+    /// <summary>Answer a drawn picture, or the 422 that says there was nothing to draw.</summary>
+    private async Task AnswerAsync(byte[]? png, CancellationToken ct)
+    {
         if (png is null)
         {
+            HttpContext.Response.Headers.Remove("ETag");
             await Refusals.WriteAsync(HttpContext, 422, "nothing to draw",
                 [new Vocabulary.Finding(RequestRules.Conflict, Empty)], ct);
+            return;
+        }
+
+        if (HttpContext.Request.Headers.IfNoneMatch.Contains(HttpContext.Response.Headers.ETag.ToString()))
+        {
+            await Send.StatusCodeAsync(StatusCodes.Status304NotModified, ct);
             return;
         }
 
@@ -616,7 +699,7 @@ internal sealed class TraversabilityReadEndpoint(MapRepository repo, MapReader r
 
 /// <summary>GET /api/map/{slug}/render/structures — the building census by block material, for a world the
 /// studio did <b>not</b> build. On one it did, <c>render/topdown?subject=structure</c> is the read to take:
-/// this one finds roofs by material and cannot see a town in stone and quartz (`B149`), while the structure
+/// this one finds roofs by material and cannot see a town in stone and quartz, while the structure
 /// layer draws what the build recorded itself placing.</summary>
 internal sealed class StructuresReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : WorldRenderEndpoint(repo, reader, artifacts)

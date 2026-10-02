@@ -8,8 +8,8 @@
 
 @* Plan editor — a coarse cell-grid layout tool, on one of two bindings: a map's plan artifact
    (/maps/{slug}/plan) or a plan row (/plans/{id}, /plans/new). Both render the same tool: the rail's Info and
-   Draw phases, the flow bar, and a collapsible sidebar whose chips switch between Settings, Checks and
-   Generator check. Only the topbar follows the binding, because only saving differs: a map-backed plan saves
+   Draw phases, the flow bar, and a collapsible sidebar whose chips switch between Settings, Checks and,
+   for an admin, Generator check. Only the topbar follows the binding, because only saving differs: a map-backed plan saves
    into its map, a plan row saves as a row and forks when it was generated or imported. The PlanCanvas JS
    (via bridge/plan-bridge.js) owns the plan document, the pointer tools and the live symmetry mirror ghost. *@
 
@@ -89,7 +89,10 @@
             <div class="plan-panel-switch">
               <Chip Active="@(leftPanel == "settings")" OnClick='() => SetPanel("settings")'>Settings</Chip>
               <Chip Active="@(leftPanel == "validation")" OnClick='() => SetPanel("validation")'>Checks</Chip>
+              @if (showBoxes)
+              {
               <Chip Active="@(leftPanel == "feasibility")" OnClick='() => SetPanel("feasibility")'>Generator check</Chip>
+              }
               <Button Variant="icon" Icon="panel-left-close" Title="Hide panel" OnClick="ToggleSidebar" />
             </div>
             @if (leftPanel == "settings")
@@ -123,7 +126,7 @@
             </Section>
 
             }
-            else if (leftPanel == "feasibility")
+            else if (showBoxes && leftPanel == "feasibility")
             {
             @* Producibility, grouped per box with the unit-level findings pinned above them: a box can be
                unbuildable on its own geometry AND the unit unbuildable in how its boxes are arranged, so both
@@ -319,11 +322,15 @@
                                Open="@(openFlyout == "markers")" OnToggleOpen='() => ToggleFlyout("markers")'
                                OnPick="PickMarker" />
               @* Box envelopes: drawing one states what the pieces inside it realize. Annotation only — a box
-                 never compiles, and dragging it carries its members. *@
+                 never compiles, and dragging it carries its members. Admin only: boxes are the composer's
+                 model, kept in the plan and hidden from members. *@
+              @if (showBoxes)
+              {
               <DockFlyoutGroup Items="BoxItems" ActiveKey="@boxActive" Label="Boxes"
                                Armed="@(tool == "box" && boxKind == boxActive)"
                                Open="@(openFlyout == "boxes")" OnToggleOpen='() => ToggleFlyout("boxes")'
                                OnPick="PickBox" />
+              }
             </DockGroup>
           </CanvasDock>
           }
@@ -334,6 +341,14 @@
               @if (sel is null)
               {
                 <p class="section-desc">Select something to edit it. Draw a piece first, then place spawns and wools on it.</p>
+              }
+              else if (sel.Kind == "multi")
+              {
+                <DetailHeader Icon="copy" Label="@($"{sel.Count} selected")" />
+                <p class="section-desc">Drag any of them to move them together. Delete removes them.</p>
+                <Button Full Variant="danger" Writes OnClick="DeleteSelected">
+                  <i data-lucide="trash-2"></i> Delete @sel.Count items
+                </Button>
               }
               else if (sel.Kind == "piece")
               {

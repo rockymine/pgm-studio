@@ -620,8 +620,8 @@ coverage read that traced one journey and called **57%** of the board dead. The 
 beside the document now: 4 points, 6 journeys, **30.4%** dead, and the dead patches fall in mirrored pairs the
 way a `rot_180` board's should.
 
-**Every one of them needs ground, and says whether it had any** rather than guessing. Four answer
-`haveLayers` — `traversability`, `kit-reach`, `wool-availability` and `monument-seat` — false on a map
+**Every one of them needs ground, and says whether it had any** rather than guessing. Three answer
+`haveLayers` — `traversability`, `kit-reach` and `wool-availability` — false on a map
 with no scanned world; `editability` answers `hasY0` for the same question, and `coverage` answers
 `haveRoutes`, which is the narrower one of whether there were journeys to trace. Read the flag first: without
 columns there is nothing to connect anything across, so traversability reads every spawn and wool as isolated
@@ -634,7 +634,6 @@ design.
 | `GET /map/{slug}/editability` | which columns a player may edit and **what makes each one editable**, as digit rows over a bounding box with a zone legend and the counts. The four zones are `build_zone` (a rectangle the author drew), `ground` (nothing forbids it — on a void-enforced map exactly the columns with a block at y=0), `filtered` (a spawn's ore, a wool room's team-and-material whitelist) and `sealed`. Place and break are read as the separate scopes PGM makes them, so a canopy over the void that is breakable and not placeable-on reads as a permission rather than a refusal. `findings` carries `EZ1` — a patch of standing ground nobody can edit, with its box — and `EZ2`, void between ground and a build zone nobody may build across where the plan put ground, with its box and width | 404 |
 | `GET /map/{slug}/kit-reach` | the harder version of traversability: can a fresh spawn reach each wool with **only the placeable blocks its kit grants**? A map can be connected on paper and unreachable with the blocks players actually hold. `blocksNeeded` counts both halves of what a player builds — one a cell for void bridged, and Δ−1 for a rise of Δ — and beside it `blocks` says how far round the cheapest crossing goes and `drops` what it falls down on the way. Each team walks **its own** ground, with whatever an `enter` rule bars it from subtracted, so a wool behind an oversized protection reads unreachable here and not merely expensive. A spawn and a wool are each walked from the **storey their region states** — the floor of the spawn box, the wool's own `y` — so a spawn on a deck is priced along the deck rather than along whatever lies under it. Every wool is reported with the `owner` that defends it, and a team's **own** wool is never held against it — this budget is what a capture costs and a defender makes none, which is a narrower reading than the traversability verdict's, where a defender still has to reach its own room's border | 404 |
 | `GET /map/{slug}/wool-availability` | per declared wool, whether it can be obtained at all, and whether the source is repeatable or one-time — a wool nobody can pick up is a match nobody can finish | 404 |
-| `GET /map/{slug}/monument-seat` | whether each monument's block can hold the wool won on it — `clear` that nothing stands in it, `support` that a block touches one of its six faces, `pedestal` that the support is the one below. Both faults are `error`: a blocked cell cannot take the wool (PGM warns on load) and a block with nothing to place against cannot be placed into. The whole-map read of what `block-seat` answers for one block, and the one read whose fault is invisible in every render | 404 |
 | `GET /map/{slug}/coverage` | where the ground is lived on: every ground cell classed reached/decorated/dead (digit rows + legend), the shares, and each dead patch with its area, centroid and walk to the nearest used ground — the corridors between every waypoint pair, widened `GroundCoverage.CorridorMargin`, plus each waypoint's `PoiRadius` ring and each prop's `PropRadius` fringe. The journeys are walked storey by storey on the same ground the traversability verdict is taken over; the picture is one pixel a cell, so a stacked column is drawn once however many storeys it carries. `?format=png` answers the same grid as a picture. A measurement, not a gate — nothing refuses on it yet | 404 |
 
 **Finishing**
@@ -690,11 +689,10 @@ build queue as a render does (`docs/access.md`):
 GET  /api/map/voidwatch/traversability   → {connected, isolated[]}   the walk EX1 refuses on
 GET  /api/map/voidwatch/kit-reach        → per wool, reachable with the blocks the kit grants
 GET  /api/map/voidwatch/wool-availability → per wool, obtainable at all, and repeatable or once
-GET  /api/map/voidwatch/monument-seat         → whether each monument is clear and has a block to place against
 GET  /api/map/voidwatch/editability      → the per-column grid of what makes each column editable
 ```
 
-The first four carry `haveLayers` and `editability` carries `hasY0`. **False means the map has no scanned
+The first three carry `haveLayers` and `editability` carries `hasY0`. **False means the map has no scanned
 world**, and every one of these answers over ground: without it traversability reads each spawn and wool as
 isolated and the pre-flight's buildability check skips, which says the map has not been scanned rather than
 that its design is wrong.

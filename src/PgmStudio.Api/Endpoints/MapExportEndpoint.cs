@@ -94,7 +94,7 @@ public sealed class MapExportEndpoint(
         {
             var regionDir = Path.Combine(tmp, "region");
             AnvilRegionWriter.Write(built.World, regionDir);
-            // Beside the voxels, not inside them (B133) — the sidecar travels in the same zip a downloaded
+            // Beside the voxels, not inside them — the sidecar travels in the same zip a downloaded
             // world does, so a render taken from the download later still gets the recorded reading.
             WorldProvenanceFile.Write(built.Provenance, regionDir);
             DressingReportFile.Write(built.Declines, regionDir);

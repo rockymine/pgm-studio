@@ -18,7 +18,7 @@
         var cls = idx < CurrentStep ? "flow-step flow-step--done"
                 : idx == CurrentStep ? "flow-step flow-step--active"
                 : "flow-step";
-        @* Label only — status icons (the check) deferred to ND4 (save model), where step status gets meaning. *@
+        @* Label only — status icons (the check) deferred to the save model, where step status gets meaning. *@
         <button class="@cls" disabled="@(idx > MaxStep)" @onclick="() => OnStep.InvokeAsync(idx)">@Steps[idx]</button>
       }
     </div>

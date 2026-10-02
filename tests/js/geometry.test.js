@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { buildTransform, buildInverseTransform, toScreen } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/transform.js";
-import { pointInRing, rasterisePolygon, clipHalfPlane, pointInPoly, polysOverlap }
+import { pointInRing, rasterisePolygon, clipHalfPlane, pointInPoly, polysOverlap, ringSelfIntersects }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/polygon.js";
 import { applySymmetry, applySymmetryToBounds } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/symmetry.js";
 import { blockToExtentBounds, drawnBoundsFromBlocks, regionToBounds2d, sketchShapeToPgmRegion }
@@ -183,4 +183,13 @@ test("normalizeIslands derives simplified_polygon, preserving an existing one", 
   assert.deepEqual(out[0].simplified_polygon, { exterior: [[0, 0], [1, 0], [1, 1]], holes: [] });
   assert.deepEqual(out[1].simplified_polygon, { exterior: [[9, 9]], holes: [] });
   assert.deepEqual(normalizeIslands(null), []);
+});
+
+// ── polygon.js: ringSelfIntersects ────────────────────────────────────────────
+test("ringSelfIntersects reads a bowtie as folded and a convex or notched ring as simple", () => {
+  assert.equal(ringSelfIntersects([[0, 0], [10, 10], [10, 0], [0, 10]]), true);
+  assert.equal(ringSelfIntersects([[0, 0], [10, 0], [10, 10], [0, 10]]), false);
+  assert.equal(ringSelfIntersects([[0, 0], [10, 0], [10, 10], [6, 10], [6, 2], [4, 2], [4, 10], [0, 10]]), false);
+  // A vertex that only touches another edge is not a proper crossing.
+  assert.equal(ringSelfIntersects([[0, 0], [10, 0], [5, 0], [5, 10]]), false);
 });

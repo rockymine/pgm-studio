@@ -181,6 +181,7 @@ builder.Services.AddScoped<MapArtifactStore>();
 builder.Services.AddScoped<MapChangeLog>();
 builder.Services.AddScoped<MapNoteStore>();
 builder.Services.AddSingleton<PgmStudio.Api.Services.NotePictures>();
+PgmStudio.Api.Services.Drawings.Configure(builder.Configuration);
 // The agent the author hands notes to: a Claude Code Routine fired through its API trigger (docs/tools/sketch.md).
 builder.Services.AddSingleton<PgmStudio.Api.Services.AgentHandoff>();
 builder.Services.AddHttpClient(PgmStudio.Api.Services.AgentHandoff.ClientName, c => c.Timeout = TimeSpan.FromSeconds(20));
@@ -259,7 +260,7 @@ builder.Services.AddSingleton(services => PgmStudio.Api.Services.BuildQueueOptio
 builder.Services.AddSingleton<PgmStudio.Api.Services.BuildQueue>();
 builder.Services.AddScoped<PgmStudio.Api.Services.PlayerLookup>();
 
-// B8 import-from-url (docs/tools/configure.md, the Import phase): a hardcoded SSRF allowlist + a dedicated
+// Import-from-url (docs/tools/configure.md, the Import phase): a hardcoded SSRF allowlist + a dedicated
 // imports root (kept out of the curated corpus) + bounded extraction.
 var importRoot = builder.Configuration["Import:Root"] ?? Path.Combine(Path.GetTempPath(), "pgm-studio-imports");
 var importHosts = builder.Configuration.GetSection("Import:AllowedHosts").Get<string[]>()
@@ -270,7 +271,7 @@ builder.Services.AddHttpClient("import", c => c.Timeout = TimeSpan.FromSeconds(1
     .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
 
 // Corpus roots used to locate a map's Minecraft world (<root>/<slug>/region) for the world scan; the
-// imports root is searched too so scan-world finds B8-imported worlds.
+// imports root is searched too so scan-world finds imported worlds.
 var mapsRoots = (builder.Configuration.GetSection("MapsRoots").Get<string[]>() ?? [])
     .Append(importRoot).ToArray();
 builder.Services.AddSingleton(new PgmStudio.Api.Services.MapsRoots(mapsRoots));

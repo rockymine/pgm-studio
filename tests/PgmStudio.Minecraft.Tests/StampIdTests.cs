@@ -4,10 +4,10 @@ using PgmStudio.Minecraft.Anvil;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
-/// What a provenance claim says about the thing that made it. The record used to be a hand-built string whose
-/// number meant the orbit image at one stamp site and a running index into the already-fanned list at every
-/// other, so two entries of one form meant different things and nothing could pair a stamp with its own
-/// mirror. What is asserted here is the property that replaced it: identity and image are separate answers.
+/// What a provenance claim says about the thing that made it. The record is a structure, not a hand-built string: a string's
+/// number would mean the orbit image at one stamp site and a running index into the already-fanned list at every
+/// other, so two entries of one form would mean different things and nothing could pair a stamp with its own
+/// mirror. What is asserted here is that identity and image are separate answers.
 /// </summary>
 public sealed class StampIdTests
 {

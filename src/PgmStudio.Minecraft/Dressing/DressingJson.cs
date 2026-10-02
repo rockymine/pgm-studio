@@ -397,10 +397,9 @@ public static class DressingJson
     /// was already tiled by, and its style falls back to <c>solid</c> — the band it always paved. Any other
     /// style spent only the first block, so that is the solid it becomes.</para>
     ///
-    /// <para><b>A house's <c>points</c> → <c>wings</c>.</b> A placed building was exactly two corners and is
-    /// now a list of one or more touching rectangles (`G177`); a stored one carries a single wing, so its own
-    /// two corners become that wing's own two corners, wrapped in the list they were always the only entry
-    /// of.</para>
+    /// <para><b>A house's <c>points</c> → <c>wings</c>.</b> A placed building is a list of one or more touching
+    /// rectangles (wings); a stored one carries two corners, so they become the single wing's own two
+    /// corners, wrapped in a list of one entry.</para>
     /// </summary>
     private static JsonNode Upgraded(string json)
     {
@@ -551,9 +550,9 @@ public static class DressingJson
             prop.Remove("points");
         }
 
-        // A wing was two corners and is now a rectangle plus what it states about itself, so the older shape —
-        // the corner pair on its own — becomes an entry that states nothing and therefore wears the building's
-        // own everything, which is exactly what it meant before there was anything else to say.
+        // A wing is a rectangle plus what it states about itself, so a stored corner pair on its own
+        // becomes an entry that states nothing and therefore wears the building's
+        // own everything, which is exactly what a bare corner pair means.
         if (kind == "house" && prop["wings"] is JsonArray wings)
             for (var index = 0; index < wings.Count; index++)
                 if (wings[index] is JsonArray corners)

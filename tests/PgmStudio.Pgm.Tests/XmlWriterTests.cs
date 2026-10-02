@@ -282,7 +282,7 @@ public sealed class XmlWriterTests
     /// <c>uuid</c> it resolves to a player — or as a pseudonym, and either alone is a whole author. A name no
     /// Minecraft account carries is the second kind, so it is written as text and never as an empty
     /// <c>uuid</c>, which PGM would refuse to resolve. This is what makes a name the editor could not look up
-    /// storable rather than droppable (<c>TC2</c>).</summary>
+    /// storable rather than droppable.</summary>
     [Test]
     public async Task An_author_with_no_account_is_written_as_the_elements_text()
     {

@@ -89,7 +89,7 @@ public sealed class SchemaCompletenessTests
     /// A route that declares no request type publishes no <c>requestBody</c> at all, so <c>/api-docs</c>
     /// offers no field to fill and a generated client types the body <c>object</c> — the caller learns the
     /// shape by being refused. Three of the sixty-seven POST/PUT/PATCH routes are there today, and all three
-    /// take a material or a style, whose hierarchy the generator cannot render (`RP41`). The number only
+    /// take a material or a style, whose hierarchy the generator cannot render. The number only
     /// moves down, and a route added without a declaration pushes it up and fails here.</summary>
     private const int StillUntyped = 0;
 
@@ -495,8 +495,8 @@ public sealed class SchemaCompletenessTests
         ("GET /api/map/{slug}/coverage", "image/png"),
         ("GET /api/plans/{id}/png", "image/png"),
 
-        // The world read-backs: the eight pictures and one text read that used to exist only behind
-        // PgmStudio.RoundTrip's flags. Each is the last read an agent takes — look at what was built.
+        // The world read-backs: the eight pictures and one text read that <c>PgmStudio.RoundTrip</c>'s
+        // flags also reach. Each is the last read an agent takes — look at what was built.
         ("GET /api/map/{slug}/render/topdown", "image/png"),
         ("GET /api/map/{slug}/render/section", "image/png"),
         ("GET /api/map/{slug}/render/heightmap", "image/png"),
@@ -585,7 +585,7 @@ public sealed class SchemaCompletenessTests
     /// <b>Every word a read-back's CLI flag names is a query word its route declares.</b>
     /// <c>WorldReadCatalog</c> is one text serving two surfaces — the CLI prints it as <c>--help</c> and each
     /// route publishes it as its own summary — so a flag naming a word the route does not take documents a
-    /// form that fails, and names the wrong argument while doing it (<c>B266</c>).
+    /// form that fails, and names the wrong argument while doing it.
     ///
     /// <para>Read out of the published schema rather than out of the endpoints, because the schema is what an
     /// agent acts on: a word that reaches the document is a word a caller may send.</para>

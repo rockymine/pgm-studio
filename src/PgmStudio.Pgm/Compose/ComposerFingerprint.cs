@@ -25,8 +25,8 @@ public static class ComposerFingerprint
     ///
     /// <para>The set is a <b>tripwire, not a proof</b>: it catches a change to anything the composer draws
     /// often, and its sensitivity is exactly its coverage. That is why it is not two boards per cohort, which
-    /// was the first cut and missed a real change — the bay cap only binds on a two-legged hub, a form roughly
-    /// one 20-player board in sixteen carries, so a handful of boards had none to move. Widening it to
+    /// would miss a real change — the bay cap only binds on a two-legged hub, a form roughly
+    /// one 20-player board in sixteen carries, so a handful of boards has none to move. Widening it to
     /// <see cref="SeedsPerCohort"/> seeds puts the rarer wide-board forms in range. A change that moves only a
     /// form rarer still can slip through; the answer to that is more seeds, and the cost is linear.</para>
     ///

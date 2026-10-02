@@ -3,9 +3,8 @@ using PgmStudio.Analysis.Scan;
 namespace PgmStudio.Analysis.Tests;
 
 /// <summary>
-/// B5 side-view depth-map tests. Expected values are the reference `_build_depth_map`
-/// (routes/build_regions.py) output for the same synthetic segments, so this is genuine parity on a
-/// controlled case (primary/depth axis swap, nearest-depth normalisation, empty=-1).
+/// Side-view depth-map tests over synthetic segments: a controlled case of the primary/depth axis swap,
+/// nearest-depth normalisation and empty=-1.
 /// </summary>
 public sealed class SideViewTests
 {

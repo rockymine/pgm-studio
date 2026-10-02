@@ -44,7 +44,7 @@ public sealed class GoalDistancesTests
     [Test]
     public async Task An_absolutely_placed_goal_reads_its_at_as_cells_from_the_centre()
     {
-        // The B128 shape: a goal naming no piece, its `at` an absolute cell position. It sits on the mid
+        // An absolutely placed goal: a goal naming no piece, its `at` an absolute cell position. It sits on the mid
         // ground the lane fans across, so both walks exist and the enemy leg is the longer one.
         var plan = Plan("""
         { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},

@@ -6,7 +6,7 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests.Compose;
 
-/// <summary>G63-C.2 — the box-model placement plan: the spawn may sit on the back or a lateral side, and the
+/// <summary>The box-model placement plan: the spawn may sit on the back or a lateral side, and the
 /// wools are assigned around it (the free sides first, back preferred, a third doubling on the spawn's side).</summary>
 public class TeamUnitAllocatorTests
 {
@@ -126,10 +126,10 @@ public class TeamUnitAllocatorTests
     private const int LaneCells = 2;
 
     /// <summary>
-    /// The spanning dock (G123): a frontline face reaching across a bay-fronted hub's bay must hold at least a
+    /// The spanning dock: a frontline face reaching across a bay-fronted hub's bay must hold at least a
     /// corridor's width on <b>every</b> shoulder it lands on, not just one. A face anchored on one side and
-    /// resting on a sliver on the other is cantilevered over the hole — the seat that used to be legal when the
-    /// rule was "some contact patch is wide enough".
+    /// resting on a sliver on the other is cantilevered over the hole — a seat a rule of
+    /// "some contact patch is wide enough" would wrongly allow.
     /// </summary>
     [Test]
     public async Task A_bay_spanning_frontline_holds_a_lane_on_every_shoulder()

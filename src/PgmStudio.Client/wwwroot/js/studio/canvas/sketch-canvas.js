@@ -17,6 +17,8 @@
  *
  * Callbacks: onShapeCreated(partial) · onShapeUpdated(shape) · onShapeSelected(id|null) [drill] ·
  * onGroupSelected(id|null) [single-click] · onShapeDeleted(id) · onSplit(a, b) [slice a shape in two]
+ * onVertexDelete(remove) [take the picked point out: the host runs `remove()` as one undo step and answers
+ * its `{ done } | { refused }` result]
  */
 
 import { CanvasBase } from "./canvas-base.js";
@@ -94,7 +96,7 @@ export class SketchCanvas extends CanvasBase {
   #mode    = "rot_180";
 
   #shapes      = new Map();   // id → shape (source for paint / hit-test / edit)
-  #structural  = [];          // locked plan pieces (S25) — the plan's own, never edited/rasterized as terrain
+  #structural  = [];          // locked plan pieces — the plan's own, never edited/rasterized as terrain
   #selectedStructuralId = null;   // the picked plan piece, where the phase editing geometry may pick one
   #dragStartPiece = null;         // where the dragged piece stood, so a refused move can be answered
   #objectives  = [];          // {kind, x, z} — where the intent's destroyables and cores stand, marker only
@@ -108,7 +110,7 @@ export class SketchCanvas extends CanvasBase {
   #level       = "group";
   #groups     = [];          // [{ id, shapeIds, exterior, holes }] from the bridge
   #mirrorPolys = [];
-  #ghostPolys  = [];          // other layers' group outlines (S7)
+  #ghostPolys  = [];          // other layers' group outlines
 
   // Placed dressing (decoration.md). The document lives here rather than in the bridge because the canvas is
   // where a prop is put, moved and picked; the bridge asks for it when it saves.
@@ -159,14 +161,14 @@ export class SketchCanvas extends CanvasBase {
   #zoomEl    = null;
   #dimEl     = null;
   #measure   = null;   // { ax, az, bx, bz, live } — the ruler measurement (drag across a void gap)
-  #split     = null;   // { ax, az, bx, bz } — the first cut point (S14) + the cursor, awaiting the second click
+  #split     = null;   // { ax, az, bx, bz } — the first cut point + the cursor, awaiting the second click
   #view      = null;   // { ax, az, bx, bz, live } — an eye being stood (a) and turned toward (b), In game's view tool
   #views     = [];     // [{ fromX, fromZ, lookX, lookZ }] — the views already kept, drawn where they stand
   #guides     = { x: null, z: null };   // alignment guide lines drawn during a snapped move/resize
-  #dragStartShape = null;  // snapshot of the grabbed shape at drag start (absolute snap-aware move, S9)
-  #dragStartShapes = null; // id→snapshot of every member when body-dragging a whole group (S20)
-  #rotateState = null;     // { snapshots, pivot, lastAngle, total } while rotating a selected group (S13)
-  #scaleState = null;      // { snapshots, orig, h } while scaling a selected group via a bbox handle (S21)
+  #dragStartShape = null;  // snapshot of the grabbed shape at drag start (absolute snap-aware move)
+  #dragStartShapes = null; // id→snapshot of every member when body-dragging a whole group
+  #rotateState = null;     // { snapshots, pivot, lastAngle, total } while rotating a selected group
+  #scaleState = null;      // { snapshots, orig, h } while scaling a selected group via a bbox handle
   #snapEnabled = true;
 
   // The world layers are PAINTED: `#painter` owns a <canvas> under the svg and redraws the whole world
@@ -193,7 +195,7 @@ export class SketchCanvas extends CanvasBase {
 
   // ── public API ───────────────────────────────────────────────────────────────
 
-  // The frame is no longer author-set — the grid auto-grows to the content. setBbox is kept for the
+  // The frame is not author-set — the grid auto-grows to the content. setBbox exists for the
   // bridge's load path but its value is ignored; the bounds come from the drawn shapes + mirror.
   setBbox()            { this.#renderSetup(); }
   setCenter(cx, cz)    { this.#center = { cx, cz }; this.#renderSetup(); this.#refreshCenter(); }
@@ -276,7 +278,7 @@ export class SketchCanvas extends CanvasBase {
   }
 
   // addShape / updateShape are the single chokepoint through which every drawn, moved, resized, rotated,
-  // scaled or vertex-edited shape reaches the stored map — so snapping here (S23) makes "shapes are
+  // scaled or vertex-edited shape reaches the stored map — so snapping here makes "shapes are
   // block-integer" an invariant of the store, no matter which edit path produced the shape. A live drag
   // re-applies from a pristine snapshot each frame, so snapping every frame gives a block-accurate preview
   // without accumulating rounding error.
@@ -426,7 +428,7 @@ export class SketchCanvas extends CanvasBase {
   setChunkVisible(v)  { this.#chunkVisible = v; this.#paintWorld(); }
   setBlocksVisible(v) { this.#blocksVisible = v; this.#rebuildRaster(); this.#paintWorld(); }
 
-  // Rasterize the drawn shapes into the block cells they voxelize into (the S23 WYSIWYG preview), merged
+  // Rasterize the drawn shapes into the block cells they voxelize into (the WYSIWYG preview), merged
   // into horizontal runs so the fill is a few hundred rects, not one per block. Cached — recomputed only on
   // a shape change while the Blocks layer is on, not per frame. (Only the primary footprint; the mirror
   // copies already read as smooth polygons on their own layer.)
@@ -513,7 +515,7 @@ export class SketchCanvas extends CanvasBase {
   // One shaded height map per group, decoded when the payload lands and held until the next one.
   #reliefShading = new Map();
 
-  // ── isometric preview (S6) ─────────────────────────────────────────────────────
+  // ── isometric preview ─────────────────────────────────────────────────────
   // Swap the top-down viewport for a read-only 3-D render of the world the export builds. Entering and
   // drawing are two steps because the world comes from the server: `enterIso` shows the surface waiting and
   // returns false (leaving the 2-D viewport untouched) if the module can't load or WebGL is unavailable, so
@@ -715,7 +717,7 @@ export class SketchCanvas extends CanvasBase {
     return consumed;
   }
 
-  // Body-drag (CV10 shape / S20 group): drag a selected shape's body — or a whole selected group — to
+  // Body-drag (shape / group): drag a selected shape's body — or a whole selected group — to
   // move it. World == surface coords here, so the default _toWorld (identity) is correct — no override.
   // A shape handle is its id (string); a group handle is `{ groupId }`.
   #isGroupHandle(h) { return !!(h && typeof h === "object" && h.groupId); }
@@ -789,7 +791,7 @@ export class SketchCanvas extends CanvasBase {
     }
   }
 
-  // Absolute, snap-aware move (S9): place the shape at start + (dx,dz), snapping its bbox edges/centre to
+  // Absolute, snap-aware move: place the shape at start + (dx,dz), snapping its bbox edges/centre to
   // other shapes' edges/centres + the symmetry centre; draws alignment guides. Alt bypasses snapping.
   _moveTo(handle, dx, dz, alt) {
     if (this.#isPieceHandle(handle)) return false;   // a room is placed in whole blocks, and snaps to none
@@ -939,7 +941,7 @@ export class SketchCanvas extends CanvasBase {
       paintContours(painter, this.#relief);
     });
     painter.layer("shapes",    () => this.#paintShapes());
-    // Structural pieces (S25) are locked plan context, not drawn primitives — always shown (like the group
+    // Structural pieces are locked plan context, not drawn primitives — always shown (like the group
     // outlines), not behind the Shapes toggle, so they stay visible while a plan is refined.
     painter.layer("structural", () => {
       paintStructural(painter, this.#structural, this.#selectedStructuralId);
@@ -986,7 +988,7 @@ export class SketchCanvas extends CanvasBase {
     }
   }
 
-  /** The plan pieces (S25). Reshaping them is the plan's business, but the phase that edits geometry may
+  /** The plan pieces. Reshaping them is the plan's business, but the phase that edits geometry may
    *  pick one — a region carries the height an author corrects. A selection outliving its piece is dropped:
    *  a recompile writes fresh shapes, and an id that no longer names one would draw chrome round nothing. */
   setStructural(shapes) {
@@ -1024,7 +1026,7 @@ export class SketchCanvas extends CanvasBase {
   }
 
   /**
-   * Accent-outline the current selection (S22) so it's findable even when the Shapes layer is hidden: the
+   * Accent-outline the current selection so it's findable even when the Shapes layer is hidden: the
    * selected shape's own outline (its Bézier curve) when a shape is selected/drilled, else the selected
    * group's outline (exterior + holes). World space, so it follows move / rotate / scale / resize with
    * everything else on the frame.
@@ -1093,7 +1095,7 @@ export class SketchCanvas extends CanvasBase {
   }
 
   // The ruler line in world coords (so it pans/zooms with the map); the live distance rides the line
-  // itself as screen-space text (#renderMeasureLabel), not the sub-bar. The slice preview (S14) shares
+  // itself as screen-space text (#renderMeasureLabel), not the sub-bar. The slice preview shares
   // this layer — it is the same kind of thing, a line drawn between two clicks.
   #paintMeasure() {
     const m = this.#measure;
@@ -1327,8 +1329,14 @@ export class SketchCanvas extends CanvasBase {
       // inspector reachable — so an ungated shape-delete takes the island out from under the marks being
       // stated on it. Each phase answers for its own placed thing, and the shape chord stands down while one
       // of them is up.
+      // On the points rung with a point picked, the same keys take that one point out instead — the shape
+      // chord stands down so the two never both answer one press.
+      { id: "sketch.deleteVertex", keys: ["delete", "backspace"], label: "Delete the selected point",
+        group: "Canvas", priority: 10, when: () => writable() && this.#pointPicked(),
+        run: () => this.#callbacks.onVertexDelete?.(() => this.#edit.removeSelectedVertex()) },
       { id: "sketch.delete", keys: ["delete", "backspace"], label: "Delete the selected shape",
-        group: "Canvas", when: () => writable() && !this.#reliefOn && !this.#dressingOn && !!this.#selectedId,
+        group: "Canvas",
+        when: () => writable() && !this.#reliefOn && !this.#dressingOn && !!this.#selectedId && !this.#pointPicked(),
         run: () => this.#callbacks.onShapeDeleted?.(this.#selectedId) },
       { id: "relief.delete", keys: ["delete", "backspace"], label: "Delete the selected mark",
         group: "Terraform", when: () => writable() && this.#reliefOn && !!this.#reliefTools?.selectedId,
@@ -1354,6 +1362,12 @@ export class SketchCanvas extends CanvasBase {
         priority: 10, when: () => live() && (this._activeTool === "polygon" || this._activeTool === "polyline"),
         run: () => this.#draw.onDblClick() },
     ]);
+  }
+
+  /** Whether a single point of the selected outline is picked on the points rung — the state in which a
+   *  delete key takes the point rather than the shape. Relief and dressing own the key while they are up. */
+  #pointPicked() {
+    return !this.#placesOwnThings && !!this.#selectedId && this.#level === "points" && (this.#edit?.selectedVertex ?? -1) >= 0;
   }
 
   /** Escape, in the order a press means them: an in-progress draw, then one rung back up the ladder — the
@@ -1563,7 +1577,7 @@ export class SketchCanvas extends CanvasBase {
 
 
 
-  // Split tool (S14): first click sets the cut's start + a preview line; the second click fires onSplit
+  // Split tool: first click sets the cut's start + a preview line; the second click fires onSplit
   // (the host cuts the crossed shape into two). The slice line rides the measure layer.
   #onSplitClick(bx, bz) {
     if (!this.#split) {

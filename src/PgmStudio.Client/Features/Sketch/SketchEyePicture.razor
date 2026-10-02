@@ -2,8 +2,10 @@
 @inject HttpClient Http
 
 @* One picture of the board from a player's eye: GET …/render/eye with a view's query words, at the size asked.
-   The browser loads it as an image, so a gallery streams in as the server draws it one picture at a time; a
-   picture that will not draw is asked again as a request so the studio's own sentence can say why. *@
+   The browser loads it as an image, so a gallery streams in as the server draws it one picture at a time. While
+   it draws, a smaller picture of the same view already held stands in for it; a studio too busy to draw asks
+   again once it says to, and a picture that will not draw is asked again as a request so the studio's own
+   sentence can say why. *@
 
 <figure class="eye-picture @Class" style="--aspect: @Width / @Height">
   @if (why is not null)
@@ -12,11 +14,15 @@
   }
   else
   {
+    @if (!loaded && Standin is not null)
+    {
+      <img src="@Standin" alt="" class="eye-picture__standin" />
+    }
     <img src="@Source" alt="@Alt" loading="lazy" class="@(loaded ? "is-loaded" : null)"
          @onload="() => loaded = true" @onerror="ExplainAsync" />
     @if (!loaded)
     {
-      <span class="eye-picture__drawing">Drawing…</span>
+      <span class="eye-picture__drawing @(Standin is null ? null : "eye-picture__drawing--over")">Drawing…</span>
     }
   }
 </figure>
@@ -27,8 +33,14 @@
     /// <summary>The view's <c>render/eye</c> query words, without a size.</summary>
     [Parameter, EditorRequired] public string Query { get; set; } = "";
 
-    [Parameter] public int Width { get; set; } = 480;
-    [Parameter] public int Height { get; set; } = 270;
+    /// <summary>The size a gallery thumbnail is drawn at.</summary>
+    public const int ThumbWidth = 480, ThumbHeight = 270;
+
+    [Parameter] public int Width { get; set; } = ThumbWidth;
+    [Parameter] public int Height { get; set; } = ThumbHeight;
+
+    /// <summary>A picture of the same view the browser already holds, shown until this one has drawn.</summary>
+    [Parameter] public string? Standin { get; set; }
 
     /// <summary>Changes whenever the board may have changed, so the browser asks again rather than showing
     /// the picture it already holds. The server keeps its own pictures for as long as the board is the same,
@@ -38,16 +50,28 @@
     [Parameter] public string? Alt { get; set; }
     [Parameter] public string? Class { get; set; }
 
-    private string Source => $"api/map/{Slug}/render/eye?{Query}&width={Width}&height={Height}&round={Round}";
+    /// <summary>Where the picture of <paramref name="query"/> at a size is drawn. <c>round</c> and <c>attempt</c>
+    /// only make the browser ask again; the studio names a picture by what it shows, not by either.</summary>
+    public static string SourceOf(string slug, string query, int width, int height, int round, int attempt = 0) =>
+        $"api/map/{slug}/render/eye?{query}&width={width}&height={height}&round={round}"
+        + (attempt > 0 ? $"&attempt={attempt}" : "");
+
+    private string Source => SourceOf(Slug, Query, Width, Height, Round, attempt);
+
+    /// <summary>How many times a studio too busy to draw is asked again before the gallery says so.</summary>
+    private const int BusyRetries = 4;
 
     private string? shown;
     private bool loaded;
     private string? why;
+    private int attempt;
 
     protected override void OnParametersSet()
     {
-        if (Source == shown) return;
-        shown = Source;
+        var asked = SourceOf(Slug, Query, Width, Height, Round);
+        if (asked == shown) return;
+        shown = asked;
+        attempt = 0;
         loaded = false;
         why = null;
     }
@@ -57,6 +81,14 @@
         try
         {
             var answer = await Http.GetAsync(Source);
+            if (answer.StatusCode == System.Net.HttpStatusCode.TooManyRequests && attempt < BusyRetries)
+            {
+                var wait = answer.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(5);
+                await Task.Delay(wait);
+                attempt++;
+                StateHasChanged();
+                return;
+            }
             if (answer.IsSuccessStatusCode) { why = "The picture couldn't be shown."; return; }
             var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
             why = refusal?.Findings.FirstOrDefault()?.Message is { Length: > 0 } sentence ? sentence

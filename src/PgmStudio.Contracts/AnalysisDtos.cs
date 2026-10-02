@@ -237,33 +237,6 @@ public sealed record WoolAvailabilityDto(
 /// nothing could be counted.</param>
 public sealed record WoolAvailabilityResponseDto(IReadOnlyList<WoolAvailabilityDto> Wools, bool HaveLayers);
 
-/// <summary>Whether one monument's block is clear. PGM warns on load where it is not, and the wool cannot
-/// be placed.</summary>
-/// <param name="WoolColor">The colour the monument takes.</param>
-/// <param name="Team">The team that defends it.</param>
-/// <param name="MonumentId">The monument this is about.</param>
-/// <param name="X">Its block position, east–west — a coordinate to check it at in-game.</param>
-/// <param name="Y">Its height.</param>
-/// <param name="Z">Its north–south position.</param>
-/// <param name="Clear">Whether the block itself is free of anything already standing in it.</param>
-/// <param name="Support">Whether a block touches one of its six faces — a block is placed against any face
-/// of a neighbour, so a monument hung from a ceiling or set into a wall plays like one on a pedestal.</param>
-/// <param name="Pedestal">Whether the support is the block directly below: the usual shape, and no more
-/// placeable than the others.</param>
-/// <param name="Severity">What the verdict is worth. Both faults are an <c>error</c>: a blocked cell cannot
-/// take the wool at all (PGM warns on load), and a block with nothing on any face cannot be placed into.</param>
-/// <param name="Message">The verdict in a sentence, naming what is wrong with the block.</param>
-public sealed record MonumentSeatDto(
-    string WoolColor, string Team, string MonumentId, int X, int Y, int Z,
-    bool Clear, bool Support, bool Pedestal, string Severity, string Message);
-
-/// <summary>GET /api/map/{slug}/monument-seat — whether each wool monument's block can hold the wool won on
-/// it: clear of anything standing in it, and standing on a block itself. The whole-map read of the question
-/// <c>block-seat</c> answers for one block while a monument is being placed.</summary>
-/// <param name="Monuments">One verdict per monument.</param>
-/// <param name="HaveLayers">Whether the map has scanned world data.</param>
-public sealed record MonumentSeatResponseDto(IReadOnlyList<MonumentSeatDto> Monuments, bool HaveLayers);
-
 /// <summary>One place a wool colour can be got, with the coordinates to check it at.</summary>
 /// <param name="Type">What it is: <c>block</c>, <c>chest</c> or <c>dispenser</c>.</param>
 /// <param name="Color">The colour it yields.</param>

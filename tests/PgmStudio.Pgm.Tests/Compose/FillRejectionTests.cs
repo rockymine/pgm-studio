@@ -91,7 +91,7 @@ public sealed class FillRejectionTests
     [Test]
     public async Task An_unsupported_knob_combination_is_data_not_a_throw()
     {
-        // a side-tuck room is supported for I/Z/scythe only — an L asking for one used to escape as an
+        // a side-tuck room is supported for I/Z/scythe only — an L asking for one must not escape as an
         // ArgumentException straight through BoxFiller, whose contract says rejections are a data channel
         var res = BoxFiller.Fill(Wool(20, 20), BoxEdge.Top, Cw, ShapeFamily.L,
             roomPlacement: RoomPlacement.SideTuck);

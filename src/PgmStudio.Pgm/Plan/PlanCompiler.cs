@@ -260,8 +260,8 @@ public static class PlanCompiler
                     // informational, carried for a caller with no built world to read yet, and never the
                     // spawn's real Y. WorldBuilder resolves that against the terrain the relief
                     // actually left — FrameFloor over the room's own footprint, and the exported point is the
-                    // pad it puts the player on (WX5). Reading this number as the answer is what B222 was
-                    // filed over; it is not read, and SpawnAndWoolAnchorTests holds that.
+                    // pad it puts the player on (WX5). Reading this number as the answer would be a bug;
+                    // it is not read, and SpawnAndWoolAnchorTests holds that.
                     Point = new Pt(px, piece.Value.Surface, pz),
                     // The whole spawn piece: the anti-grief zone, and the ground the room is framed on.
                     Protection = [new Rect(prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ)],

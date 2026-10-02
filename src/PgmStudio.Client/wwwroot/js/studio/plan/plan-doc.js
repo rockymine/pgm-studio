@@ -23,7 +23,7 @@ export const ROLE_COLORS = {
 };
 export const ROLE_LABELS = { piece: "Piece", "wool-room": "Wool room", spawn: "Spawn", buffer: "Buffer" };
 
-// The generating (terrain-producing) roles vs the non-generating annotation roles — the G48 palette grouping.
+// The generating (terrain-producing) roles vs the non-generating annotation roles — the palette grouping.
 export const GENERATING_ROLES = ["piece", "wool-room", "spawn"];
 export const TECHNICAL_ROLES = ["buffer"];
 
@@ -343,17 +343,18 @@ export function markerAtWorld(doc, wx, wz) {
  * The item a click at world/block point `(wx, wz)` selects. Two levels, the group model the sketch tool
  * already sets (single-click picks the island, double-click enters a member): by default a box wins over the
  * pieces it groups, and `drill` (the double-click pass) skips boxes to reach the piece under the cursor.
+ * `boxes: false` takes boxes out of the pick altogether, for a view that does not show them.
  *
  * Markers pick first at both levels rather than sitting inside the group. Their hit radius is a fraction of a
  * cell and they paint on top, so they can't steal a click aimed at the box body — and a marker is carried by
  * a piece, not grouped by a box, so making spawns need a double-click would cost the marker workflow for
  * nothing. Below that: the topmost containing box (unless drilling), then the topmost piece, then a zone.
  */
-export function pickAtWorld(doc, wx, wz, { drill = false } = {}) {
+export function pickAtWorld(doc, wx, wz, { drill = false, boxes = true } = {}) {
   const m = markerAtWorld(doc, wx, wz);
   if (m) return m;
   const [cx, cz] = cellOfWorld(wx, wz, doc.globals.cell);
-  if (!drill) {
+  if (!drill && boxes) {
     const b = boxAtCell(doc, cx, cz);
     if (b) return { kind: "box", id: b.id };
   }
@@ -372,6 +373,69 @@ export function sameSelection(a, b) {
   if (a.kind === "marker" || a.kind === "footprint")
     return a.markerKind === b.markerKind && a.index === b.index;
   return a.id === b.id;
+}
+
+// ── multi-selection (pieces and zones, selected together) ───────────────────
+
+/**
+ * The piece or zone a click at world/block point `(wx, wz)` adds to or removes from a multi-selection, as a
+ * `{ kind, id }` ref, or null. Only pieces and zones can be selected together: a marker or a footprint rides
+ * its piece and so is carried with it, and a box is a group rather than a member. Topmost piece first, then
+ * the topmost zone, the order a plain click resolves them in.
+ */
+export function selectableAtWorld(doc, wx, wz) {
+  const [cx, cz] = cellOfWorld(wx, wz, doc.globals.cell);
+  const piece = pieceAtCell(doc, cx, cz);
+  if (piece) return { kind: "piece", id: piece.id };
+  const zone = zoneAtCell(doc, cx, cz);
+  return zone ? { kind: "zone", id: zone.id } : null;
+}
+
+/** The piece or zone record a `{ kind, id }` ref names, or null. */
+export function selectableItem(doc, ref) {
+  if (ref?.kind === "piece") return pieceById(doc, ref.id);
+  if (ref?.kind === "zone") return doc.zones.find(z => z.id === ref.id) || null;
+  return null;
+}
+
+/**
+ * Every piece and zone whose rect lies **wholly** inside the world/block rectangle between two corner points
+ * (given in any order), as refs — pieces first, then zones, each in document order. Touching an edge counts
+ * as inside; merely intersecting does not, so a large zone under everything is not swept up by a marquee
+ * drawn over part of it.
+ */
+export function itemsWithinWorldRect(doc, ax, az, bx, bz) {
+  const box = { min_x: Math.min(ax, bx), min_z: Math.min(az, bz), max_x: Math.max(ax, bx), max_z: Math.max(az, bz) };
+  const cell = doc.globals.cell;
+  const inside = (rect) => {
+    const r = rectCellsToBlocks(rect, cell);
+    return r.min_x >= box.min_x && r.min_z >= box.min_z && r.max_x <= box.max_x && r.max_z <= box.max_z;
+  };
+  return [
+    ...doc.pieces.filter(p => inside(p.rect)).map(p => ({ kind: "piece", id: p.id })),
+    ...doc.zones.filter(z => inside(z.rect)).map(z => ({ kind: "zone", id: z.id })),
+  ];
+}
+
+/** `refs` with `ref` removed when it is there and appended when it is not. Returns a new list. */
+export function toggleRef(refs, ref) {
+  return refs.some(r => sameSelection(r, ref)) ? refs.filter(r => !sameSelection(r, ref)) : [...refs, ref];
+}
+
+/** `base` followed by every ref of `added` that `base` does not already hold. Returns a new list. */
+export function unionRefs(base, added) {
+  const out = [...base];
+  for (const ref of added) if (!out.some(r => sameSelection(r, ref))) out.push(ref);
+  return out;
+}
+
+/**
+ * Move a piece, zone or box by `(dx, dz)` cells, in place. A zone's holes are stated in absolute cells like its
+ * rect, so they move with it; markers and footprints are stored relative to their piece and need no write.
+ */
+export function translateItem(item, dx, dz) {
+  item.rect[0] += dx; item.rect[1] += dz;
+  for (const hole of item.holes || []) { hole[0] += dx; hole[1] += dz; }
 }
 
 /** A piece's surface height, resolving the inherited base from globals when the piece has none set. */
@@ -535,29 +599,31 @@ export function uniqueId(existing, base) {
 
 // ── content bounds + mirror ghost ───────────────────────────────────────────
 
-/** Block AABB enclosing every piece, zone, box and marker cell — null for an empty document. */
-export function contentBounds(doc) {
+/** Block AABB enclosing every piece, zone, box and marker cell — null for an empty document. `boxes: false`
+ *  leaves the boxes out, for a view that does not show them. */
+export function contentBounds(doc, { boxes = true } = {}) {
   const cell = doc.globals.cell;
   let b = null;
   const add = (bb) => { b = b ? { min_x: Math.min(b.min_x, bb.min_x), min_z: Math.min(b.min_z, bb.min_z), max_x: Math.max(b.max_x, bb.max_x), max_z: Math.max(b.max_z, bb.max_z) } : { ...bb }; };
   for (const p of doc.pieces) add(rectCellsToBlocks(p.rect, cell));
   for (const z of doc.zones) add(rectCellsToBlocks(z.rect, cell));
-  for (const bx of doc.boxes || []) add(rectCellsToBlocks(bx.rect, cell));
+  if (boxes) for (const bx of doc.boxes || []) add(rectCellsToBlocks(bx.rect, cell));
   for (const m of allMarkers(doc)) { const c = markerCell(doc, m.marker); if (c) add(rectCellsToBlocks([c[0], c[1], 1, 1], cell)); }
   return b;
 }
 
 /**
  * Block AABB enclosing the authored content AND its symmetry ghost images — what fit-to-view and the
- * grid must span so the mirrored half of the board is never cut off. Null for an empty document.
+ * grid must span so the mirrored half of the board is never cut off. Null for an empty document. `boxes: false`
+ * leaves the boxes and their images out.
  */
-export function viewBounds(doc) {
-  let b = contentBounds(doc);
+export function viewBounds(doc, { boxes = true } = {}) {
+  let b = contentBounds(doc, { boxes });
   if (!b) return null;
   const add = (bb) => { b = { min_x: Math.min(b.min_x, bb.min_x), min_z: Math.min(b.min_z, bb.min_z), max_x: Math.max(b.max_x, bb.max_x), max_z: Math.max(b.max_z, bb.max_z) }; };
   for (const img of pieceMirrorImages(doc)) add(img.bounds);
   for (const img of zoneMirrorImages(doc)) add(img.bounds);
-  for (const img of boxMirrorImages(doc)) add(img.bounds);
+  if (boxes) for (const img of boxMirrorImages(doc)) add(img.bounds);
   for (const m of markerMirrorImages(doc)) add({ min_x: m.x, min_z: m.z, max_x: m.x, max_z: m.z });
   return b;
 }

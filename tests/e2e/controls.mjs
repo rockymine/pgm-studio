@@ -14,8 +14,8 @@
  * stated-height row still renders at its own intrinsic height, so if the type scale moves and the token
  * does not, that select and `--control-height` part company and this fails.
  *
- * The icon half is the same shape of problem. Glyph sizes were eight arbitrary numbers across twenty
- * rules, six of which targeted `i` and had been dead since the vendored shim started REPLACING the
+ * The icon half is the same shape of problem. Glyph sizes could be eight arbitrary numbers across twenty
+ * rules, six of which target `i` and are dead once the vendored shim REPLACES the
  * placeholder with an `<svg>`. Asserting every rendered glyph lands on the five-step scale is what stops
  * a stray hardcoded size — or another dead selector — going unnoticed, so the sweep has to reach the
  * surfaces that only exist once a rail is open, not just the routes' resting state.

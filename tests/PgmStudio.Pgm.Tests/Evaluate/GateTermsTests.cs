@@ -6,7 +6,7 @@ namespace PgmStudio.Pgm.Tests.Evaluate;
 
 /// <summary>
 /// Each hard gate term in isolation, at its boundary — synthetic plans that carry exactly the one property the
-/// term reads. Their collective fidelity to the old inline acceptance gate is proven separately (byte-identical
+/// term reads. Their collective behaviour is proven separately (byte-identical
 /// composed output across the sweep); these pin each term one at a time so a future change is caught locally.
 /// </summary>
 public sealed class GateTermsTests

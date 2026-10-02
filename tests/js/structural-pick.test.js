@@ -1,4 +1,4 @@
-// The plan's own pieces (S25) on the sketch canvas: which one a point lands on, and what the paint draws
+// The plan's own pieces on the sketch canvas: which one a point lands on, and what the paint draws
 // round the one that was picked. Together they turn a render-only annotation into something an
 // author can select, correct a height on and drag.
 import { test } from "node:test";

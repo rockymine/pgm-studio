@@ -6,7 +6,7 @@ using PgmStudio.Data.Schema;
 namespace PgmStudio.Data.Theme;
 
 /// <summary>
-/// Persistence for the part styles a house is composed from (the M0018 tables, B71): roofs, storeys and
+/// Persistence for the part styles a house is composed from (the M0018 tables): roofs, storeys and
 /// porches. <see cref="RoomStyleStore"/>'s sibling one level down — a room style binds these the way a theme
 /// binds styles — and, like it, deliberately row-level: turning courses into the <c>HouseStyle</c> the stamper
 /// consumes needs the material model, so that happens a layer up.

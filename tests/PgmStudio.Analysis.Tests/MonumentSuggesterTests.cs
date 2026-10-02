@@ -194,7 +194,7 @@ public class MonumentSuggesterTests
         await Assert.That((geom[0].X, geom[0].Y, geom[0].Z)).IsEqualTo((3, 8, 3));
     }
 
-    // ---- A6: only a monument-marker stand anchors the map (a rules/info stand must not suppress geometry) ----
+    // ---- only a monument-marker stand anchors the map (a rules/info stand must not suppress geometry) ----
 
     [Test]
     public async Task A_rules_stand_does_not_suppress_geometry_but_a_monument_label_stand_does()

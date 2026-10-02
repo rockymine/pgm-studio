@@ -123,7 +123,7 @@ public sealed class PlanValidatorObjectivePlacementTests
         await Assert.That(Err(plan, "reaches into the wool room")).IsTrue();
     }
 
-    // ── the agent surface (B21) ─────────────────────────────────────────────────────────────────────────
+    // ── the agent surface ─────────────────────────────────────────────────────────────────────────
 
     [Test]
     public async Task Every_refusal_is_an_error_so_the_compile_gate_returns_it()

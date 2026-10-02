@@ -110,7 +110,7 @@ public sealed class ComposeBrowseEndpoint(ComposedBoardStore library) : Endpoint
 /// row (<see cref="PlanStore.SaveGeneratedAsync"/>, idempotent by content hash) with its structure, labelled for
 /// the descriptor's player count. The board is the one the card showed, whichever composer version made it.
 /// Returns the stored <see cref="PlanDetail"/>; 404 for a board the library does not hold. The hold tray and
-/// unpin are the G119 endpoints.
+/// unpin are the tray's other endpoints.
 /// </summary>
 public sealed class ComposePinEndpoint(PlanStore store, ComposedBoardStore library) : Endpoint<ComposeRequestDto, PlanDetail>
 {

@@ -132,7 +132,7 @@ public sealed record MapIntent
     /// across the symmetry orbit); null on hand-authored / imported intents, which behave exactly as before.</summary>
     public StructureIntent? Structures { get; init; }
 
-    // Terrain-paint theming is no longer carried on the intent: it lives on the sketch model (a theme registry
+    // Terrain-paint theming is not carried on the intent: it lives on the sketch model (a theme registry
     // + per-shape override on SketchLayout), resolved at export by TerrainThemeScope from the sketch geometry
     // (docs/world-export/terrain-painting.md TP10).
 }

@@ -33,7 +33,7 @@ public sealed class BuildGeneratorTests
 
     /// <summary>The regression the dict-level assertions above cannot make: the fault was not in the
     /// document, it was in what the document serialised to. A `void` filter is trivial and XmlWriter never
-    /// gives it an id (B15); a filter referenced by two parents is hoisted into the &lt;filters&gt; block by
+    /// gives it an id; a filter referenced by two parents is hoisted into the &lt;filters&gt; block by
     /// the >= 2 rule and every reference to it is written as &lt;filter id="..."/&gt;. A named void filter
     /// shared by the place side and the break side met both rules at once: the definition came out as a bare
     /// &lt;void/&gt; with the id stripped and two references pointed at nothing. The map is well-formed, it

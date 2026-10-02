@@ -29,7 +29,7 @@ public partial class SketchTool
     private bool mirrorOn = true;
     private bool shapesOn = false;
     private bool chunksOn = true;
-    private bool blocksOn = false;   // S23: the rasterized block-footprint preview
+    private bool blocksOn = false;   // the rasterized block-footprint preview
     private bool reliefOn = false;   // the height contours of whatever relief the groups carry
     private bool snapOn = true;
     private bool threeD = false;
@@ -786,6 +786,8 @@ public partial class SketchTool
     // Why the last drag on a plan piece was not made. The intent owns where a room is, so a move is asked
     // rather than told, and a refusal is the answer rather than a fault.
     private string? structuralNote;
+    // Why the last point removal was not made — shown in the layer bar until the bridge clears it.
+    private string? editNote;
 
     private SketchShapeRow? SelectedShape => shapes.FirstOrDefault(s => s.Id == selectedShapeId);
     private SketchGroupRow? SelectedGroup => groups.FirstOrDefault(i => i.Id == selectedGroupId);
@@ -1142,6 +1144,10 @@ public partial class SketchTool
     /// went through.</summary>
     [JSInvokable]
     public void OnStructuralNote(string? message) { structuralNote = message; StateHasChanged(); }
+
+    /// <summary>Why a point could not be taken out of the selected outline, or null where the note is to go.</summary>
+    [JSInvokable]
+    public void OnEditNote(string? message) { editNote = message; StateHasChanged(); }
 
     /// <summary>Correct the height the selected region was compiled at. The bridge writes the number and the
     /// author's-height flag together, which is what makes the correction outlive the next recompile.</summary>

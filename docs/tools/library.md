@@ -120,7 +120,10 @@ style was first used rather than what it is. The name is checked when a room sty
 names, the presets' included, are held to the rule a person saving a row is.
 
 A style's card picture travels with the row rather than costing a request per card, because a library is
-browsed by what its entries look like. The editor previews two views of one material: a **plan**, one course
+browsed by what its entries look like. Every kind's list draws its cards through the one store the render routes
+keep their pictures in (`docs/world-scan/read-backs.md`), named by the row's own stored document — a style's
+`params`, a theme, a composed house or part, a tree's or boulder's prop, a biome field — so a card is drawn once
+per distinct row and answered from disk after that, and an edited row is a different name. The editor previews two views of one material: a **plan**, one course
 seen from above, which is where a voronoi and the three noise fields vary, and a **section**, one row of
 columns cut open downward, which is the axis a layer stack varies along and the elevation a wall material is
 seen as. A stored style's `params` is exactly one of the nodes below, and a saved row is that node plus a name:

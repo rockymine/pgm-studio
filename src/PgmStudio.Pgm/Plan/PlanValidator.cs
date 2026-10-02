@@ -258,7 +258,7 @@ public static class PlanValidator
         }
 
         // placements must reference a real piece and sit inside it (a wool's flat area is its piece footprint).
-        // A destroyable/core is the one marker kind that may name no piece at all (B128): an empty piece reads
+        // A destroyable/core is the one marker kind that may name no piece at all: an empty piece reads
         // `at` as an absolute board position, so `allowAbsolute` skips the reference check rather than flagging
         // a dangling one.
         foreach (var s in plan.Placements.Spawns) CheckInside(d, "spawn", s.Piece, s.At, findings);
@@ -323,7 +323,7 @@ public static class PlanValidator
         // Reported per structure, naming the marker before the ground it stands on, so the reader is pointed
         // at the one goal that is wrong rather than at everything sharing its piece. An agent driving the
         // compile endpoint is refused for every one of the three rather than silently building an unwinnable
-        // map (B21).
+        // map.
         // The land is the plan's pieces and the rooms are the frames the compiler will stamp; the rule itself
         // is ObjectivePlacement's, which the export gate asks again over the ground the rasterizer actually
         // produced. Stating it once is what keeps the two answers the same sentence.
@@ -1348,7 +1348,7 @@ public static class PlanValidator
 
     /// <summary>The block rect a marker's structure covers, or null when the marker names no piece — either a
     /// dangling reference <see cref="CheckInside"/> already reported (a second finding for the same typo would
-    /// only crowd the drawer), or, for a destroyable/core, a deliberate absolute placement (B128): the plan has
+    /// only crowd the drawer), or, for a destroyable/core, a deliberate absolute placement: the plan has
     /// no ground truth for it yet, so the compile-time OB17 gate is silent and the export-time gate, which
     /// reads the ground actually built, is the one that answers.</summary>
     private static BlockRect? Footprint(ContactGraph d, string pieceId, double[] at, int width, int depth)

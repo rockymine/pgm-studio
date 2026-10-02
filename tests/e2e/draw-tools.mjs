@@ -1,9 +1,8 @@
 /**
  * The Draw phase's dock says what the next shape will do.
  *
- * Drawing a carve where a build was meant is the classic mistake in a boolean editor, and the operation used
- * to be two square icon buttons in a row of nine — a peer of the tool that draws rather than a property of
- * what is about to be drawn. It is now the word that leads the draw group in the canvas dock, and the group
+ * Drawing a carve where a build was meant is the classic mistake in a boolean editor, and the operation is
+ * a property of what is about to be drawn rather than a peer of the tool that draws, so it is the word that leads the draw group in the canvas dock, and the group
  * wears the colour of the mode, so the three shape buttons beside it state it too. What is checked here is
  * exactly that contract: one control, carrying one state, colouring the tools it decides for, that goes
  * quiet when the tool in hand does not draw.
