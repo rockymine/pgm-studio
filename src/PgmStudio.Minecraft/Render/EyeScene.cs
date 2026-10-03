@@ -17,8 +17,10 @@ public readonly record struct EyeCamera(double X, double Y, double Z, double Yaw
 public readonly record struct EyeHit((int X, int Y, int Z) Block, (int X, int Y, int Z)? Ground);
 
 /// <summary>The ground a set of pixels' rays hit: every column once, at the highest height a ray hit it, and
-/// how many of the pixels hit nothing.</summary>
-public sealed record EyeArea(IReadOnlyDictionary<(int X, int Z), int> Columns, int Sky);
+/// how many of the pixels hit nothing. <paramref name="OverVoid"/> is where those of the rays that hit nothing
+/// and point down meet the level of the ground: each empty column once, at that level.</summary>
+public sealed record EyeArea(IReadOnlyDictionary<(int X, int Z), int> Columns, int Sky,
+                             IReadOnlyDictionary<(int X, int Z), int> OverVoid);
 
 /// <summary>One block and the share of the picture's pixels it fills.</summary>
 public readonly record struct SeenBlock(int Id, int Data, double Share);
@@ -475,34 +477,86 @@ public sealed class EyeScene
     /// <summary>The ground <paramref name="pixels"/>' rays hit in a <paramref name="pixelsWide"/> ×
     /// <paramref name="pixelsHigh"/> picture from <paramref name="camera"/>: each column once, at the highest
     /// block a ray hit in it. Ground hidden behind a hill is not in it, because no ray reached it, and a pixel of
-    /// sky adds nothing but to <see cref="EyeArea.Sky"/>.</summary>
+    /// sky adds nothing but to <see cref="EyeArea.Sky"/>.
+    ///
+    /// <para>A pixel of sky whose ray points down is met with a level plane instead — the median height of the
+    /// columns the same pixels hit, else of the board's ground — and the cell it crosses that plane in is kept in
+    /// <see cref="EyeArea.OverVoid"/> where that column holds no block, so a mark drawn over the void beside a
+    /// board still says where it is. A ray
+    /// pointing up, or meeting the plane farther into the world than a drawn ray is followed, stays sky
+    /// alone.</para></summary>
     public EyeArea Project(EyeCamera camera, int pixelsWide, int pixelsHigh, IReadOnlyList<(int X, int Y)> pixels)
     {
         var origin = (X: camera.X - _minX, Y: camera.Y, Z: camera.Z - _minZ);
         var lens = Lens.Of(camera, pixelsWide, pixelsHigh);
         var columns = new Dictionary<(int X, int Z), int>();
-        var sky = 0;
+        var missed = new List<(double X, double Y, double Z)>();
         var lockObject = new object();
         Parallel.ForEach(System.Collections.Concurrent.Partitioner.Create(0, pixels.Count, 4096), range =>
         {
             var found = new Dictionary<(int X, int Z), int>();
-            var missed = 0;
+            var skyward = new List<(double X, double Y, double Z)>();
             for (var i = range.Item1; i < range.Item2; i++)
             {
                 var (px, py) = pixels[i];
-                var (_, slot, cell) = Cast(origin, lens.Ray(px + 0.5, py + 0.5));
-                if (slot == 0) { missed++; continue; }
+                var ray = lens.Ray(px + 0.5, py + 0.5);
+                var (_, slot, cell) = Cast(origin, ray);
+                if (slot == 0) { skyward.Add(ray); continue; }
                 var key = (cell.X + _minX, cell.Z + _minZ);
                 if (!found.TryGetValue(key, out var y) || cell.Y > y) found[key] = cell.Y;
             }
             lock (lockObject)
             {
-                sky += missed;
+                missed.AddRange(skyward);
                 foreach (var (key, y) in found)
                     if (!columns.TryGetValue(key, out var kept) || y > kept) columns[key] = y;
             }
         });
-        return new EyeArea(columns, sky);
+
+        var overVoid = new Dictionary<(int X, int Z), int>();
+        if (missed.Count > 0 && (columns.Count > 0 ? Median(columns.Values) : BoardGround) is { } level)
+        {
+            var plane = level + 1.0;
+            foreach (var ray in missed)
+            {
+                if (ray.Y >= 0) continue;
+                var along = (plane - origin.Y) / ray.Y;
+                if (along <= 0 || along - (EnterBox(origin, ray) ?? 0) > FarEnough) continue;
+                int gx = (int)Math.Floor(origin.X + ray.X * along), gz = (int)Math.Floor(origin.Z + ray.Z * along);
+                if (Empty(gx, gz)) overVoid[(gx + _minX, gz + _minZ)] = level;
+            }
+        }
+        return new EyeArea(columns, missed.Count, overVoid);
+    }
+
+    /// <summary>Whether a column holds no block at all.</summary>
+    private bool Empty(int gx, int gz)
+    {
+        if (gx < 0 || gx >= _width || gz < 0 || gz >= _depth) return true;
+        for (var y = 0; y < _height; y++)
+            if (_cells[(gx * _height + y) * _depth + gz] != 0) return false;
+        return true;
+    }
+
+    /// <summary>The median height of the board's standing ground, or null for a board with none.</summary>
+    private int? BoardGround
+    {
+        get
+        {
+            if (_boardGroundKnown) return _boardGround;
+            _boardGround = Median(Enumerable.Range(0, _width)
+                .SelectMany(gx => Enumerable.Range(0, _depth).Select(gz => StandingTop(gx, gz))).OfType<int>());
+            _boardGroundKnown = true;
+            return _boardGround;
+        }
+    }
+    private int? _boardGround;
+    private bool _boardGroundKnown;
+
+    private static int? Median(IEnumerable<int> heights)
+    {
+        var sorted = heights.Order().ToList();
+        return sorted.Count == 0 ? null : sorted[sorted.Count / 2];
     }
 
     /// <summary>How a camera turns a pixel into a ray: its forward, right and up axes and the half-width of its

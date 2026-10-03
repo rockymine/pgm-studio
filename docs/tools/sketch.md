@@ -1543,16 +1543,22 @@ picture was drawn with and the picture's size:
 | Anchor | Made with | What it keeps |
 |---|---|---|
 | `point` | the **Point** tool: a click on the picture | the pixel, the block its ray hits and the ground under that block — the leaves of a floating tree, and the grass it should stand on |
-| `box` | the **Box** tool: a drag | the two corners, and every ground column the rays through the rectangle's pixels hit |
-| `lasso` | the **Lasso** tool: an outline | the outline, and every ground column the rays through the pixels inside it hit |
+| `box` | the **Box** tool: a drag | the two corners, every ground column the rays through the rectangle's pixels hit, and the void they cross |
+| `lasso` | the **Lasso** tool: an outline | the outline, every ground column the rays through the pixels inside it hit, and the void they cross |
 | `view` | a new note with no mark | the camera and the picture |
 | `map` | **Pin to the whole map instead** | nothing spatial |
 
 **The area is what was seen.** The studio does the projection, not the browser: the column sends the mark in
 the picture's pixels, and `render/eye/pick` re-casts the ray through each pixel against the world the picture
 was drawn from, answering the ground columns hit as `[x, y, z]`. Ground hidden behind a hill is not selected,
-because no ray reached it, and a pixel of sky selects nothing — which is the honest reading of "I looked at
-this", and why the straight-down view and an aerial shot matter. The camera is answered exactly, because a view
+because no ray reached it — which is the honest reading of "I looked at this", and why the straight-down view
+and an aerial shot matter.
+
+**A mark over the void still says where it is.** A pixel whose ray hits nothing and points down is met with a
+level plane at the median height of the ground the same mark hit, or of the board's ground where it hit none,
+and the column it crosses that plane in is kept under `overVoid` as `[x, y, z]` at that level, where the column
+holds no block. So "an island here" drawn beside the board names the cells it means, at the height the ground
+beside them stands, and `columns` keeps meaning ground that was seen. A ray pointing up selects nothing. The camera is answered exactly, because a view
 that leaves the eye to find its own place may find another once the board changes; `render/eye?eye=x,y,z&yaw=&pitch=`
 draws it again.
 

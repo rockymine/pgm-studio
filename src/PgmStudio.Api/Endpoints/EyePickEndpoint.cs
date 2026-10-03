@@ -105,15 +105,16 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
             return new EyePickDto(lens, query,
                 hit is { Block: var block } ? new BlockAtDto(block.X, block.Y, block.Z) : null,
                 hit?.Ground is { } ground ? new BlockAtDto(ground.X, ground.Y, ground.Z) : null,
-                [], hit is null ? 1 : 0, standing, change);
+                [], hit is null ? 1 : 0, [], standing, change);
         }
-        if (mark.Pixels.Count == 0) return new EyePickDto(lens, query, null, null, [], 0, standing, change);
+        if (mark.Pixels.Count == 0) return new EyePickDto(lens, query, null, null, [], 0, [], standing, change);
         var area = scene.Project(camera, aim.Width, aim.Height, mark.Pixels);
-        return new EyePickDto(lens, query, null, null,
-            [.. area.Columns.OrderBy(entry => entry.Key.X).ThenBy(entry => entry.Key.Z)
-                .Select(entry => new[] { entry.Key.X, entry.Value, entry.Key.Z })],
-            area.Sky, standing, change);
+        return new EyePickDto(lens, query, null, null, Cells(area.Columns), area.Sky, Cells(area.OverVoid), standing, change);
     }
+
+    private static int[][] Cells(IReadOnlyDictionary<(int X, int Z), int> heights) =>
+        [.. heights.OrderBy(entry => entry.Key.X).ThenBy(entry => entry.Key.Z)
+            .Select(entry => new[] { entry.Key.X, entry.Value, entry.Key.Z })];
 
     /// <summary>A mark in a picture's pixels: one pixel, or the pixels an area covers. Neither is the camera
     /// alone.</summary>

@@ -315,10 +315,16 @@ public partial class SketchInGamePhase
             return string.Create(CultureInfo.InvariantCulture, $"Block at {hit.X}, {hit.Y}, {hit.Z}")
                 + (pick.Ground is { } ground && ground.Y != hit.Y
                     ? string.Create(CultureInfo.InvariantCulture, $", above ground at y {ground.Y}.") : ".");
-        if (pick.Columns.Count > 0)
-            return string.Create(CultureInfo.InvariantCulture, $"{pick.Columns.Count} ground columns")
-                + (pick.Sky > 0 ? string.Create(CultureInfo.InvariantCulture, $" and {pick.Sky} pixels of sky") : "")
+        if (pick.Columns.Count > 0 || pick.OverVoid.Count > 0)
+        {
+            var over = pick.OverVoid.Count > 0
+                ? string.Create(CultureInfo.InvariantCulture, $"{pick.OverVoid.Count} columns over the void")
+                : pick.Sky > 0 ? string.Create(CultureInfo.InvariantCulture, $"{pick.Sky} pixels of sky") : null;
+            var ground = pick.Columns.Count > 0
+                ? string.Create(CultureInfo.InvariantCulture, $"{pick.Columns.Count} ground columns") : null;
+            return string.Join(" and ", new[] { ground, over }.OfType<string>())
                 + ". Ground hidden from this camera isn't included.";
+        }
         return "The mark covers only sky, so the note is pinned to the picture alone.";
     }
 
@@ -347,7 +353,8 @@ public partial class SketchInGamePhase
                 }
                 anchor = new NoteAnchorDto(mark?.Kind ?? NoteAnchors.View, view.Id, view.Name, camera.Camera,
                     PictureWidth, PictureHeight, mark?.Pixels, camera.Hit, camera.Ground,
-                    camera.Columns.Count > 0 ? camera.Columns : null);
+                    camera.Columns.Count > 0 ? camera.Columns : null,
+                    camera.OverVoid.Count > 0 ? camera.OverVoid : null);
             }
             var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/notes",
                 new MapNoteRequest(writing.Body, anchor, writing.Tag, picture, DrawnAt));

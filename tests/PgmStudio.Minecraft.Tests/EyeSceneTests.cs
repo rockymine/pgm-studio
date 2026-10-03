@@ -348,6 +348,49 @@ public sealed class EyeSceneTests
         await Assert.That(area.Columns[(picked.X, picked.Z)]).IsGreaterThanOrEqualTo(picked.Y);
     }
 
+    private static List<(int X, int Y)> EveryPixel(int wide, int high) =>
+        [.. Enumerable.Range(0, high).SelectMany(row => Enumerable.Range(0, wide).Select(column => (column, row)))];
+
+    [Test]
+    public async Task An_area_over_the_void_beside_the_ground_it_saw_is_kept_at_that_grounds_level()
+    {
+        var scene = EyeScene.Of(FloorWorld(), Sprites());
+        var overTheEdge = new EyeCamera(24.5, Floor + 2.62, 44.5, Yaw: 0, Pitch: 30, Fov: 70);
+
+        var area = scene.Project(overTheEdge, 64, 36, EveryPixel(64, 36));
+
+        await Assert.That(area.Columns.Count).IsGreaterThan(0);
+        await Assert.That(area.OverVoid.Count).IsGreaterThan(0);
+        await Assert.That(area.OverVoid.Keys.All(cell => cell.Z >= 48)).IsTrue();
+        await Assert.That(area.OverVoid.Values.All(level => level == Floor)).IsTrue();
+        await Assert.That(area.OverVoid.Keys.Any(area.Columns.ContainsKey)).IsFalse();
+    }
+
+    [Test]
+    public async Task An_area_that_sees_no_ground_is_kept_at_the_boards_level()
+    {
+        var scene = EyeScene.Of(FloorWorld(), Sprites());
+        var awayFromTheBoard = new EyeCamera(24.5, Floor + 20, 60.5, Yaw: 0, Pitch: 45, Fov: 70);
+
+        var area = scene.Project(awayFromTheBoard, 64, 36, EveryPixel(64, 36));
+
+        await Assert.That(area.Columns.Count).IsEqualTo(0);
+        await Assert.That(area.Sky).IsEqualTo(64 * 36);
+        await Assert.That(area.OverVoid.Count).IsGreaterThan(0);
+        await Assert.That(area.OverVoid.All(cell => cell.Key.Z > 60 && cell.Value == Floor)).IsTrue();
+    }
+
+    [Test]
+    public async Task An_area_looking_up_is_sky_alone()
+    {
+        var up = new EyeCamera(24.5, Floor + 2, 24.5, Yaw: 0, Pitch: -80, Fov: 40);
+
+        var area = EyeScene.Of(FloorWorld(), Sprites()).Project(up, 32, 18, EveryPixel(32, 18));
+
+        await Assert.That(area.Sky).IsEqualTo(32 * 18);
+        await Assert.That(area.OverVoid.Count).IsEqualTo(0);
+    }
+
     private const int Torch = 50, RedstoneWire = 55, Ladder = 65, Carpet = 171, Chest = 54;
 
     /// <summary>The sprites of what stands on the ground, each one colour, beside the floor's own.</summary>

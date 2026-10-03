@@ -589,13 +589,6 @@ is the standard the copy is held to.
   exists and `Tokens.razor` only issues the caller's own (`/users/me/tokens`). Add the member picker to the
   admin's Tokens page. `docs/access.md`.
 
-- [ ] **TS121 — A lasso over the void carries coordinates.** `EyeScene.Project` counts a ray that hits nothing
-  as sky and adds no column, so a note drawn over void has no `columns` and its place is read off the
-  picture's pixels. Where a ray points down, meet it with a level plane — the median ground of the columns the
-  same mark did hit, else the board's — and carry those cells as their own set beside `columns`, which keeps
-  meaning ground actually seen; a ray pointing up stays sky. *Evidence: Gypsum Reach note 74, a lasso over the
-  void beside the frontline.* `docs/tools/sketch.md` § Notes; `docs/world-scan/read-backs.md`.
-
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** *Parked (author): imports
   are not a priority.* When an author tweaks the
   terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
@@ -609,15 +602,13 @@ is the standard the copy is held to.
 
 ## The tool hosts and their bridges: one shape for save, feed, selection and the verb table
 
-- [ ] **TS162 — Undo and redo keys answer in every sketch phase.** The topbar Undo moves Info's mirror mode back,
-  but `Ctrl`+`Z` does nothing while Info is up: the canvas chords answer only while the canvas is visible
-  (`live()` in `sketch-canvas.js`). Register undo/redo where they answer whenever the topbar buttons do, or route
-  the keys to the same host action. `docs/tools/sketch.md`. *Evidence: Info, change Mode, `Ctrl`+`Z` — the field
-  and `setup.mirror_mode` stay; the topbar Undo reverts both.*
-
-- [ ] **C94 — The side-view canvas lets go of the window.** `SideviewCanvas` adds a `window` `mouseup` listener it
-  never removes, the leak `CanvasBase` no longer has. Remove it on dispose and cover it in
-  `tests/js/canvas-dispose.test.js`. `docs/client/canvas-interaction.md`.
+- [ ] **TS162 — Undo takes back only what the phase in view edited.** *The author's ruling:* an undo never
+  removes work done in another phase. The sketch keeps one stack of whole-document snapshots across every
+  phase (`history` in `sketch-bridge.js`), so the topbar Undo in Theme takes back the last shape drawn in Draw.
+  Tag each step with the phase that made it and restore only that phase's slice of the document — Draw the
+  shapes, Theme the registry and each shape's theme, Dressing `dressing`, Relief `relief`, Info `setup` — so
+  Undo in a phase walks back that phase's own steps and is greyed where it has none; `Ctrl`+`Z` follows the
+  same rule. *Open (author): whether Info's mode needs an undo at all.* `docs/tools/sketch.md`.
 
 ## Refactoring and cleanup
 

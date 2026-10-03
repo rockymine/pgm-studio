@@ -32,13 +32,17 @@ public sealed record PixelDto(int X, int Y);
 /// <param name="Columns">For an area, every ground column its pixels' rays hit, each <c>[x, y, z]</c> with
 /// <c>y</c> the height the ground was hit at, sorted by <c>x</c> then <c>z</c>. Empty for a point.</param>
 /// <param name="Sky">How many of the mark's pixels hit nothing.</param>
+/// <param name="OverVoid">For an area, where the pixels that hit nothing and look down meet the level of the
+/// ground — the median height of <paramref name="Columns"/>, else of the board's ground — each <c>[x, y, z]</c>
+/// with <c>y</c> that level, sorted by <c>x</c> then <c>z</c>: the void beside a board a mark was drawn over,
+/// every one a column that holds no block. Empty for a point.</param>
 /// <param name="Standing">The height of the ground under the camera — the top block a player would stand on
 /// there — or null where the camera is over the void; a camera at a player's eye is 2.62 over it.</param>
 /// <param name="Change">The map's latest change when the pick was cast: the board it read. A picture listed at an
 /// earlier change shows a board this one may not be.</param>
 public sealed record EyePickDto(
     EyeCameraDto Camera, string Query, BlockAtDto? Hit, BlockAtDto? Ground, IReadOnlyList<int[]> Columns, int Sky,
-    int? Standing, long Change);
+    IReadOnlyList<int[]> OverVoid, int? Standing, long Change);
 
 /// <summary>
 /// What a note is pinned to. A <c>map</c> note names nothing spatial. Every other kind was written on a picture
@@ -56,6 +60,8 @@ public sealed record EyePickDto(
 /// <param name="Hit">The block a point's pixel hit.</param>
 /// <param name="Ground">The ground under that block.</param>
 /// <param name="Columns">The ground an area's pixels hit, each <c>[x, y, z]</c>.</param>
+/// <param name="OverVoid">The void an area was drawn over, each <c>[x, y, z]</c> at the level of the ground
+/// beside it.</param>
 public sealed record NoteAnchorDto(
     [property: WordSet(typeof(NoteAnchors))] string Kind,
     string? ViewId = null,
@@ -66,7 +72,8 @@ public sealed record NoteAnchorDto(
     IReadOnlyList<PixelDto>? Marks = null,
     BlockAtDto? Hit = null,
     BlockAtDto? Ground = null,
-    IReadOnlyList<int[]>? Columns = null);
+    IReadOnlyList<int[]>? Columns = null,
+    IReadOnlyList<int[]>? OverVoid = null);
 
 /// <summary>One message in a note's thread.</summary>
 /// <param name="Id">Its id.</param>

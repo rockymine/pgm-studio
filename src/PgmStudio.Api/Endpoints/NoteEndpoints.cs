@@ -102,6 +102,10 @@ internal static class NoteWire
             return ("anchor.columns", $"an area keeps up to {MostColumns} ground columns");
         if (anchor.Columns?.Any(column => column is not { Length: 3 }) == true)
             return ("anchor.columns", "each ground column is `[x, y, z]`");
+        if ((anchor.OverVoid?.Count ?? 0) > MostColumns)
+            return ("anchor.overVoid", $"an area keeps up to {MostColumns} columns over the void");
+        if (anchor.OverVoid?.Any(column => column is not { Length: 3 }) == true)
+            return ("anchor.overVoid", "each column over the void is `[x, y, z]`");
         return null;
     }
 

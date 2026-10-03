@@ -8568,6 +8568,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   copied beside the database dumps on deploy. A kept view takes a pitch, so a raised eye tipped down is an
   aerial shot. `docs/tools/sketch.md`, `docs/world-scan/read-backs.md`, `docs/deployment.md`. (`TS116`)
 
+- **A mark over the void says where it is (`TS121`)** — a Box or Lasso pixel whose ray hits nothing and looks
+  down meets a level plane at the median height of the ground the same mark hit, else of the board's ground,
+  and every empty column it crosses there is answered under `overVoid` beside `columns` and kept on the note's
+  anchor, so "an island here" drawn beside a board names the cells it means. `columns` stays ground actually
+  seen. `docs/tools/sketch.md` § Notes, `docs/world-scan/read-backs.md`. (`TS121`)
+
 - **The board seen whole (`TS117`)** — placing a view draws the Board layer: the full build from straight above,
   trees, houses and water included, shaded like the game's map item, with every other layer, chip and mark
   left off and given back on leaving; placing is 2-D only. The gallery
