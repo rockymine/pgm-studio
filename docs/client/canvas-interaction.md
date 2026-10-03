@@ -377,6 +377,10 @@ else is the sentence the build answered with, read out of the refusal envelope. 
 the first and the build's own words for the second. A failure with a sentence available should never be
 reported as a different failure.
 
+**A caller the server would refuse never gets to try.** The preview is a build, which only someone on the
+whitelist may ask for (`docs/access.md`), so `IsoToggle` reads the shell's `StudioBuildReason` and greys the
+switch up front with that reason on hover, the same way a `Button` marked `Builds` closes.
+
 **Four interop details cost an afternoon each the first time.** `InvokeVoidAsync(name, params object?[])`
 **spreads** an array argument, so passing one whole array means boxing it — `(object)ids.ToArray()` — or the
 JS side receives the elements as separate parameters. A Razor markup lambda cannot contain a `"` literal, so

@@ -17,6 +17,9 @@ namespace PgmStudio.Api.Services;
 ///
 /// <para>The folder is held under <c>Drawings:Budget</c> bytes by removing the pictures least recently asked
 /// for. A picture that has nothing to draw is kept as an empty file, so asking again is as cheap.</para>
+///
+/// <para>The folder is a cache, so a picture that cannot be kept is still answered: a folder that cannot be
+/// written costs a redraw on every ask and one line on standard error, never the request.</para>
 /// </summary>
 public static class Drawings
 {
@@ -27,9 +30,14 @@ public static class Drawings
     private static readonly string Build = BuildStamp();
     private static long _held = -1;
 
-    /// <summary>Where the pictures are kept.</summary>
-    public static string Folder { get; private set; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "pgm-studio", "drawings");
+    /// <summary>Where the pictures are kept: the user's local data folder, created if it is missing, since a
+    /// service user's home often has none and the folder would otherwise resolve relative to the app.</summary>
+    public static string Folder { get; private set; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create)
+            is { Length: > 0 } local ? local : Path.GetTempPath(),
+        "pgm-studio", "drawings");
+
+    private static int _keepFailed;
 
     /// <summary>How many bytes of pictures the folder holds before the least recently asked for are removed.</summary>
     public static long Budget { get; private set; } = DefaultBudget;
@@ -63,10 +71,11 @@ public static class Drawings
         {
             var bytes = File.ReadAllBytes(path);
             picture = bytes.Length == 0 ? null : bytes;
-            File.SetLastWriteTimeUtc(path, DateTime.UtcNow);
+            try { File.SetLastWriteTimeUtc(path, DateTime.UtcNow); }
+            catch (Exception fault) when (fault is IOException or UnauthorizedAccessException) { }
             return true;
         }
-        catch (Exception missing) when (missing is FileNotFoundException or DirectoryNotFoundException)
+        catch (Exception missing) when (missing is IOException or UnauthorizedAccessException)
         {
             picture = null;
             return false;
@@ -77,10 +86,19 @@ public static class Drawings
     public static void Keep(string name, byte[]? picture)
     {
         var path = PathOf(name);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var writing = path + "." + Guid.NewGuid().ToString("N") + ".part";
-        File.WriteAllBytes(writing, picture ?? []);
-        File.Move(writing, path, overwrite: true);
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var writing = path + "." + Guid.NewGuid().ToString("N") + ".part";
+            File.WriteAllBytes(writing, picture ?? []);
+            File.Move(writing, path, overwrite: true);
+        }
+        catch (Exception fault) when (fault is IOException or UnauthorizedAccessException)
+        {
+            if (Interlocked.Exchange(ref _keepFailed, 1) == 0)
+                Console.Error.WriteLine($"Drawings: pictures are not being kept, because {Folder} cannot be written: {fault.Message}");
+            return;
+        }
         if (Volatile.Read(ref _held) < 0) Trim();
         if (Interlocked.Add(ref _held, picture?.Length ?? 0) > Budget) Trim();
     }

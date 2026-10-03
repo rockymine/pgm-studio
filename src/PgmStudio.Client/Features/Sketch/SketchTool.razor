@@ -67,17 +67,17 @@
       @if (ThemeActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Palette"
-                 BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoRelief" OnNext="GoDressing" />
+                 BackEnabled="true" NextLabel="Next" NextEnabled="true" OnBack="GoRelief" OnNext="GoDressing" />
       }
       else if (DressingActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="trees" PhaseTitle="Decoration"
-                 BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoTheme" OnNext="GoInGame" />
+                 BackEnabled="true" NextLabel="Next" NextEnabled="true" OnBack="GoTheme" OnNext="GoInGame" />
       }
       else if (ReliefActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="mountain" PhaseTitle="Terraform"
-                 BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoDraw" OnNext="GoTheme" />
+                 BackEnabled="true" NextLabel="Next" NextEnabled="true" OnBack="GoDraw" OnNext="GoTheme" />
       }
       else if (HistoryActive)
       {
@@ -92,7 +92,7 @@
       else
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
-                 BackEnabled="true" NextLabel="Done" NextEnabled="true"
+                 BackEnabled="true" NextLabel="Next" NextEnabled="true"
                  OnBack="GoInfo" OnNext="GoRelief" />
       }
       <Workspace>

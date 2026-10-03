@@ -80,7 +80,7 @@ const WRITE_PAGES = [
   [`/plans/${seed.planId}`, null, [["the plan editor's New", /^New$/], ["the plan editor's Import", /^Import$/],
     ["the plan editor's Save", /^Save$/], ["the plan editor's Compile", /^Compile$/]]],
   ["/generator", openFirstLayout, [["the generator's Pin", /^(Pin|Unpin)$/],
-    ["the generator's Open in plan editor", /^Open in plan editor$/]]],
+    ["the generator's Start a map", /^Start a map$/]]],
 ];
 
 async function checkWrites(base, open) {
@@ -108,6 +108,8 @@ checks.add("the studio bar names the local admin", /local/.test(state.account), 
 checks.add("the studio bar links the whitelist for an admin", state.users);
 const openDownload = await settle(/^Download map$/, false);
 checks.add("Download map is open", openDownload?.closed === false, JSON.stringify(openDownload));
+const openIso = await settle(/^2D$/, false);
+checks.add("the 3-D switch is open", openIso?.closed === false, JSON.stringify(openIso));
 
 await visit(BASE, "/admin/users");
 // The page says "Loading…" until it has asked who is signed in, and only then draws the form or the refusal.
@@ -168,13 +170,17 @@ try {
   checks.add("Import a world goes nowhere, and says why", importWorld?.closed === true
     && /Sign in/.test(importWorld.title), JSON.stringify(importWorld));
 
-  checks.section("a signed-out visitor cannot download a map");
+  checks.section("a signed-out visitor cannot download a map or build its 3-D preview");
   await visit(invited, `/maps/${seed.sketchSlug}/sketch`);
   const download = await settle(/^Download map$/, true);
   checks.add("Download map is closed, and says why", download?.closed === true && /Sign in/.test(download.title),
     JSON.stringify(download));
   const exported = await fetch(`${invited}/api/map/${seed.sketchSlug}/export`);
   checks.add("the export itself is refused", exported.status === 401, String(exported.status));
+  // The 3-D preview is a build too, so the switch is greyed before it is pressed rather than after it fails.
+  const iso = await settle(/^2D$/, true);
+  checks.add("the 3-D switch is closed, and says why", iso?.closed === true && /Sign in/.test(iso.title),
+    JSON.stringify(iso));
 
   checks.section("a signed-out visitor's sidebar and canvas change nothing");
   await visit(invited, `/maps/${seed.sketchSlug}/sketch`);

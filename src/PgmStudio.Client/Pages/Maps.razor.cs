@@ -83,8 +83,8 @@ public partial class Maps
 
     private static string LayerTitle(MapSummary map, string layer) => layer switch
     {
-        MapStage.Plan => "Open the plan this map was built from. Opening it changes nothing.",
-        MapStage.Sketch => "Open the sketch this map was drawn in. Opening it changes nothing.",
+        MapStage.Plan => "Open this map's plan.",
+        MapStage.Sketch => "Open this map's sketch.",
         _ => "Open this map's world in Configure.",
     };
 

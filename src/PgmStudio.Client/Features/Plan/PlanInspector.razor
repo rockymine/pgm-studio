@@ -46,7 +46,7 @@
             </div>
           </Field>
           <Button Full Writes OnClick="ToggleMirrors">
-            @(Selection.Mirrors ? "Exclude from mirror" : "Include in mirror")
+            @(Selection.Mirrors ? "Don't copy for other teams" : "Copy for other teams")
           </Button>
           <Button Full Variant="danger" Writes OnClick="DeleteSelected">
             <i data-lucide="trash-2"></i> Delete piece
@@ -225,7 +225,7 @@
             <p class="section-desc">
               @if (CoreDigDepth > 0)
               {
-                <text>Capturing it means breaking the casing and digging @CoreDigDepth block@(CoreDigDepth == 1 ? "" : "s") below it.</text>
+                <text>Leaking it means breaking the casing and digging @CoreDigDepth block@(CoreDigDepth == 1 ? "" : "s") below it.</text>
               }
               else
               {

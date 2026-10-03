@@ -61,7 +61,7 @@ seventh is added. Show the count as data (a badge) or leave it out.
 *Libraries*, *Spawn points*, *Change history*.
 
 **Buttons are verbs.** Sentence case, one to three words, naming the action: *Save*, *New plan*,
-*Copy JSON*, *Open in plan editor*. Never a sentence. A busy button names what it is doing: *Saving…*.
+*Copy JSON*, *Start a map*. Never a sentence. A busy button names what it is doing: *Saving…*.
 
 **Status messages are short and past tense.** *Saved.* *Couldn't save. Try again.* A status line does not
 explain consequences unless the reader must act on them: *"Saved. Every theme binding it now paints this."*
@@ -93,10 +93,10 @@ These come from a reviewer reading the studio for the first time.
 |---|---|
 | Every map that holds a plan — including ones already built and configured. Open one to keep planning. | Maps that have a plan, including finished ones. |
 | Every shape the pipeline can put in a box, emitted once and drawn mouth-up. | Every shape the generator can place, drawn with its opening at the top. |
-| Saved. Every theme binding it now paints this. | Saved. Palettes using this pattern are updated. |
+| Saved. Every theme binding it now paints this. | Saved. Palettes and buildings that use this pattern are updated. |
 | Emitted through BoxFiller, so the profile check and the docking gate run exactly as they do in composition. A refusal is an answer, not an error — it is the emitter's own words. | Generated with the same checks the generator uses. If the shape can't be built at this size, the reason is shown here. |
 | Six libraries, in the order they compose | Libraries |
-| A placement names this recipe. Retuning it retunes every boulder wearing it. | Changes apply to every boulder that uses this recipe. |
+| A placement names this recipe. Retuning it retunes every boulder wearing it. | Maps keep their own copy, so editing this doesn't change boulders already placed. |
 | Author a coarse cell-grid seed — pieces, zones, symmetry and objectives — and compile it straight into a sketch draft. | Block out a map on a grid: its areas, symmetry, and objectives. Then build it into a sketch. |
 
 ## Terms a new user has to learn
@@ -111,7 +111,7 @@ entry** is the longer account a help page gives, and only some terms need one.
 | **Plan** | A grey map on a coarse grid: where the objectives sit, where the land goes, and how high it stands. |
 | **Sketch** | The plan's grey map with as much detail as you want: ground shape, paint, trees, and buildings. |
 | **Configure** | Set up the game on a world: teams, spawns, protected areas, and objectives. |
-| **Library** | Your saved patterns, brushes, and building parts, shared by every map. |
+| **Library** | Patterns, palettes, buildings, trees, and biomes to reuse in any map. Each map keeps its own copy. |
 | **Cell** | One square of the plan grid. Its size in blocks is set per plan; the default is 4. |
 | **Symmetry** | How the part you design is copied for the other teams: rotated or mirrored. |
 | **Hub** | The central area of a team's side, which the spawn, the wool approaches, and the front line connect to. |
@@ -122,9 +122,9 @@ entry** is the longer account a help page gives, and only some terms need one.
 | **Monument** | Where a team places a wool it has taken, to capture it. |
 | **Build region** | An area over the void where players may place blocks. |
 | **Protection** | An area players may not enter or change, usually around a spawn. |
-| **Box** | A rectangle the generator uses to mark one part of a layout, such as a hub or an approach. Plans made by hand don't need them. |
+| **Box** | A rectangle the generator uses to mark one part of a layout, such as a hub or a wool. Plans made by hand don't need them. |
 | **Generator** | Creates complete layouts from a few settings (players, symmetry, size). |
-| **Pattern** | A block pattern: one block, layers of blocks, a team colour, or a mix. Even a single block is a pattern. |
+| **Pattern** | A block pattern: layers of blocks, a team colour, scattered patches, or a mix. |
 | **Palette** | A set of patterns that gives the ground its look: one each for the rim, wall, surface, and fill. |
 | **Terraform** | Shaping the flat ground: hills, slopes, and cliffs. |
 | **Decoration** | What you add to the ground: trees, boulders, paths, water, and buildings. |

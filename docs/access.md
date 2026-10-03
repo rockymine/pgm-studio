@@ -180,7 +180,8 @@ still draws the ground's relief, its paint and the 3-D preview; signed out, it d
 **An action the caller may not take is greyed wherever it sits, with the reason on hover.** That holds on a
 page that writes nothing as much as on one that writes: the map list's *New plan*, *New sketch* and *Import a
 world*, the library's *New* and an entry's *Save*, the plan editor's *New*, *Import*, *Save* and *Compile*, the
-generator's *Pin* and *Open in plan editor*, and every save, build and remove in the map tools. Deleting a
+generator's *Pin* and *Start a map*, the canvas's 2D/3D switch (the 3-D preview is a build), and every save,
+build and remove in the map tools. Deleting a
 library entry or unpinning a layout is greyed for anyone but an admin, since a `DELETE` outside a map is an
 admin's (below). Reading and downloading are never greyed. `docs/client/ui-conventions.md` says how the shell
 decides both. `tests/e2e/access.mjs` holds it, against a second server over the suite's database

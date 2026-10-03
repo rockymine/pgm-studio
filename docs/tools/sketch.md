@@ -42,7 +42,7 @@ map to `stage=configure`), and saves the export — the world ZIP with its `map.
 carries the plan's game settings, so its export needs nothing from Configure. Where the export is refused, the
 bar shows its sentence and offers **Open Configure**, which is where a hand-drawn board's teams, spawns and
 objectives are stated. Building the export costs the server a world, so **Download map** needs an account on
-the whitelist and is greyed for anyone else (`docs/access.md`). The phases run in order, Draw's *Done* going on
+the whitelist and is greyed for anyone else (`docs/access.md`). The phases run in order, Draw's *Next* going on
 to Terraform. A draft that was never drawn on is discarded on the way out. A caller who may not change the map
 sees every phase read-only: the canvas pans, selects and measures and changes nothing, the fields that write
 are greyed, and nothing is saved or discarded (`docs/client/ui-conventions.md`). The bridge enforces it below the
@@ -1415,7 +1415,7 @@ the whole export rather than exporting with fewer props than it was asked for; s
 `configure.md`, since the refusal fires at export, not while the sketch is merely saved.
 
 Dressing does not repaint the Blocks overlay, which shows the painter's surface colours — a prop adds blocks
-*above* the surface. Its **Done** leads on to In game, where what was placed is seen standing.
+*above* the surface. Its **Next** leads on to In game, where what was placed is seen standing.
 
 ### In game
 

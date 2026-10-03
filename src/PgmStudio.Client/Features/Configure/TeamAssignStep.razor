@@ -49,7 +49,7 @@
                        Swatches="@AddableColors.Select(c => new SwatchRow<string>.Swatch(c.Value, c.Hex, c.Label)).ToList()" />
           </Field>
         }
-        @if (teams.Count > 0)
+        @if (teams.Count > 0 && SuggestedCount > 0)
         {
           <p class="section-desc">You set up the first team. The other teams are copied from it by symmetry.</p>
         }
@@ -120,7 +120,10 @@
             <Field Label="Islands">
               <div class="field-pick-row"><Badge Kind="neutral">@IslandsFor(sel.Id)</Badge><span class="list-tag">assigned</span></div>
             </Field>
-            <p class="section-desc">@(teams.IndexOf(sel) == 0 ? "The other teams are copied from this one." : "Copied from the first team by symmetry.")</p>
+            @if (SuggestedCount > 0)
+            {
+              <p class="section-desc">@(teams.IndexOf(sel) == 0 ? "The other teams are copied from this one." : "Copied from the first team by symmetry.")</p>
+            }
           </div>
         </Section>
       }

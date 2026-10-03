@@ -88,7 +88,7 @@ page it opens cannot disagree.
 ## The landing
 
 Seven cards in two groups. The first four are where authoring starts — **Plan a layout** (the Plans collection),
-**Browse generated layouts** (`/generator`), **Shape catalog** (`/catalog`) and **Pattern and palette library**
+**Browse generated layouts** (`/generator`), **Shape catalog** (`/catalog`) and **Library**
 (`/library`) — three of which need no map at all. The last three are the map lifecycle — **Sketch**,
 **Configure**, **Maps** — each deep-linking into its collection and carrying that collection's live count.
 

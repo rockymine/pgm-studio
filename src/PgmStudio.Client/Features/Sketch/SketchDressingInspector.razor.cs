@@ -417,8 +417,8 @@ public partial class SketchDressingInspector
             [PropKinds.Stroke] = ("spline", "Stroke", "A band of surface along a line you draw, such as a road, a trail, or a forest floor. It replaces the ground it crosses. Make it a path to keep trees, boulders, and buildings off it."),
             [PropKinds.Fluid] = ("waves", "Fluid", "A channel or pool of water or lava. It cuts a bed into existing ground and fills it to a level line. It is mirrored across the map."),
             [PropKinds.Flora] = ("flower", "Ground cover", "Grass, ferns, and flowers on the soil inside the area you draw. Nothing grows on paved ground."),
-            [PropKinds.Tree] = ("trees", "Tree", "One tree, where you place it. Mirrored so both teams get the same cover."),
-            [PropKinds.Boulder] = ("mountain", "Boulder", "One boulder, set into the ground where you place it. Mirrored so both teams get the same cover."),
+            [PropKinds.Tree] = ("trees", "Tree", "A tree from the library, planted where you click."),
+            [PropKinds.Boulder] = ("mountain", "Boulder", "A boulder from the library, set into the ground where you click."),
             [PropKinds.House] = ("home", "Building", "A building on the rectangle you drag, using a room style from the library. It settles into the ground and is mirrored so both teams get the same cover."),
             [PropKinds.Chest] = ("box", "Chest", "One chest with the items you list, on the ground or at a set height. Mirrored so both teams get the same loot."),
         };

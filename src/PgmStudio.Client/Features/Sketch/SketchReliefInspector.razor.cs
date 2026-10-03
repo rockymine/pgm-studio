@@ -670,7 +670,7 @@ public partial class SketchReliefInspector
         [MarkKinds.Area] = ("pentagon", "Bench",
             "Holds an area at a height: a floor, a plateau, or a shelf cut into a slope."),
         [MarkKinds.Scarp] = ("triangle", "Scarp",
-            "A shelf on one side of a line and lower ground on the other, with a drop between them. The shelf is on the +z side of the drawing direction."),
+            "A shelf on one side of a line and lower ground on the other, with a drop between them. The shelf is on your right as you draw the line."),
         [MarkKinds.Rim] = ("square-dashed", "Rim",
             "The group's whole outline, held at one height."),
         [MarkKinds.Push] = ("arrows-up-from-line", "Push",

@@ -160,7 +160,7 @@
         <Field Label="Flower fields"><LabelEnd><strong>@($"{Spec(SpecFields.FlowerShare, 0.18) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.FlowerShare, 0.18) * 100))"
                  ValueChanged="value => SetSpec(SpecFields.FlowerShare, JsonValue.Create(Share(value)))" /></ChildContent></Field>
-        <Field Label="Tall grass"><LabelHint>hides a player, so it is mirrored</LabelHint>
+        <Field Label="Tall grass"><LabelHint>tall enough to hide a player</LabelHint>
           <LabelEnd><strong>@($"{Spec(SpecFields.TallShare, 0) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.TallShare, 0) * 100))"
                  ValueChanged="value => SetSpec(SpecFields.TallShare, JsonValue.Create(Share(value)))" /></ChildContent></Field>
@@ -247,8 +247,8 @@
         <div class="section-header section-header--ruled">
           <h2 class="section-title">@(kind == PropKinds.Tree ? "Which tree" : "Which rock")</h2>
         </div>
-        <p class="section-desc">Changes to the recipe apply to every
-          @(kind == PropKinds.Tree ? "tree" : "boulder") that uses it.</p>
+        <p class="section-desc">Each one placed keeps its own copy, so later library edits don't change
+          @(kind == PropKinds.Tree ? "trees" : "boulders") already on the map.</p>
         <div class="prop-cards prop-cards--tall">
           @foreach (var recipe in recipes)
           {
@@ -287,7 +287,7 @@
         @if (shells.Count == 0)
         {
           <p class="section-desc">No room styles saved yet, so the building uses the built-in shell. Create one
-            in the <strong>Library</strong> under Rooms.</p>
+            in the <strong>Library</strong> under Houses.</p>
         }
 
         <div class="section-header section-header--ruled"><h2 class="section-title">Wings</h2></div>
