@@ -313,3 +313,9 @@
 /* A seed and the button that rolls a new one, held on one line at every width. */
 .seed-field { display: flex; flex-wrap: nowrap; gap: var(--space-1); align-items: center; }
 .seed-field .field-input { flex: 0 1 7rem; min-width: 4.5rem; }
+
+/* A number whose unit is part of what it means, written inside the box: a floor is a y. */
+.field-affix { position: relative; display: flex; align-items: center; }
+.field-affix-text { position: absolute; left: var(--space-2); color: var(--text-muted); font-size: var(--font-sm); pointer-events: none; }
+.field-affix .field-input { padding-left: calc(var(--space-2) + 1.1em); width: 100%; }
+

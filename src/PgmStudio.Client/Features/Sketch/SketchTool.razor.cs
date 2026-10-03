@@ -67,7 +67,7 @@ public partial class SketchTool
     //    carries, and — with nothing selected — what the board falls back to, the room shells among it.
     //    Authoring a theme is the library's, so the phase picks and places rather than defining. ──
     private bool ThemeActive => active == "theme";
-    private Task GoTheme() { tool = "select"; return SetPhase("theme"); }
+    private async Task GoTheme() { await SetPhase("theme"); await SetTool("select"); }
 
     /// <summary>The board's finish as the bridge last announced it, handed whole to the strip and the
     /// inspector so the two views of one registry cannot disagree about it.</summary>
@@ -94,7 +94,7 @@ public partial class SketchTool
     // The Theme phase keeps its create/apply split because a theme genuinely is a recipe authored once.
     private bool DressingActive => active == "dressing";
     private string dressingJson = "";
-    private Task GoDressing() { tool = DressingTools.Tree; return SetPhase("dressing"); }
+    private async Task GoDressing() { await SetPhase("dressing"); await SetTool("select"); }
 
     // ── In game phase (docs/tools/sketch.md): the board as a player sees it ──
     // A gallery of pictures drawn with the game's own textures, over the board as stored — so entering it
@@ -255,7 +255,7 @@ public partial class SketchTool
     // to precede the two passes that read the built surface.
     private bool ReliefActive => active == "relief";
     private string reliefJson = "";
-    private Task GoRelief() { tool = ReliefTools.Point; return SetPhase("relief"); }
+    private async Task GoRelief() { await SetPhase("relief"); await SetTool("select"); }
 
     /// <summary>Whether the canvas is being used to place a scope rather than to draw — today only Theme,
     /// which selects shapes it does not edit.</summary>

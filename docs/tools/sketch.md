@@ -902,7 +902,7 @@ selected mark or prop rather than a shape. Without that, picking a single-shape 
 selected the island underneath, and `Delete` took the ground the relief was being stated on. Theme is
 select-only too and is deliberately outside this — its inspector is about the selected shape.
 
-**Arming a placing tool lets go of the selected mark or prop.** A placement selects what it put down and hands
+**Terraform, Palette and Decoration open with Select in hand**, so entering a phase never places anything by itself. **Arming a placing tool lets go of the selected mark or prop.** A placement selects what it put down and hands
 the canvas back to select, so the inspector is showing that placement; arming the tool again clears it, and the
 inspector shows the starting values the next placement takes, under an **in hand** badge (a selected prop's
 reads **selected**). A recipe picked with the tool in hand therefore lands on the next tree, not on the one

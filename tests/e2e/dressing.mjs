@@ -144,6 +144,8 @@ try {
   // What the phase draws for a tree is the recipe list, and the list is offered with the tool in hand too, so
   // the Placed list is what says one landed.
   const panel = () => page.evaluate(() => document.body.innerText);
+  // The library's trees load with the first tree the phase shows, and a cold studio draws every card first.
+  await page.waitForSelector('.prop-card[title="oak"]', { timeout: 30000 }).catch(() => {});
   checks.add("a click places a tree, and the phase asks which one",
     (await placedRows()).length === before.length + 1 && await page.locator('.prop-card[title="oak"]').count() > 0,
     `${before.length} → ${(await placedRows()).length} placed · ${(await panel()).match(/GENERATED/)?.[0] ?? "(no tree list)"}`);
