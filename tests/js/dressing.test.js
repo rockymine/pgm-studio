@@ -299,6 +299,12 @@ test("a rectangle under the least span any footprint takes is no footprint at al
   assert.equal(rectFootprint({ points: [[0, 0]] }), null);
 });
 
+test("a kind that names a library recipe starts with an empty key, never an inline object", () => {
+  // The server reads `style` on a tree, a boulder and a building as a key into the document's registry, and
+  // the inspector reads it as text; an object there is refused on save and throws in the inspector.
+  for (const kind of ["tree", "boulder", "house"]) assert.equal(defaultProp(kind, 0).style, "", kind);
+});
+
 test("dragging a building keeps two corners however far the pointer wandered", () => {
   // A rectangle's second corner is rewritten by every move where a traced outline appends one — otherwise a
   // wandering drag would store a hundred points the stamp has no use for.

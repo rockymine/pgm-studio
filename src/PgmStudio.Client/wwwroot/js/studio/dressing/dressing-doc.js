@@ -44,11 +44,11 @@ export function defaultProp(kind, seed) {
       // key into that registry, empty until the author picks one from the library.
       return { ...base, x: 0, z: 0, style: "" };
     case "house":
-      // No style of its own until one is picked from the library: an empty object deserializes to the C#
-      // HouseStyle defaults, which is the built-in shell — so a building drawn and never dressed is still a
-      // building rather than nothing. `wings` is a list of rectangles rather than one — the canvas only ever
-      // drags the first, but the shape carries more the day something else authors one.
-      return { ...base, wings: [], front: null, style: {} };
+      // A key into the document's registry, like a tree's, empty until a shell is picked from the library: an
+      // empty key is the built-in shell, so a building drawn and never dressed is still a building rather than
+      // nothing. `wings` is a list of rectangles rather than one — the canvas only ever drags the first, but the
+      // shape carries more the day something else authors one.
+      return { ...base, wings: [], front: null, style: "" };
     default:
       throw new Error(`Unknown prop kind: ${kind}`);
   }
