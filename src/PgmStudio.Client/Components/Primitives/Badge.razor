@@ -6,7 +6,7 @@
 <span class="@Cls" @attributes="Extra">@ChildContent</span>
 
 @code {
-    [Parameter] public string? Kind { get; set; }   // success | warning | error | neutral | dim → badge--<k>
+    [Parameter] public string? Kind { get; set; }   // success | warning | error | neutral | dim | accent → badge--<k>
     [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }

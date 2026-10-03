@@ -5,8 +5,8 @@
    With nothing selected the same form edits the active tool's starting values, so the next prop placed is
    already aimed. Every picker is drawn by the pass itself, never by an icon. *@
 
-@* Wide: this inspector hosts a whole MaterialEditor (a path's paving, a boulder's rock), not a property
-   list, so it starts at the width that form is readable at rather than the shared inspector default. *@
+@* Wide: the tree and boulder pickers are grids of rendered cards, which read at three to a row only at this
+   width. *@
 <Inspector Class="workspace-inspector--wide">
   <Section>
     @if (prop is null)
@@ -19,12 +19,9 @@
       <DetailHeader Icon="@Info.Icon" Label="@Info.Title">
         <span class="detail-header-badges">
           @if (editingSelection) { <Badge Kind="neutral">selected</Badge> }
-          else { <Badge Kind="dim">next item</Badge> }
-          @if (kind is PropKinds.Tree or PropKinds.Boulder or PropKinds.House) { <Badge Kind="warning">affects play</Badge> }
-          else if (kind == PropKinds.Flora) { <Badge Kind="dim">cosmetic</Badge> }
+          else { <Badge Kind="accent">in hand</Badge> }
         </span>
       </DetailHeader>
-      <p class="section-desc">@Info.Blurb</p>
 
       @* ── what the last canvas operation did, or would not do ─────────────────────────────────── *@
       @if (note is not null)
@@ -60,9 +57,9 @@
                   Title="Trees and boulders keep clear of it">Path</Chip>
           </div>
         </Field>
-        <Field Label="Width (blocks)">
-          <NumberField Value="Num(PropFields.Radius, 3) * 2" ValueChanged="v => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, v / 2)))" Min="2" Step="2" />
-        </Field>
+        <Field Label="Width (blocks)"><LabelEnd><strong>@($"{Num(PropFields.Radius, 3) * 2:0}")</strong></LabelEnd>
+          <ChildContent><RangeField Min="2" Max="16" Step="2" Value="@(Num(PropFields.Radius, 3) * 2)"
+                 ValueChanged="value => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, value / 2)))" /></ChildContent></Field>
         <Field Label="Wander (blocks)"><LabelHint>how far it strays from your line (ends stay fixed)</LabelHint>
           <LabelEnd><strong>@($"{Num(PropFields.Wander, 0):0}")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="8" Value="@((int)Num(PropFields.Wander, 0))"
@@ -91,44 +88,13 @@
             <ChildContent><RangeField Min="10" Max="100" Value="@((int)(Num(PropFields.Coverage, 0.7) * 100))"
                    ValueChanged="value => Set(PropFields.Coverage, JsonValue.Create(Share(value)))" /></ChildContent></Field>
         }
-        <div class="section-header section-header--ruled"><h2 class="section-title">Paving</h2></div>
-        <p class="section-desc">The blocks the band is made of.</p>
-        @if (Material(PropFields.Pave) is { } pave)
-        {
-          <MaterialEditor Node="pave" Blocks="blocks" Styles="styles" OnChanged="() => MaterialChanged(PropFields.Pave)" />
-        }
+        <Field Label="Paving">
+          <SlotSelect Styles="styles" Blocks="blocks" Value="@SlotOf(PropFields.Pave).StyleId" Block="@SlotOf(PropFields.Pave).Block"
+                      Unbound="@UnboundLabel(PropFields.Pave)" ValueChanged="fill => Fill(PropFields.Pave, fill)" />
+        </Field>
       }
       else if (kind == PropKinds.Fluid)
       {
-        <Field Label="Fluid"><LabelHint>what fills the bed</LabelHint>
-          <ChildContent><div class="chip-row">
-            <Chip Active="Text(PropFields.Fluid, PropFields.WaterFluid) == PropFields.WaterFluid"
-                  OnClick="() => Set(PropFields.Fluid, JsonValue.Create(PropFields.WaterFluid))">Water</Chip>
-            <Chip Active="Text(PropFields.Fluid, PropFields.WaterFluid) == PropFields.LavaFluid"
-                  OnClick="() => Set(PropFields.Fluid, JsonValue.Create(PropFields.LavaFluid))">Lava</Chip>
-          </div></ChildContent>
-        </Field>
-        <Field Label="Width (blocks)">
-          <NumberField Value="Num(PropFields.Radius, 3) * 2" ValueChanged="v => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, v / 2)))" Min="2" Step="2" />
-        </Field>
-        <Field Label="Depth (blocks)"><LabelHint>deepest at the centre, rising to the banks</LabelHint>
-          <LabelEnd><strong>@($"{Num(PropFields.Depth, 2):0}")</strong></LabelEnd>
-          <ChildContent><RangeField Min="1" Max="8" Value="@((int)Num(PropFields.Depth, 2))"
-                 ValueChanged="value => Set(PropFields.Depth, JsonValue.Create(value))" /></ChildContent></Field>
-        <Field Label="Beach (blocks)"><LabelHint>width of the bank between fluid and land</LabelHint>
-          <LabelEnd><strong>@($"{Num(PropFields.Shore, 2):0}")</strong></LabelEnd>
-          <ChildContent><RangeField Min="0" Max="8" Value="@((int)Num(PropFields.Shore, 2))"
-                 ValueChanged="value => Set(PropFields.Shore, JsonValue.Create(value))" /></ChildContent></Field>
-        <Field Label="Beach edge">
-          <Chip Active="Flag(PropFields.ShoreWander, true)" OnClick="() => Set(PropFields.ShoreWander, JsonValue.Create(!Flag(PropFields.ShoreWander, true)))">
-            @(Flag(PropFields.ShoreWander, true) ? "Varied width" : "Even width")
-          </Chip>
-        </Field>
-        <Field Label="Bank roughness"><LabelHint>how uneven natural and stream edges are (canals ignore it)</LabelHint>
-          <LabelEnd><strong>@($"{Num(PropFields.Edge, 0.8):0.0}")</strong></LabelEnd>
-          <ChildContent><RangeField Min="0" Max="25" Value="@((int)(Num(PropFields.Edge, 0.8) * 10))"
-                 ValueChanged="value => Set(PropFields.Edge, JsonValue.Create(value / 10.0))" /></ChildContent></Field>
-        <div class="section-header section-header--ruled"><h2 class="section-title">Form</h2></div>
         <div class="prop-cards">
           @foreach (var option in fluidForms)
           {
@@ -139,12 +105,39 @@
             </button>
           }
         </div>
-        <div class="section-header section-header--ruled"><h2 class="section-title">Bank</h2></div>
-        <p class="section-desc">Blocks for the bed and the beach.</p>
-        @if (Material(PropFields.Bank) is { } bank)
-        {
-          <MaterialEditor Node="bank" Blocks="blocks" Styles="styles" OnChanged="() => MaterialChanged(PropFields.Bank)" />
-        }
+        <Field Label="Fluid">
+          <ChildContent><div class="chip-row">
+            <Chip Active="Text(PropFields.Fluid, PropFields.WaterFluid) == PropFields.WaterFluid"
+                  OnClick="() => Set(PropFields.Fluid, JsonValue.Create(PropFields.WaterFluid))">Water</Chip>
+            <Chip Active="Text(PropFields.Fluid, PropFields.WaterFluid) == PropFields.LavaFluid"
+                  OnClick="() => Set(PropFields.Fluid, JsonValue.Create(PropFields.LavaFluid))">Lava</Chip>
+          </div></ChildContent>
+        </Field>
+        <Field Label="Width (blocks)"><LabelEnd><strong>@($"{Num(PropFields.Radius, 3) * 2:0}")</strong></LabelEnd>
+          <ChildContent><RangeField Min="2" Max="24" Step="2" Value="@(Num(PropFields.Radius, 3) * 2)"
+                 ValueChanged="value => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, value / 2)))" /></ChildContent></Field>
+        <Field Label="Depth (blocks)">
+          <LabelEnd><strong>@($"{Num(PropFields.Depth, 2):0}")</strong></LabelEnd>
+          <ChildContent><RangeField Min="1" Max="8" Value="@((int)Num(PropFields.Depth, 2))"
+                 ValueChanged="value => Set(PropFields.Depth, JsonValue.Create(value))" /></ChildContent></Field>
+        <Field Label="Beach (blocks)"><LabelHint>width of the bank between fluid and land</LabelHint>
+          <LabelEnd><strong>@($"{Num(PropFields.Shore, 2):0}")</strong></LabelEnd>
+          <ChildContent><RangeField Min="0" Max="8" Value="@((int)Num(PropFields.Shore, 2))"
+                 ValueChanged="value => Set(PropFields.Shore, JsonValue.Create(value))" /></ChildContent></Field>
+        <Field Label="Beach edge">
+          <div class="chip-row">
+            <Chip Active="Flag(PropFields.ShoreWander, true)" OnClick="() => Set(PropFields.ShoreWander, JsonValue.Create(true))">Varied</Chip>
+            <Chip Active="!Flag(PropFields.ShoreWander, true)" OnClick="() => Set(PropFields.ShoreWander, JsonValue.Create(false))">Even</Chip>
+          </div>
+        </Field>
+        <Field Label="Bank roughness"><LabelHint>how uneven natural and stream edges are (canals ignore it)</LabelHint>
+          <LabelEnd><strong>@($"{Num(PropFields.Edge, 0.8):0.0}")</strong></LabelEnd>
+          <ChildContent><RangeField Min="0" Max="25" Value="@((int)(Num(PropFields.Edge, 0.8) * 10))"
+                 ValueChanged="value => Set(PropFields.Edge, JsonValue.Create(value / 10.0))" /></ChildContent></Field>
+        <Field Label="Shore"><LabelHint>the bed and the beach</LabelHint>
+          <ChildContent><SlotSelect Styles="styles" Blocks="blocks" Value="@SlotOf(PropFields.Bank).StyleId" Block="@SlotOf(PropFields.Bank).Block"
+                      Unbound="@UnboundLabel(PropFields.Bank)" ValueChanged="fill => Fill(PropFields.Bank, fill)" /></ChildContent>
+        </Field>
       }
       else if (kind == PropKinds.Flora)
       {
@@ -160,7 +153,7 @@
         <Field Label="Flower fields"><LabelEnd><strong>@($"{Spec(SpecFields.FlowerShare, 0.18) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.FlowerShare, 0.18) * 100))"
                  ValueChanged="value => SetSpec(SpecFields.FlowerShare, JsonValue.Create(Share(value)))" /></ChildContent></Field>
-        <Field Label="Tall grass"><LabelHint>tall enough to hide a player</LabelHint>
+        <Field Label="Tall grass">
           <LabelEnd><strong>@($"{Spec(SpecFields.TallShare, 0) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.TallShare, 0) * 100))"
                  ValueChanged="value => SetSpec(SpecFields.TallShare, JsonValue.Create(Share(value)))" /></ChildContent></Field>
@@ -239,36 +232,62 @@
           <button class="btn btn--ghost" @onclick="AddChestItem"><i data-lucide="plus"></i> Add a stack</button>
         }
       }
-      else if (kind == PropKinds.Tree || kind == PropKinds.Boulder)
+      else if (kind == PropKinds.Tree)
       {
-        @* A tree and a boulder are put down with a click, so what is placed is a position and what stands
-           there is a recipe from the library. The knobs live where the recipe is authored; here an author
-           picks one, and the link is how they go and make another. *@
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">@(kind == PropKinds.Tree ? "Which tree" : "Which rock")</h2>
-        </div>
-        <p class="section-desc">Each one placed keeps its own copy, so later library edits don't change
-          @(kind == PropKinds.Tree ? "trees" : "boulders") already on the map.</p>
+        @if (!IsGeneratedTree && WornTree is { Builder: { Length: > 0 } builder })
+        {
+          <p class="section-desc">Built by <strong>@builder</strong>, credited on maps that use it.</p>
+        }
+        <div class="section-header section-header--ruled"><h2 class="section-title">Generated</h2></div>
         <div class="prop-cards prop-cards--tall">
-          @foreach (var recipe in recipes)
+          @foreach (var tree in GeneratedTrees) { @TreeCard(tree) }
+        </div>
+        <div class="section-header section-header--ruled"><h2 class="section-title">Hand-built</h2></div>
+        <div class="prop-cards prop-cards--tall">
+          @foreach (var tree in ShownHandBuilt) { @TreeCard(tree) }
+        </div>
+        @if (HandBuiltTrees.Count > HandBuiltShown)
+        {
+          <button class="btn btn--ghost prop-cards-more" @onclick="() => showAllHandBuilt = !showAllHandBuilt">
+            @(showAllHandBuilt ? "Show fewer" : $"… {HandBuiltTrees.Count - HandBuiltShown} more")
+          </button>
+        }
+        @if (trees.Count == 0)
+        {
+          <p class="section-desc">No trees in the library yet.</p>
+        }
+        @if (IsGeneratedTree)
+        {
+          <Field Label="Height (blocks)"><LabelEnd><strong>@($"{heightDraft ?? TreeHeight:0}")</strong></LabelEnd>
+            <ChildContent><RangeField Min="5" Max="30" Value="@(heightDraft ?? TreeHeight)"
+                   ValueChanged="value => heightDraft = value" OnCommit="SetTreeHeight" /></ChildContent></Field>
+        }
+      }
+      else if (kind == PropKinds.Boulder)
+      {
+        <div class="prop-cards">
+          @foreach (var option in boulderForms)
           {
-            <button class="prop-card @(Wears(recipeName, recipe.Name) ? "prop-card--active" : null)"
-                    title="@recipe.Name" @key="recipe.Id" @onclick="() => PickRecipe(recipe)">
-              <span class="prop-card-art">@((MarkupString)recipe.Preview)</span>
-              <span class="prop-card-label">@recipe.Name</span>
+            <button class="prop-card @(BoulderForm == option.Key ? "prop-card--active" : null)"
+                    title="@option.Label" @onclick="() => SetBoulder(recipe => recipe[BoulderFields.Form] = option.Key)">
+              <span class="prop-card-art">@((MarkupString)option.Svg)</span>
+              <span class="prop-card-label">@option.Label</span>
             </button>
           }
         </div>
-        @if (recipes.Count == 0)
-        {
-          <p class="section-desc">No @(kind == PropKinds.Tree ? "trees" : "boulders") saved yet. Create one
-            in the <strong>Library</strong>.</p>
-        }
-        <div class="panel-actions">
-          <Button Writes OnClick="OpenLibrary">
-            <i data-lucide="external-link"></i> @(recipes.Count == 0 ? "Create one" : "Create another")
-          </Button>
-        </div>
+        <Field Label="Size (blocks)"><LabelEnd><strong>@($"{sizeDraft ?? BoulderSize:0}")</strong></LabelEnd>
+          <ChildContent><RangeField Min="2" Max="10" Value="@(sizeDraft ?? BoulderSize)"
+                 ValueChanged="value => sizeDraft = value" OnCommit="SetBoulderSize" /></ChildContent></Field>
+        <Field Label="Rock">
+          <SlotSelect Styles="styles" Blocks="blocks" Value="@RockSlot.StyleId" Block="@RockSlot.Block"
+                      Unbound="@(RockIsCustom ? "Custom" : "Default rock")" ValueChanged="FillRock" />
+        </Field>
+        <Field Label="Moss">
+          <div class="chip-row">
+            <Chip Active="BoulderMossy" OnClick="() => SetBoulder(recipe => recipe[BoulderFields.Mossy] = true)">Mossy</Chip>
+            <Chip Active="!BoulderMossy" OnClick="() => SetBoulder(recipe => recipe[BoulderFields.Mossy] = false)">Bare</Chip>
+          </div>
+        </Field>
       }
       else if (kind == PropKinds.House)
       {
@@ -302,7 +321,6 @@
         </div>
 
         <div class="section-header section-header--ruled"><h2 class="section-title">Door</h2></div>
-        <p class="section-desc">Turns with the building at every mirror image.</p>
 
         <div class="chip-row">
           <Chip Active="@(Text(PropFields.Front, string.Empty).Length == 0)" OnClick="() => Set(PropFields.Front, null)">
@@ -316,13 +334,16 @@
         </div>
       }
 
-      @* ── seed + delete ───────────────────────────────────────────────────────────────────────── *@
-      <div class="section-header section-header--ruled"><h2 class="section-title">Placement</h2></div>
+      @* ── storey, seed, delete ──────────────────────────────────────────────────────────────────── *@
+      @if ((editingSelection && Layers.Count > 1) || SeedMatters)
+      {
+        <div class="section-header section-header--ruled"><h2 class="section-title">Placement</h2></div>
+      }
       @* The storey it rests on, offered from the canvas strip's own rows. A storey with no ground under the
          prop is not filtered out here: the dressing pass is the judge, and declines it DR-LAYER. *@
       @if (editingSelection && Layers.Count > 1)
       {
-        <Field Label="Storey"><LabelHint>drawn dimmed while another is active</LabelHint>
+        <Field Label="Storey">
           <ChildContent>
             <div class="chip-row">
               @foreach (var layer in Layers)
@@ -335,13 +356,15 @@
           </ChildContent>
         </Field>
       }
-      <Field Label="Seed">
-        <div class="panel-actions">
-          <NumberField Value="Num(PropFields.Seed)" ValueChanged="v => Set(PropFields.Seed, JsonValue.Create((int)v))" Min="0" />
-          <Button Writes OnClick="Reroll"><i data-lucide="refresh-cw"></i> Reroll</Button>
-        </div>
-      </Field>
-      <p class="section-desc">The same seed always gives the same result.</p>
+      @if (SeedMatters)
+      {
+        <Field Label="Seed">
+          <div class="seed-field">
+            <NumberField Slim Value="Num(PropFields.Seed)" ValueChanged="v => Set(PropFields.Seed, JsonValue.Create((int)v))" Min="0" />
+            <Button Writes OnClick="Reroll" Title="Roll a new seed"><i data-lucide="refresh-cw"></i> Reroll</Button>
+          </div>
+        </Field>
+      }
       @if (editingSelection)
       {
         <Button Full Variant="danger" Writes OnClick="Delete"><i data-lucide="trash-2"></i> Delete</Button>
@@ -350,3 +373,14 @@
   </Section>
 
 </Inspector>
+
+@code {
+    private RenderFragment TreeCard(TreeStyleSummary tree) => __builder =>
+    {
+        <button class="prop-card @(tree == WornTree ? "prop-card--active" : null)"
+                title="@tree.Name" @key="tree.Id" @onclick="() => PickTree(tree)">
+          <span class="prop-card-art">@((MarkupString)tree.Preview)</span>
+          <span class="prop-card-label">@tree.Name</span>
+        </button>
+    };
+}

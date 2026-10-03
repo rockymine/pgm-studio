@@ -131,7 +131,7 @@ plan, the side in a section, grass and leaves tinted for the biome — as a PNG 
 for an area pattern's wider patch, 10 and 4 in an editor), embedded in the markup as an `<img>`. The sprites are
 the ones `render/eye` draws with (`BlockSprites`), so a card and an in-game picture show one block one way. A
 studio without the sprites draws the same blocks as an SVG of palette colours, and the kept picture's name says
-which it is. The 53 seeded styles are 446 KB as sprite cards against 2.1 MB as SVG.
+which it is. Measured over 53 seeded styles, sprite cards came to 446 KB against 2.1 MB as SVG.
 
 The editor previews two views of one material: a **plan**, one course
 seen from above, which is where a voronoi and the three noise fields vary, and a **section**, one row of
@@ -859,7 +859,7 @@ and *Save* for anyone off the whitelist, and *Delete* for anyone but an admin.
 | `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
 | `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds. The answer is `{plan, section, cutaway, columns}`: three SVG cuts, and **`columns`** — the stamped world's own per-column runs, the same shape `POST /plan/columns` answers for a map, which the browser meshes and draws in 3-D. **The two take different bodies**: `preview` takes the same record as `POST /room-styles`, `preview-snapshot` takes a **bare `HouseStyle`** — the document itself, unwrapped, exactly what `GET /room-styles/{id}/json` hands back once its string is unwrapped. A wrapper posted to it is dropped and previews the defaults |
 | `DELETE /room-styles/{id}` | forget a room style; its courses cascade, its styles stay |
-| `GET`·`POST`·`PUT`·`DELETE /tree-styles[/{id}]` · `…/boulder-styles` | the two recipe libraries — what a *click* puts down. A tree is `{name, form, species, height, body, cut}`, a cut `{world, x, y, z, at, builder}` with `builder` null where the cutter was not told; `POST`/`PUT /tree-styles` answer 400 `{error: "invalid tree style", findings}` with `DR-COPY` when a `copied` tree carries no `cut`. Each `POST …/preview` draws a draft as the card a browse row carries, answering `{card: "…"}`. Nothing asks before a delete, because nothing binds a recipe: a placement names a key in its **own document's** registry, which the pull copied |
+| `GET`·`POST`·`PUT`·`DELETE /tree-styles[/{id}]` · `…/boulder-styles` | the two recipe libraries — what a *click* puts down. `GET /tree-styles` lists `{id, name, preview, form, species, height, builder}`, so a picker can group generated trees from hand-built ones and tune a generated one without fetching it. A tree is `{name, form, species, height, body, cut}`, a cut `{world, x, y, z, at, builder}` with `builder` null where the cutter was not told; `POST`/`PUT /tree-styles` answer 400 `{error: "invalid tree style", findings}` with `DR-COPY` when a `copied` tree carries no `cut`. Each `POST …/preview` draws a draft as the card a browse row carries, answering `{card: "…"}`. Nothing asks before a delete, because nothing binds a recipe: a placement names a key in its **own document's** registry, which the pull copied |
 | `GET /tree-styles/{id}/json` · `GET /boulder-styles/{id}/json` | the recipe as a dressing document states it, as `{styleJson: "…"}` — what a pull copies into a map's `styles` registry under a key. A copied tree whose cut names a builder carries it as `builder` |
 | `GET /terrain/blocks` · `GET /terrain/patterns` | the block palette — each block's id/data, name, tone family, swatch, and what it **looks like** per face (below) — and every material kind with its fields, defaults and the cell facts it varies with |
 | `GET /terrain/looks` | the construction words a face's `construction` is drawn from, each with what it means |
@@ -960,7 +960,8 @@ A name is compared without case, as the library keeps it one row of its kind. A 
 ### The seed
 
 **What a fresh library holds is one folder, `src/PgmStudio.Minecraft/Library`, read by one seeder.**
-`patterns.json` is every pattern, the author's own ground patterns first; `themes/` holds a finish per file and
+`patterns.json` is every pattern, the author's own ground patterns first, `shore` among them as the bank a
+channel starts with; `themes/` holds a finish per file and
 `houses/` a house per file, each in its own document's form — the painter's theme, the stamper's style;
 `boulders.json` is the boulder recipes and `trees.json` the trees cut out of the showcase world. `SeedFolder`
 reads it, and nothing else states a seeded row. Every pattern a seeded house or theme lays is one of

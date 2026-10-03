@@ -311,3 +311,8 @@
 .prop-card-art svg { width: 100%; height: auto; display: block; }
 .prop-card-label { font-size: var(--font-xs); color: var(--text-muted); text-align: center; }
 .prop-card--active .prop-card-label { color: var(--accent); }
+/* The rest of a long card grid, folded under one button. */
+.prop-cards-more { width: 100%; margin-bottom: var(--space-2); }
+/* A seed and the button that rolls a new one, held on one line at every width. */
+.seed-field { display: flex; flex-wrap: nowrap; gap: var(--space-1); align-items: center; }
+.seed-field .field-input { flex: 0 1 7rem; min-width: 4.5rem; }

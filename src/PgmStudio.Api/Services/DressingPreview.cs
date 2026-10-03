@@ -118,11 +118,12 @@ public static class DressingPreview
             Prop: (PlacedProp)(template with { Form = form, Points = CardStroke }),
             Defaults: (string?)null))]);
 
-    /// <summary>The four boulder forms at card size, each an actual rock.</summary>
+    /// <summary>The four boulder forms at card size, each an actual rock, under the names the library's seeded
+    /// boulders carry.</summary>
     public static IReadOnlyList<PropOptionDto> BoulderFormCards(BoulderProp template, TerrainTheme theme, int cell = 3)
         => SectionCards(theme, cell, [.. Enum.GetValues<BoulderForm>().Select(form => (
             Key: form.ToString().ToLowerInvariant(),
-            Label: form.ToString(),
+            Label: BoulderFormLabels[form],
             Prop: (PlacedProp)(template with { Style = template.Style with { Form = form } }),
             Defaults: (string?)null))]);
 
@@ -138,6 +139,12 @@ public static class DressingPreview
             {
                 ["species"] = species.Name, ["height"] = species.Height,
             }.ToJsonString()))]);
+
+    private static readonly IReadOnlyDictionary<BoulderForm, string> BoulderFormLabels = new Dictionary<BoulderForm, string>
+    {
+        [BoulderForm.Round] = "Erratic", [BoulderForm.Angular] = "Shattered",
+        [BoulderForm.Outcrop] = "Outcrop", [BoulderForm.Cairn] = "Cairn",
+    };
 
     private static readonly IReadOnlyDictionary<StrokeStyle, string> StrokeStyleLabels = new Dictionary<StrokeStyle, string>
     {
