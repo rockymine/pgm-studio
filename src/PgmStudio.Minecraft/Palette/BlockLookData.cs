@@ -173,10 +173,14 @@ internal static class BlockLookData
             new("stonebrick_cracked", 19.7, 55, ["masonry", "bevelled"])),   // one sprite on every face   // Cracked Stone Bricks
         [(98 << 4) | 3] = (new("stonebrick_carved", 22.4, 39, ["bevelled"]),
             new("stonebrick_carved", 22.4, 39, ["bevelled"])),   // one sprite on every face   // Chiseled Stone Bricks
-        [(99 << 4) | 0] = (new("mushroom_block_skin_brown", 11.7, 58, []),
-            new("mushroom_block_skin_brown", 11.7, 58, [])),   // one sprite on every face   // Brown Mushroom Block
+        [(99 << 4) | 0] = (new("mushroom_block_inside", 11.5, 15, []),
+            new("mushroom_block_inside", 11.5, 15, [])),   // one sprite on every face   // Mushroom Pores
+        [(99 << 4) | 14] = (new("mushroom_block_skin_brown", 11.7, 58, []),
+            new("mushroom_block_skin_brown", 11.7, 58, [])),   // one sprite on every face   // Brown Mushroom Cap
         [(99 << 4) | 15] = (new("mushroom_block_skin_stem", 11.9, 27, ["masonry", "grained-y"]),
             new("mushroom_block_skin_stem", 11.9, 27, ["masonry", "grained-y"])),   // one sprite on every face   // Mushroom Stem
+        [(100 << 4) | 14] = (new("mushroom_block_skin_red", 30.0, 33, []),
+            new("mushroom_block_skin_red", 30.0, 33, [])),   // one sprite on every face   // Red Mushroom Cap
         [(103 << 4) | 0] = (new("melon_top", 23.2, 11, ["ramped"]),
             new("melon_side", 27.1, 52, ["tiled", "masonry", "grained-y"])),   // Melon
         [(110 << 4) | 0] = (new("mycelium_top", 10.6, 60, []),
