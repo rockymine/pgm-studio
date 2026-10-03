@@ -6,9 +6,9 @@
 
 <PageTitle>Maps · PGM Studio</PageTitle>
 
-@* Every map in the studio, in one table. Stage, who made it and gamemode are filters over the one list, kept
-   in the address so a link or a landing card can open a view; each row links straight into every tool the
-   map has a layer in. *@
+@* Every map in the studio, in one table, with its filters open in the sidebar beside it. Stage, author and
+   gamemode are kept in the address so a link or a landing card can open a view; each row links straight into
+   every tool the map has a layer in. *@
 
 <StudioShell>
   <Bar>
@@ -18,8 +18,65 @@
   </Bar>
   <ChildContent>
       <Workspace>
-        <ContentColumn MaxWidth="1180">
+        <Sidebar Class="map-filters">
+          <Section Title="Stage">
+            <div class="filter-group-options">
+              <Chip Active="@(CurrentStage is null)" OnClick='() => Go("stage", null)'>All<span class="filter-chip-n">@Count(skip: "stage")</span></Chip>
+              @foreach (var (word, label) in StageWords)
+              {
+                <Chip Active="@(CurrentStage == word)" OnClick='() => Go("stage", word)'>
+                  <span class="map-stage-dot map-stage-dot--@word"></span>@label<span class="filter-chip-n">@Count(skip: "stage", stage: word)</span>
+                </Chip>
+              }
+            </div>
+          </Section>
 
+          <Section Title="Author">
+            <input class="field-input" type="search" placeholder="Find an author" aria-label="Find an author"
+                   @bind="authorSearch" @bind:event="oninput" />
+            @foreach (var (title, agents) in AuthorGroups)
+            {
+              var group = AuthorsIn(agents);
+              @if (group.Count == 0) { continue; }
+              var allOn = group.All(name => Picked.Contains(name));
+              <div class="map-author-group">
+                <span>@title</span>
+                <button type="button" class="map-author-all" @onclick="() => PickAll(group, !allOn)">@(allOn ? "Clear" : "Select all")</button>
+              </div>
+              <div class="filter-group-options filter-group-options--multi map-author-options">
+                @foreach (var name in group)
+                {
+                  <Chip Active="@Picked.Contains(name)" OnClick="() => ToggleAuthor(name)" @key="name">
+                    <AuthorMark Uuid="@CreditNamed(name)?.Uuid" Name="@name" Size="16" />
+                    <span class="map-author-name">@name</span>
+                    <span class="filter-chip-n">@Count(skip: "author", author: name)</span>
+                  </Chip>
+                }
+              </div>
+            }
+          </Section>
+
+          @if (GamemodesPresent.Count > 0)
+          {
+            <Section Title="Gamemode">
+              <div class="filter-group-options filter-group-options--multi">
+                @foreach (var gamemode in GamemodesPresent.Append(NoGamemode))
+                {
+                  <Chip Active="@PickedGamemodes.Contains(gamemode)" OnClick="() => ToggleGamemode(gamemode)">
+                    @GamemodeLabel(gamemode)<span class="filter-chip-n">@Count(skip: "gamemode", gamemode: gamemode)</span>
+                  </Chip>
+                }
+              </div>
+            </Section>
+          }
+
+          @if (Filtering)
+          {
+            <Button Full OnClick="ClearFilters" Icon="x">Clear filters</Button>
+          }
+        </Sidebar>
+
+        <ContentColumn MaxWidth="1180">
           <Section Title="Maps">
             <Actions>
               <Badge Kind="dim">@CountLabel</Badge>
@@ -29,60 +86,10 @@
             </Actions>
             <ChildContent>
 
-            <div class="map-filters">
-              <div class="map-filter-row">
-                <input class="field-input map-search" type="search" placeholder="Search name, slug or author"
-                       aria-label="Search maps" @bind="search" @bind:event="oninput" />
-                <Select Id="map-sort" Options="SortOptions" Value="@SortKey" ValueChanged="SetSort" Title="Sort by" />
-              </div>
-
-              <div class="map-filter-row">
-                <span class="map-filter-label">Stage</span>
-                <div class="filter-group-options">
-                  <Chip Active="@(CurrentStage is null)" OnClick='() => Go("stage", null)'>All <span class="map-chip-count">@Count(skip: "stage")</span></Chip>
-                  @foreach (var (word, label) in StageWords)
-                  {
-                    <Chip Active="@(CurrentStage == word)" OnClick='() => Go("stage", word)'>
-                      <span class="map-stage-dot map-stage-dot--@word"></span>@label <span class="map-chip-count">@Count(skip: "stage", stage: word)</span>
-                    </Chip>
-                  }
-                </div>
-              </div>
-
-              <div class="map-filter-row">
-                <span class="map-filter-label">Made by</span>
-                <div class="filter-group-options">
-                  <Chip Active="@(Kind is null)" OnClick='() => Go("by", null)'>Everyone <span class="map-chip-count">@Count(skip: "by")</span></Chip>
-                  <Chip Active="@(Kind == People)" OnClick='() => Go("by", People)'>People <span class="map-chip-count">@Count(skip: "by", by: People)</span></Chip>
-                  <Chip Active="@(Kind == Agents)" OnClick='() => Go("by", Agents)'>Agents <span class="map-chip-count">@Count(skip: "by", by: Agents)</span></Chip>
-                </div>
-                <Select Id="map-author-pick" Options="AuthorOptions" Value="" Placeholder="Add an author…" ValueChanged="AddAuthor" Title="Show maps by this author" />
-                @foreach (var name in Picked)
-                {
-                  var credit = CreditNamed(name);
-                  <span class="map-author-tag" @key="name">
-                    <AuthorMark Uuid="@credit?.Uuid" Name="@name" Size="16" />
-                    @name
-                    <button type="button" class="map-author-tag-x" title="Stop filtering by @name" aria-label="Remove @name"
-                            @onclick="() => RemoveAuthor(name)"><i data-lucide="x"></i></button>
-                  </span>
-                }
-              </div>
-
-              @if (ModesPresent.Count > 0)
-              {
-                <div class="map-filter-row">
-                  <span class="map-filter-label">Mode</span>
-                  <div class="filter-group-options">
-                    <Chip Active="@(Mode is null)" OnClick='() => Go("mode", null)'>Any</Chip>
-                    @foreach (var mode in ModesPresent)
-                    {
-                      <Chip Active="@(Mode == mode)" OnClick='() => Go("mode", mode)'>@mode.ToUpperInvariant() <span class="map-chip-count">@Count(skip: "mode", mode: mode)</span></Chip>
-                    }
-                    <Chip Active="@(Mode == NoMode)" OnClick='() => Go("mode", NoMode)'>Not set <span class="map-chip-count">@Count(skip: "mode", mode: NoMode)</span></Chip>
-                  </div>
-                </div>
-              }
+            <div class="map-search-row">
+              <input class="field-input map-search" type="search" placeholder="Search name, slug or author"
+                     aria-label="Search maps" @bind="search" @bind:event="oninput" />
+              <Select Id="map-sort" Options="SortOptions" Value="@SortKey" ValueChanged="SetSort" Title="Sort by" />
             </div>
 
             @if (loadError is not null)
@@ -100,13 +107,14 @@
               <div class="map-table-box">
                 <table class="map-table">
                   <thead>
-                    <tr><th>Map</th><th>Stage</th><th>Layers</th><th>Mode</th><th>Author</th><th>Last changed</th></tr>
+                    <tr><th>Map</th><th>Stage</th><th>Layers</th><th>Gamemode</th><th>Author</th><th>Last changed</th></tr>
                   </thead>
                   <tbody>
                     @foreach (var m in Shown)
                     {
                       var opens = Opens(m);
                       var credits = Credited(m);
+                      var stage = StageOf(m);
                       <tr class="map-table-row" @key="m.Slug" @onclick="() => Open(m)">
                         <td>
                           @if (opens is not null)
@@ -116,7 +124,7 @@
                           else { <span class="map-row-name">@m.Name</span> }
                           <div class="map-row-slug">@m.Slug</div>
                         </td>
-                        <td><span class="map-stage"><span class="map-stage-dot map-stage-dot--@m.Stage"></span>@StageLabel(m.Stage)</span></td>
+                        <td><span class="map-stage"><span class="map-stage-dot map-stage-dot--@stage"></span>@StageLabel(stage)</span></td>
                         <td>
                           <span class="map-artifacts">
                             @foreach (var (id, label) in Layers(m))

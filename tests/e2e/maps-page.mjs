@@ -3,8 +3,8 @@
  *
  * Two claims. Every row says who made the map: the list endpoint carries each map's credited authors, and a
  * credit with no account behind it, which is how an agent is credited, is drawn as a robot. And the filters are
- * the address: a stage chip, the Made by chips and the picked authors each land in the query, narrow the
- * table to what they name, and come back off it with one click.
+ * the address: a stage chip, a ticked author and Select all each land in the query, narrow the table to what
+ * they name, and come back off it with one click.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE } from "./lib/harness.mjs";
@@ -39,31 +39,32 @@ try {
     await fixtureRow.locator(".agent-mark svg.lucide").count() === 1);
 
   checks.section("a stage chip narrows the table and lands in the address");
-  await page.locator(".filter-chip", { hasText: "Configure" }).click();
+  const sidebar = page.locator(".map-filters");
+  await sidebar.locator(".filter-chip", { hasText: "Configure" }).click();
   await page.waitForURL(/stage=configure/, { timeout: 5000 });
-  const configuring = all.filter(m => m.stage === "configure").map(m => m.slug).sort();
+  const configuring = all.filter(m => m.stage === "configure" || m.stage === "edit").map(m => m.slug).sort();
   checks.add("only maps standing at configure are listed",
     JSON.stringify((await slugs()).sort()) === JSON.stringify(configuring), (await slugs()).join(", "));
-  await page.locator(".filter-chip", { hasText: "All" }).first().click();
+  await sidebar.locator(".filter-chip", { hasText: "All" }).first().click();
   await page.waitForURL(u => !u.search.includes("stage="), { timeout: 5000 });
 
-  checks.section("a picked author is a tag, and its x takes it off");
-  await page.selectOption("#map-author-pick", "E2E fixture");
-  await page.waitForSelector(".map-author-tag", { timeout: 5000 });
-  checks.add("the author lands in the address", /author=E2E(%20|\+)fixture/.test(page.url()), page.url());
+  checks.section("an author ticks on and off in the sidebar");
+  const author = sidebar.locator(".map-author-options .filter-chip", { hasText: "E2E fixture" });
+  await author.click();
+  await page.waitForURL(/author=E2E(%20|\+)fixture/, { timeout: 5000 });
   const credited = all.filter(m => m.authors.some(a => a.name === "E2E fixture")).map(m => m.slug).sort();
   checks.add("only maps credited to that author are listed",
     JSON.stringify((await slugs()).sort()) === JSON.stringify(credited), (await slugs()).join(", "));
-  await page.locator(".map-author-tag-x").click();
-  await page.waitForSelector(".map-author-tag", { state: "detached", timeout: 5000 });
-  checks.add("removing the tag lists every map again", await rows().count() === all.length && !page.url().includes("author="),
-    page.url());
+  checks.add("the ticked author is marked", await author.evaluate(e => e.classList.contains("filter-chip--active")));
+  await author.click();
+  await page.waitForURL(u => !u.search.includes("author="), { timeout: 5000 });
+  checks.add("unticking it lists every map again", await rows().count() === all.length, page.url());
 
-  checks.section("Made by reads the same credit");
-  await page.locator(".filter-chip", { hasText: "Agents" }).click();
-  await page.waitForURL(/by=agents/, { timeout: 5000 });
+  checks.section("Select all under Agents picks every agent");
+  await sidebar.locator(".map-author-group", { hasText: "Agents" }).locator(".map-author-all").click();
+  await page.waitForURL(/author=/, { timeout: 5000 });
   const byAgents = all.filter(m => m.authors.some(a => a.role !== "contributor" && a.uuid === "")).map(m => m.slug).sort();
-  checks.add("Agents lists the maps credited by name alone",
+  checks.add("it lists the maps credited by name alone",
     JSON.stringify((await slugs()).sort()) === JSON.stringify(byAgents), (await slugs()).join(", "));
 
   checks.add("the page raised no faults", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));

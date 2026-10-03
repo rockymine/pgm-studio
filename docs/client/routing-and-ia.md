@@ -25,7 +25,7 @@ shown, never name one.
 | Route | Component | Is |
 |---|---|---|
 | `/` | `Index` | the landing — seven cards over live counts |
-| `/maps` | `Maps` | every map in one table; `?stage=`, `?by=`, `?author=`, `?mode=` and `?sort=` are its filters |
+| `/maps` | `Maps` | every map in one table; `?stage=`, `?author=`, `?gamemode=` and `?sort=` are its filters |
 | `/maps/{slug}/plan` | `PlanTool` | the plan tool on a map |
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
 | `/maps/{slug}/configure` | `ConfigureTool` | the configure wizard |
@@ -65,25 +65,30 @@ module.
 
 ## The maps page
 
-`/maps` is every map in the studio in one table, newest written first. A map is one thing at different
-stages, so stage is a filter over the one list rather than a page of its own, and the filters sit above the
-table, each a row of chips carrying how many maps it would show with the other filters as they are.
+`/maps` is every map in the studio in one table, newest written first, with its filters open in the sidebar
+beside it. A map is one thing at different stages, so stage is a filter over the one list rather than a page
+of its own. Every option carries how many maps it would show with the other filters as they are, and
+**Clear filters** at the foot of the sidebar drops them all.
 
 | Filter | Address | Keeps |
 |---|---|---|
-| **Stage** | `?stage=plan\|sketch\|configure\|edit` | the maps standing at that stage; Finished is `edit` |
-| **Made by** | `?by=people\|agents` | maps credited to a person, or to an agent |
-| **Author** | `?author=` (repeated) | maps credited to any one of the picked authors, each shown as a tag with an x |
-| **Mode** | `?mode=ctw\|dtm\|dtc\|none` | maps played for that gamemode, or for none |
+| **Stage** | `?stage=plan\|sketch\|configure` | the maps standing at that stage |
+| **Author** | `?author=` (repeated) | maps credited to any one of the ticked authors |
+| **Gamemode** | `?gamemode=ctw\|dtm\|dtc\|none` (repeated) | maps played for any one of the ticked gamemodes, `none` for a map with none |
 | **Sort** | `?sort=name\|author\|stage` | the order; absent is last changed |
 
-A search box narrows the table by name, slug or author and stays out of the address. The header carries
-**New plan**, **New sketch** and **Import a world** whatever the filters are.
+**Configure is the last stage the page offers.** It is where a map is downloaded. A map whose stage is `edit`
+was read in by the corpus import, which reads a world that already has a `map.xml`; no authoring tool sets it,
+and the page lists such a map under Configure, which is the tool its row opens.
 
-**Who made a map is its credited authors.** The Author column shows the first one, with a count of the rest,
-and contributors are left out. A credit with an account shows the player's head; a credit by name alone, with
-no account behind it, is how an agent is credited, and shows a robot. The Made by filter reads the same
-distinction.
+**The Author filter lists every credited author in two groups, Agents and People,** each with **Select all**,
+and a search box narrows both. A credit with an account is a person and shows the player's head; a credit by
+name alone, with no account behind it, is how an agent is credited, and shows the agent mark. Contributors are
+left out of the filter and the column. The Author column shows the first credited author, with a count of the
+rest.
+
+A search box over the table narrows it by name, slug or author and stays out of the address. The header
+carries **New plan**, **New sketch** and **Import a world** whatever the filters are.
 
 **A row opens the tool at its map's stage.** A map at `edit` has no tool at its stage, so its row opens the
 last layer it holds — Configure, where it has a world — and one holding no layer opens nothing. The Layers

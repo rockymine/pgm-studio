@@ -43,7 +43,8 @@ public sealed record MapSummary(
 /// <summary>Map counts for the landing cards (GET /api/maps/stage-counts), each counting what the list its
 /// card opens shows.</summary>
 /// <param name="Sketch">Maps sitting at the Sketch stage.</param>
-/// <param name="Configure">Maps sitting at the Configure stage.</param>
+/// <param name="Configure">Maps sitting at the Configure stage, or at <c>edit</c>, which the maps page lists
+/// under Configure.</param>
 /// <param name="All">Every map in the studio.</param>
 public sealed record MapStageCounts(int Sketch, int Configure, int All);
 
