@@ -599,8 +599,8 @@
 
 /* The plan sidebar's three panels, as one even three-way switch rather than chips that wrap, closed by the
    button that folds the sidebar away. */
-.plan-panel-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: var(--space-1); margin-bottom: var(--space-3); }
-.plan-panel-switch .filter-chip { justify-content: center; text-align: center; }
+.plan-panel-switch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin-bottom: var(--space-3); }
+.plan-panel-switch > :last-child { margin-left: auto; }
 /* The folded plan sidebar: a strip holding only the button that opens it again. */
 .plan-sidebar-stub {
   flex: none;

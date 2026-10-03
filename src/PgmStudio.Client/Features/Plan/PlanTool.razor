@@ -98,7 +98,7 @@
             @if (leftPanel == "settings")
             {
             <Section Title="Reference" Writes>
-              <Field Label="Trace over map">
+              <Field Label="Map">
                 <Select Slim="false" Options="TraceMapOptions" Placeholder="None" Value="@(refMap ?? "")"
                         ValueChanged="OnPickReferenceMap" />
               </Field>
@@ -122,7 +122,7 @@
                   <Button Full OnClick="ClearReference" Title="Remove the backdrop">Clear</Button>
                 </div>
               }
-              <p class="section-desc">Trace over another map's top-down view. The backdrop is saved with the plan but not built.</p>
+              <p class="section-desc">Displays the selected map as a backdrop image on the canvas.</p>
             </Section>
 
             }
