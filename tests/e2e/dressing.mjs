@@ -133,17 +133,20 @@ try {
 
   await shot("dressing-phase.png");
 
-  // Drop a tree by clicking, which is the whole interaction.
+  // Drop a tree by clicking, which is the whole interaction. Both clicks land on the red island, since a
+  // marker dropped on the void is refused and the Placed list would not move.
   const box = await page.locator("svg.map-canvas-svg").boundingBox();
+  const placedRows = () => page.locator(".geo-label").allInnerTexts();
+  const before = await placedRows();
   await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
-  await page.mouse.click(box.x + box.width * 0.45, box.y + box.height * 0.45);
+  await page.mouse.click(box.x + box.width * 0.56, box.y + box.height * 0.62);
   await page.waitForTimeout(1500);
-  // What the phase draws for a tree is the recipe list, so that is what says one landed. `text=Species`
-  // passed on the blurb's own "of its species" and would have passed with no tree placed at all.
+  // What the phase draws for a tree is the recipe list, and the list is offered with the tool in hand too, so
+  // the Placed list is what says one landed.
   const panel = () => page.evaluate(() => document.body.innerText);
   checks.add("a click places a tree, and the phase asks which one",
-    await page.locator('.prop-card[title="oak"]').count() > 0,
-    (await panel()).match(/WHICH TREE/)?.[0] ?? "(no recipe list)");
+    (await placedRows()).length === before.length + 1 && await page.locator('.prop-card[title="oak"]').count() > 0,
+    `${before.length} → ${(await placedRows()).length} placed · ${(await panel()).match(/WHICH TREE/)?.[0] ?? "(no recipe list)"}`);
   await shot("dressing-tree.png");
 
   // Which tree a placement is, is the recipe it names, so what the phase carries is the card it marks
@@ -160,6 +163,20 @@ try {
   checks.add("and picking another moves the mark rather than adding one",
     await page.locator('.prop-card--active[title="oak"]').count() === 1
     && await page.locator(".prop-card--active").count() === 1);
+
+  // Arming the tool again lets go of the tree just placed, so the recipe picked next is the next tree's and
+  // the oak already down stays an oak.
+  await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
+  await page.waitForTimeout(800);
+  checks.add("arming the tool again shows the next placement, not the last one",
+    /next item/.test(await panel()), (await panel()).match(/selected|next item/)?.[0] ?? "(no badge)");
+  await page.locator('.prop-card[title="spruce"]').click();
+  await page.waitForTimeout(1500);
+  await page.mouse.click(box.x + box.width * 0.62, box.y + box.height * 0.59);
+  await page.waitForTimeout(1500);
+  const placed = (await placedRows()).slice(before.length);
+  checks.add("so the pick lands on the new tree and leaves the old one as it was",
+    placed.join(",") === "oak,spruce", placed.join(","));
 
   // Drag a route: press, trace, release — no separate way to finish, which is the bug the rework fixes.
   await page.click(`button[aria-label^="${DRIVEN.stroke}"]`);

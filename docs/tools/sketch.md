@@ -901,6 +901,11 @@ selected mark or prop rather than a shape. Without that, picking a single-shape 
 selected the island underneath, and `Delete` took the ground the relief was being stated on. Theme is
 select-only too and is deliberately outside this — its inspector is about the selected shape.
 
+**Arming a placing tool lets go of the selected mark or prop.** A placement selects what it put down and hands
+the canvas back to select, so the inspector is showing that placement; arming the tool again clears it, and the
+inspector shows the starting values the next placement takes. A recipe picked with the tool in hand therefore
+lands on the next tree, not on the one already down.
+
 The document is keyed by group id and carries the group's own settings beside the two lists. This one states
 all six, and solves to a surface running 7 to 16:
 

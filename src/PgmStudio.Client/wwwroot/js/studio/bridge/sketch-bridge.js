@@ -17,6 +17,8 @@ import { liveFeed, refusalText } from "./live-feed.js";
 import * as Keys from "../shared/keys.js";
 import { isHeightMode, isReliefScope } from "../shared/relief-words.js";
 import { diffOverlay } from "../render/diff-render.js";
+import { DRESSING_TOOLS } from "../controllers/dressing-controller.js";
+import { RELIEF_TOOLS } from "../controllers/relief-controller.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
 // axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
@@ -879,6 +881,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       // Not so in select-only mode: nothing there moves the selection, and the selection is what the phase
       // is *for*, so reaching for the hand tool to pan must not throw away what you picked.
       if (tool !== "select" && !selectOnly) selectShape(null);
+      // Arming a placing tool lets go of the prop or mark picked last, so the inspector shows the knobs the
+      // next placement takes — otherwise a recipe picked with the tool in hand restyles the one already down.
+      if (DRESSING_TOOLS[tool]) canvas.dressingTools?.select(null);
+      if (RELIEF_TOOLS[tool]) canvas.reliefTools?.select(null);
     },
     // Selection-only: a phase that picks groups and shapes but edits none of them. Forcing the select tool
     // is part of the restriction — a draw tool left armed would add geometry, which is equally the Draw
