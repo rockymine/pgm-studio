@@ -300,6 +300,11 @@ it persists nothing — saving is the host's, on the author's word), `sketch-bri
 bridges look repetitive but are not: each owns different document semantics. What they genuinely share is
 only the invoke wrapper, and only two of them use it.
 
+**The sketch bridge's verb table is where an edit is gated.** `MUTATORS` in `sketch-bridge.js` names every handle verb
+that changes the document, and one wrapper makes each an undo step and refuses it while the page is read-only. A
+verb that only reads the document stays out of it, and so does `load`, which opens a document rather than editing
+one. A new verb that writes the document is added to the list, or it is neither undoable nor refused read-only.
+
 **`house-iso-bridge` is the one with no canvas under it.** The library's editors draw a building in 3-D, and
 nothing is drawn in 2-D on that surface, so it takes neither a `CanvasBase` nor a document: `mount(wrapEl)`
 gives an `IsoScene` the wrap outright and answers a handle of `draw`/`show`/`hide`/`rotate`/`dispose`, or
@@ -402,8 +407,9 @@ The layer is about 6,600 lines of first-party code (the raw ~11,000 figure inclu
 line terms — a few hundred at most. What it costs is *consistency* rather than size.
 
 The **bridge invoke wrapper** is the live case. `bridge/fire.js` is the shared guard — two catches, because a
-`[JSInvokable]` the host never declared rejects asynchronously as well as throwing — and `plan-bridge` and
-`sketch-bridge` import it. `world-bridge` and `sideview-bridge` call `invokeMethodAsync` directly, so an
+host torn down mid-call rejects asynchronously as well as throwing — and `plan-bridge` and
+`sketch-bridge` import it. An event the host declares no `[JSInvokable]` for is not swallowed: on a `localhost`
+host it is a `console.error` naming the event, which the e2e sweep turns into a failed page. `world-bridge` and `sideview-bridge` call `invokeMethodAsync` directly, so an
 unwired feed on either surfaces as an unhandled rejection and, in the e2e sweep, as a faulted page.
 
 One stale reference remains in a module header: `static-renderer.js` cites an `OverviewRenderer` that no

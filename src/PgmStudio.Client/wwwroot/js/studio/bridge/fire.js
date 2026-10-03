@@ -1,17 +1,22 @@
 /**
- * Push a named event at the Blazor host, tolerating a host that never wired it.
+ * Push a named event at the Blazor host, tolerating a host that has gone.
  *
- * The tolerance is the whole point, and it takes two catches rather than one. A `[JSInvokable]` the host does
- * not declare fails *asynchronously* — `invokeMethodAsync` returns a rejected promise — so guarding only the
- * synchronous throw leaves an unhandled rejection, which surfaces as a console error and, in the e2e sweep,
- * as a faulted page. Not every feed has a listener by design: a phase that pulls its state on demand
- * (`getThemes`, `getDressing`) needs the bridge to announce a change without caring whether anyone is
- * listening yet.
+ * The tolerance takes two catches rather than one. A host torn down mid-call fails *asynchronously* —
+ * `invokeMethodAsync` returns a rejected promise — so guarding only the synchronous throw leaves an unhandled
+ * rejection, which surfaces as a console error and, in the e2e sweep, as a faulted page.
  *
- * One helper because both bridges need exactly this and had drifted — one guarded both, one only the throw,
- * and the difference only showed when a new feed was added to the wrong one.
+ * A name the host never declared is not tolerated quietly. Blazor rejects it with "does not contain a public
+ * invokable method", and on a development host (`localhost`) that is a `console.error` naming the event, which
+ * the e2e sweep turns into a failed page: an event nobody listens for is a feed that goes nowhere, and the
+ * bridge that fires it is the one to change. A deployed host stays silent.
  */
 export function fireTo(dotnetRef, name, ...args) {
-  try { dotnetRef?.invokeMethodAsync(name, ...args)?.catch(() => { /* host may not wire it */ }); }
-  catch { /* host may not wire it */ }
+  try {
+    dotnetRef?.invokeMethodAsync(name, ...args)?.catch((error) => {
+      if (inDevelopment() && /does not contain a public invokable method/.test(String(error?.message ?? error)))
+        console.error(`[bridge] the host declares no [JSInvokable] "${name}", so this event goes nowhere`);
+    });
+  } catch { /* host may be gone */ }
 }
+
+const inDevelopment = () => ["localhost", "127.0.0.1", "[::1]"].includes(globalThis.location?.hostname);

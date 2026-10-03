@@ -965,7 +965,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setViewDraft(viewJson) { canvas.setViewDraft(viewJson ? JSON.parse(viewJson) : null); },
     setMode(mode)      { applySetup({ mirror_mode: mode }); markDirty(); },
     setCenter(cx, cz)  { applySetup({ center: { cx, cz } }); markDirty(); },
-    setBbox(b)         { applySetup({ bbox: b }); markDirty(); },
     setShapesVisible(v){ canvas.setShapesVisible(v); },
     // Placing a view: the canvas shows the Board layer and the views alone.
     setBoardView(on)   {
@@ -1109,7 +1108,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (styleJson) { try { parsed = JSON.parse(styleJson); } catch { parsed = undefined; } }
       roomStyles = { ...roomStyles, [kind]: parsed };
       markDirty();
-      fire("OnRoomStyles", roomStylesState());
     },
     // ── the biome (docs/world-export/terrain-painting.md 5b) ──
     // The map-wide field and the library row it came from: {"field": …|null, "source": n}.
@@ -1126,17 +1124,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     defineTheme(name) {
       const id = uniqueScopeId(Object.keys(themes), name || "theme");
       themes[id] = defaultThemeJson();
-      afterThemeChange(); return id;
-    },
-    renameTheme(oldId, newId) {
-      if (!themes[oldId]) return oldId;
-      const id = uniqueScopeId(Object.keys(themes).filter(k => k !== oldId), newId || oldId);
-      if (id === oldId) return oldId;
-      themes[id] = themes[oldId]; delete themes[oldId];
-      // The note travels with the theme: a renamed copy is still the copy of the row it came from.
-      if (themeSources[oldId] !== undefined) { themeSources[id] = themeSources[oldId]; delete themeSources[oldId]; }
-      if (mapTheme === oldId) mapTheme = id;
-      for (const L of layers) for (const s of (L.shapes || [])) if (s.theme === oldId) s.theme = id;
       afterThemeChange(); return id;
     },
     deleteTheme(id) {
@@ -1169,7 +1156,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     /** Which unit a plain click picks with no group entered — "group" or "shape". The phase states it. */
     setPickUnit(unit) { canvas.setPickUnit(unit); },
     /** Correct the height a plan piece was compiled at, and mark it the author's so a recompile keeps it. */
-    setStructuralHeight: edit((id, height) => setStructuralHeight(id, height)),
+    setStructuralHeight(id, height) { setStructuralHeight(id, height); },
     /** Let go of the picked plan piece — what a rail's Close does. */
     clearStructural() { selectStructural(null); },
     /** Arm a theme so a click on a shape paints it; "" puts the brush down. */
@@ -1196,7 +1183,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // ── dressing (decoration.md) ──
     // Placing is the canvas's; the bridge exposes reading the document, editing the selection, and the
     // per-kind settings a newly placed prop starts from.
-    getDressing() { return dressingState(); },
     setDressingMode(on) {
       dressingMode = !!on;
       canvas.setDressingMode(dressingMode);
@@ -1234,7 +1220,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // ── relief (docs/world-export/relief.md) ──
     // Placing is the canvas's; the bridge exposes reading the document, editing the selected mark, the group
     // settings the marks are stated against, and the per-kind settings a newly placed mark starts from.
-    getRelief() { return reliefState(); },
     setReliefMode(on) {
       reliefMode = !!on;
       canvas.setReliefMode(reliefMode);
@@ -1393,9 +1378,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     undo() { history.undo(); },
     redo() { history.redo(); },
-    groupCount() { return uniqueGroups(groups).length; },
     fitToBbox() { canvas.fitToBbox(); },
-    resize() { canvas.resize(); },
     dispose() {
       clearTimeout(paintTimer);
       window.removeEventListener("pointerup", endStep);
@@ -1404,25 +1387,28 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
   };
   // Every handle verb that changes the document, wrapped once so a panel edit is a step and no verb has to
-  // remember to be one. A pointer edit is already bracketed by the press and the release, and a step opened
+  // remember to be one — and so none runs while the page is read-only, where the canvas already refuses its own
+  // edits at the source. A pointer edit is already bracketed by the press and the release, and a step opened
   // inside an open one folds into it, so the two paths cannot double-count. `load` is not here: opening a
-  // document is not an edit of the one that was open.
+  // document is not an edit of the one that was open. Reads are not here either: a verb that only reads the
+  // document has no business being a step.
   const MUTATORS = [
-    "setMode", "setCenter", "setBbox",
+    "setMode", "setCenter",
     "setHeight", "setVertexHeight", "applySlope", "setStrokeBand", "setHeightMode", "setSkirt", "setReliefScope",
+    "setStructuralHeight",
     "rotateSelected", "deleteShape", "promoteShape", "toggleOp", "toggleOverride", "toggleMirrors",
     "renameGroup",
     "addLayer", "deleteLayer", "renameLayer", "setLayerBaseY",
-    "setRoomStyle", "defineTheme", "renameTheme", "deleteTheme", "setThemeJson", "setMapTheme",
-    "setThemeSource", "themeFromLibrary", "getBiome", "setBiome",
+    "setRoomStyle", "defineTheme", "deleteTheme", "setThemeJson", "setMapTheme",
+    "setThemeSource", "setBiome",
     "assignShape", "assignGroup",
-    "deleteProp", "updateProp",
+    "deleteProp", "joinDressing", "pullRecipe", "updateProp",
     "deleteMark", "updateMark", "renameMark", "updateGroupRelief", "setPushAmount",
   ];
   for (const verb of MUTATORS) {
     const bare = handle[verb];
     if (typeof bare !== "function") throw new Error(`[sketch-bridge] no verb named ${verb} to make undoable`);
-    handle[verb] = (...args) => history.step(() => bare(...args));
+    handle[verb] = (...args) => readOnly ? undefined : history.step(() => bare(...args));
   }
 
   return handle;
