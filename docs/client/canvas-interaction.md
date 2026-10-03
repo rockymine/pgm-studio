@@ -233,6 +233,12 @@ two modifiers. It answers what to select and what the scope becomes. The geometr
 because a group is a polygon and a box is a cell rect; what could not differ between them is the rule, so
 it is written once — two tools with two grouping models is two things to learn for one idea.
 
+**The sketch holds its selection in one place, the canvas.** `SketchCanvas` answers `selectedGroupId`, `selectedId`
+(the shape drilled to, which is a single-member group's lone member) and `placesOwnThings` (the Relief and Dressing
+phases, which own the selection while up and so drill to no member); `sketch-bridge` reads them and keeps no copy.
+Every selection the canvas makes reaches the bridge through `onShapeSelected` / `onGroupSelected`, which call back
+into the canvas, so there is no second field to fall out of step with the first.
+
 **A brush pre-empts the rule, and is the only thing that does.** `SketchCanvas.#themeBrush` holds the theme
 the Theme phase has in hand; while it is set, a click on a shape paints it, `Shift`+click paints every shape
 its group holds and `Alt`+click lifts that shape's theme back into the hand — none of the three reaches
@@ -355,14 +361,14 @@ it says, and every in-flight caller no-ops instead.
 ## 7. What is tested, and what is not
 
 `npm test` (or `tools/js-test.sh`) runs Node's built-in runner over `tests/js/` — no `node_modules`, so it
-works from the shared folder. 333 tests over 19 files pass.
+works from the shared folder.
 
 Coverage splits cleanly along the DOM line. The modules the tests import average around 92% lines, several
 at 100% (`transform`, `symmetry`, `groups`, `polygon`, `plan-inspect`, `decompose-cut`, `shape-render`);
-`canvas-painter` is the one DOM-adjacent module under test, via a small context stub. Of the 60 studio
-modules (14,386 lines, the vendored ones aside), the tests reach 32 — the other **28 files, 8,952 lines, are
-never imported by a test at all**: every canvas, every bridge (`sketch-bridge` 1,164 lines, `plan-bridge`
-479), every controller, `iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage`
+`canvas-painter` is the one DOM-adjacent module under test, via a small context stub, and the sketch's bridge and
+canvas are mounted whole by the harness below. The studio modules the tests never import at all are every other
+canvas, every other bridge (`plan-bridge` among them), every controller but the sketch's, `iso-webgl` and `studio.js`.
+Note that `node --test --experimental-test-coverage`
 reports such files as *absent*, not as zero, so the report reads healthier than the tree is.
 
 This is a coherent split rather than neglect: pure logic is tested, DOM-bound code is not. The painted
@@ -376,7 +382,9 @@ already reaches.
 is: `mount()` is handed its canvas and its elements, and the only other thing it touches is `fetch`. Both are
 already stubbable with what `tests/js/` has — `_dom-stub.js` and `_painter-stub.js` are precedent — so
 `enterIso`/`fetchColumns` can be driven directly, with the canvas a recorder and `fetch` answering a canned
-payload or a refusal. That matters because `enterIso` is the most stateful function in the untested set: an
+payload or a refusal. `_sketch-bridge-stub.js` is that harness for `sketch-bridge`: it mounts the real bridge and the
+real `SketchCanvas` over stand-in elements and a recording host, so `tests/js/sketch-selection.test.js` and
+`sketch-setup.test.js` drive handle verbs and assert on the events the host was sent. That matters because `enterIso` is the most stateful function in the untested set: an
 await, a race guard, a cache stamp and two failure paths, and a rename inside it shipped a
 `ReferenceError` to the browser that neither the C# build nor the JS tests could see.
 

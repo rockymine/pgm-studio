@@ -25,6 +25,7 @@ globalThis.requestAnimationFrame = (frame) => setTimeout(frame, 0);
 globalThis.cancelAnimationFrame = clearTimeout;
 globalThis.ResizeObserver = class { observe() {} disconnect() {} };
 globalThis.getComputedStyle = () => ({ getPropertyValue: () => "" });
+globalThis.Path2D = class {};
 globalThis.matchMedia = () => ({ matches: false, addEventListener() {}, addListener() {} });
 
 const standIn = () => ({

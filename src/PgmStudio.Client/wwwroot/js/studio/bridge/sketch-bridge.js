@@ -51,7 +51,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let active = 0;
   let groups = [];            // alias of layers[active].groups — kept current by recompute()
   let mirrorVisible = true;
-  let selectedGroupId = null; // panel group selection (drives arrow-move of the whole group)
   let selectedStructuralId = null; // the picked plan piece, whose rail states the height it carries
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let dressingMode = false;    // the Dressing phase is up: props are, and a shape is not reachable under them
@@ -225,7 +224,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   function selectShape(id) {
-    selectedGroupId = null;
     canvas.selectShape(id);
     selectStructural(null);
     fire("OnShapeSelected", id ?? null);
@@ -247,7 +245,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     selectedStructuralId = s ? s.id : null;
     // One click selects one thing. The canvas has already dropped the terrain selection; the panel and the
     // rail are told too, or the group list goes on lighting a row whose chrome is gone.
-    if (s) { selectedGroupId = null; fire("OnShapeSelected", null); fire("OnGroupSelected", null); }
+    if (s) { fire("OnShapeSelected", null); fire("OnGroupSelected", null); }
     fire("OnStructuralSelected", s ? JSON.stringify({
       id: s.id, role: s.role, intentRef: s.intentRef ?? null, color: s.color ?? null,
       baseHeight: s.base_height ?? null, heightAuthored: s.height_authored === true,
@@ -320,19 +318,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   function selectGroup(id) {
-    selectedGroupId = id ?? null;
-    canvas.selectGroup(selectedGroupId);
+    canvas.selectGroup(id ?? null);
     // A single-member group shows the shape inspector (its member) — set height / convert / op without
-    // drilling; a multi-shape group shows the group inspector. Either way selectedGroupId stays set, so
-    // arrow-nudge (and later rotate) act on the whole group. A phase placing things of its own drills to
-    // neither: the Draw actions are unavailable there, and a selected shape is what the shape-level chords
-    // reach.
-    const isl = selectedGroupId ? groups.find(i => i.id === selectedGroupId) : null;
-    const placesOwnThings = reliefMode || dressingMode;
-    const single = !placesOwnThings && isl && isl.shapeIds.length === 1 ? isl.shapeIds[0] : null;
+    // drilling; a multi-shape group shows the group inspector. Either way the canvas keeps the group
+    // selected, so arrow-nudge (and later rotate) act on the whole group. A phase placing things of its own
+    // drills to neither: the canvas leaves no member selected there, the Draw actions are unavailable, and a
+    // selected shape is what the shape-level chords reach.
+    const single = canvas.selectedId;
     selectStructural(null);
     fire("OnShapeSelected", single);
-    fire("OnGroupSelected", single ? null : selectedGroupId);
+    fire("OnGroupSelected", single ? null : canvas.selectedGroupId);
     // In the Relief phase the group IS the unit being edited — its base, reach, step and grain are what the
     // marks are stated against — so picking one has to reach the inspector.
     if (reliefMode) fire("OnRelief", reliefState());
@@ -344,7 +339,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const rad = (deg || 0) * Math.PI / 180;
     if (!rad) return;
     let ids;
-    if (selectedGroupId) { const isl = groups.find(i => i.id === selectedGroupId); ids = isl?.shapeIds ?? []; }
+    if (canvas.selectedGroupId) { const isl = groups.find(i => i.id === canvas.selectedGroupId); ids = isl?.shapeIds ?? []; }
     else if (canvas.selectedId) ids = [canvas.selectedId];
     else return;
     const shapes = ids.map(id => canvas.getShape(id)).filter(Boolean);
@@ -575,8 +570,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   function nudgeBy(dx, dz) {
     let moved = false;
-    if (selectedGroupId) {
-      const isl = groups.find(i => i.id === selectedGroupId);
+    if (canvas.selectedGroupId) {
+      const isl = groups.find(i => i.id === canvas.selectedGroupId);
       for (const sid of (isl?.shapeIds ?? [])) {
         const s = canvas.getShape(sid);
         if (s) { canvas.updateShape(translateShape(s, dx, dz)); moved = true; }
@@ -837,7 +832,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   function reliefGroup() {
     const selectedId = canvas.reliefTools?.selectedId ?? null;
     const selected = selectedId ? canvas.relief.byId(selectedId) : null;
-    return selected?.groupId ?? selectedGroupId ?? null;
+    return selected?.groupId ?? canvas.selectedGroupId ?? null;
   }
 
   // What an author has said about the ground inside each group. Distinct from the contour overlay below it:
