@@ -181,10 +181,6 @@ public sealed class MapArtifactStore(PgmDb db)
         return byKind;
     }
 
-    /// <summary>How many maps hold this kind.</summary>
-    public Task<int> HolderCountAsync(string kind, CancellationToken ct = default)
-        => db.Artifacts.Where(a => a.Kind == kind).Select(a => a.MapId).Distinct().CountAsync(ct);
-
     private Task<MapArtifactRow?> RowAsync(long mapId, string kind, CancellationToken ct)
         => db.Artifacts.FirstOrDefaultAsync(a => a.MapId == mapId && a.Kind == kind, ct);
 }

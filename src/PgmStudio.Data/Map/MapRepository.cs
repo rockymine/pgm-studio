@@ -46,6 +46,12 @@ public sealed class MapRepository(PgmDb db)
             : inStage.OrderByDescending(m => m.UpdatedAt).ThenBy(m => m.Slug).ToListAsync(ct);
     }
 
+    /// <summary>Every map's credited authors, keyed by map id, in the order each map states them. One query
+    /// for the whole list; a map credited to nobody is absent.</summary>
+    public async Task<Dictionary<long, List<AuthorRow>>> AuthorsAsync(CancellationToken ct = default) =>
+        (await db.Authors.OrderBy(a => a.Id).ToListAsync(ct))
+            .GroupBy(a => a.MapId).ToDictionary(g => g.Key, g => g.ToList());
+
     /// <summary>
     /// Every map's gamemodes, keyed by map id — derived from the objective rows it owns, never from the
     /// <c>&lt;gamemode&gt;</c> label, which most maps don't declare and some contradict. Three set lookups

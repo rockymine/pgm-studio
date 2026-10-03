@@ -4,95 +4,147 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 
-<PageTitle>@StageTitle · PGM Studio</PageTitle>
+<PageTitle>Maps · PGM Studio</PageTitle>
 
-@* Staged map collection — one overview, scoped by ?stage=sketch|configure|edit (default edit). The
-   activity rail switches stage; each stage lists its maps with the matching resume target and a
-   stage-appropriate "start" action. Reached from the landing cards. *@
+@* Every map in the studio, in one table. Stage, who made it and gamemode are filters over the one list, kept
+   in the address so a link or a landing card can open a view; each row links straight into every tool the
+   map has a layer in. *@
 
 <StudioShell>
   <Bar>
     <Topbar>
-      <Crumbs><Crumb Sep="false" Dim>@StageTitle</Crumb></Crumbs>
+      <Crumbs><Crumb Sep="false" Dim>Maps</Crumb></Crumbs>
     </Topbar>
   </Bar>
-  <Rail>
-    <NavRail>
-      <NavButton Icon="layout-dashboard" Title="Plans" Href="maps?stage=plan" Active="CurrentStage == MapStage.Plan" />
-      <NavButton Icon="pencil-ruler" Title="Sketches" Href="maps?stage=sketch" Active="CurrentStage == MapStage.Sketch" />
-      <NavButton Icon="settings-2" Title="Configuring" Href="maps?stage=configure" Active="CurrentStage == MapStage.Configure" />
-      <NavButton Icon="map" Title="Maps" Href="maps" Active="CurrentStage is null" />
-    </NavRail>
-  </Rail>
   <ChildContent>
       <Workspace>
-        <ContentColumn MaxWidth="960">
+        <ContentColumn MaxWidth="1180">
 
-          <Section Title="@StageTitle">
+          <Section Title="Maps">
             <Actions>
-              <Badge Kind="dim">@(maps?.Count ?? 0)</Badge>
-              @if (CurrentStage == MapStage.Plan)
-              {
-                <Button Variant="primary" OnClick="NewPlan" Icon="plus" Class="action-btn--push-end" Writes Disabled="@creatingPlan">New plan</Button>
-              }
-              else if (CurrentStage == MapStage.Sketch)
-              {
-                <Button Variant="primary" OnClick="NewSketch" Icon="plus" Class="action-btn--push-end" Writes Disabled="@creatingSketch">New sketch</Button>
-              }
-              else if (CurrentStage == MapStage.Configure)
-              {
-                <Button Variant="primary" Href="maps/new" Icon="import" Class="action-btn--push-end" Writes>Import a world</Button>
-              }
+              <Badge Kind="dim">@CountLabel</Badge>
+              <Button Variant="primary" OnClick="NewPlan" Icon="plus" Class="action-btn--push-end" Writes Disabled="@creatingPlan">New plan</Button>
+              <Button OnClick="NewSketch" Icon="plus" Writes Disabled="@creatingSketch">New sketch</Button>
+              <Button Href="maps/new" Icon="import" Writes>Import a world</Button>
             </Actions>
-            <Description>@StageBlurb</Description>
             <ChildContent>
 
-            <input class="field-input field-input--separated" placeholder="Search…" @bind="filter" @bind:event="oninput" />
+            <div class="map-filters">
+              <div class="map-filter-row">
+                <input class="field-input map-search" type="search" placeholder="Search name, slug or author"
+                       aria-label="Search maps" @bind="search" @bind:event="oninput" />
+                <Select Id="map-sort" Options="SortOptions" Value="@SortKey" ValueChanged="SetSort" Title="Sort by" />
+              </div>
 
-            @* --actions: every row reserves the layer column, so the list keeps one aligned edge whatever
-               a given map has been through. *@
-            <div class="panel-list panel-list--actions panel-list--separated">
-              @if (loadError is not null)
-              {
-                <div class="list-empty">@loadError <Button OnClick="LoadAsync">Try again</Button></div>
-              }
-              else if (maps is null) { <div class="list-empty">Loading…</div> }
-              else if (!Filtered.Any()) { <div class="list-empty">@EmptyMessage</div> }
-              else
-              {
-                @foreach (var m in Filtered)
+              <div class="map-filter-row">
+                <span class="map-filter-label">Stage</span>
+                <div class="filter-group-options">
+                  <Chip Active="@(CurrentStage is null)" OnClick='() => Go("stage", null)'>All <span class="map-chip-count">@Count(skip: "stage")</span></Chip>
+                  @foreach (var (word, label) in StageWords)
+                  {
+                    <Chip Active="@(CurrentStage == word)" OnClick='() => Go("stage", word)'>
+                      <span class="map-stage-dot map-stage-dot--@word"></span>@label <span class="map-chip-count">@Count(skip: "stage", stage: word)</span>
+                    </Chip>
+                  }
+                </div>
+              </div>
+
+              <div class="map-filter-row">
+                <span class="map-filter-label">Made by</span>
+                <div class="filter-group-options">
+                  <Chip Active="@(Kind is null)" OnClick='() => Go("by", null)'>Everyone <span class="map-chip-count">@Count(skip: "by")</span></Chip>
+                  <Chip Active="@(Kind == People)" OnClick='() => Go("by", People)'>People <span class="map-chip-count">@Count(skip: "by", by: People)</span></Chip>
+                  <Chip Active="@(Kind == Agents)" OnClick='() => Go("by", Agents)'>Agents <span class="map-chip-count">@Count(skip: "by", by: Agents)</span></Chip>
+                </div>
+                <Select Id="map-author-pick" Options="AuthorOptions" Value="" Placeholder="Add an author…" ValueChanged="AddAuthor" Title="Show maps by this author" />
+                @foreach (var name in Picked)
                 {
-                  <ListRow Href="@(Opens(m) is { } layer ? $"maps/{m.Slug}/{layer}" : null)" @key="m.Slug">
-                    <ChildContent>
-                      <span class="list-label map-row-name">@m.Name</span>
-                      <span class="list-label list-label--mono map-row-slug">@m.Slug</span>
-                      @if (CurrentStage is null) { <Badge Kind="neutral">@StageLabel(m.Stage)</Badge> }
-                      @if (CurrentStage is null or MapStage.Edit)
-                      {
-                        @* one tag per gamemode: a map can be more than one, and a map with no objective
-                           module we read carries none rather than a blank tag *@
-                        @foreach (var g in m.Gamemodes) { <span class="list-tag">@g.ToUpperInvariant()</span> }
-                        @if (!string.IsNullOrEmpty(m.Version)) { <span class="list-tag">@($"v{m.Version}")</span> }
-                      }
-                      <span class="list-go"><i data-lucide="arrow-right"></i></span>
-                    </ChildContent>
-                    @* Every layer the map holds, each a direct link into that tool. A map keeps its plan and
-                       its sketch after it has been built and configured, so this is where they stay
-                       reachable — the row's own link goes wherever the map has got to, and the one matching
-                       that carries --now. The column is reserved on every row so the labels stay aligned. *@
-                    <Trailing>
-                      <span class="map-artifacts">
-                        @foreach (var (id, label) in Layers(m))
-                        {
-                          <a class="map-layer @(Opens(m) == id ? "map-layer--now" : null)"
-                             href="@($"maps/{m.Slug}/{id}")" title="@LayerTitle(m, id)">@label</a>
-                        }
-                      </span>
-                    </Trailing>
-                  </ListRow>
+                  var credit = CreditNamed(name);
+                  <span class="map-author-tag" @key="name">
+                    <AuthorMark Uuid="@credit?.Uuid" Name="@name" Size="16" />
+                    @name
+                    <button type="button" class="map-author-tag-x" title="Stop filtering by @name" aria-label="Remove @name"
+                            @onclick="() => RemoveAuthor(name)"><i data-lucide="x"></i></button>
+                  </span>
                 }
+              </div>
+
+              @if (ModesPresent.Count > 0)
+              {
+                <div class="map-filter-row">
+                  <span class="map-filter-label">Mode</span>
+                  <div class="filter-group-options">
+                    <Chip Active="@(Mode is null)" OnClick='() => Go("mode", null)'>Any</Chip>
+                    @foreach (var mode in ModesPresent)
+                    {
+                      <Chip Active="@(Mode == mode)" OnClick='() => Go("mode", mode)'>@mode.ToUpperInvariant() <span class="map-chip-count">@Count(skip: "mode", mode: mode)</span></Chip>
+                    }
+                    <Chip Active="@(Mode == NoMode)" OnClick='() => Go("mode", NoMode)'>Not set <span class="map-chip-count">@Count(skip: "mode", mode: NoMode)</span></Chip>
+                  </div>
+                </div>
               }
             </div>
+
+            @if (loadError is not null)
+            {
+              <div class="list-empty">@loadError <Button OnClick="LoadAsync">Try again</Button></div>
+            }
+            else if (maps is null) { <div class="list-empty">Loading…</div> }
+            else if (maps.Count == 0) { <div class="list-empty">No maps yet. Plan one, draw a sketch, or import a world.</div> }
+            else if (Shown.Count == 0)
+            {
+              <div class="list-empty">No map matches these filters. <Button OnClick="ClearFilters">Clear filters</Button></div>
+            }
+            else
+            {
+              <div class="map-table-box">
+                <table class="map-table">
+                  <thead>
+                    <tr><th>Map</th><th>Stage</th><th>Layers</th><th>Mode</th><th>Author</th><th>Last changed</th></tr>
+                  </thead>
+                  <tbody>
+                    @foreach (var m in Shown)
+                    {
+                      var opens = Opens(m);
+                      var credits = Credited(m);
+                      <tr class="map-table-row" @key="m.Slug" @onclick="() => Open(m)">
+                        <td>
+                          @if (opens is not null)
+                          {
+                            <a class="map-row-name" href="@($"maps/{m.Slug}/{opens}")" @onclick:stopPropagation>@m.Name</a>
+                          }
+                          else { <span class="map-row-name">@m.Name</span> }
+                          <div class="map-row-slug">@m.Slug</div>
+                        </td>
+                        <td><span class="map-stage"><span class="map-stage-dot map-stage-dot--@m.Stage"></span>@StageLabel(m.Stage)</span></td>
+                        <td>
+                          <span class="map-artifacts">
+                            @foreach (var (id, label) in Layers(m))
+                            {
+                              <a class="map-layer @(opens == id ? "map-layer--now" : null)" @onclick:stopPropagation
+                                 href="@($"maps/{m.Slug}/{id}")" title="@LayerTitle(id)">@label</a>
+                            }
+                          </span>
+                        </td>
+                        <td class="map-modes">@(m.Gamemodes.Count > 0 ? string.Join(" ", m.Gamemodes).ToUpperInvariant() : "—")</td>
+                        <td>
+                          @if (credits.Count == 0) { <span class="map-row-slug">Nobody credited</span> }
+                          else
+                          {
+                            <span class="map-author" title="@string.Join(", ", credits.Select(NameOf))">
+                              <AuthorMark Uuid="@credits[0].Uuid" Name="@NameOf(credits[0])" Size="18" />
+                              @NameOf(credits[0])
+                              @if (credits.Count > 1) { <span class="map-author-more">+@(credits.Count - 1)</span> }
+                            </span>
+                          }
+                        </td>
+                        <td class="map-changed" title="@m.UpdatedAt.ToLocalTime().ToString("g")">@Moments.Ago(m.UpdatedAt)</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
             </ChildContent>
           </Section>
         </ContentColumn>

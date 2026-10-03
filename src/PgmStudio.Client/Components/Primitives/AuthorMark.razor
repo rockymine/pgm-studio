@@ -1,0 +1,22 @@
+@namespace PgmStudio.Client.Components
+
+@* A credited author's mark: the player's head for an account, and a robot for a name with no account behind
+   it, which is how an agent is credited. *@
+
+@if (string.IsNullOrEmpty(Uuid))
+{
+    <span class="author-mark author-mark--agent" style="--head-size: @(Size)px" title="@(Name) — credited by name, with no account"
+          aria-hidden="true"><i data-lucide="bot"></i></span>
+}
+else
+{
+    <PlayerHead Uuid="@Uuid" Name="@Name" Size="@Size" Title="@Name" />
+}
+
+@code {
+    /// <summary>The Minecraft uuid, or empty for a name credited with no account.</summary>
+    [Parameter] public string? Uuid { get; set; }
+    [Parameter] public string? Name { get; set; }
+    /// <summary>The mark's edge in pixels.</summary>
+    [Parameter] public int Size { get; set; } = 16;
+}
