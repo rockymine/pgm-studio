@@ -194,7 +194,10 @@ try {
     kept === 4 && await page.locator(`button[aria-pressed][aria-label^="${DRIVEN.tree}"]`).count() === 1
     && /next item/.test(await panel()),
     `${kept} placed · pressed ${await page.locator('.canvas-dock button[aria-pressed]').evaluateAll(els => els.map(e => e.getAttribute("aria-label")))} · ${(await panel()).match(/selected|next item/)?.[0]}`);
-  await page.click('button[aria-label="Select"]');
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(400);
+  checks.add("and Escape puts it down", await page.locator('.canvas-dock button[aria-pressed][aria-label="Select"]').count() === 1,
+    `${await page.locator('.canvas-dock button[aria-pressed]').evaluateAll(els => els.map(e => e.getAttribute("aria-label")))}`);
 
   // Drag a route: press, trace, release — no separate way to finish, which is the bug the rework fixes.
   await page.click(`button[aria-label^="${DRIVEN.stroke}"]`);

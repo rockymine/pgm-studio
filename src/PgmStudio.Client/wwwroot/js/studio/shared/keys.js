@@ -165,7 +165,7 @@ export function keepsTool() { return shiftDown; }
 /** The sheet's row for {@link keepsTool}, which every canvas that places things lists in its own set. */
 export const KEEP_TOOL = Object.freeze({
   id: "canvas.keep-tool", keys: "shift", held: true, group: "Canvas",
-  label: "Hold as a placement or a drawn shape lands to keep the tool in hand — V puts it down",
+  label: "Hold as a placement or a drawn shape lands to keep the tool in hand — Esc or V puts it down",
 });
 
 /** Called after any entry runs — the overlay uses it to close itself. */

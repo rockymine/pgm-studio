@@ -124,12 +124,17 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // drag fold into that drag's single step rather than making one each.
   const edit = (fn) => (...args) => history.step(() => fn(...args));
 
-  /** A finished draw, cut or placement hands the canvas back to select, and the toolbar follows — unless
-   *  Shift is held as it lands, which keeps the tool in hand. Answers whether the tool was put down. */
-  function dropTool() {
-    if (Keys.keepsTool()) return false;
+  /** Hand the canvas back to select, and have the toolbar follow. */
+  function putDownTool() {
     canvas.setActiveTool("select");
     fire("OnToolChanged", "select");
+  }
+
+  /** A finished draw, cut or placement puts its tool down — unless Shift is held as it lands, which keeps the
+   *  tool in hand. Answers whether the tool was put down. */
+  function dropTool() {
+    if (Keys.keepsTool()) return false;
+    putDownTool();
     return true;
   }
 
@@ -176,6 +181,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onReliefChanged: edit(() => afterReliefChange()),
     onMarkSelected:  () => fire("OnRelief", reliefState()),
     onReliefPlaced:  () => { if (!dropTool()) canvas.reliefTools?.select(null); },
+    onToolDropped:   () => putDownTool(),
     onShapeDeleted:  edit((id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); }),
     // Taking a point out is one step, opened here because the key press that asks for it is not a pointer
     // press and so has no step open yet; a refused removal changes nothing and costs none. Either way the

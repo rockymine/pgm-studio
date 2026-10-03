@@ -1357,14 +1357,17 @@ export class PlanCanvas extends CanvasBase {
       { id: "plan.enter", keys: "enter", label: "Open the selected group", group: "Canvas",
         when: () => live() && this.#sel?.kind === "box",
         run: () => { this.#scopeBoxId = this.#sel.id; this.#refreshOverlay(); } },
-      { id: "plan.escape", keys: "escape", label: "Leave the group or deselect", group: "Canvas",
+      { id: "plan.escape", keys: "escape", label: "Put the tool down, leave the group, or deselect", group: "Canvas",
         when: live, run: () => this.#popOut() },
     ]);
   }
 
-  /** Escape walks the group model back out: a multi-selection clears, an entered box is left with its own box
-   *  selected, a drilled piece pops to the box that groups it, and anything else clears. */
+  /** Escape lets go of what is in hand first — a rectangle being dragged out, then the tool that draws or places
+   *  it — and then walks the group model back out: a multi-selection clears, an entered box is left with its own
+   *  box selected, a drilled piece pops to the box that groups it, and anything else clears. */
   #popOut() {
+    if (this.#drag?.mode === "draw") { this.#drag = null; this.#paintWorld(); return; }
+    if (this.#tool !== "select" && this.#tool !== "pan") { this.setTool("select"); this.#cb.onTool?.("select"); return; }
     if (!this.#doc) return;
     if (this.#multi.length) {
       this.#multi = [];

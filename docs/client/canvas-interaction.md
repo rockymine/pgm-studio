@@ -252,7 +252,8 @@ into the canvas, so there is no second field to fall out of step with the first.
 the Theme phase has in hand; while it is set, a click on a shape paints it, `Shift`+click paints every shape
 its group holds and `Alt`+click lifts that shape's theme back into the hand — none of the three reaches
 `resolvePick` at all. `Escape` follows the same reading: a thing in hand is the first thing it lets go of, so
-with a brush armed it puts the brush down and touches neither the scope nor the selection. That is deliberate
+with a brush armed it puts the brush down and touches neither the scope nor the selection, and with a drawing or
+placing tool armed it puts that down the same way — after cancelling a shape half drawn, which is its own press. That is deliberate
 and narrow: with something in hand the modifiers are read against what is held rather than against the
 grouping, which is why `Alt` means eyedropper there and select-the-parent everywhere else. With an empty hand
 the shared rule applies unchanged.
@@ -464,7 +465,7 @@ except those marked `inField`, so a bare letter in a name box is a letter rather
 
 **One modifier is held rather than pressed.** A finished draw, cut or placement drops its canvas back to
 select, so the next press can move or tune what was just put down; Shift held as it lands keeps the tool in hand
-instead. `keepsTool()` is that rule, read off the modifiers of every key and pointer event the document sees
+instead, until `Escape` or `V` puts the tool down. `keepsTool()` is that rule, read off the modifiers of every key and pointer event the document sees
 (`noteModifiers`, installed in the capture phase so it is current when the release lands), and every
 drop-to-select site on both canvases asks it — the sketch bridge's `dropTool` and the plan canvas's own. A
 `held` entry is how the sheet lists it: it is shown, it takes no `run`, and neither the dispatcher nor the

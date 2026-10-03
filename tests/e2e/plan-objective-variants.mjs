@@ -145,6 +145,10 @@ for (const top of [-80, 20]) {
 await page.keyboard.up("Shift");
 const pressedNow = () => page.locator('.canvas-dock button[aria-pressed]').evaluateAll(els => els.map(e => e.getAttribute("aria-label")).join(" | "));
 checks.add("two pieces drawn with Shift held leave the piece tool armed", await pressed("Piece") === 1, await pressedNow());
+await page.keyboard.press("Escape");
+await page.waitForTimeout(250);
+checks.add("and Escape puts it down", await pressed("Select") === 1, await pressedNow());
+await pick("Pieces", "Piece");
 await page.mouse.move(midX + 160, midZ + 120);
 await page.mouse.down();
 await page.mouse.move(midX + 220, midZ + 170, { steps: 6 });

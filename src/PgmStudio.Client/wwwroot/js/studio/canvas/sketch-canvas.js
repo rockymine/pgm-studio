@@ -1322,7 +1322,7 @@ export class SketchCanvas extends CanvasBase {
     const writable = () => live() && !this._readOnly;
     Keys.register("sketch-canvas", [
       Keys.KEEP_TOOL,
-      { id: "sketch.cancel", keys: "escape", label: "Cancel, go up a level, or deselect",
+      { id: "sketch.cancel", keys: "escape", label: "Cancel, put the tool down, go up a level, or deselect",
         group: "Canvas", when: live, inField: false, run: () => this.#onEscape() },
       { id: "sketch.enter", keys: "enter", label: "Open the selected group or shape",
         group: "Canvas", when: () => live() && (this.#selectedId || this.#selectedGroupId),
@@ -1373,13 +1373,21 @@ export class SketchCanvas extends CanvasBase {
     return !this.placesOwnThings && !!this.#selectedId && this.#level === "points" && (this.#edit?.selectedVertex ?? -1) >= 0;
   }
 
-  /** Escape, in the order a press means them: an in-progress draw, then one rung back up the ladder — the
-   *  points of a shape, then the group that was entered — then the selection itself. */
+  /** Escape, in the order a press means them: an in-progress draw, then the brush or tool in hand, then one
+   *  rung back up the ladder — the points of a shape, then the group that was entered — then the selection
+   *  itself. */
   #onEscape() {
-    this.#draw.cancel(); this.#clearMeasure(); this.#clearSplit();
-    // A thing in hand is the first thing Escape lets go of: with a brush armed every click paints, so
-    // putting it down is what "never mind" means before anything about the selection does.
+    // A shape half drawn is let go of first, and the press that does it does nothing else.
+    if (this.#draw.cancel()) return;
+    this.#clearMeasure(); this.#clearSplit();
+    // A thing in hand is the next thing Escape lets go of: with a brush or a tool armed every click paints or
+    // places, so putting it down is what "never mind" means before anything about the selection does. The
+    // eye is the view phase's own and is put down by leaving it.
     if (this.#themeBrush) { this.#callbacks.onThemeDrop?.(); return; }
+    if (!["select", "move", "eye", null, undefined].includes(this._activeTool)) {
+      this.#callbacks.onToolDropped?.();
+      return;
+    }
     if (this.#level === "points") { this.#setLevel("shape"); return; }
     if (this.#scopeGroupId) {
       const parent = this.#scopeGroupId;

@@ -607,9 +607,9 @@ shape and a click landing outside its footprint leaves the scope before landing 
 shape whose points are already open leaves them open, so working point by point is not interrupted by
 touching what is being worked on.
 
-`Escape` walks the whole way out in the order a press means it: an in-progress draw, then the points, then
-the entered group, then the selection itself. With a theme in hand it does none of that and puts the theme
-down instead. Closing a drawn polygon is no part of the ladder: a polygon or a polyline closes on `Enter`, or on
+`Escape` walks the whole way out in the order a press means it: an in-progress draw, then the tool in hand,
+then the points, then the entered group, then the selection itself — one step a press. With a theme in hand
+it does none of that and puts the theme down instead. Closing a drawn polygon is no part of the ladder: a polygon or a polyline closes on `Enter`, or on
 a click landing back at its own first vertex.
 
 **The Shapes chip draws every primitive on the board; without it, the selected or entered group draws its own
@@ -675,7 +675,7 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `Ctrl`/`⌘`+click | Reach the shape under the cursor and enter its group as the scope | Canvas |
 | `Alt`+click | Pick the parent group and leave any scope | Canvas |
 | `Enter` | Go one level deeper, or close the polygon/polyline in progress | Canvas |
-| `Escape` | Put the brush down, else cancel the draw, else step back up a level, else clear the selection | Canvas |
+| `Escape` | Cancel the draw, else put the brush or the tool down, else step back up a level, else clear the selection | Canvas |
 | `Delete` / `Backspace` | Delete the selected point, where one is picked on the points rung | Canvas |
 | `Delete` / `Backspace` | Delete the selected shape, where no point is picked | Canvas |
 | Arrow keys | Nudge the selection one block (`Shift` for sixteen) | Canvas |
@@ -716,7 +716,7 @@ mistaken for an armed build. Two more tools read and cut rather than make: **mea
 two points, the usual question being how wide a void gap is, and **split** slices the topmost shape it crosses
 into two independent shapes. Every draw and every split drops the
 tool back to select when it completes, with the new shape selected — unless **Shift** is held as it completes,
-which keeps the tool in hand and selects nothing, so the next press draws again. `V` puts it down.
+which keeps the tool in hand and selects nothing, so the next press draws again. `Escape` or `V` puts it down.
 
 **The top two rungs wear the same box, and the third wears none.** A group and a shape are each drawn with
 the **transform box** every surface in the studio uses (`docs/client/canvas-interaction.md` §5): four corner
