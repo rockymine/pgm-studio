@@ -12,7 +12,7 @@ import { liveFeed } from "./live-feed.js";
 /**
  * @param {object} options
  * @param {object} options.canvas      the canvas the preview is drawn on
- * @param {() => (string|null)} options.url   the columns route; empty when there is nothing to build
+ * @param {string|(() => (string|null))} options.url   the columns route, or a function answering it; empty when there is nothing to build
  * @param {string} [options.missing]  the sentence reported when `url` is empty
  * @param {() => string} options.state the document as the wire body, which is also the cache stamp
  * @param {() => object} options.bounds the world rectangle the picture is fitted to
@@ -68,7 +68,7 @@ export function isoPreview({ canvas, url, missing = "", state, bounds, onBuilt, 
       if (ok === false) { on = false; onUnavailable(""); return; }
       on = true;
       if (mesh && stamp === state()) { draw(); return; }
-      if (!url()) { leave(missing); return; }
+      if (!(typeof url === "function" ? url() : url)) { leave(missing); return; }
       await feed.request();
     },
     hide() { on = false; canvas.hideIso(); },
