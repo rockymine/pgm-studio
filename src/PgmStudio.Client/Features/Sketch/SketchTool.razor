@@ -177,7 +177,7 @@
              an author wants in a preview of a stack is to take the deck off and look under it. A board of
              one layer shows none — there is nothing to take off — and the rotate replaces fit either way. *@
           <CanvasLayerBar>
-            @if (!threeD)
+            @if (!iso.ThreeD)
             {
               @if (ChipOffered(ChipShapes))
               {
@@ -214,16 +214,12 @@
                            Title="@($"Show layer '{id}'")"
                            OnClick="@(() => ToggleIsoLayer(id))">@id</LayerChip>
               }
-              <CanvasRoundButton Icon="rotate-cw" Title="Rotate the preview 90°" OnClick="RotateIso" />
-            }
-            @if (isoUnavailable)
-            {
-              <span class="canvas-note" title="@IsoNoteTitle">@IsoNote</span>
+              <CanvasRoundButton Icon="rotate-cw" Title="Rotate the preview 90°" OnClick="iso.RotateAsync" />
             }
             @* The picture is the world the export builds, so where the drawing and the build disagree the
                screen shows the build and says nothing about the difference. Name the shapes; the finding's
                own sentence, on hover, says what happened to which. *@
-            @if (threeD && IsoContested.Count > 0)
+            @if (iso.ThreeD && IsoContested.Count > 0)
             {
               <span class="canvas-note canvas-note--warn" title="@IsoContestedWhy">
                 Built differently from the drawing: @string.Join(", ", IsoContested)
@@ -234,31 +230,26 @@
               <span class="canvas-note canvas-note--warn" role="status">@editNote</span>
             }
             @* Placing a view is 2-D only: the eye is stood on a map of the board. *@
-            @if (!PlacingViewActive)
-            {
-              <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
-                              Title="@(isoUnavailable ? IsoNoteTitle : "3-D preview (read-only)")"
-                              OnClick="Toggle3D" />
-            }
+            <IsoToggle View="iso" OfferToggle="@(!PlacingViewActive)" />
           </CanvasLayerBar>
 
           @* A layer is the board's rather than a phase's, so the switch is chrome and every phase that
              draws the canvas has it. Adding and removing one is drawing work, so only Draw offers those. *@
-          @if (!threeD)
+          @if (!iso.ThreeD)
           {
             <SketchLayerStrip Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer"
                               OnAdd="AddLayer" OnDelete="DeleteLayer" AllowEdit="@DrawActive" />
           }
 
           @* What is in hand, where a thing in hand belongs. The Theme phase's every click is addressed to it. *@
-          @if (ThemeActive && !threeD)
+          @if (ThemeActive && !iso.ThreeD)
           {
             <SketchThemeStrip Themes="themeIds" Brush="@themeBrush" MapTheme="@mapThemeId" AddOpen="themeAddOpen"
                               OnTake="TakeTheme" OnAdd="() => themeAddOpen = !themeAddOpen" />
           }
 
           @* Nothing is drawn in the isometric preview, so the dock goes with the tools it holds. *@
-          @if (!threeD)
+          @if (!iso.ThreeD)
           {
           <CanvasDock>
             @* Getting around the canvas and picking what is already on it — the whole dock in a select-only

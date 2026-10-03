@@ -88,7 +88,8 @@ finish the set.
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
 `CanvasDock` with `DockGroup`, `DockButton`, `DockModeButton`, `DockChoice` (one option of a set the dock
 picks between, where `DockModeButton` flips a two-state mode) and `DockFlyoutGroup`, plus `CanvasRoundButton`
-and `ViewModeToggle`.
+and `ViewModeToggle`. `IsoView` holds a host's 3-D preview state and `IsoToggle` renders the 2D/3D switch with
+the note that says why it is disabled, so the plan and the sketch share one.
 
 **Terrain** — the material vocabulary shared by the Sketch tool's Dressing phase and the library:
 `MaterialEditor`, `BlockPicker`, `SlotSelect` (filling a slot with one block or a saved pattern — one list

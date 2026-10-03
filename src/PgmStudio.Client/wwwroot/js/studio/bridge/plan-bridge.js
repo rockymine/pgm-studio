@@ -18,6 +18,8 @@ import {
 } from "../plan/plan-doc.js";
 import { parseOverlays } from "../plan/plan-inspect.js";
 import { fireTo } from "./fire.js";
+import { isoPreview } from "./iso-preview.js";
+import { liveFeed } from "./live-feed.js";
 
 const OVERLAY_KEY = "pgm-plan-overlays";
 const HEIGHTMAP_KEY = "pgm-plan-heightmap";
@@ -27,59 +29,9 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   let doc = emptyDoc();
   const fire = (name, ...args) => fireTo(dotnetRef, name, ...args);
 
-  // Read-only 3-D preview: "2d" | "iso", with a user-rotatable yaw. It draws the world the plan compiles to
-  // — the ground its pieces build and the structures standing on it — rather than an extrusion of the pieces,
-  // so what it shows is what the map will be. A compiled plan carries a full intent, which is why the cages,
-  // spawn cubes and monuments are in this picture and not in the sketch tool's.
-  //
-  // The compile and build cost about a second, so it happens on entering the preview. Nothing is drawn in
-  // 3-D, so there is nothing to keep up with while it is open; the mesh is kept against the document it came
-  // from, and re-entering an untouched plan draws it again instead of rebuilding.
-  let view = "2d";
-  let isoYaw = 30;
   // Whether boxes are part of this editor's view. They stay in the document either way; the host says who
   // gets to see them, and the producibility read, which is only about boxes, is asked for only when they show.
   let boxesShown = false;
-  let isoMesh = null, isoStamp = null, isoSeq = 0;
-  function refreshIso() { if (view === "iso" && isoMesh) canvas.drawIso(isoMesh, isoYaw, viewBounds(doc, { boxes: boxesShown })); }
-  function dropIsoMesh() { isoMesh = null; isoStamp = null; }
-
-  async function enterIso() {
-    const ok = await canvas.enterIso();
-    if (ok === false) { view = "2d"; fire("OnIsoUnavailable", ""); return; }
-    view = "iso";
-
-    const state = toJson(doc);
-    if (isoMesh && isoStamp === state) { canvas.drawIso(isoMesh, isoYaw, viewBounds(doc, { boxes: boxesShown })); return; }
-
-    const seq = ++isoSeq;
-    const built = await fetchColumns(state);
-    if (seq !== isoSeq || view !== "iso") return;
-    if (!built.mesh) { canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable", built.error); return; }
-    isoMesh = built.mesh; isoStamp = state;
-    canvas.drawIso(isoMesh, isoYaw, viewBounds(doc, { boxes: boxesShown }));
-  }
-
-  // Answers {mesh} or {error} — see the sketch bridge: a refused build carries a sentence worth showing,
-  // and throwing it away is what made every failure read as "no WebGL".
-  async function fetchColumns(state) {
-    try {
-      const res = await fetch("/api/plan/columns", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: state,
-      });
-      if (!res.ok) return { error: await refusalText(res) };
-      const { meshColumns } = await import("../render/column-mesh.js");
-      return { mesh: meshColumns(await res.json()) };
-    } catch { return { error: "Couldn't reach the studio. Check your connection and try again." }; }
-  }
-
-  async function refusalText(res) {
-    try {
-      const body = await res.json();
-      return body?.message || body?.error || `The studio returned an error (HTTP ${res.status}).`;
-    } catch { return `The studio returned an error (HTTP ${res.status}).`; }
-  }
-
   const canvas = new PlanCanvas(svgEl, wrapEl, {
     cursorEl,
     onSelect: (sel) => fire("OnSelect", sel ? JSON.stringify(sel) : null),
@@ -90,6 +42,18 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     onDelete: (sels) => deleteSelections(sels),
     onToggleWall: (a, b) => toggleWallMark(a, b),
     onCycleFacing: (index) => cycleFacing(index),
+  });
+
+  // The read-only 3-D preview draws the world the plan compiles to — the ground its pieces build and the
+  // structures standing on it — rather than an extrusion of the pieces, so what it shows is what the map will
+  // be. A compiled plan carries a full intent, which is why the cages, spawn cubes and monuments are in this
+  // picture and not in the sketch tool's.
+  const iso = isoPreview({
+    canvas,
+    url: "/api/plan/columns",
+    state: () => toJson(doc),
+    bounds: () => viewBounds(doc, { boxes: boxesShown }),
+    onUnavailable: (reason) => fire("OnIsoUnavailable", reason),
   });
 
   // ── document mutations (canvas + inspector edits funnel here) ───────────────
@@ -253,7 +217,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
 
   function afterEdit() {
     scheduleInspect();
-    dropIsoMesh();   // the 3-D preview is of a world this edit has just changed; it is rebuilt on re-entry
+    iso.drop();   // the 3-D preview is of a world this edit has just changed; it is rebuilt on re-entry
   }
 
   // ── live inspect + evaluate (debounced POSTs; stale responses ignored) ──
@@ -270,73 +234,41 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   let surfaceStep = 2;
   try { const v = parseInt(localStorage.getItem(SURFACESTEP_KEY), 10); if (v >= 1) surfaceStep = v; } catch { /* default 2 */ }
 
-  let inspectTimer = null, inspectSeq = 0, evalSeq = 0, feasSeq = 0;
-  function scheduleInspect() {
-    if (inspectTimer) clearTimeout(inspectTimer);
-    inspectTimer = setTimeout(runLive, 300);
-  }
   // One edit fires three live feeds: the structural derivation (interfaces/frontline/lint), the rule evaluator
   // (score + fired-rule evidence), and the producibility read (could the composer have made this?), asked only
-  // while boxes are shown. They are independent endpoints with their own stale-response guards.
-  function runLive() { runInspect(); runEvaluate(); if (boxesShown) runFeasibility(); }
+  // while boxes are shown. They are independent endpoints, each answered only for the latest edit. A refusal
+  // (a malformed plan) clears what the feed drew; being offline keeps the last good answer.
+  const LIVE_DELAY_MS = 300;
+  const planBody = () => toJson(doc);
 
-  async function runInspect() {
-    const seq = ++inspectSeq;
-    let res;
-    try {
-      res = await fetch("/api/plan/inspect", { method: "POST", headers: { "Content-Type": "application/json" }, body: toJson(doc) });
-    } catch { return; }                       // offline / transient — keep the last good overlay
-    if (seq !== inspectSeq) return;            // a newer edit already fired
-    if (!res.ok) {                             // malformed plan (400) — clear the derived overlay
-      canvas.setInspect({ interfaces: [], gapLinks: [], frontline: [] });
-      return;
-    }
-    let data;
-    try { data = await res.json(); } catch { return; }
-    if (seq !== inspectSeq) return;            // re-check after the awaited body
-    canvas.setInspect({ interfaces: data.interfaces || [], gapLinks: data.gapLinks || [], frontline: data.frontline || [] });
-  }
+  const inspectFeed = liveFeed({
+    url: "/api/plan/inspect", body: planBody, delay: LIVE_DELAY_MS,
+    onAnswer: (data) => canvas.setInspect({ interfaces: data.interfaces || [], gapLinks: data.gapLinks || [], frontline: data.frontline || [] }),
+    onRefused: () => canvas.setInspect({ interfaces: [], gapLinks: [], frontline: [] }),
+  });
 
   // The evaluator feed: the plan's score + every fired rule (hard-first) with cell-space evidence. The evidence
-  // goes to the canvas overlay; the whole EvaluationDto goes to the Blazor score/violations panel. A 400
-  // (malformed) clears both — an empty string signals "no evaluation" to the host.
-  async function runEvaluate() {
-    const seq = ++evalSeq;
-    let res;
-    try {
-      res = await fetch("/api/plan/evaluate", { method: "POST", headers: { "Content-Type": "application/json" }, body: toJson(doc) });
-    } catch { return; }                       // offline / transient — keep the last good evidence
-    if (seq !== evalSeq) return;               // a newer edit already fired
-    if (!res.ok) {                             // malformed plan (400) — clear the evidence + score panel
-      canvas.setViolations([]);
-      fire("OnEvaluation", "");
-      return;
-    }
-    let data;
-    try { data = await res.json(); } catch { return; }
-    if (seq !== evalSeq) return;               // re-check after the awaited body
-    canvas.setViolations(data.violations || []);
-    fire("OnEvaluation", JSON.stringify(data));
-  }
+  // goes to the canvas overlay; the whole EvaluationDto goes to the Blazor score/violations panel. A refusal
+  // clears both — an empty string signals "no evaluation" to the host.
+  const evaluateFeed = liveFeed({
+    url: "/api/plan/evaluate", body: planBody, delay: LIVE_DELAY_MS,
+    onAnswer: (data) => { canvas.setViolations(data.violations || []); fire("OnEvaluation", JSON.stringify(data)); },
+    onRefused: () => { canvas.setViolations([]); fire("OnEvaluation", ""); },
+  });
 
   // The producibility feed: per-box "could the composer have produced this?" plus the unit-level findings. The
   // whole FeasibilityDto goes to the Blazor panel; the canvas evidence follows the panel's own selection (the
-  // author picks a box), so nothing is painted from this response directly. A 400 clears the panel.
-  async function runFeasibility() {
-    const seq = ++feasSeq;
-    let res;
-    try {
-      res = await fetch("/api/plan/feasibility", { method: "POST", headers: { "Content-Type": "application/json" }, body: toJson(doc) });
-    } catch { return; }                       // offline / transient — keep the last good read
-    if (seq !== feasSeq) return;               // a newer edit already fired
-    if (!res.ok) { canvas.setNearestMiss(null); fire("OnFeasibility", ""); return; }
-    let data;
-    try { data = await res.json(); } catch { return; }
-    if (seq !== feasSeq) return;               // re-check after the awaited body
+  // author picks a box), so nothing is painted from this response directly. A refusal clears the panel.
+  const feasibilityFeed = liveFeed({
+    url: "/api/plan/feasibility", body: planBody, delay: LIVE_DELAY_MS, when: () => boxesShown,
     // a fresh read invalidates whichever box's evidence was painted — the panel re-selects if it wants it back
-    canvas.setNearestMiss(null);
-    fire("OnFeasibility", JSON.stringify(data));
-  }
+    onAnswer: (data) => { canvas.setNearestMiss(null); fire("OnFeasibility", JSON.stringify(data)); },
+    onRefused: () => { canvas.setNearestMiss(null); fire("OnFeasibility", ""); },
+  });
+
+  const liveFeeds = [inspectFeed, evaluateFeed, feasibilityFeed];
+  const scheduleInspect = () => liveFeeds.forEach((feed) => feed.schedule());
+  const runLive = () => { inspectFeed.request(); evaluateFeed.request(); if (boxesShown) feasibilityFeed.request(); };
 
   // ── reference (tracing) backdrop ─────────────────────────────────────────────
   // The plan may carry a `reference` block (the real map it was traced over + placement); it round-trips in the
@@ -402,13 +334,12 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     },
     resize() { canvas.resize(); },
 
-    // Swap between the 2-D top-down view and the 3-D one. enterIso tells the host when the preview cannot
-    // run — no WebGL, or a build that did not come back — so it can disable the toggle.
+    // Swap between the 2-D top-down view and the 3-D one. The preview tells the host when it cannot run — no
+    // WebGL, or a build that did not come back — so it can disable the toggle.
     setView(v) {
-      if (v !== "iso") { view = "2d"; canvas.hideIso(); return; }
-      enterIso();
+      if (v === "iso") iso.show(); else iso.hide();
     },
-    rotateIso() { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
+    rotateIso() { iso.rotate(); },
 
     newDoc() { load(emptyDoc()); },
     importJson(text) { try { load(fromJson(text)); return null; } catch (e) { return e?.message || "This isn't a valid plan file."; } },
@@ -536,6 +467,6 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     // Drive the canvas selection from the host (a panel row); empty kind clears.
     selectShape(kind, id) { canvas.select(kind ? { kind, id } : null); },
 
-    dispose() { if (inspectTimer) clearTimeout(inspectTimer); inspectSeq++; canvas.dispose(); },
+    dispose() { liveFeeds.forEach((feed) => feed.cancel()); canvas.dispose(); },
   };
 }

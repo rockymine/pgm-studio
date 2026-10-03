@@ -66,7 +66,11 @@ public partial class PlanTool
     private Task GoDraw() => SetPhase("draw");
 
     // A blank plan lands on Info (?phase=info) to name it; opening an existing one goes to Draw.
-    protected override void OnInitialized() => active = Phase == "info" ? "info" : "draw";
+    protected override void OnInitialized()
+    {
+        iso = new IsoView(() => handle, StateHasChanged);
+        active = Phase == "info" ? "info" : "draw";
+    }
 
     /// <summary>A navigation between this component's routes rebinds the mounted editor rather than
     /// remounting it. The first binding is the first render's, once the canvas exists; a navigation that lands
@@ -136,11 +140,8 @@ public partial class PlanTool
     private string? dbError;
     private List<PlanSummary> dbPlans = [];
 
-    // Read-only 3-D height preview: whether the iso view is on, whether it couldn't be shown (so the
-    // toggle is disabled), and why — the build's own sentence, or null when WebGL itself is missing.
-    private bool threeD;
-    private bool isoUnavailable;
-    private string? isoUnavailableWhy;
+    // Read-only 3-D height preview.
+    private IsoView iso = default!;
 
     // The Draw sidebar holds one of three panels — "settings" (the tracing reference), "validation" (the
     // evaluator score + fired rules) or "feasibility" (the producibility read) — switched by the chips at its
@@ -468,21 +469,6 @@ public partial class PlanTool
     }
 
     private Task Fit() => handle?.InvokeVoidAsync("fit").AsTask() ?? Task.CompletedTask;
-
-    // ── 3-D height preview ─────────────────────────────────────────────────
-
-    private async Task Toggle3D()
-    {
-        if (isoUnavailable) return;
-        threeD = !threeD;
-        if (handle is null) return;
-        // The bridge reports an unavailable preview asynchronously via OnIsoUnavailable; this catch only
-        // guards a hard interop failure so the toggle can never trip Blazor's unhandled-error boundary.
-        try { await handle.InvokeVoidAsync("setView", threeD ? "iso" : "2d"); }
-        catch { threeD = false; isoUnavailable = true; StateHasChanged(); }
-    }
-
-    private Task RotateIso() => handle?.InvokeVoidAsync("rotateIso").AsTask() ?? Task.CompletedTask;
 
     // ── reference (tracing) backdrop ─────────────────────────────────────────────
 
@@ -818,24 +804,10 @@ public partial class PlanTool
     [JSInvokable]
     public void OnTool(string t) { tool = t; StateHasChanged(); }
 
-    /// <summary>The bridge couldn't show the read-only 3-D preview; fall back to 2-D and disable the toggle.
-    /// <paramref name="reason"/> is empty when WebGL itself is missing and the build's own sentence when the
-    /// board would not build — two different things to do about it, so the note says which.</summary>
+    /// <summary>The bridge couldn't show the read-only 3-D preview; <paramref name="reason"/> is empty when
+    /// WebGL itself is missing and the build's own sentence otherwise.</summary>
     [JSInvokable]
-    public void OnIsoUnavailable(string? reason)
-    {
-        threeD = false;
-        isoUnavailable = true;
-        isoUnavailableWhy = string.IsNullOrWhiteSpace(reason) ? null : reason;
-        StateHasChanged();
-    }
-
-    /// <summary>The chip beside the toggle: what stopped the preview, in two words.</summary>
-    private string IsoNote => isoUnavailableWhy is null ? "No WebGL" : "3-D unavailable";
-
-    /// <summary>The whole sentence, on hover.</summary>
-    private string IsoNoteTitle => isoUnavailableWhy
-        ?? "The 3-D preview needs WebGL, which this browser doesn't support.";
+    public void OnIsoUnavailable(string? reason) => iso.MarkUnavailable(reason);
 
     [JSInvokable]
     public void OnZoom(int pct) { zoomLabel = $"{pct}%"; StateHasChanged(); }

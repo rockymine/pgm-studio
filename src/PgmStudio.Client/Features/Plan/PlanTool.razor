@@ -262,7 +262,7 @@
              the isometric preview is one rendering of the finished heights — so the row collapses to the
              rotate and the toggle back out. *@
           <CanvasLayerBar>
-            @if (!threeD)
+            @if (!iso.ThreeD)
             {
               <LayerChip Icon="spline" Active="overlayInterfaces"
                          Title="Where pieces touch: shared edges in green (thinner where narrow), corners in red"
@@ -278,18 +278,12 @@
             }
             else
             {
-              <CanvasRoundButton Icon="rotate-cw" Title="Rotate the preview 90°" OnClick="RotateIso" />
+              <CanvasRoundButton Icon="rotate-cw" Title="Rotate the preview 90°" OnClick="iso.RotateAsync" />
             }
-            @if (isoUnavailable)
-            {
-              <span class="canvas-note" title="@IsoNoteTitle">@IsoNote</span>
-            }
-            <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
-                            Title="@(isoUnavailable ? IsoNoteTitle : "3-D preview (read-only)")"
-                            OnClick="Toggle3D" />
+            <IsoToggle View="iso" />
           </CanvasLayerBar>
 
-          @if (!threeD)
+          @if (!iso.ThreeD)
           {
           @* Four families, four slots. Every drawing tool the plan editor has is one of four questions —
              which piece role · which technical annotation · which marker · which box kind — and within a

@@ -12,6 +12,8 @@ import { surfaceHeights } from "../geometry/slope.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
 import { isPush, pushAmounts, pushAmountPatch } from "../relief/relief-doc.js";
 import { fireTo } from "./fire.js";
+import { isoPreview } from "./iso-preview.js";
+import { liveFeed, refusalText } from "./live-feed.js";
 import * as Keys from "../shared/keys.js";
 import { isHeightMode, isReliefScope } from "../shared/relief-words.js";
 import { diffOverlay } from "../render/diff-render.js";
@@ -54,8 +56,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let selectedStructuralId = null; // the picked plan piece, whose rail states the height it carries
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let dressingMode = false;    // the Dressing phase is up: props are, and a shape is not reachable under them
-  let view = "2d";             // "2d" | "iso" — the read-only isometric height preview
-  let isoYaw = 30;
   // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override
   // rides on the shape (`shape.theme`), assigned via the Theme phase and resolved at export.
   let themes = {};
@@ -368,7 +368,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     refreshMirror();
     pushLayout();
     pushLayers();
-    dropIsoMesh();
+    iso.drop();
     refreshPaint();   // the geometry moved, so the paint on it has too (no-op unless the overlay is on)
     // A relief is solved over the group's own footprint, so moving the geometry re-shapes the ground under
     // it — and a re-fused group can change which relief applies at all.
@@ -382,107 +382,52 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // point, because it cannot: a shape's top is settled by the per-group relief solve and then again by
   // whatever the shape says about being erected, and neither is derivable here without a second copy of the
   // solver. Extruding in the browser would take only the first of those three stages.
-  //
-  // The build is the cost — around a second on a full board against forty milliseconds to read the columns
-  // out of it — so it happens on entering the preview rather than on every edit. Nothing is drawn in 3-D, so
-  // there is no edit to keep up with; the mesh is kept against the layout it was built from, and re-entering
-  // an untouched board draws the cached one instead of asking again.
-  let isoMesh = null, isoPayload = null, isoStamp = null, isoSeq = 0;
+  const NO_MAP = "This sketch has no map to build.";
+  const columnsUrl = () => slug ? `/api/map/${encodeURIComponent(slug)}/sketch/columns` : null;
+  const layoutBody = () => JSON.stringify(handle.getState());
 
-  // Which layers the preview is leaving out, by the ids the payload spells. Kept across a rebuild, so an
-  // author who hid the deck to look under it does not have to hide it again after every edit.
-  const isoHidden = new Set();
-
-  function refreshIso() { if (view === "iso" && isoMesh) canvas.drawIso(isoMesh, isoYaw, setup.bbox); }
-
-  // Re-mesh what is already in hand. Hiding a layer is a filter over the payload rather than a question for
-  // the server: the runs say which layer drew them, so the board only has to be built once.
-  async function remeshIso() {
-    if (!isoPayload) return;
-    const { meshColumns } = await import("../render/column-mesh.js");
-    isoMesh = meshColumns(isoPayload, [...isoHidden]);
-    refreshIso();
-  }
+  const iso = isoPreview({
+    canvas,
+    url: columnsUrl,
+    missing: NO_MAP,
+    state: layoutBody,
+    bounds: () => setup.bbox,
+    // What the build left out. The preview draws the world the export builds, so a shape the board's own
+    // algebra discards is simply not in the picture — and an absence looks exactly like ground nobody drew.
+    // The findings name which shapes, so the host can say so rather than leaving the author to notice. The
+    // layers travel with them, and which of them are hidden.
+    onBuilt: (payload, hidden) => {
+      fire("OnIsoNotBuilt", JSON.stringify(payload.warnings ?? []));
+      fire("OnIsoLayers", JSON.stringify({ layers: payload.layers ?? [], hidden }));
+    },
+    // A build that did not happen has nothing to report as left out; a stale list would name shapes
+    // against a picture that is not on screen.
+    onUnavailable: (reason) => { fire("OnIsoNotBuilt", "[]"); fire("OnIsoUnavailable", reason); },
+  });
 
   // ── the Board layer: the built board from straight above, for placing a view ──
   // Drawn from the same columns the 3-D preview meshes, so it is the full build — trees, houses, fluids — and
   // it is asked for once per layout: placing a view edits nothing, so the board it shows cannot go stale
   // while it is up.
-  let boardView = false, boardStamp = null, boardSeq = 0;
+  let boardView = false, boardStamp = null;
 
-  async function loadBoard() {
-    const state = JSON.stringify(handle.getState());
-    if (boardStamp === state) return;
-    const seq = ++boardSeq;
-    const built = await fetchColumns(state);
-    if (seq !== boardSeq || !boardView) return;
-    if (!built.payload) { fire("OnBoardUnavailable", built.error ?? ""); return; }
-    const { boardMap } = await import("../render/board-map.js");
-    boardStamp = state;
-    canvas.loadBoardLayer(boardMap(built.payload));
-  }
+  const boardFeed = liveFeed({
+    url: columnsUrl,
+    body: layoutBody,
+    async onAnswer(payload, sent) {
+      if (!boardView) return;
+      const { boardMap } = await import("../render/board-map.js");
+      boardStamp = sent;
+      canvas.loadBoardLayer(boardMap(payload));
+    },
+    onRefused: (sentence) => { if (boardView) fire("OnBoardUnavailable", sentence); },
+    onUnreachable: (sentence) => { if (boardView) fire("OnBoardUnavailable", sentence); },
+  });
 
-  // An edit invalidates the picture. A stale mesh redrawn on rotate would show the board as it was two edits
-  // ago and give no sign of it.
-  function dropIsoMesh() { isoMesh = null; isoPayload = null; isoStamp = null; }
-
-  // Enter the preview, then fill it. Two steps so the toggle answers the click at once and the wait is a
-  // spinner over the 3-D surface rather than a frozen 2-D one.
-  async function enterIso() {
-    const ok = await canvas.enterIso();
-    if (ok === false) { view = "2d"; fire("OnIsoUnavailable", ""); return; }
-    view = "iso";
-
-    const state = JSON.stringify(handle.getState());
-    if (isoMesh && isoStamp === state) { canvas.drawIso(isoMesh, isoYaw, setup.bbox); return; }
-
-    const seq = ++isoSeq;
-    const built = await fetchColumns(state);
-    if (seq !== isoSeq || view !== "iso") return;   // left the preview, or a newer entry overtook this one
-    if (!built.payload) {
-      // A build that did not happen has nothing to report as left out; a stale list would name shapes
-      // against a picture that is not on screen.
-      fire("OnIsoNotBuilt", "[]");
-      canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable", built.error); return;
-    }
-
-    isoPayload = built.payload; isoStamp = state;
-    // What the build left out. The preview draws the world the export builds, so a shape the board's own
-    // algebra discards is simply not in the picture — and an absence looks exactly like ground nobody drew.
-    // The findings name which shapes, so the host can say so rather than leaving the author to notice.
-    fire("OnIsoNotBuilt", JSON.stringify(built.payload.warnings ?? []));
-    // A layer the board no longer has is not left hidden: it would be a switch the host cannot show and the
-    // author cannot turn back on.
-    const names = isoPayload.layers ?? [];
-    for (const id of [...isoHidden]) if (!names.includes(id)) isoHidden.delete(id);
-    fire("OnIsoLayers", JSON.stringify({ layers: names, hidden: [...isoHidden] }));
-
-    const { meshColumns } = await import("../render/column-mesh.js");
-    isoMesh = meshColumns(isoPayload, [...isoHidden]);
-    canvas.drawIso(isoMesh, isoYaw, setup.bbox);
-  }
-
-  // Answers {payload} or {error}: the reason travels because the host shows it. A refused build carries the
-  // studio's own envelope — a rule id and a sentence — and dropping that on the floor is what made every
-  // failure read as "no WebGL", including on a browser that has it. A build that succeeds carries `warnings`
-  // on the payload for the same reason: what it could not put in the world is the half a picture cannot show.
-  async function fetchColumns(state) {
-    if (!slug) return { error: "This sketch has no map to build." };
-    try {
-      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/columns`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: state,
-      });
-      if (!res.ok) return { error: await refusalText(res) };
-      return { payload: await res.json() };
-    } catch { return { error: "Couldn't reach the studio. Check your connection and try again." }; }   // offline or mid-navigation
-  }
-
-  // The sentence out of a refusal envelope {error, message, findings[]}, or the status when a body is not one.
-  async function refusalText(res) {
-    try {
-      const body = await res.json();
-      return body?.message || body?.error || `The studio returned an error (HTTP ${res.status}).`;
-    } catch { return `The studio returned an error (HTTP ${res.status}).`; }
+  function loadBoard() {
+    if (!slug) { fire("OnBoardUnavailable", NO_MAP); return; }
+    if (boardStamp === layoutBody()) return;
+    boardFeed.request();
   }
 
   function refreshMirror() {
@@ -560,7 +505,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   function renameLayer(id, name) { const L = layers.find(l => l.id === id); if (!L) return; L.name = name; pushLayers(); markDirty(); }
-  function setLayerBaseY(id, y) { const L = layers.find(l => l.id === id); if (!L) return; L.baseY = y; pushLayers(); dropIsoMesh(); markDirty(); }
+  function setLayerBaseY(id, y) { const L = layers.find(l => l.id === id); if (!L) return; L.baseY = y; pushLayers(); iso.drop(); markDirty(); }
 
   // Move the selection by whole blocks. A group moves as its shapes; a drilled shape moves alone.
   function nudge(dx, dz) {
@@ -683,7 +628,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     fire("OnRelief", reliefState());
     syncRelief();                  // the statement moved, so the contours and the shading it produced have too
     refreshPaint({ now: true });
-    dropIsoMesh();                 // and the meshed board is a picture of a document that is no longer open
+    iso.drop();                 // and the meshed board is a picture of a document that is no longer open
   }
 
   const pushHistory = () => fire("OnHistory", history.canUndo, history.canRedo);
@@ -792,36 +737,32 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // that is what Blocks is for there, the exact cells an export would fill. Not painting during Draw also
   // costs the drawing loop nothing: no round-trip fires at all.
   const PAINT_DEBOUNCE_MS = 120;
-  let paintTimer = null, paintSeq = 0, blocksOn = false, paintPhase = false;
+  let blocksOn = false, paintPhase = false;
   const paintWanted = () => blocksOn && paintPhase;
+
+  // Offline, refused or mid-navigation: the overlay keeps the stone footprint.
+  const paintFeed = liveFeed({
+    url: () => `/api/map/${encodeURIComponent(slug)}/sketch/paint`,
+    body: layoutBody,
+    delay: PAINT_DEBOUNCE_MS,
+    onAnswer(data) {
+      // Two wire forms, both palette-indexed: row-major runs (what a painted board almost always is), or a
+      // per-cell list. The bitmap decoder reads runs directly; the cell list needs its colours expanded.
+      if (!data.runs && data.color_idx) data.colors = data.color_idx.map(i => data.palette[i]);
+      canvas.loadPaintLayer(data);
+    },
+  });
 
   function refreshPaint({ now = false } = {}) {
     if (!paintWanted() || !slug) return;
-    clearTimeout(paintTimer);
-    paintTimer = setTimeout(fetchPaint, now ? 0 : PAINT_DEBOUNCE_MS);
+    paintFeed.schedule({ now });
   }
 
   // Bring the overlay in line with the toggle + the phase: paint when both want it, drop the bitmap when
   // either stops, so re-entering can't flash a stale one.
   function syncPaint() {
-    clearTimeout(paintTimer);
     if (paintWanted()) refreshPaint({ now: true });
-    else canvas.loadPaintLayer(null);
-  }
-
-  async function fetchPaint() {
-    const seq = ++paintSeq;
-    try {
-      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/paint`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(handle.getState()),
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      // Two wire forms, both palette-indexed: row-major runs (what a painted board almost always is), or a
-      // per-cell list. The bitmap decoder reads runs directly; the cell list needs its colours expanded.
-      if (!data.runs && data.color_idx) data.colors = data.color_idx.map(i => data.palette[i]);
-      if (seq === paintSeq) canvas.loadPaintLayer(data);   // ignore a reply overtaken by a newer edit
-    } catch { /* offline or mid-navigation — the overlay keeps the stone footprint */ }
+    else { paintFeed.cancel(); canvas.loadPaintLayer(null); }
   }
 
   // ── the stated relief (docs/world-export/relief.md) ────────────────────
@@ -882,32 +823,26 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // It follows the toggle alone rather than a phase. A relief is geometry: it is worth seeing while the
   // shapes over it are still being drawn, which is exactly when the paint overlay is not.
   const RELIEF_DEBOUNCE_MS = 140;
-  let reliefTimer = null, reliefSeq = 0, reliefOn = false;
+  let reliefOn = false;
+
+  // `heights=true` brings the solved surface back with the lines it is traced from. It is already in hand on
+  // the server, and the shading it draws is what makes the contours readable. Offline or mid-navigation, the
+  // overlay keeps whatever it last drew.
+  const reliefFeed = liveFeed({
+    url: () => `/api/map/${encodeURIComponent(slug)}/sketch/relief?heights=true`,
+    body: layoutBody,
+    delay: RELIEF_DEBOUNCE_MS,
+    onAnswer: (data) => canvas.loadReliefLayer(data),
+  });
 
   function refreshRelief({ now = false } = {}) {
     if (!reliefOn || !slug) return;
-    clearTimeout(reliefTimer);
-    reliefTimer = setTimeout(fetchRelief, now ? 0 : RELIEF_DEBOUNCE_MS);
+    reliefFeed.schedule({ now });
   }
 
   function syncRelief() {
-    clearTimeout(reliefTimer);
     if (reliefOn) refreshRelief({ now: true });
-    else canvas.loadReliefLayer(null);
-  }
-
-  async function fetchRelief() {
-    const seq = ++reliefSeq;
-    try {
-      // `heights=true` brings the solved surface back with the lines it is traced from. It is already in
-      // hand on the server, and the shading it draws is what makes the contours readable.
-      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/relief?heights=true`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(handle.getState()),
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (seq === reliefSeq) canvas.loadReliefLayer(data);   // ignore a reply overtaken by a newer edit
-    } catch { /* offline or mid-navigation — the overlay keeps whatever it last drew */ }
+    else { reliefFeed.cancel(); canvas.loadReliefLayer(null); }
   }
 
   // Set (or clear, with a falsy themeId) a shape's theme override — the live canvas shape so it persists on sync.
@@ -989,26 +924,24 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // the shapes are still moving, and painting the layout is server work worth not doing there at all.
     setPaintPreview(on) { paintPhase = !!on; syncPaint(); },
     setSnap(v)         { canvas.setSnapEnabled(v); },
-    // enterIso tells the host when the preview cannot run, and which of the two it was: an empty reason is
+    // The preview tells the host when it cannot run, and which of the two it was: an empty reason is
     // WebGL itself, and any other is the sentence the build answered with. The host says which, because
     // "no WebGL" on a browser that has it sends the reader to the wrong place entirely.
     setView(v)         {
-      if (v !== "iso") { view = "2d"; canvas.hideIso(); return; }
-      enterIso();
+      if (v === "iso") iso.show(); else iso.hide();
     },
-    rotateIso()        { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
+    rotateIso()        { iso.rotate(); },
     // Show or hide one layer of the preview. The board is not rebuilt — the runs already say which layer
     // drew them, so this re-meshes what is in hand.
     setIsoLayerShown(id, shown) {
-      if (shown) isoHidden.delete(id); else isoHidden.add(id);
-      remeshIso();
+      iso.setLayerShown(id, shown);
     },
     setHeight(id, base, floor) {
       const s = canvas.getShape(id); if (!s) return;
       if (base  !== null && base  !== undefined) s.base_height = clampHeight(base);   // >= 1
       if (floor !== null && floor !== undefined) s.floor = clampFloor(floor);         // >= 0
       canvas.updateShape(s);   // refresh vertex labels (default = base height)
-      pushLayout(); dropIsoMesh(); markDirty();
+      pushLayout(); iso.drop(); markDirty();
     },
     // Set one vertex's height (S5b). Materialises anchor_heights (length = vertices, default = base) on first use.
     setVertexHeight(id, idx, h) {
@@ -1019,7 +952,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         s.anchor_heights = s.vertices.map((_, i) => clampHeight(s.anchor_heights?.[i] ?? base));
       s.anchor_heights[idx] = clampHeight(h);   // a vertex is a height too — never below 1
       canvas.updateShape(s);   // re-render the vertex labels
-      pushLayout(); dropIsoMesh(); markDirty();
+      pushLayout(); iso.drop(); markDirty();
     },
     // Fit a tilted plane through the 2–3 control vertices (each `{idx, height}`) and read every vertex's
     // height off it → the shape's whole top becomes a flat slope (2 controls = a ramp, 3 = an aimed plane).
@@ -1036,7 +969,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (!heights) return;   // fewer than 2 distinct control positions — nothing to fit
       s.anchor_heights = heights.map(clampHeight);
       canvas.updateShape(s);
-      pushLayout(); dropIsoMesh(); markDirty();
+      pushLayout(); iso.drop(); markDirty();
     },
 
     // The band a path stands for: its half-width, how its edges are drawn, and the seed a rough edge wanders
@@ -1048,7 +981,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (edge) s.stroke_edge = edge;
       if (seed !== null && seed !== undefined) s.stroke_seed = Math.max(0, Math.round(seed));
       canvas.updateShape(s);
-      recompute(); pushLayout(); dropIsoMesh(); markDirty();
+      recompute(); pushLayout(); iso.drop(); markDirty();
     },
 
     // How a shape's top is decided once its group carries a relief, and how far in it eases into the ground
@@ -1059,14 +992,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (!s) return;
       if (isHeightMode(mode)) s.height_mode = mode;
       else delete s.height_mode;                    // absent, not empty: a shape without the word IS ground
-      pushLayout(); dropIsoMesh(); markDirty();
+      pushLayout(); iso.drop(); markDirty();
     },
 
     setSkirt(id, blocks) {
       const s = canvas.getShape(id);
       if (!s) return;
       s.skirt = Math.max(0, Math.round(blocks ?? 0));
-      pushLayout(); dropIsoMesh(); markDirty();
+      pushLayout(); iso.drop(); markDirty();
     },
 
     // Whether the shape's ground joins its group's relief. Solved on the server, so nothing here recomputes
@@ -1380,7 +1313,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     redo() { history.redo(); },
     fitToBbox() { canvas.fitToBbox(); },
     dispose() {
-      clearTimeout(paintTimer);
+      paintFeed.cancel();
+      reliefFeed.cancel();
+      boardFeed.cancel();
       window.removeEventListener("pointerup", endStep);
       Keys.unregister("sketch-bridge");
       canvas.dispose();

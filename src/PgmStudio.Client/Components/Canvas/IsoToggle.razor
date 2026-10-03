@@ -1,0 +1,23 @@
+@namespace PgmStudio.Client.Components
+
+@* The 2D/3D switch of a canvas and, beside it, why the preview could not be shown. The note is the answer to
+   a disabled switch, so the two travel together. A host that cannot offer the switch in some state (a phase
+   that only works in 2-D) still shows the note. *@
+
+@if (View.Unavailable)
+{
+  <span class="canvas-note" title="@View.NoteTitle">@View.Note</span>
+}
+@if (OfferToggle)
+{
+  <ViewModeToggle ThreeD="View.ThreeD" Disabled="@View.Unavailable"
+                  Title="@(View.Unavailable ? View.NoteTitle : "3-D preview (read-only)")"
+                  OnClick="View.ToggleAsync" />
+}
+
+@code {
+    [Parameter, EditorRequired] public IsoView View { get; set; } = default!;
+
+    /// <summary>False where the canvas is in a state with no 3-D to switch to.</summary>
+    [Parameter] public bool OfferToggle { get; set; } = true;
+}

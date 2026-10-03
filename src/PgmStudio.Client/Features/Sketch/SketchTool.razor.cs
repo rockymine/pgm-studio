@@ -32,9 +32,7 @@ public partial class SketchTool
     private bool blocksOn = false;   // the rasterized block-footprint preview
     private bool reliefOn = false;   // the height contours of whatever relief the groups carry
     private bool snapOn = true;
-    private bool threeD = false;
-    private bool isoUnavailable = false;   // 3-D preview couldn't be shown (no WebGL, or the build refused)
-    private string? isoUnavailableWhy;     // the build's own sentence; null when WebGL itself is missing
+    private IsoView iso = default!;
     private string groupLabel = "";
     private bool canUndo, canRedo;
     /// <summary>The theme in hand while the Apply step is up. The canvas paints it on a click and can lift
@@ -502,11 +500,7 @@ public partial class SketchTool
         viewNote = null;
         if (handle is not null)
         {
-            if (threeD)
-            {
-                threeD = false;
-                await handle.InvokeVoidAsync("setView", "2d");
-            }
+            await iso.LeaveAsync();
             await handle.InvokeVoidAsync("setBoardView", true);
         }
         await SetTool("eye");
@@ -669,7 +663,11 @@ public partial class SketchTool
 
     // A freshly-created sketch lands on Info (?phase=info) to name it; opening an existing one goes
     // straight to Draw.
-    protected override void OnInitialized() { if (Phase == "info") active = "info"; }
+    protected override void OnInitialized()
+    {
+        iso = new IsoView(() => handle, StateHasChanged);
+        if (Phase == "info") active = "info";
+    }
 
     // Switching phases only flips which body renders: the canvas observes its own wrap and re-measures
     // (and runs a deferred fit) when Draw un-hides. Nudging it from here would run against the still-
@@ -1046,19 +1044,6 @@ public partial class SketchTool
         if (handle is not null) await handle.InvokeVoidAsync("fitToBbox");
     }
 
-    private async Task Toggle3D()
-    {
-        if (isoUnavailable) return;
-        threeD = !threeD;
-        if (handle is null) return;
-        // The bridge reports an unavailable preview asynchronously via OnIsoUnavailable; this catch only
-        // guards a hard interop failure so the toggle can never trip Blazor's unhandled-error boundary.
-        try { await handle.InvokeVoidAsync("setView", threeD ? "iso" : "2d"); }
-        catch { threeD = false; isoUnavailable = true; StateHasChanged(); }
-    }
-
-    private Task RotateIso() => handle?.InvokeVoidAsync("rotateIso").AsTask() ?? Task.CompletedTask;
-
     /// <summary>The layers the built board is made of, as the preview payload spells them, and which of them
     /// are switched off. Only the 3-D view has them — a 2-D drawing is one plan whatever it stacks.</summary>
     private IReadOnlyList<string> isoLayers = [];
@@ -1259,20 +1244,7 @@ public partial class SketchTool
     /// <paramref name="reason"/> is empty when WebGL itself is missing and the build's own sentence when the
     /// board would not build — two different things to do about it, so the note says which.</summary>
     [JSInvokable]
-    public void OnIsoUnavailable(string? reason)
-    {
-        threeD = false;
-        isoUnavailable = true;
-        isoUnavailableWhy = string.IsNullOrWhiteSpace(reason) ? null : reason;
-        StateHasChanged();
-    }
-
-    /// <summary>The chip beside the toggle: what stopped the preview, in two words.</summary>
-    private string IsoNote => isoUnavailableWhy is null ? "No WebGL" : "3-D unavailable";
-
-    /// <summary>The whole sentence, on hover.</summary>
-    private string IsoNoteTitle => isoUnavailableWhy
-        ?? "The 3-D preview needs WebGL, which this browser doesn't support.";
+    public void OnIsoUnavailable(string? reason) => iso.MarkUnavailable(reason);
 
     /// <summary>The bridge pushed the current group→shape tree (on every layout change).</summary>
     [JSInvokable]

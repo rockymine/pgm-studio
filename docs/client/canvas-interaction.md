@@ -110,6 +110,8 @@ canvas layer can then reuse or test it.
 | `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, across all four editors |
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
 | `render/column-mesh.js` | the server's per-column runs → the triangles that preview draws; decides which faces are seen, and drops the runs of any sketch layer the viewer has hidden before deciding |
+| `bridge/live-feed.js` | the one debounced, sequence-guarded POST of a bridge's document to a route, answering only the latest request, and the one `refusalText` that reads the sentence out of a refusal envelope |
+| `bridge/iso-preview.js` | the 3-D preview both authoring bridges drive: enter, the mesh kept against the document it came from, rotate, layer hiding, and the two reasons it cannot run |
 | `bridge/house-iso-bridge.js` | the library's 3-D building: an `IsoScene` on a wrap with no canvas under it (§6) |
 | `canvas/canvas-base.js` | the shared pan/zoom/drag machinery (§3) |
 | `canvas/world-canvas.js` | the world engine every Configure canvas step mounts (§1) |
@@ -304,8 +306,28 @@ label elements per mousemove — and only decisions cross to C# (`OnSelect`, `On
 `world-bridge` mounts `WorldCanvas`, `plan-bridge` `PlanCanvas` (and owns the plan document and id minting;
 it persists nothing — saving is the host's, on the author's word), `sketch-bridge` `SketchCanvas`, `sideview-bridge` `SideviewCanvas`, and
 `scan-bridge` the non-interactive `ConfigureRenderer`. `fetch-json.js` is the shared no-store fetch. The
-bridges look repetitive but are not: each owns different document semantics. What they genuinely share is
-only the invoke wrapper, and only two of them use it.
+bridges look repetitive but are not: each owns different document semantics. What `plan-bridge` and
+`sketch-bridge` share is three modules: the invoke wrapper `fire.js`, `live-feed.js` and `iso-preview.js`.
+
+**A feed asks the server about the live document through `liveFeed`, and only the latest ask is answered.**
+`liveFeed({ url, body, delay, when, onAnswer, onRefused, onUnreachable })` returns `schedule()` (debounced; `now`
+fires on the next tick), `request()` (immediate) and `cancel()` (drops the wait and any reply in flight). `url`
+and `body` may be functions, read when the request is sent, so a debounced feed posts the document as it stands
+when the edits settle. Every request takes a sequence number and a reply, a refusal or an unreadable body that
+is no longer the latest reaches none of the callbacks. A refusal arrives as the sentence out of the envelope
+(`message`, then `error`, then the bare status); a request that fails or returns an unreadable body arrives as
+`onUnreachable`, which a feed that keeps its last good answer leaves unset. The plan's inspect, evaluate and
+feasibility reads (300 ms; the last only while boxes show), the sketch's paint (120 ms) and relief (140 ms)
+overlays, the Board layer's columns and the preview's columns are each one feed. `moveStructural` is not a
+feed — a PATCH whose refusal puts the piece back — and reads its refusal sentence with the same `refusalText`.
+
+**The 3-D preview is `isoPreview`, configured by what differs.** A bridge hands it its canvas, the columns
+route, the document as a wire body (which is also the cache stamp), the bounds to fit and two callbacks:
+`onUnavailable(reason)`, and `onBuilt(payload, hidden)` where the sketch reports what the build left out and
+which layers it has. `show()` enters the preview and draws the cached mesh when the stamp still matches the
+document, else asks for the columns; `drop()` is what every edit calls; `hide()`, `rotate()` and
+`setLayerShown()` are the rest. On the Blazor side one `IsoView` (state, in `Components/Canvas`) and one
+`IsoToggle` (the 2D/3D switch with the note that says why it is disabled) serve both hosts.
 
 **The sketch bridge's verb table is where an edit is gated.** `MUTATORS` in `sketch-bridge.js` names every handle verb
 that changes the document, and one wrapper makes each an undo step and refuses it while the page is read-only. A
@@ -347,13 +369,12 @@ instead: strongest overlap first, each record and each group claimed once, and a
 reaches keeps the identity it was computed with — unless a kept group or a matched one already answers to
 that id, when `settleGroups` gives it a fresh one. `SK12` reports a layout that still carries one id twice.
 
-**A preview that cannot run says which of the two reasons it was.** `enterIso` fails for two unrelated
-causes — the browser has no WebGL, or the server would not build the board — and for a long time both crossed
-to C# as one bare `OnIsoUnavailable()`, so the canvas answered *No WebGL* on browsers that plainly had it and
-the reader went looking in the wrong place entirely. The bridges now carry a reason: an empty string is WebGL
-itself, and anything else is the sentence the build answered with, read out of the refusal envelope
-(`message`, then `error`, then the bare status). The host shows *No WebGL* for the first and the build's own
-words for the second. A failure with a sentence available should never be reported as a different failure.
+**A preview that cannot run says which of the two reasons it was.** The preview fails for two unrelated
+causes — the browser has no WebGL, or the server would not build the board — and the two are different things
+to do something about. `OnIsoUnavailable(reason)` carries which: an empty string is WebGL itself, and anything
+else is the sentence the build answered with, read out of the refusal envelope. The host shows *No WebGL* for
+the first and the build's own words for the second. A failure with a sentence available should never be
+reported as a different failure.
 
 **Four interop details cost an afternoon each the first time.** `InvokeVoidAsync(name, params object?[])`
 **spreads** an array argument, so passing one whole array means boxing it — `(object)ids.ToArray()` — or the
@@ -393,12 +414,13 @@ already reaches.
 **The bridges are the exception, and the split has hidden it.** A bridge is not DOM-bound in the way a canvas
 is: `mount()` is handed its canvas and its elements, and the only other thing it touches is `fetch`. Both are
 already stubbable with what `tests/js/` has — `_dom-stub.js` and `_painter-stub.js` are precedent — so
-`enterIso`/`fetchColumns` can be driven directly, with the canvas a recorder and `fetch` answering a canned
-payload or a refusal. `_sketch-bridge-stub.js` is that harness for `sketch-bridge`: it mounts the real bridge and the
+`iso-preview.js` and `live-feed.js` can be driven directly, with the canvas a recorder and `fetch` answering a
+canned payload or a refusal; `live-feed.test.js` does, for the sequence guard, the debounce and the preview's two
+failure paths. `_sketch-bridge-stub.js` is that harness for `sketch-bridge`: it mounts the real bridge and the
 real `SketchCanvas` over stand-in elements and a recording host, so `tests/js/sketch-selection.test.js` and
-`sketch-setup.test.js` drive handle verbs and assert on the events the host was sent. That matters because `enterIso` is the most stateful function in the untested set: an
-await, a race guard, a cache stamp and two failure paths, and a rename inside it shipped a
-`ReferenceError` to the browser that neither the C# build nor the JS tests could see.
+`sketch-setup.test.js` drive handle verbs and assert on the events the host was sent. That matters because the
+preview is the most stateful code a bridge holds — an await, a race guard, a cache stamp and two failure paths —
+and a mistake inside it reaches the browser as a `ReferenceError` that the C# build cannot see.
 
 Above the unit line, `tests/e2e/paint.mjs` is the one check that a painted surface actually paints. A blank
 canvas raises no error and leaves no elements behind, so it is exactly as "clean" as a working one to the
