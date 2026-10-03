@@ -2,7 +2,7 @@
 
 Where everything lives in the URL, what each surface is called, and how a reader gets from the landing to a
 map and back. It owns four things nothing else does: the **URL law**, the **route table**, the **labels** the
-UI shows against the names the code uses, and the **collections** the maps page fans into. It does not
+UI shows against the names the code uses, and the **filters** of the maps page. It does not
 describe what any tool does — that is `../tools/`, starting at `flow.md`, which also owns the difference
 between a map's stage and the artifacts it carries.
 
@@ -17,15 +17,15 @@ query parameter reads as an optional filter, and an editor without a map is not 
 not stable across a rename.
 
 **Query parameters are transient view state only** — selection, zoom, the active layer, an open panel, the
-phase a tool opens on (`?phase=info`). The maps page's
-`?stage=` fits the rule: it selects which collection is shown, not which map.
+phase a tool opens on (`?phase=info`). The maps page's filters fit the rule: they narrow which maps are
+shown, never name one.
 
 ## The routes
 
 | Route | Component | Is |
 |---|---|---|
 | `/` | `Index` | the landing — seven cards over live counts |
-| `/maps` | `Maps` | the map collections; `?stage=plan\|sketch\|configure\|edit` selects one, absent lists every map |
+| `/maps` | `Maps` | every map in one table; `?stage=`, `?author=`, `?gamemode=` and `?sort=` are its filters |
 | `/maps/{slug}/plan` | `PlanTool` | the plan tool on a map |
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
 | `/maps/{slug}/configure` | `ConfigureTool` | the configure wizard |
@@ -63,34 +63,50 @@ imported after load, and a deploy arrives piecemeal: new markup over an old styl
 an old one that lacks the export it asks for. `smoke.mjs` checks the header on the page, a stylesheet and a
 module.
 
-## The collections
+## The maps page
 
-`/maps` lists every map in the studio, each row naming the stage it has reached, and `?stage=` narrows it to
-one of four collections that are not the same kind of question. Two list **a layer a map holds** and two list
-**a stage a map stands at**, which is why a map appears in more than one.
+`/maps` is every map in the studio in one table, newest written first, with its filters open in the sidebar
+beside it. A map is one thing at different stages, so stage is a filter over the one list rather than a page
+of its own. Every option carries how many maps it would show with the other filters as they are, and
+**Clear filters** at the foot of the sidebar drops them all.
 
-| List | Shows | Primary action |
+| Filter | Address | Keeps |
 |---|---|---|
-| **Plans** (`?stage=plan`) | every map holding a plan, including ones long since built | New plan |
-| **Sketches** (`?stage=sketch`) | every map holding a drawn sketch, including ones already configured | New sketch |
-| **Configuring** (`?stage=configure`) | maps standing at `configure` — terrain but no finished `map.xml` | Import a world |
-| **Finished** (`?stage=edit`) | maps standing at `edit` — a finished `map.xml`, which the corpus import writes and no authoring tool sets | — |
-| **Maps** (`/maps`) | every map, with its stage on the row | — |
+| **Stage** | `?stage=plan\|sketch\|configure` | the maps standing at that stage |
+| **Author** | `?author=` (repeated) | maps credited to any one of the ticked authors |
+| **Gamemode** | `?gamemode=ctw\|dtm\|dtc\|none` (repeated) | maps played for any one of the ticked gamemodes, `none` for a map with none |
+| **Sort** | `?sort=name\|author\|stage` | the order; absent is last changed |
 
-A row opens the tool at its map's stage. A map at `edit` has no tool at its stage, so its row opens the last
-layer it holds — Configure, where it has a world — and one holding no layer is listed without a link.
+**Configure is the last stage the page offers.** It is where a map is downloaded. A map whose stage is `edit`
+was read in by the corpus import, which reads a world that already has a `map.xml`; no authoring tool sets it,
+and the page lists such a map under Configure, which is the tool its row opens.
 
-A map keeps every layer it has ever had, so "every map with a plan" and "every map at the plan stage" are
-different collections; each list says which in its own blurb. `GET /api/maps[?stage=…]` serves them and
-`GET /api/maps/stage-counts` the landing tallies (sketches, configuring, and every map), each counting exactly what its list does — so a card and the
-page it opens cannot disagree.
+**The Author filter lists every credited author in two groups, Agents and People,** each with **Select all**,
+and a search box narrows both. A credit with an account is a person and shows the player's head; a credit by
+name alone, with no account behind it, is how an agent is credited, and shows the agent mark. Contributors are
+left out of the filter and the column. The Author column shows the first credited author, with a count of the
+rest.
+
+A search box over the table narrows it by name, slug or author and stays out of the address. The header
+carries **New plan**, **New sketch** and **Import a world** whatever the filters are.
+
+**A row opens the tool at its map's stage.** A map at `edit` has no tool at its stage, so its row opens the
+last layer it holds — Configure, where it has a world — and one holding no layer opens nothing. The Layers
+column links every layer the map holds straight into its tool, so a configured map's plan and sketch are one
+click away from its row whatever stage filter is on.
+
+`GET /api/maps` serves the table: every map, each with its stage, layers, credited authors and when it was
+last written, filtered on the client. Its own `?stage=` keeps the collection meaning an agent drives it by —
+`plan` and `sketch` list the maps holding that layer — while the page's chips filter by where a map stands.
+`GET /api/maps/stage-counts` gives the landing tallies, each counting what the page shows when that card opens
+it.
 
 ## The landing
 
-Seven cards in two groups. The first four are where authoring starts — **Plan a layout** (the Plans collection),
+Seven cards in two groups. The first four are where authoring starts — **Plan a layout** (the maps page at the plan stage),
 **Browse generated layouts** (`/generator`), **Shape catalog** (`/catalog`) and **Library**
 (`/library`) — three of which need no map at all. The last three are the map lifecycle — **Sketch**,
-**Configure**, **Maps** — each deep-linking into its collection and carrying that collection's live count.
+**Configure**, **Maps** — each opening the maps page at that stage and carrying its live count.
 
 ## Labels against code names
 
@@ -124,8 +140,8 @@ everywhere: home, a link to each tool — Maps, Plan editor, Generator, Catalog,
 (`Topbar`) under it is the trail to where the page is and the tool's own state and actions. So getting to
 another tool is always one click in the top bar, and the tool's bar holds nothing that is not the tool's.
 
-**A map tool leaves through the collection it belongs to.** Its bar's home link is that exit, and each of the
-three map tools names its own list: Sketch → *Sketches*, Plan → *Plans*, Configure → *Configuring*. The
+**A map tool leaves through the maps page, filtered to its stage.** Its bar's home link is that exit, and each
+of the three map tools names its own view: Sketch → *Sketches*, Plan → *Plans*, Configure → *Configuring*. The
 surfaces that hold no map — a plan row, the generator, the catalog, the library, the design showcase and the
 maps page itself — carry no home link, because the studio's bar above them is already the way home.
 

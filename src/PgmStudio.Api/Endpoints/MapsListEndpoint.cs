@@ -16,6 +16,9 @@ namespace PgmStudio.Api.Endpoints;
 /// is what made a map's own plan unreachable from the Plans list. <c>configure</c> and <c>edit</c> name
 /// lifecycle positions, so they list the maps standing there.</para>
 ///
+/// <para>Every row carries its credited authors and when it was last written, which is what the Maps page
+/// filters and sorts by.</para>
+///
 /// <para>Every row carries its layers either way (<see cref="MapSummary.HasPlan"/> /
 /// <see cref="MapSummary.HasSketch"/> / <see cref="MapSummary.HasSurface"/>), so the list can offer each
 /// tool the map has been through directly rather than walking a map back one stage at a time. One artifact
@@ -52,17 +55,21 @@ public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifa
         }
 
         var gamemodes = await repo.GamemodesAsync(ct);
+        var credited = await repo.AuthorsAsync(ct);
         await Send.OkAsync(
             maps.Select(m => new MapSummary(
                 m.Slug, m.Name, gamemodes.GetValueOrDefault(m.Id, []),
                 m.Version, m.Objective, m.Stage,
+                [.. credited.GetValueOrDefault(m.Id, []).Select(a => new MapAuthorDto(a.Uuid, a.Role, a.Contribution, a.Name))],
+                DateTime.SpecifyKind(m.UpdatedAt, DateTimeKind.Utc),
                 withSurface.Contains(m.Id), withPlan.Contains(m.Id), withSketch.Contains(m.Id))).ToList(), ct);
     }
 }
 
-/// <summary>GET /api/maps/stage-counts — the landing cards' tallies, each counting exactly what its list
-/// shows: sketches by the layer a map holds, Configuring by the stage a map stands at, and Maps every map.</summary>
-public sealed class MapStageCountsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<MapStageCounts>
+/// <summary>GET /api/maps/stage-counts — the landing cards' tallies, each counting exactly what the Maps page
+/// shows when its card opens it: the maps standing at Sketch, at Configure — which lists a map the corpus import
+/// stood at <c>edit</c> too — and every map.</summary>
+public sealed class MapStageCountsEndpoint(MapRepository repo) : EndpointWithoutRequest<MapStageCounts>
 {
     public override void Configure()
     {
@@ -72,10 +79,9 @@ public sealed class MapStageCountsEndpoint(MapRepository repo, MapArtifactStore 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var c = await repo.StageCountsAsync(ct);
-        var sketched = await artifacts.HolderCountAsync(ArtifactKind.SketchLayoutJson, ct);
         await Send.OkAsync(new MapStageCounts(
-            sketched,
-            c.GetValueOrDefault(MapStage.Configure),
+            c.GetValueOrDefault(MapStage.Sketch),
+            c.GetValueOrDefault(MapStage.Configure) + c.GetValueOrDefault(MapStage.Edit),
             c.Values.Sum()), ct);
     }
 }

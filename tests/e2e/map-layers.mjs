@@ -3,7 +3,7 @@
  *
  * A map is one row that can hold a plan, a sketch and a world at once, but the overview filed it under the
  * single stage its pointer named and offered one backward hop at a time. So a planned, sketched, configured
- * map appeared only under Configuring, its own plan was unreachable from the Plans list, and reaching that
+ * map appeared only under Configuring, its own plan was unreachable from the Plans view, and reaching that
  * plan meant two reopens through two different lists — the second only discoverable after taking the first.
  *
  * Two claims here. The lists that name a layer list every map holding it, whatever the map has since become;
@@ -52,9 +52,9 @@ let drove = false;
 try {
   clearFaults(page);
   await page.goto(`${BASE}/maps?stage=configure`, { waitUntil: "networkidle" });
-  await page.waitForSelector(".panel-list .list-row", { timeout: 15000 });
+  await page.waitForSelector(".map-table-row", { timeout: 15000 });
 
-  const row = page.locator(".list-row-pair", { has: page.locator(`text="${slug}"`) }).first();
+  const row = page.locator(".map-table-row", { has: page.locator(`text="${slug}"`) }).first();
   const layers = row.locator(".map-layer");
   const hrefs = await layers.evaluateAll(els => els.map(e => e.getAttribute("href")));
   checks.add("the row links plan, sketch and configure",
