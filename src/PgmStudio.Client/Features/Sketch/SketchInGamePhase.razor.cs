@@ -124,6 +124,19 @@ public partial class SketchInGamePhase
     private MapNoteDto? Current => Notes.All.FirstOrDefault(note => note.Id == currentId);
     private MapNoteDto? OpenHere => step == NotesStep.Thread && Current is { } note && note.Anchor.ViewId == Shown?.Id ? note : null;
 
+    /// <summary>The marks the open thread's replies carry on the picture in view.</summary>
+    private IEnumerable<NoteAnchorDto> RepliesHere
+    {
+        get
+        {
+            if (step != NotesStep.Thread || Current is not { } note) return [];
+            var viewId = Compared is not null ? note.Anchor.ViewId : Shown?.Id;
+            return note.Messages.Select(message => message.Mark)
+                .OfType<NoteAnchorDto>()
+                .Where(pinned => pinned.ViewId == viewId && pinned.Marks is { Count: > 0 });
+        }
+    }
+
     private IEnumerable<MapNoteDto> PinnedHere => Notes.All.Where(note =>
         note.Anchor.ViewId == Shown?.Id && note.Anchor.Marks is { Count: > 0 }
         && SketchNotesColumn.Passes(note, filter));
@@ -172,8 +185,8 @@ public partial class SketchInGamePhase
         shownId = view.Id;
         tool = null;
         drawing = null;
-        if (step == NotesStep.New) ClearMark();
-        else if (step == NotesStep.Thread) step = NotesStep.Overview;
+        if (step == NotesStep.Thread) step = NotesStep.Overview;
+        ClearMark();
     }
 
     private async Task OnKey(KeyboardEventArgs key)
@@ -240,6 +253,7 @@ public partial class SketchInGamePhase
         notesError = null;
         tool = null;
         drawing = null;
+        ClearMark();
         await main.FocusAsync();
     }
 
@@ -299,6 +313,11 @@ public partial class SketchInGamePhase
 
     private bool Ready => wholeMap || mark is null || picked is not null;
 
+    /// <summary>What an open thread's reply is pinned to, or null where no mark is drawn for it.</summary>
+    private string? ReplyMark => step != NotesStep.Thread || mark is not { } drawn ? null
+        : $"{char.ToUpperInvariant(drawn.Kind[0])}{drawn.Kind[1..]}: "
+          + (pickNote ?? (picked is null ? "Finding the ground under the mark…" : Ground(picked)));
+
     private string AnchorTitle => wholeMap ? "The whole map"
         : mark is { } drawn ? $"{char.ToUpperInvariant(drawn.Kind[0])}{drawn.Kind[1..]} on {Shown?.Name}"
         : $"This view: {Shown?.Name}";
@@ -351,10 +370,7 @@ public partial class SketchInGamePhase
                     notesError = "The note was not sent: the browser could not keep a copy of the picture it is written on. Send it again.";
                     return false;
                 }
-                anchor = new NoteAnchorDto(mark?.Kind ?? NoteAnchors.View, view.Id, view.Name, camera.Camera,
-                    PictureWidth, PictureHeight, mark?.Pixels, camera.Hit, camera.Ground,
-                    camera.Columns.Count > 0 ? camera.Columns : null,
-                    camera.OverVoid.Count > 0 ? camera.OverVoid : null);
+                anchor = AnchorOf(mark?.Kind ?? NoteAnchors.View, view.Id, view.Name, camera, mark?.Pixels);
             }
             var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/notes",
                 new MapNoteRequest(writing.Body, anchor, writing.Tag, picture, DrawnAt));
@@ -380,19 +396,35 @@ public partial class SketchInGamePhase
         finally { StateHasChanged(); }
     }
 
+    /// <summary>What a mark, or a picture with none, was pinned to on the ground: one shape for a note's anchor and
+    /// a reply's mark.</summary>
+    private static NoteAnchorDto AnchorOf(string kind, string? viewId, string? viewName, EyePickDto pick,
+                                          IReadOnlyList<PixelDto>? pixels) =>
+        new(kind, viewId, viewName, pick.Camera, PictureWidth, PictureHeight, pixels, pick.Hit, pick.Ground,
+            pick.Columns.Count > 0 ? pick.Columns : null, pick.OverVoid.Count > 0 ? pick.OverVoid : null);
+
     private async Task<bool> ReplyAsync(string body)
     {
         if (Current is not { } note) return false;
         notesError = null;
+        NoteAnchorDto? pinned = null;
+        if (mark is { } drawn)
+        {
+            if (picked is not { } pick) return false;
+            var (viewId, viewName) = Compared is not null ? (note.Anchor.ViewId, note.Anchor.ViewName) : (Shown?.Id, Shown?.Name);
+            pinned = AnchorOf(drawn.Kind, viewId, viewName, pick, drawn.Pixels);
+        }
         try
         {
-            var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/notes/{note.Id}/replies", new NoteReplyRequest(body));
+            var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/notes/{note.Id}/replies",
+                new NoteReplyRequest(body, Mark: pinned));
             if (!answer.IsSuccessStatusCode)
             {
                 notesError = await ServerRefusal.SentenceAsync(answer);
                 return false;
             }
             await LoadNotesAsync();
+            ClearMark();
             return true;
         }
         catch
@@ -425,14 +457,21 @@ public partial class SketchInGamePhase
 
     // ── drawing a mark on the picture ──
 
+    /// <summary>What a mark drawn now is for: the reply in an open thread, else a new note.</summary>
+    private string Marking => step == NotesStep.Thread ? "reply" : "note";
+
+    /// <summary>What a dock tool pins, as its title says it.</summary>
+    private string Pins => step == NotesStep.Thread ? "the reply" : "a note";
+
     private string ToolHint => tool switch
     {
-        NoteAnchors.Point => "Click the block the note is about.",
-        NoteAnchors.Box => "Drag over the area the note is about.",
-        _ => "Draw around the area the note is about.",
+        NoteAnchors.Point => $"Click the block the {Marking} is about.",
+        NoteAnchors.Box => $"Drag over the area the {Marking} is about.",
+        _ => $"Draw around the area the {Marking} is about.",
     };
 
-    /// <summary>Arming a tool opens a new note pinned to what it draws; arming it again puts it down.</summary>
+    /// <summary>Arming a tool pins the reply in an open thread, and otherwise opens a new note pinned to what it
+    /// draws; arming it again puts it down.</summary>
     private void Arm(string kind)
     {
         if (tool == kind)
@@ -443,6 +482,7 @@ public partial class SketchInGamePhase
         tool = kind;
         drawing = null;
         wholeMap = false;
+        if (step == NotesStep.Thread) return;
         if (step != NotesStep.New)
         {
             step = NotesStep.New;
@@ -489,8 +529,11 @@ public partial class SketchInGamePhase
         pickNote = null;
         var round = ++pickRound;
         if (Shown is not { } view) return;
-        var answer = await PickAsync(view, mark);
-        if (round != pickRound || (answer is not null && Moved(answer))) return;
+        // A thread comparing its pictures shows its note's own camera over the board now, so a reply's mark is
+        // read there; the gallery's view is read at the change its pictures are of.
+        var noteCamera = step == NotesStep.Thread && Compared is not null ? Current?.Anchor.Camera : null;
+        var answer = noteCamera is { } camera ? await PickAsync(Exact(camera), mark) : await PickAsync(view.Query, mark);
+        if (round != pickRound || (answer is not null && noteCamera is null && Moved(answer))) return;
         picked = answer;
     }
 
@@ -505,7 +548,13 @@ public partial class SketchInGamePhase
 
     /// <summary>What <paramref name="drawn"/> is on the ground under <paramref name="view"/>'s picture, or the
     /// camera alone where nothing is drawn. Null where the studio could not say, with the reason kept.</summary>
-    private async Task<EyePickDto?> PickAsync(MapViewDto view, Mark? drawn)
+    private Task<EyePickDto?> PickAsync(MapViewDto view, Mark? drawn) => PickAsync(view.Query, drawn);
+
+    /// <summary>The <c>render/eye</c> words that draw <paramref name="camera"/> exactly.</summary>
+    private static string Exact(EyeCameraDto camera) => string.Create(CultureInfo.InvariantCulture,
+        $"eye={camera.X},{camera.Y},{camera.Z}&yaw={camera.Yaw}&pitch={camera.Pitch}&fov={camera.Fov}");
+
+    private async Task<EyePickDto?> PickAsync(string query, Mark? drawn)
     {
         var shape = drawn switch
         {
@@ -516,7 +565,7 @@ public partial class SketchInGamePhase
         };
         try
         {
-            var answer = await Http.GetAsync($"api/map/{Slug}/render/eye/pick?{view.Query}&width={PictureWidth}&height={PictureHeight}{shape}");
+            var answer = await Http.GetAsync($"api/map/{Slug}/render/eye/pick?{query}&width={PictureWidth}&height={PictureHeight}{shape}");
             if (answer.IsSuccessStatusCode) return await answer.Content.ReadFromJsonAsync<EyePickDto>();
             pickNote = await ServerRefusal.SentenceAsync(answer);
         }

@@ -63,6 +63,29 @@ if (views.undrawable) {
   checks.add("both messages sit on the author's side", mine === 2, `${mine} of 2`);
   checks.add("the reply box is empty again", (await page.inputValue("#note-reply")) === "");
 
+  checks.section("a reply can point: a box drawn in the thread pins the reply, not a new note");
+  await page.click('[aria-label="Box: pin the reply to an area"]');
+  const area = await page.locator(".ingame__trap").boundingBox();
+  await page.mouse.move(area.x + area.width * 0.4, area.y + area.height * 0.45);
+  await page.mouse.down();
+  await page.mouse.move(area.x + area.width * 0.6, area.y + area.height * 0.7, { steps: 6 });
+  await page.mouse.up();
+  checks.add("the thread stays open", (await page.locator("#note-reply").count()) === 1);
+  await page.waitForFunction(() => {
+    const said = document.querySelector(".notes-column__replymark")?.textContent ?? "";
+    return said.length > 0 && !said.includes("Finding");
+  }, null, { timeout: 30000 });
+  const pinnedTo = (await page.locator(".notes-column__replymark span").textContent()) ?? "";
+  checks.add("the reply box says what the box landed on", pinnedTo.startsWith("Box:"), pinnedTo.trim());
+  await page.fill("#note-reply", "No, this patch.");
+  await send.click();
+  await page.waitForFunction(() => document.querySelectorAll(".note-message").length === 3, null, { timeout: 30000 });
+  const pointed = (await notes()).find((note) => note.id === first.id)?.messages.at(-1)?.mark;
+  checks.add("the reply keeps its mark", pointed?.kind === "box" && pointed.marks?.length === 2, JSON.stringify(pointed?.marks));
+  checks.add("its bubble names the mark", (await page.locator(".note-message__mark").count()) === 1);
+  checks.add("and the mark is drawn on the picture", (await page.locator(".ingame__mark--reply").count()) === 1);
+  checks.add("the reply box lets the mark go once sent", (await page.locator(".notes-column__replymark").count()) === 0);
+
   checks.section("a mark on a picture of a board that has changed is refused until it is drawn again");
   await page.click("text=‹ All notes");
   const moved = structuredClone(layout);

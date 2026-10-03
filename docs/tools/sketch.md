@@ -35,7 +35,8 @@ both. The map's notes are one more, `SketchNotes`, read in one place for In game
 names. The host keeps the phase switch, the save before a page phase opens, the canvas mode, overlays and tool,
 and the bridge's callbacks; the state objects reach the canvas and the save through delegates it hands them.
 
-The tool saves continuously — every change schedules a debounced write 800 ms later, and Ctrl+S flushes it at
+The top bar names the map by the name Info states, and by its slug until one is saved. The tool saves
+continuously — every change schedules a debounced write 800 ms later, and Ctrl+S flushes it at
 once. The finished map leaves by **Download map** in the top bar, on every phase: it flushes the layout, builds
 the world the first time (the finish below, `POST …/sketch/finish`, which rasterizes the layout and moves the
 map to `stage=configure`), and saves the export — the world ZIP with its `map.xml`. A board built from a plan
@@ -96,7 +97,7 @@ not change the world the board builds — and a board loaded again over its own 
 **The notes an admin leaves in the In game phase are rows, not an artifact.** `map_note` holds one per note —
 its map by slug, what it is pinned to, its tag and its status — and `map_note_message` its thread, each message
 with who wrote it, the token it was written with where it was one, the change to the map's documents it was
-written at, and the picture it carries by hash. A note names its map by slug rather than by row because a driver replaces
+written at, the picture it carries by hash, and a reply's own mark on a picture. A note names its map by slug rather than by row because a driver replaces
 the map row on every build, and a thread outlives every rebuild of the board it is about; deleting the map is
 what lets its notes go. The pictures themselves are files, named by the SHA-256 of their bytes under
 `Notes:Pictures` (*Notes*, under In game).
@@ -1607,7 +1608,14 @@ place of the gallery's, with **Before**, **After**, **Now** and **Wipe** over it
 on, the after the latest reply carries, and the note's own camera over the board as it stands. Wipe lays the
 after over the before up to a seam dragged across the picture, and is what a thread with an after opens on; one
 with none opens on Now. All of them are one camera at one size, so the note's mark lands on each where it landed
-on the before. Arming a tool goes back to the gallery's picture, which is what a new mark is drawn on.
+on the before.
+
+**A reply can point as well as say.** With a thread open, Point, Box and Lasso mark the reply rather than start a
+new note: the mark is read on the picture in view — the note's own camera over the board as it stands where the
+thread compares its pictures, the gallery's view otherwise — and the reply box says what it landed on, with
+**Clear mark** beside it. The reply keeps it as `mark`, in the shape a note's anchor is kept in, so "no, *this*
+one" arrives as the block or the columns rather than as a sentence. Every reply's mark on the picture in view is
+drawn in violet while its thread is open, and its bubble names the mark under the text.
 
 **A thread has one status, and only the author closes it.**
 
@@ -2202,7 +2210,7 @@ permission (`docs/access.md`). A member, and every other token, is refused `RQ8`
 | `GET /notes?status=&since=` | every note on every map, newest change first, each a `MapNoteDto` with its map's slug and name. `status` takes one status or several between commas — `open` is what an agent starts on; `since`, an ISO 8601 instant, keeps the threads whose last message or status change is at or after it | 400 `no such status` `RQ1` · 400 `no such instant` `RQ1` |
 | `GET /map/{slug}/notes` | the map's notes, newest change first: `[{id, map, mapName, anchor, tag, status, createdAt, updatedAt, messages[]}]`, each message `{id, author, authorUuid, token, body, change, picture, at}` — `token` is the label of the token an agent wrote it with, null for a browser | 404 |
 | `POST /map/{slug}/notes` | the note written. Body `{body, anchor, tag?, picture?, change?}`; `change` is the map's change it was written at, and absent takes the latest. A note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a tag of no known word, a picture no upload answered, a `change` that has not landed · 404 |
-| `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, change?}`; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser. A token's `answered` reply on a picture note, at the latest change and with no `picture`, carries the note's camera drawn over the board as stored | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH`, or a `change` that has not landed · 404 no such map, or no note by that id on it |
+| `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, change?, mark?}`; `mark` is a `point`, `box` or `lasso` anchor as `render/eye/pick` answered it, held to everything a note's anchor of that kind is; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser. A token's `answered` reply on a picture note, at the latest change and with no `picture`, carries the note's camera drawn over the board as stored | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH`, a `change` that has not landed, or a `mark` that is not one (`field` names it) · 404 no such map, or no note by that id on it |
 | `PATCH /map/{slug}/notes/{id}` | the note changed. Body `{status?, tag?}`: `resolved`, `wont-do` or `open` to reopen; a tag, or `""` to clear it | 400 `not a change` `RQ1` · 403 `RQ8` to a token — an agent answers in a reply, and only the author closes a thread · 404 |
 | `GET /notes/handoff` | `{ready, waiting, fresh, handedAt, session}` — whether this studio names an agent, how many notes on every map are open, how many of those were written or answered since the last hand-off, and when that was and the session it started | — |
 | `POST /notes/handoff` | the same, after the Routine is fired with the maps and their counts as its text. Body `{again?}`: `true` repeats a hand-off nothing was written since | 403 `RQ8` to a token — the author hands notes over · 409 `RQ5` no note waits, or none was written since the last hand-off · 503 `RQ12` no agent named, or the Routine refused |

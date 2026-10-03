@@ -8574,6 +8574,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   anchor, so "an island here" drawn beside a board names the cells it means. `columns` stays ground actually
   seen. `docs/tools/sketch.md` § Notes, `docs/world-scan/read-backs.md`. (`TS121`)
 
+- **A reply can point (`TS144`)** — with a thread open, Point, Box and Lasso mark the reply instead of starting a
+  note: the mark is read on the picture in view (the note's own camera where the thread compares its pictures),
+  sent as the reply's `mark` in a note anchor's shape and held to the same checks, kept on the message
+  (`map_note_message.mark_json`, `M0062`) and drawn in violet on the picture while the thread is open, its bubble
+  naming what it pins. `docs/tools/sketch.md` § Notes. (`TS144`)
+
+- **The sketch tool's crumb names the map (`TS153`)** — the top bar reads the map's name, and follows a rename
+  saved in Info; the slug stands in until one is saved. `docs/tools/sketch.md`. (`TS153`)
+
 - **The board seen whole (`TS117`)** — placing a view draws the Board layer: the full build from straight above,
   trees, houses and water included, shaded like the game's map item, with every other layer, chip and mark
   left off and given back on leaving; placing is 2-D only. The gallery

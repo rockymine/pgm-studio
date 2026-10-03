@@ -82,6 +82,42 @@ public sealed class NoteEndpointsTests
     }
 
     [Test]
+    public async Task A_reply_keeps_the_mark_it_was_written_with_and_a_mark_that_is_not_one_is_refused()
+    {
+        using var client = await SketchBoard.FreshAsync();
+        var note = await (await client.PostAsJsonAsync(Notes, new MapNoteRequest("This tree floats.", OnAPicture)))
+            .Content.ReadFromJsonAsync<MapNoteDto>();
+        var thisOne = OnAPicture with
+        {
+            Kind = NoteAnchors.Box, Marks = [new PixelDto(600, 300), new PixelDto(700, 380)], Hit = null, Ground = null,
+            Columns = [[0, 20, 0], [1, 20, 0]], OverVoid = [[40, 20, 0]],
+        };
+
+        var replied = await (await client.PostAsJsonAsync($"{Notes}/{note!.Id}/replies",
+            new NoteReplyRequest("No, this one.", Mark: thisOne))).Content.ReadFromJsonAsync<MapNoteDto>();
+
+        var mark = replied!.Messages[^1].Mark;
+        await Assert.That(mark).IsNotNull();
+        await Assert.That(mark!.Kind).IsEqualTo(NoteAnchors.Box);
+        await Assert.That(mark.Marks!).IsEquivalentTo(thisOne.Marks!);
+        await Assert.That(mark.OverVoid!.Single()).IsEquivalentTo([40, 20, 0]);
+        await Assert.That(replied.Messages[0].Mark).IsNull();
+
+        foreach (var (wrong, field) in new (NoteAnchorDto, string)[]
+                 {
+                     (OnAPicture with { Kind = NoteAnchors.View }, "mark.kind"),
+                     (OnAPicture with { Camera = null }, "mark.camera"),
+                     (thisOne with { Marks = [new PixelDto(600, 300)] }, "mark.marks"),
+                 })
+        {
+            var refused = await client.PostAsJsonAsync($"{Notes}/{note.Id}/replies", new NoteReplyRequest("x", Mark: wrong));
+            await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+            var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
+            await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo(field);
+        }
+    }
+
+    [Test]
     public async Task A_picture_is_kept_once_under_its_hash_and_served_back()
     {
         using var client = await SketchBoard.FreshAsync();

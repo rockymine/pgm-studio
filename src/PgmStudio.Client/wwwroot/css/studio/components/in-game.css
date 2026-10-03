@@ -82,6 +82,7 @@
 }
 .ingame__mark { fill: rgba(37, 99, 235, 0.14); stroke: #2563eb; stroke-width: 3; stroke-dasharray: 9 6; vector-effect: non-scaling-stroke; }
 .ingame__mark--open { fill: rgba(250, 204, 21, 0.16); stroke: #facc15; }
+.ingame__mark--reply { fill: rgba(168, 85, 247, 0.14); stroke: #a855f7; }
 .ingame__trap { position: absolute; inset: 0; z-index: 2; cursor: crosshair; touch-action: none; }
 .ingame__hint {
   position: absolute; top: var(--space-2); left: 50%; transform: translateX(-50%); z-index: 3;

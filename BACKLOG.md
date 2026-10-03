@@ -475,17 +475,6 @@ and what a `subtract` takes away.
   wall, players could walk round it, every call answered 200, and the only symptom was traversability moving
   from 2 isolated markers to **0** — the direction that reads as an improvement.*
 
-## A note and the changes that answer it
-
-The In game phase's threads and the History phase's changes describe one piece of work from its two ends — what
-the author asked, and what the board did about it. What remains is the author's side of a thread.
-
-- [ ] **TS144 — The author's reply can pin itself to the picture.** A reply is text only
-  (`SketchNotesColumn.razor`, the thread's compose box), so "no, *this* one" has to be said in words or written
-  as a second note. Let a reply carry a Point, Box or Lasso mark on the picture in view, projected and kept the
-  way a new note's anchor is (`NoteAnchorDto`), on the message rather than the note: a `NoteMessageDto.Mark`
-  beside its `Picture`, drawn on the picture while the thread is open. `docs/tools/sketch.md` § Notes.
-
 ## A first-time reader: the words, the sizes, and the help a tool owes them
 A reviewer new to mapmaking read the studio cold and reported what stopped them. The copy pass and the
 text-size setting have shipped; what remains is what a sentence cannot fix — a term with nowhere to be looked
@@ -548,10 +537,6 @@ is the standard the copy is held to.
   pictures and readings with raw API routes (`render/isometric`, `POST sketch/relief/read`) and lists them as
   link text; a reader wants each reading by name, with the route behind a *Copy request* action for an agent.
   `SketchReportPhase.razor`. `docs/tools/sketch.md` § Report.
-
-- [ ] **TS153 — The sketch tool's crumb names the map.** `SketchTool.razor` shows `@Slug` in the top bar where
-  the plan and configure tools show the map's name, because the sketch tool loads no map summary. Read the name
-  with the layout and put it in the crumb. `docs/tools/sketch.md`.
 
 - [ ] **C78 — Board pictures in the paper's four plan inks.** `PlanBoardPalette` paints seven role and zone
   colours on a dark ground; `pgm-studio-mapgen/paper/preamble.tex` draws the same plans in four inks on white —

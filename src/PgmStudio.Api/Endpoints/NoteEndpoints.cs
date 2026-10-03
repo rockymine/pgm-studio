@@ -31,12 +31,14 @@ internal static class NoteWire
         stored.Note.Tag, stored.Note.Status, stored.Note.CreatedAt, stored.Note.UpdatedAt,
         [.. stored.Messages.Select(message => new NoteMessageDto(
             message.Id, message.AuthorName, message.AuthorUuid, message.TokenLabel, message.Body, message.Change,
-            message.Picture, message.CreatedAt))]);
+            message.Picture, message.CreatedAt,
+            message.MarkJson is { } mark ? JsonSerializer.Deserialize<NoteAnchorDto>(mark, MapArtifactStore.Json) : null))]);
 
     public static string AnchorJson(NoteAnchorDto anchor) => JsonSerializer.Serialize(anchor, MapArtifactStore.Json);
 
-    /// <summary>A message as <paramref name="caller"/> writes it.</summary>
-    public static MapNoteMessageRow Message(Caller caller, string body, long change, string? picture, DateTime at) => new()
+    /// <summary>A message as <paramref name="caller"/> writes it, with the mark a reply carries.</summary>
+    public static MapNoteMessageRow Message(Caller caller, string body, long change, string? picture, DateTime at,
+                                            NoteAnchorDto? mark = null) => new()
     {
         AuthorUuid = caller.Uuid,
         AuthorName = caller.Name is { Length: > 0 } name ? name : "local",
@@ -44,6 +46,7 @@ internal static class NoteWire
         Body = body.Trim(),
         Change = change,
         Picture = picture,
+        MarkJson = mark is null ? null : AnchorJson(mark),
         CreatedAt = at,
     };
 
@@ -65,6 +68,14 @@ internal static class NoteWire
         picture is null ? null
         : !pictures.Has(picture) ? ("picture", $"no picture is kept under '{picture}' — post it to /api/notes/pictures first, "
             + "and name the hash that answers")
+        : null;
+
+    /// <summary>What is wrong with a reply's mark, or null: it is a mark on a picture — a point, a box or a lasso —
+    /// held to everything a note's anchor of that kind is.</summary>
+    public static (string Field, string Message)? MarkFault(NoteAnchorDto? mark) =>
+        mark is null ? null
+        : !NoteAnchors.Marks(mark.Kind) ? ("mark.kind", $"a reply's mark is a {NoteAnchors.Point}, a {NoteAnchors.Box} or a {NoteAnchors.Lasso}")
+        : AnchorFault(mark) is { } fault ? ("mark" + fault.Field["anchor".Length..], fault.Message)
         : null;
 
     /// <summary>What is wrong with an anchor, or null. A picture anchor carries the camera it was drawn with and
@@ -306,7 +317,8 @@ public sealed class MapNoteCreateEndpoint(
     }
 }
 
-/// <summary>POST /api/map/{slug}/notes/{id}/replies — a reply in a thread, optionally carrying a picture. The
+/// <summary>POST /api/map/{slug}/notes/{id}/replies — a reply in a thread, optionally carrying a picture and a
+/// mark of its own on a picture, held to what a note's point, box or lasso anchor is. The
 /// reply leaves the thread where its <c>status</c> says: an agent answers, asks or declines, and the author's
 /// reply hands it back to an agent. A thread is resolved only through <c>PATCH</c>. An agent's answer to a note
 /// written on a picture, at the board's latest change and stating no picture of its own, carries the note's
@@ -335,6 +347,7 @@ public sealed class NoteReplyEndpoint(
         }
         var latest = await log.LatestAsync(map.Slug, ct);
         if ((NoteWire.BodyFault(request.Body) ?? NoteWire.PictureFault(request.Picture, pictures)
+             ?? NoteWire.MarkFault(request.Mark)
              ?? NoteWire.ChangeFault(request.Change, latest)
              ?? (request.Status is null || Leaves.Contains(request.Status) ? null
                  : ("status", $"a reply leaves its thread {string.Join(", ", Leaves)} — resolving one is the author's PATCH")))
@@ -359,7 +372,7 @@ public sealed class NoteReplyEndpoint(
             }
             picture = await AfterAsync(map, anchor, ct);
         }
-        var reply = NoteWire.Message(caller, request.Body, request.Change ?? latest, picture, DateTime.UtcNow);
+        var reply = NoteWire.Message(caller, request.Body, request.Change ?? latest, picture, DateTime.UtcNow, request.Mark);
         reply.NoteId = stored.Note.Id;
         await notes.AddAsync(reply, status, ct);
         await Send.OkAsync(NoteWire.Dto((await notes.GetAsync(map.Slug, stored.Note.Id, ct))!, map.Name), ct);

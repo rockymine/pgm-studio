@@ -91,7 +91,11 @@
                   {
                     @Shape(open.Anchor.Kind, openMarks, "ingame__mark ingame__mark--open")
                   }
-                  @if (step == NotesStep.New && mark is { } drawn)
+                  @foreach (var pinned in RepliesHere)
+                  {
+                    @Shape(pinned.Kind, pinned.Marks!, "ingame__mark ingame__mark--reply")
+                  }
+                  @if (step is NotesStep.New or NotesStep.Thread && mark is { } drawn)
                   {
                     @Shape(drawn.Kind, drawn.Pixels, "ingame__mark ingame__mark--draft")
                   }
@@ -116,11 +120,11 @@
               }
               <CanvasDock>
                 <DockGroup Viewing="true">
-                  <DockButton Icon="crosshair" Title="Point: pin a note to a block" Active="@(tool == NoteAnchors.Point)"
+                  <DockButton Icon="crosshair" Title="@($"Point: pin {Pins} to a block")" Active="@(tool == NoteAnchors.Point)"
                               OnClick="() => Arm(NoteAnchors.Point)" />
-                  <DockButton Icon="square" Title="Box: pin a note to an area" Active="@(tool == NoteAnchors.Box)"
+                  <DockButton Icon="square" Title="@($"Box: pin {Pins} to an area")" Active="@(tool == NoteAnchors.Box)"
                               OnClick="() => Arm(NoteAnchors.Box)" />
-                  <DockButton Icon="lasso" Title="Lasso: pin a note to an outlined area" Active="@(tool == NoteAnchors.Lasso)"
+                  <DockButton Icon="lasso" Title="@($"Lasso: pin {Pins} to an outlined area")" Active="@(tool == NoteAnchors.Lasso)"
                               OnClick="() => Arm(NoteAnchors.Lasso)" />
                   <span class="ingame__divider"></span>
                   <DockButton Icon="eye" Title="@(showMarks ? "Hide note pins" : "Show note pins")"
@@ -153,7 +157,7 @@
         {
           <SketchNotesColumn Step="step" Notes="Notes.All" ViewIds="ViewIds" ViewId="@shown.Id" ViewName="@shown.Name"
                              Current="Current" Filter="@filter" AnchorTitle="@AnchorTitle" AnchorBody="@AnchorBody"
-                             HasMark="@(mark is not null)" WholeMap="wholeMap" Ready="Ready" Busy="busy" Error="@notesError"
+                             HasMark="@(mark is not null)" ReplyMark="@ReplyMark" WholeMap="wholeMap" Ready="Ready" Busy="busy" Error="@notesError"
                              OnFilter="f => filter = f" OnOpen="OpenNote" OnBack="BackToOverview" OnNew="StartNote"
                              OnClearMark="ClearMark" OnWholeMap="PinToMap" OnResolve="() => ChangeAsync(NoteStatuses.Resolved)"
                              OnReopen="() => ChangeAsync(NoteStatuses.Open)"

@@ -41,6 +41,9 @@ public partial class SketchNotesColumn : IDisposable
     [Parameter] public string AnchorBody { get; set; } = "";
     [Parameter] public bool HasMark { get; set; }
 
+    /// <summary>What the reply in an open thread is pinned to, or null where no mark is drawn for it.</summary>
+    [Parameter] public string? ReplyMark { get; set; }
+
     /// <summary>Whether the pictures are of a board that has changed since, so a mark on one cannot be read.</summary>
     [Parameter] public bool Stale { get; set; }
     [Parameter] public EventCallback OnRedraw { get; set; }
@@ -183,6 +186,19 @@ public partial class SketchNotesColumn : IDisposable
         key.Key == "Enter" && (key.CtrlKey || key.MetaKey) ? send() : Task.CompletedTask;
 
     public void Dispose() => confirming?.Cancel();
+
+    /// <summary>What a reply's mark is on, in a few words: the tool, the view and the ground it names.</summary>
+    private static string MarkLine(NoteAnchorDto mark)
+    {
+        var on = mark.ViewName is { Length: > 0 } name ? $" on {name}" : "";
+        var ground = mark.Hit is { } hit ? string.Create(CultureInfo.InvariantCulture, $" · block at {hit.X}, {hit.Y}, {hit.Z}")
+            : string.Join("", new[]
+            {
+                mark.Columns is { Count: > 0 } columns ? string.Create(CultureInfo.InvariantCulture, $" · {columns.Count} ground columns") : "",
+                mark.OverVoid is { Count: > 0 } overVoid ? string.Create(CultureInfo.InvariantCulture, $" · {overVoid.Count} over the void") : "",
+            });
+        return $"{char.ToUpperInvariant(mark.Kind[0])}{mark.Kind[1..]}{on}{ground}";
+    }
 
     /// <summary>What a note is pinned to, in a few words.</summary>
     public static string Title(MapNoteDto note) => note.Anchor.Kind switch

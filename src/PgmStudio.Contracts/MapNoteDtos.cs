@@ -87,8 +87,12 @@ public sealed record NoteAnchorDto(
 /// <param name="Picture">The picture it carries, by hash — the one a note was written on, or the same camera
 /// after an agent's change — served at <c>GET /api/notes/pictures/{hash}</c>; null for none.</param>
 /// <param name="At">When it was written, in UTC.</param>
+/// <param name="Mark">A reply's own mark on a picture — a <c>point</c>, <c>box</c> or <c>lasso</c> and the ground it
+/// was projected onto, kept as a note's anchor is; null for none, and always null on the note's own first message,
+/// whose place is the note's anchor.</param>
 public sealed record NoteMessageDto(
-    long Id, string Author, string? AuthorUuid, string? Token, string Body, long Change, string? Picture, DateTime At);
+    long Id, string Author, string? AuthorUuid, string? Token, string Body, long Change, string? Picture, DateTime At,
+    NoteAnchorDto? Mark = null);
 
 /// <summary>A note and its thread.</summary>
 /// <param name="Id">Its id.</param>
@@ -125,11 +129,15 @@ public sealed record MapNoteRequest(
 /// and <c>open</c> for one written in a browser.</param>
 /// <param name="Picture">The same camera after the change, by hash, or null.</param>
 /// <param name="Change">The map's change the reply was written at; absent takes the latest.</param>
+/// <param name="Mark">A mark on a picture the reply is about — "no, this one" — as <c>render/eye/pick</c> answered
+/// it: a <c>point</c>, <c>box</c> or <c>lasso</c> anchor with its camera, the picture's size, the pixels and the
+/// ground. Absent for none.</param>
 public sealed record NoteReplyRequest(
     string Body,
     [property: WordSet(typeof(NoteStatuses))] string? Status = null,
     string? Picture = null,
-    long? Change = null);
+    long? Change = null,
+    NoteAnchorDto? Mark = null);
 
 /// <summary>A change to a note (<c>PATCH /api/map/{slug}/notes/{id}</c>): its status, its tag, or both.</summary>
 /// <param name="Status"><c>resolved</c>, <c>wont-do</c> or <c>open</c> to reopen it; absent leaves it.</param>

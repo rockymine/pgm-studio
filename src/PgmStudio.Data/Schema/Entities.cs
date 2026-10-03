@@ -95,6 +95,7 @@ public sealed class MapNoteMessageRow
     [Column("body"), NotNull] public string Body { get; set; } = "";
     [Column("change_number"), NotNull] public long Change { get; set; }
     [Column("picture")] public string? Picture { get; set; }
+    [Column("mark_json")] public string? MarkJson { get; set; }
     [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
 }
 

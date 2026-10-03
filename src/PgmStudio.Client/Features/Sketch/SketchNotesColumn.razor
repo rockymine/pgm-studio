@@ -111,6 +111,10 @@
                 <span>@Ago(message.At) · change @message.Change</span>
               </div>
               <div class="note-message__body">@message.Body</div>
+              @if (message.Mark is { } pinned)
+              {
+                <div class="note-message__mark"><i data-lucide="pin"></i>@MarkLine(pinned)</div>
+              }
               @if (message.Picture is { } picture)
               {
                 <a class="note-message__picture" href="@($"api/notes/pictures/{picture}")" target="_blank" rel="noopener">
@@ -139,14 +143,21 @@
       </div>
       <div class="notes-column__compose">
         <label class="notes-column__label" for="note-reply">Reply</label>
+        @if (ReplyMark is { } replyMark)
+        {
+          <div class="notes-column__replymark">
+            <span>@replyMark</span>
+            <Button OnClick="OnClearMark">Clear mark</Button>
+          </div>
+        }
         <textarea id="note-reply" class="field-input" rows="3" placeholder="Reply…" value="@reply" readonly="@sending"
                   @oninput="e => reply = e.Value?.ToString() ?? string.Empty"
                   @onkeydown="key => SendOnKey(key, SendReplyAsync)"></textarea>
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
         <div class="notes-column__send">
           @if (sent is not null) { <span class="notes-column__sent" role="status">✓ @sent</span> }
-          else { <span class="notes-column__hint">A reply hands the thread back to the agent. Ctrl+Enter sends.</span> }
-          <Button Variant="primary" Disabled="@string.IsNullOrWhiteSpace(reply)" Busy="sending" BusyLabel="Sending…"
+          else { <span class="notes-column__hint">A reply hands the thread back to the agent. A Point, Box or Lasso on the picture pins it to a place. Ctrl+Enter sends.</span> }
+          <Button Variant="primary" Disabled="@(string.IsNullOrWhiteSpace(reply) || !Ready)" Busy="sending" BusyLabel="Sending…"
                   OnClick="SendReplyAsync">Send</Button>
         </div>
       </div>

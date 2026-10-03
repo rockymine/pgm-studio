@@ -48,6 +48,12 @@
 .notes-column__hint { flex: 1; color: var(--text-muted); font-size: var(--font-sm); }
 .notes-column__sent { flex: 1; color: var(--color-success); font-size: var(--font-sm); font-weight: 600; }
 .notes-column__tagpick { width: auto; }
+.notes-column__replymark {
+  display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--bg-selected);
+  font-size: var(--font-sm); color: var(--text-secondary);
+}
+.notes-column__replymark span { flex: 1; }
 .notes-column__threadmeta { display: flex; align-items: center; gap: var(--space-2); }
 .notes-column__handoff {
   display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3);
@@ -103,5 +109,7 @@
   border-radius: 6px; color: var(--agent-hue); border: 1px solid color-mix(in srgb, var(--agent-hue) 50%, transparent);
 }
 .note-message__body { line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-message__mark { display: flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: var(--font-xs); }
+.note-message__mark svg { width: 12px; height: 12px; flex: none; }
 .note-message__picture { display: flex; flex-direction: column; gap: 2px; color: var(--text-muted); font-size: var(--font-xs); text-decoration: none; }
 .note-message__picture img { width: 100%; border-radius: var(--radius-sm); display: block; }
