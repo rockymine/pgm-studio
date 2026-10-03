@@ -533,11 +533,6 @@ is the standard the copy is held to.
   inspector's footer and show the three column counts as one row. The `InGame` and `History` boards of the
   design canvas (`C70`) draw both. `docs/tools/sketch.md` § In game, § History.
 
-- [ ] **TS152 — The Report phase reads like a tool, not a log.** The Sketch tool's Report phase captions its
-  pictures and readings with raw API routes (`render/isometric`, `POST sketch/relief/read`) and lists them as
-  link text; a reader wants each reading by name, with the route behind a *Copy request* action for an agent.
-  `SketchReportPhase.razor`. `docs/tools/sketch.md` § Report.
-
 - [ ] **C78 — Board pictures in the paper's four plan inks.** `PlanBoardPalette` paints seven role and zone
   colours on a dark ground; `pgm-studio-mapgen/paper/preamble.tex` draws the same plans in four inks on white —
   ground grey (`#E7EAEE`, edge `#A8B0B9`), spawn green (`#CBE3DA`/`#009E73`), wool room orange

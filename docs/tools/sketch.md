@@ -12,16 +12,17 @@ no objective until Configure gives it one. Opened on a map that came from a plan
 layout — the plan's abutting same-height pieces already fused into single polygons — and refines it.
 
 The route is `/maps/{slug}/sketch`. Six phases sit on the rail in the order the work is done: **Info**,
-**Draw**, **Terraform**, **Palette**, **Decoration** and **In game** — and two after them that are not steps in
-making the board: **History**, its changes, and **Report**, everything a drive reads back about it. This
+**Draw**, **Terraform**, **Palette**, **Decoration** and **In game** — and one after them that is not a step in
+making the board: **History**, its changes. This
 document calls three of them by the code's words: Terraform is the Relief phase, Palette the Theme phase, and
 Decoration the Dressing phase. Info states what the
 board is and is its own body; In game is the board as a player sees it, with the author's notes on it, and is
-its own body too until a view is being placed; Report is a page of readings and is its own body as well. The
-other five share the one live canvas, which stays mounted while Info, the gallery or the report is up so the
+its own body too until a view is being placed. The
+other five share the one live canvas, which stays mounted while Info or the gallery is up so the
 drawing state and the zoom survive the trip. None of the five has steps: each swaps what the columns hold and
 which overlays the layer bar offers, and the canvas is reused as it stands. `?phase=history` opens the tool on
-History and `?phase=report` on Report.
+History. What a drive reads back about the board is not a phase: it is `GET /map/{slug}/report`, an agent's
+read (*The report*, under the API).
 
 **Each phase owns its state, in one of two shapes.** A phase whose truth is on the canvas — Terraform,
 Decoration and Palette — takes one snapshot the bridge announces (`OnRelief`, `OnDressing`, `OnThemes`) and hands
@@ -29,7 +30,7 @@ it, with the bridge handle, to its list and its inspector, which write back thro
 snapshot is one value, `SketchThemes`: the registry and each theme's document, the map default, which shape
 carries which theme, where each copy came from, the room shells and the biome, announced on every change of any
 of them and on a load and a step taken back alike. A phase whose truth is the server's loads it itself: Info
-and Report are components that read their own document, and a phase with two bodies — History, and the views
+is a component that reads its own document, and a phase with two bodies — History, and the views
 of In game — has a plain state object (`SketchHistory`, `SketchViews`) that the host holds once and passes to
 both. The map's notes are one more, `SketchNotes`, read in one place for In game and for the threads History
 names. The host keeps the phase switch, the save before a page phase opens, the canvas mode, overlays and tool,
@@ -662,7 +663,7 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 
 | Chord | Does | Group |
 |---|---|---|
-| `1`–`8` | Go to Info · Draw · Relief · Theme · Dressing · In game · History · Report | Phases |
+| `1`–`7` | Go to Info · Draw · Relief · Theme · Dressing · In game · History | Phases |
 | `V` | Select | Tools |
 | `H` | Pan | Tools |
 | `R` | Rectangle | Tools |
@@ -1672,22 +1673,6 @@ board the restore wrote, so the canvas and the store agree afterwards; a tab who
 is refused until it is reloaded. The four routes underneath are `docs/tools/flow.md`'s, *Every change a map
 keeps*.
 
-### Report
-
-**Report is everything a drive reads back about the board as stored, off one build** —
-`GET /map/{slug}/report`, which `docs/world-scan/read-backs.md` describes. Entering it saves what was drawn in
-the tab first, so the report is of the board on the canvas. It opens on the three numbers a board is wrong or
-right by, in the report's own words; **Read again** asks for it afresh.
-
-**The pictures are drawn one at a time.** Every picture the report names is a chip, and the one picked is drawn
-under them — the isometric first — through the route the report names, so a board's renders wait their turn one
-after another as the build queue answers them. A picture already drawn of an unchanged board is answered from
-the studio's kept pictures without a build (`docs/world-scan/read-backs.md`). A picture that cannot be drawn on
-this studio, an eye view with no block sprites, is a dashed chip that says why.
-
-**Every reading folds under its name and the route that answers it alone**, so a reading can be opened here and
-asked for again outside the tool by the same words.
-
 ## Refusals and complaints
 
 The sketch has almost no gate, and that is deliberate: an unfinished drawing is a legitimate state, and the
@@ -2180,8 +2165,8 @@ in the same two registers.
 | `PUT /map/{slug}/sketch/biome` | `{id}` — which biome each column of the exported world carries. Map-wide and answered per chunk, because a biome's tint is blended across a radius and a region drawn to a finer edge never reaches its own colour there. A field the field's kind has no place for — `biome` where a `solid` field states `id` — is named on `warnings` as `RQ3` rather than read as plains in silence | 400 `malformed biome` `RQ1` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/biome` | `{id}` — take the field off the board, which is plains everywhere | 409 · 404 |
 
-**The report** — what the Report phase shows (`docs/world-scan/read-backs.md`, *One read answers everything a
-drive reads back*).
+**The report** — everything a drive reads back, for an agent; the tool has no page for it
+(`docs/world-scan/read-backs.md`, *One read answers everything a drive reads back*).
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
@@ -2485,8 +2470,7 @@ catalogue, and `GET /map/{slug}/views` lists the eye's views the In game phase s
 
 **`GET /map/{slug}/report` is every one of those reads at once**, off one build: the three numbers first, then
 each reading beside the route that answers it alone, then the pictures by route — drawn too on
-`?pictures=true`, and the whole as one document on `?format=text`. It is the read to take after a store, and
-what the Report phase shows.
+`?pictures=true`, and the whole as one document on `?format=text`. It is the read an agent takes after a store.
 
 Two things are worth knowing before hand-writing a document. **Editor defaults and wire defaults are not the
 same numbers.** A mark placed in the editor is seeded from the client's own starting values; a hand-written

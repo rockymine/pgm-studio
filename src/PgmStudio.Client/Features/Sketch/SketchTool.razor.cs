@@ -170,23 +170,6 @@ public partial class SketchTool
         _ = FollowBoardAsync();
     }
 
-    // ── Report (docs/world-scan/read-backs.md): everything a drive reads back about the board as stored ──
-    // A page of readings rather than a canvas, over the board as stored — so entering it saves first. The
-    // phase reads the report itself once it is up.
-    private bool ReportActive => active == "report";
-
-    /// <summary>Moves on at every entry, so entering Report again reads the board as it is stored now.</summary>
-    private int reportEntries;
-
-    private async Task GoReport()
-    {
-        reportEntries++;
-        tool = "select";
-        saveCts?.Cancel();
-        await SaveAsync(CancellationToken.None);
-        await SetPhase("report");
-    }
-
     // ── History: the board's changes, what each did drawn on the canvas, and putting it back ──
     private bool HistoryActive => active == "history";
     private SketchHistory history = default!;
@@ -333,7 +316,7 @@ public partial class SketchTool
         // selects a group is also the gesture that reshapes it. Dressing places props rather than shapes,
         // so it is not select-only in that sense: its own tools are armed and the shape tools are simply not
         // offered.
-        await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief" or "dressing" or "ingame" or "history" or "report");
+        await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief" or "dressing" or "ingame" or "history");
         // What a change did is drawn only while History is up.
         if (phase != "history") await handle.InvokeVoidAsync("setDiff", (string?)null);
         // Both finishing phases show the paint: Theme is authoring it, and Dressing is placing things on it,
@@ -468,7 +451,6 @@ public partial class SketchTool
             case "sketch.phase.dressing": await GoDressing(); break;
             case "sketch.phase.ingame": await GoInGame(); break;
             case "sketch.phase.history": await GoHistory(); break;
-            case "sketch.phase.report": await GoReport(); break;
             case "sketch.tool.select": await SetTool("select"); break;
             case "sketch.tool.move": await SetTool("move"); break;
             case "sketch.tool.rectangle": await SetTool("rectangle"); break;
@@ -506,7 +488,6 @@ public partial class SketchTool
         new { id = "sketch.phase.dressing",  keys = "5", label = "Go to Decoration", group = "Phases" },
         new { id = "sketch.phase.ingame",    keys = "6", label = "Go to In game",  group = "Phases" },
         new { id = "sketch.phase.history",   keys = "7", label = "Go to History",  group = "Phases" },
-        new { id = "sketch.phase.report",    keys = "8", label = "Go to Report",   group = "Phases" },
         new { id = "sketch.tool.select",     keys = "v", label = "Select",  group = "Tools" },
         new { id = "sketch.tool.move",       keys = "h", label = "Pan",     group = "Tools" },
         new { id = "sketch.tool.rectangle",  keys = "r", label = "Rectangle", group = "Tools" },
@@ -555,7 +536,6 @@ public partial class SketchTool
         linkedNote = Note;
         if (Phase == "ingame" || Note is not null) await GoInGame();
         else if (Phase == "history") await GoHistory();
-        else if (Phase == "report") await GoReport();
     }
 
     /// <summary>Take up the stored layout (an empty <c>{}</c> for a fresh sketch, which the bridge draws as

@@ -22,7 +22,7 @@ const download = page.locator(".topbar button", { hasText: "Download map" });
 
 checks.section("Download map builds the world and saves the export");
 checks.add("the map starts without a world", !(await api(`/map/${unbuilt.slug}/state`)).artifacts.world);
-await page.goto(`${BASE}/maps/${unbuilt.slug}/sketch?phase=report`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/maps/${unbuilt.slug}/sketch?phase=history`, { waitUntil: "networkidle" });
 await download.waitFor({ timeout: 60000 });
 const [saved] = await Promise.all([page.waitForEvent("download", { timeout: 180000 }), download.click()]);
 checks.add("the browser is handed the world ZIP", saved.suggestedFilename() === `${unbuilt.slug}.zip`,

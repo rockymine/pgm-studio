@@ -8969,7 +8969,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a store, each beside the route that answers it alone and made by the same call, and the pictures by route,
   drawn on `?pictures=true`; `?format=text` answers one document. The board in the round is the studio's own:
   `render/isometric` from any corner, and `render/xray`, which washes out the ground and the buildings over a
-  roofed room and answers the void scan as its text. The Sketch tool's **Report** phase shows the same report.
+  roofed room and answers the void scan as its text. It is an agent's read; the Sketch tool has no page for it.
   (`Export/BoardIsometric`, `Api/Services/MapReport`, `Minecraft/Anvil/WorldColumns`,
   `docs/world-scan/read-backs.md`, `docs/tools/sketch.md`)
 - **A style written in its retired shape is refused by its path (`TS127`).** A part written as a material
@@ -10166,7 +10166,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 - **Each sketch phase owns its state (TS160).** A bridge-sourced phase relays one snapshot (Relief, Dressing, and
   Palette's `SketchThemes`, which now carries the room shells and biome and refreshes on every undo); a server
-  phase with one body loads itself (Info, Report); History and In game's views are state containers
+  phase with one body loads itself (Info); History and In game's views are state containers
   (`SketchHistory`, `SketchViews`) shared by their two bodies, and the notes are read once (`SketchNotes`). The
   host keeps the phase switch, save-first and the canvas mode: `SketchTool.razor.cs` 1,443 → 1,047 lines.
 
