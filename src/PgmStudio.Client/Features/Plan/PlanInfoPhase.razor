@@ -38,18 +38,17 @@
       else
       {
         <Section Title="Symmetry and grid">
-          <p class="section-desc">Symmetry is how the part you design is copied for the other teams: rotated
-            or mirrored. Surface values are heights in blocks.</p>
           <Field Label="Symmetry">
             <Select Slim="false" Options="SymmetryOptions" Value="@Symmetry" ValueChanged="OnSymmetryChanged" />
           </Field>
           <Field Label="Cell size (blocks)">
             <NumberField Value="Cell" ValueChanged="OnCellChanged" Min="1" />
           </Field>
-          <Field Label="Base surface (y)">
-            <NumberField Value="Surface" ValueChanged="OnSurfaceChanged" Min="0" />
+          <Field Label="Height">
+            <div class="field-affix"><span class="field-affix-text" aria-hidden="true">y</span>
+              <NumberField Value="Surface" ValueChanged="OnSurfaceChanged" Min="0" aria-label="Height y" /></div>
           </Field>
-          <Field Label="Surface step (y)">
+          <Field Label="Height step (blocks)">
             <NumberField Value="SurfaceStep" ValueChanged="OnSurfaceStepChanged" Min="1" />
           </Field>
           <Field Label="Max players per team">

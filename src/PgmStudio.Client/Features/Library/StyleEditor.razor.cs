@@ -27,8 +27,6 @@ public partial class StyleEditor
     /// the schema's.</summary>
     [Inject] public MaterialSchema Schema { get; set; } = default!;
 
-    private const string Plan = "plan", Section = "section", Both = "both";
-
     private IReadOnlyList<PaintBlockDto> blocks = [];
     private IReadOnlyList<StyleDto> styles = [];
     private JsonObject draft = ThemeFields.Solid(1);
@@ -37,7 +35,6 @@ public partial class StyleEditor
     private bool seeded;
     private string draftName = "";
     private string selected = "";
-    private string view = Both;
     private string? note;
     private MaterialPreviewDto? preview;
 

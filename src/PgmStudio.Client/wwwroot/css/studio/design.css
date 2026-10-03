@@ -226,10 +226,7 @@
 .theme-map-preview { display: flex; justify-content: center; padding: var(--space-3); background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: auto; }
 .theme-map-preview svg { max-width: 100%; height: auto; }
 
-/* Theme Apply-step rail: the theme's four bucket swatches in a row, and the current selection's rows. */
-.theme-apply-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); margin-top: var(--space-2); }
-.theme-apply-swatch { margin: 0; display: flex; flex-direction: column; gap: var(--space-1); align-items: center; }
-.theme-apply-swatch figcaption { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+/* Palette phase: the current selection's rows. */
 .theme-apply-sel-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) 0; flex-wrap: wrap; }
 
 /* A material and, indented under it, the materials it is made of — the nesting IS the structure. */
@@ -311,3 +308,14 @@
 .prop-card-art svg { width: 100%; height: auto; display: block; }
 .prop-card-label { font-size: var(--font-xs); color: var(--text-muted); text-align: center; }
 .prop-card--active .prop-card-label { color: var(--accent); }
+/* The rest of a long card grid, folded under one button. */
+.prop-cards-more { width: 100%; margin-bottom: var(--space-2); }
+/* A seed and the button that rolls a new one, held on one line at every width. */
+.seed-field { display: flex; flex-wrap: nowrap; gap: var(--space-1); align-items: center; }
+.seed-field .field-input { flex: 0 1 7rem; min-width: 4.5rem; }
+
+/* A number whose unit is part of what it means, written inside the box: a floor is a y. */
+.field-affix { position: relative; display: flex; align-items: center; }
+.field-affix-text { position: absolute; left: var(--space-2); color: var(--text-muted); font-size: var(--font-sm); pointer-events: none; }
+.field-affix .field-input { padding-left: calc(var(--space-2) + 1.1em); width: 100%; }
+

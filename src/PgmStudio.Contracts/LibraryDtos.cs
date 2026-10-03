@@ -346,7 +346,14 @@ public record PorchStyleSaveRequest(
 /// <param name="Name">What the library lists it under, and the key a pull files it under.</param>
 /// <param name="Preview">The card picture, drawn through the grower the export runs, so a tree is picked by
 /// what it looks like rather than by its numbers.</param>
-public sealed record TreeStyleSummary(long Id, string Name, string Preview);
+/// <param name="Form">Generated from a species, or copied block by block from a world.</param>
+/// <param name="Species">The species a generated tree grows as.</param>
+/// <param name="Height">A generated tree's height in blocks; a copied tree's is its body's.</param>
+/// <param name="Builder">Who built a copied tree, credited on the maps that use it.</param>
+public sealed record TreeStyleSummary(
+    long Id, string Name, string Preview,
+    [property: WordSet(typeof(TreeForms))] string Form,
+    string Species, double Height, string? Builder);
 
 /// <summary>A tree recipe (GET /api/tree-styles/{id}): the save request plus the row's id, which a placement
 /// names it by once it is pulled into a map's dressing registry.</summary>

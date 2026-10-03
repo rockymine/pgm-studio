@@ -1,8 +1,10 @@
 using FastEndpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
+using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -16,7 +18,15 @@ public sealed class TreeStyleListEndpoint(PropStyleLibrary library) : EndpointWi
 
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ListTreesAsync(ct))
-            .Select(entry => new TreeStyleSummary(entry.Row.Id, entry.Row.Name, entry.Card)).ToList(), ct);
+            .Select(entry => Summary(entry.Row, entry.Card)).ToList(), ct);
+
+    private static TreeStyleSummary Summary(TreeStyleRow row, string card)
+    {
+        var tree = PropStyleLibrary.TreeOf(row);
+        return new TreeStyleSummary(row.Id, row.Name, card,
+            tree.Form == TreeForm.Copied ? TreeForms.Copied : TreeForms.Template,
+            tree.Species, tree.Form == TreeForm.Copied ? tree.BodyHeight : tree.Height, tree.Builder);
+    }
 }
 
 public sealed class TreeStyleGetEndpoint(PropStyleStore store) : EndpointWithoutRequest<TreeStyleDetail>

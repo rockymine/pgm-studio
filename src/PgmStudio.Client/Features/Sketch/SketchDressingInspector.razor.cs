@@ -136,15 +136,12 @@ public partial class SketchDressingInspector
         // with something the painter has no colour for.
         if (blocks.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Fluid) blocks = await Library.BlocksAsync();
         if (styles.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Fluid) styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
+        if (!editingSelection && prop is null) await LoadToolSettings();
         if (kind == PropKinds.Stroke && strokeStyles.Count == 0) strokeStyles = await Library.StrokeStylesAsync(Spec(PropFields.Pave));
         if (kind == PropKinds.Fluid && fluidForms.Count == 0) fluidForms = await Library.FluidFormsAsync();
+        if (kind == PropKinds.Boulder && boulderForms.Count == 0) boulderForms = await Library.BoulderFormsAsync(RockSpec);
         if (kind == PropKinds.House && shells.Count == 0) shells = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
-        if (RecipeKind is { } recipeKind && recipesFor != recipeKind.Slug)
-        {
-            recipesFor = recipeKind.Slug;
-            recipes = await Library.ListAsync<LibraryRow>(recipeKind);
-        }
-        if (!editingSelection && prop is null) await LoadToolSettings();
+        if (kind == PropKinds.Tree && trees.Count == 0) trees = await Library.ListAsync<TreeStyleSummary>(LibraryKinds.Trees);
     }
 
     /// <summary>The shell a building would be raised in, offered as the library's own cards. Picking one pulls
@@ -174,39 +171,175 @@ public partial class SketchDressingInspector
                 && key[name.Length] == '-' && key[(name.Length + 1)..].All(char.IsAsciiDigit)));
     private IReadOnlyList<RoomStyleSummary> shells = [];
 
-    // ── the recipe a click puts down ───────────────────────────────────────────
-    /// <summary>Which library a placement of this kind names a recipe from, or null for the drawn kinds — a
-    /// channel and a track are traced, so what they are is stated where they are drawn.</summary>
-    private LibraryKind? RecipeKind => kind switch
+    // ── trees ──────────────────────────────────────────────────────────────────
+    /// <summary>A placement names a recipe in the document's registry. A generated tree's recipe is its species
+    /// and height, so tuning the height pulls the tuned recipe and names that; a hand-built tree's is its
+    /// blocks, picked whole from the library.</summary>
+    private IReadOnlyList<TreeStyleSummary> trees = [];
+    private bool showAllHandBuilt;
+    private double? heightDraft;
+
+    /// <summary>How many hand-built trees show before the rest fold under one button.</summary>
+    private const int HandBuiltShown = 9;
+
+    private IReadOnlyList<TreeStyleSummary> GeneratedTrees => [.. trees.Where(tree => tree.Form == TreeForms.Template)];
+    private IReadOnlyList<TreeStyleSummary> HandBuiltTrees => [.. trees.Where(tree => tree.Form == TreeForms.Copied)];
+
+    /// <summary>The hand-built cards on show: the first few, or all of them when unfolded or when the tree in
+    /// use is one of the folded ones.</summary>
+    private IEnumerable<TreeStyleSummary> ShownHandBuilt =>
+        showAllHandBuilt || HandBuiltTrees.Skip(HandBuiltShown).Contains(WornTree)
+            ? HandBuiltTrees : HandBuiltTrees.Take(HandBuiltShown);
+
+    /// <summary>The registry key the placement names, or empty for the built-in recipe.</summary>
+    private string StyleKey => prop?[PropFields.Style] is JsonValue key && key.TryGetValue<string>(out var text) ? text : "";
+
+    /// <summary>The recipe the placement names, read out of the document's registry.</summary>
+    private JsonObject? WornRecipe => StyleKey.Length > 0 ? styleRegistry?[StyleKey] as JsonObject : null;
+
+    /// <summary>Whether the tree is generated from a species. An unnamed recipe is the built-in one, which is.</summary>
+    private bool IsGeneratedTree => WornRecipe?[TreeFields.Form]?.GetValue<string>() is null or TreeForms.Template;
+
+    private string TreeSpecies => WornRecipe?[TreeFields.Species]?.GetValue<string>() ?? DefaultSpecies;
+
+    private double TreeHeight => WornRecipe?[TreeFields.Height] is { } height && double.TryParse(height.ToString(), out var value)
+        ? value : DefaultTreeHeight;
+
+    /// <summary>The library card the placement wears: the species' card for a generated tree, the tree itself
+    /// for a hand-built one.</summary>
+    private TreeStyleSummary? WornTree => IsGeneratedTree
+        ? GeneratedTrees.FirstOrDefault(tree => tree.Species == TreeSpecies)
+        : HandBuiltTrees.FirstOrDefault(tree => tree.Name == StyleKey)
+          ?? HandBuiltTrees.Where(tree => Wears(StyleKey, tree.Name)).MaxBy(tree => tree.Name.Length);
+
+    private async Task PickTree(TreeStyleSummary tree)
     {
-        PropKinds.Tree => LibraryKinds.Trees,
-        PropKinds.Boulder => LibraryKinds.Boulders,
-        _ => null,
-    };
-
-    private IReadOnlyList<LibraryRow> recipes = [];
-    private string recipesFor = "";
-
-    /// <summary>The recipe the placement names. Read off the prop rather than remembered, so a reopened map
-    /// shows the card that is actually in use.</summary>
-    private string? recipeName => Text(PropFields.Style, string.Empty) is { Length: > 0 } key ? key : null;
-
-    /// <summary>Name this recipe on the placement, and put it in the document's registry if it is not there
-    /// yet. The key is the row's name where nothing else holds it, and a numbered variant where two library
-    /// rows read the same way — so the placement names what it is actually made of.</summary>
-    private async Task PickRecipe(LibraryRow recipe)
-    {
-        if (RecipeKind is not { } recipeKind || Handle is null) return;
-        if (await Library.DocumentAsync(recipeKind, recipe.Id) is not { } json) return;
-        if (await Handle.InvokeAsync<string?>("pullRecipe", recipe.Name, json) is not { } key) return;
+        if (Handle is null) return;
+        heightDraft = null;
+        if (await Library.DocumentAsync(LibraryKinds.Trees, tree.Id) is not { } json) return;
+        if (await Handle.InvokeAsync<string?>("pullRecipe", tree.Name, json) is not { } key) return;
         await Set(PropFields.Style, JsonValue.Create(key));
     }
 
-    /// <summary>Open the library at this kind, so authoring another is one click from wanting one.</summary>
-    private void OpenLibrary()
+    private async Task SetTreeHeight(double height)
     {
-        if (RecipeKind is { } recipeKind) Nav.NavigateTo($"/library/{recipeKind.Slug}");
+        heightDraft = null;
+        if (Handle is null) return;
+        var recipe = new JsonObject
+        {
+            ["kind"] = PropKinds.Tree, [TreeFields.Form] = TreeForms.Template,
+            [TreeFields.Species] = TreeSpecies, [TreeFields.Height] = height,
+        };
+        if (await Handle.InvokeAsync<string?>("pullRecipe", TreeSpecies, recipe.ToJsonString()) is not { } key) return;
+        await Set(PropFields.Style, JsonValue.Create(key));
     }
+
+    // ── boulders ───────────────────────────────────────────────────────────────
+    /// <summary>A boulder's recipe is its shape, size, rock and moss, tuned here and pulled into the registry
+    /// the way a tuned tree is.</summary>
+    private double? sizeDraft;
+
+    private JsonObject BoulderRecipe => WornRecipe is { } held && held["kind"]?.GetValue<string>() == PropKinds.Boulder
+        ? (JsonObject)held.DeepClone()
+        : new JsonObject { ["kind"] = PropKinds.Boulder, [BoulderFields.Form] = "round", [BoulderFields.Size] = 4, [BoulderFields.Mossy] = true };
+
+    private string BoulderForm => BoulderRecipe[BoulderFields.Form]?.GetValue<string>() ?? "round";
+    private double BoulderSize => BoulderRecipe[BoulderFields.Size] is { } size && double.TryParse(size.ToString(), out var value) ? value : 4;
+    private bool BoulderMossy => BoulderRecipe[BoulderFields.Mossy]?.GetValue<bool>() ?? true;
+    private JsonObject? Rock => BoulderRecipe[BoulderFields.Rock] as JsonObject;
+    private string? RockSpec => Rock?.ToJsonString();
+    private SlotFill RockSlot => SlotOfMaterial(Rock);
+    private bool RockIsCustom => Rock is not null && !RockSlot.Bound;
+
+    /// <summary>The registry key a tuned boulder is filed under: the name its shape's card carries.</summary>
+    private string BoulderName => boulderForms.FirstOrDefault(option => option.Key == BoulderForm)?.Label.ToLowerInvariant() ?? BoulderForm;
+
+    private async Task SetBoulder(Action<JsonObject> tune)
+    {
+        if (Handle is null) return;
+        sizeDraft = null;
+        var recipe = BoulderRecipe;
+        tune(recipe);
+        var name = boulderForms.FirstOrDefault(option => option.Key == recipe[BoulderFields.Form]?.GetValue<string>())?.Label.ToLowerInvariant()
+                   ?? BoulderName;
+        if (await Handle.InvokeAsync<string?>("pullRecipe", name, recipe.ToJsonString()) is not { } key) return;
+        await Set(PropFields.Style, JsonValue.Create(key));
+    }
+
+    private Task SetBoulderSize(double size) => SetBoulder(recipe => recipe[BoulderFields.Size] = size);
+
+    private async Task FillRock(SlotFill fill)
+    {
+        var material = MaterialOf(fill);
+        await SetBoulder(recipe =>
+        {
+            if (material is null) recipe.Remove(BoulderFields.Rock);
+            else recipe[BoulderFields.Rock] = material;
+        });
+        boulderForms = await Library.BoulderFormsAsync(RockSpec);
+    }
+
+    // ── a path's paving and a channel's shore ───────────────────────────────────
+    /// <summary>A material a prop carries, as the library slot it reads as: a block, a pattern whose content it
+    /// is, or nothing where it is neither — a material edited by hand before patterns were picked.</summary>
+    private SlotFill SlotOf(string field) => SlotOfMaterial(Material(field));
+
+    private SlotFill SlotOfMaterial(JsonObject? material)
+    {
+        if (material is null) return SlotFill.None;
+        var kindWord = material["kind"]?.GetValue<string>();
+        if (kindWord is "solid" or "laidLog" && material["id"] is { } id)
+            return new SlotFill(0, new SlotBlockDto(id.GetValue<int>(), material["data"]?.GetValue<int>() ?? 0, kindWord == "laidLog"));
+        var canonical = Canonical(material);
+        foreach (var style in styles)
+        {
+            JsonNode? parsed;
+            try { parsed = JsonNode.Parse(style.Params); } catch (JsonException) { continue; }
+            if (parsed is not null && Canonical(parsed) == canonical) return new SlotFill(style.Id, null);
+        }
+        return SlotFill.None;
+    }
+
+    /// <summary>The unbound row of a slot that is always filled: offered only where the material is one no
+    /// block or pattern names, which is then what it reads as.</summary>
+    private string? UnboundLabel(string field) => Material(field) is not null && !SlotOf(field).Bound ? "Custom" : null;
+
+    private JsonObject? MaterialOf(SlotFill fill)
+    {
+        if (fill.Block is { } block)
+            return new JsonObject { ["kind"] = block.Laid ? "laidLog" : "solid", ["id"] = block.Id, ["data"] = block.Data };
+        if (styles.FirstOrDefault(style => style.Id == fill.StyleId) is { } picked)
+        {
+            try { return JsonNode.Parse(picked.Params) as JsonObject; } catch (JsonException) { return null; }
+        }
+        return null;
+    }
+
+    /// <summary>Copy the picked block or pattern onto the prop. The unbound row of an always-filled slot keeps
+    /// what is there.</summary>
+    private async Task Fill(string field, SlotFill fill)
+    {
+        if (MaterialOf(fill) is not { } material) return;
+        await Set(field, material);
+        if (field == PropFields.Pave) strokeStyles = await Library.StrokeStylesAsync(Spec(field));
+    }
+
+    /// <summary>A JSON value with every object's keys in order, so two materials stated in different key orders
+    /// compare equal.</summary>
+    private static string Canonical(JsonNode node) => Sorted(node)?.ToJsonString() ?? "null";
+
+    private static JsonNode? Sorted(JsonNode? node) => node switch
+    {
+        JsonObject obj => new JsonObject(obj.OrderBy(entry => entry.Key, StringComparer.Ordinal)
+            .Select(entry => KeyValuePair.Create(entry.Key, Sorted(entry.Value)))),
+        JsonArray array => new JsonArray([.. array.Select(Sorted)]),
+        _ => node?.DeepClone(),
+    };
+
+    /// <summary>Whether this kind reads its seed: a hand-built tree, a chest and a building build the same
+    /// whatever it is.</summary>
+    private bool SeedMatters => kind is PropKinds.Stroke or PropKinds.Fluid or PropKinds.Flora or PropKinds.Boulder
+        || (kind == PropKinds.Tree && IsGeneratedTree);
 
     /// <summary>The four sides a building's door or a chest's front may face, in the wire words <c>RoomEdge</c>
     /// serializes as. Named here rather than in the markup because a Razor markup lambda cannot hold a string
@@ -384,18 +517,6 @@ public partial class SketchDressingInspector
     /// mutates the node in place, so persisting it is pushing the node back as a patch.</summary>
     private JsonObject? Material(string field) => prop?[field] as JsonObject;
 
-    private async Task MaterialChanged(string field)
-    {
-        if (prop is null || Handle is null || Material(field) is not { } material) return;
-        var patch = new JsonObject { [field] = material.DeepClone() };
-        if (editingSelection) await Handle.InvokeVoidAsync("updateProp", patch.ToJsonString());
-        else await Handle.InvokeVoidAsync("setPropSettings", kind, patch.ToJsonString());
-        // The shape cards are drawn in the prop's own material, so they are stale the moment it changes.
-        if (field == PropFields.Pave) strokeStyles = await Library.StrokeStylesAsync(Spec(field));
-        if (field == PropFields.Rock) boulderForms = await Library.BoulderFormsAsync(Spec(field));
-        await RefreshPreview();
-    }
-
     private async Task Pick(string field, PropOptionDto option)
     {
         await Set(field, JsonValue.Create(option.Key));
@@ -411,20 +532,41 @@ public partial class SketchDressingInspector
         await RefreshPreview();
     }
 
-    private static readonly IReadOnlyDictionary<string, (string Icon, string Title, string Blurb)> KindInfo =
-        new Dictionary<string, (string, string, string)>
+    private static readonly IReadOnlyDictionary<string, (string Icon, string Title)> KindInfo =
+        new Dictionary<string, (string, string)>
         {
-            [PropKinds.Stroke] = ("spline", "Stroke", "A band of surface along a line you draw, such as a road, a trail, or a forest floor. It replaces the ground it crosses. Make it a path to keep trees, boulders, and buildings off it."),
-            [PropKinds.Fluid] = ("waves", "Fluid", "A channel or pool of water or lava. It cuts a bed into existing ground and fills it to a level line. It is mirrored across the map."),
-            [PropKinds.Flora] = ("flower", "Ground cover", "Grass, ferns, and flowers on the soil inside the area you draw. Nothing grows on paved ground."),
-            [PropKinds.Tree] = ("trees", "Tree", "A tree from the library, planted where you click."),
-            [PropKinds.Boulder] = ("mountain", "Boulder", "A boulder from the library, set into the ground where you click."),
-            [PropKinds.House] = ("home", "Building", "A building on the rectangle you drag, using a room style from the library. It settles into the ground and is mirrored so both teams get the same cover."),
-            [PropKinds.Chest] = ("box", "Chest", "One chest with the items you list, on the ground or at a set height. Mirrored so both teams get the same loot."),
+            [PropKinds.Stroke] = ("spline", "Stroke"),
+            [PropKinds.Fluid] = ("waves", "Fluid"),
+            [PropKinds.Flora] = ("flower", "Ground cover"),
+            [PropKinds.Tree] = ("trees", "Tree"),
+            [PropKinds.Boulder] = ("mountain", "Boulder"),
+            [PropKinds.House] = ("home", "Building"),
+            [PropKinds.Chest] = ("box", "Chest"),
         };
 
-    private (string Icon, string Title, string Blurb) Info
-        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Decoration", "");
+    private (string Icon, string Title) Info
+        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Decoration");
+
+    /// <summary>The recipe an unnamed tree placement builds: <c>TreeStyle</c>'s own defaults.</summary>
+    private const string DefaultSpecies = "oak";
+    private const double DefaultTreeHeight = 12;
+}
+
+/// <summary>A tree recipe's fields, as the registry states them.</summary>
+public static class TreeFields
+{
+    public const string Form = "form";
+    public const string Species = "species";
+    public const string Height = "height";
+}
+
+/// <summary>A boulder recipe's fields, as the registry states them.</summary>
+public static class BoulderFields
+{
+    public const string Form = "form";
+    public const string Size = "size";
+    public const string Mossy = "mossy";
+    public const string Rock = "rock";
 }
 
 /// <summary>A prop's own fields (see <see cref="PropKinds"/> for why these are constants).</summary>

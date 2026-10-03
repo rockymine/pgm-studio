@@ -307,16 +307,19 @@ internal static class BlockPaletteData
         Variant(175, 5, "Peony", 0xD0B5CE);
         Block(175, "Double Plant", 0x6EA83E);
 
-        // Mushroom-block metadata selects which faces show cap, pore or stem rather than a material, so the
-        // three surfaces are given entries and the rest of the nibble falls to the cap.
-        Block(99, "Brown Mushroom Block", 0x9A7458);
-        Variant(99, 0, "Brown Mushroom Block", 0xBFAF95);
-        Variant(99, 10, "Mushroom Stem", 0xCBC4AB);
-        Variant(99, 15, "Mushroom Stem", 0xCBC4AB);
-        Block(100, "Red Mushroom Block", 0xC6423B);
-        Variant(100, 0, "Red Mushroom Block", 0xBFAF95);
-        Variant(100, 10, "Mushroom Stem", 0xCBC4AB);
-        Variant(100, 15, "Mushroom Stem", 0xCBC4AB);
+        // Mushroom-block metadata selects which faces show cap, pore or stem rather than a material: 0 is pore
+        // on every face, 14 cap on every face, 15 stem on every face, and 10 a stem whose top shows pore. The
+        // rest of the nibble puts cap on top, and falls to the cap.
+        Block(99, "Brown Mushroom Block", 0x8E6B53);
+        Variant(99, 0, "Mushroom Pores", 0xCBAB79);
+        Variant(99, 10, "Mushroom Stem", 0xCBAB79);
+        Variant(99, 14, "Brown Mushroom Cap", 0x8E6B53);
+        Variant(99, 15, "Mushroom Stem", 0xD0CCC2);
+        Block(100, "Red Mushroom Block", 0xB72624);
+        Variant(100, 0, "Mushroom Pores", 0xCBAB79);
+        Variant(100, 10, "Mushroom Stem", 0xCBAB79);
+        Variant(100, 14, "Red Mushroom Cap", 0xB72624);
+        Variant(100, 15, "Mushroom Stem", 0xD0CCC2);
 
         // ---- Built materials -------------------------------------------------------------------------
         Block(19, "Sponge", 0xC2BE49);

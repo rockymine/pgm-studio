@@ -7,21 +7,13 @@
 
 <LibraryEditor Kind="LibraryKinds.Styles" Name="@draftName" NameChanged="SetName"
                Outline="Outline" Selected="@selected" OnSelect="Pick"
-               Footnote="@Footnote" Note="@note" Seeded="seeded">
-  <Views>
-    <LayerChip Icon="grid" Active="@(view == Plan)" Title="One layer, seen from above"
-               OnClick="() => view = Plan">Plan</LayerChip>
-    <LayerChip Icon="layers" Active="@(view == Section)" Title="A vertical cut through the material"
-               OnClick="() => view = Section">Section</LayerChip>
-    <LayerChip Icon="squares-intersect" Active="@(view == Both)" Title="Plan and section side by side"
-               OnClick="() => view = Both">Both</LayerChip>
-  </Views>
+               Footnote="@Footnote" Note="@note">
   <Preview>
     @if (preview is null) { <p class="lib-status">Nothing to draw yet.</p> }
     else
     {
-      @if (view != Section) { <figure class="lib-fig">@((MarkupString)preview.Plan)</figure> }
-      @if (view != Plan) { <figure class="lib-fig lib-fig--section">@((MarkupString)preview.Section)</figure> }
+      <figure class="lib-fig">@((MarkupString)preview.Plan)</figure>
+      <figure class="lib-fig lib-fig--section">@((MarkupString)preview.Section)</figure>
     }
   </Preview>
   <Fields>

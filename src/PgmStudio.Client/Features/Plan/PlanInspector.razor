@@ -16,7 +16,7 @@
           <DetailHeader Icon="copy" Label="@($"{Selection.Count} selected")" />
           <p class="section-desc">Drag any of them to move them together. Delete removes them.</p>
           <Button Full Variant="danger" Writes OnClick="DeleteSelected">
-            <i data-lucide="trash-2"></i> Delete @Selection.Count items
+            <i data-lucide="trash-2"></i> Delete
           </Button>
         }
         else if (Selection.Kind == "piece")
@@ -30,18 +30,16 @@
           <Field Label="Role">
             <Select Slim="false" Options="RoleOptions" Value="@Selection.Role" ValueChanged="OnPieceRole" />
           </Field>
-          <Field Label="Surface (y)">
-            <div class="ctrl-row">
-              <Button Variant="icon" Writes Title='@($"Lower surface by {(int)SurfaceStep}")' OnClick="() => StepSurface(-(int)SurfaceStep)">−</Button>
-              <span class="plan-stepper-value">@Selection.Surface@(Selection.SurfaceSet ? "" : " (base)")</span>
-              <Button Variant="icon" Writes Title='@($"Raise surface by {(int)SurfaceStep}")' OnClick="() => StepSurface((int)SurfaceStep)">+</Button>
-            </div>
+          <Field Label="Height">
+            <div class="field-affix"><span class="field-affix-text" aria-hidden="true">y</span>
+              <NumberField Value="Selection.Surface" Step="@(((int)SurfaceStep).ToString())" Min="0" aria-label="Height y"
+                           ValueChanged="value => StepSurface((int)value - Selection.Surface)" /></div>
           </Field>
-          <Field Label="Step">
+          <Field Label="Height step">
             <div class="ctrl-row">
               @foreach (var s in StepPresets)
               {
-                <Chip Active="(int)SurfaceStep == s" Title='@($"Step surface by {s}")' OnClick="() => SetSurfaceStep(s)">@s</Chip>
+                <Chip Active="(int)SurfaceStep == s" Title='@($"Step the height by {s}")' OnClick="() => SetSurfaceStep(s)">@s</Chip>
               }
             </div>
           </Field>
@@ -49,7 +47,7 @@
             @(Selection.Mirrors ? "Don't copy for other teams" : "Copy for other teams")
           </Button>
           <Button Full Variant="danger" Writes OnClick="DeleteSelected">
-            <i data-lucide="trash-2"></i> Delete piece
+            <i data-lucide="trash-2"></i> Delete
           </Button>
         }
         else if (Selection.Kind == "footprint")
@@ -92,7 +90,7 @@
             </div>
           </Field>
           <Button Full Variant="danger" Writes OnClick="DeleteSelected">
-            <i data-lucide="trash-2"></i> @(lane ? "Delete water lane" : "Delete build area")
+            <i data-lucide="trash-2"></i> Delete
           </Button>
         }
         else if (Selection.Kind == "box")
@@ -120,7 +118,7 @@
             @(Selection.MembersNamed ? "Use pieces inside" : "Fix members")
           </Button>
           <Button Full Variant="danger" Writes OnClick="DeleteSelected">
-            <i data-lucide="trash-2"></i> Delete box
+            <i data-lucide="trash-2"></i> Delete
           </Button>
         }
         else
@@ -234,7 +232,7 @@
             </p>
           }
           <Button Full Variant="danger" Writes OnClick="DeleteSelected">
-            <i data-lucide="trash-2"></i> Delete marker
+            <i data-lucide="trash-2"></i> Delete
           </Button>
         }
       </Section>

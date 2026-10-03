@@ -46,8 +46,9 @@ public partial class SlotSelect
 
     [Parameter] public EventCallback<SlotFill> ValueChanged { get; set; }
 
-    /// <summary>What the unbound row says — what this part does when nothing is bound to it.</summary>
-    [Parameter] public string Unbound { get; set; } = "Unbound";
+    /// <summary>What the unbound row says — what this part does when nothing is bound to it. Null offers no
+    /// unbound row, for a slot that is always filled.</summary>
+    [Parameter] public string? Unbound { get; set; } = "Unbound";
 
     /// <summary>What the part is, on hover.</summary>
     [Parameter] public string? Title { get; set; }

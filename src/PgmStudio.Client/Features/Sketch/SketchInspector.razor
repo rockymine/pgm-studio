@@ -29,16 +29,13 @@
             <i data-lucide="pentagon"></i> Convert to polygon
           </Button>
         }
-        <Field Label="Height (thickness)">
+        <Field Label="Height">
           <NumberField Value="Shape.BaseHeight" ValueChanged="HeightChanged" Min="1" />
         </Field>
-        <Field Label="Floor (elevation)">
-          <NumberField Value="Shape.Floor" ValueChanged="FloorChanged" Min="0" />
+        <Field Label="Floor">
+          <div class="field-affix"><span class="field-affix-text" aria-hidden="true">y</span>
+            <NumberField Value="Shape.Floor" ValueChanged="FloorChanged" Min="0" aria-label="Floor y" /></div>
         </Field>
-        @if (string.IsNullOrEmpty(Shape.HeightMode))
-        {
-          <p class="plan-readout">Top at @(Shape.Floor + Shape.BaseHeight).</p>
-        }
 
         @* How the top is decided once the group carries a relief. Ordinary ground is the default and stays
            it: a shape drawn to make a landmass IS the landmass, and the relief inside it is what the ground
@@ -129,7 +126,6 @@
         <Button Full Variant="danger" Writes OnClick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
           <i data-lucide="trash-2"></i> Delete
         </Button>
-        <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks@(Shape.Type == "rectangle" ? " · P = convert to polygon" : "")@(Shape.Type == "polyline" ? " · drag points to reshape the path" : "")</p>
       }
       else if (Group is not null)
       {
@@ -158,7 +154,6 @@
             <span class="list-tag">@s.Dim</span>
           </ListRow>
         }
-        <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks</p>
       }
       else
       {

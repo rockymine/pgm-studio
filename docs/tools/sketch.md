@@ -902,10 +902,11 @@ selected mark or prop rather than a shape. Without that, picking a single-shape 
 selected the island underneath, and `Delete` took the ground the relief was being stated on. Theme is
 select-only too and is deliberately outside this — its inspector is about the selected shape.
 
-**Arming a placing tool lets go of the selected mark or prop.** A placement selects what it put down and hands
+**Terraform, Palette and Decoration open with Select in hand**, so entering a phase never places anything by itself. **Arming a placing tool lets go of the selected mark or prop.** A placement selects what it put down and hands
 the canvas back to select, so the inspector is showing that placement; arming the tool again clears it, and the
-inspector shows the starting values the next placement takes. A recipe picked with the tool in hand therefore
-lands on the next tree, not on the one already down. Holding **Shift** as a placement lands keeps the tool in hand and lets go of
+inspector shows the starting values the next placement takes, under an **in hand** badge (a selected prop's
+reads **selected**). A recipe picked with the tool in hand therefore lands on the next tree, not on the one
+already down. Holding **Shift** as a placement lands keeps the tool in hand and lets go of
 what it placed at once, so a row of trees is one tool pick and the inspector stays on the next one.
 
 The document is keyed by group id and carries the group's own settings beside the two lists. This one states
@@ -991,25 +992,26 @@ what a second copy of the same row matches by, so copying it in again refreshes 
 rather than defining a second theme beside it — and it holds whichever of the two has since been renamed,
 where a match by name would have made a renamed pair into two themes with nothing saying they are one. A row
 the board has a copy of is badged with the name that copy carries, and its action reads **Update** rather
-than **Add**. Saving a board theme out records the row it was written to for the same reason.
+than **Add**.
 
 **With a theme in hand the canvas is a brush**, and the modifiers are read against what is held rather than
-against the grouping. A click paints the shape under it; `Shift`+click widens the stroke to every shape the
-group holds; `Alt`+click lifts that shape's own theme back into the hand. There is no apply button and no
+against the grouping. A click paints the shape under it and puts the brush down, leaving that shape selected;
+`Shift` held keeps the brush in hand for the next stroke; `Ctrl`+click widens the stroke to every shape the
+group holds; `Alt`+click lifts that shape's own theme back into the hand. A click on no shape puts the brush
+down too. There is no apply button and no
 scope control — with an empty hand the usual selection rule applies unchanged, and the tree reaches a group
 either way. A shape carries the assignment (`shape.theme`), a group stroke writes it to every member, and a
 cell that carries none falls to the map default, so the resolution is shape, then map. `Escape` puts the brush
 down — a thing in hand is the first thing it lets go of — and so does leaving the phase.
 
-**The inspector says what is in hand, what the selection carries, and — with nothing selected — what the board
-falls back to.** Painting with: where the theme was copied from and whether it still says what that row says — the
-row is read and the two documents compared, so a snapshot that has been edited on either side says so instead
-of reading as current — the sample plateau the theme finishes, a swatch per bucket, and the two acts that
-change the registry rather than the board — **Save to library**, which decomposes the theme into one style per
-bucket so it can be edited there, and **Remove**, which takes it off the board. Selection: what that shape or
-group is painted with, `mixed` where a group's shapes disagree, and **Unpaint**. Map defaults, when
-nothing is selected: the default theme, the board's biome, how many shapes are still falling through to the
-theme, and the two room shells, in one section rather than two. **Every row there is one library row bound to
+**The inspector says what is in hand, what the selection carries, and — with neither — what the board falls
+back to.** Palette, badged **in hand**: where the theme was copied from and whether it still says what that
+row says — the row is read and the two documents compared, so a snapshot that has been edited on either side
+says so instead of reading as current — the sample plateau the theme finishes, and **Remove**, which takes it
+off the board. A theme is edited in the library, never here. Selection: what that shape or group is painted
+with, `mixed` where a group's shapes disagree, and **Unpaint**. Map defaults, when nothing is selected and
+nothing is in hand: the default theme, the board's biome and the two room shells, in one section rather than
+two. **Every row there is one library row bound to
 the whole board** — the same statement four times over — so each row carries its own button through to the
 library that holds it and each says what it is bound to by name. The pictures are the library's, and a section
 describing what the board falls back to is a list of bindings rather than a gallery — no row of it draws what
@@ -1117,8 +1119,8 @@ Seven things can be placed, in three placement geometries.
 | Fluid | `fluid` | tracing a line | water, a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank; `fluid: lava` fills the bed with lava, `shape: pool` fills a drawn ring instead, `shape: basin` fills only the ground in a ring lower than its `level` and cuts nothing, and `level` states the world Y the fluid stands at |
 | Ground cover | `flora` | tracing a ring | coverage 0.45 at scale 12, with fern and flower shares |
 | Building | `house` | dragging a rectangle | no style of its own until one is picked from the room-style library |
-| Tree | `tree` | a click | no recipe of its own until one is picked from the tree library |
-| Boulder | `boulder` | a click | no recipe of its own until one is picked from the boulder library |
+| Tree | `tree` | a click | the built-in recipe, an oak 12 tall, until a tree is picked |
+| Boulder | `boulder` | a click | the built-in recipe, a mossy erratic of size 4, until it is tuned |
 | Chest | `chest` | a click | on the ground, fronting `negZ`, holding nothing until its stacks are listed (`docs/world-export/decoration.md` §8a) |
 
 **Every one of them takes a style, and for the two that lay ground the style and the material are separate
@@ -1167,11 +1169,12 @@ beach opens and closes along the run, and `bank` — again a full terrain materi
 gravel edges, coarse dirt inside them and sand in the middle, which shows through the shallows and continues
 as the beach.
 
-**A tree and a boulder are recipes rather than knobs, because a click has no geometry to draw.** What is
-placed is a point plus a `style` key; what stands there is a row from the library, pulled into the document's
-own registry under a key read off the row's name (`docs/tools/library.md`). A stroke and a channel are *traced*, so their knobs stay
-here — pre-authoring a river form is authoring a shape without its place — and the split is exactly that line
-(author).
+**A tree and a boulder are recipes in the document, tuned in the sidebar.** What is placed is a point plus a
+`style` key; what stands there is a recipe in the document's own registry. The sidebar writes that recipe: picking
+a tree's card pulls the library row in under a key read off its name (`docs/tools/library.md`), and moving a
+generated tree's **Height** or a boulder's **Shape**, **Size**, **Rock** or **Moss** pulls the tuned recipe and
+names it on the placement. A pull of a recipe the registry already holds answers that key, so forty oaks of one
+height are forty positions and one recipe.
 
 **A tree is two different things rather than one thing with a switch.** A `template` tree is vanilla: its
 `species` — oak, birch, spruce, jungle, acacia, dark oak or willow — names its wood, its canopy profile and its
@@ -1180,8 +1183,9 @@ low dome hung with curtains is a willow,
 and neither is a knob setting of the other; `height` scales the lot. A `copied` tree is one an author built by
 hand and cut out of a world, carried as its own `body` of `[x, y, z, id, data]` offsets: it states no species
 and no height, because what it looks like is what was built. Each form reads only its own fields, so the
-others are inert rather than wrong. Both live on the **recipe**, so a grove of forty oaks is forty positions
-and one row, and retuning that row retunes the grove.
+others are inert rather than wrong. The sidebar lists the library's trees in two groups, **Generated** (one
+card per species) and **Hand-built**, the hand-built folded after the first nine. A hand-built tree has no
+knobs: its card names who built it, and it shows no Height and no Seed.
 
 **A boulder** is a glacial erratic: a mass standing on the ground, bedded a third of its height into it. It
 takes a `form` — `round` (a weathered erratic), `angular` (the same rock, its surface broken), `outcrop` (wide
@@ -1198,7 +1202,12 @@ The pickers show **your** prop rather than a stock one. `GET /terrain/stroke-sty
 styles in the material already chosen, `/terrain/boulder-forms?rock=…` the four rock shapes in the author's
 stone, and `/terrain/fluid-forms` the three channels as actual dug beds — so the question answered is
 "what would mine look like", not "what does the catalogue contain". A tree and a boulder are picked from their
-own libraries instead, each row drawn through the pass that builds it. `POST /terrain/prop-preview` renders one
+library instead, each row drawn through the pass that builds it; a boulder's four shapes are labelled with
+the names the library's seeded boulders carry: Erratic, Shattered, Outcrop and Cairn. A stroke's **Paving**, a
+channel's **Shore** and a boulder's **Rock** are each picked as a single block or a library pattern and copied
+onto the prop; the library's `shore` pattern is the channel's default bank, and a material that is neither
+reads as **Custom**. **Seed** is offered only on the kinds that read one: a hand-built tree, a chest and a
+building build the same whatever it is. `POST /terrain/prop-preview` renders one
 on a flat sample patch with one ground, so a placed prop is drawn there whatever storey it names — and a building whose wings make no building is refused there with the same `HJ*`/`HP*`
 findings the build acts on, rather than drawn as though it would stand.
 

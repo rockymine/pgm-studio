@@ -73,6 +73,11 @@ try {
     terrainShapes(await api(`/map/${slug}/sketch`)).filter(shape => shape.theme === "grass").length;
   for (const point of terrainShapes(await api(`/map/${slug}/sketch`)).flatMap(shape => shapeAimPoints(shape))) {
     if (!aim) break;
+    // A stroke, or a click on no shape, puts the brush down, so each try takes it in hand again.
+    if (await page.locator(".canvas-theme-swatch--on").count() === 0) {
+      await page.click('.canvas-theme-swatch:has-text("grass")');
+      await page.waitForTimeout(300);
+    }
     const at = aim(point.x, point.z);
     await page.mouse.click(at.x, at.y);
     await page.waitForTimeout(1500);   // let the debounced save flush

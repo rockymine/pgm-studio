@@ -42,7 +42,8 @@ public readonly record struct PaintFamily(string Name, int Rgb, IReadOnlyList<Pa
 /// <para><b>A neutral family holds neutral blocks.</b> Where a family's own colour is a grey — pale stone,
 /// ash, grey stone — every block in it reads as one, and a warm block among them is a block an author cannot
 /// reach for: asking for the pale grey and getting a yellow-tan is the picker lying about what it offers. The
-/// two mushroom blocks are warm and sit with sand, whose colour they actually read as.</para>
+/// mushroom pores and stem are warm and sit with sand, whose colour they actually read as; the two caps sit
+/// with the earth and red-earth tones they read as.</para>
 ///
 /// <para><b>A family is a use as much as a colour, and where the two disagree the use wins.</b> Gravel reads
 /// grey enough to sit with stone, but it is laid where cobble is laid — the low, wet ground at a water's edge —
@@ -73,9 +74,9 @@ public static class TerrainPalette
         ("spring",    0x78C13A, [(165, 0), (35, 5), (133, 0)]),
         ("turquoise", 0x3E9E8C, [(168, 0), (168, 1)]),
         ("loam",      0x5A4126, [(3, 2), (159, 12), (88, 0), (5, 5), (35, 12)]),
-        ("dirt",      0x8A6743, [(5, 0), (5, 3), (159, 8), (3, 0), (3, 1), (5, 1)]),
+        ("dirt",      0x8A6743, [(5, 0), (5, 3), (159, 8), (99, 14), (3, 0), (3, 1), (5, 1)]),
         ("brick",     0x9A6250, [(1, 1), (1, 2), (45, 0), (172, 0), (159, 6)]),
-        ("rust",      0xA85A28, [(5, 4), (159, 1), (12, 1), (179, 0), (181, 8), (159, 14)]),
+        ("rust",      0xA85A28, [(5, 4), (159, 1), (12, 1), (179, 0), (181, 8), (159, 14), (100, 14)]),
         ("sand",      0xD6C894, [(12, 0), (5, 2), (159, 0), (24, 0), (24, 2), (43, 9), (121, 0), (99, 15), (99, 0)]),
         ("gold",      0xC6A62F, [(35, 4), (19, 0), (19, 1), (103, 0), (159, 4), (170, 0)]),
         ("pale stone",0xB4B2AE, [(1, 3), (1, 4)]),

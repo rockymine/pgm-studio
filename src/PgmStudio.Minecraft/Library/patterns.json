@@ -1579,5 +1579,37 @@
    "ending": "repeat"
   },
   "axis": "depth"
+ },
+ "shore": {
+  "kind": "voronoi",
+  "seed": 1,
+  "cellSize": 5,
+  "bands": [
+   {
+    "material": {
+     "kind": "solid",
+     "id": 13,
+     "data": 0
+    },
+    "depth": 2
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 3,
+     "data": 1
+    },
+    "depth": 1
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 12,
+     "data": 0
+    },
+    "depth": 1
+   }
+  ],
+  "rise": 0
  }
 }

@@ -599,14 +599,18 @@ export class SketchCanvas extends CanvasBase {
 
     // A brush is armed: paint what is under the pointer, or lift what is on it. The modifiers are read
     // against what is held rather than against the grouping — Alt is the eyedropper here rather than
-    // select-the-parent, and Shift widens the stroke to every shape the group holds.
+    // select-the-parent, and Ctrl widens the stroke to every shape the group holds. A brush is a tool in
+    // hand like a decoration's: one stroke puts it down unless Shift keeps it, and a click on no shape puts it
+    // down and falls through to the click it would have been without one.
     if (this.#themeBrush && shape && !this._readOnly) {
       if (up) this.#callbacks.onThemeLift?.(shape);
-      else if (e.shiftKey && group) this.#callbacks.onThemePaintGroup?.(group);
+      else if ((e.ctrlKey || e.metaKey) && group) this.#callbacks.onThemePaintGroup?.(group);
       else this.#callbacks.onThemePaint?.(shape);
       this.#callbacks.onShapeSelected?.(shape);
+      if (!up && !e.shiftKey) this.#callbacks.onThemeDrop?.();
       return;
     }
+    if (this.#themeBrush && !shape) this.#callbacks.onThemeDrop?.();
 
     // A phase that places its own things picks the group and stops there. Reaching a member would select a
     // shape the phase cannot change and the chords can, and the group is the unit it is about anyway — a

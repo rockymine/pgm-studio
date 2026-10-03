@@ -115,6 +115,23 @@ public sealed class BlockFacesTests
     }
 
     [Test]
+    public async Task A_mushroom_blocks_data_says_which_faces_show_pore_stem_or_cap()
+    {
+        foreach (var id in new[] { 99, 100 })
+        {
+            var pores = BlockFaces.Of(id, 0)!.Value;
+            await Assert.That((pores.Top, pores.Side)).IsEqualTo(("mushroom_block_inside", "mushroom_block_inside"));
+            var stem = BlockFaces.Of(id, 15)!.Value;
+            await Assert.That((stem.Top, stem.Side)).IsEqualTo(("mushroom_block_skin_stem", "mushroom_block_skin_stem"));
+            var stalk = BlockFaces.Of(id, 10)!.Value;
+            await Assert.That((stalk.Top, stalk.Side)).IsEqualTo(("mushroom_block_inside", "mushroom_block_skin_stem"));
+        }
+        await Assert.That(BlockFaces.Of(99, 14)!.Value.Top).IsEqualTo("mushroom_block_skin_brown");
+        await Assert.That(BlockFaces.Of(100, 14)!.Value.Top).IsEqualTo("mushroom_block_skin_red");
+        await Assert.That(BlockFaces.Of(100, 5)!.Value.Top).IsEqualTo("mushroom_block_skin_red");
+    }
+
+    [Test]
     public async Task Spruce_and_birch_leaves_keep_their_own_colour_and_oak_leaves_take_the_biome()
     {
         await Assert.That(BlockFaces.Of(18, 1)!.Value.Tint).IsEqualTo(0x619961u);

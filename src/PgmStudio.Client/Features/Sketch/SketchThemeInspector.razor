@@ -45,10 +45,9 @@
   {
   @if (InHand is { } held)
   {
-    <Section Title="Painting with">
-      <Actions><Badge Kind="neutral">@held</Badge></Actions>
+    <Section Title="Palette">
+      <Actions><Badge Kind="neutral">@held</Badge><Badge Kind="accent">in hand</Badge></Actions>
       <ChildContent>
-        <p class="section-desc">Click: paint · Shift-click: paint the group · Alt-click: pick up a shape's palette · Esc: stop</p>
         @if (HeldSource is { } source)
         {
           <p class="section-desc">
@@ -60,18 +59,8 @@
         @if (preview is not null)
         {
           <div class="theme-section-figure">@((MarkupString)preview.Section)</div>
-          <div class="theme-apply-swatches">
-            @foreach (var bucket in ThemeBuckets.All)
-            {
-              <figure class="theme-apply-swatch" @key="bucket">
-                <div class="theme-swatch-img">@((MarkupString)(preview.Buckets.GetValueOrDefault(bucket) ?? ""))</div>
-                <figcaption>@bucket</figcaption>
-              </figure>
-            }
-          </div>
         }
         <div class="panel-actions">
-          <Button Icon="upload" Writes OnClick="SaveToLibrary" Title="Save this palette to the library as one pattern per part">Save to library</Button>
           <Button Variant="danger" Icon="trash-2" Writes OnClick="RemoveFromBoard"
                   Title="Remove from this map. Shapes painted with it go back to the default palette.">Remove</Button>
         </div>
@@ -99,44 +88,35 @@
       </ChildContent>
     </Section>
   }
-  else
+  else if (InHand is null)
   {
-    @* Nothing is selected, so the column describes the board: what paints where nothing else reaches, and how
-       much of the board is still falling through to it. *@
+    @* Nothing is selected and nothing is in hand, so the column describes the board: what paints where
+       nothing else reaches. *@
     <Section Title="Map defaults">
       @* Every row is one library row bound to the whole board, and each carries the button through to the
          library that holds it. What a row is bound to is said by name; the pictures are the library's own.
          The order is the order a column is built: the paint under everything, the tint over it, then the
          finish stamped where a room stands. *@
       <Field Label="Default palette">
-        <LabelHint>(paints ground no shape covers)</LabelHint>
-        <ChildContent>
-          <div class="lib-bind">
-            <Select Options="MapThemes" Value="@Themes.MapTheme" ValueChanged="SetMapDefault"
-                    Placeholder="None (stone)" />
-            <Button Variant="icon" Icon="library" Href="/library/themes" Title="Open the palette library" />
-          </div>
-        </ChildContent>
+        <div class="lib-bind">
+          <Select Options="MapThemes" Value="@Themes.MapTheme" ValueChanged="SetMapDefault"
+                  Placeholder="None (stone)" />
+          <Button Variant="icon" Icon="library" Href="/library/themes" Title="Open the palette library" />
+        </div>
       </Field>
-      <p class="section-desc">@Coverage</p>
 
       @* A biome places no block — it is the byte a client reads to tint grass, leaves and water — so it is
          bound here rather than placed. Picked, never authored: the row's own editor holds its palette and
          its scale. *@
       <Field Label="Map biome">
-        <LabelHint>(tints grass, leaves, and water)</LabelHint>
-        <ChildContent>
-          <div class="lib-bind">
-            <Select Options="BiomePatterns" Value="@BiomeChoice" ValueChanged="SetMapBiome"
-                    Placeholder="@(BiomeOffLibrary ? "(not in the library)" : "None (plains everywhere)")"
-                    PlaceholderValue="0" />
-            <Button Variant="icon" Icon="library" Href="/library/biomes" Title="Open the biome library" />
-          </div>
-        </ChildContent>
+        <div class="lib-bind">
+          <Select Options="BiomePatterns" Value="@BiomeChoice" ValueChanged="SetMapBiome"
+                  Placeholder="@(BiomeOffLibrary ? "(not in the library)" : "None (plains everywhere)")"
+                  PlaceholderValue="0" />
+          <Button Variant="icon" Icon="library" Href="/library/biomes" Title="Open the biome library" />
+        </div>
       </Field>
 
-      <p class="section-desc">Room shells set how rooms look, not their size. Each room kind has one shell,
-        used on both sides.</p>
       @foreach (var kind in RoomKindInfo.All)
       {
         <Field Label="@kind.Title" @key="kind.Id">

@@ -144,9 +144,11 @@ try {
   // What the phase draws for a tree is the recipe list, and the list is offered with the tool in hand too, so
   // the Placed list is what says one landed.
   const panel = () => page.evaluate(() => document.body.innerText);
+  // The library's trees load with the first tree the phase shows, and a cold studio draws every card first.
+  await page.waitForSelector('.prop-card[title="oak"]', { timeout: 30000 }).catch(() => {});
   checks.add("a click places a tree, and the phase asks which one",
     (await placedRows()).length === before.length + 1 && await page.locator('.prop-card[title="oak"]').count() > 0,
-    `${before.length} → ${(await placedRows()).length} placed · ${(await panel()).match(/WHICH TREE/)?.[0] ?? "(no recipe list)"}`);
+    `${before.length} → ${(await placedRows()).length} placed · ${(await panel()).match(/GENERATED/)?.[0] ?? "(no tree list)"}`);
   await shot("dressing-tree.png");
 
   // Which tree a placement is, is the recipe it names, so what the phase carries is the card it marks
@@ -157,6 +159,10 @@ try {
   checks.add("picking a recipe marks it, and only it",
     await page.locator('.prop-card--active[title="spruce"]').count() === 1
     && await page.locator(".prop-card--active").count() === 1);
+  // A generated tree is tuned where it stands: its height is a slider on the placement, not a library row.
+  checks.add("a generated tree offers its height, and its seed",
+    /height \(blocks\)/i.test(await panel()) && /seed/i.test(await panel()),
+    (await panel()).match(/height \(blocks\)|seed/gi)?.join(",") ?? "(neither)");
   await shot("dressing-tree-spruce.png");
   await page.locator('.prop-card[title="oak"]').click();
   await page.waitForTimeout(2000);
@@ -169,7 +175,7 @@ try {
   await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
   await page.waitForTimeout(800);
   checks.add("arming the tool again shows the next placement, not the last one",
-    /next item/.test(await panel()), (await panel()).match(/selected|next item/)?.[0] ?? "(no badge)");
+    /in hand/.test(await panel()), (await panel()).match(/selected|in hand/)?.[0] ?? "(no badge)");
   await page.locator('.prop-card[title="spruce"]').click();
   await page.waitForTimeout(1500);
   await page.mouse.click(box.x + box.width * 0.62, box.y + box.height * 0.59);
@@ -192,8 +198,8 @@ try {
   const kept = (await placedRows()).length - before.length;
   checks.add("with Shift held a click places a tree and keeps the tool",
     kept === 4 && await page.locator(`button[aria-pressed][aria-label^="${DRIVEN.tree}"]`).count() === 1
-    && /next item/.test(await panel()),
-    `${kept} placed · pressed ${await page.locator('.canvas-dock button[aria-pressed]').evaluateAll(els => els.map(e => e.getAttribute("aria-label")))} · ${(await panel()).match(/selected|next item/)?.[0]}`);
+    && /in hand/.test(await panel()),
+    `${kept} placed · pressed ${await page.locator('.canvas-dock button[aria-pressed]').evaluateAll(els => els.map(e => e.getAttribute("aria-label")))} · ${(await panel()).match(/selected|in hand/)?.[0]}`);
   await page.keyboard.press("Escape");
   await page.waitForTimeout(400);
   checks.add("and Escape puts it down", await page.locator('.canvas-dock button[aria-pressed][aria-label="Select"]').count() === 1,

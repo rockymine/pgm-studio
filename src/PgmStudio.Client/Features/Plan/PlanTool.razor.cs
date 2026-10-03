@@ -143,10 +143,12 @@ public partial class PlanTool
     // Read-only 3-D height preview.
     private IsoView iso = default!;
 
-    // The Draw sidebar holds one of three panels — "settings" (the tracing reference), "validation" (the
-    // evaluator score + fired rules) or "feasibility" (the producibility read) — switched by the chips at its
-    // head, and folds away to give the canvas the width. Each panel's overlay follows its panel being shown.
-    private string leftPanel = "settings";
+    // The Draw sidebar holds one of three panels — "validation" (the evaluator score + fired rules),
+    // "settings" (the tracing reference, on an open studio only, since tracing another author's map is
+    // copying it) or "feasibility" (the producibility read, admins only) — switched by the chips at its head,
+    // and folds away to give the canvas the width. Each panel's overlay follows its panel being shown.
+    private string leftPanel = "validation";
+    private bool showReference;
     private bool sidebarOpen = true;
 
     private Task SetPanel(string which)
@@ -279,6 +281,7 @@ public partial class PlanTool
             await handle.InvokeVoidAsync("setReadOnly", writeClosed);
             await handle.InvokeVoidAsync("setRole", role);
             try { showBoxes = await Access.IsAdminAsync(); } catch { showBoxes = false; }
+            try { showReference = (await Access.MeAsync()).Mode == AccessModes.Open; } catch { showReference = false; }
             await handle.InvokeVoidAsync("setBoxesShown", showBoxes);
             try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
             try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }

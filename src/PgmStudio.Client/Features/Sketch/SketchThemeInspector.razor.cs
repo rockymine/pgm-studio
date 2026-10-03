@@ -129,21 +129,6 @@ public partial class SketchThemeInspector
         return TargetShapeIds.All(id => Themes.ShapeThemes.GetValueOrDefault(id, "") == first) ? first : Mixed;
     }
 
-    /// <summary>How much of the board still falls through to the map default — the question the number keys and
-    /// the walk-to-the-next-unpainted chord are both answers to.</summary>
-    private string Coverage
-    {
-        get
-        {
-            var total = Themes.ShapeCount;
-            if (total == 0) return "Nothing is drawn yet.";
-            var painted = Themes.ShapeThemes.Count;
-            return painted == total
-                ? $"All {total} shapes are painted."
-                : $"{painted} of {total} shapes are painted. The other {total - painted} use the default palette.";
-        }
-    }
-
     // ── the registry ──
 
     private async Task CopyIn(ThemeSummary picked)
@@ -213,25 +198,6 @@ public partial class SketchThemeInspector
         catch (JsonException) { return false; }
     }
 
-    private async Task SaveToLibrary()
-    {
-        if (Handle is null || InHand is null || HeldDocument is not { } document) return;
-        var id = await Library.ImportThemeAsync(InHand, document);
-        note = id is null
-            ? "Couldn't save this palette to the library."
-            : $"Saved “{InHand}” to the library.";
-        if (id is { } row)
-        {
-            // The row this theme was written out to is the row it is now a copy of, so copying it back in
-            // refreshes this theme rather than defining a second one beside it.
-            await Handle.InvokeVoidAsync("setThemeSource", InHand, row);
-            librarySnapshots.Remove(InHand);
-        }
-        libraryThemes = await Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
-        await ReadHeldSource();
-        StateHasChanged();
-    }
-
     private async Task RemoveFromBoard()
     {
         if (Handle is null || InHand is null) return;
@@ -257,10 +223,8 @@ public partial class SketchThemeInspector
     /// to for a snapshot no row matches, and those two read differently.</summary>
     private IReadOnlyList<SelectOption> RoomOptions =>
     [
-        new(NoBuilding, "(no building)",
-            "Leaves the pad, chests, and monuments in the open."),
-        .. rooms.Select(room => new SelectOption(room.Id.ToString(), room.Name,
-            "Picking it saves a copy on this map. Later library edits don't change it.")),
+        new(NoBuilding, "(no building)"),
+        .. rooms.Select(room => new SelectOption(room.Id.ToString(), room.Name)),
     ];
 
     private async Task ClearSelection()

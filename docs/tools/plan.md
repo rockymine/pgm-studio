@@ -50,8 +50,7 @@ the same document.
 Two things a plan tool edits are *not* in the plan document. The map's display name and its authors live on
 the map row and are saved through `PATCH /api/map/{slug}/metadata`; the document's own `meta.name` is synced
 alongside them because the compile reads it. A plan may state `meta.authors` and `meta.contributors` of its
-own, which the compile carries onto the intent; the editor keeps them on a round trip and does not edit them. The surface stepper — how many blocks one click of a piece's
-height control moves — is a browser preference in `localStorage`, never part of a plan.
+own, which the compile carries onto the intent; the editor keeps them on a round trip and does not edit them. The height step — how many blocks a piece's height input moves by — is a browser preference in `localStorage`, never part of a plan.
 
 The document is not cached client-side. The database is its store, and the editor loads whatever the route
 names.
@@ -501,7 +500,7 @@ Two steps. **Identity** is the plan's name, live-synced into the plan document a
 compile reads it. On a map-backed plan it is the map's display name and stands beside the authors, both loaded
 once from `GET /api/map/{slug}` and saved with `PATCH /api/map/{slug}/metadata`; a plan row has no map to
 credit anyone on, so its name is all Identity holds and the topbar's Save stores it with the row.
-**Settings** is the globals form — symmetry, cell size, base surface, surface step, max players — writing
+**Settings** is the globals form — symmetry, cell size, height (the base surface), height step, max players — writing
 straight through to the live document. Continue on the last step advances to Draw. A plan opened with
 `?phase=info` starts here, which is how a blank map-backed plan is named; any other opens on Draw.
 
@@ -575,7 +574,7 @@ grab band along each edge that stretches that one axis — each keeping the exte
 big it is as a pill under it, the same pill Configure draws under a region and the sketch under a shape. Clicking an already-selected spawn cycles its facing. Deleting a piece takes its
 markers, its cliff and wall marks, and its name out of any box member list with it.
 
-The inspector edits a single selection: a piece's id, role, surface (stepped by the surface-step preference) and
+The inspector edits a single selection: a piece's id, role, height (a y, stepped by the height-step preference) and
 mirror flag; a zone's id; a box's id, kind and whether its membership is frozen to a list (admin); a marker's position,
 a spawn's facing, a wool's dye, and every structure field of a destroyable or a core — each shown at its
 *effective* value, so an unset field renders as the number the stamper will use rather than as blank. The dye
@@ -589,8 +588,11 @@ implies, `CoreCasing.Of`, and the dig depth, `CoreDig.Depth` — client twins of
 and `ObjectiveDefaults.DigDepth`, which the WASM half cannot reach, each pinned to its authority by a drift
 test (`CoreCasingDriftTests`, `CoreDigDepthDriftTests`) and shared with the Configure wizard's casing step.
 
-Two panels share the sidebar, three for an admin, switched by the chips at its head, beside the button that
-folds the sidebar away. **Settings** holds the tracing reference. The overlays — land interfaces, frontline edges, labels, and a
+Up to three panels share the sidebar, switched by the chips at its head, beside the button that folds the
+sidebar away. **Settings** holds the tracing reference: a map whose top-down view is drawn as a backdrop on the
+canvas. It is offered only on an open studio, the same gate as Configure's world folders, because on a shared
+studio the one use of tracing another author's map is copying it; elsewhere the chip is absent and the sidebar
+opens on Checks. The overlays — land interfaces, frontline edges, labels, and a
 height-map fill that tints pieces by surface — are chips on the canvas itself. **Checks** shows the evaluator's score and every fired rule, and clicking a row isolates that rule's
 evidence on the canvas. **Generator check**, an admin's panel, shows the producibility read per box, and clicking a box that nothing
 reproduces paints its nearest miss — the cells a candidate emits that the box does not, and the cells the box
@@ -932,7 +934,7 @@ ring, birch planks the middle, over twelve-block cells with a two-deep rim, whic
 measured inward from the boundary to read as cells at all.
 
 That plan also shows what lint is worth. It carries **sixteen findings and no errors**: eleven `EL1` (its
-elevation steps in ones, not the twos the stepper defaults to), two `G2` (five-block zones) and one `G5` (a
+elevation steps in ones, not the twos the height step defaults to), two `G2` (five-block zones) and one `G5` (a
 35-block hop). None of them stopped a good map being
 built, which is the difference between the lint table and the refusals above.
 

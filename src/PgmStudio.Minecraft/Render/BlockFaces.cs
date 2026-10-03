@@ -221,8 +221,8 @@ public readonly record struct BlockFaces(string Top, string Side, FaceForm Form,
             2 => Cube("stonebrick", "stonebrick"),
             _ => Cube("stone", "stone"),
         },
-        99 => Cube("mushroom_block_skin_brown", "mushroom_block_skin_brown"),
-        100 => Cube("mushroom_block_skin_red", "mushroom_block_skin_red"),
+        99 => Mushroom("mushroom_block_skin_brown", data),
+        100 => Mushroom("mushroom_block_skin_red", data),
         123 => Cube("redstone_lamp_off", "redstone_lamp_off"),
         124 => Cube("redstone_lamp_on", "redstone_lamp_on"),
         169 => Cube("sea_lantern", "sea_lantern"),
@@ -300,6 +300,16 @@ public readonly record struct BlockFaces(string Top, string Side, FaceForm Form,
             _ => Cube(sprite, sprite),
         };
     }
+
+    /// <summary>A mushroom block, whose data says which faces show <paramref name="cap"/>, pore or stem: 0 pore
+    /// all round, 10 stem sides under a pore top, 15 stem all round, and every other value cap on top.</summary>
+    private static BlockFaces Mushroom(string cap, int data) => (data & 0xF) switch
+    {
+        0 => Cube("mushroom_block_inside", "mushroom_block_inside"),
+        10 => Cube("mushroom_block_inside", "mushroom_block_skin_stem"),
+        15 => Cube("mushroom_block_skin_stem", "mushroom_block_skin_stem"),
+        _ => Cube(cap, cap),
+    };
 
     private static BlockFaces Slab(int data) => (data & 7) switch
     {

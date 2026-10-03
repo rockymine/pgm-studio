@@ -96,7 +96,6 @@ These come from a reviewer reading the studio for the first time.
 | Saved. Every theme binding it now paints this. | Saved. Palettes and buildings that use this pattern are updated. |
 | Emitted through BoxFiller, so the profile check and the docking gate run exactly as they do in composition. A refusal is an answer, not an error — it is the emitter's own words. | Generated with the same checks the generator uses. If the shape can't be built at this size, the reason is shown here. |
 | Six libraries, in the order they compose | Libraries |
-| A placement names this recipe. Retuning it retunes every boulder wearing it. | Maps keep their own copy, so editing this doesn't change boulders already placed. |
 | Author a coarse cell-grid seed — pieces, zones, symmetry and objectives — and compile it straight into a sketch draft. | Block out a map on a grid: its areas, symmetry, and objectives. Then build it into a sketch. |
 
 ## Terms a new user has to learn
