@@ -44,6 +44,7 @@
 
   /* ── Accent (primary action colour) ─────────────────────────────────── */
   --accent:          #3b82f6;
+  --agent:           #8b5cf6;   /* violet-500 — an agent's mark and its note bubbles */
   --accent-light:    #60a5fa;
   --accent-lighter:  #93c5fd;
   --accent-bg-hover: oklch(from var(--accent) calc(l - 0.12) c h); /* darkened accent for hover */

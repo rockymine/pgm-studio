@@ -1587,7 +1587,8 @@ goes back. A thread is its messages top to bottom, its pictures, **Resolve** or 
 **A thread reads as a chat.** It opens on its newest message and follows each one that lands. A message is a
 bubble beside its writer's mark, under their name, when it was written and the change it was written at. A
 person is their head and their name, and the reader's own messages sit on the right in the accent's tint. An
-agent is named by its token's label beside an *AI* mark, in a violet bubble on the left, and the hover says
+agent is named by its token's label beside the agent mark — a robot on a violet disc, the same mark the
+maps page draws for an agent's credit — in a violet bubble on the left, and the hover says
 whose token it wrote with: a token acts as the person who issued it, and naming the agent by that person would
 show one writer answering itself. A new note shows
 what it is pinned to over its text box and an optional tag. The gallery counts each view's notes that are not

@@ -36,7 +36,7 @@ try {
   checks.add("the table lists every map", await rows().count() === all.length, `${await rows().count()} of ${all.length}`);
   const fixtureRow = rows().filter({ has: page.locator(`text="${seed.mapSlug}"`) }).first();
   checks.add("an agent-style credit shows a robot, not a head",
-    await fixtureRow.locator(".author-mark--agent svg.lucide").count() === 1);
+    await fixtureRow.locator(".agent-mark svg.lucide").count() === 1);
 
   checks.section("a stage chip narrows the table and lands in the address");
   await page.locator(".filter-chip", { hasText: "Configure" }).click();

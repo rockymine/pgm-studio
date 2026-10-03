@@ -95,14 +95,7 @@
           var who = Writers.Describe(message.Author, message.Token);
           <div class="@MessageClass(message)" @key="message.Id">
             <span class="note-message__avatar">
-              @if (message.Token is not null)
-              {
-                <span class="agent-mark" title="@who" aria-hidden="true">AI</span>
-              }
-              else
-              {
-                <PlayerHead Uuid="@message.AuthorUuid" Name="@message.Author" Title="@who" Size="28" />
-              }
+              <AuthorMark Agent="@(message.Token is not null)" Uuid="@message.AuthorUuid" Name="@message.Author" Title="@who" Size="28" />
             </span>
             <div class="note-message__bubble">
               <div class="note-message__who" title="@who">
