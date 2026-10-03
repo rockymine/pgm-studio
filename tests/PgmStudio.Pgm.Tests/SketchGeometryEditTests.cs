@@ -200,4 +200,67 @@ public sealed class SketchGeometryEditTests
         await Assert.That(layers.Count).IsEqualTo(1);
         await Assert.That((int?)layers[0]!["base_y"]).IsEqualTo(6);
     }
+
+    /// <summary>A 28 × 28 hexagon whose corner at (28,28) is raised to 16 and whose middle of the east wall,
+    /// (28,14), dips to 4 — a slope a point edit can keep or lose.</summary>
+    private const string Sloped = """
+        {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
+         "layers":[{"id":"ground","base_y":0,"layout":{
+           "shapes":[{"id":"hill","type":"polygon","operation":"add","floor":0,"base_height":6,
+                      "vertices":[[0,0],[28,0],[28,14],[28,28],[0,28],[0,14]],
+                      "anchor_heights":[6,6,4,16,6,6]}],
+           "groups":[{"id":"i","name":"I","mirrors":false,"shapeIds":["hill"]}]}}]}
+        """;
+
+    private static double[] Heights(string json) =>
+        [.. ShapeOf(json, "hill")["anchor_heights"]!.AsArray().Select(height => (double)height!)];
+
+    private static Dictionary<(int X, int Z), int> Tops(string json) =>
+        SketchRasterizer.RasterizeColumns(json).ToDictionary(column => (column.X, column.Z), column => column.YTop);
+
+    [Test]
+    public async Task An_added_point_takes_the_height_its_edge_has_where_it_stands()
+    {
+        var middle = SketchGeometryEdit.InsertVertex(Sloped, "hill", after: 2, x: null, z: null, out _);
+        var offCentre = SketchGeometryEdit.InsertVertex(Sloped, "hill", after: 2, x: 28, z: 25, out _);
+
+        await Assert.That(Heights(middle.Layout!)).IsEquivalentTo(new double[] { 6, 6, 4, 10, 16, 6, 6 });
+        await Assert.That(Heights(offCentre.Layout!)[3]).IsEqualTo(13);
+    }
+
+    [Test]
+    public async Task An_added_point_on_an_edge_leaves_the_ground_where_it_was()
+    {
+        var inserted = SketchGeometryEdit.InsertVertex(Sloped, "hill", after: 2, x: null, z: null, out _);
+
+        await Assert.That(Tops(inserted.Layout!)).IsEquivalentTo(Tops(Sloped));
+    }
+
+    [Test]
+    public async Task A_removed_point_takes_its_own_height_with_it_and_the_rest_keep_theirs()
+    {
+        var removed = SketchGeometryEdit.RemoveVertex(Sloped, "hill", index: 2);
+
+        await Assert.That(Heights(removed.Layout!)).IsEquivalentTo(new double[] { 6, 6, 16, 6, 6 });
+    }
+
+    [Test]
+    public async Task A_pull_keeps_the_heights_in_step_with_the_outline()
+    {
+        var pulled = SketchGeometryEdit.PullShape(Sloped, "hill",
+            new Dictionary<int, IReadOnlyList<PgmStudio.Geom.RingPull.Pull>> { [4] = [new(0.5, 2)] }, fan: false);
+        var shape = ShapeOf(pulled.Layout!, "hill");
+
+        await Assert.That(shape["anchor_heights"]!.AsArray().Count).IsEqualTo(shape["vertices"]!.AsArray().Count);
+        await Assert.That(Heights(pulled.Layout!).Take(4)).IsEquivalentTo(new double[] { 6, 6, 4, 16 });
+    }
+
+    [Test]
+    public async Task Heights_that_did_not_line_up_are_left_as_they_stand()
+    {
+        var mismatched = Sloped.Replace("[6,6,4,16,6,6]", "[6,6,4,16]");
+        var removed = SketchGeometryEdit.RemoveVertex(mismatched, "hill", index: 2);
+
+        await Assert.That(Heights(removed.Layout!)).IsEquivalentTo(new double[] { 6, 6, 4, 16 });
+    }
 }

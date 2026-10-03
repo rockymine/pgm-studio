@@ -287,15 +287,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   undo step) in `SketchInspector`, calling the route. `docs/tools/sketch.md`. *Evidence: the route is used by
   every agent build-spec that roughens a coast; no `.razor` under `Features/Sketch` names bend or wander.*
 
-- [ ] **TS157 — What a point's height becomes when the outline loses or gains a point. Parked: the author's
-  call.** A polygon's surface is a TIN over `anchor_heights` (`SketchRasterizer.HeightFn`), read only while the
-  array is as long as the outline. The canvas splices it on a delete and gives an inserted point the mean of its
-  neighbours; `SketchGeometryEdit.RemoveVertex`/`InsertVertex` leave it untouched, so the shape falls back flat to
-  `base_height` with an `SK22` complaint, and a delete then an insert lines the old heights up with the wrong
-  points without one. Options measured: splice; interpolate an insert along its edge (the only one that keeps
-  the surface, 0 of 784 cells moved); a default height (a notch); re-flatten; refuse while heights are stated.
-  *Evidence: a 28×28 hexagon with heights 6,6,4,16,6,6 — deleting the dip at (28,14) moves ground at (14,14) from
-  y 4 to 8; server delete-then-insert puts the peak's 16 at (14,28) instead of (28,28).*
 - [ ] **TS141 — A room style stated as a library fork is honoured, or refused.** In `dressing.styles` a
   house stated as `{"library": <name>, "kind": "house", "shell": <parts>}` builds the fork (`DressingJson`
   resolves the shell over the row), but the same object under `roomStyles.spawn` stores 200, raises nothing and

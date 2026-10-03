@@ -10109,6 +10109,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Slope marks follow an inserted point (TS158).** An insert on the points rung renumbers the shift-click slope
   marks and the picked point through the same helper a removal uses, so a mark keeps naming its own point.
 
+- **Point heights follow an edit that adds or removes points (TS157).** A point that was a vertex keeps its
+  `anchor_heights` entry, a point added by an insert, pull or bend takes the height its old outline had there
+  (interpolated along the nearest edge), and a removed point takes its own; the canvas and the server's vertex,
+  pull and bend edits share the rule, so an insert on a sloped edge leaves the ground where it was and no edit
+  drops a slope to the flat `base_height` fallback.
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
   pass's five *seat* rules over every cell of a board so a placement is found rather than guessed at, and left

@@ -236,6 +236,7 @@ public static class SketchGeometryEdit
                 Field: "wander", Subjects: [shapeId]));
 
         held = coast.Held;
+        Reheight(shape, ring, coast.Ring);
         shape["vertices"] = new JsonArray([.. coast.Ring.Select(point =>
             (JsonNode)new JsonArray(JsonValue.Create(point[0]), JsonValue.Create(point[1])))]);
         shape["controls"] = new JsonObject(coast.Controls.Select(handle =>
@@ -306,6 +307,7 @@ public static class SketchGeometryEdit
             .SelectMany(edge => (int[])[edge.Key, (edge.Key + 1) % ring.Count]).ToHashSet();
         vertices.Clear();
         foreach (var point in drawn) vertices.Add(Point(point[0], point[1]));
+        Reheight(shape, ring, drawn);
         if (shape["controls"] is JsonObject controls)
         {
             var kept = new JsonObject();
@@ -355,10 +357,12 @@ public static class SketchGeometryEdit
         var at = index = after + 1;
         double px = x ?? (ring[after][0] + next[0]) / 2, pz = z ?? (ring[after][1] + next[1]) / 2;
 
+        var before = Ring(vertices);
         ring.Insert(at, [px, pz]);
         if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "adding a vertex to");
 
         vertices.Insert(at, Point(px, pz));
+        Reheight(shape, before, ring);
         Recontrol(shape, at, vertices.Count, shift: from => from >= at ? from + 1 : from);
         return new(root.ToJsonString(), shapeId);
     }
@@ -377,11 +381,13 @@ public static class SketchGeometryEdit
                 + "with DELETE, or move a vertex instead of taking one away",
                 Field: "index", Subjects: [shapeId]));
 
+        var before = Ring(vertices);
         var ring = Ring(vertices);
         ring.RemoveAt(index);
         if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "taking a vertex out of");
 
         vertices.RemoveAt(index);
+        Reheight(shape, before, ring);
         Recontrol(shape, index % vertices.Count, vertices.Count, shift: from =>
             from == index ? null : from > index ? from - 1 : from);
         return new(root.ToJsonString(), shapeId);
@@ -433,6 +439,59 @@ public static class SketchGeometryEdit
 
     private static JsonNode Point(double x, double z) =>
         new JsonArray(JsonValue.Create(x), JsonValue.Create(z));
+
+    /// <summary>
+    /// The shape's stated heights carried from the outline <paramref name="before"/> an edit onto the one
+    /// <paramref name="after"/> it: a point that was a vertex keeps its height, and a point the edit added takes
+    /// the height the old outline has where it stands, along its nearest edge. So an added point leaves the
+    /// surface where it was, and a removed point takes its own height with it. Heights that did not line up with
+    /// the outline are left as they stand, for <c>SK22</c> to name.
+    /// </summary>
+    private static void Reheight(JsonObject shape, IReadOnlyList<double[]> before, IReadOnlyList<double[]> after)
+    {
+        if (shape["anchor_heights"] is not JsonArray stated || stated.Count != before.Count) return;
+        var heights = stated.Select(Number).ToArray();
+        var closed = Text(shape["type"]) != "polyline";
+        var unclaimed = Enumerable.Range(0, before.Count).ToList();
+        var carried = new JsonArray();
+        foreach (var point in after)
+        {
+            var same = unclaimed.FindIndex(at => before[at][0] == point[0] && before[at][1] == point[1]);
+            double height;
+            if (same >= 0)
+            {
+                height = heights[unclaimed[same]];
+                unclaimed.RemoveAt(same);
+            }
+            else height = Math.Max(1, Math.Round(HeightAlong(before, heights, closed, point[0], point[1]),
+                MidpointRounding.AwayFromZero));
+            carried.Add(JsonValue.Create(height));
+        }
+        shape["anchor_heights"] = carried;
+    }
+
+    /// <summary>The height an outline with per-vertex <paramref name="heights"/> has at the point of its nearest
+    /// edge to <c>(x, z)</c>, interpolated between that edge's two ends.</summary>
+    private static double HeightAlong(IReadOnlyList<double[]> ring, double[] heights, bool closed, double x, double z)
+    {
+        var nearest = double.MaxValue;
+        var height = heights[0];
+        var edges = closed ? ring.Count : ring.Count - 1;
+        for (var edge = 0; edge < edges; edge++)
+        {
+            int start = edge, end = (edge + 1) % ring.Count;
+            double runX = ring[end][0] - ring[start][0], runZ = ring[end][1] - ring[start][1];
+            var length = runX * runX + runZ * runZ;
+            var along = length == 0 ? 0
+                : Math.Clamp(((x - ring[start][0]) * runX + (z - ring[start][1]) * runZ) / length, 0, 1);
+            double offX = ring[start][0] + along * runX - x, offZ = ring[start][1] + along * runZ - z;
+            var distance = offX * offX + offZ * offZ;
+            if (distance >= nearest) continue;
+            nearest = distance;
+            height = heights[start] + along * (heights[end] - heights[start]);
+        }
+        return height;
+    }
 
     /// <summary>The shape's handle map re-keyed by <paramref name="shift"/> — an index it answers null for
     /// loses its handles — and then cleared at <paramref name="touched"/> and that index's two neighbours in
