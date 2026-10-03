@@ -2,6 +2,7 @@ using System.Text;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Render;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Render;
 

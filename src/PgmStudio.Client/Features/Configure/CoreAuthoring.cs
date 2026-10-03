@@ -50,10 +50,9 @@ public static class CoreAuthoring
         /// A count, not the footprint <see cref="Lava"/> states.</summary>
         public int LavaBlocks;
 
-        /// <summary>The obsidian the stated interior implies: one block of wall on every side, and a cap
-        /// unless the top is open.</summary>
-        public int Size => Lava + 2;
-        public int Height => LavaHeight + (OpenTop ? 1 : 2);
+        /// <summary>The obsidian the stated interior implies.</summary>
+        public int Size => CoreCasing.Of(Lava, LavaHeight, OpenTop).Size;
+        public int Height => CoreCasing.Of(Lava, LavaHeight, OpenTop).Height;
 
         /// <summary>How many blocks players must dig under the casing before its lava can leak (DC2).</summary>
         public int DigDepth => CoreDig.Depth(Leak, Float);

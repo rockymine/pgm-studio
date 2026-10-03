@@ -88,7 +88,8 @@ finish the set.
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
 `CanvasDock` with `DockGroup`, `DockButton`, `DockModeButton`, `DockChoice` (one option of a set the dock
 picks between, where `DockModeButton` flips a two-state mode) and `DockFlyoutGroup`, plus `CanvasRoundButton`
-and `ViewModeToggle`.
+and `ViewModeToggle`. `IsoView` holds a host's 3-D preview state and `IsoToggle` renders the 2D/3D switch with
+the note that says why it is disabled, so the plan and the sketch share one.
 
 **Terrain** — the material vocabulary shared by the Sketch tool's Dressing phase and the library:
 `MaterialEditor`, `BlockPicker`, `SlotSelect` (filling a slot with one block or a saved pattern — one list
@@ -184,6 +185,8 @@ constant somewhere. Where that somewhere is decides whether the form and the rea
 through `Contracts`, so the picker takes the same constant the reader does: `PlacedProp`'s
 `[JsonDerivedType]` attributes name `PropKinds`, the sketch gate judges against `ShapeKinds.All`, and
 `ReliefMarkJson.ToMark` switches on `MarkKinds`. There is one list, not two that agree.
+The plan editor's words are the same: a piece's roles (`PlanRoles`) and a box's kinds (`PlanBoxKinds`) are
+declared there, and `PlanPalette` adds only the label and the canvas token each is drawn in.
 
 **A field name stays the client's.** `PropFields`, `MarkFields`, `SpecFields`, `PushFields`, `ReliefFields`
 and `GrainFields` name the JSON keys a form writes into a document the client holds as a `JsonObject`. They
@@ -232,11 +235,11 @@ reader learns to skip — which is what then hides the line that matters.
 **Undo restores the document; every phase reading a part of it has to be told.** A history step is the whole
 `getState()` value and a restore is `load()`, so the document comes back correct whichever phase is up — and
 only the Draw phase *shows* it, because `load` puts the shapes back on the canvas and the restore re-announces
-the shape selection. The marks, the props and the theme registry are rebuilt by the same call and then never
+the shape selection. The marks and the props are rebuilt by the same call and then never
 announced, so their panels go on listing what the step undid and the server-drawn overlays go on showing the
-surface it was solved for. A restore therefore fires what each phase's own edits fire — `OnThemes`,
-`OnDressing`, `OnRelief`, the relief and paint refreshes — and drops the meshed board, which is a picture of a
-document no longer open. Rebuilding a document also clears its selection, so the mark and the prop are taken
+surface it was solved for. A restore therefore fires what each phase's own edits fire — `OnDressing`,
+`OnRelief`, the relief and paint refreshes, with `OnThemes` announced by the `load` it is made of — and drops
+the meshed board, which is a picture of a document no longer open. Rebuilding a document also clears its selection, so the mark and the prop are taken
 back where the step left them standing, the way the shape already was.
 
 **A control looks like a control, and a two-state one names both states.** A checkbox hidden behind a line of

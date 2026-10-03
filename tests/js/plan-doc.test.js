@@ -302,7 +302,7 @@ test("allMarkers flattens spawns/wools/iron with kind + index", () => {
 });
 
 test("ROLES palette order is stable and includes the buffer annotation", () => {
-  assert.deepEqual(ROLES, ["piece", "wool-room", "spawn", "buffer"]);
+  assert.deepEqual(ROLES, ["piece", "spawn", "wool-room", "buffer"]);
   assert.ok(ROLES.includes("buffer"));
   assert.equal(ROLE_COLORS.buffer, "var(--canvas-role-buffer)");
 });

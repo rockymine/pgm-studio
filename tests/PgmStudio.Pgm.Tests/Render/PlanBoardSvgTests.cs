@@ -2,6 +2,7 @@ using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Render;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests.Render;
 

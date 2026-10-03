@@ -2,6 +2,7 @@
 #:property JsonSerializerIsReflectionEnabledByDefault=true
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Vocabulary;
 
 // The reproduction gate: compose a board sweep and check that every composed board reads back as producible —
 // no box the emitters cannot reproduce, no unit-level rule violated. Also reports how many hubs come out with a

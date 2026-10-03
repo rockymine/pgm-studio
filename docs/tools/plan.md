@@ -21,7 +21,11 @@ Save stores it as one. A plan row has no map, so building it originates one.
 Both bindings are the same tool: the rail's Info and Draw phases, the flow bar whose Next is Compile, and the
 Draw sidebar with its three panel chips, which folds away to give the canvas the width. Only the topbar
 follows the binding, because only saving differs. A map-backed plan's bar is *Save*, which writes the map's
-artifact in place. A plan row's bar carries what a row needs: *New*, *Import* a `*.plan.json`, *Open* a saved
+artifact in place, **over the revision the tab loaded**: the plan was read with its `ETag`, which Save and the
+build's own plan write state as `If-Match`, so where the stored plan has moved on since — a second tab, an agent
+driving the API — the write is refused `RQ5` at 409 rather than overwriting it. The bar then says the plan was
+saved from somewhere else and that the page must be reloaded, and no further write is sent until it is; the
+sketch tool's save is the same helper (`DocumentSave`). A plan row's bar carries what a row needs: *New*, *Import* a `*.plan.json`, *Open* a saved
 row, *Save*, and the row's origin as a badge — `authored` saves in place, while `generated` and `imported`
 fork into a new authored row on Save, and the address follows the copy.
 
@@ -506,6 +510,16 @@ straight through to the live document. Continue on the last step advances to Dra
 The canvas, and where a plan is actually authored. The Draw workspace stays mounted while Info is up, so the
 document and the zoom survive the trip.
 
+The Draw phase is the `PlanTool` host with two bodies of its own, each a component beside it in
+`Features/Plan/`: `PlanInspector`, the form for the one selection, and `PlanBuildDrawer`, the compile and build
+drawer the flow bar's Next opens. The host owns the canvas, the dock, the sidebar panels, the topbar and the save;
+the inspector writes its edits through the bridge and takes the objective vocabulary, the selection and the
+surface step from the host; the drawer takes the bridge, the map's slug, the plan's name and the plan's
+`DocumentSave`, and owns everything a compile and a build produce. The words the document is written in — a
+piece's roles (`PlanRoles`) and a box's kinds (`PlanBoxKinds`) — are `PgmStudio.Vocabulary`'s, which the
+dock, the role and kind dropdowns and the schema all read; `plan-doc.js` holds their twin, pinned to them by
+`PlanWordsTwinTests`.
+
 Four families of drawing tool, one armed at a time, each remembering the option last picked from it. **Terrain**
 draws a piece in the armed role; **technical** draws a build zone, a water lane, or a buffer; **markers** drop a
 spawn, wool, iron, destroyable, core, or cycle a wall; **boxes** draw an envelope in the armed kind, and are
@@ -565,6 +579,12 @@ a spawn's facing, a wool's dye, and every structure field of a destroyable or a 
 is the one field with no effective value to show: a wool that states no colour has one resolved against its
 team and the wools placed before it, which no single marker knows, so the picker offers *auto* as a word
 beside the sixteen dyes rather than naming a colour the compiler might not pick.
+
+The inspector reads its choices and defaults from `GET /api/objectives/vocabulary` (`ObjectiveVocabularyDto`)
+and holds no copy of them. The two numbers it derives from a core's stated interior are the casing it
+implies, `CoreCasing.Of`, and the dig depth, `CoreDig.Depth` — client twins of `ObjectiveDefaults.CoreCasing`
+and `ObjectiveDefaults.DigDepth`, which the WASM half cannot reach, each pinned to its authority by a drift
+test (`CoreCasingDriftTests`, `CoreDigDepthDriftTests`) and shared with the Configure wizard's casing step.
 
 Two panels share the sidebar, three for an admin, switched by the chips at its head, beside the button that
 folds the sidebar away. **Settings** holds the tracing reference. The overlays — land interfaces, frontline edges, labels, and a
@@ -715,7 +735,7 @@ document as the body and need no map, which is what lets a plan be checked befor
 |---|---|---|---|
 | `POST /plan` | `{name?}` | `{slug}` — a new `map` row at `stage=plan`, gamemode `ctw`, empty plan artifact | — |
 | `POST /plan/{planId}/author` | — | `{slug}` — a map row seeded from a generator candidate | 404 unknown candidate |
-| `GET /map/{slug}/plan` | — | the stored document, or `{}` | 404 unknown map |
+| `GET /map/{slug}/plan` | — | the stored document, or `{}`. The `ETag` is the revision to state on the next write | 404 unknown map |
 | `DELETE /map/{slug}/discard-if-empty` | — | `{discarded}` — drops a draft still named *Untitled plan*, never saved, not forked from a candidate and credited to nobody but its originator; the Sketch tool asks the same | — |
 | `PUT /map/{slug}/plan` | the document | `{}` — a verbatim replace; `warnings` carries any field the plan reader has nowhere to keep (`RQ3`), which the blob would otherwise store and nothing downstream would read. The `ETag` is the revision it landed at | 400 non-JSON · **409 `RQ5`** an `If-Match` naming a revision the plan is no longer at · 404 unknown map |
 | `GET /map/{slug}/state` | — | `{stage, artifacts, moves[]}` — where the map has got to, which documents it holds, and what may be done to it from here. Each move is `{does, route, next}`; several are open at once and `next` marks the ones the stage is waiting on | 404 |

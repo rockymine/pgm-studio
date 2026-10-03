@@ -23,6 +23,18 @@ drawing state and the zoom survive the trip. None of the five has steps: each sw
 which overlays the layer bar offers, and the canvas is reused as it stands. `?phase=history` opens the tool on
 History and `?phase=report` on Report.
 
+**Each phase owns its state, in one of two shapes.** A phase whose truth is on the canvas — Terraform,
+Decoration and Palette — takes one snapshot the bridge announces (`OnRelief`, `OnDressing`, `OnThemes`) and hands
+it, with the bridge handle, to its list and its inspector, which write back through the handle. The Palette
+snapshot is one value, `SketchThemes`: the registry and each theme's document, the map default, which shape
+carries which theme, where each copy came from, the room shells and the biome, announced on every change of any
+of them and on a load and a step taken back alike. A phase whose truth is the server's loads it itself: Info
+and Report are components that read their own document, and a phase with two bodies — History, and the views
+of In game — has a plain state object (`SketchHistory`, `SketchViews`) that the host holds once and passes to
+both. The map's notes are one more, `SketchNotes`, read in one place for In game and for the threads History
+names. The host keeps the phase switch, the save before a page phase opens, the canvas mode, overlays and tool,
+and the bridge's callbacks; the state objects reach the canvas and the save through delegates it hands them.
+
 The tool saves continuously — every change schedules a debounced write 800 ms later, and Ctrl+S flushes it at
 once. The finished map leaves by **Download map** in the top bar, on every phase: it flushes the layout, builds
 the world the first time (the finish below, `POST …/sketch/finish`, which rasterizes the layout and moves the
@@ -33,7 +45,8 @@ objectives are stated. Building the export costs the server a world, so **Downlo
 the whitelist and is greyed for anyone else (`docs/access.md`). The phases run in order, Draw's *Done* going on
 to Terraform. A draft that was never drawn on is discarded on the way out. A caller who may not change the map
 sees every phase read-only: the canvas pans, selects and measures and changes nothing, the fields that write
-are greyed, and nothing is saved or discarded (`docs/client/ui-conventions.md`).
+are greyed, and nothing is saved or discarded (`docs/client/ui-conventions.md`). The bridge enforces it below the
+greying: every handle verb that edits the document is refused while the page is read-only (`docs/client/canvas-interaction.md` §6).
 
 **The geometry follows the drawing after the first build, too.** The scan the finish writes records the layout revision it
 was rasterized from, so a layout written later (a vertex moved, a coast bent, a shape redrawn) is rasterized
@@ -49,7 +62,8 @@ old islands unless the author confirmed it. The connectivity reads walk the buil
 **A tab writes only what was drawn in it, and only over the board it read.** It holds the `ETag` the layout
 was read at and states it as `If-Match` on every save, so where the stored board has moved on since — an agent
 driving the API, a second tab — the save is refused `RQ5` at 409 rather than writing the older board back over
-the newer. The topbar then says so, no further save is sent until the page is reloaded, and **Download map**
+the newer (the held revision, the serialised saves and the refusal's sentence are `DocumentSave`, which the plan
+tool's map-backed save uses too). The topbar then says so, no further save is sent until the page is reloaded, and **Download map**
 stops rather than build a board that is not the one on screen. A flush with no edit behind it — entering In game,
 leaving the tool — sends nothing at all. What a layer states and the canvas has no control for — `kind`,
 `part_of`, `seat` — is held as it was read and written back with the layer, so a made thing an API caller
@@ -263,7 +277,8 @@ wall or a hedge held that amount above the ground at every cell, so it climbs th
 from its own outline an erected shape eases back into the ground it meets, in blocks; zero is a sheer face,
 which is right for a built thing and wrong for a landform. `relief_scope` is `follow`, `hold` or `exclude` and decides
 whether the shape's ground takes part in its group's relief at all (see *Groups and layers*); absent means
-it is simply part of the group's ground. And a polyline carries `stroke_edge`
+it is simply part of the group's ground. The canvas bridge writes only the words `ReliefScopes` and `HeightModes`
+name, validated against one JS list (`shared/relief-words.js`) that a test holds equal to the C# sets. And a polyline carries `stroke_edge`
 (`solid`, `rough`, `tapered`) with a `stroke_seed`, since a polyline is stored as the open centreline it was
 drawn as and the band around it is derived.
 
@@ -637,7 +652,8 @@ where one is edited.
 loaded back into — rather than a record of which edit happened, so a press that changes nothing costs no step
 and a drag that fires on every frame between the press and the release costs exactly one. A step is the
 document and not the view: the camera and the layer being drawn on are where the author is, so both survive
-it.
+it. The symmetry setup is part of the document, so a step back restores it too: the canvas announces
+`OnSetup(mirrorMode, cx, cz)` on every load, edit and step, and the Setup controls and Info read nothing else.
 
 **Every chord below is also live in the sheet and the palette.** `?` opens the keyboard sheet grouped like the
 table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+`K` runs any of them by name.

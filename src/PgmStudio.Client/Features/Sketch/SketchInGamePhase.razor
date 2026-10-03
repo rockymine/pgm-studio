@@ -8,18 +8,18 @@
 
 <div class="phase-body">
   <FlowBar Class="flow-bar--flush" PhaseIcon="eye" PhaseTitle="In game"
-           BackEnabled="true" NextLabel="Place a view" NextEnabled="@(Views is { Undrawable: null })" NextWrites
+           BackEnabled="true" NextLabel="Place a view" NextEnabled="@(Gallery is { Undrawable: null })" NextWrites
            OnBack="OnBack" OnNext="OnPlace" />
   <Workspace>
-    @if (Error is not null)
+    @if (Views.Error is not null)
     {
-      <div class="ingame"><p class="ingame__note ingame__note--warn">@Error</p></div>
+      <div class="ingame"><p class="ingame__note ingame__note--warn">@Views.Error</p></div>
     }
-    else if (Views is null)
+    else if (Gallery is null)
     {
       <div class="ingame"><p class="ingame__note">Loading views…</p></div>
     }
-    else if (Views.Undrawable is { } why)
+    else if (Gallery.Undrawable is { } why)
     {
       <div class="ingame">
         <div class="callout ingame__note">
@@ -29,7 +29,7 @@
         </div>
       </div>
     }
-    else if (Views.Views.Count == 0 || Shown is not { } shown)
+    else if (Gallery.Views.Count == 0 || Shown is not { } shown)
     {
       <div class="ingame">
         <p class="ingame__note">Nothing to show yet. Draw some ground first.</p>
@@ -60,7 +60,7 @@
             }
           </div>
 
-          @if (Refusal is not null) { <p class="ingame__note ingame__note--warn" role="alert">@Refusal</p> }
+          @if (Views.Refusal is not null) { <p class="ingame__note ingame__note--warn" role="alert">@Views.Refusal</p> }
           @if (Landed is { } landed)
           {
             <div class="ingame__moved" role="status">
@@ -82,7 +82,7 @@
                                 Round="Round" Alt="@shown.Name" Class="ingame__picture"
                                 Standin="@SketchEyePicture.SourceOf(Slug, shown.Query, SketchEyePicture.ThumbWidth, SketchEyePicture.ThumbHeight, Round)" />
             }
-            @if (mayNote)
+            @if (Notes.Allowed)
             {
               @if (showMarks)
               {
@@ -131,14 +131,14 @@
           </div>
 
           <div class="ingame__strip">
-            @foreach (var view in Views.Views)
+            @foreach (var view in Gallery.Views)
             {
               var count = Waiting(view.Id);
               <button type="button" class="@(view.Id == shown.Id ? "ingame__card ingame__card--on" : "ingame__card")"
                       @key="view.Id" title="@Where(view)" @onclick="() => Show(view)">
                 <span class="ingame__thumb">
                   <SketchEyePicture Slug="@Slug" Query="@view.Query" Round="Round" Alt="@view.Name" />
-                  @if (mayNote && count > 0) { <span class="ingame__count">@count</span> }
+                  @if (Notes.Allowed && count > 0) { <span class="ingame__count">@count</span> }
                 </span>
                 <span class="ingame__caption">
                   <span class="ingame__cardname">@view.Name</span>
@@ -149,9 +149,9 @@
           </div>
         </div>
 
-        @if (mayNote)
+        @if (Notes.Allowed)
         {
-          <SketchNotesColumn Step="step" Notes="notes" ViewIds="ViewIds" ViewId="@shown.Id" ViewName="@shown.Name"
+          <SketchNotesColumn Step="step" Notes="Notes.All" ViewIds="ViewIds" ViewId="@shown.Id" ViewName="@shown.Name"
                              Current="Current" Filter="@filter" AnchorTitle="@AnchorTitle" AnchorBody="@AnchorBody"
                              HasMark="@(mark is not null)" WholeMap="wholeMap" Ready="Ready" Busy="busy" Error="@notesError"
                              OnFilter="f => filter = f" OnOpen="OpenNote" OnBack="BackToOverview" OnNew="StartNote"
@@ -159,7 +159,7 @@
                              OnReopen="() => ChangeAsync(NoteStatuses.Open)"
                              OnWontDo="() => ChangeAsync(NoteStatuses.WontDo)" OnRetag="RetagAsync" OnSend="SendNoteAsync" OnReply="ReplyAsync"
                              Changes="Changes" OnChangesSince="OnChangesSince" Stale="stale" OnRedraw="RedrawAsync"
-                             MeUuid="@meUuid" Handoff="handoff" Handing="handing" OnHandOff="HandOffAsync" />
+                             MeUuid="@Notes.MeUuid" Handoff="Notes.Handoff" Handing="handing" OnHandOff="HandOffAsync" />
         }
       </div>
     }

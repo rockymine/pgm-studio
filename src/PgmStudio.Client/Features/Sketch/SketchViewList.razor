@@ -1,0 +1,36 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* Every camera the gallery has, as the canvas draws it: the views kept, then the studio's suggestions.
+   Choosing one picks it up as a press on its camera would. *@
+
+<Section Title="Kept views">
+  <div class="panel-list">
+    @foreach (var kept in Views.Kept)
+    {
+      <ListRow Compact Selected="@(Views.Draft?.Source?.Id == kept.Id)" @key="kept.Id" OnClick="() => Views.SelectAsync(kept)">
+        <span class="geo-type-icon"><i data-lucide="camera"></i></span>
+        <span class="list-label">@kept.Name</span>
+        <span class="list-tag">@kept.LookX, @kept.LookZ</span>
+      </ListRow>
+    }
+  </div>
+</Section>
+@if (Views.Suggested.Count > 0)
+{
+  <Section Title="Suggested">
+    <div class="panel-list">
+      @foreach (var suggested in Views.Suggested)
+      {
+        <ListRow Compact Selected="@(Views.Draft?.Source?.Id == suggested.Id)" @key="suggested.Id" OnClick="() => Views.SelectAsync(suggested)">
+          <span class="geo-type-icon"><i data-lucide="camera"></i></span>
+          <span class="list-label">@suggested.Name</span>
+          <span class="list-tag">@suggested.LookX, @suggested.LookZ</span>
+        </ListRow>
+      }
+    </div>
+  </Section>
+}
+
+@code {
+    [Parameter, EditorRequired] public SketchViews Views { get; set; } = default!;
+}

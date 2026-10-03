@@ -318,7 +318,7 @@ export class SketchCanvas extends CanvasBase {
   /** Whether the phase in front of the author places things of its own — marks or props. Those two own the
    *  selection, the Delete chord and the inspector while they are up, so a shape must not be reachable
    *  underneath them. */
-  get #placesOwnThings() { return this.#reliefOn || this.#dressingOn; }
+  get placesOwnThings() { return this.#reliefOn || this.#dressingOn; }
 
   selectGroup(id) {
     this.#selectedGroupId = id ?? null;
@@ -326,7 +326,7 @@ export class SketchCanvas extends CanvasBase {
     // every shape-level chord acts on — which is how Delete reached the island a relief was being stated on.
     // The drill to a sole member exists to put the Draw inspector's actions one click away; Theme keeps it,
     // because its inspector is about the selected shape.
-    this.#selectedId = this.#placesOwnThings ? null : this.#soleMemberOf(this.#selectedGroupId);
+    this.#selectedId = this.placesOwnThings ? null : this.#soleMemberOf(this.#selectedGroupId);
     this.#setLevel("group");
   }
 
@@ -349,6 +349,8 @@ export class SketchCanvas extends CanvasBase {
   getShape(id)  { return this.#shapes.get(id); }
   getShapes()   { return [...this.#shapes.values()]; }
   get selectedId() { return this.#selectedId; }
+  /** The selected group, or null. A single-member group also puts its member in `selectedId` — the drill. */
+  get selectedGroupId() { return this.#selectedGroupId; }
   #groupOfShape(shapeId) { return this.#groups.find(i => i.shapeIds?.includes(shapeId)) ?? null; }
 
   // Whether a cell centre sits on the rasterized terrain — inside some group's footprint and clear of its
@@ -609,7 +611,7 @@ export class SketchCanvas extends CanvasBase {
     // A phase that places its own things picks the group and stops there. Reaching a member would select a
     // shape the phase cannot change and the chords can, and the group is the unit it is about anyway — a
     // relief is solved over one, and its base, reach and step are what a click on the ground should reach.
-    if (this.#placesOwnThings) {
+    if (this.placesOwnThings) {
       this.#enterScope(null);
       this.#callbacks.onShapeSelected?.(null);
       this.#callbacks.onGroupSelected?.(group ?? null);
@@ -1367,7 +1369,7 @@ export class SketchCanvas extends CanvasBase {
   /** Whether a single point of the selected outline is picked on the points rung — the state in which a
    *  delete key takes the point rather than the shape. Relief and dressing own the key while they are up. */
   #pointPicked() {
-    return !this.#placesOwnThings && !!this.#selectedId && this.#level === "points" && (this.#edit?.selectedVertex ?? -1) >= 0;
+    return !this.placesOwnThings && !!this.#selectedId && this.#level === "points" && (this.#edit?.selectedVertex ?? -1) >= 0;
   }
 
   /** Escape, in the order a press means them: an in-progress draw, then one rung back up the ladder — the
