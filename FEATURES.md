@@ -951,6 +951,23 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   member's plan canvas neither draws nor picks them, and the Boxes tools, the box inspector and the Generator
   check are shown to admins only.
 
+- **A canvas lets go of the page when its tool unmounts (C90).** `plan-bridge` disposes without throwing and
+  `CanvasBase` removes the document listeners it adds, so leaving a tool no longer leaks its canvas.
+- **Selection is held once, by the canvas (C93).** The sketch bridge reads the canvas's selected group and
+  placing-phase state instead of keeping its own copies.
+- **The bridge's verb table is where an edit is gated (C91).** Every mutating verb refuses while the page is
+  read-only and opens an undo step (`pullRecipe`, `joinDressing` and `setStructuralHeight` included); read verbs
+  are not wrapped; six dead verbs and an unlistened event are gone, and a callback no host declares is named in
+  the console during development.
+- **The plan save states the revision it stands on (TN30).** `DocumentSave` holds the stored revision, sends
+  `If-Match`, serialises saves and marks a tab superseded on 409; the sketch and the plan tool both save through
+  it, so a second tab can no longer overwrite the first.
+- **The plan inspector reads the served vocabulary and one casing twin (TN31).** `ObjectiveVocabularyDto` replaces
+  the plan's private copies, and `CoreCasing` sits beside `CoreDig`, pinned to `ObjectiveDefaults.CoreCasing`.
+- **The plan inspector and build drawer are components (TN32).** `PlanInspector` and `PlanBuildDrawer` live in
+  `Features/Plan/`; `PlanRoles` and `PlanBoxKinds` are `Vocabulary` word sets, and `plan-doc.js`'s twin is pinned
+  to them by a test.
+
 ## Backend / API (B)
 - **A load missing one of its two documents names it (`RP66`).** `POST /map/from-documents` reads the layout
   and the intent as raw JSON, so a body omitting one arrived as a `default(JsonElement)` and the first reader
@@ -10114,6 +10131,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (interpolated along the nearest edge), and a removed point takes its own; the canvas and the server's vertex,
   pull and bend edits share the rule, so an insert on a sloped edge leaves the ground where it was and no edit
   drops a slope to the flat `base_height` fallback.
+
+- **A Follow relief scope reaches the document (TS159).** The bridge validates relief scopes and height modes
+  against one JS word module (`shared/relief-words.js`), pinned to `ReliefScopes`/`HeightModes` by a JS test, so
+  the inspector's *Follow* is stored rather than dropped back to *Inherit*.
+- **The symmetry setup follows an undo (TS161).** The bridge fires `OnSetup` on load, mode and centre changes and
+  every undo/redo restore, and the host reads the setup only from it, so Info shows the mode the board has.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
