@@ -13,6 +13,7 @@ import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
 import { isPush, pushAmounts, pushAmountPatch } from "../relief/relief-doc.js";
 import { fireTo } from "./fire.js";
 import * as Keys from "../shared/keys.js";
+import { isHeightMode, isReliefScope } from "../shared/relief-words.js";
 import { diffOverlay } from "../render/diff-render.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
@@ -1059,7 +1060,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setHeightMode(id, mode) {
       const s = canvas.getShape(id);
       if (!s) return;
-      if (mode === "level" || mode === "raise" || mode === "sink" || mode === "drape") s.height_mode = mode;
+      if (isHeightMode(mode)) s.height_mode = mode;
       else delete s.height_mode;                    // absent, not empty: a shape without the word IS ground
       pushLayout(); dropIsoMesh(); markDirty();
     },
@@ -1076,7 +1077,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setReliefScope(id, scope) {
       const s = canvas.getShape(id);
       if (!s) return;
-      if (scope === "hold" || scope === "exclude") s.relief_scope = scope;
+      if (isReliefScope(scope)) s.relief_scope = scope;
       else delete s.relief_scope;
       pushLayout(); markDirty();
     },

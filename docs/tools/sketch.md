@@ -263,7 +263,8 @@ wall or a hedge held that amount above the ground at every cell, so it climbs th
 from its own outline an erected shape eases back into the ground it meets, in blocks; zero is a sheer face,
 which is right for a built thing and wrong for a landform. `relief_scope` is `follow`, `hold` or `exclude` and decides
 whether the shape's ground takes part in its group's relief at all (see *Groups and layers*); absent means
-it is simply part of the group's ground. And a polyline carries `stroke_edge`
+it is simply part of the group's ground. The canvas bridge writes only the words `ReliefScopes` and `HeightModes`
+name, validated against one JS list (`shared/relief-words.js`) that a test holds equal to the C# sets. And a polyline carries `stroke_edge`
 (`solid`, `rough`, `tapered`) with a `stroke_seed`, since a polyline is stored as the open centreline it was
 drawn as and the band around it is derived.
 
