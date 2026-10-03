@@ -269,7 +269,7 @@
       <Footer>
         <Button Full Icon="clipboard" OnClick="() => CopyDescriptor(d)">Copy JSON</Button>
         <Button Full Writes Deletes="@IsPinned(d)" OnClick="() => TogglePin(d)">@(IsPinned(d) ? "Unpin" : "Pin")</Button>
-        <Button Variant="primary" Full Icon="file-plus-2" Writes OnClick="() => AuthorPlan(d)">Open in plan editor</Button>
+        <Button Variant="primary" Full Icon="file-plus-2" Writes OnClick="() => AuthorPlan(d)">Start a map</Button>
       </Footer>
     </SideDrawer>
   }

@@ -92,7 +92,7 @@ public static class MaterialVocabulary
           + "falling back to a neutral material where no team owns the cell.", [CellFact.Team]),
         ("voronoi", "Voronoi cells",
             "Irregular cells grown from scattered seeds: the ground broken into patches with hard edges. Its "
-          + "bands are read outward from each cell's centre, so a one-block first band draws a grid of lines.",
+          + "bands are read inward from each cell's edge, so a one-block first band draws a grid of lines.",
             [CellFact.Position]),
         ("cell", "Cell patches",
             "Square patches on a jittered grid, warped so the edges wander. Reads as tiling where a voronoi "

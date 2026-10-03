@@ -303,7 +303,7 @@ soft sum, which is why the slider stops at 8.
 
 **Pinning and authoring are the two exits.** The pin toggle keeps the library board the descriptor names and
 refreshes the tray; the tray's thumbnails come from the stored rows rather than from the cards, so a board held in an
-earlier session looks the same as one held a moment ago. *Open in plan editor* pins first if the board is not
+earlier session looks the same as one held a moment ago. *Start a map* pins first if the board is not
 already held, then commits the candidate to a map and navigates to `/maps/{slug}/plan`.
 
 ## What it refuses
@@ -333,7 +333,7 @@ that a pinned board is any good — the score is advice, and a board scoring 12 
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist
 ([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The page greys *Pin* and
-*Open in plan editor* for anyone off the whitelist and unpinning for anyone but an admin, since a pin is a
+*Start a map* for anyone off the whitelist and unpinning for anyone but an admin, since a pin is a
 plan row and deleting one is an admin's.
 
 | Endpoint | Answers | Fails with |

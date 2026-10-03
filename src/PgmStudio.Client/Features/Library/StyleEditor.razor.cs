@@ -134,7 +134,7 @@ public partial class StyleEditor
 
         // An edit reaches every theme binding this style — the library is the shared copy, and a map's applied
         // theme is its own snapshot, so nothing already exported moves.
-        note = editingId is null ? "Added to the library." : "Saved. Palettes using this pattern are updated.";
+        note = editingId is null ? "Added to the library." : "Saved. Palettes and buildings that use this pattern are updated.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{LibraryKinds.StylesSlug}/{saved.Id}");
         else editingId = saved.Id;

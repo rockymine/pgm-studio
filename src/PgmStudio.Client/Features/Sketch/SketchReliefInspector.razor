@@ -18,7 +18,7 @@
         <span class="detail-header-badges">
           @if (editingSelection) { <Badge Kind="neutral">selected</Badge> }
           else { <Badge Kind="dim">next mark</Badge> }
-          @if (kind == MarkKinds.Scarp) { <Badge Kind="warning">blocks movement</Badge> }
+          @if (kind == MarkKinds.Scarp) { <Badge Kind="warning">affects play</Badge> }
         </span>
       </DetailHeader>
       <p class="section-desc">@Info.Blurb</p>
@@ -135,7 +135,7 @@
       else if (kind == MarkKinds.Scarp)
       {
         <Field Label="High side">
-          <LabelHint>(height on the +z side of the line)</LabelHint>
+          <LabelHint>(height on your right as you draw the line)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(MarkFields.High, 11)" ValueChanged="SetHigh" />
           </ChildContent>

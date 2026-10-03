@@ -47,7 +47,7 @@ clearFaults(page);   // the export's 409 is the refusal this section asked for
 
 checks.section("Draw's Done goes on to Terraform");
 await page.goto(`${BASE}/maps/${seed.sketchSlug}/sketch`, { waitUntil: "networkidle" });
-await page.locator(".flow-bar", { hasText: "Draw" }).locator("button", { hasText: "Done" }).click();
+await page.locator(".flow-bar", { hasText: "Draw" }).locator("button", { hasText: "Next" }).click();
 await page.locator(".flow-bar", { hasText: "Terraform" }).waitFor({ timeout: 30000 });
 checks.add("the next phase is Terraform", true);
 

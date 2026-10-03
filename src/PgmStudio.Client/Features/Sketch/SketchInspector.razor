@@ -143,7 +143,7 @@
           <input class="field-input" value="@Group.Name" @onchange="RenameChanged" />
         </Field>
         <Button Full Writes OnClick="() => OnToggleMirrors.InvokeAsync(Group.Id)">
-          @(Group.Mirrors ? "Exclude from mirror" : "Include in mirror")
+          @(Group.Mirrors ? "Don't copy for other teams" : "Copy for other teams")
         </Button>
         <Field Label="Rotate (°)">
           <NumberField Value="null" ValueChanged="RotateChanged" Step="15" placeholder="0" />

@@ -38,7 +38,7 @@ public static class LibraryKinds
 
     public static readonly LibraryKind Styles = new(
         StylesSlug, "styles", "Patterns", "pattern", "paintbrush",
-        "A block pattern: one block, layers of blocks, a team colour, or a mix. Even a single block is a pattern.",
+        "A block pattern: layers of blocks, a team colour, scattered patches, or a mix.",
         DraftPreview: false);
 
     public static readonly LibraryKind Themes = new(
@@ -69,7 +69,7 @@ public static class LibraryKinds
     /// stands there is one of these. The three forms are three trees, not one with a switch.</summary>
     public static readonly LibraryKind Trees = new(
         TreesSlug, "tree-styles", "Trees", "tree", "trees",
-        "Trees: a vanilla species, a shaped skeleton, or a tree copied from a world.",
+        "Trees: a vanilla species, or a tree copied from a world.",
         Composed: true);
 
     public static readonly LibraryKind Boulders = new(

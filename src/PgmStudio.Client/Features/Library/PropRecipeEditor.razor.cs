@@ -51,8 +51,8 @@ public partial class PropRecipeEditor
         [new(KnobsPart, IsTree ? "Tree" : "Rock", IsTree ? "trees" : "mountain")];
 
     private string Footnote => IsTree
-        ? "Changes apply to every tree that uses this recipe."
-        : "Changes apply to every boulder that uses this recipe.";
+        ? "Maps keep their own copy, so editing this doesn't change trees already placed."
+        : "Maps keep their own copy, so editing this doesn't change boulders already placed.";
 
     protected override async Task OnParametersSetAsync()
     {

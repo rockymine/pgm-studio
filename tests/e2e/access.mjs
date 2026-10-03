@@ -80,7 +80,7 @@ const WRITE_PAGES = [
   [`/plans/${seed.planId}`, null, [["the plan editor's New", /^New$/], ["the plan editor's Import", /^Import$/],
     ["the plan editor's Save", /^Save$/], ["the plan editor's Compile", /^Compile$/]]],
   ["/generator", openFirstLayout, [["the generator's Pin", /^(Pin|Unpin)$/],
-    ["the generator's Open in plan editor", /^Open in plan editor$/]]],
+    ["the generator's Start a map", /^Start a map$/]]],
 ];
 
 async function checkWrites(base, open) {

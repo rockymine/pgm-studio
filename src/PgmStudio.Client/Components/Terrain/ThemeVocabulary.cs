@@ -430,7 +430,7 @@ public sealed record PartKindInfo(
             [RoomPartInfo.Of(RoomParts.Roof), RoomPartInfo.Of(RoomParts.Verge), RoomPartInfo.Of(RoomParts.Gable)]),
 
         new(LibraryKinds.Storeys, "Room",
-            "Shown as a one-storey building, or as two storeys if it has a ceiling.",
+            "Shown as a one-storey building, or as two storeys if it has a deck.",
             [RoomPartInfo.Of(RoomParts.Wall)],
             [RoomPartInfo.Of(RoomParts.Post), RoomPartInfo.Of(RoomParts.Deck),
              RoomPartInfo.Of(RoomParts.Field), RoomPartInfo.Of(RoomParts.Border),
