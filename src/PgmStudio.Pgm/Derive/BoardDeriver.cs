@@ -1,6 +1,7 @@
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Derive;
 

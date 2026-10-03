@@ -2,6 +2,7 @@ using PgmStudio.Geom.Render;
 using PgmStudio.Pgm.Plan;
 using static PgmStudio.Pgm.Render.PlanBoardScene;
 using static PgmStudio.Pgm.Render.PlanBoardPalette;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Render;
 

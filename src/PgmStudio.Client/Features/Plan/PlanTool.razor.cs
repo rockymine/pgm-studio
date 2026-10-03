@@ -96,73 +96,22 @@ public partial class PlanTool
     }
 
     private ElementReference svgRef, wrapRef;
+    private PlanBuildDrawer? buildDrawer;
+
+    private Task OpenCompile() => buildDrawer?.OpenAsync() ?? Task.CompletedTask;
+
     /// <summary>The floating top-left readout. Its cursor element is handed to the canvas on mount,
     /// which then writes the world position into it directly — per mousemove, far too often to render.</summary>
     private CanvasReadout? readout;
     private IJSObjectReference? handle;
     private DotNetObjectReference<PlanTool>? selfRef;
 
-    // Compile & test drawer: the compiled pair (pretty-printed for preview, raw for the draft chain),
-    // structural errors when the compile is blocked, and the walk-test loop's per-step draft state.
-    private bool showCompile;
     /// <summary>Whether the first render's load chain has finished. The canvas and the toolbar are in the DOM
     /// before the plan document is — nine interop round-trips and up to four reads separate them — so until
     /// this is set the editor is holding the bridge's blank default, and compiling it would post a plan with
     /// no pieces and be told so. True on /plans/new the moment the chain ends, since a plan drawn from
     /// scratch has nothing to wait for.</summary>
     private bool documentLoaded;
-
-    private bool compiling;
-    private string compileTab = PlanTabId;
-    private bool copied;
-    private string? compiledPlan;                     // the plan document this compile was run on
-    private string? compiledLayout, compiledIntent;   // pretty-printed for the preview panes
-    private string? compiledLayoutRaw, compiledIntentRaw;   // verbatim, posted to the draft pipeline
-    private string? compileError;                     // a malformed / transport failure message
-    private List<Finding> compileErrors = [];  // 422 structural findings (compile blocked)
-    private List<Finding> compileWarnings = [];  // completeness complaints that did not block the compile
-
-    private string? draftSlug;
-    private bool draftBusy;
-    private string draftStep = "";
-    private string? draftError;
-
-    // What the open map already holds, so the build can tell an origination from a rebuild before it runs.
-    // A map with a sketch or a world has downstream work that the build replaces, which is worth saying
-    // out loud once rather than discovering afterwards; a plan that has never been built has nothing to
-    // lose and gets no interruption. Null until the fetch lands, and on a plan row, where there is no map to
-    // ask about.
-    private MapState? state;
-    private bool confirmingRebuild;
-
-    // The groups whose relief the rebuilt board has no island for, as the layout write refused them (409) —
-    // offered back as a choice, since discarding hand-drawn terrain is the author's call and not the build's.
-    private IReadOnlyList<string>? orphanedRelief;
-
-    // The sketch-drawn shapes the last rebuild did not keep, as the layout write answered them.
-    private IReadOnlyList<string> droppedShapes = [];
-
-    private bool Rebuilds => state is { Artifacts: { } held } && (held.Sketch || held.World);
-    private string BuildLabel => Rebuilds ? "Rebuild this map" : MapBacked ? "Build the map" : "Create draft";
-
-    /// <summary>What the drawer's footer button says. <see cref="BuildLabel"/> answers only whether the map is
-    /// built, which is the right word for the one state where the button can act; every other state is about
-    /// the compile, and naming it is what keeps a disabled control from promising the build it cannot do. A
-    /// refusal count points at the findings the drawer already lists above the footer.</summary>
-    private string DraftLabel
-        => compiling ? "Compiling…"
-         : compileErrors.Count > 0
-             ? $"Fix {compileErrors.Count} problem{(compileErrors.Count == 1 ? "" : "s")} first"
-         : compileError is not null ? "Couldn't compile"
-         : compiledLayout is null ? "Compile first"
-         : BuildLabel;
-
-    private async Task LoadStateAsync()
-    {
-        if (!MapBacked) { state = null; return; }
-        try { state = await Http.GetFromJsonAsync<MapState>($"api/map/{Slug}/state"); }
-        catch { state = null; }   // unreachable / not a map row → treat as a first build, never block one
-    }
 
     private string tool = "select";
     private string role = "piece";
@@ -182,8 +131,6 @@ public partial class PlanTool
     private DocumentSave Document => document ??= new(Http);
     private DocumentSave? document;
 
-    private async Task<HttpContent> PlanBodyAsync()
-        => new StringContent(await handle!.InvokeAsync<string>("exportJson"), Encoding.UTF8, "application/json");
     private bool showOpenDb;
     private bool dbBusy;
     private string? dbError;
@@ -270,59 +217,14 @@ public partial class PlanTool
     private double refOpacity = 0.5, refScale = 1, refOffsetX, refOffsetZ;
     private string? refError;
 
-    private record RolePalette(string Id, string Label, string Color);
-
-    // The role taxonomy: true pieces (terrain-producing roles) vs technical pieces (non-generating annotations).
-    // Both are drawn from the palette; markers (wool/spawn/iron/wall) and the build zone are separate tools.
-    private static readonly RolePalette[] GeneratingRoles =
-    [
-        new("piece", "Piece", "var(--canvas-role-piece)"),
-        new("spawn", "Spawn", "var(--canvas-role-spawn)"),
-        new("wool-room", "Wool room", "var(--canvas-role-wool-room)"),
-    ];
-    private static readonly RolePalette[] TechnicalRoles =
-    [
-        new("buffer", "Buffer", "var(--canvas-role-buffer)"),
-    ];
-    // Every assignable role, for the inspector's role dropdown (a piece can become any of them).
-    private static readonly RolePalette[] Roles = [.. GeneratingRoles, .. TechnicalRoles];
-
-    // The typed box kinds an envelope may carry — the partition vocabulary, offered on the box tool and in the
-    // inspector's kind dropdown.
-    private static readonly RolePalette[] BoxKinds =
-    [
-        new("hub", "Hub", "var(--canvas-box-hub)"),
-        new("wool", "Wool", "var(--canvas-box-wool)"),
-        new("spawn", "Spawn", "var(--canvas-box-spawn)"),
-        new("frontline", "Front line", "var(--canvas-box-frontline)"),
-        new("mid", "Mid", "var(--canvas-box-mid)"),
-    ];
-
     // The kind armed for the box tool (the last one drawn), mirrored into the bridge.
     private string boxKind = "hub";
 
     // The kind armed for the zone tool — build (open from the first tick) or water-lane (opens mid-match).
     private string zoneKind = "build";
 
-    private static readonly IReadOnlyList<SelectOption> RoleOptions =
-        [.. Roles.Select(role => new SelectOption(role.Id, role.Label))];
-
-    private static readonly IReadOnlyList<SelectOption> BoxKindOptions =
-        [.. BoxKinds.Select(kind => new SelectOption(kind.Id, kind.Label))];
-
     private IReadOnlyList<SelectOption> TraceMapOptions
         => [.. traceMaps.Select(map => new SelectOption(map.Slug, map.Name))];
-
-    private string OffsetLabel => sel?.At is { Length: 2 } a ? $"{a[0]}, {a[1]}" : "";
-
-    /// <summary>The inspector's glyph for a marker kind — the same icon its dock item wears, so the panel
-    /// and the tool that placed it read as one thing.</summary>
-    private static string MarkerIcon(string kind) =>
-        AllMarkerItems.FirstOrDefault(item => item.Key == kind)?.Icon ?? "flag";
-
-    /// <summary>Parse a picked number, keeping the current value when the pick is unreadable.</summary>
-    private static int Num(object? value, int fallback)
-        => int.TryParse(value?.ToString(), out var parsed) ? parsed : fallback;
 
     /// <summary>The name this tool's chords are registered and dropped under.</summary>
     private const string KeyOwner = "plan-tool";
@@ -410,8 +312,8 @@ public partial class PlanTool
 
         boundKey = RouteKey;
         sel = null;
-        state = null;
-        showCompile = showOpenDb = false;
+        buildDrawer?.Reset();
+        showOpenDb = false;
         importError = null;
         ResetDbBinding();
         if (previous is not null) active = Phase == "info" ? "info" : "draw";
@@ -486,9 +388,9 @@ public partial class PlanTool
     // families says which it is: a piece role, a marker and a box kind can all be called "spawn". Where a
     // name is unique in the whole dock (buffer, destroyable, core) it stands alone.
     private static DockItem[] TerrainItems =>
-        [.. GeneratingRoles.Select(r => new DockItem(r.Id, PieceName(r), Swatch: r.Color))];
+        [.. PlanPalette.GeneratingRoles.Select(role => new DockItem(role.Id, PieceName(role), Swatch: role.Color))];
 
-    private static string PieceName(RolePalette role) => role.Id switch
+    private static string PieceName(PlanPalette.Entry role) => role.Id switch
     {
         "piece" => "Piece",
         "wool-room" => "Wool room",
@@ -502,17 +404,7 @@ public partial class PlanTool
     [
         new("zone", "Build area", SwatchClass: "canvas-dock-swatch--build"),
         new("water-lane", "Water lane", SwatchClass: "canvas-dock-swatch--water-lane"),
-        .. TechnicalRoles.Select(r => new DockItem(r.Id, r.Label, SwatchClass: $"canvas-dock-swatch--{r.Id}")),
-    ];
-
-    private static readonly DockItem[] AllMarkerItems =
-    [
-        new("spawn", "Spawn marker", Icon: "flag"),
-        new("wool", "Wool marker", Icon: "square"),
-        new("iron", "Iron marker", Icon: "pickaxe"),
-        new("destroyable", "Destroyable", Icon: "gem"),
-        new("core", "Core", Icon: "flame"),
-        new("wall", "Wall", Icon: "brick-wall"),
+        .. PlanPalette.TechnicalRoles.Select(role => new DockItem(role.Id, role.Label, SwatchClass: $"canvas-dock-swatch--{role.Id}")),
     ];
 
     /// <summary>The markers this plan may place. A destroyable is defended by one team and broken by the
@@ -520,12 +412,12 @@ public partial class PlanTool
     /// and what that should play like is undecided. So the two are offered for the 2-team symmetries only
     /// (OB14).</summary>
     private DockItem[] MarkerItems => ObjectivesOfferable
-        ? AllMarkerItems
-        : [.. AllMarkerItems.Where(m => m.Key is not ("destroyable" or "core"))];
+        ? PlanPalette.AllMarkerItems
+        : [.. PlanPalette.AllMarkerItems.Where(m => m.Key is not ("destroyable" or "core"))];
 
     private static DockItem[] BoxItems =>
-        [.. BoxKinds.Select(k => new DockItem(k.Id, $"{k.Label} box",
-                                              Swatch: k.Color, SwatchClass: "canvas-dock-swatch--box"))];
+        [.. PlanPalette.BoxKinds.Select(kind => new DockItem(kind.Id, $"{kind.Label} box",
+                                                             Swatch: kind.Color, SwatchClass: "canvas-dock-swatch--box"))];
 
     /// <summary>Whether the technical family's option is the armed tool. The two zone kinds share the zone
     /// tool and differ by the armed kind; the rest are piece roles, so the test differs by which is in the
@@ -707,54 +599,13 @@ public partial class PlanTool
 
     // Surface-stepper increment (editor preference; the bridge clamps to a whole number ≥ 1 and persists it).
     // The globals field sets any value; the inspector's quick-preset chips switch the common ones in-context.
-    private static readonly int[] StepPresets = [1, 2, 3];
-
     private async Task OnSurfaceStep(double v)
     {
         surfaceStep = v < 1 ? 1 : v;
         if (handle is not null) surfaceStep = await handle.InvokeAsync<double>("setSurfaceStep", surfaceStep);
     }
 
-    private Task SetSurfaceStep(int s) => OnSurfaceStep(s);
-
-    // ── inspector edits ──────────────────────────────────────────────────────────
-
-    private Task OnPieceId(ChangeEventArgs e)
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setPieceId", sel.Id, e.Value?.ToString() ?? "").AsTask() : Task.CompletedTask;
-
-    private Task OnPieceRole(string role)
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setPieceRole", sel.Id, role).AsTask() : Task.CompletedTask;
-
-    private Task StepSurface(int delta)
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("stepPieceSurface", sel.Id, delta).AsTask() : Task.CompletedTask;
-
-    private Task ToggleMirrors()
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("togglePieceMirrors", sel.Id).AsTask() : Task.CompletedTask;
-
-    private Task OnZoneId(ChangeEventArgs e)
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setZoneId", sel.Id, e.Value?.ToString() ?? "").AsTask() : Task.CompletedTask;
-
-    private Task OnBoxId(ChangeEventArgs e)
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setBoxId", sel.Id, e.Value?.ToString() ?? "").AsTask() : Task.CompletedTask;
-
-    private Task OnBoxKind(string kind)
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setBoxKind", sel.Id, kind).AsTask() : Task.CompletedTask;
-
-    private Task ToggleBoxMembers()
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("toggleBoxMembers", sel.Id).AsTask() : Task.CompletedTask;
-
-    private Task CycleFacing()
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("cycleFacing", sel.Index).AsTask() : Task.CompletedTask;
-
-    // ── objective markers: the structure each one builds ─────────────────────────────────────────
-    //
-    // A core and a destroyable are placed as a bare marker and take the generator's defaults; these are the
-    // knobs that vary them. The plan is where they belong, because a plan states the gameplay against the
-    // terrain it also lays down — the marker's piece is the ground its structure floats over.
-    //
-    // What is stored is only what differs. Setting a field back to its default passes null, which removes
-    // the key, so a plan the author never varied stays the bare markers it was written as and a default that
-    // later moves moves for every plan that never disagreed with it.
+    // ── objective markers: the defaults their inspector shows ────────────────────────────────────
 
     /// <summary>The objective vocabulary + defaults (<c>GET /api/objectives/vocabulary</c>). Fetched rather
     /// than hardcoded: the client cannot reach <c>ObjectiveDefaults</c>, and a second copy of these numbers
@@ -773,71 +624,6 @@ public partial class PlanTool
         try { vocabulary = await Http.GetFromJsonAsync<ObjectiveVocabularyDto>("api/objectives/vocabulary") ?? Unloaded; }
         catch { /* keep what is held — the inspector still renders */ }
     }
-
-    private Task SetMarkerField(string key, object? value)
-        => sel is not null && handle is not null
-            ? handle.InvokeVoidAsync("setMarkerField", sel.MarkerKind, sel.Index, key, value).AsTask()
-            : Task.CompletedTask;
-
-    /// <summary>Store a number, or clear it when it equals the default it would fall back to anyway.</summary>
-    private Task SetMarkerNumber(string key, int value, int fallback)
-        => SetMarkerField(key, value == fallback ? null : value);
-
-    private Task SetMarkerText(string key, string? value, string fallback)
-        => SetMarkerField(key, string.IsNullOrWhiteSpace(value) || value.Trim() == fallback ? null : value.Trim());
-
-    // ── the effective value of each knob: what the author set, else what the generator will use ──
-    private string DestroyableStyle => sel?.Style ?? vocabulary.Destroyable.Style;
-    private string DestroyableMaterials => sel?.Materials ?? vocabulary.Destroyable.Materials;
-    private int DestroyableFloat => sel?.Float ?? vocabulary.Destroyable.Float;
-
-    private int CoreLava => sel?.Lava ?? vocabulary.Core.Lava;
-    private int CoreLavaHeight => sel?.LavaHeight ?? vocabulary.Core.LavaHeight;
-
-    /// <summary>The obsidian the two stated numbers imply, so the author reads the structure they are
-    /// building rather than the interior alone.</summary>
-    private string CoreCasingReadout
-    {
-        get
-        {
-            var (size, height) = CoreCasing.Of(CoreLava, CoreLavaHeight, CoreOpenTop);
-            return $"{size}×{size}×{height} obsidian, {CoreLava}×{CoreLava}×{CoreLavaHeight} lava inside";
-        }
-    }
-    /// <summary>The dye a wool marker states, or empty where it states none. Unlike the other knobs there is
-    /// no default to fall back to: an unstated colour is resolved at compile time against the marker's team and
-    /// the wools before it, which the editor cannot know from one marker.</summary>
-    private string WoolColor => sel?.Color ?? "";
-
-    private IReadOnlyList<SelectOption> WoolColorOptions
-        => [.. vocabulary.Wool.Colors.Select(dye => new SelectOption(dye.Name, dye.Label))];
-
-    private IReadOnlyList<SelectOption> DestroyableStyleOptions
-        => [.. vocabulary.Destroyable.Styles.Select(design => new SelectOption(design, design))];
-
-    private IReadOnlyList<SelectOption> DestroyableMaterialOptions
-        => [.. vocabulary.Destroyable.MaterialChoices.Select(material => new SelectOption(material, material))];
-
-    private IReadOnlyList<SelectOption> LavaOptions
-        => [.. vocabulary.Core.LavaRange.Select(size => new SelectOption(size.ToString(), $"{size} × {size}"))];
-
-    private IReadOnlyList<SelectOption> LavaHeightOptions
-        => [.. vocabulary.Core.LavaHeightRange.Select(height => new SelectOption(height.ToString(), height.ToString()))];
-
-    /// <summary>The swatch beside the picker: the stated dye's own colour, or the neutral the auto option
-    /// stands for, since no one colour is what "auto" resolves to.</summary>
-    private string WoolSwatch
-        => vocabulary.Wool.Colors.FirstOrDefault(c => c.Name == WoolColor)?.Hex ?? "var(--border)";
-
-    private int CoreFloat => sel?.Float ?? vocabulary.Core.Float;
-    private int CoreLeak => sel?.Leak ?? vocabulary.Core.Leak;
-    private bool CoreOpenTop => sel?.OpenTop ?? vocabulary.Core.OpenTop;
-
-    /// <summary>How far players must dig under the casing before its lava can leak — the whole point of the
-    /// float/leak pair, which says nothing when either is read alone.</summary>
-    private int CoreDigDepth => CoreDig.Depth(CoreLeak, CoreFloat);
-
-    private Task DeleteSelected() => handle?.InvokeVoidAsync("deleteSelected").AsTask() ?? Task.CompletedTask;
 
     // ── plan file / lifecycle ────────────────────────────────────────────────────
 
@@ -892,7 +678,7 @@ public partial class PlanTool
             // A map-backed plan mutates its artifact in place — it is already the authored map row, no forking.
             if (MapBacked)
             {
-                var outcome = await Document.PutAsync($"api/map/{Slug}/plan", PlanBodyAsync);
+                var outcome = await Document.PutAsync($"api/map/{Slug}/plan", () => PlanExport.BodyAsync(handle!));
                 saveState = outcome.Landed ? "Saved" : outcome.Message;
                 return;
             }
@@ -1019,255 +805,6 @@ public partial class PlanTool
         refOpacity = r is null ? 0.5 : r.Opacity;
     }
 
-    // ── compile & test (the walk-test loop) ──────────────────────────────────────
-
-    private static readonly JsonSerializerOptions Pretty = new() { WriteIndented = true };
-
-    private async Task OpenCompile()
-    {
-        showCompile = true;
-        confirmingRebuild = false;
-        await LoadStateAsync();   // re-read on open: a build in this session changes the answer
-        await Compile();
-    }
-
-    private void CloseCompile() { showCompile = false; confirmingRebuild = false; }
-
-    // A finding can point at what it is about only if it named something: a rule about the plan as a whole
-    // (or one whose subject the canvas cannot draw) has nothing to show.
-    private static bool HasSubjects(Finding finding) => finding.SubjectIds.Count > 0;
-
-    private static string? ShowFindingTitle(Finding finding)
-        => HasSubjects(finding) ? "Show on the canvas" : null;
-
-    // Click a compile finding to see what it is about. A finding names its subjects — pieces, zones, markers —
-    // and the canvas can pulse them, but the compile drawer is modal and dims the board behind it, so the
-    // drawer closes first: the click means "show me", and the answer is on the canvas rather than in the list.
-    private async Task ShowFinding(Finding finding)
-    {
-        if (handle is null || !HasSubjects(finding)) return;
-        CloseCompile();
-        // Render the closed drawer before the pulse starts, so the whole 1.6s ramp plays on a board the
-        // author can actually see rather than beginning under the backdrop.
-        StateHasChanged();
-        await Task.Yield();
-        await handle.InvokeVoidAsync("highlightSubjects", JsonSerializer.Serialize(finding.SubjectIds));
-    }
-
-    // The build button. On a map that already holds a sketch or a world it asks first, because the same
-    // click means two different things — originating the map, or replacing a board someone has since been
-    // working on — and only the second is worth a sentence.
-    private async Task BuildRequested()
-    {
-        if (Rebuilds && !confirmingRebuild) { confirmingRebuild = true; return; }
-        confirmingRebuild = false;
-        await CreateDraft();
-    }
-
-    private void CancelRebuild() => confirmingRebuild = false;
-
-    private void KeepRelief() => orphanedRelief = null;
-
-    // The author accepted the loss the layout write refused over: the same build, with ?force=true.
-    private async Task DiscardReliefAndRebuild()
-    {
-        orphanedRelief = null;
-        await CreateDraft(discardRelief: true);
-    }
-
-    // Post the current plan to /api/plan/compile. A 422 renders its structural findings in place of the JSON;
-    // a 400 (malformed) / transport failure shows a message. A 200 stores the compiled pair for preview + the
-    // draft chain. Compiling resets any prior draft so a fresh compile starts the loop over.
-    private async Task Compile()
-    {
-        if (handle is null) return;
-        compiling = true;
-        compileError = null;
-        compileErrors = [];
-        compileWarnings = [];
-        compiledPlan = compiledLayout = compiledIntent = compiledLayoutRaw = compiledIntentRaw = null;
-        compileTab = PlanTabId;
-        draftSlug = null; draftError = null; draftBusy = false;
-        orphanedRelief = null; droppedShapes = [];
-        StateHasChanged();
-
-        try
-        {
-            var planJson = await handle.InvokeAsync<string>("exportJson");
-            // Kept whatever the compile answers: the plan is the one file that exists either way, and a plan
-            // that will not compile is the one an author most needs a copy of.
-            compiledPlan = Reindent(planJson);
-            using var resp = await Http.PostAsync("api/plan/compile", new StringContent(planJson, Encoding.UTF8, "application/json"));
-            if (resp.IsSuccessStatusCode)
-            {
-                // The compiled pair and what the compile remarked on come out of one read: `warnings` is a
-                // member of the success rather than a wrapper around it, and the body is a stream.
-                var (compiled, warnings) = await ServerWarnings.AnsweredAsync<CompiledPlanDto>(resp);
-                compiledLayoutRaw = compiled?.Layout.GetRawText();
-                compiledIntentRaw = compiled?.Intent.GetRawText();
-                compiledLayout = compiled is null ? null : JsonSerializer.Serialize(compiled.Layout, Pretty);
-                compiledIntent = compiled is null ? null : JsonSerializer.Serialize(compiled.Intent, Pretty);
-                compileWarnings = [.. warnings];
-                compileTab = LayoutTabId;
-            }
-            else if ((int)resp.StatusCode == 422)
-            {
-                var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
-                compileErrors = [.. refusal?.Findings ?? []];
-            }
-            else
-            {
-                compileError = $"Couldn't compile the plan (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
-            }
-        }
-        catch (Exception ex) { compileError = ex.Message; }
-        compiling = false;
-        StateHasChanged();
-    }
-
-    // ── the drawer's files ───────────────────────────────────────────────────────
-    // Every file a plan can be read out of is offered from the one drawer: the plan document, and the pair
-    // it compiled into once there is one. The tab id doubles as the downloaded file's middle extension
-    // (`<name>.plan.json`, `.layout.json`, `.intent.json`).
-
-    private const string PlanTabId = "plan";
-    private const string LayoutTabId = "layout";
-    private const string IntentTabId = "intent";
-
-    private IEnumerable<(string Id, string Label)> CompileTabs
-    {
-        get
-        {
-            yield return (PlanTabId, "Plan");
-            if (compiledLayout is null) yield break;
-            yield return (LayoutTabId, "Layout");
-            yield return (IntentTabId, "Game settings");
-        }
-    }
-
-    private string? TabText => compileTab switch
-    {
-        LayoutTabId => compiledLayout,
-        IntentTabId => compiledIntent,
-        _ => compiledPlan,
-    };
-
-    /// <summary>The plan document as the panes show every other file — the bridge exports it compact.</summary>
-    private static string Reindent(string json)
-    {
-        try { return JsonSerializer.Serialize(JsonDocument.Parse(json).RootElement, Pretty); }
-        catch (JsonException) { return json; }
-    }
-
-    private async Task CopyTab()
-    {
-        if (TabText is not { } text) return;
-        copied = await JS.InvokeAsync<bool>("studio.copyText", text);
-        StateHasChanged();
-    }
-
-    private async Task DownloadTab()
-    {
-        if (TabText is not { } text) return;
-        var slug = string.IsNullOrWhiteSpace(planName) ? "plan" : planName.Trim().ToLowerInvariant().Replace(' ', '-');
-        await JS.InvokeVoidAsync("studio.downloadText", $"{slug}.{compileTab}.json", text, "application/json");
-    }
-
-    // Drive the draft pipeline from a successful compile: push the compiled layout, rasterize it, then push
-    // the compiled intent. Any non-2xx step aborts with a message naming that step.
-    //
-    // A map-backed plan builds onto its OWN row: one map carries plan → sketch → configure, keeps its plan
-    // blob beside the layout it compiled into, and re-running refreshes it in place instead of leaving a
-    // trail of near-identical maps. The intent write carries the plan's name, so the map's identity follows
-    // the plan without a second call. A plan row has no map, so building one originates the map: there the
-    // build IS the map's creation.
-    //
-    // Either way the plan itself is written to the map first, so the map carries the document its layout was
-    // compiled from and opens in the plan editor on the board it was built from.
-    //
-    // Both writes go through their from-plan route rather than the plain PUT, for the same reason: a
-    // compiled pair states what the plan states and nothing else, so a straight replace deleted everything
-    // the map had accumulated on top. The layout carries its finish across (SketchLayout.CarryFinish — the
-    // themes, room shells and dressing) and the intent carries its authored slices (IntentCarry — the
-    // authors, island team assignments and confirmed symmetry). Rebuilding changes the board and the
-    // structure the plan describes; it is not an answer to anything else about the map.
-    private async Task CreateDraft(bool discardRelief = false)
-    {
-        if (handle is null || compiledLayoutRaw is null || compiledIntentRaw is null) return;
-        draftBusy = true; draftError = null; draftSlug = null; orphanedRelief = null; droppedShapes = [];
-
-        try
-        {
-            var slug = Slug;
-            if (!MapBacked)
-            {
-                draftStep = "Creating draft"; StateHasChanged();
-                using var createResp = await Http.PostAsJsonAsync("api/sketch", new { name = planName });
-                if (!await Ok(createResp, "create the draft")) return;
-                slug = (await createResp.Content.ReadFromJsonAsync<OriginatedDto>())?.Slug;
-                if (string.IsNullOrEmpty(slug)) { draftError = "Couldn't create the draft. The server didn't return its name."; return; }
-            }
-
-            draftStep = "Saving the plan"; StateHasChanged();
-            if (MapBacked)
-            {
-                var outcome = await Document.PutAsync($"api/map/{slug}/plan", PlanBodyAsync);
-                if (!outcome.Landed) { draftError = outcome.Message; return; }
-            }
-            else
-            {
-                using var planResp = await Http.PutAsync($"api/map/{slug}/plan", await PlanBodyAsync());
-                if (!await Ok(planResp, "save the plan")) return;
-            }
-
-            draftStep = "Saving the layout"; StateHasChanged();
-            using var layoutResp = await Http.PutAsync(
-                discardRelief ? $"api/map/{slug}/sketch/from-plan?force=true" : $"api/map/{slug}/sketch/from-plan",
-                new StringContent(compiledLayoutRaw, Encoding.UTF8, "application/json"));
-            // A 409 here is relief the rebuilt board has no island for, one finding per group: asked back
-            // rather than reported as a failure, since the way through is a choice the author makes.
-            if (layoutResp.StatusCode == System.Net.HttpStatusCode.Conflict
-                && await layoutResp.Content.ReadFromJsonAsync<RefusalDto>() is { } refusal
-                && refusal.Findings.SelectMany(finding => finding.SubjectIds).ToList() is { Count: > 0 } groups)
-            {
-                orphanedRelief = groups;
-                return;
-            }
-            if (!await Ok(layoutResp, "save the layout")) return;
-            droppedShapes = (await layoutResp.Content.ReadFromJsonAsync<SketchFromPlanDto>())?.Dropped ?? [];
-
-            draftStep = "Building the world"; StateHasChanged();
-            using var finishResp = await Http.PostAsync($"api/map/{slug}/sketch/finish", null);
-            if (!await Ok(finishResp, "build the world")) return;
-
-            draftStep = "Applying game settings"; StateHasChanged();
-            using var intentResp = await Http.PutAsync($"api/map/{slug}/intent/from-plan", new StringContent(compiledIntentRaw, Encoding.UTF8, "application/json"));
-            if (!await Ok(intentResp, "apply the game settings")) return;
-
-            draftSlug = slug;
-            await LoadStateAsync();   // the map now holds a sketch and a world — the next build is a rebuild
-        }
-        catch (Exception ex) { draftError = ex.Message; }
-        finally { draftBusy = false; StateHasChanged(); }
-    }
-
-    private async Task<bool> Ok(HttpResponseMessage resp, string step)
-    {
-        if (resp.IsSuccessStatusCode) return true;
-        draftError = $"Couldn't {step} (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
-        return false;
-    }
-
-    // Save the draft's world export, or say why it was refused.
-    private async Task DownloadWorld()
-    {
-        if (draftSlug is null) return;
-        draftError = await MapDownload.SaveAsync(Http, JS, draftSlug);
-        StateHasChanged();
-    }
-
-    private static string Trunc(string s) => s.Length > 200 ? s[..200] + "…" : s;
-
     // ── bridge callbacks ─────────────────────────────────────────────────────────
 
     [JSInvokable]
@@ -1369,41 +906,6 @@ public partial class PlanTool
     }
 
     // DTOs pushed from the bridge.
-    private sealed class PlanSelection
-    {
-        [JsonPropertyName("kind")] public string Kind { get; set; } = "";
-        [JsonPropertyName("id")] public string Id { get; set; } = "";
-        [JsonPropertyName("role")] public string Role { get; set; } = "";
-        [JsonPropertyName("surface")] public int Surface { get; set; }
-        [JsonPropertyName("surfaceSet")] public bool SurfaceSet { get; set; }
-        [JsonPropertyName("mirrors")] public bool Mirrors { get; set; }
-        [JsonPropertyName("markerKind")] public string MarkerKind { get; set; } = "";
-        [JsonPropertyName("index")] public int Index { get; set; }
-        [JsonPropertyName("piece")] public string Piece { get; set; } = "";
-        [JsonPropertyName("at")] public double[]? At { get; set; }
-        [JsonPropertyName("facing")] public string Facing { get; set; } = "";
-        // Objective-marker structure fields. Null means the author never set it, so the inspector shows the
-        // generator's default — a marker states only what it varies.
-        [JsonPropertyName("name")] public string? Name { get; set; }
-        [JsonPropertyName("style")] public string? Style { get; set; }
-        [JsonPropertyName("materials")] public string? Materials { get; set; }
-        [JsonPropertyName("lava")] public int? Lava { get; set; }
-        [JsonPropertyName("lavaHeight")] public int? LavaHeight { get; set; }
-        [JsonPropertyName("float")] public int? Float { get; set; }
-        [JsonPropertyName("leak")] public int? Leak { get; set; }
-        [JsonPropertyName("openTop")] public bool? OpenTop { get; set; }
-        /// <summary>The building on a role piece, <c>[x, z, w, h]</c> in blocks from the piece's minimum
-        /// corner, on a <c>footprint</c> selection.</summary>
-        [JsonPropertyName("footprint")] public double[]? Footprint { get; set; }
-        [JsonPropertyName("color")] public string? Color { get; set; }
-        [JsonPropertyName("boxKind")] public string BoxKind { get; set; } = "";
-        [JsonPropertyName("zoneKind")] public string ZoneKind { get; set; } = "";
-        [JsonPropertyName("members")] public List<string>? Members { get; set; }
-        [JsonPropertyName("membersNamed")] public bool MembersNamed { get; set; }
-        /// <summary>How many pieces and zones a <c>multi</c> selection holds.</summary>
-        [JsonPropertyName("count")] public int Count { get; set; }
-    }
-
     private sealed class MetaDto
     {
         [JsonPropertyName("name")] public string? Name { get; set; }

@@ -510,6 +510,16 @@ straight through to the live document. Continue on the last step advances to Dra
 The canvas, and where a plan is actually authored. The Draw workspace stays mounted while Info is up, so the
 document and the zoom survive the trip.
 
+The Draw phase is the `PlanTool` host with two bodies of its own, each a component beside it in
+`Features/Plan/`: `PlanInspector`, the form for the one selection, and `PlanBuildDrawer`, the compile and build
+drawer the flow bar's Next opens. The host owns the canvas, the dock, the sidebar panels, the topbar and the save;
+the inspector writes its edits through the bridge and takes the objective vocabulary, the selection and the
+surface step from the host; the drawer takes the bridge, the map's slug, the plan's name and the plan's
+`DocumentSave`, and owns everything a compile and a build produce. The words the document is written in — a
+piece's roles (`PlanRoles`) and a box's kinds (`PlanBoxKinds`) — are `PgmStudio.Vocabulary`'s, which the
+dock, the role and kind dropdowns and the schema all read; `plan-doc.js` holds their twin, pinned to them by
+`PlanWordsTwinTests`.
+
 Four families of drawing tool, one armed at a time, each remembering the option last picked from it. **Terrain**
 draws a piece in the armed role; **technical** draws a build zone, a water lane, or a buffer; **markers** drop a
 spawn, wool, iron, destroyable, core, or cycle a wall; **boxes** draw an envelope in the armed kind, and are

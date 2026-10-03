@@ -1,4 +1,5 @@
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Compose;
 

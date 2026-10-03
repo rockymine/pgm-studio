@@ -1,4 +1,5 @@
 using PgmStudio.Geom;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Plan;
 

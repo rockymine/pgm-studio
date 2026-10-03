@@ -184,6 +184,8 @@ constant somewhere. Where that somewhere is decides whether the form and the rea
 through `Contracts`, so the picker takes the same constant the reader does: `PlacedProp`'s
 `[JsonDerivedType]` attributes name `PropKinds`, the sketch gate judges against `ShapeKinds.All`, and
 `ReliefMarkJson.ToMark` switches on `MarkKinds`. There is one list, not two that agree.
+The plan editor's words are the same: a piece's roles (`PlanRoles`) and a box's kinds (`PlanBoxKinds`) are
+declared there, and `PlanPalette` adds only the label and the canvas token each is drawn in.
 
 **A field name stays the client's.** `PropFields`, `MarkFields`, `SpecFields`, `PushFields`, `ReliefFields`
 and `GrainFields` name the JSON keys a form writes into a document the client holds as a `JsonObject`. They

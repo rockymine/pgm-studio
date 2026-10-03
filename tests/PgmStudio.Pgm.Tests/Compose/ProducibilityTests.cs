@@ -1,6 +1,7 @@
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Shapes;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests.Compose;
 

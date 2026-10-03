@@ -1,0 +1,241 @@
+@namespace PgmStudio.Client.Features.Plan
+
+@* The plan editor's inspector: the one selection the canvas holds, as a form. A piece, zone, box, marker or
+   building states its own fields here, and a core or destroyable states the structure it builds, each shown
+   at its effective value. Every edit goes through the bridge the host mounted; the host re-renders from
+   what the bridge pushes back. *@
+
+  <Inspector>
+      <Section>
+        @if (Selection is null)
+        {
+          <p class="section-desc">Select something to edit it. Draw a piece first, then place spawns and wools on it.</p>
+        }
+        else if (Selection.Kind == "multi")
+        {
+          <DetailHeader Icon="copy" Label="@($"{Selection.Count} selected")" />
+          <p class="section-desc">Drag any of them to move them together. Delete removes them.</p>
+          <Button Full Variant="danger" Writes OnClick="DeleteSelected">
+            <i data-lucide="trash-2"></i> Delete @Selection.Count items
+          </Button>
+        }
+        else if (Selection.Kind == "piece")
+        {
+          <DetailHeader Icon="box" Label="Piece">
+            <span class="detail-header-badges"><Badge Kind="neutral">@Selection.Role</Badge></span>
+          </DetailHeader>
+          <Field Label="Id">
+            <input class="field-input" value="@Selection.Id" @onchange="OnPieceId" />
+          </Field>
+          <Field Label="Role">
+            <Select Slim="false" Options="RoleOptions" Value="@Selection.Role" ValueChanged="OnPieceRole" />
+          </Field>
+          <Field Label="Surface (y)">
+            <div class="ctrl-row">
+              <Button Variant="icon" Writes Title='@($"Lower surface by {(int)SurfaceStep}")' OnClick="() => StepSurface(-(int)SurfaceStep)">−</Button>
+              <span class="plan-stepper-value">@Selection.Surface@(Selection.SurfaceSet ? "" : " (base)")</span>
+              <Button Variant="icon" Writes Title='@($"Raise surface by {(int)SurfaceStep}")' OnClick="() => StepSurface((int)SurfaceStep)">+</Button>
+            </div>
+          </Field>
+          <Field Label="Step">
+            <div class="ctrl-row">
+              @foreach (var s in StepPresets)
+              {
+                <Chip Active="(int)SurfaceStep == s" Title='@($"Step surface by {s}")' OnClick="() => SetSurfaceStep(s)">@s</Chip>
+              }
+            </div>
+          </Field>
+          <Button Full Writes OnClick="ToggleMirrors">
+            @(Selection.Mirrors ? "Exclude from mirror" : "Include in mirror")
+          </Button>
+          <Button Full Variant="danger" Writes OnClick="DeleteSelected">
+            <i data-lucide="trash-2"></i> Delete piece
+          </Button>
+        }
+        else if (Selection.Kind == "footprint")
+        {
+          <DetailHeader Icon="home" Label="Building">
+            <span class="detail-header-badges"><Badge Kind="neutral">@Selection.MarkerKind</Badge></span>
+          </DetailHeader>
+          <Field Label="On piece">
+            <div class="plan-readout">@Selection.Piece</div>
+          </Field>
+          <Field Label="Size">
+            <div class="plan-readout">
+              @(Selection.Footprint is { Length: >= 4 } f ? $"{(int)f[2]} × {(int)f[3]}" : "—")
+            </div>
+          </Field>
+          <Field Label="Offset from piece corner">
+            <div class="plan-readout">
+              @(Selection.Footprint is { Length: >= 4 } o ? $"x {(int)o[0]}, z {(int)o[1]}" : "—")
+            </div>
+          </Field>
+          <p class="section-desc">
+            The piece around the building is its protected area. Drag the dashed rectangle to move
+            the building, or its handles to resize it.
+          </p>
+          <Button Full Variant="danger" Writes OnClick="DeleteSelected">
+            <i data-lucide="trash-2"></i> Clear building
+          </Button>
+          <p class="section-desc">Clearing it restores the default building.</p>
+        }
+        else if (Selection.Kind == "zone")
+        {
+          var lane = Selection.ZoneKind == "water-lane";
+          <DetailHeader Icon="@(lane ? "waves" : "square-dashed")" Label="@(lane ? "Water lane" : "Build area")" />
+          <Field Label="Id">
+            <input class="field-input" value="@Selection.Id" @onchange="OnZoneId" />
+          </Field>
+          <Field Label="Opens">
+            <div class="plan-readout">
+              @(lane ? "During the match, when the lane floods" : "At the start of the match")
+            </div>
+          </Field>
+          <Button Full Variant="danger" Writes OnClick="DeleteSelected">
+            <i data-lucide="trash-2"></i> @(lane ? "Delete water lane" : "Delete build area")
+          </Button>
+        }
+        else if (Selection.Kind == "box")
+        {
+          <DetailHeader Icon="group" Label="Box">
+            <span class="detail-header-badges"><Badge Kind="neutral">@Selection.BoxKind</Badge></span>
+          </DetailHeader>
+          <Field Label="Id">
+            <input class="field-input" value="@Selection.Id" @onchange="OnBoxId" />
+          </Field>
+          <Field Label="Kind">
+            <Select Slim="false" Options="BoxKindOptions" Value="@Selection.BoxKind" ValueChanged="OnBoxKind" />
+          </Field>
+          <Field Label="@($"Members ({Selection.Members?.Count ?? 0})")">
+            <div class="plan-readout">
+              @(Selection.Members is { Count: > 0 } ? string.Join(", ", Selection.Members) : "None")
+            </div>
+          </Field>
+          <p class="section-desc">
+            @(Selection.MembersNamed
+              ? "Members are fixed. Resizing the box doesn't change them."
+              : "Members are the pieces fully inside the box. Dragging the box moves them too.")
+          </p>
+          <Button Full Writes OnClick="ToggleBoxMembers">
+            @(Selection.MembersNamed ? "Use pieces inside" : "Fix members")
+          </Button>
+          <Button Full Variant="danger" Writes OnClick="DeleteSelected">
+            <i data-lucide="trash-2"></i> Delete box
+          </Button>
+        }
+        else
+        {
+          <DetailHeader Icon="@MarkerIcon(Selection.MarkerKind)" Label="@Selection.MarkerKind" />
+          <Field Label="On piece">
+            <div class="plan-readout">@Selection.Piece &nbsp; <span class="list-tag">at @OffsetLabel</span></div>
+          </Field>
+          @if (Selection.MarkerKind == "spawn")
+          {
+            <Field Label="Facing">
+              <div class="ctrl-row">
+                <span class="plan-stepper-value">@Selection.Facing</span>
+                <Button Variant="icon" Writes OnClick="CycleFacing" Title="Turn"><i data-lucide="rotate-cw"></i></Button>
+              </div>
+            </Field>
+          }
+          @* An objective marker states the structure it builds. Only what differs from the generator's
+             default is stored, so a marker left alone stays the bare { piece, at } it was placed as. *@
+          @if (Selection.MarkerKind is "destroyable" or "core")
+          {
+            <Field Label="Name">
+              <LabelHint>@(Selection.MarkerKind == "core" ? "(optional)" : "(optional, defaults to the team's)")</LabelHint>
+              <ChildContent>
+                <input class="field-input" value="@Selection.Name" placeholder="@(Selection.MarkerKind == "core" ? "Core" : "Red Monument")"
+                       @onchange="@(e => SetMarkerText("name", e.Value?.ToString(), string.Empty))" />
+              </ChildContent>
+            </Field>
+          }
+          @if (Selection.MarkerKind == "wool")
+          {
+            @* A wool states a dye or states nothing. Nothing is not a default the inspector can show a
+               value for: the compiler resolves it against the owning team and the wools placed before
+               this one, so the option reads as what it is rather than naming a colour. *@
+            <Field Label="Colour">
+              <div class="field-pick-row">
+                <span class="field-swatch" style="--swatch: @WoolSwatch"></span>
+                <Select Slim="false" Options="WoolColorOptions" Placeholder="Auto" Value="@WoolColor"
+                        ValueChanged="@(value => SetMarkerText("color", value, string.Empty))" />
+              </div>
+            </Field>
+          }
+          @if (Selection.MarkerKind == "destroyable")
+          {
+            <Field Label="Design">
+              <Select Slim="false" Options="DestroyableStyleOptions" Value="@DestroyableStyle"
+                      ValueChanged="@(value => SetMarkerText("style", value, Vocabulary.Destroyable.Style))" />
+            </Field>
+            <Field Label="Material">
+              <Select Slim="false" Options="DestroyableMaterialOptions" Value="@DestroyableMaterials"
+                      ValueChanged="@(value => SetMarkerText("materials", value, Vocabulary.Destroyable.Materials))" />
+            </Field>
+            <Field Label="Float">
+              <LabelHint>(air under it)</LabelHint>
+              <ChildContent>
+                <NumberField Min="0" Max="64" Value="DestroyableFloat"
+                             ValueChanged="@(value => SetMarkerNumber("float", (int)value, Vocabulary.Destroyable.Float))" />
+              </ChildContent>
+            </Field>
+          }
+          else if (Selection.MarkerKind == "core")
+          {
+            @* A core is chosen, not designed: the author states the lava and the casing follows, so a
+               casing with nothing in it cannot be typed. The readout is the obsidian those two imply. *@
+            <Field Label="Lava footprint">
+              <LabelHint>(width and depth)</LabelHint>
+              <ChildContent>
+                <Select Slim="false" Options="LavaOptions" Value="@CoreLava.ToString()"
+                        ValueChanged="@(value => SetMarkerNumber("lava", Num(value, CoreLava), Vocabulary.Core.Lava))" />
+              </ChildContent>
+            </Field>
+            <Field Label="Lava height">
+              <LabelHint>(layers)</LabelHint>
+              <ChildContent>
+                <Select Slim="false" Options="LavaHeightOptions" Value="@CoreLavaHeight.ToString()"
+                        ValueChanged="@(value => SetMarkerNumber("lavaHeight", Num(value, CoreLavaHeight), Vocabulary.Core.LavaHeight))" />
+              </ChildContent>
+            </Field>
+            <Field Label="Casing">
+              <div class="filter-group-options">
+                <Chip Active="@(!CoreOpenTop)" OnClick="@(() => SetMarkerField("openTop", null))"
+                      Title="A lid over the lava">capped</Chip>
+                <Chip Active="@CoreOpenTop" OnClick="@(() => SetMarkerField("openTop", true))"
+                      Title="Lava flush with the rim">open</Chip>
+              </div>
+            </Field>
+            <p class="section-desc">@CoreCasingReadout</p>
+            <Field Label="Float">
+              <LabelHint>(air under the casing)</LabelHint>
+              <ChildContent>
+                <NumberField Min="0" Max="64" Value="CoreFloat"
+                             ValueChanged="@(value => SetMarkerNumber("float", (int)value, Vocabulary.Core.Float))" />
+              </ChildContent>
+            </Field>
+            <Field Label="Leak">
+              <LabelHint>(fall before it counts)</LabelHint>
+              <ChildContent>
+                <NumberField Min="0" Max="64" Value="CoreLeak"
+                             ValueChanged="@(value => SetMarkerNumber("leak", (int)value, Vocabulary.Core.Leak))" />
+              </ChildContent>
+            </Field>
+            <p class="section-desc">
+              @if (CoreDigDepth > 0)
+              {
+                <text>Capturing it means breaking the casing and digging @CoreDigDepth block@(CoreDigDepth == 1 ? "" : "s") below it.</text>
+              }
+              else
+              {
+                <text>The lava leaks as soon as the casing is broken, with no digging.</text>
+              }
+            </p>
+          }
+          <Button Full Variant="danger" Writes OnClick="DeleteSelected">
+            <i data-lucide="trash-2"></i> Delete marker
+          </Button>
+        }
+      </Section>
+</Inspector>
