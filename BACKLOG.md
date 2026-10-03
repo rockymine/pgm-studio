@@ -619,17 +619,6 @@ is the standard the copy is held to.
   never removes, the leak `CanvasBase` no longer has. Remove it on dispose and cover it in
   `tests/js/canvas-dispose.test.js`. `docs/client/canvas-interaction.md`.
 
-- [ ] **TS160 — Each sketch phase owns its state.** About 600 lines of History, In game views, Report and theme
-  registry state live in `SketchTool.razor.cs:67-624`, and the notes are fetched twice (`:307`,
-  `SketchInGamePhase.razor.cs:176`). Report loads its own; History and views each get a state class their two
-  bodies share; the host keeps the phase switch, the save-first and the canvas mode. `docs/tools/sketch.md`.
-
-- [ ] **C92 — A live feed, an iso preview and a refusal sentence are one module each.** The debounced,
-  sequence-guarded POST of the document is written seven times across both bridges, `refusalText` twice, and the
-  iso preview on both halves of both tools. `bridge/live-feed.js`, `bridge/iso-preview.js` and one Blazor iso
-  toggle. `docs/client/canvas-interaction.md`. *Evidence: `sketch-bridge.js:394,473,485,813,900`;
-  `plan-bridge.js:38,65,76,283,303,325`.*
-
 ## Refactoring and cleanup
 
 - [ ] **RP107 — The edit-route count is stated from the code.** `MapEdit.cs`, `EditException.cs` and

@@ -968,6 +968,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Features/Plan/`; `PlanRoles` and `PlanBoxKinds` are `Vocabulary` word sets, and `plan-doc.js`'s twin is pinned
   to them by a test.
 
+- **A live feed, an iso preview and a refusal sentence are one module each (C92).** `bridge/live-feed.js` is the
+  debounced, sequence-guarded POST both bridges' seven feeds use, `bridge/iso-preview.js` the 3-D preview both
+  tools enter, and `IsoToggle` the one 2D/3D switch.
+
 ## Backend / API (B)
 - **A load missing one of its two documents names it (`RP66`).** `POST /map/from-documents` reads the layout
   and the intent as raw JSON, so a body omitting one arrived as a `default(JsonElement)` and the first reader
@@ -10137,6 +10141,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the inspector's *Follow* is stored rather than dropped back to *Inherit*.
 - **The symmetry setup follows an undo (TS161).** The bridge fires `OnSetup` on load, mode and centre changes and
   every undo/redo restore, and the host reads the setup only from it, so Info shows the mode the board has.
+
+- **Each sketch phase owns its state (TS160).** A bridge-sourced phase relays one snapshot (Relief, Dressing, and
+  Palette's `SketchThemes`, which now carries the room shells and biome and refreshes on every undo); a server
+  phase with one body loads itself (Info, Report); History and In game's views are state containers
+  (`SketchHistory`, `SketchViews`) shared by their two bodies, and the notes are read once (`SketchNotes`). The
+  host keeps the phase switch, save-first and the canvas mode: `SketchTool.razor.cs` 1,443 → 1,047 lines.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
