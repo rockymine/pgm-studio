@@ -759,12 +759,19 @@ public partial class PlanTool
     /// <summary>The objective vocabulary + defaults (<c>GET /api/objectives/vocabulary</c>). Fetched rather
     /// than hardcoded: the client cannot reach <c>ObjectiveDefaults</c>, and a second copy of these numbers
     /// would show an author a structure the stamper does not build.</summary>
-    private ObjectiveVocabulary vocabulary = ObjectiveVocabulary.Empty;
+    private ObjectiveVocabularyDto vocabulary = Unloaded;
+
+    /// <summary>What the inspector reads until the vocabulary arrives, or where the studio does not answer:
+    /// no choices and zeros, so the panel renders and states nothing it cannot back.</summary>
+    private static readonly ObjectiveVocabularyDto Unloaded = new(
+        new DestroyableVocabularyDto([], [], "", "", 0),
+        new CoreVocabularyDto(0, 0, [], [], 0, 0, false),
+        new WoolVocabularyDto([], "auto"));
 
     private async Task LoadObjectiveVocabularyAsync()
     {
-        try { vocabulary = await Http.GetFromJsonAsync<ObjectiveVocabulary>("api/objectives/vocabulary") ?? ObjectiveVocabulary.Empty; }
-        catch { /* keep the built-in fallback — the inspector still renders, showing the same defaults */ }
+        try { vocabulary = await Http.GetFromJsonAsync<ObjectiveVocabularyDto>("api/objectives/vocabulary") ?? Unloaded; }
+        catch { /* keep what is held — the inspector still renders */ }
     }
 
     private Task SetMarkerField(string key, object? value)
@@ -788,14 +795,12 @@ public partial class PlanTool
     private int CoreLavaHeight => sel?.LavaHeight ?? vocabulary.Core.LavaHeight;
 
     /// <summary>The obsidian the two stated numbers imply, so the author reads the structure they are
-    /// building rather than the interior alone. The wall is one block on every side, and an open top gives
-    /// up the cap course.</summary>
+    /// building rather than the interior alone.</summary>
     private string CoreCasingReadout
     {
         get
         {
-            var size = CoreLava + 2;
-            var height = CoreLavaHeight + (CoreOpenTop ? 1 : 2);
+            var (size, height) = CoreCasing.Of(CoreLava, CoreLavaHeight, CoreOpenTop);
             return $"{size}×{size}×{height} obsidian, {CoreLava}×{CoreLava}×{CoreLavaHeight} lava inside";
         }
     }
@@ -831,48 +836,6 @@ public partial class PlanTool
     /// <summary>How far players must dig under the casing before its lava can leak — the whole point of the
     /// float/leak pair, which says nothing when either is read alone.</summary>
     private int CoreDigDepth => CoreDig.Depth(CoreLeak, CoreFloat);
-
-    private sealed class ObjectiveVocabulary
-    {
-        [JsonPropertyName("destroyable")] public DestroyableVocabulary Destroyable { get; set; } = new();
-        [JsonPropertyName("core")] public CoreVocabulary Core { get; set; } = new();
-        [JsonPropertyName("wool")] public WoolVocabulary Wool { get; set; } = new();
-
-        public static readonly ObjectiveVocabulary Empty = new();
-    }
-
-    private sealed class DestroyableVocabulary
-    {
-        [JsonPropertyName("styles")] public List<string> Styles { get; set; } = [];
-        [JsonPropertyName("materialChoices")] public List<string> MaterialChoices { get; set; } = [];
-        [JsonPropertyName("style")] public string Style { get; set; } = "";
-        [JsonPropertyName("materials")] public string Materials { get; set; } = "";
-        [JsonPropertyName("float")] public int Float { get; set; }
-    }
-
-    private sealed class WoolVocabulary
-    {
-        [JsonPropertyName("colors")] public List<WoolColorChoice> Colors { get; set; } = [];
-        [JsonPropertyName("auto")] public string Auto { get; set; } = "auto";
-    }
-
-    private sealed class WoolColorChoice
-    {
-        [JsonPropertyName("name")] public string Name { get; set; } = "";
-        [JsonPropertyName("label")] public string Label { get; set; } = "";
-        [JsonPropertyName("hex")] public string Hex { get; set; } = "";
-    }
-
-    private sealed class CoreVocabulary
-    {
-        [JsonPropertyName("lava")] public int Lava { get; set; }
-        [JsonPropertyName("lavaHeight")] public int LavaHeight { get; set; }
-        [JsonPropertyName("lavaRange")] public List<int> LavaRange { get; set; } = [];
-        [JsonPropertyName("lavaHeightRange")] public List<int> LavaHeightRange { get; set; } = [];
-        [JsonPropertyName("float")] public int Float { get; set; }
-        [JsonPropertyName("leak")] public int Leak { get; set; }
-        [JsonPropertyName("openTop")] public bool OpenTop { get; set; }
-    }
 
     private Task DeleteSelected() => handle?.InvokeVoidAsync("deleteSelected").AsTask() ?? Task.CompletedTask;
 

@@ -570,6 +570,12 @@ is the one field with no effective value to show: a wool that states no colour h
 team and the wools placed before it, which no single marker knows, so the picker offers *auto* as a word
 beside the sixteen dyes rather than naming a colour the compiler might not pick.
 
+The inspector reads its choices and defaults from `GET /api/objectives/vocabulary` (`ObjectiveVocabularyDto`)
+and holds no copy of them. The two numbers it derives from a core's stated interior are the casing it
+implies, `CoreCasing.Of`, and the dig depth, `CoreDig.Depth` — client twins of `ObjectiveDefaults.CoreCasing`
+and `ObjectiveDefaults.DigDepth`, which the WASM half cannot reach, each pinned to its authority by a drift
+test (`CoreCasingDriftTests`, `CoreDigDepthDriftTests`) and shared with the Configure wizard's casing step.
+
 Two panels share the sidebar, three for an admin, switched by the chips at its head, beside the button that
 folds the sidebar away. **Settings** holds the tracing reference. The overlays — land interfaces, frontline edges, labels, and a
 height-map fill that tints pieces by surface — are chips on the canvas itself. **Checks** shows the evaluator's score and every fired rule, and clicking a row isolates that rule's
