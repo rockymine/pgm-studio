@@ -226,8 +226,9 @@ public static class DressingPreview
     private static int TopCourse(SideViewProjection view) => (view.Highest() ?? GroundTop) + SkyMargin;
 
     /// <summary>The prop moved so its own middle sits at (<paramref name="x"/>, <paramref name="z"/>) — a card
-    /// shows the prop, not the corner of the map it was placed in.</summary>
-    private static PlacedProp Centred(PlacedProp prop, int x, int z) => prop switch
+    /// shows the prop, not the corner of the map it was placed in — and onto the sample's one ground, which has
+    /// none of the storeys a placed prop may name.</summary>
+    private static PlacedProp Centred(PlacedProp prop, int x, int z) => (prop switch
     {
         TreeProp tree => tree with { X = x, Z = z },
         BoulderProp boulder => boulder with { X = x, Z = z },
@@ -236,7 +237,7 @@ public static class DressingPreview
         FloraProp area => area with { Points = Recentre(area.Points, x, z) },
         HouseProp house => house with { Wings = RecentreWings(house.Wings, x, z) },
         _ => prop,
-    };
+    }) with { Layer = null };
 
     private static List<double[]> Recentre(IReadOnlyList<double[]> points, int x, int z)
     {

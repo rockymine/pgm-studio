@@ -181,13 +181,14 @@ export class SketchDrawController {
     }
   }
 
-  /** Cancel any in-progress draw (Escape, tool change). */
+  /** Cancel any in-progress draw (Escape, tool change). Answers whether there was one. */
   cancel() {
-    if (!this.#drawState) return;
+    if (!this.#drawState) return false;
     this.#drawState      = null;
     this.#drawHandleData = [];
     this.refreshDrawHandles();
     this.#repaint();
+    return true;
   }
 
   // ── private ────────────────────────────────────────────────────────────────

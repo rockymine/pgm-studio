@@ -133,17 +133,20 @@ try {
 
   await shot("dressing-phase.png");
 
-  // Drop a tree by clicking, which is the whole interaction.
+  // Drop a tree by clicking, which is the whole interaction. Both clicks land on the red island, since a
+  // marker dropped on the void is refused and the Placed list would not move.
   const box = await page.locator("svg.map-canvas-svg").boundingBox();
+  const placedRows = () => page.locator(".geo-label").allInnerTexts();
+  const before = await placedRows();
   await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
-  await page.mouse.click(box.x + box.width * 0.45, box.y + box.height * 0.45);
+  await page.mouse.click(box.x + box.width * 0.56, box.y + box.height * 0.62);
   await page.waitForTimeout(1500);
-  // What the phase draws for a tree is the recipe list, so that is what says one landed. `text=Species`
-  // passed on the blurb's own "of its species" and would have passed with no tree placed at all.
+  // What the phase draws for a tree is the recipe list, and the list is offered with the tool in hand too, so
+  // the Placed list is what says one landed.
   const panel = () => page.evaluate(() => document.body.innerText);
   checks.add("a click places a tree, and the phase asks which one",
-    await page.locator('.prop-card[title="oak"]').count() > 0,
-    (await panel()).match(/WHICH TREE/)?.[0] ?? "(no recipe list)");
+    (await placedRows()).length === before.length + 1 && await page.locator('.prop-card[title="oak"]').count() > 0,
+    `${before.length} → ${(await placedRows()).length} placed · ${(await panel()).match(/WHICH TREE/)?.[0] ?? "(no recipe list)"}`);
   await shot("dressing-tree.png");
 
   // Which tree a placement is, is the recipe it names, so what the phase carries is the card it marks
@@ -160,6 +163,41 @@ try {
   checks.add("and picking another moves the mark rather than adding one",
     await page.locator('.prop-card--active[title="oak"]').count() === 1
     && await page.locator(".prop-card--active").count() === 1);
+
+  // Arming the tool again lets go of the tree just placed, so the recipe picked next is the next tree's and
+  // the oak already down stays an oak.
+  await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
+  await page.waitForTimeout(800);
+  checks.add("arming the tool again shows the next placement, not the last one",
+    /next item/.test(await panel()), (await panel()).match(/selected|next item/)?.[0] ?? "(no badge)");
+  await page.locator('.prop-card[title="spruce"]').click();
+  await page.waitForTimeout(1500);
+  await page.mouse.click(box.x + box.width * 0.62, box.y + box.height * 0.59);
+  await page.waitForTimeout(1500);
+  const placed = (await placedRows()).slice(before.length);
+  checks.add("so the pick lands on the new tree and leaves the old one as it was",
+    placed.join(",") === "oak,spruce", placed.join(","));
+
+  // Shift held as a tree lands keeps the tool in hand: two clicks are two trees, and the dock still shows
+  // the tree tool pressed afterwards.
+  await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
+  await page.waitForTimeout(500);
+  await page.keyboard.down("Shift");
+  await page.mouse.click(box.x + box.width * 0.52, box.y + box.height * 0.69);
+  await page.waitForTimeout(800);
+  await page.mouse.click(box.x + box.width * 0.64, box.y + box.height * 0.68);
+  await page.waitForTimeout(800);
+  await page.keyboard.up("Shift");
+  await page.waitForTimeout(500);
+  const kept = (await placedRows()).length - before.length;
+  checks.add("with Shift held a click places a tree and keeps the tool",
+    kept === 4 && await page.locator(`button[aria-pressed][aria-label^="${DRIVEN.tree}"]`).count() === 1
+    && /next item/.test(await panel()),
+    `${kept} placed · pressed ${await page.locator('.canvas-dock button[aria-pressed]').evaluateAll(els => els.map(e => e.getAttribute("aria-label")))} · ${(await panel()).match(/selected|next item/)?.[0]}`);
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(400);
+  checks.add("and Escape puts it down", await page.locator('.canvas-dock button[aria-pressed][aria-label="Select"]').count() === 1,
+    `${await page.locator('.canvas-dock button[aria-pressed]').evaluateAll(els => els.map(e => e.getAttribute("aria-label")))}`);
 
   // Drag a route: press, trace, release — no separate way to finish, which is the bug the rework fixes.
   await page.click(`button[aria-label^="${DRIVEN.stroke}"]`);

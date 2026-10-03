@@ -4,7 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { register, unregister, all, live, match, sheet, commands, normalize, display, inTextField, chordOf }
+import { register, unregister, all, live, match, sheet, commands, normalize, display, inTextField, chordOf,
+         noteModifiers, keepsTool, KEEP_TOOL }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/shared/keys.js";
 
 const entry = (over = {}) => ({ id: "t.one", keys: "mod+z", label: "Undo", group: "Everywhere", run() {}, ...over });
@@ -184,4 +185,29 @@ test("a shifted symbol is its character, whatever key produced it", () => {
   assert.equal(chordOf(press("?")), normalize("?"));
   assert.equal(chordOf(press("P")), normalize("shift+p"));
   assert.equal(chordOf(press("ArrowLeft")), normalize("shift+arrowleft"));
+});
+
+// ── a modifier held through a gesture ─────────────────────────────────────────
+test("a held modifier is listed in the sheet and is never run or offered", () => {
+  clear();
+  register("a", [KEEP_TOOL, entry({ id: "t.undo", keys: "shift+z" })]);
+  const rows = sheet().flatMap(group => group.items);
+  assert.ok(rows.some(row => row.id === KEEP_TOOL.id && row.keys.join() === "Shift"));
+  assert.ok(!live().some(row => row.id === KEEP_TOOL.id));
+  assert.ok(!commands().some(row => row.id === KEEP_TOOL.id));
+  assert.equal(match("shift", false), null);
+  clear();
+});
+
+test("only a held entry may go without a run()", () => {
+  assert.throws(() => register("a", [{ id: "t.x", keys: "x", label: "X", group: "G" }]));
+  assert.doesNotThrow(() => register("a", [{ id: "t.y", keys: "shift", label: "Y", group: "G", held: true }]));
+  clear();
+});
+
+test("a placement keeps its tool while Shift is down, and only then", () => {
+  noteModifiers({ shiftKey: true });
+  assert.equal(keepsTool(), true);
+  noteModifiers({ shiftKey: false });
+  assert.equal(keepsTool(), false);
 });

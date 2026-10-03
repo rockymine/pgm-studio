@@ -12,6 +12,8 @@
 //   priority  higher wins a contested chord; ties break on registration order, latest first
 //   inField   true to fire while a text field has focus (Escape, save); default false
 //   passive   true to let the browser keep the event after `run`
+//   held      true for a modifier held during a gesture rather than a chord pressed: listed in the sheet,
+//             never dispatched and never offered by the palette, so it takes no `run`
 //
 // An owner registers a whole set and drops it by name, so a tool that unmounts cannot leave a chord behind
 // pointing at a canvas that is gone.
@@ -94,7 +96,7 @@ const owners = new Map();   // ownerId → { seq, entries: [normalized entry] }
 let seq = 0;
 
 function check(entry) {
-  if (!entry || typeof entry.run !== "function") throw new Error("[keys] an entry needs a run()");
+  if (!entry || (!entry.held && typeof entry.run !== "function")) throw new Error("[keys] an entry needs a run()");
   if (!entry.label) throw new Error(`[keys] entry ${entry.id ?? "?"} has no label — a binding nobody can list is a binding nobody finds`);
   if (!entry.group) throw new Error(`[keys] entry ${entry.id ?? "?"} has no group`);
   const keys = Array.isArray(entry.keys) ? entry.keys : [entry.keys];
@@ -119,8 +121,8 @@ export function all() {
   return rows.sort((a, b) => (b.priority - a.priority) || (b.seq - a.seq));
 }
 
-/** Every entry that can run right now — what the dispatcher chooses among. */
-export function live() { return all().filter(entry => entry.available); }
+/** Every entry that can run right now — what the dispatcher chooses among. A held modifier runs nothing. */
+export function live() { return all().filter(entry => entry.available && !entry.held); }
 
 /** The entry a chord runs right now, or null. */
 export function match(chord, typing) {
@@ -150,6 +152,21 @@ export function commands() {
 
 let installed = false;
 let onDispatch = null;
+let shiftDown = false;
+
+/** Note the modifiers an event carries. Every key and pointer event the document sees passes through here
+ *  first, so the state is current when a placement finishes on a release, a click or a key. */
+export function noteModifiers(e) { shiftDown = !!e.shiftKey; }
+
+/** Whether a finished placement or drawn shape keeps its tool in hand: Shift held as it lands. Without it the
+ *  canvas drops back to select, where what was just put down is the thing to move or tune. */
+export function keepsTool() { return shiftDown; }
+
+/** The sheet's row for {@link keepsTool}, which every canvas that places things lists in its own set. */
+export const KEEP_TOOL = Object.freeze({
+  id: "canvas.keep-tool", keys: "shift", held: true, group: "Canvas",
+  label: "Hold as a placement or a drawn shape lands to keep the tool in hand — Esc or V puts it down",
+});
 
 /** Called after any entry runs — the overlay uses it to close itself. */
 export function onAfterRun(fn) { onDispatch = fn; }
@@ -171,6 +188,10 @@ function handle(e) {
 export function install() {
   if (installed || typeof document === "undefined") return;
   installed = true;
+  for (const type of ["keydown", "keyup", "pointerdown", "pointermove", "pointerup"])
+    document.addEventListener(type, noteModifiers, true);
+  // Shift released while another window had focus never reaches this one, so leaving it forgets the modifier.
+  globalThis.window?.addEventListener?.("blur", () => { shiftDown = false; });
   document.addEventListener("keydown", handle);
 }
 

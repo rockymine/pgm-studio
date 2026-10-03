@@ -52,8 +52,8 @@ public partial class SketchDressingList
         var id = prop.TryGetProperty("id", out var i) ? i.GetString() ?? "" : "";
         return kind switch
         {
-            PropKinds.Tree => new Row(id, "trees", Species(prop), Cell(prop)),
-            PropKinds.Boulder => new Row(id, "mountain", $"{Field(prop, "form", "round")} boulder", Cell(prop)),
+            PropKinds.Tree => new Row(id, "trees", Recipe(prop, "tree"), Cell(prop)),
+            PropKinds.Boulder => new Row(id, "mountain", Recipe(prop, "boulder"), Cell(prop)),
             PropKinds.Stroke => new Row(id, "spline", $"{Field(prop, "style", "solid")} {(Bool(prop, "claimsGround") ? "path" : "paint")}", Span(prop)),
             PropKinds.Fluid => new Row(id, "waves", $"{Field(prop, "form", "canal")} channel", Span(prop)),
             PropKinds.Flora => new Row(id, "flower", "ground cover", Span(prop)),
@@ -63,7 +63,10 @@ public partial class SketchDressingList
         };
     }
 
-    private static string Species(JsonElement prop) => Field(prop, "species", "oak");
+    /// <summary>The library recipe a tree or a boulder names, which is what it is; the kind where none is
+    /// named yet.</summary>
+    private static string Recipe(JsonElement prop, string kind)
+        => Field(prop, PropFields.Style, "") is { Length: > 0 } key ? key : kind;
 
     private static bool Bool(JsonElement prop, string name)
         => prop.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.True;

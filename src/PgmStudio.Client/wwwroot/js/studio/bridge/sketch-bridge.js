@@ -17,6 +17,8 @@ import { liveFeed, refusalText } from "./live-feed.js";
 import * as Keys from "../shared/keys.js";
 import { isHeightMode, isReliefScope } from "../shared/relief-words.js";
 import { diffOverlay } from "../render/diff-render.js";
+import { DRESSING_TOOLS } from "../controllers/dressing-controller.js";
+import { RELIEF_TOOLS } from "../controllers/relief-controller.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
 // axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
@@ -122,15 +124,27 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // drag fold into that drag's single step rather than making one each.
   const edit = (fn) => (...args) => history.step(() => fn(...args));
 
+  /** Hand the canvas back to select, and have the toolbar follow. */
+  function putDownTool() {
+    canvas.setActiveTool("select");
+    fire("OnToolChanged", "select");
+  }
+
+  /** A finished draw, cut or placement puts its tool down — unless Shift is held as it lands, which keeps the
+   *  tool in hand. Answers whether the tool was put down. */
+  function dropTool() {
+    if (Keys.keepsTool()) return false;
+    putDownTool();
+    return true;
+  }
+
   const canvas = new SketchCanvas(svgEl, wrapEl, {
     cursorEl: coordsEl, zoomEl, dimEl,
     onShapeCreated: edit((partial) => {
       const shape = { ...partial, id: genId(), override: partial.override ?? false, base_height: clampHeight(partial.base_height ?? NEW_SHAPE_HEIGHT), floor: clampFloor(partial.floor) };
       canvas.addShape(shape);
       recompute();
-      canvas.setActiveTool("select");
-      fire("OnToolChanged", "select");
-      selectShape(shape.id);
+      if (dropTool()) selectShape(shape.id);
       markDirty();
     }),
     onShapeUpdated: edit(() => { recompute(); markDirty(); }),
@@ -153,7 +167,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onDressingChanged: edit(() => afterDressingChange()),
     onPropSelected:    () => fire("OnDressing", dressingState()),
     // A placed prop ends its tool, the same as a completed draw: the toolbar follows the canvas back to select.
-    onDressingPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
+    // A tool kept in hand lets go of the prop instead, so the inspector shows what the next press places.
+    onDressingPlaced:  () => { if (!dropTool()) canvas.dressingTools?.select(null); },
     // A join is one edit and one undo step, and it answers a sentence either way — what it did, or why it
     // would not. The refusals it cannot answer are the joint model's, and those arrive with the preview.
     onDressingJoin: edit((result) => {
@@ -165,7 +180,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // Relief marks follow exactly the same three rules, for the same reasons.
     onReliefChanged: edit(() => afterReliefChange()),
     onMarkSelected:  () => fire("OnRelief", reliefState()),
-    onReliefPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
+    onReliefPlaced:  () => { if (!dropTool()) canvas.reliefTools?.select(null); },
+    onToolDropped:   () => putDownTool(),
     onShapeDeleted:  edit((id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); }),
     // Taking a point out is one step, opened here because the key press that asks for it is not a pointer
     // press and so has no step open yet; a refused removal changes nothing and costs none. Either way the
@@ -215,8 +231,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       for (const h of halves)
         canvas.addShape({ ...h, id: genId(), override: h.override ?? false, base_height: clampHeight(h.base_height), floor: clampFloor(h.floor) });
       recompute();
-      canvas.setActiveTool("select");        // a completed cut drops back to select (like the draw tools)
-      fire("OnToolChanged", "select");
+      dropTool();
       selectShape(null);
       markDirty();
       return;
@@ -879,6 +894,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       // Not so in select-only mode: nothing there moves the selection, and the selection is what the phase
       // is *for*, so reaching for the hand tool to pan must not throw away what you picked.
       if (tool !== "select" && !selectOnly) selectShape(null);
+      // Arming a placing tool lets go of the prop or mark picked last, so the inspector shows the knobs the
+      // next placement takes — otherwise a recipe picked with the tool in hand restyles the one already down.
+      if (DRESSING_TOOLS[tool]) canvas.dressingTools?.select(null);
+      if (RELIEF_TOOLS[tool]) canvas.reliefTools?.select(null);
     },
     // Selection-only: a phase that picks groups and shapes but edits none of them. Forcing the select tool
     // is part of the restriction — a draw tool left armed would add geometry, which is equally the Draw

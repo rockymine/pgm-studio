@@ -607,9 +607,9 @@ shape and a click landing outside its footprint leaves the scope before landing 
 shape whose points are already open leaves them open, so working point by point is not interrupted by
 touching what is being worked on.
 
-`Escape` walks the whole way out in the order a press means it: an in-progress draw, then the points, then
-the entered group, then the selection itself. With a theme in hand it does none of that and puts the theme
-down instead. Closing a drawn polygon is no part of the ladder: a polygon or a polyline closes on `Enter`, or on
+`Escape` walks the whole way out in the order a press means it: an in-progress draw, then the tool in hand,
+then the points, then the entered group, then the selection itself — one step a press. With a theme in hand
+it does none of that and puts the theme down instead. Closing a drawn polygon is no part of the ladder: a polygon or a polyline closes on `Enter`, or on
 a click landing back at its own first vertex.
 
 **The Shapes chip draws every primitive on the board; without it, the selected or entered group draws its own
@@ -675,7 +675,7 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `Ctrl`/`⌘`+click | Reach the shape under the cursor and enter its group as the scope | Canvas |
 | `Alt`+click | Pick the parent group and leave any scope | Canvas |
 | `Enter` | Go one level deeper, or close the polygon/polyline in progress | Canvas |
-| `Escape` | Put the brush down, else cancel the draw, else step back up a level, else clear the selection | Canvas |
+| `Escape` | Cancel the draw, else put the brush or the tool down, else step back up a level, else clear the selection | Canvas |
 | `Delete` / `Backspace` | Delete the selected point, where one is picked on the points rung | Canvas |
 | `Delete` / `Backspace` | Delete the selected shape, where no point is picked | Canvas |
 | Arrow keys | Nudge the selection one block (`Shift` for sixteen) | Canvas |
@@ -715,7 +715,8 @@ operation, **Build** or **Carve**, wearing the colour the finished shape will ta
 mistaken for an armed build. Two more tools read and cut rather than make: **measure** drags a ruler between
 two points, the usual question being how wide a void gap is, and **split** slices the topmost shape it crosses
 into two independent shapes. Every draw and every split drops the
-tool back to select when it completes.
+tool back to select when it completes, with the new shape selected — unless **Shift** is held as it completes,
+which keeps the tool in hand and selects nothing, so the next press draws again. `Escape` or `V` puts it down.
 
 **The top two rungs wear the same box, and the third wears none.** A group and a shape are each drawn with
 the **transform box** every surface in the studio uses (`docs/client/canvas-interaction.md` §5): four corner
@@ -900,6 +901,12 @@ of reach: a click picks the group, `selectGroup` does not drill to a sole member
 selected mark or prop rather than a shape. Without that, picking a single-shape group to reach its base
 selected the island underneath, and `Delete` took the ground the relief was being stated on. Theme is
 select-only too and is deliberately outside this — its inspector is about the selected shape.
+
+**Arming a placing tool lets go of the selected mark or prop.** A placement selects what it put down and hands
+the canvas back to select, so the inspector is showing that placement; arming the tool again clears it, and the
+inspector shows the starting values the next placement takes. A recipe picked with the tool in hand therefore
+lands on the next tree, not on the one already down. Holding **Shift** as a placement lands keeps the tool in hand and lets go of
+what it placed at once, so a row of trees is one tool pick and the inspector stays on the next one.
 
 The document is keyed by group id and carries the group's own settings beside the two lists. This one states
 all six, and solves to a surface running 7 to 16:
@@ -1192,7 +1199,7 @@ styles in the material already chosen, `/terrain/boulder-forms?rock=…` the fou
 stone, and `/terrain/fluid-forms` the three channels as actual dug beds — so the question answered is
 "what would mine look like", not "what does the catalogue contain". A tree and a boulder are picked from their
 own libraries instead, each row drawn through the pass that builds it. `POST /terrain/prop-preview` renders one
-before it is placed — and a building whose wings make no building is refused there with the same `HJ*`/`HP*`
+on a flat sample patch with one ground, so a placed prop is drawn there whatever storey it names — and a building whose wings make no building is refused there with the same `HJ*`/`HP*`
 findings the build acts on, rather than drawn as though it would stand.
 
 Two reaches are bounded rather than free, and it is load-bearing: a tree's height is held to 5–40 and a

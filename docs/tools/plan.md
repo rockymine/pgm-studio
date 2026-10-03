@@ -530,7 +530,9 @@ respectively (`G` answers for an admin only), and `F` fits the plan to the windo
 
 Drawing a piece, zone or box is a click-drag over cells, always at least 1×1; the id is minted from the role
 (`piece`, `spawn`, `wool`, `buffer`, `zone`, `lane`, `<kind>-box`) and the tool reverts to select. A marker is
-placed by clicking a piece — a click over empty grid does nothing — and also reverts to select. The wall tool
+placed by clicking a piece — a click over empty grid does nothing — and also reverts to select. Holding
+**Shift** as the drag is released or the click lands keeps the tool armed instead, so a row of pieces or a
+marker on every piece is one tool pick; `Escape` or `V` puts it down. The wall tool
 stays armed, and each click toggles the nearest land interface within one cell between no wall and a wall —
 which face its chests open on is derived from the seam, not chosen here.
 
@@ -540,7 +542,8 @@ under the cursor first (markers paint on top and have a small hit radius), then 
 zone. `Ctrl`/`⌘`+click reaches the piece past the box, entering the box as the scope
 in the same motion; `Alt`+click leaves any scope and resolves at the box, never drilling into what it groups.
 `Enter` enters a selected box as a scope from the keyboard; once entered, a click reaches the pieces it groups
-and a click outside it leaves the scope before landing normally. `Escape` leaves an entered scope, selecting
+and a click outside it leaves the scope before landing normally. `Escape` first lets go of what is in hand —
+a rectangle being dragged out, then any tool but select and pan — and after that leaves an entered scope, selecting
 the box itself, and a further press clears the selection; Delete or Backspace removes it outright. Nothing
 here is a double-click. Dragging a box carries the pieces it groups, with membership resolved at
 grab time so nothing falls out mid-drag.

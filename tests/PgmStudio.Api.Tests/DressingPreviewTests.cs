@@ -156,6 +156,17 @@ public sealed class DressingPreviewTests
     }
 
     [Test]
+    public async Task A_prop_resting_on_a_named_layer_is_still_drawn_on_the_sample()
+    {
+        // Every prop placed on the canvas names the storey it rests on; the sample patch has one ground and no
+        // storeys, so the preview of a placed tree must not strand it on a layer the patch lacks.
+        var placed = DressingPreview.Views(
+            new TreeProp { X = 4, Z = 23, Seed = 5, Layer = "ground", Style = new TreeStyle { Species = "oak" } },
+            TerrainTheme.Default);
+        await Assert.That(placed.Counts.Trees).IsEqualTo(1);
+    }
+
+    [Test]
     public async Task The_theme_underneath_is_what_decides_whether_anything_grows()
     {
         var meadow = new FloraProp { Points = [[0, 0], [40, 0], [40, 40], [0, 40]], Spec = new FloraSpec(Coverage: 0.8), Seed = 7 };
