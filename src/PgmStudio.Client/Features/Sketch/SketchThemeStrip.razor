@@ -12,20 +12,20 @@
 
 <div class="canvas-theme-strip" role="group" aria-label="Palettes">
   <span class="canvas-theme-strip-label">Paint</span>
-  @if (Themes.Count == 0)
+  @if (Themes.Ids.Count == 0)
   {
     <span class="canvas-theme-strip-empty">No palettes yet</span>
   }
   else
   {
     <div class="canvas-theme-swatches">
-      @foreach (var id in Themes)
+      @foreach (var id in Themes.Ids)
       {
         <button type="button" @key="id" aria-pressed="@(id == Brush)"
                 class="canvas-theme-swatch @(id == Brush ? "canvas-theme-swatch--on" : null)"
                 title="@Title(id)" @onclick="() => OnTake.InvokeAsync(id)">
           <span class="canvas-theme-swatch-name">@id</span>
-          @if (id == MapTheme) { <span class="canvas-theme-swatch-tag" title="Default palette: paints ground that no shape covers">default</span> }
+          @if (id == Themes.MapTheme) { <span class="canvas-theme-swatch-tag" title="Default palette: paints ground that no shape covers">default</span> }
         </button>
       }
     </div>
@@ -40,12 +40,11 @@
 </div>
 
 @code {
-    /// <summary>The board's theme ids, in registry order — the order `[` and `]` step through.</summary>
-    [Parameter] public IReadOnlyList<string> Themes { get; set; } = [];
+    /// <summary>The board's finish: its theme ids in registry order — the order `[` and `]` step through — and the
+    /// map default, badged so the one theme that paints without being placed is visible.</summary>
+    [Parameter] public SketchThemes Themes { get; set; } = SketchThemes.Empty;
     /// <summary>The theme in hand, or empty.</summary>
     [Parameter] public string? Brush { get; set; }
-    /// <summary>The board's map default, badged so the one theme that paints without being placed is visible.</summary>
-    [Parameter] public string? MapTheme { get; set; }
     /// <summary>Whether the inspector's add-from-library panel is open — the button reads as pressed while it is.</summary>
     [Parameter] public bool AddOpen { get; set; }
     [Parameter] public EventCallback<string> OnTake { get; set; }

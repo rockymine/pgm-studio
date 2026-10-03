@@ -23,34 +23,21 @@ public partial class SketchThemeInspector
     private const string NoBuilding = "none";
 
     [Parameter] public IJSObjectReference? Handle { get; set; }
-    /// <summary>The board's theme ids, in registry order.</summary>
-    [Parameter] public IReadOnlyList<string> Themes { get; set; } = [];
-    /// <summary>Which library row each board theme was copied from, by theme id — what a copy-in matches by,
-    /// so a rename on either side still finds the one theme.</summary>
-    [Parameter] public IReadOnlyDictionary<string, long> ThemeSources { get; set; } = new Dictionary<string, long>();
+    /// <summary>The board's finish, as the bridge last announced it: the registry, the map default, which
+    /// shape carries which theme, where each copy came from, the room shells and the biome.</summary>
+    [Parameter] public SketchThemes Themes { get; set; } = SketchThemes.Empty;
     /// <summary>The theme in hand, held by the tool because the canvas can lift one into it.</summary>
     [Parameter] public string? Brush { get; set; }
-    /// <summary>The board's map default, or empty for unthemed.</summary>
-    [Parameter] public string MapTheme { get; set; } = "";
-    /// <summary>Every shape that carries a theme, by shape id.</summary>
-    [Parameter] public IReadOnlyDictionary<string, string> ShapeThemes { get; set; } = new Dictionary<string, string>();
-    /// <summary>Every shape on the board, themed or not — the denominator of the coverage line.</summary>
-    [Parameter] public int ShapeCount { get; set; }
     [Parameter] public string? SelectedGroupId { get; set; }
     [Parameter] public string? SelectedShapeId { get; set; }
     /// <summary>The shape ids the current selection covers — what its theme is read back over.</summary>
     [Parameter] public IReadOnlyList<string> TargetShapeIds { get; set; } = [];
-    /// <summary>Bumped whenever the registry changes. The swatch render is keyed on it as well as on the name,
-    /// because a theme replaced under the name already in hand would otherwise keep the picture it had.</summary>
-    [Parameter] public int Revision { get; set; }
     /// <summary>Whether the add-from-library panel is open. The strip's + toggles it.</summary>
     [Parameter] public bool AddOpen { get; set; }
     [Parameter] public EventCallback<bool> AddOpenChanged { get; set; }
     /// <summary>Put a theme in hand, or empty it — a set rather than a toggle, because a copy-in has to arm
     /// what it landed whether or not that name was already held.</summary>
     [Parameter] public EventCallback<string> OnHold { get; set; }
-    /// <summary>The registry or an assignment moved; the tool re-reads it.</summary>
-    [Parameter] public EventCallback OnChanged { get; set; }
 
     [Inject] public TerrainLibraryClient Library { get; set; } = default!;
     [Inject] public IJSRuntime JS { get; set; } = default!;
@@ -64,17 +51,6 @@ public partial class SketchThemeInspector
     /// the phase's biome surface.</summary>
     private IReadOnlyList<BiomePatternSummary> biomePatterns = [];
 
-    /// <summary>The library row the board's field was copied from, as its id, or 0 for a board that states no
-    /// field. Kept beside the snapshot the way a theme's source is: a map holds the field itself, and this is
-    /// what says which row it came from so the select can show it.</summary>
-    [Parameter] public long BiomeSource { get; set; }
-
-    /// <summary>The board's field changed; the tool re-reads it off the bridge.</summary>
-    [Parameter] public EventCallback BiomeChanged { get; set; }
-
-    /// <summary>The board's field as its JSON text, or empty for a board that states none.</summary>
-    [Parameter] public string? BiomeJson { get; set; }
-
     private string BiomeChoice => (HeldBiome?.Id ?? 0).ToString();
 
     /// <summary>
@@ -85,14 +61,14 @@ public partial class SketchThemeInspector
     /// stops the select reading "none" over a board that plainly has a field. Compared as parsed values rather
     /// than as text, since key order and whitespace are serialization.</para></summary>
     private BiomePatternSummary? HeldBiome =>
-        biomePatterns.FirstOrDefault(pattern => pattern.Id == BiomeSource)
-        ?? (string.IsNullOrWhiteSpace(BiomeJson)
+        biomePatterns.FirstOrDefault(pattern => pattern.Id == Themes.BiomeSource)
+        ?? (string.IsNullOrWhiteSpace(Themes.BiomeJson)
             ? null
-            : biomePatterns.FirstOrDefault(pattern => SameDocument(pattern.Params, BiomeJson)));
+            : biomePatterns.FirstOrDefault(pattern => SameDocument(pattern.Params, Themes.BiomeJson)));
 
     /// <summary>Whether the board states a field the library does not hold — what the select says instead of
     /// claiming the board has none.</summary>
-    private bool BiomeOffLibrary => !string.IsNullOrWhiteSpace(BiomeJson) && HeldBiome is null;
+    private bool BiomeOffLibrary => !string.IsNullOrWhiteSpace(Themes.BiomeJson) && HeldBiome is null;
 
     private IReadOnlyList<SelectOption> BiomePatterns =>
         [.. biomePatterns.Select(pattern => new SelectOption(pattern.Id.ToString(), pattern.Name))];
@@ -106,20 +82,15 @@ public partial class SketchThemeInspector
         var row = long.TryParse(value, out var id) ? id : 0;
         var picked = biomePatterns.FirstOrDefault(pattern => pattern.Id == row);
         await Handle.InvokeAsync<string?>("setBiome", picked?.Params ?? "", picked?.Id ?? 0);
-        await BiomeChanged.InvokeAsync();
-        await OnChanged.InvokeAsync();
     }
     private IReadOnlyList<RoomStyleSummary> rooms = [];
     private ThemePreviewDto? preview;
-    private (string? Held, int Revision) previewedFor;
-    private string? note;
 
-    /// <summary>The room-style snapshot bound per kind — the JSON itself, which is what the document holds.</summary>
-    private readonly Dictionary<string, string> boundRooms = [];
-    /// <summary>The kinds bound to <b>no building</b> — a pad on open ground with nothing over it. Held apart
-    /// from <see cref="boundRooms"/> because it is a binding, not a style: the document states an explicit
-    /// null for it, which is a different answer from never having asked.</summary>
-    private readonly HashSet<string> openRooms = [];
+    /// <summary>What the swatch render and the library comparison were last taken of: the theme in hand, its
+    /// document and the library row it was copied from. A theme replaced under the name already in hand is a
+    /// different document, so it is drawn again.</summary>
+    private (string? Held, string? Document, long Source) previewedFor;
+    private string? note;
 
     private string? InHand => string.IsNullOrEmpty(Brush) ? null : Brush;
     private bool HasSelection => SelectedGroupId is not null || SelectedShapeId is not null;
@@ -129,21 +100,22 @@ public partial class SketchThemeInspector
         libraryThemes = await Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
         rooms = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
         biomePatterns = await Library.ListAsync<BiomePatternSummary>(LibraryKinds.Biomes);
-        await ReadRoomBindings();
     }
+
+    /// <summary>The material document of the theme in hand, or null where none is held or the board no longer
+    /// has it.</summary>
+    private string? HeldDocument => InHand is { } held ? Themes.Documents.GetValueOrDefault(held) : null;
 
     // The swatch render is one round-trip, so it is taken only when the theme it would draw actually moves.
     protected override async Task OnParametersSetAsync()
     {
-        if (previewedFor == (InHand, Revision)) return;
-        previewedFor = (InHand, Revision);
+        var taken = (InHand, HeldDocument, InHand is { } held ? Themes.Sources.GetValueOrDefault(held) : 0);
+        if (previewedFor == taken) return;
+        previewedFor = taken;
         preview = null;
         heldMatchesSource = null;
-        if (Handle is null || InHand is null) return;
-        var json = await Handle.InvokeAsync<string>("getThemes");
-        using var doc = JsonDocument.Parse(json);
-        if (doc.RootElement.TryGetProperty("themes", out var themes) && themes.TryGetProperty(InHand, out var node))
-            preview = await Library.ThemePreviewAsync(node.GetRawText());
+        if (HeldDocument is not { } document) return;
+        preview = await Library.ThemePreviewAsync(document);
         await ReadHeldSource();
     }
 
@@ -152,8 +124,8 @@ public partial class SketchThemeInspector
     private string SelectionTheme()
     {
         if (TargetShapeIds.Count == 0) return "";
-        var first = ShapeThemes.GetValueOrDefault(TargetShapeIds[0], "");
-        return TargetShapeIds.All(id => ShapeThemes.GetValueOrDefault(id, "") == first) ? first : Mixed;
+        var first = Themes.ShapeThemes.GetValueOrDefault(TargetShapeIds[0], "");
+        return TargetShapeIds.All(id => Themes.ShapeThemes.GetValueOrDefault(id, "") == first) ? first : Mixed;
     }
 
     /// <summary>How much of the board still falls through to the map default — the question the number keys and
@@ -162,11 +134,12 @@ public partial class SketchThemeInspector
     {
         get
         {
-            if (ShapeCount == 0) return "Nothing is drawn yet.";
-            var painted = ShapeThemes.Count;
-            return painted == ShapeCount
-                ? $"All {ShapeCount} shapes are painted."
-                : $"{painted} of {ShapeCount} shapes are painted. The other {ShapeCount - painted} use the default palette.";
+            var total = Themes.ShapeCount;
+            if (total == 0) return "Nothing is drawn yet.";
+            var painted = Themes.ShapeThemes.Count;
+            return painted == total
+                ? $"All {total} shapes are painted."
+                : $"{painted} of {total} shapes are painted. The other {total - painted} use the default palette.";
         }
     }
 
@@ -192,18 +165,17 @@ public partial class SketchThemeInspector
             await AddOpenChanged.InvokeAsync(false);
             await OnHold.InvokeAsync(id);
         }
-        await OnChanged.InvokeAsync();
     }
 
     /// <summary>The board theme copied from a library row, or null where nothing on the board came from
     /// it — what the add panel says instead of matching the row's name against a board theme's.</summary>
     private string? CopiedAs(long row) =>
-        ThemeSources.FirstOrDefault(entry => entry.Value == row && Themes.Contains(entry.Key)).Key;
+        Themes.Sources.FirstOrDefault(entry => entry.Value == row && Themes.Documents.ContainsKey(entry.Key)).Key;
 
     /// <summary>The library row the theme in hand was copied from, or null for one authored on the board or
     /// copied from a row the library has since forgotten.</summary>
     private ThemeSummary? HeldSource =>
-        InHand is { } held && ThemeSources.TryGetValue(held, out var row)
+        InHand is { } held && Themes.Sources.TryGetValue(held, out var row)
             ? libraryThemes.FirstOrDefault(theme => theme.Id == row)
             : null;
 
@@ -221,18 +193,15 @@ public partial class SketchThemeInspector
     private async Task ReadHeldSource()
     {
         heldMatchesSource = null;
-        if (Handle is null || InHand is not { } held || HeldSource is not { } source) return;
+        if (InHand is not { } held || HeldSource is not { } source) return;
         if (!librarySnapshots.TryGetValue(held, out var rowJson))
         {
             rowJson = await Library.DocumentAsync(LibraryKinds.Themes, source.Id);
             if (rowJson is null) return;
             librarySnapshots[held] = rowJson;
         }
-        var json = await Handle.InvokeAsync<string>("getThemes");
-        using var doc = JsonDocument.Parse(json);
-        if (!doc.RootElement.TryGetProperty("themes", out var themes) || !themes.TryGetProperty(held, out var node))
-            return;
-        heldMatchesSource = SameDocument(node.GetRawText(), rowJson);
+        if (HeldDocument is not { } document) return;
+        heldMatchesSource = SameDocument(document, rowJson);
     }
 
     /// <summary>Whether two theme documents say the same thing. Compared as parsed values rather than as text:
@@ -245,12 +214,8 @@ public partial class SketchThemeInspector
 
     private async Task SaveToLibrary()
     {
-        if (Handle is null || InHand is null) return;
-        var json = await Handle.InvokeAsync<string>("getThemes");
-        using var doc = JsonDocument.Parse(json);
-        if (!doc.RootElement.TryGetProperty("themes", out var themes) || !themes.TryGetProperty(InHand, out var node))
-            return;
-        var id = await Library.ImportThemeAsync(InHand, node.GetRawText());
+        if (Handle is null || InHand is null || HeldDocument is not { } document) return;
+        var id = await Library.ImportThemeAsync(InHand, document);
         note = id is null
             ? "Couldn't save this palette to the library."
             : $"Saved “{InHand}” to the library.";
@@ -260,7 +225,6 @@ public partial class SketchThemeInspector
             // refreshes this theme rather than defining a second one beside it.
             await Handle.InvokeVoidAsync("setThemeSource", InHand, row);
             librarySnapshots.Remove(InHand);
-            await OnChanged.InvokeAsync();
         }
         libraryThemes = await Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
         await ReadHeldSource();
@@ -274,20 +238,18 @@ public partial class SketchThemeInspector
         await Handle.InvokeVoidAsync("deleteTheme", InHand);
         note = null;
         await OnHold.InvokeAsync("");
-        await OnChanged.InvokeAsync();
     }
 
     private async Task SetMapDefault(string theme)
     {
         if (Handle is null) return;
         await Handle.InvokeVoidAsync("setMapTheme", theme);
-        await OnChanged.InvokeAsync();
     }
 
     /// <summary>The board's own themes as options. The map default is the lowest layer — what paints a cell
     /// no shape claims — so the row standing for none says what falls through instead of naming nothing.</summary>
     private IReadOnlyList<SelectOption> MapThemes =>
-        [.. Themes.Select(id => new SelectOption(id, id))];
+        [.. Themes.Ids.Select(id => new SelectOption(id, id))];
 
     /// <summary>What a room kind's select offers: no building at all, then every style the library holds. The
     /// built-in shell is the placeholder rather than an option, because it is also what the select falls back
@@ -305,12 +267,11 @@ public partial class SketchThemeInspector
         if (Handle is null) return;
         if (SelectedGroupId is not null) await Handle.InvokeVoidAsync("assignGroup", SelectedGroupId, "");
         else if (SelectedShapeId is not null) await Handle.InvokeVoidAsync("assignShape", SelectedShapeId, "");
-        await OnChanged.InvokeAsync();
     }
 
     // ── the room shells ──
 
-    private string? BoundRoom(string kind) => boundRooms.GetValueOrDefault(kind);
+    private string? BoundRoom(string kind) => Themes.RoomStyles.GetValueOrDefault(kind);
 
     /// <summary>The library row a kind's bound shell is, or null where the board binds nothing — or binds a
     /// shell no row holds.
@@ -322,7 +283,7 @@ public partial class SketchThemeInspector
     /// serialization.</para></summary>
     private RoomStyleSummary? HeldRoom(string kind)
     {
-        if (boundRooms.GetValueOrDefault(kind) is not { } snapshot) return null;
+        if (Themes.RoomStyles.GetValueOrDefault(kind) is not { } snapshot) return null;
         if (roomOfSnapshot.TryGetValue(snapshot, out var held)) return held;
         return roomOfSnapshot[snapshot] = rooms.FirstOrDefault(room => SameDocument(room.Style, snapshot));
     }
@@ -334,12 +295,12 @@ public partial class SketchThemeInspector
 
     /// <summary>Whether the board binds a shell the library does not hold — what the select says instead of
     /// claiming the room is on its built-in one.</summary>
-    private bool RoomOffLibrary(string kind) => boundRooms.ContainsKey(kind) && HeldRoom(kind) is null;
+    private bool RoomOffLibrary(string kind) => Themes.RoomStyles.ContainsKey(kind) && HeldRoom(kind) is null;
 
     /// <summary>What the select shows: a row id, <c>0</c> for the built-in shell, or
     /// <see cref="NoBuilding"/>.</summary>
     private string RoomChoice(string kind) =>
-        openRooms.Contains(kind) ? NoBuilding : (HeldRoom(kind)?.Id ?? 0).ToString();
+        Themes.OpenRooms.Contains(kind) ? NoBuilding : (HeldRoom(kind)?.Id ?? 0).ToString();
 
     /// <summary>What the select reads where it holds no row: the built-in shell, or a shell the library
     /// cannot name.</summary>
@@ -347,30 +308,7 @@ public partial class SketchThemeInspector
         RoomOffLibrary(kind) ? "(not in the library)" : "(built-in shell)";
 
     /// <summary>Whether this kind is bound to no building.</summary>
-    private bool IsOpenRoom(string kind) => openRooms.Contains(kind);
-
-    private async Task ReadRoomBindings()
-    {
-        if (Handle is null) return;
-        JsonNode? state;
-        try { state = JsonNode.Parse(await Handle.InvokeAsync<string>("getRoomStyles")); }
-        catch (JsonException) { return; }
-
-        foreach (var kind in RoomKindInfo.All)
-        {
-            // TryGetPropertyValue is what separates the three answers: the indexer returns null both for a key
-            // that is absent and for one holding a JSON null, and those are different bindings — never asked
-            // (the built-in shell) against asked for no building at all.
-            JsonNode? snapshot = null;
-            var present = (state as JsonObject)?.TryGetPropertyValue(kind.Id, out snapshot) is true;
-            boundRooms.Remove(kind.Id);
-            openRooms.Remove(kind.Id);
-            if (!present) continue;
-            if (snapshot is null) { openRooms.Add(kind.Id); continue; }
-            boundRooms[kind.Id] = snapshot.ToJsonString();
-        }
-        StateHasChanged();
-    }
+    private bool IsOpenRoom(string kind) => Themes.OpenRooms.Contains(kind);
 
     private async Task BindRoom(string kind, string choice)
     {
@@ -381,32 +319,23 @@ public partial class SketchThemeInspector
         var styleJson = await Library.DocumentAsync(LibraryKinds.Houses, id);
         if (styleJson is null) { note = "Couldn't read that room style."; return; }
 
-        boundRooms[kind] = styleJson;
         note = null;
         if (Handle is not null) await Handle.InvokeVoidAsync("setRoomStyle", kind, styleJson);
-        StateHasChanged();
     }
 
     private async Task ClearRoom(string kind)
     {
-        boundRooms.Remove(kind);
-        openRooms.Remove(kind);
         note = null;
         if (Handle is not null) await Handle.InvokeVoidAsync("setRoomStyle", kind, null);
-        StateHasChanged();
     }
 
     /// <summary>Bind <b>no building</b>: the pad stands on open ground with nothing over it. The document
     /// states an explicit null, which the export reads as a third answer rather than as a missing one.</summary>
     private async Task OpenRoom(string kind)
     {
-        boundRooms.Remove(kind);
-        openRooms.Add(kind);
         note = null;
         if (Handle is not null) await Handle.InvokeVoidAsync("setRoomStyle", kind, "null");
-        StateHasChanged();
     }
-
 }
 
 /// <summary>The two kinds of room a board binds a shell for. The ids are the wire keys the sketch document

@@ -70,7 +70,7 @@
       @if (Note is not null) { <p class="dressing-refusal">@Note</p> }
       <div class="panel-actions">
         <Button Variant="primary" Busy="keeping" BusyLabel="Keeping…" Disabled="@(standX is null)" Writes OnClick="Keep">@(Changing ? "Save" : "Keep")</Button>
-        <Button OnClick="OnDiscard">Discard</Button>
+        <Button OnClick="Views.DiscardAsync">Discard</Button>
       </div>
     }
   </Section>
@@ -89,18 +89,17 @@
     private const double EyeOverGround = 2.62;
 
     [Parameter, EditorRequired] public string Slug { get; set; } = "";
-    [Parameter] public ViewDraft? Draft { get; set; }
-    [Parameter] public int Round { get; set; }
 
-    /// <summary>Why the last keep did not land, or null.</summary>
-    [Parameter] public string? Note { get; set; }
+    /// <summary>The views, which hold the camera in hand, the round its pictures are drawn in and why the last
+    /// keep did not land.</summary>
+    [Parameter, EditorRequired] public SketchViews Views { get; set; } = default!;
 
+    /// <summary>Store the camera in hand.</summary>
     [Parameter] public EventCallback<MapViewKeepRequest> OnKeep { get; set; }
-    [Parameter] public EventCallback OnDiscard { get; set; }
 
-    /// <summary>Where the camera in hand stands and what its middle lands on, for the canvas to draw it by:
-    /// stand x, z and look x, z.</summary>
-    [Parameter] public EventCallback<(int FromX, int FromZ, int LookX, int LookZ)> OnAimed { get; set; }
+    private ViewDraft? Draft => Views.Draft;
+    private int Round => Views.Round;
+    private string? Note => Views.Note;
 
     private string name = "";
     private int? standX, standZ;
@@ -196,7 +195,7 @@
         if (standX is { } fx && standZ is { } fz)
         {
             var (lookX, lookZ) = LookPoint(camera);
-            await OnAimed.InvokeAsync((fx, fz, lookX, lookZ));
+            await Views.AimedAsync((fx, fz, lookX, lookZ));
         }
         StateHasChanged();
     }

@@ -8,41 +8,43 @@ namespace PgmStudio.Client.Features.Sketch;
 /// <summary>The History phase's inspector: what one change did, or the changes since one.</summary>
 public partial class SketchChangeInspector
 {
-    /// <summary>The change the span ends at, whose writer and note are shown; null before one is picked.</summary>
-    [Parameter] public MapChangeDto? Change { get; set; }
+    [Parameter, EditorRequired] public SketchHistory History { get; set; } = default!;
 
-    /// <summary>The change the span starts from — the one before <see cref="To"/> for a single change.</summary>
-    [Parameter] public long From { get; set; }
-
-    [Parameter] public long To { get; set; }
-
-    /// <summary>The board's latest change.</summary>
-    [Parameter] public long Latest { get; set; }
-
-    /// <summary>The edits between the two, or null while they are compared.</summary>
-    [Parameter] public MapDiffDto? Diff { get; set; }
-
-    /// <summary>The columns the two builds disagree on, or null while both are built.</summary>
-    [Parameter] public WorldChangesDto? World { get; set; }
-
-    [Parameter] public string? WorldError { get; set; }
-
-    [Parameter] public bool Restoring { get; set; }
-
-    [Parameter] public string? RestoreError { get; set; }
-
-    /// <summary>Put the board back as it stood at a change.</summary>
-    [Parameter] public EventCallback<long> OnRestore { get; set; }
-
-    /// <summary>The threads with a message written in the span, each with the latest such message — what a change
-    /// answered, and the notes written on its board.</summary>
-    [Parameter] public IReadOnlyList<(MapNoteDto Note, NoteMessageDto Message)> Notes { get; set; } = [];
+    /// <summary>The board's notes, which name the threads written in the span shown.</summary>
+    [Parameter, EditorRequired] public SketchNotes Notes { get; set; } = default!;
 
     /// <summary>Open a thread in In game, by its note's id.</summary>
     [Parameter] public EventCallback<long> OnOpenNote { get; set; }
 
     /// <summary>The edits listed before the rest are only counted.</summary>
     private const int Shown = 60;
+
+    /// <summary>The change the span ends at, whose writer and note are shown; null before one is picked.</summary>
+    private MapChangeDto? Change => History.SpanChange;
+
+    /// <summary>The change the span starts from — the one before <see cref="To"/> for a single change.</summary>
+    private long From => History.SpanFrom;
+
+    private long To => History.SpanTo ?? 0;
+
+    /// <summary>The board's latest change.</summary>
+    private long Latest => History.LatestChange;
+
+    /// <summary>The edits between the two, or null while they are compared.</summary>
+    private MapDiffDto? Diff => History.SpanDiff;
+
+    /// <summary>The columns the two builds disagree on, or null while both are built.</summary>
+    private WorldChangesDto? World => History.SpanWorld;
+
+    private string? WorldError => History.SpanWorldError;
+
+    private bool Restoring => History.Restoring;
+
+    private string? RestoreError => History.RestoreError;
+
+    /// <summary>The threads with a message written in the span, each with the latest such message — what a change
+    /// answered, and the notes written on its board.</summary>
+    private IReadOnlyList<(MapNoteDto Note, NoteMessageDto Message)> SpanNotes => History.NotesInSpan(Notes.All);
 
     private string Title => To - From == 1 || From == 0 && To == 1 ? $"Change #{To}" : $"#{From} → #{To}";
 

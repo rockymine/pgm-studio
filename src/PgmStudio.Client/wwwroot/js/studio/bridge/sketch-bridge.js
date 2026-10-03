@@ -619,11 +619,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
     // A step replaces the WHOLE document, so every phase reading a part of it has to be told. `load` puts
     // the shapes back on the canvas and `selectShape` re-announces the selection, which is the Draw phase
-    // entire — and is why undo has always worked there and nowhere else. The marks, the props and the theme
-    // registry are restored on the canvas by the same call and then never announced, so their panels go on
-    // listing what the step just undid, and the overlays drawn from the server go on showing the surface it
-    // was solved for. Each phase is told the way its own edits tell it.
-    fire("OnThemes", themesState());
+    // entire. The marks and the props are restored on the canvas by the same call and then not announced, so
+    // their panels would go on listing what the step just undid, and the overlays drawn from the server would
+    // go on showing the surface it was solved for. Each phase is told the way its own edits tell it; the
+    // theme finish is announced by `load` itself.
     fire("OnDressing", dressingState());
     fire("OnRelief", reliefState());
     syncRelief();                  // the statement moved, so the contours and the shading it produced have too
@@ -689,16 +688,18 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       shapeCount++;
       if (s.theme) shapeThemes[s.id] = s.theme;
     }
-    return JSON.stringify({ themes, themeSources, mapTheme: mapTheme || "", shapeThemes, shapeCount });
+    // The room shells ride along because the Theme inspector reads them with the rest of the finish: a kind
+    // that is absent was never asked, and one holding null was bound to no building at all. The biome travels
+    // as the field itself and the library row it was copied from.
+    return JSON.stringify({
+      themes, themeSources, mapTheme: mapTheme || "", shapeThemes, shapeCount,
+      roomStyles, biome: { field: biome ?? null, source: biomeSource },
+    });
   }
+  const announceThemes = () => fire("OnThemes", themesState());
   // A theme edit is a discrete action the author is waiting on the result of, so it repaints at once; only
   // the continuous geometry stream (drag, resize) is worth coalescing.
-  function roomStylesState() { return JSON.stringify(roomStyles); }
-
-  // The board's biome as the host reads it: the field itself and the row it was copied from.
-  function getBiomeState() { return JSON.stringify({ field: biome ?? null, source: biomeSource }); }
-
-  function afterThemeChange() { syncActive(); markDirty(); fire("OnThemes", themesState()); refreshPaint({ now: true }); }
+  function afterThemeChange() { syncActive(); markDirty(); announceThemes(); refreshPaint({ now: true }); }
 
   // ── dressing (decoration.md) ────────────────────────────────────────────────
   // Placed props live on the canvas (it is where they are put, moved and picked); the bridge announces changes
@@ -1032,7 +1033,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
     // ── terrain-paint themes (docs/world-export/terrain-painting.md TP10) ──
     getThemes() { return themesState(); },
-    getRoomStyles() { return roomStylesState(); },
     // A snapshot as its JSON text, the text "null" for no building at all, or null/"" to fall back to that
     // kind's built-in shell.
     setRoomStyle(kind, styleJson) {
@@ -1041,18 +1041,17 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (styleJson) { try { parsed = JSON.parse(styleJson); } catch { parsed = undefined; } }
       roomStyles = { ...roomStyles, [kind]: parsed };
       markDirty();
+      announceThemes();
     },
     // ── the biome (docs/world-export/terrain-painting.md 5b) ──
-    // The map-wide field and the library row it came from: {"field": …|null, "source": n}.
-    getBiome() { return getBiomeState(); },
     // Copy a field onto the board, recording the library row it came from, or take it off with an empty
     // string. Returns an error string on invalid JSON, else null.
     setBiome(text, source) {
-      if (!text) { biome = undefined; biomeSource = 0; markDirty(); fire("OnBiome", getBiomeState()); return null; }
+      if (!text) { biome = undefined; biomeSource = 0; markDirty(); announceThemes(); return null; }
       let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "This isn't valid JSON."; }
       biome = parsed;
       biomeSource = Number.isFinite(source) && source > 0 ? source : 0;
-      markDirty(); fire("OnBiome", getBiomeState()); return null;
+      markDirty(); announceThemes(); return null;
     },
     defineTheme(name) {
       const id = uniqueScopeId(Object.keys(themes), name || "theme");
@@ -1268,6 +1267,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       // screen. An undo passes keepView, because a step back that also moves the camera reads as a different
       // board.
       if (!keepView) canvas.fitToBbox();
+      announceThemes();
     },
     // The layout for the host to persist (the SketchLayoutJson shape — now layers[]).
     getState() {

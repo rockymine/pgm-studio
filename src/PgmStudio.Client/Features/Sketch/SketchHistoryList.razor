@@ -5,9 +5,9 @@
 
 <Section Title="Change history" Variant="list">
   <div class="panel-list">
-    @if (Error is not null)
+    @if (History.ChangesError is not null)
     {
-      <p class="plan-readout">@Error</p>
+      <p class="plan-readout">@History.ChangesError</p>
     }
     else if (Changes is null)
     {
@@ -21,8 +21,8 @@
     {
       @foreach (var change in Changes.Reverse())
       {
-        <ListRow Compact Selected="@(Picked == change.Number)" @key="change.Number"
-                 OnClick="() => OnPick.InvokeAsync(change.Number)"
+        <ListRow Compact Selected="@(History.SpanTo == change.Number)" @key="change.Number"
+                 OnClick="() => History.PickChange(change.Number)"
                  title="@($"#{change.Number} · {Who(change)} · {Moments.Ago(change.At)} · {Said(change)}")">
           <span class="list-tag">#@change.Number</span>
           <span class="list-label">@Said(change)</span>

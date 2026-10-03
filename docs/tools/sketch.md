@@ -23,6 +23,18 @@ drawing state and the zoom survive the trip. None of the five has steps: each sw
 which overlays the layer bar offers, and the canvas is reused as it stands. `?phase=history` opens the tool on
 History and `?phase=report` on Report.
 
+**Each phase owns its state, in one of two shapes.** A phase whose truth is on the canvas — Terraform,
+Decoration and Palette — takes one snapshot the bridge announces (`OnRelief`, `OnDressing`, `OnThemes`) and hands
+it, with the bridge handle, to its list and its inspector, which write back through the handle. The Palette
+snapshot is one value, `SketchThemes`: the registry and each theme's document, the map default, which shape
+carries which theme, where each copy came from, the room shells and the biome, announced on every change of any
+of them and on a load and a step taken back alike. A phase whose truth is the server's loads it itself: Info
+and Report are components that read their own document, and a phase with two bodies — History, and the views
+of In game — has a plain state object (`SketchHistory`, `SketchViews`) that the host holds once and passes to
+both. The map's notes are one more, `SketchNotes`, read in one place for In game and for the threads History
+names. The host keeps the phase switch, the save before a page phase opens, the canvas mode, overlays and tool,
+and the bridge's callbacks; the state objects reach the canvas and the save through delegates it hands them.
+
 The tool saves continuously — every change schedules a debounced write 800 ms later, and Ctrl+S flushes it at
 once. The finished map leaves by **Download map** in the top bar, on every phase: it flushes the layout, builds
 the world the first time (the finish below, `POST …/sketch/finish`, which rasterizes the layout and moves the

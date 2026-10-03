@@ -52,7 +52,7 @@ test("while the page is read-only no verb that edits the document runs", async (
 test("a read verb is not wrapped as a step, and reads while read-only", async () => {
   const { handle, firedOf } = await boardWithTree();
   handle.setReadOnly(true);
-  assert.deepEqual(JSON.parse(handle.getBiome()), { field: null, source: 0 });
+  assert.deepEqual(JSON.parse(handle.getThemes()).biome, { field: null, source: 0 });
   assert.equal(handle.themeFromLibrary(7), "");
   assert.deepEqual(firedOf("OnHistory"), []);
 });
