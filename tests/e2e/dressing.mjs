@@ -178,6 +178,24 @@ try {
   checks.add("so the pick lands on the new tree and leaves the old one as it was",
     placed.join(",") === "oak,spruce", placed.join(","));
 
+  // Shift held as a tree lands keeps the tool in hand: two clicks are two trees, and the dock still shows
+  // the tree tool pressed afterwards.
+  await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
+  await page.waitForTimeout(500);
+  await page.keyboard.down("Shift");
+  await page.mouse.click(box.x + box.width * 0.52, box.y + box.height * 0.69);
+  await page.waitForTimeout(800);
+  await page.mouse.click(box.x + box.width * 0.64, box.y + box.height * 0.68);
+  await page.waitForTimeout(800);
+  await page.keyboard.up("Shift");
+  await page.waitForTimeout(500);
+  const kept = (await placedRows()).length - before.length;
+  checks.add("with Shift held a click places a tree and keeps the tool",
+    kept === 4 && await page.locator(`button[aria-pressed][aria-label^="${DRIVEN.tree}"]`).count() === 1
+    && /next item/.test(await panel()),
+    `${kept} placed · pressed ${await page.locator('.canvas-dock button[aria-pressed]').evaluateAll(els => els.map(e => e.getAttribute("aria-label")))} · ${(await panel()).match(/selected|next item/)?.[0]}`);
+  await page.click('button[aria-label="Select"]');
+
   // Drag a route: press, trace, release — no separate way to finish, which is the bug the rework fixes.
   await page.click(`button[aria-label^="${DRIVEN.stroke}"]`);
   await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.65);

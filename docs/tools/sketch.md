@@ -715,7 +715,8 @@ operation, **Build** or **Carve**, wearing the colour the finished shape will ta
 mistaken for an armed build. Two more tools read and cut rather than make: **measure** drags a ruler between
 two points, the usual question being how wide a void gap is, and **split** slices the topmost shape it crosses
 into two independent shapes. Every draw and every split drops the
-tool back to select when it completes.
+tool back to select when it completes, with the new shape selected — unless **Shift** is held as it completes,
+which keeps the tool in hand and selects nothing, so the next press draws again. `V` puts it down.
 
 **The top two rungs wear the same box, and the third wears none.** A group and a shape are each drawn with
 the **transform box** every surface in the studio uses (`docs/client/canvas-interaction.md` §5): four corner
@@ -904,7 +905,8 @@ select-only too and is deliberately outside this — its inspector is about the 
 **Arming a placing tool lets go of the selected mark or prop.** A placement selects what it put down and hands
 the canvas back to select, so the inspector is showing that placement; arming the tool again clears it, and the
 inspector shows the starting values the next placement takes. A recipe picked with the tool in hand therefore
-lands on the next tree, not on the one already down.
+lands on the next tree, not on the one already down. Holding **Shift** as a placement lands keeps the tool in hand and lets go of
+what it placed at once, so a row of trees is one tool pick and the inspector stays on the next one.
 
 The document is keyed by group id and carries the group's own settings beside the two lists. This one states
 all six, and solves to a surface running 7 to 16:

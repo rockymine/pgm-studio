@@ -129,6 +129,30 @@ await page.waitForTimeout(300);
 const chosen = await control("Design", "select").inputValue();
 checks.add("a chosen design survives the round trip", chosen === "cube-4", chosen);
 
+// ── Shift keeps the tool in hand ──────────────────────────────────────────────────────────────────────
+checks.section("Shift held as a piece lands keeps the piece tool");
+
+const pressed = (label) => page.locator(`.canvas-dock button[aria-pressed][aria-label="${label}"]`).count();
+await pick("Pieces", "Piece");
+await page.keyboard.down("Shift");
+for (const top of [-80, 20]) {
+  await page.mouse.move(midX + 160, midZ + top);
+  await page.mouse.down();
+  await page.mouse.move(midX + 220, midZ + top + 60, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForTimeout(250);
+}
+await page.keyboard.up("Shift");
+const pressedNow = () => page.locator('.canvas-dock button[aria-pressed]').evaluateAll(els => els.map(e => e.getAttribute("aria-label")).join(" | "));
+checks.add("two pieces drawn with Shift held leave the piece tool armed", await pressed("Piece") === 1, await pressedNow());
+await page.mouse.move(midX + 160, midZ + 120);
+await page.mouse.down();
+await page.mouse.move(midX + 220, midZ + 170, { steps: 6 });
+await page.mouse.up();
+await page.waitForTimeout(250);
+checks.add("and one drawn without it drops back to select", await pressed("Select") === 1 && await pressed("Piece") === 0,
+  await pressedNow());
+
 checks.add("varying an objective raised nothing", page.faults.length === 0, page.faults.join(" | "));
 
 await browser.close();

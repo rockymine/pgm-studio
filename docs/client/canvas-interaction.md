@@ -448,7 +448,7 @@ longer exists.
 
 One module, `shared/keys.js`, owns every keyboard binding in the studio: a single `keydown` listener on
 `document`, and a single registry every owner adds a named set of entries to. An entry is `{ id, keys, label,
-group, run, when?, priority?, inField?, passive? }`. `label` and `group` are required — `register` throws
+group, run, when?, priority?, inField?, passive?, held? }`. `label` and `group` are required — `register` throws
 without them, because a binding that cannot be listed is a binding nobody finds — and `run(ev)` is what the
 chord does, prevented from its browser default unless the entry marks itself `passive`. An owner registers its
 whole set under one name and drops it by that name when it unmounts, so a chord can never outlive the
@@ -461,6 +461,14 @@ Ctrl explicitly is written `ctrl+…`. Where two owners register the same chord,
 `priority` first, then whichever owner registered most recently. `when()` gates whether an entry can run at
 all — a hidden canvas or an empty selection answers false — and typing into a text field silences every entry
 except those marked `inField`, so a bare letter in a name box is a letter rather than a tool switch.
+
+**One modifier is held rather than pressed.** A finished draw, cut or placement drops its canvas back to
+select, so the next press can move or tune what was just put down; Shift held as it lands keeps the tool in hand
+instead. `keepsTool()` is that rule, read off the modifiers of every key and pointer event the document sees
+(`noteModifiers`, installed in the capture phase so it is current when the release lands), and every
+drop-to-select site on both canvases asks it — the sketch bridge's `dropTool` and the plan canvas's own. A
+`held` entry is how the sheet lists it: it is shown, it takes no `run`, and neither the dispatcher nor the
+palette ever offers it. `KEEP_TOOL` is that row, and each canvas that places things includes it in its set.
 
 The `?` sheet and the `Ctrl`/`⌘`+`K` command palette (`shared/keys-overlay.js`) are both rendered from this
 same registry, so neither can offer a chord the app does not have. The sheet lists every registered binding,

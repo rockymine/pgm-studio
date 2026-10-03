@@ -1321,6 +1321,7 @@ export class SketchCanvas extends CanvasBase {
     // The chords that change the document stand down on a page the caller may not write.
     const writable = () => live() && !this._readOnly;
     Keys.register("sketch-canvas", [
+      Keys.KEEP_TOOL,
       { id: "sketch.cancel", keys: "escape", label: "Cancel, go up a level, or deselect",
         group: "Canvas", when: live, inField: false, run: () => this.#onEscape() },
       { id: "sketch.enter", keys: "enter", label: "Open the selected group or shape",

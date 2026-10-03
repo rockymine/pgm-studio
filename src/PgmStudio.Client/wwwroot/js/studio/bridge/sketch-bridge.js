@@ -124,15 +124,22 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // drag fold into that drag's single step rather than making one each.
   const edit = (fn) => (...args) => history.step(() => fn(...args));
 
+  /** A finished draw, cut or placement hands the canvas back to select, and the toolbar follows — unless
+   *  Shift is held as it lands, which keeps the tool in hand. Answers whether the tool was put down. */
+  function dropTool() {
+    if (Keys.keepsTool()) return false;
+    canvas.setActiveTool("select");
+    fire("OnToolChanged", "select");
+    return true;
+  }
+
   const canvas = new SketchCanvas(svgEl, wrapEl, {
     cursorEl: coordsEl, zoomEl, dimEl,
     onShapeCreated: edit((partial) => {
       const shape = { ...partial, id: genId(), override: partial.override ?? false, base_height: clampHeight(partial.base_height ?? NEW_SHAPE_HEIGHT), floor: clampFloor(partial.floor) };
       canvas.addShape(shape);
       recompute();
-      canvas.setActiveTool("select");
-      fire("OnToolChanged", "select");
-      selectShape(shape.id);
+      if (dropTool()) selectShape(shape.id);
       markDirty();
     }),
     onShapeUpdated: edit(() => { recompute(); markDirty(); }),
@@ -155,7 +162,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onDressingChanged: edit(() => afterDressingChange()),
     onPropSelected:    () => fire("OnDressing", dressingState()),
     // A placed prop ends its tool, the same as a completed draw: the toolbar follows the canvas back to select.
-    onDressingPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
+    // A tool kept in hand lets go of the prop instead, so the inspector shows what the next press places.
+    onDressingPlaced:  () => { if (!dropTool()) canvas.dressingTools?.select(null); },
     // A join is one edit and one undo step, and it answers a sentence either way — what it did, or why it
     // would not. The refusals it cannot answer are the joint model's, and those arrive with the preview.
     onDressingJoin: edit((result) => {
@@ -167,7 +175,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // Relief marks follow exactly the same three rules, for the same reasons.
     onReliefChanged: edit(() => afterReliefChange()),
     onMarkSelected:  () => fire("OnRelief", reliefState()),
-    onReliefPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
+    onReliefPlaced:  () => { if (!dropTool()) canvas.reliefTools?.select(null); },
     onShapeDeleted:  edit((id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); }),
     // Taking a point out is one step, opened here because the key press that asks for it is not a pointer
     // press and so has no step open yet; a refused removal changes nothing and costs none. Either way the
@@ -217,8 +225,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       for (const h of halves)
         canvas.addShape({ ...h, id: genId(), override: h.override ?? false, base_height: clampHeight(h.base_height), floor: clampFloor(h.floor) });
       recompute();
-      canvas.setActiveTool("select");        // a completed cut drops back to select (like the draw tools)
-      fire("OnToolChanged", "select");
+      dropTool();
       selectShape(null);
       markDirty();
       return;

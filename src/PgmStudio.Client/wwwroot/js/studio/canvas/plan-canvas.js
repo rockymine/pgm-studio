@@ -1217,8 +1217,14 @@ export class PlanCanvas extends CanvasBase {
     if (!list) return;
     list.push(rec);
     this.#sel = { kind: "marker", markerKind: kind, index: list.length - 1 };
-    this.setTool("select"); this.#cb.onTool?.("select");
+    this.#dropTool();
     this.render(); this.#cb.onChange?.(); this.#fireSelect();
+  }
+
+  /** A finished placement hands the canvas back to select, unless Shift is held as it lands. */
+  #dropTool() {
+    if (Keys.keepsTool()) return;
+    this.setTool("select"); this.#cb.onTool?.("select");
   }
 
   // Wall tool: toggle the wall mark on the land interface nearest the click (within one cell). The mark rides
@@ -1263,7 +1269,7 @@ export class PlanCanvas extends CanvasBase {
     const rect = rectFromCells(...this.#drag.a, ...this.#drag.b);
     this.#drag = null;
     this.#cb.onCreate?.(kind, rect);          // the bridge mints the id, appends, and re-selects
-    this.setTool("select"); this.#cb.onTool?.("select");
+    this.#dropTool();
   }
 
   // Resize the selected piece/zone by dragging a handle: move the picked cell edge(s) to the cursor cell,
@@ -1345,6 +1351,7 @@ export class PlanCanvas extends CanvasBase {
     // listed by the `?` sheet and dropped with the canvas.
     const live = () => this._wrap?.offsetParent != null && !this._isoOn;
     Keys.register("plan-canvas", [
+      Keys.KEEP_TOOL,
       { id: "plan.delete", keys: ["delete", "backspace"], label: "Delete the selection", group: "Canvas",
         when: () => live() && !this._readOnly && !!this.#sel, run: () => this.#cb.onDelete?.(this.getSelectionSet()) },
       { id: "plan.enter", keys: "enter", label: "Open the selected group", group: "Canvas",
