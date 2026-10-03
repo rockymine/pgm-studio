@@ -138,6 +138,13 @@ decides whether something was grabbed, and `_moveStart`/`_moveTo`/`_moveBy`/`_co
 through to persistence, with `_moveTo` offering a snap-aware absolute path and `_moveBy` the incremental
 fallback.
 
+**A canvas lets go of the page when its tool unmounts.** The base adds its drag listeners to `document`, not to
+its own element, because a drag that leaves the SVG must still end; `_disposeCanvasBase` removes both, with the
+resize observer, the pending chrome frame and the iso renderer, and every subclass `dispose` ends by calling it.
+A bridge's `dispose` clears only what the bridge itself holds and then reaches `canvas.dispose()`, so a throw
+before that line leaks a whole canvas per mount. `tests/js/canvas-dispose.test.js` mounts the plan bridge under a
+stub and asserts both the clean dispose and the removed listeners.
+
 **A canvas on a page the caller may not write is read-only, and refuses at the source.** `setReadOnly(on)` sets
 `_readOnly` and calls the `_onReadOnlyChanged` hook; the base then begins no body-drag, and each surface
 refuses its own edits rather than discarding their results. The sketch canvas treats it as select-only and
@@ -370,10 +377,10 @@ works from the shared folder.
 
 Coverage splits cleanly along the DOM line. The modules the tests import average around 92% lines, several
 at 100% (`transform`, `symmetry`, `groups`, `polygon`, `plan-inspect`, `decompose-cut`, `shape-render`);
-`canvas-painter` is the one DOM-adjacent module under test, via a small context stub, and the sketch's bridge and
-canvas are mounted whole by the harness below. The studio modules the tests never import at all are every other
-canvas, every other bridge (`plan-bridge` among them), every controller but the sketch's, `iso-webgl` and `studio.js`.
-Note that `node --test --experimental-test-coverage`
+`canvas-painter` is the one DOM-adjacent module under test, via a small context stub. The sketch's bridge and
+canvas are mounted whole by the harness below, and `canvas-dispose.test.js` mounts `plan-bridge` and
+`canvas-base` under a stub. The studio modules the tests never import at all are every other canvas, every other
+controller but the sketch's, `iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage`
 reports such files as *absent*, not as zero, so the report reads healthier than the tree is.
 
 This is a coherent split rather than neglect: pure logic is tested, DOM-bound code is not. The painted

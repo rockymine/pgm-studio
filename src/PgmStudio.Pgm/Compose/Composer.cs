@@ -2,6 +2,7 @@ using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Compose;
 

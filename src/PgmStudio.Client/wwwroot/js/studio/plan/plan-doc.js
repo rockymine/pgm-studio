@@ -15,8 +15,10 @@ import { applySymmetry, applySymmetryToBounds, orbitAxes } from "../geometry/sym
 // intent-bearing generating roles (wool-room / spawn) keep distinct tints. One non-generating annotation
 // produces no terrain: `buffer` (reserved empty space — lane spacing / holes, drawn hatched). Colours are
 // tokens in tokens.css; the fill is tinted lighter for a higher surface. Retired role names
-// (lane/hub/mid/connector) map to "piece" on load.
-export const ROLES = ["piece", "wool-room", "spawn", "buffer"];
+// (lane/hub/mid/connector) map to "piece" on load. The role and box-kind words below, and the facings,
+// are twins of `PgmStudio.Vocabulary` (`PlanRoles`, `PlanBoxKinds`, `SpawnFacings`), pinned to them by
+// `PlanWordsTwinTests`.
+export const ROLES = ["piece", "spawn", "wool-room", "buffer"];
 export const ROLE_COLORS = {
   piece: "var(--canvas-role-piece)", "wool-room": "var(--canvas-role-wool-room)",
   spawn: "var(--canvas-role-spawn)", buffer: "var(--canvas-role-buffer)",
@@ -24,7 +26,7 @@ export const ROLE_COLORS = {
 export const ROLE_LABELS = { piece: "Piece", "wool-room": "Wool room", spawn: "Spawn", buffer: "Buffer" };
 
 // The generating (terrain-producing) roles vs the non-generating annotation roles — the palette grouping.
-export const GENERATING_ROLES = ["piece", "wool-room", "spawn"];
+export const GENERATING_ROLES = ["piece", "spawn", "wool-room"];
 export const TECHNICAL_ROLES = ["buffer"];
 
 /** Fold a raw (possibly legacy or unknown) role down to a canonical one: the known roles survive, everything else → piece. */

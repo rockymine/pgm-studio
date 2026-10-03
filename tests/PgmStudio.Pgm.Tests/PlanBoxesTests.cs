@@ -1,6 +1,7 @@
 using System.Text.Json;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests;
 

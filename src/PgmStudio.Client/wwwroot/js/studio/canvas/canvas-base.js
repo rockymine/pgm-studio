@@ -35,6 +35,8 @@ export class CanvasBase {
   #pendingZoom  = null;   // scale awaiting report on that frame (see _reportZoom)
   #iso          = null;   // lazily-created WebGL iso renderer (see _enterIso)
   #isoBusy      = null;   // the "still building" overlay, created with it
+  #onDocMove    = null;   // the document-level drag listeners, kept so dispose can remove them
+  #onDocUp      = null;
   _isoOn        = false;
   _fitPending   = false;  // a fit asked for while the wrap had no layout box; run once it gets one
   _viewSize     = null;   // last measurement (see _size) — per-frame paths read this, not the DOM
@@ -323,8 +325,10 @@ export class CanvasBase {
     showLayers(this._isoLayers(), true);
   }
 
-  /** Release the observer + the WebGL context. Subclasses call this from their own `dispose`. */
+  /** Release the observer, the document listeners + the WebGL context. Subclasses call this from their own `dispose`. */
   _disposeCanvasBase() {
+    if (this.#onDocMove) { document.removeEventListener("mousemove", this.#onDocMove); this.#onDocMove = null; }
+    if (this.#onDocUp)   { document.removeEventListener("mouseup", this.#onDocUp); this.#onDocUp = null; }
     if (this.#chromeFrame) { cancelAnimationFrame(this.#chromeFrame); this.#chromeFrame = 0; }
     this.#ro?.disconnect(); this.#ro = null;
     this.#iso?.dispose(); this.#iso = null;
@@ -380,7 +384,7 @@ export class CanvasBase {
     });
 
     // Drag / pointer move
-    document.addEventListener("mousemove", (e) => {
+    this.#onDocMove = (e) => {
       if (this._onResizeMove(e)) return;
       if (!this._viewportG) return;
       // The pan tool shows an open hand, and a closed one while the view is being dragged.
@@ -416,10 +420,11 @@ export class CanvasBase {
       }
 
       this._onPointerMove(e, this._clientToSvg(e.clientX, e.clientY));
-    });
+    };
+    document.addEventListener("mousemove", this.#onDocMove);
 
     // Release
-    document.addEventListener("mouseup", (e) => {
+    this.#onDocUp = (e) => {
       if (this._onResizeUp(e)) return;
       this._svg?.classList.remove("canvas--panning");
       if (e.button === 1) { this.#midDragging = false; this.#dragAnchor = null; return; }
@@ -435,7 +440,8 @@ export class CanvasBase {
         this.#moveState = null;
       }
       this._onToolMouseup(e, this._clientToSvg(e.clientX, e.clientY));
-    });
+    };
+    document.addEventListener("mouseup", this.#onDocUp);
 
     // Click (select / inspect)
     this._svg.addEventListener("click", (e) => {

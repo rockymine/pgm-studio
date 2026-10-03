@@ -1692,7 +1692,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `MidCarver` | `Compose/MidCarver.cs` | the mid: the crossing's half-gap, the flush hull-exact build band, and the row of shared stones standing astride the axis inside it. |
 | `ClosureAnalysis` | `Compose/ClosureAnalysis.cs` | closure hole raster (`HoleSizes`, `AnyHoleRingedBy`). |
 | `ComposeGeometry` | `Compose/ComposeGeometry.cs` | fanning + the collinear-chain measurement. |
-| `PlanModel` · `PlanRoles` | `Plan/PlanModel.cs` | the plan format + the authored role set. |
+| `PlanModel` | `Plan/PlanModel.cs` | the plan format. Its role and box-kind word sets, `PlanRoles` and `PlanBoxKinds`, are `PgmStudio.Vocabulary`'s. |
 
 **Gates** (`dotnet run <path>` — a file-based script; see `CLAUDE.md` on the runfile cache before
 measuring a `src/` change). Looking at a composed board is the studio's job, not a script's.
