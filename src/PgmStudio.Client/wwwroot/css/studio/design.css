@@ -226,10 +226,7 @@
 .theme-map-preview { display: flex; justify-content: center; padding: var(--space-3); background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: auto; }
 .theme-map-preview svg { max-width: 100%; height: auto; }
 
-/* Theme Apply-step rail: the theme's four bucket swatches in a row, and the current selection's rows. */
-.theme-apply-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); margin-top: var(--space-2); }
-.theme-apply-swatch { margin: 0; display: flex; flex-direction: column; gap: var(--space-1); align-items: center; }
-.theme-apply-swatch figcaption { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+/* Palette phase: the current selection's rows. */
 .theme-apply-sel-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) 0; flex-wrap: wrap; }
 
 /* A material and, indented under it, the materials it is made of — the nesting IS the structure. */

@@ -100,7 +100,7 @@ try {
   await page.waitForTimeout(500);
   checks.add("a swatch clicked is in hand",
     await page.locator(".canvas-theme-swatch--on").count() === 1
-    && await page.locator("text=Painting with").count() > 0);
+    && await page.locator("text=in hand").count() > 0);
 
   // Aim at a shape the layout actually carries rather than at a fraction of the viewport: where the board
   // sits on screen is the fit's business, and a click that misses proves nothing about the brush.
@@ -113,6 +113,11 @@ try {
   let scarred = 0;
   for (const point of shapes.flatMap(shape => shapeAimPoints(shape))) {
     if (!aim) break;
+    // A stroke, or a click on no shape, puts the brush down, so each try takes it in hand again.
+    if (await page.locator(".canvas-theme-swatch--on").count() === 0) {
+      await page.click('.canvas-theme-swatch:has-text("scar")');
+      await page.waitForTimeout(300);
+    }
     const at = aim(point.x, point.z);
     await page.mouse.click(at.x, at.y);
     await page.waitForTimeout(1400);   // past the autosave debounce

@@ -992,25 +992,26 @@ what a second copy of the same row matches by, so copying it in again refreshes 
 rather than defining a second theme beside it — and it holds whichever of the two has since been renamed,
 where a match by name would have made a renamed pair into two themes with nothing saying they are one. A row
 the board has a copy of is badged with the name that copy carries, and its action reads **Update** rather
-than **Add**. Saving a board theme out records the row it was written to for the same reason.
+than **Add**.
 
 **With a theme in hand the canvas is a brush**, and the modifiers are read against what is held rather than
-against the grouping. A click paints the shape under it; `Shift`+click widens the stroke to every shape the
-group holds; `Alt`+click lifts that shape's own theme back into the hand. There is no apply button and no
+against the grouping. A click paints the shape under it and puts the brush down, leaving that shape selected;
+`Shift` held keeps the brush in hand for the next stroke; `Ctrl`+click widens the stroke to every shape the
+group holds; `Alt`+click lifts that shape's own theme back into the hand. A click on no shape puts the brush
+down too. There is no apply button and no
 scope control — with an empty hand the usual selection rule applies unchanged, and the tree reaches a group
 either way. A shape carries the assignment (`shape.theme`), a group stroke writes it to every member, and a
 cell that carries none falls to the map default, so the resolution is shape, then map. `Escape` puts the brush
 down — a thing in hand is the first thing it lets go of — and so does leaving the phase.
 
-**The inspector says what is in hand, what the selection carries, and — with nothing selected — what the board
-falls back to.** Painting with: where the theme was copied from and whether it still says what that row says — the
-row is read and the two documents compared, so a snapshot that has been edited on either side says so instead
-of reading as current — the sample plateau the theme finishes, a swatch per bucket, and the two acts that
-change the registry rather than the board — **Save to library**, which decomposes the theme into one style per
-bucket so it can be edited there, and **Remove**, which takes it off the board. Selection: what that shape or
-group is painted with, `mixed` where a group's shapes disagree, and **Unpaint**. Map defaults, when
-nothing is selected: the default theme, the board's biome, how many shapes are still falling through to the
-theme, and the two room shells, in one section rather than two. **Every row there is one library row bound to
+**The inspector says what is in hand, what the selection carries, and — with neither — what the board falls
+back to.** Palette, badged **in hand**: where the theme was copied from and whether it still says what that
+row says — the row is read and the two documents compared, so a snapshot that has been edited on either side
+says so instead of reading as current — the sample plateau the theme finishes, and **Remove**, which takes it
+off the board. A theme is edited in the library, never here. Selection: what that shape or group is painted
+with, `mixed` where a group's shapes disagree, and **Unpaint**. Map defaults, when nothing is selected and
+nothing is in hand: the default theme, the board's biome and the two room shells, in one section rather than
+two. **Every row there is one library row bound to
 the whole board** — the same statement four times over — so each row carries its own button through to the
 library that holds it and each says what it is bound to by name. The pictures are the library's, and a section
 describing what the board falls back to is a list of bindings rather than a gallery — no row of it draws what
