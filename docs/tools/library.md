@@ -696,8 +696,7 @@ theme's outline row scrolls the fields column to that bucket's section and marks
 that lands mid-column still says which row was asked for; each bucket carries the swatch of what it alone
 paints, from the same preview call the composed picture answers.
 
-**What the outline shows, the preview answers.** A style draws its plan and its section, either or both by a
-chip; a house and a part draw the sample building four ways, and add a dock beneath the picture for the shell
+**What the outline shows, the preview answers.** A style draws its plan and its section side by side; a house and a part draw the sample building four ways, and add a dock beneath the picture for the shell
 size — 6×6, 8×8, 10×15 or 16×16 — the sample stands on.
 
 **Three of those four are pictures and the fourth is the building.** The plan, the section and the cutaway are
