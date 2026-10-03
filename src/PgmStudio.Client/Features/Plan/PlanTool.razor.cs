@@ -175,6 +175,15 @@ public partial class PlanTool
     private string? planOrigin;
     private bool saving;
     private string? saveState;          // a transient "Saved" / error note under the toolbar
+
+    /// <summary>The write of a map-backed plan's artifact, which states the revision this tab loaded: a second
+    /// tab's save is refused (<c>RQ5</c>, 409) instead of being overwritten, and the tab is then superseded
+    /// until it loads the plan again.</summary>
+    private DocumentSave Document => document ??= new(Http);
+    private DocumentSave? document;
+
+    private async Task<HttpContent> PlanBodyAsync()
+        => new StringContent(await handle!.InvokeAsync<string>("exportJson"), Encoding.UTF8, "application/json");
     private bool showOpenDb;
     private bool dbBusy;
     private string? dbError;
@@ -917,14 +926,14 @@ public partial class PlanTool
         StateHasChanged();
         try
         {
-            var planJson = await handle.InvokeAsync<string>("exportJson");
             // A map-backed plan mutates its artifact in place — it is already the authored map row, no forking.
             if (MapBacked)
             {
-                using var mapResp = await Http.PutAsync($"api/map/{Slug}/plan", new StringContent(planJson, Encoding.UTF8, "application/json"));
-                saveState = mapResp.IsSuccessStatusCode ? "Saved" : $"Couldn't save (HTTP {(int)mapResp.StatusCode}). Try again.";
+                var outcome = await Document.PutAsync($"api/map/{Slug}/plan", PlanBodyAsync);
+                saveState = outcome.Landed ? "Saved" : outcome.Message;
                 return;
             }
+            var planJson = await handle.InvokeAsync<string>("exportJson");
             using var resp = await Http.PostAsJsonAsync("api/plans", new PlanSaveRequest(planJson, planDbId));
             if (resp.IsSuccessStatusCode)
             {
@@ -999,7 +1008,11 @@ public partial class PlanTool
         importError = null;
         try
         {
-            var json = await Http.GetStringAsync($"api/map/{slug}/plan");
+            Document.Forget();
+            using var read = await Http.GetAsync($"api/map/{slug}/plan");
+            read.EnsureSuccessStatusCode();
+            Document.Hold(read);
+            var json = await read.Content.ReadAsStringAsync();
             if (!string.IsNullOrWhiteSpace(json) && json.Trim() != "{}")
             {
                 var err = await handle.InvokeAsync<string?>("importJson", json);
@@ -1233,9 +1246,16 @@ public partial class PlanTool
             }
 
             draftStep = "Saving the plan"; StateHasChanged();
-            var planJson = await handle.InvokeAsync<string>("exportJson");
-            using var planResp = await Http.PutAsync($"api/map/{slug}/plan", new StringContent(planJson, Encoding.UTF8, "application/json"));
-            if (!await Ok(planResp, "save the plan")) return;
+            if (MapBacked)
+            {
+                var outcome = await Document.PutAsync($"api/map/{slug}/plan", PlanBodyAsync);
+                if (!outcome.Landed) { draftError = outcome.Message; return; }
+            }
+            else
+            {
+                using var planResp = await Http.PutAsync($"api/map/{slug}/plan", await PlanBodyAsync());
+                if (!await Ok(planResp, "save the plan")) return;
+            }
 
             draftStep = "Saving the layout"; StateHasChanged();
             using var layoutResp = await Http.PutAsync(

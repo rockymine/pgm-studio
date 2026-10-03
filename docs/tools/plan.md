@@ -21,7 +21,11 @@ Save stores it as one. A plan row has no map, so building it originates one.
 Both bindings are the same tool: the rail's Info and Draw phases, the flow bar whose Next is Compile, and the
 Draw sidebar with its three panel chips, which folds away to give the canvas the width. Only the topbar
 follows the binding, because only saving differs. A map-backed plan's bar is *Save*, which writes the map's
-artifact in place. A plan row's bar carries what a row needs: *New*, *Import* a `*.plan.json`, *Open* a saved
+artifact in place, **over the revision the tab loaded**: the plan was read with its `ETag`, which Save and the
+build's own plan write state as `If-Match`, so where the stored plan has moved on since — a second tab, an agent
+driving the API — the write is refused `RQ5` at 409 rather than overwriting it. The bar then says the plan was
+saved from somewhere else and that the page must be reloaded, and no further write is sent until it is; the
+sketch tool's save is the same helper (`DocumentSave`). A plan row's bar carries what a row needs: *New*, *Import* a `*.plan.json`, *Open* a saved
 row, *Save*, and the row's origin as a badge — `authored` saves in place, while `generated` and `imported`
 fork into a new authored row on Save, and the address follows the copy.
 
@@ -715,7 +719,7 @@ document as the body and need no map, which is what lets a plan be checked befor
 |---|---|---|---|
 | `POST /plan` | `{name?}` | `{slug}` — a new `map` row at `stage=plan`, gamemode `ctw`, empty plan artifact | — |
 | `POST /plan/{planId}/author` | — | `{slug}` — a map row seeded from a generator candidate | 404 unknown candidate |
-| `GET /map/{slug}/plan` | — | the stored document, or `{}` | 404 unknown map |
+| `GET /map/{slug}/plan` | — | the stored document, or `{}`. The `ETag` is the revision to state on the next write | 404 unknown map |
 | `DELETE /map/{slug}/discard-if-empty` | — | `{discarded}` — drops a draft still named *Untitled plan*, never saved, not forked from a candidate and credited to nobody but its originator; the Sketch tool asks the same | — |
 | `PUT /map/{slug}/plan` | the document | `{}` — a verbatim replace; `warnings` carries any field the plan reader has nowhere to keep (`RQ3`), which the blob would otherwise store and nothing downstream would read. The `ETag` is the revision it landed at | 400 non-JSON · **409 `RQ5`** an `If-Match` naming a revision the plan is no longer at · 404 unknown map |
 | `GET /map/{slug}/state` | — | `{stage, artifacts, moves[]}` — where the map has got to, which documents it holds, and what may be done to it from here. Each move is `{does, route, next}`; several are open at once and `next` marks the ones the stage is waiting on | 404 |

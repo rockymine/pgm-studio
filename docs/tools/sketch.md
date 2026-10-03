@@ -49,7 +49,8 @@ old islands unless the author confirmed it. The connectivity reads walk the buil
 **A tab writes only what was drawn in it, and only over the board it read.** It holds the `ETag` the layout
 was read at and states it as `If-Match` on every save, so where the stored board has moved on since — an agent
 driving the API, a second tab — the save is refused `RQ5` at 409 rather than writing the older board back over
-the newer. The topbar then says so, no further save is sent until the page is reloaded, and **Download map**
+the newer (the held revision, the serialised saves and the refusal's sentence are `DocumentSave`, which the plan
+tool's map-backed save uses too). The topbar then says so, no further save is sent until the page is reloaded, and **Download map**
 stops rather than build a board that is not the one on screen. A flush with no edit behind it — entering In game,
 leaving the tool — sends nothing at all. What a layer states and the canvas has no control for — `kind`,
 `part_of`, `seat` — is held as it was read and written back with the layer, so a made thing an API caller
