@@ -938,18 +938,6 @@ public partial class SketchTool
             savedEdits = edits;
             var state = await read.Content.ReadFromJsonAsync<JsonElement>();
             await handle.InvokeVoidAsync("load", state);
-            // Sync the Setup controls with the loaded setup (the canvas already uses it).
-            if (state.ValueKind == JsonValueKind.Object && state.TryGetProperty("setup", out var su)
-                && su.ValueKind == JsonValueKind.Object)
-            {
-                if (su.TryGetProperty("mirror_mode", out var mm) && mm.GetString() is { Length: > 0 } m) mode = m;
-                if (su.TryGetProperty("center", out var ce) && ce.ValueKind == JsonValueKind.Object)
-                {
-                    if (ce.TryGetProperty("cx", out var cxv)) centerX = cxv.GetDouble();
-                    if (ce.TryGetProperty("cz", out var czv)) centerZ = czv.GetDouble();
-                }
-                StateHasChanged();
-            }
         }
         catch { /* no saved layout / map not found — start blank */ }
     }
@@ -993,20 +981,28 @@ public partial class SketchTool
 
     private async Task OnModeChange(string picked)
     {
-        mode = picked;
-        if (handle is not null) await handle.InvokeVoidAsync("setMode", mode);
+        if (handle is not null) await handle.InvokeVoidAsync("setMode", picked);
     }
 
-    private async Task OnCenterX(double v)
+    private async Task OnCenterX(double value)
     {
-        centerX = v;
-        if (handle is not null) await handle.InvokeVoidAsync("setCenter", centerX, centerZ);
+        if (handle is not null) await handle.InvokeVoidAsync("setCenter", value, centerZ);
     }
 
-    private async Task OnCenterZ(double v)
+    private async Task OnCenterZ(double value)
     {
-        centerZ = v;
-        if (handle is not null) await handle.InvokeVoidAsync("setCenter", centerX, centerZ);
+        if (handle is not null) await handle.InvokeVoidAsync("setCenter", centerX, value);
+    }
+
+    /// <summary>The document's symmetry setup, announced by the bridge whenever it changes — on a load, on an
+    /// edit and on a step taken back — so the Setup controls and Info show what the document holds.</summary>
+    [JSInvokable]
+    public void OnSetup(string mirrorMode, double cx, double cz)
+    {
+        if (mirrorMode.Length > 0) mode = mirrorMode;
+        centerX = cx;
+        centerZ = cz;
+        StateHasChanged();
     }
 
     private async Task ToggleMirror()

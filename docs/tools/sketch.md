@@ -638,7 +638,8 @@ where one is edited.
 loaded back into — rather than a record of which edit happened, so a press that changes nothing costs no step
 and a drag that fires on every frame between the press and the release costs exactly one. A step is the
 document and not the view: the camera and the layer being drawn on are where the author is, so both survive
-it.
+it. The symmetry setup is part of the document, so a step back restores it too: the canvas announces
+`OnSetup(mirrorMode, cx, cz)` on every load, edit and step, and the Setup controls and Info read nothing else.
 
 **Every chord below is also live in the sheet and the palette.** `?` opens the keyboard sheet grouped like the
 table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+`K` runs any of them by name.

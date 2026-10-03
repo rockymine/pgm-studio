@@ -2,7 +2,7 @@
 // role on the JS side: owns the live shape list + the group recompute loop
 // (geometry/boolean.js, the hot path), drives SketchCanvas, owns the arrow-key nudge, and pushes the
 // group→shape tree to the Blazor panel. Blazor owns the toolbar/panel chrome + persistence; it calls
-// the handle methods and receives OnShapeSelected / OnGroupSelected / OnLayout / OnDirty / OnToolChanged.
+// the handle methods and receives OnShapeSelected / OnGroupSelected / OnLayout / OnDirty / OnToolChanged / OnSetup.
 // getState() returns the layout for the host to PATCH (persistence wiring = S2d).
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
@@ -714,13 +714,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   /** The board's frame, centre and mirror. `keepView` states the working area without framing it: the camera
-   *  is the author's, and a restore that moves it reads as a different board rather than as a step back. */
+   *  is the author's, and a restore that moves it reads as a different board rather than as a step back.
+   *  Every change of setup — a load, an edit, a step taken back — is announced as `OnSetup(mirrorMode, cx, cz)`,
+   *  so the host holds what the document holds and states it nowhere else. */
   function applySetup(s, keepView) {
     setup = { bbox: s.bbox ?? setup.bbox, center: s.center ?? setup.center, mirror_mode: s.mirror_mode ?? setup.mirror_mode };
     if (s.bbox) { canvas.setBbox(setup.bbox); if (!keepView) canvas.fitToBbox(); }
     if (s.center !== undefined) canvas.setCenter(setup.center.cx ?? 0, setup.center.cz ?? 0);
     if (s.mirror_mode !== undefined) canvas.setMode(setup.mirror_mode);
     refreshMirror();
+    fire("OnSetup", setup.mirror_mode ?? "", setup.center?.cx ?? 0, setup.center?.cz ?? 0);
   }
 
   function groupById(id) { return groups.find(i => i.id === id); }
