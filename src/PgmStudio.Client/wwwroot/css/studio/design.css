@@ -222,7 +222,7 @@
 .theme-swatch-img svg { width: 100%; height: 100%; display: block; }
 /* The cut-open sample plateau: one picture of a whole theme, so it gets the width a swatch grid doesn't. */
 .theme-section-figure { display: flex; justify-content: center; padding: var(--space-2); background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); }
-.theme-section-figure svg { width: 100%; max-width: 320px; height: auto; display: block; image-rendering: pixelated; }
+.theme-section-figure svg, .theme-section-figure img { width: 100%; max-width: 320px; height: auto; display: block; image-rendering: pixelated; }
 .theme-map-preview { display: flex; justify-content: center; padding: var(--space-3); background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: auto; }
 .theme-map-preview svg { max-width: 100%; height: auto; }
 

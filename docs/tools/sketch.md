@@ -211,6 +211,13 @@ column spans `[floor, floor + base_height]`. A polygon or lasso whose `anchor_he
 vertices varies that thickness per vertex, interpolated across the footprint as a TIN. A shape is never
 thinner than one block and never floors below zero; a freshly drawn one starts at height 9.
 
+**An edit that adds or removes points carries the heights with it.** A point that was a vertex keeps its
+height; a point the edit adds — an insert, a pull, a bend's resampled coast — takes the height the old outline
+had where it stands, interpolated along its nearest edge and rounded to a whole block; a removed point takes its
+own height with it. So an insert on an edge leaves the ground exactly where it was, and a removal changes the
+slope only through the point that went. The canvas and the server's vertex, pull and bend edits keep this one
+rule. Heights that did not already line up with the outline are left as they stand, for `SK22` to name.
+
 **`anchor_heights` is read by the three kinds that state points, and each reads it in its own frame.** A
 rectangle and a circle state bounds and have no points to align to, so a height per vertex on one is `SK22`.
 A **polygon** and a **lasso** enclose their own footprint, so the heights interpolate over a TIN of it. A
@@ -734,7 +741,7 @@ have its operation or its override flipped, or be deleted.
 **Height is edited three ways.** The whole shape takes a floor and a thickness. A single selected vertex takes
 its own height, which materialises the per-vertex array on first use. And two or three vertices shift-marked as
 controls fit a plane through their stated heights and fill every remaining vertex from it — a ramp from two, an
-aimed plane from three — rounding to blocks, so a slope reads as the neat straight steps of a staircase.
+aimed plane from three — rounding to blocks, so a slope reads as the neat straight steps of a staircase. Inserting a point on an edge renumbers the marked controls with the points, so each stays on the point it was placed on.
 
 Six overlays sit above the canvas: **Shapes** (the draw primitives over the fused groups), **Mirror** (the
 symmetry copies), **Chunks** (the 16-block grid), **Blocks** (the rasterized footprint — the exact cells an
@@ -2318,7 +2325,8 @@ tool exists for, and there are two ways to do it that do not involve redrawing t
 .../sketch/shapes/{id}/vertices/{index}` moves the vertex it names and nothing else; `POST
 .../sketch/shapes/{id}/vertices` adds one after the vertex `after` names, at the midpoint of that edge when
 the body states no `x`/`z`, and answers the index it landed at; `DELETE .../vertices/{index}` takes one out.
-Every other point of the outline is exactly where it was drawn after each of the three. That is the whole
+Every other point of the outline is exactly where it was drawn after each of the three, and `anchor_heights`
+stays in step with the points (above). That is the whole
 property: a board's shapes abut, and an edit that drags a ring's other points opens ground between two that
 were flush — which is what happens when a whole-ring transform is used to pull one corner.
 

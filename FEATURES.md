@@ -10106,6 +10106,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a path) or where the ring would fold, with the refusal shown in the layer bar; one undo step. With no point
   picked the same keys delete the whole shape as before.
 
+- **Slope marks follow an inserted point (TS158).** An insert on the points rung renumbers the shift-click slope
+  marks and the picked point through the same helper a removal uses, so a mark keeps naming its own point.
+
+- **Point heights follow an edit that adds or removes points (TS157).** A point that was a vertex keeps its
+  `anchor_heights` entry, a point added by an insert, pull or bend takes the height its old outline had there
+  (interpolated along the nearest edge), and a removed point takes its own; the canvas and the server's vertex,
+  pull and bend edits share the rule, so an insert on a sloped edge leaves the ground where it was and no edit
+  drops a slope to the flat `base_height` fallback.
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
   pass's five *seat* rules over every cell of a board so a placement is found rather than guessed at, and left
@@ -10589,6 +10598,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Dead code removed (RP104).** The never-shipped region group/ungroup routes and `monument-seat`, and 30
   methods with no caller in `src`, `tests`, `tools` or `pgm-studio-mapgen`; the commit lists each with its
   reason.
+
+- **Patterns are drawn with the game's block sprites (TL41).** Style, theme and biome cards and the material,
+  theme and biome editors draw each block as its 1.8.9 sprite face (`BlockSprites`, shared with `render/eye`;
+  `BlockGrid` draws one grid in colours or sprites), a PNG embedded as an `<img>`. The 53 seeded styles went from
+  2.1 MB of SVG to 446 KB; a studio without the sprites draws palette colours as before.
 
 ### Agent-drivable map generation — what sixteen agent-designed boards exposed (B78, B80–B90)
 

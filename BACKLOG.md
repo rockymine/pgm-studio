@@ -287,16 +287,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   undo step) in `SketchInspector`, calling the route. `docs/tools/sketch.md`. *Evidence: the route is used by
   every agent build-spec that roughens a coast; no `.razor` under `Features/Sketch` names bend or wander.*
 
-- [ ] **TS157 — The server's vertex edits keep `anchor_heights` in step.** `SketchGeometryEdit.RemoveVertex` and
-  `InsertVertex` renumber `controls` but leave `anchor_heights` untouched, so a sloped polygon edited through
-  `DELETE …/vertices/{index}` or an insert ends with an array whose length is not the vertex count. Splice
-  `anchor_heights` the way the canvas does (`sketch-edit-controller.js`, `removeSelectedVertex`/`#insertEdgeVertex`)
-  and test the invariant length == vertices. `docs/tools/sketch.md`.
-
-- [ ] **TS158 — Slope-control marks follow a vertex insert.** An insert on the points rung shifts the indices
-  above it, and the shift-click slope controls keep the old index, so the mark names the wrong point until the
-  shape is reselected. Shift them in `#insertEdgeVertex` as the removal path does. `docs/tools/sketch.md`.
-
 - [ ] **TS141 — A room style stated as a library fork is honoured, or refused.** In `dressing.styles` a
   house stated as `{"library": <name>, "kind": "house", "shell": <parts>}` builds the fork (`DressingJson`
   resolves the shell over the row), but the same object under `roomStyles.spawn` stores 200, raises nothing and
@@ -617,23 +607,66 @@ is the standard the copy is held to.
   stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
 
-## Refactoring and cleanup
+## The tool hosts and their bridges: one shape for save, feed, selection and the verb table
 
-- [ ] **RP106 — The sketch and plan tools' hosts are read for what has outgrown them.** `SketchTool.razor.cs`
-  (1476 lines), `PlanTool.razor.cs` (1444), `sketch-canvas.js` (1617), `sketch-bridge.js` (1413) and
-  `plan-canvas.js` (1256) are the largest hand-written client files. Read each for responsibilities that are not
-  the host's — a phase's state living in the tool, a second copy of a bridge concern — and file what moves where
-  as concrete tasks; move nothing on size alone. `docs/project-structure.md`.
+- [ ] **TS159 — A Follow relief scope reaches the document.** `setReliefScope` keeps only `hold` and `exclude`,
+  so the inspector's *Follow* turns a shape back to *Inherit*, and `setHeightMode` keeps its own copy of the
+  height-mode words. Validate both against one JS word module mirroring `ReliefScopes` and `HeightModes`, with a JS
+  test. `docs/tools/sketch.md`. *Evidence: `sketch-bridge.js:1079` against `SketchInspector.razor.cs:112`.*
+
+- [ ] **C90 — A canvas lets go of the page when its tool unmounts.** `plan-bridge` `dispose()` reads an
+  undeclared `saveTimer`, throws, and never reaches `canvas.dispose()`; `CanvasBase` never removes the `document`
+  `mousemove`/`mouseup` listeners it adds, so every mount of either tool leaks a canvas. Fix both and test the
+  dispose under `tests/js`. `docs/client/canvas-interaction.md`. *Evidence: `plan-bridge.js:539`;
+  `canvas-base.js:383,422` against `:327`.*
+
+- [ ] **TS161 — The sketch's symmetry setup follows an undo.** The host reads `mirror_mode` and `center` only
+  on load, while `setMode`/`setCenter` are undoable and `restore()` announces no setup change, so Info shows the
+  mode the undo took away. Fire the setup on restore, as the plan's `OnMeta` does. `docs/tools/sketch.md`.
+  *Evidence: `SketchTool.razor.cs:942-951`; `sketch-bridge.js:685,1412`.*
+
+- [ ] **TN30 — The plan save states the revision it stands on.** A map-backed plan `PUT` sends no `If-Match` and
+  the load drops the `ETag`, so a second tab overwrites the first. Lift the sketch's revision-aware save (held
+  revision, 409 as superseded, saves serialised, the refusal's sentence) into one helper in `Components/` used by
+  both tools. `docs/tools/plan.md`. *Evidence: `PlanTool.razor.cs:924,1002`; `MapPlanEndpoints.cs:170`.*
+
+- [ ] **TN31 — The plan inspector reads the served vocabulary and one casing twin.** `PlanTool` declares its own
+  objective-vocabulary classes beside `ObjectiveVocabularyDto`, and the core casing's size and height are stated
+  in `PlanTool`, `CoreAuthoring` and `ObjectiveDefaults.CoreCasing`. Use the DTO, and one client twin of the
+  casing beside `CoreDig`, pinned by a drift test. `docs/tools/plan.md`. *Evidence: `PlanTool.razor.cs:788,826`;
+  `CoreAuthoring.cs:24,55`.*
+
+- [ ] **TN32 — The plan inspector and build drawer are components, and the plan's words are vocabulary.** The
+  inspector (`PlanTool.razor:339-572`) and the compile/build drawer (`:574-725`) are written in the host, and the
+  role and box-kind sets are stated in `PlanTool.razor.cs:268-290`, `PlanModel.cs` and `plan-doc.js:19-60`. Move
+  the two bodies to `Features/Plan/`, the sets to `Vocabulary`. `docs/tools/plan.md`.
+
+- [ ] **TS160 — Each sketch phase owns its state.** About 600 lines of History, In game views, Report and theme
+  registry state live in `SketchTool.razor.cs:67-624`, and the notes are fetched twice (`:307`,
+  `SketchInGamePhase.razor.cs:176`). Report loads its own; History and views each get a state class their two
+  bodies share; the host keeps the phase switch, the save-first and the canvas mode. `docs/tools/sketch.md`.
+
+- [ ] **C91 — The bridge's verb table is where an edit is gated.** `MUTATORS` wraps two read verbs, misses
+  `pullRecipe` (which changes the document outside undo) and does not refuse while read-only; `fireTo` drops a
+  callback nobody listens for, so `OnRoomStyles` fires into nothing; `getDressing`, `getRelief`, `groupCount`,
+  `renameTheme`, `resize` and `setBbox` are dead. `docs/client/canvas-interaction.md`. *Evidence:
+  `sketch-bridge.js:1113,1215,1411`; `fire.js:16`.*
+
+- [ ] **C92 — A live feed, an iso preview and a refusal sentence are one module each.** The debounced,
+  sequence-guarded POST of the document is written seven times across both bridges, `refusalText` twice, and the
+  iso preview on both halves of both tools. `bridge/live-feed.js`, `bridge/iso-preview.js` and one Blazor iso
+  toggle. `docs/client/canvas-interaction.md`. *Evidence: `sketch-bridge.js:394,473,485,813,900`;
+  `plan-bridge.js:38,65,76,283,303,325`.*
+
+- [ ] **C93 — Selection is held once, by the canvas.** `selectedGroupId`, the one-member-group drill and
+  `placesOwnThings` are each kept in both `sketch-bridge.js` (`:53,330,331`) and `sketch-canvas.js`
+  (`:105,321,344`); the bridge reads the canvas's getters instead. `docs/client/canvas-interaction.md`.
+
+## Refactoring and cleanup
 
 - [ ] **RP107 — The edit-route count is stated from the code.** `MapEdit.cs`, `EditException.cs` and
   `docs/architecture.md` say "thirty-six edit routes"; there are 20 `MapEdit.RunAsync` call sites. State the
   number nowhere, or derive it. `docs/architecture.md`.
-
-- [ ] **TL41 — A library card is a picture, not a field of rectangles.** A style card is an SVG of one `<rect>`
-  per cell, about 60 KB each and 2.1 MB for the 53 seeded styles, inlined into the page's DOM. Measure the same
-  cards as small PNGs, flat colour and with the 1.8.9 block sprites the eye already loads (`BlockTextureStore`):
-  bytes per card, draw time, the chooser's load, and whether sprites read better at card size. Adopt what the
-  numbers favour through `Drawings`. `docs/tools/library.md`.
 
 - [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
   `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,

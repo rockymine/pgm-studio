@@ -35,19 +35,19 @@ internal static class BiomeBody
 /// tints, drawn through the same palette the export places blocks from.</summary>
 internal static class BiomeLibraryMapping
 {
-    public static BiomePatternSummary ToDto(BiomePatternRow row) =>
-        new(row.Id, row.Name, row.Kind, row.Params, Picture(row.Params), row.SeedKey is not null);
+    public static BiomePatternSummary ToDto(BiomePatternRow row, PictureSprites sprites) =>
+        new(row.Id, row.Name, row.Kind, row.Params, Picture(row.Params, sprites), row.SeedKey is not null);
 
     /// <summary>The picture, or an empty string for a row whose stored field will not read — a library that
     /// cannot draw one row still lists the rest.</summary>
-    private static string Picture(string paramsJson) =>
-        Drawings.Svg("biome-card", paramsJson,
-            () => BiomeBody.Stated(paramsJson) is { } field ? StylePreview.BiomeSvg(field) : "");
+    public static string Picture(string paramsJson, PictureSprites sprites) =>
+        Drawings.Svg($"biome-card/{sprites.Identity}", paramsJson,
+            () => BiomeBody.Stated(paramsJson) is { } field ? StylePreview.BiomeCard(field, sprites.Set) : "");
 }
 
 /// <summary>GET /api/biome-patterns[?kind=solid|cell|noise] — the biome library, newest first, each with the
 /// patch of ground it tints.</summary>
-public sealed class BiomePatternListEndpoint(ThemeStore store) : EndpointWithoutRequest<List<BiomePatternSummary>>
+public sealed class BiomePatternListEndpoint(ThemeStore store, BlockTextureStore textures) : EndpointWithoutRequest<List<BiomePatternSummary>>
 {
     public override void Configure()
     {
@@ -60,12 +60,13 @@ public sealed class BiomePatternListEndpoint(ThemeStore store) : EndpointWithout
     {
         var kind = Query<string?>("kind", isRequired: false);
         var rows = await store.ListBiomesAsync(string.IsNullOrWhiteSpace(kind) ? null : kind, ct);
-        await Send.OkAsync(rows.Select(BiomeLibraryMapping.ToDto).ToList(), ct);
+        var sprites = await textures.ForPicturesAsync(ct);
+        await Send.OkAsync(rows.Select(row => BiomeLibraryMapping.ToDto(row, sprites)).ToList(), ct);
     }
 }
 
 /// <summary>GET /api/biome-patterns/{id} — one pattern.</summary>
-public sealed class BiomePatternGetEndpoint(ThemeStore store) : EndpointWithoutRequest<BiomePatternSummary>
+public sealed class BiomePatternGetEndpoint(ThemeStore store, BlockTextureStore textures) : EndpointWithoutRequest<BiomePatternSummary>
 {
     public override void Configure()
     { Get("/biome-patterns/{id}"); Description(b => b.Refuses(404)); }
@@ -74,12 +75,12 @@ public sealed class BiomePatternGetEndpoint(ThemeStore store) : EndpointWithoutR
     {
         var row = await store.GetBiomeAsync(Route<long>("id"), ct);
         if (row is null) { await Refusals.NotFoundAsync(HttpContext, "biome pattern", ct); return; }
-        await Send.OkAsync(BiomeLibraryMapping.ToDto(row), ct);
+        await Send.OkAsync(BiomeLibraryMapping.ToDto(row, await textures.ForPicturesAsync(ct)), ct);
     }
 }
 
 /// <summary>POST /api/biome-patterns — save a new named field.</summary>
-public sealed class BiomePatternCreateEndpoint(ThemeStore store)
+public sealed class BiomePatternCreateEndpoint(ThemeStore store, BlockTextureStore textures)
     : Endpoint<BiomePatternSaveRequest, BiomePatternSummary>
 {
     public override void Configure()
@@ -92,13 +93,13 @@ public sealed class BiomePatternCreateEndpoint(ThemeStore store)
         if (BiomeBody.Stated(req.Params) is null) { await BiomeBody.RefuseAsync(HttpContext, ct); return; }
         var row = new BiomePatternRow { Name = req.Name, Kind = req.Kind, Params = req.Params };
         row.Id = await store.CreateBiomeAsync(row, ct);
-        await Send.OkAsync(BiomeLibraryMapping.ToDto(row), ct);
+        await Send.OkAsync(BiomeLibraryMapping.ToDto(row, await textures.ForPicturesAsync(ct)), ct);
     }
 }
 
 /// <summary>PUT /api/biome-patterns/{id} — update a pattern in place. A map holds a snapshot rather than a key
 /// into this library, so an edit here retints nothing already built.</summary>
-public sealed class BiomePatternUpdateEndpoint(ThemeStore store)
+public sealed class BiomePatternUpdateEndpoint(ThemeStore store, BlockTextureStore textures)
     : Endpoint<BiomePatternSaveRequest, BiomePatternSummary>
 {
     public override void Configure()
@@ -115,7 +116,7 @@ public sealed class BiomePatternUpdateEndpoint(ThemeStore store)
         if (await store.UpdateBiomeAsync(id, req.Name, req.Kind, req.Params, ct) == 0)
         { await Refusals.NotFoundAsync(HttpContext, "biome pattern", ct); return; }
         await Send.OkAsync(new BiomePatternSummary(id, req.Name, req.Kind, req.Params,
-            StylePreview.BiomeSvg(BiomeBody.Stated(req.Params)!)), ct);
+            BiomeLibraryMapping.Picture(req.Params, await textures.ForPicturesAsync(ct))), ct);
     }
 }
 
@@ -138,7 +139,7 @@ public sealed class BiomePatternDeleteEndpoint(ThemeStore store) : EndpointWitho
 
 /// <summary>POST /api/biome-patterns/preview — what a draft field draws, saving nothing. Body is a bare
 /// <c>BiomeField</c>, unwrapped, the way the material preview takes a bare material.</summary>
-public sealed class BiomePatternPreviewEndpoint : EndpointWithoutRequest<StyleCardDto>
+public sealed class BiomePatternPreviewEndpoint(BlockTextureStore textures) : EndpointWithoutRequest<StyleCardDto>
 {
     public override void Configure()
     {
@@ -151,6 +152,6 @@ public sealed class BiomePatternPreviewEndpoint : EndpointWithoutRequest<StyleCa
     {
         var field = BiomeBody.Stated(await RawBody.ReadAsync(HttpContext, ct));
         if (field is null) { await BiomeBody.RefuseAsync(HttpContext, ct); return; }
-        await Send.OkAsync(new StyleCardDto(StylePreview.BiomeSvg(field)), ct);
+        await Send.OkAsync(new StyleCardDto(StylePreview.BiomeCard(field, (await textures.ForPicturesAsync(ct)).Set)), ct);
     }
 }

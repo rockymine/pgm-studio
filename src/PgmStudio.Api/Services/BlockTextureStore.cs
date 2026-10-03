@@ -31,6 +31,10 @@ public sealed class BlockTextureStore(IConfiguration configuration, IHttpClientF
         ? $"{own} {new FileInfo(own).Length} {File.GetLastWriteTimeUtc(own).Ticks}"
         : JarSha1;
 
+    /// <summary>The sprites a picture is drawn with, or palette colours where the studio has none.</summary>
+    public async Task<PictureSprites> ForPicturesAsync(CancellationToken ct) =>
+        (await GetAsync(ct)).Set is { } set ? new PictureSprites(set, Identity) : PictureSprites.Flat;
+
     private readonly SemaphoreSlim _gate = new(1, 1);
     private BlockTextureSet? _loaded;
 
@@ -88,4 +92,11 @@ public sealed class BlockTextureStore(IConfiguration configuration, IHttpClientF
         File.Move(partial, cached, overwrite: true);
         return cached;
     }
+}
+
+/// <summary>The sprites a picture is drawn with — null where it is drawn in palette colours — and the name they
+/// go by in a kept picture's name (<see cref="Drawings"/>).</summary>
+public sealed record PictureSprites(BlockTextureSet? Set, string Identity)
+{
+    public static readonly PictureSprites Flat = new(null, "flat");
 }

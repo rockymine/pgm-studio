@@ -15,8 +15,8 @@ namespace PgmStudio.Api.Endpoints;
 /// for why the picture travels with the row.</summary>
 internal static class ThemeLibraryMapping
 {
-    public static StyleDto ToDto(StyleRow row)
-        => new(row.Id, row.Name, row.Kind, row.Params, PreviewOf(row), row.SeedKey is not null);
+    public static StyleDto ToDto(StyleRow row, PictureSprites sprites)
+        => new(row.Id, row.Name, row.Kind, row.Params, PreviewOf(row, sprites), row.SeedKey is not null);
 
     public static ThemeDetail ToDetail(ThemeRow row, IReadOnlyList<ThemeBucketRow> buckets) =>
         new(row.Id, row.Name, row.BedrockRelative, row.BedrockValue, RimEdgeModes.Canonical(row.RimEdges),
@@ -30,10 +30,10 @@ internal static class ThemeLibraryMapping
     /// in more ways than a parse error — a kind this build does not know, or a pattern missing the palette its
     /// resolver reads. None of those are worth failing a browse over, and a row that shows as pictureless is
     /// visibly the one to go and fix.</summary>
-    private static string PreviewOf(StyleRow row)
+    private static string PreviewOf(StyleRow row, PictureSprites sprites)
     {
-        try { return Drawings.Svg("style-card/" + row.Kind, row.Params,
-                () => StylePreview.CardSvg(row.Kind, TerrainThemeJson.DeserializeMaterial(row.Params))); }
+        try { return Drawings.Svg($"style-card/{row.Kind}/{sprites.Identity}", row.Params,
+                () => StylePreview.Card(row.Kind, TerrainThemeJson.DeserializeMaterial(row.Params), sprites.Set)); }
         catch { return ""; }
     }
 }
@@ -42,7 +42,7 @@ internal static class ThemeLibraryMapping
 
 /// <summary>GET /api/styles[?kind=voronoi|noise|…] — the style library, newest first, optionally one kind
 /// (the "show every voronoi" browse).</summary>
-public sealed class StyleListEndpoint(ThemeStore store) : EndpointWithoutRequest<List<StyleDto>>
+public sealed class StyleListEndpoint(ThemeStore store, BlockTextureStore textures) : EndpointWithoutRequest<List<StyleDto>>
 {
     public override void Configure()
     {
@@ -55,12 +55,13 @@ public sealed class StyleListEndpoint(ThemeStore store) : EndpointWithoutRequest
     {
         var kind = Query<string?>("kind", isRequired: false);
         var rows = await store.ListStylesAsync(string.IsNullOrWhiteSpace(kind) ? null : kind, ct);
-        await Send.OkAsync(rows.Select(ThemeLibraryMapping.ToDto).ToList(), ct);
+        var sprites = await textures.ForPicturesAsync(ct);
+        await Send.OkAsync(rows.Select(row => ThemeLibraryMapping.ToDto(row, sprites)).ToList(), ct);
     }
 }
 
 /// <summary>GET /api/styles/{id} — one style.</summary>
-public sealed class StyleGetEndpoint(ThemeStore store) : EndpointWithoutRequest<StyleDto>
+public sealed class StyleGetEndpoint(ThemeStore store, BlockTextureStore textures) : EndpointWithoutRequest<StyleDto>
 {
     public override void Configure() { Get("/styles/{id}"); Description(b => b.Refuses(404)); }
 
@@ -68,13 +69,13 @@ public sealed class StyleGetEndpoint(ThemeStore store) : EndpointWithoutRequest<
     {
         var row = await store.GetStyleAsync(Route<long>("id"), ct);
         if (row is null) { await Refusals.NotFoundAsync(HttpContext, "style", ct); return; }
-        await Send.OkAsync(ThemeLibraryMapping.ToDto(row), ct);
+        await Send.OkAsync(ThemeLibraryMapping.ToDto(row, await textures.ForPicturesAsync(ct)), ct);
     }
 }
 
 /// <summary>POST /api/styles — save a new pattern. 400 (<c>LB1</c>) for one that lays a single block, which a
 /// slot holds directly; 409 (<c>LB3</c>) for one the library already holds, naming the row that does.</summary>
-public sealed class StyleCreateEndpoint(ThemeStore store) : Endpoint<StyleSaveRequest, StyleDto>
+public sealed class StyleCreateEndpoint(ThemeStore store, BlockTextureStore textures) : Endpoint<StyleSaveRequest, StyleDto>
 {
     public override void Configure() { Post("/styles"); Description(b => b.Refuses(409)); }
 
@@ -85,7 +86,7 @@ public sealed class StyleCreateEndpoint(ThemeStore store) : Endpoint<StyleSaveRe
         if (await StyleSaving.RefusedAsync(HttpContext, store, req, self: null, ct)) return;
         var row = new StyleRow { Name = req.Name, Kind = req.Kind, Params = req.Params };
         row.Id = await store.CreateStyleAsync(row, ct);
-        await Send.OkAsync(ThemeLibraryMapping.ToDto(row), ct);
+        await Send.OkAsync(ThemeLibraryMapping.ToDto(row, await textures.ForPicturesAsync(ct)), ct);
     }
 }
 
@@ -111,7 +112,7 @@ internal static class StyleSaving
 
 /// <summary>PUT /api/styles/{id} — update a style in place (edits every theme that binds it — a library edit,
 /// not a map's applied snapshot). Refuses what <see cref="StyleCreateEndpoint"/> does.</summary>
-public sealed class StyleUpdateEndpoint(ThemeStore store) : Endpoint<StyleSaveRequest, StyleDto>
+public sealed class StyleUpdateEndpoint(ThemeStore store, BlockTextureStore textures) : Endpoint<StyleSaveRequest, StyleDto>
 {
     public override void Configure() { Put("/styles/{id}"); Description(b => b.Refuses(404, 409)); }
 
@@ -126,7 +127,8 @@ public sealed class StyleUpdateEndpoint(ThemeStore store) : Endpoint<StyleSaveRe
         if (await store.UpdateStyleAsync(id, req.Name, req.Kind, req.Params, ct) == 0)
         { await Refusals.NotFoundAsync(HttpContext, "style", ct); return; }
         await Send.OkAsync(ThemeLibraryMapping.ToDto(
-            new StyleRow { Id = id, Name = req.Name, Kind = req.Kind, Params = req.Params }), ct);
+            new StyleRow { Id = id, Name = req.Name, Kind = req.Kind, Params = req.Params },
+            await textures.ForPicturesAsync(ct)), ct);
     }
 }
 
@@ -160,15 +162,19 @@ public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms, 
 // ── themes ────────────────────────────────────────────────────────────────────
 
 /// <summary>GET /api/themes — the theme library, newest first, each with the sample plateau it finishes.</summary>
-public sealed class ThemeListEndpoint(ThemeLibrary library) : EndpointWithoutRequest<List<ThemeSummary>>
+public sealed class ThemeListEndpoint(ThemeLibrary library, BlockTextureStore textures) : EndpointWithoutRequest<List<ThemeSummary>>
 {
     public override void Configure() { Get("/themes"); }
 
     public override async Task HandleAsync(CancellationToken ct)
-        => await Send.OkAsync((await library.ComposeAllAsync(ct))
+    {
+        var sprites = await textures.ForPicturesAsync(ct);
+        await Send.OkAsync((await library.ComposeAllAsync(ct))
             .Select(entry => new ThemeSummary(entry.Row.Id, entry.Row.Name,
-                Drawings.Svg("theme-card", TerrainThemeJson.Serialize(entry.Theme), () => StylePreview.ThemeSectionSvg(entry.Theme))))
+                Drawings.Svg($"theme-card/{sprites.Identity}", TerrainThemeJson.Serialize(entry.Theme),
+                    () => StylePreview.ThemeCard(entry.Theme, sprites.Set))))
             .ToList(), ct);
+    }
 }
 
 /// <summary>GET /api/themes/{id} — a theme with its per-bucket style bindings.</summary>
@@ -241,12 +247,14 @@ public sealed class ThemeUpdateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
 
 /// <summary>POST /api/themes/preview — the theme a set of bindings composes to, previewed without saving any of
 /// it. What the library's theme editor re-renders as buckets are bound and knobs are turned.</summary>
-public sealed class ThemeDraftPreviewEndpoint(ThemeLibrary library) : Endpoint<ThemeSaveRequest, ThemePreviewDto>
+public sealed class ThemeDraftPreviewEndpoint(ThemeLibrary library, BlockTextureStore textures)
+    : Endpoint<ThemeSaveRequest, ThemePreviewDto>
 {
     public override void Configure() { Post("/themes/preview"); }
 
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
-        => await Send.OkAsync(StylePreview.ThemeViews(await library.ComposeDraftAsync(req, ct)), ct);
+        => await Send.OkAsync(StylePreview.ThemeViews(await library.ComposeDraftAsync(req, ct),
+            (await textures.ForPicturesAsync(ct)).Set), ct);
 }
 
 /// <summary>DELETE /api/themes/{id} — forget a theme (its bucket bindings cascade; the styles stay).</summary>

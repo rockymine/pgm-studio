@@ -160,7 +160,7 @@ internal static class PngAnswer
 /// views of it (top-down and cut open). What a style editor re-renders on every edit — see
 /// <see cref="StylePreview"/> for why one material needs two views. <c>?format=png&amp;view=plan|section</c>
 /// answers that one view as PNG bytes instead.</summary>
-public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest<MaterialPreviewDto>
+public sealed class MaterialPreviewEndpoint(BlockTextureStore textures) : EndpointWithoutRequest<MaterialPreviewDto>
 {
     public override void Configure()
     {
@@ -177,7 +177,7 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest<MaterialPre
             Complaints.Unread(HttpContext, unread);
             if (await PngAnswer.AnsweredAsync(HttpContext, StylePreview.MaterialPngViews,
                     (view, scale) => StylePreview.MaterialPng(material, view, scale), ct)) return;
-            await Send.OkAsync(StylePreview.Views(material), ct);
+            await Send.OkAsync(StylePreview.Views(material, (await textures.ForPicturesAsync(ct)).Set), ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid material JSON", ex, ct); }
     }
@@ -186,7 +186,7 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest<MaterialPre
 /// <summary>POST /api/terrain/theme-preview — body is a serialized terrain-paint theme (a <c>TerrainTheme</c>
 /// JSON); returns the sample plateau painted with it and cut open, plus a top-down swatch per themeable bucket,
 /// so a theme editor previews the whole finish and each brush as it is edited (TP10).</summary>
-public sealed class ThemePreviewEndpoint : EndpointWithoutRequest<ThemePreviewDto>
+public sealed class ThemePreviewEndpoint(BlockTextureStore textures) : EndpointWithoutRequest<ThemePreviewDto>
 {
     public override void Configure()
     {
@@ -202,7 +202,7 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest<ThemePreviewDt
             var theme = TerrainThemeJson.Deserialize(json, out var unread);
             if (await PngAnswer.AnsweredAsync(HttpContext, StylePreview.ThemePngViews,
                     (view, scale) => StylePreview.ThemePng(theme, view, scale), ct)) return;
-            await Send.OkAsync(StylePreview.ThemeViews(theme), ct);
+            await Send.OkAsync(StylePreview.ThemeViews(theme, (await textures.ForPicturesAsync(ct)).Set), ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid theme JSON", ex, ct); }
     }

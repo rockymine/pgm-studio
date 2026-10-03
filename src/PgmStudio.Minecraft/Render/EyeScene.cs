@@ -97,7 +97,7 @@ public sealed class EyeScene
         var cells = new ushort[width * height * depth];
         var materials = new List<Material> { null! };
         var index = new Dictionary<(int Id, int Data, uint Tint, Joins Joins), ushort>();
-        var sprites = new SpriteCache(textures, flat);
+        var sprites = new BlockSprites(textures, flat);
         var joining = new List<(int X, int Y, int Z)>();
 
         foreach (var ((cx, cz), chunk) in chunks)
@@ -171,14 +171,10 @@ public sealed class EyeScene
         foreach (var (cell, slot) in updates) cells[cell] = slot;
     }
 
-    private static uint Tint(BlockFaces? faces, int id, int data, byte biome, int x, int z)
-    {
-        if (faces?.Tint is { } fixedTint) return fixedTint;
-        var channel = BlockTints.Of(id, data);
-        return channel == TintChannel.None ? 0xFFFFFF : BiomeTint.Of(biome, channel, x, z);
-    }
+    private static uint Tint(BlockFaces? faces, int id, int data, byte biome, int x, int z) =>
+        BlockSprites.Tint(faces, id, data, biome, x, z);
 
-    private static Material Describe(int id, int data, BlockFaces? faces, uint tint, SpriteCache sprites)
+    private static Material Describe(int id, int data, BlockFaces? faces, uint tint, BlockSprites sprites)
     {
         var boxes = BlockShape.Of(id, data);
         var sheet = BlockShape.Sheet(boxes);
@@ -685,70 +681,4 @@ public sealed class EyeScene
     private static int Shade(uint texel, double shade) =>
         ((int)(((texel >> 16) & 0xFF) * shade) << 16) | ((int)(((texel >> 8) & 0xFF) * shade) << 8)
         | (int)((texel & 0xFF) * shade);
-
-    /// <summary>Each sprite tinted once per colour, and in flat mode reduced to its mean.</summary>
-    private sealed class SpriteCache(BlockTextureSet textures, bool flat)
-    {
-        private readonly Dictionary<(string Name, uint Tint, string? Overlay, uint OverlayTint), BlockSprite?> _made = [];
-
-        public BlockSprite? Get(string name, uint tint, string? overlay = null, uint overlayTint = 0xFFFFFF)
-        {
-            if (_made.TryGetValue((name, tint, overlay, overlayTint), out var made)) return made;
-            BlockSprite? sprite = null;
-            if (textures.Get(name) is { } source)
-            {
-                var rgba = Tinted(source.Rgba, tint);
-                if (overlay is not null && textures.Get(overlay) is { Size: var size } mask && size == source.Size)
-                    Lay(rgba, Tinted(mask.Rgba, overlayTint));
-                sprite = new BlockSprite(source.Size, flat ? Mean(rgba) : rgba);
-            }
-            return _made[(name, tint, overlay, overlayTint)] = sprite;
-        }
-
-        public BlockSprite Solid(uint rgb) => new(1, [(byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255]);
-
-        private static byte[] Tinted(byte[] rgba, uint tint)
-        {
-            var copy = (byte[])rgba.Clone();
-            if (tint == 0xFFFFFF) return copy;
-            int red = (int)(tint >> 16) & 0xFF, green = (int)(tint >> 8) & 0xFF, blue = (int)tint & 0xFF;
-            for (var i = 0; i < copy.Length; i += 4)
-            {
-                copy[i] = (byte)(copy[i] * red / 255);
-                copy[i + 1] = (byte)(copy[i + 1] * green / 255);
-                copy[i + 2] = (byte)(copy[i + 2] * blue / 255);
-            }
-            return copy;
-        }
-
-        private static void Lay(byte[] under, byte[] over)
-        {
-            for (var i = 0; i < under.Length; i += 4)
-            {
-                var weight = over[i + 3] / 255.0;
-                for (var channel = 0; channel < 3; channel++)
-                    under[i + channel] = (byte)(under[i + channel] * (1 - weight) + over[i + channel] * weight);
-            }
-        }
-
-        /// <summary>Every opaque texel replaced by the mean of the opaque ones; transparency is kept, so a leaf
-        /// still lets the ray through where it did.</summary>
-        private static byte[] Mean(byte[] rgba)
-        {
-            long red = 0, green = 0, blue = 0, count = 0;
-            for (var i = 0; i < rgba.Length; i += 4)
-            {
-                if (rgba[i + 3] < 128) continue;
-                red += rgba[i]; green += rgba[i + 1]; blue += rgba[i + 2]; count++;
-            }
-            if (count == 0) return rgba;
-            var flatRgba = (byte[])rgba.Clone();
-            for (var i = 0; i < flatRgba.Length; i += 4)
-            {
-                if (flatRgba[i + 3] < 128) continue;
-                flatRgba[i] = (byte)(red / count); flatRgba[i + 1] = (byte)(green / count); flatRgba[i + 2] = (byte)(blue / count);
-            }
-            return flatRgba;
-        }
-    }
 }

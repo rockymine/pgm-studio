@@ -123,7 +123,17 @@ A style's card picture travels with the row rather than costing a request per ca
 browsed by what its entries look like. Every kind's list draws its cards through the one store the render routes
 keep their pictures in (`docs/world-scan/read-backs.md`), named by the row's own stored document — a style's
 `params`, a theme, a composed house or part, a tree's or boulder's prop, a biome field — so a card is drawn once
-per distinct row and answered from disk after that, and an edited row is a different name. The editor previews two views of one material: a **plan**, one course
+per distinct row and answered from disk after that, and an edited row is a different name.
+
+**A pattern is drawn with the game's own block sprites.** A style's, a theme's and a biome's card, and the
+material, theme and biome editors' views, show each block as its 1.8.9 sprite face — the top seen from above in a
+plan, the side in a section, grass and leaves tinted for the biome — as a PNG at 12 pixels a block on a card (5
+for an area pattern's wider patch, 10 and 4 in an editor), embedded in the markup as an `<img>`. The sprites are
+the ones `render/eye` draws with (`BlockSprites`), so a card and an in-game picture show one block one way. A
+studio without the sprites draws the same blocks as an SVG of palette colours, and the kept picture's name says
+which it is. The 53 seeded styles are 446 KB as sprite cards against 2.1 MB as SVG.
+
+The editor previews two views of one material: a **plan**, one course
 seen from above, which is where a voronoi and the three noise fields vary, and a **section**, one row of
 columns cut open downward, which is the axis a layer stack varies along and the elevation a wall material is
 seen as. A stored style's `params` is exactly one of the nodes below, and a saved row is that node plus a name:
@@ -861,9 +871,10 @@ and *Save* for anyone off the whitelist, and *Delete* for anyone but an admin.
 | `POST /terrain/prop-preview` | one placed prop standing on the finish it will stand on — body `{propJson, themeJson}`, because what the paint leaves on top is what decides whether flora grows at all |
 | `GET /terrain/stroke-styles` · `/terrain/fluid-forms` · `/terrain/boulder-forms` · `/terrain/species` | the dressing vocabularies — every stroke style, fluid form, boulder form and tree species a prop may name, each with the fields it carries. What a picker offers, and the closed sets a prop document is refused against |
 
-**Every preview also draws a picture, and three query words say how to ask for one.** The default is
-SVG-in-JSON, which is what the client renders inline; `?format=png` answers **one** view as `image/png` bytes
-instead, which is the form an agent saves and looks at.
+**Every preview also draws a picture, and three query words say how to ask for one.** The default is the
+picture as markup in JSON, which is what the client renders inline — a sprite `<img>` for a pattern where the
+studio has the sprites, an SVG otherwise; `?format=png` answers **one** view as `image/png` bytes in palette
+colours instead, which is the form an agent saves and looks at.
 
 | Word | Takes |
 |---|---|

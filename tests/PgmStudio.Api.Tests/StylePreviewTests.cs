@@ -59,12 +59,12 @@ public sealed class StylePreviewTests
     public async Task The_card_view_is_the_one_that_shows_the_kind_something()
     {
         // A stack gets the section (its layers show); everything else gets the plan view.
-        await Assert.That(StylePreview.CardSvg(MaterialKind.Layered, GrassOverDirt))
-            .IsNotEqualTo(StylePreview.CardSvg(MaterialKind.Solid, GrassOverDirt));
+        await Assert.That(StylePreview.Card(MaterialKind.Layered, GrassOverDirt, null))
+            .IsNotEqualTo(StylePreview.Card(MaterialKind.Solid, GrassOverDirt, null));
 
         // A solid is one colour either way — the choice of view cannot invent detail that is not there.
         var solid = new SolidMaterial(Blocks.Stone);
-        await Assert.That(Fills(StylePreview.CardSvg(MaterialKind.Solid, solid)).Count).IsEqualTo(1);
+        await Assert.That(Fills(StylePreview.Card(MaterialKind.Solid, solid, null)).Count).IsEqualTo(1);
     }
 
     [Test]
@@ -89,7 +89,7 @@ public sealed class StylePreviewTests
             Fill = new SolidMaterial(Blocks.EndStone),
         };
 
-        var fills = Fills(StylePreview.ThemeSectionSvg(theme));
+        var fills = Fills(StylePreview.ThemeCard(theme, null));
         await Assert.That(fills).Contains(BlockPalette.Hex(Blocks.GoldBlock, 0));
         await Assert.That(fills).Contains(BlockPalette.Hex(Blocks.Grass, 0));
         await Assert.That(fills).Contains(BlockPalette.Hex(Blocks.Obsidian, 0));
@@ -103,14 +103,14 @@ public sealed class StylePreviewTests
         var painting = new TerrainTheme { Wall = new SolidMaterial(Blocks.Obsidian) };
         var off = painting with { WallEnabled = false };
 
-        await Assert.That(Fills(StylePreview.ThemeSectionSvg(painting))).Contains(BlockPalette.Hex(Blocks.Obsidian, 0));
-        await Assert.That(Fills(StylePreview.ThemeSectionSvg(off))).DoesNotContain(BlockPalette.Hex(Blocks.Obsidian, 0));
+        await Assert.That(Fills(StylePreview.ThemeCard(painting, null))).Contains(BlockPalette.Hex(Blocks.Obsidian, 0));
+        await Assert.That(Fills(StylePreview.ThemeCard(off, null))).DoesNotContain(BlockPalette.Hex(Blocks.Obsidian, 0));
     }
 
     [Test]
     public async Task A_theme_preview_carries_a_swatch_per_themeable_bucket()
     {
-        var views = StylePreview.ThemeViews(TerrainTheme.Default);
+        var views = StylePreview.ThemeViews(TerrainTheme.Default, null);
         await Assert.That(views.Buckets.Keys.Order()).IsEquivalentTo(ThemeBuckets.All.Order());
         await Assert.That(views.Section).Contains("<svg");
     }

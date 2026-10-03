@@ -1,5 +1,6 @@
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Render;
 using PgmStudio.Minecraft.Views;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Anvil;
@@ -17,11 +18,11 @@ namespace PgmStudio.Api.Services;
 /// <b>plan</b> view samples one course from above — the axes a voronoi, a noise field and a wall run vary along,
 /// which is why those read at a glance and a layer stack renders as one flat colour there. The <b>section</b>
 /// view samples one row of columns downward, which is the axis a stack varies along, so grass-over-two-dirt is
-/// three bands rather than a green square. <see cref="CardSvg"/> picks the view that shows a given kind
+/// three bands rather than a green square. <see cref="CardGrid"/> picks the view that shows a given kind
 /// something.</para>
 ///
 /// <para>A theme is neither: it is the geometry decision (which bucket claims which course) as much as the
-/// materials, so <see cref="ThemeSectionSvg"/> paints a sample plateau through the real painter and cuts it
+/// materials, so <see cref="ThemeGrid"/> paints a sample plateau through the real painter and cuts it
 /// open. The sample is the smallest terrain that exercises every bucket at once — see
 /// <see cref="SampleTerrain"/>.</para>
 /// </summary>
@@ -55,14 +56,17 @@ public static class StylePreview
     /// the scale it states — which is why the patch is measured in blocks like any other area pattern rather
     /// than at the swatch size a single colour would need.</para>
     /// </summary>
-    public static string BiomeSvg(BiomeField field, int columns = BiomeColumns, int cell = BiomeCell)
-        => BiomeRaster(field, columns, cell).Svg();
+    public static string BiomeCard(BiomeField field, BlockTextureSet? textures)
+        => Markup(BiomeGrid(field), top: true, BiomeCell, AreaSpriteCell, textures);
 
     /// <summary>The same patch before an encoding is chosen, so the card's SVG and an agent's PNG are one
     /// derivation.</summary>
     public static CellRaster BiomeRaster(BiomeField field, int columns = BiomeColumns, int cell = BiomeCell)
-        => new(columns, columns, cell,
-            (x, z) => BlockPalette.Hex(Blocks.Grass, 0, field.At(x, z), x, z));
+        => BiomeGrid(field, columns).Colours(cell);
+
+    /// <summary>The biome patch as the blocks it shows: a grass block per column, in the field's biome.</summary>
+    public static BlockGrid BiomeGrid(BiomeField field, int columns = BiomeColumns)
+        => new(columns, columns, (x, z) => new GridBlock(Blocks.Grass, 0, field.At(x, z)));
 
     /// <summary>The patch a biome card draws, in blocks, and the pixels a block gets — the size an area
     /// pattern's style card uses, since a biome field is read in blocks exactly as one is.</summary>
@@ -73,16 +77,21 @@ public static class StylePreview
     /// is what lets the SVG a card shows and the PNG an agent asks for be one derivation.</summary>
     public static CellRaster PlanRaster(TerrainMaterial material, TerrainBucket bucket = TerrainBucket.Surface,
         int columns = 32, int cell = 4)
+        => PlanGrid(material, bucket, columns).Colours(cell);
+
+    /// <summary>The plan view as the blocks it shows, before it is drawn in colours or in sprites.</summary>
+    public static BlockGrid PlanGrid(TerrainMaterial material, TerrainBucket bucket = TerrainBucket.Surface,
+        int columns = 32)
     {
         var (arc, turn, run, inset) = Geometry(columns);
-        return new CellRaster(columns, columns, cell, (x, z) =>
+        return new BlockGrid(columns, columns, (x, z) =>
         {
             var (id, data) = material.Resolve(new BucketContext(
                 x, 0, z, bucket, DepthFromTop: 0, TeamOf(x, columns),
                 arc.GetValueOrDefault((x, z), -1), HeightFromBottom: 0,
                 turn.GetValueOrDefault((x, z), 0), run.GetValueOrDefault((x, z), 0),
                 inset.GetValueOrDefault((x, z), -1)));
-            return BlockPalette.Hex(id, data);
+            return new GridBlock(id, data);
         });
     }
 
@@ -115,9 +124,14 @@ public static class StylePreview
     /// under it rather than whatever world Y the picture happens to span.</summary>
     public static CellRaster SectionRaster(TerrainMaterial material, TerrainBucket bucket = TerrainBucket.Surface,
         int columns = 32, int courses = 10, int cell = 4)
+        => SectionGrid(material, bucket, columns, courses).Colours(cell);
+
+    /// <summary>The cut-open view as the blocks it shows, before it is drawn in colours or in sprites.</summary>
+    public static BlockGrid SectionGrid(TerrainMaterial material, TerrainBucket bucket = TerrainBucket.Surface,
+        int columns = 32, int courses = 10)
     {
         var level = new SmoothedGround(Enumerable.Range(0, columns).ToDictionary(x => (x, 0), _ => courses));
-        return new(columns, courses, cell, (x, depth) =>
+        return new(columns, courses, (x, depth) =>
         {
             // A section is a straight wall seen face on, so its geometry is honest by construction: walking
             // along it the arc advances with x, it never bends, and it runs along x the whole way — which is
@@ -129,7 +143,7 @@ public static class StylePreview
                 PerimeterArc: x, HeightFromBottom: courses - 1 - depth,
                 PerimeterTurn: 0, PerimeterRun: Geom.Algorithms.GridBoundary.RunAlongX,
                 Inset: Math.Min(x, columns - 1 - x)) { Ground = level });
-            return BlockPalette.Hex(id, data);
+            return new GridBlock(id, data);
         });
     }
 
@@ -156,62 +170,91 @@ public static class StylePreview
     /// what a wall material is seen as</b>, and a wall run
     /// drawn in plan is a striped border round a flat middle: true, and useless for choosing between two of
     /// them. Everything else varies across the ground and gets the plan view.</summary>
-    public static string CardSvg(string kind, TerrainMaterial material)
+    public static string Card(string kind, TerrainMaterial material, BlockTextureSet? textures)
+    {
+        var (grid, top, area) = CardGrid(kind, material);
+        return Markup(grid, top, area ? 2 : 5, area ? AreaSpriteCell : SpriteCell, textures);
+    }
+
+    /// <summary>The pixels a block takes in a sprite card: about one image pixel to one screen pixel on a
+    /// library card, so the picture is neither enlarged into blocks nor shrunk into moiré.</summary>
+    private const int SpriteCell = 12;
+
+    /// <summary>The pixels a block takes in an area pattern's wider patch, for the same card width.</summary>
+    private const int AreaSpriteCell = 5;
+
+    /// <summary>The pixels a block takes in an editor's larger views.</summary>
+    private const int EditorSpriteCell = 10, EditorAreaSpriteCell = 4;
+
+    /// <summary>A grid of blocks as the markup a card or an editor shows: drawn with the game's sprites where
+    /// <paramref name="textures"/> are given, as an image of a PNG at <paramref name="spriteCell"/> pixels a
+    /// block, and otherwise as an SVG of palette colours at <paramref name="flatCell"/>.</summary>
+    public static string Markup(BlockGrid grid, bool top, int flatCell, int spriteCell, BlockTextureSet? textures)
+        => textures is null
+            ? grid.Colours(flatCell).Svg()
+            : $"<img class=\"block-picture\" alt=\"\" width=\"{grid.Columns * spriteCell}\" height=\"{grid.Rows * spriteCell}\" "
+              + $"src=\"data:image/png;base64,{Convert.ToBase64String(grid.SpritePng(textures, top, spriteCell))}\">";
+
+    /// <summary>The blocks a style's card shows: the grid, whether it is seen from above, and whether it is an
+    /// area pattern's wide patch.</summary>
+    public static (BlockGrid Grid, bool Top, bool Area) CardGrid(string kind, TerrainMaterial material)
         => kind == MaterialKind.Layered || IsWallPattern(kind)
-            ? SectionSvg(material, columns: 24, courses: 12, cell: 5)
-         : IsAreaPattern(kind) ? PlanSvg(material, columns: 60, cell: 2)
-         : PlanSvg(material, columns: 24, cell: 5);
+            ? (SectionGrid(material, columns: 24, courses: 12), false, false)
+         : IsAreaPattern(kind) ? (PlanGrid(material, columns: 60), true, true)
+         : (PlanGrid(material, columns: 24), true, false);
 
     /// <summary>Both views of one material, for an editor previewing an edit as it is made.</summary>
-    public static MaterialPreviewDto Views(TerrainMaterial material)
+    public static MaterialPreviewDto Views(TerrainMaterial material, BlockTextureSet? textures)
         => IsAreaPattern(TerrainThemeComposer.KindOf(material))
-            ? new(PlanSvg(material, columns: 72, cell: 2), SectionSvg(material, columns: 72, courses: 24, cell: 2))
-            : new(PlanSvg(material), SectionSvg(material));
-
-    /// <summary>Both views of a serialized material.</summary>
-    public static MaterialPreviewDto Views(string materialJson)
-        => Views(TerrainThemeJson.DeserializeMaterial(materialJson));
+            ? new(Markup(PlanGrid(material, columns: 72), true, 2, EditorAreaSpriteCell, textures),
+                  Markup(SectionGrid(material, columns: 72, courses: 24), false, 2, EditorAreaSpriteCell, textures))
+            : new(Markup(PlanGrid(material), true, 4, EditorSpriteCell, textures),
+                  Markup(SectionGrid(material), false, 4, EditorSpriteCell, textures));
 
     /// <summary>A whole theme: the sample plateau cut open, plus one plan swatch per themeable bucket.</summary>
-    public static ThemePreviewDto ThemeViews(TerrainTheme theme) => new(
-        ThemeSectionSvg(theme),
+    public static ThemePreviewDto ThemeViews(TerrainTheme theme, BlockTextureSet? textures) => new(
+        ThemeCard(theme, textures),
         new Dictionary<string, string>
         {
-            [ThemeBuckets.Rim] = PlanSvg(theme.MaterialFor(TerrainBucket.Rim), TerrainBucket.Rim),
-            [ThemeBuckets.Surface] = PlanSvg(theme.MaterialFor(TerrainBucket.Surface), TerrainBucket.Surface),
-            [ThemeBuckets.Wall] = PlanSvg(theme.MaterialFor(TerrainBucket.Wall), TerrainBucket.Wall),
-            [ThemeBuckets.Fill] = PlanSvg(theme.MaterialFor(TerrainBucket.Fill), TerrainBucket.Fill),
+            [ThemeBuckets.Rim] = Swatch(theme, TerrainBucket.Rim, textures),
+            [ThemeBuckets.Surface] = Swatch(theme, TerrainBucket.Surface, textures),
+            [ThemeBuckets.Wall] = Swatch(theme, TerrainBucket.Wall, textures),
+            [ThemeBuckets.Fill] = Swatch(theme, TerrainBucket.Fill, textures),
         });
 
-    /// <summary>A serialized theme's views.</summary>
-    public static ThemePreviewDto ThemeViews(string themeJson) => ThemeViews(TerrainThemeJson.Deserialize(themeJson));
+    private static string Swatch(TerrainTheme theme, TerrainBucket bucket, BlockTextureSet? textures)
+        => Markup(PlanGrid(theme.MaterialFor(bucket), bucket), true, 4, EditorSpriteCell, textures);
 
     /// <summary>The sample plateau painted with <paramref name="theme"/> and cut open along its middle row: what
     /// the theme actually finishes terrain into, geometry decisions included. Each column is resolved by the same
     /// <see cref="TerrainPainter.ColumnBlocks"/> the export writes from, so a rim depth, a disabled wall or a
     /// bedrock floor moves the picture exactly as it moves the world.</summary>
-    public static string ThemeSectionSvg(TerrainTheme theme, int cell = 8)
-        => ThemeSectionRaster(theme, cell).Svg();
+    public static string ThemeCard(TerrainTheme theme, BlockTextureSet? textures)
+        => Markup(ThemeGrid(theme), top: false, 8, SpriteCell, textures);
 
     /// <summary>The theme's cut plateau as its raster, the <see cref="PlanRaster"/> sibling.</summary>
     public static CellRaster ThemeSectionRaster(TerrainTheme theme, int cell = 8)
+        => ThemeGrid(theme).Colours(cell);
+
+    /// <summary>The theme's cut plateau as the blocks it shows.</summary>
+    public static BlockGrid ThemeGrid(TerrainTheme theme)
     {
-        var courses = new string?[SampleTerrain.Width, SampleTerrain.Height];
+        var courses = new GridBlock?[SampleTerrain.Width, SampleTerrain.Height];
         for (var x = 0; x < SampleTerrain.Width; x++)
         {
             if (!SampleTerrain.Profile.TryGetColumn((x, SampleTerrain.SectionRow), out var column)) continue;
             foreach (var (y, id, data) in TerrainPainter.ColumnBlocks(
                          x, SampleTerrain.SectionRow, column, theme, TeamOf(x, SampleTerrain.Width),
                          ground: SampleTerrain.Profile.Ground))
-                if (y >= 0 && y < SampleTerrain.Height) courses[x, y] = BlockPalette.Hex(id, data);
+                if (y >= 0 && y < SampleTerrain.Height) courses[x, y] = new GridBlock(id, data);
         }
         // The raster's rows run downward and a course index runs upward, so the top row is the tallest course.
-        return new CellRaster(SampleTerrain.Width, SampleTerrain.Height, cell,
+        return new BlockGrid(SampleTerrain.Width, SampleTerrain.Height,
             (x, row) => courses[x, SampleTerrain.Height - 1 - row]);
     }
 
     /// <summary>One view of a material as PNG bytes, or null for a view name that is not one — the same two
-    /// views <see cref="Views(TerrainMaterial)"/> answers as SVG, at the same sizes.</summary>
+    /// views <see cref="Views"/> answers, in palette colours.</summary>
     public static byte[]? MaterialPng(TerrainMaterial material, string view, int scale = 1)
     {
         var wide = IsAreaPattern(TerrainThemeComposer.KindOf(material));
