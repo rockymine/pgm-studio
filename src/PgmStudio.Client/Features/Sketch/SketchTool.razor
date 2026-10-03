@@ -50,16 +50,15 @@
       }
       @* The gallery is a page of pictures rather than a canvas; placing a view of one's own is the canvas's, so
          the shared body below comes back for it. *@
-      @if (InGameActive && !placingView)
+      @if (InGameActive && !views.Placing)
       {
-        <SketchInGamePhase Slug="@Slug" Views="views" Error="@viewsError" Refusal="@viewsRefusal" Round="viewRound" Tick="followTick"
-                           LinkedNote="linkedNote" OnLinkOpened="LinkOpened"
-                           OnBack="GoDressing" OnPlace="PlaceView" OnLetGo="LetGoView" OnPicture="PictureView"
-                           Changes="ChangeNumbers" OnChangesSince="ShowChangesSince" OnRedraw="RedrawInGame" />
+        <SketchInGamePhase Slug="@Slug" Views="views" Notes="notes" LinkedNote="linkedNote" OnLinkOpened="LinkOpened"
+                           OnBack="GoDressing" OnPlace="PlaceView"
+                           Changes="history.ChangeNumbers" OnChangesSince="ShowChangesSince" OnRedraw="RedrawInGame" />
       }
       @if (ReportActive)
       {
-        <SketchReportPhase Slug="@Slug" Report="report" Error="@reportError" OnBack="GoHistory" OnRead="LoadReportAsync" />
+        <SketchReportPhase @key="reportEntries" Slug="@Slug" OnBack="GoHistory" />
       }
       @* Every phase that draws shares the one mounted canvas, so this body stays present (hidden while Info is
          up) — [hidden] is display:none, and the canvas re-measures on unhide. A phase swaps what the columns
@@ -107,7 +106,7 @@
           }
           else if (HistoryActive)
           {
-            <SketchHistoryList Changes="changes?.Changes" Picked="spanTo" Error="@changesError" OnPick="PickChange" />
+            <SketchHistoryList History="history" />
           }
           else if (DressingActive)
           {
@@ -117,35 +116,7 @@
           }
           else if (PlacingViewActive)
           {
-            @* Every camera the gallery has, as the canvas draws it: the views kept, then the studio's
-               suggestions. Choosing one here picks it up as a press on its camera would. *@
-            <Section Title="Kept views">
-              <div class="panel-list">
-                @foreach (var kept in KeptViews)
-                {
-                  <ListRow Compact Selected="@(viewDraft?.Source?.Id == kept.Id)" @key="kept.Id" OnClick="() => SelectView(kept)">
-                    <span class="geo-type-icon"><i data-lucide="camera"></i></span>
-                    <span class="list-label">@kept.Name</span>
-                    <span class="list-tag">@kept.LookX, @kept.LookZ</span>
-                  </ListRow>
-                }
-              </div>
-            </Section>
-            @if (SuggestedViews.Count > 0)
-            {
-              <Section Title="Suggested">
-                <div class="panel-list">
-                  @foreach (var suggested in SuggestedViews)
-                  {
-                    <ListRow Compact Selected="@(viewDraft?.Source?.Id == suggested.Id)" @key="suggested.Id" OnClick="() => SelectView(suggested)">
-                      <span class="geo-type-icon"><i data-lucide="camera"></i></span>
-                      <span class="list-label">@suggested.Name</span>
-                      <span class="list-tag">@suggested.LookX, @suggested.LookZ</span>
-                    </ListRow>
-                  }
-                </div>
-              </Section>
-            }
+            <SketchViewList Views="views" />
           }
           else if (ReliefActive)
           {
@@ -177,7 +148,7 @@
              an author wants in a preview of a stack is to take the deck off and look under it. A board of
              one layer shows none — there is nothing to take off — and the rotate replaces fit either way. *@
           <CanvasLayerBar>
-            @if (!threeD)
+            @if (!iso.ThreeD)
             {
               @if (ChipOffered(ChipShapes))
               {
@@ -214,16 +185,12 @@
                            Title="@($"Show layer '{id}'")"
                            OnClick="@(() => ToggleIsoLayer(id))">@id</LayerChip>
               }
-              <CanvasRoundButton Icon="rotate-cw" Title="Rotate the preview 90°" OnClick="RotateIso" />
-            }
-            @if (isoUnavailable)
-            {
-              <span class="canvas-note" title="@IsoNoteTitle">@IsoNote</span>
+              <CanvasRoundButton Icon="rotate-cw" Title="Rotate the preview 90°" OnClick="iso.RotateAsync" />
             }
             @* The picture is the world the export builds, so where the drawing and the build disagree the
                screen shows the build and says nothing about the difference. Name the shapes; the finding's
                own sentence, on hover, says what happened to which. *@
-            @if (threeD && IsoContested.Count > 0)
+            @if (iso.ThreeD && IsoContested.Count > 0)
             {
               <span class="canvas-note canvas-note--warn" title="@IsoContestedWhy">
                 Built differently from the drawing: @string.Join(", ", IsoContested)
@@ -234,31 +201,26 @@
               <span class="canvas-note canvas-note--warn" role="status">@editNote</span>
             }
             @* Placing a view is 2-D only: the eye is stood on a map of the board. *@
-            @if (!PlacingViewActive)
-            {
-              <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
-                              Title="@(isoUnavailable ? IsoNoteTitle : "3-D preview (read-only)")"
-                              OnClick="Toggle3D" />
-            }
+            <IsoToggle View="iso" OfferToggle="@(!PlacingViewActive)" />
           </CanvasLayerBar>
 
           @* A layer is the board's rather than a phase's, so the switch is chrome and every phase that
              draws the canvas has it. Adding and removing one is drawing work, so only Draw offers those. *@
-          @if (!threeD)
+          @if (!iso.ThreeD)
           {
             <SketchLayerStrip Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer"
                               OnAdd="AddLayer" OnDelete="DeleteLayer" AllowEdit="@DrawActive" />
           }
 
           @* What is in hand, where a thing in hand belongs. The Theme phase's every click is addressed to it. *@
-          @if (ThemeActive && !threeD)
+          @if (ThemeActive && !iso.ThreeD)
           {
-            <SketchThemeStrip Themes="themeIds" Brush="@themeBrush" MapTheme="@mapThemeId" AddOpen="themeAddOpen"
+            <SketchThemeStrip Themes="themes" Brush="@themeBrush" AddOpen="themeAddOpen"
                               OnTake="TakeTheme" OnAdd="() => themeAddOpen = !themeAddOpen" />
           }
 
           @* Nothing is drawn in the isometric preview, so the dock goes with the tools it holds. *@
-          @if (!threeD)
+          @if (!iso.ThreeD)
           {
           <CanvasDock>
             @* Getting around the canvas and picking what is already on it — the whole dock in a select-only
@@ -328,10 +290,7 @@
         @if (HistoryActive)
         {
           <div class="sidebar-handle"></div>
-          <SketchChangeInspector Change="SpanChange" From="spanFrom" To="@(spanTo ?? 0)" Latest="LatestChange"
-                                 Diff="spanDiff" World="spanWorld" WorldError="@spanWorldError"
-                                 Restoring="restoring" RestoreError="@restoreError" OnRestore="RestoreAsync"
-                                 Notes="SpanNotes" OnOpenNote="OpenNoteFromHistory" />
+          <SketchChangeInspector History="history" Notes="notes" OnOpenNote="OpenNoteFromHistory" />
         }
         else if (DressingActive)
         {
@@ -341,8 +300,7 @@
         else if (PlacingViewActive)
         {
           <div class="sidebar-handle"></div>
-          <SketchViewDraft Slug="@Slug" Draft="viewDraft" Round="viewRound" Note="@viewNote" OnAimed="OnViewAimed"
-                           OnKeep="KeepView" OnDiscard="DiscardView" />
+          <SketchViewDraft Slug="@Slug" Views="views" OnKeep="KeepView" />
         }
         else if (ReliefActive)
         {
@@ -352,14 +310,11 @@
         else if (ThemeActive)
         {
           <div class="sidebar-handle"></div>
-          <SketchThemeInspector Handle="handle" Themes="themeIds" Brush="@themeBrush" MapTheme="@mapThemeId"
-                                ThemeSources="themeSources"
-                                BiomeSource="biomeSource" BiomeJson="@biomeJson" BiomeChanged="ReadBiome"
-                                ShapeThemes="shapeThemes" ShapeCount="themedShapeTotal" Revision="themeRevision"
+          <SketchThemeInspector Handle="handle" Themes="themes" Brush="@themeBrush"
                                 SelectedGroupId="@selectedGroupId" SelectedShapeId="@selectedShapeId"
                                 TargetShapeIds="ScopeTargetShapeIds"
                                 AddOpen="themeAddOpen" AddOpenChanged="v => themeAddOpen = v"
-                                OnHold="SetThemeBrush" OnChanged="ReadThemes" />
+                                OnHold="SetThemeBrush" />
         }
         else if (selectedStructural is not null)
         {

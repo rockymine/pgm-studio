@@ -59,10 +59,10 @@
         }
       }
     </Section>
-    @if (Notes.Count > 0)
+    @if (SpanNotes.Count > 0)
     {
       <Section Title="Notes written at it">
-        @foreach (var (note, message) in Notes)
+        @foreach (var (note, message) in SpanNotes)
         {
           <button type="button" class="notes-row" @key="note.Id" @onclick="() => OnOpenNote.InvokeAsync(note.Id)"
                   title="Open the thread in In game">
@@ -96,7 +96,7 @@
     </Section>
     <Section>
       <Button Variant="primary" Icon="undo-2" Disabled="@(From == 0 || From == Latest)" Busy="Restoring"
-              BusyLabel="Restoring…" Writes OnClick="() => OnRestore.InvokeAsync(From)">
+              BusyLabel="Restoring…" Writes OnClick="() => History.RestoreAsync(From)">
         Restore to #@From
       </Button>
       <p class="plan-readout">@RestoreReadout</p>

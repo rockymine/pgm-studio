@@ -21,36 +21,20 @@ public partial class SketchInGamePhase
 
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
-    [Inject] private StudioAccess Access { get; set; } = default!;
 
     [Parameter, EditorRequired] public string Slug { get; set; } = "";
 
-    /// <summary>The views to show, or null while they are being read.</summary>
-    [Parameter] public MapViewsDto? Views { get; set; }
+    /// <summary>The views: the gallery to show, why it could not be read or why the last thing asked of a view
+    /// was refused, and the round its pictures are drawn in.</summary>
+    [Parameter, EditorRequired] public SketchViews Views { get; set; } = default!;
 
-    /// <summary>Why the views could not be read, or null.</summary>
-    [Parameter] public string? Error { get; set; }
-
-    /// <summary>Why the last thing asked of a view was refused, or null.</summary>
-    [Parameter] public string? Refusal { get; set; }
-
-    /// <summary>Bumped by the host whenever the board may have changed since the pictures were asked for.</summary>
-    [Parameter] public int Round { get; set; }
-
-    /// <summary>Bumped by the host each time it follows the board, which is when the notes are read again.</summary>
-    [Parameter] public int Tick { get; set; }
+    /// <summary>The board's notes, read by the host for every phase that shows them.</summary>
+    [Parameter, EditorRequired] public SketchNotes Notes { get; set; } = default!;
 
     [Parameter] public EventCallback OnBack { get; set; }
 
     /// <summary>Place a view of the author's own, on the canvas.</summary>
     [Parameter] public EventCallback OnPlace { get; set; }
-
-    /// <summary>Stop keeping a view.</summary>
-    [Parameter] public EventCallback<MapViewDto> OnLetGo { get; set; }
-
-    /// <summary>Draw the map's picture — the <c>map.png</c> an export carries — from a view, keeping it where it
-    /// is a suggestion.</summary>
-    [Parameter] public EventCallback<MapViewDto> OnPicture { get; set; }
 
     /// <summary>A note to open on arriving, by id — a link into its thread.</summary>
     [Parameter] public long? LinkedNote { get; set; }
@@ -75,12 +59,7 @@ public partial class SketchInGamePhase
     private ElementReference main;
     private ElementReference trap;
 
-    private bool mayNote;
-    private string? meUuid;
-    private List<MapNoteDto> notes = [];
-    private NoteHandoffDto? handoff;
     private bool handing;
-    private (int Round, int Tick) notesRound = (-1, -1);
     private NotesStep step = NotesStep.Overview;
     private long? currentId;
     private string filter = SketchNotesColumn.All;
@@ -98,8 +77,11 @@ public partial class SketchInGamePhase
     private double scale = 1;
     private bool stale;
 
+    private MapViewsDto? Gallery => Views.Gallery;
+    private int Round => Views.Round;
+
     /// <summary>The change the pictures are of: a note written on one was written at it.</summary>
-    private long DrawnAt => Views?.Change ?? 0;
+    private long DrawnAt => Gallery?.Change ?? 0;
 
     /// <summary>A thread's pictures, compared on the big picture: the note's own, the latest after a reply carries,
     /// and the note's camera over the board now. <paramref name="Key"/> names the thread and its latest after, so
@@ -137,28 +119,19 @@ public partial class SketchInGamePhase
     /// <summary>The board's latest change where it is newer than the pictures, or null.</summary>
     private long? Landed => Changes.Count > 0 && Changes[^1] > DrawnAt ? Changes[^1] : null;
 
-    private MapViewDto? Shown => Views?.Views.FirstOrDefault(view => view.Id == shownId) ?? Views?.Views.FirstOrDefault();
-    private IReadOnlyCollection<string> ViewIds => Views?.Views.Select(view => view.Id).ToHashSet() ?? [];
-    private MapNoteDto? Current => notes.FirstOrDefault(note => note.Id == currentId);
+    private MapViewDto? Shown => Gallery?.Views.FirstOrDefault(view => view.Id == shownId) ?? Gallery?.Views.FirstOrDefault();
+    private IReadOnlyCollection<string> ViewIds => Gallery?.Views.Select(view => view.Id).ToHashSet() ?? [];
+    private MapNoteDto? Current => Notes.All.FirstOrDefault(note => note.Id == currentId);
     private MapNoteDto? OpenHere => step == NotesStep.Thread && Current is { } note && note.Anchor.ViewId == Shown?.Id ? note : null;
 
-    private IEnumerable<MapNoteDto> PinnedHere => notes.Where(note =>
+    private IEnumerable<MapNoteDto> PinnedHere => Notes.All.Where(note =>
         note.Anchor.ViewId == Shown?.Id && note.Anchor.Marks is { Count: > 0 }
         && SketchNotesColumn.Passes(note, filter));
 
-    protected override async Task OnInitializedAsync()
-    {
-        var me = await Access.MeAsync();
-        mayNote = me.Notes;
-        meUuid = me.Uuid;
-    }
-
+    /// <summary>Opens the linked note's thread as soon as the notes hold it.</summary>
     protected override async Task OnParametersSetAsync()
     {
-        if (!mayNote || notesRound == (Round, Tick)) return;
-        notesRound = (Round, Tick);
-        await LoadNotesAsync();
-        if (LinkedNote is { } linked && notes.FirstOrDefault(note => note.Id == linked) is { } found)
+        if (LinkedNote is { } linked && Notes.All.FirstOrDefault(note => note.Id == linked) is { } found)
         {
             currentId = found.Id;
             step = NotesStep.Thread;
@@ -169,15 +142,11 @@ public partial class SketchInGamePhase
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
+    /// <summary>Read the notes again, after one was written or changed.</summary>
     private async Task LoadNotesAsync()
     {
-        try
-        {
-            notes = await Http.GetFromJsonAsync<List<MapNoteDto>>($"api/map/{Slug}/notes") ?? [];
-            handoff = await Http.GetFromJsonAsync<NoteHandoffDto>("api/notes/handoff");
-            notesError = null;
-        }
-        catch { notesError = "Couldn't load notes. Check your connection and reload."; }
+        await Notes.LoadAsync();
+        notesError = Notes.LoadError;
     }
 
     /// <summary>Hand the open notes to the agent; <paramref name="again"/> repeats a hand-off nothing was written since.</summary>
@@ -188,7 +157,7 @@ public partial class SketchInGamePhase
         try
         {
             using var answer = await Http.PostAsJsonAsync("api/notes/handoff", new NoteHandoffRequest(again));
-            if (answer.IsSuccessStatusCode) handoff = await answer.Content.ReadFromJsonAsync<NoteHandoffDto>();
+            if (answer.IsSuccessStatusCode) Notes.Handoff = await answer.Content.ReadFromJsonAsync<NoteHandoffDto>();
             else notesError = $"The notes were not handed over: {await ServerRefusal.SentenceAsync(answer)}";
         }
         catch { notesError = "Couldn't hand the notes over. Check your connection and try again."; }
@@ -221,7 +190,7 @@ public partial class SketchInGamePhase
     /// <summary>Show the view <paramref name="by"/> places along from the one shown, wrapping at either end.</summary>
     private void Step(int by)
     {
-        if (Views is not { Views.Count: > 0 } all || Shown is not { } shown) return;
+        if (Gallery is not { Views.Count: > 0 } all || Shown is not { } shown) return;
         var at = Math.Max(0, all.Views.ToList().FindIndex(view => view.Id == shown.Id));
         Show(all.Views[((at + by) % all.Views.Count + all.Views.Count) % all.Views.Count]);
     }
@@ -229,7 +198,7 @@ public partial class SketchInGamePhase
     private async Task LetGo(MapViewDto view)
     {
         lettingGo = true;
-        try { await OnLetGo.InvokeAsync(view); }
+        try { await Views.LetGoAsync(view); }
         finally { lettingGo = false; }
         shownId = null;
     }
@@ -237,13 +206,13 @@ public partial class SketchInGamePhase
     private async Task MakePicture(MapViewDto view)
     {
         picturing = true;
-        try { await OnPicture.InvokeAsync(view); }
+        try { await Views.PictureAsync(view); }
         finally { picturing = false; }
     }
 
     /// <summary>How many notes on a view are still in play — not resolved.</summary>
     private int Waiting(string viewId) =>
-        notes.Count(note => note.Anchor.ViewId == viewId && note.Status != NoteStatuses.Resolved);
+        Notes.All.Count(note => note.Anchor.ViewId == viewId && note.Status != NoteStatuses.Resolved);
 
     private string FullSize(MapViewDto view) =>
         $"api/map/{Slug}/render/eye?{view.Query}&width=1920&height=1080&round={Round}";
@@ -265,7 +234,7 @@ public partial class SketchInGamePhase
 
     private async Task OpenNote(MapNoteDto note)
     {
-        if (note.Anchor.ViewId is { } view && Views?.Views.Any(shown => shown.Id == view) == true) shownId = view;
+        if (note.Anchor.ViewId is { } view && Gallery?.Views.Any(shown => shown.Id == view) == true) shownId = view;
         currentId = note.Id;
         step = NotesStep.Thread;
         notesError = null;

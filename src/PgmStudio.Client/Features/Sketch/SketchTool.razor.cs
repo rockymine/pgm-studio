@@ -32,9 +32,7 @@ public partial class SketchTool
     private bool blocksOn = false;   // the rasterized block-footprint preview
     private bool reliefOn = false;   // the height contours of whatever relief the groups carry
     private bool snapOn = true;
-    private bool threeD = false;
-    private bool isoUnavailable = false;   // 3-D preview couldn't be shown (no WebGL, or the build refused)
-    private string? isoUnavailableWhy;     // the build's own sentence; null when WebGL itself is missing
+    private IsoView iso = default!;
     private string groupLabel = "";
     private bool canUndo, canRedo;
     /// <summary>The theme in hand while the Apply step is up. The canvas paints it on a click and can lift
@@ -71,90 +69,23 @@ public partial class SketchTool
     private bool ThemeActive => active == "theme";
     private Task GoTheme() { tool = "select"; return SetPhase("theme"); }
 
-    /// <summary>The board's theme ids in registry order, its map default, and which shape carries which — read
-    /// from the bridge once per change and handed to the strip and the inspector, so the two views of one
-    /// registry cannot disagree about it.</summary>
-    private List<string> themeIds = [];
-    private string mapThemeId = "";
-    private Dictionary<string, string> shapeThemes = [];
-    /// <summary>Which library row each board theme was copied from, by theme id — read from the bridge with
-    /// the registry, so the strip, the inspector and the document cannot disagree about where a copy came
-    /// from.</summary>
-    private Dictionary<string, long> themeSources = [];
-    /// <summary>Bumped on every registry change, so a view keyed on a theme's name refreshes when the theme
-    /// under that name is replaced.</summary>
-    private int themeRevision;
-    /// <summary>How many shapes the whole board carries, over every layer — the denominator the themed count
-    /// is read against, and counted where that count is, so the two cannot be over different sets.</summary>
-    private int themedShapeTotal;
+    /// <summary>The board's finish as the bridge last announced it, handed whole to the strip and the
+    /// inspector so the two views of one registry cannot disagree about it.</summary>
+    private SketchThemes themes = SketchThemes.Empty;
+
     /// <summary>Whether the inspector is showing the add-from-library panel; the strip's + toggles it.</summary>
     private bool themeAddOpen;
-
-    private async Task ReadThemes()
-    {
-        if (handle is null) return;
-        ApplyThemes(await handle.InvokeAsync<string>("getThemes"));
-    }
-
-    /// <summary>Which library row the board's biome was copied from, or 0 for a board that states none and for
-    /// one whose field came from outside the library. The field itself is the layout's; this is what the Theme
-    /// phase's select shows as held.</summary>
-    private long biomeSource;
-
-    /// <summary>The board's field as its JSON text, or empty for a board that states none. Carried beside the
-    /// source because a field written over HTTP records no row, and matching it against the library is what
-    /// stops the select reading "none" over a board that plainly has one.</summary>
-    private string biomeJson = "";
-
-    /// <summary>Re-read the board's biome off the bridge — after a load, and after the inspector has set
-    /// one.</summary>
-    private async Task ReadBiome()
-    {
-        if (handle is null) return;
-        ApplyBiome(await handle.InvokeAsync<string>("getBiome"));
-        StateHasChanged();
-    }
-
-    private void ApplyBiome(string json)
-    {
-        using var doc = JsonDocument.Parse(json);
-        var root = doc.RootElement;
-        biomeSource = root.TryGetProperty("source", out var source) && source.ValueKind == JsonValueKind.Number
-            ? source.GetInt64() : 0;
-        biomeJson = root.TryGetProperty("field", out var field) && field.ValueKind == JsonValueKind.Object
-            ? field.GetRawText() : "";
-    }
-
-    private void ApplyThemes(string json)
-    {
-        using var doc = JsonDocument.Parse(json);
-        var root = doc.RootElement;
-        themeIds = root.TryGetProperty("themes", out var themes) && themes.ValueKind == JsonValueKind.Object
-            ? [.. themes.EnumerateObject().Select(p => p.Name)] : [];
-        mapThemeId = root.TryGetProperty("mapTheme", out var mt) && mt.ValueKind == JsonValueKind.String
-            ? mt.GetString() ?? "" : "";
-        themeSources = [];
-        if (root.TryGetProperty("themeSources", out var sources) && sources.ValueKind == JsonValueKind.Object)
-            foreach (var p in sources.EnumerateObject())
-                if (p.Value.ValueKind == JsonValueKind.Number) themeSources[p.Name] = p.Value.GetInt64();
-        shapeThemes = [];
-        if (root.TryGetProperty("shapeThemes", out var assigned) && assigned.ValueKind == JsonValueKind.Object)
-            foreach (var p in assigned.EnumerateObject())
-                if (p.Value.ValueKind == JsonValueKind.String) shapeThemes[p.Name] = p.Value.GetString() ?? "";
-        themedShapeTotal = root.TryGetProperty("shapeCount", out var count) && count.ValueKind == JsonValueKind.Number
-            ? count.GetInt32() : 0;
-    }
 
     /// <summary>Step the theme in hand through the registry, empty hand included — so one pair of keys reaches
     /// every theme however many there are, and putting one down is a step like any other. Answers only in the
     /// phase that hands a brush out: a brush armed anywhere else would make a click paint where it selects.</summary>
     private Task CycleTheme(int by)
     {
-        if (!ThemeActive || themeIds.Count == 0) return Task.CompletedTask;
-        var ring = themeIds.Count + 1;                       // the registry, plus the empty hand
-        var at = themeBrush.Length == 0 ? 0 : themeIds.IndexOf(themeBrush) + 1;
+        if (!ThemeActive || themes.Ids.Count == 0) return Task.CompletedTask;
+        var ring = themes.Ids.Count + 1;                     // the registry, plus the empty hand
+        var at = themeBrush.Length == 0 ? 0 : themes.Ids.ToList().IndexOf(themeBrush) + 1;
         var next = ((at + by) % ring + ring) % ring;
-        return SetThemeBrush(next == 0 ? "" : themeIds[next - 1]);
+        return SetThemeBrush(next == 0 ? "" : themes.Ids[next - 1]);
     }
 
     // ── Dressing phase (decoration.md) ──
@@ -168,28 +99,24 @@ public partial class SketchTool
     // ── In game phase (docs/tools/sketch.md): the board as a player sees it ──
     // A gallery of pictures drawn with the game's own textures, over the board as stored — so entering it
     // saves first. Placing a view of one's own is the canvas's, so while one is placed the shared canvas comes
-    // back with the eye tool armed and the view being placed in the inspector.
+    // back with the eye tool armed and the view being placed in the inspector. The views and the notes are
+    // each held once, by the objects below, and shared by every body that shows them.
+    private SketchViews views = default!;
+    private SketchNotes notes = default!;
     private bool InGameActive => active == "ingame";
-    private bool placingView;
-    private bool PlacingViewActive => InGameActive && placingView;
-    private MapViewsDto? views;
-    private string? viewsError;
-    /// <summary>Why the last thing asked of a view — letting it go, drawing the map's picture from it — was
-    /// refused, said over the gallery rather than in place of it.</summary>
-    private string? viewsRefusal;
-    /// <summary>Bumped on every entry, so a picture of a board that has changed since is asked for again.</summary>
-    private int viewRound;
-    private SketchViewDraft.ViewDraft? viewDraft;
-    private string? viewNote;
+    private bool PlacingViewActive => InGameActive && views.Placing;
 
-    private IReadOnlyList<MapViewDto> KeptViews => views?.Views.Where(view => view.Kept).ToList() ?? [];
+    /// <summary>Open a thread from History: In game, on that thread.</summary>
+    private Task OpenNoteFromHistory(long id)
+    {
+        linkedNote = id;
+        return GoInGame();
+    }
 
     /// <summary>How often In game reads the board's changes again while it is up, so a drive landing behind it
     /// moves the threads' counts and asks for the pictures to be drawn again.</summary>
     private static readonly TimeSpan FollowEvery = TimeSpan.FromSeconds(30);
     private CancellationTokenSource? following;
-    /// <summary>Bumped each time In game follows the board, so the phase reads its notes again with the changes.</summary>
-    private int followTick;
 
     /// <summary>Read the board's changes every <see cref="FollowEvery"/> until In game is left.</summary>
     private async Task FollowBoardAsync()
@@ -211,111 +138,65 @@ public partial class SketchTool
         if (InGameActive) await FollowOnceAsync();
     }
 
-    private Task FollowOnceAsync()
+    private async Task FollowOnceAsync()
     {
-        followTick++;
-        return LoadChangesAsync();
+        await history.LoadChangesAsync();
+        await notes.LoadAsync();
     }
 
     /// <summary>Draw In game's pictures again over the board as it is stored now. The views are asked for before
     /// the round moves, so the build queue answers them ahead of the pictures the new round asks for.</summary>
     private async Task RedrawInGame()
     {
-        await LoadViewsAsync(clear: false);
-        viewRound++;
-        await LoadChangesAsync();
+        await views.LoadAsync(clear: false);
+        views.NextRound();
+        await history.LoadChangesAsync();
+        await notes.LoadAsync();
     }
 
     private async Task GoInGame()
     {
-        placingView = false;
+        views.StopPlacing();
         tool = "select";
         saveCts?.Cancel();
         await SaveAsync(CancellationToken.None);
-        viewRound++;
+        views.NextRound();
         await SetPhase("ingame");
-        await LoadViewsAsync();
-        await LoadChangesAsync();
+        var readingNotes = notes.LoadAsync();
+        await views.LoadAsync();
+        await history.LoadChangesAsync();
+        await readingNotes;
         _ = FollowBoardAsync();
     }
 
     // ── Report (docs/world-scan/read-backs.md): everything a drive reads back about the board as stored ──
-    // A page of readings rather than a canvas, over the board as stored — so entering it saves first.
+    // A page of readings rather than a canvas, over the board as stored — so entering it saves first. The
+    // phase reads the report itself once it is up.
     private bool ReportActive => active == "report";
-    private MapReportDto? report;
-    private string? reportError;
+
+    /// <summary>Moves on at every entry, so entering Report again reads the board as it is stored now.</summary>
+    private int reportEntries;
 
     private async Task GoReport()
     {
+        reportEntries++;
         tool = "select";
         saveCts?.Cancel();
         await SaveAsync(CancellationToken.None);
         await SetPhase("report");
-        await LoadReportAsync();
-    }
-
-    private async Task LoadReportAsync()
-    {
-        report = null;
-        reportError = null;
-        StateHasChanged();
-        try
-        {
-            var answer = await Http.GetAsync($"api/map/{Slug}/report");
-            if (answer.IsSuccessStatusCode) report = await answer.Content.ReadFromJsonAsync<MapReportDto>();
-            else reportError = (await answer.Content.ReadFromJsonAsync<RefusalDto>())?.Message is { Length: > 0 } why
-                ? why : "Couldn't load the report.";
-        }
-        catch { reportError = "Couldn't load the report. Check your connection and try again."; }
-        StateHasChanged();
     }
 
     // ── History: the board's changes, what each did drawn on the canvas, and putting it back ──
     private bool HistoryActive => active == "history";
-    private MapChangesDto? changes;
-    private string? changesError;
-    /// <summary>The span drawn on the canvas: from one change to another, the one before it for a single
-    /// change.</summary>
-    private long? spanTo;
-    private long spanFrom;
-    private MapDiffDto? spanDiff;
-    /// <summary>The layouts at either end of the span, kept so coming back to History draws it again.</summary>
-    private JsonElement? spanBefore, spanAfter;
-    private WorldChangesDto? spanWorld;
-    private string? spanWorldError;
-    /// <summary>Bumped on every pick, so an answer to an earlier one arriving late is dropped.</summary>
-    private int spanRound;
-    private bool restoring;
-    private string? restoreError;
+    private SketchHistory history = default!;
 
-    private IReadOnlyList<long> ChangeNumbers => changes?.Changes.Select(change => change.Number).ToList() ?? [];
-    private long LatestChange => changes?.Changes.LastOrDefault()?.Number ?? 0;
-    private MapChangeDto? SpanChange => changes?.Changes.FirstOrDefault(change => change.Number == spanTo);
-
-    /// <summary>The board's notes, read on entering History for a caller who may read them, so a change can
-    /// name the threads written at it.</summary>
-    private List<MapNoteDto> historyNotes = [];
-
-    /// <summary>The threads with a message written in the span shown, each with its latest such message.</summary>
-    private IReadOnlyList<(MapNoteDto Note, NoteMessageDto Message)> SpanNotes =>
-        spanTo is not { } to ? []
-        : [.. historyNotes
-            .Select(note => (Note: note, Message: note.Messages.LastOrDefault(message => message.Change > spanFrom && message.Change <= to)))
-            .Where(entry => entry.Message is not null)
-            .Select(entry => (entry.Note, entry.Message!))];
-
-    private async Task LoadHistoryNotesAsync()
+    /// <summary>Stores what the canvas holds ahead of a restore. Answers the sentence the restore is refused
+    /// with where this tab is out of date, and null where the board is stored.</summary>
+    private async Task<string?> SaveBeforeRestoreAsync()
     {
-        if (!(await Access.MeAsync()).Notes) return;
-        try { historyNotes = await Http.GetFromJsonAsync<List<MapNoteDto>>($"api/map/{Slug}/notes") ?? []; }
-        catch { historyNotes = []; }
-    }
-
-    /// <summary>Open a thread from History: In game, on that thread.</summary>
-    private async Task OpenNoteFromHistory(long id)
-    {
-        linkedNote = id;
-        await GoInGame();
+        saveCts?.Cancel();
+        await SaveAsync(CancellationToken.None);
+        return Document.Superseded ? "This tab is out of date. Reload the page before restoring." : null;
     }
 
     private async Task GoHistory()
@@ -324,303 +205,47 @@ public partial class SketchTool
         saveCts?.Cancel();
         await SaveAsync(CancellationToken.None);
         await SetPhase("history");
-        await LoadChangesAsync();
-        await LoadHistoryNotesAsync();
-        if (spanTo is null) { if (LatestChange > 0) await PickChange(LatestChange); }
-        else await DrawSpan(spanBefore, spanAfter, spanWorld);
+        await history.LoadChangesAsync();
+        await notes.LoadAsync();
+        await history.OpenAsync();
     }
-
-    private async Task LoadChangesAsync()
-    {
-        changesError = null;
-        try { changes = await Http.GetFromJsonAsync<MapChangesDto>($"api/map/{Slug}/changes"); }
-        catch { changesError = "Couldn't load the change history. Check your connection and try again."; }
-        StateHasChanged();
-    }
-
-    /// <summary>Draw what one change did: from the change before it to it.</summary>
-    private Task PickChange(long number) =>
-        ShowSpan(changes?.Changes.LastOrDefault(change => change.Number < number)?.Number ?? 0, number);
 
     /// <summary>Open History on what changed after a thread's last message.</summary>
     private async Task ShowChangesSince(long from)
     {
         await GoHistory();
-        await ShowSpan(from, LatestChange);
-    }
-
-    /// <summary>Draw a span: the documents first, which are quick, and the columns when both builds are done.</summary>
-    private async Task ShowSpan(long from, long to)
-    {
-        var round = ++spanRound;
-        (spanFrom, spanTo) = (from, to);
-        spanDiff = null;
-        spanWorld = null;
-        spanWorldError = null;
-        restoreError = null;
-        StateHasChanged();
-
-        MapDiffDto? diff = null;
-        JsonElement? before = null, after = null;
-        try
-        {
-            diff = await Http.GetFromJsonAsync<MapDiffDto>($"api/map/{Slug}/diff?from={from}&to={to}");
-            before = from == 0 ? null : (await Http.GetFromJsonAsync<MapChangeDocumentsDto>($"api/map/{Slug}/changes/{from}"))?.Layout;
-            after = (await Http.GetFromJsonAsync<MapChangeDocumentsDto>($"api/map/{Slug}/changes/{to}"))?.Layout;
-        }
-        catch { spanWorldError = "Couldn't load this change. Check your connection and try again."; }
-        if (round != spanRound) return;
-        spanDiff = diff;
-        (spanBefore, spanAfter) = (before, after);
-        await DrawSpan(before, after, null);
-        StateHasChanged();
-
-        if (before is null || after is null)
-        {
-            spanWorldError ??= "There's nothing before the first change to build.";
-            StateHasChanged();
-            return;
-        }
-        try
-        {
-            var built = await Http.GetFromJsonAsync<MapDiffDto>($"api/map/{Slug}/diff?from={from}&to={to}&world=true");
-            if (round != spanRound) return;
-            spanWorld = built?.World;
-            await DrawSpan(before, after, spanWorld);
-        }
-        catch
-        {
-            if (round != spanRound) return;
-            spanWorldError = "Couldn't build both versions.";
-        }
-        StateHasChanged();
-    }
-
-    private async Task DrawSpan(JsonElement? before, JsonElement? after, WorldChangesDto? world)
-    {
-        if (handle is null) return;
-        await handle.InvokeVoidAsync("setDiff", JsonSerializer.Serialize(new { before, after, world }, Wire));
-    }
-
-    /// <summary>Put the board back as it stood at a change: the studio writes it as a new change, and the canvas
-    /// takes up the board it wrote.</summary>
-    private async Task RestoreAsync(long number)
-    {
-        saveCts?.Cancel();
-        await SaveAsync(CancellationToken.None);
-        if (Document.Superseded)
-        {
-            restoreError = "This tab is out of date. Reload the page before restoring.";
-            return;
-        }
-        restoring = true;
-        restoreError = null;
-        StateHasChanged();
-        try
-        {
-            using var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/changes/{number}/restore", new MapRestoreRequest());
-            if (!answer.IsSuccessStatusCode)
-            {
-                var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
-                restoreError = refusal?.Message is { Length: > 0 } why ? $"Couldn't restore. {why}" : $"Couldn't restore (HTTP {(int)answer.StatusCode}). Try again.";
-                return;
-            }
-            await ReloadLayoutAsync();
-            await LoadChangesAsync();
-            if (LatestChange > 0) await PickChange(LatestChange);
-        }
-        catch { restoreError = "Couldn't restore. Check your connection and try again."; }
-        finally
-        {
-            restoring = false;
-            StateHasChanged();
-        }
-    }
-
-    /// <summary>Read the views again. Clearing first shows the phase reading; a redraw keeps the gallery up, so a
-    /// note half written beside it stays.</summary>
-    private async Task LoadViewsAsync(bool clear = true)
-    {
-        viewsError = null;
-        if (clear)
-        {
-            views = null;
-            StateHasChanged();
-        }
-        try { views = await Http.GetFromJsonAsync<MapViewsDto>($"api/map/{Slug}/views"); }
-        catch { viewsError = "Couldn't load views. Check your connection and try again."; }
-        if (handle is not null)
-            await handle.InvokeVoidAsync("setViews", JsonSerializer.Serialize((views?.Views ?? []).Select(view => new
-            {
-                id = view.Id, kept = view.Kept, fromX = view.FromX, fromZ = view.FromZ, lookX = view.LookX, lookZ = view.LookZ,
-                eyeX = view.Eye?.X, eyeZ = view.Eye?.Z,
-            })));
-        StateHasChanged();
-    }
-
-    private IReadOnlyList<MapViewDto> SuggestedViews => views?.Views.Where(view => !view.Kept).ToList() ?? [];
-
-    /// <summary>A view picked up to change or to copy: stood where it stands — where its eye resolved to, for
-    /// one that leaves the eye to find its own place — at the height and tip it states or resolved to.</summary>
-    private static SketchViewDraft.ViewDraft DraftOf(MapViewDto view, int? fromX, int? fromZ, int lookX, int lookZ)
-    {
-        var resolved = view.FromX is null ? view.Eye : null;
-        return new SketchViewDraft.ViewDraft(
-            fromX ?? view.FromX ?? (view.Eye is { } eye ? (int)Math.Floor(eye.X) : null),
-            fromZ ?? view.FromZ ?? (view.Eye is { } seen ? (int)Math.Floor(seen.Z) : null),
-            lookX, lookZ,
-            view.Y ?? resolved?.Y, view.Pitch ?? resolved?.Pitch, view, view.Yaw);
-    }
-
-    /// <summary>The inspector resolved the camera in hand: the canvas draws it where it stands and where its
-    /// middle lands.</summary>
-    private async Task OnViewAimed((int FromX, int FromZ, int LookX, int LookZ) aim)
-    {
-        if (handle is null) return;
-        await handle.InvokeVoidAsync("setViewDraft", JsonSerializer.Serialize(new
-        {
-            id = viewDraft?.Source?.Id, fromX = aim.FromX, fromZ = aim.FromZ, lookX = aim.LookX, lookZ = aim.LookZ,
-        }));
-    }
-
-    /// <summary>Pick a view up from the list beside the canvas, as a press on its camera would.</summary>
-    private async Task SelectView(MapViewDto view)
-    {
-        viewDraft = DraftOf(view, null, null, view.LookX, view.LookZ);
-        viewNote = null;
-        if (handle is not null)
-            await handle.InvokeVoidAsync("setViewDraft", JsonSerializer.Serialize(new
-            {
-                id = view.Id, fromX = viewDraft.FromX, fromZ = viewDraft.FromZ, lookX = view.LookX, lookZ = view.LookZ,
-            }));
+        await history.ShowSpan(from, history.LatestChange);
     }
 
     private async Task PlaceView()
     {
-        placingView = true;
-        viewDraft = null;
-        viewNote = null;
-        if (handle is not null)
-        {
-            if (threeD)
-            {
-                threeD = false;
-                await handle.InvokeVoidAsync("setView", "2d");
-            }
-            await handle.InvokeVoidAsync("setBoardView", true);
-        }
+        await iso.LeaveAsync();
+        await views.BeginPlacingAsync();
         await SetTool("eye");
     }
 
     private async Task ShowGallery()
     {
-        placingView = false;
-        viewDraft = null;
-        if (handle is not null)
-        {
-            await handle.InvokeVoidAsync("setViewDraft", (string?)null);
-            await handle.InvokeVoidAsync("setBoardView", false);
-        }
+        await views.EndPlacingAsync();
         await SetTool("select");
     }
 
-    /// <summary>The board could not be built for the Board layer: the canvas stays empty under the views, and
-    /// the inspector says why.</summary>
+    /// <summary>The board could not be built for the Board layer.</summary>
     [JSInvokable]
-    public void OnBoardUnavailable(string reason)
-    {
-        viewNote = reason is { Length: > 0 } ? $"Couldn't draw the map: {reason}" : "Couldn't draw the map.";
-        StateHasChanged();
-    }
+    public void OnBoardUnavailable(string reason) => views.BoardUnavailable(reason);
 
     /// <summary>The canvas's eye tool was released: a stand point and what it looks at, or only the latter —
     /// for a new view, or for the camera <paramref name="id"/> names, picked up and moved.</summary>
     [JSInvokable]
-    public void OnViewPicked(int? fromX, int? fromZ, int lookX, int lookZ, string? id)
-    {
-        viewDraft = views?.Views.FirstOrDefault(view => view.Id == id) is { } picked
-            ? DraftOf(picked, fromX, fromZ, lookX, lookZ)
-            : new SketchViewDraft.ViewDraft(fromX, fromZ, lookX, lookZ);
-        viewNote = null;
-        StateHasChanged();
-    }
+    public void OnViewPicked(int? fromX, int? fromZ, int lookX, int lookZ, string? id) =>
+        views.Picked(fromX, fromZ, lookX, lookZ, id);
 
-    /// <summary>Store the view in the inspector: a kept view picked up is changed in place, and anything else —
-    /// a new view, or a suggestion picked up — is kept as a new one.</summary>
+    /// <summary>Store the view in the inspector, and come back to the gallery with it listed.</summary>
     private async Task KeepView(MapViewKeepRequest request)
     {
-        try
-        {
-            var answer = viewDraft?.Source is { Kept: true } changed
-                ? await Http.PutAsJsonAsync($"api/map/{Slug}/views/{Uri.EscapeDataString(changed.Id)}", request)
-                : await Http.PostAsJsonAsync($"api/map/{Slug}/views", request);
-            if (!answer.IsSuccessStatusCode)
-            {
-                var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
-                viewNote = refusal?.Message is { Length: > 0 } why ? why : "Couldn't save the view.";
-                return;
-            }
-        }
-        catch
-        {
-            viewNote = "Couldn't save the view. Check your connection and try again.";
-            return;
-        }
+        if (!await views.KeepAsync(request)) return;
         await ShowGallery();
-        await LoadViewsAsync();
-    }
-
-    private async Task DiscardView()
-    {
-        viewDraft = null;
-        viewNote = null;
-        if (handle is not null) await handle.InvokeVoidAsync("setViewDraft", (string?)null);
-    }
-
-    private async Task LetGoView(MapViewDto view)
-    {
-        try
-        {
-            using var answer = await Http.DeleteAsync($"api/map/{Slug}/views/{Uri.EscapeDataString(view.Id)}");
-            if (!answer.IsSuccessStatusCode)
-            {
-                viewsRefusal = $"Couldn't remove the view: {await ServerRefusal.SentenceAsync(answer)}";
-                return;
-            }
-        }
-        catch
-        {
-            viewsRefusal = "Couldn't remove the view. Check your connection and try again.";
-            return;
-        }
-        viewsRefusal = null;
-        await LoadViewsAsync();
-    }
-
-    /// <summary>Draw the map's picture from a view: a kept one is marked in place, and a suggestion is kept as
-    /// a view of its own, marked.</summary>
-    private async Task PictureView(MapViewDto view)
-    {
-        var request = new MapViewKeepRequest(view.Name, view.LookX, view.LookZ, view.FromX, view.FromZ, view.Y,
-                                             view.Pitch, view.Yaw, Picture: true);
-        try
-        {
-            var answer = view.Kept
-                ? await Http.PutAsJsonAsync($"api/map/{Slug}/views/{Uri.EscapeDataString(view.Id)}", request)
-                : await Http.PostAsJsonAsync($"api/map/{Slug}/views", request);
-            if (!answer.IsSuccessStatusCode)
-            {
-                viewsRefusal = $"Couldn't set the map picture: {await ServerRefusal.SentenceAsync(answer)}";
-                return;
-            }
-        }
-        catch
-        {
-            viewsRefusal = "Couldn't set the map picture. Check your connection and try again.";
-            return;
-        }
-        viewsRefusal = null;
-        await LoadViewsAsync();
+        await views.LoadAsync();
     }
 
     // ── Relief phase (docs/world-export/relief.md §15) ──
@@ -669,7 +294,22 @@ public partial class SketchTool
 
     // A freshly-created sketch lands on Info (?phase=info) to name it; opening an existing one goes
     // straight to Draw.
-    protected override void OnInitialized() { if (Phase == "info") active = "info"; }
+    protected override void OnInitialized()
+    {
+        iso = new IsoView(() => handle, StateHasChanged);
+        history = new SketchHistory(Http, Slug, json => Bridge("setDiff", json), SaveBeforeRestoreAsync, ReloadLayoutAsync);
+        views = new SketchViews(Http, Slug, json => Bridge("setViews", json), json => Bridge("setViewDraft", json),
+                                shown => Bridge("setBoardView", shown));
+        notes = new SketchNotes(Http, Access, Slug);
+        history.Changed += StateHasChanged;
+        views.Changed += StateHasChanged;
+        notes.Changed += StateHasChanged;
+        if (Phase == "info") active = "info";
+    }
+
+    /// <summary>Call a bridge verb, or nothing before the canvas is mounted.</summary>
+    private Task Bridge(string verb, params object?[] args) =>
+        handle?.InvokeVoidAsync(verb, args).AsTask() ?? Task.CompletedTask;
 
     // Switching phases only flips which body renders: the canvas observes its own wrap and re-measures
     // (and runs a deferred fit) when Draw un-hides. Nudging it from here would run against the still-
@@ -710,16 +350,8 @@ public partial class SketchTool
         // A brush and the panel that fills it only exist while the phase that hands one out is up.
         if (phase != "theme") { themeAddOpen = false; await SetThemeBrush(""); }
         if (phase == "relief") reliefOn = true;
-        if (phase == "theme") { await ReadThemes(); await ReadBiome(); }
         // The kept views and the one being placed are drawn only while the phase that places them is up.
-        if (phase != "ingame")
-        {
-            placingView = false;
-            viewDraft = null;
-            await handle.InvokeVoidAsync("setViews", "[]");
-            await handle.InvokeVoidAsync("setViewDraft", (string?)null);
-            await handle.InvokeVoidAsync("setBoardView", false);
-        }
+        if (phase != "ingame") await views.ClearCanvasAsync();
         await PushPhaseOverlays(phase);
     }
 
@@ -1046,19 +678,6 @@ public partial class SketchTool
         if (handle is not null) await handle.InvokeVoidAsync("fitToBbox");
     }
 
-    private async Task Toggle3D()
-    {
-        if (isoUnavailable) return;
-        threeD = !threeD;
-        if (handle is null) return;
-        // The bridge reports an unavailable preview asynchronously via OnIsoUnavailable; this catch only
-        // guards a hard interop failure so the toggle can never trip Blazor's unhandled-error boundary.
-        try { await handle.InvokeVoidAsync("setView", threeD ? "iso" : "2d"); }
-        catch { threeD = false; isoUnavailable = true; StateHasChanged(); }
-    }
-
-    private Task RotateIso() => handle?.InvokeVoidAsync("rotateIso").AsTask() ?? Task.CompletedTask;
-
     /// <summary>The layers the built board is made of, as the preview payload spells them, and which of them
     /// are switched off. Only the 3-D view has them — a 2-D drawing is one plan whatever it stacks.</summary>
     private IReadOnlyList<string> isoLayers = [];
@@ -1176,15 +795,14 @@ public partial class SketchTool
     [JSInvokable]
     public void OnGroupSelected(string? id) { selectedGroupId = id; StateHasChanged(); }
 
-    /// <summary>The theme registry or an assignment changed on the bridge — the strip and the inspector are
-    /// both drawn from what this reads.</summary>
+    /// <summary>The board's finish changed on the bridge — a theme, an assignment, a room shell, the biome, or a
+    /// whole document loaded or stepped back.</summary>
     [JSInvokable]
     public void OnThemes(string json)
     {
-        ApplyThemes(json);
-        themeRevision++;
+        themes = SketchThemes.Parse(json);
         // A brush naming a theme the board no longer has is an empty hand, not a stale one.
-        if (themeBrush.Length > 0 && !themeIds.Contains(themeBrush)) themeBrush = "";
+        if (themeBrush.Length > 0 && !themes.Documents.ContainsKey(themeBrush)) themeBrush = "";
         StateHasChanged();
     }
 
@@ -1192,10 +810,6 @@ public partial class SketchTool
     /// the selected prop itself, which is what the inspector and the list both read.</summary>
     [JSInvokable]
     public void OnDressing(string json) { dressingJson = json; StateHasChanged(); }
-
-    /// <summary>The board's biome changed on the bridge.</summary>
-    [JSInvokable]
-    public void OnBiome(string json) { ApplyBiome(json); StateHasChanged(); }
 
     [JSInvokable]
     public void OnRelief(string json) { reliefJson = json; StateHasChanged(); }
@@ -1259,20 +873,7 @@ public partial class SketchTool
     /// <paramref name="reason"/> is empty when WebGL itself is missing and the build's own sentence when the
     /// board would not build — two different things to do about it, so the note says which.</summary>
     [JSInvokable]
-    public void OnIsoUnavailable(string? reason)
-    {
-        threeD = false;
-        isoUnavailable = true;
-        isoUnavailableWhy = string.IsNullOrWhiteSpace(reason) ? null : reason;
-        StateHasChanged();
-    }
-
-    /// <summary>The chip beside the toggle: what stopped the preview, in two words.</summary>
-    private string IsoNote => isoUnavailableWhy is null ? "No WebGL" : "3-D unavailable";
-
-    /// <summary>The whole sentence, on hover.</summary>
-    private string IsoNoteTitle => isoUnavailableWhy
-        ?? "The 3-D preview needs WebGL, which this browser doesn't support.";
+    public void OnIsoUnavailable(string? reason) => iso.MarkUnavailable(reason);
 
     /// <summary>The bridge pushed the current group→shape tree (on every layout change).</summary>
     [JSInvokable]
@@ -1422,6 +1023,9 @@ public partial class SketchTool
     {
         saveCts?.Cancel();
         following?.Cancel();
+        history.Changed -= StateHasChanged;
+        views.Changed -= StateHasChanged;
+        notes.Changed -= StateHasChanged;
         try { await JS.InvokeVoidAsync("studio.unwatchTabShown", KeyOwner); } catch { }
         // Best-effort final flush of the last (<800 ms) change before tearing the handle down.
         await SaveAsync(CancellationToken.None);
