@@ -11,6 +11,8 @@ public partial class SketchInfoPhase
     [Parameter] public string Slug { get; set; } = "";
     /// <summary>Advance to the Draw phase (Continue on the last step) — the rail's Draw button does the same.</summary>
     [Parameter] public EventCallback OnNext { get; set; }
+    /// <summary>The name the map was saved under, once a save lands.</summary>
+    [Parameter] public EventCallback<string> OnRenamed { get; set; }
 
     // Settings step — symmetry, owned by the host (it holds the canvas bridge); this phase only renders
     // the controls and raises the change callbacks so the live (hidden) canvas updates.
@@ -71,7 +73,11 @@ public partial class SketchInfoPhase
         try
         {
             var resp = await Http.PatchAsJsonAsync($"api/map/{Slug}/metadata", payload);
-            if (resp.IsSuccessStatusCode) { dirty = false; saveStatus = "Saved."; }
+            if (resp.IsSuccessStatusCode)
+            {
+                dirty = false; saveStatus = "Saved.";
+                await OnRenamed.InvokeAsync(name);
+            }
             else saveStatus = $"Couldn't save (HTTP {(int)resp.StatusCode}). Try again.";
         }
         catch { saveStatus = "Couldn't save. Try again."; }

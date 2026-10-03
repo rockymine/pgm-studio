@@ -34,6 +34,7 @@ public partial class SketchTool
     private bool snapOn = true;
     private IsoView iso = default!;
     private string groupLabel = "";
+    private string? mapName;
     private bool canUndo, canRedo;
     /// <summary>The theme in hand while the Apply step is up. The canvas paints it on a click and can lift
     /// another into it, so the tool holds it and the rail reads it.</summary>
@@ -547,6 +548,7 @@ public partial class SketchTool
         await handle.InvokeVoidAsync("setReadOnly", writeClosed);
         await ReloadLayoutAsync();
         await LoadObjectives();
+        await LoadNameAsync();
         await JS.InvokeVoidAsync("studio.watchTabShown", KeyOwner, selfRef, nameof(TabShown));
         await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
             System.Text.Json.JsonSerializer.Serialize(Shortcuts));
@@ -572,6 +574,14 @@ public partial class SketchTool
             await handle.InvokeVoidAsync("load", state);
         }
         catch { /* no saved layout / map not found — start blank */ }
+    }
+
+    /// <summary>The map's name, for the crumb; the slug stands in until it arrives or where the map has none.</summary>
+    private async Task LoadNameAsync()
+    {
+        try { mapName = (await Http.GetFromJsonAsync<MapDocumentDto>($"api/map/{Slug}"))?.Name; }
+        catch { return; }
+        StateHasChanged();
     }
 
     /// <summary>The name this tool's chords are registered and dropped under.</summary>

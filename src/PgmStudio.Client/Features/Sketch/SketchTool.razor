@@ -13,7 +13,7 @@
   <Bar>
     <Topbar HomeHref="maps?stage=sketch" HomeLabel="Sketches" HomeTitle="Back to sketches">
       <Crumbs>
-        <Crumb>@Slug.Replace('_', ' ')</Crumb>
+        <Crumb>@(string.IsNullOrWhiteSpace(mapName) ? Slug.Replace('_', ' ') : mapName)</Crumb>
         <Crumb Dim>Sketch</Crumb>
       </Crumbs>
       <Right>
@@ -44,7 +44,7 @@
       <WriteGate OnChanged="OnWriteReason" />
       @if (InfoActive)
       {
-        <SketchInfoPhase Slug="@Slug" OnNext="GoDraw"
+        <SketchInfoPhase Slug="@Slug" OnNext="GoDraw" OnRenamed="renamed => mapName = renamed"
                          Mode="@mode" CenterX="@centerX" CenterZ="@centerZ"
                          OnModeChange="OnModeChange" OnCenterX="OnCenterX" OnCenterZ="OnCenterZ" />
       }
