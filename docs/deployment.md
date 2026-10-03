@@ -46,6 +46,7 @@ migrator, and an unquoted connection string ends at its first `;`.
 | `Access__Mode=invited`, `Access__Admins__0` | closed to anyone not invited; the owners, by Minecraft uuid — the admins who alone make and unmake admins, and whom only this file changes |
 | `Discord__ClientSecret` | the sign-in; the application's redirect list names `https://pgmstudio.de/api/auth/discord/callback` |
 | `Textures__AcceptMojangEula=true`, `Textures__Cache` | the eye view's block sprites, downloaded once from Mojang; the cache is set because the default resolves to nothing for a service user whose `~/.local/share` does not exist |
+| `Drawings__Folder` | where drawn pictures are cached. Unset, it is `~/.local/share/pgm-studio/drawings`, created if missing. A folder that cannot be written is logged once and every picture is redrawn on each ask, so the cache never fails a request |
 | `Notes__Agent__Fire`, `Notes__Agent__Token` | the agent the author hands notes to: the `/fire` URL and token of a Claude Code Routine's API trigger, both copied from the Routine's edit form. Absent, In game offers no hand-off. The token starts a session on its owner's Claude account, so it lives here and nowhere else (`docs/tools/sketch.md`, *Handing the notes to an agent*) |
 
 **The forwarded headers cannot be forged through Caddy.** Caddy has no `trusted_proxies`, so it replaces

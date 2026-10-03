@@ -6,7 +6,7 @@ namespace PgmStudio.Api.Tests;
 /// <summary>
 /// The one store every drawn picture is kept in: a picture is drawn once per distinct input and answered from
 /// its file after that, a changed input is a different picture, concurrent askers share one drawing, and a
-/// picture with nothing to draw is kept as such.
+/// picture with nothing to draw is kept as such. A picture that cannot be kept is still answered.
 /// </summary>
 public sealed class DrawingsTests
 {
@@ -66,5 +66,25 @@ public sealed class DrawingsTests
         await Assert.That(() => Drawings.Of(name, () => throw new InvalidOperationException("no")))
             .Throws<InvalidOperationException>();
         await Assert.That(Drawings.TryFind(name, out _)).IsFalse();
+    }
+
+    [Test]
+    public async Task A_picture_that_cannot_be_kept_is_still_answered()
+    {
+        // A directory where the picture's file would go: reading it and writing over it both fail, for this
+        // name alone.
+        var name = Drawings.Name(Fresh(), "unwritable");
+        var blocked = Path.Combine(Drawings.Folder, name[..2], name[2..4], name);
+        Directory.CreateDirectory(blocked);
+        try
+        {
+            var draws = 0;
+            byte[] Draw() { draws++; return [9]; }
+
+            await Assert.That(Drawings.Of(name, Draw)).IsEquivalentTo(new byte[] { 9 });
+            await Assert.That(Drawings.Of(name, Draw)).IsEquivalentTo(new byte[] { 9 });
+            await Assert.That(draws).IsEqualTo(2);
+        }
+        finally { Directory.Delete(blocked, recursive: true); }
     }
 }
