@@ -8527,6 +8527,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   cut from the game's own chest texture with the front where the chest faces. A sheet a sixteenth thick is
   drawn but neither stood on nor blocks a sight line. `docs/world-scan/read-backs.md`. (`WS79`)
 
+- **An eye picture casts four rays only where they differ (`WS82`)** — `render/eye` casts one ray a pixel
+  first and the other three only where a pixel's colour differs from one of its eight neighbours' by more
+  than 8 in a channel, so an edge, a leaf and far texture are still averaged while open sky and a calm field
+  are cast once. Every picture the studio answers deflates at the optimal level rather than the smallest.
+  Together a 1280 × 720 view draws and encodes in about a third of the time, with what the picture holds
+  counted exactly as before. `docs/world-scan/read-backs.md`. (`WS82`)
+
 - **A layer fanned onto its images turns its blocks with it (`WE146`)** — each cell a fanned shape paints
   carries the orbit image that won it, and what a material states — a ladder's side, a stair's climb, a log's
   axis, a torch, a chest, a fence gate — turns through `BlockGeometry.Turned` by that image's transform:

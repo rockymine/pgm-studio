@@ -439,10 +439,16 @@ fast. The folder is `Drawings:Folder` — `pgm-studio/drawings` under the servic
 by default — and is held under `Drawings:Budget` bytes, 512 MB unless set, by removing the pictures least
 recently asked for. The text twins are not kept there; they are answered from the built world.
 
-**Eye pictures are drawn one at a time.** A picture is seconds of every core and a gallery asks for a dozen at
+**Eye pictures are drawn one at a time.** A picture holds every core while it is drawn and a gallery asks for a dozen at
 once, so a request that finds no kept picture takes a turn before the world is built and the picture drawn, and a
 request that finds one takes no turn. The eye's scenes, and the last twenty-four pictures asked of a world for
 the report and the text twin, are kept in memory for as long as the world is.
+
+**A pixel is cast four times only where it differs from a neighbour.** Every pixel's first ray is cast, and
+the other three only where its colour is more than 8 off one of its eight neighbours' in some channel: an
+edge, a leaf, a far stretch of texture is the mean of four rays, and open sky or a calm field is its first ray
+alone. What the text twin counts is every pixel's first ray, so the shares do not depend on which pixels were
+refined.
 
 **The text twin says where the eye ended up and what it saw.** It names the camera the read chose — its
 `x`, `y`, `z`, `yaw` and `pitch`, with the way the pitch looks beside it (the game counts degrees below the

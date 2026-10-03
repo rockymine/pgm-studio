@@ -268,6 +268,45 @@ public sealed class EyeSceneTests
     }
 
     [Test]
+    public async Task A_stretch_whose_pixels_agree_is_drawn_from_each_pixels_first_ray_alone()
+    {
+        var calm = new byte[8 * 8 * 4];
+        for (var i = 0; i < 64; i++)
+        {
+            var shade = ((i % 8) + (i / 8)) % 2 == 0 ? (byte)100 : (byte)104;
+            calm[i * 4] = calm[i * 4 + 1] = calm[i * 4 + 2] = shade;
+            calm[i * 4 + 3] = 255;
+        }
+        var sprites = BlockTextureSet.Of(new Dictionary<string, BlockSprite> { ["stone"] = new(8, calm) });
+
+        var picture = EyeScene.Of(FloorWorld(), sprites).Draw(StraightDown, 40, 40);
+
+        await Assert.That(picture.Rgb.All(channel => channel is 100 or 104)).IsTrue();
+    }
+
+    [Test]
+    public async Task An_edge_is_the_mean_of_every_ray_through_its_pixel()
+    {
+        var world = FloorWorld();
+        world.SetBlock(16, Floor + 1, 20, GoldBlock);
+        var sprites = BlockTextureSet.Of(new Dictionary<string, BlockSprite>
+        {
+            ["stone"] = Uniform(40, 40, 160),
+            ["gold_block"] = Uniform(200, 180, 0),
+        });
+        var scene = EyeScene.Of(world, sprites);
+
+        var single = Colours(scene.Draw(FacingTheGold, 64, 36, supersample: 1));
+        var averaged = Colours(scene.Draw(FacingTheGold, 64, 36));
+
+        await Assert.That(averaged.Except(single)).IsNotEmpty();
+    }
+
+    private static HashSet<(byte, byte, byte)> Colours(EyePicture picture) =>
+        [.. Enumerable.Range(0, picture.Width * picture.Height)
+                      .Select(pixel => (picture.Rgb[pixel * 3], picture.Rgb[pixel * 3 + 1], picture.Rgb[pixel * 3 + 2]))];
+
+    [Test]
     public async Task A_pick_names_the_block_its_pixel_hits_and_the_ground_under_it()
     {
         const int Leaves = 18;

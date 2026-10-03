@@ -18,7 +18,7 @@ internal sealed record EyeShot(byte[] Png, string Text);
 /// no pictures. Per world there is a scene for each of the two ways of drawing it, and the last
 /// <see cref="PicturesPerWorld"/> pictures asked of it.</para>
 ///
-/// <para><b>One picture is drawn at a time.</b> A picture is seconds of every core, and a gallery asks for a
+/// <para><b>One picture is drawn at a time.</b> A picture holds every core while it is drawn, and a gallery asks for a
 /// dozen at once; drawn together they would take as long and hold the server for all of it.</para>
 /// </summary>
 internal static class EyeRenders

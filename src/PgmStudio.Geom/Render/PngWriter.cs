@@ -13,7 +13,9 @@ namespace PgmStudio.Geom.Render;
 /// A top-down block render is bands of one terrain colour repeated down the image, so subtracting the row
 /// above leaves long zero runs that deflate to almost nothing; the <b>Sub</b> filter would do the same job
 /// along a row, but terrain is more consistent between rows than within one. The zlib wrapper deflate needs
-/// comes from <see cref="ZLibStream"/>, which writes the header and the trailing Adler-32 itself.</para>
+/// comes from <see cref="ZLibStream"/>, which writes the header and the trailing Adler-32 itself. It deflates at
+/// the optimal level rather than the smallest: the smallest costs about seven times the time for about one
+/// percent fewer bytes, and every picture the studio answers is encoded on the request.</para>
 /// </summary>
 public static class PngWriter
 {
@@ -74,7 +76,7 @@ public static class PngWriter
         }
 
         using var compressed = new MemoryStream();
-        using (var deflate = new ZLibStream(compressed, CompressionLevel.SmallestSize, leaveOpen: true))
+        using (var deflate = new ZLibStream(compressed, CompressionLevel.Optimal, leaveOpen: true))
             deflate.Write(filtered);
         return compressed.ToArray();
     }

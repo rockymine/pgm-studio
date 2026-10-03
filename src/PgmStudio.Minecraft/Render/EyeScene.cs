@@ -361,16 +361,25 @@ public sealed class EyeScene
         return false;
     }
 
+    /// <summary>How far apart, in any one channel, two neighbouring pixels' first rays may land before both
+    /// are drawn from every ray. Below it the pixel's other rays would only repeat what its first one found.</summary>
+    private const int SettledWithin = 8;
+
     /// <summary>The picture <paramref name="camera"/> sees, <paramref name="pixelsWide"/> by
-    /// <paramref name="pixelsHigh"/>, each pixel the mean of <paramref name="supersample"/>² rays.</summary>
+    /// <paramref name="pixelsHigh"/>, each pixel the mean of <paramref name="supersample"/>² rays where it
+    /// differs from a neighbour and its first ray alone where it does not — an edge, a far texture or a leaf
+    /// is averaged, an open stretch of one colour is not cast four times over. What the picture holds is
+    /// counted from every pixel's first ray.</summary>
     public EyePicture Draw(EyeCamera camera, int pixelsWide, int pixelsHigh, int supersample = 2)
     {
         var rgb = new byte[pixelsWide * pixelsHigh * 3];
+        var first = new int[pixelsWide * pixelsHigh];
         var hits = new int[_materials.Length];
         var sky = 0;
         var lens = Lens.Of(camera, pixelsWide, pixelsHigh);
         var origin = (X: camera.X - _minX, Y: camera.Y, Z: camera.Z - _minZ);
         var lockObject = new object();
+        var firstOffset = 0.5 / supersample;
 
         Parallel.For(0, pixelsHigh, row =>
         {
@@ -378,26 +387,38 @@ public sealed class EyeScene
             var rowSky = 0;
             for (var column = 0; column < pixelsWide; column++)
             {
-                double red = 0, green = 0, blue = 0;
-                for (var sy = 0; sy < supersample; sy++)
-                    for (var sx = 0; sx < supersample; sx++)
-                    {
-                        var (colour, slot, _) = Cast(origin,
-                            lens.Ray(column + (sx + 0.5) / supersample, row + (sy + 0.5) / supersample));
-                        red += (colour >> 16) & 0xFF; green += (colour >> 8) & 0xFF; blue += colour & 0xFF;
-                        if (sx == 0 && sy == 0)
-                        {
-                            if (slot > 0) rowHits[slot]++; else rowSky++;
-                        }
-                    }
-                var samples = supersample * supersample;
-                var at = (row * pixelsWide + column) * 3;
-                rgb[at] = (byte)(red / samples); rgb[at + 1] = (byte)(green / samples); rgb[at + 2] = (byte)(blue / samples);
+                var (colour, slot, _) = Cast(origin, lens.Ray(column + firstOffset, row + firstOffset));
+                first[row * pixelsWide + column] = colour;
+                if (slot > 0) rowHits[slot]++; else rowSky++;
             }
             lock (lockObject)
             {
                 for (var i = 0; i < hits.Length; i++) hits[i] += rowHits[i];
                 sky += rowSky;
+            }
+        });
+
+        Parallel.For(0, pixelsHigh, row =>
+        {
+            for (var column = 0; column < pixelsWide; column++)
+            {
+                var colour = first[row * pixelsWide + column];
+                if (supersample > 1 && !Settled(first, pixelsWide, pixelsHigh, column, row))
+                {
+                    int red = (colour >> 16) & 0xFF, green = (colour >> 8) & 0xFF, blue = colour & 0xFF;
+                    for (var sy = 0; sy < supersample; sy++)
+                        for (var sx = 0; sx < supersample; sx++)
+                        {
+                            if (sx == 0 && sy == 0) continue;
+                            var (sample, _, _) = Cast(origin,
+                                lens.Ray(column + (sx + 0.5) / supersample, row + (sy + 0.5) / supersample));
+                            red += (sample >> 16) & 0xFF; green += (sample >> 8) & 0xFF; blue += sample & 0xFF;
+                        }
+                    var samples = supersample * supersample;
+                    colour = (red / samples << 16) | (green / samples << 8) | blue / samples;
+                }
+                var at = (row * pixelsWide + column) * 3;
+                rgb[at] = (byte)(colour >> 16); rgb[at + 1] = (byte)(colour >> 8); rgb[at + 2] = (byte)colour;
             }
         });
 
@@ -415,6 +436,22 @@ public sealed class EyeScene
             [.. seen.OrderByDescending(entry => entry.Value)
                     .Select(entry => new SeenBlock(entry.Key.Id, entry.Key.Data, entry.Value / total))],
             sky / total, untextured / total);
+    }
+
+    /// <summary>Whether every pixel around <paramref name="column"/>, <paramref name="row"/> — the eight that
+    /// touch it — took a first colour within <see cref="SettledWithin"/> of its own.</summary>
+    private static bool Settled(int[] first, int pixelsWide, int pixelsHigh, int column, int row)
+    {
+        var own = first[row * pixelsWide + column];
+        for (var y = Math.Max(0, row - 1); y <= Math.Min(pixelsHigh - 1, row + 1); y++)
+            for (var x = Math.Max(0, column - 1); x <= Math.Min(pixelsWide - 1, column + 1); x++)
+            {
+                var other = first[y * pixelsWide + x];
+                if (Math.Abs(((other >> 16) & 0xFF) - ((own >> 16) & 0xFF)) > SettledWithin
+                    || Math.Abs(((other >> 8) & 0xFF) - ((own >> 8) & 0xFF)) > SettledWithin
+                    || Math.Abs((other & 0xFF) - (own & 0xFF)) > SettledWithin) return false;
+            }
+        return true;
     }
 
     /// <summary>The block the ray through pixel <paramref name="px"/>, <paramref name="py"/> of a
