@@ -47,7 +47,7 @@
                 @foreach (var name in group)
                 {
                   <Chip Active="@Picked.Contains(name)" OnClick="() => ToggleAuthor(name)" @key="name">
-                    <AuthorMark Uuid="@CreditNamed(name)?.Uuid" Name="@name" Size="16" />
+                    <AuthorMark Uuid="@CreditNamed(name)?.Uuid" Name="@name" Size="18" />
                     <span class="map-author-name">@name</span>
                     <span class="filter-chip-n">@Count(skip: "author", author: name)</span>
                   </Chip>
