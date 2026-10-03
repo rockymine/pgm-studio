@@ -95,7 +95,7 @@ public sealed class StudioAccess(HttpClient http)
     {
         var caller = await MeAsync();
         return caller.Role is not null ? null
-            : !caller.SignedIn ? "Sign in with a whitelisted account to download this."
+            : !caller.SignedIn ? "Sign in with a whitelisted account to have the studio build this."
             : "Your account is not on this studio's whitelist, so you can only look.";
     }
 

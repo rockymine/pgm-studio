@@ -2,7 +2,9 @@
 
 @* The 2D/3D switch of a canvas and, beside it, why the preview could not be shown. The note is the answer to
    a disabled switch, so the two travel together. A host that cannot offer the switch in some state (a phase
-   that only works in 2-D) still shows the note. *@
+   that only works in 2-D) still shows the note. The preview is a build the server answers only for the
+   whitelist, so for anyone else the switch is greyed up front with the build reason on hover, like any
+   Button marked Builds. *@
 
 @if (View.Unavailable)
 {
@@ -10,8 +12,8 @@
 }
 @if (OfferToggle)
 {
-  <ViewModeToggle ThreeD="View.ThreeD" Disabled="@View.Unavailable"
-                  Title="@(View.Unavailable ? View.NoteTitle : "3-D preview (read-only)")"
+  <ViewModeToggle ThreeD="View.ThreeD" Disabled="@(View.Unavailable || BuildReason is not null)"
+                  Title="@(View.Unavailable ? View.NoteTitle : BuildReason ?? "3-D preview (read-only)")"
                   OnClick="View.ToggleAsync" />
 }
 
@@ -20,4 +22,7 @@
 
     /// <summary>False where the canvas is in a state with no 3-D to switch to.</summary>
     [Parameter] public bool OfferToggle { get; set; } = true;
+
+    /// <summary>Why the caller may not have the server build the preview, or null where they may.</summary>
+    [CascadingParameter(Name = "StudioBuildReason")] public string? BuildReason { get; set; }
 }
