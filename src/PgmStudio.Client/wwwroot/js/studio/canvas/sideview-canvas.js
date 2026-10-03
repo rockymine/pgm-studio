@@ -54,6 +54,7 @@ export class SideviewCanvas {
   #onHeightChange;      // (worldY: number) => void
   #offscreen  = null;   // pre-rendered block image (rebuilt when data changes)
   #observer   = null;
+  #onWindowUp = null;   // the window mouseup that ends a drag released off the canvas
 
   constructor(canvasEl, { onHeightChange } = {}) {
     this.#canvas  = canvasEl;
@@ -114,10 +115,11 @@ export class SideviewCanvas {
     this._render();
   }
 
-  /** Drop the resize observer and the painter's theme watcher. */
+  /** Drop the resize observer, the painter's theme watcher and the window listener a drag ends on. */
   dispose() {
     this.#observer?.disconnect();
     this.#observer = null;
+    if (this.#onWindowUp) { window.removeEventListener("mouseup", this.#onWindowUp); this.#onWindowUp = null; }
     this.#painter?.dispose();
   }
 
@@ -310,10 +312,11 @@ export class SideviewCanvas {
       }
     });
 
-    window.addEventListener("mouseup", () => {
+    this.#onWindowUp = () => {
       this.#dragging = false;
       this.#canvas.style.cursor = "default";
-    });
+    };
+    window.addEventListener("mouseup", this.#onWindowUp);
 
     canvas.addEventListener("mouseleave", () => {
       if (!this.#dragging) canvas.style.cursor = "default";
