@@ -99,6 +99,7 @@ public partial class SketchThemeInspector
     {
         libraryThemes = await Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
         rooms = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
+        roomOfSnapshot.Clear();
         biomePatterns = await Library.ListAsync<BiomePatternSummary>(LibraryKinds.Biomes);
     }
 
@@ -290,7 +291,8 @@ public partial class SketchThemeInspector
 
     /// <summary>The row each snapshot resolves to, keyed by the snapshot itself so the match survives a
     /// re-render without being re-derived: two selects are drawn per render and each row costs a parse of
-    /// both documents. The library list is read once, so a memo on the snapshot cannot go stale.</summary>
+    /// both documents. The board's snapshot can arrive before the library list does, so the memo is cleared
+    /// when the list arrives; a match made against no rows is not kept.</summary>
     private readonly Dictionary<string, RoomStyleSummary?> roomOfSnapshot = [];
 
     /// <summary>Whether the board binds a shell the library does not hold — what the select says instead of
