@@ -536,6 +536,6 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     // Drive the canvas selection from the host (a panel row); empty kind clears.
     selectShape(kind, id) { canvas.select(kind ? { kind, id } : null); },
 
-    dispose() { if (saveTimer) clearTimeout(saveTimer); if (inspectTimer) clearTimeout(inspectTimer); inspectSeq++; canvas.dispose(); },
+    dispose() { if (inspectTimer) clearTimeout(inspectTimer); inspectSeq++; canvas.dispose(); },
   };
 }

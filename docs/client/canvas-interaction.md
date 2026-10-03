@@ -138,6 +138,13 @@ decides whether something was grabbed, and `_moveStart`/`_moveTo`/`_moveBy`/`_co
 through to persistence, with `_moveTo` offering a snap-aware absolute path and `_moveBy` the incremental
 fallback.
 
+**A canvas lets go of the page when its tool unmounts.** The base adds its drag listeners to `document`, not to
+its own element, because a drag that leaves the SVG must still end; `_disposeCanvasBase` removes both, with the
+resize observer, the pending chrome frame and the iso renderer, and every subclass `dispose` ends by calling it.
+A bridge's `dispose` clears only what the bridge itself holds and then reaches `canvas.dispose()`, so a throw
+before that line leaks a whole canvas per mount. `tests/js/canvas-dispose.test.js` mounts the plan bridge under a
+stub and asserts both the clean dispose and the removed listeners.
+
 **A canvas on a page the caller may not write is read-only, and refuses at the source.** `setReadOnly(on)` sets
 `_readOnly` and calls the `_onReadOnlyChanged` hook; the base then begins no body-drag, and each surface
 refuses its own edits rather than discarding their results. The sketch canvas treats it as select-only and
@@ -363,7 +370,8 @@ at 100% (`transform`, `symmetry`, `groups`, `polygon`, `plan-inspect`, `decompos
 modules (14,386 lines, the vendored ones aside), the tests reach 32 — the other **28 files, 8,952 lines, are
 never imported by a test at all**: every canvas, every bridge (`sketch-bridge` 1,164 lines, `plan-bridge`
 479), every controller, `iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage`
-reports such files as *absent*, not as zero, so the report reads healthier than the tree is.
+reports such files as *absent*, not as zero, so the report reads healthier than the tree is. The two exceptions to that list are `plan-bridge` and `canvas-base`, which
+`canvas-dispose.test.js` imports and mounts under a stub.
 
 This is a coherent split rather than neglect: pure logic is tested, DOM-bound code is not. The painted
 render layer sits on the tested side of it because a stateless painter takes a stand-in — `_painter-stub.js`
