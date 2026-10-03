@@ -609,6 +609,16 @@ is the standard the copy is held to.
 
 ## The tool hosts and their bridges: one shape for save, feed, selection and the verb table
 
+- [ ] **TS162 — Undo and redo keys answer in every sketch phase.** The topbar Undo moves Info's mirror mode back,
+  but `Ctrl`+`Z` does nothing while Info is up: the canvas chords answer only while the canvas is visible
+  (`live()` in `sketch-canvas.js`). Register undo/redo where they answer whenever the topbar buttons do, or route
+  the keys to the same host action. `docs/tools/sketch.md`. *Evidence: Info, change Mode, `Ctrl`+`Z` — the field
+  and `setup.mirror_mode` stay; the topbar Undo reverts both.*
+
+- [ ] **C94 — The side-view canvas lets go of the window.** `SideviewCanvas` adds a `window` `mouseup` listener it
+  never removes, the leak `CanvasBase` no longer has. Remove it on dispose and cover it in
+  `tests/js/canvas-dispose.test.js`. `docs/client/canvas-interaction.md`.
+
 - [ ] **TS160 — Each sketch phase owns its state.** About 600 lines of History, In game views, Report and theme
   registry state live in `SketchTool.razor.cs:67-624`, and the notes are fetched twice (`:307`,
   `SketchInGamePhase.razor.cs:176`). Report loads its own; History and views each get a state class their two
