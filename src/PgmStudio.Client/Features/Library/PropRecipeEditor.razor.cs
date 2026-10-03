@@ -50,10 +50,6 @@ public partial class PropRecipeEditor
     private IReadOnlyList<EditorPart> Outline =>
         [new(KnobsPart, IsTree ? "Tree" : "Rock", IsTree ? "trees" : "mountain")];
 
-    private string Footnote => IsTree
-        ? "Maps keep their own copy, so editing this doesn't change trees already placed."
-        : "Maps keep their own copy, so editing this doesn't change boulders already placed.";
-
     protected override async Task OnParametersSetAsync()
     {
         // The guard first, and the fetches after it: a parameter set that re-enters during a fetch would

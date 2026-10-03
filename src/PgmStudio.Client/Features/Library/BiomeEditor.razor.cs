@@ -52,9 +52,6 @@ public partial class BiomeEditor
 
     private IReadOnlyList<EditorPart> Outline => [new(FieldPart, "Layout", "sun")];
 
-    private string Footnote =>
-        $"{BiomeKinds.Describe(Kinds)} Maps keep their own copy, so editing this does not change maps already built.";
-
     protected override async Task OnParametersSetAsync()
     {
         if (loaded == Entry) return;

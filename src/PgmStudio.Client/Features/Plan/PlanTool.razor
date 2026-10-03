@@ -87,7 +87,10 @@
         {
         <Sidebar>
             <div class="plan-panel-switch">
+              @if (showReference)
+              {
               <Chip Active="@(leftPanel == "settings")" OnClick='() => SetPanel("settings")'>Settings</Chip>
+              }
               <Chip Active="@(leftPanel == "validation")" OnClick='() => SetPanel("validation")'>Checks</Chip>
               @if (showBoxes)
               {
@@ -95,7 +98,7 @@
               }
               <Button Variant="icon" Icon="panel-left-close" Title="Hide panel" OnClick="ToggleSidebar" />
             </div>
-            @if (leftPanel == "settings")
+            @if (showReference && leftPanel == "settings")
             {
             <Section Title="Reference" Writes>
               <Field Label="Map">

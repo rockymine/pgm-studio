@@ -588,8 +588,11 @@ implies, `CoreCasing.Of`, and the dig depth, `CoreDig.Depth` — client twins of
 and `ObjectiveDefaults.DigDepth`, which the WASM half cannot reach, each pinned to its authority by a drift
 test (`CoreCasingDriftTests`, `CoreDigDepthDriftTests`) and shared with the Configure wizard's casing step.
 
-Two panels share the sidebar, three for an admin, switched by the chips at its head, beside the button that
-folds the sidebar away. **Settings** holds the tracing reference: a map whose top-down view is drawn as a backdrop on the canvas. The overlays — land interfaces, frontline edges, labels, and a
+Up to three panels share the sidebar, switched by the chips at its head, beside the button that folds the
+sidebar away. **Settings** holds the tracing reference: a map whose top-down view is drawn as a backdrop on the
+canvas. It is offered only on an open studio, the same gate as Configure's world folders, because on a shared
+studio the one use of tracing another author's map is copying it; elsewhere the chip is absent and the sidebar
+opens on Checks. The overlays — land interfaces, frontline edges, labels, and a
 height-map fill that tints pieces by surface — are chips on the canvas itself. **Checks** shows the evaluator's score and every fired rule, and clicking a row isolates that rule's
 evidence on the canvas. **Generator check**, an admin's panel, shows the producibility read per box, and clicking a box that nothing
 reproduces paints its nearest miss — the cells a candidate emits that the box does not, and the cells the box

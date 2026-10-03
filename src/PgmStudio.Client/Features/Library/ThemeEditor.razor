@@ -9,7 +9,7 @@
 
 <LibraryEditor Kind="LibraryKinds.Themes" Name="@draftName" NameChanged="SetName" Nests="false"
                Outline="Outline" Selected="@selected" OnSelect="Pick"
-               Footnote="@Footnote" Note="@note" Seeded="seeded">
+               Footnote="@Footnote" Note="@note">
   <Preview>
     @if (preview is null) { <p class="lib-status">Nothing to draw yet.</p> }
     else { <figure class="lib-fig lib-fig--section">@((MarkupString)preview.Section)</figure> }
