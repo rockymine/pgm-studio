@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using PgmStudio.Contracts;
 
@@ -9,13 +8,16 @@ namespace PgmStudio.Client.Components;
 /// landing on disk as a file.</summary>
 public static class MapDownload
 {
+    /// <summary>The sentence for a request that never reached the studio.</summary>
+    public const string Unreachable = "Couldn't reach the studio. Check your connection and try again.";
+
     /// <summary>Download <paramref name="slug"/>'s export. Answers null when the file was handed to the browser,
-    /// or the sentence saying why not.</summary>
-    public static async Task<string?> SaveAsync(HttpClient http, IJSRuntime js, string slug)
+    /// or the refusal saying why not.</summary>
+    public static async Task<RefusalDto?> SaveAsync(HttpClient http, IJSRuntime js, string slug)
     {
         HttpResponseMessage response;
         try { response = await http.GetAsync($"api/map/{slug}/export"); }
-        catch (HttpRequestException) { return "Couldn't reach the studio. Check your connection and try again."; }
+        catch (HttpRequestException) { return ServerRefusal.Unanswered(Unreachable); }
 
         if (!response.IsSuccessStatusCode) return await RefusalAsync(response);
 
@@ -29,16 +31,7 @@ public static class MapDownload
         return null;
     }
 
-    /// <summary>The sentence a refused request carries, or a plain one where the body is not a refusal.</summary>
-    public static async Task<string> RefusalAsync(HttpResponseMessage response)
-    {
-        try
-        {
-            var refusal = await response.Content.ReadFromJsonAsync<RefusalDto>();
-            if (refusal?.Message is { Length: > 0 } message) return message;
-            if (refusal?.Error is { Length: > 0 } label) return label;
-        }
-        catch (Exception fault) when (fault is System.Text.Json.JsonException or NotSupportedException) { }
-        return $"Couldn't download the map (HTTP {(int)response.StatusCode}). Try again.";
-    }
+    /// <summary>The refusal a refused request carries, with a plain sentence where the body is not a refusal.</summary>
+    public static Task<RefusalDto> RefusalAsync(HttpResponseMessage response) =>
+        ServerRefusal.ReadAsync(response, $"Couldn't download the map (HTTP {(int)response.StatusCode}). Try again.");
 }

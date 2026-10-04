@@ -455,10 +455,10 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     getSurfaceStep() { return surfaceStep; },
     setSurfaceStep(v) { surfaceStep = Math.max(1, Math.round(Number(v) || 2)); try { localStorage.setItem(SURFACESTEP_KEY, String(surfaceStep)); } catch { /* private mode */ } return surfaceStep; },
     highlightSubjects(idsJson) { try { canvas.pulseSubjects(JSON.parse(idsJson) || []); } catch { /* ignore */ } },
-    focusViolation(index) { canvas.focusViolation(index); },
+    focusViolations(indices) { canvas.focusViolations(indices); },
 
     // Paint one box's nearest-miss cells on the canvas (or clear with an empty string) — the feasibility panel's
-    // isolate action, the producibility twin of focusViolation.
+    // isolate action, the producibility twin of focusViolations.
     showNearestMiss(json) {
       if (!json) { canvas.setNearestMiss(null); return; }
       try { canvas.setNearestMiss(JSON.parse(json)); } catch { canvas.setNearestMiss(null); }

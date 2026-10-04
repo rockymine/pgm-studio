@@ -1,0 +1,101 @@
+@namespace PgmStudio.Client.Components
+
+@* A check's findings as an author reads them: one row per rule, grouped worst first, each opening to what it
+   means, what to do and where. The rule id opens the rule's page in a new tab. Opening a row lights all of its
+   places; pressing one place lights only that place — the caller hears which through OnLight. *@
+
+<div class="problems">
+  @if (Head is not null)
+  {
+    <div class="problems-head">@Head</div>
+  }
+  @foreach (var kind in Order)
+  {
+    var group = rows.Where(row => row.Kind == kind).ToList();
+    if (group.Count == 0 || (Only is not null && Only != kind)) continue;
+    <section class="problem-group">
+      @if (!Bare)
+      {
+        <h4 class="problem-group-label"><span>@Group(kind)</span><span>@PlacesText(group.Sum(row => row.Places.Count))</span></h4>
+      }
+      @foreach (var row in group)
+      {
+        var rule = RuleOf(row.Rule);
+        var title = Title(row, rule);
+        var isOpen = open.Contains(row.Key);
+        <details class="problem-row" open="@isOpen" @key="row.Key">
+          <summary @onclick="() => ToggleAsync(row)" @onclick:preventDefault>
+            <i data-lucide="chevron-right" class="problem-chev"></i>
+            <span class="problem-sev problem-sev--@Slug(kind)" role="img" aria-label="@One(kind)" title="@One(kind)">
+              <i data-lucide="@Glyph(kind)"></i>
+            </span>
+            <a class="problem-id" href="@($"/rules?rule={Uri.EscapeDataString(row.Rule)}")" target="_blank" rel="noopener"
+               title="@($"Open rule {row.Rule} in a new tab")" @onclick:stopPropagation>@row.Rule<i data-lucide="external-link"></i></a>
+            <span class="problem-sum" title="@title">@title</span>
+            @if (row.Reading is not null)
+            {
+              <span class="problem-val">@RuleWords.TermValue(row.Term!, row.Reading.Value)</span>
+            }
+          </summary>
+          @if (isOpen)
+          {
+            <div class="problem-body">
+              @if (row.Reading is { } reading)
+              {
+                <div class="problem-blk">
+                  <p class="problem-full">@reading.Sentence</p>
+                  @if (reading.Bar is { } bar)
+                  {
+                    <div class="problem-mini" aria-hidden="true">
+                      <span class="problem-mini-ok" style="@($"left:{Pct(bar.Left)};width:{Pct(bar.Width)}")"></span>
+                      <span class="problem-mini-mark" style="@($"left:{Pct(bar.Mark)}")"></span>
+                    </div>
+                  }
+                </div>
+              }
+              else
+              {
+                @if (title.Length > 34)
+                {
+                  <p class="problem-full">@title</p>
+                }
+                @if (rule?.Fix is { } fix)
+                {
+                  <div class="problem-blk"><span class="problem-lbl">What to do</span><p>@RuleWords.Plain(fix)</p></div>
+                }
+                else if (rule is not null && RuleWords.IsLayoutRule(rule))
+                {
+                  <div class="problem-blk">
+                    <span class="problem-lbl">Layout rule</span>
+                    <p>@(RuleWords.Backing(rule) ?? "How a good map is laid out."). The rule page explains it.</p>
+                  </div>
+                }
+              }
+              @if (row.Reading is null)
+              {
+                <div class="problem-blk">
+                  <span class="problem-lbl">@(row.Places.Count > 1 ? $"Where · {row.Places.Count}" : "Where")</span>
+                  <div class="problem-places">
+                    @foreach (var place in row.Places)
+                    {
+                      <button type="button" class="problem-place" aria-pressed="@(pressed == place ? "true" : "false")"
+                              title="@(OnLight.HasDelegate ? "Show this place" : null)" @onclick="() => PressAsync(place)">
+                        @RuleWords.Plain(place.Finding.Message)
+                        @foreach (var subject in place.Finding.SubjectIds) { <span class="problem-subj">@subject</span> }
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+              @if (Actions?.GetValueOrDefault(row.Rule) is { } actions)
+              {
+                <div class="problem-actions">@actions</div>
+              }
+            </div>
+          }
+        </details>
+      }
+    </section>
+  }
+  @Foot
+</div>

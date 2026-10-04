@@ -16,19 +16,28 @@ public static class ServerRefusal
 {
     /// <summary>The sentence for an unsuccessful response: the findings' own, the gate's label where a route
     /// answered no findings, and the status where the body is not a refusal at all.</summary>
-    public static async Task<string> SentenceAsync(HttpResponseMessage response)
+    public static async Task<string> SentenceAsync(HttpResponseMessage response) => (await ReadAsync(response)).Message;
+
+    /// <summary>The whole refusal, its <c>message</c> being the sentence <see cref="SentenceAsync"/> answers and
+    /// its findings empty where the body is not a refusal. <paramref name="fallback"/> is the sentence then.</summary>
+    public static async Task<RefusalDto> ReadAsync(HttpResponseMessage response, string? fallback = null)
     {
-        var fallback = $"The server returned an error ({(int)response.StatusCode}). Try again.";
+        fallback ??= $"The server returned an error ({(int)response.StatusCode}). Try again.";
         try
         {
             var refusal = await response.Content.ReadFromJsonAsync<RefusalDto>();
-            if (refusal is null) return fallback;
-            if (!string.IsNullOrWhiteSpace(refusal.Message)) return refusal.Message;
-            return string.IsNullOrWhiteSpace(refusal.Error) ? fallback : refusal.Error;
+            if (refusal is null) return Unanswered(fallback);
+            var sentence = !string.IsNullOrWhiteSpace(refusal.Message) ? refusal.Message
+                : !string.IsNullOrWhiteSpace(refusal.Error) ? refusal.Error : fallback;
+            return refusal with { Message = sentence, Findings = refusal.Findings ?? [] };
         }
         catch
         {
-            return fallback;
+            return Unanswered(fallback);
         }
     }
+
+    /// <summary>A refusal the client says for itself, where no gate answered: a request that never arrived or a
+    /// body that was not a refusal.</summary>
+    public static RefusalDto Unanswered(string sentence) => new("", sentence, []);
 }

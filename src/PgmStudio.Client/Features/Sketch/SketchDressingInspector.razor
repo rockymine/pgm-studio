@@ -30,9 +30,13 @@
       }
 
       @* ── why this prop is not one the pass would take ─────────────────────────────────────────── *@
-      @if (refusal is not null)
+      @if (refusal is { Findings.Count: > 0 })
       {
-        <p class="section-desc dressing-refusal">@refusal</p>
+        <ProblemList Problems="refused" Bare OpenFirst />
+      }
+      else if (refusal is not null)
+      {
+        <p class="section-desc dressing-refusal">@refusal.Message</p>
       }
 
       @* ── what it makes ───────────────────────────────────────────────────────────────────────── *@

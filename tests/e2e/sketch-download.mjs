@@ -35,12 +35,14 @@ page.on("download", (file) => { unexpected = file.suggestedFilename(); });
 await page.goto(`${BASE}/maps/${seed.sketchSlug}/sketch`, { waitUntil: "networkidle" });
 await download.waitFor({ timeout: 60000 });
 await download.click();
-const warning = page.locator(".topbar-crumb--warn");
-await warning.waitFor({ timeout: 180000 });
-const said = (await warning.textContent()) ?? "";
+const problems = page.locator(".problems-pop");
+await problems.waitFor({ timeout: 180000 });
+const button = (await page.locator(".problems-btn").first().textContent()) ?? "";
+checks.add("the tool bar says the map can't be downloaded", button.includes("Can’t download"), button.trim());
+const said = (await problems.textContent()) ?? "";
 checks.add("the refusal is the export's own sentence", said.includes("spawn"), said.trim());
 checks.add("nothing is saved", unexpected === null, unexpected ?? "");
-const configure = page.locator(".topbar a", { hasText: "Open Configure" });
+const configure = problems.locator("a", { hasText: "Open Configure" }).first();
 checks.add("it offers Configure, where the game is set up",
   (await configure.getAttribute("href"))?.endsWith(`maps/${seed.sketchSlug}/configure`) ?? false);
 clearFaults(page);   // the export's 409 is the refusal this section asked for

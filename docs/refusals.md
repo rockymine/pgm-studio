@@ -609,6 +609,18 @@ term, which refuses rather than scores). The one authored number that is not a t
 drift-pinned to them by `DressingRulesTests`, as `GO1`'s prose is pinned to its term's band by
 `RuleBandDriftTests`.
 
+**A person reads the same two answers at `/rules`.** The page lists every rule by family, in the order a map is
+made — the request, the plan, its game settings, the sketch, the built world, its decoration — one line each:
+the id, the first sentence of `means`, and the category as the action it asks for. Its rail filters by text, by
+kind (a gate's check or a layout rule), by that action and by `concerns`; the eight categories read *Fix the
+format*, *Fix a name*, *Choose which wins*, *Change the design*, *Make it playable*, and after a rule — being
+the three that are not the author's to fix — *Ask for something else*, *Try again later* and *Report it*.
+Opening a rule shows `means` and `fix`, or for a layout rule its first sentence, the full law with its tables,
+and how far `evidence` backs it; then its `concerns`, the bands its terms score against, and the rule's place
+on the reachability ladder above. `/rules?rule=PL9` opens on one rule, which is where every check list in the
+studio links a rule id to. The rules' own words are the server's; what the client adds is the action names,
+the family names, the term labels and the ladder's five questions (`RuleWords`).
+
 ## Adding one
 
 A new gate writes findings; it does not write a shape. Name it `Check`, return `Findings`, put the rule id in

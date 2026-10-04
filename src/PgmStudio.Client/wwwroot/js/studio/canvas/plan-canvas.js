@@ -131,8 +131,8 @@ export class PlanCanvas extends CanvasBase {
   // Producibility evidence (from /api/plan/feasibility): the cells by which one box's geometry misses the
   // nearest thing the emitters can build. Only ever one box's at a time — the author picks it in the panel.
   #nearestMiss = null;
-  // Which violation's evidence to isolate: -1 draws every violation (the default), an index draws only that one.
-  #focusedViolation = -1;
+  // Which violations' evidence to isolate: empty draws every violation (the default), indices draw only those.
+  #focusedViolations = [];
   // Labels off by default keeps the canvas quiet: no piece/zone id text, no gap connectors or hop numbers.
   #overlayOn = { interfaces: true, labels: false, frontline: true, violations: true };
   #heightMap = false;               // fill pieces by a surface-height ramp + show the height inside each
@@ -208,21 +208,21 @@ export class PlanCanvas extends CanvasBase {
   // dropped (a stale index would point at the wrong rule). Redraw the evidence layer + screen-space measure labels.
   setViolations(violations) {
     this.#violations = Array.isArray(violations) ? violations : [];
-    this.#focusedViolation = -1;
+    this.#focusedViolations = [];
     this.#paintWorld();
     this.#refreshOverlay();
   }
-  // Isolate one fired rule's evidence (from the Score panel): -1 restores the all-violations overlay.
-  focusViolation(index) {
-    this.#focusedViolation = Number.isInteger(index) ? index : -1;
+  // Isolate some fired rules' evidence (the Checks panel's open rows): an empty list restores the
+  // all-violations overlay.
+  focusViolations(indices) {
+    this.#focusedViolations = Array.isArray(indices) ? indices.filter(Number.isInteger) : [];
     this.#paintWorld();
     this.#refreshOverlay();
   }
-  // The violations to draw right now: the single focused one, or all when nothing is isolated.
+  // The violations to draw right now: the focused ones, or all when nothing is isolated.
   #shownViolations() {
-    if (this.#focusedViolation < 0) return this.#violations;
-    const v = this.#violations[this.#focusedViolation];
-    return v ? [v] : [];
+    if (this.#focusedViolations.length === 0) return this.#violations;
+    return this.#focusedViolations.map((index) => this.#violations[index]).filter(Boolean);
   }
   /**
    * Show one box's nearest-miss evidence, or clear it with null. `miss` is { extra, missing } — cell rects the

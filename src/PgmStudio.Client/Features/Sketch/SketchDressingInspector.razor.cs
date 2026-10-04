@@ -48,7 +48,8 @@ public partial class SketchDressingInspector
     private string kind = "";
 
     private DressingPreviewDto? preview;
-    private string? refusal;                  // why the gate would not take this prop, in its own sentence
+    private RefusalDto? refusal;              // why the gate would not take this prop, in its own findings
+    private List<Problem> refused = [];       // those findings as the list shows them
     private string? note;                     // what the last canvas operation did, or would not do
     /// <summary>The document's recipe registry, so a preview of one placement can resolve the key it names —
     /// a prop on its own has no document behind it.</summary>
@@ -389,6 +390,7 @@ public partial class SketchDressingInspector
         var answered = await Library.PropPreviewAsync(json, themeJson);
         preview = answered.Pictures;
         refusal = answered.Refusal;
+        refused = Problem.Of(refusal?.Findings ?? []);
         StateHasChanged();
     }
 

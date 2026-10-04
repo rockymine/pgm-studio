@@ -68,7 +68,7 @@ public partial class ReviewXmlStep : IDisposable
     // The flow-bar Export action: save the server export, or say why it was refused.
     private async Task DownloadAsync()
     {
-        downloadError = await MapDownload.SaveAsync(Http, JS, Wizard.Slug);
+        downloadError = (await MapDownload.SaveAsync(Http, JS, Wizard.Slug))?.Message;
         StateHasChanged();
     }
 

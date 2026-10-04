@@ -16,11 +16,13 @@ public static class TermScores
         new(term.Id, term.Kind, 0.0, new Violation(term.Id, new Finding(term.RuleId, message, Subjects: subjects), evidence));
 
     /// <summary>A soft term's distance outside its band. A nonzero distance also carries a violation (so a plan
-    /// far outside the authored envelope is legible), with optional evidence (the band drawn as a measure).</summary>
+    /// far outside the authored envelope is legible), with optional evidence (the band drawn as a measure) and,
+    /// for a term measured against one band, the value it measured and the band.</summary>
     public static TermScore Soft(
         ILayoutTerm term, double distance, string message, IReadOnlyList<string> subjects,
-        IReadOnlyList<Evidence>? evidence = null) =>
+        IReadOnlyList<Evidence>? evidence = null, double? value = null, Band? band = null) =>
         distance <= 0.0
             ? Clean(term)
-            : new(term.Id, term.Kind, distance, new Violation(term.Id, new Finding(term.RuleId, message, Subjects: subjects), evidence));
+            : new(term.Id, term.Kind, distance,
+                new Violation(term.Id, new Finding(term.RuleId, message, Subjects: subjects), evidence, value, band));
 }

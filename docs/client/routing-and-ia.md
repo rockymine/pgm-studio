@@ -37,6 +37,9 @@ shown, never name one.
 | `/library` | `LibraryTool` | the chooser — one card per library kind |
 | `/library/{kind}` | `LibraryTool` | one library's browse grid; `kind` is `styles\|themes\|roofs\|storeys\|porches\|houses` |
 | `/library/{kind}/{entry}` | `LibraryTool` | one entry's editor; `entry` is a row id or `new` |
+| `/rules` | `Rules` | every rule the studio can cite, filtered and opened one at a time; `?rule=` opens on one (`docs/refusals.md`) |
+| `/tokens` | `Tokens` | the signed-in person's API tokens |
+| `/admin/users` | `Users` | who may sign in, and with which role |
 | `/design` | `Design` | the component showcase |
 | `/not-found` | `NotFound` | 404 |
 
@@ -145,7 +148,9 @@ lifecycle position (no `map.xml` yet against has one), which is why the labels a
 **Every page carries two bars, and each answers one question.** The studio's own bar (`AppNav`) is the same
 everywhere: home, a link to each tool — Maps, Plan editor, Generator, Catalog, Library, and Users for an admin
 — lit on the page it names and every page under it (Plan editor opens `/plans/new` and is lit on every
-`/plans/…` row), and at the right the theme and the account. The tool's bar
+`/plans/…` row); after a divider the two reference pages, **Rules** (`/rules`) and **API docs** (`/api-docs`,
+which opens in a new tab, being the API's own page rather than the client's); and at the right the theme and
+the account. The tool's bar
 (`Topbar`) under it is the trail to where the page is and the tool's own state and actions. So getting to
 another tool is always one click in the top bar, and the tool's bar holds nothing that is not the tool's.
 

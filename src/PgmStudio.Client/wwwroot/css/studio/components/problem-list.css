@@ -1,0 +1,84 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   PROBLEM LIST  (ProblemList: a check's findings, one collapsible row per rule)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.problems { display: flex; flex-direction: column; gap: var(--space-5); }
+.problems-head { display: flex; flex-direction: column; gap: var(--space-2); }
+.problems-verdict { margin: 0; font-size: var(--font-sm); line-height: 1.5; color: var(--text-secondary); }
+.problems-verdict b { color: var(--color-error); font-weight: 600; }
+.problems-foot { margin: 0; font-size: var(--font-sm); color: var(--text-muted); }
+
+.problem-group { display: flex; flex-direction: column; gap: var(--space-1); }
+.problem-group-label {
+  display: flex; justify-content: space-between; gap: var(--space-2); margin: 0 0 2px;
+  font-size: var(--font-xs); font-weight: 600; color: var(--text-muted);
+}
+
+.problem-row { border: 1px solid transparent; border-radius: var(--radius-sm); }
+.problem-row[open] { background: var(--bg-base); border-color: var(--border); }
+.problem-row > summary {
+  list-style: none; display: grid; grid-template-columns: 12px 14px auto minmax(0, 1fr) auto; align-items: center; gap: 6px;
+  min-height: calc(28px * var(--ui-scale)); padding: 0 6px; border-radius: var(--radius-sm);
+  cursor: pointer; font-size: var(--font-sm);
+}
+.problem-row > summary::-webkit-details-marker { display: none; }
+.problem-row > summary:hover { background: var(--bg-selected-hover); }
+.problem-row svg.problem-chev { width: 12px; height: 12px; color: var(--text-muted); transition: transform var(--transition-fast); }
+.problem-row[open] svg.problem-chev { transform: rotate(90deg); }
+.problem-sev { display: inline-flex; }
+.problem-sev svg { width: 14px; height: 14px; }
+.problem-sev--problem { color: var(--color-error); }
+.problem-sev--left, .problem-sev--range { color: var(--color-warning); }
+.problem-sev--warning { color: var(--text-secondary); }
+.problem-id {
+  display: inline-flex; align-items: center; gap: 2px; padding: 0 5px; border-radius: var(--radius-sm);
+  background: var(--bg-selected); color: var(--accent-lighter); font-size: var(--font-xs); font-weight: 600;
+  line-height: 1.6; text-decoration: none; white-space: nowrap;
+}
+.problem-id svg { width: 10px; height: 10px; }
+.problem-id:hover { text-decoration: underline; }
+.problem-sum { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-bright); }
+.problem-val { font-size: var(--font-sm); font-weight: 700; color: var(--color-warning); font-variant-numeric: tabular-nums; }
+
+.problem-body { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-1) var(--space-2) var(--space-3) 24px; }
+.problem-blk { display: flex; flex-direction: column; gap: 2px; }
+.problem-lbl { font-size: var(--font-xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.problem-body p { margin: 0; font-size: var(--font-sm); line-height: 1.5; color: var(--text-secondary); overflow-wrap: anywhere; }
+.problem-body p.problem-full { color: var(--text-primary); }
+.problem-places { display: flex; flex-direction: column; gap: 2px; }
+.problem-place {
+  display: block; width: calc(100% + 6px); margin-left: -6px; padding: 4px 6px;
+  border: 1px solid transparent; border-radius: var(--radius-sm); background: none; text-align: left;
+  font: inherit; font-size: var(--font-sm); line-height: 1.45; color: var(--text-primary); cursor: pointer; overflow-wrap: anywhere;
+}
+.problem-place:hover { background: var(--bg-selected-hover); }
+.problem-place[aria-pressed="true"] { background: var(--bg-selected); border-color: var(--accent); }
+.problem-subj {
+  display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: var(--radius-sm);
+  border: 1px solid var(--accent); color: var(--accent-lighter); font-size: var(--font-xs);
+}
+/* A measured value against its usual band, from zero: the band green, the value a red mark. */
+.problem-mini { position: relative; height: 8px; margin: 4px 0 2px; border-radius: 3px; background: var(--bg-deep); }
+.problem-mini-ok { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: color-mix(in srgb, var(--color-success) 45%, transparent); }
+.problem-mini-mark { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1px; border-radius: 2px; background: var(--color-error); }
+.problem-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+/* A tool bar's or a canvas's door into a list: the worst kind's colour, the count beside it. */
+.problems-btn {
+  display: inline-flex; align-items: center; gap: var(--space-2); min-height: calc(28px * var(--ui-scale)); padding: 2px 10px;
+  border-radius: var(--radius-sm); border: 1px solid color-mix(in srgb, var(--color-error) 45%, var(--border));
+  background: var(--color-error-bg); color: var(--color-error); font: inherit; font-size: var(--font-base); font-weight: 600;
+  white-space: nowrap; cursor: pointer;
+}
+.problems-btn svg { width: var(--icon-sm); height: var(--icon-sm); }
+.problems-btn-n { font-weight: 400; color: var(--text-secondary); }
+.problems-btn--warn { border-color: color-mix(in srgb, var(--color-warning) 45%, var(--border)); background: var(--color-warning-bg); color: var(--color-warning); }
+.problems-pop-host { position: relative; display: inline-flex; }
+.problems-pop .section-header .action-btn--icon { padding: 2px; }
+.problems-pop {
+  position: absolute; z-index: 30; top: calc(100% + 6px); right: 0; width: min(360px, calc(100vw - 32px)); max-height: min(520px, 70vh); overflow: auto;
+  padding: var(--space-4) var(--space-4) var(--space-5); background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-float); text-align: left; white-space: normal;
+}
+/* In the canvas's layer bar: what the 3-D build left out, opening the list on that kind. */
+.canvas-problems { flex: none; min-height: calc(24px * var(--ui-scale)); padding: 0 var(--space-2); font-size: var(--font-sm); }

@@ -59,6 +59,6 @@ public abstract class SoftTerm : ILayoutTerm
         if (distance <= 0.0) return TermScores.Clean(this);
 
         var message = $"{Id} {value.Value:0.###} outside authored band [{band.Value.Lo:0.###}, {band.Value.Hi:0.###}]";
-        return TermScores.Soft(this, distance, message, Subjects(ctx), Evidence(ctx, value.Value, band.Value));
+        return TermScores.Soft(this, distance, message, Subjects(ctx), Evidence(ctx, value.Value, band.Value), value.Value, band.Value);
     }
 }

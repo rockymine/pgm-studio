@@ -1,3 +1,5 @@
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Client.Components;
 
 /// <summary>What a save did. <see cref="SaveStatus.NotSent"/> is a save that never reached the studio —
@@ -9,10 +11,14 @@ public enum SaveStatus
     Refused,
 }
 
-/// <summary>A save's status, and for a refusal the sentence an author reads.</summary>
-public readonly record struct SaveOutcome(SaveStatus Status, string? Message = null)
+/// <summary>A save's status, for a refusal the sentence an author reads, and the findings the studio answered
+/// with: a refusal's own, or the warnings a landed save carried.</summary>
+public readonly record struct SaveOutcome(SaveStatus Status, string? Message = null, IReadOnlyList<Finding>? Findings = null)
 {
     public bool Landed => Status == SaveStatus.Landed;
+
+    /// <summary>The findings, never null.</summary>
+    public IReadOnlyList<Finding> Raised => Findings ?? [];
 }
 
 /// <summary>
@@ -81,14 +87,17 @@ public sealed class DocumentSave(HttpClient http)
             if (response.IsSuccessStatusCode)
             {
                 held = response.Headers.ETag?.Tag ?? held;
-                return new(SaveStatus.Landed);
+                var warnings = ServerWarnings.Carried(response).Count == 0 ? []
+                    : (await ServerWarnings.AnsweredAsync<System.Text.Json.JsonElement>(response)).Warnings;
+                return new(SaveStatus.Landed, Findings: warnings);
             }
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict && held is not null)
             {
                 Superseded = true;
                 return new(SaveStatus.Refused, SupersededMessage);
             }
-            return new(SaveStatus.Refused, "Not saved. " + await ServerRefusal.SentenceAsync(response));
+            var refusal = await ServerRefusal.ReadAsync(response);
+            return new(SaveStatus.Refused, "Not saved. " + refusal.Message, refusal.Findings);
         }
         catch { return new(SaveStatus.Refused, Unreachable); }
         finally { gate.Release(); }

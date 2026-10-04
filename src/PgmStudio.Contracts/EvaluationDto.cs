@@ -1,4 +1,4 @@
-
+using System.Text.Json.Serialization;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Contracts;
@@ -46,9 +46,14 @@ public sealed record EvidenceDto(
 /// an evaluator's subjects exactly as it highlights a validator's.</param>
 /// <param name="Evidence">The drawable primitives the overlay paints, so a broken rule is seen rather than
 /// only read.</param>
+/// <param name="Value">What a soft term measured, where it measures one value against one band.</param>
+/// <param name="Band">The <c>[low, high]</c> band that value was held to — the term's band as
+/// <c>GET /api/rules/terms</c> lists it, widened down to the term's ideal where it has one.</param>
 public sealed record ViolationDto(
     string TermId, string Kind, double Distance, Finding Finding,
-    IReadOnlyList<EvidenceDto> Evidence);
+    IReadOnlyList<EvidenceDto> Evidence,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? Value = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double[]? Band = null);
 
 /// <summary>
 /// POST /api/plan/evaluate — the plan editor's live evaluator score + lint. <see cref="Score"/> is the summed

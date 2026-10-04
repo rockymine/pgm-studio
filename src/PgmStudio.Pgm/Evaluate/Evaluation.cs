@@ -14,9 +14,12 @@ public enum TermKind { Hard, Soft }
 /// costs nothing when absent).
 ///
 /// <para>The term id stays out of the finding on purpose. A rule is what an author broke and a term is which
-/// measurement noticed, and a scoring function may well grow a second term citing one rule.</para></summary>
+/// measurement noticed, and a scoring function may well grow a second term citing one rule.</para>
+///
+/// <para>A soft term measured against one band also carries the <see cref="Value"/> it measured and the
+/// <see cref="Band"/> it was held to, so a reader draws the reading rather than parsing it from the message.</para></summary>
 public sealed record Violation(
-    string TermId, Finding Finding, IReadOnlyList<Evidence>? Evidence = null)
+    string TermId, Finding Finding, IReadOnlyList<Evidence>? Evidence = null, double? Value = null, Band? Band = null)
 {
     public string RuleId => Finding.Rule;
     public string Message => Finding.Message;

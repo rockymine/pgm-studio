@@ -342,7 +342,7 @@ public partial class PlanBuildDrawer
     private async Task DownloadWorld()
     {
         if (draftSlug is null) return;
-        draftError = await MapDownload.SaveAsync(Http, JS, draftSlug);
+        draftError = (await MapDownload.SaveAsync(Http, JS, draftSlug))?.Message;
         StateHasChanged();
     }
 
