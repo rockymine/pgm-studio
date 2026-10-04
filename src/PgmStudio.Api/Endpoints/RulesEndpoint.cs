@@ -67,7 +67,7 @@ public sealed class RulesEndpoint : EndpointWithoutRequest<List<RuleDto>>
     [
         .. RuleCatalog.Read(Declaring)
             .Select(rule => new RuleDto(
-                rule.Rule, rule.Family, rule.Owner, rule.Means, rule.Fix, rule.Evidence,
+                rule.Rule, rule.Family, rule.Owner, rule.Means, rule.Fix,
                 rule.Category, rule.Concerns is { Count: > 0 } about ? about : null)),
     ];
 

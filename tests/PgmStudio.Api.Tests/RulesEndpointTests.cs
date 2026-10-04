@@ -18,8 +18,7 @@ namespace PgmStudio.Api.Tests;
 /// <para>The other way is a rule added with no sentence beside it. An id with an empty description is worse
 /// than an absent one, because it looks answered.</para>
 ///
-/// <para>A layout rule is a constant like any other, in <c>LayoutRules</c>, and differs only in carrying how it
-/// is known.</para>
+/// <para>A layout rule is a constant like any other, in <c>LayoutRules</c>.</para>
 /// </summary>
 [NotInParallel("api-db")]
 public sealed class RulesEndpointTests
@@ -32,7 +31,7 @@ public sealed class RulesEndpointTests
     private static readonly Type Layout = typeof(PgmStudio.Domain.LayoutRules);
 
     private sealed record Row(
-        string Rule, string Family, string Owner, string Means, string? Fix, string? Evidence,
+        string Rule, string Family, string Owner, string Means, string? Fix,
         string? Category, List<string>? Concerns);
 
     /// <summary>The gate rules that carry no category, named rather than counted. Each states how a room
@@ -50,8 +49,8 @@ public sealed class RulesEndpointTests
             new JsonSerializerOptions(JsonSerializerDefaults.Web)))!;
     }
 
-    /// <summary>The whole point in one call: an id a reader met in a finding, answered with what it means,
-    /// what to do and, for a layout rule, how it is known.</summary>
+    /// <summary>The whole point in one call: an id a reader met in a finding, answered with what it means and
+    /// what to do.</summary>
     [Test]
     public async Task One_rule_can_be_asked_about_by_id()
     {
@@ -62,7 +61,6 @@ public sealed class RulesEndpointTests
         await Assert.That(wl2.Owner).StartsWith($"{Layout.FullName}.");
         await Assert.That(wl2.Means).Contains("spawn");
         await Assert.That(wl2.Fix).Contains("`pieces`");
-        await Assert.That(wl2.Evidence).IsEqualTo("corpus");
     }
 
     /// <summary>A document field is marked in a fix and nowhere else: a meaning says what is wrong, and only
@@ -86,7 +84,6 @@ public sealed class RulesEndpointTests
         await Assert.That(pl1.Owner).IsEqualTo("PgmStudio.Pgm.Plan.PlanRules.NoLand");
         await Assert.That(pl1.Means).Contains("no land");
         await Assert.That(pl1.Fix).IsNotNull();
-        await Assert.That(pl1.Evidence).IsNull();
     }
 
     /// <summary>A number a rule's text states is the number the code checks: HP2 tells an author the least
@@ -178,20 +175,6 @@ public sealed class RulesEndpointTests
             .ToList();
 
         await Assert.That(doubled).IsEmpty();
-    }
-
-    /// <summary>How a rule is known is what makes it a layout rule: every <c>LayoutRules</c> constant
-    /// carries it, and no other rule does.</summary>
-    [Test]
-    public async Task Only_a_layout_rule_says_how_it_is_known()
-    {
-        var rules = await RulesAsync();
-        var layout = rules.Where(rule => rule.Owner.StartsWith($"{Layout.FullName}.", StringComparison.Ordinal)).ToList();
-
-        await Assert.That(layout).IsNotEmpty();
-        await Assert.That(layout.Where(rule => rule.Evidence is null).Select(rule => rule.Rule)).IsEmpty();
-        await Assert.That(rules.Except(layout).Where(rule => rule.Evidence is not null).Select(rule => rule.Rule))
-            .IsEmpty();
     }
 
     /// <summary>The category is the axis a caller branches on: one word answers every rule they would act on

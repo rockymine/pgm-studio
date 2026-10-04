@@ -149,13 +149,6 @@
                   <p class="rules-prose">@((MarkupString)RuleWords.Inline(fix))</p>
                 </div>
               }
-              @if (RuleWords.Backing(rule) is { } backing)
-              {
-                <div class="rules-d-sec">
-                  <h3 class="section-title">How it is known</h3>
-                  <p class="rules-prose">@backing</p>
-                </div>
-              }
 
               @if (rule.Concerns is { Count: > 0 } about)
               {

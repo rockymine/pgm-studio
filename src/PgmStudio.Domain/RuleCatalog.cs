@@ -10,14 +10,12 @@ namespace PgmStudio.Domain;
 /// keys on; <see cref="Family"/> groups it by what it is about rather than by which gate asks; <see
 /// cref="Owner"/> is the constant that declares it. <see cref="Means"/> and <see cref="Fix"/> are the rule's own
 /// two texts: what is wrong, and what to do about it.
-/// <para><b>Evidence</b> — For a layout rule, what backs it, from the <c>[Evidence]</c> attribute. Null for a
-/// gate rule, which is code rather than a claim about how a map plays.</para>
 /// <para><b>Category</b> — What a caller does about a finding citing this rule, from the <c>[Rule]</c> attribute
 /// beside the constant. Null for a rule nothing raises.</para>
 /// <para><b>Concerns</b> — What the rule is about — one word or several, since a rule concerns a combination a
 /// family prefix cannot carry.</para></summary>
 public sealed record RuleDoc(
-    string Rule, string Family, string Owner, string Means, string? Fix = null, RuleEvidence? Evidence = null,
+    string Rule, string Family, string Owner, string Means, string? Fix = null,
     RuleCategory? Category = null, IReadOnlyList<RuleConcern>? Concerns = null)
 {
     /// <summary>What the rule is about, never null.</summary>
@@ -29,8 +27,8 @@ public sealed record RuleDoc(
 /// A rule's meaning is the <c>&lt;summary&gt;</c> of the docstring beside its own <c>const</c> and its fix is
 /// the <c>&lt;remarks&gt;</c>, read through the XML documentation file the compiler emits, so the text a
 /// caller is shown is the text in the source. Its category and concerns are the <see cref="RuleAttribute"/>
-/// beside it, and a layout rule's backing is the <see cref="EvidenceAttribute"/>. The layout rules are
-/// <see cref="LayoutRules"/>; every other family is declared beside the gate that raises it.
+/// beside it. The layout rules are <see cref="LayoutRules"/>; every other family is declared beside the gate
+/// that raises it.
 /// </summary>
 public static class RuleCatalog
 {
@@ -79,7 +77,6 @@ public static class RuleCatalog
                 yield return new RuleDoc(
                     id, FamilyOf(id), $"{type.FullName!.Replace('+', '.')}.{field.Name}",
                     summary ?? "", remarks,
-                    Evidence: field.GetCustomAttribute<EvidenceAttribute>()?.Evidence,
                     Category: classification?.Category, Concerns: classification?.Concerns);
             }
     }

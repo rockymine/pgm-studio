@@ -19,9 +19,6 @@ namespace PgmStudio.Contracts;
 /// each site that raises one.</para>
 /// </summary>
 /// <param name="Fix">What to do about a finding citing the rule.</param>
-/// <param name="Evidence">What backs a layout rule — the author's ruling, a measurement on community maps, an
-/// expert's ruling, an open question or a guess. Null for a gate rule, which is code rather than a claim about
-/// how a map plays.</param>
 /// <param name="Category">What a caller does about a finding citing this rule — the closed set an agent
 /// branches on without knowing the id. Absent for a rule nothing raises: there is no caller to branch and
 /// nothing to do.</param>
@@ -35,6 +32,6 @@ namespace PgmStudio.Contracts;
 /// constant.</param>
 /// <param name="Means">What the rule refuses, in one sentence.</param>
 public sealed record RuleDto(
-    string Rule, string Family, string Owner, string Means, string? Fix = null, RuleEvidence? Evidence = null,
+    string Rule, string Family, string Owner, string Means, string? Fix = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] RuleCategory? Category = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<RuleConcern>? Concerns = null);

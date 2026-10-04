@@ -7,7 +7,7 @@ namespace PgmStudio.Client.Components;
 
 /// <summary>
 /// The words the client puts on a rule: what a category asks of the author, a family's name and its place in
-/// the order a map is made, a subject's label, how a layout rule is known, and a rule's text reduced to one
+/// the order a map is made, a subject's label, and a rule's text reduced to one
 /// line or rendered inline. The server serves ids and categories; these are how an author reads them.
 /// </summary>
 public static partial class RuleWords
@@ -111,24 +111,15 @@ public static partial class RuleWords
         _ => concern.ToString().ToLowerInvariant(),
     };
 
-    /// <summary>Whether a rule is a layout rule — a claim about how a map plays, carrying how it is known —
+    /// <summary>Whether a rule is a layout rule, a claim about how a map plays declared in <c>LayoutRules</c>,
     /// rather than a check the code raises.</summary>
-    public static bool IsLayoutRule(RuleDto rule) => rule.Evidence is not null;
+    public static bool IsLayoutRule(RuleDto rule) => rule.Owner.StartsWith(LayoutOwner, StringComparison.Ordinal);
+
+    private const string LayoutOwner = "PgmStudio.Domain.LayoutRules.";
 
     /// <summary>The word a list shows beside a rule: its action, or what kind of rule it is when it has none.</summary>
     public static string KindWord(RuleDto rule) =>
         IsLayoutRule(rule) ? "Layout rule" : rule.Category is { } category ? ActionOf(category).Label : "Derivation";
-
-    /// <summary>How a layout rule is known, in words; null for a rule that is not one.</summary>
-    public static string? Backing(RuleDto rule) => rule.Evidence switch
-    {
-        RuleEvidence.Author => "The author’s ruling",
-        RuleEvidence.Corpus => "Measured on community maps",
-        RuleEvidence.Expert => "Expert ruling",
-        RuleEvidence.Open => "Open question",
-        RuleEvidence.Guess => "Best guess",
-        _ => null,
-    };
 
     /// <summary>A rule's text without its markdown, as plain words.</summary>
     public static string Plain(string text) =>
