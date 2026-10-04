@@ -61,7 +61,7 @@ builder.Services.SwaggerDocument(o =>
             "The studio's whole surface, rooted at /api. Every read is open; a write needs someone on the "
             + "studio's whitelist, and answers 401 or 403 where the caller is not (docs/access.md). A refusal answers "
             + "{error, message, findings[]} whichever route raised it — GET /api/rules explains any rule id "
-            + "a finding carries. docs/tools/flow.md is the map over the four levels a map is described at.";
+            + "a finding carries, and GET /api/glossary defines every word the rules use. docs/tools/flow.md is the map over the four levels a map is described at.";
     };
     // Group by the first path segment under the prefix — the resource the route is about: `map`, `plan`,
     // `terrain`, `room-styles`. The segment after it is a route parameter across most of the surface and

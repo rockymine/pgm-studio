@@ -623,7 +623,9 @@ A new gate writes findings; it does not write a shape. Name it `Check`, return `
 the `*Rules` class beside the rule that fires it — never as a literal at the throw site, which is how `OB20`
 spent a release as a bare string and `OB19` with no id at all, and **never as a second `const` aliasing one
 that exists**, which is what `ObjectivePlacement.Rule` and `DressingScope.Rule` were until the catalogue listed
-their ids twice. Give it a **`<summary>` saying what it refuses and a `<remarks>` saying what to do about it** —
+their ids twice. Give it a **`<summary>` saying what it refuses and a `<remarks>` saying what to do about it**, in the
+glossary's words (`GET /api/glossary`): a rule never explains a term, and a word it needs that is not there
+joins the glossary first —
 those two are what `/api/rules` answers with, so a rule written with only the first is listed with no fix and
 `RulesEndpointTests` fails. Give it a **`[Rule]` attribute** beside the constant with its category and the one
 to several things it is about; a rule added without one is listed with neither and fails there too. A rule that

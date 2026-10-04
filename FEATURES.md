@@ -1006,10 +1006,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 
 ## Backend / API (B)
 - **Every served rule is a constant (`RP111`).** The 43 layout rules a finding can cite are `LayoutRules` in
-  `PgmStudio.Domain`, each with a meaning and a fix in the approved format, a category, what it is about and
-  an `[Evidence]` attribute saying how it is known; the 64 sites that raise one name the constant, so a typo
-  is a compile error. `docs/generator/rules.md` is no longer embedded or parsed and stays as the argument
-  behind them, and `/rules` shows a layout rule like any other, with how it is known beside it.
+  `PgmStudio.Domain`, each with a category and what it is about; the 64 sites that raise one name the constant,
+  so a typo is a compile error. `docs/generator/rules.md` is no longer embedded or parsed and stays as the
+  argument behind them, and `/rules` shows a layout rule like any other.
+- **Every word the rules use is defined once (`RP99`).** `Glossary` in `PgmStudio.Vocabulary` holds 201 terms,
+  each with a one-line definition, the other names a reader meets it under and the terms it leans on, signed
+  off by the author; `GET /api/glossary` serves it, and `?term=board` answers `layout`.
 - **A finding blames the caller only for the caller's mistakes (`RP110`).** The plan reader refuses a list
   stated as `null`, a marker whose `at` is not two numbers and two pieces under one id with the field named,
   and the plan routes no longer answer a crash as `RQ1`. A soft term's finding is a complaint; G5's term and

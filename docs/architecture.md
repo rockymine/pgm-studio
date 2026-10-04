@@ -351,6 +351,12 @@ interoperability with clients outside the deployment and there are none, while t
 for is already reachable from the `rule` each finding carries. `docs/design-decisions.md` § *The HTTP
 surface* carries the reasoning.
 
+**The words a rule uses are defined once, beside it.** `Glossary` in `PgmStudio.Vocabulary` holds every
+studio and mapmaking word the rules, the findings and the screens use, each with a one-line definition and the
+other names a reader may meet it under, and `GET /api/glossary` serves it. So a rule states its problem in
+those words and never explains one, and a caller that meets an older name in a field or a document asks for
+it and gets the term it now goes by.
+
 ## The measurement is next door
 
 `pgm-studio-mapgen` is where agents drive the studio, and its tooling is a reading of how drivable the studio

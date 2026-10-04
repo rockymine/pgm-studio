@@ -620,8 +620,8 @@ once rather than one per round trip. `docs/refusals.md` has the envelope.
 One document outside this folder carries the rest: `docs/generator/model.md` is the canonical model of
 layout generation and governs on any disagreement about it. What the system can be **asked** for is not a
 document at all — `/api/openapi/v1.json` names every route with its body and its failure codes,
-`GET /api/rules` names every refusal with its fix, and `GET /api/map/{slug}/state` names the moves one map
-has open.
+`GET /api/rules` names every refusal with its fix, `GET /api/glossary` defines every word those use, and
+`GET /api/map/{slug}/state` names the moves one map has open.
 
 `docs/gameplay/approaches.md` answers the question neither of those can: what the ground around an objective
 does to a match, and therefore what a board should be composed *for*. It is kept separate because every claim

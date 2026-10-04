@@ -517,13 +517,13 @@ text-size setting have shipped; what remains is what a sentence cannot fix — a
 up, controls that behave unlike every other tool, and the look itself. `docs/client/writing-for-the-ui.md`
 is the standard the copy is held to.
 
-- [ ] **RP99 — A searchable help page, and the terms defined where they appear.** A `/help` route rendering the
-  glossary in `docs/client/writing-for-the-ui.md` (hub, front line, mid, approach, wool room, box, palette,
-  terraform…) with a search box, plus a `Term` component that underlines a word, shows its one-line definition on
-  hover and links to its entry. The definitions live once, in a `Glossary` table in `Client`, and the doc's
-  table is generated from or checked against it. Then the tool pages lose the explanatory paragraphs that are
-  standing in for help today. *Evidence: the reviewer's last note asks for "a searchable and indexable
-  documentation page" over descriptions scattered per page.* `docs/client/`.
+- [~] **RP99 — A searchable help page, and the terms defined where they appear.** A `/help` route rendering
+  `GET /api/glossary` with a search box, plus a `Term` component that underlines a word, shows its one-line
+  definition on hover and links to its entry, reading `Glossary` in `PgmStudio.Vocabulary`. The guide entries
+  in `docs/client/writing-for-the-ui.md` join the glossary as a longer field when the page needs them. Then
+  the tool pages lose the explanatory paragraphs that are standing in for help today. *Evidence: the
+  reviewer's last note asks for "a searchable and indexable documentation page" over descriptions scattered
+  per page.* `docs/client/`.
 
 - [ ] **RP100 — The map list says who made each map, and filters by them.** `/maps` rows carry no author;
   add the first author's head and name to each row (`PlayerHead`, already used by `AuthorsEditor`) and an
