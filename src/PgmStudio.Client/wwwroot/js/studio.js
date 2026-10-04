@@ -66,6 +66,21 @@ window.studio = {
   // Smooth-scroll an in-page section into view by id. Used by the /authoring concept page's left
   // nav: plain `<a href="#id">` anchors get intercepted by Blazor's router (they resolve to the app
   // root), so the nav calls this with preventDefault instead.
+  // Bring a list's selected row into view: its group's head at the top where the row shows with it, the row
+  // centred otherwise. A row already in view is left where it is.
+  revealSelected(list) {
+    if (!list) return;
+    const row = list.querySelector('[aria-selected="true"]');
+    if (!row) { list.scrollTop = 0; return; }
+    const base = list.getBoundingClientRect().top - list.scrollTop;
+    const top = row.getBoundingClientRect().top - base;
+    const groupTop = row.parentElement.getBoundingClientRect().top - base;
+    if (top >= list.scrollTop && top + row.offsetHeight <= list.scrollTop + list.clientHeight) return;
+    list.scrollTop = top + row.offsetHeight - groupTop < list.clientHeight * 0.8
+      ? groupTop
+      : Math.max(0, top - list.clientHeight / 2 + row.offsetHeight / 2);
+  },
+
   scrollToId(id) {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });

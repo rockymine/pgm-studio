@@ -24,5 +24,7 @@ builder.Services.AddScoped<PgmStudio.Client.Components.TerrainLibraryClient>();
 builder.Services.AddScoped<PgmStudio.Client.Components.StudioAccess>();
 // Loaded once and shared: the material schema is a build constant, so every editor asks the same answer.
 builder.Services.AddScoped<PgmStudio.Client.Components.MaterialSchema>();
+// The rules and scored terms the server can cite, asked once and shared by the rules page and every check list.
+builder.Services.AddScoped<PgmStudio.Client.Components.RuleBook>();
 
 await builder.Build().RunAsync();

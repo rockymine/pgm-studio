@@ -77,7 +77,7 @@ them), `ListRow` (the list row with its swatch, label, tag, go-arrow and a `Trai
 the row carries), and `DetailHeader` (an inspector head: icon, label, trailing badges).
 
 **Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + the two bars + body + footer);
-`AppNav` is the studio's own bar on every page — home, a link per tool, `TextSizeMenu`, the theme and
+`AppNav` is the studio's own bar on every page — home, a link per tool, the two reference pages (Rules and API docs), `TextSizeMenu`, the theme and
 `AccountMenu`, who is signed in; `Topbar` is the tool's bar under it — the home link, a `Crumbs` slot composed from `Crumb`, a *View
 only* tag on a read-only page, and the tool's actions; `AppFooter` closes every page with the keyboard
 shortcuts, the design reference and the repository; `NavRail` and `NavButton` are the
@@ -95,6 +95,16 @@ the note that says why it is disabled, so the plan and the sketch share one.
 `MaterialEditor`, `BlockPicker`, `SlotSelect` (filling a slot with one block or a saved pattern — one list
 offering nothing, *A single block* or the patterns grouped by kind, the block picker under it once a block is
 chosen, and the bound pattern's own picture beside the control) and `HouseViews`.
+
+**Checks** — how a finding is shown wherever a tool lists them. `ProblemList` takes `Problem`s — a `Finding` with
+what it is to the author (`Problem`, `OutOfRange`, `LeftOut`, `Warning`) — and draws one collapsible row per rule,
+grouped worst first: a severity glyph, the rule id as a link to `/rules?rule=ID` in a new tab, and the rule's
+first sentence. An open row says what to do (the rule's `fix`, read through the shared `RuleBook`) and lists
+every place it fired; a term out of range shows its value against its band. Opening a row lights all its places
+and pressing one lights that one, which the host hears through `OnLight` and draws however it draws. A finding's
+kind is the caller's to set: `Problem.Of(finding)` reads its severity, and `Problem.Of(violation)` reads a plan
+violation's `kind`, since a soft term's finding arrives as a refusal. `RuleWords` holds the words the client
+puts on a rule — the action names, the family names in pipeline order, the term labels.
 
 **Editor** — feature components that are not vocabulary but have more than one consumer: `SmartSuggestion`,
 which the Configure tool and the design showcase both mount. The world canvas and the bodies drawn beside it —

@@ -10,7 +10,7 @@ namespace PgmStudio.Client.Components;
 /// building whose wings are no building is a refusal an author has to read — <c>HP1</c>–<c>HP3</c> for the
 /// prop's own shape, <c>HJ1</c>–<c>HJ5</c> for how its wings meet — and rendering it as a missing picture
 /// makes a refused building look like a slow one.</summary>
-public sealed record PropPreview(DressingPreviewDto? Pictures, string? Refusal);
+public sealed record PropPreview(DressingPreviewDto? Pictures, RefusalDto? Refusal);
 
 /// <summary>
 /// The one place the client knows the terrain-paint HTTP surface: the block palette, the two preview endpoints,
@@ -72,7 +72,7 @@ public sealed class TerrainLibraryClient(HttpClient http)
                 "api/terrain/prop-preview", new PropPreviewRequest(propJson, themeJson));
             if (response.IsSuccessStatusCode)
                 return new PropPreview(await response.Content.ReadFromJsonAsync<DressingPreviewDto>(), null);
-            return new PropPreview(null, await ServerRefusal.SentenceAsync(response));
+            return new PropPreview(null, await ServerRefusal.ReadAsync(response));
         }
         catch { return new PropPreview(null, null); }
     }

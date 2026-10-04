@@ -1,0 +1,136 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   RULES PAGE  (/rules: filter rail · rule list · the selected rule)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.workspace.rules {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) minmax(0, calc(540px * var(--ui-scale)));
+}
+
+.rules-rail {
+  background: var(--bg-panel); border-right: 1px solid var(--border); overflow: auto; scrollbar-width: thin;
+  padding: var(--space-5) var(--space-4); display: flex; flex-direction: column; gap: var(--space-6);
+}
+.rules-rail-group { display: flex; flex-direction: column; gap: var(--space-2); }
+.rules-count { font-size: var(--font-sm); color: var(--text-muted); }
+.rules-n { font-size: var(--font-xs); color: var(--text-muted); font-variant-numeric: tabular-nums; font-weight: 400; }
+
+/* One choice of three, the pressed one filled. */
+.rules-seg { display: flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-base); }
+.rules-seg button {
+  flex: 1 1 auto; min-width: 0; height: calc(28px * var(--ui-scale)); padding: 0 var(--space-1);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1);
+  border: 0; border-left: 1px solid var(--border); background: none; color: var(--text-secondary);
+  font: inherit; font-size: var(--font-sm); white-space: nowrap; cursor: pointer;
+}
+.rules-seg button:first-child { border-left: 0; }
+.rules-seg button[aria-pressed="true"] { background: var(--bg-selected); color: var(--accent-lighter); font-weight: 600; }
+.rules-seg button[aria-pressed="true"] .rules-n { color: inherit; }
+
+.rules-cats { display: flex; flex-direction: column; gap: var(--space-1); }
+.rules-cat {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+  min-height: calc(28px * var(--ui-scale)); padding: 0 var(--space-2);
+  border: 1px solid transparent; border-radius: var(--radius-sm); background: none;
+  color: var(--text-primary); font: inherit; font-size: var(--font-sm); text-align: left; cursor: pointer;
+}
+.rules-cat:hover:not(:disabled) { background: var(--bg-selected-hover); }
+.rules-cat[aria-pressed="true"] { background: var(--bg-selected); border-color: var(--accent); color: var(--text-strong); font-weight: 600; }
+.rules-cat:disabled { opacity: .45; cursor: default; }
+.rules-cat-divider { height: 1px; background: var(--border); margin: var(--space-1) var(--space-2); }
+.rules-more-body { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-2); }
+
+/* A details summary that reads as a link with a turning chevron. */
+.rules-disclosure {
+  display: flex; align-items: center; gap: var(--space-1); list-style: none; cursor: pointer; user-select: none;
+  min-height: calc(28px * var(--ui-scale)); font-size: var(--font-sm); color: var(--accent-light);
+}
+.rules-disclosure::-webkit-details-marker { display: none; }
+.rules-disclosure svg { width: var(--icon-sm); height: var(--icon-sm); transition: transform var(--transition-fast); }
+details[open] > .rules-disclosure svg { transform: rotate(90deg); }
+
+/* The list: one line per rule, under its family's sticky head. */
+.rules-list { overflow: auto; scrollbar-width: thin; padding: 0 var(--space-4) var(--space-6); container-type: inline-size; }
+.rules-family { margin-bottom: var(--space-5); }
+.rules-family-head {
+  position: sticky; top: 0; z-index: 1; display: flex; align-items: flex-end; gap: var(--space-2);
+  height: calc(44px * var(--ui-scale)); padding: 0 var(--space-2) var(--space-2); margin-bottom: var(--space-1);
+  background: var(--bg-base); border-bottom: 1px solid var(--border); font-size: var(--font-sm);
+}
+.rules-family-head b { font-weight: 600; color: var(--text-bright); }
+.rules-family-head code { font-size: var(--font-xs); color: var(--text-muted); }
+.rules-family-head .rules-n { margin-left: auto; font-size: var(--font-sm); }
+.rules-row {
+  display: grid; grid-template-columns: 9ch minmax(0, 1fr) calc(10.5rem * var(--ui-scale)); align-items: center; gap: var(--space-3);
+  width: 100%; height: var(--control-height); padding: 0 var(--space-2);
+  border: 0; border-radius: var(--radius-sm); background: none; color: inherit; font: inherit; font-size: var(--font-base);
+  text-align: left; cursor: pointer;
+}
+.rules-row:hover { background: var(--bg-selected-hover); }
+.rules-row[aria-selected="true"] { background: var(--bg-selected); box-shadow: inset 0 0 0 1px var(--accent); }
+.rules-row-id { font-size: var(--font-sm); font-weight: 700; color: var(--accent-lighter); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rules-row-sum { min-width: 0; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rules-row[aria-selected="true"] .rules-row-sum { color: var(--text-strong); }
+.rules-row-act { min-width: 0; font-size: var(--font-sm); color: var(--text-muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The action word earns its column only where the sentence keeps about 45 characters, and says nothing when
+   every row shows the same one. */
+.rules-list--category .rules-row { grid-template-columns: 9ch minmax(0, 1fr); }
+.rules-list--category .rules-row-act { display: none; }
+@container (max-width: 680px) {
+  .rules-row { grid-template-columns: 9ch minmax(0, 1fr); }
+  .rules-row-act { display: none; }
+}
+.rules-empty { padding: var(--space-6) var(--space-2); font-size: var(--font-base); color: var(--text-muted); }
+
+/* The selected rule. */
+.rules-detail {
+  background: var(--bg-panel); border-left: 1px solid var(--border); overflow: auto; scrollbar-width: thin;
+  padding: var(--space-5) var(--space-5) var(--space-6);
+}
+.rules-d { display: flex; flex-direction: column; gap: var(--space-6); max-width: 66ch; }
+.rules-d-head { display: flex; flex-direction: column; gap: var(--space-2); }
+.rules-d-title { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
+.rules-d-title b { font-size: var(--font-xl); color: var(--text-strong); }
+.rules-d-title span { font-size: var(--font-base); color: var(--text-secondary); }
+.rules-d-act { display: flex; flex-direction: column; gap: 2px; font-size: var(--font-base); }
+.rules-d-act b { color: var(--text-strong); font-weight: 600; }
+.rules-d-act span { font-size: var(--font-sm); color: var(--text-secondary); }
+.rules-d-sec { display: flex; flex-direction: column; gap: var(--space-1); }
+.rules-d-more { display: flex; flex-direction: column; gap: var(--space-5); padding-top: var(--space-3); }
+.rules-prose { margin: 0; font-size: var(--font-base); line-height: 1.55; color: var(--text-primary); max-width: 65ch; overflow-wrap: anywhere; }
+.rules-prose b { color: var(--text-strong); }
+.rules-prose code { font-size: .92em; }
+.rules-prose p { margin: 0; }
+.rules-prose p + p, .rules-prose table + p { margin-top: var(--space-3); }
+.rules-prose table { border-collapse: collapse; margin: var(--space-3) 0; font-size: var(--font-sm); }
+.rules-prose th, .rules-prose td { border-bottom: 1px solid var(--border); padding: var(--space-1) var(--space-3) var(--space-1) 0; text-align: left; vertical-align: top; }
+.rules-muted { color: var(--text-muted); }
+.rules-law { margin-top: var(--space-2); }
+.rules-law > .rules-prose { margin-top: var(--space-2); padding: var(--space-3) var(--space-4); border-left: 2px solid var(--border); }
+.rules-tags { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.rules-tag { font-size: var(--font-xs); padding: 2px 7px; border-radius: var(--radius-sm); border: 1px solid var(--border); color: var(--text-secondary); background: var(--bg-base); }
+.rules-terms { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--font-sm); color: var(--text-secondary); }
+.rules-terms b { color: var(--text-primary); font-weight: 600; }
+.rules-ladder { display: flex; flex-direction: column; }
+.rules-ladder > div {
+  display: grid; grid-template-columns: 9ch minmax(0, 1fr); gap: var(--space-3); align-items: center;
+  min-height: calc(28px * var(--ui-scale)); padding: 0 var(--space-2); border-radius: var(--radius-sm); font-size: var(--font-sm);
+}
+.rules-ladder > .rules-ladder--me { background: var(--bg-selected); }
+.rules-ladder code { font-weight: 700; color: var(--accent-lighter); font-size: var(--font-sm); }
+.rules-ladder span { color: var(--text-secondary); }
+.rules-api { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); font-size: var(--font-sm); }
+.rules-api code { font-size: var(--font-sm); }
+.rules-owner { margin: 0; font-size: var(--font-sm); color: var(--text-secondary); overflow-wrap: anywhere; }
+
+/* Narrower: the rule reads under the list; on a phone, everything stacks. */
+@media (max-width: 1100px) {
+  .workspace.rules { grid-template-columns: var(--sidebar-width) minmax(0, 1fr); grid-template-rows: minmax(320px, 60vh) auto; overflow: auto; }
+  .rules-detail { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--border); overflow: visible; }
+}
+@media (max-width: 700px) {
+  .workspace.rules { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(320px, 60vh) auto; }
+  .rules-rail { border-right: 0; border-bottom: 1px solid var(--border); overflow: visible; }
+  .rules-list { padding: 0 var(--space-2) var(--space-4); }
+  .rules-detail { padding: var(--space-5) var(--space-4); }
+}

@@ -58,7 +58,8 @@ checks.add("the tab's save states the revision it read", saves.length > 0 && sav
   JSON.stringify(saves));
 checks.add("and is refused 409", saves.length > 0 && saves.every((save) => save.status === 409),
   JSON.stringify(saves));
-const warning = (await page.locator(".topbar-crumb--warn").textContent().catch(() => "")) ?? "";
+await page.locator(".problems-btn", { hasText: "Can’t save" }).click().catch(() => {});
+const warning = (await page.locator(".problems-pop .problems-verdict").textContent().catch(() => "")) ?? "";
 checks.add("the topbar says the board was saved from somewhere else",
   warning.includes("saved from somewhere else"), warning);
 checks.add("and the stored board is the one stored from elsewhere",

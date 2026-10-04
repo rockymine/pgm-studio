@@ -202,10 +202,9 @@ public partial class PlanTool
     // The live evaluator feed (score + fired rules), pushed from the bridge's /api/plan/evaluate poll. Null when
     // the plan is malformed (the evaluate endpoint 400s) or before the first response.
     private EvaluationDto? evaluation;
-    // The violation whose evidence is isolated on the canvas (index into the current feed's Violations), or null
-    // for the all-violations overlay. Cleared whenever a new feed arrives — a stale index would isolate the wrong
-    // rule (the canvas resets its own focus in lockstep from the same response).
-    private int? selectedViolation;
+    // The feed as the Checks panel lists it: each violation at its index in the feed, so a lit row names the
+    // evidence the canvas isolates, then the lint after them.
+    private List<Problem> checks = [];
 
     // The live producibility feed ("could the composer have produced this?"), pushed from the bridge's
     // /api/plan/feasibility poll. Null when the plan is malformed or before the first response.
@@ -533,12 +532,36 @@ public partial class PlanTool
         if (handle is not null) await handle.InvokeVoidAsync("setHeightMap", heightMap);
     }
 
-    // Click a violation row to isolate its evidence on the canvas; click it again to restore the all-violations
-    // overlay. -1 tells the canvas "show all".
-    private async Task SelectViolation(int index)
+    // The Checks panel's lit findings: their evidence isolated on the canvas (none restores the all-violations
+    // overlay), and one pressed place's subjects pulsed.
+    private async Task LightChecks(IReadOnlyList<Problem> lit)
     {
-        selectedViolation = selectedViolation == index ? null : index;
-        if (handle is not null) await handle.InvokeVoidAsync("focusViolation", selectedViolation ?? -1);
+        if (handle is null || evaluation is null) return;
+        var violations = evaluation.Violations.Count;
+        await handle.InvokeVoidAsync("focusViolations", lit.Where(p => p.Index < violations).Select(p => p.Index).ToArray());
+        if (lit is [{ Finding.SubjectIds.Count: > 0 } one])
+            await handle.InvokeVoidAsync("highlightSubjects", JsonSerializer.Serialize(one.Finding.SubjectIds));
+    }
+
+    private int CheckProblems => checks.Where(p => p.Kind == ProblemKind.Problem).Select(p => p.Finding.Rule).Distinct().Count();
+
+    // One line over the Checks list: how many rules fired of each kind, and over how many places the problems are.
+    private string CheckVerdict
+    {
+        get
+        {
+            int Rules(ProblemKind kind) => checks.Where(p => p.Kind == kind).Select(p => (p.Finding.Rule, p.Term)).Distinct().Count();
+            static string Of(int count, string one, string many) => count == 1 ? $"1 {one}" : $"{count} {many}";
+            var places = checks.Count(p => p.Kind == ProblemKind.Problem);
+            var said = new List<string>
+            {
+                CheckProblems == 0 ? "No problems" : $"{Of(CheckProblems, "problem", "problems")} in {Of(places, "place", "places")}",
+            };
+            if (Rules(ProblemKind.OutOfRange) is > 0 and var range) said.Add($"{range} out of range");
+            if (Rules(ProblemKind.LeftOut) is > 0 and var left) said.Add($"{left} left out");
+            if (Rules(ProblemKind.Warning) is > 0 and var warnings) said.Add(Of(warnings, "warning", "warnings"));
+            return string.Join(", ", said) + ".";
+        }
     }
 
     private void SyncOverlays(string json)
@@ -825,7 +848,11 @@ public partial class PlanTool
     public void OnEvaluation(string json)
     {
         evaluation = string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<EvaluationDto>(json, Web);
-        selectedViolation = null;   // a fresh feed — the canvas drops its focus too, so the two stay in step
+        checks = evaluation is null ? [] :
+        [
+            .. evaluation.Violations.Select((violation, index) => Problem.Of(violation, index)),
+            .. Problem.Of(evaluation.Lint ?? [], evaluation.Violations.Count),
+        ];
         StateHasChanged();
     }
 

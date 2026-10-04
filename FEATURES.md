@@ -19,6 +19,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   region geometry — all parity-verified against the Python reference. (M5, A1)
 
 ## App shell & routing
+- **The rules have a page, and the studio bar links it (`RP108`).** `/rules` lists every rule `GET /api/rules`
+  answers by family in pipeline order, filtered by text, kind, the action it asks for and what it is about, and
+  opens one to its meaning, its fix or its law, its terms' bands and where it is defined; `?rule=ID` opens on
+  one. The studio bar carries Rules and API docs after a divider, API docs opening `/api-docs` in a new tab.
 - **A deploy reaches a browser whole (`RP102`).** The hand-written CSS and JS and `index.html` are sent with
   `Cache-Control: no-cache` in every environment, so a browser revalidates each one rather than keeping it for a
   window guessed from `Last-Modified`: a deploy no longer lands as new markup over old stylesheets, or a new
@@ -169,6 +173,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **A check's findings read the same everywhere (`C100`).** `ProblemList` draws one collapsible row per rule,
+  grouped as Problems, Out of range, Left out and Warnings, the rule id linking to its page in a new tab; an
+  open row says what to do and where, and lights its places through `OnLight`. `POST /api/plan/evaluate` carries
+  a soft term's measured `value` and `band`, so a range is drawn rather than parsed out of a sentence.
 - **The maps table opens a map from three fixed slots (`C99`).** *Open in* holds Plan · Sketch · Configure in
   the same place on every row: a layer the map holds links into its tool, the one the row opens is outlined with
   the stage's dot, and a layer it lacks is an empty dashed slot. The Stage column is gone; the slots say it.
@@ -178,6 +186,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **The landing offers the map the reader last changed (`C96`).** `GET /api/maps` carries `youWroteAt`, read
   off the change log for the caller's own browser writes, and the landing opens on *Continue where you left
   off* with that map, straight into the tool its row opens.
+- **Checks lists the plan's findings by rule (`TN34`).** The Checks panel is a `ProblemList` over the
+  evaluation, its lint included: opening a rule isolates the evidence of every place it fired, pressing a place
+  isolates that one, the badge counts problems and the score stays under the list.
 - **The plan sidebar switches its panels with tabs (`TN33`).** Settings · Checks · Generator are the flow bar's
   underlined steps (`.panel-tabs`), not filter chips.
 - **Rows, fields and bars line up across the studio (`C98`).** A single-line field and every control in a row
@@ -8690,6 +8701,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`TS139`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **What stops a sketch is one button (`TS166`).** *Can't download* or *Can't save* in the tool bar opens the
+  refusal's findings, the warnings a landed save carried and what the 3-D build left out as a `ProblemList`,
+  *Open Configure* riding on the export's own rules; the 3-D preview's *N left out* opens it on that kind, and
+  Decoration shows a refused prop as an open row.
 - **A note's status is a word, and its row previews the thread (`TS165`).** The notes overview drops the status
   colours: every pin is one colour, the status is a muted word before the last message, and a row's foot gives
   the note's pin and how many messages the thread holds, the way a chat app previews a thread.

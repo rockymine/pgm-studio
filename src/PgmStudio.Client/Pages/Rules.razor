@@ -1,0 +1,240 @@
+@page "/rules"
+@layout StudioLayout
+
+<PageTitle>Rules · PGM Studio</PageTitle>
+
+@* Every rule the studio can cite, read the way an author meets one: filtered by what it asks of them, listed
+   in the order a map is made, and opened to what it means and what to do. A check's rule id links here as
+   /rules?rule=ID. *@
+
+<StudioShell>
+  <Bar>
+    <Topbar>
+      <Crumbs><Crumb Sep="false" Dim>Rules</Crumb></Crumbs>
+    </Topbar>
+  </Bar>
+  <ChildContent>
+    <Workspace Class="rules">
+      @if (rules is null)
+      {
+        <div class="list-empty">Loading…</div>
+      }
+      else if (rules.Count == 0)
+      {
+        <div class="list-empty">The studio did not answer with its rules. Reload to ask again.</div>
+      }
+      else
+      {
+        <aside class="rules-rail" aria-label="Filter rules">
+          <div class="rules-rail-group">
+            <input class="field-input" type="search" placeholder="Search id or meaning" aria-label="Search rules"
+                   @bind="query" @bind:event="oninput" @bind:after="Reveal" />
+            <span class="rules-count" role="status">@CountText</span>
+          </div>
+          <div class="rules-rail-group">
+            <h3 class="section-title">Kind</h3>
+            <div class="rules-seg" role="group" aria-label="Kind">
+              @foreach (var (value, label, says) in Kinds)
+              {
+                <button type="button" aria-pressed="@(kind == value ? "true" : "false")" title="@says"
+                        @onclick="() => PickKind(value)">
+                  @label <span class="rules-n">@Count(each => Passes(each, Facet.Kind) && IsKind(each, value))</span>
+                </button>
+              }
+            </div>
+          </div>
+          <div class="rules-rail-group">
+            <h3 class="section-title">What it asks of you</h3>
+            <div class="rules-cats">
+              <button type="button" class="rules-cat" aria-pressed="@(category is null ? "true" : "false")"
+                      @onclick="() => PickCategory(null)">
+                <span>Any</span><span class="rules-n">@Count(each => Passes(each, Facet.Category))</span>
+              </button>
+              @foreach (var action in RuleWords.Actions)
+              {
+                @if (!action.AuthorFixes && action == RuleWords.Actions.First(each => !each.AuthorFixes))
+                {
+                  <div class="rules-cat-divider" role="separator"></div>
+                }
+                var n = Count(each => each.Category == action.Category && Passes(each, Facet.Category));
+                <button type="button" class="rules-cat" title="@action.Says"
+                        aria-pressed="@(category == action.Category ? "true" : "false")"
+                        disabled="@(n == 0 && category != action.Category)"
+                        @onclick="() => PickCategory(action.Category)">
+                  <span>@action.Label</span><span class="rules-n">@n</span>
+                </button>
+              }
+            </div>
+          </div>
+          <details class="rules-rail-group rules-more">
+            <summary class="rules-disclosure">
+              <i data-lucide="chevron-right"></i>@(concerns.Count == 0 ? "More filters" : $"More filters · {concerns.Count} on")
+            </summary>
+            <div class="rules-more-body">
+              <h3 class="section-title" title="A rule shows when it is about every subject you pick">About</h3>
+              <div class="filter-group-options">
+                @foreach (var concern in AllConcerns)
+                {
+                  var on = concerns.Contains(concern);
+                  var n = Count(each => Passes(each, Facet.Concerns) && Concerns(each).Contains(concern)
+                                        && concerns.All(Concerns(each).Contains));
+                  <button type="button" class="filter-chip@(on ? " filter-chip--active" : null)"
+                          aria-pressed="@(on ? "true" : "false")" disabled="@(n == 0 && !on)"
+                          @onclick="() => ToggleConcern(concern)">
+                    @RuleWords.ConcernLabel(concern)<span class="filter-chip-n">@n</span>
+                  </button>
+                }
+              </div>
+            </div>
+          </details>
+        </aside>
+
+        <div class="rules-list@(category is null ? null : " rules-list--category")" role="listbox" aria-label="Rules"
+             @ref="list">
+          @if (Shown.Count == 0)
+          {
+            <p class="rules-empty">No rule matches these filters.</p>
+          }
+          @foreach (var family in Shown)
+          {
+            <div class="rules-family">
+              <div class="rules-family-head">
+                <b>@RuleWords.FamilyName(family.Key)</b><code>@family.Key</code><span class="rules-n">@family.Count()</span>
+              </div>
+              @foreach (var entry in family)
+              {
+                var summary = RuleWords.FirstSentence(entry.Means);
+                <button type="button" role="option" class="rules-row" aria-selected="@(entry.Rule == selected ? "true" : "false")"
+                        title="@($"{entry.Rule}: {summary}")" @onclick="() => Select(entry.Rule)">
+                  <span class="rules-row-id">@entry.Rule</span>
+                  <span class="rules-row-sum">@summary</span>
+                  <span class="rules-row-act">@RuleWords.KindWord(entry)</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <aside class="rules-detail" aria-label="The selected rule">
+          @if (Selected is { } rule)
+          {
+            <div class="rules-d" @key="rule.Rule">
+              <div class="rules-d-head">
+                <div class="rules-d-title"><b>@rule.Rule</b><span>@RuleWords.FamilyName(rule.Family)</span></div>
+                <div class="rules-d-act">
+                  @if (rule.Category is { } ruleCategory)
+                  {
+                    var action = RuleWords.ActionOf(ruleCategory);
+                    <b>@action.Label</b><span>@action.Says</span>
+                  }
+                  else if (RuleWords.IsLayoutRule(rule))
+                  {
+                    <b>Layout rule</b><span>How a good map is laid out. The studio measures plans against it.</span>
+                  }
+                  else
+                  {
+                    <b>Derivation</b><span>States how something is worked out. No check stops a map on it.</span>
+                  }
+                </div>
+              </div>
+
+              @if (RuleWords.IsLayoutRule(rule))
+              {
+                <div class="rules-d-sec">
+                  <h3 class="section-title">What it says</h3>
+                  <p class="rules-prose">@RuleWords.FirstSentence(rule.Means)</p>
+                  <details class="rules-law">
+                    <summary class="rules-disclosure"><i data-lucide="chevron-right"></i>Read the full rule</summary>
+                    <div class="rules-prose">
+                      @((MarkupString)RuleWords.Law(rule.Means))
+                      <p class="rules-muted">From <code>@rule.Owner</code></p>
+                    </div>
+                  </details>
+                </div>
+                @if (RuleWords.Backing(rule) is { } backing)
+                {
+                  <div class="rules-d-sec">
+                    <h3 class="section-title">How it is known</h3>
+                    <p class="rules-prose">@backing</p>
+                  </div>
+                }
+              }
+              else
+              {
+                <div class="rules-d-sec">
+                  <h3 class="section-title">What it means</h3>
+                  <p class="rules-prose">@((MarkupString)RuleWords.Inline(rule.Means))</p>
+                </div>
+                @if (rule.Fix is { } fix)
+                {
+                  <div class="rules-d-sec">
+                    <h3 class="section-title">What to do</h3>
+                    <p class="rules-prose">@((MarkupString)RuleWords.Inline(fix))</p>
+                  </div>
+                }
+              }
+
+              @if (rule.Concerns is { Count: > 0 } about)
+              {
+                <div class="rules-d-sec">
+                  <h3 class="section-title">About</h3>
+                  <div class="rules-tags">
+                    @foreach (var concern in about) { <span class="rules-tag">@RuleWords.ConcernLabel(concern)</span> }
+                  </div>
+                </div>
+              }
+
+              @if (MeasuredAs(rule) is { Count: > 0 } measured)
+              {
+                <div class="rules-d-sec">
+                  <h3 class="section-title">Measured as</h3>
+                  <div class="rules-terms">
+                    @foreach (var term in measured)
+                    {
+                      <span><b>@RuleWords.TermLabel(term.Term)</b>, usually @RuleWords.BandText(term) (@RuleWords.BandSource(term))</span>
+                    }
+                  </div>
+                </div>
+              }
+
+              <details class="rules-d-sec">
+                <summary class="rules-disclosure"><i data-lucide="chevron-right"></i>Details</summary>
+                <div class="rules-d-more">
+                  @if (RuleWords.Reachability.Any(step => step.Rule == rule.Rule))
+                  {
+                    <div class="rules-d-sec">
+                      <h3 class="section-title">The same question at every stage</h3>
+                      <div class="rules-ladder">
+                        @foreach (var step in RuleWords.Reachability)
+                        {
+                          <div class="@(step.Rule == rule.Rule ? "rules-ladder--me" : null)">
+                            <code>@step.Rule</code><span>@step.Asks</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                  <div class="rules-d-sec">
+                    <h3 class="section-title">Defined in</h3>
+                    <p class="rules-owner"><code>@rule.Owner</code></p>
+                  </div>
+                  <div class="rules-d-sec">
+                    <h3 class="section-title">For agents</h3>
+                    <div class="rules-api">
+                      <code>GET /api/rules?rule=@rule.Rule</code>
+                      <a class="action-btn" href="/api-docs" target="_blank" rel="noopener"
+                         title="Opens the API docs in a new tab">API docs <i data-lucide="external-link"></i></a>
+                      <button type="button" class="action-btn" @onclick="() => CopyAsync(rule)">
+                        <i data-lucide="copy"></i>@(copied ? "Copied" : "Copy JSON")
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </details>
+            </div>
+          }
+        </aside>
+      }
+    </Workspace>
+  </ChildContent>
+</StudioShell>

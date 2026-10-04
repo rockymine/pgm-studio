@@ -399,7 +399,8 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
     /// the shape every gate answers in, and the flattened drawable evidence.</summary>
     private static ViolationDto Wire(Violation violation, string kind, double distance) =>
         new(violation.TermId, kind, distance, violation.Finding,
-            (violation.Evidence ?? []).Select(MapEvidence).ToList());
+            (violation.Evidence ?? []).Select(MapEvidence).ToList(),
+            violation.Value, violation.Band is { } band ? [band.Lo, band.Hi] : null);
 
     private static EvidenceDto MapEvidence(Evidence e) => e switch
     {

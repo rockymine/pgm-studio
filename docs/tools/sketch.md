@@ -41,9 +41,14 @@ continuously — every change schedules a debounced write 800 ms later, and Ctrl
 once. The finished map leaves by **Download map** in the top bar, on every phase: it flushes the layout, builds
 the world the first time (the finish below, `POST …/sketch/finish`, which rasterizes the layout and moves the
 map to `stage=configure`), and saves the export — the world ZIP with its `map.xml`. A board built from a plan
-carries the plan's game settings, so its export needs nothing from Configure. Where the export is refused, the
-bar shows its sentence and offers **Open Configure**, which is where a hand-drawn board's teams, spawns and
-objectives are stated. Building the export costs the server a world, so **Download map** needs an account on
+carries the plan's game settings, so its export needs nothing from Configure. What stops the map, and what the
+build left out of it, sits behind **one button** in the bar — *Can't download* or *Can't save* with the number
+of rules beside it, or *Left out* and *Warnings* where nothing stops it — which opens the findings as a list of
+rules (`ProblemList`, `docs/client/ui-conventions.md`): the download's refusal, the save's refusal or the
+warnings a landed save carried, and the declines the 3-D build raised. A refused download opens it. Where the
+export refused, each of its rules carries **Open Configure**, which is where a hand-drawn board's teams, spawns
+and objectives are stated. In the 3-D preview the declines are a *N left out* button in the layer bar, opening
+the same list on that kind. Building the export costs the server a world, so **Download map** needs an account on
 the whitelist and is greyed for anyone else (`docs/access.md`). The phases run in order, Draw's *Next* going on
 to Terraform. A draft that was never drawn on is discarded on the way out. A caller who may not change the map
 sees every phase read-only: the canvas pans, selects and measures and changes nothing, the fields that write
@@ -1245,8 +1250,9 @@ an answer; the server stays the authority, and claims what it stamps grown a blo
 ground, and two that do not touch at all, since a building is one shell under one roof and a corner is not an
 edge to build a joint on — and every
 other verdict comes back from `POST /api/terrain/prop-preview`, which answers `HP1`–`HP3` for the prop's own
-shape and `HJ1`–`HJ5` for how its wings meet. The inspector renders the gate's own sentence, so an author who
-joins two ranges lying side by side is told they meet in a gutter and to turn one across the other. A join is
+shape and `HJ1`–`HJ5` for how its wings meet. The inspector shows the refusal as an open row of rules, each
+with its own sentence, so an author who joins two ranges lying side by side is told they meet in a gutter and
+to turn one across the other. A join is
 one undo step, so a refused one is taken back with `mod+z` or by pressing the chord again.
 
 **A building prop states one or more touching rectangles, and what each one is.** Its `wings` field is a list

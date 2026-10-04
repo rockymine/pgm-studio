@@ -96,6 +96,39 @@ public sealed class PlanEvaluateEndpointTests
         await Assert.That(evidence.EnumerateArray().Any(e => e.GetProperty("kind").GetString() == "measure")).IsTrue();
     }
 
+    [Test]
+    public async Task A_soft_term_carries_the_value_it_measured_and_the_band_it_was_held_to()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        const string plan = """
+        { "plan":2, "globals":{"cell":5,"symmetry":"none"},
+          "pieces":[ {"id":"spawn","role":"spawn","rect":[0,0,2,2]},
+                     {"id":"wool","role":"wool-room","rect":[2,0,2,2]} ],
+          "placements":{
+            "spawns":[ {"piece":"spawn","at":[5,5],"facing":"front"} ],
+            "wools":[ {"piece":"wool","at":[5,5]} ],
+            "iron":[] } }
+        """;
+        var resp = await client.PostAsync("/api/plan/evaluate", new StringContent(plan, Encoding.UTF8, "application/json"));
+        var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
+
+        var measured = body.GetProperty("violations").EnumerateArray()
+            .Where(v => v.GetProperty("kind").GetString() == "soft" && v.TryGetProperty("value", out _))
+            .ToList();
+        await Assert.That(measured.Count).IsGreaterThan(0).Because(body.ToString());
+        foreach (var violation in measured)
+        {
+            var value = violation.GetProperty("value").GetDouble();
+            var band = violation.GetProperty("band").EnumerateArray().Select(e => e.GetDouble()).ToList();
+            await Assert.That(band.Count).IsEqualTo(2);
+            await Assert.That(value < band[0] || value > band[1]).IsTrue().Because(violation.ToString());
+        }
+        // a hard fire has no band to be outside of, so it carries neither
+        foreach (var hard in body.GetProperty("violations").EnumerateArray().Where(v => v.GetProperty("kind").GetString() == "hard"))
+            await Assert.That(hard.TryGetProperty("band", out _)).IsFalse();
+    }
+
     /// <summary>A plan with no geometry is answered rather than refused — a 400 blanked the editor's score
     /// panel on every fresh plan — but the answer was <c>score 0, valid: true</c>, which is the shape of a
     /// perfect plan, about the emptiest document there is. <c>/plan/compile</c> refused the same body with

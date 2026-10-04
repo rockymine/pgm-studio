@@ -18,9 +18,33 @@
       </Crumbs>
       <Right>
         @if (InfoActive && infoSave is not null) { <span class="topbar-save-status">@infoSave</span> }
-        @if (saveError is not null) { <span class="topbar-crumb topbar-crumb--warn" title="@saveError">@saveError</span> }
-        @if (downloadError is not null) { <span class="topbar-crumb topbar-crumb--warn" title="@downloadError">@downloadError</span> }
-        @if (exportRefused) { <Button Href="@($"maps/{Slug}/configure")" Icon="settings-2">Open Configure</Button> }
+        @if (ProblemsShown)
+        {
+          <span class="problems-pop-host">
+            <button type="button" class="problems-btn@(Stopped ? null : " problems-btn--warn")" aria-expanded="@(popOpen ? "true" : "false")"
+                    title="What stops this map, and what the build left out" @onclick="() => TogglePop(null)">
+              <Icon Name="@(Stopped ? "circle-x" : "triangle-alert")" />@ProblemsLabel<span class="problems-btn-n">@ProblemRules</span>
+            </button>
+            @if (popOpen)
+            {
+              <div class="problems-pop" role="dialog" aria-label="This map's problems">
+                <ProblemList Problems="problems" Only="popOnly" OpenFirst Actions="ConfigureActions">
+                  <Head>
+                    <div class="section-header section-header--ruled">
+                      <h3 class="section-title">This map</h3>
+                      <Button Variant="icon" Icon="x" Title="Close" OnClick="ClosePop" />
+                    </div>
+                    <p class="problems-verdict">@if (StoppedWord is { } stopped) { <b>@stopped</b>@(" ") }@ProblemsVerdict</p>
+                    @if (exportRefused && downloadRefusal is { Findings.Count: 0 })
+                    {
+                      <Button Href="@($"maps/{Slug}/configure")" Icon="settings-2">Open Configure</Button>
+                    }
+                  </Head>
+                </ProblemList>
+              </div>
+            }
+          </span>
+        }
         <span class="topbar-crumb topbar-crumb--dim">@groupLabel</span>
         <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" Writes OnClick="Undo" />
         <Button Variant="icon" Icon="redo-2" Title="Redo" Disabled="@(!canRedo)" Writes OnClick="Redo" />
@@ -187,11 +211,12 @@
             @* The picture is the world the export builds, so where the drawing and the build disagree the
                screen shows the build and says nothing about the difference. Name the shapes; the finding's
                own sentence, on hover, says what happened to which. *@
-            @if (iso.ThreeD && IsoContested.Count > 0)
+            @if (iso.ThreeD && isoNotBuilt.Count > 0)
             {
-              <span class="canvas-note canvas-note--warn" title="@IsoContestedWhy">
-                Built differently from the drawing: @string.Join(", ", IsoContested)
-              </span>
+              <button type="button" class="problems-btn problems-btn--warn canvas-problems" title="@IsoContestedWhy"
+                      @onclick="() => TogglePop(ProblemKind.LeftOut)">
+                <i data-lucide="triangle-alert"></i>@isoNotBuilt.Count left out
+              </button>
             }
             @if (editNote is not null)
             {

@@ -142,6 +142,9 @@
 }
 .app-nav-link:hover { color: var(--nav-text-strong); background: var(--nav-hover); }
 .app-nav-link--active { color: var(--nav-text-strong); background: var(--nav-active); }
+/* The tools end here; the reference pages follow, after a rule. */
+.app-nav-divider { flex: none; width: 1px; height: 20px; margin: 0 var(--space-2); background: var(--nav-border); }
+.app-nav-ext { margin-left: 3px; font-size: var(--font-xs); color: var(--nav-text-muted); }
 .app-nav-right { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
 .app-nav .theme-toggle { color: var(--nav-text); }
 .app-nav .theme-toggle:hover { color: var(--nav-text-strong); background: var(--nav-hover); }

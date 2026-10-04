@@ -852,11 +852,6 @@ public partial class SketchTool
     /// </summary>
     private IReadOnlyList<Finding> isoNotBuilt = [];
 
-    /// <summary>The shapes those findings name, deduplicated — one shape contested by two others is one
-    /// shape, listed once.</summary>
-    private IReadOnlyList<string> IsoContested =>
-        [.. isoNotBuilt.SelectMany(finding => finding.Subjects ?? []).Distinct(StringComparer.Ordinal)];
-
     /// <summary>Every finding behind the note, in full, for the tooltip: the rule and its own sentence.</summary>
     private string IsoContestedWhy => string.Join("\n\n", isoNotBuilt.Select(f => $"{f.Rule}: {f.Message}"));
 
@@ -871,6 +866,7 @@ public partial class SketchTool
     {
         var raised = JsonSerializer.Deserialize<List<Finding>>(json, Wire) ?? [];
         isoNotBuilt = [.. raised.Where(finding => finding.Severity == Severity.Decline)];
+        Recheck();
         StateHasChanged();
     }
 
@@ -940,6 +936,9 @@ public partial class SketchTool
 
     /// <summary>What the last save did, for the topbar to say. Null while every save has landed.</summary>
     private string? saveError;
+    /// <summary>What the studio answered the last save with: the refusal's findings, or the warnings a landed
+    /// save carried.</summary>
+    private IReadOnlyList<Finding> saveFindings = [];
     /// <summary>Where Info's identity save stands, shown in the tool bar while Info is up.</summary>
     private string? infoSave;
 
@@ -961,7 +960,7 @@ public partial class SketchTool
     private async Task SaveAsync(CancellationToken token)
     {
         if (handle is not { } bridge || writeClosed) return;
-        var was = saveError;
+        var was = (saveError, saveFindings);
         var carrying = 0;
         var outcome = await Document.PutAsync($"api/map/{Slug}/sketch",
             async () =>
@@ -972,16 +971,19 @@ public partial class SketchTool
             needed: () => edits != savedEdits, token);
         switch (outcome.Status)
         {
-            case SaveStatus.Landed: savedEdits = carrying; saveError = null; break;
-            case SaveStatus.Refused: saveError = outcome.Message; break;
+            case SaveStatus.Landed: savedEdits = carrying; saveError = null; saveFindings = outcome.Raised; break;
+            case SaveStatus.Refused: saveError = outcome.Message; saveFindings = outcome.Raised; break;
         }
-        if (saveError != was) await InvokeAsync(StateHasChanged);
+        if ((saveError, saveFindings) == was) return;
+        Recheck();
+        await InvokeAsync(StateHasChanged);
     }
 
     // ── Download: the finished map, from whichever phase the author is in ──
 
     private bool downloading;
-    private string? downloadError;
+    /// <summary>Why the last download did not happen, or null where it did or none was asked.</summary>
+    private RefusalDto? downloadRefusal;
     /// <summary>Whether the export itself refused the map, which Configure is where to answer.</summary>
     private bool exportRefused;
 
@@ -992,8 +994,9 @@ public partial class SketchTool
     {
         if (downloading) return;
         downloading = true;
-        downloadError = null;
+        downloadRefusal = null;
         exportRefused = false;
+        Recheck();
         StateHasChanged();
         try
         {
@@ -1001,22 +1004,24 @@ public partial class SketchTool
             {
                 saveCts?.Cancel();
                 await SaveAsync(CancellationToken.None);
-                if (Document.Superseded) { downloadError = saveError; return; }
-                if (await BuildWorldIfMissingAsync() is { } refused) { downloadError = refused; return; }
+                if (Document.Superseded) { downloadRefusal = ServerRefusal.Unanswered(saveError ?? DocumentSave.SupersededMessage); return; }
+                if (await BuildWorldIfMissingAsync() is { } refused) { downloadRefusal = refused; return; }
             }
-            downloadError = await MapDownload.SaveAsync(Http, JS, Slug);
-            exportRefused = downloadError is not null;
+            downloadRefusal = await MapDownload.SaveAsync(Http, JS, Slug);
+            exportRefused = downloadRefusal is not null;
         }
         finally
         {
             downloading = false;
+            if (downloadRefusal is not null) popOpen = true;
+            Recheck();
             StateHasChanged();
         }
     }
 
-    /// <summary>Build the map's world from the drawing when it has none. Answers the sentence the build was
+    /// <summary>Build the map's world from the drawing when it has none. Answers the refusal the build was
     /// refused with, or null when the map has a world.</summary>
-    private async Task<string?> BuildWorldIfMissingAsync()
+    private async Task<RefusalDto?> BuildWorldIfMissingAsync()
     {
         try
         {
@@ -1025,8 +1030,74 @@ public partial class SketchTool
             using var built = await Http.PostAsync($"api/map/{Slug}/sketch/finish", null);
             return built.IsSuccessStatusCode ? null : await MapDownload.RefusalAsync(built);
         }
-        catch (HttpRequestException) { return "Couldn't reach the studio. Check your connection and try again."; }
+        catch (HttpRequestException) { return ServerRefusal.Unanswered(MapDownload.Unreachable); }
     }
+
+    // ── Problems: what stops the map and what the build left out, behind one tool-bar button ──
+
+    /// <summary>Everything the studio last said about this map, as the list shows it: the download's refusal,
+    /// the save's findings, then what the 3-D build left out.</summary>
+    private List<Problem> problems = [];
+    private bool popOpen;
+    /// <summary>The one kind the list shows, when the canvas's "left out" button opened it.</summary>
+    private ProblemKind? popOnly;
+
+    private void Recheck() =>
+        problems = Problem.Of([.. downloadRefusal?.Findings ?? [], .. saveFindings, .. isoNotBuilt]);
+
+    /// <summary>Whether something stops the map: a save or a download refused.</summary>
+    private bool Stopped => saveError is not null || downloadRefusal is not null;
+
+    private bool ProblemsShown => Stopped || problems.Count > 0;
+
+    /// <summary>The rules the list has rows for, which is the count the button carries.</summary>
+    private int ProblemRules => problems.Select(p => (p.Kind, p.Finding.Rule)).Distinct().Count();
+
+    private string? StoppedWord => downloadRefusal is not null ? "Can’t download." : saveError is not null ? "Can’t save." : null;
+
+    private string ProblemsLabel => StoppedWord?.TrimEnd('.')
+        ?? (problems.Any(p => p.Kind == ProblemKind.LeftOut) ? "Left out" : "Warnings");
+
+    /// <summary>The line under the list's heading: the refusal's own sentence where it named no finding,
+    /// else how many of each kind.</summary>
+    private string ProblemsVerdict
+    {
+        get
+        {
+            var refusal = downloadRefusal ?? (saveError is not null && saveFindings.Count == 0 ? ServerRefusal.Unanswered(saveError) : null);
+            if (refusal is { Findings.Count: 0 }) return refusal.Message;
+            static string Of(int count, string one, string many) => count == 1 ? $"1 {one}" : $"{count} {many}";
+            var said = new List<string>();
+            if (problems.Count(p => p.Kind == ProblemKind.Problem) is > 0 and var stopping) said.Add(Of(stopping, "problem", "problems"));
+            if (problems.Count(p => p.Kind == ProblemKind.LeftOut) is > 0 and var left)
+                said.Add($"{Of(left, "thing", "things")} left out of the world");
+            if (problems.Count(p => p.Kind == ProblemKind.Warning) is > 0 and var warnings) said.Add(Of(warnings, "warning", "warnings"));
+            return string.Join(", ", said) + ".";
+        }
+    }
+
+    /// <summary>Open Configure on each rule the export refused with, Configure being where those are answered.</summary>
+    private IReadOnlyDictionary<string, RenderFragment>? ConfigureActions =>
+        exportRefused && downloadRefusal is { Findings.Count: > 0 } refusal
+            ? refusal.Findings.Select(finding => finding.Rule).Distinct().ToDictionary(rule => rule, _ => OpenConfigure)
+            : null;
+
+    private RenderFragment OpenConfigure => builder =>
+    {
+        builder.OpenComponent<Button>(0);
+        builder.AddAttribute(1, nameof(Button.Href), $"maps/{Slug}/configure");
+        builder.AddAttribute(2, nameof(Button.Icon), "settings-2");
+        builder.AddAttribute(3, nameof(Button.ChildContent), (RenderFragment)(content => content.AddContent(0, "Open Configure")));
+        builder.CloseComponent();
+    };
+
+    private void TogglePop(ProblemKind? only)
+    {
+        popOpen = !popOpen || popOnly != only;
+        popOnly = only;
+    }
+
+    private void ClosePop() => popOpen = false;
 
     public async ValueTask DisposeAsync()
     {

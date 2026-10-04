@@ -217,34 +217,30 @@
               <Actions>
                 @if (evaluation is not null)
                 {
-                  <Badge Class="@(evaluation.Valid ? "badge--success" : "badge--error")" title="Problems found">@evaluation.Violations.Count</Badge>
+                  <Badge Class="@(CheckProblems > 0 ? "badge--error" : "badge--success")"
+                         title="@(CheckProblems == 1 ? "1 problem" : $"{CheckProblems} problems")">@CheckProblems</Badge>
                 }
               </Actions>
               <ChildContent>
                 @if (evaluation is null)
                 {
-                  <p class="section-desc">Checks the plan against the layout rules. Click a problem to show it on the canvas.</p>
+                  <p class="section-desc">Checks the plan against the layout rules. Open a problem to show it on the canvas.</p>
                 }
-                else if (evaluation.Violations.Count == 0)
+                else if (checks.Count == 0)
                 {
                   <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> No problems found</div>
+                  <p class="problems-foot">Score @evaluation.Score.ToString("0.#"), the generator’s ranking; lower is better.</p>
                 }
                 else
                 {
-                  <p class="plan-readout" title="0 is best">Score @evaluation.Score.ToString("0.##") · lower is better</p>
-                  <div class="plan-lint-list">
-                    @for (var i = 0; i < evaluation.Violations.Count; i++)
-                    {
-                      var idx = i;
-                      var v = evaluation.Violations[i];
-                      <button class="plan-lint-row @(selectedViolation == idx ? "plan-lint-row--active" : null)" @onclick="() => SelectViolation(idx)" title="Show on the canvas">
-                        <span class="plan-lint-dot @(v.Kind == "hard" ? "plan-lint-dot--error" : "plan-lint-dot--lint")"></span>
-                        <span class="plan-lint-chip">@v.Finding.Rule</span>
-                        <span class="plan-lint-msg">@v.Finding.Message</span>
-                        @if (v.Kind == "soft") { <span class="list-tag">@v.Distance.ToString("0.#")</span> }
-                      </button>
-                    }
-                  </div>
+                  <ProblemList Problems="checks" OnLight="LightChecks">
+                    <Head>
+                      <p class="problems-verdict">@CheckVerdict</p>
+                    </Head>
+                    <Foot>
+                      <p class="problems-foot">Score @evaluation.Score.ToString("0.#"), the generator’s ranking; lower is better.</p>
+                    </Foot>
+                  </ProblemList>
                 }
               </ChildContent>
             </Section>
