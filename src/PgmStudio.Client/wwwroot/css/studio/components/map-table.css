@@ -1,0 +1,89 @@
+/* The Maps page: its filters in the sidebar, one table of every map beside them. */
+
+.map-filters { border-right: 1px solid var(--border); }
+.map-filters .field-input { margin-bottom: var(--space-2); }
+
+/* The Author filter: a group heading with its Select all, then one ticked row per author. */
+.map-author-group {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: var(--space-2) 0 var(--space-1);
+  font-size: var(--font-xs);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+}
+.map-author-all {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--accent-light);
+  cursor: pointer;
+}
+.map-author-all:hover { text-decoration: underline; }
+.map-author-options { flex-direction: column; }
+.map-author-options .filter-chip { width: 100%; gap: var(--space-2); }
+.map-author-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.map-search-row { display: flex; gap: var(--space-2); align-items: center; margin-block: var(--space-3); }
+.map-search { flex: 1 1 260px; min-width: 0; }
+.map-search-row select { width: auto; flex: none; }
+
+.map-table-box { overflow-x: auto; }
+.map-table { width: 100%; min-width: 760px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.map-table th {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+}
+.map-table td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); vertical-align: middle; }
+.map-table-row { cursor: pointer; }
+.map-table-row:hover { background: var(--bg-selected-hover); }
+
+/* A map leads with the name a reader knows it by; the slug is the address, quieter under it. */
+.map-row-name { font-weight: 600; color: var(--text-bright); text-decoration: none; }
+a.map-row-name:hover { text-decoration: underline; }
+.map-row-slug { color: var(--text-muted); font-size: var(--font-sm); font-family: ui-monospace, monospace; }
+
+.map-stage { display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
+.map-stage-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; margin-right: var(--space-1); }
+.map-stage-dot--plan { background: var(--canvas-axis); }
+.map-stage-dot--sketch { background: var(--canvas-add-fill); }
+.map-stage-dot--configure { background: var(--color-warning); }
+.map-stage-dot--edit { background: var(--color-success); }
+
+.map-modes { font-family: ui-monospace, monospace; font-size: var(--font-sm); color: var(--text-secondary); white-space: nowrap; }
+.map-changed { white-space: nowrap; color: var(--text-secondary); }
+
+.map-author { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
+.map-author-more { font-size: var(--font-xs); color: var(--text-muted); }
+
+/* One link per authoring layer the map holds, each going straight to that tool; --now marks the layer the
+   row itself opens. */
+.map-artifacts { display: flex; gap: var(--space-1); flex-wrap: wrap; }
+.map-layer {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color .12s, border-color .12s, background .12s;
+}
+.map-layer:hover { color: var(--text-bright); border-color: var(--text-muted); }
+.map-layer--now {
+  color: var(--text-bright);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}

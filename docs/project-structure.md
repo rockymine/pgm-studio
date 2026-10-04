@@ -102,10 +102,10 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 26 | 4,852 | `Playability/` 15 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 159 | 23,249 | `Endpoints/` 79 · `Services/` 64 · `Access/` 12 · `Http/` 3 · 1 at root |
-| `Client` | 236 | 28,914 | `Features/` 137 (nested) · `Components/` 76 (nested) · `Pages/` 11 · `Layout/` 5 · `Models/` 4 · 3 at root |
-| `Contracts` | 36 | 4,141 | flat |
-| `Data` | 24 | 4,006 | `Map/` 7 · `Features/` 5 · `Theme/` 5 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
+| `Api` | 159 | 23,255 | `Endpoints/` 79 · `Services/` 64 · `Access/` 12 · `Http/` 3 · 1 at root |
+| `Client` | 238 | 29,081 | `Features/` 137 (nested) · `Components/` 78 (nested) · `Pages/` 11 · `Layout/` 5 · `Models/` 4 · 3 at root |
+| `Contracts` | 36 | 4,147 | flat |
+| `Data` | 24 | 4,008 | `Map/` 7 · `Features/` 5 · `Theme/` 5 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 30 | 3,520 | flat |
 | `Export` | 22 | 5,052 | flat |
 | `Geom` | 53 | 6,942 | `Algorithms/` 20 · `Render/` 7 · `Relief/` 5 · 21 at root |

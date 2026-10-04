@@ -21,6 +21,23 @@
   color: var(--text-secondary);
   background: var(--bg-deep);
 }
+/* An agent's mark: a robot on a violet disc, the same wherever an author is drawn. <AuthorMark> passes its
+   edge as --head-size. */
+.agent-mark {
+  width: var(--head-size, 16px);
+  height: var(--head-size, 16px);
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--text-white);
+  background: linear-gradient(135deg, var(--agent), var(--accent));
+  user-select: none;
+}
+.agent-mark svg.lucide { width: var(--icon-md); height: var(--icon-md); stroke-width: 2.25; }
+/* A mark drawn beside a line of text: the robot takes the dense-chrome step so it fits the smaller disc. */
+.agent-mark--small svg.lucide { width: var(--icon-xs); height: var(--icon-xs); }
 /* An account answered for this row: its head covers the initial, and the edge says so where it has none. */
 .author-mark--account { box-shadow: 0 0 0 1px var(--border); }
 .author-name { min-width: 0; }

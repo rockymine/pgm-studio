@@ -26,7 +26,7 @@ about which section the entry sits in — the retired prefixes still on entries 
   what a board must keep being — a path reaches the bridge (note 58), a bedrock wall has void on both sides
   (note 48), a wall does not float (note 54). A reply could carry the claim as a measured check over the note's
   anchor, kept when the author resolves the note, and raised as a finding naming the note when a later pass
-  breaks it. `docs/tools/sketch.md` § In game.
+  breaks it. `docs/tools/sketch.md` § Review.
 
 ## The configure wizard: a map built from what an author states it is
 

@@ -20,6 +20,9 @@ namespace PgmStudio.Contracts;
 /// <param name="Version">The version its <c>map.xml</c> states, or absent where it has none.</param>
 /// <param name="Objective">The one-line objective sentence a player is shown, or absent.</param>
 /// <param name="Stage">How far the map has got, which is separate from which layers it holds.</param>
+/// <param name="Authors">Who the map is credited to, in the order its <c>map.xml</c> states them. An entry
+/// with an empty <c>uuid</c> is a name with no account behind it — the form an agent is credited in.</param>
+/// <param name="UpdatedAt">When the map's row was last written (UTC).</param>
 /// <param name="HasSurface">Whether the rasterized world geometry exists — the layer the Configure wizard
 /// works on, and what makes a top-down block render available.</param>
 /// <param name="HasPlan">Whether a plan document is stored.</param>
@@ -31,14 +34,17 @@ public sealed record MapSummary(
     string? Version,
     string? Objective,
     [property: WordSet(typeof(MapStage))] string Stage,
+    IReadOnlyList<MapAuthorDto> Authors,
+    DateTime UpdatedAt,
     bool HasSurface = false,
     bool HasPlan = false,
     bool HasSketch = false);
 
 /// <summary>Map counts for the landing cards (GET /api/maps/stage-counts), each counting what the list its
 /// card opens shows.</summary>
-/// <param name="Sketch">Maps holding a sketch layer, whatever stage they sit at.</param>
-/// <param name="Configure">Maps sitting at the Configure stage.</param>
+/// <param name="Sketch">Maps sitting at the Sketch stage.</param>
+/// <param name="Configure">Maps sitting at the Configure stage, or at <c>edit</c>, which the maps page lists
+/// under Configure.</param>
 /// <param name="All">Every map in the studio.</param>
 public sealed record MapStageCounts(int Sketch, int Configure, int All);
 

@@ -82,9 +82,14 @@ public sealed class MapsListEndpointTests
         await Assert.That(sketches[0].GetProperty("hasSketch").GetBoolean()).IsTrue();
         await Assert.That(sketches[0].GetProperty("hasSurface").GetBoolean()).IsTrue();
 
-        // The count follows the list it labels.
+        // Every row says who made it and when it was last written, which the maps page filters and sorts by.
+        await Assert.That(sketches[0].GetProperty("authors").ValueKind).IsEqualTo(JsonValueKind.Array);
+        await Assert.That(sketches[0].GetProperty("updatedAt").GetDateTime()).IsGreaterThan(DateTime.UtcNow.AddMinutes(-10));
+
+        // The landing tallies follow the maps page their cards open, which filters by where a map stands:
+        // the finished sketch stands at configure, so the Sketch card no longer counts it.
         var counts = await client.GetFromJsonAsync<JsonElement>("/api/maps/stage-counts");
-        await Assert.That(counts.GetProperty("sketch").GetInt32()).IsEqualTo(1);
+        await Assert.That(counts.GetProperty("sketch").GetInt32()).IsEqualTo(0);
         await Assert.That(counts.GetProperty("configure").GetInt32()).IsEqualTo(1);
         await Assert.That(counts.GetProperty("all").GetInt32()).IsEqualTo(1);
     }

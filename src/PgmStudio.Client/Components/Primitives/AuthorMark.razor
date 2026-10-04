@@ -1,0 +1,29 @@
+@namespace PgmStudio.Client.Components
+
+@* Who wrote or made something: the player's head for a person, and the agent mark — a robot on the violet
+   disc — for an agent. Every surface that shows an author draws it through here, so an agent looks the same
+   on a map row as in a note thread. *@
+
+@if (IsAgent)
+{
+    <span class="agent-mark@(Size < 24 ? " agent-mark--small" : null)" style="--head-size: @(Size)px" title="@(Title ?? Name)" aria-hidden="true"><i data-lucide="bot"></i></span>
+}
+else
+{
+    <PlayerHead Uuid="@Uuid" Name="@Name" Size="@Size" Title="@(Title ?? Name)" />
+}
+
+@code {
+    /// <summary>The Minecraft uuid, or empty for a name credited with no account.</summary>
+    [Parameter] public string? Uuid { get; set; }
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public string? Title { get; set; }
+    /// <summary>The mark's edge in pixels.</summary>
+    [Parameter] public int Size { get; set; } = 16;
+
+    /// <summary>Whether this is an agent: stated where the caller knows (a message written with a token), and
+    /// otherwise a credit with no account behind it, which is how an agent is credited on a map.</summary>
+    [Parameter] public bool? Agent { get; set; }
+
+    private bool IsAgent => Agent ?? string.IsNullOrEmpty(Uuid);
+}
