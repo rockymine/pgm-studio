@@ -34,7 +34,7 @@
               and add or remove members. After adding someone, send them an invitation link so they can sign in.
             </Description>
             <ChildContent>
-              <div class="invite-link">
+              <div class="player-add-row">
                 <input class="field-input" placeholder="Minecraft name or uuid" @bind="newPlayer" @bind:event="oninput" />
                 <Select Options="RolesToGive" Value="@newRole" ValueChanged="v => newRole = v" Title="Role" />
                 <Button Variant="primary" Icon="user-plus" OnClick="AddAsync" Busy="adding" BusyLabel="Adding…"

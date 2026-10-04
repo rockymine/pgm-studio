@@ -21,12 +21,14 @@
     {
       @foreach (var change in Changes.Reverse())
       {
-        <ListRow Compact Selected="@(History.SpanTo == change.Number)" @key="change.Number"
+        <ListRow Compact Class="list-row--two-line" Selected="@(History.SpanTo == change.Number)" @key="change.Number"
                  OnClick="() => History.PickChange(change.Number)"
                  title="@($"#{change.Number} · {Who(change)} · {Moments.Ago(change.At)} · {Said(change)}")">
           <span class="list-tag">#@change.Number</span>
-          <span class="list-label">@Said(change)</span>
-          <span class="list-tag">@Moments.Ago(change.At)</span>
+          <span class="list-row__text">
+            <span class="list-label">@Said(change)</span>
+            <span class="list-row__meta">@Who(change) · @Moments.Ago(change.At)</span>
+          </span>
         </ListRow>
       }
     }

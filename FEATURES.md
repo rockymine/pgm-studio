@@ -169,6 +169,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **Rows, fields and bars line up across the studio (`C98`).** A single-line field and every control in a row
+  with one are `--control-height` tall; a list row's name keeps its width with the facts on a second line under
+  it (`list-row--two-line`); every page's tool bar is one height; a status is a `Badge`, and a note's pin and a
+  gallery count take its colour from the status tokens; keyboard focus is one accent ring; instructions are
+  `section-desc` and computed facts `plan-readout`. Review's notes column heads a thread with a two-line title
+  and its status under it, and closes and sends from one footer under a full-width reply box. The canvas's
+  storey strip keeps room for a tab and the chip bar keeps the readout's lane clear; the maps table drops
+  Layers and Gamemode below 1200px rather than scrolling; raw pixel sizes left in the notes column, the
+  gallery, the generator tray and the rails scale with the text size. `docs/client/ui-conventions.md`.
 - **An action the caller may not take is greyed, with the reason on hover (`C87`).** A `Button` marked
   `Writes` closes where the shell's `StudioWriteReason` says the caller may not write, and one marked
   `Deletes` where `StudioDeleteReason` says only an admin may delete; a closed link has no `href`. The map

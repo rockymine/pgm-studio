@@ -1515,7 +1515,7 @@ whole board seen above its long side (`docs/world-export/sketch-world-export.md`
 button marks its view — a kept one in place, a suggestion by keeping it — and so does the camera in hand's
 **The map's picture (map.png)** box when it is kept or saved; unticking it on the view the picture is drawn from
 hands the picture back to the overview. The view the picture is drawn from wears a *map picture* badge in the
-list and on its card in Notes.
+list, on the line under its name beside the block it looks at, and over its thumbnail in Notes.
 
 **A kept view other than the board's own is removed here**, from its row in the list or with **Remove** on the
 camera in hand. Where the studio refuses that, or refuses drawing the map's picture from a view, the refusal is
@@ -1603,10 +1603,14 @@ follow it, and Ctrl+Enter (⌘+Enter) in either box sends it.
 **The column works in two steps.** The overview lists the notes on the picture in view under four filters — All,
 Waiting on you, With agent, Resolved — then the notes on the whole map, then any on a picture the gallery no
 longer offers. Choosing a note, by its row or by its pin on the picture, opens its thread, and **‹ All notes**
-goes back. A thread is its messages top to bottom, its pictures, **Resolve** or **Reopen**, and the reply box.
+goes back. A row is the note's pin and what it is pinned to, with its status and as much of the last message as
+fits on the line under. A thread is a head — the pin, what the note is pinned to in at most two lines, and its
+status under that — then its messages top to bottom with their pictures, and the reply box at the foot.
 
 **A thread reads as a chat.** It opens on its newest message and follows each one that lands. A message is a
-bubble beside its writer's mark, under their name, when it was written and the change it was written at. A
+bubble beside its writer's mark, under their name, when it was written and the change it was written at; a
+message following one by the same writer within ten minutes, with no change landed between them, continues it
+as a bare bubble under the first. A
 person is their head and their name, and the reader's own messages sit on the right in the accent's tint. An
 agent is named by its token's label beside the agent mark — a robot on a violet disc, the same mark the
 maps page draws for an agent's credit — in a violet bubble on the left, and the hover says
@@ -1618,8 +1622,10 @@ that note's thread, which is the link a ruling written into `docs/gameplay/appro
 was decided. The link is opened once and then leaves the address, so coming back to Review shows what the
 author was reading.
 
-**The reply box is the field and Send.** It carries no label and no hint; a line naming the mark sits over it only
-while a reply carries one, and *Reply sent* shows under it once the message lands.
+**The reply box is the field, with a footer under it.** The footer holds what the thread can be closed as —
+**Resolve**, **Won't do** or **Reopen** — on the left and **Send** on the right, so neither scrolls away with the
+thread. A line naming the mark sits over the field only while a reply carries one, and *Reply sent* shows there
+once the message lands.
 
 **An open thread compares its pictures on the big picture.** A note written on a picture shows that picture in
 place of the gallery's, with **Before**, **After**, **Now** and **Wipe** over it: the picture the note was written
@@ -1645,7 +1651,7 @@ drawn in violet while its thread is open, and its bubble names the mark under th
 | `wont-do` | an agent's reply with its reason, or the author | stays visible, and the author can reopen it |
 | `resolved` | the author | done |
 
-The thread offers **Resolve**, **Won't do** and **Reopen** where each applies. A reply leaves the thread where its `status` says; absent, a reply written with a token is
+The reply box's footer offers **Resolve**, **Won't do** and **Reopen** where each applies. A reply leaves the thread where its `status` says; absent, a reply written with a token is
 `answered` and one written in a browser is `open`. An agent never resolves, declines or reopens by `PATCH` — it answers, asks or
 declines in a reply — so a fix that looks right in a number but wrong in the game is caught by the person who
 asked. An agent may open a note too, as a question in the place it is about, and it waits for the author the

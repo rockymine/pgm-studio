@@ -70,7 +70,8 @@
   justify-content: flex-end;
   align-items: center;
   gap: 6px;
-  max-width: calc(100% - 20px);
+  /* The readout's lane at the top-left is kept clear: the bar wraps before it reaches it. */
+  max-width: calc(100% - 20px - 180px * var(--ui-scale));
 }
 .canvas-chip {
   display: flex;
@@ -86,7 +87,7 @@
   white-space: nowrap;
   transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
 }
-.canvas-chip svg { width: 13px; height: 13px; flex: none; }
+.canvas-chip svg { width: var(--icon-xs); height: var(--icon-xs); flex: none; }
 .canvas-chip:hover:not(:disabled) { color: var(--text-bright); border-color: var(--text-muted); }
 .canvas-chip--on {
   color: var(--accent-lighter);

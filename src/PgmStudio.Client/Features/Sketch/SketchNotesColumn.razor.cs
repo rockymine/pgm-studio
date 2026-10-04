@@ -206,12 +206,31 @@ public partial class SketchNotesColumn : IDisposable
         note.Messages.LastOrDefault() is { } last
             ? (last.Token is null ? last.Body : $"{Writers.Name(last.Author, last.Token)}: {last.Body}") : "";
 
-    /// <summary>A message's class: an agent's, the caller's own, or another person's, which is where it sits
-    /// and what colour its bubble is.</summary>
-    private string MessageClass(NoteMessageDto message) =>
-        message.Token is not null ? "note-message note-message--agent"
-        : string.Equals(message.AuthorUuid, MeUuid, StringComparison.OrdinalIgnoreCase) ? "note-message note-message--mine"
-        : "note-message";
+    /// <summary>How close together two messages by one writer have to be for the second to continue the first.</summary>
+    private static readonly TimeSpan ContinuesWithin = TimeSpan.FromMinutes(10);
+
+    /// <summary>The class of message <paramref name="index"/>: an agent's, the caller's own, or another person's,
+    /// which is where it sits and what colour its bubble is, and whether it continues the one before it.</summary>
+    private string MessageClass(MapNoteDto note, int index)
+    {
+        var message = note.Messages[index];
+        var kind = message.Token is not null ? "note-message note-message--agent"
+            : string.Equals(message.AuthorUuid, MeUuid, StringComparison.OrdinalIgnoreCase) ? "note-message note-message--mine"
+            : "note-message";
+        return Continues(note, index) ? kind + " note-message--cont" : kind;
+    }
+
+    /// <summary>Whether message <paramref name="index"/> continues the one before it: the same writer, within
+    /// <see cref="ContinuesWithin"/>, with no change landed between them.</summary>
+    private bool Continues(MapNoteDto note, int index)
+    {
+        if (index == 0) return false;
+        var before = note.Messages[index - 1];
+        var message = note.Messages[index];
+        return message.Author == before.Author && message.Token == before.Token
+            && message.At - before.At < ContinuesWithin
+            && Landed(before.Change, message.Change) == 0;
+    }
 
     /// <summary>What a note's pin carries: its number, or nothing for a note on the whole map.</summary>
     public static string Glyph(MapNoteDto note) =>
@@ -220,8 +239,6 @@ public partial class SketchNotesColumn : IDisposable
     /// <summary>The pin's class: its shape says whether it is on the map or a picture, its colour the status.</summary>
     public static string PinClass(MapNoteDto note) =>
         $"note-pin note-pin--{note.Status}" + (note.Anchor.Kind == NoteAnchors.Map ? " note-pin--map" : "");
-
-    private static string StatusClass(string status) => $"note-status note-status--{status}";
 
     private static string Ago(DateTime at) => Moments.Ago(at);
 

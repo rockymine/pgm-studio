@@ -5,6 +5,9 @@
 
 /* ── reset ── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
+/* Keyboard focus is drawn one way everywhere: an accent ring outside the element. A text field keeps its own
+   ring (.field-input:focus), since it holds focus whichever way it was reached. */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 [hidden] { display: none !important; }
 
 /* The editor's `body {}` rule, scoped to `.editor-page` because the Blazor
@@ -28,6 +31,8 @@
 .topbar {
   display: flex;
   align-items: center;
+  /* One height on every page, whether or not the bar carries a control: a control's height and the padding. */
+  min-height: calc(var(--control-height) + 2 * var(--space-2) + 1px);
   gap: var(--space-2);
   padding: var(--space-2) 14px;
   background: var(--bg-panel);
@@ -292,7 +297,7 @@
 /* An inspector that hosts a whole material form rather than a property list — the dressing phase's, which
    embeds the same editor the style library opens in its rail. It starts at a width that form is readable
    at; the resize handle still takes it anywhere in [MIN_WIDTH, MAX_WIDTH]. */
-.workspace-inspector--wide { width: 420px; }
+.workspace-inspector--wide { width: calc(420px * var(--ui-scale)); }
 
 /* Scrollable inner content area of a sidebar — holds .panel-section blocks */
 .workspace-scroll {
@@ -485,6 +490,7 @@
   align-items: center;
   gap: var(--space-2);
   font-size: var(--font-base);
+  line-height: 1.5;
   color: var(--text-bright);
 }
 
@@ -511,6 +517,7 @@
   border-radius: var(--radius-sm); padding: 0 5px; line-height: 1.5;
 }
 .plan-lint-msg { line-height: 1.35; }
+.plan-lint-msg::first-letter { text-transform: uppercase; }
 /* Open-from-DB rows reuse .plan-lint-row: name takes the slack, the date sits right-aligned and muted. */
 .plan-db-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .plan-db-date { flex-shrink: 0; color: var(--text-secondary); font-size: var(--font-xs); }
@@ -599,7 +606,8 @@
 
 /* The plan sidebar's three panels, as one even three-way switch rather than chips that wrap, closed by the
    button that folds the sidebar away. */
-.plan-panel-switch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin-bottom: var(--space-3); }
+.plan-panel-switch { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--space-1); margin-bottom: var(--space-3); }
+.plan-panel-switch .filter-chip { flex: 1 1 auto; min-width: 0; justify-content: center; padding-inline: var(--space-1); }
 .plan-panel-switch > :last-child { margin-left: auto; }
 /* The folded plan sidebar: a strip holding only the button that opens it again. */
 .plan-sidebar-stub {

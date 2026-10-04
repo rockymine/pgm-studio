@@ -9,24 +9,22 @@
   align-items: baseline;
   justify-content: space-between;
   margin: var(--space-2) 0 var(--space-1);
-  font-size: var(--font-xs);
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  color: var(--text-muted);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 .map-author-all {
   border: 0;
   padding: 0;
   background: none;
   font: inherit;
-  text-transform: none;
-  letter-spacing: 0;
+  font-weight: 400;
   color: var(--accent-light);
   cursor: pointer;
 }
 .map-author-all:hover { text-decoration: underline; }
-.map-author-options { flex-direction: column; }
-.map-author-options .filter-chip { width: 100%; gap: var(--space-2); }
+.map-author-options { flex-wrap: wrap; }
+.map-author-options .filter-chip { max-width: 100%; gap: var(--space-2); }
 .map-author-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .map-search-row { display: flex; gap: var(--space-2); align-items: center; margin-block: var(--space-3); }
@@ -46,11 +44,19 @@
   letter-spacing: .06em;
   color: var(--text-muted);
 }
-.map-table td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); vertical-align: middle; }
+.map-table td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); vertical-align: middle; font-size: var(--font-md); }
+.map-col-map { min-width: 14rem; }
+/* Below a wide screen the table drops the two columns a row's own page also shows, rather than scrolling. */
+@media (max-width: 1199px) {
+  .map-col-layers, .map-col-modes { display: none; }
+  .map-table { min-width: 0; }
+}
 .map-table-row { cursor: pointer; }
 .map-table-row:hover { background: var(--bg-selected-hover); }
 
-/* A map leads with the name a reader knows it by; the slug is the address, quieter under it. */
+/* A map leads with the name a reader knows it by; the slug is the address, quieter under it. Each stays on
+   one line and is cut short rather than broken. */
+.map-row-name, .map-row-slug { display: block; max-width: 24rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .map-row-name { font-weight: 600; color: var(--text-bright); text-decoration: none; }
 a.map-row-name:hover { text-decoration: underline; }
 .map-row-slug { color: var(--text-muted); font-size: var(--font-sm); font-family: ui-monospace, monospace; }
@@ -63,7 +69,8 @@ a.map-row-name:hover { text-decoration: underline; }
 .map-stage-dot--edit { background: var(--color-success); }
 
 .map-modes { font-family: ui-monospace, monospace; font-size: var(--font-sm); color: var(--text-secondary); white-space: nowrap; }
-.map-changed { white-space: nowrap; color: var(--text-secondary); }
+.map-changed { white-space: nowrap; color: var(--text-secondary); font-size: var(--font-sm); }
+.map-empty { color: var(--text-muted); font-size: var(--font-sm); }
 
 .map-author { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
 .map-author-more { font-size: var(--font-xs); color: var(--text-muted); }

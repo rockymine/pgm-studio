@@ -535,6 +535,34 @@ is the standard the copy is held to.
   front line and other become ground; their names live in the structure line under each card. Change `Key`,
   `PieceColor` and the SVG and PNG renderers together, and `--board-bg` to white. `docs/tools/generator.md`.
 
+- [ ] **C95 — One page title on every page.** *Parked (author): which convention.* `/library` heads itself
+  with a 26px *Libraries* while its crumb says *Library* (`library.css:91`, `LibraryChooser.razor:9`); `/maps`
+  with an 11px section title *MAPS* (`Pages/Maps.razor:80`); `/generator`, `/catalog` and `/admin/users` with
+  none. Decide whether the crumb is the title or every page opens on one `--font-xl` heading, and apply it
+  across `Pages/`. `docs/client/ui-conventions.md`.
+
+- [ ] **C96 — The landing page's destinations at one level.** *Parked (author): waits on C70.* `Pages/Index.razor`
+  draws same-level destinations two ways — row cards with a 44px icon and *Open →*, grid cards with a 32px icon
+  and *Browse →* (`landing.css:34-45`, `card.css:23-33`) — and the *Continue a map* cards start at y 753 of an
+  800px window at 1280 wide. `docs/client/ui-conventions.md`.
+
+- [ ] **C97 — One filter rail.** `/maps` filters in `Sidebar`, `/generator` in `.gen-filters`, `/catalog` in
+  `.lib-filters` and `/design` in its own nav, each with its own heading and count line. Fold the three that are
+  not `Sidebar` into it, so a rail's width, title and count are one component's. `docs/client/ui-conventions.md`.
+
+- [ ] **TN33 — The plan sidebar's panels switch as tabs.** *Settings · Checks · Generator* are `Chip`s
+  (`PlanTool.razor:89-99`), which read as filters toggled on rather than a panel chosen. Give the switch the
+  `flow-step` look (`components/flow-bar.css:31-40`) or a segmented control. `docs/tools/plan.md`.
+
+- [ ] **TS163 — Identity saves one way in both tools.** *Parked (author): explicit save or autosave.* Sketch's
+  Info has **Save changes** (`SketchInfoPhase.razor:29`) while Configure's Identity saves as it is typed and says
+  *Saved* in the bar, and Configure's Version box is 645px wide for `1.0.0` at 1280. `docs/tools/sketch.md`.
+
+- [ ] **TS164 — Decoration's inspector widens only for its picker.** `.workspace-inspector--wide` holds the
+  Decoration inspector at 420px (`editor.css:295`) against 280px everywhere else, so the canvas jumps 140px on
+  entering the phase while the wide column shows an empty state. Widen it only while a block or pattern picker
+  is open. `docs/tools/sketch.md`.
+
 - [ ] **C69 — A proportional UI font.** *Parked (author): waits on the design direction.* Every page is set
   in `ui-monospace` (`.editor-page`, `editor.css`), which reads as a terminal and is wider per word at the same
   size. The alternative is a system sans for interface text with monospace kept for data: slugs, coordinates,

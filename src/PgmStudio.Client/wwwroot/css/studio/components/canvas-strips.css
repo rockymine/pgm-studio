@@ -1,0 +1,116 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   CANVAS STRIPS — the storey strip beside the dock and the theme strip above it.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── the storey strip ──
+   Which layer is being drawn on, floating at the foot of the canvas beside the dock. A layer is the
+   board's, not a phase's, so this is chrome rather than a panel: every phase that draws the canvas has it,
+   and whatever is placed lands on the layer it names. */
+.canvas-layer-strip {
+  position: absolute; left: 10px; bottom: 16px; z-index: 3;
+  display: flex; align-items: stretch; gap: 2px; padding: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--canvas-float-bg); backdrop-filter: blur(6px);
+  border: 1px solid var(--canvas-float-border); box-shadow: var(--canvas-float-shadow);
+  /* The dock is centred on the canvas (`.canvas-dock`, left 50% and translated back by half its width), so
+     what is left for the strip is the half-canvas beside it less the dock's own half, this element's own
+     left offset and a gap. Measured: the Draw dock is 350px wide, so 175 of half-width, and the number here
+     clears one up to about 490 — the phases carrying the most tools. Held as a calc against 50% rather than
+     as a share of the width, because the dock is a constant number of pixels while a share is not: on a
+     narrow canvas a percentage keeps growing past it. Below that, the strip keeps room for its label, one tab
+     and its add, and reaches under the dock's edge rather than collapsing to nothing. */
+  max-width: max(calc(50% - 260px), calc(150px * var(--ui-scale)));
+}
+/* Only the tabs scroll. A min-width below their content is what lets a flex child shrink and overflow at all;
+   without it the strip grows to fit the tabs and the cap above does nothing. */
+.canvas-layer-tabs {
+  display: flex; align-items: stretch; gap: 2px;
+  min-width: calc(72px * var(--ui-scale)); overflow-x: auto; overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+.canvas-layer-strip-label, .canvas-layer-add { flex: none; }
+.canvas-layer-strip-label {
+  display: flex; align-items: center; padding: 0 6px;
+  font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
+}
+/* A tab and its delete are one pill, so the wrap carries the state and the two buttons inside it stay
+   transparent — a delete nested in the tab button would be a button inside a button. */
+.canvas-layer-tab-wrap {
+  display: flex; align-items: stretch; border-radius: var(--radius-sm); color: var(--text-secondary);
+}
+.canvas-layer-tab-wrap:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-layer-tab-wrap--on { background: var(--bg-selected); color: var(--text-strong); }
+.canvas-layer-tab {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+  padding: 3px 8px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: left;
+}
+.canvas-layer-tab-name { font-size: var(--font-sm); line-height: 1.2; max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.canvas-layer-tab-y { font-family: ui-monospace, monospace; font-size: var(--font-xs); color: var(--text-muted); line-height: 1.2; }
+.canvas-layer-tab-wrap--on .canvas-layer-tab-y { color: var(--accent-lighter); }
+/* Shown only on the hovered or active tab — a strip of storeys reads as a switch, and a delete on every one
+   of them reads as a list of deletes. Faded rather than hidden, and its slot held either way: a strip that
+   reflows as the pointer crosses it moves the target out from under the press that was aiming for it, and a
+   `visibility: hidden` button cannot be pressed at all until the hover it needs has already resolved. Nobody
+   presses one they cannot see — reaching it puts the pointer inside the tab, which is what fades it in. */
+.canvas-layer-del {
+  display: grid; place-items: center; width: 18px; padding: 0; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  opacity: 0; transition: opacity 90ms linear;
+}
+.canvas-layer-tab-wrap:hover .canvas-layer-del,
+.canvas-layer-tab-wrap--on .canvas-layer-del { opacity: 1; }
+.canvas-layer-del:not(:disabled):hover { color: var(--color-error); }
+.canvas-layer-del svg { width: var(--icon-xs); height: var(--icon-xs); }
+.canvas-layer-add {
+  display: grid; place-items: center; width: 26px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+}
+.canvas-layer-add:not(:disabled):hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-layer-add svg { width: var(--icon-xs); height: var(--icon-xs); }
+/* ── the theme strip ──
+   The board's themes, floating above the dock: what is in hand, and what a click will paint. A theme is the
+   board's rather than a phase's, so like the storey strip this is chrome. It scrolls sideways, which is the
+   axis with room — a board carries anything from one theme to a couple of dozen. */
+.canvas-theme-strip {
+  position: absolute; left: 50%; bottom: 62px; transform: translateX(-50%); z-index: 3;
+  display: flex; align-items: center; gap: 4px; padding: 3px 3px 3px 4px;
+  max-width: calc(100% - 20px);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-float-bg); backdrop-filter: blur(6px);
+  border: 1px solid var(--canvas-float-border); box-shadow: var(--canvas-float-shadow);
+}
+.canvas-theme-strip-label {
+  flex: 0 0 auto; padding: 0 4px;
+  font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
+}
+.canvas-theme-strip-empty { padding: 3px 6px; font-size: var(--font-sm); color: var(--text-muted); }
+.canvas-theme-swatches { display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: thin; }
+.canvas-theme-swatch {
+  display: flex; align-items: center; gap: 5px; flex: 0 0 auto;
+  padding: 3px 8px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-secondary); font: inherit; cursor: pointer;
+}
+.canvas-theme-swatch:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-theme-swatch--on { background: var(--bg-selected); color: var(--text-strong); }
+.canvas-theme-swatch-name {
+  font-size: var(--font-sm); line-height: 1.2; max-width: 14ch;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* The one theme that paints without being placed. */
+.canvas-theme-swatch-tag {
+  font-size: var(--font-xs); letter-spacing: .06em; text-transform: uppercase; color: var(--accent-light);
+}
+.canvas-theme-add {
+  display: grid; place-items: center; flex: 0 0 auto; width: 26px; height: 24px;
+  border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+}
+.canvas-theme-add:not(:disabled):hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-theme-add--on { background: var(--bg-selected); color: var(--text-strong); }
+.canvas-theme-add svg { width: var(--icon-xs); height: var(--icon-xs); }
+/* A strip control the caller may not use is greyed and says why on hover (WriteGate). */
+.canvas-layer-add:disabled, .canvas-theme-add:disabled { opacity: 0.4; cursor: default; }
+.canvas-layer-del:disabled { cursor: default; }
+.canvas-layer-tab-wrap:hover .canvas-layer-del:disabled,
+.canvas-layer-tab-wrap--on .canvas-layer-del:disabled { opacity: 0.4; }

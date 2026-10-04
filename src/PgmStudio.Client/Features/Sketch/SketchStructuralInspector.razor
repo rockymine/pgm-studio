@@ -19,7 +19,7 @@
       <Field Label="Surface (blocks)">
         <NumberField Value="@(Piece.BaseHeight ?? 0)" ValueChanged="HeightChanged" Min="1" />
       </Field>
-      <p class="plan-readout">
+      <p class="section-desc">
         @if (Piece.HeightAuthored)
         {
           <text>Set by you. Rebuilding from the plan keeps it.</text>
@@ -32,13 +32,13 @@
     }
     else
     {
-      <p class="plan-readout">
+      <p class="section-desc">
         The building has no height of its own. Change the height on the region around it.
       </p>
     }
 
     <div class="section-header section-header--ruled"><h2 class="section-title">Position</h2></div>
-    <p class="plan-readout">
+    <p class="section-desc">
       Drag to move it.
       @(Piece.IsRegion
         ? "The marker, building, and iron on it move with it."

@@ -67,7 +67,7 @@ try {
 
   const expected = JSON.stringify({
     rail: ["Info", "Draw"], phase: "Draw", next: "Compile",
-    chips: ["Settings", "Checks", "Generator check"], folds: true,
+    chips: ["Settings", "Checks", "Generator"], folds: true,
   });
   checks.add("a map-backed plan has the rail, the flow bar, the chips and a folding sidebar", onMap === expected, onMap);
   checks.add("a plan row has the same", onRow === onMap, onRow);
