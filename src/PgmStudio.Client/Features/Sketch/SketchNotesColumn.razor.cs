@@ -220,7 +220,7 @@ public partial class SketchNotesColumn : IDisposable
         return Continues(note, index) ? kind + " note-message--cont" : kind;
     }
 
-    /// <summary>Whether message <paramref name="index"/> continues the one before it: the same writer, within
+    /// <summary>Whether message <paramref name="index"/> continues the one before it: the same writer and account, within
     /// <see cref="ContinuesWithin"/>, with no change landed between them.</summary>
     private bool Continues(MapNoteDto note, int index)
     {
@@ -228,6 +228,7 @@ public partial class SketchNotesColumn : IDisposable
         var before = note.Messages[index - 1];
         var message = note.Messages[index];
         return message.Author == before.Author && message.Token == before.Token
+            && string.Equals(message.AuthorUuid, before.AuthorUuid, StringComparison.OrdinalIgnoreCase)
             && message.At - before.At < ContinuesWithin
             && Landed(before.Change, message.Change) == 0;
     }
