@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components;
 using PgmStudio.Client.Components;
+using PgmStudio.Client.Models;
 using PgmStudio.Contracts;
 using PgmStudio.Vocabulary;
 
@@ -91,22 +92,10 @@ public partial class Maps
         creatingSketch = false;
     }
 
-    /// <summary>The authoring layers a map holds, in pipeline order, each a direct link into that tool.</summary>
-    private static IEnumerable<(string Id, string Label)> Layers(MapSummary map)
-    {
-        if (map.HasPlan) yield return (MapStage.Plan, "Plan");
-        if (map.HasSketch) yield return (MapStage.Sketch, "Sketch");
-        if (map.HasSurface) yield return (MapStage.Configure, "Configure");
-    }
-
-    /// <summary>The tool a row opens: the one at the map's stage, or for a finished map the last layer it
-    /// holds, and nothing when it holds none.</summary>
-    private static string? Opens(MapSummary map) =>
-        map.Stage == MapStage.Edit ? Layers(map).Select(layer => layer.Id).LastOrDefault() : map.Stage;
 
     private void Open(MapSummary map)
     {
-        if (Opens(map) is { } layer) Nav.NavigateTo($"maps/{map.Slug}/{layer}");
+        if (MapLayers.Opens(map) is { } layer) Nav.NavigateTo($"maps/{map.Slug}/{layer}");
     }
 
     private static string LayerTitle(string layer) => layer switch

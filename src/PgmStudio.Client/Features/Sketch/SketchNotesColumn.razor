@@ -19,7 +19,7 @@
       <div class="notes-column__filters">
         @foreach (var (id, label) in Filters)
         {
-          <Chip Active="@(Filter == id)" OnClick="() => OnFilter.InvokeAsync(id)">@label&nbsp;<b>@Count(id)</b></Chip>
+          <Chip Active="@(Filter == id)" Title="@FilterTitle(id)" OnClick="() => OnFilter.InvokeAsync(id)">@label&nbsp;<b>@Count(id)</b></Chip>
         }
       </div>
       @if (Handoff is { Ready: true } handoff)
@@ -66,8 +66,8 @@
         <button type="button" class="notes-column__back" @onclick="OnBack">‹ All notes</button>
         <div class="notes-column__threadhead">
           <span class="@PinClass(note)">@Glyph(note)</span>
-          <b class="notes-column__threadtitle">@Title(note)</b>
-          <span class="@StatusClass(note.Status)">@NoteStatuses.Label(note.Status)</span>
+          <b class="notes-column__threadtitle" title="@Title(note)">@Title(note)</b>
+          <div class="notes-column__threadmeta"><NoteStatus Status="@note.Status" /></div>
         </div>
       </div>
       <div class="notes-column__thread" @ref="thread">
@@ -80,7 +80,7 @@
             @Marker(between, note.Messages[i - 1].Change)
           }
           var who = Writers.Describe(message.Author, message.Token);
-          <div class="@MessageClass(message)" @key="message.Id">
+          <div class="@MessageClass(note, i)" @key="message.Id">
             <span class="note-message__avatar">
               <AuthorMark Agent="@(message.Token is not null)" Uuid="@message.AuthorUuid" Name="@message.Author" Title="@who" Size="28" />
             </span>
@@ -98,7 +98,7 @@
               @if (message.Picture is { } picture)
               {
                 <a class="note-message__picture" href="@($"api/notes/pictures/{picture}")" target="_blank" rel="noopener">
-                  <img src="@($"api/notes/pictures/{picture}")" alt="@(first ? "The picture the note was written on" : "The same camera after the change")" loading="lazy" />
+                  <img src="@($"api/notes/pictures/{picture}")" width="1920" height="1080" alt="@(first ? "The picture the note was written on" : "The same camera after the change")" loading="lazy" />
                   <span>@(first ? "before" : "after") · change @message.Change</span>
                 </a>
               }
@@ -109,7 +109,21 @@
         {
           @Marker(since, note.Messages[^1].Change)
         }
-        <div class="notes-column__actions">
+      </div>
+      <div class="notes-column__compose">
+        @if (ReplyMark is { } replyMark)
+        {
+          <div class="notes-column__replymark">
+            <span>@replyMark</span>
+            <Button OnClick="OnClearMark">Clear mark</Button>
+          </div>
+        }
+        @if (Error is not null) { <p class="notes-column__error">@Error</p> }
+        @if (sent is not null) { <span class="notes-column__sent" role="status">✓ @sent</span> }
+        <textarea id="note-reply" class="field-input" rows="3" placeholder="Reply… (Ctrl+Enter sends)" aria-label="Reply" value="@reply"
+                  readonly="@sending" @oninput="e => reply = e.Value?.ToString() ?? string.Empty"
+                  @onkeydown="key => SendOnKey(key, SendReplyAsync)"></textarea>
+        <div class="notes-column__send">
           @if (note.Status == NoteStatuses.Resolved || note.Status == NoteStatuses.WontDo)
           {
             <Button OnClick="OnReopen" Busy="Busy" BusyLabel="Reopening…">Reopen</Button>
@@ -123,25 +137,9 @@
             <Button Icon="x" OnClick="OnWontDo" Busy="Busy" BusyLabel="Declining…"
                     Title="Close it as not to be done; it stays listed, and Reopen hands it back">Won't do</Button>
           }
-        </div>
-      </div>
-      <div class="notes-column__compose">
-        @if (ReplyMark is { } replyMark)
-        {
-          <div class="notes-column__replymark">
-            <span>@replyMark</span>
-            <Button OnClick="OnClearMark">Clear mark</Button>
-          </div>
-        }
-        <div class="notes-column__reply">
-          <textarea id="note-reply" class="field-input" rows="3" placeholder="Reply…" aria-label="Reply" value="@reply" readonly="@sending"
-                    @oninput="e => reply = e.Value?.ToString() ?? string.Empty"
-                    @onkeydown="key => SendOnKey(key, SendReplyAsync)"></textarea>
           <Button Variant="primary" Disabled="@(string.IsNullOrWhiteSpace(reply) || !Ready)" Busy="sending" BusyLabel="Sending…"
                   OnClick="SendReplyAsync">Send</Button>
         </div>
-        @if (Error is not null) { <p class="notes-column__error">@Error</p> }
-        @if (sent is not null) { <span class="notes-column__sent" role="status">✓ @sent</span> }
       </div>
       break;
 
@@ -164,13 +162,12 @@
         }
       </div>
       <div class="notes-column__compose">
-        <textarea id="note-body" class="field-input" rows="4" placeholder="Write a note." aria-label="Note" value="@draft"
+        @if (Error is not null) { <p class="notes-column__error">@Error</p> }
+        @if (sent is not null) { <span class="notes-column__sent" role="status">✓ @sent</span> }
+        <textarea id="note-body" class="field-input" rows="4" placeholder="Write a note. (Ctrl+Enter sends)" aria-label="Note" value="@draft"
                   readonly="@sending" @oninput="e => draft = e.Value?.ToString() ?? string.Empty"
                   @onkeydown="key => SendOnKey(key, SendNoteAsync)"></textarea>
-        @if (Error is not null) { <p class="notes-column__error">@Error</p> }
         <div class="notes-column__send">
-          @if (sent is not null) { <span class="notes-column__sent" role="status">✓ @sent</span> }
-          else { <span class="notes-column__hint"></span> }
           <Button Variant="primary" Disabled="@(string.IsNullOrWhiteSpace(draft) || !Ready)" Busy="sending" BusyLabel="Sending…"
                   OnClick="SendNoteAsync">Send</Button>
         </div>
@@ -186,10 +183,8 @@
         @onclick="() => OnChangesSince.InvokeAsync(after)">@Changed(count) · History ›</button>;
 
     private RenderFragment Row(MapNoteDto note) => @<button type="button" class="notes-row" @key="note.Id" @onclick="() => OnOpen.InvokeAsync(note)">
-        <span class="@PinClass(note)">@Glyph(note)</span>
-        <span class="notes-row__text">
-          <span class="notes-row__top"><b>@Title(note)</b><span class="@StatusClass(note.Status)">@NoteStatuses.Label(note.Status)</span></span>
-          <span class="notes-row__last">@Last(note)</span>
-        </span>
+        <b title="@Title(note)">@Title(note)</b>
+        <span class="notes-row__meta"><NoteStatus Status="@note.Status" /><span class="notes-row__last">@Last(note)</span></span>
+        <span class="notes-row__thread"><span class="@PinClass(note)">@Glyph(note)</span>@MessageCount(note)</span>
       </button>;
 }

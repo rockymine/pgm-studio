@@ -33,12 +33,17 @@
     private string? busyId;
 
     private RenderFragment Row(MapViewDto view) =>
-        @<ListRow Compact Selected="@(Views.Draft?.Source?.Id == view.Id)" @key="view.Id" OnClick="() => Views.SelectAsync(view)">
+        @<ListRow Compact Class="list-row--two-line" Selected="@(Views.Draft?.Source?.Id == view.Id)" @key="view.Id"
+                  OnClick="() => Views.SelectAsync(view)">
           <ChildContent>
             <span class="geo-type-icon"><i data-lucide="camera"></i></span>
-            <span class="list-label">@view.Name</span>
-            @if (view.Picture) { <Badge Kind="neutral">map picture</Badge> }
-            <span class="list-tag">@view.LookX, @view.LookZ</span>
+            <span class="list-row__text">
+              <span class="list-label" title="@view.Name">@view.Name</span>
+              <span class="list-row__meta">
+                @if (view.Picture) { <Badge Kind="neutral">map picture</Badge> }
+                <span>looks at @view.LookX, @view.LookZ</span>
+              </span>
+            </span>
           </ChildContent>
           <Trailing>
             @if (!view.Picture)

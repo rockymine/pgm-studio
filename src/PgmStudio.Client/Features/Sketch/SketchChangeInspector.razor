@@ -9,7 +9,7 @@
     <DetailHeader Icon="history" Label="@Title" />
     @if (Change is null)
     {
-      <p class="plan-readout">Pick a change to see what it did.</p>
+      <p class="section-desc">Pick a change to see what it did.</p>
     }
     else
     {
@@ -66,10 +66,13 @@
         {
           <button type="button" class="notes-row" @key="note.Id" @onclick="() => OnOpenNote.InvokeAsync(note.Id)"
                   title="Open the thread in Review">
-            <span class="@SketchNotesColumn.PinClass(note)">@SketchNotesColumn.Glyph(note)</span>
-            <span class="notes-row__text">
-              <span class="notes-row__top"><b>@SketchNotesColumn.Title(note)</b><span class="@($"note-status note-status--{note.Status}")">@NoteStatuses.Label(note.Status)</span></span>
+            <b title="@SketchNotesColumn.Title(note)">@SketchNotesColumn.Title(note)</b>
+            <span class="notes-row__meta">
+              <NoteStatus Status="@note.Status" />
               <span class="notes-row__last">@Writers.Name(message.Author, message.Token): @message.Body</span>
+            </span>
+            <span class="notes-row__thread">
+              <span class="@SketchNotesColumn.PinClass(note)">@SketchNotesColumn.Glyph(note)</span>@SketchNotesColumn.MessageCount(note)
             </span>
           </button>
         }
@@ -79,11 +82,11 @@
       @if (World is { } world)
       {
         <div class="change-world">
-          <span class="change-world__swatch change-world__swatch--ground"></span>ground @world.Ground.Columns
-          <span class="change-world__swatch change-world__swatch--surface"></span>surface @world.Surface.Columns
-          <span class="change-world__swatch change-world__swatch--structure"></span>structure @world.Structure.Columns
+          <span><span class="change-world__swatch change-world__swatch--ground"></span>ground @world.Ground.Columns</span>
+          <span><span class="change-world__swatch change-world__swatch--surface"></span>surface @world.Surface.Columns</span>
+          <span><span class="change-world__swatch change-world__swatch--structure"></span>structure @world.Structure.Columns</span>
         </div>
-        <p class="plan-readout">Changed columns, boxed on the canvas.</p>
+        <p class="section-desc">Changed columns, boxed on the canvas.</p>
       }
       else if (WorldError is not null)
       {

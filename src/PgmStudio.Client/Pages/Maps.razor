@@ -77,14 +77,14 @@
         </Sidebar>
 
         <ContentColumn MaxWidth="1180">
-          <Section Title="Maps">
+          <PageHeading Title="Maps">
             <Actions>
               <Badge Kind="dim">@CountLabel</Badge>
               <Button Variant="primary" OnClick="NewPlan" Icon="plus" Class="action-btn--push-end" Writes Disabled="@creatingPlan">New plan</Button>
               <Button OnClick="NewSketch" Icon="plus" Writes Disabled="@creatingSketch">New sketch</Button>
               <Button Href="maps/new" Icon="import" Writes>Import a world</Button>
             </Actions>
-            <ChildContent>
+          </PageHeading>
 
             <div class="map-search-row">
               <input class="field-input map-search" type="search" placeholder="Search name, slug or author"
@@ -107,36 +107,45 @@
               <div class="map-table-box">
                 <table class="map-table">
                   <thead>
-                    <tr><th>Map</th><th>Stage</th><th>Layers</th><th>Gamemode</th><th>Author</th><th>Last changed</th></tr>
+                    <tr><th class="map-col-map">Map</th><th>Open in</th><th class="map-col-modes">Gamemode</th><th>Author</th><th>Last changed</th></tr>
                   </thead>
                   <tbody>
                     @foreach (var m in Shown)
                     {
-                      var opens = Opens(m);
+                      var opens = MapLayers.Opens(m);
                       var credits = Credited(m);
-                      var stage = StageOf(m);
                       <tr class="map-table-row" @key="m.Slug" @onclick="() => Open(m)">
-                        <td>
+                        <td class="map-col-map">
                           @if (opens is not null)
                           {
-                            <a class="map-row-name" href="@($"maps/{m.Slug}/{opens}")" @onclick:stopPropagation>@m.Name</a>
+                            <a class="map-row-name" href="@($"maps/{m.Slug}/{opens}")" title="@m.Name" @onclick:stopPropagation>@m.Name</a>
                           }
-                          else { <span class="map-row-name">@m.Name</span> }
-                          <div class="map-row-slug">@m.Slug</div>
+                          else { <span class="map-row-name" title="@m.Name">@m.Name</span> }
+                          <span class="map-row-slug" title="@m.Slug">@m.Slug</span>
                         </td>
-                        <td><span class="map-stage"><span class="map-stage-dot map-stage-dot--@stage"></span>@StageLabel(stage)</span></td>
                         <td>
                           <span class="map-artifacts">
-                            @foreach (var (id, label) in Layers(m))
+                            @foreach (var (id, label) in MapLayers.All)
                             {
-                              <a class="map-layer @(opens == id ? "map-layer--now" : null)" @onclick:stopPropagation
-                                 href="@($"maps/{m.Slug}/{id}")" title="@LayerTitle(id)">@label</a>
+                              if (!MapLayers.Holds(m, id)) { <span class="map-layer-empty" title="@($"No {label.ToLowerInvariant()} yet")"></span> }
+                              else if (opens == id)
+                              {
+                                <a class="map-layer map-layer--now" @onclick:stopPropagation href="@($"maps/{m.Slug}/{id}")"
+                                   title="@($"{LayerTitle(id)} The map is at {StageLabel(StageOf(m))}.")"><span class="map-stage-dot map-stage-dot--@m.Stage"></span>@label</a>
+                              }
+                              else
+                              {
+                                <a class="map-layer" @onclick:stopPropagation href="@($"maps/{m.Slug}/{id}")" title="@LayerTitle(id)">@label</a>
+                              }
                             }
                           </span>
                         </td>
-                        <td class="map-modes">@(m.Gamemodes.Count > 0 ? string.Join(" ", m.Gamemodes).ToUpperInvariant() : "—")</td>
+                        <td class="map-modes map-col-modes">
+                          @if (m.Gamemodes.Count > 0) { @(string.Join(" ", m.Gamemodes).ToUpperInvariant()) }
+                          else { <span class="map-empty" title="No gamemode yet">—</span> }
+                        </td>
                         <td>
-                          @if (credits.Count == 0) { <span class="map-row-slug">Nobody credited</span> }
+                          @if (credits.Count == 0) { <span class="map-empty" title="Nobody credited">—</span> }
                           else
                           {
                             <span class="map-author" title="@string.Join(", ", credits.Select(NameOf))">
@@ -153,8 +162,6 @@
                 </table>
               </div>
             }
-            </ChildContent>
-          </Section>
         </ContentColumn>
       </Workspace>
   </ChildContent>

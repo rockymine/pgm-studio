@@ -102,7 +102,7 @@ if (views.undrawable) {
   const pinnedTo = (await page.locator(".notes-column__replymark span").textContent()) ?? "";
   checks.add("the reply box says what the box landed on", pinnedTo.startsWith("Box:"), pinnedTo.trim());
   await page.fill("#note-reply", "No, this patch.");
-  await page.locator(".notes-column__reply .action-btn--primary").click();
+  await page.locator(".notes-column__send .action-btn--primary").click();
   await page.waitForFunction(() => document.querySelectorAll(".note-message").length === 3, null, { timeout: 30000 });
   const pointed = (await notes()).find((note) => note.id === first.id)?.messages.at(-1)?.mark;
   checks.add("the reply keeps its mark", pointed?.kind === "box" && pointed.marks?.length === 2, JSON.stringify(pointed?.marks));
@@ -147,7 +147,7 @@ if (views.undrawable) {
 
   checks.section("a thread is resolved");
   await page.click("text=Resolve");
-  await page.waitForSelector(".notes-column__threadhead .note-status--resolved", { timeout: 15000 });
+  await page.waitForSelector(".notes-column__threadhead [data-status=resolved]", { timeout: 15000 });
   checks.add("Resolve closes the thread", (await notes()).find((note) => note.id === second.id)?.status === "resolved");
 
   checks.section("a thread with an after compares it with its before on the big picture");
@@ -167,7 +167,7 @@ if (views.undrawable) {
 
   checks.section("a thread is declined in the browser");
   await page.click("text=Won't do");
-  await page.waitForSelector(".notes-column__threadhead .note-status--wont-do", { timeout: 15000 });
+  await page.waitForSelector(".notes-column__threadhead [data-status=wont-do]", { timeout: 15000 });
   checks.add("Won't do declines it", (await notes()).find((note) => note.id === first.id)?.status === "wont-do");
 
   checks.section("the thread marks where the board changed, which opens History on it");

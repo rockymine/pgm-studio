@@ -27,6 +27,9 @@ namespace PgmStudio.Contracts;
 /// works on, and what makes a top-down block render available.</param>
 /// <param name="HasPlan">Whether a plan document is stored.</param>
 /// <param name="HasSketch">Whether a drawn sketch layout is stored.</param>
+/// <param name="YouWroteAt">When the caller last changed the map's documents themselves, in a browser rather
+/// than through a token (UTC), or absent where they never have. It is what the landing page's continue card
+/// picks the map from.</param>
 public sealed record MapSummary(
     string Slug,
     string Name,
@@ -38,7 +41,8 @@ public sealed record MapSummary(
     DateTime UpdatedAt,
     bool HasSurface = false,
     bool HasPlan = false,
-    bool HasSketch = false);
+    bool HasSketch = false,
+    DateTime? YouWroteAt = null);
 
 /// <summary>Map counts for the landing cards (GET /api/maps/stage-counts), each counting what the list its
 /// card opens shows.</summary>

@@ -45,8 +45,6 @@ never gets to choose on either kind.
 answerable over the API; what neither has is a step, so `TC7` and `TC9` sit with the surface that owes
 them one rather than with the contract work that shipped them.
 
-
-
 - [ ] **TC13 — An export with nothing in it is refused.** `GET /map/{slug}/export` on a map holding only a plan
   (no intent, no sketch, no world) answers 200 with a five-line `map.xml`: name, an empty version, the
   gamemode and an empty objective. EX1/EX2 gate only intent-authored maps, so nothing refuses it. Refuse it
@@ -73,7 +71,6 @@ The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash,
 what is gathered here is the parked and dormant slices of the same surface.
 
 ### Painting terrain
-
 
 - [ ] **WE60 — `repeat` names a cycle and holds a course.** `BandEnding.Repeat` makes the last band claim
   everything past the stack, which is what `BandStack.At` does and what the enum's own docstring says. The
@@ -451,7 +448,6 @@ Twelve judged donut boards at 20 and 30 players named what a larger composed boa
   *Evidence: `p16 mirror_z seed 1` — `frontline-t1 z[5,9)` docked on `hub-t2 z[9,13)` across `x[-6,7)`:
   52 × 32 blocks of unbroken ground.*
 
-
 `PieceInterfaces` turned every seam between two plan pieces into a read — its height delta, its typed wall,
 each side's frontline share, the straits between bridged islands — and the lint table quantifies over it
 (`SP8`/`SP9`/`ST8`/`ST9`/`BZ11`/`FR8`/`CT12`). What is left is one number nobody has stated, one read the
@@ -534,6 +530,16 @@ is the standard the copy is held to.
   (`#F3DCC8`/`#D55E00`), and a build zone as a dashed `#0072B2` outline — with the fanned half faint. Hub,
   front line and other become ground; their names live in the structure line under each card. Change `Key`,
   `PieceColor` and the SVG and PNG renderers together, and `--board-bg` to white. `docs/tools/generator.md`.
+
+- [ ] **C97 — One filter rail.** `/maps` filters in `Sidebar`, `/generator` in `.gen-filters`, `/catalog` in
+  `.lib-filters` and `/design` in its own nav, each with its own heading and count line. Fold the three that are
+  not `Sidebar` into it, so a rail's width, title and count are one component's. `docs/client/ui-conventions.md`.
+
+- [ ] **TS164 — Decoration's inspector widens only for its picker.** *Parked (author): judging from the
+  screenshots in the layout mockups' section 6.* `.workspace-inspector--wide` holds the
+  Decoration inspector at 420px (`editor.css:295`) against 280px everywhere else, so the canvas jumps 140px on
+  entering the phase while the wide column shows an empty state. Widen it only while a block or pattern picker
+  is open. `docs/tools/sketch.md`.
 
 - [ ] **C69 — A proportional UI font.** *Parked (author): waits on the design direction.* Every page is set
   in `ui-monospace` (`.editor-page`, `editor.css`), which reads as a terminal and is wider per word at the same

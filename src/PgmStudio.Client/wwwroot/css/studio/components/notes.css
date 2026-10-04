@@ -1,22 +1,17 @@
 /* A note's pin, on the picture and in the column: the shape says a picture (a teardrop) or the whole map (a
-   square), the colour where the thread stands. */
+   square). Every pin is one colour; where the thread stands is a word beside it, never a hue. */
 .note-pin {
-  width: 22px; height: 22px; flex: none; display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 11px 11px 11px 3px; color: #fff; font-size: var(--font-sm); font-weight: 700;
-  background: #2563eb;
+  --pin: calc(22px * var(--ui-scale));
+  width: var(--pin); height: var(--pin); flex: none; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: calc(var(--pin) / 2) calc(var(--pin) / 2) calc(var(--pin) / 2) 3px; font-size: var(--font-sm); font-weight: 700;
+  background: var(--accent-bg-hover); color: var(--text-white);
 }
 .note-pin--map { border-radius: 4px; }
-.note-pin--answered { background: #166534; }
-.note-pin--needs-info { background: #b45309; }
-.note-pin--wont-do { background: #475569; }
-.note-pin--resolved { background: #94a3b8; }
-.note-status { font-size: var(--font-xs); padding: 2px 7px; border-radius: 9px; white-space: nowrap; background: #dbeafe; color: #1d4ed8; }
-.note-status--answered { background: #dcfce7; color: #166534; }
-.note-status--needs-info { background: #fef3c7; color: #b45309; }
-.note-status--wont-do, .note-status--resolved { background: #e2e8f0; color: #475569; }
+.note-status { color: var(--text-muted); font-size: var(--font-sm); white-space: nowrap; }
+.notes-row__meta .note-status::after { content: " ·"; }
 
 .notes-column {
-  flex: none; width: 360px; min-height: 0; display: flex; flex-direction: column;
+  flex: none; width: calc(360px * var(--ui-scale)); min-height: 0; display: flex; flex-direction: column;
   background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;
 }
 .notes-column__head { padding: var(--space-3); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: var(--space-2); }
@@ -25,28 +20,38 @@
 .notes-column__kicker, .notes-column__group { font-size: var(--font-xs); font-weight: 700; letter-spacing: 0.5px; color: var(--text-muted); }
 .notes-column__group { margin-top: var(--space-2); }
 .notes-column__name { color: var(--text-strong); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.notes-column__filters { display: flex; flex-wrap: wrap; gap: 4px; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); }
+.notes-column__filters { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; gap: 4px; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); }
+.notes-column__filters .filter-chip { flex: none; white-space: nowrap; padding-inline: calc(6px * var(--ui-scale)); }
 .notes-column__list, .notes-column__thread {
   flex: 1; min-height: 0; overflow: auto; padding: var(--space-2) var(--space-3);
   display: flex; flex-direction: column; gap: var(--space-2);
 }
 .notes-column__empty { margin: 0; color: var(--text-muted); font-size: var(--font-sm); }
 .notes-column__error { margin: 0; color: var(--color-warning); font-size: var(--font-sm); }
-.notes-column__back { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer; }
-.notes-column__threadhead { display: flex; align-items: center; gap: var(--space-2); }
-.notes-column__threadtitle { flex: 1; min-width: 0; color: var(--text-strong); }
+.notes-column__back { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: var(--font-sm); cursor: pointer; }
+/* The thread's head: the pin beside a title of at most two lines, and the status on its own line under it. */
+.notes-column__threadhead {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--space-2); row-gap: var(--space-1); align-items: start;
+}
+.notes-column__threadtitle {
+  grid-column: 2; min-width: 0; color: var(--text-strong); font-size: var(--font-md); font-weight: 600; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
+}
+.notes-column__threadmeta { grid-column: 2; display: flex; align-items: center; gap: var(--space-2); }
 .notes-column__anchor {
   display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2);
   border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--bg-selected);
 }
 .notes-column__anchor p { margin: 0; color: var(--text-secondary); font-size: var(--font-sm); line-height: 1.5; }
-.notes-column__actions { display: flex; gap: var(--space-2); }
 .notes-column__compose { border-top: 1px solid var(--border); padding: var(--space-2) var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
-.notes-column__compose textarea { resize: vertical; min-height: 64px; font: inherit; }
+.notes-column__compose textarea { resize: vertical; min-height: calc(var(--control-height) * 2); font-size: var(--font-md); line-height: 1.4; }
 .notes-column__label { font-size: var(--font-sm); color: var(--text-secondary); }
-.notes-column__send { display: flex; align-items: center; gap: var(--space-2); }
+/* The compose footer: what the thread can be closed as on the left, Send on the right. */
+.notes-column__send { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.notes-column__send .action-btn { min-height: var(--control-height); }
+.notes-column__send > :last-child { margin-left: auto; }
 .notes-column__hint { flex: 1; color: var(--text-muted); font-size: var(--font-sm); }
-.notes-column__sent { flex: 1; color: var(--color-success); font-size: var(--font-sm); font-weight: 600; }
+.notes-column__sent { color: var(--color-success); font-size: var(--font-sm); font-weight: 600; }
 .notes-column__replymark {
   display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-2);
   border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--bg-selected);
@@ -64,49 +69,54 @@
   padding: 0; border: 0; background: none; cursor: pointer; color: var(--accent); font: inherit; font-size: var(--font-sm);
 }
 .notes-column__landed::before, .notes-column__landed::after { content: ""; border-top: 1px dashed var(--accent); opacity: 0.6; }
-.notes-column__landed:hover, .notes-column__landed:focus-visible { text-decoration: underline; outline: none; }
-.notes-column__reply { display: flex; align-items: flex-end; gap: var(--space-2); }
-.notes-column__reply textarea { flex: 1; min-width: 0; }
+.notes-column__landed:hover { text-decoration: underline; }
 
 .notes-row {
-  display: flex; gap: var(--space-2); padding: var(--space-2); text-align: left;
+  display: flex; flex-direction: column; gap: 3px; padding: var(--space-2); text-align: left;
   border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-base);
   color: inherit; font: inherit; cursor: pointer;
 }
-.notes-row:hover, .notes-row:focus-visible { border-color: var(--accent); outline: none; }
-.notes-row__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.notes-row__top { display: flex; gap: var(--space-1); align-items: center; }
-.notes-row__top b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.notes-row__last { color: var(--text-secondary); font-size: var(--font-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notes-row:hover { border-color: var(--accent); }
+.notes-row > b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The row's second line: the status, then as much of the last message as fits. */
+.notes-row__meta { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.notes-row__last { flex: 1; min-width: 0; color: var(--text-secondary); font-size: var(--font-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The row's foot, the way a chat app previews a thread: the note's pin, then how many messages it holds. */
+.notes-row__thread { display: flex; align-items: center; gap: var(--space-2); margin-top: 2px; color: var(--text-secondary); font-size: var(--font-sm); font-variant-numeric: tabular-nums; }
 
 /* A thread reads as a chat: each message a bubble beside its writer's mark, a player's head for a person and the
    agent mark for an agent. The caller's own sit on the right in the accent's tint, an agent's on the left in its
-   violet, and anyone else's on the left in the page's own colour. */
+   violet, and anyone else's on the left in the page's own colour. A message following one by the same writer
+   within a few minutes continues it: no mark and no header, only the bubble. */
 .note-message { --agent-hue: var(--agent); display: flex; gap: var(--space-2); align-items: flex-start; }
 .note-message--mine { flex-direction: row-reverse; }
 .note-message__avatar { flex: none; display: inline-flex; }
 .note-message__avatar .author-mark { border-radius: 5px; }
 .note-message__bubble {
   min-width: 0; max-width: 88%; display: flex; flex-direction: column; gap: 4px;
-  padding: var(--space-2); border: 1px solid var(--border); border-radius: 10px 10px 10px 3px;
+  padding: var(--space-2); border: 1px solid var(--border); border-radius: 3px 10px 10px 10px;
   background: var(--bg-base);
 }
 .note-message--mine .note-message__bubble {
-  border-radius: 10px 10px 3px 10px; border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 10px 3px 10px 10px; border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
   background: color-mix(in srgb, var(--accent) 14%, var(--bg-panel));
 }
 .note-message--agent .note-message__bubble {
   border-color: color-mix(in srgb, var(--agent-hue) 40%, var(--border));
   background: color-mix(in srgb, var(--agent-hue) 12%, var(--bg-panel));
 }
+.note-message--cont { margin-top: calc(var(--space-1) - var(--space-2)); }
+.note-message--cont .note-message__avatar { visibility: hidden; }
+.note-message--cont .note-message__who { display: none; }
+.note-message--cont .note-message__bubble { border-radius: 10px; }
 .note-message__who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; font-size: var(--font-sm); color: var(--text-muted); }
 .note-message__who b { color: var(--text-bright); }
 .note-message__badge {
   font-size: var(--font-xs); font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; padding: 0 5px;
   border-radius: 6px; color: var(--agent-hue); border: 1px solid color-mix(in srgb, var(--agent-hue) 50%, transparent);
 }
-.note-message__body { line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-message__body { font-size: var(--font-md); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .note-message__mark { display: flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: var(--font-xs); }
-.note-message__mark svg { width: 12px; height: 12px; flex: none; }
+.note-message__mark svg { width: var(--icon-xs); height: var(--icon-xs); flex: none; }
 .note-message__picture { display: flex; flex-direction: column; gap: 2px; color: var(--text-muted); font-size: var(--font-xs); text-decoration: none; }
-.note-message__picture img { width: 100%; border-radius: var(--radius-sm); display: block; }
+.note-message__picture img { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: var(--radius-sm); display: block; }

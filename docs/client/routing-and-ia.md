@@ -24,7 +24,7 @@ shown, never name one.
 
 | Route | Component | Is |
 |---|---|---|
-| `/` | `Index` | the landing — seven cards over live counts |
+| `/` | `Index` | the landing — the map to continue, then seven cards over live counts |
 | `/maps` | `Maps` | every map in one table; `?stage=`, `?author=`, `?gamemode=` and `?sort=` are its filters |
 | `/maps/{slug}/plan` | `PlanTool` | the plan tool on a map |
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
@@ -91,19 +91,28 @@ A search box over the table narrows it by name, slug or author and stays out of 
 carries **New plan**, **New sketch** and **Import a world** whatever the filters are.
 
 **A row opens the tool at its map's stage.** A map at `edit` has no tool at its stage, so its row opens the
-last layer it holds — Configure, where it has a world — and one holding no layer opens nothing. The Layers
-column links every layer the map holds straight into its tool, so a configured map's plan and sketch are one
-click away from its row whatever stage filter is on.
+last layer it holds — Configure, where it has a world — and one holding no layer opens nothing. The **Open in**
+column is three fixed slots, Plan · Sketch · Configure, in the same place on every row. A layer the map holds is
+a link straight into its tool, so a configured map's plan and sketch are one click away whatever stage filter is
+on; the one the row opens is outlined and carries the stage's dot, which is how the table says where a map
+stands; a layer it lacks is an empty dashed slot. Below 1200px the table drops Gamemode and keeps the slots.
 
-`GET /api/maps` serves the table: every map, each with its stage, layers, credited authors and when it was
-last written, filtered on the client. Its own `?stage=` keeps the collection meaning an agent drives it by —
+`GET /api/maps` serves the table: every map, each with its stage, layers, credited authors, when it was last
+written, and `youWroteAt` — when the caller last changed its documents themselves, in a browser rather than
+through a token, read off the change log by account (or, for an open studio's local admin, by name) — filtered on
+the client. Its own `?stage=` keeps the collection meaning an agent drives it by —
 `plan` and `sketch` list the maps holding that layer — while the page's chips filter by where a map stands.
 `GET /api/maps/stage-counts` gives the landing tallies, each counting what the page shows when that card opens
 it.
 
 ## The landing
 
-Seven cards in two groups. The first four are where authoring starts — **Plan a layout** (the maps page at the plan stage),
+**The map the reader last changed comes first.** Where `GET /api/maps` gives any map a `youWroteAt`, the newest
+one is offered above everything else as *Continue where you left off*: its name, when the reader changed it, and
+a link straight into the tool its row on the maps page opens. A reader who has changed no map, or is signed out,
+sees no such card.
+
+Then seven cards in two groups. The first four are where authoring starts — **Plan a layout** (the maps page at the plan stage),
 **Browse generated layouts** (`/generator`), **Shape catalog** (`/catalog`) and **Library**
 (`/library`) — three of which need no map at all. The last three are the map lifecycle — **Sketch**,
 **Configure**, **Maps** — each opening the maps page at that stage and carrying its live count.

@@ -87,15 +87,20 @@
         {
         <Sidebar>
             <div class="plan-panel-switch">
-              @if (showReference)
-              {
-              <Chip Active="@(leftPanel == "settings")" OnClick='() => SetPanel("settings")'>Settings</Chip>
-              }
-              <Chip Active="@(leftPanel == "validation")" OnClick='() => SetPanel("validation")'>Checks</Chip>
-              @if (showBoxes)
-              {
-              <Chip Active="@(leftPanel == "feasibility")" OnClick='() => SetPanel("feasibility")'>Generator check</Chip>
-              }
+              <div class="panel-tabs" role="tablist">
+                @if (showReference)
+                {
+                <button type="button" role="tab" class="@PanelTab("settings")" aria-selected="@(leftPanel == "settings")"
+                        @onclick='() => SetPanel("settings")'>Settings</button>
+                }
+                <button type="button" role="tab" class="@PanelTab("validation")" aria-selected="@(leftPanel == "validation")"
+                        @onclick='() => SetPanel("validation")'>Checks</button>
+                @if (showBoxes)
+                {
+                <button type="button" role="tab" class="@PanelTab("feasibility")" aria-selected="@(leftPanel == "feasibility")"
+                        title="Generator check" @onclick='() => SetPanel("feasibility")'>Generator</button>
+                }
+              </div>
               <Button Variant="icon" Icon="panel-left-close" Title="Hide panel" OnClick="ToggleSidebar" />
             </div>
             @if (showReference && leftPanel == "settings")
@@ -212,7 +217,7 @@
               <Actions>
                 @if (evaluation is not null)
                 {
-                  <Badge Class="@(evaluation.Valid ? "badge--success" : "badge--error")" title="Score. Lower is better, and 0 is best.">@evaluation.Score.ToString("0.##")</Badge>
+                  <Badge Class="@(evaluation.Valid ? "badge--success" : "badge--error")" title="Problems found">@evaluation.Violations.Count</Badge>
                 }
               </Actions>
               <ChildContent>
@@ -226,6 +231,7 @@
                 }
                 else
                 {
+                  <p class="plan-readout" title="0 is best">Score @evaluation.Score.ToString("0.##") · lower is better</p>
                   <div class="plan-lint-list">
                     @for (var i = 0; i < evaluation.Violations.Count; i++)
                     {

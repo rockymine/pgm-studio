@@ -82,7 +82,7 @@ the row carries), and `DetailHeader` (an inspector head: icon, label, trailing b
 only* tag on a read-only page, and the tool's actions; `AppFooter` closes every page with the keyboard
 shortcuts, the design reference and the repository; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from; `FlowBar` is the phase/step nav the stepped tools share; `AppFooterLink` and `SideDrawer`
+arranges itself from; `PageHeading` is the one heading a browse or admin page opens on; `FlowBar` is the phase/step nav the stepped tools share; `AppFooterLink` and `SideDrawer`
 finish the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
@@ -157,7 +157,7 @@ what lets the page say so before an edit rather than after it.
 
 **A set the reader can tick several of leads each chip with a checkbox.** `filter-group-options--multi` on the
 chip row draws the box, ticked when the chip is on, and moves the chip's count to its right edge; a row where
-exactly one option holds (a symmetry, a panel switch) carries no box. The generator and the shape catalog
+exactly one option holds (a symmetry) carries no box. The generator and the shape catalog
 title their rails for what the rail does — *Layout settings*, *Filter by shape*, *Filter shapes* — rather
 than *Filters*, and every change in them applies at once: there is no Apply button to forget.
 
@@ -173,6 +173,50 @@ token or a `calc` over the scale. Text drawn on a canvas is outside every styles
 
 The default type scale is 15 / 14 / 13 / 12 / 11px, and a button is at least 28px tall at the default size,
 above the 24 × 24px minimum target size of WCAG 2.2 (2.5.8).
+
+## How a row of things lines up
+
+**A single-line field is the control height, and so is every control in a row with one.** `.field-input` that is
+not a `<textarea>` is `--control-height` tall, so a search box beside a `Select`, or a name beside a role and
+an **Add**, meet on one line; a row that mixes them gives its children that height rather than letting each
+size itself from its own padding. A composer is the other way up: the text box takes the full width and the
+buttons sit in a footer under it, what the thing can be closed as on the left and **Send** on the right, so a
+tall box never leaves a short button hanging beside it.
+
+**A list row's name is the part that keeps its width.** Where a row carries a name and facts about it — a
+badge, a time, a coordinate — the name takes the first line and the facts go on a second line under it
+(`list-row--two-line`, `list-row__text`, `list-row__meta`), so the name is never what is cut short to make room
+for them. A name that can still be cut carries itself as its `title`. A table does the same across columns:
+a name and a slug each stay on one line and are cut, and below a wide screen the table drops columns rather
+than scrolling sideways.
+
+**One of several panels is a tab, not a chip.** A sidebar that holds several panels and shows one at a time
+switches them with `.panel-tabs` — the flow bar's underlined `.flow-step`s — because a chip reads as a filter
+switched on, and a row of full buttons crowds a narrow column.
+
+**A page opens on its name.** The crumb in the tool bar navigates and is too small to say where the reader is,
+so every browse and admin page — Maps, the generator, the shape catalog, the library and each of its kinds,
+Users, Tokens — opens on one `PageHeading`: the crumb's word at `--font-xl`, a line saying what the page is for,
+and the page's own actions on the right. A tool that works on a canvas does not: its flow bar names the phase,
+and the canvas wants the height.
+
+**Every page's tool bar is one height.** `.topbar` is at least a control and its padding tall whether it
+carries a button or only the crumbs, so moving between pages never moves the content under it.
+
+**A status is a word before it is a colour.** A check's result is a `Badge` in the meaning variant that fits
+it. A list whose every row has a state — a note's thread — says the state as a muted word instead, because five
+statuses in three hues make every row ask for attention. Any colour that is drawn comes from the tokens: one
+written straight into a component's stylesheet does not follow the theme, and reads as a pastel patch in the
+dark one.
+
+**Keyboard focus is one ring.** `:focus-visible` draws a 2px accent outline outside the element everywhere,
+and a text field, which holds focus however it was reached, rings itself in the accent instead. A rule never
+removes the outline to make focus look like hover.
+
+**Instructions are `section-desc`; a computed fact is `plan-readout`.** Prose telling the author what to do
+— *Press where the camera should stand*, *Drag to move it* — reads as panel body text in the secondary colour;
+a line the panel computed — a count, a height, a score — is a readout. The two look different because a
+reader skims one and reads the other.
 
 ## The words a form writes, and where they are declared
 

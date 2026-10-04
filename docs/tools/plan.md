@@ -588,13 +588,13 @@ implies, `CoreCasing.Of`, and the dig depth, `CoreDig.Depth` — client twins of
 and `ObjectiveDefaults.DigDepth`, which the WASM half cannot reach, each pinned to its authority by a drift
 test (`CoreCasingDriftTests`, `CoreDigDepthDriftTests`) and shared with the Configure wizard's casing step.
 
-Up to three panels share the sidebar, switched by the chips at its head, beside the button that folds the
+Up to three panels share the sidebar, switched by the underlined tabs at its head, the step bar's own look, beside the button that folds the
 sidebar away. **Settings** holds the tracing reference: a map whose top-down view is drawn as a backdrop on the
 canvas. It is offered only on an open studio, the same gate as Configure's world folders, because on a shared
 studio the one use of tracing another author's map is copying it; elsewhere the chip is absent and the sidebar
 opens on Checks. The overlays — land interfaces, frontline edges, labels, and a
-height-map fill that tints pieces by surface — are chips on the canvas itself. **Checks** shows the evaluator's score and every fired rule, and clicking a row isolates that rule's
-evidence on the canvas. **Generator check**, an admin's panel, shows the producibility read per box, and clicking a box that nothing
+height-map fill that tints pieces by surface — are chips on the canvas itself. **Checks** counts the fired rules at its head, states the evaluator's score over them, and lists every one;
+clicking a row isolates that rule's evidence on the canvas. **Generator**, an admin's panel (the generator check), shows the producibility read per box, and clicking a box that nothing
 reproduces paints its nearest miss — the cells a candidate emits that the box does not, and the cells the box
 has that it does not. Each panel owns its overlay and drops it on leaving, folded away included. The feeds are
 debounced by 300 ms after an edit and guard against stale responses; the producibility feed runs only while

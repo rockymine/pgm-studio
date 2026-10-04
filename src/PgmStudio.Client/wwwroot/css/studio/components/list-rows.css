@@ -5,9 +5,9 @@
 .list-row {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 6px 4px;
-  min-height: 34px;
+  gap: var(--space-2);
+  padding: calc(6px * var(--ui-scale)) var(--space-1);
+  min-height: calc(34px * var(--ui-scale));
   cursor: pointer;
   user-select: none;
   border-radius: var(--radius-sm);
@@ -19,7 +19,16 @@ a.list-row          { color: inherit; text-decoration: none; }
   box-shadow: var(--shadow-ring);
 }
 .list-row--selected .list-label { color: var(--text-bright); }
-.list-row--compact  { min-height: 28px; padding: 5px 4px; gap: 8px; }
+.list-row--compact  { min-height: calc(28px * var(--ui-scale)); padding: calc(5px * var(--ui-scale)) var(--space-1); }
+/* A row whose label keeps the width: what it says on the first line, what is known about it on a second line
+   under it, so the label is never the part that is cut short. */
+.list-row--two-line { align-items: flex-start; }
+.list-row__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.list-row__meta {
+  display: flex; align-items: center; gap: var(--space-2); min-width: 0;
+  font-size: var(--font-sm); color: var(--text-muted); font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .list-row--muted    { pointer-events: none; }
 /* A row whose click writes, for a caller who may not write (ListRow.Writes): it keeps its hover, for the
    reason it shows, and drops its pointer and its highlight. */

@@ -5,14 +5,13 @@
 .lib-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 
 .lib-filters {
-  flex-shrink: 0; width: 240px; padding: var(--space-3);
+  flex-shrink: 0; width: var(--sidebar-width); padding: var(--space-3);
   border-right: 1px solid var(--border); overflow-y: auto;
   display: flex; flex-direction: column; gap: var(--space-3);
 }
 
 .lib-main { flex: 1; min-width: 0; overflow-y: auto; padding: var(--space-3); }
-.lib-intro { margin: 0 0 var(--space-3); max-width: 62ch; font-size: var(--font-sm); color: var(--text-secondary); }
-.lib-count { margin: 0 0 var(--space-2); font-size: var(--font-xs); color: var(--text-secondary); }
+.lib-count { margin: 0 0 var(--space-2); font-size: var(--font-sm); color: var(--text-secondary); }
 .lib-status { text-align: center; color: var(--text-secondary); font-size: var(--font-sm); padding: var(--space-3); }
 
 .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(210px * var(--ui-scale)), 1fr)); gap: var(--space-3); }
@@ -87,9 +86,6 @@ a.lib-card-fig { text-decoration: none; }
 .lib-card:hover { border-color: var(--text-muted); }
 
 /* ── the chooser: every library, grouped, over what each one holds ───────────────────────────────── */
-.lib-hero { margin-bottom: var(--space-5); }
-.lib-hero-title { margin: 0 0 var(--space-2); font-size: var(--font-2xl); color: var(--text-bright); }
-.lib-hero-lead { margin: 0; max-width: 72ch; font-size: var(--font-md); color: var(--text-secondary); }
 .lib-group { margin-bottom: var(--space-6); }
 .lib-group-title {
   margin: 0 0 var(--space-3); font-size: var(--font-xs); font-weight: 600; letter-spacing: 0.08em;

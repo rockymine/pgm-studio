@@ -134,12 +134,10 @@
                 <span class="ingame__thumb">
                   <SketchEyePicture Slug="@Slug" Query="@view.Query" Round="Round" Alt="@view.Name" />
                   @if (Notes.Allowed && count > 0) { <span class="ingame__count">@count</span> }
+                  @if (view.Picture) { <Badge Kind="neutral" Class="ingame__flag">map picture</Badge> }
+                  else if (view.Kept) { <Badge Kind="neutral" Class="ingame__flag">kept</Badge> }
                 </span>
-                <span class="ingame__caption">
-                  <span class="ingame__cardname">@view.Name</span>
-                  @if (view.Picture) { <Badge Kind="neutral">map picture</Badge> }
-                  else if (view.Kept) { <Badge Kind="neutral">kept</Badge> }
-                </span>
+                <span class="ingame__cardname">@view.Name</span>
               </button>
             }
           </div>

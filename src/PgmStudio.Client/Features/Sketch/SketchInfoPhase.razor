@@ -3,8 +3,9 @@
 @inject IJSRuntime JS
 
 @* Sketch Info phase — two steps: Identity (display name + authors, saved to the map metadata via
-   GET/PATCH api/map/{slug}, since sketches are map rows) and Settings (symmetry mode + centre, which
-   drive the live canvas through the host's callbacks). Continue on the last step advances to Draw. *@
+   GET/PATCH api/map/{slug}, since sketches are map rows, as they are typed) and Settings (symmetry mode +
+   centre, which drive the live canvas through the host's callbacks). Continue on the last step advances to
+   Draw. *@
 
 <div class="phase-body">
   <FlowBar Class="flow-bar--flush" PhaseIcon="book-open-text" PhaseTitle="Info"
@@ -24,12 +25,7 @@
 
         <AuthorsEditor Authors="authors" OnChanged="Dirty" />
 
-        <Section>
-          <div class="panel-actions">
-            <Button Variant="primary" Disabled="@(!dirty)" Writes OnClick="Save">Save changes</Button>
-            <span class="panel-save-status">@saveStatus</span>
-          </div>
-        </Section>
+        @if (loadError is not null) { <p class="field-error">@loadError</p> }
       }
       else
       {

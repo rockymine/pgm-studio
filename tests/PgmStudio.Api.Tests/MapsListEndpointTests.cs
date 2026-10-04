@@ -45,6 +45,42 @@ public sealed class MapsListEndpointTests
     }
 
     [Test]
+    public async Task A_map_says_when_the_caller_last_wrote_it_themselves()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var slugs = new List<string>();
+        foreach (var name in new[] { "Mine", "By token", "Theirs" })
+        {
+            var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name }))
+                .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+            var put = await client.PutAsJsonAsync($"/api/map/{slug}/sketch", new
+            {
+                setup = new { mirror_mode = "mirror_x", center = new { cx = 0, cz = 0 } },
+                layers = new object[] { new { id = "ground", base_y = 0, layout = new
+                {
+                    shapes = new object[] { new { id = "s1", type = "rectangle", operation = "add", @override = false, min_x = 10, max_x = 40, min_z = -20, max_z = 20 } },
+                    groups = new object[] { new { id = "i1", name = "East", mirrors = true, shapeIds = new[] { "s1" } } },
+                } } },
+            });
+            await Assert.That(put.IsSuccessStatusCode).IsTrue();
+            slugs.Add(slug);
+        }
+        await ApiTestFactory.ExecuteAsync($"UPDATE map_change SET token_label = 'agent' WHERE map_slug = '{slugs[1]}'");
+        await ApiTestFactory.ExecuteAsync(
+            $"UPDATE map_change SET writer_uuid = 'someone-else', writer_name = 'Someone' WHERE map_slug = '{slugs[2]}'");
+
+        var maps = (await client.GetFromJsonAsync<JsonElement[]>("/api/maps"))!
+            .ToDictionary(map => map.GetProperty("slug").GetString()!);
+        bool Wrote(string slug) => maps[slug].TryGetProperty("youWroteAt", out var at) && at.ValueKind == JsonValueKind.String;
+
+        await Assert.That(Wrote(slugs[0])).IsTrue();
+        await Assert.That(Wrote(slugs[1])).IsFalse();
+        await Assert.That(Wrote(slugs[2])).IsFalse();
+    }
+
+    [Test]
     public async Task Finishing_a_sketch_advances_its_stage_and_keeps_its_sketch_layer()
     {
         await ApiTestFactory.ResetSchemaAsync();

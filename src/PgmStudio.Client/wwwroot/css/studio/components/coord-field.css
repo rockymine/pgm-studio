@@ -15,7 +15,7 @@
   width: 68px;
   outline: none;
 }
-.coord-input:focus { border-color: var(--accent); }
+.coord-input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
 .coord-field {
   flex: 1;

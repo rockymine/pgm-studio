@@ -1,0 +1,9 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* Where a note's thread stands, as a muted word: the status says itself in words, never in a colour. *@
+
+<span class="note-status" data-status="@Status">@NoteStatuses.Label(Status)</span>
+
+@code {
+    [Parameter, EditorRequired] public string Status { get; set; } = default!;
+}

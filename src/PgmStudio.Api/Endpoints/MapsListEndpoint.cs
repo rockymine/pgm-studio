@@ -1,4 +1,5 @@
 using FastEndpoints;
+using PgmStudio.Api.Access;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -17,14 +18,16 @@ namespace PgmStudio.Api.Endpoints;
 /// lifecycle positions, so they list the maps standing there.</para>
 ///
 /// <para>Every row carries its credited authors and when it was last written, which is what the Maps page
-/// filters and sorts by.</para>
+/// filters and sorts by, and when the caller last wrote it themselves, which is what the landing page's
+/// continue card picks from.</para>
 ///
 /// <para>Every row carries its layers either way (<see cref="MapSummary.HasPlan"/> /
 /// <see cref="MapSummary.HasSketch"/> / <see cref="MapSummary.HasSurface"/>), so the list can offer each
 /// tool the map has been through directly rather than walking a map back one stage at a time. One artifact
 /// query serves the flags and the layer filter alike.</para>
 /// </summary>
-public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<List<MapSummary>>
+public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifacts, MapChangeLog changes, Callers callers)
+    : EndpointWithoutRequest<List<MapSummary>>
 {
     public override void Configure()
     {
@@ -56,13 +59,18 @@ public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifa
 
         var gamemodes = await repo.GamemodesAsync(ct);
         var credited = await repo.AuthorsAsync(ct);
+        var caller = await callers.OfAsync(HttpContext, ct);
+        var wrote = caller.SignedIn
+            ? await changes.LastWrittenByAsync(caller.Uuid, caller.Uuid is null ? caller.Name : null, ct)
+            : new Dictionary<string, DateTime>();
         await Send.OkAsync(
             maps.Select(m => new MapSummary(
                 m.Slug, m.Name, gamemodes.GetValueOrDefault(m.Id, []),
                 m.Version, m.Objective, m.Stage,
                 [.. credited.GetValueOrDefault(m.Id, []).Select(a => new MapAuthorDto(a.Uuid, a.Role, a.Contribution, a.Name))],
                 DateTime.SpecifyKind(m.UpdatedAt, DateTimeKind.Utc),
-                withSurface.Contains(m.Id), withPlan.Contains(m.Id), withSketch.Contains(m.Id))).ToList(), ct);
+                withSurface.Contains(m.Id), withPlan.Contains(m.Id), withSketch.Contains(m.Id),
+                wrote.TryGetValue(m.Slug, out var at) ? at : null)).ToList(), ct);
     }
 }
 

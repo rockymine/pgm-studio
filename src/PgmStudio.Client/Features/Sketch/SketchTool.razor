@@ -17,6 +17,7 @@
         <Crumb Dim>Sketch</Crumb>
       </Crumbs>
       <Right>
+        @if (InfoActive && infoSave is not null) { <span class="topbar-save-status">@infoSave</span> }
         @if (saveError is not null) { <span class="topbar-crumb topbar-crumb--warn" title="@saveError">@saveError</span> }
         @if (downloadError is not null) { <span class="topbar-crumb topbar-crumb--warn" title="@downloadError">@downloadError</span> }
         @if (exportRefused) { <Button Href="@($"maps/{Slug}/configure")" Icon="settings-2">Open Configure</Button> }
@@ -43,7 +44,7 @@
       <WriteGate OnChanged="OnWriteReason" />
       @if (InfoActive)
       {
-        <SketchInfoPhase Slug="@Slug" OnNext="GoDraw" OnRenamed="renamed => mapName = renamed"
+        <SketchInfoPhase Slug="@Slug" OnNext="GoDraw" OnRenamed="renamed => mapName = renamed" OnSaveStatus="status => infoSave = status"
                          Mode="@mode" CenterX="@centerX" CenterZ="@centerZ"
                          OnModeChange="OnModeChange" OnCenterX="OnCenterX" OnCenterZ="OnCenterZ" />
       }

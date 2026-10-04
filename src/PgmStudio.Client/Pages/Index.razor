@@ -24,6 +24,18 @@
           </header>
 
           <div class="landing-choices">
+            @if (last is { } continued)
+            {
+              <a class="card card--action landing-plan landing-continue" href="@($"maps/{continued.Map.Slug}/{continued.Opens}")">
+                <span class="card-icon"><i data-lucide="history"></i></span>
+                <div class="landing-plan-body">
+                  <span class="landing-continue-kicker">Continue where you left off</span>
+                  <span class="card-title">@continued.Map.Name</span>
+                  <p class="card-desc">You changed it @Moments.Ago(continued.Map.YouWroteAt!.Value).</p>
+                </div>
+                <span class="card-foot-go landing-plan-go">Open in @LayerLabel(continued.Opens) <i data-lucide="arrow-right"></i></span>
+              </a>
+            }
             <a class="card card--action landing-plan" href="maps?stage=plan">
               <span class="card-icon"><i data-lucide="layout-grid"></i></span>
               <div class="landing-plan-body">

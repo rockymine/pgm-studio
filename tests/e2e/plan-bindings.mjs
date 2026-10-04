@@ -33,7 +33,7 @@ async function structure() {
   const rail = await page.locator(".nav-rail .nav-btn").evaluateAll(els => els.map(el => el.title));
   const phase = (await texts(".phase-body:not([hidden]) .flow-bar-phase")).join();
   const next = (await texts(".phase-body:not([hidden]) .flow-bar-actions .action-btn--primary")).join();
-  const chips = await texts(".plan-panel-switch .filter-chip");
+  const chips = await texts(".plan-panel-switch .flow-step");
 
   // The sidebar folds away and comes back, and the canvas is what takes the width.
   await page.click('button[title="Hide panel"]');
@@ -67,7 +67,7 @@ try {
 
   const expected = JSON.stringify({
     rail: ["Info", "Draw"], phase: "Draw", next: "Compile",
-    chips: ["Settings", "Checks", "Generator check"], folds: true,
+    chips: ["Settings", "Checks", "Generator"], folds: true,
   });
   checks.add("a map-backed plan has the rail, the flow bar, the chips and a folding sidebar", onMap === expected, onMap);
   checks.add("a plan row has the same", onRow === onMap, onRow);

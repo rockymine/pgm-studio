@@ -26,6 +26,7 @@
 @import url("components/step-row.css");
 @import url("components/console.css");
 @import url("components/section-description.css");
+@import url("components/page-heading.css");
 @import url("components/inspector-header.css");
 @import url("components/coord-field.css");
 @import url("components/topbar-icon-button.css");
@@ -33,6 +34,7 @@
 @import url("components/callout.css");
 @import url("components/landing.css");
 @import url("components/keyboard.css");
+@import url("components/canvas-strips.css");
 @import url("components/in-game.css");
 @import url("components/notes.css");
 @import url("components/history.css");

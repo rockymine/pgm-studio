@@ -21,7 +21,7 @@ public partial class SketchNotesColumn : IDisposable
     public const string All = "all", WaitingOnYou = "you", WithAgent = "agent", Done = "resolved";
 
     private static readonly (string Id, string Label)[] Filters =
-        [(All, "All"), (WaitingOnYou, "Waiting on you"), (WithAgent, "With agent"), (Done, "Resolved")];
+        [(All, "All"), (WaitingOnYou, "Waiting"), (WithAgent, "With agent"), (Done, "Resolved")];
 
     [Parameter] public NotesStep Step { get; set; }
     [Parameter] public IReadOnlyList<MapNoteDto> Notes { get; set; } = [];
@@ -104,6 +104,14 @@ public partial class SketchNotesColumn : IDisposable
         Notes.Where(note => note.Anchor.ViewId is { } view && view != ViewId && !ViewIds.Contains(view));
 
     private bool Passes(MapNoteDto note) => Passes(note, Filter);
+
+    /// <summary>What a filter's hover says it keeps.</summary>
+    private static string? FilterTitle(string filter) => filter switch
+    {
+        WaitingOnYou => "Waiting on you: answered, or the agent asked for more",
+        WithAgent => "Open, waiting for the agent",
+        _ => null,
+    };
 
     /// <summary>Whether <paramref name="note"/> is one <paramref name="filter"/> shows.</summary>
     public static bool Passes(MapNoteDto note, string filter) => filter switch
@@ -206,22 +214,44 @@ public partial class SketchNotesColumn : IDisposable
         note.Messages.LastOrDefault() is { } last
             ? (last.Token is null ? last.Body : $"{Writers.Name(last.Author, last.Token)}: {last.Body}") : "";
 
-    /// <summary>A message's class: an agent's, the caller's own, or another person's, which is where it sits
-    /// and what colour its bubble is.</summary>
-    private string MessageClass(NoteMessageDto message) =>
-        message.Token is not null ? "note-message note-message--agent"
-        : string.Equals(message.AuthorUuid, MeUuid, StringComparison.OrdinalIgnoreCase) ? "note-message note-message--mine"
-        : "note-message";
+    /// <summary>How close together two messages by one writer have to be for the second to continue the first.</summary>
+    private static readonly TimeSpan ContinuesWithin = TimeSpan.FromMinutes(10);
+
+    /// <summary>The class of message <paramref name="index"/>: an agent's, the caller's own, or another person's,
+    /// which is where it sits and what colour its bubble is, and whether it continues the one before it.</summary>
+    private string MessageClass(MapNoteDto note, int index)
+    {
+        var message = note.Messages[index];
+        var kind = message.Token is not null ? "note-message note-message--agent"
+            : string.Equals(message.AuthorUuid, MeUuid, StringComparison.OrdinalIgnoreCase) ? "note-message note-message--mine"
+            : "note-message";
+        return Continues(note, index) ? kind + " note-message--cont" : kind;
+    }
+
+    /// <summary>Whether message <paramref name="index"/> continues the one before it: the same writer and account, within
+    /// <see cref="ContinuesWithin"/>, with no change landed between them.</summary>
+    private bool Continues(MapNoteDto note, int index)
+    {
+        if (index == 0) return false;
+        var before = note.Messages[index - 1];
+        var message = note.Messages[index];
+        return message.Author == before.Author && message.Token == before.Token
+            && string.Equals(message.AuthorUuid, before.AuthorUuid, StringComparison.OrdinalIgnoreCase)
+            && message.At - before.At < ContinuesWithin
+            && Landed(before.Change, message.Change) == 0;
+    }
 
     /// <summary>What a note's pin carries: its number, or nothing for a note on the whole map.</summary>
     public static string Glyph(MapNoteDto note) =>
         note.Anchor.Kind == NoteAnchors.Map ? "" : note.Id.ToString(CultureInfo.InvariantCulture);
 
-    /// <summary>The pin's class: its shape says whether it is on the map or a picture, its colour the status.</summary>
+    /// <summary>The pin's class: its shape says whether the note is on the map or on a picture.</summary>
     public static string PinClass(MapNoteDto note) =>
-        $"note-pin note-pin--{note.Status}" + (note.Anchor.Kind == NoteAnchors.Map ? " note-pin--map" : "");
+        note.Anchor.Kind == NoteAnchors.Map ? "note-pin note-pin--map" : "note-pin";
 
-    private static string StatusClass(string status) => $"note-status note-status--{status}";
+    /// <summary>How many messages a thread holds, as the row's foot says it.</summary>
+    public static string MessageCount(MapNoteDto note) =>
+        note.Messages.Count == 1 ? "1 message" : $"{note.Messages.Count} messages";
 
     private static string Ago(DateTime at) => Moments.Ago(at);
 

@@ -34,18 +34,19 @@
 }
 .ingame__moved > span { flex: 1; }
 
-/* The stage: one picture enlarged with the gallery under it, and the notes column beside them. */
-.ingame--stage { display: flex; gap: var(--space-3); overflow: hidden; }
+/* The stage: one picture enlarged with the gallery under it, and the notes column beside them. The picture's
+   width is the head's too, so the head's buttons end where the picture does. */
+.ingame--stage { --picture-width: min(100%, calc((100vh - 400px) * 16 / 9)); display: flex; gap: var(--space-3); overflow: hidden; }
 .ingame__main {
   flex: 1; min-width: 0; min-height: 0; overflow: auto; outline: none;
   display: flex; flex-direction: column; gap: var(--space-2);
 }
-.ingame__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.ingame__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); width: var(--picture-width); min-width: 320px; }
 .ingame__name { flex: 1; min-width: 0; color: var(--text-strong); font-weight: 600; }
 
 /* The picture and everything drawn over it share one box, so a mark's pixels and a pin's percentages land on
    the picture however large it is drawn. */
-.ingame__frame { position: relative; width: min(100%, calc((100vh - 400px) * 16 / 9)); min-width: 320px; }
+.ingame__frame { position: relative; width: var(--picture-width); min-width: 320px; }
 .ingame__picture { border-radius: var(--radius-md); }
 /* The camera over the picture, the way the game's debug screen prints it: grey boxes behind light text. */
 .ingame__camera {
@@ -104,17 +105,17 @@
 
 .ingame__strip { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-1); }
 .ingame__card {
-  flex: none; width: 188px; display: flex; flex-direction: column; gap: 4px; padding: 4px;
+  flex: none; width: calc(188px * var(--ui-scale)); display: flex; flex-direction: column; gap: 4px; padding: 4px;
   background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md);
   color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
-.ingame__card:hover, .ingame__card:focus-visible { border-color: var(--accent); outline: none; }
+.ingame__card:hover { border-color: var(--accent); }
 .ingame__card--on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .ingame__thumb { position: relative; display: block; }
 .ingame__count {
   position: absolute; top: 4px; right: 4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  background: #2563eb; color: #fff; font-size: var(--font-sm); font-weight: 700;
+  background: var(--accent-bg-hover); color: var(--text-white); font-size: var(--font-sm); font-weight: 700;
 }
-.ingame__caption { display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); }
+.ingame__flag { position: absolute; left: 4px; bottom: 4px; }
 .ingame__cardname { color: var(--text-bright); font-size: var(--font-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
