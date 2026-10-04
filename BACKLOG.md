@@ -535,6 +535,23 @@ is the standard the copy is held to.
   front line and other become ground; their names live in the structure line under each card. Change `Key`,
   `PieceColor` and the SVG and PNG renderers together, and `--board-bg` to white. `docs/tools/generator.md`.
 
+- [ ] **TS165 — A note's status shows only what waits on the author.** *Parked (author): pick an option in the
+  layout mockups' section 6.* The overview says each status twice, as a pin colour and a `NoteStatusBadge`, in three
+  hues (`notes.css` `.note-pin--*`, `SketchNotesColumn.razor` rows). The options: a muted word with no colour, one
+  accent dot on the notes waiting on the author with *Your turn* / *Question* (recommended), groups by who acts in
+  place of the filter chips, or a muted status icon. The pins on the picture follow the choice. `docs/tools/sketch.md`.
+
+- [ ] **C99 — The maps table opens a map from fixed layer slots.** *Parked (author): A or B.* The Stage column repeats
+  what the outlined layer link says (`Pages/Maps.razor`, `StageOf` is `Opens` but for an Edit map). Merge them into
+  one *Open in* column: the links as now with the stage's dot on the current one, or three fixed slots (Plan,
+  Sketch, Configure), with an empty dashed slot for a layer the map lacks (recommended). Decide too whether Gamemode
+  stays as a column or moves under the name. `docs/client/routing-and-ia.md`.
+
+- [ ] **TG3 — The generator's pinned boards are a filter, not a tray.** *Parked (author): A, B or C.* The tray above
+  the grid (`GeneratorTool.razor`) shows each pinned board again with its own ✕, while the card's Pin sits on its
+  picture. Keep it, replace it with a *Pinned · N* chip that filters the grid (recommended), or shrink it to one
+  line of named chips. `docs/tools/generator.md`.
+
 - [ ] **C95 — One page title on every page.** *Parked (author): which convention.* `/library` heads itself
   with a 26px *Libraries* while its crumb says *Library* (`library.css:91`, `LibraryChooser.razor:9`); `/maps`
   with an 11px section title *MAPS* (`Pages/Maps.razor:80`); `/generator`, `/catalog` and `/admin/users` with

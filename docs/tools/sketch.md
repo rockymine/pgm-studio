@@ -1601,7 +1601,7 @@ on, and *Note sent* or *Reply sent* beside it once the message lands; a press is
 follow it, and Ctrl+Enter (⌘+Enter) in either box sends it.
 
 **The column works in two steps.** The overview lists the notes on the picture in view under four filters — All,
-Waiting on you, With agent, Resolved — then the notes on the whole map, then any on a picture the gallery no
+Waiting (on you), With agent, Resolved, on one line — then the notes on the whole map, then any on a picture the gallery no
 longer offers. Choosing a note, by its row or by its pin on the picture, opens its thread, and **‹ All notes**
 goes back. A row is the note's pin and what it is pinned to, with its status and as much of the last message as
 fits on the line under. A thread is a head — the pin, what the note is pinned to in at most two lines, and its

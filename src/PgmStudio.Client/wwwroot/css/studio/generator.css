@@ -61,7 +61,7 @@
    picture is drawn for a dark ground, so its frame is dark in either theme. */
 .gen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(230px * var(--ui-scale)), 1fr)); gap: var(--space-3); }
 .gen-card {
-  display: flex; flex-direction: column; overflow: hidden;
+  position: relative; display: flex; flex-direction: column; overflow: hidden;
   background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md);
   transition: border-color var(--transition-fast);
 }
@@ -85,10 +85,13 @@
 .gen-card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); font-size: var(--font-sm); color: var(--text-secondary); }
 .gen-card-stat { white-space: nowrap; }
 .gen-card-stat strong { color: var(--text-bright); font-weight: 600; }
+/* Pin floats over the picture's top-right corner, on the floating chrome's glass so it reads on the dark frame. */
 .gen-pin {
-  margin-left: auto; width: calc(30px * var(--ui-scale)); height: calc(30px * var(--ui-scale)); flex: none;
-  display: grid; place-items: center; background: transparent; color: var(--text-secondary);
-  border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;
+  position: absolute; top: var(--space-2); right: var(--space-2); z-index: 1;
+  width: calc(30px * var(--ui-scale)); height: calc(30px * var(--ui-scale));
+  display: grid; place-items: center; color: var(--text-secondary);
+  background: var(--canvas-float-bg); backdrop-filter: blur(6px);
+  border: 1px solid var(--canvas-float-border); border-radius: var(--radius-sm); cursor: pointer;
 }
 .gen-pin:disabled { opacity: 0.4; cursor: default; }
 .gen-pin:not(:disabled):hover { color: var(--text-bright); border-color: var(--accent); }

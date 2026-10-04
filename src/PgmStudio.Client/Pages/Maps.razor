@@ -107,7 +107,7 @@
               <div class="map-table-box">
                 <table class="map-table">
                   <thead>
-                    <tr><th class="map-col-map">Map</th><th>Stage</th><th class="map-col-layers">Layers</th><th class="map-col-modes">Gamemode</th><th>Author</th><th>Last changed</th></tr>
+                    <tr><th class="map-col-map">Map</th><th class="map-col-stage">Stage</th><th>Layers</th><th class="map-col-modes">Gamemode</th><th>Author</th><th>Last changed</th></tr>
                   </thead>
                   <tbody>
                     @foreach (var m in Shown)
@@ -124,8 +124,8 @@
                           else { <span class="map-row-name" title="@m.Name">@m.Name</span> }
                           <span class="map-row-slug" title="@m.Slug">@m.Slug</span>
                         </td>
-                        <td><span class="map-stage"><span class="map-stage-dot map-stage-dot--@stage"></span>@StageLabel(stage)</span></td>
-                        <td class="map-col-layers">
+                        <td class="map-col-stage"><span class="map-stage"><span class="map-stage-dot map-stage-dot--@stage"></span>@StageLabel(stage)</span></td>
+                        <td>
                           <span class="map-artifacts">
                             @foreach (var (id, label) in Layers(m))
                             {

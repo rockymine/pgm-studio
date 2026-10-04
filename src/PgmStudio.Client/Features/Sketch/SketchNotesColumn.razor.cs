@@ -21,7 +21,7 @@ public partial class SketchNotesColumn : IDisposable
     public const string All = "all", WaitingOnYou = "you", WithAgent = "agent", Done = "resolved";
 
     private static readonly (string Id, string Label)[] Filters =
-        [(All, "All"), (WaitingOnYou, "Waiting on you"), (WithAgent, "With agent"), (Done, "Resolved")];
+        [(All, "All"), (WaitingOnYou, "Waiting"), (WithAgent, "With agent"), (Done, "Resolved")];
 
     [Parameter] public NotesStep Step { get; set; }
     [Parameter] public IReadOnlyList<MapNoteDto> Notes { get; set; } = [];
@@ -104,6 +104,14 @@ public partial class SketchNotesColumn : IDisposable
         Notes.Where(note => note.Anchor.ViewId is { } view && view != ViewId && !ViewIds.Contains(view));
 
     private bool Passes(MapNoteDto note) => Passes(note, Filter);
+
+    /// <summary>What a filter's hover says it keeps.</summary>
+    private static string? FilterTitle(string filter) => filter switch
+    {
+        WaitingOnYou => "Waiting on you: answered, or the agent asked for more",
+        WithAgent => "Open, waiting for the agent",
+        _ => null,
+    };
 
     /// <summary>Whether <paramref name="note"/> is one <paramref name="filter"/> shows.</summary>
     public static bool Passes(MapNoteDto note, string filter) => filter switch

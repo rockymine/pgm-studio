@@ -19,7 +19,7 @@
       <div class="notes-column__filters">
         @foreach (var (id, label) in Filters)
         {
-          <Chip Active="@(Filter == id)" OnClick="() => OnFilter.InvokeAsync(id)">@label&nbsp;<b>@Count(id)</b></Chip>
+          <Chip Active="@(Filter == id)" Title="@FilterTitle(id)" OnClick="() => OnFilter.InvokeAsync(id)">@label&nbsp;<b>@Count(id)</b></Chip>
         }
       </div>
       @if (Handoff is { Ready: true } handoff)

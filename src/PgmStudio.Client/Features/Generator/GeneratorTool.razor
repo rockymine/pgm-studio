@@ -163,6 +163,11 @@
             <button class="gen-card-fig" @onclick="() => OpenDetail(card)" title="Open details">
               @((MarkupString)card.Svg)
             </button>
+            <WriteGate Deletes="@IsPinned(card)" Context="closed">
+              <button class="gen-pin @(IsPinned(card) ? "gen-pin--on" : null)" @onclick="() => TogglePin(card)"
+                      disabled="@(closed is not null)" title="@(closed ?? (IsPinned(card) ? "Unpin" : "Pin"))"
+                      aria-label="@(IsPinned(card) ? "Unpin" : "Pin")"><i data-lucide="pin"></i></button>
+            </WriteGate>
             <div class="gen-card-body">
               <dl class="gen-card-shape">
                 <div><dt>Wools</dt><dd>@WoolLabels(card.Structure.Wools)</dd></div>
@@ -176,11 +181,6 @@
                 {
                   <span class="gen-card-stat" title="@SpendTitle(spend)">Land <strong>@SpendPercent(spend.Unit)</strong></span>
                 }
-                <WriteGate Deletes="@IsPinned(card)" Context="closed">
-                  <button class="gen-pin @(IsPinned(card) ? "gen-pin--on" : null)" @onclick="() => TogglePin(card)"
-                          disabled="@(closed is not null)" title="@(closed ?? (IsPinned(card) ? "Unpin" : "Pin"))"
-                          aria-label="@(IsPinned(card) ? "Unpin" : "Pin")"><i data-lucide="pin"></i></button>
-                </WriteGate>
               </div>
             </div>
           </div>

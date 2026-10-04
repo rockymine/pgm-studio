@@ -176,7 +176,8 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `section-desc` and computed facts `plan-readout`. Review's notes column heads a thread with a two-line title
   and its status under it, and closes and sends from one footer under a full-width reply box. The canvas's
   storey strip keeps room for a tab and the chip bar keeps the readout's lane clear; the maps table drops
-  Layers and Gamemode below 1200px rather than scrolling; raw pixel sizes left in the notes column, the
+  Stage and Gamemode below 1200px rather than scrolling, keeping the Layers links a map is opened by; the
+  generator card's Pin floats over its picture; raw pixel sizes left in the notes column, the
   gallery, the generator tray and the rails scale with the text size. `docs/client/ui-conventions.md`.
 - **An action the caller may not take is greyed, with the reason on hover (`C87`).** A `Button` marked
   `Writes` closes where the shell's `StudioWriteReason` says the caller may not write, and one marked

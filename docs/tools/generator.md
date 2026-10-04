@@ -301,7 +301,7 @@ stands nearer the wool at the back than the one across the hub, however squarely
 one board in five crosses a middle thinner than its size's floor or longer than twice its width (`MD7`). A hard violation would add 1000 and dominate any
 soft sum, which is why the slider stops at 8.
 
-**Pinning and authoring are the two exits.** The pin toggle keeps the library board the descriptor names and
+**Pinning and authoring are the two exits.** The pin toggle, in the top-right corner of a card's picture, keeps the library board the descriptor names and
 refreshes the tray; the tray's thumbnails come from the stored rows rather than from the cards, so a board held in an
 earlier session looks the same as one held a moment ago. *Start a map* pins first if the board is not
 already held, then commits the candidate to a map and navigates to `/maps/{slug}/plan`.

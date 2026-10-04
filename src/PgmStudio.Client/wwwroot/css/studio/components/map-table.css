@@ -46,9 +46,10 @@
 }
 .map-table td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); vertical-align: middle; font-size: var(--font-md); }
 .map-col-map { min-width: 14rem; }
-/* Below a wide screen the table drops the two columns a row's own page also shows, rather than scrolling. */
+/* Below a wide screen the table drops Stage, which the highlighted layer already says, and Gamemode, rather
+   than scrolling. Layers stays: its links are how a map is opened in each tool. */
 @media (max-width: 1199px) {
-  .map-col-layers, .map-col-modes { display: none; }
+  .map-col-stage, .map-col-modes { display: none; }
   .map-table { min-width: 0; }
 }
 .map-table-row { cursor: pointer; }
