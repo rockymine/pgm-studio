@@ -123,6 +123,8 @@ public sealed class PlanEvaluateEndpointTests
             var band = violation.GetProperty("band").EnumerateArray().Select(e => e.GetDouble()).ToList();
             await Assert.That(band.Count).IsEqualTo(2);
             await Assert.That(value < band[0] || value > band[1]).IsTrue().Because(violation.ToString());
+            // a soft term scores and stops nothing, so its finding is a complaint
+            await Assert.That(violation.GetProperty("finding").GetProperty("severity").GetString()).IsEqualTo("complaint");
         }
         // a hard fire has no band to be outside of, so it carries neither
         foreach (var hard in body.GetProperty("violations").EnumerateArray().Where(v => v.GetProperty("kind").GetString() == "hard"))

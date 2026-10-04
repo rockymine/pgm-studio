@@ -147,8 +147,8 @@ public sealed class DressingScopeTests
 
     // ── OB19: a tree, a boulder or a building inside a goal's clearance ───────────────────────────────
     // A single-block destroyable at (20,20): its GoalGroundAt clearance rect is [16,16]-[24,24] (the
-    // footprint grown by GoalClearance = 4), and the prop keep-out reaches further — GoalStandoff = 10 from
-    // the marker, so [10,10]-[30,30]. Every test below is read against that one fixed goal.
+    // footprint grown by GoalClearance = 4), and the prop keep-out reaches further — every cell nearer than
+    // GoalStandoff = 10 to the marker, so [11,11]-[29,29]. Every test below is read against that one goal.
     private static MapIntent GoalAt20 => new()
     {
         Destroyables =
@@ -176,14 +176,14 @@ public sealed class DressingScopeTests
         await Assert.That(clearance(18, 18)).IsTrue();
         await Assert.That(clearance(24, 24)).IsTrue();
 
-        // Past the structure's own clearance and still inside the marker's ten-block standoff, which ends at
-        // 30 — the author's radius, measured from the marker rather than from however wide the structure
-        // under it happens to be.
+        // Past the structure's own clearance and still nearer than the marker's ten-block standoff, measured
+        // from the marker rather than from however wide the structure under it happens to be.
         await Assert.That(clearance(28, 20)).IsTrue();
-        await Assert.That(clearance(30, 20)).IsTrue();
+        await Assert.That(clearance(29, 20)).IsTrue();
 
-        // One block past the standoff, and the far side of the board, are both clean.
-        await Assert.That(clearance(31, 20)).IsFalse();
+        // Exactly ten blocks from the marker stands, as does the far side of the board.
+        await Assert.That(clearance(30, 20)).IsFalse();
+        await Assert.That(clearance(10, 20)).IsFalse();
         await Assert.That(clearance(0, 0)).IsFalse();
     }
 
@@ -213,8 +213,8 @@ public sealed class DressingScopeTests
     {
         var clearance = DressingScope.GoalClearanceAt(PointAt20(3));
 
-        await Assert.That(clearance(30, 20)).IsTrue();     // the last block of the standoff square
-        await Assert.That(clearance(31, 20)).IsFalse();
+        await Assert.That(clearance(29, 20)).IsTrue();     // the last block nearer than the standoff
+        await Assert.That(clearance(30, 20)).IsFalse();    // exactly ten from the marker stands
     }
 
     /// <summary>And a pad wider than the ring keeps its own margin, because the footprint half of the
@@ -223,7 +223,7 @@ public sealed class DressingScopeTests
     public async Task A_wide_pads_clearance_reaches_past_its_own_edge()
     {
         // Size 15 centred on (20,20) covers 13..27, so the footprint clearance ends at 31 and the standoff
-        // square — which ends at 30 — is the narrower of the two.
+        // square, which ends at 29, is the narrower of the two.
         var clearance = DressingScope.GoalClearanceAt(PointAt20(ObjectiveDefaults.MaxControlPointSize));
 
         await Assert.That(clearance(27, 20)).IsTrue();     // the pad's own far edge

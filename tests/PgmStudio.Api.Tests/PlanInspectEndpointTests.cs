@@ -77,4 +77,21 @@ public sealed class PlanInspectEndpointTests
         var resp = await client.PostAsync("/api/plan/inspect", new StringContent("not a plan", Encoding.UTF8, "application/json"));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }
+
+    /// <summary>A plan that parses but states a list as null is the caller's to fix, so it is answered as
+    /// one: 400, the field named, and the reader's sentence rather than an exception's.</summary>
+    [Test]
+    public async Task A_null_list_is_refused_by_name_not_by_exception()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var resp = await client.PostAsync("/api/plan/inspect",
+            new StringContent("""{"plan":2,"pieces":null}""", Encoding.UTF8, "application/json"));
+        var body = await resp.Content.ReadAsStringAsync();
+
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var finding = JsonDocument.Parse(body).RootElement.GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("pieces");
+        await Assert.That(body).DoesNotContain("Object reference");
+    }
 }

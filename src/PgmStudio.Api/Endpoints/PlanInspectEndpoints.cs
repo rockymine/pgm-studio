@@ -45,11 +45,11 @@ public sealed class PlanAsciiPostEndpoint : EndpointWithoutRequest
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var plan = PlanModel.Stated(await RawBody.ReadAsync(HttpContext, ct));
+        var body = await RawBody.ReadAsync(HttpContext, ct);
+        var plan = PlanModel.Stated(body);
         if (plan is null)
         {
-            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
-                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            await Refusals.NotAPlanAsync(HttpContext, body, ct);
             return;
         }
 
@@ -88,8 +88,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
         var plan = PlanModel.Stated(body);
         if (plan is null)
         {
-            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
-                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            await Refusals.NotAPlanAsync(HttpContext, body, ct);
             return;
         }
 
@@ -98,7 +97,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
         {
             d = ContactGraph.Build(plan);
         }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
             await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
             return;
@@ -211,8 +210,7 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest<WorldColumnsDto
         {
             if (PlanWorld.Compile(body) is not { } compiled)
             {
-                await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
-                    "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+                await Refusals.NotAPlanAsync(HttpContext, body, ct);
                 return;
             }
             var built = BuiltWorlds.Of(compiled.LayoutJson, compiled.Intent);
@@ -223,8 +221,7 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest<WorldColumnsDto
             Complaints.Add(HttpContext, SketchLayoutCheck.Check(compiled.LayoutJson).Complaints);
             Complaints.Add(HttpContext, built.Declines);
         }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException
-                                      or IndexOutOfRangeException or JsonException)
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or JsonException)
         {
             await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
             return;
@@ -256,8 +253,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest<CompiledPlanDto
         var plan = PlanModel.Stated(body);
         if (plan is null)
         {
-            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
-                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            await Refusals.NotAPlanAsync(HttpContext, body, ct);
             return;
         }
         // The one-way gate is where a plan stops being editable text, so a field the compiler had nowhere to
@@ -311,8 +307,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
         var plan = PlanModel.Stated(body);
         if (plan is null)
         {
-            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
-                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            await Refusals.NotAPlanAsync(HttpContext, body, ct);
             return;
         }
 
@@ -349,7 +344,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
             // sentence, which is a score talking rather than an answer. What goes on the wire is the list.
             structural = [.. StructuralIntegrity.Each(ctx)];
         }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
             await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
             return;
@@ -448,8 +443,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<Feasibility
         var plan = PlanModel.Stated(body);
         if (plan is null)
         {
-            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
-                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            await Refusals.NotAPlanAsync(HttpContext, body, ct);
             return;
         }
 
@@ -469,7 +463,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<Feasibility
         {
             read = Producibility.ReadPlan(plan);
         }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
             await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
             return;
@@ -528,8 +522,7 @@ public sealed class PlanRoomEndpoint : EndpointWithoutRequest<DrawnRoomDto>
         var plan = PlanModel.Stated(body);
         if (plan is null)
         {
-            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
-                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            await Refusals.NotAPlanAsync(HttpContext, body, ct);
             return;
         }
 
@@ -539,7 +532,7 @@ public sealed class PlanRoomEndpoint : EndpointWithoutRequest<DrawnRoomDto>
         {
             d = ContactGraph.Build(plan);
         }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
             await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
             return;

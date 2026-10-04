@@ -83,8 +83,7 @@ public sealed class PlanSaveEndpoint(PlanStore store) : Endpoint<PlanSaveRequest
         var plan = PlanModel.Stated(req.PlanJson);
         if (plan is null)
         {
-            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
-                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            await Refusals.NotAPlanAsync(HttpContext, req.PlanJson, ct);
             return;
         }
         // The row keeps the posted text, so a field the reader has nowhere to keep is stored with it and

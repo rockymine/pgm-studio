@@ -170,6 +170,24 @@ public sealed partial class MapReportTests
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
+    /// <summary>A map that exists but holds no sketch layout has no world to report on, and says so under the
+    /// sketch's own rule for that case rather than as a missing map.</summary>
+    [Test]
+    public async Task A_map_with_no_sketch_layout_is_answered_under_SK6()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        using var made = await client.PostAsJsonAsync("/api/plan", new { name = "Report without a sketch" });
+        var slug = JsonDocument.Parse(await made.Content.ReadAsStringAsync()).RootElement.GetProperty("slug").GetString();
+
+        var resp = await client.GetAsync($"/api/map/{slug}/report");
+        var body = await resp.Content.ReadAsStringAsync();
+
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+        await Assert.That(JsonDocument.Parse(body).RootElement.GetProperty("findings")[0].GetProperty("rule").GetString())
+            .IsEqualTo("SK6");
+        await client.DeleteAsync($"/api/map/{slug}");
+    }
+
     [GeneratedRegex(@"placed (\d+), declined (\d+)")]
     private static partial Regex Claimed();
 

@@ -55,6 +55,11 @@ internal static class Refusals
             [new Finding(RequestRules.Unreadable, fault.Message,
                 Field: (fault as DocumentFault)?.Field)], ct);
 
+    /// <summary>A body that is not a plan document, with the plan reader's own reason: empty, not JSON, or a
+    /// field it cannot read, named.</summary>
+    public static Task NotAPlanAsync(HttpContext http, string? body, CancellationToken ct) =>
+        UnreadableAsync(http, "malformed plan JSON", PgmStudio.Pgm.Plan.PlanModel.Unreadable(body), ct);
+
     /// <summary>
     /// The same refusal where the endpoint has a sentence rather than an exception: a body that is not the
     /// document the route takes, a required parameter absent, a value outside a closed set. All of them are

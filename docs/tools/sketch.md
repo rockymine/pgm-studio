@@ -2203,7 +2203,7 @@ in the same two registers.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /map/{slug}/report[?pictures=true]` | `{slug, change, headline, reads[], pictures[]}` — `headline` is `{walked, scrambled, barrier, placed, declined, worstStep, worstRoute, says[]}`, the three numbers and the three lines they are said in; each reading `{name, route, text, missing}`, the route answering the same reading alone; each picture `{name, route, png, missing}`, `png` drawn only on `?pictures=true`. `?format=text` answers the whole as one document | 404 no stored layout |
+| `GET /map/{slug}/report[?pictures=true]` | `{slug, change, headline, reads[], pictures[]}` — `headline` is `{walked, scrambled, barrier, placed, declined, worstStep, worstRoute, says[]}`, the three numbers and the three lines they are said in; each reading `{name, route, text, missing}`, the route answering the same reading alone; each picture `{name, route, png, missing}`, `png` drawn only on `?pictures=true`. `?format=text` answers the whole as one document | 404 `SK6` no stored layout |
 
 **The pictures from a player's eye** — what the Review phase lists and draws. Each view answers the
 `render/eye` query words that draw it, so a caller adds only a size.

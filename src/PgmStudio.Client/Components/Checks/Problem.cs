@@ -23,8 +23,8 @@ public sealed record Problem(
         _ => ProblemKind.Warning,
     }, finding, index);
 
-    /// <summary>A plan evaluation's violation by its kind: a hard term is a problem, a soft one out of range.
-    /// The finding's severity is not read, since a soft term's finding arrives as a refusal.</summary>
+    /// <summary>A plan evaluation's violation by its kind: a hard term is a problem, a soft one out of range,
+    /// carrying the value it measured and its band.</summary>
     public static Problem Of(ViolationDto violation, int index) => violation.Kind == "soft"
         ? new(ProblemKind.OutOfRange, violation.Finding, index, violation.TermId, violation.Value, violation.Band)
         : new(ProblemKind.Problem, violation.Finding, index);

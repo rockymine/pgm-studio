@@ -232,7 +232,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
                 $"the relief posted for group '{group}' is not the one stored, and a merge carries the "
                 + "stored one — the terrain this board builds is the terrain it already had. Write the new "
                 + $"one to PUT /map/{map.Slug}/sketch/relief/{group}, or replace the whole layout with "
-                + "PUT /map/{slug}/sketch",
+                + $"PUT /map/{map.Slug}/sketch",
                 Severity.Complaint, Field: $"relief.{group}", Subjects: [group])]);
 
         // Geometry is the plan's, so a shape drawn in the sketch is carried by nothing — and said so.

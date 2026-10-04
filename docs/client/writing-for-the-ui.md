@@ -130,7 +130,7 @@ entry** is the longer account a help page gives, and only some terms need one.
 
 Four of these replace the studio's earlier words, which mapmakers do not use: *pattern* for style, *palette*
 for theme, *terraform* for relief, and *decoration* for dressing. The old words remain in the code and the
-`docs/`; the client shows only the new ones, and text the server writes takes the same pass in `RP101`.
+`docs/`; the client shows only the new ones, and text the server writes takes the same pass in `RP113` and `RP114`.
 
 ### Guide entries
 

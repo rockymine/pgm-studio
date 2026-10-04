@@ -71,7 +71,7 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
         if (await WorldReads.LoadAsync(map, reader, artifacts, ct) is not { } read)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
-                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     "this map has no stored sketch layout, so there is no world to pick from")], ct);
             return;
         }

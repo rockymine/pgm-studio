@@ -33,7 +33,7 @@ internal sealed class MapReportEndpoint(MapRepository repo, MapReport report) : 
         if (await report.OfAsync(map, pictures, ct) is not { } answer)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
-                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     "this map has no stored sketch layout, so there is no world for the studio to build and "
                     + "report on")], ct);
             return;
