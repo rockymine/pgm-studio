@@ -41,7 +41,7 @@ public sealed record RuleDoc(
 /// amended only by its own correction protocol, so copying its statements into C# would have produced a
 /// second law that drifts.</para>
 ///
-/// <para><b>Only the layout rules the studio can cite are published.</b> <c>rules.md</c> states 92 and the
+/// <para><b>Only the layout rules the studio can cite are published.</b> <c>rules.md</c> states 100 and the
 /// catalogue answers the <see cref="Raised"/> subset of them, because the question it exists for is <i>what
 /// is this finding</i> and a rule nothing raises has no finding to explain. The rest are the generator's
 /// law, stated where the law lives and amended by its own correction protocol; publishing them in rows
@@ -67,7 +67,7 @@ public static class RuleCatalog
     /// </summary>
     public static readonly IReadOnlySet<string> Raised = new HashSet<string>(StringComparer.Ordinal)
     {
-        "BZ5", "BZ6", "BZ9", "BZ11",
+        "BZ5", "BZ6", "BZ9", "BZ11", "BZ12",
         "CT1", "CT4", "CT5", "CT8", "CT9", "CT12",
         "EL1",
         "FR4", "FR6", "FR8", "FR9",
@@ -77,7 +77,7 @@ public static class RuleCatalog
         "MD7",
         "SP1", "SP2", "SP8", "SP9", "SP10",
         "ST1", "ST2", "ST4", "ST8", "ST9", "ST10",
-        "WL1", "WL2", "WL7", "WL8", "WL9", "WL10", "WL11", "WL12",
+        "WL2", "WL7", "WL9", "WL10", "WL11", "WL12",
     };
 
     /// <summary>A rule id: two or three letters, then a number or a single-letter suffix (<c>PC-C</c>).</summary>

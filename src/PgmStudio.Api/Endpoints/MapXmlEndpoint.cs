@@ -50,6 +50,7 @@ public sealed class MapXmlEndpoint(
         // This route builds the same world through the same dressing pass as the export, so the same props
         // drop — and the document it answers has nowhere to say so. The header does.
         if (result.World is { } built) Complaints.Add(HttpContext, built.Declines);
+        Complaints.Add(HttpContext, result.Remarks ?? []);
 
         HttpContext.Response.ContentType = "application/xml; charset=utf-8";
         HttpContext.Response.Headers.ContentDisposition = ContentDispositionHeader.Attachment($"{slug}.xml");

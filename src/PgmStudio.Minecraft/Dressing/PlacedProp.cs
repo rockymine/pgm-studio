@@ -374,7 +374,7 @@ public static class HousePropRules
     public const string NoWings = "HP1";
 
     /// <summary>A wing is not two opposite corners, or is too thin to hold two walls and an inside.</summary>
-    /// <remarks>State each wing as two opposite corners, and at least <c>RoomFrames.MinFootprintSpan</c> blocks each way — the same least span a room's footprint takes, since a room's is the single-wing case of a building's. Anything thinner has no inside once its two walls are written.</remarks>
+    /// <remarks>State each wing as two opposite corners, and at least 4 blocks each way — the same least span a room's footprint takes, since a room's is the single-wing case of a building's. Anything thinner has no inside once its two walls are written.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string WingShape = "HP2";
 

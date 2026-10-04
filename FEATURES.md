@@ -1005,6 +1005,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   tools enter, and `IsoToggle` the one 2D/3D switch.
 
 ## Backend / API (B)
+- **What a finding cites is the rule it means (`RP109`).** The water-lane lint is `BZ12`, a build-zone rule,
+  not the wool room's `WL1`; `OB26`–`OB28` ride an export's `Pgm-Warnings` instead of being dropped; a building
+  refused for several faults declines with each of them; `DR-DOC` and `HP2` say what they mean and the number
+  they check; and the catalogue test no longer lets `RuleCatalog.Raised` cite itself, which took `WL8` out.
 - **A load missing one of its two documents names it (`RP66`).** `POST /map/from-documents` reads the layout
   and the intent as raw JSON, so a body omitting one arrived as a `default(JsonElement)` and the first reader
   threw — the caller got `500 RQ2`, *the fault is the studio's rather than the document's*, which is the

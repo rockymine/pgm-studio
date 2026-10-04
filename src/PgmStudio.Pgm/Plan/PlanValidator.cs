@@ -565,8 +565,8 @@ public static class PlanValidator
     /// <summary>The lint table — one entry per checked rule; add a rule by appending a delegate.</summary>
     public static readonly IReadOnlyList<Func<PlanModel, ContactGraph, IEnumerable<Finding>>> LintRules =
     [
-        LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintSt2, LintWx4, LintWx8, LintWl1,
-        LintSp8, LintSp9, LintWl11, LintSt8, LintSt9, LintSt10, LintBz11, LintBoardEdges,
+        LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintSt2, LintWx4, LintWx8, LintBz12,
+        LintSp8, LintSp9, LintBz121, LintSt8, LintSt9, LintSt10, LintBz11, LintBoardEdges,
         LintZoneReach,
     ];
 
@@ -693,17 +693,17 @@ public static class PlanValidator
         }
     }
 
-    // WL1 — a water lane covers void, never terrain. The lane opens because water at y=0 stops the columns
-    // reading as void; over a piece the columns already hold terrain, so that part of the lane changes nothing
-    // and the drawn rect overstates the route it adds.
-    private static IEnumerable<Finding> LintWl1(PlanModel plan, ContactGraph d)
+    // BZ12 — a water lane covers void, never terrain. A water lane is a build zone that opens later: water at
+    // y=0 stops its columns reading as void. Over a piece the columns already hold terrain, so that part of the
+    // lane changes nothing and the drawn rect overstates the route it adds.
+    private static IEnumerable<Finding> LintBz12(PlanModel plan, ContactGraph d)
     {
         foreach (var z in plan.WaterLanes)
         {
             var zr = ContactGraph.ToBlock(z.Rect, d.Cell);
             foreach (var p in d.Pieces)
                 if (PlanRoles.IsGenerating(p.Role) && Overlaps(p.Rect, zr))
-                    yield return Lint("WL1", $"water lane '{z.Id}' covers terrain piece '{p.Id}' — a lane opens void, and this part of it is already land", z.Id, p.Id);
+                    yield return Lint("BZ12", $"water lane '{z.Id}' covers terrain piece '{p.Id}' — a lane opens void, and this part of it is already land", z.Id, p.Id);
         }
     }
 
@@ -735,12 +735,12 @@ public static class PlanValidator
         }
     }
 
-    /// <summary>The seams <see cref="LintSp8"/> and <see cref="LintWl11"/> already report, so <c>EL1</c> does
+    /// <summary>The seams <see cref="LintSp8"/> and <see cref="LintBz121"/> already report, so <c>EL1</c> does
     /// not name them a second time in less detail.</summary>
     private static HashSet<(string A, string B)> SeamsSp8AndWl11Own(PlanModel plan, ContactGraph d)
     {
         var spoken = new HashSet<(string, string)>();
-        foreach (var finding in LintSp8(plan, d).Concat(LintWl11(plan, d)))
+        foreach (var finding in LintSp8(plan, d).Concat(LintBz121(plan, d)))
             if (finding.SubjectIds is [var a, var b]) spoken.Add((a, b));
         return spoken;
     }
@@ -846,7 +846,7 @@ public static class PlanValidator
     // a room that has no facing: a room has no front, so every entry interface is a door and all of them are
     // measured. The player who crosses one is the attacker — a team is kept out of its own wool — so the step
     // is met at the end of the run that decides the map, as a wall to build up or a drop with no way back.
-    private static IEnumerable<Finding> LintWl11(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> LintBz121(PlanModel plan, ContactGraph d)
     {
         var seams = PieceInterfaces.Seams(d);
         var rooms = plan.Placements.Wools.Select(wool => wool.Piece)

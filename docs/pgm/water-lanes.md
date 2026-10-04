@@ -240,7 +240,8 @@ gap connectivity, frontline, buildable regions, walkable surface and the fanned 
 `PlanModel.BuildZones`, not `Zones`. Treating a lane as a connection would tell the lint the map is
 joined up at a tick when it is not.
 
-One lint is the lane's own. **WL1 — a water lane covers void, never terrain.** A lane opens because
+One lint is the lane's own. **BZ12 — a water lane covers void, never terrain.** A water lane is a build zone
+that opens later, so its lint sits in the build-zone family. A lane opens because
 water at `y=0` stops the columns reading as void; over a piece those columns already hold terrain, so
 that part of the rect changes nothing and the drawn lane overstates the route it adds. (A build zone
 may overlap terrain by design, so the rule is the lane's alone.) `BZ5` applies to both kinds — a lane

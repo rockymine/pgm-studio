@@ -75,6 +75,17 @@ public sealed class RulesEndpointTests
         await Assert.That(pl1.Evidence).IsNull();
     }
 
+    /// <summary>A number a rule's text states is the number the code checks: HP2 tells an author the least
+    /// span a wing may have, and that span is a constant the text cannot name.</summary>
+    [Test]
+    public async Task HP2_states_the_span_the_room_frame_checks()
+    {
+        var hp2 = (await RulesAsync("?rule=HP2")).Single();
+
+        await Assert.That(hp2.Fix).Contains($"at least {PgmStudio.Domain.RoomFrames.MinFootprintSpan} blocks each way");
+        await Assert.That(hp2.Fix).DoesNotContain("MinFootprintSpan");
+    }
+
     /// <summary>An id nobody has is an empty list, not a 404 — a caller asking "is there a rule called that"
     /// should not have to tell an absent rule from a typo in the route by the status code.</summary>
     [Test]
@@ -245,6 +256,8 @@ public sealed class RulesEndpointTests
         {
             if (file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
                 || file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")) continue;
+            // The set under test spells every id it claims as a literal, so it cannot count as its own citation.
+            if (Path.GetFileName(file) == "RuleCatalog.cs") continue;
             foreach (Match match in Citation.Matches(File.ReadAllText(file)))
                 if (stated.Contains(match.Groups[1].Value)) cited.Add(match.Groups[1].Value);
         }

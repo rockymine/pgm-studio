@@ -39,8 +39,7 @@ public sealed record DressingDoc
 public sealed class DressingParseException(string subject, string? field, string detail)
     : Exception(field is null ? $"{subject} {detail}." : $"{subject}: field '{field}' {detail}.")
 {
-    /// <summary>The rule this refusal carries into the export gate, so a caller can act on the id rather than
-    /// parse the sentence.</summary>
+    /// <summary>The decoration document, or one prop in it, cannot be read.</summary>
     /// <remarks>The finding names the prop and the field inside it. Fix that field: the usual causes are a <c>kind</c> the reader does not know, a <c>kind</c> missing outright, and a property of the wrong JSON shape.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Request, RuleConcern.Feature)]
     public const string Rule = "DR-DOC";

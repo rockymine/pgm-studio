@@ -1013,14 +1013,13 @@ public static class Decorator
         var ground = context.GroundFor(house);
         if (house.Plan() is not { } plan)
         {
-            // Check() never disagrees with Plan()'s own refusal — Plan() is Check().Refuses ? null : Read() —
-            // so the first finding here is always the reason this prop just failed to read. It keeps its own
-            // rule id rather than being restated under a DR-* one: the fault is the building's shape, and the
-            // id an author looks up is the one that names it.
-            var refusal = house.Check()[0];
-            declined.Add(new Finding(refusal.Rule,
-                $"building '{house.Id}' makes no building: {refusal.Message}",
-                Severity.Decline, Subjects: [house.Id]));
+            // Plan() is Check().Refuses ? null : Read(), so Check()'s refusals are every reason this prop failed
+            // to read. Each keeps its own rule id rather than being restated under a DR-* one: the fault is the
+            // building's shape, and the id an author looks up is the one that names it.
+            foreach (var refusal in house.Check().Refusals)
+                declined.Add(new Finding(refusal.Rule,
+                    $"building '{house.Id}' makes no building: {refusal.Message}",
+                    Severity.Decline, Subjects: [house.Id]));
             return [];
         }
 

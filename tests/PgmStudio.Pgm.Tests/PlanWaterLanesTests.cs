@@ -82,21 +82,21 @@ public sealed class PlanWaterLanesTests
     }
 
     [Test]
-    public async Task A_lane_over_terrain_lints_WL1()
+    public async Task A_lane_over_terrain_lints_BZ12()
     {
         // A lane opens void. Over a piece the columns already hold terrain, so that part of the rect adds
         // nothing and the drawing overstates the route.
         var plan = WithZones("""[ {"id":"far","kind":"water-lane","rect":[1,5,2,6]} ]""");
         var findings = PlanValidator.Check(plan);
 
-        await Assert.That(findings.Any(f => f.Rule == "WL1" && f.SubjectIds.Contains("far"))).IsTrue();
+        await Assert.That(findings.Any(f => f.Rule == "BZ12" && f.SubjectIds.Contains("far"))).IsTrue();
     }
 
     [Test]
-    public async Task A_build_zone_over_terrain_does_not_lint_WL1()
+    public async Task A_build_zone_over_terrain_does_not_lint_BZ12()
     {
         // Build areas may overlap terrain by design, so the rule is the lane's alone.
         var plan = WithZones("""[ {"id":"mid","rect":[1,5,2,6]} ]""");
-        await Assert.That(PlanValidator.Check(plan).Any(f => f.Rule == "WL1")).IsFalse();
+        await Assert.That(PlanValidator.Check(plan).Any(f => f.Rule == "BZ12")).IsFalse();
     }
 }

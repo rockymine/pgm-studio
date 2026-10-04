@@ -143,6 +143,20 @@ public sealed class MapExportComposerPlayabilityTests
         await Assert.That(result.Refusal!.Findings.Single().Rule).IsEqualTo("EX2");
     }
 
+    /// <summary>What the gate remarks on without refusing reaches the export's result, for the route to carry
+    /// on the response: a destroy map with no mode ladder exports, and says so.</summary>
+    [Test]
+    public async Task A_complaint_rides_the_export_rather_than_being_dropped()
+    {
+        var doc = Doc(("spawns", 2), ("destroyables", 2), ("teams", 2));
+        doc.Remove("modes");
+
+        var result = MapExportComposer.Compose(doc, null, isIntent: true, null, null, null, []);
+
+        await Assert.That(result.Refusal).IsNull();
+        await Assert.That((result.Remarks ?? []).Select(finding => finding.Rule)).Contains(ObjectiveRules.NoModeLadder);
+    }
+
     // ── OB26: a destroy map with no way to end ────────────────────────────────────────────────────────
 
     /// <summary><b>A monument that stays obsidian is a monument the defending team can hold.</b> PGM lets the
