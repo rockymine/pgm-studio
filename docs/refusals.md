@@ -565,11 +565,45 @@ fails on. `docs/generator/rules.md` is the argument behind them — the corpus r
 amendments — and is not served: the catalogue answers what a finding can cite, and a rule nothing raises has
 no finding to explain.
 
-**A layout rule states one limit, with its numbers.** Its `means` takes one of a few shapes: a thing less
-than a minimum, more than a maximum, not between two numbers, a count above its ceiling, or a touch. A limit
+**A layout rule states one limit, with its numbers.** Its `means` takes one of the shapes below. A limit
 learned from the seed maps is stated as its numbers like any other, and `RuleBandDriftTests` fails when a
 re-learned band and the text that states it part. Where a ruling came from is not served: every rule comes
 down to the author's rulings and the maps they traced, and an agent acts on the limit, not its history.
+
+### How a rule's two texts are written
+
+**The same meaning is written the same way in every rule.** A reader comparing two fixes, or an agent turning
+one into an edit, reads a different spelling as a different edit, so each thing a text says has exactly one
+form. `LayoutRulesTests` holds the layout rules to every form below; a form a new rule needs is added there
+before the rule uses it.
+
+**Each text is at most 35 words, in the glossary's words.** A rule never explains a term and never uses a name
+the glossary lists as another name for one; "usual", "typical" and their kin stand where a number belongs and
+are refused. Neither text uses a dash, an arrow or a comparison symbol, and only the fix marks a document field
+in backticks.
+
+**The `means` opens with the thing the author made and takes one shape.** A minimum is "*X* is less than *N*
+blocks", a maximum "more than *N*", a band "is not between *A* and *B*", a count "has more than *N*", a band
+of exactly zero "has no", a contact "touches" or "overlaps", a step "stands *N* or more blocks above or below
+*Y* where they share an edge". A measured distance opens its sentence ("The walking distance from a spawn to
+its team's nearest wool is …") rather than trailing it, and a range is always "between *A* and *B*", never
+"*A* to *B*".
+
+**Every action in a `fix` opens with one of twelve verbs**, and a synonym for one is refused:
+
+| verb | for |
+|---|---|
+| Add · Delete | an entry: "Add *X* to `list`", "Delete *X* from `list`" |
+| Move | a marker ("the spawn in `placements.spawns`") or a piece or zone by its `rect` |
+| Widen · Shrink · Lengthen · Shorten | a size, always of "the `rect` of *X*" |
+| Merge · Split | "Merge *X* into one entry in `list`"; a split names what it splits with |
+| Set · Change | a field's value ("Set the `surface` of …"); a `rect` or a pair made into a stated form ("Change the pair in `walls` to one whose …") |
+| Level | ground, with terraform |
+
+**An alternative between actions is one sentence, "Either *X*, or *Y*."** Each side opens with its own verb,
+and a plain "or" joins nouns only. A sequence is "*X*, then *Y*". A target closes the sentence as "until … is
+between *A* and *B*" (or "at least", "at most"), and a direction is "closer to" or "farther from". An action
+names its object with "the", never "this" or "those", and never hides a second verb behind "by …ing".
 
 **The category is what a caller branches on, and the concerns are what a prefix could never carry.** An id is
 specific, stable and for a reader; `category` is the closed set an agent reads instead of learning 234 ids —

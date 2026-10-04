@@ -44,9 +44,11 @@ Every rule fires as before; the tests and `--goldens` say so.
   `Edit` where one can be stated. The producibility check's 11 kebab-case ids become catalogued rules, and
   its `Cites` of `G2`, `WL7`, `BZ9` and `ST1`, which measure something else, cite nothing or a rule of their
   own. `docs/refusals.md`.
-- [ ] **RP113 — Reword the gate rules.** Every gate rule's meaning and fix to the format, at most 35 words
-  each; a rule that still needs more is split or sent back to the author, never squeezed. The rules an
-  authoring run can raise first. `docs/refusals.md`.
+- [ ] **RP113 — Reword the gate rules.** Every gate rule's meaning and fix to *How a rule's two texts are
+  written* in `docs/refusals.md`, at most 35 words each; a rule that still needs more is split or sent back to
+  the author, never squeezed. The rules an authoring run can raise first. `LayoutRulesTests`' guardrails widen
+  from the layout rules to every rule, and one pass after the writers puts each new form a writer needed into
+  the guide and the tests.
 - [ ] **RP114 — Reword the inline messages.** The 271 messages written at their raise sites, to the same
   format; the audit's per-site list is the worklist. `docs/refusals.md`.
 
