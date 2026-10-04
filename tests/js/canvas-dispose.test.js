@@ -1,6 +1,7 @@
 // A canvas lets go of the page when its tool unmounts. The claims under test: the plan bridge's `dispose`
-// reaches the canvas's own dispose without throwing, and the canvas base removes exactly the `document`
-// listeners it added, so a mount followed by an unmount leaves the page as it found it.
+// reaches the canvas's own dispose without throwing, the canvas base removes exactly the `document`
+// listeners it added, and the side-view canvas removes the `window` listener it added, so a mount followed
+// by an unmount leaves the page as it found it.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
@@ -29,7 +30,11 @@ const element = () => ({
 
 const added = [];
 const removed = [];
+const windowAdded = [];
+const windowRemoved = [];
 globalThis.window = globalThis;
+globalThis.addEventListener = (type, listener) => windowAdded.push({ type, listener });
+globalThis.removeEventListener = (type, listener) => windowRemoved.push({ type, listener });
 globalThis.localStorage = { getItem() { return null; }, setItem() {} };
 globalThis.getComputedStyle = () => ({ getPropertyValue: () => "" });
 globalThis.devicePixelRatio = 1;
@@ -47,6 +52,7 @@ globalThis.document = {
 
 const { mount } = await import("../../src/PgmStudio.Client/wwwroot/js/studio/bridge/plan-bridge.js");
 const { CanvasBase } = await import("../../src/PgmStudio.Client/wwwroot/js/studio/canvas/canvas-base.js");
+const { SideviewCanvas } = await import("../../src/PgmStudio.Client/wwwroot/js/studio/canvas/sideview-canvas.js");
 
 const dragTypes = new Set(["mousemove", "mouseup"]);
 const dragListeners = (log) => log.filter(entry => dragTypes.has(entry.type));
@@ -75,4 +81,16 @@ test("a canvas base that is disposed twice removes its listeners once and does n
   canvas._disposeCanvasBase();
   assert.doesNotThrow(() => canvas._disposeCanvasBase());
   assert.equal(dragListeners(removed).length, 2);
+});
+
+test("disposing the side-view canvas removes the window listener a drag ends on", () => {
+  windowAdded.length = 0;
+  windowRemoved.length = 0;
+  const canvas = new SideviewCanvas(element());
+  const mounted = windowAdded.filter(entry => entry.type === "mouseup");
+  assert.equal(mounted.length, 1);
+  canvas.dispose();
+  assert.ok(windowRemoved.some(gone => gone.type === "mouseup" && gone.listener === mounted[0].listener),
+    "mouseup was left on the window");
+  assert.doesNotThrow(() => canvas.dispose());
 });

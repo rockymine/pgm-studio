@@ -26,7 +26,7 @@ about which section the entry sits in — the retired prefixes still on entries 
   what a board must keep being — a path reaches the bridge (note 58), a bedrock wall has void on both sides
   (note 48), a wall does not float (note 54). A reply could carry the claim as a measured check over the note's
   anchor, kept when the author resolves the note, and raised as a finding naming the note when a later pass
-  breaks it. `docs/tools/sketch.md` § In game.
+  breaks it. `docs/tools/sketch.md` § Review.
 
 ## The configure wizard: a map built from what an author states it is
 
@@ -475,17 +475,6 @@ and what a `subtract` takes away.
   wall, players could walk round it, every call answered 200, and the only symptom was traversability moving
   from 2 isolated markers to **0** — the direction that reads as an improvement.*
 
-## A note and the changes that answer it
-
-The In game phase's threads and the History phase's changes describe one piece of work from its two ends — what
-the author asked, and what the board did about it. What remains is the author's side of a thread.
-
-- [ ] **TS144 — The author's reply can pin itself to the picture.** A reply is text only
-  (`SketchNotesColumn.razor`, the thread's compose box), so "no, *this* one" has to be said in words or written
-  as a second note. Let a reply carry a Point, Box or Lasso mark on the picture in view, projected and kept the
-  way a new note's anchor is (`NoteAnchorDto`), on the message rather than the note: a `NoteMessageDto.Mark`
-  beside its `Picture`, drawn on the picture while the thread is open. `docs/tools/sketch.md` § Notes.
-
 ## A first-time reader: the words, the sizes, and the help a tool owes them
 A reviewer new to mapmaking read the studio cold and reported what stopped them. The copy pass and the
 text-size setting have shipped; what remains is what a sentence cannot fix — a term with nowhere to be looked
@@ -535,24 +524,10 @@ is the standard the copy is held to.
   `ctrl-row` spacing and the JSON a `textarea` of at least twelve rows, or a collapsible block.
   `docs/tools/generator.md`.
 
-- [ ] **TS151 — The In-game phase and the change history, laid out for the work.** Both are dense by layout,
-  not by wording. In game: `.ingame__head` puts name, coordinates (`flex:1`), *Full size*, *Set as map picture*
-  and *Remove* in one wrapping row; the picture is capped at `calc((100vh - 400px) * 16/9)` under a 188px strip
-  beside a 360px notes column; four filter chips plus three grouped lists head the notes. Move the coordinates
-  onto the picture, the two rarer actions into an overflow menu, the filters into tabs (*This view · Whole
-  map · All*) with a status select. History: up to 60 edit lines sit above *Restore*, so pin it in the
-  inspector's footer and show the three column counts as one row. The `InGame` and `History` boards of the
-  design canvas (`C70`) draw both. `docs/tools/sketch.md` § In game, § History.
-
-- [ ] **TS152 — The Report phase reads like a tool, not a log.** The Sketch tool's Report phase captions its
-  pictures and readings with raw API routes (`render/isometric`, `POST sketch/relief/read`) and lists them as
-  link text; a reader wants each reading by name, with the route behind a *Copy request* action for an agent.
-  `SketchReportPhase.razor`. `docs/tools/sketch.md` § Report.
-
-- [ ] **TS153 — The sketch tool's crumb names the map.** `SketchTool.razor` shows `@Slug` in the top bar where
-  the plan and configure tools show the map's name, because the sketch tool loads no map summary. Read the name
-  with the layout and put it in the crumb. `docs/tools/sketch.md`.
-
+- [~] **TS151 — The notes overview and the change history, laid out for the work.** Review's notes overview heads
+  its lists with four filter chips plus three grouped lists; put the filters into tabs (*This view · Whole map ·
+  All*) with a status select. History: up to 60 edit lines sit above *Restore*, so pin it in the inspector's footer
+  and show the three column counts as one row. `docs/tools/sketch.md` § Review, § History.
 - [ ] **C78 — Board pictures in the paper's four plan inks.** `PlanBoardPalette` paints seven role and zone
   colours on a dark ground; `pgm-studio-mapgen/paper/preamble.tex` draws the same plans in four inks on white —
   ground grey (`#E7EAEE`, edge `#A8B0B9`), spawn green (`#CBE3DA`/`#009E73`), wool room orange
@@ -589,13 +564,6 @@ is the standard the copy is held to.
   exists and `Tokens.razor` only issues the caller's own (`/users/me/tokens`). Add the member picker to the
   admin's Tokens page. `docs/access.md`.
 
-- [ ] **TS121 — A lasso over the void carries coordinates.** `EyeScene.Project` counts a ray that hits nothing
-  as sky and adds no column, so a note drawn over void has no `columns` and its place is read off the
-  picture's pixels. Where a ray points down, meet it with a level plane — the median ground of the columns the
-  same mark did hit, else the board's — and carry those cells as their own set beside `columns`, which keeps
-  meaning ground actually seen; a ray pointing up stays sky. *Evidence: Gypsum Reach note 74, a lasso over the
-  void beside the frontline.* `docs/tools/sketch.md` § Notes; `docs/world-scan/read-backs.md`.
-
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** *Parked (author): imports
   are not a priority.* When an author tweaks the
   terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
@@ -609,15 +577,13 @@ is the standard the copy is held to.
 
 ## The tool hosts and their bridges: one shape for save, feed, selection and the verb table
 
-- [ ] **TS162 — Undo and redo keys answer in every sketch phase.** The topbar Undo moves Info's mirror mode back,
-  but `Ctrl`+`Z` does nothing while Info is up: the canvas chords answer only while the canvas is visible
-  (`live()` in `sketch-canvas.js`). Register undo/redo where they answer whenever the topbar buttons do, or route
-  the keys to the same host action. `docs/tools/sketch.md`. *Evidence: Info, change Mode, `Ctrl`+`Z` — the field
-  and `setup.mirror_mode` stay; the topbar Undo reverts both.*
-
-- [ ] **C94 — The side-view canvas lets go of the window.** `SideviewCanvas` adds a `window` `mouseup` listener it
-  never removes, the leak `CanvasBase` no longer has. Remove it on dispose and cover it in
-  `tests/js/canvas-dispose.test.js`. `docs/client/canvas-interaction.md`.
+- [ ] **TS162 — Undo takes back only what the phase in view edited.** *The author's ruling:* an undo never
+  removes work done in another phase. The sketch keeps one stack of whole-document snapshots across every
+  phase (`history` in `sketch-bridge.js`), so the topbar Undo in Theme takes back the last shape drawn in Draw.
+  Tag each step with the phase that made it and restore only that phase's slice of the document — Draw the
+  shapes, Theme the registry and each shape's theme, Dressing `dressing`, Relief `relief`, Info `setup` — so
+  Undo in a phase walks back that phase's own steps and is greyed where it has none; `Ctrl`+`Z` follows the
+  same rule. *Open (author): whether Info's mode needs an undo at all.* `docs/tools/sketch.md`.
 
 ## Refactoring and cleanup
 

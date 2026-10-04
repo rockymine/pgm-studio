@@ -77,6 +77,26 @@ public sealed class EyeReadEndpointTests
     }
 
     [Test]
+    public async Task An_area_drawn_past_the_boards_edge_names_the_void_it_covers_apart_from_the_ground()
+    {
+        using var client = TexturedFactory.Shared.CreateClient();
+        var slug = await FinishedAsync(client);
+
+        var area = await client.GetFromJsonAsync<JsonElement>(
+            $"/api/map/{slug}/render/eye/pick?from=0,20&yaw=0&pitch=20&width=320&height=180&box=0,0,319,179");
+
+        var ground = area.GetProperty("columns").EnumerateArray().Select(cell => (cell[0].GetInt32(), cell[2].GetInt32())).ToHashSet();
+        var overVoid = area.GetProperty("overVoid").EnumerateArray().ToList();
+        await Assert.That(ground.Count).IsGreaterThan(0);
+        await Assert.That(overVoid.Count).IsGreaterThan(0);
+        // The island's rectangle stands on x and z from -30 up to, and not including, 30.
+        static bool OnTheIsland(int at) => at >= -30 && at < 30;
+        await Assert.That(overVoid.All(cell => !OnTheIsland(cell[0].GetInt32()) || !OnTheIsland(cell[2].GetInt32()))).IsTrue();
+        await Assert.That(overVoid.Select(cell => cell[1].GetInt32()).Distinct().Count()).IsEqualTo(1);
+        await Assert.That(overVoid.Any(cell => ground.Contains((cell[0].GetInt32(), cell[2].GetInt32())))).IsFalse();
+    }
+
+    [Test]
     public async Task A_pick_casts_the_pictures_own_ray_and_names_the_camera_exactly()
     {
         using var client = TexturedFactory.Shared.CreateClient();

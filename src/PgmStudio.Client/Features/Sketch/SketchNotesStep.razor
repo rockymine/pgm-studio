@@ -1,15 +1,14 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* In game — the board as a player sees it, drawn with the game's own block textures. One picture enlarged,
-   the gallery of views under it, and beside it the notes column: an admin's notes on the picture in view and
-   on the whole map. A note is pinned by arming a tool in the dock on the picture — a point, a box or a lasso,
-   which the studio projects onto the ground — or to the picture or the map as a whole. A view of the author's
-   own is placed on the canvas (the host's picking step). *@
+@* Review's Notes step — the board as a player sees it, drawn with the game's own block textures. One picture
+   enlarged with its camera over it, the gallery of views under it, and beside it the notes column: an admin's
+   notes on the picture in view and on the whole map. A note is pinned by arming a tool in the dock on the
+   picture — a point, a box or a lasso, which the studio projects onto the ground — or to the picture or the map
+   as a whole. The cameras themselves are placed, kept and removed in the Cameras step, on the canvas. *@
 
 <div class="phase-body">
-  <FlowBar Class="flow-bar--flush" PhaseIcon="eye" PhaseTitle="In game"
-           BackEnabled="true" NextLabel="Place a view" NextEnabled="@(Gallery is { Undrawable: null })" NextWrites
-           OnBack="OnBack" OnNext="OnPlace" />
+  <FlowBar Class="flow-bar--flush" PhaseIcon="eye" PhaseTitle="Review" Steps="Steps" CurrentStep="1"
+           BackEnabled="true" NextLabel="Next" NextEnabled="true" OnStep="OnStep" OnBack="OnBack" OnNext="OnNext" />
   <Workspace>
     @if (Views.Error is not null)
     {
@@ -41,23 +40,8 @@
         <div class="ingame__main" tabindex="0" @ref="main" @onkeydown="OnKey">
           <div class="ingame__head">
             <span class="ingame__name">@shown.Name</span>
-            <span class="ingame__where">@Where(shown)</span>
             <Button Icon="external-link" Href="@FullSize(shown)" target="_blank" rel="noopener"
                     Title="Open at 1920 × 1080 in a new tab">Full size</Button>
-            @if (shown.Picture)
-            {
-              <Badge Kind="neutral">map picture</Badge>
-            }
-            else
-            {
-              <Button Icon="image" Busy="picturing" BusyLabel="Setting…" Writes OnClick="() => MakePicture(shown)"
-                      Title="Use this view for the map's picture (map.png)">Set as map picture</Button>
-            }
-            @if (shown.Kept && !shown.Own)
-            {
-              <Button Variant="danger" Icon="trash-2" Busy="lettingGo" BusyLabel="Removing…" Writes
-                      OnClick="() => LetGo(shown)">Remove</Button>
-            }
           </div>
 
           @if (Views.Refusal is not null) { <p class="ingame__note ingame__note--warn" role="alert">@Views.Refusal</p> }
@@ -82,6 +66,13 @@
                                 Round="Round" Alt="@shown.Name" Class="ingame__picture"
                                 Standin="@SketchEyePicture.SourceOf(Slug, shown.Query, SketchEyePicture.ThumbWidth, SketchEyePicture.ThumbHeight, Round)" />
             }
+            @if (CameraInView is { } camera)
+            {
+              <div class="ingame__camera" aria-label="The camera this picture is drawn with">
+                <span>@Position(camera)</span>
+                <span>@Facing(camera)</span>
+              </div>
+            }
             @if (Notes.Allowed)
             {
               @if (showMarks)
@@ -91,7 +82,11 @@
                   {
                     @Shape(open.Anchor.Kind, openMarks, "ingame__mark ingame__mark--open")
                   }
-                  @if (step == NotesStep.New && mark is { } drawn)
+                  @foreach (var pinned in RepliesHere)
+                  {
+                    @Shape(pinned.Kind, pinned.Marks!, "ingame__mark ingame__mark--reply")
+                  }
+                  @if (step is NotesStep.New or NotesStep.Thread && mark is { } drawn)
                   {
                     @Shape(drawn.Kind, drawn.Pixels, "ingame__mark ingame__mark--draft")
                   }
@@ -116,11 +111,11 @@
               }
               <CanvasDock>
                 <DockGroup Viewing="true">
-                  <DockButton Icon="crosshair" Title="Point: pin a note to a block" Active="@(tool == NoteAnchors.Point)"
+                  <DockButton Icon="crosshair" Title="@($"Point: pin {Pins} to a block")" Active="@(tool == NoteAnchors.Point)"
                               OnClick="() => Arm(NoteAnchors.Point)" />
-                  <DockButton Icon="square" Title="Box: pin a note to an area" Active="@(tool == NoteAnchors.Box)"
+                  <DockButton Icon="square" Title="@($"Box: pin {Pins} to an area")" Active="@(tool == NoteAnchors.Box)"
                               OnClick="() => Arm(NoteAnchors.Box)" />
-                  <DockButton Icon="lasso" Title="Lasso: pin a note to an outlined area" Active="@(tool == NoteAnchors.Lasso)"
+                  <DockButton Icon="lasso" Title="@($"Lasso: pin {Pins} to an outlined area")" Active="@(tool == NoteAnchors.Lasso)"
                               OnClick="() => Arm(NoteAnchors.Lasso)" />
                   <span class="ingame__divider"></span>
                   <DockButton Icon="eye" Title="@(showMarks ? "Hide note pins" : "Show note pins")"
@@ -135,14 +130,15 @@
             {
               var count = Waiting(view.Id);
               <button type="button" class="@(view.Id == shown.Id ? "ingame__card ingame__card--on" : "ingame__card")"
-                      @key="view.Id" title="@Where(view)" @onclick="() => Show(view)">
+                      @key="view.Id" title="@view.Name" @onclick="() => Show(view)">
                 <span class="ingame__thumb">
                   <SketchEyePicture Slug="@Slug" Query="@view.Query" Round="Round" Alt="@view.Name" />
                   @if (Notes.Allowed && count > 0) { <span class="ingame__count">@count</span> }
                 </span>
                 <span class="ingame__caption">
                   <span class="ingame__cardname">@view.Name</span>
-                  @if (view.Kept) { <Badge Kind="neutral">kept</Badge> }
+                  @if (view.Picture) { <Badge Kind="neutral">map picture</Badge> }
+                  else if (view.Kept) { <Badge Kind="neutral">kept</Badge> }
                 </span>
               </button>
             }
@@ -153,11 +149,11 @@
         {
           <SketchNotesColumn Step="step" Notes="Notes.All" ViewIds="ViewIds" ViewId="@shown.Id" ViewName="@shown.Name"
                              Current="Current" Filter="@filter" AnchorTitle="@AnchorTitle" AnchorBody="@AnchorBody"
-                             HasMark="@(mark is not null)" WholeMap="wholeMap" Ready="Ready" Busy="busy" Error="@notesError"
+                             HasMark="@(mark is not null)" ReplyMark="@ReplyMark" WholeMap="wholeMap" Ready="Ready" Busy="busy" Error="@notesError"
                              OnFilter="f => filter = f" OnOpen="OpenNote" OnBack="BackToOverview" OnNew="StartNote"
                              OnClearMark="ClearMark" OnWholeMap="PinToMap" OnResolve="() => ChangeAsync(NoteStatuses.Resolved)"
                              OnReopen="() => ChangeAsync(NoteStatuses.Open)"
-                             OnWontDo="() => ChangeAsync(NoteStatuses.WontDo)" OnRetag="RetagAsync" OnSend="SendNoteAsync" OnReply="ReplyAsync"
+                             OnWontDo="() => ChangeAsync(NoteStatuses.WontDo)" OnSend="SendNoteAsync" OnReply="ReplyAsync"
                              Changes="Changes" OnChangesSince="OnChangesSince" Stale="stale" OnRedraw="RedrawAsync"
                              MeUuid="@Notes.MeUuid" Handoff="Notes.Handoff" Handing="handing" OnHandOff="HandOffAsync" />
         }

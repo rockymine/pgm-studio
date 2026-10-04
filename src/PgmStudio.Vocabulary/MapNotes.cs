@@ -41,26 +41,7 @@ public static class NoteStatuses
 }
 
 /// <summary>
-/// What a note is about, when its author says. <see cref="Gameplay"/>, <see cref="Terrain"/> and
-/// <see cref="Look"/> go to the map; <see cref="Studio"/> means the studio got something wrong or cannot do it and
-/// becomes a backlog task; <see cref="Ruling"/> is a gameplay decision that holds on every map. A note may carry
-/// none.
-/// </summary>
-public static class NoteTags
-{
-    public const string Gameplay = "gameplay";
-    public const string Terrain = "terrain";
-    public const string Look = "look";
-    public const string Studio = "studio";
-    public const string Ruling = "ruling";
-
-    public static readonly string[] All = [Look, Terrain, Gameplay, Studio, Ruling];
-
-    public static bool IsValid(string? tag) => tag is null || All.Contains(tag);
-}
-
-/// <summary>
-/// What a note is pinned to. Every anchor but <see cref="Map"/> is a picture taken in the In game phase and keeps
+/// What a note is pinned to. Every anchor but <see cref="Map"/> is a picture taken in the Review phase and keeps
 /// its camera: <see cref="View"/> is the picture itself, <see cref="Point"/> one block on it, <see cref="Box"/>
 /// and <see cref="Lasso"/> the ground their pixels' rays hit.
 /// </summary>

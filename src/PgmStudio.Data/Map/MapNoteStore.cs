@@ -51,11 +51,10 @@ public sealed class MapNoteStore(PgmDb db)
                 .UpdateAsync(ct);
         }, ct);
 
-    /// <summary>Change a note's status and tag as given; a null leaves that field as it is.</summary>
-    public Task ChangeAsync(long id, string status, string? tag, DateTime at, CancellationToken ct = default) =>
+    /// <summary>Change a note's status.</summary>
+    public Task ChangeAsync(long id, string status, DateTime at, CancellationToken ct = default) =>
         db.MapNotes.Where(note => note.Id == id)
             .Set(note => note.Status, status)
-            .Set(note => note.Tag, tag)
             .Set(note => note.UpdatedAt, at)
             .UpdateAsync(ct);
 

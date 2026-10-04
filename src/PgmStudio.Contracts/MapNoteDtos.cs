@@ -32,17 +32,21 @@ public sealed record PixelDto(int X, int Y);
 /// <param name="Columns">For an area, every ground column its pixels' rays hit, each <c>[x, y, z]</c> with
 /// <c>y</c> the height the ground was hit at, sorted by <c>x</c> then <c>z</c>. Empty for a point.</param>
 /// <param name="Sky">How many of the mark's pixels hit nothing.</param>
+/// <param name="OverVoid">For an area, where the pixels that hit nothing and look down meet the level of the
+/// ground — the median height of <paramref name="Columns"/>, else of the board's ground — each <c>[x, y, z]</c>
+/// with <c>y</c> that level, sorted by <c>x</c> then <c>z</c>: the void beside a board a mark was drawn over,
+/// every one a column that holds no block. Empty for a point.</param>
 /// <param name="Standing">The height of the ground under the camera — the top block a player would stand on
 /// there — or null where the camera is over the void; a camera at a player's eye is 2.62 over it.</param>
 /// <param name="Change">The map's latest change when the pick was cast: the board it read. A picture listed at an
 /// earlier change shows a board this one may not be.</param>
 public sealed record EyePickDto(
     EyeCameraDto Camera, string Query, BlockAtDto? Hit, BlockAtDto? Ground, IReadOnlyList<int[]> Columns, int Sky,
-    int? Standing, long Change);
+    IReadOnlyList<int[]> OverVoid, int? Standing, long Change);
 
 /// <summary>
 /// What a note is pinned to. A <c>map</c> note names nothing spatial. Every other kind was written on a picture
-/// in the In game phase and keeps the view it was, the exact camera and the picture's size; a <c>point</c>,
+/// in the Review phase and keeps the view it was, the exact camera and the picture's size; a <c>point</c>,
 /// <c>box</c> or <c>lasso</c> also keeps the mark in that picture's pixels and the ground it was projected onto.
 /// </summary>
 /// <param name="Kind">What it is pinned to.</param>
@@ -56,6 +60,8 @@ public sealed record EyePickDto(
 /// <param name="Hit">The block a point's pixel hit.</param>
 /// <param name="Ground">The ground under that block.</param>
 /// <param name="Columns">The ground an area's pixels hit, each <c>[x, y, z]</c>.</param>
+/// <param name="OverVoid">The void an area was drawn over, each <c>[x, y, z]</c> at the level of the ground
+/// beside it.</param>
 public sealed record NoteAnchorDto(
     [property: WordSet(typeof(NoteAnchors))] string Kind,
     string? ViewId = null,
@@ -66,7 +72,8 @@ public sealed record NoteAnchorDto(
     IReadOnlyList<PixelDto>? Marks = null,
     BlockAtDto? Hit = null,
     BlockAtDto? Ground = null,
-    IReadOnlyList<int[]>? Columns = null);
+    IReadOnlyList<int[]>? Columns = null,
+    IReadOnlyList<int[]>? OverVoid = null);
 
 /// <summary>One message in a note's thread.</summary>
 /// <param name="Id">Its id.</param>
@@ -80,34 +87,34 @@ public sealed record NoteAnchorDto(
 /// <param name="Picture">The picture it carries, by hash — the one a note was written on, or the same camera
 /// after an agent's change — served at <c>GET /api/notes/pictures/{hash}</c>; null for none.</param>
 /// <param name="At">When it was written, in UTC.</param>
+/// <param name="Mark">A reply's own mark on a picture — a <c>point</c>, <c>box</c> or <c>lasso</c> and the ground it
+/// was projected onto, kept as a note's anchor is; null for none, and always null on the note's own first message,
+/// whose place is the note's anchor.</param>
 public sealed record NoteMessageDto(
-    long Id, string Author, string? AuthorUuid, string? Token, string Body, long Change, string? Picture, DateTime At);
+    long Id, string Author, string? AuthorUuid, string? Token, string Body, long Change, string? Picture, DateTime At,
+    NoteAnchorDto? Mark = null);
 
 /// <summary>A note and its thread.</summary>
 /// <param name="Id">Its id.</param>
 /// <param name="Map">The slug of the map it is on.</param>
 /// <param name="MapName">That map's name.</param>
 /// <param name="Anchor">What it is pinned to.</param>
-/// <param name="Tag">What its author said it is about, or null.</param>
 /// <param name="Status">Where the thread stands.</param>
 /// <param name="CreatedAt">When it was written, in UTC.</param>
 /// <param name="UpdatedAt">When its thread last changed, in UTC.</param>
 /// <param name="Messages">The thread, oldest first; the first message is the note itself.</param>
 public sealed record MapNoteDto(
     long Id, string Map, string MapName, NoteAnchorDto Anchor,
-    [property: WordSet(typeof(NoteTags))] string? Tag,
     [property: WordSet(typeof(NoteStatuses))] string Status,
     DateTime CreatedAt, DateTime UpdatedAt, IReadOnlyList<NoteMessageDto> Messages);
 
 /// <summary>A new note (<c>POST /api/map/{slug}/notes</c>).</summary>
 /// <param name="Body">What it says.</param>
 /// <param name="Anchor">What it is pinned to.</param>
-/// <param name="Tag">What it is about, or null.</param>
 /// <param name="Picture">The picture it was written on, by the hash <c>POST /api/notes/pictures</c> answered.</param>
 /// <param name="Change">The map's change it was written at; absent takes the latest.</param>
 public sealed record MapNoteRequest(
     string Body, NoteAnchorDto Anchor,
-    [property: WordSet(typeof(NoteTags))] string? Tag = null,
     string? Picture = null,
     long? Change = null);
 
@@ -118,18 +125,19 @@ public sealed record MapNoteRequest(
 /// and <c>open</c> for one written in a browser.</param>
 /// <param name="Picture">The same camera after the change, by hash, or null.</param>
 /// <param name="Change">The map's change the reply was written at; absent takes the latest.</param>
+/// <param name="Mark">A mark on a picture the reply is about — "no, this one" — as <c>render/eye/pick</c> answered
+/// it: a <c>point</c>, <c>box</c> or <c>lasso</c> anchor with its camera, the picture's size, the pixels and the
+/// ground. Absent for none.</param>
 public sealed record NoteReplyRequest(
     string Body,
     [property: WordSet(typeof(NoteStatuses))] string? Status = null,
     string? Picture = null,
-    long? Change = null);
+    long? Change = null,
+    NoteAnchorDto? Mark = null);
 
-/// <summary>A change to a note (<c>PATCH /api/map/{slug}/notes/{id}</c>): its status, its tag, or both.</summary>
-/// <param name="Status"><c>resolved</c>, <c>wont-do</c> or <c>open</c> to reopen it; absent leaves it.</param>
-/// <param name="Tag">What it is about; an empty string clears it, absent leaves it.</param>
-public sealed record NoteChangeRequest(
-    [property: WordSet(typeof(NoteStatuses))] string? Status = null,
-    [property: WordSet(typeof(NoteTags))] string? Tag = null);
+/// <summary>A change to a note's status (<c>PATCH /api/map/{slug}/notes/{id}</c>).</summary>
+/// <param name="Status"><c>resolved</c>, <c>wont-do</c> or <c>open</c> to reopen it.</param>
+public sealed record NoteChangeRequest([property: WordSet(typeof(NoteStatuses))] string Status);
 
 /// <summary>Where the author's notes stand with the agent (<c>GET</c> and <c>POST /api/notes/handoff</c>).</summary>
 /// <param name="Ready">Whether this studio names an agent to hand notes to.</param>

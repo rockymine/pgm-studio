@@ -217,7 +217,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   are the studio's tokens; a list row that is a link is no longer underlined; a map row leads with its name
   and quiets its slug; the not-found page has a heading and a way back; the plan tool's crumb names the plan;
   change history names the documents a change wrote as *sketch* and *game settings*; the plan sidebar's three
-  panels are one even switch; and an In-game phase with no block textures says so in a callout.
+  panels are one even switch; and a Review phase with no block textures says so in a callout.
 - **Every dropdown is `Select` (`C51`).** The plan tool, Configure, Edit, the sketch tool, the world canvas and
   the pages hold no `<select>` of their own; the one left in the client is `Select.razor`'s.
 - **Sliders, number boxes and dropdowns are shared components (`C79`).** No raw number, range or select
@@ -8423,7 +8423,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   three colours and the biomes each is the same colour as, and the library seeds one flat pattern per biome.
   `docs/world-export/terrain-painting.md` §5b. (`WE139`)
 
-- **The board in game, in the studio (`TS110`)** — the Sketch tool's sixth phase, **In game**, is a gallery of
+- **The board in game, in the studio (`TS110`)** — the Sketch tool's sixth phase, **Review**, is a gallery of
   the stored board drawn from a player's eye in the game's own sprites: the studio's suggestions from the built
   board (`WorldViews` — the whole board, every team's spawn from its front and the view out of it, every wool
   room, goal and point, the first buildings and boulders, a building framed from its footprint with a clear
@@ -8450,7 +8450,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   shell is the shell; a binding of `null` (no building) raises nothing. `docs/world-export/structures.md` §9.
   (`WE140`)
 
-- **A goal's picture is framed on its own box (`TS112`)** — the In game suggestions frame a destroyable or a
+- **A goal's picture is framed on its own box (`TS112`)** — the Review suggestions frame a destroyable or a
   core from the box it was built in and a control point from its pad, so the sky marker over the goal is no
   longer what the eye aims at; and where no stand on the ground sees a building or a goal, the eye rises into
   the air over the same stands and looks down. `docs/tools/sketch.md`. (`TS112`)
@@ -8527,6 +8527,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   cut from the game's own chest texture with the front where the chest faces. A sheet a sixteenth thick is
   drawn but neither stood on nor blocks a sight line. `docs/world-scan/read-backs.md`. (`WS79`)
 
+- **An eye picture casts four rays only where they differ (`WS82`)** — `render/eye` casts one ray a pixel
+  first and the other three only where a pixel's colour differs from one of its eight neighbours' by more
+  than 8 in a channel, so an edge, a leaf and far texture are still averaged while open sky and a calm field
+  are cast once. Every picture the studio answers deflates at the optimal level rather than the smallest.
+  Together a 1280 × 720 view draws and encodes in about a third of the time, with what the picture holds
+  counted exactly as before. `docs/world-scan/read-backs.md`. (`WS82`)
+
 - **A layer fanned onto its images turns its blocks with it (`WE146`)** — each cell a fanned shape paints
   carries the orbit image that won it, and what a material states — a ladder's side, a stair's climb, a log's
   axis, a torch, a chest, a fence gate — turns through `BlockGeometry.Turned` by that image's transform:
@@ -8541,9 +8548,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the prop's, a wall's defence chests, a wool room's corners — is set by `ChestBuilder.Place`. The Dressing
   phase places one with a click and lists its stacks in the inspector. `docs/world-export/decoration.md` §8a. (`WE151`)
 
-- **Notes on a map, and the threads under them (`TS115`)** — an admin leaves a note in the In game phase, pinned
-  to the whole map or to the picture in view, with an optional tag (`look`, `terrain`, `gameplay`, `studio`,
-  `ruling`); an agent answers in its thread, and only the author resolves it. A thread is `open` (waiting on an
+- **Notes on a map, and the threads under them (`TS115`)** — an admin leaves a note in the Review phase, pinned
+  to the whole map or to the picture in view; an agent answers in its thread, and only the author resolves it. A thread is `open` (waiting on an
   agent), `answered`, `needs-info` or `wont-do` (waiting on the author) or `resolved`, and each message records
   who wrote it, the token an agent wrote it with, and the map's revision. Notes are rows keyed by slug
   (`map_note`, `map_note_message`, `M0048`), so a board rebuilt over its own slug keeps its threads, its kept
@@ -8552,7 +8558,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   column is two steps, an overview under four filters and a thread or a new note. `docs/tools/sketch.md`,
   `docs/access.md`. (`TS115`)
 
-- **A note pinned to ground on a picture (`TS116`)** — Point, Box and Lasso in a dock on the In game picture pin a
+- **A note pinned to ground on a picture (`TS116`)** — Point, Box and Lasso in a dock on the Review picture pin a
   note to a block, a rectangle or an outline, which `GET …/render/eye/pick` projects onto the ground the
   picture's own rays hit — a point's block and the ground under it, an area's columns, never ground no ray
   reached — and answers the exact camera, which `render/eye?eye=x,y,z&yaw=&pitch=` draws again. The note keeps
@@ -8560,6 +8566,30 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`POST`/`GET /api/notes/pictures`, `NotePictures`, `Notes:Pictures`), swept of files no message names and
   copied beside the database dumps on deploy. A kept view takes a pitch, so a raised eye tipped down is an
   aerial shot. `docs/tools/sketch.md`, `docs/world-scan/read-backs.md`, `docs/deployment.md`. (`TS116`)
+
+- **A mark over the void says where it is (`TS121`)** — a Box or Lasso pixel whose ray hits nothing and looks
+  down meets a level plane at the median height of the ground the same mark hit, else of the board's ground,
+  and every empty column it crosses there is answered under `overVoid` beside `columns` and kept on the note's
+  anchor, so "an island here" drawn beside a board names the cells it means. `columns` stays ground actually
+  seen. `docs/tools/sketch.md` § Notes, `docs/world-scan/read-backs.md`. (`TS121`)
+
+- **A reply can point (`TS144`)** — with a thread open, Point, Box and Lasso mark the reply instead of starting a
+  note: the mark is read on the picture in view (the note's own camera where the thread compares its pictures),
+  sent as the reply's `mark` in a note anchor's shape and held to the same checks, kept on the message
+  (`map_note_message.mark_json`, `M0062`) and drawn in violet on the picture while the thread is open, its bubble
+  naming what it pins. `docs/tools/sketch.md` § Notes. (`TS144`)
+
+- **Review: cameras, then notes (`TS151`)** — the Sketch tool's sixth phase is **Review**, in two steps on one
+  step bar. **Cameras** is the canvas with the camera tool armed: the views listed beside it, each row able to make
+  its view the map's picture (`map.png`) and a kept view removable there, and the camera in hand keeping, saving
+  or removing with a *map's picture* box of its own. **Notes** is the gallery with the threads, the camera printed
+  over the picture as the game's debug screen prints it (`XYZ: 0.5 246.6 1.5`, `Facing: 180.0 90.0`), a rule in the
+  thread wherever the board changed between two messages, and a reply box that is only the field and Send. A
+  note carries no tag (`M0063` drops it); the agent reads what a note is about and says so in its reply.
+  `docs/tools/sketch.md` § Review. (`TS151`)
+
+- **The sketch tool's crumb names the map (`TS153`)** — the top bar reads the map's name, and follows a rename
+  saved in Info; the slug stands in until one is saved. `docs/tools/sketch.md`. (`TS153`)
 
 - **The board seen whole (`TS117`)** — placing a view draws the Board layer: the full build from straight above,
   trees, houses and water included, shaded like the game's map item, with every other layer, chip and mark
@@ -8581,7 +8611,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   in place (`PUT /map/{slug}/views/{viewId}`), a suggestion kept as a new view. `docs/tools/sketch.md`. (`TS119`)
 
 - **The loop closed (`TS118`)** — an agent's reply carries the same camera drawn after its change, shown under
-  the note's own picture as its after, and `?note={id}` on the Sketch route opens the In game phase on that
+  the note's own picture as its after, and `?note={id}` on the Sketch route opens the Review phase on that
   thread, the link a resolved `ruling` carries into `docs/gameplay/approaches.md`. The mapgen skills read the open
   notes first and reply on every note a drive answered. `docs/tools/sketch.md`. (`TS118`)
 
@@ -8609,15 +8639,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`TS138`)
 
 - **A thread and the changes that answer it (`TS131`, `TS132`, `TS133`)** — History lists under a span the threads
-  with a message written in it and opens each in In game; a thread counts the changes since its note, with a
+  with a message written in it and opens each in Review; a thread counts the changes since its note, with a
   second link for those since its last message where they differ; and coming back to History draws the span it
-  showed. `docs/tools/sketch.md` § In game, § History. (`TS131`, `TS132`, `TS133`)
+  showed. `docs/tools/sketch.md` § Review, § History. (`TS131`, `TS132`, `TS133`)
 
-- **In game follows the board (`TS136`, `TS134`, `TS135`, `TS137`)** — the phase reads the board's changes and
+- **Review follows the board (`TS136`, `TS134`, `TS135`, `TS137`)** — the phase reads the board's changes and
   its notes again every 30 seconds and when the tab comes back, and says over the picture when a change has
   landed that the pictures do not show; a `?note=` link opens once and leaves the address; a refused let-go or
-  map picture is said over the gallery; and a thread is declined and retagged in the browser.
-  `docs/tools/sketch.md` § In game. (`TS136`, `TS134`, `TS135`, `TS137`)
+  map picture is said under the list of cameras; and a thread is declined in the browser.
+  `docs/tools/sketch.md` § Review. (`TS136`, `TS134`, `TS135`, `TS137`)
 
 - **What is new since a scheduled check (`TS145`)** — `GET /api/notes?since=` keeps the threads whose last message
   or status change is at or after an ISO 8601 instant, so a check on a schedule asks what is waiting and starts a
@@ -8630,7 +8660,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   unnamed agent is `RQ12` at 503 (`AgentHandoff`, `GET`/`POST /api/notes/handoff`). `docs/tools/sketch.md`,
   `docs/deployment.md`, `docs/refusals.md`. (`TS146`)
 
-- **A browser test for In game's notes (`TS139`)** — `tests/e2e/sketch-notes.mjs` writes a note, double-clicks
+- **A browser test for Review's notes (`TS139`)** — `tests/e2e/sketch-notes.mjs` writes a note, double-clicks
   Send for one note, replies, refuses a mark on a picture of a changed board and lands it after the redraw,
   resolves, compares, retags and declines a thread, opens one from `?note=` and follows its changes since into
   History and back. CI runs the sweep
@@ -8920,7 +8950,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `docs/tools/flow.md`, `docs/pgm/control-points.md`, `docs/pgm/shops.md`)
 - **The export carries the `map.png` a PGM server lists the map by (`WE155`).** Drawn at 290 × 246 through the
   eye `render/eye` draws with, from the kept view the author marks as the map's picture — **Map picture** in the
-  In game phase, or `picture: true` on the views routes, one view at a time — else from the whole board seen
+  Review phase, or `picture: true` on the views routes, one view at a time — else from the whole board seen
   above its long side; a studio without the block sprites exports the world without it and says so `RQ10` in
   `Pgm-Warnings`. (`Api/Services/MapPicture`, `Export/WorldViews`, `Api/Endpoints/MapExportEndpoint`,
   `docs/world-export/sketch-world-export.md`, `docs/tools/sketch.md`, `docs/tools/configure.md`)
@@ -8947,7 +8977,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a store, each beside the route that answers it alone and made by the same call, and the pictures by route,
   drawn on `?pictures=true`; `?format=text` answers one document. The board in the round is the studio's own:
   `render/isometric` from any corner, and `render/xray`, which washes out the ground and the buildings over a
-  roofed room and answers the void scan as its text. The Sketch tool's **Report** phase shows the same report.
+  roofed room and answers the void scan as its text. It is an agent's read; the Sketch tool has no page for it.
   (`Export/BoardIsometric`, `Api/Services/MapReport`, `Minecraft/Anvil/WorldColumns`,
   `docs/world-scan/read-backs.md`, `docs/tools/sketch.md`)
 - **A style written in its retired shape is refused by its path (`TS127`).** A part written as a material
@@ -10144,7 +10174,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 - **Each sketch phase owns its state (TS160).** A bridge-sourced phase relays one snapshot (Relief, Dressing, and
   Palette's `SketchThemes`, which now carries the room shells and biome and refreshes on every undo); a server
-  phase with one body loads itself (Info, Report); History and In game's views are state containers
+  phase with one body loads itself (Info); History and Review's views are state containers
   (`SketchHistory`, `SketchViews`) shared by their two bodies, and the notes are read once (`SketchNotes`). The
   host keeps the phase switch, save-first and the canvas mode: `SketchTool.razor.cs` 1,443 → 1,047 lines.
 
@@ -10624,7 +10654,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   build and the input's bytes, so an edit or a deploy is a new name and nothing is invalidated; a render answers
   a kept picture without building the world, with an `ETag`/`304`. The `/library` chooser's nine lists went
   from 1.10 s every load to 0.10 s warm and 0.23 s after a restart (8.4 s on pgmstudio.de before); an eye
-  picture asked again from 6–11 s to under 0.2 s. In game shows the thumbnail while the enlarged picture draws
+  picture asked again from 6–11 s to under 0.2 s. Review shows the thumbnail while the enlarged picture draws
   and asks again after a `429`'s `Retry-After`.
 - **Comment sweep (RP103).** About 300 task-id comments and 150 history or port-attribution sentences across
   256 files rewritten as facts about the code; `CLAUDE.md` states the rule without a count.

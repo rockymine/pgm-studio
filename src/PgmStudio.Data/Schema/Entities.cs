@@ -76,7 +76,6 @@ public sealed class MapNoteRow
     [Column("anchor_kind"), NotNull] public string AnchorKind { get; set; } = "";
     [Column("anchor_json"), NotNull] public string AnchorJson { get; set; } = "";
     [Column("view_key")] public string? ViewKey { get; set; }
-    [Column("tag")] public string? Tag { get; set; }
     [Column("status"), NotNull] public string Status { get; set; } = "";
     [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
     [Column("updated_at"), NotNull] public DateTime UpdatedAt { get; set; }
@@ -95,6 +94,7 @@ public sealed class MapNoteMessageRow
     [Column("body"), NotNull] public string Body { get; set; } = "";
     [Column("change_number"), NotNull] public long Change { get; set; }
     [Column("picture")] public string? Picture { get; set; }
+    [Column("mark_json")] public string? MarkJson { get; set; }
     [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
 }
 
@@ -643,7 +643,7 @@ public static class ArtifactKind
     // Hand-cut lane decompositions gathered with the retired decompose surface (island_sketch outlines
     // cut into role-tagged lane polygons, sketch layout format). Stored data kept; no writer remains.
     public const string LaneDecompositionJson = "lane_decomposition_json";
-    // The pictures an author kept of a board from a player's eye (docs/tools/sketch.md, In game): a list of
+    // The pictures an author kept of a board from a player's eye (docs/tools/sketch.md, Review): a list of
     // named views. A sidecar rather than a part of the layout, so keeping a picture is not an edit to the
     // board and the world it builds.
     public const string MapViewsJson = "map_views_json";

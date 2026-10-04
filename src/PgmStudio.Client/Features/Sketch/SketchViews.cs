@@ -6,7 +6,7 @@ using PgmStudio.Contracts;
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>
-/// The In game phase's views: the gallery the studio answers, the camera in hand while one is placed, and the
+/// The Review phase's views: the gallery the studio answers, the camera in hand while one is placed, and the
 /// calls that keep, change and let go of them. The gallery, the list beside the canvas and the inspector are
 /// all drawn from it; what the canvas shows of them is the host's, handed in as delegates.
 /// </summary>
@@ -126,9 +126,6 @@ public sealed class SketchViews(
         Changed?.Invoke();
     }
 
-    /// <summary>Stop placing without touching the canvas, as arriving in the phase does.</summary>
-    public void StopPlacing() => Placing = false;
-
     /// <summary>Start placing a view of one's own: the board layer under an empty hand.</summary>
     public async Task BeginPlacingAsync()
     {
@@ -136,9 +133,10 @@ public sealed class SketchViews(
         Draft = null;
         Note = null;
         await setBoardView(true);
+        Changed?.Invoke();
     }
 
-    /// <summary>Back to the gallery from placing.</summary>
+    /// <summary>Leave placing for the gallery.</summary>
     public async Task EndPlacingAsync()
     {
         Placing = false;
@@ -197,7 +195,7 @@ public sealed class SketchViews(
             return;
         }
         Refusal = null;
-        await LoadAsync();
+        await LoadAsync(clear: false);
     }
 
     /// <summary>Draw the map's picture from a view: a kept one is marked in place, and a suggestion is kept as
@@ -223,6 +221,6 @@ public sealed class SketchViews(
             return;
         }
         Refusal = null;
-        await LoadAsync();
+        await LoadAsync(clear: false);
     }
 }

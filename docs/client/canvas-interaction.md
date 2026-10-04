@@ -144,8 +144,10 @@ fallback.
 its own element, because a drag that leaves the SVG must still end; `_disposeCanvasBase` removes both, with the
 resize observer, the pending chrome frame and the iso renderer, and every subclass `dispose` ends by calling it.
 A bridge's `dispose` clears only what the bridge itself holds and then reaches `canvas.dispose()`, so a throw
-before that line leaks a whole canvas per mount. `tests/js/canvas-dispose.test.js` mounts the plan bridge under a
-stub and asserts both the clean dispose and the removed listeners.
+before that line leaks a whole canvas per mount. `SideviewCanvas` stands outside the base and ends a drag on a
+`window` `mouseup` for the same reason, which its own `dispose` removes. `tests/js/canvas-dispose.test.js` mounts
+the plan bridge under a stub and asserts both the clean dispose and the removed listeners, and holds the side-view
+canvas to the same.
 
 **A canvas on a page the caller may not write is read-only, and refuses at the source.** `setReadOnly(on)` sets
 `_readOnly` and calls the `_onReadOnlyChanged` hook; the base then begins no body-drag, and each surface

@@ -13,7 +13,7 @@
   <Bar>
     <Topbar HomeHref="maps?stage=sketch" HomeLabel="Sketches" HomeTitle="Back to sketches">
       <Crumbs>
-        <Crumb>@Slug.Replace('_', ' ')</Crumb>
+        <Crumb>@(string.IsNullOrWhiteSpace(mapName) ? Slug.Replace('_', ' ') : mapName)</Crumb>
         <Crumb Dim>Sketch</Crumb>
       </Crumbs>
       <Right>
@@ -35,35 +35,30 @@
       <NavButton Icon="mountain" Title="Terraform" Active="@ReliefActive" OnClick="GoRelief" />
       <NavButton Icon="palette" Title="Palette" Active="@ThemeActive" OnClick="GoTheme" />
       <NavButton Icon="trees" Title="Decoration" Active="@DressingActive" OnClick="GoDressing" />
-      <NavButton Icon="eye" Title="In game" Active="@InGameActive" OnClick="GoInGame" />
+      <NavButton Icon="eye" Title="Review" Active="@ReviewActive" OnClick="GoReview" />
       <NavButton Icon="history" Title="History" Active="@HistoryActive" OnClick="GoHistory" />
-      <NavButton Icon="clipboard" Title="Report" Active="@ReportActive" OnClick="GoReport" />
     </NavRail>
   </Rail>
   <ChildContent>
       <WriteGate OnChanged="OnWriteReason" />
       @if (InfoActive)
       {
-        <SketchInfoPhase Slug="@Slug" OnNext="GoDraw"
+        <SketchInfoPhase Slug="@Slug" OnNext="GoDraw" OnRenamed="renamed => mapName = renamed"
                          Mode="@mode" CenterX="@centerX" CenterZ="@centerZ"
                          OnModeChange="OnModeChange" OnCenterX="OnCenterX" OnCenterZ="OnCenterZ" />
       }
-      @* The gallery is a page of pictures rather than a canvas; placing a view of one's own is the canvas's, so
-         the shared body below comes back for it. *@
-      @if (InGameActive && !views.Placing)
+      @* Review's Notes step is a page of pictures rather than a canvas; its Cameras step is the canvas's, so the
+         shared body below comes back for it. *@
+      @if (NotesActive)
       {
-        <SketchInGamePhase Slug="@Slug" Views="views" Notes="notes" LinkedNote="linkedNote" OnLinkOpened="LinkOpened"
-                           OnBack="GoDressing" OnPlace="PlaceView"
-                           Changes="history.ChangeNumbers" OnChangesSince="ShowChangesSince" OnRedraw="RedrawInGame" />
-      }
-      @if (ReportActive)
-      {
-        <SketchReportPhase @key="reportEntries" Slug="@Slug" OnBack="GoHistory" />
+        <SketchNotesStep Slug="@Slug" Views="views" Notes="notes" LinkedNote="linkedNote" OnLinkOpened="LinkOpened"
+                         Steps="ReviewSteps" OnStep="StepReview" OnBack="ShowCameras" OnNext="GoHistory"
+                         Changes="history.ChangeNumbers" OnChangesSince="ShowChangesSince" OnRedraw="RedrawReview" />
       }
       @* Every phase that draws shares the one mounted canvas, so this body stays present (hidden while Info is
          up) — [hidden] is display:none, and the canvas re-measures on unhide. A phase swaps what the columns
          hold and which overlays the bar offers; the canvas is reused as it stands. *@
-      <div class="phase-body" hidden="@(!(DrawActive || ThemeActive || DressingActive || ReliefActive || PlacingViewActive || HistoryActive))">
+      <div class="phase-body" hidden="@(!(DrawActive || ThemeActive || DressingActive || ReliefActive || CamerasActive || HistoryActive))">
       @if (ThemeActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Palette"
@@ -72,7 +67,7 @@
       else if (DressingActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="trees" PhaseTitle="Decoration"
-                 BackEnabled="true" NextLabel="Next" NextEnabled="true" OnBack="GoTheme" OnNext="GoInGame" />
+                 BackEnabled="true" NextLabel="Next" NextEnabled="true" OnBack="GoTheme" OnNext="GoReview" />
       }
       else if (ReliefActive)
       {
@@ -82,12 +77,13 @@
       else if (HistoryActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="history" PhaseTitle="History"
-                 BackEnabled="true" NextLabel="Draw" NextEnabled="true" OnBack="GoInGame" OnNext="GoDraw" />
+                 BackEnabled="true" NextLabel="Draw" NextEnabled="true" OnBack="GoReview" OnNext="GoDraw" />
       }
-      else if (PlacingViewActive)
+      else if (CamerasActive)
       {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="eye" PhaseTitle="Place a view"
-                 BackEnabled="true" NextLabel="Gallery" NextEnabled="true" OnBack="ShowGallery" OnNext="ShowGallery" />
+        <FlowBar Class="flow-bar--flush" PhaseIcon="eye" PhaseTitle="Review" Steps="ReviewSteps" CurrentStep="0"
+                 BackEnabled="true" NextLabel="Next" NextEnabled="true" OnStep="StepReview"
+                 OnBack="GoDressing" OnNext="ShowNotes" />
       }
       else
       {
@@ -114,7 +110,7 @@
                list of what is placed — the group tree would only offer a selection nothing here acts on. *@
             <SketchDressingList StateJson="@dressingJson" Handle="handle" />
           }
-          else if (PlacingViewActive)
+          else if (CamerasActive)
           {
             <SketchViewList Views="views" />
           }
@@ -201,7 +197,7 @@
               <span class="canvas-note canvas-note--warn" role="status">@editNote</span>
             }
             @* Placing a view is 2-D only: the eye is stood on a map of the board. *@
-            <IsoToggle View="iso" OfferToggle="@(!PlacingViewActive)" />
+            <IsoToggle View="iso" OfferToggle="@(!CamerasActive)" />
           </CanvasLayerBar>
 
           @* A layer is the board's rather than a phase's, so the switch is chrome and every phase that
@@ -241,7 +237,7 @@
                 }
               </DockGroup>
             }
-            else if (PlacingViewActive)
+            else if (CamerasActive)
             {
               <DockGroup>
                 <DockButton Icon="camera" Title="Place a view: press where to stand, then drag toward the target"
@@ -297,7 +293,7 @@
           <div class="sidebar-handle"></div>
           <SketchDressingInspector Handle="handle" ActiveTool="@tool" StateJson="@dressingJson" Layers="layerRows" />
         }
-        else if (PlacingViewActive)
+        else if (CamerasActive)
         {
           <div class="sidebar-handle"></div>
           <SketchViewDraft Slug="@Slug" Views="views" OnKeep="KeepView" />

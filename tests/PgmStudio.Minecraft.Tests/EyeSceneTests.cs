@@ -268,6 +268,45 @@ public sealed class EyeSceneTests
     }
 
     [Test]
+    public async Task A_stretch_whose_pixels_agree_is_drawn_from_each_pixels_first_ray_alone()
+    {
+        var calm = new byte[8 * 8 * 4];
+        for (var i = 0; i < 64; i++)
+        {
+            var shade = ((i % 8) + (i / 8)) % 2 == 0 ? (byte)100 : (byte)104;
+            calm[i * 4] = calm[i * 4 + 1] = calm[i * 4 + 2] = shade;
+            calm[i * 4 + 3] = 255;
+        }
+        var sprites = BlockTextureSet.Of(new Dictionary<string, BlockSprite> { ["stone"] = new(8, calm) });
+
+        var picture = EyeScene.Of(FloorWorld(), sprites).Draw(StraightDown, 40, 40);
+
+        await Assert.That(picture.Rgb.All(channel => channel is 100 or 104)).IsTrue();
+    }
+
+    [Test]
+    public async Task An_edge_is_the_mean_of_every_ray_through_its_pixel()
+    {
+        var world = FloorWorld();
+        world.SetBlock(16, Floor + 1, 20, GoldBlock);
+        var sprites = BlockTextureSet.Of(new Dictionary<string, BlockSprite>
+        {
+            ["stone"] = Uniform(40, 40, 160),
+            ["gold_block"] = Uniform(200, 180, 0),
+        });
+        var scene = EyeScene.Of(world, sprites);
+
+        var single = Colours(scene.Draw(FacingTheGold, 64, 36, supersample: 1));
+        var averaged = Colours(scene.Draw(FacingTheGold, 64, 36));
+
+        await Assert.That(averaged.Except(single)).IsNotEmpty();
+    }
+
+    private static HashSet<(byte, byte, byte)> Colours(EyePicture picture) =>
+        [.. Enumerable.Range(0, picture.Width * picture.Height)
+                      .Select(pixel => (picture.Rgb[pixel * 3], picture.Rgb[pixel * 3 + 1], picture.Rgb[pixel * 3 + 2]))];
+
+    [Test]
     public async Task A_pick_names_the_block_its_pixel_hits_and_the_ground_under_it()
     {
         const int Leaves = 18;
@@ -307,6 +346,49 @@ public sealed class EyeSceneTests
         var (pickX, pickY) = every[every.Count / 2 + 7];
         var picked = scene.Pick(looking, 64, 36, pickX, pickY)!.Value.Block;
         await Assert.That(area.Columns[(picked.X, picked.Z)]).IsGreaterThanOrEqualTo(picked.Y);
+    }
+
+    private static List<(int X, int Y)> EveryPixel(int wide, int high) =>
+        [.. Enumerable.Range(0, high).SelectMany(row => Enumerable.Range(0, wide).Select(column => (column, row)))];
+
+    [Test]
+    public async Task An_area_over_the_void_beside_the_ground_it_saw_is_kept_at_that_grounds_level()
+    {
+        var scene = EyeScene.Of(FloorWorld(), Sprites());
+        var overTheEdge = new EyeCamera(24.5, Floor + 2.62, 44.5, Yaw: 0, Pitch: 30, Fov: 70);
+
+        var area = scene.Project(overTheEdge, 64, 36, EveryPixel(64, 36));
+
+        await Assert.That(area.Columns.Count).IsGreaterThan(0);
+        await Assert.That(area.OverVoid.Count).IsGreaterThan(0);
+        await Assert.That(area.OverVoid.Keys.All(cell => cell.Z >= 48)).IsTrue();
+        await Assert.That(area.OverVoid.Values.All(level => level == Floor)).IsTrue();
+        await Assert.That(area.OverVoid.Keys.Any(area.Columns.ContainsKey)).IsFalse();
+    }
+
+    [Test]
+    public async Task An_area_that_sees_no_ground_is_kept_at_the_boards_level()
+    {
+        var scene = EyeScene.Of(FloorWorld(), Sprites());
+        var awayFromTheBoard = new EyeCamera(24.5, Floor + 20, 60.5, Yaw: 0, Pitch: 45, Fov: 70);
+
+        var area = scene.Project(awayFromTheBoard, 64, 36, EveryPixel(64, 36));
+
+        await Assert.That(area.Columns.Count).IsEqualTo(0);
+        await Assert.That(area.Sky).IsEqualTo(64 * 36);
+        await Assert.That(area.OverVoid.Count).IsGreaterThan(0);
+        await Assert.That(area.OverVoid.All(cell => cell.Key.Z > 60 && cell.Value == Floor)).IsTrue();
+    }
+
+    [Test]
+    public async Task An_area_looking_up_is_sky_alone()
+    {
+        var up = new EyeCamera(24.5, Floor + 2, 24.5, Yaw: 0, Pitch: -80, Fov: 40);
+
+        var area = EyeScene.Of(FloorWorld(), Sprites()).Project(up, 32, 18, EveryPixel(32, 18));
+
+        await Assert.That(area.Sky).IsEqualTo(32 * 18);
+        await Assert.That(area.OverVoid.Count).IsEqualTo(0);
     }
 
     private const int Torch = 50, RedstoneWire = 55, Ladder = 65, Carpet = 171, Chest = 54;

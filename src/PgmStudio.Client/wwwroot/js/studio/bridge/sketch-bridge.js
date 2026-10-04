@@ -915,7 +915,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.setReadOnly(readOnly);
       if (readOnly && !VIEW_TOOLS.has(canvas.activeTool ?? "move")) { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); }
     },
-    // ── In game: the views kept, and the one being placed ──
+    // ── Review: the views kept, and the one being placed ──
     setViews(viewsJson) { try { canvas.setViews(JSON.parse(viewsJson)); } catch { canvas.setViews([]); } },
     setViewDraft(viewJson) { canvas.setViewDraft(viewJson ? JSON.parse(viewJson) : null); },
     setMode(mode)      { applySetup({ mirror_mode: mode }); markDirty(); },

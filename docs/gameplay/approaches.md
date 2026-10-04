@@ -15,9 +15,9 @@ that mark becomes a rule while it still does, and the mark exists because of how
 collects what the author said and sorts it, and a sentence nobody has read back is exactly the kind that
 turns an unreviewed opinion into a constraint.
 
-**A claim decided on a map note links back to the thread it was decided in.** An author's note tagged
-`ruling` is a gameplay decision meant to hold on every map, and once the author resolves it the claim is
-written here marked **[author](/maps/{slug}/sketch?note={id})** — the link opens the In game phase on that
+**A claim decided on a map note links back to the thread it was decided in.** A note the agent reads
+as a ruling is a gameplay decision meant to hold on every map, and once the author resolves it the claim is
+written here marked **[author](/maps/{slug}/sketch?note={id})** — the link opens the Review phase's Notes step on that
 note's thread, with the place it was about and the words it was settled in (`docs/tools/sketch.md`, *Notes*).
 A claim without a link was stated elsewhere — in a conversation or a review — and stands the same.
 

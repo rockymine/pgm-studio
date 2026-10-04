@@ -1,17 +1,15 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* Every camera the gallery has, as the canvas draws it: the views kept, then the studio's suggestions.
-   Choosing one picks it up as a press on its camera would. *@
+@* Every camera the board has, as the canvas draws it: the views kept, then the studio's suggestions. Choosing
+   one picks it up as a press on its camera would. Each row says which one the map's picture is drawn from and
+   makes another one it, and a kept view the author placed can be removed; the board's own straight-down view
+   cannot. *@
 
 <Section Title="Kept views">
   <div class="panel-list">
     @foreach (var kept in Views.Kept)
     {
-      <ListRow Compact Selected="@(Views.Draft?.Source?.Id == kept.Id)" @key="kept.Id" OnClick="() => Views.SelectAsync(kept)">
-        <span class="geo-type-icon"><i data-lucide="camera"></i></span>
-        <span class="list-label">@kept.Name</span>
-        <span class="list-tag">@kept.LookX, @kept.LookZ</span>
-      </ListRow>
+      @Row(kept)
     }
   </div>
 </Section>
@@ -21,16 +19,56 @@
     <div class="panel-list">
       @foreach (var suggested in Views.Suggested)
       {
-        <ListRow Compact Selected="@(Views.Draft?.Source?.Id == suggested.Id)" @key="suggested.Id" OnClick="() => Views.SelectAsync(suggested)">
-          <span class="geo-type-icon"><i data-lucide="camera"></i></span>
-          <span class="list-label">@suggested.Name</span>
-          <span class="list-tag">@suggested.LookX, @suggested.LookZ</span>
-        </ListRow>
+        @Row(suggested)
       }
     </div>
   </Section>
 }
+@if (Views.Refusal is not null) { <p class="dressing-refusal" role="alert">@Views.Refusal</p> }
 
 @code {
     [Parameter, EditorRequired] public SketchViews Views { get; set; } = default!;
+
+    /// <summary>The view a row's action is working on, so its button says so.</summary>
+    private string? busyId;
+
+    private RenderFragment Row(MapViewDto view) =>
+        @<ListRow Compact Selected="@(Views.Draft?.Source?.Id == view.Id)" @key="view.Id" OnClick="() => Views.SelectAsync(view)">
+          <ChildContent>
+            <span class="geo-type-icon"><i data-lucide="camera"></i></span>
+            <span class="list-label">@view.Name</span>
+            @if (view.Picture) { <Badge Kind="neutral">map picture</Badge> }
+            <span class="list-tag">@view.LookX, @view.LookZ</span>
+          </ChildContent>
+          <Trailing>
+            @if (!view.Picture)
+            {
+              <Button Variant="icon" Icon="image" Title="Use this view for the map's picture (map.png)" Writes
+                      Busy="@(busyId == view.Id)" OnClick="() => PictureAsync(view)" />
+            }
+            @if (view.Kept && !view.Own)
+            {
+              <Button Variant="icon" Icon="trash-2" Title="Remove this view" Writes
+                      Busy="@(busyId == view.Id)" OnClick="() => RemoveAsync(view)" />
+            }
+          </Trailing>
+        </ListRow>;
+
+    private async Task PictureAsync(MapViewDto view)
+    {
+        busyId = view.Id;
+        try { await Views.PictureAsync(view); }
+        finally { busyId = null; }
+    }
+
+    private async Task RemoveAsync(MapViewDto view)
+    {
+        busyId = view.Id;
+        try
+        {
+            if (Views.Draft?.Source?.Id == view.Id) await Views.DiscardAsync();
+            await Views.LetGoAsync(view);
+        }
+        finally { busyId = null; }
+    }
 }

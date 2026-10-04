@@ -65,7 +65,7 @@
         @foreach (var (note, message) in SpanNotes)
         {
           <button type="button" class="notes-row" @key="note.Id" @onclick="() => OnOpenNote.InvokeAsync(note.Id)"
-                  title="Open the thread in In game">
+                  title="Open the thread in Review">
             <span class="@SketchNotesColumn.PinClass(note)">@SketchNotesColumn.Glyph(note)</span>
             <span class="notes-row__text">
               <span class="notes-row__top"><b>@SketchNotesColumn.Title(note)</b><span class="@($"note-status note-status--{note.Status}")">@NoteStatuses.Label(note.Status)</span></span>
