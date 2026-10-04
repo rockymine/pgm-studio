@@ -1,12 +1,13 @@
 /**
- * The Sketch tool's In game notes: Send is off until something is written, says it is sending and then that it
+ * The Sketch tool's Review phase: it opens on Cameras, where the map's picture is chosen, and its Notes step prints
+ * the camera over the picture and keeps the notes. Send is off until something is written, says it is sending and then that it
  * sent, and one press is one note however many clicks land; a reply joins the thread on the author's side; a
  * mark on a picture of a board that has changed since is refused until the pictures are drawn again, and the
  * note then records the change it was drawn at; a thread with an after compares it with its before on the big
  * picture, is retagged, declined and resolved, opens once from its link, counts the changes since its note and
- * opens History on them, where the threads written in that span are listed and open again in In game.
+ * opens History on them, where the threads written in that span are listed and open again in Review.
  *
- * In game draws with Minecraft's block textures, which a studio has only when given them
+ * Review draws with Minecraft's block textures, which a studio has only when given them
  * (`Textures__AcceptMojangEula=true`, as CI runs it, or `Textures__Jar`). Without them there is no picture to
  * write on, and the spec checks only that the phase says why.
  */
@@ -22,8 +23,24 @@ await api(`/map/${draft.slug}/sketch`, { method: "PUT", body: layout });
 
 const browser = await openBrowser();
 const page = await newPage(browser);
-await page.goto(`${BASE}/maps/${draft.slug}/sketch?phase=ingame`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/maps/${draft.slug}/sketch?phase=review`, { waitUntil: "networkidle" });
 const views = await api(`/map/${draft.slug}/views`);
+const toNotes = async () => {
+  await page.click(".flow-step >> text=Notes");
+  await page.waitForSelector(".ingame", { timeout: 60000 });
+};
+
+checks.section("Review opens on Cameras, where the map's picture is chosen");
+await page.waitForSelector(".flow-step--active", { timeout: 60000 });
+checks.add("the first step is Cameras", (await page.locator(".flow-step--active").textContent())?.trim() === "Cameras");
+const own = views.views.find((view) => view.own);
+const row = page.locator(".list-row-pair", { hasText: own.name });
+await row.locator('[title="Use this view for the map\'s picture (map.png)"]').click();
+await row.locator(".badge", { hasText: "map picture" }).waitFor({ timeout: 30000 });
+const pictured = (await api(`/map/${draft.slug}/views`)).views.find((view) => view.picture);
+checks.add("a row's picture button makes its view the map's picture", pictured?.id === own.id, pictured?.id ?? "none");
+checks.add("the board's own view offers no remove", (await row.locator('[title="Remove this view"]').count()) === 0);
+await toNotes();
 
 if (views.undrawable) {
   checks.section("no block textures: the phase says why, and there is nothing to write on");
@@ -32,6 +49,13 @@ if (views.undrawable) {
   checks.add("the phase names the missing textures", said.includes("textures"), said.trim());
   console.log("  SKIP  the notes themselves — this studio has no block textures to draw a picture with");
 } else {
+  checks.section("Notes prints the camera over the picture and no longer manages views");
+  await page.waitForSelector(".ingame__camera", { timeout: 60000 });
+  const camera = (await page.locator(".ingame__camera").textContent()) ?? "";
+  checks.add("the camera reads XYZ and Facing, values only", /XYZ: [-\d.]+ [-\d.]+ [-\d.]+/.test(camera) && camera.includes("Facing:") && !camera.includes("/"),
+    camera.replace(/\s+/g, " ").trim());
+  checks.add("the head offers no map picture or remove", (await page.locator(".ingame__head", { hasText: "map picture" }).count()) === 0
+    && (await page.locator(".ingame__head", { hasText: "Remove" }).count()) === 0);
   const send = page.locator(".notes-column__send .action-btn--primary");
   const notes = async () => api(`/map/${draft.slug}/notes`);
 
@@ -78,7 +102,7 @@ if (views.undrawable) {
   const pinnedTo = (await page.locator(".notes-column__replymark span").textContent()) ?? "";
   checks.add("the reply box says what the box landed on", pinnedTo.startsWith("Box:"), pinnedTo.trim());
   await page.fill("#note-reply", "No, this patch.");
-  await send.click();
+  await page.locator(".notes-column__reply .action-btn--primary").click();
   await page.waitForFunction(() => document.querySelectorAll(".note-message").length === 3, null, { timeout: 30000 });
   const pointed = (await notes()).find((note) => note.id === first.id)?.messages.at(-1)?.mark;
   checks.add("the reply keeps its mark", pointed?.kind === "box" && pointed.marks?.length === 2, JSON.stringify(pointed?.marks));
@@ -129,7 +153,7 @@ if (views.undrawable) {
   checks.section("a thread with an after compares it with its before on the big picture");
   await api(`/map/${draft.slug}/notes/${first.id}/replies`,
     { method: "POST", body: { body: "Here is the after.", status: "answered", picture: first.messages[0].picture } });
-  await page.goto(`${BASE}/maps/${draft.slug}/sketch?phase=ingame&note=${first.id}`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/maps/${draft.slug}/sketch?phase=review&note=${first.id}`, { waitUntil: "networkidle" });
   await page.waitForSelector(".notes-column__threadtitle", { timeout: 60000 });
   const opened = await page.locator(".note-message__body").first().textContent();
   checks.add("?note= opens that thread", opened === "The tree on the left floats.", opened ?? "");
@@ -141,20 +165,19 @@ if (views.undrawable) {
   checks.add("Now draws the note's camera over the board as it stands",
     (await page.locator(".note-compare__picture").getAttribute("src"))?.includes("render/eye?eye=") ?? false);
 
-  checks.section("a thread is retagged and declined in the browser");
-  await page.selectOption("#thread-tag", "terrain");
-  await page.waitForTimeout(1000);
-  checks.add("the tag is changed", (await notes()).find((note) => note.id === first.id)?.tag === "terrain");
+  checks.section("a thread is declined in the browser");
   await page.click("text=Won't do");
   await page.waitForSelector(".notes-column__threadhead .note-status--wont-do", { timeout: 15000 });
   checks.add("Won't do declines it", (await notes()).find((note) => note.id === first.id)?.status === "wont-do");
 
-  checks.section("the changes since the note open History, which lists the threads written there");
-  const since = page.locator(".notes-column__since");
-  checks.add("the thread counts the change since its note", (await since.first().textContent())?.trim().startsWith("1 change since the note"),
-    (await since.first().textContent())?.trim() ?? "");
-  checks.add("and offers no second link while the last message has nothing since", (await since.count()) === 1);
-  await since.first().click();
+  checks.section("the thread marks where the board changed, which opens History on it");
+  const landed = page.locator(".notes-column__landed");
+  checks.add("one marker, before the reply the change came with", (await landed.count()) === 1
+    && (await landed.first().textContent())?.trim().startsWith("1 change landed"), (await landed.first().textContent())?.trim() ?? "");
+  const order = await page.locator(".notes-column__thread > *").evaluateAll((nodes) => nodes.map((node) => node.className));
+  const at = order.findIndex((name) => name.includes("notes-column__landed"));
+  checks.add("it sits between the messages it separates", at > 0 && order[at + 1]?.includes("note-message"), order.join(" | "));
+  await landed.first().click();
   await page.waitForSelector(".change-edit", { timeout: 30000 });
   checks.add("and opens History on it", (await page.locator(".list-row--selected").count()) > 0);
   const listed = page.locator(".notes-row", { hasText: "Still floating" });
@@ -162,7 +185,7 @@ if (views.undrawable) {
   checks.add("History lists the thread written in the span", (await listed.count()) === 1);
   await listed.click();
   await page.waitForSelector(".notes-column__threadtitle", { timeout: 60000 });
-  checks.add("and opens it in In game", (await page.locator(".note-message__body").first().textContent()) === "Still floating after the move.");
+  checks.add("and opens it in Review", (await page.locator(".note-message__body").first().textContent()) === "Still floating after the move.");
 }
 
 checks.add("sketch notes is clean", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));

@@ -46,7 +46,7 @@ public sealed record EyePickDto(
 
 /// <summary>
 /// What a note is pinned to. A <c>map</c> note names nothing spatial. Every other kind was written on a picture
-/// in the In game phase and keeps the view it was, the exact camera and the picture's size; a <c>point</c>,
+/// in the Review phase and keeps the view it was, the exact camera and the picture's size; a <c>point</c>,
 /// <c>box</c> or <c>lasso</c> also keeps the mark in that picture's pixels and the ground it was projected onto.
 /// </summary>
 /// <param name="Kind">What it is pinned to.</param>
@@ -99,26 +99,22 @@ public sealed record NoteMessageDto(
 /// <param name="Map">The slug of the map it is on.</param>
 /// <param name="MapName">That map's name.</param>
 /// <param name="Anchor">What it is pinned to.</param>
-/// <param name="Tag">What its author said it is about, or null.</param>
 /// <param name="Status">Where the thread stands.</param>
 /// <param name="CreatedAt">When it was written, in UTC.</param>
 /// <param name="UpdatedAt">When its thread last changed, in UTC.</param>
 /// <param name="Messages">The thread, oldest first; the first message is the note itself.</param>
 public sealed record MapNoteDto(
     long Id, string Map, string MapName, NoteAnchorDto Anchor,
-    [property: WordSet(typeof(NoteTags))] string? Tag,
     [property: WordSet(typeof(NoteStatuses))] string Status,
     DateTime CreatedAt, DateTime UpdatedAt, IReadOnlyList<NoteMessageDto> Messages);
 
 /// <summary>A new note (<c>POST /api/map/{slug}/notes</c>).</summary>
 /// <param name="Body">What it says.</param>
 /// <param name="Anchor">What it is pinned to.</param>
-/// <param name="Tag">What it is about, or null.</param>
 /// <param name="Picture">The picture it was written on, by the hash <c>POST /api/notes/pictures</c> answered.</param>
 /// <param name="Change">The map's change it was written at; absent takes the latest.</param>
 public sealed record MapNoteRequest(
     string Body, NoteAnchorDto Anchor,
-    [property: WordSet(typeof(NoteTags))] string? Tag = null,
     string? Picture = null,
     long? Change = null);
 
@@ -139,12 +135,9 @@ public sealed record NoteReplyRequest(
     long? Change = null,
     NoteAnchorDto? Mark = null);
 
-/// <summary>A change to a note (<c>PATCH /api/map/{slug}/notes/{id}</c>): its status, its tag, or both.</summary>
-/// <param name="Status"><c>resolved</c>, <c>wont-do</c> or <c>open</c> to reopen it; absent leaves it.</param>
-/// <param name="Tag">What it is about; an empty string clears it, absent leaves it.</param>
-public sealed record NoteChangeRequest(
-    [property: WordSet(typeof(NoteStatuses))] string? Status = null,
-    [property: WordSet(typeof(NoteTags))] string? Tag = null);
+/// <summary>A change to a note's status (<c>PATCH /api/map/{slug}/notes/{id}</c>).</summary>
+/// <param name="Status"><c>resolved</c>, <c>wont-do</c> or <c>open</c> to reopen it.</param>
+public sealed record NoteChangeRequest([property: WordSet(typeof(NoteStatuses))] string Status);
 
 /// <summary>Where the author's notes stand with the agent (<c>GET</c> and <c>POST /api/notes/handoff</c>).</summary>
 /// <param name="Ready">Whether this studio names an agent to hand notes to.</param>

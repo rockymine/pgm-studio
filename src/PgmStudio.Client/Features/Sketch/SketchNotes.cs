@@ -5,7 +5,7 @@ using PgmStudio.Contracts;
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>
-/// The map's notes as the sketch tool holds them: read in one place for every phase that shows them — In game
+/// The map's notes as the sketch tool holds them: read in one place for every phase that shows them — Review
 /// writes and answers them, History names the threads written in the span it shows. Nothing is read for a
 /// caller who may not read notes, and <see cref="Allowed"/> says so.
 /// </summary>

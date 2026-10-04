@@ -162,7 +162,7 @@ export class SketchCanvas extends CanvasBase {
   #dimEl     = null;
   #measure   = null;   // { ax, az, bx, bz, live } — the ruler measurement (drag across a void gap)
   #split     = null;   // { ax, az, bx, bz } — the first cut point + the cursor, awaiting the second click
-  #view      = null;   // { ax, az, bx, bz, live } — an eye being stood (a) and turned toward (b), In game's view tool
+  #view      = null;   // { ax, az, bx, bz, live } — an eye being stood (a) and turned toward (b), Review's camera tool
   #views     = [];     // [{ fromX, fromZ, lookX, lookZ }] — the views already kept, drawn where they stand
   #guides     = { x: null, z: null };   // alignment guide lines drawn during a snapped move/resize
   #dragStartShape = null;  // snapshot of the grabbed shape at drag start (absolute snap-aware move)

@@ -15,7 +15,7 @@ namespace PgmStudio.Api.Endpoints;
 
 // ── the pictures of a board from a player's eye ─────────────────────────────────────
 //
-// What the Sketch tool's In game phase shows: the board's own straight-down view, the views the studio
+// What the Sketch tool's Review phase shows: the board's own straight-down view, the views the studio
 // suggests from the built board, and the ones an author kept. A view is only where to stand and what to look
 // at; `render/eye` draws it, so the picture always shows the board as it stands now.
 

@@ -11,9 +11,6 @@ namespace PgmStudio.Client.Features.Sketch;
 /// <summary>Which step the notes column is on.</summary>
 public enum NotesStep { Overview, Thread, New }
 
-/// <summary>A new note as the author wrote it: its text and, where they chose one, its tag.</summary>
-public sealed record NoteWriting(string Body, string? Tag);
-
 /// <summary>The notes column: the overview under its filters, one thread, or a new note.</summary>
 public partial class SketchNotesColumn : IDisposable
 {
@@ -63,12 +60,10 @@ public partial class SketchNotesColumn : IDisposable
     [Parameter] public EventCallback OnResolve { get; set; }
     [Parameter] public EventCallback OnWontDo { get; set; }
 
-    /// <summary>Change the thread's tag; empty clears it.</summary>
-    [Parameter] public EventCallback<string> OnRetag { get; set; }
     [Parameter] public EventCallback OnReopen { get; set; }
 
     /// <summary>Send a new note; answers whether it landed, which is what clears the text box.</summary>
-    [Parameter] public Func<NoteWriting, Task<bool>>? OnSend { get; set; }
+    [Parameter] public Func<string, Task<bool>>? OnSend { get; set; }
 
     /// <summary>Send a reply; answers whether it landed.</summary>
     [Parameter] public Func<string, Task<bool>>? OnReply { get; set; }
@@ -95,9 +90,6 @@ public partial class SketchNotesColumn : IDisposable
     private static readonly TimeSpan ConfirmFor = TimeSpan.FromSeconds(4);
 
     private string draft = "";
-    private string? tag;
-
-    private static readonly IReadOnlyList<SelectOption> TagOptions = Select.Words(NoteTags.All, word => word);
     private string reply = "";
     private bool sending;
     private string? sent;
@@ -130,9 +122,8 @@ public partial class SketchNotesColumn : IDisposable
     private async Task SendNoteAsync()
     {
         if (sending || OnSend is null || string.IsNullOrWhiteSpace(draft)) return;
-        if (!await SendingAsync(() => OnSend(new NoteWriting(draft.Trim(), tag)))) return;
+        if (!await SendingAsync(() => OnSend(draft.Trim()))) return;
         draft = "";
-        tag = null;
         _ = ConfirmAsync("Note sent");
     }
 
@@ -241,16 +232,12 @@ public partial class SketchNotesColumn : IDisposable
         : handoff.Fresh > 0 ? $"{handoff.Fresh} of {handoff.Waiting} written since the last hand-off, {Moments.Ago(at)}."
         : $"All {handoff.Waiting} handed over {Moments.Ago(at)}.";
 
-    /// <summary>How many of the board's changes landed after <paramref name="change"/>.</summary>
-    private int Since(MapNoteDto note, long change) => note.Messages.Count == 0 ? 0 : Changes.Count(number => number > change);
+    /// <summary>How many of the board's changes landed after <paramref name="after"/> and up to
+    /// <paramref name="upTo"/>, or after it at all where <paramref name="upTo"/> is null.</summary>
+    private int Landed(long after, long? upTo) =>
+        Changes.Count(number => number > after && (upTo is not { } last || number <= last));
 
-    /// <summary>The change the note was written at — the board its picture shows — where "since the note" starts.</summary>
-    private static long FirstChange(MapNoteDto note) => note.Messages.FirstOrDefault()?.Change ?? 0;
-
-    /// <summary>The change the thread's last message was written at.</summary>
-    private static long LastChange(MapNoteDto note) => note.Messages.LastOrDefault()?.Change ?? 0;
-
-    private static string Changed(int count) => count == 1 ? "1 change" : $"{count} changes";
+    private static string Changed(int count) => count == 1 ? "1 change landed" : $"{count} changes landed";
 }
 
 /// <summary>When something happened, in the words the Sketch tool's columns read in.</summary>

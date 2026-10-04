@@ -27,7 +27,7 @@ public sealed class NoteEndpointsTests
         using var client = await SketchBoard.FreshAsync();
 
         var note = await (await client.PostAsJsonAsync(Notes,
-            new MapNoteRequest("This tree floats.", OnAPicture, NoteTags.Look))).Content.ReadFromJsonAsync<MapNoteDto>();
+            new MapNoteRequest("This tree floats.", OnAPicture))).Content.ReadFromJsonAsync<MapNoteDto>();
         await Assert.That(note!.Status).IsEqualTo(NoteStatuses.Open);
         await Assert.That(note.Anchor.Hit).IsEqualTo(new BlockAtDto(0, 21, 0));
         await Assert.That(note.Anchor.Marks!.Single()).IsEqualTo(new PixelDto(640, 360));
@@ -46,9 +46,8 @@ public sealed class NoteEndpointsTests
             new NoteReplyRequest("Done.", NoteStatuses.Resolved));
         await Assert.That(resolving.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
         var resolved = await (await client.PatchAsJsonAsync($"{Notes}/{note.Id}",
-            new NoteChangeRequest(NoteStatuses.Resolved, Tag: ""))).Content.ReadFromJsonAsync<MapNoteDto>();
+            new NoteChangeRequest(NoteStatuses.Resolved))).Content.ReadFromJsonAsync<MapNoteDto>();
         await Assert.That(resolved!.Status).IsEqualTo(NoteStatuses.Resolved);
-        await Assert.That(resolved.Tag).IsNull();
 
         await Assert.That(await client.GetFromJsonAsync<List<MapNoteDto>>("/api/notes?status=open")).IsEmpty();
         await Assert.That((await client.GetFromJsonAsync<List<MapNoteDto>>("/api/notes?status=resolved"))!.Single().MapName)
@@ -67,7 +66,6 @@ public sealed class NoteEndpointsTests
                      (new MapNoteRequest("x", OnAPicture with { Camera = null }), "anchor.camera"),
                      (new MapNoteRequest("x", OnAPicture with { Kind = NoteAnchors.Box }), "anchor.marks"),
                      (new MapNoteRequest("x", OnAPicture with { Marks = [new PixelDto(1280, 0)] }), "anchor.marks"),
-                     (new MapNoteRequest("x", new NoteAnchorDto(NoteAnchors.Map), "vibes"), "tag"),
                      (new MapNoteRequest("x", new NoteAnchorDto(NoteAnchors.Map), Picture: new string('a', 64)), "picture"),
                  })
         {

@@ -44,12 +44,12 @@ public partial class SketchTool
     //    Info is up (hidden, not torn down) so the drawing state + zoom survive the trip. ──
     [SupplyParameterFromQuery] public string? Phase { get; set; }
 
-    /// <summary>A note to open, which opens the In game phase on its thread — the link a ruling written into
+    /// <summary>A note to open, which opens Review's Notes step on its thread — the link a ruling written into
     /// the gameplay law carries back to where it was decided.</summary>
     [SupplyParameterFromQuery] public long? Note { get; set; }
 
     /// <summary>The linked note while it waits to be opened. It is opened once: the link then leaves the address,
-    /// so coming back to In game shows what the author was reading rather than the link's thread.</summary>
+    /// so coming back to Review shows what the author was reading rather than the link's thread.</summary>
     private long? linkedNote;
 
     private void LinkOpened()
@@ -97,29 +97,35 @@ public partial class SketchTool
     private string dressingJson = "";
     private async Task GoDressing() { await SetPhase("dressing"); await SetTool("select"); }
 
-    // ── In game phase (docs/tools/sketch.md): the board as a player sees it ──
-    // A gallery of pictures drawn with the game's own textures, over the board as stored — so entering it
-    // saves first. Placing a view of one's own is the canvas's, so while one is placed the shared canvas comes
-    // back with the eye tool armed and the view being placed in the inspector. The views and the notes are
-    // each held once, by the objects below, and shared by every body that shows them.
+    // ── Review phase (docs/tools/sketch.md): the board as a player sees it ──
+    // Two steps over the board as stored — so entering it saves first. Cameras is the canvas, with the eye tool
+    // armed and the camera in hand in the inspector; Notes is a gallery of pictures drawn with the game's own
+    // textures, with the threads beside it. The views and the notes are each held once, by the objects below,
+    // and shared by every body that shows them.
     private SketchViews views = default!;
     private SketchNotes notes = default!;
-    private bool InGameActive => active == "ingame";
-    private bool PlacingViewActive => InGameActive && views.Placing;
+    private bool ReviewActive => active == "review";
+    private bool CamerasActive => ReviewActive && views.Placing;
+    private bool NotesActive => ReviewActive && !views.Placing;
 
-    /// <summary>Open a thread from History: In game, on that thread.</summary>
-    private Task OpenNoteFromHistory(long id)
+    private static readonly string[] ReviewSteps = ["Cameras", "Notes"];
+
+    private Task StepReview(int step) => step == 0 ? ShowCameras() : ShowNotes();
+
+    /// <summary>Open a thread from History: Review's Notes, on that thread.</summary>
+    private async Task OpenNoteFromHistory(long id)
     {
         linkedNote = id;
-        return GoInGame();
+        await GoReview();
+        await ShowNotes();
     }
 
-    /// <summary>How often In game reads the board's changes again while it is up, so a drive landing behind it
+    /// <summary>How often Review reads the board's changes again while it is up, so a drive landing behind it
     /// moves the threads' counts and asks for the pictures to be drawn again.</summary>
     private static readonly TimeSpan FollowEvery = TimeSpan.FromSeconds(30);
     private CancellationTokenSource? following;
 
-    /// <summary>Read the board's changes every <see cref="FollowEvery"/> until In game is left.</summary>
+    /// <summary>Read the board's changes every <see cref="FollowEvery"/> until Review is left.</summary>
     private async Task FollowBoardAsync()
     {
         following?.Cancel();
@@ -127,7 +133,7 @@ public partial class SketchTool
         using var timer = new PeriodicTimer(FollowEvery);
         try
         {
-            while (await timer.WaitForNextTickAsync(stop) && InGameActive) await InvokeAsync(FollowOnceAsync);
+            while (await timer.WaitForNextTickAsync(stop) && ReviewActive) await InvokeAsync(FollowOnceAsync);
         }
         catch (OperationCanceledException) { }
     }
@@ -136,7 +142,7 @@ public partial class SketchTool
     [JSInvokable]
     public async Task TabShown()
     {
-        if (InGameActive) await FollowOnceAsync();
+        if (ReviewActive) await FollowOnceAsync();
     }
 
     private async Task FollowOnceAsync()
@@ -145,9 +151,9 @@ public partial class SketchTool
         await notes.LoadAsync();
     }
 
-    /// <summary>Draw In game's pictures again over the board as it is stored now. The views are asked for before
+    /// <summary>Draw Review's pictures again over the board as it is stored now. The views are asked for before
     /// the round moves, so the build queue answers them ahead of the pictures the new round asks for.</summary>
-    private async Task RedrawInGame()
+    private async Task RedrawReview()
     {
         await views.LoadAsync(clear: false);
         views.NextRound();
@@ -155,14 +161,18 @@ public partial class SketchTool
         await notes.LoadAsync();
     }
 
-    private async Task GoInGame()
+    /// <summary>Enter Review on its first step, Cameras. Placing starts before the phase changes, so the phase is
+    /// never drawn on its Notes step on the way in.</summary>
+    private async Task GoReview()
     {
-        views.StopPlacing();
         tool = "select";
         saveCts?.Cancel();
         await SaveAsync(CancellationToken.None);
         views.NextRound();
-        await SetPhase("ingame");
+        await iso.LeaveAsync();
+        await views.BeginPlacingAsync();
+        await SetPhase("review");
+        await SetTool("eye");
         var readingNotes = notes.LoadAsync();
         await views.LoadAsync();
         await history.LoadChangesAsync();
@@ -201,14 +211,16 @@ public partial class SketchTool
         await history.ShowSpan(from, history.LatestChange);
     }
 
-    private async Task PlaceView()
+    /// <summary>Review's Cameras step: the canvas, with the eye tool in hand.</summary>
+    private async Task ShowCameras()
     {
         await iso.LeaveAsync();
         await views.BeginPlacingAsync();
         await SetTool("eye");
     }
 
-    private async Task ShowGallery()
+    /// <summary>Review's Notes step: the pictures, and the threads beside them.</summary>
+    private async Task ShowNotes()
     {
         await views.EndPlacingAsync();
         await SetTool("select");
@@ -224,12 +236,12 @@ public partial class SketchTool
     public void OnViewPicked(int? fromX, int? fromZ, int lookX, int lookZ, string? id) =>
         views.Picked(fromX, fromZ, lookX, lookZ, id);
 
-    /// <summary>Store the view in the inspector, and come back to the gallery with it listed.</summary>
+    /// <summary>Store the camera in the inspector and list it, with the next camera still to place.</summary>
     private async Task KeepView(MapViewKeepRequest request)
     {
         if (!await views.KeepAsync(request)) return;
-        await ShowGallery();
-        await views.LoadAsync();
+        await views.DiscardAsync();
+        await views.LoadAsync(clear: false);
     }
 
     // ── Relief phase (docs/world-export/relief.md §15) ──
@@ -316,12 +328,12 @@ public partial class SketchTool
         // selects a group is also the gesture that reshapes it. Dressing places props rather than shapes,
         // so it is not select-only in that sense: its own tools are armed and the shape tools are simply not
         // offered.
-        await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief" or "dressing" or "ingame" or "history");
+        await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief" or "dressing" or "review" or "history");
         // What a change did is drawn only while History is up.
         if (phase != "history") await handle.InvokeVoidAsync("setDiff", (string?)null);
         // Both finishing phases show the paint: Theme is authoring it, and Dressing is placing things on it,
         // which is a judgement about the finish as much as about the planting.
-        await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing" or "ingame");
+        await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing" or "review");
         await handle.InvokeVoidAsync("setDressingMode", phase == "dressing");
         // Entering Relief turns the contour overlay on with it: the phase shows the statement and the surface
         // it produced at once, which is the only way a mark can be tuned by eye. Leaving does not turn it off
@@ -335,7 +347,7 @@ public partial class SketchTool
         if (phase != "theme") { themeAddOpen = false; await SetThemeBrush(""); }
         if (phase == "relief") reliefOn = true;
         // The kept views and the one being placed are drawn only while the phase that places them is up.
-        if (phase != "ingame") await views.ClearCanvasAsync();
+        if (phase != "review") await views.ClearCanvasAsync();
         await PushPhaseOverlays(phase);
     }
 
@@ -364,7 +376,7 @@ public partial class SketchTool
         // Placing a view draws the Board layer and the views, and nothing else, whatever the other chips say;
         // leaving gives them back as the author had them. The shaded board carries the height, so no chip is
         // offered over it.
-        ["ingame"]   = new([], []),
+        ["review"]   = new([], []),
         // A change is drawn as outlines over the board, and the shapes it did not touch are what those are read
         // against, so the shapes come on with it.
         ["history"]  = new([ChipShapes, ChipMirror, ChipChunks, ChipBlocks], [ChipShapes]),
@@ -449,7 +461,7 @@ public partial class SketchTool
             case "sketch.phase.relief": await GoRelief(); break;
             case "sketch.phase.theme": await GoTheme(); break;
             case "sketch.phase.dressing": await GoDressing(); break;
-            case "sketch.phase.ingame": await GoInGame(); break;
+            case "sketch.phase.review": await GoReview(); break;
             case "sketch.phase.history": await GoHistory(); break;
             case "sketch.tool.select": await SetTool("select"); break;
             case "sketch.tool.move": await SetTool("move"); break;
@@ -486,7 +498,7 @@ public partial class SketchTool
         new { id = "sketch.phase.relief",    keys = "3", label = "Go to Terraform", group = "Phases" },
         new { id = "sketch.phase.theme",     keys = "4", label = "Go to Palette",  group = "Phases" },
         new { id = "sketch.phase.dressing",  keys = "5", label = "Go to Decoration", group = "Phases" },
-        new { id = "sketch.phase.ingame",    keys = "6", label = "Go to In game",  group = "Phases" },
+        new { id = "sketch.phase.review",    keys = "6", label = "Go to Review",   group = "Phases" },
         new { id = "sketch.phase.history",   keys = "7", label = "Go to History",  group = "Phases" },
         new { id = "sketch.tool.select",     keys = "v", label = "Select",  group = "Tools" },
         new { id = "sketch.tool.move",       keys = "h", label = "Pan",     group = "Tools" },
@@ -534,7 +546,12 @@ public partial class SketchTool
         await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
             System.Text.Json.JsonSerializer.Serialize(Shortcuts));
         linkedNote = Note;
-        if (Phase == "ingame" || Note is not null) await GoInGame();
+        if (Note is not null)
+        {
+            await GoReview();
+            await ShowNotes();
+        }
+        else if (Phase == "review") await GoReview();
         else if (Phase == "history") await GoHistory();
     }
 
@@ -931,7 +948,7 @@ public partial class SketchTool
     private DocumentSave? document;
 
     /// <summary>Edits made in this tab, and how many of them the last landed save carried. A save with nothing
-    /// new to carry is not sent, so entering In game or leaving the tool writes only when something was
+    /// new to carry is not sent, so entering Review or leaving the tool writes only when something was
     /// drawn.</summary>
     private int edits, savedEdits;
 

@@ -9,9 +9,9 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
-/// <summary>The In game phase: one picture of the board enlarged, the gallery under it, and the notes column
-/// beside it for a caller who may read and answer notes.</summary>
-public partial class SketchInGamePhase
+/// <summary>Review's Notes step: one picture of the board enlarged with its camera over it, the gallery under it,
+/// and the notes column beside it for a caller who may read and answer notes.</summary>
+public partial class SketchNotesStep
 {
     /// <summary>The size the enlarged picture is drawn at, which every mark on it is counted in.</summary>
     private const int PictureWidth = 1280, PictureHeight = 720;
@@ -31,10 +31,17 @@ public partial class SketchInGamePhase
     /// <summary>The board's notes, read by the host for every phase that shows them.</summary>
     [Parameter, EditorRequired] public SketchNotes Notes { get; set; } = default!;
 
+    /// <summary>The phase's steps, which the step bar lists.</summary>
+    [Parameter] public IReadOnlyList<string> Steps { get; set; } = [];
+
+    /// <summary>A step picked on the step bar.</summary>
+    [Parameter] public EventCallback<int> OnStep { get; set; }
+
+    /// <summary>Back to the Cameras step.</summary>
     [Parameter] public EventCallback OnBack { get; set; }
 
-    /// <summary>Place a view of the author's own, on the canvas.</summary>
-    [Parameter] public EventCallback OnPlace { get; set; }
+    /// <summary>On to the next phase.</summary>
+    [Parameter] public EventCallback OnNext { get; set; }
 
     /// <summary>A note to open on arriving, by id — a link into its thread.</summary>
     [Parameter] public long? LinkedNote { get; set; }
@@ -55,7 +62,6 @@ public partial class SketchInGamePhase
     private sealed record Mark(string Kind, List<PixelDto> Pixels);
 
     private string? shownId;
-    private bool lettingGo, picturing;
     private ElementReference main;
     private ElementReference trap;
 
@@ -208,21 +214,6 @@ public partial class SketchInGamePhase
         Show(all.Views[((at + by) % all.Views.Count + all.Views.Count) % all.Views.Count]);
     }
 
-    private async Task LetGo(MapViewDto view)
-    {
-        lettingGo = true;
-        try { await Views.LetGoAsync(view); }
-        finally { lettingGo = false; }
-        shownId = null;
-    }
-
-    private async Task MakePicture(MapViewDto view)
-    {
-        picturing = true;
-        try { await Views.PictureAsync(view); }
-        finally { picturing = false; }
-    }
-
     /// <summary>How many notes on a view are still in play — not resolved.</summary>
     private int Waiting(string viewId) =>
         Notes.All.Count(note => note.Anchor.ViewId == viewId && note.Status != NoteStatuses.Resolved);
@@ -233,15 +224,17 @@ public partial class SketchInGamePhase
     private string PictureSource(MapViewDto view) =>
         $"api/map/{Slug}/render/eye?{view.Query}&width={PictureWidth}&height={PictureHeight}&round={Round}";
 
-    /// <summary>Where the eye stands and what it looks at, in the block coordinates the canvas reads.</summary>
-    private static string Where(MapViewDto view)
-    {
-        var looking = string.Create(CultureInfo.InvariantCulture, $"looking at {view.LookX}, {view.LookZ}");
-        if (view.FromX is not { } x || view.FromZ is not { } z) return $"Camera placed automatically · {looking}";
-        var height = view.Y is { } y ? string.Create(CultureInfo.InvariantCulture, $", y {y:0.#}") : "";
-        var tipped = view.Pitch is { } pitch ? string.Create(CultureInfo.InvariantCulture, $", {pitch:0}° down") : "";
-        return string.Create(CultureInfo.InvariantCulture, $"Camera at {x}, {z}{height}{tipped} · {looking}");
-    }
+    /// <summary>The camera the big picture is drawn with: the open thread's own where it compares its pictures,
+    /// else the view's.</summary>
+    private EyeCameraDto? CameraInView => Compared is not null ? Current?.Anchor.Camera : Shown?.Eye;
+
+    /// <summary>Where the camera stands, as the game's debug screen lists it.</summary>
+    private static string Position(EyeCameraDto camera) =>
+        string.Create(CultureInfo.InvariantCulture, $"XYZ: {camera.X:0.0} {camera.Y:0.0} {camera.Z:0.0}");
+
+    /// <summary>Which way it turns and how far it tips: yaw, then pitch.</summary>
+    private static string Facing(EyeCameraDto camera) =>
+        string.Create(CultureInfo.InvariantCulture, $"Facing: {camera.Yaw:0.0} {camera.Pitch:0.0}");
 
     // ── the notes column ──
 
@@ -347,7 +340,7 @@ public partial class SketchInGamePhase
         return "The mark covers only sky, so the note is pinned to the picture alone.";
     }
 
-    private async Task<bool> SendNoteAsync(NoteWriting writing)
+    private async Task<bool> SendNoteAsync(string body)
     {
         if (Shown is not { } view) return false;
         notesError = null;
@@ -373,7 +366,7 @@ public partial class SketchInGamePhase
                 anchor = AnchorOf(mark?.Kind ?? NoteAnchors.View, view.Id, view.Name, camera, mark?.Pixels);
             }
             var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/notes",
-                new MapNoteRequest(writing.Body, anchor, writing.Tag, picture, DrawnAt));
+                new MapNoteRequest(body, anchor, picture, DrawnAt));
             if (!answer.IsSuccessStatusCode)
             {
                 notesError = await ServerRefusal.SentenceAsync(answer);
@@ -436,9 +429,6 @@ public partial class SketchInGamePhase
     }
 
     private Task ChangeAsync(string status) => PatchAsync(new NoteChangeRequest(status));
-
-    /// <summary>Change the open thread's tag; empty clears it.</summary>
-    private Task RetagAsync(string tag) => PatchAsync(new NoteChangeRequest(Tag: tag));
 
     private async Task PatchAsync(NoteChangeRequest change)
     {

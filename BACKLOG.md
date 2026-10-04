@@ -524,15 +524,10 @@ is the standard the copy is held to.
   `ctrl-row` spacing and the JSON a `textarea` of at least twelve rows, or a collapsible block.
   `docs/tools/generator.md`.
 
-- [ ] **TS151 — The In-game phase and the change history, laid out for the work.** Both are dense by layout,
-  not by wording. In game: `.ingame__head` puts name, coordinates (`flex:1`), *Full size*, *Set as map picture*
-  and *Remove* in one wrapping row; the picture is capped at `calc((100vh - 400px) * 16/9)` under a 188px strip
-  beside a 360px notes column; four filter chips plus three grouped lists head the notes. Move the coordinates
-  onto the picture, the two rarer actions into an overflow menu, the filters into tabs (*This view · Whole
-  map · All*) with a status select. History: up to 60 edit lines sit above *Restore*, so pin it in the
-  inspector's footer and show the three column counts as one row. The `InGame` and `History` boards of the
-  design canvas (`C70`) draw both. `docs/tools/sketch.md` § In game, § History.
-
+- [~] **TS151 — The notes overview and the change history, laid out for the work.** Review's notes overview heads
+  its lists with four filter chips plus three grouped lists; put the filters into tabs (*This view · Whole map ·
+  All*) with a status select. History: up to 60 edit lines sit above *Restore*, so pin it in the inspector's footer
+  and show the three column counts as one row. `docs/tools/sketch.md` § Review, § History.
 - [ ] **C78 — Board pictures in the paper's four plan inks.** `PlanBoardPalette` paints seven role and zone
   colours on a dark ground; `pgm-studio-mapgen/paper/preamble.tex` draws the same plans in four inks on white —
   ground grey (`#E7EAEE`, edge `#A8B0B9`), spawn green (`#CBE3DA`/`#009E73`), wool room orange

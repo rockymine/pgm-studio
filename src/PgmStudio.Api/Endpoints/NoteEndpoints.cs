@@ -15,7 +15,7 @@ namespace PgmStudio.Api.Endpoints;
 
 // ── notes on a map, and the threads under them ─────────────────────────────────────
 //
-// The author leaves a note pinned to the place it is about, in the Sketch tool's In game phase; an agent
+// The author leaves a note pinned to the place it is about, in the Sketch tool's Review phase; an agent
 // answers on the note, and the author closes the thread (docs/tools/sketch.md, Notes). Every route here states
 // the notes policy, reads included: an admin in a browser, or a token an admin issued with the notes permission.
 
@@ -28,7 +28,7 @@ internal static class NoteWire
     public static MapNoteDto Dto(StoredNote stored, string mapName) => new(
         stored.Note.Id, stored.Note.MapSlug, mapName,
         JsonSerializer.Deserialize<NoteAnchorDto>(stored.Note.AnchorJson, MapArtifactStore.Json) ?? new NoteAnchorDto(NoteAnchors.Map),
-        stored.Note.Tag, stored.Note.Status, stored.Note.CreatedAt, stored.Note.UpdatedAt,
+        stored.Note.Status, stored.Note.CreatedAt, stored.Note.UpdatedAt,
         [.. stored.Messages.Select(message => new NoteMessageDto(
             message.Id, message.AuthorName, message.AuthorUuid, message.TokenLabel, message.Body, message.Change,
             message.Picture, message.CreatedAt,
@@ -272,7 +272,7 @@ public sealed class MapNotesEndpoint(MapRepository repo, MapNoteStore notes) : E
     }
 }
 
-/// <summary>POST /api/map/{slug}/notes — a new note: its body, what it is pinned to, an optional tag, the
+/// <summary>POST /api/map/{slug}/notes — a new note: its body, what it is pinned to, the
 /// picture it was written on and the change it was written at. A note an author writes waits for an agent; one
 /// an agent writes is a question and waits for the author.</summary>
 public sealed class MapNoteCreateEndpoint(
@@ -291,8 +291,7 @@ public sealed class MapNoteCreateEndpoint(
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         var latest = await log.LatestAsync(map.Slug, ct);
         if ((NoteWire.BodyFault(request.Body) ?? NoteWire.AnchorFault(request.Anchor) ?? NoteWire.PictureFault(request.Picture, pictures)
-             ?? NoteWire.ChangeFault(request.Change, latest)
-             ?? (NoteTags.IsValid(request.Tag) ? null : ("tag", $"`tag` is one of {string.Join(", ", NoteTags.All)}, or absent")))
+             ?? NoteWire.ChangeFault(request.Change, latest))
             is { } fault)
         {
             await Refusals.UnreadableAsync(HttpContext, "not a note", fault.Message, ct, fault.Field);
@@ -308,7 +307,6 @@ public sealed class MapNoteCreateEndpoint(
             AnchorKind = anchor.Kind,
             AnchorJson = NoteWire.AnchorJson(anchor),
             ViewKey = NoteAnchors.OnPicture(anchor.Kind) ? anchor.ViewId : null,
-            Tag = request.Tag,
             Status = caller.ViaToken ? NoteStatuses.NeedsInfo : NoteStatuses.Open,
             CreatedAt = now,
             UpdatedAt = now,
@@ -401,8 +399,8 @@ public sealed class NoteReplyEndpoint(
     }
 }
 
-/// <summary>PATCH /api/map/{slug}/notes/{id} — the author resolves a thread, declines it, reopens it, or
-/// changes its tag. 403 to a token: an agent answers, asks or declines in a reply, and only the author closes
+/// <summary>PATCH /api/map/{slug}/notes/{id} — the author resolves a thread, declines it or reopens it. 403 to a
+/// token: an agent answers, asks or declines in a reply, and only the author closes
 /// a thread.</summary>
 public sealed class NoteChangeEndpoint(MapRepository repo, MapNoteStore notes, Callers callers)
     : Endpoint<NoteChangeRequest, MapNoteDto>
@@ -432,21 +430,13 @@ public sealed class NoteChangeEndpoint(MapRepository repo, MapNoteStore notes, C
                     + "with its reason in a reply", Field: "status")], ct);
             return;
         }
-        if (request.Status is { } status && !Settable.Contains(status))
+        if (!Settable.Contains(request.Status))
         {
             await Refusals.UnreadableAsync(HttpContext, "not a change",
                 $"a thread is set {string.Join(", ", Settable)} — the other statuses are left by a reply", ct, "status");
             return;
         }
-        if (request.Tag is { Length: > 0 } tag && !NoteTags.IsValid(tag))
-        {
-            await Refusals.UnreadableAsync(HttpContext, "not a change",
-                $"`tag` is one of {string.Join(", ", NoteTags.All)}, or empty to clear it", ct, "tag");
-            return;
-        }
-
-        var tagged = request.Tag is null ? stored.Note.Tag : request.Tag.Length == 0 ? null : request.Tag;
-        await notes.ChangeAsync(stored.Note.Id, request.Status ?? stored.Note.Status, tagged, DateTime.UtcNow, ct);
+        await notes.ChangeAsync(stored.Note.Id, request.Status, DateTime.UtcNow, ct);
         await Send.OkAsync(NoteWire.Dto((await notes.GetAsync(map.Slug, stored.Note.Id, ct))!, map.Name), ct);
     }
 }

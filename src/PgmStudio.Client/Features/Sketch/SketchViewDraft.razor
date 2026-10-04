@@ -67,10 +67,18 @@
         </Field>
         <p class="plan-readout">@Looking</p>
       }
+      <label class="check-row">
+        <input type="checkbox" checked="@picture" @onchange="e => picture = e.Value is true" />
+        The map's picture (map.png)
+      </label>
       @if (Note is not null) { <p class="dressing-refusal">@Note</p> }
       <div class="panel-actions">
         <Button Variant="primary" Busy="keeping" BusyLabel="Keeping…" Disabled="@(standX is null)" Writes OnClick="Keep">@(Changing ? "Save" : "Keep")</Button>
         <Button OnClick="Views.DiscardAsync">Discard</Button>
+        @if (Draft.Source is { Kept: true, Own: false } kept)
+        {
+          <Button Variant="danger" Icon="trash-2" Busy="removing" BusyLabel="Removing…" Writes OnClick="() => RemoveAsync(kept)">Remove</Button>
+        }
       </div>
     }
   </Section>
@@ -110,7 +118,10 @@
     private bool angleStated;
     private EyePickDto? read;
     private string? error;
-    private bool keeping;
+    private bool keeping, removing;
+
+    /// <summary>Whether the map's picture is drawn from this camera once it is kept.</summary>
+    private bool picture;
     private ViewDraft? seen;
     private int asked;
 
@@ -127,7 +138,11 @@
             read = null;
             return;
         }
-        if (!sameCamera) name = draft.Source?.Name ?? "";
+        if (!sameCamera)
+        {
+            name = draft.Source?.Name ?? "";
+            picture = draft.Source?.Picture ?? false;
+        }
 
         // A camera picked up again, or one already in hand moved on the canvas, keeps the height and pitch it
         // has; anything else starts from what the draft states and lets the studio resolve the rest.
@@ -297,6 +312,17 @@
 
     private string Title => Draft?.Source?.Name ?? "New view";
 
+    private async Task RemoveAsync(MapViewDto kept)
+    {
+        removing = true;
+        try
+        {
+            await Views.DiscardAsync();
+            await Views.LetGoAsync(kept);
+        }
+        finally { removing = false; }
+    }
+
     private async Task Keep()
     {
         if (standX is not { } x || standZ is not { } z || read is not { Camera: var camera }) return;
@@ -304,8 +330,12 @@
         try
         {
             var (lookX, lookZ) = LookPoint(camera);
-            await OnKeep.InvokeAsync(new MapViewKeepRequest(name, lookX, lookZ, x, z, eyeY, pitch, yaw));
+            // Unticking the view the picture is drawn from hands it back to the overview; a new camera left
+            // unticked says nothing about it.
+            bool? drawsPicture = picture ? true : Draft?.Source?.Picture == true ? false : null;
+            await OnKeep.InvokeAsync(new MapViewKeepRequest(name, lookX, lookZ, x, z, eyeY, pitch, yaw, drawsPicture));
             name = "";
+            picture = false;
         }
         finally { keeping = false; }
     }

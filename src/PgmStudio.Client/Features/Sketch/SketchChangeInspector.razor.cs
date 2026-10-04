@@ -13,7 +13,7 @@ public partial class SketchChangeInspector
     /// <summary>The board's notes, which name the threads written in the span shown.</summary>
     [Parameter, EditorRequired] public SketchNotes Notes { get; set; } = default!;
 
-    /// <summary>Open a thread in In game, by its note's id.</summary>
+    /// <summary>Open a thread in Review, by its note's id.</summary>
     [Parameter] public EventCallback<long> OnOpenNote { get; set; }
 
     /// <summary>The edits listed before the rest are only counted.</summary>

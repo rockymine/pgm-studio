@@ -41,13 +41,19 @@
   display: flex; flex-direction: column; gap: var(--space-2);
 }
 .ingame__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-.ingame__name { color: var(--text-strong); font-weight: 600; }
-.ingame__where { flex: 1; min-width: 12ch; color: var(--text-muted); font-size: var(--font-sm); }
+.ingame__name { flex: 1; min-width: 0; color: var(--text-strong); font-weight: 600; }
 
 /* The picture and everything drawn over it share one box, so a mark's pixels and a pin's percentages land on
    the picture however large it is drawn. */
 .ingame__frame { position: relative; width: min(100%, calc((100vh - 400px) * 16 / 9)); min-width: 320px; }
 .ingame__picture { border-radius: var(--radius-md); }
+/* The camera over the picture, the way the game's debug screen prints it: grey boxes behind light text. */
+.ingame__camera {
+  position: absolute; top: var(--space-2); left: var(--space-2); z-index: 1; pointer-events: none;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  font-family: ui-monospace, monospace; font-size: var(--font-sm); line-height: 1;
+}
+.ingame__camera span { padding: 3px 5px; background: rgba(48, 48, 48, 0.62); color: #f0f0f0; text-shadow: 1px 1px 0 #3a3a3a; }
 .ingame__marks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
 /* A note's before, after and now on the big picture. The wipe lays the after over the before up to a seam; the
