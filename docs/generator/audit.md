@@ -143,3 +143,27 @@ the hub's **bbox edge length**, before the form is chosen — while the dock act
 evaluated against the wrong surface, one step too early. Measured: **0 disagreements out of 47
 staples**. Staples only survive where the edge is wide, and there `run == bbox edge`; elsewhere they
 demote before it matters. No defect.
+
+## 8. Raised rules whose check is not their argument
+
+Read off the code on 2026-10-04, when the raised rules became `LayoutRules` constants. A served rule's text
+states what its check does; where `rules.md` argues for more or for something else, the difference is here,
+because which of the two is right is a gameplay question and the author's to settle (→ **G291**). The rules
+whose author rulings are already filed — `G2` (G287), `G5` and `CT12` (G285), `EL1`, `SP8` and `WL11`
+(G286), `FR6` and `FR9` (G288) — are not repeated.
+
+| rule | `rules.md` argues | the check does |
+|---|---|---|
+| `CT4` | islands grow with distance from the centre and thin to none in the team third | counts contested and one-team stepping stones against a learned band; no gradient |
+| `CT8` | a plan with no hole is flagged | no such check; the learned band starts at 0, so only too many holes scores |
+| `FR4` | 1 to 3 team approaches, one only if it is wide | counts frontline faces per team against a learned band |
+| `G8` | land per team of 2250, 4025, 7075 and 8730 by size band | fill ratio and ground off every route, learned bands; the land budget is only the composer's spend gate |
+| `LN1` | a 10-block base, capped about 16 in front of a wool | the narrowest wool lane against a learned band; no cap |
+| `LN2` | 20 to 50 blocks to a junction or dead end | a learned band of 25 to 110; `ComposeGeometry.LaneChainMaxBlocks` is read by nothing |
+| `BZ6`, `MD7` | the middle build zone | only a zone whose id is `mid-band`, so a hand-drawn plan's middle is never judged |
+| `SP1` | the route may pass a spawn on a wide lane | walks piece to piece, so passing beside a spawn on its own piece counts as through it |
+| `SP2` | the spawn at the back of its lane | the back half of the spawn's own piece |
+| `ST1` | the wool room's region, cage and entry lines | only producibility cites it, for a box room that differs from the composer's 2-cell room |
+| `ST8` | about 15 blocks in front of the entrance | anywhere from 10 to 20 |
+| `WL7` | a working minimum of 45 blocks | a learned band only |
+| `WL12` | bays and holes beside a goal | a goal's straight crossings over any void; a bay touching no goal is not checked |

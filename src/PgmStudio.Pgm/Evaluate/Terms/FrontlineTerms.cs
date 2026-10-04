@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
@@ -9,7 +10,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class FrontlineCount : SoftTerm
 {
     public override string Id => "frontline-count";
-    public override string RuleId => "FR4";
+    public override string RuleId => LayoutRules.FrontlineFaceCount;
 
     public override double? Value(EvalContext ctx)
     {
@@ -30,7 +31,7 @@ public sealed class FrontlineCount : SoftTerm
 public sealed class FrontlineWidth : SoftTerm
 {
     public override string Id => "frontline-width";
-    public override string RuleId => "FR6";
+    public override string RuleId => LayoutRules.FrontlineFaceWidth;
 
     public override double? Value(EvalContext ctx)
     {

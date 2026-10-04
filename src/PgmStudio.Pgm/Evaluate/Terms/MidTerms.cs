@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
@@ -9,7 +10,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class NeutralSteppingCount : SoftTerm
 {
     public override string Id => "neutral-stepping-count";
-    public override string RuleId => "CT4";
+    public override string RuleId => LayoutRules.SteppingStoneCount;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Board.SteppingKind.Count(k => k == "neutral") / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
@@ -21,7 +22,7 @@ public sealed class NeutralSteppingCount : SoftTerm
 public sealed class TeamSteppingCount : SoftTerm
 {
     public override string Id => "team-stepping-count";
-    public override string RuleId => "CT4";
+    public override string RuleId => LayoutRules.SteppingStoneCount;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Board.SteppingKind.Count(k => k == "team") / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
@@ -34,7 +35,7 @@ public sealed class TeamSteppingCount : SoftTerm
 public sealed class BandCount : SoftTerm
 {
     public override string Id => "band-count";
-    public override string RuleId => "CT1";
+    public override string RuleId => LayoutRules.CrossingCount;
 
     public override double? Value(EvalContext ctx) => ctx.Board.Zones.Count(z => z.Kind == "front-front");
 }
@@ -45,7 +46,7 @@ public sealed class BandCount : SoftTerm
 public sealed class IsolationCutCount : SoftTerm
 {
     public override string Id => "isolation-cut-count";
-    public override string RuleId => "CT5";
+    public override string RuleId => LayoutRules.TeamSideCuts;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Board.Zones.Count(z => z.Kind is "intra" or "self") / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
@@ -59,7 +60,7 @@ public sealed class IsolationCutCount : SoftTerm
 public sealed class UncrossedMiddleVoid : SoftTerm
 {
     public override string Id => "uncrossed-middle-void";
-    public override string RuleId => "CT9";
+    public override string RuleId => LayoutRules.UncrossedMiddleHole;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Board.Voids.Count(v => v.Class == "middle" && v.CrossRoutes == 0);

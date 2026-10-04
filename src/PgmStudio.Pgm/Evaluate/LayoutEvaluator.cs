@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Evaluate.Terms;
 using PgmStudio.Pgm.Plan;
 
@@ -22,7 +23,7 @@ public static class LayoutEvaluator
         // hard terms — the acceptance gate
         new StructuralIntegrity(),
         new LintRejectTerm(PlanRules.CornerContact),
-        new LintRejectTerm("G2"),
+        new LintRejectTerm(LayoutRules.CorridorWidth),
         new GapHopBand(),
         new BandWoolClearance(),
         new SpawnWoolFloor(),      // WL2 as a surface-distance floor

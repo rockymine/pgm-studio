@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
@@ -64,7 +65,7 @@ public static class StraitReadback
             if (built >= Narrowest && built <= Widest) continue;
 
             var names = $"[{string.Join(", ", strait.PiecesA)}] and [{string.Join(", ", strait.PiecesB)}]";
-            findings.Add(new Finding("CT12",
+            findings.Add(new Finding(LayoutRules.StraitWidth,
                 built == 0
                     ? $"the plan put team islands {names} {strait.Blocks} blocks apart and the drawn board "
                       + $"joins them into one landmass — the strait the plan was checked against is not in "

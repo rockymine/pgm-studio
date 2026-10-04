@@ -1,3 +1,5 @@
+using PgmStudio.Domain;
+
 namespace PgmStudio.Pgm.Evaluate.Terms;
 
 /// <summary>The share of the board's footprint that is land — filled land cells over the bounding box of all
@@ -15,7 +17,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class FillRatio : SoftTerm
 {
     public override string Id => "fill-ratio";
-    public override string RuleId => "G8";
+    public override string RuleId => LayoutRules.BoardFill;
 
     /// <summary>Ground over the frame the ground itself occupies. Both halves are the terrain and only the
     /// terrain: a build zone is buildable void rather than land, so it neither fills a cell nor widens the
@@ -39,7 +41,7 @@ public sealed class FillRatio : SoftTerm
 public sealed class EnclosedVoidCount : SoftTerm
 {
     public override string Id => "enclosed-void-count";
-    public override string RuleId => "CT8";
+    public override string RuleId => LayoutRules.RotationHoles;
 
     public override double? Value(EvalContext ctx) => ctx.Board.Voids.Count;
 }
@@ -54,7 +56,7 @@ public sealed class GapHopBand : ILayoutTerm
     public const int MaxHop = 20;
 
     public string Id => "gap-hop-band";
-    public string RuleId => "G5";
+    public string RuleId => LayoutRules.VoidHop;
     public TermKind Kind => TermKind.Hard;
 
     public TermScore Measure(EvalContext ctx)
@@ -90,7 +92,7 @@ public sealed class GapHopBand : ILayoutTerm
 public sealed class DeadShare : SoftTerm
 {
     public override string Id => "dead-share";
-    public override string RuleId => "G8";
+    public override string RuleId => LayoutRules.BoardFill;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Flow.Gamemode == "none" || ctx.Flow.GroundBlocks == 0 ? null : ctx.Flow.DeadShare;
@@ -113,7 +115,7 @@ public sealed class DeadShare : SoftTerm
 public sealed class RouteInterference : SoftTerm
 {
     public override string Id => "route-interference";
-    public override string RuleId => "CT8";
+    public override string RuleId => LayoutRules.RotationHoles;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Flow.Legs.Count == 0 ? null : ctx.Flow.Interference;

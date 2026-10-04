@@ -1032,19 +1032,11 @@ Reply by rule id. **Frozen 2026-07-04 as the composer's v1 rule set.** Further c
 **amendments**: applied in place, logged under *Resolved* with their round, and the composer
 re-validated against them.
 
-This file is **embedded in `PgmStudio.Domain`** and parsed, so `GET /api/rules` serves these rules rather than a
-transcription of them (`docs/refusals.md`). What the parser needs is the shape already used throughout: a rule
-begins at a `- **<id>` bullet and runs to the next one, its family comes from the `## <letters> — <name>`
-heading above it, and its `[corpus]`/`[expert]`/`[open]`/`[guess]` tag becomes the evidence a reader is shown.
-Amend freely inside that; a rule stated some other way is served with the wrong text or not at all, and the
-path is in `PgmStudio.Domain.csproj` rather than in code, so moving the file breaks the build.
-
-**The catalogue serves the rules the studio can cite, not all of these.** A plan-validator lint, an evaluator
-term and a producibility finding are the three things that name a layout rule to a caller, and
-`RuleCatalog.Raised` is the set they between them reach; `GET /api/rules` answers those and no others, because
-the question it exists for is *what is this finding* and a rule nothing raises has no finding to explain. The
-rest are law all the same, and this file is where the law is. A rule that starts being raised joins the
-catalogue by being added to that set, which `RulesEndpointTests` holds to the source in both directions.
+**This file is the argument, not the served text.** The rules a finding can cite are constants in
+`PgmStudio.Domain.LayoutRules`, each with its meaning, its fix and an `[Evidence]` attribute carrying the tag
+it has here, and `GET /api/rules` serves those (`docs/refusals.md`). A rule that starts being raised gets a
+constant there; an amendment here that changes what a raised rule checks changes that constant's text in the
+same commit.
 
 52. **`MD7` added (2026-09-24).** Author's call, off the judged donut boards: a crossing 16 blocks wide and 80
     long on a board 150 wide was the board's defect, and one 24 wide with its stones stacked along it was

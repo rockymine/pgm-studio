@@ -21,7 +21,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 ## App shell & routing
 - **The rules have a page, and the studio bar links it (`RP108`).** `/rules` lists every rule `GET /api/rules`
   answers by family in pipeline order, filtered by text, kind, the action it asks for and what it is about, and
-  opens one to its meaning, its fix or its law, its terms' bands and where it is defined; `?rule=ID` opens on
+  opens one to its meaning, its fix, how a layout rule is known, its terms' bands and where it is defined; `?rule=ID` opens on
   one. The studio bar carries Rules and API docs after a divider, API docs opening `/api-docs` in a new tab.
 - **A deploy reaches a browser whole (`RP102`).** The hand-written CSS and JS and `index.html` are sent with
   `Cache-Control: no-cache` in every environment, so a browser revalidates each one rather than keeping it for a
@@ -1005,6 +1005,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   tools enter, and `IsoToggle` the one 2D/3D switch.
 
 ## Backend / API (B)
+- **Every served rule is a constant (`RP111`).** The 43 layout rules a finding can cite are `LayoutRules` in
+  `PgmStudio.Domain`, each with a meaning and a fix in the approved format, a category, what it is about and
+  an `[Evidence]` attribute saying how it is known; the 64 sites that raise one name the constant, so a typo
+  is a compile error. `docs/generator/rules.md` is no longer embedded or parsed and stays as the argument
+  behind them, and `/rules` shows a layout rule like any other, with how it is known beside it.
 - **A finding blames the caller only for the caller's mistakes (`RP110`).** The plan reader refuses a list
   stated as `null`, a marker whose `at` is not two numbers and two pieces under one id with the field named,
   and the plan routes no longer answer a crash as `RQ1`. A soft term's finding is a complaint; G5's term and

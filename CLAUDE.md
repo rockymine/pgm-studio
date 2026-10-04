@@ -135,7 +135,7 @@ when the design around them has landed, because nothing else can re-derive them.
 |---|---|---|
 | `model.md` | the canonical model — glossary, pipeline, how a layout is constructed | governs on any disagreement |
 | `vocabulary.md` | the living type catalog, one row per generation type | a type added, renamed or retired changes its row **in the same commit** |
-| `rules.md` | the rule law — every CT/SP/WL/LN/HB/FR/MD/BZ/EL id | amended only by its own correction protocol |
+| `rules.md` | the argument behind the layout rules — every CT/SP/WL/LN/HB/FR/MD/BZ/EL id; what is served is `Domain/LayoutRules.cs` | amended only by its own correction protocol; an amendment to a raised rule changes its `LayoutRules` constant in the same commit |
 | `evaluator.md` | the deriver-measurable and evaluator-term catalogue | — |
 | `audit.md` | where the code and `model.md` measurably disagree | an entry leaves when its fix lands |
 | `seed-stats.md` · `seed-envelopes.md` | measured corpus data | envelopes is generated — never hand-edited |

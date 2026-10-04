@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
@@ -9,7 +10,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class SpawnWoolSpread : SoftTerm
 {
     public override string Id => "spawn-wool-spread";
-    public override string RuleId => "WL9";
+    public override string RuleId => LayoutRules.WoolSpawnBalance;
 
     public override double? Value(EvalContext ctx)
     {
@@ -29,7 +30,7 @@ public sealed class SpawnWoolSpread : SoftTerm
 public sealed class WoolFrontDistance : SoftTerm
 {
     public override string Id => "wool-front-distance";
-    public override string RuleId => "WL10";
+    public override string RuleId => LayoutRules.WoolFrontBalance;
 
     public override double? Value(EvalContext ctx)
     {
@@ -50,7 +51,7 @@ public sealed class WoolFrontDistance : SoftTerm
 public sealed class WoolFrontBalance : SoftTerm
 {
     public override string Id => "wool-front-balance";
-    public override string RuleId => "WL10";
+    public override string RuleId => LayoutRules.WoolFrontBalance;
 
     public override double? Value(EvalContext ctx)
     {
@@ -74,7 +75,7 @@ public sealed class WoolFrontBalance : SoftTerm
 public sealed class SpawnWoolRatio : SoftTerm
 {
     public override string Id => "spawn-wool-ratio";
-    public override string RuleId => "WL9";
+    public override string RuleId => LayoutRules.WoolSpawnBalance;
     public override bool LearnsFromTraced => false;
 
     /// <summary>Two wools the same walk from their spawn read 1, which is the balance this rule asks for and
@@ -101,7 +102,7 @@ public sealed class SpawnWoolRatio : SoftTerm
 public sealed class WoolFrontRatio : SoftTerm
 {
     public override string Id => "wool-front-ratio";
-    public override string RuleId => "WL10";
+    public override string RuleId => LayoutRules.WoolFrontBalance;
     public override bool LearnsFromTraced => false;
 
     /// <summary>Two wools the same walk from the frontline read 1, which is what this rule asks for.</summary>
@@ -125,7 +126,7 @@ public sealed class WoolFrontRatio : SoftTerm
 public sealed class WoolFrontRemoteness : SoftTerm
 {
     public override string Id => "wool-front-remoteness";
-    public override string RuleId => "WL10";
+    public override string RuleId => LayoutRules.WoolFrontBalance;
     public override bool LearnsFromTraced => false;
 
     public override double? Value(EvalContext ctx)

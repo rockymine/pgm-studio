@@ -63,13 +63,6 @@
                 {
                   <div class="problem-blk"><span class="problem-lbl">What to do</span><p>@RuleWords.Plain(fix)</p></div>
                 }
-                else if (rule is not null && RuleWords.IsLayoutRule(rule))
-                {
-                  <div class="problem-blk">
-                    <span class="problem-lbl">Layout rule</span>
-                    <p>@(RuleWords.Backing(rule) ?? "How a good map is laid out."). The rule page explains it.</p>
-                  </div>
-                }
               }
               @if (row.Reading is null)
               {

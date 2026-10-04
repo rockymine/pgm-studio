@@ -497,6 +497,15 @@ the skerry layout as the board that shows the over-warning is gone.
   "nearer than N" over a set of cells with the edge stated (a thing exactly at the limit stands), replacing
   `GroundClaims.NearerThan`, `NearRoute` and `DressingScope`'s rect lambdas. Same numbers first, then
   G285–G288 on top. `docs/generator/`.
+- [ ] **G290 — One rule, one check.** Five raised rules check two things under one id, so their text cannot
+  say either in 35 words: `CT8` (hole count, and attack and defence routes overlapping), `G8` (fill ratio,
+  and ground off every route), `SP1` (a route through a spawn, and a plan with no build zone), `WL2` (the
+  walk to a wool, and a wool room touching its spawn), `WL10` (four balance reads). Each half becomes its
+  own `LayoutRules` constant, and `--goldens` re-recorded. `docs/generator/`.
+- [ ] **G291 — Settle the raised rules whose check is not their argument.** *Parked on the author.*
+  `docs/generator/audit.md` §8 lists thirteen rules where `rules.md` argues one thing and the check does
+  another; for each, the author says which is right, and the losing half changes in the same commit.
+  `docs/generator/`.
 - [ ] **TS167 — A path reaches a house's door.** The clearances around a building make a road or path to its
   door impossible. A path may run up to the door, paving never paints inside the house (its floor does), and
   `/sketch/seats` agrees with the pass that places buildings: today it refuses a building on paving the pass

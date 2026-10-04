@@ -158,7 +158,7 @@ a rule that changed its name between the two would be two rules.
 | `EZ1` `EZ2` | `EZ1` ground a player can stand on and nobody can edit, outside the zones a map seals on purpose — a canopy over the void past every build zone, a crag the void rule closed with the air around it. Recognised as protected by the `enter` rule that protects it rather than by a name, and reported per patch with its box. A complaint: inert ground may be exactly what was drawn. `EZ2` void between standing ground and a build zone nobody may build across, where the plan put ground — a coast the sketch pulled back from the zone's edge; a gap the plan itself leaves is the composed board and is not raised, and the fix is a build zone over the gap, not undoing the edit | `Analysis/Playability/EditZoneRules.cs` → `EditZoneRules` |
 | `RQ*` | the request itself — a document that could not be read, a subject the route names and the studio does not have, a request conflicting with what is stored, a stored document that will not read back, a field that went unread, and a fault that is the studio's own | `Domain/RequestRules.cs` |
 | `ED*` | the document editors' own two — `ED1` a reference the document cannot resolve (an apply-rule naming an unknown filter, a filter naming itself), `ED2` an edit the document is not in a state to take (a compound with fewer children than its type takes, an apply-rule with no region, filter or action). The other six an edit is refused for are the request's, above | `Pgm/Editing/EditRules.cs` |
-| `CT` `SP` `WL` `LN` `HB` `FR` `MD` `BZ` `EL` `G*` `ST*` `GO*` | the layout-rules checklist, cited by the plan lint, the evaluator terms and the producibility read | `docs/generator/rules.md` |
+| `CT` `SP` `WL` `LN` `FR` `MD` `BZ` `EL` `G*` `ST*` `GO*` | the layout rules — claims about how a map plays, raised by the plan lint, the evaluator terms and the producibility read, each carrying how it is known; the argument behind them is `docs/generator/rules.md` | `Domain/LayoutRules.cs` → `LayoutRules` |
 | `PC-C` | a corner contact between pieces nothing else joins — the one of that checklist a gate raises under its own name, so it is declared rather than stated | `Pgm/Plan/PlanValidator.cs` → `PlanRules` |
 
 ## One question, asked at every grain
@@ -556,25 +556,22 @@ to read next.
 **Nothing in that answer is written twice.** A gate rule's `means` is the `<summary>` beside its own `const`
 and its `fix` is the `<remarks>` of the same docstring, read out of the XML documentation file the compiler
 emits — so the sentence a caller is shown is the sentence in the source, and there is no catalogue to fall out
-of step with it. A layout rule comes out of `docs/generator/rules.md`, embedded in `PgmStudio.Domain` and
-parsed, because that document is the rule law and copying its statements into C# would have made a second law.
+of step with it. Every rule is read this way, the layout rules included.
 
-**Every gate rule is answered; the layout rules are the ones a caller can meet.** `rules.md` states 100 and
-the catalogue answers the 43 something can name — a plan-validator lint, an evaluator term's `RuleId`, a
-producibility finding's `Cites`. The rest are the generator's law, and `rules.md` is where the law lives:
-publishing a rule nothing raises in a row identical to one a caller can fail on makes every row less
-informative, and there is no finding to explain. `RuleCatalog.Raised` states which, and
-`RulesEndpointTests` holds it to the source both ways — a row nothing names fails, and an id named that is
-not answered fails too.
+**A layout rule is a constant in `LayoutRules`, and the sites that raise it name it.** A plan-validator lint,
+an evaluator term's `RuleId` and a producibility finding's `Cites` each reach one as `LayoutRules.<Name>`, so
+a typo is a compile error and a rule nothing raises is a constant nothing names, which `RulesEndpointTests`
+fails on. `docs/generator/rules.md` is the argument behind them — the corpus readings, the rulings, the
+amendments — and is not served: the catalogue answers what a finding can cite, and a rule nothing raises has
+no finding to explain.
 
-**A layout rule has no `fix`, and that is not an omission.** The gate rules are mechanical — a doorway too
-short, a document that will not parse — so what to do about one follows from what it refuses. The layout rules
-are claims about how a map is *played*, which `CLAUDE.md` says are the author's to state and not this
-repository's to infer. What they carry instead is `evidence`: `corpus`, `expert`, `open` or `guess`, in
-`rules.md`'s own terms, which says how far to trust each one.
+**A layout rule says how it is known.** It carries `means` and `fix` like any other, and beside them
+`evidence`: `author` (the author's ruling), `corpus` (measured on community maps), `expert`, `open` or
+`guess`, which says how far to trust it. It comes off an `[Evidence]` attribute beside the constant, and only
+a layout rule has one, which is what the client tells the two kinds apart by.
 
 **The category is what a caller branches on, and the concerns are what a prefix could never carry.** An id is
-specific, stable and for a reader; `category` is the closed set an agent reads instead of learning 77 ids —
+specific, stable and for a reader; `category` is the closed set an agent reads instead of learning 221 ids —
 `malformed` (fix the shape), `unknown` (fix a name), `conflict` (choose which wins), `unsatisfiable` (change
 the design), `unplayable` (change the map), `forbidden` (ask for something else), `unavailable` (try again, or
 look upstream), `internal` (report it). Each word is defined by the action it implies rather than by how the
@@ -591,13 +588,13 @@ uncapped. `?concerns=objective` answers every rule that touches one; repeating i
 400 rather than answered with an empty list, which a caller would read as "no rules do that".
 
 Both come off a **`[Rule]` attribute beside the constant**, so they are declared once per rule rather than
-restated at each site that raises one: the 77 constants are raised from 97 sites, and a field on the finding
-would have 25 of those restating what another site already fixed with nothing checking they agree.
+restated at each site that raises one: a rule raised from several sites would otherwise have each of them
+restating what another already fixed, with nothing checking they agree.
 
-**A layout rule carries neither**, having no declaration site to write one on. Nor do four gate rules —
-`WX1`, `WX5`, `WX7` and `WX9` — which state how a room frame is derived and refuse nothing: no finding cites
-one, so there is no caller to branch and nothing to do. They are constants because a rule may not live only in
-a markdown file, and what they answer is a reader who met the id in `structures.md`.
+**Four rules carry no category** — `WX1`, `WX5`, `WX7` and `WX9` — which state how a room frame is derived
+and refuse nothing: no finding cites one, so there is no caller to branch and nothing to do. They are
+constants because a rule may not live only in a markdown file, and what they answer is a reader who met the
+id in `structures.md`.
 
 **The numbers have their own endpoint.** `GET /api/rules/terms` answers every evaluator term with the band it
 is scoring against right now — `{term, rule, kind, band, bandSource, learnsFromTraced}` — read through the
@@ -615,8 +612,7 @@ the id, the first sentence of `means`, and the category as the action it asks fo
 kind (a gate's check or a layout rule), by that action and by `concerns`; the eight categories read *Fix the
 format*, *Fix a name*, *Choose which wins*, *Change the design*, *Make it playable*, and after a rule — being
 the three that are not the author's to fix — *Ask for something else*, *Try again later* and *Report it*.
-Opening a rule shows `means` and `fix`, or for a layout rule its first sentence, the full law with its tables,
-and how far `evidence` backs it; then its `concerns`, the bands its terms score against, and the rule's place
+Opening a rule shows `means` and `fix`, for a layout rule how `evidence` backs it; then its `concerns`, the bands its terms score against, and the rule's place
 on the reachability ladder above. `/rules?rule=PL9` opens on one rule, which is where every check list in the
 studio links a rule id to. The rules' own words are the server's; what the client adds is the action names,
 the family names, the term labels and the ladder's five questions (`RuleWords`).
@@ -634,4 +630,5 @@ to several things it is about; a rule added without one is listed with neither a
 refuses nothing takes the concerns-only form, and `RulesEndpointTests` names the four that may. Add its row above, and answer through `Refusals.StopAsync` (an endpoint) or
 `Refusals.Of` (a typed body). A gate below `Api` hands its findings up and the HTTP layer renders the
 envelope, so there is nothing to build by hand. A rule about a map *as it is played* is the
-author's to state before any of that: see the human-oracle rule in `CLAUDE.md`.
+author's to state before any of that: see the human-oracle rule in `CLAUDE.md`. Once stated, it goes in
+`LayoutRules` with an `[Evidence]` attribute beside the `[Rule]`, its argument in `docs/generator/rules.md`.

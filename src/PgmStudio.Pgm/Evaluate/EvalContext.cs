@@ -50,13 +50,13 @@ public sealed class EvalContext
 }
 
 /// <summary>One rule, one term: reads derived measurables only (never a shape/family name — the enumeration
-/// trap), cites exactly one <see cref="RuleId"/> from <c>layout-rules.md</c>, and is pure (no RNG, no IO).</summary>
+/// trap), cites exactly one <see cref="RuleId"/> from <see cref="LayoutRules"/>, and is pure (no RNG, no IO).</summary>
 public interface ILayoutTerm
 {
     /// <summary>Stable term id (e.g. <c>band-wool-clearance</c>) — the profile's enable/weight key.</summary>
     string Id { get; }
 
-    /// <summary>The single <c>layout-rules.md</c> id this term scores (e.g. <c>BZ6</c>).</summary>
+    /// <summary>The single layout rule this term scores (e.g. <see cref="LayoutRules.MidZoneNearWool"/>).</summary>
     string RuleId { get; }
 
     TermKind Kind { get; }

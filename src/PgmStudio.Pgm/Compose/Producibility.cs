@@ -201,7 +201,7 @@ public static class Producibility
                 $"The unit's front faces sit off the symmetry axis, so the mid band — which spans the hull of " +
                 $"both images' faces — would reach {slack} cell(s) past the front it docks, over the " +
                 $"{Composer.FrontSlackCapCells}-cell cap. Centre the front on the axis, or widen it so its " +
-                "hull is symmetric; the legs within it need not be.", Cites: "BZ9"));
+                "hull is symmetric; the legs within it need not be.", Cites: LayoutRules.ZoneOverhang));
 
         // the frontline's face: a sampled width seated anywhere along the hub's front edge, free to overhang it,
         // but every contact patch it makes with the hub's front terrain must be at least a lane wide — the
@@ -223,7 +223,7 @@ public static class Producibility
                           $"{weakest}, under the {UnitTuning.WoolLaneFloorCells}-cell lane. A face may be " +
                           "narrower than the edge or overhang it, and may reach across a bay — but every " +
                           "shoulder it lands on has to be a corridor's width, or the face is cantilevered " +
-                          "over the hole.", Cites: "G2"));
+                          "over the hole.", Cites: LayoutRules.CorridorWidth));
         }
 
         // the seat-separation law: no spawn/wool seats within the separation gap of another. An authored plan is
@@ -238,7 +238,7 @@ public static class Producibility
                         $"Boxes '{seats[i].Id}' and '{seats[j].Id}' sit within the {UnitTuning.WoolLaneFloorCells}-cell " +
                         "separation gap, which the allocator never seats through. Measured on the box " +
                         "envelopes (corner-inclusive) — the emitted terrain may keep more room than the " +
-                        "envelopes suggest, which is the measurand question G124 parks.", Cites: "WL7"));
+                        "envelopes suggest, which is the measurand question G124 parks.", Cites: LayoutRules.WoolWoolDistance));
 
         return findings;
     }
@@ -269,7 +269,7 @@ public static class Producibility
             findings.Add(new Finding("corridor-below-minimum",
                 $"Narrowest cross-section is {measured} cell(s); the emitters build at {cwFloor} " +
                 $"({(box.Kind == PlanBoxKinds.Wool ? "the wool lane" : "the hub/body wall")} width). " +
-                "Every part of this box would have to be at least that wide.", Cites: "G2"));
+                "Every part of this box would have to be at least that wide.", Cites: LayoutRules.CorridorWidth));
 
         // enumerated lazily and kept as they come: an exact match ends the search, so the producible case — the
         // common one — never pays for the rest of the space. Only a real miss enumerates it all, to report against.
@@ -294,7 +294,7 @@ public static class Producibility
                 $"The corridor is reproducible ({roomMiss.Label}) but the terminal room is not: the emitters " +
                 $"build a compact {ShapeEmitter.RoomDepthCells}-cell-deep room and this one differs. The room " +
                 "is not just terrain — the export stamps its bedrock floor and entrance line from it.",
-                Cites: "ST1"));
+                Cites: LayoutRules.BoxRoomShape));
 
         var nearest = Nearest(candidates, all);
         if (nearest is not null)

@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Derive;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
@@ -12,7 +13,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class GoalSpawnRatio : SoftTerm
 {
     public override string Id => "goal-spawn-ratio";
-    public override string RuleId => "GO1";
+    public override string RuleId => LayoutRules.GoalSpawnRatio;
     public override bool LearnsFromTraced => false;
     public override Band? AuthoredBand => new Band(3.0, 4.0);
 
@@ -45,7 +46,7 @@ public sealed class GoalSpawnRatio : SoftTerm
 public sealed class GoalSpawnDistance : SoftTerm
 {
     public override string Id => "goal-spawn-distance";
-    public override string RuleId => "GO4";
+    public override string RuleId => LayoutRules.GoalSpawnDistance;
     public override bool LearnsFromTraced => false;
     public override Band? AuthoredBand => new Band(40, 90);
 
@@ -78,7 +79,7 @@ public sealed class GoalSpawnDistance : SoftTerm
 public sealed class OwnGoalDistance : GoalPairTerm
 {
     public override string Id => "own-goal-distance";
-    public override string RuleId => "GO2";
+    public override string RuleId => LayoutRules.OwnGoalSpacing;
     public override Band? AuthoredBand => new Band(35, 65);
     protected override bool Opposing => false;
 }
@@ -90,7 +91,7 @@ public sealed class OwnGoalDistance : GoalPairTerm
 public sealed class OpposingGoalDistance : GoalPairTerm
 {
     public override string Id => "opposing-goal-distance";
-    public override string RuleId => "GO3";
+    public override string RuleId => LayoutRules.OpposingGoalSpacing;
     public override Band? AuthoredBand => new Band(85, 150);
     protected override bool Opposing => true;
 }

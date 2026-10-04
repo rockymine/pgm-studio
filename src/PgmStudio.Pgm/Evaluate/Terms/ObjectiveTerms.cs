@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
@@ -11,7 +12,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class WoolWoolDistance : SoftTerm
 {
     public override string Id => "wool-wool-distance";
-    public override string RuleId => "WL7";
+    public override string RuleId => LayoutRules.WoolWoolDistance;
 
     public override double? Value(EvalContext ctx) => Closest(ctx).Blocks;
 

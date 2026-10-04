@@ -11,6 +11,40 @@ public sealed class RuleCategoryConverter() : JsonStringEnumConverter<RuleCatego
 /// as.</summary>
 public sealed class RuleConcernConverter() : JsonStringEnumConverter<RuleConcern>(JsonNamingPolicy.CamelCase);
 
+/// <summary>Writes <see cref="RuleEvidence"/> as the lowercase word the wire and the client both read it
+/// as.</summary>
+public sealed class RuleEvidenceConverter() : JsonStringEnumConverter<RuleEvidence>(JsonNamingPolicy.CamelCase);
+
+/// <summary>How a layout rule is known, in one word. A layout rule says how a map plays, which the code cannot
+/// prove, so a reader is told what backs it instead.</summary>
+[JsonConverter(typeof(RuleEvidenceConverter))]
+public enum RuleEvidence
+{
+    /// <summary>The author's ruling.</summary>
+    Author,
+
+    /// <summary>Measured on community maps.</summary>
+    Corpus,
+
+    /// <summary>An expert's ruling.</summary>
+    Expert,
+
+    /// <summary>Open: waiting on the author.</summary>
+    Open,
+
+    /// <summary>A best guess.</summary>
+    Guess,
+}
+
+/// <summary>Marks a rule as a layout rule, a claim about how a map plays, and says what backs it. Beside
+/// <see cref="RuleAttribute"/> on the rule's constant.</summary>
+[AttributeUsage(AttributeTargets.Field)]
+public sealed class EvidenceAttribute(RuleEvidence evidence) : Attribute
+{
+    /// <summary>What backs the rule.</summary>
+    public RuleEvidence Evidence { get; } = evidence;
+}
+
 /// <summary>
 /// <b>What a caller does about a finding, in one word.</b> A rule id is specific, stable and for a reader; a
 /// category is the small closed set an agent branches on without knowing the id. Each word is defined by the

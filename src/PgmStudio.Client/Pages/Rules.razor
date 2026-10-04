@@ -122,14 +122,14 @@
               <div class="rules-d-head">
                 <div class="rules-d-title"><b>@rule.Rule</b><span>@RuleWords.FamilyName(rule.Family)</span></div>
                 <div class="rules-d-act">
-                  @if (rule.Category is { } ruleCategory)
+                  @if (RuleWords.IsLayoutRule(rule))
+                  {
+                    <b>Layout rule</b><span>How a good map is laid out. The studio measures plans against it.</span>
+                  }
+                  else if (rule.Category is { } ruleCategory)
                   {
                     var action = RuleWords.ActionOf(ruleCategory);
                     <b>@action.Label</b><span>@action.Says</span>
-                  }
-                  else if (RuleWords.IsLayoutRule(rule))
-                  {
-                    <b>Layout rule</b><span>How a good map is laid out. The studio measures plans against it.</span>
                   }
                   else
                   {
@@ -138,40 +138,23 @@
                 </div>
               </div>
 
-              @if (RuleWords.IsLayoutRule(rule))
+              <div class="rules-d-sec">
+                <h3 class="section-title">What it means</h3>
+                <p class="rules-prose">@((MarkupString)RuleWords.Inline(rule.Means))</p>
+              </div>
+              @if (rule.Fix is { } fix)
               {
                 <div class="rules-d-sec">
-                  <h3 class="section-title">What it says</h3>
-                  <p class="rules-prose">@RuleWords.FirstSentence(rule.Means)</p>
-                  <details class="rules-law">
-                    <summary class="rules-disclosure"><i data-lucide="chevron-right"></i>Read the full rule</summary>
-                    <div class="rules-prose">
-                      @((MarkupString)RuleWords.Law(rule.Means))
-                      <p class="rules-muted">From <code>@rule.Owner</code></p>
-                    </div>
-                  </details>
+                  <h3 class="section-title">What to do</h3>
+                  <p class="rules-prose">@((MarkupString)RuleWords.Inline(fix))</p>
                 </div>
-                @if (RuleWords.Backing(rule) is { } backing)
-                {
-                  <div class="rules-d-sec">
-                    <h3 class="section-title">How it is known</h3>
-                    <p class="rules-prose">@backing</p>
-                  </div>
-                }
               }
-              else
+              @if (RuleWords.Backing(rule) is { } backing)
               {
                 <div class="rules-d-sec">
-                  <h3 class="section-title">What it means</h3>
-                  <p class="rules-prose">@((MarkupString)RuleWords.Inline(rule.Means))</p>
+                  <h3 class="section-title">How it is known</h3>
+                  <p class="rules-prose">@backing</p>
                 </div>
-                @if (rule.Fix is { } fix)
-                {
-                  <div class="rules-d-sec">
-                    <h3 class="section-title">What to do</h3>
-                    <p class="rules-prose">@((MarkupString)RuleWords.Inline(fix))</p>
-                  </div>
-                }
               }
 
               @if (rule.Concerns is { Count: > 0 } about)

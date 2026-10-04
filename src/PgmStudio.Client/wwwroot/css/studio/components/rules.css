@@ -104,9 +104,6 @@ details[open] > .rules-disclosure svg { transform: rotate(90deg); }
 .rules-prose p + p, .rules-prose table + p { margin-top: var(--space-3); }
 .rules-prose table { border-collapse: collapse; margin: var(--space-3) 0; font-size: var(--font-sm); }
 .rules-prose th, .rules-prose td { border-bottom: 1px solid var(--border); padding: var(--space-1) var(--space-3) var(--space-1) 0; text-align: left; vertical-align: top; }
-.rules-muted { color: var(--text-muted); }
-.rules-law { margin-top: var(--space-2); }
-.rules-law > .rules-prose { margin-top: var(--space-2); padding: var(--space-3) var(--space-4); border-left: 2px solid var(--border); }
 .rules-tags { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .rules-tag { font-size: var(--font-xs); padding: 2px 7px; border-radius: var(--radius-sm); border: 1px solid var(--border); color: var(--text-secondary); background: var(--bg-base); }
 .rules-terms { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--font-sm); color: var(--text-secondary); }

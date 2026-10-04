@@ -576,7 +576,7 @@ public static class WorldBuilder
             // player meets it tallest.
             var proud = StructureStamper.WallCoursesProud(surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, top);
             if (proud > RoomFrames.WallCoursesMax)
-                said.Add(new Finding("ST4",
+                said.Add(new Finding(LayoutRules.WallHeight,
                     $"the approach wall at ({w.MinX}, {w.MinZ})–({w.MaxX - 1}, {w.MaxZ - 1}) stands {proud} "
                     + $"courses over the ground at its lowest column, against {RoomFrames.WallCoursesMax}. Its "
                     + $"top is level at y{top} and taken from the highest ground it crosses, so the "

@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Vocabulary;
@@ -13,7 +14,7 @@ public sealed class BandWoolClearance : ILayoutTerm
     private const double MinClearanceCells = 2.0;
 
     public string Id => "band-wool-clearance";
-    public string RuleId => "BZ6";
+    public string RuleId => LayoutRules.MidZoneNearWool;
     public TermKind Kind => TermKind.Hard;
 
     public TermScore Measure(EvalContext ctx)
@@ -73,7 +74,7 @@ public sealed class ThinMiddle : ILayoutTerm
     };
 
     public string Id => "thin-middle";
-    public string RuleId => "MD7";
+    public string RuleId => LayoutRules.ThinMiddle;
     public TermKind Kind => TermKind.Soft;
 
     public TermScore Measure(EvalContext ctx)

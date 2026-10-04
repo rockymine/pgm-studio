@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
@@ -13,7 +14,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class SpawnWoolDistance : SoftTerm
 {
     public override string Id => "spawn-wool-distance";
-    public override string RuleId => "WL2";
+    public override string RuleId => LayoutRules.WoolSpawnDistance;
 
     public override double? Value(EvalContext ctx) => Closest(ctx).Blocks;
 
@@ -64,7 +65,7 @@ public sealed class SpawnWoolFloor : ILayoutTerm
     public const int MinBlocks = 20;
 
     public string Id => "spawn-wool-floor";
-    public string RuleId => "WL2";
+    public string RuleId => LayoutRules.WoolSpawnDistance;
     public TermKind Kind => TermKind.Hard;
 
     public TermScore Measure(EvalContext ctx)
@@ -89,7 +90,7 @@ public sealed class SpawnWoolFloor : ILayoutTerm
 public sealed class WoolRoomSpawnSeam : ILayoutTerm
 {
     public string Id => "wool-room-spawn-seam";
-    public string RuleId => "WL2";
+    public string RuleId => LayoutRules.WoolSpawnDistance;
     public TermKind Kind => TermKind.Hard;
 
     public TermScore Measure(EvalContext ctx)

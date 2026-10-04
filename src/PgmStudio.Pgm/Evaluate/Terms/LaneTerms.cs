@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Compose;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
@@ -8,7 +9,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class MaxChainLength : SoftTerm
 {
     public override string Id => "max-chain-length";
-    public override string RuleId => "LN2";
+    public override string RuleId => LayoutRules.LaneLength;
 
     // LN2 is an authored *cap* on lane length, not a distribution we widen to fit: traced real maps run much
     // longer chains, so the band learns from the authored intent seeds only, not the traced corpus.
@@ -29,7 +30,7 @@ public sealed class MaxChainLength : SoftTerm
 public sealed class LaneWidth : SoftTerm
 {
     public override string Id => "lane-width";
-    public override string RuleId => "LN1";
+    public override string RuleId => LayoutRules.LaneWidth;
 
     public override double? Value(EvalContext ctx)
     {
