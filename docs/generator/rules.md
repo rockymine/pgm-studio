@@ -549,6 +549,10 @@ the stat corpus.
   union is not stitching**: rectangles are the only shape a zone comes in, so a region that turns a
   corner needs several. Several zones are otherwise right only as **separate regions** — one per leg
   of a legged frontline, one flush zone per mid island (`frontline-dos-and-donts` teaching sketch).
+- **BZ12 [author]** **A water lane covers void, never terrain.** A water lane is a build zone that opens
+  later in the match, so it is drawn over the gap it will open and not over land. Where it overlaps a piece,
+  that part of it is already ground and opens nothing: trim the lane back to the void. A build zone open
+  from the start may overlap terrain by design (`BZ7`'s plaza); a water lane may not.
 
 ## EL — Elevation
 
@@ -1327,3 +1331,8 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     piece of the same team sharing a land seam, full-width or narrow. A corner touch shares no edge, and no
     cell-distance clause is added. The term is `wool-room-spawn-seam`; every composed wool unit is a room
     behind its own lane, so no composed board moves and `ComposerVersion` stands (`G263`).
+
+55. **The water-lane lint is `BZ12` (2026-10-04).** Author's call: a water lane is a build zone that opens
+    later, so its one lint belongs to the build-zone family. `PlanValidator` raised it as `WL1`, which is the
+    wool room's placement rule, so the rule page explained a different rule. Nothing it checks changed; `WL1`
+    is no longer raised by anything and leaves the served catalogue.

@@ -54,6 +54,9 @@ public sealed class MapExportEndpoint(
             return;
         }
 
+        // What the playability gate remarked on, before a byte of the body is written.
+        Complaints.Add(HttpContext, result.Remarks ?? []);
+
         // Non-sketch maps: XML only (they already ship a real world).
         if (result.World is null)
         {

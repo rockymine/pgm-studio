@@ -559,8 +559,8 @@ emits — so the sentence a caller is shown is the sentence in the source, and t
 of step with it. A layout rule comes out of `docs/generator/rules.md`, embedded in `PgmStudio.Domain` and
 parsed, because that document is the rule law and copying its statements into C# would have made a second law.
 
-**Every gate rule is answered; the layout rules are the ones a caller can meet.** `rules.md` states 92 and
-the catalogue answers the 34 something can name — a plan-validator lint, an evaluator term's `RuleId`, a
+**Every gate rule is answered; the layout rules are the ones a caller can meet.** `rules.md` states 100 and
+the catalogue answers the 43 something can name — a plan-validator lint, an evaluator term's `RuleId`, a
 producibility finding's `Cites`. The rest are the generator's law, and `rules.md` is where the law lives:
 publishing a rule nothing raises in a row identical to one a caller can fail on makes every row less
 informative, and there is no finding to explain. `RuleCatalog.Raised` states which, and

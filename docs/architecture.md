@@ -338,11 +338,11 @@ structure and an objective at once — which is why `concerns` is a list and why
 
 **Rules are stated three ways, and the third is a string literal.** The 77 constants are one; the layout law
 in `docs/generator/rules.md`, embedded and parsed, is a second. The third is a bare literal at the site that
-names it — a plan-validator lint (`SP1`, `SP2`, `EL1`, `ST8`, `WL1`, `CT12`, `BZ5` and nine more), an
+names it — a plan-validator lint (`SP1`, `SP2`, `EL1`, `ST8`, `BZ12`, `CT12`, `BZ5` and nine more), an
 evaluator term's `RuleId`, a producibility finding's `Cites` — and no reflection can see one.
 
-**The catalogue answers what a caller can meet.** `rules.md` states 92 layout rules and those three kinds of
-site between them name 34; `/api/rules` answers those, because the question it exists for is *what is this
+**The catalogue answers what a caller can meet.** `rules.md` states 100 layout rules and those three kinds of
+site between them name 43; `/api/rules` answers those, because the question it exists for is *what is this
 finding* and a rule nothing raises has no finding to explain. `RuleCatalog.Raised` is where that set is
 stated, and `RulesEndpointTests` holds it to the source in both directions: a row answered that no source
 names fails, and an id named that the catalogue does not answer fails too. So a typo at a throw site is a

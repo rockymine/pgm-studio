@@ -24,9 +24,11 @@ using PgmStudio.Geom;
 /// deep the refusal was raised.</para>
 /// <para><b>Doc</b> — The composed map document, on success — what the XML was written from, and what a
 /// post-export read (the coverage measure, a headless driver's own analysis) consumes without re-parsing the XML
-/// it just wrote.</para></summary>
+/// it just wrote.</para>
+/// <para><b>Remarks</b> — What the playability gate said that stops nothing (<c>OB26</c>–<c>OB28</c>), on
+/// success, for the route to carry on the response beside the build's own declines.</para></summary>
 public sealed record ExportComposition(
-    Refusal? Refusal, string? Xml, BuiltWorld? World, Dict? Doc = null);
+    Refusal? Refusal, string? Xml, BuiltWorld? World, Dict? Doc = null, IReadOnlyList<Finding>? Remarks = null);
 
 /// <summary>
 /// The shared pipeline behind <c>GET /map/{slug}/xml</c> and <c>GET /map/{slug}/export</c>: the
@@ -84,8 +86,9 @@ public static class MapExportComposer
             // to read and no resolved intent to compare it against. A corpus map is exempt for the reason the
             // traversability gate exempts it: 281 of the 1,616 maps in the two corpora declare no team at all,
             // and an FFA map with none is not a broken map.
-            if (isIntent && Playable(null, doc) is { Refuses: true } unenterable)
-                return Refuse("not a playable map", [.. unenterable.Refusals]);
+            var playable = isIntent ? Playable(null, doc) : null;
+            if (playable is { Refuses: true })
+                return Refuse("not a playable map", [.. playable.Refusals]);
 
             // Other maps get plain XML (they already ship a world). Intent maps additionally get the cached
             // surface palette + spawn-ore renewables — cache-only, never triggering a world scan on export —
@@ -93,7 +96,7 @@ public static class MapExportComposer
             // credited it.
             if (isIntent) StudioCredits.Apply(doc, [], accounts);
             var xml = MapXmlComposer.Compose(doc, isIntent, surfacePalette, resources);
-            return new(null, xml, null);
+            return new(null, xml, null, Remarks: playable is null ? null : [.. playable.Complaints]);
         }
         catch (DressingParseException ex)
         {
@@ -161,13 +164,14 @@ public static class MapExportComposer
         // EX2/EX3 — last, because it reads the document the slices have just written and compares it against
         // the intent they were written from. Every gate above it quantifies over a collection and so passes a
         // board with nothing on it.
-        if (Playable(goals, doc) is { Refuses: true } unplayable)
-            return Refuse("not a playable map", [.. unplayable.Refusals]);
+        var playable = Playable(goals, doc);
+        if (playable.Refuses)
+            return Refuse("not a playable map", [.. playable.Refusals]);
 
         StudioCredits.Apply(doc, built.Dressing.TreeBuilders, accounts);
         var renewCubes = WorldBuilder.RenewableCubeFootprints(goals, built.Shells);
         var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewCubes);
-        return new(null, sketchXml, built, doc);
+        return new(null, sketchXml, built, doc, [.. playable.Complaints]);
     }
 
     // ── OB20 — every declared <gamemode> must resolve against PGM's own closed enum ────────────────────────
@@ -229,8 +233,7 @@ public static class MapExportComposer
     /// <para>Whether a map needs an objective <em>at all</em> is still not asked here. <c>PL3</c> already says a
     /// plan with no goal has nothing to win, as a complaint because which goal a map carries is the author's, and
     /// a second copy of one rule under an export id is the duplication the shared vocabulary exists to prevent.
-    /// It is also the half that could not be reported — this gate answers into a response whose body is XML or a
-    /// zip, which has nowhere for a complaint to ride.</para>
+    /// The complaints this gate does raise ride the export's <see cref="ExportComposition.Remarks"/>.</para>
     /// <para><b>intent</b> — The resolved intent, where one is in hand. Null on a path that has only the
     /// document, which leaves the carried-through comparison unasked rather than guessed at.</para></summary>
     public static Findings Playable(MapIntent? intent, Dict doc)
