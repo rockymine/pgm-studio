@@ -87,15 +87,20 @@
         {
         <Sidebar>
             <div class="plan-panel-switch">
-              @if (showReference)
-              {
-              <Chip Active="@(leftPanel == "settings")" OnClick='() => SetPanel("settings")'>Settings</Chip>
-              }
-              <Chip Active="@(leftPanel == "validation")" OnClick='() => SetPanel("validation")'>Checks</Chip>
-              @if (showBoxes)
-              {
-              <Chip Active="@(leftPanel == "feasibility")" OnClick='() => SetPanel("feasibility")' Title="Generator check">Generator</Chip>
-              }
+              <div class="panel-tabs" role="tablist">
+                @if (showReference)
+                {
+                <button type="button" role="tab" class="@PanelTab("settings")" aria-selected="@(leftPanel == "settings")"
+                        @onclick='() => SetPanel("settings")'>Settings</button>
+                }
+                <button type="button" role="tab" class="@PanelTab("validation")" aria-selected="@(leftPanel == "validation")"
+                        @onclick='() => SetPanel("validation")'>Checks</button>
+                @if (showBoxes)
+                {
+                <button type="button" role="tab" class="@PanelTab("feasibility")" aria-selected="@(leftPanel == "feasibility")"
+                        title="Generator check" @onclick='() => SetPanel("feasibility")'>Generator</button>
+                }
+              </div>
               <Button Variant="icon" Icon="panel-left-close" Title="Hide panel" OnClick="ToggleSidebar" />
             </div>
             @if (showReference && leftPanel == "settings")

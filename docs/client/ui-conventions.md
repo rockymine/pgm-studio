@@ -82,7 +82,7 @@ the row carries), and `DetailHeader` (an inspector head: icon, label, trailing b
 only* tag on a read-only page, and the tool's actions; `AppFooter` closes every page with the keyboard
 shortcuts, the design reference and the repository; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from; `FlowBar` is the phase/step nav the stepped tools share; `AppFooterLink` and `SideDrawer`
+arranges itself from; `PageHeading` is the one heading a browse or admin page opens on; `FlowBar` is the phase/step nav the stepped tools share; `AppFooterLink` and `SideDrawer`
 finish the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
@@ -157,7 +157,7 @@ what lets the page say so before an edit rather than after it.
 
 **A set the reader can tick several of leads each chip with a checkbox.** `filter-group-options--multi` on the
 chip row draws the box, ticked when the chip is on, and moves the chip's count to its right edge; a row where
-exactly one option holds (a symmetry, a panel switch) carries no box. The generator and the shape catalog
+exactly one option holds (a symmetry) carries no box. The generator and the shape catalog
 title their rails for what the rail does — *Layout settings*, *Filter by shape*, *Filter shapes* — rather
 than *Filters*, and every change in them applies at once: there is no Apply button to forget.
 
@@ -190,13 +190,24 @@ for them. A name that can still be cut carries itself as its `title`. A table do
 a name and a slug each stay on one line and are cut, and below a wide screen the table drops columns rather
 than scrolling sideways.
 
+**One of several panels is a tab, not a chip.** A sidebar that holds several panels and shows one at a time
+switches them with `.panel-tabs` — the flow bar's underlined `.flow-step`s — because a chip reads as a filter
+switched on, and a row of full buttons crowds a narrow column.
+
+**A page opens on its name.** The crumb in the tool bar navigates and is too small to say where the reader is,
+so every browse and admin page — Maps, the generator, the shape catalog, the library and each of its kinds,
+Users, Tokens — opens on one `PageHeading`: the crumb's word at `--font-xl`, a line saying what the page is for,
+and the page's own actions on the right. A tool that works on a canvas does not: its flow bar names the phase,
+and the canvas wants the height.
+
 **Every page's tool bar is one height.** `.topbar` is at least a control and its padding tall whether it
 carries a button or only the crumbs, so moving between pages never moves the content under it.
 
-**A status is a `Badge`.** Where a thing has a state — a note's thread, a check's result — the state is a
-`Badge` in the meaning variant that fits it, and anything else drawn in that state's colour (a pin, a count
-over a thumbnail) takes it from the same status tokens. A colour written straight into a component's
-stylesheet does not follow the theme, and reads as a pastel patch in the dark one.
+**A status is a word before it is a colour.** A check's result is a `Badge` in the meaning variant that fits
+it. A list whose every row has a state — a note's thread — says the state as a muted word instead, because five
+statuses in three hues make every row ask for attention. Any colour that is drawn comes from the tokens: one
+written straight into a component's stylesheet does not follow the theme, and reads as a pastel patch in the
+dark one.
 
 **Keyboard focus is one ring.** `:focus-visible` draws a 2px accent outline outside the element everywhere,
 and a text field, which holds focus however it was reached, rings itself in the accent instead. A rule never

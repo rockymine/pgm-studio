@@ -59,10 +59,10 @@
     </aside>
 
     <main class="lib-main">
-      <p class="lib-intro">
-        Every shape the generator can place, drawn with its opening at the top. Rotations are not shown, but
-        mirrored versions are.
-      </p>
+      <PageHeading Title="Shape catalog">
+        <Lead>Every shape the generator can place, drawn with its opening at the top. Rotations are not shown, but
+          mirrored versions are.</Lead>
+      </PageHeading>
 
       @if (error is not null) { <p class="lib-status">@error</p> }
       else if (loading) { <p class="lib-status">Loading…</p> }

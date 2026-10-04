@@ -245,9 +245,13 @@ public partial class SketchNotesColumn : IDisposable
     public static string Glyph(MapNoteDto note) =>
         note.Anchor.Kind == NoteAnchors.Map ? "" : note.Id.ToString(CultureInfo.InvariantCulture);
 
-    /// <summary>The pin's class: its shape says whether it is on the map or a picture, its colour the status.</summary>
+    /// <summary>The pin's class: its shape says whether the note is on the map or on a picture.</summary>
     public static string PinClass(MapNoteDto note) =>
-        $"note-pin note-pin--{note.Status}" + (note.Anchor.Kind == NoteAnchors.Map ? " note-pin--map" : "");
+        note.Anchor.Kind == NoteAnchors.Map ? "note-pin note-pin--map" : "note-pin";
+
+    /// <summary>How many messages a thread holds, as the row's foot says it.</summary>
+    public static string MessageCount(MapNoteDto note) =>
+        note.Messages.Count == 1 ? "1 message" : $"{note.Messages.Count} messages";
 
     private static string Ago(DateTime at) => Moments.Ago(at);
 

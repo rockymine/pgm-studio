@@ -588,7 +588,7 @@ implies, `CoreCasing.Of`, and the dig depth, `CoreDig.Depth` — client twins of
 and `ObjectiveDefaults.DigDepth`, which the WASM half cannot reach, each pinned to its authority by a drift
 test (`CoreCasingDriftTests`, `CoreDigDepthDriftTests`) and shared with the Configure wizard's casing step.
 
-Up to three panels share the sidebar, switched by the chips at its head, beside the button that folds the
+Up to three panels share the sidebar, switched by the underlined tabs at its head, the step bar's own look, beside the button that folds the
 sidebar away. **Settings** holds the tracing reference: a map whose top-down view is drawn as a backdrop on the
 canvas. It is offered only on an open studio, the same gate as Configure's world folders, because on a shared
 studio the one use of tracing another author's map is copying it; elsewhere the chip is absent and the sidebar

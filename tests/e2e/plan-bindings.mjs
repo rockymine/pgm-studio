@@ -33,7 +33,7 @@ async function structure() {
   const rail = await page.locator(".nav-rail .nav-btn").evaluateAll(els => els.map(el => el.title));
   const phase = (await texts(".phase-body:not([hidden]) .flow-bar-phase")).join();
   const next = (await texts(".phase-body:not([hidden]) .flow-bar-actions .action-btn--primary")).join();
-  const chips = await texts(".plan-panel-switch .filter-chip");
+  const chips = await texts(".plan-panel-switch .flow-step");
 
   // The sidebar folds away and comes back, and the canvas is what takes the width.
   await page.click('button[title="Hide panel"]');

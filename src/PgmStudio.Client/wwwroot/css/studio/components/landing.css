@@ -43,6 +43,9 @@
 .landing-plan-body .card-title { font-size: var(--font-lg); }
 .landing-plan-body .card-desc { margin: 0; }
 .landing-plan-go { flex: none; font-size: var(--font-sm); }
+/* The map the reader last changed, offered first: the row card with the accent's edge, and a line naming why. */
+.landing-continue { border-color: var(--accent); }
+.landing-continue-kicker { font-size: var(--font-xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-light); }
 
 /* Labelled separator between the two paths — a centred caption flanked by hairlines. */
 .landing-divider {

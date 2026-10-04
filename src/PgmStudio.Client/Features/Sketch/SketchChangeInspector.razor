@@ -66,13 +66,13 @@
         {
           <button type="button" class="notes-row" @key="note.Id" @onclick="() => OnOpenNote.InvokeAsync(note.Id)"
                   title="Open the thread in Review">
-            <span class="@SketchNotesColumn.PinClass(note)">@SketchNotesColumn.Glyph(note)</span>
-            <span class="notes-row__text">
-              <b title="@SketchNotesColumn.Title(note)">@SketchNotesColumn.Title(note)</b>
-              <span class="notes-row__meta">
-                <NoteStatusBadge Status="@note.Status" />
-                <span class="notes-row__last">@Writers.Name(message.Author, message.Token): @message.Body</span>
-              </span>
+            <b title="@SketchNotesColumn.Title(note)">@SketchNotesColumn.Title(note)</b>
+            <span class="notes-row__meta">
+              <NoteStatus Status="@note.Status" />
+              <span class="notes-row__last">@Writers.Name(message.Author, message.Token): @message.Body</span>
+            </span>
+            <span class="notes-row__thread">
+              <span class="@SketchNotesColumn.PinClass(note)">@SketchNotesColumn.Glyph(note)</span>@SketchNotesColumn.MessageCount(note)
             </span>
           </button>
         }

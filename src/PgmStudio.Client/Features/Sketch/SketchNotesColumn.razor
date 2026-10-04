@@ -67,7 +67,7 @@
         <div class="notes-column__threadhead">
           <span class="@PinClass(note)">@Glyph(note)</span>
           <b class="notes-column__threadtitle" title="@Title(note)">@Title(note)</b>
-          <div class="notes-column__threadmeta"><NoteStatusBadge Status="@note.Status" /></div>
+          <div class="notes-column__threadmeta"><NoteStatus Status="@note.Status" /></div>
         </div>
       </div>
       <div class="notes-column__thread" @ref="thread">
@@ -183,10 +183,8 @@
         @onclick="() => OnChangesSince.InvokeAsync(after)">@Changed(count) · History ›</button>;
 
     private RenderFragment Row(MapNoteDto note) => @<button type="button" class="notes-row" @key="note.Id" @onclick="() => OnOpen.InvokeAsync(note)">
-        <span class="@PinClass(note)">@Glyph(note)</span>
-        <span class="notes-row__text">
-          <b title="@Title(note)">@Title(note)</b>
-          <span class="notes-row__meta"><NoteStatusBadge Status="@note.Status" /><span class="notes-row__last">@Last(note)</span></span>
-        </span>
+        <b title="@Title(note)">@Title(note)</b>
+        <span class="notes-row__meta"><NoteStatus Status="@note.Status" /><span class="notes-row__last">@Last(note)</span></span>
+        <span class="notes-row__thread"><span class="@PinClass(note)">@Glyph(note)</span>@MessageCount(note)</span>
       </button>;
 }

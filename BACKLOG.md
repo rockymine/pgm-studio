@@ -45,8 +45,6 @@ never gets to choose on either kind.
 answerable over the API; what neither has is a step, so `TC7` and `TC9` sit with the surface that owes
 them one rather than with the contract work that shipped them.
 
-
-
 - [ ] **TC13 — An export with nothing in it is refused.** `GET /map/{slug}/export` on a map holding only a plan
   (no intent, no sketch, no world) answers 200 with a five-line `map.xml`: name, an empty version, the
   gamemode and an empty objective. EX1/EX2 gate only intent-authored maps, so nothing refuses it. Refuse it
@@ -73,7 +71,6 @@ The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash,
 what is gathered here is the parked and dormant slices of the same surface.
 
 ### Painting terrain
-
 
 - [ ] **WE60 — `repeat` names a cycle and holds a course.** `BandEnding.Repeat` makes the last band claim
   everything past the stack, which is what `BandStack.At` does and what the enum's own docstring says. The
@@ -451,7 +448,6 @@ Twelve judged donut boards at 20 and 30 players named what a larger composed boa
   *Evidence: `p16 mirror_z seed 1` — `frontline-t1 z[5,9)` docked on `hub-t2 z[9,13)` across `x[-6,7)`:
   52 × 32 blocks of unbroken ground.*
 
-
 `PieceInterfaces` turned every seam between two plan pieces into a read — its height delta, its typed wall,
 each side's frontline share, the straits between bridged islands — and the lint table quantifies over it
 (`SP8`/`SP9`/`ST8`/`ST9`/`BZ11`/`FR8`/`CT12`). What is left is one number nobody has stated, one read the
@@ -535,47 +531,12 @@ is the standard the copy is held to.
   front line and other become ground; their names live in the structure line under each card. Change `Key`,
   `PieceColor` and the SVG and PNG renderers together, and `--board-bg` to white. `docs/tools/generator.md`.
 
-- [ ] **TS165 — A note's status shows only what waits on the author.** *Parked (author): pick an option in the
-  layout mockups' section 6.* The overview says each status twice, as a pin colour and a `NoteStatusBadge`, in three
-  hues (`notes.css` `.note-pin--*`, `SketchNotesColumn.razor` rows). The options: a muted word with no colour, one
-  accent dot on the notes waiting on the author with *Your turn* / *Question* (recommended), groups by who acts in
-  place of the filter chips, or a muted status icon. The pins on the picture follow the choice. `docs/tools/sketch.md`.
-
-- [ ] **C99 — The maps table opens a map from fixed layer slots.** *Parked (author): A or B.* The Stage column repeats
-  what the outlined layer link says (`Pages/Maps.razor`, `StageOf` is `Opens` but for an Edit map). Merge them into
-  one *Open in* column: the links as now with the stage's dot on the current one, or three fixed slots (Plan,
-  Sketch, Configure), with an empty dashed slot for a layer the map lacks (recommended). Decide too whether Gamemode
-  stays as a column or moves under the name. `docs/client/routing-and-ia.md`.
-
-- [ ] **TG3 — The generator's pinned boards are a filter, not a tray.** *Parked (author): A, B or C.* The tray above
-  the grid (`GeneratorTool.razor`) shows each pinned board again with its own ✕, while the card's Pin sits on its
-  picture. Keep it, replace it with a *Pinned · N* chip that filters the grid (recommended), or shrink it to one
-  line of named chips. `docs/tools/generator.md`.
-
-- [ ] **C95 — One page title on every page.** *Parked (author): which convention.* `/library` heads itself
-  with a 26px *Libraries* while its crumb says *Library* (`library.css:91`, `LibraryChooser.razor:9`); `/maps`
-  with an 11px section title *MAPS* (`Pages/Maps.razor:80`); `/generator`, `/catalog` and `/admin/users` with
-  none. Decide whether the crumb is the title or every page opens on one `--font-xl` heading, and apply it
-  across `Pages/`. `docs/client/ui-conventions.md`.
-
-- [ ] **C96 — The landing page's destinations at one level.** *Parked (author): waits on C70.* `Pages/Index.razor`
-  draws same-level destinations two ways — row cards with a 44px icon and *Open →*, grid cards with a 32px icon
-  and *Browse →* (`landing.css:34-45`, `card.css:23-33`) — and the *Continue a map* cards start at y 753 of an
-  800px window at 1280 wide. `docs/client/ui-conventions.md`.
-
 - [ ] **C97 — One filter rail.** `/maps` filters in `Sidebar`, `/generator` in `.gen-filters`, `/catalog` in
   `.lib-filters` and `/design` in its own nav, each with its own heading and count line. Fold the three that are
   not `Sidebar` into it, so a rail's width, title and count are one component's. `docs/client/ui-conventions.md`.
 
-- [ ] **TN33 — The plan sidebar's panels switch as tabs.** *Settings · Checks · Generator* are `Chip`s
-  (`PlanTool.razor:89-99`), which read as filters toggled on rather than a panel chosen. Give the switch the
-  `flow-step` look (`components/flow-bar.css:31-40`) or a segmented control. `docs/tools/plan.md`.
-
-- [ ] **TS163 — Identity saves one way in both tools.** *Parked (author): explicit save or autosave.* Sketch's
-  Info has **Save changes** (`SketchInfoPhase.razor:29`) while Configure's Identity saves as it is typed and says
-  *Saved* in the bar, and Configure's Version box is 645px wide for `1.0.0` at 1280. `docs/tools/sketch.md`.
-
-- [ ] **TS164 — Decoration's inspector widens only for its picker.** `.workspace-inspector--wide` holds the
+- [ ] **TS164 — Decoration's inspector widens only for its picker.** *Parked (author): judging from the
+  screenshots in the layout mockups' section 6.* `.workspace-inspector--wide` holds the
   Decoration inspector at 420px (`editor.css:295`) against 280px everywhere else, so the canvas jumps 140px on
   entering the phase while the wide column shows an empty state. Widen it only while a block or pattern picker
   is open. `docs/tools/sketch.md`.

@@ -940,6 +940,8 @@ public partial class SketchTool
 
     /// <summary>What the last save did, for the topbar to say. Null while every save has landed.</summary>
     private string? saveError;
+    /// <summary>Where Info's identity save stands, shown in the tool bar while Info is up.</summary>
+    private string? infoSave;
 
     /// <summary>The write of the stored layout, which states the revision this tab's drawing stands on: a tab
     /// holding an older board than the studio's is refused (<c>RQ5</c>, 409) instead of writing it back over

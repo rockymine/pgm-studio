@@ -695,7 +695,9 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 ### Info
 
 Two steps. **Identity** is the map's display name and its authors, loaded from `GET /api/map/{slug}` and saved
-with `PATCH /api/map/{slug}/metadata`. **An author named here is named in the map's intent too**, where the map
+with `PATCH /api/map/{slug}/metadata` as it is typed, the way Configure's Identity saves: once typing pauses for
+800 ms, and on leaving the phase. The tool bar says where the save stands — *Unsaved*, *Saving…*, *Saved*, or
+why it was not saved; a name left empty is not saved. **An author named here is named in the map's intent too**, where the map
 holds one: the rows are what the map document is written from and `meta.authors` is what the *export* reads,
 since the observer platform's board is stamped from the intent. A panel writing one of the two would credit the
 map on its row and leave `EX6` saying it names nobody, with nothing in the interface able to settle it. The
@@ -1603,9 +1605,11 @@ follow it, and Ctrl+Enter (⌘+Enter) in either box sends it.
 **The column works in two steps.** The overview lists the notes on the picture in view under four filters — All,
 Waiting (on you), With agent, Resolved, on one line — then the notes on the whole map, then any on a picture the gallery no
 longer offers. Choosing a note, by its row or by its pin on the picture, opens its thread, and **‹ All notes**
-goes back. A row is the note's pin and what it is pinned to, with its status and as much of the last message as
-fits on the line under. A thread is a head — the pin, what the note is pinned to in at most two lines, and its
-status under that — then its messages top to bottom with their pictures, and the reply box at the foot.
+goes back. A row reads the way a chat app previews a thread: what the note is pinned to, then its status as a
+muted word and as much of the last message as fits, then at its foot the note's pin and how many messages the
+thread holds. Every pin is one colour, in the column and on the picture; the status is a word, never a hue. A
+thread is a head — the pin, what the note is pinned to in at most two lines, and its status under that — then its
+messages top to bottom with their pictures, and the reply box at the foot.
 
 **A thread reads as a chat.** It opens on its newest message and follows each one that lands. A message is a
 bubble beside its writer's mark, under their name, when it was written and the change it was written at; a

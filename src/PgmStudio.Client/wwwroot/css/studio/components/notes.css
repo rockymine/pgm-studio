@@ -1,5 +1,5 @@
 /* A note's pin, on the picture and in the column: the shape says a picture (a teardrop) or the whole map (a
-   square), the colour where the thread stands, from the same status tokens the status badge uses. */
+   square). Every pin is one colour; where the thread stands is a word beside it, never a hue. */
 .note-pin {
   --pin: calc(22px * var(--ui-scale));
   width: var(--pin); height: var(--pin); flex: none; display: inline-flex; align-items: center; justify-content: center;
@@ -7,10 +7,8 @@
   background: var(--accent-bg-hover); color: var(--text-white);
 }
 .note-pin--map { border-radius: 4px; }
-.note-pin--answered { background: var(--color-success); color: var(--text-on-status); }
-.note-pin--needs-info { background: var(--color-warning); color: var(--text-on-status); }
-.note-pin--wont-do { background: var(--text-secondary); color: var(--bg-panel); }
-.note-pin--resolved { background: var(--text-muted); color: var(--bg-panel); }
+.note-status { color: var(--text-muted); font-size: var(--font-sm); white-space: nowrap; }
+.notes-row__meta .note-status::after { content: " ·"; }
 
 .notes-column {
   flex: none; width: calc(360px * var(--ui-scale)); min-height: 0; display: flex; flex-direction: column;
@@ -74,16 +72,17 @@
 .notes-column__landed:hover { text-decoration: underline; }
 
 .notes-row {
-  display: flex; gap: var(--space-2); padding: var(--space-2); text-align: left;
+  display: flex; flex-direction: column; gap: 3px; padding: var(--space-2); text-align: left;
   border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-base);
   color: inherit; font: inherit; cursor: pointer;
 }
 .notes-row:hover { border-color: var(--accent); }
-.notes-row__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.notes-row__text b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notes-row > b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The row's second line: the status, then as much of the last message as fits. */
 .notes-row__meta { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
 .notes-row__last { flex: 1; min-width: 0; color: var(--text-secondary); font-size: var(--font-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The row's foot, the way a chat app previews a thread: the note's pin, then how many messages it holds. */
+.notes-row__thread { display: flex; align-items: center; gap: var(--space-2); margin-top: 2px; color: var(--text-secondary); font-size: var(--font-sm); font-variant-numeric: tabular-nums; }
 
 /* A thread reads as a chat: each message a bubble beside its writer's mark, a player's head for a person and the
    agent mark for an agent. The caller's own sit on the right in the accent's tint, an agent's on the left in its

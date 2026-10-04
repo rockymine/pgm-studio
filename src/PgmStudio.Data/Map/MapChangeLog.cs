@@ -78,6 +78,24 @@ public sealed class MapChangeLog(PgmDb db)
         await db.MapChanges.Where(change => change.MapSlug == slug)
             .Select(change => (long?)change.Number).MaxAsync(ct) ?? 0;
 
+    /// <summary>For each slug the person named here wrote to themselves, in a browser and not through a token,
+    /// when they last did: by account where <paramref name="uuid"/> is given, else by
+    /// <paramref name="name"/> among the writes no account signed, which is how the local admin of an open
+    /// studio writes.</summary>
+    public async Task<IReadOnlyDictionary<string, DateTime>> LastWrittenByAsync(
+        string? uuid, string? name, CancellationToken ct = default)
+    {
+        if (uuid is null && name is null) return new Dictionary<string, DateTime>();
+        var own = db.MapChanges.Where(change => change.TokenLabel == null);
+        own = uuid is not null
+            ? own.Where(change => change.WriterUuid == uuid)
+            : own.Where(change => change.WriterUuid == null && change.WriterName == name);
+        var latest = await own.GroupBy(change => change.MapSlug)
+            .Select(group => new { Slug = group.Key, At = group.Max(change => change.CreatedAt) })
+            .ToListAsync(ct);
+        return latest.ToDictionary(row => row.Slug, row => DateTime.SpecifyKind(row.At, DateTimeKind.Utc));
+    }
+
     /// <summary>The slug's changes, oldest first.</summary>
     public async Task<IReadOnlyList<MapChange>> ListAsync(string slug, CancellationToken ct = default)
     {

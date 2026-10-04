@@ -169,14 +169,25 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **The maps table opens a map from three fixed slots (`C99`).** *Open in* holds Plan · Sketch · Configure in
+  the same place on every row: a layer the map holds links into its tool, the one the row opens is outlined with
+  the stage's dot, and a layer it lacks is an empty dashed slot. The Stage column is gone; the slots say it.
+- **Every browse and admin page opens on its name (`C95`).** `PageHeading` — the crumb's word at `--font-xl`, a
+  line saying what the page is for, and the page's actions — heads Maps, the generator, the shape catalog, the
+  library and each of its kinds, Users and Tokens.
+- **The landing offers the map the reader last changed (`C96`).** `GET /api/maps` carries `youWroteAt`, read
+  off the change log for the caller's own browser writes, and the landing opens on *Continue where you left
+  off* with that map, straight into the tool its row opens.
+- **The plan sidebar switches its panels with tabs (`TN33`).** Settings · Checks · Generator are the flow bar's
+  underlined steps (`.panel-tabs`), not filter chips.
 - **Rows, fields and bars line up across the studio (`C98`).** A single-line field and every control in a row
   with one are `--control-height` tall; a list row's name keeps its width with the facts on a second line under
-  it (`list-row--two-line`); every page's tool bar is one height; a status is a `Badge`, and a note's pin and a
-  gallery count take its colour from the status tokens; keyboard focus is one accent ring; instructions are
+  it (`list-row--two-line`); every page's tool bar is one height; a note's status is a muted word and every pin one
+  colour, with a row's foot giving its pin and message count the way a chat app previews a thread; keyboard focus is one accent ring; instructions are
   `section-desc` and computed facts `plan-readout`. Review's notes column heads a thread with a two-line title
   and its status under it, and closes and sends from one footer under a full-width reply box. The canvas's
   storey strip keeps room for a tab and the chip bar keeps the readout's lane clear; the maps table drops
-  Stage and Gamemode below 1200px rather than scrolling, keeping the Layers links a map is opened by; the
+  Gamemode below 1200px rather than scrolling; the
   generator card's Pin floats over its picture; raw pixel sizes left in the notes column, the
   gallery, the generator tray and the rails scale with the text size. `docs/client/ui-conventions.md`.
 - **An action the caller may not take is greyed, with the reason on hover (`C87`).** A `Button` marked
@@ -8679,6 +8690,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`TS139`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A note's status is a word, and its row previews the thread (`TS165`).** The notes overview drops the status
+  colours: every pin is one colour, the status is a muted word before the last message, and a row's foot gives
+  the note's pin and how many messages the thread holds, the way a chat app previews a thread.
+- **Info's identity saves as it is typed (`TS163`).** The name and authors save once typing pauses and on
+  leaving the phase, with *Unsaved · Saving… · Saved* in the tool bar, as Configure's Identity does; Configure's
+  Version box is sized to a version.
 - **The sketch hands over a finished map (`TS154`).** *Download map* in the top bar, on every phase, flushes
   the layout, builds the world the first time a map has none (`sketch/finish`), and saves the export; a board
   built from a plan carries the plan's game settings, so it needs no visit to Configure. A refused export shows

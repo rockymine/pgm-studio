@@ -6,6 +6,8 @@
 .field-row { display: flex; gap: var(--space-3); }
 .field-row > .field { flex: 1; }
 .field--compact { flex: 0 0 64px !important; }
+/* A short value — a version — sized to what it holds rather than to the row. */
+.field--short { flex: 0 0 calc(12ch + 2 * var(--space-3)) !important; }
 
 .field-label { font-size: var(--font-sm); color: var(--text-secondary); user-select: none; }
 .field-required { color: var(--color-error); }

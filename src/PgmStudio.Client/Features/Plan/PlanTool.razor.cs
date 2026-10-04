@@ -151,6 +151,9 @@ public partial class PlanTool
     private bool showReference;
     private bool sidebarOpen = true;
 
+    /// <summary>A panel tab's class: the active one underlined, as a step is.</summary>
+    private string PanelTab(string which) => leftPanel == which ? "flow-step flow-step--active" : "flow-step";
+
     private Task SetPanel(string which)
     {
         leftPanel = which;
