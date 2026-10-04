@@ -524,7 +524,7 @@ public static class PlanValidator
         // board whose shape was never the problem.
         var hasBuildZone = plan.BuildZones.Any();
         if (!hasBuildZone)
-            findings.Add(new Finding(LayoutRules.SpawnOnWoolRoute,
+            findings.Add(new Finding(LayoutRules.NoBuildRegion,
                 "this plan declares no build zone, so there is no frontline to walk from and no wool's "
                 + "approach can be judged — add a `zones` entry marking where players may build",
                 Severity.Complaint));
@@ -704,7 +704,7 @@ public static class PlanValidator
             var zr = ContactGraph.ToBlock(z.Rect, d.Cell);
             foreach (var p in d.Pieces)
                 if (PlanRoles.IsGenerating(p.Role) && Overlaps(p.Rect, zr))
-                    yield return Lint(LayoutRules.WaterLaneOverTerrain, $"water lane '{z.Id}' covers terrain piece '{p.Id}' — a lane opens void, and this part of it is already land", z.Id, p.Id);
+                    yield return Lint(LayoutRules.WaterLaneOverGround, $"water lane '{z.Id}' covers terrain piece '{p.Id}' — a lane opens void, and this part of it is already land", z.Id, p.Id);
         }
     }
 
@@ -729,7 +729,7 @@ public static class PlanValidator
 
             var delta = Math.Abs(a.Value.Surface - b.Value.Surface);
             if (delta < 2) continue;
-            yield return Lint(LayoutRules.UnwalkableSeam,
+            yield return Lint(LayoutRules.UnwalkableStep,
                 $"'{seam.A}'–'{seam.B}' steps {delta} blocks — a player does not walk up more than one, so "
                 + "this seam wants a ramp or a flight in the relief",
                 RampEdit(seam, a.Value, b.Value), seam.A, seam.B);
@@ -929,7 +929,7 @@ public static class PlanValidator
             if (wall.RoleA == PlanRoles.WoolRoom || wall.RoleB == PlanRoles.WoolRoom) continue;
 
             if (wall.Length < WallMouthMinBlocks || wall.Length > WallMouthMaxBlocks)
-                yield return Lint(LayoutRules.ApproachWallPlacement,
+                yield return Lint(LayoutRules.ApproachWallEdgeLength,
                     $"approach wall '{wall.A}'–'{wall.B}' bars a {wall.Length}-block interface — "
                     + $"a wall wants a {WallMouthMinBlocks}–{WallMouthMaxBlocks} block lane mouth", wall.A, wall.B);
 
@@ -948,7 +948,7 @@ public static class PlanValidator
                 if (nearest is null || standoff < nearest) nearest = standoff;
             }
             if (nearest is { } gap && (gap < WallStandoffMinBlocks || gap > WallStandoffMaxBlocks))
-                yield return Lint(LayoutRules.ApproachWallPlacement,
+                yield return Lint(LayoutRules.ApproachWallStandoff,
                     $"approach wall '{wall.A}'–'{wall.B}' stands {gap} blocks from the wool room's "
                     + "entrance — about 15 in front is the seat", wall.A, wall.B);
         }
@@ -1149,7 +1149,7 @@ public static class PlanValidator
                     : $"the {space.Kind} between '{run.From}' and '{run.To}'";
                 var wants = beside.Count == 0 ? "a hole wants"
                     : exposed ? "a gap between a goal and the front wants" : "a gap between a goal and its own ground wants";
-                yield return Lint(LayoutRules.GoalGapWidth,
+                yield return Lint(LayoutRules.RoomGapWidth,
                     $"{what} is {crossing} blocks across, under the {floor} {wants} — a "
                     + "player towers at one edge and jumps it, and the approach the board is drawn around is "
                     + $"not walked. Narrowest at cell ({run.X}, {run.Z}), running along "
@@ -1166,7 +1166,7 @@ public static class PlanValidator
             {
                 if (!gap.Direct || gap.RoleA != "team" || gap.RoleB != "team") continue;
                 if (gap.Blocks is >= 15 and <= 40) continue;
-                yield return Lint(LayoutRules.StraitWidth,
+                yield return Lint(LayoutRules.TeamGapWidth,
                     $"team islands [{string.Join(", ", gap.PiecesA)}] and [{string.Join(", ", gap.PiecesB)}] "
                     + $"stand {gap.Blocks} blocks apart — the CTW strait wants 15–40",
                     [.. gap.PiecesA.Concat(gap.PiecesB)]);

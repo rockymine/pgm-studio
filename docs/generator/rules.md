@@ -1033,8 +1033,12 @@ Reply by rule id. **Frozen 2026-07-04 as the composer's v1 rule set.** Further c
 re-validated against them.
 
 **This file is the argument, not the served text.** The rules a finding can cite are constants in
-`PgmStudio.Domain.LayoutRules`, each with its meaning, its fix and an `[Evidence]` attribute carrying the tag
-it has here, and `GET /api/rules` serves those (`docs/refusals.md`). A rule that starts being raised gets a
+`PgmStudio.Domain.LayoutRules`, each stating one limit with its meaning and its fix, and `GET /api/rules`
+serves those (`docs/refusals.md`). Where one id here argues for several limits, each limit the code checks is
+its own constant: `CT4`'s one-team stones are `CT13`, `CT8`'s shared attack route `CT14`, `G8`'s ground off
+every route `LN5`, `WL2`'s band and its touch `WL13` and `WL14`, `WL9`'s ratio `WL15`, `WL10`'s balance,
+ratio, remoteness and floor `WL16` to `WL19`, `SP1`'s missing build region `SP11`, `ST8`'s standoff `ST11`,
+and `MD7`'s length `MD8`. A rule that starts being raised gets a
 constant there; an amendment here that changes what a raised rule checks changes that constant's text in the
 same commit.
 

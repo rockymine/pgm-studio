@@ -154,10 +154,10 @@ whose author rulings are already filed — `G2` (G287), `G5` and `CT12` (G285), 
 
 | rule | `rules.md` argues | the check does |
 |---|---|---|
-| `CT4` | islands grow with distance from the centre and thin to none in the team third | counts contested and one-team stepping stones against a learned band; no gradient |
-| `CT8` | a plan with no hole is flagged | no such check; the learned band starts at 0, so only too many holes scores |
+| `CT4`, `CT13` | islands grow with distance from the centre and thin to none in the team third | count the stepping stones both teams reach (`CT4`) and one team reaches (`CT13`) against learned bands; no gradient |
+| `CT8` | a plan with no hole is flagged | no such check; the learned band starts at 0, so only too many holes scores, and the shared attack route is its own rule (`CT14`) |
 | `FR4` | 1 to 3 team approaches, one only if it is wide | counts frontline faces per team against a learned band |
-| `G8` | land per team of 2250, 4025, 7075 and 8730 by size band | fill ratio and ground off every route, learned bands; the land budget is only the composer's spend gate |
+| `G8` | land per team of 2250, 4025, 7075 and 8730 by size band | the share of its frame the ground fills, a learned band, with ground off every route its own rule (`LN5`); the land budget is only the composer's spend gate |
 | `LN1` | a 10-block base, capped about 16 in front of a wool | the narrowest wool lane against a learned band; no cap |
 | `LN2` | 20 to 50 blocks to a junction or dead end | a learned band of 25 to 110; `ComposeGeometry.LaneChainMaxBlocks` is read by nothing |
 | `BZ6`, `MD7` | the middle build zone | only a zone whose id is `mid-band`, so a hand-drawn plan's middle is never judged |

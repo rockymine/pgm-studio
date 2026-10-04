@@ -1005,10 +1005,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   tools enter, and `IsoToggle` the one 2D/3D switch.
 
 ## Backend / API (B)
-- **Every served rule is a constant (`RP111`).** The 43 layout rules a finding can cite are `LayoutRules` in
-  `PgmStudio.Domain`, each with a category and what it is about; the 64 sites that raise one name the constant,
-  so a typo is a compile error. `docs/generator/rules.md` is no longer embedded or parsed and stays as the
-  argument behind them, and `/rules` shows a layout rule like any other.
+- **Every layout rule states one limit, in the glossary's words (`RP111`, `G290`).** The layout rules a finding
+  can cite are `LayoutRules` in `PgmStudio.Domain`; the sites that raise one name the constant, so a typo is a
+  compile error. Each text takes one shape (less than, more than, not between, a count, a touch) and states
+  its numbers, a learned band included, which `RuleBandDriftTests` pins to the band. A rule that checked two
+  things is two: `CT13`, `CT14`, `LN5`, `WL13` to `WL19`, `SP11`, `ST11` and `MD8`, 56 rules in all.
+  `docs/generator/rules.md` is the argument behind them and is not served; where a ruling came from is not
+  served either.
 - **Every word the rules use is defined once (`RP99`).** `Glossary` in `PgmStudio.Vocabulary` holds 201 terms,
   each with a one-line definition, the other names a reader meets it under and the terms it leans on, signed
   off by the author; `GET /api/glossary` serves it, and `?term=board` answers `layout`.

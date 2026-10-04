@@ -65,7 +65,7 @@ public sealed class SpawnWoolFloor : ILayoutTerm
     public const int MinBlocks = 20;
 
     public string Id => "spawn-wool-floor";
-    public string RuleId => LayoutRules.WoolSpawnDistance;
+    public string RuleId => LayoutRules.WoolSpawnFloor;
     public TermKind Kind => TermKind.Hard;
 
     public TermScore Measure(EvalContext ctx)
@@ -90,7 +90,7 @@ public sealed class SpawnWoolFloor : ILayoutTerm
 public sealed class WoolRoomSpawnSeam : ILayoutTerm
 {
     public string Id => "wool-room-spawn-seam";
-    public string RuleId => LayoutRules.WoolSpawnDistance;
+    public string RuleId => LayoutRules.WoolRoomTouchesSpawn;
     public TermKind Kind => TermKind.Hard;
 
     public TermScore Measure(EvalContext ctx)

@@ -65,7 +65,7 @@ public static class StraitReadback
             if (built >= Narrowest && built <= Widest) continue;
 
             var names = $"[{string.Join(", ", strait.PiecesA)}] and [{string.Join(", ", strait.PiecesB)}]";
-            findings.Add(new Finding(LayoutRules.StraitWidth,
+            findings.Add(new Finding(LayoutRules.TeamGapWidth,
                 built == 0
                     ? $"the plan put team islands {names} {strait.Blocks} blocks apart and the drawn board "
                       + $"joins them into one landmass — the strait the plan was checked against is not in "

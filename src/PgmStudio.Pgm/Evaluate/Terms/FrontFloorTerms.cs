@@ -35,7 +35,7 @@ public sealed class WoolFrontFloor : ILayoutTerm
     public const int MinBlocks = 59;
 
     public string Id => "wool-front-floor";
-    public string RuleId => LayoutRules.WoolFrontBalance;
+    public string RuleId => LayoutRules.WoolFrontFloor;
     public TermKind Kind => TermKind.Hard;
 
     public TermScore Measure(EvalContext ctx)

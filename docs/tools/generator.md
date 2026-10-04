@@ -108,9 +108,9 @@ hard-term gate.
 A rejected attempt is resampled whole; sixty are allowed before the compose throws, and a throw is skipped
 rather than reported (below). The gate is nine hard terms — structural integrity, the `PC-C` corner-contact
 and `G2` narrow-corridor lints, the `G5` void-hop band, the mid band's two-cell wool clearance (`BZ6`), the
-20-block spawn-to-wool floor and the wool room that shares an edge with its own spawn (both `WL2`; a composed
+20-block spawn-to-wool floor (`WL2`) and the wool room that shares an edge with its own spawn (`WL14`; a composed
 wool unit is a room behind its own lane, so the second never fires on a composed board), and two floors on the crossing: the spawn at least 55 blocks by the walk
-from the build band (`SP10`) and every wool at least 59 (`WL10`). It runs the **composer profile**, every term
+from the build band (`SP10`) and every wool at least 59 (`WL19`). It runs the **composer profile**, every term
 on at flat weight, and short-circuits on the first that fires. The two crossing floors are the author's
 judgement of composed boards and bind them alone: the default profile the editor lint runs leaves them off.
 
@@ -298,7 +298,7 @@ occupies — of 240 boards each at twelve, twenty and thirty players, 175, 58 an
 zero, with the ninetieth percentile at 1.17, 2.92 and 5.67. The terms that fire are almost always
 `spawn-wool-ratio` and `wool-front-ratio`, then `thin-middle` and `frontline-width`: a spawn beside the hub
 stands nearer the wool at the back than the one across the hub, however squarely it faces the hole, and about
-one board in five crosses a middle thinner than its size's floor or longer than twice its width (`MD7`). A hard violation would add 1000 and dominate any
+one board in five crosses a middle thinner than its size's floor or longer than twice its width (`MD7`, `MD8`). A hard violation would add 1000 and dominate any
 soft sum, which is why the slider stops at 8.
 
 **Pinning and authoring are the two exits.** The pin toggle, in the top-right corner of a card's picture, keeps the library board the descriptor names and

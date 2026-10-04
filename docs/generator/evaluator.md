@@ -402,9 +402,9 @@ it applies to and from no others.
   far/back end inset ~5 (WL1); **largest enclosed void a branch wraps ≤ ~10×10** (**G40**); **absolute
   length capped to the authored norm, surplus routed to width/plaza/more routes, not length** (**G44**).
 - **The crossing's shape** — on a composed board, the build band between the fronts is at least its size's
-  floor wide (24 · 32 · 40 · 48 blocks from nano to centi) and at most twice as long as it is wide (MD7,
-  `thin-middle`); each shortfall is scored over half its band and the two are summed, so a band both thin and
-  long scores both.
+  floor wide (24 · 32 · 40 · 48 blocks from nano to centi; MD7, `thin-middle`, the shortfall over half the
+  floor) and at most twice as long as it is wide (MD8, `long-middle`, the ratio over two); a band both thin
+  and long scores both.
 - **Approach count (from junctions)** — each objective's branch-count on the way in ≥2 where multi-access is
   wanted; a lone dead-end (count 1) is the defender-holds-the-mouth anti-pattern (WL8 / **G45** / **G37**).
 - **Spawn** — wool reachable from the frontline edge *not through* the spawn (SP1); near the back of its lane
@@ -412,8 +412,8 @@ it applies to and from no others.
   (**G42**); iron beside/ahead, never behind (SP7); isolated-spawn allowed at ≥10/team (SP6); on a composed
   board, at least 55 blocks by the walk from the build band (SP10, `spawn-front-floor`).
 - **Objective / wool** — wool↔spawn ≥20 (WL2); a wool room shares no edge with its own spawn, full-width or
-  narrow seam alike, read off the authored unit's seams (WL2's lane clause, hard, `wool-room-spawn-seam`); wool↔wool ≥45 (WL7); on a composed board, every wool at least
-  59 blocks by the walk from the build band (WL10, `wool-front-floor`); flat plateau covering ≥ the 8×8 stamp,
+  narrow seam alike, read off the authored unit's seams (WL14, hard, `wool-room-spawn-seam`); wool↔wool ≥45 (WL7); on a composed board, every wool at least
+  59 blocks by the walk from the build band (WL19, `wool-front-floor`); flat plateau covering ≥ the 8×8 stamp,
   edge-to-edge (WL3); 1–3 wools, each on a distinct lane (WL6); a third wool is rare and a real route, not
   crammed by the spawn (G45).
 - **Destroy goals** — four bands over one walk. Each goal's enemy÷own spawn walk lands in the authored band
@@ -424,14 +424,14 @@ it applies to and from no others.
   `GoalDistances`, which walks one field out of each goal and reads it at the spawns and at the other goals,
   so a board cannot answer them in two geometries. Bare reachability is the export gate's refusal, never a
   soft term.
-- **What the match spends** — the share of a board's ground no journey reaches (`dead-share`, G8), read off
+- **What the match spends** — the share of a board's ground no journey reaches (`dead-share`, LN5), read off
   `PlanFlow`: every pair of places claims a corridor and every place a ring around itself, and what neither
   covers is ground a player walks past at most and stands on never. It states from the other side what G8's
   land-per-player states from this one — a high share is a board bigger than the thing it plays rather than a
   board with a big number in its globals. A global scalar, so the term points at nothing; `PlanFlow`'s own read
   names each patch with its coordinates, which is what an author acts on.
 - **What the two sides collide over** — how much of the ground a defence crosses to reach an objective is
-  ground the attack is already on (`route-interference`, CT8), read off `PlanFlow` as the share of the
+  ground the attack is already on (`route-interference`, CT14), read off `PlanFlow` as the share of the
   defender's corridor the attacker's also covers, averaged over the board's objectives. Both ribbons are
   walked over the ground their own side has, at the detour tolerance the coverage read uses, from each side's
   own spawn — which is where an attack starts before a capture and after one alike. CT8 claims a hole gives

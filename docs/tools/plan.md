@@ -700,8 +700,8 @@ edge of any piece it rides). The piece-interface set quantifies over one shared 
 (`PieceInterfaces`, aggregating the contact graph and the board deriver) rather than private geometry:
 `SP8` (a spawn egress stepping Δ≥2 ahead of the door), `WL11` (the same step at a wool room's entry, measured
 at every one of them since a room has no facing, and met by the **attacker** — a team is kept out of its own
-wool), `SP9` (a door with under 15 blocks of ground or bridgeable zone before the void), `ST8` (an approach wall over an interface outside 10–20 blocks, or seated
-outside ~15 in front of the wool room's entrance), `ST9` (a building over 20×20 blocks — the footprint the
+wool), `SP9` (a door with under 15 blocks of ground or bridgeable zone before the void), `ST8` (an approach wall over an interface outside 10–20 blocks), `ST11` (one seated
+outside 10–20 blocks in front of the wool room's entrance), `ST9` (a building over 20×20 blocks — the footprint the
 placement states, or the one `WX1` defaults from its region), `ST10` (a wool-room or spawn piece over 20×30
 blocks in either orientation),
 `BZ11` (several zones stitching one rectangular region a single zone would have drawn), `BZ9` (a build zone

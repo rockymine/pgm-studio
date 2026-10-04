@@ -313,7 +313,7 @@ public sealed class SoftTermsTests
                            "wools":[{"piece":"lane","at":[5,10]}]}}
             """, SeedEnvelopes.Default));
         await Assert.That(score.Violation).IsNotNull();
-        await Assert.That(score.Violation!.RuleId).IsEqualTo("WL2");
+        await Assert.That(score.Violation!.RuleId).IsEqualTo("WL13");
         await Assert.That(score.Violation!.Evidence!.OfType<EvidenceMeasure>().Any()).IsTrue();
     }
 

@@ -38,11 +38,6 @@ the *Rule text audit* doc, *Format draft* tab). The order is the work's own: the
 nothing is reworded twice, the message helpers next so the rewording lands once per helper, then the text.
 Every rule fires as before; the tests and `--goldens` say so.
 
-- [~] **RP111 — The layout rules in the glossary's words.** The 43 `LayoutRules` texts are rewritten against
-  `GET /api/glossary`: one sentence shape per kind of check (a fixed limit, a range, a count, a touch), every
-  range stated as "between X and Y" or "below X", a learned band served as numbers beside the text. The
-  `[Evidence]` attribute, `RuleEvidence` and the rules page's "How it is known" go: an agent does not see
-  where a ruling came from. `docs/refusals.md`.
 - [ ] **RP112 — One message shape.** A finding message says the thing's kind and id, where, and the measured
   number against its limit, in one sentence. The helpers that write most of them take that shape first:
   `SoftTerm` (25 terms), `Decorator.Declined`, `PlanValidator.Lint`; a fix in prose becomes the finding's

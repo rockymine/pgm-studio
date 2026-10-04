@@ -17,7 +17,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class FillRatio : SoftTerm
 {
     public override string Id => "fill-ratio";
-    public override string RuleId => LayoutRules.BoardFill;
+    public override string RuleId => LayoutRules.LayoutFill;
 
     /// <summary>Ground over the frame the ground itself occupies. Both halves are the terrain and only the
     /// terrain: a build zone is buildable void rather than land, so it neither fills a cell nor widens the
@@ -92,7 +92,7 @@ public sealed class GapHopBand : ILayoutTerm
 public sealed class DeadShare : SoftTerm
 {
     public override string Id => "dead-share";
-    public override string RuleId => LayoutRules.BoardFill;
+    public override string RuleId => LayoutRules.GroundOffRoutes;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Flow.Gamemode == "none" || ctx.Flow.GroundBlocks == 0 ? null : ctx.Flow.DeadShare;
@@ -115,7 +115,7 @@ public sealed class DeadShare : SoftTerm
 public sealed class RouteInterference : SoftTerm
 {
     public override string Id => "route-interference";
-    public override string RuleId => LayoutRules.RotationHoles;
+    public override string RuleId => LayoutRules.SharedAttackRoute;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Flow.Legs.Count == 0 ? null : ctx.Flow.Interference;

@@ -10,7 +10,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class NeutralSteppingCount : SoftTerm
 {
     public override string Id => "neutral-stepping-count";
-    public override string RuleId => LayoutRules.SteppingStoneCount;
+    public override string RuleId => LayoutRules.SharedSteppingStones;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Board.SteppingKind.Count(k => k == "neutral") / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
@@ -22,7 +22,7 @@ public sealed class NeutralSteppingCount : SoftTerm
 public sealed class TeamSteppingCount : SoftTerm
 {
     public override string Id => "team-stepping-count";
-    public override string RuleId => LayoutRules.SteppingStoneCount;
+    public override string RuleId => LayoutRules.TeamSteppingStones;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Board.SteppingKind.Count(k => k == "team") / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);

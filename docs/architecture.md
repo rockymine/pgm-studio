@@ -307,13 +307,13 @@ open moves is the one being waited on.
 
 ## A fault carries an id, a class and what it is about
 
-The studio declares **221 rule constants in 31 families**, and answers `GET /api/rules` by reading each
+The studio declares **234 rule constants in 31 families**, and answers `GET /api/rules` by reading each
 constant's own XML docstring and the `[Rule]` attribute beside it — so a rule's meaning, its fix and its
 classification all have one home and no catalogue can fall out of step with any of them. That mechanism is
 the best thing in the codebase.
 
 What it lacked was a **class**. A caller that wants to know whether to fix the request, change the design,
-change the map or report a bug had to know all 221 ids to find out, because the only machine-legible thing a
+change the map or report a bug had to know all 234 ids to find out, because the only machine-legible thing a
 finding carried was the id itself. It now reads a **category** — one of eight words, each defined by the
 action it implies — and a **concerns** list of one to several of thirteen words saying what the rule is about.
 Both belong to the rule rather than to the finding: a category is fixed by the id, and a rule raised from
@@ -340,9 +340,8 @@ structure and an objective at once — which is why `concerns` is a list and why
 the layout rules — claims about how a map plays, raised by a plan-validator lint, an evaluator term's `RuleId`
 or a producibility finding's `Cites` — sit in `LayoutRules` in `PgmStudio.Domain`, and each site names one as
 `LayoutRules.<Name>`. So a typo at a raise site is a compile error, and `RulesEndpointTests` fails a layout
-constant nothing names and a layout id spelled as a bare literal. What sets a layout rule apart is one more
-attribute, `[Evidence]`, saying how it is known. `docs/generator/rules.md` is the argument behind those
-constants and is not served.
+constant nothing names and a layout id spelled as a bare literal. Each states one limit with its numbers,
+and `docs/generator/rules.md` is the argument behind those constants and is not served.
 
 The distinction the catalogue now draws is between the **category** of a fault, which is a small closed set an
 agent branches on, and the **rule**, which is specific, stable and for a reader. The envelope stays the

@@ -251,7 +251,7 @@ public sealed class PlanValidatorTests
 
         await Assert.That(Refused(p, "SP1")).IsFalse().Because("no wool is refused for a zone nobody declared");
 
-        var said = PlanValidator.Check(p).Where(f => f.Rule == "SP1").ToList();
+        var said = PlanValidator.Check(p).Where(f => f.Rule == "SP11").ToList();
         await Assert.That(said.Count).IsEqualTo(1).Because("the missing zone is stated once, not per wool");
         await Assert.That(said[0].Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(said[0].Message).Contains("no build zone");
@@ -783,7 +783,7 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
-    public async Task A_wall_too_close_to_the_entrance_or_over_a_wide_interface_fires_ST8()
+    public async Task A_wall_too_close_to_the_entrance_fires_ST11_and_one_over_a_wide_edge_ST8()
     {
         // the wall seat 15 out from the room's entry, over a 10-block mouth — the author's geometry, clean
         var seated = Plan("""
@@ -794,6 +794,7 @@ public sealed class PlanValidatorTests
           "walls":[ {"a":"a","b":"h"} ] }
         """);
         await Assert.That(Lint(seated, "ST8")).IsFalse();
+        await Assert.That(Lint(seated, "ST11")).IsFalse();
 
         // the same wall with a four-deep approach stands 4 from the entrance → too close
         var close = Plan("""
@@ -803,7 +804,8 @@ public sealed class PlanValidatorTests
                      {"id":"h","role":"lane","rect":[0,14,10,10]} ],
           "walls":[ {"a":"a","b":"h"} ] }
         """);
-        await Assert.That(Lint(close, "ST8")).IsTrue();
+        await Assert.That(Lint(close, "ST11")).IsTrue();
+        await Assert.That(Lint(close, "ST8")).IsFalse();
 
         // a 30-block interface is a room face, not a lane mouth
         var wide = Plan("""
