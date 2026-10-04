@@ -51,9 +51,8 @@ public static class SketchRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Terrain, RuleConcern.World)]
     public const string UnbuildableHeight = "SK5";
 
-    /// <summary>Nothing has been stored to finish. The map is at the sketch stage and no layout has been
-    /// written for it, so there is no document to rasterize into world geometry. 422.</summary>
-    /// <remarks>Draw the board and store it (<c>PUT /api/map/{slug}/sketch</c>, or the Sketch tool's save) before finishing. A map originated from a plan is written by <c>PUT …/sketch/from-plan</c>.</remarks>
+    /// <summary>The map has no stored sketch layout, so there is no board to finish, build or read.</summary>
+    /// <remarks>Draw the board in the sketch tool and save it, or build it from the map's plan, before asking for its world.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.Plan)]
     public const string NothingStored = "SK6";
 

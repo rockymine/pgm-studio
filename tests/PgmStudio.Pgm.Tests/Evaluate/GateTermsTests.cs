@@ -100,6 +100,22 @@ public sealed class GateTermsTests
         await Assert.That(measure!.Label).Contains("25");
     }
 
+    /// <summary>Two pieces that meet only at a corner are separate ground with no void between them, so there
+    /// is no hop to judge; the term and the plan check read it the same way.</summary>
+    [Test]
+    public async Task Gap_hop_band_does_not_judge_pieces_that_touch()
+    {
+        const string plan = """
+            {"plan":2,"globals":{"cell":1,"symmetry":"none"},
+             "pieces":[{"id":"a","role":"piece","rect":[0,0,10,10]},{"id":"b","role":"piece","rect":[10,10,10,10]}],
+             "zones":[{"id":"z","rect":[0,0,20,20]}]}
+            """;
+        var ctx = Ctx(plan);
+        await Assert.That(ctx.Contacts.GapLinks.Any(link => link.Hop == 0)).IsTrue();
+        await Assert.That(new GapHopBand().Measure(ctx).Violation).IsNull();
+        await Assert.That(PlanValidator.Check(PlanModel.Parse(plan)!).Any(finding => finding.Rule == "G5")).IsFalse();
+    }
+
     [Test]
     public async Task Gap_hop_band_is_clean_on_a_seed_with_in_band_hops()
     {

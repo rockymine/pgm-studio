@@ -490,11 +490,9 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   chokes exist (×5, lint-flagged, intentional); 15+ for open bands (×12).
 - **BZ4 [expert]** 4-team: zones connect all teams; often with a **hole at the centre** so
   players must walk/bridge around it rather than straight across.
-- **BZ5 [expert, retired as a prohibition]** Build zones **may touch spawn pieces** — a zone at
-  the spawn is a real motif: the **defender-egress bridge** (`four-team-wool-two-sided`: the
-  spawn's second exit is a bridge mainly for defenders rotating to their wool; attackers push the
-  other crossings). No proximity rule; the old lint is dropped. Wool rooms may also be touched
-  (WL8 alternative-approach variants).
+- **BZ5 [author]** **A build zone never touches a spawn piece**, as it never touches a wool room
+  (`BZ6`). A zone against the spawn lets players bridge from the void straight into it. A water lane
+  is a build zone that opens later and is held to the same rule.
 
 The four rules below are **author-curated (amendment 2026-07-04)**: evidence is the teaching
 sketch `tools/seeds/build-interface-dos-and-donts.plan.json`. The sketch informs **build-zone rules
@@ -1336,3 +1334,7 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     later, so its one lint belongs to the build-zone family. `PlanValidator` raised it as `WL1`, which is the
     wool room's placement rule, so the rule page explained a different rule. Nothing it checks changed; `WL1`
     is no longer raised by anything and leaves the served catalogue.
+
+56. **`BZ5` is a rule again: a build zone never touches a spawn (2026-10-04).** Author's call. The text said
+    the prohibition was retired while `PlanValidator` kept raising it, so a reader looking the finding up was
+    told it was not a rule. The check is unchanged; the text now states what it checks.

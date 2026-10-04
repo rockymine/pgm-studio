@@ -201,7 +201,7 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
         if (documents is null)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
-                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     "this map has no stored sketch layout, so there is no world for the studio to build and "
                     + "read back — a map that ships its own region files is read from those instead")], ct);
             return;
@@ -523,7 +523,7 @@ internal sealed class ReachReadEndpoint(MapRepository repo, MapReader reader, Ma
         if (read is null)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
-                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     "this map has no stored sketch layout, so there is no world for the studio to build and "
                     + "read back")], ct);
             return;
@@ -573,7 +573,7 @@ internal sealed class InclineReadEndpoint(MapRepository repo, MapReader reader, 
         if (read is null)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
-                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     "this map has no stored sketch layout, so there is no world for the studio to build and "
                     + "read back")], ct);
             return;
@@ -621,7 +621,7 @@ internal sealed class SlopesReadEndpoint(MapRepository repo, MapReader reader, M
         if (read is null)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
-                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     "this map has no stored sketch layout, so there is no world for the studio to build and "
                     + "read back")], ct);
             return;
@@ -879,7 +879,7 @@ internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, M
         if (read is null)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
-                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     "this map has no stored sketch layout, so there is no world for the studio to build and "
                     + "read back")], ct);
             return;
@@ -997,7 +997,7 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
         if (await WorldReads.LoadAsync(map, reader, artifacts, ct) is not { } read)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to walk",
-                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     "this map has no stored sketch layout, so there is no board to walk over")], ct);
             return;
         }
@@ -1088,7 +1088,7 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
         if (await WorldReads.LoadAsync(map, reader, artifacts, ct) is not { } read)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to walk",
-                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     "this map has no stored sketch layout, so there is no board to walk over")], ct);
             return;
         }
@@ -1152,7 +1152,7 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
         if (read is null)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
-                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     "this map has no stored sketch layout, so there is no world for the studio to build and "
                     + "read back")], ct);
             return;
@@ -1246,7 +1246,7 @@ internal sealed class RouteReadEndpoint(MapRepository repo, MapReader reader, Ma
         if (read is null || layout is null)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
-                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     "this map has no stored sketch layout, so there is no board and no road on it")], ct);
             return;
         }
@@ -1303,7 +1303,7 @@ internal sealed class ThemeCensusReadEndpoint(MapRepository repo, MapReader read
         if (read is null || layout is null)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
-                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     "this map has no stored sketch layout, so there is no board to count themes over")], ct);
             return;
         }

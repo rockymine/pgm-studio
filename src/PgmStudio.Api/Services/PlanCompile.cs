@@ -33,8 +33,7 @@ public static class PlanCompile
             if (judged.Refuses) return new(new Refusal(422, "plan not compilable", [.. judged.Refusals]));
             (layout, intent) = PlanCompiler.Compile(plan);
         }
-        catch (Exception fault) when (fault is ArgumentException or InvalidOperationException
-                                          or NullReferenceException or IndexOutOfRangeException)
+        catch (Exception fault) when (fault is ArgumentException or InvalidOperationException)
         {
             return new(Refusal.At(400, "invalid plan structure", new Finding(RequestRules.Unreadable, fault.Message)));
         }

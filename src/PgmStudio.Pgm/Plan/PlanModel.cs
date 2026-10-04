@@ -92,8 +92,69 @@ public sealed class PlanModel
     public static PlanModel? Parse(string json)
     {
         var model = JsonSerializer.Deserialize<PlanModel>(json, Json);
+        model?.EnsureReadable();
         model?.Normalize();
         return model;
+    }
+
+    /// <summary>Refuse a document that parsed as JSON but cannot be read as a plan: a list or an object
+    /// written as <c>null</c>, a piece or marker naming no id or piece, two pieces sharing an id, or a marker
+    /// whose <c>at</c> is not two numbers. Each is the caller's to fix, so it is a
+    /// <see cref="PgmStudio.Domain.DocumentFault"/> naming the field rather than a crash further in.</summary>
+    private void EnsureReadable()
+    {
+        if (Globals is null) throw Fault("globals", "globals is null; leave it out or give it an object");
+        foreach (var (field, list) in new (string, object?)[]
+                 {
+                     ("pieces", Pieces), ("zones", Zones), ("boxes", Boxes), ("placements", Placements),
+                 })
+            if (list is null) throw Fault(field, $"{field} is null; leave it out or give it a list");
+        foreach (var (field, list) in new (string, object?)[]
+                 {
+                     ("placements.spawns", Placements.Spawns), ("placements.wools", Placements.Wools),
+                     ("placements.iron", Placements.Iron), ("placements.destroyables", Placements.Destroyables),
+                     ("placements.cores", Placements.Cores),
+                 })
+            if (list is null) throw Fault(field, $"{field} is null; leave it out or give it a list");
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < Pieces.Count; i++)
+        {
+            if (Pieces[i] is not { } piece) throw Fault($"pieces[{i}]", $"pieces[{i}] is null");
+            if (piece.Id is null) throw Fault($"pieces[{i}].id", $"pieces[{i}] has no id");
+            if (!ids.Add(piece.Id)) throw Fault($"pieces[{i}].id", $"pieces[{i}] has the id '{piece.Id}', which another piece already has");
+        }
+
+        foreach (var (field, markers) in new (string, IReadOnlyList<IPlanMarker?>)[]
+                 {
+                     ("placements.spawns", Placements.Spawns), ("placements.wools", Placements.Wools),
+                     ("placements.iron", Placements.Iron), ("placements.destroyables", Placements.Destroyables),
+                     ("placements.cores", Placements.Cores),
+                 })
+            for (var i = 0; i < markers.Count; i++)
+            {
+                if (markers[i] is not { } marker) throw Fault($"{field}[{i}]", $"{field}[{i}] is null");
+                if (marker.Piece is null) throw Fault($"{field}[{i}].piece", $"{field}[{i}] names no piece");
+                if (marker.At is not [_, _])
+                    throw Fault($"{field}[{i}].at",
+                        $"{field}[{i}].at has {marker.At?.Length ?? 0} numbers; it takes two, an x and a z offset in blocks");
+            }
+
+        static PgmStudio.Domain.DocumentFault Fault(string field, string message) => new(field, message);
+    }
+
+    /// <summary>Why <paramref name="json"/> is not a plan, in the reader's own words, for a caller whose
+    /// <see cref="Stated"/> came back null: empty, not JSON, or a document <see cref="EnsureReadable"/>
+    /// refused.</summary>
+    public static JsonException Unreadable(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new JsonException("the body is empty; it takes a plan document");
+        try
+        {
+            return Parse(json) is null ? new JsonException("the body is null; it takes a plan document")
+                : new JsonException("the body is a plan document");
+        }
+        catch (JsonException fault) { return fault; }
     }
 
     /// <summary>What a body states as a plan, or null where it states none. A body that will not read as one

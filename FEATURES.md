@@ -1005,6 +1005,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   tools enter, and `IsoToggle` the one 2D/3D switch.
 
 ## Backend / API (B)
+- **A finding blames the caller only for the caller's mistakes (`RP110`).** The plan reader refuses a list
+  stated as `null`, a marker whose `at` is not two numbers and two pieces under one id with the field named,
+  and the plan routes no longer answer a crash as `RQ1`. A soft term's finding is a complaint; G5's term and
+  check agree a corner touch is no hop; a prop exactly ten blocks from a goal stands (`OB19`); "no stored
+  sketch layout" is `SK6` wherever it is answered; `BZ5` states the rule it checks; `SK1` names the route.
 - **What a finding cites is the rule it means (`RP109`).** The water-lane lint is `BZ12`, a build-zone rule,
   not the wool room's `WL1`; `OB26`–`OB28` ride an export's `Pgm-Warnings` instead of being dropped; a building
   refused for several faults declines with each of them; `DR-DOC` and `HP2` say what they mean and the number

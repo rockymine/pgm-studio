@@ -60,7 +60,7 @@ public sealed class GapHopBand : ILayoutTerm
     public TermScore Measure(EvalContext ctx)
     {
         foreach (var g in ctx.Contacts.GapLinks)
-            if (g.Hop < MinHop || g.Hop > MaxHop)
+            if (g.Hop != 0 && (g.Hop < MinHop || g.Hop > MaxHop))
             {
                 var evidence = TermEvidence.OffenderRects(ctx.Plan, [g.A, g.B]);
                 if (TermEvidence.Locate(ctx.Plan, g.A) is { } ra && TermEvidence.Locate(ctx.Plan, g.B) is { } rb)

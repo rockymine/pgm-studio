@@ -339,7 +339,7 @@ is worse than neither. The clearance
 is why the refusal is wanted at all: an objective is the one thing on a map that wants its approach legible,
 so a defender can see what is coming and an attacker pays something visible for arriving. For those three
 props the kept-open ground reaches further than the cover clearance: never nearer than **ten blocks to the
-goal's marker** (`DressingScope.GoalStandoff`, the author's radius) — the ring a fight happens on, measured
+goal's marker** (`DressingScope.GoalStandoff`, the author's radius), a prop exactly ten away standing — the ring a fight happens on, measured
 from the marker rather than from however wide the structure under it happens to be. A capture point is the
 one goal wider than that ring, and the union is what answers for it: a pad of any size keeps `GoalClearance`
 beyond its own edge through `GoalGroundAt`, and the standoff square holds the rest.

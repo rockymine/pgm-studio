@@ -30,3 +30,28 @@ reaching every outline a board states. The layer word (`B264`, `WE28`, `TS64`) w
 
   *Evidence: 51 of the 79 seeded outlines on the 5b and 5c boards are relief rings or prop points, and so is
   Gypsum Reach's wash, a push whose ring splices six authored points into a lobed ellipse.*
+
+## Rules and findings: one place, one shape, one wording
+**The author's next focus.** Every rule a finding cites comes from one place, every finding message is
+written the same way, and both say only the problem, where it is and how to fix it (the approved format:
+the *Rule text audit* doc, *Format draft* tab). The order is the work's own: the declarations move first so
+nothing is reworded twice, the message helpers next so the rewording lands once per helper, then the text.
+Every rule fires as before; the tests and `--goldens` say so.
+
+- [ ] **RP111 — Every served rule is a constant.** The 43 layout rules become a `LayoutRules` class in
+  `PgmStudio.Domain` beside `ObjectiveRules`, each a `const` with `[Rule]`, a summary (its meaning) and remarks
+  (its fix), so a layout rule gains a fix, a category and its own family. `RuleCatalog.Raised`, the
+  `rules.md` parser and the text sweep go; the 64 bare literals at raise sites (`Lint("BZ12", …)`,
+  `RuleId => "SP10"`) become references; `IdShape` takes the one-letter `G`. The producibility check's 11
+  kebab-case ids become catalogued rules or `Cites`. `docs/generator/rules.md` stops being served and is
+  retired as the source. `docs/refusals.md`.
+- [ ] **RP112 — One message shape.** A finding message says the thing's kind and id, where, and the measured
+  number against its limit, in one sentence. The helpers that write most of them take that shape first:
+  `SoftTerm` (25 terms), `Decorator.Declined`, `PlanValidator.Lint`; a fix in prose becomes the finding's
+  `Edit` where one can be stated. `docs/refusals.md`.
+- [ ] **RP113 — Reword the catalogue.** Every rule's meaning and fix to the format, at most 35 words each;
+  a rule that still needs more is split or sent back to the author, never squeezed. The rules an authoring
+  run can raise first. `docs/refusals.md`.
+- [ ] **RP114 — Reword the inline messages.** The 271 messages written at their raise sites, to the same
+  format; the audit's per-site list is the worklist. `docs/refusals.md`.
+

@@ -131,7 +131,7 @@ public sealed class MapDiffEndpoint(MapRepository repo, MapChangeLog log) : Endp
         foreach (var (number, documents) in new[] { (from, before), (to, after) })
             if (!documents.ContainsKey(ArtifactKind.SketchLayoutJson))
             {
-                await Refusals.WriteAsync(HttpContext, 422, "no world to build", [new Finding(RequestRules.Conflict,
+                await Refusals.WriteAsync(HttpContext, 422, "no world to build", [new Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
                     number == 0
                         ? "before the map's first change nothing was stated, so there is no board to build there — "
                           + "compare from a change instead"

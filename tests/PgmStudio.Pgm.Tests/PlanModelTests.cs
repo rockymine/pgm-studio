@@ -140,4 +140,20 @@ public sealed class PlanModelTests
         await Assert.That(json).DoesNotContain("\r")
             .Because("a plan's bytes may not depend on the host that wrote them");
     }
+
+    /// <summary>A document that parses as JSON but states a list as null, a marker with the wrong number of
+    /// coordinates or two pieces under one id is refused by the reader with the field named, rather than
+    /// reaching the contact graph and failing there.</summary>
+    [Test]
+    [Arguments("{\"plan\":2,\"pieces\":null}", "pieces")]
+    [Arguments("{\"plan\":2,\"placements\":{\"spawns\":null}}", "placements.spawns")]
+    [Arguments("{\"plan\":2,\"pieces\":[{\"id\":\"a\",\"rect\":[0,0,2,2]}],\"placements\":{\"spawns\":[{\"piece\":\"a\",\"at\":[1]}]}}", "placements.spawns[0].at")]
+    [Arguments("{\"plan\":2,\"pieces\":[{\"id\":\"a\",\"rect\":[0,0,2,2]},{\"id\":\"a\",\"rect\":[4,0,2,2]}]}", "pieces[1].id")]
+    public async Task A_shape_the_reader_cannot_hold_is_refused_by_field(string json, string field)
+    {
+        await Assert.That(PlanModel.Stated(json)).IsNull();
+        var fault = PlanModel.Unreadable(json);
+        await Assert.That(fault).IsTypeOf<PgmStudio.Domain.DocumentFault>();
+        await Assert.That(((PgmStudio.Domain.DocumentFault)fault).Field).IsEqualTo(field);
+    }
 }

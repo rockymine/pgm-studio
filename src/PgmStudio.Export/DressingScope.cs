@@ -261,7 +261,8 @@ public static class DressingScope
     public static Func<int, int, bool> GoalClearanceAt(MapIntent goals)
         => EitherOf(GoalGroundAt(goals), GoalDiscsAt(goals));
 
-    // The marker-centred half of a goal's prop keep-out: a GoalStandoff square around each anchor.
+    // The marker-centred half of a goal's prop keep-out: every cell nearer than GoalStandoff to an anchor, so a
+    // prop exactly GoalStandoff away stands.
     private static Func<int, int, bool> GoalDiscsAt(MapIntent intent)
     {
         var rects = new List<(int MinX, int MinZ, int MaxX, int MaxZ)>();
@@ -276,7 +277,8 @@ public static class DressingScope
         static (int, int, int, int) Disc(Pt anchor)
         {
             int anchorX = (int)Math.Floor(anchor.X), anchorZ = (int)Math.Floor(anchor.Z);
-            return (anchorX - GoalStandoff, anchorZ - GoalStandoff, anchorX + GoalStandoff, anchorZ + GoalStandoff);
+            const int reach = GoalStandoff - 1;
+            return (anchorX - reach, anchorZ - reach, anchorX + reach, anchorZ + reach);
         }
     }
 

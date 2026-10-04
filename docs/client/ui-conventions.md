@@ -103,7 +103,7 @@ first sentence. An open row says what to do (the rule's `fix`, read through the 
 every place it fired; a term out of range shows its value against its band. Opening a row lights all its places
 and pressing one lights that one, which the host hears through `OnLight` and draws however it draws. A finding's
 kind is the caller's to set: `Problem.Of(finding)` reads its severity, and `Problem.Of(violation)` reads a plan
-violation's `kind`, since a soft term's finding arrives as a refusal. `RuleWords` holds the words the client
+violation's `kind`, which is what tells a value out of range from a problem. `RuleWords` holds the words the client
 puts on a rule — the action names, the family names in pipeline order, the term labels.
 
 **Editor** — feature components that are not vocabulary but have more than one consumer: `SmartSuggestion`,

@@ -471,6 +471,37 @@ and what a `subtract` takes away.
   wall, players could walk round it, every call answered 200, and the only symptom was traversability moving
   from 2 isolated markers to **0** — the direction that reads as an improvement.*
 
+## Measuring a board the way a player plays it
+The author ruled on how each distance a rule checks is read (*Rule text audit*, *Declarations and geometry*
+tab, 2026-10-04). Each ruling moves which findings fire, so each lands with its `--goldens` re-recorded and
+the skerry layout as the board that shows the over-warning is gone.
+
+- [ ] **G285 — A crossing is a straight bridge from the nearest land.** A player walks the land the shortest
+  way and bridges straight across the void; nobody routes around inside it. `G5` (rectangle gap, `ContactGraph.cs:312`),
+  `CT12` (4-connected void path, `PieceInterfaces.cs:157`) and `WL12` (straight runs) read the same void three
+  ways and over-warn: on the skerry layout a small front piece makes the check ask a diagonal route through
+  the void to a wool room. One measure: walk the land, then the straightest bridge from land edge to land
+  edge. `docs/generator/`.
+- [ ] **G286 — A step a player cannot walk is 3 blocks.** `EL1`, `SP8`, `WL11` and `WX11` fire at 2, `RL3` at
+  3. A 2-block step is fine where a block can be placed; 3 or more is the fault, on plan seams and above all
+  out of a spawn. Lower is always better, so a soft term prefers it. Read the thresholds from
+  `Walk.FreeRise`/`Walk.ScrambleStep` rather than literals. `docs/generator/`.
+- [ ] **G287 — A corridor is its size band's width.** `G2` is three numbers today: the size band's text, 10
+  blocks in the plan check (`ContactGraph.CorridorMin`) and 2 cells in producibility. It is the composer's band
+  width, a multiple of 4: 8, 12, 16, 20, for generated wool layouts. `docs/generator/`.
+- [ ] **G288 — A front line's width is its front edge.** `FR6` counts cells and `FR9` blocks, off different
+  structures. The width is the edge that faces the enemy into the build zone, not every edge touching it: a
+  2 by 20 piece poking into the zone is not a 42-block front. `docs/generator/`.
+- [ ] **G289 — One measure per question, in `PgmStudio.Geom`.** Rectangle overlap, touch and clearance are
+  written six or seven times. One rectangle relation (apart, corner, edge, overlap, with the gap), one
+  "nearer than N" over a set of cells with the edge stated (a thing exactly at the limit stands), replacing
+  `GroundClaims.NearerThan`, `NearRoute` and `DressingScope`'s rect lambdas. Same numbers first, then
+  G285–G288 on top. `docs/generator/`.
+- [ ] **TS167 — A path reaches a house's door.** The clearances around a building make a road or path to its
+  door impossible. A path may run up to the door, paving never paints inside the house (its floor does), and
+  `/sketch/seats` agrees with the pass that places buildings: today it refuses a building on paving the pass
+  allows (`ClaimRaster.cs:210` against `Decorator.cs:1287`). `docs/tools/sketch.md`.
+
 ## A first-time reader: the words, the sizes, and the help a tool owes them
 A reviewer new to mapmaking read the studio cold and reported what stopped them. The copy pass and the
 text-size setting have shipped; what remains is what a sentence cannot fix — a term with nowhere to be looked
@@ -489,12 +520,6 @@ is the standard the copy is held to.
   add the first author's head and name to each row (`PlayerHead`, already used by `AuthorsEditor`) and an
   author filter beside the search box. Needs the map summary DTO to carry the authors.
   `docs/client/routing-and-ia.md`.
-
-- [ ] **RP101 — The server's own messages get the same pass.** Refusals and findings shown in the plan,
-  sketch and configure panels are written server-side (the `*Rules` remarks, `Finding` messages) in the docs'
-  voice, and the client copy pass did not reach them. Rewrite the user-facing message of each to the standard
-  in `docs/client/writing-for-the-ui.md`, keeping the rule ids and the `/api/rules` remarks as reference
-  text. `docs/refusals.md`.
 
 - [ ] **C83 — Clicking the zoom readout resets the view.** The zoom percentage in `CanvasReadout` is
   pointer-transparent; a reader expects clicking it to return to 100% or fit. Make the zoom item a button

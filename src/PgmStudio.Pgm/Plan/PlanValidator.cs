@@ -3,6 +3,7 @@ using PgmStudio.Geom;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Shapes;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Pgm.Evaluate.Terms;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Plan;
@@ -655,8 +656,10 @@ public static class PlanValidator
         foreach (var g in d.GapLinks)
         {
             if (g.Hop == 0) continue;   // abutting inside the zone — not a hop
-            if (g.Hop < 10) yield return Lint("G5", $"gap hop {g.Hop} < 10 between '{g.A}' and '{g.B}'", g.A, g.B);
-            else if (g.Hop > 20) yield return Lint("G5", $"gap hop {g.Hop} > 20 between '{g.A}' and '{g.B}'", g.A, g.B);
+            if (g.Hop < GapHopBand.MinHop)
+                yield return Lint("G5", $"gap hop {g.Hop} < {GapHopBand.MinHop} between '{g.A}' and '{g.B}'", g.A, g.B);
+            else if (g.Hop > GapHopBand.MaxHop)
+                yield return Lint("G5", $"gap hop {g.Hop} > {GapHopBand.MaxHop} between '{g.A}' and '{g.B}'", g.A, g.B);
         }
     }
 
