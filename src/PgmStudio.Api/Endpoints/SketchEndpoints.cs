@@ -42,8 +42,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
     // The default footprint: 2-team landscape (120×80), origin-centred, rotational symmetry — the same
     // default the editor/bridge use, applied to any frame field the body leaves out.
     private const double DefaultWidth = 120, DefaultDepth = 80;
-    private const string DefaultMode = "rot_180";
-    private static readonly HashSet<string> Modes = ["mirror_x", "mirror_z", "rot_180", "rot_90"];
+    private const string DefaultMode = SymmetryModes.Rot180;
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -60,7 +59,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
             if (root.TryGetProperty("width", out var w) && w.ValueKind == JsonValueKind.Number) { width = w.GetDouble(); hasFrame = true; }
             if (root.TryGetProperty("depth", out var d) && d.ValueKind == JsonValueKind.Number) { depth = d.GetDouble(); hasFrame = true; }
             if (root.TryGetProperty("mode", out var m) && m.ValueKind == JsonValueKind.String
-                && m.GetString() is { } mm && Modes.Contains(mm)) { mode = mm; hasFrame = true; }
+                && m.GetString() is { } mm && SymmetryModes.All.Contains(mm)) { mode = mm; hasFrame = true; }
             if (root.TryGetProperty("centerX", out var cx) && cx.ValueKind == JsonValueKind.Number) { centerX = cx.GetDouble(); hasFrame = true; }
             if (root.TryGetProperty("centerZ", out var cz) && cz.ValueKind == JsonValueKind.Number) { centerZ = cz.GetDouble(); hasFrame = true; }
         }

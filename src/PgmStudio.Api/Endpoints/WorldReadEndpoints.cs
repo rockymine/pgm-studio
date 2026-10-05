@@ -731,7 +731,7 @@ internal sealed class MirrorReadEndpoint(MapRepository repo, MapReader reader, M
         Description(b => b.Png().Refuses(404, 422).Reads(
             new QueryWord("mode", "Which symmetry to compare against. Absent uses the one the board was laid "
                                 + "to — its layout's, or its intent's where the layout states none.",
-                ["none", "mirror_x", "mirror_z", "mirror_d1", "mirror_d2", "rot_90", "rot_180"]),
+                SymmetryModes.All),
             new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
     }
 

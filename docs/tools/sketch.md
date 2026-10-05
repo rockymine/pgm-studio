@@ -709,7 +709,10 @@ map on its row and leave `EX6` saying it names nobody, with nothing in the inter
 traffic already ran the other way — an intent write resolves its names into the rows — so this is the return
 leg, and the intent is patched as JSON rather than round-tripped through `MapIntent`, since a rename is not the
 moment to rewrite an intent through a model. **Settings** is the symmetry the whole board is built against: the mode
-— `mirror_x`, `mirror_z`, `rot_180` or `rot_90` — and the centre X and Z. There is no size to set; the map area
+— `mirror_x`, `mirror_z`, `rot_180`, `rot_90` or `none` — and the centre X and Z, which the panel hides under `none`
+since nothing turns about it. Under `none` every shape is drawn once: the canvas draws no axis and no mirror
+preview, and a group's *mirrors* has nothing to fan. The words are `SymmetryModes`, and the panel offers the
+five `SymmetryModes.Sketched` names; a layout may also state the two diagonals. There is no size to set; the map area
 grows to fit whatever is drawn. A freshly created sketch opens here (`?phase=info`); an existing one opens on
 Draw.
 
@@ -2132,7 +2135,7 @@ Every endpoint is rooted at `/api`; a read is open to anyone and a write needs s
 
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
-| `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`, whose layout is a **ground layer** at `base_y` 0 under the id `ground`. A frame seeds the `setup` beside it; without one the editor uses its 120×80 `rot_180` default. A board is a stack and a flat one is a stack of one, so the ground is written here rather than invented by whichever surface draws on the board first | — |
+| `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`, whose layout is a **ground layer** at `base_y` 0 under the id `ground`. A frame seeds the `setup` beside it, and `mode` is any `SymmetryModes` word, `none` included, with anything else read as `rot_180`; without a frame the editor uses its 120×80 `rot_180` default. A board is a stack and a flat one is a stack of one, so the ground is written here rather than invented by whichever surface draws on the board first | — |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}`. The `ETag` is the revision to state on the next write | 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |

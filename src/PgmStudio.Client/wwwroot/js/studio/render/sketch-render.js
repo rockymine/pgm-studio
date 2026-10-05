@@ -313,7 +313,7 @@ export function paintChunkGrid(painter, bbox, step = 1) {
 
 /** The symmetry axis line(s) for the current mirror mode, through the centre, clipped to the bbox. */
 export function paintAxis(painter, bbox, center, mode) {
-  if (!bbox) return;
+  if (!bbox || !mode || mode === "none") return;
   const { min_x, max_x, min_z, max_z } = bbox;
   const cx = center?.cx ?? 0, cz = center?.cz ?? 0;
   const style = { stroke: "var(--canvas-axis)", width: 1, dash: [6, 4], alpha: 0.75 };

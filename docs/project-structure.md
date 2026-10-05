@@ -102,9 +102,9 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 26 | 4,836 | `Playability/` 15 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 160 | 23,281 | `Endpoints/` 80 · `Services/` 64 · `Access/` 12 · `Http/` 3 · 1 at root |
-| `Client` | 248 | 30,268 | `Features/` 138 (nested) · `Components/` 84 (nested) · `Pages/` 13 · `Layout/` 5 · `Models/` 5 · 3 at root |
-| `Contracts` | 36 | 4,152 | flat |
+| `Api` | 160 | 23,280 | `Endpoints/` 80 · `Services/` 64 · `Access/` 12 · `Http/` 3 · 1 at root |
+| `Client` | 248 | 30,269 | `Features/` 138 (nested) · `Components/` 84 (nested) · `Pages/` 13 · `Layout/` 5 · `Models/` 5 · 3 at root |
+| `Contracts` | 36 | 4,154 | flat |
 | `Data` | 24 | 4,026 | `Map/` 7 · `Features/` 5 · `Theme/` 5 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 32 | 3,840 | flat |
 | `Export` | 22 | 5,031 | flat |
@@ -112,8 +112,8 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Import` | 4 | 496 | flat |
 | `Migrations` | 64 | 4,401 | `Migrations/` 63 · 1 at root |
 | `Minecraft` | 111 | 23,505 | `Render/` 21 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
-| `Pgm` | 167 | 32,622 | `Compose/` 44 (nested) · `Authoring/` 28 · `Evaluate/` 23 (nested) · `Editing/` 11 · `Plan/` 11 · `Sketch/` 11 · `Shapes/` 10 · `Derive/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
-| `Vocabulary` | 29 | 2,472 | flat |
+| `Pgm` | 167 | 32,621 | `Compose/` 44 (nested) · `Authoring/` 28 · `Evaluate/` 23 (nested) · `Editing/` 11 · `Plan/` 11 · `Sketch/` 11 · `Shapes/` 10 · `Derive/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
+| `Vocabulary` | 30 | 2,508 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest

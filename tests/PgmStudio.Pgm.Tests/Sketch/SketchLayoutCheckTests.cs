@@ -59,6 +59,13 @@ public sealed class SketchLayoutCheckTests
     }
 
     [Test]
+    public async Task Every_symmetry_mode_a_layout_may_state_is_one_it_knows()
+    {
+        foreach (var mode in SymmetryModes.All)
+            await Assert.That(SketchLayoutCheck.Check(Layout(Rect, mode: mode))).IsEmpty();
+    }
+
+    [Test]
     public async Task An_island_listing_a_shape_the_layout_does_not_carry_is_named()
     {
         var findings = SketchLayoutCheck.Check(Layout(

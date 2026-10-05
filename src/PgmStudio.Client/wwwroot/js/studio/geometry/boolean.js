@@ -10,7 +10,7 @@
 
 import polygonClipping from "../vendor/polygon-clipping.js";
 import { toRing, ringCentroid, snapShape } from "./shape.js";
-import { applySymmetry } from "./symmetry.js";
+import { applySymmetry, orbitAxes } from "./symmetry.js";
 import { pointInRing, polysOverlap } from "./polygon.js";
 
 /** Convert a shape to a polygon-clipping MultiPolygon `[[ring]]` (empty for a degenerate shape). */
@@ -345,8 +345,7 @@ export function computeMirrorPreview(groups, axis, cx, cz) {
   const result = [];
   for (const isl of groups) {
     if (!isl.mirrors) continue;
-    const copies = axis === "rot_90" ? ["rot_90", "rot_180", "rot_270"] : [axis];
-    for (const copyAxis of copies) {
+    for (const copyAxis of orbitAxes(axis)) {
       result.push({
         sourceId: isl.id,
         exterior: _transformRing(isl.exterior, copyAxis, cx, cz),

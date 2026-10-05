@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using PgmStudio.Client.Components;
+using PgmStudio.Client.Models;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
@@ -27,12 +29,7 @@ public partial class SketchInfoPhase : IAsyncDisposable
     [Parameter] public EventCallback<double> OnCenterZ { get; set; }
 
     private static readonly IReadOnlyList<SelectOption> ModeOptions =
-    [
-        new("mirror_x", "Mirror X"),
-        new("mirror_z", "Mirror Z"),
-        new("rot_180", "Rotate 180°"),
-        new("rot_90", "Rotate 90°"),
-    ];
+        [.. SymmetryModes.Sketched.Select(mode => new SelectOption(mode, SymmetryInfo.Label(mode)))];
 
     private int step;   // 0 = Identity, 1 = Settings
     private Task OnNextStep() { if (step < Steps.Length - 1) { step++; return Task.CompletedTask; } return OnNext.InvokeAsync(); }
