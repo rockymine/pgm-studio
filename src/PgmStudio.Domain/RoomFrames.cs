@@ -40,10 +40,9 @@ public static class RoomFrameRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
     public const string FootprintOffPiece = "WX12";
 
-    /// <summary>A room's footprint is more than 20 blocks across.</summary>
-    /// <remarks>Either set the <c>footprint</c> of the spawn or wool in <c>placements.spawns</c> or
-    /// <c>placements.wools</c> to at most 20 by 20 blocks, or shrink the <c>rect</c> of the room piece in
-    /// <c>pieces</c>.</remarks>
+    /// <summary>A spawn room the world builds is more than 20 blocks across.</summary>
+    /// <remarks>Either set the <c>footprint</c> of the spawn to at most 20 by 20 blocks, or shrink the <c>rect</c>
+    /// of each entry in its <c>protection</c> until the room is at most 20 blocks across.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Spawn)]
     public const string RoomIsAField = "WX13";
 

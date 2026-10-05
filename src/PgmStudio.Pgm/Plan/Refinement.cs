@@ -799,7 +799,7 @@ public static class SourceRules
     /// <remarks>Change the <c>library</c> of the entry to the name or the id of a library entry of the same kind
     /// the finding names.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Request)]
-    public const string NamesNoLibraryRow = "SR6";
+    public const string NamesNoLibraryEntry = "SR6";
 
     /// <summary>An outline in a refinement has no centre, a radius of 0 or less, fewer than 3 points, or a wobble
     /// below 0 or of 1 or more.</summary>

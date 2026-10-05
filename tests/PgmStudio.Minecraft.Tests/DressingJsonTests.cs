@@ -388,7 +388,7 @@ public sealed class DressingJsonTests
 
     [Test]
     public async Task Every_refusal_carries_the_export_gates_rule_id()
-        => await Assert.That(DressingParseException.Rule).IsEqualTo("DR-DOC");
+        => await Assert.That(DressingRules.UnreadableField).IsEqualTo("DR-DOC");
 
     /// <summary>A chest's contents are read as stated and refused where the game could not hold them.</summary>
     [Test]

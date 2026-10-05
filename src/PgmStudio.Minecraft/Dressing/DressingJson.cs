@@ -39,19 +39,13 @@ public sealed record DressingDoc
 public sealed class DressingParseException(string subject, string? field, string detail)
     : Exception(field is null ? $"{subject} {detail}." : $"{subject}: field '{field}' {detail}.")
 {
-    /// <summary>A field of a prop or recipe in the decoration document is not a value the studio can
-    /// read.</summary>
-    /// <remarks>Set the field the finding names to a value of the form it takes.</remarks>
-    [Rule(RuleCategory.Malformed, RuleConcern.Request, RuleConcern.Feature)]
-    public const string Rule = "DR-DOC";
-
     public string Subject { get; } = subject;
     public string? Field { get; } = field;
 
     /// <summary>The same refusal as a <see cref="Finding"/>, which is what the export gate answers in. Thrown
     /// rather than returned because a parse cannot carry on to collect a second fault, and a finding rather
     /// than a bare message because every other gate in the studio answers in one.</summary>
-    public Finding Finding => new(Rule, Message, Field: Field, Subjects: [Subject]);
+    public Finding Finding => new(DressingRules.UnreadableField, Message, Field: Field, Subjects: [Subject]);
 }
 
 /// <summary>

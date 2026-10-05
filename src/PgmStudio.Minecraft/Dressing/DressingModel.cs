@@ -281,7 +281,7 @@ public sealed record BoulderStyle : PropStyle
     /// <summary>The rock a placement naming no recipe is cut from: stone, cobblestone and andesite in shards
     /// a few blocks across, stone taking half of them. Two tone families — grey stone and cobble — so it
     /// reads against sand, grass, dirt, red sand and any single clay, which is what keeps a rock a rock
-    /// (<see cref="DressingRules.RockInTheGroundsTone"/>). Fixed rather than seeded per prop, so every
+    /// (<see cref="DressingRules.BoulderInTheGroundsTone"/>). Fixed rather than seeded per prop, so every
     /// boulder on a board is cut from the same rock and the mottling lines up across an orbit.</summary>
     public static readonly TerrainMaterial DefaultRock = new CellMaterial(
         Seed: 53, CellSize: 4, Jitter: 2, Warp: 3,

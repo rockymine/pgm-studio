@@ -106,7 +106,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Client` | 248 | 30,267 | `Features/` 138 (nested) · `Components/` 84 (nested) · `Pages/` 13 · `Layout/` 5 · `Models/` 5 · 3 at root |
 | `Contracts` | 36 | 4,152 | flat |
 | `Data` | 24 | 4,026 | `Map/` 7 · `Features/` 5 · `Theme/` 5 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
-| `Domain` | 31 | 3,678 | flat |
+| `Domain` | 31 | 3,677 | flat |
 | `Export` | 22 | 5,032 | flat |
 | `Geom` | 53 | 6,942 | `Algorithms/` 20 · `Render/` 7 · `Relief/` 5 · 21 at root |
 | `Import` | 4 | 496 | flat |

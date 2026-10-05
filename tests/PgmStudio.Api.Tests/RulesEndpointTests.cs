@@ -81,7 +81,7 @@ public sealed class RulesEndpointTests
         var pl1 = (await RulesAsync("?rule=PL1")).Single();
 
         await Assert.That(pl1.Family).IsEqualTo("PL");
-        await Assert.That(pl1.Owner).IsEqualTo("PgmStudio.Pgm.Plan.PlanRules.NoLand");
+        await Assert.That(pl1.Owner).IsEqualTo("PgmStudio.Pgm.Plan.PlanRules.NoGroundPiece");
         await Assert.That(pl1.Means).Contains("no piece that makes ground");
         await Assert.That(pl1.Fix).IsNotNull();
     }

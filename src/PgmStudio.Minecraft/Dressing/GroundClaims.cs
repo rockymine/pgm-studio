@@ -146,20 +146,26 @@ public static class DressingRules
     /// <remarks>Change the <c>rock</c> of the boulder's recipe in <c>dressing.styles</c> to a material with a tone
     /// family that the ground under it does not have.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Material, RuleConcern.Terrain)]
-    public const string RockInTheGroundsTone = "DR-TONE";
+    public const string BoulderInTheGroundsTone = "DR-TONE";
 
     /// <summary>The slope under a boulder is at least the angle at which its palette paints a face, or 30 degrees
     /// where the palette has no band stack by slope.</summary>
     /// <remarks>Move the boulder in <c>dressing.props</c> until the slope under it is less than the angle at which
     /// the palette paints a face.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
-    public const string RockOnAFace = "DR-STEEP";
+    public const string BoulderOnAFace = "DR-STEEP";
 
     /// <summary>The ground under the trunk of a tree is not soil.</summary>
     /// <remarks>Either move the tree in <c>dressing.props</c> onto soil, or change the <c>surface</c> of the
     /// palette under it in <c>themes</c> to a <c>layered</c> material whose first band is soil.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Material, RuleConcern.Terrain)]
     public const string TreeOnBareGround = "DR-ROOT";
+
+    /// <summary>A field of a prop or recipe in the decoration document is not a value the studio can
+    /// read.</summary>
+    /// <remarks>Set the field the finding names to a value of the form it takes.</remarks>
+    [Rule(RuleCategory.Malformed, RuleConcern.Request, RuleConcern.Feature)]
+    public const string UnreadableField = "DR-DOC";
 
     /// <summary>How much of a prop the clip has to block before <see cref="PropCut"/> is raised on the share
     /// alone. A rock tucked against a wall is flattened along it and measures about a third, which is a rock;

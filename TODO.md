@@ -59,12 +59,6 @@ Every rule fires as before; the tests and `--goldens` say so.
   `forbidden` and answers 400 (`PropStyleLibrary.cs:44`); `WX14` is `forbidden` and refuses nothing; `OB25` is
   `unsatisfiable` and its fix copies the built location. Each `[Rule]` attribute moves to the category its fix
   is, and `?category=` answers move with it. `docs/refusals.md`.
-- [ ] **RP117 — One check, one id; one rule, one name.** `ST9` (`PlanValidator.cs:970`, a plan) and `WX13`
-  (`WorldBuilder.cs:1060`, the world) both refuse a room frame past `RoomFrames.FootprintCap`: one id is
-  retired into the other and both sites cite it. Six constants are named in words the glossary retired or name
-  nothing: `NoLand` (`PL1`), `WallWithoutInterface` (`PL11`), `NamesNoLibraryRow` (`SR6`), `RockOnAFace`
-  (`DR-STEEP`), `RockInTheGroundsTone` (`DR-TONE`) and `DressingJson.Rule` (`DR-DOC`); each is renamed with every
-  caller in one commit. `docs/refusals.md`.
 - [ ] **RP120 — The readers' faults in the message shape.** A document that will not read is refused with
   the exception's text as its message, at 30 sites that pass `fault.Message` on, and those texts are written as
   sentences of their own: `HouseStyleJson` (5 throws), `TerrainThemeJson` (5), `SketchRelief` (2), `SeedFolder`

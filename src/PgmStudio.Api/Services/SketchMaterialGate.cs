@@ -32,7 +32,7 @@ public static class SketchMaterialGate
     /// question, so the whole answer is here; each half is still stated beside the code that skips it, and
     /// <c>DR-TONE</c>'s id stays with the rest of the dressing family, which <c>Pgm</c> cannot see.</summary>
     public static readonly string[] GroundRules =
-        [.. SketchLayoutCheck.GroundRules, DressingRules.RockInTheGroundsTone];
+        [.. SketchLayoutCheck.GroundRules, DressingRules.BoulderInTheGroundsTone];
 
     public static Findings Check(string layoutJson, LayoutReading reading = LayoutReading.Ground)
     {
@@ -135,7 +135,7 @@ public static class SketchMaterialGate
         {
             return new List<Finding>
             {
-                new(DressingParseException.Rule, fault.Message,
+                new(DressingRules.UnreadableField, fault.Message,
                     Field: string.IsNullOrEmpty(fault.Path) ? "dressing" : fault.Path),
             };
         }

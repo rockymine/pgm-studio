@@ -178,7 +178,7 @@ public static class MapExportComposer
 
     /// <summary>The rule ids the export gate owns itself. The rest it enforces for another document and cites
     /// that document's own id — <see cref="ObjectiveRules"/> for a goal, a gamemode or a prop in a clearance,
-    /// and <see cref="DressingParseException.Rule"/> for a dressing document that will not parse.</summary>
+    /// and <see cref="DressingRules.UnreadableField"/> for a dressing document that will not parse.</summary>
     internal static class ExportRules
     {
         /// <summary>A waypoint has no route to the rest of the waypoints.</summary>

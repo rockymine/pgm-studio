@@ -36,7 +36,7 @@ public sealed class RockOnAFaceTests
                CliffAngleAt: cliff is { } angle ? (_, _, _) => angle : null);
 
     private static Finding? Steep(DressingPlacement placed) =>
-        placed.Declined?.FirstOrDefault(finding => finding.Rule == DressingRules.RockOnAFace);
+        placed.Declined?.FirstOrDefault(finding => finding.Rule == DressingRules.BoulderOnAFace);
 
     [Test]
     public async Task A_rock_on_the_face_is_named_with_the_angle_measured_and_the_angle_the_theme_calls_a_face()

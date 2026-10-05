@@ -1368,7 +1368,7 @@ public static class Decorator
         if (context.Incline(boulder, boulder.X, boulder.Z) is { } incline && incline.Degrees >= incline.Cliff)
         {
             var named = boulder.Id.Length > 0 ? boulder.Id : $"boulder@{boulder.X},{boulder.Z}";
-            declined.Add(new Finding(DressingRules.RockOnAFace,
+            declined.Add(new Finding(DressingRules.BoulderOnAFace,
                 $"boulder '{named}' stands at ({boulder.X}, {boulder.Z}) on ground inclined "
                 + $"{incline.Degrees} degrees, at least the {incline.Cliff} degrees its palette paints as a face",
                 Severity.Complaint, Field: "dressing.props", Subjects: [named]));

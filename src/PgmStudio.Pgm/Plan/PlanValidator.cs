@@ -20,7 +20,7 @@ public static class PlanRules
     /// <remarks>Add a piece to <c>pieces</c> with <c>role</c> set to <c>piece</c>, <c>spawn</c> or
     /// <c>wool-room</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan)]
-    public const string NoLand = "PL1";
+    public const string NoGroundPiece = "PL1";
 
     /// <summary>A plan has no spawn.</summary>
     /// <remarks>Add a spawn to <c>placements.spawns</c> with <c>piece</c> set to a piece that makes ground and
@@ -89,7 +89,7 @@ public static class PlanRules
     /// <remarks>Either move the <c>rect</c> of one of the two pieces in <c>pieces</c> until the pair has a shared
     /// edge, or delete the wall from <c>walls</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
-    public const string WallWithoutInterface = "PL11";
+    public const string WallWithoutSharedEdge = "PL11";
 
     /// <summary>A piece runs past either end of a wall by 1 block or more.</summary>
     /// <remarks>Either shrink the <c>rect</c> of the piece that runs past the wall in <c>pieces</c> until it ends
@@ -172,7 +172,7 @@ public static class PlanValidator
         // other complaint about a blank document is downstream of this one.
         if (!plan.Pieces.Any(pc => PlanRoles.IsGenerating(pc.Role)))
         {
-            findings.Add(new Finding(PlanRules.NoLand, "the plan's `pieces` has no piece that makes ground"));
+            findings.Add(new Finding(PlanRules.NoGroundPiece, "the plan's `pieces` has no piece that makes ground"));
             return findings;
         }
 
@@ -362,7 +362,7 @@ public static class PlanValidator
         foreach (var c in d.LandInterfaces) { landPairs.Add((c.A, c.B)); landPairs.Add((c.B, c.A)); }
         foreach (var w in plan.Walls)
             if (!landPairs.Contains((w.A, w.B)))
-                Error(PlanRules.WallWithoutInterface,
+                Error(PlanRules.WallWithoutSharedEdge,
                     $"pieces '{w.A}' and '{w.B}' have an approach wall and no shared edge", w.A, w.B);
 
         // and only where no land runs on past either of its ends. A wall spans the interval two pieces share;

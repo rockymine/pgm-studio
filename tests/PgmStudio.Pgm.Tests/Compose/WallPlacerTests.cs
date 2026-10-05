@@ -106,7 +106,7 @@ public sealed class WallPlacerTests
                 foreach (var wool in perWool)
                     await Assert.That(wool.Count()).IsLessThanOrEqualTo(2).Because($"p{players} seed {seed} {wool.Key}");
                 var findings = PlanValidator.Check(plan)
-                    .Where(f => f.Rule is PlanRules.WallAtJunction or PlanRules.WallWithoutInterface or PlanRules.WallOnWoolRoom)
+                    .Where(f => f.Rule is PlanRules.WallAtJunction or PlanRules.WallWithoutSharedEdge or PlanRules.WallOnWoolRoom)
                     .Select(f => f.Message).ToList();
                 await Assert.That(findings).IsEmpty().Because($"p{players} seed {seed}");
             }

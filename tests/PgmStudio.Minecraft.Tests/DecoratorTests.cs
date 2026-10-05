@@ -2808,7 +2808,7 @@ public sealed class PropRecipeTests
         var fault = Assert.Throws<DressingParseException>(() => DressingJson.Deserialize(
             """{"props":[{"kind":"tree","id":"t","x":0,"z":0,"style":"maple-9"}],"styles":{}}"""));
         await Assert.That(fault!.Message).Contains("maple-9");
-        await Assert.That(fault.Finding.Rule).IsEqualTo(DressingParseException.Rule);
+        await Assert.That(fault.Finding.Rule).IsEqualTo(DressingRules.UnreadableField);
     }
 
     [Test]

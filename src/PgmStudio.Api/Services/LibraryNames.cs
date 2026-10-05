@@ -200,7 +200,7 @@ public sealed partial class LibraryNames(
         if (match.Name is not null) return await CopyAsync(kind, match.Id, ct);
 
         var said = name.TryGetValue<string>(out var text) ? $"'{text}'" : name.ToJsonString();
-        resolution.Findings.Add(new Finding(SourceRules.NamesNoLibraryRow,
+        resolution.Findings.Add(new Finding(SourceRules.NamesNoLibraryEntry,
             $"`{path}` names library entry {said}, which the library does not have",
             Field: $"refinement.{path}.library"));
         return null;

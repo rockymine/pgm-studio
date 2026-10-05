@@ -34,6 +34,11 @@ The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds
 intent (`docs/pgm/new-map-authoring.md`; backend + every page-order step are landed —
 `FEATURES.md`). **Leave the existing Edit editor untouched** — a separate surface, not a refit.
 
+- [ ] **RP121 — A wool room the world builds is held to the room cap too.** `WX13` asks only a spawn room
+  (`WorldBuilder.OversizedRoom`, one call at `WorldBuilder.cs:210`), so a wool room whose protection Configure
+  redrew past 20 by 20 blocks builds with no finding, while `ST9` reads only the plan. The wool room loop calls
+  the same check, and `WX13`'s text names wool rooms beside spawn rooms. `docs/refusals.md`.
+
 **A monument sits inside its capturing team's spawn, and that settles which map each entry is about**
 (author; `docs/design-decisions.md`). The studio's own maps derive it — `WorldBuilder` fills the location
 from the air cell the spawn structure stamped, `OB25` says so, and `ConfigureTool.LoadOriginAsync` drops the

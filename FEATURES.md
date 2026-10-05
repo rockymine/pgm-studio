@@ -1019,6 +1019,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   measured number against the limit, with no reason or fix in prose. The producibility read raises its own `BX1`
   to `BX10` (a box room is `ST1`), and `Cites` names only an open task. `FindingMessageTests` holds the
   helpers' messages to the shape, read out of the source.
+- **One rule, one name (`RP117`).** Six rule constants take the glossary's words and say what they refuse:
+  `NoGroundPiece` (`PL1`), `WallWithoutSharedEdge` (`PL11`), `NamesNoLibraryEntry` (`SR6`), `BoulderOnAFace`
+  (`DR-STEEP`), `BoulderInTheGroundsTone` (`DR-TONE`) and `DressingRules.UnreadableField` (`DR-DOC`). `WX13`
+  stays its own rule beside `ST9`: it reads the spawn room the world builds from the intent, which Configure
+  can change after the plan, and its text says so.
 - **`SK2` states its ceiling, and `WL12` is three rules (`RP118`).** `SK2`'s text and message give the
   4,000,000 columns it refuses past. `WL12` keeps the 16-block gap beside a goal toward the front or another
   goal, `WL20` the 12-block gap toward the goal's own ground, and `LN6` the 12-block floor of a hole beside no
