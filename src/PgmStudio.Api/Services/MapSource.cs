@@ -54,7 +54,11 @@ public static class MapSource
     {
         if (Slugs.OfFolder(slug) != slug)
             return Refuse(400, "not a slug", new Finding(RequestRules.Unreadable,
-                $"slug '{slug}' has characters other than lowercase letters, digits, '-' and '_'", Field: "slug"));
+                $"slug '{slug}' has characters other than lowercase letters, digits, '-' and '_'", Field: "slug",
+                Edit: Slugs.Of(slug) is { Length: > 0 } fixedSlug
+                    ? DocumentEdit.Of(MapDocuments.Request, "slug", DocumentEdit.Set, fixedSlug,
+                        $"set the request's `slug` to '{fixedSlug}'")
+                    : null));
 
         JsonObject stated;
         MapSourceRequest request;

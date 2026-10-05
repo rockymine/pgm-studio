@@ -88,6 +88,12 @@ public sealed class LibraryNamesTests
         var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
         await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("SR6");
         await Assert.That(finding.GetProperty("message").GetString()).Contains("names library entry 'weir-dunez', which the library does not have");
+        // The entry it was nearest to rides as the edit that names it instead.
+        var edit = finding.GetProperty("edit");
+        await Assert.That(edit.GetProperty("document").GetString()).IsEqualTo("refinement");
+        await Assert.That(edit.GetProperty("path").GetString()).IsEqualTo("themes.heath.library");
+        await Assert.That(edit.GetProperty("op").GetString()).IsEqualTo("set");
+        await Assert.That(edit.GetProperty("value").GetString()).IsEqualTo("weir-dunes");
 
         foreach (var named in new object[] { "WEIR-DUNES", dunes })
         {

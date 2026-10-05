@@ -605,8 +605,8 @@ public static class PlanValidator
                                  new[] { Math.Round(end[0], 1), Math.Round(end[1], 1) } },
                 h = new[] { high.Surface, low.Surface },
             },
-            $"a line mark six wide from ({start[0]:0.#}, {start[1]:0.#}) at {high.Surface} to "
-            + $"({end[0]:0.#}, {end[1]:0.#}) at {low.Surface}, so the seam grades over {2 * run} blocks");
+            $"add a line mark six wide from ({start[0]:0.#}, {start[1]:0.#}) at {high.Surface} to "
+            + $"({end[0]:0.#}, {end[1]:0.#}) at {low.Surface} to `relief.{group}.marks`");
     }
 
     // PC-C — a corner contact: two pieces meet at a single point. Per the Definitions a corner touch is never a

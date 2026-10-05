@@ -554,8 +554,8 @@ public static class MapExportComposer
                 id = $"bench-{unit}", kind = "area", h = floor,
                 ring = new[] { new[] { minX, minZ }, new[] { maxX, minZ }, new[] { maxX, maxZ }, new[] { minX, maxZ } },
             },
-            $"an area mark held at {floor} over x {minX}..{maxX}, z {minZ}..{maxZ}, so the ground beside it "
-            + "meets its floor");
+            $"add an area mark held at {floor} over x between {minX} and {maxX}, z between {minZ} and {maxZ} "
+            + $"to `relief.{group}.marks`");
     }
 
     /// <summary>

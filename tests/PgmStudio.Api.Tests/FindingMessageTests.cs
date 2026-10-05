@@ -13,13 +13,14 @@ namespace PgmStudio.Api.Tests;
 public sealed class FindingMessageTests
 {
     /// <summary>Every call that carries a finding's message, and which of its arguments the message is: the
-    /// finding itself, written out, qualified or target-typed, the helpers that write one (the plan checks' lint, the decorator's decline, the request
-    /// refusals, the editors' faults and the evaluator's term scores).</summary>
+    /// finding itself, written out, qualified or target-typed, the helpers that write one (the plan checks'
+    /// lint, the decorator's decline, the request refusals, the editors' faults, the evaluator's term scores)
+    /// and what a proposed edit says.</summary>
     private static readonly (string Call, int Argument)[] Carriers =
     [
         (@"new (?:PgmStudio\.)?(?:Vocabulary\.)?Finding", 1), (@"new(?=\(\s*[A-Z]\w*Rules\.)", 1), ("Lint", 1), ("Misplaced", 1), ("Declined", 3), (@"Refusals\.UnreadableAsync", 2), (@"Refusals\.InUseAsync", 2),
         (@"EditException\.(?:Unreadable|NoSuchSubject|Conflict|Unresolved|Inapplicable)", 0),
-        (@"TermScores\.Violated", 1), (@"TermScores\.Soft", 2),
+        (@"TermScores\.Violated", 1), (@"TermScores\.Soft", 2), (@"DocumentEdit\.Of", 4),
     ];
 
     /// <summary>Text a message never holds: a dash or a sign standing for a word, a second sentence, a reason

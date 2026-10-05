@@ -582,7 +582,7 @@ public sealed class MapSourceTests
     /// <summary>The slug is the route's, and a route segment that is not one is refused rather than stored under
     /// the slug it would become.</summary>
     [Test]
-    public async Task A_route_naming_no_slug_is_refused_naming_it()
+    public async Task A_route_naming_no_slug_is_refused_with_the_slug_it_would_take_as_an_edit()
     {
         using var client = await FreshAsync();
 
@@ -590,8 +590,13 @@ public sealed class MapSourceTests
         var text = await refused.Content.ReadAsStringAsync();
 
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest).Because(text);
-        await Assert.That(JsonDocument.Parse(text).RootElement.GetProperty("findings")[0].GetProperty("message").GetString())
-            .Contains("slug 'Weir Gate' has characters other than");
+        var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("slug 'Weir Gate' has characters other than");
+        // The slug the name would take rides as an edit on the request, since the route is no document.
+        var edit = finding.GetProperty("edit");
+        await Assert.That(edit.GetProperty("document").GetString()).IsEqualTo("request");
+        await Assert.That(edit.GetProperty("path").GetString()).IsEqualTo("slug");
+        await Assert.That(edit.GetProperty("value").GetString()).IsEqualTo("weir-gate");
     }
 
     /// <summary><b>A source is not applied over a hand edit it has not seen.</b> A map made from a refinement,

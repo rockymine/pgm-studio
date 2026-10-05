@@ -31,15 +31,18 @@ due date, and one field holding either would make the two indistinguishable to a
 **A finding states its edit where the fix is mechanical.** A seam that steps wants a ramp mark; a room on
 falling ground wants a bench held flat under it; a prop inside a road's standoff wants moving a stated number
 of blocks the other way. Where the gate can say that in the document's own vocabulary it does, as an
-**edit** beside the sentence: which document (`plan`, `layout` or `intent`), the path the change lands on,
+**edit** beside the sentence: which document (`plan`, `refinement`, `layout` or `intent`, or `request` where the
+change is a parameter to send the request again with), the path the change lands on,
 spelled the way an unread field is (`relief.team.marks`; an array element by its `id` in brackets where it
 carries one, by its index otherwise — `dressing.props[erratic-broken]`), one of four operations — `add`
 appends the value to the array at the path, `set` replaces the value there, `move` sets the `x` and `z` the
 value carries on the object there, `remove` takes away what the path names — the value as the document would
-carry it, and the change in words. A reader applies it rather than re-deriving it from the rule's prose, which
-is the half of a finding a model acts on where the sentence alone is inspected and left. `SP8` and `EL1` state
-the ramp, `WX11` the bench and `DR-ROAD` the move; a finding whose fix is a decision rather than a change
-carries none.
+carry it, and the change in words — written as a message is, opening with the edit's own verb and stating its
+value, with no reason. A reader applies it rather than re-deriving it from the rule's prose, which is the half
+of a finding a model acts on where the sentence alone is inspected and left. `SP8` and `EL1` state the ramp,
+`WX11` the bench, `DR-ROAD` the move, `SR6` the library entry nearest the name that matched none, and the
+refused slug of `PUT /map/{slug}/source` the slug its name would take; a finding whose fix is a decision rather
+than a change carries none.
 
 **An edit that landed is the same record, carrying what it replaced.** `GET /map/{slug}/diff` answers what
 changed between two of a map's changes as a list of these edits (`docs/tools/flow.md`), each with `before`
@@ -52,7 +55,7 @@ that can apply the first can apply the second.
 ```json
 {
   "rule": "SP8",
-  "message": "spawn egress steps 5 blocks at 'crag'–'brow' — use 1-level steps or a ramp against the spawn",
+  "message": "spawn 'red' has its room piece 'crag' 5 blocks above or below piece 'brow' ahead of its door, more than 1 block",
   "severity": "complaint",
   "subjects": ["crag", "brow"],
   "edit": {
@@ -60,7 +63,7 @@ that can apply the first can apply the second.
     "path": "relief.team.marks",
     "op": "add",
     "value": {"id": "ramp-crag-brow", "kind": "line", "width": 6, "points": [[-51, -50], [-39, -50]], "h": [27, 22]},
-    "says": "a line mark six wide from (-51, -50) at 27 to (-39, -50) at 22, so the seam grades over 12 blocks"
+    "says": "add a line mark six wide from (-51, -50) at 27 to (-39, -50) at 22 to `relief.team.marks`"
   }
 }
 ```

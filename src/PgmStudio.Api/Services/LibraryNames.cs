@@ -199,12 +199,26 @@ public sealed partial class LibraryNames(
             : default;
         if (match.Name is not null) return await CopyAsync(kind, match.Id, ct);
 
-        var said = name.TryGetValue<string>(out var text) ? $"'{text}'" : name.ToJsonString();
+        var stated = name.TryGetValue<string>(out var text) ? text : null;
+        var said = stated is not null ? $"'{stated}'" : name.ToJsonString();
         resolution.Findings.Add(new Finding(SourceRules.NamesNoLibraryEntry,
             $"`{path}` names library entry {said}, which the library does not have",
-            Field: $"refinement.{path}.library"));
+            Field: $"refinement.{path}.library",
+            Edit: stated is not null && Nearest(rows.Select(row => row.Name), stated) is { } nearest
+                ? DocumentEdit.Of(MapDocuments.Refinement, $"{path}.library", DocumentEdit.Set, nearest,
+                    $"set `{path}.library` to '{nearest}'")
+                : null));
         return null;
     }
+
+    /// <summary>The entry whose name shares the longest beginning with <paramref name="stated"/>, case aside,
+    /// where that beginning is at least half of what was stated; null where none comes that close.</summary>
+    private static string? Nearest(IEnumerable<string> names, string stated) =>
+        names.Select(name => (Name: name, Shared: name.Zip(stated)
+                .TakeWhile(pair => char.ToLowerInvariant(pair.First) == char.ToLowerInvariant(pair.Second)).Count()))
+            .Where(candidate => candidate.Shared * 2 >= stated.Length && candidate.Shared > 0)
+            .OrderByDescending(candidate => candidate.Shared).ThenBy(candidate => candidate.Name, StringComparer.Ordinal)
+            .Select(candidate => candidate.Name).FirstOrDefault();
 
     private async Task<List<(long Id, string Name)>> RowsAsync(string kind, CancellationToken ct) => kind switch
     {

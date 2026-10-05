@@ -1886,8 +1886,8 @@ public static class Decorator
         var to = (X: anchor.X + move.StepX * move.By, Z: anchor.Z + move.StepZ * move.By);
         return DocumentEdit.Of(MapDocuments.Layout, $"dressing.props[{id}]", DocumentEdit.Move,
             new { x = to.X, z = to.Z },
-            $"move it {move.By} block(s) {Direction(move.StepX, move.StepZ)} to ({to.X}, {to.Z}), "
-            + $"which stands {standoff} off the road");
+            $"move `dressing.props[{id}]` {Wording.Count(move.By, "block")} {Direction(move.StepX, move.StepZ)} "
+            + $"to ({to.X}, {to.Z})");
     }
 
     private static string Direction(int stepX, int stepZ) =>
