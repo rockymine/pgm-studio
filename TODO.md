@@ -38,10 +38,11 @@ the *Rule text audit* doc, *Format draft* tab). The order is the work's own: the
 nothing is reworded twice, the message helpers next so the rewording lands once per helper, then the text.
 Every rule fires as before; the tests and `--goldens` say so.
 
-- [ ] **RP119 — A plan check's fix as an edit.** Four plan checks state a fix a caller could apply without
-  deciding anything, and carry no `Edit`: `G2` (widen a build region's `rect` to 10 blocks across,
-  `PlanValidator.LintG2`), `SP9` (lengthen the piece or build region ahead of a spawn's door to 15 blocks,
-  `LintSp9`), `ST9` (set a room's `footprint` to at most 20 by 20, `LintSt9`) and `ST10` (shrink a room piece's
-  `rect` to at most 20 by 30, `LintSt10`). Each gains the `DocumentEdit` the way `RampEdit` gives `EL1` and `SP8`
-  theirs, and the plan tool's Checks panel offers it. `docs/refusals.md`.
+- [ ] **RP119 — A room check's fix as an edit, for agents.** `ST9` and `ST10` state a fix that is only a
+  number, and carry no `Edit`. `ST9` (`PlanValidator.LintSt9`) gains a `set` of the marker's
+  `placements.spawns[id].footprint` or `placements.wools[id].footprint` to its room capped at 20 by 20 blocks;
+  `ST10` (`LintSt10`) a `set` of `pieces[id].rect` cut to 20 by 30 blocks in whole cells, keeping the marker's
+  `at` inside it. The edit rides on the JSON for an agent only: no screen offers or applies it (author).
+  `SP9` carries none, since its fixes are a choice — move the spawn, set its door against ground, add ground
+  between the door and the void, or turn the door — and its fix text names all four. `docs/refusals.md`.
 
