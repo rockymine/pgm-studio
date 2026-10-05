@@ -17,7 +17,7 @@ public sealed class SoftTermsTests
     private const string CloseWoolsJson = """
         {"plan":2,"globals":{"cell":5,"symmetry":"none"},
          "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,6]}],
-         "placements":{"wools":[{"piece":"lane","at":[5,5]},{"piece":"lane","at":[5,20]}]}}
+         "placements":{"wools":[{"id":"w-a","piece":"lane","at":[5,5]},{"id":"w-b","piece":"lane","at":[5,20]}]}}
         """;
 
     // a straight lane with the spawn at one end and two wools at different depths — spawn→wool 20 and 45
@@ -25,8 +25,8 @@ public sealed class SoftTermsTests
     private const string UnbalancedWoolsJson = """
         {"plan":2,"globals":{"cell":5,"symmetry":"none"},
          "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,10]}],
-         "placements":{"spawns":[{"piece":"lane","at":[5,2.5],"facing":"front"}],
-                       "wools":[{"piece":"lane","at":[5,22.5]},{"piece":"lane","at":[5,47.5]}]}}
+         "placements":{"spawns":[{"id":"s-red","piece":"lane","at":[5,2.5],"facing":"front"}],
+                       "wools":[{"id":"w-near","piece":"lane","at":[5,22.5]},{"id":"w-far","piece":"lane","at":[5,47.5]}]}}
         """;
 
     /// <summary><b>The fill ratio is ground over the ground's own frame.</b> A build zone is buildable void
@@ -113,6 +113,20 @@ public sealed class SoftTermsTests
 
         await Assert.That(score.Violation).IsNotNull();
         await Assert.That(score.Distance).IsGreaterThan(0.0);
+    }
+
+    /// <summary>A soft term's finding is one sentence: the thing it measured by kind and id, the value in the unit
+    /// its rule states, and the edge of the band it broke, written as the rule writes it.</summary>
+    [Test]
+    public async Task A_soft_finding_names_what_it_measured_and_the_edge_it_broke()
+    {
+        var ratio = new SpawnWoolRatio().Measure(Ctx(UnbalancedWoolsJson, SeedEnvelopes.Default)).Violation!;
+        var pair = new WoolWoolDistance().Measure(Ctx(CloseWoolsJson, SeedEnvelopes.Default)).Violation!;
+
+        await Assert.That(ratio.Message).Matches(
+            @"^wool 'w-far' has \d+(\.\d+)? times the walking distance from the spawn that wool 'w-near' has, more than \d+(\.\d+)? times$");
+        await Assert.That(pair.Message).Matches(
+            @"^wools 'w-a' and 'w-b' have a walking distance of \d+(\.\d)? blocks between them, less than \d+ blocks$");
     }
 
     [Test]

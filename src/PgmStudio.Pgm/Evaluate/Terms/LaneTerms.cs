@@ -21,6 +21,11 @@ public sealed class MaxChainLength : SoftTerm
         if (pieces.Count == 0) return null;
         return ComposeGeometry.MaxChainBlocks(ctx.Plan.Globals.Cell, pieces);
     }
+
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"the longest straight run of same-width pieces is {value} long";
 }
 
 /// <summary>LN1: a wool lane runs about 10 blocks wide (15 on big maps). Measured as the narrowest lane on the
@@ -38,4 +43,9 @@ public sealed class LaneWidth : SoftTerm
         if (shapes.Count == 0) return null;
         return shapes.Min(s => s.Width) * (double)ctx.Board.Cell;
     }
+
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"the narrowest lane to a wool room is {value} wide";
 }

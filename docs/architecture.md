@@ -338,7 +338,7 @@ structure and an objective at once — which is why `concerns` is a list and why
 
 **Every rule is a constant, the layout rules included.** The gate rules sit in each gate's `*Rules` class;
 the layout rules — claims about how a map plays, raised by a plan-validator lint, an evaluator term's `RuleId`
-or a producibility finding's `Cites` — sit in `LayoutRules` in `PgmStudio.Domain`, and each site names one as
+or the producibility read — sit in `LayoutRules` in `PgmStudio.Domain`, and each site names one as
 `LayoutRules.<Name>`. So a typo at a raise site is a compile error, and `RulesEndpointTests` fails a layout
 constant nothing names and a layout id spelled as a bare literal. Each states one limit with its numbers,
 and `docs/generator/rules.md` is the argument behind those constants and is not served.

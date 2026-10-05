@@ -149,7 +149,7 @@ public sealed class DecoratorTests
         await Assert.That(drop.Message).Contains("tree 't' rests on (");
         // The road got there first and keeps the cell, so that is what the decline names — the record says
         // who holds the ground, not merely that something does.
-        await Assert.That(drop.Message).Contains("claimed by the paving 'p'");
+        await Assert.That(drop.Message).Contains("a cell road 'p' claims");
         // The road survives up to the wall and the house's floor owns the ground inside it.
         await Assert.That(world.GetBlock(25, 7, 20).Id).IsEqualTo(Blocks.Gravel);
         await Assert.That(world.GetBlock(6, 7, 20).Id).IsNotEqualTo(Blocks.Gravel);
@@ -236,7 +236,7 @@ public sealed class DecoratorTests
         await Assert.That(refused.Trees).IsEqualTo(0);
         var drop = refused.Declines.Single(d => d.SubjectIds.Contains("t"));
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.RoadStandoff);
-        await Assert.That(drop.Message).Contains("nearer than 3 blocks to the road at (");
+        await Assert.That(drop.Message).Contains("less than 3 blocks from the road at (");
         // The decline states the move that clears the standoff: the tree's own anchor carried away from the
         // road, on the layout's props by the tree's id, to a cell three or more off the pavement's z 18–21.
         var edit = drop.Edit;
@@ -1433,7 +1433,7 @@ public sealed class DecoratorTests
         await Assert.That(second.Message).Contains("'b1'");
         var tree = tally.Declines.Single(finding => finding.SubjectIds.Contains("t"));
         await Assert.That(tree.Rule).IsEqualTo(DressingRules.GroundTaken);
-        await Assert.That(tree.Message).Contains("channel 'w'");
+        await Assert.That(tree.Message).Contains("fluid 'w'");
     }
 
     [Test]
@@ -1597,7 +1597,7 @@ public sealed class DecoratorTests
         await Assert.That(held).IsNotNull();
         await Assert.That(held!.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(held.Message).Contains("canal");
-        await Assert.That(held.Message).Contains("approach");
+        await Assert.That(held.Message).Contains("kept clear in front of a door");
     }
 
     [Test]
@@ -2651,7 +2651,7 @@ public sealed class DecoratorTests
         await Assert.That(decline.Rule).IsEqualTo(ObjectiveRules.PropInClearance);
         await Assert.That(decline.Severity).IsEqualTo(Severity.Decline);
         await Assert.That(decline.SubjectIds).IsEquivalentTo(new[] { "t-goal" });
-        await Assert.That(decline.Message).Contains("inside a goal's clearance");
+        await Assert.That(decline.Message).Contains("inside the clearance of an objective");
     }
 
     /// <summary>A building is judged on the whole floor it stamps, so a footprint whose corner reaches the

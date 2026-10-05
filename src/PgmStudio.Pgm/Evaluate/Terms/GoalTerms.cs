@@ -30,6 +30,17 @@ public sealed class GoalSpawnRatio : SoftTerm
         return ratios.OrderByDescending(band.Distance).First();
     }
 
+    public override MeasureUnit Unit => MeasureUnit.Times;
+
+    protected override string Reads(EvalContext ctx, string value)
+    {
+        var band = AuthoredBand!.Value;
+        var goal = GoalDistances.Read(ctx.Plan).Where(walk => walk.Ratio is not null)
+            .OrderByDescending(walk => band.Distance(walk.Ratio!.Value)).First();
+        return $"{GoalWords.Kind(goal.Kind)} '{goal.Id}' has {value} the walking distance from the nearest enemy spawn "
+            + "that it has from its team's nearest spawn";
+    }
+
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
         ctx.Plan.Placements.Destroyables.Select(goal => goal.Piece)
             .Concat(ctx.Plan.Placements.Cores.Select(goal => goal.Piece))
@@ -61,6 +72,16 @@ public sealed class GoalSpawnDistance : SoftTerm
         // Every in-band distance scores zero, so the term's one value is the goal the band judges hardest.
         var band = AuthoredBand!.Value;
         return distances.OrderByDescending(band.Distance).First();
+    }
+
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value)
+    {
+        var band = AuthoredBand!.Value;
+        var goal = GoalDistances.Read(ctx.Plan).Where(walk => walk.OwnSpawnBlocks is not null)
+            .OrderByDescending(walk => band.Distance(walk.OwnSpawnBlocks!.Value)).First();
+        return $"{GoalWords.Kind(goal.Kind)} '{goal.Id}' has a walking distance of {value} from its team's nearest spawn";
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
@@ -120,10 +141,26 @@ public abstract class GoalPairTerm : SoftTerm
         return walks.OrderByDescending(band.Distance).First();
     }
 
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value)
+    {
+        var band = AuthoredBand!.Value;
+        var pair = GoalDistances.Pairs(ctx.Plan).Where(walk => walk.Opposing == Opposing && walk.Blocks is not null)
+            .OrderByDescending(walk => band.Distance(walk.Blocks!.Value)).First();
+        return $"objectives '{pair.From}' and '{pair.To}' have a walking distance of {value} between them";
+    }
+
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
         ctx.Plan.Placements.Destroyables.Select(goal => goal.Piece)
             .Concat(ctx.Plan.Placements.Cores.Select(goal => goal.Piece))
             .Where(piece => piece.Length > 0)
             .Distinct()
             .ToList();
+}
+
+/// <summary>The word a finding uses for a goal the distance reader names by its plan list.</summary>
+internal static class GoalWords
+{
+    public static string Kind(string kind) => kind == "destroyable" ? "monument" : kind;
 }

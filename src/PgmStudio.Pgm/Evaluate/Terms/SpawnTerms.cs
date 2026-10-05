@@ -18,39 +18,48 @@ public sealed class SpawnWoolDistance : SoftTerm
 
     public override double? Value(EvalContext ctx) => Closest(ctx).Blocks;
 
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value)
+    {
+        var closest = Closest(ctx);
+        return $"wool '{closest.Wool}' has a walking distance of {value} from spawn '{closest.Spawn}'";
+    }
+
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
         ctx.Plan.Placements.Spawns.Select(s => s.Piece)
             .Concat(ctx.Plan.Placements.Wools.Select(w => w.Piece)).Distinct().ToList();
 
     protected override IReadOnlyList<Evidence> Evidence(EvalContext ctx, double value, Band band)
     {
-        var (_, a, b) = Closest(ctx);
+        var (_, a, b, _, _) = Closest(ctx);
         return a is null || b is null
             ? []
             : SurfaceNav.RouteEvidence(SurfaceNav.Ground(ctx), a.Value, b.Value, $"{value:0} < {band.Lo:0}");
     }
 
-    // The nearest spawn→wool pair by surface traversal, in blocks, and its endpoint cells.
-    internal static (double? Blocks, (int, int)? A, (int, int)? B) Closest(EvalContext ctx)
+    // The nearest spawn→wool pair by surface traversal, in blocks, its endpoint cells and the two markers' ids.
+    internal static (double? Blocks, (int, int)? A, (int, int)? B, string Spawn, string Wool) Closest(EvalContext ctx)
     {
         var ground = SurfaceNav.Ground(ctx);
         var spawns = ctx.Plan.Placements.Spawns
-            .Select(s => SurfaceNav.MarkerCell(ctx, s.Piece, s.At, ground.Footprint))
-            .Where(c => c is not null).Select(c => c!.Value).ToList();
+            .Select(s => (s.Id, Cell: SurfaceNav.MarkerCell(ctx, s.Piece, s.At, ground.Footprint)))
+            .Where(s => s.Cell is not null).Select(s => (s.Id, Cell: s.Cell!.Value)).ToList();
         var wools = ctx.Plan.Placements.Wools
-            .Select(w => SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Footprint))
-            .Where(c => c is not null).Select(c => c!.Value).ToList();
-        if (spawns.Count == 0 || wools.Count == 0) return (null, null, null);
+            .Select(w => (w.Id, Cell: SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Footprint)))
+            .Where(w => w.Cell is not null).Select(w => (w.Id, Cell: w.Cell!.Value)).ToList();
+        if (spawns.Count == 0 || wools.Count == 0) return (null, null, null, "", "");
 
         double? best = null;
         (int, int)? ba = null, bb = null;
+        string spawnId = "", woolId = "";
         foreach (var s in spawns)
             foreach (var w in wools)
-                if (ground.Stand(s) is { } from && ground.Stand(w) is { } to
+                if (ground.Stand(s.Cell) is { } from && ground.Stand(w.Cell) is { } to
                     && Walk.Between(from, to, ground) is { } walked
                     && walked.Cost.Distance < (best ?? double.MaxValue))
-                    { best = walked.Cost.Distance; ba = s; bb = w; }
-        return (best, ba, bb);
+                    { best = walked.Cost.Distance; ba = s.Cell; bb = w.Cell; spawnId = s.Id; woolId = w.Id; }
+        return (best, ba, bb, spawnId, woolId);
     }
 }
 
@@ -70,7 +79,7 @@ public sealed class SpawnWoolFloor : ILayoutTerm
 
     public TermScore Measure(EvalContext ctx)
     {
-        var (blocks, a, b) = SpawnWoolDistance.Closest(ctx);
+        var (blocks, a, b, _, _) = SpawnWoolDistance.Closest(ctx);
         if (blocks is null || blocks.Value >= MinBlocks) return TermScores.Clean(this);
 
         var evidence = a is null || b is null

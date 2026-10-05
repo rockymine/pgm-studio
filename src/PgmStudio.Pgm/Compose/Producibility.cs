@@ -197,11 +197,9 @@ public static class Producibility
         // axis costs the band slack rather than making it impossible. The gate bounds that slack (BZ9).
         if (terrain.Count > 0 && MidCarver.LateralFlip(symmetry)
             && Composer.FrontHullSlackCells(frame, terrain) is var slack && slack > Composer.FrontSlackCapCells)
-            findings.Add(new Finding("front-hull-off-axis",
-                $"The unit's front faces sit off the symmetry axis, so the mid band — which spans the hull of " +
-                $"both images' faces — would reach {slack} cell(s) past the front it docks, over the " +
-                $"{Composer.FrontSlackCapCells}-cell cap. Centre the front on the axis, or widen it so its " +
-                "hull is symmetric; the legs within it need not be.", Cites: LayoutRules.ZoneOverhang));
+            findings.Add(new Finding(BoxRules.FrontOffAxis,
+                $"the mid build region over the unit's front runs {CellCount(slack)} past the front it docks, more than " +
+                $"{CellCount(Composer.FrontSlackCapCells)}"));
 
         // the frontline's face: a sampled width seated anywhere along the hub's front edge, free to overhang it,
         // but every contact patch it makes with the hub's front terrain must be at least a lane wide — the
@@ -214,16 +212,12 @@ public static class Producibility
             var patches = FrontPatches(plan, hub, front, frame);
             var weakest = patches.Count == 0 ? 0 : patches.Min();
             if (weakest < UnitTuning.WoolLaneFloorCells)
-                findings.Add(new Finding("frontline-shoulder-too-narrow",
+                findings.Add(new Finding(BoxRules.FrontlinePatchNarrow,
                     patches.Count == 0
-                        ? $"The frontline's {f.VSpan}-cell face never meets the hub's front terrain, so its " +
-                          "spine has nothing to dock through."
-                        : $"The frontline's {f.VSpan}-cell face meets the hub's front terrain in " +
-                          $"{patches.Count} patch(es) ({string.Join(", ", patches)} cell(s)); the narrowest is " +
-                          $"{weakest}, under the {UnitTuning.WoolLaneFloorCells}-cell lane. A face may be " +
-                          "narrower than the edge or overhang it, and may reach across a bay — but every " +
-                          "shoulder it lands on has to be a corridor's width, or the face is cantilevered " +
-                          "over the hole.", Cites: LayoutRules.CorridorWidth));
+                        ? $"front line box '{front.Id}' meets the front of hub box '{hub.Id}' in no patch"
+                        : $"front line box '{front.Id}' meets the front of hub box '{hub.Id}' in {patches.Count} " +
+                          $"patches, the narrowest {CellCount(weakest)} wide, less than {CellCount(UnitTuning.WoolLaneFloorCells)}",
+                    Subjects: [front.Id, hub.Id]));
         }
 
         // the seat-separation law: no spawn/wool seats within the separation gap of another. An authored plan is
@@ -234,11 +228,9 @@ public static class Producibility
         for (var i = 0; i < seats.Count; i++)
             for (var j = i + 1; j < seats.Count; j++)
                 if (SeatGeometry.TooClose(seats[i].Rect, seats[j].Rect, UnitTuning.WoolLaneFloorCells))
-                    findings.Add(new Finding("seats-within-separation-gap",
-                        $"Boxes '{seats[i].Id}' and '{seats[j].Id}' sit within the {UnitTuning.WoolLaneFloorCells}-cell " +
-                        "separation gap, which the allocator never seats through. Measured on the box " +
-                        "envelopes (corner-inclusive) — the emitted terrain may keep more room than the " +
-                        "envelopes suggest, which is the measurand question G124 parks.", Cites: LayoutRules.WoolWoolDistance));
+                    findings.Add(new Finding(BoxRules.SeatsTooClose,
+                        $"boxes '{seats[i].Id}' and '{seats[j].Id}' stand less than " +
+                        $"{CellCount(UnitTuning.WoolLaneFloorCells)} apart", Subjects: [seats[i].Id, seats[j].Id], Cites: "G124"));
 
         return findings;
     }
@@ -250,7 +242,7 @@ public static class Producibility
         var members = PlanBoxes.MembersOf(plan, box);
         if (members.Count == 0)
             return new BoxProducibility(box.Id, box.Kind, "empty", null, null,
-                Findings.Of(new Finding("box-empty", "The box groups no pieces.")));
+                Findings.Of(new Finding(BoxRules.BoxEmpty, $"box '{box.Id}' groups no pieces", Subjects: [box.Id])));
 
         var terrain = Mask(members.Where(p => p.Role == PlanRoles.Piece).Select(p => p.Rect));
         var roomPieces = members.Where(p => p.Role is PlanRoles.WoolRoom or PlanRoles.Spawn).ToList();
@@ -266,10 +258,9 @@ public static class Producibility
         var cwFloor = box.Kind == PlanBoxKinds.Wool ? UnitTuning.WoolLaneFloorCells : FillProfiles.HubWallCells;
         var measured = Cells.MinRunWidthRaw(all, all);
         if (measured < cwFloor)
-            findings.Add(new Finding("corridor-below-minimum",
-                $"Narrowest cross-section is {measured} cell(s); the emitters build at {cwFloor} " +
-                $"({(box.Kind == PlanBoxKinds.Wool ? "the wool lane" : "the hub/body wall")} width). " +
-                "Every part of this box would have to be at least that wide.", Cites: LayoutRules.CorridorWidth));
+            findings.Add(new Finding(BoxRules.BoxTooNarrow,
+                $"box '{box.Id}' is {CellCount(measured)} across at its narrowest, less than {CellCount(cwFloor)}",
+                Subjects: [box.Id]));
 
         // enumerated lazily and kept as they come: an exact match ends the search, so the producible case — the
         // common one — never pays for the rest of the space. Only a real miss enumerates it all, to report against.
@@ -282,30 +273,28 @@ public static class Producibility
                     new ProducibleAs(c.Label, c.Cw), null, findings);
         }
         if (candidates.Count == 0)
-            findings.Add(new Finding("no-candidates",
-                $"No production menu covers a '{box.Kind}' box, so there is nothing to compare against."));
+            findings.Add(new Finding(BoxRules.NoFormForKind,
+                $"box '{box.Id}' has the kind '{box.Kind}', which no form the generator builds covers", Subjects: [box.Id]));
 
         // the terrain/room split: the corridor reproduces but the terminal room does not. Only reachable past
         // the exact-match return above, so every candidate here already differs somewhere.
         if (roomPieces.Count > 0
             && candidates.FirstOrDefault(c => c.Mask is not null && c.Room is not null
                                               && TerrainOnly(c.Mask!, c.Room!.Value).SetEquals(terrain)) is { } roomMiss)
-            findings.Add(new Finding("room-not-replicable",
-                $"The corridor is reproducible ({roomMiss.Label}) but the terminal room is not: the emitters " +
-                $"build a compact {ShapeEmitter.RoomDepthCells}-cell-deep room and this one differs. The room " +
-                "is not just terrain — the export stamps its bedrock floor and entrance line from it.",
-                Cites: LayoutRules.BoxRoomShape));
+            findings.Add(new Finding(LayoutRules.BoxRoomShape,
+                $"box '{box.Id}' has a room piece that is not the {ShapeEmitter.RoomDepthCells}-cell deep room " +
+                $"{roomMiss.Label} builds at the end of its lane", Subjects: [box.Id]));
 
         var nearest = Nearest(candidates, all);
         if (nearest is not null)
         {
-            findings.Add(new Finding("no-parameters-reproduce",
-                $"No parameter tuple on the production menus reproduces this box. Closest is {nearest.Label} " +
-                $"at cw {nearest.Cw}, differing in {nearest.DifferingCells} cell(s)."));
-            if (ProportionGap(box.Kind, identity, nearest) is { } gap) findings.Add(gap);
+            findings.Add(new Finding(BoxRules.NoFormReproduces,
+                $"box '{box.Id}' differs in {CellCount(nearest.DifferingCells)} from {nearest.Label} at a lane width of " +
+                $"{CellCount(nearest.Cw)}, the nearest form the generator builds", Subjects: [box.Id]));
+            if (ProportionGap(box, identity, nearest) is { } gap) findings.Add(gap);
         }
         else if (candidates.Count > 0)
-            findings.AddRange(Rejections(candidates, box.Rect));
+            findings.AddRange(Rejections(candidates, box));
 
         return new BoxProducibility(box.Id, box.Kind, identity, null, nearest, findings);
     }
@@ -503,20 +492,13 @@ public static class Producibility
     /// data: it keys only off facts the search already produced (the box kind, the derived identity, the nearest
     /// form) and re-derives no geometry.</para>
     /// </summary>
-    private static Finding? ProportionGap(string kind, string identity, NearestMiss nearest)
+    private static Finding? ProportionGap(PlanBox box, string identity, NearestMiss nearest)
     {
         if (FormToken(identity) is not { Length: > 0 } read || read != FormToken(nearest.Label)) return null;
-        var (cites, owner) = kind switch
-        {
-            PlanBoxKinds.Hub or PlanBoxKinds.Frontline =>
-                ("G105", "per-piece body widths and the asymmetric ring"),
-            _ => ("G82", "approach entry widening"),
-        };
-        return new Finding("proportions-outside-the-parameter-space",
-            $"The shape is one the emitters build — the closest candidate is a {read} too — so only its " +
-            $"proportions are out of reach. Every emitter takes a single corridor width, so a part wider or " +
-            $"narrower than the rest cannot be asked for: {owner} is the gap ({cites}), and corridor width as a " +
-            "per-part property rather than one board-wide constant is G129.", Cites: cites);
+        var cites = box.Kind is PlanBoxKinds.Hub or PlanBoxKinds.Frontline ? "G105" : "G82";
+        return new Finding(BoxRules.ProportionsOutOfReach,
+            $"box '{box.Id}' has the shape of a {read}, and a part of it is not the one lane width a {read} builds " +
+            "every part at", Subjects: [box.Id], Cites: cites);
     }
 
     /// <summary>The leading form name of an identity or candidate label (<c>"Ring"</c>, <c>"SpineArms"</c>,
@@ -532,20 +514,22 @@ public static class Producibility
     /// the smallest box any form on the menu fits: four near-identical "below the minimum" lines (one per mouth
     /// orientation) tell the author nothing the smallest one doesn't. Other refusal kinds report distinct
     /// reasons.</summary>
-    private static IEnumerable<Finding> Rejections(IReadOnlyList<Candidate> candidates, CellRect rect)
+    private static IEnumerable<Finding> Rejections(IReadOnlyList<Candidate> candidates, PlanBox box)
     {
+        var rect = box.Rect;
         var tooSmall = candidates
             .Select(c => c.Rejection).OfType<FillRejection.TooSmall>()
             .OrderBy(t => t.MinW * t.MinH).ThenBy(t => t.MinW).FirstOrDefault();
         if (tooSmall is not null)
-            yield return new Finding("box-too-small",
-                $"This box is {rect.Width}x{rect.Height} cells; the smallest footprint any form on the menu fits is " +
-                $"{tooSmall.MinW}x{tooSmall.MinH}. Nothing can be emitted into it.");
+            yield return new Finding(BoxRules.BoxTooSmall,
+                $"box '{box.Id}' is {rect.Width} by {rect.Height} cells, less than the {tooSmall.MinW} by " +
+                $"{tooSmall.MinH} cells the smallest form fits", Subjects: [box.Id]);
 
         foreach (var detail in candidates
                      .Select(c => c.Rejection).Where(r => r is not null and not FillRejection.TooSmall)
                      .Select(r => Describe(r!)).Distinct().Take(3))
-            yield return new Finding("every-form-refused", detail);
+            yield return new Finding(BoxRules.EveryFormRefuses, $"box '{box.Id}' is refused by every form: {detail}",
+                Subjects: [box.Id]);
     }
 
     /// <summary>The candidate whose emitted terrain differs from <paramref name="target"/> in the fewest cells,
@@ -590,13 +574,16 @@ public static class Producibility
     private static string Legs(IReadOnlyList<(int Start, int Width)> layout) =>
         string.Join("+", layout.Select(a => $"{a.Start}:{a.Width}"));
 
+    /// <summary>A count of cells as a finding writes it.</summary>
+    private static string CellCount(int count) => count == 1 ? "1 cell" : $"{count} cells";
+
     private static string Describe(FillRejection r) => r switch
     {
-        FillRejection.TooSmall t => $"The footprint is below the minimum box ({t.MinW}x{t.MinH} cells).",
+        FillRejection.TooSmall t => $"its footprint is less than {t.MinW} by {t.MinH} cells",
         FillRejection.FormDoesNotFit f => f.Detail,
-        FillRejection.NotOnMenu n => $"Off the production menu (on offer: {string.Join(", ", n.Menu)}).",
-        FillRejection.IllegalDock d => $"The docking gate refuses the {d.Mouth} edge ({d.Reason}).",
+        FillRejection.NotOnMenu n => $"no form on the menu takes it, the menu holds {string.Join(", ", n.Menu)}",
+        FillRejection.IllegalDock d => $"the docking check refuses its {d.Mouth} edge, {d.Reason}",
         FillRejection.UnsupportedKnobs u => u.Detail,
-        _ => "Refused.",
+        _ => "a form refuses it",
     };
 }

@@ -18,6 +18,14 @@ public sealed class SpawnWoolSpread : SoftTerm
         return d.Count < 2 ? null : d.Max() - d.Min();
     }
 
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value)
+    {
+        var (near, far) = Triangle.Extremes(ctx, Triangle.SpawnDistances(ctx));
+        return $"wool '{far}' has a walking distance from the spawn {value} longer than wool '{near}'";
+    }
+
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
         ctx.Plan.Placements.Spawns.Select(s => s.Piece)
             .Concat(ctx.Plan.Placements.Wools.Select(w => w.Piece)).Distinct().ToList();
@@ -37,6 +45,11 @@ public sealed class WoolFrontDistance : SoftTerm
         var d = Triangle.FrontDistances(ctx).Where(v => v is not null).Select(v => v!.Value).ToList();
         return d.Count == 0 ? null : d.Min();
     }
+
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"wool '{Triangle.Extremes(ctx, Triangle.FrontDistances(ctx)).Near}' has a walking distance of {value} to the crossing";
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
         ctx.Plan.Placements.Wools.Select(w => w.Piece).ToList();
@@ -60,6 +73,16 @@ public sealed class WoolFrontBalance : SoftTerm
         var deficits = spawn.Zip(front, (s, f) => s is not null && f is not null ? s.Value - f.Value : (double?)null)
             .Where(v => v is not null).Select(v => v!.Value).ToList();
         return deficits.Count < 2 ? null : deficits.Max() - deficits.Min();
+    }
+
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value)
+    {
+        var spawn = Triangle.SpawnDistances(ctx);
+        var front = Triangle.FrontDistances(ctx);
+        var (low, high) = Triangle.Extremes(ctx, [.. spawn.Zip(front, (s, f) => s is not null && f is not null ? s.Value - f.Value : (double?)null)]);
+        return $"wools '{high}' and '{low}' differ by {value} in walking distance from the spawn less walking distance to the crossing";
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
@@ -89,6 +112,14 @@ public sealed class SpawnWoolRatio : SoftTerm
         return d.Count < 2 || d.Min() <= 0 ? null : d.Max() / d.Min();
     }
 
+    public override MeasureUnit Unit => MeasureUnit.Times;
+
+    protected override string Reads(EvalContext ctx, string value)
+    {
+        var (near, far) = Triangle.Extremes(ctx, Triangle.SpawnDistances(ctx));
+        return $"wool '{far}' has {value} the walking distance from the spawn that wool '{near}' has";
+    }
+
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
         ctx.Plan.Placements.Spawns.Select(s => s.Piece)
             .Concat(ctx.Plan.Placements.Wools.Select(w => w.Piece)).Distinct().ToList();
@@ -114,6 +145,14 @@ public sealed class WoolFrontRatio : SoftTerm
         return d.Count < 2 || d.Min() <= 0 ? null : d.Max() / d.Min();
     }
 
+    public override MeasureUnit Unit => MeasureUnit.Times;
+
+    protected override string Reads(EvalContext ctx, string value)
+    {
+        var (near, far) = Triangle.Extremes(ctx, Triangle.FrontDistances(ctx));
+        return $"wool '{far}' has {value} the walking distance to the crossing that wool '{near}' has";
+    }
+
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
         ctx.Plan.Placements.Wools.Select(w => w.Piece).ToList();
 }
@@ -135,6 +174,11 @@ public sealed class WoolFrontRemoteness : SoftTerm
         return d.Count == 0 ? null : d.Max();
     }
 
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"wool '{Triangle.Extremes(ctx, Triangle.FrontDistances(ctx)).Far}' has a walking distance of {value} to the crossing";
+
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
         ctx.Plan.Placements.Wools.Select(w => w.Piece).ToList();
 }
@@ -144,6 +188,16 @@ public sealed class WoolFrontRemoteness : SoftTerm
 /// <c>Plan.Placements.Wools</c> (<c>null</c> where a wool is unreachable or the target is absent).</summary>
 internal static class Triangle
 {
+    /// <summary>The ids of the wools a per-wool list holds its smallest and its largest value for, the list
+    /// being in the plan's wool order.</summary>
+    public static (string Near, string Far) Extremes(EvalContext ctx, List<double?> perWool)
+    {
+        var known = perWool.Select((value, index) => (value, index)).Where(entry => entry.value is not null).ToList();
+        if (known.Count == 0) return ("", "");
+        var wools = ctx.Plan.Placements.Wools;
+        return (wools[known.MinBy(entry => entry.value).index].Id, wools[known.MaxBy(entry => entry.value).index].Id);
+    }
+
     /// <summary>Per wool: the traversal distance from the nearest spawn, in blocks.</summary>
     public static List<double?> SpawnDistances(EvalContext ctx)
     {

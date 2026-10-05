@@ -62,10 +62,8 @@ public enum Severity
 /// or nothing was lost and there is a remark. Refusal unless stated.</param>
 /// <param name="Field">The document field at fault, where one is nameable — <c>doorHead.block</c>, <c>wings</c>.</param>
 /// <param name="Subjects">The ids the fault indicts, for an editor to highlight on click.</param>
-/// <param name="Cites">What to look up next, where this finding's own id is not it: the layout rule the fault
-/// falls under, or the <b>open task</b> that would resolve it. Kept apart from <paramref name="Rule"/> for the
-/// reason task ids are kept apart from rule ids everywhere — a rule is stable forever and a task id is a debt
-/// with a due date, and one field holding either would make the two indistinguishable to a reader.</param>
+/// <param name="Cites">The <b>open task</b> that would resolve this finding, where one owns its gap. Kept apart
+/// from <paramref name="Rule"/> because a rule is stable forever and a task id is a debt with a due date.</param>
 /// <param name="Edit">The change that would settle this finding, where the gate can state one in the
 /// document's own vocabulary — a ramp mark for a seam that steps, a bench under a house on falling ground, a
 /// prop moved out of a road's standoff. Absent where the fix is a decision rather than a mechanical

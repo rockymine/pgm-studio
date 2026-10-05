@@ -564,6 +564,20 @@ public static class PlanValidator
         LintZoneReach,
     ];
 
+    /// <summary>Ids as a finding names them: "'a'", "'a' and 'b'", "'a', 'b' and 'c'".</summary>
+    internal static string Quoted(IEnumerable<string> ids)
+    {
+        var quoted = ids.Select(id => $"'{id}'").ToList();
+        return quoted.Count <= 1 ? string.Concat(quoted) : $"{string.Join(", ", quoted[..^1])} and {quoted[^1]}";
+    }
+
+    /// <summary>A piece by its id, or the edge of the layout where a run reaches none.</summary>
+    private static string Named(string pieceId) => pieceId.Length > 0 ? $"'{pieceId}'" : "the edge of the layout";
+
+    /// <summary>The edge of a band a measured number broke: "less than 10 blocks", "more than 20 blocks".</summary>
+    private static string Beyond(int value, int low, int high) =>
+        value < low ? $"less than {low} blocks" : $"more than {high} blocks";
+
     private static Finding Lint(string rule, string msg, params string[] subjects) =>
         new(rule, msg, Severity.Complaint, Subjects: subjects.Length > 0 ? subjects : null);
 
@@ -614,8 +628,7 @@ public static class PlanValidator
         foreach (var c in d.Contacts)
             if (c.Kind == ContactKind.Corner && !SameComponent(comp, c.A, c.B))
                 yield return Lint(PlanRules.CornerContact,
-                    $"corner contact between separate areas: '{c.A}' and '{c.B}' touch at a point, not a "
-                    + "corridor (no land interface)", c.A, c.B);
+                    $"pieces '{c.A}' and '{c.B}' touch at a single point and share no edge", c.A, c.B);
     }
 
     // Map each piece id to its land component index (components join pieces via real land interfaces and
@@ -639,7 +652,7 @@ public static class PlanValidator
             var r = ContactGraph.ToBlock(z.Rect, d.Cell);
             var min = Math.Min(r.Width, r.Depth);
             if (min < ContactGraph.CorridorMin)
-                yield return Lint(LayoutRules.CorridorWidth, $"zone '{z.Id}' corridor width {min} < {ContactGraph.CorridorMin}", z.Id);
+                yield return Lint(LayoutRules.CorridorWidth, $"build region '{z.Id}' is {min} blocks across its shorter side, less than {ContactGraph.CorridorMin} blocks", z.Id);
         }
     }
 
@@ -650,9 +663,9 @@ public static class PlanValidator
         {
             if (g.Hop == 0) continue;   // abutting inside the zone — not a hop
             if (g.Hop < GapHopBand.MinHop)
-                yield return Lint(LayoutRules.VoidHop, $"gap hop {g.Hop} < {GapHopBand.MinHop} between '{g.A}' and '{g.B}'", g.A, g.B);
+                yield return Lint(LayoutRules.VoidHop, $"pieces '{g.A}' and '{g.B}' have a gap of {g.Hop} blocks between them, less than {GapHopBand.MinHop} blocks", g.A, g.B);
             else if (g.Hop > GapHopBand.MaxHop)
-                yield return Lint(LayoutRules.VoidHop, $"gap hop {g.Hop} > {GapHopBand.MaxHop} between '{g.A}' and '{g.B}'", g.A, g.B);
+                yield return Lint(LayoutRules.VoidHop, $"pieces '{g.A}' and '{g.B}' have a gap of {g.Hop} blocks between them, more than {GapHopBand.MaxHop} blocks", g.A, g.B);
         }
     }
 
@@ -669,7 +682,7 @@ public static class PlanValidator
             bool zAxis = r.Depth >= r.Width;
             double pos = zAxis ? bz : bx, mid = zAxis ? r.CenterZ : r.CenterX, center = 0;
             bool inBack = Math.Abs(pos - center) >= Math.Abs(mid - center);
-            if (!inBack) yield return Lint(LayoutRules.SpawnAtBack, $"spawn on '{s.Piece}' not near the back of its lane", s.Piece);
+            if (!inBack) yield return Lint(LayoutRules.SpawnAtBack, $"spawn '{s.Id}' at ({bx:0.#}, {bz:0.#}) stands in the half of room piece '{s.Piece}' closer to the symmetry centre", s.Piece);
         }
     }
 
@@ -682,10 +695,10 @@ public static class PlanValidator
         foreach (var z in plan.Zones)
         {
             var zr = ContactGraph.ToBlock(z.Rect, d.Cell);
-            var what = z.IsWaterLane ? "water lane" : "build zone";
+            var what = z.IsWaterLane ? "water lane" : "build region";
             foreach (var p in d.Pieces)
                 if (spawnPieces.Contains(p.Id) && Touches(p.Rect, zr))
-                    yield return Lint(LayoutRules.ZoneTouchesSpawn, $"{what} '{z.Id}' touches spawn piece '{p.Id}'", z.Id, p.Id);
+                    yield return Lint(LayoutRules.ZoneTouchesSpawn, $"{what} '{z.Id}' touches room piece '{p.Id}' of a spawn", z.Id, p.Id);
         }
     }
 
@@ -699,7 +712,7 @@ public static class PlanValidator
             var zr = ContactGraph.ToBlock(z.Rect, d.Cell);
             foreach (var p in d.Pieces)
                 if (PlanRoles.IsGenerating(p.Role) && Overlaps(p.Rect, zr))
-                    yield return Lint(LayoutRules.WaterLaneOverGround, $"water lane '{z.Id}' covers terrain piece '{p.Id}' — a lane opens void, and this part of it is already land", z.Id, p.Id);
+                    yield return Lint(LayoutRules.WaterLaneOverGround, $"water lane '{z.Id}' overlaps piece '{p.Id}' that makes ground", z.Id, p.Id);
         }
     }
 
@@ -725,8 +738,8 @@ public static class PlanValidator
             var delta = Math.Abs(a.Value.Surface - b.Value.Surface);
             if (delta < 2) continue;
             yield return Lint(LayoutRules.UnwalkableStep,
-                $"'{seam.A}'–'{seam.B}' steps {delta} blocks — a player does not walk up more than one, so "
-                + "this seam wants a ramp or a flight in the relief",
+                $"pieces '{seam.A}' and '{seam.B}' differ by {delta} blocks in height where they share an edge, "
+                + "more than 1 block",
                 RampEdit(seam, a.Value, b.Value), seam.A, seam.B);
         }
     }
@@ -756,8 +769,8 @@ public static class PlanValidator
                 RoomFrames.PlaceIron(markerX, markerZ, spawn.Rect).Placeable);
             if (!inside)
                 yield return Lint(LayoutRules.IronInSpawn,
-                    $"the iron cube at ({markerX:0},{markerZ:0}) does not stand inside a spawn piece, so it "
-                    + "is mined once rather than renewed", ir.Piece);
+                    $"iron '{ir.Id}' at ({markerX:0}, {markerZ:0}) has its {RoomFrames.IronSpan} by "
+                    + $"{RoomFrames.IronSpan} cube outside the room piece of every spawn", ir.Piece);
         }
     }
 
@@ -768,11 +781,11 @@ public static class PlanValidator
         foreach (var w in plan.Placements.Wools)
             if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, w.Footprint, [], out _)
                 is { Frame.Pad.Shifted: true })
-                yield return Lint(RoomFrameRules.PadClearance, $"wool pad on '{w.Piece}' shifted inward to keep wall clearance — the exported wool point moves with it", w.Piece);
+                yield return Lint(RoomFrameRules.PadClearance, $"wool '{w.Id}' on piece '{w.Piece}' has its pad moved inward to keep 1 block from the walls of its room", w.Piece);
         foreach (var s in plan.Placements.Spawns)
             if (ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, s.Footprint,
                 PieceDoors.ForSpawn(d, s.Piece, s.Facing), out _) is { Frame.Pad.Shifted: true })
-                yield return Lint(RoomFrameRules.PadClearance, $"spawn pad on '{s.Piece}' shifted inward to keep wall clearance — the exported spawn point moves with it", s.Piece);
+                yield return Lint(RoomFrameRules.PadClearance, $"spawn '{s.Id}' on piece '{s.Piece}' has its pad moved inward to keep 1 block from the walls of its room", s.Piece);
     }
 
     // WX8/WX9 — an iron marker that resolves unplaceable. Every marker on the board is checked, whether it
@@ -790,10 +803,9 @@ public static class PlanValidator
             if (room is null) continue;
             foreach (var iron in room.Iron.Where(i => !i.Placeable))
                 yield return Lint(RoomFrameRules.IronFit,
-                    $"iron at ({iron.MarkerX}, {iron.MarkerZ}) on '{s.Piece}' cannot be placed: the cube needs "
-                    + $"its {RoomFrames.IronSpan}×{RoomFrames.IronSpan} footprint inside the piece and "
-                    + $"{RoomFrames.IronGap} blocks of clear air to the shell, and the room keeps the "
-                    + "footprint it was given", s.Piece);
+                    $"iron at ({iron.MarkerX}, {iron.MarkerZ}) in the room of spawn '{s.Id}' has no place for its "
+                    + $"{RoomFrames.IronSpan} by {RoomFrames.IronSpan} cube inside piece '{s.Piece}' and at least "
+                    + $"{RoomFrames.IronGap} blocks from the room", s.Piece);
         }
 
         foreach (var ir in plan.Placements.Iron)
@@ -803,9 +815,8 @@ public static class PlanValidator
             var (markerX, markerZ) = PlanMarkers.Block(piece.Rect, ir.At);
             if (RoomFrames.PlaceIron(markerX, markerZ, piece.Rect).Placeable) continue;
             yield return Lint(RoomFrameRules.IronFit,
-                $"iron at ({markerX}, {markerZ}) on '{ir.Piece}' cannot be placed: its "
-                + $"{RoomFrames.IronSpan}×{RoomFrames.IronSpan} cube reaches outside the piece it stands on, "
-                + "so the export stamps nothing for it", ir.Piece);
+                $"iron '{ir.Id}' at ({markerX}, {markerZ}) has its {RoomFrames.IronSpan} by "
+                + $"{RoomFrames.IronSpan} cube reaching outside piece '{ir.Piece}'", ir.Piece);
         }
     }
 
@@ -831,8 +842,8 @@ public static class PlanValidator
                 var delta = Math.Abs(other.Value.Surface - piece.Value.Surface);
                 if (delta >= 2)
                     yield return Lint(LayoutRules.SpawnExitStep,
-                        $"spawn egress steps {delta} blocks at '{seam.A}'–'{seam.B}' — use 1-level steps or "
-                        + "a ramp against the spawn",
+                        $"spawn '{s.Id}' has its room piece '{s.Piece}' {delta} blocks above or below piece "
+                        + $"'{(seam.A == s.Piece ? seam.B : seam.A)}' ahead of its door, more than 1 block",
                         RampEdit(seam, piece.Value, other.Value), seam.A, seam.B);
             }
         }
@@ -867,8 +878,8 @@ public static class PlanValidator
                 if (delta < 2) continue;
                 var arrival = other.Value.Surface > room.Surface ? "drops" : "climbs";
                 yield return Lint(LayoutRules.WoolEntryStep,
-                    $"wool room approach {arrival} {delta} blocks at '{seam.A}'–'{seam.B}' — an attacker "
-                    + "arrives across it, so use 1-level steps or a ramp against the room", seam.A, seam.B);
+                    $"room piece '{roomId}' of a wool {arrival} {delta} blocks to piece "
+                    + $"'{(seam.A == roomId ? seam.B : seam.A)}' where they share an edge, more than 1 block", seam.A, seam.B);
             }
         }
     }
@@ -898,8 +909,8 @@ public static class PlanValidator
             { ahead++; x += dirX; z += dirZ; }
             if (ahead < minAhead)
                 yield return Lint(LayoutRules.SpawnDoorGround,
-                    $"spawn door on '{s.Piece}' faces void {ahead} blocks out — a door wants at least "
-                    + $"{minAhead} blocks of ground or bridgeable zone ahead", s.Piece);
+                    $"spawn '{s.Id}' on piece '{s.Piece}' has {ahead} blocks of ground ahead of its door, "
+                    + $"less than {minAhead} blocks", s.Piece);
         }
     }
 
@@ -925,8 +936,8 @@ public static class PlanValidator
 
             if (wall.Length < WallMouthMinBlocks || wall.Length > WallMouthMaxBlocks)
                 yield return Lint(LayoutRules.ApproachWallEdgeLength,
-                    $"approach wall '{wall.A}'–'{wall.B}' bars a {wall.Length}-block interface — "
-                    + $"a wall wants a {WallMouthMinBlocks}–{WallMouthMaxBlocks} block lane mouth", wall.A, wall.B);
+                    $"approach wall between pieces '{wall.A}' and '{wall.B}' bars a shared edge {wall.Length} "
+                    + "blocks long, " + Beyond(wall.Length, WallMouthMinBlocks, WallMouthMaxBlocks), wall.A, wall.B);
 
             // the entrance it defends: the nearest wool-room seam of either walled piece (an approach
             // touching two rooms defends the near one; the far room's distance means nothing). Only a wall
@@ -944,8 +955,8 @@ public static class PlanValidator
             }
             if (nearest is { } gap && (gap < WallStandoffMinBlocks || gap > WallStandoffMaxBlocks))
                 yield return Lint(LayoutRules.ApproachWallStandoff,
-                    $"approach wall '{wall.A}'–'{wall.B}' stands {gap} blocks from the wool room's "
-                    + "entrance — about 15 in front is the seat", wall.A, wall.B);
+                    $"approach wall between pieces '{wall.A}' and '{wall.B}' stands {gap} blocks from the wool "
+                    + "room's entrance, " + Beyond(gap, WallStandoffMinBlocks, WallStandoffMaxBlocks), wall.A, wall.B);
         }
     }
 
@@ -968,9 +979,8 @@ public static class PlanValidator
                 is not { Frame: var frame }) continue;
             if (frame.Width <= FootprintCap && frame.Depth <= FootprintCap) continue;
             yield return Lint(LayoutRules.BuildingFootprint,
-                $"the {kind} building on '{pieceId}' is {frame.Width}×{frame.Depth} blocks — a footprint is at "
-                + $"most {FootprintCap}×{FootprintCap}, which is a hall a player crosses "
-                + "rather than a field. State a smaller footprint on the placement", pieceId);
+                $"{kind} room on piece '{pieceId}' is {frame.Width} by {frame.Depth} blocks, more than "
+                + $"{FootprintCap} by {FootprintCap} blocks", pieceId);
         }
     }
 
@@ -986,9 +996,8 @@ public static class PlanValidator
                                    Math.Max(piece.Rect.Width, piece.Rect.Depth));
             if (across <= RegionCapAcross && along <= RegionCapAlong) continue;
             yield return Lint(LayoutRules.RoomRegionSize,
-                $"{piece.Role} piece '{piece.Id}' is {piece.Rect.Width}×{piece.Rect.Depth} blocks — a "
-                + $"protection region is at most {RegionCapAcross}×{RegionCapAlong}, in "
-                + "either orientation", piece.Id);
+                $"room piece '{piece.Id}' is {piece.Rect.Width} by {piece.Rect.Depth} blocks, more than "
+                + $"{RegionCapAcross} by {RegionCapAlong} blocks", piece.Id);
         }
     }
 
@@ -1022,9 +1031,7 @@ public static class PlanValidator
                          * (zones.Max(z => z.Rect.Z + z.Rect.Height) - zones.Min(z => z.Rect.Z));
             if (covered.Count == bboxArea)
                 yield return Lint(LayoutRules.StitchedZones,
-                    $"zones [{string.Join(", ", region.ZoneIds)}] stitch into one rectangular region — one "
-                    + "zone draws this crossing; several belong only where the region genuinely turns a "
-                    + "corner, or as separate regions (one per frontline leg, one flush zone per island)",
+                    $"build regions {Quoted(region.ZoneIds)} touch and together fill one rectangle",
                     [.. region.ZoneIds]);
         }
     }
@@ -1091,9 +1098,8 @@ public static class PlanValidator
         {
             if (face.FrontlineBlocks >= realCrossing && face.FrontlineShare < shareFloor)
                 yield return Lint(LayoutRules.FrontlineShare,
-                    $"piece '{face.Piece}' side {face.Side}: the zones turn {face.FrontlineBlocks} of its "
-                    + $"{face.ExposedBlocks} exposed blocks into frontline ({face.FrontlineShare:0.00}) — a "
-                    + "crossing wants to span the face it docks against, not funnel through a slice of it",
+                    $"piece '{face.Piece}' has front line along {face.FrontlineBlocks} of the {face.ExposedBlocks} "
+                    + $"blocks of its {face.Side} side facing void, less than a third",
                     face.Piece);
 
             // FR9 is the absolute floor FR8's share cannot see: a crossing narrow in blocks reads as a
@@ -1101,9 +1107,8 @@ public static class PlanValidator
             // share at 1.00. Only a face that has a frontline at all is asked.
             if (face.FrontlineBlocks > 0 && face.FrontlineBlocks < MinFrontlineBlocks)
                 yield return Lint(LayoutRules.MinimumFrontline,
-                    $"piece '{face.Piece}' side {face.Side}: a {face.FrontlineBlocks}-block frontline is "
-                    + $"under the {MinFrontlineBlocks} a crossing wants — players read a front that narrow "
-                    + "as a funnel rather than as somewhere to cross",
+                    $"piece '{face.Piece}' has {face.FrontlineBlocks} blocks of front line along its {face.Side} "
+                    + $"side, less than {MinFrontlineBlocks} blocks",
                     face.Piece);
         }
 
@@ -1139,16 +1144,9 @@ public static class PlanValidator
                 var pair = string.CompareOrdinal(run.From, run.To) <= 0 ? (run.From, run.To) : (run.To, run.From);
                 if (!reported.Add((pair.Item1, pair.Item2, crossing))) continue;
 
-                var what = beside.Count > 0
-                    ? $"the gap between '{run.From}' and '{run.To}'"
-                    : $"the {space.Kind} between '{run.From}' and '{run.To}'";
-                var wants = beside.Count == 0 ? "a hole wants"
-                    : exposed ? "a gap between a goal and the front wants" : "a gap between a goal and its own ground wants";
                 yield return Lint(LayoutRules.RoomGapWidth,
-                    $"{what} is {crossing} blocks across, under the {floor} {wants} — a "
-                    + "player towers at one edge and jumps it, and the approach the board is drawn around is "
-                    + $"not walked. Narrowest at cell ({run.X}, {run.Z}), running along "
-                    + (run.AlongX ? "x" : "z"),
+                    $"pieces {Named(run.From)} and {Named(run.To)} have a {(beside.Count > 0 ? "gap" : space.Kind)} "
+                    + $"{crossing} blocks across between them at cell ({run.X}, {run.Z}), less than {floor} blocks",
                     [.. new[] { run.From, run.To }.Where(name => name.Length > 0).Distinct()]);
             }
         }
@@ -1162,8 +1160,8 @@ public static class PlanValidator
                 if (!gap.Direct || gap.RoleA != "team" || gap.RoleB != "team") continue;
                 if (gap.Blocks is >= 15 and <= 40) continue;
                 yield return Lint(LayoutRules.TeamGapWidth,
-                    $"team islands [{string.Join(", ", gap.PiecesA)}] and [{string.Join(", ", gap.PiecesB)}] "
-                    + $"stand {gap.Blocks} blocks apart — the CTW strait wants 15–40",
+                    $"team sides of pieces {Quoted(gap.PiecesA)} and of pieces {Quoted(gap.PiecesB)} have a gap of "
+                    + $"{gap.Blocks} blocks between them, " + Beyond(gap.Blocks, 15, 40),
                     [.. gap.PiecesA.Concat(gap.PiecesB)]);
             }
     }
@@ -1209,11 +1207,9 @@ public static class PlanValidator
 
             var zones = region.Select(cell => zoneOf[cell]).Distinct().OrderBy(id => id, StringComparer.Ordinal).ToList();
             yield return Lint(LayoutRules.ZoneOverhang,
-                $"zone{(zones.Count > 1 ? "s" : "")} [{string.Join(", ", zones)}]: "
-                + $"{overhang.Count * plan.Globals.Cell} blocks of it reach past everything it docks — "
-                + $"{axis} {Runs(overhang, plan.Globals.Cell)} stand beyond the last ground the zone meets, so "
-                + "the crossing overhangs into void. A zone may cover part of a face and may span the mirrored "
-                + "images' corners; what it may not do is carry on past them",
+                $"build region{(zones.Count > 1 ? "s" : "")} {Quoted(zones)} {(zones.Count > 1 ? "run" : "runs")} "
+                + $"{overhang.Count * plan.Globals.Cell} blocks past the last piece {(zones.Count > 1 ? "they touch" : "it touches")}, "
+                + $"at {axis} {Runs(overhang, plan.Globals.Cell)}",
                 [.. zones]);
         }
     }

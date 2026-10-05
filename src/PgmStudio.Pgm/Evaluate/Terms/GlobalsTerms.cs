@@ -32,6 +32,11 @@ public sealed class FillRatio : SoftTerm
         double h = ground.Max(cell => cell.Item2) - ground.Min(cell => cell.Item2) + 1;
         return ground.Count / (w * h);
     }
+
+    public override MeasureUnit Unit => MeasureUnit.Percent;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"the layout's ground fills {value} of the rectangle around it";
 }
 
 /// <summary>CT8: the closure encloses internal void pockets — holes — as the player-rotation device, ~1 per team
@@ -44,6 +49,11 @@ public sealed class EnclosedVoidCount : SoftTerm
     public override string RuleId => LayoutRules.RotationHoles;
 
     public override double? Value(EvalContext ctx) => ctx.Board.Voids.Count;
+
+    public override MeasureUnit Unit => MeasureUnit.Count;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"the layout has {value} holes";
 }
 
 /// <summary>G5: every void gap a build region spans between two individual landmasses is a 10..20-block hop. The
@@ -96,6 +106,11 @@ public sealed class DeadShare : SoftTerm
 
     public override double? Value(EvalContext ctx) =>
         ctx.Flow.Gamemode == "none" || ctx.Flow.GroundBlocks == 0 ? null : ctx.Flow.DeadShare;
+
+    public override MeasureUnit Unit => MeasureUnit.Percent;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"the layout has {value} of its ground off every route between waypoints";
 }
 
 /// <summary>How much of the ground a defence crosses to reach an objective is ground the attack is already
@@ -119,4 +134,9 @@ public sealed class RouteInterference : SoftTerm
 
     public override double? Value(EvalContext ctx) =>
         ctx.Flow.Legs.Count == 0 ? null : ctx.Flow.Interference;
+
+    public override MeasureUnit Unit => MeasureUnit.Percent;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"the layout's attacking route covers {value} of its defending route, averaged over the objectives";
 }

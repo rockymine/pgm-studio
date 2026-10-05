@@ -38,12 +38,12 @@ the *Rule text audit* doc, *Format draft* tab). The order is the work's own: the
 nothing is reworded twice, the message helpers next so the rewording lands once per helper, then the text.
 Every rule fires as before; the tests and `--goldens` say so.
 
-- [ ] **RP112 — One message shape.** A finding message says the thing's kind and id, where, and the measured
-  number against its limit, in one sentence. The helpers that write most of them take that shape first:
-  `SoftTerm` (25 terms), `Decorator.Declined`, `PlanValidator.Lint`; a fix in prose becomes the finding's
-  `Edit` where one can be stated. The producibility check's 11 kebab-case ids become catalogued rules, and
-  its `Cites` of `G2`, `WL7`, `BZ9` and `ST1`, which measure something else, cite nothing or a rule of their
-  own. `docs/refusals.md`.
+- [ ] **RP119 — A plan check's fix as an edit.** Four plan checks state a fix a caller could apply without
+  deciding anything, and carry no `Edit`: `G2` (widen a build region's `rect` to 10 blocks across,
+  `PlanValidator.LintG2`), `SP9` (lengthen the piece or build region ahead of a spawn's door to 15 blocks,
+  `LintSp9`), `ST9` (set a room's `footprint` to at most 20 by 20, `LintSt9`) and `ST10` (shrink a room piece's
+  `rect` to at most 20 by 30, `LintSt10`). Each gains the `DocumentEdit` the way `RampEdit` gives `EL1` and `SP8`
+  theirs, and the plan tool's Checks panel offers it. `docs/refusals.md`.
 - [ ] **RP115 — Split the rules whose text leaves a check out.** Eight rules state only part of what they
   refuse, because the rest did not fit 35 words; each check left out becomes its own constant and text, raised
   where it is checked. `HS3` (roof material, `HouseStyleValidation.cs:736`–`:748`, against slab and stair cut

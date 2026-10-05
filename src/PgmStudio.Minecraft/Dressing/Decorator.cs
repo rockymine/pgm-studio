@@ -1841,7 +1841,7 @@ public static class Decorator
             if (!context.AllowsProp(ground.X, ground.Z))
             {
                 decline = Declined(ObjectiveRules.PropInClearance, id, kind,
-                    $"rests on ({ground.X}, {ground.Z}), inside a goal's clearance");
+                    $"rests on ({ground.X}, {ground.Z}), inside the clearance of an objective");
                 return false;
             }
             if (context.KeptClearAt(ground.X, ground.Z) is { } keptFor)
@@ -1859,7 +1859,7 @@ public static class Decorator
             if (routeStandoff > 0 && claims.NearerThan(ground.X, ground.Z, ClaimKind.Paving, routeStandoff) is { } road)
             {
                 decline = Declined(DressingRules.RoadStandoff, id, kind,
-                    $"rests on ({ground.X}, {ground.Z}), nearer than {routeStandoff} blocks to the road "
+                    $"rests on ({ground.X}, {ground.Z}), less than {routeStandoff} blocks from the road "
                     + $"at ({road.X}, {road.Z})") with { Edit = MovedOffRoad(id, anchor, ground, road, routeStandoff, claims) };
                 return false;
             }
@@ -1871,7 +1871,7 @@ public static class Decorator
             baseY = Math.Min(baseY, wades ? BedUnder(world, ground.X, top, ground.Z) : top);
         }
         if (baseY != int.MaxValue) return true;
-        decline = Declined(DressingRules.NoGround, id, kind, "rests on nothing: it has no cells at its own base");
+        decline = Declined(DressingRules.NoGround, id, kind, "has no cells at its base");
         return false;
     }
 
@@ -1919,21 +1919,21 @@ public static class Decorator
     // What the map is holding a cell for, as the decline's own words.
     private static string KeptFor(KeepOut keptFor) => keptFor switch
     {
-        KeepOut.Spawn => "which is kept clear for a spawn",
-        KeepOut.WoolRoom => "which is kept clear for a wool room",
-        KeepOut.Structure => "which is kept clear for a stated structure",
-        KeepOut.Approach => "which is kept clear as the approach in front of a door",
-        _ => "which is built ground rather than terrain",
+        KeepOut.Spawn => "a cell kept clear for a spawn",
+        KeepOut.WoolRoom => "a cell kept clear for a wool room",
+        KeepOut.Structure => "a cell kept clear for a structure",
+        KeepOut.Approach => "a cell kept clear in front of a door",
+        _ => "a cell of built ground",
     };
 
     // What already holds a cell, as the decline's own words: the kind of thing, and which one.
     private static string Claimant((ClaimKind Kind, string Owner)? claim) => claim is not { } held
-        ? "which is already claimed"
+        ? "a cell another prop claims"
         : held.Kind switch
         {
-            ClaimKind.Fluid => $"claimed by the channel '{held.Owner}'",
-            ClaimKind.Paving => $"claimed by the paving '{held.Owner}'",
-            ClaimKind.Structure => $"claimed by the building '{held.Owner}'",
-            _ => $"claimed by the prop '{held.Owner}'",
+            ClaimKind.Fluid => $"a cell fluid '{held.Owner}' claims",
+            ClaimKind.Paving => $"a cell road '{held.Owner}' claims",
+            ClaimKind.Structure => $"a cell building '{held.Owner}' claims",
+            _ => $"a cell prop '{held.Owner}' claims",
         };
 }

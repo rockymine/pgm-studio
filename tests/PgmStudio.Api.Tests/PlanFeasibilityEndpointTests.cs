@@ -52,7 +52,7 @@ public sealed class PlanFeasibilityEndpointTests
         var unit = body.GetProperty("unit").EnumerateArray().ToList();
         await Assert.That(unit).IsNotEmpty();
         await Assert.That(unit.All(f => !string.IsNullOrEmpty(f.GetProperty("cites").GetString()))).IsTrue();
-        await Assert.That(unit.Any(f => f.GetProperty("rule").GetString() == "seats-within-separation-gap")).IsTrue();
+        await Assert.That(unit.Any(f => f.GetProperty("rule").GetString() == PgmStudio.Pgm.Compose.BoxRules.SeatsTooClose)).IsTrue();
     }
 
     /// <summary>Everything a producibility read puts on the wire is a <b>complaint</b>, on both halves and on a

@@ -1012,6 +1012,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   things is two: `CT13`, `CT14`, `LN5`, `WL13` to `WL19`, `SP11`, `ST11` and `MD8`, 56 rules in all.
   `docs/generator/rules.md` is the argument behind them and is not served; where a ruling came from is not
   served either.
+- **Every finding's message names its thing and its number (`RP112`).** A soft term states its unit and names
+  the wool, spawn, objective or front line it measured, and `Measures` writes the value and the broken edge as
+  the rule text writes it ("wool 'w-far' has a walking distance of 61.5 blocks to the crossing, more than 50
+  blocks"). The 26 plan checks and the decorator's declines open with the thing's kind and id and give the
+  measured number against the limit, with no reason or fix in prose. The producibility read raises its own `BX1`
+  to `BX10` (a box room is `ST1`), and `Cites` names only an open task. `FindingMessageTests` holds the
+  helpers' messages to the shape, read out of the source.
 - **Every rule says the same thing the same way (`RP113`).** The 178 gate rules join the 56 layout rules in one
   format: a meaning in one of a closed set of shapes with its number, a fix that opens with one of sixteen verbs
   and names its field as one dotted path. `RuleTextTests` holds all 234 as `GET /api/rules` serves them to
