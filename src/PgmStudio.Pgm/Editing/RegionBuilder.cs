@@ -52,7 +52,7 @@ public static class RegionBuilder
                 double cx = F(Require(body, "center_x")), cz = F(Require(body, "center_z")), r = F(Require(body, "radius"));
                 return new Dict { ["id"] = regionId, ["type"] = "circle", ["center"] = new Dict { ["x"] = cx, ["z"] = cz }, ["radius"] = r, ["bounds_2d"] = Bounds(cx - r, cz - r, cx + r, cz + r) };
             }
-            default: throw EditException.Unreadable($"unsupported type '{type}'", "type");
+            default: throw EditException.Unreadable($"region type '{type}' is not one the studio reads", "type");
         }
     }
 
@@ -139,7 +139,7 @@ public static class RegionBuilder
     /// <c>RQ1</c> where it named none, so a type left short of a number says which one rather than building
     /// a region at the origin.</summary>
     private static object? Require(Dict coords, string key)
-        => coords.GetValueOrDefault(key) ?? throw EditException.Unreadable($"coords.{key} required", $"coords.{key}");
+        => coords.GetValueOrDefault(key) ?? throw EditException.Unreadable($"the request states no `coords.{key}`", $"coords.{key}");
 
     /// <summary>The value a coords body gave for a key, or null where it named none. An explicit
     /// <c>null</c> reads the same as an absent key: a number that is not there is one the patch leaves

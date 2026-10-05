@@ -45,15 +45,13 @@ internal static class Refusals
     /// <summary>
     /// A document that would not parse, answered the way every other refusal is.
     ///
-    /// <para>The reader's own sentence is the half an author can act on — <i>a part is stated as null, and
-    /// which one</i> rather than <i>invalid room style JSON</i> — so it rides in <c>message</c> and in an
-    /// <c>RQ1</c> finding like any other refusal, instead of being dropped with the exception.</para>
+    /// <para>The reader says which field it stopped at and what is wrong there, so that rides in an <c>RQ1</c>
+    /// finding in the one message shape (<see cref="JsonFaults"/>), its field the one it names, under
+    /// <paramref name="member"/> where the document is one member of the body.</para>
     /// </summary>
     public static Task UnreadableAsync(
-        HttpContext http, string error, Exception fault, CancellationToken ct) =>
-        WriteAsync(http, 400, error,
-            [new Finding(RequestRules.Unreadable, fault.Message,
-                Field: (fault as DocumentFault)?.Field)], ct);
+        HttpContext http, string error, Exception fault, CancellationToken ct, string? member = null)
+        => WriteAsync(http, 400, error, [JsonFaults.Said(RequestRules.Unreadable, fault, member)], ct);
 
     /// <summary>A body that is not a plan document, with the plan reader's own reason: empty, not JSON, or a
     /// field it cannot read, named.</summary>
@@ -90,24 +88,23 @@ internal static class Refusals
         return WriteAsync(http, 404, $"no such {what}",
             [new Finding(RequestRules.NoSuchSubject,
                 named is { Length: > 0 }
-                    ? $"no {what} is stored under '{named}'"
-                    : $"this route has no {what} to answer for")], ct);
+                    ? $"{what} '{named}' does not exist"
+                    : $"the path of the request names no {what}")], ct);
     }
 
-    /// <summary>The request conflicts with what is stored — a name already taken, a row something still
-    /// binds. 409, with the things in the way as the finding's subjects so a caller can act on them.</summary>
-    public static Task ConflictAsync(
+    /// <summary>The request deletes a library entry something still uses: 409, with the entries in the way
+    /// as the finding's subjects so a caller can act on them.</summary>
+    public static Task InUseAsync(
         HttpContext http, string error, string message, CancellationToken ct, IReadOnlyList<string>? holding = null) =>
         WriteAsync(http, 409, error,
-            [new Finding(RequestRules.Conflict, message, Subjects: holding)], ct);
+            [new Finding(RequestRules.InUse, message, Subjects: holding)], ct);
 
     /// <summary>A document the studio stored will not read back. 422, because it is data rather than a defect
     /// and writing the document again clears it.</summary>
     public static Task StoredUnreadableAsync(HttpContext http, string what, CancellationToken ct) =>
         WriteAsync(http, 422, $"stored {what} is unreadable",
             [new Finding(RequestRules.StoredUnreadable,
-                $"the {what} this map has stored will not read back — it was written under a shape no reader "
-                + "understands, so save it again from the tool that writes it")], ct);
+                $"the stored {what} of the map does not read back")], ct);
 
     /// <summary>The whole gate in one line: <c>if (await Refusals.StopAsync(…)) return;</c>. True when the
     /// findings refuse and the response has been written; false when there was nothing to stop for, complaints

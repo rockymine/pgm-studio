@@ -42,13 +42,12 @@ public static class ObjectivePlacement
 
         foreach (var goal in goals)
         {
-            var where = goal.On is { } on ? $" on '{on}'" : "";
-            var size = $"{goal.Footprint.Width}×{goal.Footprint.Depth}";
+            var where = goal.On is { } on ? $" on piece '{on}'" : "";
+            var size = $"{goal.Footprint.Width} by {goal.Footprint.Depth} blocks";
 
             if (!Grounded(goal.Footprint, isLand))
-                findings.Add(Refuse(
-                    $"{goal.Kind} '{goal.Id}'{where} is {size} and overhangs the void — the build slice denies "
-                    + "breaking blocks out there, so the goal could never be completed",
+                findings.Add(Misplaced(ObjectiveRules.Placement,
+                    $"{goal.Kind} '{goal.Id}'{where} is {size} and has void under part of it",
                     goal.Id, goal.On));
 
             // One room is enough to refuse; naming every frame a large goal happens to touch would repeat the
@@ -56,11 +55,9 @@ public static class ObjectivePlacement
             foreach (var room in keepOuts)
                 if (Overlaps(goal.Footprint, room.Frame))
                 {
-                    findings.Add(Refuse(
-                        $"{goal.Kind} '{goal.Id}'{where} is {size} and reaches into the {room.Kind} on "
-                        + $"'{room.Name}' — {(room.Kind == "spawn"
-                            ? "spawn protection denies breaking blocks to every team, so the goal could never be broken"
-                            : "the room's own rules would cover the goal")}",
+                    findings.Add(Misplaced(ObjectiveRules.GoalInARoom,
+                        $"{goal.Kind} '{goal.Id}'{where} is {size} and overlaps the "
+                        + $"{(room.Kind == "spawn" ? "spawn room" : room.Kind)} of '{room.Name}'",
                         goal.Id, goal.On, room.Name));
                     break;
                 }
@@ -88,6 +85,6 @@ public static class ObjectivePlacement
     /// <summary>The finding names the marker's own id ahead of the ground it stands on: a refusal that named
     /// only the piece is ambiguous the moment two goals share one, and the id is what makes the answer
     /// actionable to a caller that must then move one specific marker.</summary>
-    private static Finding Refuse(string message, params string?[] subjects) =>
-        new(ObjectiveRules.Placement, message, Subjects: [.. subjects.OfType<string>()]);
+    private static Finding Misplaced(string rule, string message, params string?[] subjects) =>
+        new(rule, message, Subjects: [.. subjects.OfType<string>()]);
 }

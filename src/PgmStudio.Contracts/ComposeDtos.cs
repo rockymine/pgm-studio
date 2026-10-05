@@ -28,7 +28,7 @@ public sealed record ComposeRequestDto(
 /// <summary>One fired soft term's contribution to a board's score (weight × distance), for the detail
 /// breakdown.</summary>
 /// <param name="TermId">Which term fired — the metric id a profile keys on.</param>
-/// <param name="RuleId">The <c>rules.md</c> id it scores, which is what to ask <c>GET /api/rules</c>
+/// <param name="RuleId">The layout rule it scores, which is what to ask <c>GET /api/rules</c>
 /// about.</param>
 /// <param name="Contribution">Weight × distance: how much of the board's score this term is.</param>
 public sealed record TermContribDto(string TermId, string RuleId, double Contribution);

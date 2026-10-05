@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft.Houses;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Tests;
 
@@ -84,13 +85,16 @@ public sealed class HouseStyleJsonNullPartTests
     }
 
     /// <summary>Beams are always present, and a building without them says so in the beams' own words — the
-    /// refusal names the block of -1 that does.</summary>
+    /// refusal proposes the block of -1 that does, as an edit setting the field.</summary>
     [Test]
-    public async Task Beams_stated_as_null_name_the_block_that_says_none()
+    public async Task Beams_stated_as_null_propose_the_block_that_says_none()
     {
         var fault = Assert.Throws<DocumentFault>(() => HouseStyleJson.Deserialize("{\"beams\":null}"));
 
-        await Assert.That(fault!.Message).Contains("{\"block\": -1}");
+        await Assert.That(fault!.Message).IsEqualTo("is stated as null");
+        await Assert.That(fault.Edit!.Path).IsEqualTo("beams");
+        await Assert.That(fault.Edit.Op).IsEqualTo(DocumentEdit.Set);
+        await Assert.That(fault.Edit.Value.GetRawText()).IsEqualTo("{\"block\":-1}");
     }
 
     /// <summary>An absent document and an empty one are the same fault to an author, and both have to arrive as

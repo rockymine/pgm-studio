@@ -39,32 +39,30 @@ public static class WorldFolderImport
         // is refused before it is joined onto the root.
         if (folder.Length == 0 || folder.Contains('/') || folder.Contains('\\') || folder.Contains(".."))
             return Refuse(400, "invalid folder", RequestRules.Unreadable,
-                "the world to import is named by one path segment under the imports root, with no separators "
-                + "and no '..'", "folder");
+                $"the request's `folder` is '{folder}', not one path segment under the imports root", "folder");
 
         var worldDir = Path.Combine(policy.Root, folder);
         var regionDir = Path.Combine(worldDir, "region");
         if (!Directory.Exists(regionDir))
             return Refuse(404, "no such world folder", RequestRules.NoSuchSubject,
-                $"no world folder named '{folder}' is under the imports root", "folder");
+                $"world folder '{folder}' is not under the imports root, or has no `region` folder", "folder");
 
         if (File.Exists(Path.Combine(worldDir, "map.xml")))
             return Refuse(422, "not a new-map candidate", ImportRules.AlreadyAMap,
-                $"'{folder}' carries a map.xml, so it is a map already rather than a world to originate one "
-                + "from", "folder");
+                $"world folder '{folder}' has a map.xml", "folder");
 
         if (!Directory.EnumerateFiles(regionDir, "*.mca").Any())
             return Refuse(422, "nothing to import", ImportRules.NoRegions,
-                $"'{folder}/region' carries no *.mca, so there is no world in it to read", "folder");
+                $"world folder '{folder}' has a `region` folder with no region file", "folder");
 
         var slug = Slugs.OfFolder(statedSlug ?? folder);
         if (slug.Length == 0)
             return Refuse(400, "no slug given", RequestRules.Unreadable,
-                "neither the stated slug nor the folder name leaves anything a slug can be made of", "slug");
+                "neither the request's `slug` nor its `folder` leaves anything a slug can be made of", "slug");
 
         if (await repo.GetBySlugAsync(slug, ct) is not null)
-            return Refuse(409, "slug already taken", RequestRules.Conflict,
-                $"a map is already stored under '{slug}' — state another with slug=", "slug");
+            return Refuse(409, "slug already taken", RequestRules.Taken,
+                $"map '{slug}' already exists", "slug");
 
         long? mapId = null;
         try
@@ -78,8 +76,7 @@ public static class WorldFolderImport
             if (mapId is { } id) { try { await repo.DeleteMapAsync(id, ct); } catch { /* best effort */ } }
             logger.LogError(fault, "import-folder failed for {Slug}", slug);
             return Refuse(500, "import failed", RequestRules.Unhandled,
-                "the import did not finish and what it had written has been rolled back — the fault is the "
-                + "studio's own and the detail is in the server log", field: null);
+                $"the import of world folder '{folder}' failed, and what it had written was rolled back", field: null);
         }
     }
 

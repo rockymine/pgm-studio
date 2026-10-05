@@ -34,8 +34,7 @@ internal sealed class MapReportEndpoint(MapRepository repo, MapReport report) : 
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
                 [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no world for the studio to build and "
-                    + "report on")], ct);
+                    "the map has no stored sketch layout")], ct);
             return;
         }
 

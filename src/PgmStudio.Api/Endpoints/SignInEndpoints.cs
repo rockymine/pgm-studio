@@ -18,7 +18,7 @@ internal static class SignIn
         if (DiscordSignIn.Configured(configuration)) return false;
         await Refusals.WriteAsync(http, 503, "sign-in unavailable",
             [new Finding(RequestRules.SignInUnavailable,
-                "this studio has no Discord application configured, so nobody can sign in to it")], ct);
+                "the studio has no Discord application")], ct);
         return true;
     }
 
@@ -78,7 +78,7 @@ public sealed class InviteFollowEndpoint(IConfiguration configuration, StudioUse
         {
             await Refusals.WriteAsync(HttpContext, 404, "no such invitation",
                 [new Finding(RequestRules.NoSuchSubject,
-                    "this invitation is not open — it was used, replaced or has lapsed; ask an admin for another")], ct);
+                    "the invitation in the path of the request is not open")], ct);
             return;
         }
         await Send.ResultAsync(SignIn.Challenge(HttpContext, code));
@@ -104,7 +104,7 @@ public sealed class DiscordCompleteEndpoint(StudioUserStore users) : EndpointWit
             || answered.Principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value is not { Length: > 0 } discordId)
         {
             await Refusals.WriteAsync(HttpContext, 401, "not signed in",
-                [new Finding(RequestRules.SignedOut, "Discord did not answer who is signing in; start again")], ct);
+                [new Finding(RequestRules.SignedOut, "the answer of Discord does not name who is signing in")], ct);
             return;
         }
 
@@ -113,8 +113,8 @@ public sealed class DiscordCompleteEndpoint(StudioUserStore users) : EndpointWit
         {
             await Refusals.WriteAsync(HttpContext, 403, "not permitted",
                 [new Finding(RequestRules.NotPermitted, invite is null
-                    ? "this Discord account signs in as nobody on the studio's whitelist; ask an admin for an invitation"
-                    : "this invitation is not open any more; ask an admin for another")], ct);
+                    ? "the Discord account that signed in is not on the studio's whitelist"
+                    : "the invitation the Discord account followed is not open")], ct);
             return;
         }
 

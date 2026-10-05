@@ -1,3 +1,5 @@
+using PgmStudio.Domain;
+
 namespace PgmStudio.Pgm.Evaluate.Terms;
 
 /// <summary>SP10: a spawn stands at least <see cref="MinBlocks"/> blocks <b>by the walk</b> from the front-front
@@ -11,14 +13,15 @@ public sealed class SpawnFrontFloor : ILayoutTerm
     public const int MinBlocks = 55;
 
     public string Id => "spawn-front-floor";
-    public string RuleId => "SP10";
+    public string RuleId => LayoutRules.SpawnFrontDistance;
     public TermKind Kind => TermKind.Hard;
 
     public TermScore Measure(EvalContext ctx)
     {
         var distances = Triangle.SpawnFrontDistances(ctx).Where(d => d is not null).Select(d => d!.Value).ToList();
         if (distances.Count == 0 || distances.Min() >= MinBlocks) return TermScores.Clean(this);
-        return TermScores.Violated(this, $"spawn↔band traversal {distances.Min():0} < {MinBlocks} blocks",
+        return TermScores.Violated(this, $"the walking distance from the nearest spawn to the crossing is {distances.Min():0} blocks, less than "
+            + $"{MinBlocks} blocks",
             ctx.Plan.Placements.Spawns.Select(s => s.Piece).Distinct().ToList(), []);
     }
 }
@@ -33,14 +36,15 @@ public sealed class WoolFrontFloor : ILayoutTerm
     public const int MinBlocks = 59;
 
     public string Id => "wool-front-floor";
-    public string RuleId => "WL10";
+    public string RuleId => LayoutRules.WoolFrontFloor;
     public TermKind Kind => TermKind.Hard;
 
     public TermScore Measure(EvalContext ctx)
     {
         var distances = Triangle.FrontDistances(ctx).Where(d => d is not null).Select(d => d!.Value).ToList();
         if (distances.Count == 0 || distances.Min() >= MinBlocks) return TermScores.Clean(this);
-        return TermScores.Violated(this, $"wool↔band traversal {distances.Min():0} < {MinBlocks} blocks",
+        return TermScores.Violated(this, $"the walking distance from the nearest wool to the crossing is {distances.Min():0} blocks, less than "
+            + $"{MinBlocks} blocks",
             ctx.Plan.Placements.Wools.Select(w => w.Piece).Distinct().ToList(), []);
     }
 }

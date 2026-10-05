@@ -75,10 +75,10 @@ public sealed class ProducibilityTests
         await Assert.That(reads.All(r => !r.IsProducible)).IsTrue();
 
         var hub = reads.First(r => r.Kind == PlanBoxKinds.Hub);
-        var narrow = hub.Findings.FirstOrDefault(f => f.Rule == "corridor-below-minimum");
+        var narrow = hub.Findings.FirstOrDefault(f => f.Rule == BoxRules.BoxTooNarrow);
         await Assert.That(narrow).IsNotNull();
-        await Assert.That(narrow!.Cites).IsEqualTo("G2");
-        await Assert.That(narrow.Message).Contains("1 cell");
+        await Assert.That(narrow!.Cites).IsNull().Because("the rule is the box's own, not a layout rule measuring something else");
+        await Assert.That(narrow.Message).Contains("is 1 cell across at its narrowest, less than 2 cells");
     }
 
     /// <summary>The unequal-wall ring: one wall a cell wider than the other three. The search reproduces it and
@@ -207,9 +207,9 @@ public sealed class ProducibilityTests
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-g-hub.plan.json"))!;
         var spawn = Producibility.Read(plan).First(r => r.Kind == PlanBoxKinds.Spawn);
-        var tooSmall = spawn.Findings.Where(f => f.Rule == "box-too-small").ToList();
+        var tooSmall = spawn.Findings.Where(f => f.Rule == BoxRules.BoxTooSmall).ToList();
         await Assert.That(tooSmall.Count).IsEqualTo(1);
-        await Assert.That(tooSmall[0].Message).Contains("2x2");
+        await Assert.That(tooSmall[0].Message).IsEqualTo("box 'spawn' is 2 by 2 cells, less than the 2 by 3 cells the smallest form fits");
         await Assert.That(spawn.Nearest).IsNull().Because("nothing emitted, so there is nothing to diff");
     }
 
@@ -219,7 +219,7 @@ public sealed class ProducibilityTests
         var plan = new PlanModel();
         plan.Boxes.Add(new PlanBox { Id = "b", Kind = PlanBoxKinds.Hub, Rect = new(0, 0, 4, 4) });
         var read = Producibility.Read(plan).Single();
-        await Assert.That(read.Findings.Any(f => f.Rule == "box-empty")).IsTrue();
+        await Assert.That(read.Findings.Any(f => f.Rule == BoxRules.BoxEmpty)).IsTrue();
         await Assert.That(read.IsProducible).IsFalse();
     }
 
@@ -241,9 +241,9 @@ public sealed class ProducibilityTests
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
         var unit = Producibility.ReadPlan(plan).Unit;
 
-        await Assert.That(unit.Any(f => f.Rule == "frontline-contact-patch-too-narrow")).IsFalse()
+        await Assert.That(unit.Any(f => f.Rule == BoxRules.FrontlinePatchNarrow)).IsFalse()
             .Because("the frontline meets the hub over plenty of cells; it just isn't the full edge");
-        await Assert.That(unit.Any(f => f.Rule == "front-hull-off-axis")).IsFalse()
+        await Assert.That(unit.Any(f => f.Rule == BoxRules.FrontOffAxis)).IsFalse()
             .Because("its front hull is symmetric about the axis — only the legs within it differ");
 
         // the frontline box itself is producible; the point is the arrangement does not block it
@@ -303,10 +303,9 @@ public sealed class ProducibilityTests
             p.Rect = new(p.Rect.X + 1, p.Rect.Z, p.Rect.Width, p.Rect.Height);
         box.Rect = new(box.Rect.X + 1, box.Rect.Z, box.Rect.Width, box.Rect.Height);
 
-        var thin = Producibility.ReadPlan(plan).Unit.FirstOrDefault(f => f.Rule == "frontline-shoulder-too-narrow");
+        var thin = Producibility.ReadPlan(plan).Unit.FirstOrDefault(f => f.Rule == BoxRules.FrontlinePatchNarrow);
         await Assert.That(thin).IsNotNull();
-        await Assert.That(thin!.Message).Contains("shoulder");
-        await Assert.That(thin.Message).Contains("2 patch(es)").Because("it still spans the bay — that is the point");
+        await Assert.That(thin!.Message).Contains("in 2 patches").Because("it still spans the bay — that is the point");
     }
 
     /// <summary>The relaxation has a bound: a front slid far enough off the axis makes the mid band reach past
@@ -319,9 +318,9 @@ public sealed class ProducibilityTests
         foreach (var p in plan.Pieces.Where(p => p.Id.StartsWith("frontline")))
             p.Rect = new(p.Rect.X + 8, p.Rect.Z, p.Rect.Width, p.Rect.Height);
 
-        var slack = Producibility.ReadPlan(plan).Unit.FirstOrDefault(f => f.Rule == "front-hull-off-axis");
+        var slack = Producibility.ReadPlan(plan).Unit.FirstOrDefault(f => f.Rule == BoxRules.FrontOffAxis);
         await Assert.That(slack).IsNotNull();
-        await Assert.That(slack!.Cites).IsEqualTo("BZ9");
+        await Assert.That(slack!.Cites).IsNull();
     }
 
     /// <summary>A box unbuildable on its own geometry AND a unit unbuildable in its arrangement are reported
@@ -345,14 +344,13 @@ public sealed class ProducibilityTests
         // a ring widened past the spread law: the shape is one the emitters build, the proportions are not one
         // the composer draws — the case that survives since the lawful widening reproduces
         var hub = Producibility.Read(HubPlan(BodyEmitter.Ring(new RingWalls(2, 6, 2, 2), 13, 7))).First();
-        var hubGap = hub.Findings.FirstOrDefault(f => f.Rule == "proportions-outside-the-parameter-space");
+        var hubGap = hub.Findings.FirstOrDefault(f => f.Rule == BoxRules.ProportionsOutOfReach);
         await Assert.That(hubGap).IsNotNull().Because("a Ring whose nearest miss is a Ring is a width gap");
         await Assert.That(hubGap!.Cites).IsEqualTo("G105");
-        await Assert.That(hubGap.Message).Contains("G129");
 
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
         var wool = Producibility.Read(plan).First(r => r.BoxId == "wool-a");
-        var woolGap = wool.Findings.FirstOrDefault(f => f.Rule == "proportions-outside-the-parameter-space");
+        var woolGap = wool.Findings.FirstOrDefault(f => f.Rule == BoxRules.ProportionsOutOfReach);
         await Assert.That(woolGap).IsNotNull();
         await Assert.That(woolGap!.Cites).IsEqualTo("G82").Because("an approach's width gap is the entry knob");
 
@@ -360,7 +358,7 @@ public sealed class ProducibilityTests
         var other = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-g-hub.plan.json"))!;
         var gHub = Producibility.Read(other).First(r => r.Kind == PlanBoxKinds.Hub);
         await Assert.That(gHub.Nearest!.Label).DoesNotContain("G(");
-        await Assert.That(gHub.Findings.Any(f => f.Rule == "proportions-outside-the-parameter-space")).IsFalse();
+        await Assert.That(gHub.Findings.Any(f => f.Rule == BoxRules.ProportionsOutOfReach)).IsFalse();
     }
 
     /// <summary>
@@ -399,8 +397,8 @@ public sealed class ProducibilityTests
         var spawn = moved.Pieces.First(p => p.Id == "spawn");
         spawn.Rect = new(spawn.Rect.X + 12, spawn.Rect.Z, spawn.Rect.Width, spawn.Rect.Height);
 
-        var before = Producibility.ReadPlan(plan).Unit.Count(f => f.Rule == "front-hull-off-axis");
-        var after = Producibility.ReadPlan(moved).Unit.Count(f => f.Rule == "front-hull-off-axis");
+        var before = Producibility.ReadPlan(plan).Unit.Count(f => f.Rule == BoxRules.FrontOffAxis);
+        var after = Producibility.ReadPlan(moved).Unit.Count(f => f.Rule == BoxRules.FrontOffAxis);
         await Assert.That(after).IsEqualTo(before);
     }
 
@@ -410,10 +408,9 @@ public sealed class ProducibilityTests
     public async Task Seat_separation_names_its_measurand_and_the_open_question()
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
-        var gap = Producibility.ReadPlan(plan).Unit.FirstOrDefault(f => f.Rule == "seats-within-separation-gap");
+        var gap = Producibility.ReadPlan(plan).Unit.FirstOrDefault(f => f.Rule == BoxRules.SeatsTooClose);
         await Assert.That(gap).IsNotNull();
-        await Assert.That(gap!.Cites).IsEqualTo("WL7");
-        await Assert.That(gap.Message).Contains("envelope");
-        await Assert.That(gap.Message).Contains("G124");
+        await Assert.That(gap!.Cites).IsEqualTo("G124").Because("what the law measures is the open question");
+        await Assert.That(gap.Message).Contains("stand less than 2 cells apart");
     }
 }

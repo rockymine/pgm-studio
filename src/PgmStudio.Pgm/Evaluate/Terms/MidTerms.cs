@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
@@ -9,10 +10,15 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class NeutralSteppingCount : SoftTerm
 {
     public override string Id => "neutral-stepping-count";
-    public override string RuleId => "CT4";
+    public override string RuleId => LayoutRules.SharedSteppingStones;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Board.SteppingKind.Count(k => k == "neutral") / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
+
+    public override MeasureUnit Unit => MeasureUnit.Count;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"each team has {value} stepping stones that both teams can reach";
 }
 
 /// <summary>CT4: a team's own captive movement stones — the transient-link pads on its internal spawn↔wool route
@@ -21,10 +27,15 @@ public sealed class NeutralSteppingCount : SoftTerm
 public sealed class TeamSteppingCount : SoftTerm
 {
     public override string Id => "team-stepping-count";
-    public override string RuleId => "CT4";
+    public override string RuleId => LayoutRules.TeamSteppingStones;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Board.SteppingKind.Count(k => k == "team") / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
+
+    public override MeasureUnit Unit => MeasureUnit.Count;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"each team has {value} stepping stones that only it can reach";
 }
 
 /// <summary>CT1: how many team↔team crossings the mid presents — the front-front build bands. One is the
@@ -34,9 +45,14 @@ public sealed class TeamSteppingCount : SoftTerm
 public sealed class BandCount : SoftTerm
 {
     public override string Id => "band-count";
-    public override string RuleId => "CT1";
+    public override string RuleId => LayoutRules.CrossingCount;
 
     public override double? Value(EvalContext ctx) => ctx.Board.Zones.Count(z => z.Kind == "front-front");
+
+    public override MeasureUnit Unit => MeasureUnit.Count;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"the layout has {value} build regions that join two team sides";
 }
 
 /// <summary>CT5: how much a team cuts its own side — the intra/self isolation cuts (a piece severed from its
@@ -45,10 +61,15 @@ public sealed class BandCount : SoftTerm
 public sealed class IsolationCutCount : SoftTerm
 {
     public override string Id => "isolation-cut-count";
-    public override string RuleId => "CT5";
+    public override string RuleId => LayoutRules.TeamSideCuts;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Board.Zones.Count(z => z.Kind is "intra" or "self") / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
+
+    public override MeasureUnit Unit => MeasureUnit.Count;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"each team side has {value} isolation cuts";
 }
 
 /// <summary>CT9: a split frontline encloses a contested middle void in the tip-gap, and that void must carry a
@@ -59,8 +80,13 @@ public sealed class IsolationCutCount : SoftTerm
 public sealed class UncrossedMiddleVoid : SoftTerm
 {
     public override string Id => "uncrossed-middle-void";
-    public override string RuleId => "CT9";
+    public override string RuleId => LayoutRules.UncrossedMiddleHole;
 
     public override double? Value(EvalContext ctx) =>
         ctx.Board.Voids.Count(v => v.Class == "middle" && v.CrossRoutes == 0);
+
+    public override MeasureUnit Unit => MeasureUnit.Count;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"the layout has {value} holes in the mid that no build region crosses";
 }

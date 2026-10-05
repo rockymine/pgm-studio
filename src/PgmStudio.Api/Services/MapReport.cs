@@ -496,7 +496,7 @@ internal sealed class MapReport(
     private async Task<List<MapReportPictureDto>> UnaskedAsync(List<Picture> named, CancellationToken ct)
     {
         var (set, reason) = named.Any(picture => picture.Eye is not null) ? await textures.GetAsync(ct) : (null, null);
-        var undrawable = set is null ? reason ?? "no block textures" : null;
+        var undrawable = set is null ? reason ?? "the studio has no block textures" : null;
         return [.. named.Select(picture =>
             new MapReportPictureDto(picture.Name, picture.Route, null, picture.Eye is null ? null : undrawable))];
     }
@@ -515,7 +515,7 @@ internal sealed class MapReport(
         if (set is null)
         {
             drawn.AddRange(eyes.Select(picture =>
-                new MapReportPictureDto(picture.Name, picture.Route, null, reason ?? "no block textures")));
+                new MapReportPictureDto(picture.Name, picture.Route, null, reason ?? "the studio has no block textures")));
             return drawn;
         }
         using (await EyeRenders.TurnAsync(ct))

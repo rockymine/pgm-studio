@@ -31,8 +31,7 @@ public sealed class ScanWorldEndpoint(MapRepository repo, WorldFeatureWriter wri
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world for this map",
                 [new Finding(RequestRules.NoSuchSubject,
-                    $"no world folder for '{slug}' under the configured maps roots, so there is nothing on "
-                    + "disk to read")], ct);
+                    $"map '{slug}' has no world folder under the configured maps roots")], ct);
             return;
         }
 

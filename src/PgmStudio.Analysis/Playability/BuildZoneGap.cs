@@ -73,16 +73,17 @@ public static class BuildZoneGap
             int minZ = patch.Min(c => c.Z), maxZ = patch.Max(c => c.Z);
             var width = patch.Max(cell => widest[cell]);
             findings.Add(new Finding(EditZoneRules.BuildZoneGap,
-                $"{patch.Count} void column(s) in x {minX}..{maxX}, z {minZ}..{maxZ} lie between standing ground "
-                + $"and the build zone, up to {width} wide, where the plan put ground — nobody may build across "
-                + "them, so from that coast the build zone is in sight and cannot be bridged to. Extend the build "
-                + $"zone over them by at least {width}, or add one across them; the coast edit stays",
+                $"the void between a coast and a build region at x between {minX} and {maxX}, "
+                + $"z between {minZ} and {maxZ} is up to {width} blocks wide across "
+                + $"{Wording.Count(patch.Count, "column", "columns")}, less than {Reach} blocks",
                 Severity.Complaint, Subjects: [$"{minX},{minZ}"]));
         }
         if (patches.Count > MostReported)
             findings.Add(new Finding(EditZoneRules.BuildZoneGap,
-                $"and {patches.Count - MostReported} further gap(s) between ground and the build zone, "
-                + $"{patches.Skip(MostReported).Sum(patch => patch.Count)} column(s) between them",
+                $"the layout has {Wording.Count(patches.Count - MostReported, "further void", "further voids")} "
+                + "between a coast and a build region, across "
+                + $"{Wording.Count(patches.Skip(MostReported).Sum(patch => patch.Count), "column", "columns")}, "
+                + $"each less than {Reach} blocks wide",
                 Severity.Complaint));
         return findings;
     }

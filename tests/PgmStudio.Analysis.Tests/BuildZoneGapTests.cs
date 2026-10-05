@@ -45,7 +45,7 @@ public sealed class BuildZoneGapTests
 
         await Assert.That(gaps.Count).IsEqualTo(1);
         await Assert.That(gaps[0].Rule).IsEqualTo(EditZoneRules.BuildZoneGap);
-        await Assert.That(gaps[0].Message).Contains("24 void column(s) in x 7..9, z 0..7").And.Contains("up to 3 wide");
+        await Assert.That(gaps[0].Message).Contains("at x between 7 and 9, z between 0 and 7").And.Contains("up to 3 blocks wide across 24 columns");
     }
 
     [Test]

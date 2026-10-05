@@ -238,12 +238,12 @@ public sealed class ScalarOrArrayJsonConverter : JsonConverter<double[]?>
     {
         if (reader.TokenType == JsonTokenType.Null) return null;
         if (reader.TokenType == JsonTokenType.Number) return [reader.GetDouble()];
-        if (reader.TokenType != JsonTokenType.StartArray) throw new JsonException("expected a number or an array");
+        if (reader.TokenType != JsonTokenType.StartArray) throw new JsonException("is not a number or a list of numbers");
 
         var values = new List<double>();
         while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
         {
-            if (reader.TokenType != JsonTokenType.Number) throw new JsonException("expected a number");
+            if (reader.TokenType != JsonTokenType.Number) throw new JsonException("is not a number");
             values.Add(reader.GetDouble());
         }
         return [.. values];

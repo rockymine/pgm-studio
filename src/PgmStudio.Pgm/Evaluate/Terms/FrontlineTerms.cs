@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
@@ -9,7 +10,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class FrontlineCount : SoftTerm
 {
     public override string Id => "frontline-count";
-    public override string RuleId => "FR4";
+    public override string RuleId => LayoutRules.FrontlineFaceCount;
 
     public override double? Value(EvalContext ctx)
     {
@@ -17,6 +18,11 @@ public sealed class FrontlineCount : SoftTerm
         if (runs.Count == 0) return null;
         return runs.Count / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
     }
+
+    public override MeasureUnit Unit => MeasureUnit.Count;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"each team has {value} front lines";
 }
 
 /// <summary>FR6: the width of a team's broadest frontline face, in cells — the wide-vs-split axis. A wide front
@@ -30,7 +36,7 @@ public sealed class FrontlineCount : SoftTerm
 public sealed class FrontlineWidth : SoftTerm
 {
     public override string Id => "frontline-width";
-    public override string RuleId => "FR6";
+    public override string RuleId => LayoutRules.FrontlineFaceWidth;
 
     public override double? Value(EvalContext ctx)
     {
@@ -40,5 +46,13 @@ public sealed class FrontlineWidth : SoftTerm
         var runs = ctx.Board.FrontlineRuns;
         if (runs.Count == 0) return null;
         return runs.Max(r => r.Width);
+    }
+
+    public override MeasureUnit Unit => MeasureUnit.Cells;
+
+    protected override string Reads(EvalContext ctx, string value)
+    {
+        var run = ctx.Board.FrontlineRuns.MaxBy(r => r.Width);
+        return $"the front line from cell ({run.X1}, {run.Z1}) to cell ({run.X2}, {run.Z2}) is {value} wide";
     }
 }

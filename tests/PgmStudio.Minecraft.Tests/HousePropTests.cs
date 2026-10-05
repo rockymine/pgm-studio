@@ -282,7 +282,7 @@ public sealed class HousePropTests
         await Assert.That(blocked.Houses).IsEqualTo(0);
         var decline = blocked.Declines.Single();
         await Assert.That(decline.Rule).IsEqualTo(DressingRules.KeptClear);
-        await Assert.That(decline.Message).Contains("approach in front of a door");
+        await Assert.That(decline.Message).Contains("kept clear in front of a door");
         await Assert.That(decline.SubjectIds).IsEquivalentTo(new[] { "h1" });
     }
 

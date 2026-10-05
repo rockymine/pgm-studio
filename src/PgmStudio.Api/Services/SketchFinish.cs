@@ -49,7 +49,7 @@ public static class SketchFinish
         var data = await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct);
         if (data is null)
             return Refuse(422, "nothing to finish", new Finding(SketchRules.NothingStored,
-                "this map has no stored sketch layout, so there is no drawing to rasterize"));
+                "the map has no stored sketch layout"));
 
         var prepared = Prepare(Encoding.UTF8.GetString(data), await artifacts.LoadAsync(mapId, ArtifactKind.PlanJson, ct));
         return await WriteAsync(mapId, prepared, revision, repo, writer, ct);
@@ -68,7 +68,7 @@ public static class SketchFinish
         var islands = IslandDetector.Detect(cells.Select(cell => (cell.X, cell.Z)), minIslandSize: 1);
         if (islands.Count == 0)
             return Refused(Refusal.At(422, "nothing is drawn", new Finding(SketchRules.NothingDrawn,
-                "the stored layout rasterizes to no ground at all — draw a shape that encloses some")));
+                "the stored layout has no shape that draws ground")));
         return new(null, cells, islands, checkedBoard);
 
         static SketchPrepared Refused(Refusal refusal) => new(refusal, [], [], Findings.None);

@@ -158,6 +158,6 @@ public sealed class SketchStackedGroundTests
 
         var detached = findings.Single(finding => finding.Rule == SketchRules.MassUnreached);
         await Assert.That(detached.Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(detached.Message).Contains("@65");
+        await Assert.That(detached.Message).Contains("at (4, 65, 4)");
     }
 }

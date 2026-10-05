@@ -385,12 +385,18 @@ public sealed class AccessTests
         using var owner = InvitedFactory.As(Owner);
         var slug = await OriginateAsync(owner, "Weirgate");
 
-        using var member = await owner.DeleteAsync("/api/themes/1");
+        // A row of the test's own: the library the host seeds on start is the seed folder's, which nobody
+        // removes, and whether it is there depends on which test started the host.
+        using var admin = InvitedFactory.As(Admin);
+        var row = await (await admin.PostAsJsonAsync("/api/themes",
+            new ThemeSaveRequest("Weir night", false, 1, RimEdgeModes.Drop, true, [])))
+            .Content.ReadFromJsonAsync<ThemeDetail>();
+
+        using var member = await owner.DeleteAsync($"/api/themes/{row!.Id}");
         await AssertRefusedAsync(member, HttpStatusCode.Forbidden, "RQ8");
 
         // An admin named in Access:Admins needs no whitelist row, and is past the gate.
-        using var admin = InvitedFactory.As(Admin);
-        using var library = await admin.DeleteAsync("/api/themes/1");
+        using var library = await admin.DeleteAsync($"/api/themes/{row.Id}");
         await Assert.That(library.IsSuccessStatusCode).IsTrue().Because(await library.Content.ReadAsStringAsync());
         using var map = await admin.DeleteAsync($"/api/map/{slug}");
         await Assert.That(map.IsSuccessStatusCode).IsTrue().Because(await map.Content.ReadAsStringAsync());

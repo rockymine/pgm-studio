@@ -32,7 +32,7 @@ const layoutWords = await page.locator(".rules-row-act").allTextContents();
 checks.add("Layout shows only layout rules", layoutWords.length > 0 && layoutWords.every((word) => word === "Layout rule"),
   [...new Set(layoutWords)].join(", "));
 await page.locator(".rules-seg button", { hasText: "All" }).click();
-await page.fill('.rules-rail input[type="search"]', "WL2");
+await page.fill('.rules-rail input[type="search"]', "WL19");
 const count = ((await page.locator(".rules-count").textContent()) ?? "").trim();
 checks.add("a search says how many of all it shows", count.startsWith("1 of"), count);
 

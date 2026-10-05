@@ -269,7 +269,7 @@ asking.
 refuse, a refinement that refuses, a style or theme the gate refuses, a person nobody could be called and a
 drawing the finish would refuse are each decided from the source alone, so a refused reload leaves the board it
 would have replaced. Only then are the four documents stored as **one change** on the slug's history, numbered
-above every change the slug has answered. A browser tab that read the old board is therefore refused `RQ5` when
+above every change the slug has answered. A browser tab that read the old board is therefore refused `RQ13` when
 it saves, rather than writing it back over the new one (`docs/refusals.md`).
 
 **A source says where it was built and why.** It may state its `origin` — `{repo, commit, path, dirty}`, where
@@ -535,7 +535,7 @@ a new map through them means writing every region, filter and apply-rule by hand
 | `POST /map/{slug}/regions/{regionId}/counterpart` · `/orbit` | mirror a region onto the other team, or round the orbit |
 | `GET /map/{slug}/xml` | the rendered `map.xml` |
 
-**Their failures run through one path, so their codes are uniform.** **400** (`RQ1`, `ED1`, `ED2`) is a payload
+**Their failures run through one path, so their codes are uniform.** **400** (`RQ1`, `ED1` to `ED4`) is a payload
 the document will not take, **404** (`RQ4`) an unknown map, region, team, wool, monument, spawn, filter or
 apply-rule, and **409** (`RQ5`) an id already in use, with the id holding the name in the finding's
 `subjects`. Payload validation runs before the lookup, so a malformed body aimed at something that does not
@@ -546,7 +546,7 @@ is there at all.
 
 **Two editors on one map keep only the second, unless they state a revision.** Every write rewrites the whole
 document, so any of them may state the revision `GET /map/{slug}` answered as an `If-Match`; one naming a
-revision the map is no longer at is refused as `RQ5`, and one stating nothing writes as it always did.
+revision the map is no longer at is refused as `RQ13`, and one stating nothing writes as it always did.
 `docs/refusals.md` carries the rule.
 
 **Their bodies and answers are declared.** The request records are `Contracts/EditRequests.cs` and the answer
@@ -620,8 +620,8 @@ once rather than one per round trip. `docs/refusals.md` has the envelope.
 One document outside this folder carries the rest: `docs/generator/model.md` is the canonical model of
 layout generation and governs on any disagreement about it. What the system can be **asked** for is not a
 document at all — `/api/openapi/v1.json` names every route with its body and its failure codes,
-`GET /api/rules` names every refusal with its fix, and `GET /api/map/{slug}/state` names the moves one map
-has open.
+`GET /api/rules` names every refusal with its fix, `GET /api/glossary` defines every word those use, and
+`GET /api/map/{slug}/state` names the moves one map has open.
 
 `docs/gameplay/approaches.md` answers the question neither of those can: what the ground around an objective
 does to a match, and therefore what a board should be composed *for*. It is kept separate because every claim

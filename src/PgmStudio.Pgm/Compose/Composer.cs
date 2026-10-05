@@ -89,7 +89,7 @@ public static class Composer
             {
                 rejects?.Reject(new RejectRecord(
                     request.Seed, request.PlayersPerTeam, request.Teams, request.Symmetry, attempt, "spend",
-                    "spend", "G8", [$"built {built:F0} of {envelope.UnitBudgetCells:F0} cells"]));
+                    "spend", LayoutRules.LayoutFill, [$"built {built:F0} of {envelope.UnitBudgetCells:F0} cells"]));
                 continue;
             }
 

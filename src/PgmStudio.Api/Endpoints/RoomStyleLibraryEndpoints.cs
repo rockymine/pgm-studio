@@ -131,7 +131,7 @@ public sealed class RoomDoorListEndpoint : EndpointWithoutRequest<List<DoorOptio
 /// <see cref="HouseBlockKinds"/> in <c>PgmStudio.Minecraft</c>, which neither the client nor an agent can
 /// reach, and it is the very table <c>HS1</c> refuses from — so a block offered here is a block the gate
 /// accepts, and the sentence a field carries is the sentence the refusal names it with. Without it the only
-/// way to learn that <c>doorHead.block</c> wants a stair is to be refused one.</para></summary>
+/// way to learn that <c>doorway.head.block</c> wants a stair is to be refused one.</para></summary>
 public sealed class HouseBlockKindsEndpoint : EndpointWithoutRequest<HouseBlockKindsDto>
 {
     public override void Configure() { Get("/room-styles/block-kinds"); }
@@ -164,7 +164,7 @@ public sealed class RoomStyleGetEndpoint(RoomStyleStore store) : EndpointWithout
     {
         var id = Route<long>("id");
         var row = await store.GetAsync(id, ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "room style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "house", ct); return; }
         await Send.OkAsync(RoomStyleMapping.ToDetail(
             row, await store.GetCoursesAsync(id, ct), await store.GetStoreysAsync(id, ct)), ct);
     }
@@ -217,7 +217,7 @@ public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store, RoomStyleLibra
         var updated = await store.UpdateAsync(
             id, RoomStyleLibrary.RowOf(req), RoomStyleLibrary.CourseRowsOf(req),
             RoomStyleLibrary.StoreyRowsOf(req), ct);
-        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "room style", ct); return; }
+        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "house", ct); return; }
         await Send.OkAsync(RoomStyleMapping.ToDetail(id, req), ct);
     }
 }
@@ -250,7 +250,7 @@ public sealed class RoomStyleJsonEndpoint(RoomStyleLibrary library) : EndpointWi
     public override async Task HandleAsync(CancellationToken ct)
     {
         var style = await library.ComposeAsync(Route<long>("id"), ct);
-        if (style is null) { await Refusals.NotFoundAsync(HttpContext, "room style", ct); return; }
+        if (style is null) { await Refusals.NotFoundAsync(HttpContext, "house", ct); return; }
         await Send.OkAsync(new StyleJsonDto(HouseStyleJson.Serialize(style)), ct);
     }
 }

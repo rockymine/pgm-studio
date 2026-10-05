@@ -31,7 +31,7 @@ public sealed record HouseBlockOption(int Id, int Data, string Name, string Mate
 /// <para><b>A field naming a block for a geometric role gets nothing it can use from a block of another
 /// role.</b> A door head turns two corners by a stair's own facing, a slab band raises half a cube for a
 /// sill, a beam is the end of a floor timber — so a stair id under <c>roofSlab</c> or a slab under
-/// <c>doorHead.block</c> builds something the form is not named for, which is what <c>HS1</c> refuses. This
+/// <c>doorway.head.block</c> builds something the form is not named for, which is what <c>HS1</c> refuses. This
 /// is the catalogue an author reads instead of finding out by being refused: the fields, the kind each takes,
 /// and every id of that kind with the material it is cut from.</para>
 ///
@@ -43,14 +43,14 @@ public static class HouseBlockKinds
 {
     /// <summary>The head's corner stair. Present whenever the head states a form other than none.</summary>
     public static readonly HouseBlockField DoorHeadBlock = new(
-        "doorHead.block", BlockKinds.Stair, null,
+        "doorway.head.block", BlockKinds.Stair, null,
         "An arched head turns its two corners by a stair's own facing; anything else lays a solid lintel "
         + "across the doorway instead of an arch.",
         []);
 
     /// <summary>The half-cube between the head's corners.</summary>
     public static readonly HouseBlockField DoorHeadFill = new(
-        "doorHead.fillBlock", BlockKinds.Slab, "fill: upperSlab",
+        "doorway.head.fillBlock", BlockKinds.Slab, "fill: upperSlab",
         "The fill raises half of its own cube to read as one line with the corners; a block without a half — "
         + "a double slab included — reads as a full cube instead.",
         []);
@@ -71,14 +71,14 @@ public static class HouseBlockKinds
 
     /// <summary>The roof's half course.</summary>
     public static readonly HouseBlockField RoofSlab = new(
-        "roofSlab", BlockKinds.Slab, null,
+        "roof.slab", BlockKinds.Slab, null,
         "A half-course roof steps in the slab's own half on every odd course; anything else — a double slab "
         + "included — comes out a full cube and the slope stops climbing by halves.",
         []);
 
     /// <summary>The stair a roof laid in whole courses steps in.</summary>
     public static readonly HouseBlockField RoofStair = new(
-        "roofStair", BlockKinds.Stair, null,
+        "roof.stair", BlockKinds.Stair, null,
         "A stair roof lays the stair on every column climbing toward the ridge, and hangs it upside down under "
         + "the rake; anything else lays a cube there and the slope steps in blocks.",
         []);

@@ -12,13 +12,19 @@ public static class MapDocuments
 
     /// <summary>The four, in the order a map is stated in them.</summary>
     public static readonly string[] All = [Plan, Refinement, Layout, Intent];
+
+    /// <summary>What an edit names when its change lands on the request a refusal answered rather than on a
+    /// document: a route or query parameter the request is sent again with. Not one of <see cref="All"/>,
+    /// since the studio keeps no request.</summary>
+    public const string Request = "request";
 }
 
 /// <summary>
 /// One mechanical change to one of the four documents at one path: a change a gate states as a finding's fix,
 /// or one that landed between two of a map's changes.
 ///
-/// <para><b>Document</b> names which of the four the path is into (<see cref="MapDocuments"/>). <b>Path</b> is
+/// <para><b>Document</b> names which of the four the path is into (<see cref="MapDocuments"/>), or the request
+/// itself (<see cref="MapDocuments.Request"/>) where the change is a parameter to send it again with. <b>Path</b> is
 /// the field the change lands on, spelled the way an unread field is (<c>relief.team.marks</c>,
 /// <c>dressing.props[erratic-broken]</c>): members joined by dots, an array element by its <c>id</c> in brackets
 /// where the element carries one and by its index otherwise. <b>Op</b> is one of four: <c>add</c> appends
@@ -26,9 +32,11 @@ public static class MapDocuments
 /// sets the <c>x</c> and <c>z</c> the value carries on the object at the path; <c>remove</c> takes away what the
 /// path names, and its value is <c>null</c>. <b>Before</b> is what the path held, carried by an edit that
 /// landed and absent from one a gate proposes. <b>Says</b> is the change in the author's terms, one
-/// sentence.</para>
+/// sentence: a landed edit in the past tense, a proposed one opening with its own verb and stating its
+/// value.</para>
 /// </summary>
-/// <param name="Document">Which document: <c>plan</c>, <c>refinement</c>, <c>layout</c> or <c>intent</c>.</param>
+/// <param name="Document">Which document: <c>plan</c>, <c>refinement</c>, <c>layout</c> or <c>intent</c>, or
+/// <c>request</c>.</param>
 /// <param name="Path">Where in it the change lands.</param>
 /// <param name="Op"><c>add</c>, <c>set</c>, <c>move</c> or <c>remove</c>.</param>
 /// <param name="Value">What is added, set or moved to, as the document would carry it.</param>

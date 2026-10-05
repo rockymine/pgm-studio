@@ -26,11 +26,9 @@ internal sealed record EyeAim(
         var from = Pair(word, "from");
         var eye = Triple(word, "eye");
         if (eye is not null && (look is not null || from is not null))
-            throw new ArgumentException("`eye=x,y,z` stands the camera whole, facing `yaw` and `pitch` — it takes "
-                + "neither `look` nor `from`");
+            throw new ArgumentException("the request states `eye` together with `look` or `from`");
         if (look is null && from is null && eye is null)
-            throw new ArgumentException("name `look=x,z` for the eye to find a place to see it from, `from=x,z` "
-                + "for where it stands, or `eye=x,y,z` for exactly where");
+            throw new ArgumentException("the request states no `look`, `from` or `eye`");
         return new EyeAim(look, from, eye, Number(word, "y"), Heading.Wrap(Number(word, "yaw") ?? 0), Number(word, "pitch"),
             Math.Clamp(Number(word, "fov") ?? 70, 30, 110),
             Math.Clamp(Whole(word, "width") ?? 960, 160, 1920),
@@ -45,11 +43,9 @@ internal sealed record EyeAim(
     /// <summary>Why this aim can find no camera, for the 422 that says so.</summary>
     public string Empty => (Look, From) switch
     {
-        ({ } seen, null) => $"no place within reach of {seen.X},{seen.Z} sees it with nothing in the way — "
-            + "stand the eye yourself with `from`",
-        (null, { } stand) => $"there is no ground to stand on at {stand.X},{stand.Z}; give `y` to stand the "
-            + "eye in the air",
-        _ => "nothing to draw",
+        ({ } seen, null) => $"no place within reach of ({seen.X}, {seen.Z}) sees it with nothing in the way",
+        (null, { } stand) => $"column ({stand.X}, {stand.Z}) has no ground to stand on",
+        _ => "the aim places no camera",
     };
 
     /// <summary>The camera this aim makes of <paramref name="scene"/>, and a line saying how it was aimed; null
@@ -85,7 +81,7 @@ internal sealed record EyeAim(
             && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
             && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var z))
             return ((int)Math.Floor(x), (int)Math.Floor(z));
-        throw new ArgumentException($"`{name}` is `x,z`, and '{asked}' is not");
+        throw new ArgumentException($"`{name}` '{asked}' is not two numbers");
     }
 
     private static (double X, double Y, double Z)? Triple(Func<string, string?> word, string name)
@@ -98,20 +94,20 @@ internal sealed record EyeAim(
             && double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var z)
             && double.IsFinite(x + y + z))
             return (x, y, z);
-        throw new ArgumentException($"`{name}` is `x,y,z`, and '{asked}' is not");
+        throw new ArgumentException($"`{name}` '{asked}' is not three numbers");
     }
 
     private static double? Number(Func<string, string?> word, string name) =>
         word(name) is { Length: > 0 } asked
             ? double.TryParse(asked, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value)
                 ? value
-                : throw new ArgumentException($"`{name}` is a number, and '{asked}' is not")
+                : throw new ArgumentException($"`{name}` '{asked}' is not a number")
             : null;
 
     private static int? Whole(Func<string, string?> word, string name) =>
         word(name) is { Length: > 0 } asked
             ? int.TryParse(asked, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
                 ? value
-                : throw new ArgumentException($"`{name}` is a whole number, and '{asked}' is not")
+                : throw new ArgumentException($"`{name}` '{asked}' is not a whole number")
             : null;
 }

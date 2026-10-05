@@ -73,7 +73,7 @@ public sealed class SketchRoomStyleWriteEndpoint(MapRepository repo, MapArtifact
         if (!SketchFinishWrite.RoomParts.Contains(part, StringComparer.Ordinal))
         {
             await Refusals.UnreadableAsync(HttpContext, "unknown room part",
-                $"a map binds a shell for {string.Join(" and ", SketchFinishWrite.RoomParts)}, and nothing else.",
+                $"the request names a room part other than {string.Join(" and ", SketchFinishWrite.RoomParts)}",
                 ct, field: "part");
             return;
         }
@@ -83,8 +83,7 @@ public sealed class SketchRoomStyleWriteEndpoint(MapRepository repo, MapArtifact
         if (!stated.Readable)
         {
             await Refusals.UnreadableAsync(HttpContext, "malformed room style",
-                "the body is not a house style. Post `null` to ask for open ground, or DELETE the binding to "
-                + "go back to the built-in shell.", ct, field: $"roomStyles.{part}");
+                "the request's body is not a house, or `null` for open ground", ct, field: $"roomStyles.{part}");
             return;
         }
         if (stated.Node is not null)
@@ -148,8 +147,7 @@ public sealed class SketchBiomeReadEndpoint(MapRepository repo, MapArtifactStore
         if (field is null)
         {
             await Refusals.UnreadableAsync(HttpContext, "unreadable biome",
-                "the stored field does not read as a biome: it states no `kind`, or one that is not "
-                + "`solid`, `cell` or `noise`.", ct, field: "biome");
+                "the stored biome field states no `kind` that is one of `solid`, `cell` and `noise`", ct, field: "biome");
             return;
         }
         await Send.OkAsync(field, ct);
@@ -176,7 +174,7 @@ public sealed class SketchBiomeWriteEndpoint(MapRepository repo, MapArtifactStor
         if (SketchFinishWrite.BiomeStated(body) is not { } field)
         {
             await Refusals.UnreadableAsync(HttpContext, "malformed biome",
-                "the body is not a biome field: it states `kind` as `solid`, `cell` or `noise`.",
+                "the request's body states no `kind` that is one of `solid`, `cell` and `noise`",
                 ct, field: "biome");
             return;
         }

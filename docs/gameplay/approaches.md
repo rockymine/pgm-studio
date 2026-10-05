@@ -172,7 +172,7 @@ emptier. It is also why destroy maps have room for scenery that capture maps do 
 
 **[author]** A destroyable and a core may stand almost anywhere ground exists — a field, a plateau, a
 frontline. Neither needs a room, a dead-end lane or a protection region; both are stamped directly into the
-world. The three places they may not stand are the void, a spawn and a wool room, which is `OB17` and is
+world. The three places they may not stand are the void, a spawn and a wool room, which is `OB17` and `OB30` and is
 enforced (`docs/pgm/destroyables-and-cores.md` §8).
 
 **[author]** Both float a few blocks above the terrain, and that is the design rather than a defect. What a

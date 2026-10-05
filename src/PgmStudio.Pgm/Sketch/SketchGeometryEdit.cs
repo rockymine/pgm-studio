@@ -130,9 +130,8 @@ public static class SketchGeometryEdit
         {
             if (groups.Count > 0)
                 return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                    $"layer '{layerId}' groups its shapes and this one names no group, so it would be built "
-                    + "once where it was drawn, off the symmetry orbit and on flat ground. Name one of "
-                    + $"[{string.Join(", ", GroupIds(groups))}] in `group`, or a new id to open one",
+                    $"the shape added to layer '{layerId}' names no `group`, and the layer has {groups.Count} "
+                    + $"group{(groups.Count == 1 ? "" : "s")}",
                     Field: "group"));
         }
 
@@ -159,10 +158,12 @@ public static class SketchGeometryEdit
     {
         if (Structural.Where(stated.ContainsKey).ToList() is { Count: > 0 } refused)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"a shape patch cannot write {string.Join(" or ", refused.Select(field => $"`{field}`"))} — "
-                + "`role` and `intentRef` are the identity a plan recompile matches a shape by, and "
-                + "`height_authored` is the mark that a floor was corrected by hand. All three are the "
-                + "compiler's to write. State the geometry and leave them off",
+                $"the patch of shape '{shapeId}' states "
+                + (refused.Count == 1
+                    ? $"`{refused[0]}`"
+                    : string.Join(", ", refused.Take(refused.Count - 1).Select(field => $"`{field}`"))
+                      + $" and `{refused[^1]}`")
+                + ", which a patch may not write",
                 Field: refused[0], Subjects: [shapeId]));
 
         var root = Root(layoutJson);
@@ -201,23 +202,19 @@ public static class SketchGeometryEdit
 
         if (Text(shape["role"]) is { Length: > 0 } role)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"'{shapeId}' is the plan's own {role} rectangle, which a stamper seats a building on — it is "
-                + "not a coast and bending it would move the ground a room stands on",
+                $"shape '{shapeId}' has the `role` '{role}', which a bend does not take",
                 Field: "role", Subjects: [shapeId]));
 
         if (shape["vertices"] is not JsonArray stated || stated.Count < 3)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"'{shapeId}' states no outline to bend — a bend resamples the edges between a polygon's own "
-                + "vertices, and a rectangle or a circle states its bounds instead. Draw it as a polygon "
-                + "first, or state the vertices with a patch",
+                $"shape '{shapeId}' states fewer than 3 points in `vertices`",
                 Field: "vertices", Subjects: [shapeId]));
 
         var ring = stated.Select(point => new[] { Number(point?[0]), Number(point?[1]) }).ToList();
         if (edges?.Where(edge => edge < 0 || edge >= ring.Count).Select(edge => (int?)edge).FirstOrDefault()
             is { } outside)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"'{shapeId}' has {ring.Count} edges, numbered 0 to {ring.Count - 1} by the vertex each leaves, "
-                + $"and a bend names edge {outside}",
+                $"the bend of shape '{shapeId}' names edge {outside}, not between 0 and {ring.Count - 1}",
                 Field: "edges", Subjects: [shapeId]));
         var named = edges?.ToHashSet();
         Func<double, double, (double X, double Z)>? sampleAt = null;
@@ -230,9 +227,8 @@ public static class SketchGeometryEdit
         }
         if (RingBend.Draw(ring, wander, step, seed, tension, side: side, edges: named, sampleAt: sampleAt) is not { } coast)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"a wander of {wander} over a step of {step} folds '{shapeId}' across its own far side, which "
-                + "would build ground with a hole nobody drew. Lower the wander, or raise the step so the "
-                + "narrowest ground the outline runs through takes no cut",
+                $"the bend of shape '{shapeId}' with a `wander` of {wander} blocks and a `step` of {step} blocks "
+                + "folds its outline across itself",
                 Field: "wander", Subjects: [shapeId]));
 
         held = coast.Held;
@@ -266,10 +262,10 @@ public static class SketchGeometryEdit
             foreach (var pull in along)
                 if (pull.At is not (> 0 and < 1) || !double.IsFinite(pull.In))
                     return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                        $"a pull stands a fraction of the way along its edge, above 0 and below 1, and moves a "
-                        + $"number of blocks across it; edge {edge} of '{shapeId}' is pulled at "
-                        + $"{pull.At.ToString(CultureInfo.InvariantCulture)} by {pull.In.ToString(CultureInfo.InvariantCulture)}. "
-                        + "A point at a corner is the corner: move it with `index` instead",
+                        $"edge {edge} of shape '{shapeId}' has a pull at "
+                        + $"{pull.At.ToString(CultureInfo.InvariantCulture)} by "
+                        + $"{pull.In.ToString(CultureInfo.InvariantCulture)}, not a position between 0 and 1 "
+                        + "moved by a number of blocks",
                         Field: "pulls", Subjects: [shapeId]));
         }
 
@@ -293,7 +289,7 @@ public static class SketchGeometryEdit
 
         if (RingPull.Draw(ring, placed.ToDictionary(edge => edge.Key, edge => (IReadOnlyList<RingPull.Pull>)edge.Value))
             is not { } drawn)
-            return Folded(shapeId, "pulling points across the edges of");
+            return Folded(shapeId, "points are pulled");
 
         // Each vertex keeps its handles at its new index, less those of a vertex whose edge took a point.
         var moved = new Dictionary<int, int>();
@@ -333,7 +329,7 @@ public static class SketchGeometryEdit
 
         var ring = Ring(vertices);
         ring[index] = [x, z];
-        if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "moving");
+        if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "a point is moved");
 
         vertices[index] = Point(x, z);
         Recontrol(shape, index, vertices.Count, shift: null);
@@ -359,7 +355,7 @@ public static class SketchGeometryEdit
 
         var before = Ring(vertices);
         ring.Insert(at, [px, pz]);
-        if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "adding a vertex to");
+        if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "a point is added");
 
         vertices.Insert(at, Point(px, pz));
         Reheight(shape, before, ring);
@@ -377,14 +373,13 @@ public static class SketchGeometryEdit
 
         if (vertices.Count <= 3)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"'{shapeId}' is drawn with three vertices and two points draw no ground. Rub the shape out "
-                + "with DELETE, or move a vertex instead of taking one away",
+                $"shape '{shapeId}' has {vertices.Count} points, and taking one away leaves fewer than 3",
                 Field: "index", Subjects: [shapeId]));
 
         var before = Ring(vertices);
         var ring = Ring(vertices);
         ring.RemoveAt(index);
-        if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "taking a vertex out of");
+        if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "a point is removed");
 
         vertices.RemoveAt(index);
         Reheight(shape, before, ring);
@@ -406,15 +401,12 @@ public static class SketchGeometryEdit
 
         if (Text(found["role"]) is { Length: > 0 } role)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"'{shapeId}' is the plan's own {role} rectangle, which a stamper seats a building on and "
-                + "which a plan recompile redraws. Edit the room in the plan instead",
+                $"shape '{shapeId}' has the `role` '{role}', which a point edit does not take",
                 Field: "role", Subjects: [shapeId]));
 
         if (found["vertices"] is not JsonArray stated || stated.Count < 3)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"'{shapeId}' states no outline to edit — a vertex edit addresses a polygon's own points, and "
-                + "a rectangle or a circle states its bounds instead. Draw it as a polygon first, or state "
-                + "the vertices with a patch",
+                $"shape '{shapeId}' states fewer than 3 points in `vertices`",
                 Field: "vertices", Subjects: [shapeId]));
 
         vertices = stated;
@@ -424,14 +416,12 @@ public static class SketchGeometryEdit
     private static GeometryEdit? Range(string shapeId, int index, int count) =>
         index >= 0 && index < count ? null
             : GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"'{shapeId}' is drawn with {count} vertices, numbered 0 to {count - 1}, and there is none at "
-                + $"{index}. Read the shape to see the outline the edit addresses",
+                $"the edit of shape '{shapeId}' names index {index}, not between 0 and {count - 1}",
                 Field: "index", Subjects: [shapeId]));
 
-    private static GeometryEdit Folded(string shapeId, string verb) =>
+    private static GeometryEdit Folded(string shapeId, string cause) =>
         GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-            $"{verb} '{shapeId}' there folds the outline across its own far side, which would build ground "
-            + "with a hole nobody drew. Put the point on the same side of the ring as the wall it belongs to",
+            $"the outline of shape '{shapeId}' folds across itself after {cause}",
             Field: "index", Subjects: [shapeId]));
 
     private static List<double[]> Ring(JsonArray vertices) =>

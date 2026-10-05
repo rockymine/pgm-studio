@@ -1,4 +1,5 @@
 using System.Text.Json;
+using PgmStudio.Domain;
 using PgmStudio.Export;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Houses;
@@ -32,7 +33,7 @@ public static class SketchMaterialGate
     /// question, so the whole answer is here; each half is still stated beside the code that skips it, and
     /// <c>DR-TONE</c>'s id stays with the rest of the dressing family, which <c>Pgm</c> cannot see.</summary>
     public static readonly string[] GroundRules =
-        [.. SketchLayoutCheck.GroundRules, DressingRules.RockInTheGroundsTone];
+        [.. SketchLayoutCheck.GroundRules, DressingRules.BoulderInTheGroundsTone];
 
     public static Findings Check(string layoutJson, LayoutReading reading = LayoutReading.Ground)
     {
@@ -80,8 +81,8 @@ public static class SketchMaterialGate
             var node = System.Text.Json.Nodes.JsonNode.Parse(style.GetRawText());
             HouseStyleJson.Upgrade(node);
             if (HouseStyleJson.Unreadable(node, $"roomStyles.{kind}") is { } unreadable)
-                findings.Add(new Finding(PgmStudio.Domain.RequestRules.Unreadable,
-                    $"field '{unreadable.Field}' {unreadable.Detail}", Field: unreadable.Field));
+                findings.Add(new Finding(RequestRules.Unreadable, $"`{unreadable.Field}` {unreadable.Detail}",
+                    Field: unreadable.Field, Edit: HouseStyleJson.NoneEdit(MapDocuments.Layout, unreadable)));
         }
         return findings;
     }
@@ -133,11 +134,7 @@ public static class SketchMaterialGate
         catch (DressingParseException fault) { return new List<Finding> { fault.Finding }; }
         catch (JsonException fault)
         {
-            return new List<Finding>
-            {
-                new(DressingParseException.Rule, fault.Message,
-                    Field: string.IsNullOrEmpty(fault.Path) ? "dressing" : fault.Path),
-            };
+            return new List<Finding> { JsonFaults.Said(DressingRules.UnreadableField, fault, "dressing") };
         }
 
         var findings = new List<Finding>();

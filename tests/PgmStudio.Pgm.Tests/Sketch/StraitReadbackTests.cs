@@ -59,7 +59,7 @@ public sealed class StraitReadbackTests
         var finding = StraitReadback.Check(plan, layout).Single();
         await Assert.That(finding.Rule).IsEqualTo("CT12");
         await Assert.That(finding.Severity).IsEqualTo(Vocabulary.Severity.Complaint);
-        await Assert.That(finding.Message).Contains("one landmass");
+        await Assert.That(finding.Message).Contains("a gap of 0 blocks between them in the sketch");
     }
 
     [Test]
@@ -74,8 +74,8 @@ public sealed class StraitReadbackTests
 
         var finding = StraitReadback.Check(plan, layout).Single();
         await Assert.That(finding.Rule).IsEqualTo("CT12");
-        await Assert.That(finding.Message).Contains("30 blocks apart");
-        await Assert.That(finding.Message).Contains("15–40");
+        await Assert.That(finding.Message).Contains("a gap of 10 blocks between them in the sketch and 30 in the plan");
+        await Assert.That(finding.Message).Contains("less than 15 blocks");
     }
 
     [Test]

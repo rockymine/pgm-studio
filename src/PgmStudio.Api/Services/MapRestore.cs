@@ -32,10 +32,10 @@ public static class MapRestore
     {
         if (!(await log.ListAsync(map.Slug, ct)).Any(change => change.Number == number))
             return new(Refusal.At(404, "no such change", new Finding(RequestRules.NoSuchSubject,
-                $"'{map.Slug}' has no change {number} — GET /api/map/{map.Slug}/changes lists the ones it has")));
+                $"map '{map.Slug}' has no change {number}")));
         if (note is { Length: > MapChangeLog.NoteLength })
             return new(Refusal.At(400, "note too long", new Finding(RequestRules.Unreadable,
-                $"the note is {note.Length} characters and a change keeps at most {MapChangeLog.NoteLength}",
+                $"the note is {note.Length} characters, more than {MapChangeLog.NoteLength}",
                 Field: "note")));
 
         var writes = new Dictionary<string, byte[]>();

@@ -517,9 +517,10 @@ intent, so it can ask them against the ground the rasterizer actually produced i
 rectangles — the case a subtract cut, a relief solve, or a post-compile sketch edit opens, none of which
 re-enters the compile gate, and the case a map begun in Sketch never reaches at all.
 
-- **`OB17` — objective placement**, asked again here the same way the compile gate asks it
+- **`OB17`, `OB30` and `OB31` — objective placement**, asked again here the same way the compile gate asks it
   (`ObjectivePlacement.Check`, `destroyables-and-cores.md`): a destroyable or a core may not overhang the
-  void, or reach into a spawn's or a wool room's frame. `POST …/sketch/columns` asks the same read
+  void (`OB17`), or reach into a spawn's or a wool room's frame (`OB30`), and a wool monument may not stand
+  over the void (`OB31`). `POST …/sketch/columns` asks the same read
   (`MapExportComposer.CheckGoalPlacement`) of the same build and answers it as a **complaint**, so an author
   hears it while drawing rather than at the door.
 

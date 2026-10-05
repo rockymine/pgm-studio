@@ -596,7 +596,7 @@ unwinnable; what is wrong is a goal contested from ground nobody may build up to
 get there — at the most a goal may float (OB22), only a structure taller than the clearance leaves can top out
 over the ceiling, which in practice means a tall core casing rather than a destroyable.
 
-**OB17 — a goal may stand almost anywhere, and there are exactly three places it may not.** A destroyable and
+**OB17 and OB30 — a goal may stand almost anywhere, and there are exactly three places it may not.** A destroyable and
 a core are unlike a wool in how freely they sit: no room, no per-team monument, nothing that binds them to a
 particular piece — and, since `B128`, not even a piece at all, for a marker placed by absolute board position.
 What bounds them is where the map's own rules would make them unbreakable, and all three cases are decided by
@@ -611,11 +611,11 @@ dangling piece reference, but for the opposite reason: there is deliberately no 
 to report); the export-time gate, over the ground the rasterizer actually produced, is where such a goal is
 checked for real, and it refuses a void placement exactly as it always has.
 
-*Over the void.* The build slice applies `block_place=deny(void)` to the complement of the build areas, so
+*Over the void* (`OB17`). The build slice applies `block_place=deny(void)` to the complement of the build areas, so
 blocks hanging off the land cannot be broken and the objective can never be completed. A one-block pillar at
 the very edge of an island is fine; the 4×4 cube centred on the same block is not.
 
-*Inside a spawn.* Spawn protection emits `block="never"` over the shared `spawns` union — not "enemies may not
+*Inside a spawn* (`OB30`). Spawn protection emits `block="never"` over the shared `spawns` union — not "enemies may not
 break" but **nobody** may, the attacking team included. Where the spawn holds ore the rule is restated as
 break-the-ore / place-it-only-from-the-world (`SpawnOreProtection`), which admits the ore and nothing else,
 so a goal there is no more breakable than before. A goal there is a map that cannot be won, and nothing
@@ -624,7 +624,7 @@ construction (`WoolGenerator` folds each monument block out of the union so capt
 rule); a destroyable or a core has no such fold and is refused instead, because a goal inside a spawn is a
 design error rather than a case to work around.
 
-*Inside a wool room.* The room carries its own enter/block rules for its owner, which a second objective
+*Inside a wool room* (`OB30`). The room carries its own enter/block rules for its owner, which a second objective
 sharing that ground inherits — and it reads as part of the room besides.
 
 The refusals are **errors, not lint**: the compile gate answers 422 on errors alone, so an agent driving the
@@ -638,7 +638,8 @@ supplies the plan's pieces and the frames the compiler will stamp, which catches
 spent. The second caller is `MapExportComposer`, over the ground the rasterizer actually produced — the only
 place a subtract, a relief, or a sketch edited after its compile can be seen, since a plan that passed can
 still export a goal standing over a hole somebody carved afterwards, and a map begun in Sketch never reaches
-the compile gate at all. Every finding from either caller carries `OB17` as its rule id, and the export gate
+the compile gate at all. Every finding from either caller carries `OB17` or `OB30` as its rule id, and a wool
+monument with no ground under it, which only the export gate sees, carries `OB31`. The export gate
 answers **409**, matching the compile gate's refusal rather than the round-trip's plain 500.
 
 Each finding names the offending marker by its **id** (`core-1`, `destroyable-2`) ahead of the piece it stands

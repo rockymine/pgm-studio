@@ -117,7 +117,7 @@ document rather than what a reader is looking for.
 
 | Folder | Holds |
 |---|---|
-| `tools/` | one document per studio tool, end to end — `flow.md` first, then `plan`, `sketch`, `configure`, `generator`, `shapes`, `library`. Written from the code and usable as agent input, which is why each carries its endpoints. Beside them: `mapgen-review.md`, the `MG` fault pool behind it. **What the system can be *asked* for is not a document**: the schema at `/api/openapi/v1.json` names every route, `GET /api/rules` every refusal, `GET /api/map/{slug}/state` the moves one map has open. |
+| `tools/` | one document per studio tool, end to end — `flow.md` first, then `plan`, `sketch`, `configure`, `generator`, `shapes`, `library`. Written from the code and usable as agent input, which is why each carries its endpoints. Beside them: `mapgen-review.md`, the `MG` fault pool behind it. **What the system can be *asked* for is not a document**: the schema at `/api/openapi/v1.json` names every route, `GET /api/rules` every refusal, `GET /api/glossary` every word the rules and screens use, `GET /api/map/{slug}/state` the moves one map has open. |
 | `generator/` | the layout-generation track — eight files, no others (below). |
 | `world-export/` | what the export **writes** into a world: `relief`, `terrain-painting`, `structures`, `decoration`, `tree-corpus`, `sketch-world-export`, `ideas`. |
 | `world-scan/` | what the studio **reads** out of a world — `read-backs.md` is every read of a built world, the pictures, their text twins and the numbers, over HTTP and at the CLI, and `answer-shapes.md` which of them a model can subtract from; beside it, what it reads out of a world it did *not* build: monument and objective suggestion, terrain ground truth, the block palette, the corpus studies behind them. |
@@ -135,7 +135,7 @@ when the design around them has landed, because nothing else can re-derive them.
 |---|---|---|
 | `model.md` | the canonical model — glossary, pipeline, how a layout is constructed | governs on any disagreement |
 | `vocabulary.md` | the living type catalog, one row per generation type | a type added, renamed or retired changes its row **in the same commit** |
-| `rules.md` | the rule law — every CT/SP/WL/LN/HB/FR/MD/BZ/EL id | amended only by its own correction protocol |
+| `rules.md` | the argument behind the layout rules — every CT/SP/WL/LN/HB/FR/MD/BZ/EL id; what is served is `Domain/LayoutRules.cs` | amended only by its own correction protocol; an amendment to a raised rule changes its `LayoutRules` constant in the same commit |
 | `evaluator.md` | the deriver-measurable and evaluator-term catalogue | — |
 | `audit.md` | where the code and `model.md` measurably disagree | an entry leaves when its fix lands |
 | `seed-stats.md` · `seed-envelopes.md` | measured corpus data | envelopes is generated — never hand-edited |

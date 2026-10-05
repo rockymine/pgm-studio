@@ -307,18 +307,18 @@ open moves is the one being waited on.
 
 ## A fault carries an id, a class and what it is about
 
-The studio declares **77 rule constants in 14 families**, and answers `GET /api/rules` by reading each
+The studio declares **234 rule constants in 31 families**, and answers `GET /api/rules` by reading each
 constant's own XML docstring and the `[Rule]` attribute beside it — so a rule's meaning, its fix and its
 classification all have one home and no catalogue can fall out of step with any of them. That mechanism is
 the best thing in the codebase.
 
 What it lacked was a **class**. A caller that wants to know whether to fix the request, change the design,
-change the map or report a bug had to know all 77 ids to find out, because the only machine-legible thing a
+change the map or report a bug had to know all 234 ids to find out, because the only machine-legible thing a
 finding carried was the id itself. It now reads a **category** — one of eight words, each defined by the
 action it implies — and a **concerns** list of one to several of thirteen words saying what the rule is about.
-Both belong to the rule rather than to the finding: a category is fixed by the id, and the 77 constants are
-raised from 97 sites, so a field on the finding would have 25 of them restating what another site already
-fixed with nothing checking they agree. A caller joins on the id, which is what the catalogue is for.
+Both belong to the rule rather than to the finding: a category is fixed by the id, and a rule raised from
+several sites would otherwise have each of them restating what another already fixed, with nothing checking
+they agree. A caller joins on the id, which is what the catalogue is for.
 
 The family prefix is *not* the defect, though it reads like one at first. `PL2` and `EX2` carry nearly the
 same sentence — *no spawn, nobody can enter the map* — and look like one fault under two ids until their
@@ -336,22 +336,12 @@ structure and an objective at once — which is why `concerns` is a list and why
 `refusals.md` § *One question, asked at every grain* states in prose is now a query,
 `?concerns=objective&concerns=plan`.
 
-**Rules are stated three ways, and the third is a string literal.** The 77 constants are one; the layout law
-in `docs/generator/rules.md`, embedded and parsed, is a second. The third is a bare literal at the site that
-names it — a plan-validator lint (`SP1`, `SP2`, `EL1`, `ST8`, `BZ12`, `CT12`, `BZ5` and nine more), an
-evaluator term's `RuleId`, a producibility finding's `Cites` — and no reflection can see one.
-
-**The catalogue answers what a caller can meet.** `rules.md` states 100 layout rules and those three kinds of
-site between them name 43; `/api/rules` answers those, because the question it exists for is *what is this
-finding* and a rule nothing raises has no finding to explain. `RuleCatalog.Raised` is where that set is
-stated, and `RulesEndpointTests` holds it to the source in both directions: a row answered that no source
-names fails, and an id named that the catalogue does not answer fails too. So a typo at a throw site is a
-failing test rather than a finding citing a rule nobody has.
-
-`PC-C` is what that gap looked like before the check existed. The lint fired it for a corner contact between
-separate areas and `LayoutEvaluator` rejected boards for it, while `rules.md` named it only *inside* another
-id's bullet, which is the id the parser takes such a line for — so `GET /api/rules?rule=PC-C` answered an
-empty list for as long as both were true. It is a constant now.
+**Every rule is a constant, the layout rules included.** The gate rules sit in each gate's `*Rules` class;
+the layout rules — claims about how a map plays, raised by a plan-validator lint, an evaluator term's `RuleId`
+or the producibility read — sit in `LayoutRules` in `PgmStudio.Domain`, and each site names one as
+`LayoutRules.<Name>`. So a typo at a raise site is a compile error, and `RulesEndpointTests` fails a layout
+constant nothing names and a layout id spelled as a bare literal. Each states one limit with its numbers,
+and `docs/generator/rules.md` is the argument behind those constants and is not served.
 
 The distinction the catalogue now draws is between the **category** of a fault, which is a small closed set an
 agent branches on, and the **rule**, which is specific, stable and for a reader. The envelope stays the
@@ -359,6 +349,12 @@ studio's own `{error, message, findings}` rather than RFC 9457 Problem Details: 
 interoperability with clients outside the deployment and there are none, while the dereference it is prized
 for is already reachable from the `rule` each finding carries. `docs/design-decisions.md` § *The HTTP
 surface* carries the reasoning.
+
+**The words a rule uses are defined once, beside it.** `Glossary` in `PgmStudio.Vocabulary` holds every
+studio and mapmaking word the rules, the findings and the screens use, each with a one-line definition and the
+other names a reader may meet it under, and `GET /api/glossary` serves it. So a rule states its problem in
+those words and never explains one, and a caller that meets an older name in a field or a document asks for
+it and gets the term it now goes by.
 
 ## The measurement is next door
 
@@ -422,7 +418,7 @@ theirs by hand went through the verb, four of them through a `Func<Task<T>>` ove
 answer the id they inserted under.
 
 **Every document a caller can replace carries a revision.** A read answers it as an `ETag` and a write may
-state it back as an `If-Match`; one naming a revision the document is no longer at is refused as `RQ5`, and
+state it back as an `If-Match`; one naming a revision the document is no longer at is refused as `RQ13`, and
 one stating nothing writes unguarded, because protection is opted into by having read first. The map
 document and each artifact are counted apart — a caller holding the sketch layout's revision has said nothing
 about the map's. The compare is one statement with the revision in its `where`, so the database decides which
@@ -488,7 +484,7 @@ answer already and stopped one step short of the form that makes it machine-read
 **They depend on each other in one order, and the first of them is in place.** The surface is described, so
 a declared request shape and a generated client now have something to hang off. The application layer comes
 next, because it is where a gate stops belonging to a door. The fault category is third and is a change to
-an attribute plus a sweep of 77 constants, and is done. The lifecycle is last, because a state machine over a
+an attribute plus a sweep of the constants, and is done. The lifecycle is last, because a state machine over a
 pipeline whose steps are still HTTP handlers has nothing to hold.
 
 None of this is a rewrite. Every one is a shape the codebase already half-has, stated once instead of by

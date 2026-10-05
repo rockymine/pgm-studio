@@ -141,7 +141,7 @@ public sealed class HousePartLibraryEndpointsTests
             Roof("see-through", RoofForms.Gable, new RoomCourseDto(RoomParts.Roof, 0, 0, slabs, 1)));
         await Assert.That((int)refused.StatusCode).IsEqualTo(400);
         var envelope = await refused.Content.ReadFromJsonAsync<RefusalDto>();
-        await Assert.That(envelope!.Findings.Select(f => f.Rule)).Contains(HouseStyleRules.RoofMaterial);
+        await Assert.That(envelope!.Findings.Select(f => f.Rule)).Contains(HouseStyleRules.RoofOfSlabs);
 
         // The same roof with the slab named pairs correctly, and the number round-trips. The slab is the
         // body's own wood: a roof is one material and its half-course slab continues it (HS3).

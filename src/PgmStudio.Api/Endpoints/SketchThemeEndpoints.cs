@@ -101,8 +101,8 @@ public sealed class SketchThemeWriteEndpoint(MapRepository repo, MapArtifactStor
         if (SketchThemeWrite.Stated(body) is null)
         {
             await Refusals.UnreadableAsync(HttpContext, "malformed theme",
-                "the body is not a terrain theme: a theme states `rim` and `surface` as bands "
-                + "(`{\"material\": …, \"depth\": N}`) and `wall` and `fill` as materials directly.",
+                "the request's body is not a palette with `rim` and `surface` as bands and `wall` and `fill` as "
+                + "materials",
                 ct, field: "themes");
             return;
         }
@@ -168,7 +168,7 @@ public sealed class SketchMapThemeEndpoint(MapRepository repo, MapArtifactStore 
         catch (JsonException)
         {
             await Refusals.UnreadableAsync(HttpContext, "malformed request",
-                "the body states the map default as {\"theme\": \"<id>\"}, or null to clear it.",
+                "the request's body states no `theme` that is a palette id or `null`",
                 ct, field: "theme");
             return;
         }

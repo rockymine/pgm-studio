@@ -42,7 +42,7 @@ public sealed class NotePictures
     /// <summary>Keep <paramref name="bytes"/>, answering its hash. The caller has checked its kind.</summary>
     public async Task<string> SaveAsync(byte[] bytes, CancellationToken ct = default)
     {
-        var (extension, _) = KindOf(bytes) ?? throw new ArgumentException("a note's picture is a WebP or a PNG");
+        var (extension, _) = KindOf(bytes) ?? throw new ArgumentException("the picture is not a WebP or a PNG");
         var hash = Convert.ToHexStringLower(SHA256.HashData(bytes));
         var path = Path.Combine(Folder, hash + extension);
         if (File.Exists(path)) return hash;

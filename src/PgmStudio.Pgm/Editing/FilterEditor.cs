@@ -29,7 +29,7 @@ public static class FilterEditor
             while (filters.ContainsKey($"{ftype}_{i}")) i++;
             fid = $"{ftype}_{i}";
         }
-        else if (filters.ContainsKey(fid)) throw EditException.Conflict($"filter id '{fid}' already in use", [fid]);
+        else if (filters.ContainsKey(fid)) throw EditException.Conflict($"filter id '{fid}' is already taken", [fid]);
 
         Validate(data, payload, fid);
         filters[fid] = new Dict(payload) { ["id"] = fid };
@@ -51,16 +51,16 @@ public static class FilterEditor
     private static void Validate(Dict data, Dict payload, string selfId)
     {
         if (payload.GetValueOrDefault("type") is not string ftype || !KnownTypes.Contains(ftype))
-            throw EditException.Unreadable($"unknown filter type '{payload.GetValueOrDefault("type")}'", "type");
+            throw EditException.Unreadable($"filter type '{payload.GetValueOrDefault("type")}' is not one the studio reads", "type");
         var filters = Filters(data);
         foreach (var r in FilterFilterRefs(payload))
         {
-            if (r == selfId) throw EditException.Unresolved($"filter '{r}' cannot reference itself");
-            if (!filters.ContainsKey(r) && !Builtins.Contains(r)) throw EditException.Unresolved($"references unknown filter '{r}'");
+            if (r == selfId) throw EditException.Unresolved($"filter '{r}' names itself");
+            if (!filters.ContainsKey(r) && !Builtins.Contains(r)) throw EditException.Unresolved($"the filter names filter '{r}', which the document does not have");
         }
         var regions = data.GetValueOrDefault("regions") as Dict ?? new Dict();
         foreach (var r in FilterRegionRefs(payload))
-            if (!regions.ContainsKey(r)) throw EditException.Unresolved($"references unknown region '{r}'");
+            if (!regions.ContainsKey(r)) throw EditException.Unresolved($"the filter names region '{r}', which the document does not have");
     }
 
     private static Dict Filters(Dict data)

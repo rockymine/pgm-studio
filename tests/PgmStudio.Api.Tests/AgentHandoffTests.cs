@@ -78,7 +78,7 @@ public sealed class AgentHandoffTests
 
         await Assert.That(agent.Ready).IsFalse();
         await Assert.That(session).IsNull();
-        await Assert.That(why).Contains("Notes:Agent:Fire");
+        await Assert.That(why).IsEqualTo("the studio has no agent to hand notes to");
     }
 
     [Test]

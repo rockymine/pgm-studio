@@ -121,7 +121,7 @@ public sealed class RoomMoveRouteTests
             new { part = "spawn", minX = 0, minZ = 0, maxX = 20, maxZ = 10 });
 
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
-        await Assert.That(await refused.Content.ReadAsStringAsync()).Contains("does not resize");
+        await Assert.That(await refused.Content.ReadAsStringAsync()).Contains("of the region it replaces");
 
         // And the board is exactly as it was — a refused move is not a partial one.
         var region = (await SpawnAsync(client, slug)).GetProperty("protection").EnumerateArray().Single();

@@ -112,7 +112,7 @@ public sealed class SketchGeometryEditTests
             new JsonObject { ["type"] = "rectangle" }, null);
         await Assert.That(edited.Layout).IsNull();
         await Assert.That(edited.Refusal!.Field).IsEqualTo("group");
-        await Assert.That(edited.Refusal!.Message).Contains("[i]");
+        await Assert.That(edited.Refusal!.Message).Contains("names no `group`, and the layer has 1 group");
     }
 
     [Test]

@@ -34,6 +34,11 @@ The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds
 intent (`docs/pgm/new-map-authoring.md`; backend + every page-order step are landed —
 `FEATURES.md`). **Leave the existing Edit editor untouched** — a separate surface, not a refit.
 
+- [ ] **RP121 — A wool room the world builds is held to the room cap too.** `WX13` asks only a spawn room
+  (`WorldBuilder.OversizedRoom`, one call at `WorldBuilder.cs:210`), so a wool room whose protection Configure
+  redrew past 20 by 20 blocks builds with no finding, while `ST9` reads only the plan. The wool room loop calls
+  the same check, and `WX13`'s text names wool rooms beside spawn rooms. `docs/refusals.md`.
+
 **A monument sits inside its capturing team's spawn, and that settles which map each entry is about**
 (author; `docs/design-decisions.md`). The studio's own maps derive it — `WorldBuilder` fills the location
 from the air cell the spawn structure stamped, `OB25` says so, and `ConfigureTool.LoadOriginAsync` drops the
@@ -365,8 +370,8 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   76×36 hole at cell (-10,-19), where a double-hole hub would have given two.*
 
 - [~] **G264 — A composed wool room can stand 12 blocks across void from a piece fronting the crossing.** The
-  inside corner of a bent wool is its lane's width, 12 blocks at nano, which `WL12` allows against the team's
-  own ground and not against the front (16). The room's setback along its lane takes a block basis of its own
+  inside corner of a bent wool is its lane's width, 12 blocks at nano, which `WL20` allows against the team's
+  own ground and `WL12` refuses against the front (16). The room's setback along its lane takes a block basis of its own
   where the ground across the corner fronts the band, in `WoolBoxEmitter` rather than in the seat clearance.
   `docs/generator/rules.md` and `model.md`.
 
@@ -478,7 +483,7 @@ the skerry layout as the board that shows the over-warning is gone.
 
 - [ ] **G285 — A crossing is a straight bridge from the nearest land.** A player walks the land the shortest
   way and bridges straight across the void; nobody routes around inside it. `G5` (rectangle gap, `ContactGraph.cs:312`),
-  `CT12` (4-connected void path, `PieceInterfaces.cs:157`) and `WL12` (straight runs) read the same void three
+  `CT12` (4-connected void path, `PieceInterfaces.cs:157`) and `WL12`, `WL20` and `LN6` (straight runs) read the same void three
   ways and over-warn: on the skerry layout a small front piece makes the check ask a diagonal route through
   the void to a wool room. One measure: walk the land, then the straightest bridge from land edge to land
   edge. `docs/generator/`.
@@ -488,7 +493,13 @@ the skerry layout as the board that shows the over-warning is gone.
   `Walk.FreeRise`/`Walk.ScrambleStep` rather than literals. `docs/generator/`.
 - [ ] **G287 — A corridor is its size band's width.** `G2` is three numbers today: the size band's text, 10
   blocks in the plan check (`ContactGraph.CorridorMin`) and 2 cells in producibility. It is the composer's band
-  width, a multiple of 4: 8, 12, 16, 20, for generated wool layouts. `docs/generator/`.
+  width, a multiple of 4: 8, 12, 16, 20, for generated wool layouts. What `G2` asks of a build region is open
+  too: `LintG2` measures every entry in `zones` on its shorter side, while a region is cut against the front
+  lines it lies between, so widening one moves it off them, and a mid region too thin says the front lines
+  are too short (author). `MD7` already holds the mid region's width along the front lines per band, so
+  settle which question `G2` asks of a region before it carries an edit. Read it beside `EZ2`
+  (`Analysis/Playability/BuildZoneGap.cs`), which asks the same relation of the built ground: a coast pulled
+  back from its build region leaving void under 10 blocks where the plan put ground. `docs/generator/`.
 - [ ] **G288 — A front line's width is its front edge.** `FR6` counts cells and `FR9` blocks, off different
   structures. The width is the edge that faces the enemy into the build zone, not every edge touching it: a
   2 by 20 piece poking into the zone is not a 42-block front. `docs/generator/`.
@@ -497,6 +508,10 @@ the skerry layout as the board that shows the over-warning is gone.
   "nearer than N" over a set of cells with the edge stated (a thing exactly at the limit stands), replacing
   `GroundClaims.NearerThan`, `NearRoute` and `DressingScope`'s rect lambdas. Same numbers first, then
   G285–G288 on top. `docs/generator/`.
+- [ ] **G291 — Settle the raised rules whose check is not their argument.** *Parked on the author.*
+  `docs/generator/audit.md` §8 lists thirteen rules where `rules.md` argues one thing and the check does
+  another; for each, the author says which is right, and the losing half changes in the same commit.
+  `docs/generator/`.
 - [ ] **TS167 — A path reaches a house's door.** The clearances around a building make a road or path to its
   door impossible. A path may run up to the door, paving never paints inside the house (its floor does), and
   `/sketch/seats` agrees with the pass that places buildings: today it refuses a building on paving the pass
@@ -508,13 +523,13 @@ text-size setting have shipped; what remains is what a sentence cannot fix — a
 up, controls that behave unlike every other tool, and the look itself. `docs/client/writing-for-the-ui.md`
 is the standard the copy is held to.
 
-- [ ] **RP99 — A searchable help page, and the terms defined where they appear.** A `/help` route rendering the
-  glossary in `docs/client/writing-for-the-ui.md` (hub, front line, mid, approach, wool room, box, palette,
-  terraform…) with a search box, plus a `Term` component that underlines a word, shows its one-line definition on
-  hover and links to its entry. The definitions live once, in a `Glossary` table in `Client`, and the doc's
-  table is generated from or checked against it. Then the tool pages lose the explanatory paragraphs that are
-  standing in for help today. *Evidence: the reviewer's last note asks for "a searchable and indexable
-  documentation page" over descriptions scattered per page.* `docs/client/`.
+- [~] **RP99 — A searchable help page, and the terms defined where they appear.** A `/help` route rendering
+  `GET /api/glossary` with a search box, plus a `Term` component that underlines a word, shows its one-line
+  definition on hover and links to its entry, reading `Glossary` in `PgmStudio.Vocabulary`. The guide entries
+  in `docs/client/writing-for-the-ui.md` join the glossary as a longer field when the page needs them. Then
+  the tool pages lose the explanatory paragraphs that are standing in for help today. *Evidence: the
+  reviewer's last note asks for "a searchable and indexable documentation page" over descriptions scattered
+  per page.* `docs/client/`.
 
 - [ ] **RP100 — The map list says who made each map, and filters by them.** `/maps` rows carry no author;
   add the first author's head and name to each row (`PlayerHead`, already used by `AuthorsEditor`) and an
@@ -664,6 +679,11 @@ server's backups.
   failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
 ## The remainder: work no concept above has claimed
+
+- [ ] **TE2 — Write `docs/tools/edit.md`.** The `TE` prefix obliges a document that does not exist. The region,
+  filter and apply-rule editors (`RegionEditor`, `FilterEditor`, `ApplyRuleEditor` under `Pgm/Editing/`) and
+  their two rules (`ED1`, `ED2`) are described nowhere, and the filter and apply-rule editors have no HTTP
+  route, only the generators reach them. The document follows the seven in `docs/tools/`.
 
 - [ ] **WE162 — Two seeded houses stamp their doorway on other columns in a mirror image.** The stamper's
   orbit tests (`A_room_and_its_rot_180_image_stand_on_the_same_columns`,

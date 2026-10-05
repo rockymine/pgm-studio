@@ -963,8 +963,8 @@ blocking.
 
 A side the ground stops **flush** against — no ground at all at the first step off the stamp — is the map's own
 edge or a hole in it, and a building may stand against one: a coast house is a house. It may not stand against
-two facing each other, which is a building spanning the land rather than one seated at its edge, and is what
-a house across the full width of a land leg reads as. Half a side over a hole is a broken passage rather than a
+two facing each other (`DR-SPAN`), which is a building spanning the land rather than one seated at its edge,
+and is what a house across the full width of a land leg reads as. Half a side over a hole is a broken passage rather than a
 coast, and is the fault.
 
 **The passage is owed round a group of buildings, not round each one.** Buildings standing within a passage
@@ -1103,7 +1103,7 @@ prop that keeps failing on it. A building's `width`/`depth` are its **walls**; t
 the roof over them, and the candidate joins the group of any building standing within a passage of it, so a
 seat beside a village is judged the way the pass will judge it. The buildings already on the board are read
 off the raster's own `structure` cells — one building to a run of them, since two of them are never adjacent
-— and grouped once for the board rather than once per anchor. `Passage.Clears` is the one reading both
+— and grouped once for the board rather than once per anchor. `Passage.Blocks` is the one reading both
 directions take, which is what keeps the mask and the pass from disagreeing about a cell; a test asks every
 anchor of a board both ways and requires the same answer.
 
@@ -1118,8 +1118,8 @@ answer), so a seat marked `1` is never read as a promise the pass cannot break. 
 makes, is the pass's too.
 
 Each one is a **`decline`**, the severity between a refusal and a complaint: the world was built, so nothing
-stopped, and this prop is not in it, so there is nothing for the author to ignore — except `DR-PASS` and
-`DR-DIG`, which are complaints, the building standing where it was put. That is what a caller reads off a 2xx to answer *did what
+stopped, and this prop is not in it, so there is nothing for the author to ignore — except `DR-PASS`,
+`DR-SPAN` and `DR-DIG`, which are complaints, the building standing where it was put. That is what a caller reads off a 2xx to answer *did what
 I posted survive*.
 
 The declines travel three ways. Back from `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under

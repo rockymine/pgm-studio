@@ -40,7 +40,7 @@
             <PlayerHead Uuid="@p.Uuid" Name="@p.Name" />
             <input class="field-input author-name @(p.Error ? "field-input--error" : null)" type="text"
                    placeholder="Minecraft username, or any name"
-                   title="@(p.Error ? AuthorNames.Refuse(p.Name.Trim())
+                   title="@(p.Error && AuthorNames.Refuse(p.Name.Trim()) is { } failed ? $"The name {failed}"
                             : p.Uuid.Length > 0 ? p.Uuid
                             : "No Minecraft account has this name, so it is saved as written")"
                    value="@p.Name"

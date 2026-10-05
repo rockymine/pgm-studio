@@ -63,14 +63,14 @@ public sealed class ComposeBrowseEndpoint(ComposedBoardStore library) : Endpoint
         if (!ComposedBoardLibrary.Symmetries.Contains(symmetry))
         {
             await Refusals.UnreadableAsync(HttpContext, "unsupported symmetry",
-                $"'{symmetry}' is not a symmetry the board library holds; it holds "
-                + $"{string.Join(" and ", ComposedBoardLibrary.Symmetries)}", ct, field: "symmetry");
+                $"symmetry '{symmetry}' is not one of {string.Join(" and ", ComposedBoardLibrary.Symmetries)}, the symmetries "
+                + "the layout library holds", ct, field: "symmetry");
             return;
         }
         if (teams != ComposedBoardLibrary.Teams)
         {
             await Refusals.UnreadableAsync(HttpContext, "unsupported team count",
-                $"the board library holds {ComposedBoardLibrary.Teams}-team boards; '{teams}' is not a count it holds",
+                $"team count '{teams}' is not {ComposedBoardLibrary.Teams}, the count the layout library holds",
                 ct, field: "teams");
             return;
         }
@@ -120,12 +120,12 @@ public sealed class ComposePinEndpoint(PlanStore store, ComposedBoardStore libra
     {
         try { _ = new ComposeRequest(req.Players, req.Teams, req.Symmetry, req.Seed, req.Cell); }
         catch (ArgumentException fault)
-        { await Refusals.UnreadableAsync(HttpContext, "invalid descriptor", fault.Message, ct); return; }
+        { await Refusals.UnreadableAsync(HttpContext, "invalid descriptor", fault, ct); return; }
 
         var band = SizeBands.Of(req.Players);
         if (await library.GetAsync(req.ComposerVersion, band, req.Symmetry, req.Cell, req.Seed, ct) is not { } board)
         {
-            await Refusals.NotFoundAsync(HttpContext, "library board", ct,
+            await Refusals.NotFoundAsync(HttpContext, "library layout", ct,
                 $"{band} {req.Symmetry} seed {req.Seed} by composer {req.ComposerVersion}");
             return;
         }

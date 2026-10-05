@@ -27,14 +27,14 @@ public sealed class SketchLayoutCheckTests
     }
 
     [Test]
-    [Arguments("""{"id":"s1","type":"trapezoid","min_x":-5,"max_x":5,"min_z":-5,"max_z":5}""", "kind 'trapezoid'")]
-    [Arguments("""{"id":"s1","type":"polygon","vertices":[[0,0],[10,0]]}""", "2 vertices")]
-    [Arguments("""{"id":"s1","type":"circle","center_x":0,"center_z":0,"radius":0}""", "circle of radius 0")]
-    [Arguments("""{"id":"s1","type":"rectangle","min_x":5,"max_x":5,"min_z":-5,"max_z":5}""", "no area")]
+    [Arguments("""{"id":"s1","type":"trapezoid","min_x":-5,"max_x":5,"min_z":-5,"max_z":5}""", "names the kind 'trapezoid'")]
+    [Arguments("""{"id":"s1","type":"polygon","vertices":[[0,0],[10,0]]}""", "has 2 points, less than 3")]
+    [Arguments("""{"id":"s1","type":"circle","center_x":0,"center_z":0,"radius":0}""", "has a radius of 0 blocks")]
+    [Arguments("""{"id":"s1","type":"rectangle","min_x":5,"max_x":5,"min_z":-5,"max_z":5}""", "has no area")]
     // A polygon of three vertices or more with every point on one line: enough vertices to clear the count
     // and no area to draw, which is the fault the same rule already names for a rectangle.
-    [Arguments("""{"id":"s1","type":"polygon","vertices":[[7,-10],[7,0],[7,10]]}""", "enclosing no area")]
-    [Arguments("""{"id":"s1","type":"lasso","vertices":[[-7,-10],[-7,-3],[-7,4],[-7,10]]}""", "enclosing no area")]
+    [Arguments("""{"id":"s1","type":"polygon","vertices":[[7,-10],[7,0],[7,10]]}""", "has 3 points that enclose no area")]
+    [Arguments("""{"id":"s1","type":"lasso","vertices":[[-7,-10],[-7,-3],[-7,4],[-7,10]]}""", "has 4 points that enclose no area")]
     public async Task A_shape_that_draws_no_ground_is_named_with_the_reason_it_draws_none(string shape, string says)
     {
         var findings = SketchLayoutCheck.Check(Layout(shape));
@@ -55,7 +55,7 @@ public sealed class SketchLayoutCheckTests
         var finding = findings.Single();
         await Assert.That(finding.Rule).IsEqualTo(SketchRules.NamesNothing);
         await Assert.That(finding.Field).IsEqualTo("setup.mirror_mode");
-        await Assert.That(finding.Message).Contains("built unmirrored");
+        await Assert.That(finding.Message).Contains("`setup.mirror_mode` 'rot_37' is not one of");
     }
 
     [Test]
@@ -81,7 +81,7 @@ public sealed class SketchLayoutCheckTests
         var finding = findings.Single(f => f.Rule == SketchRules.ShapeInNoGroup);
         await Assert.That(findings.Refuses).IsFalse();
         await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "s2" });
-        await Assert.That(finding.Message).Contains("no image on the other side");
+        await Assert.That(finding.Message).Contains("is listed in none of the layer's 1 group");
     }
 
     // A layer whose one group states its own mirror flag, for the SK28 cases. The shape is the whole of the
@@ -109,7 +109,7 @@ public sealed class SketchLayoutCheckTests
         await Assert.That(findings.Refuses).IsFalse();
         await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "wall" });
         await Assert.That(finding.Field).IsEqualTo("layers[0].layout.groups[0].mirrors");
-        await Assert.That(finding.Message).Contains("one team's ground and nowhere else");
+        await Assert.That(finding.Message).Contains("states `mirrors` false and touches none of its");
     }
 
     [Test]
@@ -218,12 +218,12 @@ public sealed class SketchLayoutCheckTests
 
         var finding = findings.Single();
         await Assert.That(finding.Field).IsEqualTo("relief.group-2");
-        await Assert.That(finding.Message).Contains("is not built");
+        await Assert.That(finding.Message).Contains("names group 'group-2', which the layout does not have");
     }
 
     [Test]
-    [Arguments(300, 12, "reaches y=312")]
-    [Arguments(-40, 12, "floor at y=-40")]
+    [Arguments(300, 12, "has a top of 312 blocks, more than 255 blocks")]
+    [Arguments(-40, 12, "has a `floor` of -40 blocks, less than 0 blocks")]
     public async Task A_column_the_world_cannot_hold_is_named_as_the_height_it_states(double floor, double height, string says)
     {
         var shape = "{\"id\":\"s1\",\"type\":\"rectangle\",\"min_x\":-20,\"max_x\":20,\"min_z\":-20,"
@@ -246,10 +246,9 @@ public sealed class SketchLayoutCheckTests
         var refusal = huge.Refusals.Single();
         await Assert.That(refusal.Rule).IsEqualTo(SketchRules.BoardTooLarge);
         // It says the span it measured — the board the author actually drew.
-        await Assert.That(refusal.Message).Contains("4,000×4,000");
-        // And never the ceiling: a stated one is a target, so an agent reading this learns that it drew too
-        // much and not how much it may draw. The number lives in the constant and nowhere a caller reads.
-        await Assert.That(refusal.Message).DoesNotContain(SketchRules.MaxBoardColumns.ToString("N0"));
+        await Assert.That(refusal.Message).Contains("4,000 by 4,000 columns");
+        // And the ceiling it broke, as every rule states its number.
+        await Assert.That(refusal.Message).Contains("more than 4,000,000 columns");
 
         // 1000×1000 is a million columns — four times the size of anything authored, and it stands.
         var big = SketchLayoutCheck.Check(Layout(
@@ -300,7 +299,7 @@ public sealed class SketchLayoutCheckTests
 
         await Assert.That(bare.Refuses).IsFalse();
         await Assert.That(bare.Severity).IsEqualTo(Severity.Complaint);
-        foreach (var absent in (string[])["theme registry", "relief", "nothing placed on it"])
+        foreach (var absent in (string[])["no palettes", "no terraform", "no props"])
             await Assert.That(bare.Message).Contains(absent);
     }
 
@@ -356,7 +355,7 @@ public sealed class SketchLayoutCheckTests
             .IsEquivalentTo(new[] { "causeway", "shelf" })
             .Because("the ring and the line that line up are built as stated");
         await Assert.That(findings.Single(finding => finding.SubjectIds![0] == "shelf").Message)
-            .Contains("2 anchor height(s) against 4 vertices");
+            .Contains("states 2 `anchor_heights` and 4 points, not the same number");
     }
 
     // ── SK24: a shape saying twice what paints it ────────────────────────────────────────────────────────
@@ -487,8 +486,7 @@ public sealed class SketchLayoutCheckTests
         var found = SketchLayoutCheck.Check(TwoGroups("i", "i"))
             .Where(finding => finding.Rule == SketchRules.GroupIdTwice).ToList();
         await Assert.That(found.Count).IsEqualTo(1);
-        await Assert.That(found[0].Message).Contains("2 groups answer to the id 'i'");
-        await Assert.That(found[0].Message).Contains("on layer 'ground' the last one solved takes them");
+        await Assert.That(found[0].Message).Contains("2 groups have the id 'i' on layer 'ground'");
     }
 
     /// <summary>The same id on two layers is the worse half, and the message has to separate it: the
@@ -501,8 +499,7 @@ public sealed class SketchLayoutCheckTests
         var found = SketchLayoutCheck.Check(TwoLayers("team", "team"))
             .Where(finding => finding.Rule == SketchRules.GroupIdTwice).ToList();
         await Assert.That(found.Count).IsEqualTo(1);
-        await Assert.That(found[0].Message).Contains("on 2 layers ('ground', 'under')");
-        await Assert.That(found[0].Message).Contains("every one of them is shaped by the relief");
+        await Assert.That(found[0].Message).Contains("on layers 'ground' and 'under'");
     }
 
     /// <summary>Two groups with their own ids is the ordinary shape of a board with two landmasses, and it
@@ -570,8 +567,7 @@ public sealed class SketchLayoutCheckTests
 
         await Assert.That(findings.Count).IsEqualTo(1);
         await Assert.That(findings[0].SubjectIds).IsEquivalentTo(new[] { "wall" });
-        await Assert.That(findings[0].Message).Contains("y22");
-        await Assert.That(findings[0].Message).Contains("height_mode");
+        await Assert.That(findings[0].Message).Contains("a top at y22");
     }
 
     /// <summary>The two words that hold a stated top, and the plain ground that is not this: a relief shaping
@@ -840,10 +836,8 @@ public sealed class SketchRecipeGateTests
 
         var finding = findings.Single(f => f.Rule == SketchRules.PlateausPaintedApart);
         await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(finding.Message).Contains("component 'bench-e'");
+        await Assert.That(finding.Message).Contains("island 'bench-e'");
         await Assert.That(finding.Message).Contains("from surface 12 to 26");
-        await Assert.That(finding.Message).Contains("bench-e-12 at 12 paints theme 'yard'");
-        await Assert.That(finding.Message).Contains("bench-e-26 at 26 paints theme 'crag'");
         await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "bench-e-12", "bench-e-26" });
     }
 
@@ -880,7 +874,7 @@ public sealed class SketchRecipeGateTests
             + Plateau("head-e-22", 22, material: """{"kind":"solid","id":1,"data":0}""")));
 
         var finding = findings.Single(f => f.Rule == SketchRules.PlateausPaintedApart);
-        await Assert.That(finding.Message).Contains("head-e-22 at 22 paints its own material");
+        await Assert.That(finding.Message).Contains("2 plateaus from surface 10 to 22 with 2 different paints");
     }
 
     /// <summary>A hand-drawn shape whose id ends in a number is not a compiled plateau. The two are told
@@ -906,7 +900,7 @@ public sealed class SketchRecipeGateTests
             Plateau("apron-14", 14, "moor") + "," + Plateau("apron-14-2", 14, "yard")));
 
         var finding = findings.Single(f => f.Rule == SketchRules.PlateausPaintedApart);
-        await Assert.That(finding.Message).Contains("component 'apron'");
+        await Assert.That(finding.Message).Contains("island 'apron'");
         await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "apron-14", "apron-14-2" });
     }
 
@@ -920,7 +914,7 @@ public sealed class SketchRecipeGateTests
             Plateau("tier-2-14", 14, "moor") + "," + Plateau("tier-2-20", 20, "yard")));
 
         await Assert.That(findings.Single(f => f.Rule == SketchRules.PlateausPaintedApart).Message)
-            .Contains("component 'tier-2'");
+            .Contains("island 'tier-2'");
     }
 
     /// <summary>One plateau is a component that cannot disagree with itself.</summary>
@@ -940,6 +934,6 @@ public sealed class SketchRecipeGateTests
             Plateau("sump--3", -3, "moor") + "," + Plateau("sump--1", -1, "yard")));
 
         await Assert.That(findings.Single(f => f.Rule == SketchRules.PlateausPaintedApart).Message)
-            .Contains("component 'sump'");
+            .Contains("island 'sump'");
     }
 }

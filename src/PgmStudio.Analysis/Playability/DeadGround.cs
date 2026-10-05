@@ -54,14 +54,16 @@ public static class DeadGround
             int minX = patch.Min(c => c.X), maxX = patch.Max(c => c.X);
             int minZ = patch.Min(c => c.Z), maxZ = patch.Max(c => c.Z);
             findings.Add(new Finding(EditZoneRules.DeadGround,
-                $"{patch.Count} column(s) of standing ground in x {minX}..{maxX}, z {minZ}..{maxZ} cannot be "
-                + "edited by anyone — no build zone reaches them and nothing is under them at y=0",
+                $"the ground at x between {minX} and {maxX}, z between {minZ} and {maxZ}, "
+                + $"{Wording.Count(patch.Count, "column", "columns")}, has no build region over it and no block "
+                + "at height 0",
                 Severity.Complaint, Subjects: [$"{minX},{minZ}"]));
         }
         if (patches.Count > MostReported)
             findings.Add(new Finding(EditZoneRules.DeadGround,
-                $"and {patches.Count - MostReported} further patch(es) of ground nobody can edit, "
-                + $"{patches.Skip(MostReported).Sum(patch => patch.Count)} column(s) between them",
+                $"the layout has {Wording.Count(patches.Count - MostReported, "further patch", "further patches")} "
+                + "of ground with no build region over it and no block at height 0, across "
+                + $"{Wording.Count(patches.Skip(MostReported).Sum(patch => patch.Count), "column", "columns")}",
                 Severity.Complaint));
         return findings;
     }

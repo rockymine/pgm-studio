@@ -38,6 +38,8 @@ public sealed class DocumentedFailureTests
                            + "place is what a caller reads it for, and no single tool owns them",
         ["GET /api/rules/terms"] = "the evaluator's term catalogue, whose document is "
                                  + "docs/generator/evaluator.md beside the deriver measurables it lists",
+        ["GET /api/glossary"] = "the glossary, whose document is docs/client/writing-for-the-ui.md: every word the "
+                                + "rules and screens use, defined once",
         ["GET /api/me"] = "who a request is signed in as, whose document is docs/access.md",
         ["GET /api/users"] = "the whitelist, whose document is docs/access.md",
         ["POST /api/users"] = "the whitelist, whose document is docs/access.md",

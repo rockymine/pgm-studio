@@ -150,7 +150,7 @@ internal static class PngAnswer
         }
 
         await Refusals.UnreadableAsync(http, "no such view",
-            $"'{view}' is not a view this preview draws — it draws {string.Join(", ", views)}",
+            $"view '{view}' is not one of {string.Join(", ", views)}",
             ct, field: View_);
         return true;
     }
@@ -235,8 +235,7 @@ public sealed class PropPreviewEndpoint : Endpoint<PropPreviewRequest, DressingP
         try { theme = PropOptionEndpoints.ThemeOf(req.ThemeJson); }
         catch (JsonException fault)
         {
-            await Refusals.UnreadableAsync(HttpContext, "malformed theme JSON", fault.Message, ct,
-                field: "themeJson");
+            await Refusals.UnreadableAsync(HttpContext, "malformed theme JSON", fault, ct, member: "themeJson");
             return;
         }
 
@@ -356,6 +355,6 @@ public sealed class ThemeMapPreviewEndpoint : EndpointWithoutRequest<ThemeMapPre
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
                                           or OverflowException or KeyNotFoundException)
-        { await Refusals.UnreadableAsync(HttpContext, "could not render plan", fault.Message, ct); }
+        { await Refusals.UnreadableAsync(HttpContext, "could not render plan", fault, ct); }
     }
 }

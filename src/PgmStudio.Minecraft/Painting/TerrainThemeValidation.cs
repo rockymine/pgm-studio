@@ -10,45 +10,35 @@ namespace PgmStudio.Minecraft.Painting;
 /// not findings anything answers with.</summary>
 public static class TerrainThemeRules
 {
-    /// <summary>A block that surfaces ground is painted below the course it surfaces. Grass, podzol, mycelium
-    /// and farmland are each exactly one course thick — what is under them is soil — so a bucket deeper than
-    /// one course filled with one writes it into every course of its depth, and the ground comes out made of
-    /// its own skin.</summary>
-    /// <remarks>Put the surfacing block in a `layered` material as the top band at thickness 1, with the soil under it — grass over two dirt is the standard stack. A `cell` or a `voronoi` is a pick and not a stack: whichever block it picks fills the whole depth, so a surfacing block cannot go in one at any depth over one.</remarks>
+    /// <summary>A surfacing block in a palette part is more than 1 block thick, or lies below the first band of its
+    /// band stack.</summary>
+    /// <remarks>Either change the pattern to a <c>layered</c> one whose first band is the surfacing block at a
+    /// <c>thickness</c> of 1, or delete the surfacing block from the <c>bands</c>, <c>palette</c> or <c>stops</c>
+    /// of the pattern.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string SurfaceBlockBuried = "PT1";
 
-    /// <summary>A pattern states a band, a stop or a side and carries no material in it. The member reads as
-    /// present and holds nothing, so the painter meets it with no block to write — and it meets it while the
-    /// world is being built, long after the document was stored.</summary>
-    /// <remarks>Give the member its material. A `voronoi`'s `bands` and a `layered`'s `stack` each take a pair — `{"material": …, "depth": N}` and `{"material": …, "thickness": N}` — where a `noise`'s `stops` takes bare materials, so a list of materials handed to `bands` binds a band per entry with the material left empty.</remarks>
+    /// <summary>A band, stop or side of a pattern has no material.</summary>
+    /// <remarks>Add a <c>material</c> to the <c>bands</c> entry or the <c>stack</c> entry the finding names. Set
+    /// the <c>stops</c> entry the finding names to a block or a pattern.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string MaterialMissing = "PT2";
 
-    /// <summary>A sampled pattern's brush is finer than the blocks it paints. A cell size or a field scale is
-    /// the period a pattern varies over, in blocks, so below two it changes faster than the ground it is laid
-    /// on can show: every block is its own feature, the pattern resolves to noise at any distance, and no
-    /// palette rescues it. A guard against a pathological number rather than a judgement about taste — how
-    /// coarse a brush should be is the author's, and only a brush finer than one block is nobody's.</summary>
-    /// <remarks>Give the pattern a period of at least two blocks. A `cell` and a `voronoi` state theirs as `cellSize`, a `noise`, `turbulence` or `electric` field as `scale`; the committed themes sit around six to eight, which is what a pattern read as a ground looks like. To mix two blocks with no feature size at all, a `cell` at a coarse size with a high `jitter` is the pattern that means it.</remarks>
+    /// <summary>A sampled pattern's period is less than 2 blocks.</summary>
+    /// <remarks>Set the <c>cellSize</c> of a <c>cell</c> or <c>voronoi</c> pattern to at least 2 blocks. Set the
+    /// <c>scale</c> of a <c>noise</c>, <c>turbulence</c> or <c>electric</c> pattern to at least 2 blocks.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string BrushTooFine = "PT3";
 
-    /// <summary>A sampled field paints a bucket a player reads from the side and states no vertical period,
-    /// so every block in a column resolves the same and the face comes out in vertical stripes. A field of the
-    /// plane is a fabric for ground seen from above; a wall or a fill is seen edge-on, and the one thing that
-    /// gives a face its grain there is the field varying with height.</summary>
-    /// <remarks>Give the pattern a `rise` — the vertical period of its field, in blocks, which samples the volume instead of the plane. Small is what the committed bodies use: two or three blocks against a `cellSize` of nine or ten, so the fabric turns over every few courses without the face reading as noise. A rise is never nought on a face, whatever the band's thickness. The wall-run and diagonal patterns draw their stripes deliberately and are not asked.</remarks>
+    /// <summary>The rise of a sampled pattern in the wall or fill of a palette is less than 1 block.</summary>
+    /// <remarks>Either set the <c>rise</c> of the pattern to at least 1 block, or change the <c>kind</c> of the
+    /// pattern to <c>solid</c> or <c>checker</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string FlatFieldOnAFace = "PT4";
 
-    /// <summary>A theme tints its ground by team over land more than one team enters. The tint is one colour
-    /// per canonical island, which is what makes it readable — a player standing anywhere on a landmass knows
-    /// whose it is — and an island two teams' spawns stand on has one colour for both, so the whole of it wears
-    /// whichever team the ownership resolved. A board whose land is a single island is the whole map painted
-    /// one team's colour, which is the ordinary shape of a capture board and of any board with no void in
-    /// it.</summary>
-    /// <remarks>Either split the land the tint is meant to distinguish — the decomposition is the canonical `islands_json` one, so two teams on separate landmasses each take their own colour — or drop the `teamTinted` material from the buckets the shared island paints through and say whose ground it is some other way. A theme whose tint is deliberate on shared ground states it by assigning the island in the configure step, which is what the finding names.</remarks>
+    /// <summary>An island painted with a team colour pattern has the spawns of more than 1 team.</summary>
+    /// <remarks>Either split the island with a subtract in <c>shapes</c>, or change the <c>theme</c> of the shape
+    /// that paints it to a palette with no team colour pattern.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string TintOverSharedGround = "PT5";
 
@@ -126,8 +116,7 @@ public static class TerrainThemeValidation
 
         if (Rise(material) is { Blocks: <= 0 } field)
             findings.Add(new Finding(TerrainThemeRules.FlatFieldOnAFace,
-                $"{bucket} samples its field in the plane only, so every block of a column resolves alike and "
-                + "it reads as vertical stripes. A rise is the vertical period that gives a face its grain.",
+                $"the pattern at `{bucket}` has a rise of {field.Blocks} blocks, less than 1 block",
                 Field: $"{bucket}.{field.Field}"));
 
         foreach (var (child, childPath) in Children(material, bucket))
@@ -161,9 +150,8 @@ public static class TerrainThemeValidation
         {
             if (Brush(node) is not { } brush || brush.Period >= TerrainThemeRules.BrushFloor) continue;
             findings.Add(new Finding(TerrainThemeRules.BrushTooFine,
-                $"{path} varies over {brush.Period} block(s), which is finer than the blocks it paints — "
-                + "every block is its own feature and the pattern reads as noise at any distance. A period "
-                + $"of at least {TerrainThemeRules.BrushFloor} is what makes a pattern a ground.",
+                $"the pattern at `{path}` has a period of {Wording.Count(brush.Period, "block")}, "
+                + $"less than {TerrainThemeRules.BrushFloor} blocks",
                 Field: $"{path}.{brush.Field}"));
         }
     }
@@ -202,7 +190,7 @@ public static class TerrainThemeValidation
     {
         foreach (var where in Uncarried(material, bucket))
             findings.Add(new Finding(TerrainThemeRules.MaterialMissing,
-                $"{where} states no material, so nothing can be painted where it is picked",
+                $"the entry at `{where}` has no material",
                 Field: where));
     }
 
@@ -280,9 +268,9 @@ public static class TerrainThemeValidation
                 // The top band at one course is the surface itself, which is the whole point of the stack.
                 var surfacing = Surfacing(band.Material).ToList();
                 if (surfacing.Count > 0 && (course > 0 || band.Thickness > 1))
-                    findings.Add(Buried(bucket, surfacing[0], band.Thickness,
+                    findings.Add(Buried(bucket, surfacing[0],
                         course > 0
-                            ? $"stands {course} course(s) below the top of the {bucket}"
+                            ? $"stands {Wording.Count(course, "course")} below the top of the {bucket}"
                             : $"is {band.Thickness} courses thick at the top of the {bucket}"));
                 course += Math.Max(1, band.Thickness);
             }
@@ -292,17 +280,15 @@ public static class TerrainThemeValidation
         if (depth <= 1) return;
         foreach (var block in Surfacing(material))
         {
-            findings.Add(Buried(bucket, block, depth,
-                $"fills all {(depth == int.MaxValue ? "of" : depth.ToString())} the {bucket}'s courses, "
-                + "because the material is a pick rather than a stack"));
+            findings.Add(Buried(bucket, block,
+                $"fills {(depth == int.MaxValue ? "every one" : $"all {depth}")} of the {bucket}'s courses"));
             break;
         }
     }
 
-    private static Finding Buried(string bucket, (int Id, int Data) block, int thickness, string how) =>
+    private static Finding Buried(string bucket, (int Id, int Data) block, string how) =>
         new(TerrainThemeRules.SurfaceBlockBuried,
-            $"{BlockPalette.Name(block.Id, block.Data)} surfaces ground and {how}. A surfacing block is exactly one "
-            + "course thick and what is under it is soil — put it at the top of a layered stack instead.",
+            $"surfacing block {BlockPalette.Name(block.Id, block.Data)} {how}",
             Field: bucket);
 
     /// <summary>Every surfacing block a material can resolve to, patterns walked to their leaves by

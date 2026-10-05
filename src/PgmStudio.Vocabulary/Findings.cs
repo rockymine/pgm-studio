@@ -61,7 +61,7 @@ public sealed class Findings : IReadOnlyList<Finding>
         Count == 0 ? other : other.Count == 0 ? this : new([.. findings, .. other.findings]);
 
     /// <summary>The same findings with a root prefixed onto every <see cref="Finding.Field"/> — how a gate run
-    /// over a document's sub-object reports a field an author can actually find, since <c>doorHead.block</c> on
+    /// over a document's sub-object reports a field an author can actually find, since <c>doorway.head.block</c> on
     /// its own does not say which of two bound styles held it.</summary>
     public Findings Under(string root) =>
         Count == 0 ? this : new(findings.Select(finding => finding with

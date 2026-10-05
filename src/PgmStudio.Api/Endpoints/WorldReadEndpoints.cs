@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 using FastEndpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
@@ -168,7 +169,7 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
     protected abstract byte[]? Draw(BuiltRead read);
 
     /// <summary>What this read cannot draw, for the 422 that says so.</summary>
-    protected virtual string Empty => "this world has no column to draw";
+    protected virtual string Empty => "the world has no column to draw";
 
     /// <summary>The same reading as characters, for a read that declares <see cref="Answers.AlsoText"/>. Null
     /// answers the same 422 an empty picture does — a read with no text twin never overrides this.</summary>
@@ -202,8 +203,7 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
                 [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no world for the studio to build and "
-                    + "read back — a map that ships its own region files is read from those instead")], ct);
+                    "the map has no stored sketch layout")], ct);
             return;
         }
 
@@ -232,8 +232,8 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
                 await Refusals.WriteAsync(HttpContext, 422, "no such layer",
                     [new Vocabulary.Finding(RequestRules.NoSuchSubject,
                         names.Count == 0
-                            ? $"this board was not drawn in layers, so there is no '{asked}' storey to draw"
-                            : $"this board has no layer '{asked}' — it carries {string.Join(", ", names)}")], ct);
+                            ? $"the request names layer '{asked}', which the layout does not have"
+                            : $"the request names layer '{asked}', which is not one of {string.Join(", ", names)}")], ct);
                 return;
             }
             read = read with
@@ -252,14 +252,14 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
             catch (Exception fault) when (fault is InvalidOperationException or ArgumentException
                                               or FormatException or OverflowException)
             {
-                await Refusals.UnreadableAsync(HttpContext, "cannot draw that", fault.Message, ct);
+                await Refusals.UnreadableAsync(HttpContext, "cannot draw that", fault, ct);
                 return;
             }
 
             if (text is null)
             {
                 await Refusals.WriteAsync(HttpContext, 422, "nothing to draw",
-                    [new Vocabulary.Finding(RequestRules.Conflict, Empty)], ct);
+                    [new Vocabulary.Finding(RequestRules.NothingToRead, Empty)], ct);
                 return;
             }
 
@@ -273,7 +273,7 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
                                           or FormatException or OverflowException)
         {
             HttpContext.Response.Headers.Remove("ETag");
-            await Refusals.UnreadableAsync(HttpContext, "cannot draw that", fault.Message, ct);
+            await Refusals.UnreadableAsync(HttpContext, "cannot draw that", fault, ct);
             return;
         }
 
@@ -288,7 +288,7 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
         {
             HttpContext.Response.Headers.Remove("ETag");
             await Refusals.WriteAsync(HttpContext, 422, "nothing to draw",
-                [new Vocabulary.Finding(RequestRules.Conflict, Empty)], ct);
+                [new Vocabulary.Finding(RequestRules.NothingToRead, Empty)], ct);
             return;
         }
 
@@ -333,7 +333,7 @@ internal sealed class TopDownReadEndpoint(MapRepository repo, MapReader reader, 
 
     protected override bool Storeyed => true;
 
-    protected override string Empty => "this world has no non-air column, so there is nothing to look down on";
+    protected override string Empty => "the world has no column that is not air";
 
     protected override byte[]? Draw(BuiltRead read) => TopDownRender.Png(
         read.Built.World, read.Map, Scale, OptionalInt("ymax"), read.Name,
@@ -379,7 +379,7 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
     /// image is the slowest possible way to be told so.</summary>
     private string? _offWorld;
 
-    protected override string Empty => _offWorld ?? "nothing stands along that cut";
+    protected override string Empty => _offWorld ?? "the cut has no block along it";
 
     /// <summary>The axis and the coordinate the cut is taken at, shared by the picture and the text — both
     /// refuse the same way when <c>at</c> falls outside the world.</summary>
@@ -395,8 +395,7 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
             && (at < span.Min || at > span.Max))
         {
             var named = axis == SectionAxis.AlongX ? "z" : "x";
-            _offWorld = $"a cut along {(axis == SectionAxis.AlongX ? "x" : "z")} is taken at a {named}, and "
-                + $"at={at} is outside this world, which spans {named} {span.Min}..{span.Max}";
+            _offWorld = $"the request's `at` is {at}, not between {span.Min} and {span.Max}, the {named} the world spans";
             return null;
         }
         return (axis, at);
@@ -442,7 +441,7 @@ internal sealed class HeightmapReadEndpoint(MapRepository repo, MapReader reader
 
     protected override bool Storeyed => true;
 
-    protected override string Empty => "this world has no ground column, so it has no elevation to draw";
+    protected override string Empty => "the world has no ground column";
 
     protected override byte[]? Draw(BuiltRead read) => HeightProfileRender.Png(
         read.Built.World, Scale, OptionalInt("contour") ?? 4,
@@ -524,8 +523,7 @@ internal sealed class ReachReadEndpoint(MapRepository repo, MapReader reader, Ma
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
                 [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no world for the studio to build and "
-                    + "read back")], ct);
+                    "the map has no stored sketch layout")], ct);
             return;
         }
 
@@ -534,8 +532,8 @@ internal sealed class ReachReadEndpoint(MapRepository repo, MapReader reader, Ma
         if (walked is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nothing to walk",
-                [new Vocabulary.Finding(RequestRules.Conflict,
-                    "this world has no ground column, so it holds nowhere to arrive")], ct);
+                [new Vocabulary.Finding(RequestRules.NothingToRead,
+                    "the world has no ground column")], ct);
             return;
         }
 
@@ -574,8 +572,7 @@ internal sealed class InclineReadEndpoint(MapRepository repo, MapReader reader, 
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
                 [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no world for the studio to build and "
-                    + "read back")], ct);
+                    "the map has no stored sketch layout")], ct);
             return;
         }
 
@@ -589,8 +586,8 @@ internal sealed class InclineReadEndpoint(MapRepository repo, MapReader reader, 
         if (grid is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nothing to grade",
-                [new Vocabulary.Finding(RequestRules.Conflict,
-                    "this world has no ground column, so it has no ground to take an angle from")], ct);
+                [new Vocabulary.Finding(RequestRules.NothingToRead,
+                    "the world has no ground column")], ct);
             return;
         }
 
@@ -622,8 +619,7 @@ internal sealed class SlopesReadEndpoint(MapRepository repo, MapReader reader, M
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
                 [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no world for the studio to build and "
-                    + "read back")], ct);
+                    "the map has no stored sketch layout")], ct);
             return;
         }
 
@@ -632,8 +628,8 @@ internal sealed class SlopesReadEndpoint(MapRepository repo, MapReader reader, M
         if (grid is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nothing to grade",
-                [new Vocabulary.Finding(RequestRules.Conflict,
-                    "this world has no ground column, so it has no slope to read")], ct);
+                [new Vocabulary.Finding(RequestRules.NothingToRead,
+                    "the world has no ground column")], ct);
             return;
         }
 
@@ -669,7 +665,7 @@ internal sealed class SurfaceReadEndpoint(MapRepository repo, MapReader reader, 
 
     protected override bool Storeyed => true;
 
-    protected override string Empty => "this world decodes to no column, so it has no surface to read";
+    protected override string Empty => "the world has no column";
 
     protected override byte[]? Draw(BuiltRead read) => SurfaceReport.Png(read.Built.World, Scale);
 }
@@ -688,7 +684,7 @@ internal sealed class TraversabilityReadEndpoint(MapRepository repo, MapReader r
         Description(b => b.Png().Refuses(404, 422).Reads(new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
     }
 
-    protected override string Empty => "this world has no ground column, so there is nothing to walk";
+    protected override string Empty => "the world has no ground column";
 
     protected override byte[]? Draw(BuiltRead read)
     {
@@ -716,7 +712,7 @@ internal sealed class StructuresReadEndpoint(MapRepository repo, MapReader reade
 
     protected override bool Storeyed => true;
 
-    protected override string Empty => "this world decodes to no column, so it holds no structure to find";
+    protected override string Empty => "the world has no column";
 
     protected override byte[]? Draw(BuiltRead read) => StructureFinder.Png(
         read.Built.World, Scale, OptionalInt("minarea") ?? 16, provenance: read.Built.Provenance);
@@ -739,7 +735,7 @@ internal sealed class MirrorReadEndpoint(MapRepository repo, MapReader reader, M
             new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
     }
 
-    protected override string Empty => "this world decodes to no column, so it has no image to compare";
+    protected override string Empty => "the world has no column";
 
     protected override byte[]? Draw(BuiltRead read) => MirrorReport.Png(
         read.Built.World, Scale,
@@ -761,7 +757,7 @@ internal abstract class InTheRoundEndpoint(MapRepository repo, MapReader reader,
         "Half a cube's width in pixels, 1 to 8 — each block is drawn twice that wide. Absent draws at 3, and out "
         + "of range clamps.", Min: 1, Max: 8);
 
-    protected override string Empty => "this world holds no block, so there is nothing to draw in the round";
+    protected override string Empty => "the world has no block";
 
     /// <summary>The quarter turns that stand the camera at the asked corner. A corner the board has no name for
     /// is refused by name rather than drawn from a guess.</summary>
@@ -774,7 +770,7 @@ internal abstract class InTheRoundEndpoint(MapRepository repo, MapReader reader,
                 if (string.Equals(BoardIsometric.Corners[quarter], asked, StringComparison.OrdinalIgnoreCase))
                     return quarter;
             throw new ArgumentException(
-                $"there is no corner '{asked}' — the camera stands at {string.Join(", ", BoardIsometric.Corners)}");
+                $"`corner` '{asked}' is not one of {string.Join(", ", BoardIsometric.Corners)}");
         }
     }
 
@@ -863,7 +859,7 @@ internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, M
             if (pair.Length != 2 || !int.TryParse(pair[0], out var x) || !int.TryParse(pair[1], out var z))
             {
                 await Refusals.UnreadableAsync(HttpContext, "unreadable column",
-                    $"'{at}' is not a column — each `at` is two whole numbers, `at=x,z`", ct, field: "at");
+                    $"the request's `at` '{at}' is not two whole numbers x,z", ct, field: "at");
                 return;
             }
             wanted.Add((x, z));
@@ -871,7 +867,7 @@ internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, M
         if (wanted.Count == 0)
         {
             await Refusals.UnreadableAsync(HttpContext, "no column asked for",
-                "name at least one column to read: `?at=x,z`, repeated for more than one", ct, field: "at");
+                "the request names no column in `at`", ct, field: "at");
             return;
         }
 
@@ -880,8 +876,7 @@ internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, M
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
                 [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no world for the studio to build and "
-                    + "read back")], ct);
+                    "the map has no stored sketch layout")], ct);
             return;
         }
 
@@ -998,7 +993,7 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to walk",
                 [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no board to walk over")], ct);
+                    "the map has no stored sketch layout")], ct);
             return;
         }
 
@@ -1011,9 +1006,8 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
         if (from is null || to is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nowhere to walk between",
-                [new Vocabulary.Finding(RequestRules.Conflict,
-                    "give `from` and `to` as `x,z` (or `x,z,y` to pick a storey); both must lie within 24 "
-                    + "blocks of ground this board has")], ct);
+                [new Vocabulary.Finding(RequestRules.NothingToRead,
+                    "the request states no `from` and `to` within 24 blocks of ground")], ct);
             return;
         }
 
@@ -1089,7 +1083,7 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to walk",
                 [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no board to walk over")], ct);
+                    "the map has no stored sketch layout")], ct);
             return;
         }
 
@@ -1101,9 +1095,8 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
         if (from is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nowhere to walk from",
-                [new Vocabulary.Finding(RequestRules.Conflict,
-                    "give `from` as `x,z` (or `x,z,y` to pick a storey), within 24 blocks of ground this "
-                    + "board has")], ct);
+                [new Vocabulary.Finding(RequestRules.NothingToRead,
+                    "the request states no `from` within 24 blocks of ground")], ct);
             return;
         }
 
@@ -1153,8 +1146,7 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
                 [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no world for the studio to build and "
-                    + "read back")], ct);
+                    "the map has no stored sketch layout")], ct);
             return;
         }
 
@@ -1166,8 +1158,8 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
             if (pair.Length != 2 || !int.TryParse(pair[0], out var x) || !int.TryParse(pair[1], out var z))
             {
                 await Refusals.WriteAsync(HttpContext, 422, "unreadable point",
-                    [new Vocabulary.Finding(RequestRules.Conflict,
-                        $"'{piece}' is not a point — each is two whole numbers, `x,z`", Field: "points")], ct);
+                    [new Vocabulary.Finding(RequestRules.Unreadable,
+                        $"the request's `points` entry '{piece}' is not two whole numbers", Field: "points")], ct);
                 return;
             }
             points.Add((x, z));
@@ -1175,8 +1167,8 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
         if (points.Count < 2)
         {
             await Refusals.WriteAsync(HttpContext, 422, "not enough points",
-                [new Vocabulary.Finding(RequestRules.Conflict,
-                    "a transect needs at least two points: `?points=x,z;x,z`", Field: "points")], ct);
+                [new Vocabulary.Finding(RequestRules.Unreadable,
+                    $"the request's `points` has {Wording.Count(points.Count, "point")}, less than 2", Field: "points")], ct);
             return;
         }
 
@@ -1190,11 +1182,11 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
                 || point.X < xRange.Min || point.X > xRange.Max || point.Z < zRange.Min || point.Z > zRange.Max)
             {
                 await Refusals.WriteAsync(HttpContext, 422, "point outside the world",
-                    [new Vocabulary.Finding(RequestRules.Conflict,
+                    [new Vocabulary.Finding(RequestRules.NothingToRead,
                         xSpan is { } known && zSpan is { } knownZ
-                            ? $"({point.X}, {point.Z}) is outside this world, which spans x {known.Min}..{known.Max}, "
-                              + $"z {knownZ.Min}..{knownZ.Max}"
-                            : $"({point.X}, {point.Z}) is outside this world, which has no chunks at all",
+                            ? $"point ({point.X}, {point.Z}) is not between ({known.Min}, {knownZ.Min}) and "
+                              + $"({known.Max}, {knownZ.Max}), the corners of the world"
+                            : $"point ({point.X}, {point.Z}) is in a world with no chunks",
                         Field: "points")], ct);
                 return;
             }
@@ -1247,7 +1239,7 @@ internal sealed class RouteReadEndpoint(MapRepository repo, MapReader reader, Ma
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
                 [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no board and no road on it")], ct);
+                    "the map has no stored sketch layout")], ct);
             return;
         }
 
@@ -1260,8 +1252,8 @@ internal sealed class RouteReadEndpoint(MapRepository repo, MapReader reader, Ma
             await Refusals.WriteAsync(HttpContext, 422, "no such stroke",
                 [new Vocabulary.Finding(RequestRules.NoSuchSubject,
                     drawn.Count == 0
-                        ? "this board carries no stroke at all, so there is no route to walk"
-                        : $"this board has no stroke '{id}' — it carries {string.Join(", ", drawn)}",
+                        ? $"the request names stroke '{id}', which the layout does not have"
+                        : $"the request names stroke '{id}', which is not one of {string.Join(", ", drawn)}",
                     Field: "id")], ct);
             return;
         }
@@ -1304,7 +1296,7 @@ internal sealed class ThemeCensusReadEndpoint(MapRepository repo, MapReader read
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
                 [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no board to count themes over")], ct);
+                    "the map has no stored sketch layout")], ct);
             return;
         }
 

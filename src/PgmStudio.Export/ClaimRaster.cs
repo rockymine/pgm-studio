@@ -154,8 +154,7 @@ public static class ClaimRaster
                 var stopped = Stops(grid, near, after, column, row, width, depth)
                     ?? (standing is not null && level is not null && !Levels(grid, level, column, row, width, depth)
                         ? DressingRules.SiteNotLevel : null)
-                    ?? (standing is null || Passes(grid, standing, column, row, width, depth)
-                        ? null : DressingRules.PassAround)
+                    ?? (standing is null ? null : Blocked(grid, standing, column, row, width, depth))
                     ?? (rooted is null || rooted(grid.MinX + column, grid.MinZ + row)
                         ? null : DressingRules.TreeOnBareGround);
                 if (stopped is null) { line[column] = '1'; seats++; continue; }
@@ -236,13 +235,13 @@ public static class ClaimRaster
         return [.. Passage.Grouped(footings).Select(pair => pair.Group).Distinct()];
     }
 
-    /// <summary>Whether a building anchored here leaves a way past itself, it and whatever it stands with.
-    /// The footprint asked about is the <b>walls</b>; the passage is measured from the roof over them, which
-    /// is the extent the pass judges.</summary>
-    private static bool Passes(Grid grid, IReadOnlyList<Footing> standing, int column, int row, int width, int depth)
+    /// <summary>The rule a building anchored here breaks by leaving no way past itself, it and whatever it
+    /// stands with, or null. The footprint asked about is the <b>walls</b>; the passage is measured from the roof
+    /// over them, which is the extent the pass judges.</summary>
+    private static string? Blocked(Grid grid, IReadOnlyList<Footing> standing, int column, int row, int width, int depth)
     {
         var candidate = Footing.OfWalls(column, row, column + width - 1, row + depth - 1, Eave);
-        return Passage.Clears(Passage.JoinedTo(candidate, standing),
+        return Passage.Blocks(Passage.JoinedTo(candidate, standing),
             (x, z) => x >= 0 && x < grid.Width && z >= 0 && z < grid.Height && grid.Rows[z][x] != ' ',
             (x, z) => x >= 0 && x < grid.Width && z >= 0 && z < grid.Height && At(grid.Rows[z][x]) == Structure);
     }

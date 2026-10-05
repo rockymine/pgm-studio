@@ -57,7 +57,7 @@ public static class Handover
             .. handed.GroupBy(edit => (edit.Document, edit.Path, edit.Op))
                 .Select(group => group.First() with
                 {
-                    Says = string.Join("; ", group.Select(edit => edit.Says).Distinct(StringComparer.Ordinal)),
+                    Says = string.Join(", ", group.Select(edit => edit.Says).Distinct(StringComparer.Ordinal)),
                 }),
         ];
     }

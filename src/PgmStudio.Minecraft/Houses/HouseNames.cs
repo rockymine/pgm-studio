@@ -53,21 +53,19 @@ public static class HouseNames
     {
         var words = (name ?? "").Split('-');
         if (words.Length < 2 || words.Any(word => word.Length == 0 || !word.All(char.IsAsciiLetterLower)))
-            return Complain(name ?? "", "is not lowercase words joined by hyphens, at least two of them");
+            return Complain(name ?? "", "is not at least two lowercase words joined by hyphens");
 
         var last = words[^1];
         var strangers = words[..^1].Where(word => !Describing.Contains(word)).Distinct().ToList();
         var problems = new List<string>();
-        if (!Buildings.Contains(last)) problems.Add($"ends on '{last}', which is not a kind of building");
+        if (!Buildings.Contains(last)) problems.Add($"ends on '{last}', which is not a building word");
         if (strangers.Count > 0)
-            problems.Add($"describes the building with {string.Join(", ", strangers.Select(word => $"'{word}'"))}, "
-                         + "which the describing words do not hold");
+            problems.Add($"has {Wording.Ids(strangers)} before its building word, "
+                         + (strangers.Count == 1 ? "which is not a describing word" : "which are not describing words"));
         return problems.Count == 0 ? Findings.None : Complain(name!, string.Join(", and ", problems));
     }
 
     private static Findings Complain(string name, string why) => Findings.Of(new Finding(HouseStyleRules.LibraryName,
-        $"'{name}' {why}. A name is the materials and the form that set the building apart, then the kind of "
-        + "building it is — brick-roofed-stone-cottage, oak-stilt-house — from the two lists "
-        + "GET /api/room-styles/name-words answers.",
+        $"house '{name}' {why}",
         Severity.Complaint, Field: "name"));
 }

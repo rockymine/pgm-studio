@@ -28,41 +28,39 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 internal static class ImportRules
 {
-    /// <summary>The url names a host the import does not fetch from. The allowlist is the studio's SSRF
-    /// guard — an import fetches server-side, so an arbitrary host would make the studio a proxy into
-    /// whatever its network can reach. 403.</summary>
-    /// <remarks>Host the archive somewhere the studio already fetches from, or download it and import the world with <c>POST /api/map/import-folder</c> instead.</remarks>
+    /// <summary>The url of an import request is not on the list of hosts the studio fetches from.</summary>
+    /// <remarks>Either send the request again with <c>url</c> set to an archive on an allowed host, or ask the
+    /// person who runs the studio to add the host to <c>Import:AllowedHosts</c>.</remarks>
     [Rule(RuleCategory.Forbidden, RuleConcern.Request, RuleConcern.Studio)]
     public const string HostNotAllowed = "IM1";
 
-    /// <summary>The host answered, and not with the archive: a 404, a 403, a 5xx. Nothing about the request
-    /// is wrong, so it is reported as what it is — 502, the upstream's answer rather than the studio's.</summary>
-    /// <remarks>Open the url yourself. A release asset behind a login or a redirect answers this, and the import follows no redirects by design.</remarks>
+    /// <summary>The status the host answered for the url of an import request is not between 200 and 299.</summary>
+    /// <remarks>Ask the person who hosts the archive to serve it at the <c>url</c> without a login or a redirect,
+    /// then send the request again.</remarks>
     [Rule(RuleCategory.Unavailable, RuleConcern.Request, RuleConcern.Studio)]
     public const string DownloadFailed = "IM2";
 
-    /// <summary>The archive states more bytes than the import will fetch. 413, before anything is
-    /// downloaded.</summary>
-    /// <remarks>Trim the archive to the world's <c>region/</c> folder — that is all the import reads — or import it from the imports root as a folder.</remarks>
+    /// <summary>The archive an import request names is more than 256 mebibytes.</summary>
+    /// <remarks>Send the request again with <c>url</c> set to an archive that holds only the <c>region</c> folder
+    /// of the world.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Request, RuleConcern.Studio)]
     public const string DownloadTooLarge = "IM3";
 
-    /// <summary>What arrived is not a zip: it does not begin with the header. 415, before extraction, so a
-    /// login page served as HTML fails here rather than inside the unpacker.</summary>
-    /// <remarks>The url must serve the archive itself. A page that links to it, or a login wall, arrives as HTML and reads exactly like this.</remarks>
+    /// <summary>The file the url of an import request serves is not a zip archive.</summary>
+    /// <remarks>Send the request again with <c>url</c> set to the zip archive itself, not a page that links to it
+    /// or a login page.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Request)]
     public const string NotAnArchive = "IM4";
 
-    /// <summary>There is no world in it. The import reads <c>region/*.mca</c> and nothing else, so an archive
-    /// or folder without them carries nothing the studio can scan. 422.</summary>
-    /// <remarks>Check that the archive holds the world folder's <c>region/</c> directory rather than the server directory above it.</remarks>
+    /// <summary>The archive or folder an import names has no region file.</summary>
+    /// <remarks>Send the request again with <c>url</c> or <c>folder</c> set to the world folder that holds the
+    /// <c>region</c> folder, not the server folder above it.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Request, RuleConcern.World)]
     public const string NoRegions = "IM5";
 
-    /// <summary>The folder is a map already: it carries a <c>map.xml</c>. Importing originates a <b>new</b>
-    /// map from a world, and one that already has a map document is a map to open rather than a world to
-    /// originate from. 422.</summary>
-    /// <remarks>A folder with a <c>map.xml</c> is a finished map; nothing here reads it. Point the import at a world folder that has only its terrain.</remarks>
+    /// <summary>The folder an import names has a map.xml.</summary>
+    /// <remarks>Either send the request again with <c>folder</c> set to a world folder with no map.xml, or ask the
+    /// person who runs the studio to move the map.xml out of the folder.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.World)]
     public const string AlreadyAMap = "IM6";
 }
@@ -100,26 +98,27 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
         if (string.IsNullOrWhiteSpace(url))
         {
             await Refusals.UnreadableAsync(HttpContext, "no url given",
-                "the archive to import is stated as url=<https url>", ct, field: "url");
+                "the request's `url` is absent", ct, field: "url");
             return;
         }
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
         {
             await Refusals.UnreadableAsync(HttpContext, "invalid url",
-                $"'{url}' is not an absolute url", ct, field: "url");
+                $"the request's `url` is '{url}', not an absolute url", ct, field: "url");
             return;
         }
         if (uri.Scheme != Uri.UriSchemeHttps)
         {
             await Refusals.UnreadableAsync(HttpContext, "https url required",
-                $"the url states scheme '{uri.Scheme}'; the import fetches over https alone", ct, field: "url");
+                $"the request's `url` has the scheme '{uri.Scheme}', not https", ct, field: "url");
             return;
         }
         if (!policy.HostAllowed(uri.Host))
         {
             await Refusals.WriteAsync(HttpContext, 403, "host not allowed",
                 [new Finding(ImportRules.HostNotAllowed,
-                    $"'{uri.Host}' is not one of the hosts the import fetches from", Field: "url")], ct);
+                    $"host '{uri.Host}' of the request's `url` is not one of the hosts the import fetches from",
+                    Field: "url")], ct);
             return;
         }
 
@@ -130,8 +129,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
         if (baseSlug.Length == 0)
             {
                 await Refusals.UnreadableAsync(HttpContext, "no slug in the url",
-                    "the url's last segment names the world, and this one leaves nothing a slug can be made "
-                    + "of — state one as slug=", ct, field: "url");
+                    "the last segment of the request's `url` leaves nothing a slug can be made of", ct, field: "url");
                 return;
             }
         var slug = await repo.UniqueSlugAsync(baseSlug, ct);
@@ -149,15 +147,16 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
             {
                 await Refusals.WriteAsync(HttpContext, 502, "download failed",
                     [new Finding(ImportRules.DownloadFailed,
-                        $"the host answered {(int)resp.StatusCode} for that url", Field: "url")], ct);
+                        $"host '{uri.Host}' answered {(int)resp.StatusCode} for the request's `url`, "
+                        + "not between 200 and 299", Field: "url")], ct);
                 return;
             }
             if (resp.Content.Headers.ContentLength is { } len && len > policy.MaxDownloadBytes)
             {
                 await Refusals.WriteAsync(HttpContext, 413, "download too large",
                     [new Finding(ImportRules.DownloadTooLarge,
-                        $"the archive states {len} bytes, past the {policy.MaxDownloadBytes} the import will "
-                        + "fetch", Field: "url")], ct);
+                        $"the archive at the request's `url` is {len} bytes, more than {policy.MaxDownloadBytes} bytes",
+                        Field: "url")], ct);
                 return;
             }
             await using (var net = await resp.Content.ReadAsStreamAsync(ct))
@@ -169,7 +168,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
             {
                 await Refusals.WriteAsync(HttpContext, 415, "not a zip archive",
                     [new Finding(ImportRules.NotAnArchive,
-                        "what the url served does not begin with a zip header", Field: "url")], ct);
+                        "the file at the request's `url` does not begin with a zip header", Field: "url")], ct);
                 return;
             }
 
@@ -180,7 +179,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
                 TryDeleteDir(slugDir);
                 await Refusals.WriteAsync(HttpContext, 422, "nothing to import",
                     [new Finding(ImportRules.NoRegions,
-                        "the archive carries no region/*.mca, so there is no world in it to read")], ct);
+                        "the archive at the request's `url` has no region file", Field: "url")], ct);
                 return;
             }
 
@@ -198,8 +197,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
             Logger.LogError(ex, "import-url failed for slug {Slug}", slug);
             await Refusals.WriteAsync(HttpContext, 500, "import failed",
                 [new Finding(RequestRules.Unhandled,
-                    "the import did not finish and what it had written has been rolled back — the fault is the "
-                    + "studio's own and the detail is in the server log")], ct);
+                    $"the import of map '{slug}' failed, and what it had written was rolled back")], ct);
         }
         finally { try { File.Delete(tmpZip); } catch { /* ignore */ } }
     }

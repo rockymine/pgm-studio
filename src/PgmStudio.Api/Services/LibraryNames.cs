@@ -199,15 +199,26 @@ public sealed partial class LibraryNames(
             : default;
         if (match.Name is not null) return await CopyAsync(kind, match.Id, ct);
 
-        var said = name.ToJsonString();
-        var nearest = Nearest(rows.Select(row => row.Name), said.Trim('"')).ToList();
-        resolution.Findings.Add(new Finding(SourceRules.NamesNoLibraryRow,
-            $"{path} names the {kind} {said}, and the library holds none by that name"
-            + (nearest.Count > 0 ? $" — the nearest it holds are {string.Join(", ", nearest.Take(12).Select(row => $"'{row}'"))}"
-                                   + (nearest.Count > 12 ? ", …" : "") : ""),
-            Field: $"refinement.{path}.library"));
+        var stated = name.TryGetValue<string>(out var text) ? text : null;
+        var said = stated is not null ? $"'{stated}'" : name.ToJsonString();
+        resolution.Findings.Add(new Finding(SourceRules.NamesNoLibraryEntry,
+            $"`{path}` names library entry {said}, which the library does not have",
+            Field: $"refinement.{path}.library",
+            Edit: stated is not null && Nearest(rows.Select(row => row.Name), stated) is { } nearest
+                ? DocumentEdit.Of(MapDocuments.Refinement, $"{path}.library", DocumentEdit.Set, nearest,
+                    $"set `{path}.library` to '{nearest}'")
+                : null));
         return null;
     }
+
+    /// <summary>The entry whose name shares the longest beginning with <paramref name="stated"/>, case aside,
+    /// where that beginning is at least half of what was stated; null where none comes that close.</summary>
+    private static string? Nearest(IEnumerable<string> names, string stated) =>
+        names.Select(name => (Name: name, Shared: name.Zip(stated)
+                .TakeWhile(pair => char.ToLowerInvariant(pair.First) == char.ToLowerInvariant(pair.Second)).Count()))
+            .Where(candidate => candidate.Shared * 2 >= stated.Length && candidate.Shared > 0)
+            .OrderByDescending(candidate => candidate.Shared).ThenBy(candidate => candidate.Name, StringComparer.Ordinal)
+            .Select(candidate => candidate.Name).FirstOrDefault();
 
     private async Task<List<(long Id, string Name)>> RowsAsync(string kind, CancellationToken ct) => kind switch
     {
@@ -246,13 +257,6 @@ public sealed partial class LibraryNames(
                 return await styles.GetBiomeAsync(id, ct) is { } biome ? new Copy(id, biome.Name, biome.Params) : null;
         }
     }
-
-    // The names nearest to one that named nothing: the ones sharing the longest start with it first.
-    private static IEnumerable<string> Nearest(IEnumerable<string> names, string stated) =>
-        names.Distinct(StringComparer.Ordinal)
-            .OrderByDescending(name => name.Zip(stated)
-                .TakeWhile(pair => char.ToLowerInvariant(pair.First) == char.ToLowerInvariant(pair.Second)).Count())
-            .ThenBy(name => name, StringComparer.Ordinal);
 
     // A house prop states its style in place, as the shell a room style composes to.
     [GeneratedRegex(@"^dressing\.props\[\d+\]\.style$")]

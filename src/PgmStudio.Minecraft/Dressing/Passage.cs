@@ -70,10 +70,12 @@ public readonly record struct Footing(
 /// </summary>
 public static class Passage
 {
-    /// <summary>Whether <paramref name="group"/> leaves a way past itself: <b>every</b> side carries a band of
+    /// <summary>The rule <paramref name="group"/> breaks by leaving no way past itself, or null where it leaves
+    /// one: <b>every</b> side carries a band of
     /// passable ground <see cref="DressingRules.PassAroundWidth"/> blocks deep along the run of its walls, and
     /// a side the ground stops flush against is a coast it may stand on — but not two facing each other, which
-    /// is a building spanning the land it stands on rather than one seated at its edge.
+    /// is a building spanning the land it stands on rather than one seated at its edge. A side short of the band is
+    /// <see cref="DressingRules.PassAround"/>; two facing coasts are <see cref="DressingRules.SpansTheLand"/>.
     ///
     /// <para>Over the bounding run: the notch of an L is the building's own ground, not a public route through
     /// it, and the same holds of the yard inside a ring of houses.</para></summary>
@@ -82,7 +84,7 @@ public static class Passage
     /// <param name="isBuilt">Whether a building holds that cell. The ring a group holds past its own stamp is
     /// a way past it — a ring is held so that nothing <em>seats</em> under an eave, not so that nobody passes
     /// — so this is asked only outside the group's own ring.</param>
-    public static bool Clears(Footing group, Func<int, int, bool> isGround, Func<int, int, bool> isBuilt)
+    public static string? Blocks(Footing group, Func<int, int, bool> isGround, Func<int, int, bool> isBuilt)
     {
         var depth = DressingRules.PassAroundWidth;
         var ring = DressingRules.StructureClearance;
@@ -91,11 +93,13 @@ public static class Passage
 
         // Each side is grown outward from the step just off the stamp, along the run of the walls.
         return Across(Side(sx1 + 1, wz0, sx1 + 1, wz1, 1, 0), Side(sx0 - 1, wz0, sx0 - 1, wz1, -1, 0))
-            && Across(Side(wx0, sz1 + 1, wx1, sz1 + 1, 0, 1), Side(wx0, sz0 - 1, wx1, sz0 - 1, 0, -1));
+            ?? Across(Side(wx0, sz1 + 1, wx1, sz1 + 1, 0, 1), Side(wx0, sz0 - 1, wx1, sz0 - 1, 0, -1));
 
         // One side of a facing pair may be a coast; the other still has to be a way past.
-        static bool Across(Flank near, Flank far) =>
-            near != Flank.Short && far != Flank.Short && (near == Flank.Clear || far == Flank.Clear);
+        static string? Across(Flank near, Flank far) =>
+            near == Flank.Short || far == Flank.Short ? DressingRules.PassAround
+            : near == Flank.Clear || far == Flank.Clear ? null
+            : DressingRules.SpansTheLand;
 
         Flank Side(int x0, int z0, int x1, int z1, int dx, int dz)
         {

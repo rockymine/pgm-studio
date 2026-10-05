@@ -46,8 +46,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
         TreeForms.Canonical(req.Form) != TreeForms.Copied || req.Cut is { World.Length: > 0 }
             ? Findings.None
             : Findings.Of(new Finding(DressingRules.UncutCopy,
-                $"'{req.Name}' is filed as a copied tree and states no cut — a copied tree is one cut out of a "
-                + "world, and the cut (world, foot, time) is what the cutter records",
+                $"copied tree '{req.Name}' has no cut record",
                 Field: "cut"));
 
     /// <summary>A copied recipe's height is what its body stands, read rather than stated: a knob that

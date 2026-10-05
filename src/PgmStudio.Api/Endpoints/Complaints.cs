@@ -115,8 +115,7 @@ internal static class Complaints
     public static void Unread(HttpContext http, IReadOnlyList<string> fields) =>
         Add(http, fields.Select(field => new Finding(
             RequestRules.Unread,
-            $"field '{field}' was not read — no part of this document has that name, and no upgrade "
-            + "claimed it, so whatever it was meant to say was not said",
+            $"the document has no field '{field}'",
             Severity.Complaint, Field: field)));
 
     private static List<Finding> Carried(HttpContext http) =>

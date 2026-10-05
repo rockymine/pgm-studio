@@ -149,7 +149,7 @@ public sealed class DecoratorTests
         await Assert.That(drop.Message).Contains("tree 't' rests on (");
         // The road got there first and keeps the cell, so that is what the decline names — the record says
         // who holds the ground, not merely that something does.
-        await Assert.That(drop.Message).Contains("claimed by the paving 'p'");
+        await Assert.That(drop.Message).Contains("a cell road 'p' claims");
         // The road survives up to the wall and the house's floor owns the ground inside it.
         await Assert.That(world.GetBlock(25, 7, 20).Id).IsEqualTo(Blocks.Gravel);
         await Assert.That(world.GetBlock(6, 7, 20).Id).IsNotEqualTo(Blocks.Gravel);
@@ -179,7 +179,7 @@ public sealed class DecoratorTests
         var drop = across.Declines.Single(finding => finding.SubjectIds.Contains("h"));
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.RouteCrossed);
         await Assert.That(drop.Severity).IsEqualTo(Severity.Decline);
-        await Assert.That(drop.Message).Contains("stands across the route 'p'");
+        await Assert.That(drop.Message).Contains("overlaps road 'p'");
 
         var (painted, paintedTop) = Plateau();
         var overPaint = Decorator.Decorate(painted, Context(paintedTop, [Band(route: false), Middle()]));
@@ -236,7 +236,7 @@ public sealed class DecoratorTests
         await Assert.That(refused.Trees).IsEqualTo(0);
         var drop = refused.Declines.Single(d => d.SubjectIds.Contains("t"));
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.RoadStandoff);
-        await Assert.That(drop.Message).Contains("nearer than 3 blocks to the road at (");
+        await Assert.That(drop.Message).Contains("less than 3 blocks from the road at (");
         // The decline states the move that clears the standoff: the tree's own anchor carried away from the
         // road, on the layout's props by the tree's id, to a cell three or more off the pavement's z 18–21.
         var edit = drop.Edit;
@@ -551,7 +551,7 @@ public sealed class DecoratorTests
         await Assert.That(cut).IsNotNull();
         await Assert.That(cut!.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(cut.Message).Contains("oak");
-        await Assert.That(cut.Message).Contains("buried");
+        await Assert.That(cut.Message).Contains("inside something already standing");
         await Assert.That(report.Trees).IsEqualTo(1);                     // it is in the world, as it fell
     }
 
@@ -1271,7 +1271,7 @@ public sealed class DecoratorTests
         await Assert.That(bank).IsNotNull();
         await Assert.That(bank!.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(bank.Message).Contains("mere");
-        await Assert.That(bank.Message).Contains("2 deep");
+        await Assert.That(bank.Message).Contains("more than its depth of 2 blocks");
     }
 
     /// <summary>And a body drawn on level ground says nothing: the carve then reaches nothing above its own
@@ -1433,7 +1433,7 @@ public sealed class DecoratorTests
         await Assert.That(second.Message).Contains("'b1'");
         var tree = tally.Declines.Single(finding => finding.SubjectIds.Contains("t"));
         await Assert.That(tree.Rule).IsEqualTo(DressingRules.GroundTaken);
-        await Assert.That(tree.Message).Contains("channel 'w'");
+        await Assert.That(tree.Message).Contains("fluid 'w'");
     }
 
     [Test]
@@ -1597,7 +1597,7 @@ public sealed class DecoratorTests
         await Assert.That(held).IsNotNull();
         await Assert.That(held!.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(held.Message).Contains("canal");
-        await Assert.That(held.Message).Contains("approach");
+        await Assert.That(held.Message).Contains("kept clear in front of a door");
     }
 
     [Test]
@@ -1697,7 +1697,7 @@ public sealed class DecoratorTests
         var wall = report.Declines.Single(finding => finding.Rule == DressingRules.DryEdge);
         await Assert.That(wall.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(wall.Message).Contains("wash");
-        await Assert.That(wall.Message).Contains("ring");
+        await Assert.That(wall.Message).Contains("open columns of ground");
         await Assert.That(world.GetBlock(17, 6, 17).Id).IsEqualTo(Blocks.StationaryWater);
         await Assert.That(world.GetBlock(23, 6, 17).Id).IsEqualTo(Blocks.Air);
     }
@@ -1929,7 +1929,7 @@ public sealed class DecoratorTests
         // Standing, and the carve — four courses, one past the settle depth — reported as the one complaint.
         var dug = tally.Declines.Single();
         await Assert.That(dug.Rule).IsEqualTo(DressingRules.SiteDug);
-        await Assert.That(dug.Message).Contains("4 course(s)");
+        await Assert.That(dug.Message).Contains("4 blocks deep");
         // The mound is gone from the interior: the column that stood four courses over the floor is open air.
         for (var y = 9; y <= 11; y++)
             await Assert.That(world.GetBlock(20, y, 20).Id).IsEqualTo(Blocks.Air);
@@ -1990,7 +1990,7 @@ public sealed class DecoratorTests
         }
         await Assert.That(dug.Count).IsEqualTo(1);
         await Assert.That(dug[0].Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(dug[0].Message).Contains($"seat its floor at y{7 - pitDepth}: {pitDepth} course(s)");
+        await Assert.That(dug[0].Message).Contains($"{pitDepth} blocks deep at (10, 16), more than 3 blocks, with its floor at y{7 - pitDepth}");
     }
 
     /// <summary>On level ground the seat's own course down removes nothing, and nothing is reported.</summary>
@@ -2027,7 +2027,7 @@ public sealed class DecoratorTests
         await Assert.That(buried.Houses).IsEqualTo(0);
         var drop = buried.Declines.Single();
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.SiteNotLevel);
-        await Assert.That(drop.Message).Contains("across its own footprint");
+        await Assert.That(drop.Message).Contains("rises 12 blocks across its footprint");
 
         // The same house on level ground stands: the rule is about the site, not about the building.
         var (flat, flatTop) = Plateau();
@@ -2162,8 +2162,8 @@ public sealed class DecoratorTests
                 },
             } }]));
         var drop = corked.Declines.Single();
-        await Assert.That(drop.Message).Contains("no way past");
-        await Assert.That(drop.Rule).IsEqualTo(DressingRules.PassAround);
+        await Assert.That(drop.Message).Contains("stands against the coast on two facing sides");
+        await Assert.That(drop.Rule).IsEqualTo(DressingRules.SpansTheLand);
 
         // The same house hugging a west coast: one flank is the edge and the other three keep the passage.
         var (coast, coastTop) = Plateau();
@@ -2651,7 +2651,7 @@ public sealed class DecoratorTests
         await Assert.That(decline.Rule).IsEqualTo(ObjectiveRules.PropInClearance);
         await Assert.That(decline.Severity).IsEqualTo(Severity.Decline);
         await Assert.That(decline.SubjectIds).IsEquivalentTo(new[] { "t-goal" });
-        await Assert.That(decline.Message).Contains("inside a goal's clearance");
+        await Assert.That(decline.Message).Contains("inside the clearance of an objective");
     }
 
     /// <summary>A building is judged on the whole floor it stamps, so a footprint whose corner reaches the
@@ -2808,7 +2808,7 @@ public sealed class PropRecipeTests
         var fault = Assert.Throws<DressingParseException>(() => DressingJson.Deserialize(
             """{"props":[{"kind":"tree","id":"t","x":0,"z":0,"style":"maple-9"}],"styles":{}}"""));
         await Assert.That(fault!.Message).Contains("maple-9");
-        await Assert.That(fault.Finding.Rule).IsEqualTo(DressingParseException.Rule);
+        await Assert.That(fault.Finding.Rule).IsEqualTo(DressingRules.UnreadableField);
     }
 
     [Test]

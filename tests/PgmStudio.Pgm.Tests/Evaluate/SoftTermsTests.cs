@@ -17,7 +17,7 @@ public sealed class SoftTermsTests
     private const string CloseWoolsJson = """
         {"plan":2,"globals":{"cell":5,"symmetry":"none"},
          "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,6]}],
-         "placements":{"wools":[{"piece":"lane","at":[5,5]},{"piece":"lane","at":[5,20]}]}}
+         "placements":{"wools":[{"id":"w-a","piece":"lane","at":[5,5]},{"id":"w-b","piece":"lane","at":[5,20]}]}}
         """;
 
     // a straight lane with the spawn at one end and two wools at different depths — spawn→wool 20 and 45
@@ -25,8 +25,8 @@ public sealed class SoftTermsTests
     private const string UnbalancedWoolsJson = """
         {"plan":2,"globals":{"cell":5,"symmetry":"none"},
          "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,10]}],
-         "placements":{"spawns":[{"piece":"lane","at":[5,2.5],"facing":"front"}],
-                       "wools":[{"piece":"lane","at":[5,22.5]},{"piece":"lane","at":[5,47.5]}]}}
+         "placements":{"spawns":[{"id":"s-red","piece":"lane","at":[5,2.5],"facing":"front"}],
+                       "wools":[{"id":"w-near","piece":"lane","at":[5,22.5]},{"id":"w-far","piece":"lane","at":[5,47.5]}]}}
         """;
 
     /// <summary><b>The fill ratio is ground over the ground's own frame.</b> A build zone is buildable void
@@ -113,6 +113,20 @@ public sealed class SoftTermsTests
 
         await Assert.That(score.Violation).IsNotNull();
         await Assert.That(score.Distance).IsGreaterThan(0.0);
+    }
+
+    /// <summary>A soft term's finding is one sentence: the thing it measured by kind and id, the value in the unit
+    /// its rule states, and the edge of the band it broke, written as the rule writes it.</summary>
+    [Test]
+    public async Task A_soft_finding_names_what_it_measured_and_the_edge_it_broke()
+    {
+        var ratio = new SpawnWoolRatio().Measure(Ctx(UnbalancedWoolsJson, SeedEnvelopes.Default)).Violation!;
+        var pair = new WoolWoolDistance().Measure(Ctx(CloseWoolsJson, SeedEnvelopes.Default)).Violation!;
+
+        await Assert.That(ratio.Message).Matches(
+            @"^wool 'w-far' has \d+(\.\d+)? times the walking distance from the spawn that wool 'w-near' has, more than \d+(\.\d+)? times$");
+        await Assert.That(pair.Message).Matches(
+            @"^wools 'w-a' and 'w-b' have a walking distance of \d+(\.\d)? blocks between them, less than \d+ blocks$");
     }
 
     [Test]
@@ -313,7 +327,7 @@ public sealed class SoftTermsTests
                            "wools":[{"piece":"lane","at":[5,10]}]}}
             """, SeedEnvelopes.Default));
         await Assert.That(score.Violation).IsNotNull();
-        await Assert.That(score.Violation!.RuleId).IsEqualTo("WL2");
+        await Assert.That(score.Violation!.RuleId).IsEqualTo("WL13");
         await Assert.That(score.Violation!.Evidence!.OfType<EvidenceMeasure>().Any()).IsTrue();
     }
 
@@ -425,7 +439,7 @@ public sealed class SoftTermsTests
         await Assert.That(new RouteInterference().Value(Ctx(oneSided, SeedEnvelopes.Empty))).IsNull();
     }
 
-    // ── ThinMiddle (MD7) ────────────────────────────────────────────────────────────────────────────────
+    // ── ThinMiddle (MD7) and LongMiddle (MD8) ───────────────────────────────────────────────────────────────
 
     private static string Band(int x, int z, int w, int h) => $$"""
         {"plan":2,"globals":{"cell":4,"symmetry":"rot_180","maxPlayers":30},
@@ -434,23 +448,28 @@ public sealed class SoftTermsTests
         """;
 
     [Test]
-    public async Task A_band_thin_and_long_scores_both_shortfalls()
+    public async Task A_band_thin_and_long_scores_each_shortfall_under_its_own_rule()
     {
         // milli: 16 blocks wide against the 40 floor is 24 short over half the floor (1.2), and 80 long is five
         // times its width against at most two (3)
-        var score = new ThinMiddle().Measure(Ctx(Band(-2, -10, 4, 20), SeedEnvelopes.Empty));
-        await Assert.That(score.Distance).IsEqualTo(4.2).Within(1e-9);
-        await Assert.That(score.Violation!.RuleId).IsEqualTo("MD7");
+        var thin = new ThinMiddle().Measure(Ctx(Band(-2, -10, 4, 20), SeedEnvelopes.Empty));
+        var longScore = new LongMiddle().Measure(Ctx(Band(-2, -10, 4, 20), SeedEnvelopes.Empty));
+        await Assert.That(thin.Distance).IsEqualTo(1.2).Within(1e-9);
+        await Assert.That(thin.Violation!.RuleId).IsEqualTo("MD7");
+        await Assert.That(longScore.Distance).IsEqualTo(3).Within(1e-9);
+        await Assert.That(longScore.Violation!.RuleId).IsEqualTo("MD8");
     }
 
     [Test]
     public async Task A_band_wide_and_short_is_clean_and_a_plan_without_one_is_not_read()
     {
         await Assert.That(new ThinMiddle().Measure(Ctx(Band(-8, -4, 16, 8), SeedEnvelopes.Empty)).Distance).IsEqualTo(0);
+        await Assert.That(new LongMiddle().Measure(Ctx(Band(-8, -4, 16, 8), SeedEnvelopes.Empty)).Distance).IsEqualTo(0);
         const string none = """
             {"plan":2,"globals":{"cell":4,"symmetry":"rot_180","maxPlayers":30},
              "pieces":[{"id":"p","role":"piece","rect":[0,20,4,4]}]}
             """;
         await Assert.That(new ThinMiddle().Measure(Ctx(none, SeedEnvelopes.Empty)).Distance).IsEqualTo(0);
+        await Assert.That(new LongMiddle().Measure(Ctx(none, SeedEnvelopes.Empty)).Distance).IsEqualTo(0);
     }
 }

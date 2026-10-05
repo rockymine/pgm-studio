@@ -58,7 +58,7 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
         if (set is null)
         {
             await Refusals.WriteAsync(HttpContext, 503, "no block textures",
-                [new Vocabulary.Finding(RequestRules.TexturesUnavailable, reason ?? "no block textures")], ct);
+                [new Vocabulary.Finding(RequestRules.TexturesUnavailable, reason ?? "the studio has no block textures")], ct);
             return;
         }
         _textures = set;
@@ -74,7 +74,7 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
         get
         {
             try { return EyeAim.Read(word => Query<string?>(word, isRequired: false)).Empty; }
-            catch (ArgumentException) { return "nothing to draw"; }
+            catch (ArgumentException) { return "the aim places no camera"; }
         }
     }
 

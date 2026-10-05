@@ -73,7 +73,7 @@ checks.section("a goalless plan compiles, but says so");
   const p = clone();
   p.placements.wools = []; p.placements.destroyables = []; p.placements.cores = [];
   const res = await apiRaw("/plan/compile", { method: "POST", body: p });
-  const warned = (res.json?.warnings ?? []).some(w => /objective/i.test(w.message ?? ""));
+  const warned = (res.json?.warnings ?? []).some(w => /has no wool, monument, core or capture point/.test(w.message ?? ""));
   checks.add("compiles", res.status === 200, `${res.status}`);
   checks.add("…and warns about the missing objective", warned,
     (res.json?.warnings ?? []).map(w => w.message).join("; ").slice(0, 100) || "no warnings");
@@ -90,7 +90,7 @@ checks.section("an empty plan is refused, not answered with an empty map");
   const compiled = await apiRaw("/plan/compile", { method: "POST", body: empty });
   checks.add("empty plan → 422", compiled.status === 422, `${compiled.status}`);
   const why = (compiled.json?.findings ?? []).map(f => f.message)[0] ?? "";
-  checks.add("…naming the missing land", /no pieces/.test(why), why.slice(0, 90));
+  checks.add("…naming the missing land", /has no piece that makes ground/.test(why), why.slice(0, 90));
 
   // Its sibling endpoints must survive the same document — an empty plan is well-formed, just empty.
   const evaluated = await apiRaw("/plan/evaluate", { method: "POST", body: empty });

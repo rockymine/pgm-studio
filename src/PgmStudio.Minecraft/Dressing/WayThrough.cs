@@ -105,16 +105,15 @@ public sealed class WayThrough
         {
             if (Walk.Between(route.From, route.To, narrowed) is not { } again)
                 return new Finding(DressingRules.WayThrough,
-                    $"'{propId}' closes the only way between ({route.From.X}, {route.From.Z}) and "
+                    $"building '{propId}' closes the only way between ({route.From.X}, {route.From.Z}) and "
                     + $"({route.To.X}, {route.To.Z})",
                     Severity.Decline, Subjects: [propId]);
 
             var further = again.Cost.Distance - route.Bare;
             if (further > Walk.Detour)
                 return new Finding(DressingRules.WayThrough,
-                    $"'{propId}' sends the way between ({route.From.X}, {route.From.Z}) and "
-                    + $"({route.To.X}, {route.To.Z}) {further} blocks further round, past the "
-                    + $"{Walk.Detour} a player will go out of their way",
+                    $"building '{propId}' makes the way between ({route.From.X}, {route.From.Z}) and "
+                    + $"({route.To.X}, {route.To.Z}) {further} blocks longer, more than {Walk.Detour} blocks",
                     Severity.Decline, Subjects: [propId]);
 
             walked.Add((route, again));

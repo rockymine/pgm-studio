@@ -368,18 +368,20 @@ public sealed record AuthoredWing(IReadOnlyList<double[]> Corners, WingSpec Spec
 /// (<see cref="WingJointRules"/>) is asked anything. Stable names, kept apart from any task-tracking id.</summary>
 public static class HousePropRules
 {
-    /// <summary>No rectangles at all — there is no building to place.</summary>
-    /// <remarks>Give the building at least one rectangle. A building with none has no footprint to stand on.</remarks>
+    /// <summary>A building has no wing.</summary>
+    /// <remarks>Add a wing with two opposite <c>corners</c> to <c>wings</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string NoWings = "HP1";
 
-    /// <summary>A wing is not two opposite corners, or is too thin to hold two walls and an inside.</summary>
-    /// <remarks>State each wing as two opposite corners, and at least 4 blocks each way — the same least span a room's footprint takes, since a room's is the single-wing case of a building's. Anything thinner has no inside once its two walls are written.</remarks>
+    /// <summary>A wing has fewer than 2 corners, or is less than 4 blocks across its shorter side.</summary>
+    /// <remarks>Change the <c>corners</c> of the wing in <c>wings</c> to two opposite <c>[x, z]</c> corners that
+    /// form a rectangle at least 4 blocks across its shorter side.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string WingShape = "HP2";
 
-    /// <summary>The wings cover more ground than a placed building may take.</summary>
-    /// <remarks>Shrink the wings, or split the building into two placements. The cap is what one placed building may take.</remarks>
+    /// <summary>The wings of a building cover more than 192 blocks of ground.</summary>
+    /// <remarks>Either change the <c>corners</c> of a wing in <c>wings</c> until the wings cover at most 192
+    /// blocks, or split the wings between two entries in <c>dressing.props</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string PastCap = "HP3";
 }
@@ -474,21 +476,20 @@ public sealed record HouseProp : PlacedProp
     {
         if (Wings.Count == 0)
             return Findings.Of(new Finding(HousePropRules.NoWings,
-                "a building needs at least one rectangle", Field: "wings"));
+                "the building has no wing", Field: "wings"));
         for (var index = 0; index < Wings.Count; index++)
         {
             var corners = Wings[index].Corners;
             var wing = index.ToString();
             if (corners.Count < 2 || corners[0].Length < 2 || corners[1].Length < 2)
                 return Findings.Of(new Finding(HousePropRules.WingShape,
-                    "every wing is drawn as two opposite corners, each an x and a z",
+                    $"wing {wing} is not two corners with an x and a z each",
                     Field: "wings", Subjects: [wing]));
             var (minX, minZ, maxX, maxZ) = Corners(corners);
             if (maxX - minX + 1 < RoomFrames.MinFootprintSpan || maxZ - minZ + 1 < RoomFrames.MinFootprintSpan)
                 return Findings.Of(new Finding(HousePropRules.WingShape,
-                    $"a wing holds two walls and an inside, so it is at least "
-                    + $"{RoomFrames.MinFootprintSpan} blocks each way — the least span any building footprint "
-                    + $"may be; this one is {maxX - minX + 1} × {maxZ - minZ + 1}",
+                    $"wing {wing} is {maxX - minX + 1} by {maxZ - minZ + 1} blocks, less than "
+                    + $"{RoomFrames.MinFootprintSpan} blocks across its shorter side",
                     Field: "wings", Subjects: [wing]));
         }
 
@@ -496,7 +497,7 @@ public sealed record HouseProp : PlacedProp
         var covered = plan.Cells().Count();
         if (covered > MaxFootprint)
             return Findings.Of(new Finding(HousePropRules.PastCap,
-                $"the wings cover {covered} blocks, past the {MaxFootprint} a placed building may take",
+                $"the wings of the building cover {covered} blocks, more than {MaxFootprint} blocks",
                 Field: "wings"));
 
         return WingJoints.Check(plan);

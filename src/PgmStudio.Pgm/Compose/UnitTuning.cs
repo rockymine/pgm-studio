@@ -98,7 +98,7 @@ public static class UnitTuning
     // ── the shape mix: which bodies a box may be ───────────────────────────────────────────────────────────
 
     /// <summary>The narrowest a composed hub hole is, in cells on a <paramref name="cell"/>-block grid:
-    /// <c>WL12</c>'s floor for a hole touching no goal (<see cref="PlanValidator.MinPlainSpaceBlocks"/>),
+    /// <c>LN6</c>'s floor for a hole touching no goal (<see cref="PlanValidator.MinPlainSpaceBlocks"/>),
     /// rounded up. A narrower hole is jumped rather than rounded, so it splits nothing.</summary>
     internal static int HubHoleCells(int cell) =>
         (PlanValidator.MinPlainSpaceBlocks + cell - 1) / cell;

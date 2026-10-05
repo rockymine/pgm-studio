@@ -76,16 +76,17 @@ public sealed partial class MapParser
     {
         var protoText = _root.Attribute("proto")?.Value;
         if (protoText is null || !Version.TryParse(protoText, out var proto))
-            throw new UnsupportedMapException(
-                $"map.xml declares no parseable proto; the studio supports proto >= {MinProto} (id-based regions/filters/kits).");
+            throw new UnsupportedMapException(protoText is null
+                ? "the map states no `proto`"
+                : $"`proto` '{protoText}' is not a version");
         if (proto < MinProto)
             throw new UnsupportedMapException(
-                $"map proto {protoText} is below the supported floor {MinProto} (pre id-based regions/filters/kits).");
+                $"`proto` {protoText} is less than {MinProto}");
 
         var serverText = _root.Attribute("min-server-version")?.Value;
         if (serverText is not null && Version.TryParse(serverText, out var server) && server >= FirstModernServer)
             throw new UnsupportedMapException(
-                $"map requires server {serverText}: modern (>= {FirstModernServer}) worlds use the palette block format the Anvil reader does not support yet.");
+                $"`min-server-version` {serverText} is at least {FirstModernServer}");
 
         EnsureObjectivesReadable();
         EnsureRegionsReadable();
@@ -102,8 +103,7 @@ public sealed partial class MapParser
             .Where(UnreadRegionTypes.Contains).Distinct().ToList();
         if (unread.Count == 0) return;
         throw new UnsupportedMapException(
-            $"map uses a region type the studio cannot read: {string.Join(", ", unread.Select(t => $"<{t}>"))}. "
-            + "A rule over it would be read as covering the whole map.");
+            $"the map uses region {string.Join(", ", unread)}, which the studio does not read");
     }
 
     // An objective module we do not read would be dropped in silence: the map parses, exports, and plays
@@ -114,18 +114,17 @@ public sealed partial class MapParser
             .Select(e => e.Name.LocalName)
             .Where(t => ObjectiveModules.ContainsKey(t) && !ParsedObjectiveModules.Contains(t))
             .Distinct()
-            .Select(t => $"<{t}> ({ObjectiveModules[t]})")
+            .Select(t => $"`{t}`")
             .ToList();
         // A scorebox is its own objective wearing <score>'s element: PGM gives a <box> its own map tag, and
         // the region, filter and redeemables that make one are not read here. The module around it is, so
         // the gate has to look one level in or a scorebox map would parse and export without its boxes.
         if (_root.Elements("score").SelectMany(s => s.Elements("box")).Any())
-            unread.Add("<score>'s <box> (Scorebox)");
+            unread.Add("`box` of `score`");
         if (unread.Count == 0) return;
 
         throw new UnsupportedMapException(
-            $"map declares an objective the studio cannot read: {string.Join(", ", unread)}. "
-            + "Parsing it would drop the objective silently on round-trip.");
+            $"the map states objective {string.Join(", ", unread)}, which the studio does not read");
     }
 
     private MapXml ParseInternal()
@@ -816,7 +815,7 @@ public sealed partial class MapParser
         var refused = new List<string>();
         foreach (var shop in Xml.Flatten(_root, "shops", "shop").Select(leaf => leaf.Element))
         {
-            if (Xml.Get(shop, "id").Trim().Length == 0) refused.Add("<shop> with no id");
+            if (Xml.Get(shop, "id").Trim().Length == 0) refused.Add("a `shop` with no `id`");
             Check(shop, "shop");
             foreach (var category in shop.Elements("category"))
             {
@@ -827,24 +826,23 @@ public sealed partial class MapParser
         }
         foreach (var keeper in Xml.Flatten(_root, "shopkeepers", "shopkeeper"))
             if (KeeperLocation(keeper) is null)
-                refused.Add("<shopkeeper> whose location is neither coordinates nor one region reference");
+                refused.Add("a `shopkeeper` whose `location` is not coordinates or one region");
 
         if (refused.Count == 0) return;
         throw new UnsupportedMapException(
-            $"map declares a shop the studio cannot read: {string.Join(", ", refused.Distinct())}. "
-            + "Parsing it would drop what the shop states on round-trip.");
+            $"the map states {string.Join(", ", refused.Distinct())}, which the studio does not read");
 
         void Check(XElement e, string kind)
         {
             foreach (var child in e.Elements())
                 if (!ShopChildren[kind].Contains(child.Name.LocalName))
-                    refused.Add($"<{child.Name.LocalName}> inside a <{kind}>");
+                    refused.Add($"`{child.Name.LocalName}` in a `{kind}`");
         }
 
         void CheckItem(XElement e, string kind)
         {
             foreach (var name in UnreadItemAttributes)
-                if (e.Attribute(name) is not null) refused.Add($"a <{kind}>'s {name}");
+                if (e.Attribute(name) is not null) refused.Add($"`{name}` on a `{kind}`");
             foreach (var payment in e.Elements("payment")) Check(payment, "payment");
         }
     }
@@ -1109,7 +1107,7 @@ public sealed partial class MapParser
         var listed = e.Get("modes").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         if (modeChanges && listed.Count > 0)
             throw new UnsupportedMapException(
-                $"<{e.Element.Name.LocalName}> combines modes=\"{e.Get("modes")}\" with mode-changes=\"true\"; they are mutually exclusive (mode-changes already means every mode).");
+                $"`{e.Element.Name.LocalName}` states both `modes` and `mode-changes`");
         return (modeChanges, listed.Count > 0 ? listed : null);
     }
 

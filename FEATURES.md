@@ -21,7 +21,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 ## App shell & routing
 - **The rules have a page, and the studio bar links it (`RP108`).** `/rules` lists every rule `GET /api/rules`
   answers by family in pipeline order, filtered by text, kind, the action it asks for and what it is about, and
-  opens one to its meaning, its fix or its law, its terms' bands and where it is defined; `?rule=ID` opens on
+  opens one to its meaning, its fix, how a layout rule is known, its terms' bands and where it is defined; `?rule=ID` opens on
   one. The studio bar carries Rules and API docs after a divider, API docs opening `/api-docs` in a new tab.
 - **A deploy reaches a browser whole (`RP102`).** The hand-written CSS and JS and `index.html` are sent with
   `Cache-Control: no-cache` in every environment, so a browser revalidates each one rather than keeping it for a
@@ -1005,6 +1005,66 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   tools enter, and `IsoToggle` the one 2D/3D switch.
 
 ## Backend / API (B)
+- **Every layout rule states one limit, in the glossary's words (`RP111`, `G290`).** The layout rules a finding
+  can cite are `LayoutRules` in `PgmStudio.Domain`; the sites that raise one name the constant, so a typo is a
+  compile error. Each text takes one shape (less than, more than, not between, a count, a touch) and states
+  its numbers, a learned band included, which `RuleBandDriftTests` pins to the band. A rule that checked two
+  things is two: `CT13`, `CT14`, `LN5`, `WL13` to `WL19`, `SP11`, `ST11` and `MD8`, 56 rules in all.
+  `docs/generator/rules.md` is the argument behind them and is not served; where a ruling came from is not
+  served either.
+- **Every finding's message names its thing and its number (`RP112`).** A soft term states its unit and names
+  the wool, spawn, objective or front line it measured, and `Measures` writes the value and the broken edge as
+  the rule text writes it ("wool 'w-far' has a walking distance of 61.5 blocks to the crossing, more than 50
+  blocks"). The 26 plan checks and the decorator's declines open with the thing's kind and id and give the
+  measured number against the limit, with no reason or fix in prose. The producibility read raises its own `BX1`
+  to `BX10` (a box room is `ST1`), and `Cites` names only an open task. `FindingMessageTests` holds the
+  helpers' messages to the shape, read out of the source.
+- **A category names what its fix does (`RP116`).** A value outside the kind its field takes is
+  `malformed`, as `HS1` already was: `HS3`, `HS5`, `HS13`, `HS14`, `HS16`, `HS17` and `DR-COPY` move there. A
+  monument the settings and the world place apart is `conflict` (`OB25`). A map that plays and was left at a
+  default nobody chose is `unfinished`, a category of its own: a room in the built-in shell (`WX14`) and a board
+  with no palette, terraform or prop (`SK8`). `?category=` answers move with them.
+- **Every check is stated by its own rule (`RP115`).** Rules whose text left a check out are split, each
+  check raised under its own id where it is checked: the roof's slab and stair (`HS20`–`HS22` beside `HS3`); the
+  request's stale revision, entry in use, kept view, empty hand-off and empty read (`RQ13`–`RQ17` beside `RQ5`);
+  a full build queue (`RQ18`) and a refused hand-off (`RQ19`); a posted terraform the stored one replaces
+  (`SK30`) and a shape with no area (`SK31`); an empty apply rule and a quarter-turn copy of a compound
+  (`ED3`, `ED4`); a goal in a room and a wool monument over void (`OB30`, `OB31`); a building touching the
+  coast on two facing sides (`DR-SPAN`). A malformed point or ring is `RQ1`.
+- **One rule, one name (`RP117`).** Six rule constants take the glossary's words and say what they refuse:
+  `NoGroundPiece` (`PL1`), `WallWithoutSharedEdge` (`PL11`), `NamesNoLibraryEntry` (`SR6`), `BoulderOnAFace`
+  (`DR-STEEP`), `BoulderInTheGroundsTone` (`DR-TONE`) and `DressingRules.UnreadableField` (`DR-DOC`). `WX13`
+  stays its own rule beside `ST9`: it reads the spawn room the world builds from the intent, which Configure
+  can change after the plan, and its text says so.
+- **`SK2` states its ceiling, and `WL12` is three rules (`RP118`).** `SK2`'s text and message give the
+  4,000,000 columns it refuses past. `WL12` keeps the 16-block gap beside a goal toward the front or another
+  goal, `WL20` the 12-block gap toward the goal's own ground, and `LN6` the 12-block floor of a hole beside no
+  goal, so no rule text is held out of `RuleTextTests`.
+- **A room check's fix rides as an edit for agents (`RP119`).** `ST9` proposes the marker's `footprint` cut to
+  20 by 20 blocks around the marker, checked to resolve as its room; `ST10` the room piece's `rect` cut to 20 by
+  30 blocks in whole cells from its minimum corner, and none where a marker or stated footprint would fall off
+  the piece. `SP9`'s fix names its four fixes and carries no edit, and no screen offers an edit.
+- **A reader's fault says its field, then what is wrong there (`RP120`).** Every document reader throws a
+  predicate about the field it stopped at — `DocumentFault`, a converter's `JsonException`, a dressing
+  document's `DressingParseException` — and `JsonFaults.Said` makes the `RQ1` finding at every catch site:
+  the field under the body member it was posted as, System.Text.Json's own faults read for what they are (a
+  wrong type, a kind outside its set, no kind, not JSON at a line and position). A house-style part stated as
+  null carries the edit that says *none* in its own words. The map parser, the eye's and pick's query words
+  and `AuthorNames.Refuse` say which check failed the same way, and `FindingMessageTests` reads the readers'
+  faults as carriers.
+- **Every message in the source takes the one shape (`RP114`).** The messages written at their raise sites —
+  the gates, the editors' faults, the request refusals, the world reads — open with the thing's kind and id
+  and give where and how far, with no reason or fix. A thing absent, taken or of the wrong kind is said one
+  way everywhere ("does not exist", "the request states no `x`", "is already taken", "is not one of"), and
+  `Wording.Count` and `Wording.Ids` write every count and id list. `FindingMessageTests` reads every
+  message-carrying call in `src/` and holds it to `docs/refusals.md`.
+- **Every rule says the same thing the same way (`RP113`).** The 178 gate rules join the 56 layout rules in one
+  format: a meaning in one of a closed set of shapes with its number, a fix that opens with one of sixteen verbs
+  and names its field as one dotted path. `RuleTextTests` holds all 234 as `GET /api/rules` serves them to
+  `docs/refusals.md`'s "How a rule's two texts are written", so a second spelling of an edit fails a test.
+- **Every word the rules use is defined once (`RP99`).** `Glossary` in `PgmStudio.Vocabulary` holds 226 terms,
+  each with a one-line definition, the other names a reader meets it under and the terms it leans on, signed
+  off by the author; `GET /api/glossary` serves it, and `?term=board` answers `layout`.
 - **A finding blames the caller only for the caller's mistakes (`RP110`).** The plan reader refuses a list
   stated as `null`, a marker whose `at` is not two numbers and two pieces under one id with the field named,
   and the plan routes no longer answer a crash as `RQ1`. A soft term's finding is a complaint; G5's term and

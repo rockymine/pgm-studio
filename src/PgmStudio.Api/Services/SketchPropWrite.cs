@@ -57,8 +57,7 @@ internal static class SketchPropWrite
         var body = await RawBody.ReadAsync(http, ct);
         if (SketchDressingWrite.StatesPlacement(body)) return body;
         await Refusals.UnreadableAsync(http, "malformed prop",
-            "the body is not one placement: it states no `kind`, or a kind the dressing reader does "
-            + $"not know. The kinds are {string.Join(", ", PlacedProp.Kinds)}.", ct, field: "kind");
+            $"the request's body states no `kind` that is one of {string.Join(", ", PlacedProp.Kinds)}", ct, field: "kind");
         return null;
     }
 }

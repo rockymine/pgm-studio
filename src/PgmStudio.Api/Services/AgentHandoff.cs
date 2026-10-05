@@ -33,7 +33,7 @@ public sealed class AgentHandoff(IConfiguration configuration, IHttpClientFactor
     public async Task<(string? Session, string? Why)> HandAsync(string text, CancellationToken ct)
     {
         if (Fire is not { } fire || Token is not { } token)
-            return (null, "this studio names no agent to hand notes to — set Notes:Agent:Fire and Notes:Agent:Token");
+            return (null, "the studio has no agent to hand notes to");
         using var request = new HttpRequestMessage(HttpMethod.Post, fire)
         {
             Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(new { text }), System.Text.Encoding.UTF8, "application/json"),
@@ -45,8 +45,7 @@ public sealed class AgentHandoff(IConfiguration configuration, IHttpClientFactor
         {
             using var answer = await clients.CreateClient(ClientName).SendAsync(request, ct);
             if (!answer.IsSuccessStatusCode)
-                return (null, $"the agent's service refused the hand-off with {(int)answer.StatusCode}"
-                    + (answer.StatusCode == System.Net.HttpStatusCode.Unauthorized ? " — the token was revoked or regenerated" : ""));
+                return (null, $"the agent's service refused the hand-off with status {(int)answer.StatusCode}");
             var fired = await answer.Content.ReadFromJsonAsync<Fired>(ct);
             Last = new Handed(DateTime.UtcNow, fired?.Session);
             return (fired?.Session, null);

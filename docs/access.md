@@ -250,9 +250,10 @@ caller's first export takes the next free turn. The caller is the account a sign
 token's included; a visitor is their address, which behind a reverse proxy is the forwarded one; every request
 to an open studio is its one local admin.
 
-**A request that cannot wait is refused `RQ11` at 429.** The queue holds 32 waiting requests, 8 of them one
-caller's, and a request waits 60 s for its turn; past any of those it answers the refusal envelope with
-`Retry-After: 10`, before its handler runs. Access is decided first, so a request the rules refuse never takes
+**A request that cannot wait is refused at 429.** The queue holds 32 waiting requests, 8 of them one
+caller's, and a request waits 60 s for its turn. A request that finds either count full is refused `RQ18`, and
+one that waits past the 60 s `RQ11`; both answer the refusal envelope with `Retry-After: 10`, before the
+handler runs. Access is decided first, so a request the rules refuse never takes
 a turn. Every queued route publishes the 429 in the schema, and like the 401 and 403 no endpoint table in
 `docs/tools/` repeats it.
 
@@ -282,7 +283,8 @@ A request the rules turn away answers the refusal envelope every gate uses (`doc
 | `RQ7` | 401 | the route writes, builds a view on request, or reads map notes, and the request is signed out |
 | `RQ8` | 403 | the request is signed in and this write is not theirs: not on the whitelist, not the map's owner or credited author, or an admin's route — and a Discord sign-in that resolves to nobody on the whitelist |
 | `RQ9` | 503 | a sign-in route, on a studio with no Discord application configured |
-| `RQ11` | 429 | a route that builds a world, and the build queue is full or the request waited past its limit |
+| `RQ11` | 429 | a route that builds a world, and the request waited past its limit |
+| `RQ18` | 429 | a route that builds a world, and the build queue is full |
 
 Every write publishes the first two in the schema at `/api/openapi/v1.json`, and no read does, so an endpoint table in
 `docs/tools/` does not repeat them — they are declared in one place, like the 400 and 500 every route carries.

@@ -204,7 +204,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         var compiled = await RawBody.ReadAsync(HttpContext, ct);
         try { using var _ = JsonDocument.Parse(compiled); }   // reject non-JSON; don't store garbage
         catch (JsonException fault)
-        { await Refusals.UnreadableAsync(HttpContext, "invalid JSON", fault.Message, ct); return; }
+        { await Refusals.UnreadableAsync(HttpContext, "invalid JSON", fault, ct); return; }
 
         var stored = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         var storedJson = stored is null ? null : Encoding.UTF8.GetString(stored);
@@ -214,8 +214,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         {
             await Refusals.WriteAsync(HttpContext, 409, "relief would be orphaned",
             [.. orphans.Select(group => new Finding(SketchRules.ReliefOrphaned,
-                $"the recompiled board has no group for the terrain authored on group {group}; retry "
-                + "with ?force=true to discard it",
+                $"group '{group}' holds terraform in the stored layout, and the recompiled layout has no such group",
                 Subjects: [group]))], ct);
             return;
         }
@@ -228,19 +227,16 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         // silence for the caller that compiled, patched a relief on and posted the result, since that is the
         // road this route documents. Named rather than dropped.
         foreach (var group in SketchLayout.ReliefReplaced(compiled, storedJson))
-            Complaints.Add(HttpContext, [new Finding(SketchRules.ReliefOrphaned,
-                $"the relief posted for group '{group}' is not the one stored, and a merge carries the "
-                + "stored one — the terrain this board builds is the terrain it already had. Write the new "
-                + $"one to PUT /map/{map.Slug}/sketch/relief/{group}, or replace the whole layout with "
-                + $"PUT /map/{map.Slug}/sketch",
+            Complaints.Add(HttpContext, [new Finding(SketchRules.ReliefReplaced,
+                $"the terraform posted for group '{group}' is not the terraform stored",
                 Severity.Complaint, Field: $"relief.{group}", Subjects: [group])]);
 
         // Geometry is the plan's, so a shape drawn in the sketch is carried by nothing — and said so.
         var dropped = SketchLayout.DroppedShapes(compiled, storedJson);
         if (dropped.Count > 0)
             Complaints.Add(HttpContext, [new Finding(SketchRules.ShapeDropped,
-                $"the rebuild keeps the plan's geometry, and {dropped.Count} shape(s) drawn in the sketch are "
-                + $"not in it: {string.Join(", ", dropped)}. Draw them into the plan, or again after the rebuild",
+                $"{(dropped.Count == 1 ? "shape" : "shapes")} {Wording.Ids(dropped)} of the sketch "
+                + $"{(dropped.Count == 1 ? "has" : "have")} no counterpart in the plan the rebuild compiles",
                 Severity.Complaint, Field: "layers", Subjects: dropped)]);
 
         var merged = SketchLayout.CarryStructuralHeight(
@@ -294,7 +290,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
                                           or OverflowException or KeyNotFoundException)
-        { await Refusals.UnreadableAsync(HttpContext, "could not paint layout", fault.Message, ct); return; }
+        { await Refusals.UnreadableAsync(HttpContext, "could not paint layout", fault, ct); return; }
 
         // Grass, leaves and water take the colour of the ground they stand on, so the swatch is the block's
         // and the column's biome together — which is what makes a painted biome visible in the studio at all.
@@ -344,7 +340,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         SketchLayout? layout;
         try { layout = SketchLayout.Stated(layoutJson); }
         catch (JsonException fault)
-        { await Refusals.UnreadableAsync(HttpContext, "invalid layout", fault.Message, ct); return; }
+        { await Refusals.UnreadableAsync(HttpContext, "invalid layout", fault, ct); return; }
 
         SketchPreview preview;
         try
@@ -363,7 +359,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
                                           or OverflowException or KeyNotFoundException)
-        { await Refusals.UnreadableAsync(HttpContext, "could not build layout", fault.Message, ct); return; }
+        { await Refusals.UnreadableAsync(HttpContext, "could not build layout", fault, ct); return; }
 
         await Send.OkAsync(preview.Columns, ct);
     }
@@ -450,7 +446,7 @@ internal static class DressedBoard
         Findings document;
         try { document = SketchLayoutCheck.Check(layoutJson); }
         catch (JsonException fault)
-        { await Refusals.UnreadableAsync(http, "invalid layout", fault.Message, ct); return null; }
+        { await Refusals.UnreadableAsync(http, "invalid layout", fault, ct); return null; }
         Complaints.Add(http, document.AsComplaints());
 
         BuiltWorld built;
@@ -464,7 +460,7 @@ internal static class DressedBoard
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
                                           or OverflowException or KeyNotFoundException)
-        { await Refusals.UnreadableAsync(http, "could not build layout", fault.Message, ct); return null; }
+        { await Refusals.UnreadableAsync(http, "could not build layout", fault, ct); return null; }
 
         return (built, layoutJson, Claims(built, layoutJson));
     }
@@ -529,8 +525,8 @@ public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore art
         {
             await Refusals.WriteAsync(HttpContext, 422, "no such prop kind",
                 [new Finding(RequestRules.NoSuchSubject,
-                    $"'{kind}' is not a kind a dressing document names — it carries "
-                    + $"{string.Join(", ", PlacedProp.Kinds)}", Field: "kind")], ct);
+                    $"the request's `kind` '{kind}' is not one of "
+                    + string.Join(", ", PlacedProp.Kinds), Field: "kind")], ct);
             return;
         }
 
@@ -550,7 +546,7 @@ public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore art
                 {
                     await Refusals.WriteAsync(HttpContext, 422, "no such house recipe",
                         [new Finding(RequestRules.NoSuchSubject,
-                            $"'{key}' names no house recipe in the posted layout's dressing.styles",
+                            $"the `style` of the request is '{key}', which names no recipe in `dressing.styles` of the layout",
                             Field: "style")], ct);
                     return;
                 }
@@ -624,7 +620,7 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
                 || points.ValueKind != JsonValueKind.Array)
             {
                 await Refusals.UnreadableAsync(HttpContext, "invalid probe",
-                    "the body carries a layout and a ring: { \"layout\": {…}, \"ring\": [[x, z], …] }", ct);
+                    "the request's body lacks a `layout` or a `ring` array", ct);
                 return;
             }
             layoutJson = layout.GetRawText();
@@ -633,15 +629,15 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
                 .Select(point => new[] { point[0].GetDouble(), point[1].GetDouble() })];
         }
         catch (Exception fault) when (fault is JsonException or InvalidOperationException or FormatException)
-        { await Refusals.UnreadableAsync(HttpContext, "invalid probe", fault.Message, ct); return; }
+        { await Refusals.UnreadableAsync(HttpContext, "invalid probe", fault, ct); return; }
 
         // Three points is a triangle and the least a ring can be; two is a line, which covers no cell and
         // would answer "nothing stands on it" about a question nobody asked.
         if (ring.Count < 3)
         {
             await Refusals.WriteAsync(HttpContext, 422, "ring too short",
-                [new Vocabulary.Finding(RequestRules.Conflict,
-                    $"a ring needs three points or more to cover any ground; this one carries {ring.Count}")], ct);
+                [new Vocabulary.Finding(RequestRules.Unreadable,
+                    $"the request's `ring` has {Wording.Count(ring.Count, "point")}, less than 3")], ct);
             return;
         }
         Complaints.Add(HttpContext, SketchLayoutCheck.Check(layoutJson).AsComplaints());
@@ -651,7 +647,7 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
                                           or OverflowException or KeyNotFoundException)
-        { await Refusals.UnreadableAsync(HttpContext, "could not read layout", fault.Message, ct); return; }
+        { await Refusals.UnreadableAsync(HttpContext, "could not read layout", fault, ct); return; }
 
         await Send.OkAsync(new FootprintProbeDto(
             probe.Cells, probe.Land, probe.Void, probe.Hole,
@@ -714,7 +710,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
                                           or OverflowException or KeyNotFoundException)
-        { await Refusals.UnreadableAsync(HttpContext, "could not solve relief", fault.Message, ct); return; }
+        { await Refusals.UnreadableAsync(HttpContext, "could not solve relief", fault, ct); return; }
 
         // Points go out as one flat [x, z, x, z, …] run per line — see ContourLineDto. The solved surface goes
         // with them: contours say where the ground changes height and not which way, and the field they are
@@ -779,7 +775,7 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
                                           or OverflowException or KeyNotFoundException)
-        { await Refusals.UnreadableAsync(HttpContext, "could not solve relief", fault.Message, ct); return; }
+        { await Refusals.UnreadableAsync(HttpContext, "could not solve relief", fault, ct); return; }
 
         Complaints.Add(HttpContext, relief.Complaints);
         await Send.OkAsync(relief.Read, ct);

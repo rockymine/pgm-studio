@@ -3,7 +3,7 @@
  *
  * The validator names the subjects of every refusal — the piece, the zone, or the
  * marker itself — and the canvas can pulse them. Without a join the findings render as
- * static rows, their subjects are parsed and dropped, and an author told a core "overhangs the void" has to
+ * static rows, their subjects are parsed and dropped, and an author told a core "has void under part of it" has to
  * find that core by eye.
  *
  * The fixture is a plan built to fail one specific way: a 15-block casing on the far edge of its piece, which
@@ -33,8 +33,8 @@ const compiled = await apiRaw("/plan/compile", { method: "POST", body: plan });
 checks.add("the overhanging core blocks the compile", compiled.status === 422, `${compiled.status}`);
 
 const findings = compiled.json?.findings ?? [];
-const overhang = findings.find(f => /overhangs the void/.test(f.message ?? ""));
-checks.add("a finding says the goal overhangs the void", overhang !== undefined,
+const overhang = findings.find(f => /has void under part of it/.test(f.message ?? ""));
+checks.add("a finding says the goal has void under it", overhang !== undefined,
   findings.map(f => f.message).join(" | ") || "no findings");
 checks.add("it names the marker, not only its piece", (overhang?.subjects ?? []).includes("core-1"),
   (overhang?.subjects ?? []).join(", ") || "no subjects");
@@ -55,7 +55,7 @@ checks.section("the finding is offered as something to click");
 await page.click('button:has-text("Compile")');
 await page.waitForSelector(".plan-compile-errors", { timeout: 20000 });
 
-const row = page.locator('.plan-compile-errors .plan-lint-row', { hasText: "overhangs the void" }).first();
+const row = page.locator('.plan-compile-errors .plan-lint-row', { hasText: "has void under part of it" }).first();
 checks.add("the refusal is listed in the compile drawer", await row.count() > 0);
 checks.add("and it reads as the marker's problem", /core 'core-1'/.test(await row.textContent()),
   (await row.textContent()).trim());

@@ -80,14 +80,14 @@ public static class DestroyableMaterials
         return (built, (unknown, overweight) switch
         {
             (true, true) =>
-                $"'{materials}' is not a material this studio builds and {DestroyableStyles.Slug(style)} is "
-                + $"{blocks} blocks, past the {ObsidianLimit} obsidian is worth — built in {Bulk}",
+                $"states materials '{materials}', which the studio does not build, and as a "
+                + $"{DestroyableStyles.Slug(style)} is {blocks} blocks, more than {ObsidianLimit} blocks of obsidian, "
+                + $"and is built of {Bulk}",
             (true, false) =>
-                $"'{materials}' is not a material this studio builds — built in {built}, which is what the "
-                + "blocks would have been whatever the map.xml declared",
+                $"states materials '{materials}', which the studio does not build, and is built of {built}",
             (false, true) =>
-                $"{DestroyableStyles.Slug(style)} is {blocks} blocks and obsidian is worth at most "
-                + $"{ObsidianLimit} of them — built in {Bulk}",
+                $"is a {DestroyableStyles.Slug(style)} of {blocks} blocks, more than {ObsidianLimit} blocks of "
+                + $"obsidian, and is built of {Bulk}",
             _ => null,
         });
     }

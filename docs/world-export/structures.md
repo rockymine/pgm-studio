@@ -246,7 +246,7 @@ structure, and structures never fuse.
   as a **point** and the export builds as a **volume**: the marker says where the cube is centred and the
   ground decides whether one fits there, so whether anything can stand there is the resolver's answer rather
   than the author's. The objective-separation rules answer the same question a different way and were never
-  going to carry this attribute — a goal against a spawn or a wool room is `OB17`, refused at the gate over
+  going to carry this attribute — a goal against a spawn or a wool room is `OB30`, refused at the gate over
   the goal's footprint, and how far two goals stand apart is `GO2`/`GO3`/`WL7`, reported by `GoalDistances`
   and judged by the evaluator terms.
 
@@ -486,12 +486,12 @@ neither. Body and verge may be the same block, which is a whole brick roof, or t
 dark oak verge trims one; what neither may be is a **bare** log or a ground material.
 
 **And a half course is cut from whatever the column it caps is cut from**, which on the roof's outer ring is
-the verge. Written from `roofSlab` everywhere, the trim along a stepped rake lands on the cubes and not on the
+the verge. Written from `roof.slab` everywhere, the trim along a stepped rake lands on the cubes and not on the
 slabs between them, so a dark oak verge over a spruce roof reads dark oak, spruce, dark oak, spruce all the way
 up the slope. The rim's own slab is read off the material table — `BlockMaterials.SlabOf`, the same table that
 answers what a block is *cut from* — so the two cannot disagree about what dark oak is. A verge whose material
 has no slab keeps the body's, since a gap in the rake is worse than a course of the wrong wood; that is the
-laid log's case, and `HS3` already refuses `roofSlab` over a log **body** for the same reason.
+laid log's case, and `HS20` already refuses `roof.slab` over a log **body** for the same reason.
 
 **A laid log is a roof material, and the difference is the axis.** A log's data nibble is which way it lies, so
 a log named as a solid has none: every one of them stands upright and shows a sawn face out at the slope, which
@@ -499,7 +499,7 @@ is the fault the ban was written for. A `laidLog` takes the axis the surface it 
 that is **the ridge** — so the logs run the length of the building, their ends buried in the gable at each end
 and only bark showing on the slope. The roof passes its ridge rather than the wall ring beneath it, because the
 ring is a different surface going a different way and off a wall it has no answer to give at all. A laid log
-carries its own whole-course rise and no slab is cut from one, so `roofSlab` over a log roof is refused.
+carries its own whole-course rise and no slab is cut from one, so `roof.slab` over a log roof is refused.
 
 **A stair roof steps in stairs, and that is the other way a whole-course roof closes its steps.** Naming a
 **roof stair** on the style lays it on top of every column, climbing toward the neighbour the roof covers whose
@@ -511,7 +511,7 @@ down and faces out of the gable end rather than down either slope: its step towa
 its raised half back under the roof (author). A
 hip line and a flat lid, with nothing higher beside them, stay whole blocks. The rim takes the stair cut from the verge (`BlockMaterials.StairOf`), or the
 body's where the verge has none, which is the rule the slab already follows. A roof climbs in halves or in
-stairs and never both, so the slab wins wherever a wing names one, and `HS3` refuses a style naming both.
+stairs and never both, so the slab wins wherever a wing names one, and `HS21` refuses a style naming both.
 
 **A column hanging outside the building is given a block of depth.** Past the gable and past the eave nothing
 stands under a single-course column, so a stair there is half a block thick and a slab rake alternates half a

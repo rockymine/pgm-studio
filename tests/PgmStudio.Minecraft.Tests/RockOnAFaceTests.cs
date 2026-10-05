@@ -36,7 +36,7 @@ public sealed class RockOnAFaceTests
                CliffAngleAt: cliff is { } angle ? (_, _, _) => angle : null);
 
     private static Finding? Steep(DressingPlacement placed) =>
-        placed.Declined?.FirstOrDefault(finding => finding.Rule == DressingRules.RockOnAFace);
+        placed.Declined?.FirstOrDefault(finding => finding.Rule == DressingRules.BoulderOnAFace);
 
     [Test]
     public async Task A_rock_on_the_face_is_named_with_the_angle_measured_and_the_angle_the_theme_calls_a_face()
@@ -50,7 +50,7 @@ public sealed class RockOnAFaceTests
         await Assert.That(finding).IsNotNull();
         await Assert.That(finding!.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(finding.Message).Contains("boulder 'crag' stands at (30, 30)");
-        await Assert.That(finding.Message).Contains("calls the ground a face from 30°");
+        await Assert.That(finding.Message).Contains("inclined 45 degrees, at least the 30 degrees its palette paints as a face");
         await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "crag" });
     }
 

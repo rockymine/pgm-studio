@@ -12,19 +12,28 @@ namespace PgmStudio.Pgm.Editing;
 /// </summary>
 public static class EditRules
 {
-    /// <summary>A reference the document cannot resolve. An apply-rule or a filter naming a region or a filter
-    /// that is not in the registry and is not a builtin, or a filter naming itself — which would be a cycle of
-    /// one. The wiring is what makes a PGM map mean anything, so a rule pointing at nothing is a rule that
-    /// silently never fires.</summary>
-    /// <remarks>Create the region or filter first and wire the rule to it afterwards — <c>GET /api/map/{slug}</c> carries the filter registry and <c>GET /api/map/{slug}/regions</c> the regions. A filter that would reference itself wants the child it was meant to wrap instead.</remarks>
+    /// <summary>An apply rule or a filter names a region or a filter that does not exist, or a filter names
+    /// itself.</summary>
+    /// <remarks>Either add the named region to <c>regions</c> or the named filter to <c>filters</c>, or change the
+    /// reference to a region or filter that exists and is not the filter itself.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Request, RuleConcern.World)]
     public const string UnresolvedReference = "ED1";
 
-    /// <summary>An edit the document is not in a state to take. The payload is well-formed and everything it
-    /// names exists; what it would produce cannot mean anything — a group with fewer children than its type
-    /// takes, a compound with no children to remove one from, an apply-rule carrying no region, filter or
-    /// action, a build-void enforcement with no build region to enforce.</summary>
-    /// <remarks>The edit is refused rather than the document: read the thing it names — <c>GET /api/map/{slug}/regions/tree</c> for a compound's children, <c>GET /api/map/{slug}</c> for the rule stack — and either give the edit the parts it is missing or apply it to something that can take it.</remarks>
+    /// <summary>A compound region has fewer than 2 children, or a negative region fewer than 1.</summary>
+    /// <remarks>Add a region to the <c>children</c> of the compound region.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.World)]
     public const string Inapplicable = "ED2";
+
+    /// <summary>An apply rule has no region, filter or action.</summary>
+    /// <remarks>Either set the <c>region</c> of the apply rule to a region in <c>regions</c>, or set its
+    /// <c>filter</c> to a filter in <c>filters</c>.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.World)]
+    public const string EmptyApplyRule = "ED3";
+
+    /// <summary>A quarter-turn copy names a region that is not a rectangle, cuboid, cylinder, circle, sphere,
+    /// point or block.</summary>
+    /// <remarks>Send the request again with the region in its path set to a rectangle, cuboid, cylinder, circle,
+    /// sphere, point or block.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Request, RuleConcern.World)]
+    public const string QuarterTurnOfACompound = "ED4";
 }

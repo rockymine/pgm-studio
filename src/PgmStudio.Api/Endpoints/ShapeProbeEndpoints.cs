@@ -47,7 +47,7 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
             family == ShapeFamily.Isolated)
         {
             await Refusals.UnreadableAsync(HttpContext, "unknown family",
-                $"'{familyToken}' is not one of the shape families this probe renders", ct, field: "family");
+                $"shape family '{familyToken}' is not one of the families the probe draws", ct, field: "family");
             return;
         }
 

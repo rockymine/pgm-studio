@@ -27,7 +27,7 @@ internal static class BiomeBody
     /// <summary>Refuse a body that is not a field, naming the kinds a caller may state.</summary>
     public static Task RefuseAsync(HttpContext http, CancellationToken ct) =>
         Refusals.UnreadableAsync(http, "malformed biome",
-            $"`params` is not a biome field: it states `kind` as {string.Join(", ", BiomeKinds.All)}.",
+            $"the request's `params` states no `kind` that is one of {string.Join(", ", BiomeKinds.All)}",
             ct, field: "params");
 }
 

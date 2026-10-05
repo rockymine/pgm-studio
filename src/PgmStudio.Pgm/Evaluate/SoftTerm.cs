@@ -40,6 +40,14 @@ public abstract class SoftTerm : ILayoutTerm
     /// </summary>
     public virtual double? Ideal => null;
 
+    /// <summary>What <see cref="Value"/> is counted in, which is how the message and the rule state it.</summary>
+    public abstract MeasureUnit Unit { get; }
+
+    /// <summary>The finding's message up to its limit: the thing the value was measured on, by kind and id, and
+    /// the value itself, already written in <see cref="Unit"/> — "wool 'w-left' has a walking distance of 18
+    /// blocks to the crossing". The base adds the edge it broke.</summary>
+    protected abstract string Reads(EvalContext ctx, string value);
+
     /// <summary>The piece/zone ids the metric implicates (for editor highlight); empty by default.</summary>
     protected virtual IReadOnlyList<string> Subjects(EvalContext ctx) => [];
 
@@ -58,7 +66,8 @@ public abstract class SoftTerm : ILayoutTerm
         var distance = band.Value.Distance(value.Value);
         if (distance <= 0.0) return TermScores.Clean(this);
 
-        var message = $"{Id} {value.Value:0.###} outside authored band [{band.Value.Lo:0.###}, {band.Value.Hi:0.###}]";
+        var (edge, side) = value.Value > band.Value.Hi ? (band.Value.Hi, "more") : (band.Value.Lo, "less");
+        var message = $"{Reads(ctx, Measures.Value(value.Value, Unit))}, {side} than {Measures.Bound(edge, Unit)}";
         return TermScores.Soft(this, distance, message, Subjects(ctx), Evidence(ctx, value.Value, band.Value), value.Value, band.Value);
     }
 }

@@ -65,7 +65,7 @@ public sealed class RockToneTests
         var findings = RockTone.Check(Board(new SolidMaterial(Sand), new SolidMaterial(Sandstone)));
 
         var finding = findings.Single();
-        await Assert.That(finding.Rule).IsEqualTo(DressingRules.RockInTheGroundsTone);
+        await Assert.That(finding.Rule).IsEqualTo(DressingRules.BoulderInTheGroundsTone);
         await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(finding.Message).Contains("boulder 'rock-1' at (4, 4)");
         await Assert.That(finding.Message).Contains("cut from sand");

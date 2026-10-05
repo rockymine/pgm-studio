@@ -188,7 +188,7 @@ public sealed class GateTermsTests
     }
 
 
-    // ── SpawnFrontFloor (SP10) and WoolFrontFloor (WL10), surface distance to the crossing ───────────────
+    // ── SpawnFrontFloor (SP10) and WoolFrontFloor (WL19), surface distance to the crossing ───────────────
 
     // one lane off a mid band, spawn and wool at block offsets along it (cell 4: the lane starts 4 blocks past
     // the band's edge)
@@ -214,7 +214,7 @@ public sealed class GateTermsTests
     {
         var near = new WoolFrontFloor().Measure(Lane(spawnAt: 90, woolAt: 20));
         await Assert.That(near.Violation).IsNotNull();
-        await Assert.That(near.Violation!.RuleId).IsEqualTo("WL10");
+        await Assert.That(near.Violation!.RuleId).IsEqualTo("WL19");
         await Assert.That(new WoolFrontFloor().Measure(Lane(spawnAt: 90, woolAt: 70)).Violation).IsNull();
     }
 
@@ -224,10 +224,10 @@ public sealed class GateTermsTests
         var near = Lane(spawnAt: 30, woolAt: 20);
         await Assert.That(LayoutEvaluator.Gate(near, EvaluationProfile.Composer)).IsNotNull();
         var lint = LayoutEvaluator.Gate(near, EvaluationProfile.Default);
-        await Assert.That(lint?.RuleId is "SP10" or "WL10").IsFalse();
+        await Assert.That(lint?.RuleId is "SP10" or "WL19").IsFalse();
     }
 
-    // ── WoolRoomSpawnSeam (WL2, the lane clause) ────────────────────────────────────────────────────────
+    // ── WoolRoomSpawnSeam (WL14) ───────────────────────────────────────────────────────────────────────
 
     // Two wool rooms flanking the spawn in one row, cell 4. `between` is the cell width of a plain run piece
     // standing between the spawn and each room; 0 puts the rooms edge to edge with the spawn.
@@ -250,7 +250,7 @@ public sealed class GateTermsTests
         await Assert.That(evaluation.IsValid).IsFalse();
         var seam = evaluation.Violations.SingleOrDefault(v => v.TermId == "wool-room-spawn-seam");
         await Assert.That(seam).IsNotNull();
-        await Assert.That(seam!.RuleId).IsEqualTo("WL2");
+        await Assert.That(seam!.RuleId).IsEqualTo("WL14");
         await Assert.That(seam.Subjects).Contains("dye-w");
         await Assert.That(seam.Subjects).Contains("dye-e");
         await Assert.That(seam.Subjects).Contains("yard");

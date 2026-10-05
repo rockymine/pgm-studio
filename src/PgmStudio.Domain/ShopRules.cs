@@ -8,11 +8,10 @@ namespace PgmStudio.Domain;
 /// </summary>
 public static class ShopRules
 {
-    /// <summary>A shop reference names something the document does not define, so PGM refuses the whole map at
-    /// load rather than opening a menu without it. Three references are read: a keeper's <c>shop</c>, which
-    /// throws <i>"No shop with id '…' could be found"</i>; a keeper's <c>region</c>, and an icon's
-    /// <c>action</c>, which are feature references and throw when nothing resolves them.</summary>
-    /// <remarks>Define what is named, or stop naming it. A menu comes from the intent's own `shops`, so a keeper can only open one the same intent states; a region has to be one the map already holds; and an action or a kit is a feature the studio does not author at all, so an id there names nothing on a studio-built board. An imported map is exempt: a map may take its menus from an `&lt;include&gt;` this parser reads without splicing, which is what fifteen of the corpus's shop boards do.</remarks>
+    /// <summary>A shopkeeper names a shop or a region, or a shop item names an action, that the map does not
+    /// have.</summary>
+    /// <remarks>Either change the <c>shop</c> or <c>region</c> of the shopkeeper to one the map has, or delete the
+    /// <c>action</c> from <c>items</c>.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Intent, RuleConcern.Studio)]
     public const string ReferenceNotDefined = "SH1";
 }

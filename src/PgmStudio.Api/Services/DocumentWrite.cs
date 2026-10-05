@@ -37,8 +37,7 @@ public static class DocumentWrite
         try { using var _ = JsonDocument.Parse(body); }
         catch (JsonException fault)
         {
-            return new(Refusal.At(400, "invalid JSON",
-                new Finding(RequestRules.Unreadable, fault.Message)));
+            return new(Refusal.At(400, "invalid JSON", JsonFaults.Said(RequestRules.Unreadable, fault)));
         }
 
         var landed = expected is { } revision
@@ -48,10 +47,10 @@ public static class DocumentWrite
 
         var stored = await artifacts.RevisionAsync(mapId, kind, ct);
         return new(Refusal.At(409, "stale write",
-            new Finding(RequestRules.Conflict,
+            new Finding(RequestRules.StaleRevision,
                 stored is { } now
-                    ? $"this {what} has been replaced since it was read — the If-Match states {expected} and "
-                      + $"it is at {now}; read it again and re-apply the change"
-                    : $"this map holds no {what} to replace, so the If-Match matches nothing")));
+                    ? $"the {what} of the map is at revision {now}, and the `If-Match` of the request states "
+                      + $"{expected}"
+                    : $"the map has no {what} for the `If-Match` of the request to match")));
     }
 }

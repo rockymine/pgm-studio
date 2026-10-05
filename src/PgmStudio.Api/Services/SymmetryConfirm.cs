@@ -39,7 +39,8 @@ public static class SymmetryConfirm
             if (!SymmetrySupport.ValidTypes.Contains(type))
                 return new(Refusal.At(400, "invalid symmetry type",
                     new Finding(RequestRules.Unreadable,
-                        $"'{type}' is not a symmetry type the studio knows", Field: "confirmed_type")));
+                        $"the request's `confirmed_type` '{type}' is not one of "
+                        + string.Join(", ", SymmetrySupport.ValidTypes), Field: "confirmed_type")));
 
             row.PrimaryType = type; row.PrimaryConfidence = 1.0; row.PrimaryUserOverride = true;
         }

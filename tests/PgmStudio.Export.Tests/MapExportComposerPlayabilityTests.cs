@@ -72,7 +72,7 @@ public sealed class MapExportComposerPlayabilityTests
 
         var lost = findings.Where(finding => finding.Rule == "EX3").ToList();
         await Assert.That(lost.Select(finding => finding.Field!)).IsEquivalentTo(new[] { "spawns", "destroyables" });
-        await Assert.That(lost.First(finding => finding.Field == "spawns").Message).Contains("states 2 spawns");
+        await Assert.That(lost.First(finding => finding.Field == "spawns").Message).Contains("state 2 entries in `spawns`");
     }
 
     /// <summary>A map that carries what its intent stated is silent. Asserted because a gate that fired on
@@ -171,7 +171,7 @@ public sealed class MapExportComposerPlayabilityTests
 
         var findings = MapExportComposer.Playable(Intent(spawns: 2, destroyables: 2), doc);
         var ladder = findings.Single(finding => finding.Rule == ObjectiveRules.NoModeLadder);
-        await Assert.That(ladder.Message).Contains("no mode ladder");
+        await Assert.That(ladder.Message).Contains("has 2 destroy objectives and no `modes`");
     }
 
     /// <summary>The other half, and the one a document can get wrong while looking right: PGM affects an
@@ -186,7 +186,7 @@ public sealed class MapExportComposerPlayabilityTests
 
         var findings = MapExportComposer.Playable(Intent(spawns: 2), doc);
         var ladder = findings.Single(finding => finding.Rule == ObjectiveRules.NoModeLadder);
-        await Assert.That(ladder.Message).Contains("2 of its 2");
+        await Assert.That(ladder.Message).Contains("2 of the map's 2 destroy objectives");
     }
 
     /// <summary>And a CTW map is never asked. A wool is carried rather than broken, so a mode has nothing to
@@ -223,7 +223,7 @@ public sealed class MapExportComposerPlayabilityTests
 
         var ends = findings.Single(finding => finding.Rule == ObjectiveRules.PointEndsTheMatch);
         await Assert.That(ends.Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(ends.Message).Contains("1 of the map's 1 capture point(s) state no `required`");
+        await Assert.That(ends.Message).Contains("1 of the map's 1 capture point has no `required`");
     }
 
     /// <summary>And the convention silences it — which is what every point the studio authors writes.</summary>

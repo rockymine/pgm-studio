@@ -61,11 +61,10 @@ public static class RockTone
                 Ground(themeAt(Standing(boulder, layers, owners), boulder.X, boulder.Z).Theme)));
             if (ground.Count == 0 || !rock.IsSubsetOf(ground)) continue;
 
-            findings.Add(new Finding(DressingRules.RockInTheGroundsTone,
+            findings.Add(new Finding(DressingRules.BoulderInTheGroundsTone,
                 $"boulder '{subject}' at ({boulder.X}, {boulder.Z}) is cut from "
-                + $"{Listed(rock)}, and the ground it stands on is {Listed(ground)} — every tone the rock is "
-                + "made of is one the ground already has, so it reads as a patch of that ground standing up "
-                + "rather than as a rock",
+                + $"{Listed(rock)}, and the ground it stands on is {Listed(ground)}, with every tone family "
+                + "of the boulder",
                 Severity.Complaint, Field: "dressing.props", Subjects: [subject]));
         }
         return findings;

@@ -92,7 +92,7 @@ public sealed class WorldBuilderTests
 
         var wool = ShellComplaints(WorldBuilder.Build(Layout, intent)).Single(finding => finding.Field == "roomStyles.wool");
 
-        await Assert.That(wool.Message).StartsWith("2 wool rooms stand");
+        await Assert.That(wool.Message).StartsWith("2 wool rooms have");
         await Assert.That(wool.SubjectIds).IsEquivalentTo(new[] { "0" });
     }
 

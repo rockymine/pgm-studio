@@ -10,7 +10,8 @@ namespace PgmStudio.Api.Tests;
 /// <summary>
 /// The queue in front of the routes that build or render a world: the studio runs so many at once, a caller
 /// runs one at a time and waits behind their own, another caller does not wait behind them, and a request that
-/// finds the queue full or waits too long is refused <c>RQ11</c> at 429 rather than piling up.
+/// finds the queue full is refused <c>RQ18</c>, and one that waits too long <c>RQ11</c>, at 429 rather than
+/// piling up.
 /// </summary>
 public sealed class BuildQueueTests
 {
@@ -68,10 +69,10 @@ public sealed class BuildQueueTests
         await Assert.That(await waitingB).IsNull();
     }
 
-    /// <summary>Over HTTP a refused request answers the refusal envelope under <c>RQ11</c> with a
+    /// <summary>Over HTTP a request the full queue refuses answers the refusal envelope under <c>RQ18</c> with a
     /// <c>Retry-After</c>, before its handler runs; a route that builds nothing is not queued at all.</summary>
     [Test]
-    public async Task A_route_that_cannot_wait_its_turn_is_refused_RQ11_and_a_cheap_route_is_not_queued()
+    public async Task A_route_the_full_queue_cannot_take_is_refused_RQ18_and_a_cheap_route_is_not_queued()
     {
         using var factory = new ClosedQueueFactory();
         using var client = factory.CreateClient();
@@ -80,7 +81,7 @@ public sealed class BuildQueueTests
         await Assert.That(render.StatusCode).IsEqualTo(HttpStatusCode.TooManyRequests);
         await Assert.That(render.Headers.RetryAfter?.Delta).IsEqualTo(TimeSpan.FromSeconds(BuildQueue.RetryAfterSeconds));
         var finding = JsonDocument.Parse(await render.Content.ReadAsStringAsync()).RootElement.GetProperty("findings")[0];
-        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ11");
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ18");
 
         using var health = await client.GetAsync("/api/health");
         await Assert.That(health.StatusCode).IsEqualTo(HttpStatusCode.OK);

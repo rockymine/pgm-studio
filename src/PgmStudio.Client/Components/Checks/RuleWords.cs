@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
 using PgmStudio.Contracts;
 using PgmStudio.Vocabulary;
@@ -8,15 +7,15 @@ namespace PgmStudio.Client.Components;
 
 /// <summary>
 /// The words the client puts on a rule: what a category asks of the author, a family's name and its place in
-/// the order a map is made, a subject's label, how far a layout rule is backed, and a rule's text reduced to
-/// one line or rendered in full. The server serves ids and categories; these are how an author reads them.
+/// the order a map is made, a subject's label, and a rule's text reduced to one
+/// line or rendered inline. The server serves ids and categories; these are how an author reads them.
 /// </summary>
 public static partial class RuleWords
 {
     /// <summary>A category as the action it asks for, with the line that says when it applies.</summary>
     public sealed record Action(RuleCategory Category, string Label, string Says, bool AuthorFixes);
 
-    /// <summary>The eight categories in the order an author meets them; the last three are not the author's to
+    /// <summary>The nine categories in the order an author meets them; the last three are not the author's to
     /// fix, and a list draws a divider before them.</summary>
     public static readonly IReadOnlyList<Action> Actions =
     [
@@ -25,6 +24,7 @@ public static partial class RuleWords
         new(RuleCategory.Conflict, "Choose which wins", "Two things you asked for disagree.", true),
         new(RuleCategory.Unsatisfiable, "Change the design", "What you asked for can’t all be true at once.", true),
         new(RuleCategory.Unplayable, "Make it playable", "The map builds, but players can’t play it as it is.", true),
+        new(RuleCategory.Unfinished, "Finish it", "The map plays, but part of it was left at a default nobody chose.", true),
         new(RuleCategory.Forbidden, "Ask for something else", "The studio doesn’t allow this.", false),
         new(RuleCategory.Unavailable, "Try again later", "Something the studio depends on didn’t answer.", false),
         new(RuleCategory.Internal, "Report it", "This is a fault in the studio, not in your map.", false),
@@ -112,38 +112,19 @@ public static partial class RuleWords
         _ => concern.ToString().ToLowerInvariant(),
     };
 
-    /// <summary>Whether a rule is a layout rule — a claim about how a map plays, stated in the docs — rather than
-    /// a check the code raises.</summary>
-    public static bool IsLayoutRule(RuleDto rule) => rule.Owner.StartsWith("docs/", StringComparison.Ordinal);
+    /// <summary>Whether a rule is a layout rule, a claim about how a map plays declared in <c>LayoutRules</c>,
+    /// rather than a check the code raises.</summary>
+    public static bool IsLayoutRule(RuleDto rule) => rule.Owner.StartsWith(LayoutOwner, StringComparison.Ordinal);
+
+    private const string LayoutOwner = "PgmStudio.Domain.LayoutRules.";
 
     /// <summary>The word a list shows beside a rule: its action, or what kind of rule it is when it has none.</summary>
     public static string KindWord(RuleDto rule) =>
-        rule.Category is { } category ? ActionOf(category).Label : IsLayoutRule(rule) ? "Layout rule" : "Derivation";
+        IsLayoutRule(rule) ? "Layout rule" : rule.Category is { } category ? ActionOf(category).Label : "Derivation";
 
-    /// <summary>How far a layout rule is backed, in words; null where it does not say.</summary>
-    public static string? Backing(RuleDto rule)
-    {
-        var said = rule.Evidence switch
-        {
-            "corpus" => "Measured on community maps",
-            "expert" => "Expert ruling",
-            "open" => "Open question",
-            "guess" => "Best guess",
-            _ => null,
-        };
-        if (said is not null) return said;
-        if (Prefix().Match(rule.Means) is not { Success: true } prefix) return null;
-        var stated = prefix.Groups[1].Value;
-        if (stated.StartsWith("author", StringComparison.Ordinal))
-            return Date().Match(stated) is { Success: true } date ? $"The author’s ruling, amended {date.Value}" : "The author’s ruling";
-        if (stated.StartsWith("corpus", StringComparison.Ordinal)) return "Measured on community maps";
-        if (stated.StartsWith("expert", StringComparison.Ordinal)) return "Expert ruling";
-        return null;
-    }
-
-    /// <summary>A rule's text without its bracketed provenance or its markdown, as plain words.</summary>
+    /// <summary>A rule's text without its markdown, as plain words.</summary>
     public static string Plain(string text) =>
-        Emphasis().Replace(Prefix().Replace(text, "", 1).Replace("**", "").Replace("`", ""), "$1$2");
+        Emphasis().Replace(text.Replace("**", "").Replace("`", ""), "$1$2");
 
     /// <summary>The first sentence of a rule's text, for a row that is one line.</summary>
     public static string FirstSentence(string text)
@@ -155,58 +136,14 @@ public static partial class RuleWords
     /// <summary>A rule's text as HTML: bold, italics and code marked, everything else escaped.</summary>
     public static string Inline(string text)
     {
-        var html = WebUtility.HtmlEncode(Prefix().Replace(text, "", 1));
+        var html = WebUtility.HtmlEncode(text);
         html = Bold().Replace(html, "<b>$1</b>");
         html = Emphasis().Replace(html, "$1<i>$2</i>");
         return Code().Replace(html, "<code>$1</code>");
     }
 
-    /// <summary>A layout rule's full text as HTML, its pipe tables drawn as tables.</summary>
-    public static string Law(string text)
-    {
-        var body = Prefix().Replace(text, "", 1);
-        var html = new StringBuilder();
-        var last = 0;
-        foreach (Match table in PipeTable().Matches(body))
-        {
-            var cells = table.Value[1..^1].Split('|').Select(cell => cell.Trim()).ToList();
-            var rows = new List<List<string>> { new() };
-            foreach (var cell in cells)
-            {
-                if (cell.Length == 0) rows.Add([]);
-                else rows[^1].Add(cell);
-            }
-            rows.RemoveAll(row => row.Count == 0);
-            if (rows.Count < 3 || !Rule().IsMatch(rows[1][0])) continue;
-
-            Paragraph(html, body[last..table.Index]);
-            html.Append("<table><thead><tr>");
-            foreach (var head in rows[0]) html.Append("<th>").Append(Inline(head)).Append("</th>");
-            html.Append("</tr></thead><tbody>");
-            foreach (var row in rows.Skip(2))
-            {
-                html.Append("<tr>");
-                foreach (var cell in row) html.Append("<td>").Append(Inline(cell)).Append("</td>");
-                html.Append("</tr>");
-            }
-            html.Append("</tbody></table>");
-            last = table.Index + table.Length;
-        }
-        Paragraph(html, body[last..]);
-        return html.ToString();
-    }
-
-    private static void Paragraph(StringBuilder html, string text)
-    {
-        if (!string.IsNullOrWhiteSpace(text)) html.Append("<p>").Append(Inline(text.Trim())).Append("</p>");
-    }
-
-    [GeneratedRegex(@"^\[([^\]]*)\]\s*")] private static partial Regex Prefix();
-    [GeneratedRegex(@"\d{4}-\d{2}-\d{2}")] private static partial Regex Date();
     [GeneratedRegex(@"^(.{12,}?[.!?])(\s|$)", RegexOptions.Singleline)] private static partial Regex Sentence();
     [GeneratedRegex(@"\*\*([^*]+)\*\*")] private static partial Regex Bold();
     [GeneratedRegex(@"(^|[\s(])\*([^*\s][^*]*?)\*(?=[\s.,;:)]|$)")] private static partial Regex Emphasis();
     [GeneratedRegex(@"`([^`]+)`")] private static partial Regex Code();
-    [GeneratedRegex(@"\|(?:[^|\n]*\|){5,}")] private static partial Regex PipeTable();
-    [GeneratedRegex(@"^-+$")] private static partial Regex Rule();
 }

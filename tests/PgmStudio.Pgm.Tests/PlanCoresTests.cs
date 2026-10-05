@@ -136,7 +136,7 @@ public sealed class PlanCoresTests
     {
         // Silently pairing it with the other's default is a dig depth nobody chose.
         var json = Json.Replace(Marker, $$"""{ "piece": "bar-w", "at": [5, 5], {{half}} }""");
-        await Assert.That(Errors(Validate(json), "without its pair")).IsTrue();
+        await Assert.That(Errors(Validate(json), " and no ")).IsTrue();
     }
 
     [Test]
@@ -160,7 +160,7 @@ public sealed class PlanCoresTests
     public async Task A_core_outside_the_offered_range_is_an_error(string knob, int value)
     {
         var json = Json.Replace(Marker, $$"""{ "piece": "bar-w", "at": [5, 5], "{{knob}}": {{value}} }""");
-        await Assert.That(Errors(Validate(json), "outside")).IsTrue();
+        await Assert.That(Errors(Validate(json), "not between")).IsTrue();
     }
 
     [Test]
@@ -185,7 +185,7 @@ public sealed class PlanCoresTests
     {
         // OB14, same as destroyables — and the preview compiles unvalidated, so it must not draw four.
         var json = Json.Replace("\"symmetry\": \"rot_180\"", "\"symmetry\": \"rot_90\"");
-        await Assert.That(Errors(Validate(json), "two-team")).IsTrue();
+        await Assert.That(Errors(Validate(json), ", not 2")).IsTrue();
         await Assert.That(PlanCompiler.Compile(PlanModel.Parse(json)!).Intent.Cores).IsNull();
     }
 

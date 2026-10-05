@@ -89,8 +89,7 @@ public sealed class SketchReliefWriteEndpoint(MapRepository repo, MapArtifactSto
         if (SketchReliefWrite.Stated(body) is null)
         {
             await Refusals.UnreadableAsync(HttpContext, "malformed relief",
-                "the body is not a relief: it states `base`, `reach`, `step` and the marks the surface is "
-                + "solved from.", ct, field: "relief");
+                "the request's body states no terraform `base`, `reach`, `step` and `marks`", ct, field: "relief");
             return;
         }
 

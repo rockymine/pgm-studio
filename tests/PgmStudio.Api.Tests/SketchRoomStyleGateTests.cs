@@ -114,8 +114,8 @@ public sealed class SketchMaterialGateTests
 
     /// <summary>Beams stated as null, where the style is bound. On a building's recipe the dressing reader
     /// refuses it (<c>DR-DOC</c>); on a bound room style the export would otherwise fall back to the built-in
-    /// shell, so the gate refuses it as unreadable (<c>RQ1</c>). Both name the path and the block of -1 that
-    /// says "no beams".</summary>
+    /// shell, so the gate refuses it as unreadable (<c>RQ1</c>). Both name the path, and the gate's finding
+    /// proposes the block of -1 that says "no beams" as an edit.</summary>
     [Test]
     [Arguments("""
         {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
@@ -143,7 +143,9 @@ public sealed class SketchMaterialGateTests
         var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
         await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo(rule);
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo(field);
-        await Assert.That(finding.GetProperty("message").GetString()).Contains("{\"block\": -1}");
+        await Assert.That(finding.GetProperty("message").GetString()).EndsWith("is stated as null");
+        if (rule == "RQ1")
+            await Assert.That(finding.GetProperty("edit").GetProperty("value").GetRawText()).IsEqualTo("{\"block\":-1}");
     }
 
     /// <summary>A style in the shape it had when its floor, ceiling and wall were each one block, where the style
@@ -177,7 +179,7 @@ public sealed class SketchMaterialGateTests
         var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
         await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo(rule);
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo(field);
-        await Assert.That(finding.GetProperty("message").GetString()).Contains("\"stack\"");
+        await Assert.That(finding.GetProperty("message").GetString()).EndsWith("has no `stack`");
     }
 
     /// <summary>A wool room raised on stilts over a plank plate — <c>HS10</c>, a complaint, since the house

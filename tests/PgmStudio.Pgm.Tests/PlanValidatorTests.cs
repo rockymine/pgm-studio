@@ -251,10 +251,10 @@ public sealed class PlanValidatorTests
 
         await Assert.That(Refused(p, "SP1")).IsFalse().Because("no wool is refused for a zone nobody declared");
 
-        var said = PlanValidator.Check(p).Where(f => f.Rule == "SP1").ToList();
+        var said = PlanValidator.Check(p).Where(f => f.Rule == "SP11").ToList();
         await Assert.That(said.Count).IsEqualTo(1).Because("the missing zone is stated once, not per wool");
         await Assert.That(said[0].Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(said[0].Message).Contains("no build zone");
+        await Assert.That(said[0].Message).Contains("has no build region");
     }
 
     [Test]
@@ -271,8 +271,8 @@ public sealed class PlanValidatorTests
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]}, {"id":"c","role":"piece","rect":[40,0,10,10]} ],
           "walls":[ {"a":"a","b":"c"} ] }
         """);
-        await Assert.That(Err(ok, "not a shared land interface")).IsFalse();
-        await Assert.That(Err(bad, "not a shared land interface")).IsTrue();
+        await Assert.That(Err(ok, "no shared edge")).IsFalse();
+        await Assert.That(Err(bad, "no shared edge")).IsTrue();
     }
 
     [Test]
@@ -311,7 +311,7 @@ public sealed class PlanValidatorTests
         """);
         var all = PlanValidator.Check(p);
 
-        var overlap = all.First(f => f.Severity == Severity.Refusal && f.Message.Contains("different surfaces"));
+        var overlap = all.First(f => f.Severity == Severity.Refusal && f.Message.Contains("stand at surfaces"));
         await Assert.That(overlap.SubjectIds).Contains("a");
         await Assert.That(overlap.SubjectIds).Contains("b");
 
@@ -433,8 +433,8 @@ public sealed class PlanValidatorTests
           "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,10,10]} ],
           "placements":{ "wools":[ {"piece":"buffer","at":[5,5]} ] } }
         """);
-        await Assert.That(Err(spawn, "non-generating buffer")).IsTrue();
-        await Assert.That(Err(wool, "non-generating buffer")).IsTrue();
+        await Assert.That(Err(spawn, "stands on buffer")).IsTrue();
+        await Assert.That(Err(wool, "stands on buffer")).IsTrue();
     }
 
     // ── lint ────────────────────────────────────────────────────────────────────────────────────────────
@@ -545,7 +545,7 @@ public sealed class PlanValidatorTests
     public async Task An_empty_plan_has_no_land_to_build()
     {
         var p = Plan("""{ "plan":2, "globals":{"cell":1} }""");
-        await Assert.That(Missing(p, "no pieces")).IsTrue();
+        await Assert.That(Missing(p, "no piece that makes ground")).IsTrue();
     }
 
     [Test]
@@ -557,7 +557,7 @@ public sealed class PlanValidatorTests
         { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,10,10]} ] }
         """);
-        await Assert.That(Missing(p, "no pieces")).IsTrue();
+        await Assert.That(Missing(p, "no piece that makes ground")).IsTrue();
     }
 
     [Test]
@@ -589,11 +589,7 @@ public sealed class PlanValidatorTests
         """);
         var findings = PlanValidator.Completeness(p);
         await Assert.That(findings.Any(f => f.Severity == Severity.Refusal)).IsFalse();
-        await Assert.That(findings.Any(f => f.Severity == Severity.Complaint && f.Message.Contains("no objective"))).IsTrue();
-        // It is a statement about the plan, not about the match: a board can state its goals on the intent
-        // instead, which a plan-tier rule cannot see.
-        await Assert.That(findings.Single(f => f.Rule == PlanRules.NoObjective).Message)
-            .Contains("A board stating its goals on the intent instead is answered there");
+        await Assert.That(findings.Any(f => f.Severity == Severity.Complaint && f.Message.Contains("has no wool, monument, core or capture point"))).IsTrue();
     }
 
     [Test]
@@ -607,7 +603,7 @@ public sealed class PlanValidatorTests
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ],
           "placements":{"spawns":[{"piece":"a","at":[1,1]}],"{{kind}}":[{"piece":"a","at":[5,5]}]} }
         """);
-        await Assert.That(PlanValidator.Completeness(p).Any(f => f.Message.Contains("no objective"))).IsFalse();
+        await Assert.That(PlanValidator.Completeness(p).Any(f => f.Message.Contains("has no wool, monument, core or capture point"))).IsFalse();
     }
 
     /// <summary>A capture board is played for something, so a stated count is an objective like the other
@@ -620,7 +616,7 @@ public sealed class PlanValidatorTests
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ],
           "placements":{"spawns":[{"piece":"a","at":[1,1]}],"controlPoints":3} }
         """);
-        await Assert.That(PlanValidator.Completeness(p).Any(f => f.Message.Contains("no objective"))).IsFalse();
+        await Assert.That(PlanValidator.Completeness(p).Any(f => f.Message.Contains("has no wool, monument, core or capture point"))).IsFalse();
     }
 
     /// <summary>A count the board's own symmetry cannot lay out. The compiler places none rather than
@@ -637,7 +633,7 @@ public sealed class PlanValidatorTests
         """);
         var finding = PlanValidator.Completeness(p).Single(f => f.Rule == PlanRules.ControlPointCount);
         await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(finding.Message).Contains($"{count} capture point(s)");
+        await Assert.That(finding.Message).Contains($"has {count} capture points");
     }
 
     /// <summary>And the counts a board's symmetry does lay out say nothing.</summary>
@@ -783,7 +779,7 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
-    public async Task A_wall_too_close_to_the_entrance_or_over_a_wide_interface_fires_ST8()
+    public async Task A_wall_too_close_to_the_entrance_fires_ST11_and_one_over_a_wide_edge_ST8()
     {
         // the wall seat 15 out from the room's entry, over a 10-block mouth — the author's geometry, clean
         var seated = Plan("""
@@ -794,6 +790,7 @@ public sealed class PlanValidatorTests
           "walls":[ {"a":"a","b":"h"} ] }
         """);
         await Assert.That(Lint(seated, "ST8")).IsFalse();
+        await Assert.That(Lint(seated, "ST11")).IsFalse();
 
         // the same wall with a four-deep approach stands 4 from the entrance → too close
         var close = Plan("""
@@ -803,7 +800,8 @@ public sealed class PlanValidatorTests
                      {"id":"h","role":"lane","rect":[0,14,10,10]} ],
           "walls":[ {"a":"a","b":"h"} ] }
         """);
-        await Assert.That(Lint(close, "ST8")).IsTrue();
+        await Assert.That(Lint(close, "ST11")).IsTrue();
+        await Assert.That(Lint(close, "ST8")).IsFalse();
 
         // a 30-block interface is a room face, not a lane mouth
         var wide = Plan("""
@@ -856,6 +854,65 @@ public sealed class PlanValidatorTests
             """);
             await Assert.That(Lint(atCap, "ST10")).IsFalse();
         }
+    }
+
+    /// <summary>The <c>ST9</c> edit is the footprint that clears it: set on the marker it names, the room is
+    /// within the cap and nothing new is refused.</summary>
+    [Test]
+    [Arguments("[0,0,30,24]", "[15,12]")]
+    [Arguments("[0,0,40,40]", "[6,30]")]
+    public async Task The_ST9_edit_sets_a_footprint_that_clears_ST9(string rect, string at)
+    {
+        var plan = Plan($$"""
+        { "plan":2, "globals":{"cell":1},
+          "pieces":[ {"id":"s","role":"spawn","rect":{{rect}}} ],
+          "placements":{ "spawns":[ {"id":"red","piece":"s","at":{{at}},"facing":"front"} ] } }
+        """);
+        var edit = PlanValidator.Check(plan).Single(f => f.Rule == "ST9").Edit;
+
+        await Assert.That(edit!.Document).IsEqualTo(MapDocuments.Plan);
+        await Assert.That(edit.Path).IsEqualTo("placements.spawns[red].footprint");
+        await Assert.That(edit.Op).IsEqualTo(DocumentEdit.Set);
+        plan.Placements.Spawns[0].Footprint = edit.Value.Deserialize<double[]>();
+        await Assert.That(Lint(plan, "ST9")).IsFalse();
+        await Assert.That(PlanValidator.Check(plan).Any(f => f.Refuses)).IsFalse();
+    }
+
+    /// <summary>The <c>ST10</c> edit is the rect that clears it, in either orientation and at any cell, keeping
+    /// the piece's minimum corner so the markers measured from it stay where they stand.</summary>
+    [Test]
+    [Arguments(1, "[0,0,20,40]")]
+    [Arguments(1, "[0,0,40,20]")]
+    [Arguments(1, "[0,0,26,26]")]
+    [Arguments(4, "[2,3,10,6]")]
+    public async Task The_ST10_edit_sets_a_rect_that_clears_ST10(int cell, string rect)
+    {
+        var plan = Plan($$"""
+        { "plan":2, "globals":{"cell":{{cell}}},
+          "pieces":[ {"id":"w","role":"wool-room","rect":{{rect}}} ] }
+        """);
+        var edit = PlanValidator.Check(plan).Single(f => f.Rule == "ST10").Edit;
+
+        await Assert.That(edit!.Path).IsEqualTo("pieces[w].rect");
+        var value = edit.Value.Deserialize<int[]>()!;
+        await Assert.That(value[0]).IsEqualTo(plan.Pieces[0].Rect.X);
+        await Assert.That(value[1]).IsEqualTo(plan.Pieces[0].Rect.Z);
+        plan.Pieces[0].Rect = new PgmStudio.Geom.CellRect(value[0], value[1], value[2], value[3]);
+        await Assert.That(Lint(plan, "ST10")).IsFalse();
+    }
+
+    /// <summary>A cut that would leave a marker off its piece is not a mechanical change, so it carries no
+    /// edit.</summary>
+    [Test]
+    public async Task A_cut_that_would_strand_a_marker_carries_no_ST10_edit()
+    {
+        var plan = Plan("""
+        { "plan":2, "globals":{"cell":1},
+          "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,20,40]} ],
+          "placements":{ "wools":[ {"id":"lime","piece":"w","at":[10,35]} ] } }
+        """);
+
+        await Assert.That(PlanValidator.Check(plan).Single(f => f.Rule == "ST10").Edit).IsNull();
     }
 
     [Test]
@@ -928,7 +985,7 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
-    public async Task A_gap_between_a_wool_room_and_its_own_ground_narrower_than_twelve_blocks_fires_WL12()
+    public async Task A_gap_between_a_wool_room_and_its_own_ground_narrower_than_twelve_blocks_fires_WL20()
     {
         // two cells of void between the room and the ground beside it: ten blocks, which a player crosses by
         // towering at one edge, so the approach the board states is not the one walked.
@@ -941,7 +998,8 @@ public sealed class PlanValidatorTests
           "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
                          "wools":[ {"piece":"room","at":[5,5]} ] } }
         """);
-        await Assert.That(Lint(tight, "WL12")).IsTrue().Because("ten blocks is under the twelve a gap between a goal and its own ground wants");
+        await Assert.That(Lint(tight, "WL20")).IsTrue().Because("ten blocks is under the twelve a gap between a goal and its own ground wants");
+        await Assert.That(Lint(tight, "WL12")).IsFalse().Because("the gap is toward the team's own ground, not the front");
 
         // the same arrangement with the far ground pushed a cell further out: twenty blocks, and quiet.
         var clear = Plan("""
@@ -953,7 +1011,7 @@ public sealed class PlanValidatorTests
           "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
                          "wools":[ {"piece":"room","at":[5,5]} ] } }
         """);
-        await Assert.That(Lint(clear, "WL12")).IsFalse();
+        await Assert.That(Lint(clear, "WL20")).IsFalse();
     }
 
     [Test]
@@ -967,7 +1025,8 @@ public sealed class PlanValidatorTests
                      {"id":"room","role":"wool-room","rect":[3,4,3,3]} ],
           "placements":{ "wools":[ {"piece":"room","at":[6,6]} ] } }
         """);
-        await Assert.That(Lint(home, "WL12")).IsFalse().Because("twelve blocks to a goal's own ground is the author's floor");
+        await Assert.That(Lint(home, "WL20")).IsFalse().Because("twelve blocks to a goal's own ground is the author's floor");
+        await Assert.That(Lint(home, "WL12")).IsFalse();
 
         // the same room twelve blocks across a bay from a piece fronting the crossing: sixteen is wanted
         var front = Plan("""
@@ -982,7 +1041,7 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
-    public async Task A_gap_a_build_zone_covers_is_a_crossing_the_board_states_and_is_not_WL12()
+    public async Task A_gap_a_build_zone_covers_is_a_crossing_the_board_states_and_is_not_WL20()
     {
         // building over it is what the zone is for, so the gap's width is not a jump the rule judges.
         var bridged = Plan("""
@@ -995,7 +1054,32 @@ public sealed class PlanValidatorTests
           "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
                          "wools":[ {"piece":"room","at":[5,5]} ] } }
         """);
-        await Assert.That(Lint(bridged, "WL12")).IsFalse();
+        await Assert.That(Lint(bridged, "WL20")).IsFalse();
+    }
+
+    [Test]
+    public async Task A_hole_touching_no_room_piece_narrower_than_twelve_blocks_fires_LN6()
+    {
+        // four lanes ringing a hole two cells across: ten blocks, crossed by a jump, and beside no goal.
+        var tight = Plan("""
+        { "plan":2, "globals":{"cell":5},
+          "pieces":[ {"id":"top","role":"lane","rect":[0,0,6,2]},
+                     {"id":"bottom","role":"lane","rect":[0,4,6,2]},
+                     {"id":"left","role":"lane","rect":[0,2,2,2]},
+                     {"id":"right","role":"lane","rect":[4,2,2,2]} ] }
+        """);
+        await Assert.That(Lint(tight, "LN6")).IsTrue().Because("ten blocks is under the twelve a hole wants");
+        await Assert.That(Lint(tight, "WL12") || Lint(tight, "WL20")).IsFalse().Because("no room piece touches it");
+
+        // the same ring three cells across each way: fifteen blocks, and quiet.
+        var clear = Plan("""
+        { "plan":2, "globals":{"cell":5},
+          "pieces":[ {"id":"top","role":"lane","rect":[0,0,7,2]},
+                     {"id":"bottom","role":"lane","rect":[0,5,7,2]},
+                     {"id":"left","role":"lane","rect":[0,2,2,3]},
+                     {"id":"right","role":"lane","rect":[5,2,2,3]} ] }
+        """);
+        await Assert.That(Lint(clear, "LN6")).IsFalse();
     }
 
     [Test]

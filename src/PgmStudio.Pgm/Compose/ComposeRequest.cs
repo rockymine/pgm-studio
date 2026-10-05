@@ -38,19 +38,18 @@ public sealed class ComposeRequest
         PlayersPerTeam = Math.Clamp(playersPerTeam, 6, SizeBands.Players(SizeBands.Centi).High);
 
         if (teams != 2 && teams != 4)
-            throw new ArgumentException($"teams must be 2 or 4 (got {teams})", nameof(teams));
+            throw new ArgumentException($"`teams` {teams} is not 2 or 4");
         Teams = teams;
 
         Symmetry = symmetry ?? (teams == 4 ? "rot_90" : "rot_180");
         if (teams == 4 && Symmetry != "rot_90")
-            throw new ArgumentException($"4-team boards require rot_90 symmetry (got '{Symmetry}')", nameof(symmetry));
+            throw new ArgumentException($"`symmetry` '{Symmetry}' with 4 teams is not rot_90");
         if (teams == 2 && Symmetry is not ("rot_180" or "mirror_x" or "mirror_z"))
-            throw new ArgumentException(
-                $"2-team symmetry must be rot_180, mirror_x, or mirror_z (got '{Symmetry}')", nameof(symmetry));
+            throw new ArgumentException($"`symmetry` '{Symmetry}' with 2 teams is not one of rot_180, mirror_x, mirror_z");
 
         Seed = seed;
 
-        if (cell <= 0) throw new ArgumentException("cell must be positive", nameof(cell));
+        if (cell <= 0) throw new ArgumentException($"`cell` {cell} is less than 1");
         Cell = cell;
     }
 }

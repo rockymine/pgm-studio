@@ -17,8 +17,8 @@ public sealed class DressingRulesTests
         var road = RuleCatalog.Read([typeof(DressingRules).Assembly])
             .Single(rule => rule.Rule == DressingRules.RoadStandoff);
 
-        await Assert.That(road.Means).Contains($"a tree {new TreeProp().RouteStandoff} blocks");
-        await Assert.That(road.Means).Contains($"a boulder {new BoulderProp().RouteStandoff}");
+        await Assert.That(road.Means).Contains($"A tree stands less than {new TreeProp().RouteStandoff} blocks from a road");
+        await Assert.That(road.Means).Contains($"a boulder less than {new BoulderProp().RouteStandoff} blocks");
         await Assert.That(road.Fix).IsNotNull();
     }
 
@@ -28,7 +28,7 @@ public sealed class DressingRulesTests
         var passAround = RuleCatalog.Read([typeof(DressingRules).Assembly])
             .Single(rule => rule.Rule == DressingRules.PassAround);
 
-        await Assert.That(passAround.Means).Contains($"{DressingRules.PassAroundWidth} blocks of passable ground");
+        await Assert.That(passAround.Means).Contains($"less than {DressingRules.PassAroundWidth} blocks wide");
         await Assert.That(passAround.Fix).IsNotNull();
     }
 

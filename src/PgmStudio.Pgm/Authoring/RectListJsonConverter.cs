@@ -32,7 +32,7 @@ public sealed class RectListJsonConverter : JsonConverter<List<Rect>>
                     list.Add(JsonSerializer.Deserialize<Rect>(ref reader, options));
                 return list;
             default:
-                throw new JsonException($"Unexpected token {reader.TokenType} reading a Rect list.");
+                throw new JsonException("is not a rectangle or a list of rectangles");
         }
     }
 

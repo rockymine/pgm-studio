@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Derive;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
@@ -12,7 +13,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class GoalSpawnRatio : SoftTerm
 {
     public override string Id => "goal-spawn-ratio";
-    public override string RuleId => "GO1";
+    public override string RuleId => LayoutRules.ObjectiveSpawnRatio;
     public override bool LearnsFromTraced => false;
     public override Band? AuthoredBand => new Band(3.0, 4.0);
 
@@ -27,6 +28,17 @@ public sealed class GoalSpawnRatio : SoftTerm
         // Every in-band ratio scores zero, so the term's one value is the goal the band judges hardest.
         var band = AuthoredBand!.Value;
         return ratios.OrderByDescending(band.Distance).First();
+    }
+
+    public override MeasureUnit Unit => MeasureUnit.Times;
+
+    protected override string Reads(EvalContext ctx, string value)
+    {
+        var band = AuthoredBand!.Value;
+        var goal = GoalDistances.Read(ctx.Plan).Where(walk => walk.Ratio is not null)
+            .OrderByDescending(walk => band.Distance(walk.Ratio!.Value)).First();
+        return $"{GoalWords.Kind(goal.Kind)} '{goal.Id}' has {value} the walking distance from the nearest enemy spawn "
+            + "that it has from its team's nearest spawn";
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
@@ -45,7 +57,7 @@ public sealed class GoalSpawnRatio : SoftTerm
 public sealed class GoalSpawnDistance : SoftTerm
 {
     public override string Id => "goal-spawn-distance";
-    public override string RuleId => "GO4";
+    public override string RuleId => LayoutRules.ObjectiveSpawnDistance;
     public override bool LearnsFromTraced => false;
     public override Band? AuthoredBand => new Band(40, 90);
 
@@ -60,6 +72,16 @@ public sealed class GoalSpawnDistance : SoftTerm
         // Every in-band distance scores zero, so the term's one value is the goal the band judges hardest.
         var band = AuthoredBand!.Value;
         return distances.OrderByDescending(band.Distance).First();
+    }
+
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value)
+    {
+        var band = AuthoredBand!.Value;
+        var goal = GoalDistances.Read(ctx.Plan).Where(walk => walk.OwnSpawnBlocks is not null)
+            .OrderByDescending(walk => band.Distance(walk.OwnSpawnBlocks!.Value)).First();
+        return $"{GoalWords.Kind(goal.Kind)} '{goal.Id}' has a walking distance of {value} from its team's nearest spawn";
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
@@ -78,7 +100,7 @@ public sealed class GoalSpawnDistance : SoftTerm
 public sealed class OwnGoalDistance : GoalPairTerm
 {
     public override string Id => "own-goal-distance";
-    public override string RuleId => "GO2";
+    public override string RuleId => LayoutRules.OwnObjectiveSpacing;
     public override Band? AuthoredBand => new Band(35, 65);
     protected override bool Opposing => false;
 }
@@ -90,7 +112,7 @@ public sealed class OwnGoalDistance : GoalPairTerm
 public sealed class OpposingGoalDistance : GoalPairTerm
 {
     public override string Id => "opposing-goal-distance";
-    public override string RuleId => "GO3";
+    public override string RuleId => LayoutRules.OpposingObjectiveSpacing;
     public override Band? AuthoredBand => new Band(85, 150);
     protected override bool Opposing => true;
 }
@@ -119,10 +141,26 @@ public abstract class GoalPairTerm : SoftTerm
         return walks.OrderByDescending(band.Distance).First();
     }
 
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value)
+    {
+        var band = AuthoredBand!.Value;
+        var pair = GoalDistances.Pairs(ctx.Plan).Where(walk => walk.Opposing == Opposing && walk.Blocks is not null)
+            .OrderByDescending(walk => band.Distance(walk.Blocks!.Value)).First();
+        return $"objectives '{pair.From}' and '{pair.To}' have a walking distance of {value} between them";
+    }
+
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
         ctx.Plan.Placements.Destroyables.Select(goal => goal.Piece)
             .Concat(ctx.Plan.Placements.Cores.Select(goal => goal.Piece))
             .Where(piece => piece.Length > 0)
             .Distinct()
             .ToList();
+}
+
+/// <summary>The word a finding uses for a goal the distance reader names by its plan list.</summary>
+internal static class GoalWords
+{
+    public static string Kind(string kind) => kind == "destroyable" ? "monument" : kind;
 }

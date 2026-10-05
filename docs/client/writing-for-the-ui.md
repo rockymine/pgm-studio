@@ -105,32 +105,16 @@ room. These are not jargon to be removed but terms to be defined, once, in the s
 term has two levels. Its **tooltip** is one line, shown where the word first appears in a tool. Its **guide
 entry** is the longer account a help page gives, and only some terms need one.
 
-| Term | Tooltip |
-|---|---|
-| **Plan** | A grey map on a coarse grid: where the objectives sit, where the land goes, and how high it stands. |
-| **Sketch** | The plan's grey map with as much detail as you want: ground shape, paint, trees, and buildings. |
-| **Configure** | Set up the game on a world: teams, spawns, protected areas, and objectives. |
-| **Library** | Patterns, palettes, buildings, trees, and biomes to reuse in any map. Each map keeps its own copy. |
-| **Cell** | One square of the plan grid. Its size in blocks is set per plan; the default is 4. |
-| **Symmetry** | How the part you design is copied for the other teams: rotated or mirrored. |
-| **Hub** | The central area of a team's side, which the spawn, the wool approaches, and the front line connect to. |
-| **Front line** | The edge of a team's land that faces the enemy across the gap. Players build bridges from here. |
-| **Mid** | The open gap between the teams' front lines, sometimes with islands in it. Players build across it. |
-| **Approach** | The path of land leading from a team's side to a wool room. |
-| **Wool room** | The room a wool is kept in, defended by the team that owns it. |
-| **Monument** | Where a team places a wool it has taken, to capture it. |
-| **Build region** | An area over the void where players may place blocks. |
-| **Protection** | An area players may not enter or change, usually around a spawn. |
-| **Box** | A rectangle the generator uses to mark one part of a layout, such as a hub or a wool. Plans made by hand don't need them. |
-| **Generator** | Creates complete layouts from a few settings (players, symmetry, size). |
-| **Pattern** | A block pattern: layers of blocks, a team colour, scattered patches, or a mix. |
-| **Palette** | A set of patterns that gives the ground its look: one each for the rim, wall, surface, and fill. |
-| **Terraform** | Shaping the flat ground: hills, slopes, and cliffs. |
-| **Decoration** | What you add to the ground: trees, boulders, paths, water, and buildings. |
+**The definitions live in one place: `Glossary` in `PgmStudio.Vocabulary`, served at `GET /api/glossary`.**
+Every word the rules, the findings and the screens use is a term there, with its one-line definition, the
+other names a reader may meet it under (an older word, a field's name, PGM's own name) and the terms its
+definition leans on. `?term=board` answers `layout`: a word is found by its own name or by another one. A rule
+or a tooltip uses these words and never explains one, and a new word joins the glossary before it is used.
 
-Four of these replace the studio's earlier words, which mapmakers do not use: *pattern* for style, *palette*
+Four terms replace the studio's earlier words, which mapmakers do not use, and the glossary keeps each old word as another name for its term: *pattern* for style, *palette*
 for theme, *terraform* for relief, and *decoration* for dressing. The old words remain in the code and the
-`docs/`; the client shows only the new ones, and text the server writes takes the same pass in `RP113` and `RP114`.
+`docs/`; the client shows only the new ones, and the rules and findings the server writes are held to them by
+`RuleTextTests` and `FindingMessageTests`.
 
 ### Guide entries
 

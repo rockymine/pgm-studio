@@ -15,14 +15,14 @@ public sealed class CellRectJsonConverter : JsonConverter<CellRect>
     public override CellRect Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartArray)
-            throw new JsonException($"a cell rect is [x, z, w, h]; got {reader.TokenType}");
+            throw new JsonException("is not a list of four numbers");
 
         Span<int> v = stackalloc int[4];
         var n = 0;
         while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
         {
             if (reader.TokenType != JsonTokenType.Number)
-                throw new JsonException($"a cell rect holds numbers; got {reader.TokenType}");
+                throw new JsonException("holds a value that is not a number");
             // Tolerate a longer array by ignoring the tail, matching the bare int[] this replaced: a
             // hand-written plan that carried extra entries loaded before, so it still loads.
             if (n < 4) v[n] = reader.GetInt32();

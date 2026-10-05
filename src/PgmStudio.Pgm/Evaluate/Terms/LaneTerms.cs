@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Compose;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
@@ -8,7 +9,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 public sealed class MaxChainLength : SoftTerm
 {
     public override string Id => "max-chain-length";
-    public override string RuleId => "LN2";
+    public override string RuleId => LayoutRules.LaneLength;
 
     // LN2 is an authored *cap* on lane length, not a distribution we widen to fit: traced real maps run much
     // longer chains, so the band learns from the authored intent seeds only, not the traced corpus.
@@ -20,6 +21,11 @@ public sealed class MaxChainLength : SoftTerm
         if (pieces.Count == 0) return null;
         return ComposeGeometry.MaxChainBlocks(ctx.Plan.Globals.Cell, pieces);
     }
+
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"the longest straight run of same-width pieces is {value} long";
 }
 
 /// <summary>LN1: a wool lane runs about 10 blocks wide (15 on big maps). Measured as the narrowest lane on the
@@ -29,7 +35,7 @@ public sealed class MaxChainLength : SoftTerm
 public sealed class LaneWidth : SoftTerm
 {
     public override string Id => "lane-width";
-    public override string RuleId => "LN1";
+    public override string RuleId => LayoutRules.LaneWidth;
 
     public override double? Value(EvalContext ctx)
     {
@@ -37,4 +43,9 @@ public sealed class LaneWidth : SoftTerm
         if (shapes.Count == 0) return null;
         return shapes.Min(s => s.Width) * (double)ctx.Board.Cell;
     }
+
+    public override MeasureUnit Unit => MeasureUnit.Blocks;
+
+    protected override string Reads(EvalContext ctx, string value) =>
+        $"the narrowest lane to a wool room is {value} wide";
 }

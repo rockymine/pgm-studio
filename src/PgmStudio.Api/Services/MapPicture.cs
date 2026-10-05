@@ -21,9 +21,9 @@ internal static class MapPicture
         BuiltWorld built, IReadOnlyList<WorldView> kept, BlockTextureStore textures, CancellationToken ct)
     {
         var (set, reason) = await textures.GetAsync(ct);
-        if (set is null) return (null, $"the export carries no map.png: {reason}");
+        if (set is null) return (null, $"the export has no map.png, and {reason}");
         if (WorldViews.PictureOf(built, kept) is not { } view)
-            return (null, "the export carries no map.png: the board has no ground to frame");
+            return (null, "the export has no map.png, and the layout has no ground to frame");
 
         var words = QueryHelpers.ParseQuery($"{view.Query}&width={Width}&height={Height}");
         var aim = EyeAim.Read(word => words.TryGetValue(word, out var value) ? value.ToString() : null);
@@ -33,7 +33,7 @@ internal static class MapPicture
                 aim.Resolve(scene) is ({ } camera, var how)
                     ? new EyeShot(scene.Draw(camera, Width, Height).Png(), how)
                     : null);
-            return shot is null ? (null, $"the export carries no map.png: {aim.Empty}") : (shot.Png, null);
+            return shot is null ? (null, $"the export has no map.png, and {aim.Empty}") : (shot.Png, null);
         }
     }
 }

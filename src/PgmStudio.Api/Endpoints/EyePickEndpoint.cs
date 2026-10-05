@@ -51,7 +51,7 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
         if (set is null)
         {
             await Refusals.WriteAsync(HttpContext, 503, "no block textures",
-                [new Vocabulary.Finding(RequestRules.TexturesUnavailable, reason ?? "no block textures")], ct);
+                [new Vocabulary.Finding(RequestRules.TexturesUnavailable, reason ?? "the studio has no block textures")], ct);
             return;
         }
 
@@ -64,7 +64,7 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
         }
         catch (ArgumentException fault)
         {
-            await Refusals.UnreadableAsync(HttpContext, "cannot pick that", fault.Message, ct);
+            await Refusals.UnreadableAsync(HttpContext, "cannot pick that", fault, ct);
             return;
         }
 
@@ -72,7 +72,7 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to read",
                 [new Vocabulary.Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no world to pick from")], ct);
+                    "the map has no stored sketch layout")], ct);
             return;
         }
         // Read after the world: a change landing between the two then reads as one the pick has seen, which asks
@@ -88,7 +88,7 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
         if (answer is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nothing to pick",
-                [new Vocabulary.Finding(RequestRules.Conflict, aim.Empty)], ct);
+                [new Vocabulary.Finding(RequestRules.NothingToRead, aim.Empty)], ct);
             return;
         }
         await Send.OkAsync(answer, ct);
@@ -124,18 +124,18 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
         {
             var stated = new[] { "at", "box", "lasso" }.Where(name => word(name) is { Length: > 0 }).ToList();
             if (stated.Count > 1)
-                throw new ArgumentException($"a mark is one of `at`, `box` or `lasso`, and {string.Join(" and ", stated)} are both given");
+                throw new ArgumentException($"the request states {string.Join(" and ", stated.Select(name => $"`{name}`"))}, more than 1 mark");
             if (word("at") is { Length: > 0 } at)
             {
                 var points = Points(at, "at", width, height);
-                if (points.Count != 1) throw new ArgumentException("`at` is one pixel, `x,y`");
+                if (points.Count != 1) throw new ArgumentException($"`at` holds {points.Count} pixels, not 1");
                 return new Mark(points[0], []);
             }
             if (word("box") is { Length: > 0 } box)
             {
                 var corners = Points(box.Replace(',', ';').Split(';') is { Length: 4 } parts
                     ? $"{parts[0]},{parts[1]};{parts[2]},{parts[3]}"
-                    : throw new ArgumentException("`box` is two opposite corners, `x,y,x,y`"), "box", width, height);
+                    : throw new ArgumentException($"`box` '{box}' is not four numbers"), "box", width, height);
                 int left = Math.Min(corners[0].X, corners[1].X), right = Math.Max(corners[0].X, corners[1].X);
                 int top = Math.Min(corners[0].Y, corners[1].Y), bottom = Math.Max(corners[0].Y, corners[1].Y);
                 var pixels = new List<(int X, int Y)>((right - left + 1) * (bottom - top + 1));
@@ -147,7 +147,7 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
             {
                 var outline = Points(lasso, "lasso", width, height);
                 if (outline.Count < 3 || outline.Count > MostOutline)
-                    throw new ArgumentException($"`lasso` is an outline of 3 to {MostOutline} pixels, `x,y;x,y;…`");
+                    throw new ArgumentException($"`lasso` holds {outline.Count} pixels, not between 3 and {MostOutline}");
                 return new Mark(null, Inside(outline));
             }
             return new Mark(null, []);
@@ -190,9 +190,9 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
                 if (parts.Length != 2
                     || !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var x)
                     || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y))
-                    throw new ArgumentException($"`{name}` is pixels as `x,y`, and '{pair}' is not one");
+                    throw new ArgumentException($"`{name}` '{pair}' is not two whole numbers");
                 if (x < 0 || y < 0 || x >= width || y >= height)
-                    throw new ArgumentException($"`{name}` names {x},{y}, which is outside a {width} × {height} picture");
+                    throw new ArgumentException($"`{name}` names pixel {x},{y}, outside the {width} by {height} picture");
                 points.Add((x, y));
             }
             return points;

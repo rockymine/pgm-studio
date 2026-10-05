@@ -75,7 +75,7 @@ public sealed class RoofStyleGetEndpoint(HousePartStore store) : EndpointWithout
     {
         var id = Route<long>("id");
         var row = await store.GetRoofAsync(id, ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "roof style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "roof part", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(row, await store.GetRoofCoursesAsync(id, ct)), ct);
     }
 }
@@ -95,7 +95,7 @@ public sealed class RoofStyleCreateEndpoint(HousePartStore store, HousePartLibra
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, null,
             (await store.ListRoofsAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var composed = await library.ComposeRoofDraftAsync(req, ct);
-        var findings = LibraryGate.Courses(req.Courses).And(HouseStyleValidation.CheckRoof(composed.Roof));
+        var findings = LibraryGate.Courses(req.Courses).And(RoofPartFields.Of(HouseStyleValidation.CheckRoof(composed.Roof)));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = await store.CreateRoofAsync(
             HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
@@ -116,12 +116,12 @@ public sealed class RoofStyleUpdateEndpoint(HousePartStore store, HousePartLibra
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListRoofsAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var composed = await library.ComposeRoofDraftAsync(req, ct);
-        var findings = LibraryGate.Courses(req.Courses).And(HouseStyleValidation.CheckRoof(composed.Roof));
+        var findings = LibraryGate.Courses(req.Courses).And(RoofPartFields.Of(HouseStyleValidation.CheckRoof(composed.Roof)));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
         var updated = await store.UpdateRoofAsync(
             id, HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
-        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "roof style", ct); return; }
+        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "roof part", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
     }
 }
@@ -152,8 +152,8 @@ public sealed class RoofStyleDeleteEndpoint(HousePartStore store) : EndpointWith
         var used = await store.UsingRoofAsync(id, ct);
         if (used.Count > 0)
         {
-            await Refusals.ConflictAsync(HttpContext, "roof style in use",
-                $"{used.Count} room style(s) still bind this roof style — unbind them before forgetting it", ct,
+            await Refusals.InUseAsync(HttpContext, "roof style in use",
+                $"the roof part is still bound by {Wording.Count(used.Count, "house")}", ct,
                 holding: [.. used.Select(name => name.ToString()!)]);
             return;
         }
@@ -186,7 +186,7 @@ public sealed class StoreyStyleGetEndpoint(HousePartStore store) : EndpointWitho
     {
         var id = Route<long>("id");
         var row = await store.GetStoreyAsync(id, ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "storey style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "storey part", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(row, await store.GetStoreyCoursesAsync(id, ct)), ct);
     }
 }
@@ -230,7 +230,7 @@ public sealed class StoreyStyleUpdateEndpoint(HousePartStore store)
         var id = Route<long>("id");
         var updated = await store.UpdateStoreyAsync(
             id, HousePartLibrary.RowOf(req), HousePartLibrary.StoreyCourseRowsOf(req), ct);
-        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "storey style", ct); return; }
+        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "storey part", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
     }
 }
@@ -258,8 +258,8 @@ public sealed class StoreyStyleDeleteEndpoint(HousePartStore store) : EndpointWi
         var used = await store.UsingStoreyAsync(id, ct);
         if (used.Count > 0)
         {
-            await Refusals.ConflictAsync(HttpContext, "storey style in use",
-                $"{used.Count} room style(s) still bind this storey style — unbind them before forgetting it", ct,
+            await Refusals.InUseAsync(HttpContext, "storey style in use",
+                $"the storey part is still bound by {Wording.Count(used.Count, "house")}", ct,
                 holding: [.. used.Select(name => name.ToString()!)]);
             return;
         }
@@ -288,7 +288,7 @@ public sealed class PorchStyleGetEndpoint(HousePartStore store) : EndpointWithou
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetPorchAsync(Route<long>("id"), ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "porch style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "porch part", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(row), ct);
     }
 }
@@ -326,7 +326,7 @@ public sealed class PorchStyleUpdateEndpoint(HousePartStore store) : Endpoint<Po
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
         if (!await store.UpdatePorchAsync(id, row, ct))
-        { await Refusals.NotFoundAsync(HttpContext, "porch style", ct); return; }
+        { await Refusals.NotFoundAsync(HttpContext, "porch part", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
     }
 }
@@ -352,12 +352,29 @@ public sealed class PorchStyleDeleteEndpoint(HousePartStore store) : EndpointWit
         var used = await store.UsingPorchAsync(id, ct);
         if (used.Count > 0)
         {
-            await Refusals.ConflictAsync(HttpContext, "porch style in use",
-                $"{used.Count} room style(s) still bind this porch style — unbind them before forgetting it", ct,
+            await Refusals.InUseAsync(HttpContext, "porch style in use",
+                $"the porch part is still bound by {Wording.Count(used.Count, "house")}", ct,
                 holding: [.. used.Select(name => name.ToString()!)]);
             return;
         }
         await store.DeletePorchAsync(id, ct);
         await Send.NoContentAsync(ct);
     }
+}
+
+/// <summary>The roof checks name a house style's fields; a roof part's request states the same things under its
+/// own names, the slab and stair at its top and the body, verge and gable as its courses.</summary>
+internal static class RoofPartFields
+{
+    public static Findings Of(Findings findings) => new(findings.Select(finding => finding with
+    {
+        Field = finding.Field switch
+        {
+            "roof.slab" => "roofSlab",
+            "roof.stair" => "roofStair",
+            "roof.form" => "form",
+            "roof.body" or "roof.verge" or "roof.gable" => "courses",
+            var other => other,
+        },
+    }));
 }

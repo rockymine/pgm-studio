@@ -130,7 +130,7 @@ public partial class PlanTool
     private string? saveState;          // a transient "Saved" / error note under the toolbar
 
     /// <summary>The write of a map-backed plan's artifact, which states the revision this tab loaded: a second
-    /// tab's save is refused (<c>RQ5</c>, 409) instead of being overwritten, and the tab is then superseded
+    /// tab's save is refused (<c>RQ13</c>, 409) instead of being overwritten, and the tab is then superseded
     /// until it loads the plan again.</summary>
     private DocumentSave Document => document ??= new(Http);
     private DocumentSave? document;

@@ -11,141 +11,105 @@ namespace PgmStudio.Domain;
 /// </summary>
 public static class ObjectiveRules
 {
-    /// <summary>A core casing has no interior left to hold lava — a solid casing is a goal that can never
-    /// leak, so the match it is the objective of cannot be won.</summary>
-    /// <remarks>Raise the casing's <c>height</c> or lower its <c>shell</c> until an interior remains. A shell as thick as half the casing leaves solid stone, and a core with no lava inside it can never leak.</remarks>
+    /// <summary>The lava footprint or the lava height of a core is not between 2 and 5 blocks.</summary>
+    /// <remarks>Set the <c>lava</c> and the <c>lavaHeight</c> of the core in <c>placements.cores</c> to between 2
+    /// and 5 blocks.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Style)]
     public const string Casing = "DC1";
 
-    /// <summary>A destroyable is built in a material its size is wrong for: obsidian is worth at most three
-    /// blocks, so a cube or a plus-section column carrying it is a grind rather than a raid — or the material
-    /// names nothing the studio builds at all. Either word is resolved rather than passed through: the blocks
-    /// and the map.xml's <c>materials</c> both come out in the material actually laid (obsidian for an unknown
-    /// name, ender stone past three blocks), so the word the author wrote appears in neither.</summary>
-    /// <remarks>Name a material the goal's size is built for: obsidian for a pillar, ender stone, gold or emerald for a cube or a column. This is a <b>complaint</b> — the world is built and the goal stands, in obsidian or ender stone rather than in what was named, and the map.xml declares what was actually laid, so the declared material always matches its own region.</remarks>
+    /// <summary>A monument's material is not one of obsidian, emerald block, gold block or ender stone, or an
+    /// obsidian monument has more than 3 blocks.</summary>
+    /// <remarks>Set the <c>materials</c> of the monument in <c>placements.destroyables</c> to obsidian on a pillar,
+    /// or to emerald block, gold block or ender stone.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Material)]
     public const string StyleMaterial = "DC3";
 
-    /// <summary>A core's <c>float</c> and <c>leak</c> are one knob: together they say how far players must dig
-    /// under it, and either alone says nothing.</summary>
-    /// <remarks>State <c>float</c> and <c>leak</c> together, or neither. Their difference is how far players must dig under the core, so one without the other says nothing about the objective.</remarks>
+    /// <summary>A core has a leak and no float, or a float and no leak.</summary>
+    /// <remarks>Either set the missing one of the <c>float</c> and the <c>leak</c> of the core in
+    /// <c>placements.cores</c>, or set the other to <c>null</c>.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Objective)]
     public const string PairedKnobs = "DC2";
 
-    /// <summary>A destroyable and a core are authored at orbit order 2 only — one team's to defend and every
-    /// other team's to break, which only means anything with two teams.</summary>
-    /// <remarks>Author the destroyable or core on a two-team map. On more teams "one team's to defend and everyone else's to break" has no single answer, and the studio does not guess one.</remarks>
+    /// <summary>A plan has a monument or core, and its symmetry gives a number of teams other than 2.</summary>
+    /// <remarks>Either set the <c>globals.symmetry</c> of the plan to <c>rot_180</c> or a mirror, or delete the
+    /// monuments from <c>placements.destroyables</c> and the cores from <c>placements.cores</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Objective, RuleConcern.Intent)]
     public const string TwoTeamOnly = "OB14";
 
-    /// <summary>The three places a goal may not stand: over the void, inside a spawn room, or inside a wool
-    /// room — everywhere the map's own rules would leave its blocks unbreakable.</summary>
-    /// <remarks>Move the goal onto ground and out of every spawn and wool room. The finding names which of the three it hit; a goal over void has nothing to stand on, and one inside a room stands where the map's own rules make its blocks unbreakable.</remarks>
-    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Structure, RuleConcern.Terrain)]
+    /// <summary>A monument or core has a part of its footprint over void.</summary>
+    /// <remarks>Move the monument or core in <c>placements.destroyables</c> or <c>placements.cores</c> until its
+    /// footprint lies wholly on ground.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Terrain)]
     public const string Placement = "OB17";
 
-    /// <summary>A tree, boulder or building stands inside a goal's clearance: the ground its structure covers
-    /// grown by four blocks, and never nearer than ten blocks to the marker itself (the author's numbers). The
-    /// prop is declined — a goal is what the map is for, and a prop is removable, so the map is built without
-    /// it rather than refused for it.</summary>
-    /// <remarks>Move the tree, boulder or building the finding names, or move the goal. Nothing was built where the finding points: the prop is not in the world, and the placement is still on the canvas to correct.</remarks>
+    /// <summary>A monument or core overlaps a spawn room or a wool room.</summary>
+    /// <remarks>Move the monument or core in <c>placements.destroyables</c> or <c>placements.cores</c> until its
+    /// footprint overlaps no spawn room or wool room.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Structure)]
+    public const string GoalInARoom = "OB30";
+
+    /// <summary>A wool monument has no ground under it.</summary>
+    /// <remarks>Move the room piece of the spawn in <c>pieces</c> until the monument stands on ground.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Terrain)]
+    public const string WoolMonumentOverVoid = "OB31";
+
+    /// <summary>A tree, boulder or building stands within 4 blocks of an objective's structure, or less than 10
+    /// blocks from its marker.</summary>
+    /// <remarks>Either move the tree, boulder or building in <c>dressing.props</c> farther from the objective, or
+    /// move the objective's marker farther from it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Objective, RuleConcern.Feature)]
     public const string PropInClearance = "OB19";
 
-    /// <summary>A goal is authored floating further over the ground than a goal may float. The stated
-    /// <c>float</c> is a distance from whatever the relief leaves under the column, and without a maximum it
-    /// puts a goal anywhere — including where reaching it is a build project rather than a raid.</summary>
-    /// <remarks>Lower the goal's <c>float</c>. The floor is what makes a goal read as a monument rather than as terrain; the ceiling is how far a player will climb for it.</remarks>
+    /// <summary>The float of a monument or core is more than 12 blocks.</summary>
+    /// <remarks>Set the <c>float</c> of the monument or core in <c>placements.destroyables</c> or
+    /// <c>placements.cores</c> to at most 12 blocks.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective)]
     public const string FloatCap = "OB22";
 
-    /// <summary>A goal's own structure reaches above the height players may build to — the build ceiling over
-    /// the terrain and the buildings the map actually builds, which a goal is deliberately not counted among.
-    /// The blocks above it can still be broken, so the map is not unwinnable; a goal standing over the line
-    /// players may reach by building is a goal contested from nowhere.</summary>
-    /// <remarks>Lower the goal's <c>float</c>, shorten its structure, or raise the ground under it. This is a <b>complaint</b> on a built world: the finding carries the goal's own top course and the ceiling it passed.</remarks>
+    /// <summary>A monument or core tops out more than 20 blocks above the average height of the ground.</summary>
+    /// <remarks>Change the <c>float</c> of the monument or core in <c>placements.destroyables</c> or
+    /// <c>placements.cores</c> until its top is at most 20 blocks above the average height of the ground.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.World)]
     public const string OverBuildCeiling = "OB23";
 
-    /// <summary>A declared <c>&lt;gamemode&gt;</c> is outside PGM's own closed enum, so the map fails to load
-    /// however clean everything else is.</summary>
-    /// <remarks>Use an id from PGM's own enum. The studio derives this from what the intent carries, so the usual cause is a hand-edited document — remove the element and let the generator write it.</remarks>
+    /// <summary>A map names a game mode that PGM does not have.</summary>
+    /// <remarks>Either change the unknown entry in <c>gamemode</c> to a game mode that PGM has, or delete it from
+    /// <c>gamemode</c>.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Intent, RuleConcern.World)]
     public const string UnknownGamemode = "OB20";
 
-    /// <summary>Two goals are built into the same blocks. A destroyable stamped inside a core's casing is one
-    /// structure serving two objectives: breaking either is breaking the other, and the blocks a match is
-    /// played for belong to whichever stamper ran last. The usual cause is the symmetry rather than the
-    /// author's hand — a goal drawn at one position and a second at the position the orbit maps the first
-    /// onto, so each lands on the other's image and nothing in the plan looks wrong.</summary>
-    /// <remarks>Move one of the two. Under a mirror or a rotation a goal occupies its own position and every image of it, so check a second goal against the images of the first and not only against where it was drawn — POST /api/plan/inspect answers goalDistances over the fanned closure.</remarks>
+    /// <summary>A monument or core overlaps another monument or core, or a symmetry copy of one.</summary>
+    /// <remarks>Move the monument or core in <c>placements.destroyables</c> or <c>placements.cores</c> until it no
+    /// longer overlaps the other or its symmetry copy.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.World)]
     public const string GoalsShareGround = "OB24";
 
-    /// <summary>A wool's monument was authored somewhere and the world carries it somewhere else. The
-    /// capturing team's spawn structure <b>stamps</b> the monument block it is won on, so the exported
-    /// location is the air cell that stamp produced and a stated one is not in the world — three write paths
-    /// take a location, every read answers it, and the export replaces it.</summary>
-    /// <remarks>Nothing to fix in the document: on a sketch-originated map a monument's `location` is what the build **produced**, not what it was asked for. Read it back off the exported intent rather than stating it.</remarks>
-    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Objective, RuleConcern.World)]
+    /// <summary>The game settings state a wool monument on one block, and the world builds it on another.</summary>
+    /// <remarks>Set the <c>location</c> of the monument in <c>monuments</c> to the block the world builds it
+    /// on.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Objective, RuleConcern.World)]
     public const string MonumentDerived = "OB25";
 
-    /// <summary>A destroy map with no way to end. A monument or a core is obsidian because obsidian reads as
-    /// a goal — opaque, slow, unmistakable — and that same slowness is what lets the defending team hold one
-    /// for the whole match: the attacker's pick is what drops the obsidian the defender rebuilds with, and
-    /// PGM lets the owner repair unless the map says otherwise. A core cannot even say otherwise, since it
-    /// has no <c>repairable</c> and a block put back into its casing passes every check PGM makes.
-    ///
-    /// <para>The map's own answer is a <b>mode ladder</b>: at a stated time every opted-in objective's blocks
-    /// become a softer material, so a raid that could not finish at minute ten finishes at minute twenty. It
-    /// takes two halves and this fires when either is missing — no <c>&lt;modes&gt;</c> at all, or a ladder
-    /// no objective opted into, which is the same map. 173 of the 314 DTM/DTC maps in the two corpora declare
-    /// one, and 171 of those opt in.</para></summary>
-    /// <remarks>Give the map a `modes` ladder, and make sure each destroyable and core carries `mode-changes="true"` or names the modes it takes. The corpus's own answer is two rungs — gold block at 15m and glass at 20m — which is what the studio writes when a map states nothing. A complaint: the map compiles, builds and loads, and how long a match may run is the author's.</remarks>
+    /// <summary>A map has a monument or core, and no mode ladder that changes it.</summary>
+    /// <remarks>Add an entry to <c>modes</c>, then set the <c>mode_changes</c> of each monument and core to
+    /// <c>true</c>.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Intent)]
     public const string NoModeLadder = "OB26";
 
-    /// <summary>A capture point that ends the match the moment somebody takes it. <c>required</c> is a
-    /// PGM's <c>Goal</c> attribute and PGM defaults it to <b>true</b> at proto 1.4.0 and above, which is
-    /// every map the studio reads, so a point that leaves it off is a goal a competitor completes by standing
-    /// on it — and <c>GoalsVictoryCondition</c> ends the match the instant one competitor holds all of its
-    /// required goals. A one-hill map finishes on the first capture; a three-hill map finishes when one team
-    /// holds all three at once.
-    ///
-    /// <para>A KotH match is won on <b>score</b>, not on goals, and the corpus says so: 275 of 316 points
-    /// write <c>required="false"</c>. The maps that leave it off and mean it hold everything to win
-    /// immediately, which is a different game.</para>
-    ///
-    /// <para>A point PGM never registers as a goal is outside this: <c>show="false"</c> clears every show
-    /// option including <c>stats</c>, and <c>GoalMatchModule.addGoal</c> returns early without it, so a hidden
-    /// point cannot end anything however <c>required</c> reads.</para></summary>
-    /// <remarks>Write `required="false"` on the point. Every point the studio authors carries it, so this is an imported map's fault; leave it off only for a board meant to be won by holding every point at once.</remarks>
+    /// <summary>A capture point has no required setting.</summary>
+    /// <remarks>Set the <c>required</c> of each capture point in <c>control_points</c> to <c>false</c>.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective)]
     public const string PointEndsTheMatch = "OB27";
 
-    /// <summary>A capture point that pays into no score. <c>ControlPoint.tickScore</c> looks up
-    /// <c>ScoreMatchModule</c> every tick, and PGM builds one only for a document carrying a
-    /// <c>&lt;score&gt;</c> element — so a point naming a <c>points</c> rate or an <c>owner-points</c> bonus on
-    /// a map that declares no score pays nothing at all, for the whole match, with no error anywhere.
-    ///
-    /// <para>The element is what matters rather than anything in it: corpus authors carry
-    /// <c>&lt;score&gt;&lt;kills&gt;0&lt;/kills&gt;&lt;deaths&gt;0&lt;/deaths&gt;&lt;/score&gt;</c> as a
-    /// placeholder for exactly this reason, and 95 of the 103 corpus KotH maps declare a limit.</para></summary>
-    /// <remarks>Declare a `score` element. A `limit` is the ending a KotH map actually uses — 750 is the corpus's modal value and what the studio writes — and an empty `score` is enough to make the points pay at all.</remarks>
+    /// <summary>A map has a capture point that pays its owner and has no score element.</summary>
+    /// <remarks>Set the <c>scoreLimit</c> of the game settings to at least 1.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective)]
     public const string PointScoresIntoNothing = "OB28";
 
-    /// <summary>A capture point built out of blocks PGM will not recolour. A point's display regions are
-    /// filtered through <c>ColorUtils</c>'s colour-affected set — wool, carpet, stained clay, stained glass
-    /// and its pane, a banner — and a block outside it is left exactly as it was found. Colour is the map's
-    /// only signal that a point was captured, so a pad of hardened clay, stone or planks parses, exports,
-    /// loads and shows nothing at all.
-    ///
-    /// <para><b>Hardened clay is the one that catches people</b>, because it reads as stained clay's plain
-    /// sibling and PGM maps one to the other when it dyes an <em>item</em> — never when it asks whether a
-    /// block is colour-affected. 246 of the 359 corpus pads are stained clay, 71 wool and 42 stained
-    /// glass.</para></summary>
-    /// <remarks>Build the pad and the marker from a block PGM recolours: stained clay is what the corpus and the studio both use, wool and stained glass are the other two common answers. A complaint: the map builds and loads, and the point works — it just never shows who holds it.</remarks>
+    /// <summary>A capture point's capture pad or objective marker has no block that takes the colour of the team
+    /// holding the point.</summary>
+    /// <remarks>Delete the road or made thing that covers the capture pad from <c>dressing.props</c> or
+    /// <c>layers</c>.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Material)]
     public const string PointNeverChangesColour = "OB29";
 }

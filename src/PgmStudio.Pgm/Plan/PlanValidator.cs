@@ -12,126 +12,119 @@ namespace PgmStudio.Pgm.Plan;
 /// The plan rule ids a finding cites — the structural ones the validator owns itself. Rules it merely
 /// <em>enforces</em> for another document keep that document's own id instead: a core, a two-team goal and a
 /// goal footprint cite <see cref="ObjectiveRules"/>, a room frame cites <see cref="RoomFrameRules"/>, and the
-/// lint table cites the layout-rules checklist. <see cref="CornerContact"/> is the one of that checklist
-/// declared here rather than stated in <c>rules.md</c>: this validator is the only thing that fires it, and a
-/// rule a gate raises has to resolve in the catalogue. Stable names, kept apart from any task-tracking id.
+/// lint table cites <see cref="LayoutRules"/>. Stable names, kept apart from any task-tracking id.
 /// </summary>
 public static class PlanRules
 {
-    /// <summary>No generating piece: there is no land, so there is nothing to build.</summary>
-    /// <remarks>Give the plan at least one piece whose role generates terrain — <c>piece</c>, <c>spawn</c> or <c>wool-room</c>. A <c>buffer</c> reserves space and produces none.</remarks>
+    /// <summary>A plan has no piece that makes ground.</summary>
+    /// <remarks>Add a piece to <c>pieces</c> with <c>role</c> set to <c>piece</c>, <c>spawn</c> or
+    /// <c>wool-room</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan)]
-    public const string NoLand = "PL1";
+    public const string NoGroundPiece = "PL1";
 
-    /// <summary>No spawn: PGM has nowhere to put a player and the map cannot be entered.</summary>
-    /// <remarks>Add a spawn placement for each team: an entry in <c>placements.spawns</c> naming a piece and a fractional offset into it.</remarks>
+    /// <summary>A plan has no spawn.</summary>
+    /// <remarks>Add a spawn to <c>placements.spawns</c> with <c>piece</c> set to a piece that makes ground and
+    /// <c>at</c> set to an offset in blocks inside it.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Spawn)]
     public const string NoSpawn = "PL2";
 
-    /// <summary>The plan states no objective of any kind — a complaint, since which goal a map carries is the
-    /// author's. All four families count: a wool, a destroyable, a core, and the capture points a board states
-    /// a count of.
-    ///
-    /// <para>It is a statement about the <b>plan</b> and says nothing about the match. A board can state its
-    /// goals downstream instead, on the intent the configure tool and the API write, and a plan-tier rule
-    /// cannot see that — so what this reports is a plan with nothing in it to win on, not a map that cannot be
-    /// won.</para></summary>
-    /// <remarks>Add a wool, destroyable or core placement, or state how many capture points the board is played for (`placements.controlPoints`). Nothing is blocked without one — the map compiles, builds and loads — and a board whose goals are stated on its intent instead is answered by the export gate rather than here.</remarks>
+    /// <summary>A plan has no objective.</summary>
+    /// <remarks>Either add a wool to <c>placements.wools</c>, or add a monument to <c>placements.destroyables</c>,
+    /// or add a core to <c>placements.cores</c>, or set the <c>placements.controlPoints</c> of the plan to
+    /// 1.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Objective)]
     public const string NoObjective = "PL3";
 
-    /// <summary>Two pieces claim the same ground at incompatible heights, so there is no coherent surface.</summary>
-    /// <remarks>The two pieces named in the finding overlap and give their shared cells different surface heights. Move one off the other, or set both to the same <c>surface</c> — a step between them wants two pieces that meet at an edge, not two that overlap.</remarks>
+    /// <summary>A piece overlaps another piece that stands at a different surface.</summary>
+    /// <remarks>Either move the <c>rect</c> of one of the two pieces in <c>pieces</c> until they no longer overlap,
+    /// or set the <c>surface</c> of the two pieces to the same value.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan)]
     public const string SurfaceClash = "PL4";
 
-    /// <summary>A placement names a piece the plan does not have.</summary>
-    /// <remarks>The placement's <c>piece</c> is a piece id the plan does not declare. Fix the spelling, or add the piece.</remarks>
+    /// <summary>A marker names a piece that the plan does not have.</summary>
+    /// <remarks>Either change the <c>piece</c> of the marker to the <c>id</c> of a piece in <c>pieces</c>, or add a
+    /// piece with the <c>id</c> to <c>pieces</c>.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Plan)]
     public const string UnknownPiece = "PL5";
 
-    /// <summary>A placement stands on a buffer, which is reserved empty space and produces no terrain.</summary>
-    /// <remarks>Point the placement at a generating piece. A buffer is reserved empty space, so anything standing on one stands on nothing.</remarks>
+    /// <summary>A marker overlaps a buffer.</summary>
+    /// <remarks>Either change the <c>piece</c> of the marker to a piece that makes ground, or set the <c>role</c>
+    /// of the buffer in <c>pieces</c> to <c>piece</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan)]
     public const string PlacementOnBuffer = "PL6";
 
-    /// <summary>A placement falls outside the piece it names.</summary>
-    /// <remarks>The placement's <c>at</c> is an offset in blocks from the named piece's minimum corner, so both components belong in 0..the piece's block span on that axis — its cell width times <c>globals.cell</c>. A value outside that lands the marker off its own piece.</remarks>
+    /// <summary>The offset of a marker is not between 0 and its piece's size in blocks, along x and along
+    /// z.</summary>
+    /// <remarks>Set the <c>at</c> of the marker to an offset between 0 and its piece's size in blocks, along x and
+    /// along z.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Plan)]
     public const string PlacementOutside = "PL7";
 
-    /// <summary>A spawn room cannot seat every monument its team will capture.</summary>
-    /// <remarks>Enlarge the spawn piece, or reduce how many wools this team captures. A spawn room seats one monument per wool its team will take, and the wall it seats them on is the room's interior span.</remarks>
+    /// <summary>A spawn room holds fewer than one wool monument for each wool its team captures.</summary>
+    /// <remarks>Either widen the <c>rect</c> of the spawn's room piece in <c>pieces</c>, or delete a wool from
+    /// <c>placements.wools</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable,
         RuleConcern.Plan, RuleConcern.Spawn, RuleConcern.Objective, RuleConcern.Structure)]
     public const string MonumentSeats = "PL8";
 
-    /// <summary>A wool cannot be reached from a capturing team's spawn at all.</summary>
-    /// <remarks>Nothing walkable connects the capturing team's spawn to this wool: add a piece bridging the gap, or widen a border narrower than a corridor. Distance here is the walk over the surface, not the straight line.</remarks>
+    /// <summary>A wool has no route from a capturing team's spawn.</summary>
+    /// <remarks>Either add a piece to <c>pieces</c> that has a shared edge with each of the pieces it joins, or add
+    /// a build region to <c>zones</c> that touches both.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Objective, RuleConcern.Spawn)]
     public const string WoolUnreachable = "PL9";
 
-    /// <summary>A destroyable style names something that is not a style.</summary>
-    /// <remarks>Use one of the destroyable style ids the studio ships — <c>GET /api/destroyable-styles</c> lists them.</remarks>
+    /// <summary>A monument's form is not one of the six monument forms.</summary>
+    /// <remarks>Change the <c>style</c> of the monument in <c>placements.destroyables</c> to <c>pillar-1</c>,
+    /// <c>pillar-2</c>, <c>pillar-3</c>, <c>cube-3</c>, <c>cube-4</c> or <c>column-plus</c>.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Plan, RuleConcern.Objective, RuleConcern.Style)]
     public const string UnknownStyle = "PL10";
 
-    /// <summary>A wool colour names something that is not a dye.</summary>
-    /// <remarks>Use one of the sixteen dye names — <c>GET /api/objectives/vocabulary</c> lists them under <c>wool.colors</c>. Leave the colour out entirely to have one picked: a team's first wool takes the team colour and later wools take distinct dyes.</remarks>
+    /// <summary>A wool's colour is not one of the sixteen dye names.</summary>
+    /// <remarks>Either change the <c>color</c> of the wool in <c>placements.wools</c> to one of the sixteen dye
+    /// names, or set the <c>color</c> of the wool to <c>null</c>.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Plan, RuleConcern.Objective)]
     public const string UnknownColor = "PL14";
 
-    /// <summary>A wall is drawn on a pair of pieces that share no land interface.</summary>
-    /// <remarks>A wall is drawn between two pieces that share no walkable border, so there is nothing for it to divide. Move the pieces until they touch along an edge, or drop the wall.</remarks>
+    /// <summary>A wall names a pair of pieces that has no shared edge.</summary>
+    /// <remarks>Either move the <c>rect</c> of one of the two pieces in <c>pieces</c> until the pair has a shared
+    /// edge, or delete the wall from <c>walls</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
-    public const string WallWithoutInterface = "PL11";
+    public const string WallWithoutSharedEdge = "PL11";
 
-    /// <summary>A bedrock wall sits between two pieces of unequal width, so the wider one carries on past the
-    /// wall's end and an attacker rounds it with one diagonal jump off the corner instead of crossing it. A
-    /// wall belongs between two pieces of the same width, which is the middle of a lane rather than its
-    /// mouth.</summary>
-    /// <remarks>The wall spans only the interval the two pieces share, so ground on a piece that reaches past that interval along the wall's own axis is ground beside the wall's end, and a player standing there is one jump from the ground behind it. Put a piece the lane's own width between the two and wall THAT seam: a wall flanked by nothing has to be crossed, because going round it means leaving the ground.</remarks>
+    /// <summary>A piece runs past either end of a wall by 1 block or more.</summary>
+    /// <remarks>Either shrink the <c>rect</c> of the piece that runs past the wall in <c>pieces</c> until it ends
+    /// where the wall ends, or delete the wall from <c>walls</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Structure)]
     public const string WallAtJunction = "PL17";
 
-    /// <summary>A bedrock wall is drawn on the wool room's own interface, so the wall and the room stand
-    /// through each other and the room can barely be entered. The wool's own edge is never a wall seat.</summary>
-    /// <remarks>Bedrock wall may not interface with the wool room piece: place down the bedrock wall around 15 blocks away from the room — on the approach piece's outer interface, where the approach meets the board.</remarks>
+    /// <summary>A wall touches a wool's room piece.</summary>
+    /// <remarks>Either change the pair in <c>walls</c> to one whose shared edge is between 10 and 20 blocks in
+    /// front of the wool room's entrance, or delete the wall from <c>walls</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Objective)]
     public const string WallOnWoolRoom = "PL13";
 
-    /// <summary>A connected landmass mixes fanned and non-fanned pieces, so it has no coherent orbit image.</summary>
-    /// <remarks>The symmetry fan copies whole islands, so every piece of one connected landmass must agree about <c>mirrors</c>. A non-fanned piece is for an isolated on-axis island; a mid that touches team land is authored as half its ground and completed by the fan.</remarks>
+    /// <summary>An island holds a piece that the symmetry copies, and a piece that it does not copy.</summary>
+    /// <remarks>Either set the <c>mirrors</c> of every piece of the island in <c>pieces</c> to the same value, or
+    /// move the <c>rect</c> of a piece in <c>pieces</c> until it no longer touches the island.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan)]
     public const string MixedMirrors = "PL12";
 
-    /// <summary>The document states a shape version this build does not read. A marker's <c>at</c> is an
-    /// offset in blocks from its piece's minimum corner, and an earlier version stated the same field in
-    /// cells — the same numbers, a different distance — so a document that names another version is refused
-    /// rather than read under the wrong unit.</summary>
-    /// <remarks>Convert the document to the current version. Nothing about a stale plan is recoverable by
-    /// inspection: the unit a coordinate is in is not visible in the coordinate.</remarks>
+    /// <summary>The plan version of a plan is not 2.</summary>
+    /// <remarks>Change each <c>at</c> in <c>placements</c> from cells to blocks, then set the <c>plan</c> of the
+    /// document to 2.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan)]
     public const string StaleVersion = "PL15";
 
-    /// <summary>A capture-point count the board's own symmetry cannot lay out. A point belongs to nobody, so
-    /// it has to be the same walk for every team, and the only positions that are lie on the board's axes:
-    /// the centre of symmetry, which is one point, and a ring the orbit fans from a single side point, which
-    /// is as many as the orbit has images. So a board of <c>n</c> teams builds <b>1</b>, <b>n</b> or
-    /// <b>n + 1</b> points and no other number — two on a four-team board would have to sit somewhere no
-    /// ruling covers, and inventing a position for them is what this refuses to do.</summary>
-    /// <remarks>State 1, one per team, or one per team plus a centre. On two teams that is 1, 2 or 3 — three being the ordinary board — and on four it is 1, 4 or 5.</remarks>
+    /// <summary>The number of capture points a plan states is not 1, the number of its teams, or the number of its
+    /// teams plus 1.</summary>
+    /// <remarks>Set the <c>placements.controlPoints</c> of the plan to 1, to the number of teams, or to the number
+    /// of teams plus 1.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Objective)]
     public const string ControlPointCount = "PL16";
 
-    /// <summary>Two pieces meet at a single point and along no edge, and nothing else joins them. A corner is
-    /// never a connection — a point has no walkable corridor mouth — so the board reads as one area where
-    /// players find two, and the diagonal is the sneaky crossing that is not there. Suppressed where the pair
-    /// already reaches the same land component through real interfaces, since the corner is then redundant
-    /// rather than misleading.</summary>
-    /// <remarks>Bridge the two with a piece sharing a real border with each — one block of shared edge is
-    /// enough, and makes all three one land component — or move them apart so the board stops suggesting a
-    /// crossing. Widening the corner is not one of the options: no amount of point contact connects.</remarks>
+    /// <summary>Two pieces of different islands touch at a single point.</summary>
+    /// <remarks>Either add a piece to <c>pieces</c> that has a shared edge with each of the two, or move the
+    /// <c>rect</c> of one of the two pieces in <c>pieces</c> until it no longer touches the other.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan)]
     public const string CornerContact = "PC-C";
 }
@@ -179,14 +172,14 @@ public static class PlanValidator
         // other complaint about a blank document is downstream of this one.
         if (!plan.Pieces.Any(pc => PlanRoles.IsGenerating(pc.Role)))
         {
-            findings.Add(new Finding(PlanRules.NoLand, "this plan has no pieces — there is no land to build"));
+            findings.Add(new Finding(PlanRules.NoGroundPiece, "the plan's `pieces` has no piece that makes ground"));
             return findings;
         }
 
         // No spawn: PGM has nowhere to put a player, so the finished map cannot be entered at all. The hard one.
         if (plan.Placements.Spawns.Count == 0)
             findings.Add(new Finding(PlanRules.NoSpawn,
-                "this plan has no spawn — a map with nowhere to put a player cannot be loaded"));
+                "the plan's `placements.spawns` has no spawn"));
 
         // No objective of any kind. A complaint, not a block: which goal a map carries is the author's, all
         // four are authorable here, and one can still be set downstream when the map is configured.
@@ -194,8 +187,7 @@ public static class PlanValidator
         if (p.Wools.Count == 0 && p.Destroyables.Count == 0 && p.Cores.Count == 0
             && (p.ControlPoints ?? 0) <= 0)
             findings.Add(new Finding(PlanRules.NoObjective,
-                "this plan states no objective — no wool, destroyable, core or capture point — so nothing in "
-                + "it wins the match. A board stating its goals on the intent instead is answered there",
+                "the plan's `placements` has no wool, monument, core or capture point",
                 Severity.Complaint));
 
         // A count the board's symmetry cannot lay out. The compiler places none rather than rounding to a
@@ -203,10 +195,8 @@ public static class PlanValidator
         if (p.ControlPoints is { } count && count > 0
             && !ControlPointLayout.Fans(count, Symmetry.Order(plan.Globals.Symmetry)))
             findings.Add(new Finding(PlanRules.ControlPointCount,
-                $"this plan states {count} capture point(s), which a board of "
-                + $"{Symmetry.Order(plan.Globals.Symmetry)} team(s) cannot lay out — a point is the centre of "
-                + "symmetry or one of a ring the orbit fans, so the counts that work are 1, one per team, or "
-                + "one per team plus a centre",
+                $"the plan's `placements.controlPoints` has {Wording.Count(count, "capture point")}, which is not "
+                + $"one of 1, {Symmetry.Order(plan.Globals.Symmetry)}, {Symmetry.Order(plan.Globals.Symmetry) + 1}",
                 Severity.Complaint));
 
         return findings;
@@ -230,9 +220,7 @@ public static class PlanValidator
         if (plan.Version != PlanModel.CurrentVersion)
         {
             Error(PlanRules.StaleVersion,
-                $"this plan states version {plan.Version}; this build reads version "
-                + $"{PlanModel.CurrentVersion} — marker offsets are blocks from the piece corner, and version 1 "
-                + "stated them in cells");
+                $"the plan states plan version {plan.Version}, not {PlanModel.CurrentVersion}");
             return findings;
         }
 
@@ -242,7 +230,7 @@ public static class PlanValidator
         foreach (var c in d.Contacts)
             if (c.Kind == ContactKind.Overlap && c.SurfaceDelta != 0)
                 Error(PlanRules.SurfaceClash,
-                    $"overlapping pieces '{c.A}' and '{c.B}' have different surfaces (delta {c.SurfaceDelta})",
+                    $"pieces '{c.A}' and '{c.B}' overlap and stand at surfaces {Math.Abs(c.SurfaceDelta)} blocks apart",
                     c.A, c.B);
 
         // a connected landmass must agree about mirroring: the fan copies whole islands, so a component that
@@ -253,8 +241,8 @@ public static class PlanValidator
             var members = component.Select(id => d.Piece(id)!.Value).ToList();
             if (members.Select(p => p.Mirrors).Distinct().Count() > 1)
                 Error(PlanRules.MixedMirrors,
-                    $"landmass [{string.Join(", ", component)}] mixes mirrored and non-mirrored pieces — " +
-                    "a non-fanned piece must form its own island",
+                    $"island of pieces {Wording.Ids(component)} has both pieces the symmetry copies and pieces it does "
+                    + "not copy",
                     [.. component]);
         }
 
@@ -265,7 +253,7 @@ public static class PlanValidator
         foreach (var s in plan.Placements.Spawns) CheckInside(d, "spawn", s.Piece, s.At, findings);
         foreach (var w in plan.Placements.Wools) CheckInside(d, "wool", w.Piece, w.At, findings);
         foreach (var ir in plan.Placements.Iron) CheckInside(d, "iron", ir.Piece, ir.At, findings);
-        foreach (var b in plan.Placements.Destroyables) CheckInside(d, "destroyable", b.Piece, b.At, findings, allowAbsolute: true);
+        foreach (var b in plan.Placements.Destroyables) CheckInside(d, "monument", b.Piece, b.At, findings, allowAbsolute: true);
         foreach (var c in plan.Placements.Cores) CheckInside(d, "core", c.Piece, c.At, findings, allowAbsolute: true);
 
         // OB22 — how far a goal may float. Both defaults are floors — enough that a goal reads as a monument
@@ -276,13 +264,13 @@ public static class PlanValidator
         foreach (var b in plan.Placements.Destroyables)
             if (b.Float is { } floated && floated > ObjectiveDefaults.MaxFloat)
                 Error(ObjectiveRules.FloatCap,
-                    $"destroyable float {floated} is over the {ObjectiveDefaults.MaxFloat} a goal may float — "
-                    + "a goal that high is reached by building a tower to it", b.Piece);
+                    $"monument on piece '{b.Piece}' has a float of {floated} blocks, "
+                    + $"more than {ObjectiveDefaults.MaxFloat} blocks", b.Piece);
         foreach (var c in plan.Placements.Cores)
             if (c.Float is { } floated && floated > ObjectiveDefaults.MaxFloat)
                 Error(ObjectiveRules.FloatCap,
-                    $"core float {floated} is over the {ObjectiveDefaults.MaxFloat} a goal may float — "
-                    + "a goal that high is reached by building a tower to it", c.Piece);
+                    $"core on piece '{c.Piece}' has a float of {floated} blocks, "
+                    + $"more than {ObjectiveDefaults.MaxFloat} blocks", c.Piece);
 
         // DC2 — float and leak are one knob: together they say how far players must dig under the core
         // (max(0, leak + 1 − float)). Authoring one alone silently pairs it with the other's default, which is
@@ -290,8 +278,8 @@ public static class PlanValidator
         foreach (var c in plan.Placements.Cores)
             if (c.Float is null != c.Leak is null)
                 Error(ObjectiveRules.PairedKnobs,
-                    $"core '{(c.Float is null ? "leak" : "float")}' was set without its pair — "
-                    + "float and leak only mean anything together (they set the dig depth)", c.Piece);
+                    $"core on piece '{c.Piece}' has a {(c.Float is null ? "leak" : "float")} "
+                    + $"and no {(c.Float is null ? "float" : "leak")}", c.Piece);
 
         // A core is stated by its interior and chosen from a closed range, so a casing with no lava in it is
         // not a thing that can be written down. What is left to check is the range itself: a number outside
@@ -300,13 +288,14 @@ public static class PlanValidator
         {
             if (c.Lava is { } lava && (lava < ObjectiveDefaults.MinCoreLava || lava > ObjectiveDefaults.MaxCoreLava))
                 Error(ObjectiveRules.Casing,
-                    $"core lava footprint {lava} is outside {ObjectiveDefaults.MinCoreLava}–"
-                    + $"{ObjectiveDefaults.MaxCoreLava} — a core is chosen from those, not sized freely", c.Piece);
+                    $"core on piece '{c.Piece}' has a lava footprint of {lava} blocks, not between "
+                    + $"{ObjectiveDefaults.MinCoreLava} and {ObjectiveDefaults.MaxCoreLava} blocks", c.Piece);
             if (c.LavaHeight is { } height
                 && (height < ObjectiveDefaults.MinCoreLavaHeight || height > ObjectiveDefaults.MaxCoreLavaHeight))
                 Error(ObjectiveRules.Casing,
-                    $"core lava height {height} is outside {ObjectiveDefaults.MinCoreLavaHeight}–"
-                    + $"{ObjectiveDefaults.MaxCoreLavaHeight}", c.Piece);
+                    $"core on piece '{c.Piece}' has a lava height of {height} blocks, not between "
+                    + $"{ObjectiveDefaults.MinCoreLavaHeight} and {ObjectiveDefaults.MaxCoreLavaHeight} blocks",
+                    c.Piece);
         }
 
         // OB17 — where a goal may not stand. A destroyable and a core go almost anywhere; the exceptions are
@@ -339,7 +328,8 @@ public static class PlanValidator
         foreach (var b in plan.Placements.Destroyables)
             if (!string.IsNullOrEmpty(b.Style) && !DestroyableStyles.IsKnown(b.Style))
                 Error(PlanRules.UnknownStyle,
-                    $"destroyable style '{b.Style}' is not one of [{string.Join(", ", DestroyableStyles.All)}]",
+                    $"monument on piece '{b.Piece}' names the form '{b.Style}', which is not one of "
+                    + string.Join(", ", DestroyableStyles.All),
                     b.Piece);
 
         // A colour PGM cannot resolve makes the wool unplaceable rather than mis-coloured, and the compiler
@@ -348,7 +338,8 @@ public static class PlanValidator
         foreach (var w in plan.Placements.Wools)
             if (!string.IsNullOrEmpty(w.Color) && !WoolColors.IsColor(w.Color))
                 Error(PlanRules.UnknownColor,
-                    $"wool color '{w.Color}' is not one of [{string.Join(", ", WoolColors.All)}]",
+                    $"wool on piece '{w.Piece}' names the colour '{w.Color}', which is not one of "
+                    + string.Join(", ", WoolColors.All),
                     w.Piece);
 
         // OB14 — a destroyable is one team's to defend and every other team's to break, which only means
@@ -358,20 +349,21 @@ public static class PlanValidator
         if (Symmetry.Order(plan.Globals.Symmetry) != 2)
             foreach (var kind in new[]
                      {
-                         plan.Placements.Destroyables.Count > 0 ? "destroyables" : null,
+                         plan.Placements.Destroyables.Count > 0 ? "monuments" : null,
                          plan.Placements.Cores.Count > 0 ? "cores" : null,
                      }.Where(k => k is not null))
                 Error(ObjectiveRules.TwoTeamOnly,
-                    $"{kind} need a two-team symmetry; '{plan.Globals.Symmetry}' has "
-                    + $"{Symmetry.Order(plan.Globals.Symmetry)} team(s)");
+                    $"the plan has {kind} and its `globals.symmetry` `{plan.Globals.Symmetry}` gives "
+                    + $"{Symmetry.Order(plan.Globals.Symmetry)} "
+                    + $"{(Symmetry.Order(plan.Globals.Symmetry) == 1 ? "team" : "teams")}, not 2");
 
         // a wall mark must land on a real shared land interface (else there is no lane seam to build across)
         var landPairs = new HashSet<(string, string)>();
         foreach (var c in d.LandInterfaces) { landPairs.Add((c.A, c.B)); landPairs.Add((c.B, c.A)); }
         foreach (var w in plan.Walls)
             if (!landPairs.Contains((w.A, w.B)))
-                Error(PlanRules.WallWithoutInterface,
-                    $"wall '{w.A}'–'{w.B}' is not a shared land interface", w.A, w.B);
+                Error(PlanRules.WallWithoutSharedEdge,
+                    $"pieces '{w.A}' and '{w.B}' have an approach wall and no shared edge", w.A, w.B);
 
         // and only where no land runs on past either of its ends. A wall spans the interval two pieces share;
         // ground one block beyond an end, on either face, is ground a player beside the wall steps round it on.
@@ -383,10 +375,7 @@ public static class PlanValidator
             if (d.Piece(c.A) is not { } pa || d.Piece(c.B) is not { } pb) continue;
             if (FlankOf(d.Pieces, ContactGraph.WallFootprint(pa, pb)) is not { } flank) continue;
             Complain(PlanRules.WallAtJunction,
-                $"wall '{c.A}'–'{c.B}' is not flanked: '{flank.Id}' runs past the wall's end, so a player on it "
-                + "beside the wall rounds it with one step off the corner rather than crossing it. A wall sits "
-                + "between two pieces of the same width with nothing beyond its ends — put one the lane's own "
-                + "width between the two and wall that seam instead",
+                $"approach wall between pieces '{c.A}' and '{c.B}' has piece '{flank.Id}' running past its end",
                 c.A, c.B, flank.Id);
         }
 
@@ -396,8 +385,8 @@ public static class PlanValidator
         foreach (var w in plan.Walls)
             if (roleOf.GetValueOrDefault(w.A) == PlanRoles.WoolRoom || roleOf.GetValueOrDefault(w.B) == PlanRoles.WoolRoom)
                 Error(PlanRules.WallOnWoolRoom,
-                    $"bedrock wall '{w.A}'–'{w.B}' may not interface with the wool room piece — place it "
-                    + "around 15 blocks away from the room", w.A, w.B);
+                    $"approach wall between pieces '{w.A}' and '{w.B}' touches the room piece of a wool",
+                    w.A, w.B);
 
         // WX2/WX3/WX6 + capacity — the stamped-room rules (docs/world-export/structures.md): a role piece
         // must be big enough for its shell, the marker's pad must be square, a wool room must have an entry
@@ -434,7 +423,8 @@ public static class PlanValidator
             var seats = RoomFrames.MonumentSlots(room.Frame, room.Frame.Doors[0]).Count;
             if (captured > seats)
                 yield return new Finding(PlanRules.MonumentSeats,
-                    $"spawn room on '{s.Piece}' seats {seats} monuments, {captured} captured wools need placing",
+                    $"spawn room on piece '{s.Piece}' seats {seats} wool monuments, "
+                    + $"less than the {captured} wools its team captures",
                     Subjects: [s.Piece]);
         }
     }
@@ -470,7 +460,7 @@ public static class PlanValidator
         if (refusal is not null)
             findings.Add(refusal with
             {
-                Message = $"{kind} on '{pieceId}': {refusal.Message}",
+                Message = $"{kind} room on piece '{pieceId}' {refusal.Message}",
                 Subjects = [pieceId],
             });
         return room;
@@ -489,15 +479,15 @@ public static class PlanValidator
         var piece = d.Plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
         if (piece is null)
         {
-            findings.Add(new Finding(PlanRules.UnknownPiece, $"{kind} references unknown piece '{pieceId}'",
-                Subjects: [pieceId]));
+            findings.Add(new Finding(PlanRules.UnknownPiece,
+                $"{kind} names piece '{pieceId}', which the plan does not have", Subjects: [pieceId]));
             return;
         }
         // A buffer is reserved empty space — it produces no terrain, so nothing may be placed on it.
         if (PlanRoles.IsAnnotation(piece.Role))
         {
             findings.Add(new Finding(PlanRules.PlacementOnBuffer,
-                $"{kind} references non-generating buffer '{pieceId}'", Subjects: [pieceId]));
+                $"{kind} stands on buffer '{pieceId}'", Subjects: [pieceId]));
             return;
         }
         // The offset is in blocks and the piece's rect in cells, so the bound is the piece's block span.
@@ -505,7 +495,8 @@ public static class PlanValidator
         int w = piece.Rect.Width * d.Cell, h = piece.Rect.Height * d.Cell;
         if (x < 0 || z < 0 || x > w || z > h)
             findings.Add(new Finding(PlanRules.PlacementOutside,
-                $"{kind} at [{x},{z}] falls outside piece '{pieceId}' (0..{w}, 0..{h} blocks)", Subjects: [pieceId]));
+                $"{kind} on piece '{pieceId}' stands at ({x}, {z}), outside the piece's {w} by {h} blocks",
+                Subjects: [pieceId]));
     }
 
     // Build the fanned piece graph (land + gap edges), then check each wool node is reachable from a capturing
@@ -526,9 +517,8 @@ public static class PlanValidator
         // board whose shape was never the problem.
         var hasBuildZone = plan.BuildZones.Any();
         if (!hasBuildZone)
-            findings.Add(new Finding("SP1",
-                "this plan declares no build zone, so there is no frontline to walk from and no wool's "
-                + "approach can be judged — add a `zones` entry marking where players may build",
+            findings.Add(new Finding(LayoutRules.NoBuildRegion,
+                "the plan's `zones` has no build region",
                 Severity.Complaint));
 
         foreach (var wp in woolPieces)
@@ -544,7 +534,7 @@ public static class PlanValidator
                     var from = graph.Nodes.Where(n => n.Team == captor && spawnPieces.Contains(n.PieceId)).Select(n => n.Key);
                     if (!graph.Reachable(from, woolNode))
                         findings.Add(new Finding(PlanRules.WoolUnreachable,
-                            $"wool on '{wp}' (team {owner}) is unreachable from team {captor}'s spawn",
+                            $"wool on piece '{wp}' of team {owner} has no route from the spawn of team {captor}",
                             Subjects: [wp]));
                 }
 
@@ -555,8 +545,9 @@ public static class PlanValidator
                 if (!hasBuildZone) continue;
                 var frontStarts = graph.Nodes.Where(n => graph.Frontline.Contains(n.Key) && !spawnNodes.Contains(n.Key)).Select(n => n.Key);
                 if (!graph.ReachableAvoiding(frontStarts, woolNode, spawnNodes))
-                    findings.Add(new Finding("SP1",
-                        $"wool on '{wp}' (team {owner}) is only reachable through a spawn piece", Subjects: [wp]));
+                    findings.Add(new Finding(LayoutRules.SpawnOnWoolRoute,
+                        $"wool on piece '{wp}' of team {owner} has no route from the front line that avoids "
+                        + "the room piece of a spawn", Subjects: [wp]));
             }
         return findings;
     }
@@ -570,6 +561,13 @@ public static class PlanValidator
         LintSp8, LintSp9, LintBz121, LintSt8, LintSt9, LintSt10, LintBz11, LintBoardEdges,
         LintZoneReach,
     ];
+
+    /// <summary>A piece by its id, or the edge of the layout where a run reaches none.</summary>
+    private static string Named(string pieceId) => pieceId.Length > 0 ? $"'{pieceId}'" : "the edge of the layout";
+
+    /// <summary>The edge of a band a measured number broke: "less than 10 blocks", "more than 20 blocks".</summary>
+    private static string Beyond(int value, int low, int high) =>
+        value < low ? $"less than {low} blocks" : $"more than {high} blocks";
 
     private static Finding Lint(string rule, string msg, params string[] subjects) =>
         new(rule, msg, Severity.Complaint, Subjects: subjects.Length > 0 ? subjects : null);
@@ -607,8 +605,8 @@ public static class PlanValidator
                                  new[] { Math.Round(end[0], 1), Math.Round(end[1], 1) } },
                 h = new[] { high.Surface, low.Surface },
             },
-            $"a line mark six wide from ({start[0]:0.#}, {start[1]:0.#}) at {high.Surface} to "
-            + $"({end[0]:0.#}, {end[1]:0.#}) at {low.Surface}, so the seam grades over {2 * run} blocks");
+            $"add a line mark six wide from ({start[0]:0.#}, {start[1]:0.#}) at {high.Surface} to "
+            + $"({end[0]:0.#}, {end[1]:0.#}) at {low.Surface} to `relief.{group}.marks`");
     }
 
     // PC-C — a corner contact: two pieces meet at a single point. Per the Definitions a corner touch is never a
@@ -621,8 +619,7 @@ public static class PlanValidator
         foreach (var c in d.Contacts)
             if (c.Kind == ContactKind.Corner && !SameComponent(comp, c.A, c.B))
                 yield return Lint(PlanRules.CornerContact,
-                    $"corner contact between separate areas: '{c.A}' and '{c.B}' touch at a point, not a "
-                    + "corridor (no land interface)", c.A, c.B);
+                    $"pieces '{c.A}' and '{c.B}' touch at a single point and share no edge", c.A, c.B);
     }
 
     // Map each piece id to its land component index (components join pieces via real land interfaces and
@@ -646,7 +643,7 @@ public static class PlanValidator
             var r = ContactGraph.ToBlock(z.Rect, d.Cell);
             var min = Math.Min(r.Width, r.Depth);
             if (min < ContactGraph.CorridorMin)
-                yield return Lint("G2", $"zone '{z.Id}' corridor width {min} < {ContactGraph.CorridorMin}", z.Id);
+                yield return Lint(LayoutRules.CorridorWidth, $"build region '{z.Id}' is {min} blocks across its shorter side, less than {ContactGraph.CorridorMin} blocks", z.Id);
         }
     }
 
@@ -657,9 +654,9 @@ public static class PlanValidator
         {
             if (g.Hop == 0) continue;   // abutting inside the zone — not a hop
             if (g.Hop < GapHopBand.MinHop)
-                yield return Lint("G5", $"gap hop {g.Hop} < {GapHopBand.MinHop} between '{g.A}' and '{g.B}'", g.A, g.B);
+                yield return Lint(LayoutRules.VoidHop, $"pieces '{g.A}' and '{g.B}' have a gap of {g.Hop} blocks between them, less than {GapHopBand.MinHop} blocks", g.A, g.B);
             else if (g.Hop > GapHopBand.MaxHop)
-                yield return Lint("G5", $"gap hop {g.Hop} > {GapHopBand.MaxHop} between '{g.A}' and '{g.B}'", g.A, g.B);
+                yield return Lint(LayoutRules.VoidHop, $"pieces '{g.A}' and '{g.B}' have a gap of {g.Hop} blocks between them, more than {GapHopBand.MaxHop} blocks", g.A, g.B);
         }
     }
 
@@ -676,7 +673,7 @@ public static class PlanValidator
             bool zAxis = r.Depth >= r.Width;
             double pos = zAxis ? bz : bx, mid = zAxis ? r.CenterZ : r.CenterX, center = 0;
             bool inBack = Math.Abs(pos - center) >= Math.Abs(mid - center);
-            if (!inBack) yield return Lint("SP2", $"spawn on '{s.Piece}' not near the back of its lane", s.Piece);
+            if (!inBack) yield return Lint(LayoutRules.SpawnAtBack, $"spawn '{s.Id}' at ({bx:0.#}, {bz:0.#}) stands in the half of room piece '{s.Piece}' closer to the symmetry centre", s.Piece);
         }
     }
 
@@ -689,10 +686,10 @@ public static class PlanValidator
         foreach (var z in plan.Zones)
         {
             var zr = ContactGraph.ToBlock(z.Rect, d.Cell);
-            var what = z.IsWaterLane ? "water lane" : "build zone";
+            var what = z.IsWaterLane ? "water lane" : "build region";
             foreach (var p in d.Pieces)
                 if (spawnPieces.Contains(p.Id) && Touches(p.Rect, zr))
-                    yield return Lint("BZ5", $"{what} '{z.Id}' touches spawn piece '{p.Id}'", z.Id, p.Id);
+                    yield return Lint(LayoutRules.ZoneTouchesSpawn, $"{what} '{z.Id}' touches room piece '{p.Id}' of a spawn", z.Id, p.Id);
         }
     }
 
@@ -706,7 +703,7 @@ public static class PlanValidator
             var zr = ContactGraph.ToBlock(z.Rect, d.Cell);
             foreach (var p in d.Pieces)
                 if (PlanRoles.IsGenerating(p.Role) && Overlaps(p.Rect, zr))
-                    yield return Lint("BZ12", $"water lane '{z.Id}' covers terrain piece '{p.Id}' — a lane opens void, and this part of it is already land", z.Id, p.Id);
+                    yield return Lint(LayoutRules.WaterLaneOverGround, $"water lane '{z.Id}' overlaps piece '{p.Id}' that makes ground", z.Id, p.Id);
         }
     }
 
@@ -731,9 +728,9 @@ public static class PlanValidator
 
             var delta = Math.Abs(a.Value.Surface - b.Value.Surface);
             if (delta < 2) continue;
-            yield return Lint("EL1",
-                $"'{seam.A}'–'{seam.B}' steps {delta} blocks — a player does not walk up more than one, so "
-                + "this seam wants a ramp or a flight in the relief",
+            yield return Lint(LayoutRules.UnwalkableStep,
+                $"pieces '{seam.A}' and '{seam.B}' differ by {delta} blocks in height where they share an edge, "
+                + "more than 1 block",
                 RampEdit(seam, a.Value, b.Value), seam.A, seam.B);
         }
     }
@@ -762,9 +759,9 @@ public static class PlanValidator
             var inside = spawnPieces.Any(spawn =>
                 RoomFrames.PlaceIron(markerX, markerZ, spawn.Rect).Placeable);
             if (!inside)
-                yield return Lint("ST2",
-                    $"the iron cube at ({markerX:0},{markerZ:0}) does not stand inside a spawn piece, so it "
-                    + "is mined once rather than renewed", ir.Piece);
+                yield return Lint(LayoutRules.IronInSpawn,
+                    $"iron '{ir.Id}' at ({markerX:0}, {markerZ:0}) has its {RoomFrames.IronSpan} by "
+                    + $"{RoomFrames.IronSpan} cube outside the room piece of every spawn", ir.Piece);
         }
     }
 
@@ -775,11 +772,11 @@ public static class PlanValidator
         foreach (var w in plan.Placements.Wools)
             if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, w.Footprint, [], out _)
                 is { Frame.Pad.Shifted: true })
-                yield return Lint(RoomFrameRules.PadClearance, $"wool pad on '{w.Piece}' shifted inward to keep wall clearance — the exported wool point moves with it", w.Piece);
+                yield return Lint(RoomFrameRules.PadClearance, $"wool '{w.Id}' on piece '{w.Piece}' has its pad moved inward to keep 1 block from the walls of its room", w.Piece);
         foreach (var s in plan.Placements.Spawns)
             if (ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, s.Footprint,
                 PieceDoors.ForSpawn(d, s.Piece, s.Facing), out _) is { Frame.Pad.Shifted: true })
-                yield return Lint(RoomFrameRules.PadClearance, $"spawn pad on '{s.Piece}' shifted inward to keep wall clearance — the exported spawn point moves with it", s.Piece);
+                yield return Lint(RoomFrameRules.PadClearance, $"spawn '{s.Id}' on piece '{s.Piece}' has its pad moved inward to keep 1 block from the walls of its room", s.Piece);
     }
 
     // WX8/WX9 — an iron marker that resolves unplaceable. Every marker on the board is checked, whether it
@@ -797,10 +794,9 @@ public static class PlanValidator
             if (room is null) continue;
             foreach (var iron in room.Iron.Where(i => !i.Placeable))
                 yield return Lint(RoomFrameRules.IronFit,
-                    $"iron at ({iron.MarkerX}, {iron.MarkerZ}) on '{s.Piece}' cannot be placed: the cube needs "
-                    + $"its {RoomFrames.IronSpan}×{RoomFrames.IronSpan} footprint inside the piece and "
-                    + $"{RoomFrames.IronGap} blocks of clear air to the shell, and the room keeps the "
-                    + "footprint it was given", s.Piece);
+                    $"iron at ({iron.MarkerX}, {iron.MarkerZ}) in the room of spawn '{s.Id}' has no place for its "
+                    + $"{RoomFrames.IronSpan} by {RoomFrames.IronSpan} cube inside piece '{s.Piece}' and at least "
+                    + $"{RoomFrames.IronGap} blocks from the room", s.Piece);
         }
 
         foreach (var ir in plan.Placements.Iron)
@@ -810,9 +806,8 @@ public static class PlanValidator
             var (markerX, markerZ) = PlanMarkers.Block(piece.Rect, ir.At);
             if (RoomFrames.PlaceIron(markerX, markerZ, piece.Rect).Placeable) continue;
             yield return Lint(RoomFrameRules.IronFit,
-                $"iron at ({markerX}, {markerZ}) on '{ir.Piece}' cannot be placed: its "
-                + $"{RoomFrames.IronSpan}×{RoomFrames.IronSpan} cube reaches outside the piece it stands on, "
-                + "so the export stamps nothing for it", ir.Piece);
+                $"iron '{ir.Id}' at ({markerX}, {markerZ}) has its {RoomFrames.IronSpan} by "
+                + $"{RoomFrames.IronSpan} cube reaching outside piece '{ir.Piece}'", ir.Piece);
         }
     }
 
@@ -837,9 +832,9 @@ public static class PlanValidator
                 if (forward <= 0) continue;
                 var delta = Math.Abs(other.Value.Surface - piece.Value.Surface);
                 if (delta >= 2)
-                    yield return Lint("SP8",
-                        $"spawn egress steps {delta} blocks at '{seam.A}'–'{seam.B}' — use 1-level steps or "
-                        + "a ramp against the spawn",
+                    yield return Lint(LayoutRules.SpawnExitStep,
+                        $"spawn '{s.Id}' has its room piece '{s.Piece}' {delta} blocks above or below piece "
+                        + $"'{(seam.A == s.Piece ? seam.B : seam.A)}' ahead of its door, more than 1 block",
                         RampEdit(seam, piece.Value, other.Value), seam.A, seam.B);
             }
         }
@@ -873,9 +868,9 @@ public static class PlanValidator
                 var delta = Math.Abs(other.Value.Surface - room.Surface);
                 if (delta < 2) continue;
                 var arrival = other.Value.Surface > room.Surface ? "drops" : "climbs";
-                yield return Lint("WL11",
-                    $"wool room approach {arrival} {delta} blocks at '{seam.A}'–'{seam.B}' — an attacker "
-                    + "arrives across it, so use 1-level steps or a ramp against the room", seam.A, seam.B);
+                yield return Lint(LayoutRules.WoolEntryStep,
+                    $"room piece '{roomId}' of a wool {arrival} {delta} blocks to piece "
+                    + $"'{(seam.A == roomId ? seam.B : seam.A)}' where they share an edge, more than 1 block", seam.A, seam.B);
             }
         }
     }
@@ -904,9 +899,9 @@ public static class PlanValidator
             while (ahead < minAhead && (d.Pieces.Any(p => Covers(p.Rect)) || zoneRects.Any(Covers)))
             { ahead++; x += dirX; z += dirZ; }
             if (ahead < minAhead)
-                yield return Lint("SP9",
-                    $"spawn door on '{s.Piece}' faces void {ahead} blocks out — a door wants at least "
-                    + $"{minAhead} blocks of ground or bridgeable zone ahead", s.Piece);
+                yield return Lint(LayoutRules.SpawnDoorGround,
+                    $"spawn '{s.Id}' on piece '{s.Piece}' has {ahead} blocks of ground ahead of its door, "
+                    + $"less than {minAhead} blocks", s.Piece);
         }
     }
 
@@ -931,9 +926,9 @@ public static class PlanValidator
             if (wall.RoleA == PlanRoles.WoolRoom || wall.RoleB == PlanRoles.WoolRoom) continue;
 
             if (wall.Length < WallMouthMinBlocks || wall.Length > WallMouthMaxBlocks)
-                yield return Lint("ST8",
-                    $"approach wall '{wall.A}'–'{wall.B}' bars a {wall.Length}-block interface — "
-                    + $"a wall wants a {WallMouthMinBlocks}–{WallMouthMaxBlocks} block lane mouth", wall.A, wall.B);
+                yield return Lint(LayoutRules.ApproachWallEdgeLength,
+                    $"approach wall between pieces '{wall.A}' and '{wall.B}' bars a shared edge {wall.Length} "
+                    + "blocks long, " + Beyond(wall.Length, WallMouthMinBlocks, WallMouthMaxBlocks), wall.A, wall.B);
 
             // the entrance it defends: the nearest wool-room seam of either walled piece (an approach
             // touching two rooms defends the near one; the far room's distance means nothing). Only a wall
@@ -950,9 +945,9 @@ public static class PlanValidator
                 if (nearest is null || standoff < nearest) nearest = standoff;
             }
             if (nearest is { } gap && (gap < WallStandoffMinBlocks || gap > WallStandoffMaxBlocks))
-                yield return Lint("ST8",
-                    $"approach wall '{wall.A}'–'{wall.B}' stands {gap} blocks from the wool room's "
-                    + "entrance — about 15 in front is the seat", wall.A, wall.B);
+                yield return Lint(LayoutRules.ApproachWallStandoff,
+                    $"approach wall between pieces '{wall.A}' and '{wall.B}' stands {gap} blocks from the wool "
+                    + "room's entrance, " + Beyond(gap, WallStandoffMinBlocks, WallStandoffMaxBlocks), wall.A, wall.B);
         }
     }
 
@@ -969,16 +964,38 @@ public static class PlanValidator
     // one WX1 defaults from the piece where it states none.
     private static IEnumerable<Finding> LintSt9(PlanModel plan, ContactGraph d)
     {
-        foreach (var (kind, pieceId, at, footprint, doors) in RoleRooms(plan, d))
+        foreach (var room in RoleRooms(plan, d))
         {
-            if (ResolveFrame(plan, d, kind, pieceId, RoleOf(kind), at, footprint, doors, out _)
-                is not { Frame: var frame }) continue;
+            if (ResolveFrame(plan, d, room.Kind, room.PieceId, RoleOf(room.Kind), room.At, room.Footprint, room.Doors,
+                    out _) is not { Frame: var frame }) continue;
             if (frame.Width <= FootprintCap && frame.Depth <= FootprintCap) continue;
-            yield return Lint("ST9",
-                $"the {kind} building on '{pieceId}' is {frame.Width}×{frame.Depth} blocks — a footprint is at "
-                + $"most {FootprintCap}×{FootprintCap}, which is a hall a player crosses "
-                + "rather than a field. State a smaller footprint on the placement", pieceId);
+            yield return Lint(LayoutRules.BuildingFootprint,
+                $"{room.Kind} room on piece '{room.PieceId}' is {frame.Width} by {frame.Depth} blocks, more than "
+                + $"{FootprintCap} by {FootprintCap} blocks", CappedFootprint(plan, d, room, frame), room.PieceId);
         }
+    }
+
+    /// <summary>The <c>ST9</c> edit: the marker's footprint set to its room cut to the cap on each side, centred
+    /// on the marker and kept inside the room it had. Null where the cut room would not resolve as the
+    /// marker's room.</summary>
+    private static DocumentEdit? CappedFootprint(PlanModel plan, ContactGraph d, RoleRoom room, RoomFrame frame)
+    {
+        if (d.Piece(room.PieceId) is not { } piece) return null;
+        var (markerX, markerZ) = PlanMarkers.Block(piece.Rect, room.At);
+        static int Start(int min, int max, double marker)
+        {
+            var span = Math.Min(max - min, FootprintCap);
+            return Math.Clamp((int)Math.Floor(marker - span / 2.0), min, max - span);
+        }
+        var (width, depth) = (Math.Min(frame.Width, FootprintCap), Math.Min(frame.Depth, FootprintCap));
+        int[] value = [Start(frame.MinX, frame.MaxX, markerX) - piece.Rect.MinX,
+                       Start(frame.MinZ, frame.MaxZ, markerZ) - piece.Rect.MinZ, width, depth];
+        if (ResolveFrame(plan, d, room.Kind, room.PieceId, RoleOf(room.Kind), room.At, [.. value.Select(n => (double)n)],
+                room.Doors, out var refused) is not { Frame: var capped }
+            || refused.Count > 0 || capped.Width > FootprintCap || capped.Depth > FootprintCap) return null;
+        var path = $"placements.{room.List}[{room.Marker}].footprint";
+        return DocumentEdit.Of(MapDocuments.Plan, path, DocumentEdit.Set, value,
+            $"set `{path}` to [{string.Join(", ", value)}]");
     }
 
     // ST10 — a role piece is at most 20×30 blocks. The piece is the protection region and the ground the
@@ -992,20 +1009,66 @@ public static class PlanValidator
             var (across, along) = (Math.Min(piece.Rect.Width, piece.Rect.Depth),
                                    Math.Max(piece.Rect.Width, piece.Rect.Depth));
             if (across <= RegionCapAcross && along <= RegionCapAlong) continue;
-            yield return Lint("ST10",
-                $"{piece.Role} piece '{piece.Id}' is {piece.Rect.Width}×{piece.Rect.Depth} blocks — a "
-                + $"protection region is at most {RegionCapAcross}×{RegionCapAlong}, in "
-                + "either orientation", piece.Id);
+            yield return Lint(LayoutRules.RoomRegionSize,
+                $"room piece '{piece.Id}' is {piece.Rect.Width} by {piece.Rect.Depth} blocks, more than "
+                + $"{RegionCapAcross} by {RegionCapAlong} blocks", CutRegion(plan, d, piece), piece.Id);
         }
     }
 
-    // The role-piece rooms a plan states, as the arguments ResolveFrame takes.
-    private static IEnumerable<(string Kind, string PieceId, double[] At, double[]? Footprint,
-        IReadOnlyList<RoomEdge> Doors)> RoleRooms(PlanModel plan, ContactGraph d)
+    /// <summary>The <c>ST10</c> edit: the piece's rect cut to the cap in whole cells, its longer side taking
+    /// the longer cap. The minimum corner stays, since every marker's <c>at</c> and every stated footprint is
+    /// measured from it; null where one of them would fall outside the cut piece.</summary>
+    private static DocumentEdit? CutRegion(PlanModel plan, ContactGraph d, DerivedPiece piece)
     {
-        foreach (var w in plan.Placements.Wools) yield return ("wool", w.Piece, w.At, w.Footprint, []);
-        foreach (var s in plan.Placements.Spawns)
-            yield return ("spawn", s.Piece, s.At, s.Footprint, PieceDoors.ForSpawn(d, s.Piece, s.Facing));
+        if (plan.Pieces.FirstOrDefault(stated => stated.Id == piece.Id) is not { } stated) return null;
+        var rect = stated.Rect;
+        var longOnX = rect.Width >= rect.Height;
+        var cut = rect with
+        {
+            Width = Math.Min(rect.Width, (longOnX ? RegionCapAlong : RegionCapAcross) / d.Cell),
+            Height = Math.Min(rect.Height, (longOnX ? RegionCapAcross : RegionCapAlong) / d.Cell),
+        };
+        if (cut.Width == 0 || cut.Height == 0) return null;
+        var blocks = ContactGraph.ToBlock(cut, d.Cell);
+        bool Holds(double x, double z) => x >= blocks.MinX && x < blocks.MaxX && z >= blocks.MinZ && z < blocks.MaxZ;
+
+        IEnumerable<IPlanMarker> markers = [.. plan.Placements.Spawns, .. plan.Placements.Wools, .. plan.Placements.Iron,
+            .. plan.Placements.Destroyables, .. plan.Placements.Cores];
+        foreach (var marker in markers.Where(marker => marker.Piece == piece.Id))
+        {
+            var (x, z) = PlanMarkers.Block(piece.Rect, marker.At);
+            if (!Holds(x, z)) return null;
+        }
+        foreach (var footprint in RoleRooms(plan, d).Where(room => room.PieceId == piece.Id).Select(room => room.Footprint))
+            if (PlanMarkers.Footprint(piece.Rect, footprint) is { } building
+                && (building.MinX < blocks.MinX || building.MinZ < blocks.MinZ
+                    || building.MaxX > blocks.MaxX || building.MaxZ > blocks.MaxZ)) return null;
+
+        var path = $"pieces[{piece.Id}].rect";
+        int[] value = [cut.X, cut.Z, cut.Width, cut.Height];
+        return DocumentEdit.Of(MapDocuments.Plan, path, DocumentEdit.Set, value,
+            $"set `{path}` to [{string.Join(", ", value)}]");
+    }
+
+    /// <summary>A role-piece room a plan states: the arguments <see cref="ResolveFrame"/> takes, and where its
+    /// marker sits in the document — the placement list and the marker's id, or its index where it has none.</summary>
+    private sealed record RoleRoom(string Kind, string List, string Marker, string PieceId, double[] At,
+        double[]? Footprint, IReadOnlyList<RoomEdge> Doors);
+
+    private static IEnumerable<RoleRoom> RoleRooms(PlanModel plan, ContactGraph d)
+    {
+        static string Handle(string? id, int index) => string.IsNullOrEmpty(id) ? $"{index}" : id;
+        for (var index = 0; index < plan.Placements.Wools.Count; index++)
+        {
+            var wool = plan.Placements.Wools[index];
+            yield return new("wool", "wools", Handle(wool.Id, index), wool.Piece, wool.At, wool.Footprint, []);
+        }
+        for (var index = 0; index < plan.Placements.Spawns.Count; index++)
+        {
+            var spawn = plan.Placements.Spawns[index];
+            yield return new("spawn", "spawns", Handle(spawn.Id, index), spawn.Piece, spawn.At, spawn.Footprint,
+                PieceDoors.ForSpawn(d, spawn.Piece, spawn.Facing));
+        }
     }
 
     private static string RoleOf(string kind) => kind == "spawn" ? PlanRoles.Spawn : PlanRoles.WoolRoom;
@@ -1028,10 +1091,8 @@ public static class PlanValidator
             var bboxArea = (zones.Max(z => z.Rect.X + z.Rect.Width) - zones.Min(z => z.Rect.X))
                          * (zones.Max(z => z.Rect.Z + z.Rect.Height) - zones.Min(z => z.Rect.Z));
             if (covered.Count == bboxArea)
-                yield return Lint("BZ11",
-                    $"zones [{string.Join(", ", region.ZoneIds)}] stitch into one rectangular region — one "
-                    + "zone draws this crossing; several belong only where the region genuinely turns a "
-                    + "corner, or as separate regions (one per frontline leg, one flush zone per island)",
+                yield return Lint(LayoutRules.StitchedZones,
+                    $"build regions {Wording.Ids(region.ZoneIds)} touch and together fill one rectangle",
                     [.. region.ZoneIds]);
         }
     }
@@ -1068,13 +1129,13 @@ public static class PlanValidator
     /// around.</summary>
     public const int MinGoalSpaceBlocks = 16;
 
-    /// <summary>The same floor between a wool room or a spawn and the team's own ground away from the front —
-    /// its hub, an approach — in blocks. The author's number: 12 is on the low end and not a fault, since
-    /// the side that jumps it is the one already standing there.</summary>
+    /// <summary>The floor <c>WL20</c> measures between a wool room or a spawn and the team's own ground away
+    /// from the front — its hub, an approach — in blocks. The author's number: 12 is on the low end and not a
+    /// fault, since the side that jumps it is the one already standing there.</summary>
     public const int MinGoalHomeSpaceBlocks = 12;
 
-    /// <summary>The same floor for a space touching neither, in blocks: a hole in a team's own ground is
-    /// crossed on purpose and may be tighter than one beside a goal.</summary>
+    /// <summary>The floor <c>LN6</c> measures for a hole touching neither, in blocks: a hole in a team's own
+    /// ground is crossed on purpose and may be tighter than one beside a goal.</summary>
     public const int MinPlainSpaceBlocks = 12;
 
     // FR8, FR9 and CT12 — the three reads that need the fanned raster board: a crossing spanning the face it
@@ -1097,28 +1158,27 @@ public static class PlanValidator
         foreach (var face in PieceInterfaces.Frontages(board))
         {
             if (face.FrontlineBlocks >= realCrossing && face.FrontlineShare < shareFloor)
-                yield return Lint("FR8",
-                    $"piece '{face.Piece}' side {face.Side}: the zones turn {face.FrontlineBlocks} of its "
-                    + $"{face.ExposedBlocks} exposed blocks into frontline ({face.FrontlineShare:0.00}) — a "
-                    + "crossing wants to span the face it docks against, not funnel through a slice of it",
+                yield return Lint(LayoutRules.FrontlineShare,
+                    $"piece '{face.Piece}' has front line along {face.FrontlineBlocks} of the {face.ExposedBlocks} "
+                    + $"blocks of its {face.Side} side facing void, less than a third",
                     face.Piece);
 
             // FR9 is the absolute floor FR8's share cannot see: a crossing narrow in blocks reads as a
             // funnel however much of its face it takes, and a 10-block front on a 10-block face passes the
             // share at 1.00. Only a face that has a frontline at all is asked.
             if (face.FrontlineBlocks > 0 && face.FrontlineBlocks < MinFrontlineBlocks)
-                yield return Lint("FR9",
-                    $"piece '{face.Piece}' side {face.Side}: a {face.FrontlineBlocks}-block frontline is "
-                    + $"under the {MinFrontlineBlocks} a crossing wants — players read a front that narrow "
-                    + "as a funnel rather than as somewhere to cross",
+                yield return Lint(LayoutRules.MinimumFrontline,
+                    $"piece '{face.Piece}' has {face.FrontlineBlocks} blocks of front line along its {face.Side} "
+                    + $"side, less than {MinFrontlineBlocks} blocks",
                     face.Piece);
         }
 
-        // WL12 — how narrow a gap beside a goal is. The space reader measures every straight run the terrain
+        // WL12, WL20 and LN6 — how narrow a gap is. The space reader measures every straight run the terrain
         // closes at both ends, which is the line a player jumps, and names the piece at each end. A run any
         // build zone covers is not asked: building over it is what the zone states. Three floors, all in
-        // blocks so they hold at any grid scale — a goal across from the frontline or another goal, a goal
-        // across from its team's own ground, and the narrowest crossing of a hole touching no goal.
+        // blocks so they hold at any grid scale — a goal across from the frontline or another goal (WL12), a
+        // goal across from its team's own ground (WL20), and the narrowest run of a hole touching no goal
+        // (LN6).
         var goalPieces = new HashSet<string>(
             plan.Pieces.Where(piece => piece.Role is PlanRoles.WoolRoom or PlanRoles.Spawn).Select(piece => piece.Id),
             StringComparer.Ordinal);
@@ -1134,9 +1194,11 @@ public static class PlanValidator
                 var beside = new[] { run.From, run.To }.Where(goalPieces.Contains).Distinct().ToList();
                 var across = new[] { run.From, run.To }.Where(end => !goalPieces.Contains(end)).ToList();
                 var exposed = beside.Count > 1 || across.Any(end => end.Length == 0 || frontPieces.Contains(end));
-                var floor = beside.Count > 0 ? (exposed ? MinGoalSpaceBlocks : MinGoalHomeSpaceBlocks)
-                    : hole && run.Cells == narrowest ? MinPlainSpaceBlocks
-                    : 0;
+                var (rule, floor) = beside.Count > 0
+                    ? exposed ? (LayoutRules.RoomFrontGapWidth, MinGoalSpaceBlocks)
+                        : (LayoutRules.RoomHomeGapWidth, MinGoalHomeSpaceBlocks)
+                    : hole && run.Cells == narrowest ? (LayoutRules.HoleWidth, MinPlainSpaceBlocks)
+                    : ("", 0);
                 if (floor == 0) continue;
                 var crossing = run.Cells * board.Cell;
                 if (crossing >= floor) continue;
@@ -1146,16 +1208,9 @@ public static class PlanValidator
                 var pair = string.CompareOrdinal(run.From, run.To) <= 0 ? (run.From, run.To) : (run.To, run.From);
                 if (!reported.Add((pair.Item1, pair.Item2, crossing))) continue;
 
-                var what = beside.Count > 0
-                    ? $"the gap between '{run.From}' and '{run.To}'"
-                    : $"the {space.Kind} between '{run.From}' and '{run.To}'";
-                var wants = beside.Count == 0 ? "a hole wants"
-                    : exposed ? "a gap between a goal and the front wants" : "a gap between a goal and its own ground wants";
-                yield return Lint("WL12",
-                    $"{what} is {crossing} blocks across, under the {floor} {wants} — a "
-                    + "player towers at one edge and jumps it, and the approach the board is drawn around is "
-                    + $"not walked. Narrowest at cell ({run.X}, {run.Z}), running along "
-                    + (run.AlongX ? "x" : "z"),
+                yield return Lint(rule,
+                    $"pieces {Named(run.From)} and {Named(run.To)} have a {(beside.Count > 0 ? "gap" : space.Kind)} "
+                    + $"{crossing} blocks across between them at cell ({run.X}, {run.Z}), less than {floor} blocks",
                     [.. new[] { run.From, run.To }.Where(name => name.Length > 0).Distinct()]);
             }
         }
@@ -1168,9 +1223,9 @@ public static class PlanValidator
             {
                 if (!gap.Direct || gap.RoleA != "team" || gap.RoleB != "team") continue;
                 if (gap.Blocks is >= 15 and <= 40) continue;
-                yield return Lint("CT12",
-                    $"team islands [{string.Join(", ", gap.PiecesA)}] and [{string.Join(", ", gap.PiecesB)}] "
-                    + $"stand {gap.Blocks} blocks apart — the CTW strait wants 15–40",
+                yield return Lint(LayoutRules.TeamGapWidth,
+                    $"team sides of pieces {Wording.Ids(gap.PiecesA)} and of pieces {Wording.Ids(gap.PiecesB)} have a gap of "
+                    + $"{gap.Blocks} blocks between them, " + Beyond(gap.Blocks, 15, 40),
                     [.. gap.PiecesA.Concat(gap.PiecesB)]);
             }
     }
@@ -1215,12 +1270,10 @@ public static class PlanValidator
             var axis = acrossX ? "x" : "z";
 
             var zones = region.Select(cell => zoneOf[cell]).Distinct().OrderBy(id => id, StringComparer.Ordinal).ToList();
-            yield return Lint("BZ9",
-                $"zone{(zones.Count > 1 ? "s" : "")} [{string.Join(", ", zones)}]: "
-                + $"{overhang.Count * plan.Globals.Cell} blocks of it reach past everything it docks — "
-                + $"{axis} {Runs(overhang, plan.Globals.Cell)} stand beyond the last ground the zone meets, so "
-                + "the crossing overhangs into void. A zone may cover part of a face and may span the mirrored "
-                + "images' corners; what it may not do is carry on past them",
+            yield return Lint(LayoutRules.ZoneOverhang,
+                $"build region{(zones.Count > 1 ? "s" : "")} {Wording.Ids(zones)} {(zones.Count > 1 ? "run" : "runs")} "
+                + $"{overhang.Count * plan.Globals.Cell} blocks past the last piece {(zones.Count > 1 ? "they touch" : "it touches")}, "
+                + $"at {axis} {Runs(overhang, plan.Globals.Cell)}",
                 [.. zones]);
         }
     }
@@ -1337,7 +1390,7 @@ public static class PlanValidator
             DestroyableStyles.TryParse(string.IsNullOrEmpty(b.Style) ? null : b.Style, out var style);
             var (width, _, depth) = ObjectiveFootprint.Destroyable(style);
             if (Footprint(d, b.Piece, b.At, width, depth) is { } rect)
-                yield return new PlacedGoal("destroyable", b.Id, rect, b.Piece);
+                yield return new PlacedGoal("monument", b.Id, rect, b.Piece);
         }
         foreach (var c in plan.Placements.Cores)
         {
