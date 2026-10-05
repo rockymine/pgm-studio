@@ -126,8 +126,8 @@ public static class LayoutRules
     public const string SpawnExitStep = "SP8";
 
     /// <summary>The ground ahead of a spawn's door is less than 15 blocks long.</summary>
-    /// <remarks>Either lengthen the <c>rect</c> of a piece in <c>pieces</c> or a build region in <c>zones</c> ahead
-    /// of the door, or set the <c>facing</c> of the spawn in <c>placements.spawns</c> toward ground.</remarks>
+    /// <remarks>Either move the spawn in <c>placements.spawns</c> until 15 blocks of ground lie ahead of its door,
+    /// add a piece to <c>pieces</c> between the door and the void, or set its <c>facing</c> toward ground.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Spawn)]
     public const string SpawnDoorGround = "SP9";
 

@@ -1040,6 +1040,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   4,000,000 columns it refuses past. `WL12` keeps the 16-block gap beside a goal toward the front or another
   goal, `WL20` the 12-block gap toward the goal's own ground, and `LN6` the 12-block floor of a hole beside no
   goal, so no rule text is held out of `RuleTextTests`.
+- **A room check's fix rides as an edit for agents (`RP119`).** `ST9` proposes the marker's `footprint` cut to
+  20 by 20 blocks around the marker, checked to resolve as its room; `ST10` the room piece's `rect` cut to 20 by
+  30 blocks in whole cells from its minimum corner, and none where a marker or stated footprint would fall off
+  the piece. `SP9`'s fix names its four fixes and carries no edit, and no screen offers an edit.
 - **A reader's fault says its field, then what is wrong there (`RP120`).** Every document reader throws a
   predicate about the field it stopped at — `DocumentFault`, a converter's `JsonException`, a dressing
   document's `DressingParseException` — and `JsonFaults.Said` makes the `RQ1` finding at every catch site:

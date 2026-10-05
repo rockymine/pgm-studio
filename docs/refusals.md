@@ -40,9 +40,15 @@ value carries on the object there, `remove` takes away what the path names — t
 carry it, and the change in words — written as a message is, opening with the edit's own verb and stating its
 value, with no reason. A reader applies it rather than re-deriving it from the rule's prose, which is the half
 of a finding a model acts on where the sentence alone is inspected and left. `SP8` and `EL1` state the ramp,
-`WX11` the bench, `DR-ROAD` the move, `SR6` the library entry nearest the name that matched none, and the
-refused slug of `PUT /map/{slug}/source` the slug its name would take; a finding whose fix is a decision rather
-than a change carries none.
+`WX11` the bench, `DR-ROAD` the move, `SR6` the library entry nearest the name that matched none, `ST9` a room's
+footprint cut to 20 by 20 blocks around its marker, `ST10` a room piece's rect cut to 20 by 30 blocks, a house
+style's part stated as null the part's own *none*, and the refused slug of `PUT /map/{slug}/source` the slug its
+name would take; a finding whose fix is a decision rather than a change carries none — `SP9`'s four fixes and
+`G2`'s widening among them.
+
+**An edit is for the reader of the answer, and no screen offers it.** The studio's panels show a finding's
+message, its rule and its category and highlight its subjects; applying a change is left to whoever reads the
+JSON (the author's ruling).
 
 **An edit that landed is the same record, carrying what it replaced.** `GET /map/{slug}/diff` answers what
 changed between two of a map's changes as a list of these edits (`docs/tools/flow.md`), each with `before`

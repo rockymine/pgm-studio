@@ -30,19 +30,3 @@ reaching every outline a board states. The layer word (`B264`, `WE28`, `TS64`) w
 
   *Evidence: 51 of the 79 seeded outlines on the 5b and 5c boards are relief rings or prop points, and so is
   Gypsum Reach's wash, a push whose ring splices six authored points into a lobed ellipse.*
-
-## Rules and findings: one place, one shape, one wording
-**The author's next focus.** Every rule a finding cites comes from one place, every finding message is
-written the same way, and both say only the problem, where it is and how to fix it (the approved format:
-the *Rule text audit* doc, *Format draft* tab). The order is the work's own: the declarations move first so
-nothing is reworded twice, the message helpers next so the rewording lands once per helper, then the text.
-Every rule fires as before; the tests and `--goldens` say so.
-
-- [ ] **RP119 — A room check's fix as an edit, for agents.** `ST9` and `ST10` state a fix that is only a
-  number, and carry no `Edit`. `ST9` (`PlanValidator.LintSt9`) gains a `set` of the marker's
-  `placements.spawns[id].footprint` or `placements.wools[id].footprint` to its room capped at 20 by 20 blocks;
-  `ST10` (`LintSt10`) a `set` of `pieces[id].rect` cut to 20 by 30 blocks in whole cells, keeping the marker's
-  `at` inside it. The edit rides on the JSON for an agent only: no screen offers or applies it (author).
-  `SP9` carries none, since its fixes are a choice — move the spawn, set its door against ground, add ground
-  between the door and the void, or turn the door — and its fix text names all four. `docs/refusals.md`.
-

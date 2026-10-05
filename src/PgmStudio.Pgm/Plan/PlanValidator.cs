@@ -964,15 +964,38 @@ public static class PlanValidator
     // one WX1 defaults from the piece where it states none.
     private static IEnumerable<Finding> LintSt9(PlanModel plan, ContactGraph d)
     {
-        foreach (var (kind, pieceId, at, footprint, doors) in RoleRooms(plan, d))
+        foreach (var room in RoleRooms(plan, d))
         {
-            if (ResolveFrame(plan, d, kind, pieceId, RoleOf(kind), at, footprint, doors, out _)
-                is not { Frame: var frame }) continue;
+            if (ResolveFrame(plan, d, room.Kind, room.PieceId, RoleOf(room.Kind), room.At, room.Footprint, room.Doors,
+                    out _) is not { Frame: var frame }) continue;
             if (frame.Width <= FootprintCap && frame.Depth <= FootprintCap) continue;
             yield return Lint(LayoutRules.BuildingFootprint,
-                $"{kind} room on piece '{pieceId}' is {frame.Width} by {frame.Depth} blocks, more than "
-                + $"{FootprintCap} by {FootprintCap} blocks", pieceId);
+                $"{room.Kind} room on piece '{room.PieceId}' is {frame.Width} by {frame.Depth} blocks, more than "
+                + $"{FootprintCap} by {FootprintCap} blocks", CappedFootprint(plan, d, room, frame), room.PieceId);
         }
+    }
+
+    /// <summary>The <c>ST9</c> edit: the marker's footprint set to its room cut to the cap on each side, centred
+    /// on the marker and kept inside the room it had. Null where the cut room would not resolve as the
+    /// marker's room.</summary>
+    private static DocumentEdit? CappedFootprint(PlanModel plan, ContactGraph d, RoleRoom room, RoomFrame frame)
+    {
+        if (d.Piece(room.PieceId) is not { } piece) return null;
+        var (markerX, markerZ) = PlanMarkers.Block(piece.Rect, room.At);
+        static int Start(int min, int max, double marker)
+        {
+            var span = Math.Min(max - min, FootprintCap);
+            return Math.Clamp((int)Math.Floor(marker - span / 2.0), min, max - span);
+        }
+        var (width, depth) = (Math.Min(frame.Width, FootprintCap), Math.Min(frame.Depth, FootprintCap));
+        int[] value = [Start(frame.MinX, frame.MaxX, markerX) - piece.Rect.MinX,
+                       Start(frame.MinZ, frame.MaxZ, markerZ) - piece.Rect.MinZ, width, depth];
+        if (ResolveFrame(plan, d, room.Kind, room.PieceId, RoleOf(room.Kind), room.At, [.. value.Select(n => (double)n)],
+                room.Doors, out var refused) is not { Frame: var capped }
+            || refused.Count > 0 || capped.Width > FootprintCap || capped.Depth > FootprintCap) return null;
+        var path = $"placements.{room.List}[{room.Marker}].footprint";
+        return DocumentEdit.Of(MapDocuments.Plan, path, DocumentEdit.Set, value,
+            $"set `{path}` to [{string.Join(", ", value)}]");
     }
 
     // ST10 — a role piece is at most 20×30 blocks. The piece is the protection region and the ground the
@@ -988,17 +1011,64 @@ public static class PlanValidator
             if (across <= RegionCapAcross && along <= RegionCapAlong) continue;
             yield return Lint(LayoutRules.RoomRegionSize,
                 $"room piece '{piece.Id}' is {piece.Rect.Width} by {piece.Rect.Depth} blocks, more than "
-                + $"{RegionCapAcross} by {RegionCapAlong} blocks", piece.Id);
+                + $"{RegionCapAcross} by {RegionCapAlong} blocks", CutRegion(plan, d, piece), piece.Id);
         }
     }
 
-    // The role-piece rooms a plan states, as the arguments ResolveFrame takes.
-    private static IEnumerable<(string Kind, string PieceId, double[] At, double[]? Footprint,
-        IReadOnlyList<RoomEdge> Doors)> RoleRooms(PlanModel plan, ContactGraph d)
+    /// <summary>The <c>ST10</c> edit: the piece's rect cut to the cap in whole cells, its longer side taking
+    /// the longer cap. The minimum corner stays, since every marker's <c>at</c> and every stated footprint is
+    /// measured from it; null where one of them would fall outside the cut piece.</summary>
+    private static DocumentEdit? CutRegion(PlanModel plan, ContactGraph d, DerivedPiece piece)
     {
-        foreach (var w in plan.Placements.Wools) yield return ("wool", w.Piece, w.At, w.Footprint, []);
-        foreach (var s in plan.Placements.Spawns)
-            yield return ("spawn", s.Piece, s.At, s.Footprint, PieceDoors.ForSpawn(d, s.Piece, s.Facing));
+        if (plan.Pieces.FirstOrDefault(stated => stated.Id == piece.Id) is not { } stated) return null;
+        var rect = stated.Rect;
+        var longOnX = rect.Width >= rect.Height;
+        var cut = rect with
+        {
+            Width = Math.Min(rect.Width, (longOnX ? RegionCapAlong : RegionCapAcross) / d.Cell),
+            Height = Math.Min(rect.Height, (longOnX ? RegionCapAcross : RegionCapAlong) / d.Cell),
+        };
+        if (cut.Width == 0 || cut.Height == 0) return null;
+        var blocks = ContactGraph.ToBlock(cut, d.Cell);
+        bool Holds(double x, double z) => x >= blocks.MinX && x < blocks.MaxX && z >= blocks.MinZ && z < blocks.MaxZ;
+
+        IEnumerable<IPlanMarker> markers = [.. plan.Placements.Spawns, .. plan.Placements.Wools, .. plan.Placements.Iron,
+            .. plan.Placements.Destroyables, .. plan.Placements.Cores];
+        foreach (var marker in markers.Where(marker => marker.Piece == piece.Id))
+        {
+            var (x, z) = PlanMarkers.Block(piece.Rect, marker.At);
+            if (!Holds(x, z)) return null;
+        }
+        foreach (var footprint in RoleRooms(plan, d).Where(room => room.PieceId == piece.Id).Select(room => room.Footprint))
+            if (PlanMarkers.Footprint(piece.Rect, footprint) is { } building
+                && (building.MinX < blocks.MinX || building.MinZ < blocks.MinZ
+                    || building.MaxX > blocks.MaxX || building.MaxZ > blocks.MaxZ)) return null;
+
+        var path = $"pieces[{piece.Id}].rect";
+        int[] value = [cut.X, cut.Z, cut.Width, cut.Height];
+        return DocumentEdit.Of(MapDocuments.Plan, path, DocumentEdit.Set, value,
+            $"set `{path}` to [{string.Join(", ", value)}]");
+    }
+
+    /// <summary>A role-piece room a plan states: the arguments <see cref="ResolveFrame"/> takes, and where its
+    /// marker sits in the document — the placement list and the marker's id, or its index where it has none.</summary>
+    private sealed record RoleRoom(string Kind, string List, string Marker, string PieceId, double[] At,
+        double[]? Footprint, IReadOnlyList<RoomEdge> Doors);
+
+    private static IEnumerable<RoleRoom> RoleRooms(PlanModel plan, ContactGraph d)
+    {
+        static string Handle(string? id, int index) => string.IsNullOrEmpty(id) ? $"{index}" : id;
+        for (var index = 0; index < plan.Placements.Wools.Count; index++)
+        {
+            var wool = plan.Placements.Wools[index];
+            yield return new("wool", "wools", Handle(wool.Id, index), wool.Piece, wool.At, wool.Footprint, []);
+        }
+        for (var index = 0; index < plan.Placements.Spawns.Count; index++)
+        {
+            var spawn = plan.Placements.Spawns[index];
+            yield return new("spawn", "spawns", Handle(spawn.Id, index), spawn.Piece, spawn.At, spawn.Footprint,
+                PieceDoors.ForSpawn(d, spawn.Piece, spawn.Facing));
+        }
     }
 
     private static string RoleOf(string kind) => kind == "spawn" ? PlanRoles.Spawn : PlanRoles.WoolRoom;

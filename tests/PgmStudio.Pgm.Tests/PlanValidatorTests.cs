@@ -856,6 +856,65 @@ public sealed class PlanValidatorTests
         }
     }
 
+    /// <summary>The <c>ST9</c> edit is the footprint that clears it: set on the marker it names, the room is
+    /// within the cap and nothing new is refused.</summary>
+    [Test]
+    [Arguments("[0,0,30,24]", "[15,12]")]
+    [Arguments("[0,0,40,40]", "[6,30]")]
+    public async Task The_ST9_edit_sets_a_footprint_that_clears_ST9(string rect, string at)
+    {
+        var plan = Plan($$"""
+        { "plan":2, "globals":{"cell":1},
+          "pieces":[ {"id":"s","role":"spawn","rect":{{rect}}} ],
+          "placements":{ "spawns":[ {"id":"red","piece":"s","at":{{at}},"facing":"front"} ] } }
+        """);
+        var edit = PlanValidator.Check(plan).Single(f => f.Rule == "ST9").Edit;
+
+        await Assert.That(edit!.Document).IsEqualTo(MapDocuments.Plan);
+        await Assert.That(edit.Path).IsEqualTo("placements.spawns[red].footprint");
+        await Assert.That(edit.Op).IsEqualTo(DocumentEdit.Set);
+        plan.Placements.Spawns[0].Footprint = edit.Value.Deserialize<double[]>();
+        await Assert.That(Lint(plan, "ST9")).IsFalse();
+        await Assert.That(PlanValidator.Check(plan).Any(f => f.Refuses)).IsFalse();
+    }
+
+    /// <summary>The <c>ST10</c> edit is the rect that clears it, in either orientation and at any cell, keeping
+    /// the piece's minimum corner so the markers measured from it stay where they stand.</summary>
+    [Test]
+    [Arguments(1, "[0,0,20,40]")]
+    [Arguments(1, "[0,0,40,20]")]
+    [Arguments(1, "[0,0,26,26]")]
+    [Arguments(4, "[2,3,10,6]")]
+    public async Task The_ST10_edit_sets_a_rect_that_clears_ST10(int cell, string rect)
+    {
+        var plan = Plan($$"""
+        { "plan":2, "globals":{"cell":{{cell}}},
+          "pieces":[ {"id":"w","role":"wool-room","rect":{{rect}}} ] }
+        """);
+        var edit = PlanValidator.Check(plan).Single(f => f.Rule == "ST10").Edit;
+
+        await Assert.That(edit!.Path).IsEqualTo("pieces[w].rect");
+        var value = edit.Value.Deserialize<int[]>()!;
+        await Assert.That(value[0]).IsEqualTo(plan.Pieces[0].Rect.X);
+        await Assert.That(value[1]).IsEqualTo(plan.Pieces[0].Rect.Z);
+        plan.Pieces[0].Rect = new PgmStudio.Geom.CellRect(value[0], value[1], value[2], value[3]);
+        await Assert.That(Lint(plan, "ST10")).IsFalse();
+    }
+
+    /// <summary>A cut that would leave a marker off its piece is not a mechanical change, so it carries no
+    /// edit.</summary>
+    [Test]
+    public async Task A_cut_that_would_strand_a_marker_carries_no_ST10_edit()
+    {
+        var plan = Plan("""
+        { "plan":2, "globals":{"cell":1},
+          "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,20,40]} ],
+          "placements":{ "wools":[ {"id":"lime","piece":"w","at":[10,35]} ] } }
+        """);
+
+        await Assert.That(PlanValidator.Check(plan).Single(f => f.Rule == "ST10").Edit).IsNull();
+    }
+
     [Test]
     public async Task Zones_tiling_a_rectangle_fire_BZ11_and_an_L_decomposition_does_not()
     {

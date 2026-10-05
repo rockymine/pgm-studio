@@ -702,8 +702,10 @@ edge of any piece it rides). The piece-interface set quantifies over one shared 
 at every one of them since a room has no facing, and met by the **attacker** — a team is kept out of its own
 wool), `SP9` (a door with under 15 blocks of ground or bridgeable zone before the void), `ST8` (an approach wall over an interface outside 10–20 blocks), `ST11` (one seated
 outside 10–20 blocks in front of the wool room's entrance), `ST9` (a building over 20×20 blocks — the footprint the
-placement states, or the one `WX1` defaults from its region), `ST10` (a wool-room or spawn piece over 20×30
-blocks in either orientation),
+placement states, or the one `WX1` defaults from its region; its edit sets the marker's `footprint` to that
+room cut to 20 by 20 blocks around the marker), `ST10` (a wool-room or spawn piece over 20×30 blocks in either
+orientation; its edit sets the piece's `rect` cut to the cap in whole cells from its minimum corner, and
+carries none where that would leave a marker or a stated footprint off the piece),
 `BZ11` (several zones stitching one rectangular region a single zone would have drawn), `BZ9` (a build zone
 reaching past the last ground it docks — measured across the axis its own contacts lie on, so the untouched
 span *between* two docked ends is the crossing rather than a fault, and a zone covering part of a face or
