@@ -117,7 +117,7 @@ The parts below read as four features but run on the same handful of primitives,
 one stage rather than four:
 
 - **Noise.** The same deterministic `PatternNoise` (`Hash`/`Unit`/`Value`/`Fbm`) the terrain patterns are
-  built from. A density field decides where flora goes; a low-frequency field gathers flowers into meadows
+  built from. A per-cell draw leaned by a clumping field decides where flora goes; a low-frequency field gathers flowers into meadows
   and trees into groves; a per-cell `Unit` is the dice a worn stroke rolls. Deterministic hash-from-cell,
   **never RNG** — the discipline `terrain-painting.md` §5 already holds, so a map re-exports identically.
 - **Mask.** Eligibility from the painted surface (soil vs. quartz, read from the top block) and from the
@@ -234,20 +234,25 @@ anywhere else it drops at the first block update — dead bushes and cacti over 
 nothing over gravel, the quartz of a plaza or the wool of a monument. The overlay is masked by the paint beneath it — the eligible
 set is a property of the top block, read the way `TerrainProfile` reads a column.
 
-Two knobs do the work, and both are noise. A **density field** decides which eligible cells get anything:
-white noise gives an even TV-static speckle, value noise (`Value`/`Fbm`) clumps into meadows and clearings,
-blue noise spaces plants so no two touch — the look of deliberate placement. A flat threshold on the field
-is the line between a sparse verge and a lush meadow. Within the vegetated cells a **species mix** decides
-what: a second, low-frequency field paints flower *fields* — poppies and dandelions cluster where it peaks,
-so the map gets meadows of colour instead of confetti, with grass and fern filling the rest by a share
-noise. A cell that the density field rejects simply stays air; that air is the "70%".
+Two knobs do the work, and both are noise. **Coverage is a share**: every eligible cell draws for itself
+(`Unit`, a hash of the cell) and grows something when the draw falls under its odds, so a coverage of 0.3
+plants about 30% of the ground, scattered across the whole area — a thin cover is tufts everywhere, never
+one patch that shrinks as the number falls. A **clumping field** at `Scale` (`PatternNoise.Field`, plain,
+`Octaves` deep) leans those odds by up to half the room either side of the share — at 0.3 from about 0.15
+in a clearing to 0.45 in a thicket — so the cover gathers into thicker and thinner patches the size of
+`Scale` without the share moving. A threshold cut across a smooth field is what this is not: a field
+crowds towards its middle, so a cut there turns a share into a switch between a bare area and a full one,
+and what passes it is one contiguous blob. Within the vegetated cells a **species mix** decides what: a
+second, low-frequency field paints flower *fields* — poppies and dandelions cluster where it peaks, so the
+map gets meadows of colour instead of confetti, with grass and fern filling the rest by a share noise. A
+cell whose draw misses simply stays air; that air is the "70%".
 
 `DR-FL` walks the cells inside a **drawn outline**, and for each one whose top block is soil and whose
-density field clears the threshold, sets a plant into the air cell at `SurfaceTop`. The outline is the
+draw falls under its odds, sets a plant into the air cell at `SurfaceTop`. The outline is the
 authored part and the field is what fills it: nobody wants to place nine hundred blades of grass, and nobody
 wants grass everywhere either. It adds one block per cell and never touches the ground — the lightest of the
-four passes, and the one that reuses the most. `FloraSpec` carries the knobs: `Coverage` against the
-density field, `Scale`/`Octaves` shaping it, and `FernShare`/`FlowerShare`/`FlowerScale`/`TallShare` mixing
+four passes, and the one that reuses the most. `FloraSpec` carries the knobs: `Coverage`, the
+share, thinned by the soil's own share; `Scale`/`Octaves` shaping the clumping field; and `FernShare`/`FlowerShare`/`FlowerScale`/`TallShare` mixing
 the species. `DressingPalette.SoilShare` is the eligibility read — sand and clay take a third of what grass
 does, gravel and quartz none — and `DressingPalette.SoilOf` says what that ground may grow.
 
@@ -256,20 +261,20 @@ under it, so a fern, a flower or a mushroom on a 60° face stands exactly as it 
 beneath decides whether anything grows, and the gradient never does. A face grows nothing only where its theme
 paints it as something no plant takes, such as rock. The slope is a boulder's rule alone (`DR-STEEP`, §5).
 
-**Dry ground grows the two plants 1.8 lets stand on it.** On sand, `CactusShare` of the cover the density field
+**Dry ground grows the two plants 1.8 lets stand on it.** On sand, `CactusShare` of the cover the coverage draw
 admits is cactus and `DeadBushShare` of the rest is dead bush, and what is left is bare; on hardened or stained
 clay the cover is dead bush at `DeadBushShare`; on dirt `DeadBushShare` of the grass and fern is dead bush
 instead. Both shares are 0 unless stated, so a board that never asks grows neither.
 
 **Podzol and mycelium grow mushrooms, the two footings a mushroom keeps by day.** 1.8 drops a mushroom wherever
 the light reaches 13 unless the block under it is one of the two (`DressingPalette.KeepsMushroom`), and an open
-meadow is lit past that every day. So on those two, `MushroomShare` of the cover the density field admits is a
+meadow is lit past that every day. So on those two, `MushroomShare` of the cover the coverage draw admits is a
 mushroom, brown two in three and red the third; podzol grows the rest as any dirt does, and mycelium nothing
 else. The share is 0 unless stated, so a board that never asks grows none and its mycelium stays bare.
 
 **Farmland grows a crop and nothing else, and it is sown rather than grown wild.** Farmland is painted like
 any ground (`terrain-painting.md` `PT1`); on it, `CropShare` of the farmland itself carries a crop and the
-rest stays bare. The density field that thins a meadow does not read here, because a field is planted edge to
+rest stays bare. The coverage draw that thins a meadow does not read here, because a field is planted edge to
 edge, so `Coverage` leaves farmland alone. The field is cut into square plots `Scale` blocks across, read at the
 folded cell, and each plot is sown with one of `Crops` — `wheat`, `carrots` or `potatoes`, evenly; unstated is
 wheat — at `Ripeness` (0 just sown, 1 ready, the default) up to a growth stage either side, with a fifth of its
@@ -294,15 +299,15 @@ own ground (§3.1) grows none.
 **Open still water grows lily pads and nothing else.** A cell inside the outline whose column tops out in a
 still water source with air over it — looked for within `WaterReach` (**16**) courses of the column's ground,
 since a channel stands below the surface it cut and a filled basin above it — carries a pad one course over the
-water where the density field admits cover and a raft field at the cover's own `Scale` clears `1 − LilyShare`.
+water where the coverage draw admits cover and a raft field at the cover's own `Scale` clears `1 − LilyShare`.
 The pads gather in rafts the way flowers gather in fields, about half the water at a share of 0.5 and all of it
 at 1, and a mirrored board floats them alike because both fields are read at the folded cell. A fluid's claim gives way to the pad and to nothing else: its dry bed
 and beach grow nothing, and lava floats nothing. `LilyShare` is 0 unless stated, so a board that never asks
 keeps its water open.
 
 **Every field the overlay reads is read at the cell folded into the board's primary image**, exactly as a
-terrain pattern is (`terrain-painting.md` TP21) — the density field, the flower field, the species shares and
-the tall share alike. A noise field is a function of position, so without the fold a cell and its image sample
+terrain pattern is (`terrain-painting.md` TP21) — the coverage draw and its clumping field, the flower field,
+the species shares and the tall share alike. A noise field is a function of position, so without the fold a cell and its image sample
 two different places and grow two different things: a meadow thick for one team and thin for the other, a fern
 on one side of a board and bare ground on its mirror. Folding asks the orbit's representative once, so a cell
 grows what its image grows. What the cell keeps for itself is what it is made of — `SoilShare` reads the paint
@@ -1319,7 +1324,10 @@ is no scope to resolve — a prop is not a recipe applied to a footprint, so rea
 
 **`PgmStudio.Api/Services`** — **the preview.** `DressingPreview` draws a prop by placing it — a sample patch
 painted with a theme and run through the real `Decorator` — and draws every picker's cards the same way, so a
-picker can never offer a look the export does not produce.
+picker can never offer a look the export does not produce. There is no client copy of any placement: the
+inspector's picture is this route's answer. A flora area is re-centred on the sample, so the picture reads
+the same spec at a different window of its fields — the share and the clumping are the built world's, the
+individual tufts are not.
 
 The side view is a **projection**, not a cut. `Minecraft.BlockSideView` looks through every row and keeps the
 nearest block, shading it by how far back it stands; a single row through a crown meets it wherever that row

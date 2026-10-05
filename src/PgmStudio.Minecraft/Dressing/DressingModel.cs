@@ -7,10 +7,11 @@ namespace PgmStudio.Minecraft.Dressing;
 
 /// <summary>The ground cover a flora overlay scatters, and how thickly. Everything about it is a noise field
 /// evaluated per cell, so it adds no state and re-exports identically.</summary>
-/// <param name="Coverage">0–1; how much of the eligible ground carries anything at all.</param>
-/// <param name="Scale">The density field's feature size in blocks — small clumps into speckle, large into
-/// meadows and clearings.</param>
-/// <param name="Octaves">Octaves of the density field; more is cloudier and finer-grained.</param>
+/// <param name="Coverage">0–1; the share of the eligible ground that carries anything at all, drawn cell by
+/// cell so a thin cover is tufts across the whole area rather than one patch.</param>
+/// <param name="Scale">The clumping field's feature size in blocks — the size of the thicker and thinner patches
+/// the cover gathers into.</param>
+/// <param name="Octaves">Octaves of the clumping field; more is cloudier and finer-grained.</param>
 /// <param name="FernShare">0–1; how much of the plain cover is fern rather than grass.</param>
 /// <param name="FlowerShare">0–1; how much of the ground the flower field claims. Flowers cluster into
 /// <em>fields</em> rather than confetti, which is why they have a field of their own.</param>

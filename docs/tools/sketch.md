@@ -1219,8 +1219,15 @@ the sky-lit faces, and `rock`, a full terrain material like a stroke's paving. A
 **boulder's own frame** rather than the map's, so a mottled stone carries the same mottling to every image of
 its orbit instead of sampling whatever the world pattern says where each image happened to land.
 
-**Ground cover** is the one place a density field is the point: a drawn ring filled by `coverage` at a feature
-`scale` over some `octaves`, split by `fernShare`, `flowerShare` (with its own `flowerScale`) and `tallShare`.
+**Ground cover** is a drawn ring of which `coverage` is the share that grows, cell by cell, so a low
+coverage is tufts across the whole ring rather than one shrinking patch; `scale` and `octaves` shape the field
+that gathers it into thicker and thinner patches (**Patch size**), and the cover is split by `fernShare`,
+`flowerShare` (with its own `flowerScale`) and `tallShare` (`docs/world-export/decoration.md` §3).
+
+**A slider moves the picture and waits to move the board.** While a knob is dragged the readout and the
+preview follow it — one `prop-preview` in flight at a time, the newest value drawn when it lands — and the
+canvas takes the value once, on release, as one patch. A push re-renders the whole tool and marks the board
+for saving, which is why it waits for the release rather than following every step.
 
 The pickers show **your** prop rather than a stock one. `GET /terrain/stroke-styles?pave=…` draws the five band
 styles in the material already chosen, `/terrain/boulder-forms?rock=…` the four rock shapes in the author's
