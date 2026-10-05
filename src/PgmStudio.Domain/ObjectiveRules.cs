@@ -87,7 +87,7 @@ public static class ObjectiveRules
     /// <summary>The game settings state a wool monument on one block, and the world builds it on another.</summary>
     /// <remarks>Set the <c>location</c> of the monument in <c>monuments</c> to the block the world builds it
     /// on.</remarks>
-    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Objective, RuleConcern.World)]
+    [Rule(RuleCategory.Conflict, RuleConcern.Objective, RuleConcern.World)]
     public const string MonumentDerived = "OB25";
 
     /// <summary>A map has a monument or core, and no mode ladder that changes it.</summary>

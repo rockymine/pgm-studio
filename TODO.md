@@ -44,12 +44,6 @@ Every rule fires as before; the tests and `--goldens` say so.
   `LintSp9`), `ST9` (set a room's `footprint` to at most 20 by 20, `LintSt9`) and `ST10` (shrink a room piece's
   `rect` to at most 20 by 30, `LintSt10`). Each gains the `DocumentEdit` the way `RampEdit` gives `EL1` and `SP8`
   theirs, and the plan tool's Checks panel offers it. `docs/refusals.md`.
-- [ ] **RP116 — A category that names the action its fix takes.** The category is what a caller branches on,
-  and these name another action than their fix: `HS3`, `HS5`, `HS13` and `HS16` are filed `conflict` and are a
-  value of the wrong kind (`malformed`); `PT3` is `unsatisfiable` and its fix is a field value; `DR-COPY` is
-  `forbidden` and answers 400 (`PropStyleLibrary.cs:44`); `WX14` is `forbidden` and refuses nothing; `OB25` is
-  `unsatisfiable` and its fix copies the built location. Each `[Rule]` attribute moves to the category its fix
-  is, and `?category=` answers move with it. `docs/refusals.md`.
 - [ ] **RP120 — The readers' faults in the message shape.** A document that will not read is refused with
   the exception's text as its message, at 30 sites that pass `fault.Message` on, and those texts are written as
   sentences of their own: `HouseStyleJson` (5 throws), `TerrainThemeJson` (5), `SketchRelief` (2), `SeedFolder`

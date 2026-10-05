@@ -27,7 +27,7 @@ public static class HouseStyleRules
     /// or one of grass, dirt, sand, gravel, farmland and mycelium.</summary>
     /// <remarks>Set the <c>roof.body</c>, the <c>roof.verge</c> and the <c>porch.canopy</c> of the house each to
     /// one block or a <c>laidLog</c> of a log.</remarks>
-    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    [Rule(RuleCategory.Malformed, RuleConcern.Style, RuleConcern.Material)]
     public const string RoofMaterial = "HS3";
 
     /// <summary>A door head, a window with its host block, or a timber frame is cut from more than one
@@ -40,7 +40,7 @@ public static class HouseStyleRules
     /// <summary>A house is built of an ore.</summary>
     /// <remarks>Change the material the finding names to a block that is not an ore, such as stone, stained clay or
     /// wool.</remarks>
-    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    [Rule(RuleCategory.Malformed, RuleConcern.Style, RuleConcern.Material)]
     public const string OreMaterial = "HS5";
 
     /// <summary>The ground storey of a house with a door head has no wall across the doorway's courses.</summary>
@@ -88,14 +88,14 @@ public static class HouseStyleRules
     /// <summary>The ground storey of a house has a laid log as its first course.</summary>
     /// <remarks>Set the first course of the <c>wall</c> of the ground storey to a block that is not a laid
     /// log.</remarks>
-    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Material)]
+    [Rule(RuleCategory.Malformed, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Material)]
     public const string LogAtTheFoot = "HS13";
 
     /// <summary>The roof form of a house, a wing or a porch canopy is not one of flat, gable, hip, gambrel or
     /// saltbox.</summary>
     /// <remarks>Change the <c>roof.form</c> of the house, the <c>porch.roof</c> or the <c>spec.form</c> of a wing
     /// to one of flat, gable, hip, gambrel or saltbox.</remarks>
-    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure)]
+    [Rule(RuleCategory.Malformed, RuleConcern.Style, RuleConcern.Structure)]
     public const string ShedRoof = "HS14";
 
     /// <summary>A storey's wall is checkered in one log, and its corner posts are cut from the same log.</summary>
@@ -106,12 +106,12 @@ public static class HouseStyleRules
 
     /// <summary>A wall or gable of a house is built of a surfacing block.</summary>
     /// <remarks>Change the material the finding names to a block that is not a surfacing block.</remarks>
-    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    [Rule(RuleCategory.Malformed, RuleConcern.Style, RuleConcern.Material)]
     public const string SurfacingWall = "HS16";
 
     /// <summary>A wall, gable or roof of a house is built of snow or ice.</summary>
     /// <remarks>Change the material the finding names to a block that is not snow or ice.</remarks>
-    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    [Rule(RuleCategory.Malformed, RuleConcern.Style, RuleConcern.Material)]
     public const string SnowAndIce = "HS17";
 
     /// <summary>A storey above the ground has no deck other than air and no field laid over the deck.</summary>

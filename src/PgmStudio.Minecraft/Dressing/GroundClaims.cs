@@ -133,7 +133,7 @@ public static class DressingRules
     /// <summary>A request to save a copied tree has no cut record.</summary>
     /// <remarks>Either send the request again with <c>form</c> set to <c>template</c>, or send the request again
     /// with <c>cut</c> set to where and when the tree was cut.</remarks>
-    [Rule(RuleCategory.Forbidden, RuleConcern.Request, RuleConcern.Feature)]
+    [Rule(RuleCategory.Malformed, RuleConcern.Request, RuleConcern.Feature)]
     public const string UncutCopy = "DR-COPY";
 
     /// <summary>The ground a fluid cuts away above its level is more than its stated depth in height.</summary>

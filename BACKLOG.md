@@ -22,6 +22,11 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [~] **RP116 — What category is a room left in the built-in shell?** *Parked (author decision).* `WX14`
+  is filed `forbidden` and refuses nothing: the room is built in the shell the studio ships and the finding is a
+  complaint (`RoomFrames.cs`, `WorldBuilder.Shipped`). No category names "left unstated, a default stood in",
+  so the answer either moves `WX14` to one that exists or adds that category. `docs/refusals.md`.
+
 - [ ] **TS126 — A note's checkable claim, kept as a check.** *Parked (author): not yet.* Some notes state
   what a board must keep being — a path reaches the bridge (note 58), a bedrock wall has void on both sides
   (note 48), a wall does not float (note 54). A reply could carry the claim as a measured check over the note's
