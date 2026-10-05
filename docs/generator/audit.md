@@ -64,7 +64,7 @@ Re-verified against `TeamUnitAllocator.cs`, 2026-07-27; the code it cites moved 
 | `WoolLengthRatio = 3` | LN2 (20–50 blocks before a junction/dead end) | **grounded** on the lower bound; the 50 cap is unimplemented |
 | `CornerClearanceCells = 0` | the mass-level corner law | **vestigial** — it documents rather than acts (see below) |
 | the frontline joint's `faceWidth` | FR6 (split vs wide, band docks flush) | right kind (**offer**), law partially served |
-| `RingFitCells(cw, cell)`, `WideHubCells(cw, cell)` | geometry (a ring is two walls and a hole; a docked bar keeps one beside it) and `WL12`'s 12-block floor for a plain hole | **grounded** — derived from the corridor and the rule rather than stated |
+| `RingFitCells(cw, cell)`, `WideHubCells(cw, cell)` | geometry (a ring is two walls and a hole; a docked bar keeps one beside it) and `LN6`'s 12-block floor for a plain hole | **grounded** — derived from the corridor and the rule rather than stated |
 | `HubBoxCells` — area from the share, aspect sampled | none — HB1 constrains *width*, not box size | area **grounded** in G8 through the share; the 1.3–2.4 aspect is **invented** |
 | the box shares (`FrontlineShare`, `WoolShare`, `HubMinShare`) | G8 gives the total, nothing splits it | total **grounded**, the split **invented** |
 | `WoolCount` per band | WL6 gives 1–3; the corpus gives 1 at nano and 2 above | **grounded** |
@@ -166,4 +166,4 @@ whose author rulings are already filed — `G2` (G287), `G5` and `CT12` (G285), 
 | `ST1` | the wool room's region, cage and entry lines | only producibility cites it, for a box room that differs from the composer's 2-cell room |
 | `ST8` | about 15 blocks in front of the entrance | anywhere from 10 to 20 |
 | `WL7` | a working minimum of 45 blocks | a learned band only |
-| `WL12` | bays and holes beside a goal | a goal's straight crossings over any void; a bay touching no goal is not checked |
+| `WL12`, `WL20`, `LN6` | bays and holes beside a goal, and holes beside none | a goal's straight crossings over any void, and a hole's narrowest; a bay touching no goal is not checked |

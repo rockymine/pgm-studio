@@ -1019,6 +1019,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   measured number against the limit, with no reason or fix in prose. The producibility read raises its own `BX1`
   to `BX10` (a box room is `ST1`), and `Cites` names only an open task. `FindingMessageTests` holds the
   helpers' messages to the shape, read out of the source.
+- **`SK2` states its ceiling, and `WL12` is three rules (`RP118`).** `SK2`'s text and message give the
+  4,000,000 columns it refuses past. `WL12` keeps the 16-block gap beside a goal toward the front or another
+  goal, `WL20` the 12-block gap toward the goal's own ground, and `LN6` the 12-block floor of a hole beside no
+  goal, so no rule text is held out of `RuleTextTests`.
 - **Every message in the source takes the one shape (`RP114`).** The messages written at their raise sites —
   the gates, the editors' faults, the request refusals, the world reads — open with the thing's kind and id
   and give where and how far, with no reason or fix. A thing absent, taken or of the wrong kind is said one

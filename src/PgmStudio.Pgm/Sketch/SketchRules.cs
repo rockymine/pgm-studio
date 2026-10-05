@@ -12,18 +12,13 @@ public static class SketchRules
     [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Terrain)]
     public const string ReliefOrphaned = "SK1";
 
-    /// <summary>The extent of a layout across its symmetry copies is more than the studio builds, counted in
-    /// columns.</summary>
+    /// <summary>The extent of a layout across its symmetry copies is more than 4,000,000 columns.</summary>
     /// <remarks>Either delete a shape from <c>shapes</c>, or move the shape closer to the symmetry centre until the
     /// layout covers fewer columns.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Studio)]
     public const string BoardTooLarge = "SK2";
 
-    /// <summary>The extent, in columns, that <see cref="BoardTooLarge"/> refuses past.
-    /// <para><b>Deliberately unpublished.</b> It appears in no message, no rule sentence and no tool
-    /// document: a stated ceiling is a target, and an agent told it may draw up to this will draw up to this.
-    /// What a refusal says instead is the span it measured, which is the half the author has to act on.
-    /// <c>SketchLayoutCheckTests</c> holds the message to that rather than the other way round.</para></summary>
+    /// <summary>The extent, in columns, that <see cref="BoardTooLarge"/> refuses past.</summary>
     public const int MaxBoardColumns = 4_000_000;
 
     /// <summary>A layout names a shape kind, mirror mode, landform, palette, shape or group that does not

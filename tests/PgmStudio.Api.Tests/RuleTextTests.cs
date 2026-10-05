@@ -17,8 +17,8 @@ public sealed class RuleTextTests
     private sealed record Row(string Rule, string Means, string? Fix);
 
     /// <summary>Rules whose text holds an open question for the author, named so the exemption is read rather
-    /// than hidden: WL12's fix states its gap without the two widths, which do not fit in 35 words.</summary>
-    private static readonly HashSet<string> Flagged = ["WL12"];
+    /// than hidden.</summary>
+    private static readonly HashSet<string> Flagged = [];
 
     private static async Task<List<Row>> RulesAsync()
     {

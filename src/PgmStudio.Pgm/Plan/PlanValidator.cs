@@ -1059,13 +1059,13 @@ public static class PlanValidator
     /// around.</summary>
     public const int MinGoalSpaceBlocks = 16;
 
-    /// <summary>The same floor between a wool room or a spawn and the team's own ground away from the front —
-    /// its hub, an approach — in blocks. The author's number: 12 is on the low end and not a fault, since
-    /// the side that jumps it is the one already standing there.</summary>
+    /// <summary>The floor <c>WL20</c> measures between a wool room or a spawn and the team's own ground away
+    /// from the front — its hub, an approach — in blocks. The author's number: 12 is on the low end and not a
+    /// fault, since the side that jumps it is the one already standing there.</summary>
     public const int MinGoalHomeSpaceBlocks = 12;
 
-    /// <summary>The same floor for a space touching neither, in blocks: a hole in a team's own ground is
-    /// crossed on purpose and may be tighter than one beside a goal.</summary>
+    /// <summary>The floor <c>LN6</c> measures for a hole touching neither, in blocks: a hole in a team's own
+    /// ground is crossed on purpose and may be tighter than one beside a goal.</summary>
     public const int MinPlainSpaceBlocks = 12;
 
     // FR8, FR9 and CT12 — the three reads that need the fanned raster board: a crossing spanning the face it
@@ -1103,11 +1103,12 @@ public static class PlanValidator
                     face.Piece);
         }
 
-        // WL12 — how narrow a gap beside a goal is. The space reader measures every straight run the terrain
+        // WL12, WL20 and LN6 — how narrow a gap is. The space reader measures every straight run the terrain
         // closes at both ends, which is the line a player jumps, and names the piece at each end. A run any
         // build zone covers is not asked: building over it is what the zone states. Three floors, all in
-        // blocks so they hold at any grid scale — a goal across from the frontline or another goal, a goal
-        // across from its team's own ground, and the narrowest crossing of a hole touching no goal.
+        // blocks so they hold at any grid scale — a goal across from the frontline or another goal (WL12), a
+        // goal across from its team's own ground (WL20), and the narrowest run of a hole touching no goal
+        // (LN6).
         var goalPieces = new HashSet<string>(
             plan.Pieces.Where(piece => piece.Role is PlanRoles.WoolRoom or PlanRoles.Spawn).Select(piece => piece.Id),
             StringComparer.Ordinal);
@@ -1123,9 +1124,11 @@ public static class PlanValidator
                 var beside = new[] { run.From, run.To }.Where(goalPieces.Contains).Distinct().ToList();
                 var across = new[] { run.From, run.To }.Where(end => !goalPieces.Contains(end)).ToList();
                 var exposed = beside.Count > 1 || across.Any(end => end.Length == 0 || frontPieces.Contains(end));
-                var floor = beside.Count > 0 ? (exposed ? MinGoalSpaceBlocks : MinGoalHomeSpaceBlocks)
-                    : hole && run.Cells == narrowest ? MinPlainSpaceBlocks
-                    : 0;
+                var (rule, floor) = beside.Count > 0
+                    ? exposed ? (LayoutRules.RoomFrontGapWidth, MinGoalSpaceBlocks)
+                        : (LayoutRules.RoomHomeGapWidth, MinGoalHomeSpaceBlocks)
+                    : hole && run.Cells == narrowest ? (LayoutRules.HoleWidth, MinPlainSpaceBlocks)
+                    : ("", 0);
                 if (floor == 0) continue;
                 var crossing = run.Cells * board.Cell;
                 if (crossing >= floor) continue;
@@ -1135,7 +1138,7 @@ public static class PlanValidator
                 var pair = string.CompareOrdinal(run.From, run.To) <= 0 ? (run.From, run.To) : (run.To, run.From);
                 if (!reported.Add((pair.Item1, pair.Item2, crossing))) continue;
 
-                yield return Lint(LayoutRules.RoomGapWidth,
+                yield return Lint(rule,
                     $"pieces {Named(run.From)} and {Named(run.To)} have a {(beside.Count > 0 ? "gap" : space.Kind)} "
                     + $"{crossing} blocks across between them at cell ({run.X}, {run.Z}), less than {floor} blocks",
                     [.. new[] { run.From, run.To }.Where(name => name.Length > 0).Distinct()]);

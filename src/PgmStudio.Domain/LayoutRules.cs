@@ -48,6 +48,12 @@ public static class LayoutRules
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan)]
     public const string GroundOffRoutes = "LN5";
 
+    /// <summary>A hole that touches no room piece is less than 12 blocks across at its narrowest.</summary>
+    /// <remarks>Either move the <c>rect</c> of a piece in <c>pieces</c> until the hole is at least 12 blocks
+    /// across, or add a piece to <c>pieces</c> or a build region to <c>zones</c> over the hole.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Plan)]
+    public const string HoleWidth = "LN6";
+
     /// <summary>A layout has more than 3 build regions that join two team sides.</summary>
     /// <remarks>Either merge two build regions between the same team sides into one entry in <c>zones</c>, or
     /// delete one from <c>zones</c>.</remarks>
@@ -170,11 +176,17 @@ public static class LayoutRules
     public const string WoolEntryStep = "WL11";
 
     /// <summary>A gap beside a room piece is less than 16 blocks across toward the front line or another room
-    /// piece, or less than 12 blocks toward its own team side.</summary>
-    /// <remarks>Either move the <c>rect</c> of a piece in <c>pieces</c> until the gap is wide enough, or add a
-    /// piece to <c>pieces</c> that fills the gap, or add a build region to <c>zones</c> over it.</remarks>
+    /// piece.</summary>
+    /// <remarks>Either move the <c>rect</c> of a piece in <c>pieces</c> until the gap is at least 16 blocks
+    /// across, or add a piece to <c>pieces</c> or a build region to <c>zones</c> over the gap.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Objective, RuleConcern.Spawn)]
-    public const string RoomGapWidth = "WL12";
+    public const string RoomFrontGapWidth = "WL12";
+
+    /// <summary>A gap beside a room piece is less than 12 blocks across toward its own team side.</summary>
+    /// <remarks>Either move the <c>rect</c> of a piece in <c>pieces</c> until the gap is at least 12 blocks
+    /// across, or add a piece to <c>pieces</c> or a build region to <c>zones</c> over the gap.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Objective, RuleConcern.Spawn)]
+    public const string RoomHomeGapWidth = "WL20";
 
     /// <summary>The walking distance from a spawn to its team's nearest wool is not between 29 and 176
     /// blocks.</summary>

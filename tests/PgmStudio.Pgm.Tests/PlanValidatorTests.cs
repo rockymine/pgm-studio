@@ -926,7 +926,7 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
-    public async Task A_gap_between_a_wool_room_and_its_own_ground_narrower_than_twelve_blocks_fires_WL12()
+    public async Task A_gap_between_a_wool_room_and_its_own_ground_narrower_than_twelve_blocks_fires_WL20()
     {
         // two cells of void between the room and the ground beside it: ten blocks, which a player crosses by
         // towering at one edge, so the approach the board states is not the one walked.
@@ -939,7 +939,8 @@ public sealed class PlanValidatorTests
           "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
                          "wools":[ {"piece":"room","at":[5,5]} ] } }
         """);
-        await Assert.That(Lint(tight, "WL12")).IsTrue().Because("ten blocks is under the twelve a gap between a goal and its own ground wants");
+        await Assert.That(Lint(tight, "WL20")).IsTrue().Because("ten blocks is under the twelve a gap between a goal and its own ground wants");
+        await Assert.That(Lint(tight, "WL12")).IsFalse().Because("the gap is toward the team's own ground, not the front");
 
         // the same arrangement with the far ground pushed a cell further out: twenty blocks, and quiet.
         var clear = Plan("""
@@ -951,7 +952,7 @@ public sealed class PlanValidatorTests
           "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
                          "wools":[ {"piece":"room","at":[5,5]} ] } }
         """);
-        await Assert.That(Lint(clear, "WL12")).IsFalse();
+        await Assert.That(Lint(clear, "WL20")).IsFalse();
     }
 
     [Test]
@@ -965,7 +966,8 @@ public sealed class PlanValidatorTests
                      {"id":"room","role":"wool-room","rect":[3,4,3,3]} ],
           "placements":{ "wools":[ {"piece":"room","at":[6,6]} ] } }
         """);
-        await Assert.That(Lint(home, "WL12")).IsFalse().Because("twelve blocks to a goal's own ground is the author's floor");
+        await Assert.That(Lint(home, "WL20")).IsFalse().Because("twelve blocks to a goal's own ground is the author's floor");
+        await Assert.That(Lint(home, "WL12")).IsFalse();
 
         // the same room twelve blocks across a bay from a piece fronting the crossing: sixteen is wanted
         var front = Plan("""
@@ -980,7 +982,7 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
-    public async Task A_gap_a_build_zone_covers_is_a_crossing_the_board_states_and_is_not_WL12()
+    public async Task A_gap_a_build_zone_covers_is_a_crossing_the_board_states_and_is_not_WL20()
     {
         // building over it is what the zone is for, so the gap's width is not a jump the rule judges.
         var bridged = Plan("""
@@ -993,7 +995,32 @@ public sealed class PlanValidatorTests
           "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
                          "wools":[ {"piece":"room","at":[5,5]} ] } }
         """);
-        await Assert.That(Lint(bridged, "WL12")).IsFalse();
+        await Assert.That(Lint(bridged, "WL20")).IsFalse();
+    }
+
+    [Test]
+    public async Task A_hole_touching_no_room_piece_narrower_than_twelve_blocks_fires_LN6()
+    {
+        // four lanes ringing a hole two cells across: ten blocks, crossed by a jump, and beside no goal.
+        var tight = Plan("""
+        { "plan":2, "globals":{"cell":5},
+          "pieces":[ {"id":"top","role":"lane","rect":[0,0,6,2]},
+                     {"id":"bottom","role":"lane","rect":[0,4,6,2]},
+                     {"id":"left","role":"lane","rect":[0,2,2,2]},
+                     {"id":"right","role":"lane","rect":[4,2,2,2]} ] }
+        """);
+        await Assert.That(Lint(tight, "LN6")).IsTrue().Because("ten blocks is under the twelve a hole wants");
+        await Assert.That(Lint(tight, "WL12") || Lint(tight, "WL20")).IsFalse().Because("no room piece touches it");
+
+        // the same ring three cells across each way: fifteen blocks, and quiet.
+        var clear = Plan("""
+        { "plan":2, "globals":{"cell":5},
+          "pieces":[ {"id":"top","role":"lane","rect":[0,0,7,2]},
+                     {"id":"bottom","role":"lane","rect":[0,5,7,2]},
+                     {"id":"left","role":"lane","rect":[0,2,2,3]},
+                     {"id":"right","role":"lane","rect":[5,2,2,3]} ] }
+        """);
+        await Assert.That(Lint(clear, "LN6")).IsFalse();
     }
 
     [Test]

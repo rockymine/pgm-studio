@@ -529,7 +529,8 @@ public static class SketchLayoutCheck
 
         return new Finding(SketchRules.BoardTooLarge,
             $"the layout spans {Span(extent.MaxX - extent.MinX)} by {Span(extent.MaxZ - extent.MinZ)} columns "
-            + $"across its symmetry copies, {columns:N0} columns in all");
+            + $"across its symmetry copies, {columns:N0} columns, more than {SketchRules.MaxBoardColumns:N0} "
+            + "columns");
 
         void Cover((double MinX, double MinZ, double MaxX, double MaxZ) box)
             => extent = (Math.Min(extent.MinX, box.MinX), Math.Min(extent.MinZ, box.MinZ),

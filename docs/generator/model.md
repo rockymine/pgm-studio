@@ -950,7 +950,7 @@ Its **area** is what its share bought and its **aspect** is what varies between 
 grows wider rather than squarer. The long lateral edge is what gives the spawn and the wools room to
 attach with a gap between them, and past four corridors and a hole wide it affords the wide holed bodies,
 whose bar and ring runs are long stretches of free surface. Every hole a composed hub keeps is at least 12
-blocks across — `WL12`'s floor for a plain hole — so a ring is only offered where two walls and that hole fit;
+blocks across — `LN6`'s floor for a plain hole — so a ring is only offered where two walls and that hole fit;
 a narrower hole is jumped rather than rounded and splits nothing. The frontline's reach pushes the hub's front
 edge back, so the frontline ends up between the hub and the axis rather than beside it.
 

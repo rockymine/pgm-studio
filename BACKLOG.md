@@ -22,12 +22,6 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
-- [ ] **RP118 — Does `SK2` state the board ceiling?** *Parked (author decision).* Every rule states the number
-  it checks, and `SK2` alone does not: `SketchRules.MaxBoardColumns` (4,000,000 columns) is deliberately
-  unpublished, because a stated ceiling is a target an agent draws up to (`SketchRules.cs:23`). The question is
-  which rule wins; the answer either puts the number in `SK2`'s text or names `SK2` beside `WL12` in
-  `RuleTextTests.Flagged`.
-
 - [ ] **TS126 — A note's checkable claim, kept as a check.** *Parked (author): not yet.* Some notes state
   what a board must keep being — a path reaches the bridge (note 58), a bedrock wall has void on both sides
   (note 48), a wall does not float (note 54). A reply could carry the claim as a measured check over the note's
@@ -371,8 +365,8 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   76×36 hole at cell (-10,-19), where a double-hole hub would have given two.*
 
 - [~] **G264 — A composed wool room can stand 12 blocks across void from a piece fronting the crossing.** The
-  inside corner of a bent wool is its lane's width, 12 blocks at nano, which `WL12` allows against the team's
-  own ground and not against the front (16). The room's setback along its lane takes a block basis of its own
+  inside corner of a bent wool is its lane's width, 12 blocks at nano, which `WL20` allows against the team's
+  own ground and `WL12` refuses against the front (16). The room's setback along its lane takes a block basis of its own
   where the ground across the corner fronts the band, in `WoolBoxEmitter` rather than in the seat clearance.
   `docs/generator/rules.md` and `model.md`.
 
@@ -484,7 +478,7 @@ the skerry layout as the board that shows the over-warning is gone.
 
 - [ ] **G285 — A crossing is a straight bridge from the nearest land.** A player walks the land the shortest
   way and bridges straight across the void; nobody routes around inside it. `G5` (rectangle gap, `ContactGraph.cs:312`),
-  `CT12` (4-connected void path, `PieceInterfaces.cs:157`) and `WL12` (straight runs) read the same void three
+  `CT12` (4-connected void path, `PieceInterfaces.cs:157`) and `WL12`, `WL20` and `LN6` (straight runs) read the same void three
   ways and over-warn: on the skerry layout a small front piece makes the check ask a diagonal route through
   the void to a wool room. One measure: walk the land, then the straightest bridge from land edge to land
   edge. `docs/generator/`.

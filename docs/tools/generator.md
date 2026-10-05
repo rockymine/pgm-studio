@@ -115,7 +115,7 @@ on at flat weight, and short-circuits on the first that fires. The two crossing 
 judgement of composed boards and bind them alone: the default profile the editor lint runs leaves them off.
 
 **Every hub hole is at least 12 blocks across.** A ring's hole, and the ring inside a P, double-hole or G, keeps
-`WL12`'s floor for a plain hole, so the composer never draws a slit a player jumps. **Every wool approach gets
+`LN6`'s floor for a plain hole, so the composer never draws a slit a player jumps. **Every wool approach gets
 one defence wall** where a seam qualifies: across the route the attack takes into the approach, on a seam with
 no land beyond either end so it is crossed rather than rounded (`PL17`), a lane mouth wide and 10–20 blocks in
 front of the room (`ST8`). A straight lane is cut in two to make that seam, which is why a walled approach

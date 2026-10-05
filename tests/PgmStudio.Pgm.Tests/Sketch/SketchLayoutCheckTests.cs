@@ -247,9 +247,8 @@ public sealed class SketchLayoutCheckTests
         await Assert.That(refusal.Rule).IsEqualTo(SketchRules.BoardTooLarge);
         // It says the span it measured — the board the author actually drew.
         await Assert.That(refusal.Message).Contains("4,000 by 4,000 columns");
-        // And never the ceiling: a stated one is a target, so an agent reading this learns that it drew too
-        // much and not how much it may draw. The number lives in the constant and nowhere a caller reads.
-        await Assert.That(refusal.Message).DoesNotContain(SketchRules.MaxBoardColumns.ToString("N0"));
+        // And the ceiling it broke, as every rule states its number.
+        await Assert.That(refusal.Message).Contains("more than 4,000,000 columns");
 
         // 1000×1000 is a million columns — four times the size of anything authored, and it stands.
         var big = SketchLayoutCheck.Check(Layout(

@@ -214,21 +214,22 @@ and a fall counted but not charged, routing around voids — never the straight 
   room reached only over a build zone states no land seam and is not this rule's business but
   `BZ5`'s.
 
-- **WL12 [author]** **A bay or a hole between a goal and the front is at least 16 blocks across, and one
-  between a goal and its own ground at least 12.** Negative space is
+- **WL12 [author]** **A bay or a hole between a goal and the front is at least 16 blocks across.** Negative
+  space is
   crossed by **jumping** long before it is crossed by building: a short gap between a frontline and a
   wool room, or between a spawn and a wool room, lets a player tower at the near edge and jump in, and
   the approach the board was drawn around stops being walked at all. The measure is the **narrowest
   straight crossing** — the shortest line over the space with terrain on **both** ends, a run open at
   one end being a way out rather than a gap over. A space walled on three sides or enclosed (a `bay` or
   a `hole`, `NegativeSpaceKinds`) is asked; a space any **build zone** covers is not, since building
-  over it is what the zone states. Where a crossing touches a wool-room or spawn piece, the floor is
-  **16 blocks** when its other end is a piece fronting the crossing's build band, or another goal, and **12**
-  when it is the team's own ground away from the front — its hub, an approach — since the side that jumps
-  that gap is the one already standing there (amendment 49). A space touching neither keeps **12**, and a
-  hole in a team's own ground is crossed on purpose.
+  over it is what the zone states. Where a crossing touches a wool-room or spawn piece and its other end
+  is a piece fronting the crossing's build band, or another goal, the floor is **16 blocks**.
   Stated in **blocks**, never in cells: a floor stated as a cell count moves with the grid scale, and a
   jump does not care what the grid was.
+- **WL20 [author]** **A bay or a hole between a goal and its own ground is at least 12 blocks across.**
+  The crossing is measured as `WL12` measures it. Where its other end is the team's own ground away from
+  the front — its hub, an approach — the floor is **12 blocks**, since the side that jumps that gap is the
+  one already standing there (amendment 49).
 
 
 ## LN — Lane
@@ -244,6 +245,9 @@ and a fall counted but not charged, routing around voids — never the straight 
 - **LN4 [expert, clarified]** Restated plainly in *Definitions*: pieces join along **any** shared
   positive-length border (a sub-corridor border is a legal *narrow seam*, not a break) — never at a
   bare corner/point.
+- **LN6 [author]** **A hole touching no goal is at least 12 blocks across at its narrowest.** Measured as
+  `WL12` measures a crossing, over the hole's narrowest straight run. A hole in a team's own ground is
+  crossed on purpose, so it may be tighter than a gap beside a goal, and not tighter than a jump.
 
 ## HB — Hub / connector
 
@@ -1334,3 +1338,7 @@ same commit.
 56. **`BZ5` is a rule again: a build zone never touches a spawn (2026-10-04).** Author's call. The text said
     the prohibition was retired while `PlanValidator` kept raising it, so a reader looking the finding up was
     told it was not a rule. The check is unchanged; the text now states what it checks.
+57. **`WL12` is three rules: `WL12`, `WL20` and `LN6` (2026-10-05).** Author's call. One id stated two of
+    the three floors it checked and could not state them in one text. `WL12` keeps the 16-block gap toward
+    the front or another goal, `WL20` takes the 12-block gap toward a goal's own ground, and `LN6` the
+    12-block floor of a hole touching no goal. Each check is unchanged.
