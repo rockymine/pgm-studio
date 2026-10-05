@@ -616,8 +616,8 @@ touching what is being worked on.
 
 `Escape` walks the whole way out in the order a press means it: an in-progress draw, then the tool in hand,
 then the points, then the entered group, then the selection itself — one step a press. With a theme in hand
-it does none of that and puts the theme down instead. Closing a drawn polygon is no part of the ladder: a polygon or a polyline closes on `Enter`, or on
-a click landing back at its own first vertex.
+it does none of that and puts the theme down instead. Finishing a drawn outline is no part of the ladder: a polygon closes on `Enter` or on a click landing back at
+its own first vertex, and a polyline ends on `Enter`, open where its last point was placed.
 
 **The Shapes chip draws every primitive on the board; without it, the selected or entered group draws its own
 members instead** — faintly where the group is merely selected, plainly where it is entered, so a member
@@ -673,6 +673,7 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `H` | Pan | Tools |
 | `R` | Rectangle | Tools |
 | `P` | Polygon | Tools |
+| `W` | Polyline | Tools |
 | `L` | Lasso | Tools |
 | `M` | Measure | Tools |
 | `X` | Split | Tools |
@@ -720,9 +721,11 @@ Draw.
 
 The canvas, and where the geometry is made.
 
-**Three tools draw, and one word decides what they draw.** Rectangle drags a box; polygon places vertices and
-closes; lasso traces freehand and closes itself, simplifying the trace at a four-block tolerance so a big round
-blob arrives as about ten anchors rather than one per block — it commits as a polygon. Beside them sits the
+**Four tools draw, and one word decides what they draw.** Rectangle drags a box; polygon places vertices and
+closes; polyline places points along a line and ends on `Enter`, leaving it open — it commits as a `polyline` of
+radius 3 with a `solid` edge, a centreline the band is grown around, which the inspector then narrows to a wall
+or widens to a lane; lasso traces freehand and closes itself, simplifying the trace at a four-block tolerance so
+a big round blob arrives as about ten anchors rather than one per block — it commits as a polygon. Beside them sits the
 operation, **Build** or **Carve**, wearing the colour the finished shape will take, so an armed carve cannot be
 mistaken for an armed build. Two more tools read and cut rather than make: **measure** drags a ruler between
 two points, the usual question being how wide a void gap is, and **split** slices the topmost shape it crosses
@@ -2578,10 +2581,8 @@ moves — each image of a mirrored board is its own entry with its own team, so 
 statement about red's spawn. And a plan rebuild draws the rectangle from the plan again, which is the
 standing rule for structure rather than anything about this edit.
 
-The layout model carries two shape types the **Draw** dock cannot draw. A `circle` rasterizes as a 64-gon, and
-a `polyline` is a centreline with a band whose width, edge and seed the inspector edits — but the dock offers
-rectangle, polygon and lasso only, so both arrive only in a document written outside the editor. The canvas
-controller can draw a polyline; nothing puts a button in front of it.
+The layout model carries one shape type the **Draw** dock cannot draw: a `circle`, which rasterizes as a 64-gon
+and arrives only in a document written outside the editor.
 
 A placed building's `wings` can state an L, a T or a U, and `Decorator` composes them into one house under one
 style the way the stamper always could (`G177`). On the canvas each wing is drawn as its own rectangle and the
