@@ -49,7 +49,7 @@ public static class RoomFrameRules
     /// <summary>A spawn room or wool room has no house of its own.</summary>
     /// <remarks>Either set the <c>roomStyles.wool</c> or <c>roomStyles.spawn</c> of the sketch to a house, or set
     /// it to <c>null</c> for open ground.</remarks>
-    [Rule(RuleCategory.Forbidden, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Spawn, RuleConcern.Objective)]
+    [Rule(RuleCategory.Unfinished, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Spawn, RuleConcern.Objective)]
     public const string BuiltInShell = "WX14";
 
     /// <summary>A spawn or wool marker sits on a grid line along one axis, and at a block centre along the

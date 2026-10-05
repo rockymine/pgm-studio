@@ -57,7 +57,7 @@ public static class SketchRules
     /// <summary>A sketch has no palettes, no terraform and no props.</summary>
     /// <remarks>Either add a palette to <c>themes</c>, or add an entry for a group to <c>relief</c>, or add a prop
     /// to <c>dressing.props</c>.</remarks>
-    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
+    [Rule(RuleCategory.Unfinished, RuleConcern.Terrain, RuleConcern.World)]
     public const string NoFinish = "SK8";
 
     /// <summary>A shape overlaps another shape on one layer, and its floor is at or above the top of the

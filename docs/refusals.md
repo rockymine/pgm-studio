@@ -580,9 +580,11 @@ re-learned band and the text that states it part. Where a ruling came from is no
 down to the author's rulings and the maps they traced, and an agent acts on the limit, not its history.
 
 **The category is what a caller branches on, and the concerns are what a prefix could never carry.** An id is
-specific, stable and for a reader; `category` is the closed set an agent reads instead of learning 234 ids —
+specific, stable and for a reader; `category` is the closed set an agent reads instead of learning every id —
 `malformed` (fix the shape), `unknown` (fix a name), `conflict` (choose which wins), `unsatisfiable` (change
-the design), `unplayable` (change the map), `forbidden` (ask for something else), `unavailable` (try again, or
+the design), `unplayable` (change the map), `unfinished` (finish what was left at a default nobody chose: the
+map plays and looks unfinished, as a room left in the built-in shell does), `forbidden` (ask for something
+else), `unavailable` (try again, or
 look upstream), `internal` (report it). Each word is defined by the action it implies rather than by how the
 fault sounds, which is what lets a caller act before reading a sentence. `?category=unplayable` answers every
 rule they would treat the same way, whichever gate asks it.
@@ -618,8 +620,8 @@ drift-pinned to them by `DressingRulesTests`, as `GO1`'s prose is pinned to its 
 **A person reads the same two answers at `/rules`.** The page lists every rule by family, in the order a map is
 made — the request, the plan, its game settings, the sketch, the built world, its decoration — one line each:
 the id, the first sentence of `means`, and the category as the action it asks for. Its rail filters by text, by
-kind (a gate's check or a layout rule), by that action and by `concerns`; the eight categories read *Fix the
-format*, *Fix a name*, *Choose which wins*, *Change the design*, *Make it playable*, and after a rule — being
+kind (a gate's check or a layout rule), by that action and by `concerns`; the nine categories read *Fix the
+format*, *Fix a name*, *Choose which wins*, *Change the design*, *Make it playable*, *Finish it*, and after a rule — being
 the three that are not the author's to fix — *Ask for something else*, *Try again later* and *Report it*.
 Opening a rule shows `means` and `fix`; then its `concerns`, the bands its terms score against, and the rule's place
 on the reachability ladder above. `/rules?rule=PL9` opens on one rule, which is where every check list in the

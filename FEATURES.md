@@ -1021,7 +1021,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   helpers' messages to the shape, read out of the source.
 - **A category names what its fix does (`RP116`).** A value outside the kind its field takes is
   `malformed`, as `HS1` already was: `HS3`, `HS5`, `HS13`, `HS14`, `HS16`, `HS17` and `DR-COPY` move there. A
-  monument the settings and the world place apart is `conflict` (`OB25`). `?category=` answers move with them.
+  monument the settings and the world place apart is `conflict` (`OB25`). A map that plays and was left at a
+  default nobody chose is `unfinished`, a category of its own: a room in the built-in shell (`WX14`) and a board
+  with no palette, terraform or prop (`SK8`). `?category=` answers move with them.
 - **Every check is stated by its own rule (`RP115`).** Rules whose text left a check out are split, each
   check raised under its own id where it is checked: the roof's slab and stair (`HS20`–`HS22` beside `HS3`); the
   request's stale revision, entry in use, kept view, empty hand-off and empty read (`RQ13`–`RQ17` beside `RQ5`);

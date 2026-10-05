@@ -37,6 +37,10 @@ public enum RuleCategory
     /// nobody can enter it, part is unreachable, a goal cannot be contested. <i>Change the map.</i></summary>
     Unplayable,
 
+    /// <summary>It plays as intended, and part of it was left at a default nobody chose, so it looks
+    /// unfinished. <i>Finish it.</i></summary>
+    Unfinished,
+
     /// <summary>Everything read and resolved, and the studio will not do it. Not a fault in the request and
     /// not a limit of what can be built, but a policy the studio holds. <i>Ask for something else.</i></summary>
     Forbidden,

@@ -15,7 +15,7 @@ public static partial class RuleWords
     /// <summary>A category as the action it asks for, with the line that says when it applies.</summary>
     public sealed record Action(RuleCategory Category, string Label, string Says, bool AuthorFixes);
 
-    /// <summary>The eight categories in the order an author meets them; the last three are not the author's to
+    /// <summary>The nine categories in the order an author meets them; the last three are not the author's to
     /// fix, and a list draws a divider before them.</summary>
     public static readonly IReadOnlyList<Action> Actions =
     [
@@ -24,6 +24,7 @@ public static partial class RuleWords
         new(RuleCategory.Conflict, "Choose which wins", "Two things you asked for disagree.", true),
         new(RuleCategory.Unsatisfiable, "Change the design", "What you asked for can’t all be true at once.", true),
         new(RuleCategory.Unplayable, "Make it playable", "The map builds, but players can’t play it as it is.", true),
+        new(RuleCategory.Unfinished, "Finish it", "The map plays, but part of it was left at a default nobody chose.", true),
         new(RuleCategory.Forbidden, "Ask for something else", "The studio doesn’t allow this.", false),
         new(RuleCategory.Unavailable, "Try again later", "Something the studio depends on didn’t answer.", false),
         new(RuleCategory.Internal, "Report it", "This is a fault in the studio, not in your map.", false),
