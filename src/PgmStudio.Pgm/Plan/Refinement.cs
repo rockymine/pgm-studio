@@ -167,8 +167,10 @@ public sealed record Refinement
             if (registry[used] is not { } material)
             {
                 findings.Add(new Finding(SourceRules.UsesNoMaterial,
-                    $"{path} uses the material '{used}', which `materials` does not state"
-                    + (registry.Count > 0 ? $" — it states {string.Join(", ", registry.Select(pair => $"'{pair.Key}'"))}" : ""),
+                    $"`{path}` uses material '{used}', which "
+                    + (registry.Count > 0
+                        ? $"is not one of {string.Join(", ", registry.Select(pair => pair.Key))}"
+                        : "`materials` does not have"),
                     Field: $"refinement.{path}.use"));
                 return node;
             }
@@ -254,9 +256,8 @@ public sealed record Refinement
             {
                 findings.Add(new Finding(SourceRules.LayerStatedTwice,
                     id.Length == 0
-                        ? $"addLayers[{index}] states no `id`, and a storey is found by its id"
-                        : $"addLayers states layer '{id}', which the board already has — a stack holding two layers "
-                          + "under one id has no single one to draw a shape onto",
+                        ? $"`addLayers[{index}]` has no `id`"
+                        : $"`addLayers[{index}]` adds layer '{id}', which the layout already has",
                     Field: $"addLayers[{index}].id", Subjects: id.Length == 0 ? null : [id]));
                 continue;
             }
@@ -295,8 +296,8 @@ public sealed record Refinement
             var edit = SketchGeometryEdit.AddShape(layoutJson, layerId, shape, groupId);
             if (edit.Layout is { } drawn) { layoutJson = drawn; continue; }
             findings.Add(edit.Refusal?.AsComplaint() ?? new Finding(SourceRules.NamesNothing,
-                $"addShapes[{index}] names layer '{layerId}', which the board does not have, so the shape is not "
-                + "drawn", Severity.Complaint, Field: $"addShapes[{index}].layer",
+                $"`addShapes[{index}]` names layer '{layerId}', which the layout does not have",
+                Severity.Complaint, Field: $"addShapes[{index}].layer",
                 Subjects: shape["id"]?.GetValue<string>() is { } id ? [id] : null));
         }
         return layoutJson;
@@ -347,7 +348,8 @@ public sealed record Refinement
             string? why = "states no outline";
             if ((outline is null ? null : outline.Drawn(out why)) is not { } ring)
             {
-                findings.Add(new Finding(SourceRules.OutlineDrawsNoRing, $"{field} {why}", Field: field, Subjects: [id]));
+                findings.Add(new Finding(SourceRules.OutlineDrawsNoRing, $"outline '{id}' {why}",
+                    Field: field, Subjects: [id]));
                 return;
             }
 
@@ -383,9 +385,7 @@ public sealed record Refinement
 
             if (unread.Count > 0)
                 findings.Add(new Finding(SourceRules.NamesNothing,
-                    $"{field} reaches {string.Join(" and ", unread)}, which states no outline of its own — an outline "
-                    + "is the vertices of a shape, the ring of an area mark or a push, or the points of a stroke, a "
-                    + "fluid or a flora prop",
+                    $"outline '{id}' is stated for {string.Join(" and ", unread)}, none of which takes an outline",
                     Severity.Complaint, Field: field, Subjects: [id]));
             else if (reached == 0)
                 findings.Add(NamesNothing("outlines", id,
@@ -413,9 +413,8 @@ public sealed record Refinement
                     if (named.Count != 1)
                     {
                         findings.Add(new Finding(SourceRules.EditStatesNoIndex,
-                            $"{field} names {(named.Count == 0 ? "no index" : string.Join(" and ", named))}; an edit "
-                            + "states exactly one of `after` (insert), `index` (move), `remove` (drop) or `pulls` "
-                            + "(points pulled across named edges)",
+                            $"point edit `{field}` names {named.Count} of `after`, `index`, `remove` and `pulls`, "
+                            + $"{(named.Count == 0 ? "less" : "more")} than 1",
                             Field: field, Subjects: [shapeId]));
                         return layoutJson;
                     }
@@ -425,8 +424,8 @@ public sealed record Refinement
                         layoutJson = Applied(Pulled(op["pulls"], shapeId) is { } pulls
                                 ? SketchGeometryEdit.PullShape(layoutJson, shapeId, pulls, fans)
                                 : GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                                    $"{field} states `pulls` as something other than edges, each named by the vertex "
-                                    + "it leaves and holding [fraction, blocks] pairs: {\"3\": [[0.25, 2]]}",
+                                    $"point edit `{field}` states `pulls` that is not edges, each holding pairs of "
+                                    + "fraction and blocks",
                                     Field: field, Subjects: [shapeId])),
                             layoutJson, field, shapeId, findings);
                         continue;
@@ -446,7 +445,7 @@ public sealed record Refinement
                         "index" when x is { } moveX && z is { } moveZ =>
                             SketchGeometryEdit.MoveVertex(layoutJson, shapeId, at, moveX, moveZ),
                         "index" => GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                            $"{field} moves vertex {at} and states no `x` and `z` to move it to", Field: field,
+                            $"point edit `{field}` moves point {at} and states no `x` and `z`", Field: field,
                             Subjects: [shapeId])),
                         _ => SketchGeometryEdit.InsertVertex(layoutJson, shapeId, at, x, z, out _),
                     };
@@ -461,8 +460,8 @@ public sealed record Refinement
                 layoutJson = Applied(edit, layoutJson, $"bendShapes.{shapeId}", shapeId, findings);
                 if (held > 0)
                     findings.Add(new Finding(SketchRules.BendHeldBack,
-                        $"{held} of the points cut into '{shapeId}' had no room on the side asked for and stayed on "
-                        + "the edge they were cut from", Severity.Complaint, Subjects: [shapeId]));
+                        $"bend of shape '{shapeId}' has {held} point{(held == 1 ? "" : "s")} with no room on the "
+                        + "side it asks for", Severity.Complaint, Subjects: [shapeId]));
             }
         return layoutJson;
     }
@@ -529,9 +528,8 @@ public sealed record Refinement
                     if (vertex == at && !Same(to, moved))
                     {
                         findings.Add(new Finding(SourceRules.EditOffItsAxis,
-                            $"{field} moves point {at} of '{shapeId}', which the board's symmetry holds where it stands, "
-                            + "off the line it is its own image on — the point moves and the outline is no longer its "
-                            + "own image", Severity.Complaint, Field: field, Subjects: [shapeId]));
+                            $"point edit `{field}` moves fixed point {at} of shape '{shapeId}' to a place where it is "
+                            + "not a fixed point", Severity.Complaint, Field: field, Subjects: [shapeId]));
                         continue;
                     }
                     if (!moves.Any(move => move.Vertex == vertex)) moves.Add((vertex, to));
@@ -598,8 +596,11 @@ public sealed record Refinement
     {
         var have = drawn.Order(StringComparer.Ordinal).ToList();
         return new Finding(SourceRules.NamesNothing,
-            $"{key} names '{id}', which the board does not have"
-            + (have.Count > 0 ? $" — it has {string.Join(", ", have.Take(24))}{(have.Count > 24 ? ", …" : "")}" : ""),
+            $"`{key}` names '{id}', which "
+            + (have.Count > 0
+                ? $"is not one of {string.Join(", ", have.Take(24))}"
+                  + (have.Count > 24 ? $" and {have.Count - 24} others" : "")
+                : "the layout does not have"),
             Severity.Complaint, Field: $"{key}.{id}", Subjects: [id]);
     }
 
@@ -742,10 +743,11 @@ public sealed record Outline(
     /// itself.</summary>
     public double[][]? Drawn(out string? why)
     {
-        why = At is not { Length: 2 } ? "states no `at`, the centre as an [x, z] pair"
-            : Radius <= 0 || RadiusZ is <= 0 ? "states a radius of nought or less"
-            : Points < 3 ? $"is drawn with {Points} points, and a ring takes three"
-            : Wobble is < 0 or >= 1 ? $"states a wobble of {Wobble}; a bulge is a fraction of the radius from 0 up to 1"
+        why = At is not { Length: 2 } ? "has no `at`"
+            : Radius <= 0 ? $"has a `radius` of {Radius}, not more than 0"
+            : RadiusZ is <= 0 ? $"has a `radiusZ` of {RadiusZ}, not more than 0"
+            : Points < 3 ? $"has {Points} points, less than 3"
+            : Wobble is < 0 or >= 1 ? $"has a `wobble` of {Wobble}, not at least 0 and below 1"
             : null;
         return why is null
             ? Geom.Algorithms.LobedOutline.Of(At[0], At[1], Radius, RadiusZ ?? Radius, Points, Lobes, Wobble, Phase, Turn)

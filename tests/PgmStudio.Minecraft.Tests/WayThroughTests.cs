@@ -65,7 +65,7 @@ public sealed class WayThroughTests
         var closed = ways.Admit("range", Rect(20, 0, 20, 55));
 
         await Assert.That(closed).IsNotNull();
-        await Assert.That(closed!.Message).Contains("further round");
+        await Assert.That(closed!.Message).Contains("82 blocks longer, more than 10 blocks");
     }
 
     [Test]

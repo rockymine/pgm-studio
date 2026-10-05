@@ -680,9 +680,33 @@ dash or sign where a word belongs: "less than", "more than", "by" for a size.
 **The helpers write the shape, so a check states only its thing and its numbers.** A soft term names its
 unit (`SoftTerm.Unit`) and the thing it measured (`Reads`); `Measures` writes the value and the broken edge,
 and the edge exactly as the rule text writes it, which `RuleBandDriftTests` reads through the same method.
-The plan checks name several pieces with `Quoted` and a band's broken edge with `Beyond`; the decorator's
-`Declined` opens every decline with the prop's kind and id. `FindingMessageTests` reads every message these
-helpers write out of the source and refuses a symbol, a second sentence, a reason or a message naming no id.
+`Wording.Count` writes a count with its noun ("1 block", "3 blocks") and `Wording.Ids` a list of ids ("'a',
+'b' and 'c'"), and both sit in `PgmStudio.Vocabulary`, so every check that counts or lists reaches the same
+pair. The plan checks name a band's broken edge with `Beyond`; the decorator's `Declined` opens every decline
+with the prop's kind and id.
+
+**A thing that is absent, taken or of the wrong kind is said one way everywhere.** Most messages measure;
+the rest report one of a few states, and each state has one phrasing, so a caller matching a message and a
+reader scanning a list meet the same words from every gate:
+
+| State | Phrasing |
+|---|---|
+| the named thing is not stored | `house 'oak' does not exist` |
+| the request leaves a parameter out | `` the request states no `slug` `` |
+| the thing names something its owner lacks | `the apply rule names region 'mid', which the document does not have` |
+| a word outside its closed set | `` `kind` 'tower' is not one of house, wall, tree `` |
+| a thing naming a word outside the set | `layer 'roof' names material 'x', which is not one of stone, wood` |
+| a name someone else holds | `region id 'mid' is already taken` |
+| a value of the wrong type | `` `radius` is not a number ``, `` `y` is not a whole number `` |
+
+**`FindingMessageTests` holds every message in `src/` to this.** It finds each call that carries a message
+— a `Finding`, written out or target-typed, the plan checks' `Lint`, the decorator's `Declined`, the request
+refusals, the editors' faults and the evaluator's term scores — reads the literal text of its message
+argument, and refuses a capital, a full stop, a symbol, a reason or a fix in prose, a rule or task id, a name
+from the code, words in parentheses, a retired glossary word, and the phrasings the table replaces ("not
+found", "is required", "already in use", "invalid", "unknown"). A message built
+elsewhere and passed through, such as an exception's text, is read only where its builder is itself a carrier,
+and the document readers' exception texts that reach a request refusal are not yet in the shape (`RP120`).
 
 ## Adding one
 

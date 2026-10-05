@@ -35,7 +35,7 @@ public sealed class EyeReadEndpointTests
     }
 
     [Test]
-    public async Task Without_the_textures_the_read_says_what_to_set()
+    public async Task Without_the_textures_the_read_is_refused_under_RQ10()
     {
         using var client = ApiTestFactory.Shared.CreateClient();
         var slug = await FinishedAsync(client);
@@ -45,7 +45,7 @@ public sealed class EyeReadEndpointTests
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.ServiceUnavailable);
         var finding = JsonDocument.Parse(await resp.Content.ReadAsStringAsync()).RootElement.GetProperty("findings")[0];
         await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ10");
-        await Assert.That(finding.GetProperty("message").GetString()).Contains("Textures:AcceptMojangEula");
+        await Assert.That(finding.GetProperty("message").GetString()).IsEqualTo("the studio has no block textures");
     }
 
     [Test]

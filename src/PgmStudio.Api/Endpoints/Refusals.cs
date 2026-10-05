@@ -90,8 +90,8 @@ internal static class Refusals
         return WriteAsync(http, 404, $"no such {what}",
             [new Finding(RequestRules.NoSuchSubject,
                 named is { Length: > 0 }
-                    ? $"no {what} is stored under '{named}'"
-                    : $"this route has no {what} to answer for")], ct);
+                    ? $"{what} '{named}' does not exist"
+                    : $"the path of the request names no {what}")], ct);
     }
 
     /// <summary>The request conflicts with what is stored — a name already taken, a row something still
@@ -106,8 +106,7 @@ internal static class Refusals
     public static Task StoredUnreadableAsync(HttpContext http, string what, CancellationToken ct) =>
         WriteAsync(http, 422, $"stored {what} is unreadable",
             [new Finding(RequestRules.StoredUnreadable,
-                $"the {what} this map has stored will not read back — it was written under a shape no reader "
-                + "understands, so save it again from the tool that writes it")], ct);
+                $"the stored {what} of this map does not read back")], ct);
 
     /// <summary>The whole gate in one line: <c>if (await Refusals.StopAsync(…)) return;</c>. True when the
     /// findings refuse and the response has been written; false when there was nothing to stop for, complaints

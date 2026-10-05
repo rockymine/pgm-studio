@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
@@ -43,7 +44,7 @@ public sealed class StructuralIntegrity : ILayoutTerm
         var subjects = errors.SelectMany(e => e.SubjectIds).Distinct().ToList();
         var message = errors.Count == 1
             ? errors[0].Message
-            : $"{errors.Count} structural errors ({errors[0].Message})";
+            : $"{errors[0].Message}, and {Wording.Count(errors.Count - 1, "other structural problem")}";
         return TermScores.Violated(this, message, subjects, TermEvidence.OffenderRects(ctx.Plan, subjects));
     }
 }

@@ -214,8 +214,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         {
             await Refusals.WriteAsync(HttpContext, 409, "relief would be orphaned",
             [.. orphans.Select(group => new Finding(SketchRules.ReliefOrphaned,
-                $"the recompiled board has no group for the terrain authored on group {group}; retry "
-                + "with ?force=true to discard it",
+                $"group '{group}' holds terraform in the stored layout, and the recompiled layout has no such group",
                 Subjects: [group]))], ct);
             return;
         }
@@ -229,18 +228,15 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         // road this route documents. Named rather than dropped.
         foreach (var group in SketchLayout.ReliefReplaced(compiled, storedJson))
             Complaints.Add(HttpContext, [new Finding(SketchRules.ReliefOrphaned,
-                $"the relief posted for group '{group}' is not the one stored, and a merge carries the "
-                + "stored one — the terrain this board builds is the terrain it already had. Write the new "
-                + $"one to PUT /map/{map.Slug}/sketch/relief/{group}, or replace the whole layout with "
-                + $"PUT /map/{map.Slug}/sketch",
+                $"the terraform posted for group '{group}' is not the terraform stored",
                 Severity.Complaint, Field: $"relief.{group}", Subjects: [group])]);
 
         // Geometry is the plan's, so a shape drawn in the sketch is carried by nothing — and said so.
         var dropped = SketchLayout.DroppedShapes(compiled, storedJson);
         if (dropped.Count > 0)
             Complaints.Add(HttpContext, [new Finding(SketchRules.ShapeDropped,
-                $"the rebuild keeps the plan's geometry, and {dropped.Count} shape(s) drawn in the sketch are "
-                + $"not in it: {string.Join(", ", dropped)}. Draw them into the plan, or again after the rebuild",
+                $"the sketch has {dropped.Count} {(dropped.Count == 1 ? "shape" : "shapes")} with no counterpart in "
+                + $"the plan the rebuild compiles: {string.Join(", ", dropped)}",
                 Severity.Complaint, Field: "layers", Subjects: dropped)]);
 
         var merged = SketchLayout.CarryStructuralHeight(
@@ -529,8 +525,8 @@ public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore art
         {
             await Refusals.WriteAsync(HttpContext, 422, "no such prop kind",
                 [new Finding(RequestRules.NoSuchSubject,
-                    $"'{kind}' is not a kind a dressing document names — it carries "
-                    + $"{string.Join(", ", PlacedProp.Kinds)}", Field: "kind")], ct);
+                    $"the request's `kind` '{kind}' is not one of "
+                    + string.Join(", ", PlacedProp.Kinds), Field: "kind")], ct);
             return;
         }
 
@@ -550,7 +546,7 @@ public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore art
                 {
                     await Refusals.WriteAsync(HttpContext, 422, "no such house recipe",
                         [new Finding(RequestRules.NoSuchSubject,
-                            $"'{key}' names no house recipe in the posted layout's dressing.styles",
+                            $"the `style` of the request is '{key}', which names no recipe in `dressing.styles` of the layout",
                             Field: "style")], ct);
                     return;
                 }
@@ -624,7 +620,7 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
                 || points.ValueKind != JsonValueKind.Array)
             {
                 await Refusals.UnreadableAsync(HttpContext, "invalid probe",
-                    "the body carries a layout and a ring: { \"layout\": {…}, \"ring\": [[x, z], …] }", ct);
+                    "the request's body lacks a `layout` or a `ring` array", ct);
                 return;
             }
             layoutJson = layout.GetRawText();
@@ -641,7 +637,8 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
         {
             await Refusals.WriteAsync(HttpContext, 422, "ring too short",
                 [new Vocabulary.Finding(RequestRules.Conflict,
-                    $"a ring needs three points or more to cover any ground; this one carries {ring.Count}")], ct);
+                    $"the `ring` of the request has {ring.Count} {(ring.Count == 1 ? "point" : "points")}, "
+                    + "less than 3")], ct);
             return;
         }
         Complaints.Add(HttpContext, SketchLayoutCheck.Check(layoutJson).AsComplaints());

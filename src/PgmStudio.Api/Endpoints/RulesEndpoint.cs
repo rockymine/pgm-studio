@@ -117,7 +117,7 @@ public sealed class RulesEndpoint : EndpointWithoutRequest<List<RuleDto>>
         Refusals.WriteAsync(HttpContext, 400, $"unknown {parameter}",
             [new Finding(
                 RequestRules.Unreadable,
-                $"'{parameter}' is one of "
+                $"the request's `{parameter}` is not one of "
                 + string.Join(", ", Enum.GetNames<TWord>().Select(name => name.ToLowerInvariant())),
                 Field: parameter)],
             ct);

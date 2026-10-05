@@ -75,7 +75,7 @@ public sealed class RoofStyleGetEndpoint(HousePartStore store) : EndpointWithout
     {
         var id = Route<long>("id");
         var row = await store.GetRoofAsync(id, ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "roof style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "roof part", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(row, await store.GetRoofCoursesAsync(id, ct)), ct);
     }
 }
@@ -121,7 +121,7 @@ public sealed class RoofStyleUpdateEndpoint(HousePartStore store, HousePartLibra
         var id = Route<long>("id");
         var updated = await store.UpdateRoofAsync(
             id, HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
-        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "roof style", ct); return; }
+        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "roof part", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
     }
 }
@@ -153,7 +153,7 @@ public sealed class RoofStyleDeleteEndpoint(HousePartStore store) : EndpointWith
         if (used.Count > 0)
         {
             await Refusals.ConflictAsync(HttpContext, "roof style in use",
-                $"{used.Count} room style(s) still bind this roof style — unbind them before forgetting it", ct,
+                $"the roof part is still bound by {Wording.Count(used.Count, "house")}", ct,
                 holding: [.. used.Select(name => name.ToString()!)]);
             return;
         }
@@ -186,7 +186,7 @@ public sealed class StoreyStyleGetEndpoint(HousePartStore store) : EndpointWitho
     {
         var id = Route<long>("id");
         var row = await store.GetStoreyAsync(id, ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "storey style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "storey part", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(row, await store.GetStoreyCoursesAsync(id, ct)), ct);
     }
 }
@@ -230,7 +230,7 @@ public sealed class StoreyStyleUpdateEndpoint(HousePartStore store)
         var id = Route<long>("id");
         var updated = await store.UpdateStoreyAsync(
             id, HousePartLibrary.RowOf(req), HousePartLibrary.StoreyCourseRowsOf(req), ct);
-        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "storey style", ct); return; }
+        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "storey part", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
     }
 }
@@ -259,7 +259,7 @@ public sealed class StoreyStyleDeleteEndpoint(HousePartStore store) : EndpointWi
         if (used.Count > 0)
         {
             await Refusals.ConflictAsync(HttpContext, "storey style in use",
-                $"{used.Count} room style(s) still bind this storey style — unbind them before forgetting it", ct,
+                $"the storey part is still bound by {Wording.Count(used.Count, "house")}", ct,
                 holding: [.. used.Select(name => name.ToString()!)]);
             return;
         }
@@ -288,7 +288,7 @@ public sealed class PorchStyleGetEndpoint(HousePartStore store) : EndpointWithou
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetPorchAsync(Route<long>("id"), ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "porch style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "porch part", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(row), ct);
     }
 }
@@ -326,7 +326,7 @@ public sealed class PorchStyleUpdateEndpoint(HousePartStore store) : Endpoint<Po
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
         if (!await store.UpdatePorchAsync(id, row, ct))
-        { await Refusals.NotFoundAsync(HttpContext, "porch style", ct); return; }
+        { await Refusals.NotFoundAsync(HttpContext, "porch part", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
     }
 }
@@ -353,7 +353,7 @@ public sealed class PorchStyleDeleteEndpoint(HousePartStore store) : EndpointWit
         if (used.Count > 0)
         {
             await Refusals.ConflictAsync(HttpContext, "porch style in use",
-                $"{used.Count} room style(s) still bind this porch style — unbind them before forgetting it", ct,
+                $"the porch part is still bound by {Wording.Count(used.Count, "house")}", ct,
                 holding: [.. used.Select(name => name.ToString()!)]);
             return;
         }

@@ -43,7 +43,7 @@ public sealed class CoreSuggestionsEndpoint(MapRepository repo, PgmDb db)
         if (stated.Length > 0 && !BlockBox.TryParse(stated, out _))
         {
             await Refusals.UnreadableAsync(HttpContext, "box unreadable",
-                "the volume to filter by is stated as box=x0,y0,z0,x1,y1,z1; leave it off to read them all",
+                "the request's `box` is not six whole numbers x0,y0,z0,x1,y1,z1",
                 ct, field: "box");
             return;
         }

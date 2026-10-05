@@ -476,21 +476,20 @@ public sealed record HouseProp : PlacedProp
     {
         if (Wings.Count == 0)
             return Findings.Of(new Finding(HousePropRules.NoWings,
-                "a building needs at least one rectangle", Field: "wings"));
+                "the building has no wing", Field: "wings"));
         for (var index = 0; index < Wings.Count; index++)
         {
             var corners = Wings[index].Corners;
             var wing = index.ToString();
             if (corners.Count < 2 || corners[0].Length < 2 || corners[1].Length < 2)
                 return Findings.Of(new Finding(HousePropRules.WingShape,
-                    "every wing is drawn as two opposite corners, each an x and a z",
+                    $"wing {wing} is not two corners with an x and a z each",
                     Field: "wings", Subjects: [wing]));
             var (minX, minZ, maxX, maxZ) = Corners(corners);
             if (maxX - minX + 1 < RoomFrames.MinFootprintSpan || maxZ - minZ + 1 < RoomFrames.MinFootprintSpan)
                 return Findings.Of(new Finding(HousePropRules.WingShape,
-                    $"a wing holds two walls and an inside, so it is at least "
-                    + $"{RoomFrames.MinFootprintSpan} blocks each way — the least span any building footprint "
-                    + $"may be; this one is {maxX - minX + 1} × {maxZ - minZ + 1}",
+                    $"wing {wing} is {maxX - minX + 1} by {maxZ - minZ + 1} blocks, less than "
+                    + $"{RoomFrames.MinFootprintSpan} blocks across its shorter side",
                     Field: "wings", Subjects: [wing]));
         }
 
@@ -498,7 +497,7 @@ public sealed record HouseProp : PlacedProp
         var covered = plan.Cells().Count();
         if (covered > MaxFootprint)
             return Findings.Of(new Finding(HousePropRules.PastCap,
-                $"the wings cover {covered} blocks, past the {MaxFootprint} a placed building may take",
+                $"the wings of the building cover {covered} blocks, more than {MaxFootprint} blocks",
                 Field: "wings"));
 
         return WingJoints.Check(plan);

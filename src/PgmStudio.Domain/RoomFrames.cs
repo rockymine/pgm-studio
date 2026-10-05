@@ -331,24 +331,22 @@ public static class RoomFrames
         if (FootprintTooSmall(maxX - minX, maxZ - minZ, walled: false))
         {
             refusal = new Finding(RoomFrameRules.FootprintTooSmall,
-                $"footprint {maxX - minX}×{maxZ - minZ} is too small to hold a room: the least span is "
-                + $"{MinFootprintSpan}×{MinFootprintSpan} blocks — a {PadSpan}×{PadSpan} pad and the block of clear "
-                + $"floor it keeps on every side. A shell over it needs {MinSpan(walled: true)}×"
-                + $"{MinSpan(walled: true)}, and simply does not stand on a footprint smaller than that");
+                $"has a footprint {Math.Min(maxX - minX, maxZ - minZ)} blocks across its shorter side, "
+                + $"less than {MinFootprintSpan} blocks");
             return null;
         }
         if (minX < pieceMinX || minZ < pieceMinZ || maxX > pieceMaxX || maxZ > pieceMaxZ)
         {
             refusal = new Finding(RoomFrameRules.FootprintOffPiece,
-                $"footprint [{minX}, {minZ}]–[{maxX}, {maxZ}] reaches outside the piece it stands on "
-                + $"([{pieceMinX}, {pieceMinZ}]–[{pieceMaxX}, {pieceMaxZ}])");
+                $"has a footprint from ({minX}, {minZ}) to ({maxX}, {maxZ}) that reaches outside its piece, "
+                + $"which runs from ({pieceMinX}, {pieceMinZ}) to ({pieceMaxX}, {pieceMaxZ})");
             return null;
         }
         if (SpawnPad.MixedParity(markerX, markerZ))
         {
             refusal = new Finding(RoomFrameRules.MarkerParity,
-                "marker parity differs between axes; the pad is always square — place the marker on a "
-                + "block grid line, or at a block centre, in both axes");
+                $"has a marker at ({markerX}, {markerZ}) on a block grid line along one axis "
+                + "and at a block centre along the other");
             return null;
         }
 
@@ -367,7 +365,7 @@ public static class RoomFrames
         if (pad is null)
         {
             refusal = new Finding(RoomFrameRules.PadClearance,
-                "no room for the spawn/wool pad inside the interior");
+                "has a pad that does not fit between the walls of its interior");
             return null;
         }
 
@@ -407,7 +405,7 @@ public static class RoomFrames
             if (doors.Count == 0)
             {
                 refusal = new Finding(RoomFrameRules.RoomUnreachable,
-                    "wool room is unreachable: no land seam and no abutting build zone to enter by");
+                    "has no shared edge with another piece or a build region");
                 return null;
             }
         }

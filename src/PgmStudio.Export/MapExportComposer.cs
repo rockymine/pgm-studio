@@ -245,7 +245,7 @@ public static class MapExportComposer
 
         if (Entries(doc, "spawns").Count == 0)
             findings.Add(new Finding(ExportRules.NoSpawn,
-                "the map declares no spawn, so no player and no observer can enter it", Field: "spawns"));
+                "the map has no spawn", Field: "spawns"));
 
         // EX4 — the author's rule: the three gamemodes the studio authors are played by teams, so a map that
         // states something to win must state who is contesting it. Asked of the objectives rather than of the
@@ -256,7 +256,7 @@ public static class MapExportComposer
         var goals = Entries(doc, "wools").Count + Entries(doc, "destroyables").Count + Entries(doc, "cores").Count;
         if (goals > 0 && Entries(doc, "teams").Count == 0)
             findings.Add(new Finding(ExportRules.NoTeam,
-                $"the map declares {goals} objective(s) and no team, so there is nobody to defend or take them",
+                $"the map declares {goals} objective{(goals == 1 ? "" : "s")} and no team",
                 Field: "teams"));
 
         if (intent is not null)
@@ -271,8 +271,7 @@ public static class MapExportComposer
             {
                 if (stated > 0 && written == 0)
                     findings.Add(new Finding(ExportRules.NotCarried,
-                        $"the intent states {stated} {field} and the document carries none — they were lost "
-                        + "between what was authored and what is about to be written",
+                        $"the game settings state {stated} entries in `{field}` and the document carries none",
                         Field: field));
             }
 
@@ -305,28 +304,25 @@ public static class MapExportComposer
         var regions = (doc.GetValueOrDefault("regions") as Dict)?.Keys.ToHashSet() ?? [];
 
         foreach (var missing in Named(keepers, "shop").Where(id => !menus.Contains(id)).Distinct())
-            yield return Dangling("a shopkeeper", "shop", missing,
-                "PGM refuses the map at load rather than spawning a keeper with nothing to open");
+            yield return Dangling("a shopkeeper", "shop", missing);
 
         foreach (var missing in Named(keepers, "region").Where(id => !regions.Contains(id)).Distinct())
-            yield return Dangling("a shopkeeper", "region", missing,
-                "PGM resolves the place it stands in against the map's own regions and finds none");
+            yield return Dangling("a shopkeeper", "region", missing);
 
         var actions = shops
             .SelectMany(shop => Entries(shop, "categories").OfType<Dict>())
             .SelectMany(category => Entries(category, "icons").OfType<Dict>())
             .ToList();
         foreach (var missing in Named(actions, "action").Distinct())
-            yield return Dangling("a shop icon", "action", missing,
-                "the studio authors no <actions> block, so nothing on this map defines it");
+            yield return Dangling("a shop icon", "action", missing);
 
         static IEnumerable<string> Named(IEnumerable<Dict> entries, string key) =>
             entries.Select(entry => (entry.GetValueOrDefault(key) as string ?? "").Trim())
                    .Where(id => id.Length > 0);
 
-        static Finding Dangling(string subject, string field, string id, string because) =>
+        static Finding Dangling(string subject, string field, string id) =>
             new(ShopRules.ReferenceNotDefined,
-                $"{subject} names {field} \"{id}\" and the map defines no such thing — {because}",
+                $"{subject} names {field} '{id}', which the map does not have",
                 Field: "shops", Subjects: [id]);
     }
 
@@ -356,17 +352,16 @@ public static class MapExportComposer
         var ends = points.Count(point => point.GetValueOrDefault("required") is null);
         if (ends > 0)
             yield return new Finding(ObjectiveRules.PointEndsTheMatch,
-                $"{ends} of the map's {points.Count} capture point(s) state no `required`, which PGM reads as "
-                + "**true** at every proto the studio supports — so the match ends the moment one team holds "
-                + "all of them, rather than running to the score limit. Write `required=\"false\"`",
+                $"{ends} of the map's {points.Count} capture point{(points.Count == 1 ? "" : "s")} "
+                + $"{(ends == 1 ? "has" : "have")} no `required`",
                 Severity.Complaint, Field: "control_points");
 
         var pays = points.Count(point => Num(point.GetValueOrDefault("points")) > 0
                                       || Num(point.GetValueOrDefault("owner_points")) > 0);
         if (pays > 0 && doc.GetValueOrDefault("score") is null)
             yield return new Finding(ObjectiveRules.PointScoresIntoNothing,
-                $"{pays} of the map's capture point(s) pay their owner and the map declares no `score`, so PGM "
-                + "builds no score module and they pay nothing at all, for the whole match. Declare `score`",
+                $"{pays} of the map's capture points {(pays == 1 ? "pays its" : "pay their")} owner "
+                + "and the map declares no `score`",
                 Severity.Complaint, Field: "score");
     }
 
@@ -400,9 +395,7 @@ public static class MapExportComposer
         if (Entries(doc, "modes").Count == 0)
         {
             yield return new Finding(ObjectiveRules.NoModeLadder,
-                $"the map has {goals.Count} destroy objective(s) and no mode ladder, so they stay obsidian for "
-                + "the whole match — and the obsidian an attacker drops is what the defending team rebuilds "
-                + "with. Declare `modes`",
+                $"the map has {goals.Count} destroy objective{(goals.Count == 1 ? "" : "s")} and no `modes`",
                 Severity.Complaint, Field: "modes");
             yield break;
         }
@@ -412,9 +405,8 @@ public static class MapExportComposer
                                     && d.GetValueOrDefault("modes") is null);
         if (deaf > 0)
             yield return new Finding(ObjectiveRules.NoModeLadder,
-                $"the map declares a mode ladder and {deaf} of its {goals.Count} destroy objective(s) take no "
-                + "mode, so the ladder does nothing to them — PGM affects an objective by no mode unless it "
-                + "says so. Give each one `mode-changes` or name the modes it takes",
+                $"{deaf} of the map's {goals.Count} destroy objective{(goals.Count == 1 ? "" : "s")} "
+                + $"{(deaf == 1 ? "has" : "have")} no `mode_changes` and no `modes`",
                 Severity.Complaint, Field: "modes");
     }
 
@@ -439,8 +431,8 @@ public static class MapExportComposer
         return Refuse("unknown gamemode",
         [
             new Finding(ObjectiveRules.UnknownGamemode,
-                $"declares <gamemode> {string.Join(", ", unknown)}, which PGM's Gamemode enum does not "
-                + "recognize — the map would fail to load",
+                $"the map's `gamemode` names {Wording.Ids(unknown)}, "
+                + "which PGM does not have",
                 Field: "gamemode", Subjects: unknown),
         ]);
     }
@@ -538,8 +530,7 @@ public static class MapExportComposer
             if (worst <= 1) continue;
             findings.Add(new Finding(RoomFrameRules.StructureOnAPlinth,
                 $"{identity.Replace(":", " ")} stands {worst} blocks above the ground beside it at "
-                + $"({atX}, {atZ}). Its foundation fills that face in bedrock, which is a wall a "
-                + "player cannot climb and nobody drew.",
+                + $"({atX}, {atZ}), more than 1 block",
                 Severity.Complaint, Subjects: [identity], Edit: BenchEdit(identity, cells, floor, groupAt)));
         }
         return findings;
@@ -591,8 +582,8 @@ public static class MapExportComposer
             foreach (var monument in wool.Monuments)
                 if (!IsLand((int)Math.Floor(monument.Location.X), (int)Math.Floor(monument.Location.Z)))
                     findings.Add(new Finding(ObjectiveRules.Placement,
-                        $"{monument.Team}'s monument on {wool.Owner}'s wool stands over the void — a goal "
-                        + "with nothing under it cannot be won",
+                        $"wool monument of '{monument.Team}' on the wool of '{wool.Owner}' has void under it at "
+                        + $"({(int)Math.Floor(monument.Location.X)}, {(int)Math.Floor(monument.Location.Z)})",
                         Subjects: [wool.Owner]));
 
         findings.AddRange(GoalsSharingGround(goals));
@@ -615,9 +606,8 @@ public static class MapExportComposer
             {
                 if (!placed[i].Box.Intersects(placed[j].Box)) continue;
                 yield return new Finding(ObjectiveRules.GoalsShareGround,
-                    $"the {placed[i].Kind} '{placed[i].Name}' and the {placed[j].Kind} '{placed[j].Name}' are "
-                    + $"built into the same blocks — {Span(placed[i].Box)} and {Span(placed[j].Box)} overlap, "
-                    + "so breaking one is breaking the other",
+                    $"the {placed[i].Kind} '{placed[i].Name}' {Span(placed[i].Box)} and "
+                    + $"the {placed[j].Kind} '{placed[j].Name}' {Span(placed[j].Box)} overlap",
                     Subjects: [placed[i].Name, placed[j].Name]);
             }
     }
@@ -626,14 +616,14 @@ public static class MapExportComposer
     /// <c>ToString</c> prints its derived widths too, which is three numbers of noise per corner in a
     /// sentence whose whole job is a coordinate.</summary>
     private static string Span(BlockBox box) =>
-        $"({box.MinX}, {box.MinY}, {box.MinZ})–({box.MaxX}, {box.MaxY}, {box.MaxZ})";
+        $"from ({box.MinX}, {box.MinY}, {box.MinZ}) to ({box.MaxX}, {box.MaxY}, {box.MaxZ})";
 
     /// <summary>Every destroyable and core as the volume it was stamped into, named as a player meets it.</summary>
     private static IEnumerable<(string Kind, string Name, BlockBox Box)> PlacedBoxes(MapIntent goals)
     {
         foreach (var destroyable in goals.Destroyables ?? [])
             if (destroyable.Box is { } box)
-                yield return ("destroyable", GoalName(destroyable.Name, destroyable.Owner), box);
+                yield return ("monument", GoalName(destroyable.Name, destroyable.Owner), box);
         foreach (var core in goals.Cores ?? [])
             if (core.Box is { } box)
                 yield return ("core", GoalName(core.Name, core.Owner), box);

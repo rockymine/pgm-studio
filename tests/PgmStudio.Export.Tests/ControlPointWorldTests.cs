@@ -88,7 +88,7 @@ public sealed class ControlPointWorldTests
         var finding = WorldBuilder.CapturePointsShowColour(built.World, [point]).Single();
         await Assert.That(finding.Rule).IsEqualTo(ObjectiveRules.PointNeverChangesColour);
         await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(finding.Message).Contains("has a pad holding no block PGM recolours");
+        await Assert.That(finding.Message).Contains("has no block that takes the team colour");
         await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "Middle" });
         // The marker is wool and survives, so only the pie is lost — which is why the two are asked apart.
         await Assert.That(finding.Message).DoesNotContain("sky marker");

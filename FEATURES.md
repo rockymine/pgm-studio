@@ -1019,6 +1019,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   measured number against the limit, with no reason or fix in prose. The producibility read raises its own `BX1`
   to `BX10` (a box room is `ST1`), and `Cites` names only an open task. `FindingMessageTests` holds the
   helpers' messages to the shape, read out of the source.
+- **Every message in the source takes the one shape (`RP114`).** The messages written at their raise sites —
+  the gates, the editors' faults, the request refusals, the world reads — open with the thing's kind and id
+  and give where and how far, with no reason or fix. A thing absent, taken or of the wrong kind is said one
+  way everywhere ("does not exist", "the request states no `x`", "is already taken", "is not one of"), and
+  `Wording.Count` and `Wording.Ids` write every count and id list. `FindingMessageTests` reads every
+  message-carrying call in `src/` and holds it to `docs/refusals.md`.
 - **Every rule says the same thing the same way (`RP113`).** The 178 gate rules join the 56 layout rules in one
   format: a meaning in one of a closed set of shapes with its number, a fix that opens with one of sixteen verbs
   and names its field as one dotted path. `RuleTextTests` holds all 234 as `GET /api/rules` serves them to

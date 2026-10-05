@@ -353,8 +353,7 @@ app.Use(async (ctx, next) =>
                          : PgmStudio.Domain.RequestRules.Unhandled,
                 document
                     ? ex.Message
-                    : "the studio failed to answer this request, and the fault is its own rather than the "
-                      + "document's — the detail is in the server log")],
+                    : "the studio failed to answer this request")],
             ctx.RequestAborted);
     }
 });

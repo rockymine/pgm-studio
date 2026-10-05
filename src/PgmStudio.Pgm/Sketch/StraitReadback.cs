@@ -64,15 +64,10 @@ public static class StraitReadback
             if (built < 0) continue;                        // no empty route between them to measure
             if (built >= Narrowest && built <= Widest) continue;
 
-            var names = $"[{string.Join(", ", strait.PiecesA)}] and [{string.Join(", ", strait.PiecesB)}]";
             findings.Add(new Finding(LayoutRules.TeamGapWidth,
-                built == 0
-                    ? $"the plan put team islands {names} {strait.Blocks} blocks apart and the drawn board "
-                      + $"joins them into one landmass — the strait the plan was checked against is not in "
-                      + $"the ground, and the walls that guarded it guard nothing"
-                    : $"the plan put team islands {names} {strait.Blocks} blocks apart and the drawn board "
-                      + $"puts them {built} — the CTW strait wants {Narrowest}–{Widest}, and the plan's "
-                      + "verdict was taken before a shape existed",
+                $"team sides of pieces {Wording.Ids(strait.PiecesA)} and of pieces {Wording.Ids(strait.PiecesB)} "
+                + $"have a gap of {built} blocks between them in the sketch and {strait.Blocks} in the plan, "
+                + (built < Narrowest ? $"less than {Narrowest} blocks" : $"more than {Widest} blocks"),
                 Severity.Complaint, Subjects: [.. strait.PiecesA.Concat(strait.PiecesB)]));
         }
         return new Findings(findings);

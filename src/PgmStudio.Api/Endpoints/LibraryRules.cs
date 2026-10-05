@@ -61,8 +61,7 @@ public static class SeededRows
         if (seedKey is null) return false;
         await Refusals.WriteAsync(http, 409, "seeded row",
             [new Finding(LibraryRules.SeededRow,
-                $"this {what} is the seed folder's entry `{seedKey}`, rewritten on every start: save a copy and change "
-                + "that, or change the folder", Subjects: [seedKey])], ct);
+                $"the {what} '{seedKey}' is a built-in entry", Subjects: [seedKey])], ct);
         return true;
     }
 }
@@ -81,15 +80,16 @@ public static partial class LibraryNaming
         {
             await Refusals.WriteAsync(http, 400, "invalid name",
                 [new Finding(LibraryRules.NameCharacters,
-                    $"`{name}` is not a library name: letters, digits, spaces, dashes and underscores, with no space "
-                    + "at either end and none doubled", Field: "name")], ct);
+                    $"the request's `name` is '{name}', not made only of ASCII letters, digits, spaces, dashes and "
+                    + "underscores, with no space at either end and none doubled", Field: "name")], ct);
             return true;
         }
         if (held.FirstOrDefault(row => row.Id != self
                 && string.Equals(row.Name, name, StringComparison.OrdinalIgnoreCase)) is not { Name: { } taken } other)
             return false;
         await Refusals.WriteAsync(http, 409, "name taken",
-            [new Finding(LibraryRules.NameTaken, $"`{taken}` (row {other.Id}) already carries this name",
+            [new Finding(LibraryRules.NameTaken,
+                $"the request's `name` is the same as the name of library entry {other.Id}, '{taken}'",
                 Field: "name", Subjects: [taken])], ct);
         return true;
     }
@@ -134,7 +134,7 @@ internal static class LibraryGate
     public static Findings Bindings(IEnumerable<(string Where, long StyleId, SlotBlockDto? Block)> slots)
         => new(slots.Where(slot => slot.StyleId != 0 && slot.Block is not null)
             .Select(slot => new Finding(LibraryRules.BlockAndPattern,
-                $"{slot.Where} names both a block and pattern {slot.StyleId}; a slot is filled by one",
+                $"the entry `{slot.Where}` names both a block and pattern {slot.StyleId}",
                 Field: slot.Where)));
 
     /// <summary>A building's courses, refused where one names both.</summary>
@@ -146,6 +146,6 @@ internal static class LibraryGate
         => Bindings(buckets.Select(bucket => ($"buckets[{bucket.Bucket}]", bucket.StyleId, bucket.Block)));
 
     private static Findings Refused(string kind) => Findings.Of(new Finding(LibraryRules.OneBlock,
-        $"a `{kind}` lays one block, and a single block is not a pattern: bind it in the slot as a block",
+        $"the pattern of kind `{kind}` holds only one block",
         Field: "params"));
 }

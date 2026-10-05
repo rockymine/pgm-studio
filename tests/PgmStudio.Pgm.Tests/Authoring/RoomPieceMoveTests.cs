@@ -128,7 +128,7 @@ public sealed class RoomPieceMoveTests
 
         await Assert.That(moved).IsNull();
         await Assert.That(refused.Single().Rule).IsEqualTo(RequestRules.Unreadable);
-        await Assert.That(refused.Single().Message).Contains("does not resize");
+        await Assert.That(refused.Single().Message).Contains("of the region it replaces");
     }
 
     /// <summary>A region an author drew as a union has no single rectangle a drag could mean, and moving the

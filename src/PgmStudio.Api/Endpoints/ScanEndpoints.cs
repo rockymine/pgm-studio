@@ -193,7 +193,7 @@ public sealed class SegmentsEndpoint(MapRepository repo, FeatureData feature) : 
         if (!SideView.Directions.Contains(axis))
         {
             await Refusals.UnreadableAsync(HttpContext, "invalid axis",
-                "axis must be one of nz/pz/nx/px", ct, field: "axis");
+                $"the request's `axis` '{axis}' is not one of nz, pz, nx and px", ct, field: "axis");
             return;
         }
 
@@ -243,7 +243,7 @@ public sealed class ColumnFloorEndpoint(MapRepository repo, FeatureData feature)
         if (!int.TryParse(HttpContext.Request.Query["x"], out var x) || !int.TryParse(HttpContext.Request.Query["z"], out var z))
         {
             await Refusals.UnreadableAsync(HttpContext, "column not named",
-                "a column is asked for by its x and z, and one of them is missing", ct);
+                "the request states no `x` or no `z` for the column", ct);
             return;
         }
         var refY = int.TryParse(HttpContext.Request.Query["y"], out var ry) ? ry : int.MaxValue;
@@ -286,7 +286,7 @@ public sealed class BlockSeatEndpoint(MapRepository repo, FeatureData feature) :
             || !int.TryParse(HttpContext.Request.Query["z"], out var z))
         {
             await Refusals.UnreadableAsync(HttpContext, "block not named",
-                "a block is asked for by its x, y and z, and one of them is missing", ct);
+                "the request states no `x`, `y` or `z` for the block", ct);
             return;
         }
 

@@ -36,7 +36,7 @@ public sealed class TreeStyleGetEndpoint(PropStyleStore store) : EndpointWithout
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetTreeAsync(Route<long>("id"), ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "tree style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "tree recipe", ct); return; }
         await Send.OkAsync(PropStyleLibrary.ToDetail(row), ct);
     }
 }
@@ -50,7 +50,7 @@ public sealed class TreeStyleDocumentEndpoint(PropStyleStore store) : EndpointWi
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetTreeAsync(Route<long>("id"), ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "tree style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "tree recipe", ct); return; }
         await Send.OkAsync(new StyleJsonDto(
             DressingJson.SerializeStyle(PropStyleLibrary.TreeOf(row))), ct);
     }
@@ -90,7 +90,7 @@ public sealed class TreeStyleUpdateEndpoint(PropStyleStore store) : Endpoint<Tre
         var id = Route<long>("id");
         var row = PropStyleLibrary.RowOf(req);
         if (!await store.UpdateTreeAsync(id, row, ct))
-        { await Refusals.NotFoundAsync(HttpContext, "tree style", ct); return; }
+        { await Refusals.NotFoundAsync(HttpContext, "tree recipe", ct); return; }
         row.Id = id;
         await Send.OkAsync(PropStyleLibrary.ToDetail(row), ct);
     }
@@ -138,7 +138,7 @@ public sealed class BoulderStyleGetEndpoint(PropStyleStore store) : EndpointWith
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetBoulderAsync(Route<long>("id"), ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "boulder style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "boulder recipe", ct); return; }
         await Send.OkAsync(PropStyleLibrary.ToDetail(row), ct);
     }
 }
@@ -150,7 +150,7 @@ public sealed class BoulderStyleDocumentEndpoint(PropStyleStore store) : Endpoin
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetBoulderAsync(Route<long>("id"), ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "boulder style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "boulder recipe", ct); return; }
         await Send.OkAsync(new StyleJsonDto(
             DressingJson.SerializeStyle(PropStyleLibrary.BoulderOf(row))), ct);
     }
@@ -185,7 +185,7 @@ public sealed class BoulderStyleUpdateEndpoint(PropStyleStore store)
         var id = Route<long>("id");
         var row = PropStyleLibrary.RowOf(req);
         if (!await store.UpdateBoulderAsync(id, row, ct))
-        { await Refusals.NotFoundAsync(HttpContext, "boulder style", ct); return; }
+        { await Refusals.NotFoundAsync(HttpContext, "boulder recipe", ct); return; }
         row.Id = id;
         await Send.OkAsync(PropStyleLibrary.ToDetail(row), ct);
     }

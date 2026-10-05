@@ -193,10 +193,8 @@ public static class HouseStyleValidation
         if (style.WallCourses >= needed) return;
 
         findings.Add(new Finding(HouseStyleRules.PorchHeadroom,
-            $"the porch fronts a {style.Doorway.Height}-course doorway and its {porch.Depth}-deep canopy "
-            + $"climbs {rise} course(s) over it, so it tops out {needed - style.WallCourses} course(s) above a "
-            + $"wall of {style.WallCourses}. Shorten the porch, flatten its roof, lower the door, or raise the "
-            + "wall.",
+            $"the house's wall is {Wording.Count(style.WallCourses, "course")} high, less than {Wording.Count(needed, "course")}, with a "
+            + $"{style.Doorway.Height}-course doorway and a porch canopy {porch.Depth} deep rising {Wording.Count(rise, "course")}",
             Severity.Complaint, Field: "porch"));
     }
 
@@ -204,6 +202,7 @@ public static class HouseStyleValidation
     /// seats a canopy by, and therefore what a wall has to reach for the canopy to stand under its eave.</summary>
     private const int PorchClearance = 2;
 
+    /// <summary>A count of courses as a message states it: "1 course", "3 courses".</summary>
     // ── a block named for a geometric role, never checked to be that kind of block ────────────────────────
 
     private static void CheckDoorHead(DoorHeadStyle head, List<Finding> findings)
@@ -221,7 +220,7 @@ public static class HouseStyleValidation
         if (HouseBlockKinds.Accepts(field.Kind, blockId)) return;
         var path = at ?? field.Field;
         findings.Add(new Finding(HouseStyleRules.BlockKind,
-            $"{path} ({blockId}) is not {HouseBlockKinds.Spoken(field.Kind)}. {field.Means}",
+            $"`{path}` is block {blockId}, which is not {HouseBlockKinds.Spoken(field.Kind)}",
             Field: path));
     }
 
@@ -251,10 +250,8 @@ public static class HouseStyleValidation
             if (course is LaidLogMaterial) continue;
 
             findings.Add(new Finding(HouseStyleRules.BeamsWithoutTimber,
-                $"the beams of {BlockMaterials.Of(style.Beams.Block, style.Beams.Data)} come out of storey {at}'s "
-                + $"top course, and that course is {Describe(course)} rather than a laid log, so the ends run out "
-                + "of the wall with no timber behind them. Lay that course in a laidLog of the beams' wood, or "
-                + "drop the beams.",
+                $"storey {at} of the house has beam ends of {BlockMaterials.Of(style.Beams.Block, style.Beams.Data)} "
+                + $"on a top course that is {Describe(course)}, not a laid log",
                 Severity.Complaint, Field: $"storeys[{at}].wall"));
         }
     }
@@ -269,10 +266,8 @@ public static class HouseStyleValidation
             if (levels[at].Post is SolidMaterial post && BlockFamilies.IsLog(post.Id)) continue;
 
             findings.Add(new Finding(HouseStyleRules.BeamsWithoutPosts,
-                $"the beams of {BlockMaterials.Of(style.Beams.Block, style.Beams.Data)} come out at storey {at}'s "
-                + $"corners, and those corners are {Describe(levels[at].Post)} rather than log posts, so the ends "
-                + "have no upright to dock against. Stand the storey on log posts of the beams' wood, or drop the "
-                + "beams.",
+                $"storey {at} of the house has beam ends of {BlockMaterials.Of(style.Beams.Block, style.Beams.Data)} "
+                + $"on corners that are {Describe(levels[at].Post)}, not log posts",
                 Severity.Complaint, Field: $"storeys[{at}].post"));
         }
     }
@@ -304,9 +299,8 @@ public static class HouseStyleValidation
         foreach (var (where, id, data) in Timbers(style))
             if (BlockMaterials.Of(id, data) != beam)
                 findings.Add(new Finding(HouseStyleRules.PartMaterial,
-                    $"beams are {beam} and {where} is {BlockMaterials.Of(id, data)}. A post, the beam ends "
-                    + "docking against it and the course they are the ends of are one frame, so they are cut "
-                    + "from one wood.",
+                    $"the beams of the house are {beam} and {where} is {BlockMaterials.Of(id, data)}, "
+                    + "a different material",
                     Field: where));
     }
 
@@ -322,9 +316,7 @@ public static class HouseStyleValidation
         if (gable != verge) return;
 
         findings.Add(new Finding(HouseStyleRules.GableAsVerge,
-            $"the gable is {BlockMaterials.Of(gable.Id, gable.Data)} and so is the verge, so the roof's border runs "
-            + "down the gable in the gable's own block and the end of the roof has no edge. Lay the gable in "
-            + "another block than the verge.",
+            $"the gable of the house is {BlockMaterials.Of(gable.Id, gable.Data)}, the same block as its verge",
             Severity.Complaint, Field: named ? "roof.gable" : "roof.verge"));
     }
 
@@ -335,9 +327,8 @@ public static class HouseStyleValidation
         if (ground.At(0).Material is not LaidLogMaterial laid) return;
 
         findings.Add(new Finding(HouseStyleRules.LogAtTheFoot,
-            $"the ground storey's first course is a laid log of {BlockMaterials.Of(laid.Id, laid.Data)}, so the "
-            + "building stands on a log lying round its footprint. Start the wall on masonry or planks and lay the "
-            + "log as the storey's top course.",
+            $"the ground storey of the house has a laid log of {BlockMaterials.Of(laid.Id, laid.Data)} "
+            + "as its first course",
             Severity.Complaint, Field: style.Storeys.Count > 0 ? "storeys[0].wall" : "wall"));
     }
 
@@ -374,9 +365,8 @@ public static class HouseStyleValidation
         if (head.Form != DoorHeadForm.None && head.Fill == DoorHeadFill.UpperSlab
             && !BlockMaterials.Same(head.Block, 0, head.FillBlock, head.FillData))
             findings.Add(new Finding(HouseStyleRules.PartMaterial,
-                $"doorHead.block is {BlockMaterials.Of(head.Block, 0)} and its fill is "
-                + $"{BlockMaterials.Of(head.FillBlock, head.FillData)}. The two corners and the line between "
-                + "them are one head, so they are cut from one material.",
+                $"the `doorHead.block` of the house is {BlockMaterials.Of(head.Block, 0)} and its fill is "
+                + $"{BlockMaterials.Of(head.FillBlock, head.FillData)}, a different material",
                 Field: "doorHead.fillBlock"));
 
         void Window(string where, WindowStyle? window)
@@ -384,9 +374,8 @@ public static class HouseStyleValidation
             if (window is not { } win || win.Form == WindowForm.None || win.HostBlock < 0) return;
             if (!BlockMaterials.Same(win.Block, win.Data, win.HostBlock, win.HostData))
                 findings.Add(new Finding(HouseStyleRules.PartMaterial,
-                    $"{where}.block is {BlockMaterials.Of(win.Block, win.Data)} and the host it is seated in "
-                    + $"is {BlockMaterials.Of(win.HostBlock, win.HostData)}. A window and its host are one "
-                    + "opening, so they are cut from one material.",
+                    $"the `{where}.block` of the house is {BlockMaterials.Of(win.Block, win.Data)} and its host "
+                    + $"block is {BlockMaterials.Of(win.HostBlock, win.HostData)}, a different material",
                     Field: $"{where}.hostBlock"));
         }
         Window("windows", style.Windows);
@@ -404,8 +393,7 @@ public static class HouseStyleValidation
             if (named.SelectMany(entry => Materials.Laid(entry.Material))
                     .FirstOrDefault(block => BlockFamilies.IsOre(block.Id)) is { Id: > 0 } ore)
                 findings.Add(new Finding(HouseStyleRules.OreMaterial,
-                    $"{named.Key} names {BlockPalette.Name(ore.Id, 0)}, which is an ore. An ore is stone with "
-                    + "something in it and is not a building material.",
+                    $"the `{named.Key}` of the house is built of {BlockPalette.Name(ore.Id, 0)}, which is an ore",
                     Field: named.Key));
     }
 
@@ -420,8 +408,8 @@ public static class HouseStyleValidation
         if (!IsOnStilts(style)) return;
 
         findings.Add(new Finding(HouseStyleRules.DoorWithoutWall,
-            $"the ground storey's wall is air over all {Math.Max(1, style.Doorway.Height)} of the doorway's "
-            + "courses, so there is no wall to carry a door head — the arch and its lintel stand in mid-air.",
+            $"the ground storey of the house has no wall across the {Wording.Count(Math.Max(1, style.Doorway.Height), "course")} "
+            + "of its doorway, which has a door head",
             Field: "doorHead.form"));
     }
 
@@ -435,10 +423,8 @@ public static class HouseStyleValidation
         if (style.Foundation.Plate.Stack.Bands.All(band => band.Material.IsAir())) return;
 
         findings.Add(new Finding(HouseStyleRules.StiltFloor,
-            $"the ground storey is open for all {Math.Max(1, style.Doorway.Height)} of the doorway's courses "
-            + "— a house on stilts — and it stands on a plate that is not air, so the ground it was raised "
-            + "over is floored across the whole footprint. State the plate as air to let the terrain run on "
-            + "under it, and give the storey above it a deck of its own.",
+            $"the ground storey of the house is open across the {Wording.Count(Math.Max(1, style.Doorway.Height), "course")} "
+            + "of its doorway and stands on a plate that is not air",
             Severity.Complaint, Field: "foundation.plate"));
     }
 
@@ -458,9 +444,7 @@ public static class HouseStyleValidation
     {
         if (foundation.Footing is not { } footing) return;
         findings.Add(new Finding(HouseStyleRules.Footing,
-            $"the foundation is ringed by a footing of {Describe(footing)}, which reads as a rim round the "
-            + "building rather than as anything it stands on. Leave the footing unset; lay the ground storey's "
-            + "first course in that block instead where the stone was the point.",
+            $"the foundation of the house has a footing of {Describe(footing)}",
             Severity.Complaint, Field: "foundation.footing"));
     }
 
@@ -470,8 +454,7 @@ public static class HouseStyleValidation
     public static Findings CheckRoofForm(RoofForm form, string field) => form != RoofForm.Shed
         ? Findings.None
         : Findings.Of(new Finding(HouseStyleRules.ShedRoof,
-            $"{field} is a shed — one plane climbing from the front wall to the back — and a lean-to is not a "
-            + "roof a building on a map wears. Give it a gable, a hip, a gambrel or a saltbox.",
+            $"the roof form `shed` in `{field}` is not one of flat, gable, hip, gambrel or saltbox",
             Severity.Complaint, Field: field));
 
     /// <summary>HS15 — a storey's wall checkered in the log its own corner posts are cut from. Asked storey by
@@ -486,9 +469,8 @@ public static class HouseStyleValidation
             if (!wall.Stack.Bands.Any(band => CheckersIn(band.Material, post))) continue;
 
             findings.Add(new Finding(HouseStyleRules.CheckerInPostWood,
-                $"storey {at}'s wall is checkered in {BlockMaterials.Of(post.Id, post.Data)} log, the log its "
-                + "corner posts are cut from, so the squares run into the posts and the two read as one mass. "
-                + "Checker the wall in another log, or stand the storey on posts of another wood.",
+                $"storey {at} of the house has a wall checkered in {BlockMaterials.Of(post.Id, post.Data)} log, "
+                + "the same log as its corner posts",
                 Severity.Complaint, Field: style.Storeys.Count > 0 ? $"storeys[{at}].wall" : "wall"));
         }
     }
@@ -526,13 +508,13 @@ public static class HouseStyleValidation
             if (!roof && blocks.FirstOrDefault(block => BlockRoles.IsSurfacing(block.Id, block.Data)) is
                 { Id: > 0 } turf)
                 findings.Add(new Finding(HouseStyleRules.SurfacingWall,
-                    $"{field} lays {BlockPalette.Name(turf.Id, turf.Data)}, which is the skin over soil rather than a "
-                    + "material, so the wall reads as a turf bank. Lay it in something built.",
+                    $"the `{field}` of the house is built of {BlockPalette.Name(turf.Id, turf.Data)}, "
+                    + "a surfacing block",
                     Severity.Complaint, Field: field));
             if (blocks.FirstOrDefault(block => BlockFamilies.IsFrozen(block.Id)) is { Id: > 0 } frozen)
                 findings.Add(new Finding(HouseStyleRules.SnowAndIce,
-                    $"{field} lays {BlockPalette.Name(frozen.Id, frozen.Data)}. Snow and ice lie on a building rather "
-                    + "than being what it is built of — leave them to the ground's theme.",
+                    $"the `{field}` of the house is built of {BlockPalette.Name(frozen.Id, frozen.Data)}, "
+                    + "a block of snow or ice",
                     Severity.Complaint, Field: field));
         }
     }
@@ -546,8 +528,7 @@ public static class HouseStyleValidation
         {
             if (!levels[at].Deck.IsAir() || !(levels[at].Surface?.Field).IsAir()) continue;
             findings.Add(new Finding(HouseStyleRules.FloorlessStorey,
-                $"storey {at} stands on air: it names no deck, and the plate it falls back to is air, so the room is "
-                + "a ring of wall over a hole. Give the storey a deck.",
+                $"storey {at} of the house has no deck other than air and no field laid over it",
                 Severity.Complaint, Field: $"storeys[{at}].deck"));
         }
     }
@@ -627,9 +608,7 @@ public static class HouseStyleValidation
         // is the see-through roof HouseStyle.Roof's own docstring warns about.
         if (roof.Slab < 0 && SolidId(roof.Body) is { } roofId && BlockFamilies.IsSlab(roofId))
             findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                $"roof ({roofId}) is a slab and roofSlab is unset (-1). A course of slabs at a whole block of " +
-                "rise leaves an open half between every pair and the roof reads see-through — set roofSlab to " +
-                "a real slab and let roof carry the whole-block half, or choose a whole block for roof.",
+                $"the roof is block {roofId}, a slab, and its `roofSlab` is -1",
                 Field: "roof"));
 
         CheckRoofMaterial("roof", roof.Body, findings);
@@ -639,8 +618,7 @@ public static class HouseStyleValidation
         // course of something else alternating up the slope.
         if (roof.Slab >= 0 && roof.Body is LaidLogMaterial)
             findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                "roofSlab is set over a roof laid in logs, and no slab is cut from a log. A laid log carries " +
-                "its own whole-course rise — leave roofSlab unset.",
+                "the roof is laid in logs and its `roofSlab` is set",
                 Field: "roofSlab"));
 
         // The half-course slab is the body continuing by halves, so it is the body's own material. A slab of
@@ -648,9 +626,8 @@ public static class HouseStyleValidation
         if (roof.Slab >= 0 && roof.Body is SolidMaterial body
             && !BlockMaterials.Same(body.Id, body.Data, roof.Slab, roof.SlabData))
             findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                $"roofSlab is {BlockMaterials.Of(roof.Slab, roof.SlabData)} and the roof it steps in halves " +
-                $"is {BlockMaterials.Of(body.Id, body.Data)}. The half-course slab continues the body, so it " +
-                "is the body's own material.",
+                $"the `roofSlab` of the roof is {BlockMaterials.Of(roof.Slab, roof.SlabData)} and its body is " +
+                $"{BlockMaterials.Of(body.Id, body.Data)}, a different material",
                 Field: "roofSlab"));
 
         // The stair is the body climbing in steps, so it is the body's own material, it is never cut from a
@@ -660,17 +637,14 @@ public static class HouseStyleValidation
             Refuse(HouseBlockKinds.RoofStair, roof.Stair, findings);
             if (roof.Slab >= 0)
                 findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                    "roofStair and roofSlab are both set. A roof climbs half a block at a time in slabs or a whole " +
-                    "block at a time in stairs — name one of them.", Field: "roofStair"));
+                    "the roof has both `roofStair` and `roofSlab` set", Field: "roofStair"));
             if (roof.Body is LaidLogMaterial)
                 findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                    "roofStair is set over a roof laid in logs, and no stair is cut from a log — leave roofStair " +
-                    "unset.", Field: "roofStair"));
+                    "the roof is laid in logs and its `roofStair` is set", Field: "roofStair"));
             if (roof.Body is SolidMaterial solid && !BlockMaterials.Same(solid.Id, solid.Data, roof.Stair, 0))
                 findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                    $"roofStair is {BlockMaterials.Of(roof.Stair, 0)} and the roof it steps in is " +
-                    $"{BlockMaterials.Of(solid.Id, solid.Data)}. The stair continues the body, so it is the body's " +
-                    "own material.", Field: "roofStair"));
+                    $"the `roofStair` of the roof is {BlockMaterials.Of(roof.Stair, 0)} and its body is " +
+                    $"{BlockMaterials.Of(solid.Id, solid.Data)}, a different material", Field: "roofStair"));
         }
         return findings;
     }
@@ -686,8 +660,7 @@ public static class HouseStyleValidation
         {
             if (!BlockFamilies.IsLog(laid.Id))
                 findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                    $"{field} ({laid.Id}) is laid as a log and is not one. Only a log carries its axis in " +
-                    "its data; anything else laid comes out turned at random.", Field: field));
+                    $"`{field}` is laid as a log and is block {laid.Id}, which is not a log", Field: field));
             return;
         }
 
@@ -696,20 +669,16 @@ public static class HouseStyleValidation
         if (material is not SolidMaterial solid)
         {
             findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                $"{field} is a {Patterned(material)} rather than one block. A roof's body, its verge and a " +
-                "canopy are each a single material — name the block itself.", Field: field));
+                $"`{field}` is a {Patterned(material)} rather than one block", Field: field));
             return;
         }
         var id = solid.Id;
         if (BlockFamilies.IsLog(id))
             findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                $"{field} ({id}) is a bare log, which has no axis and stands every one of them on end — a " +
-                "sawn face out at whoever looks at the slope. Lay it instead: a laid log takes the axis " +
-                "the ridge is going.", Field: field));
+                $"`{field}` is block {id}, a log that is not laid", Field: field));
         else if (BlockFamilies.IsSoil(id))
             findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                $"{field} ({id}) is a ground material. A ground material — what a building stands on — is " +
-                "never a roof or a verge material.", Field: field));
+                $"`{field}` is block {id}, a ground material", Field: field));
     }
 
     /// <summary>The block id a material resolves to when it is a bare <see cref="SolidMaterial"/>, or null
@@ -728,8 +697,8 @@ public static class HouseStyleValidation
         var clear = doorway.Clearance;
         if (clear < LeastDoorClearance)
             findings.Add(new Finding(HouseStyleRules.DoorClearance,
-                $"the doorway clears {clear:0.0} blocks once its head is written in; a door must clear at " +
-                $"least {LeastDoorClearance:0.0}.",
+                $"the doorway of the house clears {clear:0.0} blocks with its door head written in, less than " +
+                $"{LeastDoorClearance:0.0} blocks",
                 Field: "doorHeight"));
     }
 }

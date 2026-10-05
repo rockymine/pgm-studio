@@ -151,11 +151,12 @@ public static class TerrainThemeScope
         foreach (var ((layer, theme), (shapes, cells, x, z, ids)) in
                  groups.OrderByDescending(e => e.Value.Shapes).ThenBy(e => e.Key.Layer, StringComparer.Ordinal))
             findings.Add(new Finding(SketchRules.ThemeShowsOnlyItsEdge,
-                $"{shapes} shape(s) on layer '{layer}' are themed '{theme}' and not one of their {cells} "
-                + $"column(s) has ground on all eight sides — from ({x}, {z}) — so every column is an edge, "
-                + "the rim and the wall are the only buckets that paint them, and the theme's surface is "
-                + "nowhere on any of them"
-                + (ids.Count > 0 ? $" ({string.Join(", ", ids)}{(shapes > ids.Count ? ", …" : "")})" : ""),
+                $"{Wording.Count(shapes, "shape", "shapes")} on layer '{layer}' use palette '{theme}' and none of "
+                + $"their {Wording.Count(cells, "column", "columns")} has ground on all 8 sides, first at ({x}, {z})"
+                + (ids.Count > 0
+                    ? $", including {Wording.Ids(ids)}"
+                      + (shapes > ids.Count ? " and others" : "")
+                    : ""),
                 Severity.Complaint, Field: $"layers.{layer}.shapes",
                 Subjects: ids.Count > 0 ? ids : null));
         return findings;

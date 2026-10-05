@@ -51,7 +51,7 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
         if (set is null)
         {
             await Refusals.WriteAsync(HttpContext, 503, "no block textures",
-                [new Vocabulary.Finding(RequestRules.TexturesUnavailable, reason ?? "no block textures")], ct);
+                [new Vocabulary.Finding(RequestRules.TexturesUnavailable, reason ?? "the studio has no block textures")], ct);
             return;
         }
 

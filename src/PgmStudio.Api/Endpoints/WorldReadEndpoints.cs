@@ -168,7 +168,7 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
     protected abstract byte[]? Draw(BuiltRead read);
 
     /// <summary>What this read cannot draw, for the 422 that says so.</summary>
-    protected virtual string Empty => "this world has no column to draw";
+    protected virtual string Empty => "the world has no column to draw";
 
     /// <summary>The same reading as characters, for a read that declares <see cref="Answers.AlsoText"/>. Null
     /// answers the same 422 an empty picture does — a read with no text twin never overrides this.</summary>
@@ -333,7 +333,7 @@ internal sealed class TopDownReadEndpoint(MapRepository repo, MapReader reader, 
 
     protected override bool Storeyed => true;
 
-    protected override string Empty => "this world has no non-air column, so there is nothing to look down on";
+    protected override string Empty => "the world has no column that is not air";
 
     protected override byte[]? Draw(BuiltRead read) => TopDownRender.Png(
         read.Built.World, read.Map, Scale, OptionalInt("ymax"), read.Name,
@@ -379,7 +379,7 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
     /// image is the slowest possible way to be told so.</summary>
     private string? _offWorld;
 
-    protected override string Empty => _offWorld ?? "nothing stands along that cut";
+    protected override string Empty => _offWorld ?? "the cut has no block along it";
 
     /// <summary>The axis and the coordinate the cut is taken at, shared by the picture and the text — both
     /// refuse the same way when <c>at</c> falls outside the world.</summary>
@@ -395,8 +395,7 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
             && (at < span.Min || at > span.Max))
         {
             var named = axis == SectionAxis.AlongX ? "z" : "x";
-            _offWorld = $"a cut along {(axis == SectionAxis.AlongX ? "x" : "z")} is taken at a {named}, and "
-                + $"at={at} is outside this world, which spans {named} {span.Min}..{span.Max}";
+            _offWorld = $"the request's `at` is {at}, not between {span.Min} and {span.Max}, the {named} the world spans";
             return null;
         }
         return (axis, at);
@@ -442,7 +441,7 @@ internal sealed class HeightmapReadEndpoint(MapRepository repo, MapReader reader
 
     protected override bool Storeyed => true;
 
-    protected override string Empty => "this world has no ground column, so it has no elevation to draw";
+    protected override string Empty => "the world has no ground column";
 
     protected override byte[]? Draw(BuiltRead read) => HeightProfileRender.Png(
         read.Built.World, Scale, OptionalInt("contour") ?? 4,
@@ -669,7 +668,7 @@ internal sealed class SurfaceReadEndpoint(MapRepository repo, MapReader reader, 
 
     protected override bool Storeyed => true;
 
-    protected override string Empty => "this world decodes to no column, so it has no surface to read";
+    protected override string Empty => "the world has no column";
 
     protected override byte[]? Draw(BuiltRead read) => SurfaceReport.Png(read.Built.World, Scale);
 }
@@ -688,7 +687,7 @@ internal sealed class TraversabilityReadEndpoint(MapRepository repo, MapReader r
         Description(b => b.Png().Refuses(404, 422).Reads(new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
     }
 
-    protected override string Empty => "this world has no ground column, so there is nothing to walk";
+    protected override string Empty => "the world has no ground column";
 
     protected override byte[]? Draw(BuiltRead read)
     {
@@ -716,7 +715,7 @@ internal sealed class StructuresReadEndpoint(MapRepository repo, MapReader reade
 
     protected override bool Storeyed => true;
 
-    protected override string Empty => "this world decodes to no column, so it holds no structure to find";
+    protected override string Empty => "the world has no column";
 
     protected override byte[]? Draw(BuiltRead read) => StructureFinder.Png(
         read.Built.World, Scale, OptionalInt("minarea") ?? 16, provenance: read.Built.Provenance);
@@ -739,7 +738,7 @@ internal sealed class MirrorReadEndpoint(MapRepository repo, MapReader reader, M
             new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
     }
 
-    protected override string Empty => "this world decodes to no column, so it has no image to compare";
+    protected override string Empty => "the world has no column";
 
     protected override byte[]? Draw(BuiltRead read) => MirrorReport.Png(
         read.Built.World, Scale,
@@ -761,7 +760,7 @@ internal abstract class InTheRoundEndpoint(MapRepository repo, MapReader reader,
         "Half a cube's width in pixels, 1 to 8 — each block is drawn twice that wide. Absent draws at 3, and out "
         + "of range clamps.", Min: 1, Max: 8);
 
-    protected override string Empty => "this world holds no block, so there is nothing to draw in the round";
+    protected override string Empty => "the world has no block";
 
     /// <summary>The quarter turns that stand the camera at the asked corner. A corner the board has no name for
     /// is refused by name rather than drawn from a guess.</summary>
@@ -863,7 +862,7 @@ internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, M
             if (pair.Length != 2 || !int.TryParse(pair[0], out var x) || !int.TryParse(pair[1], out var z))
             {
                 await Refusals.UnreadableAsync(HttpContext, "unreadable column",
-                    $"'{at}' is not a column — each `at` is two whole numbers, `at=x,z`", ct, field: "at");
+                    $"the request's `at` '{at}' is not two whole numbers x,z", ct, field: "at");
                 return;
             }
             wanted.Add((x, z));
@@ -871,7 +870,7 @@ internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, M
         if (wanted.Count == 0)
         {
             await Refusals.UnreadableAsync(HttpContext, "no column asked for",
-                "name at least one column to read: `?at=x,z`, repeated for more than one", ct, field: "at");
+                "the request names no column in `at`", ct, field: "at");
             return;
         }
 

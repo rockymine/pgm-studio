@@ -26,15 +26,16 @@ public static class WhitelistKeeping
                                      Change change, string? role = null)
     {
         if (access.Admins.Contains(targetUuid) && !(caller.IsOwner && (caller.Uuid is null || caller.Is(targetUuid))))
-            return "an owner is named in the server's configuration, and only the server changes one";
+            return $"person '{targetUuid}' is an owner named in the server's configuration, which no request changes";
         if (caller.IsOwner) return null;
         if (target?.Role == StudioRoles.Admin)
-            return "only an owner changes, removes, invites or issues a token for an admin";
+            return $"person '{targetUuid}' is an admin, and the request is signed in as someone who is not an owner";
         if (change == Change.Put && role == StudioRoles.Admin)
-            return "only an owner makes someone an admin";
+            return $"the request gives person '{targetUuid}' the role `{role}`, and is signed in as someone who is not "
+                   + "an owner";
         if (change == Change.Invite && target?.DiscordId is not null)
-            return $"{target.Name} already signs in with Discord, and following an invitation moves the account to "
-                   + "whoever follows it, so only an owner opens one for them";
+            return $"the request invites person '{target.Name}', who already signs in with Discord, and is signed in "
+                   + "as someone who is not an owner";
         return null;
     }
 

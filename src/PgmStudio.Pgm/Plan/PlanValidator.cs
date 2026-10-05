@@ -172,14 +172,14 @@ public static class PlanValidator
         // other complaint about a blank document is downstream of this one.
         if (!plan.Pieces.Any(pc => PlanRoles.IsGenerating(pc.Role)))
         {
-            findings.Add(new Finding(PlanRules.NoLand, "this plan has no pieces — there is no land to build"));
+            findings.Add(new Finding(PlanRules.NoLand, "the plan's `pieces` has no piece that makes ground"));
             return findings;
         }
 
         // No spawn: PGM has nowhere to put a player, so the finished map cannot be entered at all. The hard one.
         if (plan.Placements.Spawns.Count == 0)
             findings.Add(new Finding(PlanRules.NoSpawn,
-                "this plan has no spawn — a map with nowhere to put a player cannot be loaded"));
+                "the plan's `placements.spawns` has no spawn"));
 
         // No objective of any kind. A complaint, not a block: which goal a map carries is the author's, all
         // four are authorable here, and one can still be set downstream when the map is configured.
@@ -187,8 +187,7 @@ public static class PlanValidator
         if (p.Wools.Count == 0 && p.Destroyables.Count == 0 && p.Cores.Count == 0
             && (p.ControlPoints ?? 0) <= 0)
             findings.Add(new Finding(PlanRules.NoObjective,
-                "this plan states no objective — no wool, destroyable, core or capture point — so nothing in "
-                + "it wins the match. A board stating its goals on the intent instead is answered there",
+                "the plan's `placements` has no wool, monument, core or capture point",
                 Severity.Complaint));
 
         // A count the board's symmetry cannot lay out. The compiler places none rather than rounding to a
@@ -196,10 +195,8 @@ public static class PlanValidator
         if (p.ControlPoints is { } count && count > 0
             && !ControlPointLayout.Fans(count, Symmetry.Order(plan.Globals.Symmetry)))
             findings.Add(new Finding(PlanRules.ControlPointCount,
-                $"this plan states {count} capture point(s), which a board of "
-                + $"{Symmetry.Order(plan.Globals.Symmetry)} team(s) cannot lay out — a point is the centre of "
-                + "symmetry or one of a ring the orbit fans, so the counts that work are 1, one per team, or "
-                + "one per team plus a centre",
+                $"the plan's `placements.controlPoints` has {Wording.Count(count, "capture point")}, which is not "
+                + $"one of 1, {Symmetry.Order(plan.Globals.Symmetry)}, {Symmetry.Order(plan.Globals.Symmetry) + 1}",
                 Severity.Complaint));
 
         return findings;
@@ -223,9 +220,7 @@ public static class PlanValidator
         if (plan.Version != PlanModel.CurrentVersion)
         {
             Error(PlanRules.StaleVersion,
-                $"this plan states version {plan.Version}; this build reads version "
-                + $"{PlanModel.CurrentVersion} — marker offsets are blocks from the piece corner, and version 1 "
-                + "stated them in cells");
+                $"the plan states plan version {plan.Version}, not {PlanModel.CurrentVersion}");
             return findings;
         }
 
@@ -235,7 +230,7 @@ public static class PlanValidator
         foreach (var c in d.Contacts)
             if (c.Kind == ContactKind.Overlap && c.SurfaceDelta != 0)
                 Error(PlanRules.SurfaceClash,
-                    $"overlapping pieces '{c.A}' and '{c.B}' have different surfaces (delta {c.SurfaceDelta})",
+                    $"pieces '{c.A}' and '{c.B}' overlap and stand at surfaces {Math.Abs(c.SurfaceDelta)} blocks apart",
                     c.A, c.B);
 
         // a connected landmass must agree about mirroring: the fan copies whole islands, so a component that
@@ -246,8 +241,8 @@ public static class PlanValidator
             var members = component.Select(id => d.Piece(id)!.Value).ToList();
             if (members.Select(p => p.Mirrors).Distinct().Count() > 1)
                 Error(PlanRules.MixedMirrors,
-                    $"landmass [{string.Join(", ", component)}] mixes mirrored and non-mirrored pieces — " +
-                    "a non-fanned piece must form its own island",
+                    $"island of pieces {Wording.Ids(component)} has both pieces the symmetry copies and pieces it does "
+                    + "not copy",
                     [.. component]);
         }
 
@@ -258,7 +253,7 @@ public static class PlanValidator
         foreach (var s in plan.Placements.Spawns) CheckInside(d, "spawn", s.Piece, s.At, findings);
         foreach (var w in plan.Placements.Wools) CheckInside(d, "wool", w.Piece, w.At, findings);
         foreach (var ir in plan.Placements.Iron) CheckInside(d, "iron", ir.Piece, ir.At, findings);
-        foreach (var b in plan.Placements.Destroyables) CheckInside(d, "destroyable", b.Piece, b.At, findings, allowAbsolute: true);
+        foreach (var b in plan.Placements.Destroyables) CheckInside(d, "monument", b.Piece, b.At, findings, allowAbsolute: true);
         foreach (var c in plan.Placements.Cores) CheckInside(d, "core", c.Piece, c.At, findings, allowAbsolute: true);
 
         // OB22 — how far a goal may float. Both defaults are floors — enough that a goal reads as a monument
@@ -269,13 +264,13 @@ public static class PlanValidator
         foreach (var b in plan.Placements.Destroyables)
             if (b.Float is { } floated && floated > ObjectiveDefaults.MaxFloat)
                 Error(ObjectiveRules.FloatCap,
-                    $"destroyable float {floated} is over the {ObjectiveDefaults.MaxFloat} a goal may float — "
-                    + "a goal that high is reached by building a tower to it", b.Piece);
+                    $"monument on piece '{b.Piece}' has a float of {floated} blocks, "
+                    + $"more than {ObjectiveDefaults.MaxFloat} blocks", b.Piece);
         foreach (var c in plan.Placements.Cores)
             if (c.Float is { } floated && floated > ObjectiveDefaults.MaxFloat)
                 Error(ObjectiveRules.FloatCap,
-                    $"core float {floated} is over the {ObjectiveDefaults.MaxFloat} a goal may float — "
-                    + "a goal that high is reached by building a tower to it", c.Piece);
+                    $"core on piece '{c.Piece}' has a float of {floated} blocks, "
+                    + $"more than {ObjectiveDefaults.MaxFloat} blocks", c.Piece);
 
         // DC2 — float and leak are one knob: together they say how far players must dig under the core
         // (max(0, leak + 1 − float)). Authoring one alone silently pairs it with the other's default, which is
@@ -283,8 +278,8 @@ public static class PlanValidator
         foreach (var c in plan.Placements.Cores)
             if (c.Float is null != c.Leak is null)
                 Error(ObjectiveRules.PairedKnobs,
-                    $"core '{(c.Float is null ? "leak" : "float")}' was set without its pair — "
-                    + "float and leak only mean anything together (they set the dig depth)", c.Piece);
+                    $"core on piece '{c.Piece}' has a {(c.Float is null ? "leak" : "float")} "
+                    + $"and no {(c.Float is null ? "float" : "leak")}", c.Piece);
 
         // A core is stated by its interior and chosen from a closed range, so a casing with no lava in it is
         // not a thing that can be written down. What is left to check is the range itself: a number outside
@@ -293,13 +288,14 @@ public static class PlanValidator
         {
             if (c.Lava is { } lava && (lava < ObjectiveDefaults.MinCoreLava || lava > ObjectiveDefaults.MaxCoreLava))
                 Error(ObjectiveRules.Casing,
-                    $"core lava footprint {lava} is outside {ObjectiveDefaults.MinCoreLava}–"
-                    + $"{ObjectiveDefaults.MaxCoreLava} — a core is chosen from those, not sized freely", c.Piece);
+                    $"core on piece '{c.Piece}' has a lava footprint of {lava} blocks, not between "
+                    + $"{ObjectiveDefaults.MinCoreLava} and {ObjectiveDefaults.MaxCoreLava} blocks", c.Piece);
             if (c.LavaHeight is { } height
                 && (height < ObjectiveDefaults.MinCoreLavaHeight || height > ObjectiveDefaults.MaxCoreLavaHeight))
                 Error(ObjectiveRules.Casing,
-                    $"core lava height {height} is outside {ObjectiveDefaults.MinCoreLavaHeight}–"
-                    + $"{ObjectiveDefaults.MaxCoreLavaHeight}", c.Piece);
+                    $"core on piece '{c.Piece}' has a lava height of {height} blocks, not between "
+                    + $"{ObjectiveDefaults.MinCoreLavaHeight} and {ObjectiveDefaults.MaxCoreLavaHeight} blocks",
+                    c.Piece);
         }
 
         // OB17 — where a goal may not stand. A destroyable and a core go almost anywhere; the exceptions are
@@ -332,7 +328,8 @@ public static class PlanValidator
         foreach (var b in plan.Placements.Destroyables)
             if (!string.IsNullOrEmpty(b.Style) && !DestroyableStyles.IsKnown(b.Style))
                 Error(PlanRules.UnknownStyle,
-                    $"destroyable style '{b.Style}' is not one of [{string.Join(", ", DestroyableStyles.All)}]",
+                    $"monument on piece '{b.Piece}' names the form '{b.Style}', which is not one of "
+                    + string.Join(", ", DestroyableStyles.All),
                     b.Piece);
 
         // A colour PGM cannot resolve makes the wool unplaceable rather than mis-coloured, and the compiler
@@ -341,7 +338,8 @@ public static class PlanValidator
         foreach (var w in plan.Placements.Wools)
             if (!string.IsNullOrEmpty(w.Color) && !WoolColors.IsColor(w.Color))
                 Error(PlanRules.UnknownColor,
-                    $"wool color '{w.Color}' is not one of [{string.Join(", ", WoolColors.All)}]",
+                    $"wool on piece '{w.Piece}' names the colour '{w.Color}', which is not one of "
+                    + string.Join(", ", WoolColors.All),
                     w.Piece);
 
         // OB14 — a destroyable is one team's to defend and every other team's to break, which only means
@@ -351,12 +349,13 @@ public static class PlanValidator
         if (Symmetry.Order(plan.Globals.Symmetry) != 2)
             foreach (var kind in new[]
                      {
-                         plan.Placements.Destroyables.Count > 0 ? "destroyables" : null,
+                         plan.Placements.Destroyables.Count > 0 ? "monuments" : null,
                          plan.Placements.Cores.Count > 0 ? "cores" : null,
                      }.Where(k => k is not null))
                 Error(ObjectiveRules.TwoTeamOnly,
-                    $"{kind} need a two-team symmetry; '{plan.Globals.Symmetry}' has "
-                    + $"{Symmetry.Order(plan.Globals.Symmetry)} team(s)");
+                    $"the plan has {kind} and its `globals.symmetry` `{plan.Globals.Symmetry}` gives "
+                    + $"{Symmetry.Order(plan.Globals.Symmetry)} "
+                    + $"{(Symmetry.Order(plan.Globals.Symmetry) == 1 ? "team" : "teams")}, not 2");
 
         // a wall mark must land on a real shared land interface (else there is no lane seam to build across)
         var landPairs = new HashSet<(string, string)>();
@@ -364,7 +363,7 @@ public static class PlanValidator
         foreach (var w in plan.Walls)
             if (!landPairs.Contains((w.A, w.B)))
                 Error(PlanRules.WallWithoutInterface,
-                    $"wall '{w.A}'–'{w.B}' is not a shared land interface", w.A, w.B);
+                    $"pieces '{w.A}' and '{w.B}' have an approach wall and no shared edge", w.A, w.B);
 
         // and only where no land runs on past either of its ends. A wall spans the interval two pieces share;
         // ground one block beyond an end, on either face, is ground a player beside the wall steps round it on.
@@ -376,10 +375,7 @@ public static class PlanValidator
             if (d.Piece(c.A) is not { } pa || d.Piece(c.B) is not { } pb) continue;
             if (FlankOf(d.Pieces, ContactGraph.WallFootprint(pa, pb)) is not { } flank) continue;
             Complain(PlanRules.WallAtJunction,
-                $"wall '{c.A}'–'{c.B}' is not flanked: '{flank.Id}' runs past the wall's end, so a player on it "
-                + "beside the wall rounds it with one step off the corner rather than crossing it. A wall sits "
-                + "between two pieces of the same width with nothing beyond its ends — put one the lane's own "
-                + "width between the two and wall that seam instead",
+                $"approach wall between pieces '{c.A}' and '{c.B}' has piece '{flank.Id}' running past its end",
                 c.A, c.B, flank.Id);
         }
 
@@ -389,8 +385,8 @@ public static class PlanValidator
         foreach (var w in plan.Walls)
             if (roleOf.GetValueOrDefault(w.A) == PlanRoles.WoolRoom || roleOf.GetValueOrDefault(w.B) == PlanRoles.WoolRoom)
                 Error(PlanRules.WallOnWoolRoom,
-                    $"bedrock wall '{w.A}'–'{w.B}' may not interface with the wool room piece — place it "
-                    + "around 15 blocks away from the room", w.A, w.B);
+                    $"approach wall between pieces '{w.A}' and '{w.B}' touches the room piece of a wool",
+                    w.A, w.B);
 
         // WX2/WX3/WX6 + capacity — the stamped-room rules (docs/world-export/structures.md): a role piece
         // must be big enough for its shell, the marker's pad must be square, a wool room must have an entry
@@ -427,7 +423,8 @@ public static class PlanValidator
             var seats = RoomFrames.MonumentSlots(room.Frame, room.Frame.Doors[0]).Count;
             if (captured > seats)
                 yield return new Finding(PlanRules.MonumentSeats,
-                    $"spawn room on '{s.Piece}' seats {seats} monuments, {captured} captured wools need placing",
+                    $"spawn room on piece '{s.Piece}' seats {seats} wool monuments, "
+                    + $"less than the {captured} wools its team captures",
                     Subjects: [s.Piece]);
         }
     }
@@ -463,7 +460,7 @@ public static class PlanValidator
         if (refusal is not null)
             findings.Add(refusal with
             {
-                Message = $"{kind} on '{pieceId}': {refusal.Message}",
+                Message = $"{kind} room on piece '{pieceId}' {refusal.Message}",
                 Subjects = [pieceId],
             });
         return room;
@@ -482,15 +479,15 @@ public static class PlanValidator
         var piece = d.Plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
         if (piece is null)
         {
-            findings.Add(new Finding(PlanRules.UnknownPiece, $"{kind} references unknown piece '{pieceId}'",
-                Subjects: [pieceId]));
+            findings.Add(new Finding(PlanRules.UnknownPiece,
+                $"{kind} names piece '{pieceId}', which the plan does not have", Subjects: [pieceId]));
             return;
         }
         // A buffer is reserved empty space — it produces no terrain, so nothing may be placed on it.
         if (PlanRoles.IsAnnotation(piece.Role))
         {
             findings.Add(new Finding(PlanRules.PlacementOnBuffer,
-                $"{kind} references non-generating buffer '{pieceId}'", Subjects: [pieceId]));
+                $"{kind} stands on buffer '{pieceId}'", Subjects: [pieceId]));
             return;
         }
         // The offset is in blocks and the piece's rect in cells, so the bound is the piece's block span.
@@ -498,7 +495,8 @@ public static class PlanValidator
         int w = piece.Rect.Width * d.Cell, h = piece.Rect.Height * d.Cell;
         if (x < 0 || z < 0 || x > w || z > h)
             findings.Add(new Finding(PlanRules.PlacementOutside,
-                $"{kind} at [{x},{z}] falls outside piece '{pieceId}' (0..{w}, 0..{h} blocks)", Subjects: [pieceId]));
+                $"{kind} on piece '{pieceId}' stands at ({x}, {z}), outside the piece's {w} by {h} blocks",
+                Subjects: [pieceId]));
     }
 
     // Build the fanned piece graph (land + gap edges), then check each wool node is reachable from a capturing
@@ -520,8 +518,7 @@ public static class PlanValidator
         var hasBuildZone = plan.BuildZones.Any();
         if (!hasBuildZone)
             findings.Add(new Finding(LayoutRules.NoBuildRegion,
-                "this plan declares no build zone, so there is no frontline to walk from and no wool's "
-                + "approach can be judged — add a `zones` entry marking where players may build",
+                "the plan's `zones` has no build region",
                 Severity.Complaint));
 
         foreach (var wp in woolPieces)
@@ -537,7 +534,7 @@ public static class PlanValidator
                     var from = graph.Nodes.Where(n => n.Team == captor && spawnPieces.Contains(n.PieceId)).Select(n => n.Key);
                     if (!graph.Reachable(from, woolNode))
                         findings.Add(new Finding(PlanRules.WoolUnreachable,
-                            $"wool on '{wp}' (team {owner}) is unreachable from team {captor}'s spawn",
+                            $"wool on piece '{wp}' of team {owner} has no route from the spawn of team {captor}",
                             Subjects: [wp]));
                 }
 
@@ -549,7 +546,8 @@ public static class PlanValidator
                 var frontStarts = graph.Nodes.Where(n => graph.Frontline.Contains(n.Key) && !spawnNodes.Contains(n.Key)).Select(n => n.Key);
                 if (!graph.ReachableAvoiding(frontStarts, woolNode, spawnNodes))
                     findings.Add(new Finding(LayoutRules.SpawnOnWoolRoute,
-                        $"wool on '{wp}' (team {owner}) is only reachable through a spawn piece", Subjects: [wp]));
+                        $"wool on piece '{wp}' of team {owner} has no route from the front line that avoids "
+                        + "the room piece of a spawn", Subjects: [wp]));
             }
         return findings;
     }
@@ -563,13 +561,6 @@ public static class PlanValidator
         LintSp8, LintSp9, LintBz121, LintSt8, LintSt9, LintSt10, LintBz11, LintBoardEdges,
         LintZoneReach,
     ];
-
-    /// <summary>Ids as a finding names them: "'a'", "'a' and 'b'", "'a', 'b' and 'c'".</summary>
-    internal static string Quoted(IEnumerable<string> ids)
-    {
-        var quoted = ids.Select(id => $"'{id}'").ToList();
-        return quoted.Count <= 1 ? string.Concat(quoted) : $"{string.Join(", ", quoted[..^1])} and {quoted[^1]}";
-    }
 
     /// <summary>A piece by its id, or the edge of the layout where a run reaches none.</summary>
     private static string Named(string pieceId) => pieceId.Length > 0 ? $"'{pieceId}'" : "the edge of the layout";
@@ -1031,7 +1022,7 @@ public static class PlanValidator
                          * (zones.Max(z => z.Rect.Z + z.Rect.Height) - zones.Min(z => z.Rect.Z));
             if (covered.Count == bboxArea)
                 yield return Lint(LayoutRules.StitchedZones,
-                    $"build regions {Quoted(region.ZoneIds)} touch and together fill one rectangle",
+                    $"build regions {Wording.Ids(region.ZoneIds)} touch and together fill one rectangle",
                     [.. region.ZoneIds]);
         }
     }
@@ -1160,7 +1151,7 @@ public static class PlanValidator
                 if (!gap.Direct || gap.RoleA != "team" || gap.RoleB != "team") continue;
                 if (gap.Blocks is >= 15 and <= 40) continue;
                 yield return Lint(LayoutRules.TeamGapWidth,
-                    $"team sides of pieces {Quoted(gap.PiecesA)} and of pieces {Quoted(gap.PiecesB)} have a gap of "
+                    $"team sides of pieces {Wording.Ids(gap.PiecesA)} and of pieces {Wording.Ids(gap.PiecesB)} have a gap of "
                     + $"{gap.Blocks} blocks between them, " + Beyond(gap.Blocks, 15, 40),
                     [.. gap.PiecesA.Concat(gap.PiecesB)]);
             }
@@ -1207,7 +1198,7 @@ public static class PlanValidator
 
             var zones = region.Select(cell => zoneOf[cell]).Distinct().OrderBy(id => id, StringComparer.Ordinal).ToList();
             yield return Lint(LayoutRules.ZoneOverhang,
-                $"build region{(zones.Count > 1 ? "s" : "")} {Quoted(zones)} {(zones.Count > 1 ? "run" : "runs")} "
+                $"build region{(zones.Count > 1 ? "s" : "")} {Wording.Ids(zones)} {(zones.Count > 1 ? "run" : "runs")} "
                 + $"{overhang.Count * plan.Globals.Cell} blocks past the last piece {(zones.Count > 1 ? "they touch" : "it touches")}, "
                 + $"at {axis} {Runs(overhang, plan.Globals.Cell)}",
                 [.. zones]);

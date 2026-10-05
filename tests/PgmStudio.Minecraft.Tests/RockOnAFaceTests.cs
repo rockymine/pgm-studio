@@ -50,7 +50,7 @@ public sealed class RockOnAFaceTests
         await Assert.That(finding).IsNotNull();
         await Assert.That(finding!.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(finding.Message).Contains("boulder 'crag' stands at (30, 30)");
-        await Assert.That(finding.Message).Contains("calls the ground a face from 30°");
+        await Assert.That(finding.Message).Contains("inclined 45 degrees, at least the 30 degrees its palette paints as a face");
         await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "crag" });
     }
 

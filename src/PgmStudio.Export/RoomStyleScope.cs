@@ -61,9 +61,8 @@ public static class RoomStyleScope
         return new List<Finding>
         {
             new(RoomFrameRules.ShellOverCeiling,
-                $"the shell stands {reach} courses over its floor even on the smallest footprint one can "
-                + $"stand on ({span}×{span}), past the {BuildCeiling.OverGround}-course build ceiling — and "
-                + $"the goal marker hangs {BuildCeiling.MarkerOver} courses above that, inside the building",
+                $"the shell stands {reach} courses over its floor on a footprint of {span} by {span} blocks, "
+                + $"more than the build ceiling of {BuildCeiling.OverGround} courses",
                 Field: field),
         };
     }

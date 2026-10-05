@@ -52,29 +52,33 @@ internal static class NoteWire
 
     /// <summary>What is wrong with a message's body, or null.</summary>
     public static (string Field, string Message)? BodyFault(string? body) =>
-        string.IsNullOrWhiteSpace(body) ? ("body", "a note says something — `body` is empty")
-        : body.Length > LongestBody ? ("body", $"`body` is {body.Length} characters, and a note holds {LongestBody}")
+        string.IsNullOrWhiteSpace(body) ? ("body", "the request's `body` is empty")
+        : body.Length > LongestBody
+            ? ("body", $"the request's `body` is {body.Length} characters, more than {LongestBody}")
         : null;
 
     /// <summary>What is wrong with the change a message states it was written at, or null: one past the map's
     /// latest has not landed.</summary>
     public static (string Field, string Message)? ChangeFault(long? change, long latest) =>
-        change is < 0 ? ("change", $"`change` is {change}, and changes are numbered from 1")
-        : change > latest ? ("change", $"change {change} has not landed — the latest change to this map is {latest}")
+        change is < 0 ? ("change", $"the request's `change` is {change}, less than 1")
+        : change > latest
+            ? ("change", $"the request's `change` is {change}, more than {latest}, the latest change of the map")
         : null;
 
     /// <summary>What is wrong with a picture a message names, or null.</summary>
     public static (string Field, string Message)? PictureFault(string? picture, NotePictures pictures) =>
         picture is null ? null
-        : !pictures.Has(picture) ? ("picture", $"no picture is kept under '{picture}' — post it to /api/notes/pictures first, "
-            + "and name the hash that answers")
+        : !pictures.Has(picture)
+            ? ("picture", $"picture '{picture}' does not exist")
         : null;
 
     /// <summary>What is wrong with a reply's mark, or null: it is a mark on a picture — a point, a box or a lasso —
     /// held to everything a note's anchor of that kind is.</summary>
     public static (string Field, string Message)? MarkFault(NoteAnchorDto? mark) =>
         mark is null ? null
-        : !NoteAnchors.Marks(mark.Kind) ? ("mark.kind", $"a reply's mark is a {NoteAnchors.Point}, a {NoteAnchors.Box} or a {NoteAnchors.Lasso}")
+        : !NoteAnchors.Marks(mark.Kind)
+            ? ("mark.kind", $"the request's `mark.kind` '{mark.Kind}' is not one of {NoteAnchors.Point}, "
+                + $"{NoteAnchors.Box}, {NoteAnchors.Lasso}")
         : AnchorFault(mark) is { } fault ? ("mark" + fault.Field["anchor".Length..], fault.Message)
         : null;
 
@@ -83,14 +87,19 @@ internal static class NoteWire
     /// a lasso.</summary>
     public static (string Field, string Message)? AnchorFault(NoteAnchorDto? anchor)
     {
-        if (anchor is null) return ("anchor", "a note is pinned to something — `anchor` is absent");
+        if (anchor is null) return ("anchor", "the request states no `anchor`");
         if (!NoteAnchors.IsValid(anchor.Kind))
-            return ("anchor.kind", $"`anchor.kind` is one of {string.Join(", ", NoteAnchors.All)}");
+            return ("anchor.kind",
+                $"the request's `anchor.kind` '{anchor.Kind}' is not one of {string.Join(", ", NoteAnchors.All)}");
         if (!NoteAnchors.OnPicture(anchor.Kind)) return null;
         if (anchor.Camera is not { } camera || !double.IsFinite(camera.X + camera.Y + camera.Z + camera.Yaw + camera.Pitch + camera.Fov))
-            return ("anchor.camera", $"a `{anchor.Kind}` note was written on a picture, and keeps the camera it was drawn with");
+            return ("anchor.camera",
+                $"the request's `anchor` of kind '{anchor.Kind}' states no `camera` or a `camera` that is not a number");
         if (anchor.Width is not (> 0 and <= WidestPicture) || anchor.Height is not (> 0 and <= HighestPicture))
-            return ("anchor.width", $"a picture's size is up to {WidestPicture} × {HighestPicture} pixels");
+            return ("anchor.width",
+                $"the request's `anchor` states a picture of {anchor.Width?.ToString() ?? "no width"} by "
+                + $"{anchor.Height?.ToString() ?? "no height"} pixels, not between 1 by 1 and "
+                + $"{WidestPicture} by {HighestPicture} pixels");
         if (!NoteAnchors.Marks(anchor.Kind)) return null;
 
         var marks = anchor.Marks ?? [];
@@ -101,22 +110,28 @@ internal static class NoteWire
             _ => (3, MostLassoPoints),
         };
         if (marks.Count < least || marks.Count > most)
+        {
+            var held = $"the request's `anchor.marks` has {marks.Count} {(marks.Count == 1 ? "pixel" : "pixels")}";
             return ("anchor.marks", anchor.Kind switch
             {
-                NoteAnchors.Point => "a point is one pixel",
-                NoteAnchors.Box => "a box is two opposite corners",
-                _ => $"a lasso is an outline of 3 to {MostLassoPoints} pixels",
+                NoteAnchors.Point => $"{held}, not 1",
+                NoteAnchors.Box => $"{held}, not 2",
+                _ => $"{held}, not between 3 and {MostLassoPoints}",
             });
+        }
         if (marks.Any(pixel => pixel.X < 0 || pixel.Y < 0 || pixel.X >= anchor.Width || pixel.Y >= anchor.Height))
-            return ("anchor.marks", "a mark's pixels lie inside the picture");
+            return ("anchor.marks",
+                $"the request's `anchor.marks` has a pixel outside the picture of {anchor.Width} by {anchor.Height} pixels");
         if ((anchor.Columns?.Count ?? 0) > MostColumns)
-            return ("anchor.columns", $"an area keeps up to {MostColumns} ground columns");
+            return ("anchor.columns",
+                $"the request's `anchor.columns` has {anchor.Columns!.Count} columns, more than {MostColumns}");
         if (anchor.Columns?.Any(column => column is not { Length: 3 }) == true)
-            return ("anchor.columns", "each ground column is `[x, y, z]`");
+            return ("anchor.columns", "the request's `anchor.columns` has an entry that is not three numbers");
         if ((anchor.OverVoid?.Count ?? 0) > MostColumns)
-            return ("anchor.overVoid", $"an area keeps up to {MostColumns} columns over the void");
+            return ("anchor.overVoid",
+                $"the request's `anchor.overVoid` has {anchor.OverVoid!.Count} columns, more than {MostColumns}");
         if (anchor.OverVoid?.Any(column => column is not { Length: 3 }) == true)
-            return ("anchor.overVoid", "each column over the void is `[x, y, z]`");
+            return ("anchor.overVoid", "the request's `anchor.overVoid` has an entry that is not three numbers");
         return null;
     }
 
@@ -152,7 +167,8 @@ public sealed class NotesAcrossMapsEndpoint(MapNoteStore notes, PgmDb db) : Endp
         if (asked.FirstOrDefault(status => !NoteStatuses.IsValid(status)) is { } unknown)
         {
             await Refusals.UnreadableAsync(HttpContext, "no such status",
-                $"'{unknown}' is not a status — one of {string.Join(", ", NoteStatuses.All.Select(entry => entry.Id))}", ct, "status");
+                $"the request's `status` '{unknown}' is not one of "
+                + $"{string.Join(", ", NoteStatuses.All.Select(entry => entry.Id))}", ct, "status");
             return;
         }
         DateTime? since = null;
@@ -161,7 +177,7 @@ public sealed class NotesAcrossMapsEndpoint(MapNoteStore notes, PgmDb db) : Endp
             if (!DateTimeOffset.TryParse(stated, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var instant))
             {
                 await Refusals.UnreadableAsync(HttpContext, "no such instant",
-                    $"'{stated}' is not an instant — ISO 8601, such as 2026-10-02T08:00:00Z", ct, "since");
+                    $"the request's `since` is '{stated}', not an instant in ISO 8601", ct, "since");
                 return;
             }
             since = instant.UtcDateTime;
@@ -219,14 +235,15 @@ public sealed class NoteHandoffEndpoint(MapNoteStore notes, AgentHandoff agent, 
         if (await callers.OfAsync(HttpContext, ct) is { ViaToken: true })
         {
             await Refusals.WriteAsync(HttpContext, 403, "not permitted",
-                [new Finding(RequestRules.NotPermitted, "the author hands notes to an agent, and an agent answers them")], ct);
+                [new Finding(RequestRules.NotPermitted,
+                    "the request is signed in with a token, and a token may not hand notes to an agent")], ct);
             return;
         }
         if (!agent.Ready)
         {
             await Refusals.WriteAsync(HttpContext, 503, "no agent",
                 [new Finding(RequestRules.AgentUnavailable,
-                    "this studio names no agent to hand notes to — set Notes:Agent:Fire and Notes:Agent:Token")], ct);
+                    "the studio has no agent to hand notes to")], ct);
             return;
         }
         var (standing, open) = await NoteHandoffs.StandingAsync(notes, agent, ct);
@@ -234,9 +251,9 @@ public sealed class NoteHandoffEndpoint(MapNoteStore notes, AgentHandoff agent, 
         {
             await Refusals.WriteAsync(HttpContext, 409, "nothing to hand over",
                 [new Finding(RequestRules.Conflict, standing.Waiting == 0
-                    ? "no note is waiting for an agent"
-                    : $"every open note was handed over at {standing.HandedAt:HH:mm} UTC and none was written since — "
-                      + "`again` hands them over once more")], ct);
+                    ? "the studio holds no open note waiting for an agent"
+                    : $"every open note was handed over at {standing.HandedAt:HH:mm} UTC, "
+                      + "and none was written since")], ct);
             return;
         }
 
@@ -348,7 +365,7 @@ public sealed class NoteReplyEndpoint(
              ?? NoteWire.MarkFault(request.Mark)
              ?? NoteWire.ChangeFault(request.Change, latest)
              ?? (request.Status is null || Leaves.Contains(request.Status) ? null
-                 : ("status", $"a reply leaves its thread {string.Join(", ", Leaves)} — resolving one is the author's PATCH")))
+                 : ("status", $"`status` '{request.Status}' is not one of {string.Join(", ", Leaves)}")))
             is { } fault)
         {
             await Refusals.UnreadableAsync(HttpContext, "not a reply", fault.Message, ct, fault.Field);
@@ -426,14 +443,14 @@ public sealed class NoteChangeEndpoint(MapRepository repo, MapNoteStore notes, C
         {
             await Refusals.WriteAsync(HttpContext, 403, "not permitted",
                 [new Finding(RequestRules.NotPermitted,
-                    "only the author resolves, declines or reopens a thread — an agent answers, asks or declines "
-                    + "with its reason in a reply", Field: "status")], ct);
+                    "the request is signed in with a token, and a token may not change the status of a thread",
+                    Field: "status")], ct);
             return;
         }
         if (!Settable.Contains(request.Status))
         {
             await Refusals.UnreadableAsync(HttpContext, "not a change",
-                $"a thread is set {string.Join(", ", Settable)} — the other statuses are left by a reply", ct, "status");
+                $"the request's `status` '{request.Status}' is not one of {string.Join(", ", Settable)}", ct, "status");
             return;
         }
         await notes.ChangeAsync(stored.Note.Id, request.Status, DateTime.UtcNow, ct);
@@ -465,7 +482,7 @@ public sealed class NotePictureKeepEndpoint(NotePictures pictures) : EndpointWit
             if (buffer.Length + read > NotePictures.Largest)
             {
                 await Refusals.UnreadableAsync(HttpContext, "not a picture",
-                    $"a note's picture is up to {NotePictures.Largest / (1024 * 1024)} MB", ct);
+                    $"the request's body is more than {NotePictures.Largest / (1024 * 1024)} MB", ct);
                 return;
             }
             buffer.Write(chunk, 0, read);
@@ -474,7 +491,7 @@ public sealed class NotePictureKeepEndpoint(NotePictures pictures) : EndpointWit
         if (NotePictures.KindOf(bytes) is null)
         {
             await Refusals.UnreadableAsync(HttpContext, "not a picture",
-                "a note's picture is a WebP or a PNG, sent as the body itself", ct);
+                "the request's body is not a `webp` or `png` picture", ct);
             return;
         }
         await Send.OkAsync(new NotePictureDto(await pictures.SaveAsync(bytes, ct), bytes.LongLength), ct);

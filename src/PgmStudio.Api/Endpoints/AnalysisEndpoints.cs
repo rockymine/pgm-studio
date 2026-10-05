@@ -174,9 +174,8 @@ public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader re
             // Naming the four fields alone read as though they were the body; they are nested, and a caller
             // posting them flat got this same sentence back and no way to tell the two apart.
             await Refusals.UnreadableAsync(HttpContext, "no rectangle given",
-                $"the rectangle to search is required, as {{\"bounds\": {{{PostedBounds.Corners}}}}} — the "
-                + "four corners nested under 'bounds', not beside it"
-                + (kind == PostedBoundsKind.Incomplete ? ", and this one is short of a corner" : ""),
+                $"the request's body states no `bounds` holding the corners {PostedBounds.Corners}"
+                + (kind == PostedBoundsKind.Incomplete ? ", and the corners it states are short of one" : ""),
                 ct, field: "bounds");
             return;
         }
@@ -229,8 +228,7 @@ public sealed class ResourcesInRegionEndpoint(MapRepository repo, MapReader read
             // Here bounds is optional — omitting it reads the whole map — so this fires only for one
             // that is present and short of a corner, which is a different fault from the one above.
             await Refusals.UnreadableAsync(HttpContext, "rectangle missing a corner",
-                $"'bounds' was given but is missing a corner: it takes {PostedBounds.Corners}. Omit "
-                + "'bounds' entirely to read the whole map", ct, field: "bounds");
+                $"the request's `bounds` is short of one of the corners {PostedBounds.Corners}", ct, field: "bounds");
             return;
         }
         var bounds = box is null ? ((double, double, double, double)?)null : (box.MinX, box.MinZ, box.MaxX, box.MaxZ);

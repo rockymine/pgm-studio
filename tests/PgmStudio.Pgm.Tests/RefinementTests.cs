@@ -440,7 +440,7 @@ public sealed class RefinementTests
         var finding = refined.Findings.Single();
         await Assert.That(finding.Rule).IsEqualTo(SourceRules.UsesNoMaterial);
         await Assert.That(finding.Refuses).IsTrue();
-        await Assert.That(finding.Message).Contains("'strata'");
+        await Assert.That(finding.Message).Contains("uses material 'sand', which is not one of strata");
         await Assert.That(refined.LayoutJson).IsEqualTo(Layout).Because("a refused source changes nothing");
     }
 

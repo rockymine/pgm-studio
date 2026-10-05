@@ -113,7 +113,8 @@ or a tooltip uses these words and never explains one, and a new word joins the g
 
 Four terms replace the studio's earlier words, which mapmakers do not use, and the glossary keeps each old word as another name for its term: *pattern* for style, *palette*
 for theme, *terraform* for relief, and *decoration* for dressing. The old words remain in the code and the
-`docs/`; the client shows only the new ones, and text the server writes takes the same pass in `RP113` and `RP114`.
+`docs/`; the client shows only the new ones, and the rules and findings the server writes are held to them by
+`RuleTextTests` and `FindingMessageTests`.
 
 ### Guide entries
 

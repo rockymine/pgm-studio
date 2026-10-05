@@ -74,14 +74,15 @@ public sealed class UserPutEndpoint(StudioUserStore users, PlayerLookup players,
         if (!StudioRoles.IsValid(request.Role))
         {
             await Refusals.UnreadableAsync(HttpContext, "no such role",
-                $"a role is one of {string.Join(", ", StudioRoles.All)}", ct, field: "role");
+                $"the request's `role` '{request.Role}' is not one of {string.Join(", ", StudioRoles.All)}",
+                ct, field: "role");
             return;
         }
         if (await players.ResolveAsync(request.Player, ct) is not { } account)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no player",
                 [new Finding(RequestRules.NoSuchSubject,
-                    $"no Minecraft account answers to '{request.Player}', and the whitelist holds accounts",
+                    $"player '{request.Player}' names a Minecraft account that does not exist",
                     Field: "player")], ct);
             return;
         }

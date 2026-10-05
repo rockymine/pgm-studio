@@ -44,15 +44,14 @@ public sealed class MyTokenIssueEndpoint(Callers callers, StudioTokenStore token
         {
             await Refusals.WriteAsync(HttpContext, 403, "not permitted",
                 [new Finding(RequestRules.NotPermitted,
-                    "a token cannot issue a token — issue one from a browser signed in as its person")], ct);
+                    "the request is signed in with a token, and a token may not issue a token")], ct);
             return;
         }
         if (caller.Uuid is not { } uuid)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no account",
                 [new Finding(RequestRules.NoSuchSubject,
-                    "this caller has no Minecraft account for a token to act as — an open studio's local admin "
-                    + "needs none, since every request to it is already the admin")], ct);
+                    "the request is signed in as someone with no Minecraft account")], ct);
             return;
         }
         if (request.Notes && !caller.IsAdmin)
@@ -146,6 +145,7 @@ internal static class TokenIssue
     public static Task RefuseNotesAsync(HttpContext http, CancellationToken ct) =>
         Refusals.WriteAsync(http, 403, "not permitted",
             [new Finding(RequestRules.NotPermitted,
-                "only an admin's token may carry the notes permission, since a token never exceeds its person",
+                "the request asks for a token with the notes permission, and is signed in as someone who is not "
+                + "an admin",
                 Field: "notes")], ct);
 }

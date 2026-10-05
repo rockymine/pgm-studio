@@ -215,7 +215,7 @@ public static class Decorator
         // on the top surface instead would put it on the one storey the author said they did not mean.
         foreach (var stranded in context.Props.Where(context.Strands))
             declined.Add(new Finding(DressingRules.NoSuchLayer,
-                $"prop '{stranded.Id}' rests on layer '{stranded.Layer}', which this board has no ground on",
+                $"prop '{stranded.Id}' names layer '{stranded.Layer}', which has no ground",
                 Severity.Decline, Subjects: [stranded.Id]));
 
         UnheldFaces(context, declined);
@@ -599,10 +599,8 @@ public static class Decorator
     {
         if (held.At is not { } at) return;
         declined.Add(new Finding(DressingRules.HeldDry,
-            $"fluid '{fluid.Id}' is dry across {held.Count} column(s) of its bed — first at ({at.X}, {at.Z}), "
-            + $"{KeptFor(at.For)}. A kept column is filled but never cut, and the line stands no higher than "
-            + "the ground there, so the bed is left as ground and no fluid stands in it. Move the channel off "
-            + "the kept ground, or state a `level` above it.",
+            $"fluid '{fluid.Id}' is dry across {Wording.Count(held.Count, "column", "columns")} of its bed, "
+            + $"first at ({at.X}, {at.Z}), {KeptFor(at.For)}",
             Severity.Complaint, Subjects: [fluid.Id]));
     }
 
@@ -623,12 +621,9 @@ public static class Decorator
         if (cut.At is not { } at || cut.Courses <= stated) return;
 
         declined.Add(new Finding(DressingRules.SteepBank,
-            $"fluid '{fluid.Id}' is {stated} deep and its carve cut {cut.Courses} course(s) of ground away "
-            + $"above its own line — a straight-sided wall from y{cut.Line + 1} to y{cut.Line + cut.Courses} "
-            + $"at ({at.X}, {at.Z}). The line is the lowest surface the body crosses and every column over it "
-            + "is emptied down to it, so a pool drawn across a slope digs a pit as deep as the ground falls. "
-            + "Draw it inside ground that is already level, or state a `level` and let it fill the hollow "
-            + "there is.",
+            $"fluid '{fluid.Id}' cuts the ground away {Wording.Count(cut.Courses, "block", "blocks")} high above its "
+            + $"level, from y{cut.Line + 1} to y{cut.Line + cut.Courses} at ({at.X}, {at.Z}), "
+            + $"more than its depth of {Wording.Count(stated, "block", "blocks")}",
             Severity.Complaint, Subjects: [fluid.Id]));
     }
 
@@ -665,16 +660,8 @@ public static class Decorator
         if (against == 0) return;
         var at = $"({first!.Value.X}, {first.Value.Y}, {first.Value.Z})";
         declined.Add(new Finding(DressingRules.DryEdge,
-            fluid.Shape == FluidShape.Basin
-                ? $"fluid '{fluid.Id}' stands as a wall against {against} open column(s) of drawn ground — first "
-                  + $"at {at}, where the ground is lower than the line and the ring stops short of it, so nothing "
-                  + "holds the fluid back. Widen the ring over that ground, or lower the level to a rim the ring "
-                  + "encloses."
-                : $"fluid '{fluid.Id}' stands against {against} open column(s) of drawn ground — first at {at}, "
-                  + "where the basin is dug to the fluid's own depth and holds none. The hollow and the pool that "
-                  + "fills it are two statements about one lake; where the hollow reaches further, the difference "
-                  + "is a dry trench beside the fluid. Widen the pool onto the ground that was dug for it, or stop "
-                  + "digging it there.",
+            $"fluid '{fluid.Id}' stands against {Wording.Count(against, "open column", "open columns")} of ground, "
+            + $"first at {at}",
             Severity.Complaint, Subjects: [fluid.Id]));
     }
 
@@ -720,12 +707,8 @@ public static class Decorator
             if (unheld == 0) continue;
 
             declined.Add(new Finding(DressingRules.UnheldFace,
-                $"the copied body '{tree.StyleKey}' names {unheld} vine face(s) with nothing behind them — "
-                + $"first at ({first!.Value.X}, {first.Value.Y}, {first.Value.Z}) — so those faces hang on air. "
-                + "A vine's data is the set of sides it clings to, and a side naming a cell the body does not "
-                + "hold is a curtain on nothing; naming a pair of opposite sides is that fault seen from the "
-                + "front, as a vine with two faces in one block. State the one side the leaf is on — the orbit "
-                + "turns a vine's sides with the body it belongs to, so a single face survives the fan.",
+                $"the copied body '{tree.StyleKey}' has {Wording.Count(unheld, "vine side", "vine sides")} with no "
+                + $"block behind them, first at ({first!.Value.X}, {first.Value.Y}, {first.Value.Z})",
                 Severity.Complaint, Subjects: [tree.StyleKey]));
         }
     }
@@ -1030,8 +1013,8 @@ public static class Decorator
         if (Math.Min(footprintX, footprintZ) < DressingRules.FootprintMin)
         {
             declined.Add(new Finding(DressingRules.FootprintFloor,
-                $"building '{house.Id}' has a footprint of {footprintX}×{footprintZ}, under "
-                + $"{DressingRules.FootprintMin}×{DressingRules.FootprintMin}",
+                $"building '{house.Id}' has a footprint of {footprintX} by {footprintZ} blocks, less than "
+                + $"{DressingRules.FootprintMin} blocks across its shorter side",
                 Severity.Decline, Subjects: [house.Id]));
             return [];
         }
@@ -1052,7 +1035,7 @@ public static class Decorator
             if (FirstIn(image, context.AllowsProp) is { } crowded)
             {
                 declined.Add(new Finding(ObjectiveRules.PropInClearance,
-                    $"building '{house.Id}' stands on ({crowded.X}, {crowded.Z}), inside a goal's clearance",
+                    $"building '{house.Id}' stands on ({crowded.X}, {crowded.Z}), inside the clearance of an objective",
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
@@ -1081,9 +1064,8 @@ public static class Decorator
             {
                 declined.Add(new Finding(DressingRules.NoGround,
                     bare is { } column
-                        ? $"building '{house.Id}' has no ground under ({column.X}, {column.Z}), which is "
-                          + "inside its footprint — the building would seat on its lowest column and hang off "
-                          + "the rest"
+                        ? $"building '{house.Id}' has no ground under ({column.X}, {column.Z}), a cell inside "
+                          + "its footprint"
                         : $"building '{house.Id}' has no ground under any of its cells",
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
@@ -1099,10 +1081,8 @@ public static class Decorator
             if (rise >= buries)
             {
                 declined.Add(new Finding(DressingRules.SiteNotLevel,
-                    $"building '{house.Id}' stands on ground that rises {rise} block(s) across its own "
-                    + $"footprint, which is what the building itself stands — the uphill side would be "
-                    + "under the ground beside it, roof and all. Move it onto flatter ground, or give it a "
-                    + "plateau to stand on",
+                    $"building '{house.Id}' stands on ground that rises {Wording.Count(rise, "block", "blocks")} across "
+                    + $"its footprint, at least {Wording.Count(buries, "block", "blocks")}",
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
@@ -1117,13 +1097,13 @@ public static class Decorator
             {
                 cramped = true;
                 var together = group.Holds(own)
-                    ? " — measured round the group of buildings it stands in, "
-                      + $"x {group.StampMinX}…{group.StampMaxX}, z {group.StampMinZ}…{group.StampMaxZ}"
+                    ? ", along the group of buildings at "
+                      + $"x between {group.StampMinX} and {group.StampMaxX}, "
+                      + $"z between {group.StampMinZ} and {group.StampMaxZ}"
                     : "";
                 declined.Add(new Finding(DressingRules.PassAround,
-                    $"building '{house.Id}' leaves no way past it: a side has fewer than "
-                    + $"{DressingRules.PassAroundWidth} blocks of passable ground along its whole run, and is "
-                    + $"not the edge of the ground it stands on{together}",
+                    $"building '{house.Id}' has a side with a passage less than "
+                    + $"{DressingRules.PassAroundWidth} blocks wide{together}",
                     Severity.Complaint, Subjects: [house.Id]));
             }
 
@@ -1140,9 +1120,7 @@ public static class Decorator
             {
                 if (!RouteCrossing.Crosses(paving, footprint)) continue;
                 declined.Add(new Finding(DressingRules.RouteCrossed,
-                    $"building '{house.Id}' stands across the route '{road}', which carries on past its far "
-                    + "wall — the way through is now two dead ends at a building. A road ending at the "
-                    + "building is a porch and stands; this one does not end there",
+                    $"building '{house.Id}' overlaps road '{road}' and leaves it in more separate runs than before",
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
@@ -1189,9 +1167,10 @@ public static class Decorator
         // past the depth a house settles into a slope by.
         if (deepest is { } carve && carve.Deepest > DressingRules.SettleDepth)
             declined.Add(new Finding(DressingRules.SiteDug,
-                $"building '{house.Id}' dug its site out of the ground to seat its floor at y{carve.FloorY}: "
-                + $"{carve.Deepest} course(s) at ({carve.At.X}, {carve.At.Z}), {carve.Columns} column(s) "
-                + $"carved, {carve.Blocks} block(s) of ground removed",
+                $"building '{house.Id}' digs its site {Wording.Count(carve.Deepest, "block", "blocks")} deep at "
+                + $"({carve.At.X}, {carve.At.Z}), more than {DressingRules.SettleDepth} blocks, with its floor "
+                + $"at y{carve.FloorY}, {Wording.Count(carve.Columns, "column", "columns")} carved and "
+                + $"{Wording.Count(carve.Blocks, "block", "blocks")} of ground removed",
                 Severity.Complaint, Subjects: [house.Id]));
         return raised;
     }
@@ -1391,9 +1370,7 @@ public static class Decorator
             var named = boulder.Id.Length > 0 ? boulder.Id : $"boulder@{boulder.X},{boulder.Z}";
             declined.Add(new Finding(DressingRules.RockOnAFace,
                 $"boulder '{named}' stands at ({boulder.X}, {boulder.Z}) on ground inclined "
-                + $"{incline.Degrees}°, and the theme painting that cell calls the ground a face from "
-                + $"{incline.Cliff}° — the slope is already the feature there and a rock pinned to it reads as "
-                + "neither. Move it onto the flat, or onto the graded band below the face",
+                + $"{incline.Degrees} degrees, at least the {incline.Cliff} degrees its palette paints as a face",
                 Severity.Complaint, Field: "dressing.props", Subjects: [named]));
         }
 
@@ -1472,15 +1449,14 @@ public static class Decorator
             {
                 declined.Add(new Finding(DressingRules.GroundTaken,
                     $"chest '{chest.Id}' is stated at ({x}, {stated}, {z}), where {world.GetBlock(x, stated, z).Id} "
-                    + "already stands. Move it to a course that is open, or clear the block there",
+                    + "already stands",
                     Severity.Decline, Subjects: [chest.Id]));
                 return Placed.None;
             }
             if (world.GetBlock(x, stated - 1, z).Id == Blocks.Air)
             {
                 declined.Add(new Finding(DressingRules.NoGround,
-                    $"chest '{chest.Id}' is stated at ({x}, {stated}, {z}) with nothing under it. State the course "
-                    + "just above the floor it stands on",
+                    $"chest '{chest.Id}' is stated at ({x}, {stated}, {z}) with nothing under it",
                     Severity.Decline, Subjects: [chest.Id]));
                 return Placed.None;
             }
@@ -1517,10 +1493,8 @@ public static class Decorator
             {
                 var named = tree.Id.Length > 0 ? tree.Id : $"tree@{tree.X},{tree.Z}";
                 declined.Add(new Finding(DressingRules.TreeOnBareGround,
-                    $"tree '{named}' stands at ({tree.X}, {tree.Z}) on {BlockPalette.Name(id, data)}, which is "
-                    + "ground rather than soil — a trunk out of it reads as a model set down rather than as a "
-                    + "wood. Paint a band of grass or dirt under the canopy, or move it onto ground that has "
-                    + "one", Severity.Complaint, Field: "dressing.props", Subjects: [named]));
+                    $"tree '{named}' stands at ({tree.X}, {tree.Z}) on {BlockPalette.Name(id, data)}, "
+                    + "which is not soil", Severity.Complaint, Field: "dressing.props", Subjects: [named]));
             }
         }
 
@@ -1720,19 +1694,20 @@ public static class Decorator
 
         var buried = worst.Wanted > 0 && worst.Blocked > worst.Wanted * DressingRules.ClipBlockedShare;
         if (worst.Severed >= DressingRules.ClipSevered || buried)
+        {
+            var broken = new List<string>();
+            if (worst.Severed >= DressingRules.ClipSevered)
+                broken.Add($"{Wording.Count(worst.Severed, "block", "blocks")} cut off from its feet, "
+                           + $"at least {DressingRules.ClipSevered}");
+            if (buried)
+                broken.Add($"{worst.Blocked} of its {worst.Wanted} blocks inside something already standing, "
+                           + $"more than {(int)Math.Round(DressingRules.ClipBlockedShare * 100)} percent");
             declined.Add(new Finding(DressingRules.PropCut,
-                $"{kind} '{id}' seats clear of what it then reaches into: {worst.Blocked} of its "
-                + $"{worst.Wanted} blocks are inside something already standing and were not written, and that "
-                + $"cut {worst.Severed} more off its own footing, which stand in the air. {worst.Landed} "
-                + "block(s) are in the world"
-                + (worst.At is { } at ? $"; first stopped at ({at.X}, {at.Y}, {at.Z})" : "")
-                + (buried
-                    ? ". Over half of it is buried, so what stands there is not the prop that was placed — a "
-                      + "prop seats on the lowest column its feet cover, which on stepped ground is the bottom "
-                      + "of a step, so move it onto one step or the other"
-                    : ". A prop seats on its feet and is written wherever it meets air, so standing clear of a "
-                      + "wall is not the same as fitting beside one — move it further off, or make it smaller"),
+                $"{kind} '{id}' has {string.Join(" and ", broken)}"
+                + (worst.At is { } at ? $", first stopped at ({at.X}, {at.Y}, {at.Z})" : "")
+                + $", with {Wording.Count(worst.Landed, "block", "blocks")} in the world",
                 Severity.Complaint, Subjects: [id]));
+        }
 
         return new Placed(images.Count, covered);
     }

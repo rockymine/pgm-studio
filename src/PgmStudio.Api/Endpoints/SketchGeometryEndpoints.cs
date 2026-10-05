@@ -398,7 +398,7 @@ public sealed class SketchVertexMoveEndpoint(MapRepository repo, MapArtifactStor
             {
                 if (stated.Deserialize<VertexAt>(SketchLayout.Json) is not { } asked)
                     return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                        "a vertex move states `x` and `z`, the point the vertex goes to.", Field: "x"));
+                        "the request's body states no `x` and `z` for the point to move to", Field: "x"));
 
                 var edit = SketchGeometryEdit.MoveVertex(layoutJson, id, index, asked.X, asked.Z);
                 vertices = Count(edit, id);
@@ -440,8 +440,7 @@ public sealed class SketchVertexAddEndpoint(MapRepository repo, MapArtifactStore
             {
                 if (stated.Deserialize<VertexInsert>(SketchLayout.Json) is not { } asked)
                     return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                        "adding a vertex states `after`, the vertex the new one follows. `x` and `z` are "
-                        + "where it lands, and leaving them off puts it at the midpoint of that edge.",
+                        "the request's body states no `after` for the new point",
                         Field: "after"));
 
                 var edit = SketchGeometryEdit.InsertVertex(layoutJson, id, asked.After, asked.X, asked.Z,
@@ -533,8 +532,8 @@ public sealed class SketchShapeBendEndpoint(MapRepository repo, MapArtifactStore
         if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape", ct, id); return; }
         if (held > 0)
             Complaints.Add(HttpContext, [new Finding(SketchRules.BendHeldBack,
-                $"{held} of the points cut into '{id}' had no room on the side asked for and stayed on the "
-                + "edge they were cut from, so those stretches come out as straight as the plan drew them",
+                $"shape '{id}' has {held} cut {(held == 1 ? "point" : "points")} with no room on the side the bend "
+                + "asks for",
                 Severity.Complaint, Subjects: [id])]);
         await Send.OkAsync(new BentDto(outcome.Id, vertices, held), ct);
     }

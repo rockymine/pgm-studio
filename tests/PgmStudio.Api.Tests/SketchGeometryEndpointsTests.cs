@@ -370,7 +370,7 @@ public sealed class SketchGeometryEndpointsTests
         var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
         await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("edges");
-        await Assert.That(finding.GetProperty("message").GetString()).Contains("4 edges");
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("names edge 4, not between 0 and 3");
         await Assert.That((await ShapeAsync(client, "coast")).GetProperty("vertices").GetArrayLength()).IsEqualTo(4);
     }
 
@@ -491,7 +491,7 @@ public sealed class SketchGeometryEndpointsTests
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
         var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("index");
-        await Assert.That(finding.GetProperty("message").GetString()).Contains("numbered 0 to 3");
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("names index 9, not between 0 and 3");
     }
 
     /// <summary>A move that folds the outline across its own far side is refused, not clamped, and the shape

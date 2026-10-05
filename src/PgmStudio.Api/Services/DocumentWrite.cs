@@ -50,8 +50,8 @@ public static class DocumentWrite
         return new(Refusal.At(409, "stale write",
             new Finding(RequestRules.Conflict,
                 stored is { } now
-                    ? $"this {what} has been replaced since it was read — the If-Match states {expected} and "
-                      + $"it is at {now}; read it again and re-apply the change"
-                    : $"this map holds no {what} to replace, so the If-Match matches nothing")));
+                    ? $"the {what} of this map is at revision {now}, and the `If-Match` of the request states "
+                      + $"{expected}"
+                    : $"this map has no {what} for the `If-Match` of the request to match")));
     }
 }

@@ -49,8 +49,7 @@ public static class RoomPieceMove
     {
         if (!IsPart(part))
             return Refuse(RequestRules.Unreadable, "part",
-                $"'{part}' is not a room's rectangle — it is one of "
-                + $"{string.Join(", ", StructuralRoles.All)}.");
+                $"the request's `part` is '{part}', not one of {string.Join(", ", StructuralRoles.All)}");
 
         // A wool's reference carries its owner and its dye; a spawn's is the team alone. The colon is what
         // tells them apart, and it is the shape the sketch already writes rather than a second encoding.
@@ -66,7 +65,7 @@ public static class RoomPieceMove
         var index = intent.Spawns.FindIndex(s => s.Team == team);
         if (index < 0)
             return Refuse(RequestRules.NoSuchSubject, "reference",
-                $"no spawn belongs to team '{team}'.", team);
+                $"team '{team}' has no spawn in the map", team);
 
         var spawn = intent.Spawns[index];
         if (Stopped(spawn.Protection, spawn.Footprint, part, placed) is { } refused)
@@ -96,7 +95,7 @@ public static class RoomPieceMove
         var index = wools.FindIndex(w => w.Owner == owner && w.Color == color);
         if (index < 0)
             return Refuse(RequestRules.NoSuchSubject, "reference",
-                $"no {color} wool belongs to team '{owner}'.", $"{owner}:{color}");
+                $"team '{owner}' has no {color} wool in the map", $"{owner}:{color}");
 
         var wool = wools[index];
         if (Stopped(wool.Protection, wool.Footprint, part, placed) is { } refused)
@@ -128,27 +127,25 @@ public static class RoomPieceMove
         {
             if (footprint is not { } standing)
                 return Findings.Of(new Finding(RequestRules.Unreadable,
-                    "this room states no footprint, so there is no building rectangle to move. The shell "
-                    + "stands on the region inset a block on every side until one is stated.", Field: "part"));
+                    "the room states no `footprint`", Field: "part"));
             if (SpanOf(standing) != SpanOf(placed)) return Resized(standing, placed);
             // The building is the house raised on the region's ground; carried outside it, it stands over
             // whatever the neighbour happens to be, or over the void.
             if (region is { } ground && !Holds(ground, placed))
                 return Findings.Of(new Finding(RoomFrameRules.FootprintOffPiece,
-                    "the building would stand outside the region that is its ground.", Field: "part"));
+                    "the placed building rectangle reaches outside the region of its room", Field: "part"));
             return null;
         }
 
         if (region is not { } standingRegion)
             return Findings.Of(new Finding(RequestRules.Unreadable,
-                "this room states no region, so there is no rectangle to move.", Field: "part"));
+                "the room's `protection` has no region", Field: "part"));
 
         // The sketch draws one rectangle per region. A region an author drew as a union of several has no
         // single rectangle a drag could mean, and moving the first alone would tear the union apart.
         if (protection.Count > 1)
             return Findings.Of(new Finding(RequestRules.Unreadable,
-                $"this room's region is {protection.Count} rectangles and the sketch draws one, so there is "
-                + "no single rectangle to move. Edit the region in Configure.", Field: "protection"));
+                $"the room's `protection` has {protection.Count} rectangles, more than 1", Field: "protection"));
 
         if (SpanOf(standingRegion) != SpanOf(placed)) return Resized(standingRegion, placed);
         return null;
@@ -156,8 +153,7 @@ public static class RoomPieceMove
 
     private static Findings Resized(Rect was, Rect placed) =>
         Findings.Of(new Finding(RequestRules.Unreadable,
-            $"a room piece moves and does not resize: it was {Span(was)} and was placed as {Span(placed)}. "
-            + "A room's marker is a fraction of its own rectangle, so resizing one moves the marker inside it.",
+            $"the request's `placed` is {Span(placed)} blocks, not the {Span(was)} blocks of the region it replaces",
             Field: "placed"));
 
     /// <summary>How far the region travelled — read off its corner, which is exact because the spans match.
@@ -174,7 +170,7 @@ public static class RoomPieceMove
     private static Pt Slide(Pt p, double dx, double dz) => p with { X = p.X + dx, Z = p.Z + dz };
 
     private static (double X, double Z) SpanOf(Rect r) => (r.MaxX - r.MinX, r.MaxZ - r.MinZ);
-    private static string Span(Rect r) => $"{r.MaxX - r.MinX:0.#}×{r.MaxZ - r.MinZ:0.#}";
+    private static string Span(Rect r) => $"{r.MaxX - r.MinX:0.#} by {r.MaxZ - r.MinZ:0.#}";
 
     private static bool Holds(Rect outer, Rect inner) =>
         inner.MinX >= outer.MinX && inner.MaxX <= outer.MaxX

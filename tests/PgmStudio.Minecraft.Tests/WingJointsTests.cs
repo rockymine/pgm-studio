@@ -86,8 +86,7 @@ public class WingJointsTests
         var refusal = WingJoints.Refusal(WingJoints.Between(hall, wing))!;
 
         await Assert.That(refusal.Rule).IsEqualTo(WingJointRules.WingOvertops);
-        await Assert.That(refusal.Message).Contains("the wing (rectangle 1)");
-        await Assert.That(refusal.Message).Contains("the hall (rectangle 0)");
+        await Assert.That(refusal.Message).Contains("wing 1 is longer along the edge it shares with the hall, wing 0");
     }
 
     /// <summary>

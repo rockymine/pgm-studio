@@ -150,7 +150,7 @@ internal static class PngAnswer
         }
 
         await Refusals.UnreadableAsync(http, "no such view",
-            $"'{view}' is not a view this preview draws — it draws {string.Join(", ", views)}",
+            $"view '{view}' is not one of {string.Join(", ", views)}",
             ct, field: View_);
         return true;
     }

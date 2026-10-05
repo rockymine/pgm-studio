@@ -65,6 +65,12 @@ Every rule fires as before; the tests and `--goldens` say so.
   nothing: `NoLand` (`PL1`), `WallWithoutInterface` (`PL11`), `NamesNoLibraryRow` (`SR6`), `RockOnAFace`
   (`DR-STEEP`), `RockInTheGroundsTone` (`DR-TONE`) and `DressingJson.Rule` (`DR-DOC`); each is renamed with every
   caller in one commit. `docs/refusals.md`.
-- [ ] **RP114 — Reword the inline messages.** The 271 messages written at their raise sites, to the same
-  format; the audit's per-site list is the worklist. `docs/refusals.md`.
+- [ ] **RP120 — The readers' faults in the message shape.** A document that will not read is refused with
+  the exception's text as its message, at 30 sites that pass `fault.Message` on, and those texts are written as
+  sentences of their own: `HouseStyleJson` (5 throws), `TerrainThemeJson` (5), `SketchRelief` (2), `SeedFolder`
+  (2), `DressingJson`, `CellRectJsonConverter`, `RectListJsonConverter`, `PlanModel.Unreadable`, `EyeAim.Read`,
+  `MapParser`'s `UnsupportedMapException` and System.Text.Json's own `JsonException`. Each is rewritten to the
+  shape in `docs/refusals.md` ("`` `floor` `` is not a number"), the JSON one wrapped where it is caught. `IntentWrite.RefuseNames` drops which check
+  `AuthorNames.Refuse` failed, so a name 40 characters long reads the same as one with a symbol in it; the
+  message states the one that failed, with the length against `AuthorNames.MaxLength`. `docs/refusals.md`.
 

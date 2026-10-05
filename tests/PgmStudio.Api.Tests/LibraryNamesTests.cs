@@ -87,7 +87,7 @@ public sealed class LibraryNamesTests
         await Assert.That((int)none.StatusCode).IsEqualTo(422).Because(text);
         var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
         await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("SR6");
-        await Assert.That(finding.GetProperty("message").GetString()).Contains("'weir-dunes'");
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("names library entry 'weir-dunez', which the library does not have");
 
         foreach (var named in new object[] { "WEIR-DUNES", dunes })
         {

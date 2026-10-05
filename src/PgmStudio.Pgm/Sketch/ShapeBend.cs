@@ -37,8 +37,8 @@ public sealed record ShapeBend(
         held = 0;
         if (Wander <= 0 || Step <= 0)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                "a bend states `wander` and `step`, both greater than nought: how far a point may be pulled off "
-                + "its edge, and how often to cut along an edge.", Field: "wander", Subjects: [shapeId]));
+                $"the bend of shape '{shapeId}' has a `wander` of {Wander} blocks and a `step` of {Step} blocks, "
+                + "not both more than 0", Field: "wander", Subjects: [shapeId]));
         return SketchGeometryEdit.BendShape(
             layoutJson, shapeId, Wander, Step, Seed, Tension ?? DefaultTension, Side ?? BendSide.Out, out held, Edges,
             Fan ?? true);

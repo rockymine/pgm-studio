@@ -75,7 +75,7 @@ public sealed class TeamTintWorldTests
         await Assert.That(found[0].Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(found[0].Field).IsEqualTo("islandTeams.1");
         await Assert.That(found[0].SubjectIds).IsEquivalentTo(new[] { "red", "blue" });
-        await Assert.That(found[0].Message).Contains("red's colour");
+        await Assert.That(found[0].Message).Contains("has the spawns of 'red' and 'blue'");
     }
 
     /// <summary>The same board painted by a theme that states no team says nothing: shared ground is only a

@@ -254,7 +254,7 @@ public sealed class PlanValidatorTests
         var said = PlanValidator.Check(p).Where(f => f.Rule == "SP11").ToList();
         await Assert.That(said.Count).IsEqualTo(1).Because("the missing zone is stated once, not per wool");
         await Assert.That(said[0].Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(said[0].Message).Contains("no build zone");
+        await Assert.That(said[0].Message).Contains("has no build region");
     }
 
     [Test]
@@ -271,8 +271,8 @@ public sealed class PlanValidatorTests
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]}, {"id":"c","role":"piece","rect":[40,0,10,10]} ],
           "walls":[ {"a":"a","b":"c"} ] }
         """);
-        await Assert.That(Err(ok, "not a shared land interface")).IsFalse();
-        await Assert.That(Err(bad, "not a shared land interface")).IsTrue();
+        await Assert.That(Err(ok, "no shared edge")).IsFalse();
+        await Assert.That(Err(bad, "no shared edge")).IsTrue();
     }
 
     [Test]
@@ -311,7 +311,7 @@ public sealed class PlanValidatorTests
         """);
         var all = PlanValidator.Check(p);
 
-        var overlap = all.First(f => f.Severity == Severity.Refusal && f.Message.Contains("different surfaces"));
+        var overlap = all.First(f => f.Severity == Severity.Refusal && f.Message.Contains("stand at surfaces"));
         await Assert.That(overlap.SubjectIds).Contains("a");
         await Assert.That(overlap.SubjectIds).Contains("b");
 
@@ -433,8 +433,8 @@ public sealed class PlanValidatorTests
           "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,10,10]} ],
           "placements":{ "wools":[ {"piece":"buffer","at":[5,5]} ] } }
         """);
-        await Assert.That(Err(spawn, "non-generating buffer")).IsTrue();
-        await Assert.That(Err(wool, "non-generating buffer")).IsTrue();
+        await Assert.That(Err(spawn, "stands on buffer")).IsTrue();
+        await Assert.That(Err(wool, "stands on buffer")).IsTrue();
     }
 
     // ── lint ────────────────────────────────────────────────────────────────────────────────────────────
@@ -545,7 +545,7 @@ public sealed class PlanValidatorTests
     public async Task An_empty_plan_has_no_land_to_build()
     {
         var p = Plan("""{ "plan":2, "globals":{"cell":1} }""");
-        await Assert.That(Missing(p, "no pieces")).IsTrue();
+        await Assert.That(Missing(p, "no piece that makes ground")).IsTrue();
     }
 
     [Test]
@@ -557,7 +557,7 @@ public sealed class PlanValidatorTests
         { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,10,10]} ] }
         """);
-        await Assert.That(Missing(p, "no pieces")).IsTrue();
+        await Assert.That(Missing(p, "no piece that makes ground")).IsTrue();
     }
 
     [Test]
@@ -589,11 +589,7 @@ public sealed class PlanValidatorTests
         """);
         var findings = PlanValidator.Completeness(p);
         await Assert.That(findings.Any(f => f.Severity == Severity.Refusal)).IsFalse();
-        await Assert.That(findings.Any(f => f.Severity == Severity.Complaint && f.Message.Contains("no objective"))).IsTrue();
-        // It is a statement about the plan, not about the match: a board can state its goals on the intent
-        // instead, which a plan-tier rule cannot see.
-        await Assert.That(findings.Single(f => f.Rule == PlanRules.NoObjective).Message)
-            .Contains("A board stating its goals on the intent instead is answered there");
+        await Assert.That(findings.Any(f => f.Severity == Severity.Complaint && f.Message.Contains("has no wool, monument, core or capture point"))).IsTrue();
     }
 
     [Test]
@@ -607,7 +603,7 @@ public sealed class PlanValidatorTests
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ],
           "placements":{"spawns":[{"piece":"a","at":[1,1]}],"{{kind}}":[{"piece":"a","at":[5,5]}]} }
         """);
-        await Assert.That(PlanValidator.Completeness(p).Any(f => f.Message.Contains("no objective"))).IsFalse();
+        await Assert.That(PlanValidator.Completeness(p).Any(f => f.Message.Contains("has no wool, monument, core or capture point"))).IsFalse();
     }
 
     /// <summary>A capture board is played for something, so a stated count is an objective like the other
@@ -620,7 +616,7 @@ public sealed class PlanValidatorTests
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ],
           "placements":{"spawns":[{"piece":"a","at":[1,1]}],"controlPoints":3} }
         """);
-        await Assert.That(PlanValidator.Completeness(p).Any(f => f.Message.Contains("no objective"))).IsFalse();
+        await Assert.That(PlanValidator.Completeness(p).Any(f => f.Message.Contains("has no wool, monument, core or capture point"))).IsFalse();
     }
 
     /// <summary>A count the board's own symmetry cannot lay out. The compiler places none rather than
@@ -637,7 +633,7 @@ public sealed class PlanValidatorTests
         """);
         var finding = PlanValidator.Completeness(p).Single(f => f.Rule == PlanRules.ControlPointCount);
         await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(finding.Message).Contains($"{count} capture point(s)");
+        await Assert.That(finding.Message).Contains($"has {count} capture points");
     }
 
     /// <summary>And the counts a board's symmetry does lay out say nothing.</summary>

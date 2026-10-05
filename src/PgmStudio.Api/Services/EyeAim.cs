@@ -45,11 +45,9 @@ internal sealed record EyeAim(
     /// <summary>Why this aim can find no camera, for the 422 that says so.</summary>
     public string Empty => (Look, From) switch
     {
-        ({ } seen, null) => $"no place within reach of {seen.X},{seen.Z} sees it with nothing in the way — "
-            + "stand the eye yourself with `from`",
-        (null, { } stand) => $"there is no ground to stand on at {stand.X},{stand.Z}; give `y` to stand the "
-            + "eye in the air",
-        _ => "nothing to draw",
+        ({ } seen, null) => $"no place within reach of ({seen.X}, {seen.Z}) sees it with nothing in the way",
+        (null, { } stand) => $"column ({stand.X}, {stand.Z}) has no ground to stand on",
+        _ => "the aim places no camera",
     };
 
     /// <summary>The camera this aim makes of <paramref name="scene"/>, and a line saying how it was aimed; null

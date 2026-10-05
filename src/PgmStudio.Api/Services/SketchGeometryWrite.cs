@@ -55,7 +55,7 @@ internal static class SketchGeometryWrite
 
         if (node is JsonObject stated) return stated;
         await Refusals.UnreadableAsync(http, "malformed body",
-            "the body is not a JSON object stating the fields to write.", ct);
+            "the request's body is not a JSON object of fields to write", ct);
         return null;
     }
 

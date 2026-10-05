@@ -110,24 +110,17 @@ public static class WingJoints
         var (rule, said) = joint.Fault switch
         {
             JointFault.Overlapping => (WingJointRules.Overlapping,
-                "the two rectangles share blocks; wings touch and never overlap, because a joint is the edge "
-                + "between them and an overlap has none"),
+                $"wings {joint.A} and {joint.B} share blocks"),
             JointFault.PartialEdge => (WingJointRules.PartialEdge,
-                $"they touch over {joint.Shared} blocks of edge but not over all of the shorter one, so part of "
-                + "the wing's end meets its neighbour and the rest hangs over open ground — neither joint can "
-                + "happen"),
+                $"wings {joint.A} and {joint.B} touch over {Wording.Count(joint.Shared, "block")} of edge, "
+                + "not over all of the shorter one"),
             JointFault.SideBySide => (WingJointRules.SideBySide,
-                "both ridges run along the edge they share, which is two ranges side by side meeting in a "
-                + "gutter rather than a valley; turn one of them across the other"),
+                $"wings {joint.A} and {joint.B} touch and both ridges run along the edge they share"),
             JointFault.EndToEnd => (WingJointRules.EndToEnd,
-                "both ridges run into the edge they share, which is one longer range — draw it as one "
-                + "rectangle"),
+                $"wings {joint.A} and {joint.B} touch and both ridges run into the edge they share"),
             JointFault.WingOvertops => (WingJointRules.WingOvertops,
-                $"the wing (rectangle {joint.Wing}) stands taller than the hall (rectangle {joint.Hall}) it "
-                + "meets, so its roof runs over rather than into it; a wing reaches no further along the shared "
-                + "edge than the hall reaches across it — and which rectangle is the wing follows from the "
-                + "ridges (the wing's runs into the shared edge), so a stated ridge can swap the roles the "
-                + "drawing suggests"),
+                $"wing {joint.Wing} is longer along the edge it shares with the hall, wing {joint.Hall}, "
+                + "than the hall is across it"),
             _ => ("", ""),
         };
         return rule.Length == 0 ? null : new Finding(rule, said, Field: "wings",

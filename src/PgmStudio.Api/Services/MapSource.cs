@@ -54,8 +54,7 @@ public static class MapSource
     {
         if (Slugs.OfFolder(slug) != slug)
             return Refuse(400, "not a slug", new Finding(RequestRules.Unreadable,
-                $"'{slug}' is not a slug: a map is stored under lowercase letters, digits, '-' and '_' — '{Slugs.Of(slug)}' "
-                + "is the one the name would take", Field: "slug"));
+                $"slug '{slug}' has characters other than lowercase letters, digits, '-' and '_'", Field: "slug"));
 
         JsonObject stated;
         MapSourceRequest request;
@@ -80,7 +79,7 @@ public static class MapSource
             if (long.TryParse(word, NumberStyles.None, CultureInfo.InvariantCulture, out var number)) discard.Add(number);
             else
                 return Refuse(400, "unreadable discard", new Finding(RequestRules.Unreadable,
-                    $"discard names changes by number, as `8,9`, and '{word}' is not one", Field: "discard"));
+                    $"the `discard` of the request holds '{word}', not a change number", Field: "discard"));
 
         var plan = Raw(stated["plan"]);
         var drawnLayout = Raw(stated["layout"]);
@@ -88,16 +87,16 @@ public static class MapSource
         var refinement = Raw(stated["refinement"]);
         if ((drawnLayout is null) != (drawnIntent is null))
             return Refuse(400, "no base", new Finding(RequestRules.Unreadable,
-                $"the source states a drawn {(drawnLayout is null ? "intent" : "layout")} without its "
-                + $"{(drawnLayout is null ? "layout" : "intent")}: a drawing is the base together with what it is "
-                + "played for", Field: drawnLayout is null ? "layout" : "intent"));
+                $"the source states a drawn {(drawnLayout is null ? "game settings" : "layout")} and no "
+                + $"{(drawnLayout is null ? "layout" : "game settings")}",
+                Field: drawnLayout is null ? "layout" : "intent"));
         if (plan is null && drawnLayout is null)
             return Refuse(400, "no base", new Finding(RequestRules.Unreadable,
-                "the source states no base: a plan, which the studio compiles, or a drawn layout and its intent",
+                "the source states neither a plan nor a drawn layout with game settings",
                 Field: "plan"));
         if (request.Note is { Length: > MapChangeLog.NoteLength })
             return Refuse(400, "note too long", new Finding(RequestRules.Unreadable,
-                $"the note is {request.Note.Length} characters and a change keeps at most {MapChangeLog.NoteLength}",
+                $"the note is {request.Note.Length} characters, more than {MapChangeLog.NoteLength}",
                 Field: "note"));
 
         // Each document binds onto its record before anything is made of it: a lenient read of one that does not
@@ -156,7 +155,7 @@ public static class MapSource
         var name = request.Name is { Length: > 0 } called ? called : NameOf(intentJson);
         if (string.IsNullOrWhiteSpace(name))
             return Refuse(400, "no name given", new Finding(RequestRules.Unreadable,
-                "neither a name nor the intent's own meta.name says what this map is called", Field: "name"));
+                "the request has no `name`, and the game settings have no `meta.name`", Field: "name"));
 
         // The gate every other road to a stored layout runs: a house is stamped from the style that arrives here.
         var styles = SketchMaterialGate.Check(layoutJson);
@@ -298,7 +297,7 @@ public static class MapSource
         var latest = changes.Count > 0 ? changes[^1].Number : 0;
         if (after is { } built && (built < 0 || built > latest))
             return (Refusal.At(400, "no such change", new Finding(RequestRules.Unreadable,
-                $"after names change {built}, and '{slug}' has {(latest == 0 ? "none" : $"changes 1 to {latest}")}",
+                $"the `after` of the request for map '{slug}' is {built}, not between 0 and {latest}",
                 Field: "after")), []);
 
         var held = existing is null ? null : await artifacts.LoadAsync(existing.Id, ArtifactKind.RefinementJson, ct);
@@ -307,8 +306,8 @@ public static class MapSource
         var strays = discard.Where(number => since.All(change => change.Number != number)).ToList();
         if (strays.Count > 0)
             return (Refusal.At(400, "no such change", new Finding(RequestRules.Unreadable,
-                $"discard names {Numbers(strays)}, not among the changes the source has not seen — "
-                + (since.Count == 0 ? "there are none" : Numbers(since.Select(change => change.Number))),
+                $"the `discard` of the request names {Numbers(strays)}, and the changes the source has not seen are "
+                + (since.Count == 0 ? "none" : Numbers(since.Select(change => change.Number))),
                 Field: "discard")), []);
 
         var findings = new List<Finding>();
@@ -327,7 +326,7 @@ public static class MapSource
                 applied: change.Kinds.Contains(ArtifactKind.RefinementJson));
             var said = Said(change, notes);
             findings.AddRange(handed.Select(edit => new Finding(SourceRules.UnseenChange,
-                $"change {change.Number} — {said}: {edit.Says}", Field: "after",
+                $"change {change.Number} by {said} has an edit the source has not seen, {edit.Says}", Field: "after",
                 Subjects: [change.Number.ToString(CultureInfo.InvariantCulture)], Edit: edit)));
         }
         return findings.Count > 0 ? (new Refusal(409, "changes not seen", findings), []) : (null, [.. discard]);

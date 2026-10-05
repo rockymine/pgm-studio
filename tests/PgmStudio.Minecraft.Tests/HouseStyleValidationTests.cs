@@ -503,7 +503,7 @@ public sealed class HouseStyleValidationTests
         var porch = findings.Single(finding => finding.Rule == HouseStyleRules.PorchHeadroom);
         await Assert.That(porch.Severity).IsEqualTo(Severity.Complaint);   // the porch is built either way
         await Assert.That(porch.Field).IsEqualTo("porch");
-        await Assert.That(porch.Message).Contains("4 course(s) above");    // 3 + 2 + 2 wanted against 3
+        await Assert.That(porch.Message).Contains("3 courses high, less than 7 courses");    // 3 + 2 + 2 wanted against 3
     }
 
     /// <summary>And a wall with the courses for it says nothing. The three numbers that buy them are all the

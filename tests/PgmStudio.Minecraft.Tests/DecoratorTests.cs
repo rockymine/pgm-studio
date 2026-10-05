@@ -179,7 +179,7 @@ public sealed class DecoratorTests
         var drop = across.Declines.Single(finding => finding.SubjectIds.Contains("h"));
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.RouteCrossed);
         await Assert.That(drop.Severity).IsEqualTo(Severity.Decline);
-        await Assert.That(drop.Message).Contains("stands across the route 'p'");
+        await Assert.That(drop.Message).Contains("overlaps road 'p'");
 
         var (painted, paintedTop) = Plateau();
         var overPaint = Decorator.Decorate(painted, Context(paintedTop, [Band(route: false), Middle()]));
@@ -551,7 +551,7 @@ public sealed class DecoratorTests
         await Assert.That(cut).IsNotNull();
         await Assert.That(cut!.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(cut.Message).Contains("oak");
-        await Assert.That(cut.Message).Contains("buried");
+        await Assert.That(cut.Message).Contains("inside something already standing");
         await Assert.That(report.Trees).IsEqualTo(1);                     // it is in the world, as it fell
     }
 
@@ -1271,7 +1271,7 @@ public sealed class DecoratorTests
         await Assert.That(bank).IsNotNull();
         await Assert.That(bank!.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(bank.Message).Contains("mere");
-        await Assert.That(bank.Message).Contains("2 deep");
+        await Assert.That(bank.Message).Contains("more than its depth of 2 blocks");
     }
 
     /// <summary>And a body drawn on level ground says nothing: the carve then reaches nothing above its own
@@ -1697,7 +1697,7 @@ public sealed class DecoratorTests
         var wall = report.Declines.Single(finding => finding.Rule == DressingRules.DryEdge);
         await Assert.That(wall.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(wall.Message).Contains("wash");
-        await Assert.That(wall.Message).Contains("ring");
+        await Assert.That(wall.Message).Contains("open columns of ground");
         await Assert.That(world.GetBlock(17, 6, 17).Id).IsEqualTo(Blocks.StationaryWater);
         await Assert.That(world.GetBlock(23, 6, 17).Id).IsEqualTo(Blocks.Air);
     }
@@ -1929,7 +1929,7 @@ public sealed class DecoratorTests
         // Standing, and the carve — four courses, one past the settle depth — reported as the one complaint.
         var dug = tally.Declines.Single();
         await Assert.That(dug.Rule).IsEqualTo(DressingRules.SiteDug);
-        await Assert.That(dug.Message).Contains("4 course(s)");
+        await Assert.That(dug.Message).Contains("4 blocks deep");
         // The mound is gone from the interior: the column that stood four courses over the floor is open air.
         for (var y = 9; y <= 11; y++)
             await Assert.That(world.GetBlock(20, y, 20).Id).IsEqualTo(Blocks.Air);
@@ -1990,7 +1990,7 @@ public sealed class DecoratorTests
         }
         await Assert.That(dug.Count).IsEqualTo(1);
         await Assert.That(dug[0].Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(dug[0].Message).Contains($"seat its floor at y{7 - pitDepth}: {pitDepth} course(s)");
+        await Assert.That(dug[0].Message).Contains($"{pitDepth} blocks deep at (10, 16), more than 3 blocks, with its floor at y{7 - pitDepth}");
     }
 
     /// <summary>On level ground the seat's own course down removes nothing, and nothing is reported.</summary>
@@ -2027,7 +2027,7 @@ public sealed class DecoratorTests
         await Assert.That(buried.Houses).IsEqualTo(0);
         var drop = buried.Declines.Single();
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.SiteNotLevel);
-        await Assert.That(drop.Message).Contains("across its own footprint");
+        await Assert.That(drop.Message).Contains("rises 12 blocks across its footprint");
 
         // The same house on level ground stands: the rule is about the site, not about the building.
         var (flat, flatTop) = Plateau();
@@ -2162,7 +2162,7 @@ public sealed class DecoratorTests
                 },
             } }]));
         var drop = corked.Declines.Single();
-        await Assert.That(drop.Message).Contains("no way past");
+        await Assert.That(drop.Message).Contains("a passage less than 8 blocks wide");
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.PassAround);
 
         // The same house hugging a west coast: one flank is the edge and the other three keep the passage.

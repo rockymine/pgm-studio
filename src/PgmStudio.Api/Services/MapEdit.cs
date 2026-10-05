@@ -37,7 +37,7 @@ public static class MapEdit
         var map = await repo.GetBySlugAsync(slug, ct);
         if (map is null)
             return new(Refusal.At(404, "no such map",
-                new Finding(RequestRules.NoSuchSubject, $"no map is stored under '{slug}'")));
+                new Finding(RequestRules.NoSuchSubject, $"map '{slug}' does not exist")));
 
         var doc = await reader.ReadDocAsync(map, ct);
         try
@@ -60,7 +60,6 @@ public static class MapEdit
         Refusal.At(409, "stale write",
             new Finding(RequestRules.Conflict,
                 stored is { } now
-                    ? $"this map has been replaced since it was read — the If-Match states {expected} and it "
-                      + $"is at {now}; read it again and re-apply the change"
-                    : "this map holds nothing to replace, so the If-Match matches nothing"));
+                    ? $"this map is at revision {now}, and the `If-Match` of the request states {expected}"
+                    : "this map has no document for the `If-Match` of the request to match"));
 }

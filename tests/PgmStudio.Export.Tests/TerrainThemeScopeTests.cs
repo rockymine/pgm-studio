@@ -277,7 +277,7 @@ public sealed class TerrainThemeScopeTests
 
         await Assert.That(findings.Count).IsEqualTo(2).Because("two themes, one finding each");
         var kerb = findings.Single(f => f.Message.Contains("'kerb'"));
-        await Assert.That(kerb.Message).Contains("3 shape(s)");
+        await Assert.That(kerb.Message).Contains("3 shapes");
         await Assert.That(kerb.Subjects!.Order(StringComparer.Ordinal))
             .IsEquivalentTo(new[] { "a", "b", "c" });
     }

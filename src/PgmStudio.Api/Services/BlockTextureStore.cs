@@ -48,9 +48,7 @@ public sealed class BlockTextureStore(IConfiguration configuration, IHttpClientF
         {
             if (_loaded is { } raced) return (raced, null);
             if (await JarAsync(ct) is not { } jar)
-                return (null, "the studio has not been given Minecraft's block textures: set Textures:Jar to a "
-                    + "1.8.9 client jar you have, or Textures:AcceptMojangEula to true to accept Mojang's EULA "
-                    + "and let the studio download that jar from Mojang");
+                return (null, "the studio has no block textures");
             await using var stream = File.OpenRead(jar);
             _loaded = BlockTextureSet.FromJar(stream);
             log.LogInformation("Block textures: {Count} sprites read from {Jar}", _loaded.Count, jar);
@@ -59,7 +57,8 @@ public sealed class BlockTextureStore(IConfiguration configuration, IHttpClientF
         catch (Exception fault) when (fault is HttpRequestException or IOException or InvalidDataException
                                           or FormatException or TaskCanceledException)
         {
-            return (null, $"the block textures could not be read: {fault.Message}");
+            log.LogWarning(fault, "Block textures did not read");
+            return (null, "the studio's block textures do not read");
         }
         finally
         {

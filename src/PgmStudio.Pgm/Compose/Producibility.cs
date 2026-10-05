@@ -18,15 +18,6 @@ public sealed record NearestMiss(
     string Label, int Cw, int DifferingCells,
     IReadOnlyList<CellRect> Extra, IReadOnlyList<CellRect> Missing);
 
-/// <summary>A producibility read answers in <see cref="Findings"/>, the same shape every gate answers in, and
-/// its findings are the reasons the answer is no — so inside the read they are <b>refusals</b> and
-/// <see cref="Findings.Refuses"/> is a question this file can ask of itself. They leave as
-/// <b>complaints</b>: a box the emitters cannot reproduce is still a box an author drew, and the read says why
-/// the composer's parameter space does not reach it rather than declining to build it. That downgrade is
-/// <see cref="Findings.AsComplaints"/>, applied at the wire. The rule is the finding's own slug, since it is
-/// the stable thing a caller keys on; the layout rule or gap it cites, where it cites one, is named in the
-/// sentence beside the measured numbers.</summary>
-
 /// <summary>
 /// One box's producibility read: what the derivers see it as, whether any parameter tuple the production menus
 /// admit reproduces it, and — when none does — the nearest candidate plus the directed findings.
@@ -34,6 +25,12 @@ public sealed record NearestMiss(
 /// <para><see cref="Identity"/> is a <b>hint, never a verdict</b>: the classifiers read topology, so a shape with
 /// 1-cell walls still reads as the <c>G</c> it topologically is even though no <c>G</c> is emittable at that
 /// width. Producibility is the separate question this record answers.</para>
+///
+/// <para>The read answers in <see cref="Findings"/>, and its findings are the reasons the answer is no: inside
+/// the read they are <b>refusals</b>, so <see cref="Findings.Refuses"/> is a question it can ask of itself, and
+/// they leave as <b>complaints</b> through <see cref="Findings.AsComplaints"/>, since a box the emitters cannot
+/// reproduce is still a box an author drew. Each cites its <see cref="BoxRules"/> id, and a box room its
+/// <see cref="LayoutRules.BoxRoomShape"/>.</para>
 /// </summary>
 public sealed record BoxProducibility(
     string BoxId, string Kind, string Identity,
@@ -198,8 +195,8 @@ public static class Producibility
         if (terrain.Count > 0 && MidCarver.LateralFlip(symmetry)
             && Composer.FrontHullSlackCells(frame, terrain) is var slack && slack > Composer.FrontSlackCapCells)
             findings.Add(new Finding(BoxRules.FrontOffAxis,
-                $"the mid build region over the unit's front runs {CellCount(slack)} past the front it docks, more than " +
-                $"{CellCount(Composer.FrontSlackCapCells)}"));
+                $"the mid build region over the unit's front runs {Wording.Count(slack, "cell")} past the front it docks, more than " +
+                $"{Wording.Count(Composer.FrontSlackCapCells, "cell")}"));
 
         // the frontline's face: a sampled width seated anywhere along the hub's front edge, free to overhang it,
         // but every contact patch it makes with the hub's front terrain must be at least a lane wide — the
@@ -216,7 +213,7 @@ public static class Producibility
                     patches.Count == 0
                         ? $"front line box '{front.Id}' meets the front of hub box '{hub.Id}' in no patch"
                         : $"front line box '{front.Id}' meets the front of hub box '{hub.Id}' in {patches.Count} " +
-                          $"patches, the narrowest {CellCount(weakest)} wide, less than {CellCount(UnitTuning.WoolLaneFloorCells)}",
+                          $"patches, the narrowest {Wording.Count(weakest, "cell")} wide, less than {Wording.Count(UnitTuning.WoolLaneFloorCells, "cell")}",
                     Subjects: [front.Id, hub.Id]));
         }
 
@@ -230,7 +227,7 @@ public static class Producibility
                 if (SeatGeometry.TooClose(seats[i].Rect, seats[j].Rect, UnitTuning.WoolLaneFloorCells))
                     findings.Add(new Finding(BoxRules.SeatsTooClose,
                         $"boxes '{seats[i].Id}' and '{seats[j].Id}' stand less than " +
-                        $"{CellCount(UnitTuning.WoolLaneFloorCells)} apart", Subjects: [seats[i].Id, seats[j].Id], Cites: "G124"));
+                        $"{Wording.Count(UnitTuning.WoolLaneFloorCells, "cell")} apart", Subjects: [seats[i].Id, seats[j].Id], Cites: "G124"));
 
         return findings;
     }
@@ -259,7 +256,7 @@ public static class Producibility
         var measured = Cells.MinRunWidthRaw(all, all);
         if (measured < cwFloor)
             findings.Add(new Finding(BoxRules.BoxTooNarrow,
-                $"box '{box.Id}' is {CellCount(measured)} across at its narrowest, less than {CellCount(cwFloor)}",
+                $"box '{box.Id}' is {Wording.Count(measured, "cell")} across at its narrowest, less than {Wording.Count(cwFloor, "cell")}",
                 Subjects: [box.Id]));
 
         // enumerated lazily and kept as they come: an exact match ends the search, so the producible case — the
@@ -289,8 +286,8 @@ public static class Producibility
         if (nearest is not null)
         {
             findings.Add(new Finding(BoxRules.NoFormReproduces,
-                $"box '{box.Id}' differs in {CellCount(nearest.DifferingCells)} from {nearest.Label} at a lane width of " +
-                $"{CellCount(nearest.Cw)}, the nearest form the generator builds", Subjects: [box.Id]));
+                $"box '{box.Id}' differs in {Wording.Count(nearest.DifferingCells, "cell")} from {nearest.Label} at a lane width of " +
+                $"{Wording.Count(nearest.Cw, "cell")}, the nearest form the generator builds", Subjects: [box.Id]));
             if (ProportionGap(box, identity, nearest) is { } gap) findings.Add(gap);
         }
         else if (candidates.Count > 0)
@@ -573,9 +570,6 @@ public static class Producibility
 
     private static string Legs(IReadOnlyList<(int Start, int Width)> layout) =>
         string.Join("+", layout.Select(a => $"{a.Start}:{a.Width}"));
-
-    /// <summary>A count of cells as a finding writes it.</summary>
-    private static string CellCount(int count) => count == 1 ? "1 cell" : $"{count} cells";
 
     private static string Describe(FillRejection r) => r switch
     {

@@ -164,7 +164,7 @@ public sealed class RoomStyleGetEndpoint(RoomStyleStore store) : EndpointWithout
     {
         var id = Route<long>("id");
         var row = await store.GetAsync(id, ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "room style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "house", ct); return; }
         await Send.OkAsync(RoomStyleMapping.ToDetail(
             row, await store.GetCoursesAsync(id, ct), await store.GetStoreysAsync(id, ct)), ct);
     }
@@ -217,7 +217,7 @@ public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store, RoomStyleLibra
         var updated = await store.UpdateAsync(
             id, RoomStyleLibrary.RowOf(req), RoomStyleLibrary.CourseRowsOf(req),
             RoomStyleLibrary.StoreyRowsOf(req), ct);
-        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "room style", ct); return; }
+        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "house", ct); return; }
         await Send.OkAsync(RoomStyleMapping.ToDetail(id, req), ct);
     }
 }
@@ -250,7 +250,7 @@ public sealed class RoomStyleJsonEndpoint(RoomStyleLibrary library) : EndpointWi
     public override async Task HandleAsync(CancellationToken ct)
     {
         var style = await library.ComposeAsync(Route<long>("id"), ct);
-        if (style is null) { await Refusals.NotFoundAsync(HttpContext, "room style", ct); return; }
+        if (style is null) { await Refusals.NotFoundAsync(HttpContext, "house", ct); return; }
         await Send.OkAsync(new StyleJsonDto(HouseStyleJson.Serialize(style)), ct);
     }
 }

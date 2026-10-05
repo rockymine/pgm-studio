@@ -161,7 +161,7 @@ public sealed class PlanDestroyablesTests
             """;
         var findings = PlanValidator.Check(PlanModel.Parse(json)!);
         await Assert.That(findings.Any(f =>
-            f.Severity == Severity.Refusal && f.Message.Contains("spawn references unknown piece"))).IsTrue();
+            f.Severity == Severity.Refusal && f.Message.Contains("spawn names piece"))).IsTrue();
     }
 
     [Test]
@@ -173,7 +173,7 @@ public sealed class PlanDestroyablesTests
         // one team there is nobody to break it. The editor hides the tool, but a hand-written plan can ask.
         var json = Json.Replace("\"symmetry\": \"rot_180\"", $"\"symmetry\": \"{mode}\"");
         var findings = PlanValidator.Check(PlanModel.Parse(json)!);
-        await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains("two-team"))).IsTrue();
+        await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains(", not 2"))).IsTrue();
         await Assert.That(Geom.Symmetry.Order(mode)).IsEqualTo(order);
 
         // And it compiles to nothing rather than to `order` shared goals. The structure preview compiles

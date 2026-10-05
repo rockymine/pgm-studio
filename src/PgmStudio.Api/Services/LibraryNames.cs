@@ -199,12 +199,9 @@ public sealed partial class LibraryNames(
             : default;
         if (match.Name is not null) return await CopyAsync(kind, match.Id, ct);
 
-        var said = name.ToJsonString();
-        var nearest = Nearest(rows.Select(row => row.Name), said.Trim('"')).ToList();
+        var said = name.TryGetValue<string>(out var text) ? $"'{text}'" : name.ToJsonString();
         resolution.Findings.Add(new Finding(SourceRules.NamesNoLibraryRow,
-            $"{path} names the {kind} {said}, and the library holds none by that name"
-            + (nearest.Count > 0 ? $" — the nearest it holds are {string.Join(", ", nearest.Take(12).Select(row => $"'{row}'"))}"
-                                   + (nearest.Count > 12 ? ", …" : "") : ""),
+            $"`{path}` names library entry {said}, which the library does not have",
             Field: $"refinement.{path}.library"));
         return null;
     }
@@ -246,13 +243,6 @@ public sealed partial class LibraryNames(
                 return await styles.GetBiomeAsync(id, ct) is { } biome ? new Copy(id, biome.Name, biome.Params) : null;
         }
     }
-
-    // The names nearest to one that named nothing: the ones sharing the longest start with it first.
-    private static IEnumerable<string> Nearest(IEnumerable<string> names, string stated) =>
-        names.Distinct(StringComparer.Ordinal)
-            .OrderByDescending(name => name.Zip(stated)
-                .TakeWhile(pair => char.ToLowerInvariant(pair.First) == char.ToLowerInvariant(pair.Second)).Count())
-            .ThenBy(name => name, StringComparer.Ordinal);
 
     // A house prop states its style in place, as the shell a room style composes to.
     [GeneratedRegex(@"^dressing\.props\[\d+\]\.style$")]

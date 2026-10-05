@@ -582,7 +582,7 @@ public sealed class MapSourceTests
     /// <summary>The slug is the route's, and a route segment that is not one is refused rather than stored under
     /// the slug it would become.</summary>
     [Test]
-    public async Task A_route_naming_no_slug_is_refused_with_the_one_it_would_be()
+    public async Task A_route_naming_no_slug_is_refused_naming_it()
     {
         using var client = await FreshAsync();
 
@@ -591,7 +591,7 @@ public sealed class MapSourceTests
 
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest).Because(text);
         await Assert.That(JsonDocument.Parse(text).RootElement.GetProperty("findings")[0].GetProperty("message").GetString())
-            .Contains("'weir-gate'");
+            .Contains("slug 'Weir Gate' has characters other than");
     }
 
     /// <summary><b>A source is not applied over a hand edit it has not seen.</b> A map made from a refinement,

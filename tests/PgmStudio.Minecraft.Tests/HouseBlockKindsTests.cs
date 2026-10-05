@@ -61,7 +61,7 @@ public sealed class HouseBlockKindsTests
             .Single(f => f.Rule == HouseStyleRules.BlockKind);
 
         await Assert.That(finding.Field).IsEqualTo(HouseBlockKinds.Beams.Field);
-        await Assert.That(finding.Message).Contains(HouseBlockKinds.Beams.Means);
+        await Assert.That(finding.Message).Contains($"which is not {HouseBlockKinds.Spoken(HouseBlockKinds.Beams.Kind)}");
     }
 
     /// <summary>Every log the catalogue offers passes the beam field, which is the round trip the catalogue is

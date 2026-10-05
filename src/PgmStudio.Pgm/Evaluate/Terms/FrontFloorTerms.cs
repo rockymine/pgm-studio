@@ -20,7 +20,8 @@ public sealed class SpawnFrontFloor : ILayoutTerm
     {
         var distances = Triangle.SpawnFrontDistances(ctx).Where(d => d is not null).Select(d => d!.Value).ToList();
         if (distances.Count == 0 || distances.Min() >= MinBlocks) return TermScores.Clean(this);
-        return TermScores.Violated(this, $"spawn↔band traversal {distances.Min():0} < {MinBlocks} blocks",
+        return TermScores.Violated(this, $"the walking distance from the nearest spawn to the crossing is {distances.Min():0} blocks, less than "
+            + $"{MinBlocks} blocks",
             ctx.Plan.Placements.Spawns.Select(s => s.Piece).Distinct().ToList(), []);
     }
 }
@@ -42,7 +43,8 @@ public sealed class WoolFrontFloor : ILayoutTerm
     {
         var distances = Triangle.FrontDistances(ctx).Where(d => d is not null).Select(d => d!.Value).ToList();
         if (distances.Count == 0 || distances.Min() >= MinBlocks) return TermScores.Clean(this);
-        return TermScores.Violated(this, $"wool↔band traversal {distances.Min():0} < {MinBlocks} blocks",
+        return TermScores.Violated(this, $"the walking distance from the nearest wool to the crossing is {distances.Min():0} blocks, less than "
+            + $"{MinBlocks} blocks",
             ctx.Plan.Placements.Wools.Select(w => w.Piece).Distinct().ToList(), []);
     }
 }

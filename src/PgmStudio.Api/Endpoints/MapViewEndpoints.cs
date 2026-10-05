@@ -62,19 +62,19 @@ internal static class KeptViews
     public static (string Field, string Message)? Fault(MapViewKeepRequest req)
     {
         if (req.FromX.HasValue != req.FromZ.HasValue)
-            return ("fromX", "`fromX` and `fromZ` are stated together or not at all");
+            return ("fromX", "the request states only one of `fromX` and `fromZ`");
         foreach (var (field, value) in new (string, int?)[]
                      { ("lookX", req.LookX), ("lookZ", req.LookZ), ("fromX", req.FromX), ("fromZ", req.FromZ) })
             if (value is { } coordinate && Math.Abs(coordinate) > Reach)
-                return (field, $"`{field}` is {coordinate}, which is off any board — within ±{Reach}");
+                return (field, $"the request's `{field}` is {coordinate}, not between -{Reach} and {Reach}");
         if (req.Y is { } y && (double.IsNaN(y) || y < 0 || y > 320))
-            return ("y", "`y` is the eye's height, from 0 to 320");
+            return ("y", $"the request's `y` is {y}, not between 0 and 320");
         if (req.Pitch is { } pitch && (double.IsNaN(pitch) || pitch < -90 || pitch > 90))
-            return ("pitch", "`pitch` is degrees below the horizon, from −90 to 90");
+            return ("pitch", $"the request's `pitch` is {pitch}, not between -90 and 90");
         if (req.Yaw is { } yaw && !double.IsFinite(yaw))
-            return ("yaw", "`yaw` is a number of degrees");
+            return ("yaw", "the request's `yaw` is not a number");
         if (req.Yaw is not null && (req.FromX is null || req.Y is null))
-            return ("yaw", "a view that states its `yaw` states the camera whole: `fromX`, `fromZ` and `y` with it");
+            return ("yaw", "the request states `yaw` and not all of `fromX`, `fromZ` and `y`");
         return null;
     }
 
@@ -117,7 +117,7 @@ public sealed class MapViewListEndpoint(
             [.. kept.Take(1).Select(view => KeptViews.Dto(view, kept: true, eyes.GetValueOrDefault(view.Id), view.Id == picture)),
              .. suggested.Select(view => KeptViews.Dto(view, kept: false, eyes.GetValueOrDefault(view.Id), view.Id == picture)),
              .. kept.Skip(1).Select(view => KeptViews.Dto(view, kept: true, eyes.GetValueOrDefault(view.Id), view.Id == picture))],
-            set is null ? reason ?? "no block textures" : null, change), ct);
+            set is null ? reason ?? "the studio has no block textures" : null, change), ct);
     }
 
     /// <summary>The camera each view resolves to on the scene its pictures are drawn from, by id.</summary>
@@ -240,7 +240,7 @@ public sealed class MapViewDeleteEndpoint(MapRepository repo, MapArtifactStore a
             if (id == WorldViews.StraightDownId)
             {
                 await Refusals.ConflictAsync(HttpContext, "kept by every board",
-                    "the straight-down view is every board's own and is not let go — change it with PUT", ct);
+                    "the straight-down view of a map may not be deleted", ct);
                 return;
             }
             await Refusals.NotFoundAsync(HttpContext, "kept view", ct, named: id);

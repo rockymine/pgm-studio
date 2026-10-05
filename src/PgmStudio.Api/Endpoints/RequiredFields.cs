@@ -41,7 +41,7 @@ internal sealed class RequiredFields : IGlobalPreProcessor
             context.HttpContext, 400, "incomplete request",
             missing.Select(field => new Finding(
                 RequestRules.Unreadable,
-                $"field '{field}' is required and was not supplied",
+                $"the request states no `{field}`",
                 Field: field)),
             ct);
     }

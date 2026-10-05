@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Analysis.Playability;
 
@@ -110,12 +111,14 @@ public static class Traversability
 
         var severity = connected ? "ok" : "warning";
         var message = connected
-            ? "spawn ↔ objective chain is traversable"
+            ? "every spawn and objective stands on one walkable ground"
             : isolated.Any(p => p.For is not null)
-                ? $"{isolated.Count} objective(s) a team cannot walk to over the ground an enter rule leaves it — check the protection regions"
+                ? $"{Wording.Count(isolated.Count, "objective")} cannot be walked to by a team over the ground its enter "
+                  + "rule leaves it"
                 : comps.Count == 0
-                    ? "no spawn or objective point is on navigable ground — check build regions / bridgeable gaps"
-                    : $"{isolated.Count} spawn/objective point(s) are not reachable from the rest — check build regions / bridgeable gaps";
+                    ? "no spawn or objective stands on walkable ground"
+                    : $"{Wording.Count(isolated.Count, "spawn or objective", "spawns or objectives")} cannot be walked to "
+                      + "from the rest";
         return new Result(connected, distinct.Count, severity, message, haveLayers, placed, isolated);
     }
 

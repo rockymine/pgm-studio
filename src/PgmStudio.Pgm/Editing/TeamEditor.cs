@@ -8,11 +8,11 @@ public static class TeamEditor
     public static Dict AddTeam(Dict data, Dict payload)
     {
         var teamId = ((payload.GetValueOrDefault("id") as string) ?? "").Trim();
-        if (teamId.Length == 0) throw EditException.Unreadable("id is required", "id");
+        if (teamId.Length == 0) throw EditException.Unreadable("the request states no `id`", "id");
 
         var teams = EnsureList(data, "teams");
         if (teams.OfType<Dict>().Any(t => t.GetValueOrDefault("id") as string == teamId))
-            throw EditException.Conflict($"team id '{teamId}' already in use", [teamId]);
+            throw EditException.Conflict($"team id '{teamId}' is already taken", [teamId]);
 
         var team = new Dict
         {
@@ -32,13 +32,13 @@ public static class TeamEditor
     {
         var teams = ListOf(data, "teams");
         var team = teams.OfType<Dict>().FirstOrDefault(t => t.GetValueOrDefault("id") as string == teamId)
-                   ?? throw EditException.NoSuchSubject($"team '{teamId}' not found");
+                   ?? throw EditException.NoSuchSubject($"team '{teamId}' does not exist");
 
         var newId = ((payload.GetValueOrDefault("id") as string) ?? "").Trim();
         if (newId.Length > 0 && newId != teamId)
         {
             if (teams.OfType<Dict>().Any(t => !ReferenceEquals(t, team) && t.GetValueOrDefault("id") as string == newId))
-                throw EditException.Conflict($"team id '{newId}' already in use", [newId]);
+                throw EditException.Conflict($"team id '{newId}' is already taken", [newId]);
             foreach (var spawn in ListOf(data, "spawns").OfType<Dict>())
                 if (spawn.GetValueOrDefault("team") as string == teamId) spawn["team"] = newId;
             if (data.GetValueOrDefault("observer_spawn") is Dict obs && obs.GetValueOrDefault("team") as string == teamId)
@@ -58,7 +58,7 @@ public static class TeamEditor
     {
         var teams = ListOf(data, "teams");
         if (!teams.OfType<Dict>().Any(t => t.GetValueOrDefault("id") as string == teamId))
-            throw EditException.NoSuchSubject($"team '{teamId}' not found");
+            throw EditException.NoSuchSubject($"team '{teamId}' does not exist");
 
         data["teams"] = teams.Where(t => (t as Dict)?.GetValueOrDefault("id") as string != teamId).ToList();
         data["spawns"] = ListOf(data, "spawns").Where(s => (s as Dict)?.GetValueOrDefault("team") as string != teamId).ToList();
@@ -80,6 +80,6 @@ public static class TeamEditor
         long l => (int)l,
         double dd => (int)dd,
         string s when int.TryParse(s, out var p) => p,
-        _ => throw EditException.Unreadable($"{field} must be an integer", field),
+        _ => throw EditException.Unreadable($"`{field}` is not a whole number", field),
     };
 }

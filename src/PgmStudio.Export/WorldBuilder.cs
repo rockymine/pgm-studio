@@ -207,7 +207,7 @@ public static class WorldBuilder
             var s = intent.Spawns[spawnIndex];
             var room = SpawnRoom(s, spawnStyle is not null);
             var frame = room.Frame;
-            if (OversizedRoom("spawn", s.Team, frame, s.Footprint is not null) is { } field) built.Add(field);
+            if (OversizedRoom("spawn", s.Team, frame) is { } field) built.Add(field);
             var spawnGround = terrain.SurfaceFor(s.Layer);
             var fy = FrameFloor(frame, spawnGround, spawnStyle);
 
@@ -308,11 +308,9 @@ public static class WorldBuilder
             foreach (var stated in wools[i].Monuments)
                 if (monLoc.TryGetValue((i, stated.Team), out var carried) && !SamePlace(stated.Location, carried))
                     built.Add(new Finding(ObjectiveRules.MonumentDerived,
-                        $"{stated.Team}'s monument on {wools[i].Owner}'s wool is authored at "
+                        $"wool monument of '{stated.Team}' on the wool of '{wools[i].Owner}' is authored at "
                         + $"({Cell(stated.Location.X)}, {Cell(stated.Location.Y)}, {Cell(stated.Location.Z)})"
-                        + $" and the world carries it at ({carried.X}, {carried.Y}, {carried.Z}) — the block it "
-                        + "is won on is stamped by that team's spawn structure, so the exported location is "
-                        + "the one the build produced",
+                        + $" and built at ({carried.X}, {carried.Y}, {carried.Z})",
                         Severity.Complaint, Subjects: [wools[i].Owner]));
 
         var resolvedDestroyables = StampDestroyables(
@@ -435,11 +433,8 @@ public static class WorldBuilder
 
         foreach (var (key, seen) in shared.OrderByDescending(entry => entry.Value.Cells))
             built.Add(new Finding(SketchRules.MadeThingInBuilt,
-                $"the made thing '{key.Layer}' and the {key.Built} share the courses of {seen.Cells} "
-                + $"column(s) — first at ({seen.X}, {seen.Z}). Neither pass reads the other: the thing is "
-                + "drawn at the floor it states, and what is built seats on the terrain under it with the "
-                + "made things taken out, so their blocks interleave and what stands there is one inside the "
-                + "other. Raise or move the made thing, or move what it is standing in",
+                $"made thing '{key.Layer}' and {key.Built} share the courses of {seen.Cells} "
+                + $"column{(seen.Cells == 1 ? "" : "s")}, first at ({seen.X}, {seen.Z})",
                 Severity.Complaint, Subjects: key.Unit.Length > 0 ? [key.Layer, key.Unit] : [key.Layer]));
 
         // ── The sky signs, now that every goal is placed ────────────────────────────────────────────
@@ -467,8 +462,8 @@ public static class WorldBuilder
             var platformFloor = SafeFloor(ObserverPlatformStamper.ClearFloorAt(world, ox, oz, statedFloor));
             if (platformFloor != statedFloor)
                 built.Add(new Finding(MapExportComposer.ExportRules.ObserverSeated,
-                    $"the observer platform is stated at y{statedFloor} and the board builds up to y{platformFloor - 1} "
-                    + $"over ({ox}, {oz}), so it stands at y{platformFloor} instead",
+                    $"the observer platform at ({ox}, {oz}) is stated at y{statedFloor} "
+                    + $"and the layout builds up to y{platformFloor - 1} there",
                     Severity.Complaint, Subjects: ["observer"]));
             // The board reads what the map is: the same gamemode set the <gamemode> elements are written from,
             // so the sign every player lands on and the document PGM parses cannot say different things.
@@ -476,8 +471,7 @@ public static class WorldBuilder
                                     .ToList() ?? [];
             if (authorNames.Count == 0)
                 built.Add(new Finding(MapExportComposer.ExportRules.NoAuthor,
-                    "the map names no author, so the observer platform's authors board is left off — "
-                    + "state meta.authors",
+                    "the map has no author in `meta.authors`",
                     Severity.Complaint, Field: "meta.authors", Subjects: ["observer"]));
             ObserverPlatformStamper.Stamp(world, ox, oz, platformFloor, intent.Meta?.Name ?? "",
                                           authorNames, intent.Gamemodes);
@@ -577,13 +571,9 @@ public static class WorldBuilder
             var proud = StructureStamper.WallCoursesProud(surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, top);
             if (proud > RoomFrames.WallCoursesMax)
                 said.Add(new Finding(LayoutRules.WallHeight,
-                    $"the approach wall at ({w.MinX}, {w.MinZ})–({w.MaxX - 1}, {w.MaxZ - 1}) stands {proud} "
-                    + $"courses over the ground at its lowest column, against {RoomFrames.WallCoursesMax}. Its "
-                    + $"top is level at y{top} and taken from the highest ground it crosses, so the "
-                    + $"{proud - RoomFrames.WallCourses} block(s) the seam falls along its run are added to its "
-                    + "face: past four courses it stops reading as a line to hold and becomes a blank wall a "
-                    + "team builds over rather than fights at. Flatten the ground under the seam, or move the "
-                    + "wall onto a level stretch of the approach.",
+                    $"approach wall '{w.Stamp.Unit}' from ({w.MinX}, {w.MinZ}) to ({w.MaxX - 1}, {w.MaxZ - 1}) "
+                    + $"stands {proud} blocks above the ground at its lowest column, "
+                    + $"more than {RoomFrames.WallCoursesMax} blocks",
                     Severity.Complaint, Subjects: [w.Stamp.Unit]));
         }
         foreach (var ic in s.IronCubes)
@@ -662,14 +652,14 @@ public static class WorldBuilder
             // intent, so the map.xml declares what was laid instead of a name matching nothing in its own
             // region (OB3).
             var (materials, correction) = DestroyableMaterials.Resolve(style, b.Materials);
-            if (correction is { } why)
+            if (correction is not null)
                 complaints.Add(new Finding(ObjectiveRules.StyleMaterial,
-                    $"destroyable '{GoalName(b.Name, b.Owner)}': {why}",
+                    $"monument '{GoalName(b.Name, b.Owner)}' {correction}",
                     Severity.Complaint, Subjects: [owner.Unit]));
 
             ObjectiveStamper.StampDestroyable(world, box, style, DestroyableMaterials.BlockId(materials));
             provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenancePass.Structure, owner);
-            ceiling.Add(("destroyable", GoalName(b.Name, b.Owner), owner, box));
+            ceiling.Add(("monument", GoalName(b.Name, b.Owner), owner, box));
 
             // A buried bedrock plate under the goal, so the monument cannot be undermined from below and the
             // ground under it cannot be mined away, and the defence chest set into the ground beside it.
@@ -754,16 +744,16 @@ public static class WorldBuilder
     {
         foreach (var point in points ?? [])
         {
-            foreach (var (region, box, shows) in new[]
+            foreach (var (region, box) in new[]
                      {
-                         ("pad", point.PadBox, "who is taking it and how far along"),
-                         ("sky marker", point.MarkerBox, "who holds it, from across the board"),
+                         ("capture pad", point.PadBox),
+                         ("objective marker", point.MarkerBox),
                      })
             {
                 if (box is not { } display || ColourShows(world, display)) continue;
                 yield return new Finding(ObjectiveRules.PointNeverChangesColour,
-                    $"the capture point at ({display.MinX}, {display.MinZ})–({display.MaxX}, {display.MaxZ}) "
-                    + $"has a {region} holding no block PGM recolours, so nothing on the board shows {shows}",
+                    $"the {region} of the capture point from ({display.MinX}, {display.MinZ}) "
+                    + $"to ({display.MaxX}, {display.MaxZ}) has no block that takes the team colour",
                     Severity.Complaint, Field: "control_points",
                     Subjects: point.Name.Length > 0 ? [point.Name] : null);
             }
@@ -788,10 +778,9 @@ public static class WorldBuilder
             if (!island.Cells.Any(cell => Materials.TintsByTeam(themeAt(SketchLayer.GroundId, cell.X, cell.Z).Theme)))
                 continue;
             yield return new Finding(TerrainThemeRules.TintOverSharedGround,
-                $"island {island.Island} carries the spawns of {string.Join(" and ", island.Teams)} and its "
-                + $"paint tints by team, so all {island.Cells.Count} cells of it wear "
-                + (island.Owner == TeamTerritory.Neutral ? "no team's colour" : $"{island.Owner}'s colour")
-                + " — a tint is one colour per island, and this island is ground they share",
+                $"island '{island.Island}' of {island.Cells.Count} cells has the spawns of "
+                + $"{string.Join(" and ", island.Teams.Select(team => $"'{team}'"))} "
+                + "and is painted with a team colour pattern",
                 Severity.Complaint, Field: $"islandTeams.{island.Island}", Subjects: [.. island.Teams]);
         }
     }
@@ -902,7 +891,7 @@ public static class WorldBuilder
     {
         if (box.MaxY <= maxBuildHeight) return;
         complaints.Add(new Finding(ObjectiveRules.OverBuildCeiling,
-            $"{kind} '{name}' tops out at y{box.MaxY}, over the map's build ceiling of y{maxBuildHeight}",
+            $"{kind} '{name}' tops out at y{box.MaxY}, more than the build ceiling of y{maxBuildHeight}",
             Severity.Complaint, Subjects: [owner.Unit]));
     }
 
@@ -1051,17 +1040,12 @@ public static class WorldBuilder
     /// building does not overflow the region, it is the region, and an eighty-block spawn zone raises an
     /// eighty-block hall with nothing anywhere saying so. The plan's own lint sees this only on a plan, and a
     /// hand-authored intent never passes through one.</para></summary>
-    private static Finding? OversizedRoom(string kind, string owner, RoomFrame frame, bool footprintStated)
+    private static Finding? OversizedRoom(string kind, string owner, RoomFrame frame)
     {
         if (frame.Width <= RoomFrames.FootprintCap && frame.Depth <= RoomFrames.FootprintCap) return null;
-        var from = footprintStated ? "the footprint it states"
-                                   : "the protection region it stands in, which is what a room with no stated "
-                                     + "footprint is inset from";
         return new Finding(RoomFrameRules.RoomIsAField,
-            $"the {kind} room for '{owner}' builds {frame.Width}×{frame.Depth} blocks — a room is at most "
-            + $"{RoomFrames.FootprintCap}×{RoomFrames.FootprintCap}, past which it is a field with a roof on "
-            + $"it. It takes that span from {from}. State a smaller `footprint` on the placement, or draw the "
-            + "region back",
+            $"the {kind} room for '{owner}' is {frame.Width} by {frame.Depth} blocks, "
+            + $"more than {RoomFrames.FootprintCap} by {RoomFrames.FootprintCap} blocks",
             Severity.Complaint, Subjects: [owner]);
     }
 
@@ -1085,11 +1069,10 @@ public static class WorldBuilder
         static Finding Shipped(string kind, int count, IReadOnlyList<string> stamps)
         {
             var units = stamps.Distinct().ToList();
-            var rooms = count == 1 ? $"1 {kind} room stands" : $"{count} {kind} rooms stand";
+            var rooms = count == 1 ? $"1 {kind} room has no house of its own"
+                                   : $"{count} {kind} rooms have no house of their own";
             return new Finding(RoomFrameRules.BuiltInShell,
-                $"{rooms} in the studio's built-in shell — bedrock walls, a bedrock lid and a team band — which is "
-                + "the placeholder a board is drawn with, not a building. Bind a room style of the board's own to "
-                + $"`roomStyles.{kind}`, or null for no building",
+                rooms,
                 Severity.Complaint, Field: $"roomStyles.{kind}", Subjects: units);
         }
     }

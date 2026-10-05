@@ -134,15 +134,13 @@ public static class SketchLayoutCheck
         if (layout is null) return null;
 
         var absent = new List<string>();
-        if (layout.Themes is not { Count: > 0 }) absent.Add("no theme registry, so every column paints the built-in finish");
-        if (layout.Relief is not { Count: > 0 }) absent.Add("no relief, so the ground is as flat as the shapes stated it");
-        if (!HasProps(layout)) absent.Add("nothing placed on it — no tree, boulder, path or building");
+        if (layout.Themes is not { Count: > 0 }) absent.Add("no palettes");
+        if (layout.Relief is not { Count: > 0 }) absent.Add("no terraform");
+        if (!HasProps(layout)) absent.Add("no props");
         if (absent.Count < 3) return null;
 
         return new Finding(SketchRules.NoFinish,
-            "the board is finished carrying no finish: " + string.Join("; ", absent)
-            + ". A board of bare ground is a legitimate one, so this stops nothing — but it exports as raw "
-            + "stone, and nothing later says so",
+            "the layout has " + string.Join(", ", absent.Take(absent.Count - 1)) + " and " + absent[^1],
             Severity.Complaint);
     }
 
@@ -173,65 +171,51 @@ public static class SketchLayoutCheck
             // SK9 — a layer holds one span per column, so a second one drawn over the first is not in the world.
             foreach (var (layerId, lost, kept) in SketchRasterizer.StackedInOneLayer(layout))
                 findings.Add(new Finding(SketchRules.StackedInOneLayer,
-                    $"'{lost}' and '{kept}' stack over the same ground on layer '{layerId}', and a layer holds "
-                    + $"one span per column — the world keeps '{kept}' and '{lost}' is not in it. Move '{kept}' "
-                    + "to its own layer, or clamp walls around the lower shape rather than drawing over it",
+                    $"shapes '{lost}' and '{kept}' overlap on layer '{layerId}'",
                     Severity.Decline, Subjects: [lost, kept]));
 
             // SK25 — the band is one ring and a ring is filled even-odd, so a stroke that laps itself
             // cancels the lap and builds a hole where the two windings cross.
             foreach (var (layerId, shape, x, z) in SketchRasterizer.StrokesLappingThemselves(layout))
                 findings.Add(new Finding(SketchRules.StrokeLapsItself,
-                    $"the band of '{shape}' on layer '{layerId}' crosses itself near ({x}, {z}) — a stroke is "
-                    + "offset either side of its centreline into one outline and an outline is filled "
-                    + "even-odd, so the lap cancels and builds as void. Draw the stroke as several, one per "
-                    + "part-turn, or widen the turn until the band clears itself",
+                    $"the band of shape '{shape}' on layer '{layerId}' overlaps itself near ({x}, {z})",
                     Severity.Complaint, Subjects: [shape]));
 
             // SK26 — nothing says a shape is a flight, so the tilt is what is read: a climb whose end has
             // nowhere to arrive is walkable at every tread and is not a way up anything.
             foreach (var (layerId, shape, end, x, z, top, drop) in SketchRasterizer.FlightsEndingAtADrop(layout))
                 findings.Add(new Finding(SketchRules.FlightEndsAtADrop,
-                    $"'{shape}' on layer '{layerId}' climbs, and its {end} end arrives nowhere — from ({x}, "
-                    + $"{z}) at course {top} the ground falls {drop} within four cells and never comes back "
-                    + "within one. Put a landing there: a few cells of ground within one course of the last "
-                    + "tread, in the direction the flight runs",
+                    $"shape '{shape}' on layer '{layerId}' ends its {end} end at ({x}, {z}) at course {top} "
+                    + $"with ground {drop} blocks below its last tread, more than 1 block",
                     Severity.Complaint, Subjects: [shape]));
 
             // SK10 — the stack is what puts air between two slabs, so a pair whose spans meet builds as one mass.
             foreach (var (lower, upper, courses, x, z, cells) in SketchRasterizer.OverlappingLayerSpans(layout))
                 findings.Add(new Finding(SketchRules.LayersOverlap,
-                    $"layers '{lower}' and '{upper}' are driven {courses} block(s) into each other over {cells} "
-                    + $"column(s) — deepest at ({x}, {z}) — so they build as one solid mass where they meet and "
-                    + $"the gap between the two layers is not in the world there. Raise the base_y of '{upper}', "
-                    + "or lower what stands on it",
+                    $"layers '{lower}' and '{upper}' overlap over {Wording.Count(cells, "column")} and share "
+                    + $"{Wording.Count(courses, "course")} at ({x}, {z}), more than 1 course",
                     Severity.Complaint, Subjects: [lower, upper]));
 
             // SK16 — a made thing that asked for the ground and found none. The board builds where it was drawn.
             foreach (var (thing, cells) in SketchRasterizer.SeatedOnNothing(layout))
                 findings.Add(new Finding(SketchRules.SeatedOnNothing,
-                    $"'{thing}' seats on the ground and none of its {cells} column(s) has any under it, so it "
-                    + "stands at the height it was drawn. Move it over ground, or take its `seat` off",
+                    $"made thing '{thing}' seats on the ground and has no ground under any of its "
+                    + Wording.Count(cells, "column"),
                     Severity.Complaint, Subjects: [thing]));
 
             // SK11 — ground with sky over it and no way onto it. Roofed ground is a room and stays silent.
             foreach (var (places, x, z, y) in SketchRasterizer.DetachedMasses(layout))
                 findings.Add(new Finding(SketchRules.MassUnreached,
-                    $"{places} place(s) of standable ground around ({x}, {z}) @{y} have open sky over them and no "
-                    + "route onto them from the rest of the board — draw the way up, or leave it if a detached "
-                    + "group is what this is",
+                    $"island of {places} places at ({x}, {y}, {z}) has open sky over it and no route onto it "
+                    + "from the largest island",
                     Severity.Complaint));
 
             // SK14 — a relief solves a surface over every column of its group, so an override add that does not
             // stand out of that field builds to the field rather than to the top it stated.
             foreach (var (shape, layerId, groupId, top) in SketchRasterizer.ReliefOverridesStatedTop(layout))
                 findings.Add(new Finding(SketchRules.ReliefOverStatedTop,
-                    $"'{shape}' on layer '{layerId}' is an override add stating a top of y{top}, and group "
-                    + $"'{groupId}' carries a relief that solves a surface through it — the world builds it to "
-                    + "whatever the relief says. Give it \"relief_scope\": \"hold\" to pin the top it states "
-                    + "and let the ground meet it as a face, \"height_mode\": \"level\" with \"skirt\": 0 for "
-                    + "the same top with a sheer edge, or \"relief_scope\": \"exclude\" to keep its ground out "
-                    + "of the solve entirely",
+                    $"override add '{shape}' on layer '{layerId}' states a top at y{top}, and group "
+                    + $"'{groupId}' states terraform that sets the top of the same columns",
                     Severity.Complaint, Subjects: [shape]));
 
             // SK15 — the taller add wins the column and the paint follows what forms the surface, so where the
@@ -239,10 +223,9 @@ public static class SketchLayoutCheck
             foreach (var (layerId, standing, hidden, standingTheme, hiddenTheme, cells, x, z) in
                      SketchRasterizer.ThemesHiddenUnderAnother(layout))
                 findings.Add(new Finding(SketchRules.ThemeHiddenUnderAnother,
-                    $"'{hidden}' states '{hiddenTheme}' over {cells} column(s) on layer '{layerId}' that "
-                    + $"'{standing}' stands taller on — from ({x}, {z}) — so what shows there is '{standing}'s "
-                    + $"ground in '{standingTheme}', and '{hiddenTheme}' is on none of them. Cut '{hidden}' out "
-                    + $"of '{standing}'s footprint, or give the two one theme",
+                    $"override add '{hidden}' on layer '{layerId}' overlaps taller override add '{standing}' "
+                    + $"over {Wording.Count(cells, "column")} from ({x}, {z}), and states palette '{hiddenTheme}' "
+                    + $"where '{standing}' states '{standingTheme}'",
                     Severity.Complaint, Subjects: [standing, hidden]));
 
             // SK13 — a subtract states the board's negative space, and an add over one is silent either way it
@@ -251,15 +234,10 @@ public static class SketchLayoutCheck
                      SketchRasterizer.AddsOverSubtracts(layout))
                 findings.Add(new Finding(SketchRules.DrawnOverSubtraction,
                     survives
-                        ? $"'{add}' fills {cells} column(s) that '{subtract}' takes away — from ({x}, {z}) — so "
-                          + $"the negative space the board states there is ground in the world. "
-                          + (addLayer == subtractLayer
-                              ? "An override add beats a subtract on its own layer"
-                              : $"'{add}' is on layer '{addLayer}' and the subtract on '{subtractLayer}', and a "
-                                + "subtract reaches only the layer it is on")
-                        : $"'{add}' draws nothing over {cells} column(s) — from ({x}, {z}) — because '{subtract}' "
-                          + "takes them away, and a subtract beats every plain add on its layer whatever order "
-                          + "the two are written in. The shape is on the canvas and not in the world",
+                        ? $"add '{add}' on layer '{addLayer}' fills {Wording.Count(cells, "column")} from ({x}, {z}) "
+                          + $"that subtract '{subtract}' on layer '{subtractLayer}' takes away"
+                        : $"add '{add}' on layer '{addLayer}' draws nothing over {Wording.Count(cells, "column")} "
+                          + $"from ({x}, {z}) where subtract '{subtract}' on layer '{subtractLayer}' takes them away",
                     survives ? Severity.Refusal : Severity.Complaint, Subjects: [add, subtract]));
         }
 
@@ -268,10 +246,7 @@ public static class SketchLayoutCheck
         // is the same one.
         foreach (var (lower, upper) in OutOfOrder(layout))
             findings.Add(new Finding(SketchRules.StackOutOfOrder,
-                $"layer '{upper}' is drawn after '{lower}' and its ground starts below it, so the list order "
-                + "and base_y disagree about which is on top. The world is built from base_y and comes out "
-                + $"as stated; the document is what reads wrong. Move '{upper}' before '{lower}', or correct "
-                + "its base_y",
+                $"layer '{upper}' is listed after layer '{lower}' and has a lower `base_y`",
                 Severity.Complaint, Subjects: [lower, upper]));
 
         // SK19 — a placement naming a recipe the document does not state. A refusal rather than a complaint:
@@ -280,8 +255,7 @@ public static class SketchLayoutCheck
         // authoring is worse than a board with a fault in it; the finish is where it stops.
         foreach (var (subject, key) in UnstatedRecipes(layout))
             findings.Add(new Finding(SketchRules.RecipeNotStated,
-                $"placement '{subject}' names the recipe '{key}', which this document's dressing does not "
-                + "state — pull it into `dressing.styles` under that key, or name one the registry has",
+                $"prop '{subject}' names the recipe '{key}', which the sketch does not have",
                 Severity.Refusal, Field: "dressing", Subjects: [subject]));
 
         var mode = SketchLayout.MirrorModeOf(layout);
@@ -289,8 +263,7 @@ public static class SketchLayoutCheck
 
         if (!Modes.Contains(mode))
             findings.Add(new Finding(SketchRules.NamesNothing,
-                $"the board states mirror mode '{mode}', which is not a mode the studio knows, so it is "
-                + "built unmirrored — every shape stands once, on one side",
+                $"the layout's `setup.mirror_mode` '{mode}' is not one of {string.Join(", ", Modes)}",
                 Severity.Complaint, Field: "setup.mirror_mode"));
 
         var shapeIds = new HashSet<string>(StringComparer.Ordinal);
@@ -302,27 +275,24 @@ public static class SketchLayoutCheck
             if (!Kinds.Contains(kind))
             {
                 findings.Add(new Finding(SketchRules.NamesNothing,
-                    $"{Named(shape)} states kind '{kind}', which is not a kind the studio draws — it has "
-                    + $"{Kinds.Length} ({string.Join(", ", Kinds)}) — so it draws no ground",
+                    $"{Named(shape)} names the kind '{kind}', which is not one of {string.Join(", ", Kinds)}",
                     Severity.Complaint, Field: $"{where}.type", Subjects: Ids(shape)));
             }
             else if (Empty(shape) is { } why)
             {
                 findings.Add(new Finding(SketchRules.DrawsNothing,
-                    $"{Named(shape)} {why}, so it draws no ground",
+                    $"{Named(shape)} {why}",
                     Severity.Complaint, Field: where, Subjects: Ids(shape)));
             }
 
             if (PerVertexHeightUnread(shape) is { } unread)
                 findings.Add(new Finding(SketchRules.PerVertexHeightUnread,
-                    $"{Named(shape)} {unread}, so the world builds it one thickness the whole way and the "
-                    + "stated heights are nowhere in it",
+                    $"{Named(shape)} {unread}",
                     Severity.Complaint, Field: $"{where}.anchor_heights", Subjects: Ids(shape)));
 
             if (Unbuildable(shape) is { } height)
                 findings.Add(new Finding(SketchRules.UnbuildableHeight,
-                    $"{Named(shape)} {height}, and the world is {WorldHeight} blocks tall — the column is cut "
-                    + "to fit rather than built as stated",
+                    $"{Named(shape)} {height}",
                     Severity.Complaint, Field: where, Subjects: Ids(shape)));
 
             // SK24 — a shape saying what paints it twice. A refusal rather than a complaint: the build has a
@@ -331,9 +301,7 @@ public static class SketchLayoutCheck
             // exists to end.
             if (shape.Theme is not null && shape.Material is not null)
                 findings.Add(new Finding(SketchRules.PaintStatedTwice,
-                    $"{Named(shape)} states both a theme ('{shape.Theme}') and a material, which answer the "
-                    + "same question — the material is what the build paints it with and the theme is read by "
-                    + "nothing",
+                    $"{Named(shape)} states both palette '{shape.Theme}' and a material",
                     Severity.Refusal, Field: $"{where}.material", Subjects: Ids(shape)));
 
         }
@@ -363,11 +331,8 @@ public static class SketchLayoutCheck
                     if (!Kinds.Contains(shape.Type ?? "") || Empty(shape) is not null) continue;
                     if (CutsNothing(shape, layer)) continue;
                     findings.Add(new Finding(SketchRules.ShapeInNoGroup,
-                        $"'{shape.Id}' on layer '{layer.Id}' is in none of the layer's {layer.Groups.Count} "
-                        + "group(s), and the symmetry orbit is fanned per group — the shape is built once, "
-                        + "where it was drawn, and has no image on the other side. Its group's relief and "
-                        + "keep-clear go with the list, so it takes neither. List it in the group whose "
-                        + "ground it is part of",
+                        $"shape '{shape.Id}' on layer '{layer.Id}' is listed in none of the layer's "
+                        + Wording.Count(layer.Groups.Count, "group"),
                         Severity.Complaint, Field: $"layers[{index}].layout.shapes[{at}]", Subjects: [shape.Id]));
                 }
             }
@@ -392,10 +357,9 @@ public static class SketchLayoutCheck
                     if (orbit.Select(axis => Turned(body, axis, centerX, centerZ)).Any(image => Meets(body, image)))
                         continue;
                     findings.Add(new Finding(SketchRules.BuiltOnOneImage,
-                        $"group '{group.Id}' on layer '{layer.Id}' states mirrors false and stands clear of "
-                        + $"every one of its {orbit.Length} orbit image(s), so its {boxes.Count} shape(s) are "
-                        + "built once, on one team's ground and nowhere else. Set mirrors true, or move it "
-                        + "onto the symmetry centre if it is meant to belong to nobody",
+                        $"group '{group.Id}' on layer '{layer.Id}' states "
+                        + "`mirrors` false and touches none of its "
+                        + Wording.Count(orbit.Length, "symmetry copy", "symmetry copies"),
                         Severity.Complaint, Field: $"layers[{index}].layout.groups[{at}].mirrors",
                         Subjects: group.Id is { Length: > 0 } id ? [id] : null));
                 }
@@ -411,21 +375,14 @@ public static class SketchLayoutCheck
         {
             var layers = group.Select(entry => entry.Layer).Distinct(StringComparer.Ordinal).ToList();
             findings.Add(new Finding(SketchRules.GroupIdTwice,
-                $"{group.Count()} groups answer to the id '{group.Key}', so terrain and placements stored "
-                + "under it have no single group to belong to — "
-                + (layers.Count > 1
-                    ? $"and they are on {layers.Count} layers ({string.Join(", ", layers.Select(id => $"'{id}'"))}), "
-                      + "so every one of them is shaped by the relief stored under that name while the "
-                      + "read-back reports only the first"
-                    : $"on layer '{layers[0]}' the last one solved takes them and the rest build flat")
-                + ". Give each group its own id",
+                $"{group.Count()} groups have the id '{group.Key}' on layer{(layers.Count == 1 ? "" : "s")} "
+                + $"{Wording.Ids(layers)}, more than 1",
                 Severity.Complaint, Subjects: [group.Key]));
         }
 
         foreach (var orphan in (layout.Relief ?? []).Keys.Where(key => !groups.Contains(key)).OrderBy(key => key, StringComparer.Ordinal))
             findings.Add(new Finding(SketchRules.NamesNothing,
-                $"a relief is stated for group '{orphan}', which the layout does not carry, so that "
-                + "elevation is not built",
+                $"the terraform of the layout names group '{orphan}', which the layout does not have",
                 Severity.Complaint, Field: $"relief.{orphan}"));
 
         // A landform outside the four words is not a word this reads, and the gate that would have judged the
@@ -436,9 +393,7 @@ public static class SketchLayoutCheck
                      .Select(entry => (entry.Key, entry.Value!.Landform!))
                      .OrderBy(entry => entry.Key, StringComparer.Ordinal))
             findings.Add(new Finding(SketchRules.NamesNothing,
-                $"group '{id}' says its ground is '{word}', which is not one of the {Landform.All.Length} "
-                + $"landforms ({string.Join(", ", Landform.All)}) — so nothing measures the ground against "
-                + "it and the relief reads as one stating no landform at all",
+                $"group '{id}' names the landform '{word}', which is not one of {string.Join(", ", Landform.All)}",
                 Severity.Complaint, Field: $"relief.{id}.landform", Subjects: [id]));
 
         // A theme scope resolves shape → map default, and a shape naming a registry entry that is not there
@@ -453,15 +408,13 @@ public static class SketchLayoutCheck
                 (missing.TryGetValue(named, out var on) ? on : missing[named] = []).Add(shape.Id);
         foreach (var (named, on) in missing)
             findings.Add(new Finding(SketchRules.NamesNothing,
-                $"{on.Count} shape{(on.Count == 1 ? " paints" : "s paint")} with theme '{named}', which the layout's "
-                + $"registry does not carry{(themes.Count == 0 ? " (it states no themes at all)" : "")} — those "
-                + "cells take the map default instead",
+                $"{on.Count} shape{(on.Count == 1 ? " names" : "s name")} palette '{named}', "
+                + "which the layout does not have",
                 Severity.Complaint, Field: "themes", Subjects: [.. on.Where(id => id.Length > 0)]));
 
         if (layout.MapTheme is { Length: > 0 } mapTheme && !themes.Contains(mapTheme))
             findings.Add(new Finding(SketchRules.NamesNothing,
-                $"the map default is theme '{mapTheme}', which the layout's registry does not carry — every "
-                + "cell no shape scope claims takes unthemed stone instead",
+                $"the layout's `mapTheme` names palette '{mapTheme}', which the layout does not have",
                 Severity.Complaint, Field: "mapTheme"));
 
         findings.AddRange(PlateausPaintedApart(layout));
@@ -501,12 +454,9 @@ public static class SketchLayoutCheck
 
                 var climb = steps.OrderBy(step => step.Surface).ToList();
                 yield return new Finding(SketchRules.PlateausPaintedApart,
-                    $"component '{anchor}' on layer '{layer.Id}' compiles to {steps.Count} plateaus from "
-                    + $"surface {climb[0].Surface} to {climb[^1].Surface} and they state "
-                    + $"{painted.Count} different paints ("
-                    + string.Join(", ", climb.Select(step =>
-                        $"{step.Shape} at {step.Surface} paints {step.Paint}"))
-                    + ") — one landform with a hard line at every riser, where a theme is a place",
+                    $"island '{anchor}' on layer '{layer.Id}' has {steps.Count} plateaus from "
+                    + $"surface {climb[0].Surface} to {climb[^1].Surface} with "
+                    + $"{painted.Count} different paints, more than 1",
                     Severity.Complaint, Field: $"layers[{index}].layout.shapes",
                     Subjects: [.. climb.Select(step => step.Shape).Where(id => id.Length > 0)]);
             }
@@ -516,12 +466,7 @@ public static class SketchLayoutCheck
     /// <summary>What one plateau states it is painted with — a registry id, the empty id standing for the map
     /// default, or its own material instead of a theme. A shape holding both is <c>SK24</c>'s, so the two are
     /// exclusive here and the flag is enough to keep a material apart from a theme that shares its name.</summary>
-    private readonly record struct Paint(bool OwnMaterial, string Theme)
-    {
-        /// <summary>How it reads in a finding.</summary>
-        public override string ToString() =>
-            OwnMaterial ? "its own material" : Theme.Length == 0 ? "the map default" : $"theme '{Theme}'";
-    }
+    private readonly record struct Paint(bool OwnMaterial, string Theme);
 
     /// <summary>The plan component a compiled terrain shape belongs to and the surface it stands at, or null
     /// for a shape the compiler did not emit.
@@ -583,9 +528,8 @@ public static class SketchLayoutCheck
             || columns <= SketchRules.MaxBoardColumns) return null;
 
         return new Finding(SketchRules.BoardTooLarge,
-            $"the board spans {Span(extent.MaxX - extent.MinX)}×{Span(extent.MaxZ - extent.MinZ)} columns "
-            + $"({columns:N0}) across its symmetry orbit, more ground than the studio will realize — draw "
-            + "it smaller, or nearer the symmetry centre");
+            $"the layout spans {Span(extent.MaxX - extent.MinX)} by {Span(extent.MaxZ - extent.MinZ)} columns "
+            + $"across its symmetry copies, {columns:N0} columns in all");
 
         void Cover((double MinX, double MinZ, double MaxX, double MaxZ) box)
             => extent = (Math.Min(extent.MinX, box.MinX), Math.Min(extent.MinZ, box.MinZ),
@@ -627,17 +571,21 @@ public static class SketchLayoutCheck
     private static string? Empty(SketchShape shape) => shape.Type switch
     {
         ShapeKinds.Polygon or ShapeKinds.Lasso => shape.Vertices is not { Length: >= 3 }
-            ? $"is a {shape.Type} with {shape.Vertices?.Length ?? 0} vertices, under the three that enclose ground"
+            ? $"has {Wording.Count(shape.Vertices?.Length ?? 0, "point")}, less than 3"
             : Area(shape.Vertices) > 0
                 ? null
-                : $"is a {shape.Type} of {shape.Vertices.Length} vertices enclosing no area — every point is on one line",
-        ShapeKinds.Circle => shape.Radius > 0 ? null : $"is a circle of radius {shape.Radius ?? 0:0.##}",
+                : $"has {Wording.Count(shape.Vertices.Length, "point")} that enclose no area",
+        ShapeKinds.Circle => shape.Radius > 0
+            ? null
+            : $"has a radius of {shape.Radius ?? 0:0.##} blocks",
         ShapeKinds.Polyline => shape.Radius > 0
-            ? shape.Vertices is { Length: >= 2 } ? null : $"is a path of {shape.Vertices?.Length ?? 0} points"
-            : $"is a path of width {shape.Radius ?? 0:0.##}",
+            ? shape.Vertices is { Length: >= 2 }
+                ? null
+                : $"has {Wording.Count(shape.Vertices?.Length ?? 0, "point")}, less than 2"
+            : $"has a radius of {shape.Radius ?? 0:0.##} blocks",
         ShapeKinds.Rectangle => (shape.MaxX ?? 0) - (shape.MinX ?? 0) != 0 && (shape.MaxZ ?? 0) - (shape.MinZ ?? 0) != 0
             ? null
-            : "is a rectangle with no area",
+            : "has no area",
         _ => null,
     };
 
@@ -645,9 +593,9 @@ public static class SketchLayoutCheck
     private static string? Unbuildable(SketchShape shape)
     {
         double floor = shape.Floor ?? 0, top = floor + (shape.BaseHeight ?? 0);
-        if (shape.BaseHeight < 0) return $"states a base_height of {shape.BaseHeight:0.##}, which is below nothing";
-        if (floor < 0) return $"stands its floor at y={floor:0.##}";
-        if (top >= WorldHeight) return $"reaches y={top:0.##}";
+        if (shape.BaseHeight < 0) return $"has a `base_height` of {shape.BaseHeight:0.##} blocks, less than 0 blocks";
+        if (floor < 0) return $"has a `floor` of {floor:0.##} blocks, less than 0 blocks";
+        if (top >= WorldHeight) return $"has a top of {top:0.##} blocks, more than {WorldHeight - 1} blocks";
         return null;
     }
 
@@ -724,12 +672,11 @@ public static class SketchLayoutCheck
         if (shape.AnchorHeights is not { Length: > 0 } stated) return null;
         var least = shape.Type is ShapeKinds.Polyline ? 2 : 3;
         if (shape.Type is not (ShapeKinds.Polygon or ShapeKinds.Lasso or ShapeKinds.Polyline))
-            return $"states {stated.Length} anchor height(s) and is a {shape.Type ?? "shape"}, which states "
-                 + "its bounds rather than the points a height is stated at";
+            return $"states {stated.Length} `anchor_heights` and is a {shape.Type ?? "shape"}";
         return shape.Vertices is { } vertices && vertices.Length >= least && vertices.Length == stated.Length
             ? null
-            : $"states {stated.Length} anchor height(s) against {shape.Vertices?.Length ?? 0} vertices, and "
-            + "the two are interpolated one to one";
+            : $"states {stated.Length} `anchor_heights` and {Wording.Count(shape.Vertices?.Length ?? 0, "point")}, "
+            + "not the same number";
     }
 
     private static double Reach(SketchShape shape) => shape.Type == ShapeKinds.Polyline ? Math.Abs(shape.Radius ?? 0) : 0;
@@ -747,6 +694,7 @@ public static class SketchLayoutCheck
 
     private static string Span(double side) => double.IsFinite(side) ? side.ToString("N0") : "∞";
 
+    /// <summary>A shape as a message names it: by its id, or as a shape where it has none.</summary>
     private static string Named(SketchShape shape) => shape.Id.Length > 0 ? $"shape '{shape.Id}'" : "a shape";
 
     private static IReadOnlyList<string>? Ids(SketchShape shape) => shape.Id.Length > 0 ? [shape.Id] : null;

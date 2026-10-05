@@ -87,7 +87,7 @@ public sealed class SpawnWoolFloor : ILayoutTerm
             : SurfaceNav.RouteEvidence(SurfaceNav.Ground(ctx), a.Value, b.Value, $"{blocks:0} < {MinBlocks}");
         var subjects = ctx.Plan.Placements.Spawns.Select(s => s.Piece)
             .Concat(ctx.Plan.Placements.Wools.Select(w => w.Piece)).Distinct().ToList();
-        return TermScores.Violated(this, $"spawn↔wool traversal {blocks:0} < {MinBlocks} blocks", subjects, evidence);
+        return TermScores.Violated(this, $"the walking distance from a spawn to its nearest wool is {blocks:0} blocks, less than {MinBlocks} blocks", subjects, evidence);
     }
 }
 

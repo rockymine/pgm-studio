@@ -68,7 +68,7 @@ public sealed class StyleGetEndpoint(ThemeStore store, BlockTextureStore texture
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetStyleAsync(Route<long>("id"), ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "style", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "pattern", ct); return; }
         await Send.OkAsync(ThemeLibraryMapping.ToDto(row, await textures.ForPicturesAsync(ct)), ct);
     }
 }
@@ -104,7 +104,7 @@ internal static class StyleSaving
         if (held is null) return false;
         await Refusals.WriteAsync(http, 409, "pattern held",
             [new Finding(LibraryRules.PatternHeld,
-                $"the library already holds this pattern as `{held.Name}` (style {held.Id})",
+                $"the request's pattern has the same material as library entry '{held.Name}', id {held.Id}",
                 Field: "params", Subjects: [held.Name])], ct);
         return true;
     }
@@ -125,7 +125,7 @@ public sealed class StyleUpdateEndpoint(ThemeStore store, BlockTextureStore text
         var id = Route<long>("id");
         if (await StyleSaving.RefusedAsync(HttpContext, store, req, self: id, ct)) return;
         if (await store.UpdateStyleAsync(id, req.Name, req.Kind, req.Params, ct) == 0)
-        { await Refusals.NotFoundAsync(HttpContext, "style", ct); return; }
+        { await Refusals.NotFoundAsync(HttpContext, "pattern", ct); return; }
         await Send.OkAsync(ThemeLibraryMapping.ToDto(
             new StyleRow { Id = id, Name = req.Name, Kind = req.Kind, Params = req.Params },
             await textures.ForPicturesAsync(ct)), ct);
@@ -150,8 +150,8 @@ public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms, 
         if (users.Count > 0)
         {
             await Refusals.ConflictAsync(HttpContext, "style in use",
-                $"{users.Count} theme(s), house(s), roof(s) and storey(s) still bind this pattern — unbind them "
-                + "before forgetting it", ct, holding: users);
+                $"pattern {id} is still bound by {users.Count} {(users.Count == 1 ? "entry" : "entries")}",
+                ct, holding: users);
             return;
         }
         await store.DeleteStyleAsync(id, ct);
@@ -186,7 +186,7 @@ public sealed class ThemeGetEndpoint(ThemeStore store) : EndpointWithoutRequest<
     {
         var id = Route<long>("id");
         var row = await store.GetThemeAsync(id, ct);
-        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "theme", ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "palette", ct); return; }
         await Send.OkAsync(ThemeLibraryMapping.ToDetail(row, await store.GetBucketsAsync(id, ct)), ct);
     }
 }
@@ -231,7 +231,7 @@ public sealed class ThemeUpdateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
 
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetThemeAsync(Route<long>("id"), ct))?.SeedKey, "theme", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetThemeAsync(Route<long>("id"), ct))?.SeedKey, "palette", ct))
             return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListThemesAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
@@ -239,7 +239,7 @@ public sealed class ThemeUpdateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
         if (await Refusals.StopAsync(HttpContext, 400, "invalid theme", LibraryGate.Buckets(req.Buckets), ct)) return;
         var updated = await store.UpdateThemeAsync(
             id, ThemeCreateEndpoint.ThemeRowOf(req), ThemeCreateEndpoint.BucketRowsOf(req), ct);
-        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "theme", ct); return; }
+        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "palette", ct); return; }
         await Send.OkAsync(new ThemeDetail(id, req.Name, req.BedrockRelative, req.BedrockValue,
             RimEdgeModes.Canonical(req.RimEdges), req.WallOnTerrainFaces, req.Buckets), ct);
     }
@@ -264,7 +264,7 @@ public sealed class ThemeDeleteEndpoint(ThemeStore store) : EndpointWithoutReque
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetThemeAsync(Route<long>("id"), ct))?.SeedKey, "theme", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetThemeAsync(Route<long>("id"), ct))?.SeedKey, "palette", ct))
             return;
         await store.DeleteThemeAsync(Route<long>("id"), ct);
         await Send.NoContentAsync(ct);
@@ -280,7 +280,7 @@ public sealed class ThemeJsonEndpoint(ThemeLibrary library) : EndpointWithoutReq
     public override async Task HandleAsync(CancellationToken ct)
     {
         var json = await library.ComposeJsonAsync(Route<long>("id"), ct);
-        if (json is null) { await Refusals.NotFoundAsync(HttpContext, "theme", ct); return; }
+        if (json is null) { await Refusals.NotFoundAsync(HttpContext, "palette", ct); return; }
         await Send.OkAsync(new ThemeJsonDto(json), ct);
     }
 }

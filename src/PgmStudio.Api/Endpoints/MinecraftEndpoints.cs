@@ -39,7 +39,7 @@ public sealed class PlayerLookupEndpoint(PlayerLookup players) : EndpointWithout
         if (string.IsNullOrEmpty(query))
         {
             await Refusals.UnreadableAsync(HttpContext, "no player named",
-                "a lookup takes either a name or a uuid, and neither was given", ct);
+                "the request has no `name` and no `uuid`", ct);
             return;
         }
         if (await players.ResolveAsync(query, ct) is { } found)
@@ -49,8 +49,7 @@ public sealed class PlayerLookupEndpoint(PlayerLookup players) : EndpointWithout
         }
         await Refusals.WriteAsync(HttpContext, 404, "no player",
             [new Finding(RequestRules.NoSuchSubject,
-                $"no Minecraft account is called '{query}' — store it as a pseudonym instead, which PGM reads "
-                + "as a whole author")], ct);
+                $"the name '{query}' names no Minecraft account")], ct);
     }
 }
 
@@ -74,7 +73,7 @@ public sealed class PlayerHeadEndpoint(PlayerLookup players) : EndpointWithoutRe
             HttpContext.Response.Headers.CacheControl = "public, max-age=300";
             await Refusals.WriteAsync(HttpContext, 404, "no skin",
                 [new Finding(RequestRules.NoSuchSubject,
-                    $"no skin could be had for '{uuid}' — it names no account, or Mojang did not answer")], ct);
+                    $"the account '{uuid}' has no skin the studio could fetch")], ct);
             return;
         }
         HttpContext.Response.Headers.CacheControl = "public, max-age=86400";

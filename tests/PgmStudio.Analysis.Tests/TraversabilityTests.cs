@@ -149,7 +149,7 @@ public sealed class TraversabilityTests
         await Assert.That(res.Isolated.Count).IsEqualTo(2);
         await Assert.That(res.Isolated.Select(i => i.Name)).Contains("red");
         await Assert.That(res.Isolated.Select(i => i.Name)).Contains("blue");
-        await Assert.That(res.Message).Contains("no spawn or objective point");
+        await Assert.That(res.Message).Contains("no spawn or objective stands on walkable ground");
     }
 
     [Test]

@@ -116,8 +116,7 @@ public static class TerrainThemeValidation
 
         if (Rise(material) is { Blocks: <= 0 } field)
             findings.Add(new Finding(TerrainThemeRules.FlatFieldOnAFace,
-                $"{bucket} samples its field in the plane only, so every block of a column resolves alike and "
-                + "it reads as vertical stripes. A rise is the vertical period that gives a face its grain.",
+                $"the pattern at `{bucket}` has a rise of {field.Blocks} blocks, less than 1 block",
                 Field: $"{bucket}.{field.Field}"));
 
         foreach (var (child, childPath) in Children(material, bucket))
@@ -151,9 +150,8 @@ public static class TerrainThemeValidation
         {
             if (Brush(node) is not { } brush || brush.Period >= TerrainThemeRules.BrushFloor) continue;
             findings.Add(new Finding(TerrainThemeRules.BrushTooFine,
-                $"{path} varies over {brush.Period} block(s), which is finer than the blocks it paints — "
-                + "every block is its own feature and the pattern reads as noise at any distance. A period "
-                + $"of at least {TerrainThemeRules.BrushFloor} is what makes a pattern a ground.",
+                $"the pattern at `{path}` has a period of {Wording.Count(brush.Period, "block")}, "
+                + $"less than {TerrainThemeRules.BrushFloor} blocks",
                 Field: $"{path}.{brush.Field}"));
         }
     }
@@ -192,7 +190,7 @@ public static class TerrainThemeValidation
     {
         foreach (var where in Uncarried(material, bucket))
             findings.Add(new Finding(TerrainThemeRules.MaterialMissing,
-                $"{where} states no material, so nothing can be painted where it is picked",
+                $"the entry at `{where}` has no material",
                 Field: where));
     }
 
@@ -270,9 +268,9 @@ public static class TerrainThemeValidation
                 // The top band at one course is the surface itself, which is the whole point of the stack.
                 var surfacing = Surfacing(band.Material).ToList();
                 if (surfacing.Count > 0 && (course > 0 || band.Thickness > 1))
-                    findings.Add(Buried(bucket, surfacing[0], band.Thickness,
+                    findings.Add(Buried(bucket, surfacing[0],
                         course > 0
-                            ? $"stands {course} course(s) below the top of the {bucket}"
+                            ? $"stands {Wording.Count(course, "course")} below the top of the {bucket}"
                             : $"is {band.Thickness} courses thick at the top of the {bucket}"));
                 course += Math.Max(1, band.Thickness);
             }
@@ -282,17 +280,15 @@ public static class TerrainThemeValidation
         if (depth <= 1) return;
         foreach (var block in Surfacing(material))
         {
-            findings.Add(Buried(bucket, block, depth,
-                $"fills all {(depth == int.MaxValue ? "of" : depth.ToString())} the {bucket}'s courses, "
-                + "because the material is a pick rather than a stack"));
+            findings.Add(Buried(bucket, block,
+                $"fills {(depth == int.MaxValue ? "every one" : $"all {depth}")} of the {bucket}'s courses"));
             break;
         }
     }
 
-    private static Finding Buried(string bucket, (int Id, int Data) block, int thickness, string how) =>
+    private static Finding Buried(string bucket, (int Id, int Data) block, string how) =>
         new(TerrainThemeRules.SurfaceBlockBuried,
-            $"{BlockPalette.Name(block.Id, block.Data)} surfaces ground and {how}. A surfacing block is exactly one "
-            + "course thick and what is under it is soil — put it at the top of a layered stack instead.",
+            $"surfacing block {BlockPalette.Name(block.Id, block.Data)} {how}",
             Field: bucket);
 
     /// <summary>Every surfacing block a material can resolve to, patterns walked to their leaves by

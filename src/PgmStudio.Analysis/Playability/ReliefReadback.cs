@@ -216,20 +216,17 @@ public static class ReliefReadback
         var findings = new List<Finding>();
         if (Vocabulary.Landform.IsKnown(declared) && declared != read.Landform)
             findings.Add(new Finding(ReliefRules.LandformMismatch,
-                $"group '{group}' says it is {declared} and measures {read.Landform}: {read.Relief} blocks "
-                + $"of range over {read.Cells} cells, which is "
-                + $"{read.Relief / Math.Sqrt(Math.Max(1, read.Cells)):0.00} for the board's own size.",
+                $"group '{group}' states landform {declared} and measures {read.Landform}, with {read.Relief} "
+                + $"blocks of range over {Wording.Count(read.Cells, "cell", "cells")}, a ratio of "
+                + $"{read.Relief / Math.Sqrt(Math.Max(1, read.Cells)):0.00}",
                 Severity.Complaint, Subjects: [group]));
 
         // Ground with nothing to grade is not unsmoothed ground: a plain has no elevation to have shaped.
         if (read.Landform != Vocabulary.Landform.Plain && read.Smoothing <= Stepped)
             findings.Add(new Finding(ReliefRules.NotSmoothed,
-                $"group '{group}' carries {read.Relief} blocks of range and "
-                + (read.Steps.GetValueOrDefault("scramble") == 0
-                    ? "not one two-block step on it"
-                    : $"{read.Smoothing:0.0} scrambles for every barrier")
-                + $" — {read.Steps.GetValueOrDefault("barrier")} of its steps are taller than a player can "
-                + "scramble. The elevation is there and was never graded.",
+                $"group '{group}' has {read.Relief} blocks of range and "
+                + $"{Wording.Count(read.Steps.GetValueOrDefault("barrier"), "barrier", "barriers")} with "
+                + $"{read.Smoothing:0.0} scrambles for every barrier, at most {Stepped:0}",
                 Severity.Complaint, Subjects: [group]));
 
         // RL2's twin, and the reason it needs an angle: the step histogram above calls a surface graded
@@ -237,12 +234,9 @@ public static class ReliefReadback
         // can stand still.
         if (read.Cells > 0 && read.Level < LevelEnough)
             findings.Add(new Finding(ReliefRules.NowhereLevel,
-                $"group '{group}' is {read.Level:P0} level ground, the largest run of it "
-                + $"{read.LargestField:P0} of the group"
-                + (read.Faces.Count == 0
-                    ? ", and it presents no face at all — it is a ramp end to end"
-                    : $", against {read.Faces.Count} face(s)")
-                + ". The elevation was graded everywhere and left nowhere to stand.",
+                $"group '{group}' is {read.Level * 100:0} percent level ground, less than "
+                + $"{LevelEnough * 100:0} percent, the largest run of it {read.LargestField * 100:0} percent of "
+                + $"the group, with {Wording.Count(read.Faces.Count, "face", "faces")}",
                 Severity.Complaint, Subjects: [group]));
         return findings;
     }
@@ -257,26 +251,24 @@ public static class ReliefReadback
         var findings = new List<Finding>();
         foreach (var seam in reading.Seams.Where(seam => seam.Step > Walk.ScrambleStep))
             findings.Add(new Finding(ReliefRules.MarksMeetOnAStep,
-                $"on group '{group}', '{seam.A}' and '{seam.B}' meet on a {seam.Step}-block step, worst at "
-                + $"({seam.X}, {seam.Z}) along {seam.Cells} cell(s) of boundary. Two marks pin their bands "
-                + "exactly, so where they touch the whole difference lands in one cell.",
+                $"marks '{seam.A}' and '{seam.B}' on group '{group}' meet in a step of {seam.Step} blocks, "
+                + $"more than {ScrambleStep} blocks, worst at ({seam.X}, {seam.Z}) along "
+                + $"{Wording.Count(seam.Cells, "cell", "cells")} of boundary",
                 Severity.Complaint, Subjects: [group, seam.A, seam.B]));
 
         foreach (var id in reading.Silent)
             findings.Add(new Finding(ReliefRules.MarkPinsNothing,
-                $"mark '{id}' pins no cell of group '{group}', so the surface is what it would have been "
-                + "without it.",
+                $"mark '{id}' pins no cell of group '{group}'",
                 Severity.Complaint, Subjects: [group, id]));
 
         foreach (var push in reading.Pushes.Where(grade => grade.Cells > 0 && grade.Skirt > 0 && grade.Crown > 0))
         {
             var ratio = Math.Max(push.Skirt, push.Crown) / Math.Min(push.Skirt, push.Crown);
             if (ratio <= GradesApart) continue;
-            var steeper = push.Skirt > push.Crown ? "skirt" : "crown";
             findings.Add(new Finding(ReliefRules.PushGradesDisagree,
                 $"push '{push.Id}' on group '{group}' climbs its skirt at {push.Skirt:0.0} and its crown at "
-                + $"{push.Crown:0.0} blocks a block — {ratio:0.0}x apart, the {steeper} the steeper — so the "
-                + "ground steps where the two meet, at the push's own outline.",
+                + $"{push.Crown:0.0} blocks of rise per block of run, {ratio:0.0} times apart, "
+                + $"more than {GradesApart:0} times",
                 Severity.Complaint, Subjects: [group, push.Id]));
         }
         return findings;

@@ -78,7 +78,7 @@ public sealed class ThinMiddle : ILayoutTerm
         var floor = WidthFloorBlocks(SizeBands.Of(ctx.Plan.Globals.MaxPlayers));
         var distance = Math.Max(0, floor - band.Width) / (floor / 2.0);
         if (distance <= 0) return TermScores.Clean(this);
-        return TermScores.Soft(this, distance, $"mid band {band.Width:0} blocks wide (floor {floor})",
+        return TermScores.Soft(this, distance, $"the mid build region is {band.Width:0} blocks wide, less than {floor} blocks",
             [band.Zone.Id], [Ev.Rect(EvidenceTags.Offender, band.Zone.Rect)]);
     }
 }
@@ -101,7 +101,8 @@ public sealed class LongMiddle : ILayoutTerm
         var distance = Math.Max(0, band.Length / band.Width - MaxLengthPerWidth);
         if (distance <= 0) return TermScores.Clean(this);
         return TermScores.Soft(this, distance,
-            $"mid band {band.Length:0} blocks long, {band.Length / band.Width:0.##}× its width (at most {MaxLengthPerWidth:0})",
+            $"the mid build region is {band.Length:0} blocks long, {band.Length / band.Width:0.##} times its width, more "
+            + $"than {MaxLengthPerWidth:0} times",
             [band.Zone.Id], [Ev.Rect(EvidenceTags.Offender, band.Zone.Rect)]);
     }
 }

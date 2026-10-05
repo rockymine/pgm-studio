@@ -106,7 +106,7 @@ public sealed class MapDiffEndpoint(MapRepository repo, MapChangeLog log) : Endp
         if (changes.Count == 0)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no changes", [new Finding(RequestRules.NoSuchSubject,
-                $"'{map.Slug}' has no kept changes to compare — its documents were written before changes were kept")], ct);
+                $"map '{map.Slug}' has no kept changes")], ct);
             return;
         }
         var to = Query<long?>("to", isRequired: false) ?? changes[^1].Number;
@@ -132,10 +132,7 @@ public sealed class MapDiffEndpoint(MapRepository repo, MapChangeLog log) : Endp
             if (!documents.ContainsKey(ArtifactKind.SketchLayoutJson))
             {
                 await Refusals.WriteAsync(HttpContext, 422, "no world to build", [new Finding(PgmStudio.Pgm.Sketch.SketchRules.NothingStored,
-                    number == 0
-                        ? "before the map's first change nothing was stated, so there is no board to build there — "
-                          + "compare from a change instead"
-                        : $"change {number} holds no sketch layout, so there is no board to build at it")], ct);
+                    $"change {number} holds no sketch layout")], ct);
                 return;
             }
 
@@ -148,7 +145,7 @@ public sealed class MapDiffEndpoint(MapRepository repo, MapChangeLog log) : Endp
             if (world.Png(wasBuilt, nowBuilt, scale) is not { } png)
             {
                 await Refusals.WriteAsync(HttpContext, 422, "nothing to draw",
-                    [new Finding(RequestRules.Conflict, "neither board stands on any ground, so there is nothing to draw")], ct);
+                    [new Finding(RequestRules.Conflict, "neither of the two layouts has any ground")], ct);
                 return;
             }
             HttpContext.Response.ContentType = "image/png";
@@ -234,7 +231,7 @@ internal static class MapChangeRead
         changes ??= await log.ListAsync(slug, ct);
         if (changes.Any(change => change.Number == number)) return true;
         await Refusals.WriteAsync(http, 404, "no such change", [new Finding(RequestRules.NoSuchSubject,
-            $"'{slug}' has no change {number} — GET /api/map/{slug}/changes lists the ones it has")], ct);
+            $"map '{slug}' has no change {number}")], ct);
         return false;
     }
 

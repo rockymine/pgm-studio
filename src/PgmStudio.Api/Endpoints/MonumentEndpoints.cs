@@ -44,7 +44,7 @@ public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db)
         if (!BlockBox.TryParse(HttpContext.Request.Query["box"].ToString(), out var box))
         {
             await Refusals.UnreadableAsync(HttpContext, "no box given",
-                "the volume to search is required, as box=x0,y0,z0,x1,y1,z1", ct, field: "box");
+                "the request's `box` is not six whole numbers x0,y0,z0,x1,y1,z1", ct, field: "box");
             return;
         }
         var style = ParseStyle(HttpContext.Request.Query["style"].ToString());

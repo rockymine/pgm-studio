@@ -31,7 +31,7 @@ public static class DocumentBinding
             var field = path.Length == 0 ? member : member.Length == 0 ? path : $"{member}.{path}";
             var where = field.Length == 0 ? "the document" : $"`{field}`";
             return new Finding(RequestRules.Unreadable,
-                $"{where} will not read: {Sentence(fault.Message)} — nothing was stored", Field: field.Length == 0 ? null : field);
+                $"{where} does not read: {Sentence(fault.Message)}", Field: field.Length == 0 ? null : field);
         }
     }
 

@@ -55,19 +55,19 @@ public static partial class ApplyRuleEditor
     {
         var hasSomething = RuleFilterKeys.Concat(ActionKeys).Append("region")
             .Any(k => payload.GetValueOrDefault(k) is string s && s.Length > 0);
-        if (!hasSomething) throw EditException.Inapplicable("apply-rule has no region, filter, or action");
+        if (!hasSomething) throw EditException.Inapplicable("the apply rule has no region, filter or action");
 
         var regions = data.GetValueOrDefault("regions") as Dict ?? new Dict();
         var filters = data.GetValueOrDefault("filters") as Dict ?? new Dict();
 
         if (payload.GetValueOrDefault("region") is string region && region.Length > 0 && IsSimpleRef(region)
             && !regions.ContainsKey(region) && !BuiltinRegions.Contains(region))
-            throw EditException.Unresolved($"references unknown region '{region}'", "region");
+            throw EditException.Unresolved($"the apply rule names region '{region}', which the document does not have", "region");
 
         foreach (var key in RuleFilterKeys)
             if (payload.GetValueOrDefault(key) is string val && val.Length > 0 && IsSimpleRef(val)
                 && !filters.ContainsKey(val) && !regions.ContainsKey(val) && !BuiltinFilters.Contains(val))
-                throw EditException.Unresolved($"{key} references unknown filter/region '{val}'", key);
+                throw EditException.Unresolved($"the apply rule's `{key}` names '{val}', which the document does not have", key);
     }
 
     private static bool IsSimpleRef(string value) => SimpleRef().IsMatch(value);
