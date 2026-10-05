@@ -27,23 +27,7 @@ public static class DocumentBinding
         }
         catch (Exception fault) when (fault is JsonException or NotSupportedException)
         {
-            var path = fault is DocumentFault document ? document.Field : Relative((fault as JsonException)?.Path);
-            var field = path.Length == 0 ? member : member.Length == 0 ? path : $"{member}.{path}";
-            var where = field.Length == 0 ? "the document" : $"`{field}`";
-            return new Finding(RequestRules.Unreadable,
-                $"{where} does not read: {Sentence(fault.Message)}", Field: field.Length == 0 ? null : field);
+            return JsonFaults.Said(RequestRules.Unreadable, fault, member, "the document");
         }
-    }
-
-    /// <summary>A binder's JSON path as the document's own: <c>$.modes[0]</c> is <c>modes[0]</c>.</summary>
-    private static string Relative(string? path) =>
-        string.IsNullOrEmpty(path) || path == "$" ? "" : path.TrimStart('$').TrimStart('.');
-
-    /// <summary>The binder's sentence without the position suffix it appends, which the field already
-    /// states.</summary>
-    private static string Sentence(string message)
-    {
-        var at = message.IndexOf(" Path:", StringComparison.Ordinal);
-        return (at < 0 ? message : message[..at]).TrimEnd('.', ' ');
     }
 }

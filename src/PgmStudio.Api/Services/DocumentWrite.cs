@@ -37,8 +37,7 @@ public static class DocumentWrite
         try { using var _ = JsonDocument.Parse(body); }
         catch (JsonException fault)
         {
-            return new(Refusal.At(400, "invalid JSON",
-                new Finding(RequestRules.Unreadable, fault.Message)));
+            return new(Refusal.At(400, "invalid JSON", JsonFaults.Said(RequestRules.Unreadable, fault)));
         }
 
         var landed = expected is { } revision

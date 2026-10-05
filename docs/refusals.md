@@ -379,11 +379,26 @@ be the second `const` aliasing one that exists — the failure *Adding one* name
 **`RQ1` — the document could not be read.** Absent, empty, malformed, or naming a kind that does not exist. It
 is 400, and it carries the field where the reader knew one: a part stated as `null` where the record cannot
 hold one reports `roof.gableWindows`, and a part written as a material rather than as its courses reports
-`wall`, not a sentence an author has to search their document for. Two readers
-raise it that way — `HouseStyleJson` through `DocumentFault`, which subclasses `JsonException` so the thirteen
-call sites already catching that keep working, and `TerrainThemeJson`, which carries a polymorphic `kind`
-failure across because System.Text.Json reports that one as a `NotSupportedException` and the difference is in
-the reporting rather than in what went wrong.
+`wall`, not a sentence an author has to search their document for.
+
+**A reader's fault is a predicate about a field, and `JsonFaults.Said` makes it a finding.** A reader stops at
+the first thing that makes a value impossible, so it throws rather than collecting findings: a
+`DocumentFault` naming the field and saying what is wrong there (`is stated as null`, `holds 3 numbers, not
+2`), or a `JsonException` from a converter saying the same of the field System.Text.Json was reading (`is not a
+number`, `is not a list of four numbers`). `Said` puts the field in front — `` `pieces[2].id` is not stated ``
+— under the body member the document was posted as (`themeJson.surface`), or the document's own name where the
+fault names no field (`the request's body is empty`). System.Text.Json's own faults carry its sentence and a
+position rather than a predicate, so they are read for what they are and said that way: a value of the wrong
+type names what the field takes (`` `radius` is not a number ``), an unknown polymorphic kind is
+`` `kind` is 'tren', which is not one of tree, stroke, … `` where the reader knows the set, a missing one is
+`` `kind` is not stated ``, and a body that is not JSON at all is `the request's body is not JSON at line 1,
+position 3`. A dressing document's `DressingParseException` says the same predicates with the prop or recipe
+they are inside (`` `items[0].count` of prop 'c' is 70, not between 1 and 64 ``).
+
+**Where the reader knows the change that makes a field read, the fault carries it as an edit.** A house
+style's beams, window, door head and lists are always present, and each says *none* in its own words; one
+stated as `null` is refused with the edit setting it to those words (`{"block": -1}`, `{"form": "none"}`,
+`[]`), which `Said` re-roots under the body member the document was posted as.
 
 A **field the binder cannot read** is the same rule over a document held as raw JSON. A binder that stops at
 one property yields nothing for the whole document, and a caller that read that as "no document" would store
@@ -537,7 +552,7 @@ everything and answering 400 dresses a defect as the author's mistake: a null de
 reaches them as a fault in their board, and the exception's own sentence goes nowhere. So each of the five
 preview and render endpoints filters by type — `JsonException`, `ArgumentException`,
 `InvalidOperationException`, `FormatException`, `OverflowException`, `KeyNotFoundException` — and answers
-`RQ1` **carrying the reader's message**; anything else reaches the middleware, which logs the trace and
+`RQ1` **carrying the reader's fault**, said through `JsonFaults.Said`; anything else reaches the middleware, which logs the trace and
 answers `RQ2`. The export's composer lets the exception propagate for the same reason: it has no logger of its
 own, so swallowing one loses the only copy.
 
@@ -717,10 +732,10 @@ reader scanning a list meet the same words from every gate:
 request refusals, the editors' faults and the evaluator's term scores — reads the literal text of its message
 argument, and refuses a capital, a full stop, a symbol, a reason or a fix in prose, a rule or task id, a name
 from the code, words in parentheses, "this" where every message says "the", a retired glossary word, and the
-phrasings the table replaces ("not found", "is required", "already in use", "invalid", "unknown"). A message
-built elsewhere and passed through, such as an exception's text, is read only where its builder is itself a
-carrier, and the document readers' exception texts that reach a request refusal are not yet in the shape
-(`RP120`).
+phrasings the table replaces ("not found", "is required", "already in use", "invalid", "unknown"). The
+document readers' faults are carriers too — a `JsonException`, a `DocumentFault`, a `DressingParseException`
+and the map parser's `UnsupportedMapException` — read as the predicate a refusal says after the field. A
+message built elsewhere and passed through is read only where its builder is itself a carrier.
 
 ## Adding one
 

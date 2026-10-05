@@ -56,16 +56,16 @@ public static class AuthorNames
         return true;
     }
 
-    /// <summary>Why <paramref name="name"/> may not be stored, or null where it may — the sentence a gate
-    /// puts in a finding and the editor puts under the field, so the two say the same thing.</summary>
+    /// <summary>Which check <paramref name="name"/> fails, as a predicate about the name, or null where it
+    /// may be stored — what a gate's finding and the editor's field both say after the name.</summary>
     public static string? Refuse(string? name)
     {
-        if (string.IsNullOrEmpty(name)) return "a person needs a name";
-        if (name.Length > MaxLength) return $"a name is at most {MaxLength} characters, and this is {name.Length}";
-        if (name[0] == ' ' || name[^1] == ' ') return "a name does not begin or end with a space";
-        if (name.Contains("  ")) return "a name carries single spaces";
+        if (string.IsNullOrEmpty(name)) return "is empty";
+        if (name.Length > MaxLength) return $"is {name.Length} characters, more than {MaxLength}";
+        if (name[0] == ' ' || name[^1] == ' ') return "begins or ends with a space";
+        if (name.Contains("  ")) return "has two spaces in a row";
         return IsWritable(name)
             ? null
-            : $"a name is letters, digits, spaces and {Punctuation} — nothing else";
+            : $"has a character that is not a letter, a digit, a space or one of {Punctuation}";
     }
 }

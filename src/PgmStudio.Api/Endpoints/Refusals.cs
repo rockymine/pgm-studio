@@ -45,15 +45,13 @@ internal static class Refusals
     /// <summary>
     /// A document that would not parse, answered the way every other refusal is.
     ///
-    /// <para>The reader's own sentence is the half an author can act on — <i>a part is stated as null, and
-    /// which one</i> rather than <i>invalid room style JSON</i> — so it rides in <c>message</c> and in an
-    /// <c>RQ1</c> finding like any other refusal, instead of being dropped with the exception.</para>
+    /// <para>The reader says which field it stopped at and what is wrong there, so that rides in an <c>RQ1</c>
+    /// finding in the one message shape (<see cref="JsonFaults"/>), its field the one it names, under
+    /// <paramref name="member"/> where the document is one member of the body.</para>
     /// </summary>
     public static Task UnreadableAsync(
-        HttpContext http, string error, Exception fault, CancellationToken ct) =>
-        WriteAsync(http, 400, error,
-            [new Finding(RequestRules.Unreadable, fault.Message,
-                Field: (fault as DocumentFault)?.Field)], ct);
+        HttpContext http, string error, Exception fault, CancellationToken ct, string? member = null)
+        => WriteAsync(http, 400, error, [JsonFaults.Said(RequestRules.Unreadable, fault, member)], ct);
 
     /// <summary>A body that is not a plan document, with the plan reader's own reason: empty, not JSON, or a
     /// field it cannot read, named.</summary>

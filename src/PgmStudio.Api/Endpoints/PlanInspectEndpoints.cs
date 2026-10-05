@@ -99,7 +99,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
+            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex, ct);
             return;
         }
 
@@ -223,7 +223,7 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest<WorldColumnsDto
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or JsonException)
         {
-            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
+            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex, ct);
             return;
         }
 
@@ -346,7 +346,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
+            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex, ct);
             return;
         }
 
@@ -465,7 +465,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<Feasibility
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
+            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex, ct);
             return;
         }
 
@@ -534,7 +534,7 @@ public sealed class PlanRoomEndpoint : EndpointWithoutRequest<DrawnRoomDto>
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
+            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex, ct);
             return;
         }
 

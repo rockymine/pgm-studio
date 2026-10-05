@@ -3,7 +3,6 @@ using PgmStudio.Geom.Algorithms;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Vocabulary;
@@ -34,10 +33,10 @@ public sealed record DressingDoc
 /// export gate turns this into a named refusal instead of a map that quietly builds with fewer props than it
 /// was asked for. <see cref="Subject"/> names the prop (by id, or by position when it has none yet);
 /// <see cref="Field"/> names the property inside it that could not be read, or is null when the fault is the
-/// document's shape rather than one field of it.
+/// document's shape rather than one field of it; the detail is a predicate about whichever of the two it names.
 /// </summary>
 public sealed class DressingParseException(string subject, string? field, string detail)
-    : Exception(field is null ? $"{subject} {detail}." : $"{subject}: field '{field}' {detail}.")
+    : Exception(field is null ? $"{subject} {detail}" : $"`{field}` of {subject} {detail}")
 {
     public string Subject { get; } = subject;
     public string? Field { get; } = field;
@@ -125,7 +124,7 @@ public static class DressingJson
     {
         var node = ParseNode(json, "the document");
         if (node is not JsonObject root)
-            throw new DressingParseException("the document", null, $"is {Describe(node)}, not an object of props");
+            throw new DressingParseException("the document", null, $"is {Describe(node)}, not an object");
 
         var propsNode = root["props"];
         if (propsNode is null) return DressingDoc.Empty;
@@ -158,8 +157,7 @@ public static class DressingJson
                 && kind.TryGetValue<string>(out var word) && word == "house")
             {
                 if (recipe.TryGetPropertyValue("shell", out var shell) && shell is null)
-                    throw new DressingParseException($"recipe '{key}'", "shell",
-                        "is stated as null — a building's recipe always has a shell; drop the field for the default one");
+                    throw new DressingParseException($"recipe '{key}'", "shell", "is stated as null");
                 if (HouseStyleJson.Unreadable(shell, "shell") is { } unreadable)
                     throw new DressingParseException($"recipe '{key}'", unreadable.Field, unreadable.Detail);
             }
@@ -169,7 +167,7 @@ public static class DressingJson
             }
             catch (Exception ex) when (ex is JsonException or NotSupportedException)
             {
-                throw Explain($"recipe '{key}'", ex);
+                throw Fault($"recipe '{key}'", ex);
             }
         }
         return styles;
@@ -185,8 +183,7 @@ public static class DressingJson
         BoulderProp boulder => boulder with { Style = Recipe<BoulderStyle>(styles, boulder.StyleKey, subject) },
         HouseProp house => house with { Style = Recipe<HouseStyleRef>(styles, house.StyleKey, subject).Shell },
         ChestProp chest => Checked(chest, subject),
-        FluidProp { Shape: FluidShape.Basin, Level: null } => throw new DressingParseException(subject, "level",
-            "is not stated, and a basin is its fluid filled to a level: state the world Y the fluid stands at"),
+        FluidProp { Shape: FluidShape.Basin, Level: null } => throw new DressingParseException(subject, "level", "is not stated"),
         _ => prop,
     };
 
@@ -197,9 +194,9 @@ public static class DressingJson
     {
         if (chest.Items.Count > ChestItem.Slots)
             throw new DressingParseException(subject, "items",
-                $"states {chest.Items.Count} stacks, and a chest holds {ChestItem.Slots}");
+                $"holds {chest.Items.Count} stacks, more than {ChestItem.Slots}");
         if (chest.Y is { } y && (y < 1 || y >= Anvil.VoxelWorld.MaxHeight - 1))
-            throw new DressingParseException(subject, "y", $"is {y}, outside the world's courses 1–{Anvil.VoxelWorld.MaxHeight - 2}");
+            throw new DressingParseException(subject, "y", $"is y{y}, not between y1 and y{Anvil.VoxelWorld.MaxHeight - 2}");
         var slots = new HashSet<int>();
         for (var index = 0; index < chest.Items.Count; index++)
         {
@@ -208,20 +205,19 @@ public static class DressingJson
             if (item.Item.Trim().Length == 0)
                 throw new DressingParseException(subject, $"{field}.item", "names no item");
             if (item.Count is < 1 or > 64)
-                throw new DressingParseException(subject, $"{field}.count", $"is {item.Count}; a stack is 1 to 64");
+                throw new DressingParseException(subject, $"{field}.count", $"is {item.Count}, not between 1 and 64");
             if (item.Slot is { } slot && (slot < 0 || slot >= ChestItem.Slots))
-                throw new DressingParseException(subject, $"{field}.slot", $"is {slot}; a chest's slots are 0 to {ChestItem.Slots - 1}");
+                throw new DressingParseException(subject, $"{field}.slot", $"is {slot}, not between 0 and {ChestItem.Slots - 1}");
             if (item.Slot is { } stated && !slots.Add(stated))
-                throw new DressingParseException(subject, $"{field}.slot", $"is {stated}, which another stack already takes");
+                throw new DressingParseException(subject, $"{field}.slot", $"is {stated}, the same slot as another stack");
             for (var at = 0; at < item.Enchantments.Count; at++)
             {
                 var enchantment = item.Enchantments[at];
                 if (Stamping.ChestBuilder.EnchantmentId(enchantment.Name) is null)
                     throw new DressingParseException(subject, $"{field}.enchantments[{at}].name",
-                        $"is '{enchantment.Name}', which neither PGM nor the game names — power, sharpness, efficiency, "
-                        + "protection and their kin, or the game's number");
+                        $"names enchantment '{enchantment.Name}', which does not exist");
                 if (enchantment.Level < 1)
-                    throw new DressingParseException(subject, $"{field}.enchantments[{at}].level", $"is {enchantment.Level}; a level is 1 or more");
+                    throw new DressingParseException(subject, $"{field}.enchantments[{at}].level", $"is {enchantment.Level}, less than 1");
             }
         }
         return chest;
@@ -232,9 +228,9 @@ public static class DressingJson
     {
         if (key.Length == 0) return new TStyle();
         if (!styles.TryGetValue(key, out var style))
-            throw new DressingParseException(subject, "style", $"names the recipe '{key}', which the document does not state");
+            throw new DressingParseException(subject, "style", $"names recipe '{key}', which the document does not state");
         if (style is not TStyle typed)
-            throw new DressingParseException(subject, "style", $"names the recipe '{key}', which is a {StyleWord(style)} recipe");
+            throw new DressingParseException(subject, "style", $"names recipe '{key}', which is a {StyleWord(style)} recipe");
         return typed;
     }
 
@@ -266,7 +262,7 @@ public static class DressingJson
     private static JsonNode? ParseNode(string json, string subject)
     {
         try { return Upgraded(json); }
-        catch (JsonException ex) { throw new DressingParseException(subject, null, StripPath(ex.Message)); }
+        catch (JsonException ex) { throw Fault(subject, ex); }
     }
 
     private static PlacedProp ParseProp(JsonNode? node, string subject)
@@ -274,11 +270,11 @@ public static class DressingJson
         try
         {
             return JsonSerializer.Deserialize<PlacedProp>(node, Options)
-                ?? throw new DressingParseException(subject, null, "read as nothing");
+                ?? throw new DressingParseException(subject, null, "is null");
         }
         catch (Exception ex) when (ex is JsonException or NotSupportedException)
         {
-            throw Explain(subject, ex);
+            throw Fault(subject, ex);
         }
     }
 
@@ -297,45 +293,13 @@ public static class DressingJson
         };
     }
 
-    private static readonly Regex UnrecognizedKind = new("unrecognized type discriminator id '([^']*)'");
-    private static readonly Regex ConvertedTo = new(@"could not be converted to (.+?)\.(?:\s+Path:|$)");
-    private static readonly Regex PathOf = new(@"Path:\s*(\S+)");
-
-    /// <summary>Turns a raw <see cref="JsonException"/>/<see cref="NotSupportedException"/> — framework text
-    /// naming a CLR type and a JSON pointer — into a message an author can act on: which field, and what was
-    /// expected there instead.</summary>
-    private static DressingParseException Explain(string subject, Exception ex)
+    /// <summary>A codec fault as the field it stopped at and what is wrong there, a kind outside the ones the
+    /// field takes listing them.</summary>
+    private static DressingParseException Fault(string subject, Exception ex)
     {
-        var pathMatch = PathOf.Match(ex.Message);
-        var field = FieldFrom(pathMatch.Success ? pathMatch.Groups[1].Value : null);
-        var isMaterial = ex.Message.Contains(nameof(TerrainMaterial));
-
-        var unrecognized = UnrecognizedKind.Match(ex.Message);
-        if (unrecognized.Success)
-            return new DressingParseException(subject, KindField(field),
-                $"names kind '{unrecognized.Groups[1].Value}', which is not one of {KnownKinds(isMaterial)}");
-
-        if (ex.Message.Contains("must specify a type discriminator"))
-            return new DressingParseException(subject, KindField(field),
-                $"does not name a kind — expected one of {KnownKinds(isMaterial)}");
-
-        var converted = ConvertedTo.Match(ex.Message);
-        if (converted.Success)
-            return new DressingParseException(subject, field, $"could not be read — expected {Friendly(converted.Groups[1].Value)}");
-
-        return new DressingParseException(subject, field, StripPath(ex.Message));
+        var (field, detail, _) = JsonFaults.Read(ex, ex.Message.Contains(nameof(TerrainMaterial)) ? MaterialKinds : PropKinds);
+        return new DressingParseException(subject, field, detail);
     }
-
-    private static string? FieldFrom(string? path)
-    {
-        if (string.IsNullOrEmpty(path) || path == "$") return null;
-        var trimmed = path.TrimStart('$', '.');
-        return trimmed.Length == 0 ? null : trimmed;
-    }
-
-    private static string KindField(string? field) => field is null ? "kind" : $"{field}.kind";
-
-    private static string KnownKinds(bool material) => string.Join(", ", material ? MaterialKinds : PropKinds);
 
     private static readonly string[] PropKinds = KindsOf<PlacedProp>();
     private static readonly string[] MaterialKinds = KindsOf<TerrainMaterial>();
@@ -346,31 +310,15 @@ public static class DressingJson
         .Select(attribute => (string)attribute.TypeDiscriminator!)
         .ToArray();
 
-    private static string Friendly(string clrTypeName) => clrTypeName switch
-    {
-        "System.Double" or "System.Single" or "System.Decimal" => "a number",
-        "System.Int32" or "System.Int64" or "System.Int16" or "System.Byte" or "System.UInt32" => "a whole number",
-        "System.Boolean" => "true or false",
-        "System.String" => "text",
-        _ when clrTypeName.Contains("Double[]") => "a list of [x, z] points",
-        _ => clrTypeName,
-    };
-
     private static string Describe(JsonNode? node) => node switch
     {
-        null => "empty",
+        null => "null",
         JsonArray => "a list",
         JsonValue value when value.TryGetValue<string>(out _) => "text",
-        JsonValue value when value.TryGetValue<bool>(out _) => "true/false",
+        JsonValue value when value.TryGetValue<bool>(out _) => "true or false",
         JsonValue => "a number",
         _ => "not an object",
     };
-
-    private static string StripPath(string message)
-    {
-        var at = message.IndexOf(" Path:", StringComparison.Ordinal);
-        return at < 0 ? message : message[..at].TrimEnd();
-    }
 
     // The grid a cobbled path was tiled by, and the salt its sites were hashed with — kept so a stored one
     // upgrades onto the same patches it already had rather than onto a different road of the same idea.
@@ -397,7 +345,7 @@ public static class DressingJson
     /// </summary>
     private static JsonNode Upgraded(string json)
     {
-        var node = JsonNode.Parse(json) ?? throw new JsonException("empty dressing JSON");
+        var node = JsonNode.Parse(json) ?? throw new JsonException("is null");
         // Either a whole document or one bare prop — both readers upgrade, since a prop is edited on its own.
         var props = node is JsonObject doc && doc["props"] is JsonArray list ? list.AsEnumerable() : [node];
         foreach (var prop in props) UpgradeProp(prop as JsonObject);

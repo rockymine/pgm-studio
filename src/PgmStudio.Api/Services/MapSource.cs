@@ -65,7 +65,7 @@ public static class MapSource
         try
         {
             stated = JsonNode.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body) as JsonObject
-                     ?? throw new JsonException("the body is not a JSON object");
+                     ?? throw new JsonException("is not a JSON object");
             var about = new JsonObject();
             foreach (var key in About)
                 if (stated[key] is { } value) about[key] = value.DeepClone();
@@ -73,7 +73,7 @@ public static class MapSource
         }
         catch (JsonException fault)
         {
-            return Refuse(400, "unreadable source", new Finding(RequestRules.Unreadable, fault.Message));
+            return Refuse(400, "unreadable source", JsonFaults.Said(RequestRules.Unreadable, fault));
         }
         Complaints.Unread(http, [.. stated.Select(member => member.Key)
             .Where(key => !Documents.Contains(key) && !About.Contains(key))]);

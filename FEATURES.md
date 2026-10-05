@@ -1040,6 +1040,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   4,000,000 columns it refuses past. `WL12` keeps the 16-block gap beside a goal toward the front or another
   goal, `WL20` the 12-block gap toward the goal's own ground, and `LN6` the 12-block floor of a hole beside no
   goal, so no rule text is held out of `RuleTextTests`.
+- **A reader's fault says its field, then what is wrong there (`RP120`).** Every document reader throws a
+  predicate about the field it stopped at — `DocumentFault`, a converter's `JsonException`, a dressing
+  document's `DressingParseException` — and `JsonFaults.Said` makes the `RQ1` finding at every catch site:
+  the field under the body member it was posted as, System.Text.Json's own faults read for what they are (a
+  wrong type, a kind outside its set, no kind, not JSON at a line and position). A house-style part stated as
+  null carries the edit that says *none* in its own words. The map parser, the eye's and pick's query words
+  and `AuthorNames.Refuse` say which check failed the same way, and `FindingMessageTests` reads the readers'
+  faults as carriers.
 - **Every message in the source takes the one shape (`RP114`).** The messages written at their raise sites —
   the gates, the editors' faults, the request refusals, the world reads — open with the thing's kind and id
   and give where and how far, with no reason or fix. A thing absent, taken or of the wrong kind is said one

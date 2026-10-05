@@ -53,9 +53,7 @@ public static class TerrainThemeJson
                  [("rim", theme.Rim?.Material is null), ("surface", theme.Surface?.Material is null),
                   ("wall", theme.Wall is null), ("fill", theme.Fill is null)])
             if (missing)
-                throw new JsonException(
-                    $"'{field}' names no material — rim and surface take a band, {{\"material\": …, " +
-                    "\"depth\": N}, and wall and fill take a material directly");
+                throw new PgmStudio.Domain.DocumentFault(field, "names no material");
         return theme;
     }
 
@@ -65,8 +63,8 @@ public static class TerrainThemeJson
         // "will not parse" case docs/refusals.md describes. JsonNode.Parse raises ArgumentNullException on a
         // null string rather than a JsonException, which is the one type every caller's catch does not name,
         // so the fault escaped the gate above as a stack trace instead of arriving as a finding.
-        if (string.IsNullOrWhiteSpace(json)) throw new JsonException("no theme JSON was posted");
-        var node = JsonNode.Parse(json) ?? throw new JsonException("empty theme JSON");
+        if (string.IsNullOrWhiteSpace(json)) throw new JsonException("is empty");
+        var node = JsonNode.Parse(json) ?? throw new JsonException("is null");
         // `closed` is a theme-level knob, so it is answered here rather than inside the material walk — a
         // material that happened to carry the word would otherwise grow a rim mode that means nothing to it.
         if (node is JsonObject root && root["closed"] is JsonValue closed && root["rimEdges"] is null)
@@ -158,14 +156,12 @@ public static class TerrainThemeJson
 
     /// <summary>Deserialize, carrying the kind fault across whatever depth it was found at. A material is
     /// polymorphic on <c>kind</c>, and System.Text.Json reports a missing discriminator as
-    /// <see cref="NotSupportedException"/> rather than <see cref="JsonException"/> — a difference in how it is
-    /// reported, not in what went wrong. Every reader that can contain a material goes through here, because a
-    /// material nested inside a theme or a style is the same fault as one posted on its own and was answering
-    /// 500 while the bare one answered 400.</summary>
+    /// <see cref="NotSupportedException"/>; every reader that can contain a material goes through here, so the
+    /// fault leaves as a <see cref="PgmStudio.Domain.DocumentFault"/> naming the field it was found at.</summary>
     private static T Read<T>(JsonNode node)
     {
         try { return JsonSerializer.Deserialize<T>(node, Options)!; }
-        catch (NotSupportedException ex) { throw new JsonException(KindFault, ex); }
+        catch (NotSupportedException ex) { throw KindFaultAt(ex); }
     }
 
     /// <summary>Read one material and say what of it went unread. A material is polymorphic, so the walk goes
@@ -176,17 +172,16 @@ public static class TerrainThemeJson
         var node = Upgraded(json);
         TerrainMaterial material;
         try { material = JsonSerializer.Deserialize<TerrainMaterial>(node, Options)!; }
-        catch (NotSupportedException ex) { throw new JsonException(KindFault, ex); }
+        catch (NotSupportedException ex) { throw KindFaultAt(ex); }
         unread = PgmStudio.Domain.DocumentShape.Unread(node, material);
         return material;
     }
 
-    /// <summary>What a material whose <c>kind</c> cannot be resolved is refused with. Named once so the
-    /// endpoints, the style reader and their tests read the same sentence.</summary>
-    internal const string KindFault =
-        "a material names no kind, or names one that does not exist — see GET /api/terrain/patterns";
-
-    /// <summary>The same sentence, for the readers outside this assembly's painting namespace that can also
-    /// contain a material — a house style's courses.</summary>
-    public const string MaterialKindFault = KindFault;
+    /// <summary>The kind fault at the field <paramref name="fault"/> stopped at, said the way every reader's
+    /// kind fault is.</summary>
+    public static PgmStudio.Domain.DocumentFault KindFaultAt(NotSupportedException fault)
+    {
+        var (field, text, _) = PgmStudio.Domain.JsonFaults.Read(fault, null);
+        return new(field ?? "", text);
+    }
 }

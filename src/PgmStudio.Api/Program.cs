@@ -348,12 +348,9 @@ app.Use(async (ctx, next) =>
             ctx,
             document ? 400 : 500,
             document ? "unreadable document" : "unhandled fault",
-            [new Finding(
-                document ? PgmStudio.Domain.RequestRules.Unreadable
-                         : PgmStudio.Domain.RequestRules.Unhandled,
-                document
-                    ? ex.Message
-                    : "the studio failed to answer the request")],
+            [document
+                ? PgmStudio.Domain.JsonFaults.Said(PgmStudio.Domain.RequestRules.Unreadable, ex)
+                : new Finding(PgmStudio.Domain.RequestRules.Unhandled, "the studio failed to answer the request")],
             ctx.RequestAborted);
     }
 });

@@ -32,7 +32,7 @@ public static class RegionEditor
 
         try { regions[id] = RegionBuilder.BuildRegionDict(type, coords, id); }
         catch (EditException) { throw; }
-        catch (Exception ex) { throw EditException.Unreadable($"the region in the request does not read: {ex.Message}"); }
+        catch (Exception) { throw EditException.Unreadable($"the request's `coords` is not a {type} region", "coords"); }
 
         TrackCategory(data, payload.GetValueOrDefault("category") as string ?? "other", id);
         return new Dict { ["id"] = id };

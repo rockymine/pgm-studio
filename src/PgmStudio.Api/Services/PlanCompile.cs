@@ -35,7 +35,7 @@ public static class PlanCompile
         }
         catch (Exception fault) when (fault is ArgumentException or InvalidOperationException)
         {
-            return new(Refusal.At(400, "invalid plan structure", new Finding(RequestRules.Unreadable, fault.Message)));
+            return new(Refusal.At(400, "invalid plan structure", JsonFaults.Said(RequestRules.Unreadable, fault, document: "the plan")));
         }
 
         var footprint = SketchRasterizer.RasterizeColumns(JsonSerializer.Serialize(layout, SketchLayout.Json))

@@ -120,7 +120,7 @@ public sealed class ComposePinEndpoint(PlanStore store, ComposedBoardStore libra
     {
         try { _ = new ComposeRequest(req.Players, req.Teams, req.Symmetry, req.Seed, req.Cell); }
         catch (ArgumentException fault)
-        { await Refusals.UnreadableAsync(HttpContext, "invalid descriptor", fault.Message, ct); return; }
+        { await Refusals.UnreadableAsync(HttpContext, "invalid descriptor", fault, ct); return; }
 
         var band = SizeBands.Of(req.Players);
         if (await library.GetAsync(req.ComposerVersion, band, req.Symmetry, req.Cell, req.Seed, ct) is not { } board)

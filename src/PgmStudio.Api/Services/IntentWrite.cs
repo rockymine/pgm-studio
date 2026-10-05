@@ -94,9 +94,9 @@ public static class IntentWrite
             for (var at = 0; at < people.Count; at++)
             {
                 var stated = people[at].Name.Trim();
-                if (AuthorNames.Refuse(stated) is not null)
+                if (AuthorNames.Refuse(stated) is { } failed)
                     refused.Add(new Finding(RequestRules.Unreadable,
-                        $"name '{stated}' in the {role} of the game settings is not one a person is stored under",
+                        $"name '{stated}' in the {role} of the game settings {failed}",
                         Field: $"{prefix}meta.{role}[{at}].name"));
             }
         }

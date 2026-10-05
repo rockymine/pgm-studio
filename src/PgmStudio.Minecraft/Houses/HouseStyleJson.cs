@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Houses;
 
@@ -40,8 +41,8 @@ public static class HouseStyleJson
         // Absent and empty are the same fault to an author, and both are the "will not parse" case
         // docs/refusals.md describes. JsonNode.Parse raises ArgumentNullException on a null string — the one
         // type a caller's catch does not name — so this escaped the gate above as a stack trace.
-        if (string.IsNullOrWhiteSpace(json)) throw new JsonException("no house style JSON was posted");
-        var node = JsonNode.Parse(json) ?? throw new JsonException("empty house style JSON");
+        if (string.IsNullOrWhiteSpace(json)) throw new JsonException("is empty");
+        var node = JsonNode.Parse(json) ?? throw new JsonException("is null");
         Upgrade(node);
         RefuseUnreadable(node, typeof(HouseStyle), "");
         return Read(node);
@@ -53,8 +54,8 @@ public static class HouseStyleJson
     /// <see cref="PgmStudio.Domain.DocumentShape"/>.</summary>
     public static HouseStyle Deserialize(string json, out IReadOnlyList<string> unread)
     {
-        if (string.IsNullOrWhiteSpace(json)) throw new JsonException("no house style JSON was posted");
-        var node = JsonNode.Parse(json) ?? throw new JsonException("empty house style JSON");
+        if (string.IsNullOrWhiteSpace(json)) throw new JsonException("is empty");
+        var node = JsonNode.Parse(json) ?? throw new JsonException("is null");
         Upgrade(node);
         RefuseUnreadable(node, typeof(HouseStyle), "");
         var style = Read(node);
@@ -83,18 +84,25 @@ public static class HouseStyleJson
     private static void RefuseUnreadable(JsonNode node, Type type, string path)
     {
         if (Unreadable(node, type, path) is { } fault)
-            throw new PgmStudio.Domain.DocumentFault(fault.Field, $"field '{fault.Field}' {fault.Detail}");
+            throw new PgmStudio.Domain.DocumentFault(fault.Field, fault.Detail, NoneEdit(MapDocuments.Request, fault));
     }
 
+    /// <summary>The edit that states <paramref name="fault"/>'s part as not wanted in the part's own words, in
+    /// <paramref name="document"/>, or null where the part has no such words.</summary>
+    public static DocumentEdit? NoneEdit(string document, (string Field, string Detail, JsonNode? None) fault) =>
+        fault.None is { } none
+            ? DocumentEdit.Of(document, fault.Field, DocumentEdit.Set, none, $"set `{fault.Field}` to {none.ToJsonString()}")
+            : null;
+
     /// <summary>The first part of a style snapshot the record cannot hold — stated as <c>null</c> where it has
-    /// no null, or a part written without its courses: its path under <paramref name="path"/> and the sentence
-    /// saying how to write it instead, or null when there is none. Public because a style is snapshotted in two
-    /// places — on its own, and as a house recipe in a dressing document — and both readers refuse the same
-    /// parts.</summary>
-    public static (string Field, string Detail)? Unreadable(JsonNode? node, string path = "") =>
+    /// no null, or a part written without its courses: its path under <paramref name="path"/>, what is wrong
+    /// there, and how the part says it is not wanted where it is a null the part has words for; or null when
+    /// there is none. Public because a style is snapshotted in two places — on its own, and as a house recipe
+    /// in a dressing document — and both readers refuse the same parts.</summary>
+    public static (string Field, string Detail, JsonNode? None)? Unreadable(JsonNode? node, string path = "") =>
         node is null ? null : Unreadable(node, typeof(HouseStyle), path);
 
-    private static (string Field, string Detail)? Unreadable(JsonNode node, Type type, string path)
+    private static (string Field, string Detail, JsonNode? None)? Unreadable(JsonNode node, Type type, string path)
     {
         if (node is JsonArray items && ElementType(type) is { } element)
         {
@@ -113,12 +121,10 @@ public static class HouseStyleJson
             if (value is null)
             {
                 if (!PgmStudio.Domain.DeclaredNullability.IsNonNullable(property)) continue;
-                return (where, "is stated as null, and this part of a style is always present — drop it from "
-                    + $"the document, or say it is not wanted in the part's own words ({NoneOf(property.PropertyType)})");
+                return (where, "is stated as null", NoneOf(property.PropertyType));
             }
             if (property.PropertyType == typeof(RoomPart) && !HasCourses(value))
-                return (where, "is a part, which states its courses as {\"stack\": {\"bands\": [...]}, "
-                    + "\"extent\": n} rather than as a single material");
+                return (where, "is a single material and has no `stack`", null);
             if (Unreadable(value, property.PropertyType, where) is { } nested) return nested;
         }
         return null;
@@ -129,13 +135,12 @@ public static class HouseStyleJson
         part is JsonObject members
         && members.Any(member => string.Equals(member.Key, "stack", StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>How a part that is always present says it is not wanted.</summary>
-    private static string NoneOf(Type part) =>
-        part == typeof(BeamStyle) ? "beams take {\"block\": -1}"
-        : part == typeof(WindowStyle) || part == typeof(DoorHeadStyle)
-            ? "a window or a door head takes \"form\": \"none\""
-        : ElementType(part) is not null ? "a list takes []"
-        : "a window or a door head takes \"form\": \"none\", beams take {\"block\": -1}";
+    /// <summary>How a part that is always present says it is not wanted, or null where it has no such words.</summary>
+    private static JsonNode? NoneOf(Type part) =>
+        part == typeof(BeamStyle) ? new JsonObject { ["block"] = -1 }
+        : part == typeof(WindowStyle) || part == typeof(DoorHeadStyle) ? new JsonObject { ["form"] = "none" }
+        : ElementType(part) is not null ? new JsonArray()
+        : null;
 
     /// <summary>The element type of a list-shaped part, or null for anything else.</summary>
     private static Type? ElementType(Type type) =>
@@ -262,14 +267,12 @@ public static class HouseStyleJson
         && solid["kind"]?.GetValue<string>() == "solid"
         && solid["id"]?.GetValue<int>() == Blocks.Air;
 
-    /// <summary>Deserialize, carrying a material's missing <c>kind</c> across as the refusal it is. A style's
-    /// courses are terrain materials, so the same fault reaches this reader as reaches the theme's, and
-    /// System.Text.Json reports it as <see cref="NotSupportedException"/> — the one type the endpoints' catch
-    /// does not name, which sent it to the unhandled-fault middleware as the studio's own.</summary>
+    /// <summary>Deserialize, carrying a material's missing <c>kind</c> across as the refusal it is: a style's
+    /// courses are terrain materials, so the theme reader's kind fault is this reader's too.</summary>
     private static HouseStyle Read(JsonNode node)
     {
         try { return JsonSerializer.Deserialize<HouseStyle>(node, Options)!; }
-        catch (NotSupportedException ex) { throw new JsonException(TerrainThemeJson.MaterialKindFault, ex); }
+        catch (NotSupportedException ex) { throw TerrainThemeJson.KindFaultAt(ex); }
     }
 
     public static HouseStyle DeserializeOr(string? json, HouseStyle fallback)

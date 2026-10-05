@@ -252,7 +252,7 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
             catch (Exception fault) when (fault is InvalidOperationException or ArgumentException
                                               or FormatException or OverflowException)
             {
-                await Refusals.UnreadableAsync(HttpContext, "cannot draw that", fault.Message, ct);
+                await Refusals.UnreadableAsync(HttpContext, "cannot draw that", fault, ct);
                 return;
             }
 
@@ -273,7 +273,7 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
                                           or FormatException or OverflowException)
         {
             HttpContext.Response.Headers.Remove("ETag");
-            await Refusals.UnreadableAsync(HttpContext, "cannot draw that", fault.Message, ct);
+            await Refusals.UnreadableAsync(HttpContext, "cannot draw that", fault, ct);
             return;
         }
 
@@ -770,7 +770,7 @@ internal abstract class InTheRoundEndpoint(MapRepository repo, MapReader reader,
                 if (string.Equals(BoardIsometric.Corners[quarter], asked, StringComparison.OrdinalIgnoreCase))
                     return quarter;
             throw new ArgumentException(
-                $"there is no corner '{asked}' — the camera stands at {string.Join(", ", BoardIsometric.Corners)}");
+                $"`corner` '{asked}' is not one of {string.Join(", ", BoardIsometric.Corners)}");
         }
     }
 

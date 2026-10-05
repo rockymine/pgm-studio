@@ -228,8 +228,8 @@ public sealed class DressingJsonTests
     // ── what still has to refuse ───────────────────────────────────────────────────────────────────────
 
     /// <summary>A house recipe's shell is a style snapshot, so a part it states as null where the record cannot
-    /// hold one is refused by its path — and the refusal names how that part says "none". Read past, the null
-    /// reaches the style gate and the stamper as a dereference.</summary>
+    /// hold one is refused by its path. Read past, the null reaches the style gate and the stamper as a
+    /// dereference.</summary>
     [Test]
     [Arguments("""{"props":[{"kind":"house","id":"h1","seed":1,"wings":[[[0,0],[6,6]]],"style":"bothy"}],"styles":{"bothy":{"kind":"house","shell":{"beams":null}}}}""")]
     [Arguments("""{"props":[{"kind":"house","id":"h1","seed":1,"wings":[[[0,0],[6,6]]],"style":{"beams":null}}]}""")]
@@ -238,7 +238,7 @@ public sealed class DressingJsonTests
         var ex = Assert.Throws<DressingParseException>(() => DressingJson.Deserialize(json));
 
         await Assert.That(ex!.Field).IsEqualTo("shell.beams");
-        await Assert.That(ex.Message).Contains("{\"block\": -1}");
+        await Assert.That(ex.Message).EndsWith("is stated as null");
     }
 
     /// <summary>The walk is the style reader's own, so a part nested inside another is named by its whole

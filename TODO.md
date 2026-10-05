@@ -44,12 +44,4 @@ Every rule fires as before; the tests and `--goldens` say so.
   `LintSp9`), `ST9` (set a room's `footprint` to at most 20 by 20, `LintSt9`) and `ST10` (shrink a room piece's
   `rect` to at most 20 by 30, `LintSt10`). Each gains the `DocumentEdit` the way `RampEdit` gives `EL1` and `SP8`
   theirs, and the plan tool's Checks panel offers it. `docs/refusals.md`.
-- [ ] **RP120 — The readers' faults in the message shape.** A document that will not read is refused with
-  the exception's text as its message, at 30 sites that pass `fault.Message` on, and those texts are written as
-  sentences of their own: `HouseStyleJson` (5 throws), `TerrainThemeJson` (5), `SketchRelief` (2), `SeedFolder`
-  (2), `DressingJson`, `CellRectJsonConverter`, `RectListJsonConverter`, `PlanModel.Unreadable`, `EyeAim.Read`,
-  `MapParser`'s `UnsupportedMapException` and System.Text.Json's own `JsonException`. Each is rewritten to the
-  shape in `docs/refusals.md` ("`` `floor` `` is not a number"), the JSON one wrapped where it is caught. `IntentWrite.RefuseNames` drops which check
-  `AuthorNames.Refuse` failed, so a name 40 characters long reads the same as one with a symbol in it; the
-  message states the one that failed, with the length against `AuthorNames.MaxLength`. `docs/refusals.md`.
 
