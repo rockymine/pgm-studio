@@ -185,11 +185,11 @@
               {
                 <Field Label="Island sizes">
                   <div class="panel-list">
-                    @for (var i = 0; i < islands.Count; i++)
+                    @foreach (var (island, number) in islands.Select((island, index) => (island, index + 1)))
                     {
                       <ListRow Compact Class="list-row--muted">
-                        <span class="list-label">Island @(i + 1)</span>
-                        <span class="list-tag">@islands[i].BlockCount blocks</span>
+                        <span class="list-label">Island @number</span>
+                        <span class="list-tag">@island.BlockCount blocks</span>
                       </ListRow>
                     }
                   </div>
