@@ -280,7 +280,11 @@ ground reachable only by turning at the lip is the plateau the flight was cut in
 Four further fields matter once a group carries a relief. `height_mode` — `level`, `raise`, `sink` or `drape` —
 makes a shape stand out of the solved field rather than be part of it: a mesa cut flat at an absolute height, a
 plinth held a fixed amount above the middle of the ground it sits on, a quarry the same downward, and a field
-wall or a hedge held that amount above the ground at every cell, so it climbs the hillside it is laid over. `skirt` is how far in
+wall or a hedge held that amount above the ground at every cell, so it climbs the hillside it is laid over.
+The Draw inspector names `base_height` by what it is under the mode: **Top at y** for `level`, edited as the
+absolute y of the flat top (`floor + base_height`); **Height above ground** for `raise`, measured from the middle
+height of the ground under the shape; **Depth below ground** for `sink`; **Height above ground** *at every
+cell* for `drape`; and **Height above floor** for ordinary ground, its hint stating the top's y. `skirt` is how far in
 from its own outline an erected shape eases back into the ground it meets, in blocks; zero is a sheer face,
 which is right for a built thing and wrong for a landform. `relief_scope` is `follow`, `hold` or `exclude` and decides
 whether the shape's ground takes part in its group's relief at all (see *Groups and layers*); absent means
