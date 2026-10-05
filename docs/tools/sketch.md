@@ -881,16 +881,16 @@ of the group's relief — one height and a depth.
 **The overlay is a shaded height map under its own contours, for every group on the board.**
 `POST …/sketch/relief?heights=true` returns each group's surface with the lines traced from it — one block
 height per cell of the group's box, row-major, `null` where the footprint holds no land — and the canvas blits it
-a pixel a block under the contours. A group carrying a relief answers the solved field, and the solve that traces
-the lines is the solve that produces it, so the grid costs the serialization and nothing else. Every other group
-answers its **built** surface (`SketchRasterizer.BuiltSurfaces`): the highest top of each column it forms, read
-off the build's own columns with every layer stacked, so ground shaped by `anchor_heights`, by a `height_mode` or
-by a layer's `base_y` is drawn as it will stand. A column one group stands on top of another's — a wall over a
-hillside, a deck on its own layer — is the upper group's. Those entries come back with `solved: false` after the
-relief ones and are drawn over them; their lines are traced half a block above each top, so the line at a whole
-level runs along the edge where the ground first stands at it, and they are read-only — a contour is dragged
-into a mark only on a relief's own lines. A draped wall that went onto a layer of its own shows here as one flat
-level across a slope. Contours say where the ground changes height and not which way; a lightness ramp says the shape at a
+a pixel a block under the contours. Every group answers its **built** surface (`SketchRasterizer.BuiltSurfaces`):
+the highest top of each column it forms, read off the build's own columns with every layer stacked, so ground
+shaped by a relief, by `anchor_heights`, by a `height_mode` or by a layer's `base_y` is drawn as it will stand. A
+column one group stands on top of another's — a deck on its own layer over a lake — is the upper group's. Where a
+group carries a relief and a column stands at the relief's own height, the lines are traced along the solved
+field, the solve that produces it; everywhere else — a group with no relief, or a wall or a pad standing out of
+the field under a height mode — they are traced half a block above each top, so the line at a whole level runs
+along the edge where the ground first stands at it. Relief groups come first with `solved: true`, and a contour is
+dragged into a mark only on their lines; the rest come back `solved: false` and are read-only. A draped wall that
+went onto a layer of its own shows here as one flat level across a slope. Contours say where the ground changes height and not which way; a lightness ramp says the shape at a
 glance and the lines then say by how much, which is why the two are one overlay rather than two toggles. The
 ramp runs dark-low to light-high over each group's **own** range, so a board of four blocks of relief and one
 of forty each use all of it — what an author is judging is the shape of their surface, not how it compares to
@@ -2174,7 +2174,7 @@ carry — the board an author is looking at is the one place those complaints ar
 | Endpoint | Answers |
 |---|---|
 | `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
-| `POST /map/{slug}/sketch/relief[?interval=][&heights=true]` | `{interval, groups[]}` — per group with ground its height range, its bounds, its traced contour lines and `solved`: `true` for a relief's own field from the build's solver, `false` for a group no relief solves, whose surface is the highest built top of each column it forms. `heights=true` adds `heights`, that surface itself: one block height per cell of that box, row-major from the north-west corner, `null` where the footprint holds no land |
+| `POST /map/{slug}/sketch/relief[?interval=][&heights=true]` | `{interval, groups[]}` — per group with ground its height range, its bounds, its traced contour lines and `solved` — whether a relief solves it — over the highest built top of each column the group forms, traced along the relief's own field where the column stands at it. `heights=true` adds `heights`, that surface itself: one block height per cell of that box, row-major from the north-west corner, `null` where the footprint holds no land |
 | `POST /map/{slug}/sketch/relief/read` | `{groups[]}` — per group the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, the symmetry error, the `landform` it measures as beside the `smoothing` it kept, the `level` share of it and the `largestField` of level ground on it, the `seams` where two of its marks meet on a step, the `silentMarks` that pinned nothing, and the `pushes` with each one's two gradients — its `skirt` (`amount / falloff`) and its `crown` (`crown / deepest`) in blocks of rise per block of run, and how many cells its ring covers. Carries `RL1` where the group states a different word, `RL2` where it carries elevation it never graded (`docs/world-export/relief.md` §6.1), `RL3` where a seam is taller than a scramble, `RL4` for a mark that landed nowhere, `RL5` where it was graded everywhere and left nowhere level to stand (§2.0) and `RL6` where a push's two gradients run more than about twice apart |
 | `POST /map/{slug}/sketch/columns` | `{palette, cols, layers, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes. `cols` is one flat array walked as `[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, and `layerIndex` is into `layers` or `-1` for a run no layer accounts for; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/dressing` | `{props[], declines[], claimedCells, claims}` — what the dressing pass would place, run and stopped before anything is written: per prop the columns it covers, where it rests and the height it resolved to, and every prop that did not land as its `DR-*` finding. `claims` is `{bounds, width, height, classes[], rows[]}`, digit rows over the board's own ground the way `coverage`'s own classes are, classing every cell as a prop's own claim, a goal's clearance, a keep-out, or free — so a candidate site is looked up on the raster rather than tried and read back as a decline. `?format=text` answers the same reading as characters, with the classes' key, a column-index line, the declines and a `placed n, declined n` line under it | 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
@@ -2490,7 +2490,7 @@ drawing, and which answer in a raster it can actually open.
 **Four read the sketch itself.** `POST .../sketch/paint` runs the real painter and answers the surface as
 palette-indexed runs — the exact colour of every footprint cell, which is how a Voronoi reads as its cells
 rather than as an average. `POST .../sketch/relief[?interval=]` answers the traced contour lines per group
-from the build's own solver, or for a group with no relief from its built columns, as flat `[x, z, x, z, …]` runs. `POST .../sketch/relief/read` answers the terrain
+over the built columns, along the build's own solver where a relief holds them, as flat `[x, z, x, z, …]` runs. `POST .../sketch/relief/read` answers the terrain
 in **numbers**: per group the cell count, low, high and relief, the step count and tiers, the faces with
 cliffs qualified, crossings measured in both directions, and the symmetry error. That last one is the one to
 reach for first, because it is the only preview that says whether terrain is any *good* without an eye — it is

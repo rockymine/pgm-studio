@@ -656,9 +656,9 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
 }
 
 /// <summary>POST /api/map/{slug}/sketch/relief — the contour overlay for the ground the posted layout builds,
-/// one entry per group: its traced lines, its height range, and its bounds. A relief-bearing group answers its
-/// solved field; every other group answers its built surface (<see cref="SketchRasterizer.BuiltSurfaces"/>),
-/// so ground shaped by anchor heights, a height mode or a layer's own <c>base_y</c> is drawn too. The body
+/// one entry per group: its traced lines, its height range, and its bounds. Every group answers the surface the
+/// build gives it (<see cref="SketchRasterizer.BuiltSurfaces"/>), traced along its relief's own field where it
+/// carries one, so ground shaped by anchor heights, a height mode or a layer's own <c>base_y</c> is drawn too. The body
 /// is the <em>live</em> layout, the same as the paint preview takes, so the overlay tracks unsaved edits.
 ///
 /// <para>The solve is the build's own (<see cref="SketchRasterizer.ReliefFields"/>), so a previewed surface
@@ -708,7 +708,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
             fields = SketchRasterizer.ReliefFields(layoutJson,
                 (group, footprint) => warm.WarmStart(map.Id, group, footprint),
                 (group, solved) => warm.Remember(map.Id, group, solved));
-            built = SketchRasterizer.BuiltSurfaces(layoutJson, fields.Keys.ToHashSet(StringComparer.Ordinal));
+            built = SketchRasterizer.BuiltSurfaces(layoutJson, fields);
         }
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
@@ -729,8 +729,8 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
                 line.Level, line.Closed,
                 [.. line.Points.SelectMany(point => new[] { point.X, point.Z })]))],
             withHeights ? Grid(field) : null);
-        var groups = fields.Select(entry => Entry(entry.Key, entry.Value, solved: true))
-            .Concat(built.Select(entry => Entry(entry.Key, entry.Value, solved: false)))
+        var groups = built.OrderBy(entry => fields.ContainsKey(entry.Key) ? 0 : 1)
+            .Select(entry => Entry(entry.Key, entry.Value, solved: fields.ContainsKey(entry.Key)))
             .ToList();
 
         await Send.OkAsync(new ReliefContoursDto(interval, groups), ct);

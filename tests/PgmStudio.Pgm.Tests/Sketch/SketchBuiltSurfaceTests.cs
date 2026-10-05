@@ -1,3 +1,4 @@
+using PgmStudio.Geom.Relief;
 using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Pgm.Tests.Sketch;
@@ -35,7 +36,27 @@ public sealed class SketchBuiltSurfaceTests
           "height_mode": "drape", "base_height": 1, "floor": 0 }
         """;
 
-    private static readonly IReadOnlySet<string> NoneSolved = new HashSet<string>();
+    private static readonly IReadOnlyDictionary<string, HeightField> NoneSolved = new Dictionary<string, HeightField>();
+
+    // A 40-wide island under a relief that climbs from 6 in the west to 26 in the east, with a wall draped 2 over
+    // it in the same group.
+    private const string Relieved = """
+    {
+      "setup": { "mirror_mode": "none", "center": { "cx": 0, "cz": 0 } },
+      "layers": [{ "id": "ground", "base_y": 0, "layout": {
+        "shapes": [
+          { "id": "land", "type": "rectangle", "operation": "add", "min_x": 0, "max_x": 40, "min_z": 0, "max_z": 20,
+            "base_height": 6, "floor": 0 },
+          { "id": "w", "type": "rectangle", "operation": "add", "min_x": 4, "max_x": 36, "min_z": 9, "max_z": 11,
+            "height_mode": "drape", "base_height": 2, "floor": 0 }
+        ],
+        "groups": [ { "id": "land", "mirrors": false, "shapeIds": ["land", "w"] } ]
+      } }],
+      "relief": { "land": { "base": 6, "reach": 0, "marks": [
+        { "kind": "point", "at": [1, 10], "h": 6, "r": 2 },
+        { "kind": "point", "at": [39, 10], "h": 26, "r": 2 } ] } }
+    }
+    """;
 
     [Test]
     public async Task Ground_shaped_by_anchor_heights_is_drawn_with_the_slope_it_builds()
@@ -74,12 +95,24 @@ public sealed class SketchBuiltSurfaceTests
     }
 
     [Test]
-    public async Task A_group_a_relief_solves_is_left_to_the_relief()
+    public async Task A_relief_group_is_traced_along_its_own_field_where_its_ground_is_the_relief()
     {
-        var surfaces = SketchRasterizer.BuiltSurfaces(Layout(wallOnItsOwnLayer: true), new HashSet<string> { "land" });
+        var relief = SketchRasterizer.ReliefFields(Relieved);
+        var land = SketchRasterizer.BuiltSurfaces(Relieved, relief)["land"];
+        var solved = relief["land"];
 
-        await Assert.That(surfaces.ContainsKey("land")).IsFalse();
-        await Assert.That(surfaces.ContainsKey("wall")).IsTrue();
+        await Assert.That(land.Continuous[land.Footprint.Index(20, 3)])
+            .IsEqualTo(solved.Continuous[solved.Footprint.Index(20, 3)]);
+    }
+
+    [Test]
+    public async Task A_draped_wall_inside_a_relief_group_is_drawn_at_the_height_it_stands()
+    {
+        // The relief's own field says nothing about a shape standing out of it; the overlay has to show the wall.
+        var relief = SketchRasterizer.ReliefFields(Relieved);
+        var land = SketchRasterizer.BuiltSurfaces(Relieved, relief)["land"];
+
+        await Assert.That(land.At(20, 10)).IsEqualTo(relief["land"].At(20, 10) + 2);
     }
 
     [Test]

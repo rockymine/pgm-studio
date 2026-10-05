@@ -284,16 +284,18 @@ public static class SketchRasterizer
         return owners;
     }
 
-    /// <summary>The surface the board builds for every group no relief solves, as one height field per group:
-    /// each column's highest top, gathered under the group whose shape forms it. A relief group answers through
-    /// <see cref="ReliefFields"/> instead, so a group in <paramref name="solved"/> is left out; ground another
-    /// group stands on top of — a wall over a hillside, a deck on its own layer — is that other group's.
+    /// <summary>The surface the board builds, as one height field per group: each column's highest top,
+    /// gathered under the group whose shape forms it. Ground another group stands on top of — a wall over a
+    /// hillside, a deck on its own layer — is that other group's.
     ///
     /// <para>The heights are the build's own columns (<see cref="RasterizeColumns(SketchLayout?)"/>), every layer
-    /// stacked and every made thing seated. The continuous surface sits half a block above each top, so a
-    /// contour traced at a whole level runs along the edge where the ground first stands at that level rather
-    /// than through the middle of the step above it.</para></summary>
-    public static Dictionary<string, HeightField> BuiltSurfaces(string layoutJson, IReadOnlySet<string> solved)
+    /// stacked and every made thing seated. Where <paramref name="solved"/> holds the group's relief and the column
+    /// stands at the relief's own height, the continuous surface is the relief's, so its contours run as the
+    /// solver traced them; anywhere else — a group with no relief, or a shape standing out of the field under a
+    /// height mode — it sits half a block above each top, so a contour at a whole level runs along the edge where
+    /// the ground first stands at that level rather than through the middle of the step above it.</para></summary>
+    public static Dictionary<string, HeightField> BuiltSurfaces(
+        string layoutJson, IReadOnlyDictionary<string, HeightField> solved)
     {
         var state = SketchLayout.Parse(layoutJson);
         var groupOfShape = GroupsOfShapes(state);
@@ -308,7 +310,7 @@ public static class SketchRasterizer
         foreach (var ((x, z), (top, layer)) in tops)
         {
             if (!owners.TryGetValue((layer, x, z), out var owner)) continue;
-            if (!groupOfShape.TryGetValue((layer, owner.Shape), out var groupId) || solved.Contains(groupId)) continue;
+            if (!groupOfShape.TryGetValue((layer, owner.Shape), out var groupId)) continue;
             if (!cellsOfGroup.TryGetValue(groupId, out var cells)) cellsOfGroup[groupId] = cells = [];
             cells.Add((x, z, top));
         }
@@ -322,10 +324,13 @@ public static class SketchRasterizer
             footprint.Add(cells.Select(cell => (cell.X, cell.Z)));
             var blocks = new int[footprint.Cells];
             var continuous = new double[footprint.Cells];
+            var relief = solved.GetValueOrDefault(groupId);
             foreach (var (x, z, top) in cells)
             {
                 blocks[footprint.Index(x, z)] = top;
-                continuous[footprint.Index(x, z)] = top + 0.5;
+                continuous[footprint.Index(x, z)] = relief is not null && relief.At(x, z) == top
+                    ? relief.Continuous[relief.Footprint.Index(x, z)]
+                    : top + 0.5;
             }
             surfaces[groupId] = new HeightField(footprint, continuous, blocks);
         }
