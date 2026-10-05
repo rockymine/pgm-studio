@@ -497,7 +497,9 @@ the skerry layout as the board that shows the over-warning is gone.
   too: `LintG2` measures every entry in `zones` on its shorter side, while a region is cut against the front
   lines it lies between, so widening one moves it off them, and a mid region too thin says the front lines
   are too short (author). `MD7` already holds the mid region's width along the front lines per band, so
-  settle which question `G2` asks of a region before it carries an edit. `docs/generator/`.
+  settle which question `G2` asks of a region before it carries an edit. Read it beside `EZ2`
+  (`Analysis/Playability/BuildZoneGap.cs`), which asks the same relation of the built ground: a coast pulled
+  back from its build region leaving void under 10 blocks where the plan put ground. `docs/generator/`.
 - [ ] **G288 — A front line's width is its front edge.** `FR6` counts cells and `FR9` blocks, off different
   structures. The width is the edge that faces the enemy into the build zone, not every edge touching it: a
   2 by 20 piece poking into the zone is not a 42-block front. `docs/generator/`.
