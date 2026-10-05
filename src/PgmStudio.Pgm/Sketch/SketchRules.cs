@@ -6,19 +6,16 @@ namespace PgmStudio.Pgm.Sketch;
 /// here, the way every gate family's are.</summary>
 public static class SketchRules
 {
-    /// <summary>A relief the recompile does not keep. Either a group the author had drawn relief onto no
-    /// longer exists to carry it, because the board fused differently — or the merge carried the stored
-    /// relief over one the posted body states for the same group, so the board builds the terrain it already
-    /// had.</summary>
-    /// <remarks>Group identity is derived from the geometry, so a recompile that re-fuses the board produces a different group rather than moving the old one — the relief has nowhere correct to land, and that half is a refusal: retry with `?force=true` to accept the loss, or redraw the plan so the same landmass survives the compile. A posted relief losing to the stored one is a complaint instead: the merge is what carries hand-authored terrain across a recompile, so write the new relief to `PUT /map/{slug}/sketch/relief/{groupId}`, or replace the whole layout with `PUT /map/{slug}/sketch`.</remarks>
+    /// <summary>A recompiled layout has no group for the terraform stored on a group.</summary>
+    /// <remarks>Either send the request again with <c>force</c> set to <c>true</c>, or change the <c>rect</c> of a
+    /// piece in <c>pieces</c> until the same group survives the compile.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Terrain)]
     public const string ReliefOrphaned = "SK1";
 
-    /// <summary>The board spans more ground than the studio will realize: the extent every shape and its
-    /// symmetry images cover, measured in columns, is past what a build can walk. Refused before anything is
-    /// built, because the cost is paid per column of the extent whether or not ground is drawn there — a
-    /// board that large does not fail, it takes the machine with it.</summary>
-    /// <remarks>Draw the board smaller, or move the shapes toward the symmetry centre — the extent is measured across every orbit image, so a shape far out on one side widens the board by twice its distance. The finding carries the span that was measured; a normal board is a few hundred columns a side, which is nowhere near this.</remarks>
+    /// <summary>The extent of a layout across its symmetry copies is more than the studio builds, counted in
+    /// columns.</summary>
+    /// <remarks>Either delete a shape from <c>shapes</c>, or move the shape closer to the symmetry centre until the
+    /// layout covers fewer columns.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Studio)]
     public const string BoardTooLarge = "SK2";
 
@@ -29,300 +26,177 @@ public static class SketchRules
     /// <c>SketchLayoutCheckTests</c> holds the message to that rather than the other way round.</para></summary>
     public const int MaxBoardColumns = 4_000_000;
 
-    /// <summary>The document names something that is not there — a shape kind nobody has, a mirror mode
-    /// nobody has, a group listing a shape id the layout does not carry, a relief keyed to a group that
-    /// does not exist. A complaint rather than a refusal: the board still builds, and it builds without
-    /// whatever the name was for, which is the thing worth saying out loud.</summary>
-    /// <remarks>Correct the name the finding's <c>field</c> points at. A shape kind is one of rectangle, circle, polygon, lasso or polyline; a mirror mode is one of none, mirror_x, mirror_z, mirror_d1, mirror_d2, rot_90 or rot_180 — an unknown one leaves the board unmirrored rather than refusing, so half the map quietly goes missing.</remarks>
+    /// <summary>A layout names a shape kind, mirror mode, landform, palette, shape or group that does not
+    /// exist.</summary>
+    /// <remarks>Either change the field the finding names to a name that exists, or add the palette to
+    /// <c>themes</c>.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Plan, RuleConcern.Terrain, RuleConcern.Theme)]
     public const string NamesNothing = "SK3";
 
-    /// <summary>A shape draws no ground: a polygon or lasso with fewer than three vertices, a circle or path
-    /// of no width, a rectangle with no area. The shape is in the document and contributes nothing to the
-    /// board, which reads exactly like a shape that was never drawn.</summary>
-    /// <remarks>Give the shape a size, or delete it. A polygon needs three vertices before it encloses anything, and a circle or a path needs a radius above zero.</remarks>
+    /// <summary>A polygon or lasso has fewer than 3 points, a polyline fewer than 2 points, or a circle or polyline
+    /// has a radius of 0 blocks or less.</summary>
+    /// <remarks>Either set the <c>radius</c> of the shape to more than 0, or add points to <c>vertices</c> until a
+    /// polygon has at least 3 and a polyline at least 2, or delete the shape from <c>shapes</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Terrain)]
     public const string DrawsNothing = "SK4";
 
-    /// <summary>A shape states a column the world cannot hold: a floor below bedrock, a top above the world
-    /// roof, or a thickness that is negative. The build clamps it into the world rather than refusing, so
-    /// what stands is not what the document asked for.</summary>
-    /// <remarks>Bring the shape's floor and base_height inside 0..255 — a Minecraft world is 256 blocks tall, and a column stated past either end is silently cut to fit.</remarks>
+    /// <summary>The floor of a shape is less than 0 blocks, or its top is more than 255 blocks, or its thickness is
+    /// less than 0.</summary>
+    /// <remarks>Change the <c>floor</c> and the <c>base_height</c> of the shape until the floor is at least 0, the
+    /// thickness is at least 0 and the top is at most 255 blocks.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Terrain, RuleConcern.World)]
     public const string UnbuildableHeight = "SK5";
 
-    /// <summary>The map has no stored sketch layout, so there is no board to finish, build or read.</summary>
-    /// <remarks>Draw the board in the sketch tool and save it, or build it from the map's plan, before asking for its world.</remarks>
+    /// <summary>A map has no stored sketch.</summary>
+    /// <remarks>Either send a sketch for the map, or send a plan for the map to compile, then send the request
+    /// again.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.Plan)]
     public const string NothingStored = "SK6";
 
-    /// <summary>The stored layout rasterizes to no ground at all. Every shape in it draws nothing — an empty
-    /// document, or one whose shapes are all of the kinds <c>SK3</c> and <c>SK4</c> report — so finishing it
-    /// would write a world with no land in it. 422, and the one place the sketch's complaints become fatal:
-    /// finishing is what declares the drawing done.</summary>
-    /// <remarks>Draw at least one shape that encloses ground. Where shapes are present, the <c>warnings</c> on this same response name the ones that drew nothing and why.</remarks>
+    /// <summary>A stored sketch has no shape that draws ground.</summary>
+    /// <remarks>Either add a shape to <c>shapes</c> that encloses ground, or change a shape the finding names until
+    /// it encloses ground.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Terrain)]
     public const string NothingDrawn = "SK7";
 
-    /// <summary>A board is finished carrying no finish: no theme registry, no relief and no props. Ground
-    /// alone is a legitimate board — a test piece, a shape being tried — so this is a <b>complaint</b> and
-    /// never a refusal. It exists because it is the one silence this stage kept: <c>SK3</c> names a shape
-    /// citing a theme the layout does not carry, <c>SK4</c> a shape drawing nothing and <c>SK7</c> a layout
-    /// rasterizing to no ground, and all three need something stated to disagree with. A board stating none
-    /// of it slips between them and exports a world of raw stone with every stage answering 200.</summary>
-    /// <remarks>Give the board a theme registry, a relief, or props — whichever it was meant to have. The finding names which of the three are absent, and a board that is deliberately bare may ignore it.</remarks>
+    /// <summary>A sketch has no palettes, no terraform and no props.</summary>
+    /// <remarks>Either add a palette to <c>themes</c>, or add an entry for a group to <c>relief</c>, or add a prop
+    /// to <c>dressing.props</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
     public const string NoFinish = "SK8";
 
-    /// <summary>Two shapes on one layer stack over the same ground, and the lower one is not in the world. A
-    /// layer is a slab: it holds one span per column, and a taller add replaces a shorter one outright, floor
-    /// included. So a floor with a roof drawn over it on the same layer builds as the roof alone, over open
-    /// air, and reads as a board the author never drew.</summary>
-    /// <remarks>Move the upper shape to its own layer. A stack is a stack of layers — `base_y` is what puts one span above another, and two spans on one layer cannot both survive. Drawing the walls around the lower shape instead of over it is the other way, and is how a roofed gallery is built.</remarks>
+    /// <summary>A shape overlaps another shape on one layer, and its floor is at or above the top of the
+    /// other.</summary>
+    /// <remarks>Either move the upper shape to a layer of its own in <c>layers</c>, or delete the shape below it
+    /// from <c>shapes</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string StackedInOneLayer = "SK9";
 
-    /// <summary>Two layers are driven into each other by more than the one course a stack shares at its
-    /// seam. A layer is a slab and the stack is what puts air between two of them, so where their spans meet
-    /// they build as one solid mass: the gap the layers were drawn to have is not in the world there, and
-    /// nothing under the upper slab can be stood in.</summary>
-    /// <remarks>Raise the upper layer's `base_y`, or lower the height of what stands on the layer below. A layer's span is inclusive of its top, so an upper layer sitting exactly at the lower one's top shares that one course and is the ordinary seam — this fires only past it. The world is built either way.</remarks>
+    /// <summary>Two layers share more than 1 course in the same column.</summary>
+    /// <remarks>Either set the <c>base_y</c> of the upper layer to the top of the layer below it, or change the
+    /// <c>base_height</c> of a shape on the layer below until the layers share at most 1 course.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string LayersOverlap = "SK10";
 
-    /// <summary>Two groups answering to the same id. A group id is the key a relief is stored under and the
-    /// handle a placement names, so a board carrying it twice has no single answer to either — and which way
-    /// it goes wrong depends on where the second one is. On <b>one layer</b> the last group solved takes the
-    /// terrain over its own cells and the ones before it build flat. Across <b>two layers</b> every group
-    /// answering to the id takes it, each solved over its own footprint, so a storey is shaped by ground it
-    /// never stated; the read-back reports the first alone, which is what keeps that invisible.</summary>
-    /// <remarks>Give each group its own id. A recompile mints one per group, so a duplicate is a document
-    /// that was written by hand or by a tool that copied a record onto more than one group.</remarks>
+    /// <summary>A layout has more than 1 group with the same id.</summary>
+    /// <remarks>Change the <c>id</c> of each duplicate group in <c>groups</c> to one that no other group
+    /// has.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string GroupIdTwice = "SK12";
 
-    /// <summary>A polyline whose band crosses itself. The two offset edges are stored as one outline and an
-    /// outline is filled even-odd, so where a centreline winds back beside itself the two windings cancel and
-    /// the lap comes back as void: a spiral drawn as one stroke builds with a gap between every turn, and a
-    /// hairpin tighter than the band is wide builds with a hole in its elbow.</summary>
-    /// <remarks>Draw the stroke as several — one shape per part-turn, or one either side of the elbow, so no single band laps itself. Two shapes contesting a column is the ordinary case and the taller add wins it, so the pieces build as one continuous run. Widening the turn until the band clears itself is the other way, and states the same curve.</remarks>
+    /// <summary>The band of a polyline overlaps itself.</summary>
+    /// <remarks>Either split the polyline at the turn into two polylines in <c>shapes</c>, or change the
+    /// <c>vertices</c> of the polyline until the turn is wider than its band.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string StrokeLapsItself = "SK25";
 
-    /// <summary>A tilted shape whose climb ends at a drop. A flight is one shape at any gradient, so nothing
-    /// in the document says where it arrives — and a flight that tops out level with the ground beside it for
-    /// one cell and then falls is walkable by every measure taken of its treads and is not a way up anything.
-    /// Read at both ends, in the shape's own direction of slope: the high end wants somewhere to arrive and
-    /// the low end wants somewhere to step on from.</summary>
-    /// <remarks>Put a landing at the end that fails — ground within one course of the last tread, a few cells of it, in the direction the flight runs. A shape whose end abuts a plateau only across its side has not arrived: the cell in front of the last tread is still the drop the flight climbed.</remarks>
+    /// <summary>The first column past an end of a flight stands 2 or more blocks above or below its last tread
+    /// where they share an edge.</summary>
+    /// <remarks>Add a shape to <c>shapes</c> that forms a landing at the end of the flight, within 1 block of its
+    /// last tread.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Terrain)]
     public const string FlightEndsAtADrop = "SK26";
 
-    /// <summary>A mass of standable ground under open sky that no route reaches from the rest of the board.
-    /// Ground under a roof is a room and says nothing; ground with sky over it and no way onto it is either a
-    /// second landmass the author meant or an upper level whose stair was never drawn, and only the author knows
-    /// which.</summary>
-    /// <remarks>Draw the way onto it — a ramp, a shaft, a shape bridging the gap — or leave it if a detached landmass is what the board is. The map builds either way.</remarks>
+    /// <summary>An island of 16 or more places has open sky over it, stands over other ground and has no route of
+    /// steps of at most 2 blocks to the largest island.</summary>
+    /// <remarks>Add a shape to <c>shapes</c> that joins the island to the largest island in steps of at most 2
+    /// blocks.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
     public const string MassUnreached = "SK11";
 
-    /// <summary>An override add states a top its group's relief will solve straight through. An override add
-    /// says the column is its own, floor and all — it is what a wall, a flight of stairs, a crop bed or a
-    /// stepped mound is drawn as — and a relief replaces the top of every column of its group. Only a shape
-    /// naming a <c>height_mode</c> stands out of that field, and only a <c>relief_scope</c> keeps its ground
-    /// out of the solve, so a made thing carrying neither is built to whatever the relief says and the
-    /// author's number is nowhere in the world. Nothing else catches it: the board still builds, every gate
-    /// still passes, and a twenty-seven-course wall comes out level with the ground beside it.</summary>
-    /// <remarks>Give the shape `"relief_scope": "hold"` — it pins the top the shape states and the surrounding surface is solved knowing where it has to arrive, so ground that wants to run above or below meets it as a face. `"height_mode": "level"` with `"skirt": 0` states the same top with a sheer edge of its own, which is right for a built thing and wrong for a landform; `"relief_scope": "exclude"` is the strongest form, keeping the shape's ground out of the solve entirely. `"relief_scope": "follow"` is the opposite answer and does not apply here — it gives the stated top up to stay level with the land. A shape meant to be shaped by the relief wants none of them: state no `base_height`, `floor` or `anchor_heights` on it and it is a footprint carrying a theme, which this rule does not read.</remarks>
+    /// <summary>An override add states a top, and its group states terraform that sets the top of the same
+    /// columns.</summary>
+    /// <remarks>Either set the <c>relief_scope</c> of the shape to <c>hold</c> or <c>exclude</c>, or delete the
+    /// group from <c>relief</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string ReliefOverStatedTop = "SK14";
 
-    /// <summary>A shape states a theme over ground another shape stands taller on, so the theme is on none of
-    /// it. Two override adds over one column is not a fault — the taller wins it, which is what "the tallest
-    /// add is the height" means — and paint follows the shape that <b>forms the surface</b>, so the taller
-    /// shape's own theme is what shows and the shorter one's is nowhere on the columns the two share. Where
-    /// the smaller of the two is also the shorter, the shape is drawn, is in the document, and paints nothing:
-    /// a mound's outer ring crossing a town wall leaves the wall standing in its own stone and the mound's
-    /// turf absent from every column of it. A shape in a mirroring group is judged at every image of its
-    /// orbit: what a patch meets is as often another patch's reflection as the patch itself.</summary>
-    /// <remarks>Cut the smaller shape out of the taller one's footprint — the two are not meant to share ground, and clipping is what states that. Where the overlap is deliberate, give the two the same theme, or bring them to one height: two shapes at one height are a theme scoped to a patch, the smaller one is the scope, and that is what scoping is for and is not this.</remarks>
+    /// <summary>An override add overlaps a taller override add that covers more columns and states another
+    /// palette.</summary>
+    /// <remarks>Either set the <c>theme</c> of the smaller shape to the <c>theme</c> of the taller shape, or change
+    /// the <c>base_height</c> of the smaller shape until its top is at least the top of the taller shape.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain, RuleConcern.Theme)]
     public const string ThemeHiddenUnderAnother = "SK15";
 
-    /// <summary>An add covers ground a subtract takes away. A subtract is how a board states its negative
-    /// space — the void a plan's buffer pieces compile to, the hole a composed footprint leaves — and a hole
-    /// is never scenery: what a body encircles is ground players go round, and a board's walls are drawn to
-    /// guard it. An add that <b>fills</b> it is therefore refused — an override add, or any add on another
-    /// layer, since a subtract reaches only the layer it is on. An add that draws <b>nothing</b> there is the
-    /// other half: on one layer a subtract beats every plain add whatever order the two are written in, so a
-    /// shape the author can see on the canvas is simply not in the world, and that only complains.
-    ///
-    /// <para>A subtract states void over <b>its own courses</b>, so an add contests it only where the two hold
-    /// a course together. An add whose top stops at or below the hole's floor is the ground under the void, and
-    /// one whose floor starts at or above the hole's top is a deck over it — which is what a floor and a
-    /// ceiling are, and how a <b>room</b> is drawn: a mass, a subtract stating the void inside it, and an add
-    /// either side of that void. Neither says anything about the space between them, and the courses are
-    /// compared absolutely, so the test holds across a stack as well as within one layer.</para>
-    ///
-    /// <para>A <b>lid</b> is neither. A layer holds one span per column, so an override add resting above the
-    /// subtract's own floor moves that span up and records nothing beneath it — a deck over a cut, with the
-    /// void still under it — and only an add standing at or below the subtract's floor puts the negative space
-    /// back as ground.</para></summary>
-    /// <remarks>The negative space is the board's to state and may be redrawn — round the buffer off, narrow it, move it — but never papered over with an add. Move the add off the subtracted ground, or change the subtract to the shape the void is now meant to be. A bridge over the void is written by raising the add's `floor` above the subtract's: the column's one span moves up and the drop stays open under it. To floor and roof the void instead — a room — give the subtract the courses the void is meant to have, and keep the floor's top at or below its floor and the ceiling's floor at or above its top. A plain add on the subtract's own layer draws nothing and is the complaint rather than the refusal; the board builds, with that shape absent from it.</remarks>
+    /// <summary>An add overlaps a subtract in the courses both cover, where the add is drawn after the subtract or
+    /// on another layer.</summary>
+    /// <remarks>Either change the <c>floor</c> of the shape that fills the hole until it is at least the top of the
+    /// subtract, or change the subtract until it no longer overlaps the shape.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string DrawnOverSubtraction = "SK13";
 
-    /// <summary>A made thing asks to be seated on the ground and has none under it. A layer that seats takes
-    /// its floors from the lowest solid column of its own footprint, so a thing whose footprint covers no
-    /// ground at all has nothing to measure against and stays at the height it was drawn. A complaint: a
-    /// sculpture hanging in open sky is a legitimate board — a balloon, a ship in the air, a thing on a spire
-    /// — and the word for that is simply to state no seat.</summary>
-    /// <remarks>Move the thing over ground, or take the layer's `seat` off so its floors are the absolute heights it states. The finding names the made thing and how many of its columns found nothing beneath them.</remarks>
+    /// <summary>A made thing that seats on the ground has no ground under any of its columns.</summary>
+    /// <remarks>Either add a shape to <c>shapes</c> that holds ground under the made thing, or set the <c>seat</c>
+    /// of its layer to <c>null</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
     public const string SeatedOnNothing = "SK16";
 
-    /// <summary>A shape no group on its layer lists. A group is the unit the symmetry orbit is fanned by —
-    /// the build reads each mirroring group's <c>shapeIds</c> and copies those shapes onto their images — so
-    /// a shape no list names is drawn once, on the side it was drawn on, and has no image anywhere. Nothing
-    /// else catches it: the shape is in the document, it rasterizes where the author put it, the drawn
-    /// mirror outline still covers it because a group's outline is the union of the ground it fused and not
-    /// the shapes it lists, and half a landmass is missing only in the world. The same list carries the
-    /// group's relief and its keep-clear fan, so an unlisted shape takes neither.
-    ///
-    /// <para>Asked only of a shape that changes the world. Having no image is a fault about what a shape
-    /// does on the far side, so one that does nothing on this side has no fault to have: a shape drawing no
-    /// ground is <c>SK4</c>'s, and a <b>subtract over ground no add on its layer reaches</b> takes nothing
-    /// away and is nobody's. That case is ordinary — a compile declares a buffer over every enclosed void so
-    /// a ring of pieces at one surface cannot fuse across its own hole, and where the ring is at several
-    /// surfaces the union never bridges the hole and the cut lands on nothing.</para></summary>
-    /// <remarks>List the shape in the group its ground belongs to. The Sketch tool recomputes group membership on every edit, so opening the layout and moving the shape writes it back in; a document written by hand or by a tool names its groups itself and has to name this shape too. A layer stating no groups at all is not this — the whole of it mirrors — a role-tagged room piece is never listed, by design, and a subtract that removes nothing is not asked.</remarks>
+    /// <summary>A shape on a layer with groups has no group that lists it, in a layout with symmetry.</summary>
+    /// <remarks>Either add the shape to the <c>shapeIds</c> of the group whose ground it is part of, or delete the
+    /// shape from <c>shapes</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string ShapeInNoGroup = "SK17";
 
-    /// <summary>A made thing and a built thing holding the same <b>courses</b>. A made thing — a layer stating
-    /// <c>kind: "made"</c> — is laid by the rasterizer, before anything is stamped, and every stamper writes
-    /// where it is told: a wool cage, a spawn cube, an objective and a dressing-placed building all seat on
-    /// the <b>terrain's</b> surface, which is every column's top with the made things taken out. So neither
-    /// half knows about the other. Where their spans meet the blocks interleave, the later pass winning each
-    /// cell it writes, and what stands there is a balloon with a house inside it.
-    ///
-    /// <para><b>A shared column is not the fault.</b> A frame drawn forty courses over a monument stands in
-    /// every one of its columns and in none of its blocks, so the read is the made thing's own span — the
-    /// rasterizer's <c>ColumnSegment</c> floor and top — against the solid run rising off the terrain, which
-    /// at a column a stamp claimed is the stamp. A thing drawn clear above what it passes over says
-    /// nothing.</para>
-    ///
-    /// <para>Nothing else names it. <c>SK10</c> is the gate for two layers driven into each other and skips a
-    /// made thing by design, since a thing drawn over ground is not a lost gap; and a stamped structure is not
-    /// a layer at all, so no layer-against-layer walk could reach it. This is read off the finished world's
-    /// provenance instead, which is the one place all four passes have registered.</para></summary>
-    /// <remarks>Move one of the two — which one is the author's call, and the finding names both so it can be made. Raising the made thing is usually the smaller change: it is drawn at an absolute floor and has nothing seated on it, while a building is placed against the ground, the routes and the other buildings. A complaint rather than a refusal: a thing deliberately drawn around a structure — a gantry over a shed, a hull in a dry dock — is a legitimate board, and this is the read that tells the two apart from a fault.</remarks>
+    /// <summary>A made thing overlaps a structure or a building in at least 1 shared course.</summary>
+    /// <remarks>Either change the <c>base_y</c> of the layer of the made thing until it is at least the top of the
+    /// structure, or move the marker in <c>placements</c> or the prop in <c>dressing.props</c> it stands
+    /// on.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Structure, RuleConcern.Feature)]
     public const string MadeThingInBuilt = "SK18";
 
-    /// <summary>A placement naming a recipe the document does not state. A tree, a boulder and a building each
-    /// carry a key into the layout's own <c>dressing.styles</c> registry — what is placed is a position, what
-    /// stands there is a recipe named once — and a key the registry has no entry for names nothing at all.
-    ///
-    /// <para>Every <em>read</em> of the dressing refuses it already, naming the placement and the key, so the
-    /// world is never built from one. What this adds is <b>when</b>: a layout is stored and finished without
-    /// its dressing being parsed, so a document written by a driver or by hand was taken twice with a 200 and
-    /// only said no at the export or the first preview — the fault sitting in the map in between. The gate the
-    /// document passes through is where a document fault belongs.</para>
-    ///
-    /// <para>A placement naming <em>nothing</em> — an empty key — is not this. That is a prop put down before
-    /// a recipe was picked, which builds the kind's own default, the way a sketch that binds no room style
-    /// stamps the built-in shell.</para></summary>
-    /// <remarks>Pull the recipe into the document's `dressing.styles` under the key the placement names, or name a key the registry already states. A recipe is copied in rather than referenced by library id, so a document carries every recipe its placements name and builds the same way wherever it is read.</remarks>
+    /// <summary>A prop names a recipe that the sketch does not have.</summary>
+    /// <remarks>Either add the recipe to <c>dressing.styles</c> under the name the prop gives, or change the
+    /// <c>style</c> of the prop to a name in <c>dressing.styles</c>.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Feature)]
     public const string RecipeNotStated = "SK19";
 
-    /// <summary>The layers of a stack are not in the order their ground stands in — a later layer starts
-    /// below an earlier one. A layer's position in the list is its draw order and <c>base_y</c> is its
-    /// height, so the two say different things and a document where they disagree reads as a stack that is
-    /// not the one it builds: a reader walking the list top to bottom meets the storeys out of order, and a
-    /// strip drawn from it puts the cellar above the roof.
-    ///
-    /// <para>A complaint, never a refusal. The world is built from <c>base_y</c> and comes out exactly as
-    /// stated whatever order the list is in, so nothing is lost — what is wrong is the document, and a board
-    /// mid-authoring is allowed to have a layer added before it is raised. Made things are exempt: a
-    /// sculpture is drawn out of layers because that is what can hold it, and the slices of one have no
-    /// stacking order to be in.</para></summary>
-    /// <remarks>Order the layers by the height their ground starts at, or correct the `base_y` of the one that is out of place. The list order is what a reader and the strip walk; `base_y` is what the world is built from.</remarks>
+    /// <summary>The height a layer's ground starts at is less than that of the layer listed before it.</summary>
+    /// <remarks>Either move the layer before the layer it starts below in <c>layers</c>, or change the
+    /// <c>base_y</c> of the layer until it is at least the <c>base_y</c> of the layer before it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string StackOutOfOrder = "SK20";
 
-    /// <summary>A bend that could not pull every point it inserted. A coast is drawn by resampling an
-    /// outline's long edges and pulling each inserted point to the side the bend asks for, and a point whose
-    /// two offsets both land on the wrong side — a neck or a notch narrower than twice the wander — stays on
-    /// the edge it was cut from. The outline is still drawn and every other point moves; what is lost is that
-    /// those stretches come out as straight as the plan drew them.</summary>
-    /// <remarks>Lower the `wander` until it fits the narrowest ground the outline runs through, raise the `step` so no point is cut on that stretch at all, or ask for the other `side`. A coast quietly straighter than the one that was asked for is what this exists to prevent, so the count is the answer's rather than a fault in the document.</remarks>
+    /// <summary>A point cut by a bend has no room on the side the bend asks for.</summary>
+    /// <remarks>Either set the <c>wander</c> of the bend to at most the width of the narrowest neck or notch, or
+    /// set the <c>step</c> of the bend to more than half the length of the edge.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
     public const string BendHeldBack = "SK21";
 
-    /// <summary>A shape stating a height per vertex that its kind has no reader for, so the world builds one
-    /// uniform thickness and the author's numbers are nowhere in it. <c>anchor_heights</c> is interpolated
-    /// across a footprint as a TIN over the shape's own ring, which only a <b>polygon</b> or a <b>lasso</b>
-    /// has: a rectangle and a circle state bounds rather than vertices, and a polyline's vertices are its
-    /// centreline rather than its footprint — the band around them carries many more points, and a thickness
-    /// graded along one would have to interpolate along the arc instead. A polygon whose array is not the
-    /// length of its vertex list is the same silence for the same reason: the TIN cannot be built, so the
-    /// shape falls back to its <c>base_height</c>.</summary>
-    /// <remarks>Take `anchor_heights` off, or draw the shape as a polygon whose vertex count the array matches. A polyline that has to climb is several polylines today, each with its own `floor` and `base_height`; grading one along its arc is `S56`.</remarks>
+    /// <summary>The number of anchor heights of a shape is not the number of its points, or a rectangle or circle
+    /// states any.</summary>
+    /// <remarks>Either set the <c>anchor_heights</c> of the shape to <c>null</c>, or change the shape to a polygon
+    /// with as many <c>vertices</c> as it has <c>anchor_heights</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
     public const string PerVertexHeightUnread = "SK22";
 
-    /// <summary>A theme scoped to a shape that has no interior column, so the only buckets that ever paint it
-    /// are the rim and the wall and the theme's own surface is nowhere on the board. A theme is a recipe for
-    /// <b>ground</b>: which of its five buckets a block takes is decided per column by whether that column is
-    /// an edge, and every column of a shape whose whole footprint touches the void is an edge under every
-    /// <c>rimEdges</c> setting there is. So a two-block stilt, a one-block kerb or a stair tread themed like
-    /// the platform it stands on comes out one course of the rim material over the wall material — the
-    /// checker, the noise or the band stack the theme was chosen for cannot appear at any size.</summary>
-    /// <remarks>State what the shape is made of instead: `material` paints one material over the shape's whole span, which is what an object wants (TP22). Keep the theme and turn its `rim.enabled` off if the shape is ground that simply has no middle — the top then falls to the surface bucket, which is the paint that was asked for.</remarks>
+    /// <summary>A shape with a palette has no column that has ground on all 8 sides, on its layer.</summary>
+    /// <remarks>Either set the <c>theme</c> of the shape to <c>null</c> and its <c>material</c> to a block, or set
+    /// the <c>rim.enabled</c> of the palette in <c>themes</c> to <c>false</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
     public const string ThemeShowsOnlyItsEdge = "SK23";
 
-    /// <summary>A shape stating both a <c>theme</c> and a <c>material</c>. The two answer one question — what
-    /// paints this shape — at two grains, and a document holding both says nothing about which was meant: the
-    /// build takes the material, because it is the narrower statement, and the theme the author also wrote is
-    /// read by nothing.</summary>
-    /// <remarks>Take one off. `theme` is for ground, whose top, face and body are three different materials chosen per column; `material` is for a thing that is made of something, painted over its whole span.</remarks>
+    /// <summary>A shape states a palette, and it also states a material.</summary>
+    /// <remarks>Either set the <c>theme</c> of the shape to <c>null</c>, or set the <c>material</c> of the shape to
+    /// <c>null</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string PaintStatedTwice = "SK24";
 
-    /// <summary>One landform painted a theme per step. A plan component spanning several surfaces compiles to
-    /// one shape per surface — a stepped island becomes stacked plateaus, each addressable by its own id — and
-    /// a theme scoped per plateau paints one hillside as two or three grounds with a hard line at every riser.
-    /// A theme is a <b>place</b>: the ground a board changes character at is where a player crosses from one
-    /// part of the map to another, not where the plan happened to step.</summary>
-    /// <remarks>Paint the component's plateaus with one theme, and say what changes between them with the theme's own bands — a `slope` stack tells a riser from a tread by its angle, a `height` stack cuts at the surfaces the steps already sit at. Where the steps really are two places, the answer is two components in the plan rather than two themes on one.</remarks>
+    /// <summary>A plan island that stands at several surfaces has more than 1 palette or material across its
+    /// shapes.</summary>
+    /// <remarks>Either set the <c>theme</c> of each shape of the island to one palette, or split the island with a
+    /// notch in the <c>rect</c> of a piece in <c>pieces</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain, RuleConcern.Theme)]
     public const string PlateausPaintedApart = "SK27";
 
-    /// <summary>A group that declines the fan while standing wholly inside one orbit image. The orbit is
-    /// fanned per group, so a group stating <c>mirrors: false</c> is built once, where it was drawn — which
-    /// is right for a landmark on the symmetry centre, because such a thing is already its own image, and
-    /// wrong for anything a team owns. A curtain wall, a gatehouse or an undercroft drawn on one team's
-    /// ground and not mirrored is that team's alone: on a half-turn board one side has it and the other does
-    /// not, and on a quarter-turn board three of the four teams have nothing there.
-    ///
-    /// <para>Asked of the footprint rather than the flag, because the flag on its own is not a fault. A
-    /// group whose own bounds meet any of their orbit images straddles the centre and may well be its own
-    /// image, so it is left alone; one whose bounds are disjoint from every image cannot be, and is the
-    /// case this names. Nothing else reports it — the store answers 200, the export gate opens, and the
-    /// mirror check reads spawns, wool rooms and build zones rather than made geometry.</para></summary>
-    /// <remarks>Set `mirrors` true on the group, which is what a structure standing on one team's ground wants. Keep it false only where the thing really is its own image — centred on the symmetry centre, or on the mirror line — and then make its own shapes symmetric too, or the two teams meet it propped at different spacings. `GET /api/map/{slug}/column` is what confirms either way, at the reflected block: the image of block `z` is `−z−1`, so probing `−z` lands one block off and reports a difference on a board that is exactly symmetric.</remarks>
+    /// <summary>A group that the symmetry does not copy touches none of its symmetry copies.</summary>
+    /// <remarks>Either set the <c>mirrors</c> of the group to <c>true</c>, or move the group closer to the symmetry
+    /// centre until it touches its symmetry copies.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string BuiltOnOneImage = "SK28";
 
-    /// <summary>A shape the rebuild does not keep. A rebuild from the plan replaces the board's geometry with
-    /// what the plan compiles to and carries the finish, the relief and a corrected structural height across;
-    /// a shape drawn in the sketch is none of those. One whose id the compile does not produce and which
-    /// stands for no intent entity (no <c>intentRef</c>) is not in the layout the rebuild stores, nor in any
-    /// group's <c>shapeIds</c>.</summary>
-    /// <remarks>Draw it into the plan, where every rebuild produces it, or draw it again in the sketch after the rebuild. The rebuild is written either way: the shapes it dropped ride on `dropped` in the answer and one complaint names them, so the loss is read rather than found.</remarks>
+    /// <summary>A shape drawn in the sketch has no counterpart in the plan the rebuild compiles.</summary>
+    /// <remarks>Either add a piece for the shape to <c>pieces</c> in the plan, or add the shape to <c>shapes</c>
+    /// again after the rebuild.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Terrain)]
     public const string ShapeDropped = "SK29";
 }

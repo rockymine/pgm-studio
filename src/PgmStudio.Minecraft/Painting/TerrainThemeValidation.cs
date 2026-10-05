@@ -10,45 +10,35 @@ namespace PgmStudio.Minecraft.Painting;
 /// not findings anything answers with.</summary>
 public static class TerrainThemeRules
 {
-    /// <summary>A block that surfaces ground is painted below the course it surfaces. Grass, podzol, mycelium
-    /// and farmland are each exactly one course thick — what is under them is soil — so a bucket deeper than
-    /// one course filled with one writes it into every course of its depth, and the ground comes out made of
-    /// its own skin.</summary>
-    /// <remarks>Put the surfacing block in a `layered` material as the top band at thickness 1, with the soil under it — grass over two dirt is the standard stack. A `cell` or a `voronoi` is a pick and not a stack: whichever block it picks fills the whole depth, so a surfacing block cannot go in one at any depth over one.</remarks>
+    /// <summary>A surfacing block in a palette part is more than 1 block thick, or lies below the first band of its
+    /// band stack.</summary>
+    /// <remarks>Either change the pattern to a <c>layered</c> one whose first band is the surfacing block at a
+    /// <c>thickness</c> of 1, or delete the surfacing block from the <c>bands</c>, <c>palette</c> or <c>stops</c>
+    /// of the pattern.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string SurfaceBlockBuried = "PT1";
 
-    /// <summary>A pattern states a band, a stop or a side and carries no material in it. The member reads as
-    /// present and holds nothing, so the painter meets it with no block to write — and it meets it while the
-    /// world is being built, long after the document was stored.</summary>
-    /// <remarks>Give the member its material. A `voronoi`'s `bands` and a `layered`'s `stack` each take a pair — `{"material": …, "depth": N}` and `{"material": …, "thickness": N}` — where a `noise`'s `stops` takes bare materials, so a list of materials handed to `bands` binds a band per entry with the material left empty.</remarks>
+    /// <summary>A band, stop or side of a pattern has no material.</summary>
+    /// <remarks>Add a <c>material</c> to the <c>bands</c> entry or the <c>stack</c> entry the finding names. Set
+    /// the <c>stops</c> entry the finding names to a block or a pattern.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string MaterialMissing = "PT2";
 
-    /// <summary>A sampled pattern's brush is finer than the blocks it paints. A cell size or a field scale is
-    /// the period a pattern varies over, in blocks, so below two it changes faster than the ground it is laid
-    /// on can show: every block is its own feature, the pattern resolves to noise at any distance, and no
-    /// palette rescues it. A guard against a pathological number rather than a judgement about taste — how
-    /// coarse a brush should be is the author's, and only a brush finer than one block is nobody's.</summary>
-    /// <remarks>Give the pattern a period of at least two blocks. A `cell` and a `voronoi` state theirs as `cellSize`, a `noise`, `turbulence` or `electric` field as `scale`; the committed themes sit around six to eight, which is what a pattern read as a ground looks like. To mix two blocks with no feature size at all, a `cell` at a coarse size with a high `jitter` is the pattern that means it.</remarks>
+    /// <summary>A sampled pattern's period is less than 2 blocks.</summary>
+    /// <remarks>Set the <c>cellSize</c> of a <c>cell</c> or <c>voronoi</c> pattern to at least 2 blocks. Set the
+    /// <c>scale</c> of a <c>noise</c>, <c>turbulence</c> or <c>electric</c> pattern to at least 2 blocks.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string BrushTooFine = "PT3";
 
-    /// <summary>A sampled field paints a bucket a player reads from the side and states no vertical period,
-    /// so every block in a column resolves the same and the face comes out in vertical stripes. A field of the
-    /// plane is a fabric for ground seen from above; a wall or a fill is seen edge-on, and the one thing that
-    /// gives a face its grain there is the field varying with height.</summary>
-    /// <remarks>Give the pattern a `rise` — the vertical period of its field, in blocks, which samples the volume instead of the plane. Small is what the committed bodies use: two or three blocks against a `cellSize` of nine or ten, so the fabric turns over every few courses without the face reading as noise. A rise is never nought on a face, whatever the band's thickness. The wall-run and diagonal patterns draw their stripes deliberately and are not asked.</remarks>
+    /// <summary>The rise of a sampled pattern in the wall or fill of a palette is less than 1 block.</summary>
+    /// <remarks>Either set the <c>rise</c> of the pattern to at least 1 block, or change the <c>kind</c> of the
+    /// pattern to <c>solid</c> or <c>checker</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string FlatFieldOnAFace = "PT4";
 
-    /// <summary>A theme tints its ground by team over land more than one team enters. The tint is one colour
-    /// per canonical island, which is what makes it readable — a player standing anywhere on a landmass knows
-    /// whose it is — and an island two teams' spawns stand on has one colour for both, so the whole of it wears
-    /// whichever team the ownership resolved. A board whose land is a single island is the whole map painted
-    /// one team's colour, which is the ordinary shape of a capture board and of any board with no void in
-    /// it.</summary>
-    /// <remarks>Either split the land the tint is meant to distinguish — the decomposition is the canonical `islands_json` one, so two teams on separate landmasses each take their own colour — or drop the `teamTinted` material from the buckets the shared island paints through and say whose ground it is some other way. A theme whose tint is deliberate on shared ground states it by assigning the island in the configure step, which is what the finding names.</remarks>
+    /// <summary>An island painted with a team colour pattern has the spawns of more than 1 team.</summary>
+    /// <remarks>Either split the island with a subtract in <c>shapes</c>, or change the <c>theme</c> of the shape
+    /// that paints it to a palette with no team colour pattern.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string TintOverSharedGround = "PT5";
 

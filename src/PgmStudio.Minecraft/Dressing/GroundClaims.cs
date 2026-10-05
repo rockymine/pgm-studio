@@ -6,44 +6,26 @@ namespace PgmStudio.Minecraft.Dressing;
 /// are.</summary>
 public static class DressingRules
 {
-    /// <summary>A prop rests nearer to the road than its kind's standoff allows: a tree 3 blocks, a boulder 2,
-    /// measured from its resting cells to the nearest paved cell (Chebyshev; exactly-at-distance stands). The
-    /// numbers are each kind's own <see cref="PlacedProp.RouteStandoff"/> — the author's ruling, stated on the
-    /// type so there is exactly one place they live.</summary>
-    /// <remarks>Move the tree or boulder until its trunk or resting footprint keeps its kind's distance from
-    /// the paved edge — measured to the spline the band actually follows, not the drawn polyline. The whole
-    /// prop is declined and the census names the offending cell, so the drop can be checked on the canvas.</remarks>
+    /// <summary>A tree stands less than 3 blocks from a road, or a boulder less than 2 blocks.</summary>
+    /// <remarks>Move the tree in <c>dressing.props</c> until it is at least 3 blocks from the road. Move the
+    /// boulder in <c>dressing.props</c> until it is at least 2 blocks from the road.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string RoadStandoff = "DR-ROAD";
 
-    /// <summary>A building leaves no way past itself: a side of it carries fewer than 8 blocks of passable
-    /// ground alongside its whole run (the author's number). <b>Every</b> side is asked, because the lane a
-    /// building stands in is the ground players arrive on rather than a way round it — a house in the middle
-    /// of a route corks it however far the route runs on ahead. A side the ground stops flush against is the
-    /// map's own edge or a hole in it, and a building may stand against one — a coast house is a house — but
-    /// not against two facing each other, which is a building spanning the land rather than seated at its
-    /// edge. Measured from what the building <b>stamps</b> rather than from its walls: a roof oversails its
-    /// wall by at least one block, and the blocks a player walks under are the ones that were written.
-    ///
-    /// <para><b>Asked of a group of buildings, not of each one.</b> Buildings standing within a passage of
-    /// each other are one block of buildings, and the eight is owed round what they make together — a player
-    /// walks round a village rather than between every pair of its houses, so the ground inside it is the
-    /// claim ring's to keep. Grouping is transitive, and at exactly the passage two buildings answer for
-    /// themselves, so no gap between them is one the rule has no reading of.</para></summary>
-    /// <remarks>Move the building against the edge of the ground it stands on and keep an eight-block passage along every other side, or widen that ground, or bring it close enough to its neighbours to be one block of buildings with them. The eight are counted from the roof's edge, not the wall's, so a lane 15 blocks across takes a building 7 blocks across including its eaves. Passable here means terrain with nothing built on it; a road or a channel beside the wall still counts as a way past, a building outside this one's group does not. A complaint: the building is in the exported world, standing where it was put, because where a building stands is something an author moves. `POST /api/map/{slug}/sketch/seats` answers this same rule forwards over every cell of the board, so a placement is found rather than guessed at.</remarks>
+    /// <summary>The passage along a side of a building or group of buildings is less than 8 blocks wide, and the
+    /// side is not against the coast.</summary>
+    /// <remarks>Either move the building in <c>dressing.props</c> until the passage along each side is at least 8
+    /// blocks wide, or add a shape to <c>shapes</c> that widens the ground along the side.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string PassAround = "DR-PASS";
 
     /// <summary>The passage's width in blocks — <see cref="PassAround"/>'s one number.</summary>
     public const int PassAroundWidth = 8;
 
-    /// <summary>A building stands <b>across</b> a route: the road it covers carries on out the other side, so
-    /// what was one way through the board is now two dead ends at a wall. A road that simply <em>ends</em> at
-    /// the building is a porch and stands — that is what a road running to a door is — and the two are told
-    /// apart by what is left of the stroke once the footprint is out of it: one run of paving is an end, two
-    /// or more is a crossing. Only a stroke the author marked a <b>route</b> counts; paint laid to change a
-    /// finish is ground rather than a way.</summary>
-    /// <remarks>Move the building off the road, or redraw the road to end at its door. A house at the end of a road is a porch and is not this fault — what fires is a road that continues past the far wall, which means players walked that way and now cannot. The whole building is declined and is not in the exported world.</remarks>
+    /// <summary>A building overlaps a road and leaves the road in more separate runs than before, where cells of
+    /// road 2 blocks apart or less are one run.</summary>
+    /// <remarks>Either move the building in <c>dressing.props</c> off the road, or change the <c>points</c> of the
+    /// road in <c>dressing.props</c> until the road ends at the building.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string RouteCrossed = "DR-CROSS";
 
@@ -52,42 +34,31 @@ public static class DressingRules
     /// carries on past the building, not whether its paving is unbroken.</summary>
     public const int RouteRunGap = 2;
 
-    /// <summary>A prop closes the way between two of the places the map is played between — its spawns, its
-    /// monuments, its goals — or sends that way further round than a player will go. Measured by walking the
-    /// terrain between every pair of waypoints and walking it again with the prop's footprint taken out of the
-    /// ground: a pair that had a route and now has none is a way closed, and a route surviving more than ten
-    /// blocks longer is the same fault at a lesser degree, ten being how far out of their way a player goes.
-    /// Props accumulate, so two buildings that each leave a way and together leave none are caught at the
-    /// second.</summary>
-    /// <remarks>Move the prop off the corridor the finding names, or open another way between those two points. This is the corridor the board was drawn to have rather than a stroke somebody drew on it, so a standoff to a road cannot answer it — a building across a leg with no road on it passes every other test on the board. The whole prop is declined and is not in the exported world.</remarks>
+    /// <summary>A building leaves no walking route between two waypoints, or makes the walking distance between
+    /// them more than 10 blocks longer.</summary>
+    /// <remarks>Either move the building in <c>dressing.props</c> off the route the finding names, or add a shape
+    /// to <c>shapes</c> that opens another route around it.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string WayThrough = "DR-WAY";
 
-    /// <summary>A building's box is smaller than 5×5 blocks: a footprint four blocks deep is a wall with a
-    /// roof, not a building anyone enters, and a corpus run produced eight of fourteen that way. Measured on
-    /// the plan's bounding box, so a multi-wing building is judged as the one building it is.</summary>
-    /// <remarks>Draw the building at least 5×5 blocks — both dimensions. The whole prop is declined and the
-    /// census names the footprint, so the drop can be checked against the layout.</remarks>
+    /// <summary>A building's footprint is less than 5 blocks across its shorter side.</summary>
+    /// <remarks>Change the <c>corners</c> of a wing in <c>wings</c> until the footprint is at least 5 blocks across
+    /// its shorter side.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string FootprintFloor = "DR-SIZE";
 
     /// <summary>The footprint minimum in blocks — <see cref="FootprintFloor"/>'s one number.</summary>
     public const int FootprintMin = 5;
 
-    /// <summary>A prop rests on a column the map keeps clear of everything: a spawn point or its room, a wool
-    /// room or its monument, a structure the plan stated, a column whose surface is built rather than terrain,
-    /// or the lane in front of a spawn or wool-room door. The finding names which of those it was and the cell
-    /// it happened at.</summary>
-    /// <remarks>Move the prop off the cell the finding names. A door's approach reaches twenty blocks out from a spawn room's face and ten from a wool room's, measured from the stamped building — that lane is what the door is for, so nothing stands in it. The whole prop is declined and is not in the exported world.</remarks>
+    /// <summary>A prop overlaps kept clear ground.</summary>
+    /// <remarks>Either move the prop in <c>dressing.props</c> until it no longer overlaps kept clear ground, or
+    /// move the spawn, wool room or structure that keeps the ground clear.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Spawn, RuleConcern.Objective)]
     public const string KeptClear = "DR-KEEP";
 
-    /// <summary>A prop rests on ground something already standing has claimed — a channel, a road, a building
-    /// or an earlier prop. The pass places in priority order and the first claimant keeps the cell, so this is
-    /// the collision itself rather than a near miss; the finding names the cell and what holds it. A building
-    /// holds the ground it stamps <em>and</em> <see cref="StructureClearance"/> blocks of ring beyond it, so a
-    /// prop seating under an eave is this fault rather than a silent build.</summary>
-    /// <remarks>Move the prop off the claimed ground, or move whatever holds it. Two authored things wanting the same cell is the author's to resolve — the pass never shifts a placement to make room, it declines the prop and leaves the ground to whatever already holds it.</remarks>
+    /// <summary>A prop overlaps the claim of a fluid, a road, a building or an earlier prop.</summary>
+    /// <remarks>Either move the prop in <c>dressing.props</c> until it no longer overlaps the claim, or move the
+    /// fluid, road, building or earlier prop that holds the claim in <c>dressing.props</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string GroundTaken = "DR-CLAIM";
 
@@ -97,33 +68,24 @@ public static class DressingRules
     /// ring is spent once between a pair rather than twice.</summary>
     public const int StructureClearance = 1;
 
-    /// <summary>A prop has no ground to rest on: one of the cells it rests at is off the map's terrain
-    /// altogether, so there is no column to seat it in. A building is held to <b>every</b> cell of its
-    /// footprint — it seats on its lowest column, so one cell on land and the rest over void builds a house
-    /// hanging off a corner — and the finding names the first bare column it stopped at.</summary>
-    /// <remarks>Move the prop onto drawn ground. A building needs drawn ground under its whole footprint, not merely under part of it. A prop whose orbit image falls off the board fails this way too — the whole prop is declined at the first image that finds no ground, since a rock standing on one half of a mirrored map and missing from the other is worse than neither.</remarks>
+    /// <summary>A prop has no ground under a cell it rests on, in any symmetry copy.</summary>
+    /// <remarks>Either move the prop in <c>dressing.props</c> until every cell it rests on has ground under it, or
+    /// add a shape to <c>shapes</c> that covers the cell.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string NoGround = "DR-SITE";
 
-    /// <summary>A building's own footprint is not level enough to stand on: the ground across it rises by at
-    /// least the height of the building itself — its wall courses plus the rise of its roof. A building seats on the <b>lowest</b> column of its
-    /// plan and the terrain standing over that floor is carved out of it, so a footprint spanning more relief
-    /// than the building is tall comes out with its uphill wall entirely below the ground beside it — a house
-    /// hidden in a hill rather than one dug into a slope. Sinking into a slope is what the seating rule is
-    /// for and stays silent; disappearing into one is this.</summary>
-    /// <remarks>Move the building onto a flatter site, or state the plateau it stands on — an `area` relief mark under the footprint gives it one, and is what the ground of an objective is given for the same reason. The threshold is the style's own height, so a two-storey barn may stand where a cottage may not. The whole building is declined and is not in the exported world.</remarks>
+    /// <summary>The rise of the ground across a building's footprint is at least the height of its walls plus 2
+    /// blocks for each block of pitch.</summary>
+    /// <remarks>Either move the building in <c>dressing.props</c> onto ground that rises less than the building's
+    /// height, or add an <c>area</c> mark under the footprint to the <c>marks</c> of the group in
+    /// <c>relief</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string SiteNotLevel = "DR-SLOPE";
 
-    /// <summary>A building dug its site out of the ground more than 3 blocks deep at some column. It seats
-    /// one course below the <b>lowest</b> column of its footprint and every footprint column standing over
-    /// that floor is cleared to air, and nothing bounds how deep: a footprint whose lowest cell sits in a pit
-    /// takes the whole depth of that pit out of every other column, and the building stands in the hole it
-    /// dug. <c>DR-SLOPE</c> is measured on the same rise against the building's own height, so a shell tall
-    /// enough to afford it digs in silence without this. A carve of up to 3 blocks is a house settling into
-    /// a slope and raises nothing. The finding carries the deepest carve and the column it came off, how many
-    /// columns were carved and how many blocks of ground went.</summary>
-    /// <remarks>Compare the carve with what the building was meant to sit in. Past 3 blocks at a column the house is probably submerged — move it onto the ground beside the low cell, or state the plateau it stands on with an `area` relief mark. A complaint: the world is built and the building is in it.</remarks>
+    /// <summary>The ground dug out of a building's footprint is more than 3 blocks deep at one column.</summary>
+    /// <remarks>Either move the building in <c>dressing.props</c> onto ground beside the lowest column of its
+    /// footprint, or add an <c>area</c> mark under the footprint to the <c>marks</c> of the group in
+    /// <c>relief</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string SiteDug = "DR-DIG";
 
@@ -132,36 +94,16 @@ public static class DressingRules
     /// probably submerged (author).</summary>
     public const int SettleDepth = 3;
 
-    /// <summary>A prop names a layer this board does not have ground on. A stacked board carries a surface
-    /// per storey and a prop may say which one it rests on; naming one that is not there is not the same as
-    /// naming none, so it is declined rather than quietly seated on the top surface — which is exactly the
-    /// storey the author was saying they did not mean.</summary>
-    /// <remarks>Name a layer the board draws on, or leave the word off and take the top surface. The layer ids a board has are the `id` of each entry in its `layers[]`.</remarks>
+    /// <summary>A prop names a layer that does not have any ground.</summary>
+    /// <remarks>Either set the <c>layer</c> of the prop in <c>dressing.props</c> to the <c>id</c> of an entry in
+    /// <c>layers</c> that has ground, or set the <c>layer</c> of the prop to <c>null</c>.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string NoSuchLayer = "DR-LAYER";
 
-    /// <summary>A prop the world cut down. A prop seats on its <b>feet</b> — the cells of its lowest course
-    /// are what the keep-outs, the claims and the ground are asked about — and everything it reaches over is
-    /// written only where it meets air. So a prop that stands clear of a building may still have most of its
-    /// body inside one, and the blocks that land are whatever the wall left: a rock flattened along a face,
-    /// or a crown cut off from its own trunk and standing in the air on the far side.
-    ///
-    /// <para><b>Being clipped is not the fault; being cut in two is.</b> A rock tucked against a wall is
-    /// flattened along it and is still a rock — measured, a boulder loses up to a third of its blocks that way
-    /// and severs none of them — and a tree brushing a roof loses a few leaves. What this names is the other
-    /// case: the clip took out the blocks that joined a limb to the trunk, so what is left of that limb stands
-    /// in the air with nothing under it. The prop seated, nothing declined it, and the world holds a tree with
-    /// a piece floating beside it. The finding carries how many blocks are in the world, how many the wall
-    /// blocked, how many are cut off from the prop's own footing, and the first cell it was stopped at.</para>
-    ///
-    /// <para><b>And being buried is the same fault from underneath.</b> A prop seats on the <em>lowest</em>
-    /// column its feet stand over, which is what lets it sit into a slope — and on a stepped landform that
-    /// column is the bottom of a step, so the body is written into ground that stands over it and almost none
-    /// of it lands. What survives is whatever cleared the surface, and that remnant rests on real ground, so
-    /// nothing is severed and the count above stays nought however much was lost. The share is the reading
-    /// that sees it: past <see cref="ClipBlockedShare"/> of the prop inside something already standing, the
-    /// thing in the world is not the thing that was asked for.</para></summary>
-    /// <remarks>Move the prop clear of what it is reaching into, or make it smaller. The ground a building holds is one block past what it stamps (`DR-CLAIM`), and that is a seat rule rather than a size rule — it keeps a stem out of a wall and says nothing about a crown eight blocks wide, so a big prop needs the distance its own reach asks for and not the distance the seat allows. Measured against a wall taller than the tree: a 20-course grown oak severs a limb at every clearance out to 8 blocks, while an 8-course one severs nothing past 2. A prop reported as buried rather than severed is standing on ground that steps under it — move it onto one step or the other, since a seat is taken on the lowest column its feet cover. The prop is left in the world exactly as the clip left it, floating piece included; this is a complaint, not a decline.</remarks>
+    /// <summary>A prop has 8 or more blocks cut off from its feet, or more than 50 percent of its blocks inside
+    /// something already standing.</summary>
+    /// <remarks>Either move the prop in <c>dressing.props</c> farther from what it reaches into, or change the
+    /// <c>style</c> of the prop to one with a smaller <c>height</c> or <c>size</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string PropCut = "DR-CUT";
 
@@ -170,103 +112,52 @@ public static class DressingRules
     /// and over it a viewer sees a piece of the prop standing in the air.</summary>
     public const int ClipSevered = 8;
 
-    /// <summary>A fluid standing against a hole in its own basin. A pool fills the bed it carves and a basin
-    /// the ground inside its ring, and the hollow either sits in is very often dug by something else — a relief
-    /// mark, a shape's own floor — so where that hollow reaches further than the bed or the ring does, the extra
-    /// is excavated and never filled: a trench as deep as the fluid is, running alongside it, with the fluid
-    /// standing against open air and nothing said.
-    ///
-    /// <para>Air is a fault only where there is ground to hold a fluid back. A pool reaching the board's own
-    /// edge meets the void, and a wall of water or lava at the world's rim is what a coast is — so a neighbour
-    /// with no terrain column at all is passed over, and only a column the board <b>drew</b> and then left
-    /// open counts. That is the author's ruling and the whole of the test.</para></summary>
-    /// <remarks>Widen the pool, or the basin's ring, onto the ground that was dug for it, or stop digging it there; a basin can lower its level to a rim its ring encloses. The finding names the first open column, so the two shapes — the hollow and the fluid that fills it — can be compared where they part company. A complaint: the world is built and the fluid is in it.</remarks>
+    /// <summary>A fluid touches a column of ground that has air at the fluid's level.</summary>
+    /// <remarks>Either change the <c>points</c> of the fluid in <c>dressing.props</c> until it covers the ground
+    /// dug beside it, or set the <c>level</c> of a basin to the lowest ground along its outline.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string DryEdge = "DR-DRY";
 
-    /// <summary>A block of a copied body naming a face it has nothing to cling to. A copied body is written
-    /// block for block with the data it was cut with — that is what makes it a copy — so a block whose data
-    /// <b>is</b> a direction has to point at something the body actually holds. A vine states every side it
-    /// clings to at once; a side naming air is a curtain hanging on nothing, and a pair of <em>opposite</em>
-    /// sides is that same fault seen from the front, as a vine with two faces in one block. A vine under
-    /// another naming the same side is held by it, which is how a curtain hangs past the leaf it started on.
-    ///
-    /// <para>Asked once per body rather than once per placement: a board draws the same tree thirty times and
-    /// the fault is in the recipe.</para></summary>
-    /// <remarks>State the one side the leaf is on. A vine's sides are turned with the body it belongs to when a prop is fanned round the orbit (`BlockGeometry.Turned`), so a single face survives a mirror or a quarter-turn and does not need a second bit to protect it.</remarks>
+    /// <summary>A vine in a copied tree has no block behind one of its sides.</summary>
+    /// <remarks>Set the data of the vine in the <c>body</c> of the recipe in <c>dressing.styles</c> to the one side
+    /// that has a block behind it.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Feature, RuleConcern.Material)]
     public const string UnheldFace = "DR-FACE";
 
-    /// <summary>A tree recipe claims the <c>copied</c> form and states no cut. A copied tree is one cut out of
-    /// a world — its body is what stood there, block for block — so the row records where: the world
-    /// directory, the foot's world coordinates and when. A body with no cut behind it is a block list somebody
-    /// typed, and the library files no such thing as a tree. Asked where a tree recipe is saved.</summary>
-    /// <remarks>Cut the tree out of a world with `dotnet run tools/seed-trees.cs` over the world it stands in, which files every tree it finds with its cut recorded. There is no form for a hand-built body: a prop that is not a tree cut from a world is not filed in the tree library at all. A re-save of a copied recipe carries the `cut` its `GET` answered.</remarks>
+    /// <summary>A request to save a copied tree has no cut record.</summary>
+    /// <remarks>Either send the request again with <c>form</c> set to <c>template</c>, or send the request again
+    /// with <c>cut</c> set to where and when the tree was cut.</remarks>
     [Rule(RuleCategory.Forbidden, RuleConcern.Request, RuleConcern.Feature)]
     public const string UncutCopy = "DR-COPY";
 
-    /// <summary>A body of water or lava that dug a shaft rather than filled a hollow. Its line is one plane
-    /// across the whole run — by default the lowest surface it crosses — and every bed column standing above that line is
-    /// emptied down to it. <c>depth</c> bounds how far <b>below</b> the line the bed goes and nothing bounds
-    /// how far above it the carve reaches, so a pond drawn across a slope comes out as a straight-sided pit as
-    /// deep as the ground falls, whatever depth was asked for. Measured against the author's own stated depth,
-    /// because that is the number they said: a bank taller than the fluid is deep is ground taken out rather
-    /// than fluid put in.</summary>
-    /// <remarks>Draw the body inside ground that is already level — the finding names the wall's own cell and its two courses, which is where to read the fall — or state a `level` and let the fluid fill the hollow that is there instead of making one. A complaint: the world is built and the fluid is in it.</remarks>
+    /// <summary>The ground a fluid cuts away above its level is more than its stated depth in height.</summary>
+    /// <remarks>Either move the fluid in <c>dressing.props</c> onto ground that is already level, or set the
+    /// <c>level</c> of the fluid to the height of the ground it should cover.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string SteepBank = "DR-BANK";
 
-    /// <summary>A body of water or lava left dry across ground the map keeps clear. A kept column — a spawn,
-    /// a wool room, a stated structure, a built column, a door's approach — is filled and never cut, so where the
-    /// fluid's line stands no higher than the ground there the bed stays ground and no fluid stands on it. The
-    /// finding counts the dry columns and names the first and what keeps it clear.</summary>
-    /// <remarks>Move the fluid off the kept ground, or state a `level` above it so the fill stands there without a cut. A complaint: the world is built and the rest of the fluid is in it; the dry columns are not the channel's in any read-back.</remarks>
+    /// <summary>A fluid overlaps kept clear ground that stands no lower than the fluid level.</summary>
+    /// <remarks>Either move the fluid in <c>dressing.props</c> until it no longer overlaps kept clear ground, or
+    /// set the <c>level</c> of the fluid to a height above the kept clear ground.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string HeldDry = "DR-HELD";
 
-    /// <summary>A boulder built out of nothing but the tones of the ground it stands on. A rock is an
-    /// erratic — a mass carried here and left — so it reads as a rock by not being made of the field it sits
-    /// in, and one whose every tone family the ground already states has no silhouette at any size: it is a
-    /// patch of the same ground standing up. Measured against the ground where something can <b>rest</b>, so a
-    /// meadow whose steep faces are bare stone is a meadow and a stone rock on it stands out as intended.
-    ///
-    /// <para>Tone families are <c>TerrainPalette</c>'s — the unit a pattern is filled from, which is what an
-    /// author reaches for and what a player reads at a distance. A rock keeping one family the ground does not
-    /// have is a rock, however much else it shares: what disappears is the one built wholly from the
-    /// field.</para></summary>
-    /// <remarks>Cut the rock from stone, andesite and cobblestone, which is what a placement naming no recipe already gets: it reads against sand, grass, dirt and red sand, and against any single clay, since no two clay colours are close. Where the ground is itself grey stone, take the rock the other way — a clay, a dark block or a sand — rather than deepening the grey. A complaint: the world is built and the rock is in it.</remarks>
+    /// <summary>A boulder has no tone family apart from those of the ground under it.</summary>
+    /// <remarks>Change the <c>rock</c> of the boulder's recipe in <c>dressing.styles</c> to a material with a tone
+    /// family that the ground under it does not have.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Material, RuleConcern.Terrain)]
     public const string RockInTheGroundsTone = "DR-TONE";
 
-    /// <summary>A boulder standing on a face rather than on ground. An erratic is a mass left where the ice
-    /// dropped it, which is ground flat enough to hold one; a rock pinned to a steep hillside reads as neither
-    /// — the slope is already the feature there, and the rock sitting on it only interrupts a line that was
-    /// doing the work. Measured as the terrain's own inclination under the placement
-    /// (<c>SurfaceGradient.Degrees</c>, the same reading the paint is banded by) against the angle at which the
-    /// theme painting that cell stops calling the ground a meadow.
-    ///
-    /// <para><b>The board states the angle, not this rule.</b> A surface graded by slope has already said
-    /// where its cliff begins — the band that paints the steepest ground there is — and that boundary is the
-    /// one an author drew. Ground the middle band paints is still ground, so a rock on the coarse dirt of a
-    /// gentle hillside stands; only the band that means <em>bare rock face</em> is refused. A theme grading by
-    /// nothing is read at <c>Materials.DefaultCliffAngle</c>.</para></summary>
-    /// <remarks>Move the rock onto ground the board does not paint as a face — the flat, or the graded band under it. The finding names the cell, the angle measured there and the angle the theme calls a cliff, so the three can be compared against the incline read. A complaint: the world is built and the rock is in it.</remarks>
+    /// <summary>The slope under a boulder is at least the angle at which its palette paints a face, or 30 degrees
+    /// where the palette has no band stack by slope.</summary>
+    /// <remarks>Move the boulder in <c>dressing.props</c> until the slope under it is less than the angle at which
+    /// the palette paints a face.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string RockOnAFace = "DR-STEEP";
 
-    /// <summary>A tree standing on ground nothing grows out of. A tree is a thing that grew where it is, so
-    /// the block under its trunk is the one that says so; on stone, gravel, clay or a path's paving it reads
-    /// as a model of a tree set down rather than as a wood, and no canopy over it repairs that.
-    ///
-    /// <para>The board has to carry the soil before a tree can stand in it. A theme painting a surface that
-    /// is rock all the way up gives the pass nowhere to put one, so the fix is usually the <em>paint</em> —
-    /// a soil band under the wood — rather than the position, and the read that answers where soil is on the
-    /// ground is the themes census.</para>
-    ///
-    /// <para>Grass and the three dirts, by <c>DressingPalette.RootsInto</c>. Sand and gravel grow a tuft and
-    /// not a trunk, so they are ground here and not soil (author). Asked of a tree that landed: one the pass
-    /// turned away is standing nowhere and has nothing to be rooted in.</para></summary>
-    /// <remarks>Paint soil where the wood stands — a band of grass or dirt under the canopy — or move the tree onto ground that already has it. <c>POST …/sketch/seats?kind=tree</c> answers where that ground is, and refuses every cell without it under this id. A complaint: the world is built and the tree is in it.</remarks>
+    /// <summary>The ground under the trunk of a tree is not soil.</summary>
+    /// <remarks>Either move the tree in <c>dressing.props</c> onto soil, or change the <c>surface</c> of the
+    /// palette under it in <c>themes</c> to a <c>layered</c> material whose first band is soil.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Material, RuleConcern.Terrain)]
     public const string TreeOnBareGround = "DR-ROOT";
 

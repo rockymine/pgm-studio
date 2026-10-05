@@ -22,6 +22,12 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [ ] **RP118 — Does `SK2` state the board ceiling?** *Parked (author decision).* Every rule states the number
+  it checks, and `SK2` alone does not: `SketchRules.MaxBoardColumns` (4,000,000 columns) is deliberately
+  unpublished, because a stated ceiling is a target an agent draws up to (`SketchRules.cs:23`). The question is
+  which rule wins; the answer either puts the number in `SK2`'s text or names `SK2` beside `WL12` in
+  `RuleTextTests.Flagged`.
+
 - [ ] **TS126 — A note's checkable claim, kept as a check.** *Parked (author): not yet.* Some notes state
   what a board must keep being — a path reaches the bridge (note 58), a bedrock wall has void on both sides
   (note 48), a wall does not float (note 54). A reply could carry the claim as a measured check over the note's
@@ -668,6 +674,11 @@ server's backups.
   failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
 ## The remainder: work no concept above has claimed
+
+- [ ] **TE2 — Write `docs/tools/edit.md`.** The `TE` prefix obliges a document that does not exist. The region,
+  filter and apply-rule editors (`RegionEditor`, `FilterEditor`, `ApplyRuleEditor` under `Pgm/Editing/`) and
+  their two rules (`ED1`, `ED2`) are described nowhere, and the filter and apply-rule editors have no HTTP
+  route, only the generators reach them. The document follows the seven in `docs/tools/`.
 
 - [ ] **WE162 — Two seeded houses stamp their doorway on other columns in a mirror image.** The stamper's
   orbit tests (`A_room_and_its_rot_180_image_stand_on_the_same_columns`,

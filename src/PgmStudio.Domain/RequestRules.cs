@@ -18,107 +18,76 @@ namespace PgmStudio.Domain;
 /// </summary>
 public static class RequestRules
 {
-    /// <summary>A posted document could not be read — absent, empty, malformed, or naming a kind that does not
-    /// exist. The caller's to fix, so it answers 400.</summary>
-    /// <remarks>Post a body. If one was posted, the finding's <c>field</c> names where the reader stopped — usually a <c>kind</c> that is not one of the names, or a property stated as <c>null</c> where the record cannot hold one.</remarks>
+    /// <summary>A request's body or parameter is not in the form the route reads.</summary>
+    /// <remarks>Send the request again with the field the finding names set to a value of the form the route
+    /// reads.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Request)]
     public const string Unreadable = "RQ1";
 
-    /// <summary><b>Not the caller's fault.</b> Something escaped an endpoint that no gate refused, which is a
-    /// defect in the studio; it answers 500 and stays a 500, because dressing a bug as a bad request sends the
-    /// author looking for a mistake they did not make. What it buys is that the caller gets the one envelope
-    /// every other refusal arrives in rather than a .NET stack trace, and the trace goes to the log where it
-    /// belongs.</summary>
-    /// <remarks>Nothing an author can do: this is a defect in the studio, and seeing one is a bug report rather than an authoring problem. The stack trace is in the server log. A request the caller abandoned is not one of these and is never answered — there is nobody left to answer.</remarks>
+    /// <summary>The studio failed to answer a request.</summary>
+    /// <remarks>Report the error with the <c>error</c> and <c>message</c> of the response.</remarks>
     [Rule(RuleCategory.Internal, RuleConcern.Studio)]
     public const string Unhandled = "RQ2";
 
-    /// <summary><b>A complaint, never a refusal.</b> The document carried a property the reader had nowhere to
-    /// keep — a typo, or a field from a document this is not. It rides on the success response under
-    /// <c>warnings</c> because the work did succeed and the rest of the document was read; refusing it would
-    /// refuse every snapshot written before the last shape change, since a stored document legitimately holds
-    /// retired names an upgrade carries forward. See <see cref="Domain.DocumentShape"/>.</summary>
-    /// <remarks>Check the spelling of the field the finding names against the document shape the tool's document names. The work succeeded without it, so whatever that field was meant to say was not said.</remarks>
+    /// <summary>A request's document names a field that the document of its tool does not have.</summary>
+    /// <remarks>Change the field the finding names to a field the document of the tool has.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Request)]
     public const string Unread = "RQ3";
 
-    /// <summary>The route names a subject the studio does not have — a slug no map is stored under, an id no
-    /// library row carries, an artifact a map has not produced yet. It answers <b>404</b> with a body, because
-    /// an empty one cannot say whether the identifier was wrong or the route was, and only one of those is
-    /// something the caller can correct.</summary>
-    /// <remarks>Check the identifier in the path against what the studio holds — <c>GET /api/maps</c> lists the maps, and each library has its own list route. Where the subject is an artifact rather than a row, the stage that produces it has not been run for this map.</remarks>
+    /// <summary>The path of a request names a map, a library entry or a document that the studio does not
+    /// have.</summary>
+    /// <remarks>Either send the request again with the <c>slug</c> or <c>id</c> in its path set to one the studio
+    /// has, or send the request that writes the document first, then send the request again.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Request)]
     public const string NoSuchSubject = "RQ4";
 
-    /// <summary>The request is well-formed and conflicts with what is stored: a name already taken, or a row
-    /// something still binds. It answers <b>409</b>, and the finding names what is in the way — the maps or
-    /// styles still referencing it, so the caller can act rather than guess.</summary>
-    /// <remarks>Nothing is wrong with the request itself. Either choose another name, or release what still holds the thing being removed — the finding's subjects name them.</remarks>
+    /// <summary>A request expects a map or library entry to be in a state, and the studio holds it in
+    /// another.</summary>
+    /// <remarks>Either send the request again with another <c>name</c> or <c>slug</c>, or send it with the
+    /// <c>If-Match</c> the finding names, or change the entries the finding names until nothing binds the
+    /// entry.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request)]
     public const string Conflict = "RQ5";
 
-    /// <summary>A document the <b>studio</b> stored will not read back — a plan row, an artifact, a snapshot
-    /// written under a shape no upgrade claims. It answers <b>422</b> rather than 500 because it is data
-    /// rather than a defect and the author clears it by writing the document again; and deliberately not
-    /// <c>RQ1</c>, which would blame the request that merely asked to read it and send the author looking at
-    /// what they just posted.</summary>
-    /// <remarks>The stored copy is the problem, not what was just posted: open the tool that writes it and save it again, which replaces the unreadable copy with one in the current shape.</remarks>
+    /// <summary>The studio failed to read a document it stored.</summary>
+    /// <remarks>Send the request that writes the document again, then report the error with the <c>error</c> and
+    /// <c>message</c> of the response if the request is refused again.</remarks>
     [Rule(RuleCategory.Internal, RuleConcern.Request, RuleConcern.Studio)]
     public const string StoredUnreadable = "RQ6";
 
-    /// <summary>The route writes, or builds a view from the document it is posted, and the request names nobody
-    /// on the studio's whitelist. It answers <b>401</b>: a <c>GET</c> is open to anyone, and every other verb
-    /// needs a person on the whitelist.</summary>
-    /// <remarks>Sign in as someone the studio's whitelist holds. <c>GET /api/me</c> says who the request is
-    /// signed in as, if anyone.</remarks>
+    /// <summary>A request signed in as nobody on the whitelist may not write, build a view or read a
+    /// note.</summary>
+    /// <remarks>Either send the request again signed in as a person on the whitelist, or ask an admin to invite the
+    /// person.</remarks>
     [Rule(RuleCategory.Forbidden, RuleConcern.Request)]
     public const string SignedOut = "RQ7";
 
-    /// <summary>The request names a person, and this write is not theirs to make: they are not on the
-    /// whitelist, the map is neither theirs nor credited to them, the route keeps the whitelist or removes a
-    /// shared library row, which only an admin does, or a request signed in by a token asks for what a token
-    /// never may — an admin's route, or another token. It answers <b>403</b>.</summary>
-    /// <remarks>Ask the map's owner to credit you as an author, or an admin to make the change. <c>GET
-    /// /api/me</c> says which role the request carries.</remarks>
+    /// <summary>The person a request is signed in as may not do what the request asks.</summary>
+    /// <remarks>Either ask the map's owner to credit the person as an author, or ask an admin to send the
+    /// request.</remarks>
     [Rule(RuleCategory.Forbidden, RuleConcern.Request)]
     public const string NotPermitted = "RQ8";
 
-    /// <summary>The route signs a person in with Discord, and this studio has no Discord application
-    /// configured. It answers <b>503</b>: nothing about the request is wrong, and no sign-in can happen here
-    /// until the deployment names one.</summary>
-    /// <remarks>Set <c>Discord:ClientId</c> and <c>Discord:ClientSecret</c> on the server — the secret as an
-    /// environment variable, never in a file the repository holds.</remarks>
+    /// <summary>The studio has no Discord application.</summary>
+    /// <remarks>Ask the person who runs the studio to set <c>Discord:ClientId</c> and
+    /// <c>Discord:ClientSecret</c>.</remarks>
     [Rule(RuleCategory.Unavailable, RuleConcern.Studio)]
     public const string SignInUnavailable = "RQ9";
 
-    /// <summary>The read draws with Minecraft's own block textures, and this studio has none. It answers
-    /// <b>503</b>: nothing about the request is wrong, and no such picture can be drawn here until the
-    /// deployment says where the textures come from. An export is not refused for it: the world goes without
-    /// its <c>map.png</c>, and this rides beside it as a complaint.</summary>
-    /// <remarks>The textures are Mojang's and the studio never ships them. Set <c>Textures:Jar</c> to a 1.8.9
-    /// client jar the operator has, or set <c>Textures:AcceptMojangEula</c> to <c>true</c> — which accepts
-    /// Mojang's EULA — and the studio downloads that jar from Mojang once, checked against the hash Mojang's
-    /// metadata declares. The finding's message says which of the two is missing, or what failed.</remarks>
+    /// <summary>The studio has no Minecraft block textures.</summary>
+    /// <remarks>Either ask the person who runs the studio to set <c>Textures:Jar</c> to a 1.8.9 client jar, or ask
+    /// them to set <c>Textures:AcceptMojangEula</c> to <c>true</c>.</remarks>
     [Rule(RuleCategory.Unavailable, RuleConcern.Studio)]
     public const string TexturesUnavailable = "RQ10";
 
-    /// <summary>The route is seconds of work — a world built or rendered, a feed of boards composed — the
-    /// studio is running as many of those as it runs at once, and this request could not wait its turn: the
-    /// queue was full, or the request waited as long as one waits. It answers <b>429</b> with
-    /// <c>Retry-After</c>. Nothing about the request is wrong.</summary>
-    /// <remarks>Send it again after the seconds <c>Retry-After</c> names. A caller runs one such request at a
-    /// time and the rest of theirs wait in turn, so a client sending many at once is answered in order until the
-    /// queue holds as many of theirs as it keeps; send fewer at once.</remarks>
+    /// <summary>The build queue did not answer a request with a turn within 60 seconds.</summary>
+    /// <remarks>Wait 10 seconds, then send the request again.</remarks>
     [Rule(RuleCategory.Unavailable, RuleConcern.Request, RuleConcern.Studio)]
     public const string Busy = "RQ11";
 
-    /// <summary>The route hands the author's notes to an agent, and this studio has no agent to hand them to, or
-    /// the service that starts one did not take them. It answers <b>503</b>: nothing about the request is wrong,
-    /// and the finding's message says which of the two it was.</summary>
-    /// <remarks>The agent is a Claude Code Routine with an API trigger. Set <c>Notes:Agent:Fire</c> to the
-    /// Routine's <c>/fire</c> URL and <c>Notes:Agent:Token</c> to its token, the token as an environment variable
-    /// on the server and never in a file the repository holds. Where the service refused, the message carries its
-    /// status: a 401 is a token revoked or regenerated, a 429 the Routine's hourly limit.</remarks>
+    /// <summary>The studio has no agent to hand notes to, or the service of the agent did not take them.</summary>
+    /// <remarks>Ask the person who runs the studio to set <c>Notes:Agent:Fire</c> and
+    /// <c>Notes:Agent:Token</c>.</remarks>
     [Rule(RuleCategory.Unavailable, RuleConcern.Studio)]
     public const string AgentUnavailable = "RQ12";
 }

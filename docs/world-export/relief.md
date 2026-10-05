@@ -467,7 +467,7 @@ cells, because a bare range says nothing on its own: twenty-eight blocks is a mo
 cells across and a slope on one four hundred across — `opus5-deepcut` carries 28 over 4,736 cells and
 `opus5-elderwold` 22 over 13,950, and one is a quarry while the other is a hillside. The four bands are the
 gaps between the boards this repository has built, read against the author's own reading of them: a **plain**
-below 0.10 (`opus5-whinnymoor` 0.065), **rolling** from 0.15 (`opus5-thornfell` 0.232, called good rolling
+below 0.15 (`opus5-whinnymoor` 0.065), **rolling** from 0.15 (`opus5-thornfell` 0.232, called good rolling
 hills), **hills** from 0.35 (`opus5-tarnfell` 0.402, called smooth-ish), and a **mountain** from 0.50
 (`opus5-sandcaster-ii` 0.524). A third of Thornfell's elevation is what the author put a flatter plain at, and
 it lands at 0.077.

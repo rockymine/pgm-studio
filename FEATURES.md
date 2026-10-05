@@ -1012,7 +1012,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   things is two: `CT13`, `CT14`, `LN5`, `WL13` to `WL19`, `SP11`, `ST11` and `MD8`, 56 rules in all.
   `docs/generator/rules.md` is the argument behind them and is not served; where a ruling came from is not
   served either.
-- **Every word the rules use is defined once (`RP99`).** `Glossary` in `PgmStudio.Vocabulary` holds 201 terms,
+- **Every rule says the same thing the same way (`RP113`).** The 178 gate rules join the 56 layout rules in one
+  format: a meaning in one of a closed set of shapes with its number, a fix that opens with one of sixteen verbs
+  and names its field as one dotted path. `RuleTextTests` holds all 234 as `GET /api/rules` serves them to
+  `docs/refusals.md`'s "How a rule's two texts are written", so a second spelling of an edit fails a test.
+- **Every word the rules use is defined once (`RP99`).** `Glossary` in `PgmStudio.Vocabulary` holds 226 terms,
   each with a one-line definition, the other names a reader meets it under and the terms it leans on, signed
   off by the author; `GET /api/glossary` serves it, and `?term=board` answers `layout`.
 - **A finding blames the caller only for the caller's mistakes (`RP110`).** The plan reader refuses a list

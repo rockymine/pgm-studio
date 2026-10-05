@@ -82,7 +82,7 @@ public sealed class RulesEndpointTests
 
         await Assert.That(pl1.Family).IsEqualTo("PL");
         await Assert.That(pl1.Owner).IsEqualTo("PgmStudio.Pgm.Plan.PlanRules.NoLand");
-        await Assert.That(pl1.Means).Contains("no land");
+        await Assert.That(pl1.Means).Contains("no piece that makes ground");
         await Assert.That(pl1.Fix).IsNotNull();
     }
 
@@ -92,9 +92,10 @@ public sealed class RulesEndpointTests
     public async Task HP2_states_the_span_the_room_frame_checks()
     {
         var hp2 = (await RulesAsync("?rule=HP2")).Single();
+        var span = PgmStudio.Domain.RoomFrames.MinFootprintSpan;
 
-        await Assert.That(hp2.Fix).Contains($"at least {PgmStudio.Domain.RoomFrames.MinFootprintSpan} blocks each way");
-        await Assert.That(hp2.Fix).DoesNotContain("MinFootprintSpan");
+        await Assert.That(hp2.Means).Contains($"less than {span} blocks across its shorter side");
+        await Assert.That(hp2.Fix).Contains($"at least {span} blocks across its shorter side");
     }
 
     /// <summary>An id nobody has is an empty list, not a 404 — a caller asking "is there a rule called that"

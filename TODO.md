@@ -44,11 +44,27 @@ Every rule fires as before; the tests and `--goldens` say so.
   `Edit` where one can be stated. The producibility check's 11 kebab-case ids become catalogued rules, and
   its `Cites` of `G2`, `WL7`, `BZ9` and `ST1`, which measure something else, cite nothing or a rule of their
   own. `docs/refusals.md`.
-- [ ] **RP113 — Reword the gate rules.** Every gate rule's meaning and fix to *How a rule's two texts are
-  written* in `docs/refusals.md`, at most 35 words each; a rule that still needs more is split or sent back to
-  the author, never squeezed. The rules an authoring run can raise first. `LayoutRulesTests`' guardrails widen
-  from the layout rules to every rule, and one pass after the writers puts each new form a writer needed into
-  the guide and the tests.
+- [ ] **RP115 — Split the rules whose text leaves a check out.** Eight rules state only part of what they
+  refuse, because the rest did not fit 35 words; each check left out becomes its own constant and text, raised
+  where it is checked. `HS3` (roof material, `HouseStyleValidation.cs:736`–`:748`, against slab and stair cut
+  from it, `:667`–`:708`), `RQ5` (stale `If-Match` `DocumentWrite.cs:51`, slug taken `WorldFolderImport.cs:66`,
+  entry bound `Refusals.cs:102`, nothing to hand over `NoteEndpoints.cs:236`, nothing to draw
+  `WorldReadEndpoints.cs:262`), `RQ11` (a full queue, `BuildQueue.cs:64`), `SK1` (a posted terraform replaced,
+  `SketchEndpoints.cs:231`), `SK4` (collinear polygon `SketchLayoutCheck.cs:631`, zero-side rectangle `:639`),
+  `ED2` (a `rot_90` counterpart, `SymmetryAuthoring.cs:99`), `OB17` (a wool monument over void,
+  `MapExportComposer.cs:590`), `DR-PASS` (two sides against the coast, `Passage.Clears`). `docs/refusals.md`.
+- [ ] **RP116 — A category that names the action its fix takes.** The category is what a caller branches on,
+  and these name another action than their fix: `HS3`, `HS5`, `HS13` and `HS16` are filed `conflict` and are a
+  value of the wrong kind (`malformed`); `PT3` is `unsatisfiable` and its fix is a field value; `DR-COPY` is
+  `forbidden` and answers 400 (`PropStyleLibrary.cs:44`); `WX14` is `forbidden` and refuses nothing; `OB25` is
+  `unsatisfiable` and its fix copies the built location. Each `[Rule]` attribute moves to the category its fix
+  is, and `?category=` answers move with it. `docs/refusals.md`.
+- [ ] **RP117 — One check, one id; one rule, one name.** `ST9` (`PlanValidator.cs:970`, a plan) and `WX13`
+  (`WorldBuilder.cs:1060`, the world) both refuse a room frame past `RoomFrames.FootprintCap`: one id is
+  retired into the other and both sites cite it. Six constants are named in words the glossary retired or name
+  nothing: `NoLand` (`PL1`), `WallWithoutInterface` (`PL11`), `NamesNoLibraryRow` (`SR6`), `RockOnAFace`
+  (`DR-STEEP`), `RockInTheGroundsTone` (`DR-TONE`) and `DressingJson.Rule` (`DR-DOC`); each is renamed with every
+  caller in one commit. `docs/refusals.md`.
 - [ ] **RP114 — Reword the inline messages.** The 271 messages written at their raise sites, to the same
   format; the audit's per-site list is the worklist. `docs/refusals.md`.
 

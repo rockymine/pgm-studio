@@ -12,38 +12,40 @@ namespace PgmStudio.Api.Endpoints;
 /// </summary>
 internal static class LibraryRules
 {
-    /// <summary>A pattern saved that lays one block — a <c>solid</c>, or a <c>laidLog</c>, which is one log laid
-    /// along its run. A block is named by its id and variant, so it needs no row: a slot holds it directly. 400.</summary>
-    /// <remarks>Bind the block in the slot itself — a theme bucket's or a course's <c>block</c> — instead of saving it. <c>GET /api/terrain/blocks</c> lists the blocks.</remarks>
+    /// <summary>A pattern saved to the library holds only one solid block or one laid log.</summary>
+    /// <remarks>Set the <c>block</c> of the entry in <c>buckets</c> or <c>courses</c> to the block the pattern
+    /// holds.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Request, RuleConcern.Material)]
     public const string OneBlock = "LB1";
 
-    /// <summary>A theme bucket or a course names both a block and a pattern, and a slot is filled by one. 400.</summary>
-    /// <remarks>Send the block with <c>styleId</c> 0, or the pattern with no <c>block</c>.</remarks>
+    /// <summary>A palette part or a course names both a block and a pattern as its material.</summary>
+    /// <remarks>Either set the <c>styleId</c> of the entry in <c>buckets</c> or <c>courses</c> to 0, or set its
+    /// <c>block</c> to <c>null</c>.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Request, RuleConcern.Material)]
     public const string BlockAndPattern = "LB2";
 
-    /// <summary>A pattern saved whose material the library already holds under another row. The library holds each
-    /// pattern once, so two names never draw the same thing. 409, naming the row that holds it.</summary>
-    /// <remarks>Bind the pattern the finding names, or rename that one. A material differing in anything at all — a seed, a scale, a block — is a different pattern and saves.</remarks>
+    /// <summary>A pattern saved to the library has the same material as another library entry.</summary>
+    /// <remarks>Either set the <c>styleId</c> of the palette part or course to the entry the finding names, or
+    /// change the <c>params</c> of the pattern until it differs from the entry.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.Material)]
     public const string PatternHeld = "LB3";
 
-    /// <summary>A library row's name is letters, digits, spaces, dashes and underscores, with no space at either
-    /// end and none doubled — a name a person types to name the row from a map's source. 400.</summary>
-    /// <remarks>Rename it with only those characters: <c>mesa-bryce</c> or <c>Mesa Bryce</c>, not <c>Mesa (Bryce)</c>.</remarks>
+    /// <summary>A library entry's name is not made only of ASCII letters, digits, spaces, dashes and underscores,
+    /// with no space at either end and none doubled.</summary>
+    /// <remarks>Set the <c>name</c> of the library entry to ASCII letters, digits, spaces, dashes and underscores
+    /// alone, with no space at either end and none doubled.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Request)]
     public const string NameCharacters = "LB4";
 
-    /// <summary>A library row's name another row of the same kind already carries, compared without case. A map's
-    /// source names a row by its name, so one name is one row. 409, naming the row that carries it.</summary>
-    /// <remarks>Choose another name, or edit the row the finding names.</remarks>
+    /// <summary>A library entry has the same name as another entry of its kind, ignoring case.</summary>
+    /// <remarks>Either change the <c>name</c> of the library entry to one that no other entry of its kind carries,
+    /// or change the <c>name</c> of the entry the finding names.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request)]
     public const string NameTaken = "LB5";
 
-    /// <summary>A library row the seed folder states, edited or deleted. The row is the folder's: every start
-    /// rewrites it to the entry it holds, so an edit would be gone by the next one. 409, naming the entry.</summary>
-    /// <remarks>Save a copy under a name of its own and change that, or change the entry in the seed folder, <c>src/PgmStudio.Minecraft/Library</c>. A row's <c>seeded</c> says whether it is the folder's.</remarks>
+    /// <summary>A request may not edit or delete a built-in entry.</summary>
+    /// <remarks>Either send the entry again as a new library entry with another <c>name</c>, or ask the person who
+    /// runs the studio to change the built-in entry.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request)]
     public const string SeededRow = "LB6";
 }

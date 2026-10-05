@@ -181,34 +181,37 @@ public static class MapExportComposer
     /// and <see cref="DressingParseException.Rule"/> for a dressing document that will not parse.</summary>
     internal static class ExportRules
     {
-        /// <summary>Some part of the map cannot be walked to from the rest of it.</summary>
-        /// <remarks>The finding names what is cut off. Bridge it: add ground, widen a border, or move the isolated spawn or objective onto the reachable part of the map.</remarks>
+        /// <summary>A waypoint has no route to the rest of the waypoints.</summary>
+        /// <remarks>Either add a build region to <c>zones</c> between the waypoint and the rest, or move the
+        /// waypoint the finding names onto ground the other waypoints reach.</remarks>
         [Rule(RuleCategory.Unplayable, RuleConcern.World, RuleConcern.Terrain)]
         public const string NotTraversable = "EX1";
 
-        /// <summary>Nobody can enter the map: it declares no spawn of any kind.</summary>
-        /// <remarks>Give the intent at least one spawn. An observer spawn is synthesised from the team spawns, so a map with no spawns at all has neither, and nobody can join it.</remarks>
+        /// <summary>A map has no spawn.</summary>
+        /// <remarks>Add a spawn to the <c>spawns</c> of the game settings.</remarks>
         [Rule(RuleCategory.Unplayable, RuleConcern.Intent, RuleConcern.Spawn)]
         public const string NoSpawn = "EX2";
 
-        /// <summary>What the intent declared is not in the document about to be written.</summary>
-        /// <remarks>Nothing an author can do directly: the intent states this and the document does not carry it, which is a fault between the two. Check that the intent stored for the map is the one that was authored, and report it if it is.</remarks>
+        /// <summary>The studio failed to write any spawn, team, wool, monument or core of a kind the game settings
+        /// state.</summary>
+        /// <remarks>Report the error with the <c>error</c> and <c>message</c> of the response.</remarks>
         [Rule(RuleCategory.Internal, RuleConcern.Intent, RuleConcern.World, RuleConcern.Studio)]
         public const string NotCarried = "EX3";
 
-        /// <summary>A map with something to win has nobody to win it: it declares an objective and no team.</summary>
-        /// <remarks>Add the teams. A wool, a destroyable and a core are each one team's to defend and the others' to take, so a map carrying one and no team has an objective nobody owns.</remarks>
+        /// <summary>A map with a wool, a monument or a core has no team.</summary>
+        /// <remarks>Add a team to the <c>teams</c> of the game settings.</remarks>
         [Rule(RuleCategory.Unplayable, RuleConcern.Intent, RuleConcern.Objective)]
         public const string NoTeam = "EX4";
 
-        /// <summary>The observer platform stands higher than the intent asked, because the board builds something over the point it named.</summary>
-        /// <remarks>State <c>observerY</c> above whatever the board's centre carries — a bridge, a keep or a made thing. The platform is a solid floor rather than a marker, so leaving it where it was asked for would write bedrock through that build and stand the observers inside it. The derived height clears the built world on its own; this fires on a height that was stated.</remarks>
+        /// <summary>The observer platform, 6 by 6 blocks, overlaps a block the map builds at or above its stated
+        /// height.</summary>
+        /// <remarks>Set the <c>globals.observerY</c> of the plan to a height above the highest block the map builds
+        /// under the platform.</remarks>
         [Rule(RuleCategory.Unsatisfiable, RuleConcern.Intent, RuleConcern.World)]
         public const string ObserverSeated = "EX5";
 
-        /// <summary>The map names nobody who made it, so the observer platform's authors board has a heading and
-        /// nothing under it.</summary>
-        /// <remarks>Name the authors in <c>meta.authors</c>. The board is the first thing every player who joins reads and it is the only place a map says who built it — the studio will not invent a name, so the sign is left off rather than stamped blank.</remarks>
+        /// <summary>A map has no author.</summary>
+        /// <remarks>Add an author with a <c>name</c> to the <c>meta.authors</c> of the game settings.</remarks>
         [Rule(RuleCategory.Unsatisfiable, RuleConcern.Intent, RuleConcern.World)]
         public const string NoAuthor = "EX6";
     }

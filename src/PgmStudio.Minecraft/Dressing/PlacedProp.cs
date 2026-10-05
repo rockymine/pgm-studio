@@ -368,18 +368,20 @@ public sealed record AuthoredWing(IReadOnlyList<double[]> Corners, WingSpec Spec
 /// (<see cref="WingJointRules"/>) is asked anything. Stable names, kept apart from any task-tracking id.</summary>
 public static class HousePropRules
 {
-    /// <summary>No rectangles at all — there is no building to place.</summary>
-    /// <remarks>Give the building at least one rectangle. A building with none has no footprint to stand on.</remarks>
+    /// <summary>A building has no wing.</summary>
+    /// <remarks>Add a wing with two opposite <c>corners</c> to <c>wings</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string NoWings = "HP1";
 
-    /// <summary>A wing is not two opposite corners, or is too thin to hold two walls and an inside.</summary>
-    /// <remarks>State each wing as two opposite corners, and at least 4 blocks each way — the same least span a room's footprint takes, since a room's is the single-wing case of a building's. Anything thinner has no inside once its two walls are written.</remarks>
+    /// <summary>A wing has fewer than 2 corners, or is less than 4 blocks across its shorter side.</summary>
+    /// <remarks>Change the <c>corners</c> of the wing in <c>wings</c> to two opposite <c>[x, z]</c> corners that
+    /// form a rectangle at least 4 blocks across its shorter side.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string WingShape = "HP2";
 
-    /// <summary>The wings cover more ground than a placed building may take.</summary>
-    /// <remarks>Shrink the wings, or split the building into two placements. The cap is what one placed building may take.</remarks>
+    /// <summary>The wings of a building cover more than 192 blocks of ground.</summary>
+    /// <remarks>Either change the <c>corners</c> of a wing in <c>wings</c> until the wings cover at most 192
+    /// blocks, or split the wings between two entries in <c>dressing.props</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string PastCap = "HP3";
 }

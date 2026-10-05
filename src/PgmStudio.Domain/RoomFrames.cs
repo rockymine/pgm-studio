@@ -20,137 +20,96 @@ public readonly record struct MonumentSlot(int X, int Z, RoomEdge Wall);
 /// that added it has left the board.</summary>
 public static class RoomFrameRules
 {
-    /// <summary>The shell's footprint is the piece rect inset one block on every side. The ring of clean
-    /// floor around a room is part of what a piece promises, so a 10×10 piece carries an 8×8 shell and a
-    /// 10×20 piece an 8×18 one; the shell takes the rect's own orientation, and the fanned rect orients the
-    /// orbit images.</summary>
-    /// <remarks>Size the piece for the shell it should carry: a shell is always two blocks narrower than its
-    /// piece in each axis. Nothing else moves the footprint — <c>WX8</c>'s negotiation is the one thing that
-    /// pulls an edge back off it.</remarks>
+    /// <summary>A room with no stated footprint takes its piece inset by 1 block on every side, and by up to 5
+    /// blocks on each side a door opens through.</summary>
+    /// <remarks>Set the <c>footprint</c> of the spawn or wool in <c>placements.spawns</c> or
+    /// <c>placements.wools</c> to the room's rectangle.</remarks>
     [Rule(RuleConcern.Plan, RuleConcern.Structure)]
     public const string ShellFootprint = "WX1";
 
-    /// <summary>The footprint cannot hold a room of the least legal span. A wall is what the interior is
-    /// inset by and what the pad keeps its clearance to, so the span a shell needs is four blocks more on
-    /// each axis than the span a pad and its chest corners need on open ground.</summary>
-    /// <remarks>Enlarge the footprint, or take the shell off it. A room is a pad with a ring of floor round it; a shell adds its two courses of wall and the clearance the pad keeps to them.</remarks>
+    /// <summary>A room's footprint is less than 4 blocks across its shorter side.</summary>
+    /// <remarks>Change the <c>footprint</c> of the spawn or wool in <c>placements.spawns</c> or
+    /// <c>placements.wools</c> until its shorter side is at least 4 blocks.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
     public const string FootprintTooSmall = "WX2";
 
-    /// <summary>The footprint reaches outside the piece it stands on. A piece is one rectangle at one
-    /// surface, so a footprint inside it is on ground by construction and crosses no interface; one that
-    /// reaches past it is over whatever the neighbour happens to be, or over the void.</summary>
-    /// <remarks>Draw the footprint back inside its piece, or enlarge the piece under it. The piece is the ground the room stands on and the region that protects it; the footprint is the building raised on that ground.</remarks>
+    /// <summary>A room's footprint is not inside its room piece.</summary>
+    /// <remarks>Either set the <c>footprint</c> of the spawn or wool in <c>placements.spawns</c> or
+    /// <c>placements.wools</c> to a rectangle inside its piece, or widen the <c>rect</c> of the piece in
+    /// <c>pieces</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
     public const string FootprintOffPiece = "WX12";
 
-    /// <summary>The room a region raises is larger than a room. A shell's footprint is the region inset one
-    /// block on every side wherever the document states no footprint of its own, so an oversized region does
-    /// not overflow anything — it <em>is</em> the building, and the hall comes out as long as the region is.
-    /// Read off the resolved frame rather than off a plan piece, so a hand-authored intent meets the same cap
-    /// a compiled one does.</summary>
-    /// <remarks>State a `footprint` on the placement, or draw the region back. The region is the ground and the immunity; the footprint is the building raised on it, and where none is stated the one follows the other.</remarks>
+    /// <summary>A room's footprint is more than 20 blocks across.</summary>
+    /// <remarks>Either set the <c>footprint</c> of the spawn or wool in <c>placements.spawns</c> or
+    /// <c>placements.wools</c> to at most 20 by 20 blocks, or shrink the <c>rect</c> of the room piece in
+    /// <c>pieces</c>.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Spawn)]
     public const string RoomIsAField = "WX13";
 
-    /// <summary>A spawn or a wool room stands in the studio's own shell — bedrock walls, a bedrock lid and a
-    /// team band. That shell is what a board is drawn with before it is finished, so a room left in it is a
-    /// room nobody built: the board ships a placeholder where its most-seen buildings should be. Raised once
-    /// per kind of room, naming every room of that kind, whether the kind binds nothing or binds a copy of the
-    /// shell itself.</summary>
-    /// <remarks>Bind a room style of the board's own for that kind: `PUT /map/{slug}/sketch/room-styles/{part}`
-    /// with `part` `wool` or `spawn`, a style from the library or one written for the board. Binding `null`
-    /// raises no building at all, which is the answer where the ground already is the room.</remarks>
+    /// <summary>A spawn room or wool room has no house of its own.</summary>
+    /// <remarks>Either set the <c>roomStyles.wool</c> or <c>roomStyles.spawn</c> of the sketch to a house, or set
+    /// it to <c>null</c> for open ground.</remarks>
     [Rule(RuleCategory.Forbidden, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Spawn, RuleConcern.Objective)]
     public const string BuiltInShell = "WX14";
 
-    /// <summary>The marker's block-lattice parity differs between axes, and the pad is always square.</summary>
-    /// <remarks>Move the marker half a block on one axis. The pad is square, so both axes must round the same way off the block lattice.</remarks>
+    /// <summary>A spawn or wool marker sits on a grid line along one axis, and at a block centre along the
+    /// other.</summary>
+    /// <remarks>Move the spawn or wool in <c>placements.spawns</c> or <c>placements.wools</c> half a block along
+    /// one axis.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Spawn)]
     public const string MarkerParity = "WX3";
 
-    /// <summary>The pad keeps at least one block of clear floor to every wall. A marker sitting too close
-    /// has its pad shifted inward by the minimum that restores the clearance — the exported point moves with
-    /// it — and a 3×3 is chosen only where it still fits after that shift. An interior with no room for the
-    /// pad even shifted is refused.</summary>
-    /// <remarks>Enlarge the piece or shrink the pad. The wall clearance is kept first and the pad has to fit
-    /// in what remains inside it; where a pad merely moved, the plan lint says so, because the exported
-    /// spawn or wool point follows the pad rather than the marker.</remarks>
+    /// <summary>A pad is less than 1 block from a wall of its room, or does not fit between the walls.</summary>
+    /// <remarks>Either move the spawn or wool in <c>placements.spawns</c> or <c>placements.wools</c> until its pad
+    /// is at least 1 block from every wall, or set its <c>footprint</c> to a larger room.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Spawn)]
     public const string PadClearance = "WX4";
 
-    /// <summary>The exported spawn or wool location is the pad's centre, after any <c>WX4</c> shift. The
-    /// world is the ground truth the map document has to agree with, so the point follows the pad rather
-    /// than the marker that asked for it, and it snaps to the half-block lattice rather than to an
-    /// integer.</summary>
-    /// <remarks>Move the marker to move the point. Where a pad was shifted to keep its wall clearance the
-    /// exported point moves with it, which the structure preview draws and the plan lint notes — so a point
-    /// that is not where the marker was put has a shift behind it.</remarks>
+    /// <summary>The exported location of a spawn or wool is the centre of its pad, and not the position of its
+    /// marker.</summary>
+    /// <remarks>Move the spawn or wool in <c>placements.spawns</c> or <c>placements.wools</c> until the centre of
+    /// its pad is where the exported location should be.</remarks>
     [Rule(RuleConcern.Structure, RuleConcern.Spawn, RuleConcern.Objective, RuleConcern.World)]
     public const string PadIsPoint = "WX5";
 
-    /// <summary>A wool room with no seam and no abutting build zone has nothing to enter it by.</summary>
-    /// <remarks>Give the wool room a border with a neighbouring piece, or place a build zone against it. A room nothing abuts has no door that can be cut.</remarks>
+    /// <summary>A wool's room piece has no shared edge with another piece or a build region.</summary>
+    /// <remarks>Either move the <c>rect</c> of the wool's room piece in <c>pieces</c> until it has a shared edge
+    /// with another piece, or add a build region to <c>zones</c> along its edge.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Objective)]
     public const string RoomUnreachable = "WX6";
 
-    /// <summary>A door's width follows the wall it is cut into. An odd interior wall centres a 3-wide door;
-    /// an even wall takes 4 once the interior is at least 6 across and narrows to 2 at the 4-across minimum.
-    /// The invariant under the numbers is that a door is at least one block narrower than the interior on
-    /// each side, so the corner cells a spawn cube seats monuments in are never opened to the
-    /// outside.</summary>
-    /// <remarks>Widen the interior to widen the door — the width is derived from the wall, never authored.
-    /// A room that wants a 4-wide door needs an even wall and 6 blocks of interior across it.</remarks>
+    /// <summary>A door is 3 blocks wide on an interior wall of odd length, and 4 on an even wall at least 6 across,
+    /// or 2 on an even wall 4 across.</summary>
+    /// <remarks>Change the <c>footprint</c> of the spawn or wool in <c>placements.spawns</c> or
+    /// <c>placements.wools</c> until the interior across the door wall is an even number of at least 6
+    /// blocks.</remarks>
     [Rule(RuleConcern.Structure)]
     public const string DoorWidth = "WX7";
 
-    /// <summary>An iron cube is <see cref="RoomFrames.IronSpan"/> blocks square and stands outside the room
-    /// shell, inside the piece, holding <see cref="RoomFrames.IronGap"/> blocks of clear air to the wall — the standing room a
-    /// player has to get round it. It fits where its marker puts it or it does not: the room keeps the
-    /// footprint <c>WX1</c> gave it and never yields an edge, and the cube is one size whatever the marker's
-    /// parity. A marker with no room for its cube resolves unplaceable (<c>WX9</c>).</summary>
-    /// <remarks>Move the iron marker further from the shell, or enlarge the spawn piece — the cube needs its own
-    /// footprint plus its clear air in the ring between the shell and the piece edge. Shrinking the room's own
-    /// footprint is the other way to make the ring wider, and is the author's to state rather than the
-    /// resolver's to take.</remarks>
+    /// <summary>An iron cube reaches outside its piece, or stands less than 2 blocks from the footprint of its
+    /// room.</summary>
+    /// <remarks>Either move the iron in <c>placements.iron</c> until its cube is inside the piece and at least 2
+    /// blocks from the room, or widen the <c>rect</c> of the piece in <c>pieces</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Spawn)]
     public const string IronFit = "WX8";
 
-    /// <summary>Every structure marker resolves to placeable or not, and an unplaceable one is not an
-    /// error the export throws on: it stamps nothing, the room takes its full <c>WX1</c>
-    /// footprint, and the marker stays on the board where the author put it. Validation flags it and the
-    /// structure preview draws only what will be placed, so the iso view never shows a cube the export
-    /// declines.</summary>
-    /// <remarks>Nothing is dropped from the document for you. Read the plan lint for the marker the finding
-    /// names and either give it the room <c>WX8</c> asks for or take it off the plan — a marker
-    /// left unplaceable is a placement the author can still see on the canvas and nothing in the
-    /// world.</remarks>
+    /// <summary>An iron marker whose cube does not fit stamps nothing, and its room keeps its full
+    /// footprint.</summary>
+    /// <remarks>Either move the iron in <c>placements.iron</c> until its cube fits, or delete it from
+    /// <c>placements.iron</c>.</remarks>
     [Rule(RuleConcern.Structure, RuleConcern.World)]
     public const string MarkerPlaceability = "WX9";
 
-    /// <summary>A bound room style builds a shell taller than the build ceiling — <see cref="BuildCeiling"/>'s
-    /// clearance over the ground it stands on. A room's shell is authored geometry and is subject to no cap of
-    /// its own, so a tall storey stack swallows the goal marker that hangs
-    /// <see cref="BuildCeiling.MarkerOver"/> blocks over that ceiling, and the map's own sky sign ends up
-    /// inside the building it points at. Measured on the <b>smallest</b> shell a room may be, since every
-    /// sloped roof only climbs further on a bigger footprint: a style refused here has no footprint it could
-    /// have been stamped on.</summary>
-    /// <remarks>Take courses out of the shell — a storey off the stack, a shallower roof pitch, or a lower clear — until it stands under the build ceiling. The cap is the same one players build under, and a marker hanging above it is what makes a goal readable across the map.</remarks>
+    /// <summary>A house bound to a room is more than 20 blocks tall on a 6 by 6 footprint.</summary>
+    /// <remarks>Either delete a storey from <c>storeys</c>, or change the <c>roof.pitch</c> of the house, until the
+    /// house is at most 20 blocks tall.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Objective)]
     public const string ShellOverCeiling = "WX10";
 
-    /// <summary>A stamped structure stands well above the ground beside it. Its foundation fills the column
-    /// under its whole footprint and levels it at the footprint's highest, so where a neighbouring cell sits
-    /// well below that floor what the building meets the world with is a sheer face of bedrock — a wall
-    /// nobody drew, at a height nobody chose, which a player cannot climb and no other read reports.
-    ///
-    /// <para>Two things bound it. Only ground the board drew is measured against, a neighbour that is void
-    /// being the edge of the map. And only what <b>lays a foundation</b> is asked — the wool room and the
-    /// spawn room. A bedrock approach wall stands from <c>y 0</c> by construction, a redstone line is wire
-    /// on the surface and a goal's plate is buried under it, so none of the three has a floor its whole
-    /// footprint was levelled to, and measuring one against the highest ground it happens to span reports a
-    /// drop between two cells that never meet.</para></summary>
-    /// <remarks>Bring the ground up to the building, or move the building onto ground that carries it: the drop is measured from the floor it stands on to the surface of the cell beside it, and a step of one is a doorstep rather than a wall. Only a wool room or a spawn room is asked — those are what level their footprint — so a wall sitting on the step between two pieces raises nothing, its bedrock going to the ground either side by design. A structure at the board's rim raises nothing here — there is no ground beside it to fall away, and the void is where the map stops rather than a face it presents. A building deliberately sited on a ledge is the case to ignore — this is a complaint, and the world builds either way.</remarks>
+    /// <summary>A spawn room or wool room touches ground 2 or more blocks below its floor.</summary>
+    /// <remarks>Either level the ground beside the room with terraform until it is within 1 block of the floor, or
+    /// move the <c>rect</c> of the room's piece in <c>pieces</c> onto level ground.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.World, RuleConcern.Terrain)]
     public const string StructureOnAPlinth = "WX11";
 }

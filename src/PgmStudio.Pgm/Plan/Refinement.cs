@@ -759,69 +759,56 @@ public sealed record Refined(string LayoutJson, string IntentJson, Findings Find
 /// <summary>The rules a map's source fires as it is applied.</summary>
 public static class SourceRules
 {
-    /// <summary>A source is applied over a change it has not seen: a map made from a refinement was changed —
-    /// by hand in a tool, by another writer's source — after the change the source states it was built against.
-    /// Applying it would replace that change without a word, so the source is refused 409 and the change is
-    /// handed over: one finding per edit it made, naming the change in <c>subjects</c> and stating the edit as
-    /// the source would state it — into the refinement where the refinement has words for it, as the plan's,
-    /// the layout's or the intent's own edit where it does not.</summary>
-    /// <remarks>Take the edits into the source and state the change as <c>after</c>, or name the changes to drop
-    /// in <c>?discard=</c>, which the change the source lands as records. A map with no refinement is never
-    /// refused this way.</remarks>
+    /// <summary>A source for a map made from a refinement was built against a change, and the map has a later
+    /// change that edited something.</summary>
+    /// <remarks>Either add the edits the finding names to the <c>refinement</c>, then set the <c>after</c> of the
+    /// source to the latest change number, or send the request again with <c>discard</c> set to the changes to
+    /// drop.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request)]
     public const string UnseenChange = "SR1";
 
-    /// <summary><b>A complaint.</b> A refinement statement names a shape or a layer the board does not have — a
-    /// theme or fields by a shape id, a point edit or a bend, a shape drawn onto a layer — so it reaches nothing
-    /// and the board stores without it. A compiled shape answers to its component's first piece and the surface
-    /// it stands at, so a piece renamed or moved to another height renames what the statement anchors to.</summary>
-    /// <remarks>Re-key the statement to one of the ids the finding lists, which are the shapes the board has.</remarks>
+    /// <summary>A refinement names a shape or a layer that the map does not have, or states an outline for a thing
+    /// that has none.</summary>
+    /// <remarks>Either change the id in the entry to the id of a shape or layer the finding names, or delete the
+    /// entry from the <c>refinement</c>.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Request, RuleConcern.Terrain)]
     public const string NamesNothing = "SR2";
 
-    /// <summary>A refinement adds a storey under an id the board already has, or under none. A stack holding two
-    /// layers under one id has no single one for a shape to be drawn onto.</summary>
-    /// <remarks>Give the storey an id no layer of the board carries.</remarks>
+    /// <summary>A refinement adds a layer that has no id, or whose id another layer of the map already
+    /// has.</summary>
+    /// <remarks>Either set the <c>id</c> of the layer in <c>addLayers</c> to one no layer of the map has, or delete
+    /// the layer from <c>addLayers</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.Terrain)]
     public const string LayerStatedTwice = "SR3";
 
-    /// <summary>A point edit states none, or more than one, of <c>after</c>, <c>index</c>, <c>remove</c> and
-    /// <c>pulls</c>, so it does not say which point it is about.</summary>
-    /// <remarks>State exactly one: <c>after</c> inserts a point on that edge, <c>index</c> moves that point to
-    /// <c>x</c>/<c>z</c>, <c>remove</c> drops it, and <c>pulls</c> inserts points along the edges it names, each
-    /// pulled across its edge.</remarks>
+    /// <summary>A point edit names more than one of after, index, remove and pulls, or none of them.</summary>
+    /// <remarks>Change the edit in <c>editShapes</c> to one that sets exactly one of <c>after</c>, <c>index</c>,
+    /// <c>remove</c> and <c>pulls</c>.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Request)]
     public const string EditStatesNoIndex = "SR4";
 
-    /// <summary>A refinement uses a material by a name its <c>materials</c> registry does not state, so there is
-    /// nothing to copy where the name stands.</summary>
-    /// <remarks>State the material under that name in <c>materials</c>, or use one of the names the finding
-    /// lists.</remarks>
+    /// <summary>A refinement names a material that its list of materials does not have.</summary>
+    /// <remarks>Either add the material the <c>use</c> names to <c>materials</c>, or change the <c>use</c> to one
+    /// of the names <c>materials</c> has.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Request)]
     public const string UsesNoMaterial = "SR5";
 
-    /// <summary>A refinement names a library row — a material, a theme, a room style, a prop style or a biome — by
-    /// a name or an id no row of that kind carries, so there is no row to copy. A name is one row of its kind,
-    /// compared without case.</summary>
-    /// <remarks>Name the row by a name the finding lists, or by its id.</remarks>
+    /// <summary>A refinement names a library entry that the library does not have.</summary>
+    /// <remarks>Change the <c>library</c> of the entry to the name or the id of a library entry of the same kind
+    /// the finding names.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Request)]
     public const string NamesNoLibraryRow = "SR6";
 
-    /// <summary>An outline a refinement states by its shape draws no ring: it states no centre, a radius of
-    /// nought, fewer than three points, or a wobble outside <c>[0, 1)</c> — at 1 a trough reaches the centre and
-    /// past it the outline folds through it. The thing it outlines would be built from no ring, so the source is
-    /// refused.</summary>
-    /// <remarks>State the centre as <c>at: [x, z]</c>, a radius over nought and three points or more, and keep
-    /// the wobble under 1.</remarks>
+    /// <summary>An outline in a refinement has no centre, a radius of 0 or less, fewer than 3 points, or a wobble
+    /// below 0 or of 1 or more.</summary>
+    /// <remarks>Set the <c>at</c> of the outline in <c>outlines</c> to [x, z], then set its <c>radius</c> to more
+    /// than 0, its <c>points</c> to at least 3 and its <c>wobble</c> to at least 0 and below 1.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Request, RuleConcern.Terrain)]
     public const string OutlineDrawsNoRing = "SR7";
 
-    /// <summary><b>A complaint.</b> A point edit to an outline the board's symmetry carries onto itself — a shape
-    /// on the axis, whose edits are made at every image — moves a point that is its own image off the line it
-    /// stands on. No image of the move can keep the outline its own, so the point moves as stated and the
-    /// outline is lopsided from then on.</summary>
-    /// <remarks>Move the point along the line it stands on, or state <c>fan: false</c> on the edit where the
-    /// outline is meant to be lopsided.</remarks>
+    /// <summary>A point edit moves a fixed point to a place where it is not a fixed point.</summary>
+    /// <remarks>Either change the <c>x</c> and <c>z</c> of the edit in <c>editShapes</c> to a fixed point, or set
+    /// the <c>fan</c> of the edit to <c>false</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.Terrain)]
     public const string EditOffItsAxis = "SR8";
 }

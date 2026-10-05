@@ -1265,7 +1265,7 @@ wherever the building turns, and the cell where two wings meet is an inner corne
 Each wing may stop short of the building's full height and may override the roof form, pitch, slab and ridge
 axis, and a storey is then its own plan over the wings still standing — which is how a one-storey hall with a two-storey
 cross wing gets the wall it needs against the hall's roof with no rule written for it. Each wing is still held
-to the three-block floor a single rectangle always needed, and the whole plan to `MaxFootprint` (192 blocks)
+to the four-block floor a single rectangle always needed, and the whole plan to `MaxFootprint` (192 blocks)
 measured over the ground the wings actually cover rather than the box drawn round them, so an L takes no more
 of the cap for reading larger on the corner it never stood on (`G177`).
 

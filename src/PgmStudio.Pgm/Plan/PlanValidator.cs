@@ -16,120 +16,115 @@ namespace PgmStudio.Pgm.Plan;
 /// </summary>
 public static class PlanRules
 {
-    /// <summary>No generating piece: there is no land, so there is nothing to build.</summary>
-    /// <remarks>Give the plan at least one piece whose role generates terrain — <c>piece</c>, <c>spawn</c> or <c>wool-room</c>. A <c>buffer</c> reserves space and produces none.</remarks>
+    /// <summary>A plan has no piece that makes ground.</summary>
+    /// <remarks>Add a piece to <c>pieces</c> with <c>role</c> set to <c>piece</c>, <c>spawn</c> or
+    /// <c>wool-room</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan)]
     public const string NoLand = "PL1";
 
-    /// <summary>No spawn: PGM has nowhere to put a player and the map cannot be entered.</summary>
-    /// <remarks>Add a spawn placement for each team: an entry in <c>placements.spawns</c> naming a piece and a fractional offset into it.</remarks>
+    /// <summary>A plan has no spawn.</summary>
+    /// <remarks>Add a spawn to <c>placements.spawns</c> with <c>piece</c> set to a piece that makes ground and
+    /// <c>at</c> set to an offset in blocks inside it.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Spawn)]
     public const string NoSpawn = "PL2";
 
-    /// <summary>The plan states no objective of any kind — a complaint, since which goal a map carries is the
-    /// author's. All four families count: a wool, a destroyable, a core, and the capture points a board states
-    /// a count of.
-    ///
-    /// <para>It is a statement about the <b>plan</b> and says nothing about the match. A board can state its
-    /// goals downstream instead, on the intent the configure tool and the API write, and a plan-tier rule
-    /// cannot see that — so what this reports is a plan with nothing in it to win on, not a map that cannot be
-    /// won.</para></summary>
-    /// <remarks>Add a wool, destroyable or core placement, or state how many capture points the board is played for (`placements.controlPoints`). Nothing is blocked without one — the map compiles, builds and loads — and a board whose goals are stated on its intent instead is answered by the export gate rather than here.</remarks>
+    /// <summary>A plan has no objective.</summary>
+    /// <remarks>Either add a wool to <c>placements.wools</c>, or add a monument to <c>placements.destroyables</c>,
+    /// or add a core to <c>placements.cores</c>, or set the <c>placements.controlPoints</c> of the plan to
+    /// 1.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Objective)]
     public const string NoObjective = "PL3";
 
-    /// <summary>Two pieces claim the same ground at incompatible heights, so there is no coherent surface.</summary>
-    /// <remarks>The two pieces named in the finding overlap and give their shared cells different surface heights. Move one off the other, or set both to the same <c>surface</c> — a step between them wants two pieces that meet at an edge, not two that overlap.</remarks>
+    /// <summary>A piece overlaps another piece that stands at a different surface.</summary>
+    /// <remarks>Either move the <c>rect</c> of one of the two pieces in <c>pieces</c> until they no longer overlap,
+    /// or set the <c>surface</c> of the two pieces to the same value.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan)]
     public const string SurfaceClash = "PL4";
 
-    /// <summary>A placement names a piece the plan does not have.</summary>
-    /// <remarks>The placement's <c>piece</c> is a piece id the plan does not declare. Fix the spelling, or add the piece.</remarks>
+    /// <summary>A marker names a piece that the plan does not have.</summary>
+    /// <remarks>Either change the <c>piece</c> of the marker to the <c>id</c> of a piece in <c>pieces</c>, or add a
+    /// piece with the <c>id</c> to <c>pieces</c>.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Plan)]
     public const string UnknownPiece = "PL5";
 
-    /// <summary>A placement stands on a buffer, which is reserved empty space and produces no terrain.</summary>
-    /// <remarks>Point the placement at a generating piece. A buffer is reserved empty space, so anything standing on one stands on nothing.</remarks>
+    /// <summary>A marker overlaps a buffer.</summary>
+    /// <remarks>Either change the <c>piece</c> of the marker to a piece that makes ground, or set the <c>role</c>
+    /// of the buffer in <c>pieces</c> to <c>piece</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan)]
     public const string PlacementOnBuffer = "PL6";
 
-    /// <summary>A placement falls outside the piece it names.</summary>
-    /// <remarks>The placement's <c>at</c> is an offset in blocks from the named piece's minimum corner, so both components belong in 0..the piece's block span on that axis — its cell width times <c>globals.cell</c>. A value outside that lands the marker off its own piece.</remarks>
+    /// <summary>The offset of a marker is not between 0 and its piece's size in blocks, along x and along
+    /// z.</summary>
+    /// <remarks>Set the <c>at</c> of the marker to an offset between 0 and its piece's size in blocks, along x and
+    /// along z.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Plan)]
     public const string PlacementOutside = "PL7";
 
-    /// <summary>A spawn room cannot seat every monument its team will capture.</summary>
-    /// <remarks>Enlarge the spawn piece, or reduce how many wools this team captures. A spawn room seats one monument per wool its team will take, and the wall it seats them on is the room's interior span.</remarks>
+    /// <summary>A spawn room holds fewer than one wool monument for each wool its team captures.</summary>
+    /// <remarks>Either widen the <c>rect</c> of the spawn's room piece in <c>pieces</c>, or delete a wool from
+    /// <c>placements.wools</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable,
         RuleConcern.Plan, RuleConcern.Spawn, RuleConcern.Objective, RuleConcern.Structure)]
     public const string MonumentSeats = "PL8";
 
-    /// <summary>A wool cannot be reached from a capturing team's spawn at all.</summary>
-    /// <remarks>Nothing walkable connects the capturing team's spawn to this wool: add a piece bridging the gap, or widen a border narrower than a corridor. Distance here is the walk over the surface, not the straight line.</remarks>
+    /// <summary>A wool has no route from a capturing team's spawn.</summary>
+    /// <remarks>Either add a piece to <c>pieces</c> that has a shared edge with each of the pieces it joins, or add
+    /// a build region to <c>zones</c> that touches both.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Objective, RuleConcern.Spawn)]
     public const string WoolUnreachable = "PL9";
 
-    /// <summary>A destroyable style names something that is not a style.</summary>
-    /// <remarks>Use one of the destroyable style ids the studio ships — <c>GET /api/destroyable-styles</c> lists them.</remarks>
+    /// <summary>A monument's form is not one of the six monument forms.</summary>
+    /// <remarks>Change the <c>style</c> of the monument in <c>placements.destroyables</c> to <c>pillar-1</c>,
+    /// <c>pillar-2</c>, <c>pillar-3</c>, <c>cube-3</c>, <c>cube-4</c> or <c>column-plus</c>.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Plan, RuleConcern.Objective, RuleConcern.Style)]
     public const string UnknownStyle = "PL10";
 
-    /// <summary>A wool colour names something that is not a dye.</summary>
-    /// <remarks>Use one of the sixteen dye names — <c>GET /api/objectives/vocabulary</c> lists them under <c>wool.colors</c>. Leave the colour out entirely to have one picked: a team's first wool takes the team colour and later wools take distinct dyes.</remarks>
+    /// <summary>A wool's colour is not one of the sixteen dye names.</summary>
+    /// <remarks>Either change the <c>color</c> of the wool in <c>placements.wools</c> to one of the sixteen dye
+    /// names, or set the <c>color</c> of the wool to <c>null</c>.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Plan, RuleConcern.Objective)]
     public const string UnknownColor = "PL14";
 
-    /// <summary>A wall is drawn on a pair of pieces that share no land interface.</summary>
-    /// <remarks>A wall is drawn between two pieces that share no walkable border, so there is nothing for it to divide. Move the pieces until they touch along an edge, or drop the wall.</remarks>
+    /// <summary>A wall names a pair of pieces that has no shared edge.</summary>
+    /// <remarks>Either move the <c>rect</c> of one of the two pieces in <c>pieces</c> until the pair has a shared
+    /// edge, or delete the wall from <c>walls</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
     public const string WallWithoutInterface = "PL11";
 
-    /// <summary>A bedrock wall sits between two pieces of unequal width, so the wider one carries on past the
-    /// wall's end and an attacker rounds it with one diagonal jump off the corner instead of crossing it. A
-    /// wall belongs between two pieces of the same width, which is the middle of a lane rather than its
-    /// mouth.</summary>
-    /// <remarks>The wall spans only the interval the two pieces share, so ground on a piece that reaches past that interval along the wall's own axis is ground beside the wall's end, and a player standing there is one jump from the ground behind it. Put a piece the lane's own width between the two and wall THAT seam: a wall flanked by nothing has to be crossed, because going round it means leaving the ground.</remarks>
+    /// <summary>A piece runs past either end of a wall by 1 block or more.</summary>
+    /// <remarks>Either shrink the <c>rect</c> of the piece that runs past the wall in <c>pieces</c> until it ends
+    /// where the wall ends, or delete the wall from <c>walls</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Structure)]
     public const string WallAtJunction = "PL17";
 
-    /// <summary>A bedrock wall is drawn on the wool room's own interface, so the wall and the room stand
-    /// through each other and the room can barely be entered. The wool's own edge is never a wall seat.</summary>
-    /// <remarks>Bedrock wall may not interface with the wool room piece: place down the bedrock wall around 15 blocks away from the room — on the approach piece's outer interface, where the approach meets the board.</remarks>
+    /// <summary>A wall touches a wool's room piece.</summary>
+    /// <remarks>Either change the pair in <c>walls</c> to one whose shared edge is between 10 and 20 blocks in
+    /// front of the wool room's entrance, or delete the wall from <c>walls</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Objective)]
     public const string WallOnWoolRoom = "PL13";
 
-    /// <summary>A connected landmass mixes fanned and non-fanned pieces, so it has no coherent orbit image.</summary>
-    /// <remarks>The symmetry fan copies whole islands, so every piece of one connected landmass must agree about <c>mirrors</c>. A non-fanned piece is for an isolated on-axis island; a mid that touches team land is authored as half its ground and completed by the fan.</remarks>
+    /// <summary>An island holds a piece that the symmetry copies, and a piece that it does not copy.</summary>
+    /// <remarks>Either set the <c>mirrors</c> of every piece of the island in <c>pieces</c> to the same value, or
+    /// move the <c>rect</c> of a piece in <c>pieces</c> until it no longer touches the island.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan)]
     public const string MixedMirrors = "PL12";
 
-    /// <summary>The document states a shape version this build does not read. A marker's <c>at</c> is an
-    /// offset in blocks from its piece's minimum corner, and an earlier version stated the same field in
-    /// cells — the same numbers, a different distance — so a document that names another version is refused
-    /// rather than read under the wrong unit.</summary>
-    /// <remarks>Convert the document to the current version. Nothing about a stale plan is recoverable by
-    /// inspection: the unit a coordinate is in is not visible in the coordinate.</remarks>
+    /// <summary>The plan version of a plan is not 2.</summary>
+    /// <remarks>Change each <c>at</c> in <c>placements</c> from cells to blocks, then set the <c>plan</c> of the
+    /// document to 2.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan)]
     public const string StaleVersion = "PL15";
 
-    /// <summary>A capture-point count the board's own symmetry cannot lay out. A point belongs to nobody, so
-    /// it has to be the same walk for every team, and the only positions that are lie on the board's axes:
-    /// the centre of symmetry, which is one point, and a ring the orbit fans from a single side point, which
-    /// is as many as the orbit has images. So a board of <c>n</c> teams builds <b>1</b>, <b>n</b> or
-    /// <b>n + 1</b> points and no other number — two on a four-team board would have to sit somewhere no
-    /// ruling covers, and inventing a position for them is what this refuses to do.</summary>
-    /// <remarks>State 1, one per team, or one per team plus a centre. On two teams that is 1, 2 or 3 — three being the ordinary board — and on four it is 1, 4 or 5.</remarks>
+    /// <summary>The number of capture points a plan states is not 1, the number of its teams, or the number of its
+    /// teams plus 1.</summary>
+    /// <remarks>Set the <c>placements.controlPoints</c> of the plan to 1, to the number of teams, or to the number
+    /// of teams plus 1.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Objective)]
     public const string ControlPointCount = "PL16";
 
-    /// <summary>Two pieces meet at a single point and along no edge, and nothing else joins them. A corner is
-    /// never a connection — a point has no walkable corridor mouth — so the board reads as one area where
-    /// players find two, and the diagonal is the sneaky crossing that is not there. Suppressed where the pair
-    /// already reaches the same land component through real interfaces, since the corner is then redundant
-    /// rather than misleading.</summary>
-    /// <remarks>Bridge the two with a piece sharing a real border with each — one block of shared edge is
-    /// enough, and makes all three one land component — or move them apart so the board stops suggesting a
-    /// crossing. Widening the corner is not one of the options: no amount of point contact connects.</remarks>
+    /// <summary>Two pieces of different islands touch at a single point.</summary>
+    /// <remarks>Either add a piece to <c>pieces</c> that has a shared edge with each of the two, or move the
+    /// <c>rect</c> of one of the two pieces in <c>pieces</c> until it no longer touches the other.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan)]
     public const string CornerContact = "PC-C";
 }

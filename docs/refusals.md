@@ -574,22 +574,26 @@ down to the author's rulings and the maps they traced, and an agent acts on the 
 
 **The same meaning is written the same way in every rule.** A reader comparing two fixes, or an agent turning
 one into an edit, reads a different spelling as a different edit, so each thing a text says has exactly one
-form. `LayoutRulesTests` holds the layout rules to every form below; a form a new rule needs is added there
-before the rule uses it.
+form. `RuleTextTests` holds every rule `GET /api/rules` serves to every form below; a form a new rule needs is
+added there before the rule uses it.
 
 **Each text is at most 35 words, in the glossary's words.** A rule never explains a term and never uses a name
-the glossary lists as another name for one; "usual", "typical" and their kin stand where a number belongs and
-are refused. Neither text uses a dash, an arrow or a comparison symbol, and only the fix marks a document field
-in backticks.
+the glossary lists as another name for one; "usual", "typical", "too", "enough" and their kin stand where a
+number belongs and are refused. Neither text names code, a rule id, an endpoint or a file, and neither uses a
+dash, an arrow, a comparison sign, parentheses or a semicolon. Only the fix marks a field, in backticks.
 
-**The `means` opens with the thing the author made and takes one shape.** A minimum is "*X* is less than *N*
-blocks", a maximum "more than *N*", a band "is not between *A* and *B*", a count "has more than *N*", a band
-of exactly zero "has no", a contact "touches" or "overlaps", a step "stands *N* or more blocks above or below
-*Y* where they share an edge". A measured distance opens its sentence ("The walking distance from a spawn to
-its team's nearest wool is …") rather than trailing it, and a range is always "between *A* and *B*", never
-"*A* to *B*".
+**The `means` opens with the thing the author made or the request sent, and takes one shape.** A minimum is
+"*X* is less than *N* blocks", a maximum "more than *N*", a band "is not between *A* and *B*", a floor met
+"is at least *N*", a count "has more than *N*", an absence "has no", a presence "has a", a contact "touches"
+or "overlaps", a step "stands *N* or more blocks above or below *Y* where they share an edge". A name that
+resolves to nothing "names a *thing* that does not exist", a value outside its set "is not one of", a material
+"is built of", two values at once "both", a duplicate "the same", a right the caller lacks "may not", a
+service that is silent "did not answer", a fault in the studio "failed to". Two statements that disagree are
+one sentence, "*X* …, and *Y* …". A measured distance opens its sentence ("The walking distance from a spawn to
+its team's nearest wool is …"), and a range is always "between *A* and *B*", never "*A* to *B*". A means says
+what was made and never why it is refused: no ", which …", no ", but …".
 
-**Every action in a `fix` opens with one of twelve verbs**, and a synonym for one is refused:
+**Every action in a `fix` opens with one of sixteen verbs**, and a synonym for one is refused:
 
 | verb | for |
 |---|---|
@@ -597,13 +601,24 @@ its team's nearest wool is …") rather than trailing it, and a range is always 
 | Move | a marker ("the spawn in `placements.spawns`") or a piece or zone by its `rect` |
 | Widen · Shrink · Lengthen · Shorten | a size, always of "the `rect` of *X*" |
 | Merge · Split | "Merge *X* into one entry in `list`"; a split names what it splits with |
-| Set · Change | a field's value ("Set the `surface` of …"); a `rect` or a pair made into a stated form ("Change the pair in `walls` to one whose …") |
+| Set | a value: "Set the `field` of *X* to *V*", "to at least *N*", "to between *A* and *B*", "to `null`" |
+| Change | a value chosen among existing ones, or one reached by degrees: "Change the pair in `walls` to one whose …", "Change the `footprint` of … until …" |
 | Level | ground, with terraform |
+| Send · Wait | a request: "Send the request again with `parameter` set to *V*", "Wait *N* seconds, then send the request again" |
+| Ask · Report | a person: "Ask the person who runs the studio to …"; "Report the error with the `error` and `message` of the response" |
+
+**A field is one dotted path, and the thing it belongs to follows "of".** "Set the `globals.observerY` of the
+plan", "the `spec.ridge` of one wing", "the `teams` of the game settings"; a list holding the thing is "in
+`list`". A value a field takes is in backticks (`null`, `true`, `rot_180`); a number is not. What a finding
+points at is "the *field* the finding names".
 
 **An alternative between actions is one sentence, "Either *X*, or *Y*."** Each side opens with its own verb,
-and a plain "or" joins nouns only. A sequence is "*X*, then *Y*". A target closes the sentence as "until … is
-between *A* and *B*" (or "at least", "at most"), and a direction is "closer to" or "farther from". An action
-names its object with "the", never "this" or "those", and never hides a second verb behind "by …ing".
+and a plain "or" joins nouns only. A sequence is "*X*, then *Y*". Where the action depends on the case, each
+case is its own sentence ("Set the `cellSize` of a `cell` pattern to at least 2 blocks. Set the `scale` of a
+`noise` pattern to at least 2 blocks."). A target closes the sentence as "until … is between *A* and *B*" (or
+"at least", "at most"), after Change, Move or a resize, never after Set; a direction is "closer to" or "farther
+from". An action names its object with "the", never "this" or "those", and never hides a second verb behind
+"by …ing".
 
 **The category is what a caller branches on, and the concerns are what a prefix could never carry.** An id is
 specific, stable and for a reader; `category` is the closed set an agent reads instead of learning 234 ids —

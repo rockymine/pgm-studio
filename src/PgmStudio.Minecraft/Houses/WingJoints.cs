@@ -39,29 +39,34 @@ public enum JointFault
 /// room-frame one, and kept apart from any task-tracking id.</summary>
 public static class WingJointRules
 {
-    /// <summary>Two rectangles share blocks. A plan states its ground once.</summary>
-    /// <remarks>Move one wing until they touch along an edge instead of sharing blocks. A plan states its ground once, and two wings claiming the same cells have no single answer for what stands there.</remarks>
+    /// <summary>A wing overlaps another wing of the same house.</summary>
+    /// <remarks>Either change the <c>corners</c> of one of the two wings in <c>wings</c> until they share no block,
+    /// or delete one of the two from <c>wings</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Structure)]
     public const string Overlapping = "HJ1";
 
-    /// <summary>They touch over part of an edge only, so neither joint can happen along it.</summary>
-    /// <remarks>Align the wings so they meet over the whole of the shorter edge, or move them apart. A part-length meeting leaves half the wing end against its neighbour and half over open ground, which is neither joint.</remarks>
+    /// <summary>A wing touches another wing along only part of the shorter of the two facing edges.</summary>
+    /// <remarks>Either change the <c>corners</c> of a wing in <c>wings</c> until the shorter edge lies within the
+    /// longer, or change the <c>corners</c> of a wing until the two wings no longer touch.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string PartialEdge = "HJ2";
 
-    /// <summary>Both ridges run along the shared edge — two ranges side by side, meeting in a gutter.</summary>
-    /// <remarks>Turn one wing a quarter so its ridge runs into the shared edge rather than along it, or draw the two as one rectangle. Two ridges side by side meet in a gutter no roof form covers.</remarks>
+    /// <summary>A wing touches another wing, and both ridges run along the shared edge.</summary>
+    /// <remarks>Either set the <c>spec.ridge</c> of one wing to the axis across the shared edge, or merge the two
+    /// wings into one entry in <c>wings</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.Style)]
     public const string SideBySide = "HJ3";
 
-    /// <summary>Both ridges run into it — one longer range, which wants drawing as one rectangle.</summary>
-    /// <remarks>Draw the two as one rectangle. Two ridges running into the shared edge are one longer range, and stating them separately asks for a seam through the middle of a roof.</remarks>
+    /// <summary>A wing touches another wing, and both ridges run into the shared edge.</summary>
+    /// <remarks>Either set the <c>spec.ridge</c> of one wing to the axis along the shared edge, or merge the two
+    /// wings into one entry in <c>wings</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string EndToEnd = "HJ4";
 
-    /// <summary>The wing reaches further along the shared edge than the hall reaches across it, so its roof
-    /// stands taller than the one it is meant to run into.</summary>
-    /// <remarks>Shorten the wing along the shared edge, or widen the hall across it. A roof's height comes from its span, so a wing reaching further than its hall is wide stands taller than the roof it runs into.</remarks>
+    /// <summary>The length of a wing along the shared edge is more than the length of its hall across the shared
+    /// edge.</summary>
+    /// <remarks>Change the <c>corners</c> of the wing or the hall in <c>wings</c> until the length of the wing
+    /// along the shared edge is at most the length of the hall across it.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string WingOvertops = "HJ5";
 }
