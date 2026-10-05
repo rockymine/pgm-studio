@@ -60,6 +60,6 @@ public static class MapEdit
         Refusal.At(409, "stale write",
             new Finding(RequestRules.Conflict,
                 stored is { } now
-                    ? $"this map is at revision {now}, and the `If-Match` of the request states {expected}"
-                    : "this map has no document for the `If-Match` of the request to match"));
+                    ? $"the map is at revision {now}, and the `If-Match` of the request states {expected}"
+                    : "the map has no document for the `If-Match` of the request to match"));
 }

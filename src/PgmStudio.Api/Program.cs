@@ -353,7 +353,7 @@ app.Use(async (ctx, next) =>
                          : PgmStudio.Domain.RequestRules.Unhandled,
                 document
                     ? ex.Message
-                    : "the studio failed to answer this request")],
+                    : "the studio failed to answer the request")],
             ctx.RequestAborted);
     }
 });

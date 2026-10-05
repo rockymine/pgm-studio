@@ -154,7 +154,7 @@ public sealed class BuildQueue(BuildQueueOptions options)
         http.Response.Headers.RetryAfter = RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
         await Refusals.WriteAsync(http, 429, "busy",
             [new Finding(RequestRules.Busy,
-                "the build queue gave this request no turn")], http.RequestAborted);
+                "the build queue gave the request no turn")], http.RequestAborted);
     }
 
     /// <summary>What a refused request is told to wait before asking again.</summary>

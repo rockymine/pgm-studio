@@ -106,7 +106,7 @@ internal static class Refusals
     public static Task StoredUnreadableAsync(HttpContext http, string what, CancellationToken ct) =>
         WriteAsync(http, 422, $"stored {what} is unreadable",
             [new Finding(RequestRules.StoredUnreadable,
-                $"the stored {what} of this map does not read back")], ct);
+                $"the stored {what} of the map does not read back")], ct);
 
     /// <summary>The whole gate in one line: <c>if (await Refusals.StopAsync(…)) return;</c>. True when the
     /// findings refuse and the response has been written; false when there was nothing to stop for, complaints

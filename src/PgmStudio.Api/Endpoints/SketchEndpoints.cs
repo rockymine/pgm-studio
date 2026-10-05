@@ -235,8 +235,8 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         var dropped = SketchLayout.DroppedShapes(compiled, storedJson);
         if (dropped.Count > 0)
             Complaints.Add(HttpContext, [new Finding(SketchRules.ShapeDropped,
-                $"the sketch has {dropped.Count} {(dropped.Count == 1 ? "shape" : "shapes")} with no counterpart in "
-                + $"the plan the rebuild compiles: {string.Join(", ", dropped)}",
+                $"{(dropped.Count == 1 ? "shape" : "shapes")} {Wording.Ids(dropped)} of the sketch "
+                + $"{(dropped.Count == 1 ? "has" : "have")} no counterpart in the plan the rebuild compiles",
                 Severity.Complaint, Field: "layers", Subjects: dropped)]);
 
         var merged = SketchLayout.CarryStructuralHeight(
@@ -637,8 +637,7 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
         {
             await Refusals.WriteAsync(HttpContext, 422, "ring too short",
                 [new Vocabulary.Finding(RequestRules.Conflict,
-                    $"the `ring` of the request has {ring.Count} {(ring.Count == 1 ? "point" : "points")}, "
-                    + "less than 3")], ct);
+                    $"the request's `ring` has {Wording.Count(ring.Count, "point")}, less than 3")], ct);
             return;
         }
         Complaints.Add(HttpContext, SketchLayoutCheck.Check(layoutJson).AsComplaints());

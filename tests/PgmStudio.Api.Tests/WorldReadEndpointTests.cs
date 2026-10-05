@@ -339,6 +339,6 @@ public sealed class WorldReadEndpointTests
 
         var missing = await client.GetAsync($"/api/map/{slug}/stroke?id=nowhere");
         await Assert.That(missing.StatusCode).IsEqualTo(HttpStatusCode.UnprocessableContent);
-        await Assert.That(await missing.Content.ReadAsStringAsync()).Contains("no stroke");
+        await Assert.That(await missing.Content.ReadAsStringAsync()).Contains("the request names stroke 'nowhere'");
     }
 }

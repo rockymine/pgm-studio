@@ -13,11 +13,11 @@ namespace PgmStudio.Api.Tests;
 public sealed class FindingMessageTests
 {
     /// <summary>Every call that carries a finding's message, and which of its arguments the message is: the
-    /// finding itself, written out or target-typed, the helpers that write one (the plan checks' lint, the decorator's decline, the request
+    /// finding itself, written out, qualified or target-typed, the helpers that write one (the plan checks' lint, the decorator's decline, the request
     /// refusals, the editors' faults and the evaluator's term scores).</summary>
     private static readonly (string Call, int Argument)[] Carriers =
     [
-        ("new Finding", 1), (@"new(?=\(\s*[A-Z]\w*Rules\.)", 1), ("Lint", 1), ("Declined", 3), (@"Refusals\.UnreadableAsync", 2), (@"Refusals\.ConflictAsync", 2),
+        (@"new (?:PgmStudio\.)?(?:Vocabulary\.)?Finding", 1), (@"new(?=\(\s*[A-Z]\w*Rules\.)", 1), ("Lint", 1), ("Declined", 3), (@"Refusals\.UnreadableAsync", 2), (@"Refusals\.ConflictAsync", 2),
         (@"EditException\.(?:Unreadable|NoSuchSubject|Conflict|Unresolved|Inapplicable)", 0),
         (@"TermScores\.Violated", 1), (@"TermScores\.Soft", 2),
     ];
@@ -39,6 +39,7 @@ public sealed class FindingMessageTests
         (new(@"\b[A-Z]{1,3}\d+\b"), "a rule or task id"),
         (new(@"\b[A-Z][a-z]+[A-Z]\w*"), "a name from the code"),
         (new(@"\(\s*[a-zA-Z]"), "words in parentheses"),
+        (new(@"\bthis\b", RegexOptions.IgnoreCase), "'this' where every message says 'the'"),
     ];
 
     /// <summary>The words a message may not use: every name the glossary retired in favour of a term.</summary>

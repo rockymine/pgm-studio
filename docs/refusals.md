@@ -699,14 +699,15 @@ reader scanning a list meet the same words from every gate:
 | a name someone else holds | `region id 'mid' is already taken` |
 | a value of the wrong type | `` `radius` is not a number ``, `` `y` is not a whole number `` |
 
-**`FindingMessageTests` holds every message in `src/` to this.** It finds each call that carries a message
-— a `Finding`, written out or target-typed, the plan checks' `Lint`, the decorator's `Declined`, the request
-refusals, the editors' faults and the evaluator's term scores — reads the literal text of its message
+**`FindingMessageTests` holds every message in `src/` to this.** It finds each call that carries a message — a
+`Finding`, written out, qualified or target-typed, the plan checks' `Lint`, the decorator's `Declined`, the
+request refusals, the editors' faults and the evaluator's term scores — reads the literal text of its message
 argument, and refuses a capital, a full stop, a symbol, a reason or a fix in prose, a rule or task id, a name
-from the code, words in parentheses, a retired glossary word, and the phrasings the table replaces ("not
-found", "is required", "already in use", "invalid", "unknown"). A message built
-elsewhere and passed through, such as an exception's text, is read only where its builder is itself a carrier,
-and the document readers' exception texts that reach a request refusal are not yet in the shape (`RP120`).
+from the code, words in parentheses, "this" where every message says "the", a retired glossary word, and the
+phrasings the table replaces ("not found", "is required", "already in use", "invalid", "unknown"). A message
+built elsewhere and passed through, such as an exception's text, is read only where its builder is itself a
+carrier, and the document readers' exception texts that reach a request refusal are not yet in the shape
+(`RP120`).
 
 ## Adding one
 
