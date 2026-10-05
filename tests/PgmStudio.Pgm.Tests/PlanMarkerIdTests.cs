@@ -101,7 +101,7 @@ public sealed class PlanMarkerIdTests
           "placements":{ "cores":[ {"id":"heart","piece":"land","at":[19,10],"size":5} ] } }
         """);
         var finding = PlanValidator.Check(plan)
-            .First(f => f.Severity == Severity.Refusal && f.Message.Contains("overhangs the void"));
+            .First(f => f.Severity == Severity.Refusal && f.Message.Contains("has void under part of it"));
         await Assert.That(finding.SubjectIds).Contains("heart");
         await Assert.That(finding.Message).Contains("'heart'");
     }

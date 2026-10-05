@@ -222,7 +222,7 @@ public sealed class HouseStyleValidationTests
         // roof is a course of slabs at a whole block of rise — see-through.
         var style = Roofed(SeededHouses.Desert, new SolidMaterial(Blocks.WoodenSlab));
         var findings = HouseStyleValidation.Check(style);
-        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.RoofMaterial && f.Field == "roof")).IsTrue();
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.RoofOfSlabs && f.Field == "roof")).IsTrue();
     }
 
     /// <summary>A <b>bare</b> log has no axis, so every one of them stands upright and shows a sawn face out
@@ -268,7 +268,7 @@ public sealed class HouseStyleValidationTests
     {
         var style = Slabbed(Roofed(SeededHouses.Desert, new LaidLogMaterial(Blocks.Log, 1)), Blocks.StoneSlab);
         var findings = HouseStyleValidation.Check(style);
-        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.RoofMaterial && f.Field == "roofSlab")).IsTrue();
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.RoofCut && f.Field == "roofSlab")).IsTrue();
     }
 
     [Test]
@@ -295,27 +295,27 @@ public sealed class HouseStyleValidationTests
 
     /// <summary><b>A roof stair is a stair of the body's own material, and a roof climbs in stairs or in
     /// slabs.</b> Oak stairs over oak planks pass; a plank is not a stair (<c>HS1</c>); a spruce stair over oak
-    /// is two materials, and a stair beside a slab is two rises (<c>HS3</c>).</summary>
+    /// is two materials (<c>HS20</c>), and a stair beside a slab is two rises (<c>HS21</c>).</summary>
     [Test]
     public async Task A_roof_stair_is_a_stair_of_the_bodys_own_material_and_never_with_a_slab()
     {
         await Assert.That(AtRoofStair(Staired(Blocks.OakStairs))).IsEmpty();
         await Assert.That(AtRoofStair(Staired(Blocks.Planks)).Select(f => f.Rule)).Contains(HouseStyleRules.BlockKind);
-        await Assert.That(AtRoofStair(Staired(134)).Select(f => f.Rule)).Contains(HouseStyleRules.RoofMaterial);
+        await Assert.That(AtRoofStair(Staired(134)).Select(f => f.Rule)).Contains(HouseStyleRules.RoofCut);
         await Assert.That(AtRoofStair(Staired(Blocks.OakStairs, slab: Blocks.WoodenSlab)).Select(f => f.Rule))
-            .Contains(HouseStyleRules.RoofMaterial);
+            .Contains(HouseStyleRules.RoofSlabAndStair);
     }
 
     [Test]
     public async Task RoofSlab_itself_has_to_be_a_single_slab_when_set()
     {
         // Two faults in one field, and both are true: a cobblestone block is not a slab at all (HS1), and it
-        // is not the stone brick the body is laid in either (HS3).
+        // is not the stone brick the body is laid in either (HS20).
         var style = Slabbed(Pyramid, Blocks.Cobblestone);
         var findings = HouseStyleValidation.Check(style);
         await Assert.That(findings.All(f => f.Field == "roofSlab")).IsTrue();
         await Assert.That(findings.Select(f => f.Rule))
-            .Contains(HouseStyleRules.BlockKind).And.Contains(HouseStyleRules.RoofMaterial);
+            .Contains(HouseStyleRules.BlockKind).And.Contains(HouseStyleRules.RoofCut);
     }
 
     /// <summary>A roof is read as one plane from below and from a distance, so a pattern in it is several
@@ -340,7 +340,7 @@ public sealed class HouseStyleValidationTests
         var kilnRow = Roofed(Pyramid, new SolidMaterial(45)) with { };
         kilnRow = kilnRow with { Roof = kilnRow.Roof with { Slab = Blocks.StoneSlab, SlabData = 1 } };
         var findings = HouseStyleValidation.Check(kilnRow);
-        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.RoofMaterial && f.Field == "roofSlab"))
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.RoofCut && f.Field == "roofSlab"))
             .IsTrue();
     }
 

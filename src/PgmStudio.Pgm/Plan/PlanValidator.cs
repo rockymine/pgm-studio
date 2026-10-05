@@ -1320,7 +1320,7 @@ public static class PlanValidator
             DestroyableStyles.TryParse(string.IsNullOrEmpty(b.Style) ? null : b.Style, out var style);
             var (width, _, depth) = ObjectiveFootprint.Destroyable(style);
             if (Footprint(d, b.Piece, b.At, width, depth) is { } rect)
-                yield return new PlacedGoal("destroyable", b.Id, rect, b.Piece);
+                yield return new PlacedGoal("monument", b.Id, rect, b.Piece);
         }
         foreach (var c in plan.Placements.Cores)
         {

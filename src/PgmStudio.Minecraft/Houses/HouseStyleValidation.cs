@@ -23,11 +23,10 @@ public static class HouseStyleRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Style, RuleConcern.Structure)]
     public const string DoorClearance = "HS2";
 
-    /// <summary>A roof or its verge is a pattern, a log not laid, or one of grass, dirt, sand, gravel, farmland and
-    /// mycelium, or its slab or stair is not cut from the roof's material.</summary>
-    /// <remarks>Set the <c>roof.body</c> and the <c>roof.verge</c> of the house each to one block or a
-    /// <c>laidLog</c>, then change the <c>roof.slab</c> or the <c>roof.stair</c> to a block cut from the body's
-    /// material.</remarks>
+    /// <summary>A roof, its verge or a porch canopy is a pattern, a log not laid, a laid block that is not a log,
+    /// or one of grass, dirt, sand, gravel, farmland and mycelium.</summary>
+    /// <remarks>Set the <c>roof.body</c>, the <c>roof.verge</c> and the <c>porch.canopy</c> of the house each to
+    /// one block or a <c>laidLog</c> of a log.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
     public const string RoofMaterial = "HS3";
 
@@ -127,6 +126,24 @@ public static class HouseStyleRules
     /// is a building word.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Style)]
     public const string LibraryName = "HS19";
+
+    /// <summary>A roof's slab or stair is not cut from the block the roof is made of.</summary>
+    /// <remarks>Either set the <c>roof.slab</c> or the <c>roof.stair</c> to a block cut from the
+    /// <c>roof.body</c>, or set it to <c>-1</c>.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    public const string RoofCut = "HS20";
+
+    /// <summary>A roof states both a slab and a stair.</summary>
+    /// <remarks>Either set the <c>roof.slab</c> to <c>-1</c>, or set the <c>roof.stair</c> to
+    /// <c>-1</c>.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    public const string RoofSlabAndStair = "HS21";
+
+    /// <summary>A roof's body is a slab and the roof has no slab.</summary>
+    /// <remarks>Either set the <c>roof.body</c> to a full block, or set the <c>roof.slab</c> to the same
+    /// slab.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    public const string RoofOfSlabs = "HS22";
 }
 
 /// <summary>
@@ -607,7 +624,7 @@ public static class HouseStyleValidation
         // RoofSlab is unset asks for a whole block of rise in a material that only fills half its cube, which
         // is the see-through roof HouseStyle.Roof's own docstring warns about.
         if (roof.Slab < 0 && SolidId(roof.Body) is { } roofId && BlockFamilies.IsSlab(roofId))
-            findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+            findings.Add(new Finding(HouseStyleRules.RoofOfSlabs,
                 $"the roof is block {roofId}, a slab, and its `roofSlab` is -1",
                 Field: "roof"));
 
@@ -617,7 +634,7 @@ public static class HouseStyleValidation
         // A laid log has no slab to continue it in, so a half-course rise over one is a course of logs and a
         // course of something else alternating up the slope.
         if (roof.Slab >= 0 && roof.Body is LaidLogMaterial)
-            findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+            findings.Add(new Finding(HouseStyleRules.RoofCut,
                 "the roof is laid in logs and its `roofSlab` is set",
                 Field: "roofSlab"));
 
@@ -625,7 +642,7 @@ public static class HouseStyleValidation
         // something else makes the roof two materials in alternating courses, which reads as neither.
         if (roof.Slab >= 0 && roof.Body is SolidMaterial body
             && !BlockMaterials.Same(body.Id, body.Data, roof.Slab, roof.SlabData))
-            findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+            findings.Add(new Finding(HouseStyleRules.RoofCut,
                 $"the `roofSlab` of the roof is {BlockMaterials.Of(roof.Slab, roof.SlabData)} and its body is " +
                 $"{BlockMaterials.Of(body.Id, body.Data)}, a different material",
                 Field: "roofSlab"));
@@ -636,13 +653,13 @@ public static class HouseStyleValidation
         {
             Refuse(HouseBlockKinds.RoofStair, roof.Stair, findings);
             if (roof.Slab >= 0)
-                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                findings.Add(new Finding(HouseStyleRules.RoofSlabAndStair,
                     "the roof has both `roofStair` and `roofSlab` set", Field: "roofStair"));
             if (roof.Body is LaidLogMaterial)
-                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                findings.Add(new Finding(HouseStyleRules.RoofCut,
                     "the roof is laid in logs and its `roofStair` is set", Field: "roofStair"));
             if (roof.Body is SolidMaterial solid && !BlockMaterials.Same(solid.Id, solid.Data, roof.Stair, 0))
-                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                findings.Add(new Finding(HouseStyleRules.RoofCut,
                     $"the `roofStair` of the roof is {BlockMaterials.Of(roof.Stair, 0)} and its body is " +
                     $"{BlockMaterials.Of(solid.Id, solid.Data)}, a different material", Field: "roofStair"));
         }

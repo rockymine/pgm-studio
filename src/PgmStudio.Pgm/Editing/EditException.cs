@@ -43,13 +43,13 @@ public sealed class EditException(int status, string error, Finding finding) : E
     /// row something still references. <c>RQ5</c> at 409, with <paramref name="holding"/> naming what is in
     /// the way so a caller can act rather than guess.</summary>
     public static EditException Conflict(string message, IReadOnlyList<string>? holding = null) =>
-        new(409, "conflicting edit", new Finding(RequestRules.Conflict, message, Subjects: holding));
+        new(409, "conflicting edit", new Finding(RequestRules.Taken, message, Subjects: holding));
 
     /// <summary>A reference the document cannot resolve. <c>ED1</c> at 400.</summary>
     public static EditException Unresolved(string message, string? field = null) =>
         new(400, "unresolved reference", new Finding(EditRules.UnresolvedReference, message, Field: field));
 
-    /// <summary>An edit the document is not in a state to take. <c>ED2</c> at 400.</summary>
-    public static EditException Inapplicable(string message) =>
-        new(400, "edit not applicable", new Finding(EditRules.Inapplicable, message));
+    /// <summary>An edit the document is not in a state to take, under <paramref name="rule"/>, at 400.</summary>
+    public static EditException Inapplicable(string message, string rule) =>
+        new(400, "edit not applicable", new Finding(rule, message));
 }

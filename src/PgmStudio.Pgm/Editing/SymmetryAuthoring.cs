@@ -96,7 +96,9 @@ public static class SymmetryAuthoring
         var src = (Dict)regions[sourceId]!;
         var stype = src.GetValueOrDefault("type") as string ?? "";
         if (!Bakeable.Contains(stype))
-            throw EditException.Inapplicable($"region type '{stype}' is not a primitive region, the only kind a rot_90 copy is made of");
+            throw EditException.Inapplicable(
+                $"region '{sourceId}' has type '{stype}', which is not one of {string.Join(", ", Bakeable)}",
+                EditRules.QuarterTurnOfACompound);
 
         var newId = FreshId(regions, stype);
         var region = new Dict { ["id"] = newId, ["type"] = stype };

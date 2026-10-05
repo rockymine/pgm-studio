@@ -58,7 +58,7 @@ public static class MapEdit
     /// writes and guessing at one would lose whichever half it guessed against.</summary>
     private static Refusal Stale(long? expected, long? stored) =>
         Refusal.At(409, "stale write",
-            new Finding(RequestRules.Conflict,
+            new Finding(RequestRules.StaleRevision,
                 stored is { } now
                     ? $"the map is at revision {now}, and the `If-Match` of the request states {expected}"
                     : "the map has no document for the `If-Match` of the request to match"));

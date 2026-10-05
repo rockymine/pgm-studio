@@ -943,7 +943,7 @@ public partial class SketchTool
     private string? infoSave;
 
     /// <summary>The write of the stored layout, which states the revision this tab's drawing stands on: a tab
-    /// holding an older board than the studio's is refused (<c>RQ5</c>, 409) instead of writing it back over
+    /// holding an older board than the studio's is refused (<c>RQ13</c>, 409) instead of writing it back over
     /// the newer one, and is then superseded until the layout is read again.</summary>
     private DocumentSave Document => document ??= new(Http);
     private DocumentSave? document;

@@ -41,13 +41,11 @@ public static class RequestRules
     [Rule(RuleCategory.Unknown, RuleConcern.Request)]
     public const string NoSuchSubject = "RQ4";
 
-    /// <summary>A request expects a map or library entry to be in a state, and the studio holds it in
-    /// another.</summary>
-    /// <remarks>Either send the request again with another <c>name</c> or <c>slug</c>, or send it with the
-    /// <c>If-Match</c> the finding names, or change the entries the finding names until nothing binds the
-    /// entry.</remarks>
+    /// <summary>A request adds a map, an entry or an id with the same name as one the studio or the document
+    /// holds.</summary>
+    /// <remarks>Send the request again with another <c>name</c>, <c>slug</c> or <c>id</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request)]
-    public const string Conflict = "RQ5";
+    public const string Taken = "RQ5";
 
     /// <summary>The studio failed to read a document it stored.</summary>
     /// <remarks>Send the request that writes the document again, then report the error with the <c>error</c> and
@@ -85,9 +83,46 @@ public static class RequestRules
     [Rule(RuleCategory.Unavailable, RuleConcern.Request, RuleConcern.Studio)]
     public const string Busy = "RQ11";
 
-    /// <summary>The studio has no agent to hand notes to, or the service of the agent did not take them.</summary>
+    /// <summary>The studio has no agent to hand notes to.</summary>
     /// <remarks>Ask the person who runs the studio to set <c>Notes:Agent:Fire</c> and
     /// <c>Notes:Agent:Token</c>.</remarks>
     [Rule(RuleCategory.Unavailable, RuleConcern.Studio)]
     public const string AgentUnavailable = "RQ12";
+
+    /// <summary>A request states a revision of the map that is not the revision the studio holds.</summary>
+    /// <remarks>Send the request again with <c>If-Match</c> set to the revision the finding names.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request)]
+    public const string StaleRevision = "RQ13";
+
+    /// <summary>A request deletes a library entry, and another entry or a map still uses it.</summary>
+    /// <remarks>Change the entries the finding names until none uses the entry, then send the request
+    /// again.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request)]
+    public const string InUse = "RQ14";
+
+    /// <summary>The straight-down view of a map may not be deleted.</summary>
+    /// <remarks>Send the request again with <c>id</c> set to another view.</remarks>
+    [Rule(RuleCategory.Forbidden, RuleConcern.Request)]
+    public const string KeptView = "RQ15";
+
+    /// <summary>A hand-off has no open note, or no note written since the last hand-off.</summary>
+    /// <remarks>Wait until a note is written, then send the request again.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request)]
+    public const string NothingToHandOver = "RQ16";
+
+    /// <summary>A read has no ground, block or spot to stand on where the request asks.</summary>
+    /// <remarks>Either change the request until it names ground the world has, or add a shape to <c>shapes</c>
+    /// that makes ground where it asks.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Request, RuleConcern.World)]
+    public const string NothingToRead = "RQ17";
+
+    /// <summary>The build queue has no room for another request, from the studio or from one person.</summary>
+    /// <remarks>Wait 10 seconds, then send the request again.</remarks>
+    [Rule(RuleCategory.Unavailable, RuleConcern.Request, RuleConcern.Studio)]
+    public const string QueueFull = "RQ18";
+
+    /// <summary>The service of the agent failed to take the notes the studio handed it.</summary>
+    /// <remarks>Wait 1 minute, then send the request again.</remarks>
+    [Rule(RuleCategory.Unavailable, RuleConcern.Studio)]
+    public const string AgentRefused = "RQ19";
 }

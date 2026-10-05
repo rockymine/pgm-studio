@@ -152,7 +152,7 @@ public sealed class RoofStyleDeleteEndpoint(HousePartStore store) : EndpointWith
         var used = await store.UsingRoofAsync(id, ct);
         if (used.Count > 0)
         {
-            await Refusals.ConflictAsync(HttpContext, "roof style in use",
+            await Refusals.InUseAsync(HttpContext, "roof style in use",
                 $"the roof part is still bound by {Wording.Count(used.Count, "house")}", ct,
                 holding: [.. used.Select(name => name.ToString()!)]);
             return;
@@ -258,7 +258,7 @@ public sealed class StoreyStyleDeleteEndpoint(HousePartStore store) : EndpointWi
         var used = await store.UsingStoreyAsync(id, ct);
         if (used.Count > 0)
         {
-            await Refusals.ConflictAsync(HttpContext, "storey style in use",
+            await Refusals.InUseAsync(HttpContext, "storey style in use",
                 $"the storey part is still bound by {Wording.Count(used.Count, "house")}", ct,
                 holding: [.. used.Select(name => name.ToString()!)]);
             return;
@@ -352,7 +352,7 @@ public sealed class PorchStyleDeleteEndpoint(HousePartStore store) : EndpointWit
         var used = await store.UsingPorchAsync(id, ct);
         if (used.Count > 0)
         {
-            await Refusals.ConflictAsync(HttpContext, "porch style in use",
+            await Refusals.InUseAsync(HttpContext, "porch style in use",
                 $"the porch part is still bound by {Wording.Count(used.Count, "house")}", ct,
                 holding: [.. used.Select(name => name.ToString()!)]);
             return;

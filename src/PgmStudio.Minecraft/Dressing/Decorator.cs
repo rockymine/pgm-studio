@@ -1091,9 +1091,9 @@ public static class Decorator
             // something an author or an agent moves, which `sketch/seats` answers forwards.
             var own = Footing(image, house.Style);
             var group = groups.GetValueOrDefault(own, own);
-            if (!cramped && !Passage.Clears(group,
+            if (!cramped && Passage.Blocks(group,
                     (x, z) => ground.ContainsKey((x, z)),
-                    (x, z) => claims.HoldsKind(x, z, ClaimKind.Structure)))
+                    (x, z) => claims.HoldsKind(x, z, ClaimKind.Structure)) is { } blocked)
             {
                 cramped = true;
                 var together = group.Holds(own)
@@ -1101,9 +1101,11 @@ public static class Decorator
                       + $"x between {group.StampMinX} and {group.StampMaxX}, "
                       + $"z between {group.StampMinZ} and {group.StampMaxZ}"
                     : "";
-                declined.Add(new Finding(DressingRules.PassAround,
-                    $"building '{house.Id}' has a side with a passage less than "
-                    + $"{DressingRules.PassAroundWidth} blocks wide{together}",
+                declined.Add(new Finding(blocked,
+                    blocked == DressingRules.SpansTheLand
+                        ? $"building '{house.Id}' stands against the coast on two facing sides{together}"
+                        : $"building '{house.Id}' has a side with a passage less than "
+                          + $"{DressingRules.PassAroundWidth} blocks wide{together}",
                     Severity.Complaint, Subjects: [house.Id]));
             }
 

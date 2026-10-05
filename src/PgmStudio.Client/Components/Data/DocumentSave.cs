@@ -26,7 +26,7 @@ public readonly record struct SaveOutcome(SaveStatus Status, string? Message = n
 ///
 /// <para>The studio answers every read of a document with its <c>ETag</c>; the tab holds it
 /// (<see cref="Hold"/>) and states it as <c>If-Match</c> on every write, so a tab holding an older document
-/// than the studio's is refused (<c>RQ5</c>, 409) instead of writing it back over the newer one. A refusal
+/// than the studio's is refused (<c>RQ13</c>, 409) instead of writing it back over the newer one. A refusal
 /// of that kind marks the tab <see cref="Superseded"/>: the stored document has moved on without it, every
 /// further write would be refused the same way, so none is sent until the document is read again. A document
 /// the studio held nothing for states no precondition, and the revision its first write lands at is held for

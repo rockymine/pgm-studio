@@ -194,4 +194,16 @@ public static class SketchRules
     /// again after the rebuild.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Terrain)]
     public const string ShapeDropped = "SK29";
+
+    /// <summary>The terraform a request posts for a group is not the terraform the studio stores for it.</summary>
+    /// <remarks>Send the terraform in the request that writes the terraform of one group, then send the layout
+    /// again.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.Terrain)]
+    public const string ReliefReplaced = "SK30";
+
+    /// <summary>A polygon, lasso or rectangle has no area.</summary>
+    /// <remarks>Either change the shape until it encloses an area, or delete the shape from
+    /// <c>shapes</c>.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Terrain)]
+    public const string DrawsNoArea = "SK31";
 }

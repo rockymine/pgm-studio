@@ -44,15 +44,6 @@ Every rule fires as before; the tests and `--goldens` say so.
   `LintSp9`), `ST9` (set a room's `footprint` to at most 20 by 20, `LintSt9`) and `ST10` (shrink a room piece's
   `rect` to at most 20 by 30, `LintSt10`). Each gains the `DocumentEdit` the way `RampEdit` gives `EL1` and `SP8`
   theirs, and the plan tool's Checks panel offers it. `docs/refusals.md`.
-- [ ] **RP115 — Split the rules whose text leaves a check out.** Eight rules state only part of what they
-  refuse, because the rest did not fit 35 words; each check left out becomes its own constant and text, raised
-  where it is checked. `HS3` (roof material, `HouseStyleValidation.cs:736`–`:748`, against slab and stair cut
-  from it, `:667`–`:708`), `RQ5` (stale `If-Match` `DocumentWrite.cs:51`, slug taken `WorldFolderImport.cs:66`,
-  entry bound `Refusals.cs:102`, nothing to hand over `NoteEndpoints.cs:236`, nothing to draw
-  `WorldReadEndpoints.cs:262`), `RQ11` (a full queue, `BuildQueue.cs:64`), `SK1` (a posted terraform replaced,
-  `SketchEndpoints.cs:231`), `SK4` (collinear polygon `SketchLayoutCheck.cs:631`, zero-side rectangle `:639`),
-  `ED2` (a `rot_90` counterpart, `SymmetryAuthoring.cs:99`), `OB17` (a wool monument over void,
-  `MapExportComposer.cs:590`), `DR-PASS` (two sides against the coast, `Passage.Clears`). `docs/refusals.md`.
 - [ ] **RP116 — A category that names the action its fix takes.** The category is what a caller branches on,
   and these name another action than their fix: `HS3`, `HS5`, `HS13` and `HS16` are filed `conflict` and are a
   value of the wrong kind (`malformed`); `PT3` is `unsatisfiable` and its fix is a field value; `DR-COPY` is

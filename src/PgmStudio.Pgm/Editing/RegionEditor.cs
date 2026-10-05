@@ -66,7 +66,9 @@ public static class RegionEditor
 
         var childIds = (payload.GetValueOrDefault("child_ids") as List<object?> ?? []).Select(c => c?.ToString() ?? "").ToList();
         var minChildren = compType == "negative" ? 1 : 2;
-        if (childIds.Count < minChildren) throw EditException.Inapplicable($"the {compType} region holds fewer than {Wording.Count(minChildren, "region")}");
+        if (childIds.Count < minChildren) throw EditException.Inapplicable(
+            $"the {compType} region holds {Wording.Count(childIds.Count, "region")}, less than {minChildren}",
+            EditRules.Inapplicable);
 
         var regions = Regions(data);
         var missing = childIds.Where(c => !regions.ContainsKey(c)).ToList();

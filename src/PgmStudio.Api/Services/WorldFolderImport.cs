@@ -61,7 +61,7 @@ public static class WorldFolderImport
                 "neither the request's `slug` nor its `folder` leaves anything a slug can be made of", "slug");
 
         if (await repo.GetBySlugAsync(slug, ct) is not null)
-            return Refuse(409, "slug already taken", RequestRules.Conflict,
+            return Refuse(409, "slug already taken", RequestRules.Taken,
                 $"map '{slug}' already exists", "slug");
 
         long? mapId = null;

@@ -19,10 +19,21 @@ public static class EditRules
     [Rule(RuleCategory.Unknown, RuleConcern.Request, RuleConcern.World)]
     public const string UnresolvedReference = "ED1";
 
-    /// <summary>A compound region has fewer than 2 children, or fewer than 1 for a negative, or an apply rule has
-    /// no region, filter or action.</summary>
-    /// <remarks>Either add a region to the <c>children</c> of the compound region, or set the <c>region</c> of the
-    /// apply rule to a region that exists.</remarks>
+    /// <summary>A compound region has fewer than 2 children, or a negative region fewer than 1.</summary>
+    /// <remarks>Add a region to the <c>children</c> of the compound region.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.World)]
     public const string Inapplicable = "ED2";
+
+    /// <summary>An apply rule has no region, filter or action.</summary>
+    /// <remarks>Either set the <c>region</c> of the apply rule to a region in <c>regions</c>, or set its
+    /// <c>filter</c> to a filter in <c>filters</c>.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.World)]
+    public const string EmptyApplyRule = "ED3";
+
+    /// <summary>A quarter-turn copy names a region that is not a rectangle, cuboid, cylinder, circle, sphere,
+    /// point or block.</summary>
+    /// <remarks>Send the request again with the region in its path set to a rectangle, cuboid, cylinder, circle,
+    /// sphere, point or block.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Request, RuleConcern.World)]
+    public const string QuarterTurnOfACompound = "ED4";
 }

@@ -17,7 +17,7 @@ public sealed class FindingMessageTests
     /// refusals, the editors' faults and the evaluator's term scores).</summary>
     private static readonly (string Call, int Argument)[] Carriers =
     [
-        (@"new (?:PgmStudio\.)?(?:Vocabulary\.)?Finding", 1), (@"new(?=\(\s*[A-Z]\w*Rules\.)", 1), ("Lint", 1), ("Declined", 3), (@"Refusals\.UnreadableAsync", 2), (@"Refusals\.ConflictAsync", 2),
+        (@"new (?:PgmStudio\.)?(?:Vocabulary\.)?Finding", 1), (@"new(?=\(\s*[A-Z]\w*Rules\.)", 1), ("Lint", 1), ("Misplaced", 1), ("Declined", 3), (@"Refusals\.UnreadableAsync", 2), (@"Refusals\.InUseAsync", 2),
         (@"EditException\.(?:Unreadable|NoSuchSubject|Conflict|Unresolved|Inapplicable)", 0),
         (@"TermScores\.Violated", 1), (@"TermScores\.Soft", 2),
     ];

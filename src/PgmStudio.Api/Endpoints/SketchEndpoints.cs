@@ -227,7 +227,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         // silence for the caller that compiled, patched a relief on and posted the result, since that is the
         // road this route documents. Named rather than dropped.
         foreach (var group in SketchLayout.ReliefReplaced(compiled, storedJson))
-            Complaints.Add(HttpContext, [new Finding(SketchRules.ReliefOrphaned,
+            Complaints.Add(HttpContext, [new Finding(SketchRules.ReliefReplaced,
                 $"the terraform posted for group '{group}' is not the terraform stored",
                 Severity.Complaint, Field: $"relief.{group}", Subjects: [group])]);
 
@@ -636,7 +636,7 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
         if (ring.Count < 3)
         {
             await Refusals.WriteAsync(HttpContext, 422, "ring too short",
-                [new Vocabulary.Finding(RequestRules.Conflict,
+                [new Vocabulary.Finding(RequestRules.Unreadable,
                     $"the request's `ring` has {Wording.Count(ring.Count, "point")}, less than 3")], ct);
             return;
         }

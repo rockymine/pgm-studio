@@ -3,7 +3,7 @@
  *
  * The tab holds the revision the layout was read at and states it as `If-Match` on every save. A board
  * stored from somewhere else after the tab opened it — an agent driving the API, a second tab — refuses the
- * tab's save `RQ5` at 409, so the older board on screen is never written back over the newer one. And a
+ * tab's save `RQ13` at 409, so the older board on screen is never written back over the newer one. And a
  * flush with no edit behind it, entering Review, sends nothing at all.
  */
 

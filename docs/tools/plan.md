@@ -23,7 +23,7 @@ Draw sidebar with its three panel chips, which folds away to give the canvas the
 follows the binding, because only saving differs. A map-backed plan's bar is *Save*, which writes the map's
 artifact in place, **over the revision the tab loaded**: the plan was read with its `ETag`, which Save and the
 build's own plan write state as `If-Match`, so where the stored plan has moved on since — a second tab, an agent
-driving the API — the write is refused `RQ5` at 409 rather than overwriting it. The bar then says the plan was
+driving the API — the write is refused `RQ13` at 409 rather than overwriting it. The bar then says the plan was
 saved from somewhere else and that the page must be reloaded, and no further write is sent until it is; the
 sketch tool's save is the same helper (`DocumentSave`). A plan row's bar carries what a row needs: *New*, *Import* a `*.plan.json`, *Open* a saved
 row, *Save*, and the row's origin as a badge — `authored` saves in place, while `generated` and `imported`

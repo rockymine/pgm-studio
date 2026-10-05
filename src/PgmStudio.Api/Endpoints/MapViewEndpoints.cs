@@ -239,8 +239,9 @@ public sealed class MapViewDeleteEndpoint(MapRepository repo, MapArtifactStore a
         {
             if (id == WorldViews.StraightDownId)
             {
-                await Refusals.ConflictAsync(HttpContext, "kept by every board",
-                    "the straight-down view of a map may not be deleted", ct);
+                await Refusals.WriteAsync(HttpContext, 409, "kept by every board",
+                    [new Vocabulary.Finding(RequestRules.KeptView, $"view '{id}' is the straight-down view of the map",
+                        Field: "id")], ct);
                 return;
             }
             await Refusals.NotFoundAsync(HttpContext, "kept view", ct, named: id);

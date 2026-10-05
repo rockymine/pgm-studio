@@ -38,7 +38,7 @@ public sealed class PlanValidatorObjectivePlacementTests
         // Marker at the piece's last block, so CheckInside is happy — but a 5×5 casing centred there puts
         // two columns past the edge, where block_place=deny(void) makes the goal unbreakable.
         var plan = Plan(Land("""  "cores":[ {"piece":"land","at":[19,10],"size":5} ] """));
-        await Assert.That(Err(plan, "overhangs the void")).IsTrue();
+        await Assert.That(Err(plan, "has void under part of it")).IsTrue();
     }
 
     [Test]
@@ -46,7 +46,7 @@ public sealed class PlanValidatorObjectivePlacementTests
     {
         // 5×5 centred at x=17 spans 15..19, the last block of a 0..19 island — inclusive on both sides.
         var plan = Plan(Land("""  "cores":[ {"piece":"land","at":[17,10],"size":5} ] """));
-        await Assert.That(Err(plan, "overhangs the void")).IsFalse();
+        await Assert.That(Err(plan, "has void under part of it")).IsFalse();
     }
 
     [Test]
@@ -55,14 +55,14 @@ public sealed class PlanValidatorObjectivePlacementTests
         // pillar-3 is 1×1 in plan, so the edge block is legal ground for it — the rule must not refuse a
         // structure that fits just because a larger one would not.
         var plan = Plan(Land("""  "destroyables":[ {"piece":"land","at":[19,19],"style":"pillar-3"} ] """));
-        await Assert.That(Err(plan, "overhangs the void")).IsFalse();
+        await Assert.That(Err(plan, "has void under part of it")).IsFalse();
     }
 
     [Test]
     public async Task A_wide_destroyable_at_the_same_block_is_refused()
     {
         var plan = Plan(Land("""  "destroyables":[ {"piece":"land","at":[19,19],"style":"cube-4"} ] """));
-        await Assert.That(Err(plan, "overhangs the void")).IsTrue();
+        await Assert.That(Err(plan, "has void under part of it")).IsTrue();
     }
 
     [Test]
@@ -76,7 +76,7 @@ public sealed class PlanValidatorObjectivePlacementTests
                      {"id":"east","role":"piece","rect":[10,0,10,20]} ],
           "placements":{ "cores":[ {"piece":"west","at":[9,10],"size":5} ] } }
         """);
-        await Assert.That(Err(plan, "overhangs the void")).IsFalse();
+        await Assert.That(Err(plan, "has void under part of it")).IsFalse();
     }
 
     // ── spawn and wool rooms ────────────────────────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ public sealed class PlanValidatorObjectivePlacementTests
         // The room is stamped around the spawn marker at the middle of 'home'; a core on its own piece but
         // pushed into that frame inherits block="never", which denies the attacking team too.
         var plan = Plan(RoomBoard.Replace("CORE", """ "cores":[ {"piece":"home","at":[10,10],"size":5} ] """));
-        await Assert.That(Err(plan, "reaches into the spawn")).IsTrue();
+        await Assert.That(Err(plan, "overlaps the spawn room")).IsTrue();
     }
 
     [Test]
@@ -103,7 +103,7 @@ public sealed class PlanValidatorObjectivePlacementTests
         // The refusal is against the ROOM, not the piece holding it — a goal well away from the frame is
         // legal even though a spawn lives on the board.
         var plan = Plan(RoomBoard.Replace("CORE", """ "cores":[ {"piece":"mid","at":[25,10],"size":5} ] """));
-        await Assert.That(Err(plan, "reaches into the spawn")).IsFalse();
+        await Assert.That(Err(plan, "overlaps the spawn room")).IsFalse();
     }
 
     [Test]
@@ -120,7 +120,7 @@ public sealed class PlanValidatorObjectivePlacementTests
                          "wools":[ {"piece":"vault","at":[10,10]} ],
                          "destroyables":[ {"piece":"vault","at":[10,10],"style":"cube-4"} ] } }
         """);
-        await Assert.That(Err(plan, "reaches into the wool room")).IsTrue();
+        await Assert.That(Err(plan, "overlaps the wool room")).IsTrue();
     }
 
     // ── the agent surface ─────────────────────────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ public sealed class PlanValidatorObjectivePlacementTests
     {
         var plan = Plan(RoomBoard.Replace("CORE", """ "cores":[ {"piece":"home","at":[10,10],"size":5} ] """));
         var finding = PlanValidator.Check(plan)
-            .First(f => f.Severity == Severity.Refusal && f.Message.Contains("reaches into the spawn"));
+            .First(f => f.Severity == Severity.Refusal && f.Message.Contains("overlaps the spawn room"));
         await Assert.That(finding.SubjectIds).Contains("home");
     }
 }

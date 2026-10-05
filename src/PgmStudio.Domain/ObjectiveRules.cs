@@ -36,12 +36,22 @@ public static class ObjectiveRules
     [Rule(RuleCategory.Conflict, RuleConcern.Objective, RuleConcern.Intent)]
     public const string TwoTeamOnly = "OB14";
 
-    /// <summary>A monument or core has void under part of its footprint, or overlaps a spawn room or a wool
-    /// room.</summary>
+    /// <summary>A monument or core has a part of its footprint over void.</summary>
     /// <remarks>Move the monument or core in <c>placements.destroyables</c> or <c>placements.cores</c> until its
-    /// footprint lies wholly on ground and overlaps no spawn room or wool room.</remarks>
-    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Structure, RuleConcern.Terrain)]
+    /// footprint lies wholly on ground.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Terrain)]
     public const string Placement = "OB17";
+
+    /// <summary>A monument or core overlaps a spawn room or a wool room.</summary>
+    /// <remarks>Move the monument or core in <c>placements.destroyables</c> or <c>placements.cores</c> until its
+    /// footprint overlaps no spawn room or wool room.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Structure)]
+    public const string GoalInARoom = "OB30";
+
+    /// <summary>A wool monument has no ground under it.</summary>
+    /// <remarks>Move the room piece of the spawn in <c>pieces</c> until the monument stands on ground.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Terrain)]
+    public const string WoolMonumentOverVoid = "OB31";
 
     /// <summary>A tree, boulder or building stands within 4 blocks of an objective's structure, or less than 10
     /// blocks from its marker.</summary>

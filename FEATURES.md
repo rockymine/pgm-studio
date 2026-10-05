@@ -1019,6 +1019,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   measured number against the limit, with no reason or fix in prose. The producibility read raises its own `BX1`
   to `BX10` (a box room is `ST1`), and `Cites` names only an open task. `FindingMessageTests` holds the
   helpers' messages to the shape, read out of the source.
+- **Every check is stated by its own rule (`RP115`).** Rules whose text left a check out are split, each
+  check raised under its own id where it is checked: the roof's slab and stair (`HS20`–`HS22` beside `HS3`); the
+  request's stale revision, entry in use, kept view, empty hand-off and empty read (`RQ13`–`RQ17` beside `RQ5`);
+  a full build queue (`RQ18`) and a refused hand-off (`RQ19`); a posted terraform the stored one replaces
+  (`SK30`) and a shape with no area (`SK31`); an empty apply rule and a quarter-turn copy of a compound
+  (`ED3`, `ED4`); a goal in a room and a wool monument over void (`OB30`, `OB31`); a building touching the
+  coast on two facing sides (`DR-SPAN`). A malformed point or ring is `RQ1`.
 - **One rule, one name (`RP117`).** Six rule constants take the glossary's words and say what they refuse:
   `NoGroundPiece` (`PL1`), `WallWithoutSharedEdge` (`PL11`), `NamesNoLibraryEntry` (`SR6`), `BoulderOnAFace`
   (`DR-STEEP`), `BoulderInTheGroundsTone` (`DR-TONE`) and `DressingRules.UnreadableField` (`DR-DOC`). `WX13`

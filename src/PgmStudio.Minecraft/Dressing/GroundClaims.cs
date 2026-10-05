@@ -19,6 +19,12 @@ public static class DressingRules
     [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string PassAround = "DR-PASS";
 
+    /// <summary>A building or group of buildings touches the coast on two facing sides.</summary>
+    /// <remarks>Move the building in <c>dressing.props</c> until the passage along one of the two sides is at
+    /// least 8 blocks wide.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
+    public const string SpansTheLand = "DR-SPAN";
+
     /// <summary>The passage's width in blocks — <see cref="PassAround"/>'s one number.</summary>
     public const int PassAroundWidth = 8;
 

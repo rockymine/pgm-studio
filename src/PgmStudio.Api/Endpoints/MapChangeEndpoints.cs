@@ -145,7 +145,7 @@ public sealed class MapDiffEndpoint(MapRepository repo, MapChangeLog log) : Endp
             if (world.Png(wasBuilt, nowBuilt, scale) is not { } png)
             {
                 await Refusals.WriteAsync(HttpContext, 422, "nothing to draw",
-                    [new Finding(RequestRules.Conflict, "neither of the two layouts has any ground")], ct);
+                    [new Finding(RequestRules.NothingToRead, "neither of the two layouts has any ground")], ct);
                 return;
             }
             HttpContext.Response.ContentType = "image/png";

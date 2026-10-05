@@ -48,7 +48,7 @@ public static class DocumentWrite
 
         var stored = await artifacts.RevisionAsync(mapId, kind, ct);
         return new(Refusal.At(409, "stale write",
-            new Finding(RequestRules.Conflict,
+            new Finding(RequestRules.StaleRevision,
                 stored is { } now
                     ? $"the {what} of the map is at revision {now}, and the `If-Match` of the request states "
                       + $"{expected}"

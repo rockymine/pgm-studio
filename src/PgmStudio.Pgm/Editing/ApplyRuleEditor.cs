@@ -55,7 +55,7 @@ public static partial class ApplyRuleEditor
     {
         var hasSomething = RuleFilterKeys.Concat(ActionKeys).Append("region")
             .Any(k => payload.GetValueOrDefault(k) is string s && s.Length > 0);
-        if (!hasSomething) throw EditException.Inapplicable("the apply rule has no region, filter or action");
+        if (!hasSomething) throw EditException.Inapplicable("the apply rule has no region, filter or action", EditRules.EmptyApplyRule);
 
         var regions = data.GetValueOrDefault("regions") as Dict ?? new Dict();
         var filters = data.GetValueOrDefault("filters") as Dict ?? new Dict();

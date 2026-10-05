@@ -250,7 +250,7 @@ public sealed class NoteHandoffEndpoint(MapNoteStore notes, AgentHandoff agent, 
         if (standing.Waiting == 0 || (standing.Fresh == 0 && !request.Again))
         {
             await Refusals.WriteAsync(HttpContext, 409, "nothing to hand over",
-                [new Finding(RequestRules.Conflict, standing.Waiting == 0
+                [new Finding(RequestRules.NothingToHandOver, standing.Waiting == 0
                     ? "the studio holds no open note waiting for an agent"
                     : $"every open note was handed over at {standing.HandedAt:HH:mm} UTC, "
                       + "and none was written since")], ct);
@@ -265,7 +265,7 @@ public sealed class NoteHandoffEndpoint(MapNoteStore notes, AgentHandoff agent, 
         var (_, why) = await agent.HandAsync(text, ct);
         if (why is not null)
         {
-            await Refusals.WriteAsync(HttpContext, 503, "no agent", [new Finding(RequestRules.AgentUnavailable, why)], ct);
+            await Refusals.WriteAsync(HttpContext, 503, "agent refused", [new Finding(RequestRules.AgentRefused, why)], ct);
             return;
         }
         await Send.OkAsync((await NoteHandoffs.StandingAsync(notes, agent, ct)).Standing, ct);
@@ -379,10 +379,11 @@ public sealed class NoteReplyEndpoint(
         if (caller.ViaToken && status == NoteStatuses.Answered && picture is null
             && (request.Change ?? latest) == latest && anchor is { Camera: not null })
         {
-            using var turn = await queue.TurnOfAsync(HttpContext);
+            var entry = await queue.TurnOfAsync(HttpContext);
+            using var turn = entry.Turn;
             if (turn is null)
             {
-                await BuildQueue.RefuseBusyAsync(HttpContext);
+                await BuildQueue.RefuseBusyAsync(HttpContext, entry);
                 return;
             }
             picture = await AfterAsync(map, anchor, ct);

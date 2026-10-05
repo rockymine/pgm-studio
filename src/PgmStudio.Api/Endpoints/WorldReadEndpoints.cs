@@ -259,7 +259,7 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
             if (text is null)
             {
                 await Refusals.WriteAsync(HttpContext, 422, "nothing to draw",
-                    [new Vocabulary.Finding(RequestRules.Conflict, Empty)], ct);
+                    [new Vocabulary.Finding(RequestRules.NothingToRead, Empty)], ct);
                 return;
             }
 
@@ -288,7 +288,7 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
         {
             HttpContext.Response.Headers.Remove("ETag");
             await Refusals.WriteAsync(HttpContext, 422, "nothing to draw",
-                [new Vocabulary.Finding(RequestRules.Conflict, Empty)], ct);
+                [new Vocabulary.Finding(RequestRules.NothingToRead, Empty)], ct);
             return;
         }
 
@@ -532,7 +532,7 @@ internal sealed class ReachReadEndpoint(MapRepository repo, MapReader reader, Ma
         if (walked is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nothing to walk",
-                [new Vocabulary.Finding(RequestRules.Conflict,
+                [new Vocabulary.Finding(RequestRules.NothingToRead,
                     "the world has no ground column")], ct);
             return;
         }
@@ -586,7 +586,7 @@ internal sealed class InclineReadEndpoint(MapRepository repo, MapReader reader, 
         if (grid is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nothing to grade",
-                [new Vocabulary.Finding(RequestRules.Conflict,
+                [new Vocabulary.Finding(RequestRules.NothingToRead,
                     "the world has no ground column")], ct);
             return;
         }
@@ -628,7 +628,7 @@ internal sealed class SlopesReadEndpoint(MapRepository repo, MapReader reader, M
         if (grid is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nothing to grade",
-                [new Vocabulary.Finding(RequestRules.Conflict,
+                [new Vocabulary.Finding(RequestRules.NothingToRead,
                     "the world has no ground column")], ct);
             return;
         }
@@ -1006,7 +1006,7 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
         if (from is null || to is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nowhere to walk between",
-                [new Vocabulary.Finding(RequestRules.Conflict,
+                [new Vocabulary.Finding(RequestRules.NothingToRead,
                     "the request states no `from` and `to` within 24 blocks of ground")], ct);
             return;
         }
@@ -1095,7 +1095,7 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
         if (from is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nowhere to walk from",
-                [new Vocabulary.Finding(RequestRules.Conflict,
+                [new Vocabulary.Finding(RequestRules.NothingToRead,
                     "the request states no `from` within 24 blocks of ground")], ct);
             return;
         }
@@ -1158,7 +1158,7 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
             if (pair.Length != 2 || !int.TryParse(pair[0], out var x) || !int.TryParse(pair[1], out var z))
             {
                 await Refusals.WriteAsync(HttpContext, 422, "unreadable point",
-                    [new Vocabulary.Finding(RequestRules.Conflict,
+                    [new Vocabulary.Finding(RequestRules.Unreadable,
                         $"the request's `points` entry '{piece}' is not two whole numbers", Field: "points")], ct);
                 return;
             }
@@ -1167,7 +1167,7 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
         if (points.Count < 2)
         {
             await Refusals.WriteAsync(HttpContext, 422, "not enough points",
-                [new Vocabulary.Finding(RequestRules.Conflict,
+                [new Vocabulary.Finding(RequestRules.Unreadable,
                     $"the request's `points` has {Wording.Count(points.Count, "point")}, less than 2", Field: "points")], ct);
             return;
         }
@@ -1182,7 +1182,7 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
                 || point.X < xRange.Min || point.X > xRange.Max || point.Z < zRange.Min || point.Z > zRange.Max)
             {
                 await Refusals.WriteAsync(HttpContext, 422, "point outside the world",
-                    [new Vocabulary.Finding(RequestRules.Conflict,
+                    [new Vocabulary.Finding(RequestRules.NothingToRead,
                         xSpan is { } known && zSpan is { } knownZ
                             ? $"point ({point.X}, {point.Z}) is not between ({known.Min}, {knownZ.Min}) and "
                               + $"({known.Max}, {knownZ.Max}), the corners of the world"

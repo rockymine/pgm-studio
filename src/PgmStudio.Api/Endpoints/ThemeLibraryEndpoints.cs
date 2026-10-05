@@ -149,7 +149,7 @@ public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms, 
             .Concat(await parts.UsingStyleAsync(id, ct)).ToList();
         if (users.Count > 0)
         {
-            await Refusals.ConflictAsync(HttpContext, "style in use",
+            await Refusals.InUseAsync(HttpContext, "style in use",
                 $"pattern {id} is still bound by {users.Count} {(users.Count == 1 ? "entry" : "entries")}",
                 ct, holding: users);
             return;

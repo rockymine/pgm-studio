@@ -418,7 +418,7 @@ theirs by hand went through the verb, four of them through a `Func<Task<T>>` ove
 answer the id they inserted under.
 
 **Every document a caller can replace carries a revision.** A read answers it as an `ETag` and a write may
-state it back as an `If-Match`; one naming a revision the document is no longer at is refused as `RQ5`, and
+state it back as an `If-Match`; one naming a revision the document is no longer at is refused as `RQ13`, and
 one stating nothing writes unguarded, because protection is opted into by having read first. The map
 document and each artifact are counted apart — a caller holding the sketch layout's revision has said nothing
 about the map's. The compare is one statement with the revision in its `where`, so the database decides which

@@ -88,7 +88,7 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
         if (answer is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nothing to pick",
-                [new Vocabulary.Finding(RequestRules.Conflict, aim.Empty)], ct);
+                [new Vocabulary.Finding(RequestRules.NothingToRead, aim.Empty)], ct);
             return;
         }
         await Send.OkAsync(answer, ct);

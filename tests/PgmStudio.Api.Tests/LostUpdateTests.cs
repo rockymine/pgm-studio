@@ -48,7 +48,7 @@ public sealed class LostUpdateTests
         await Assert.That(mine.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
         var refusal = await mine.Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(refusal.GetProperty("error").GetString()).IsEqualTo("stale write");
-        await Assert.That(refusal.GetProperty("findings")[0].GetProperty("rule").GetString()).IsEqualTo("RQ5");
+        await Assert.That(refusal.GetProperty("findings")[0].GetProperty("rule").GetString()).IsEqualTo("RQ13");
 
         // And the refusal means it: the first caller's write is what the map still holds.
         await Assert.That(await StoredAsync(client, slug)).IsEqualTo("first");

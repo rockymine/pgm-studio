@@ -246,7 +246,7 @@ structure, and structures never fuse.
   as a **point** and the export builds as a **volume**: the marker says where the cube is centred and the
   ground decides whether one fits there, so whether anything can stand there is the resolver's answer rather
   than the author's. The objective-separation rules answer the same question a different way and were never
-  going to carry this attribute — a goal against a spawn or a wool room is `OB17`, refused at the gate over
+  going to carry this attribute — a goal against a spawn or a wool room is `OB30`, refused at the gate over
   the goal's footprint, and how far two goals stand apart is `GO2`/`GO3`/`WL7`, reported by `GoalDistances`
   and judged by the evaluator terms.
 
@@ -491,7 +491,7 @@ slabs between them, so a dark oak verge over a spruce roof reads dark oak, spruc
 up the slope. The rim's own slab is read off the material table — `BlockMaterials.SlabOf`, the same table that
 answers what a block is *cut from* — so the two cannot disagree about what dark oak is. A verge whose material
 has no slab keeps the body's, since a gap in the rake is worse than a course of the wrong wood; that is the
-laid log's case, and `HS3` already refuses `roofSlab` over a log **body** for the same reason.
+laid log's case, and `HS20` already refuses `roofSlab` over a log **body** for the same reason.
 
 **A laid log is a roof material, and the difference is the axis.** A log's data nibble is which way it lies, so
 a log named as a solid has none: every one of them stands upright and shows a sawn face out at the slope, which
@@ -511,7 +511,7 @@ down and faces out of the gable end rather than down either slope: its step towa
 its raised half back under the roof (author). A
 hip line and a flat lid, with nothing higher beside them, stay whole blocks. The rim takes the stair cut from the verge (`BlockMaterials.StairOf`), or the
 body's where the verge has none, which is the rule the slab already follows. A roof climbs in halves or in
-stairs and never both, so the slab wins wherever a wing names one, and `HS3` refuses a style naming both.
+stairs and never both, so the slab wins wherever a wing names one, and `HS21` refuses a style naming both.
 
 **A column hanging outside the building is given a block of depth.** Past the gable and past the eave nothing
 stands under a single-course column, so a stair there is half a block thick and a slab rake alternates half a

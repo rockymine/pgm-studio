@@ -31,8 +31,9 @@ public sealed record BuildQueueOptions(
 /// The queue in front of every <see cref="QueuedAttribute"/> route. A request takes its caller's turn, then a
 /// turn on the studio, waiting for each without holding a thread; it runs, and gives both back when its
 /// response is written. A caller over <see cref="BuildQueueOptions.PerCaller"/> waits behind their own
-/// requests, so one caller cannot take every turn, and a request that finds the queue full or waits past
-/// <see cref="BuildQueueOptions.MaxWaitSeconds"/> is refused <see cref="RequestRules.Busy"/> at 429.
+/// requests, so one caller cannot take every turn. A request that finds the queue full is refused
+/// <see cref="RequestRules.QueueFull"/>, and one that waits past <see cref="BuildQueueOptions.MaxWaitSeconds"/>
+/// <see cref="RequestRules.Busy"/>, both at 429.
 /// </summary>
 public sealed class BuildQueue(BuildQueueOptions options)
 {
@@ -57,19 +58,27 @@ public sealed class BuildQueue(BuildQueueOptions options)
         }
     }
 
+    /// <summary>A turn, or the rule a request that has none is refused under.</summary>
+    public readonly record struct Entry(Turn? Turn, string? Refused);
+
     /// <summary>Wait for <paramref name="caller"/>'s turn, or null where the queue is full or the wait ran
     /// out.</summary>
-    public async Task<Turn?> EnterAsync(string caller, CancellationToken ct)
+    public async Task<Turn?> EnterAsync(string caller, CancellationToken ct) => (await TryEnterAsync(caller, ct)).Turn;
+
+    /// <summary>Wait for <paramref name="caller"/>'s turn, or answer why there is none:
+    /// <see cref="RequestRules.QueueFull"/> where the queue is full, <see cref="RequestRules.Busy"/> where the
+    /// wait ran out.</summary>
+    public async Task<Entry> TryEnterAsync(string caller, CancellationToken ct)
     {
         Lane lane;
         lock (lanes)
         {
-            if (waiting >= options.Waiting) return null;
+            if (waiting >= options.Waiting) return new(null, RequestRules.QueueFull);
             if (!lanes.TryGetValue(caller, out lane!)) lanes[caller] = lane = new Lane(Math.Max(1, options.PerCaller));
             if (lane.Waiting >= options.WaitingPerCaller)
             {
                 if (lane.Users == 0) lanes.Remove(caller);
-                return null;
+                return new(null, RequestRules.QueueFull);
             }
             lane.Users++;
             lane.Waiting++;
@@ -98,7 +107,9 @@ public sealed class BuildQueue(BuildQueueOptions options)
                 Leave(caller, lane);
             }
         }
-        return studioTurn ? new Turn(() => { slots.Release(); lane.Turns.Release(); Leave(caller, lane); }) : null;
+        return studioTurn
+            ? new(new Turn(() => { slots.Release(); lane.Turns.Release(); Leave(caller, lane); }), null)
+            : new(null, RequestRules.Busy);
     }
 
     private void Leave(string caller, Lane lane)
@@ -126,35 +137,37 @@ public sealed class BuildQueue(BuildQueueOptions options)
             return;
         }
 
-        using var turn = await http.RequestServices.GetRequiredService<BuildQueue>().TurnOfAsync(http);
+        var entry = await http.RequestServices.GetRequiredService<BuildQueue>().TurnOfAsync(http);
+        using var turn = entry.Turn;
         if (turn is null)
         {
-            await RefuseBusyAsync(http);
+            await RefuseBusyAsync(http, entry);
             return;
         }
         await next(http);
     }
 
     /// <summary>Wait for the turn of the caller behind <paramref name="http"/> — a signed-in person by their
-    /// account, a visitor by their address — or null where they cannot have one. For a route that builds on
+    /// account, a visitor by their address — or answer why they cannot have one. For a route that builds on
     /// only some of its requests, which takes a turn where it does rather than being <see cref="QueuedAttribute"/>.</summary>
-    public async Task<Turn?> TurnOfAsync(HttpContext http)
+    public async Task<Entry> TurnOfAsync(HttpContext http)
     {
         var caller = await http.RequestServices.GetRequiredService<Callers>().OfAsync(http, http.RequestAborted);
         var key = caller.Uuid is { } uuid ? $"account:{uuid}"
             : caller.Role is not null ? "local"
             : $"address:{http.Connection.RemoteIpAddress}";
-        return await EnterAsync(key, http.RequestAborted);
+        return await TryEnterAsync(key, http.RequestAborted);
     }
 
-    /// <summary>Answer a request that could not have a turn: 429, <see cref="RequestRules.Busy"/>, and when to ask
-    /// again.</summary>
-    public static async Task RefuseBusyAsync(HttpContext http)
+    /// <summary>Answer a request that could not have a turn: 429, the rule its entry was refused under, and
+    /// when to ask again.</summary>
+    public static async Task RefuseBusyAsync(HttpContext http, Entry entry)
     {
         http.Response.Headers.RetryAfter = RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
         await Refusals.WriteAsync(http, 429, "busy",
-            [new Finding(RequestRules.Busy,
-                "the build queue gave the request no turn")], http.RequestAborted);
+            [entry.Refused == RequestRules.QueueFull
+                ? new Finding(RequestRules.QueueFull, "the build queue holds as many requests as it takes")
+                : new Finding(RequestRules.Busy, "the build queue gave the request no turn")], http.RequestAborted);
     }
 
     /// <summary>What a refused request is told to wait before asking again.</summary>

@@ -94,12 +94,12 @@ internal static class Refusals
                     : $"the path of the request names no {what}")], ct);
     }
 
-    /// <summary>The request conflicts with what is stored — a name already taken, a row something still
-    /// binds. 409, with the things in the way as the finding's subjects so a caller can act on them.</summary>
-    public static Task ConflictAsync(
+    /// <summary>The request deletes a library entry something still uses: 409, with the entries in the way
+    /// as the finding's subjects so a caller can act on them.</summary>
+    public static Task InUseAsync(
         HttpContext http, string error, string message, CancellationToken ct, IReadOnlyList<string>? holding = null) =>
         WriteAsync(http, 409, error,
-            [new Finding(RequestRules.Conflict, message, Subjects: holding)], ct);
+            [new Finding(RequestRules.InUse, message, Subjects: holding)], ct);
 
     /// <summary>A document the studio stored will not read back. 422, because it is data rather than a defect
     /// and writing the document again clears it.</summary>

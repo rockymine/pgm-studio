@@ -2162,8 +2162,8 @@ public sealed class DecoratorTests
                 },
             } }]));
         var drop = corked.Declines.Single();
-        await Assert.That(drop.Message).Contains("a passage less than 8 blocks wide");
-        await Assert.That(drop.Rule).IsEqualTo(DressingRules.PassAround);
+        await Assert.That(drop.Message).Contains("stands against the coast on two facing sides");
+        await Assert.That(drop.Rule).IsEqualTo(DressingRules.SpansTheLand);
 
         // The same house hugging a west coast: one flank is the edge and the other three keep the passage.
         var (coast, coastTop) = Plateau();

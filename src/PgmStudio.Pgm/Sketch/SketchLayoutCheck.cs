@@ -278,9 +278,9 @@ public static class SketchLayoutCheck
                     $"{Named(shape)} names the kind '{kind}', which is not one of {string.Join(", ", Kinds)}",
                     Severity.Complaint, Field: $"{where}.type", Subjects: Ids(shape)));
             }
-            else if (Empty(shape) is { } why)
+            else if (Empty(shape) is var (rule, why))
             {
-                findings.Add(new Finding(SketchRules.DrawsNothing,
+                findings.Add(new Finding(rule,
                     $"{Named(shape)} {why}",
                     Severity.Complaint, Field: where, Subjects: Ids(shape)));
             }
@@ -568,25 +568,27 @@ public static class SketchLayoutCheck
         return Math.Abs(sum);
     }
 
-    // Why a shape of a known kind still draws nothing, or null where it draws something.
-    private static string? Empty(SketchShape shape) => shape.Type switch
+    // The rule a shape of a known kind breaks by drawing nothing, and what it states; null where it draws
+    // something.
+    private static (string Rule, string Why)? Empty(SketchShape shape) => shape.Type switch
     {
         ShapeKinds.Polygon or ShapeKinds.Lasso => shape.Vertices is not { Length: >= 3 }
-            ? $"has {Wording.Count(shape.Vertices?.Length ?? 0, "point")}, less than 3"
+            ? (SketchRules.DrawsNothing, $"has {Wording.Count(shape.Vertices?.Length ?? 0, "point")}, less than 3")
             : Area(shape.Vertices) > 0
                 ? null
-                : $"has {Wording.Count(shape.Vertices.Length, "point")} that enclose no area",
+                : (SketchRules.DrawsNoArea,
+                    $"has {Wording.Count(shape.Vertices.Length, "point")} that enclose no area"),
         ShapeKinds.Circle => shape.Radius > 0
             ? null
-            : $"has a radius of {shape.Radius ?? 0:0.##} blocks",
+            : (SketchRules.DrawsNothing, $"has a radius of {shape.Radius ?? 0:0.##} blocks"),
         ShapeKinds.Polyline => shape.Radius > 0
             ? shape.Vertices is { Length: >= 2 }
                 ? null
-                : $"has {Wording.Count(shape.Vertices?.Length ?? 0, "point")}, less than 2"
-            : $"has a radius of {shape.Radius ?? 0:0.##} blocks",
+                : (SketchRules.DrawsNothing, $"has {Wording.Count(shape.Vertices?.Length ?? 0, "point")}, less than 2")
+            : (SketchRules.DrawsNothing, $"has a radius of {shape.Radius ?? 0:0.##} blocks"),
         ShapeKinds.Rectangle => (shape.MaxX ?? 0) - (shape.MinX ?? 0) != 0 && (shape.MaxZ ?? 0) - (shape.MinZ ?? 0) != 0
             ? null
-            : "has no area",
+            : (SketchRules.DrawsNoArea, "has no area"),
         _ => null,
     };
 

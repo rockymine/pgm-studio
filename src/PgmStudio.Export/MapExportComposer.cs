@@ -581,7 +581,7 @@ public static class MapExportComposer
         foreach (var wool in goals.Wools ?? [])
             foreach (var monument in wool.Monuments)
                 if (!IsLand((int)Math.Floor(monument.Location.X), (int)Math.Floor(monument.Location.Z)))
-                    findings.Add(new Finding(ObjectiveRules.Placement,
+                    findings.Add(new Finding(ObjectiveRules.WoolMonumentOverVoid,
                         $"wool monument of '{monument.Team}' on the wool of '{wool.Owner}' has void under it at "
                         + $"({(int)Math.Floor(monument.Location.X)}, {(int)Math.Floor(monument.Location.Z)})",
                         Subjects: [wool.Owner]));
@@ -636,7 +636,7 @@ public static class MapExportComposer
     {
         foreach (var destroyable in goals.Destroyables ?? [])
             if (destroyable.Box is { } box)
-                yield return new PlacedGoal("destroyable", GoalName(destroyable.Name, destroyable.Owner), Rect(box));
+                yield return new PlacedGoal("monument", GoalName(destroyable.Name, destroyable.Owner), Rect(box));
         foreach (var core in goals.Cores ?? [])
             if (core.Box is { } box)
                 yield return new PlacedGoal("core", GoalName(core.Name, core.Owner), Rect(box));
