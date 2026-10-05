@@ -95,7 +95,7 @@ public sealed class RoofStyleCreateEndpoint(HousePartStore store, HousePartLibra
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, null,
             (await store.ListRoofsAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var composed = await library.ComposeRoofDraftAsync(req, ct);
-        var findings = LibraryGate.Courses(req.Courses).And(HouseStyleValidation.CheckRoof(composed.Roof));
+        var findings = LibraryGate.Courses(req.Courses).And(RoofPartFields.Of(HouseStyleValidation.CheckRoof(composed.Roof)));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = await store.CreateRoofAsync(
             HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
@@ -116,7 +116,7 @@ public sealed class RoofStyleUpdateEndpoint(HousePartStore store, HousePartLibra
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListRoofsAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var composed = await library.ComposeRoofDraftAsync(req, ct);
-        var findings = LibraryGate.Courses(req.Courses).And(HouseStyleValidation.CheckRoof(composed.Roof));
+        var findings = LibraryGate.Courses(req.Courses).And(RoofPartFields.Of(HouseStyleValidation.CheckRoof(composed.Roof)));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
         var updated = await store.UpdateRoofAsync(
@@ -360,4 +360,21 @@ public sealed class PorchStyleDeleteEndpoint(HousePartStore store) : EndpointWit
         await store.DeletePorchAsync(id, ct);
         await Send.NoContentAsync(ct);
     }
+}
+
+/// <summary>The roof checks name a house style's fields; a roof part's request states the same things under its
+/// own names, the slab and stair at its top and the body, verge and gable as its courses.</summary>
+internal static class RoofPartFields
+{
+    public static Findings Of(Findings findings) => new(findings.Select(finding => finding with
+    {
+        Field = finding.Field switch
+        {
+            "roof.slab" => "roofSlab",
+            "roof.stair" => "roofStair",
+            "roof.form" => "form",
+            "roof.body" or "roof.verge" or "roof.gable" => "courses",
+            var other => other,
+        },
+    }));
 }

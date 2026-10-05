@@ -60,7 +60,7 @@ public enum Severity
 /// <param name="Message">What is wrong, in the terms the author wrote it in, with the numbers in it.</param>
 /// <param name="Severity">What became of what it is about: the work stopped, this piece of it was dropped,
 /// or nothing was lost and there is a remark. Refusal unless stated.</param>
-/// <param name="Field">The document field at fault, where one is nameable — <c>doorHead.block</c>, <c>wings</c>.</param>
+/// <param name="Field">The document field at fault, where one is nameable — <c>doorway.head.block</c>, <c>wings</c>.</param>
 /// <param name="Subjects">The ids the fault indicts, for an editor to highlight on click.</param>
 /// <param name="Cites">The <b>open task</b> that would resolve this finding, where one owns its gap. Kept apart
 /// from <paramref name="Rule"/> because a rule is stable forever and a task id is a debt with a due date.</param>

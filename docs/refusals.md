@@ -95,8 +95,8 @@ for one that wants to act:
 ```json
 {
   "error": "invalid house style",
-  "message": "doorHead.block (5) is not a stair. …",
-  "findings": [ { "rule": "HS1", "message": "…", "severity": "refusal", "field": "doorHead.block" } ]
+  "message": "`doorway.head.block` is block 5, which is not a stair",
+  "findings": [ { "rule": "HS1", "message": "…", "severity": "refusal", "field": "doorway.head.block" } ]
 }
 ```
 
@@ -279,7 +279,7 @@ list for a clean document, so `Count > 0` reads as "refused" and happens to be r
 complaints as well answers a non-empty list for a document that is perfectly good, and the same expression
 blocks it. Both kinds were being read the same way. Beside it, `Refusals` and `Complaints` split the list,
 `Summary` is every sentence, `And` joins two gates' answers, and `Under(root)` prefixes a field so a style
-bound twice onto one sketch reports `roomStyles.wool.doorHead.block` rather than a `doorHead.block` an author
+bound twice onto one sketch reports `roomStyles.wool.doorway.head.block` rather than a `doorway.head.block` an author
 cannot place.
 
 `AsComplaints` is for the case that is not a gate at all. A **derivation** — the producibility read is the one —

@@ -131,7 +131,7 @@ public sealed class RoomDoorListEndpoint : EndpointWithoutRequest<List<DoorOptio
 /// <see cref="HouseBlockKinds"/> in <c>PgmStudio.Minecraft</c>, which neither the client nor an agent can
 /// reach, and it is the very table <c>HS1</c> refuses from — so a block offered here is a block the gate
 /// accepts, and the sentence a field carries is the sentence the refusal names it with. Without it the only
-/// way to learn that <c>doorHead.block</c> wants a stair is to be refused one.</para></summary>
+/// way to learn that <c>doorway.head.block</c> wants a stair is to be refused one.</para></summary>
 public sealed class HouseBlockKindsEndpoint : EndpointWithoutRequest<HouseBlockKindsDto>
 {
     public override void Configure() { Get("/room-styles/block-kinds"); }

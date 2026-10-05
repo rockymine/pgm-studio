@@ -759,15 +759,15 @@ wool cage, the spawn and a placed house checked identically, since none of the t
 rule, and there against the build ceiling as well (`WX10`, `docs/world-export/structures.md`). All three roads
 to a stored layout ask it: the plain `PUT …/sketch`, `PUT …/sketch/from-plan`, and `PUT …/source`. Every style
 finding names a stable rule id (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` rather than
-parsing `message`. `HS1`–`HS6` refuse. `HS7`–`HS19` are complaints — the author's verdicts on how a house looks,
+parsing `message`. `HS1`–`HS6` and `HS20`–`HS22` refuse. `HS7`–`HS19` are complaints — the author's verdicts on how a house looks,
 and on how a porch and a stilt house stand — and ride on the success as `warnings` and the `Pgm-Warnings`
 header:
 
 - **`HS1` — a block named for a role that is not that kind of block.** `beams.block` must be a **log** — a
   beam is the end of a floor timber and docks against the posts, which is what a log is for and the only thing
-  it is a house material for. `doorHead.block` must be a stair; its `fillBlock` under `upperSlab`
+  it is a house material for. `doorway.head.block` must be a stair; `doorway.head.fillBlock` under `upperSlab`
   must be a single slab; a `windows.block` under `stairLattice` or `arched` must be a stair, and under
-  `slabBanded` a single slab; `roofStair` must be a stair; `roofSlab` itself must be a single slab when it names one at all — a **double**
+  `slabBanded` a single slab; `roof.stair` must be a stair; `roof.slab` itself must be a single slab when it names one at all — a **double**
   slab (43/125/181) does not count, since it ignores the half a window or a door head writes into its data and
   is a full cube regardless. Getting it wrong used to build silently — a solid lintel instead of an arch, a
   pane/air/pane stripe instead of a band — and now answers **400**
@@ -782,15 +782,18 @@ header:
   a flat 2.0 and is refused the same way.
 - **`HS3` — a roof's own materials.** A roof is **one material and its verge is one material**: a pattern in
   either is refused, since a roof is read as one plane and a voronoi across it is several blocks in one
-  surface, and `roofSlab` is the body's own material, since the slab is the body continuing by halves. The two
-  may be the same block — a brick body with a brick verge is a whole brick roof — or they may differ, which is
-  how a dark oak verge trims one. A slab named as the whole-block `roof` while `roofSlab` is unset builds a
-  see-through roof at a whole block of rise; a **bare** log or a ground material named as `roof` or `verge` is
-  refused outright, whichever role it is asked to fill. A **laid** log is not — a `laidLog` roof lies along the
-  ridge and is one of the commonest hand-built roofs there is, and what was never a roof is the log with no
-  axis rather than the log. It carries its own whole-course rise, so `roofSlab` over one is refused: no slab is
-  cut from a log. `roofStair` is held the same way — the body's own material, never over a laid log — and a
-  roof naming both `roofStair` and `roofSlab` is refused, since it climbs one way or the other. The **gable** is the end wall carried up and follows the wall, so it is not held to this.
+  surface. The two may be the same block — a brick body with a brick verge is a whole brick roof — or they may
+  differ, which is how a dark oak verge trims one. A **bare** log or a ground material named as `roof.body` or
+  `roof.verge` is refused outright, whichever role it is asked to fill. A **laid** log is not — a `laidLog` roof
+  lies along the ridge and is one of the commonest hand-built roofs there is, and what was never a roof is the
+  log with no axis rather than the log. A porch canopy is held to the same. The **gable** is the end wall
+  carried up and follows the wall, so it is not held to this.
+- **`HS20`–`HS22` — how a roof climbs.** `roof.slab` and `roof.stair` are the body's own material, since a
+  slab is the body continuing by halves and a stair the body climbing in steps, so one cut from anything else
+  is `HS20` — and a laid-log body has neither, since no slab or stair is cut from a log. A roof climbs one way
+  or the other, so naming both is `HS21`. A slab named as the whole-block `roof.body` while `roof.slab` is
+  unset builds a see-through roof at a whole block of rise, which is `HS22`. A roof part states the slab and
+  the stair as its own `roofSlab` and `roofStair`, and its findings name them so.
 
 - **`HS4` — a part built of two blocks, built of two materials.** A door head is a stair at each corner and a
   slab between them, and a window may be seated in a host block; each pair is one line of the building and is
