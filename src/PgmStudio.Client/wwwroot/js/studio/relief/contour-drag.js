@@ -41,11 +41,14 @@ const MOVED_ENOUGH = 1;
 
 /**
  * The contour under a point, or null. `relief` is the payload `sketch/relief` returns; `indexEvery` matches
- * what the overlay draws heavily, since that is what an author sees to aim at.
+ * what the overlay draws heavily, since that is what an author sees to aim at. Only a relief's own lines are
+ * taken: a group no relief solves is drawn at the heights its shapes build, and dragging a line there would
+ * put a relief over ground its shapes already state.
  */
 export function contourAt(relief, x, z, { slack = GRAB_SLACK, indexEvery = 5 } = {}) {
   let best = null;
   for (const group of relief?.groups ?? []) {
+    if (!group.solved) continue;
     for (const line of group.lines ?? []) {
       const distance = distanceToLine(line.points ?? [], x, z);
       if (distance > slack) continue;

@@ -277,21 +277,77 @@ public static class SketchRasterizer
     /// under, since a relief is keyed on its group. A cell no grouped shape covers is absent.</summary>
     public static Dictionary<(int X, int Z), string> GroupOwners(string layoutJson)
     {
+        var groupOfShape = GroupsOfShapes(SketchLayout.Parse(layoutJson));
+        var owners = new Dictionary<(int X, int Z), string>();
+        foreach (var ((layer, x, z), owner) in TerrainOwners(layoutJson))
+            if (groupOfShape.TryGetValue((layer, owner.Shape), out var groupId)) owners[(x, z)] = groupId;
+        return owners;
+    }
+
+    /// <summary>The surface the board builds for every group no relief solves, as one height field per group:
+    /// each column's highest top, gathered under the group whose shape forms it. A relief group answers through
+    /// <see cref="ReliefFields"/> instead, so a group in <paramref name="solved"/> is left out; ground another
+    /// group stands on top of — a wall over a hillside, a deck on its own layer — is that other group's.
+    ///
+    /// <para>The heights are the build's own columns (<see cref="RasterizeColumns(SketchLayout?)"/>), every layer
+    /// stacked and every made thing seated. The continuous surface sits half a block above each top, so a
+    /// contour traced at a whole level runs along the edge where the ground first stands at that level rather
+    /// than through the middle of the step above it.</para></summary>
+    public static Dictionary<string, HeightField> BuiltSurfaces(string layoutJson, IReadOnlySet<string> solved)
+    {
         var state = SketchLayout.Parse(layoutJson);
+        var groupOfShape = GroupsOfShapes(state);
+        var owners = TerrainOwners(layoutJson);
+
+        var tops = new Dictionary<(int X, int Z), (int Top, string Layer)>();
+        foreach (var column in RasterizeColumns(state))
+            if (!tops.TryGetValue((column.X, column.Z), out var held) || column.YTop > held.Top)
+                tops[(column.X, column.Z)] = (column.YTop, column.Layer);
+
+        var cellsOfGroup = new Dictionary<string, List<(int X, int Z, int Top)>>(StringComparer.Ordinal);
+        foreach (var ((x, z), (top, layer)) in tops)
+        {
+            if (!owners.TryGetValue((layer, x, z), out var owner)) continue;
+            if (!groupOfShape.TryGetValue((layer, owner.Shape), out var groupId) || solved.Contains(groupId)) continue;
+            if (!cellsOfGroup.TryGetValue(groupId, out var cells)) cellsOfGroup[groupId] = cells = [];
+            cells.Add((x, z, top));
+        }
+
+        var surfaces = new Dictionary<string, HeightField>(StringComparer.Ordinal);
+        foreach (var (groupId, cells) in cellsOfGroup)
+        {
+            int minX = cells.Min(cell => cell.X), minZ = cells.Min(cell => cell.Z);
+            var footprint = new Footprint(minX, minZ,
+                cells.Max(cell => cell.X) - minX + 1, cells.Max(cell => cell.Z) - minZ + 1);
+            footprint.Add(cells.Select(cell => (cell.X, cell.Z)));
+            var blocks = new int[footprint.Cells];
+            var continuous = new double[footprint.Cells];
+            foreach (var (x, z, top) in cells)
+            {
+                blocks[footprint.Index(x, z)] = top;
+                continuous[footprint.Index(x, z)] = top + 0.5;
+            }
+            surfaces[groupId] = new HeightField(footprint, continuous, blocks);
+        }
+        return surfaces;
+    }
+
+    /// <summary>Which group each layer's shapes belong to, by layer and shape id.</summary>
+    private static Dictionary<(string Layer, string Shape), string> GroupsOfShapes(SketchLayout? state)
+    {
         var groupOfShape = new Dictionary<(string Layer, string Shape), string>();
         foreach (var layer in SketchLayout.Stack(state))
             foreach (var group in layer.Groups)
                 foreach (var shapeId in group.ShapeIds)
                     if (group.Id is { } groupId) groupOfShape[(layer.Id!, shapeId)] = groupId;
-
-        // Only terrain answers here: a role-tagged shape belongs to no group — an annotation is never added
-        // to an island's own ShapeIds — so letting one own a cell would drop that cell's group rather than
-        // report it, and the relief a gate reads would go silent under every room on the board.
-        var owners = new Dictionary<(int X, int Z), string>();
-        foreach (var ((layer, x, z), owner) in ShapeScopeOwners(layoutJson, shape => shape.Role is null))
-            if (groupOfShape.TryGetValue((layer, owner.Shape), out var groupId)) owners[(x, z)] = groupId;
-        return owners;
+        return groupOfShape;
     }
+
+    /// <summary>The terrain shape forming each column's surface on each layer. Only terrain answers: a
+    /// role-tagged shape belongs to no group — an annotation is never added to an island's own ShapeIds — so
+    /// letting one own a cell would drop that cell's group rather than report it.</summary>
+    private static Dictionary<(string Layer, int X, int Z), (string Shape, int Image)> TerrainOwners(string layoutJson)
+        => ShapeScopeOwners(layoutJson, shape => shape.Role is null);
 
     /// <summary>Maps every cell a <em>painted</em> shape covers, on the layer that covers it, to that shape's
     /// id and the image of it that covers the cell — the scope <c>TerrainThemeScope</c> resolves a cell's

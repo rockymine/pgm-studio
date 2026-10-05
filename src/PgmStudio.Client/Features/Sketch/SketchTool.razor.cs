@@ -368,7 +368,9 @@ public partial class SketchTool
     private static readonly Dictionary<string, PhaseOverlay> Overlays = new()
     {
         ["info"]     = new([ChipShapes, ChipMirror, ChipChunks, ChipBlocks], []),
-        ["draw"]     = new([ChipShapes, ChipMirror, ChipChunks, ChipBlocks], []),
+        // Contours are offered while drawing, off until asked for: ground shaped by anchor heights, a height mode
+        // or a stacked layer is drawn on them, and that is what an author needs to see while placing a shape.
+        ["draw"]     = new([ChipShapes, ChipMirror, ChipChunks, ChipBlocks, ChipRelief], []),
         // The contour layer comes on with the phase's canvas mode, so it is offered here but not pushed again.
         ["relief"]   = new([ChipRelief, ChipShapes, ChipMirror, ChipChunks, ChipBlocks], [ChipShapes]),
         ["theme"]    = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks, ChipShapes]),

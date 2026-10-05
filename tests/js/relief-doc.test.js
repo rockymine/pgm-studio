@@ -548,6 +548,7 @@ test("a lift is coloured from zero, so a push and a mark at the same height agre
 const CONTOURS = {
   groups: [{
     group: "i1",
+    solved: true,
     lines: [
       // A plain line at z = 20 and an index line at z = 24, both running the width of the board.
       { level: 7, closed: false, points: [0, 20, 20, 20, 40, 20] },
@@ -560,6 +561,13 @@ test("a press near a contour grabs it, and one away from every contour grabs not
   assert.equal(contourAt(CONTOURS, 20, 20)?.level, 7);
   assert.equal(contourAt(CONTOURS, 20, 40), null);
   assert.equal(contourAt(null, 20, 20), null);
+});
+
+test("a line on ground no relief solves cannot be grabbed", () => {
+  // The built surface of a group with no relief is drawn for reading; a drag there would lay a relief over
+  // heights its shapes already state.
+  const built = { groups: [{ ...CONTOURS.groups[0], group: "wall", solved: false }] };
+  assert.equal(contourAt(built, 20, 20), null);
 });
 
 test("an index line wins a press between two contours", () => {
@@ -594,7 +602,7 @@ test("a contour pressed and released without moving states nothing", () => {
 test("a dragged contour is simplified, not stored as the tracer drew it", () => {
   // A traced contour is one point per cell boundary. Stored raw it is a mark with hundreds of grips, which is
   // not a thing an author can then edit.
-  const dense = { groups: [{ group: "i1", lines: [{ level: 5, closed: false,
+  const dense = { groups: [{ group: "i1", solved: true, lines: [{ level: 5, closed: false,
     points: Array.from({ length: 120 }, (_, i) => (i % 2 === 0 ? i : 30)) }] }] };
   const stated = markFromDrag(contourAt(dense, 20, 30), 0, -4);
   assert.ok(stated.mark.points.length < 8, `kept ${stated.mark.points.length} points`);

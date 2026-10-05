@@ -634,8 +634,9 @@ the same reason and floats above the dock beside it.
 **A phase offers the overlays it can use, and switches on the ones it works with.** The layer bar is not a
 fixed six: a phase shows the layer it works on and the layer it works against, and an overlay that would draw
 a fact another shown layer already carries is not offered at all. Draw and Relief keep the shapes, the mirror,
-the chunk grid and the blocks; Relief adds the contours and leads with them, because the paint has not run
-yet and the contours are the only view of what is being stated. Theme and Dressing open with **Blocks and
+the chunk grid, the blocks and the contours; Draw offers the contours off, for the heights a shape builds while
+it is being placed, and Relief leads with them, because the paint has not run yet and the contours are the only
+view of what is being stated. Theme and Dressing open with **Blocks and
 Shapes on** — the paint is what they act on and the outlines say what carries it — and offer no contour chip,
 because the painted ground already carries the height. Snap is in none of them: it changes what a drag does
 rather than what is drawn, so it sits in the dock beside the shape tools, in Draw, the one phase that drags a
@@ -777,7 +778,7 @@ aimed plane from three — rounding to blocks, so a slope reads as the neat stra
 
 Six overlays sit above the canvas: **Shapes** (the draw primitives over the fused groups), **Mirror** (the
 symmetry copies), **Chunks** (the 16-block grid), **Blocks** (the rasterized footprint — the exact cells an
-export would fill), **Contours** (the height contours of whatever relief the groups carry) and **Snap**. A
+export would fill), **Contours** (the height contours of the ground every group builds) and **Snap**. A
 read-only isometric preview draws **the world the export builds**: entering it posts the live layout to
 `sketch/columns`, which runs the real build and answers every column's solid runs, and the browser meshes
 those into triangles. So the picture carries the terrain's own materials, the relief the groups were solved
@@ -873,11 +874,19 @@ array back to the single amount.
 A sixth mark, the **rim**, is not placed at all: it holds the group's whole outline, so it rides as a property
 of the group's relief — one height and a depth.
 
-**The overlay is a shaded height map under its own contours.** `POST …/sketch/relief?heights=true` returns
-the solved surface with the lines traced from it — one block height per cell of the group's box, row-major,
-`null` where the footprint holds no land — and the canvas blits it a pixel a block under the contours. The
-solve that traces the lines is the solve that produces it, so the grid costs the serialization and nothing
-else. Contours say where the ground changes height and not which way; a lightness ramp says the shape at a
+**The overlay is a shaded height map under its own contours, for every group on the board.**
+`POST …/sketch/relief?heights=true` returns each group's surface with the lines traced from it — one block
+height per cell of the group's box, row-major, `null` where the footprint holds no land — and the canvas blits it
+a pixel a block under the contours. A group carrying a relief answers the solved field, and the solve that traces
+the lines is the solve that produces it, so the grid costs the serialization and nothing else. Every other group
+answers its **built** surface (`SketchRasterizer.BuiltSurfaces`): the highest top of each column it forms, read
+off the build's own columns with every layer stacked, so ground shaped by `anchor_heights`, by a `height_mode` or
+by a layer's `base_y` is drawn as it will stand. A column one group stands on top of another's — a wall over a
+hillside, a deck on its own layer — is the upper group's. Those entries come back with `solved: false` after the
+relief ones and are drawn over them; their lines are traced half a block above each top, so the line at a whole
+level runs along the edge where the ground first stands at it, and they are read-only — a contour is dragged
+into a mark only on a relief's own lines. A draped wall that went onto a layer of its own shows here as one flat
+level across a slope. Contours say where the ground changes height and not which way; a lightness ramp says the shape at a
 glance and the lines then say by how much, which is why the two are one overlay rather than two toggles. The
 ramp runs dark-low to light-high over each group's **own** range, so a board of four blocks of relief and one
 of forty each use all of it — what an author is judging is the shape of their surface, not how it compares to
@@ -959,8 +968,8 @@ carry what its kind needs is **dropped rather than defaulted** — a point witho
 two points, an area or push under three ring vertices never reaches the solver.
 
 Two server-side reads support the phase. The **contour overlay** posts the live layout and gets back traced
-lines per group, at a stated interval, from the build's own solver, so what is drawn cannot differ from what
-will be built. The **readback** answers what the stated terrain *charges* a player: reachability at each of the
+lines per group, at a stated interval, from the build's own solver and its own columns, so what is drawn cannot
+differ from what will be built. The **readback** answers what the stated terrain *charges* a player: reachability at each of the
 three thresholds a player has (a jump, a placed block, building in earnest), places separated from ledges and
 each piece named with its cell count, its middle and its box, faces qualified as cliffs, crossings measured in
 both directions because a drop is free the way it falls, and the symmetry error. It is asked for rather than
@@ -2154,7 +2163,7 @@ carry — the board an author is looking at is the one place those complaints ar
 | Endpoint | Answers |
 |---|---|
 | `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
-| `POST /map/{slug}/sketch/relief[?interval=][&heights=true]` | `{interval, groups[]}` — per group its height range, its bounds and its traced contour lines, from the build's own solver. `heights=true` adds `heights`, the solved surface itself: one block height per cell of that box, row-major from the north-west corner, `null` where the footprint holds no land |
+| `POST /map/{slug}/sketch/relief[?interval=][&heights=true]` | `{interval, groups[]}` — per group with ground its height range, its bounds, its traced contour lines and `solved`: `true` for a relief's own field from the build's solver, `false` for a group no relief solves, whose surface is the highest built top of each column it forms. `heights=true` adds `heights`, that surface itself: one block height per cell of that box, row-major from the north-west corner, `null` where the footprint holds no land |
 | `POST /map/{slug}/sketch/relief/read` | `{groups[]}` — per group the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, the symmetry error, the `landform` it measures as beside the `smoothing` it kept, the `level` share of it and the `largestField` of level ground on it, the `seams` where two of its marks meet on a step, the `silentMarks` that pinned nothing, and the `pushes` with each one's two gradients — its `skirt` (`amount / falloff`) and its `crown` (`crown / deepest`) in blocks of rise per block of run, and how many cells its ring covers. Carries `RL1` where the group states a different word, `RL2` where it carries elevation it never graded (`docs/world-export/relief.md` §6.1), `RL3` where a seam is taller than a scramble, `RL4` for a mark that landed nowhere, `RL5` where it was graded everywhere and left nowhere level to stand (§2.0) and `RL6` where a push's two gradients run more than about twice apart |
 | `POST /map/{slug}/sketch/columns` | `{palette, cols, layers, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes. `cols` is one flat array walked as `[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, and `layerIndex` is into `layers` or `-1` for a run no layer accounts for; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/dressing` | `{props[], declines[], claimedCells, claims}` — what the dressing pass would place, run and stopped before anything is written: per prop the columns it covers, where it rests and the height it resolved to, and every prop that did not land as its `DR-*` finding. `claims` is `{bounds, width, height, classes[], rows[]}`, digit rows over the board's own ground the way `coverage`'s own classes are, classing every cell as a prop's own claim, a goal's clearance, a keep-out, or free — so a candidate site is looked up on the raster rather than tried and read back as a decline. `?format=text` answers the same reading as characters, with the classes' key, a column-index line, the declines and a `placed n, declined n` line under it | 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
@@ -2470,7 +2479,7 @@ drawing, and which answer in a raster it can actually open.
 **Four read the sketch itself.** `POST .../sketch/paint` runs the real painter and answers the surface as
 palette-indexed runs — the exact colour of every footprint cell, which is how a Voronoi reads as its cells
 rather than as an average. `POST .../sketch/relief[?interval=]` answers the traced contour lines per group
-from the build's own solver, as flat `[x, z, x, z, …]` runs. `POST .../sketch/relief/read` answers the terrain
+from the build's own solver, or for a group with no relief from its built columns, as flat `[x, z, x, z, …]` runs. `POST .../sketch/relief/read` answers the terrain
 in **numbers**: per group the cell count, low, high and relief, the step count and tiers, the faces with
 cliffs qualified, crossings measured in both directions, and the symmetry error. That last one is the one to
 reach for first, because it is the only preview that says whether terrain is any *good* without an eye — it is
