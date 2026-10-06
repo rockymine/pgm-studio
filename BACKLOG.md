@@ -22,6 +22,12 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [ ] **C104 — Where a sketch's layers live.** *Parked (author): deciding the direction themselves.* The
+  floating `SketchLayerStrip` is taller than the dock, scrolls sideways and clips its add button on canvases
+  under about 820px, and the overlay chips (Shapes, Mirror, Chunks, Blocks, Contours) crowd the canvas beside it.
+  Three directions and a View menu for the overlays are mocked at https://claude.ai/artifact/4gDNRBfyhMfjkAMMFdDSaz;
+  none is chosen. `docs/tools/sketch.md` § Draw.
+
 - [ ] **TS126 — A note's checkable claim, kept as a check.** *Parked (author): not yet.* Some notes state
   what a board must keep being — a path reaches the bridge (note 58), a bedrock wall has void on both sides
   (note 48), a wall does not float (note 54). A reply could carry the claim as a measured check over the note's
@@ -571,10 +577,6 @@ is the standard the copy is held to.
   front line and other become ground; their names live in the structure line under each card. Change `Key`,
   `PieceColor` and the SVG and PNG renderers together, and `--board-bg` to white. `docs/tools/generator.md`.
 
-- [ ] **C97 — One filter rail.** `/maps` filters in `Sidebar`, `/generator` in `.gen-filters`, `/catalog` in
-  `.lib-filters` and `/design` in its own nav, each with its own heading and count line. Fold the three that are
-  not `Sidebar` into it, so a rail's width, title and count are one component's. `docs/client/ui-conventions.md`.
-
 - [ ] **TS164 — Decoration's inspector widens only for its picker.** *Parked (author): judging from the
   screenshots in the layout mockups' section 6.* `.workspace-inspector--wide` holds the
   Decoration inspector at 420px (`editor.css:295`) against 280px everywhere else, so the canvas jumps 140px on
@@ -596,6 +598,18 @@ is the standard the copy is held to.
   landing and list layouts; the components stay. `docs/client/ui-conventions.md`.
 
 ## User Experience
+
+- [ ] **TL43 — Textured cards of one kind share a scale.** `StructureCard.Once` frames each tree, boulder and
+  house part to its own bounding sphere, so a shrub and an oak fill their cards equally. Bound a library kind's
+  set once and draw every card of it at that scale. `docs/tools/library.md`.
+
+- [ ] **TL44 — The Dressing pickers draw with block textures.** `SpeciesCards` and `BoulderFormCards` in the
+  sketch's Dressing phase still draw the flat SVG side view while the Library's cards of the same props are
+  textured (`StructurePicture`). Route them through `StructureCard.Once`. `docs/tools/library.md`.
+
+- [ ] **TL45 — A house card is drawn on the footprint its editor chose.** `RoomStylePreview.CardOnce` renders the
+  default 8×8 sample footprint from a fixed front camera, not the footprint the house editor's dock states.
+  `docs/tools/library.md`.
 
 - [ ] **C89 — A map can be deleted from `/maps`.** `DELETE /api/map/{slug}` ends a map and everything under it
   (`docs/tools/flow.md`), and the maps list has no control for it, so abandoned drafts and variants pile up.
