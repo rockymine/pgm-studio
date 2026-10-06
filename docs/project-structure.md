@@ -102,8 +102,8 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 26 | 4,836 | `Playability/` 15 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 163 | 23,552 | `Endpoints/` 80 · `Services/` 67 · `Access/` 12 · `Http/` 3 · 1 at root |
-| `Client` | 254 | 30,753 | `Features/` 139 (nested) · `Components/` 89 (nested) · `Pages/` 13 · `Layout/` 5 · `Models/` 5 · 3 at root |
+| `Api` | 164 | 23,616 | `Endpoints/` 81 · `Services/` 67 · `Access/` 12 · `Http/` 3 · 1 at root |
+| `Client` | 255 | 30,844 | `Features/` 139 (nested) · `Components/` 90 (nested) · `Pages/` 13 · `Layout/` 5 · `Models/` 5 · 3 at root |
 | `Contracts` | 36 | 4,160 | flat |
 | `Data` | 24 | 4,045 | `Map/` 7 · `Features/` 5 · `Theme/` 5 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 32 | 3,851 | flat |
@@ -111,7 +111,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Geom` | 53 | 6,942 | `Algorithms/` 20 · `Render/` 7 · `Relief/` 5 · 21 at root |
 | `Import` | 4 | 496 | flat |
 | `Migrations` | 64 | 4,401 | `Migrations/` 63 · 1 at root |
-| `Minecraft` | 112 | 23,594 | `Render/` 22 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
+| `Minecraft` | 112 | 23,602 | `Render/` 22 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
 | `Pgm` | 167 | 32,704 | `Compose/` 44 (nested) · `Authoring/` 28 · `Evaluate/` 23 (nested) · `Editing/` 11 · `Plan/` 11 · `Sketch/` 11 · `Shapes/` 10 · `Derive/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
 | `Vocabulary` | 30 | 2,508 | flat |
 <!-- /census -->

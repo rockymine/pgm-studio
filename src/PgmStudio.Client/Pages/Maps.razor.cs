@@ -52,9 +52,6 @@ public partial class Maps
     private IReadOnlyList<string> PickedGamemodes => Gamemode ?? [];
     private bool Filtering => CurrentStage is not null || Picked.Count > 0 || PickedGamemodes.Count > 0;
 
-    /// <summary>The stage a map is filtered and labelled by: its own, with <see cref="MapStage.Edit"/> read as
-    /// <see cref="MapStage.Configure"/>.</summary>
-    private static string StageOf(MapSummary map) => map.Stage == MapStage.Edit ? MapStage.Configure : map.Stage;
 
     private async Task NewPlan()
     {
@@ -105,28 +102,18 @@ public partial class Maps
         _ => "Open this map's world in Configure.",
     };
 
-    private static string StageLabel(string stage) =>
-        StageWords.FirstOrDefault(entry => entry.Word == stage).Label ?? stage;
-
-    /// <summary>Who a map is credited to as an author, contributors left out.</summary>
-    private static IReadOnlyList<MapAuthorDto> Credited(MapSummary map) =>
-        [.. map.Authors.Where(author => author.Role != "contributor")];
-
-    private static string NameOf(MapAuthorDto author) =>
-        author.Name is { Length: > 0 } name ? name : author.Uuid[..Math.Min(8, author.Uuid.Length)];
-
     /// <summary>A credit with no account behind it, which is how an agent is credited.</summary>
     private static bool IsAgent(MapAuthorDto author) => string.IsNullOrEmpty(author.Uuid);
 
     private MapAuthorDto? CreditNamed(string name) =>
-        maps?.SelectMany(Credited).FirstOrDefault(author => NameOf(author) == name);
+        maps?.SelectMany(MapLayers.Credited).FirstOrDefault(author => MapLayers.NameOf(author) == name);
 
     /// <summary>Every credited author of one kind whose name matches the author search, in name order.</summary>
     private IReadOnlyList<string> AuthorsIn(bool agents) =>
         maps is null ? [] :
-        [.. maps.SelectMany(Credited)
+        [.. maps.SelectMany(MapLayers.Credited)
             .Where(author => IsAgent(author) == agents)
-            .Select(NameOf)
+            .Select(MapLayers.NameOf)
             .Where(name => name.Contains(authorSearch.Trim(), StringComparison.OrdinalIgnoreCase))
             .Distinct()
             .Order(StringComparer.OrdinalIgnoreCase)];
@@ -141,12 +128,12 @@ public partial class Maps
     /// with the one value given in its place.</summary>
     private bool Passes(MapSummary map, string? skip = null, string? stage = null, string? author = null, string? gamemode = null)
     {
-        var credits = Credited(map);
+        var credits = MapLayers.Credited(map);
         var stageIs = skip == "stage" ? stage : CurrentStage;
-        if (stageIs is not null && StageOf(map) != stageIs) return false;
+        if (stageIs is not null && MapLayers.StageOf(map) != stageIs) return false;
 
         IReadOnlyList<string> authors = skip == "author" ? author is null ? [] : [author] : Picked;
-        if (authors.Count > 0 && !credits.Any(credit => authors.Contains(NameOf(credit)))) return false;
+        if (authors.Count > 0 && !credits.Any(credit => authors.Contains(MapLayers.NameOf(credit)))) return false;
 
         IReadOnlyList<string> gamemodes = skip == "gamemode" ? gamemode is null ? [] : [gamemode] : PickedGamemodes;
         if (gamemodes.Count > 0 && !gamemodes.Any(word => word == NoGamemode ? map.Gamemodes.Count == 0 : map.Gamemodes.Contains(word)))
@@ -154,7 +141,7 @@ public partial class Maps
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var text = map.Name + " " + map.Slug + " " + string.Join(" ", credits.Select(NameOf));
+            var text = map.Name + " " + map.Slug + " " + string.Join(" ", credits.Select(MapLayers.NameOf));
             if (!text.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase)) return false;
         }
         return true;
@@ -171,9 +158,9 @@ public partial class Maps
             return SortKey switch
             {
                 "name" => [.. shown.OrderBy(map => map.Name, StringComparer.OrdinalIgnoreCase)],
-                "author" => [.. shown.OrderBy(map => Credited(map).Select(NameOf).FirstOrDefault() ?? "￿", StringComparer.OrdinalIgnoreCase)
+                "author" => [.. shown.OrderBy(map => MapLayers.Credited(map).Select(MapLayers.NameOf).FirstOrDefault() ?? "￿", StringComparer.OrdinalIgnoreCase)
                                      .ThenBy(map => map.Name, StringComparer.OrdinalIgnoreCase)],
-                "stage" => [.. shown.OrderBy(map => Array.IndexOf(MapStage.All, StageOf(map))).ThenByDescending(map => map.UpdatedAt)],
+                "stage" => [.. shown.OrderBy(map => Array.IndexOf(MapStage.All, MapLayers.StageOf(map))).ThenByDescending(map => map.UpdatedAt)],
                 _ => [.. shown.OrderByDescending(map => map.UpdatedAt)],
             };
         }

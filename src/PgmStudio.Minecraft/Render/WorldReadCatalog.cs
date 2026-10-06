@@ -193,6 +193,14 @@ public static class WorldReadCatalog
             + "a shade per face, and ground past sixty blocks fades into the sky — it is a picture of the "
             + "materials, not a screenshot."),
 
+        new("render/picture", null,
+            "The picture a PGM server shows the map by, drawn with the game's own block sprites: the view the "
+            + "map keeps as its picture, else the whole board seen from above the middle of its long side. "
+            + "`width` and `height` size it (default 960x540). The picture a card or a list is headed with, and "
+            + "the one `map.png` in an export is drawn from.",
+            "It answers 422 where the board has no ground to frame, and 503 (`RQ10`) on a studio with no "
+            + "block textures."),
+
         new("report", null,
             "Everything a drive reads back about a stored map, off one build: the three numbers a board is wrong "
             + "or right by — how much of its ground steps further than a player walks, how many of its props "

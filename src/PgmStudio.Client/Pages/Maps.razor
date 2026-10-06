@@ -104,7 +104,7 @@
                     @foreach (var m in Shown)
                     {
                       var opens = MapLayers.Opens(m);
-                      var credits = Credited(m);
+                      var credits = MapLayers.Credited(m);
                       <tr class="map-table-row" @key="m.Slug" @onclick="() => Open(m)">
                         <td class="map-col-map">
                           @if (opens is not null)
@@ -122,7 +122,7 @@
                               else if (opens == id)
                               {
                                 <a class="map-layer map-layer--now" @onclick:stopPropagation href="@($"maps/{m.Slug}/{id}")"
-                                   title="@($"{LayerTitle(id)} The map is at {StageLabel(StageOf(m))}.")"><span class="map-stage-dot map-stage-dot--@m.Stage"></span>@label</a>
+                                   title="@($"{LayerTitle(id)} The map is at {MapLayers.LabelOf(MapLayers.StageOf(m))}.")"><span class="map-stage-dot map-stage-dot--@m.Stage"></span>@label</a>
                               }
                               else
                               {
@@ -139,9 +139,9 @@
                           @if (credits.Count == 0) { <span class="map-empty" title="Nobody credited">—</span> }
                           else
                           {
-                            <span class="map-author" title="@string.Join(", ", credits.Select(NameOf))">
-                              <AuthorMark Uuid="@credits[0].Uuid" Name="@NameOf(credits[0])" Size="18" />
-                              @NameOf(credits[0])
+                            <span class="map-author" title="@string.Join(", ", credits.Select(MapLayers.NameOf))">
+                              <AuthorMark Uuid="@credits[0].Uuid" Name="@MapLayers.NameOf(credits[0])" Size="18" />
+                              @MapLayers.NameOf(credits[0])
                               @if (credits.Count > 1) { <span class="map-author-more">+@(credits.Count - 1)</span> }
                             </span>
                           }
