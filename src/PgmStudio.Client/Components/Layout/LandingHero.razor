@@ -1,0 +1,37 @@
+@namespace PgmStudio.Client.Components
+
+@* The studio entry's opening block: what the studio makes, the two ways in, and a themed picture of a
+   symmetric two-team board. MapCount, when known, is the number shown on the way to the maps list. *@
+
+<section class="landing-hero">
+  <div class="landing-hero-text">
+    <h1 class="landing-title">Author PGM maps, from layout to <code>map.xml</code></h1>
+    <p class="landing-lead">Plan a symmetric board, shape and paint its ground, state what it is played for, and
+      export a world a server can load. Capture the Wool, Destroy the Monument and Destroy the Core,
+      alone or combined.</p>
+    <div class="landing-actions">
+      <Button Variant="primary" Icon="plus" Href="@StartHref">Start a map</Button>
+      <Button Icon="map" Href="@MapsHref">Open maps@(MapCount is { } all ? $" ({all})" : "")</Button>
+    </div>
+  </div>
+  <svg class="landing-board" viewBox="0 0 320 200" role="img" aria-label="A symmetric two-team map: two bases, wool rooms and a central lane">
+    <rect class="lb-field" x="4" y="4" width="312" height="192" rx="8" />
+    <rect class="lb-lane" x="132" y="4" width="56" height="192" />
+    <rect class="lb-team lb-team--a" x="16" y="62" width="76" height="76" rx="4" />
+    <rect class="lb-team lb-team--b" x="228" y="62" width="76" height="76" rx="4" />
+    <rect class="lb-team lb-team--a" x="30" y="18" width="30" height="26" rx="3" />
+    <rect class="lb-team lb-team--a" x="30" y="156" width="30" height="26" rx="3" />
+    <rect class="lb-team lb-team--b" x="260" y="18" width="30" height="26" rx="3" />
+    <rect class="lb-team lb-team--b" x="260" y="156" width="30" height="26" rx="3" />
+    <path class="lb-path" d="M92 100 H228 M60 44 V62 M60 138 V156 M260 44 V62 M260 138 V156" />
+    <line class="lb-axis" x1="160" y1="4" x2="160" y2="196" />
+    <circle class="lb-point" cx="160" cy="100" r="9" />
+  </svg>
+</section>
+
+@code {
+    /// <summary>How many maps the list holds; omitted until the count is known.</summary>
+    [Parameter] public int? MapCount { get; set; }
+    [Parameter] public string StartHref { get; set; } = "maps?stage=plan";
+    [Parameter] public string MapsHref { get; set; } = "maps";
+}

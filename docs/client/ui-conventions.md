@@ -19,7 +19,12 @@ Read alongside:
   canvas rather than laid out in the DOM.
 - The `/design` page (`Pages/Design.razor`) is the living style guide, and it renders the **real** components
   rather than hand-written examples, so the showcase cannot drift from production. It is the visual-regression
-  oracle for any change here.
+  oracle for any change here. It shows the `tokens.css` colours, type scale, spacing, radii, shadows and icon sizes as
+  swatches that follow the theme toggle, then the components grouped by role — primitives, forms, data and lists,
+  layout and navigation, the filter rail, editor chrome, feedback and problems, and the entry surfaces. Its own
+  contents rail is a `FilterSidebar` of `FilterPanel`s. A component that gains a parameter or a variant gains its
+  example there in the same change; markup written by hand on that page is only markup no component owns (the
+  region tree, the cards, the meter).
 
 ## Why components at all, given global CSS
 
@@ -82,7 +87,7 @@ the row carries), `DetailHeader` (an inspector head: icon, label, trailing badge
 only* tag on a read-only page, and the tool's actions; `AppFooter` closes every page with the keyboard
 shortcuts, the design reference and the repository; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list; `PageHeading` is the one heading a browse or admin page opens on; `FlowBar` is the phase/step nav the stepped tools share; `AppFooterLink` and `SideDrawer`
+arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`; `FlowBar` is the phase/step nav the stepped tools share; `AppFooterLink` and `SideDrawer`
 finish the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
@@ -420,7 +425,7 @@ handle would break the resize without breaking the render — the worst kind of 
 **The `ctrl-row` coordinate triples.** They vary too much to be one component (XYZ, XZ, radius-and-height), so
 `CoordField` is the atom and the row stays markup.
 
-**The `ds-*` set** in `design.css` — the `/design` gallery's own frame (nav, headings, example cards). It is
+**The `ds-*` set** in `design.css` — the `/design` gallery's own frame (headings, token swatches, example frames). It is
 page-only by design; the examples *inside* it render production components.
 
 **The `gen-*` set** in `/generator` is the one piece of real drift left, and it is the largest thing here: the
