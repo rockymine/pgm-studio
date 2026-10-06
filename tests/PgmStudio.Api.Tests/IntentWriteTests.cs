@@ -149,4 +149,34 @@ public sealed class IntentWriteTests
 
         await Assert.That(await AuthorsOfAsync(client, slug)).IsEquivalentTo(new[] { "Haiku 4.5", "O'Brien" });
     }
+
+    private static string WoolIntent(string monuments) => $$"""
+        {"meta":{"name":"Dressed","authors":[],"contributors":[]},
+         "gamemodes":["ctw"],
+         "teams":[{"id":"red-team","name":"Red","color":"red"},{"id":"blue-team","name":"Blue","color":"blue"}],
+         "wools":[{"owner":"blue-team","color":"blue","spawn":{"x":10,"y":21,"z":0},"monuments":[{{monuments}}]}]}
+        """;
+
+    [Test]
+    public async Task An_intent_the_projection_refuses_is_not_stored()
+    {
+        // A wool stating two monuments for one team: the projection refuses it, and the map keeps the intent its
+        // document was last projected from rather than one it never took.
+        using var client = await SketchBoard.FreshAsync();
+        var route = $"/api/map/{SketchBoard.Slug}/intent";
+        const string one = """{"team":"red-team","location":{"x":-10,"y":21,"z":0}}""";
+        const string repeated = one + """,{"team":"red-team","location":{"x":-10,"y":22,"z":0}}""";
+
+        var accepted = await client.PutAsync(route, new StringContent(WoolIntent(one), Encoding.UTF8, "application/json"));
+        await Assert.That(accepted.IsSuccessStatusCode).IsTrue().Because(await accepted.Content.ReadAsStringAsync());
+        var before = await client.GetStringAsync(route);
+
+        var refused = await client.PutAsync(route, new StringContent(WoolIntent(repeated), Encoding.UTF8, "application/json"));
+        var answer = JsonDocument.Parse(await refused.Content.ReadAsStringAsync()).RootElement;
+
+        await Assert.That((int)refused.StatusCode).IsEqualTo(422);
+        await Assert.That(answer.GetProperty("findings")[0].GetProperty("rule").GetString())
+            .IsEqualTo(PgmStudio.Domain.ObjectiveRules.OneMonumentPerTeam);
+        await Assert.That(await client.GetStringAsync(route)).IsEqualTo(before);
+    }
 }

@@ -3,6 +3,7 @@ using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Pgm.Editing;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Services;
@@ -31,6 +32,8 @@ public static class IntentWrite
         var intent = Stated(body) ?? new MapIntent();
         if (Unnamable(intent) is { } named) return new(named);
 
+        if (await ProjectionRefusalAsync(reader, slug, intent, ct) is { } unprojectable) return new(unprojectable);
+
         var stored = await WithMapPeopleAsync(reader, slug, intent, ct);
         var written = await DocumentWrite.StoreAsync(artifacts, mapId, ArtifactKind.MapIntentJson, "intent",
             JsonSerializer.SerializeToUtf8Bytes(stored, MapArtifactStore.Json), expected, ct);
@@ -46,6 +49,18 @@ public static class IntentWrite
         // number is a different one and answering it would arm the caller's next write against the wrong
         // document.
         return applied with { Revision = written.Revision };
+    }
+
+    /// <summary>The refusal the projection answers for <paramref name="intent"/> over the map's document as it
+    /// stands, or null where it applies. Asked before the intent is stored, because a refused projection leaves
+    /// the document as it was: an intent stored over a document it never reached is a map whose export says
+    /// less than its intent does.</summary>
+    private static async Task<Refusal?> ProjectionRefusalAsync(
+        MapReader reader, string slug, MapIntent intent, CancellationToken ct)
+    {
+        if (await reader.ReadDocAsync(slug, ct) is not { } doc) return null;
+        try { IntentGenerator.Apply(doc, intent); return null; }
+        catch (EditException fault) { return new Refusal(fault.Status, fault.Error, [fault.Finding]); }
     }
 
     /// <summary>The intent to store: as stated where it names anyone, and otherwise carrying the people the map

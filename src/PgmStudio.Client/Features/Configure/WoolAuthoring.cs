@@ -46,8 +46,12 @@ public static class WoolAuthoring
             if (w["monuments"] is JsonArray ms)
                 foreach (var m in ms.OfType<JsonObject>())
                 {
+                    // One monument for each capturing team (OB32): a second stated for a team is the one the
+                    // step never showed, so the first is kept and the next save states the wool as shown.
+                    var team = Ctx.S(m, "team");
+                    if (wool.Monuments.Any(kept => kept.Team == team)) continue;
                     var loc = m["location"] as JsonObject;
-                    wool.Monuments.Add(new Monument { Team = Ctx.S(m, "team"), X = Ctx.D(loc, "x"), Y = Ctx.D(loc, "y"), Z = Ctx.D(loc, "z") });
+                    wool.Monuments.Add(new Monument { Team = team, X = Ctx.D(loc, "x"), Y = Ctx.D(loc, "y"), Z = Ctx.D(loc, "z") });
                 }
             wools.Add(wool);
         }

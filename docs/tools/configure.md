@@ -332,8 +332,11 @@ anchor team's wool re-derives its symmetric partners; editing an orbit copy nudg
 
 **Monuments** confirms one monument per capturing team. The scan usually pre-fills them from signed pedestals;
 a gap is filled by drawing a box around a cluster, which routes each hit to its colour's wool with the
-capturing team read off the island. An empty box drops one manual monument at the centre of the box, seated
-on that column's floor. **This step is dropped entirely on a sketch-origin map**, where a monument stands
+capturing team read off the island. A team that already has a monument on that wool keeps it, so a monument two
+blocks tall is detected as one rather than two. An empty box drops one manual monument at the centre of the box,
+seated on that column's floor. A wool stating a second monument for one team is refused when the intent is
+stored (`OB32`), since its monument is one block region per team; an intent already carrying one loads with the
+first kept, which is the one the step shows, so saving the step states the wool as shown. **This step is dropped entirely on a sketch-origin map**, where a monument stands
 inside its capturing team's spawn and is derived from the stamp that built it
 (`docs/design-decisions.md`) — so everything below is about a map the studio did not build.
 
@@ -564,7 +567,7 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
 | `GET /map/{slug}/intent` | — | the stored intent, or an empty one | 404 unknown map |
-| `PUT /map/{slug}/intent` | the whole intent | `{}` — stores it and re-projects the document; `warnings` carries any field the intent reader has nowhere to keep (`RQ3`), which is a slice the author stated and the map will not carry. An `If-Match` names the **intent's** revision, which is what `GET …/intent` answered; the projection that follows rewrites the map and is not guarded by it | **400 `RQ1`** a field the binder cannot read (`modes[0]` posted as a word where `modes` takes objects), `field` naming its path and nothing stored · a person named something that is not a name, `field` naming them · **409 `RQ5`** a stale `If-Match` · 404 · 422 the stored map will not carry the projection |
+| `PUT /map/{slug}/intent` | the whole intent | `{}` — projects it onto the map's document and stores both; an intent the projection refuses is not stored, so a map never holds an intent its document did not take; `warnings` carries any field the intent reader has nowhere to keep (`RQ3`), which is a slice the author stated and the map will not carry. An `If-Match` names the **intent's** revision, which is what `GET …/intent` answered; the projection that follows rewrites the map and is not guarded by it | **400 `RQ1`** a field the binder cannot read (`modes[0]` posted as a word where `modes` takes objects), `field` naming its path and nothing stored · a person named something that is not a name, `field` naming them · **409 `RQ5`** a stale `If-Match` · 404 · 422 the stored map will not carry the projection, or **`OB32`** a wool stating two monuments for one team, nothing stored |
 | `PATCH /map/{slug}/intent/rooms/{reference}` | `{part, minX, minZ, maxX, maxZ}` | `{}` — puts one room piece where the Sketch tool dragged it, then stores and projects exactly as the whole-intent `PUT` does. `reference` is the sketch annotation's own `intentRef`: a team id for a spawn, `owner:colour` for a wool. `part` is `spawn`/`woolRoom` for the region or `building` for the footprint on it, and moving the **region carries the room seated on it** — the marker, the building, the iron, the entry interfaces. It **moves and does not resize** | **400 `RQ1`** a placed span differing from the standing one, a region stated as several rectangles, a piece with no such rectangle · **400 `WX12`** a building carried off its region · **404 `RQ4`** the reference names no room · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |
 | `PUT /map/{slug}/intent/from-plan` | a compiled intent | the projected map, carrying the stored **authors and contributors** onto it and nothing else — a rebuild clears the confirmed symmetry and the island-team tags; `warnings` carries any field of the **posted** intent the reader had nowhere to keep (`RQ3`) | **400 `RQ1`** a field the binder cannot read, by its path · a person named something that is not a name · 404 · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |
 

@@ -48,6 +48,11 @@ public static class ObjectiveRules
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Structure)]
     public const string GoalInARoom = "OB30";
 
+    /// <summary>A wool states more than one monument for one capturing team.</summary>
+    /// <remarks>Delete every monument but one for each capturing team from <c>wools.monuments</c>.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Objective, RuleConcern.Intent)]
+    public const string OneMonumentPerTeam = "OB32";
+
     /// <summary>A wool monument has no ground under it.</summary>
     /// <remarks>Move the room piece of the spawn in <c>pieces</c> until the monument stands on ground.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Terrain)]
