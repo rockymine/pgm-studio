@@ -43,7 +43,7 @@ classes the markup did — which is what makes it reversible per file and checka
 By tier, each grounded in the classes it emits.
 
 **Primitives** — leaf, style-only. `Button` (`action-btn` plus its `--primary`/`--danger`/`--warn`/`--icon`
-variants, an optional lucide `Icon` name, an `Href` that switches it to an `<a>`, and `Writes`/`Deletes`/`Builds`, which
+variants, `Size="lg"` (the 44px entry-point button), an optional lucide `Icon` name, an `Href` that switches it to an `<a>`, and `Writes`/`Deletes`/`Builds`, which
 close it where the caller may not, below), `WriteGate` (the same answer for a control that is not a
 `Button`), `Badge`, `Chip`
 (`filter-chip`, with an optional `Count` that appends how many items the option would show), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, `Icon`, and `PlayerHead` —
@@ -89,7 +89,7 @@ only* tag on a read-only page, and the page's actions; `EditorBar` is the one ba
 `NoMove` drops Back/Next, and `LabelledCommands` spaces text buttons wider than icon-only ones); `AppFooter` closes every page with the keyboard
 shortcuts, the design reference and the repository; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`; `AppFooterLink` and `SideDrawer`
+arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`, and `MapThumb` the 16:9 picture box of a map (the in-game picture over a placeholder that stays where none can be drawn); `AppFooterLink` and `SideDrawer`
 finish the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,

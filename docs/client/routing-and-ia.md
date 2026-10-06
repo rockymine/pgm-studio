@@ -24,7 +24,7 @@ shown, never name one.
 
 | Route | Component | Is |
 |---|---|---|
-| `/` | `Index` | the landing — a hero, the maps last changed, the four levels of a map |
+| `/` | `Index` | the landing — a hero with an in-game picture, the maps last changed as cards, the tools, a way into the glossary |
 | `/maps` | `Maps` | every map in one table; `?stage=`, `?author=`, `?gamemode=` and `?sort=` are its filters |
 | `/maps/{slug}/plan` | `PlanTool` | the plan tool on a map |
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
@@ -117,20 +117,29 @@ it.
 ## The landing
 
 **The landing is not a tool, so its shell has no tool bar.** `Index` gives `StudioShell` no `Bar`, which leaves
-only the studio's own bar above the page; every tool is linked from there, so the page carries no card for any
-of them.
+only the studio's own bar above the page. The page is one centred column, 1240px wide, with sections 56px apart.
 
-**The hero names what the studio makes and offers two ways in.** The title and lead describe the pipeline from
-layout to `map.xml` across Capture the Wool, Destroy the Monument and Destroy the Core. **Start a map** opens the
-maps page at the plan stage; **Open maps** opens it unfiltered and carries the map count from
-`GET /api/maps/stage-counts`. Beside the text sits an inline SVG of a symmetric two-team board, filled and
-stroked with the theme's tokens so it follows light and dark.
+**The hero names what the studio makes and offers two ways in.** Two equal columns: an eyebrow naming the three
+modes, a title and lead describing the pipeline from layout to `map.xml`, and two 44px buttons (`Button` with
+`Size="lg"`) — **New map** opens the maps page at the plan stage, **Browse maps** opens it unfiltered. Beside the
+text sits a 16:9 `MapThumb` of the newest map that holds a sketch layout, drawn in game; with no such map it is
+the studio mark on a token-coloured panel.
 
-**Below the hero, two panels fit a 1920x1080 viewport without scrolling.** The first lists up to five maps the
-reader changed themselves, newest first (`youWroteAt` from `GET /api/maps`), each linking into the tool its row
-on the maps page opens; a reader who has changed none, or is signed out, sees the five most recently updated maps
-under *Latest maps*. The second names the four levels a map is described at, from `../tools/flow.md`. Under
-760px the hero and the panels stack in one column.
+**A map picture is `GET /api/map/{slug}/render/picture`, over a placeholder.** `MapThumb` holds a fixed 16:9 box
+with the map's initial in it, loads the picture lazily on top and fades it in. A map with no sketch layout asks
+for no picture; a refused one (422 no ground, 503 `RQ10` without textures, a failed request) leaves the
+placeholder, and a 429 from the build queue is asked again after its `Retry-After`, so a broken-image icon never
+shows.
+
+**Continue working lists up to three maps.** They are the ones the reader changed themselves, newest first
+(`youWroteAt` from `GET /api/maps`), each card linking into the tool its row on the maps page opens, with the
+stage pill of its furthest layer and a line of first credited author and when it was edited. A reader who has
+changed none, or is signed out, sees the three most recently updated maps under *Latest maps*.
+
+**Tools and the guide close the page.** Four tiles — Generator, Shape catalog, Library, Rules — each an icon, a
+name and a line; plans start from the maps page, so the plan editor has none. A bordered row sends a new reader
+to `/glossary`. Under 1000px the cards and tiles take two columns, and under 760px everything stacks in one with
+the hero picture first.
 
 ## Labels against code names
 

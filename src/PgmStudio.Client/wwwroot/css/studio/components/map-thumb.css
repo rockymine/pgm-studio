@@ -1,0 +1,15 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   MAP THUMB  (a 16:9 picture of a map over a placeholder that holds its box)
+   ══════════════════════════════════════════════════════════════════════════ */
+.map-thumb {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+  background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.map-thumb__blank {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--bg-deep), color-mix(in oklch, var(--bg-selected) 55%, var(--bg-deep)));
+}
+.map-thumb__initial { font-size: calc(56px * var(--ui-scale)); font-weight: 700; color: color-mix(in oklch, var(--accent-light) 55%, transparent); }
+.map-thumb__mark { width: 18%; max-width: 96px; height: auto; opacity: 0.85; }
+.map-thumb__picture { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 0.2s ease; }
+.map-thumb__picture.is-loaded { opacity: 1; }

@@ -5,51 +5,65 @@
 
 <PageTitle>PGM Studio</PageTitle>
 
-@* The studio entry: a hero (what the studio makes, the way in, a themed board illustration), then the maps the
-   reader changed last and the four levels a map is described at. The shell is given no Bar — the home page is
-   not a tool — and every tool is reachable from the studio's own bar. *@
+@* The studio entry: a hero (what the studio makes, the way in, an in-game picture of a map), the maps the reader
+   changed last as cards, the tools that are not reached from a map, and a way into the glossary. The shell is
+   given no Bar — the home page is not a tool — and every tool is reachable from the studio's own bar. *@
 
 <StudioShell>
   <ChildContent>
       <div class="workspace">
         <div class="workspace-scroll"><div class="landing">
-          <LandingHero MapCount="counts?.All" />
+          <LandingHero HeroSlug="@hero?.Slug" HeroName="@hero?.Name" />
 
-          <div class="landing-lower">
-            <section class="landing-panel">
-              <h2 class="landing-panel-title">@(mine ? "Continue where you left off" : "Latest maps")</h2>
-              @if (recent.Count == 0)
-              {
-                <p class="landing-empty">No maps yet. Start one to see it here.</p>
-              }
-              else
-              {
-                <ul class="landing-recent">
-                  @foreach (var item in recent)
-                  {
-                    <li>
-                      <a class="landing-recent-row" href="@($"maps/{item.Map.Slug}/{item.Opens}")">
-                        <span class="landing-recent-name">@item.Map.Name</span>
-                        <span class="landing-recent-meta">
-                          @if (item.Map.Gamemodes.Count > 0) { @(string.Join(" ", item.Map.Gamemodes).ToUpperInvariant() + " · ") }@LayerLabel(item.Opens) · @Moments.Ago(item.At)
-                        </span>
-                      </a>
-                    </li>
-                  }
-                </ul>
-              }
-            </section>
+          <section class="landing-section">
+            <div class="landing-section-head">
+              <h2 class="landing-section-title">@(mine ? "Continue working" : "Latest maps")</h2>
+              <a class="landing-section-link" href="maps">All maps</a>
+            </div>
+            @if (recent.Count == 0)
+            {
+              <p class="landing-empty">No maps yet. Start one to see it here.</p>
+            }
+            else
+            {
+              <div class="landing-cards">
+                @foreach (var item in recent)
+                {
+                  var stage = MapLayers.StageOf(item.Map);
+                  <a class="landing-card" href="@($"maps/{item.Map.Slug}/{item.Opens}")">
+                    <MapThumb Slug="@(item.Map.HasSketch ? item.Map.Slug : null)" Name="@item.Map.Name" />
+                    <div class="landing-card-body">
+                      <div class="landing-card-line">
+                        <span class="landing-card-name">@item.Map.Name</span>
+                        <span class="landing-stage"><span class="map-stage-dot map-stage-dot--@stage"></span>@MapLayers.LabelOf(stage)</span>
+                      </div>
+                      <span class="landing-card-meta">@Meta(item.Map, item.At)</span>
+                    </div>
+                  </a>
+                }
+              </div>
+            }
+          </section>
 
-            <section class="landing-panel">
-              <h2 class="landing-panel-title">How a map is made</h2>
-              <ol class="landing-levels">
-                <li><b>Board</b><span>Rectangles on a grid: what each is for, where the objectives sit.</span></li>
-                <li><b>Ground</b><span>Block-level shape, relief, paint and props.</span></li>
-                <li><b>Play</b><span>Teams, spawns, protections and how objectives are won.</span></li>
-                <li><b>Map</b><span>The world and the <code>map.xml</code> a server loads.</span></li>
-              </ol>
-            </section>
-          </div>
+          <section class="landing-section">
+            <h2 class="landing-section-title">Tools</h2>
+            <div class="landing-tiles">
+              @foreach (var tool in Tools)
+              {
+                <a class="landing-tile" href="@tool.Href">
+                  <span class="landing-tile-icon"><i data-lucide="@tool.Icon"></i></span>
+                  <span class="landing-tile-name">@tool.Name</span>
+                  <span class="landing-tile-text">@tool.Text</span>
+                </a>
+              }
+            </div>
+          </section>
+
+          <section class="landing-guide">
+            <span class="landing-guide-text">New to mapmaking? Hub, front line, wool room: every term the studio uses is
+              explained in one place.</span>
+            <Button Size="lg" Icon="book-open-text" Href="glossary" Class="action-btn--push-end">Open the glossary</Button>
+          </section>
         </div></div>
       </div>
   </ChildContent>
