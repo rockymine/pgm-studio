@@ -82,8 +82,8 @@ try {
   await open(`/plans/${seed.planId}`);
   const origin = (await texts(".topbar-right .badge")).join();
   checks.add("a pinned candidate opens as a generated row", origin === "generated", origin || "(no badge)");
-  checks.add("the studio bar lights the plan editor on a row",
-    (await texts(".app-nav-link--active")).join() === "Plan editor", (await texts(".app-nav-link--active")).join());
+  checks.add("the studio bar lights Maps on a plan row",
+    (await texts(".app-nav-link--active")).join() === "Maps", (await texts(".app-nav-link--active")).join());
 
   await page.click('.topbar-right button:has-text("Save")');
   await page.waitForURL(url => /\/plans\/\d+$/.test(url.pathname) && !url.pathname.endsWith(`/plans/${seed.planId}`),
@@ -96,16 +96,19 @@ try {
   checks.add("and the candidate is untouched", original.origin === "generated", original.origin);
   await apiRaw(`/plans/${forkId}`, { method: "DELETE" });
 
-  checks.section("leaving a map for a new plan rebinds the editor");
+  checks.section("starting a plan from the Maps page rebinds the editor");
   await open(`/maps/${seed.planSlug}/plan`);
   const mapName = (await texts(".topbar .topbar-crumb")).at(0);
-  await page.click('.app-nav-link:has-text("Plan editor")');
-  await page.waitForURL(url => url.pathname.endsWith("/plans/new"), { timeout: 10000 });
+  await page.goto(`${BASE}/maps`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.click('button:has-text("New plan")');
+  await page.waitForURL(url => /\/maps\/[^/]+\/plan$/.test(url.pathname) && !url.pathname.includes(`/${seed.planSlug}/`),
+    { timeout: 10000 });
+  const newSlug = new URL(page.url()).pathname.split("/")[2];
   await page.waitForFunction(() => document.querySelector(".topbar .topbar-crumb")?.textContent.trim() === "Untitled plan",
     null, { timeout: 10000 }).catch(() => {});
   const crumb = (await texts(".topbar .topbar-crumb")).at(0);
   checks.add("the new plan does not carry the map's", crumb === "Untitled plan", `${mapName} → ${crumb}`);
-  checks.add("and its bar is a plan row's", (await actions()).includes("New"), (await actions()).join(", "));
+  await apiRaw(`/map/${newSlug}`, { method: "DELETE" });
 
   drove = true;
 } catch (e) {

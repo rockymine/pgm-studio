@@ -58,8 +58,6 @@ const slug = (await api("/plan", { method: "POST", body: { name: "e2e rules" } }
 await api(`/map/${slug}/plan`, { method: "PUT", body: plan });
 await page.goto(`${BASE}/maps/${slug}/plan`, { waitUntil: "networkidle", timeout: 30000 });
 await page.waitForSelector("canvas.world-canvas-2d", { timeout: 20000 });
-const checksTab = page.locator(".panel-tabs button", { hasText: "Checks" });
-if (await checksTab.count()) await checksTab.click();
 
 const row = page.locator(".problem-row", { has: page.locator(".problem-id", { hasText: "WL2" }) }).first();
 await row.waitFor({ timeout: 20000 });

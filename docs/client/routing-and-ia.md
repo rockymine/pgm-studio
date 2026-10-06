@@ -157,9 +157,9 @@ lifecycle position (no `map.xml` yet against has one), which is why the labels a
 ## Exits
 
 **Every page carries two bars, and each answers one question.** The studio's own bar (`AppNav`) is the same
-everywhere: home, a link to each tool — Maps, Plan editor, Generator, Catalog, Library, and Users for an admin
-— lit on the page it names and every page under it (Plan editor opens `/plans/new` and is lit on every
-`/plans/…` row); after a divider the two reference pages, **Rules** (`/rules`) and **API docs** (`/api-docs`,
+everywhere: home, a link to each tool — Maps, Generator, Catalog, Library, and Users for an admin
+— lit on the page it names and every page under it (Maps is lit on every `/plans/…` route too, because a plan is entered from the
+Maps page's *New plan*); after a divider the two reference pages, **Rules** (`/rules`) and **API docs** (`/api-docs`,
 which opens in a new tab, being the API's own page rather than the client's); and at the right the theme and
 the account. The tool's bar
 (`Topbar`) under it is the trail to where the page is and the tool's own state and actions. So getting to

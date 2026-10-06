@@ -200,10 +200,6 @@ for them. A name that can still be cut carries itself as its `title`. A table do
 a name and a slug each stay on one line and are cut, and below a wide screen the table drops columns rather
 than scrolling sideways.
 
-**One of several panels is a tab, not a chip.** A sidebar that holds several panels and shows one at a time
-switches them with `.panel-tabs` — the flow bar's underlined `.flow-step`s — because a chip reads as a filter
-switched on, and a row of full buttons crowds a narrow column.
-
 **A page opens on its name.** The crumb in the tool bar navigates and is too small to say where the reader is,
 so every browse and admin page — Maps, the generator, the shape catalog, the library and each of its kinds,
 Users, Tokens — opens on one `PageHeading`: the crumb's word at `--font-xl`, a line saying what the page is for,
