@@ -71,7 +71,8 @@ module.
 `/maps` is every map in the studio in one table, newest written first, with its filters open in the sidebar
 beside it. A map is one thing at different stages, so stage is a filter over the one list rather than a page
 of its own. Every option carries how many maps it would show with the other filters as they are, and
-**Clear filters** at the foot of the sidebar drops them all.
+the **Clear** beside the sidebar's *Filters* heading drops them all. The sidebar is a `FilterSidebar` of
+`FilterGroup`s, the same rail the shape catalog and the generator use (`ui-conventions.md`).
 
 | Filter | Address | Keeps |
 |---|---|---|

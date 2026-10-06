@@ -1,0 +1,23 @@
+@namespace PgmStudio.Client.Components
+
+@* One titled block of a FilterSidebar: the heading, a Clear that shows while anything in the block is set,
+   and its FilterGroups. A block of settings that has nothing to clear leaves OnClear unset. *@
+
+<Section Title="@Title" Class="@Class">
+    <Actions>
+        @if (Active && OnClear.HasDelegate)
+        {
+            <Button Class="action-btn--push-end" OnClick="OnClear">Clear</Button>
+        }
+    </Actions>
+    <ChildContent>@ChildContent</ChildContent>
+</Section>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    /// <summary>Something in this block is set, so Clear is offered.</summary>
+    [Parameter] public bool Active { get; set; }
+    [Parameter] public EventCallback OnClear { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

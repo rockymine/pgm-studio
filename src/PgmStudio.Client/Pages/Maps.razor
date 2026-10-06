@@ -18,63 +18,54 @@
   </Bar>
   <ChildContent>
       <Workspace>
-        <Sidebar Class="map-filters">
-          <Section Title="Stage">
-            <div class="filter-group-options">
-              <Chip Active="@(CurrentStage is null)" OnClick='() => Go("stage", null)'>All<span class="filter-chip-n">@Count(skip: "stage")</span></Chip>
+        <FilterSidebar>
+          <FilterPanel Title="Filters" Active="Filtering" OnClear="ClearFilters">
+            <FilterGroup Label="Stage">
+              <Chip Active="@(CurrentStage is null)" Count='Count(skip: "stage")' OnClick='() => Go("stage", null)'>All</Chip>
               @foreach (var (word, label) in StageWords)
               {
-                <Chip Active="@(CurrentStage == word)" OnClick='() => Go("stage", word)'>
-                  <span class="map-stage-dot map-stage-dot--@word"></span>@label<span class="filter-chip-n">@Count(skip: "stage", stage: word)</span>
+                <Chip Active="@(CurrentStage == word)" Count='Count(skip: "stage", stage: word)' OnClick='() => Go("stage", word)'>
+                  <span class="map-stage-dot map-stage-dot--@word"></span>@label
                 </Chip>
               }
-            </div>
-          </Section>
+            </FilterGroup>
 
-          <Section Title="Author">
-            <input class="field-input" type="search" placeholder="Find an author" aria-label="Find an author"
-                   @bind="authorSearch" @bind:event="oninput" />
+            <Field Label="Author">
+              <input class="field-input" type="search" placeholder="Find an author" aria-label="Find an author"
+                     @bind="authorSearch" @bind:event="oninput" />
+            </Field>
             @foreach (var (title, agents) in AuthorGroups)
             {
               var group = AuthorsIn(agents);
               @if (group.Count == 0) { continue; }
               var allOn = group.All(name => Picked.Contains(name));
-              <div class="map-author-group">
-                <span>@title</span>
-                <button type="button" class="map-author-all" @onclick="() => PickAll(group, !allOn)">@(allOn ? "Clear" : "Select all")</button>
-              </div>
-              <div class="filter-group-options filter-group-options--multi map-author-options">
-                @foreach (var name in group)
-                {
-                  <Chip Active="@Picked.Contains(name)" OnClick="() => ToggleAuthor(name)" @key="name">
-                    <AuthorMark Uuid="@CreditNamed(name)?.Uuid" Name="@name" Size="18" />
-                    <span class="map-author-name">@name</span>
-                    <span class="filter-chip-n">@Count(skip: "author", author: name)</span>
-                  </Chip>
-                }
-              </div>
+              <FilterGroup Label="@title" Multi Class="filter-group--authors">
+                <End><button type="button" class="filter-group-action" @onclick="() => PickAll(group, !allOn)">@(allOn ? "Clear" : "Select all")</button></End>
+                <ChildContent>
+                  @foreach (var name in group)
+                  {
+                    <Chip Active="@Picked.Contains(name)" Count='Count(skip: "author", author: name)' OnClick="() => ToggleAuthor(name)" @key="name">
+                      <AuthorMark Uuid="@CreditNamed(name)?.Uuid" Name="@name" Size="18" />
+                      <span class="map-author-name">@name</span>
+                    </Chip>
+                  }
+                </ChildContent>
+              </FilterGroup>
             }
-          </Section>
 
-          @if (GamemodesPresent.Count > 0)
-          {
-            <Section Title="Gamemode">
-              <div class="filter-group-options filter-group-options--multi">
+            @if (GamemodesPresent.Count > 0)
+            {
+              <FilterGroup Label="Gamemode" Multi>
                 @foreach (var gamemode in GamemodesPresent.Append(NoGamemode))
                 {
-                  <Chip Active="@PickedGamemodes.Contains(gamemode)" OnClick="() => ToggleGamemode(gamemode)">
-                    @GamemodeLabel(gamemode)<span class="filter-chip-n">@Count(skip: "gamemode", gamemode: gamemode)</span>
+                  <Chip Active="@PickedGamemodes.Contains(gamemode)" Count='Count(skip: "gamemode", gamemode: gamemode)' OnClick="() => ToggleGamemode(gamemode)">
+                    @GamemodeLabel(gamemode)
                   </Chip>
                 }
-              </div>
-            </Section>
-          }
-
-          @if (Filtering)
-          {
-            <Button Full OnClick="ClearFilters" Icon="x">Clear filters</Button>
-          }
-        </Sidebar>
+              </FilterGroup>
+            }
+          </FilterPanel>
+        </FilterSidebar>
 
         <ContentColumn MaxWidth="1180">
           <PageHeading Title="Maps">

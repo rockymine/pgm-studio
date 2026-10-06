@@ -30,8 +30,7 @@ it gets copy-pasted, and a page that needs a modifier reaches for an inline `sty
 carries one.
 
 The failure that argues for the vocabulary already happened once: `/generator` grew a parallel set
-(`gen-filters`, `gen-field`, `gen-chip`, `gen-grid`) re-implementing `workspace-sidebar`, `field`,
-`filter-chip` and `card-grid`. Adopting a component is a **zero-visual-diff** refactor — it emits the same
+(`gen-field`, `gen-chip`, `gen-grid`) re-implementing `field`, `filter-chip` and `card-grid`. Adopting a component is a **zero-visual-diff** refactor — it emits the same
 classes the markup did — which is what makes it reversible per file and checkable against `/design`.
 
 ## The vocabulary
@@ -42,7 +41,7 @@ By tier, each grounded in the classes it emits.
 variants, an optional lucide `Icon` name, an `Href` that switches it to an `<a>`, and `Writes`/`Deletes`/`Builds`, which
 close it where the caller may not, below), `WriteGate` (the same answer for a control that is not a
 `Button`), `Badge`, `Chip`
-(`filter-chip`), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, `Icon`, and `PlayerHead` —
+(`filter-chip`, with an optional `Count` that appends how many items the option would show), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, `Icon`, and `PlayerHead` —
 a person's initial on a neutral tile, with the front of an account's head over it as the studio serves it at
 `/api/minecraft/player/{uuid}/head` — eight pixels drawn large, the face with the hat over it the way the game
 draws it — so a browser asks no third party and a head the studio cannot get leaves the initial showing.
@@ -60,7 +59,7 @@ list; `Slim` is the narrower panel-row box and `Canvas` the floating control of 
 is the labelled coordinate cell; `SwatchRow` is the control a **colour** is chosen with, generic in what a swatch stands for — a block's data
 value in the library, a colour word in Configure — because a set of sixteen colours is picked by clicking the
 colour and a dropdown of their names makes the author read what they can already see; and
-`AuthorsEditor` is the shared author/contributor block every tool's Identity step uses — each row's mark
+`FilterGroup` is one facet of a filter rail (below); `AuthorsEditor` is the shared author/contributor block every tool's Identity step uses — each row's mark
 is an initial over a hue hashed from the row's own uuid or name, so a page carrying authors fetches nothing
 from outside the studio to draw them.
 
@@ -74,7 +73,8 @@ beside it.
 **Data** — `Section` (`panel-section` plus its header, description, help, actions and footer), `SectionHeader`
 on its own, `BoardKey` (the role and zone colours a page of server-drawn boards is read by, drawn once beside
 them), `ListRow` (the list row with its swatch, label, tag, go-arrow and a `Trailing` slot for a control
-the row carries), and `DetailHeader` (an inspector head: icon, label, trailing badges).
+the row carries), `DetailHeader` (an inspector head: icon, label, trailing badges), and `FilterPanel`
+(one titled block of a filter rail, below).
 
 **Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + the two bars + body + footer);
 `AppNav` is the studio's own bar on every page — home, a link per tool, the two reference pages (Rules and API docs), `TextSizeMenu`, the theme and
@@ -82,7 +82,7 @@ the row carries), and `DetailHeader` (an inspector head: icon, label, trailing b
 only* tag on a read-only page, and the tool's actions; `AppFooter` closes every page with the keyboard
 shortcuts, the design reference and the repository; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from; `PageHeading` is the one heading a browse or admin page opens on; `FlowBar` is the phase/step nav the stepped tools share; `AppFooterLink` and `SideDrawer`
+arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list; `PageHeading` is the one heading a browse or admin page opens on; `FlowBar` is the phase/step nav the stepped tools share; `AppFooterLink` and `SideDrawer`
 finish the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
@@ -165,11 +165,29 @@ what lets the page say so before an edit rather than after it.
 
 ## A filter looks like a filter
 
-**A set the reader can tick several of leads each chip with a checkbox.** `filter-group-options--multi` on the
-chip row draws the box, ticked when the chip is on, and moves the chip's count to its right edge; a row where
-exactly one option holds (a symmetry) carries no box. The generator and the shape catalog
-title their rails for what the rail does — *Layout settings*, *Filter by shape*, *Filter shapes* — rather
-than *Filters*, and every change in them applies at once: there is no Apply button to forget.
+**Every page that narrows a list builds its rail from three components, and the page keeps only the logic.**
+`FilterSidebar` is the left `Sidebar`, ruled off from the content. Inside it, a `FilterPanel` is one titled
+block — the heading, and a **Clear** in the heading's right slot that appears while `Active` is true and
+`OnClear` is bound — and inside that, a `FilterGroup` is one facet: a `Field` label over a row of `Chip`s.
+`Maps` (`/maps`), the shape catalog (`/catalog`) and the generator (`/generator`) all stand on them, so what
+a facet looks like, where its count sits and where its reset sits is decided once. What each page filters by,
+and what a click does, stays in the page.
+
+**A facet is a row of chips, never a select or a list of checkboxes.** `FilterGroup Multi` marks a set the
+reader can tick several of: the row gets `filter-group-options--multi`, which draws a checkbox in each chip,
+ticked when the chip is on, and moves the chip's count to its right edge. A group where exactly one option
+holds (a stage, a symmetry) leaves `Multi` off and carries no box. `Hint` is the muted word beside the label
+(*has all*, *any of*); `End` is a control at the label row's right edge, such as an author group's
+*Select all*, styled `filter-group-action`.
+
+**A count belongs to the chip.** `Chip Count="n"` renders `filter-chip-n`; a page that counts nothing leaves it
+unset. A note explaining what the counts mean is a `section-desc` paragraph at the foot of its panel.
+
+**A block that only holds settings is a `FilterPanel` with no `OnClear`.** The generator's *Layout settings*
+(players, symmetry, highest score, wools) sits above its *Filter by shape* panel in the same rail, so both read
+as one rail while only the second offers *Clear*. Panels are titled for what they do — *Filters*, *Filter
+shapes*, *Layout settings*, *Filter by shape* — and every change applies at once: there is no Apply button to
+forget.
 
 ## Text size
 

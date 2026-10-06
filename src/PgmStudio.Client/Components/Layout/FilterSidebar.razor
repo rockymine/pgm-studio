@@ -1,0 +1,14 @@
+@namespace PgmStudio.Client.Components
+
+@* The left rail of a page that narrows a list — a Sidebar ruled off from the content beside it. Its children
+   are FilterPanels. *@
+
+<Sidebar Class="@Cls" @attributes="Extra">@ChildContent</Sidebar>
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+
+    private string Cls => string.Join(' ', new[] { "filter-sidebar", Class }.Where(c => !string.IsNullOrEmpty(c)));
+}
