@@ -74,7 +74,7 @@ public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifa
     }
 }
 
-/// <summary>GET /api/maps/stage-counts — the landing cards' tallies, each counting exactly what the Maps page
+/// <summary>GET /api/maps/stage-counts — the landing's map count, each counting exactly what the Maps page
 /// shows when its card opens it: the maps standing at Sketch, at Configure — which lists a map the corpus import
 /// stood at <c>edit</c> too — and every map.</summary>
 public sealed class MapStageCountsEndpoint(MapRepository repo) : EndpointWithoutRequest<MapStageCounts>

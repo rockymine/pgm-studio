@@ -14,7 +14,7 @@ const seed = await readSeed();
 
 /** `expect` names a selector that must exist once the page has settled — the page's "I rendered" proof. */
 const ROUTES = [
-  { path: "/",                                    name: "landing",        expect: ".landing-choices a.card" },
+  { path: "/",                                    name: "landing",        expect: ".landing-hero a" },
   { path: "/maps",                                name: "maps dashboard", expect: ".studio-shell, .workspace, main" },
   { path: "/maps?stage=sketch",                   name: "maps · sketch",  expect: "body" },
   { path: "/maps?stage=plan",                     name: "maps · plan",    expect: "body" },
