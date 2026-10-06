@@ -48,7 +48,7 @@ async function arrange(objectives) {
 }
 
 /**
- * The faults this spec is responsible for. The author it invents to complete Identity sends the topbar off
+ * The faults this spec is responsible for. The author it invents to complete Identity sends the Identity step off
  * to resolve a Minecraft username, which answers 404 with no network — an artifact of the arrangement, and
  * nothing to do with the objective phases.
  */
@@ -60,7 +60,7 @@ async function openPhase(title) {
   await page.goto(`${BASE}/maps/${seed.mapSlug}/configure`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForSelector(".nav-btn", { timeout: 20000 });
   await page.click(`.nav-btn[title="${title}"]`);
-  await page.waitForSelector(".flow-bar-phase", { timeout: 20000 });
+  await page.waitForSelector(".editor-bar-phase", { timeout: 20000 });
 }
 
 const intent = await api(`/map/${seed.mapSlug}/intent`);
@@ -72,7 +72,7 @@ checks.section("a map carrying wools AND a core shows both phases");
 await arrange({ cores: [core(owner)] });
 
 await openPhase("Cores");
-const phaseTitle = await page.textContent(".flow-bar-phase span");
+const phaseTitle = await page.textContent(".editor-bar-phase span");
 checks.add("the Cores phase opens", phaseTitle?.trim() === "Cores", phaseTitle?.trim());
 
 const railTitles = await page.$$eval(".nav-btn", els => els.map(e => e.getAttribute("title")));
@@ -104,7 +104,7 @@ checks.section("a core-only map is not held behind an empty wool slice");
 await arrange({ wools: [], cores: [core(owner)] });
 
 await openPhase("Review and export");
-const reviewTitle = await page.textContent(".flow-bar-phase span");
+const reviewTitle = await page.textContent(".editor-bar-phase span");
 checks.add("Review is reachable with no wools at all", reviewTitle?.trim() === "Review and export", reviewTitle?.trim());
 
 const locked = await page.$$eval(".nav-btn", els =>

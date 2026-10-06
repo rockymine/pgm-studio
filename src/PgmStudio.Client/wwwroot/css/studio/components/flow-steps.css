@@ -1,0 +1,24 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   FLOW STEPS  (the wizard step labels the editor bar draws between its crumb and
+   its commands, and the tab strip a sidebar's panels use). Deliberately flat: text
+   labels, an accent underline on the active step, a check on completed ones.
+   ══════════════════════════════════════════════════════════════════════════ */
+.flow-step {
+  position: relative;
+  display: flex; align-items: center; gap: 5px;
+  height: 100%; padding: 0;
+  background: none; border: none;
+  font-family: inherit; font-size: var(--font-base);
+  color: var(--text-muted); cursor: pointer; white-space: nowrap;
+}
+.flow-step:hover         { color: var(--text-bright); }
+.flow-step:disabled      { opacity: 0.35; cursor: default; }
+.flow-step:disabled:hover { color: var(--text-muted); }
+.flow-step svg           { width: var(--icon-xs); height: var(--icon-xs); }
+.flow-step--done         { color: var(--text-secondary); }
+.flow-step--done svg     { color: var(--color-success); }
+.flow-step--active       { color: var(--text-strong); }
+.flow-step--active::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0;
+  height: 2px; background: var(--accent); border-radius: 2px 2px 0 0;
+}

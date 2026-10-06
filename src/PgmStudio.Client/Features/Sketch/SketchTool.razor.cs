@@ -33,7 +33,6 @@ public partial class SketchTool
     private bool reliefOn = false;   // the height contours of whatever relief the groups carry
     private bool snapOn = true;
     private IsoView iso = default!;
-    private string groupLabel = "";
     private string? mapName;
     private bool canUndo, canRedo;
     /// <summary>The theme in hand while the Apply step is up. The canvas paints it on a click and can lift
@@ -60,7 +59,7 @@ public partial class SketchTool
     private string active = "draw";
     private bool InfoActive => active == "info";
     private bool DrawActive => active == "draw";
-    private Task GoInfo() => SetPhase("info");
+    private Task GoInfo() { infoStep = 0; return SetPhase("info"); }
     private Task GoDraw() => SetPhase("draw");
 
     // ── Theme phase: the map's whole finish, in one step on the live canvas. A theme is taken in hand from the
@@ -109,6 +108,38 @@ public partial class SketchTool
     private bool NotesActive => ReviewActive && !views.Placing;
 
     private static readonly string[] ReviewSteps = ["Cameras", "Notes"];
+
+    // ── The editor bar's phase: what each phase is called, which of its steps is up, and where Back and Next go.
+    private int infoStep;
+
+    private sealed record BarPhase(string Icon, string Title, IReadOnlyList<string> Steps, int Step, string NextLabel,
+                                   Func<Task> OnBack, Func<Task> OnNext, Func<int, Task> OnStep);
+
+    private static readonly Func<int, Task> NoStep = _ => Task.CompletedTask;
+
+    private BarPhase BarMove
+    {
+        get
+        {
+            if (InfoActive)
+            {
+                var last = SketchInfoPhase.Steps.Count - 1;
+                return new("book-open-text", "Info", SketchInfoPhase.Steps, infoStep, infoStep == last ? "Continue" : "Next",
+                    () => { infoStep = 0; return Task.CompletedTask; },
+                    () => { if (infoStep < last) { infoStep++; return Task.CompletedTask; } return GoDraw(); },
+                    step => { infoStep = step; return Task.CompletedTask; });
+            }
+            if (ThemeActive) return new("palette", "Palette", [], 0, "Next", GoRelief, GoDressing, NoStep);
+            if (DressingActive) return new("trees", "Decoration", [], 0, "Next", GoTheme, GoReview, NoStep);
+            if (ReliefActive) return new("mountain", "Terraform", [], 0, "Next", GoDraw, GoTheme, NoStep);
+            if (HistoryActive) return new("history", "History", [], 0, "Draw", GoReview, GoDraw, NoStep);
+            if (CamerasActive) return new("eye", "Review", ReviewSteps, 0, "Next", GoDressing, ShowNotes, StepReview);
+            if (NotesActive) return new("eye", "Review", ReviewSteps, 1, "Next", ShowCameras, GoHistory, StepReview);
+            return new("pencil-ruler", "Draw", [], 0, "Next", GoInfo, GoRelief, NoStep);
+        }
+    }
+
+    private const string DownloadTitle = "Download map: its world and map.xml, ready for a server";
 
     private Task StepReview(int step) => step == 0 ? ShowCameras() : ShowNotes();
 
@@ -911,11 +942,10 @@ public partial class SketchTool
         StateHasChanged();
     }
 
-    /// <summary>The layout changed; update the group-count label and schedule a debounced save.</summary>
+    /// <summary>The layout changed; schedule a debounced save.</summary>
     [JSInvokable]
     public void OnDirty(int groupCount)
     {
-        groupLabel = groupCount == 1 ? "1 group" : $"{groupCount} groups";
         edits++;
         StateHasChanged();
         ScheduleSave();
@@ -938,7 +968,7 @@ public partial class SketchTool
         await SaveAsync(token);
     }
 
-    /// <summary>What the last save did, for the topbar to say. Null while every save has landed.</summary>
+    /// <summary>What the last save did, for the editor bar to say. Null while every save has landed.</summary>
     private string? saveError;
     /// <summary>What the studio answered the last save with: the refusal's findings, or the warnings a landed
     /// save carried.</summary>

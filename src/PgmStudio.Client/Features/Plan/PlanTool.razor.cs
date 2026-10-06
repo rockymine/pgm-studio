@@ -62,7 +62,18 @@ public partial class PlanTool
     private bool DrawActive => active == "draw";
     // The Draw workspace stays mounted; it's hidden (not removed) on Info.
     private bool DrawHidden => active != "draw";
-    private Task GoInfo() => SetPhase("info");
+    private Task GoInfo() { infoStep = 0; return SetPhase("info"); }
+
+    // The Info phase's step, held here because the editor bar lists the steps and moves between them.
+    private int infoStep;
+    private Task StepInfo(int step) { infoStep = step; return Task.CompletedTask; }
+    private Task BarBack() { if (!InfoActive) return GoInfo(); infoStep = 0; return Task.CompletedTask; }
+    private Task BarNext()
+    {
+        if (!InfoActive) return OpenCompile();
+        if (infoStep < PlanInfoPhase.Steps.Count - 1) { infoStep++; return Task.CompletedTask; }
+        return GoDraw();
+    }
     private Task GoDraw() => SetPhase("draw");
 
     // A blank plan lands on Info (?phase=info) to name it; opening an existing one goes to Draw.

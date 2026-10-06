@@ -8,55 +8,46 @@
 
 @* Plan editor — a coarse cell-grid layout tool, on one of two bindings: a map's plan artifact
    (/maps/{slug}/plan) or a plan row (/plans/{id}, /plans/new). Both render the same tool: the rail's Info and
-   Draw phases, the flow bar, and a collapsible sidebar stacking Settings (an open studio only) over Checks. Only the topbar follows the binding, because only saving differs: a map-backed plan saves
+   Draw phases, the editor bar, and a collapsible sidebar stacking Settings (an open studio only) over Checks.
+   Only the editor bar follows the binding, because only saving differs: a map-backed plan saves
    into its map, a plan row saves as a row and forks when it was generated or imported. The PlanCanvas JS
    (via bridge/plan-bridge.js) owns the plan document, the pointer tools and the live symmetry mirror ghost. *@
 
 <StudioShell>
   <Bar>
-    @if (MapBacked)
-    {
-    <Topbar HomeHref="maps?stage=plan" HomeLabel="Plans" HomeTitle="Back to plans">
-      <Crumbs>
-        <Crumb>@planName</Crumb>
-        <Crumb Dim>Plan</Crumb>
-      </Crumbs>
-      @* Save only. The flow bar's Next is Compile, and the drawer it opens carries every download. *@
-      <Right>
-        @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
-        @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
-        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save (Ctrl+S)" Writes>Save</Button>
-      </Right>
-    </Topbar>
-    }
-    else
-    {
-    @* A plan row has no map to hold it, so the bar carries what a row needs: starting one, importing a file,
-       opening a saved one, and the origin that decides whether Save writes in place or makes a copy. *@
-    <Topbar>
-      <Crumbs>
-        <Crumb Sep="false">@planName</Crumb>
-        <Crumb Dim>Plan</Crumb>
-      </Crumbs>
-      <Right>
-        @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
-        @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
-        @if (planOrigin is not null)
+    @* A map-backed plan is the Plan stage of its map. A plan row has no map to switch within, so its stage word
+       is plain text, and what a row needs — starting one, importing a file, opening a saved one, and the origin
+       that decides whether Save writes in place or makes a copy — sits with Save. *@
+    <EditorBar MapName="@planName" Slug="@(MapBacked ? Slug : null)" Stage="@MapStage.Plan"
+               PhaseIcon="@(InfoActive ? "book-open-text" : "pencil-ruler")" PhaseTitle="@(InfoActive ? "Info" : "Draw")"
+               Steps="@(InfoActive ? PlanInfoPhase.Steps : [])" CurrentStep="@infoStep"
+               BackEnabled="@(!InfoActive || infoStep > 0)"
+               NextLabel="@(!InfoActive ? "Compile" : infoStep == PlanInfoPhase.Steps.Count - 1 ? "Continue" : "Next")"
+               NextBusy="@(!InfoActive && !documentLoaded)" NextBusyLabel="Loading…" NextWrites="@(!InfoActive)"
+               OnStep="StepInfo" OnBack="BarBack" OnNext="BarNext" LabelledCommands>
+      <State>
+        @if (importError is not null) { <span>@importError</span> }
+        @if (saveState is not null) { <span>@saveState</span> }
+      </State>
+      <Commands>
+        @if (!MapBacked)
         {
-          <Badge Kind="neutral" title="@OriginTitle">@planOrigin</Badge>
+          if (planOrigin is not null)
+          {
+            <Badge Kind="neutral" title="@OriginTitle">@planOrigin</Badge>
+          }
+          <Button OnClick="NewPlan" Title="Start a blank plan" Writes>New</Button>
+          <WriteGate Context="closed">
+            <label class="action-btn" title="@(closed ?? "Import a *.plan.json file")" aria-disabled="@(closed is not null ? "true" : null)">
+              Import
+              <InputFile OnChange="OnImport" accept=".json" class="control-input--hidden" disabled="@(closed is not null)" />
+            </label>
+          </WriteGate>
+          <Button OnClick="OpenDbBrowser" Title="Open a saved plan">Open</Button>
         }
-        <Button OnClick="NewPlan" Title="Start a blank plan" Writes>New</Button>
-        <WriteGate Context="closed">
-          <label class="action-btn" title="@(closed ?? "Import a *.plan.json file")" aria-disabled="@(closed is not null ? "true" : null)">
-            Import
-            <InputFile OnChange="OnImport" accept=".json" class="control-input--hidden" disabled="@(closed is not null)" />
-          </label>
-        </WriteGate>
-        <Button OnClick="OpenDbBrowser" Title="Open a saved plan">Open</Button>
         <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save (Ctrl+S)" Writes>Save</Button>
-      </Right>
-    </Topbar>
-    }
+      </Commands>
+    </EditorBar>
   </Bar>
   <Rail>
     <NavRail>
@@ -68,7 +59,7 @@
       <WriteGate OnChanged="OnWriteReason" />
       @if (InfoActive)
       {
-        <PlanInfoPhase @key="@Slug" Slug="@Slug" OnNext="GoDraw"
+        <PlanInfoPhase @key="@Slug" Slug="@Slug" Step="infoStep"
                        Name="@planName" Symmetry="@symmetry" Cell="cell" Surface="surface"
                        SurfaceStep="surfaceStep" MaxPlayers="maxPlayers"
                        OnNameChanged="OnNameChanged" OnSymmetryChanged="OnSymmetryChanged"
@@ -78,9 +69,6 @@
       @* Draw stays mounted (hidden, not removed) so the plan-canvas bridge + zoom survive a trip to Info;
          the canvas re-measures itself when it un-hides. *@
       <div class="phase-body" hidden="@DrawHidden">
-      <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
-               BackEnabled="true" NextLabel="Compile" NextBusy="@(!documentLoaded)" NextBusyLabel="Loading…" NextWrites
-               OnBack="GoInfo" OnNext="OpenCompile" />
       <Workspace>
         @if (sidebarOpen)
         {

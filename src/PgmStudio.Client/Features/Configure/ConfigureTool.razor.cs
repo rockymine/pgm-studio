@@ -58,7 +58,7 @@ public partial class ConfigureTool
     private bool NextEnabled => step < LastStep || (AtEnd ? exportReady : CanAdvance);
 
     // Export wiring (Review · XML step). The XML phase fetches GET /xml and registers whether the
-    // export gate is open + the download action; the flow-bar Export (Next at AtEnd) invokes it.
+    // export gate is open + the download action; the editor-bar Export (Next at AtEnd) invokes it.
     private bool exportReady;
     private Func<Task>? exportAction;
 
@@ -67,7 +67,7 @@ public partial class ConfigureTool
     /// enough that a job and a poll would be the wrong machinery.</summary>
     private bool exporting;
 
-    /// <summary>The XML step reports its export gate state + download action so the flow-bar Export
+    /// <summary>The XML step reports its export gate state + download action so the editor-bar Export
     /// (Next at the final step) can enable/run it.</summary>
     public void RegisterExport(bool ready, Func<Task>? download)
     {

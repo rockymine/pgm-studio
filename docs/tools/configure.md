@@ -9,7 +9,7 @@ without.
 
 **It is entered two ways, and they are genuinely different jobs.** A map that came through Plan and Sketch
 arrives carrying an intent already — its teams, spawns, wools and build zones were compiled from the plan —
-so it exports without a visit: the Sketch tool's **Download map** runs the same export gates and saves the
+so it exports without a visit: the Sketch tool's **Download** runs the same export gates and saves the
 world. Configure is where such a map is changed: the objective colours picked, the observer placed, anything
 the plan could not state added. A world built in Minecraft **outside** the studio arrives with nothing: it is
 imported, scanned into the database, and configured from an empty intent by drawing the regions over terrain
@@ -44,7 +44,7 @@ already exists, so its dimensions are read out rather than set, and on a plan-bu
 world export is about to stamp, which is the plan's statement to make.
 
 The save model is deferred and phase-boundary shaped. A phase body patches its slice on the working intent and
-marks it dirty; the wizard re-PUTs the whole object when the phase is left, and the top bar reads
+marks it dirty; the wizard re-PUTs the whole object when the phase is left, and the editor bar's state reads
 Saved · Saving… · Unsaved. Two things save immediately instead, because they are not intent:
 island exclusion (`PATCH /api/configure/{slug}/exclude-island`) and the import itself.
 
@@ -450,7 +450,7 @@ it refuses*, not in this table.
 shaping steps deliberately do not show a tree — structure is a generated artifact, not a thing to maintain —
 so this is where it can be looked at.
 
-**XML** shows the generated `map.xml`, segmented into containers picked on the left, and the flow bar's Next
+**XML** shows the generated `map.xml`, segmented into containers picked on the left, and the editor bar's Next
 becomes **Export**. It is enabled only when the pre-flight gate is open. Both reads behind the step build the
 same world and cost the same half-second, so both say they are working: the document fetch fills the panes
 with *Generating XML…*, and the download reads *Exporting…* with the control disabled, which is also what

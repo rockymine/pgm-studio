@@ -157,23 +157,44 @@ lifecycle position (no `map.xml` yet against has one), which is why the labels a
 
 ## Exits
 
-**Every page carries two bars, and each answers one question.** The studio's own bar (`AppNav`) is the same
+**Every page carries a studio bar and a bar of its own, and each answers one question.** The studio's own bar (`AppNav`) is the same
 everywhere: home, a link to each tool — Maps, Generator, Catalog, Library, and Users for an admin
 — lit on the page it names and every page under it (Maps is lit on every `/plans/…` route too, because a plan is entered from the
 Maps page's *New plan*); after a divider the two reference pages, **Rules** (`/rules`) and **API docs** (`/api-docs`,
 which opens in a new tab, being the API's own page rather than the client's); and at the right the theme and
-the account. The tool's bar
-(`Topbar`) under it is the trail to where the page is and the tool's own state and actions. So getting to
-another tool is always one click in the top bar, and the tool's bar holds nothing that is not the tool's.
+the account. The page's bar under it is the trail to where the page is and the page's own state and actions: a
+`Topbar` on a browse or admin page, and the one `EditorBar` on the three editors. So getting to another tool is
+always one click in the top bar, and the page's bar holds nothing that is not the page's.
 
-**A map tool leaves through the maps page, filtered to its stage.** Its bar's home link is that exit, and each
-of the three map tools names its own view: Sketch → *Sketches*, Plan → *Plans*, Configure → *Configuring*. The
-surfaces that hold no map — a plan row, the generator, the catalog, the library, the design showcase and the
-maps page itself — carry no home link, because the studio's bar above them is already the way home.
+**The editors draw one bar, not two.** Plan, Sketch and Configure draw `EditorBar` in place of a `Topbar` and a
+step strip, so the trail, the phase and the work's commands are one row of 44 px. Left to right it holds the
+crumb and the stage switcher, the phase's icon and name with its steps, and at the right the state, the tool's
+commands, a divider and Back/Next. The bar is present in every phase, Info included, so the crumb never moves.
 
-Beside that link the tool's bar carries the trail — the map's name, then the tool or phase, dimmed. Neither is a
-link: the map is already open, so a second way to it would be a way to nowhere.
+**A map tool leaves through the unfiltered maps list.** The crumb's first segment is *Maps*, a link to `/maps`
+with no stage filter: the segment names its parent, so the link goes to the parent, and which stage a person was
+looking at is a view of that list rather than a place. The map's name follows as plain text, because the map is
+already open and a link to it would go nowhere. The phase is not in the crumb; the phase and its steps are the
+bar's middle, and the rail names them again. The surfaces that hold no map — the generator, the catalog, the
+library, the design showcase and the maps page itself — draw a `Topbar` with no home link, because the studio's
+bar above them is already the way home. A plan row (`/plans/{id}`, `/plans/new`) is an editor with no map: it
+keeps the `Maps` crumb and puts the plan's name after it.
 
-A finished sketch does not leave its tool to be handed over: **Download map** in the sketch's bar builds the
-world and saves the export where the author is (`docs/tools/sketch.md`). Configure is reached from the map's
-row, or from the bar when the export is refused for something only Configure states.
+**The tool is a switcher, not a crumb.** After the map's name `StageSwitch` shows the tool the page is — *Plan*,
+*Sketch* or *Configure* — as a button whose menu lists the three. A tool is a link where the map holds that layer
+and a dashed, disabled entry where it does not, the same distinction the Maps table draws in its *Open in*
+column and read from the same place: `GET /api/maps` and `MapLayers.Holds`, fetched when the menu opens, because
+saving a plan or a sketch is what makes the layer. The page's own tool is always offered, marked as current.
+Where the page has no map (a plan row, the import on `/maps/new`) the word is plain text in the same box. The
+button is set in the crumb's own font, size, weight and line height with no vertical padding, so its text shares
+the crumb's baseline; its hover and focus are a shadow that paints around the text without moving it
+(`tests/e2e/editor-bar.mjs` measures the baseline to half a pixel).
+
+**Below 1100 px the steps become a menu.** The step strip is replaced by *Step n of m*, a button whose menu lists
+the steps, so the bar stays one row; at phone width the crumb takes a row of its own and the bar wraps, and
+nothing scrolls sideways.
+
+A finished sketch does not leave its tool to be handed over: **Download** — an icon in the editor bar's command
+group, beside Undo and Redo — builds the world and saves the export where the author is (`docs/tools/sketch.md`).
+Configure is reached from the map's row, from the stage switcher, or from the Problems popover when the export is
+refused for something only Configure states.

@@ -7,7 +7,7 @@
    scans the chosen world; Found shows the detection brief over the reused world canvas; Plan starts the
    wizard. The rail's later phases stay locked until Start. *@
 
-<ConfigureLayout MapName="@(importedSlug ?? selected?.Slug)" Crumb="Import" ActivePhaseId="" Furthest="@(-1)"
+<ConfigureLayout MapName="@(importedSlug ?? selected?.Slug)" StageLabel="Import" ActivePhaseId="" Furthest="@(-1)"
               PhaseIcon="import" PhaseTitle="Import"
               Steps="@Steps" CurrentStep="@step" MaxStep="@MaxStep"
               BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"

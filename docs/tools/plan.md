@@ -18,14 +18,16 @@ and rebuilding refreshes them in place. `/plans/{id}` opens a **plan row** — w
 candidate as, and what Save writes when no map is behind the plan — and `/plans/new` holds a blank plan until
 Save stores it as one. A plan row has no map, so building it originates one.
 
-Both bindings are the same tool: the rail's Info and Draw phases, the flow bar whose Next is Compile, and the
-Draw sidebar, which folds away to give the canvas the width. Only the topbar
-follows the binding, because only saving differs. A map-backed plan's bar is *Save*, which writes the map's
+Both bindings are the same tool: the rail's Info and Draw phases, the editor bar whose Next is Compile, and the
+Draw sidebar, which folds away to give the canvas the width. Only the bar's commands
+follow the binding, because only saving differs. The crumb is *Maps › the plan's name* on both, and the stage
+switcher beside it opens the map's Sketch and Configure on a map-backed plan; a plan row has no map, so its
+stage word is plain text. A map-backed plan's commands are *Save*, which writes the map's
 artifact in place, **over the revision the tab loaded**: the plan was read with its `ETag`, which Save and the
 build's own plan write state as `If-Match`, so where the stored plan has moved on since — a second tab, an agent
 driving the API — the write is refused `RQ13` at 409 rather than overwriting it. The bar then says the plan was
 saved from somewhere else and that the page must be reloaded, and no further write is sent until it is; the
-sketch tool's save is the same helper (`DocumentSave`). A plan row's bar carries what a row needs: *New*, *Import* a `*.plan.json`, *Open* a saved
+sketch tool's save is the same helper (`DocumentSave`). A plan row's commands are what a row needs: *New*, *Import* a `*.plan.json`, *Open* a saved
 row, *Save*, and the row's origin as a badge — `authored` saves in place, while `generated` and `imported`
 fork into a new authored row on Save, and the address follows the copy.
 
@@ -500,7 +502,7 @@ its island, else a wool's owner, else neutral — so Configure opens pre-assigne
 Two steps. **Identity** is the plan's name, live-synced into the plan document as it is typed because the
 compile reads it. On a map-backed plan it is the map's display name and stands beside the authors, both loaded
 once from `GET /api/map/{slug}` and saved with `PATCH /api/map/{slug}/metadata`; a plan row has no map to
-credit anyone on, so its name is all Identity holds and the topbar's Save stores it with the row.
+credit anyone on, so its name is all Identity holds and the editor bar's Save stores it with the row.
 **Settings** is the globals form — symmetry, cell size, height (the base surface), height step, max players — writing
 straight through to the live document. Continue on the last step advances to Draw. A plan opened with
 `?phase=info` starts here, which is how a blank map-backed plan is named; any other opens on Draw.
@@ -512,7 +514,7 @@ document and the zoom survive the trip.
 
 The Draw phase is the `PlanTool` host with two bodies of its own, each a component beside it in
 `Features/Plan/`: `PlanInspector`, the form for the one selection, and `PlanBuildDrawer`, the compile and build
-drawer the flow bar's Next opens. The host owns the canvas, the dock, the sidebar panels, the topbar and the save;
+drawer the editor bar's Next opens. The host owns the canvas, the dock, the sidebar panels, the editor bar and the save;
 the inspector writes its edits through the bridge and takes the objective vocabulary, the selection and the
 surface step from the host; the drawer takes the bridge, the map's slug, the plan's name and the plan's
 `DocumentSave`, and owns everything a compile and a build produce. The words the document is written in — a

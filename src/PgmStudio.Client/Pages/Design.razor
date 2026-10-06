@@ -363,15 +363,15 @@
       <div class="ds-subsection">
         <h3>Topbar and Crumb</h3>
         <div class="ds-bar-frame">
-          <Topbar HomeHref="#navigation" HomeLabel="Maps" HomeIcon="map">
+          <Topbar>
             <Crumbs>
-              <Crumb Href="#navigation">Annealing V</Crumb>
-              <Crumb Dim>Sketch</Crumb>
+              <Crumb Sep="false" Href="#navigation" Dim>Library</Crumb>
+              <Crumb>Oak forest</Crumb>
             </Crumbs>
-            <Right><Badge Kind="success">Saved</Badge><Button Variant="primary">Export</Button></Right>
+            <Right><Badge Kind="success">Saved</Badge><Button Variant="primary">New</Button></Right>
           </Topbar>
         </div>
-        <p class="ds-theming-note">Studio-wide things (pages, text size, theme, account) are in <code>AppNav</code>; the tool's trail and actions are in <code>Topbar</code>. On a read-only page the <code>Topbar</code> adds a <em>View only</em> tag by itself.</p>
+        <p class="ds-theming-note">Studio-wide things (pages, text size, theme, account) are in <code>AppNav</code>; a browse or admin page's trail and actions are in <code>Topbar</code>, and the three editors draw <code>EditorBar</code> instead (below). On a read-only page the <code>Topbar</code> adds a <em>View only</em> tag by itself.</p>
       </div>
 
       <div class="ds-subsection">
@@ -420,9 +420,26 @@
       </div>
 
       <div class="ds-subsection">
-        <h3>FlowBar</h3>
-        <p class="ds-theming-note">The wizard strip of a stepped phase: the phase's icon and name, flat step labels with an underline on the current one, Back and Next at the right. It is its own strip above the workspace, never on the canvas.</p>
-        <FlowBar PhaseIcon="goal" PhaseTitle="Wools" Steps="FlowSteps" CurrentStep="1" BackEnabled="true" />
+        <h3>Editor bar</h3>
+        <p class="ds-theming-note">The one bar the Plan, Sketch and Configure editors draw under the studio's own
+           (<code>EditorBar</code>). Left, the crumb — <strong>Maps</strong>, the map's name — and the
+           <strong>stage switcher</strong> (<code>StageSwitch</code>), a button naming the current tool whose menu
+           opens the map's other tools, dashed where the map has no such layer. Middle, the
+           <strong>phase-identity cluster</strong> (<code>editor-bar-phase</code>: the phase's icon + name) and flat-text
+           step labels with an accent underline on the active one; below 1100 px the steps become a
+           "Step n of m" menu. Right, the state, the tool's commands, a divider, then Back/Next.</p>
+        <div class="ds-bar-frame">
+        <EditorBar MapName="Harbour Run" Slug="harbour_run" Stage="@MapStage.Sketch"
+                   PhaseIcon="goal" PhaseTitle="Wools" Steps="FlowSteps"
+                   CurrentStep="1" BackEnabled="true">
+          <State>Saved</State>
+          <Commands>
+            <Button Variant="icon" Icon="undo-2" Title="Undo" />
+            <Button Variant="icon" Icon="redo-2" Title="Redo" />
+            <Button Variant="icon" Icon="download" Title="Download" />
+          </Commands>
+        </EditorBar>
+        </div>
       </div>
 
       <div class="ds-subsection">
