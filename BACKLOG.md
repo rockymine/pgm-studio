@@ -529,13 +529,11 @@ text-size setting have shipped; what remains is what a sentence cannot fix — a
 up, controls that behave unlike every other tool, and the look itself. `docs/client/writing-for-the-ui.md`
 is the standard the copy is held to.
 
-- [~] **RP99 — A searchable help page, and the terms defined where they appear.** A `/help` route rendering
-  `GET /api/glossary` with a search box, plus a `Term` component that underlines a word, shows its one-line
-  definition on hover and links to its entry, reading `Glossary` in `PgmStudio.Vocabulary`. The guide entries
-  in `docs/client/writing-for-the-ui.md` join the glossary as a longer field when the page needs them. Then
-  the tool pages lose the explanatory paragraphs that are standing in for help today. *Evidence: the
-  reviewer's last note asks for "a searchable and indexable documentation page" over descriptions scattered
-  per page.* `docs/client/`.
+- [~] **RP99 — The terms defined where they appear.** `/glossary` lists `GET /api/glossary`; what remains is a
+  `Term` component that underlines a word, shows its one-line definition on hover and links to its
+  `/glossary#slug` entry, then the tool pages losing the explanatory paragraphs that stand in for help today. The
+  guide entries in `docs/client/writing-for-the-ui.md` join the glossary as a longer field when a page needs
+  them. `docs/client/`.
 
 - [ ] **RP100 — The map list says who made each map, and filters by them.** `/maps` rows carry no author;
   add the first author's head and name to each row (`PlayerHead`, already used by `AuthorsEditor`) and an
@@ -598,6 +596,11 @@ is the standard the copy is held to.
   landing and list layouts; the components stay. `docs/client/ui-conventions.md`.
 
 ## User Experience
+
+- [ ] **TG5 — Player bands are counted and combined.** The Generator's band chips (`SizeBands`) carry no counts
+  and only one can be on, because `GET /api/compose` serves one band per request and its feed returns no
+  per-band totals. Accept several bands and answer a count per band, then give the chips counts and multi-select
+  like the shape facets. `docs/tools/generator.md`.
 
 - [ ] **TL43 — Textured cards of one kind share a scale.** `StructureCard.Once` frames each tree, boulder and
   house part to its own bounding sphere, so a shrub and an oak fill their cards equally. Bound a library kind's

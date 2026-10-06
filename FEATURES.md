@@ -25,6 +25,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (CTW, DTM, DTC, alone or combined) with *Start a map* and *Open maps (N)*, a themeable board drawing
   (`LandingHero`), the person's five latest maps, and the four levels a map is described at.
   `docs/client/routing-and-ia.md`.
+- **The studio bar holds tools and two references (`C105`).** Maps, Generator, Library, Rules and Glossary,
+  with no divider; at the right the keyboard-shortcuts and Design icons, text size, theme and the account, whose
+  menu holds Tokens, Users (admin) and API docs — in an open studio too. The footer is the brand and GitHub.
+  `docs/client/routing-and-ia.md`.
+- **A glossary page (`RP99`).** `/glossary` lists every term `GET /api/glossary` serves, alphabetically under
+  letter headings with their other names and related terms, filtered by a search kept in `?q=`, each entry
+  reachable as `/glossary#slug`. `docs/client/routing-and-ia.md`.
+- **The home page shows maps (`C106`).** A two-column hero (eyebrow, title, lede, large *New map* and *Browse
+  maps*) beside the newest map drawn in game; *Continue working* as picture cards; tool tiles for Generator,
+  Shape catalog, Library and Rules; a banner to the glossary. `MapThumb` keeps a placeholder where a map cannot
+  be drawn, over `GET /api/map/{slug}/render/picture`. `docs/client/routing-and-ia.md`.
 - **The editors draw one bar (`C103`).** Plan, Sketch and Configure replace their topbar and flow bar with
   `EditorBar`: the crumb *Maps › the map's name* with `StageSwitch` beside it — a menu to the map's other tools
   where it holds them, set on the crumb's baseline — then the phase and its steps (a *Step n of m* menu below
@@ -193,6 +204,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **A generator card is its picture (`TG4`).** Generator, Catalog and Library cards are one `PictureCard`: the
+  picture and a name — a layout's id on the Generator. The Generator's rail filters by player band chips and links
+  the shape catalog; it shows no score. `docs/tools/generator.md`.
+- **Library structures stand on grass (`TL46`).** Textured tree and boulder cards grow on one course of grass
+  over dirt (`DressingPreview.GrassGround`), and the house sample stands on grass over dirt rather than stone.
+  `docs/tools/library.md`.
 - **A board picture sits on the theme's ground (`TG3`).** `--board-bg` is light in the light theme, and
   `PlanBoardSvg` draws its spawn and iron markers from `--board-spawn`/`--board-iron`, so the generator,
   catalog and probe boards read in both themes. `docs/tools/generator.md`.
