@@ -5,11 +5,12 @@ using PgmStudio.Data.Schema;
 namespace PgmStudio.Data.Compose;
 
 /// <summary>What a page of the library asks for: one composer version, size band and symmetry, narrowed by the
-/// Generator page's filters. <paramref name="Wools"/> must each be present; <paramref name="Hubs"/> and
+/// Generator page's filters. <paramref name="WoolCounts"/> takes any one of the counts named;
+/// <paramref name="Wools"/> must each be present; <paramref name="Hubs"/> and
 /// <paramref name="Frontlines"/> take any one of the forms named.</summary>
 public sealed record ComposedBoardQuery(
     string ComposerVersion, string Band, string Symmetry,
-    double? MaxScore = null, int? WoolMin = null, int? WoolMax = null,
+    double? MaxScore = null, IReadOnlyList<int>? WoolCounts = null,
     IReadOnlyList<string>? Wools = null, IReadOnlyList<string>? Hubs = null, IReadOnlyList<string>? Frontlines = null);
 
 /// <summary>The composed-board library's rows (<see cref="ComposedBoardRow"/>): read in pages best score first,
@@ -33,8 +34,11 @@ public sealed class ComposedBoardStore(PgmDb db)
         var rows = db.ComposedBoards.Where(row => row.ComposerVersion == query.ComposerVersion
                                                   && row.Band == query.Band && row.Symmetry == query.Symmetry);
         if (query.MaxScore is double maxScore) rows = rows.Where(row => row.Score <= maxScore);
-        if (query.WoolMin is int woolMin) rows = rows.Where(row => row.WoolCount >= woolMin);
-        if (query.WoolMax is int woolMax) rows = rows.Where(row => row.WoolCount <= woolMax);
+        if (query.WoolCounts is { Count: > 0 })
+        {
+            var counts = query.WoolCounts.ToArray();
+            rows = rows.Where(row => counts.Contains(row.WoolCount));
+        }
         foreach (var family in query.Wools ?? [])
         {
             var token = ComposedBoardLibrary.WoolToken(family);

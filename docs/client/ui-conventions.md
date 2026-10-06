@@ -76,7 +76,7 @@ a component does not offer — an event, an id, a class — gets a parameter on 
 beside it.
 
 **Data** — `Section` (`panel-section` plus its header, description, help, actions and footer), `SectionHeader`
-on its own, `BoardKey` (the role and zone colours a page of server-drawn boards is read by, drawn once beside
+on its own, `BoardKey` (the four inks a page of server-drawn boards is read by, in the page's own `--board-*` tokens, drawn once beside
 them), `ListRow` (the list row with its swatch, label, tag, go-arrow and a `Trailing` slot for a control
 the row carries), `DetailHeader` (an inspector head: icon, label, trailing badges), and `FilterPanel`
 (one titled block of a filter rail, below).
@@ -88,7 +88,7 @@ only* tag on a read-only page, and the page's actions; `EditorBar` is the one ba
 *Maps › the map's name*, a `StageSwitch` between the map's tools, the phase and its steps, then `State`, `Commands`, a divider and Back/Next;
 `NoMove` drops Back/Next, and `LabelledCommands` spaces text buttons wider than icon-only ones); `AppFooter` closes every page with a brand caption and the repository; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`, and `MapThumb` the 16:9 picture box of a map (the in-game picture over a placeholder that stays where none can be drawn); `SideDrawer`
+arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`, and `MapThumb` the 16:9 picture box of a map (the in-game picture over a placeholder that stays where none can be drawn); `SideDrawer` (`Wide` for a picture rather than a form)
 finishes the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,

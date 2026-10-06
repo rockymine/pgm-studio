@@ -125,12 +125,14 @@ public sealed record ObservedForms(
     IReadOnlyDictionary<string, int> Hubs,
     IReadOnlyDictionary<string, int> Frontlines);
 
-/// <summary>One row of the key a board picture is read by: a role or a zone kind, its colour, and whether the
-/// board hatches it. A page carries the key once, since the pictures it holds carry none.</summary>
+/// <summary>One row of the key a board picture is read by: a role or a zone kind and the ink the board paints it
+/// in. A page carries the key once, since the pictures it holds carry none.</summary>
 /// <param name="Label">The role or zone, as a reader names it.</param>
-/// <param name="Color">Its swatch, as CSS hex.</param>
-/// <param name="Hatched">Whether the board paints it under a diagonal hatch.</param>
-public sealed record BoardKeyEntry(string Label, string Color, bool Hatched);
+/// <param name="Ink">The ink's name: the stem of the <c>--board-*</c> tokens a page restates it under.</param>
+/// <param name="Fill">Its fill on white paper, as CSS hex.</param>
+/// <param name="Edge">Its edge on white paper, as CSS hex.</param>
+/// <param name="Dashed">Whether the board draws it as a dashed outline rather than a filled piece.</param>
+public sealed record BoardKeyEntry(string Label, string Ink, string Fill, string Edge, bool Dashed);
 
 /// <summary>A page of the board library: <paramref name="Cards"/> from the position asked for,
 /// <paramref name="Next"/> the position to ask from next, <paramref name="End"/> true once the page reaches the

@@ -108,11 +108,19 @@
   --canvas-contour:       rgba(251, 191, 36, 0.45);   /* amber-400 */
   --canvas-contour-index: rgba(251, 191, 36, 0.92);
 
-  /* The ground a server-drawn board picture (generator, shape catalog) sits on, and the two marker colours
-     the SVG reads against it (spawn disc, iron pip). The role swatches are mid-tones that read on both grounds. */
+  /* A server-drawn board picture (generator, shape catalog) sits on --board-bg and paints four inks: ground,
+     spawn room, wool room and the build zone's outline, each a fill and an edge, plus the iron pip. Ground is a
+     tint of the plan editor's piece grey (--canvas-role-piece), so a board and the editor's pieces read as one. */
   --board-bg: #0b1222;
-  --board-spawn: #e2e8f5;
-  --board-iron: #94a3b8;
+  --board-ground:      color-mix(in srgb, var(--canvas-role-piece) 38%, var(--board-bg));
+  --board-ground-edge: color-mix(in srgb, var(--canvas-role-piece) 75%, var(--board-bg));
+  --board-spawn:       color-mix(in srgb, #2ec99c 34%, var(--board-bg));
+  --board-spawn-edge:  #2ec99c;
+  --board-wool:        color-mix(in srgb, #f0842f 34%, var(--board-bg));
+  --board-wool-edge:   #f0842f;
+  --board-zone:        #4aa8e0;
+  --board-zone-edge:   #4aa8e0;
+  --board-iron:        #8b95a3;
 
   /* Canvas SVG area background */
   --canvas-bg: var(--bg-canvas);   /* alias — the viewport background (follows the theme) */
@@ -327,9 +335,16 @@
        mid-tones that read on both backgrounds and keep their dark values). ── */
   --bg-canvas:     #e2e8f0;   /* slate-200 — light viewport (recessed under white panels) */
   --canvas-float-shadow: 0 6px 20px rgb(15 23 42 / 0.16);   /* the floating chrome, softer on light */
-  --board-bg:      #e2e8f0;   /* slate-200 — the board pictures' ground, the same as the canvas viewport */
-  --board-spawn:   #1e293b;   /* slate-800 — the pale spawn disc inverts */
-  --board-iron:    #475569;   /* slate-600 */
+  --board-bg:      #ffffff;   /* the paper the plan figures are drawn on */
+  --board-ground:      color-mix(in srgb, var(--canvas-role-piece) 18%, var(--board-bg));
+  --board-ground-edge: color-mix(in srgb, var(--canvas-role-piece) 66%, var(--board-bg));
+  --board-spawn:       #cbe3da;
+  --board-spawn-edge:  #009e73;
+  --board-wool:        #f3dcc8;
+  --board-wool-edge:   #d55e00;
+  --board-zone:        #0072b2;
+  --board-zone-edge:   #0072b2;
+  --board-iron:        #9aa1a9;
   --canvas-ink:    #0f172a;   /* slate-900 — dark lines/outlines over the light canvas */
   --canvas-axis:   #7c3aed;   /* violet-600 — axis/crosshair, darker for light bg */
   --canvas-region: #64748b;   /* slate-500 — region fallback, darker for light bg */

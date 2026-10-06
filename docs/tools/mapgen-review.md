@@ -371,8 +371,8 @@ added to prevent exactly this. The plan render colours by **role**, and at the t
 zone or a water lane — in two shades of **blue**, separated only by shade, opacity and dash. Blue reads as
 water to anyone who has the image and not the key, and the board in question carries no water whatever: its
 only include is the kill reward. So a true observation (two components) acquired an invented cause (a water
-lane) that happened to make the observation sound resolved. `B95` closed that gap — a legend on every plan
-render and a build zone drawn in a hue no water ever wears — because the rule it argues for is that an image
+lane) that happened to make the observation sound resolved. `B95` closed that gap — a key on every plan
+render, and a build zone drawn as a dashed outline that no water wears — because the rule it argues for is that an image
 answers whether something came out and never what it is.
 
 ## Still to come

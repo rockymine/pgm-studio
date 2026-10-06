@@ -115,8 +115,8 @@ public partial class Design
 
     private static readonly IReadOnlyList<BoardKeyEntry> BoardKeySample =
     [
-        new("Piece", "#7c8899", false), new("Wool room", "#3fae74", false),
-        new("Spawn", "#8f7bd6", false), new("Buffer", "#f2792b", true),
+        new("Spawn", "spawn", "#cbe3da", "#009e73", false), new("Wool room", "wool", "#f3dcc8", "#d55e00", false),
+        new("Ground (rest)", "ground", "#e7eaee", "#a8b0b9", false), new("Build zone", "zone", "#0072b2", "#0072b2", true),
     ];
 
     [Inject] private RuleBook Book { get; set; } = default!;

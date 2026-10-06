@@ -1,8 +1,9 @@
 @namespace PgmStudio.Client.Components
 @using PgmStudio.Contracts
 
-@* The key a page of board pictures is read by, drawn once: each role or zone with its swatch, a hatched
-   swatch for the one the board hatches. The pictures carry no key of their own. *@
+@* The key a page of board pictures is read by, drawn once: each ink with a swatch in the page's own
+   --board-* tokens (so it follows the theme as the pictures do), an outline for the one the board dashes.
+   The pictures carry no key of their own. *@
 
 @if (Entries is { Count: > 0 })
 {
@@ -10,8 +11,8 @@
     @foreach (var entry in Entries)
     {
       <span class="board-key-item" @key="entry.Label">
-        <span class="@(entry.Hatched ? "board-key-swatch board-key-swatch--hatched" : "board-key-swatch")"
-              style="--swatch: @entry.Color"></span>@entry.Label
+        <span class="@(entry.Dashed ? "board-key-swatch board-key-swatch--dashed" : "board-key-swatch")"
+              style="--swatch-fill: var(--board-@entry.Ink, @entry.Fill); --swatch-edge: var(--board-@(entry.Ink)-edge, @entry.Edge)"></span>@entry.Label
       </span>
     }
   </div>

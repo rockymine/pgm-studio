@@ -2633,7 +2633,6 @@ readback, and SVG for the finish previews.
 green, leaves green, stone grey — and a green tree on green ground was invisible in a picture meant for
 reasoning; the top-down world read-backs and their per-layer isolations (ground, structures, foliage,
 objectives) now paint deliberate false colour instead, one high-contrast hue per category, and the plan render
-carries a legend naming every role swatch and a build zone drawn in a hue no water ever wears rather than the
-two shades of blue that once let a build zone be read as water (`B90`'s pictures, `B98`/`B95`'s legibility and
-key). The rule to work by is unchanged either way: **a render answers "did what was authored come out", not
+carries a key naming each ink and draws a build zone as a dashed outline, so a build zone is never read as water
+(`B90`'s pictures, `B98`/`B95`'s legibility and key). The rule to work by is unchanged either way: **a render answers "did what was authored come out", not
 "what is this"**: it is a check against the document, never a source of meaning on its own.

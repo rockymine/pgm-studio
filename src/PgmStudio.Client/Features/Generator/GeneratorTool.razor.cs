@@ -26,7 +26,7 @@ public partial class GeneratorTool : IAsyncDisposable
     // ── filters ──────────────────────────────────────────────────────────────────
     private string band = SizeBands.Nano;
     private string symmetry = "rot_180";
-    private int woolMin, woolMax;         // 0 = unset
+    private readonly SortedSet<int> woolCounts = [];   // empty = any
 
     private const int PageSize = 9;
 
@@ -70,6 +70,17 @@ public partial class GeneratorTool : IAsyncDisposable
     // ── detail dialog ─────────────────────────────────────────────────────────────
     private ComposeCard? detail;
 
+    // The roles the detail picture can tint, in the order a reader meets a layout: the middle out. Each is a
+    // `role-*` class on the pieces the renderer drew, so a toggle changes classes on the picture already inline.
+    private static readonly (string Role, string Label)[] HighlightRoles =
+    [
+        (BoardRoles.Hub, "Hub"), (BoardRoles.Frontline, "Front line"), (BoardRoles.Approach, "Approaches"),
+        (BoardRoles.Spawn, "Spawn"), (BoardRoles.Wool, "Wool rooms"), (BoardRoles.Zone, "Build zone"),
+    ];
+    private readonly HashSet<string> highlights = [];
+    private string HighlightClasses => string.Join(' ', highlights.Select(role => $"board-hl-{role}"));
+    private void ToggleHighlight(string role) { if (!highlights.Remove(role)) highlights.Add(role); }
+
     private static string Key(ComposeRequestDto d) => $"{d.Players}-{d.Teams}-{d.Symmetry}-{d.Cell}-{d.Seed}";
     private bool IsPinned(ComposeCard c) => pinnedKeys.Contains(Key(c.Descriptor));
 
@@ -88,8 +99,7 @@ public partial class GeneratorTool : IAsyncDisposable
     private string QueryString(int from)
     {
         var q = $"players={BandPlayers(band)}&symmetry={symmetry}&from={from}&count={PageSize}";
-        if (woolMin > 0) q += $"&woolMin={woolMin}";
-        if (woolMax > 0) q += $"&woolMax={woolMax}";
+        if (woolCounts.Count > 0) q += $"&woolCount={string.Join(",", woolCounts)}";
         if (woolFilter.Count > 0) q += $"&wools={string.Join(",", woolFilter)}";
         if (hubFilter.Count > 0) q += $"&hub={string.Join(",", hubFilter)}";
         if (frontFilter.Count > 0) q += $"&front={string.Join(",", frontFilter)}";
@@ -295,8 +305,11 @@ public partial class GeneratorTool : IAsyncDisposable
     // ── filter inputs ──────────────────────────────────────────────────────────────
     // A filter applies as soon as it is set.
     private Task PickBand(string size) { band = size; return Reload(); }
-    private Task OnWoolMin(double value) { woolMin = Math.Max(0, (int)value); return Reload(); }
-    private Task OnWoolMax(double value) { woolMax = Math.Max(0, (int)value); return Reload(); }
+    private Task ToggleWoolCount(int count)
+    {
+        if (!woolCounts.Remove(count)) woolCounts.Add(count);
+        return Reload();
+    }
     private Task PickSymmetry(string s) { symmetry = s; return Reload(); }
 
     private bool ShapeFiltered => woolFilter.Count + hubFilter.Count + frontFilter.Count > 0;
