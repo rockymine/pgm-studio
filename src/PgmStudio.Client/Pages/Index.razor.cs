@@ -26,6 +26,10 @@ public partial class Index
     /// <summary>The newest map in the studio that has a world to draw, which the hero picture shows.</summary>
     private MapSummary? hero;
 
+    /// <summary>Whether <paramref name="map"/> has been built — a sketch layout and the world compiled from it —
+    /// which is what puts ground under its picture; anything less shows the placeholder rather than asking.</summary>
+    private static bool Drawable(MapSummary map) => map.HasSketch && map.HasSurface;
+
     /// <summary>Whether <see cref="recent"/> holds maps the caller changed themselves rather than the latest overall.</summary>
     private bool mine;
 
@@ -34,7 +38,7 @@ public partial class Index
         try
         {
             var maps = await Http.GetFromJsonAsync<List<MapSummary>>("api/maps") ?? [];
-            hero = maps.Where(map => map.HasSketch).OrderByDescending(map => map.UpdatedAt).FirstOrDefault();
+            hero = maps.Where(Drawable).OrderByDescending(map => map.UpdatedAt).FirstOrDefault();
             mine = maps.Any(map => map.YouWroteAt is not null);
             recent = maps
                 .Where(map => !mine || map.YouWroteAt is not null)

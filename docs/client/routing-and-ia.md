@@ -123,12 +123,12 @@ only the studio's own bar above the page. The page is one centred column, 1240px
 **The hero names what the studio makes and offers two ways in.** Two equal columns: an eyebrow naming the three
 modes, a title and lead describing the pipeline from layout to `map.xml`, and two 44px buttons (`Button` with
 `Size="lg"`) — **New map** opens the maps page at the plan stage, **Browse maps** opens it unfiltered. Beside the
-text sits a 16:9 `MapThumb` of the newest map that holds a sketch layout, drawn in game; with no such map it is
+text sits a 16:9 `MapThumb` of the newest built map — a sketch layout and its world — drawn in game; with no such map it is
 the studio mark on a token-coloured panel.
 
 **A map picture is `GET /api/map/{slug}/render/picture`, over a placeholder.** `MapThumb` holds a fixed 16:9 box
-with the map's initial in it, loads the picture lazily on top and fades it in. A map with no sketch layout asks
-for no picture; a refused one (422 no ground, 503 `RQ10` without textures, a failed request) leaves the
+with the map's initial in it, loads the picture lazily on top and fades it in. A map that is not built (a sketch
+layout and the world compiled from it) asks for no picture, since only a built one is sure to have ground to frame; a refused one (422 no ground, 503 `RQ10` without textures, a failed request) leaves the
 placeholder, and a 429 from the build queue is asked again after its `Retry-After`, so a broken-image icon never
 shows.
 

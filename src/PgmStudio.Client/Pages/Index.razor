@@ -31,7 +31,7 @@
                 {
                   var stage = MapLayers.StageOf(item.Map);
                   <a class="landing-card" href="@($"maps/{item.Map.Slug}/{item.Opens}")">
-                    <MapThumb Slug="@(item.Map.HasSketch ? item.Map.Slug : null)" Name="@item.Map.Name" />
+                    <MapThumb Slug="@(Drawable(item.Map) ? item.Map.Slug : null)" Name="@item.Map.Name" />
                     <div class="landing-card-body">
                       <div class="landing-card-line">
                         <span class="landing-card-name">@item.Map.Name</span>
