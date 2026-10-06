@@ -1,5 +1,6 @@
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Pgm.Authoring;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Data.Tests;
@@ -55,6 +56,29 @@ public sealed class MapRepositoryTests
 
         var sketch = (await repo.ListByStageAsync(MapStage.Sketch)).Select(row => row.Slug).ToList();
         await Assert.That(string.Join(" ", sketch)).IsEqualTo("sketch-charlie sketch-alpha sketch-bravo");
+    }
+
+    /// <summary>A sketch map's goals have no box until its world is built, so it holds no destroyable or core
+    /// row; the goals its intent states are what make it DTM and DTC in the list.</summary>
+    [Test]
+    public async Task The_goals_an_intent_states_count_before_the_world_is_built()
+    {
+        await TestDb.ResetSchemaAsync();
+        await using var db = TestDb.Connect();
+        var repo = new MapRepository(db);
+        var stated = await Insert(repo, "stated");
+        var bare = await Insert(repo, "bare");
+
+        await new MapArtifactStore(db).SaveJsonAsync(stated, ArtifactKind.MapIntentJson, new MapIntent
+        {
+            Destroyables = [new DestroyableIntent { Owner = "red", Name = "Red Monument" }],
+            Cores = [new CoreIntent { Owner = "blue" }],
+        });
+        await new MapArtifactStore(db).SaveJsonAsync(bare, ArtifactKind.MapIntentJson, new MapIntent());
+
+        var modes = await repo.GamemodesAsync();
+        await Assert.That(modes[stated]).IsEquivalentTo(new[] { "dtm", "dtc" });
+        await Assert.That(modes.ContainsKey(bare)).IsFalse();
     }
 
     private static Task<long> Insert(MapRepository repo, string slug) => repo.InsertAsync(new MapRow

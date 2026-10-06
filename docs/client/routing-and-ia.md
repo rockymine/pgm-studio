@@ -80,6 +80,11 @@ of its own. Every option carries how many maps it would show with the other filt
 | **Gamemode** | `?gamemode=ctw\|dtm\|dtc\|none` (repeated) | maps played for any one of the ticked gamemodes, `none` for a map with none |
 | **Sort** | `?sort=name\|author\|stage` | the order; absent is last changed |
 
+**A map's gamemodes are read off its objectives, never off its `<gamemode>` label.** Its wools, shown
+destroyables, cores, control points and kill-paying scores each name a mode. A sketch map's destroyables and
+cores have no block volume until its world is built, so the ones its intent states count as well, and a DTM or
+DTC board is listed as one from the moment it states its goals.
+
 **Configure is the last stage the page offers.** It is where a map is downloaded. A map whose stage is `edit`
 was read in by the corpus import, which reads a world that already has a `map.xml`; no authoring tool sets it,
 and the page lists such a map under Configure, which is the tool its row opens.
