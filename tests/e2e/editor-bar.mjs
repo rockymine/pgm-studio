@@ -123,6 +123,7 @@ try {
 
   checks.section("sketch: undo, redo and download are one group, apart from Back and Next");
   await open(`/maps/${seed.sketchSlug}/sketch`);
+  await page.waitForFunction(() => !document.querySelector('.editor-bar-commands [title^="Checking"]'), null, { timeout: 10000 });
   const group = await page.evaluate(() => {
     const bar = document.querySelector(".editor-bar");
     const commands = [...bar.querySelectorAll(".editor-bar-commands .action-btn")];

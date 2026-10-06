@@ -25,6 +25,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (CTW, DTM, DTC, alone or combined) with *Start a map* and *Open maps (N)*, a themeable board drawing
   (`LandingHero`), the person's five latest maps, and the four levels a map is described at.
   `docs/client/routing-and-ia.md`.
+- **The editors draw one bar (`C103`).** Plan, Sketch and Configure replace their topbar and flow bar with
+  `EditorBar`: the crumb *Maps › the map's name* with `StageSwitch` beside it — a menu to the map's other tools
+  where it holds them, set on the crumb's baseline — then the phase and its steps (a *Step n of m* menu below
+  1100px), then state, the tool's commands, a divider and Back/Next, in every phase. Sketch's Download is an icon
+  beside Undo and Redo. `docs/client/routing-and-ia.md`.
 - **Plans are entered through Maps (`TN35`).** The studio bar has no Plan editor link and lights Maps on every
   plan route. The plan sidebar is one untabbed column of Settings and Checks, with no count verdict and no
   generator score; the Generator check is `PlanGeneratorCheck`, kept unmounted. `docs/tools/plan.md`.
