@@ -1,7 +1,7 @@
 /**
  * One plan editor on two bindings. A plan opens on a map (`/maps/{slug}/plan`) or as a plan row
  * (`/plans/{id}`, `/plans/new`), and both are the same tool: the rail's Info and Draw phases, the flow bar,
- * the sidebar's three panel chips, and the sidebar folding away. Only the topbar follows the binding, because
+ * one sidebar with no tabs, and the sidebar folding away. Only the topbar follows the binding, because
  * only saving differs — a map-backed plan saves into its map, a plan row saves as a row and forks when it was
  * generated or imported.
  *
@@ -33,7 +33,7 @@ async function structure() {
   const rail = await page.locator(".nav-rail .nav-btn").evaluateAll(els => els.map(el => el.title));
   const phase = (await texts(".phase-body:not([hidden]) .flow-bar-phase")).join();
   const next = (await texts(".phase-body:not([hidden]) .flow-bar-actions .action-btn--primary")).join();
-  const chips = await texts(".plan-panel-switch .flow-step");
+  const tablists = await page.locator(".workspace-sidebar [role=tablist]").count();
 
   // The sidebar folds away and comes back, and the canvas is what takes the width.
   await page.click('button[title="Hide panel"]');
@@ -44,7 +44,7 @@ async function structure() {
   await page.waitForTimeout(150);
   const unfolded = await page.locator(".workspace-sidebar").count() === 1;
 
-  return JSON.stringify({ rail, phase, next, chips, folds: folded && unfolded });
+  return JSON.stringify({ rail, phase, next, tablists, folds: folded && unfolded });
 }
 
 /** The topbar's actions, by their words. */
@@ -67,9 +67,9 @@ try {
 
   const expected = JSON.stringify({
     rail: ["Info", "Draw"], phase: "Draw", next: "Compile",
-    chips: ["Settings", "Checks", "Generator"], folds: true,
+    tablists: 0, folds: true,
   });
-  checks.add("a map-backed plan has the rail, the flow bar, the chips and a folding sidebar", onMap === expected, onMap);
+  checks.add("a map-backed plan has the rail, the flow bar and one folding sidebar with no tabs", onMap === expected, onMap);
   checks.add("a plan row has the same", onRow === onMap, onRow);
   checks.add("and so does a new plan", onNew === onMap, onNew);
 
