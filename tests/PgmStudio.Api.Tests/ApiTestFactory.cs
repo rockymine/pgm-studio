@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -14,6 +15,7 @@ namespace PgmStudio.Api.Tests;
 /// resolves <c>ConnectionStrings:PgmStudio</c> straight from the environment, ahead of a factory's
 /// <c>ConfigureAppConfiguration</c>/<c>UseSetting</c>, so a dev server's <c>ConnectionStrings__PgmStudio</c>
 /// would otherwise silently point every test at the live dev database (never reset → accumulating counts).
+/// The imports root is pinned the same way, because the host reads it while it is built.
 /// </summary>
 internal static class ApiTestBootstrap
 {
@@ -22,6 +24,7 @@ internal static class ApiTestBootstrap
     {
         Environment.SetEnvironmentVariable("ConnectionStrings__PgmStudio", ApiTestFactory.ConnectionString);
         Environment.SetEnvironmentVariable("PGM_STUDIO_DB", null);
+        Environment.SetEnvironmentVariable("Import__Root", ApiTestFactory.ImportRoot);
     }
 }
 
@@ -62,8 +65,30 @@ internal sealed class ApiTestFactory : WebApplicationFactory<Program>
             ["Notes:Agent:Fire"] = RoutineStub.Fire,
             ["Notes:Agent:Token"] = "test-token",
         }));
-        builder.ConfigureTestServices(services => services.AddHttpClient(PgmStudio.Api.Services.AgentHandoff.ClientName)
-            .ConfigurePrimaryHttpMessageHandler(() => new RoutineStub()));
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddHttpClient(PgmStudio.Api.Services.AgentHandoff.ClientName)
+                .ConfigurePrimaryHttpMessageHandler(() => new RoutineStub());
+            services.AddHttpClient("import").ConfigurePrimaryHttpMessageHandler(() => new ArchiveStub());
+        });
+    }
+
+    /// <summary>Where the test studio keeps the worlds it imports, apart from a dev studio's.</summary>
+    public static readonly string ImportRoot = Path.Combine(Path.GetTempPath(), "pgm-studio-test-imports");
+
+    /// <summary>The host the import fetches from in the test studio: it serves what a test put at a path of
+    /// <see cref="ArchiveHost"/>, and answers 404 for anything else.</summary>
+    public const string ArchiveHost = "https://occ-maps.s3.ca-central-1.amazonaws.com";
+
+    /// <summary>The archives <see cref="ArchiveStub"/> serves, by path.</summary>
+    public static readonly ConcurrentDictionary<string, byte[]> Archives = new();
+
+    private sealed class ArchiveStub : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
+            Task.FromResult(Archives.TryGetValue(request.RequestUri!.AbsolutePath, out var bytes)
+                ? new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) }
+                : new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
     }
 
     /// <summary>The agent the test studio names: a Routine's <c>/fire</c> that starts nothing and answers as the
