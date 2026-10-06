@@ -11,8 +11,10 @@ namespace PgmStudio.Client.Features.Sketch;
 public partial class SketchInfoPhase : IAsyncDisposable
 {
     [Parameter] public string Slug { get; set; } = "";
-    /// <summary>Advance to the Draw phase (Continue on the last step) — the rail's Draw button does the same.</summary>
-    [Parameter] public EventCallback OnNext { get; set; }
+    /// <summary>The steps of the phase, in order; the host's editor bar lists them.</summary>
+    public static readonly IReadOnlyList<string> Steps = ["Identity", "Settings"];
+    /// <summary>The step shown, an index into <see cref="Steps"/>.</summary>
+    [Parameter] public int Step { get; set; }
     /// <summary>The name the map was saved under, once a save lands.</summary>
     [Parameter] public EventCallback<string> OnRenamed { get; set; }
     /// <summary>Where the identity's save stands — Saved, Saving…, Unsaved, or why it could not — for the
@@ -30,9 +32,6 @@ public partial class SketchInfoPhase : IAsyncDisposable
 
     private static readonly IReadOnlyList<SelectOption> ModeOptions =
         [.. SymmetryModes.Sketched.Select(mode => new SelectOption(mode, SymmetryInfo.Label(mode)))];
-
-    private int step;   // 0 = Identity, 1 = Settings
-    private Task OnNextStep() { if (step < Steps.Length - 1) { step++; return Task.CompletedTask; } return OnNext.InvokeAsync(); }
 
     /// <summary>How long typing has to pause before the identity is saved.</summary>
     private static readonly TimeSpan SaveAfter = TimeSpan.FromMilliseconds(800);

@@ -31,18 +31,6 @@ public partial class SketchNotesStep
     /// <summary>The board's notes, read by the host for every phase that shows them.</summary>
     [Parameter, EditorRequired] public SketchNotes Notes { get; set; } = default!;
 
-    /// <summary>The phase's steps, which the step bar lists.</summary>
-    [Parameter] public IReadOnlyList<string> Steps { get; set; } = [];
-
-    /// <summary>A step picked on the step bar.</summary>
-    [Parameter] public EventCallback<int> OnStep { get; set; }
-
-    /// <summary>Back to the Cameras step.</summary>
-    [Parameter] public EventCallback OnBack { get; set; }
-
-    /// <summary>On to the next phase.</summary>
-    [Parameter] public EventCallback OnNext { get; set; }
-
     /// <summary>A note to open on arriving, by id — a link into its thread.</summary>
     [Parameter] public long? LinkedNote { get; set; }
 

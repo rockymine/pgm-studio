@@ -25,7 +25,7 @@ async function visit(base, path) {
 }
 
 const readState = () => page.evaluate(() => ({
-  banner: document.querySelector(".topbar .readonly-tag")?.getAttribute("title") ?? null,
+  banner: document.querySelector(".editor-bar .readonly-tag, .topbar .readonly-tag")?.getAttribute("title") ?? null,
   signIn: !!document.querySelector('.app-nav a.account-signin[href*="api/auth/discord"]'),
   greyed: document.querySelectorAll("fieldset.readonly-fieldset[disabled]").length,
   select: !!document.querySelector('.canvas-dock button[aria-label="Select"]'),
@@ -38,9 +38,10 @@ const readState = () => page.evaluate(() => ({
 /** The first button or action link whose text matches, and whether it is closed: disabled, inside a disabled
  *  fieldset, or a link with no href. */
 const control = pattern => page.evaluate(source => {
+  const labelOf = e => e.textContent.replace(/\s+/g, " ").trim() || e.getAttribute("aria-label") || "";
   const match = new RegExp(source);
   const el = [...document.querySelectorAll("button, a.action-btn, label.action-btn")]
-    .find(e => match.test(e.textContent.replace(/\s+/g, " ").trim()));
+    .find(e => match.test(labelOf(e)));
   if (!el) return null;
   const closed = el.disabled === true || el.getAttribute("aria-disabled") === "true"
     || !!el.closest("fieldset[disabled]") || (el.tagName === "A" && !el.hasAttribute("href"));
@@ -50,9 +51,10 @@ const control = pattern => page.evaluate(source => {
 /** The control once it has settled into the state expected of it, or as it stands after the wait. */
 async function settle(pattern, closed) {
   await page.waitForFunction(([source, want]) => {
+    const labelOf = e => e.textContent.replace(/\s+/g, " ").trim() || e.getAttribute("aria-label") || "";
     const match = new RegExp(source);
     const el = [...document.querySelectorAll("button, a.action-btn, label.action-btn")]
-      .find(e => match.test(e.textContent.replace(/\s+/g, " ").trim()));
+      .find(e => match.test(labelOf(e)));
     if (!el) return false;
     const shut = el.disabled === true || el.getAttribute("aria-disabled") === "true"
       || !!el.closest("fieldset[disabled]") || (el.tagName === "A" && !el.hasAttribute("href"));
@@ -106,8 +108,8 @@ checks.add("no field is greyed", state.greyed === 0, `${state.greyed} disabled f
 checks.add("the drawing tools are there", state.rectangle);
 checks.add("the studio bar names the local admin", /local/.test(state.account), state.account);
 checks.add("the studio bar links the whitelist for an admin", state.users);
-const openDownload = await settle(/^Download map$/, false);
-checks.add("Download map is open", openDownload?.closed === false, JSON.stringify(openDownload));
+const openDownload = await settle(/^Download map/, false);
+checks.add("Download is open", openDownload?.closed === false, JSON.stringify(openDownload));
 const openIso = await settle(/^2D$/, false);
 checks.add("the 3-D switch is open", openIso?.closed === false, JSON.stringify(openIso));
 
@@ -144,11 +146,11 @@ try {
                                       ["configure", `/maps/${seed.mapSlug}/configure`, false]]) {
     checks.section(`a signed-out visitor sees the ${name} tool read-only`);
     await visit(invited, path);
-    await page.waitForSelector(".topbar .readonly-tag", { timeout: 20000 }).catch(() => {});
+    await page.waitForSelector(".editor-bar .readonly-tag, .topbar .readonly-tag", { timeout: 20000 }).catch(() => {});
     if (canvas) await page.waitForSelector(".canvas-dock", { timeout: 20000 }).catch(() => {});
     await page.waitForSelector("fieldset.readonly-fieldset", { timeout: 10000 }).catch(() => {});
     state = await readState();
-    checks.add("the tool bar says view only, and why", /not signed in/.test(state.banner ?? ""), state.banner ?? "no tag");
+    checks.add("the editor bar says view only, and why", /not signed in/.test(state.banner ?? ""), state.banner ?? "no tag");
     checks.add("the studio bar offers the sign-in", state.signIn);
     checks.add("the panels are greyed", state.greyed > 0,
       `${state.greyed} disabled fieldset(s) over ${state.inspector} panel(s)`);
@@ -172,8 +174,8 @@ try {
 
   checks.section("a signed-out visitor cannot download a map or build its 3-D preview");
   await visit(invited, `/maps/${seed.sketchSlug}/sketch`);
-  const download = await settle(/^Download map$/, true);
-  checks.add("Download map is closed, and says why", download?.closed === true && /Sign in/.test(download.title),
+  const download = await settle(/^Download map/, true);
+  checks.add("Download is closed, and says why", download?.closed === true && /Sign in/.test(download.title),
     JSON.stringify(download));
   const exported = await fetch(`${invited}/api/map/${seed.sketchSlug}/export`);
   checks.add("the export itself is refused", exported.status === 401, String(exported.status));

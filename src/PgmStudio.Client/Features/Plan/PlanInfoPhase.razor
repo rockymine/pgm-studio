@@ -4,17 +4,13 @@
 @* Plan Info phase — two steps: Identity (the plan's name, and on a map-backed plan the authors, saved to
    the map metadata via GET/PATCH api/map/{slug}) and Settings (the plan globals: symmetry mode +
    cell/surface/max-players, which drive the live plan document through the host's callbacks). A plan row has
-   no map to credit authors on, so its name is all Identity holds and the topbar's Save stores it with the
-   plan. Continue on the last step advances to Draw. *@
+   no map to credit authors on, so its name is all Identity holds and the editor bar's Save stores it with the
+   plan. The host's editor bar holds the step and moves it. *@
 
 <div class="phase-body">
-  <FlowBar Class="flow-bar--flush" PhaseIcon="book-open-text" PhaseTitle="Info"
-           Steps="@Steps" CurrentStep="@step"
-           BackEnabled="@(step > 0)" NextLabel="@(step == Steps.Length - 1 ? "Continue" : "Next")"
-           OnStep="@(i => step = i)" OnBack="@(() => step = 0)" OnNext="OnNextStep" />
   <Workspace>
     <ContentColumn MaxWidth="720">
-      @if (step == 0)
+      @if (Step == 0)
       {
         <Section Title="Details">
           <Field Label="Plan name" Required For="pl-name">

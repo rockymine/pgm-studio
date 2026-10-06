@@ -1,33 +1,8 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   FLOW BAR + FLOW STEPS  (clean wizard step strip — the authoring nav model's
-   in-phase progress. The `.flow-bar` is a standalone header strip ABOVE the
-   workspace — it is NOT part of the canvas sub-bar, which keeps its own draw
-   toolbar. Holds the step labels on the left and Back/Next on the right.
-   Deliberately flat: text labels, an accent underline on the active step, a check
-   on completed ones. Replaces the numbered circles + dashes of .cfg-step-bar.)
+   FLOW STEPS  (the wizard step labels the editor bar draws between its crumb and
+   its commands, and the tab strip a sidebar's panels use). Deliberately flat: text
+   labels, an accent underline on the active step, a check on completed ones.
    ══════════════════════════════════════════════════════════════════════════ */
-.flow-bar {
-  display: flex; align-items: center;
-  gap: var(--space-4);
-  height: 42px; padding: 0 var(--space-4);
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-2);
-}
-/* Phase identity — the current phase's icon + name, left-aligned ahead of the steps,
-   so the flow bar always says which of the 6 rail phases you're in. */
-.flow-bar-phase {
-  display: flex; align-items: center; gap: var(--space-2);
-  height: 60%;
-  color: var(--text-strong); font-weight: 600; font-size: var(--font-md);
-  white-space: nowrap;
-}
-/* Divider only when steps follow — a single-step phase (Map Info) shows the name alone. */
-.flow-bar-phase:has(+ .flow-steps) { padding-right: var(--space-4); border-right: 1px solid var(--border); }
-.flow-bar-phase svg { width: var(--icon-md); height: var(--icon-md); color: var(--accent); }
-.flow-bar-actions { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
-.flow-steps { display: flex; align-items: center; gap: var(--space-5); height: 100%; }
 .flow-step {
   position: relative;
   display: flex; align-items: center; gap: 5px;

@@ -78,11 +78,13 @@ the row carries), and `DetailHeader` (an inspector head: icon, label, trailing b
 
 **Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + the two bars + body + footer);
 `AppNav` is the studio's own bar on every page — home, a link per tool, the two reference pages (Rules and API docs), `TextSizeMenu`, the theme and
-`AccountMenu`, who is signed in; `Topbar` is the tool's bar under it — the home link, a `Crumbs` slot composed from `Crumb`, a *View
-only* tag on a read-only page, and the tool's actions; `AppFooter` closes every page with the keyboard
+`AccountMenu`, who is signed in; `Topbar` is a browse or admin page's bar under it — a `Crumbs` slot composed from `Crumb`, a *View
+only* tag on a read-only page, and the page's actions; `EditorBar` is the one bar the three editors draw instead (the crumb
+*Maps › the map's name*, a `StageSwitch` between the map's tools, the phase and its steps, then `State`, `Commands`, a divider and Back/Next;
+`NoMove` drops Back/Next, and `LabelledCommands` spaces text buttons wider than icon-only ones); `AppFooter` closes every page with the keyboard
 shortcuts, the design reference and the repository; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from; `PageHeading` is the one heading a browse or admin page opens on; `FlowBar` is the phase/step nav the stepped tools share; `AppFooterLink` and `SideDrawer`
+arranges itself from; `PageHeading` is the one heading a browse or admin page opens on; `AppFooterLink` and `SideDrawer`
 finish the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
@@ -138,7 +140,7 @@ starts something on a page that does. Until the shell has asked, every such acti
 **Deleting a shared row is an admin's, and `Deletes` says so.** A library entry or a pinned layout is shared
 by everyone, so a `DELETE` of one is refused to anyone but an admin; a `Button` marked `Deletes` reads
 `StudioDeleteReason` and closes the same way. A control that is not a `Button` (the generator's pin, the
-layer strip's add and remove) reads the same two answers through `WriteGate`, and a `FlowBar` whose Next
+layer strip's add and remove) reads the same two answers through `WriteGate`, and an `EditorBar` whose Next
 writes takes `NextWrites`. Reading is never marked, so it stays open to a visitor.
 
 **A sidebar is greyed a control at a time, because it holds what is picked as well as what is changed.** A
@@ -156,7 +158,7 @@ would change the document; the sketch marks nothing dirty, so nothing is saved o
 
 **Downloading a map builds it, so it is closed to a visitor too.** A map's export is made on request — the
 world written, the ZIP packed — and the server gives it the `member` policy (`docs/access.md`). A `Button`
-marked `Builds` (the sketch's *Download map*, the plan's world ZIP, Configure's export, where a `FlowBar`
+marked `Builds` (the sketch's *Download*, the plan's world ZIP, Configure's export, where an `EditorBar`
 takes `NextBuilds`) reads `StudioBuildReason`, which is `StudioAccess.BuildReasonAsync`: open to anyone on the
 whitelist whichever map the page is on, and closed with the reason to anyone else.
 
@@ -201,17 +203,21 @@ a name and a slug each stay on one line and are cut, and below a wide screen the
 than scrolling sideways.
 
 **One of several panels is a tab, not a chip.** A sidebar that holds several panels and shows one at a time
-switches them with `.panel-tabs` — the flow bar's underlined `.flow-step`s — because a chip reads as a filter
+switches them with `.panel-tabs` — the editor bar's underlined `.flow-step`s — because a chip reads as a filter
 switched on, and a row of full buttons crowds a narrow column.
 
-**A page opens on its name.** The crumb in the tool bar navigates and is too small to say where the reader is,
+**A page opens on its name.** The crumb in the page's bar navigates and is too small to say where the reader is,
 so every browse and admin page — Maps, the generator, the shape catalog, the library and each of its kinds,
 Users, Tokens — opens on one `PageHeading`: the crumb's word at `--font-xl`, a line saying what the page is for,
-and the page's own actions on the right. A tool that works on a canvas does not: its flow bar names the phase,
+and the page's own actions on the right. A tool that works on a canvas does not: its editor bar names the map and the phase,
 and the canvas wants the height.
 
-**Every page's tool bar is one height.** `.topbar` is at least a control and its padding tall whether it
-carries a button or only the crumbs, so moving between pages never moves the content under it.
+**Every page's bar is one height.** `.topbar` and `.editor-bar` are each at least a control and its padding
+tall whether the bar carries a button or only the crumbs, so moving between pages never moves the content under it.
+
+**An icon-only action says it is busy by its glyph.** A `Button` of variant `icon` has no label to swap for
+`BusyLabel`, so a running one stays disabled, keeps its glyph and pulses it (`.action-btn--busy`), and the caller
+changes its `Title` to say what it is doing. The sketch's *Download* is the one.
 
 **A status is a word before it is a colour.** A check's result is a `Badge` in the meaning variant that fits
 it. A list whose every row has a state — a note's thread — says the state as a muted word instead, because five
@@ -331,7 +337,7 @@ one state the button holds rather than reports: it disables the control and swap
 and the child content, because the verb a button offers and the verb it is performing are different words —
 *Save* becomes *Saving…*, *Export* becomes *Exporting…*. Pairing them in the primitive is what stops a call
 site doing one without the other, and each half alone is its own fault: undisabled, a second click fires the
-action twice; unlabelled, the control sits inert with no sign the first click landed. `FlowBar` forwards the
+action twice; unlabelled, the control sits inert with no sign the first click landed. `EditorBar` forwards the
 pair as `NextBusy`/`NextBusyLabel`, since the last step's Next is a verb rather than a move.
 
 **`Busy` is held by the component that runs the action.** A flag set by a parent reaches the button only when

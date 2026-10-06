@@ -1,0 +1,136 @@
+@namespace PgmStudio.Client.Components
+
+@* The one bar the three editors draw under the studio's own. Left: where the page is — Maps, the map's name and
+   the stage switcher. Middle: the phase's icon and name and its steps, which collapse to a "Step n of m" menu on
+   a narrow window. Right: the state (State), the tool's commands (Commands), a divider, and Back/Next. A page
+   with no phase to show leaves PhaseTitle empty, and one with nothing to move between sets NoMove. *@
+
+<div class="editor-bar">
+  <nav class="editor-crumb" aria-label="Breadcrumb">
+    <a class="editor-crumb-link" href="maps">Maps</a>
+    <span class="editor-crumb-sep" aria-hidden="true">›</span>
+    <span class="editor-crumb-name" title="@MapName" aria-current="page">@MapName</span>
+    <StageSwitch Slug="@Slug" Stage="@Stage" Label="@StageLabel" />
+  </nav>
+  <div class="editor-bar-flow">
+    @if (PhaseTitle.Length > 0)
+    {
+      @* @key the lucide-bearing regions by their content so Blazor RECREATES them on navigation instead of
+         patching DOM that studio.icons (lucide.createIcons) has replaced with <svg> — patching the mutated
+         nodes corrupts the reconciler (removeChild/non-text-child errors). *@
+      <div class="editor-bar-phase" @key="@PhaseTitle"><i data-lucide="@PhaseIcon"></i><span>@PhaseTitle</span></div>
+      @if (Steps.Count > 0)
+      {
+        <div class="flow-steps" @key="@($"{PhaseTitle}:{CurrentStep}")">
+          @for (var j = 0; j < Steps.Count; j++)
+          {
+            var idx = j;
+            var cls = idx < CurrentStep ? "flow-step flow-step--done"
+                    : idx == CurrentStep ? "flow-step flow-step--active"
+                    : "flow-step";
+            <button class="@cls" disabled="@(idx > MaxStep)" @onclick="() => OnStep.InvokeAsync(idx)">@Steps[idx]</button>
+          }
+        </div>
+        <div class="flow-steps-compact">
+          <button type="button" class="editor-stage editor-stage--button" aria-haspopup="menu"
+                  aria-expanded="@(stepsOpen ? "true" : "false")" @onclick="() => stepsOpen = !stepsOpen"><span>Step @(CurrentStep + 1) of @Steps.Count</span><svg class="editor-stage-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4" /></svg></button>
+          @if (stepsOpen)
+          {
+            <div class="editor-menu-scrim" @onclick="() => stepsOpen = false"></div>
+            <div class="editor-menu" role="menu" aria-label="Steps">
+              @for (var j = 0; j < Steps.Count; j++)
+              {
+                var idx = j;
+                <button type="button" class="editor-menu-item" role="menuitem" disabled="@(idx > MaxStep)"
+                        aria-current="@(idx == CurrentStep ? "step" : null)"
+                        @onclick="() => PickStep(idx)">@Steps[idx]</button>
+              }
+            </div>
+          }
+        </div>
+      }
+    }
+  </div>
+  <div class="editor-bar-end">
+    @if (ReadOnlyReason is not null)
+    {
+      <span class="readonly-tag" role="status" title="@ReadOnlyReason"><i data-lucide="eye"></i><span>View only</span></span>
+    }
+    @if (State is not null)
+    {
+      <div class="editor-bar-state">@State</div>
+    }
+    @if (Commands is not null)
+    {
+      <div class="@CommandsCls">@Commands</div>
+    }
+    @if (!NoMove)
+    {
+      @if (State is not null || Commands is not null)
+      {
+        <span class="editor-bar-divider" role="separator" aria-orientation="vertical"></span>
+      }
+      <div class="editor-bar-move">
+        <Button Disabled="@(!BackEnabled)" OnClick="OnBack">Back</Button>
+        <Button Variant="primary" Disabled="@(!NextEnabled)" Busy="@NextBusy" BusyLabel="@NextBusyLabel"
+                Writes="@NextWrites" Builds="@NextBuilds" OnClick="OnNext">@NextLabel</Button>
+      </div>
+    }
+  </div>
+</div>
+
+@code {
+    /// <summary>The map's name as the crumb shows it.</summary>
+    [Parameter] public string? MapName { get; set; }
+    /// <summary>The map the page is open on; null where there is none, which leaves the stage word unswitchable.</summary>
+    [Parameter] public string? Slug { get; set; }
+    /// <summary>The tool this page is, a <see cref="MapStage"/> word of Plan, Sketch or Configure.</summary>
+    [Parameter] public string Stage { get; set; } = MapStage.Configure;
+    /// <summary>A word to show for the tool in place of its stage's name.</summary>
+    [Parameter] public string? StageLabel { get; set; }
+
+    [Parameter] public string PhaseIcon { get; set; } = "";
+    [Parameter] public string PhaseTitle { get; set; } = "";
+    [Parameter] public IReadOnlyList<string> Steps { get; set; } = Array.Empty<string>();
+    [Parameter] public int CurrentStep { get; set; }
+    /// <summary>Highest step the user may jump to via the bar — later steps are locked/dimmed.
+    /// Default unlimited (every step is freely navigable).</summary>
+    [Parameter] public int MaxStep { get; set; } = int.MaxValue;
+
+    /// <summary>What the page has to say about itself at the right: where a save stands, a note.</summary>
+    [Parameter] public RenderFragment? State { get; set; }
+    /// <summary>The tool's own actions, drawn between the state and Back/Next.</summary>
+    [Parameter] public RenderFragment? Commands { get; set; }
+    /// <summary>Whether <see cref="Commands"/> are labelled buttons; icon-only commands sit closer together.</summary>
+    [Parameter] public bool LabelledCommands { get; set; }
+    /// <summary>The page has no Back and Next to offer.</summary>
+    [Parameter] public bool NoMove { get; set; }
+
+    [Parameter] public bool BackEnabled { get; set; }
+    [Parameter] public bool NextEnabled { get; set; } = true;
+    [Parameter] public string NextLabel { get; set; } = "Next";
+    /// <summary>Next is running its own action — the last step's Next is a verb rather than a move, and a
+    /// step that fetches something wants the control disabled and saying so while it does.</summary>
+    [Parameter] public bool NextBusy { get; set; }
+    [Parameter] public string? NextBusyLabel { get; set; }
+    /// <summary>Next writes rather than moves — a finish that stores the map — so it is closed where the
+    /// caller may not write.</summary>
+    [Parameter] public bool NextWrites { get; set; }
+    /// <summary>Next has the server build something on request, as Configure's Export does.</summary>
+    [Parameter] public bool NextBuilds { get; set; }
+
+    [Parameter] public EventCallback<int> OnStep { get; set; }
+    [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public EventCallback OnNext { get; set; }
+
+    [CascadingParameter(Name = "StudioReadOnlyReason")] public string? ReadOnlyReason { get; set; }
+
+    private bool stepsOpen;
+    private string CommandsCls => LabelledCommands ? "editor-bar-commands editor-bar-commands--labelled" : "editor-bar-commands";
+
+    private async Task PickStep(int step)
+    {
+        stepsOpen = false;
+        await OnStep.InvokeAsync(step);
+    }
+}

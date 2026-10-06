@@ -11,7 +11,7 @@ namespace PgmStudio.Client.Features.Configure;
 
 // Review & Export · XML step: the final step. Shows the generated PGM map.xml, segmented into
 // containers (Full document + teams/spawns/wools/filters/regions/apply rules) picked on the left. The
-// flow-bar Next becomes Export (download), enabled only when the pre-flight export gate is open — GET /xml
+// editor-bar Next becomes Export (download), enabled only when the pre-flight export gate is open — GET /xml
 // returns 409 for an un-traversable intent map, which blocks both the preview and the download. Writes nothing.
 public partial class ReviewXmlStep : IDisposable
 {
@@ -65,7 +65,7 @@ public partial class ReviewXmlStep : IDisposable
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
-    // The flow-bar Export action: save the server export, or say why it was refused.
+    // The editor-bar Export action: save the server export, or say why it was refused.
     private async Task DownloadAsync()
     {
         downloadError = (await MapDownload.SaveAsync(Http, JS, Wizard.Slug))?.Message;

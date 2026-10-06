@@ -5,7 +5,7 @@
    a fresh <i data-lucide> (which lucide then re-processes) instead of trying to patch a node lucide has
    already replaced with <svg> — patching the mutated node corrupts the reconciler (removeChild /
    non-text-child errors). This centralizes the lucide @key discipline that is otherwise hand-managed and
-   re-commented per site (see ConfigureLayout's flow-bar, the region inspectors, …).
+   re-commented per site (see ConfigureLayout's editor bar, the region inspectors, …).
 
    NOT YET ADOPTED (C12 D.3): built and ready, but the ~156 raw <i data-lucide> across components and pages
    still stand. Adopt incrementally — the icon-bearing components (Button/DetailHeader/Chip/…) and the

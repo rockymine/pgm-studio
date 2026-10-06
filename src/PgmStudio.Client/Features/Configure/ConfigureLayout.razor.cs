@@ -5,7 +5,10 @@ namespace PgmStudio.Client.Features.Configure;
 public partial class ConfigureLayout
 {
     [Parameter] public string? MapName { get; set; }
-    [Parameter] public string Crumb { get; set; } = "Configure";
+    /// <summary>The map the page is open on; null on the import, which has none yet.</summary>
+    [Parameter] public string? Slug { get; set; }
+    /// <summary>The word to show for the tool where it is not Configure (the import).</summary>
+    [Parameter] public string? StageLabel { get; set; }
     [Parameter] public string ActivePhaseId { get; set; } = "";
     /// <summary>The rail's phases, in order. Supplied by the page rather than read off the catalog, because
     /// a map's phase list is its own — the landing shows the full set, a configured map shows the phases it
@@ -30,7 +33,7 @@ public partial class ConfigureLayout
     /// <summary>Next writes rather than moves (the import scan), so it is closed where the caller may not write.</summary>
     [Parameter] public bool NextWrites { get; set; }
     [Parameter] public bool NextBuilds { get; set; }
-    /// <summary>Topbar save indicator text (Saved · Saving… · Unsaved); null/empty hides it (e.g. the
+    /// <summary>Editor bar save indicator text (Saved · Saving… · Unsaved); null/empty hides it (e.g. the
     /// landing, which has no save model).</summary>
     [Parameter] public string? SaveStatus { get; set; }
 

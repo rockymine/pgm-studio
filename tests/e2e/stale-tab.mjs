@@ -60,7 +60,7 @@ checks.add("and is refused 409", saves.length > 0 && saves.every((save) => save.
   JSON.stringify(saves));
 await page.locator(".problems-btn", { hasText: "Can’t save" }).click().catch(() => {});
 const warning = (await page.locator(".problems-pop .problems-verdict").textContent().catch(() => "")) ?? "";
-checks.add("the topbar says the board was saved from somewhere else",
+checks.add("the problems popover says the board was saved from somewhere else",
   warning.includes("saved from somewhere else"), warning);
 checks.add("and the stored board is the one stored from elsewhere",
   shapesStored(await api(`/map/${draft.slug}/sketch`)) === before);
