@@ -1,0 +1,23 @@
+@namespace PgmStudio.Client.Components
+
+@* One facet of a FilterPanel: a Field whose control is a row of Chips. Multi marks a set the reader can tick
+   several of, so each chip leads with a checkbox; a group where exactly one option holds leaves it off. Hint
+   is the muted word beside the label ("any of"), End a control at the label row's right edge. *@
+
+<Field Label="@Label" Class="@Class">
+    <LabelEnd>@if (Hint is not null) { <span class="text-xs text-muted">@Hint</span> }@End</LabelEnd>
+    <ChildContent>
+        <div class="@Cls">@ChildContent</div>
+    </ChildContent>
+</Field>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public bool Multi { get; set; }
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public RenderFragment? End { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string Cls => Multi ? "filter-group-options filter-group-options--multi" : "filter-group-options";
+}

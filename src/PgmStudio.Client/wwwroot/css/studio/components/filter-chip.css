@@ -3,6 +3,14 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 .filter-group-options { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+
+/* The rail of a page that narrows a list (FilterSidebar), and the label-row action of a FilterGroup. */
+.filter-sidebar { border-right: 1px solid var(--border); }
+.filter-group-action {
+  border: 0; padding: 0; background: none; font: inherit; font-weight: 400;
+  color: var(--accent-light); cursor: pointer;
+}
+.filter-group-action:hover { text-decoration: underline; }
 /* Expanded chip row — chips stretch to fill available width */
 
 /* Generic horizontal control row — label + inputs/buttons/chips side-by-side */

@@ -356,6 +356,30 @@
           </Workspace>
         </div>
       </article>
+
+      <article class="ds-example">
+        <div class="ds-example-label">Filter rail</div>
+        <div class="ds-workspace-frame">
+          <Workspace>
+            <FilterSidebar>
+              <FilterPanel Title="Filters" Active="true" OnClear="@(() => { })">
+                <FilterGroup Label="Stage">
+                  <Chip Active Count="12">All</Chip>
+                  <Chip Count="5">Plan</Chip>
+                  <Chip Count="7">Sketch</Chip>
+                </FilterGroup>
+                <FilterGroup Label="Kind" Hint="any of" Multi>
+                  <Chip Active Count="4">Wool</Chip>
+                  <Chip Count="9">Hub</Chip>
+                  <Chip Disabled Count="0">Scythe</Chip>
+                </FilterGroup>
+                <p class="section-desc">The number on each option counts the whole list.</p>
+              </FilterPanel>
+            </FilterSidebar>
+            <div class="workspace-canvas"></div>
+          </Workspace>
+        </div>
+      </article>
     </section>
 
     <section class="ds-section" id="canvas">

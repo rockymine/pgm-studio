@@ -14,49 +14,35 @@
   </Bar>
   <ChildContent>
   <div class="lib-body">
-    <aside class="lib-filters">
-      <Section Title="Filter shapes">
-
-        <Field Label="Kind">
-          <div class="filter-group-options filter-group-options--multi">
+    <FilterSidebar>
+      <FilterPanel Title="Filter shapes" Active="AnyFilter" OnClear="ClearFilters">
+          <FilterGroup Label="Kind" Multi>
             @foreach (var k in Kinds)
             {
-              <Chip Active="kindFilter.Contains(k.Token)" Title="@k.Hint"
-                    OnClick="() => Toggle(kindFilter, k.Token)">@k.Label<span class="filter-chip-n">@Count(byKind, k.Token)</span></Chip>
+              <Chip Active="kindFilter.Contains(k.Token)" Title="@k.Hint" Count="Count(byKind, k.Token)"
+                    OnClick="() => Toggle(kindFilter, k.Token)">@k.Label</Chip>
             }
-          </div>
-        </Field>
+          </FilterGroup>
 
-        <Field Label="Usage">
-          <ChildContent>
-            <div class="filter-group-options filter-group-options--multi">
-              @foreach (var t in Tiers)
-              {
-                <Chip Active="tierFilter.Contains(t.Token)" Title="@t.Hint"
-                      OnClick="() => Toggle(tierFilter, t.Token)">@t.Label<span class="filter-chip-n">@Count(byTier, t.Token)</span></Chip>
-              }
-            </div>
-          </ChildContent>
-        </Field>
+          <FilterGroup Label="Usage" Multi>
+            @foreach (var t in Tiers)
+            {
+              <Chip Active="tierFilter.Contains(t.Token)" Title="@t.Hint" Count="Count(byTier, t.Token)"
+                    OnClick="() => Toggle(tierFilter, t.Token)">@t.Label</Chip>
+            }
+          </FilterGroup>
 
-        <Field Label="Shape family">
-          <div class="filter-group-options filter-group-options--multi">
+          <FilterGroup Label="Shape family" Multi>
             @foreach (var family in byFamily.Keys.OrderBy(FamilyOrder))
             {
-              <Chip Active="familyFilter.Contains(family)"
-                    OnClick="() => Toggle(familyFilter, family)">@FamilyLabel(family)<span class="filter-chip-n">@Count(byFamily, family)</span></Chip>
+              <Chip Active="familyFilter.Contains(family)" Count="Count(byFamily, family)"
+                    OnClick="() => Toggle(familyFilter, family)">@FamilyLabel(family)</Chip>
             }
-          </div>
-        </Field>
+          </FilterGroup>
 
-        @if (AnyFilter)
-        {
-          <Button Full OnClick="ClearFilters">Clear filters</Button>
-        }
-
-        <p class="section-desc">The number on each option counts the whole catalog, whatever else is ticked.</p>
-      </Section>
-    </aside>
+          <p class="section-desc">The number on each option counts the whole catalog, whatever else is ticked.</p>
+      </FilterPanel>
+    </FilterSidebar>
 
     <main class="lib-main">
       <PageHeading Title="Shape catalog">

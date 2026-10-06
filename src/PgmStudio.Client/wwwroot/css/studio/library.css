@@ -1,14 +1,8 @@
 /* The browse-library shell: a grid of pictures, and whatever a page narrows it by. The shape catalog keeps its
-   filters in an aside beside the grid (catalog.css); the style library keeps them in a strip above it, because
+   filters in a FilterSidebar beside the grid; the style library keeps them in a strip above it, because
    a search box and a row of chips are horizontal things and a grid wants the width. */
 
 .lib-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
-
-.lib-filters {
-  flex-shrink: 0; width: var(--sidebar-width); padding: var(--space-3);
-  border-right: 1px solid var(--border); overflow-y: auto;
-  display: flex; flex-direction: column; gap: var(--space-3);
-}
 
 .lib-main { flex: 1; min-width: 0; overflow-y: auto; padding: var(--space-3); }
 .lib-count { margin: 0 0 var(--space-2); font-size: var(--font-sm); color: var(--text-secondary); }

@@ -15,8 +15,8 @@
   </Bar>
   <ChildContent>
   <div class="gen-body">
-    <aside class="gen-filters">
-      <Section Title="Layout settings">
+    <FilterSidebar>
+      <FilterPanel Title="Layout settings">
         <Field Label="Players per team">
           <LabelEnd><strong>@players</strong></LabelEnd>
           <ChildContent>
@@ -25,23 +25,21 @@
           </ChildContent>
         </Field>
 
-        <Field Label="Symmetry">
-          <div class="filter-group-options">
-            @foreach (var s in Symmetries)
-            {
-              <Chip Active="symmetry == s.Id" Disabled="!s.Supported"
-                    Title="@(s.Supported ? s.Label : "Not available yet")"
-                    OnClick="() => PickSymmetry(s.Id)">@s.Label</Chip>
-            }
-          </div>
-        </Field>
+        <FilterGroup Label="Symmetry">
+          @foreach (var s in Symmetries)
+          {
+            <Chip Active="symmetry == s.Id" Disabled="!s.Supported"
+                  Title="@(s.Supported ? s.Label : "Not available yet")"
+                  OnClick="() => PickSymmetry(s.Id)">@s.Label</Chip>
+          }
+        </FilterGroup>
 
         <Field Label="Highest score">
           <LabelEnd><strong>@(maxScore >= ScoreCap ? "Any" : maxScore.ToString("0.0"))</strong></LabelEnd>
           <ChildContent>
             <RangeField Min="0" Max="8" Step="0.5" Value="maxScore" ValueChanged="OnMaxScore" OnCommit="ApplyMaxScore"
                         aria-label="Highest score" />
-            <span class="gen-hint">Lower scores are better.</span>
+            <p class="section-desc">Lower scores are better.</p>
           </ChildContent>
         </Field>
 
@@ -54,60 +52,41 @@
                          OnCleared="() => OnWoolMax(0)" aria-label="At most" placeholder="Any" />
           </div>
         </Field>
-      </Section>
+      </FilterPanel>
 
-      <Section Title="Filter by shape">
-        <Actions>
-          @if (ShapeFiltered)
-          {
-            <Button Class="action-btn--push-end" OnClick="ClearShapeFilters">Clear</Button>
-          }
-        </Actions>
-        <ChildContent>
-          <Field Label="Wool approaches">
-            <LabelEnd><span class="text-xs text-muted">has all</span></LabelEnd>
-            <ChildContent>
-              <div class="filter-group-options filter-group-options--multi">
-                @foreach (var w in WoolChips)
-                {
-                  <Chip Active="woolFilter.Contains(w.Token)" Disabled="!w.InMix"
-                        Class="@(w.InMix && Unseen(seenWools, w.Token) ? "filter-chip--unseen" : null)"
-                        Title="@(w.InMix ? ChipTitle(seenWools, w.Token, w.Label) : "The generator doesn't use this shape")"
-                        OnClick="() => ToggleWool(w.Token)">@w.Label@if (censusBoards > 0 && w.InMix) { <span class="filter-chip-n">@(seenWools.GetValueOrDefault(w.Token))</span> }</Chip>
-                }
-              </div>
-            </ChildContent>
-          </Field>
+      <FilterPanel Title="Filter by shape" Active="ShapeFiltered" OnClear="ClearShapeFilters">
+          <FilterGroup Label="Wool approaches" Hint="has all" Multi>
+            @foreach (var w in WoolChips)
+            {
+              <Chip Active="woolFilter.Contains(w.Token)" Disabled="!w.InMix"
+                    Count="@(censusBoards > 0 && w.InMix ? seenWools.GetValueOrDefault(w.Token) : null)"
+                    Class="@(w.InMix && Unseen(seenWools, w.Token) ? "filter-chip--unseen" : null)"
+                    Title="@(w.InMix ? ChipTitle(seenWools, w.Token, w.Label) : "The generator doesn't use this shape")"
+                    OnClick="() => ToggleWool(w.Token)">@w.Label</Chip>
+            }
+          </FilterGroup>
 
-          <Field Label="Hub">
-            <LabelEnd><span class="text-xs text-muted">any of</span></LabelEnd>
-            <ChildContent>
-              <div class="filter-group-options filter-group-options--multi">
-                @foreach (var h in HubChips)
-                {
-                  <Chip Active="hubFilter.Contains(h.Token)"
-                        Class="@(Unseen(seenHubs, h.Token) ? "filter-chip--unseen" : null)"
-                        Title="@ChipTitle(seenHubs, h.Token, h.Label)"
-                        OnClick="() => ToggleHub(h.Token)">@h.Label@if (censusBoards > 0) { <span class="filter-chip-n">@(seenHubs.GetValueOrDefault(h.Token))</span> }</Chip>
-                }
-              </div>
-            </ChildContent>
-          </Field>
+          <FilterGroup Label="Hub" Hint="any of" Multi>
+            @foreach (var h in HubChips)
+            {
+              <Chip Active="hubFilter.Contains(h.Token)"
+                    Count="@(censusBoards > 0 ? seenHubs.GetValueOrDefault(h.Token) : null)"
+                    Class="@(Unseen(seenHubs, h.Token) ? "filter-chip--unseen" : null)"
+                    Title="@ChipTitle(seenHubs, h.Token, h.Label)"
+                    OnClick="() => ToggleHub(h.Token)">@h.Label</Chip>
+            }
+          </FilterGroup>
 
-          <Field Label="Front line">
-            <LabelEnd><span class="text-xs text-muted">any of</span></LabelEnd>
-            <ChildContent>
-              <div class="filter-group-options filter-group-options--multi">
-                @foreach (var f in FrontChips)
-                {
-                  <Chip Active="frontFilter.Contains(f.Token)"
-                        Class="@(Unseen(seenFronts, f.Token) ? "filter-chip--unseen" : null)"
-                        Title="@ChipTitle(seenFronts, f.Token, f.Label)"
-                        OnClick="() => ToggleFront(f.Token)">@f.Label@if (censusBoards > 0) { <span class="filter-chip-n">@(seenFronts.GetValueOrDefault(f.Token))</span> }</Chip>
-                }
-              </div>
-            </ChildContent>
-          </Field>
+          <FilterGroup Label="Front line" Hint="any of" Multi>
+            @foreach (var f in FrontChips)
+            {
+              <Chip Active="frontFilter.Contains(f.Token)"
+                    Count="@(censusBoards > 0 ? seenFronts.GetValueOrDefault(f.Token) : null)"
+                    Class="@(Unseen(seenFronts, f.Token) ? "filter-chip--unseen" : null)"
+                    Title="@ChipTitle(seenFronts, f.Token, f.Label)"
+                    OnClick="() => ToggleFront(f.Token)">@f.Label</Chip>
+            }
+          </FilterGroup>
 
           @if (censusBoards > 0)
           {
@@ -116,9 +95,8 @@
               it.@(CensusIsTelling ? " A shape at 0 is never generated with these settings." : "")
             </p>
           }
-        </ChildContent>
-      </Section>
-    </aside>
+      </FilterPanel>
+    </FilterSidebar>
 
     <main class="gen-main">
       <PageHeading Title="Generator">

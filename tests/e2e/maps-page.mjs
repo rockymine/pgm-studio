@@ -39,7 +39,7 @@ try {
     await fixtureRow.locator(".agent-mark svg.lucide").count() === 1);
 
   checks.section("a stage chip narrows the table and lands in the address");
-  const sidebar = page.locator(".map-filters");
+  const sidebar = page.locator(".filter-sidebar");
   await sidebar.locator(".filter-chip", { hasText: "Configure" }).click();
   await page.waitForURL(/stage=configure/, { timeout: 5000 });
   const configuring = all.filter(m => m.stage === "configure" || m.stage === "edit").map(m => m.slug).sort();
@@ -49,7 +49,7 @@ try {
   await page.waitForURL(u => !u.search.includes("stage="), { timeout: 5000 });
 
   checks.section("an author ticks on and off in the sidebar");
-  const author = sidebar.locator(".map-author-options .filter-chip", { hasText: "E2E fixture" });
+  const author = sidebar.locator(".filter-group--authors .filter-chip", { hasText: "E2E fixture" });
   await author.click();
   await page.waitForURL(/author=E2E(%20|\+)fixture/, { timeout: 5000 });
   const credited = all.filter(m => m.authors.some(a => a.name === "E2E fixture")).map(m => m.slug).sort();
@@ -61,7 +61,7 @@ try {
   checks.add("unticking it lists every map again", await rows().count() === all.length, page.url());
 
   checks.section("Select all under Agents picks every agent");
-  await sidebar.locator(".map-author-group", { hasText: "Agents" }).locator(".map-author-all").click();
+  await sidebar.locator(".filter-group--authors").filter({ has: page.locator(".field-label", { hasText: "Agents" }) }).locator(".filter-group-action").click();
   await page.waitForURL(/author=/, { timeout: 5000 });
   const byAgents = all.filter(m => m.authors.some(a => a.role !== "contributor" && a.uuid === "")).map(m => m.slug).sort();
   checks.add("it lists the maps credited by name alone",
