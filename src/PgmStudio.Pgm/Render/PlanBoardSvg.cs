@@ -13,8 +13,10 @@ namespace PgmStudio.Pgm.Render;
 /// dashed build bands, and the spawn/wool/iron markers placed at their fanned cells. It carries no legend: a
 /// page showing boards draws <see cref="PlanBoardPalette.Key"/> once beside them. Pure over a
 /// <see cref="PlanModel"/>, the geometry built once by <see cref="PlanBoardScene"/> and shared with
-/// <see cref="PlanBoardPng"/> so the two encodings of one plan can never disagree with each other. This is the
-/// browse feed's card image and, scaled up, its detail view.
+/// <see cref="PlanBoardPng"/> so the two encodings of one plan can never disagree with each other. The SVG paints
+/// no ground of its own: the page frames it on <c>--board-bg</c>, and the two markers whose colour depends on that
+/// ground (spawn, iron) read <c>--board-spawn</c> and <c>--board-iron</c>, falling back to the dark-ground values
+/// where the SVG is shown outside the app. This is the browse feed's card image and, scaled up, its detail view.
 /// </summary>
 public static class PlanBoardSvg
 {
@@ -75,8 +77,8 @@ public static class PlanBoardSvg
         var op = N(marker.K == 0 ? 1.0 : 0.5);
         svg.Append(marker.Kind switch
         {
-            "spawn" => $"<circle cx='{N(cx)}' cy='{N(cy)}' r='2.5' fill='#e2e8f5' fill-opacity='{op}'/>",
-            "iron" => $"<rect x='{N(cx - 2)}' y='{N(cy - 2)}' width='4' height='4' fill='#94a3b8' fill-opacity='{op}'/>",
+            "spawn" => $"<circle cx='{N(cx)}' cy='{N(cy)}' r='2.5' style='fill:var(--board-spawn,#e2e8f5)' fill-opacity='{op}'/>",
+            "iron" => $"<rect x='{N(cx - 2)}' y='{N(cy - 2)}' width='4' height='4' style='fill:var(--board-iron,#94a3b8)' fill-opacity='{op}'/>",
             "wool" => $"<circle cx='{N(cx)}' cy='{N(cy)}' r='2.6' fill='{WoolColor(marker.Color)}' stroke='#1e293b' stroke-opacity='0.5' stroke-width='0.6' fill-opacity='{op}'/>",
             _ => "",
         });

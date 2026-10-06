@@ -108,9 +108,11 @@
   --canvas-contour:       rgba(251, 191, 36, 0.45);   /* amber-400 */
   --canvas-contour-index: rgba(251, 191, 36, 0.92);
 
-  /* The ground a server-drawn board picture (generator, shape catalog) is painted for. Its swatches are
-     mid-tones at partial opacity chosen against a dark ground, so this stays dark in both themes. */
+  /* The ground a server-drawn board picture (generator, shape catalog) sits on, and the two marker colours
+     the SVG reads against it (spawn disc, iron pip). The role swatches are mid-tones that read on both grounds. */
   --board-bg: #0b1222;
+  --board-spawn: #e2e8f5;
+  --board-iron: #94a3b8;
 
   /* Canvas SVG area background */
   --canvas-bg: var(--bg-canvas);   /* alias — the viewport background (follows the theme) */
@@ -325,6 +327,9 @@
        mid-tones that read on both backgrounds and keep their dark values). ── */
   --bg-canvas:     #e2e8f0;   /* slate-200 — light viewport (recessed under white panels) */
   --canvas-float-shadow: 0 6px 20px rgb(15 23 42 / 0.16);   /* the floating chrome, softer on light */
+  --board-bg:      #e2e8f0;   /* slate-200 — the board pictures' ground, the same as the canvas viewport */
+  --board-spawn:   #1e293b;   /* slate-800 — the pale spawn disc inverts */
+  --board-iron:    #475569;   /* slate-600 */
   --canvas-ink:    #0f172a;   /* slate-900 — dark lines/outlines over the light canvas */
   --canvas-axis:   #7c3aed;   /* violet-600 — axis/crosshair, darker for light bg */
   --canvas-region: #64748b;   /* slate-500 — region fallback, darker for light bg */

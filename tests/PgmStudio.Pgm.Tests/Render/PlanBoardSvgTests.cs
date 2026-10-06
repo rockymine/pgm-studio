@@ -64,4 +64,16 @@ public sealed class PlanBoardSvgTests
         // The build zone's own rect fills with its flat colour rather than the hatch pattern.
         await Assert.That(svg).Contains($"fill='{PlanBoardPalette.BuildZoneColor}' fill-opacity='0.38'");
     }
+
+    [Test]
+    public async Task The_svg_paints_no_ground_and_themes_its_ground_dependent_markers()
+    {
+        var plan = Composer.Compose(new ComposeRequest(12, seed: 3));
+
+        var svg = PlanBoardSvg.Render(plan);
+
+        await Assert.That(svg).DoesNotContain("0b1222");
+        await Assert.That(svg).Contains("var(--board-spawn,");
+        await Assert.That(svg).DoesNotContain("fill='#e2e8f5'");
+    }
 }
