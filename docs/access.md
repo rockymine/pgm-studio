@@ -17,7 +17,8 @@ nobody, because the local admin has no account to own it under.
 **`invited`** is every other deployment, and it is what an unset `Access:Mode` means — a server whose
 configuration never mentions access is closed, not open. A request is signed in by the session cookie
 `pgm-studio.session` (HttpOnly, Secure, SameSite=Lax, thirty days sliding), and a request without one is
-signed out. SameSite=Lax is also what keeps another site from writing through a visitor's session: a browser
+signed out. The cookie is persistent: it carries its expiry, so closing the browser does not end the session,
+and any signed-in request in the second half of the thirty days renews it. SameSite=Lax is also what keeps another site from writing through a visitor's session: a browser
 sends the cookie on a cross-site link, and never on a cross-site `POST`, `PUT` or `DELETE`. Signing in with Discord is what writes it (below).
 
 `Access:Admins` lists Minecraft uuids that are admins whatever the whitelist says, and it names the studio's

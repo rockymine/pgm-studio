@@ -118,7 +118,9 @@ public sealed class DiscordCompleteEndpoint(StudioUserStore users) : EndpointWit
             return;
         }
 
-        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, DiscordSignIn.SessionOf(person));
+        // Persistent, so the cookie carries its thirty-day expiry and outlives the browser that signed in.
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, DiscordSignIn.SessionOf(person),
+            new AuthenticationProperties { IsPersistent = true });
         await Send.RedirectAsync(SignIn.ReturnUrl(HttpContext));
     }
 }
