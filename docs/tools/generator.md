@@ -270,8 +270,8 @@ filters against. Past 150 boards an absence is reported as an absence: a chip no
 dimmed, and an empty grid says *these players and symmetry don't produce it* rather than *none of the layouts
 match these filters*. A library with nothing for the settings says it is still being generated.
 
-**A card carries the board and its verdicts.** The picture is the whole fanned board in a square frame on a
-dark ground, server-rendered from the same scene the PNG endpoint draws, coloured by role — hub violet, spawn
+**A card carries the board and its verdicts.** The picture is the whole fanned board in a square frame on the
+theme's board ground (`--board-bg`: dark in the dark theme, slate-200 in the light one), server-rendered from the same scene the PNG endpoint draws, coloured by role — hub violet, spawn
 green, wool amber, front line orange — with a build zone in pink and a water lane in blue under a diagonal
 hatch. The picture carries no text: the page draws the key once above the grid, from the `key` the feed
 returns. Under the picture the card names its structure — its wool approach families, hub and front line, by
