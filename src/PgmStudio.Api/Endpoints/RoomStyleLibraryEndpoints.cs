@@ -101,16 +101,19 @@ internal static class RoomStyleMapping
 }
 
 /// <summary>GET /api/room-styles — the room-style library, newest first, each with the shell it stamps.</summary>
-public sealed class RoomStyleListEndpoint(RoomStyleLibrary library) : EndpointWithoutRequest<List<RoomStyleSummary>>
+public sealed class RoomStyleListEndpoint(RoomStyleLibrary library, BlockTextureStore textures) : EndpointWithoutRequest<List<RoomStyleSummary>>
 {
     public override void Configure() { Get("/room-styles"); }
 
     public override async Task HandleAsync(CancellationToken ct)
-        => await Send.OkAsync((await library.ComposeAllAsync(ct))
+    {
+        var sprites = await textures.ForPicturesAsync(ct);
+        await Send.OkAsync((await library.ComposeAllAsync(ct))
             .Select(entry => new RoomStyleSummary(
-                entry.Row.Id, entry.Row.Name, RoomStylePreview.CardOnce(entry.Style),
+                entry.Row.Id, entry.Row.Name, RoomStylePreview.CardOnce(entry.Style, sprites),
                 HouseStyleJson.Serialize(entry.Style)))
             .ToList(), ct);
+    }
 }
 
 /// <summary>GET /api/room-styles/doors — the doors a room may be stamped with. Served rather than restated in

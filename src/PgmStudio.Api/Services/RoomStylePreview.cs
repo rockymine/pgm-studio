@@ -65,10 +65,17 @@ public static class RoomStylePreview
             Stamped(style, sample), CutTo(style, Outer(style, sample), part), cell);
     }
 
-    /// <summary><see cref="Card"/> at its defaults, drawn once per distinct style and part
-    /// (<see cref="Drawings"/>) — the picture a library row lists with.</summary>
-    public static string CardOnce(HouseStyle style, string? part = null) =>
-        Drawings.Svg("house-card/" + part, HouseStyleJson.Serialize(style), () => Card(style, part: part));
+    /// <summary>The card a library row lists with, drawn once per distinct style and part
+    /// (<see cref="Drawings"/>): the building seen from outside with the game's sprites where the studio has
+    /// them (<see cref="StructureCard"/>), else <see cref="Card"/>'s flat section.</summary>
+    public static string CardOnce(HouseStyle style, PictureSprites sprites, string? part = null) =>
+        StructureCard.Once("house-card/" + part, HouseStyleJson.Serialize(style), sprites,
+            flat: () => Card(style, part: part),
+            volume: () =>
+            {
+                var sample = SampleOf(null);
+                return (Stamped(style, sample), CutTo(style, Outer(style, sample), part));
+            });
 
     /// <summary>
     /// The box the views are taken over for the part an editor has open — the whole shell where none is.
