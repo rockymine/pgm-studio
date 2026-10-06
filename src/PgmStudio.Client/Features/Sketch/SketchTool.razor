@@ -34,7 +34,7 @@
                       <h3 class="section-title">This map</h3>
                       <Button Variant="icon" Icon="x" Title="Close" OnClick="ClosePop" />
                     </div>
-                    <p class="problems-verdict">@if (StoppedWord is { } stopped) { <b>@stopped</b>@(" ") }@ProblemsVerdict</p>
+                    @if (UnlistedRefusal is { } refusalSentence) { <p class="problems-verdict">@refusalSentence</p> }
                     @if (exportRefused && downloadRefusal is { Findings.Count: 0 })
                     {
                       <Button Href="@($"maps/{Slug}/configure")" Icon="settings-2">Open Configure</Button>

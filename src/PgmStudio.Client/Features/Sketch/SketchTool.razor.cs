@@ -1057,26 +1057,19 @@ public partial class SketchTool
     /// <summary>The rules the list has rows for, which is the count the button carries.</summary>
     private int ProblemRules => problems.Select(p => (p.Kind, p.Finding.Rule)).Distinct().Count();
 
-    private string? StoppedWord => downloadRefusal is not null ? "Can’t download." : saveError is not null ? "Can’t save." : null;
+    private string? StoppedWord => downloadRefusal is not null ? "Can’t download" : saveError is not null ? "Can’t save" : null;
 
-    private string ProblemsLabel => StoppedWord?.TrimEnd('.')
+    private string ProblemsLabel => StoppedWord
         ?? (problems.Any(p => p.Kind == ProblemKind.LeftOut) ? "Left out" : "Warnings");
 
-    /// <summary>The line under the list's heading: the refusal's own sentence where it named no finding,
-    /// else how many of each kind.</summary>
-    private string ProblemsVerdict
+    /// <summary>The refusal's own sentence where it named no finding, which the list has no row for; the
+    /// counts are the button's badge and the list itself.</summary>
+    private string? UnlistedRefusal
     {
         get
         {
             var refusal = downloadRefusal ?? (saveError is not null && saveFindings.Count == 0 ? ServerRefusal.Unanswered(saveError) : null);
-            if (refusal is { Findings.Count: 0 }) return refusal.Message;
-            static string Of(int count, string one, string many) => count == 1 ? $"1 {one}" : $"{count} {many}";
-            var said = new List<string>();
-            if (problems.Count(p => p.Kind == ProblemKind.Problem) is > 0 and var stopping) said.Add(Of(stopping, "problem", "problems"));
-            if (problems.Count(p => p.Kind == ProblemKind.LeftOut) is > 0 and var left)
-                said.Add($"{Of(left, "thing", "things")} left out of the world");
-            if (problems.Count(p => p.Kind == ProblemKind.Warning) is > 0 and var warnings) said.Add(Of(warnings, "warning", "warnings"));
-            return string.Join(", ", said) + ".";
+            return refusal is { Findings.Count: 0 } ? refusal.Message : null;
         }
     }
 
