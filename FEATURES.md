@@ -204,6 +204,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **Board pictures in the paper's plan inks (`C78`).** One renderer draws every board — Generator, catalog,
+  probe, plan and compose previews — in four inks: ground grey (a tint of the plan editor's piece grey), spawn
+  green, wool room orange, and the build zone as a dashed blue outline, on a white ground in the light theme and
+  the same inks over dark in the dark one (`--board-*` tokens). Hub, front line, approach and other pieces are
+  ground; each piece carries its `BoardRoles` class, so the Generator's wide detail drawer highlights any of
+  them in the accent without a refetch. The Generator filters wools per team by 1/2/3 chips (`woolCount`, any of,
+  bounded by `WoolCounts`). `docs/tools/generator.md`.
 - **A generator card is its picture (`TG4`).** Generator, Catalog and Library cards are one `PictureCard`: the
   picture and a name — a layout's id on the Generator. The Generator's rail filters by player band chips and links
   the shape catalog; it shows no score. `docs/tools/generator.md`.

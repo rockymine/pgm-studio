@@ -568,13 +568,6 @@ is the standard the copy is held to.
   its lists with four filter chips plus three grouped lists; put the filters into tabs (*This view · Whole map ·
   All*) with a status select. History: up to 60 edit lines sit above *Restore*, so pin it in the inspector's footer
   and show the three column counts as one row. `docs/tools/sketch.md` § Review, § History.
-- [ ] **C78 — Board pictures in the paper's four plan inks.** `PlanBoardPalette` paints seven role and zone
-  colours on a dark ground; `pgm-studio-mapgen/paper/preamble.tex` draws the same plans in four inks on white —
-  ground grey (`#E7EAEE`, edge `#A8B0B9`), spawn green (`#CBE3DA`/`#009E73`), wool room orange
-  (`#F3DCC8`/`#D55E00`), and a build zone as a dashed `#0072B2` outline — with the fanned half faint. Hub,
-  front line and other become ground; their names live in the structure line under each card. Change `Key`,
-  `PieceColor` and the SVG and PNG renderers together, and `--board-bg` to white. `docs/tools/generator.md`.
-
 - [ ] **TS164 — Decoration's inspector widens only for its picker.** *Parked (author): judging from the
   screenshots in the layout mockups' section 6.* `.workspace-inspector--wide` holds the
   Decoration inspector at 420px (`editor.css:295`) against 280px everywhere else, so the canvas jumps 140px on
