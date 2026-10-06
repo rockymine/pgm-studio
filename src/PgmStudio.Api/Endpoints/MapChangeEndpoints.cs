@@ -172,8 +172,8 @@ public sealed class MapDiffEndpoint(MapRepository repo, MapChangeLog log) : Endp
 /// its kept pictures are left alone. A restore to what the map already holds writes nothing and answers no
 /// change. 404 for a change the map does not have, 400 for a note over 1,000 characters.</summary>
 public sealed class MapRestoreEndpoint(
-    MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, PlayerLookup players,
-    MapChangeLog log) : Endpoint<MapRestoreRequest, MapRestoredDto>
+    MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features,
+    PlayerLookup players, MapChangeLog log) : Endpoint<MapRestoreRequest, MapRestoredDto>
 {
     public override void Configure()
     {
@@ -187,7 +187,7 @@ public sealed class MapRestoreEndpoint(
 
         var number = Route<long>("number");
         var restored = await MapRestore.RunAsync(
-            map, number, request.Note, repo, reader, writer, artifacts, players, log, ct);
+            map, number, request.Note, repo, reader, writer, artifacts, features, players, log, ct);
         if (restored.Refusal is { } refusal)
         {
             await Refusals.WriteAsync(HttpContext, refusal, ct);

@@ -206,7 +206,8 @@ public static class MapSource
             // Then the intent, which stores it and projects the document from it — and only then the credits,
             // because that projection is what would overwrite them.
             var applied = await IntentWrite.StoreAndProjectAsync(
-                repo, reader, writer, artifacts, players, slug, mapId, intentJson, expected: null, ct);
+                repo, reader, writer, artifacts, new FeatureData(db, artifacts, features), players, slug, mapId,
+                intentJson, expected: null, ct);
             if (applied.Refusal is { } unprojected)
             {
                 await repo.DeleteMapAsync(mapId, ct);

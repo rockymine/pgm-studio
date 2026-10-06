@@ -100,8 +100,8 @@ public partial class WoolMonumentsStep
     {
         null => "",
         { Scanned: false } => "This spot has no scan data, so the block can't be checked.",
-        { Clear: false } => "A block is already here. The wool can't be placed, and PGM shows a warning when the map loads.",
-        { Support: false } => "No block touches this spot. A wool has to be placed against a block.",
+        { Clear: false } => "A block is already here, so a wool can't be put into it. The step won't save a monument here.",
+        { Support: false } => "No block touches this spot, so a wool can't be put into it. The step won't save a monument here.",
         { Pedestal: false } => "Clear and touching a block. A wool can be placed here.",
         _ => "Clear and on a pedestal. A wool can be placed here.",
     };

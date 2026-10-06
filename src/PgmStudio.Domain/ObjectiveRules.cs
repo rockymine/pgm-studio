@@ -53,6 +53,12 @@ public static class ObjectiveRules
     [Rule(RuleCategory.Conflict, RuleConcern.Objective, RuleConcern.Intent)]
     public const string OneMonumentPerTeam = "OB32";
 
+    /// <summary>A wool monument is a solid block in the scanned world, or no block touches it.</summary>
+    /// <remarks>Move the monument in <c>wools.monuments</c> until its block is clear and a block touches
+    /// it.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.World)]
+    public const string MonumentNotSeated = "OB33";
+
     /// <summary>A wool monument has no ground under it.</summary>
     /// <remarks>Move the room piece of the spawn in <c>pieces</c> until the monument stands on ground.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Terrain)]

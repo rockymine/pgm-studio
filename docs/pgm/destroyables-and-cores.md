@@ -646,6 +646,11 @@ answers **409**, matching the compile gate's refusal rather than the round-trip'
 wool and the team, so a second monument stated for one team would name the region the first already holds. The
 intent projection refuses it by name at **422**, before the intent is stored.
 
+**A wool monument is a block a wool can be put into (`OB33`).** On a map read from a world, the intent write
+reads each monument's block off the scan, and refuses at **422**, before anything is stored, a monument whose
+block is solid or that no block touches on any of its six faces. A sketch map's monuments are where its build
+puts them (`OB25`), so the read is not asked of one.
+
 Each finding names the offending marker by its **id** (`core-1`, `destroyable-2`) ahead of the piece it stands
 on, and carries both as subjects. A refusal that named only the piece is ambiguous the moment two goals share
 one — and the id is what makes the answer actionable to a caller that must then move a specific marker, rather
