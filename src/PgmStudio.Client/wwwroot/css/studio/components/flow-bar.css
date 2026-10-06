@@ -43,13 +43,6 @@
 .flow-step--done         { color: var(--text-secondary); }
 .flow-step--done svg     { color: var(--color-success); }
 .flow-step--active       { color: var(--text-strong); }
-/* The same underlined steps, switching between the panels one sidebar holds: one panel at a time, so a tab and
-   not a filter chip. */
-.panel-tabs {
-  flex: 1; min-width: 0; display: flex; gap: var(--space-3); border-bottom: 1px solid var(--border);
-  overflow-x: auto; scrollbar-width: none;
-}
-.panel-tabs .flow-step { height: auto; padding: var(--space-1) 0 var(--space-2); font-size: var(--font-sm); }
 .flow-step--active::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: 0;
   height: 2px; background: var(--accent); border-radius: 2px 2px 0 0;

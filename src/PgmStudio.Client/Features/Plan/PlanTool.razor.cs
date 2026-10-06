@@ -143,22 +143,11 @@ public partial class PlanTool
     // Read-only 3-D height preview.
     private IsoView iso = default!;
 
-    // The Draw sidebar holds one of three panels — "validation" (the evaluator score + fired rules),
-    // "settings" (the tracing reference, on an open studio only, since tracing another author's map is
-    // copying it) or "feasibility" (the producibility read, admins only) — switched by the chips at its head,
-    // and folds away to give the canvas the width. Each panel's overlay follows its panel being shown.
-    private string leftPanel = "validation";
+    // The Draw sidebar stacks the tracing reference (on an open studio only, since tracing another author's map
+    // is copying it) over the Checks, and folds away to give the canvas the width. The Rules overlay follows
+    // the sidebar being shown.
     private bool showReference;
     private bool sidebarOpen = true;
-
-    /// <summary>A panel tab's class: the active one underlined, as a step is.</summary>
-    private string PanelTab(string which) => leftPanel == which ? "flow-step flow-step--active" : "flow-step";
-
-    private Task SetPanel(string which)
-    {
-        leftPanel = which;
-        return SyncPanelOverlays();
-    }
 
     private Task ToggleSidebar()
     {
@@ -166,17 +155,14 @@ public partial class PlanTool
         return SyncPanelOverlays();
     }
 
-    private Task SyncPanelOverlays()
-        => SyncPanelOverlays(sidebarOpen && leftPanel == "validation", sidebarOpen && leftPanel == "feasibility");
-
-    /// <summary>Point each canvas overlay at the panel that owns it: the Rules layer follows Validation, the
-    /// nearest-miss evidence follows Feasibility. Leaving a panel drops its overlay, so the canvas never carries
-    /// evidence for something the author can no longer see the reason for.</summary>
-    private async Task SyncPanelOverlays(bool rules, bool feasible)
+    /// <summary>Point the canvas Rules overlay at the sidebar that lists the problems: shown with it, dropped
+    /// when it folds away, so the canvas never carries evidence the author cannot see the reason for. The
+    /// Generator check's nearest-miss evidence is dropped with it.</summary>
+    private async Task SyncPanelOverlays()
     {
         if (handle is null) return;
-        await handle.InvokeVoidAsync("setOverlay", "violations", rules);
-        if (!feasible && isolatedBox is not null)
+        await handle.InvokeVoidAsync("setOverlay", "violations", sidebarOpen);
+        if (isolatedBox is not null)
         {
             isolatedBox = null;
             await handle.InvokeVoidAsync("showNearestMiss", string.Empty);
@@ -287,8 +273,8 @@ public partial class PlanTool
             await handle.InvokeVoidAsync("setBoxesShown", showBoxes);
             try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
             try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
-            // The Rules layer follows an open validation panel, not the persisted overlay flag — sync it to the initial state.
-            try { await handle.InvokeVoidAsync("setOverlay", "violations", sidebarOpen && leftPanel == "validation"); } catch { }
+            // The Rules layer follows the open sidebar, not the persisted overlay flag — sync it to the initial state.
+            try { await handle.InvokeVoidAsync("setOverlay", "violations", sidebarOpen); } catch { }
             await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
                 System.Text.Json.JsonSerializer.Serialize(Shortcuts));
             try { heightMap = await handle.InvokeAsync<bool>("getHeightMap"); } catch { /* keep default off */ }
@@ -544,25 +530,6 @@ public partial class PlanTool
     }
 
     private int CheckProblems => checks.Where(p => p.Kind == ProblemKind.Problem).Select(p => p.Finding.Rule).Distinct().Count();
-
-    // One line over the Checks list: how many rules fired of each kind, and over how many places the problems are.
-    private string CheckVerdict
-    {
-        get
-        {
-            int Rules(ProblemKind kind) => checks.Where(p => p.Kind == kind).Select(p => (p.Finding.Rule, p.Term)).Distinct().Count();
-            static string Of(int count, string one, string many) => count == 1 ? $"1 {one}" : $"{count} {many}";
-            var places = checks.Count(p => p.Kind == ProblemKind.Problem);
-            var said = new List<string>
-            {
-                CheckProblems == 0 ? "No problems" : $"{Of(CheckProblems, "problem", "problems")} in {Of(places, "place", "places")}",
-            };
-            if (Rules(ProblemKind.OutOfRange) is > 0 and var range) said.Add($"{range} out of range");
-            if (Rules(ProblemKind.LeftOut) is > 0 and var left) said.Add($"{left} left out");
-            if (Rules(ProblemKind.Warning) is > 0 and var warnings) said.Add(Of(warnings, "warning", "warnings"));
-            return string.Join(", ", said) + ".";
-        }
-    }
 
     private void SyncOverlays(string json)
     {

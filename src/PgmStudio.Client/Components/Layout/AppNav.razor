@@ -32,14 +32,13 @@
 </nav>
 
 @code {
-    /// <summary>One tool link. <paramref name="Under"/> is the path it is lit under when that is wider than the
-    /// page it opens: the plan editor opens a new plan and is lit on every plan row too.</summary>
-    private sealed record NavLink(string Href, string Label, bool AdminOnly = false, string? Under = null);
+    /// <summary>One tool link. <paramref name="Also"/> is a second path it is lit under besides the page it
+    /// opens: plans are entered from the Maps page, so Maps is lit on every plan route too.</summary>
+    private sealed record NavLink(string Href, string Label, bool AdminOnly = false, string? Also = null);
 
     private static readonly NavLink[] Links =
     [
-        new("maps", "Maps"),
-        new("plans/new", "Plan editor", Under: "plans"),
+        new("maps", "Maps", Also: "plans"),
         new("generator", "Generator"),
         new("catalog", "Catalog"),
         new("library", "Library"),
@@ -62,9 +61,11 @@
     private bool IsHere(NavLink link)
     {
         var path = Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0];
-        var under = link.Under ?? link.Href;
-        return path == under || path.StartsWith(under + "/", StringComparison.Ordinal);
+        return Under(path, link.Href) || (link.Also is not null && Under(path, link.Also));
     }
+
+    private static bool Under(string path, string root) =>
+        path == root || path.StartsWith(root + "/", StringComparison.Ordinal);
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
         InvokeAsync(StateHasChanged);
