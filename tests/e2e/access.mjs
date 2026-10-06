@@ -107,7 +107,10 @@ checks.add("no view-only tag", state.banner === null, state.banner ?? "");
 checks.add("no field is greyed", state.greyed === 0, `${state.greyed} disabled fieldset(s)`);
 checks.add("the drawing tools are there", state.rectangle);
 checks.add("the studio bar names the local admin", /local/.test(state.account), state.account);
-checks.add("the studio bar links the whitelist for an admin", state.users);
+await page.click(".app-nav-right .account-local");
+state = await readState();
+checks.add("the account menu links the whitelist for an admin", state.users);
+await page.click(".account-scrim");
 const openDownload = await settle(/^Download map/, false);
 checks.add("Download is open", openDownload?.closed === false, JSON.stringify(openDownload));
 const openIso = await settle(/^2D$/, false);
@@ -156,7 +159,7 @@ try {
       `${state.greyed} disabled fieldset(s) over ${state.inspector} panel(s)`);
     if (canvas) checks.add("the tools that only look stay", state.select);
     checks.add("the tools that draw are gone", !state.rectangle);
-    checks.add("the studio bar hides the whitelist from a visitor", !state.users);
+    checks.add("the studio bar offers a visitor no whitelist", !state.users);
     checks.add("opening it writes nothing and faults nothing", page.faults.length === 0,
       page.faults.slice(0, 3).join(" | "));
   }

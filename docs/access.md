@@ -160,8 +160,8 @@ is no account for a token to act as.
 ## What the browser shows
 
 The studio's bar says who the browser is on every page: the head, name and role signed in, opening a menu to
-sign out; *Sign in with Discord* for a visitor; `local` in an open studio. For an admin it also carries *Users*,
-the whitelist at `/admin/users`. That page
+sign out; *Sign in with Discord* for a visitor; `local` in an open studio. For an admin its menu also carries
+*Users*, the whitelist at `/admin/users`. That page
 adds a player by name or uuid in a role, changes a role, takes someone off, and opens an invitation whose link
 it shows once with a copy button — the same four routes as below. It tags an owner, and greys each control
 the rule above closes to the caller, with the reason on hover: an admin who is no owner sees no *admin* to give

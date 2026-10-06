@@ -33,11 +33,12 @@ shown, never name one.
 | `/plans/{id}` | `PlanTool` | the same tool on a plan row rather than a map: a pinned generator candidate or a plan saved without one |
 | `/plans/new` | `PlanTool` | the same tool on a blank plan, which Save stores as a row and then moves to `/plans/{id}` |
 | `/generator` | `GeneratorTool` | the composer's browse-and-pin gallery |
-| `/catalog` | `CatalogTool` | the shape catalog |
+| `/catalog` | `CatalogTool` | the shape catalog; not in the studio bar, it is linked from the generator |
 | `/library` | `LibraryTool` | the chooser — one card per library kind |
 | `/library/{kind}` | `LibraryTool` | one library's browse grid; `kind` is `styles\|themes\|roofs\|storeys\|porches\|houses` |
 | `/library/{kind}/{entry}` | `LibraryTool` | one entry's editor; `entry` is a row id or `new` |
 | `/rules` | `Rules` | every rule the studio can cite, filtered and opened one at a time; `?rule=` opens on one (`docs/refusals.md`) |
+| `/glossary` | `Glossary` | every word the studio uses, defined once (`GET /api/glossary`): alphabetical, `?q=` filters by word, other name and definition, and `#hub` opens on a term |
 | `/tokens` | `Tokens` | the signed-in person's API tokens |
 | `/admin/users` | `Users` | who may sign in, and with which role |
 | `/design` | `Design` | the design system: tokens and every shared component, grouped by role |
@@ -167,11 +168,13 @@ lifecycle position (no `map.xml` yet against has one), which is why the labels a
 ## Exits
 
 **Every page carries a studio bar and a bar of its own, and each answers one question.** The studio's own bar (`AppNav`) is the same
-everywhere: home, a link to each tool — Maps, Generator, Catalog, Library, and Users for an admin
-— lit on the page it names and every page under it (Maps is lit on every `/plans/…` route too, because a plan is entered from the
-Maps page's *New plan*); after a divider the two reference pages, **Rules** (`/rules`) and **API docs** (`/api-docs`,
-which opens in a new tab, being the API's own page rather than the client's); and at the right the theme and
-the account. The page's bar under it is the trail to where the page is and the page's own state and actions: a
+everywhere: home, then **Maps · Generator · Library · Rules · Glossary**, each lit on the page it names and every
+page under it (Maps is lit on every `/plans/…` route too, because a plan is entered from the Maps page's *New plan*);
+and at the right icon buttons for the keyboard shortcuts (the sheet `?` also opens) and the design reference
+(`/design`), then the text size, the theme and the account. The account menu carries Tokens, Users for an admin,
+and **API docs** (`/api-docs`, which opens in a new tab, being the API's own page rather than the client's); in an
+open studio the `local admin` button opens it with Users and API docs, and a visitor's sign-in has a menu beside it
+holding API docs. The page's bar under it is the trail to where the page is and the page's own state and actions: a
 `Topbar` on a browse or admin page, and the one `EditorBar` on the three editors. So getting to another tool is
 always one click in the top bar, and the page's bar holds nothing that is not the page's.
 

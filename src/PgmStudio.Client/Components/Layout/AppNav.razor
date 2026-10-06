@@ -1,11 +1,12 @@
 @namespace PgmStudio.Client.Components
 @implements IDisposable
 @inject NavigationManager Nav
-@inject StudioAccess Access
+@inject IJSRuntime JS
 
 @* The studio's own bar, the same on every page: home, a link to each tool, then the two reference pages —
-   the rules a check can name, and the API docs — and at the right the theme and the account. What belongs to
-   the tool in front of it — its trail, its state, its actions — is the Topbar under it. *@
+   the rules a check can name and the glossary of the studio's words — and at the right the keyboard shortcuts,
+   the design reference, the text size, the theme and the account. What belongs to the tool in front of it —
+   its trail, its state, its actions — is the Topbar under it. *@
 
 <nav class="app-nav" aria-label="Studio">
     <a class="app-nav-home" href="" title="Studio home">
@@ -14,17 +15,19 @@
     <div class="app-nav-links">
         @foreach (var link in Links)
         {
-            @if (link.AdminOnly && !admin) { continue; }
             <a class="app-nav-link@(IsHere(link) ? " app-nav-link--active" : null)" href="@link.Href"
                aria-current="@(IsHere(link) ? "page" : null)">@link.Label</a>
         }
-        <span class="app-nav-divider" aria-hidden="true"></span>
-        <a class="app-nav-link@(IsHere(RulesLink) ? " app-nav-link--active" : null)" href="@RulesLink.Href"
-           aria-current="@(IsHere(RulesLink) ? "page" : null)">@RulesLink.Label</a>
-        <a class="app-nav-link" href="/api-docs" target="_blank" rel="noopener"
-           title="Opens the API docs in a new tab">API docs<span class="app-nav-ext" aria-hidden="true">↗</span></a>
     </div>
     <div class="app-nav-right">
+        <button type="button" class="topbar-icon-btn app-nav-icon" @onclick="ShowKeysAsync"
+                title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">
+            <i data-lucide="keyboard"></i>
+        </button>
+        <a class="topbar-icon-btn app-nav-icon" href="@DesignLink.Href" title="Design" aria-label="Design"
+           aria-current="@(IsHere(DesignLink) ? "page" : null)">
+            <i data-lucide="palette"></i>
+        </a>
         <TextSizeMenu />
         <ThemeToggle />
         <AccountMenu />
@@ -32,30 +35,26 @@
 </nav>
 
 @code {
-    /// <summary>One tool link. <paramref name="Also"/> is a second path it is lit under besides the page it
+    /// <summary>One page link. <paramref name="Also"/> is a second path it is lit under besides the page it
     /// opens: plans are entered from the Maps page, so Maps is lit on every plan route too.</summary>
-    private sealed record NavLink(string Href, string Label, bool AdminOnly = false, string? Also = null);
+    private sealed record NavLink(string Href, string Label, string? Also = null);
 
     private static readonly NavLink[] Links =
     [
         new("maps", "Maps", Also: "plans"),
         new("generator", "Generator"),
-        new("catalog", "Catalog"),
         new("library", "Library"),
-        new("admin/users", "Users", AdminOnly: true),
+        new("rules", "Rules"),
+        new("glossary", "Glossary"),
     ];
 
-    /// <summary>The rules every check can name. The API docs beside it are the server's own page, outside the
-    /// studio's shell, so they open in a new tab.</summary>
-    private static readonly NavLink RulesLink = new("rules", "Rules");
+    private static readonly NavLink DesignLink = new("design", "Design");
 
-    private bool admin;
+    private Task ShowKeysAsync() => JS.InvokeVoidAsync("studio.showKeys").AsTask();
 
-    protected override async Task OnInitializedAsync()
-    {
-        Nav.LocationChanged += OnLocationChanged;
-        admin = await Access.IsAdminAsync();
-    }
+    protected override void OnInitialized() => Nav.LocationChanged += OnLocationChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
     /// <summary>A link is lit on its own page and every page under it; a map's tools sit under Maps.</summary>
     private bool IsHere(NavLink link)

@@ -82,15 +82,14 @@ the row carries), `DetailHeader` (an inspector head: icon, label, trailing badge
 (one titled block of a filter rail, below).
 
 **Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + the two bars + body + footer);
-`AppNav` is the studio's own bar on every page — home, a link per tool, the two reference pages (Rules and API docs), `TextSizeMenu`, the theme and
-`AccountMenu`, who is signed in; `Topbar` is a browse or admin page's bar under it — a `Crumbs` slot composed from `Crumb`, a *View
+`AppNav` is the studio's own bar on every page — home, the links Maps, Generator, Library, Rules and Glossary, and at the right icon buttons for the keyboard shortcuts and the design reference, `TextSizeMenu`, the theme and
+`AccountMenu`, who is signed in, whose menu holds Tokens, Users (admin) and API docs; `Topbar` is a browse or admin page's bar under it — a `Crumbs` slot composed from `Crumb`, a *View
 only* tag on a read-only page, and the page's actions; `EditorBar` is the one bar the three editors draw instead (the crumb
 *Maps › the map's name*, a `StageSwitch` between the map's tools, the phase and its steps, then `State`, `Commands`, a divider and Back/Next;
-`NoMove` drops Back/Next, and `LabelledCommands` spaces text buttons wider than icon-only ones); `AppFooter` closes every page with the keyboard
-shortcuts, the design reference and the repository; `NavRail` and `NavButton` are the
+`NoMove` drops Back/Next, and `LabelledCommands` spaces text buttons wider than icon-only ones); `AppFooter` closes every page with a brand caption and the repository; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`, and `MapThumb` the 16:9 picture box of a map (the in-game picture over a placeholder that stays where none can be drawn); `AppFooterLink` and `SideDrawer`
-finish the set.
+arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`, and `MapThumb` the 16:9 picture box of a map (the in-game picture over a placeholder that stays where none can be drawn); `SideDrawer`
+finishes the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
 `CanvasDock` with `DockGroup`, `DockButton`, `DockModeButton`, `DockChoice` (one option of a set the dock
