@@ -30,7 +30,7 @@ public sealed class IntentGetEndpoint(MapRepository repo, MapArtifactStore artif
 
 /// <summary>PUT /api/map/{slug}/intent — store the intent the author edited and regenerate the map from
 /// it. Replaces the stored intent wholesale, which is what makes a deletion in Configure stick.</summary>
-public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, PlayerLookup players) : EndpointWithoutRequest
+public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features, PlayerLookup players) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -46,7 +46,7 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
         var body = await RawBody.ReadAsync(HttpContext, ct);
         Complaints.Unread(HttpContext, body, IntentWrite.Stated(body));
 
-        var applied = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, players, slug,
+        var applied = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, features, players, slug,
             map.Id, body, Revisions.Expected(HttpContext), ct);
         await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
@@ -67,7 +67,7 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
 /// clears both and Configure's World and Teams phases are walked again. The layout write is the same shape for
 /// a different reason (<c>…/sketch/from-plan</c>), where the finish does ride across.</para>
 /// </summary>
-public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, PlayerLookup players) : EndpointWithoutRequest
+public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features, PlayerLookup players) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -88,7 +88,7 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
         var stored = await artifacts.LoadAsync(map.Id, ArtifactKind.MapIntentJson, ct);
         var merged = IntentCarry.CarryAuthored(compiled, stored is null ? null : Encoding.UTF8.GetString(stored));
 
-        var applied = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, players, slug,
+        var applied = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, features, players, slug,
             map.Id, merged, Revisions.Expected(HttpContext), ct);
         await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
@@ -106,7 +106,8 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
 /// intent PUT does, so the map.xml the move implies is rewritten in the same call.</para>
 /// </summary>
 public sealed class IntentRoomMoveEndpoint(
-    MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, PlayerLookup players)
+    MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features,
+    PlayerLookup players)
     : Endpoint<RoomMoveRequest>
 {
     public override void Configure()
@@ -137,7 +138,7 @@ public sealed class IntentRoomMoveEndpoint(
         }
 
         var applied = await IntentWrite.StoreAndProjectAsync(
-            repo, reader, writer, artifacts, players, slug, map.Id,
+            repo, reader, writer, artifacts, features, players, slug, map.Id,
             JsonSerializer.Serialize(moved, MapArtifactStore.Json), Revisions.Expected(HttpContext), ct);
         await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }

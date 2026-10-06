@@ -2,6 +2,7 @@ namespace PgmStudio.Pgm.Authoring;
 
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Editing;
+using PgmStudio.Vocabulary;
 using Dict = Dictionary<string, object?>;
 using PgmStudio.Geom;
 
@@ -52,6 +53,7 @@ public static class WoolGenerator
     public static void Apply(Dict doc, MapIntent intent)
     {
         if (intent.Wools is null) return;
+        RefuseRepeatedMonuments(intent.Wools);
         ClearWoolrooms(doc, intent.Wools);
 
         var roomsByOwner = new Dictionary<string, List<string>>();
@@ -186,6 +188,24 @@ public static class WoolGenerator
     }
 
     private static string MonumentBlockId(string colorSlug, string teamSlug) => $"{colorSlug}-{teamSlug}-monument";
+
+    /// <summary>Refuses a wool stating two monuments for one capturing team (<c>OB32</c>): a wool's monument is
+    /// one block region per team, so the second would name the region the first already holds.</summary>
+    private static void RefuseRepeatedMonuments(IEnumerable<WoolIntent> wools)
+    {
+        foreach (var wool in wools)
+        {
+            if (wool.Monuments.GroupBy(monument => monument.Team).FirstOrDefault(team => team.Count() > 1)
+                is not { } repeated) continue;
+            var places = string.Join(" and ", repeated.Select(monument =>
+                $"({monument.Location.X}, {monument.Location.Y}, {monument.Location.Z})"));
+            throw new EditException(422, "a wool takes one monument per team", new Finding(
+                ObjectiveRules.OneMonumentPerTeam,
+                $"the {wool.Color} wool states {repeated.Count()} monuments for team '{repeated.Key}', at {places}, " +
+                "and a wool takes one for each capturing team",
+                Field: "wools", Subjects: [wool.Color, repeated.Key]));
+        }
+    }
 
     // True for a union member id "{prefix}-N" (N all digits) — the numbered rect children of a multi-rect room.
     private static bool IsNumberedChild(string prefix, string id)

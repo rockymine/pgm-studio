@@ -100,8 +100,8 @@ public partial class WoolMonumentsStep
     {
         null => "",
         { Scanned: false } => "This spot has no scan data, so the block can't be checked.",
-        { Clear: false } => "A block is already here. The wool can't be placed, and PGM shows a warning when the map loads.",
-        { Support: false } => "No block touches this spot. A wool has to be placed against a block.",
+        { Clear: false } => "A block is already here, so a wool can't be put into it. The step won't save a monument here.",
+        { Support: false } => "No block touches this spot, so a wool can't be put into it. The step won't save a monument here.",
         { Pedestal: false } => "Clear and touching a block. A wool can be placed here.",
         _ => "Clear and on a pedestal. A wool can be placed here.",
     };
@@ -185,10 +185,12 @@ public partial class WoolMonumentsStep
         await Paint();
     }
 
-    // Add a monument unless one already sits at that block (dedupe with the auto-detected set).
+    // Add a monument unless one already sits at that block, or the team already has one: a wool takes one
+    // monument for each capturing team (OB32), whether it is detected, dropped in an empty box or boxed again.
     private bool AddMonument(W.Wool w, string team, double x, double y, double z)
     {
         if (w.Monuments.Any(m => (int)m.X == (int)x && (int)m.Y == (int)y && (int)m.Z == (int)z)) return false;
+        if (w.Monuments.Any(m => m.Team == team)) return false;
         w.Monuments.Add(new W.Monument { Team = team, X = x, Y = y, Z = z });
         return true;
     }

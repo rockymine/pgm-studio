@@ -1,6 +1,7 @@
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Data.Schema;
+using PgmStudio.Pgm.Authoring;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Data.Map;
@@ -53,10 +54,10 @@ public sealed class MapRepository(PgmDb db)
             .GroupBy(a => a.MapId).ToDictionary(g => g.Key, g => g.ToList());
 
     /// <summary>
-    /// Every map's gamemodes, keyed by map id — derived from the objective rows it owns, never from the
-    /// <c>&lt;gamemode&gt;</c> label, which most maps don't declare and some contradict. Three set lookups
-    /// for the whole list rather than a join per map; the derivation itself is
-    /// <see cref="Domain.Gamemodes.From"/>, shared with the parser so the two can't drift.
+    /// Every map's gamemodes, keyed by map id — derived from the objective rows it owns and the destroyables and
+    /// cores its intent states, never from the <c>&lt;gamemode&gt;</c> label, which most maps don't declare and
+    /// some contradict. One set per module for the whole list rather than a join per map; the derivation itself
+    /// is <see cref="Domain.Gamemodes.From"/>, shared with the parser so the two can't drift.
     /// <para>A map with no objective module is absent from the result: it has no gamemode, which is
     /// different from having an unknown one.</para>
     /// </summary>
@@ -66,6 +67,13 @@ public sealed class MapRepository(PgmDb db)
         // A phantom is not an objective, so a map whose every destroyable is hidden contributes no DTM.
         var withDestroyables = (await db.Destroyables.Where(d => d.Show).Select(d => d.MapId).Distinct().ToListAsync(ct)).ToHashSet();
         var withCores = (await db.Cores.Select(c => c.MapId).Distinct().ToListAsync(ct)).ToHashSet();
+        // A stamped goal has no box until its world is built, and no row until then, so the goals an intent
+        // states count as well: every one of them is an objective, since an intent states no phantoms.
+        foreach (var (mapId, intent) in await new MapArtifactStore(db).AllJsonAsync<MapIntent>(ArtifactKind.MapIntentJson, ct))
+        {
+            if (intent.Destroyables is { Count: > 0 }) withDestroyables.Add(mapId);
+            if (intent.Cores is { Count: > 0 }) withCores.Add(mapId);
+        }
         // A hidden control point still tags its map, which is PGM's own rule and not the carve-out
         // destroyables get (Domain.Gamemodes).
         var withPoints = (await db.ControlPoints.Where(p => p.Element == "control-points").Select(p => p.MapId).Distinct().ToListAsync(ct)).ToHashSet();

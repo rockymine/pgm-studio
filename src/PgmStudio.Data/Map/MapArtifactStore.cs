@@ -181,6 +181,17 @@ public sealed class MapArtifactStore(PgmDb db)
         return byKind;
     }
 
+    /// <summary>Every map's artifact of this kind deserialized, keyed by map id. One query for the whole list,
+    /// because the map list reads a document from every map that holds one.</summary>
+    public async Task<Dictionary<long, T>> AllJsonAsync<T>(string kind, CancellationToken ct = default)
+    {
+        var rows = await db.Artifacts.Where(a => a.Kind == kind).Select(a => new { a.MapId, a.Data }).ToListAsync(ct);
+        var byMap = new Dictionary<long, T>();
+        foreach (var row in rows)
+            if (JsonSerializer.Deserialize<T>(row.Data, Json) is { } value) byMap[row.MapId] = value;
+        return byMap;
+    }
+
     private Task<MapArtifactRow?> RowAsync(long mapId, string kind, CancellationToken ct)
         => db.Artifacts.FirstOrDefaultAsync(a => a.MapId == mapId && a.Kind == kind, ct);
 }

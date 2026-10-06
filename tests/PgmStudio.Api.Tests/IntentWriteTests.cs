@@ -1,6 +1,10 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using LinqToDB;
+using LinqToDB.Async;
+using Microsoft.Extensions.DependencyInjection;
+using PgmStudio.Data.Schema;
 
 namespace PgmStudio.Api.Tests;
 
@@ -148,5 +152,84 @@ public sealed class IntentWriteTests
         await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
 
         await Assert.That(await AuthorsOfAsync(client, slug)).IsEquivalentTo(new[] { "Haiku 4.5", "O'Brien" });
+    }
+
+    private static string WoolIntent(string monuments) => $$"""
+        {"meta":{"name":"Dressed","authors":[],"contributors":[]},
+         "gamemodes":["ctw"],
+         "teams":[{"id":"red-team","name":"Red","color":"red"},{"id":"blue-team","name":"Blue","color":"blue"}],
+         "wools":[{"owner":"blue-team","color":"blue","spawn":{"x":10,"y":21,"z":0},"monuments":[{{monuments}}]}]}
+        """;
+
+    [Test]
+    public async Task An_intent_the_projection_refuses_is_not_stored()
+    {
+        // A wool stating two monuments for one team: the projection refuses it, and the map keeps the intent its
+        // document was last projected from rather than one it never took.
+        using var client = await SketchBoard.FreshAsync();
+        var route = $"/api/map/{SketchBoard.Slug}/intent";
+        const string one = """{"team":"red-team","location":{"x":-10,"y":21,"z":0}}""";
+        const string repeated = one + """,{"team":"red-team","location":{"x":-10,"y":22,"z":0}}""";
+
+        var accepted = await client.PutAsync(route, new StringContent(WoolIntent(one), Encoding.UTF8, "application/json"));
+        await Assert.That(accepted.IsSuccessStatusCode).IsTrue().Because(await accepted.Content.ReadAsStringAsync());
+        var before = await client.GetStringAsync(route);
+
+        var refused = await client.PutAsync(route, new StringContent(WoolIntent(repeated), Encoding.UTF8, "application/json"));
+        var answer = JsonDocument.Parse(await refused.Content.ReadAsStringAsync()).RootElement;
+
+        await Assert.That((int)refused.StatusCode).IsEqualTo(422);
+        await Assert.That(answer.GetProperty("findings")[0].GetProperty("rule").GetString())
+            .IsEqualTo(PgmStudio.Domain.ObjectiveRules.OneMonumentPerTeam);
+        await Assert.That(await client.GetStringAsync(route)).IsEqualTo(before);
+    }
+
+    /// <summary>A map read from a world rather than drawn: no layout, and a scan holding one bedrock column at
+    /// (5, 5) from y0 to y9.</summary>
+    private static async Task<(HttpClient Client, string Slug)> ScannedMapAsync()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        var client = ApiTestFactory.Shared.CreateClient();
+        var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Scanned" }))
+            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PgmDb>();
+        var mapId = await db.Maps.Where(m => m.Slug == slug).Select(m => m.Id).FirstAsync();
+        await db.Artifacts.Where(a => a.MapId == mapId && a.Kind == ArtifactKind.SketchLayoutJson).DeleteAsync();
+        await db.InsertAsync(new SegmentRow { MapId = mapId, WorldX = 5, WorldZ = 5, WorldYStart = 0, WorldYEnd = 9 });
+        return (client, slug);
+    }
+
+    [Test]
+    [Arguments(9, "is a solid block")]
+    [Arguments(30, "touches no block")]
+    public async Task A_monument_no_wool_can_be_put_into_is_refused_and_not_stored(int y, string says)
+    {
+        var (client, slug) = await ScannedMapAsync();
+        var route = $"/api/map/{slug}/intent";
+        var before = await client.GetStringAsync(route);
+
+        var refused = await PutIntentAsync(client, route,
+            WoolIntent($$$"""{"team":"red-team","location":{"x":5,"y":{{{y}}},"z":5}}"""));
+        var finding = JsonDocument.Parse(await refused.Content.ReadAsStringAsync()).RootElement
+            .GetProperty("findings")[0];
+
+        await Assert.That((int)refused.StatusCode).IsEqualTo(422);
+        await Assert.That(finding.GetProperty("rule").GetString())
+            .IsEqualTo(PgmStudio.Domain.ObjectiveRules.MonumentNotSeated);
+        await Assert.That(finding.GetProperty("message").GetString()).Contains($"(5, {y}, 5) {says}");
+        await Assert.That(await client.GetStringAsync(route)).IsEqualTo(before);
+    }
+
+    [Test]
+    public async Task A_monument_on_its_pedestal_is_stored()
+    {
+        var (client, slug) = await ScannedMapAsync();
+
+        var stored = await PutIntentAsync(client, $"/api/map/{slug}/intent",
+            WoolIntent("""{"team":"red-team","location":{"x":5,"y":10,"z":5}}"""));
+
+        await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
     }
 }

@@ -28,7 +28,7 @@ public static class MapRestore
 {
     public static async Task<MapRestored> RunAsync(
         MapRow map, long number, string? note, MapRepository repo, MapReader reader, MapWriter writer,
-        MapArtifactStore artifacts, PlayerLookup players, MapChangeLog log, CancellationToken ct)
+        MapArtifactStore artifacts, FeatureData features, PlayerLookup players, MapChangeLog log, CancellationToken ct)
     {
         if (!(await log.ListAsync(map.Slug, ct)).Any(change => change.Number == number))
             return new(Refusal.At(404, "no such change", new Finding(RequestRules.NoSuchSubject,
@@ -54,7 +54,7 @@ public static class MapRestore
         if (writes.TryGetValue(ArtifactKind.MapIntentJson, out var intent))
         {
             var applied = await IntentWrite.StoreAndProjectAsync(
-                repo, reader, writer, artifacts, players, map.Slug, map.Id, Encoding.UTF8.GetString(intent),
+                repo, reader, writer, artifacts, features, players, map.Slug, map.Id, Encoding.UTF8.GetString(intent),
                 expected: null, ct);
             if (applied.Refusal is { } refused) return new(refused);
         }
