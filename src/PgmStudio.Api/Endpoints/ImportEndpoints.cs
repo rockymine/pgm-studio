@@ -1,8 +1,6 @@
-using System.IO.Compression;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using FastEndpoints;
 using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
@@ -63,23 +61,22 @@ internal static class ImportRules
     /// person who runs the studio to move the map.xml out of the folder.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.World)]
     public const string AlreadyAMap = "IM6";
+
+    /// <summary>The map a world is imported into has a world the studio did not import.</summary>
+    /// <remarks>Either send the request again for a map that was imported from a download link, or send
+    /// <c>POST /map/import-url</c> to import the world as a new map.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.World)]
+    public const string NotImported = "IM7";
 }
 
 /// <summary>
-/// POST /api/map/import-url — import from a URL (docs/tools/configure.md, the Import phase). Server-side: fetch a zipped
-/// Minecraft world from an <b>allowlisted</b> host, safely extract only <c>region/*.mca</c>, create the map
-/// row, and scan it into MariaDB (reusing <see cref="WorldFeatureWriter"/>). The browser never sees the zip.
-/// <para><b>Safeguards:</b> https-only + host allowlist (SSRF) · no redirects · download size cap · zip
-/// magic-byte check · zip-slip-safe (basename-only dest paths) + zip-bomb-safe (per-entry/total/count caps)
-/// extraction · requires <c>region/*.mca</c> · sanitised + unique slug · rolls back row + files on any failure.</para>
+/// POST /api/map/import-url — import from a URL (docs/tools/configure.md, the Import phase): fetch a zipped
+/// Minecraft world from an allowlisted host, create the map row, and scan it into MariaDB
+/// (<see cref="WorldUrlImport.NewAsync"/>).
 /// </summary>
 public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter writer, ImportPolicy policy, IHttpClientFactory httpFactory)
     : EndpointWithoutRequest<WorldScanDto>
 {
-    private static readonly Regex RegionMca = new(@"(^|/)region/[^/\\]+\.mca$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-    private static readonly Regex McaName   = new(@"^r\.-?\d+\.-?\d+\.mca$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-    private static readonly Regex SlugStrip = new("[^a-z0-9_-]", RegexOptions.Compiled);
-
     public override void Configure()
     {
         Post("/map/import-url");
@@ -88,193 +85,48 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var raw = await RawBody.ReadAsync(HttpContext, ct);
-        JsonObject body;
-        try { body = (JsonNode.Parse(string.IsNullOrWhiteSpace(raw) ? "{}" : raw) as JsonObject) ?? new JsonObject(); }
-        catch (JsonException fault) { await Refusals.UnreadableAsync(HttpContext, "invalid json body", fault, ct); return; }
-        var url = body["url"]?.GetValue<string>();
+        if (await ImportBody.ReadAsync(HttpContext, ct) is not { } body) return;
+        var imported = await WorldUrlImport.NewAsync(repo, writer, policy, httpFactory, Logger,
+            body["url"]?.GetValue<string>(), body["slug"]?.GetValue<string>(), Callers.OriginatorOf(HttpContext), ct);
+        if (imported.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
+        await Send.OkAsync(imported.Scan!, ct);
+    }
+}
 
-        // ── 1. URL safeguards (SSRF) ──
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            await Refusals.UnreadableAsync(HttpContext, "no url given",
-                "the request's `url` is absent", ct, field: "url");
-            return;
-        }
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-        {
-            await Refusals.UnreadableAsync(HttpContext, "invalid url",
-                $"the request's `url` is '{url}', not an absolute url", ct, field: "url");
-            return;
-        }
-        if (uri.Scheme != Uri.UriSchemeHttps)
-        {
-            await Refusals.UnreadableAsync(HttpContext, "https url required",
-                $"the request's `url` has the scheme '{uri.Scheme}', not https", ct, field: "url");
-            return;
-        }
-        if (!policy.HostAllowed(uri.Host))
-        {
-            await Refusals.WriteAsync(HttpContext, 403, "host not allowed",
-                [new Finding(ImportRules.HostNotAllowed,
-                    $"host '{uri.Host}' of the request's `url` is not one of the hosts the import fetches from",
-                    Field: "url")], ct);
-            return;
-        }
-
-        // ── 2. slug (sanitised, auto-uniquified) ──
-        // The URL's last segment is the world's own name, so independent imports of the same map collide;
-        // suffix to the next free slug (rockymine → rockymine-2) rather than rejecting the import.
-        var baseSlug = Sanitize(body["slug"]?.GetValue<string>() ?? LastSegment(uri));
-        if (baseSlug.Length == 0)
-            {
-                await Refusals.UnreadableAsync(HttpContext, "no slug in the url",
-                    "the last segment of the request's `url` leaves nothing a slug can be made of", ct, field: "url");
-                return;
-            }
-        var slug = await repo.UniqueSlugAsync(baseSlug, ct);
-
-        var slugDir = Path.Combine(policy.Root, slug);
-        var regionDir = Path.Combine(slugDir, "region");
-        var tmpZip = Path.Combine(Path.GetTempPath(), $"pgm-import-{Guid.NewGuid():N}.zip");
-        long? mapId = null;
-        try
-        {
-            // ── 3. download (allowlisted host, no redirects, timeout, size-capped) ──
-            var client = httpFactory.CreateClient("import");
-            using var resp = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
-            if (!resp.IsSuccessStatusCode)
-            {
-                await Refusals.WriteAsync(HttpContext, 502, "download failed",
-                    [new Finding(ImportRules.DownloadFailed,
-                        $"host '{uri.Host}' answered {(int)resp.StatusCode} for the request's `url`, "
-                        + "not between 200 and 299", Field: "url")], ct);
-                return;
-            }
-            if (resp.Content.Headers.ContentLength is { } len && len > policy.MaxDownloadBytes)
-            {
-                await Refusals.WriteAsync(HttpContext, 413, "download too large",
-                    [new Finding(ImportRules.DownloadTooLarge,
-                        $"the archive at the request's `url` is {len} bytes, more than {policy.MaxDownloadBytes} bytes",
-                        Field: "url")], ct);
-                return;
-            }
-            await using (var net = await resp.Content.ReadAsStreamAsync(ct))
-            await using (var file = File.Create(tmpZip))
-                await CopyCappedAsync(net, file, policy.MaxDownloadBytes, ct);
-
-            // ── 4. zip magic ──
-            if (!await IsZipAsync(tmpZip, ct))
-            {
-                await Refusals.WriteAsync(HttpContext, 415, "not a zip archive",
-                    [new Finding(ImportRules.NotAnArchive,
-                        "the file at the request's `url` does not begin with a zip header", Field: "url")], ct);
-                return;
-            }
-
-            // ── 5. safe extract: ONLY region/*.mca, basename-only dest (zip-slip), bounded (zip-bomb) ──
-            var mca = SafeExtractRegionMca(tmpZip, regionDir, policy);
-            if (mca == 0)
-            {
-                TryDeleteDir(slugDir);
-                await Refusals.WriteAsync(HttpContext, 422, "nothing to import",
-                    [new Finding(ImportRules.NoRegions,
-                        "the archive at the request's `url` has no region file", Field: "url")], ct);
-                return;
-            }
-
-            // ── 6. create record + scan into MariaDB ──
-            mapId = await MapOrigin.AtAsync(repo, slug, slug, MapStage.Configure, Callers.OriginatorOf(HttpContext));
-            var c = await writer.WriteAsync(mapId.Value, regionDir, ct);
-
-            await Send.OkAsync(WorldScans.Of(slug, c) with { McaFiles = mca }, ct);
-        }
-        catch (Exception ex)
-        {
-            // Roll back so a failed import leaves nothing behind.
-            if (mapId is { } id) { try { await repo.DeleteMapAsync(id, ct); } catch { /* best effort */ } }
-            TryDeleteDir(slugDir);
-            Logger.LogError(ex, "import-url failed for slug {Slug}", slug);
-            await Refusals.WriteAsync(HttpContext, 500, "import failed",
-                [new Finding(RequestRules.Unhandled,
-                    $"the import of map '{slug}' failed, and what it had written was rolled back")], ct);
-        }
-        finally { try { File.Delete(tmpZip); } catch { /* ignore */ } }
+/// <summary>
+/// POST /api/map/{slug}/import-url — import a world from a URL into a map that was imported from one, over the
+/// world it has (<see cref="WorldUrlImport.IntoAsync"/>): the map's scan is read from the new world, and what
+/// the map states is left as it is.
+/// </summary>
+public sealed class MapImportUrlEndpoint(
+    MapRepository repo, WorldFeatureWriter writer, MapArtifactStore artifacts, PgmDb db, ImportPolicy policy,
+    MapsRoots roots, IHttpClientFactory httpFactory) : EndpointWithoutRequest<WorldScanDto>
+{
+    public override void Configure()
+    {
+        Post("/map/{slug}/import-url");
+        Description(b => b.Accepts<ImportUrlRequest>("application/json").Refuses(403, 404, 409, 413, 415, 422, 502));
     }
 
-
-    private static string Sanitize(string s)
+    public override async Task HandleAsync(CancellationToken ct)
     {
-        var slug = SlugStrip.Replace(s.Trim().ToLowerInvariant(), "").Trim('-', '_');
-        return slug.Length > 64 ? slug[..64] : slug;
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        if (await ImportBody.ReadAsync(HttpContext, ct) is not { } body) return;
+        var imported = await WorldUrlImport.IntoAsync(map, writer, artifacts, db, policy, roots, httpFactory, Logger,
+            body["url"]?.GetValue<string>(), ct);
+        if (imported.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
+        await Send.OkAsync(imported.Scan!, ct);
     }
+}
 
-    private static string LastSegment(Uri uri) =>
-        Uri.UnescapeDataString(uri.AbsolutePath.TrimEnd('/').Split('/').LastOrDefault() ?? "");
-
-    private static async Task CopyCappedAsync(Stream src, Stream dst, long max, CancellationToken ct)
+/// <summary>The body both URL imports take, read as a JSON object, or null once the refusal is written.</summary>
+internal static class ImportBody
+{
+    public static async Task<JsonObject?> ReadAsync(HttpContext http, CancellationToken ct)
     {
-        var buf = new byte[81920]; long total = 0; int n;
-        while ((n = await src.ReadAsync(buf, ct)) > 0)
-        {
-            total += n;
-            if (total > max) throw new InvalidOperationException("download exceeded size cap");
-            await dst.WriteAsync(buf.AsMemory(0, n), ct);
-        }
-    }
-
-    private static async Task<bool> IsZipAsync(string path, CancellationToken ct)
-    {
-        await using var fs = File.OpenRead(path);
-        var sig = new byte[4];
-        if (await fs.ReadAsync(sig.AsMemory(0, 4), ct) < 4) return false;
-        // PK\x03\x04 (local file header) or PK\x05\x06 (empty-archive end-of-central-directory)
-        return sig[0] == 0x50 && sig[1] == 0x4B && ((sig[2] == 0x03 && sig[3] == 0x04) || (sig[2] == 0x05 && sig[3] == 0x06));
-    }
-
-    /// <summary>Extract ONLY <c>region/*.mca</c> entries, flattened to <c>&lt;regionDir&gt;/&lt;basename&gt;</c>
-    /// (we choose the path from the basename, so a crafted entry path can't escape — zip-slip), bounded by
-    /// per-entry / total-uncompressed / entry-count caps (zip-bomb). Returns the number extracted.</summary>
-    private static int SafeExtractRegionMca(string zipPath, string regionDir, ImportPolicy p)
-    {
-        using var zip = ZipFile.OpenRead(zipPath);
-        if (zip.Entries.Count > p.MaxEntries) throw new InvalidOperationException("too many zip entries");
-
-        Directory.CreateDirectory(regionDir);
-        long totalUncompressed = 0; int extracted = 0;
-        foreach (var e in zip.Entries)
-        {
-            if (e.FullName.Length == 0 || e.FullName.EndsWith('/')) continue;   // directory entry
-            if (!RegionMca.IsMatch(e.FullName)) continue;                       // only region/*.mca
-            var name = Path.GetFileName(e.Name);                               // basename ONLY → defeats zip-slip
-            if (!McaName.IsMatch(name)) continue;                              // r.X.Z.mca naming
-            if (e.Length > p.MaxEntryBytes) throw new InvalidOperationException("zip entry too large");
-
-            var dest = Path.Combine(regionDir, name);
-            using (var es = e.Open())
-            using (var fs = File.Create(dest))
-                totalUncompressed += CopyCapped(es, fs, p.MaxEntryBytes);      // real bytes (defeats a lying Length)
-            if (totalUncompressed > p.MaxUncompressedBytes) throw new InvalidOperationException("uncompressed size cap exceeded");
-            extracted++;
-        }
-        return extracted;
-    }
-
-    private static long CopyCapped(Stream src, Stream dst, long max)
-    {
-        var buf = new byte[81920]; long total = 0; int n;
-        while ((n = src.Read(buf, 0, buf.Length)) > 0)
-        {
-            total += n;
-            if (total > max) throw new InvalidOperationException("zip entry exceeded size cap");
-            dst.Write(buf, 0, n);
-        }
-        return total;
-    }
-
-    private static void TryDeleteDir(string dir)
-    {
-        try { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); } catch { /* ignore */ }
+        var raw = await RawBody.ReadAsync(http, ct);
+        try { return (JsonNode.Parse(string.IsNullOrWhiteSpace(raw) ? "{}" : raw) as JsonObject) ?? new JsonObject(); }
+        catch (JsonException fault) { await Refusals.UnreadableAsync(http, "invalid json body", fault, ct); return null; }
     }
 }
 

@@ -182,6 +182,10 @@ count, each selectable for a detail explanation. **Plan** hands off to the wizar
 A folder carrying a `map.xml` is refused with 422 — it is not a new-map candidate. That is the line between
 a map being configured and a finished one.
 
+An import always originates a map, and a link imported twice is two maps, the second under the slug suffixed
+past the first. A map that already exists takes a new download of its world in the World phase's Scan step
+instead (below).
+
 ### Identity
 
 One form: the map's display name and its authors and contributors. PGM takes a person as an **account** — a
@@ -224,10 +228,19 @@ first Next.
 
 ### World — Scan · Islands · Symmetry
 
-Three read-and-confirm steps over the already-scanned world; nothing here re-scans.
+Three read-and-confirm steps over the already-scanned world; only Scan's **Replace the world** reads one again.
 
-**Scan** is a read-only look at the extracted world on the shared world canvas, with its island-base and
-surface layer toggle. **Islands** is where the strays are excluded — decorative rocks, observer towers —
+**Scan** is a look at the extracted world on the shared world canvas, with its island-base and surface layer
+toggle. On a map imported from a world it also takes a new download of that world: **Replace the world**
+fetches the link through the same checks the import makes and reads it over the map's scan
+(`POST /map/{slug}/import-url`). The new world is fetched beside the old one and scanned before anything is
+replaced, and the scan is one write, so a link the import refuses or a scan that fails leaves the map with the
+world it had. What the map states stays as it is: its intent, its document, its notes and its changes. What
+changes is everything read out of the world — the segments every placement check reads, the island outlines,
+the wool, chest, spawner and goal suggestions — and an unconfirmed symmetry, which is dropped to be detected
+again; a confirmed one is the author's answer and stays. Island exclusions and the Teams step's island tags
+are kept by island number, which a new world can renumber, so both steps want walking again. A sketch map has
+no such control: its world is built from its layout. **Islands** is where the strays are excluded — decorative rocks, observer towers —
 selected from the list or by clicking the canvas; excluding one re-runs symmetry detection server-side over
 the already-detected islands rather than touching the world. **Symmetry** confirms the mode and centre: the
 detection is pre-selected and the author clicks another mode, or `none`, only to change it. That choice is the
@@ -580,6 +593,7 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 | `GET /maps/import-candidates` | — | the importable folders: `{folder, slug, region_files}` | — |
 | `POST /map/import-folder` | `{folder, slug?}` | the slug and one count per kind of feature row the scan wrote — creates the row and scans into MariaDB | 400 `RQ1` · 404 `RQ4` no such folder · 409 `RQ5` slug taken · 422 `IM6` it is a map already · 422 `IM5` no `.mca` |
 | `POST /map/import-url` | `{url, slug?}` | the same, fetched server-side | 400 `RQ1` · 403 `IM1` host · 413 `IM3` too large · 415 `IM4` not a zip · 422 `IM5` no region · 502 `IM2` the host did not serve it |
+| `POST /map/{slug}/import-url` | `{url}` | the same counts, for a world fetched the same way and read over the scan of a map that was imported: the map keeps its slug, its intent and its document, and a refused or failed import leaves it the world it had | 400 `RQ1` · 403 `IM1` host · 404 `RQ4` · 409 `IM7` a sketch map, or a map whose world sits in a corpus folder · 413 `IM3` · 415 `IM4` · 422 `IM5` · 502 `IM2` |
 | `POST /map/{slug}/scan-world` | — | the same counts, over a world already on disk: re-reads `<root>/<slug>/region` and rewrites the map's feature rows. What `import-folder` runs at the end, reachable on its own for a world that changed | 404 unknown map, or no world folder for it under the configured roots |
 | `GET /map/{slug}/scan-summary` · `/islands` · `/symmetry` | — | the detection brief, the island polygons, the detected symmetry | 404 |
 | `PATCH /map/{slug}/symmetry` | `{status, confirmed_type?, centre?}` | confirms or rejects what was detected — `confirmed` or `none`, with an optional override of the mode and centre | 404 |

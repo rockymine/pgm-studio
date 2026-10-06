@@ -1,8 +1,8 @@
 @namespace PgmStudio.Client.Features.Configure
 
-@* World · Scan step: read-only review of the extracted world. The centre panel is WorldCanvas with its
-   navigation toolbar (pan/zoom · fit island · reset) and its island-base ↔ surface layer toggle
-   ("Blocks"). The side panels summarise the cleaned-base detection. *@
+@* World · Scan step: review of the extracted world. The centre panel is WorldCanvas with its navigation
+   toolbar (pan/zoom · fit island · reset) and its island-base ↔ surface layer toggle ("Blocks"). The side
+   panels summarise the cleaned-base detection, and an imported map can replace its world from a new link. *@
 
 <Workspace>
 
@@ -20,6 +20,29 @@
         </div>
         </ChildContent>
       </Section>
+      @if (imported)
+      {
+        <Section Title="Replace the world">
+          <ChildContent>
+          <p class="section-desc">Download the world again from a link and read it in place of the one this map
+            was imported from. Teams, spawns, wools and everything else you set stay as they are. Islands are
+            found again, so check the Islands and Teams steps afterwards.</p>
+          <Field Label="Download URL">
+            <div class="ctrl-row">
+              <input class="field-input" type="text" @bind="urlInput" @bind:event="oninput"
+                     placeholder="https://…/maps/your-world/download" disabled="@reimporting"
+                     @onkeydown="@(e => { if (e.Key == "Enter") _ = Reimport(); })" />
+              <Button Variant="primary" OnClick="Reimport" Busy="@reimporting" BusyLabel="Downloading…" Writes
+                      Disabled="@(string.IsNullOrWhiteSpace(urlInput))">
+                <i data-lucide="download"></i><span>Re-import</span>
+              </Button>
+            </div>
+          </Field>
+          @if (reimportError is not null) { <div class="panel-warning">@reimportError</div> }
+          @if (reimported) { <p class="section-desc">The world was read again: @islandCount islands.</p> }
+          </ChildContent>
+        </Section>
+      }
       <Section Title="Layer view">
         <p class="section-desc">The canvas shows the island outlines. Turn on <strong>Blocks</strong> in the
           toolbar to see the full surface of the world.</p>
@@ -29,7 +52,7 @@
   <div class="sidebar-handle"></div>
 
   @* The world canvas with no mode set — move/select only. *@
-  <WorldCanvas Slug="@Wizard.Slug" />
+  <WorldCanvas @key="worldVersion" Slug="@Wizard.Slug" />
 
   <div class="sidebar-handle"></div>
 
