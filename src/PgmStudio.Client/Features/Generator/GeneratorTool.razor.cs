@@ -1,15 +1,15 @@
-using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Contracts;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Generator;
 
 /// <summary>
 /// The generator browse feed: page through the composed-board library the server holds, sieve it by
-/// size/symmetry/score/wool count, and keep the ones worth keeping. Cards carry only their descriptor + SVG;
+/// size band/symmetry/wool count, and keep the ones worth keeping. Cards carry only their descriptor + SVG;
 /// pinning or opening a card keeps the stored board the descriptor names. The hold tray is the persisted generated corpus; it
 /// survives reload because pinned means stored.
 /// </summary>
@@ -24,12 +24,10 @@ public partial class GeneratorTool : IAsyncDisposable
     private IJSObjectReference? observer;
 
     // ── filters ──────────────────────────────────────────────────────────────────
-    private int players = 12;
+    private string band = SizeBands.Nano;
     private string symmetry = "rot_180";
-    private double maxScore = ScoreCap;   // ScoreCap = "any" (unbounded); sent only when below
     private int woolMin, woolMax;         // 0 = unset
 
-    private const double ScoreCap = 8;
     private const int PageSize = 9;
 
     private static readonly (string Id, string Label, bool Supported)[] Symmetries =
@@ -89,8 +87,7 @@ public partial class GeneratorTool : IAsyncDisposable
     // ── loading ────────────────────────────────────────────────────────────────────
     private string QueryString(int from)
     {
-        var q = $"players={players}&symmetry={symmetry}&from={from}&count={PageSize}";
-        if (maxScore < ScoreCap) q += $"&maxScore={maxScore.ToString(CultureInfo.InvariantCulture)}";
+        var q = $"players={BandPlayers(band)}&symmetry={symmetry}&from={from}&count={PageSize}";
         if (woolMin > 0) q += $"&woolMin={woolMin}";
         if (woolMax > 0) q += $"&woolMax={woolMax}";
         if (woolFilter.Count > 0) q += $"&wools={string.Join(",", woolFilter)}";
@@ -296,11 +293,8 @@ public partial class GeneratorTool : IAsyncDisposable
     }
 
     // ── filter inputs ──────────────────────────────────────────────────────────────
-    // A slider shows its value while it moves and applies when it is let go; everything else applies at once.
-    private void OnPlayers(double value) => players = (int)value;
-    private Task ApplyPlayers(double value) { OnPlayers(value); return Reload(); }
-    private void OnMaxScore(double value) => maxScore = value;
-    private Task ApplyMaxScore(double value) { OnMaxScore(value); return Reload(); }
+    // A filter applies as soon as it is set.
+    private Task PickBand(string size) { band = size; return Reload(); }
     private Task OnWoolMin(double value) { woolMin = Math.Max(0, (int)value); return Reload(); }
     private Task OnWoolMax(double value) { woolMax = Math.Max(0, (int)value); return Reload(); }
     private Task PickSymmetry(string s) { symmetry = s; return Reload(); }
@@ -313,36 +307,43 @@ public partial class GeneratorTool : IAsyncDisposable
         return Reload();
     }
 
+    // ── size bands ───────────────────────────────────────────────────────────────
+    // The feed serves one band at a time; a band is asked for by a player count inside it, and the cards are
+    // labelled for that count, so the band's middle is the count that stands for it.
+
+    private static int BandPlayers(string size)
+    {
+        var (low, high) = SizeBands.Players(size);
+        return (low + high) / 2;
+    }
+
+    private static string BandRange(string size)
+    {
+        var (low, high) = SizeBands.Players(size);
+        return size == SizeBands.Centi ? $"{low}+" : $"{low}–{high}";
+    }
+
+    private static string BandLabel(string size) =>
+        $"{char.ToUpperInvariant(size[0])}{size[1..]} · {BandRange(size)}";
+
+    private static string BandTitle(string size) => $"{BandRange(size)} players a team";
+
+    /// <summary>A card's name: the layout it is, which is the descriptor's players, teams and seed.</summary>
+    private static string LayoutId(ComposeCard card) =>
+        $"composed-p{card.Descriptor.Players}-t{card.Descriptor.Teams}-{card.Descriptor.Seed}";
+
     /// <summary>A card's wool approach families by their filter labels, each once.</summary>
     private string WoolLabels(IEnumerable<string> tokens) =>
         string.Join(", ", tokens.Distinct().Select(t => Label(WoolChips.Select(w => (w.Token, w.Label)), t)));
 
     // ── land spend ───────────────────────────────────────────────────────────────
     // Two currencies, never one: footprint is the box rect (fixed when the box was seated), land is what the
-    // filled pieces cover, which is what the spend gate reads. The budget is the size band's, per TEAM UNIT —
-    // the board is that unit fanned — so the card says "unit" rather than letting the number read as a
-    // whole-board figure.
-
-    /// <summary>The card-sized readout: the band, the unit's land against its budget, the share, and the mid's
-    /// stones where the crossing carries any.</summary>
-    private static string SpendShort(LandSpendDto spend) =>
-        $"{spend.Band} {spend.Unit.Cells}/{spend.Unit.BudgetCells:0} · {SpendPercent(spend.Unit)}"
-        + (spend.Mid.Cells > 0 ? $" · mid {spend.Mid.Cells}" : string.Empty);
+    // filled pieces cover, which is what the spend gate reads. The budget is the size band's, per TEAM UNIT.
 
     /// <summary>The share of a budget its land actually spent. Guards a zero budget rather than rendering a
     /// NaN into the card.</summary>
     private static string SpendPercent(LandAgainstBudgetDto land) =>
         land.BudgetCells > 0 ? $"{100 * land.Cells / land.BudgetCells:0}%" : "—";
-
-    /// <summary>The hover: the same numbers spelled out, with the per-kind split and the units named.</summary>
-    private static string SpendTitle(LandSpendDto spend)
-    {
-        var kinds = string.Join(", ", spend.ByKind.Select(k =>
-            $"{k.Kind}{(k.Boxes > 1 ? $" x{k.Boxes}" : string.Empty)} {k.LandCells}"));
-        return $"Size {spend.Band}: land {spend.Unit.Cells} of {spend.Unit.BudgetCells:0} budget cells for one "
-             + $"team (footprint {spend.FootprintCells}). Mid: {spend.Mid.Cells} of "
-             + $"{spend.Mid.BudgetCells:0} cells, shared. By box: {kinds}.";
-    }
 
     public async ValueTask DisposeAsync()
     {

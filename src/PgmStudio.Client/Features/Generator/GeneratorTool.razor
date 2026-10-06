@@ -17,13 +17,12 @@
   <div class="gen-body">
     <FilterSidebar>
       <FilterPanel Title="Layout settings">
-        <Field Label="Players per team">
-          <LabelEnd><strong>@players</strong></LabelEnd>
-          <ChildContent>
-            <RangeField Min="6" Max="32" Step="2" Value="players" ValueChanged="OnPlayers" OnCommit="ApplyPlayers"
-                        aria-label="Players per team" />
-          </ChildContent>
-        </Field>
+        <FilterGroup Label="Players per team">
+          @foreach (var size in SizeBands.All)
+          {
+            <Chip Active="band == size" Title="@BandTitle(size)" OnClick="() => PickBand(size)">@BandLabel(size)</Chip>
+          }
+        </FilterGroup>
 
         <FilterGroup Label="Symmetry">
           @foreach (var s in Symmetries)
@@ -33,15 +32,6 @@
                   OnClick="() => PickSymmetry(s.Id)">@s.Label</Chip>
           }
         </FilterGroup>
-
-        <Field Label="Highest score">
-          <LabelEnd><strong>@(maxScore >= ScoreCap ? "Any" : maxScore.ToString("0.0"))</strong></LabelEnd>
-          <ChildContent>
-            <RangeField Min="0" Max="8" Step="0.5" Value="maxScore" ValueChanged="OnMaxScore" OnCommit="ApplyMaxScore"
-                        aria-label="Highest score" />
-            <p class="section-desc">Lower scores are better.</p>
-          </ChildContent>
-        </Field>
 
         <Field Label="Wools per team">
           <div class="gen-wool">
@@ -88,13 +78,11 @@
             }
           </FilterGroup>
 
-          @if (censusBoards > 0)
+          @if (censusBoards > 0 && CensusIsTelling)
           {
-            <p class="section-desc">
-              The number on each option is how many of the @censusBoards layouts for these settings have
-              it.@(CensusIsTelling ? " A shape at 0 is never generated with these settings." : "")
-            </p>
+            <p class="section-desc">A shape at 0 is never generated with these settings.</p>
           }
+          <a class="gen-catalog-link" href="/catalog"><i data-lucide="shapes"></i><span>Browse every shape in the catalog →</span></a>
       </FilterPanel>
     </FilterSidebar>
 
@@ -140,31 +128,17 @@
       <div class="gen-grid">
         @foreach (var card in cards)
         {
-          <div class="gen-card @(IsPinned(card) ? "gen-card--pinned" : null)" @key="card.Descriptor.Seed">
-            <button class="gen-card-fig" @onclick="() => OpenDetail(card)" title="Open details">
-              @((MarkupString)card.Svg)
-            </button>
-            <WriteGate Deletes="@IsPinned(card)" Context="closed">
-              <button class="gen-pin @(IsPinned(card) ? "gen-pin--on" : null)" @onclick="() => TogglePin(card)"
-                      disabled="@(closed is not null)" title="@(closed ?? (IsPinned(card) ? "Unpin" : "Pin"))"
-                      aria-label="@(IsPinned(card) ? "Unpin" : "Pin")"><i data-lucide="pin"></i></button>
-            </WriteGate>
-            <div class="gen-card-body">
-              <dl class="gen-card-shape">
-                <div><dt>Wools</dt><dd>@WoolLabels(card.Structure.Wools)</dd></div>
-                <div><dt>Hub</dt><dd>@Label(HubChips, card.Structure.Hub)</dd></div>
-                <div><dt>Front line</dt><dd>@Label(FrontChips, card.Structure.Frontline)</dd></div>
-              </dl>
-              <div class="gen-card-foot">
-                <span class="gen-card-stat" title="Score: lower is better">Score <strong>@card.Score.ToString("0.0")</strong></span>
-                <span class="gen-card-stat">@card.WoolCount @(card.WoolCount == 1 ? "wool" : "wools")</span>
-                @if (card.Spend is { } spend)
-                {
-                  <span class="gen-card-stat" title="@SpendTitle(spend)">Land <strong>@SpendPercent(spend.Unit)</strong></span>
-                }
-              </div>
-            </div>
-          </div>
+          <PictureCard @key="card.Descriptor.Seed" Class="@(IsPinned(card) ? "gen-card--pinned" : null)"
+                       FigClass="lib-card-fig--board" Svg="@card.Svg" Name="@LayoutId(card)"
+                       OnClick="() => OpenDetail(card)" Title="Open details">
+            <Overlay>
+              <WriteGate Deletes="@IsPinned(card)" Context="closed">
+                <button class="gen-pin @(IsPinned(card) ? "gen-pin--on" : null)" @onclick="() => TogglePin(card)"
+                        disabled="@(closed is not null)" title="@(closed ?? (IsPinned(card) ? "Unpin" : "Pin"))"
+                        aria-label="@(IsPinned(card) ? "Unpin" : "Pin")"><i data-lucide="pin"></i></button>
+              </WriteGate>
+            </Overlay>
+          </PictureCard>
         }
       </div>
 
@@ -188,8 +162,8 @@
         <div class="gen-detail-fig">@((MarkupString)d.Svg)</div>
         <BoardKey Entries="key" />
         <div class="gen-detail-meta">
-          Score <strong>@d.Score.ToString("0.00")</strong> · @d.WoolCount wool ·
-          @d.Descriptor.Players players · @d.Descriptor.Symmetry · seed @d.Descriptor.Seed
+          <strong>@LayoutId(d)</strong> · @d.WoolCount @(d.WoolCount == 1 ? "wool" : "wools") ·
+          @BandLabel(SizeBands.Of(d.Descriptor.Players)) · @d.Descriptor.Symmetry · seed @d.Descriptor.Seed
         </div>
         <div class="gen-detail-meta">
           Wools <strong>@WoolLabels(d.Structure.Wools)</strong> · hub <strong>@Label(HubChips, d.Structure.Hub)</strong> · front line <strong>@Label(FrontChips, d.Structure.Frontline)</strong>
@@ -229,18 +203,6 @@
         @if (d.HardTerms.Count > 0)
         {
           <div class="plan-compile-errors"><p class="section-desc">Failed hard checks: @string.Join(", ", d.HardTerms)</p></div>
-        }
-        @if (d.TopSoft.Count > 0)
-        {
-          <div class="plan-lint-list">
-            @foreach (var t in d.TopSoft)
-            {
-              <div class="plan-lint-row plan-lint-row--static">
-                <span class="plan-lint-chip">@t.TermId</span>
-                <span class="plan-lint-msg">@t.Contribution.ToString("0.00")</span>
-              </div>
-            }
-          </div>
         }
         <details class="gen-descriptor-box">
           <summary>Layout code (JSON)</summary>

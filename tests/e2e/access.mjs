@@ -65,8 +65,8 @@ async function settle(pattern, closed) {
 
 /** Open the first layout's details on the generator, where its pin and its plan editor are offered. */
 async function openFirstLayout() {
-  await page.waitForSelector(".gen-card-fig", { timeout: 20000 }).catch(() => {});
-  await page.click(".gen-card-fig").catch(() => {});
+  await page.waitForSelector(".gen-grid .lib-card-fig", { timeout: 20000 }).catch(() => {});
+  await page.click(".gen-grid .lib-card-fig").catch(() => {});
   await page.waitForSelector(".side-drawer, .drawer", { timeout: 10000 }).catch(() => {});
 }
 

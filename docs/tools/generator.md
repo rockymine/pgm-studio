@@ -243,15 +243,17 @@ passes none of them.
 One workspace, no phases. The rail on the left holds the filters, the grid in the middle holds the cards, and
 the hold tray sits above them when anything is pinned.
 
-**The rail has two sections, and both apply at once.** *Layout settings* — players per team, symmetry, highest
-score and wools per team — restart the page from the library's first board when a value changes; a slider
-applies when it is let go. *Filter by shape* — wool approaches, hub and front line — is a set of ticked chips,
-each with the count of boards in the library that have it, and *Clear* empties all three. Wool approaches are
-**must-include**: every family ticked has to be present on the board. Hub and front line are **any-of**.
-Highest score is a slider to 8 where 8 means *any* and the bound is simply not sent; wools per team is a
-min/max pair where an empty box means unset. The player slider runs 6 to 32 in
-steps of two — 32 is the top band's floor, so the slider reaches every band — and a script is not bound
-by it: the request's own clamp is 6–47.
+**The rail has two sections, and both apply at once.** *Layout settings* — players per team, symmetry and
+wools per team — restart the page from the library's first board when a value changes. Players per team is
+one chip per **size band**, labelled with the band's name and its range (`Nano · 6–13`, `Centi · 32+`), read
+from `SizeBands` in the vocabulary leaf rather than restated in the client; exactly one band holds, and the
+request names it by the count in the middle of its range. A band is one at a time because the feed is one band's
+library; a request is still bound only by the endpoint's own clamp, 6–47. Wools per team is a min/max pair
+where an empty box means unset. *Filter by shape* — wool approaches, hub and front line — is a set of ticked
+chips, each with the count of boards in the library that have it, and *Clear* empties all three. Wool approaches
+are **must-include**: every family ticked has to be present on the board. Hub and front line are **any-of**.
+Under the shape chips a link, *Browse every shape in the catalog*, opens `/catalog`, the vocabulary the
+composer fills boxes from.
 
 The Z and scythe chips render disabled with the reason on the tooltip, because neither is in the production
 mix — the Z is on the fill menu and asked for by no sampler, the scythe is off the menu outright. That is the
@@ -270,15 +272,15 @@ filters against. Past 150 boards an absence is reported as an absence: a chip no
 dimmed, and an empty grid says *these players and symmetry don't produce it* rather than *none of the layouts
 match these filters*. A library with nothing for the settings says it is still being generated.
 
-**A card carries the board and its verdicts.** The picture is the whole fanned board in a square frame on the
+**A card is the board and its id.** The picture is the whole fanned board in a square frame on the
 theme's board ground (`--board-bg`: dark in the dark theme, slate-200 in the light one), server-rendered from the same scene the PNG endpoint draws, coloured by role — hub violet, spawn
 green, wool amber, front line orange — with a build zone in pink and a water lane in blue under a diagonal
 hatch. The picture carries no text: the page draws the key once above the grid, from the `key` the feed
-returns. Under the picture the card names its structure — its wool approach families, hub and front line, by
-the filter chips' labels — and then its score, its wool count and its land share, with the spend spelled out
-on hover. Opening a card gives the same in a drawer, with the key, the score to two places, the per-box spend
-table, the top three soft terms by contribution, and the descriptor as JSON under *Layout code*, beside
-*Copy JSON*.
+returns. Under the picture the card shows only the layout's id, `composed-p{players}-t{teams}-{seed}`, in the
+same name label the library's cards carry (`PictureCard`); the score, wool count and structure line are not on
+the card, and the score is shown nowhere on the page. Opening a card gives a drawer with the key, the layout id,
+wool count, band, symmetry and seed, the wool, hub and front-line forms, the per-box spend table, any hard
+terms it failed, and the descriptor as JSON under *Layout code*, beside *Copy JSON*.
 
 **Land spend is two currencies and the card says so.** *Footprint* is the box rectangle, fixed when the box
 was seated; *land* is what the filled pieces actually cover, which is what the spend gate holds against the
@@ -299,7 +301,7 @@ zero, with the ninetieth percentile at 1.17, 2.92 and 5.67. The terms that fire 
 `spawn-wool-ratio` and `wool-front-ratio`, then `thin-middle` and `frontline-width`: a spawn beside the hub
 stands nearer the wool at the back than the one across the hub, however squarely it faces the hole, and about
 one board in five crosses a middle thinner than its size's floor or longer than twice its width (`MD7`, `MD8`). A hard violation would add 1000 and dominate any
-soft sum, which is why the slider stops at 8.
+soft sum.
 
 **Pinning and authoring are the two exits.** The pin toggle, in the top-right corner of a card's picture, keeps the library board the descriptor names and
 refreshes the tray; the tray's thumbnails come from the stored rows rather than from the cards, so a board held in an
@@ -339,7 +341,7 @@ plan row and deleting one is an admin's.
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `GET /compose?players=&symmetry=&from=&count=` | `{cards, next, end, matching, observed, key}` — a page of the library, best score first: each card its descriptor, score, wool count, structural read, hard terms, top three soft terms, board SVG and land spend; `next` the position to ask from, `end` whether this page reaches the last matching board, `matching` how many match, `observed` the census of every board held for the band and symmetry, `key` the role and zone colours the SVGs are drawn in | 400 unsupported symmetry · 400 unsupported team count |
-| … `&maxScore=&woolMin=&woolMax=` | the same, sieved on the evaluator score and the wool count | — |
+| … `&maxScore=&woolMin=&woolMax=` | the same, sieved on the evaluator score and the wool count; the page sends `woolMin` and `woolMax` only, `maxScore` is for a script | — |
 | … `&wools=&hub=&front=` | the same, sieved structurally — `wools` must-include, `hub` and `front` any-of, all CSV | — |
 | `POST /compose/pin` | the stored `PlanDetail` — keeps the library board a **descriptor body** names, the `{players, teams, symmetry, seed, …}` record a card carries, labelled for its player count and saved as a generated row (idempotent by content hash) | 400 `RQ1` invalid descriptor · 404 a board the library does not hold |
 | `GET /plans?origin=generated` | the hold tray: summaries newest-touched first, each with its descriptor and whether it is stale | — |

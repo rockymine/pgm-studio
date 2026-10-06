@@ -64,7 +64,7 @@ list; `Slim` is the narrower panel-row box and `Canvas` the floating control of 
 is the labelled coordinate cell; `SwatchRow` is the control a **colour** is chosen with, generic in what a swatch stands for — a block's data
 value in the library, a colour word in Configure — because a set of sixteen colours is picked by clicking the
 colour and a dropdown of their names makes the author read what they can already see; and
-`FilterGroup` is one facet of a filter rail (below); `AuthorsEditor` is the shared author/contributor block every tool's Identity step uses — each row's mark
+`FilterGroup` is one facet of a filter rail (below); `PictureCard` is a picture over a name — the figure a link or a button, an optional overlay such as the generator's pin, then the name, a right-aligned meta and whatever body the page adds — and the library, the shape catalog and the generator all draw their cards with it; `AuthorsEditor` is the shared author/contributor block every tool's Identity step uses — each row's mark
 is an initial over a hue hashed from the row's own uuid or name, so a page carrying authors fetches nothing
 from outside the studio to draw them.
 
@@ -191,7 +191,7 @@ holds (a stage, a symmetry) leaves `Multi` off and carries no box. `Hint` is the
 unset. A note explaining what the counts mean is a `section-desc` paragraph at the foot of its panel.
 
 **A block that only holds settings is a `FilterPanel` with no `OnClear`.** The generator's *Layout settings*
-(players, symmetry, highest score, wools) sits above its *Filter by shape* panel in the same rail, so both read
+(size band, symmetry, wools) sits above its *Filter by shape* panel in the same rail, so both read
 as one rail while only the second offers *Clear*. Panels are titled for what they do — *Filters*, *Filter
 shapes*, *Layout settings*, *Filter by shape* — and every change applies at once: there is no Apply button to
 forget.
@@ -435,7 +435,7 @@ handle would break the resize without breaking the render — the worst kind of 
 page-only by design; the examples *inside* it render production components.
 
 **The `gen-*` set** in `/generator` is the one piece of real drift left, and it is the largest thing here: the
-filter rail, the card grid, the candidate cards and their badges, the tray and the census tables are around
+filter rail, the card grid, the tray and the census tables are around
 forty classes backed by `generator.css`, re-implementing `workspace-sidebar`, `card-grid`, `badge` and
 `filter-chip` under their own names. The atoms inside them have been picked up where they fit; the layout has
 not. It is drift rather than a decision, and it is the next thing to fold in.
