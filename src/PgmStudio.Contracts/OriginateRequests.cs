@@ -1,3 +1,5 @@
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Contracts;
 
 /// <summary>
@@ -23,15 +25,15 @@ public sealed record PlanOriginateRequest(string? Name = null);
 /// <c>Untitled sketch</c>, which is also the mark of a draft nobody has touched.</param>
 /// <param name="Width">The board's east–west extent, in blocks. Absent means 120.</param>
 /// <param name="Depth">The board's north–south extent, in blocks. Absent means 80.</param>
-/// <param name="Mode">The symmetry the board is authored under — <c>mirror_x</c>, <c>mirror_z</c>,
-/// <c>rot_180</c> or <c>rot_90</c>. Absent, or a word outside the four, means <c>rot_180</c>.</param>
+/// <param name="Mode">The symmetry the board is authored under, <c>none</c> for none. Absent, or a word
+/// outside the set, means <c>rot_180</c>.</param>
 /// <param name="CenterX">Where the board is centred, east–west. Absent means 0.</param>
 /// <param name="CenterZ">Where the board is centred, north–south. Absent means 0.</param>
 public sealed record SketchOriginateRequest(
     string? Name = null,
     double? Width = null,
     double? Depth = null,
-    string? Mode = null,
+    [property: WordSet(typeof(SymmetryModes))] string? Mode = null,
     double? CenterX = null,
     double? CenterZ = null);
 

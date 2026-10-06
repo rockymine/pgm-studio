@@ -62,6 +62,10 @@ test("rot_90 → three copies; mirrors:false → none", () => {
   assert.equal(computeMirrorPreview([sqIsland({ mirrors: false })], "mirror_x", 0, 0).length, 0);
 });
 
+test("none → no copies, even for a group that mirrors", () => {
+  assert.deepEqual(computeMirrorPreview([sqIsland()], "none", 0, 0), []);
+});
+
 // ── restoreGroupMeta ─────────────────────────────────────────────────────────
 test("restoreGroupMeta copies fields from the best shapeId-overlap match", () => {
   const groups = [{ shapeIds: ["a", "b"], name: "Group 1", mirrors: true }];

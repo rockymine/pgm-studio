@@ -33,12 +33,16 @@
           <Field Label="Symmetry">
             <Select Slim="false" Options="ModeOptions" Value="@Mode" ValueChanged="OnModeChange" />
           </Field>
-          <Field Label="Centre X">
-            <NumberField Value="CenterX" ValueChanged="OnCenterX" />
-          </Field>
-          <Field Label="Centre Z">
-            <NumberField Value="CenterZ" ValueChanged="OnCenterZ" />
-          </Field>
+          @* With no symmetry nothing turns about the centre, so there is no centre to state. *@
+          @if (Mode != SymmetryModes.None)
+          {
+            <Field Label="Centre X">
+              <NumberField Value="CenterX" ValueChanged="OnCenterX" />
+            </Field>
+            <Field Label="Centre Z">
+              <NumberField Value="CenterZ" ValueChanged="OnCenterZ" />
+            </Field>
+          }
         </Section>
       }
     </ContentColumn>

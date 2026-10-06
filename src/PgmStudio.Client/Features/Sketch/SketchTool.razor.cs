@@ -260,7 +260,7 @@ public partial class SketchTool
     /// <summary>The tools that make a shape, and so the only ones the operation decides anything for. Measure
     /// reads, split cuts what is already there, and move/select do not draw at all — with one of those armed
     /// the operation is set but idle, which is what the pill dims to say.</summary>
-    private static readonly string[] DrawTools = ["rectangle", "polygon", "lasso"];
+    private static readonly string[] DrawTools = ["rectangle", "polygon", "polyline", "lasso"];
 
     private bool DrawToolActive => DrawTools.Contains(tool);
 
@@ -368,7 +368,9 @@ public partial class SketchTool
     private static readonly Dictionary<string, PhaseOverlay> Overlays = new()
     {
         ["info"]     = new([ChipShapes, ChipMirror, ChipChunks, ChipBlocks], []),
-        ["draw"]     = new([ChipShapes, ChipMirror, ChipChunks, ChipBlocks], []),
+        // Contours are offered while drawing, off until asked for: ground shaped by anchor heights, a height mode
+        // or a stacked layer is drawn on them, and that is what an author needs to see while placing a shape.
+        ["draw"]     = new([ChipShapes, ChipMirror, ChipChunks, ChipBlocks, ChipRelief], []),
         // The contour layer comes on with the phase's canvas mode, so it is offered here but not pushed again.
         ["relief"]   = new([ChipRelief, ChipShapes, ChipMirror, ChipChunks, ChipBlocks], [ChipShapes]),
         ["theme"]    = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks, ChipShapes]),
@@ -467,6 +469,7 @@ public partial class SketchTool
             case "sketch.tool.move": await SetTool("move"); break;
             case "sketch.tool.rectangle": await SetTool("rectangle"); break;
             case "sketch.tool.polygon": await SetTool("polygon"); break;
+            case "sketch.tool.polyline": await SetTool("polyline"); break;
             case "sketch.tool.lasso": await SetTool("lasso"); break;
             case "sketch.tool.measure": await SetTool("measure"); break;
             case "sketch.tool.split": await SetTool("split"); break;
@@ -504,6 +507,7 @@ public partial class SketchTool
         new { id = "sketch.tool.move",       keys = "h", label = "Pan",     group = "Tools" },
         new { id = "sketch.tool.rectangle",  keys = "r", label = "Rectangle", group = "Tools" },
         new { id = "sketch.tool.polygon",    keys = "p", label = "Polygon", group = "Tools" },
+        new { id = "sketch.tool.polyline",   keys = "w", label = "Polyline", group = "Tools" },
         new { id = "sketch.tool.lasso",      keys = "l", label = "Lasso",   group = "Tools" },
         new { id = "sketch.tool.measure",    keys = "m", label = "Measure", group = "Tools" },
         new { id = "sketch.tool.split",      keys = "x", label = "Split",   group = "Tools" },

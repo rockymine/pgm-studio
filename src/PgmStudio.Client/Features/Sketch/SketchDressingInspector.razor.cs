@@ -55,6 +55,9 @@ public partial class SketchDressingInspector
     /// a prop on its own has no document behind it.</summary>
     private JsonObject? styleRegistry;
     private string previewedFor = "";
+    private bool previewing;
+    /// <summary>The fields a slider has moved and not yet pushed; its release pushes them as one patch.</summary>
+    private readonly HashSet<string> drafted = [];
     private IReadOnlyList<PropOptionDto> strokeStyles = [];
     private IReadOnlyList<PropOptionDto> fluidForms = [];
     private IReadOnlyList<PropOptionDto> boulderForms = [];
@@ -71,10 +74,20 @@ public partial class SketchDressingInspector
 
     protected override async Task OnParametersSetAsync()
     {
+        var draft = drafted.Count > 0 ? prop : null;
         ReadState();
         await LoadTheme();
         await LoadOptions();
+        if (draft is not null) KeepDraft(draft);
         await RefreshPreview();
+    }
+
+    /// <summary>Carry a slider's unreleased value over a state push, so the thumb and the readout do not jump
+    /// back mid-drag. A push for another prop drops it.</summary>
+    private void KeepDraft(JsonObject draft)
+    {
+        if (prop is null || prop["id"]?.ToString() != draft["id"]?.ToString()) { drafted.Clear(); return; }
+        foreach (var field in drafted) prop[field] = draft[field]?.DeepClone();
     }
 
     // The bridge pushes one document; which half of it is being edited depends on whether anything is selected.
@@ -375,8 +388,9 @@ public partial class SketchDressingInspector
         await Handle.InvokeVoidAsync("joinDressing");
     }
 
-    /// <summary>Redraw the picture, but only when the prop actually changed — the preview is a round trip that
-    /// runs the real pass, so re-issuing it on every render would make a slider feel like treacle.</summary>
+    /// <summary>Redraw the picture when the prop changed, one request at a time. The preview is a round trip
+    /// that runs the real pass and a dragged slider changes the prop faster than that, so a change made while
+    /// one is out is drawn when it lands — only the newest, never every step in between.</summary>
     private async Task RefreshPreview()
     {
         if (prop is null) { preview = null; previewedFor = ""; return; }
@@ -387,11 +401,24 @@ public partial class SketchDressingInspector
         var json = asked.ToJsonString();
         if (json == previewedFor) return;
         previewedFor = json;
-        var answered = await Library.PropPreviewAsync(json, themeJson);
-        preview = answered.Pictures;
-        refusal = answered.Refusal;
-        refused = Problem.Of(refusal?.Findings ?? []);
-        StateHasChanged();
+        if (previewing) return;
+        previewing = true;
+        try
+        {
+            string drawn;
+            do
+            {
+                drawn = previewedFor;
+                var answered = await Library.PropPreviewAsync(drawn, themeJson);
+                if (previewedFor.Length == 0) return;
+                preview = answered.Pictures;
+                refusal = answered.Refusal;
+                refused = Problem.Of(refusal?.Findings ?? []);
+                StateHasChanged();
+            }
+            while (drawn != previewedFor);
+        }
+        finally { previewing = false; }
     }
 
     // ── editing ────────────────────────────────────────────────────────────────
@@ -401,10 +428,46 @@ public partial class SketchDressingInspector
     {
         if (prop is null || Handle is null) return;
         prop[field] = value;
-        var patch = new JsonObject { [field] = value?.DeepClone() };
+        await Push(new JsonObject { [field] = value?.DeepClone() });
+    }
+
+    /// <summary>Hand a patch to the canvas — the selection's, or the tool's starting values — and redraw.</summary>
+    private async Task Push(JsonObject patch)
+    {
+        if (Handle is null) return;
         if (editingSelection) await Handle.InvokeVoidAsync("updateProp", patch.ToJsonString());
         else await Handle.InvokeVoidAsync("setPropSettings", kind, patch.ToJsonString());
         await RefreshPreview();
+    }
+
+    /// <summary>Follow a dragged slider: the readout and the picture move and the canvas waits for
+    /// <see cref="Commit"/>, since every push re-renders the whole tool.</summary>
+    private Task Draft(string field, JsonNode? value)
+    {
+        if (prop is null) return Task.CompletedTask;
+        prop[field] = value;
+        drafted.Add(field);
+        return RefreshPreview();
+    }
+
+    /// <summary><see cref="Draft"/> for a field of the flora spec.</summary>
+    private Task DraftSpec(string field, JsonNode? value)
+    {
+        if (prop is null) return Task.CompletedTask;
+        if (prop["spec"] is not JsonObject spec) prop["spec"] = spec = new JsonObject();
+        spec[field] = value;
+        drafted.Add("spec");
+        return RefreshPreview();
+    }
+
+    /// <summary>Push what a slider moved, once, when it is let go.</summary>
+    private async Task Commit(double released)
+    {
+        if (prop is null || drafted.Count == 0) return;
+        var patch = new JsonObject();
+        foreach (var field in drafted) patch[field] = prop[field]?.DeepClone();
+        drafted.Clear();
+        await Push(patch);
     }
 
     /// <summary>Write one field of the flora spec — the one prop whose knobs live a level down, because the
@@ -414,10 +477,7 @@ public partial class SketchDressingInspector
         if (prop is null || Handle is null) return;
         if (prop["spec"] is not JsonObject spec) prop["spec"] = spec = new JsonObject();
         spec[field] = value;
-        var patch = new JsonObject { ["spec"] = spec.DeepClone() };
-        if (editingSelection) await Handle.InvokeVoidAsync("updateProp", patch.ToJsonString());
-        else await Handle.InvokeVoidAsync("setPropSettings", kind, patch.ToJsonString());
-        await RefreshPreview();
+        await Push(new JsonObject { ["spec"] = spec.DeepClone() });
     }
 
     /// <summary>The crops a flora spec sows; unstated is wheat, which is what the pass sows then.</summary>
@@ -529,9 +589,7 @@ public partial class SketchDressingInspector
         if (implied is not JsonObject patch) return;
 
         foreach (var entry in patch) prop[entry.Key] = entry.Value?.DeepClone();
-        if (editingSelection) await Handle.InvokeVoidAsync("updateProp", patch.ToJsonString());
-        else await Handle.InvokeVoidAsync("setPropSettings", kind, patch.ToJsonString());
-        await RefreshPreview();
+        await Push(patch);
     }
 
     private static readonly IReadOnlyDictionary<string, (string Icon, string Title)> KindInfo =

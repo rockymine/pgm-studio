@@ -63,17 +63,17 @@
         </Field>
         <Field Label="Width (blocks)"><LabelEnd><strong>@($"{Num(PropFields.Radius, 3) * 2:0}")</strong></LabelEnd>
           <ChildContent><RangeField Min="2" Max="16" Step="2" Value="@(Num(PropFields.Radius, 3) * 2)"
-                 ValueChanged="value => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, value / 2)))" /></ChildContent></Field>
+                 ValueChanged="value => Draft(PropFields.Radius, JsonValue.Create(Math.Max(1, value / 2)))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Wander (blocks)"><LabelHint>how far it strays from your line (ends stay fixed)</LabelHint>
           <LabelEnd><strong>@($"{Num(PropFields.Wander, 0):0}")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="8" Value="@((int)Num(PropFields.Wander, 0))"
-                 ValueChanged="value => Set(PropFields.Wander, JsonValue.Create(value))" /></ChildContent></Field>
+                 ValueChanged="value => Draft(PropFields.Wander, JsonValue.Create(value))" OnCommit="Commit" /></ChildContent></Field>
         @if (Num(PropFields.Wander, 0) > 0)
         {
           <Field Label="Bend length (blocks)"><LabelHint>short is twisty, long is gentle</LabelHint>
             <LabelEnd><strong>@($"{Num(PropFields.WanderLength, 16):0}")</strong></LabelEnd>
             <ChildContent><RangeField Min="4" Max="64" Step="2" Value="@((int)Num(PropFields.WanderLength, 16))"
-                   ValueChanged="value => Set(PropFields.WanderLength, JsonValue.Create(value))" /></ChildContent></Field>
+                   ValueChanged="value => Draft(PropFields.WanderLength, JsonValue.Create(value))" OnCommit="Commit" /></ChildContent></Field>
         }
         <div class="section-header section-header--ruled"><h2 class="section-title">Style</h2></div>
         <div class="prop-cards">
@@ -90,7 +90,7 @@
         {
           <Field Label="Paved share"><LabelEnd><strong>@($"{Num(PropFields.Coverage, 0.7) * 100:0}%")</strong></LabelEnd>
             <ChildContent><RangeField Min="10" Max="100" Value="@((int)(Num(PropFields.Coverage, 0.7) * 100))"
-                   ValueChanged="value => Set(PropFields.Coverage, JsonValue.Create(Share(value)))" /></ChildContent></Field>
+                   ValueChanged="value => Draft(PropFields.Coverage, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
         }
         <Field Label="Paving">
           <SlotSelect Styles="styles" Blocks="blocks" Value="@SlotOf(PropFields.Pave).StyleId" Block="@SlotOf(PropFields.Pave).Block"
@@ -120,15 +120,15 @@
         </Field>
         <Field Label="Width (blocks)"><LabelEnd><strong>@($"{Num(PropFields.Radius, 3) * 2:0}")</strong></LabelEnd>
           <ChildContent><RangeField Min="2" Max="24" Step="2" Value="@(Num(PropFields.Radius, 3) * 2)"
-                 ValueChanged="value => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, value / 2)))" /></ChildContent></Field>
+                 ValueChanged="value => Draft(PropFields.Radius, JsonValue.Create(Math.Max(1, value / 2)))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Depth (blocks)">
           <LabelEnd><strong>@($"{Num(PropFields.Depth, 2):0}")</strong></LabelEnd>
           <ChildContent><RangeField Min="1" Max="8" Value="@((int)Num(PropFields.Depth, 2))"
-                 ValueChanged="value => Set(PropFields.Depth, JsonValue.Create(value))" /></ChildContent></Field>
+                 ValueChanged="value => Draft(PropFields.Depth, JsonValue.Create(value))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Beach (blocks)"><LabelHint>width of the bank between fluid and land</LabelHint>
           <LabelEnd><strong>@($"{Num(PropFields.Shore, 2):0}")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="8" Value="@((int)Num(PropFields.Shore, 2))"
-                 ValueChanged="value => Set(PropFields.Shore, JsonValue.Create(value))" /></ChildContent></Field>
+                 ValueChanged="value => Draft(PropFields.Shore, JsonValue.Create(value))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Beach edge">
           <div class="chip-row">
             <Chip Active="Flag(PropFields.ShoreWander, true)" OnClick="() => Set(PropFields.ShoreWander, JsonValue.Create(true))">Varied</Chip>
@@ -138,7 +138,7 @@
         <Field Label="Bank roughness"><LabelHint>how uneven natural and stream edges are (canals ignore it)</LabelHint>
           <LabelEnd><strong>@($"{Num(PropFields.Edge, 0.8):0.0}")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="25" Value="@((int)(Num(PropFields.Edge, 0.8) * 10))"
-                 ValueChanged="value => Set(PropFields.Edge, JsonValue.Create(value / 10.0))" /></ChildContent></Field>
+                 ValueChanged="value => Draft(PropFields.Edge, JsonValue.Create(value / 10.0))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Shore"><LabelHint>the bed and the beach</LabelHint>
           <ChildContent><SlotSelect Styles="styles" Blocks="blocks" Value="@SlotOf(PropFields.Bank).StyleId" Block="@SlotOf(PropFields.Bank).Block"
                       Unbound="@UnboundLabel(PropFields.Bank)" ValueChanged="fill => Fill(PropFields.Bank, fill)" /></ChildContent>
@@ -148,40 +148,40 @@
       {
         <Field Label="Coverage"><LabelEnd><strong>@($"{Spec(SpecFields.Coverage, 0.45) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.Coverage, 0.45) * 100))"
-                 ValueChanged="value => SetSpec(SpecFields.Coverage, JsonValue.Create(Share(value)))" /></ChildContent></Field>
-        <Field Label="Patch size"><LabelEnd><strong>@($"{Spec(SpecFields.Scale, 12):0}")</strong></LabelEnd>
+                 ValueChanged="value => DraftSpec(SpecFields.Coverage, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
+        <Field Label="Patch size"><LabelHint>how big the thicker and thinner patches are</LabelHint><LabelEnd><strong>@($"{Spec(SpecFields.Scale, 12):0}")</strong></LabelEnd>
           <ChildContent><RangeField Min="4" Max="30" Value="@((int)Spec(SpecFields.Scale, 12))"
-                 ValueChanged="value => SetSpec(SpecFields.Scale, JsonValue.Create(value))" /></ChildContent></Field>
+                 ValueChanged="value => DraftSpec(SpecFields.Scale, JsonValue.Create(value))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Fern share"><LabelEnd><strong>@($"{Spec(SpecFields.FernShare, 0.25) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.FernShare, 0.25) * 100))"
-                 ValueChanged="value => SetSpec(SpecFields.FernShare, JsonValue.Create(Share(value)))" /></ChildContent></Field>
+                 ValueChanged="value => DraftSpec(SpecFields.FernShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Flower fields"><LabelEnd><strong>@($"{Spec(SpecFields.FlowerShare, 0.18) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.FlowerShare, 0.18) * 100))"
-                 ValueChanged="value => SetSpec(SpecFields.FlowerShare, JsonValue.Create(Share(value)))" /></ChildContent></Field>
+                 ValueChanged="value => DraftSpec(SpecFields.FlowerShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Tall grass">
           <LabelEnd><strong>@($"{Spec(SpecFields.TallShare, 0) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.TallShare, 0) * 100))"
-                 ValueChanged="value => SetSpec(SpecFields.TallShare, JsonValue.Create(Share(value)))" /></ChildContent></Field>
+                 ValueChanged="value => DraftSpec(SpecFields.TallShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Dead bushes"><LabelHint>on sand and clay, and some on dirt</LabelHint>
           <LabelEnd><strong>@($"{Spec(SpecFields.DeadBushShare, 0) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.DeadBushShare, 0) * 100))"
-                 ValueChanged="value => SetSpec(SpecFields.DeadBushShare, JsonValue.Create(Share(value)))" /></ChildContent></Field>
+                 ValueChanged="value => DraftSpec(SpecFields.DeadBushShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Cacti"><LabelHint>on sand only, one to four blocks tall</LabelHint>
           <LabelEnd><strong>@($"{Spec(SpecFields.CactusShare, 0) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.CactusShare, 0) * 100))"
-                 ValueChanged="value => SetSpec(SpecFields.CactusShare, JsonValue.Create(Share(value)))" /></ChildContent></Field>
+                 ValueChanged="value => DraftSpec(SpecFields.CactusShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Mushrooms"><LabelHint>on podzol and mycelium only</LabelHint>
           <LabelEnd><strong>@($"{Spec(SpecFields.MushroomShare, 0) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.MushroomShare, 0) * 100))"
-                 ValueChanged="value => SetSpec(SpecFields.MushroomShare, JsonValue.Create(Share(value)))" /></ChildContent></Field>
+                 ValueChanged="value => DraftSpec(SpecFields.MushroomShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Lily pads"><LabelHint>on still water, in clusters where coverage is high</LabelHint>
           <LabelEnd><strong>@($"{Spec(SpecFields.LilyShare, 0) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.LilyShare, 0) * 100))"
-                 ValueChanged="value => SetSpec(SpecFields.LilyShare, JsonValue.Create(Share(value)))" /></ChildContent></Field>
+                 ValueChanged="value => DraftSpec(SpecFields.LilyShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
         <Field Label="Crops"><LabelHint>on farmland only, one crop per plot</LabelHint>
           <LabelEnd><strong>@($"{Spec(SpecFields.CropShare, 0) * 100:0}%")</strong></LabelEnd>
           <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.CropShare, 0) * 100))"
-                 ValueChanged="value => SetSpec(SpecFields.CropShare, JsonValue.Create(Share(value)))" /></ChildContent></Field>
+                 ValueChanged="value => DraftSpec(SpecFields.CropShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
         @if (Spec(SpecFields.CropShare, 0) > 0)
         {
           <Field Label="Sown"><ChildContent><div class="chip-row">
@@ -193,7 +193,7 @@
           <Field Label="Ripeness"><LabelHint>from just sown to ready, varying a little per plot</LabelHint>
             <LabelEnd><strong>@($"{Spec(SpecFields.Ripeness, 1) * 100:0}%")</strong></LabelEnd>
             <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.Ripeness, 1) * 100))"
-                   ValueChanged="value => SetSpec(SpecFields.Ripeness, JsonValue.Create(Share(value)))" /></ChildContent></Field>
+                   ValueChanged="value => DraftSpec(SpecFields.Ripeness, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
         }
       }
       else if (kind == PropKinds.Chest)

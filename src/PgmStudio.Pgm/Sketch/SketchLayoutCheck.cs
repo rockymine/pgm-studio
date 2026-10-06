@@ -107,8 +107,7 @@ public static class SketchLayoutCheck
 
     /// <summary>The symmetry modes <see cref="Symmetry"/> knows. An unknown one is not refused there — it
     /// answers order 2 and the identity transform — so a board asking for one is built unmirrored.</summary>
-    private static readonly string[] Modes =
-        ["none", "mirror_x", "mirror_z", "mirror_d1", "mirror_d2", "rot_90", "rot_180"];
+    private static readonly string[] Modes = SymmetryModes.All;
 
     /// <summary>The world's own height, restated here because <c>Pgm</c> cannot see
     /// <c>VoxelWorld.MaxHeight</c>, and pinned to it by <c>SketchLayoutCheckPinTests</c> in the one test

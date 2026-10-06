@@ -4,16 +4,21 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Contracts;
 
 /// <summary>
-/// The relief a posted layout solves to, drawn as contour lines (<c>POST /map/{slug}/sketch/relief</c>) —
-/// the preview the sketch canvas strokes while an author shapes the ground.
+/// The ground a posted layout builds, drawn as contour lines (<c>POST /map/{slug}/sketch/relief</c>) — the
+/// preview the sketch canvas strokes while an author shapes the ground. A group carrying a relief answers its
+/// solved field; every other group answers the surface the build gives it.
 /// </summary>
 /// <param name="Interval">The height step between one contour and the next, as asked for.</param>
-/// <param name="Groups">One entry per group the layout carries.</param>
+/// <param name="Groups">One entry per group with ground on the board: the relief groups first, then the rest.</param>
 public sealed record ReliefContoursDto(double Interval, IReadOnlyList<ReliefGroupContoursDto> Groups);
 
-/// <summary>One group's solved surface: how far it ranges, the box it covers, and the lines across it. The
-/// bounds are inclusive on both ends, so a one-cell group has equal min and max.</summary>
+/// <summary>One group's surface: how far it ranges, the box it covers, and the lines across it. The bounds are
+/// inclusive on both ends, so a one-cell group has equal min and max.</summary>
 /// <param name="Group">Which group, by id.</param>
+/// <param name="Solved">Whether a relief solves this group's ground. A solved entry is the relief's own
+/// continuous field, and dragging one of its lines states a mark on that relief; any other entry is the built
+/// surface — the highest top of every column the group forms, across every layer — and its lines are read
+/// only.</param>
 /// <param name="Min">Its lowest solved height.</param>
 /// <param name="Max">Its highest.</param>
 /// <param name="MinX">The west edge of the box it covers, inclusive.</param>
@@ -31,6 +36,7 @@ public sealed record ReliefContoursDto(double Interval, IReadOnlyList<ReliefGrou
 /// way. A reader that only strokes contours ignores the key.</para></param>
 public sealed record ReliefGroupContoursDto(
     string Group,
+    bool Solved,
     int Min,
     int Max,
     [property: JsonPropertyName("min_x")] int MinX,

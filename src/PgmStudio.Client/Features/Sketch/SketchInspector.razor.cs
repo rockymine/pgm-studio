@@ -3,6 +3,7 @@ using Microsoft.JSInterop;
 
 using PgmStudio.Client.Components;
 using PgmStudio.Vocabulary;
+using HeightModeWords = PgmStudio.Vocabulary.HeightModes;
 
 namespace PgmStudio.Client.Features.Sketch;
 
@@ -72,6 +73,30 @@ public partial class SketchInspector
     // forward the already-valid value to the bridge.
     private Task HeightChanged(double v)
         => Shape is null ? Task.CompletedTask : OnSetHeight.InvokeAsync((Shape.Id, v, Shape.Floor));
+
+    /// <summary>A level shape is edited by the y its flat top lands at; the document stores that as a
+    /// height over the shape's floor.</summary>
+    private Task TopChanged(double top)
+        => Shape is null ? Task.CompletedTask : OnSetHeight.InvokeAsync((Shape.Id, top - Shape.Floor, Shape.Floor));
+
+    private bool IsLevel => Shape?.HeightMode == HeightModeWords.Level;
+
+    /// <summary>What the height number is measured from under the shape's height mode — the floor for ground,
+    /// the middle of the ground under it for raise and sink, the ground at each cell for drape.</summary>
+    private string HeightLabel => Shape?.HeightMode switch
+    {
+        HeightModeWords.Raise => "Height above ground",
+        HeightModeWords.Sink => "Depth below ground",
+        HeightModeWords.Drape => "Height above ground",
+        _ => "Height above floor",
+    };
+
+    private string HeightHint => Shape?.HeightMode switch
+    {
+        HeightModeWords.Raise or HeightModeWords.Sink => "(from the middle height of the ground under it)",
+        HeightModeWords.Drape => "(at every cell)",
+        _ => $"(top at y {Shape?.Floor + Shape?.BaseHeight})",
+    };
 
     private Task FloorChanged(double v)
         => Shape is null ? Task.CompletedTask : OnSetHeight.InvokeAsync((Shape.Id, Shape.BaseHeight, v));

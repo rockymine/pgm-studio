@@ -1792,6 +1792,28 @@ public sealed class DecoratorTests
         await Assert.That(Placed(world, [(30, 30), (2, 2), (25, 10)], 8, 9)).IsEmpty();   // outside
     }
 
+    /// <summary><b>Coverage is the share of the ground that grows, scattered over the whole area.</b> A thin
+    /// cover reads as tufts everywhere rather than one shrinking patch: on every seed the grown cells come within
+    /// a few points of the share, and every tile of the area carries some.</summary>
+    [Test]
+    [Arguments(0.3)]
+    [Arguments(0.1)]
+    public async Task Coverage_is_a_share_of_the_ground_scattered_over_the_whole_area(double coverage)
+    {
+        const int side = 30, tile = 10;
+        for (uint seed = 1; seed <= 8; seed++)
+        {
+            var (world, top) = Plateau(side);
+            Decorator.Decorate(world, Context(top,
+                [new FloraProp { Id = "f", Points = [[0, 0], [side, 0], [side, side], [0, side]], Spec = new FloraSpec(Coverage: coverage), Seed = seed }]));
+            var grown = top.Keys.Where(cell => world.GetBlock(cell.X, 8, cell.Z).Id != Blocks.Air).ToList();
+
+            await Assert.That(grown.Count / (double)(side * side)).IsBetween(coverage - 0.06, coverage + 0.06);
+            await Assert.That(grown.Select(cell => (cell.X / tile, cell.Z / tile)).Distinct().Count())
+                .IsEqualTo(side / tile * (side / tile));
+        }
+    }
+
     [Test]
     public async Task The_paint_underneath_is_what_decides_whether_cover_grows()
     {

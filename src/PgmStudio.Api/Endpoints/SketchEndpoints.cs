@@ -42,8 +42,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
     // The default footprint: 2-team landscape (120×80), origin-centred, rotational symmetry — the same
     // default the editor/bridge use, applied to any frame field the body leaves out.
     private const double DefaultWidth = 120, DefaultDepth = 80;
-    private const string DefaultMode = "rot_180";
-    private static readonly HashSet<string> Modes = ["mirror_x", "mirror_z", "rot_180", "rot_90"];
+    private const string DefaultMode = SymmetryModes.Rot180;
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -60,7 +59,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
             if (root.TryGetProperty("width", out var w) && w.ValueKind == JsonValueKind.Number) { width = w.GetDouble(); hasFrame = true; }
             if (root.TryGetProperty("depth", out var d) && d.ValueKind == JsonValueKind.Number) { depth = d.GetDouble(); hasFrame = true; }
             if (root.TryGetProperty("mode", out var m) && m.ValueKind == JsonValueKind.String
-                && m.GetString() is { } mm && Modes.Contains(mm)) { mode = mm; hasFrame = true; }
+                && m.GetString() is { } mm && SymmetryModes.All.Contains(mm)) { mode = mm; hasFrame = true; }
             if (root.TryGetProperty("centerX", out var cx) && cx.ValueKind == JsonValueKind.Number) { centerX = cx.GetDouble(); hasFrame = true; }
             if (root.TryGetProperty("centerZ", out var cz) && cz.ValueKind == JsonValueKind.Number) { centerZ = cz.GetDouble(); hasFrame = true; }
         }
@@ -656,16 +655,18 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
     }
 }
 
-/// <summary>POST /api/map/{slug}/sketch/relief — the contour overlay for whatever relief the posted layout
-/// carries, one entry per relief-bearing group: its traced lines, its height range, and its bounds. The body
+/// <summary>POST /api/map/{slug}/sketch/relief — the contour overlay for the ground the posted layout builds,
+/// one entry per group: its traced lines, its height range, and its bounds. Every group answers the surface the
+/// build gives it (<see cref="SketchRasterizer.BuiltSurfaces"/>), traced along its relief's own field where it
+/// carries one, so ground shaped by anchor heights, a height mode or a layer's own <c>base_y</c> is drawn too. The body
 /// is the <em>live</em> layout, the same as the paint preview takes, so the overlay tracks unsaved edits.
 ///
 /// <para>The solve is the build's own (<see cref="SketchRasterizer.ReliefFields"/>), so a previewed surface
 /// cannot differ from the surface that gets built — the only property that makes a preview worth drawing.
 /// Contours are traced from the <b>continuous</b> field rather than the block one, because contouring a
 /// staircase returns the outlines of its treads instead of lines of constant height (docs/world-export/relief.md §15).
-/// <c>?interval=</c> sets the spacing in blocks; a layout carrying no relief answers an empty list rather
-/// than a 404, so the client can draw nothing through the same path.</para>
+/// <c>?interval=</c> sets the spacing in blocks; a layout with no ground answers an empty list rather than a
+/// 404, so the client can draw nothing through the same path.</para>
 ///
 /// <para>Each group's solve <b>resumes</b> from the surface its last preview settled on
 /// (<see cref="ReliefPreviewCache"/>). Every preview is one small edit after the last, so the relaxation has
@@ -701,11 +702,13 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
         Complaints.Add(HttpContext, SketchLayoutCheck.Check(layoutJson).AsComplaints());
 
         Dictionary<string, HeightField> fields;
+        Dictionary<string, HeightField> built;
         try
         {
             fields = SketchRasterizer.ReliefFields(layoutJson,
                 (group, footprint) => warm.WarmStart(map.Id, group, footprint),
                 (group, solved) => warm.Remember(map.Id, group, solved));
+            built = SketchRasterizer.BuiltSurfaces(layoutJson, fields);
         }
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
@@ -716,16 +719,19 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
         // with them: contours say where the ground changes height and not which way, and the field they are
         // traced from is already in hand, so sending it costs the serialization and nothing else.
         var withHeights = Query<bool>("heights", isRequired: false);
-        var groups = fields.Select(entry => new ReliefGroupContoursDto(
-            entry.Key, entry.Value.Min, entry.Value.Max,
-            entry.Value.Footprint.MinX,
-            entry.Value.Footprint.MinZ,
-            entry.Value.Footprint.MinX + entry.Value.Footprint.Width - 1,
-            entry.Value.Footprint.MinZ + entry.Value.Footprint.Depth - 1,
-            [.. Contours.Of(entry.Value, interval).Select(line => new ContourLineDto(
+        ReliefGroupContoursDto Entry(string group, HeightField field, bool solved) => new(
+            group, solved, field.Min, field.Max,
+            field.Footprint.MinX,
+            field.Footprint.MinZ,
+            field.Footprint.MinX + field.Footprint.Width - 1,
+            field.Footprint.MinZ + field.Footprint.Depth - 1,
+            [.. Contours.Of(field, interval).Select(line => new ContourLineDto(
                 line.Level, line.Closed,
                 [.. line.Points.SelectMany(point => new[] { point.X, point.Z })]))],
-            withHeights ? Grid(entry.Value) : null)).ToList();
+            withHeights ? Grid(field) : null);
+        var groups = built.OrderBy(entry => fields.ContainsKey(entry.Key) ? 0 : 1)
+            .Select(entry => Entry(entry.Key, entry.Value, solved: fields.ContainsKey(entry.Key)))
+            .ToList();
 
         await Send.OkAsync(new ReliefContoursDto(interval, groups), ct);
     }

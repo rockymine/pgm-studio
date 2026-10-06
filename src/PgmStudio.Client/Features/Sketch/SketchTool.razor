@@ -282,7 +282,7 @@
             }
             else if (!ScopeApplyActive && !HistoryActive)
             {
-              @* The three tools that make a shape, and the operation the shape will perform, in one box wearing
+              @* The four tools that make a shape, and the operation the shape will perform, in one box wearing
                  one colour — so an armed carve cannot be read as an armed build. What a drawn shape does to
                  the land is not a sibling of the tool that draws it, so the word leads the group rather than
                  being a fourth glyph in it. *@
@@ -292,6 +292,8 @@
                             OnClick='() => SetTool("rectangle")' />
                 <DockButton Icon="pentagon" Title="Polygon" Active="@(tool == "polygon")"
                             OnClick='() => SetTool("polygon")' />
+                <DockButton Icon="spline" Title="Polyline" Active="@(tool == "polyline")"
+                            OnClick='() => SetTool("polyline")' />
                 <DockButton Icon="lasso" Title="Lasso" Active="@(tool == "lasso")"
                             OnClick='() => SetTool("lasso")' />
               </DockGroup>

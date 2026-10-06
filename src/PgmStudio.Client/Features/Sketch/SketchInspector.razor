@@ -29,9 +29,22 @@
             <i data-lucide="pentagon"></i> Convert to polygon
           </Button>
         }
-        <Field Label="Height">
-          <NumberField Value="Shape.BaseHeight" ValueChanged="HeightChanged" Min="1" />
-        </Field>
+        @if (IsLevel)
+        {
+          <Field Label="Top at">
+            <div class="field-affix"><span class="field-affix-text" aria-hidden="true">y</span>
+              <NumberField Value="Shape.Floor + Shape.BaseHeight" ValueChanged="TopChanged" Min="Shape.Floor + 1" aria-label="Top y" /></div>
+          </Field>
+        }
+        else
+        {
+          <Field Label="@HeightLabel">
+            <LabelHint>@HeightHint</LabelHint>
+            <ChildContent>
+              <NumberField Value="Shape.BaseHeight" ValueChanged="HeightChanged" Min="1" />
+            </ChildContent>
+          </Field>
+        }
         <Field Label="Floor">
           <div class="field-affix"><span class="field-affix-text" aria-hidden="true">y</span>
             <NumberField Value="Shape.Floor" ValueChanged="FloorChanged" Min="0" aria-label="Floor y" /></div>
@@ -49,8 +62,8 @@
         }
         @if (!string.IsNullOrEmpty(Shape.HeightMode))
         {
-          <Field Label="Skirt">
-            <LabelHint>(blocks to blend into the ground)</LabelHint>
+          <Field Label="Skirt (blocks)">
+            <LabelHint>(how far in from the edge it eases into the ground)</LabelHint>
             <ChildContent>
               <NumberField Value="Shape.Skirt" ValueChanged="SkirtChanged" Min="0" />
             </ChildContent>

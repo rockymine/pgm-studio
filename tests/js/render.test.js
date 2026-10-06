@@ -87,3 +87,23 @@ test("paintAnchorBlock marks the whole block, not its corner", () => {
   assert.equal(style.fill, "#abc");
   assert.equal(style.fillAlpha, 0.5);
 });
+
+// ── the symmetry axis on the sketch canvas ─────────────────────────────────────
+import { paintAxis } from "../../src/PgmStudio.Client/wwwroot/js/studio/render/sketch-render.js";
+
+const axisBox = { min_x: -10, max_x: 10, min_z: -5, max_z: 5 };
+
+test("paintAxis draws the one axis a mirror turns about, and both for a half-turn", () => {
+  const mirror = recordingPainter();
+  paintAxis(mirror, axisBox, { cx: 0, cz: 0 }, "mirror_x");
+  assert.equal(mirror.of("segments")[0][0].length, 1);
+  const halfTurn = recordingPainter();
+  paintAxis(halfTurn, axisBox, { cx: 0, cz: 0 }, "rot_180");
+  assert.equal(halfTurn.of("segments")[0][0].length, 2);
+});
+
+test("paintAxis draws nothing for a board laid to no symmetry", () => {
+  const painter = recordingPainter();
+  paintAxis(painter, axisBox, { cx: 0, cz: 0 }, "none");
+  assert.equal(painter.of("segments").length, 0);
+});

@@ -795,10 +795,9 @@ public static class Decorator
             if (Polygon.PointInRing(x + 0.5, z + 0.5, turned)) yield return (x, z);
     }
 
-    /// <summary>What grows in one cell, or null for bare ground. Two fields decide it: a density field says
-    /// whether anything grows at all — which is what turns an even speckle into meadows and clearings — and a
-    /// second, coarser field paints flowers in <em>patches</em>, so an area gets fields of one colour rather
-    /// than confetti.
+    /// <summary>What grows in one cell, or null for bare ground. <see cref="Grows"/> says whether anything grows
+    /// at all — a per-cell draw at the coverage, leaned by a clumping field — and a second, coarser field paints
+    /// flowers in <em>patches</em>, so an area gets fields of one colour rather than confetti.
     ///
     /// <para><b>Every field is read at the cell folded into the board's primary image</b>, exactly as a
     /// terrain pattern is (<c>terrain-painting.md</c> TP21). A noise field is a function of position, so a
@@ -816,8 +815,7 @@ public static class Decorator
         var soil = DressingPalette.SoilOf(groundId);
         if (soil == Soil.Farmland) return Crop(flora, seed, fx, fz);
 
-        var density = PatternNoise.Fbm(fx, fz, seed, flora.Scale, flora.Octaves);
-        if (density < 1 - flora.Coverage * soilShare) return null;
+        if (!Grows(flora, seed, fx, fz, soilShare)) return null;
 
         // A mushroom keeps by day only to podzol and mycelium, and mycelium carries nothing else.
         if (DressingPalette.KeepsMushroom(groundId, groundData) && PatternNoise.Unit(fx, fz, seed + 51) < flora.MushroomShare)
@@ -850,6 +848,19 @@ public static class Decorator
             ? DressingPalette.Fern : DressingPalette.Grass;
     }
 
+    /// <summary>Whether the canonical cell <c>(fx, fz)</c> carries cover at all. Every cell draws for itself
+    /// against <see cref="FloraSpec.Coverage"/> thinned by <paramref name="soilShare"/>, so that share of the
+    /// ground grows, scattered over the whole area. A clumping field at <see cref="FloraSpec.Scale"/> leans each
+    /// cell's odds by up to half the room either side of the share, gathering the cover into thicker and thinner
+    /// patches without moving how much of it there is.</summary>
+    private static bool Grows(FloraSpec flora, uint seed, int fx, int fz, double soilShare)
+    {
+        var share = Math.Clamp(flora.Coverage * soilShare, 0, 1);
+        var clump = PatternNoise.Field(fx, fz, seed, flora.Scale, flora.Octaves, PatternNoise.NoiseShape.Plain);
+        var odds = share + Math.Min(share, 1 - share) * (clump - 0.5);
+        return PatternNoise.Unit(fx, fz, seed + 17) < odds;
+    }
+
     /// <summary>The crop the canonical farmland cell <c>(fx, fz)</c> carries, or null where the field is left
     /// unsown. The field is cut into square plots of the cover's <see cref="FloraSpec.Scale"/>, each sown with one
     /// of <see cref="FloraSpec.Crops"/> and standing at <see cref="FloraSpec.Ripeness"/> up to a stage either
@@ -870,15 +881,15 @@ public static class Decorator
         return new Plant(block, Math.Clamp(stage, 0, DressingPalette.CropRipe), Tall: false);
     }
 
-    /// <summary>Whether a lily pad floats on the still water at <c>(x, z)</c>: where the cover's density field
-    /// grows anything and a raft field at the cover's patch size clears <c>1 − LilyShare</c>, so the pads gather
+    /// <summary>Whether a lily pad floats on the still water at <c>(x, z)</c>: where the cover
+    /// <see cref="Grows"/> and a raft field at the cover's patch size clears <c>1 − LilyShare</c>, so the pads gather
     /// in rafts the way flowers gather in fields. Read in the folded frame, so a cell and its every image float
     /// alike.</summary>
     private static bool Lily(FloraSpec flora, uint seed, int x, int z, DressingSymmetry symmetry)
     {
         if (flora.LilyShare <= 0) return false;
         var (fx, fz) = symmetry.Canonical(x, z);
-        return PatternNoise.Fbm(fx, fz, seed, flora.Scale, flora.Octaves) >= 1 - flora.Coverage
+        return Grows(flora, seed, fx, fz, 1)
             && PatternNoise.Fbm(fx, fz, seed + 55, flora.Scale, 2) >= 1 - flora.LilyShare;
     }
 
