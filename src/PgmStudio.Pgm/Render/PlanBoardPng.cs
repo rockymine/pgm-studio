@@ -16,12 +16,10 @@ namespace PgmStudio.Pgm.Render;
 /// </summary>
 public static class PlanBoardPng
 {
-    private const int Background = 0x11141a;
-
-    /// <summary><see cref="PlanBoardPalette.Key"/>, appended by <see cref="Legend"/> below the raster so an image
+        /// <summary><see cref="PlanBoardPalette.Key"/>, appended by <see cref="Legend"/> below the raster so an image
     /// read on its own carries its key — the water lane hatched as the board paints it.</summary>
     private static readonly Legend.Entry[] LegendEntries =
-        [.. Key.Select(entry => new Legend.Entry(entry.Label.ToUpperInvariant(), entry.Rgb, entry.Hatched))];
+        [.. Key.Select(entry => new Legend.Entry(entry.Label.ToUpperInvariant(), entry.Ink.Edge))];
 
     /// <summary><b>scale</b> is pixels per proxy cell. Raster has no lossless zoom, so this defaults higher than
     /// the SVG's own default — legible at the fixed size an image reader actually opens it at.
@@ -35,32 +33,31 @@ public static class PlanBoardPng
         var pixels = new byte[width * height * 3];
         for (var row = 0; row < height; row++)
             for (var col = 0; col < width; col++)
-                Raster.Set(pixels, width, col, row, Background);
+                Raster.Set(pixels, width, col, row, PaperRgb);
 
         if (scene is not null)
         {
             int X(double cx) => (int)Math.Round((cx - scene.MinX) * scale) + pad;
             int Z(double cz) => (int)Math.Round((cz - scene.MinZ) * scale) + pad;
 
-            // A water lane and a build zone are the same gap with different crossing rules — separated here by
-            // hue (never a shade of the same blue) and, for the lane, by a hatch on top of it.
+            foreach (var piece in scene.Pieces)
+            {
+                var ink = InkOf(RoleOf(piece.Role, piece.Id));
+                var faint = piece.K == 0 ? 1.0 : 0.5;
+                var px = X(piece.Rect.X); var pz = Z(piece.Rect.Z);
+                var pw = piece.Rect.Width * scale; var ph = piece.Rect.Height * scale;
+                FillRect(pixels, width, height, px, pz, pw, ph, ink.Fill, faint);
+                StrokeRect(pixels, width, height, px, pz, pw, ph, ink.Edge, faint, dashed: false);
+            }
+
+            // A build zone and a water lane draw alike: a dashed outline over a faint tint.
             foreach (var zone in scene.Zones)
             {
                 var x = X(zone.Rect.X); var z = Z(zone.Rect.Z);
                 var w = zone.Rect.Width * scale; var h = zone.Rect.Height * scale;
-                if (zone.Lane) Raster.FillHatchedRect(pixels, width, height, x, z, w, h, WaterLaneRgb, 0.34, period: 6);
-                else FillRect(pixels, width, height, x, z, w, h, BuildZoneRgb, 0.38);
-            }
-
-            foreach (var piece in scene.Pieces)
-            {
-                var rgb = PieceRgb(piece.Id);
-                var room = piece.Role != PlanRoles.Piece;
-                var op = piece.K == 0 ? (room ? 0.95 : 0.4) : (room ? 0.55 : 0.22);
-                var px = X(piece.Rect.X); var pz = Z(piece.Rect.Z);
-                var pw = piece.Rect.Width * scale; var ph = piece.Rect.Height * scale;
-                FillRect(pixels, width, height, px, pz, pw, ph, rgb, op);
-                StrokeRect(pixels, width, height, px, pz, pw, ph, rgb, piece.K == 0 ? 1.0 : 0.4);
+                var faint = zone.K == 0 ? 1.0 : 0.5;
+                FillRect(pixels, width, height, x, z, w, h, Zone.Fill, 0.07 * faint);
+                StrokeRect(pixels, width, height, x, z, w, h, Zone.Edge, faint, dashed: true);
             }
 
             // markers at their fanned cells: iron (grey pip), wool (colour disc), spawn (pale disc drawn last, on top)
@@ -79,8 +76,8 @@ public static class PlanBoardPng
         var op = marker.K == 0 ? 1.0 : 0.5;
         switch (marker.Kind)
         {
-            case "spawn": FillCircle(pixels, width, height, cx, cy, 3, 0xe2e8f5, op); break;
-            case "iron": FillRect(pixels, width, height, cx - 3, cy - 3, 6, 6, 0x94a3b8, op); break;
+            case "spawn": FillCircle(pixels, width, height, cx, cy, 3, Spawn.Edge, op); break;
+            case "iron": FillRect(pixels, width, height, cx - 3, cy - 3, 6, 6, AxisRgb, op); break;
             case "wool":
                 FillCircle(pixels, width, height, cx, cy, 4, WoolRgb(marker.Color), op);
                 StrokeCircle(pixels, width, height, cx, cy, 4, 0x1e293b, op * 0.5);
@@ -95,15 +92,19 @@ public static class PlanBoardPng
                 Raster.Over(pixels, width, col, row, rgb, opacity);
     }
 
-    private static void StrokeRect(byte[] pixels, int width, int height, int x, int z, int w, int h, int rgb, double opacity)
+    private static void StrokeRect(byte[] pixels, int width, int height, int x, int z, int w, int h, int rgb, double opacity, bool dashed)
     {
+        // a dashed outline is 5 pixels on, 3 off, counted along each side
+        bool On(int along) => !dashed || along % 8 < 5;
         for (var col = Math.Max(0, x); col < Math.Min(width, x + w); col++)
         {
+            if (!On(col - x)) continue;
             if (z >= 0 && z < height) Raster.Over(pixels, width, col, z, rgb, opacity);
             if (z + h - 1 >= 0 && z + h - 1 < height) Raster.Over(pixels, width, col, z + h - 1, rgb, opacity);
         }
         for (var row = Math.Max(0, z); row < Math.Min(height, z + h); row++)
         {
+            if (!On(row - z)) continue;
             if (x >= 0 && x < width) Raster.Over(pixels, width, x, row, rgb, opacity);
             if (x + w - 1 >= 0 && x + w - 1 < width) Raster.Over(pixels, width, x + w - 1, row, rgb, opacity);
         }

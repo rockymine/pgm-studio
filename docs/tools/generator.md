@@ -248,8 +248,9 @@ wools per team — restart the page from the library's first board when a value 
 one chip per **size band**, labelled with the band's name and its range (`Nano · 6–13`, `Centi · 32+`), read
 from `SizeBands` in the vocabulary leaf rather than restated in the client; exactly one band holds, and the
 request names it by the count in the middle of its range. A band is one at a time because the feed is one band's
-library; a request is still bound only by the endpoint's own clamp, 6–47. Wools per team is a min/max pair
-where an empty box means unset. *Filter by shape* — wool approaches, hub and front line — is a set of ticked
+library; a request is still bound only by the endpoint's own clamp, 6–47. Wools per team is one chip per count, `1` to `3` (`WoolCounts` in the vocabulary leaf, the range the composer draws from), and
+several may be ticked at once: a board matches any one ticked count, and none ticked takes any. The chips carry no
+counts, because the census holds forms, not wool counts. *Filter by shape* — wool approaches, hub and front line — is a set of ticked
 chips, each with the count of boards in the library that have it, and *Clear* empties all three. Wool approaches
 are **must-include**: every family ticked has to be present on the board. Hub and front line are **any-of**.
 Under the shape chips a link, *Browse every shape in the catalog*, opens `/catalog`, the vocabulary the
@@ -273,14 +274,29 @@ dimmed, and an empty grid says *these players and symmetry don't produce it* rat
 match these filters*. A library with nothing for the settings says it is still being generated.
 
 **A card is the board and its id.** The picture is the whole fanned board in a square frame on the
-theme's board ground (`--board-bg`: dark in the dark theme, slate-200 in the light one), server-rendered from the same scene the PNG endpoint draws, coloured by role — hub violet, spawn
-green, wool amber, front line orange — with a build zone in pink and a water lane in blue under a diagonal
-hatch. The picture carries no text: the page draws the key once above the grid, from the `key` the feed
-returns. Under the picture the card shows only the layout's id, `composed-p{players}-t{teams}-{seed}`, in the
-same name label the library's cards carry (`PictureCard`); the score, wool count and structure line are not on
-the card, and the score is shown nowhere on the page. Opening a card gives a drawer with the key, the layout id,
-wool count, band, symmetry and seed, the wool, hub and front-line forms, the per-box spend table, any hard
-terms it failed, and the descriptor as JSON under *Layout code*, beside *Copy JSON*.
+theme's board ground (`--board-bg`: white in the light theme, near-black in the dark one), server-rendered from
+the same scene the PNG endpoint draws, in four inks. Spawn rooms are green and wool rooms orange, each a pale fill
+with a strong edge; a build zone is a dashed blue outline; and everything else — hub, front line, approaches, any
+other piece — is one ground grey, a tint of the plan editor's piece colour (`--canvas-role-piece`), so a board
+and the editor's pieces read as one. The fanned images are drawn at half strength. The names of the grey roles
+live in the structure line of the detail drawer, not in colour. The inks are `PlanBoardPalette`'s
+`Ground`, `Spawn`, `WoolRoom` and `Zone`; each reads its `--board-*` tokens first (`--board-ground`,
+`--board-ground-edge`, `--board-spawn`, `--board-spawn-edge`, `--board-wool`, `--board-wool-edge`,
+`--board-zone`, `--board-iron`) and falls back to the paper values, which is why one SVG serves both themes. A
+water lane draws exactly as a build zone: the composer builds none, and the key has one outline.
+The picture carries no text: the page draws the key once above the grid (*Spawn*, *Wool room*, *Ground (rest)*,
+*Build zone*), from the `key` the feed returns. Under the picture the card shows only the layout's id,
+`composed-p{players}-t{teams}-{seed}`, in the same name label the library's cards carry (`PictureCard`); the
+score, wool count and structure line are not on the card, and the score is shown nowhere on the page.
+
+**The drawer is the larger view, and it can tint one role at a time.** Opening a card gives a wide drawer: the
+picture at most 62% of the viewport high, a *Highlight* row of six toggles — *Hub*, *Front line*, *Approaches*,
+*Spawn*, *Wool rooms*, *Build zone* — then the key, the layout id, wool count, band, symmetry and seed, the wool,
+hub and front-line forms, the per-box spend table, any hard terms it failed, and the descriptor as JSON under
+*Layout code*, beside *Copy JSON*. Every piece in the SVG carries a `role-*` class from `BoardRoles` (`hub`,
+`frontline`, `approach`, `spawn`, `wool`, `other`, and `zone` for a zone), and a toggle adds `board-hl-{role}`
+to the picture's frame, which restyles those pieces in the accent by CSS: the picture is not requested again.
+None are on when the drawer opens, several may be on together, and the rest of the board stays as drawn.
 
 **Land spend is two currencies and the card says so.** *Footprint* is the box rectangle, fixed when the box
 was seated; *land* is what the filled pieces actually cover, which is what the spend gate holds against the
@@ -340,8 +356,8 @@ plan row and deleting one is an admin's.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /compose?players=&symmetry=&from=&count=` | `{cards, next, end, matching, observed, key}` — a page of the library, best score first: each card its descriptor, score, wool count, structural read, hard terms, top three soft terms, board SVG and land spend; `next` the position to ask from, `end` whether this page reaches the last matching board, `matching` how many match, `observed` the census of every board held for the band and symmetry, `key` the role and zone colours the SVGs are drawn in | 400 unsupported symmetry · 400 unsupported team count |
-| … `&maxScore=&woolMin=&woolMax=` | the same, sieved on the evaluator score and the wool count; the page sends `woolMin` and `woolMax` only, `maxScore` is for a script | — |
+| `GET /compose?players=&symmetry=&from=&count=` | `{cards, next, end, matching, observed, key}` — a page of the library, best score first: each card its descriptor, score, wool count, structural read, hard terms, top three soft terms, board SVG and land spend; `next` the position to ask from, `end` whether this page reaches the last matching board, `matching` how many match, `observed` the census of every board held for the band and symmetry, `key` the four inks the SVGs are drawn in | 400 unsupported symmetry · 400 unsupported team count |
+| … `&maxScore=&woolCount=` | the same, sieved on the evaluator score and the wool count; `woolCount` is CSV and any-of (`1,3` takes boards with one or three wools), and the page sends it only, `maxScore` is for a script | — |
 | … `&wools=&hub=&front=` | the same, sieved structurally — `wools` must-include, `hub` and `front` any-of, all CSV | — |
 | `POST /compose/pin` | the stored `PlanDetail` — keeps the library board a **descriptor body** names, the `{players, teams, symmetry, seed, …}` record a card carries, labelled for its player count and saved as a generated row (idempotent by content hash) | 400 `RQ1` invalid descriptor · 404 a board the library does not hold |
 | `GET /plans?origin=generated` | the hold tray: summaries newest-touched first, each with its descriptor and whether it is stale | — |
@@ -432,9 +448,7 @@ the feed carries soft distance only.
 them again, so the denominator inflates across a long session of chip-toggling. The proportions stay right;
 the absolute number does not, and it is the number the confidence threshold reads.
 
-**The picture is read with a key.** The board render colours by role, and blue being the universal visual code
-for water is what lets a central build zone be read as water on a map that carries none. So a build zone
-paints in a hue no water ever wears rather than a second shade of blue, and every page that shows boards draws
-`PlanBoardPalette.Key` beside them, while the PNG an agent reads appends the same key under its raster
-(`B95`). A card still answers *did this compose*, never *what is this*, but a reader cannot mistake the colours
-for an answer to the second question.
+**The picture is read with a key.** Every page that shows boards draws `PlanBoardPalette.Key` beside them,
+while the PNG an agent reads appends the same key under its raster (`B95`), on white paper in the light-theme
+inks. A card still answers *did this compose*, never *what is this*: the grey carries no role, so a reader cannot
+take a colour for an answer to the second question.

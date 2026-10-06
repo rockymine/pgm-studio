@@ -30,14 +30,12 @@ public sealed class PlanBoardSvgTests
     }
 
     [Test]
-    public async Task The_key_names_every_role_and_both_zone_kinds_once()
+    public async Task The_key_names_the_four_inks_and_dashes_only_the_build_zone()
     {
-        // Whoever shows a board shows its key, so the key has to cover every colour a board can paint,
-        // whether or not one particular board uses them all.
         var labels = PlanBoardPalette.Key.Select(entry => entry.Label).ToList();
 
-        await Assert.That(labels).IsEquivalentTo(new[] { "Hub", "Spawn", "Wool", "Front line", "Other", "Build zone", "Water lane" });
-        await Assert.That(PlanBoardPalette.Key.Single(entry => entry.Hatched).Label).IsEqualTo("Water lane");
+        await Assert.That(labels).IsEquivalentTo(new[] { "Spawn", "Wool room", "Ground (rest)", "Build zone" });
+        await Assert.That(PlanBoardPalette.Key.Single(entry => entry.Dashed).Label).IsEqualTo("Build zone");
     }
 
     [Test]
@@ -50,30 +48,62 @@ public sealed class PlanBoardSvgTests
     }
 
     [Test]
-    public async Task A_water_lane_draws_with_the_hatch_pattern_and_a_build_zone_does_not()
+    public async Task Every_piece_carries_its_role_class_and_ground_roles_share_the_ground_ink()
     {
         var plan = new PlanModel();
         plan.Globals.Symmetry = "none";
-        plan.Pieces.Add(new PlanPiece { Id = "hub-1", Role = PlanRoles.Piece, Rect = new CellRect(0, 0, 4, 4) });
+        plan.Pieces.Add(new PlanPiece { Id = "hub", Role = PlanRoles.Piece, Rect = new CellRect(0, 0, 4, 4) });
+        plan.Pieces.Add(new PlanPiece { Id = "frontline", Role = PlanRoles.Piece, Rect = new CellRect(4, 0, 4, 4) });
+        plan.Pieces.Add(new PlanPiece { Id = "wool-a", Role = PlanRoles.Piece, Rect = new CellRect(8, 0, 4, 4) });
+        plan.Pieces.Add(new PlanPiece { Id = "wool-a-room", Role = PlanRoles.WoolRoom, Rect = new CellRect(12, 0, 4, 4) });
+        plan.Pieces.Add(new PlanPiece { Id = "spawn-room", Role = PlanRoles.Spawn, Rect = new CellRect(16, 0, 4, 4) });
+
+        var svg = PlanBoardSvg.Render(plan);
+
+        foreach (var role in new[] { BoardRoles.Hub, BoardRoles.Frontline, BoardRoles.Approach, BoardRoles.Wool, BoardRoles.Spawn })
+            await Assert.That(svg).Contains($"class='role-{role}'");
+        var ground = PlanBoardPalette.Ground.FillCss;
+        await Assert.That(svg.Split(ground).Length - 1).IsEqualTo(3);
+        await Assert.That(svg).Contains(PlanBoardPalette.WoolRoom.FillCss);
+        await Assert.That(svg).Contains(PlanBoardPalette.Spawn.FillCss);
+    }
+
+    [Test]
+    public async Task A_zone_draws_as_a_dashed_outline_and_a_water_lane_draws_the_same()
+    {
+        var plan = new PlanModel();
+        plan.Globals.Symmetry = "none";
+        plan.Pieces.Add(new PlanPiece { Id = "hub", Role = PlanRoles.Piece, Rect = new CellRect(0, 0, 4, 4) });
         plan.Zones.Add(new PlanZone { Id = "bz-1", Rect = new CellRect(4, 0, 4, 4) });
         plan.Zones.Add(new PlanZone { Id = "wl-1", Rect = new CellRect(8, 0, 4, 4), Kind = PlanZoneKinds.WaterLane });
 
         var svg = PlanBoardSvg.Render(plan);
 
-        await Assert.That(svg).Contains("waterLaneHatch");
-        // The build zone's own rect fills with its flat colour rather than the hatch pattern.
-        await Assert.That(svg).Contains($"fill='{PlanBoardPalette.BuildZoneColor}' fill-opacity='0.38'");
+        await Assert.That(svg.Split($"class='role-{BoardRoles.Zone}'").Length - 1).IsEqualTo(2);
+        await Assert.That(svg.Split("stroke-dasharray='5 3'").Length - 1).IsEqualTo(2);
+        await Assert.That(svg).DoesNotContain("Hatch");
     }
 
     [Test]
-    public async Task The_svg_paints_no_ground_and_themes_its_ground_dependent_markers()
+    public async Task The_fanned_images_are_faint_and_the_base_unit_is_not()
+    {
+        var plan = Composer.Compose(new ComposeRequest(12, seed: 3));
+
+        var svg = PlanBoardSvg.Render(plan);
+
+        await Assert.That(svg).Contains("opacity='0.5'");
+        await Assert.That(svg).Contains("stroke-width='1'/>");
+    }
+
+    [Test]
+    public async Task The_svg_paints_no_ground_and_themes_every_ink()
     {
         var plan = Composer.Compose(new ComposeRequest(12, seed: 3));
 
         var svg = PlanBoardSvg.Render(plan);
 
         await Assert.That(svg).DoesNotContain("0b1222");
-        await Assert.That(svg).Contains("var(--board-spawn,");
-        await Assert.That(svg).DoesNotContain("fill='#e2e8f5'");
+        await Assert.That(svg).Contains("var(--board-ground,");
+        await Assert.That(svg).Contains("var(--board-spawn-edge,");
     }
 }

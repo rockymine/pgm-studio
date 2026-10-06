@@ -33,15 +33,12 @@
           }
         </FilterGroup>
 
-        <Field Label="Wools per team">
-          <div class="gen-wool">
-            <NumberField Min="0" Max="6" Value="@(woolMin > 0 ? woolMin : null)" ValueChanged="OnWoolMin"
-                         OnCleared="() => OnWoolMin(0)" aria-label="At least" placeholder="Any" />
-            <span>to</span>
-            <NumberField Min="0" Max="6" Value="@(woolMax > 0 ? woolMax : null)" ValueChanged="OnWoolMax"
-                         OnCleared="() => OnWoolMax(0)" aria-label="At most" placeholder="Any" />
-          </div>
-        </Field>
+        <FilterGroup Label="Wools per team" Hint="any of" Multi>
+          @foreach (var count in WoolCounts.All)
+          {
+            <Chip Active="woolCounts.Contains(count)" OnClick="() => ToggleWoolCount(count)">@count</Chip>
+          }
+        </FilterGroup>
       </FilterPanel>
 
       <FilterPanel Title="Filter by shape" Active="ShapeFiltered" OnClear="ClearShapeFilters">
@@ -157,9 +154,16 @@
 
   @if (detail is { } d)
   {
-    <SideDrawer Open="true" Title="Layout details" Icon="layout-grid" OnClose="CloseDetail">
+    <SideDrawer Open="true" Wide="true" Title="Layout details" Icon="layout-grid" OnClose="CloseDetail">
       <Body>
-        <div class="gen-detail-fig">@((MarkupString)d.Svg)</div>
+        <div class="gen-detail-fig @HighlightClasses">@((MarkupString)d.Svg)</div>
+        <div class="gen-highlight" role="group" aria-label="Highlight">
+          <span class="gen-highlight-label">Highlight</span>
+          @foreach (var (role, label) in HighlightRoles)
+          {
+            <Chip Active="highlights.Contains(role)" OnClick="() => ToggleHighlight(role)">@label</Chip>
+          }
+        </div>
         <BoardKey Entries="key" />
         <div class="gen-detail-meta">
           <strong>@LayoutId(d)</strong> · @d.WoolCount @(d.WoolCount == 1 ? "wool" : "wools") ·

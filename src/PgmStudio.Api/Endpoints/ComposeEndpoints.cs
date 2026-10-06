@@ -14,8 +14,8 @@ namespace PgmStudio.Api.Endpoints;
 /// <summary>
 /// GET /api/compose — the browse feed: a page of the composed-board library (<see cref="ComposedBoardLibrary"/>)
 /// for the size band <c>players</c> falls in and a symmetry, best score first with the seed breaking ties.
-/// <c>wools</c> must each be present, <c>hub</c> and <c>front</c> take any one form named, <c>maxScore</c> caps
-/// the score and <c>woolMin</c>/<c>woolMax</c> bound the wool count. Nothing is composed on request, so a page is
+/// <c>wools</c> must each be present, <c>hub</c> and <c>front</c> take any one form named, <c>woolCount</c> any
+/// one count named, and <c>maxScore</c> caps the score. Nothing is composed on request, so a page is
 /// a read and the feed ends where the library does. Every card is labelled for <c>players</c>. The census counts
 /// every board the library holds for the band and symmetry, before the filters, so a chip can say what these
 /// settings produce.
@@ -41,10 +41,8 @@ public sealed class ComposeBrowseEndpoint(ComposedBoardStore library) : Endpoint
                 Min: 1, Max: MaxPage),
             new QueryWord("maxScore", "Only the boards scoring at most this. Absent caps nothing.",
                 Value: QueryValue.Number),
-            new QueryWord("woolMin", "Only the boards carrying at least this many wools. Absent bounds nothing.",
-                Value: QueryValue.Integer),
-            new QueryWord("woolMax", "Only the boards carrying at most this many wools. Absent bounds nothing.",
-                Value: QueryValue.Integer),
+            new QueryWord("woolCount", "Wool counts between commas, any one of which a board may carry. Absent "
+                + "takes any."),
             new QueryWord("wools", "Wool forms between commas, every one of which a board must carry. Absent "
                 + "requires none."),
             new QueryWord("hub", "Hub forms between commas, any one of which a board may have. Absent takes any."),
@@ -86,8 +84,7 @@ public sealed class ComposeBrowseEndpoint(ComposedBoardStore library) : Endpoint
         var query = new ComposedBoardQuery(
             version, band, symmetry,
             Query<double?>("maxScore", isRequired: false),
-            Query<int?>("woolMin", isRequired: false),
-            Query<int?>("woolMax", isRequired: false),
+            [.. Csv("woolCount").Select(token => int.TryParse(token, out var count) ? count : -1)],
             Csv("wools"), Csv("hub"), Csv("front"));
         var (rows, matching) = await library.PageAsync(query, from, count, ct);
         var census = ComposedBoardLibrary.Census(await library.FormsAsync(version, band, symmetry, ct));
@@ -213,5 +210,6 @@ public sealed class PlanPngEndpoint(PlanStore store) : EndpointWithoutRequest
 internal static class BoardKey
 {
     public static readonly IReadOnlyList<BoardKeyEntry> Entries =
-        [.. PlanBoardPalette.Key.Select(entry => new BoardKeyEntry(entry.Label, PlanBoardPalette.Hex(entry.Rgb), entry.Hatched))];
+        [.. PlanBoardPalette.Key.Select(entry => new BoardKeyEntry(
+            entry.Label, entry.Ink.Name, PlanBoardPalette.Hex(entry.Ink.Fill), PlanBoardPalette.Hex(entry.Ink.Edge), entry.Dashed))];
 }

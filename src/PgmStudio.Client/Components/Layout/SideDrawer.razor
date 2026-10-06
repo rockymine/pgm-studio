@@ -8,7 +8,7 @@
 @if (Open)
 {
   <div class="side-drawer-backdrop" @onclick="Close"></div>
-  <div class="side-drawer" @onclick:stopPropagation="true">
+  <div class="@(Wide ? "side-drawer side-drawer--wide" : "side-drawer")" @onclick:stopPropagation="true">
     <div class="side-drawer-head">
       <div class="detail-header">
         @if (!string.IsNullOrEmpty(Icon)) { <span class="geo-type-icon"><i data-lucide="@Icon"></i></span> }
@@ -37,6 +37,9 @@
 
     /// <summary>Optional Lucide icon name for the header (e.g. "layout-grid").</summary>
     [Parameter] public string? Icon { get; set; }
+
+    /// <summary>A drawer wide enough for a picture, rather than a form.</summary>
+    [Parameter] public bool Wide { get; set; }
 
     /// <summary>The scrolling body content.</summary>
     [Parameter] public RenderFragment? Body { get; set; }

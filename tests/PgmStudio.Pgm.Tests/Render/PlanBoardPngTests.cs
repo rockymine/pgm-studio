@@ -72,8 +72,8 @@ public sealed class PlanBoardPngTests
         var png = PlanBoardPng.Render(plan);
         var (_, height) = Dimensions(png);
 
-        // The legend strip is present even for a plan whose own board is small — seven rows worth of key
-        // (five roles + two zone kinds), which is always taller than a few pixels of margin.
+        // The legend strip is present even for a plan whose own board is small, so the image is always taller
+        // than a few pixels of margin.
         await Assert.That(height).IsGreaterThan(60);
     }
 
@@ -116,63 +116,43 @@ public sealed class PlanBoardPngTests
         return pixels;
     }
 
-    private static bool RegionContainsMoreThanOneShade(byte[] pixels, int width, int x0, int z0, int w, int h)
+    private static byte[] ZoneBoard(string kind, int scale, out int width, out int height)
     {
-        var seen = new HashSet<(byte, byte, byte)>();
-        for (var row = z0; row < z0 + h; row++)
-            for (var col = x0; col < x0 + w; col++)
-            {
-                var offset = (row * width + col) * 3;
-                seen.Add((pixels[offset], pixels[offset + 1], pixels[offset + 2]));
-            }
-        return seen.Count > 1;
+        var plan = new PlanModel();
+        plan.Globals.Symmetry = "none";
+        plan.Zones.Add(new PlanZone { Id = "z-1", Rect = new CellRect(0, 0, 6, 6), Kind = kind });
+        var png = PlanBoardPng.Render(plan, scale, pad: 0);
+        (width, height) = Dimensions(png);
+        return DecodePixels(png, width, height);
+    }
+
+    private static int Rgb(byte[] pixels, int width, int col, int row)
+    {
+        var offset = (row * width + col) * 3;
+        return (pixels[offset] << 16) | (pixels[offset + 1] << 8) | pixels[offset + 2];
     }
 
     [Test]
-    public async Task A_water_lane_paints_more_than_one_shade_over_its_own_rect_and_a_build_zone_paints_one()
+    public async Task A_zone_is_a_dashed_outline_over_paper()
     {
         const int scale = 10;
-        var lanePlan = new PlanModel();
-        lanePlan.Globals.Symmetry = "none";
-        lanePlan.Zones.Add(new PlanZone { Id = "wl-1", Rect = new CellRect(0, 0, 6, 6), Kind = PlanZoneKinds.WaterLane });
-        var lanePng = PlanBoardPng.Render(lanePlan, scale, pad: 0);
-        var (laneWidth, laneHeight) = Dimensions(lanePng);
-        var lanePixels = DecodePixels(lanePng, laneWidth, laneHeight);
+        var pixels = ZoneBoard(PlanZoneKinds.Build, scale, out var width, out _);
 
-        var buildPlan = new PlanModel();
-        buildPlan.Globals.Symmetry = "none";
-        buildPlan.Zones.Add(new PlanZone { Id = "bz-1", Rect = new CellRect(0, 0, 6, 6) });
-        var buildPng = PlanBoardPng.Render(buildPlan, scale, pad: 0);
-        var (buildWidth, buildHeight) = Dimensions(buildPng);
-        var buildPixels = DecodePixels(buildPng, buildWidth, buildHeight);
-
-        // Both boards are one 6x6-cell zone at the same scale, so the zone's own pixel rect is identical in
-        // extent; only the water lane's hatch should vary its fill within that rect.
-        await Assert.That(RegionContainsMoreThanOneShade(lanePixels, laneWidth, 0, 0, 6 * scale, 6 * scale)).IsTrue();
-        await Assert.That(RegionContainsMoreThanOneShade(buildPixels, buildWidth, 0, 0, 6 * scale, 6 * scale)).IsFalse();
+        // The top edge alternates ink and paper; the gaps and the interior are paper under a barely-there tint.
+        var edge = Enumerable.Range(0, 6 * scale).Select(col => Rgb(pixels, width, col, 0)).ToList();
+        await Assert.That(edge.Contains(PlanBoardPalette.Zone.Edge)).IsTrue();
+        await Assert.That(edge.Any(rgb => rgb != PlanBoardPalette.Zone.Edge)).IsTrue();
+        var centre = Rgb(pixels, width, 3 * scale, 3 * scale);
+        await Assert.That(centre >> 16 & 0xFF).IsGreaterThan(0xE0);
     }
 
     [Test]
-    public async Task The_build_zone_and_water_lane_pixels_differ_in_hue_not_only_shade()
+    public async Task A_water_lane_paints_exactly_as_a_build_zone_does()
     {
         const int scale = 10;
-        var lanePlan = new PlanModel();
-        lanePlan.Globals.Symmetry = "none";
-        lanePlan.Zones.Add(new PlanZone { Id = "wl-1", Rect = new CellRect(0, 0, 6, 6), Kind = PlanZoneKinds.WaterLane });
-        var lanePixels = DecodePixels(PlanBoardPng.Render(lanePlan, scale, pad: 0), 6 * scale, 6 * scale);
+        var zone = ZoneBoard(PlanZoneKinds.Build, scale, out _, out _);
+        var lane = ZoneBoard(PlanZoneKinds.WaterLane, scale, out _, out _);
 
-        var buildPlan = new PlanModel();
-        buildPlan.Globals.Symmetry = "none";
-        buildPlan.Zones.Add(new PlanZone { Id = "bz-1", Rect = new CellRect(0, 0, 6, 6) });
-        var buildPixels = DecodePixels(PlanBoardPng.Render(buildPlan, scale, pad: 0), 6 * scale, 6 * scale);
-
-        // Sample the zone centre of each board: the water lane reads blue (B channel dominant), the build
-        // zone does not.
-        var centre = (3 * scale) * (6 * scale) * 3 + (3 * scale) * 3;
-        var laneIsBlue = lanePixels[centre + 2] > lanePixels[centre] && lanePixels[centre + 2] > lanePixels[centre + 1];
-        var buildIsBlue = buildPixels[centre + 2] > buildPixels[centre] && buildPixels[centre + 2] > buildPixels[centre + 1];
-
-        await Assert.That(laneIsBlue).IsTrue();
-        await Assert.That(buildIsBlue).IsFalse();
+        await Assert.That(lane).IsEquivalentTo(zone);
     }
 }
