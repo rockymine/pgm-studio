@@ -49,34 +49,9 @@
 .gen-scanned strong { color: var(--text-bright); }
 .gen-toolbar .board-key { margin-left: auto; }
 
-/* A card is a fixed-shape picture over two short lines: what the layout is made of, then its numbers. The
-   picture is drawn for a dark ground, so its frame is dark in either theme. */
+/* A card is the shared picture card (lib-card): the board in a square frame, then the layout's id. */
 .gen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(230px * var(--ui-scale)), 1fr)); gap: var(--space-3); }
-.gen-card {
-  position: relative; display: flex; flex-direction: column; overflow: hidden;
-  background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md);
-  transition: border-color var(--transition-fast);
-}
-.gen-card:hover { border-color: var(--text-muted); }
 .gen-card--pinned { border-color: var(--accent); box-shadow: var(--shadow-ring); }
-/* The frame is square whatever the board's own proportions; the drawing is laid inside it and scaled to fit,
-   so a tall board and a wide one sit in cards of one size. */
-.gen-card-fig {
-  position: relative; display: block; aspect-ratio: 1; min-height: 0; width: 100%; overflow: hidden;
-  background: var(--board-bg); border: none; cursor: pointer;
-}
-.gen-card-fig svg {
-  position: absolute; top: var(--space-3); left: var(--space-3);
-  width: calc(100% - 2 * var(--space-3)); height: calc(100% - 2 * var(--space-3));
-}
-.gen-card-body { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2) var(--space-3) var(--space-3); }
-.gen-card-shape { display: flex; flex-wrap: wrap; gap: 2px var(--space-3); margin: 0; font-size: var(--font-sm); }
-.gen-card-shape > div { display: flex; gap: var(--space-1); }
-.gen-card-shape dt { color: var(--text-muted); }
-.gen-card-shape dd { margin: 0; color: var(--text-bright); }
-.gen-card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); font-size: var(--font-sm); color: var(--text-secondary); }
-.gen-card-stat { white-space: nowrap; }
-.gen-card-stat strong { color: var(--text-bright); font-weight: 600; }
 /* Pin floats over the picture's top-right corner, on the floating chrome's glass so it reads on the dark frame. */
 .gen-pin {
   position: absolute; top: var(--space-2); right: var(--space-2); z-index: 1;
@@ -120,3 +95,11 @@
 .gen-spend-table th { font-weight: 500; color: var(--text-secondary); text-transform: lowercase; }
 .gen-spend-table td { font-family: ui-monospace, monospace; color: var(--text-bright); }
 .gen-spend-table tfoot td { border-bottom: none; color: var(--text-secondary); }
+
+/* The way into the shape catalog, under the shape filters. */
+.gen-catalog-link {
+  display: flex; align-items: center; justify-content: flex-start; gap: var(--space-2); margin-top: var(--space-2);
+  font-size: var(--font-sm); color: var(--accent-lighter); text-decoration: none;
+}
+.gen-catalog-link:hover { text-decoration: underline; }
+.gen-catalog-link svg { width: var(--icon-sm); height: var(--icon-sm); }

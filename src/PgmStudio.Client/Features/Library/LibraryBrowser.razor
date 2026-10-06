@@ -24,18 +24,13 @@
       <div class="lib-grid @(Wide ? "lib-grid--wide" : null)">
         @foreach (var row in Shown)
         {
-          <div class="lib-card" @key="row.Id">
-            <a class="lib-card-fig" href="@($"/library/{Kind.Slug}/{row.Id}")" title="@($"Open {row.Name}")">
-              @((MarkupString)row.Preview)
-            </a>
-            <div class="lib-card-body">
-              <div class="lib-card-title"><span>@row.Name</span></div>
-              @if (Badge is not null)
-              {
-                <div class="lib-card-badges"><span class="lib-badge">@Badge(row)</span></div>
-              }
-            </div>
-          </div>
+          <PictureCard @key="row.Id" Svg="@row.Preview" Name="@row.Name" Href="@($"/library/{Kind.Slug}/{row.Id}")"
+                       Title="@($"Open {row.Name}")">
+            @if (Badge is not null)
+            {
+              <div class="lib-card-badges"><span class="lib-badge">@Badge(row)</span></div>
+            }
+          </PictureCard>
         }
       </div>
 

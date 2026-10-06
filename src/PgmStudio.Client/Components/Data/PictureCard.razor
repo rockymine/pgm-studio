@@ -1,0 +1,46 @@
+@namespace PgmStudio.Client.Components
+
+@* A picture over a short body: the figure, which is a link when Href is set and a button otherwise, an
+   optional Overlay laid on the card (a pin, a menu), and a body holding the Name, its right-aligned Meta and
+   whatever ChildContent adds. A card with neither Name nor ChildContent is the picture alone. *@
+
+<div class="lib-card @Class">
+  @if (Href is not null)
+  {
+    <a class="lib-card-fig @FigClass" href="@Href" title="@Title">@((MarkupString)Svg)</a>
+  }
+  else
+  {
+    <button class="lib-card-fig @FigClass" @onclick="OnClick" title="@Title">@((MarkupString)Svg)</button>
+  }
+  @Overlay
+  @if (Name is not null || ChildContent is not null)
+  {
+    <div class="lib-card-body">
+      @if (Name is not null)
+      {
+        <div class="lib-card-title">
+          <span title="@Name">@Name</span>
+          @if (Meta is not null) { <span class="lib-card-meta">@Meta</span> }
+        </div>
+      }
+      @ChildContent
+    </div>
+  }
+</div>
+
+@code {
+    /// <summary>The picture, as SVG markup.</summary>
+    [Parameter, EditorRequired] public string Svg { get; set; } = "";
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public string? Meta { get; set; }
+    /// <summary>The figure's hover text.</summary>
+    [Parameter] public string? Title { get; set; }
+    /// <summary>Makes the figure a link; unset, it is a button raising <see cref="OnClick"/>.</summary>
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string? FigClass { get; set; }
+    [Parameter] public RenderFragment? Overlay { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
