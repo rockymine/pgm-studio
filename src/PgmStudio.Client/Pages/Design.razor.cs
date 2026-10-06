@@ -119,12 +119,25 @@ public partial class Design
         new("Spawn", "#8f7bd6", false), new("Buffer", "#f2792b", true),
     ];
 
-    private static readonly IReadOnlyList<Problem> ProblemSample =
+    [Inject] private RuleBook Book { get; set; } = default!;
+
+    /// <summary>A sample of the problem list, built on three real layout rules from <c>GET /api/rules</c> so each
+    /// row's title is the rule's own; empty until the rules have loaded.</summary>
+    private IReadOnlyList<Problem> problemSample = [];
+
+    private static readonly (string Where, Severity Severity)[] SampleFindings =
     [
-        Problem.Of(new Finding("CT1", "The two wool rooms share one block of ground.", Severity.Refusal, Subjects: ["red-wool", "blue-wool"]), 0),
-        Problem.Of(new Finding("CT4", "The lane is narrower than the spawn it leaves.", Severity.Complaint), 1),
-        Problem.Of(new Finding("CT5", "A decorative path was left out of the world.", Severity.Decline), 2),
+        ("the red and the blue wool room share 1 block of ground", Severity.Refusal),
+        ("the lane at 12, 40 is 3 blocks wide against 5 at the spawn", Severity.Complaint),
+        ("the path at 30, 8 crosses 2 blocks of void", Severity.Decline),
     ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var layout = (await Book.RulesAsync()).Values.Where(RuleWords.IsLayoutRule).Take(SampleFindings.Length).ToList();
+        problemSample = [.. layout.Select((rule, index) =>
+            Problem.Of(new Finding(rule.Rule, SampleFindings[index].Where, SampleFindings[index].Severity), index))];
+    }
 
     private readonly HashSet<string> chipsOn = ["plan", "wool"];
     private readonly List<AuthorRow> authors = [new() { Name = "Annealing Team", Contribution = "Layout" }];
