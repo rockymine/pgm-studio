@@ -40,7 +40,7 @@ shown, never name one.
 | `/rules` | `Rules` | every rule the studio can cite, filtered and opened one at a time; `?rule=` opens on one (`docs/refusals.md`) |
 | `/tokens` | `Tokens` | the signed-in person's API tokens |
 | `/admin/users` | `Users` | who may sign in, and with which role |
-| `/design` | `Design` | the component showcase |
+| `/design` | `Design` | the design system: tokens and every shared component, grouped by role |
 | `/not-found` | `NotFound` | 404 |
 
 Two tools are carried more than once, and both times the slug-less route is the origination surface: a map has
