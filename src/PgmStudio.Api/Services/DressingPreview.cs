@@ -98,6 +98,16 @@ public static class DressingPreview
             Math.Min(to, maxX + StandingRing), maxY, Math.Min(to, maxZ + StandingRing)));
     }
 
+    /// <summary>The ground a textured card stands a prop on: one course of grass over dirt, with nothing the
+    /// prop did not bring, so the picture is of the prop and not of a theme's ground cover.</summary>
+    public static TerrainTheme GrassGround { get; } = new()
+    {
+        Surface = new TopBand(new SolidMaterial(Blocks.Grass), Depth: 1),
+        Rim = new TopBand(new SolidMaterial(Blocks.Grass), Depth: 1),
+        Wall = new SolidMaterial(Blocks.Dirt),
+        Fill = new SolidMaterial(Blocks.Dirt),
+    };
+
     /// <summary>Blocks of ground drawn round a prop's own extent, so it reads as standing on something.</summary>
     private const int StandingRing = 2;
 

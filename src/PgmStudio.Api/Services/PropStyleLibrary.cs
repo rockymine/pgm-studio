@@ -203,7 +203,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
         => StructureCard.Once("prop-card" + (stage ? "/stage" : ""),
             DressingJson.SerializeProp(prop) + "\n" + DressingJson.SerializeStyle(recipe), sprites,
             flat: () => DressingPreview.Views(prop, Sample, stage ? StageCell : 3).Section,
-            volume: () => DressingPreview.Standing(prop, Sample),
+            volume: () => DressingPreview.Standing(prop, DressingPreview.GrassGround),
             stage);
 
     /// <summary>The pixels a block takes on the editor's stage in the flat picture, against a browse row's 3.</summary>

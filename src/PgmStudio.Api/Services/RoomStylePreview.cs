@@ -152,15 +152,15 @@ public static class RoomStylePreview
     /// have no raster to encode.</summary>
     public static readonly string[] PngViews = ["section", "plan"];
 
-    /// <summary>The sample room stamped with <paramref name="style"/>, over ground that reaches the shell's
-    /// footprint — so the floor has something to sit on and a deep one has something to sink into.</summary>
+    /// <summary>The sample room stamped with <paramref name="style"/>, over grass-topped dirt that reaches the
+    /// shell's footprint — so the floor has something to sit on and a deep one has something to sink into.</summary>
     private static VoxelWorld Stamped(HouseStyle style, RoomFrame sample)
     {
         var world = new VoxelWorld();
         for (var x = sample.MinX - Margin; x < sample.MaxX + Margin; x++)
         for (var z = sample.MinZ - Margin; z < sample.MaxZ + Margin; z++)
         for (var y = 1; y < FloorY; y++)
-            world.SetBlock(x, y, z, Blocks.Stone);
+            world.SetBlock(x, y, z, y == FloorY - 1 ? Blocks.Grass : Blocks.Dirt);
 
         HouseStamper.Stamp(world, sample, FloorY, style, SampleColor);
         // The pad belongs to the structure stampers rather than the shell, but a preview is of the room and

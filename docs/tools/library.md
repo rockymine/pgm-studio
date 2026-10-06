@@ -136,11 +136,13 @@ which it is. Measured over 53 seeded styles, sprite cards came to 446 KB against
 **A structure is drawn with the same sprites, seen from outside.** A house, a roof, a storey, a porch, a tree and
 a boulder are volumes, so their card is a three-quarter view of the structure on its patch of ground rather than
 a cell grid: the stamped building (cut to its part where the card is a part's), or the prop grown on the sample
-meadow, drawn by `EyeScene` — the renderer `render/eye` uses — from an eye `StructurePicture` places by the
-volume's size (30° round from south, 28° down, the bounding sphere fitted to the frame). It is a 160 × 120 PNG
+patch, drawn by `EyeScene` — the renderer `render/eye` uses — from an eye `StructurePicture` places by the
+volume's size (30° round from south, 28° down, the bounding sphere fitted to the frame). Both stand on one
+course of grass over dirt (`DressingPreview.GrassGround`, and the house sample's own ground), so the picture
+shows the structure and not a theme's ground cover. It is a 160 × 120 PNG
 on a browse row and 320 × 240 on a tree or boulder editor's stage, embedded as `<img class="block-render">`, and
 it is kept under `Drawings:Folder` by the row's document and the sprites' identity, exactly as a pattern's card
-is. A studio without the sprites answers the flat side-view SVG each of these kinds drew before, so the same
+is. A studio without the sprites answers the flat side-view SVG, so the same
 request answers a picture or an SVG according to the studio's `Textures` configuration. A house editor's own
 stage is unchanged: it already turns the building in the WebGL scene.
 
