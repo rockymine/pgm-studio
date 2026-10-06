@@ -332,9 +332,9 @@ anchor team's wool re-derives its symmetric partners; editing an orbit copy nudg
 
 **Monuments** confirms one monument per capturing team. The scan usually pre-fills them from signed pedestals;
 a gap is filled by drawing a box around a cluster, which routes each hit to its colour's wool with the
-capturing team read off the island. A team that already has a monument on that wool keeps it, so a monument two
-blocks tall is detected as one rather than two. An empty box drops one manual monument at the centre of the box,
-seated on that column's floor. A wool stating a second monument for one team is refused when the intent is
+capturing team read off the island. A team that already has a monument on that wool keeps it, so boxing a
+monument that is already placed adds nothing rather than a second for the same team. An empty box drops one
+manual monument at the centre of the box, seated on that column's floor, for a team that has none. A wool stating a second monument for one team is refused when the intent is
 stored (`OB32`), since its monument is one block region per team; an intent already carrying one loads with the
 first kept, which is the one the step shows, so saving the step states the wool as shown. **This step is dropped entirely on a sketch-origin map**, where a monument stands
 inside its capturing team's spawn and is derived from the stamp that built it

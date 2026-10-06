@@ -186,7 +186,7 @@ public partial class WoolMonumentsStep
     }
 
     // Add a monument unless one already sits at that block, or the team already has one: a wool takes one
-    // monument for each capturing team (OB32), and a detected monument two blocks tall is still one.
+    // monument for each capturing team (OB32), whether it is detected, dropped in an empty box or boxed again.
     private bool AddMonument(W.Wool w, string team, double x, double y, double z)
     {
         if (w.Monuments.Any(m => (int)m.X == (int)x && (int)m.Y == (int)y && (int)m.Z == (int)z)) return false;
