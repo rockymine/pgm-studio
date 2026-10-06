@@ -55,15 +55,18 @@ internal static class HousePartMapping
 
 // ── roofs ─────────────────────────────────────────────────────────────────────────────────────────────
 /// <summary>GET /api/roof-styles — the roof library, newest first, each on the sample building it tops.</summary>
-public sealed class RoofStyleListEndpoint(HousePartLibrary library) : EndpointWithoutRequest<List<RoofStyleSummary>>
+public sealed class RoofStyleListEndpoint(HousePartLibrary library, BlockTextureStore textures) : EndpointWithoutRequest<List<RoofStyleSummary>>
 {
     public override void Configure() { Get("/roof-styles"); }
 
     public override async Task HandleAsync(CancellationToken ct)
-        => await Send.OkAsync((await library.ComposeRoofsAsync(ct))
+    {
+        var sprites = await textures.ForPicturesAsync(ct);
+        await Send.OkAsync((await library.ComposeRoofsAsync(ct))
             .Select(entry => new RoofStyleSummary(
-                entry.Row.Id, entry.Row.Name, RoomStylePreview.CardOnce(entry.Style, part: RoomParts.Roof)))
+                entry.Row.Id, entry.Row.Name, RoomStylePreview.CardOnce(entry.Style, sprites, RoomParts.Roof)))
             .ToList(), ct);
+    }
 }
 
 /// <summary>GET /api/roof-styles/{id} — one roof with its per-part courses.</summary>
@@ -165,17 +168,20 @@ public sealed class RoofStyleDeleteEndpoint(HousePartStore store) : EndpointWith
 // ── storeys ───────────────────────────────────────────────────────────────────────────────────────────
 /// <summary>GET /api/storey-styles — the storey library, newest first, each as the one-storey building it
 /// makes.</summary>
-public sealed class StoreyStyleListEndpoint(HousePartLibrary library)
+public sealed class StoreyStyleListEndpoint(HousePartLibrary library, BlockTextureStore textures)
     : EndpointWithoutRequest<List<StoreyStyleSummary>>
 {
     public override void Configure() { Get("/storey-styles"); }
 
     public override async Task HandleAsync(CancellationToken ct)
-        => await Send.OkAsync((await library.ComposeStoreysAsync(ct))
+    {
+        var sprites = await textures.ForPicturesAsync(ct);
+        await Send.OkAsync((await library.ComposeStoreysAsync(ct))
             .Select(entry => new StoreyStyleSummary(
                 entry.Row.Id, entry.Row.Name, entry.Row.Clear,
-                RoomStylePreview.CardOnce(entry.Style, part: RoomParts.Wall)))
+                RoomStylePreview.CardOnce(entry.Style, sprites, RoomParts.Wall)))
             .ToList(), ct);
+    }
 }
 
 public sealed class StoreyStyleGetEndpoint(HousePartStore store) : EndpointWithoutRequest<StoreyStyleDetail>
@@ -270,15 +276,18 @@ public sealed class StoreyStyleDeleteEndpoint(HousePartStore store) : EndpointWi
 
 // ── porches ───────────────────────────────────────────────────────────────────────────────────────────
 /// <summary>GET /api/porch-styles — the porch library, newest first, each fronting the sample building.</summary>
-public sealed class PorchStyleListEndpoint(HousePartLibrary library)
+public sealed class PorchStyleListEndpoint(HousePartLibrary library, BlockTextureStore textures)
     : EndpointWithoutRequest<List<PorchStyleSummary>>
 {
     public override void Configure() { Get("/porch-styles"); }
 
     public override async Task HandleAsync(CancellationToken ct)
-        => await Send.OkAsync((await library.ComposePorchesAsync(ct))
-            .Select(entry => new PorchStyleSummary(entry.Row.Id, entry.Row.Name, RoomStylePreview.CardOnce(entry.Style)))
+    {
+        var sprites = await textures.ForPicturesAsync(ct);
+        await Send.OkAsync((await library.ComposePorchesAsync(ct))
+            .Select(entry => new PorchStyleSummary(entry.Row.Id, entry.Row.Name, RoomStylePreview.CardOnce(entry.Style, sprites)))
             .ToList(), ct);
+    }
 }
 
 public sealed class PorchStyleGetEndpoint(HousePartStore store) : EndpointWithoutRequest<PorchStyleDetail>

@@ -195,6 +195,7 @@ a.lib-card-fig { text-decoration: none; }
 .lib-stage-figure .lib-fig img { width: 100%; height: auto; max-height: 38vh; object-fit: contain; }
 /* A picture drawn with the game's block sprites is shown cell for cell, never smoothed into a blur. */
 img.block-picture { image-rendering: pixelated; }
+img.block-render { image-rendering: auto; }
 
 /* The house views in a companion column: the building over the cuts, stacked rather than side by side,
    because a column this wide fits one picture across and three of them would each be a thumbnail. The

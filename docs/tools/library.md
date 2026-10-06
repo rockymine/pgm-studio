@@ -133,6 +133,17 @@ the ones `render/eye` draws with (`BlockSprites`), so a card and an in-game pict
 studio without the sprites draws the same blocks as an SVG of palette colours, and the kept picture's name says
 which it is. Measured over 53 seeded styles, sprite cards came to 446 KB against 2.1 MB as SVG.
 
+**A structure is drawn with the same sprites, seen from outside.** A house, a roof, a storey, a porch, a tree and
+a boulder are volumes, so their card is a three-quarter view of the structure on its patch of ground rather than
+a cell grid: the stamped building (cut to its part where the card is a part's), or the prop grown on the sample
+meadow, drawn by `EyeScene` — the renderer `render/eye` uses — from an eye `StructurePicture` places by the
+volume's size (30° round from south, 28° down, the bounding sphere fitted to the frame). It is a 160 × 120 PNG
+on a browse row and 320 × 240 on a tree or boulder editor's stage, embedded as `<img class="block-render">`, and
+it is kept under `Drawings:Folder` by the row's document and the sprites' identity, exactly as a pattern's card
+is. A studio without the sprites answers the flat side-view SVG each of these kinds drew before, so the same
+request answers a picture or an SVG according to the studio's `Textures` configuration. A house editor's own
+stage is unchanged: it already turns the building in the WebGL scene.
+
 The editor previews two views of one material: a **plan**, one course
 seen from above, which is where a voronoi and the three noise fields vary, and a **section**, one row of
 columns cut open downward, which is the axis a layer stack varies along and the elevation a wall material is
@@ -591,8 +602,8 @@ the two id pairs the six woods split across.
 A room style previews in four views — the building standing up, and a plan, a section and a cutaway of it —
 and the editor shows them as the building over a row of the three cuts, because what a building looks like and
 how it is made are two questions. Any one can be asked for alone, which is the only way to read a cut at the
-size the stage can give it; the chips over the picture say which. A library card carries the section alone,
-since a grid of rows can afford one raster each and not a world each.
+size the stage can give it; the chips over the picture say which. A library card carries one picture alone — the textured view of the building where the studio has sprites, the
+section where it has not — since a grid of rows can afford one picture each and not a world each.
 
 All four are drawn on the shell the `footprint` word names, asked in the dock at the foot of the stage rather
 than among the views: which view and at what proportion are two questions, and a row of nine capsules in one
@@ -861,7 +872,7 @@ and *Save* for anyone off the whitelist, and *Delete* for anyone but an admin.
 | `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
 | `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds. The answer is `{plan, section, cutaway, columns}`: three SVG cuts, and **`columns`** — the stamped world's own per-column runs, the same shape `POST /plan/columns` answers for a map, which the browser meshes and draws in 3-D. **The two take different bodies**: `preview` takes the same record as `POST /room-styles`, `preview-snapshot` takes a **bare `HouseStyle`** — the document itself, unwrapped, exactly what `GET /room-styles/{id}/json` hands back once its string is unwrapped. A wrapper posted to it is dropped and previews the defaults |
 | `DELETE /room-styles/{id}` | forget a room style; its courses cascade, its styles stay |
-| `GET`·`POST`·`PUT`·`DELETE /tree-styles[/{id}]` · `…/boulder-styles` | the two recipe libraries — what a *click* puts down. `GET /tree-styles` lists `{id, name, preview, form, species, height, builder}`, so a picker can group generated trees from hand-built ones and tune a generated one without fetching it. A tree is `{name, form, species, height, body, cut}`, a cut `{world, x, y, z, at, builder}` with `builder` null where the cutter was not told; `POST`/`PUT /tree-styles` answer 400 `{error: "invalid tree style", findings}` with `DR-COPY` when a `copied` tree carries no `cut`. Each `POST …/preview` draws a draft as the card a browse row carries, answering `{card: "…"}`. Nothing asks before a delete, because nothing binds a recipe: a placement names a key in its **own document's** registry, which the pull copied |
+| `GET`·`POST`·`PUT`·`DELETE /tree-styles[/{id}]` · `…/boulder-styles` | the two recipe libraries — what a *click* puts down. `GET /tree-styles` lists `{id, name, preview, form, species, height, builder}`, so a picker can group generated trees from hand-built ones and tune a generated one without fetching it. A tree is `{name, form, species, height, body, cut}`, a cut `{world, x, y, z, at, builder}` with `builder` null where the cutter was not told; `POST`/`PUT /tree-styles` answer 400 `{error: "invalid tree style", findings}` with `DR-COPY` when a `copied` tree carries no `cut`. Each `POST …/preview` draws a draft as the card a browse row carries, answering `{card: "…"}` — an `<img>` of the textured view where the studio has sprites, an SVG where it has not. Nothing asks before a delete, because nothing binds a recipe: a placement names a key in its **own document's** registry, which the pull copied |
 | `GET /tree-styles/{id}/json` · `GET /boulder-styles/{id}/json` | the recipe as a dressing document states it, as `{styleJson: "…"}` — what a pull copies into a map's `styles` registry under a key. A copied tree whose cut names a builder carries it as `builder` |
 | `GET /terrain/blocks` · `GET /terrain/patterns` | the block palette — each block's id/data, name, tone family, swatch, and what it **looks like** per face (below) — and every material kind with its fields, defaults and the cell facts it varies with |
 | `GET /terrain/looks` | the construction words a face's `construction` is drawn from, each with what it means |
