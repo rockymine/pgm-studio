@@ -8,32 +8,38 @@ namespace PgmStudio.Client.Pages;
 
 public partial class Index
 {
+    private const int RecentMaps = 5;
+
     private MapStageCounts? counts;
 
-    /// <summary>The map the caller last changed themselves, and the tool it opens in, or null where they have
-    /// changed none.</summary>
-    private (MapSummary Map, string Opens)? last;
+    /// <summary>The maps offered on the page, newest first, each with the tool it opens in and the moment shown.</summary>
+    private List<(MapSummary Map, string Opens, DateTime At)> recent = [];
+
+    /// <summary>Whether <see cref="recent"/> holds maps the caller changed themselves rather than the latest overall.</summary>
+    private bool mine;
 
     protected override async Task OnInitializedAsync()
     {
         try { counts = await Http.GetFromJsonAsync<MapStageCounts>("api/maps/stage-counts"); }
-        catch { /* counts are decorative — the cards still navigate without them */ }
+        catch { /* the count is decorative — the page still navigates without it */ }
         try
         {
             var maps = await Http.GetFromJsonAsync<List<MapSummary>>("api/maps") ?? [];
-            if (maps.Where(map => map.YouWroteAt is not null).MaxBy(map => map.YouWroteAt) is { } map
-                && MapLayers.Opens(map) is { } opens)
-                last = (map, opens);
+            mine = maps.Any(map => map.YouWroteAt is not null);
+            recent = maps
+                .Where(map => !mine || map.YouWroteAt is not null)
+                .Select(map => (Map: map, Opens: MapLayers.Opens(map), At: map.YouWroteAt ?? map.UpdatedAt))
+                .Where(entry => entry.Opens is not null)
+                .OrderByDescending(entry => entry.At)
+                .Take(RecentMaps)
+                .Select(entry => (entry.Map, entry.Opens!, entry.At))
+                .ToList();
         }
-        catch { /* the continue card is an offer — without it the page still opens every tool */ }
+        catch { /* the list is an offer — without it the page still opens every tool */ }
     }
 
     private static string LayerLabel(string layer) =>
         MapLayers.All.FirstOrDefault(entry => entry.Id == layer).Label ?? layer;
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
-
-    // "4 drafts" / "1 draft" / "—" while loading. Plural == singular for already-plural phrasing.
-    private static string CountLabel(int? n, string singular, string plural) =>
-        n is null ? "—" : $"{n} {(n == 1 ? singular : plural)}";
 }

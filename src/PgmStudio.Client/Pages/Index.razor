@@ -5,118 +5,74 @@
 
 <PageTitle>PGM Studio</PageTitle>
 
-@* Landing — the studio entry. Three lifecycle cards (Sketch · Configure · Maps) over the staged map
-   page: each opens /maps filtered to its stage, where a map can be started or resumed. *@
+@* The studio entry: a hero (what the studio makes, the way in, a themed board illustration), then the maps the
+   reader changed last and the four levels a map is described at. The shell is given no Bar — the home page is
+   not a tool — and every tool is reachable from the studio's own bar. *@
 
 <StudioShell>
-  <Bar><Topbar><Crumbs><Crumb Sep="false">Map Studio</Crumb></Crumbs></Topbar></Bar>
   <ChildContent>
       <div class="workspace">
         <div class="workspace-scroll"><div class="landing">
-          <header class="landing-hero">
-            <div class="nav-logo-box landing-logo">
-              <span class="nav-logo-pgm">pgm</span>
-              <span class="nav-logo-sub">STUDIO</span>
+          <section class="landing-hero">
+            <div class="landing-hero-text">
+              <h1 class="landing-title">Author PGM maps, from layout to <code>map.xml</code></h1>
+              <p class="landing-lead">Plan a symmetric board, shape and paint its ground, state what it is played for, and
+                export a world a server can load. Capture the Wool, Destroy the Monument and Destroy the Core,
+                alone or combined.</p>
+              <div class="landing-actions">
+                <Button Variant="primary" Icon="plus" Href="maps?stage=plan">Start a map</Button>
+                <Button Icon="map" Href="maps">Open maps@(counts is { } all ? $" ({all.All})" : "")</Button>
+              </div>
             </div>
-            <h1 class="landing-title">Make a Capture the Wool map</h1>
-            <p class="landing-lead">Go from a rough layout to a finished <code>map.xml</code>. Start something new,
-              or continue where you left off.</p>
-          </header>
+            <svg class="landing-board" viewBox="0 0 320 200" role="img" aria-label="A symmetric two-team map: two bases, wool rooms and a central lane">
+              <rect class="lb-field" x="4" y="4" width="312" height="192" rx="8" />
+              <rect class="lb-lane" x="132" y="4" width="56" height="192" />
+              <rect class="lb-team lb-team--a" x="16" y="62" width="76" height="76" rx="4" />
+              <rect class="lb-team lb-team--b" x="228" y="62" width="76" height="76" rx="4" />
+              <rect class="lb-team lb-team--a" x="30" y="18" width="30" height="26" rx="3" />
+              <rect class="lb-team lb-team--a" x="30" y="156" width="30" height="26" rx="3" />
+              <rect class="lb-team lb-team--b" x="260" y="18" width="30" height="26" rx="3" />
+              <rect class="lb-team lb-team--b" x="260" y="156" width="30" height="26" rx="3" />
+              <path class="lb-path" d="M92 100 H228 M60 44 V62 M60 138 V156 M260 44 V62 M260 138 V156" />
+              <line class="lb-axis" x1="160" y1="4" x2="160" y2="196" />
+              <circle class="lb-point" cx="160" cy="100" r="9" />
+            </svg>
+          </section>
 
-          <div class="landing-choices">
-            @if (last is { } continued)
-            {
-              <a class="card card--action landing-plan landing-continue" href="@($"maps/{continued.Map.Slug}/{continued.Opens}")">
-                <span class="card-icon"><i data-lucide="history"></i></span>
-                <div class="landing-plan-body">
-                  <span class="landing-continue-kicker">Continue where you left off</span>
-                  <span class="card-title">@continued.Map.Name</span>
-                  <p class="card-desc">You changed it @Moments.Ago(continued.Map.YouWroteAt!.Value).</p>
-                </div>
-                <span class="card-foot-go landing-plan-go">Open in @LayerLabel(continued.Opens) <i data-lucide="arrow-right"></i></span>
-              </a>
-            }
-            <a class="card card--action landing-plan" href="maps?stage=plan">
-              <span class="card-icon"><i data-lucide="layout-grid"></i></span>
-              <div class="landing-plan-body">
-                <span class="card-title">Plan a layout</span>
-                <p class="card-desc">Block out a map on a grid: its areas, symmetry, and objectives. Then build
-                  it into a sketch.</p>
-              </div>
-              <span class="card-foot-go landing-plan-go">Open <i data-lucide="arrow-right"></i></span>
-            </a>
+          <div class="landing-lower">
+            <section class="landing-panel">
+              <h2 class="landing-panel-title">@(mine ? "Continue where you left off" : "Latest maps")</h2>
+              @if (recent.Count == 0)
+              {
+                <p class="landing-empty">No maps yet. Start one to see it here.</p>
+              }
+              else
+              {
+                <ul class="landing-recent">
+                  @foreach (var item in recent)
+                  {
+                    <li>
+                      <a class="landing-recent-row" href="@($"maps/{item.Map.Slug}/{item.Opens}")">
+                        <span class="landing-recent-name">@item.Map.Name</span>
+                        <span class="landing-recent-meta">
+                          @if (item.Map.Gamemodes.Count > 0) { @(string.Join(" ", item.Map.Gamemodes).ToUpperInvariant() + " · ") }@LayerLabel(item.Opens) · @Moments.Ago(item.At)
+                        </span>
+                      </a>
+                    </li>
+                  }
+                </ul>
+              }
+            </section>
 
-            <a class="card card--action landing-plan" href="generator">
-              <span class="card-icon"><i data-lucide="sparkles"></i></span>
-              <div class="landing-plan-body">
-                <span class="card-title">Browse generated layouts</span>
-                <p class="card-desc">Generate whole layouts and filter them by size, symmetry, and score. Open
-                  any of them in the plan editor.</p>
-              </div>
-              <span class="card-foot-go landing-plan-go">Open <i data-lucide="arrow-right"></i></span>
-            </a>
-
-            <a class="card card--action landing-plan" href="catalog">
-              <span class="card-icon"><i data-lucide="shapes"></i></span>
-              <div class="landing-plan-body">
-                <span class="card-title">Shape catalog</span>
-                <p class="card-desc">Every shape the generator can build, and whether generated layouts
-                  use it.</p>
-              </div>
-              <span class="card-foot-go landing-plan-go">Open <i data-lucide="arrow-right"></i></span>
-            </a>
-
-            <a class="card card--action landing-plan" href="library">
-              <span class="card-icon"><i data-lucide="paintbrush"></i></span>
-              <div class="landing-plan-body">
-                <span class="card-title">Library</span>
-                <p class="card-desc">Patterns, palettes, buildings, trees, and biomes to reuse in any map.</p>
-              </div>
-              <span class="card-foot-go landing-plan-go">Open <i data-lucide="arrow-right"></i></span>
-            </a>
-
-            <div class="landing-divider">or continue a map by stage</div>
-
-            <div class="card-grid landing-cards">
-            <a class="card card--action" href="maps?stage=sketch">
-              <div class="card-head">
-                <span class="card-icon"><i data-lucide="pencil-ruler"></i></span>
-                <span class="card-title">Sketch</span>
-              </div>
-              <p class="card-desc">The plan's grey map with as much detail as you want: ground shape, paint,
-                trees, and buildings.</p>
-              <span class="card-foot">
-                <span class="card-foot-count">@CountLabel(counts?.Sketch, "sketch", "sketches")</span>
-                <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
-              </span>
-            </a>
-
-            <a class="card card--action" href="maps?stage=configure">
-              <div class="card-head">
-                <span class="card-icon"><i data-lucide="settings-2"></i></span>
-                <span class="card-title">Configure</span>
-              </div>
-              <p class="card-desc">Set up the game on a world: teams, spawns, protected areas, and
-                objectives.</p>
-              <span class="card-foot">
-                <span class="card-foot-count">@CountLabel(counts?.Configure, "in progress", "in progress")</span>
-                <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
-              </span>
-            </a>
-
-            <a class="card card--action" href="maps">
-              <div class="card-head">
-                <span class="card-icon"><i data-lucide="map"></i></span>
-                <span class="card-title">Maps</span>
-              </div>
-              <p class="card-desc">Every map in the studio, with the stage it has reached. Open any stage a map
-                still has.</p>
-              <span class="card-foot">
-                <span class="card-foot-count">@CountLabel(counts?.All, "map", "maps")</span>
-                <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
-              </span>
-            </a>
-            </div>
+            <section class="landing-panel">
+              <h2 class="landing-panel-title">How a map is made</h2>
+              <ol class="landing-levels">
+                <li><b>Board</b><span>Rectangles on a grid: what each is for, where the objectives sit.</span></li>
+                <li><b>Ground</b><span>Block-level shape, relief, paint and props.</span></li>
+                <li><b>Play</b><span>Teams, spawns, protections and how objectives are won.</span></li>
+                <li><b>Map</b><span>The world and the <code>map.xml</code> a server loads.</span></li>
+              </ol>
+            </section>
           </div>
         </div></div>
       </div>

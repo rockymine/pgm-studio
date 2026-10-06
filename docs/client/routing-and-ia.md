@@ -24,7 +24,7 @@ shown, never name one.
 
 | Route | Component | Is |
 |---|---|---|
-| `/` | `Index` | the landing — the map to continue, then seven cards over live counts |
+| `/` | `Index` | the landing — a hero, the maps last changed, the four levels of a map |
 | `/maps` | `Maps` | every map in one table; `?stage=`, `?author=`, `?gamemode=` and `?sort=` are its filters |
 | `/maps/{slug}/plan` | `PlanTool` | the plan tool on a map |
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
@@ -115,15 +115,21 @@ it.
 
 ## The landing
 
-**The map the reader last changed comes first.** Where `GET /api/maps` gives any map a `youWroteAt`, the newest
-one is offered above everything else as *Continue where you left off*: its name, when the reader changed it, and
-a link straight into the tool its row on the maps page opens. A reader who has changed no map, or is signed out,
-sees no such card.
+**The landing is not a tool, so its shell has no tool bar.** `Index` gives `StudioShell` no `Bar`, which leaves
+only the studio's own bar above the page; every tool is linked from there, so the page carries no card for any
+of them.
 
-Then seven cards in two groups. The first four are where authoring starts — **Plan a layout** (the maps page at the plan stage),
-**Browse generated layouts** (`/generator`), **Shape catalog** (`/catalog`) and **Library**
-(`/library`) — three of which need no map at all. The last three are the map lifecycle — **Sketch**,
-**Configure**, **Maps** — each opening the maps page at that stage and carrying its live count.
+**The hero names what the studio makes and offers two ways in.** The title and lead describe the pipeline from
+layout to `map.xml` across Capture the Wool, Destroy the Monument and Destroy the Core. **Start a map** opens the
+maps page at the plan stage; **Open maps** opens it unfiltered and carries the map count from
+`GET /api/maps/stage-counts`. Beside the text sits an inline SVG of a symmetric two-team board, filled and
+stroked with the theme's tokens so it follows light and dark.
+
+**Below the hero, two panels fit a 1920x1080 viewport without scrolling.** The first lists up to five maps the
+reader changed themselves, newest first (`youWroteAt` from `GET /api/maps`), each linking into the tool its row
+on the maps page opens; a reader who has changed none, or is signed out, sees the five most recently updated maps
+under *Latest maps*. The second names the four levels a map is described at, from `../tools/flow.md`. Under
+760px the hero and the panels stack in one column.
 
 ## Labels against code names
 
