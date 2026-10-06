@@ -1,0 +1,16 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   GLOSSARY PAGE  (/glossary: search · alphabetical entries, each an anchor)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.glossary-search { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-4); }
+.glossary-letter { margin-bottom: var(--space-5); }
+.glossary-letter-head { padding-bottom: var(--space-1); border-bottom: 1px solid var(--border); }
+.glossary-term { padding: var(--space-3) var(--space-2); border-radius: var(--radius-sm); scroll-margin-top: var(--space-4); }
+.glossary-term--target { background: var(--bg-selected-hover); }
+.glossary-term-name { margin: 0 0 var(--space-1); font-size: var(--font-md); font-weight: 600; }
+.glossary-term-name a { color: var(--text-strong); text-decoration: none; }
+.glossary-term-name a:hover { text-decoration: underline; }
+.glossary-term-def { margin: 0; max-width: 72ch; font-size: var(--font-base); line-height: 1.5; color: var(--text-primary); }
+.glossary-term-meta { margin: var(--space-1) 0 0; font-size: var(--font-sm); color: var(--text-muted); }
+.glossary-term-meta > span:first-child { margin-right: var(--space-1); }
+.glossary-related { margin-right: var(--space-2); }
