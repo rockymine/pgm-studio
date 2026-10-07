@@ -263,4 +263,21 @@ public sealed class SketchGeometryEditTests
 
         await Assert.That(Heights(removed.Layout!)).IsEquivalentTo(new double[] { 6, 6, 4, 16 });
     }
+
+    [Test]
+    public async Task A_point_edit_made_through_a_shape_route_reaches_the_shape_alone()
+    {
+        const string marked = """
+            {"relief":{"i":{"marks":[{"id":"knoll","kind":"area","ring":[[0,0],[8,0],[8,8],[0,8]]}]}},
+             "layers":[{"id":"ground","layout":{"shapes":[],"groups":[{"id":"i","shapeIds":[]}]}}]}
+            """;
+
+        var routed = SketchGeometryEdit.MoveVertex(marked, "knoll", 0, 1, 1);
+        var refined = SketchGeometryEdit.MoveVertex(marked, "knoll", 0, 1, 1, everyOutline: true);
+
+        await Assert.That(routed.Layout).IsNull();
+        await Assert.That(routed.Refusal).IsNull()
+            .Because("the shape routes address /sketch/shapes/{id}, and a mark is not there to find");
+        await Assert.That(Root(refined.Layout!)["relief"]!["i"]!["marks"]![0]!["ring"]![0]!.ToJsonString()).IsEqualTo("[1,1]");
+    }
 }

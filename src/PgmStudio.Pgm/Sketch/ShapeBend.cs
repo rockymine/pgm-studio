@@ -31,8 +31,9 @@ public sealed record ShapeBend(
 
     /// <summary>The layout with the shape at <paramref name="shapeId"/> bent as this states, or the finding
     /// that refuses it: a bend states a wander and a step, both greater than nought.
-    /// <paramref name="held"/> answers how many cut points had no room on the side asked for.</summary>
-    public GeometryEdit ApplyTo(string? layoutJson, string shapeId, out int held)
+    /// <paramref name="held"/> answers how many cut points had no room on the side asked for, and
+    /// <paramref name="everyOutline"/> bends every outline carrying the id rather than the shape alone.</summary>
+    public GeometryEdit ApplyTo(string? layoutJson, string shapeId, out int held, bool everyOutline = false)
     {
         held = 0;
         if (Wander <= 0 || Step <= 0)
@@ -41,6 +42,6 @@ public sealed record ShapeBend(
                 + "not both more than 0", Field: "wander", Subjects: [shapeId]));
         return SketchGeometryEdit.BendShape(
             layoutJson, shapeId, Wander, Step, Seed, Tension ?? DefaultTension, Side ?? BendSide.Out, out held, Edges,
-            Fan ?? true);
+            Fan ?? true, everyOutline);
     }
 }

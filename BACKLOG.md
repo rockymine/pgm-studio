@@ -34,6 +34,12 @@ about which section the entry sits in — the retired prefixes still on entries 
   anchor, kept when the author resolves the note, and raised as a finding naming the note when a later pass
   breaks it. `docs/tools/sketch.md` § Review.
 
+- [ ] **TS169 — A pull and a bend on a line.** *Parked (author): no convention yet for which side of a line is
+  "in".* `editShapes` pulls and `bendShapes` on a stroke's or a fluid channel's centerline are a complaint
+  (`SketchGeometryEdit.Lineless`), because `RingPull` and `RingBend` read in and out off a closed ring. Taking
+  them needs that side stated — the left of the line's direction is one answer — and an open-path variant of
+  both in `Geom`. `docs/tools/flow.md`.
+
 ## The configure wizard: a map built from what an author states it is
 
 The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds a map from declarative
@@ -313,6 +319,13 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   fluid already carves built terrain (`decoration.md` §7), and its walls show the theme's fill. Decide first
   what the plan-tier walks (`SK11`) and the export's reach say about a void they cannot see. `docs/tools/sketch.md`.
   *Evidence: `sketch.md` "A subtract with a lid over it": the lid comes back as the column's only span.*
+
+- [ ] **TS170 — A polyline shape is edited as a line.** `SketchGeometryEdit.Outlines` takes every shape's
+  `vertices` as a closed ring, so a `polyline` shape (a wall, a lane) is refused a move that crosses only the
+  edge between its two ends, needs three points to take any edit, and is pulled and bent as a ring. Read
+  `type: polyline` as a line, the way `Reheight` already does and a stroke's points already are, on the shape
+  routes and in `editShapes`. `docs/tools/sketch.md`. *Evidence: `Reheight` reads `type != "polyline"` as
+  closed; `Outlines` sets every shape `Closed: true`.*
 
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
