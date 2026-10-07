@@ -69,7 +69,7 @@
 
 /* detail dialog */
 .gen-detail-fig { padding: var(--space-3); background: var(--board-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); }
-.gen-detail-fig svg { width: 100%; height: 56vh; display: block; }
+.gen-detail-fig svg { width: 100%; height: 48vh; display: block; }
 .gen-highlight { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
 .gen-highlight-label { font-size: var(--font-sm); color: var(--text-secondary); margin-right: var(--space-1); }
 /* A highlighted role takes the accent over whatever ink it was drawn in; the rest of the board stays as drawn. */
@@ -82,7 +82,7 @@
 .side-drawer-body:has(.gen-detail-fig) { gap: var(--space-4); padding: var(--space-4); }
 .gen-detail-controls { display: flex; flex-direction: column; gap: var(--space-3); }
 .gen-detail-controls .board-key { margin-left: 0; }
-.gen-detail-desc { margin: 0; font-size: var(--font-lg); line-height: 1.6; color: var(--text-primary); max-width: 68ch; }
+.gen-detail-desc { margin: 0; font-size: var(--font-lg); line-height: 1.6; color: var(--text-primary); }
 .gen-term { color: var(--accent-lighter); text-decoration: underline dotted; text-underline-offset: 3px; }
 .gen-term:hover { text-decoration-style: solid; }
 .gen-facts {

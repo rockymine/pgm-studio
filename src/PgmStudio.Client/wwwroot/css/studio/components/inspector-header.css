@@ -37,7 +37,7 @@
   background: var(--bg-panel, var(--bg)); border-left: 1px solid var(--border);
   box-shadow: -8px 0 24px rgba(0, 0, 0, 0.3);
 }
-.side-drawer--wide { width: min(880px, 94vw); }
+.side-drawer--wide { width: min(600px, 94vw); }
 .side-drawer-head {
   flex: 0 0 auto;
   display: flex; align-items: center; justify-content: space-between;

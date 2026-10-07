@@ -253,6 +253,8 @@ several may be ticked at once: a board matches any one ticked count, and none ti
 counts, because the census holds forms, not wool counts. *Filter by shape* — wool approaches, hub and front line — is a set of ticked
 chips, each with the count of boards in the library that have it, and *Clear* empties all three. Wool approaches
 are **must-include**: every family ticked has to be present on the board. Hub and front line are **any-of**.
+A side always has a front line; where the composer places no piece for it (the `none` form) the hub's own edge
+facing the mid is that front line, so its chip reads *Hub edge*.
 Under the shape chips a link, *Browse every shape in the catalog*, opens `/catalog`, the vocabulary the
 composer fills boxes from.
 
@@ -292,12 +294,13 @@ The picture carries no text: the page draws the key once above the grid (*Spawn*
 `composed-p{players}-t{teams}-{seed}`, in the same name label the library's cards carry (`PictureCard`); the
 score, wool count and structure line are not on the card, and the score is shown nowhere on the page.
 
-**The drawer is the larger view, and it can tint one role at a time.** Opening a card gives a wide drawer that
+**The drawer is the larger view, and it can tint one role at a time.** Opening a card gives a drawer 600 px wide that
 reads top to bottom. The header carries the layout's name (`composed-p{players}-t{teams}-{seed}`) as its title,
 with a *Pin* toggle (an icon button, pressed while the layout is held) and the close button at its right. Under
-it sit the picture, at most 56% of the viewport high; a *Highlight* row of six toggles (*Hub*, *Front line*,
+it sit the picture, at most 48% of the viewport high; a *Highlight* row of six toggles (*Hub*, *Front line*,
 *Approaches*, *Spawn*, *Wool rooms*, *Build zone*) with the key below it; a written description of the layout;
-three facts (players per team, wools per team, symmetry); and a footer with the one primary action, *Make a map*.
+three facts (players per team, wools per team, symmetry); and a footer with the one primary action, *Open in Plan Editor*, a text button
+beside a note saying it forks the layout into a new map and opens its plan.
 Every piece in the SVG carries a `role-*` class from `BoardRoles` (`hub`, `frontline`, `approach`, `spawn`,
 `wool`, `other`, and `zone` for a zone), and a toggle adds `board-hl-{role}` to the picture's frame, which
 restyles those pieces in the accent by CSS: the picture is not requested again. None are on when the drawer
@@ -337,7 +340,7 @@ soft sum.
 
 **Pinning and making a map are the two exits.** The pin toggle, in the top-right corner of a card's picture and in the drawer's header, keeps the library board the descriptor names and
 refreshes the tray; the tray's thumbnails come from the stored rows rather than from the cards, so a board held in an
-earlier session looks the same as one held a moment ago. *Make a map* pins first if the board is not
+earlier session looks the same as one held a moment ago. *Open in Plan Editor* pins first if the board is not
 already held, then commits the candidate to a new map at the plan stage and opens that map's plan editor at
 `/maps/{slug}/plan`; the layout stays pinned.
 
@@ -368,7 +371,7 @@ that a pinned board is any good — the score is advice, and a board scoring 12 
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist
 ([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The page greys *Pin* and
-*Make a map* for anyone off the whitelist and unpinning for anyone but an admin, since a pin is a
+*Open in Plan Editor* for anyone off the whitelist and unpinning for anyone but an admin, since a pin is a
 plan row and deleting one is an admin's.
 
 | Endpoint | Answers | Fails with |

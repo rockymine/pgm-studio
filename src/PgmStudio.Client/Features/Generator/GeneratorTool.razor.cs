@@ -47,7 +47,7 @@ public partial class GeneratorTool : IAsyncDisposable
     private static readonly (string Token, string Label)[] HubChips =
         [("bar", "Bar"), ("single", "Single"), ("twin", "Twin"), ("ring", "Ring"), ("g", "G"), ("p", "P"), ("double-hole", "Double-hole")];
     private static readonly (string Token, string Label)[] FrontChips =
-        [("none", "None"), ("bar", "Bar"), ("single", "Single"), ("twin", "Twin")];
+        [("none", "Hub edge"), ("bar", "Bar"), ("single", "Single"), ("twin", "Twin")];
 
     // Selected structural filters: wools are must-include (each present), hub/front are any-of.
     private readonly HashSet<string> woolFilter = [];
