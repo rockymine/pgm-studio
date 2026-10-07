@@ -1,0 +1,73 @@
+@namespace PgmStudio.Client.Components
+@inject HttpClient Http
+
+@* The tool word of the editor bar's crumb, and the way across to the map's other tools. With a map it is a
+   button naming the current tool whose menu lists Plan, Sketch and Configure; a tool is a link where the map
+   holds that layer (MapLayers.Holds, over the same GET api/maps row the Maps table reads) and a dashed,
+   disabled entry where it does not. Without a map there is nothing to switch within, so the word is drawn as
+   text in the same box. *@
+
+@if (Slug is null)
+{
+    <span class="editor-stage"><span>@Word</span></span>
+}
+else
+{
+    <span class="editor-menu-host">
+        <button type="button" class="editor-stage editor-stage--button" aria-haspopup="menu"
+                aria-expanded="@(open ? "true" : "false")" title="Open this map in another tool"
+                @onclick="ToggleAsync"><span>@Word</span><svg class="editor-stage-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4" /></svg></button>
+        @if (open)
+        {
+            <div class="editor-menu-scrim" @onclick="() => open = false"></div>
+            <div class="editor-menu" role="menu" aria-label="This map's tools">
+                @foreach (var (id, label) in MapLayers.All)
+                {
+                    @if (id == Stage)
+                    {
+                        <a class="editor-menu-item" role="menuitem" aria-current="page" href="@Href(id)" @onclick="() => open = false">@label</a>
+                    }
+                    else if (map is not null && MapLayers.Holds(map, id))
+                    {
+                        <a class="editor-menu-item" role="menuitem" href="@Href(id)" @onclick="() => open = false">@label</a>
+                    }
+                    else
+                    {
+                        <span class="editor-menu-item" role="menuitem" aria-disabled="true"
+                              title="@(map is null ? failed ? "The studio did not say what this map holds" : "Checking what this map holds…" : $"No {label.ToLowerInvariant()} yet")">@label</span>
+                    }
+                }
+            </div>
+        }
+    </span>
+}
+
+@code {
+    /// <summary>The map the bar is open on; null where the page has no map (a plan row, a map not yet made).</summary>
+    [Parameter] public string? Slug { get; set; }
+    /// <summary>The tool this page is: a <see cref="MapStage"/> word of Plan, Sketch or Configure.</summary>
+    [Parameter] public string Stage { get; set; } = MapStage.Configure;
+    /// <summary>The word to show in place of the tool's name, for a page that is not one of the three (an import).</summary>
+    [Parameter] public string? Label { get; set; }
+
+    private MapSummary? map;
+    private bool open, failed;
+
+    private string Word => Label ?? MapLayers.All.FirstOrDefault(layer => layer.Id == Stage).Label ?? Stage;
+    private string Href(string layer) => $"maps/{Slug}/{layer}";
+
+    /// <summary>Opening reads the map's layers afresh, because saving a plan or a sketch is what makes the layer.</summary>
+    private async Task ToggleAsync()
+    {
+        open = !open;
+        if (!open) return;
+        try
+        {
+            var all = await Http.GetFromJsonAsync<List<MapSummary>>("api/maps");
+            map = all?.FirstOrDefault(row => row.Slug == Slug);
+            failed = map is null;
+        }
+        catch { failed = true; }
+    }
+
+}

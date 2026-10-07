@@ -17,7 +17,8 @@ nobody, because the local admin has no account to own it under.
 **`invited`** is every other deployment, and it is what an unset `Access:Mode` means — a server whose
 configuration never mentions access is closed, not open. A request is signed in by the session cookie
 `pgm-studio.session` (HttpOnly, Secure, SameSite=Lax, thirty days sliding), and a request without one is
-signed out. SameSite=Lax is also what keeps another site from writing through a visitor's session: a browser
+signed out. The cookie is persistent: it carries its expiry, so closing the browser does not end the session,
+and any signed-in request in the second half of the thirty days renews it. SameSite=Lax is also what keeps another site from writing through a visitor's session: a browser
 sends the cookie on a cross-site link, and never on a cross-site `POST`, `PUT` or `DELETE`. Signing in with Discord is what writes it (below).
 
 `Access:Admins` lists Minecraft uuids that are admins whatever the whitelist says, and it names the studio's
@@ -159,8 +160,8 @@ is no account for a token to act as.
 ## What the browser shows
 
 The studio's bar says who the browser is on every page: the head, name and role signed in, opening a menu to
-sign out; *Sign in with Discord* for a visitor; `local` in an open studio. For an admin it also carries *Users*,
-the whitelist at `/admin/users`. That page
+sign out; *Sign in with Discord* for a visitor; `local` in an open studio. For an admin its menu also carries
+*Users*, the whitelist at `/admin/users`. That page
 adds a player by name or uuid in a role, changes a role, takes someone off, and opens an invitation whose link
 it shows once with a copy button — the same four routes as below. It tags an owner, and greys each control
 the rule above closes to the caller, with the reason on hover: an admin who is no owner sees no *admin* to give
@@ -180,7 +181,7 @@ still draws the ground's relief, its paint and the 3-D preview; signed out, it d
 **An action the caller may not take is greyed wherever it sits, with the reason on hover.** That holds on a
 page that writes nothing as much as on one that writes: the map list's *New plan*, *New sketch* and *Import a
 world*, the library's *New* and an entry's *Save*, the plan editor's *New*, *Import*, *Save* and *Compile*, the
-generator's *Pin* and *Start a map*, the canvas's 2D/3D switch (the 3-D preview is a build), and every save,
+generator's *Pin* and *Open in Plan Editor*, the canvas's 2D/3D switch (the 3-D preview is a build), and every save,
 build and remove in the map tools. Deleting a
 library entry or unpinning a layout is greyed for anyone but an admin, since a `DELETE` outside a map is an
 admin's (below). Reading and downloading are never greyed. `docs/client/ui-conventions.md` says how the shell

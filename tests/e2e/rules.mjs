@@ -2,7 +2,7 @@
  * A rule id leads somewhere, and a check list reads by rule.
  *
  * The rules page answers `/rules?rule=ID` by opening on that rule, and its filters narrow the list; the studio
- * bar links it and the API docs. The plan editor's Checks panel lists an evaluation as one row per rule, whose
+ * bar links it and the account menu links the API docs. The plan editor's Checks panel lists an evaluation as one row per rule, whose
  * id links to that page in a new tab and whose places can be pressed one at a time.
  */
 
@@ -39,8 +39,12 @@ checks.add("a search says how many of all it shows", count.startsWith("1 of"), c
 checks.section("the studio bar links the reference pages");
 const rulesLink = page.locator(".app-nav-link", { hasText: "Rules" });
 checks.add("Rules is lit on its own page", ((await rulesLink.getAttribute("class")) ?? "").includes("app-nav-link--active"));
-const docs = page.locator(".app-nav-link", { hasText: "API docs" });
-checks.add("API docs opens /api-docs in a new tab",
+checks.add("the bar reads Maps, Generator, Library, Rules, Glossary",
+  (await page.locator(".app-nav-link").allTextContents()).map((text) => text.trim()).join(", ")
+    === "Maps, Generator, Library, Rules, Glossary");
+await page.click(".app-nav-right .account-local, .app-nav-right .account-button");
+const docs = page.locator('.account-menu a[href="/api-docs"]');
+checks.add("API docs, in the account menu, opens /api-docs in a new tab",
   (await docs.getAttribute("href")) === "/api-docs" && (await docs.getAttribute("target")) === "_blank");
 
 checks.section("the plan's Checks list one row per rule");
@@ -58,8 +62,6 @@ const slug = (await api("/plan", { method: "POST", body: { name: "e2e rules" } }
 await api(`/map/${slug}/plan`, { method: "PUT", body: plan });
 await page.goto(`${BASE}/maps/${slug}/plan`, { waitUntil: "networkidle", timeout: 30000 });
 await page.waitForSelector("canvas.world-canvas-2d", { timeout: 20000 });
-const checksTab = page.locator(".panel-tabs button", { hasText: "Checks" });
-if (await checksTab.count()) await checksTab.click();
 
 const row = page.locator(".problem-row", { has: page.locator(".problem-id", { hasText: "WL2" }) }).first();
 await row.waitFor({ timeout: 20000 });

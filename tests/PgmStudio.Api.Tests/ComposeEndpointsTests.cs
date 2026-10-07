@@ -50,7 +50,7 @@ public sealed class ComposeEndpointsTests
 
         var card = cards[0];
         await Assert.That(card.Svg).Contains("<svg");
-        await Assert.That(first.Key!.Select(entry => entry.Label)).Contains("Water lane")
+        await Assert.That(first.Key!.Select(entry => entry.Label)).Contains("Build zone")
             .Because("a card's picture carries no key, so the page carries it");
         await Assert.That(card.Descriptor.Players).IsEqualTo(10).Because("a card is labelled for the players asked");
         await Assert.That(card.Descriptor.ComposerVersion).IsEqualTo(ComposerVersion.Current)

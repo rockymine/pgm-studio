@@ -1,20 +1,23 @@
 @namespace PgmStudio.Client.Components
 
 @* SideDrawer — a right-anchored overlay panel: a dimming backdrop plus a sliding drawer with a titled
-   header, a scrolling body, and an optional pinned footer. Clicking the backdrop or the ✕ raises OnClose.
+   header (title, optional icon buttons, close), a scrolling body, and an optional pinned footer. Clicking the backdrop or the ✕ raises OnClose.
    Reused by the plan editor (compile & test, open-from-DB) and the generator (board detail). Renders
    nothing while closed. *@
 
 @if (Open)
 {
   <div class="side-drawer-backdrop" @onclick="Close"></div>
-  <div class="side-drawer" @onclick:stopPropagation="true">
+  <div class="@(Wide ? "side-drawer side-drawer--wide" : "side-drawer")" @onclick:stopPropagation="true">
     <div class="side-drawer-head">
-      <div class="detail-header">
+      <div class="side-drawer-title">
         @if (!string.IsNullOrEmpty(Icon)) { <span class="geo-type-icon"><i data-lucide="@Icon"></i></span> }
-        <span class="detail-label">@Title</span>
+        <h2 class="side-drawer-name" title="@Title">@Title</h2>
       </div>
-      <button class="action-btn action-btn--icon" title="Close" @onclick="Close"><i data-lucide="x"></i></button>
+      <div class="side-drawer-head-actions">
+        @HeaderActions
+        <button class="action-btn action-btn--icon" title="Close" aria-label="Close" @onclick="Close"><i data-lucide="x"></i></button>
+      </div>
     </div>
     <div class="side-drawer-body">
       @Body
@@ -37,6 +40,12 @@
 
     /// <summary>Optional Lucide icon name for the header (e.g. "layout-grid").</summary>
     [Parameter] public string? Icon { get; set; }
+
+    /// <summary>A drawer wide enough for a picture, rather than a form.</summary>
+    [Parameter] public bool Wide { get; set; }
+
+    /// <summary>Icon buttons for the header, shown to the left of the close button.</summary>
+    [Parameter] public RenderFragment? HeaderActions { get; set; }
 
     /// <summary>The scrolling body content.</summary>
     [Parameter] public RenderFragment? Body { get; set; }

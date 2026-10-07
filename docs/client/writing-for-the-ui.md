@@ -61,7 +61,7 @@ seventh is added. Show the count as data (a badge) or leave it out.
 *Libraries*, *Spawn points*, *Change history*.
 
 **Buttons are verbs.** Sentence case, one to three words, naming the action: *Save*, *New plan*,
-*Copy JSON*, *Start a map*. Never a sentence. A busy button names what it is doing: *Saving…*.
+*Save*, *Open in Plan Editor*. Never a sentence. A busy button names what it is doing: *Saving…*.
 
 **Status messages are short and past tense.** *Saved.* *Couldn't save. Try again.* A status line does not
 explain consequences unless the reader must act on them: *"Saved. Every theme binding it now paints this."*

@@ -1,5 +1,5 @@
 /* The key a page of board pictures is read by (BoardKey). */
 .board-key { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); font-size: var(--font-sm); color: var(--text-secondary); }
 .board-key-item { display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
-.board-key-swatch { width: calc(12px * var(--ui-scale)); height: calc(12px * var(--ui-scale)); border-radius: 2px; background: var(--swatch); }
-.board-key-swatch--hatched { background: repeating-linear-gradient(45deg, var(--swatch) 0 2px, color-mix(in srgb, var(--swatch) 40%, transparent) 2px 4px); }
+.board-key-swatch { width: calc(14px * var(--ui-scale)); height: calc(12px * var(--ui-scale)); border-radius: 2px; background: var(--swatch-fill); border: 1px solid var(--swatch-edge); }
+.board-key-swatch--dashed { background: transparent; border: 1.5px dashed var(--swatch-edge); }

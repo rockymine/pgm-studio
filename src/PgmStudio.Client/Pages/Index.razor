@@ -5,119 +5,65 @@
 
 <PageTitle>PGM Studio</PageTitle>
 
-@* Landing — the studio entry. Three lifecycle cards (Sketch · Configure · Maps) over the staged map
-   page: each opens /maps filtered to its stage, where a map can be started or resumed. *@
+@* The studio entry: a hero (what the studio makes, the way in, an in-game picture of a map), the maps the reader
+   changed last as cards, the tools that are not reached from a map, and a way into the glossary. The shell is
+   given no Bar — the home page is not a tool — and every tool is reachable from the studio's own bar. *@
 
 <StudioShell>
-  <Bar><Topbar><Crumbs><Crumb Sep="false">Map Studio</Crumb></Crumbs></Topbar></Bar>
   <ChildContent>
       <div class="workspace">
         <div class="workspace-scroll"><div class="landing">
-          <header class="landing-hero">
-            <div class="nav-logo-box landing-logo">
-              <span class="nav-logo-pgm">pgm</span>
-              <span class="nav-logo-sub">STUDIO</span>
-            </div>
-            <h1 class="landing-title">Make a Capture the Wool map</h1>
-            <p class="landing-lead">Go from a rough layout to a finished <code>map.xml</code>. Start something new,
-              or continue where you left off.</p>
-          </header>
+          <LandingHero HeroSlug="@hero?.Slug" HeroName="@hero?.Name" />
 
-          <div class="landing-choices">
-            @if (last is { } continued)
+          <section class="landing-section">
+            <div class="landing-section-head">
+              <h2 class="landing-section-title">@(mine ? "Continue working" : "Latest maps")</h2>
+              <a class="landing-section-link" href="maps">All maps</a>
+            </div>
+            @if (recent.Count == 0)
             {
-              <a class="card card--action landing-plan landing-continue" href="@($"maps/{continued.Map.Slug}/{continued.Opens}")">
-                <span class="card-icon"><i data-lucide="history"></i></span>
-                <div class="landing-plan-body">
-                  <span class="landing-continue-kicker">Continue where you left off</span>
-                  <span class="card-title">@continued.Map.Name</span>
-                  <p class="card-desc">You changed it @Moments.Ago(continued.Map.YouWroteAt!.Value).</p>
-                </div>
-                <span class="card-foot-go landing-plan-go">Open in @LayerLabel(continued.Opens) <i data-lucide="arrow-right"></i></span>
-              </a>
+              <p class="landing-empty">No maps yet. Start one to see it here.</p>
             }
-            <a class="card card--action landing-plan" href="maps?stage=plan">
-              <span class="card-icon"><i data-lucide="layout-grid"></i></span>
-              <div class="landing-plan-body">
-                <span class="card-title">Plan a layout</span>
-                <p class="card-desc">Block out a map on a grid: its areas, symmetry, and objectives. Then build
-                  it into a sketch.</p>
+            else
+            {
+              <div class="landing-cards">
+                @foreach (var item in recent)
+                {
+                  var stage = MapLayers.StageOf(item.Map);
+                  <a class="landing-card" href="@($"maps/{item.Map.Slug}/{item.Opens}")">
+                    <MapThumb Slug="@(Drawable(item.Map) ? item.Map.Slug : null)" Name="@item.Map.Name" />
+                    <div class="landing-card-body">
+                      <div class="landing-card-line">
+                        <span class="landing-card-name">@item.Map.Name</span>
+                        <span class="landing-stage"><span class="map-stage-dot map-stage-dot--@stage"></span>@MapLayers.LabelOf(stage)</span>
+                      </div>
+                      <span class="landing-card-meta">@Meta(item.Map, item.At)</span>
+                    </div>
+                  </a>
+                }
               </div>
-              <span class="card-foot-go landing-plan-go">Open <i data-lucide="arrow-right"></i></span>
-            </a>
+            }
+          </section>
 
-            <a class="card card--action landing-plan" href="generator">
-              <span class="card-icon"><i data-lucide="sparkles"></i></span>
-              <div class="landing-plan-body">
-                <span class="card-title">Browse generated layouts</span>
-                <p class="card-desc">Generate whole layouts and filter them by size, symmetry, and score. Open
-                  any of them in the plan editor.</p>
-              </div>
-              <span class="card-foot-go landing-plan-go">Open <i data-lucide="arrow-right"></i></span>
-            </a>
-
-            <a class="card card--action landing-plan" href="catalog">
-              <span class="card-icon"><i data-lucide="shapes"></i></span>
-              <div class="landing-plan-body">
-                <span class="card-title">Shape catalog</span>
-                <p class="card-desc">Every shape the generator can build, and whether generated layouts
-                  use it.</p>
-              </div>
-              <span class="card-foot-go landing-plan-go">Open <i data-lucide="arrow-right"></i></span>
-            </a>
-
-            <a class="card card--action landing-plan" href="library">
-              <span class="card-icon"><i data-lucide="paintbrush"></i></span>
-              <div class="landing-plan-body">
-                <span class="card-title">Library</span>
-                <p class="card-desc">Patterns, palettes, buildings, trees, and biomes to reuse in any map.</p>
-              </div>
-              <span class="card-foot-go landing-plan-go">Open <i data-lucide="arrow-right"></i></span>
-            </a>
-
-            <div class="landing-divider">or continue a map by stage</div>
-
-            <div class="card-grid landing-cards">
-            <a class="card card--action" href="maps?stage=sketch">
-              <div class="card-head">
-                <span class="card-icon"><i data-lucide="pencil-ruler"></i></span>
-                <span class="card-title">Sketch</span>
-              </div>
-              <p class="card-desc">The plan's grey map with as much detail as you want: ground shape, paint,
-                trees, and buildings.</p>
-              <span class="card-foot">
-                <span class="card-foot-count">@CountLabel(counts?.Sketch, "sketch", "sketches")</span>
-                <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
-              </span>
-            </a>
-
-            <a class="card card--action" href="maps?stage=configure">
-              <div class="card-head">
-                <span class="card-icon"><i data-lucide="settings-2"></i></span>
-                <span class="card-title">Configure</span>
-              </div>
-              <p class="card-desc">Set up the game on a world: teams, spawns, protected areas, and
-                objectives.</p>
-              <span class="card-foot">
-                <span class="card-foot-count">@CountLabel(counts?.Configure, "in progress", "in progress")</span>
-                <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
-              </span>
-            </a>
-
-            <a class="card card--action" href="maps">
-              <div class="card-head">
-                <span class="card-icon"><i data-lucide="map"></i></span>
-                <span class="card-title">Maps</span>
-              </div>
-              <p class="card-desc">Every map in the studio, with the stage it has reached. Open any stage a map
-                still has.</p>
-              <span class="card-foot">
-                <span class="card-foot-count">@CountLabel(counts?.All, "map", "maps")</span>
-                <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
-              </span>
-            </a>
+          <section class="landing-section">
+            <h2 class="landing-section-title">Tools</h2>
+            <div class="landing-tiles">
+              @foreach (var tool in Tools)
+              {
+                <a class="landing-tile" href="@tool.Href">
+                  <span class="landing-tile-icon"><i data-lucide="@tool.Icon"></i></span>
+                  <span class="landing-tile-name">@tool.Name</span>
+                  <span class="landing-tile-text">@tool.Text</span>
+                </a>
+              }
             </div>
-          </div>
+          </section>
+
+          <section class="landing-guide">
+            <span class="landing-guide-text">New to mapmaking? Hub, front line, wool room: every term the studio uses is
+              explained in one place.</span>
+            <Button Size="lg" Icon="book-open-text" Href="glossary" Class="action-btn--push-end">Open the glossary</Button>
+          </section>
         </div></div>
       </div>
   </ChildContent>

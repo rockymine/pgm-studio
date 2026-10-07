@@ -1,24 +1,21 @@
 using PgmStudio.Pgm.Render;
+using PgmStudio.Vocabulary;
+using static PgmStudio.Pgm.Render.PlanBoardPalette;
 
 namespace PgmStudio.Pgm.Tests.Render;
 
-/// <summary>The role/zone swatches every plan render draws from: a build zone
-/// and a water lane must separate by <b>hue</b>, not merely by the shade/opacity/dash a still image can lose.
-/// The failure to avoid is a hue confusion (both colours read as "blue" to a viewer), which a
-/// plain RGB distance does not reliably capture — #38bdf8 and #2563eb differ enough in brightness to score as
-/// far apart by raw distance while still sitting in the same 23-degree hue wedge, so these tests measure hue
-/// angle directly.</summary>
+/// <summary>The four inks every plan render draws from: the three accents (spawn, wool room, build zone) must
+/// separate by <b>hue</b>, not merely by the shade a still image can lose, and everything that is only terrain
+/// must be a neutral grey that no accent can be mistaken for. The roles that choose an ink are held here too.</summary>
 public sealed class PlanBoardPaletteTests
 {
-    /// <summary>Hue in degrees (0-360) off the packed RGB — the wheel position a viewer actually reads as
-    /// "blue" or "pink", independent of how light or saturated the colour is.</summary>
     private static double Hue(int rgb)
     {
         double r = (rgb >> 16) & 0xFF, g = (rgb >> 8) & 0xFF, b = rgb & 0xFF;
         var max = Math.Max(r, Math.Max(g, b));
         var min = Math.Min(r, Math.Min(g, b));
         var delta = max - min;
-        if (delta < 1e-9) return 0;   // grey — hue is undefined; never hit by any colour tested here
+        if (delta < 1e-9) return 0;
 
         double hue = max == r ? 60 * (((g - b) / delta) % 6)
             : max == g ? 60 * ((b - r) / delta + 2)
@@ -26,56 +23,73 @@ public sealed class PlanBoardPaletteTests
         return hue < 0 ? hue + 360 : hue;
     }
 
-    /// <summary>The smaller of the two arcs between two hues — how far apart they read on the wheel.</summary>
     private static double HueDistance(int a, int b)
     {
         var diff = Math.Abs(Hue(a) - Hue(b)) % 360;
         return Math.Min(diff, 360 - diff);
     }
 
-    // Two named hue "families" (red vs orange, blue vs cyan) sit roughly 30-60 degrees apart; a bar of 45
-    // requires two colours to read as genuinely different named hues rather than two shades of one, while
-    // still passing pairs of already-shipped role colours that were never part of this bug (wool amber and
-    // frontline orange sit about 16 degrees apart and are not tested against each other here).
-    private const double MinHueDegrees = 45;
+    /// <summary>How far a colour's channels spread: grey is near zero, any accent is large.</summary>
+    private static int Chroma(int rgb)
+    {
+        int r = (rgb >> 16) & 0xFF, g = (rgb >> 8) & 0xFF, b = rgb & 0xFF;
+        return Math.Max(r, Math.Max(g, b)) - Math.Min(r, Math.Min(g, b));
+    }
+
+    // Spawn violet and wool-room green are the plan editor's role hues; the closest pair is spawn and zone.
+    private const double MinHueDegrees = 35;
 
     [Test]
-    public async Task Build_zone_and_water_lane_separate_by_hue_not_only_shade()
+    [Arguments(0)]
+    [Arguments(1)]
+    [Arguments(2)]
+    public async Task The_three_accent_inks_separate_by_hue(int pair)
     {
-        await Assert.That(HueDistance(PlanBoardPalette.BuildZoneRgb, PlanBoardPalette.WaterLaneRgb)).IsGreaterThanOrEqualTo(MinHueDegrees);
+        int[][] pairs =
+        [
+            [Spawn.Edge, WoolRoom.Edge], [Spawn.Edge, Zone.Edge], [WoolRoom.Edge, Zone.Edge],
+        ];
+        await Assert.That(HueDistance(pairs[pair][0], pairs[pair][1])).IsGreaterThanOrEqualTo(MinHueDegrees);
     }
 
     [Test]
-    public async Task The_old_bug_colours_would_have_failed_the_same_hue_bar()
+    public async Task Ground_is_a_neutral_grey_and_every_accent_is_not()
     {
-        // The exact pair the entry names: #38bdf8 (old build zone) and #2563eb (water lane, unchanged) sit
-        // about 23 degrees apart on the wheel — both readable as "blue" — which is under the bar the real
-        // build zone colour now clears against the same water-lane colour.
-        await Assert.That(HueDistance(0x38bdf8, PlanBoardPalette.WaterLaneRgb)).IsLessThan(MinHueDegrees);
+        await Assert.That(Chroma(Ground.Fill)).IsLessThan(20);
+        await Assert.That(Chroma(Ground.Edge)).IsLessThan(30);
+        foreach (var accent in new[] { Spawn, WoolRoom, Zone })
+            await Assert.That(Chroma(accent.Edge)).IsGreaterThan(80);
     }
 
     [Test]
-    public async Task Water_lane_keeps_a_blue_hue_and_build_zone_does_not()
+    public async Task Spawn_and_wool_edges_are_the_plan_editors_role_colours_and_their_fills_the_same_hue()
     {
-        // Blue is the one colour a reader brings a fixed meaning for; only the zone that is actually water
-        // (eventually) may keep it.
-        var (waterR, waterG, waterB) = Channels(PlanBoardPalette.WaterLaneRgb);
-        await Assert.That(waterB).IsGreaterThan(waterR);
-        await Assert.That(waterB).IsGreaterThan(waterG);
-
-        var (buildR, buildG, buildB) = Channels(PlanBoardPalette.BuildZoneRgb);
-        await Assert.That(buildB > buildR && buildB > buildG).IsFalse();
+        await Assert.That(Spawn.Edge).IsEqualTo(0x8f7bd6);
+        await Assert.That(WoolRoom.Edge).IsEqualTo(0x3fae74);
+        await Assert.That(HueDistance(Spawn.Fill, Spawn.Edge)).IsLessThan(8);
+        await Assert.That(HueDistance(WoolRoom.Fill, WoolRoom.Edge)).IsLessThan(8);
     }
 
-    private static (int R, int G, int B) Channels(int rgb) => ((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
+    [Test]
+    public async Task Only_rooms_leave_the_ground_ink()
+    {
+        await Assert.That(InkOf(BoardRoles.Hub)).IsEqualTo(Ground);
+        await Assert.That(InkOf(BoardRoles.Frontline)).IsEqualTo(Ground);
+        await Assert.That(InkOf(BoardRoles.Approach)).IsEqualTo(Ground);
+        await Assert.That(InkOf(BoardRoles.Other)).IsEqualTo(Ground);
+        await Assert.That(InkOf(BoardRoles.Spawn)).IsEqualTo(Spawn);
+        await Assert.That(InkOf(BoardRoles.Wool)).IsEqualTo(WoolRoom);
+    }
 
     [Test]
-    [Arguments("hub", 0xa78bfa)]
-    [Arguments("spawn", 0x34d399)]
-    [Arguments("wool", 0xfbbf24)]
-    [Arguments("frontline", 0xfb923c)]
-    public async Task Build_zone_separates_by_hue_from_every_existing_role_colour(string role, int roleRgb)
+    [Arguments(PlanRoles.Spawn, "spawn-room", BoardRoles.Spawn)]
+    [Arguments(PlanRoles.WoolRoom, "wool-a-room", BoardRoles.Wool)]
+    [Arguments(PlanRoles.Piece, "hub", BoardRoles.Hub)]
+    [Arguments(PlanRoles.Piece, "frontline", BoardRoles.Frontline)]
+    [Arguments(PlanRoles.Piece, "wool-a", BoardRoles.Approach)]
+    [Arguments(PlanRoles.Piece, "piece-7", BoardRoles.Other)]
+    public async Task A_piece_takes_its_board_role_from_its_authored_role_then_its_id(string planRole, string id, string expected)
     {
-        await Assert.That(HueDistance(PlanBoardPalette.BuildZoneRgb, roleRgb)).IsGreaterThanOrEqualTo(MinHueDegrees);
+        await Assert.That(RoleOf(planRole, id)).IsEqualTo(expected);
     }
 }

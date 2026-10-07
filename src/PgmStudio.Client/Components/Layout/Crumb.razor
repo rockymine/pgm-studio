@@ -1,7 +1,7 @@
 @namespace PgmStudio.Client.Components
 
 @* One breadcrumb segment in the Topbar — a leading "›" separator (suppress with Sep=false for the
-   first crumb when there is no home link) then the crumb, muted when Dim, a link when Href is set. *@
+   first crumb) then the crumb, muted when Dim, a link when Href is set. *@
 
 @if (Sep) { <span class="topbar-sep">›</span> }
 @if (Href is not null) { <a class="@Cls" href="@Href">@ChildContent</a> }

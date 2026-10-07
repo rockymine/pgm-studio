@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using PgmStudio.Contracts;
+using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
@@ -70,6 +71,45 @@ public static class DressingPreview
             _ => null,
         };
     }
+
+    /// <summary>A placed prop as the volume it stands as, for a picture that looks at it from outside: the
+    /// dressed sample patch and the box round whatever the pass put above the ground — the prop with a
+    /// <see cref="StandingRing"/> of ground about it and <see cref="GroundShown"/> courses of ground under it.</summary>
+    public static (VoxelWorld World, BlockBox Box) Standing(PlacedProp prop, TerrainTheme theme)
+    {
+        var span = SpanFor(prop);
+        var (world, _) = Dressed([Centred(prop, span / 2, span / 2)], theme, span);
+        var (from, to) = Inside(span);
+
+        int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue, maxY = GroundTop;
+        for (var z = from; z <= to; z++)
+        for (var x = from; x <= to; x++)
+            for (var y = GroundTop; y < GroundTop + SkyCourses; y++)
+            {
+                if (world.GetBlock(x, y, z).Id == Blocks.Air) continue;
+                minX = Math.Min(minX, x); maxX = Math.Max(maxX, x);
+                minZ = Math.Min(minZ, z); maxZ = Math.Max(maxZ, z);
+                maxY = Math.Max(maxY, y);
+            }
+
+        if (minX > maxX) { minX = maxX = minZ = maxZ = span / 2; }
+        return (world, new BlockBox(
+            Math.Max(from, minX - StandingRing), GroundFrom, Math.Max(from, minZ - StandingRing),
+            Math.Min(to, maxX + StandingRing), maxY, Math.Min(to, maxZ + StandingRing)));
+    }
+
+    /// <summary>The ground a textured card stands a prop on: one course of grass over dirt, with nothing the
+    /// prop did not bring, so the picture is of the prop and not of a theme's ground cover.</summary>
+    public static TerrainTheme GrassGround { get; } = new()
+    {
+        Surface = new TopBand(new SolidMaterial(Blocks.Grass), Depth: 1),
+        Rim = new TopBand(new SolidMaterial(Blocks.Grass), Depth: 1),
+        Wall = new SolidMaterial(Blocks.Dirt),
+        Fill = new SolidMaterial(Blocks.Dirt),
+    };
+
+    /// <summary>Blocks of ground drawn round a prop's own extent, so it reads as standing on something.</summary>
+    private const int StandingRing = 2;
 
     /// <summary>Pixels a block takes in a rastered view before the caller's scale.</summary>
     private const int Cell = 5;

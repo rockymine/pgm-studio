@@ -19,6 +19,37 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   region geometry — all parity-verified against the Python reference. (M5, A1)
 
 ## App shell & routing
+- **A sign-in lasts its thirty days (`RP122`).** The Discord sign-in writes a persistent session cookie, so it
+  outlives the browser that signed in and renews in the second half of its life. `docs/access.md`.
+- **The home page is a landing, not a second nav (`C101`).** No tool bar; a hero naming every supported mode
+  (CTW, DTM, DTC, alone or combined) with *Start a map* and *Open maps (N)*, a themeable board drawing
+  (`LandingHero`), the person's five latest maps, and the four levels a map is described at.
+  `docs/client/routing-and-ia.md`.
+- **The studio bar holds tools and two references (`C105`).** Maps, Generator, Library, Rules and Glossary,
+  with no divider; at the right the keyboard-shortcuts and Design icons, text size, theme and the account, whose
+  menu holds Tokens, Users (admin) and API docs — in an open studio too. The footer is the brand and GitHub.
+  `docs/client/routing-and-ia.md`.
+- **A glossary page (`RP99`).** `/glossary` lists every term `GET /api/glossary` serves, alphabetically under
+  letter headings with their other names and related terms, filtered by a search kept in `?q=`, each entry
+  reachable as `/glossary#slug`. `docs/client/routing-and-ia.md`.
+- **The home page shows maps (`C106`).** A two-column hero (eyebrow, title, lede, large *New map* and *Browse
+  maps*) beside the newest map drawn in game; *Continue working* as picture cards; tool tiles for Generator,
+  Shape catalog, Library and Rules; a banner to the glossary. `MapThumb` keeps a placeholder where a map cannot
+  be drawn, over `GET /api/map/{slug}/render/picture`. `docs/client/routing-and-ia.md`.
+- **The editors draw one bar (`C103`).** Plan, Sketch and Configure replace their topbar and flow bar with
+  `EditorBar`: the crumb *Maps › the map's name* with `StageSwitch` beside it — a menu to the map's other tools
+  where it holds them, set on the crumb's baseline — then the phase and its steps (a *Step n of m* menu below
+  1100px), then state, the tool's commands, a divider and Back/Next, in every phase. Sketch's Download is an icon
+  beside Undo and Redo. `docs/client/routing-and-ia.md`.
+- **Plans are entered through Maps (`TN35`).** The studio bar has no Plan editor link and lights Maps on every
+  plan route. The plan sidebar is one untabbed column of Settings and Checks, with no count verdict and no
+  generator score; the Generator check is `PlanGeneratorCheck`, kept unmounted. `docs/tools/plan.md`.
+- **One filter rail (`C97`).** Maps, Catalog, Generator and `/design` build their rails from `FilterSidebar`,
+  `FilterPanel` and `FilterGroup`, with counts on `Chip` and one Clear in each panel's heading.
+  `docs/client/ui-conventions.md`.
+- **`/design` shows the studio as built (`C102`).** Tokens read live in both themes, then primitives, forms,
+  data, layout and navigation, the filter rail, editor chrome, feedback and entry surfaces, each drawn by the
+  real component. `docs/client/ui-conventions.md`.
 - **The rules have a page, and the studio bar links it (`RP108`).** `/rules` lists every rule `GET /api/rules`
   answers by family in pipeline order, filtered by text, kind, the action it asks for and what it is about, and
   opens one to its meaning, its fix, how a layout rule is known, its terms' bands and where it is defined; `?rule=ID` opens on
@@ -173,6 +204,32 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **A layout is described in words (`TG6`).** The Generator's drawer titles a layout by its name, pins from the
+  header, and states it as a sentence in glossary terms (`LayoutDescription`, each term linked to `/glossary`)
+  over three facts — players per team, wools per team, symmetry — and one *Make a map* action. Every board draws
+  both halves at full strength, its spawn and wool room in the plan editor's own hues. `docs/tools/generator.md`.
+- **Board pictures in the paper's plan inks (`C78`).** One renderer draws every board — Generator, catalog,
+  probe, plan and compose previews — in four inks: ground grey (a tint of the plan editor's piece grey), spawn
+  green, wool room orange, and the build zone as a dashed blue outline, on a white ground in the light theme and
+  the same inks over dark in the dark one (`--board-*` tokens). Hub, front line, approach and other pieces are
+  ground; each piece carries its `BoardRoles` class, so the Generator's wide detail drawer highlights any of
+  them in the accent without a refetch. The Generator filters wools per team by 1/2/3 chips (`woolCount`, any of,
+  bounded by `WoolCounts`). `docs/tools/generator.md`.
+- **A generator card is its picture (`TG4`).** Generator, Catalog and Library cards are one `PictureCard`: the
+  picture and a name — a layout's id on the Generator. The Generator's rail filters by player band chips and links
+  the shape catalog; it shows no score. `docs/tools/generator.md`.
+- **Library structures stand on grass (`TL46`).** Textured tree and boulder cards grow on one course of grass
+  over dirt (`DressingPreview.GrassGround`), and the house sample stands on grass over dirt rather than stone.
+  `docs/tools/library.md`.
+- **A board picture sits on the theme's ground (`TG3`).** `--board-bg` is light in the light theme, and
+  `PlanBoardSvg` draws its spawn and iron markers from `--board-spawn`/`--board-iron`, so the generator,
+  catalog and probe boards read in both themes. `docs/tools/generator.md`.
+- **Buildings, trees and boulders are drawn with block textures (`TL42`).** Their Library cards and the
+  tree/boulder editor stage render the volume from a three-quarter eye (`StructurePicture` over `EyeScene`)
+  through the same sprites and cache as patterns, falling back to the flat section without them.
+  `docs/tools/library.md`.
+- **A sketch's problems say each thing once (`TS168`).** The problems popover drops its count line; a refusal
+  that names no finding still states its sentence. `docs/tools/sketch.md`.
 - **A check's findings read the same everywhere (`C100`).** `ProblemList` draws one collapsible row per rule,
   grouped as Problems, Out of range, Left out and Warnings, the rule id linking to its page in a new tab; an
   open row says what to do and where, and lights its places through `OnLight`. `POST /api/plan/evaluate` carries

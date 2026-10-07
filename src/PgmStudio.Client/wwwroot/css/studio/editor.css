@@ -41,16 +41,6 @@
   position: relative;
 }
 
-.topbar-breadcrumb-home {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--text-secondary);
-  text-decoration: none;
-  font-size: var(--font-md);
-  white-space: nowrap;
-}
-.topbar-breadcrumb-home:hover { color: var(--text-strong); }
 .topbar-sep  { color: var(--text-muted); font-size: var(--font-base); user-select: none; }
 .topbar-crumb { font-size: var(--font-md); color: var(--text-primary); white-space: nowrap; }
 .topbar-crumb--dim { color: var(--text-secondary); }
@@ -76,11 +66,8 @@
 .app-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .activity-viewport { display: flex; flex: 1; min-width: 0; overflow: hidden; }
 
-/* A phase's flow-bar + body, stacked so the flow-bar is a flush strip under the topbar (no gaps, like
-   the editor shell): tight against the topbar + rail, the workspace tight against it. Shared by the
-   Configure wizard (see new-map-authoring.md §12) and the Edit activities with steps (Setup, Build). */
+/* A phase's body: the workspace fills the column the rail leaves. */
 .phase-body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.flow-bar--flush { flex-shrink: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; }
 .phase-body > .workspace { flex: 1; min-height: 0; }
 
 /* ── App footer (dashboard shell — bottom counterpart to the topbar) ── */

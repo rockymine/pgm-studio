@@ -12,12 +12,12 @@ namespace PgmStudio.Api.Endpoints;
 /// <summary>GET /api/tree-styles — the tree library, newest first, each drawn through the grower the export
 /// runs. A tree is picked by what it looks like: seven woods differ in colour and seven species in shape, and
 /// neither reads off a number.</summary>
-public sealed class TreeStyleListEndpoint(PropStyleLibrary library) : EndpointWithoutRequest<List<TreeStyleSummary>>
+public sealed class TreeStyleListEndpoint(PropStyleLibrary library, BlockTextureStore textures) : EndpointWithoutRequest<List<TreeStyleSummary>>
 {
     public override void Configure() { Get("/tree-styles"); }
 
     public override async Task HandleAsync(CancellationToken ct)
-        => await Send.OkAsync((await library.ListTreesAsync(ct))
+        => await Send.OkAsync((await library.ListTreesAsync(await textures.ForPicturesAsync(ct), ct))
             .Select(entry => Summary(entry.Row, entry.Card)).ToList(), ct);
 
     private static TreeStyleSummary Summary(TreeStyleRow row, string card)
@@ -96,12 +96,12 @@ public sealed class TreeStyleUpdateEndpoint(PropStyleStore store) : Endpoint<Tre
     }
 }
 
-public sealed class TreeStyleDraftPreviewEndpoint : Endpoint<TreeStyleSaveRequest, StyleCardDto>
+public sealed class TreeStyleDraftPreviewEndpoint(BlockTextureStore textures) : Endpoint<TreeStyleSaveRequest, StyleCardDto>
 {
     public override void Configure() { Post("/tree-styles/preview"); }
 
     public override async Task HandleAsync(TreeStyleSaveRequest req, CancellationToken ct)
-        => await Send.OkAsync(new StyleCardDto(PropStyleLibrary.CardOf(req)), ct);
+        => await Send.OkAsync(new StyleCardDto(PropStyleLibrary.CardOf(req, await textures.ForPicturesAsync(ct))), ct);
 }
 
 /// <summary>DELETE /api/tree-styles/{id}. No question is asked, because nothing binds a recipe: a placement
@@ -121,13 +121,13 @@ public sealed class TreeStyleDeleteEndpoint(PropStyleStore store) : EndpointWith
 }
 
 // ── boulders ──────────────────────────────────────────────────────────────────────────────────────────
-public sealed class BoulderStyleListEndpoint(PropStyleLibrary library)
+public sealed class BoulderStyleListEndpoint(PropStyleLibrary library, BlockTextureStore textures)
     : EndpointWithoutRequest<List<BoulderStyleSummary>>
 {
     public override void Configure() { Get("/boulder-styles"); }
 
     public override async Task HandleAsync(CancellationToken ct)
-        => await Send.OkAsync((await library.ListBouldersAsync(ct))
+        => await Send.OkAsync((await library.ListBouldersAsync(await textures.ForPicturesAsync(ct), ct))
             .Select(entry => new BoulderStyleSummary(entry.Row.Id, entry.Row.Name, entry.Card)).ToList(), ct);
 }
 
@@ -191,12 +191,12 @@ public sealed class BoulderStyleUpdateEndpoint(PropStyleStore store)
     }
 }
 
-public sealed class BoulderStyleDraftPreviewEndpoint : Endpoint<BoulderStyleSaveRequest, StyleCardDto>
+public sealed class BoulderStyleDraftPreviewEndpoint(BlockTextureStore textures) : Endpoint<BoulderStyleSaveRequest, StyleCardDto>
 {
     public override void Configure() { Post("/boulder-styles/preview"); }
 
     public override async Task HandleAsync(BoulderStyleSaveRequest req, CancellationToken ct)
-        => await Send.OkAsync(new StyleCardDto(PropStyleLibrary.CardOf(req)), ct);
+        => await Send.OkAsync(new StyleCardDto(PropStyleLibrary.CardOf(req, await textures.ForPicturesAsync(ct))), ct);
 }
 
 public sealed class BoulderStyleDeleteEndpoint(PropStyleStore store) : EndpointWithoutRequest

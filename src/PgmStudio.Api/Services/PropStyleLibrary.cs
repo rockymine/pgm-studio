@@ -27,8 +27,9 @@ public sealed class PropStyleLibrary(PropStyleStore store)
     private static TerrainTheme Sample => SeedFolder.Meadow;
 
     // ── trees ─────────────────────────────────────────────────────────────────────────────────────────
-    public async Task<IReadOnlyList<(TreeStyleRow Row, string Card)>> ListTreesAsync(CancellationToken ct = default)
-        => [.. (await store.ListTreesAsync(ct)).Select(row => (row, Card(TreeProp(row), TreeOf(row))))];
+    public async Task<IReadOnlyList<(TreeStyleRow Row, string Card)>> ListTreesAsync(
+        PictureSprites sprites, CancellationToken ct = default)
+        => [.. (await store.ListTreesAsync(ct)).Select(row => (row, Card(TreeProp(row), TreeOf(row), sprites)))];
 
     public static TreeStyle TreeOf(TreeStyleRow row) => new()
     {
@@ -112,15 +113,16 @@ public sealed class PropStyleLibrary(PropStyleStore store)
 
     /// <summary>The draft as the editor's own stage draws it — the same recipe as a browse card, at the
     /// size a knob is judged at rather than the size a row is scanned at.</summary>
-    public static string CardOf(TreeStyleSaveRequest draft) => Card(TreeProp(RowOf(draft)), TreeOf(RowOf(draft)), StageCell);
+    public static string CardOf(TreeStyleSaveRequest draft, PictureSprites sprites)
+        => Card(TreeProp(RowOf(draft)), TreeOf(RowOf(draft)), sprites, stage: true);
 
     private static TreeProp TreeProp(TreeStyleRow row)
         => new() { Id = "sample", X = 0, Z = 0, Seed = 7, Style = TreeOf(row) };
 
     // ── boulders ──────────────────────────────────────────────────────────────────────────────────────
     public async Task<IReadOnlyList<(BoulderStyleRow Row, string Card)>> ListBouldersAsync(
-        CancellationToken ct = default)
-        => [.. (await store.ListBouldersAsync(ct)).Select(row => (row, Card(BoulderProp(row), BoulderOf(row))))];
+        PictureSprites sprites, CancellationToken ct = default)
+        => [.. (await store.ListBouldersAsync(ct)).Select(row => (row, Card(BoulderProp(row), BoulderOf(row), sprites)))];
 
     public static BoulderStyle BoulderOf(BoulderStyleRow row) => new()
     {
@@ -166,7 +168,8 @@ public sealed class PropStyleLibrary(PropStyleStore store)
     public static BoulderStyleDetail ToDetail(BoulderStyleRow row) => new(
         row.Id, row.Name, BoulderForms.Canonical(row.Form), row.Size, row.Mossy, row.Rock, row.SeedKey is not null);
 
-    public static string CardOf(BoulderStyleSaveRequest draft) => Card(BoulderProp(RowOf(draft)), BoulderOf(RowOf(draft)), StageCell);
+    public static string CardOf(BoulderStyleSaveRequest draft, PictureSprites sprites)
+        => Card(BoulderProp(RowOf(draft)), BoulderOf(RowOf(draft)), sprites, stage: true);
 
     private static BoulderProp BoulderProp(BoulderStyleRow row)
         => new() { Id = "sample", X = 0, Z = 0, Seed = 7, Style = BoulderOf(row) };
@@ -193,13 +196,16 @@ public sealed class PropStyleLibrary(PropStyleStore store)
         catch (JsonException) { return """{"kind":"solid","id":1,"data":0}"""; }
     }
 
-    /// <summary>How many pixels a block takes on the editor's stage, against the browse row's 3. A recipe is
-    /// tuned by watching one knob move the picture, which wants the picture bigger than a row of them does.</summary>
-    private const int StageCell = 9;
+    /// <summary>One recipe's card: the sample prop grown through the pass that builds it, as the game's sprites
+    /// draw it where the studio has them, else as the flat side view. <paramref name="stage"/> is the editor's
+    /// larger picture, which a recipe is tuned against; a browse row's is the smaller one.</summary>
+    private static string Card(PlacedProp prop, PropStyle recipe, PictureSprites sprites, bool stage = false)
+        => StructureCard.Once("prop-card" + (stage ? "/stage" : ""),
+            DressingJson.SerializeProp(prop) + "\n" + DressingJson.SerializeStyle(recipe), sprites,
+            flat: () => DressingPreview.Views(prop, Sample, stage ? StageCell : 3).Section,
+            volume: () => DressingPreview.Standing(prop, DressingPreview.GrassGround),
+            stage);
 
-    /// <summary>One recipe's card: the section, drawn through the pass that builds it.</summary>
-    private static string Card(PlacedProp prop, PropStyle recipe, int cell = 3)
-        => Drawings.Svg($"prop-card/{cell}",
-            DressingJson.SerializeProp(prop) + "\n" + DressingJson.SerializeStyle(recipe),
-            () => DressingPreview.Views(prop, Sample, cell).Section);
+    /// <summary>The pixels a block takes on the editor's stage in the flat picture, against a browse row's 3.</summary>
+    private const int StageCell = 9;
 }

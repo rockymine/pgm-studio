@@ -14,7 +14,7 @@ const seed = await readSeed();
 
 /** `expect` names a selector that must exist once the page has settled — the page's "I rendered" proof. */
 const ROUTES = [
-  { path: "/",                                    name: "landing",        expect: ".landing-choices a.card" },
+  { path: "/",                                    name: "landing",        expect: ".landing-hero a" },
   { path: "/maps",                                name: "maps dashboard", expect: ".studio-shell, .workspace, main" },
   { path: "/maps?stage=sketch",                   name: "maps · sketch",  expect: "body" },
   { path: "/maps?stage=plan",                     name: "maps · plan",    expect: "body" },
@@ -40,6 +40,7 @@ const ROUTES = [
   { path: "/maps/new",                            name: "new map",        expect: "body" },
   // an open studio says a caller needs no token; an invited one lists them — either is the page alive
   { path: "/rules?rule=PL9",                      name: "rules",          expect: '.rules-row[aria-selected="true"]' },
+  { path: "/glossary#hub",                        name: "glossary",       expect: ".glossary-term--target" },
   { path: "/tokens",                              name: "tokens",         expect: ".callout, .panel-list" },
   { path: "/not-found",                           name: "not found",      expect: "body" },
   { path: "/definitely-not-a-route",              name: "unknown route",  expect: "body" },

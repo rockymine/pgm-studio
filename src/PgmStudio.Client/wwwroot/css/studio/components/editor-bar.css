@@ -1,0 +1,110 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   EDITOR BAR  (the one bar the three editors draw under the studio's own: where the
+   page is, what phase and step the work is at, what the tool can do, and Back/Next.)
+   Left to right: the crumb and its stage switcher, the phase and its steps, then the
+   state, the commands, a divider and the move.
+   ══════════════════════════════════════════════════════════════════════════ */
+.editor-bar {
+  display: flex; align-items: center; gap: var(--space-4);
+  flex-shrink: 0; position: relative;
+  min-height: calc(var(--control-height) + var(--space-3));
+  padding: 0 var(--space-4);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+/* The crumb and the switcher share one line box: every item takes the same font, size, weight and line height
+   and no vertical padding, so their text sits on one baseline whatever the item is. */
+.editor-crumb {
+  --editor-crumb-line: calc(20px * var(--ui-scale));
+  display: flex; align-items: center; flex: 0 1 auto; min-width: 0;
+  gap: var(--space-2);
+  font-family: inherit; font-size: var(--font-md); font-weight: 400; line-height: var(--editor-crumb-line);
+  white-space: nowrap;
+}
+.editor-crumb > *, .editor-stage, .editor-stage > span {
+  font: inherit; line-height: var(--editor-crumb-line); height: var(--editor-crumb-line);
+}
+.editor-crumb-link { color: var(--text-secondary); text-decoration: none; }
+.editor-crumb-link:hover { color: var(--text-strong); text-decoration: underline; }
+.editor-crumb-sep { color: var(--text-muted); user-select: none; }
+.editor-crumb-name {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  color: var(--text-strong);
+}
+
+/* The stage word: plain text when the page has no map to switch within, a button that looks the same otherwise.
+   Its hover and focus affordance is a shadow spread, which paints around the text without moving it. */
+.editor-menu-host { position: relative; display: inline-flex; align-items: center; min-width: 0; }
+.editor-stage {
+  display: inline-flex; align-items: center; gap: 2px;
+  margin: 0; padding: 0 var(--space-1);
+  border: 0; border-radius: var(--radius-sm); background: none;
+  color: var(--text-secondary); letter-spacing: inherit; text-align: left; white-space: nowrap;
+}
+.editor-stage--button { cursor: pointer; }
+.editor-stage--button:hover, .editor-stage--button[aria-expanded="true"] {
+  color: var(--text-strong); background: var(--bg-vis-hover); box-shadow: 0 0 0 3px var(--bg-vis-hover);
+}
+.editor-stage--button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.editor-stage-chevron {
+  flex: none; width: 1em; height: 1em; margin-top: 1px;
+  fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* Menus the bar opens (the stage switcher, the compact step list). */
+.editor-menu-scrim { position: fixed; inset: 0; z-index: 40; }
+.editor-menu {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 41; min-width: 180px;
+  display: flex; flex-direction: column; gap: 2px; padding: var(--space-2);
+  background: var(--bg-panel); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-float);
+  font-size: var(--font-md); white-space: nowrap;
+}
+.editor-menu-item {
+  display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2);
+  border: 0; border-radius: var(--radius-sm); background: transparent;
+  color: var(--text-primary); font: inherit; text-align: left; text-decoration: none; cursor: pointer;
+}
+.editor-menu-item:hover { background: var(--bg-selected-hover); }
+.editor-menu-item[aria-current] { color: var(--text-strong); font-weight: 600; }
+.editor-menu-item[aria-disabled="true"], .editor-menu-item:disabled {
+  color: var(--text-muted); border: 1px dashed var(--border); cursor: default; background: transparent;
+}
+.editor-menu-item:disabled { opacity: 0.5; }
+
+/* The phase and its steps. */
+.editor-bar-flow { display: flex; align-items: center; align-self: stretch; flex: 1 1 auto; min-width: 0; gap: var(--space-4); }
+.editor-bar-phase {
+  display: flex; align-items: center; gap: var(--space-2); align-self: center;
+  color: var(--text-strong); font-weight: 600; font-size: var(--font-md); white-space: nowrap;
+}
+.editor-bar-phase:has(+ .flow-steps, + .flow-steps-compact) { padding-right: var(--space-4); border-right: 1px solid var(--border); }
+.editor-bar-phase svg { width: var(--icon-md); height: var(--icon-md); color: var(--accent); }
+.flow-steps { display: flex; align-items: center; gap: var(--space-5); align-self: stretch; }
+.flow-steps-compact { display: none; position: relative; align-self: center; }
+.flow-steps-compact .editor-stage { color: var(--text-secondary); font-size: var(--font-base); }
+
+/* State, commands, then the move. The divider is the app bar's rule at the bar's own spacing. */
+.editor-bar-end { display: flex; align-items: center; flex: none; margin-left: auto; gap: var(--space-3); }
+.editor-bar-state { display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-sm); color: var(--text-muted); white-space: nowrap; }
+.editor-bar-commands { display: flex; align-items: center; gap: var(--space-1); }
+.editor-bar-commands--labelled { gap: var(--space-2); }
+.editor-bar-divider { flex: none; width: 1px; height: calc(24px * var(--ui-scale)); margin: 0 var(--space-2); background: var(--border); }
+.editor-bar-move { display: flex; align-items: center; gap: var(--space-2); }
+.editor-bar .readonly-tag { margin-left: 0; }
+
+@media (max-width: 1100px) {
+  .editor-bar .flow-steps { display: none; }
+  .editor-bar .flow-steps-compact { display: block; }
+}
+@media (max-width: 720px) {
+  .editor-bar { flex-wrap: wrap; gap: var(--space-2) var(--space-3); padding: var(--space-2) var(--space-4); }
+  .editor-crumb { flex: 1 1 100%; }
+  .editor-bar-flow { flex: 1 1 auto; }
+  .editor-bar-end { flex-wrap: wrap; justify-content: flex-end; }
+}
+
+/* An icon-only action that is running says so in place of a label: its glyph pulses. */
+.action-btn--icon.action-btn--busy svg { animation: action-btn-pulse 1s ease-in-out infinite; }
+@keyframes action-btn-pulse { 50% { opacity: 0.3; } }

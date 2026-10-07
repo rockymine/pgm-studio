@@ -1,0 +1,27 @@
+@namespace PgmStudio.Client.Components
+
+@* The studio entry's opening block: what the studio makes, the two ways in, and a picture of a map the studio has
+   drawn in game — the newest one with a world, named by HeroSlug — or the studio mark where none has. *@
+
+<section class="landing-hero">
+  <div class="landing-hero-text">
+    <span class="landing-eyebrow">Capture the Wool · Destroy the Monument · Destroy the Core</span>
+    <h1 class="landing-title">Author PGM maps, from layout to <code>map.xml</code></h1>
+    <p class="landing-lead">Plan a symmetric board, shape and paint its ground, state what it is played for, and
+      export a world a server can load. Capture the Wool, Destroy the Monument and Destroy the Core,
+      alone or combined.</p>
+    <div class="landing-actions">
+      <Button Variant="primary" Size="lg" Icon="plus" Href="@StartHref">New map</Button>
+      <Button Size="lg" Icon="map" Href="@MapsHref">Browse maps</Button>
+    </div>
+  </div>
+  <MapThumb Class="landing-hero-picture" Slug="@HeroSlug" Name="@HeroName" />
+</section>
+
+@code {
+    /// <summary>The map the hero picture is drawn of; omitted until a map with a world is known.</summary>
+    [Parameter] public string? HeroSlug { get; set; }
+    [Parameter] public string? HeroName { get; set; }
+    [Parameter] public string StartHref { get; set; } = "maps?stage=plan";
+    [Parameter] public string MapsHref { get; set; } = "maps";
+}

@@ -5,19 +5,19 @@
 @inject NavigationManager Nav
 @implements IAsyncDisposable
 
-@* Sketch tool — Layout step. Blazor renders the topbar + toolbar + svg shell; the reused SketchCanvas
+@* Sketch tool — Layout step. Blazor renders the editor bar + toolbar + svg shell; the reused SketchCanvas
    JS (via bridge/sketch-bridge.js) owns drawing, the live group computation, and the mirror preview.
    Persistence (load/save) is wired in S2d; this step is the draw + live-groups experience. *@
 
 <StudioShell>
   <Bar>
-    <Topbar HomeHref="maps?stage=sketch" HomeLabel="Sketches" HomeTitle="Back to sketches">
-      <Crumbs>
-        <Crumb>@(string.IsNullOrWhiteSpace(mapName) ? Slug.Replace('_', ' ') : mapName)</Crumb>
-        <Crumb Dim>Sketch</Crumb>
-      </Crumbs>
-      <Right>
-        @if (InfoActive && infoSave is not null) { <span class="topbar-save-status">@infoSave</span> }
+    @{ var move = BarMove; }
+    <EditorBar MapName="@(string.IsNullOrWhiteSpace(mapName) ? Slug.Replace('_', ' ') : mapName)" Slug="@Slug" Stage="@MapStage.Sketch"
+               PhaseIcon="@move.Icon" PhaseTitle="@move.Title" Steps="@move.Steps" CurrentStep="@move.Step"
+               BackEnabled="true" NextLabel="@move.NextLabel" NextEnabled="true"
+               OnStep="move.OnStep" OnBack="move.OnBack" OnNext="move.OnNext">
+      <State>
+        @if (InfoActive && infoSave is not null) { <span>@infoSave</span> }
         @if (ProblemsShown)
         {
           <span class="problems-pop-host">
@@ -34,7 +34,7 @@
                       <h3 class="section-title">This map</h3>
                       <Button Variant="icon" Icon="x" Title="Close" OnClick="ClosePop" />
                     </div>
-                    <p class="problems-verdict">@if (StoppedWord is { } stopped) { <b>@stopped</b>@(" ") }@ProblemsVerdict</p>
+                    @if (UnlistedRefusal is { } refusalSentence) { <p class="problems-verdict">@refusalSentence</p> }
                     @if (exportRefused && downloadRefusal is { Findings.Count: 0 })
                     {
                       <Button Href="@($"maps/{Slug}/configure")" Icon="settings-2">Open Configure</Button>
@@ -45,13 +45,14 @@
             }
           </span>
         }
-        <span class="topbar-crumb topbar-crumb--dim">@groupLabel</span>
+      </State>
+      <Commands>
         <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" Writes OnClick="Undo" />
         <Button Variant="icon" Icon="redo-2" Title="Redo" Disabled="@(!canRedo)" Writes OnClick="Redo" />
-        <Button Variant="primary" Icon="download" Busy="downloading" BusyLabel="Building…" Builds OnClick="DownloadMap"
-                Title="Download the map: its world and map.xml, ready for a server">Download map</Button>
-      </Right>
-    </Topbar>
+        <Button Variant="icon" Icon="download" Busy="downloading" Builds OnClick="DownloadMap"
+                Title="@(downloading ? "Building the map…" : DownloadTitle)" aria-label="@DownloadTitle" aria-busy="@(downloading ? "true" : null)" />
+      </Commands>
+    </EditorBar>
   </Bar>
   <Rail>
     <NavRail>
@@ -68,7 +69,7 @@
       <WriteGate OnChanged="OnWriteReason" />
       @if (InfoActive)
       {
-        <SketchInfoPhase Slug="@Slug" OnNext="GoDraw" OnRenamed="renamed => mapName = renamed" OnSaveStatus="status => infoSave = status"
+        <SketchInfoPhase Slug="@Slug" Step="infoStep" OnRenamed="renamed => mapName = renamed" OnSaveStatus="status => infoSave = status"
                          Mode="@mode" CenterX="@centerX" CenterZ="@centerZ"
                          OnModeChange="OnModeChange" OnCenterX="OnCenterX" OnCenterZ="OnCenterZ" />
       }
@@ -77,45 +78,12 @@
       @if (NotesActive)
       {
         <SketchNotesStep Slug="@Slug" Views="views" Notes="notes" LinkedNote="linkedNote" OnLinkOpened="LinkOpened"
-                         Steps="ReviewSteps" OnStep="StepReview" OnBack="ShowCameras" OnNext="GoHistory"
                          Changes="history.ChangeNumbers" OnChangesSince="ShowChangesSince" OnRedraw="RedrawReview" />
       }
       @* Every phase that draws shares the one mounted canvas, so this body stays present (hidden while Info is
          up) — [hidden] is display:none, and the canvas re-measures on unhide. A phase swaps what the columns
          hold and which overlays the bar offers; the canvas is reused as it stands. *@
       <div class="phase-body" hidden="@(!(DrawActive || ThemeActive || DressingActive || ReliefActive || CamerasActive || HistoryActive))">
-      @if (ThemeActive)
-      {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Palette"
-                 BackEnabled="true" NextLabel="Next" NextEnabled="true" OnBack="GoRelief" OnNext="GoDressing" />
-      }
-      else if (DressingActive)
-      {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="trees" PhaseTitle="Decoration"
-                 BackEnabled="true" NextLabel="Next" NextEnabled="true" OnBack="GoTheme" OnNext="GoReview" />
-      }
-      else if (ReliefActive)
-      {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="mountain" PhaseTitle="Terraform"
-                 BackEnabled="true" NextLabel="Next" NextEnabled="true" OnBack="GoDraw" OnNext="GoTheme" />
-      }
-      else if (HistoryActive)
-      {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="history" PhaseTitle="History"
-                 BackEnabled="true" NextLabel="Draw" NextEnabled="true" OnBack="GoReview" OnNext="GoDraw" />
-      }
-      else if (CamerasActive)
-      {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="eye" PhaseTitle="Review" Steps="ReviewSteps" CurrentStep="0"
-                 BackEnabled="true" NextLabel="Next" NextEnabled="true" OnStep="StepReview"
-                 OnBack="GoDressing" OnNext="ShowNotes" />
-      }
-      else
-      {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
-                 BackEnabled="true" NextLabel="Next" NextEnabled="true"
-                 OnBack="GoInfo" OnNext="GoRelief" />
-      }
       <Workspace>
         <Sidebar>
           @if (ThemeActive)

@@ -1,0 +1,70 @@
+@namespace PgmStudio.Client.Components
+@inject HttpClient Http
+
+@* A 16:9 picture of a map: the studio's own in-game drawing of it (GET …/render/picture), over a placeholder that
+   holds the box until the picture has drawn and stays where none can be — a map with no world, a studio with no
+   block textures, a request that is refused. The picture loads lazily and fades in; a studio too busy to draw
+   answers 429 and is asked again once it says to. With no Slug the box is the studio mark. *@
+
+<div class="map-thumb @Class">
+  <div class="map-thumb__blank">
+    @if (Name is { Length: > 0 })
+    {
+      <span class="map-thumb__initial">@Initial</span>
+    }
+    else
+    {
+      <img src="favicon.svg" alt="" class="map-thumb__mark" />
+    }
+  </div>
+  @if (Slug is not null && !failed)
+  {
+    <img src="@Source" alt="@($"{Name}, seen in game")" loading="lazy" class="map-thumb__picture @(loaded ? "is-loaded" : null)"
+         @onload="() => loaded = true" @onerror="AskAgainAsync" />
+  }
+</div>
+
+@code {
+    /// <summary>The map to draw, or null for the studio mark alone.</summary>
+    [Parameter] public string? Slug { get; set; }
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>How many times a studio too busy to draw is asked again before the placeholder stays.</summary>
+    private const int BusyRetries = 4;
+
+    private bool loaded, failed;
+    private int attempt;
+    private string? shown;
+
+    private string Initial => Name!.Trim() is { Length: > 0 } trimmed ? char.ToUpperInvariant(trimmed[0]).ToString() : "";
+
+    /// <summary><c>attempt</c> only makes the browser ask again; the studio names a picture by what it shows.</summary>
+    private string Source =>
+        $"api/map/{Slug}/render/picture?width=960&height=540" + (attempt > 0 ? $"&attempt={attempt}" : "");
+
+    protected override void OnParametersSet()
+    {
+        if (shown == Slug) return;
+        shown = Slug;
+        attempt = 0;
+        loaded = failed = false;
+    }
+
+    private async Task AskAgainAsync()
+    {
+        try
+        {
+            var answer = await Http.GetAsync(Source);
+            if (answer.StatusCode == System.Net.HttpStatusCode.TooManyRequests && attempt < BusyRetries)
+            {
+                await Task.Delay(answer.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(5));
+                attempt++;
+                StateHasChanged();
+                return;
+            }
+        }
+        catch (HttpRequestException) { /* the placeholder is the answer */ }
+        failed = true;
+    }
+}

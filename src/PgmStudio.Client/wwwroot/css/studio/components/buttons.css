@@ -24,6 +24,9 @@
    the row and the width stayed padding + glyph, which drew it as a tall pill. With the ratio the width is
    read off whatever height the row settles on, so it tracks the row rather than a pinned number. */
 .action-btn--icon           { padding: 4px; aspect-ratio: 1; justify-content: center; }
+/* The entry-point size: 44px tall, 15px semibold, icon at the standalone size. */
+.action-btn--lg           { min-height: calc(44px * var(--ui-scale)); padding: 0 calc(20px * var(--ui-scale)); gap: var(--space-2); font-size: var(--font-lg); font-weight: 600; border-radius: var(--radius-md); }
+.action-btn--lg svg       { width: var(--icon-lg); height: var(--icon-lg); }
 .action-btn--fill         { flex: 1; justify-content: center; }
 .action-btn--push-end     { margin-left: auto; }
 .action-btn--full         { width: 100%; justify-content: center; }

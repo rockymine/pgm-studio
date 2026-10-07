@@ -22,7 +22,8 @@
 @import url("components/badge.css");
 @import url("components/meter.css");
 @import url("components/filter-chip.css");
-@import url("components/flow-bar.css");
+@import url("components/flow-steps.css");
+@import url("components/editor-bar.css");
 @import url("components/step-row.css");
 @import url("components/console.css");
 @import url("components/section-description.css");
@@ -33,12 +34,14 @@
 @import url("components/card.css");
 @import url("components/callout.css");
 @import url("components/landing.css");
+@import url("components/map-thumb.css");
 @import url("components/keyboard.css");
 @import url("components/canvas-strips.css");
 @import url("components/in-game.css");
 @import url("components/notes.css");
 @import url("components/history.css");
 @import url("components/rules.css");
+@import url("components/glossary.css");
 @import url("components/problem-list.css");
 @import url("components/text-size-menu.css");
 @import url("components/board-key.css");

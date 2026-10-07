@@ -1,14 +1,8 @@
 /* The browse-library shell: a grid of pictures, and whatever a page narrows it by. The shape catalog keeps its
-   filters in an aside beside the grid (catalog.css); the style library keeps them in a strip above it, because
+   filters in a FilterSidebar beside the grid; the style library keeps them in a strip above it, because
    a search box and a row of chips are horizontal things and a grid wants the width. */
 
 .lib-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
-
-.lib-filters {
-  flex-shrink: 0; width: var(--sidebar-width); padding: var(--space-3);
-  border-right: 1px solid var(--border); overflow-y: auto;
-  display: flex; flex-direction: column; gap: var(--space-3);
-}
 
 .lib-main { flex: 1; min-width: 0; overflow-y: auto; padding: var(--space-3); }
 .lib-count { margin: 0 0 var(--space-2); font-size: var(--font-sm); color: var(--text-secondary); }
@@ -19,7 +13,7 @@
 /* A card is its picture over a short body: a name, then the tags that say what it is. Nothing sits on the
    picture itself. */
 .lib-card {
-  display: flex; flex-direction: column; overflow: hidden;
+  position: relative; display: flex; flex-direction: column; overflow: hidden;
   background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md);
   transition: border-color var(--transition-fast);
 }
@@ -31,8 +25,8 @@
   position: absolute; top: var(--space-3); left: var(--space-3);
   width: calc(100% - 2 * var(--space-3)); height: calc(100% - 2 * var(--space-3)); object-fit: contain;
 }
-/* A board shape is drawn for a dark ground in either theme (--board-bg). */
-.cat-card-fig { aspect-ratio: 1; background: var(--board-bg); }
+/* A board shape sits on the theme's board ground (--board-bg). */
+.lib-card-fig--board { aspect-ratio: 1; background: var(--board-bg); }
 
 .lib-card-body { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2) var(--space-3) var(--space-3); }
 .lib-card-title {
@@ -201,6 +195,7 @@ a.lib-card-fig { text-decoration: none; }
 .lib-stage-figure .lib-fig img { width: 100%; height: auto; max-height: 38vh; object-fit: contain; }
 /* A picture drawn with the game's block sprites is shown cell for cell, never smoothed into a blur. */
 img.block-picture { image-rendering: pixelated; }
+img.block-render { image-rendering: auto; }
 
 /* The house views in a companion column: the building over the cuts, stacked rather than side by side,
    because a column this wide fits one picture across and three of them would each be a thumbnail. The

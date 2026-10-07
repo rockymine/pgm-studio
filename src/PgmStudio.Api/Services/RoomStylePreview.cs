@@ -65,10 +65,17 @@ public static class RoomStylePreview
             Stamped(style, sample), CutTo(style, Outer(style, sample), part), cell);
     }
 
-    /// <summary><see cref="Card"/> at its defaults, drawn once per distinct style and part
-    /// (<see cref="Drawings"/>) — the picture a library row lists with.</summary>
-    public static string CardOnce(HouseStyle style, string? part = null) =>
-        Drawings.Svg("house-card/" + part, HouseStyleJson.Serialize(style), () => Card(style, part: part));
+    /// <summary>The card a library row lists with, drawn once per distinct style and part
+    /// (<see cref="Drawings"/>): the building seen from outside with the game's sprites where the studio has
+    /// them (<see cref="StructureCard"/>), else <see cref="Card"/>'s flat section.</summary>
+    public static string CardOnce(HouseStyle style, PictureSprites sprites, string? part = null) =>
+        StructureCard.Once("house-card/" + part, HouseStyleJson.Serialize(style), sprites,
+            flat: () => Card(style, part: part),
+            volume: () =>
+            {
+                var sample = SampleOf(null);
+                return (Stamped(style, sample), CutTo(style, Outer(style, sample), part));
+            });
 
     /// <summary>
     /// The box the views are taken over for the part an editor has open — the whole shell where none is.
@@ -145,15 +152,15 @@ public static class RoomStylePreview
     /// have no raster to encode.</summary>
     public static readonly string[] PngViews = ["section", "plan"];
 
-    /// <summary>The sample room stamped with <paramref name="style"/>, over ground that reaches the shell's
-    /// footprint — so the floor has something to sit on and a deep one has something to sink into.</summary>
+    /// <summary>The sample room stamped with <paramref name="style"/>, over grass-topped dirt that reaches the
+    /// shell's footprint — so the floor has something to sit on and a deep one has something to sink into.</summary>
     private static VoxelWorld Stamped(HouseStyle style, RoomFrame sample)
     {
         var world = new VoxelWorld();
         for (var x = sample.MinX - Margin; x < sample.MaxX + Margin; x++)
         for (var z = sample.MinZ - Margin; z < sample.MaxZ + Margin; z++)
         for (var y = 1; y < FloorY; y++)
-            world.SetBlock(x, y, z, Blocks.Stone);
+            world.SetBlock(x, y, z, y == FloorY - 1 ? Blocks.Grass : Blocks.Dirt);
 
         HouseStamper.Stamp(world, sample, FloorY, style, SampleColor);
         // The pad belongs to the structure stampers rather than the shell, but a preview is of the room and

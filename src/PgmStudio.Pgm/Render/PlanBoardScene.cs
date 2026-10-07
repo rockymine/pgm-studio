@@ -13,7 +13,7 @@ namespace PgmStudio.Pgm.Render;
 internal static class PlanBoardScene
 {
     internal readonly record struct PieceFan(CellRect Rect, string Id, string Role, int K);
-    internal readonly record struct ZoneFan(CellRect Rect, bool Lane);
+    internal readonly record struct ZoneFan(CellRect Rect, bool Lane, int K);
     internal readonly record struct MarkerFan(string Id, double X, double Z, string Kind, string? Color, int K);
 
     /// <summary><see cref="ZoneHoles"/> are the cells a zone declares no-build — void whatever rect covers
@@ -45,7 +45,7 @@ internal static class PlanBoardScene
         foreach (var z in plan.Zones)
             for (var k = 0; k < order; k++)
             {
-                zones.Add(new ZoneFan(Fan(z.Rect, axes, k), z.IsWaterLane));
+                zones.Add(new ZoneFan(Fan(z.Rect, axes, k), z.IsWaterLane, k));
                 foreach (var hole in z.Holes)
                 {
                     var r = Fan(hole, axes, k);

@@ -18,14 +18,16 @@ and rebuilding refreshes them in place. `/plans/{id}` opens a **plan row** — w
 candidate as, and what Save writes when no map is behind the plan — and `/plans/new` holds a blank plan until
 Save stores it as one. A plan row has no map, so building it originates one.
 
-Both bindings are the same tool: the rail's Info and Draw phases, the flow bar whose Next is Compile, and the
-Draw sidebar with its three panel chips, which folds away to give the canvas the width. Only the topbar
-follows the binding, because only saving differs. A map-backed plan's bar is *Save*, which writes the map's
+Both bindings are the same tool: the rail's Info and Draw phases, the editor bar whose Next is Compile, and the
+Draw sidebar, which folds away to give the canvas the width. Only the bar's commands
+follow the binding, because only saving differs. The crumb is *Maps › the plan's name* on both, and the stage
+switcher beside it opens the map's Sketch and Configure on a map-backed plan; a plan row has no map, so its
+stage word is plain text. A map-backed plan's commands are *Save*, which writes the map's
 artifact in place, **over the revision the tab loaded**: the plan was read with its `ETag`, which Save and the
 build's own plan write state as `If-Match`, so where the stored plan has moved on since — a second tab, an agent
 driving the API — the write is refused `RQ13` at 409 rather than overwriting it. The bar then says the plan was
 saved from somewhere else and that the page must be reloaded, and no further write is sent until it is; the
-sketch tool's save is the same helper (`DocumentSave`). A plan row's bar carries what a row needs: *New*, *Import* a `*.plan.json`, *Open* a saved
+sketch tool's save is the same helper (`DocumentSave`). A plan row's commands are what a row needs: *New*, *Import* a `*.plan.json`, *Open* a saved
 row, *Save*, and the row's origin as a badge — `authored` saves in place, while `generated` and `imported`
 fork into a new authored row on Save, and the address follows the copy.
 
@@ -405,7 +407,8 @@ producibility read reports against. A hand-authored plan does not need them.
 carried by every route unchanged — an agent writes them, a composed board arrives with them — but the plan
 editor shows them to an admin only. For anyone else the canvas draws no box, ghost or label, a click never
 picks one, they do not count in the fit, and the Boxes tool, its `G` chord, the box inspector and the
-Generator check are absent; the editor does not ask for the producibility read at all. A member who edits
+Generator check are absent; the editor does not ask for the producibility read at all. The Generator check
+component (`PlanGeneratorCheck`) is built but mounted nowhere in the sidebar. A member who edits
 such a plan leaves its boxes exactly as they were stored: a box with an explicit member list keeps naming
 its pieces wherever they move, and a containment-grouped box regroups by what lies inside it at the next read.
 
@@ -499,7 +502,7 @@ its island, else a wool's owner, else neutral — so Configure opens pre-assigne
 Two steps. **Identity** is the plan's name, live-synced into the plan document as it is typed because the
 compile reads it. On a map-backed plan it is the map's display name and stands beside the authors, both loaded
 once from `GET /api/map/{slug}` and saved with `PATCH /api/map/{slug}/metadata`; a plan row has no map to
-credit anyone on, so its name is all Identity holds and the topbar's Save stores it with the row.
+credit anyone on, so its name is all Identity holds and the editor bar's Save stores it with the row.
 **Settings** is the globals form — symmetry, cell size, height (the base surface), height step, max players — writing
 straight through to the live document. Continue on the last step advances to Draw. A plan opened with
 `?phase=info` starts here, which is how a blank map-backed plan is named; any other opens on Draw.
@@ -511,7 +514,7 @@ document and the zoom survive the trip.
 
 The Draw phase is the `PlanTool` host with two bodies of its own, each a component beside it in
 `Features/Plan/`: `PlanInspector`, the form for the one selection, and `PlanBuildDrawer`, the compile and build
-drawer the flow bar's Next opens. The host owns the canvas, the dock, the sidebar panels, the topbar and the save;
+drawer the editor bar's Next opens. The host owns the canvas, the dock, the sidebar panels, the editor bar and the save;
 the inspector writes its edits through the bridge and takes the objective vocabulary, the selection and the
 surface step from the host; the drawer takes the bridge, the map's slug, the plan's name and the plan's
 `DocumentSave`, and owns everything a compile and a build produce. The words the document is written in — a
@@ -588,21 +591,19 @@ implies, `CoreCasing.Of`, and the dig depth, `CoreDig.Depth` — client twins of
 and `ObjectiveDefaults.DigDepth`, which the WASM half cannot reach, each pinned to its authority by a drift
 test (`CoreCasingDriftTests`, `CoreDigDepthDriftTests`) and shared with the Configure wizard's casing step.
 
-Up to three panels share the sidebar, switched by the underlined tabs at its head, the step bar's own look, beside the button that folds the
-sidebar away. **Settings** holds the tracing reference: a map whose top-down view is drawn as a backdrop on the
+The sidebar stacks its sections in one column, with the button that folds it away above them. **Settings**
+holds the tracing reference: a map whose top-down view is drawn as a backdrop on the
 canvas. It is offered only on an open studio, the same gate as Configure's world folders, because on a shared
-studio the one use of tracing another author's map is copying it; elsewhere the chip is absent and the sidebar
-opens on Checks. The overlays — land interfaces, frontline edges, labels, and a
+studio the one use of tracing another author's map is copying it; elsewhere the section is absent and the sidebar
+holds Checks alone. The overlays — land interfaces, frontline edges, labels, and a
 height-map fill that tints pieces by surface — are chips on the canvas itself. **Checks** lists the evaluation through `ProblemList` (`docs/client/ui-conventions.md`): one row per rule,
 grouped as Problems (a hard term or a structural refusal), Out of range (a soft term, its value drawn against
-its band) and Warnings (the `lint`), with the count of problems at its head, a line saying how many of each,
-and the evaluator's score under the list. Opening a row isolates the evidence of every place it fired on the
+its band) and Warnings (the `lint`), with the count of problems as a badge at its head. The evaluator's score
+is not shown. Opening a row isolates the evidence of every place it fired on the
 canvas, pressing one place isolates that place and pulses its subjects, and the rule id opens the rule's page
-in a new tab. **Generator**, an admin's panel (the generator check), shows the producibility read per box, and clicking a box that nothing
-reproduces paints its nearest miss — the cells a candidate emits that the box does not, and the cells the box
-has that it does not. Each panel owns its overlay and drops it on leaving, folded away included. The feeds are
-debounced by 300 ms after an edit and guard against stale responses; the producibility feed runs only while
-boxes are shown.
+in a new tab. The Rules overlay is drawn while the sidebar is open and dropped when it folds away. The
+evaluation feed is debounced by 300 ms after an edit and guards against stale responses. The producibility
+feed runs only while boxes are shown; its Generator check section is not part of the sidebar.
 
 A read-only 3-D preview draws **the world the plan compiles to**, not an extrusion of its pieces: entering it
 posts the document to `/api/plan/columns`, which compiles and builds it and answers every column's solid runs,
@@ -818,7 +819,7 @@ draws the board as characters.
 | `POST /plan/inspect` | `{interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps, structures, goalDistances, goalPairs, spaces}` — the derived geometry, already in block coordinates: each interface with its `delta` (the surface step across it) and wall mark; the per-piece-side `frontages` (exposed blocks, frontline blocks, share — FR8's read); the `frontlineRuns` with widths in blocks (`FR9`'s fifteen-block floor is read off the same frontages); the `islandGaps` (each bridged pair's strait in blocks, `direct` when no third landmass shares the region — CT12's read); plus the destroy-goal walks, all of them blocks over the fanned closure: `goalDistances` is each goal's walk to its own and the enemy's spawn with the enemy÷own ratio — the numbers `goal-spawn-ratio` scores against GO1's band [3.0, 4.0] and `goal-spawn-distance` against GO4's [40, 90] — and `goalPairs` is the walk between the goals themselves, each unordered pair once, `opposing` false for a pair one team defends (GO2, [35, 65]) and true for a goal against one the other team defends (GO3, [85, 150]), a monument against its own mirror being the pair every symmetric board carries; and `spaces`, every patch of empty ground the pieces leave — its `kind` (`open` · `notch` · `bay` · `hole`, the wall count), the pieces walling it, and `narrowestBlocks`, the shortest line across it that terrain closes at **both** ends, which is what a player crosses and what `WL12`, `WL20` and `LN6` measure. Never withholds over structural errors; a failure degrades `structures` and the board aggregations to empty rather than failing the feed | 400 malformed or unreadable |
 | `POST /plan/room?piece=<id>` | `{at, footprint, iron}` — the room a `spawn` or `wool-room` piece carries, as piece-relative block offsets ready to store on the placement: the marker inside the room, the footprint the building stands on, and on a spawn whose yard has room for one the iron cube, beside the door on the player's right as they leave. The answer is for the piece **as the document states it** — a placement already on it supplies the facing and the building, so a small hall stated inside a wide protection region is answered with that hall's own marker and its own iron; a piece with no placement yet takes the drawing defaults, a front door and the footprint the resolver would have defaulted to (`WX1`), sized for a shell since a plan states no room style | 404 the piece carries no room, is too small to hold one (`WX2`), or states a building that does not lie on it |
 | `POST /plan/evaluate` | `{score, valid, violations[], lint[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence — and, for a soft term measured against one band, the `value` it measured and the `band` `[low, high]` it was held to, its finding a complaint since a soft term only scores — and `lint` the structural validator's complaints (an unplaceable iron `WX8`, a mid-lane spawn `SP2`, an odd elevation step `EL1`, …), which never move the score. The validator's **refusals** ride in `violations` under the `PL` id each was refused under, one entry per refusal pointing at its own subjects — so a board with four different overlaps answers four `PL4`s rather than a count, and the whole set arrives here rather than at the compile's 422 a phase later. They all carry `termId: "structural-integrity"`, the one measurement that noticed, and it is scored once however many fired. A plan with no generating piece answers `valid: false` carrying `PL1`, not an error and not an empty evaluation | 400 malformed: not JSON, or a plan the reader cannot hold (a list stated as `null`, a marker's `at` that is not two numbers, two pieces under one id), the field named in the finding |
-| `POST /plan/feasibility` | **a diagnostic, not a verdict on the board.** `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why, in `BX` findings (a box room in `ST1`) that cite the open task which would unblock a gap where one owns it. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit`. The route answers any caller; the plan editor asks it only for an admin. Acting on one of these as though it were a fault in the plan means editing a board to satisfy a limitation that is the studio's | 400 malformed |
+| `POST /plan/feasibility` | **a diagnostic, not a verdict on the board.** `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why, in `BX` findings (a box room in `ST1`) that cite the open task which would unblock a gap where one owns it. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit`. The route answers any caller; the plan editor asks it only for an admin, and the sidebar does not render it. Acting on one of these as though it were a fault in the plan means editing a board to satisfy a limitation that is the studio's | 400 malformed |
 | `POST /plan/ascii[?every=N]` | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. **The read that shows a relation between two rectangles**, which no number can: a sixteen-cell bar reached by a four-cell build zone is a landform 60% dead, visible at a glance here and invisible in every other read of the same board. `every` draws one character per N cells for a board wider than a terminal | 400 malformed |
 | `POST /plan/columns` | `{palette, cols, min_x, min_z, max_x, max_z}` — the world the plan compiles to, as per-column runs, in the encoding `sketch.md` documents, plus, under `warnings`, every prop the dressing pass declined (`DR-*`) and everything the compiled layout names that the studio does not have (`SK3`/`SK4`/`SK5`). It compiles and builds, so it is the heaviest read here and the only one that answers what stands above the ground. It does not gate: `/plan/compile` is where a plan is refused, and a preview of an incoherent plan is still worth looking at | 400 malformed or unbuildable |
 | `GET /objectives/vocabulary` | the destroyable styles and materials, the wool dyes with their labels and swatches, and every objective default | — |

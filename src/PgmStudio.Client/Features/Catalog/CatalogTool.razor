@@ -14,49 +14,35 @@
   </Bar>
   <ChildContent>
   <div class="lib-body">
-    <aside class="lib-filters">
-      <Section Title="Filter shapes">
-
-        <Field Label="Kind">
-          <div class="filter-group-options filter-group-options--multi">
+    <FilterSidebar>
+      <FilterPanel Title="Filter shapes" Active="AnyFilter" OnClear="ClearFilters">
+          <FilterGroup Label="Kind" Multi>
             @foreach (var k in Kinds)
             {
-              <Chip Active="kindFilter.Contains(k.Token)" Title="@k.Hint"
-                    OnClick="() => Toggle(kindFilter, k.Token)">@k.Label<span class="filter-chip-n">@Count(byKind, k.Token)</span></Chip>
+              <Chip Active="kindFilter.Contains(k.Token)" Title="@k.Hint" Count="Count(byKind, k.Token)"
+                    OnClick="() => Toggle(kindFilter, k.Token)">@k.Label</Chip>
             }
-          </div>
-        </Field>
+          </FilterGroup>
 
-        <Field Label="Usage">
-          <ChildContent>
-            <div class="filter-group-options filter-group-options--multi">
-              @foreach (var t in Tiers)
-              {
-                <Chip Active="tierFilter.Contains(t.Token)" Title="@t.Hint"
-                      OnClick="() => Toggle(tierFilter, t.Token)">@t.Label<span class="filter-chip-n">@Count(byTier, t.Token)</span></Chip>
-              }
-            </div>
-          </ChildContent>
-        </Field>
+          <FilterGroup Label="Usage" Multi>
+            @foreach (var t in Tiers)
+            {
+              <Chip Active="tierFilter.Contains(t.Token)" Title="@t.Hint" Count="Count(byTier, t.Token)"
+                    OnClick="() => Toggle(tierFilter, t.Token)">@t.Label</Chip>
+            }
+          </FilterGroup>
 
-        <Field Label="Shape family">
-          <div class="filter-group-options filter-group-options--multi">
+          <FilterGroup Label="Shape family" Multi>
             @foreach (var family in byFamily.Keys.OrderBy(FamilyOrder))
             {
-              <Chip Active="familyFilter.Contains(family)"
-                    OnClick="() => Toggle(familyFilter, family)">@FamilyLabel(family)<span class="filter-chip-n">@Count(byFamily, family)</span></Chip>
+              <Chip Active="familyFilter.Contains(family)" Count="Count(byFamily, family)"
+                    OnClick="() => Toggle(familyFilter, family)">@FamilyLabel(family)</Chip>
             }
-          </div>
-        </Field>
+          </FilterGroup>
 
-        @if (AnyFilter)
-        {
-          <Button Full OnClick="ClearFilters">Clear filters</Button>
-        }
-
-        <p class="section-desc">The number on each option counts the whole catalog, whatever else is ticked.</p>
-      </Section>
-    </aside>
+          <p class="section-desc">The number on each option counts the whole catalog, whatever else is ticked.</p>
+      </FilterPanel>
+    </FilterSidebar>
 
     <main class="lib-main">
       <PageHeading Title="Shape catalog">
@@ -75,29 +61,23 @@
         <div class="lib-grid">
           @foreach (var shape in Shown)
           {
-            <div class="lib-card cat-card--@shape.Tier" @key="shape.Id">
-              <button class="lib-card-fig cat-card-fig" @onclick="() => OpenProbe(shape)"
-                      title="Open in shape settings">@((MarkupString)shape.Svg)</button>
-              <div class="lib-card-body">
-                <div class="lib-card-title">
-                  <span>@FamilyLabel(shape.Family)</span>
-                  <span class="lib-card-meta">@shape.BoxW × @shape.BoxH cells</span>
-                </div>
-                <div class="lib-card-badges">
-                  <span class="lib-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
-                  <span class="lib-badge">@KindLabel(shape.Kind)</span>
-                  <span class="lib-badge" title="Corridor width, in cells">Corridor @shape.CorridorCells</span>
-                  @foreach (var knob in shape.Knobs)
-                  {
-                    <span class="lib-badge cat-knob">@knob</span>
-                  }
-                </div>
-                @if (shape.Note is not null)
+            <PictureCard @key="shape.Id" Class="@($"cat-card--{shape.Tier}")" FigClass="lib-card-fig--board" Svg="@shape.Svg"
+                         Name="@FamilyLabel(shape.Family)" Meta="@($"{shape.BoxW} × {shape.BoxH} cells")"
+                         OnClick="() => OpenProbe(shape)" Title="Open in shape settings">
+              <div class="lib-card-badges">
+                <span class="lib-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
+                <span class="lib-badge">@KindLabel(shape.Kind)</span>
+                <span class="lib-badge" title="Corridor width, in cells">Corridor @shape.CorridorCells</span>
+                @foreach (var knob in shape.Knobs)
                 {
-                  <p class="lib-card-note">@shape.Note</p>
+                  <span class="lib-badge cat-knob">@knob</span>
                 }
               </div>
-            </div>
+              @if (shape.Note is not null)
+              {
+                <p class="lib-card-note">@shape.Note</p>
+              }
+            </PictureCard>
           }
         </div>
         @if (Shown.Count == 0) { <p class="lib-status">No shapes match these filters.</p> }

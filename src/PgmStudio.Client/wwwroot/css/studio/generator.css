@@ -4,17 +4,7 @@
 
 .gen-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 
-/* filter rail */
-.gen-filters {
-  flex-shrink: 0; width: var(--sidebar-width); padding: var(--space-3);
-  border-right: 1px solid var(--border); overflow-y: auto;
-  display: flex; flex-direction: column; gap: var(--space-3);
-}
-/* Filter rail vocabulary (title · fields · chips) uses the canon: Section / Field / Chip
-   (.filter-chip) / Button. Only the two-input wool-count range keeps its own micro-layout. */
-.gen-wool { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); font-size: var(--font-sm); }
-.gen-wool input { flex: 1; min-width: 0; }
-.gen-hint { display: block; margin-top: var(--space-1); font-size: var(--font-xs); color: var(--text-muted); }
+/* The wool-count range keeps its own two-input layout; the rest of the rail is FilterSidebar. */
 
 /* feed */
 .gen-main { flex: 1; min-width: 0; overflow-y: auto; padding: var(--space-3); }
@@ -57,34 +47,9 @@
 .gen-scanned strong { color: var(--text-bright); }
 .gen-toolbar .board-key { margin-left: auto; }
 
-/* A card is a fixed-shape picture over two short lines: what the layout is made of, then its numbers. The
-   picture is drawn for a dark ground, so its frame is dark in either theme. */
+/* A card is the shared picture card (lib-card): the board in a square frame, then the layout's id. */
 .gen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(230px * var(--ui-scale)), 1fr)); gap: var(--space-3); }
-.gen-card {
-  position: relative; display: flex; flex-direction: column; overflow: hidden;
-  background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md);
-  transition: border-color var(--transition-fast);
-}
-.gen-card:hover { border-color: var(--text-muted); }
 .gen-card--pinned { border-color: var(--accent); box-shadow: var(--shadow-ring); }
-/* The frame is square whatever the board's own proportions; the drawing is laid inside it and scaled to fit,
-   so a tall board and a wide one sit in cards of one size. */
-.gen-card-fig {
-  position: relative; display: block; aspect-ratio: 1; min-height: 0; width: 100%; overflow: hidden;
-  background: var(--board-bg); border: none; cursor: pointer;
-}
-.gen-card-fig svg {
-  position: absolute; top: var(--space-3); left: var(--space-3);
-  width: calc(100% - 2 * var(--space-3)); height: calc(100% - 2 * var(--space-3));
-}
-.gen-card-body { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2) var(--space-3) var(--space-3); }
-.gen-card-shape { display: flex; flex-wrap: wrap; gap: 2px var(--space-3); margin: 0; font-size: var(--font-sm); }
-.gen-card-shape > div { display: flex; gap: var(--space-1); }
-.gen-card-shape dt { color: var(--text-muted); }
-.gen-card-shape dd { margin: 0; color: var(--text-bright); }
-.gen-card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); font-size: var(--font-sm); color: var(--text-secondary); }
-.gen-card-stat { white-space: nowrap; }
-.gen-card-stat strong { color: var(--text-bright); font-weight: 600; }
 /* Pin floats over the picture's top-right corner, on the floating chrome's glass so it reads on the dark frame. */
 .gen-pin {
   position: absolute; top: var(--space-2); right: var(--space-2); z-index: 1;
@@ -104,27 +69,36 @@
 
 /* detail dialog */
 .gen-detail-fig { padding: var(--space-3); background: var(--board-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); }
-.gen-detail-fig svg { width: 100%; height: auto; display: block; }
-.gen-detail-meta { font-size: var(--font-sm); color: var(--text-secondary); }
-.gen-detail-meta strong { color: var(--text-bright); }
-.gen-descriptor-box summary { cursor: pointer; font-size: var(--font-sm); color: var(--text-secondary); }
-.gen-descriptor-box[open] summary { margin-bottom: var(--space-2); }
-.gen-descriptor {
-  min-height: 12em; font-family: ui-monospace, monospace; font-size: var(--font-xs); white-space: pre; overflow-x: auto;
-  color: var(--text-secondary); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2);
+.gen-detail-fig svg { width: 100%; height: 48vh; display: block; }
+.gen-highlight { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
+.gen-highlight-label { font-size: var(--font-sm); color: var(--text-secondary); margin-right: var(--space-1); }
+/* A highlighted role takes the accent over whatever ink it was drawn in; the rest of the board stays as drawn. */
+.board-hl-hub .role-hub, .board-hl-frontline .role-frontline, .board-hl-approach .role-approach,
+.board-hl-spawn .role-spawn, .board-hl-wool .role-wool {
+  fill: color-mix(in srgb, var(--accent) 45%, var(--board-bg)) !important; stroke: var(--accent) !important; stroke-width: 1.6 !important;
 }
+.board-hl-zone .role-zone { fill: var(--accent) !important; fill-opacity: 0.2 !important; stroke: var(--accent) !important; stroke-width: 2.4 !important; }
+/* The detail drawer reads top to bottom: picture, what to tint, the words, the facts, the one action. */
+.side-drawer-body:has(.gen-detail-fig) { gap: var(--space-4); padding: var(--space-4); }
+.gen-detail-controls { display: flex; flex-direction: column; gap: var(--space-3); }
+.gen-detail-controls .board-key { margin-left: 0; }
+.gen-detail-desc { margin: 0; font-size: var(--font-lg); line-height: 1.6; color: var(--text-primary); }
+.gen-term { color: var(--accent-lighter); text-decoration: underline dotted; text-underline-offset: 3px; }
+.gen-term:hover { text-decoration-style: solid; }
+.gen-facts {
+  margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--space-3);
+  padding-top: var(--space-3); border-top: 1px solid var(--border);
+}
+.gen-facts dt { font-size: var(--font-sm); color: var(--text-secondary); }
+.gen-facts dd { margin: 2px 0 0; font-size: var(--font-lg); font-weight: 600; color: var(--text-bright); }
+.gen-detail-pin--on { color: var(--accent-lighter); background: var(--bg-selected); border-color: var(--accent); }
+.gen-detail-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.gen-detail-foot-note { margin: 0; flex: 1 1 14rem; font-size: var(--font-sm); color: var(--text-secondary); }
 
-/* land spend — what the board cost against the budget it was built to. Two currencies: footprint is
-   the box rect, land is the walkable terrain inside it. */
-.gen-spend { margin: var(--space-2) 0; }
-.gen-spend-head {
-  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2);
-  font-size: var(--font-sm); color: var(--text-secondary);
+/* The way into the shape catalog, under the shape filters. */
+.gen-catalog-link {
+  display: flex; align-items: center; justify-content: flex-start; gap: var(--space-2); margin-top: var(--space-2);
+  font-size: var(--font-sm); color: var(--accent-lighter); text-decoration: none;
 }
-.gen-spend-pct { font-family: ui-monospace, monospace; color: var(--accent-lighter, var(--accent)); }
-.gen-spend-table { width: 100%; margin-top: 6px; border-collapse: collapse; font-size: var(--font-xs); }
-.gen-spend-table th, .gen-spend-table td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--border); }
-.gen-spend-table th:first-child, .gen-spend-table td:first-child { text-align: left; }
-.gen-spend-table th { font-weight: 500; color: var(--text-secondary); text-transform: lowercase; }
-.gen-spend-table td { font-family: ui-monospace, monospace; color: var(--text-bright); }
-.gen-spend-table tfoot td { border-bottom: none; color: var(--text-secondary); }
+.gen-catalog-link:hover { text-decoration: underline; }
+.gen-catalog-link svg { width: var(--icon-sm); height: var(--icon-sm); }

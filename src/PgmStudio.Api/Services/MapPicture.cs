@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.WebUtilities;
 using PgmStudio.Export;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Render;
 
 namespace PgmStudio.Api.Services;
 
@@ -22,18 +24,22 @@ internal static class MapPicture
     {
         var (set, reason) = await textures.GetAsync(ct);
         if (set is null) return (null, $"the export has no map.png, and {reason}");
-        if (WorldViews.PictureOf(built, kept) is not { } view)
-            return (null, "the export has no map.png, and the layout has no ground to frame");
-
-        var words = QueryHelpers.ParseQuery($"{view.Query}&width={Width}&height={Height}");
-        var aim = EyeAim.Read(word => words.TryGetValue(word, out var value) ? value.ToString() : null);
         using (await EyeRenders.TurnAsync(ct))
-        {
-            var shot = EyeRenders.Of(built, set, flat: false, $"map.png|{aim.Key}", scene =>
-                aim.Resolve(scene) is ({ } camera, var how)
-                    ? new EyeShot(scene.Draw(camera, Width, Height).Png(), how)
-                    : null);
-            return shot is null ? (null, $"the export has no map.png, and {aim.Empty}") : (shot.Png, null);
-        }
+            return Draw(built, kept, set, Width, Height) is { } png
+                ? (png, null)
+                : (null, "the export has no map.png, and the layout has no ground to frame or no place to stand over it");
+    }
+
+    /// <summary>The picture of <paramref name="built"/> at a size, or null where the board has no ground to frame
+    /// or its view finds no place to stand. The caller holds a turn (<see cref="EyeRenders.TurnAsync"/>).</summary>
+    public static byte[]? Draw(BuiltWorld built, IReadOnlyList<WorldView> kept, BlockTextureSet set, int width, int height)
+    {
+        if (WorldViews.PictureOf(built, kept) is not { } view) return null;
+        var words = QueryHelpers.ParseQuery($"{view.Query}&width={width}&height={height}");
+        var aim = EyeAim.Read(word => words.TryGetValue(word, out var value) ? value.ToString() : null);
+        return EyeRenders.Of(built, set, flat: false, $"map.png|{aim.Key}", scene =>
+            aim.Resolve(scene) is ({ } camera, var how)
+                ? new EyeShot(scene.Draw(camera, width, height).Png(), how)
+                : null)?.Png;
     }
 }

@@ -36,9 +36,15 @@ passes to both. The map's notes are one more, `SketchNotes`, read in one place f
 History names. The host keeps the phase switch, the save before a page phase opens, the canvas mode, overlays and tool,
 and the bridge's callbacks; the state objects reach the canvas and the save through delegates it hands them.
 
-The top bar names the map by the name Info states, and by its slug until one is saved. The tool saves
+The editor bar (`EditorBar`, `docs/client/routing-and-ia.md`) is the same in every phase. Its crumb reads
+*Maps › the map's name* — the name Info states, and the slug until one is saved — followed by the stage switcher,
+whose menu opens the map's Plan and Configure where it holds them; the phase and its steps are in the middle. At
+the right it carries the save state, the *View only* tag and the Problems button, then one group of icon buttons
+— **Undo**, **Redo**, **Download** — a divider, and Back and Next, which is the only filled button. The number of
+groups on the board is not in the bar: the Groups list in the sidebar is that count. The tool saves
 continuously — every change schedules a debounced write 800 ms later, and Ctrl+S flushes it at
-once. The finished map leaves by **Download map** in the top bar, on every phase: it flushes the layout, builds
+once. The finished map leaves by **Download** (an icon-only button titled *Download map: its world and map.xml,
+ready for a server*, which pulses while it builds) on every phase: it flushes the layout, builds
 the world the first time (the finish below, `POST …/sketch/finish`, which rasterizes the layout and moves the
 map to `stage=configure`), and saves the export — the world ZIP with its `map.xml`. A board built from a plan
 carries the plan's game settings, so its export needs nothing from Configure. What stops the map, and what the
@@ -48,7 +54,7 @@ rules (`ProblemList`, `docs/client/ui-conventions.md`): the download's refusal, 
 warnings a landed save carried, and the declines the 3-D build raised. A refused download opens it. Where the
 export refused, each of its rules carries **Open Configure**, which is where a hand-drawn board's teams, spawns
 and objectives are stated. In the 3-D preview the declines are a *N left out* button in the layer bar, opening
-the same list on that kind. Building the export costs the server a world, so **Download map** needs an account on
+the same list on that kind. Building the export costs the server a world, so **Download** needs an account on
 the whitelist and is greyed for anyone else (`docs/access.md`). The phases run in order, Draw's *Next* going on
 to Terraform. A draft that was never drawn on is discarded on the way out. A caller who may not change the map
 sees every phase read-only: the canvas pans, selects and measures and changes nothing, the fields that write
@@ -70,7 +76,7 @@ old islands unless the author confirmed it. The connectivity reads walk the buil
 was read at and states it as `If-Match` on every save, so where the stored board has moved on since — an agent
 driving the API, a second tab — the save is refused `RQ13` at 409 rather than writing the older board back over
 the newer (the held revision, the serialised saves and the refusal's sentence are `DocumentSave`, which the plan
-tool's map-backed save uses too). The topbar then says so, no further save is sent until the page is reloaded, and **Download map**
+tool's map-backed save uses too). The Problems button then says so, no further save is sent until the page is reloaded, and **Download**
 stops rather than build a board that is not the one on screen. A flush with no edit behind it — entering Review,
 leaving the tool — sends nothing at all. What a layer states and the canvas has no control for — `kind`,
 `part_of`, `seat` — is held as it was read and written back with the layer, so a made thing an API caller
@@ -707,7 +713,7 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 
 Two steps. **Identity** is the map's display name and its authors, loaded from `GET /api/map/{slug}` and saved
 with `PATCH /api/map/{slug}/metadata` as it is typed, the way Configure's Identity saves: once typing pauses for
-800 ms, and on leaving the phase. The tool bar says where the save stands — *Unsaved*, *Saving…*, *Saved*, or
+800 ms, and on leaving the phase. The editor bar says where the save stands — *Unsaved*, *Saving…*, *Saved*, or
 why it was not saved; a name left empty is not saved. **An author named here is named in the map's intent too**, where the map
 holds one: the rows are what the map document is written from and `meta.authors` is what the *export* reads,
 since the observer platform's board is stamped from the intent. A panel writing one of the two would credit the
@@ -2627,7 +2633,6 @@ readback, and SVG for the finish previews.
 green, leaves green, stone grey — and a green tree on green ground was invisible in a picture meant for
 reasoning; the top-down world read-backs and their per-layer isolations (ground, structures, foliage,
 objectives) now paint deliberate false colour instead, one high-contrast hue per category, and the plan render
-carries a legend naming every role swatch and a build zone drawn in a hue no water ever wears rather than the
-two shades of blue that once let a build zone be read as water (`B90`'s pictures, `B98`/`B95`'s legibility and
-key). The rule to work by is unchanged either way: **a render answers "did what was authored come out", not
+carries a key naming each ink and draws a build zone as a dashed outline, so a build zone is never read as water
+(`B90`'s pictures, `B98`/`B95`'s legibility and key). The rule to work by is unchanged either way: **a render answers "did what was authored come out", not
 "what is this"**: it is a check against the document, never a source of meaning on its own.

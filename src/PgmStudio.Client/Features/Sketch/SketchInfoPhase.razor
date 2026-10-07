@@ -4,17 +4,13 @@
 
 @* Sketch Info phase — two steps: Identity (display name + authors, saved to the map metadata via
    GET/PATCH api/map/{slug}, since sketches are map rows, as they are typed) and Settings (symmetry mode +
-   centre, which drive the live canvas through the host's callbacks). Continue on the last step advances to
-   Draw. *@
+   centre, which drive the live canvas through the host's callbacks). The host's editor bar holds the step and
+   moves it. *@
 
 <div class="phase-body">
-  <FlowBar Class="flow-bar--flush" PhaseIcon="book-open-text" PhaseTitle="Info"
-           Steps="@Steps" CurrentStep="@step"
-           BackEnabled="@(step > 0)" NextLabel="@(step == Steps.Length - 1 ? "Continue" : "Next")"
-           OnStep="@(i => step = i)" OnBack="@(() => step = 0)" OnNext="OnNextStep" />
   <Workspace>
     <ContentColumn MaxWidth="720">
-      @if (step == 0)
+      @if (Step == 0)
       {
         <Section Title="Details">
           <Field Label="Map name" Required For="sk-name">
@@ -48,7 +44,3 @@
     </ContentColumn>
   </Workspace>
 </div>
-
-@code {
-    private static readonly string[] Steps = { "Identity", "Settings" };
-}

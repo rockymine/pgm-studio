@@ -19,7 +19,12 @@ Read alongside:
   canvas rather than laid out in the DOM.
 - The `/design` page (`Pages/Design.razor`) is the living style guide, and it renders the **real** components
   rather than hand-written examples, so the showcase cannot drift from production. It is the visual-regression
-  oracle for any change here.
+  oracle for any change here. It shows the `tokens.css` colours, type scale, spacing, radii, shadows and icon sizes as
+  swatches that follow the theme toggle, then the components grouped by role — primitives, forms, data and lists,
+  layout and navigation, the filter rail, editor chrome, feedback and problems, and the entry surfaces. Its own
+  contents rail is a `FilterSidebar` of `FilterPanel`s. A component that gains a parameter or a variant gains its
+  example there in the same change; markup written by hand on that page is only markup no component owns (the
+  region tree, the cards, the meter).
 
 ## Why components at all, given global CSS
 
@@ -30,8 +35,7 @@ it gets copy-pasted, and a page that needs a modifier reaches for an inline `sty
 carries one.
 
 The failure that argues for the vocabulary already happened once: `/generator` grew a parallel set
-(`gen-filters`, `gen-field`, `gen-chip`, `gen-grid`) re-implementing `workspace-sidebar`, `field`,
-`filter-chip` and `card-grid`. Adopting a component is a **zero-visual-diff** refactor — it emits the same
+(`gen-field`, `gen-chip`, `gen-grid`) re-implementing `field`, `filter-chip` and `card-grid`. Adopting a component is a **zero-visual-diff** refactor — it emits the same
 classes the markup did — which is what makes it reversible per file and checkable against `/design`.
 
 ## The vocabulary
@@ -39,10 +43,10 @@ classes the markup did — which is what makes it reversible per file and checka
 By tier, each grounded in the classes it emits.
 
 **Primitives** — leaf, style-only. `Button` (`action-btn` plus its `--primary`/`--danger`/`--warn`/`--icon`
-variants, an optional lucide `Icon` name, an `Href` that switches it to an `<a>`, and `Writes`/`Deletes`/`Builds`, which
+variants, `Size="lg"` (the 44px entry-point button), an optional lucide `Icon` name, an `Href` that switches it to an `<a>`, and `Writes`/`Deletes`/`Builds`, which
 close it where the caller may not, below), `WriteGate` (the same answer for a control that is not a
 `Button`), `Badge`, `Chip`
-(`filter-chip`), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, `Icon`, and `PlayerHead` —
+(`filter-chip`, with an optional `Count` that appends how many items the option would show), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, `Icon`, and `PlayerHead` —
 a person's initial on a neutral tile, with the front of an account's head over it as the studio serves it at
 `/api/minecraft/player/{uuid}/head` — eight pixels drawn large, the face with the hat over it the way the game
 draws it — so a browser asks no third party and a head the studio cannot get leaves the initial showing.
@@ -60,7 +64,7 @@ list; `Slim` is the narrower panel-row box and `Canvas` the floating control of 
 is the labelled coordinate cell; `SwatchRow` is the control a **colour** is chosen with, generic in what a swatch stands for — a block's data
 value in the library, a colour word in Configure — because a set of sixteen colours is picked by clicking the
 colour and a dropdown of their names makes the author read what they can already see; and
-`AuthorsEditor` is the shared author/contributor block every tool's Identity step uses — each row's mark
+`FilterGroup` is one facet of a filter rail (below); `PictureCard` is a picture over a name — the figure a link or a button, an optional overlay such as the generator's pin, then the name, a right-aligned meta and whatever body the page adds — and the library, the shape catalog and the generator all draw their cards with it; `AuthorsEditor` is the shared author/contributor block every tool's Identity step uses — each row's mark
 is an initial over a hue hashed from the row's own uuid or name, so a page carrying authors fetches nothing
 from outside the studio to draw them.
 
@@ -72,18 +76,20 @@ a component does not offer — an event, an id, a class — gets a parameter on 
 beside it.
 
 **Data** — `Section` (`panel-section` plus its header, description, help, actions and footer), `SectionHeader`
-on its own, `BoardKey` (the role and zone colours a page of server-drawn boards is read by, drawn once beside
+on its own, `BoardKey` (the four inks a page of server-drawn boards is read by, in the page's own `--board-*` tokens, drawn once beside
 them), `ListRow` (the list row with its swatch, label, tag, go-arrow and a `Trailing` slot for a control
-the row carries), and `DetailHeader` (an inspector head: icon, label, trailing badges).
+the row carries), `DetailHeader` (an inspector head: icon, label, trailing badges), and `FilterPanel`
+(one titled block of a filter rail, below).
 
 **Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + the two bars + body + footer);
-`AppNav` is the studio's own bar on every page — home, a link per tool, the two reference pages (Rules and API docs), `TextSizeMenu`, the theme and
-`AccountMenu`, who is signed in; `Topbar` is the tool's bar under it — the home link, a `Crumbs` slot composed from `Crumb`, a *View
-only* tag on a read-only page, and the tool's actions; `AppFooter` closes every page with the keyboard
-shortcuts, the design reference and the repository; `NavRail` and `NavButton` are the
+`AppNav` is the studio's own bar on every page — home, the links Maps, Generator, Library, Rules and Glossary, and at the right icon buttons for the keyboard shortcuts and the design reference, `TextSizeMenu`, the theme and
+`AccountMenu`, who is signed in, whose menu holds Tokens, Users (admin) and API docs; `Topbar` is a browse or admin page's bar under it — a `Crumbs` slot composed from `Crumb`, a *View
+only* tag on a read-only page, and the page's actions; `EditorBar` is the one bar the three editors draw instead (the crumb
+*Maps › the map's name*, a `StageSwitch` between the map's tools, the phase and its steps, then `State`, `Commands`, a divider and Back/Next;
+`NoMove` drops Back/Next, and `LabelledCommands` spaces text buttons wider than icon-only ones); `AppFooter` closes every page with a brand caption and the repository; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from; `PageHeading` is the one heading a browse or admin page opens on; `FlowBar` is the phase/step nav the stepped tools share; `AppFooterLink` and `SideDrawer`
-finish the set.
+arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`, and `MapThumb` the 16:9 picture box of a map (the in-game picture over a placeholder that stays where none can be drawn); `SideDrawer` (a title, optional `HeaderActions` icon buttons beside the close button, a scrolling body and an optional footer; `Wide` for a picture rather than a form)
+finishes the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
 `CanvasDock` with `DockGroup`, `DockButton`, `DockModeButton`, `DockChoice` (one option of a set the dock
@@ -138,7 +144,7 @@ starts something on a page that does. Until the shell has asked, every such acti
 **Deleting a shared row is an admin's, and `Deletes` says so.** A library entry or a pinned layout is shared
 by everyone, so a `DELETE` of one is refused to anyone but an admin; a `Button` marked `Deletes` reads
 `StudioDeleteReason` and closes the same way. A control that is not a `Button` (the generator's pin, the
-layer strip's add and remove) reads the same two answers through `WriteGate`, and a `FlowBar` whose Next
+layer strip's add and remove) reads the same two answers through `WriteGate`, and an `EditorBar` whose Next
 writes takes `NextWrites`. Reading is never marked, so it stays open to a visitor.
 
 **A sidebar is greyed a control at a time, because it holds what is picked as well as what is changed.** A
@@ -156,7 +162,7 @@ would change the document; the sketch marks nothing dirty, so nothing is saved o
 
 **Downloading a map builds it, so it is closed to a visitor too.** A map's export is made on request — the
 world written, the ZIP packed — and the server gives it the `member` policy (`docs/access.md`). A `Button`
-marked `Builds` (the sketch's *Download map*, the plan's world ZIP, Configure's export, where a `FlowBar`
+marked `Builds` (the sketch's *Download*, the plan's world ZIP, Configure's export, where an `EditorBar`
 takes `NextBuilds`) reads `StudioBuildReason`, which is `StudioAccess.BuildReasonAsync`: open to anyone on the
 whitelist whichever map the page is on, and closed with the reason to anyone else.
 
@@ -165,11 +171,29 @@ what lets the page say so before an edit rather than after it.
 
 ## A filter looks like a filter
 
-**A set the reader can tick several of leads each chip with a checkbox.** `filter-group-options--multi` on the
-chip row draws the box, ticked when the chip is on, and moves the chip's count to its right edge; a row where
-exactly one option holds (a symmetry) carries no box. The generator and the shape catalog
-title their rails for what the rail does — *Layout settings*, *Filter by shape*, *Filter shapes* — rather
-than *Filters*, and every change in them applies at once: there is no Apply button to forget.
+**Every page that narrows a list builds its rail from three components, and the page keeps only the logic.**
+`FilterSidebar` is the left `Sidebar`, ruled off from the content. Inside it, a `FilterPanel` is one titled
+block — the heading, and a **Clear** in the heading's right slot that appears while `Active` is true and
+`OnClear` is bound — and inside that, a `FilterGroup` is one facet: a `Field` label over a row of `Chip`s.
+`Maps` (`/maps`), the shape catalog (`/catalog`) and the generator (`/generator`) all stand on them, so what
+a facet looks like, where its count sits and where its reset sits is decided once. What each page filters by,
+and what a click does, stays in the page.
+
+**A facet is a row of chips, never a select or a list of checkboxes.** `FilterGroup Multi` marks a set the
+reader can tick several of: the row gets `filter-group-options--multi`, which draws a checkbox in each chip,
+ticked when the chip is on, and moves the chip's count to its right edge. A group where exactly one option
+holds (a stage, a symmetry) leaves `Multi` off and carries no box. `Hint` is the muted word beside the label
+(*has all*, *any of*); `End` is a control at the label row's right edge, such as an author group's
+*Select all*, styled `filter-group-action`.
+
+**A count belongs to the chip.** `Chip Count="n"` renders `filter-chip-n`; a page that counts nothing leaves it
+unset. A note explaining what the counts mean is a `section-desc` paragraph at the foot of its panel.
+
+**A block that only holds settings is a `FilterPanel` with no `OnClear`.** The generator's *Layout settings*
+(size band, symmetry, wools) sits above its *Filter by shape* panel in the same rail, so both read
+as one rail while only the second offers *Clear*. Panels are titled for what they do — *Filters*, *Filter
+shapes*, *Layout settings*, *Filter by shape* — and every change applies at once: there is no Apply button to
+forget.
 
 ## Text size
 
@@ -200,18 +224,18 @@ for them. A name that can still be cut carries itself as its `title`. A table do
 a name and a slug each stay on one line and are cut, and below a wide screen the table drops columns rather
 than scrolling sideways.
 
-**One of several panels is a tab, not a chip.** A sidebar that holds several panels and shows one at a time
-switches them with `.panel-tabs` — the flow bar's underlined `.flow-step`s — because a chip reads as a filter
-switched on, and a row of full buttons crowds a narrow column.
-
-**A page opens on its name.** The crumb in the tool bar navigates and is too small to say where the reader is,
+**A page opens on its name.** The crumb in the page's bar navigates and is too small to say where the reader is,
 so every browse and admin page — Maps, the generator, the shape catalog, the library and each of its kinds,
 Users, Tokens — opens on one `PageHeading`: the crumb's word at `--font-xl`, a line saying what the page is for,
-and the page's own actions on the right. A tool that works on a canvas does not: its flow bar names the phase,
+and the page's own actions on the right. A tool that works on a canvas does not: its editor bar names the map and the phase,
 and the canvas wants the height.
 
-**Every page's tool bar is one height.** `.topbar` is at least a control and its padding tall whether it
-carries a button or only the crumbs, so moving between pages never moves the content under it.
+**Every page's bar is one height.** `.topbar` and `.editor-bar` are each at least a control and its padding
+tall whether the bar carries a button or only the crumbs, so moving between pages never moves the content under it.
+
+**An icon-only action says it is busy by its glyph.** A `Button` of variant `icon` has no label to swap for
+`BusyLabel`, so a running one stays disabled, keeps its glyph and pulses it (`.action-btn--busy`), and the caller
+changes its `Title` to say what it is doing. The sketch's *Download* is the one.
 
 **A status is a word before it is a colour.** A check's result is a `Badge` in the meaning variant that fits
 it. A list whose every row has a state — a note's thread — says the state as a muted word instead, because five
@@ -331,7 +355,7 @@ one state the button holds rather than reports: it disables the control and swap
 and the child content, because the verb a button offers and the verb it is performing are different words —
 *Save* becomes *Saving…*, *Export* becomes *Exporting…*. Pairing them in the primitive is what stops a call
 site doing one without the other, and each half alone is its own fault: undisabled, a second click fires the
-action twice; unlabelled, the control sits inert with no sign the first click landed. `FlowBar` forwards the
+action twice; unlabelled, the control sits inert with no sign the first click landed. `EditorBar` forwards the
 pair as `NextBusy`/`NextBusyLabel`, since the last step's Next is a verb rather than a move.
 
 **`Busy` is held by the component that runs the action.** A flag set by a parent reaches the button only when
@@ -406,11 +430,11 @@ handle would break the resize without breaking the render — the worst kind of 
 **The `ctrl-row` coordinate triples.** They vary too much to be one component (XYZ, XZ, radius-and-height), so
 `CoordField` is the atom and the row stays markup.
 
-**The `ds-*` set** in `design.css` — the `/design` gallery's own frame (nav, headings, example cards). It is
+**The `ds-*` set** in `design.css` — the `/design` gallery's own frame (headings, token swatches, example frames). It is
 page-only by design; the examples *inside* it render production components.
 
 **The `gen-*` set** in `/generator` is the one piece of real drift left, and it is the largest thing here: the
-filter rail, the card grid, the candidate cards and their badges, the tray and the census tables are around
+filter rail, the card grid, the tray and the census tables are around
 forty classes backed by `generator.css`, re-implementing `workspace-sidebar`, `card-grid`, `badge` and
 `filter-chip` under their own names. The atoms inside them have been picked up where they fit; the layout has
 not. It is drift rather than a decision, and it is the next thing to fold in.

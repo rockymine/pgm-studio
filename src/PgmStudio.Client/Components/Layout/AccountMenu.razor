@@ -4,21 +4,24 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Who the browser is, at the right of the studio's bar: the head, name and role signed in, opening a menu
-   to the tokens that sign in as them and to sign out; the sign-in for a visitor; and "local" in an open studio,
-   whose admin has no account. *@
+@* Who the browser is, at the right of the studio's bar, opening a menu. Signed in: the head, name and role,
+   and in the menu the tokens that sign in as them, the whitelist for an admin, the API docs and sign out.
+   An open studio: "local admin" with the whitelist and the API docs. A visitor: the sign-in, and beside it a
+   menu holding the API docs. *@
 
 @if (me is not null)
 {
-    @if (me.Mode == AccessModes.Open)
-    {
-        <span class="account-local" title="This studio is open. Everyone using it is an admin.">
-            local <span class="account-role">admin</span>
-        </span>
-    }
-    else if (me.SignedIn)
-    {
-        <div class="account">
+    <div class="account">
+        @if (me.Mode == AccessModes.Open)
+        {
+            <button type="button" class="account-button account-local" aria-haspopup="menu" aria-expanded="@(open ? "true" : "false")"
+                    title="This studio is open. Everyone using it is an admin." @onclick="() => open = !open">
+                local <span class="account-role">admin</span>
+                <i data-lucide="chevron-down"></i>
+            </button>
+        }
+        else if (me.SignedIn)
+        {
             <button type="button" class="account-button" aria-haspopup="menu" aria-expanded="@(open ? "true" : "false")"
                     @onclick="() => open = !open">
                 <PlayerHead Uuid="@me.Uuid" Name="@me.Name" Size="22" />
@@ -26,10 +29,25 @@
                 <span class="account-role">@(me.Role ?? "guest")</span>
                 <i data-lucide="chevron-down"></i>
             </button>
-            @if (open)
-            {
-                <div class="account-scrim" @onclick="() => open = false"></div>
-                <div class="account-menu" role="menu">
+        }
+        else
+        {
+            <div class="account-visitor">
+                <a class="account-signin" href="@StudioAccess.SignInHref(Nav.ToBaseRelativePath(Nav.Uri))">
+                    <i data-lucide="log-in"></i><span>Sign in with Discord</span>
+                </a>
+                <button type="button" class="topbar-icon-btn app-nav-icon" aria-haspopup="menu"
+                        aria-expanded="@(open ? "true" : "false")" title="More" aria-label="More" @onclick="() => open = !open">
+                    <i data-lucide="chevron-down"></i>
+                </button>
+            </div>
+        }
+        @if (open)
+        {
+            <div class="account-scrim" @onclick="() => open = false"></div>
+            <div class="account-menu" role="menu">
+                @if (me.SignedIn && me.Mode != AccessModes.Open)
+                {
                     <div class="account-menu-head">
                         <PlayerHead Uuid="@me.Uuid" Name="@me.Name" Size="40" />
                         <div class="account-menu-who">
@@ -45,19 +63,26 @@
                             <i data-lucide="shield-check"></i><span>Tokens</span>
                         </a>
                     }
+                }
+                @if (me.Role == StudioRoles.Admin)
+                {
+                    <a class="account-menu-item" role="menuitem" href="admin/users" @onclick="() => open = false">
+                        <i data-lucide="users"></i><span>Users</span>
+                    </a>
+                }
+                <a class="account-menu-item" role="menuitem" href="/api-docs" target="_blank" rel="noopener"
+                   title="Opens the API docs in a new tab" @onclick="() => open = false">
+                    <i data-lucide="file-code"></i><span>API docs</span><i data-lucide="external-link" class="account-menu-ext"></i>
+                </a>
+                @if (me.SignedIn && me.Mode != AccessModes.Open)
+                {
                     <button type="button" class="account-menu-item" role="menuitem" @onclick="SignOutAsync">
                         <i data-lucide="log-out"></i><span>Sign out</span>
                     </button>
-                </div>
-            }
-        </div>
-    }
-    else
-    {
-        <a class="account-signin" href="@StudioAccess.SignInHref(Nav.ToBaseRelativePath(Nav.Uri))">
-            <i data-lucide="log-in"></i><span>Sign in with Discord</span>
-        </a>
-    }
+                }
+            </div>
+        }
+    </div>
 }
 
 @code {

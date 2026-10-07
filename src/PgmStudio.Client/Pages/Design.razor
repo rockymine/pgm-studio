@@ -2,123 +2,219 @@
 @layout PgmStudio.Client.Layout.StudioLayout
 @inject IJSRuntime JS
 
-@* Living UI reference — the design system
-   showcase). Uses tokens/components/editor/design CSS. *@
+<PageTitle>Design system</PageTitle>
+
+@* The studio's component reference. Every example is the production component, so a change to one shows
+   here; the markup left by hand is the markup no component owns, and it is marked as such. *@
 
 <StudioShell Bare="true">
   <Bar>
     <Topbar>
-      <Crumbs><Crumb Sep="false">UI Reference</Crumb></Crumbs>
+      <Crumbs><Crumb Sep="false">Design system</Crumb></Crumbs>
       <Right>
-        <span class="ds-file-list">tokens.css · components.css · editor.css</span>
+        <span class="ds-file-list">tokens.css · components/*.css · editor.css</span>
       </Right>
     </Topbar>
   </Bar>
   <ChildContent>
 
-<div id="ds-layout">
-  <nav id="ds-nav" aria-label="UI reference sections">
-    <div class="ds-nav-group">Reference</div>
-    <a href="#foundations">Foundations</a>
-    <a href="#panels">Panel anatomy</a>
-    <a href="#content">Panel content</a>
-    <a href="#workspaces">Workspaces</a>
-    <a href="#canvas">Canvas</a>
-    <a href="#states">States</a>
-    <a href="#suggestion">Smart suggestion</a>
-    <a href="#cards">Cards &amp; navigation</a>
-    <a href="#rules">Usage rules</a>
-  </nav>
+<Workspace id="ds-layout">
+  <FilterSidebar>
+    @foreach (var (group, sections) in Contents)
+    {
+      <FilterPanel Title="@group">
+        <div class="panel-list">
+          @foreach (var (id, label) in sections)
+          {
+            <ListRow Compact Href="@($"#{id}")"><span class="list-label">@label</span></ListRow>
+          }
+        </div>
+      </FilterPanel>
+    }
+  </FilterSidebar>
 
+  <div class="workspace-canvas workspace-canvas--page">
   <main id="ds-main">
     <header class="ds-intro">
-      <p class="ds-kicker">Production-backed examples</p>
-      <h1>Studio UI Reference</h1>
+      <p class="ds-kicker">The studio as it is built</p>
+      <h1>Design system</h1>
       <p>
-        These examples use the same classes and nesting as the Plan, Sketch, and
-        Configure tools. Copy the structure, keep IDs as JavaScript handles, and add new
-        component CSS only when no reference here fits.
+        Tokens, then the components that spend them, grouped by the role they play. Each example is the
+        component a tool mounts, so what shows here is what ships. Toggle the theme in the top bar: every
+        colour below follows it.
       </p>
     </header>
 
-    <section class="ds-section" id="foundations">
+    <section class="ds-section" id="tokens">
       <div class="ds-section-heading">
-        <div>
-          <p class="ds-kicker">01</p>
-          <h2>Foundations</h2>
-        </div>
-        <p>Use tokens for every repeated color, spacing, radius, shadow, and transition.</p>
+        <div><p class="ds-kicker">01</p><h2>Tokens</h2></div>
+        <p>Every repeated colour, size, radius, shadow and transition is a custom property in <code>tokens.css</code>. Dark is the default; <code>data-theme="light"</code> overrides only the colour tokens.</p>
       </div>
 
       <div class="ds-subsection">
-        <h3>Surfaces and text</h3>
+        <h3>Surfaces</h3>
         <div class="ds-swatches">
-          <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-base"></span><code>--bg-base</code><small>Page background</small></div>
-          <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-panel"></span><code>--bg-panel</code><small>Shell and panels</small></div>
-          <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-deep"></span><code>--bg-deep</code><small>Recessed surface</small></div>
-          <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-canvas"></span><code>--bg-canvas</code><small>Map viewport</small></div>
-          <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-selected"></span><code>--bg-selected</code><small>Selection</small></div>
-          <div class="ds-swatch"><span class="ds-swatch-chip ds-text-muted"></span><code>--text-muted</code><small>Quietest text</small></div>
-          <div class="ds-swatch"><span class="ds-swatch-chip ds-text-primary"></span><code>--text-primary</code><small>Body text</small></div>
-          <div class="ds-swatch"><span class="ds-swatch-chip ds-text-strong"></span><code>--text-strong</code><small>Headings / active</small></div>
-          <div class="ds-swatch"><span class="ds-swatch-chip ds-accent"></span><code>--accent</code><small>Focus and primary</small></div>
-          <div class="ds-swatch"><span class="ds-swatch-chip ds-error"></span><code>--color-error</code><small>Destructive/error</small></div>
+          @foreach (var token in Surfaces)
+          {
+            <div class="ds-swatch"><span class="ds-swatch-chip" style="@($"background: var({token.Name})")"></span><code>@token.Name</code><small>@token.Use</small></div>
+          }
         </div>
       </div>
-
       <div class="ds-subsection">
-        <h3>Theming</h3>
-        <p class="ds-theming-note">
-          Two themes share one token set. Dark is the default; <code>&lt;html data-theme="light"&gt;</code>
-          — toggled by the sun / moon button in the top bar — overrides only the <em>colour</em> tokens,
-          while spacing, radii, type, and motion are shared. Toggle the theme to preview the swatches above
-          live. The fixed game palettes (chat, dye, team, wool, and block-overlay colours) live outside CSS,
-          so they stay the same in both themes.
-        </p>
+        <h3>Text</h3>
+        <div class="ds-swatches">
+          @foreach (var token in TextColours)
+          {
+            <div class="ds-swatch"><span class="ds-swatch-chip" style="@($"background: var({token.Name})")"></span><code>@token.Name</code><small>@token.Use</small></div>
+          }
+        </div>
+      </div>
+      <div class="ds-subsection">
+        <h3>Accent and status</h3>
+        <div class="ds-swatches">
+          @foreach (var token in AccentAndStatus)
+          {
+            <div class="ds-swatch"><span class="ds-swatch-chip" style="@($"background: var({token.Name})")"></span><code>@token.Name</code><small>@token.Use</small></div>
+          }
+        </div>
+      </div>
+      <div class="ds-subsection">
+        <h3>Canvas: what is drawn</h3>
+        <p class="ds-theming-note">Colours for the shapes and roles drawn on a map. The light theme flips only the ink and viewport; the roles are mid-tones that read on both grounds.</p>
+        <div class="ds-swatches">
+          @foreach (var token in CanvasShapes.Concat(CanvasRoles))
+          {
+            <div class="ds-swatch"><span class="ds-swatch-chip" style="@($"background: var({token.Name})")"></span><code>@token.Name</code><small>@token.Use</small></div>
+          }
+        </div>
+        <p class="ds-theming-note">The fixed game palettes (chat, dye, team, wool, block overlays) live outside CSS and stay the same in both themes.</p>
       </div>
 
       <div class="ds-subsection">
-        <h3>Spacing rhythm</h3>
+        <h3>Type scale</h3>
+        <div class="ds-type-scale">
+          @foreach (var token in TextSizes)
+          {
+            <div class="ds-type-row"><span style="@($"font-size: var({token.Name})")">The studio writes map.xml</span><code>@token.Name</code><small>@token.Use</small></div>
+          }
+        </div>
+      </div>
+      <div class="ds-subsection">
+        <h3>Spacing</h3>
         <div class="ds-spacing">
-          <div><span class="ds-space ds-space-1"></span><code>--space-1</code><small>4px</small></div>
-          <div><span class="ds-space ds-space-2"></span><code>--space-2</code><small>8px</small></div>
-          <div><span class="ds-space ds-space-3"></span><code>--space-3</code><small>12px</small></div>
-          <div><span class="ds-space ds-space-4"></span><code>--space-4</code><small>16px</small></div>
-          <div><span class="ds-space ds-space-5"></span><code>--space-5</code><small>20px</small></div>
-          <div><span class="ds-space ds-space-6"></span><code>--space-6</code><small>24px</small></div>
+          @foreach (var token in Spacing)
+          {
+            <div><span class="ds-space" style="@($"width: var({token.Name})")"></span><code>@token.Name</code><small>@token.Use</small></div>
+          }
+        </div>
+      </div>
+      <div class="ds-subsection">
+        <h3>Radius, shadow, icon size, control height</h3>
+        <div class="ds-state-row ds-token-row">
+          @foreach (var token in Radii)
+          {
+            <div class="ds-token-box"><span class="ds-token-sample" style="@($"border-radius: var({token.Name})")"></span><code>@token.Name</code><small>@token.Use</small></div>
+          }
+          @foreach (var token in Shadows)
+          {
+            <div class="ds-token-box"><span class="ds-token-sample" style="@($"box-shadow: var({token.Name})")"></span><code>@token.Name</code><small>@token.Use</small></div>
+          }
+          @foreach (var token in IconSizes)
+          {
+            <div class="ds-token-box"><span class="ds-icon-sample" style="@($"--ds-icon: var({token.Name})")"><i data-lucide="map"></i></span><code>@token.Name</code><small>@token.Use</small></div>
+          }
+          <div class="ds-token-box"><span class="ds-token-sample ds-token-sample--control"></span><code>--control-height</code><small>Inputs, selects, buttons in a row</small></div>
         </div>
       </div>
     </section>
 
-    <section class="ds-section" id="panels">
+    <section class="ds-section" id="primitives">
       <div class="ds-section-heading">
-        <div>
-          <p class="ds-kicker">02</p>
-          <h2>Panel anatomy</h2>
+        <div><p class="ds-kicker">02</p><h2>Primitives</h2></div>
+        <p>Leaf components with no layout of their own: <code>Button</code>, <code>Badge</code>, <code>Chip</code>, <code>HelpMark</code>, <code>Icon</code>, the head and author marks, the toast.</p>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>Button</h3>
+        <div class="ds-state-row">
+          <Button>Secondary</Button>
+          <Button Variant="primary">Primary</Button>
+          <Button Variant="warn">Pending</Button>
+          <Button Variant="danger">Delete</Button>
+          <Button Variant="icon" Icon="x" Title="Close" />
+          <Button Icon="download">With icon</Button>
+          <Button Href="#primitives" Icon="external-link">As a link</Button>
+          <Button Disabled>Disabled</Button>
+          <Button Variant="primary" Busy="@busy" BusyLabel="Building…" OnClick="RunBusy" Icon="hammer">Build</Button>
         </div>
-        <p>A panel is a stack of sections. Each section has a header, body, and optional footer.</p>
+        <p class="ds-theming-note">A <code>Busy</code> button is disabled and says what it is doing in place of its icon and label; press <em>Build</em> to see it. <code>Writes</code>, <code>Deletes</code> and <code>Builds</code> close a button for a caller who may not, with the reason on hover; this page is open to all, so none is closed here.</p>
+        <div class="ds-state-grid">
+          <Button Variant="primary" Fill>Fill the row</Button>
+          <Button Full>Full width</Button>
+        </div>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>Badge</h3>
+        <div class="ds-state-row">
+          <Badge Kind="success">Ready</Badge>
+          <Badge Kind="warning">Review</Badge>
+          <Badge Kind="error">Invalid</Badge>
+          <Badge Kind="neutral">Cylinder</Badge>
+          <Badge Kind="dim">Optional</Badge>
+          <Badge Kind="accent">Selected</Badge>
+        </div>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>Chip</h3>
+        <div class="ds-state-row">
+          <Chip Active='@chipsOn.Contains("plan")' OnClick='() => Toggle("plan")'>Plan</Chip>
+          <Chip Active='@chipsOn.Contains("sketch")' OnClick='() => Toggle("sketch")'>Sketch</Chip>
+          <Chip Active='@chipsOn.Contains("wool")' Count="12" OnClick='() => Toggle("wool")'>With a count</Chip>
+          <Chip Disabled Count="0">Disabled</Chip>
+        </div>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>Marks</h3>
+        <div class="ds-state-row">
+          <HelpMark Title="What this is" />
+          <HelpMark Open />
+          <Icon Name="map" />
+          <AuthorMark Name="Annealing Team" Agent="false" Size="24" />
+          <AuthorMark Name="An agent" Agent="true" Size="24" />
+          <PlayerHead Name="Notch" Size="24" />
+        </div>
+      </div>
+    </section>
+
+    <section class="ds-section" id="forms">
+      <div class="ds-section-heading">
+        <div><p class="ds-kicker">03</p><h2>Forms</h2></div>
+        <p><code>Field</code> owns the label, required mark, hint and error; the control is its content. Numbers, sliders and dropdowns go through <code>NumberField</code>, <code>RangeField</code> and <code>Select</code>, never raw elements.</p>
       </div>
 
       <div class="ds-example-grid">
         <article class="ds-example">
-          <div class="ds-example-label">Left sidebar form</div>
+          <div class="ds-example-label">Field, text input, number, select</div>
           <div class="ds-panel-frame">
             <div class="workspace-scroll">
-              <Section Title="Map Identity">
+              <Section Title="Map identity">
                 <ChildContent>
-                  <div class="section-body">
-                    <Field Label="Map Name" Required For="ds-map-name">
-                      <input id="ds-map-name" class="field-input" value="Annealing V"/>
+                  <Field Label="Map name" Required For="ds-map-name">
+                    <input id="ds-map-name" class="field-input" value="Annealing V"/>
+                  </Field>
+                  <div class="field-row">
+                    <Field Label="Version" For="ds-version">
+                      <input id="ds-version" class="field-input" value="1.0.0"/>
                     </Field>
-                    <div class="field-row">
-                      <Field Label="Version" For="ds-version">
-                        <input id="ds-version" class="field-input" value="1.0.0"/>
-                      </Field>
-                      <Field Label="Mode" For="ds-mode" Class="field--compact">
-                        <input id="ds-mode" class="field-input" value="ctw" disabled/>
-                      </Field>
-                    </div>
+                    <Field Label="Mode" For="ds-mode" Class="field--compact">
+                      <input id="ds-mode" class="field-input" value="ctw" disabled/>
+                    </Field>
                   </div>
+                  <Field Label="Players"><NumberField Value="8" Min="2" Max="64" /></Field>
+                  <Field Label="Symmetry"><Select Slim="false" Options="SymmetryOptions" @bind-Value="symmetry" /></Field>
                 </ChildContent>
                 <Footer>
                   <Button Variant="primary">Save changes</Button>
@@ -130,7 +226,74 @@
         </article>
 
         <article class="ds-example">
-          <div class="ds-example-label">Right inspector</div>
+          <div class="ds-example-label">Range, coordinates, swatches, checks, error</div>
+          <div class="ds-panel-frame">
+            <div class="workspace-scroll">
+              <Section Title="Controls">
+                <Field Label="Coverage"><LabelEnd>@((int)slider)%</LabelEnd><ChildContent><RangeField Min="0" Max="100" @bind-Value="slider" /></ChildContent></Field>
+                <Field Label="Base">
+                  <div class="ctrl-row">
+                    <CoordField Prefix="X" Value="48.5" />
+                    <CoordField Prefix="Y" Value="9" />
+                    <CoordField Prefix="Z" Value="-187" />
+                  </div>
+                </Field>
+                <Field Label="Team colour"><SwatchRow TKey="string" Swatches="TeamColours" Selected="@teamColour" OnPick="@(key => teamColour = key)" /></Field>
+                <div class="control-list">
+                  <label class="check-row"><input type="checkbox" checked/>Mirror preview</label>
+                  <label class="check-row"><input type="checkbox"/>Shapes overlay</label>
+                </div>
+                <Field Label="ID" Error='Region ID "spawn-red" is already in use.'>
+                  <input class="field-input field-input--error" value="spawn-red"/>
+                </Field>
+              </Section>
+            </div>
+          </div>
+        </article>
+
+        <article class="ds-example">
+          <div class="ds-example-label">AuthorsEditor</div>
+          <div class="ds-panel-frame">
+            <div class="workspace-scroll">
+              <AuthorsEditor Authors="authors" />
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="ds-section" id="data">
+      <div class="ds-section-heading">
+        <div><p class="ds-kicker">04</p><h2>Data and lists</h2></div>
+        <p>A panel is a stack of <code>Section</code>s; repeated content sits in a list class so spacing belongs to the collection.</p>
+      </div>
+
+      <div class="ds-example-grid">
+        <article class="ds-example">
+          <div class="ds-example-label">Section: Title, Actions, Description, Help</div>
+          <div class="ds-panel-frame">
+            <div class="workspace-scroll">
+              <Section Title="Teams" Required>
+                <Description>Each team gets its own spawn and goals.</Description>
+                <Actions><Button>+ Add team</Button></Actions>
+                <ChildContent>
+                  <div class="panel-list">
+                    <ListRow Selected><span class="list-swatch ds-team-red"></span><span class="list-label">Red</span><Badge Kind="success">Ready</Badge></ListRow>
+                    <ListRow><span class="list-swatch ds-team-blue"></span><span class="list-label">Blue</span><span class="list-tag">20 players</span></ListRow>
+                    <ListRow Compact><span class="geo-type-icon"><i data-lucide="cylinder"></i></span><span class="list-label list-label--mono">red-spawn</span><span class="list-tag">Red</span></ListRow>
+                    <ListRow>
+                      <ChildContent><span class="list-label list-label--mono">drawn-map</span><span class="list-label">A row with its own action</span></ChildContent>
+                      <Trailing><Button Icon="external-link">Open</Button></Trailing>
+                    </ListRow>
+                  </div>
+                </ChildContent>
+              </Section>
+            </div>
+          </div>
+        </article>
+
+        <article class="ds-example">
+          <div class="ds-example-label">Inspector: DetailHeader, footer</div>
           <div class="ds-panel-frame">
             <div class="workspace-scroll">
               <div class="panel-stack">
@@ -141,140 +304,35 @@
                     </DetailHeader>
                   </Header>
                   <ChildContent>
-                    <div class="section-body">
-                      <Field Label="Base">
-                        <div class="ctrl-row">
-                          <CoordField Prefix="X" Value="48.5" />
-                          <CoordField Prefix="Y" Value="9" />
-                          <CoordField Prefix="Z" Value="-187" />
-                        </div>
-                      </Field>
-                      <Field Label="Dimensions">
-                        <div class="ctrl-row">
-                          <CoordField Prefix="R" Value="0.5" />
-                          <CoordField Prefix="H" Value="2" />
-                        </div>
-                      </Field>
-                    </div>
+                    <Field Label="Dimensions">
+                      <div class="ctrl-row">
+                        <CoordField Prefix="R" Value="0.5" />
+                        <CoordField Prefix="H" Value="2" />
+                      </div>
+                    </Field>
                   </ChildContent>
-                  <Footer>
-                    <Button Variant="danger" Fill>Delete region</Button>
-                  </Footer>
-                </Section>
-                <Section Title="Spawn Assignment">
-                  <Field Label="Team">
-                    <Select Slim="false" Options="@Select.Words(["Red"], word => word)" Value="Red" />
-                  </Field>
+                  <Footer><Button Variant="danger" Fill>Delete region</Button></Footer>
                 </Section>
               </div>
             </div>
           </div>
         </article>
-      </div>
-    </section>
 
-    <section class="ds-section" id="content">
-      <div class="ds-section-heading">
-        <div>
-          <p class="ds-kicker">03</p>
-          <h2>Panel content</h2>
-        </div>
-        <p>Use explicit wrappers for repeated content so spacing belongs to the collection.</p>
-      </div>
-
-      <div class="ds-example-grid">
         <article class="ds-example">
-          <div class="ds-example-label">Field row</div>
+          <div class="ds-example-label">BoardKey</div>
           <div class="ds-panel-frame">
-            <div class="workspace-scroll">
-              <Section Title="Map Version">
-                <div class="field-row">
-                  <Field Label="Version" For="ds-version-major">
-                    <input id="ds-version-major" class="field-input" value="1.0.0"/>
-                  </Field>
-                  <Field Label="Mode" For="ds-version-mode" Class="field--compact">
-                    <input id="ds-version-mode" class="field-input" value="ctw" disabled/>
-                  </Field>
-                </div>
-              </Section>
-            </div>
+            <div class="workspace-scroll"><BoardKey Entries="BoardKeySample" /></div>
           </div>
         </article>
 
         <article class="ds-example">
-          <div class="ds-example-label">Panel list</div>
+          <div class="ds-example-label">Region tree (the Configure tool's own markup)</div>
           <div class="ds-panel-frame">
             <div class="workspace-scroll">
-              <Section Title="Teams">
-                <Actions><Button>+ Add Team</Button></Actions>
-                <ChildContent>
-                  <div class="panel-list">
-                    <ListRow Selected><span class="list-swatch ds-team-red"></span><span class="list-label">Red</span><Badge Kind="success">Ready</Badge></ListRow>
-                    <ListRow><span class="list-swatch ds-team-blue"></span><span class="list-label">Blue</span><span class="list-tag">20 players</span></ListRow>
-                    <ListRow Compact><span class="geo-type-icon"><i data-lucide="cylinder"></i></span><span class="list-label list-label--mono">red-spawn</span><span class="list-tag">Red</span></ListRow>
-                    <ListRow>
-                      <ChildContent><span class="list-label list-label--mono">drawn-map</span><span class="list-label">A row with its own action</span></ChildContent>
-                      <Trailing><Button Icon="external-link">Open elsewhere</Button></Trailing>
-                    </ListRow>
-                  </div>
-                </ChildContent>
-              </Section>
-            </div>
-          </div>
-        </article>
-
-        <article class="ds-example">
-          <div class="ds-example-label">Author list</div>
-          <div class="ds-panel-frame">
-            <div class="workspace-scroll">
-              <Section Title="Authors" Required>
-                <Actions><Button>+ Add</Button></Actions>
-                <ChildContent>
-                  <div class="author-list">
-                    <div class="author-row">
-                      <span class="author-mark author-mark--account">F</span>
-                      <input class="field-input author-name" value="fakejustcupcakes"/>
-                      <input class="field-input author-contribution" placeholder="Contribution (optional)"/>
-                      <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
-                    </div>
-                    <div class="author-row">
-                      <span class="author-mark author-mark--account">K</span>
-                      <input class="field-input author-name" value="killAce"/>
-                      <input class="field-input author-contribution" value="Terrain"/>
-                      <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
-                    </div>
-                  </div>
-                </ChildContent>
-              </Section>
-            </div>
-          </div>
-        </article>
-
-        <article class="ds-example">
-          <div class="ds-example-label">Control list</div>
-          <div class="ds-panel-frame">
-            <div class="workspace-scroll">
-              <Section Title="Overlays">
-                <div class="control-list">
-                  <label class="check-row"><input type="checkbox" checked/>Mirror preview</label>
-                  <label class="check-row"><input type="checkbox"/>Shapes overlay</label>
-                  <label class="check-row"><input type="checkbox" checked/>Chunk grid</label>
-                </div>
-              </Section>
-            </div>
-          </div>
-        </article>
-
-        <article class="ds-example">
-          <div class="ds-example-label">Region tree</div>
-          <div class="ds-panel-frame">
-            <div class="workspace-scroll">
-              <Section Title="Wool Regions">
+              <Section Title="Wool regions">
                 <div class="region-tree">
                   <div class="geo-row geo-row--selected">
-                    <span class="geo-indent">
-                      <button class="collapse-btn" title="Collapse"><i data-lucide="chevron-down"></i></button>
-                    </span>
+                    <span class="geo-indent"><button class="collapse-btn" title="Collapse"><i data-lucide="chevron-down"></i></button></span>
                     <span class="geo-type-icon"><i data-lucide="combine"></i></span>
                     <span class="geo-label">purple-wool-room</span>
                   </div>
@@ -296,85 +354,160 @@
       </div>
     </section>
 
-    <section class="ds-section" id="workspaces">
+    <section class="ds-section" id="navigation">
       <div class="ds-section-heading">
-        <div>
-          <p class="ds-kicker">04</p>
-          <h2>Workspaces</h2>
-        </div>
-        <p>The sidebar and inspector share the same panel construction. Handles sit directly beside resizable panels.</p>
+        <div><p class="ds-kicker">05</p><h2>Layout and navigation</h2></div>
+        <p>The shells every page is built from. The bars above this page are the real <code>AppNav</code> and <code>Topbar</code>; the footer is <code>AppFooter</code>.</p>
       </div>
 
-      <article class="ds-example">
-        <div class="ds-example-label">Three-column activity workspace</div>
-        <div class="ds-workspace-frame">
-          <Workspace>
-            <Sidebar>
-              <Section Title="Islands">
-                <div class="panel-list">
-                  <ListRow Selected><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Center</span></ListRow>
-                  <ListRow><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Team island</span></ListRow>
-                </div>
-              </Section>
-            </Sidebar>
-            <div class="sidebar-handle"></div>
-            <div class="workspace-canvas">
-              <div class="canvas-surface ds-canvas-sample">
-                <span class="ds-axis ds-axis-x"></span>
-                <span class="ds-axis ds-axis-z"></span>
-                <span class="ds-region-sample"></span>
-              </div>
-              <CanvasReadout ZoomText="100%"><span class="canvas-readout-item">X 128 Z -64</span></CanvasReadout>
-              <CanvasLayerBar>
-                <LayerChip Icon="box" Active>Blocks</LayerChip>
-                <CanvasRoundButton Icon="scan" Title="Fit" />
-              </CanvasLayerBar>
-              <CanvasDock>
-                <DockGroup>
-                  <DockButton Icon="mouse-pointer-2" Title="Select" Active />
-                  <DockButton Icon="hand" Title="Move" />
-                </DockGroup>
-                <DockGroup Accent="var(--canvas-add-fill)">
-                  <DockModeButton>Build</DockModeButton>
-                  <DockButton Icon="rectangle-horizontal" Title="Rectangle" Active />
-                </DockGroup>
-              </CanvasDock>
-            </div>
-            <div class="sidebar-handle"></div>
-            <Inspector>
-              <Section>
-                <Header>
-                  <DetailHeader Icon="rectangle-horizontal" IconMuted Label="Team island">
-                    <Badge Kind="neutral">Rectangle</Badge>
-                  </DetailHeader>
-                </Header>
-                <ChildContent>
-                  <Field Label="Operation"><Badge Kind="success">Add</Badge></Field>
-                </ChildContent>
-              </Section>
-            </Inspector>
-          </Workspace>
+      <div class="ds-subsection">
+        <h3>Topbar and Crumb</h3>
+        <div class="ds-bar-frame">
+          <Topbar>
+            <Crumbs>
+              <Crumb Sep="false" Href="#navigation" Dim>Library</Crumb>
+              <Crumb>Oak forest</Crumb>
+            </Crumbs>
+            <Right><Badge Kind="success">Saved</Badge><Button Variant="primary">New</Button></Right>
+          </Topbar>
         </div>
-      </article>
+        <p class="ds-theming-note">Studio-wide things (pages, shortcuts, design, text size, theme, account) are in <code>AppNav</code>; a browse or admin page's trail and actions are in <code>Topbar</code>, and the three editors draw <code>EditorBar</code> instead (below). On a read-only page the <code>Topbar</code> adds a <em>View only</em> tag by itself.</p>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>Three-column workspace: NavRail, Sidebar, canvas, Inspector</h3>
+        <div class="ds-workspace-frame">
+          <div class="app-body">
+            <NavRail>
+              <NavButton Icon="layout-grid" Title="Plan" Active />
+              <NavButton Icon="pencil-ruler" Title="Sketch" Status="green" />
+              <NavButton Icon="settings-2" Title="Configure" Status="yellow" />
+              <NavButton Icon="box" Title="Export" Disabled />
+            </NavRail>
+            <div class="activity-viewport">
+              <Workspace>
+                <Sidebar>
+                  <Section Title="Islands">
+                    <div class="panel-list">
+                      <ListRow Selected><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Center</span></ListRow>
+                      <ListRow><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Team island</span></ListRow>
+                    </div>
+                  </Section>
+                </Sidebar>
+                <div class="sidebar-handle"></div>
+                <div class="workspace-canvas">
+                  <div class="canvas-surface ds-canvas-sample">
+                    <span class="ds-axis ds-axis-x"></span>
+                    <span class="ds-axis ds-axis-z"></span>
+                    <span class="ds-region-sample"></span>
+                  </div>
+                </div>
+                <div class="sidebar-handle"></div>
+                <Inspector>
+                  <Section>
+                    <Header>
+                      <DetailHeader Icon="rectangle-horizontal" IconMuted Label="Team island">
+                        <Badge Kind="neutral">Rectangle</Badge>
+                      </DetailHeader>
+                    </Header>
+                    <ChildContent><Field Label="Operation"><Badge Kind="success">Add</Badge></Field></ChildContent>
+                  </Section>
+                </Inspector>
+              </Workspace>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>Editor bar</h3>
+        <p class="ds-theming-note">The one bar the Plan, Sketch and Configure editors draw under the studio's own
+           (<code>EditorBar</code>). Left, the crumb — <strong>Maps</strong>, the map's name — and the
+           <strong>stage switcher</strong> (<code>StageSwitch</code>), a button naming the current tool whose menu
+           opens the map's other tools, dashed where the map has no such layer. Middle, the
+           <strong>phase-identity cluster</strong> (<code>editor-bar-phase</code>: the phase's icon + name) and flat-text
+           step labels with an accent underline on the active one; below 1100 px the steps become a
+           "Step n of m" menu. Right, the state, the tool's commands, a divider, then Back/Next.</p>
+        <div class="ds-bar-frame">
+        <EditorBar MapName="Harbour Run" Slug="harbour_run" Stage="@MapStage.Sketch"
+                   PhaseIcon="goal" PhaseTitle="Wools" Steps="FlowSteps"
+                   CurrentStep="1" BackEnabled="true">
+          <State>Saved</State>
+          <Commands>
+            <Button Variant="icon" Icon="undo-2" Title="Undo" />
+            <Button Variant="icon" Icon="redo-2" Title="Redo" />
+            <Button Variant="icon" Icon="download" Title="Download" />
+          </Commands>
+        </EditorBar>
+        </div>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>PageHeading and ContentColumn</h3>
+        <div class="ds-panel-frame ds-panel-frame--short">
+          <div class="workspace-scroll">
+            <ContentColumn MaxWidth="640">
+              <PageHeading Title="Maps">
+                <Lead>Every map the studio holds, by the stage it has reached.</Lead>
+                <Actions><Button Variant="primary" Icon="plus">New map</Button></Actions>
+              </PageHeading>
+            </ContentColumn>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>SideDrawer</h3>
+        <Button Icon="layers" OnClick="() => drawerOpen = true">Open the drawer</Button>
+        <SideDrawer Open="drawerOpen" Title="Board detail" Icon="layout-grid" OnClose="() => drawerOpen = false">
+          <Body>
+            <Section Title="Facts"><p class="section-desc">A right-anchored overlay: backdrop, titled header, scrolling body and an optional pinned footer.</p></Section>
+          </Body>
+          <Footer><Button Variant="primary" OnClick="() => drawerOpen = false">Done</Button></Footer>
+        </SideDrawer>
+      </div>
     </section>
 
-    <section class="ds-section" id="canvas">
+    <section class="ds-section" id="filters">
       <div class="ds-section-heading">
-        <div>
-          <p class="ds-kicker">05</p>
-          <h2>Canvas chrome</h2>
-        </div>
+        <div><p class="ds-kicker">06</p><h2>Filter rail</h2></div>
+        <p><code>FilterSidebar</code> holds <code>FilterPanel</code>s, each a titled block of <code>FilterGroup</code>s, each a row of <code>Chip</code>s. The rail on the left of this page is built from the same three.</p>
+      </div>
+      <div class="ds-workspace-frame">
+        <Workspace>
+          <FilterSidebar>
+            <FilterPanel Title="Filters" Active="@(chipsOn.Count > 0)" OnClear="@(() => chipsOn.Clear())">
+              <FilterGroup Label="Stage">
+                <Chip Active='@chipsOn.Contains("plan")' Count="5" OnClick='() => Toggle("plan")'>Plan</Chip>
+                <Chip Active='@chipsOn.Contains("sketch")' Count="7" OnClick='() => Toggle("sketch")'>Sketch</Chip>
+              </FilterGroup>
+              <FilterGroup Label="Kind" Hint="any of" Multi>
+                <Chip Active='@chipsOn.Contains("wool")' Count="4" OnClick='() => Toggle("wool")'>Wool</Chip>
+                <Chip Active='@chipsOn.Contains("hub")' Count="9" OnClick='() => Toggle("hub")'>Hub</Chip>
+                <Chip Disabled Count="0">Scythe</Chip>
+              </FilterGroup>
+              <p class="section-desc">The number on each option counts the whole list.</p>
+            </FilterPanel>
+            <FilterPanel Title="Settings">
+              <FilterGroup Label="Symmetry"><Chip Active>Mirror</Chip><Chip>Rotate</Chip></FilterGroup>
+            </FilterPanel>
+          </FilterSidebar>
+          <div class="workspace-canvas workspace-canvas--page"></div>
+        </Workspace>
+      </div>
+    </section>
+
+    <section class="ds-section" id="chrome">
+      <div class="ds-section-heading">
+        <div><p class="ds-kicker">07</p><h2>Editor chrome</h2></div>
         <p>A canvas control floats on the map, placed by what it is — never in a bar above it.</p>
       </div>
-      <p class="ds-theming-note">Three positions, and each answers one question. <strong>Top-left</strong>
-         is what the canvas <em>is</em> — cursor position, the live size of what is being drawn or measured,
-         zoom (<code>CanvasReadout</code>). It is read-only and pointer-transparent, so a drag that crosses
-         it never stalls, and an item with nothing to report collapses. <strong>Top-right</strong> is what
-         the canvas <em>shows</em> (<code>CanvasLayerBar</code>): the layer chips, then the view actions that
-         only move the camera (<code>CanvasRoundButton</code> — fit, rotate), then <code>ViewModeToggle</code>
-         in the very corner, outermost because it decides what every other control in the row means.
-         <strong>Bottom-centre</strong> is what the pointer <em>does</em> (<code>CanvasDock</code>), where
-         the pointer already is.</p>
+      <p class="ds-theming-note">Three positions, each answering one question. <strong>Top-left</strong> is what the canvas
+         <em>is</em> — cursor position, the live size of what is drawn, zoom (<code>CanvasReadout</code>); it is
+         read-only and pointer-transparent. <strong>Top-right</strong> is what it <em>shows</em>
+         (<code>CanvasLayerBar</code>): layer chips, then camera-only actions (<code>CanvasRoundButton</code>), then
+         <code>ViewModeToggle</code> in the corner. <strong>Bottom-centre</strong> is what the pointer <em>does</em>
+         (<code>CanvasDock</code>), where the pointer already is.</p>
       <div class="ds-canvas-bar-example ds-canvas-sample">
         <span class="ds-axis ds-axis-x"></span>
         <span class="ds-axis ds-axis-z"></span>
@@ -404,15 +537,12 @@
       </div>
 
       <div class="ds-subsection ds-subsection--separated">
-        <h3>Dock groups</h3>
-        <p class="ds-theming-note">The dock holds <code>DockGroup</code>s, never loose buttons: a group is
-           one question the tool answers, and the gaps between them are the only grouping a row of equal
-           glyphs can carry. A group may carry an <strong>accent</strong> — the colour of the mode it is
-           armed in — which reaches every control inside it as <code>--dock-accent</code>, so a
-           <code>DockModeButton</code>'s word and the shape buttons beside it state the same thing at once
-           and an armed carve cannot be read as an armed build. A family with too many options to lay out
-           collapses into a <code>DockFlyoutGroup</code>: the option in hand plus a chevron, the rest in a
-           flyout that opens upward, and picking one promotes it into the slot.</p>
+        <h3>Dock groups, choices and the flyout</h3>
+        <p class="ds-theming-note">The dock holds <code>DockGroup</code>s, never loose buttons. A group may carry an
+           <strong>accent</strong> — the colour of the mode it is armed in — which reaches every control inside it as
+           <code>--dock-accent</code>. A family with too many options collapses into a <code>DockFlyoutGroup</code>:
+           the option in hand plus a chevron, the rest in a flyout that opens upward. <code>DockChoice</code> is one
+           option of a set the dock picks between.</p>
         <div class="ds-state-row">
           <DockGroup Accent="var(--canvas-sub-fill)">
             <DockModeButton Pressed>Carve</DockModeButton>
@@ -424,94 +554,90 @@
             <DockButton SwatchClass="canvas-dock-swatch--build" Title="Build zone" />
             <DockButton Swatch="var(--canvas-box-hub)" SwatchClass="canvas-dock-swatch--box" Title="Hub box" />
           </DockGroup>
+          <DockGroup>
+            <DockChoice Active>Height</DockChoice>
+            <DockChoice>Surface</DockChoice>
+          </DockGroup>
+          <DockGroup>
+            <DockFlyoutGroup Items="DockFamily" ActiveKey="@flyoutKey" Armed Open="flyoutOpen" Label="Shapes"
+                             OnToggleOpen="() => flyoutOpen = !flyoutOpen"
+                             OnPick="@(key => { flyoutKey = key; flyoutOpen = false; })" />
+          </DockGroup>
         </div>
       </div>
 
       <div class="ds-subsection ds-subsection--separated">
-        <h3>Flow bar (wizard steps)</h3>
-        <p class="ds-theming-note">A clean wizard step strip for guided multi-step phases — a
-           left-aligned <strong>phase-identity cluster</strong> (<code>flow-bar-phase</code>: the current
-           phase's icon + name), then flat-text step labels with an accent underline on the active one
-           (a status icon on completed ones is deferred to the save model, where step status gets meaning), then
-           Back/Next on the right (Back disabled at the first step). It is its <strong>own strip</strong>
-           (<code>FlowBar</code>) above the workspace — never on the canvas, whose chrome is the readout,
-           layer bar and dock above. Used by the Configure wizard and the Plan and Sketch tools' stepped phases.</p>
-        <FlowBar PhaseIcon="goal" PhaseTitle="Wools" Steps="@(new[] { "Colours", "Spawn & room", "Monuments" })"
-                 CurrentStep="1" BackEnabled="true" />
+        <h3>SmartSuggestion</h3>
+        <p class="ds-theming-note">The callout for a studio-inferred action: header, body, accept and dismiss. The suggested-team preview is a two-column grid.</p>
+        <div class="ds-sug-sample">
+          <SmartSuggestion Header="Smart Suggestion" Badge="rot 90" AcceptLabel="Create 4 teams" RejectLabel="Dismiss">
+            <p class="smart-suggestion__text">90° rotational symmetry suggests four teams.</p>
+            <div class="smart-suggestion-teams">
+              @foreach (var colour in TeamColours)
+              {
+                <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="--swatch: @colour.Hex"></span>@colour.Label Team</div>
+              }
+            </div>
+          </SmartSuggestion>
+        </div>
       </div>
     </section>
 
-    <section class="ds-section" id="states">
+    <section class="ds-section" id="feedback">
       <div class="ds-section-heading">
-        <div>
-          <p class="ds-kicker">06</p>
-          <h2>Actions and states</h2>
-        </div>
-        <p>Use one vocabulary for actions, status, empty content, validation, and confidence meters.</p>
+        <div><p class="ds-kicker">08</p><h2>Feedback and problems</h2></div>
+        <p>How the studio says something is wrong, empty, in progress or done.</p>
       </div>
-      <div class="ds-state-row">
-        <Button>Secondary</Button>
-        <Button Variant="primary">Primary</Button>
-        <Button Variant="warn">Pending</Button>
-        <Button Variant="danger">Delete</Button>
-        <Badge Kind="success">Ready</Badge>
-        <Badge Kind="warning">Review</Badge>
-        <Badge Kind="error">Invalid</Badge>
-        <Badge Kind="neutral">Cylinder</Badge>
-        <Badge Kind="dim">Optional</Badge>
-      </div>
-      <div class="ds-state-grid">
-        <div class="panel-warning">The selected region overlaps the map boundary.</div>
-        <div class="ds-empty-sample"><p class="panel-empty-msg">Select a team or region to inspect.</p></div>
-        <Field Label="ID" Error='Region ID "spawn-red" is already in use.'>
-          <input class="field-input field-input--error" value="spawn-red"/>
-        </Field>
-      </div>
-      @* Meter — thin confidence/score bar (track + .meter-fill; width as --meter-level, colour band by modifier).
-         Used for ranked monument suggestions. *@
-      <div class="ds-state-grid">
-        <Field Label="Confidence · high"><LabelHint>0.90</LabelHint><ChildContent><div class="meter"><div class="meter-fill" style="--meter-level: 90%"></div></div></ChildContent></Field>
-        <Field Label="Confidence · mid"><LabelHint>0.55</LabelHint><ChildContent><div class="meter"><div class="meter-fill meter-fill--mid" style="--meter-level: 55%"></div></div></ChildContent></Field>
-        <Field Label="Confidence · low"><LabelHint>0.25</LabelHint><ChildContent><div class="meter"><div class="meter-fill meter-fill--low" style="--meter-level: 25%"></div></div></ChildContent></Field>
-      </div>
-    </section>
 
-    <section class="ds-section" id="suggestion">
-      <div class="ds-section-heading">
-        <div>
-          <p class="ds-kicker">07</p>
-          <h2>Smart suggestion</h2>
+      <div class="ds-subsection">
+        <h3>ProblemList</h3>
+        <p class="ds-theming-note">One collapsible row per rule, worst first: a severity glyph, the rule id (a link to the rules page), the rule's first sentence; open, it says what to do and where. <code>Head</code> carries a heading and a <code>problems-verdict</code> line above the groups. Rule text is read from the live rules, so an id the server does not list shows the finding's own message.</p>
+        <div class="ds-problems-sample">
+          <ProblemList Problems="problemSample" OpenFirst>
+            <Head>
+              <div class="section-header section-header--ruled">
+                <h3 class="section-title">This map</h3>
+              </div>
+              <p class="problems-verdict"><b>1 problem</b> stops the export.</p>
+            </Head>
+          </ProblemList>
         </div>
-        <p>Sparkle-headed callout for studio-inferred actions (symmetry → teams, wiring, wools).
-           Reusable <code>&lt;SmartSuggestion&gt;</code> — header (icon + title + badge), body, accept/dismiss.
-           The suggested-team preview is always a 2-column grid (2 teams → one row, 4 → two).</p>
       </div>
-      <div class="ds-sug-sample">
-        <SmartSuggestion Header="Smart Suggestion" Badge="rot 90" AcceptLabel="Create 4 teams" RejectLabel="Dismiss">
-          <p class="smart-suggestion__text">90° rotational symmetry suggests four teams.</p>
-          <div class="smart-suggestion-teams">
-            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="--swatch: #FF5555"></span>Red Team</div>
-            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="--swatch: #5555FF"></span>Blue Team</div>
-            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="--swatch: #55FF55"></span>Green Team</div>
-            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="--swatch: #FFFF55"></span>Yellow Team</div>
+
+      <div class="ds-subsection">
+        <h3>Messages, empty, readout</h3>
+        <div class="ds-state-grid">
+          <div class="panel-warning">The selected region overlaps the map boundary.</div>
+          <div class="ds-empty-sample"><p class="panel-empty-msg">Select a team or region to inspect.</p></div>
+          <div class="callout">
+            <span class="callout-icon"><i data-lucide="shield"></i></span>
+            <p>Sign in with a whitelisted account to issue a token.</p>
           </div>
-        </SmartSuggestion>
+          <span class="readonly-tag" role="status"><i data-lucide="eye"></i><span>View only</span></span>
+        </div>
+        <div class="ds-state-grid">
+          <Field Label="Confidence · high"><LabelHint>0.90</LabelHint><ChildContent><div class="meter"><div class="meter-fill" style="--meter-level: 90%"></div></div></ChildContent></Field>
+          <Field Label="Confidence · mid"><LabelHint>0.55</LabelHint><ChildContent><div class="meter"><div class="meter-fill meter-fill--mid" style="--meter-level: 55%"></div></div></ChildContent></Field>
+          <Field Label="Confidence · low"><LabelHint>0.25</LabelHint><ChildContent><div class="meter"><div class="meter-fill meter-fill--low" style="--meter-level: 25%"></div></div></ChildContent></Field>
+        </div>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>Toast</h3>
+        <Button Icon="check" OnClick="ShowToast">Show a toast</Button>
+        <Toast Message="@toast" Kind="success" DurationMs="2500" />
       </div>
     </section>
 
-    <section class="ds-section" id="cards">
+    <section class="ds-section" id="pages">
       <div class="ds-section-heading">
-        <div>
-          <p class="ds-kicker">08</p>
-          <h2>Cards &amp; navigation</h2>
-        </div>
-        <p>Entry surfaces. <code>.card-grid</code> of <code>.card</code> — as a navigable
-           <code>.card--action</code> with a <code>.card-foot</code> (count + go affordance), and the
-           landing pattern that fans out to the staged dashboard. List rows gain a hover
-           <code>.list-go</code> arrow when they navigate.</p>
+        <div><p class="ds-kicker">09</p><h2>Cards and the landing</h2></div>
+        <p>Entry surfaces: the landing hero (<code>LandingHero</code>, its two <code>Size="lg"</code> buttons and the <code>MapThumb</code> picture box, shown here with no map to draw) and <code>.card-grid</code> of <code>.card--action</code>, which no component owns yet.</p>
       </div>
+      <div class="ds-landing-frame"><div class="landing"><LandingHero StartHref="#pages" MapsHref="#pages" /></div></div>
+
       <div class="card-grid ds-card-sample">
-        <a class="card card--action" href="#cards">
+        <a class="card card--action" href="#pages">
           <div class="card-head">
             <span class="card-icon"><i data-lucide="pencil-ruler"></i></span>
             <span class="card-title">Sketch</span>
@@ -522,7 +648,7 @@
             <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
           </span>
         </a>
-        <a class="card card--action" href="#cards">
+        <a class="card card--action" href="#pages">
           <div class="card-head">
             <span class="card-icon"><i data-lucide="settings-2"></i></span>
             <span class="card-title">Configure</span>
@@ -536,12 +662,12 @@
       </div>
       <div class="ds-list-sample">
         <div class="panel-list">
-          <ListRow Href="#cards">
+          <ListRow Href="#pages">
             <span class="list-label list-label--mono">annealing_iv</span>
             <span class="list-label">Annealing IV</span>
             <span class="list-go"><i data-lucide="arrow-right"></i></span>
           </ListRow>
-          <ListRow Selected Href="#cards">
+          <ListRow Selected Href="#pages">
             <span class="list-label list-label--mono">somectwmap</span>
             <span class="list-label">somectwmap</span>
             <span class="list-go"><i data-lucide="arrow-right"></i></span>
@@ -552,25 +678,23 @@
 
     <section class="ds-section" id="rules">
       <div class="ds-section-heading">
-        <div>
-          <p class="ds-kicker">09</p>
-          <h2>Usage rules</h2>
-        </div>
-        <p>The short version. Full contract lives in <code>docs/client/ui-conventions.md</code>.</p>
+        <div><p class="ds-kicker">10</p><h2>Usage rules</h2></div>
+        <p>The short version. The full contract is <code>docs/client/ui-conventions.md</code>.</p>
       </div>
       <table class="ds-rules-table">
         <thead><tr><th>Do</th><th>Don't</th></tr></thead>
         <tbody>
-          <tr><td>Copy a rendered reference structure.</td><td>Create activity-specific panel spacing.</td></tr>
+          <tr><td>Mount the component that exists.</td><td>Hand-write markup a component already emits.</td></tr>
           <tr><td>Use classes for layout and IDs for JavaScript.</td><td>Patch shared layout with ID selectors.</td></tr>
           <tr><td>Wrap repeated rows in the matching list class.</td><td>Put margins on each repeated child.</td></tr>
-          <tr><td>Use `.section-footer` for panel actions.</td><td>Inject widths and margins from JavaScript.</td></tr>
-          <tr><td>Add a production example here with a new component.</td><td>Build a separate visual mock of the component.</td></tr>
+          <tr><td>Spend a token for every colour, size and radius.</td><td>Write a hex or a pixel value into a component.</td></tr>
+          <tr><td>Add the example here with a new component.</td><td>Build a separate visual mock of it.</td></tr>
         </tbody>
       </table>
     </section>
   </main>
-</div>
+  </div>
+</Workspace>
 
   </ChildContent>
 </StudioShell>

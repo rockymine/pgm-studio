@@ -24,7 +24,7 @@ shown, never name one.
 
 | Route | Component | Is |
 |---|---|---|
-| `/` | `Index` | the landing — the map to continue, then seven cards over live counts |
+| `/` | `Index` | the landing — a hero with an in-game picture, the maps last changed as cards, the tools, a way into the glossary |
 | `/maps` | `Maps` | every map in one table; `?stage=`, `?author=`, `?gamemode=` and `?sort=` are its filters |
 | `/maps/{slug}/plan` | `PlanTool` | the plan tool on a map |
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
@@ -33,14 +33,15 @@ shown, never name one.
 | `/plans/{id}` | `PlanTool` | the same tool on a plan row rather than a map: a pinned generator candidate or a plan saved without one |
 | `/plans/new` | `PlanTool` | the same tool on a blank plan, which Save stores as a row and then moves to `/plans/{id}` |
 | `/generator` | `GeneratorTool` | the composer's browse-and-pin gallery |
-| `/catalog` | `CatalogTool` | the shape catalog |
+| `/catalog` | `CatalogTool` | the shape catalog; not in the studio bar, it is linked from the generator |
 | `/library` | `LibraryTool` | the chooser — one card per library kind |
 | `/library/{kind}` | `LibraryTool` | one library's browse grid; `kind` is `styles\|themes\|roofs\|storeys\|porches\|houses` |
 | `/library/{kind}/{entry}` | `LibraryTool` | one entry's editor; `entry` is a row id or `new` |
 | `/rules` | `Rules` | every rule the studio can cite, filtered and opened one at a time; `?rule=` opens on one (`docs/refusals.md`) |
+| `/glossary` | `Glossary` | every word the studio uses, defined once (`GET /api/glossary`): alphabetical, `?q=` filters by word, other name and definition, and `#hub` opens on a term |
 | `/tokens` | `Tokens` | the signed-in person's API tokens |
 | `/admin/users` | `Users` | who may sign in, and with which role |
-| `/design` | `Design` | the component showcase |
+| `/design` | `Design` | the design system: tokens and every shared component, grouped by role |
 | `/not-found` | `NotFound` | 404 |
 
 Two tools are carried more than once, and both times the slug-less route is the origination surface: a map has
@@ -71,7 +72,8 @@ module.
 `/maps` is every map in the studio in one table, newest written first, with its filters open in the sidebar
 beside it. A map is one thing at different stages, so stage is a filter over the one list rather than a page
 of its own. Every option carries how many maps it would show with the other filters as they are, and
-**Clear filters** at the foot of the sidebar drops them all.
+the **Clear** beside the sidebar's *Filters* heading drops them all. The sidebar is a `FilterSidebar` of
+`FilterGroup`s, the same rail the shape catalog and the generator use (`ui-conventions.md`).
 
 | Filter | Address | Keeps |
 |---|---|---|
@@ -115,15 +117,30 @@ it.
 
 ## The landing
 
-**The map the reader last changed comes first.** Where `GET /api/maps` gives any map a `youWroteAt`, the newest
-one is offered above everything else as *Continue where you left off*: its name, when the reader changed it, and
-a link straight into the tool its row on the maps page opens. A reader who has changed no map, or is signed out,
-sees no such card.
+**The landing is not a tool, so its shell has no tool bar.** `Index` gives `StudioShell` no `Bar`, which leaves
+only the studio's own bar above the page. The page is one centred column, 1240px wide, with sections 56px apart.
 
-Then seven cards in two groups. The first four are where authoring starts — **Plan a layout** (the maps page at the plan stage),
-**Browse generated layouts** (`/generator`), **Shape catalog** (`/catalog`) and **Library**
-(`/library`) — three of which need no map at all. The last three are the map lifecycle — **Sketch**,
-**Configure**, **Maps** — each opening the maps page at that stage and carrying its live count.
+**The hero names what the studio makes and offers two ways in.** Two equal columns: an eyebrow naming the three
+modes, a title and lead describing the pipeline from layout to `map.xml`, and two 44px buttons (`Button` with
+`Size="lg"`) — **New map** opens the maps page at the plan stage, **Browse maps** opens it unfiltered. Beside the
+text sits a 16:9 `MapThumb` of the newest built map — a sketch layout and its world — drawn in game; with no such map it is
+the studio mark on a token-coloured panel.
+
+**A map picture is `GET /api/map/{slug}/render/picture`, over a placeholder.** `MapThumb` holds a fixed 16:9 box
+with the map's initial in it, loads the picture lazily on top and fades it in. A map that is not built (a sketch
+layout and the world compiled from it) asks for no picture, since only a built one is sure to have ground to frame; a refused one (422 no ground, 503 `RQ10` without textures, a failed request) leaves the
+placeholder, and a 429 from the build queue is asked again after its `Retry-After`, so a broken-image icon never
+shows.
+
+**Continue working lists up to three maps.** They are the ones the reader changed themselves, newest first
+(`youWroteAt` from `GET /api/maps`), each card linking into the tool its row on the maps page opens, with the
+stage pill of its furthest layer and a line of first credited author and when it was edited. A reader who has
+changed none, or is signed out, sees the three most recently updated maps under *Latest maps*.
+
+**Tools and the guide close the page.** Four tiles — Generator, Shape catalog, Library, Rules — each an icon, a
+name and a line; plans start from the maps page, so the plan editor has none. A bordered row sends a new reader
+to `/glossary`. Under 1000px the cards and tiles take two columns, and under 760px everything stacks in one with
+the hero picture first.
 
 ## Labels against code names
 
@@ -150,23 +167,46 @@ lifecycle position (no `map.xml` yet against has one), which is why the labels a
 
 ## Exits
 
-**Every page carries two bars, and each answers one question.** The studio's own bar (`AppNav`) is the same
-everywhere: home, a link to each tool — Maps, Plan editor, Generator, Catalog, Library, and Users for an admin
-— lit on the page it names and every page under it (Plan editor opens `/plans/new` and is lit on every
-`/plans/…` row); after a divider the two reference pages, **Rules** (`/rules`) and **API docs** (`/api-docs`,
-which opens in a new tab, being the API's own page rather than the client's); and at the right the theme and
-the account. The tool's bar
-(`Topbar`) under it is the trail to where the page is and the tool's own state and actions. So getting to
-another tool is always one click in the top bar, and the tool's bar holds nothing that is not the tool's.
+**Every page carries a studio bar and a bar of its own, and each answers one question.** The studio's own bar (`AppNav`) is the same
+everywhere: home, then **Maps · Generator · Library · Rules · Glossary**, each lit on the page it names and every
+page under it (Maps is lit on every `/plans/…` route too, because a plan is entered from the Maps page's *New plan*);
+and at the right icon buttons for the keyboard shortcuts (the sheet `?` also opens) and the design reference
+(`/design`), then the text size, the theme and the account. The account menu carries Tokens, Users for an admin,
+and **API docs** (`/api-docs`, which opens in a new tab, being the API's own page rather than the client's); in an
+open studio the `local admin` button opens it with Users and API docs, and a visitor's sign-in has a menu beside it
+holding API docs. The page's bar under it is the trail to where the page is and the page's own state and actions: a
+`Topbar` on a browse or admin page, and the one `EditorBar` on the three editors. So getting to another tool is
+always one click in the top bar, and the page's bar holds nothing that is not the page's.
 
-**A map tool leaves through the maps page, filtered to its stage.** Its bar's home link is that exit, and each
-of the three map tools names its own view: Sketch → *Sketches*, Plan → *Plans*, Configure → *Configuring*. The
-surfaces that hold no map — a plan row, the generator, the catalog, the library, the design showcase and the
-maps page itself — carry no home link, because the studio's bar above them is already the way home.
+**The editors draw one bar, not two.** Plan, Sketch and Configure draw `EditorBar` in place of a `Topbar` and a
+step strip, so the trail, the phase and the work's commands are one row of 44 px. Left to right it holds the
+crumb and the stage switcher, the phase's icon and name with its steps, and at the right the state, the tool's
+commands, a divider and Back/Next. The bar is present in every phase, Info included, so the crumb never moves.
 
-Beside that link the tool's bar carries the trail — the map's name, then the tool or phase, dimmed. Neither is a
-link: the map is already open, so a second way to it would be a way to nowhere.
+**A map tool leaves through the unfiltered maps list.** The crumb's first segment is *Maps*, a link to `/maps`
+with no stage filter: the segment names its parent, so the link goes to the parent, and which stage a person was
+looking at is a view of that list rather than a place. The map's name follows as plain text, because the map is
+already open and a link to it would go nowhere. The phase is not in the crumb; the phase and its steps are the
+bar's middle, and the rail names them again. The surfaces that hold no map — the generator, the catalog, the
+library, the design showcase and the maps page itself — draw a `Topbar` with no home link, because the studio's
+bar above them is already the way home. A plan row (`/plans/{id}`, `/plans/new`) is an editor with no map: it
+keeps the `Maps` crumb and puts the plan's name after it.
 
-A finished sketch does not leave its tool to be handed over: **Download map** in the sketch's bar builds the
-world and saves the export where the author is (`docs/tools/sketch.md`). Configure is reached from the map's
-row, or from the bar when the export is refused for something only Configure states.
+**The tool is a switcher, not a crumb.** After the map's name `StageSwitch` shows the tool the page is — *Plan*,
+*Sketch* or *Configure* — as a button whose menu lists the three. A tool is a link where the map holds that layer
+and a dashed, disabled entry where it does not, the same distinction the Maps table draws in its *Open in*
+column and read from the same place: `GET /api/maps` and `MapLayers.Holds`, fetched when the menu opens, because
+saving a plan or a sketch is what makes the layer. The page's own tool is always offered, marked as current.
+Where the page has no map (a plan row, the import on `/maps/new`) the word is plain text in the same box. The
+button is set in the crumb's own font, size, weight and line height with no vertical padding, so its text shares
+the crumb's baseline; its hover and focus are a shadow that paints around the text without moving it
+(`tests/e2e/editor-bar.mjs` measures the baseline to half a pixel).
+
+**Below 1100 px the steps become a menu.** The step strip is replaced by *Step n of m*, a button whose menu lists
+the steps, so the bar stays one row; at phone width the crumb takes a row of its own and the bar wraps, and
+nothing scrolls sideways.
+
+A finished sketch does not leave its tool to be handed over: **Download** — an icon in the editor bar's command
+group, beside Undo and Redo — builds the world and saves the export where the author is (`docs/tools/sketch.md`).
+Configure is reached from the map's row, from the stage switcher, or from the Problems popover when the export is
+refused for something only Configure states.

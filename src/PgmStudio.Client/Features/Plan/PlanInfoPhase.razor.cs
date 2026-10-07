@@ -17,8 +17,10 @@ public partial class PlanInfoPhase
     [Parameter] public string? Slug { get; set; }
 
     private bool MapBacked => Slug is { Length: > 0 };
-    /// <summary>Advance to the Draw phase (Continue on the last step) — the rail's Draw button does the same.</summary>
-    [Parameter] public EventCallback OnNext { get; set; }
+    /// <summary>The steps of the phase, in order; the host's editor bar lists them.</summary>
+    public static readonly IReadOnlyList<string> Steps = ["Identity", "Settings"];
+    /// <summary>The step shown, an index into <see cref="Steps"/>.</summary>
+    [Parameter] public int Step { get; set; }
 
     // Globals owned by the host (it holds the plan-doc bridge); this phase renders them and raises the
     // change callbacks so the live plan document + canvas update.
@@ -44,9 +46,6 @@ public partial class PlanInfoPhase
         new("mirror_z", "Mirror Z"),
         new("none", "None"),
     ];
-
-    private int step;   // 0 = Identity, 1 = Settings
-    private Task OnNextStep() { if (step < Steps.Length - 1) { step++; return Task.CompletedTask; } return OnNext.InvokeAsync(); }
 
     private readonly List<AuthorRow> authors = new();
     private bool dirty;
@@ -102,6 +101,4 @@ public partial class PlanInfoPhase
         catch { saveStatus = "Couldn't save. Try again."; }
         StateHasChanged();
     }
-
-    private static readonly string[] Steps = { "Identity", "Settings" };
 }

@@ -237,12 +237,12 @@ public static class UnitTuning
 
     // ── the plan: how many wools, and which side each neighbour takes ──────────────────────────────────────
 
-    /// <summary>The wool-box count for the envelope's size band: one at nano, sometimes two; two from micro
-    /// up, sometimes three (the third doubles onto the spawn's side).</summary>
+    /// <summary>The wool-box count for the envelope's size band, within <see cref="WoolCounts"/>: one at nano,
+    /// sometimes two; two from micro up, sometimes three (the third doubles onto the spawn's side).</summary>
     public static int WoolCount(ComposeEnvelope env, ComposeRng rng) =>
         env.Band == SizeBands.Nano
-            ? (rng.NextBool(SecondWoolChance) ? 2 : 1)
-            : (rng.NextBool(ThirdWoolChance) ? 3 : 2);
+            ? (rng.NextBool(SecondWoolChance) ? WoolCounts.Min + 1 : WoolCounts.Min)
+            : (rng.NextBool(ThirdWoolChance) ? WoolCounts.Max : WoolCounts.Max - 1);
 
     /// <summary>Assign each of <paramref name="woolCount"/> wools a hub side, given the <paramref name="spawn"/>'s
     /// side. The two free body sides (back and the sides, minus the spawn's, <b>back first</b>) take a wool each;
