@@ -260,6 +260,17 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ### Dressing: what the pass can place
 
+- [ ] **WE163 — A cross wing taller than its hall breaks both roofs.** `WingJoints` takes the hall from the
+  ridges and `HJ5` measures height by span alone, so a cross wing with more storeys than its hall
+  (`storeysHigh` 0, every storey of a two-storey style, against the hall's 1) passes and stamps: the hall's eave
+  stairs stack against the wing's wall and the wing's roof edge breaks. `WingSpec`'s own docstring names a
+  one-storey hall with a two-storey cross wing as the shape `StoreysHigh` exists for, so either the joint reads
+  storeys — the lower roof stopping at the taller wall — or `HJ5` refuses it until it does.
+  `docs/world-export/structures.md`. *Evidence: a house of `corners [[8,-33],[23,-26]]` ridge `alongX`
+  `storeysHigh` 1 and `[[8,-25],[15,-20]]` ridge `alongZ` `storeysHigh` 0 in a two-storey style, eye from
+  (−4, −42) looking at (15, −27); the same two rectangles at equal storeys, or with the cross wing the lower,
+  stamp clean.*
+
 - [ ] **TL35 — A copied tree states no species.** A tree save requires `species` (`RQ1`) and the library
   answers one for every row, so every copied recipe states `"species": "oak"` — `acacia-1`, `birch-3` and
   `sequoia-1` alike, and so every entry of the seed folder's `trees.json`. A copied tree
