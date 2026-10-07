@@ -36,7 +36,7 @@ public sealed class PlanBoardPaletteTests
         return Math.Max(r, Math.Max(g, b)) - Math.Min(r, Math.Min(g, b));
     }
 
-    // Spawn green and zone blue are the closest pair; the zone is also the only dashed outline.
+    // Spawn violet and wool-room green are the plan editor's role hues; the closest pair is spawn and zone.
     private const double MinHueDegrees = 35;
 
     [Test]
@@ -58,7 +58,16 @@ public sealed class PlanBoardPaletteTests
         await Assert.That(Chroma(Ground.Fill)).IsLessThan(20);
         await Assert.That(Chroma(Ground.Edge)).IsLessThan(30);
         foreach (var accent in new[] { Spawn, WoolRoom, Zone })
-            await Assert.That(Chroma(accent.Edge)).IsGreaterThan(100);
+            await Assert.That(Chroma(accent.Edge)).IsGreaterThan(80);
+    }
+
+    [Test]
+    public async Task Spawn_and_wool_edges_are_the_plan_editors_role_colours_and_their_fills_the_same_hue()
+    {
+        await Assert.That(Spawn.Edge).IsEqualTo(0x8f7bd6);
+        await Assert.That(WoolRoom.Edge).IsEqualTo(0x3fae74);
+        await Assert.That(HueDistance(Spawn.Fill, Spawn.Edge)).IsLessThan(8);
+        await Assert.That(HueDistance(WoolRoom.Fill, WoolRoom.Edge)).IsLessThan(8);
     }
 
     [Test]

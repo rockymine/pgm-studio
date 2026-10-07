@@ -85,7 +85,7 @@
 
     <main class="gen-main">
       <PageHeading Title="Generator">
-        <Lead>Layouts the composer has built, filtered by the settings on the left. Pin one to keep it, or start a map from it.</Lead>
+        <Lead>Layouts the generator has built, filtered by the settings on the left. Pin one to keep it, or make a map from it.</Lead>
       </PageHeading>
       @if (pinned.Count > 0)
       {
@@ -154,69 +154,46 @@
 
   @if (detail is { } d)
   {
-    <SideDrawer Open="true" Wide="true" Title="Layout details" Icon="layout-grid" OnClose="CloseDetail">
+    <SideDrawer Open="true" Wide="true" Title="@LayoutId(d)" Icon="layout-grid" OnClose="CloseDetail">
+      <HeaderActions>
+        <Button Variant="icon" Icon="pin" Writes Deletes="@IsPinned(d)" OnClick="() => TogglePin(d)"
+                Class="@(IsPinned(d) ? "gen-detail-pin gen-detail-pin--on" : "gen-detail-pin")"
+                Title="@(IsPinned(d) ? "Unpin" : "Pin")" aria-label="@(IsPinned(d) ? "Unpin" : "Pin")"
+                aria-pressed="@(IsPinned(d) ? "true" : "false")" />
+      </HeaderActions>
       <Body>
         <div class="gen-detail-fig @HighlightClasses">@((MarkupString)d.Svg)</div>
-        <div class="gen-highlight" role="group" aria-label="Highlight">
-          <span class="gen-highlight-label">Highlight</span>
-          @foreach (var (role, label) in HighlightRoles)
-          {
-            <Chip Active="highlights.Contains(role)" OnClick="() => ToggleHighlight(role)">@label</Chip>
-          }
-        </div>
-        <BoardKey Entries="key" />
-        <div class="gen-detail-meta">
-          <strong>@LayoutId(d)</strong> · @d.WoolCount @(d.WoolCount == 1 ? "wool" : "wools") ·
-          @BandLabel(SizeBands.Of(d.Descriptor.Players)) · @d.Descriptor.Symmetry · seed @d.Descriptor.Seed
-        </div>
-        <div class="gen-detail-meta">
-          Wools <strong>@WoolLabels(d.Structure.Wools)</strong> · hub <strong>@Label(HubChips, d.Structure.Hub)</strong> · front line <strong>@Label(FrontChips, d.Structure.Frontline)</strong>
-        </div>
-        @if (d.Spend is { } sp)
-        {
-          <div class="gen-spend">
-            <div class="gen-spend-head">
-              <span><strong>@sp.Band</strong> · land <strong>@sp.Unit.Cells</strong> / @sp.Unit.BudgetCells.ToString("0") cells
-                @if (sp.Mid.Cells > 0)
-                {
-                  <text> · mid <strong>@sp.Mid.Cells</strong> / @sp.Mid.BudgetCells.ToString("0")</text>
-                }
-              </span>
-              <span class="gen-spend-pct">@SpendPercent(sp.Unit)</span>
-            </div>
-            <table class="gen-spend-table">
-              <thead><tr><th>Box</th><th>Land</th><th>Footprint</th></tr></thead>
-              <tbody>
-                @foreach (var k in sp.ByKind)
-                {
-                  <tr>
-                    <td>@k.Kind@(k.Boxes > 1 ? $" ×{k.Boxes}" : string.Empty)</td>
-                    <td>@k.LandCells</td>
-                    <td>@k.FootprintCells</td>
-                  </tr>
-                }
-              </tbody>
-              <tfoot><tr><td>Total</td><td>@sp.Unit.Cells</td><td>@sp.FootprintCells</td></tr></tfoot>
-            </table>
-            <p class="section-desc">
-              In cells, for <strong>one team's half</strong>. Footprint is each box's size. Land is the area the
-              shapes actually cover, and is checked against the budget for this map size.
-            </p>
+
+        <div class="gen-detail-controls">
+          <div class="gen-highlight" role="group" aria-label="Highlight">
+            <span class="gen-highlight-label">Highlight</span>
+            @foreach (var (role, label) in HighlightRoles)
+            {
+              <Chip Active="highlights.Contains(role)" OnClick="() => ToggleHighlight(role)">@label</Chip>
+            }
           </div>
-        }
-        @if (d.HardTerms.Count > 0)
-        {
-          <div class="plan-compile-errors"><p class="section-desc">Failed hard checks: @string.Join(", ", d.HardTerms)</p></div>
-        }
-        <details class="gen-descriptor-box">
-          <summary>Layout code (JSON)</summary>
-          <pre class="gen-descriptor">@DescriptorJson(d)</pre>
-        </details>
+          <BoardKey Entries="key" />
+        </div>
+
+        <p class="gen-detail-desc">
+          @foreach (var part in Describe(d))
+          {
+            if (part.Term is null) { @part.Text }
+            else { <a class="gen-term" href="@($"/glossary#{Glossary.Slug(part.Term)}")" target="_blank" rel="noopener">@part.Text</a> }
+          }
+        </p>
+
+        <dl class="gen-facts">
+          <div><dt>Players per team</dt><dd>@PlayersLabel(d)</dd></div>
+          <div><dt>Wools per team</dt><dd>@d.WoolCount</dd></div>
+          <div><dt>Symmetry</dt><dd>@SymmetryLabel(d.Descriptor.Symmetry)</dd></div>
+        </dl>
       </Body>
       <Footer>
-        <Button Full Icon="clipboard" OnClick="() => CopyDescriptor(d)">Copy JSON</Button>
-        <Button Full Writes Deletes="@IsPinned(d)" OnClick="() => TogglePin(d)">@(IsPinned(d) ? "Unpin" : "Pin")</Button>
-        <Button Variant="primary" Full Icon="file-plus-2" Writes OnClick="() => AuthorPlan(d)">Start a map</Button>
+        <div class="gen-detail-foot">
+          <p class="gen-detail-foot-note">Creates a map from this layout and opens its plan. The layout is pinned too.</p>
+          <Button Variant="primary" Icon="map" Writes OnClick="() => AuthorPlan(d)">Make a map</Button>
+        </div>
       </Footer>
     </SideDrawer>
   }

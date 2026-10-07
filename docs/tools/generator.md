@@ -275,10 +275,13 @@ match these filters*. A library with nothing for the settings says it is still b
 
 **A card is the board and its id.** The picture is the whole fanned board in a square frame on the
 theme's board ground (`--board-bg`: white in the light theme, near-black in the dark one), server-rendered from
-the same scene the PNG endpoint draws, in four inks. Spawn rooms are green and wool rooms orange, each a pale fill
-with a strong edge; a build zone is a dashed blue outline; and everything else — hub, front line, approaches, any
+the same scene the PNG endpoint draws, in four inks. Spawn rooms are violet and wool rooms green, each a pale fill
+with a strong edge, in the hues the plan editor draws those rooms in (`--canvas-role-spawn`,
+`--canvas-role-wool-room`: the page's `--board-spawn*` and `--board-wool*` tokens are `color-mix`es of them, so the
+two cannot drift apart); a build zone is a dashed blue outline; and everything else — hub, front line, approaches, any
 other piece — is one ground grey, a tint of the plan editor's piece colour (`--canvas-role-piece`), so a board
-and the editor's pieces read as one. The fanned images are drawn at half strength. The names of the grey roles
+and the editor's pieces read as one. Every half of the fan is drawn at full strength: the mirrored and rotated images are the same ground as the base
+unit, and no ink fades with the symmetry (a deliberate difference from the whitepaper's figures). The names of the grey roles
 live in the structure line of the detail drawer, not in colour. The inks are `PlanBoardPalette`'s
 `Ground`, `Spawn`, `WoolRoom` and `Zone`; each reads its `--board-*` tokens first (`--board-ground`,
 `--board-ground-edge`, `--board-spawn`, `--board-spawn-edge`, `--board-wool`, `--board-wool-edge`,
@@ -289,21 +292,34 @@ The picture carries no text: the page draws the key once above the grid (*Spawn*
 `composed-p{players}-t{teams}-{seed}`, in the same name label the library's cards carry (`PictureCard`); the
 score, wool count and structure line are not on the card, and the score is shown nowhere on the page.
 
-**The drawer is the larger view, and it can tint one role at a time.** Opening a card gives a wide drawer: the
-picture at most 62% of the viewport high, a *Highlight* row of six toggles — *Hub*, *Front line*, *Approaches*,
-*Spawn*, *Wool rooms*, *Build zone* — then the key, the layout id, wool count, band, symmetry and seed, the wool,
-hub and front-line forms, the per-box spend table, any hard terms it failed, and the descriptor as JSON under
-*Layout code*, beside *Copy JSON*. Every piece in the SVG carries a `role-*` class from `BoardRoles` (`hub`,
-`frontline`, `approach`, `spawn`, `wool`, `other`, and `zone` for a zone), and a toggle adds `board-hl-{role}`
-to the picture's frame, which restyles those pieces in the accent by CSS: the picture is not requested again.
-None are on when the drawer opens, several may be on together, and the rest of the board stays as drawn.
+**The drawer is the larger view, and it can tint one role at a time.** Opening a card gives a wide drawer that
+reads top to bottom. The header carries the layout's name (`composed-p{players}-t{teams}-{seed}`) as its title,
+with a *Pin* toggle (an icon button, pressed while the layout is held) and the close button at its right. Under
+it sit the picture, at most 56% of the viewport high; a *Highlight* row of six toggles (*Hub*, *Front line*,
+*Approaches*, *Spawn*, *Wool rooms*, *Build zone*) with the key below it; a written description of the layout;
+three facts (players per team, wools per team, symmetry); and a footer with the one primary action, *Make a map*.
+Every piece in the SVG carries a `role-*` class from `BoardRoles` (`hub`, `frontline`, `approach`, `spawn`,
+`wool`, `other`, and `zone` for a zone), and a toggle adds `board-hl-{role}` to the picture's frame, which
+restyles those pieces in the accent by CSS: the picture is not requested again. None are on when the drawer
+opens, several may be on together, and the rest of the board stays as drawn.
 
-**Land spend is two currencies and the card says so.** *Footprint* is the box rectangle, fixed when the box
+**The description is composed from the card.** `LayoutDescription.Of` (in `PgmStudio.Vocabulary`, beside the
+words it spells) turns the descriptor and the structural read into two or three plain sentences: the team count,
+the size band's player range and the symmetry; the wools each team has and the shapes of their approaches; and
+the hub and front line forms. It returns runs of text, and a run that names a glossary word (*size band*, *wool*,
+*wool room*, *approach*, *hub*, *front line*, *mid*) carries that term, which the drawer links to
+`/glossary#{slug}`. For a twelve-player, rotate-180 board with two wools: "A two-team layout for 6–13 players a
+team, copied by a half turn about the centre. Each team has two wools, each kept in its own wool room and reached
+by I-shaped and L-shaped approaches. The team's side is built around a ring-shaped hub, with a twin front line
+facing the mid." The drawer shows no raw numbers, no seed, no descriptor JSON and no hard-term list; the card's
+`descriptor`, `spend`, `hardTerms` and `topSoft` remain on `GET /compose` for an agent.
+
+**Land spend is two currencies, and the compose answer says so.** *Footprint* is the box rectangle, fixed when the box
 was seated; *land* is what the filled pieces actually cover, which is what the spend gate holds against the
 budget. The per-box rows are footprints — a box does not know what its body left standing until it is filled —
 and the total land is the unit's own, for **one team unit**, the board being that unit fanned.
 
-The band's land buys two things, and the card reports both against their own shares. The **unit** takes nine
+The band's land buys two things, and the answer's `spend` reports both against their own shares. The **unit** takes nine
 tenths of it; the **mid** takes the tenth each unit gave up, twice over, because the crossing's stones are one
 piece of ground both teams stand on. So a twelve-player board reads `nano 104/81 · 128% · mid 16`: the unit
 against the unit's budget, then the stones the crossing carries, counted once for the board. **The budget is
@@ -319,10 +335,11 @@ stands nearer the wool at the back than the one across the hub, however squarely
 one board in five crosses a middle thinner than its size's floor or longer than twice its width (`MD7`, `MD8`). A hard violation would add 1000 and dominate any
 soft sum.
 
-**Pinning and authoring are the two exits.** The pin toggle, in the top-right corner of a card's picture, keeps the library board the descriptor names and
+**Pinning and making a map are the two exits.** The pin toggle, in the top-right corner of a card's picture and in the drawer's header, keeps the library board the descriptor names and
 refreshes the tray; the tray's thumbnails come from the stored rows rather than from the cards, so a board held in an
-earlier session looks the same as one held a moment ago. *Start a map* pins first if the board is not
-already held, then commits the candidate to a map and navigates to `/maps/{slug}/plan`.
+earlier session looks the same as one held a moment ago. *Make a map* pins first if the board is not
+already held, then commits the candidate to a new map at the plan stage and opens that map's plan editor at
+`/maps/{slug}/plan`; the layout stays pinned.
 
 ## What it refuses
 
@@ -351,7 +368,7 @@ that a pinned board is any good — the score is advice, and a board scoring 12 
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist
 ([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The page greys *Pin* and
-*Start a map* for anyone off the whitelist and unpinning for anyone but an admin, since a pin is a
+*Make a map* for anyone off the whitelist and unpinning for anyone but an admin, since a pin is a
 plan row and deleting one is an admin's.
 
 | Endpoint | Answers | Fails with |

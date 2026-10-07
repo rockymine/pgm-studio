@@ -69,7 +69,7 @@
 
 /* detail dialog */
 .gen-detail-fig { padding: var(--space-3); background: var(--board-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); }
-.gen-detail-fig svg { width: 100%; height: 62vh; display: block; }
+.gen-detail-fig svg { width: 100%; height: 56vh; display: block; }
 .gen-highlight { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
 .gen-highlight-label { font-size: var(--font-sm); color: var(--text-secondary); margin-right: var(--space-1); }
 /* A highlighted role takes the accent over whatever ink it was drawn in; the rest of the board stays as drawn. */
@@ -78,29 +78,22 @@
   fill: color-mix(in srgb, var(--accent) 45%, var(--board-bg)) !important; stroke: var(--accent) !important; stroke-width: 1.6 !important;
 }
 .board-hl-zone .role-zone { fill: var(--accent) !important; fill-opacity: 0.2 !important; stroke: var(--accent) !important; stroke-width: 2.4 !important; }
-.gen-detail-meta { font-size: var(--font-sm); color: var(--text-secondary); }
-.gen-detail-meta strong { color: var(--text-bright); }
-.gen-descriptor-box summary { cursor: pointer; font-size: var(--font-sm); color: var(--text-secondary); }
-.gen-descriptor-box[open] summary { margin-bottom: var(--space-2); }
-.gen-descriptor {
-  min-height: 12em; font-family: ui-monospace, monospace; font-size: var(--font-xs); white-space: pre; overflow-x: auto;
-  color: var(--text-secondary); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2);
+/* The detail drawer reads top to bottom: picture, what to tint, the words, the facts, the one action. */
+.side-drawer-body:has(.gen-detail-fig) { gap: var(--space-4); padding: var(--space-4); }
+.gen-detail-controls { display: flex; flex-direction: column; gap: var(--space-3); }
+.gen-detail-controls .board-key { margin-left: 0; }
+.gen-detail-desc { margin: 0; font-size: var(--font-lg); line-height: 1.6; color: var(--text-primary); max-width: 68ch; }
+.gen-term { color: var(--accent-lighter); text-decoration: underline dotted; text-underline-offset: 3px; }
+.gen-term:hover { text-decoration-style: solid; }
+.gen-facts {
+  margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--space-3);
+  padding-top: var(--space-3); border-top: 1px solid var(--border);
 }
-
-/* land spend — what the board cost against the budget it was built to. Two currencies: footprint is
-   the box rect, land is the walkable terrain inside it. */
-.gen-spend { margin: var(--space-2) 0; }
-.gen-spend-head {
-  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2);
-  font-size: var(--font-sm); color: var(--text-secondary);
-}
-.gen-spend-pct { font-family: ui-monospace, monospace; color: var(--accent-lighter, var(--accent)); }
-.gen-spend-table { width: 100%; margin-top: 6px; border-collapse: collapse; font-size: var(--font-xs); }
-.gen-spend-table th, .gen-spend-table td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--border); }
-.gen-spend-table th:first-child, .gen-spend-table td:first-child { text-align: left; }
-.gen-spend-table th { font-weight: 500; color: var(--text-secondary); text-transform: lowercase; }
-.gen-spend-table td { font-family: ui-monospace, monospace; color: var(--text-bright); }
-.gen-spend-table tfoot td { border-bottom: none; color: var(--text-secondary); }
+.gen-facts dt { font-size: var(--font-sm); color: var(--text-secondary); }
+.gen-facts dd { margin: 2px 0 0; font-size: var(--font-lg); font-weight: 600; color: var(--text-bright); }
+.gen-detail-pin--on { color: var(--accent-lighter); background: var(--bg-selected); border-color: var(--accent); }
+.gen-detail-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.gen-detail-foot-note { margin: 0; flex: 1 1 14rem; font-size: var(--font-sm); color: var(--text-secondary); }
 
 /* The way into the shape catalog, under the shape filters. */
 .gen-catalog-link {

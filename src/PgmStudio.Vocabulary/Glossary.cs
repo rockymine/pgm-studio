@@ -16,6 +16,19 @@ public sealed record GlossaryTerm(string Term, string Definition, IReadOnlyList<
 /// </summary>
 public static class Glossary
 {
+    /// <summary>A term's anchor on the glossary page: lower-case letters and digits, any run of anything else a
+    /// single hyphen.</summary>
+    public static string Slug(string term)
+    {
+        var slug = new System.Text.StringBuilder();
+        foreach (var letter in term.ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(letter)) slug.Append(letter);
+            else if (slug.Length > 0 && slug[^1] != '-') slug.Append('-');
+        }
+        return slug.ToString().TrimEnd('-');
+    }
+
     /// <summary>Every term, by name.</summary>
     public static IReadOnlyList<GlossaryTerm> Terms { get; } =
     [

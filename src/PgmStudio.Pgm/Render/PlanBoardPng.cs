@@ -43,11 +43,10 @@ public static class PlanBoardPng
             foreach (var piece in scene.Pieces)
             {
                 var ink = InkOf(RoleOf(piece.Role, piece.Id));
-                var faint = piece.K == 0 ? 1.0 : 0.5;
                 var px = X(piece.Rect.X); var pz = Z(piece.Rect.Z);
                 var pw = piece.Rect.Width * scale; var ph = piece.Rect.Height * scale;
-                FillRect(pixels, width, height, px, pz, pw, ph, ink.Fill, faint);
-                StrokeRect(pixels, width, height, px, pz, pw, ph, ink.Edge, faint, dashed: false);
+                FillRect(pixels, width, height, px, pz, pw, ph, ink.Fill, 1.0);
+                StrokeRect(pixels, width, height, px, pz, pw, ph, ink.Edge, 1.0, dashed: false);
             }
 
             // A build zone and a water lane draw alike: a dashed outline over a faint tint.
@@ -55,9 +54,8 @@ public static class PlanBoardPng
             {
                 var x = X(zone.Rect.X); var z = Z(zone.Rect.Z);
                 var w = zone.Rect.Width * scale; var h = zone.Rect.Height * scale;
-                var faint = zone.K == 0 ? 1.0 : 0.5;
-                FillRect(pixels, width, height, x, z, w, h, Zone.Fill, 0.07 * faint);
-                StrokeRect(pixels, width, height, x, z, w, h, Zone.Edge, faint, dashed: true);
+                FillRect(pixels, width, height, x, z, w, h, Zone.Fill, 0.07);
+                StrokeRect(pixels, width, height, x, z, w, h, Zone.Edge, 1.0, dashed: true);
             }
 
             // markers at their fanned cells: iron (grey pip), wool (colour disc), spawn (pale disc drawn last, on top)
@@ -73,14 +71,13 @@ public static class PlanBoardPng
     private static void DrawMarker(byte[] pixels, int width, int height, MarkerFan marker, Func<double, int> X, Func<double, int> Z)
     {
         var cx = X(marker.X); var cy = Z(marker.Z);
-        var op = marker.K == 0 ? 1.0 : 0.5;
         switch (marker.Kind)
         {
-            case "spawn": FillCircle(pixels, width, height, cx, cy, 3, Spawn.Edge, op); break;
-            case "iron": FillRect(pixels, width, height, cx - 3, cy - 3, 6, 6, AxisRgb, op); break;
+            case "spawn": FillCircle(pixels, width, height, cx, cy, 3, Spawn.Edge, 1.0); break;
+            case "iron": FillRect(pixels, width, height, cx - 3, cy - 3, 6, 6, AxisRgb, 1.0); break;
             case "wool":
-                FillCircle(pixels, width, height, cx, cy, 4, WoolRgb(marker.Color), op);
-                StrokeCircle(pixels, width, height, cx, cy, 4, 0x1e293b, op * 0.5);
+                FillCircle(pixels, width, height, cx, cy, 4, WoolRgb(marker.Color), 1.0);
+                StrokeCircle(pixels, width, height, cx, cy, 4, 0x1e293b, 0.5);
                 break;
         }
     }

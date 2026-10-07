@@ -41,8 +41,15 @@
 .side-drawer-head {
   flex: 0 0 auto;
   display: flex; align-items: center; justify-content: space-between;
-  padding: var(--space-3); border-bottom: 1px solid var(--border);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border);
 }
+.side-drawer-title { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--space-2); }
+.side-drawer-name {
+  margin: 0; min-width: 0; font-size: var(--font-xl); font-weight: 600; color: var(--text-bright);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.side-drawer-head-actions { flex: 0 0 auto; display: flex; align-items: center; gap: var(--space-2); }
 /* The body is the only part that gives ground. A footer holds actions, so it must never be what overflows
    the drawer — a footer that grew past the room left (a confirmation stated above its buttons) pushed those
    buttons off the bottom of the screen with no way to reach them. Capping it at half the drawer bounds what
