@@ -30,11 +30,11 @@ public class LayoutDescriptionTests
     }
 
     [Test]
-    public async Task A_side_without_a_front_line_says_the_hub_meets_the_mid()
+    public async Task A_side_without_a_front_line_piece_names_the_hub_edge_as_its_front_line()
     {
         var text = LayoutDescription.Plain(Describe(frontline: "none"));
 
-        await Assert.That(text).Contains("the side has no front line, so the hub meets the mid directly");
+        await Assert.That(text).Contains("hub, whose own edge facing the mid is the side's front line");
     }
 
     [Test]

@@ -109,9 +109,10 @@ public static class LayoutDescription
     {
         if (frontline == "none")
         {
-            yield return new("and the side has no ");
+            yield return new("whose own edge facing the ");
+            yield return new("mid", "mid");
+            yield return new(" is the side's ");
             yield return new("front line", "front line");
-            yield return new(", so the hub meets the mid directly");
             yield break;
         }
         var form = frontline switch
