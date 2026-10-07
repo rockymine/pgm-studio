@@ -182,6 +182,19 @@ between, a large flat island where built ground and nature take turns, floating 
 from a rule rather than invented — points sampled at random over an area, a noise map, or a set of about twenty
 nodes toured by annealing and turned into the map, which is how *Annealing I*–*IV* were made.
 
+**[author]** The spawn sits remote at the back on every kind of board, and on a destroy board it sits **in**
+the land at its back rather than on a box behind it. A spawn hung off the hub is how capture boards evolved and is
+right for them; a destroy spawn hung off the back of the main island across a gap is attached to the map without
+belonging to it. Its house stands on the terrain — on a hill, with mountains or stacks of rock beside it, an
+iron mine somewhere near — and it may stand ten blocks into the land and still be at the back.
+
+**[author]** The objective stands in front of the spawn, where a defender sees it, and rarely straight ahead: it
+is shifted to one side, and on some boards it stands nearly beside the spawn a few blocks off. Two are an east
+and a west, or a front and a back, where back is near the spawn but still apart from it. Measured straight from
+the spawn region's centre against the line to the enemy spawn, the 999 goals on 303 corpus destroy maps sit a
+median 42° off that line (p25 18°, p75 76°), a quarter within 20° of it; the 374 on this studio's agent boards
+sit a median 28° off, and 38% within 20°.
+
 **[author]** Both float a few blocks above the terrain, and that is the design rather than a defect. What a
 goal needs beneath it is terrain somewhere below, not terrain directly under its lowest block.
 
@@ -286,6 +299,23 @@ over a yard with nothing joining them is two boards; a stair, a ramp or a hole c
 it one, and where the join is decides which approach the second storey serves. `docs/tools/sketch.md`
 § Layers carries what the studio does with that, and `SK11` is the complaint it raises where a storey has
 nothing onto it.
+
+## Destroy boards worth reading, and what each shows
+
+**[author]** These are the destroy boards the author points to for a board's shape and its terrain. None is a
+template; read together they show how far apart two good destroy boards can be. All but *The Nile* are in the
+corpora.
+
+| Board | Corpus | What it shows |
+|---|---|---|
+| *Atromix* | `PublicMaps/dtcm/atromix` | an isolated island for each team's monuments, and a middle island between the teams |
+| *The Fenland* | `PublicMaps/dtcm/the_fenland` | one box: the spawn in the back middle, a raised border players walk, a middle of tiny islands, rivers and trees, and the monument to the left of the spawn |
+| *Annealing III* | `CommunityMaps/dtcm/annealing_iii` | islands from about twenty nodes toured by annealing |
+| *Monument Valley* | `PublicMaps/dtcm/monument_valley` | one box with the spawns raised and diagonally across; the monument raised and diagonally in front, mountains round it to come at it from height, a river running toward it to come at it from below |
+| *Alpine Mining II* | `CommunityMaps/dtcm/alpine_mining_ii` | a long lane with two monuments and a great deal of terrain, some of it never walked and there to be looked at; an iron cave under the mountain whose exit leads toward a monument; small alpine villages laid out properly |
+| *The Nile* | not in either corpus | tunnel spawns; sandy ground with intricate desert building up top; the river through the middle with palms and a large wheat field; a single monument on a square board; an iron mine |
+| *Kuusepuu* | `CommunityMaps/dtcm/kuusepuu` | islands laid out in a box |
+| *Sunrise over Paradise* | `PublicMaps/dtcm/sunrise_over_paradise` | geometric islands, some joined by bridges, inside a large ring of water; the monument islands all the way to the side of the spawn, reached only by boat |
 
 ## Where the rest lives
 
