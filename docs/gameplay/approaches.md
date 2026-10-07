@@ -175,6 +175,13 @@ frontline. Neither needs a room, a dead-end lane or a protection region; both ar
 world. The three places they may not stand are the void, a spawn and a wool room, which is `OB17` and `OB30` and is
 enforced (`docs/pgm/destroyables-and-cores.md` §8).
 
+**[author]** A monument or a core never stands at the end of a lane — ending a lane is what a wool does — and
+beyond that a destroy board's shape is open. It may be islands in the void: one long island with a side island
+holding the objective, a peninsula of several islands, one large island of abstract shapes with smaller islands
+between, a large flat island where built ground and nature take turns, floating islands. A layout may be drawn
+from a rule rather than invented — points sampled at random over an area, a noise map, or a set of about twenty
+nodes toured by annealing and turned into the map, which is how *Annealing I*–*IV* were made.
+
 **[author]** Both float a few blocks above the terrain, and that is the design rather than a defect. What a
 goal needs beneath it is terrain somewhere below, not terrain directly under its lowest block.
 

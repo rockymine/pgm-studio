@@ -184,6 +184,13 @@ landed, the rest is the idea.
 ## Layout generation (G)
 
 
+- [ ] **G292 — a destroy board's land drawn from a rule.** The composer lays out capture boards; a destroy or
+  core board has no generator, and every one authored by hand comes out as a straight box with a goal partway
+  along (`docs/gameplay/approaches.md`, the author's ruling that a monument never ends a lane). Draw the land
+  instead: points sampled at random over the extent, a noise field cut at a level, or about twenty nodes toured
+  by annealing and widened into islands, as *Annealing I*–*IV* were. Spawns and goals are then placed on it
+  against `GO1`–`GO4` as walks. Emitted as a plan an author takes over, like a composed capture board.
+
 - [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
   whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to
   go the other direction and *place* something known-producible: nothing in `Features/Plan/` references the
