@@ -304,7 +304,8 @@ nothing onto it.
 
 **[author]** These are the destroy boards the author points to for a board's shape and its terrain. None is a
 template; read together they show how far apart two good destroy boards can be. All but *The Nile* are in the
-corpora.
+corpora, and `docs/world-scan/destroy-reference-boards.md` reads their worlds: what each one is, where the spawn
+sits in it, and how its ground compares with the boards agents have built.
 
 | Board | Corpus | What it shows |
 |---|---|---|

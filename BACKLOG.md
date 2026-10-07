@@ -339,6 +339,14 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ## World import: reading a map the studio did not build
 
+- [ ] **WS83 — The world reads answer an imported map.** Every read in `read-backs.md` builds its world from a
+  stored sketch layout (`BuiltWorlds`), so an imported map, whose region files are on disk under the import
+  root, answers `404` `SK6` to `render/heightmap`, `incline`, `slopes`, `reach`, `column`, `render/eye` and the
+  rest. Read an imported map's own region instead of building one, so a corpus board is studied with the same
+  reads as a built one; `slopes`, `incline`, `reach` and `render/eye` have no CLI form today.
+  `docs/world-scan/read-backs.md`. *Evidence: `GET /api/map/ref-atromix/render/heightmap` on a studio that has
+  just imported Atromix's world answers `{"error":"no world to read"}` with `SK6`.*
+
 ## The shop: buying things in the middle of a match
 
 - [ ] **PG16 — A spawner's drop height is the author's and nothing checks it.** `SpawnerIntent.At` carries a
