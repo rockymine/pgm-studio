@@ -344,8 +344,8 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   root, answers `404` `SK6` to `render/heightmap`, `incline`, `slopes`, `reach`, `column`, `render/eye` and the
   rest. Read an imported map's own region instead of building one, so a corpus board is studied with the same
   reads as a built one; `slopes`, `incline`, `reach` and `render/eye` have no CLI form today.
-  `docs/world-scan/read-backs.md`. *Evidence: `GET /api/map/ref-atromix/render/heightmap` on a studio that has
-  just imported Atromix's world answers `{"error":"no world to read"}` with `SK6`.*
+  `docs/world-scan/read-backs.md`. *Evidence: `GET /api/map/{slug}/render/heightmap` on a studio that has just
+  imported a corpus world with `import-folder` answers `{"error":"no world to read"}` with `SK6`.*
 
 ## The shop: buying things in the middle of a match
 

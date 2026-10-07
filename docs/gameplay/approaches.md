@@ -180,7 +180,7 @@ beyond that a destroy board's shape is open. It may be islands in the void: one 
 holding the objective, a peninsula of several islands, one large island of abstract shapes with smaller islands
 between, a large flat island where built ground and nature take turns, floating islands. A layout may be drawn
 from a rule rather than invented — points sampled at random over an area, a noise map, or a set of about twenty
-nodes toured by annealing and turned into the map, which is how *Annealing I*–*IV* were made.
+nodes toured by annealing and turned into the map.
 
 **[author]** The spawn sits remote at the back on every kind of board, and on a destroy board it sits **in**
 the land at its back rather than on a box behind it. A spawn hung off the hub is how capture boards evolved and is
@@ -300,23 +300,22 @@ it one, and where the join is decides which approach the second storey serves. `
 § Layers carries what the studio does with that, and `SK11` is the complaint it raises where a storey has
 nothing onto it.
 
-## Destroy boards worth reading, and what each shows
+## Destroy layouts that are not a lane
 
-**[author]** These are the destroy boards the author points to for a board's shape and its terrain. None is a
-template; read together they show how far apart two good destroy boards can be. All but *The Nile* are in the
-corpora, and `docs/world-scan/destroy-reference-boards.md` reads their worlds: what each one is, where the spawn
-sits in it, and how its ground compares with the boards agents have built.
+**[author]** Destroy boards are as varied as their authors make them, and none of these is a template. Each
+example is a layout the author points to, described by what its world shows rather than by its name, because a
+board is never named in these documents; `docs/world-scan/destroy-layouts.md` reads each one's world.
 
-| Board | Corpus | What it shows |
-|---|---|---|
-| *Atromix* | `PublicMaps/dtcm/atromix` | an isolated island for each team's monuments, and a middle island between the teams |
-| *The Fenland* | `PublicMaps/dtcm/the_fenland` | one box: the spawn in the back middle, a raised border players walk, a middle of tiny islands, rivers and trees, and the monument to the left of the spawn |
-| *Annealing III* | `CommunityMaps/dtcm/annealing_iii` | islands from about twenty nodes toured by annealing |
-| *Monument Valley* | `PublicMaps/dtcm/monument_valley` | one box with the spawns raised and diagonally across; the monument raised and diagonally in front, mountains round it to come at it from height, a river running toward it to come at it from below |
-| *Alpine Mining II* | `CommunityMaps/dtcm/alpine_mining_ii` | a long lane with two monuments and a great deal of terrain, some of it never walked and there to be looked at; an iron cave under the mountain whose exit leads toward a monument; small alpine villages laid out properly |
-| *The Nile* | not in either corpus | tunnel spawns; sandy ground with intricate desert building up top; the river through the middle with palms and a large wheat field; a single monument on a square board; an iron mine |
-| *Kuusepuu* | `CommunityMaps/dtcm/kuusepuu` | islands laid out in a box |
-| *Sunrise over Paradise* | `PublicMaps/dtcm/sunrise_over_paradise` | geometric islands, some joined by bridges, inside a large ring of water; the monument islands all the way to the side of the spawn, reached only by boat |
+| Layout | What it shows |
+|---|---|
+| side islands and a middle | a side island per team holding its spawn at an outer corner and its back monument, a small island off its inner edge holding the front monument, and a middle island between the teams |
+| a rim round a basin | one box: a raised rim the players walk round a flooded middle of tiny islands, rivers and trees, the spawn on the rim at the back middle and the monument to its side |
+| a tour widened into land | two jagged landmasses drawn from about twenty nodes toured by annealing, mirrored across a gap, the spawn on a raised mound at the outer edge |
+| a box cut by water, walled by mountains | the spawns raised in opposite corners on the mountains, the monument raised on a peninsula diagonally in front, reached from the heights or up a river from below |
+| a long lane of rolling ground | two monuments a team, a river winding from each high end into a lake across the middle, villages laid out in the terrain, ground nobody walks that is there to be looked at, and an iron mine inside the mountain behind the spawn |
+| a desert square | tunnel spawns, intricate desert building up top, the river through the middle with palms and a wheat field, a single monument and an iron mine |
+| islands in a box | two lobed islands with small islands between them, the spawn at the outer edge among rock and trees |
+| rings in water | geometric islands joined by bridges inside a ring of water, the monument islands all the way to the side of the spawn, reached by boat |
 
 ## Where the rest lives
 

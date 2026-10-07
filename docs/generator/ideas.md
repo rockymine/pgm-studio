@@ -188,7 +188,7 @@ landed, the rest is the idea.
   core board has no generator, and every one authored by hand comes out as a straight box with a goal partway
   along (`docs/gameplay/approaches.md`, the author's ruling that a monument never ends a lane). Draw the land
   instead: points sampled at random over the extent, a noise field cut at a level, or about twenty nodes toured
-  by annealing and widened into islands, as *Annealing I*–*IV* were. Spawns and goals are then placed on it
+  by annealing and widened into islands. Spawns and goals are then placed on it
   against `GO1`–`GO4` as walks. Emitted as a plan an author takes over, like a composed capture board.
 
 - [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
