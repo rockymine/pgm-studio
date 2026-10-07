@@ -43,7 +43,7 @@ public static class PlanBoardSvg
             var role = RoleOf(piece.Role, piece.Id);
             var ink = InkOf(role);
             svg.Append($"<rect class='role-{role}' x='{N(X(r.X))}' y='{N(Z(r.Z))}' width='{N(r.Width * scale)}' height='{N(r.Height * scale)}' "
-                + $"style='fill:{ink.FillCss};stroke:{ink.EdgeCss}' stroke-width='1'{Faint(piece.K)}/>");
+                + $"style='fill:{ink.FillCss};stroke:{ink.EdgeCss}' stroke-width='1'/>");
         }
 
         // A build zone and a water lane draw alike: the composer builds no lanes, so the board has one outline.
@@ -51,7 +51,7 @@ public static class PlanBoardSvg
         {
             var b = zone.Rect;
             svg.Append($"<rect class='role-{BoardRoles.Zone}' x='{N(X(b.X))}' y='{N(Z(b.Z))}' width='{N(b.Width * scale)}' height='{N(b.Height * scale)}' "
-                + $"style='fill:{Zone.FillCss};stroke:{Zone.EdgeCss}' fill-opacity='0.07' stroke-width='1.4' stroke-dasharray='5 3'{Faint(zone.K)}/>");
+                + $"style='fill:{Zone.FillCss};stroke:{Zone.EdgeCss}' fill-opacity='0.07' stroke-width='1.4' stroke-dasharray='5 3'/>");
         }
 
         // markers at their fanned cells: iron (grey pip), wool (colour disc), spawn (disc drawn last, on top)
@@ -63,17 +63,14 @@ public static class PlanBoardSvg
         return svg.ToString();
     }
 
-    private static string Faint(int k) => k == 0 ? "" : " opacity='0.5'";
-
     private static void DrawMarker(StringBuilder svg, MarkerFan marker, Func<double, double> X, Func<double, double> Z)
     {
         double cx = X(marker.X), cy = Z(marker.Z);
-        var op = N(marker.K == 0 ? 1.0 : 0.5);
         svg.Append(marker.Kind switch
         {
-            "spawn" => $"<circle cx='{N(cx)}' cy='{N(cy)}' r='2.5' style='fill:{Spawn.EdgeCss}' fill-opacity='{op}'/>",
-            "iron" => $"<rect x='{N(cx - 2)}' y='{N(cy - 2)}' width='4' height='4' style='fill:var(--board-iron,{Hex(AxisRgb)})' fill-opacity='{op}'/>",
-            "wool" => $"<circle cx='{N(cx)}' cy='{N(cy)}' r='2.6' fill='{WoolColor(marker.Color)}' stroke='#1e293b' stroke-opacity='0.45' stroke-width='0.6' fill-opacity='{op}'/>",
+            "spawn" => $"<circle cx='{N(cx)}' cy='{N(cy)}' r='2.5' style='fill:{Spawn.EdgeCss}'/>",
+            "iron" => $"<rect x='{N(cx - 2)}' y='{N(cy - 2)}' width='4' height='4' style='fill:var(--board-iron,{Hex(AxisRgb)})'/>",
+            "wool" => $"<circle cx='{N(cx)}' cy='{N(cy)}' r='2.6' fill='{WoolColor(marker.Color)}' stroke='#1e293b' stroke-opacity='0.45' stroke-width='0.6'/>",
             _ => "",
         });
     }

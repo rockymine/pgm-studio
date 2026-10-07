@@ -85,13 +85,13 @@ public sealed class PlanBoardSvgTests
     }
 
     [Test]
-    public async Task The_fanned_images_are_faint_and_the_base_unit_is_not()
+    public async Task Every_fanned_image_is_drawn_at_full_strength()
     {
         var plan = Composer.Compose(new ComposeRequest(12, seed: 3));
 
         var svg = PlanBoardSvg.Render(plan);
 
-        await Assert.That(svg).Contains("opacity='0.5'");
+        await Assert.That(svg).DoesNotContain("opacity='0.5'");
         await Assert.That(svg).Contains("stroke-width='1'/>");
     }
 

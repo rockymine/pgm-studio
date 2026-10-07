@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using System.Text;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.JSInterop;
@@ -78,17 +77,7 @@ public partial class Glossary : IDisposable
     private static string Initial(string term) =>
         char.IsLetter(term[0]) ? char.ToUpperInvariant(term[0]).ToString() : "#";
 
-    /// <summary>A term's anchor: lower-case letters and digits, any run of anything else a single hyphen.</summary>
-    private static string Slug(string term)
-    {
-        var slug = new StringBuilder();
-        foreach (var letter in term.ToLowerInvariant())
-        {
-            if (char.IsLetterOrDigit(letter)) slug.Append(letter);
-            else if (slug.Length > 0 && slug[^1] != '-') slug.Append('-');
-        }
-        return slug.ToString().TrimEnd('-');
-    }
+    private static string Slug(string term) => PgmStudio.Vocabulary.Glossary.Slug(term);
 
     /// <summary>Put the filter in the address, which the page reads it from.</summary>
     private void Go(string? text) =>

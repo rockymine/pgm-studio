@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Contracts;
@@ -269,10 +268,15 @@ public partial class GeneratorTool : IAsyncDisposable
     private void OpenDetail(ComposeCard c) => detail = c;
     private void CloseDetail() => detail = null;
 
-    private static string DescriptorJson(ComposeCard c) =>
-        JsonSerializer.Serialize(c.Descriptor, new JsonSerializerOptions { WriteIndented = true });
+    private static IReadOnlyList<DescriptionPart> Describe(ComposeCard c) =>
+        LayoutDescription.Of(c.Descriptor.Players, c.Descriptor.Teams, c.Descriptor.Symmetry, c.WoolCount,
+            c.Structure.Wools, c.Structure.Hub, c.Structure.Frontline);
 
-    private Task CopyDescriptor(ComposeCard c) => JS.InvokeAsync<bool>("studio.copyText", DescriptorJson(c)).AsTask();
+    private static string PlayersLabel(ComposeCard c) =>
+        $"{BandRange(SizeBands.Of(c.Descriptor.Players))} ({char.ToUpperInvariant(SizeBands.Of(c.Descriptor.Players)[0])}{SizeBands.Of(c.Descriptor.Players)[1..]})";
+
+    private static string SymmetryLabel(string symmetry) =>
+        Symmetries.FirstOrDefault(s => s.Id == symmetry).Label ?? symmetry;
 
     // Author a generated candidate into a map: ensure it is pinned as a candidate plan row (so it has an id),
     // then commit it to a stage=plan map (POST /api/plan/{id}/author) and open the plan editor on that map.
@@ -344,19 +348,6 @@ public partial class GeneratorTool : IAsyncDisposable
     /// <summary>A card's name: the layout it is, which is the descriptor's players, teams and seed.</summary>
     private static string LayoutId(ComposeCard card) =>
         $"composed-p{card.Descriptor.Players}-t{card.Descriptor.Teams}-{card.Descriptor.Seed}";
-
-    /// <summary>A card's wool approach families by their filter labels, each once.</summary>
-    private string WoolLabels(IEnumerable<string> tokens) =>
-        string.Join(", ", tokens.Distinct().Select(t => Label(WoolChips.Select(w => (w.Token, w.Label)), t)));
-
-    // ── land spend ───────────────────────────────────────────────────────────────
-    // Two currencies, never one: footprint is the box rect (fixed when the box was seated), land is what the
-    // filled pieces cover, which is what the spend gate reads. The budget is the size band's, per TEAM UNIT.
-
-    /// <summary>The share of a budget its land actually spent. Guards a zero budget rather than rendering a
-    /// NaN into the card.</summary>
-    private static string SpendPercent(LandAgainstBudgetDto land) =>
-        land.BudgetCells > 0 ? $"{100 * land.Cells / land.BudgetCells:0}%" : "—";
 
     public async ValueTask DisposeAsync()
     {
