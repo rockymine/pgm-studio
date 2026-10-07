@@ -113,7 +113,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Migrations` | 64 | 4,401 | `Migrations/` 63 · 1 at root |
 | `Minecraft` | 112 | 23,602 | `Render/` 22 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
 | `Pgm` | 167 | 32,711 | `Compose/` 44 (nested) · `Authoring/` 28 · `Evaluate/` 23 (nested) · `Editing/` 11 · `Plan/` 11 · `Sketch/` 11 · `Shapes/` 10 · `Derive/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
-| `Vocabulary` | 33 | 2,698 | flat |
+| `Vocabulary` | 33 | 2,699 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest
