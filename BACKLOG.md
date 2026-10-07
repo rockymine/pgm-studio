@@ -148,6 +148,16 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Relief
 
+- [ ] **WE164 — A spawn's piece is held level only under its building and the way out.** The plan compiler
+  projects the whole spawn piece into the layout as one held rectangle, and the spawn's protection is that same
+  rectangle, so every column of it stands at one height and nothing beside the spawn can rise. Hold level only
+  the building's footprint, its pad and the approach in front of each door (`DressingScope.ApproachAt`), and
+  let the relief solve the rest of the piece as ground, so a hill, a stack of rock or a slope comes up beside
+  the spawn house (the author's ruling, `docs/gameplay/approaches.md`: the spawn sits in the land). The
+  protection keeps its rectangle. `docs/world-export/relief.md`. *Evidence: a board whose spawn piece and
+  protection are both x −12…12, z −112…−92 has all 190 ground columns of it outside the building at y19; its
+  building is x −10…10, z −111…−97.*
+
 - [ ] **WE28 — A relief is keyed by group id, and a stacked board's storeys share one namespace.**
   `SketchReliefJson` rides top-level on the layout keyed by group, and a group id is unique across the stack
   only by the author keeping it so: two storeys of one board are the same footprint one layer up, told apart
@@ -259,6 +269,14 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   written up in `docs/tools/sketch.md`, so a library emits what an author can already draw by hand.
 
 ### Dressing: what the pass can place
+
+- [ ] **WE165 — A tree or a boulder may stand inside a spawn's protection.** `DressingScope.KeptClearAt` keeps
+  every spawn's whole protection area clear (`KeepOut.Spawn`), so a standing prop anywhere in it is declined
+  `DR-KEEP`. Keep clear only the spawn point, the building and the approach in front of its doors, which
+  `ApproachAt` already measures, and let trees and boulders stand on the rest, so a spawn house is planted
+  round like any other (the author's ruling). Worth most once `WE164` gives the piece ground to stand them on.
+  `docs/world-export/decoration.md` (§2's mask, and §3.1's "a boulder inside a spawn's protection").
+  *Evidence: `DressingScope.cs:88` adds every `spawn.Protection` area as `KeepOut.Spawn`.*
 
 - [ ] **WE163 — A cross wing taller than its hall breaks both roofs.** `WingJoints` takes the hall from the
   ridges and `HJ5` measures height by span alone, so a cross wing with more storeys than its hall
