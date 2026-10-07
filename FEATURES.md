@@ -204,6 +204,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **A layout is described in words (`TG6`).** The Generator's drawer titles a layout by its name, pins from the
+  header, and states it as a sentence in glossary terms (`LayoutDescription`, each term linked to `/glossary`)
+  over three facts — players per team, wools per team, symmetry — and one *Make a map* action. Every board draws
+  both halves at full strength, its spawn and wool room in the plan editor's own hues. `docs/tools/generator.md`.
 - **Board pictures in the paper's plan inks (`C78`).** One renderer draws every board — Generator, catalog,
   probe, plan and compose previews — in four inks: ground grey (a tint of the plan editor's piece grey), spawn
   green, wool room orange, and the build zone as a dashed blue outline, on a white ground in the light theme and
