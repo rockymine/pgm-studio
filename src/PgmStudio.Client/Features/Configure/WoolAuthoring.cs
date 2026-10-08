@@ -42,7 +42,7 @@ public static class WoolAuthoring
                 Color = Ctx.S(w, "color"),
                 SpawnX = Ctx.D(sp, "x"), SpawnY = Ctx.D(sp, "y"), SpawnZ = Ctx.D(sp, "z"),
             };
-            wool.Rooms.AddRange(ParseRects(w["room"]));
+            wool.Rooms.AddRange(ParseRects(w["protection"]));
             if (w["monuments"] is JsonArray ms)
                 foreach (var m in ms.OfType<JsonObject>())
                 {
@@ -77,12 +77,12 @@ public static class WoolAuthoring
                 ["team"] = m.Team,
                 ["location"] = new JsonObject { ["x"] = m.X, ["y"] = m.Y, ["z"] = m.Z },
             }).ToArray());
-            o["room"] = new JsonArray(w.Rooms.Select(RectNode).ToArray());
+            o["protection"] = new JsonArray(w.Rooms.Select(RectNode).ToArray());
             return (JsonNode)o;
         }).ToArray());
     }
 
-    // The room is a JSON array of {minX,minZ,maxX,maxZ}; tolerate a legacy single object too.
+    // The room is the wool's `protection`, a JSON array of {minX,minZ,maxX,maxZ}; tolerate a legacy single object too.
     public static IEnumerable<Rect> ParseRects(JsonNode? node) => node switch
     {
         JsonArray arr => arr.OfType<JsonObject>().Select(RectOf),

@@ -76,6 +76,12 @@ them one rather than with the contract work that shipped them.
   derived unless one names a place of its own (`docs/pgm/shops.md` §9), so the step offers the place and
   fills nothing in where the board says nothing.
 
+- [ ] **TC14 — The wizard drops the `warnings` its intent save answers.** `ConfigureTool.SaveIfDirtyAsync`
+  reads only the status of `PUT /map/{slug}/intent`, so an `RQ3` naming a field the server kept nowhere reads
+  as Saved. Show the complaint beside the editor bar's save state, naming the field path. Evidence: the Room
+  step wrote `wools[].room` while the intent reads `protection`, and every room drawn there was dropped
+  under a green Saved.
+
 ## The sketch tool: shapes, islands, and the ground they become
 
 The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
