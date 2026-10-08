@@ -337,6 +337,84 @@ public sealed class RefinementTests
         await Assert.That(Ring(refined, "moor-12")).IsEquivalentTo(["[0,0]", "[40,0]", "[40,40]", "[0,40]"], CollectionOrdering.Matching);
     }
 
+    private static JsonNode Points(Refined refined, string path) =>
+        path.Split('/').Aggregate(JsonNode.Parse(refined.LayoutJson)!, (node, step) =>
+            int.TryParse(step, out var at) ? node[at]! : node[step]!);
+
+    private static List<string> Listed(Refined refined, string path) =>
+        [.. Points(refined, path).AsArray().Select(point => point!.ToJsonString())];
+
+    [Test]
+    public async Task A_point_edit_reaches_every_outline_carrying_its_id()
+    {
+        var refined = Apply("""
+            {"relief":{"moor":{"marks":[{"id":"knoll","kind":"area","h":14,"ring":[[10,10],[20,10],[20,20],[10,20]]}]}},
+             "dressing":{"props":[{"kind":"flora","id":"knoll","points":[[10,10],[20,10],[20,20],[10,20]]}]},
+             "editShapes":{"knoll":[{"index":0,"x":8,"z":8},{"after":1}]}}
+            """);
+
+        await Assert.That(refined.Findings).IsEmpty();
+        string[] edited = ["[8,8]", "[20,10]", "[20,15]", "[20,20]", "[10,20]"];
+        await Assert.That(Listed(refined, "relief/moor/marks/0/ring")).IsEquivalentTo(edited, CollectionOrdering.Matching);
+        await Assert.That(Listed(refined, "dressing/props/0/points")).IsEquivalentTo(edited, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task A_pull_and_a_bend_reach_a_push_and_a_pool_and_only_a_shape_takes_handles()
+    {
+        var refined = Apply("""
+            {"relief":{"moor":{"pushes":[{"id":"lift","amount":3,"ring":[[0,0],[20,0],[20,20],[0,20]]}]}},
+             "dressing":{"props":[{"kind":"fluid","id":"mere","shape":"pool","points":[[0,0],[30,0],[30,30],[0,30]]}]},
+             "editShapes":{"lift":[{"pulls":{"0":[[0.5,2]]}}]},
+             "bendShapes":{"mere":{"wander":2,"step":4,"seed":3}}}
+            """);
+
+        await Assert.That(refined.Findings).IsEmpty();
+        await Assert.That(Listed(refined, "relief/moor/pushes/0/ring"))
+            .IsEquivalentTo(["[0,0]", "[10,2]", "[20,0]", "[20,20]", "[0,20]"], CollectionOrdering.Matching);
+        var mere = Points(refined, "dressing/props/0").AsObject();
+        await Assert.That(mere["points"]!.AsArray().Count).IsGreaterThan(4);
+        await Assert.That(mere.ContainsKey("controls")).IsFalse();
+    }
+
+    [Test]
+    public async Task A_line_takes_a_point_edit_as_a_line_with_two_ends()
+    {
+        const string lane = """{"kind":"stroke","id":"lane","points":[[0,0],[10,0],[10,10],[0,10]]}""";
+        Refined Edited(string edits) => Apply($$$"""{"dressing":{"props":[{{{lane}}}]},"editShapes":{"lane":[{{{edits}}}]}}""");
+
+        var hooked = Edited("""{"index":3,"x":20,"z":5}""");
+        var doubledBack = Edited("""{"index":3,"x":5,"z":-5}""");
+        var pastTheEnd = Edited("""{"after":3}""");
+        var shortened = Edited("""{"remove":0},{"remove":0},{"remove":0}""");
+
+        await Assert.That(hooked.Findings).IsEmpty()
+            .Because("a line has no edge from its last point back to its first, so nothing crosses");
+        await Assert.That(Listed(hooked, "dressing/props/0/points")[3]).IsEqualTo("[20,5]");
+        await Assert.That(doubledBack.Findings.Single().Message).Contains("folds");
+        await Assert.That(pastTheEnd.Findings.Single().Message).Contains("not between 0 and 2");
+        await Assert.That(shortened.Findings.Single().Field).IsEqualTo("editShapes.lane[2]");
+        await Assert.That(Listed(shortened, "dressing/props/0/points")).IsEquivalentTo(["[10,10]", "[0,10]"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task A_pull_or_a_bend_on_a_line_is_a_complaint_and_the_line_stays_as_it_was()
+    {
+        var refined = Apply("""
+            {"dressing":{"props":[{"kind":"stroke","id":"lane","points":[[0,0],[20,0],[40,0]]},
+                                  {"kind":"fluid","id":"brook","points":[[0,30],[20,30],[40,30]]}]},
+             "editShapes":{"lane":[{"pulls":{"0":[[0.5,2]]}}]},
+             "bendShapes":{"brook":{"wander":2,"step":4,"seed":3}}}
+            """);
+
+        await Assert.That(refined.Findings.Count).IsEqualTo(2);
+        await Assert.That(refined.Findings.Refuses).IsFalse();
+        await Assert.That(refined.Findings.Select(finding => finding.Message).ToList())
+            .All(message => message.Contains("centerline"));
+        await Assert.That(Listed(refined, "dressing/props/0/points").Count).IsEqualTo(3);
+        await Assert.That(Listed(refined, "dressing/props/1/points").Count).IsEqualTo(3);
+    }
+
     [Test]
     public async Task A_bend_on_a_shape_on_the_axis_draws_a_coast_that_is_its_own_image()
     {

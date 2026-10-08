@@ -175,6 +175,26 @@ frontline. Neither needs a room, a dead-end lane or a protection region; both ar
 world. The three places they may not stand are the void, a spawn and a wool room, which is `OB17` and `OB30` and is
 enforced (`docs/pgm/destroyables-and-cores.md` §8).
 
+**[author]** A monument or a core never stands at the end of a lane — ending a lane is what a wool does — and
+beyond that a destroy board's shape is open. It may be islands in the void: one long island with a side island
+holding the objective, a peninsula of several islands, one large island of abstract shapes with smaller islands
+between, a large flat island where built ground and nature take turns, floating islands. A layout may be drawn
+from a rule rather than invented — points sampled at random over an area, a noise map, or a set of about twenty
+nodes toured by annealing and turned into the map.
+
+**[author]** The spawn sits remote at the back on every kind of board, and on a destroy board it sits **in**
+the land at its back rather than on a box behind it. A spawn hung off the hub is how capture boards evolved and is
+right for them; a destroy spawn hung off the back of the main island across a gap is attached to the map without
+belonging to it. Its house stands on the terrain — on a hill, with mountains or stacks of rock beside it, an
+iron mine somewhere near — and it may stand ten blocks into the land and still be at the back.
+
+**[author]** The objective stands in front of the spawn, where a defender sees it, and rarely straight ahead: it
+is shifted to one side, and on some boards it stands nearly beside the spawn a few blocks off. Two are an east
+and a west, or a front and a back, where back is near the spawn but still apart from it. Measured straight from
+the spawn region's centre against the line to the enemy spawn, the 999 goals on 303 corpus destroy maps sit a
+median 42° off that line (p25 18°, p75 76°), a quarter within 20° of it; the 374 on this studio's agent boards
+sit a median 28° off, and 38% within 20°.
+
 **[author]** Both float a few blocks above the terrain, and that is the design rather than a defect. What a
 goal needs beneath it is terrain somewhere below, not terrain directly under its lowest block.
 
@@ -279,6 +299,23 @@ over a yard with nothing joining them is two boards; a stair, a ramp or a hole c
 it one, and where the join is decides which approach the second storey serves. `docs/tools/sketch.md`
 § Layers carries what the studio does with that, and `SK11` is the complaint it raises where a storey has
 nothing onto it.
+
+## Destroy layouts that are not a lane
+
+**[author]** Destroy boards are as varied as their authors make them, and none of these is a template. Each
+example is a layout the author points to, described by what its world shows rather than by its name, because a
+board is never named in these documents; `docs/world-scan/destroy-layouts.md` reads each one's world.
+
+| Layout | What it shows |
+|---|---|
+| side islands and a middle | a side island per team holding its spawn at an outer corner and its back monument, a small island off its inner edge holding the front monument, and a middle island between the teams |
+| a rim round a basin | one box: a raised rim the players walk round a flooded middle of tiny islands, rivers and trees, the spawn on the rim at the back middle and the monument to its side |
+| a tour widened into land | two jagged landmasses drawn from about twenty nodes toured by annealing, mirrored across a gap, the spawn on a raised mound at the outer edge |
+| a box cut by water, walled by mountains | the spawns raised in opposite corners on the mountains, the monument raised on a peninsula diagonally in front, reached from the heights or up a river from below |
+| a long lane of rolling ground | two monuments a team, a river winding from each high end into a lake across the middle, villages laid out in the terrain, ground nobody walks that is there to be looked at, and an iron mine inside the mountain behind the spawn |
+| a desert square | tunnel spawns, intricate desert building up top, the river through the middle with palms and a wheat field, a single monument and an iron mine |
+| islands in a box | two lobed islands with small islands between them, the spawn at the outer edge among rock and trees |
+| rings in water | geometric islands joined by bridges inside a ring of water, the monument islands all the way to the side of the spawn, reached by boat |
 
 ## Where the rest lives
 

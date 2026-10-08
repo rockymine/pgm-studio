@@ -51,4 +51,16 @@ public sealed class PolygonTests
         var inside = Polygon.CentresInside([[0, 0], [4, 0], [4, 4], [0, 4]], 10, 10, 14, 14);
         await Assert.That(inside.Any(cell => cell)).IsFalse();
     }
+
+    [Test]
+    public async Task A_line_is_tested_for_crossing_itself_without_an_edge_between_its_two_ends()
+    {
+        // Open, the hook's last edge clears its first; closed, the edge back to the start crosses the second.
+        double[][] hook = [[0, 0], [10, 0], [10, 10], [20, 5]];
+        double[][] doubledBack = [[0, 0], [10, 0], [10, 10], [5, -5]];
+
+        await Assert.That(Polygon.SelfIntersects(hook, closed: false)).IsFalse();
+        await Assert.That(Polygon.SelfIntersects(hook)).IsTrue();
+        await Assert.That(Polygon.SelfIntersects(doubledBack, closed: false)).IsTrue();
+    }
 }

@@ -400,7 +400,7 @@ public sealed record Refinement
         node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
 
     // The outlines reshaped a point at a time, in order, and then bent: a bend resamples whatever ring it is given,
-    // so every point edit comes first.
+    // so every point edit comes first. Each edit reaches every outline carrying its id, as `outlines` does.
     private static string Edit(JsonObject refinement, string layoutJson, List<Finding> findings)
     {
         var board = SketchGeometryEdit.SymmetryOf(JsonNode.Parse(layoutJson) as JsonObject ?? []);
@@ -422,7 +422,7 @@ public sealed record Refinement
                     if (named[0] == "pulls")
                     {
                         layoutJson = Applied(Pulled(op["pulls"], shapeId) is { } pulls
-                                ? SketchGeometryEdit.PullShape(layoutJson, shapeId, pulls, fans)
+                                ? SketchGeometryEdit.PullShape(layoutJson, shapeId, pulls, fans, everyOutline: true)
                                 : GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
                                     $"point edit `{field}` states `pulls` that is not edges, each holding pairs of "
                                     + "fraction and blocks",
@@ -441,13 +441,13 @@ public sealed record Refinement
                     }
                     var edit = named[0] switch
                     {
-                        "remove" => SketchGeometryEdit.RemoveVertex(layoutJson, shapeId, at),
+                        "remove" => SketchGeometryEdit.RemoveVertex(layoutJson, shapeId, at, everyOutline: true),
                         "index" when x is { } moveX && z is { } moveZ =>
-                            SketchGeometryEdit.MoveVertex(layoutJson, shapeId, at, moveX, moveZ),
+                            SketchGeometryEdit.MoveVertex(layoutJson, shapeId, at, moveX, moveZ, everyOutline: true),
                         "index" => GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
                             $"point edit `{field}` moves point {at} and states no `x` and `z`", Field: field,
                             Subjects: [shapeId])),
-                        _ => SketchGeometryEdit.InsertVertex(layoutJson, shapeId, at, x, z, out _),
+                        _ => SketchGeometryEdit.InsertVertex(layoutJson, shapeId, at, x, z, out _, everyOutline: true),
                     };
                     layoutJson = Applied(edit, layoutJson, field, shapeId, findings);
                 }
@@ -456,7 +456,7 @@ public sealed record Refinement
             foreach (var (shapeId, stated) in bends)
             {
                 var bend = stated?.Deserialize<ShapeBend>(SketchLayout.Json) ?? new ShapeBend(0, 0, 0);
-                var edit = bend.ApplyTo(layoutJson, shapeId, out var held);
+                var edit = bend.ApplyTo(layoutJson, shapeId, out var held, everyOutline: true);
                 layoutJson = Applied(edit, layoutJson, $"bendShapes.{shapeId}", shapeId, findings);
                 if (held > 0)
                     findings.Add(new Finding(SketchRules.BendHeldBack,
@@ -501,9 +501,9 @@ public sealed record Refinement
         if (at < 0 || at >= ring.Count)
             return Applied(kind switch
             {
-                "remove" => SketchGeometryEdit.RemoveVertex(layoutJson, shapeId, at),
-                "index" => SketchGeometryEdit.MoveVertex(layoutJson, shapeId, at, x!.Value, z!.Value),
-                _ => SketchGeometryEdit.InsertVertex(layoutJson, shapeId, at, x, z, out _),
+                "remove" => SketchGeometryEdit.RemoveVertex(layoutJson, shapeId, at, everyOutline: true),
+                "index" => SketchGeometryEdit.MoveVertex(layoutJson, shapeId, at, x!.Value, z!.Value, everyOutline: true),
+                _ => SketchGeometryEdit.InsertVertex(layoutJson, shapeId, at, x, z, out _, everyOutline: true),
             }, layoutJson, field, shapeId, findings);
 
         (double X, double Z) Image((double X, double Z) point, int k) =>
@@ -515,7 +515,7 @@ public sealed record Refinement
         {
             case "remove":
                 foreach (var vertex in images.Select(lands => lands[at]).Append(at).Distinct().OrderDescending())
-                    layoutJson = Applied(SketchGeometryEdit.RemoveVertex(layoutJson, shapeId, vertex),
+                    layoutJson = Applied(SketchGeometryEdit.RemoveVertex(layoutJson, shapeId, vertex, everyOutline: true),
                                          layoutJson, field, shapeId, findings);
                 return layoutJson;
 
@@ -535,7 +535,7 @@ public sealed record Refinement
                     if (!moves.Any(move => move.Vertex == vertex)) moves.Add((vertex, to));
                 }
                 foreach (var (vertex, to) in moves)
-                    layoutJson = Applied(SketchGeometryEdit.MoveVertex(layoutJson, shapeId, vertex, to.X, to.Z),
+                    layoutJson = Applied(SketchGeometryEdit.MoveVertex(layoutJson, shapeId, vertex, to.X, to.Z, everyOutline: true),
                                          layoutJson, field, shapeId, findings);
                 return layoutJson;
 
@@ -553,7 +553,7 @@ public sealed record Refinement
                              .OrderByDescending(insert => insert.Edge)
                              .ThenByDescending(insert => Math.Abs(insert.Point.X - ring[insert.Edge][0])
                                                          + Math.Abs(insert.Point.Z - ring[insert.Edge][1])))
-                    layoutJson = Applied(SketchGeometryEdit.InsertVertex(layoutJson, shapeId, edge, to.X, to.Z, out _),
+                    layoutJson = Applied(SketchGeometryEdit.InsertVertex(layoutJson, shapeId, edge, to.X, to.Z, out _, everyOutline: true),
                                          layoutJson, field, shapeId, findings);
                 return layoutJson;
         }
@@ -585,12 +585,9 @@ public sealed record Refinement
         if (edit.Layout is { } done) return done;
         findings.Add(edit.Refusal is { } refused
             ? refused.AsComplaint() with { Field = field }
-            : NamesNothing(field[..field.IndexOf('.')], shapeId, ShapeIds(layoutJson)));
+            : NamesNothing(field[..field.IndexOf('.')], shapeId, SketchGeometryEdit.OutlineIds(layoutJson)));
         return layoutJson;
     }
-
-    private static IEnumerable<string> ShapeIds(string layoutJson) =>
-        SketchLayout.Stack(SketchLayout.Stated(layoutJson)).SelectMany(layer => layer.Shapes).Select(shape => shape.Id);
 
     private static Finding NamesNothing(string key, string id, IEnumerable<string> drawn)
     {

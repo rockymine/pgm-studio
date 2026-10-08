@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json.Nodes;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
+using PgmStudio.Geom.Algorithms;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Sketch;
@@ -189,58 +190,53 @@ public static class SketchGeometryEdit
     /// <c>vertices</c> — a rectangle or a circle states its outline as bounds and has none to resample — and
     /// one whose drawn ring would fold over itself.</para>
     ///
-    /// <para><paramref name="held"/> answers how many inserted points had no room on the side asked for and
-    /// stayed where they were cut, which is <c>SK21</c>.</para></summary>
+    /// <para>With <paramref name="everyOutline"/> the bend reaches every outline carrying the id
+    /// (<see cref="Outlines"/>), each drawn from its own ring; only a shape takes the handles, and a line has no
+    /// inside to bend toward and is refused. <paramref name="held"/> answers the most inserted points any one
+    /// of them had with no room on the side asked for, which is <c>SK21</c>.</para></summary>
     public static GeometryEdit BendShape(
         string? layoutJson, string shapeId, double wander, double step, uint seed, double tension,
-        BendSide side, out int held, IReadOnlyList<int>? edges = null, bool fan = true)
+        BendSide side, out int held, IReadOnlyList<int>? edges = null, bool fan = true, bool everyOutline = false)
     {
         held = 0;
         var root = Root(layoutJson);
-        var layers = Layers(root);
-        if (ShapeAt(layers, shapeId) is not { } shape) return GeometryEdit.Missing;
-
-        if (Text(shape["role"]) is { Length: > 0 } role)
-            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"shape '{shapeId}' has the `role` '{role}', which a bend does not take",
-                Field: "role", Subjects: [shapeId]));
-
-        if (shape["vertices"] is not JsonArray stated || stated.Count < 3)
-            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"shape '{shapeId}' states fewer than 3 points in `vertices`",
-                Field: "vertices", Subjects: [shapeId]));
-
-        var ring = stated.Select(point => new[] { Number(point?[0]), Number(point?[1]) }).ToList();
-        if (edges?.Where(edge => edge < 0 || edge >= ring.Count).Select(edge => (int?)edge).FirstOrDefault()
-            is { } outside)
-            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"the bend of shape '{shapeId}' names edge {outside}, not between 0 and {ring.Count - 1}",
-                Field: "edges", Subjects: [shapeId]));
-        var named = edges?.ToHashSet();
-        Func<double, double, (double X, double Z)>? sampleAt = null;
+        if (Outlines(root, shapeId, everyOutline, "a bend", out var drawn) is { } refused) return refused;
         var (mode, centreX, centreZ) = SymmetryOf(root);
-        if (fan && Symmetry.SelfImage(ring, mode, centreX, centreZ) is { } images)
-        {
-            sampleAt = (x, z) => Symmetry.Canonical(x, z, mode, centreX, centreZ);
-            foreach (var lands in images)
-                foreach (var edge in edges ?? []) named!.Add(Symmetry.ImageEdge(lands, edge));
-        }
-        if (RingBend.Draw(ring, wander, step, seed, tension, side: side, edges: named, sampleAt: sampleAt) is not { } coast)
-            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"the bend of shape '{shapeId}' with a `wander` of {wander} blocks and a `step` of {step} blocks "
-                + "folds its outline across itself",
-                Field: "wander", Subjects: [shapeId]));
 
-        held = coast.Held;
-        Reheight(shape, ring, coast.Ring);
-        shape["vertices"] = new JsonArray([.. coast.Ring.Select(point =>
-            (JsonNode)new JsonArray(JsonValue.Create(point[0]), JsonValue.Create(point[1])))]);
-        shape["controls"] = new JsonObject(coast.Controls.Select(handle =>
-            KeyValuePair.Create(handle.Key.ToString(CultureInfo.InvariantCulture), (JsonNode?)new JsonObject
+        foreach (var outline in drawn)
+        {
+            if (outline.Line is { } line) return Lineless(shapeId, line, "a bend");
+            var ring = Ring(outline.Points);
+            if (edges?.Where(edge => edge < 0 || edge >= ring.Count).Select(edge => (int?)edge).FirstOrDefault()
+                is { } outside)
+                return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                    $"the bend of shape '{shapeId}' names edge {outside}, not between 0 and {ring.Count - 1}",
+                    Field: "edges", Subjects: [shapeId]));
+            var named = edges?.ToHashSet();
+            Func<double, double, (double X, double Z)>? sampleAt = null;
+            if (fan && Symmetry.SelfImage(ring, mode, centreX, centreZ) is { } images)
             {
-                ["in"] = new JsonArray(JsonValue.Create(handle.Value.In[0]), JsonValue.Create(handle.Value.In[1])),
-                ["out"] = new JsonArray(JsonValue.Create(handle.Value.Out[0]), JsonValue.Create(handle.Value.Out[1])),
-            })));
+                sampleAt = (x, z) => Symmetry.Canonical(x, z, mode, centreX, centreZ);
+                foreach (var lands in images)
+                    foreach (var edge in edges ?? []) named!.Add(Symmetry.ImageEdge(lands, edge));
+            }
+            if (RingBend.Draw(ring, wander, step, seed, tension, side: side, edges: named, sampleAt: sampleAt) is not { } coast)
+                return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                    $"the bend of shape '{shapeId}' with a `wander` of {wander} blocks and a `step` of {step} blocks "
+                    + "folds its outline across itself",
+                    Field: "wander", Subjects: [shapeId]));
+
+            held = Math.Max(held, coast.Held);
+            Reheight(outline.Holder, ring, coast.Ring);
+            Redraw(outline.Points, coast.Ring);
+            if (outline.Shape)
+                outline.Holder["controls"] = new JsonObject(coast.Controls.Select(handle =>
+                    KeyValuePair.Create(handle.Key.ToString(CultureInfo.InvariantCulture), (JsonNode?)new JsonObject
+                    {
+                        ["in"] = new JsonArray(JsonValue.Create(handle.Value.In[0]), JsonValue.Create(handle.Value.In[1])),
+                        ["out"] = new JsonArray(JsonValue.Create(handle.Value.Out[0]), JsonValue.Create(handle.Value.Out[1])),
+                    })));
+        }
         return new(root.ToJsonString(), shapeId);
     }
 
@@ -250,69 +246,76 @@ public static class SketchGeometryEdit
     /// where the number is negative. An outline the board's symmetry carries onto itself takes every pull at each
     /// image of its edge too, a fraction along a reflected edge counted from its other end, unless
     /// <paramref name="fan"/> is false. Refused, as a point edit is, on a shape with no outline of its own, at an
-    /// edge the outline does not have, and where the pulled outline would fold across itself.</summary>
+    /// edge the outline does not have, and where the pulled outline would fold across itself. With
+    /// <paramref name="everyOutline"/> it reaches every outline carrying the id, and a line, which has no inside,
+    /// is refused.</summary>
     public static GeometryEdit PullShape(
-        string? layoutJson, string shapeId, IReadOnlyDictionary<int, IReadOnlyList<RingPull.Pull>> pulls, bool fan = true)
+        string? layoutJson, string shapeId, IReadOnlyDictionary<int, IReadOnlyList<RingPull.Pull>> pulls, bool fan = true,
+        bool everyOutline = false)
     {
         var root = Root(layoutJson);
-        if (Outline(Layers(root), shapeId, out var shape, out var vertices) is { } refused) return refused;
-        foreach (var (edge, along) in pulls)
-        {
-            if (Range(shapeId, edge, vertices.Count) is { } outOfRange) return outOfRange;
-            foreach (var pull in along)
-                if (pull.At is not (> 0 and < 1) || !double.IsFinite(pull.In))
-                    return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                        $"edge {edge} of shape '{shapeId}' has a pull at "
-                        + $"{pull.At.ToString(CultureInfo.InvariantCulture)} by "
-                        + $"{pull.In.ToString(CultureInfo.InvariantCulture)}, not a position between 0 and 1 "
-                        + "moved by a number of blocks",
-                        Field: "pulls", Subjects: [shapeId]));
-        }
-
-        var ring = Ring(vertices);
-        var placed = pulls.ToDictionary(edge => edge.Key, edge => edge.Value.ToList());
+        if (Outlines(root, shapeId, everyOutline, "a point edit", out var drawn) is { } refused) return refused;
         var (mode, centreX, centreZ) = SymmetryOf(root);
-        if (fan && Symmetry.SelfImage(ring, mode, centreX, centreZ) is { } images)
-            foreach (var lands in images)
-                foreach (var (edge, along) in pulls)
-                {
-                    var image = Symmetry.ImageEdge(lands, edge);
-                    var reversed = lands[(edge + 1) % ring.Count] != (lands[edge] + 1) % ring.Count;
-                    if (!placed.TryGetValue(image, out var there)) placed[image] = there = [];
-                    foreach (var pull in along)
+
+        foreach (var outline in drawn)
+        {
+            if (outline.Line is { } line) return Lineless(shapeId, line, "a pull");
+            foreach (var (edge, along) in pulls)
+            {
+                if (Range(shapeId, edge, outline.Points.Count) is { } outOfRange) return outOfRange;
+                foreach (var pull in along)
+                    if (pull.At is not (> 0 and < 1) || !double.IsFinite(pull.In))
+                        return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                            $"edge {edge} of shape '{shapeId}' has a pull at "
+                            + $"{pull.At.ToString(CultureInfo.InvariantCulture)} by "
+                            + $"{pull.In.ToString(CultureInfo.InvariantCulture)}, not a position between 0 and 1 "
+                            + "moved by a number of blocks",
+                            Field: "pulls", Subjects: [shapeId]));
+            }
+
+            var ring = Ring(outline.Points);
+            var placed = pulls.ToDictionary(edge => edge.Key, edge => edge.Value.ToList());
+            if (fan && Symmetry.SelfImage(ring, mode, centreX, centreZ) is { } images)
+                foreach (var lands in images)
+                    foreach (var (edge, along) in pulls)
                     {
-                        var landed = reversed ? pull with { At = 1 - pull.At } : pull;
-                        if (!there.Any(other => Math.Abs(other.At - landed.At) < 1e-9 && Math.Abs(other.In - landed.In) < 1e-9))
-                            there.Add(landed);
+                        var image = Symmetry.ImageEdge(lands, edge);
+                        var reversed = lands[(edge + 1) % ring.Count] != (lands[edge] + 1) % ring.Count;
+                        if (!placed.TryGetValue(image, out var there)) placed[image] = there = [];
+                        foreach (var pull in along)
+                        {
+                            var landed = reversed ? pull with { At = 1 - pull.At } : pull;
+                            if (!there.Any(other => Math.Abs(other.At - landed.At) < 1e-9 && Math.Abs(other.In - landed.In) < 1e-9))
+                                there.Add(landed);
+                        }
                     }
-                }
 
-        if (RingPull.Draw(ring, placed.ToDictionary(edge => edge.Key, edge => (IReadOnlyList<RingPull.Pull>)edge.Value))
-            is not { } drawn)
-            return Folded(shapeId, "points are pulled");
+            if (RingPull.Draw(ring, placed.ToDictionary(edge => edge.Key, edge => (IReadOnlyList<RingPull.Pull>)edge.Value))
+                is not { } pulled)
+                return Folded(shapeId, "points are pulled");
 
-        // Each vertex keeps its handles at its new index, less those of a vertex whose edge took a point.
-        var moved = new Dictionary<int, int>();
-        var landedAt = 0;
-        for (var vertex = 0; vertex < ring.Count; vertex++)
-        {
-            moved[vertex] = landedAt;
-            landedAt += 1 + (placed.TryGetValue(vertex, out var inserted) ? inserted.Count : 0);
-        }
-        var stale = placed.Where(edge => edge.Value.Count > 0)
-            .SelectMany(edge => (int[])[edge.Key, (edge.Key + 1) % ring.Count]).ToHashSet();
-        vertices.Clear();
-        foreach (var point in drawn) vertices.Add(Point(point[0], point[1]));
-        Reheight(shape, ring, drawn);
-        if (shape["controls"] is JsonObject controls)
-        {
-            var kept = new JsonObject();
-            foreach (var (key, value) in controls.ToList())
-                if (int.TryParse(key, NumberStyles.Integer, CultureInfo.InvariantCulture, out var vertex)
-                    && moved.TryGetValue(vertex, out var to) && !stale.Contains(vertex))
-                    kept[to.ToString(CultureInfo.InvariantCulture)] = value?.DeepClone();
-            if (kept.Count == 0) shape.Remove("controls");
-            else shape["controls"] = kept;
+            // Each vertex keeps its handles at its new index, less those of a vertex whose edge took a point.
+            var moved = new Dictionary<int, int>();
+            var landedAt = 0;
+            for (var vertex = 0; vertex < ring.Count; vertex++)
+            {
+                moved[vertex] = landedAt;
+                landedAt += 1 + (placed.TryGetValue(vertex, out var inserted) ? inserted.Count : 0);
+            }
+            var stale = placed.Where(edge => edge.Value.Count > 0)
+                .SelectMany(edge => (int[])[edge.Key, (edge.Key + 1) % ring.Count]).ToHashSet();
+            Redraw(outline.Points, pulled);
+            Reheight(outline.Holder, ring, pulled);
+            if (outline.Holder["controls"] is JsonObject controls)
+            {
+                var kept = new JsonObject();
+                foreach (var (key, value) in controls.ToList())
+                    if (int.TryParse(key, NumberStyles.Integer, CultureInfo.InvariantCulture, out var vertex)
+                        && moved.TryGetValue(vertex, out var to) && !stale.Contains(vertex))
+                        kept[to.ToString(CultureInfo.InvariantCulture)] = value?.DeepClone();
+                if (kept.Count == 0) outline.Holder.Remove("controls");
+                else outline.Holder["controls"] = kept;
+            }
         }
         return new(root.ToJsonString(), shapeId);
     }
@@ -320,97 +323,159 @@ public static class SketchGeometryEdit
     /// <summary>The shape at <paramref name="shapeId"/> with the one vertex at <paramref name="index"/>
     /// moved to <c>(x, z)</c>. Every other vertex stays exactly where it was drawn, which is the whole point
     /// of the call: a board's shapes abut, and an edit that drags a ring's other points opens ground between
-    /// two that were flush.</summary>
-    public static GeometryEdit MoveVertex(string? layoutJson, string shapeId, int index, double x, double z)
+    /// two that were flush. With <paramref name="everyOutline"/> the point moves on every outline carrying the
+    /// id.</summary>
+    public static GeometryEdit MoveVertex(
+        string? layoutJson, string shapeId, int index, double x, double z, bool everyOutline = false)
     {
         var root = Root(layoutJson);
-        if (Outline(Layers(root), shapeId, out var shape, out var vertices) is { } refused) return refused;
-        if (Range(shapeId, index, vertices.Count) is { } outOfRange) return outOfRange;
+        if (Outlines(root, shapeId, everyOutline, "a point edit", out var drawn) is { } refused) return refused;
 
-        var ring = Ring(vertices);
-        ring[index] = [x, z];
-        if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "a point is moved");
+        foreach (var outline in drawn)
+        {
+            if (Range(shapeId, index, outline.Points.Count) is { } outOfRange) return outOfRange;
+            var ring = Ring(outline.Points);
+            ring[index] = [x, z];
+            if (Polygon.SelfIntersects(ring, outline.Closed)) return Folded(shapeId, "a point is moved");
 
-        vertices[index] = Point(x, z);
-        Recontrol(shape, index, vertices.Count, shift: null);
+            outline.Points[index] = Point(x, z);
+            Recontrol(outline.Holder, index, outline.Points.Count, shift: null);
+        }
         return new(root.ToJsonString(), shapeId);
     }
 
     /// <summary>The shape at <paramref name="shapeId"/> with one vertex added after <paramref name="after"/>,
     /// at <c>(x, z)</c> where the caller states a point and at the midpoint of that edge where it does not —
     /// the anchor a hand reaches for when it wants a new corner half way along a wall. The new vertex's index
-    /// rides back in <paramref name="index"/>.</summary>
+    /// rides back in <paramref name="index"/>. With <paramref name="everyOutline"/> the point is added to every
+    /// outline carrying the id, and a line's last point has no edge after it.</summary>
     public static GeometryEdit InsertVertex(
-        string? layoutJson, string shapeId, int after, double? x, double? z, out int index)
+        string? layoutJson, string shapeId, int after, double? x, double? z, out int index, bool everyOutline = false)
     {
         index = -1;
         var root = Root(layoutJson);
-        if (Outline(Layers(root), shapeId, out var shape, out var vertices) is { } refused) return refused;
-        if (Range(shapeId, after, vertices.Count) is { } outOfRange) return outOfRange;
+        if (Outlines(root, shapeId, everyOutline, "a point edit", out var drawn) is { } refused) return refused;
 
-        var ring = Ring(vertices);
-        var next = ring[(after + 1) % ring.Count];
-        var at = index = after + 1;
-        double px = x ?? (ring[after][0] + next[0]) / 2, pz = z ?? (ring[after][1] + next[1]) / 2;
+        foreach (var outline in drawn)
+        {
+            var count = outline.Points.Count;
+            if (Range(shapeId, after, outline.Closed ? count : count - 1) is { } outOfRange) return outOfRange;
 
-        var before = Ring(vertices);
-        ring.Insert(at, [px, pz]);
-        if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "a point is added");
+            var before = Ring(outline.Points);
+            var ring = Ring(outline.Points);
+            var next = ring[(after + 1) % count];
+            var at = index = after + 1;
+            double px = x ?? (ring[after][0] + next[0]) / 2, pz = z ?? (ring[after][1] + next[1]) / 2;
+            ring.Insert(at, [px, pz]);
+            if (Polygon.SelfIntersects(ring, outline.Closed)) return Folded(shapeId, "a point is added");
 
-        vertices.Insert(at, Point(px, pz));
-        Reheight(shape, before, ring);
-        Recontrol(shape, at, vertices.Count, shift: from => from >= at ? from + 1 : from);
+            outline.Points.Insert(at, Point(px, pz));
+            Reheight(outline.Holder, before, ring);
+            Recontrol(outline.Holder, at, outline.Points.Count, shift: from => from >= at ? from + 1 : from);
+        }
         return new(root.ToJsonString(), shapeId);
     }
 
     /// <summary>The shape at <paramref name="shapeId"/> without the vertex at <paramref name="index"/>.
-    /// Refused where the outline is down to its last three, since two points draw no ground.</summary>
-    public static GeometryEdit RemoveVertex(string? layoutJson, string shapeId, int index)
+    /// Refused where the outline is down to its last three, since two points draw no ground — or, on a line,
+    /// its last two. With <paramref name="everyOutline"/> the point goes from every outline carrying the
+    /// id.</summary>
+    public static GeometryEdit RemoveVertex(string? layoutJson, string shapeId, int index, bool everyOutline = false)
     {
         var root = Root(layoutJson);
-        if (Outline(Layers(root), shapeId, out var shape, out var vertices) is { } refused) return refused;
-        if (Range(shapeId, index, vertices.Count) is { } outOfRange) return outOfRange;
+        if (Outlines(root, shapeId, everyOutline, "a point edit", out var drawn) is { } refused) return refused;
 
-        if (vertices.Count <= 3)
-            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"shape '{shapeId}' has {vertices.Count} points, and taking one away leaves fewer than 3",
-                Field: "index", Subjects: [shapeId]));
+        foreach (var outline in drawn)
+        {
+            var count = outline.Points.Count;
+            if (Range(shapeId, index, count) is { } outOfRange) return outOfRange;
+            var fewest = outline.Closed ? 3 : 2;
+            if (count <= fewest)
+                return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                    $"shape '{shapeId}' has {count} points, and taking one away leaves fewer than {fewest}",
+                    Field: "index", Subjects: [shapeId]));
 
-        var before = Ring(vertices);
-        var ring = Ring(vertices);
-        ring.RemoveAt(index);
-        if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "a point is removed");
+            var before = Ring(outline.Points);
+            var ring = Ring(outline.Points);
+            ring.RemoveAt(index);
+            if (Polygon.SelfIntersects(ring, outline.Closed)) return Folded(shapeId, "a point is removed");
 
-        vertices.RemoveAt(index);
-        Reheight(shape, before, ring);
-        Recontrol(shape, index % vertices.Count, vertices.Count, shift: from =>
-            from == index ? null : from > index ? from - 1 : from);
+            outline.Points.RemoveAt(index);
+            Reheight(outline.Holder, before, ring);
+            Recontrol(outline.Holder, index % outline.Points.Count, outline.Points.Count, shift: from =>
+                from == index ? null : from > index ? from - 1 : from);
+        }
         return new(root.ToJsonString(), shapeId);
     }
 
-    /// <summary>The vertex list of a shape that can take a per-vertex edit, or the finding that refuses it: a
-    /// <c>role</c> shape is the plan's own rectangle and is the compiler's to draw, and a rectangle or a
-    /// circle states its bounds rather than an outline.</summary>
-    private static GeometryEdit? Outline(
-        JsonArray layers, string shapeId, out JsonObject shape, out JsonArray vertices)
+    /// <summary>One outline an edit reaches: the points as stated, the object stating them, whether they close
+    /// into a ring, whether the object is a plan shape — the one outline that carries Bézier handles — and, on a
+    /// line, what the line is.</summary>
+    private sealed record Drawn(JsonObject Holder, JsonArray Points, bool Closed, bool Shape, string? Line);
+
+    /// <summary>Every outline carrying <paramref name="id"/>, or the finding that refuses <paramref name="edit"/>.
+    /// Without <paramref name="everyOutline"/> that is the shape alone: a <c>role</c> shape is the plan's own
+    /// rectangle and is the compiler's to draw, and a rectangle or a circle states its bounds rather than an
+    /// outline. With it, it is also the <c>ring</c> of each relief <c>area</c> mark and push and the
+    /// <c>points</c> of each stroke, fluid and flora prop carrying the id — a relief stated for every group
+    /// carries the mark once in each. A stroke and a fluid channel are lines, drawn open; a pool, a basin and
+    /// flora close.</summary>
+    private static GeometryEdit? Outlines(JsonObject root, string id, bool everyOutline, string edit, out List<Drawn> drawn)
     {
-        shape = null!;
-        vertices = null!;
-        if (ShapeAt(layers, shapeId) is not { } found) return GeometryEdit.Missing;
-        shape = found;
+        var found = drawn = [];
+        if (ShapeAt(Layers(root), id) is { } shape)
+        {
+            if (Text(shape["role"]) is { Length: > 0 } role)
+                return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                    $"shape '{id}' has the `role` '{role}', which {edit} does not take",
+                    Field: "role", Subjects: [id]));
+            if (Taken(shape, "vertices", line: null, isShape: true) is { } fewer) return fewer;
+        }
+        if (everyOutline)
+        {
+            var relief = (root["relief"] as JsonObject ?? []).Select(group => group.Value).OfType<JsonObject>().ToList();
+            var rings = relief.SelectMany(group => group["marks"] as JsonArray ?? []).OfType<JsonObject>()
+                .Where(mark => Text(mark["kind"]) == MarkKinds.Area)
+                .Concat(relief.SelectMany(group => group["pushes"] as JsonArray ?? []).OfType<JsonObject>());
+            foreach (var held in rings.Where(held => Text(held["id"]) == id))
+                if (Taken(held, "ring", line: null, isShape: false) is { } fewer) return fewer;
 
-        if (Text(found["role"]) is { Length: > 0 } role)
-            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"shape '{shapeId}' has the `role` '{role}', which a point edit does not take",
-                Field: "role", Subjects: [shapeId]));
+            foreach (var prop in (root["dressing"]?["props"] as JsonArray ?? []).OfType<JsonObject>()
+                         .Where(prop => Text(prop["id"]) == id))
+            {
+                var kind = Text(prop["kind"]);
+                if (kind is not (PropKinds.Stroke or PropKinds.Fluid or PropKinds.Flora)) continue;
+                var line = kind == PropKinds.Stroke ? "a stroke's centerline"
+                    : kind == PropKinds.Fluid && Channel(prop) ? "a fluid channel's centerline" : null;
+                if (Taken(prop, "points", line, isShape: false) is { } fewer) return fewer;
+            }
+        }
+        return found.Count == 0 ? GeometryEdit.Missing : null;
 
-        if (found["vertices"] is not JsonArray stated || stated.Count < 3)
-            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                $"shape '{shapeId}' states fewer than 3 points in `vertices`",
-                Field: "vertices", Subjects: [shapeId]));
+        GeometryEdit? Taken(JsonObject holder, string key, string? line, bool isShape)
+        {
+            var fewest = line is null ? 3 : 2;
+            if (holder[key] is not JsonArray stated || stated.Count < fewest)
+                return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                    $"{(isShape ? "shape " : "")}'{id}' states fewer than {fewest} points in `{key}`",
+                    Field: key, Subjects: [id]));
+            found.Add(new(holder, stated, Closed: line is null, isShape, line));
+            return null;
+        }
 
-        vertices = stated;
-        return null;
+        static bool Channel(JsonObject fluid) =>
+            !Enum.TryParse<FluidShape>(Text(fluid["shape"]), ignoreCase: true, out var form) || form == FluidShape.Channel;
+    }
+
+    private static GeometryEdit Lineless(string id, string line, string edit) =>
+        GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+            $"'{id}' is {line}, which has no inside for {edit} to move points toward or away from",
+            Field: "points", Subjects: [id]));
+
+    private static void Redraw(JsonArray points, IEnumerable<double[]> ring)
+    {
+        points.Clear();
+        foreach (var point in ring) points.Add(Point(point[0], point[1]));
     }
 
     private static GeometryEdit? Range(string shapeId, int index, int count) =>
@@ -545,12 +610,25 @@ public static class SketchGeometryEdit
         return (mode, Number(setup?["center"]?["cx"]), Number(setup?["center"]?["cz"]));
     }
 
-    /// <summary>The outline of the shape at <paramref name="shapeId"/> as it stands, or null where the layout
-    /// carries no such polygon.</summary>
-    internal static List<double[]>? RingOf(string? layoutJson, string shapeId) =>
-        ShapeAt(Layers(Root(layoutJson)), shapeId)?["vertices"] is JsonArray stated && stated.Count >= 3
-            ? [.. stated.Select(point => new[] { Number(point?[0]), Number(point?[1]) })]
-            : null;
+    /// <summary>The first outline carrying <paramref name="id"/> as it stands (<see cref="Outlines"/>), or null
+    /// where the layout carries none an edit takes.</summary>
+    internal static List<double[]>? RingOf(string? layoutJson, string id) =>
+        Outlines(Root(layoutJson), id, everyOutline: true, "a point edit", out var drawn) is null ? Ring(drawn[0].Points) : null;
+
+    /// <summary>The ids of everything an edit to every outline reaches: the shapes, the relief <c>area</c> marks
+    /// and pushes, and the stroke, fluid and flora props.</summary>
+    internal static IEnumerable<string> OutlineIds(string? layoutJson)
+    {
+        var root = Root(layoutJson);
+        var relief = (root["relief"] as JsonObject ?? []).Select(group => group.Value).OfType<JsonObject>().ToList();
+        return Layers(root).OfType<JsonObject>().SelectMany(layer => Shapes(layer).OfType<JsonObject>())
+            .Concat(relief.SelectMany(group => group["marks"] as JsonArray ?? []).OfType<JsonObject>()
+                .Where(mark => Text(mark["kind"]) == MarkKinds.Area))
+            .Concat(relief.SelectMany(group => group["pushes"] as JsonArray ?? []).OfType<JsonObject>())
+            .Concat((root["dressing"]?["props"] as JsonArray ?? []).OfType<JsonObject>()
+                .Where(prop => Text(prop["kind"]) is PropKinds.Stroke or PropKinds.Fluid or PropKinds.Flora))
+            .Select(held => Text(held["id"])).OfType<string>().Distinct();
+    }
 
     private static JsonArray Layers(JsonObject root)
     {

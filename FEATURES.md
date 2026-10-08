@@ -9174,6 +9174,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   image, and a complaint where one folds the ring. It is `coast_edits`' own argument, drawn by the studio point
   for point. (`Geom/RingPull`, `Pgm/Sketch/SketchGeometryEdit`, `Pgm/Plan/Refinement`, `docs/tools/flow.md`,
   `docs/refusals.md`)
+- **A point edit and a bend reach every outline (`TS130`).** `editShapes` and `bendShapes` reach every outline
+  carrying the id, as `outlines` does: a shape's vertices, a relief `area` mark's or a push's ring, a stroke's, a
+  fluid's or a flora's points, each edit landing on all of them or on none, and only a shape keeping a bend's
+  handles. A stroke and a fluid channel are lines: a move, an insert and a remove are tested without an edge
+  between their two ends and keep two points, and a pull or a bend on one is a complaint. The shape routes still
+  reach the shape alone. (`Geom/Polygon`, `Pgm/Sketch/SketchGeometryEdit`, `Pgm/Plan/Refinement`,
+  `docs/tools/flow.md`)
 - **The house styles boards are built with are the library's (`TL33`).** Twenty-nine styles the authoring
   repository's boards stamp are kept as the stamper's own JSON under `Minecraft/Houses/Kept` and seeded into the
   room library under their names beside the presets, each composing back out of the store to exactly the style

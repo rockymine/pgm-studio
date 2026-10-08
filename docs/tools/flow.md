@@ -168,8 +168,8 @@ given, which is why every point edit comes before it.
 | `shapePropsByHeight` · `shapePropsById` | fields merged onto a shape by the height it stands at or by its id; a field stated as null is removed | `PATCH …/sketch/shapes/{shapeId}` |
 | `addLayers` | storeys, each `{id, name, base_y, below, kind, part_of, seat, shapes, groups}` — over the compiled ground, or under it where `below` is true | `PUT …/sketch/layers/{layerId}` |
 | `addShapes` | shapes, each carrying the `layer` and `group` it joins beside its own fields. One naming neither joins the compiled ground and its first group | `POST …/sketch/layers/{layerId}/shapes?group=` |
-| `editShapes` | `{shapeId: [edit, …]}`, in order, each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`), `remove` (drop that point) and `pulls` (`{edge: [[fraction, blocks], …]}` — points a fraction of the way along each named edge, moved that many blocks into the ring, or out of it where negative); on a shape the board's symmetry carries onto itself the edit is made at every image unless it states `fan: false` | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on the shape, once per image; a pull has none |
-| `bendShapes` | `{shapeId: {wander, step, seed, tension, side, edges, fan}}` — `edges` names the edges drawn as coast, each by the vertex it leaves, and every other edge stays as drawn; on a shape the board's symmetry carries onto itself the coast is its own image too unless `fan` is false | `POST …/sketch/shapes/{shapeId}/bend` |
+| `editShapes` | `{id: [edit, …]}`, in order, made to every outline carrying the id — a shape's vertices, a relief `area` mark's or a push's ring, a stroke's, a fluid's or a flora's points — each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`), `remove` (drop that point) and `pulls` (`{edge: [[fraction, blocks], …]}` — points a fraction of the way along each named edge, moved that many blocks into the ring, or out of it where negative); on an outline the board's symmetry carries onto itself the edit is made at every image unless it states `fan: false` | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on a shape, once per image; a pull, and an edit to a mark or a prop, has none |
+| `bendShapes` | `{id: {wander, step, seed, tension, side, edges, fan}}`, made to every ring carrying the id, and only a shape keeps the Bézier handles it fits — `edges` names the edges drawn as coast, each by the vertex it leaves, and every other edge stays as drawn; on an outline the board's symmetry carries onto itself the coast is its own image too unless `fan` is false | `POST …/sketch/shapes/{shapeId}/bend` on a shape; a mark or a prop has none |
 | `outlines` | `{id: {at, radius, radiusZ, points, lobes, wobble, phase, turn}}` — an ellipse pulled in and out by lobes, written as the points of whatever carries that id: a shape's vertices (a rectangle or a circle becoming a polygon), the ring of a relief `area` mark or a push, the points of a stroke, a fluid or a flora prop | the points stated on the thing itself |
 | `relief` | `{groupId: relief}`, where `*` stands for every group of the compiled ground | `PUT …/sketch/relief/{groupId}` |
 | `themes` · `mapTheme` | the theme registry, and the map's default theme — the registry's first where none is stated | `PUT …/sketch/themes/{themeId}`, `PUT …/sketch/map-theme` |
@@ -191,8 +191,16 @@ is keyed on.
 
 **A statement that reaches nothing is said, and the rest is applied.** One naming a shape or a layer the board
 does not have is `SR2`, a complaint listing the ids the board has. An edit the board refuses — a point asked of
-a rectangle, an index past the ring — is a complaint on the same terms, naming the edit by its place in the
-refinement (`editShapes.dale-9[2]`).
+a rectangle, an index past the ring, a pull or a bend asked of a line — is a complaint on the same terms, naming
+the edit by its place in the refinement (`editShapes.dale-9[2]`). An id carried by several outlines takes each
+edit on all of them or on none.
+
+**A line takes a point edit as a line.** A stroke's points and a fluid channel's are a centerline with two ends
+and no edge between them: a move, an insert and a remove are tested for the line crossing itself without that
+edge, an insert names an edge up to the one before the last point, and a remove keeps two points where a ring
+keeps three. A pull and a bend move points toward or away from an inside, which a line does not have, so either
+asked of one is a complaint and the line stays as it was. A pool, a basin and flora close into rings and take
+all four.
 
 **A coast placed for play is stated as pulls.** A pull is a point stated where it stands:
 `{"pulls": {"3": [[0.19, -7], [0.42, 4]]}}` puts a point 19% of the way along edge 3 and moves it seven blocks out
@@ -219,15 +227,16 @@ layout's own — `setup.mirror_mode` and its `center`. A capture point and a gen
 every image added, at the image of the point it stands on: an image of a capture point takes its name numbered
 on (`Bench`, `Bench 2`), and an image of a generator its id (`iron`, `iron-2`), since the regions a generator
 mints are named for it. One already standing within half a block of where an image would go is that image, so a
-point at the centre of symmetry stays one and a hand-placed pair stays a pair. A point edit and a bend to a shape
-the symmetry carries onto itself — a shape on the axis, which no group's fan copies — are made at every image:
+point at the centre of symmetry stays one and a hand-placed pair stays a pair. A point edit and a bend to an outline
+the symmetry carries onto itself — a shape on the axis, which no group's fan copies, or a mark or a prop drawn
+across it — are made at every image:
 an insert or a move lands at the image of its point on the image of its edge, a remove takes the image point
 too, a pull lands the same fraction along the image of its edge — counted from the other end where the image runs
 the other way — and a bend reads its wander at each point's canonical image and draws a named edge's images with
 it, so the outline stays its own image. `fan: false` on an edit or a bend makes it alone. A move that takes a point
 the symmetry holds in place off its line has no image that keeps the outline its own, so the point moves as
-stated and `SR8` says the outline is lopsided now. A relief mark needs none of this: the solve folds a group's
-surface across the axis (`docs/world-export/relief.md` §8).
+stated and `SR8` says the outline is lopsided now. A relief mark that is not its own image needs none of
+this: the solve folds a group's surface across the axis (`docs/world-export/relief.md` §8).
 
 **A statement that does not say what it means refuses the whole source.** A storey stated under an id the board
 already has, or under none, is `SR3`, a point edit naming no single point is `SR4`, and an outline that draws no

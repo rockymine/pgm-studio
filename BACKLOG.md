@@ -34,6 +34,12 @@ about which section the entry sits in — the retired prefixes still on entries 
   anchor, kept when the author resolves the note, and raised as a finding naming the note when a later pass
   breaks it. `docs/tools/sketch.md` § Review.
 
+- [ ] **TS169 — A pull and a bend on a line.** *Parked (author): no convention yet for which side of a line is
+  "in".* `editShapes` pulls and `bendShapes` on a stroke's or a fluid channel's centerline are a complaint
+  (`SketchGeometryEdit.Lineless`), because `RingPull` and `RingBend` read in and out off a closed ring. Taking
+  them needs that side stated — the left of the line's direction is one answer — and an open-path variant of
+  both in `Geom`. `docs/tools/flow.md`.
+
 ## The configure wizard: a map built from what an author states it is
 
 The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds a map from declarative
@@ -141,6 +147,16 @@ what is gathered here is the parked and dormant slices of the same surface.
   157/201; a neutral family mixed with a warm one: 54) are superseded.*
 
 ### Relief
+
+- [ ] **WE164 — A spawn's piece is held level only under its building and the way out.** The plan compiler
+  projects the whole spawn piece into the layout as one held rectangle, and the spawn's protection is that same
+  rectangle, so every column of it stands at one height and nothing beside the spawn can rise. Hold level only
+  the building's footprint, its pad and the approach in front of each door (`DressingScope.ApproachAt`), and
+  let the relief solve the rest of the piece as ground, so a hill, a stack of rock or a slope comes up beside
+  the spawn house (the author's ruling, `docs/gameplay/approaches.md`: the spawn sits in the land). The
+  protection keeps its rectangle. `docs/world-export/relief.md`. *Evidence: a board whose spawn piece and
+  protection are both x −12…12, z −112…−92 has all 190 ground columns of it outside the building at y19; its
+  building is x −10…10, z −111…−97.*
 
 - [ ] **WE28 — A relief is keyed by group id, and a stacked board's storeys share one namespace.**
   `SketchReliefJson` rides top-level on the layout keyed by group, and a group id is unique across the stack
@@ -254,6 +270,25 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ### Dressing: what the pass can place
 
+- [ ] **WE165 — A tree or a boulder may stand inside a spawn's protection.** `DressingScope.KeptClearAt` keeps
+  every spawn's whole protection area clear (`KeepOut.Spawn`), so a standing prop anywhere in it is declined
+  `DR-KEEP`. Keep clear only the spawn point, the building and the approach in front of its doors, which
+  `ApproachAt` already measures, and let trees and boulders stand on the rest, so a spawn house is planted
+  round like any other (the author's ruling). Worth most once `WE164` gives the piece ground to stand them on.
+  `docs/world-export/decoration.md` (§2's mask, and §3.1's "a boulder inside a spawn's protection").
+  *Evidence: `DressingScope.cs:88` adds every `spawn.Protection` area as `KeepOut.Spawn`.*
+
+- [ ] **WE163 — A cross wing taller than its hall breaks both roofs.** `WingJoints` takes the hall from the
+  ridges and `HJ5` measures height by span alone, so a cross wing with more storeys than its hall
+  (`storeysHigh` 0, every storey of a two-storey style, against the hall's 1) passes and stamps: the hall's eave
+  stairs stack against the wing's wall and the wing's roof edge breaks. `WingSpec`'s own docstring names a
+  one-storey hall with a two-storey cross wing as the shape `StoreysHigh` exists for, so either the joint reads
+  storeys — the lower roof stopping at the taller wall — or `HJ5` refuses it until it does.
+  `docs/world-export/structures.md`. *Evidence: a house of `corners [[8,-33],[23,-26]]` ridge `alongX`
+  `storeysHigh` 1 and `[[8,-25],[15,-20]]` ridge `alongZ` `storeysHigh` 0 in a two-storey style, eye from
+  (−4, −42) looking at (15, −27); the same two rectangles at equal storeys, or with the cross wing the lower,
+  stamp clean.*
+
 - [ ] **TL35 — A copied tree states no species.** A tree save requires `species` (`RQ1`) and the library
   answers one for every row, so every copied recipe states `"species": "oak"` — `acacia-1`, `birch-3` and
   `sequoia-1` alike, and so every entry of the seed folder's `trees.json`. A copied tree
@@ -314,6 +349,13 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   what the plan-tier walks (`SK11`) and the export's reach say about a void they cannot see. `docs/tools/sketch.md`.
   *Evidence: `sketch.md` "A subtract with a lid over it": the lid comes back as the column's only span.*
 
+- [ ] **TS170 — A polyline shape is edited as a line.** `SketchGeometryEdit.Outlines` takes every shape's
+  `vertices` as a closed ring, so a `polyline` shape (a wall, a lane) is refused a move that crosses only the
+  edge between its two ends, needs three points to take any edit, and is pulled and bent as a ring. Read
+  `type: polyline` as a line, the way `Reheight` already does and a stroke's points already are, on the shape
+  routes and in `editShapes`. `docs/tools/sketch.md`. *Evidence: `Reheight` reads `type != "polyline"` as
+  closed; `Outlines` sets every shape `Closed: true`.*
+
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
   then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag
@@ -325,6 +367,14 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   confirms an edit after the fact rather than while it is being made.
 
 ## World import: reading a map the studio did not build
+
+- [ ] **WS83 — The world reads answer an imported map.** Every read in `read-backs.md` builds its world from a
+  stored sketch layout (`BuiltWorlds`), so an imported map, whose region files are on disk under the import
+  root, answers `404` `SK6` to `render/heightmap`, `incline`, `slopes`, `reach`, `column`, `render/eye` and the
+  rest. Read an imported map's own region instead of building one, so a corpus board is studied with the same
+  reads as a built one; `slopes`, `incline`, `reach` and `render/eye` have no CLI form today.
+  `docs/world-scan/read-backs.md`. *Evidence: `GET /api/map/{slug}/render/heightmap` on a studio that has just
+  imported a corpus world with `import-folder` answers `{"error":"no world to read"}` with `SK6`.*
 
 ## The shop: buying things in the middle of a match
 
