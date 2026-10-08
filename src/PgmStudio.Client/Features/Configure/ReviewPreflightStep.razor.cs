@@ -145,7 +145,7 @@ public partial class ReviewPreflightStep
                     ? GameColors.DyeHex(color)
                     : GameColors.ChatHex(teamColors.GetValueOrDefault(w["owner"]?.GetValue<string>() ?? "", ""));
                 var label = string.IsNullOrEmpty(color) ? "wool" : color;
-                foreach (var rr in RectsOf(w["room"])) rooms.Add(new Zone(rr.X, rr.Z, rr.W, rr.H, dye, $"{label} room"));
+                foreach (var rr in RectsOf(w["protection"])) rooms.Add(new Zone(rr.X, rr.Z, rr.W, rr.H, dye, $"{label} room"));
                 if (w["monuments"] is JsonArray ms)
                     foreach (var mo in ms.OfType<JsonObject>())
                         if (mo["location"] is JsonObject loc)
