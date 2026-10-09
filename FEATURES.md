@@ -8624,12 +8624,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   blocks, so a library tree is the whole tree the author built: `showcase-r12-3` is 586 blocks and 16 tall with
   its 39 spruce planks, where it was 438 and 12 with the top of its crown missing. `docs/world-export/tree-corpus.md`. (`WE141`)
 
-- **A map credits the studio and the builders of its trees (`WE145`)** — a copied tree's cut can name who built
+- **A map credits the builders of its trees (`WE145`)** — a copied tree's cut can name who built
   it (`tools/seed-trees.cs --builder=<name>`, `cut.builder`), a pull carries the name into the map's recipe as
-  `builder`, and the export writes `map.xml` contributors for the builder of every copied tree that stands
-  ("Original builder of the copied trees") and for `PGM Studio (pgmstudio.de)` ("Built with the PGM Studio
-  authoring API at https://pgmstudio.de") on every map the studio authors, by account where one answers
-  and never twice for a person the map already credits. `M0045` names rockymine on every tree cut from the
+  `builder`, and the export writes a `map.xml` contributor for the builder of every copied tree that stands
+  ("Original builder of the copied trees"), by account where one answers and never twice for a person the map
+  already credits. The studio never credits itself. `M0045` names rockymine on every tree cut from the
   showcase and carries the name onto the copied trees already stored in maps.
   `docs/world-export/sketch-world-export.md` §4a. (`WE145`)
 

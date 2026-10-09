@@ -218,10 +218,10 @@ A map a signed-in person originates already credits them: the first row is their
 account (`docs/access.md`). Taking the row out removes the credit and nothing else — they stay the map's owner.
 In an open studio the local admin has no account, and the list starts empty.
 
-The people stated here are the map's own. The export adds two contributors after them that no row holds —
-`PGM Studio (pgmstudio.de)` for the tool the map was made with, and the builder of every copied tree standing on the board
-(`docs/world-export/sketch-world-export.md` §4a) — and credits neither a second time where the phase already
-names them.
+The people stated here are the map's own, and the studio is not among them: it never credits itself. The
+export adds one contributor after them that no row holds — the builder of every copied tree standing on the
+board (`docs/world-export/sketch-world-export.md` §4a) — and does not credit a builder a second time where the
+phase already names them.
 
 The phase is complete with a name and at least one author, and that is the one gate that blocks the very
 first Next.
