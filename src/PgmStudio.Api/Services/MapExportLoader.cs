@@ -48,14 +48,14 @@ public static class MapExportLoader
         return MapExportComposer.Compose(doc, layoutBytes, isIntent, segments, intent, surfacePalette, resources, accounts);
     }
 
-    /// <summary>The account behind each tree builder the layout names (<see cref="StudioCredits.Named"/>, which
+    /// <summary>The account behind each tree builder the layout names (<see cref="TreeBuilderCredits.Named"/>, which
     /// bounds how many), where one answers. A dressing document that does not parse names nobody here; the
     /// composer refuses it by name.</summary>
     private static async Task<IReadOnlyDictionary<string, (string Uuid, string Name)>> AccountsAsync(
         string layoutJson, PlayerLookup players, CancellationToken ct)
     {
         IReadOnlyList<string> named;
-        try { named = StudioCredits.Named(layoutJson); }
+        try { named = TreeBuilderCredits.Named(layoutJson); }
         catch (DressingParseException) { named = []; }
 
         var accounts = new Dictionary<string, (string Uuid, string Name)>(StringComparer.OrdinalIgnoreCase);

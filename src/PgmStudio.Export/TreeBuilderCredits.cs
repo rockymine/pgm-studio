@@ -5,23 +5,16 @@ namespace PgmStudio.Export;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// The contributors the studio credits on a map it authors, beside the people the author states: the studio
-/// itself, as the tool the map was made with, and whoever built a copied tree that stands in the world.
+/// The contributors the export adds to a map beside the people the author states: whoever built a copied tree
+/// that stands in the world. The studio credits nobody else, itself included.
 ///
 /// <para>Written into the document's <c>authors</c> list as contributors on the way to <c>map.xml</c>, and
 /// never stored: a tree removed from the board takes its builder's credit with it. A person the map already
 /// credits, in either role, is not credited again. A builder the caller resolved to an account is written by
 /// uuid, which is how <c>map.xml</c> names a player; everyone else is written as the pseudonym they are.</para>
 /// </summary>
-public static class StudioCredits
+public static class TreeBuilderCredits
 {
-    /// <summary>The studio, credited by its name and the address it is reached at.</summary>
-    public const string Studio = "PGM Studio (pgmstudio.de)";
-
-    /// <summary>What the studio is credited with. The link stands as a word of its own, so a chat that links
-    /// addresses links all of it.</summary>
-    public const string StudioContribution = "Built with the PGM Studio authoring API at https://pgmstudio.de";
-
     /// <summary>What a tree's builder is credited with — the copied trees only, since a vanilla tree on the same
     /// map is not theirs.</summary>
     public const string TreeContribution = "Original builder of the copied trees";
@@ -45,7 +38,7 @@ public static class StudioCredits
             .Take(MaxResolved),
     ];
 
-    /// <summary>Add the studio and every tree builder in <paramref name="treeBuilders"/> to
+    /// <summary>Add every tree builder in <paramref name="treeBuilders"/> to
     /// <paramref name="doc"/>'s <c>authors</c> as contributors. <paramref name="accounts"/> holds the builders
     /// the caller resolved, keyed by the name as stated.</summary>
     public static void Apply(
@@ -66,7 +59,6 @@ public static class StudioCredits
         }
 
         foreach (var builder in treeBuilders) Credit(builder, TreeContribution);
-        Credit(Studio, StudioContribution);
         doc["authors"] = people;
     }
 

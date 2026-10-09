@@ -55,7 +55,7 @@ public static class MapExportComposer
     /// boilerplate. Ignored for a sketch map, which has no scanned surface.</para>
     /// <para><b>resources</b> — The cached resource blocks, for a non-sketch intent map's renewables. Ignored for
     /// a sketch map, which derives its own renewable cubes from the world it just built.</para>
-    /// <para><b>accounts</b> — The tree builders the layout names (<see cref="StudioCredits.Named"/>) that the
+    /// <para><b>accounts</b> — The tree builders the layout names (<see cref="TreeBuilderCredits.Named"/>) that the
     /// caller resolved to accounts, so their credit is written by uuid. Null credits every one by name.</para></summary>
     public static ExportComposition Compose(
         Dict doc, byte[]? layoutBytes, bool isIntent, SegmentIndex? segments, MapIntent? intent,
@@ -91,10 +91,7 @@ public static class MapExportComposer
                 return Refuse("not a playable map", [.. playable.Refusals]);
 
             // Other maps get plain XML (they already ship a world). Intent maps additionally get the cached
-            // surface palette + spawn-ore renewables — cache-only, never triggering a world scan on export —
-            // and the studio's credit, since the studio authored them; a corpus map is left as its authors
-            // credited it.
-            if (isIntent) StudioCredits.Apply(doc, [], accounts);
+            // surface palette + spawn-ore renewables — cache-only, never triggering a world scan on export.
             var xml = MapXmlComposer.Compose(doc, isIntent, surfacePalette, resources);
             return new(null, xml, null, Remarks: playable is null ? null : [.. playable.Complaints]);
         }
@@ -119,7 +116,7 @@ public static class MapExportComposer
     /// a headless driver keeps its own crash semantics.
     /// <para><b>Every gate a sketch map is held to is in this chain</b>, so which door a caller came through
     /// cannot change what it is judged by.</para>
-    /// <para>The studio's credits (<see cref="StudioCredits"/>) are added last, after
+    /// <para>The tree builders' credits (<see cref="TreeBuilderCredits"/>) are added last, after
     /// <paramref name="decorate"/>, so a person the driver credits is not credited twice;
     /// <paramref name="accounts"/> is <see cref="Compose"/>'s.</para></summary>
     public static ExportComposition BuildAndCompose(
@@ -168,7 +165,7 @@ public static class MapExportComposer
         if (playable.Refuses)
             return Refuse("not a playable map", [.. playable.Refusals]);
 
-        StudioCredits.Apply(doc, built.Dressing.TreeBuilders, accounts);
+        TreeBuilderCredits.Apply(doc, built.Dressing.TreeBuilders, accounts);
         var renewCubes = WorldBuilder.RenewableCubeFootprints(goals, built.Shells);
         var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewCubes);
         return new(null, sketchXml, built, doc, [.. playable.Complaints]);
