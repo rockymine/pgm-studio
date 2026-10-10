@@ -77,6 +77,10 @@ public sealed record Finding(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Cites = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] DocumentEdit? Edit = null)
 {
+    /// <summary>What became of what it is about, as <see cref="RulePolicy"/> answers it: a refusal under a rule
+    /// the policy does not enforce is a complaint.</summary>
+    public Severity Severity { get; init; } = RulePolicy.Apply(Rule, Severity);
+
     /// <summary>The implicated ids, never null. A reader of the wire takes <see cref="Subjects"/>, which is
     /// absent rather than empty when the gate indicted nothing.</summary>
     [JsonIgnore]

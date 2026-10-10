@@ -53,7 +53,7 @@ public sealed class RulesEndpoint : EndpointWithoutRequest<List<RuleDto>>
     /// yet is not loaded, so sweeping <c>AppDomain</c> would drop a family depending on what the process
     /// happened to do first; naming a type in each one forces the load and makes the list checkable by eye.
     /// A new <c>*Rules</c> class in a project not listed here is caught by <c>RuleCatalogTests</c>.</summary>
-    private static readonly Assembly[] Declaring =
+    internal static readonly Assembly[] Declaring =
     [
         typeof(ObjectiveRules).Assembly,        // Domain
         typeof(PlanRules).Assembly,             // Pgm

@@ -42,6 +42,10 @@ builder.Configuration
 
 builder.Services.AddFastEndpoints();
 
+// Rules:Mode=minimal answers every rule outside MinimalRules as a complaint (docs/refusals.md).
+if (string.Equals(builder.Configuration["Rules:Mode"], "minimal", StringComparison.OrdinalIgnoreCase))
+    PgmStudio.Vocabulary.RulePolicy.UseMinimal(PgmStudio.Api.MinimalRules.Enforced());
+
 // The API describes itself, at /api-docs, from the routes and DTOs rather than from a table anyone keeps by
 // hand. Two audiences read it. A person opens the page, expands a route and sends a request without writing a
 // client — which is the only way to look at what a route answers short of curl. An agent reads

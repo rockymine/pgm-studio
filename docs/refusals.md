@@ -301,6 +301,27 @@ a release, which is the shape this whole section exists to remove.
 An endpoint gates in one line — `if (await Refusals.StopAsync(http, 400, "invalid house style", findings, ct))
 return;` — which writes only the refusals, so a complaint never arrives dressed as one.
 
+## The minimal policy
+
+**A studio started with `Rules:Mode=minimal` enforces only the rules that keep a map loadable and its things
+apart; every other refusal answers as a complaint and the work goes ahead.** It exists to measure what the rules
+cost an author. `RulePolicy` (`PgmStudio.Vocabulary`) holds the set, and `Finding` asks it when one is made, so
+a refusal under a relaxed rule is written with `severity: complaint` from the start and every gate's `Refuses`
+reads it that way without knowing the policy exists.
+
+**The enforced set is `MinimalRules`** (`PgmStudio.Api`): every rule in the categories `malformed`, `unknown`,
+`unfinished`, `forbidden`, `unavailable` and `internal`; the families `RQ`, `SR`, `IM` and `LB` whole; and a
+list kept from the rest, which is a map PGM loads with working objectives (`EX2`, `PL2`, `OB*` that make an
+objective sound, `DC3`), geometry that can be built at all (`SK2`, `SK4`, `SK5`, `SK7`, `SK31`), one thing never
+inside another (`SK18`, `HJ1`, `DR-CLAIM`, `DR-CUT`), a house that can be stamped (`HP*`, `HJ2`–`HJ5`, `HS2`,
+`HS8`, `DR-SIZE`, `DR-SITE`) and pads that fit their rooms (`WX2`–`WX4`).
+
+**A dressing site that would turn a prop away seats it instead when its rule is relaxed**, and keeps the finding
+as a complaint: `OB19` beside an objective, `DR-KEEP` in kept-clear ground or a door's approach, `DR-ROAD` near a
+road, `DR-CLAIM` over paving only, `DR-SLOPE` on a slope, `DR-CROSS` across a road and `DR-WAY` closing a route.
+A building's clearance ring is not held, so two buildings may stand wall to wall. Every other decline still
+drops what it names.
+
 ## What a success carries
 
 **Running the gate is the whole of an endpoint's duty.** `StopAsync` writes the refusals and answers false,

@@ -1043,23 +1043,25 @@ public static class Decorator
             // A goal's clearance turns a building away wherever any cell of its floor reaches in, and is
             // asked first: it covers the ground the goal's own structure stamps, which the keep-out mask also
             // holds, and the rule an author looks up for a building beside a goal names the goal.
-            if (FirstIn(image, context.AllowsProp) is { } crowded)
-            {
-                declined.Add(new Finding(ObjectiveRules.PropInClearance,
+            if (FirstIn(image, context.AllowsProp) is { } crowded
+                && TurnsAway(new Finding(ObjectiveRules.PropInClearance,
                     $"building '{house.Id}' stands on ({crowded.X}, {crowded.Z}), inside the clearance of an objective",
-                    Severity.Decline, Subjects: [house.Id]));
+                    Severity.Decline, Subjects: [house.Id]), declined, out var inClearance))
+            {
+                declined.Add(inClearance!);
                 return [];
             }
             // A door's approach turns a building away like it turns a tree away. The rest of the mask does
             // not reach a building — someone drew that rectangle where it is, and a room's own margin is not
             // a reason to lose it — but the lane in front of a door is the one piece of ground the map is
             // played through that a building is big enough to close entirely.
-            if (FirstInApproach(image, context) is { } lane)
-            {
-                declined.Add(new Finding(DressingRules.KeptClear,
+            if (FirstInApproach(image, context) is { } lane
+                && TurnsAway(new Finding(DressingRules.KeptClear,
                     $"building '{house.Id}' stands on ({lane.X}, {lane.Z}), "
                     + KeptFor(KeepOut.Approach),
-                    Severity.Decline, Subjects: [house.Id]));
+                    Severity.Decline, Subjects: [house.Id]), declined, out var inApproach))
+            {
+                declined.Add(inApproach!);
                 return [];
             }
             if (FirstOverlap(ClaimedCells(image, house.Style), claims) is { } collision)
@@ -1089,12 +1091,13 @@ public static class Decorator
             // dug into a slope, which is what the seating rule is for, and a roof below it is a house nobody
             // can see. The roof's rise is two courses per pitch over a wing of any ordinary width.
             var buries = SiteLevel.Limit(house.Style);
-            if (rise >= buries)
-            {
-                declined.Add(new Finding(DressingRules.SiteNotLevel,
+            if (rise >= buries
+                && TurnsAway(new Finding(DressingRules.SiteNotLevel,
                     $"building '{house.Id}' stands on ground that rises {Wording.Count(rise, "block", "blocks")} across "
                     + $"its footprint, at least {Wording.Count(buries, "block", "blocks")}",
-                    Severity.Decline, Subjects: [house.Id]));
+                    Severity.Decline, Subjects: [house.Id]), declined, out var notLevel))
+            {
+                declined.Add(notLevel!);
                 return [];
             }
             // The passage is owed around the group this building stands in — itself alone where it stands
@@ -1132,9 +1135,10 @@ public static class Decorator
             foreach (var (road, paving) in roads)
             {
                 if (!RouteCrossing.Crosses(paving, footprint)) continue;
-                declined.Add(new Finding(DressingRules.RouteCrossed,
-                    $"building '{house.Id}' overlaps road '{road}' and leaves it in more separate runs than before",
-                    Severity.Decline, Subjects: [house.Id]));
+                if (!TurnsAway(new Finding(DressingRules.RouteCrossed,
+                        $"building '{house.Id}' overlaps road '{road}' and leaves it in more separate runs than before",
+                        Severity.Decline, Subjects: [house.Id]), declined, out var crossed)) continue;
+                declined.Add(crossed!);
                 return [];
             }
         }
@@ -1145,7 +1149,7 @@ public static class Decorator
         if (ways is { HasRoutes: true })
         {
             var footprint = images.SelectMany(seated => ClaimedCells(seated.Plan, house.Style)).Distinct().ToList();
-            if (ways.Admit(house.Id, footprint) is { } closed)
+            if (ways.Admit(house.Id, footprint) is { } closed && TurnsAway(closed, declined, out _))
             {
                 declined.Add(closed);
                 return [];
@@ -1219,7 +1223,7 @@ public static class Decorator
     /// one block of clearance between two buildings and not two.</para></summary>
     private static IReadOnlyList<(int X, int Z)> HeldCells(BuildingPlan image, HouseStyle style)
     {
-        var reach = Math.Max(0, DressingRules.StructureClearance);
+        var reach = RulePolicy.Minimal ? 0 : Math.Max(0, DressingRules.StructureClearance);
         return [.. ClaimedCells(image, style)
             .SelectMany(cell => Around(cell.X, cell.Z, reach))
             .Distinct()];
@@ -1663,7 +1667,7 @@ public static class Decorator
             // Decided once for the whole orbit, so the report is too: whichever image seats first refuses the
             // whole prop, and that is the one image and cell named — a second orbit image failing the same
             // way is not a second entry.
-            if (!Seats(world, context, ground, anchor, turned, claims, routeStandoff, id, kind, wades, out var baseY, out var decline))
+            if (!Seats(world, context, ground, anchor, turned, claims, routeStandoff, id, kind, wades, declined, out var baseY, out var decline))
             {
                 declined.Add(decline!);
                 return Placed.None;
@@ -1814,7 +1818,8 @@ public static class Decorator
     /// too — so the crown is free to reach wherever it would over open ground.</para></summary>
     private static bool Seats(
         VoxelWorld world, DressingContext context, IReadOnlyDictionary<(int X, int Z), int> tops, (int X, int Z) anchor, List<PropCell> prop,
-        GroundClaims.Storey claims, int routeStandoff, string id, string kind, bool wades, out int baseY, out Finding? decline)
+        GroundClaims.Storey claims, int routeStandoff, string id, string kind, bool wades, List<Finding> remarks,
+        out int baseY, out Finding? decline)
     {
         baseY = int.MaxValue;
         decline = null;
@@ -1826,31 +1831,29 @@ public static class Decorator
             // Asked before the map's own keep-out mask: a goal's clearance covers the ground its structure
             // stamps, which that mask also holds as built, and the rule an author looks up for a prop beside
             // a goal is the one that names the goal.
-            if (!context.AllowsProp(ground.X, ground.Z))
-            {
-                decline = Declined(ObjectiveRules.PropInClearance, id, kind,
-                    $"rests on ({ground.X}, {ground.Z}), inside the clearance of an objective");
+            if (!context.AllowsProp(ground.X, ground.Z)
+                && TurnsAway(Declined(ObjectiveRules.PropInClearance, id, kind,
+                    $"rests on ({ground.X}, {ground.Z}), inside the clearance of an objective"), remarks, out decline))
                 return false;
-            }
-            if (context.KeptClearAt(ground.X, ground.Z) is { } keptFor)
-            {
-                decline = Declined(DressingRules.KeptClear, id, kind,
-                    $"rests on ({ground.X}, {ground.Z}), {KeptFor(keptFor)}");
+            if (context.KeptClearAt(ground.X, ground.Z) is { } keptFor
+                && TurnsAway(Declined(DressingRules.KeptClear, id, kind,
+                    $"rests on ({ground.X}, {ground.Z}), {KeptFor(keptFor)}"), remarks, out decline))
                 return false;
-            }
-            if (claims.At(ground.X, ground.Z) is { } held && !(wades && held.Kind == ClaimKind.Fluid))
+            if (claims.At(ground.X, ground.Z) is { } held && !(wades && held.Kind == ClaimKind.Fluid)
+                && (held.Kind != ClaimKind.Paving
+                    || TurnsAway(Declined(DressingRules.GroundTaken, id, kind,
+                        $"rests on ({ground.X}, {ground.Z}), {Claimant(held)}"), remarks, out decline)))
             {
-                decline = Declined(DressingRules.GroundTaken, id, kind,
+                decline ??= Declined(DressingRules.GroundTaken, id, kind,
                     $"rests on ({ground.X}, {ground.Z}), {Claimant(held)}");
                 return false;
             }
-            if (routeStandoff > 0 && claims.NearerThan(ground.X, ground.Z, ClaimKind.Paving, routeStandoff) is { } road)
-            {
-                decline = Declined(DressingRules.RoadStandoff, id, kind,
+            if (routeStandoff > 0 && claims.NearerThan(ground.X, ground.Z, ClaimKind.Paving, routeStandoff) is { } road
+                && TurnsAway(Declined(DressingRules.RoadStandoff, id, kind,
                     $"rests on ({ground.X}, {ground.Z}), less than {routeStandoff} blocks from the road "
-                    + $"at ({road.X}, {road.Z})") with { Edit = MovedOffRoad(id, anchor, ground, road, routeStandoff, claims) };
+                    + $"at ({road.X}, {road.Z})") with { Edit = MovedOffRoad(id, anchor, ground, road, routeStandoff, claims) },
+                    remarks, out decline))
                 return false;
-            }
             if (!tops.TryGetValue(ground, out var top))
             {
                 decline = Declined(DressingRules.NoGround, id, kind, $"has no ground at ({ground.X}, {ground.Z})");
@@ -1870,6 +1873,21 @@ public static class Decorator
     /// ignore.</summary>
     private static Finding Declined(string rule, string id, string kind, string what) =>
         new(rule, $"{kind} '{id}' {what}", Severity.Decline, Subjects: [id]);
+
+    /// <summary>Whether a site turns a prop away for <paramref name="finding"/>. Where <see cref="RulePolicy"/>
+    /// does not enforce its rule, the finding is kept once per prop as a complaint and the prop is seated.</summary>
+    private static bool TurnsAway(Finding finding, List<Finding> remarks, out Finding? decline)
+    {
+        if (RulePolicy.Enforces(finding.Rule))
+        {
+            decline = finding;
+            return true;
+        }
+        decline = null;
+        if (!remarks.Any(remark => remark.Rule == finding.Rule && remark.SubjectIds.SequenceEqual(finding.SubjectIds)))
+            remarks.Add(finding with { Severity = Severity.Complaint });
+        return false;
+    }
 
     /// <summary>The move that takes a prop out of a road's standoff: its anchor carried straight away from
     /// the road, along whichever axis clears the standoff in the fewest blocks — a road running along x is
