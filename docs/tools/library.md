@@ -103,7 +103,7 @@ reach what was filled from it.
 beside it. The author's own ground patterns keep the names their author gave them. A seed rearranges which block
 lands where and leaves what a wall looks like, so two seeded patterns never differ by their seed alone.
 
-**The house styles boards are built with are in the seed folder.** Fifty-seven styles are kept as the stamper's
+**The house styles boards are built with are in the seed folder.** Sixty-one styles are kept as the stamper's
 own JSON, a file of each name under `Minecraft/Library/houses` (*The seed*, under *Driving it without the UI*),
 and seeded into the room library under those names. A board names one as
 `{"library": "brick-roofed-stone-and-dark-oak-house"}` wherever it states a room style or a house prop's style,

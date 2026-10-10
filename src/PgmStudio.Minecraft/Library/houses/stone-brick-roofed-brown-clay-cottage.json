@@ -6,15 +6,15 @@
      {
       "material": {
        "kind": "solid",
-       "id": 5,
-       "data": 1
+       "id": 4,
+       "data": 0
       },
       "thickness": 1
      }
     ],
     "ending": "repeat"
    },
-   "extent": 1
+   "extent": 2
   },
   "surface": {
    "field": null,
@@ -27,7 +27,7 @@
   "footing": null
  },
  "roof": {
-  "form": "hip",
+  "form": "gable",
   "pitch": 1,
   "slab": -1,
   "slabData": 0,
@@ -43,19 +43,23 @@
   },
   "verge": {
    "kind": "solid",
-   "id": 1,
-   "data": 6
+   "id": 4,
+   "data": 0
   },
-  "gable": null,
+  "gable": {
+   "kind": "solid",
+   "id": 159,
+   "data": 12
+  },
   "gableWindows": {
-   "form": "none",
+   "form": "open",
    "block": 102,
    "hostBlock": -1,
    "hostData": 0,
    "data": 0,
-   "sill": 2,
-   "width": 2,
-   "height": 2,
+   "sill": 1,
+   "width": 1,
+   "height": 1,
    "spacing": 3
   }
  },
@@ -65,7 +69,7 @@
     {
      "material": {
       "kind": "solid",
-      "id": 172,
+      "id": 4,
       "data": 0
      },
      "thickness": 1
@@ -73,18 +77,10 @@
     {
      "material": {
       "kind": "solid",
-      "id": 5,
-      "data": 3
+      "id": 159,
+      "data": 12
      },
-     "thickness": 1
-    },
-    {
-     "material": {
-      "kind": "solid",
-      "id": 1,
-      "data": 1
-     },
-     "thickness": 3
+     "thickness": 4
     }
    ],
    "ending": "repeat"
@@ -93,11 +89,11 @@
  },
  "post": {
   "kind": "solid",
-  "id": 1,
-  "data": 2
+  "id": 162,
+  "data": 1
  },
  "windows": {
-  "form": "none",
+  "form": "pane",
   "block": 102,
   "hostBlock": -1,
   "hostData": 0,
@@ -116,7 +112,7 @@
       {
        "material": {
         "kind": "solid",
-        "id": 172,
+        "id": 4,
         "data": 0
        },
        "thickness": 1
@@ -124,16 +120,8 @@
       {
        "material": {
         "kind": "solid",
-        "id": 5,
-        "data": 3
-       },
-       "thickness": 1
-      },
-      {
-       "material": {
-        "kind": "solid",
-        "id": 1,
-        "data": 1
+        "id": 159,
+        "data": 12
        },
        "thickness": 3
       }
@@ -144,73 +132,12 @@
    },
    "post": {
     "kind": "solid",
-    "id": 1,
-    "data": 2
+    "id": 162,
+    "data": 1
    },
    "windows": {
-    "form": "arched",
-    "block": 109,
-    "hostBlock": -1,
-    "hostData": 0,
-    "data": 0,
-    "sill": 3,
-    "width": 2,
-    "height": 2,
-    "spacing": 3
-   },
-   "surface": {
-    "field": null,
-    "border": null,
-    "borderWidth": 1,
-    "inlay": null,
-    "inlayInset": 2,
-    "isPlain": true
-   },
-   "deck": null,
-   "headroom": 4
-  },
-  {
-   "clear": 4,
-   "wall": {
-    "stack": {
-     "bands": [
-      {
-       "material": {
-        "kind": "solid",
-        "id": 172,
-        "data": 0
-       },
-       "thickness": 1
-      },
-      {
-       "material": {
-        "kind": "solid",
-        "id": 5,
-        "data": 3
-       },
-       "thickness": 1
-      },
-      {
-       "material": {
-        "kind": "solid",
-        "id": 1,
-        "data": 1
-       },
-       "thickness": 2
-      }
-     ],
-     "ending": "repeat"
-    },
-    "extent": 4
-   },
-   "post": {
-    "kind": "solid",
-    "id": 1,
-    "data": 2
-   },
-   "windows": {
-    "form": "stairLattice",
-    "block": 134,
+    "form": "pane",
+    "block": 102,
     "hostBlock": -1,
     "hostData": 0,
     "data": 0,
@@ -231,18 +158,7 @@
    "headroom": 4
   }
  ],
- "porch": {
-  "depth": 2,
-  "inset": 4,
-  "edge": null,
-  "roof": "gable",
-  "canopy": {
-   "kind": "solid",
-   "id": 98,
-   "data": 0
-  },
-  "railBlock": 0
- },
+ "porch": null,
  "front": null,
  "beams": {
   "block": -1,
@@ -254,9 +170,9 @@
   "door": "air",
   "head": {
    "form": "arched",
-   "block": 109,
+   "block": 164,
    "fill": "upperSlab",
-   "fillBlock": 44,
+   "fillBlock": 126,
    "fillData": 5
   },
   "width": 2,

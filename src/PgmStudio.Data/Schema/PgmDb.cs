@@ -13,6 +13,7 @@ public sealed class PgmDb : DataConnection
     public ITable<AuthorRow> Authors => this.GetTable<AuthorRow>();
     public ITable<StudioUserRow> StudioUsers => this.GetTable<StudioUserRow>();
     public ITable<StudioTokenRow> StudioTokens => this.GetTable<StudioTokenRow>();
+    public ITable<RuleLevelRow> RuleLevels => this.GetTable<RuleLevelRow>();
     public ITable<MapNoteRow> MapNotes => this.GetTable<MapNoteRow>();
     public ITable<MapNoteMessageRow> MapNoteMessages => this.GetTable<MapNoteMessageRow>();
     public ITable<ComposedBoardRow> ComposedBoards => this.GetTable<ComposedBoardRow>();

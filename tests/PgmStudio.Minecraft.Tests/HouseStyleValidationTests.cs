@@ -17,8 +17,15 @@ public sealed class HouseStyleValidationTests
 {
     // A preset with one thing about its roof changed. The fixtures below are corpus faults reproduced on a
     // shipped preset, so each names only the material or the number that is wrong and keeps the rest.
+    // A preset with its roof material changed. A new body drops the preset's roof stair, which was cut from the
+    // body it replaces.
     private static HouseStyle Roofed(HouseStyle style, TerrainMaterial? body = null, TerrainMaterial? verge = null)
-        => style with { Roof = style.Roof with { Body = body ?? style.Roof.Body, Verge = verge ?? style.Roof.Verge } };
+        => style with { Roof = style.Roof with
+        {
+            Body = body ?? style.Roof.Body,
+            Verge = verge ?? style.Roof.Verge,
+            Stair = body is null ? style.Roof.Stair : -1,
+        } };
 
     private static HouseStyle Slabbed(HouseStyle style, int slab)
         => style with { Roof = style.Roof with { Slab = slab } };

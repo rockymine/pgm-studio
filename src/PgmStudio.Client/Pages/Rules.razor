@@ -139,6 +139,22 @@
               </div>
 
               <div class="rules-d-sec">
+                <h3 class="section-title">On this studio</h3>
+                <p class="rules-prose">@LevelText(rule)</p>
+                @if (admin)
+                {
+                  <div class="rules-seg" role="group" aria-label="What a finding citing this rule does">
+                    @foreach (var (value, label) in LevelChoices)
+                    {
+                      <button type="button" aria-pressed="@(StudioLevel(rule) == value ? "true" : "false")"
+                              disabled="@settingLevel" @onclick="() => SetLevelAsync(rule, value)">@label</button>
+                    }
+                  </div>
+                  @if (levelError is { } fault) { <p class="rules-prose">@fault</p> }
+                }
+              </div>
+
+              <div class="rules-d-sec">
                 <h3 class="section-title">What it means</h3>
                 <p class="rules-prose">@((MarkupString)RuleWords.Inline(rule.Means))</p>
               </div>
