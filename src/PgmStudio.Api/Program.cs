@@ -42,9 +42,9 @@ builder.Configuration
 
 builder.Services.AddFastEndpoints();
 
-// Rules:Mode=minimal answers every rule outside MinimalRules as a complaint (docs/refusals.md).
-if (string.Equals(builder.Configuration["Rules:Mode"], "minimal", StringComparison.OrdinalIgnoreCase))
-    PgmStudio.Vocabulary.RulePolicy.UseMinimal(PgmStudio.Api.MinimalRules.Enforced());
+// Which rules stop the work (docs/refusals.md § Which rules stop the work): Rules:Mode=minimal relaxes every rule
+// outside MinimalRules, Rules:Levels states a level per rule, and an admin's level, loaded below, wins over both.
+PgmStudio.Api.RuleSettings.Configure(builder.Configuration);
 
 // The API describes itself, at /api-docs, from the routes and DTOs rather than from a table anyone keeps by
 // hand. Two audiences read it. A person opens the page, expands a route and sends a request without writing a
@@ -216,6 +216,7 @@ builder.Services.AddScoped<PgmStudio.Api.Services.MapReport>();
 // Which policy a route takes is AccessRules' decision, applied to every endpoint by the configurator below.
 builder.Services.AddSingleton(services => AccessOptions.From(services.GetRequiredService<IConfiguration>()));
 builder.Services.AddScoped<StudioUserStore>();
+builder.Services.AddScoped<PgmStudio.Data.Access.RuleLevelStore>();
 builder.Services.AddScoped<StudioTokenStore>();
 builder.Services.AddScoped<Callers>();
 builder.Services.AddAuthentication(AccessOptions.Scheme)
@@ -438,6 +439,20 @@ await using (var seeding = app.Services.CreateAsyncScope())
     catch (Exception fault)
     {
         app.Logger.LogWarning(fault, "the library could not be seeded; it opens on whatever is stored");
+    }
+}
+
+// The levels admins have set on rules. A failure is reported and never fatal: the configuration's levels hold.
+await using (var levels = app.Services.CreateAsyncScope())
+{
+    try
+    {
+        PgmStudio.Vocabulary.RulePolicy.Store(
+            await levels.ServiceProvider.GetRequiredService<PgmStudio.Data.Access.RuleLevelStore>().AllAsync());
+    }
+    catch (Exception fault)
+    {
+        app.Logger.LogWarning(fault, "the rule levels could not be read; the configuration's levels hold");
     }
 }
 

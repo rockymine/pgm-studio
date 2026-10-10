@@ -36,6 +36,8 @@ public sealed class DocumentedFailureTests
         ["GET /api/health"] = "the liveness probe — an operational route, not one an author or an agent drives",
         ["GET /api/rules"] = "the rule catalogue, whose document is docs/refusals.md: every gate's ids in one "
                            + "place is what a caller reads it for, and no single tool owns them",
+        ["PUT /api/rules/{rule}/level"] = "a rule's level, whose document is docs/refusals.md § Which rules stop the work",
+        ["DELETE /api/rules/{rule}/level"] = "a rule's level, whose document is docs/refusals.md § Which rules stop the work",
         ["GET /api/rules/terms"] = "the evaluator's term catalogue, whose document is "
                                  + "docs/generator/evaluator.md beside the deriver measurables it lists",
         ["GET /api/glossary"] = "the glossary, whose document is docs/client/writing-for-the-ui.md: every word the "

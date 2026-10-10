@@ -13,6 +13,7 @@ public partial class Rules
     [Inject] private RuleBook Book { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
+    [Inject] private StudioAccess Access { get; set; } = default!;
 
     /// <summary>The rule the address opens on: <c>/rules?rule=PL9</c>.</summary>
     [SupplyParameterFromQuery(Name = "rule")] public string? Asked { get; set; }
@@ -46,6 +47,18 @@ public partial class Rules
     private string? selected;
     private bool reveal;
     private bool copied;
+    private bool admin;
+    private bool settingLevel;
+    private string? levelError;
+
+    /// <summary>The levels an admin picks between: none of their own (the configuration or the code decides), always
+    /// stop, never stop.</summary>
+    private static readonly (string? Value, string Label)[] LevelChoices =
+    [
+        (null, "Default"),
+        (RuleLevels.Refuse, "Stops the work"),
+        (RuleLevels.Hint, "Hint only"),
+    ];
 
     protected override async Task OnParametersSetAsync()
     {
@@ -53,6 +66,7 @@ public partial class Rules
         {
             rules = await Book.RulesAsync();
             terms = await Book.TermsAsync();
+            try { admin = await Access.IsAdminAsync(); } catch (HttpRequestException) { admin = false; }
         }
         if (Asked is not null && Asked != selected && rules.ContainsKey(Asked))
         {
@@ -150,4 +164,39 @@ public partial class Rules
 
     private async Task CopyAsync(RuleDto rule) =>
         copied = await JS.InvokeAsync<bool>("studio.copyText", JsonSerializer.Serialize(rule, Wire));
+
+    /// <summary>What a finding citing <paramref name="rule"/> does here, and who said so.</summary>
+    private static string LevelText(RuleDto rule)
+    {
+        var by = rule.LevelSource switch
+        {
+            RuleLevelSources.Mode => "set by the studio's minimal mode",
+            RuleLevelSources.Config => "set in the studio's configuration",
+            RuleLevelSources.Studio => "set by an admin",
+            _ => "",
+        };
+        return rule.Level switch
+        {
+            RuleLevels.Refuse => $"Stops the work wherever a check asks, {by}.",
+            RuleLevels.Hint => $"Never stops the work: the finding is shown beside the result, {by}.",
+            _ => "Does what its code says: where a check refuses on it the work stops, where it remarks the finding rides along.",
+        };
+    }
+
+    /// <summary>The level an admin has set on <paramref name="rule"/>, or null where the rule has none of its own.</summary>
+    private static string? StudioLevel(RuleDto rule) => rule.LevelSource == RuleLevelSources.Studio ? rule.Level : null;
+
+    private async Task SetLevelAsync(RuleDto rule, string? level)
+    {
+        settingLevel = true;
+        levelError = null;
+        var updated = await Book.SetLevelAsync(rule.Rule, level);
+        settingLevel = false;
+        if (updated is null)
+        {
+            levelError = "The studio did not take the change. Reload the page and try again.";
+            return;
+        }
+        rules = await Book.RulesAsync();
+    }
 }

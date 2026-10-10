@@ -301,26 +301,46 @@ a release, which is the shape this whole section exists to remove.
 An endpoint gates in one line — `if (await Refusals.StopAsync(http, 400, "invalid house style", findings, ct))
 return;` — which writes only the refusals, so a complaint never arrives dressed as one.
 
-## The minimal policy
+## Which rules stop the work
 
-**A studio started with `Rules:Mode=minimal` enforces only the rules that keep a map loadable and its things
-apart; every other refusal answers as a complaint and the work goes ahead.** It exists to measure what the rules
-cost an author. `RulePolicy` (`PgmStudio.Vocabulary`) holds the set, and `Finding` asks it when one is made, so
-a refusal under a relaxed rule is written with `severity: complaint` from the start and every gate's `Refuses`
-reads it that way without knowing the policy exists.
+**A rule's level says what a finding citing it does on this studio: `refuse` stops the work wherever a gate asks,
+`hint` lets the work go ahead with the finding beside it.** A rule with no level does what its code says. The
+level comes from the first of three places that states one: an admin's setting on the rules page, the studio's
+configuration, and its mode. `RulePolicy` (`PgmStudio.Vocabulary`) holds all three, and `Finding` asks it when one
+is made, so a refusal under a hinted rule is written with `severity: complaint` from the start and a complaint under
+a refused one with `severity: refusal`. Every gate's `Refuses` reads the result without knowing a setting exists. A
+decline is never changed: it says something is not in the world.
 
-**The enforced set is `MinimalRules`** (`PgmStudio.Api`): every rule in the categories `malformed`, `unknown`,
-`unfinished`, `forbidden`, `unavailable` and `internal`; the families `RQ`, `SR`, `IM` and `LB` whole; and a
-list kept from the rest, which is a map PGM loads with working objectives (`EX2`, `PL2`, `OB*` that make an
-objective sound, `DC3`), geometry that can be built at all (`SK2`, `SK4`, `SK5`, `SK7`, `SK31`), one thing never
-inside another (`SK18`, `HJ1`, `DR-CLAIM`, `DR-CUT`), a house that can be stamped (`HP*`, `HJ2`–`HJ5`, `HS2`,
-`HS8`, `DR-SIZE`, `DR-SITE`) and pads that fit their rooms (`WX2`–`WX4`).
+**The configuration states levels per rule, and the mode relaxes many at once.** `Rules:Levels:<rule>` takes
+`refuse` or `hint` (in `appsettings.json`, or as `Rules__Levels__GO1=refuse` in the environment; an id with a hyphen
+is set through `env "Rules__Levels__DR-CROSS=hint"`, since a shell cannot name such a variable itself). `Rules:Mode`
+takes `full`, the default, or `minimal`. A level naming a rule the studio does not declare, a word that is not a
+level, or a mode that is not one of the two stops the studio starting, because a setting that silently does
+nothing is the fault a setting must not have.
 
-**A dressing site that would turn a prop away seats it instead when its rule is relaxed**, and keeps the finding
-as a complaint: `OB19` beside an objective, `DR-KEEP` in kept-clear ground or a door's approach, `DR-ROAD` near a
-road, `DR-CLAIM` over paving only, `DR-SLOPE` on a slope, `DR-CROSS` across a road and `DR-WAY` closing a route.
-A building's clearance ring is not held, so two buildings may stand wall to wall. Every other decline still
-drops what it names.
+**The minimal mode keeps only the rules that keep a map loadable and its things apart** (`MinimalRules`,
+`PgmStudio.Api`): every rule in the categories `malformed`, `unknown`, `unfinished`, `forbidden`, `unavailable` and
+`internal`; the families `RQ`, `SR`, `IM` and `LB` whole; and a list kept from the rest, which is a map PGM loads
+with working objectives (`EX2`, `PL2`, `OB*` that make an objective sound, `DC3`), geometry that can be built at
+all (`SK2`, `SK4`, `SK5`, `SK7`, `SK31`), one thing never inside another (`SK18`, `HJ1`, `DR-CLAIM`, `DR-CUT`), a
+house that can be stamped (`HP*`, `HJ2`–`HJ5`, `HS2`, `HS8`, `DR-SIZE`, `DR-SITE`) and pads that fit their rooms
+(`WX2`–`WX4`). Every other rule is a hint in that mode unless a level says otherwise. A building's clearance ring
+is not held in it either, so two buildings may stand wall to wall.
+
+**An admin's level is stored, and wins over the configuration and the mode.** It is a row of `rule_level`, read at
+start and again after every change, and set on the rules page or by the API. The rules page shows each rule's level
+and where it came from to everyone.
+
+**A dressing site that would turn a prop away seats it instead when its rule is a hint**, and keeps the finding as
+a complaint: `OB19` beside an objective, `DR-KEEP` in kept-clear ground or a door's approach, `DR-ROAD` near a road,
+`DR-CLAIM` over paving only, `DR-SLOPE` on a slope, `DR-CROSS` across a road and `DR-WAY` closing a route. Every
+other decline still drops what it names.
+
+| Endpoint | Does | Fails with |
+|---|---|---|
+| `GET /rules` | every rule, each carrying `level` and `levelSource` where a setting states one | 400 `RQ1` a word not in a filter's set |
+| `PUT /rules/{rule}/level` | stores an admin's level, `{"level": "refuse"}` or `{"level": "hint"}`, and answers the rule as it now stands. Admin only | 400 `RQ1` not a level · 404 `RQ4` no such rule |
+| `DELETE /rules/{rule}/level` | takes the admin's level off, so the configuration or the code decides, and answers the rule. Admin only | 404 `RQ4` no such rule |
 
 ## What a success carries
 
@@ -595,7 +615,8 @@ thing that makes producing it impossible, where a gate reads a document and coll
 question a reader has on meeting an id in a refusal and the one nothing else answers. `?family=PL` narrows to
 one family, `?rule=WL2` to one rule; a name nothing matches is an empty list rather than a 404, so a caller
 asking "is there a rule called that" does not have to tell an absent rule from a mistyped route by the status
-code. Each row is `{rule, family, owner, means, fix, category, concerns}`, and `owner` is the file
+code. Each row is `{rule, family, owner, means, fix, category, concerns}`, with `level` and `levelSource` where a
+setting states one (*Which rules stop the work*), and `owner` is the file
 to read next.
 
 ```json

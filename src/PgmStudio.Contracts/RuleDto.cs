@@ -31,7 +31,17 @@ namespace PgmStudio.Contracts;
 /// <param name="Owner">Where the rule is stated, which is the file to read next: its declaring
 /// constant.</param>
 /// <param name="Means">What the rule refuses, in one sentence.</param>
+/// <param name="Level">What a finding citing the rule does on this studio, where a setting states it:
+/// <c>refuse</c> stops the work, <c>hint</c> lets it go ahead. Absent where the rule does what its code says.</param>
+/// <param name="LevelSource">Where <paramref name="Level"/> was set: the studio's mode, its configuration, or
+/// an admin on the rules page. Absent with it.</param>
 public sealed record RuleDto(
     string Rule, string Family, string Owner, string Means, string? Fix = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] RuleCategory? Category = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<RuleConcern>? Concerns = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<RuleConcern>? Concerns = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), WordSet(typeof(RuleLevels))] string? Level = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), WordSet(typeof(RuleLevelSources))] string? LevelSource = null);
+
+/// <summary>An admin's level for one rule (<c>PUT /api/rules/{rule}/level</c>).</summary>
+/// <param name="Level"><c>refuse</c> or <c>hint</c>.</param>
+public sealed record RuleLevelRequest([property: WordSet(typeof(RuleLevels))] string Level);

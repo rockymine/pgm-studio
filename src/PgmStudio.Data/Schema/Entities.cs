@@ -30,6 +30,18 @@ public sealed class MapRow
     [Column("owner_uuid")] public string? OwnerUuid { get; set; }
 }
 
+/// <summary>An admin's level for one rule (M0065): whether a finding citing it stops the work. A rule with no row
+/// does what the configuration, or its code, says.</summary>
+[Table("rule_level")]
+public sealed class RuleLevelRow
+{
+    [PrimaryKey, Column("rule")] public string Rule { get; set; } = "";
+    [Column("level"), NotNull] public string Level { get; set; } = "";
+    /// <summary>The name of who set it; <c>local</c> on an open studio.</summary>
+    [Column("set_by"), NotNull] public string SetBy { get; set; } = "";
+    [Column("set_at"), NotNull] public DateTime SetAt { get; set; }
+}
+
 /// <summary>One person on the studio's whitelist: the Minecraft account they are credited under and the role
 /// that decides what they may write.</summary>
 [Table("studio_user")]

@@ -8,6 +8,8 @@ using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Vocabulary;
+using PgmStudio.Api.Access;
+using PgmStudio.Data.Access;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -95,9 +97,21 @@ public sealed class RulesEndpoint : EndpointWithoutRequest<List<RuleDto>>
                 .Where(row => family is null || string.Equals(row.Family, family, StringComparison.OrdinalIgnoreCase))
                 .Where(row => rule is null || string.Equals(row.Rule, rule, StringComparison.OrdinalIgnoreCase))
                 .Where(row => category is null || row.Category == category)
-                .Where(row => concerns.All(concern => row.Concerns?.Contains(concern) ?? false)),
+                .Where(row => concerns.All(concern => row.Concerns?.Contains(concern) ?? false))
+                .Select(Leveled),
         ], ct);
     }
+
+    /// <summary>Every rule id the studio declares.</summary>
+    internal static readonly HashSet<string> Ids = [.. Catalog.Select(row => row.Rule)];
+
+    /// <summary>One rule as this studio answers it, carrying the level a setting states for it.</summary>
+    internal static RuleDto Leveled(RuleDto rule) =>
+        RulePolicy.LevelOf(rule.Rule) is { } level ? rule with { Level = level.Level, LevelSource = level.Source } : rule;
+
+    /// <summary>The catalogue's row for <paramref name="rule"/>, as this studio answers it.</summary>
+    internal static RuleDto? Find(string rule) =>
+        Catalog.FirstOrDefault(row => row.Rule == rule) is { } found ? Leveled(found) : null;
 
     /// <summary>Read a closed-set query parameter. False when one was asked for and is not a word of the set;
     /// true with <paramref name="word"/> null when it was not asked for at all.</summary>
@@ -120,5 +134,76 @@ public sealed class RulesEndpoint : EndpointWithoutRequest<List<RuleDto>>
                 $"the request's `{parameter}` is not one of "
                 + string.Join(", ", Enum.GetNames<TWord>().Select(name => name.ToLowerInvariant())),
                 Field: parameter)],
+            ct);
+}
+
+/// <summary>
+/// PUT /api/rules/{rule}/level — set what a finding citing <c>{rule}</c> does on this studio: <c>refuse</c> stops
+/// the work wherever a gate asks, <c>hint</c> lets it go ahead with the finding beside it. The setting is stored
+/// and wins over the configuration and the mode. Admin only; answers the rule as it now stands.
+/// </summary>
+public sealed class RuleLevelPutEndpoint(RuleLevelStore levels, Callers callers) : Endpoint<RuleLevelRequest, RuleDto>
+{
+    public override void Configure()
+    {
+        Put("/rules/{rule}/level");
+        Policies(AccessPolicies.Admin);
+        Description(b => b.Refuses(400, 404));
+    }
+
+    public override async Task HandleAsync(RuleLevelRequest request, CancellationToken ct)
+    {
+        var rule = Route<string>("rule") ?? "";
+        if (!RulesEndpoint.Ids.Contains(rule))
+        {
+            await RuleLevelRefusals.NoRuleAsync(HttpContext, rule, ct);
+            return;
+        }
+        if (!RuleLevels.IsValid(request.Level))
+        {
+            await Refusals.UnreadableAsync(HttpContext, "no such level",
+                $"the request's `level` '{request.Level}' is not one of {string.Join(", ", RuleLevels.All)}",
+                ct, field: "level");
+            return;
+        }
+        var caller = await callers.OfAsync(HttpContext, ct);
+        await levels.PutAsync(rule, request.Level, caller.Name ?? "local", ct);
+        RulePolicy.Store(await levels.AllAsync(ct));
+        await Send.OkAsync(RulesEndpoint.Find(rule)!, ct);
+    }
+}
+
+/// <summary>
+/// DELETE /api/rules/{rule}/level — take an admin's level off <c>{rule}</c>, so it does what the configuration, or
+/// its code, says. Admin only; answers the rule as it now stands, whether or not it had a level.
+/// </summary>
+public sealed class RuleLevelRemoveEndpoint(RuleLevelStore levels) : EndpointWithoutRequest<RuleDto>
+{
+    public override void Configure()
+    {
+        Delete("/rules/{rule}/level");
+        Policies(AccessPolicies.Admin);
+        Description(b => b.Refuses(404));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var rule = Route<string>("rule") ?? "";
+        if (!RulesEndpoint.Ids.Contains(rule))
+        {
+            await RuleLevelRefusals.NoRuleAsync(HttpContext, rule, ct);
+            return;
+        }
+        await levels.RemoveAsync(rule, ct);
+        RulePolicy.Store(await levels.AllAsync(ct));
+        await Send.OkAsync(RulesEndpoint.Find(rule)!, ct);
+    }
+}
+
+internal static class RuleLevelRefusals
+{
+    public static Task NoRuleAsync(HttpContext http, string rule, CancellationToken ct) =>
+        Refusals.WriteAsync(http, 404, "no rule",
+            [new Finding(RequestRules.NoSuchSubject, $"rule '{rule}' is not a rule the studio declares", Field: "rule")],
             ct);
 }
