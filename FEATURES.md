@@ -54,6 +54,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   answers by family in pipeline order, filtered by text, kind, the action it asks for and what it is about, and
   opens one to its meaning, its fix, how a layout rule is known, its terms' bands and where it is defined; `?rule=ID` opens on
   one. The studio bar carries Rules and API docs after a divider, API docs opening `/api-docs` in a new tab.
+- **A rule can be set to stop the work or to hint.** An admin sets a rule's level on `/rules` (stored, and
+  winning over the rest), the configuration states one per rule (`Rules:Levels`), and `Rules:Mode=minimal` hints
+  every rule outside the set that keeps a map loadable and its things apart. Each rule shows its level and where it
+  came from; `docs/refusals.md` § *Which rules stop the work*.
+- **The library's houses roof in stairs, and four are warm clay.** Twenty-four seeded styles lay their roof in
+  the stair cut from its body, and yellow, orange and brown clay cottages join the sixty-one.
 - **A deploy reaches a browser whole (`RP102`).** The hand-written CSS and JS and `index.html` are sent with
   `Cache-Control: no-cache` in every environment, so a browser revalidates each one rather than keeping it for a
   window guessed from `Last-Modified`: a deploy no longer lands as new markup over old stylesheets, or a new
