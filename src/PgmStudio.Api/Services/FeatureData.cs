@@ -120,7 +120,8 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts, PgmStudio.
         var grid = (await MapBboxAsync(mapId, ct))?.bounds is var (minX, minZ, maxX, maxZ)
             ? ((int)minX, (int)minZ, (int)maxX, (int)maxZ)
             : ((int, int, int, int)?)null;
-        return (Editability.Compute(doc, segments?.Y0Columns(), grid, floorMarks: segments?.FloorMarks), segments);
+        return (Editability.Compute(doc, segments?.Y0Columns(), grid, floorMarks: segments?.FloorMarks,
+            occupied: segments?.OccupiedColumns()), segments);
     }
 
     /// <summary>The ground every connectivity read of a map walks, one per map. A board the studio builds from

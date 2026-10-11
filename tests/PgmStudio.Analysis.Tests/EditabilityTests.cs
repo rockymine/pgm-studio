@@ -144,6 +144,16 @@ public sealed class EditabilityTests
         await Assert.That(ZoneAt(with, 8, 8)).IsEqualTo(EditZone.Filtered)
             .Because("placing is denied and breaking a canopy is not, so somebody can edit it");
 
+        // What the column holds decides it: with nothing in it there is nothing to break, so the break
+        // exception cannot make it editable; with a canopy in it, it does.
+        var applied = Doc($"{filters}{regions}<apply region=\"not-build-area\" block-place=\"no-void\" block-break=\"over-void-breakable\"/></regions>");
+        var empty = Editability.Compute(applied, [], (-4, -4, 12, 12), occupied: new HashSet<(int, int)>());
+        var canopy = Editability.Compute(applied, [], (-4, -4, 12, 12), occupied: new HashSet<(int, int)> { (8, 8) });
+        await Assert.That(ZoneAt(empty, 8, 8)).IsEqualTo(EditZone.Sealed)
+            .Because("an empty void column outside every build zone holds nothing to break and takes no block");
+        await Assert.That(ZoneAt(canopy, 8, 8)).IsEqualTo(EditZone.Filtered);
+        await Assert.That(ZoneAt(empty, 2, 2)).IsEqualTo(EditZone.BuildZone).Because("the drawn rectangle is still the grant");
+
         bool BridgeableAt(Editability.Result res, int x, int z) => res.Bridgeable((z - res.MinZ) * res.Width + (x - res.MinX));
         await Assert.That(BridgeableAt(with, 8, 8)).IsFalse()
             .Because("a bridge is placed, and only breaking is permitted out there");

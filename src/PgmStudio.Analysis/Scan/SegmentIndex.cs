@@ -43,6 +43,9 @@ public sealed class SegmentIndex
         return columns;
     }
 
+    /// <summary>Every column a solid block stands in, at any height — the columns that hold something to break.</summary>
+    public HashSet<(int, int)> OccupiedColumns() => [.. _byCol.Keys];
+
     /// <summary>The world's column extent, <c>(minX, minZ, maxX, maxZ)</c> inclusive, over every column any
     /// segment or floor mark holds.</summary>
     public (int MinX, int MinZ, int MaxX, int MaxZ) Extent()

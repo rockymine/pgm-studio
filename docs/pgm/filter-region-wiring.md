@@ -20,6 +20,50 @@ normalization target); filters compose (`all`/`any`/`not`/`deny`) and reference 
 referencing regions by id; in the region view it appears as the `roles` `<event>=<filter_id>` entries
 (`region-categorization.md`).
 
+## How PGM decides one block change
+
+Read off PGM itself (`regions/RegionMatchModule`, `listeners/BlockTransformListener`, `filters/operator/*`,
+`filters/matcher/block/VoidFilter`, `wool/WoolMatchModule`, `core/CoreMatchModule`,
+`destroyable/DestroyableMatchModule`); every apply rule a map states is answered inside this sequence.
+
+**Every change to a block is one event, whoever or whatever makes it.** A player placing or breaking, a bucket,
+an explosion, fire, a piston, a falling block and **flowing water or lava** all become one `BlockTransformEvent`;
+flowing lava carries its owner as the player, where PGM knows one. A change is a **place** when the new block
+is not air and a **break** when the old one is not, so a block laid into water is both.
+
+**Four stages see it, in this order, and a stage after the first runs only on a change still standing.** The
+observers' guard refuses anyone not playing; the region rules answer next; then a monument refuses its own team
+damaging it and a repair it does not allow, and a core refuses its own team breaking its casing and anything
+touching its lava; last, the wool module — which runs on every change, cancelled or not — refuses any block on a
+monument but its own wool placed by its own team, and lets that one through whatever was said before it.
+
+**The region rules are one pass in document order, and the first rule that does not abstain decides.** From
+proto 1.3.3 a single pass walks every rule: a rule is skipped unless it names the change's scope (`block` names
+both, `block-place` and `block-break` one each) and its region holds the block — the old block for a break, the
+new one for a place — and the first filter answering allow or deny settles the change. A change no rule answers
+stands. PGM puts a few rules ahead of the map's own: `<maxbuildheight>`, which refuses a place above it; the
+entrance and exit of every portal, which refuse a place; TNT without block damage; and the old `<playable>`.
+
+**The filter is asked about the block itself.** A `material` filter matches the old block on a break and the
+new one on a place. `<void/>` reads the block's own column: true when the block is at y=0, or when the block at
+`(x, 0, z)` is air and was not a block 36 — PGM removes every block 36 on load and remembers the ones at y=0, so
+an invisible marker there makes the column ground. `all` denies when any child denies and otherwise allows when
+any allows; `any` allows when any child allows and otherwise denies when any denies; `not` turns allow and deny
+round and keeps an abstention; `deny` denies only where its child allows and abstains everywhere else.
+
+**So a goal over a column with nothing at y=0 cannot be completed under a void rule.** The studio's break side,
+`any(all(<vegetation>, void), not(void))`, lets leaves and logs through over the void and refuses obsidian, so a
+monument or a core whose columns carry no mark cannot be broken; and since lava flowing is a place, the place side
+refuses every void column the lava would run into, so the core cannot leak either. A floating goal needs its
+columns marked at y=0 — block 36 if nothing should show — or a build region over them, as Fungi Grove's
+`under core` rectangles are. A wool is not affected: its monument is decided last, by the wool module.
+
+**`Editability` reads the same pass at two grains.** The zone grid answers for a column — whether anybody may
+place or break there, a material filter counting as a permission for somebody — and an empty void column, one no
+segment of the scan stands in, holds nothing a break rule could let anyone take. `GoalEdits` asks the pass for a
+goal's own material: a core's or a monument's block broken in each of its columns (`EZ3`), and lava placed in any
+column under or beside a core (`EZ4`).
+
 ## What attaches where
 
 The sensible defaults (a **soft-warning** source for the UI, never a hard validator — `filter-patterns.md` A.4):

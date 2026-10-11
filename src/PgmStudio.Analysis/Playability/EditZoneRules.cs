@@ -20,4 +20,18 @@ public static class EditZoneRules
     /// region to <c>zones</c> across the void.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Terrain, RuleConcern.Intent)]
     public const string BuildZoneGap = "EZ2";
+
+    /// <summary>A block of a core or a monument may not be broken in one of its columns under the block rule
+    /// there.</summary>
+    /// <remarks>Either add a build region to <c>build.areas</c> over the core or the monument, or add a shape to
+    /// <c>shapes</c> that holds a block at height 0 under it.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Terrain, RuleConcern.Intent)]
+    public const string SealedGoal = "EZ3";
+
+    /// <summary>No column under or beside a core lets lava be placed, so lava let out of it may not flow and the core
+    /// may not leak.</summary>
+    /// <remarks>Either add a build region to <c>build.areas</c> over the core and the columns round it, or add a
+    /// shape to <c>shapes</c> that holds a block at height 0 under them.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Terrain, RuleConcern.Intent)]
+    public const string HeldLava = "EZ4";
 }

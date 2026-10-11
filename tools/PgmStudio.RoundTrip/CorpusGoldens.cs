@@ -101,7 +101,8 @@ public static class CorpusGoldens
             if (segments is not null && File.Exists(segments))
             {
                 var index = (await FeatureData.ReadIndex(dir!))!;
-                build = DescribeEditability(Editability.Compute(doc, index.Y0Columns(), floorMarks: index.FloorMarks));
+                build = DescribeEditability(Editability.Compute(doc, index.Y0Columns(), floorMarks: index.FloorMarks,
+                    occupied: index.OccupiedColumns()));
                 var woolSources = await FeatureData.WoolSourceRows(dir!);
                 woolSources.AddRange(WoolSources.PgmSpawnerSources(doc));
                 trav = DescribeTraversability(Traversability.Check(doc, WorldWalk.Ground(doc, index), woolSources: woolSources));

@@ -211,10 +211,11 @@ public static class Editability
     /// <summary>The edit zones and bridgeable columns of a map document over a grid. <paramref name="y0Columns"/>
     /// is every column PGM's void filter reads as not void; <paramref name="floorMarks"/> is the part of it
     /// that holds a floor mark rather than ground — the columns a void rule's region leaves open to building
-    /// across.</summary>
+    /// across. <paramref name="occupied"/> is every column a block stands in: a void column outside it holds
+    /// nothing to break, so a break rule cannot make it editable.</summary>
     public static Result Compute(Dict data, HashSet<(int, int)>? y0Columns,
         (int minX, int minZ, int maxX, int maxZ)? bbox = null, int margin = 16,
-        IReadOnlySet<(int, int)>? floorMarks = null)
+        IReadOnlySet<(int, int)>? floorMarks = null, IReadOnlySet<(int, int)>? occupied = null)
     {
         var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
         var filters = MapDoc.AsDict(data.GetValueOrDefault("filters"));
@@ -241,6 +242,17 @@ public static class Editability
         {
             int ix = x - minX, iz = z - minZ;
             if (ix >= 0 && ix < nx && iz >= 0 && iz < nz) isMark[iz * nx + ix] = true;
+        }
+        // An empty void column: nothing in it to break, whatever a break rule would let through.
+        var empty = new bool[cells];
+        if (hasY0 && occupied is not null)
+        {
+            for (var i = 0; i < cells; i++) empty[i] = isVoid[i];
+            foreach (var (x, z) in occupied)
+            {
+                int ix = x - minX, iz = z - minZ;
+                if (ix >= 0 && ix < nx && iz >= 0 && iz < nz) empty[iz * nx + ix] = false;
+            }
         }
 
         // Two walks per column — place and break — each stopping at the first rule that answers. A rule
@@ -317,6 +329,7 @@ public static class Editability
         var sealedIndex = (byte)EditZone.IndexOf(EditZone.Sealed);
         for (var i = 0; i < cells; i++)
         {
+            if (empty[i]) breakage[i] = Say.Deny;
             // The more permissive of the two scopes decides: a player who can break here can edit here.
             var open = place[i] is Say.Allow or Say.Abstain || breakage[i] is Say.Allow or Say.Abstain;
             var conditional = place[i] == Say.Conditional || breakage[i] == Say.Conditional;
@@ -340,6 +353,103 @@ public static class Editability
             places[i] = place[i] != Say.Deny;
         }
         return new Result(minX, minZ, maxX, maxZ, nx, nz, zone, isVoid, bridges, counts, hasY0, breaks, places);
+    }
+
+    /// <summary>Whether the map's block rules let a block of <paramref name="material"/> be placed in, or
+    /// broken out of, the column at <paramref name="cell"/>, read the way PGM reads one change: the rules in
+    /// document order, the first that does not abstain deciding, a material filter tested against this
+    /// material. True where the first answer allows or none answers, false where it denies, null where it
+    /// turns on who makes the change (a team, a cause).</summary>
+    public static bool? Lets(Dict data, (int X, int Z) cell, bool isVoid, bool place, string material)
+    {
+        var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
+        var filters = MapDoc.AsDict(data.GetValueOrDefault("filters"));
+        var (minX, minZ, maxX, maxZ) = RegionBbox(data, 16);
+        var bounds = ((double)Math.Min(minX, cell.X - 1), (double)Math.Min(minZ, cell.Z - 1),
+            (double)Math.Max(maxX, cell.X + 2), (double)Math.Max(maxZ, cell.Z + 2));
+        bool Covers(object? reference) =>
+            reference is null || RegionMask(reference, regions, bounds, cell.X, cell.Z, 1, 1) is [true];
+
+        foreach (var rule in MapDoc.AsList(data.GetValueOrDefault("apply_rules")).OfType<Dict>())
+        {
+            if (!Covers(rule.GetValueOrDefault("region"))) continue;
+            foreach (var attribute in (ReadOnlySpan<string>)[BlockBoth, place ? BlockPlace : BlockBreak])
+            {
+                if (rule.GetValueOrDefault(attribute) is not string stated || stated.Length == 0) continue;
+                var say = regions.ContainsKey(stated)
+                    ? (Covers(stated) ? Say.Allow : Say.Deny)
+                    : Answer(stated, filters, isVoid, Named(material), 0);
+                if (say == Say.Allow) return true;
+                if (say == Say.Deny) return false;
+                if (say == Say.Conditional) return null;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>A filter's answer to one block change, as PGM composes it: <c>all</c> denies on any denial and
+    /// allows on any allowance, <c>any</c> the reverse, <c>not</c> inverts what answered, <c>deny</c> and
+    /// <c>allow</c> answer only when their filter allows. A filter on who makes the change answers
+    /// <see cref="Say.Conditional"/>, and so does every composite it decides.</summary>
+    private static Say Answer(string value, Dict filters, bool isVoid, (string Name, string? Data) material, int depth)
+    {
+        if (depth > 32 || string.IsNullOrEmpty(value)) return Say.Conditional;
+        switch (value)
+        {
+            case "never": return Say.Deny;
+            case "always" or "allow": return Say.Allow;
+            case "void": return isVoid ? Say.Allow : Say.Deny;
+        }
+        if (filters.GetValueOrDefault(value) is not Dict filter)
+        {
+            // An inline expression the serializer kept as written: deny(x), allow(x), not(x).
+            var open = value.IndexOf('(');
+            if (open <= 0 || !value.EndsWith(')')) return Say.Conditional;
+            var inner = Answer(value[(open + 1)..^1], filters, isVoid, material, depth + 1);
+            return Wrap(value[..open], inner);
+        }
+        var type = filter.GetValueOrDefault("type") as string;
+        switch (type)
+        {
+            case "never": return Say.Deny;
+            case "always": return Say.Allow;
+            case "void": return isVoid ? Say.Allow : Say.Deny;
+            case "material":
+                var stated = Named(filter.GetValueOrDefault("material") as string ?? "");
+                if (stated.Name != material.Name) return Say.Deny;
+                return stated.Data is null || stated.Data == material.Data ? Say.Allow
+                    : material.Data is null ? Say.Conditional : Say.Deny;
+            case "not" or "deny" or "allow":
+                return Wrap(type, Answer(filter.GetValueOrDefault("child") as string ?? "", filters, isVoid, material, depth + 1));
+            case "all" or "any":
+                var answers = MapDoc.AsList(filter.GetValueOrDefault("children"))
+                    .Select(child => Answer(child as string ?? "", filters, isVoid, material, depth + 1)).ToList();
+                var (decides, other) = type == "all" ? (Say.Deny, Say.Allow) : (Say.Allow, Say.Deny);
+                if (answers.Contains(decides)) return decides;
+                if (answers.Contains(Say.Conditional)) return Say.Conditional;
+                return answers.Contains(other) ? other : Say.Abstain;
+            default:
+                return Say.Conditional;
+        }
+    }
+
+    private static Say Wrap(string wrapper, Say inner) => (wrapper, inner) switch
+    {
+        (_, Say.Conditional) => Say.Conditional,
+        ("not", Say.Allow) => Say.Deny,
+        ("not", Say.Deny) => Say.Allow,
+        ("deny", Say.Allow) => Say.Deny,
+        ("allow", Say.Allow) => Say.Allow,
+        ("not" or "deny" or "allow", _) => Say.Abstain,
+        _ => Say.Conditional,
+    };
+
+    /// <summary>A material as a block names it: the name in lower case with spaces, and the data value where
+    /// one is written.</summary>
+    private static (string Name, string? Data) Named(string material)
+    {
+        var parts = material.Trim().ToLowerInvariant().Replace('_', ' ').Split(':', 2);
+        return (parts[0].Trim(), parts.Length > 1 ? parts[1].Trim() : null);
     }
 
     /// <summary>Record a rule's answer for one column, first answer winning. Only an abstention leaves the

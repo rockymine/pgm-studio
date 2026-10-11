@@ -41,7 +41,8 @@ public static class WorldWalk
         (int MinX, int MinZ, int MaxX, int MaxZ)? bbox = null)
     {
         var grid = bbox ?? TerrainBox(data, segments, margin);
-        var edit = Editability.Compute(data, segments?.Y0Columns(), grid, margin, segments?.FloorMarks);
+        var edit = Editability.Compute(data, segments?.Y0Columns(), grid, margin, segments?.FloorMarks,
+            segments?.OccupiedColumns());
 
         var places = new HashSet<WalkPlace>();
         var clear = new Dictionary<WalkPlace, int>();

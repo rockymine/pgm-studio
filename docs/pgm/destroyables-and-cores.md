@@ -585,6 +585,12 @@ none of its declared material), so it catches real breakage.
 contains mostly air — a 3×3×3 region holding a 1×3×1 pillar is correct and common. Anything stricter would
 reject most of the corpus.
 
+**A goal over the void has to stand on marked columns (`EZ3`, `EZ4`).** Under a void rule the column decides:
+over a column with nothing at y=0 the break side lets only vegetation through, so obsidian cannot be broken, and
+the place side refuses the lava a breached core lets out, so it cannot leak. The read asks each goal's own
+material and each core's lava against the map's rules, as PGM does (`filter-region-wiring.md`, *How PGM decides
+one block change*); the fix is block 36 at y=0 under the goal or a build region over it.
+
 **OB23 — a goal standing over the height players may build to.** The build ceiling is twenty blocks over the
 *mean* top of the terrain the map builds — the ground alone, and deliberately nothing standing on it, the
 goal included, or this complaint could never fire (`BuildCeiling`). It is a number the
