@@ -14,9 +14,10 @@ public partial class Users
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private static readonly IReadOnlyList<SelectOption> Roles =
-        [new(StudioRoles.Member, "Member"), new(StudioRoles.Admin, "Admin")];
+        [new(StudioRoles.Unapproved, "Waiting for approval"), new(StudioRoles.Member, "Member"), new(StudioRoles.Admin, "Admin")];
 
-    private static readonly IReadOnlyList<SelectOption> MemberOnly = [new(StudioRoles.Member, "Member")];
+    private static readonly IReadOnlyList<SelectOption> BelowAdmin =
+        [new(StudioRoles.Unapproved, "Waiting for approval"), new(StudioRoles.Member, "Member")];
 
     private bool? admin;
     private CallerDto? me;
@@ -42,8 +43,12 @@ public partial class Users
 
     private bool Owner => me?.Owner == true;
 
-    /// <summary>The roles this caller may give: an owner gives either, an admin only member.</summary>
-    private IReadOnlyList<SelectOption> RolesToGive => Owner ? Roles : MemberOnly;
+    /// <summary>The roles this caller may give: an owner gives any, an admin those below admin.</summary>
+    private IReadOnlyList<SelectOption> RolesToGive => Owner ? Roles : BelowAdmin;
+
+    /// <summary>The person whose account is being changed, and the Minecraft name typed for it.</summary>
+    private string? changing;
+    private string account = "";
 
     // Why each control is closed to this caller, or null where it is open. The server refuses the same changes
     // (docs/access.md, "Who keeps the whitelist"); this only says so before the click.
@@ -53,8 +58,33 @@ public partial class Users
         : null;
 
     private string? RoleLocked(StudioUserDto user) =>
-        user.Owner ? "Owners are always admins"
-        : Untouchable(user) ?? (Owner ? null : "Only an owner can make someone an admin");
+        user.Owner ? "Owners are always admins" : Untouchable(user);
+
+    private string? AccountLocked(StudioUserDto user) => Untouchable(user);
+
+    private Task ApproveAsync(StudioUserDto user) => PutAsync(user.Uuid, StudioRoles.Member);
+
+    private void ToggleChange(StudioUserDto user)
+    {
+        changing = changing == user.Uuid ? null : user.Uuid;
+        account = "";
+    }
+
+    /// <summary>Move the person to the Minecraft account typed for them, with their maps, credits and library
+    /// entries.</summary>
+    private async Task ChangeAccountAsync(StudioUserDto user)
+    {
+        error = null;
+        using var response = await Http.PostAsJsonAsync($"api/users/{user.Uuid}/account", new AccountChangeRequest(account.Trim()));
+        if (!response.IsSuccessStatusCode)
+        {
+            error = await ServerRefusal.SentenceAsync(response);
+            return;
+        }
+        changing = null;
+        account = "";
+        await LoadAsync();
+    }
 
     private string? InviteLocked(StudioUserDto user) =>
         Untouchable(user)
@@ -62,6 +92,9 @@ public partial class Users
 
     private string? RemoveLocked(StudioUserDto user) =>
         user.Owner ? "Owners are set in the server configuration and can only be changed there" : Untouchable(user);
+
+    /// <summary>How many people wait for approval, which the page's heading counts.</summary>
+    private int Waiting => users?.Count(user => user.Role == StudioRoles.Unapproved) ?? 0;
 
     private static string SignInState(StudioUserDto user) =>
         user.SignsIn ? "signs in with Discord"

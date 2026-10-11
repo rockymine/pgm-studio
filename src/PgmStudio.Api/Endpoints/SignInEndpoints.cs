@@ -2,6 +2,7 @@ using FastEndpoints;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using PgmStudio.Api.Access;
+using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Access;
 using PgmStudio.Domain;
@@ -86,7 +87,9 @@ public sealed class InviteFollowEndpoint(IConfiguration configuration, StudioUse
 }
 
 /// <summary>GET /api/auth/discord/complete — where a sign-in lands once Discord has answered: decides who the
-/// Discord account is, writes the session, and sends the browser on. The Discord application never names this
+/// Discord account is, writes the session, and sends the browser on. A Discord account the whitelist does not
+/// hold, signing in without an invitation, is sent to <c>/join</c> to name its Minecraft account, with what
+/// Discord answered kept in the short-lived Discord cookie until it does. The Discord application never names this
 /// route; it names <c>/api/auth/discord/callback</c>, which the Discord scheme answers and forwards here.</summary>
 public sealed class DiscordCompleteEndpoint(StudioUserStore users) : EndpointWithoutRequest
 {
@@ -99,7 +102,6 @@ public sealed class DiscordCompleteEndpoint(StudioUserStore users) : EndpointWit
     public override async Task HandleAsync(CancellationToken ct)
     {
         var answered = await HttpContext.AuthenticateAsync(DiscordSignIn.ExternalScheme);
-        await HttpContext.SignOutAsync(DiscordSignIn.ExternalScheme);
         if (!answered.Succeeded
             || answered.Principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value is not { Length: > 0 } discordId)
         {
@@ -111,18 +113,106 @@ public sealed class DiscordCompleteEndpoint(StudioUserStore users) : EndpointWit
         answered.Properties!.Items.TryGetValue(DiscordSignIn.InviteItem, out var invite);
         if (await DiscordSignIn.ResolveAsync(users, discordId, invite, ct) is not { } person)
         {
+            if (invite is null)
+            {
+                await Send.RedirectAsync($"/join?returnUrl={Uri.EscapeDataString(SignIn.ReturnUrl(HttpContext))}");
+                return;
+            }
+            await HttpContext.SignOutAsync(DiscordSignIn.ExternalScheme);
             await Refusals.WriteAsync(HttpContext, 403, "not permitted",
-                [new Finding(RequestRules.NotPermitted, invite is null
-                    ? "the Discord account that signed in is not on the studio's whitelist"
-                    : "the invitation the Discord account followed is not open")], ct);
+                [new Finding(RequestRules.NotPermitted, "the invitation the Discord account followed is not open")], ct);
             return;
         }
 
+        await HttpContext.SignOutAsync(DiscordSignIn.ExternalScheme);
+        await users.NoteDiscordNameAsync(person.Uuid, DiscordSignIn.NameOf(answered.Principal), ct);
         // Persistent, so the cookie carries its thirty-day expiry and outlives the browser that signed in.
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, DiscordSignIn.SessionOf(person),
             new AuthenticationProperties { IsPersistent = true });
         await Send.RedirectAsync(SignIn.ReturnUrl(HttpContext));
     }
+}
+
+/// <summary>GET /api/auth/join — the Discord account waiting on <c>/join</c> to name its Minecraft account:
+/// <c>{discordName}</c>. 401 where no sign-in is waiting, or it lapsed.</summary>
+public sealed class JoinStateEndpoint : EndpointWithoutRequest<JoinStateDto>
+{
+    public override void Configure()
+    {
+        Get("/auth/join");
+        AllowAnonymous();
+        Description(b => b.Refuses(401));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var waiting = await HttpContext.AuthenticateAsync(DiscordSignIn.ExternalScheme);
+        if (!waiting.Succeeded)
+        {
+            await Join.RefuseLapsedAsync(HttpContext, ct);
+            return;
+        }
+        await Send.OkAsync(new JoinStateDto(DiscordSignIn.NameOf(waiting.Principal) ?? ""), ct);
+    }
+}
+
+/// <summary>POST /api/auth/join <c>{player}</c> — a Discord account the whitelist does not hold names its Minecraft
+/// account and joins, waiting for approval (<c>docs/access.md</c>, <i>Signing yourself up</i>): it is put on the
+/// whitelist as <c>unapproved</c>, bound to the Discord account, and signed in. 404 for a name no Minecraft account
+/// answers to, 409 <c>RQ21</c> for an account already someone's, 401 where no sign-in is waiting.</summary>
+public sealed class JoinEndpoint(StudioUserStore users, PlayerLookup players, AccessOptions access)
+    : Endpoint<JoinRequest, StudioUserDto>
+{
+    public override void Configure()
+    {
+        Post("/auth/join");
+        AllowAnonymous();
+        Description(b => b.Refuses(401, 404, 409));
+    }
+
+    public override async Task HandleAsync(JoinRequest request, CancellationToken ct)
+    {
+        var waiting = await HttpContext.AuthenticateAsync(DiscordSignIn.ExternalScheme);
+        if (!waiting.Succeeded
+            || waiting.Principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value is not { Length: > 0 } discordId)
+        {
+            await Join.RefuseLapsedAsync(HttpContext, ct);
+            return;
+        }
+        var discordName = DiscordSignIn.NameOf(waiting.Principal);
+        // A Discord account already bound to someone is that person: it signs in rather than joining twice.
+        var person = await users.GetByDiscordAsync(discordId, ct);
+        if (person is null)
+        {
+            if (await players.ResolveAsync(request.Player, ct) is not { } account)
+            {
+                await Refusals.WriteAsync(HttpContext, 404, "no player",
+                    [new Finding(RequestRules.NoSuchSubject,
+                        $"no Minecraft account answers to '{request.Player}'", Field: "player")], ct);
+                return;
+            }
+            if (access.Admins.Contains(account.Uuid) || await users.GetAsync(account.Uuid, ct) is not null)
+            {
+                await Refusals.WriteAsync(HttpContext, 409, "account taken",
+                    [new Finding(RequestRules.AccountTaken,
+                        $"the Minecraft account {account.Name} is already someone's on the studio", Field: "player")], ct);
+                return;
+            }
+            person = await users.JoinAsync(account.Uuid, account.Name, discordId, discordName, ct);
+        }
+        await HttpContext.SignOutAsync(DiscordSignIn.ExternalScheme);
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, DiscordSignIn.SessionOf(person),
+            new AuthenticationProperties { IsPersistent = true });
+        await Send.OkAsync(UserPutEndpoint.Dto(person, access), ct);
+    }
+}
+
+internal static class Join
+{
+    /// <summary>No sign-in waits to name its account: none was started, or the fifteen minutes it waits lapsed.</summary>
+    public static Task RefuseLapsedAsync(HttpContext http, CancellationToken ct) =>
+        Refusals.WriteAsync(http, 401, "not signed in",
+            [new Finding(RequestRules.SignedOut, "no Discord sign-in is waiting to join")], ct);
 }
 
 /// <summary>POST /api/auth/sign-out — end the session. Open to anyone, signed in or not.</summary>

@@ -9,6 +9,10 @@ public sealed class PgmDb : DataConnection
 {
     public PgmDb(DataOptions options) : base(options) { }
 
+    /// <summary>The account a request writes as, set for each writing request. A library row the request creates is
+    /// owned by it; outside a request, which is where the seed runs, it is null and the rows are nobody's.</summary>
+    public string? Writer { get; set; }
+
     public ITable<MapRow> Maps => this.GetTable<MapRow>();
     public ITable<AuthorRow> Authors => this.GetTable<AuthorRow>();
     public ITable<StudioUserRow> StudioUsers => this.GetTable<StudioUserRow>();

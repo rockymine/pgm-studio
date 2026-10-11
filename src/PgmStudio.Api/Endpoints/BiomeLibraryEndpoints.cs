@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FastEndpoints;
+using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Schema;
@@ -107,7 +108,7 @@ public sealed class BiomePatternUpdateEndpoint(ThemeStore store, BlockTextureSto
 
     public override async Task HandleAsync(BiomePatternSaveRequest req, CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBiomeAsync(Route<long>("id"), ct))?.SeedKey, "biome pattern", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBiomeAsync(Route<long>("id"), ct)), "biome pattern", ct))
             return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListBiomesAsync(ct: ct)).Select(row => (row.Id, row.Name)), ct)) return;
@@ -122,6 +123,7 @@ public sealed class BiomePatternUpdateEndpoint(ThemeStore store, BlockTextureSto
 
 /// <summary>DELETE /api/biome-patterns/{id} — forget a pattern. Nothing is asked first: a map took a copy, so
 /// no board changes when the row goes.</summary>
+[OwnedRow]
 public sealed class BiomePatternDeleteEndpoint(ThemeStore store) : EndpointWithoutRequest
 {
     public override void Configure()
@@ -129,7 +131,7 @@ public sealed class BiomePatternDeleteEndpoint(ThemeStore store) : EndpointWitho
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBiomeAsync(Route<long>("id"), ct))?.SeedKey, "biome pattern", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBiomeAsync(Route<long>("id"), ct)), "biome pattern", ct))
             return;
         if (await store.DeleteBiomeAsync(Route<long>("id"), ct) == 0)
         { await Refusals.NotFoundAsync(HttpContext, "biome pattern", ct); return; }

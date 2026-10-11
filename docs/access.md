@@ -47,9 +47,10 @@ before anything is written.
 
 | Change | An admin | An owner |
 |---|---|---|
-| add a member, or change a member's role to member | yes | yes |
+| add a member, approve someone waiting, or set someone's role to member or unapproved | yes | yes |
+| move a member or someone waiting to another Minecraft account | yes | yes |
 | make someone an admin | no | yes |
-| change, remove, invite, or issue a token for an admin | no | yes |
+| change, remove, invite, move to another account, or issue a token for an admin | no | yes |
 | open an invitation for someone a Discord account already signs in as | no | yes |
 | anything to an owner | no | only to themselves |
 
@@ -67,6 +68,40 @@ fresh invitation (`docs/deployment.md`).
 **A token is never an owner.** It is capped at a member's rights (below), so an owner's token keeps no
 whitelist at all.
 
+## Signing yourself up
+
+**A Discord account nobody invited joins by naming its Minecraft account, and waits for approval.** A sign-in
+whose Discord account the whitelist does not hold, and that followed no invitation, lands on `/join` rather than
+being refused; what Discord answered waits in the short-lived Discord cookie (fifteen minutes) until it does.
+The page asks for the person's Minecraft name and shows that account's head and name to confirm.
+`POST /api/auth/join {player}` then puts the account on the whitelist as **`unapproved`**, bound to the Discord
+account, and signs it in. An account already someone's on the studio — on the whitelist in any role, or an owner
+`Access:Admins` names — is refused `RQ21` at 409, so nobody joins as another person's account.
+
+**A person waiting for approval makes a few maps and keeps their own library entries.** They originate maps up
+to `Access:UnapprovedMapLimit` (3 where unset) and are refused the next `RQ20` at 403, counted over the maps they
+own, so deleting one frees its place; they work on their own maps as a member does, and add and change their own
+library entries (*Library entries are their maker's*, below). They have no tokens.
+
+**An admin approves them** by setting their role to `member` (the *Approve* button on `/admin/users`), which lifts
+the limit. The page lists each person's Discord name beside their account, and the account menu counts the people
+waiting for an admin.
+
+**An admin moves a person to another Minecraft account** with `POST /api/users/{uuid}/account {player}`, which
+no one else on the studio may hold (`RQ21`). Their place on the whitelist, their tokens, the maps they own and are
+credited on, their library entries and their notes move with them, and each map's intent is credited under the new
+name, so its `map.xml` follows. A change's record keeps the account it was written under. Their Discord account
+stays bound, and they sign in again to carry the new account.
+
+## Library entries are their maker's
+
+**A library entry belongs to whoever made it, and only they and an admin change or delete it.** Every row of the
+nine library kinds records the account that created it (`owner_uuid`). A `PUT` or `DELETE` of someone else's
+entry is refused `LB7` at 403; a seeded row stays nobody's to change (`LB6`, `docs/tools/library.md`), and a row
+stored before rows recorded their maker is an admin's. Deleting an entry of one's own is open to anyone on the
+whitelist, so the nine library `DELETE` routes are marked `[OwnedRow]` and take the `member` policy, the row
+deciding the rest. An admin's token writes as a member, so it changes the entries its person made and no others.
+
 ## Signing in: Discord says who, an invitation says which account
 
 Discord answers who a person is on Discord and nothing else, so it cannot say which Minecraft account they
@@ -82,10 +117,11 @@ The sign-in itself is OAuth2's authorization-code flow with PKCE, over ASP.NET's
 library beyond the framework. `GET /api/auth/discord` (or the invitation) sends the browser to Discord asking
 for the `identify` scope alone: an id and a username, no e-mail and no servers. Discord sends it back to
 `/api/auth/discord/callback`, which the handler answers by exchanging the code for a token with the
-application's secret, server to server, and reading `/users/@me`. What Discord said lands in a five-minute
+application's secret, server to server, and reading `/users/@me`. What Discord said lands in a fifteen-minute
 cookie of its own, and `GET /api/auth/discord/complete` decides who that is (`DiscordSignIn.ResolveAsync`):
 the session is written only when the answer is someone on the whitelist, and then the browser goes on to
-`returnUrl` — a path on this studio, never another site.
+`returnUrl` — a path on this studio, never another site. A Discord account the whitelist does not hold, signing
+in without an invitation, goes to `/join` instead (*Signing yourself up*, above); a lapsed invitation is refused.
 
 The Discord application is two settings. `Discord:ClientId` is public — it is in every sign-in link — and
 `appsettings.json` carries it; its redirect list names `…/api/auth/discord/callback` for every host the studio
@@ -302,7 +338,7 @@ A request the rules turn away answers the refusal envelope every gate uses (`doc
 | Rule | Status | When |
 |---|---|---|
 | `RQ7` | 401 | the route writes, builds a view on request, or reads map notes, and the request is signed out |
-| `RQ8` | 403 | the request is signed in and this write is not theirs: not on the whitelist, not the map's owner or credited author, or an admin's route — and a Discord sign-in that resolves to nobody on the whitelist |
+| `RQ8` | 403 | the request is signed in and this write is not theirs: not on the whitelist, not the map's owner or credited author, or an admin's route — and a sign-in through an invitation that is not open |
 | `RQ9` | 503 | a sign-in route, on a studio with no Discord application configured |
 | `RQ11` | 429 | a route that builds a world, and the request waited past its limit |
 | `RQ18` | 429 | a route that builds a world, and the build queue is full |
@@ -316,6 +352,9 @@ Every write publishes the first two in the schema at `/api/openapi/v1.json`, and
 |---|---|---|
 | `GET /api/me` | `{mode, signedIn, uuid, name, role, notes, owner}` — who the request is, what role it carries, whether it may read and answer map notes, and whether it is an owner | — |
 | `GET /api/map/{slug}/access` | `{mayEdit}` — whether this request's writes to the map would be accepted; the client opens it read-only where not | 404 |
+| `GET /api/auth/join` | `{discordName}` — the Discord account waiting on `/join` to name its Minecraft account | 401 |
+| `POST /api/auth/join` `{player}` | joins as the Minecraft account named, `unapproved` and bound to the waiting Discord account, and signs in: the stored row | 401, 404, 409 `RQ21` |
+| `POST /api/users/{uuid}/account` `{player}` | moves the person to another Minecraft account, with their maps, credits, library entries, tokens and notes; admin only | 403 `RQ8` · 404 · 409 `RQ21` |
 | `PATCH /api/map/{slug}/agent-made` `{agentMade}` | marks the map as made by an agent, which keeps it to the admins and its owner, or takes the mark off; admin only | 403 `RQ8` · 404 |
 | `GET /api/users` | the whitelist, by name: `[{uuid, name, role, addedAt, signsIn, inviteExpiresAt, owner}]` — `signsIn` once a Discord account is bound, `inviteExpiresAt` while an invitation is open, `owner` where `Access:Admins` names them | 403 |
 | `POST /api/users` `{player, role}` | puts the account `player` names — a name or a uuid, resolved through Mojang — on the whitelist in `role`, or changes the role of one already on it; answers the stored row | 400, 403 `RQ8` (an admin made or changed by a non-owner, or an owner changed), 404 |

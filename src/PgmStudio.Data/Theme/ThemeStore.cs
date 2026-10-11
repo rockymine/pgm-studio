@@ -36,6 +36,7 @@ public sealed class ThemeStore(PgmDb db)
     public Task<long> CreateStyleAsync(StyleRow row, CancellationToken ct = default)
     {
         row.CreatedAt = DateTime.UtcNow;
+        row.OwnerUuid ??= db.Writer;
         return db.InsertWithInt64IdentityAsync(row, token: ct);
     }
 
@@ -61,6 +62,7 @@ public sealed class ThemeStore(PgmDb db)
     public Task<long> CreateBiomeAsync(BiomePatternRow row, CancellationToken ct = default)
     {
         row.CreatedAt = DateTime.UtcNow;
+        row.OwnerUuid ??= db.Writer;
         return db.InsertWithInt64IdentityAsync(row, token: ct);
     }
 
@@ -120,6 +122,7 @@ public sealed class ThemeStore(PgmDb db)
         theme.CreatedAt = DateTime.UtcNow;
         return db.InOneWriteAsync(async () =>
         {
+            theme.OwnerUuid ??= db.Writer;
             var id = await db.InsertWithInt64IdentityAsync(theme, token: ct);
             foreach (var bucket in buckets)
             {

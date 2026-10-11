@@ -54,6 +54,11 @@ public sealed class MyTokenIssueEndpoint(Callers callers, StudioTokenStore token
                     "the request is signed in as someone with no Minecraft account")], ct);
             return;
         }
+        if (caller.IsUnapproved)
+        {
+            await TokenIssue.RefuseUnapprovedAsync(HttpContext, ct);
+            return;
+        }
         if (request.Notes && !caller.IsAdmin)
         {
             await TokenIssue.RefuseNotesAsync(HttpContext, ct);
@@ -117,6 +122,11 @@ public sealed class UserTokenIssueEndpoint(StudioTokenStore tokens, StudioUserSt
             await WhitelistKeeping.RefuseAsync(HttpContext, refused, ct);
             return;
         }
+        if (person.Role == StudioRoles.Unapproved)
+        {
+            await TokenIssue.RefuseUnapprovedAsync(HttpContext, ct);
+            return;
+        }
         if (request.Notes && person.Role != StudioRoles.Admin && !access.Admins.Contains(uuid))
         {
             await TokenIssue.RefuseNotesAsync(HttpContext, ct);
@@ -140,6 +150,13 @@ internal static class TokenIssue
         var actsAs = (await users.GetAsync(uuid, ct))?.Name ?? uuid;
         return new StudioTokenIssuedDto(row.Id, row.Label, token, actsAs, row.Notes);
     }
+
+    /// <summary>A token asked for a person waiting for approval, who drives the studio from a browser until an admin
+    /// approves them.</summary>
+    public static Task RefuseUnapprovedAsync(HttpContext http, CancellationToken ct) =>
+        Refusals.WriteAsync(http, 403, "not permitted",
+            [new Finding(RequestRules.NotPermitted,
+                "a person waiting for approval has no tokens until an admin approves them")], ct);
 
     /// <summary>The notes permission asked of a token whose person is not an admin, which no token may exceed.</summary>
     public static Task RefuseNotesAsync(HttpContext http, CancellationToken ct) =>

@@ -47,7 +47,8 @@ public static class DiscordSignIn
             cookie.Cookie.Name = "pgm-studio.discord";
             cookie.Cookie.HttpOnly = true;
             cookie.Cookie.SameSite = SameSiteMode.Lax;
-            cookie.ExpireTimeSpan = TimeSpan.FromMinutes(5);
+            // Long enough for a person the whitelist does not hold yet to name their Minecraft account on /join.
+            cookie.ExpireTimeSpan = TimeSpan.FromMinutes(15);
         });
         builder.AddOAuth(Scheme, oauth =>
         {
@@ -95,6 +96,10 @@ public static class DiscordSignIn
         }
         return await users.GetByDiscordAsync(discordId, ct);
     }
+
+    /// <summary>The Discord name a sign-in answered with, or null where it named none.</summary>
+    public static string? NameOf(ClaimsPrincipal? principal) =>
+        principal?.FindFirst(ClaimTypes.Name)?.Value is { Length: > 0 } name ? name : null;
 
     /// <summary>The session for a person on the whitelist: their uuid and their name, and nothing else.</summary>
     public static ClaimsPrincipal SessionOf(StudioUserRow user) =>

@@ -27,6 +27,7 @@ public sealed class PropStyleStore(PgmDb db)
     public async Task<long> CreateTreeAsync(TreeStyleRow tree, CancellationToken ct = default)
     {
         tree.CreatedAt = DateTime.UtcNow;
+        tree.OwnerUuid ??= db.Writer;
         return await db.InsertWithInt64IdentityAsync(tree, token: ct);
     }
 
@@ -58,6 +59,7 @@ public sealed class PropStyleStore(PgmDb db)
     public async Task<long> CreateBoulderAsync(BoulderStyleRow boulder, CancellationToken ct = default)
     {
         boulder.CreatedAt = DateTime.UtcNow;
+        boulder.OwnerUuid ??= db.Writer;
         return await db.InsertWithInt64IdentityAsync(boulder, token: ct);
     }
 

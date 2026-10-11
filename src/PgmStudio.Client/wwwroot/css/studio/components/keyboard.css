@@ -172,6 +172,17 @@
   color: var(--nav-text-strong);
   font-size: var(--font-xs);
 }
+.account-waiting {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--text-white);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-align: center;
+}
+.account-menu-item .account-waiting { margin-left: auto; }
 .account-local { color: var(--nav-text); }
 .account-visitor { display: flex; align-items: center; gap: var(--space-2); }
 .account-signin {

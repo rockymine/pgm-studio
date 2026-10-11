@@ -1,4 +1,6 @@
+using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
+using PgmStudio.Data.Schema;
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Vocabulary;
@@ -48,20 +50,37 @@ internal static class LibraryRules
     /// runs the studio to change the built-in entry.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request)]
     public const string SeededRow = "LB6";
+
+    /// <summary>A request may not edit or delete a library entry someone else made.</summary>
+    /// <remarks>Either send the entry again as a new library entry with another <c>name</c>, or ask an admin to
+    /// change the entry.</remarks>
+    [Rule(RuleCategory.Forbidden, RuleConcern.Request)]
+    public const string NotYours = "LB7";
 }
 
 /// <summary>What editing or deleting a library row refuses where the seed folder states it:
 /// <see cref="LibraryRules.SeededRow"/>, on every kind.</summary>
 public static class SeededRows
 {
-    /// <summary>True when the row carrying <paramref name="seedKey"/> is the folder's and the refusal has been
-    /// written; false for an author's row, and for a row that does not exist, which the caller answers itself.</summary>
-    public static async Task<bool> RefusedAsync(HttpContext http, string? seedKey, string what, CancellationToken ct)
+    /// <summary>True when the request may not edit or delete <paramref name="row"/> and the refusal has been
+    /// written: <see cref="LibraryRules.SeededRow"/> at 409 for a row the seed folder states, and
+    /// <see cref="LibraryRules.NotYours"/> at 403 for a row someone else made, which only its maker and an admin
+    /// change; a row nothing recorded a maker for is an admin's. False otherwise, and for a row that does not
+    /// exist, which the caller answers itself.</summary>
+    public static async Task<bool> RefusedAsync(HttpContext http, ILibraryRow? row, string what, CancellationToken ct)
     {
-        if (seedKey is null) return false;
-        await Refusals.WriteAsync(http, 409, "seeded row",
-            [new Finding(LibraryRules.SeededRow,
-                $"the {what} '{seedKey}' is a built-in entry", Subjects: [seedKey])], ct);
+        if (row is null) return false;
+        if (row.SeedKey is { } seedKey)
+        {
+            await Refusals.WriteAsync(http, 409, "seeded row",
+                [new Finding(LibraryRules.SeededRow,
+                    $"the {what} '{seedKey}' is a built-in entry", Subjects: [seedKey])], ct);
+            return true;
+        }
+        var caller = await http.RequestServices.GetRequiredService<Callers>().OfAsync(http, ct);
+        if (caller.IsAdmin || row.OwnerUuid is { } owner && caller.Is(owner)) return false;
+        await Refusals.WriteAsync(http, 403, "not permitted",
+            [new Finding(LibraryRules.NotYours, $"the {what} is another person's library entry")], ct);
         return true;
     }
 }

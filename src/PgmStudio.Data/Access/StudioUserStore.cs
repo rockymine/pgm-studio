@@ -1,6 +1,7 @@
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Data.Schema;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Data.Access;
 
@@ -66,6 +67,60 @@ public sealed class StudioUserStore(PgmDb db)
             .Set(user => user.InviteHash, (string?)null).Set(user => user.InviteExpiresAt, (DateTime?)null)
             .UpdateAsync(ct);
     }
+
+    /// <summary>Put a person who signed themselves up on the whitelist, waiting for approval and already bound to
+    /// the Discord account they signed in with. Answers the row as stored.</summary>
+    public async Task<StudioUserRow> JoinAsync(
+        string uuid, string name, string discordId, string? discordName, CancellationToken ct = default)
+    {
+        await db.InsertAsync(new StudioUserRow
+        {
+            Uuid = uuid, Name = name, Role = StudioRoles.Unapproved, CreatedAt = DateTime.UtcNow,
+            DiscordId = discordId, DiscordName = discordName,
+        }, token: ct);
+        return (await GetAsync(uuid, ct))!;
+    }
+
+    /// <summary>Keep the Discord name the person signed in with, which an admin recognises them by.</summary>
+    public Task NoteDiscordNameAsync(string uuid, string? discordName, CancellationToken ct = default) =>
+        db.StudioUsers.Where(user => user.Uuid == uuid).Set(user => user.DiscordName, discordName).UpdateAsync(ct);
+
+    /// <summary>
+    /// Move a person on the whitelist from one Minecraft account to another, and everything that names them with
+    /// it: their place on the whitelist, their tokens, the maps they own and are credited on, the library rows
+    /// they made and the notes they wrote. Answers the ids of the maps whose credits moved, whose intents the
+    /// caller projects the new name into. A change's record keeps the account it was written under.
+    /// </summary>
+    public async Task<IReadOnlyList<long>> ChangeAccountAsync(
+        string from, string to, string name, CancellationToken ct = default)
+    {
+        await using var transaction = await db.BeginTransactionAsync(ct);
+        await db.StudioUsers.Where(user => user.Uuid == from).Set(user => user.Uuid, to).Set(user => user.Name, name)
+            .UpdateAsync(ct);
+        await db.StudioTokens.Where(token => token.UserUuid == from).Set(token => token.UserUuid, to).UpdateAsync(ct);
+        await db.Maps.Where(map => map.OwnerUuid == from).Set(map => map.OwnerUuid, to).UpdateAsync(ct);
+        var credited = await db.Authors.Where(author => author.Uuid == from).Select(author => author.MapId)
+            .Distinct().ToListAsync(ct);
+        await db.Authors.Where(author => author.Uuid == from).Set(author => author.Uuid, to)
+            .Set(author => author.Name, name).UpdateAsync(ct);
+        await db.MapNoteMessages.Where(message => message.AuthorUuid == from).Set(message => message.AuthorUuid, to)
+            .UpdateAsync(ct);
+        await MoveOwnedAsync(db.Styles, from, to, ct);
+        await MoveOwnedAsync(db.BiomePatterns, from, to, ct);
+        await MoveOwnedAsync(db.Themes, from, to, ct);
+        await MoveOwnedAsync(db.RoomStyles, from, to, ct);
+        await MoveOwnedAsync(db.RoofStyles, from, to, ct);
+        await MoveOwnedAsync(db.StoreyStyles, from, to, ct);
+        await MoveOwnedAsync(db.PorchStyles, from, to, ct);
+        await MoveOwnedAsync(db.TreeStyles, from, to, ct);
+        await MoveOwnedAsync(db.BoulderStyles, from, to, ct);
+        await transaction.CommitAsync(ct);
+        return credited;
+    }
+
+    private static Task<int> MoveOwnedAsync<TRow>(ITable<TRow> table, string from, string to, CancellationToken ct)
+        where TRow : class, ILibraryRow =>
+        table.Where(row => row.OwnerUuid == from).Set(row => row.OwnerUuid, to).UpdateAsync(ct);
 
     /// <summary>Whether <paramref name="uuid"/> is credited as an author of the map — a contributor is
     /// credited too, and is not one.</summary>

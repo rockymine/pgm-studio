@@ -6,9 +6,10 @@ namespace PgmStudio.Api.Access;
 /// The access configuration: <c>Access:Mode</c>, one of <see cref="AccessModes"/> and <c>invited</c> where
 /// unset, so a deployment that forgets to say is closed rather than open; and <c>Access:Admins</c>, the
 /// Minecraft uuids that are admins whatever the whitelist says — which is what makes the first admin, and
-/// what keeps the whitelist's keeper from removing themselves out of it.
+/// what keeps the whitelist's keeper from removing themselves out of it. <c>Access:UnapprovedMapLimit</c>, 3
+/// where unset, is how many maps a person waiting for approval may own at once.
 /// </summary>
-public sealed record AccessOptions(string Mode, IReadOnlySet<string> Admins)
+public sealed record AccessOptions(string Mode, IReadOnlySet<string> Admins, int UnapprovedMapLimit = 3)
 {
     /// <summary>The authentication scheme every request is read under, which forwards to the open scheme or to
     /// the session cookie as <see cref="Mode"/> says.</summary>
@@ -25,6 +26,7 @@ public sealed record AccessOptions(string Mode, IReadOnlySet<string> Admins)
                 $"Access:Mode is '{stated}'; it takes {string.Join(" or ", AccessModes.All)}.");
         var admins = configuration.GetSection("Access:Admins").Get<string[]>() ?? [];
         return new(mode, admins.Select(uuid => uuid.Trim()).Where(uuid => uuid.Length > 0)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase));
+            .ToHashSet(StringComparer.OrdinalIgnoreCase),
+            configuration.GetValue<int?>("Access:UnapprovedMapLimit") ?? 3);
     }
 }

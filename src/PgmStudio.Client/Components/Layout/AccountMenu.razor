@@ -26,7 +26,8 @@
                     @onclick="() => open = !open">
                 <PlayerHead Uuid="@me.Uuid" Name="@me.Name" Size="22" />
                 <span class="account-name">@me.Name</span>
-                <span class="account-role">@(me.Role ?? "guest")</span>
+                <span class="account-role">@RoleLabel</span>
+                @if (waiting > 0) { <span class="account-waiting" title="@($"{waiting} waiting for approval")">@waiting</span> }
                 <i data-lucide="chevron-down"></i>
             </button>
         }
@@ -53,11 +54,11 @@
                         <div class="account-menu-who">
                             <span class="account-name">@me.Name</span>
                             <span class="account-menu-note">
-                                @(me.Role is null ? "not on the whitelist" : me.Role) · signed in with Discord
+                                @(me.Role is null ? "not on the whitelist" : RoleLabel) · signed in with Discord
                             </span>
                         </div>
                     </div>
-                    @if (me.Role is not null)
+                    @if (me.Role is StudioRoles.Member or StudioRoles.Admin)
                     {
                         <a class="account-menu-item" role="menuitem" href="tokens" @onclick="() => open = false">
                             <i data-lucide="shield-check"></i><span>Tokens</span>
@@ -68,6 +69,7 @@
                 {
                     <a class="account-menu-item" role="menuitem" href="admin/users" @onclick="() => open = false">
                         <i data-lucide="users"></i><span>Users</span>
+                        @if (waiting > 0) { <span class="account-waiting" title="Waiting for approval">@waiting</span> }
                     </a>
                 }
                 <a class="account-menu-item" role="menuitem" href="/api-docs" target="_blank" rel="noopener"
@@ -89,7 +91,29 @@
     private CallerDto? me;
     private bool open;
 
-    protected override async Task OnInitializedAsync() => me = await Access.MeAsync();
+    /// <summary>How many people wait for an admin's approval, counted for an admin alone.</summary>
+    private int waiting;
+
+    private string RoleLabel => me?.Role switch
+    {
+        null => "guest",
+        StudioRoles.Unapproved => "waiting for approval",
+        var role => role,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        me = await Access.MeAsync();
+        if (me.Role == StudioRoles.Admin && me.Mode != AccessModes.Open)
+        {
+            try
+            {
+                waiting = (await Http.GetFromJsonAsync<List<StudioUserDto>>("api/users") ?? [])
+                    .Count(user => user.Role == StudioRoles.Unapproved);
+            }
+            catch (HttpRequestException) { waiting = 0; }
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
