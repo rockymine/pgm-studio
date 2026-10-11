@@ -107,7 +107,7 @@ public sealed record MapIntent
         hasKing: ControlPoints is { Count: > 0 },
         scoresKillsOrDeaths: false);
 
-    /// <summary>Map identity: name + authors/contributors. Version (1.0.0) and proto (1.5.0) are fixed; the
+    /// <summary>Map identity: name + authors/contributors. Version (1.0) and proto (1.5.1) are fixed; the
     /// gamemode and the objective text are auto-derived from which objective modules the intent carries
     /// (<see cref="MetaGenerator"/>), not authored.</summary>
     public MetaIntent? Meta { get; init; }

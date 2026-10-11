@@ -51,15 +51,15 @@ public static class MapExportComposer
     /// <para><b>intent</b> — The stored authoring intent. Required (and always non-null in practice) when
     /// <paramref name="layoutBytes"/> is not null — a sketch-originated map resolves it against the world it
     /// builds; ignored otherwise.</para>
-    /// <para><b>surfacePalette</b> — The cached scanned surface palette, for a non-sketch intent map's CTW
-    /// boilerplate. Ignored for a sketch map, which has no scanned surface.</para>
+    /// <para><b>worldBlocks</b> — Every block id the scanned world holds, for a non-sketch intent map's
+    /// <c>itemremove</c>. Ignored for a sketch map, which has no scanned world.</para>
     /// <para><b>resources</b> — The cached resource blocks, for a non-sketch intent map's renewables. Ignored for
     /// a sketch map, which derives its own renewable cubes from the world it just built.</para>
     /// <para><b>accounts</b> — The tree builders the layout names (<see cref="TreeBuilderCredits.Named"/>) that the
     /// caller resolved to accounts, so their credit is written by uuid. Null credits every one by name.</para></summary>
     public static ExportComposition Compose(
         Dict doc, byte[]? layoutBytes, bool isIntent, SegmentIndex? segments, MapIntent? intent,
-        IReadOnlySet<int>? surfacePalette, IReadOnlyList<(string Type, int X, int Y, int Z)> resources,
+        IReadOnlyCollection<int>? worldBlocks, IReadOnlyList<(string Type, int X, int Y, int Z)> resources,
         IReadOnlyDictionary<string, (string Uuid, string Name)>? accounts = null)
     {
         try
@@ -90,9 +90,9 @@ public static class MapExportComposer
             if (playable is { Refuses: true })
                 return Refuse("not a playable map", [.. playable.Refusals]);
 
-            // Other maps get plain XML (they already ship a world). Intent maps additionally get the cached
-            // surface palette + spawn-ore renewables — cache-only, never triggering a world scan on export.
-            var xml = MapXmlComposer.Compose(doc, isIntent, surfacePalette, resources);
+            // Other maps get plain XML (they already ship a world). Intent maps additionally get the world's
+            // clutter + spawn-ore renewables, both read at scan — never triggering a world scan on export.
+            var xml = MapXmlComposer.Compose(doc, isIntent, worldBlocks, resources);
             return new(null, xml, null, Remarks: playable is null ? null : [.. playable.Complaints]);
         }
         catch (DressingParseException ex)
@@ -167,7 +167,7 @@ public static class MapExportComposer
 
         TreeBuilderCredits.Apply(doc, built.Dressing.TreeBuilders, accounts);
         var renewCubes = WorldBuilder.RenewableCubeFootprints(goals, built.Shells);
-        var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewCubes);
+        var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, worldBlocks: null, resources: [], renewCubes);
         return new(null, sketchXml, built, doc, [.. playable.Complaints]);
     }
 

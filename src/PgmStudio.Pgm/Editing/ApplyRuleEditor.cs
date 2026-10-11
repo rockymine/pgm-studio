@@ -64,9 +64,11 @@ public static partial class ApplyRuleEditor
             && !regions.ContainsKey(region) && !BuiltinRegions.Contains(region))
             throw EditException.Unresolved($"the apply rule names region '{region}', which the document does not have", "region");
 
+        var teams = DocAccess.TeamIds(data);
         foreach (var key in RuleFilterKeys)
             if (payload.GetValueOrDefault(key) is string val && val.Length > 0 && IsSimpleRef(val)
-                && !filters.ContainsKey(val) && !regions.ContainsKey(val) && !BuiltinFilters.Contains(val))
+                && !filters.ContainsKey(val) && !regions.ContainsKey(val) && !teams.Contains(val)
+                && !BuiltinFilters.Contains(val))
                 throw EditException.Unresolved($"the apply rule's `{key}` names '{val}', which the document does not have", key);
     }
 

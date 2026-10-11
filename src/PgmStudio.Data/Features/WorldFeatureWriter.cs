@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using LinqToDB;
 using LinqToDB.Data;
@@ -113,6 +114,8 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
             coreCount = await CoreCandidateStore.WriteAsync(db, mapId, cores, ct);
             destroyableCount = await DestroyableCandidateStore.WriteAsync(db, mapId, destroyables, ct);
             islands = await WriteArtifactsAsync(mapId, chunks, erased, ct);
+            await StoreArtifactAsync(mapId, ArtifactKind.WorldBlocksJson,
+                JsonSerializer.SerializeToUtf8Bytes(byId.Values.Distinct().Order().ToArray()), ct);
         }, ct);
 
         return new Counts(wool.Count, res.Count, chests.Count, spawners.Count, segs.Count, islands, monCount, coreCount, destroyableCount);

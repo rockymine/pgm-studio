@@ -8,8 +8,9 @@ using PgmStudio.Geom;
 /// Forward generation for the Teams slice of the declarative authoring model
 /// (docs/pgm/new-map-authoring.md). Projects a <see cref="MapIntent"/> into the PGM document:
 /// teams, a spawn kit, per-team spawn-point + protection regions with the spawn-protection wiring
-/// (an <c>only-&lt;team&gt;</c> filter + an <c>enter</c> apply-rule — docs/pgm/filter-region-wiring.md template
-/// 2), the <c>spawns[]</c> links, and the observer (<c>&lt;default&gt;</c>) spawn.
+/// (an <c>enter</c> apply-rule naming the team itself, which PGM reads as a filter matching its members —
+/// docs/pgm/filter-region-wiring.md template 2), the <c>spawns[]</c> links, and the observer
+/// (<c>&lt;default&gt;</c>) spawn.
 /// <para>Mirror of <c>RegionCategorizer</c>: the regions it emits read back as <c>spawn/point</c>,
 /// <c>spawn/protection</c>, and <c>observer_spawn</c> (the consistency check).</para>
 /// <para>Idempotent: clears its own prior output (by deterministic id) before regenerating, so
@@ -19,7 +20,8 @@ using PgmStudio.Geom;
 public static class TeamsGenerator
 {
     private const string ProtectionMessage = "You may not enter the enemy's spawn!";
-    private const string BlockProtectionMessage = "You may not block/break spawns!";
+    /// <summary>The message on the one rule protecting every spawn's blocks, which is how a later slice finds it.</summary>
+    public const string BlockProtectionMessage = "You may not block/break spawns!";
     // One fixed spawn kit for now — the author never sees or picks it (the "Standard" preset below).
     private const string SpawnKitId = "spawn-kit";
 
@@ -58,17 +60,13 @@ public static class TeamsGenerator
         var kits = DocAccess.EnsureList(doc, "kits");
         kits.Clear();
         if (intent.Spawns.Count > 0)
-        {
             kits.Add(StandardSpawnKit(SpawnKitId, DestroyKitPairing.RequiredPickaxe(intent)));
-            kits.Add(ResetResistanceKit());
-        }
     }
 
     private static Dict StandardSpawnKit(string id, string pickaxe) => new()
     {
         ["id"] = id,
-        // Empty what the last life left behind before handing out the kit. Only the spawn kit clears: the reset
-        // kit below is force-applied every tick, where a clear would wipe the inventory continuously.
+        // Empty what the last life left behind before handing out the kit.
         ["clear"] = true,
         ["items"] = new List<object?>
         {
@@ -96,18 +94,12 @@ public static class TeamsGenerator
             Armor("leggings", "chainmail leggings", enchantments: "projectile_protection:1"),
             Armor("boots", "leather boots", teamColor: true, enchantments: "projectile_protection:1"),
         },
-        // Full damage-immunity while in spawn; the reset kit strips it on leave (docs/pgm/template.xml).
-        ["effects"] = new List<object?> { Effect("damage resistance", "oo", 100) },
+        // Full damage-immunity for the first seconds of a life, which is what a player spends leaving the spawn.
+        ["effects"] = new List<object?> { Effect("damage resistance", SpawnResistance, 100) },
     };
 
-    // The force reset kit that removes the in-spawn resistance the moment a player leaves the spawn.
-    private const string ResetKitId = "reset-resistance-kit";
-    private static Dict ResetResistanceKit() => new()
-    {
-        ["id"] = ResetKitId,
-        ["force"] = true,
-        ["effects"] = new List<object?> { Effect("damage resistance", "0", 0) },
-    };
+    /// <summary>How long the spawn kit's damage immunity lasts, in PGM's duration syntax.</summary>
+    public const string SpawnResistance = "5s";
 
     private static Dict Effect(string type, string duration, int amplifier) =>
         new() { ["type"] = type, ["duration"] = duration, ["amplifier"] = amplifier };
@@ -140,6 +132,8 @@ public static class TeamsGenerator
         DocAccess.Regions(doc).Remove("not-spawns");
         if (doc.GetValueOrDefault("apply_rules") is List<object?> priorRules)
             priorRules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string is "spawns" or "not-spawns");
+        if (doc.GetValueOrDefault("kits") is List<object?> kits)
+            kits.RemoveAll(k => k is Dict d && d.GetValueOrDefault("id") as string == "reset-resistance-kit");
 
         var protIds = new List<string>();
         foreach (var sp in intent.Spawns)
@@ -161,42 +155,27 @@ public static class TeamsGenerator
                 // One protection rect is the region itself; several union into it (the buildable-area pattern).
                 var protId = $"{slug}-spawn";
                 EmitRectUnion(doc, protId, "spawn", sp.Protection);
-                var fid = $"only-{slug}";
-                FilterEditor.CreateFilter(doc, new Dict { ["id"] = fid, ["type"] = "team", ["team"] = IntentNaming.TeamId(sp.Team) });
-                // keep enemies out, per team (enter=only-<team>); the block protection is shared, on the spawns union.
+                // Keep enemies out, per team: a team id is itself the filter matching its members. The block
+                // protection is shared, on the spawns region.
                 ApplyRuleEditor.CreateApplyRule(doc, new Dict
                 {
-                    ["enter"] = fid, ["region"] = protId, ["message"] = ProtectionMessage,
+                    ["enter"] = IntentNaming.TeamId(sp.Team), ["region"] = protId, ["message"] = ProtectionMessage,
                 });
                 protIds.Add(protId);
             }
         }
 
-        // One shared spawns union carries the block protection (template structure). WoolGenerator folds the
+        // One shared spawns region carries the block protection (template structure). WoolGenerator folds the
         // wool monuments out of it (→ a complement) so capturing a wool doesn't trip this rule, and
         // ResourceRenewables relaxes block=never to "only the spawn ore is breakable" when ore lives here.
         if (protIds.Count > 0)
         {
-            AddUnion(doc, "spawns", protIds);
+            var spawnsId = RegionEditor.Gather(doc, SpawnOreProtection.SpawnsId, protIds);
             ApplyRuleEditor.CreateApplyRule(doc, new Dict
             {
-                ["block"] = "never", ["region"] = "spawns", ["message"] = BlockProtectionMessage,
+                ["block"] = "never", ["region"] = spawnsId, ["message"] = BlockProtectionMessage,
             });
-            // The spawn kit grants infinite damage-resistance in spawn; strip it the moment a player
-            // steps out by force-applying the reset kit everywhere outside the spawns (template structure).
-            RegionEditor.GroupRegions(doc, new Dict { ["type"] = "negative", ["id"] = "not-spawns", ["child_ids"] = new List<object?> { "spawns" } });
-            ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["kit"] = ResetKitId, ["region"] = "not-spawns" });
         }
-    }
-
-    // A union region from its child ids, with derived bounds (allows a single child, unlike GroupRegions).
-    private static void AddUnion(Dict doc, string id, List<string> childIds)
-    {
-        var regions = DocAccess.Regions(doc);
-        var (bounds, _, _, _, _) = RegionBuilder.BuildUnionBounds(childIds.Select(c => (Dict)regions[c]!));
-        var union = new Dict { ["id"] = id, ["type"] = "union", ["children"] = childIds.Cast<object?>().ToList() };
-        if (bounds is not null) union["bounds_2d"] = bounds;
-        regions[id] = union;
     }
 
     // Emit a multi-rect footprint as the region <paramref name="id"/>: a single rect becomes <c>id</c>
@@ -216,7 +195,7 @@ public static class TeamsGenerator
             RegionEditor.CreateRegion(doc, RectDict(rid, rects[i]));
             rectIds.Add(rid);
         }
-        AddUnion(doc, id, rectIds);
+        RegionEditor.Gather(doc, id, rectIds);
     }
 
     // ── observer (<default>) spawn ─────────────────────────────────────────────────────

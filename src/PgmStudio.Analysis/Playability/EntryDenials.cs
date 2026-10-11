@@ -62,13 +62,14 @@ public static class EntryDenials
     {
         var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
         var filters = MapDoc.AsDict(data.GetValueOrDefault("filters"));
+        var teams = DeclaredTeams(data);
         var bounds = ((double)over.X, (double)over.Z, (double)(over.X + over.Width), (double)(over.Z + over.Height));
         Barred? barred = null;
 
         foreach (var rule in MapDoc.AsList(data.GetValueOrDefault("apply_rules")).OfType<Dict>())
         {
             if (rule.GetValueOrDefault("enter") is not string enter || enter.Length == 0) continue;
-            if (rule.GetValueOrDefault("region") is not { } regionRef || Allows(enter, filters, team)) continue;
+            if (rule.GetValueOrDefault("region") is not { } regionRef || Allows(enter, filters, teams, team)) continue;
             if (Editability.RegionMask(regionRef, regions, bounds, over.X, over.Z, over.Width, over.Height) is not { } mask) continue;
 
             var heights = RegionGeometry2d.Heights(regionRef, regions);
@@ -88,6 +89,7 @@ public static class EntryDenials
     {
         var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
         var filters = MapDoc.AsDict(data.GetValueOrDefault("filters"));
+        var teams = DeclaredTeams(data);
         var bounds = ((double)over.X, (double)over.Z, (double)(over.X + over.Width), (double)(over.Z + over.Height));
         bool[]? Mask(object reference) => Editability.RegionMask(reference, regions, bounds, over.X, over.Z, over.Width, over.Height);
         var at = (goal.Z - over.Z) * over.Width + (goal.X - over.X);
@@ -95,7 +97,7 @@ public static class EntryDenials
 
         foreach (var rule in MapDoc.AsList(data.GetValueOrDefault("apply_rules")).OfType<Dict>())
         {
-            if (rule.GetValueOrDefault("enter") is not string enter || enter.Length == 0 || Allows(enter, filters, team)) continue;
+            if (rule.GetValueOrDefault("enter") is not string enter || enter.Length == 0 || Allows(enter, filters, teams, team)) continue;
             if (rule.GetValueOrDefault("region") is not { } reference || Mask(reference) is not { } mask || !mask[at]) continue;
 
             // Descend through named unions while one still holds the goal.
@@ -119,27 +121,32 @@ public static class EntryDenials
         return [];
     }
 
+    /// <summary>The ids of the teams the document declares.</summary>
+    private static HashSet<string> DeclaredTeams(Dict data) =>
+        MapDoc.AsList(data.GetValueOrDefault("teams")).OfType<Dict>()
+            .Select(team => team.GetValueOrDefault("id") as string).OfType<string>().ToHashSet();
+
     /// <summary>Whether an <c>enter</c> filter lets <paramref name="team"/> in. Deliberately permissive: a
-    /// team filter answers by its team, the boolean wrappers compose, and anything unresolvable answers yes.
-    /// </summary>
-    public static bool Allows(string value, Dict filters, string team, HashSet<string>? seen = null)
+    /// team filter answers by its team — and so does a team id named as a filter, which PGM reads as one — the
+    /// boolean wrappers compose, and anything unresolvable answers yes.</summary>
+    public static bool Allows(string value, Dict filters, IReadOnlySet<string> teams, string team, HashSet<string>? seen = null)
     {
         seen ??= [];
         if (value.Length == 0 || !seen.Add(value)) return true;
         if (value is "always" or "allow") return true;
         if (value == "never") return false;
-        if (filters.GetValueOrDefault(value) is not Dict filter) return true;
+        if (filters.GetValueOrDefault(value) is not Dict filter) return !teams.Contains(value) || value == team;
 
         return (filter.GetValueOrDefault("type") as string) switch
         {
             "team" => filter.GetValueOrDefault("team") as string == team,
-            "not" => !Allows(filter.GetValueOrDefault("child") as string ?? "", filters, team, seen),
-            "allow" => Allows(filter.GetValueOrDefault("child") as string ?? "", filters, team, seen),
-            "deny" => !Allows(filter.GetValueOrDefault("child") as string ?? "", filters, team, seen),
+            "not" => !Allows(filter.GetValueOrDefault("child") as string ?? "", filters, teams, team, seen),
+            "allow" => Allows(filter.GetValueOrDefault("child") as string ?? "", filters, teams, team, seen),
+            "deny" => !Allows(filter.GetValueOrDefault("child") as string ?? "", filters, teams, team, seen),
             "any" => MapDoc.AsList(filter.GetValueOrDefault("children"))
-                .Any(child => Allows(child as string ?? "", filters, team, seen)),
+                .Any(child => Allows(child as string ?? "", filters, teams, team, seen)),
             "all" => MapDoc.AsList(filter.GetValueOrDefault("children"))
-                .All(child => Allows(child as string ?? "", filters, team, seen)),
+                .All(child => Allows(child as string ?? "", filters, teams, team, seen)),
             "always" => true,
             "never" => false,
             _ => true,

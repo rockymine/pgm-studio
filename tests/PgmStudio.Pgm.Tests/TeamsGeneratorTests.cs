@@ -47,8 +47,7 @@ public sealed class TeamsGeneratorTests
 
         await Assert.That(Regions(doc).ContainsKey("red-spawn-point")).IsTrue();
         await Assert.That(Regions(doc).ContainsKey("red-spawn")).IsTrue();
-        await Assert.That(Filters(doc).ContainsKey("only-red")).IsTrue();
-        await Assert.That(((Dict)Filters(doc)["only-red"]!)["team"]).IsEqualTo("red-team");
+        await Assert.That(Filters(doc).Count).IsEqualTo(0);   // the team id is the filter
 
         var redSpawn = Spawns(doc).OfType<Dict>().FirstOrDefault(s => s.GetValueOrDefault("region") as string == "red-spawn-point");
         await Assert.That(redSpawn).IsNotNull();
@@ -56,7 +55,7 @@ public sealed class TeamsGeneratorTests
 
         var redRule = Rules(doc).OfType<Dict>().FirstOrDefault(r => r.GetValueOrDefault("region") as string == "red-spawn");
         await Assert.That(redRule).IsNotNull();
-        await Assert.That(redRule!["enter"]).IsEqualTo("only-red");
+        await Assert.That(redRule!["enter"]).IsEqualTo("red-team");
 
         await Assert.That(Spawns(doc).Count).IsEqualTo(2);
     }
@@ -65,16 +64,29 @@ public sealed class TeamsGeneratorTests
     public async Task Enter_is_per_team_and_block_protection_is_on_the_shared_spawns_union()
     {
         var doc = Map();
-        TeamsGenerator.Apply(doc, new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0), Protection = [new(0, 0, 10, 10)] }] });
+        TeamsGenerator.Apply(doc, Intent());
 
         // enter stays on the team's own rect; the block rule moves to the shared spawns union (template structure)
         var onRed = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == "red-spawn").ToList();
         await Assert.That(onRed.Count).IsEqualTo(1);
-        await Assert.That(onRed.Single().GetValueOrDefault("enter")).IsEqualTo("only-red");
+        await Assert.That(onRed.Single().GetValueOrDefault("enter")).IsEqualTo("red-team");
 
         var onSpawns = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == "spawns").ToList();
         await Assert.That(onSpawns.Single().GetValueOrDefault("block")).IsEqualTo("never");
         await Assert.That(((Dict)Regions(doc)["spawns"]!).GetValueOrDefault("type")).IsEqualTo("union");
+    }
+
+    /// <summary>One protected spawn is not a union of one: both its rules are stated on its own region.</summary>
+    [Test]
+    public async Task A_single_protected_spawn_carries_both_rules_itself()
+    {
+        var doc = Map();
+        TeamsGenerator.Apply(doc, new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0), Protection = [new(0, 0, 10, 10)] }] });
+
+        var onRed = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == "red-spawn").ToList();
+        await Assert.That(onRed.Select(r => r.GetValueOrDefault("enter") ?? r.GetValueOrDefault("block")))
+            .IsEquivalentTo(new object?[] { "red-team", "never" });
+        await Assert.That(Regions(doc).ContainsKey("spawns")).IsFalse();
     }
 
     [Test]
@@ -100,11 +112,9 @@ public sealed class TeamsGeneratorTests
 
         await Assert.That(Spawns(doc).Count).IsEqualTo(2);
         await Assert.That(Regions(doc).Keys.Count(k => k.EndsWith("-spawn-point"))).IsEqualTo(2);
-        await Assert.That(Rules(doc).Count).IsEqualTo(4);   // an enter per team + block-on-spawns + reset-kit-on-not-spawns
-        await Assert.That(Filters(doc).Count).IsEqualTo(2);
+        await Assert.That(Rules(doc).Count).IsEqualTo(3);   // an enter per team + block-on-spawns
         await Assert.That(Regions(doc).ContainsKey("spawns")).IsTrue();
-        await Assert.That(Regions(doc).ContainsKey("not-spawns")).IsTrue();
-        await Assert.That(((List<object?>)doc["kits"]!).Count).IsEqualTo(2);   // spawn kit + reset kit, not duplicated
+        await Assert.That(((List<object?>)doc["kits"]!).Count).IsEqualTo(1);   // the spawn kit, not duplicated
     }
 
     [Test]
@@ -123,10 +133,12 @@ public sealed class TeamsGeneratorTests
         await Assert.That(union["type"]).IsEqualTo("union");
         await Assert.That(((List<object?>)union["children"]!).Cast<string>()).IsEquivalentTo(new[] { "red-spawn-1", "red-spawn-2" });
 
-        // the enter rule + the shared spawns union both reference the per-team union
-        var enter = Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("region") as string == "red-spawn");
-        await Assert.That(enter["enter"]).IsEqualTo("only-red");
-        await Assert.That(((List<object?>)((Dict)Regions(doc)["spawns"]!)["children"]!).Cast<string>()).Contains("red-spawn");
+        // the enter rule and, the spawn being the only one, the block rule both reference the per-team union
+        var enter = Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("enter") is not null);
+        await Assert.That(enter["region"]).IsEqualTo("red-spawn");
+        await Assert.That(enter["enter"]).IsEqualTo("red-team");
+        await Assert.That(Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("block") is not null)["region"])
+            .IsEqualTo("red-spawn");
 
         // the union + its rect children all read back as spawn/protection (the mirror property)
         var facets = RegionCategorizer.DeriveFacets(doc);
@@ -174,7 +186,7 @@ public sealed class TeamsGeneratorTests
         var kits = (List<object?>)doc["kits"]!;
         var kit = kits.OfType<Dict>().FirstOrDefault(k => k.GetValueOrDefault("id") as string == "spawn-kit");
         await Assert.That(kit).IsNotNull();
-        await Assert.That(kits.Count).IsEqualTo(2);   // spawn kit + the reset-resistance kit
+        await Assert.That(kits.Count).IsEqualTo(1);
 
         var items = ((List<object?>)kit!["items"]!).OfType<Dict>().ToList();
         var armor = ((List<object?>)kit["armor"]!).OfType<Dict>().ToList();
@@ -190,22 +202,13 @@ public sealed class TeamsGeneratorTests
         await Assert.That(armor.Count).IsEqualTo(4);
         await Assert.That(Mat(armor, "chainmail leggings")).IsEqualTo("chainmail leggings");
 
-        // in-spawn damage-immunity: infinite (oo) damage-resistance effect, high amplifier
+        // damage immunity for the first seconds of a life, which runs out by itself
         var effects = ((List<object?>)kit["effects"]!).OfType<Dict>().ToList();
         var resist = effects.First(e => e["type"] as string == "damage resistance");
-        await Assert.That(resist["duration"]).IsEqualTo("oo");
+        await Assert.That(resist["duration"]).IsEqualTo("5s");
 
-        // the spawn kit empties what the last life left; the tick-by-tick reset kit must not, or it would wipe
-        // the inventory continuously
+        // the spawn kit empties what the last life left
         await Assert.That(kit["clear"] as bool?).IsTrue();
-
-        // the reset kit force-strips that resistance (duration 0) once out of spawn
-        var reset = kits.OfType<Dict>().Single(k => k.GetValueOrDefault("id") as string == "reset-resistance-kit");
-        await Assert.That((bool)reset["force"]!).IsTrue();
-        await Assert.That(reset.GetValueOrDefault("clear") as bool? ?? false).IsFalse();
-        var resetEff = ((List<object?>)reset["effects"]!).OfType<Dict>().Single();
-        await Assert.That(resetEff["type"]).IsEqualTo("damage resistance");
-        await Assert.That(resetEff["duration"]).IsEqualTo("0");
     }
 
     [Test]
@@ -325,9 +328,9 @@ public sealed class TeamsGeneratorTests
         TeamsGenerator.Apply(doc, new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0), Protection = [new(0, 0, 10, 10)] }] });
 
         await Assert.That(Regions(doc).ContainsKey("red-spawn-point")).IsTrue();
-        await Assert.That(Filters(doc).ContainsKey("only-red")).IsTrue();
         await Assert.That(Regions(doc).Keys.Any(k => k.Contains("dark"))).IsFalse();
-        // the filter still targets the real team id
-        await Assert.That(((Dict)Filters(doc)["only-red"]!)["team"]).IsEqualTo("red-team");
+        // the enter rule still names the real team id
+        await Assert.That(Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("enter") is not null)["enter"])
+            .IsEqualTo("red-team");
     }
 }

@@ -1,3 +1,4 @@
+using PgmStudio.Minecraft.Palette;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
 
@@ -13,14 +14,17 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public static class MapXmlComposer
 {
-    public static string Compose(Dict doc, bool isIntent, IReadOnlySet<int>? surfaceBlockIds,
+    /// <summary>The map's XML. <paramref name="worldBlocks"/> is every block id the map's world holds, which
+    /// an intent map's <c>itemremove</c> reads its clutter from (<see cref="BlockDrops"/>); null where the world
+    /// was never censused.</summary>
+    public static string Compose(Dict doc, bool isIntent, IReadOnlyCollection<int>? worldBlocks,
         IReadOnlyList<(string Type, int X, int Y, int Z)> resources,
         IReadOnlyList<(int MinX, int MinZ, int MaxX, int MaxZ)>? renewableCubes = null)
     {
         var mx = Deserializer.FromDict(doc);
         if (isIntent)
         {
-            MapStandards.Apply(mx, surfaceBlockIds);
+            MapStandards.Apply(mx, worldBlocks is null ? null : BlockDrops.Clutter(worldBlocks));
             WaterLaneGenerator.EnsureInclude(mx);
             // Both renewable passes find ore living in a spawn and neither can see the other's, so the
             // spawns' block protection is stated once over the union — see SpawnOreProtection.

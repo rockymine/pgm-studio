@@ -105,25 +105,31 @@ public sealed class MapStandardsTests
         await Assert.That(m.ItemRemove).Contains("leather helmet");
         await Assert.That(m.ItemRemove).Contains("chainmail leggings");
         await Assert.That(m.ItemRemove).DoesNotContain("iron sword");
-        await Assert.That(m.ItemRemove).DoesNotContain("string");   // no surface ids → armor only
+        await Assert.That(m.ItemRemove).DoesNotContain("string");   // no world clutter → armor only
     }
 
     [Test]
-    public async Task ItemRemove_extends_with_surface_terrain_drops()
+    public async Task ItemRemove_extends_with_the_world_clutter()
     {
         var m = MapWithKit();
-        // surface palette: cobweb (30), tall grass (31), leaves (18), gravel (13), quartz (155, no drop)
-        MapStandards.Apply(m, new HashSet<int> { 30, 31, 18, 13, 155 });
+        MapStandards.Apply(m, ["string", "seeds", "sapling", "flint", "seeds"]);
 
         await Assert.That(m.ItemRemove).Contains("leather helmet");   // armor still there
-        await Assert.That(m.ItemRemove).Contains("string");           // cobweb
-        await Assert.That(m.ItemRemove).Contains("seeds");            // tall grass
-        await Assert.That(m.ItemRemove).Contains("long grass");      // tall grass block item
-        await Assert.That(m.ItemRemove).Contains("sapling");         // leaves
-        await Assert.That(m.ItemRemove).Contains("apple");           // oak leaves
-        await Assert.That(m.ItemRemove).Contains("flint");           // gravel
-        // de-duped, and a block with no mapped drop adds nothing
+        foreach (var item in new[] { "string", "seeds", "sapling", "flint" })
+            await Assert.That(m.ItemRemove).Contains(item);
         await Assert.That(m.ItemRemove.Distinct().Count()).IsEqualTo(m.ItemRemove.Count);
+    }
+
+    /// <summary>Clutter a kit hands out stays: what itemkeep keeps, itemremove may not take back.</summary>
+    [Test]
+    public async Task ItemRemove_never_takes_an_item_the_kit_hands_out()
+    {
+        var m = MapWithKit();
+        MapStandards.Apply(m, ["golden apple", "arrow", "torch"]);
+
+        await Assert.That(m.ItemRemove).DoesNotContain("golden apple");
+        await Assert.That(m.ItemRemove).DoesNotContain("arrow");
+        await Assert.That(m.ItemRemove).Contains("torch");
     }
 
     [Test]

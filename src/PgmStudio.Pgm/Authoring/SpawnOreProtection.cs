@@ -27,20 +27,40 @@ public static class SpawnOreProtection
     private const string Message = "You may not edit spawn!";
 
     /// <summary>The spawn-protection regions and the block boxes they cover. A protection region is one an
-    /// apply rule keeps other teams out of with an <c>only-&lt;team&gt;</c> enter filter — a wool room uses
-    /// <c>not-&lt;team&gt;</c>, so the prefix is what tells the two apart. The id is the region the renewable
-    /// and the block rule reference; the boxes are what an ore's position is tested against.</summary>
+    /// apply rule admits a single team to — its <c>enter</c> filter is the team itself or a <c>&lt;team&gt;</c>
+    /// filter; a wool room admits everyone <em>but</em> its owner, through a <c>not</c>. The id is the region
+    /// the renewable and the block rule reference; the boxes are what an ore's position is tested against.</summary>
     public static List<(string Id, Rect Box)> Protections(MapXml m)
     {
+        var teams = m.Teams.Select(team => team.Id).ToHashSet();
+        bool AdmitsOneTeam(string filter) =>
+            teams.Contains(filter) || m.Filters.TryGetValue(filter, out var f) && f.Type == "team";
+
         var seen = new HashSet<string>();
         var result = new List<(string, Rect)>();
         foreach (var rule in m.ApplyRules)
-            if (rule.EnterFilter.StartsWith("only-") && seen.Add(rule.RegionId)
+            if (rule.EnterFilter.Length > 0 && AdmitsOneTeam(rule.EnterFilter) && seen.Add(rule.RegionId)
                 && m.Regions.TryGetValue(rule.RegionId, out var r))
                 foreach (var box in RectBoxes(m, r))
                     result.Add((rule.RegionId, box));
         return result;
     }
+
+    /// <summary>The one region every spawn protection is gathered in: <c>spawns</c> where the map has it, the
+    /// single protection itself where there is one, and otherwise a <c>spawns</c> union written here. Null where
+    /// the map protects no spawn.</summary>
+    public static string? SpawnsRegion(MapXml m)
+    {
+        if (m.Regions.ContainsKey(SpawnsId)) return SpawnsId;
+        var ids = Protections(m).Select(s => s.Id).Distinct().ToList();
+        if (ids.Count == 0) return null;
+        if (ids.Count == 1) return ids[0];
+        m.Regions[SpawnsId] = new Region { Id = SpawnsId, Type = "union", Children = ids };
+        return SpawnsId;
+    }
+
+    /// <summary>The id the shared spawn protection is written under when there is more than one spawn.</summary>
+    public const string SpawnsId = "spawns";
 
     /// <summary>Restate the spawns' block protection for the ore that lives in them. Called with nothing,
     /// the blanket deny stands — a spawn with no ore has nothing anyone may break.</summary>
@@ -48,10 +68,7 @@ public static class SpawnOreProtection
     {
         if (ores.Count == 0) return;
         var spawns = Protections(m);
-        if (spawns.Count == 0) return;
-
-        if (!m.Regions.ContainsKey("spawns"))
-            m.Regions["spawns"] = new Region { Id = "spawns", Type = "union", Children = spawns.Select(s => s.Id).ToList() };
+        if (SpawnsRegion(m) is not { } spawnsId) return;
 
         var seq = 0;
         string Synth(Filter f) { f.Id = $"__spawn-ore-{seq++}"; m.Filters[f.Id] = f; return f.Id; }
@@ -77,12 +94,12 @@ public static class SpawnOreProtection
         };
 
         var spawnIds = spawns.Select(s => s.Id).ToHashSet();
-        spawnIds.Add("spawns");   // the blanket deny sits on the shared spawns union (TeamsGenerator)
+        spawnIds.Add(spawnsId);   // the blanket deny sits on the shared spawns region (TeamsGenerator)
         m.ApplyRules.RemoveAll(r => r.BlockFilter == "never" && spawnIds.Contains(r.RegionId));
-        m.ApplyRules.RemoveAll(r => r.RegionId == "spawns" && r.BlockBreakFilter.Length > 0);
+        m.ApplyRules.RemoveAll(r => r.RegionId == spawnsId && r.BlockBreakFilter.Length > 0);
         m.ApplyRules.Add(new ApplyRule
         {
-            BlockBreakFilter = breakId, BlockPlaceFilter = placeId, RegionId = "spawns", Message = Message,
+            BlockBreakFilter = breakId, BlockPlaceFilter = placeId, RegionId = spawnsId, Message = Message,
         });
     }
 

@@ -29,7 +29,7 @@ public sealed class MetaGeneratorTests
         MetaGenerator.Apply(doc, new MapIntent { Meta = new MetaIntent { Name = "Thunder Blank" } });
 
         await Assert.That(doc["name"]).IsEqualTo("Thunder Blank");
-        await Assert.That(doc["version"]).IsEqualTo("1.0.0");
+        await Assert.That(doc["version"]).IsEqualTo("1.0");
     }
 
     /// <summary>A map the studio authors is a map under development, whatever the intent says — the word is

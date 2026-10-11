@@ -76,7 +76,8 @@ null `cores` and nothing about cores is generated or cleared.
 | `waterLanes` | the late-opening gaps — carried, never authored here (below) |
 | `structures` · `spawns[].piece` · `wools[].piece`/`entries` | written only by the plan compiler; consumed by the world export |
 
-**Map identity is half derived and half stated.** `MetaGenerator` writes the version (`1.0.0`) and the phase
+**Map identity is half derived and half stated.** `MetaGenerator` writes the version (`1.0` — a map's first
+version; it moves only once a server has loaded the map) and the phase
 (`development` — every map the studio authors is one; a map is promoted by the server that serves it, not by
 the tool that drew it), and derives the `<gamemode>` elements and the objective line from the objective slices
 the intent actually carries. What it cannot derive is the map's name, its people and its **creation date**: an
@@ -156,11 +157,19 @@ the build slice's broad "not a void block" rule allows editing any solid block a
 apply-rule that decides, so a build rule emitted before the spawn and wool-room protections would
 short-circuit them.
 
-The output is a real PGM document. The intent above generates **19 regions, 20 filters and 11 apply-rules**
-from its 2 teams and 2 wools. The Review phase's tree shows the eight of those regions that carry a name —
+The output is a real PGM document. The intent above generates **16 regions, 18 filters and 10 apply-rules**
+from its 2 teams and 2 wools. The Review phase's tree shows the seven of those regions that carry a name —
 `red-spawn-point`, `blue-spawn-point`, `observer-spawn`, `red-wool-spawn`, `blue-wool-spawn`, `woolrooms`,
-`not-spawns`, `not-build-area` — and the rest are the anonymous unions and complements holding them together.
-None of it is typed by an author.
+`not-build-area` — and the rest are the anonymous unions and complements holding them together. None of it is
+typed by an author.
+
+**A union gathers two regions or more, never one.** A union of one region is that region under a second name,
+so where a team defends a single wool room its enter, block and chest rules are stated on the room itself, and
+where one spawn is protected its block rule sits on that spawn; `<team>s-woolrooms` and `spawns` are unions
+only when there are several to gather (`RegionEditor.Gather`). **A team id is a filter**: PGM reads `red-team`
+as matching that team's members, so the spawn's `enter`, the wool room's `not-red` and the chest lockout name
+the team directly rather than through a `<team>` filter restating it. The spawn kit's damage immunity lasts
+five seconds, the time a life spends leaving its spawn, and runs out by itself.
 
 Posted to a map with no scanned world, that intent passes round-trip and mirror, skips buildability and fails
 traversability, so its export gate stays shut — which is the tool's shape rather than a fault in the example,
@@ -484,6 +493,15 @@ becomes **Export**. It is enabled only when the pre-flight gate is open. Both re
 same world and cost the same half-second, so both say they are working: the document fetch fills the panes
 with *Generating XML…*, and the download reads *Exporting…* with the control disabled, which is also what
 stops a second click starting a second build.
+
+**The XML carries rules no step authors** (`MapStandards`), written at export and never stored: `itemkeep` is
+the spawn kit's loadout, `toolrepair` its tools, hunger is off, and `itemremove` is the kit's armour plus the
+**clutter the world breaks into**. The world scan records every block id the world holds
+(`world_blocks_json`), and the export reads each through `BlockDrops`: a block that does not fill its cube — a
+flower, a button, a torch, a fence, a stair — drops itself and is removed, and so is every item that is not a
+block (seeds from tall grass, saplings and apples from leaves, flint from gravel, string from a cobweb). A full
+block dropping itself is building material and stays, and nothing the kit hands out is removed. A world scanned
+before the census was recorded has none, and its `itemremove` is the armour alone until the world is replaced.
 
 ## What it refuses
 

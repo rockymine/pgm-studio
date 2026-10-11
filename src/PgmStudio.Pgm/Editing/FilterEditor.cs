@@ -53,10 +53,11 @@ public static class FilterEditor
         if (payload.GetValueOrDefault("type") is not string ftype || !KnownTypes.Contains(ftype))
             throw EditException.Unreadable($"filter type '{payload.GetValueOrDefault("type")}' is not one the studio reads", "type");
         var filters = Filters(data);
+        var teams = DocAccess.TeamIds(data);
         foreach (var r in FilterFilterRefs(payload))
         {
             if (r == selfId) throw EditException.Unresolved($"filter '{r}' names itself");
-            if (!filters.ContainsKey(r) && !Builtins.Contains(r)) throw EditException.Unresolved($"the filter names filter '{r}', which the document does not have");
+            if (!filters.ContainsKey(r) && !teams.Contains(r) && !Builtins.Contains(r)) throw EditException.Unresolved($"the filter names filter '{r}', which the document does not have");
         }
         var regions = data.GetValueOrDefault("regions") as Dict ?? new Dict();
         foreach (var r in FilterRegionRefs(payload))

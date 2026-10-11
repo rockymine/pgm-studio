@@ -5,7 +5,7 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// Structural validity of a parsed map document against the invariants PGM enforces while loading
-/// (proto 1.5.0). The headline rule: every wool needs a monument. PGM reads it with
+/// (proto 1.5.1). The headline rule: every wool needs a monument. PGM reads it with
 /// <c>parseRequiredRegionProperty(woolEl, "monument")</c>, which throws
 /// <c>InvalidXMLException("Missing required region 'monument'")</c> — so a monument-less wool is an
 /// unloadable map, not merely an unplayable one. This document parser is deliberately lenient there (a

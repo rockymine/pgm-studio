@@ -18,12 +18,12 @@ public sealed class ResourceRenewablesTests
 
     private static MapXml WithSpawns()
     {
-        var m = new MapXml();
+        var m = new MapXml { Teams = [new Team { Id = "red-team" }, new Team { Id = "blue-team" }] };
         m.Regions["red-spawn"] = Rect("red-spawn", -10, -10, 10, 10);
         m.Regions["blue-spawn"] = Rect("blue-spawn", 20, -10, 40, 10);
-        m.ApplyRules.Add(new ApplyRule { EnterFilter = "only-red", RegionId = "red-spawn", Message = "spawn" });
+        m.ApplyRules.Add(new ApplyRule { EnterFilter = "red-team", RegionId = "red-spawn", Message = "spawn" });
         m.ApplyRules.Add(new ApplyRule { BlockFilter = "never", RegionId = "red-spawn", Message = "spawn" });
-        m.ApplyRules.Add(new ApplyRule { EnterFilter = "only-blue", RegionId = "blue-spawn", Message = "spawn" });
+        m.ApplyRules.Add(new ApplyRule { EnterFilter = "blue-team", RegionId = "blue-spawn", Message = "spawn" });
         m.ApplyRules.Add(new ApplyRule { BlockFilter = "never", RegionId = "blue-spawn", Message = "spawn" });
         return m;
     }
@@ -60,7 +60,7 @@ public sealed class ResourceRenewablesTests
         var relaxed = m.ApplyRules.Single(r => r.RegionId == "spawns");
         await Assert.That(relaxed.BlockBreakFilter).IsEqualTo("only-iron");
         await Assert.That(relaxed.BlockPlaceFilter).IsEqualTo("only-iron-cause-world");
-        await Assert.That(m.ApplyRules.Count(r => r.EnterFilter.StartsWith("only-"))).IsEqualTo(2);   // enter rules survive
+        await Assert.That(m.ApplyRules.Count(r => r.EnterFilter.EndsWith("-team"))).IsEqualTo(2);   // enter rules survive
         await Assert.That(m.Filters["only-iron-cause-world"].Type).IsEqualTo("all");
         await Assert.That(m.Renewables.Single().RegionId).IsEqualTo("spawns");
     }

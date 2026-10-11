@@ -10,14 +10,15 @@ using PgmStudio.Geom;
 /// Wool/objective slice of the declarative generator (new-map-authoring.md; docs/pgm/filter-region-wiring.md
 /// templates 3 + 4). Per wool it emits: the wool-room region, the wool element (with monuments), a wool
 /// spawn point fed by a <c>&lt;spawner&gt;</c> (player-region = room, spawn-region = the point, item =
-/// the dyed wool). The room wiring follows the validated template (docs/pgm/template.xml): the rooms are grouped
-/// per defending team into a <c>&lt;team&gt;s-woolrooms</c> union (all under a top <c>woolrooms</c> union),
-/// with <c>enter=not-&lt;owner&gt;</c> (defenders kept out) and a <c>block</c> rule whose filter
+/// the dyed wool). The room wiring follows the validated template (docs/pgm/template.xml): the rooms are gathered
+/// per defending team (<see cref="RegionEditor.Gather"/> — a team defending one room states its rules on the
+/// room itself, several are a <c>&lt;team&gt;s-woolrooms</c> union), with <c>enter=not-&lt;owner&gt;</c>
+/// (defenders kept out) and a <c>block</c> rule whose filter
 /// <c>&lt;owner&gt;s-woolrooms-filter = all(not-&lt;owner&gt;, woolrooms-filter)</c> lets attackers edit only
 /// the shared <c>woolrooms-filter</c> materials — placing spawn-kit blocks + water and breaking the
 /// entrance decoration (cobweb, stained glass + panes) — rather than forbidding everything. A third rule
 /// denies the <em>owner</em> the use of a chest inside their own rooms
-/// (<c>use="deny(all(only-&lt;owner&gt;, chest-filter))"</c>): the enter rule stops them standing in the room,
+/// (<c>use="deny(all(&lt;owner&gt;-team, chest-filter))"</c>, the team id being the filter matching its members): the enter rule stops them standing in the room,
 /// which is not the same as stopping them reaching a chest at its edge, and the supply in there is the
 /// attackers'.
 /// <para>The wool's <c>location</c> is the int-floored <see cref="WoolIntent.Spawn"/> point. Mirror of
@@ -113,9 +114,6 @@ public static class WoolGenerator
 
             if (!roomsByOwner.ContainsKey(ownerSlug)) { roomsByOwner[ownerSlug] = []; ownerOrder.Add(ownerSlug); }
             roomsByOwner[ownerSlug].Add(roomId);
-
-            // only-<owner> team filter (reused from spawn protection if present) — the child of not-<owner>.
-            EnsureFilter(doc, $"only-{ownerSlug}", new Dict { ["type"] = "team", ["team"] = IntentNaming.TeamId(w.Owner) });
         }
 
         SubtractMonumentsFromSpawns(doc, monumentBlockIds);   // independent of rooms — monuments exist either way
@@ -126,18 +124,18 @@ public static class WoolGenerator
         // where an inlined "__" filter would have nowhere to be inlined to.
         EnsureFilter(doc, ChestFilter, new Dict { ["type"] = "material", ["material"] = "chest" });
 
-        var ownerUnions = new List<string>();
+        var ownerRooms = new List<string>();
         foreach (var ownerSlug in ownerOrder)
         {
+            var team = IntentNaming.TeamId(ownerSlug);
             var not = $"not-{ownerSlug}";
-            EnsureFilter(doc, not, new Dict { ["type"] = "not", ["child"] = $"only-{ownerSlug}" });
+            EnsureFilter(doc, not, new Dict { ["type"] = "not", ["child"] = team });
             // <owner>s-woolrooms-filter = all(not-<owner>, woolrooms-filter)
             var roomFilter = $"{ownerSlug}s-woolrooms-filter";
             EnsureFilter(doc, roomFilter, new Dict { ["type"] = "all", ["children"] = new List<object?> { not, WoolroomsFilter } });
 
-            var union = $"{ownerSlug}s-woolrooms";
-            AddUnion(doc, union, roomsByOwner[ownerSlug]);
-            ownerUnions.Add(union);
+            var union = RegionEditor.Gather(doc, $"{ownerSlug}s-woolrooms", roomsByOwner[ownerSlug]);
+            ownerRooms.Add(union);
 
             ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["enter"] = not, ["region"] = union, ["message"] = EnterMessage });
             ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["block"] = roomFilter, ["region"] = union, ["message"] = EditMessage });
@@ -149,22 +147,11 @@ public static class WoolGenerator
             // where a reader of the XML will look for it.
             ApplyRuleEditor.CreateApplyRule(doc, new Dict
             {
-                ["use"] = $"deny(all(only-{ownerSlug},{ChestFilter}))", ["region"] = union,
+                ["use"] = $"deny(all({team},{ChestFilter}))", ["region"] = union,
             });
         }
-        // top-level union of all the per-team room unions
-        AddUnion(doc, "woolrooms", ownerUnions);
-    }
-
-    // A union region from its children (allows a single child, unlike the editor's GroupRegions); bounds are
-    // the derived footprint so the canvas can still frame it.
-    private static void AddUnion(Dict doc, string id, List<string> childIds)
-    {
-        var regions = DocAccess.Regions(doc);
-        var (bounds, _, _, _, _) = RegionBuilder.BuildUnionBounds(childIds.Select(c => (Dict)regions[c]!));
-        var union = new Dict { ["id"] = id, ["type"] = "union", ["children"] = childIds.Cast<object?>().ToList() };
-        if (bounds is not null) union["bounds_2d"] = bounds;
-        regions[id] = union;
+        // every team's rooms together
+        RegionEditor.Gather(doc, "woolrooms", ownerRooms);
     }
 
     // Emit a multi-rect footprint as the region <paramref name="id"/>: a single rect becomes <c>id</c>
@@ -184,7 +171,7 @@ public static class WoolGenerator
             RegionEditor.CreateRegion(doc, RectDict(rid, rects[i]));
             rectIds.Add(rid);
         }
-        AddUnion(doc, id, rectIds);
+        RegionEditor.Gather(doc, id, rectIds);
     }
 
     private static string MonumentBlockId(string colorSlug, string teamSlug) => $"{colorSlug}-{teamSlug}-monument";
@@ -217,22 +204,37 @@ public static class WoolGenerator
 
     // Fold the wool monuments out of the spawns protection so placing a captured wool on its monument (which
     // sits inside a spawn) doesn't trip the spawn block rule — PGM allows the placement, we just suppress the
-    // spurious deny. Mirrors template.xml: spawns becomes complement(spawn-areas, monument blocks). No-op when
-    // there's no spawn protection (TeamsGenerator only builds the spawns union when spawns are protected).
+    // spurious deny. Mirrors template.xml: spawns becomes complement(spawn-areas, monument blocks), where
+    // spawn-areas is the spawns union or, for a single protected spawn, that spawn's own region. No-op when
+    // there's no spawn protection (TeamsGenerator writes the block rule only over protected spawns).
     private static void SubtractMonumentsFromSpawns(Dict doc, List<string> monumentBlockIds)
     {
         var regions = DocAccess.Regions(doc);
-        if (monumentBlockIds.Count == 0 || regions.GetValueOrDefault("spawns") is not Dict spawns
-            || spawns.GetValueOrDefault("type") as string != "union") return;
+        if (monumentBlockIds.Count == 0) return;
+        var rules = (doc.GetValueOrDefault("apply_rules") as List<object?> ?? []).OfType<Dict>().ToList();
+        if (rules.FirstOrDefault(rule => rule.GetValueOrDefault("message") as string == TeamsGenerator.BlockProtectionMessage)
+            is not { } blockRule || blockRule.GetValueOrDefault("region") as string is not { } protectionId) return;
 
-        // move the spawn rectangles into spawn-areas, then make spawns the complement that subtracts the monuments
-        var rects = (spawns.GetValueOrDefault("children") as List<object?>) ?? new();
-        regions["spawn-areas"] = new Dict
+        string areas;
+        if (regions.GetValueOrDefault(protectionId) is Dict union && union.GetValueOrDefault("type") as string == "union")
         {
-            ["id"] = "spawn-areas", ["type"] = "union", ["children"] = rects, ["bounds_2d"] = spawns.GetValueOrDefault("bounds_2d"),
+            // the spawn rectangles move into spawn-areas, and spawns becomes the complement subtracting the monuments
+            areas = "spawn-areas";
+            regions[areas] = new Dict
+            {
+                ["id"] = areas, ["type"] = "union", ["children"] = union.GetValueOrDefault("children"),
+                ["bounds_2d"] = union.GetValueOrDefault("bounds_2d"),
+            };
+        }
+        else areas = protectionId;
+
+        regions[SpawnOreProtection.SpawnsId] = new Dict
+        {
+            ["id"] = SpawnOreProtection.SpawnsId, ["type"] = "complement",
+            ["children"] = new List<object?> { areas }.Concat(monumentBlockIds.Cast<object?>()).ToList(),
+            ["bounds_2d"] = (regions.GetValueOrDefault(areas) as Dict)?.GetValueOrDefault("bounds_2d"),
         };
-        spawns["type"] = "complement";
-        spawns["children"] = new List<object?> { "spawn-areas" }.Concat(monumentBlockIds.Cast<object?>()).ToList();
+        blockRule["region"] = SpawnOreProtection.SpawnsId;
     }
 
     // The shared whitelist of materials editable in any wool room: place the spawn-kit blocks (wood, the

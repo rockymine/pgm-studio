@@ -15,12 +15,12 @@ using Dict = Dictionary<string, object?>;
 /// states and nothing when the intent states nothing.</para>
 /// <para>Authors/contributors are <b>not</b> set here — they're Minecraft usernames that need async
 /// resolution to uuids (<c>MojangClient</c>), which the intent endpoint does before saving. Proto
-/// (1.5.0) is an XML-export concern, not a persisted column.</para>
+/// (1.5.1) is an XML-export concern, not a persisted column.</para>
 /// </summary>
 public static class MetaGenerator
 {
-    public const string Version = "1.0.0";
-    public const string Proto = "1.5.0";   // emitted at XML export, not stored on the map
+    public const string Version = "1.0";
+    public const string Proto = "1.5.1";   // emitted at XML export, not stored on the map
 
     /// <summary>What a map the studio authors is: a map under development. Every board here is one, so the
     /// word is fixed rather than authored — a map is promoted by the server that serves it, not by the tool
