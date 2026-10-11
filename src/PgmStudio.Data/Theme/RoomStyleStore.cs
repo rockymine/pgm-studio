@@ -62,6 +62,7 @@ public sealed class RoomStyleStore(PgmDb db)
         room.CreatedAt = DateTime.UtcNow;
         return db.InOneWriteAsync(async () =>
         {
+            room.OwnerUuid ??= db.Writer;
             var id = await db.InsertWithInt64IdentityAsync(room, token: ct);
             foreach (var course in courses)
             {

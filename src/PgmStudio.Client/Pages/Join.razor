@@ -1,0 +1,60 @@
+@page "/join"
+@layout StudioLayout
+
+<PageTitle>Join · PGM Studio</PageTitle>
+
+@* Where a Discord account the studio does not know lands after signing in: it names its Minecraft account and
+   joins, waiting for an admin's approval (docs/access.md, "Signing yourself up"). *@
+
+<StudioShell>
+  <Bar>
+    <Topbar>
+      <Crumbs><Crumb Sep="false" Dim>Join</Crumb></Crumbs>
+    </Topbar>
+  </Bar>
+  <ChildContent>
+    <Workspace>
+      <ContentColumn MaxWidth="560">
+        @if (discordName is null && !lapsed)
+        {
+          <div class="list-empty">Loading…</div>
+        }
+        else if (lapsed)
+        {
+          <div class="callout">
+            <span class="callout-icon"><i data-lucide="log-in"></i></span>
+            <p>Sign in with Discord first, then name your Minecraft account here.</p>
+          </div>
+          <Button Variant="primary" Icon="log-in" Href="@StudioAccess.SignInHref("/")">Sign in with Discord</Button>
+        }
+        else
+        {
+          <Section Title="@($"Welcome, {discordName}")">
+            <Description>
+              Name your Minecraft account. Maps you make are credited to it in their map.xml, so it has to be your
+              own. You can start right away with up to @Limit maps; an admin approves you for more.
+            </Description>
+            <ChildContent>
+              <div class="invite-link">
+                <input class="field-input" placeholder="Minecraft name" @bind="player" @bind:event="oninput"
+                       @onblur="LookUpAsync" />
+                <Button Icon="search" OnClick="LookUpAsync" Disabled="@string.IsNullOrWhiteSpace(player)">Look up</Button>
+              </div>
+              @if (found is not null)
+              {
+                <div class="join-found">
+                  <PlayerHead Uuid="@found.Uuid" Name="@found.Name" Size="32" />
+                  <span class="list-label">@found.Name</span>
+                  <Button Variant="primary" Icon="user-plus" OnClick="JoinAsync" Busy="joining" BusyLabel="Joining…">
+                    This is me — join
+                  </Button>
+                </div>
+              }
+              @if (error is not null) { <div class="field-error">@error</div> }
+            </ChildContent>
+          </Section>
+        }
+      </ContentColumn>
+    </Workspace>
+  </ChildContent>
+</StudioShell>

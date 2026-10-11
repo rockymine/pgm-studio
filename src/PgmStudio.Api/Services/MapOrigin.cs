@@ -1,5 +1,7 @@
+using PgmStudio.Api.Access;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Domain;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Services;
@@ -31,6 +33,7 @@ public static class MapOrigin
         MapRepository repo, string name, string stage, MapOriginator? originator, CancellationToken ct,
         long? planSource = null)
     {
+        await EnsureRoomAsync(repo, originator, ct);
         var slug = await repo.UniqueSlugAsync(Slugs.Of(name), ct);
         return (await RowAsync(repo, slug, name, stage, originator, originator?.Uuid, planSource), slug);
     }
@@ -53,15 +56,29 @@ public static class MapOrigin
             revision = existing.Revision + 1;
             await repo.DeleteMapAsync(existing.Id, ct);
         }
+        else await EnsureRoomAsync(repo, originator, ct);
         return await RowAsync(repo, slug, name, stage, originator, owner, planSource: null, revision, agentMade);
     }
 
     /// <summary>A map at a slug the caller has already established is free — a world import, which refuses a
     /// taken slug outright rather than suffixing past it, because the slug is where the world's files sit.
     /// </summary>
-    public static Task<long> AtAsync(
-        MapRepository repo, string slug, string name, string stage, MapOriginator? originator) =>
-        RowAsync(repo, slug, name, stage, originator, originator?.Uuid, planSource: null);
+    public static async Task<long> AtAsync(
+        MapRepository repo, string slug, string name, string stage, MapOriginator? originator)
+    {
+        await EnsureRoomAsync(repo, originator, CancellationToken.None);
+        return await RowAsync(repo, slug, name, stage, originator, originator?.Uuid, planSource: null);
+    }
+
+    /// <summary>Refuse a new map to a person already owning as many as they may, <c>RQ20</c> at 403. Only a
+    /// person waiting for approval has a limit; deleting a map of theirs frees its place.</summary>
+    private static async Task EnsureRoomAsync(MapRepository repo, MapOriginator? originator, CancellationToken ct)
+    {
+        if (originator?.MapLimit is not { } limit) return;
+        if (await repo.CountOwnedAsync(originator.Uuid, ct) < limit) return;
+        throw new RequestRefused(403, "not permitted", new Finding(RequestRules.MapLimit,
+            $"a person waiting for approval may own {limit} maps at once, and you own {limit}"));
+    }
 
     /// <summary>The row itself. Every map is <c>ctw</c> at birth — the gamemode is derived from the objective
     /// modules a map ends up carrying, and the column holds the author's original label, which a map that has
@@ -92,4 +109,6 @@ public static class MapOrigin
 /// <param name="Name">Their Minecraft name, as the map credits them.</param>
 /// <param name="Agent">Whether a token brought the map into being, which is how an agent drives the studio, so
 /// the map is agent-made.</param>
-public sealed record MapOriginator(string Uuid, string? Name, bool Agent = false);
+/// <param name="MapLimit">The most maps the person may own at once, for a person waiting for approval; null for
+/// everyone else.</param>
+public sealed record MapOriginator(string Uuid, string? Name, bool Agent = false, int? MapLimit = null);

@@ -87,7 +87,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
     {
         if (await ImportBody.ReadAsync(HttpContext, ct) is not { } body) return;
         var imported = await WorldUrlImport.NewAsync(repo, writer, policy, httpFactory, Logger,
-            body["url"]?.GetValue<string>(), body["slug"]?.GetValue<string>(), Callers.OriginatorOf(HttpContext), ct);
+            body["url"]?.GetValue<string>(), body["slug"]?.GetValue<string>(), await Callers.OriginatorOfAsync(HttpContext), ct);
         if (imported.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
         await Send.OkAsync(imported.Scan!, ct);
     }
@@ -187,7 +187,7 @@ public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter 
         var imported = await WorldFolderImport.FromAsync(
             repo, writer, policy, Logger,
             body["folder"]?.GetValue<string>() ?? "", body["slug"]?.GetValue<string>(),
-            Callers.OriginatorOf(HttpContext), ct);
+            await Callers.OriginatorOfAsync(HttpContext), ct);
         if (imported.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
 
         await Send.OkAsync(imported.Scan!, ct);

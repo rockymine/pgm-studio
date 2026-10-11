@@ -81,11 +81,13 @@ public sealed class StudioAccess(HttpClient http)
     /// <summary>
     /// Why deleting a shared row — a library entry, a pinned plan — is closed on the page at
     /// <paramref name="path"/>, or null where it is open: the page's write reason, and past it an admin's alone,
-    /// since every map using the row loses it.
+    /// since every map using the row loses it. A library entry belongs to whoever made it, so on the library the
+    /// write reason is the whole of it and the server answers for each entry whose it is (<c>LB7</c>).
     /// </summary>
     public async Task<string?> DeleteReasonAsync(string path) =>
         await WriteReasonAsync(path)
-        ?? (await IsAdminAsync() ? null : "Only an admin can delete this, because everyone shares it.");
+        ?? (path.Split('?', '#')[0].Trim('/').StartsWith("library", StringComparison.Ordinal) || await IsAdminAsync()
+            ? null : "Only an admin can delete this, because everyone shares it.");
 
     /// <summary>
     /// Why asking the server to build something on request (a map's export) is closed, or null where it is
@@ -104,7 +106,7 @@ public sealed class StudioAccess(HttpClient http)
 
     private static bool WritesNothing(string[] segments) =>
         segments.Length == 0 || segments[0] is "maps" && segments.Length == 1
-        || segments[0] is "catalog" or "design" or "not-found" or "admin";
+        || segments[0] is "catalog" or "design" or "not-found" or "admin" or "join";
 
     /// <summary>The sign-in link that brings the browser back to <paramref name="returnPath"/>.</summary>
     public static string SignInHref(string returnPath) =>

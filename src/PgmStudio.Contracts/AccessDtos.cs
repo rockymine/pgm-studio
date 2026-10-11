@@ -29,6 +29,7 @@ public sealed record CallerDto(
 /// <param name="SignsIn">Whether a Discord account is bound to them, so they can sign in.</param>
 /// <param name="InviteExpiresAt">When their open invitation lapses, in UTC, or null where none is open.</param>
 /// <param name="Owner">Whether the server's configuration names them an owner, whom only the server changes.</param>
+/// <param name="DiscordName">The Discord name they last signed in with, or absent where they never have.</param>
 public sealed record StudioUserDto(
     string Uuid,
     string Name,
@@ -36,7 +37,21 @@ public sealed record StudioUserDto(
     DateTime AddedAt,
     bool SignsIn,
     DateTime? InviteExpiresAt,
-    bool Owner = false);
+    bool Owner = false,
+    string? DiscordName = null);
+
+/// <summary>The Discord account waiting to join, as <c>/join</c> greets it.</summary>
+/// <param name="DiscordName">The Discord name it signed in with.</param>
+public sealed record JoinStateDto(string DiscordName);
+
+/// <summary>Join the studio as the Minecraft account named, waiting for an admin's approval.</summary>
+/// <param name="Player">Your Minecraft name or uuid; the studio resolves it to the account, which no one else on
+/// the studio may hold.</param>
+public sealed record JoinRequest(string Player);
+
+/// <summary>Move a person to another Minecraft account, with their maps, credits and library entries.</summary>
+/// <param name="Player">The account's Minecraft name or uuid; no one else on the studio may hold it.</param>
+public sealed record AccountChangeRequest(string Player);
 
 /// <summary>Put a person on the whitelist, or change the role of one already on it.</summary>
 /// <param name="Player">Their Minecraft name or uuid; the studio resolves it to the account.</param>

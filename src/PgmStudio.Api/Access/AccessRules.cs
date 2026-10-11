@@ -12,6 +12,8 @@ namespace PgmStudio.Api.Access;
 /// and nothing more, whichever verb it takes and whichever map it names.</item>
 /// <item>Any other read — <c>GET</c> or <c>HEAD</c> — is open to anyone.</item>
 /// <item>A write to a route under <c>{slug}</c> changes that map, so it needs someone who may edit it.</item>
+/// <item>An <see cref="OwnedRowAttribute"/> route deletes a library row its maker may delete, so it needs a person
+/// on the whitelist, and the endpoint asks the row whose it is.</item>
 /// <item>A <c>DELETE</c> of anything else removes a shared library row other maps may use, so it needs an
 /// admin.</item>
 /// <item>Every other write needs a person on the whitelist.</item>
@@ -43,7 +45,8 @@ public static class AccessRules
         endpoint.EndpointType.IsDefined(typeof(CostlyReadAttribute), inherit: false);
 
     private static string PolicyOf(EndpointDefinition endpoint) =>
-        IsCostly(endpoint) ? AccessPolicies.Member
+        IsCostly(endpoint) || endpoint.EndpointType.IsDefined(typeof(OwnedRowAttribute), inherit: false)
+            ? AccessPolicies.Member
         : endpoint.Routes.Any(route => route.Contains("{slug}")) ? AccessPolicies.MapEditor
         : endpoint.Verbs.Contains("DELETE", StringComparer.OrdinalIgnoreCase) ? AccessPolicies.Admin
         : AccessPolicies.Member;

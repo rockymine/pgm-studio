@@ -15,8 +15,9 @@ namespace PgmStudio.Api.Access;
 /// </summary>
 public static class WhitelistKeeping
 {
-    /// <summary>The four ways a caller changes someone's place on the whitelist.</summary>
-    public enum Change { Put, Remove, Invite, IssueToken }
+    /// <summary>The five ways a caller changes someone's place on the whitelist; <see cref="Change.Account"/>
+    /// moves them to another Minecraft account.</summary>
+    public enum Change { Put, Remove, Invite, IssueToken, Account }
 
     /// <summary>Why <paramref name="caller"/> may not make <paramref name="change"/> to the person
     /// <paramref name="targetUuid"/> names, or null where they may. <paramref name="target"/> is that person's

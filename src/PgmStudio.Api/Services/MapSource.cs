@@ -181,7 +181,7 @@ public static class MapSource
 
         // The views an author kept are pictures of the board rather than part of it, so a rebuild keeps them.
         var keptViews = existing is null ? null : await artifacts.LoadAsync(existing.Id, ArtifactKind.MapViewsJson, ct);
-        var mapId = await MapOrigin.ReplacingAsync(repo, slug, name, MapStage.Plan, Callers.OriginatorOf(http), ct);
+        var mapId = await MapOrigin.ReplacingAsync(repo, slug, name, MapStage.Plan, await Callers.OriginatorOfAsync(http), ct);
         artifacts.Stamp = artifacts.Stamp with
         {
             OriginJson = request.Origin is { } origin ? JsonSerializer.Serialize(origin, MapArtifactStore.Json) : null,

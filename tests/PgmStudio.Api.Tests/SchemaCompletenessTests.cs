@@ -325,8 +325,11 @@ public sealed class SchemaCompletenessTests
 
     /// <summary>The count of write routes whose schema carries no example body, and it only moves down: a
     /// tool document's worked body, routed in its fence, becomes its route's example once a test has posted it
-    /// (<c>DocumentedExamples</c>).</summary>
-    private const int StillWithoutExample = 85;
+    /// (<c>DocumentedExamples</c>). Two of them are joining and moving accounts (<c>POST /api/auth/join</c>,
+    /// <c>POST /api/users/{uuid}/account</c>), which, like the other whitelist routes, the open studio that test
+    /// posts in cannot accept: a join needs a Discord sign-in waiting, and the whitelist is an invited studio's.
+    /// </summary>
+    private const int StillWithoutExample = 87;
 
     /// <summary><b>Every write route's schema carries a body known to be accepted.</b> An example is what a
     /// reader copies first, so the one the document hands out is one <c>DocumentedBodyTests</c> has posted and

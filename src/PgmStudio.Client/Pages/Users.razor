@@ -48,7 +48,10 @@
           </Section>
 
           <Section Title="Whitelist">
-            <Actions><Badge Kind="dim">@(users?.Count ?? 0)</Badge></Actions>
+            <Actions>
+              @if (Waiting > 0) { <Badge Kind="warning" title="People waiting for approval">@Waiting waiting</Badge> }
+              <Badge Kind="dim">@(users?.Count ?? 0)</Badge>
+            </Actions>
             <ChildContent>
               <div class="panel-list panel-list--separated">
                 @if (users is null) { <div class="list-empty">Loading…</div> }
@@ -63,12 +66,21 @@
                         <span class="list-label">@user.Name</span>
                         <span class="list-label list-label--mono" title="Minecraft uuid">@user.Uuid</span>
                         @if (user.Owner) { <span class="list-tag" title="Set in the server configuration. Owners can only be changed there.">owner</span> }
+                        @if (user.DiscordName is { } discord) { <span class="list-tag" title="Discord name">@discord</span> }
+                        @if (user.Role == StudioRoles.Unapproved) { <span class="list-tag" title="Signed themselves up; may own up to 3 maps until approved">waiting for approval</span> }
                         <span class="list-tag">@SignInState(user)</span>
                       </ChildContent>
                       <Trailing>
                         <div class="user-actions">
-                        <Select Options="Roles" Value="@user.Role" ValueChanged="v => SetRoleAsync(user, v)"
+                        @if (user.Role == StudioRoles.Unapproved && RoleLocked(user) is null)
+                        {
+                          <Button Variant="primary" Icon="check" OnClick="() => ApproveAsync(user)" Title="Approve: make them a member, with no map limit">Approve</Button>
+                        }
+                        <Select Options="@(RoleLocked(user) is null ? RolesToGive : Roles)" Value="@user.Role" ValueChanged="v => SetRoleAsync(user, v)"
                                 Disabled="@(RoleLocked(user) is not null)" Title="@(RoleLocked(user) ?? "Role")" />
+                        <Button Variant="icon" Icon="user-cog" OnClick="() => ToggleChange(user)"
+                                Disabled="@(AccountLocked(user) is not null)"
+                                Title="@(AccountLocked(user) ?? "Change Minecraft account")" />
                         <Button Variant="icon" Icon="link" OnClick="() => InviteAsync(user)"
                                 Disabled="@(InviteLocked(user) is not null)"
                                 Title="@(InviteLocked(user) ?? "Create invitation link")" />
@@ -78,6 +90,18 @@
                         </div>
                       </Trailing>
                     </ListRow>
+                    @if (changing == user.Uuid)
+                    {
+                      <div class="invite-link">
+                        <input class="field-input" placeholder="Their Minecraft name" @bind="account" @bind:event="oninput" />
+                        <Button Variant="primary" Icon="user-cog" OnClick="() => ChangeAccountAsync(user)"
+                                Disabled="@string.IsNullOrWhiteSpace(account)">Move to this account</Button>
+                      </div>
+                      <p class="section-desc">
+                        Moves @user.Name's maps, credits, library entries and tokens to that account. They sign in
+                        again with the same Discord account to use it.
+                      </p>
+                    }
                     @if (invites.TryGetValue(user.Uuid, out var invite))
                     {
                       <div class="invite-link">

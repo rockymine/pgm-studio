@@ -56,6 +56,8 @@ public sealed class StudioUserRow
     [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
     /// <summary>The Discord account that signs in as this person, or null until an invitation binds one.</summary>
     [Column("discord_id")] public string? DiscordId { get; set; }
+    /// <summary>The Discord name the person last signed in with, which an admin recognises them by.</summary>
+    [Column("discord_name")] public string? DiscordName { get; set; }
     /// <summary>The SHA-256 of the open invitation's code, or null where none is open.</summary>
     [Column("invite_hash")] public string? InviteHash { get; set; }
     [Column("invite_expires_at")] public DateTime? InviteExpiresAt { get; set; }
@@ -756,12 +758,15 @@ public static class PlanOrigin
 /// is the material discriminator (<c>MaterialKind</c>); <see cref="Params"/> is one serialized
 /// <c>TerrainMaterial</c>, the polymorphic subtree kept in the leaf. The unit a library is browsed and reused by.</summary>
 [Table("style")]
-public sealed class StyleRow
+public sealed class StyleRow : ILibraryRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
     /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
     [Column("seed_key")] public string? SeedKey { get; set; }
+    /// <summary>The account that made the row, which alone may change it besides an admin; null for a seeded row
+    /// and for a row stored before rows recorded their maker.</summary>
+    [Column("owner_uuid")] public string? OwnerUuid { get; set; }
     [Column("kind"), NotNull] public string Kind { get; set; } = "";
     [Column("params_json"), NotNull] public string Params { get; set; } = "";
     [Column("created_at")] public DateTime CreatedAt { get; set; }
@@ -770,12 +775,15 @@ public sealed class StyleRow
 /// <summary>One named biome field (see M0032) — its kind and the serialized <c>BiomeField</c> under it. Shaped
 /// like a <see cref="StyleRow"/> because it is the same kind of thing: one recipe, named once and reused.</summary>
 [Table("biome_pattern")]
-public sealed class BiomePatternRow
+public sealed class BiomePatternRow : ILibraryRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
     /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
     [Column("seed_key")] public string? SeedKey { get; set; }
+    /// <summary>The account that made the row, which alone may change it besides an admin; null for a seeded row
+    /// and for a row stored before rows recorded their maker.</summary>
+    [Column("owner_uuid")] public string? OwnerUuid { get; set; }
     [Column("kind"), NotNull] public string Kind { get; set; } = "";
     [Column("params_json"), NotNull] public string Params { get; set; } = "";
     [Column("created_at")] public DateTime CreatedAt { get; set; }
@@ -784,12 +792,15 @@ public sealed class BiomePatternRow
 /// <summary>A terrain-paint theme's geometry knobs (see M0011). The per-bucket materials live in
 /// <see cref="ThemeBucketRow"/> — a theme is a composition of styles, not a monolith.</summary>
 [Table("theme")]
-public sealed class ThemeRow
+public sealed class ThemeRow : ILibraryRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
     /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
     [Column("seed_key")] public string? SeedKey { get; set; }
+    /// <summary>The account that made the row, which alone may change it besides an admin; null for a seeded row
+    /// and for a row stored before rows recorded their maker.</summary>
+    [Column("owner_uuid")] public string? OwnerUuid { get; set; }
     [Column("bedrock_relative")] public bool BedrockRelative { get; set; }
     [Column("bedrock_value")] public int BedrockValue { get; set; }
     [Column("rim_edges"), NotNull] public string RimEdges { get; set; } = "drop";   // void | drop | boundary
@@ -821,12 +832,15 @@ public sealed class ThemeBucketRow
 /// the eave, the roof hole, and the door. The materials live in <see cref="RoomStyleCourseRow"/>, because a
 /// shell's part is a stack of them rather than one.</summary>
 [Table("room_style")]
-public sealed class RoomStyleRow
+public sealed class RoomStyleRow : ILibraryRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
     /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
     [Column("seed_key")] public string? SeedKey { get; set; }
+    /// <summary>The account that made the row, which alone may change it besides an admin; null for a seeded row
+    /// and for a row stored before rows recorded their maker.</summary>
+    [Column("owner_uuid")] public string? OwnerUuid { get; set; }
     [Column("floor_depth")] public int FloorDepth { get; set; } = 1;
     [Column("wall_height")] public int WallHeight { get; set; } = 7;
     [Column("roof_form"), NotNull] public string RoofForm { get; set; } = "flat";
@@ -899,12 +913,15 @@ public sealed class RoomStyleRow
 /// oversails and whether it carries a hole or a capped ridge. Its materials — the roof body, the verge and
 /// the gable face — are courses in <see cref="RoofStyleCourseRow"/>.</summary>
 [Table("roof_style")]
-public sealed class RoofStyleRow
+public sealed class RoofStyleRow : ILibraryRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
     /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
     [Column("seed_key")] public string? SeedKey { get; set; }
+    /// <summary>The account that made the row, which alone may change it besides an admin; null for a seeded row
+    /// and for a row stored before rows recorded their maker.</summary>
+    [Column("owner_uuid")] public string? OwnerUuid { get; set; }
     [Column("form"), NotNull] public string Form { get; set; } = "gable";
     [Column("roof_slab")] public int RoofSlab { get; set; } = -1;
     [Column("roof_slab_data")] public int RoofSlabData { get; set; }
@@ -922,12 +939,15 @@ public sealed class RoofStyleRow
 /// courses in <see cref="StoreyStyleCourseRow"/>. A house stacks these through
 /// <see cref="RoomStyleStoreyRow"/>.</summary>
 [Table("storey_style")]
-public sealed class StoreyStyleRow
+public sealed class StoreyStyleRow : ILibraryRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
     /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
     [Column("seed_key")] public string? SeedKey { get; set; }
+    /// <summary>The account that made the row, which alone may change it besides an admin; null for a seeded row
+    /// and for a row stored before rows recorded their maker.</summary>
+    [Column("owner_uuid")] public string? OwnerUuid { get; set; }
     [Column("clear")] public int Clear { get; set; } = 3;
     [Column("border_width")] public int BorderWidth { get; set; } = 1;
     [Column("inlay_inset")] public int InlayInset { get; set; } = 2;
@@ -948,12 +968,15 @@ public sealed class StoreyStyleRow
 /// a porch stands on the house's own floor and under a canopy in the roof's own material, so what is left to
 /// it is its shape.</summary>
 [Table("porch_style")]
-public sealed class PorchStyleRow
+public sealed class PorchStyleRow : ILibraryRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
     /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
     [Column("seed_key")] public string? SeedKey { get; set; }
+    /// <summary>The account that made the row, which alone may change it besides an admin; null for a seeded row
+    /// and for a row stored before rows recorded their maker.</summary>
+    [Column("owner_uuid")] public string? OwnerUuid { get; set; }
     [Column("depth")] public int Depth { get; set; } = 2;
     [Column("inset")] public int Inset { get; set; }
     [Column("edge"), NotNull] public string Edge { get; set; } = "front";
@@ -966,12 +989,15 @@ public sealed class PorchStyleRow
 /// placement names it once it has been pulled into a map's dressing registry — the row is the library's copy,
 /// the registry entry the map's, so editing the row cannot rebuild a shipped map's groves.</summary>
 [Table("tree_style")]
-public sealed class TreeStyleRow
+public sealed class TreeStyleRow : ILibraryRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
     /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
     [Column("seed_key")] public string? SeedKey { get; set; }
+    /// <summary>The account that made the row, which alone may change it besides an admin; null for a seeded row
+    /// and for a row stored before rows recorded their maker.</summary>
+    [Column("owner_uuid")] public string? OwnerUuid { get; set; }
     [Column("form"), NotNull] public string Form { get; set; } = "template";
     [Column("species"), NotNull] public string Species { get; set; } = "oak";
     [Column("height")] public double Height { get; set; } = 12;
@@ -994,12 +1020,15 @@ public sealed class TreeStyleRow
 /// <summary>A boulder recipe (M0030). <c>rock</c> is a terrain material's own JSON, the way every other
 /// material in the library is stored, so an erratic may be cut from any of the fourteen kinds.</summary>
 [Table("boulder_style")]
-public sealed class BoulderStyleRow
+public sealed class BoulderStyleRow : ILibraryRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
     /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
     [Column("seed_key")] public string? SeedKey { get; set; }
+    /// <summary>The account that made the row, which alone may change it besides an admin; null for a seeded row
+    /// and for a row stored before rows recorded their maker.</summary>
+    [Column("owner_uuid")] public string? OwnerUuid { get; set; }
     [Column("form"), NotNull] public string Form { get; set; } = "round";
     [Column("size")] public double Size { get; set; } = 4;
     [Column("mossy")] public bool Mossy { get; set; } = true;
@@ -1092,4 +1121,14 @@ public sealed class MinecraftPlayerRow
     /// <summary>The skin Mojang's texture server answered for this player, or null until it is asked.</summary>
     [Column("skin_png")] public byte[]? SkinPng { get; set; }
     [Column("skin_fetched_at")] public DateTime? SkinFetchedAt { get; set; }
+}
+
+/// <summary>A library row: whether the seed folder states it, and who made it if a person did.</summary>
+public interface ILibraryRow
+{
+    /// <summary>The seed folder's key for a built-in row, or null for a row a person made.</summary>
+    string? SeedKey { get; }
+
+    /// <summary>The account that made the row, or null where nothing recorded one.</summary>
+    string? OwnerUuid { get; set; }
 }

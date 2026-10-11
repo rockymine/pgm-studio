@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FastEndpoints;
+using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Schema;
@@ -118,7 +119,7 @@ public sealed class StyleUpdateEndpoint(ThemeStore store, BlockTextureStore text
 
     public override async Task HandleAsync(StyleSaveRequest req, CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetStyleAsync(Route<long>("id"), ct))?.SeedKey, "pattern", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetStyleAsync(Route<long>("id"), ct)), "pattern", ct))
             return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListStylesAsync(ct: ct)).Select(row => (row.Id, row.Name)), ct)) return;
@@ -135,13 +136,14 @@ public sealed class StyleUpdateEndpoint(ThemeStore store, BlockTextureStore text
 /// <summary>DELETE /api/styles/{id} — forget a pattern. Refused with 409 and the names of the themes, houses,
 /// roofs and storeys still binding it, since a pattern is shared by all four and its bindings are what the
 /// foreign key would otherwise complain about.</summary>
+[OwnedRow]
 public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms, HousePartStore parts) : EndpointWithoutRequest
 {
     public override void Configure() { Delete("/styles/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetStyleAsync(Route<long>("id"), ct))?.SeedKey, "pattern", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetStyleAsync(Route<long>("id"), ct)), "pattern", ct))
             return;
         var id = Route<long>("id");
         var users = (await store.ThemesUsingStyleAsync(id, ct))
@@ -231,7 +233,7 @@ public sealed class ThemeUpdateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
 
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetThemeAsync(Route<long>("id"), ct))?.SeedKey, "palette", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetThemeAsync(Route<long>("id"), ct)), "palette", ct))
             return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListThemesAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
@@ -258,13 +260,14 @@ public sealed class ThemeDraftPreviewEndpoint(ThemeLibrary library, BlockTexture
 }
 
 /// <summary>DELETE /api/themes/{id} — forget a theme (its bucket bindings cascade; the styles stay).</summary>
+[OwnedRow]
 public sealed class ThemeDeleteEndpoint(ThemeStore store) : EndpointWithoutRequest
 {
     public override void Configure() { Delete("/themes/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetThemeAsync(Route<long>("id"), ct))?.SeedKey, "palette", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetThemeAsync(Route<long>("id"), ct)), "palette", ct))
             return;
         await store.DeleteThemeAsync(Route<long>("id"), ct);
         await Send.NoContentAsync(ct);

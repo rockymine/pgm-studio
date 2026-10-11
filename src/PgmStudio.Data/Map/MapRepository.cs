@@ -93,6 +93,10 @@ public sealed class MapRepository(PgmDb db)
         return result;
     }
 
+    /// <summary>How many maps the account owns.</summary>
+    public Task<int> CountOwnedAsync(string uuid, CancellationToken ct = default)
+        => db.Maps.CountAsync(m => m.OwnerUuid == uuid, ct);
+
     /// <summary>Mark a map as made by an agent, or not, which decides who may see it.</summary>
     public Task<int> SetAgentMadeAsync(long mapId, bool agentMade, CancellationToken ct = default)
         => db.Maps.Where(m => m.Id == mapId).Set(m => m.AgentMade, agentMade).UpdateAsync(ct);

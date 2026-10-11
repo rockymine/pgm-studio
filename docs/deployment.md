@@ -44,6 +44,7 @@ migrator, and an unquoted connection string ends at its first `;`.
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` | ASP.NET Core applies `X-Forwarded-Proto` and `-For` itself, so Discord is asked to return to `https://` and a signed-out caller is queued on their own address rather than Caddy's |
 | `ConnectionStrings__PgmStudio` | the database; the API and the migrator resolve the same one |
 | `Access__Mode=invited`, `Access__Admins__0` | closed to anyone not invited; the owners, by Minecraft uuid — the admins who alone make and unmake admins, and whom only this file changes |
+| `Access__UnapprovedMapLimit` (optional, 3 where unset) | how many maps a person who signed themselves up may own until an admin approves them |
 | `Discord__ClientSecret` | the sign-in; the application's redirect list names `https://pgmstudio.de/api/auth/discord/callback` |
 | `Textures__AcceptMojangEula=true`, `Textures__Cache` | the eye view's block sprites, downloaded once from Mojang; the cache is set because the default resolves to nothing for a service user whose `~/.local/share` does not exist |
 | `Drawings__Folder` | where drawn pictures are cached. Unset, it is `~/.local/share/pgm-studio/drawings`, created if missing. A folder that cannot be written is logged once and every picture is redrawn on each ask, so the cache never fails a request |
