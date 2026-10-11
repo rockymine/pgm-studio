@@ -188,6 +188,26 @@ admin's (below). Reading and downloading are never greyed. `docs/client/ui-conve
 decides both. `tests/e2e/access.mjs` holds it, against a second server over the suite's database
 running invited with the browser signed out.
 
+## Agent-made maps
+
+**A map an agent made is seen only by the admins and its owner.** A map records whether an agent made it
+(`map.agent_made`). To anyone else — a member, a signed-out visitor — it is not there: the map list and the
+landing's counts leave it out, and every route with a `{slug}` that names it answers `RQ4` at 404, a write as
+much as a read. `Callers.HideAgentMapsAsync` decides this between authentication and authorization, so no access
+rule is asked first and no refusal says the map exists.
+
+**What may be seen is the person's, not the token's.** A token is capped at a member's rights for what it
+writes, but an admin's token still sees agent-made maps, since an agent working for an admin needs the maps it
+works on (`Callers.MaySee`).
+
+**A token makes a map agent-made.** A token is how an agent drives the studio, so a map a token brings into being
+is marked, and a map a browser brings into being is not. A map loaded over a stored slug keeps the mark the map
+before it carried. M0066 marked the maps already stored whose every credited author is a name with no account
+behind it, the form an agent is credited in.
+
+**An admin marks a map, or takes the mark off,** with `PATCH /api/map/{slug}/agent-made` `{agentMade}`, or the
+robot button beside a map's name on the Maps page. It is an admin's in a browser; a token is never an admin.
+
 ## Which route needs what is decided from the route
 
 No endpoint states its own access. `AccessRules.Apply` runs over every endpoint from the FastEndpoints
@@ -296,6 +316,7 @@ Every write publishes the first two in the schema at `/api/openapi/v1.json`, and
 |---|---|---|
 | `GET /api/me` | `{mode, signedIn, uuid, name, role, notes, owner}` — who the request is, what role it carries, whether it may read and answer map notes, and whether it is an owner | — |
 | `GET /api/map/{slug}/access` | `{mayEdit}` — whether this request's writes to the map would be accepted; the client opens it read-only where not | 404 |
+| `PATCH /api/map/{slug}/agent-made` `{agentMade}` | marks the map as made by an agent, which keeps it to the admins and its owner, or takes the mark off; admin only | 403 `RQ8` · 404 |
 | `GET /api/users` | the whitelist, by name: `[{uuid, name, role, addedAt, signsIn, inviteExpiresAt, owner}]` — `signsIn` once a Discord account is bound, `inviteExpiresAt` while an invitation is open, `owner` where `Access:Admins` names them | 403 |
 | `POST /api/users` `{player, role}` | puts the account `player` names — a name or a uuid, resolved through Mojang — on the whitelist in `role`, or changes the role of one already on it; answers the stored row | 400, 403 `RQ8` (an admin made or changed by a non-owner, or an owner changed), 404 |
 | `DELETE /api/users/{uuid}` | takes the person off; they keep every credit and write nothing more | 403 `RQ8` (an admin, by a non-owner; an owner) · 404 |

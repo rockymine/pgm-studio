@@ -419,6 +419,15 @@ a change like any other — compared, listed, and put back in its turn.
 | `GET /map/{slug}/diff[?from=&to=&world=true]` | `{from, to, edits, world}` — the edits taking the documents at `from` to those at `to`, and with `world=true` the changed columns. `?format=text` answers the edits one a line and the runs under them; `?format=png` draws the columns, `scale` 1–16 pixels a block | 404 `RQ4` no map, no kept change, or no change of that number · 422 a side holds no layout, so there is no board to build there |
 | `POST /map/{slug}/changes/{number}/restore` | `{restored, change, documents}` — the change the restore landed as and the documents it wrote; `change` is absent and `documents` empty where every document already stood as it did then | 400 a note over 1,000 characters · 404 `RQ4` no map at that slug, or no change of that number |
 
+## A map an agent made
+
+A map an agent made is kept to the admins and its owner (`docs/access.md`, *Agent-made maps*). A map a token
+brings into being is marked as agent-made; an admin marks any other, or takes the mark off:
+
+```json PATCH /api/map/{slug}/agent-made
+{ "agentMade": true }
+```
+
 ## Stages and layers
 
 A map row carries a **stage** — `plan`, `sketch`, `configure`, `edit` — and separately the **layers** it

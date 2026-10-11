@@ -573,6 +573,95 @@ public sealed class AccessTests
         await Assert.That(me.Role).IsEqualTo("member");
     }
 
+    /// <summary>A map an agent made is its owner's and the admins'. To anyone else — a member, a visitor — it
+    /// is left out of the list and the counts, and every route naming it, a write included, answers 404 as if no
+    /// map stood there, so not even a refusal says it exists. An admin's token sees it too: what a request may see
+    /// is its person's, and only what it may write is capped.</summary>
+    [Test]
+    public async Task An_agent_made_map_is_seen_only_by_the_admins_and_its_owner()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        await WhitelistAsync(Stranger, "member");
+        await WhitelistAsync(Keeper, "admin");
+        using var owner = InvitedFactory.As(Owner);
+        var slug = await OriginateAsync(owner, "Weirgate");
+        using var visitor = InvitedFactory.Shared.CreateClient();
+        using var stranger = InvitedFactory.As(Stranger);
+        var countBefore = (await stranger.GetFromJsonAsync<MapStageCounts>("/api/maps/stage-counts"))!.All;
+        await ApiTestFactory.ExecuteAsync($"UPDATE map SET agent_made = 1 WHERE slug = '{slug}'");
+
+        foreach (var hidden in (HttpClient[])[stranger, visitor])
+        {
+            var listed = await hidden.GetFromJsonAsync<List<MapSummary>>("/api/maps");
+            await Assert.That(listed!.Select(map => map.Slug)).DoesNotContain(slug);
+            using var read = await hidden.GetAsync($"/api/map/{slug}/access");
+            await AssertRefusedAsync(read, HttpStatusCode.NotFound, "RQ4");
+        }
+        await Assert.That((await stranger.GetFromJsonAsync<MapStageCounts>("/api/maps/stage-counts"))!.All)
+            .IsEqualTo(countBefore - 1);
+        using var write = await stranger.PatchAsJsonAsync($"/api/map/{slug}/metadata", new { authors = Array.Empty<object>() });
+        await AssertRefusedAsync(write, HttpStatusCode.NotFound, "RQ4");
+
+        using var keeper = InvitedFactory.As(Keeper);
+        var issued = await (await keeper.PostAsJsonAsync("/api/users/me/tokens", new StudioTokenRequest("agent")))
+            .Content.ReadFromJsonAsync<StudioTokenIssuedDto>();
+        using var keepersAgent = WithToken(issued!.Token);
+        foreach (var sees in (HttpClient[])[owner, keeper, keepersAgent])
+        {
+            var row = (await sees.GetFromJsonAsync<List<MapSummary>>("/api/maps"))!.Single(map => map.Slug == slug);
+            await Assert.That(row.AgentMade).IsTrue();
+            using var read = await sees.GetAsync($"/api/map/{slug}/access");
+            await Assert.That(read.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        }
+    }
+
+    /// <summary>A token is how an agent drives the studio, so a map a token brings into being is agent-made, and
+    /// one a browser brings into being is not.</summary>
+    [Test]
+    public async Task A_map_a_token_originates_is_agent_made_and_a_browsers_is_not()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        using var owner = InvitedFactory.As(Owner);
+        var issued = await (await owner.PostAsJsonAsync("/api/users/me/tokens", new StudioTokenRequest("agent")))
+            .Content.ReadFromJsonAsync<StudioTokenIssuedDto>();
+        using var agent = WithToken(issued!.Token);
+
+        var byAgent = await OriginateAsync(agent, "Weirgate");
+        var byHand = await OriginateAsync(owner, "Saltmarsh");
+        await Assert.That(await ScalarAsync($"SELECT agent_made FROM map WHERE slug = '{byAgent}'")).IsEqualTo("True");
+        await Assert.That(await ScalarAsync($"SELECT agent_made FROM map WHERE slug = '{byHand}'")).IsEqualTo("False");
+    }
+
+    /// <summary>Marking a map as made by an agent, or taking the mark off, is an admin's, and it holds at once.
+    /// </summary>
+    [Test]
+    public async Task Only_an_admin_marks_a_map_agent_made()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        await WhitelistAsync(Stranger, "member");
+        await WhitelistAsync(Keeper, "admin");
+        using var owner = InvitedFactory.As(Owner);
+        var slug = await OriginateAsync(owner, "Weirgate");
+
+        using var refused = await owner.PatchAsJsonAsync($"/api/map/{slug}/agent-made", new MapAgentMadeRequest(true));
+        await AssertRefusedAsync(refused, HttpStatusCode.Forbidden, "RQ8");
+
+        using var keeper = InvitedFactory.As(Keeper);
+        using var stranger = InvitedFactory.As(Stranger);
+        using var marked = await keeper.PatchAsJsonAsync($"/api/map/{slug}/agent-made", new MapAgentMadeRequest(true));
+        await Assert.That(marked.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var hidden = await stranger.GetAsync($"/api/map/{slug}/access");
+        await AssertRefusedAsync(hidden, HttpStatusCode.NotFound, "RQ4");
+
+        using var unmarked = await keeper.PatchAsJsonAsync($"/api/map/{slug}/agent-made", new MapAgentMadeRequest(false));
+        await Assert.That(unmarked.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var shown = await stranger.GetAsync($"/api/map/{slug}/access");
+        await Assert.That(shown.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
     /// <summary>The routes that state their own access rather than taking the rule's, and the reads marked
     /// <c>[CostlyRead]</c>, which the rule guards like a write.</summary>
     private static readonly HashSet<string> StatesItsOwnAccess =

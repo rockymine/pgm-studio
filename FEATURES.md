@@ -10687,6 +10687,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `--migrate-only`, switches and restarts, and points back at the release before when `/api/health` does not
   answer; a failed commit is not retried. `invite.sh` adds a player and prints their invitation from the
   server. Everything the server was set up from is in `tools/deploy/`. `docs/deployment.md`.
+- **Agent-made maps are the admins' and their owner's (`RP123`).** A map records whether an agent made it
+  (`M0066`, which marks the stored maps credited only to names with no account). To anyone else it is left out of
+  `/api/maps` and the landing's counts, and every `{slug}` route naming it answers `RQ4` at 404, decided before
+  any access rule so no refusal reveals it. A token makes a map agent-made; an admin marks or unmarks one with
+  `PATCH /api/map/{slug}/agent-made` or the button on the Maps page, which tags each such map *agent*. What may be
+  seen is the person's, so an admin's token sees them. `docs/access.md`.
 - **Only an owner makes or unmakes an admin (`RP85`).** An owner is a uuid `Access:Admins` names, signed in
   from a browser, or an open studio's local admin — granted by the server alone. One rule, `WhitelistKeeping`,
   decides every change to the whitelist: an admin adds, re-roles, removes and issues tokens for members and
