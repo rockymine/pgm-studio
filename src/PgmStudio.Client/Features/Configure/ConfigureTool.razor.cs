@@ -6,10 +6,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Features.Configure;
 
-public partial class ConfigureTool
+public partial class ConfigureTool : IDisposable
 {
     // Empty on the slug-less /maps/new route (the Import phase, phase zero); set once a map exists — the
     // {Slug} route token is absent from /maps/new, so the parameter keeps its default there.
@@ -28,6 +29,21 @@ public partial class ConfigureTool
     // the wizard re-PUTs the whole object on phase-advance (the save model, docs/tools/configure.md).
     private JsonObject? intent;
     private bool dirty;
+    private int edits;               // every MarkDirty counts one, so a save clears dirty only for what it carried
+
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    // The intent is written with the revision it was read at (DocumentSave), so a tab holding an older intent is
+    // refused rather than writing it back over someone else's save; and the wizard looks for such a save every
+    // half-minute, so a person sees another's change without signing out and back in.
+    private DocumentSave? document;
+    private DocumentSave Document => document ??= new(Http);
+    private string? saveMessage;     // why the last save did not land, in the studio's own words
+    private bool changedElsewhere;   // the stored intent is newer than the one this tab read
+    private readonly CancellationTokenSource closing = new();
+    private CancellationTokenSource? pending;   // the autosave waiting out the last edit
+    private static readonly TimeSpan AutosaveAfter = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan LookEvery = TimeSpan.FromSeconds(30);
     private SaveState save = SaveState.Saved;
     private enum SaveState { Saved, Saving, Unsaved }
 
@@ -189,10 +205,44 @@ public partial class ConfigureTool
     {
         try
         {
-            var json = await Http.GetStringAsync($"api/map/{Slug}/intent");
-            intent = JsonNode.Parse(json) as JsonObject ?? new JsonObject();
+            using var read = await Http.GetAsync($"api/map/{Slug}/intent");
+            read.EnsureSuccessStatusCode();
+            Document.Hold(read);
+            intent = JsonNode.Parse(await read.Content.ReadAsStringAsync()) as JsonObject ?? new JsonObject();
         }
-        catch { intent = new JsonObject(); }   // no row / not authored yet — start from empty intent
+        catch { intent = new JsonObject(); Document.Forget(); }   // no row / not authored yet — start from empty intent
+        _ = LookForOtherSavesAsync(closing.Token);
+    }
+
+    /// <summary>Every <see cref="LookEvery"/>, ask the studio which revision of the intent it holds, and say so
+    /// when it is not the one this tab stands on: someone else saved the map.</summary>
+    private async Task LookForOtherSavesAsync(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await Task.Delay(LookEvery, token);
+                if (changedElsewhere || save == SaveState.Saving || Document.Held is not { } held) continue;
+                using var read = await Http.GetAsync($"api/map/{Slug}/intent", token);
+                if (read.IsSuccessStatusCode && read.Headers.ETag?.Tag is { } stored && stored != held
+                    && save != SaveState.Saving && Document.Held == held)
+                {
+                    changedElsewhere = true;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (HttpRequestException) { }
+    }
+
+    private void Reload() => Nav.NavigateTo(Nav.Uri, forceLoad: true);
+
+    public void Dispose()
+    {
+        closing.Cancel();
+        pending?.Cancel();
     }
 
     /// <summary>The working intent a phase body edits; call <see cref="MarkDirty"/> after mutating it so
@@ -205,8 +255,20 @@ public partial class ConfigureTool
     public void MarkDirty()
     {
         dirty = true;
+        edits++;
         save = SaveState.Unsaved;
         StateHasChanged();
+        pending?.Cancel();
+        pending = CancellationTokenSource.CreateLinkedTokenSource(closing.Token);
+        _ = AutosaveAsync(pending.Token);
+    }
+
+    /// <summary>Save once the author has stopped editing for <see cref="AutosaveAfter"/>.</summary>
+    private async Task AutosaveAsync(CancellationToken token)
+    {
+        try { await Task.Delay(AutosaveAfter, token); }
+        catch (OperationCanceledException) { return; }
+        await InvokeAsync(SaveIfDirtyAsync);
     }
 
     /// <summary>Run an action that persists immediately (a phase body whose edit saves on the spot, e.g.
@@ -225,15 +287,26 @@ public partial class ConfigureTool
     {
         if (!dirty || intent is null) return;
         save = SaveState.Saving; StateHasChanged();
-        try
+        var carried = edits;
+        var outcome = await Document.PutAsync($"api/map/{Slug}/intent", () =>
         {
-            var body = new StringContent(intent.ToJsonString(), Encoding.UTF8, "application/json");
-            var resp = await Http.PutAsync($"api/map/{Slug}/intent", body);
-            if (resp.IsSuccessStatusCode) { dirty = false; save = SaveState.Saved; }
-            else save = SaveState.Unsaved;
+            carried = edits;   // what the body holds is the intent as it stands when the turn comes
+            return Task.FromResult<HttpContent>(new StringContent(intent.ToJsonString(), Encoding.UTF8, "application/json"));
+        });
+        if (outcome.Landed)
+        {
+            if (edits == carried) dirty = false;
+            save = dirty ? SaveState.Unsaved : SaveState.Saved;
+            saveMessage = null;
         }
-        catch { save = SaveState.Unsaved; }
+        else if (outcome.Status == PgmStudio.Client.Components.SaveStatus.Refused)
+        {
+            save = SaveState.Unsaved;
+            saveMessage = outcome.Message;
+            changedElsewhere |= Document.Superseded;
+        }
         furthest = Math.Max(furthest, SliceFurthest());
+        StateHasChanged();
     }
 
     private async Task JumpPhase(string id)
@@ -246,14 +319,16 @@ public partial class ConfigureTool
         step = 0;
     }
 
-    private void JumpStep(int j)
+    private async Task JumpStep(int j)
     {
-        if (j >= 0 && j <= LastStep) step = j;
+        if (j < 0 || j > LastStep || j == step) return;
+        await SaveIfDirtyAsync();   // a step is as far as an edit waits to reach the studio
+        step = j;
     }
 
     private async Task Back()
     {
-        if (step > 0) { step--; return; }
+        if (step > 0) { await SaveIfDirtyAsync(); step--; return; }
         if (phaseIndex > 0)
         {
             await SaveIfDirtyAsync();   // crossing a phase boundary
@@ -264,7 +339,7 @@ public partial class ConfigureTool
 
     private async Task Next()
     {
-        if (step < LastStep) { step++; return; }
+        if (step < LastStep) { await SaveIfDirtyAsync(); step++; return; }
         if (phaseIndex < phases.Length - 1)
         {
             await SaveIfDirtyAsync();   // crossing a phase boundary persists the slice; that unlocks the next phase

@@ -15,6 +15,17 @@
         <ChildContent>
         <p class="section-desc">Found in the world. Monument signs name each wool and the team that captures
           it. Wool that no monument names is treated as decoration.</p>
+        @if (disagreements.Count > 0)
+        {
+          <div class="callout">
+            <span class="callout-icon"><i data-lucide="triangle-alert"></i></span>
+            <div>
+              <p>The objectives no longer match the islands' teams:</p>
+              <ul>@foreach (var line in disagreements) { <li>@line</li> }</ul>
+              <Button Writes Variant="primary" Icon="refresh-cw" OnClick="ReassignFromIslands">Take the teams from the islands</Button>
+            </div>
+          </div>
+        }
         @if (loading)
         {
           <div class="list-empty">Scanning the world…</div>
@@ -71,8 +82,8 @@
               <SwatchRow TKey="string" Selected="@sel.Color" OnPick="@(c => SetColor(sel, c))"
                          Swatches="@GameColors.DyeColors.Select(d => new SwatchRow<string>.Swatch(W.NormColor(d.Value), d.Hex, d.Label)).ToList()" />
             </Field>
-            <Field Label="Owning team">
-              <LabelHint>(defends it)</LabelHint>
+            <Field Label="Defending team">
+              <LabelHint>(owns it)</LabelHint>
               <ChildContent>
                 <div class="field-pick-row">
                   <span class="field-swatch" style="--swatch: @(string.IsNullOrEmpty(sel.Owner) ? "transparent" : W.Hex(TeamColorOf(sel.Owner)))"></span>
@@ -98,12 +109,23 @@
                 else { <text>No wool blocks in the world. Place it in the Spawn step.</text> }
               </div>
             </Field>
-            <Field Label="Monuments">
-              <LabelHint>(captured by)</LabelHint>
+            <Field Label="Captured by">
+              <LabelHint>(every other team, at its own monument)</LabelHint>
               <ChildContent>
-                <div class="field-value">
-                  @if (sel.Monuments.Count == 0) { <text>None found. Place them in the Monuments step.</text> }
-                  else { @string.Join(", ", sel.Monuments.Select(m => string.IsNullOrEmpty(m.Team) ? "?" : TeamName(m.Team))) }
+                <div class="field-value field-value--wrap">
+                  @if (string.IsNullOrEmpty(sel.Owner)) { <text>Choose the defending team first.</text> }
+                  else
+                  {
+                    @foreach (var cap in Capturers(sel))
+                    {
+                      var monument = sel.Monuments.FirstOrDefault(m => m.Team == cap.Id);
+                      <div>@cap.Name: @(monument is null ? "no monument yet. Place it in the Monuments step." : $"monument at {Fmt(monument.X)}, {Fmt(monument.Y)}, {Fmt(monument.Z)}")</div>
+                    }
+                    @foreach (var stray in sel.Monuments.Where(m => !Capturers(sel).Any(cap => cap.Id == m.Team)))
+                    {
+                      <div class="field-error">A monument at @Fmt(stray.X), @Fmt(stray.Y), @Fmt(stray.Z) has @(string.IsNullOrEmpty(stray.Team) ? "no team" : $"{TeamName(stray.Team)}, which defends this wool"). Fix it in the Monuments step.</div>
+                    }
+                  }
                 </div>
               </ChildContent>
             </Field>

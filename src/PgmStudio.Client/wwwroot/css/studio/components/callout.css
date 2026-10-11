@@ -14,3 +14,14 @@
 }
 .callout-icon { flex: none; margin-top: 1px; color: var(--accent-light); }
 .callout strong { color: var(--text-bright); }
+/* A notice over the Configure wizard: another person saved the map, or a save was refused. */
+.configure-notice {
+  position: fixed;
+  top: calc(var(--space-6) * 2);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  max-width: 40rem;
+  align-items: center;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.35);
+}

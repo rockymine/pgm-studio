@@ -59,6 +59,19 @@ public static class ObjectiveRules
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.World)]
     public const string MonumentNotSeated = "OB33";
 
+    /// <summary>A wool does not have one monument for each team other than the team that defends it.</summary>
+    /// <remarks>Either add a monument for each capturing team to <c>wools.monuments</c>, or change the wool's
+    /// <c>owner</c> to the team that defends it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Objective, RuleConcern.Intent)]
+    public const string WoolCapturers = "OB34";
+
+    /// <summary>A wool is not on the island of the team that defends it, or a monument is not on the island of the
+    /// team that places the wool there.</summary>
+    /// <remarks>Either move the wool or its monument onto the island of its team, or set the island's team in
+    /// <c>islandTeams</c>.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Objective, RuleConcern.Intent)]
+    public const string WoolOnAnotherIsland = "OB35";
+
     /// <summary>A wool monument has no ground under it.</summary>
     /// <remarks>Move the room piece of the spawn in <c>pieces</c> until the monument stands on ground.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Terrain)]

@@ -48,6 +48,10 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
 
         var applied = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, features, players, slug,
             map.Id, body, Revisions.Expected(HttpContext), ct);
+        // A wool whose teams contradict each other or the islands is stored, and said so (OB34, OB35): Configure
+        // passes through such a state on its way to the right one.
+        if (applied.Status() == 200 && IntentWrite.Stated(body) is { } stated)
+            Complaints.Add(HttpContext, WoolTeams.Check(stated, await IslandTeamLookup.OfAsync(features, map.Id, stated, ct)));
         await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }

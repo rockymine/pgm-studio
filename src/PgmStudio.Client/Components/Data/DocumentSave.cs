@@ -49,6 +49,10 @@ public sealed class DocumentSave(HttpClient http)
     private string? held;
     private readonly SemaphoreSlim gate = new(1, 1);
 
+    /// <summary>The revision this tab stands on, or null where it holds none: what a reader compares with the
+    /// studio's to tell that the document was saved from somewhere else.</summary>
+    public string? Held => held;
+
     /// <summary>Whether a write was refused as stale since the document was last read.</summary>
     public bool Superseded { get; private set; }
 
