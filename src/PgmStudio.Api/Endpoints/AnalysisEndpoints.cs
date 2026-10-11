@@ -32,7 +32,7 @@ public sealed class RegionsEndpoint(MapRepository repo, MapReader reader) : Endp
 }
 
 /// <summary>GET /api/map/{slug}/editability — which columns a player may edit and what makes each one
-/// editable, plus what the pass has to say about the result (<c>EZ1</c>, <c>EZ2</c>).</summary>
+/// editable, plus what the pass has to say about the result (<c>EZ1</c> to <c>EZ4</c>).</summary>
 [Queued]
 public sealed class EditabilityEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<EditabilityDto>
 {
@@ -50,7 +50,8 @@ public sealed class EditabilityEndpoint(MapRepository repo, MapReader reader, Fe
             ? []
             : [.. DeadGround.Check(zones,
                   await feature.WalkGroundAsync(map.Id, doc, (zones.MinX, zones.MinZ, zones.MaxX, zones.MaxZ), ct), doc),
-               .. BuildZoneGap.Check(zones, await feature.PlannedGroundAsync(map.Id, ct))];
+               .. BuildZoneGap.Check(zones, await feature.PlannedGroundAsync(map.Id, ct)),
+               .. GoalEdits.Check(doc, zones)];
 
         var rows = Enumerable.Range(0, zones.Height)
             .Select(iz => string.Concat(Enumerable.Range(0, zones.Width).Select(ix => (char)('0' + zones.Zone[iz * zones.Width + ix])))).ToList();

@@ -433,6 +433,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   box, outside the zones a map protects (recognised by the `enter` rule that protects them, not by name).
   Preflight's own buildability check now asks the y=0 read directly rather than inferring void from a zone.
   (CV21)
+- **A goal the block rules keep from being completed is named, and the void past the map reads sealed (`EZ3`,
+  `EZ4`).** `GoalEdits` walks the map's apply rules for one change the way PGM does, a material filter tested
+  against the goal's own material: a core's or a monument's block broken in each of its columns, and lava placed
+  in any column under or beside a core. A floating goal over columns with nothing at y=0 fails both under the
+  studio's void rule, which lets leaves and logs through over the void and not obsidian. The zone grid takes the
+  scan's occupied columns, so an empty void column, with nothing in it to break, reads `sealed` where the break
+  exception made the whole void past the map read `filtered`. A wool is not asked: PGM's wool module decides a
+  monument last. `docs/pgm/filter-region-wiring.md` states the sequence PGM decides a block change in.
 - **A coast pulled back from a build zone is named (`TC10`, `EZ2`).** `BuildZoneGap` walks the four axes from
   every column with a block at y=0, up to ten out, and raises the void nobody may build across on the way to a
   buildable column — only where the plan put ground, so a gap the composed board leaves on purpose stays quiet.
