@@ -77,3 +77,4 @@ a.map-row-name:hover { text-decoration: underline; }
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
+.map-row-mark { display: inline-block; margin-left: var(--space-1); }

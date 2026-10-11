@@ -93,10 +93,9 @@ public sealed class MapRepository(PgmDb db)
         return result;
     }
 
-    /// <summary>Map count per lifecycle stage (for the dashboard landing cards).</summary>
-    public async Task<Dictionary<string, int>> StageCountsAsync(CancellationToken ct = default)
-        => (await db.Maps.GroupBy(m => m.Stage).Select(g => new { Stage = g.Key, Count = g.Count() }).ToListAsync(ct))
-            .ToDictionary(x => x.Stage, x => x.Count);
+    /// <summary>Mark a map as made by an agent, or not, which decides who may see it.</summary>
+    public Task<int> SetAgentMadeAsync(long mapId, bool agentMade, CancellationToken ct = default)
+        => db.Maps.Where(m => m.Id == mapId).Set(m => m.AgentMade, agentMade).UpdateAsync(ct);
 
     /// <summary>Advance (or set) a map's lifecycle stage.</summary>
     public Task<int> SetStageAsync(long mapId, string stage, CancellationToken ct = default)

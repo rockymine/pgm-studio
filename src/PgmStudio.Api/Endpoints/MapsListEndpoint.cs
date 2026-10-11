@@ -25,6 +25,8 @@ namespace PgmStudio.Api.Endpoints;
 /// <see cref="MapSummary.HasSketch"/> / <see cref="MapSummary.HasSurface"/>), so the list can offer each
 /// tool the map has been through directly rather than walking a map back one stage at a time. One artifact
 /// query serves the flags and the layer filter alike.</para>
+///
+/// <para>A map an agent made is listed only to the admins and its owner (<see cref="Callers.MaySee"/>).</para>
 /// </summary>
 public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifacts, MapChangeLog changes, Callers callers)
     : EndpointWithoutRequest<List<MapSummary>>
@@ -57,9 +59,10 @@ public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifa
             maps = [.. maps.Where(m => holders.Contains(m.Id))];
         }
 
+        var caller = await callers.OfAsync(HttpContext, ct);
+        maps = [.. maps.Where(m => Callers.MaySee(caller, m))];
         var gamemodes = await repo.GamemodesAsync(ct);
         var credited = await repo.AuthorsAsync(ct);
-        var caller = await callers.OfAsync(HttpContext, ct);
         var wrote = caller.SignedIn
             ? await changes.LastWrittenByAsync(caller.Uuid, caller.Uuid is null ? caller.Name : null, ct)
             : new Dictionary<string, DateTime>();
@@ -70,14 +73,14 @@ public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifa
                 [.. credited.GetValueOrDefault(m.Id, []).Select(a => new MapAuthorDto(a.Uuid, a.Role, a.Contribution, a.Name))],
                 DateTime.SpecifyKind(m.UpdatedAt, DateTimeKind.Utc),
                 withSurface.Contains(m.Id), withPlan.Contains(m.Id), withSketch.Contains(m.Id),
-                wrote.TryGetValue(m.Slug, out var at) ? at : null)).ToList(), ct);
+                wrote.TryGetValue(m.Slug, out var at) ? at : null, m.AgentMade)).ToList(), ct);
     }
 }
 
 /// <summary>GET /api/maps/stage-counts — the landing's map count, each counting exactly what the Maps page
 /// shows when its card opens it: the maps standing at Sketch, at Configure — which lists a map the corpus import
-/// stood at <c>edit</c> too — and every map.</summary>
-public sealed class MapStageCountsEndpoint(MapRepository repo) : EndpointWithoutRequest<MapStageCounts>
+/// stood at <c>edit</c> too — and every map, each over the maps the caller may see.</summary>
+public sealed class MapStageCountsEndpoint(MapRepository repo, Callers callers) : EndpointWithoutRequest<MapStageCounts>
 {
     public override void Configure()
     {
@@ -86,7 +89,9 @@ public sealed class MapStageCountsEndpoint(MapRepository repo) : EndpointWithout
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var c = await repo.StageCountsAsync(ct);
+        var caller = await callers.OfAsync(HttpContext, ct);
+        var c = (await repo.ListAsync(ct)).Where(m => Callers.MaySee(caller, m))
+            .GroupBy(m => m.Stage).ToDictionary(g => g.Key, g => g.Count());
         await Send.OkAsync(new MapStageCounts(
             c.GetValueOrDefault(MapStage.Sketch),
             c.GetValueOrDefault(MapStage.Configure) + c.GetValueOrDefault(MapStage.Edit),

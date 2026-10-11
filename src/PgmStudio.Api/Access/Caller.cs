@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using PgmStudio.Api.Endpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Access;
 using PgmStudio.Data.Map;
@@ -15,10 +16,12 @@ namespace PgmStudio.Api.Access;
 /// answer map notes: an admin in a browser, or a token carrying the notes permission whose person is an admin.
 /// <paramref name="IsOwner"/> is an admin the server itself names — a uuid in <c>Access:Admins</c> signed in
 /// from a browser, or an open studio's local admin — who alone makes and unmakes admins
-/// (<see cref="WhitelistKeeping"/>).
+/// (<see cref="WhitelistKeeping"/>). <paramref name="AdminPerson"/> is whether the person behind the request is an
+/// admin, read before a token's cap, since what a request may see is its person's and only what it may write is
+/// capped.
 /// </summary>
 public sealed record Caller(string? Uuid, string? Name, string? Role, bool ViaToken = false, bool MayNote = false,
-                            string? Token = null, bool IsOwner = false)
+                            string? Token = null, bool IsOwner = false, bool AdminPerson = false)
 {
     public static readonly Caller SignedOut = new(null, null, null);
 
@@ -55,7 +58,8 @@ public sealed class Callers(AccessOptions access, StudioUserStore users)
     {
         if (principal.Identity is not { IsAuthenticated: true }) return Caller.SignedOut;
         if (principal.HasClaim(claim => claim.Type == StudioClaims.LocalAdmin))
-            return new(null, principal.FindFirstValue(StudioClaims.Name), StudioRoles.Admin, MayNote: true, IsOwner: true);
+            return new(null, principal.FindFirstValue(StudioClaims.Name), StudioRoles.Admin, MayNote: true, IsOwner: true,
+                       AdminPerson: true);
         if (principal.FindFirstValue(StudioClaims.Uuid) is not { Length: > 0 } uuid) return Caller.SignedOut;
 
         var viaToken = principal.Identity.AuthenticationType == TokenAccessHandler.SchemeName;
@@ -63,10 +67,12 @@ public sealed class Callers(AccessOptions access, StudioUserStore users)
         var named = access.Admins.Contains(uuid);
         var row = named ? null : await users.GetAsync(uuid, ct);
         var role = named ? StudioRoles.Admin : row?.Role;
-        var mayNote = role == StudioRoles.Admin && (!viaToken || principal.HasClaim(claim => claim.Type == StudioClaims.Notes));
+        var adminPerson = role == StudioRoles.Admin;
+        var mayNote = adminPerson && (!viaToken || principal.HasClaim(claim => claim.Type == StudioClaims.Notes));
         if (viaToken && role == StudioRoles.Admin) role = StudioRoles.Member;
         return new(uuid, row?.Name ?? name, role, viaToken, mayNote,
-                   viaToken ? principal.FindFirstValue(StudioClaims.TokenLabel) : null, IsOwner: named && !viaToken);
+                   viaToken ? principal.FindFirstValue(StudioClaims.TokenLabel) : null, IsOwner: named && !viaToken,
+                   AdminPerson: adminPerson);
     }
 
     /// <summary>Whether <paramref name="caller"/> may change <paramref name="map"/>: an admin may change any
@@ -79,11 +85,37 @@ public sealed class Callers(AccessOptions access, StudioUserStore users)
             || await users.IsAuthorOfAsync(map.Id, caller.Uuid, ct);
     }
 
+    /// <summary>Whether <paramref name="caller"/> may see <paramref name="map"/> at all. A map an agent made is
+    /// its owner's and the admins', and to anyone else it is not there (<c>docs/access.md</c>, <i>Agent-made
+    /// maps</i>); every other map is anyone's to read.</summary>
+    public static bool MaySee(Caller caller, MapRow map) =>
+        !map.AgentMade || caller.AdminPerson
+        || caller.Uuid is not null && string.Equals(map.OwnerUuid, caller.Uuid, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Answer a route naming an agent-made map the caller may not see as if no map stood there:
+    /// <c>RQ4</c> at 404, before any access rule is asked, so a refusal never says the map exists. Runs between
+    /// authentication and authorization, for every route with a <c>{slug}</c> under <c>/api</c>.</summary>
+    public static async Task HideAgentMapsAsync(HttpContext http, RequestDelegate next)
+    {
+        if (http.Request.Path.StartsWithSegments("/api")
+            && http.Request.RouteValues["slug"] is string { Length: > 0 } slug
+            && await http.RequestServices.GetRequiredService<MapRepository>().GetBySlugAsync(slug, http.RequestAborted)
+                is { AgentMade: true } map
+            && !MaySee(await http.RequestServices.GetRequiredService<Callers>().OfAsync(http, http.RequestAborted), map))
+        {
+            await Refusals.NotFoundAsync(http, "map", http.RequestAborted);
+            return;
+        }
+        await next(http);
+    }
+
     /// <summary>The person a map originated by this request belongs to and is credited to, or null for the
-    /// local admin, who has no account.</summary>
+    /// local admin, who has no account. A token signing the request in is an agent driving the studio, so the
+    /// map is agent-made.</summary>
     public static MapOriginator? OriginatorOf(HttpContext http) =>
         http.User.FindFirstValue(StudioClaims.Uuid) is { Length: > 0 } uuid
-            ? new MapOriginator(uuid, http.User.FindFirstValue(StudioClaims.Name))
+            ? new MapOriginator(uuid, http.User.FindFirstValue(StudioClaims.Name),
+                http.User.Identity?.AuthenticationType == TokenAccessHandler.SchemeName)
             : null;
 
     /// <summary>Stamp a writing request's changes to a map's documents with who is making them, read off the

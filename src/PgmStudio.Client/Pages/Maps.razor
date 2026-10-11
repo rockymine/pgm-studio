@@ -3,6 +3,7 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject NavigationManager Nav
+@inject StudioAccess Access
 
 <PageTitle>Maps · PGM Studio</PageTitle>
 
@@ -113,6 +114,17 @@
                           }
                           else { <span class="map-row-name" title="@m.Name">@m.Name</span> }
                           <span class="map-row-slug" title="@m.Slug">@m.Slug</span>
+                          @if (m.AgentMade)
+                          {
+                            <span class="list-tag" title="Made by an agent. Only admins and the map's owner see it.">agent</span>
+                          }
+                          @if (admin)
+                          {
+                            <span class="map-row-mark" @onclick:stopPropagation>
+                              <Button Variant="icon" Icon="bot" OnClick="() => MarkAgentMadeAsync(m, !m.AgentMade)"
+                                      Title="@(m.AgentMade ? "Show to everyone: not made by an agent" : "Hide from everyone but admins and its owner: made by an agent")" />
+                            </span>
+                          }
                         </td>
                         <td>
                           <span class="map-artifacts">

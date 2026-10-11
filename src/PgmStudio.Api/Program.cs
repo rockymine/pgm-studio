@@ -367,6 +367,7 @@ app.Use(async (ctx, next) =>
 app.Use(PgmStudio.Api.Endpoints.Complaints.CarryAsync);
 
 app.UseAuthentication();
+app.Use(PgmStudio.Api.Access.Callers.HideAgentMapsAsync);
 app.UseAuthorization();
 app.Use(PgmStudio.Api.Access.Callers.StampWritesAsync);
 app.Use(PgmStudio.Api.Services.BuildQueue.QueueAsync);

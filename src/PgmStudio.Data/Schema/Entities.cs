@@ -19,6 +19,8 @@ public sealed class MapRow
     [Column("stage"), NotNull] public string Stage { get; set; } = "edit";
     // For a stage=plan map authored from a generator candidate: the source `plan` row id (provenance).
     [Column("plan_source_id")] public long? PlanSourceId { get; set; }
+    /// <summary>Whether an agent made the map, which keeps it to the admins and its owner.</summary>
+    [Column("agent_made"), NotNull] public bool AgentMade { get; set; }
     [Column("created_at")] public DateTime CreatedAt { get; set; }
     [Column("updated_at")] public DateTime UpdatedAt { get; set; }
     /// <summary>Which version of this map's document the row holds — bumped by every write that replaces it,

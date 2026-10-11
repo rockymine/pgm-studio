@@ -30,6 +30,8 @@ namespace PgmStudio.Contracts;
 /// <param name="YouWroteAt">When the caller last changed the map's documents themselves, in a browser rather
 /// than through a token (UTC), or absent where they never have. It is what the landing page's continue card
 /// picks the map from.</param>
+/// <param name="AgentMade">Whether an agent made the map. Such a map is listed only to the admins and its
+/// owner, so anyone who sees the flag set is one of them.</param>
 public sealed record MapSummary(
     string Slug,
     string Name,
@@ -42,7 +44,8 @@ public sealed record MapSummary(
     bool HasSurface = false,
     bool HasPlan = false,
     bool HasSketch = false,
-    DateTime? YouWroteAt = null);
+    DateTime? YouWroteAt = null,
+    bool AgentMade = false);
 
 /// <summary>Map counts for the landing cards (GET /api/maps/stage-counts), each counting what the list its
 /// card opens shows.</summary>

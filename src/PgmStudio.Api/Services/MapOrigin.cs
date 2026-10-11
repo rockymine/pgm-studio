@@ -44,14 +44,16 @@ public static class MapOrigin
         MapRepository repo, string slug, string name, string stage, MapOriginator? originator, CancellationToken ct)
     {
         var owner = originator?.Uuid;
+        var agentMade = originator?.Agent ?? false;
         long revision = 1;
         if (await repo.GetBySlugAsync(slug, ct) is { } existing)
         {
             owner = existing.OwnerUuid ?? owner;
+            agentMade = existing.AgentMade;
             revision = existing.Revision + 1;
             await repo.DeleteMapAsync(existing.Id, ct);
         }
-        return await RowAsync(repo, slug, name, stage, originator, owner, planSource: null, revision);
+        return await RowAsync(repo, slug, name, stage, originator, owner, planSource: null, revision, agentMade);
     }
 
     /// <summary>A map at a slug the caller has already established is free — a world import, which refuses a
@@ -66,13 +68,14 @@ public static class MapOrigin
     /// not been authored yet does not have.</summary>
     private static async Task<long> RowAsync(
         MapRepository repo, string slug, string name, string stage, MapOriginator? originator, string? owner,
-        long? planSource, long revision = 1)
+        long? planSource, long revision = 1, bool? agentMade = null)
     {
         var now = DateTime.UtcNow;
         var mapId = await repo.InsertAsync(new MapRow
         {
             Slug = slug, Name = name, Gamemode = "ctw", Stage = stage,
             PlanSourceId = planSource, CreatedAt = now, UpdatedAt = now, OwnerUuid = owner, Revision = revision,
+            AgentMade = agentMade ?? originator?.Agent ?? false,
         });
         if (originator is not null)
             await repo.InsertAsync(new AuthorRow
@@ -85,4 +88,8 @@ public static class MapOrigin
 
 /// <summary>The signed-in person a map is originated by: it is owned under their uuid and credited to them
 /// under their Minecraft name.</summary>
-public sealed record MapOriginator(string Uuid, string? Name);
+/// <param name="Uuid">The account the map is owned and credited under.</param>
+/// <param name="Name">Their Minecraft name, as the map credits them.</param>
+/// <param name="Agent">Whether a token brought the map into being, which is how an agent drives the studio, so
+/// the map is agent-made.</param>
+public sealed record MapOriginator(string Uuid, string? Name, bool Agent = false);

@@ -204,7 +204,23 @@ public partial class Maps
         }), replace: true);
     }
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    /// <summary>Whether the caller is an admin, who may mark a map as made by an agent.</summary>
+    private bool admin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        admin = await Access.IsAdminAsync();
+        await LoadAsync();
+    }
+
+    /// <summary>Mark <paramref name="map"/> as made by an agent, or not (<c>docs/access.md</c>, <i>Agent-made
+    /// maps</i>), and read the list again.</summary>
+    private async Task MarkAgentMadeAsync(MapSummary map, bool agentMade)
+    {
+        using var response = await Http.PatchAsJsonAsync($"api/map/{map.Slug}/agent-made", new MapAgentMadeRequest(agentMade));
+        loadError = response.IsSuccessStatusCode ? null : await ServerRefusal.SentenceAsync(response);
+        if (response.IsSuccessStatusCode) await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
