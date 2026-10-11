@@ -280,6 +280,19 @@ public static class WoolGenerator
         var filters = DocAccess.Filters(doc);
         var owners = new HashSet<string>();
 
+        // What the previous projection wrote for a colour this one rewrites goes with it, named by the document
+        // rather than by the new intent: a wool whose teams changed would otherwise leave its old monument
+        // regions, and its old owner's filters, behind with nothing referring to them.
+        var rewritten = wools.Select(w => ColorSlug(doc, w)).ToHashSet();
+        if (doc.GetValueOrDefault("wools") is List<object?> previous)
+            foreach (var entry in previous.OfType<Dict>().Where(e => e.GetValueOrDefault("id") is string id && rewritten.Contains(id)))
+            {
+                if (entry.GetValueOrDefault("team") is string defender) owners.Add(IntentNaming.Slug(defender));
+                if (entry.GetValueOrDefault("monuments") is List<object?> monuments)
+                    foreach (var monument in monuments.OfType<Dict>())
+                        if (monument.GetValueOrDefault("monument_region") is string region) regions.Remove(region);
+            }
+
         foreach (var w in wools)
         {
             var colorSlug = ColorSlug(doc, w);

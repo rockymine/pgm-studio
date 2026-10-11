@@ -25,6 +25,16 @@ else
 
   @* Phase bodies render inside this cascade: they patch their slice on Intent and call MarkDirty(), and
      the wizard persists it on the next phase-advance. *@
+  @if (changedElsewhere || saveMessage is not null)
+  {
+    <div class="callout configure-notice" role="status">
+      <span class="callout-icon"><i data-lucide="@(changedElsewhere ? "refresh-cw" : "triangle-alert")"></i></span>
+      <p>@(changedElsewhere
+          ? "Someone else saved this map after you opened it. Reload to see their changes. Edits made here before reloading are not saved."
+          : saveMessage)</p>
+      @if (changedElsewhere) { <Button Variant="primary" Icon="refresh-cw" OnClick="Reload">Reload</Button> }
+    </div>
+  }
   <CascadingValue Value="this" IsFixed="true">
   @if (!ready)
   {

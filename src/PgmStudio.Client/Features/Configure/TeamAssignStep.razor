@@ -61,6 +61,17 @@
         <ChildContent>
         <p class="section-desc">Select a team, then click its islands on the canvas. Islands without an owner
           stay neutral, such as a shared middle.</p>
+        @if (disagreements.Count > 0)
+        {
+          <div class="callout">
+            <span class="callout-icon"><i data-lucide="triangle-alert"></i></span>
+            <div>
+              <p>The objectives no longer match these islands:</p>
+              <ul>@foreach (var line in disagreements) { <li>@line</li> }</ul>
+              <Button Writes Variant="primary" Icon="refresh-cw" OnClick="ReassignObjectives">Move the objectives to these teams</Button>
+            </div>
+          </div>
+        }
         @if (teams.Count > 0)
         {
           <div class="panel-list">

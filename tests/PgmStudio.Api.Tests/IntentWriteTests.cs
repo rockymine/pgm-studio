@@ -184,6 +184,30 @@ public sealed class IntentWriteTests
         await Assert.That(await client.GetStringAsync(route)).IsEqualTo(before);
     }
 
+    /// <summary>A wool whose monument names its own defender is stored, since Configure passes through such a
+    /// state, and the answer says so under <c>OB34</c>; the right teams answer nothing.</summary>
+    [Test]
+    public async Task A_wool_monument_for_its_own_defender_is_stored_and_complained_of()
+    {
+        using var client = await SketchBoard.FreshAsync();
+        var route = $"/api/map/{SketchBoard.Slug}/intent";
+
+        var wrong = await client.PutAsync(route, new StringContent(
+            WoolIntent("""{"team":"blue-team","location":{"x":-10,"y":21,"z":0}}"""), Encoding.UTF8, "application/json"));
+        var text = await wrong.Content.ReadAsStringAsync();
+        await Assert.That(wrong.IsSuccessStatusCode).IsTrue().Because(text);
+        var rules = JsonDocument.Parse(text).RootElement.GetProperty("warnings").EnumerateArray()
+            .Select(warning => warning.GetProperty("rule").GetString()).ToList();
+        await Assert.That(rules).Contains(PgmStudio.Domain.ObjectiveRules.WoolCapturers);
+
+        var right = await client.PutAsync(route, new StringContent(
+            WoolIntent("""{"team":"red-team","location":{"x":-10,"y":21,"z":0}}"""), Encoding.UTF8, "application/json"));
+        var rightText = await right.Content.ReadAsStringAsync();
+        var rightWarnings = JsonDocument.Parse(rightText).RootElement.TryGetProperty("warnings", out var carried)
+            ? carried.EnumerateArray().Select(warning => warning.GetProperty("rule").GetString()).ToList() : [];
+        await Assert.That(rightWarnings).DoesNotContain(PgmStudio.Domain.ObjectiveRules.WoolCapturers);
+    }
+
     /// <summary>A map read from a world rather than drawn: no layout, and a scan holding one bedrock column at
     /// (5, 5) from y0 to y9.</summary>
     private static async Task<(HttpClient Client, string Slug)> ScannedMapAsync()

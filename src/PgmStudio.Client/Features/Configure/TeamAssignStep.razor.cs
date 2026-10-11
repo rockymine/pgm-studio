@@ -50,6 +50,7 @@ public partial class TeamAssignStep
         LoadFromIntent();
         symMode = (Wizard.Intent["symmetry"] as JsonObject)?["mode"]?.GetValue<string>();
         await LoadIslands();
+        disagreements = ObjectiveTeams.Disagreements(Wizard.Intent, islands, islandTeams);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -197,6 +198,18 @@ public partial class TeamAssignStep
         foreach (var (isl, team) in islandTeams) o[isl] = team;
         Wizard.Intent["islandTeams"] = o;
         Wizard.MarkDirty();
+        disagreements = ObjectiveTeams.Disagreements(Wizard.Intent, islands, islandTeams);
+    }
+
+    // Objectives confirmed before the islands were reassigned keep their old teams; this says so and moves them
+    // (ObjectiveTeams), rather than leaving a wool its old defender's to export.
+    private List<string> disagreements = new();
+
+    private void ReassignObjectives()
+    {
+        ObjectiveTeams.Reassign(Wizard.Intent, islands, islandTeams);
+        Wizard.MarkDirty();
+        disagreements = ObjectiveTeams.Disagreements(Wizard.Intent, islands, islandTeams);
     }
 
 }

@@ -10695,6 +10695,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `--migrate-only`, switches and restarts, and points back at the release before when `/api/health` does not
   answer; a failed commit is not retried. `invite.sh` adds a player and prints their invitation from the
   server. Everything the server was set up from is in `tools/deploy/`. `docs/deployment.md`.
+- **A wool's teams follow its defender and its islands, and Configure saves without overwriting (`RP125`).** A
+  wool's `owner` defends it and every other team captures it at a monument of its own — one capturer on two
+  teams, three on four. Configure's Objectives step shows each wool as saved (defender, spawn, monuments, rooms)
+  rather than as re-detected, lists who captures it, and re-teams the monuments when the defender changes; the
+  Teams step and the Objectives step say when objectives no longer match the islands' teams and move them along
+  (`ObjectiveTeams`). Every intent save and the pre-flight's *Wool teams* check carry `OB34` (a wool without one
+  monument for each team but its defender) and `OB35` (a wool or monument on another team's island)
+  (`WoolTeams.Check`). A wool whose teams change leaves none of its old monument regions or filters behind. The
+  wizard writes the intent with its revision (`DocumentSave`), so a stale tab is refused rather than overwriting,
+  saves three seconds after an edit and at every step, and every thirty seconds shows a *Reload* notice when
+  someone else saved. The pre-flight's *Build zone reach* reads a map imported from a world, whose ground is the
+  world itself. `docs/tools/configure.md`.
 - **People sign themselves up, and a library entry is its maker's (`RP124`).** A Discord account nobody invited
   lands on `/join`, names its Minecraft account (shown with its head to confirm) and joins as `unapproved`, bound
   to that Discord account; an account already someone's is refused `RQ21`. Someone waiting owns up to

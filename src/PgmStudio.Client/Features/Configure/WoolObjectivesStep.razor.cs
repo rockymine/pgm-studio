@@ -38,6 +38,7 @@ public partial class WoolObjectivesStep
         public string Evidence = "";
         public bool HasSource;          // a physical wool cluster was found
         public List<W.Monument> Monuments = new();
+        public List<Rect> Rooms = new();   // the saved wool's rooms, which this step keeps and does not edit
         public bool Included;
         public string? ExcludeReason;   // why it's excluded by default (null when included)
     }
@@ -180,25 +181,51 @@ public partial class WoolObjectivesStep
     // Reconcile detection with an already-saved slice (revisit): the saved wools are the included set, so
     // adopt their colour/owner and drop any auto-include that contradicts it. First visit (empty slice)
     // persists the auto-detected objectives so the slice exists and the phase can advance.
+    // A saved wool is shown as it was saved, not as the world reads now: its defender, spawn, monuments and rooms
+    // are the author's, and detection only proposes the colours nobody has saved yet. Writing back a detected
+    // owner or an empty room list over a saved wool would undo what the later steps placed.
     private void Reconcile()
     {
         if (Wizard.Intent["wools"] is JsonArray arr && arr.Count > 0)
         {
-            var saved = arr.OfType<JsonObject>().ToDictionary(w => W.NormColor(Ctx.S(w, "owner")) + "/" + W.NormColor(Ctx.S(w, "color")), w => w);
-            var savedColors = arr.OfType<JsonObject>().Select(w => W.NormColor(Ctx.S(w, "color"))).ToHashSet();
-            foreach (var c in candidates) c.Included = savedColors.Contains(c.Color);
-            // any saved wool not in the detected pool (hand-added previously) → add it back as a candidate
-            foreach (var w in arr.OfType<JsonObject>())
+            var saved = W.ParseWools(Wizard.Intent).ToDictionary(w => W.NormColor(w.Color));
+            foreach (var c in candidates) c.Included = saved.ContainsKey(c.Color);
+            foreach (var (color, w) in saved)
             {
-                var color = W.NormColor(Ctx.S(w, "color"));
-                if (candidates.Any(c => c.Color == color)) continue;
-                var sp = w["spawn"] as JsonObject;
-                candidates.Add(new Candidate { Color = color, Owner = Ctx.S(w, "owner"), Included = true,
-                    X = Ctx.D(sp, "x"), Y = Ctx.D(sp, "y"), Z = Ctx.D(sp, "z") });
+                var c = candidates.FirstOrDefault(candidate => candidate.Color == color);
+                if (c is null) candidates.Add(c = new Candidate { Color = color, Included = true });
+                c.Owner = w.Owner;
+                (c.X, c.Y, c.Z) = (w.SpawnX, w.SpawnY, w.SpawnZ);
+                c.Monuments = [.. w.Monuments.Select(m => new W.Monument { Team = m.Team, X = m.X, Y = m.Y, Z = m.Z })];
+                c.Rooms = [.. w.Rooms];
             }
+            disagreements = ObjectiveTeams.Disagreements(Wizard.Intent, islands, islandTeams);
         }
         else PersistAndPaint();   // first visit — auto-confirm the detected objectives
     }
+
+    /// <summary>What the saved objectives say against the islands' teams, as <see cref="ObjectiveTeams"/>
+    /// reads it.</summary>
+    private List<string> disagreements = new();
+
+    private void ReassignFromIslands()
+    {
+        ObjectiveTeams.Reassign(Wizard.Intent, islands, islandTeams);
+        Wizard.MarkDirty();
+        candidates.Clear();
+        _ = ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        await DetectAsync();
+        Reconcile();
+        await Paint();
+        StateHasChanged();
+    }
+
+    /// <summary>The teams that capture <paramref name="c"/>: every team but the one defending it.</summary>
+    private IEnumerable<Ctx.Team> Capturers(Candidate c) => teams.Where(t => t.Id != c.Owner);
 
     private async Task OnCanvasReady() => await Paint();
 
@@ -217,7 +244,24 @@ public partial class WoolObjectivesStep
 
     private void Select(Candidate c) => selectedColor = c.Color;
 
-    private void SetOwner(Candidate c, string team) { c.Owner = team; PersistAndPaint(); }
+    // The defender is the one decision: every other team captures, so the monuments are re-teamed with it. A
+    // monument takes the team of the island it stands on; on a two-team map one with no island team takes the one
+    // team that captures; anything else is left without a team for the Monuments step to settle.
+    private void SetOwner(Candidate c, string team)
+    {
+        c.Owner = team;
+        var capturers = teams.Where(t => t.Id != team).Select(t => t.Id).ToList();
+        var taken = new HashSet<string>();
+        foreach (var m in c.Monuments)
+        {
+            var island = Ctx.IslandTeamAt(m.X, m.Z, islands, islandTeams);
+            m.Team = island is not null && capturers.Contains(island) && taken.Add(island) ? island
+                : capturers.Count == 1 && taken.Add(capturers[0]) ? capturers[0]
+                : capturers.Contains(m.Team) && taken.Add(m.Team) ? m.Team
+                : "";
+        }
+        PersistAndPaint();
+    }
 
     private void SetColor(Candidate c, string color)
     {
@@ -259,7 +303,7 @@ public partial class WoolObjectivesStep
             .Select(c => new W.Wool
             {
                 Owner = c.Owner, Color = c.Color,
-                SpawnX = c.X, SpawnY = c.Y, SpawnZ = c.Z,
+                SpawnX = c.X, SpawnY = c.Y, SpawnZ = c.Z, Rooms = [.. c.Rooms],
                 Monuments = c.Monuments.Select(m => new W.Monument { Team = m.Team, X = m.X, Y = m.Y, Z = m.Z }).ToList(),
             }).ToList();
         W.WriteWools(Wizard.Intent, wools);

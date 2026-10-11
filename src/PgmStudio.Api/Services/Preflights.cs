@@ -38,12 +38,17 @@ public static class Preflights
 
         var (zones, _) = await feature.ZonesAsync(map.Id, doc, ct);
         var build = BuildabilityCheck(zones, intent);
-        var reach = BuildZoneReachCheck(zones, await feature.PlannedGroundAsync(map.Id, ct));
+        // A map read from a world states its ground in the world itself, so all of it is ground a build zone was
+        // meant to reach; a drawn map without a plan says nothing about which void is a crossing it asked for.
+        var planned = await feature.PlannedGroundAsync(map.Id, ct)
+            ?? (await artifacts.HasAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) ? null : EveryColumn(zones));
+        var reach = BuildZoneReachCheck(zones, planned);
 
         var trav = Traversability.Check(doc, await feature.WalkGroundAsync(map.Id, doc, ct: ct), DeclaredGoals.Of(doc, intent));
         var travCheck = TraversabilityCheck(trav);
+        var woolTeams = WoolTeamsCheck(intent, await IslandTeamLookup.OfAsync(feature, map.Id, intent, ct));
 
-        foreach (var c in new[] { roundTrip, mirror, build, reach, travCheck })
+        foreach (var c in new[] { roundTrip, mirror, build, reach, travCheck, woolTeams })
             log.Add($"{c.Label.ToLowerInvariant()}: {c.Detail}");
 
         var exportReady = roundTrip.Status == "pass" && trav.Connected;
@@ -58,8 +63,20 @@ public static class Preflights
 
         return new PreflightDto(
             true, exportReady,
-            new[] { roundTrip, mirror, build, reach, travCheck }.Select(c => new PreflightCheckDto(c.Key, c.Label, c.Status, c.Detail)).ToList(),
+            new[] { roundTrip, mirror, build, reach, travCheck, woolTeams }.Select(c => new PreflightCheckDto(c.Key, c.Label, c.Status, c.Detail)).ToList(),
             log, travDto);
+    }
+
+    // Each wool is defended by its owner and captured by every other team at a monument of its own, on the
+    // islands of those teams (OB34, OB35). It does not gate the export: the map plays, just not as intended.
+    private static Preflight.Check WoolTeamsCheck(MapIntent intent, Func<double, double, string?>? islandTeamAt)
+    {
+        if (intent.Wools is not { Count: > 0 }) return new("wool-teams", "Wool teams", "skip", "no wools");
+        var findings = WoolTeams.Check(intent, islandTeamAt);
+        return findings.Count == 0
+            ? new("wool-teams", "Wool teams", "pass", "every wool is captured by each team but its defender"
+                + (islandTeamAt is null ? "" : ", each on its own team's island"))
+            : new("wool-teams", "Wool teams", "fail", string.Join("; ", findings.Select(finding => finding.Message)));
     }
 
     // Every authored placement (spawn / wool source / monument) must sit over solid ground, not open void.
@@ -94,12 +111,16 @@ public static class Preflights
     // Every coast the plan put against a build zone must still reach it: void between the two that nobody may
     // build across is a crossing in sight and out of reach (EZ2). A complaint, so the check fails without
     // closing the export gate.
+    private static HashSet<(int X, int Z)> EveryColumn(Editability.Result zones) =>
+        [.. Enumerable.Range(0, zones.Height).SelectMany(iz => Enumerable.Range(0, zones.Width)
+            .Select(ix => (zones.MinX + ix, zones.MinZ + iz)))];
+
     private static Preflight.Check BuildZoneReachCheck(Editability.Result zones, HashSet<(int X, int Z)>? planned)
     {
         if (!zones.HasY0)
             return new("buildzone", "Build zone reach", "skip", "no Y=0 layer — can't tell void from ground");
         if (planned is null)
-            return new("buildzone", "Build zone reach", "skip", "no plan — nothing says where the ground met a build zone");
+            return new("buildzone", "Build zone reach", "skip", "a drawn map with no plan — nothing says where the ground met a build zone");
         var gaps = BuildZoneGap.Check(zones, planned);
         if (gaps.Count == 0)
             return new("buildzone", "Build zone reach", "pass", "every coast within reach of a build zone meets it");

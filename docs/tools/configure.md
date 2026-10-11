@@ -43,9 +43,13 @@ omission but the line that decides what is editable here: a core's casing on an 
 already exists, so its dimensions are read out rather than set, and on a plan-built map they are what the
 world export is about to stamp, which is the plan's statement to make.
 
-The save model is deferred and phase-boundary shaped. A phase body patches its slice on the working intent and
-marks it dirty; the wizard re-PUTs the whole object when the phase is left, and the editor bar's state reads
-Saved · Saving… · Unsaved. Two things save immediately instead, because they are not intent:
+**An edit reaches the studio within seconds, and never over someone else's.** A phase body patches its slice on
+the working intent and marks it dirty; the wizard re-PUTs the whole object three seconds after the last edit, and
+whenever a step or a phase is left, and the editor bar's state reads Saved · Saving… · Unsaved. The intent is read
+with its revision and written with it as `If-Match` (`DocumentSave`, the same writer the Plan and Sketch tools
+use), so a tab holding an intent someone else has saved over since is refused `RQ13` rather than writing its older
+copy back; every thirty seconds the wizard also asks which revision the studio holds, and a newer one puts a
+notice over the wizard with a *Reload* button. Two things save immediately instead, because they are not intent:
 island exclusion (`PATCH /api/configure/{slug}/exclude-island`) and the import itself.
 
 ## The intent document
@@ -315,8 +319,8 @@ zone is in sight from that coast and cannot be bridged to, and the zone grid sho
 ground and the zone both read editable. `BuildZoneGap` reads it along the four axes from every column with a
 block at y=0, up to ten columns out, and raises the void it crosses on the way to a buildable column — but only
 where the plan put ground, because a strip the plan itself leaves between a piece and a zone, a frontline on
-two legs, is the composed board. A board built without a plan has nothing to compare against and answers
-nothing. The fix is a build zone over the gap, extended or added, and never undoing the coast edit, which is
+two legs, is the composed board. A drawn board built without a plan has nothing to compare against and answers
+nothing; a map read from a world states its ground in the world itself, so there every coast counts. The fix is a build zone over the gap, extended or added, and never undoing the coast edit, which is
 the author's shape.
 
 This is the phase the pre-flight sends an author back to, because an unbridged gap is what breaks the map.
@@ -343,7 +347,23 @@ clusters in the world give each objective its source location. A colour named by
 physical wool no monument names, or one sitting inside its own team's spawn protection, is decorative and
 excluded by default with the reason shown. The author confirms, fixes an owner, recolours, or adds a wool by
 hand. **This is the step that makes an imported map configurable at all** — everything after it refines what
-the scan proposed.
+the scan proposed. On a later visit it shows each wool as it was saved — its defender, its spawn, its monuments
+and its rooms — and detection only proposes the colours nobody has saved; it never writes a detected owner or an
+empty room list over a saved wool.
+
+**The defending team is the one decision; who captures follows from it.** A wool's `owner` defends it, and every
+other team captures it at a monument of its own — one capturer on a two-team map, three on a four-team one. The
+step lists each capturing team with its monument beside the defender, and changing the defender re-teams the
+monuments: one takes the team of the island it stands on, on a two-team map one standing where no island has a
+team takes the one team left, and anything else is left without a team for the Monuments step to settle.
+
+**Objectives follow the islands.** Reassigning islands after the objectives were confirmed leaves them with their
+old teams, which is how a wool comes to be exported for the wrong team. The Teams step's *Island owners* and the
+Objectives step both say what no longer agrees — a wool defended by another team than the island it spawns on, a
+monument where another team than its own places the wool, a core or destroyable on another team's island — and
+*Move the objectives to these teams* brings them along (`ObjectiveTeams`). The pre-flight's *Wool teams* check and
+every intent save carry the same reading as complaints, `OB34` for a wool without exactly one monument for each
+team but its defender and `OB35` for a wool or monument on another team's island (`WoolTeams.Check`).
 
 **Spawn** confirms where each wool dispenses: the `<wool location>` and the spawner's point, seeded from the
 detected source centroid and seated on the floor the pile rests on, with the side-view setting Y. Moving one
@@ -438,8 +458,9 @@ blocking and three advisory:
 | Round-trip | codec parity — does the document survive XML ↔ dict with nothing lost | yes |
 | Mirror | do the symmetric halves agree — spawn, protection, wool, room, build | no |
 | Buildability | does every spawn, wool source and monument sit over solid ground | no |
-| Build zone reach | does every coast the plan put against a build zone still reach it — `EZ2` per gap, with its box and width; *skip* without a plan or a Y=0 layer | no |
+| Build zone reach | does every coast the plan put against a build zone still reach it — `EZ2` per gap, with its box and width. On a map read from a world, every coast counts, since the world is the ground; *skip* on a drawn map without a plan, or without a Y=0 layer | no |
 | Traversability | is the spawn↔wool chain connected across terrain and build geometry | yes |
+| Wool teams | is every wool captured by each team but its defender, at a monument of its own, and do the wool and each monument stand on the islands of their teams — `OB34`, `OB35` (*Objectives follow the islands*, below) | no |
 
 They are drawn as check rows over a single static top-down picture of the map — real island geometry, the
 orbit-filled build bridges, and the spawn and objective nodes in their team and dye colours — which is the
