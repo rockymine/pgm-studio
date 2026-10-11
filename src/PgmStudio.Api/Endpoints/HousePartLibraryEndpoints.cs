@@ -1,4 +1,5 @@
 using FastEndpoints;
+using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Schema;
@@ -114,7 +115,7 @@ public sealed class RoofStyleUpdateEndpoint(HousePartStore store, HousePartLibra
 
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetRoofAsync(Route<long>("id"), ct))?.SeedKey, "roof", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetRoofAsync(Route<long>("id"), ct)), "roof", ct))
             return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListRoofsAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
@@ -143,13 +144,14 @@ public sealed class RoofStyleDraftPreviewEndpoint(HousePartLibrary library)
 
 /// <summary>DELETE /api/roof-styles/{id} — forget a roof, unless a house still wears it. A part bound by a
 /// building is one the library must refuse to forget, the answer a style already gives a theme.</summary>
+[OwnedRow]
 public sealed class RoofStyleDeleteEndpoint(HousePartStore store) : EndpointWithoutRequest
 {
     public override void Configure() { Delete("/roof-styles/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetRoofAsync(Route<long>("id"), ct))?.SeedKey, "roof", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetRoofAsync(Route<long>("id"), ct)), "roof", ct))
             return;
         var id = Route<long>("id");
         var used = await store.UsingRoofAsync(id, ct);
@@ -226,7 +228,7 @@ public sealed class StoreyStyleUpdateEndpoint(HousePartStore store)
 
     public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetStoreyAsync(Route<long>("id"), ct))?.SeedKey, "storey", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetStoreyAsync(Route<long>("id"), ct)), "storey", ct))
             return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListStoreysAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
@@ -252,13 +254,14 @@ public sealed class StoreyStyleDraftPreviewEndpoint(HousePartLibrary library)
                                    footprint: HttpContext.Footprint(), part: RoomParts.Wall), ct);
 }
 
+[OwnedRow]
 public sealed class StoreyStyleDeleteEndpoint(HousePartStore store) : EndpointWithoutRequest
 {
     public override void Configure() { Delete("/storey-styles/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetStoreyAsync(Route<long>("id"), ct))?.SeedKey, "storey", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetStoreyAsync(Route<long>("id"), ct)), "storey", ct))
             return;
         var id = Route<long>("id");
         var used = await store.UsingStoreyAsync(id, ct);
@@ -326,7 +329,7 @@ public sealed class PorchStyleUpdateEndpoint(HousePartStore store) : Endpoint<Po
 
     public override async Task HandleAsync(PorchStyleSaveRequest req, CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetPorchAsync(Route<long>("id"), ct))?.SeedKey, "porch", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetPorchAsync(Route<long>("id"), ct)), "porch", ct))
             return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListPorchesAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
@@ -349,13 +352,14 @@ public sealed class PorchStyleDraftPreviewEndpoint : Endpoint<PorchStyleSaveRequ
             RoomStylePreview.Views(HousePartLibrary.ComposePorchDraft(req), footprint: HttpContext.Footprint()), ct);
 }
 
+[OwnedRow]
 public sealed class PorchStyleDeleteEndpoint(HousePartStore store) : EndpointWithoutRequest
 {
     public override void Configure() { Delete("/porch-styles/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetPorchAsync(Route<long>("id"), ct))?.SeedKey, "porch", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetPorchAsync(Route<long>("id"), ct)), "porch", ct))
             return;
         var id = Route<long>("id");
         var used = await store.UsingPorchAsync(id, ct);

@@ -1,4 +1,6 @@
 using FastEndpoints;
+using LinqToDB;
+using LinqToDB.Async;
 using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
@@ -98,7 +100,73 @@ public sealed class UserPutEndpoint(StudioUserStore users, PlayerLookup players,
 
     internal static StudioUserDto Dto(StudioUserRow row, AccessOptions access) => new(
         row.Uuid, row.Name, row.Role, row.CreatedAt, row.DiscordId is not null,
-        row.InviteExpiresAt > DateTime.UtcNow ? row.InviteExpiresAt : null, access.Admins.Contains(row.Uuid));
+        row.InviteExpiresAt > DateTime.UtcNow ? row.InviteExpiresAt : null, access.Admins.Contains(row.Uuid),
+        row.DiscordName);
+}
+
+/// <summary>POST /api/users/{uuid}/account <c>{player}</c> — move a person to another Minecraft account, which no one
+/// else on the studio may hold, taking their tokens, the maps they own and are credited on, their library entries
+/// and their notes with them; each map's intent is credited under the new name, so its <c>map.xml</c> follows.
+/// Their Discord account stays bound, and they sign in again to carry the new account. Admin only, within
+/// <see cref="WhitelistKeeping"/>. 404 for a person or a player not found, 409 <c>RQ21</c> for an account already
+/// someone's.</summary>
+public sealed class UserAccountEndpoint(
+    StudioUserStore users, PlayerLookup players, Callers callers, AccessOptions access, PgmDb db,
+    MapArtifactStore artifacts) : Endpoint<AccountChangeRequest, StudioUserDto>
+{
+    public override void Configure()
+    {
+        Post("/users/{uuid}/account");
+        Policies(AccessPolicies.Admin);
+        Description(b => b.Refuses(404, 409));
+    }
+
+    public override async Task HandleAsync(AccountChangeRequest request, CancellationToken ct)
+    {
+        var uuid = Route<string>("uuid") ?? "";
+        if (await users.GetAsync(uuid, ct) is not { } person)
+        {
+            await Refusals.NotFoundAsync(HttpContext, "whitelisted person", ct, uuid);
+            return;
+        }
+        var caller = await callers.OfAsync(HttpContext, ct);
+        if (WhitelistKeeping.RefusalFor(caller, access, uuid, person, WhitelistKeeping.Change.Account) is { } refused)
+        {
+            await WhitelistKeeping.RefuseAsync(HttpContext, refused, ct);
+            return;
+        }
+        if (await players.ResolveAsync(request.Player, ct) is not { } account)
+        {
+            await Refusals.WriteAsync(HttpContext, 404, "no player",
+                [new Finding(RequestRules.NoSuchSubject,
+                    $"no Minecraft account answers to '{request.Player}'", Field: "player")], ct);
+            return;
+        }
+        if (string.Equals(account.Uuid, uuid, StringComparison.OrdinalIgnoreCase))
+        {
+            await Send.OkAsync(UserPutEndpoint.Dto(person, access), ct);
+            return;
+        }
+        if (access.Admins.Contains(account.Uuid) || await users.GetAsync(account.Uuid, ct) is not null)
+        {
+            await Refusals.WriteAsync(HttpContext, 409, "account taken",
+                [new Finding(RequestRules.AccountTaken,
+                    $"the Minecraft account {account.Name} is already someone's on the studio", Field: "player")], ct);
+            return;
+        }
+
+        foreach (var mapId in await users.ChangeAccountAsync(uuid, account.Uuid, account.Name, ct))
+        {
+            var credited = await db.Authors.Where(author => author.MapId == mapId).OrderBy(author => author.Id)
+                .ToListAsync(ct);
+            await MapAuthors.ProjectAsync(artifacts, mapId, credited.Select(author => (object?)new Dictionary<string, object?>
+            {
+                ["name"] = author.Name, ["uuid"] = author.Uuid, ["role"] = author.Role,
+                ["contribution"] = author.Contribution,
+            }), ct);
+        }
+        await Send.OkAsync(UserPutEndpoint.Dto((await users.GetAsync(account.Uuid, ct))!, access), ct);
+    }
 }
 
 /// <summary>DELETE /api/users/{uuid} — take a person off the whitelist; they keep the credits they have and

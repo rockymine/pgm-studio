@@ -38,6 +38,7 @@ public sealed class HousePartStore(PgmDb db)
         roof.CreatedAt = DateTime.UtcNow;
         return db.InOneWriteAsync(async () =>
         {
+            roof.OwnerUuid ??= db.Writer;
             var id = await db.InsertWithInt64IdentityAsync(roof, token: ct);
             foreach (var course in courses) { course.RoofStyleId = id; await db.InsertAsync(course, token: ct); }
             return id;
@@ -108,6 +109,7 @@ public sealed class HousePartStore(PgmDb db)
         storey.CreatedAt = DateTime.UtcNow;
         return db.InOneWriteAsync(async () =>
         {
+            storey.OwnerUuid ??= db.Writer;
             var id = await db.InsertWithInt64IdentityAsync(storey, token: ct);
             foreach (var course in courses) { course.StoreyStyleId = id; await db.InsertAsync(course, token: ct); }
             return id;
@@ -160,6 +162,7 @@ public sealed class HousePartStore(PgmDb db)
     public async Task<long> CreatePorchAsync(PorchStyleRow porch, CancellationToken ct = default)
     {
         porch.CreatedAt = DateTime.UtcNow;
+        porch.OwnerUuid ??= db.Writer;
         return await db.InsertWithInt64IdentityAsync(porch, token: ct);
     }
 

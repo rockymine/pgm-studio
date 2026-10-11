@@ -86,3 +86,4 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 /* A surface holding a single line of text in its middle rather than a canvas. */
 .canvas-surface--centered { display: flex; align-items: center; justify-content: center; }
 
+.join-found { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); }

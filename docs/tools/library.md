@@ -760,6 +760,10 @@ folder states with **409** `LB6`, the finding's `subjects` naming the entry, bef
 next start would rewrite the edit or put the row back. The row answers `seeded: true` on its `GET`, and the
 editor offers *Save as copy* alone.
 
+**A row a person made is theirs.** Every row records the account that created it, and a `PUT` or `DELETE` of
+another person's row is refused **403** `LB7`; its maker and an admin change it, and a row stored before rows
+recorded a maker is an admin's (`docs/access.md`, *Library entries are their maker's*).
+
 **A house style that names the wrong kind of block is refused where it is saved.** `PgmStudio.Minecraft`'s
 `HouseStyleValidation.Check` runs on every `POST`/`PUT` to `/room-styles` (over the composed shell), beside the
 name rule (`HouseNames.Check`), and the two `/storey-styles` verbs (over the storey's own window); the two

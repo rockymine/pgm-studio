@@ -1,4 +1,5 @@
 using FastEndpoints;
+using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Schema;
@@ -82,7 +83,7 @@ public sealed class TreeStyleUpdateEndpoint(PropStyleStore store) : Endpoint<Tre
 
     public override async Task HandleAsync(TreeStyleSaveRequest req, CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetTreeAsync(Route<long>("id"), ct))?.SeedKey, "tree", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetTreeAsync(Route<long>("id"), ct)), "tree", ct))
             return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListTreesAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
@@ -107,13 +108,14 @@ public sealed class TreeStyleDraftPreviewEndpoint(BlockTextureStore textures) : 
 /// <summary>DELETE /api/tree-styles/{id}. No question is asked, because nothing binds a recipe: a placement
 /// names a key in its own document's registry, which the pull copied, so a map keeps its trees when the row
 /// they were pulled from goes.</summary>
+[OwnedRow]
 public sealed class TreeStyleDeleteEndpoint(PropStyleStore store) : EndpointWithoutRequest
 {
     public override void Configure() { Delete("/tree-styles/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetTreeAsync(Route<long>("id"), ct))?.SeedKey, "tree", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetTreeAsync(Route<long>("id"), ct)), "tree", ct))
             return;
         await store.DeleteTreeAsync(Route<long>("id"), ct);
         await Send.NoContentAsync(ct);
@@ -178,7 +180,7 @@ public sealed class BoulderStyleUpdateEndpoint(PropStyleStore store)
 
     public override async Task HandleAsync(BoulderStyleSaveRequest req, CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBoulderAsync(Route<long>("id"), ct))?.SeedKey, "boulder", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBoulderAsync(Route<long>("id"), ct)), "boulder", ct))
             return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListBouldersAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
@@ -199,13 +201,14 @@ public sealed class BoulderStyleDraftPreviewEndpoint(BlockTextureStore textures)
         => await Send.OkAsync(new StyleCardDto(PropStyleLibrary.CardOf(req, await textures.ForPicturesAsync(ct))), ct);
 }
 
+[OwnedRow]
 public sealed class BoulderStyleDeleteEndpoint(PropStyleStore store) : EndpointWithoutRequest
 {
     public override void Configure() { Delete("/boulder-styles/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBoulderAsync(Route<long>("id"), ct))?.SeedKey, "boulder", ct))
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBoulderAsync(Route<long>("id"), ct)), "boulder", ct))
             return;
         await store.DeleteBoulderAsync(Route<long>("id"), ct);
         await Send.NoContentAsync(ct);

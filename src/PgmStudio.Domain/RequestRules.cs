@@ -125,4 +125,16 @@ public static class RequestRules
     /// <remarks>Wait 1 minute, then send the request again.</remarks>
     [Rule(RuleCategory.Unavailable, RuleConcern.Studio)]
     public const string AgentRefused = "RQ19";
+
+    /// <summary>A person waiting for approval may not own more maps than the studio's limit.</summary>
+    /// <remarks>Either ask an admin to approve the person, or send the request again once the person owns fewer
+    /// maps.</remarks>
+    [Rule(RuleCategory.Forbidden, RuleConcern.Request)]
+    public const string MapLimit = "RQ20";
+
+    /// <summary>Two people on the studio may not hold the same Minecraft account.</summary>
+    /// <remarks>Either send the request again with the person's own Minecraft account, or ask an admin to move the
+    /// account.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request)]
+    public const string AccountTaken = "RQ21";
 }

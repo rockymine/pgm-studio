@@ -392,8 +392,9 @@ public sealed class AccessTests
             new ThemeSaveRequest("Weir night", false, 1, RimEdgeModes.Drop, true, [])))
             .Content.ReadFromJsonAsync<ThemeDetail>();
 
+        // The admin made the row, so it is theirs: a member may not delete it.
         using var member = await owner.DeleteAsync($"/api/themes/{row!.Id}");
-        await AssertRefusedAsync(member, HttpStatusCode.Forbidden, "RQ8");
+        await AssertRefusedAsync(member, HttpStatusCode.Forbidden, "LB7");
 
         // An admin named in Access:Admins needs no whitelist row, and is past the gate.
         using var library = await admin.DeleteAsync($"/api/themes/{row.Id}");
@@ -662,11 +663,136 @@ public sealed class AccessTests
         await Assert.That(shown.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }
 
+    /// <summary>A Discord account the whitelist does not hold is sent to <c>/join</c>, names its Minecraft account
+    /// there, and joins waiting for approval, bound to the Discord account it signed in with. An account already
+    /// someone's on the studio — on the whitelist, or an owner the configuration names — is refused <c>RQ21</c>.
+    /// </summary>
+    [Test]
+    public async Task A_Discord_account_nobody_invited_joins_as_its_own_Minecraft_account_waiting_for_approval()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        foreach (var uuid in (string[])[Owner, Stranger, Admin]) await KnownPlayerAsync(uuid);
+
+        using var newcomer = InvitedFactory.Shared.CreateClient(new() { AllowAutoRedirect = false });
+        newcomer.DefaultRequestHeaders.Add(DiscordHeaderScheme.Header, "555|newbie");
+        using var landed = await newcomer.GetAsync("/api/auth/discord/complete?returnUrl=%2Fmaps");
+        await Assert.That(landed.StatusCode).IsEqualTo(HttpStatusCode.Redirect);
+        await Assert.That(landed.Headers.Location!.OriginalString).StartsWith("/join?returnUrl=");
+        await Assert.That((await newcomer.GetFromJsonAsync<JoinStateDto>("/api/auth/join"))!.DiscordName).IsEqualTo("newbie");
+
+        foreach (var taken in (string[])[Owner, Admin])
+        {
+            using var refused = await newcomer.PostAsJsonAsync("/api/auth/join", new JoinRequest(taken));
+            await AssertRefusedAsync(refused, HttpStatusCode.Conflict, "RQ21");
+        }
+        using var joined = await newcomer.PostAsJsonAsync("/api/auth/join", new JoinRequest(Stranger));
+        await Assert.That(joined.StatusCode).IsEqualTo(HttpStatusCode.OK).Because(await joined.Content.ReadAsStringAsync());
+        await Assert.That((await joined.Content.ReadFromJsonAsync<StudioUserDto>())!.Role).IsEqualTo("unapproved");
+        await Assert.That(await ScalarAsync($"SELECT CONCAT(discord_id, '|', discord_name) FROM studio_user WHERE uuid = '{Stranger}'"))
+            .IsEqualTo("555|newbie");
+
+        using var nobodyWaiting = InvitedFactory.Shared.CreateClient();
+        using var lapsed = await nobodyWaiting.GetAsync("/api/auth/join");
+        await AssertRefusedAsync(lapsed, HttpStatusCode.Unauthorized, "RQ7");
+    }
+
+    /// <summary>A person waiting for approval starts maps up to the limit, three by default, and is refused the
+    /// next <c>RQ20</c>; they have no tokens. Once an admin approves them the limit is gone.</summary>
+    [Test]
+    public async Task A_person_waiting_for_approval_owns_three_maps_and_no_token_until_approved()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Stranger, "unapproved");
+        await WhitelistAsync(Keeper, "admin");
+        await KnownPlayerAsync(Stranger);
+        using var waiting = InvitedFactory.As(Stranger);
+
+        foreach (var name in (string[])["One", "Two", "Three"]) await OriginateAsync(waiting, name);
+        using var fourth = await waiting.PostAsJsonAsync("/api/sketch", new { name = "Four" });
+        await AssertRefusedAsync(fourth, HttpStatusCode.Forbidden, "RQ20");
+        await Assert.That(await ScalarAsync($"SELECT COUNT(*) FROM map WHERE owner_uuid = '{Stranger}'")).IsEqualTo("3");
+        using var token = await waiting.PostAsJsonAsync("/api/users/me/tokens", new StudioTokenRequest("agent"));
+        await AssertRefusedAsync(token, HttpStatusCode.Forbidden, "RQ8");
+
+        using var keeper = InvitedFactory.As(Keeper);
+        using var approved = await keeper.PostAsJsonAsync("/api/users", new { player = Stranger, role = "member" });
+        await Assert.That(approved.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await OriginateAsync(waiting, "Four");
+    }
+
+    /// <summary>A library entry is its maker's: they change and delete it, someone else is refused <c>LB7</c>, and an
+    /// admin may change any. An entry nothing recorded a maker for is an admin's.</summary>
+    [Test]
+    public async Task A_library_entry_is_changed_and_deleted_by_its_maker_or_an_admin()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        await WhitelistAsync(Stranger, "unapproved");
+        await WhitelistAsync(Keeper, "admin");
+        using var owner = InvitedFactory.As(Owner);
+        using var stranger = InvitedFactory.As(Stranger);
+        using var keeper = InvitedFactory.As(Keeper);
+        static StyleSaveRequest Pattern(string name) => new(name, "noise",
+            "{\"kind\":\"noise\",\"seed\":4022,\"scale\":3,\"octaves\":1,\"stops\":[{\"kind\":\"solid\",\"id\":1,\"data\":0},{\"kind\":\"solid\",\"id\":4,\"data\":0}]}");
+
+        using var made = await owner.PostAsJsonAsync("/api/styles", Pattern("owners-field"));
+        await Assert.That(made.StatusCode).IsEqualTo(HttpStatusCode.OK).Because(await made.Content.ReadAsStringAsync());
+        var id = (await made.Content.ReadFromJsonAsync<StyleDto>())!.Id;
+        await Assert.That(await ScalarAsync($"SELECT owner_uuid FROM style WHERE id = {id}")).IsEqualTo(Owner);
+
+        using var notTheirs = await stranger.PutAsJsonAsync($"/api/styles/{id}", Pattern("strangers-field"));
+        await AssertRefusedAsync(notTheirs, HttpStatusCode.Forbidden, "LB7");
+        using var notTheirsToDelete = await stranger.DeleteAsync($"/api/styles/{id}");
+        await AssertRefusedAsync(notTheirsToDelete, HttpStatusCode.Forbidden, "LB7");
+        using var theirs = await owner.PutAsJsonAsync($"/api/styles/{id}", Pattern("owners-field-2"));
+        await Assert.That(theirs.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var anyAdmin = await keeper.PutAsJsonAsync($"/api/styles/{id}", Pattern("owners-field-3"));
+        await Assert.That(anyAdmin.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        using var strangersOwn = await stranger.PostAsJsonAsync("/api/styles", Pattern("strangers-own"));
+        var ownId = (await strangersOwn.Content.ReadFromJsonAsync<StyleDto>())!.Id;
+        using var deletedOwn = await stranger.DeleteAsync($"/api/styles/{ownId}");
+        await Assert.That(deletedOwn.IsSuccessStatusCode).IsTrue();
+
+        await ApiTestFactory.ExecuteAsync($"UPDATE style SET owner_uuid = NULL WHERE id = {id}");
+        using var nobodysToMember = await owner.DeleteAsync($"/api/styles/{id}");
+        await AssertRefusedAsync(nobodysToMember, HttpStatusCode.Forbidden, "LB7");
+        using var nobodysToAdmin = await keeper.DeleteAsync($"/api/styles/{id}");
+        await Assert.That(nobodysToAdmin.IsSuccessStatusCode).IsTrue();
+    }
+
+    /// <summary>An admin moves a person to another Minecraft account, and the maps they own and are credited on
+    /// move with them; an account already someone's is refused <c>RQ21</c>.</summary>
+    [Test]
+    public async Task An_admin_moves_a_person_to_another_account_with_their_maps()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "unapproved");
+        await WhitelistAsync(Stranger, "member");
+        await WhitelistAsync(Keeper, "admin");
+        foreach (var uuid in (string[])[Owner, Stranger, Unlisted]) await KnownPlayerAsync(uuid);
+        using var owner = InvitedFactory.As(Owner);
+        var slug = await OriginateAsync(owner, "Weirgate");
+        using var keeper = InvitedFactory.As(Keeper);
+
+        using var taken = await keeper.PostAsJsonAsync($"/api/users/{Owner}/account", new AccountChangeRequest(Stranger));
+        await AssertRefusedAsync(taken, HttpStatusCode.Conflict, "RQ21");
+        using var moved = await keeper.PostAsJsonAsync($"/api/users/{Owner}/account", new AccountChangeRequest(Unlisted));
+        await Assert.That(moved.StatusCode).IsEqualTo(HttpStatusCode.OK).Because(await moved.Content.ReadAsStringAsync());
+
+        await Assert.That(await ScalarAsync($"SELECT COUNT(*) FROM studio_user WHERE uuid = '{Owner}'")).IsEqualTo("0");
+        await Assert.That(await ScalarAsync($"SELECT role FROM studio_user WHERE uuid = '{Unlisted}'")).IsEqualTo("unapproved");
+        await Assert.That(await ScalarAsync($"SELECT owner_uuid FROM map WHERE slug = '{slug}'")).IsEqualTo(Unlisted);
+        await Assert.That(await ScalarAsync(
+            $"SELECT a.uuid FROM author a JOIN map m ON m.id = a.map_id WHERE m.slug = '{slug}'")).IsEqualTo(Unlisted);
+    }
+
     /// <summary>The routes that state their own access rather than taking the rule's, and the reads marked
     /// <c>[CostlyRead]</c>, which the rule guards like a write.</summary>
     private static readonly HashSet<string> StatesItsOwnAccess =
     [
-        "GET /api/users", "POST /api/auth/sign-out", "GET /api/auth/discord/complete",
+        "GET /api/users", "POST /api/auth/sign-out", "POST /api/auth/join", "GET /api/auth/discord/complete",
         "GET /api/notes", "GET /api/map/{slug}/notes", "GET /api/notes/pictures/{hash}", "GET /api/notes/handoff",
         "GET /api/map/{slug}/export",
     ];
@@ -844,10 +970,42 @@ public sealed class AccessTests
                 ["Access:Admins:0"] = Admin,
                 ["Discord:ClientSecret"] = "test-secret",
             }));
-            builder.ConfigureTestServices(services => services
-                .AddAuthentication(HeaderScheme.Name)
-                .AddScheme<AuthenticationSchemeOptions, HeaderScheme>(HeaderScheme.Name, null));
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddAuthentication(HeaderScheme.Name)
+                    .AddScheme<AuthenticationSchemeOptions, HeaderScheme>(HeaderScheme.Name, null);
+                // What Discord answered is read from a header here rather than from the short-lived cookie.
+                services.PostConfigure<AuthenticationOptions>(options =>
+                {
+                    foreach (var scheme in options.Schemes)
+                        if (scheme.Name == DiscordSignIn.ExternalScheme) scheme.HandlerType = typeof(DiscordHeaderScheme);
+                });
+            });
         }
+    }
+
+    /// <summary>What Discord answered, read from <c>X-Test-Discord</c> as <c>id|name</c>; signing in and out of
+    /// it does nothing.</summary>
+    private sealed class DiscordHeaderScheme(
+        IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
+        : SignInAuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+    {
+        public const string Header = "X-Test-Discord";
+
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        {
+            if (Request.Headers[Header].ToString().Split('|') is not [{ Length: > 0 } id, var name])
+                return Task.FromResult(AuthenticateResult.NoResult());
+            var identity = new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, id), new Claim(ClaimTypes.Name, name)],
+                Scheme.Name);
+            return Task.FromResult(AuthenticateResult.Success(
+                new AuthenticationTicket(new ClaimsPrincipal(identity), new AuthenticationProperties(), Scheme.Name)));
+        }
+
+        protected override Task HandleSignInAsync(ClaimsPrincipal user, AuthenticationProperties? properties) =>
+            Task.CompletedTask;
+
+        protected override Task HandleSignOutAsync(AuthenticationProperties? properties) => Task.CompletedTask;
     }
 
     private sealed class HeaderScheme(

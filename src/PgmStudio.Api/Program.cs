@@ -343,6 +343,13 @@ app.Use(async (ctx, next) =>
             return;
         }
 
+        if (ex is PgmStudio.Api.Access.RequestRefused refused)
+        {
+            await PgmStudio.Api.Endpoints.Refusals.WriteAsync(ctx, refused.Status, refused.Error, [refused.Finding],
+                ctx.RequestAborted);
+            return;
+        }
+
         var document = ex is JsonException;
         if (!document)
             ctx.RequestServices.GetRequiredService<ILoggerFactory>()

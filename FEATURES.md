@@ -10687,6 +10687,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `--migrate-only`, switches and restarts, and points back at the release before when `/api/health` does not
   answer; a failed commit is not retried. `invite.sh` adds a player and prints their invitation from the
   server. Everything the server was set up from is in `tools/deploy/`. `docs/deployment.md`.
+- **People sign themselves up, and a library entry is its maker's (`RP124`).** A Discord account nobody invited
+  lands on `/join`, names its Minecraft account (shown with its head to confirm) and joins as `unapproved`, bound
+  to that Discord account; an account already someone's is refused `RQ21`. Someone waiting owns up to
+  `Access:UnapprovedMapLimit` maps (3), refused the next `RQ20`, and has no tokens; an admin approves them on
+  `/admin/users`, which shows each person's Discord name, and the account menu counts who is waiting. An admin
+  moves a person to another account with `POST /api/users/{uuid}/account`, their maps, credits, library entries,
+  tokens and notes with them. Every library row records its maker (`M0067`): only they and an admin change or
+  delete it (`LB7`), the nine library deletes open to members for their own rows (`[OwnedRow]`). `docs/access.md`.
 - **Agent-made maps are the admins' and their owner's (`RP123`).** A map records whether an agent made it
   (`M0066`, which marks the stored maps credited only to names with no account). To anyone else it is left out of
   `/api/maps` and the landing's counts, and every `{slug}` route naming it answers `RQ4` at 404, decided before

@@ -29,6 +29,9 @@ public sealed record Caller(string? Uuid, string? Name, string? Role, bool ViaTo
     public bool Whitelisted => Role is not null;
     public bool IsAdmin => Role == StudioRoles.Admin;
 
+    /// <summary>Whether the person signed themselves up and waits for an admin's approval.</summary>
+    public bool IsUnapproved => Role == StudioRoles.Unapproved;
+
     /// <summary>Whether this caller is the person <paramref name="uuid"/> names.</summary>
     public bool Is(string uuid) => string.Equals(Uuid, uuid, StringComparison.OrdinalIgnoreCase);
 }
@@ -111,19 +114,29 @@ public sealed class Callers(AccessOptions access, StudioUserStore users)
 
     /// <summary>The person a map originated by this request belongs to and is credited to, or null for the
     /// local admin, who has no account. A token signing the request in is an agent driving the studio, so the
-    /// map is agent-made.</summary>
-    public static MapOriginator? OriginatorOf(HttpContext http) =>
-        http.User.FindFirstValue(StudioClaims.Uuid) is { Length: > 0 } uuid
-            ? new MapOriginator(uuid, http.User.FindFirstValue(StudioClaims.Name),
-                http.User.Identity?.AuthenticationType == TokenAccessHandler.SchemeName)
-            : null;
+    /// map is agent-made; a person waiting for approval carries the most maps they may own
+    /// (<c>Access:UnapprovedMapLimit</c>).</summary>
+    public static async Task<MapOriginator?> OriginatorOfAsync(HttpContext http)
+    {
+        if (http.User.FindFirstValue(StudioClaims.Uuid) is not { Length: > 0 } uuid) return null;
+        var caller = await http.RequestServices.GetRequiredService<Callers>().OfAsync(http, http.RequestAborted);
+        return new MapOriginator(uuid, http.User.FindFirstValue(StudioClaims.Name),
+            http.User.Identity?.AuthenticationType == TokenAccessHandler.SchemeName,
+            caller.IsUnapproved ? http.RequestServices.GetRequiredService<AccessOptions>().UnapprovedMapLimit : null);
+    }
 
     /// <summary>Stamp a writing request's changes to a map's documents with who is making them, read off the
-    /// principal it signed in as: the account, and the token's label where a token signed it in.</summary>
+    /// principal it signed in as: the account, and the token's label where a token signed it in; and make the
+    /// account the owner of any library row the request creates.</summary>
     public static Task StampWritesAsync(HttpContext http, RequestDelegate next)
     {
         if (!HttpMethods.IsGet(http.Request.Method) && !HttpMethods.IsHead(http.Request.Method))
+        {
             http.RequestServices.GetRequiredService<MapArtifactStore>().Stamp = StampOf(http.User);
+            // The library row the request creates is the account's, the way the map it originates is.
+            http.RequestServices.GetRequiredService<PgmDb>().Writer =
+                http.User.FindFirstValue(StudioClaims.Uuid) is { Length: > 0 } uuid ? uuid : null;
+        }
         return next(http);
     }
 
