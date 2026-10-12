@@ -58,6 +58,22 @@ public static class RegionEditor
         });
     }
 
+    /// <summary>The id that names <paramref name="childIds"/> together: the one region itself where there is one,
+    /// and a union of them written under <paramref name="id"/> where there are several. A union of one region is
+    /// that region under a second name, so a caller states its rules over whatever id this answers. Nothing is
+    /// written for none, and <paramref name="id"/> is answered.</summary>
+    public static string Gather(Dict data, string id, IReadOnlyList<string> childIds)
+    {
+        var regions = Regions(data);
+        if (childIds.Count == 1) return childIds[0];
+        if (childIds.Count == 0) return id;
+        var (bounds, _, _, _, _) = RegionBuilder.BuildUnionBounds(childIds.Select(c => (Dict)regions[c]!));
+        var union = new Dict { ["id"] = id, ["type"] = "union", ["children"] = childIds.Cast<object?>().ToList() };
+        if (bounds is not null) union["bounds_2d"] = bounds;
+        regions[id] = union;
+        return id;
+    }
+
     public static void GroupRegions(Dict data, Dict payload)
     {
         var compType = ((payload.GetValueOrDefault("type") as string) ?? "union").Trim();

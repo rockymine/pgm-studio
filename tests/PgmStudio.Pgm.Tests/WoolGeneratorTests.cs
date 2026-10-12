@@ -71,11 +71,12 @@ public sealed class WoolGeneratorTests
         await Assert.That(item["material"]).IsEqualTo("wool");
         await Assert.That(item["damage"]).IsEqualTo(14);   // red dye id
 
-        await Assert.That(((Dict)Filters(doc)["not-red"]!)["child"]).IsEqualTo("only-red");
-        // the room is grouped into the per-team union (under the top woolrooms union); the wiring lives on it
-        await Assert.That(Regions(doc).ContainsKey("reds-woolrooms")).IsTrue();
-        await Assert.That(((List<object?>)((Dict)Regions(doc)["woolrooms"]!)["children"]!).Cast<string>()).Contains("reds-woolrooms");
-        var onUnion = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == "reds-woolrooms").ToList();
+        // the team id is the filter matching its members, so the owner's exclusion negates it directly
+        await Assert.That(((Dict)Filters(doc)["not-red"]!)["child"]).IsEqualTo("red-team");
+        // one room is no union: the wiring lives on the room itself
+        await Assert.That(Regions(doc).ContainsKey("reds-woolrooms")).IsFalse();
+        await Assert.That(Regions(doc).ContainsKey("woolrooms")).IsFalse();
+        var onUnion = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == "red-wool").ToList();
         await Assert.That(onUnion.Any(r => r.GetValueOrDefault("enter") as string == "not-red")).IsTrue();
         await Assert.That(onUnion.Any(r => r.GetValueOrDefault("block") as string == "reds-woolrooms-filter")).IsTrue();
         // the room filter = all(not-<owner>, woolrooms-filter)
@@ -96,14 +97,14 @@ public sealed class WoolGeneratorTests
         await Assert.That(chest["material"]).IsEqualTo("chest");
 
         var deny = Rules(doc).OfType<Dict>()
-            .Single(r => r.GetValueOrDefault("region") as string == "reds-woolrooms"
+            .Single(r => r.GetValueOrDefault("region") as string == "red-wool"
                          && r.ContainsKey("use"));
-        await Assert.That(deny["use"]).IsEqualTo("deny(all(only-red,chest-filter))");
+        await Assert.That(deny["use"]).IsEqualTo("deny(all(red-team,chest-filter))");
 
         // It reaches the XML intact — the expression is an attribute value, not an id to resolve.
         var xml = Pgm.XmlWriter.ToXml(Pgm.Deserializer.FromDict(doc));
         await Assert.That(xml).Contains("<material id=\"chest-filter\">chest</material>");
-        await Assert.That(xml).Contains("<apply use=\"deny(all(only-red,chest-filter))\" region=\"reds-woolrooms\"/>");
+        await Assert.That(xml).Contains("<apply use=\"deny(all(red-team,chest-filter))\" region=\"red-wool\"/>");
     }
 
     [Test]
@@ -158,18 +159,6 @@ public sealed class WoolGeneratorTests
     }
 
     [Test]
-    public async Task Reuses_existing_only_filter_from_spawn_protection()
-    {
-        // teams slice already created only-red; the wool slice must reuse it, not duplicate/conflict.
-        var doc = Map();
-        Filters(doc)["only-red"] = new Dict { ["id"] = "only-red", ["type"] = "team", ["team"] = "red-team" };
-        WoolGenerator.Apply(doc, Intent());
-
-        await Assert.That(Filters(doc).Keys.Count(k => k == "only-red")).IsEqualTo(1);
-        await Assert.That(Filters(doc).ContainsKey("not-red")).IsTrue();
-    }
-
-    [Test]
     public async Task Reapplying_is_idempotent()
     {
         var doc = Map();
@@ -185,7 +174,7 @@ public sealed class WoolGeneratorTests
     [Test]
     public async Task Multiple_wools_per_team_share_room_filters()   // intra-team symmetry (≥2 wools/team)
     {
-        // red defends two differently-coloured wools. The not-/only- room filters are per-TEAM, so they
+        // red defends two differently-coloured wools. The not- room filter is per-TEAM, so it
         // must be shared — a second same-owner wool would collide on the 'not-red' filter id.
         var doc = Map();
         WoolGenerator.Apply(doc, new MapIntent
@@ -203,7 +192,6 @@ public sealed class WoolGeneratorTests
         await Assert.That(Regions(doc).ContainsKey("red-wool")).IsTrue();
         await Assert.That(Regions(doc).ContainsKey("orange-wool")).IsTrue();
         await Assert.That(Filters(doc).Keys.Count(k => k == "not-red")).IsEqualTo(1);
-        await Assert.That(Filters(doc).Keys.Count(k => k == "only-red")).IsEqualTo(1);
         // both rooms grouped into one per-team union, with one enter + one block rule on it
         var union = (Dict)Regions(doc)["reds-woolrooms"]!;
         await Assert.That(((List<object?>)union["children"]!).Cast<string>()).IsEquivalentTo(new[] { "red-wool", "orange-wool" });
@@ -225,7 +213,7 @@ public sealed class WoolGeneratorTests
             ],
         });
 
-        // the two rects union into the room region the wool / spawner / per-team union all reference
+        // the two rects union into the room region the wool / spawner / room rules all reference
         await Assert.That(Regions(doc).ContainsKey("red-wool-1")).IsTrue();
         await Assert.That(Regions(doc).ContainsKey("red-wool-2")).IsTrue();
         var union = (Dict)Regions(doc)["red-wool"]!;
@@ -235,7 +223,8 @@ public sealed class WoolGeneratorTests
         var wool = Wools(doc).OfType<Dict>().Single();
         await Assert.That(wool["wool_room_region"]).IsEqualTo("red-wool");
         await Assert.That(Spawners(doc).OfType<Dict>().Single()["player_region"]).IsEqualTo("red-wool");
-        await Assert.That(((List<object?>)((Dict)Regions(doc)["reds-woolrooms"]!)["children"]!).Cast<string>()).Contains("red-wool");
+        await Assert.That(Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("enter") is not null)
+            .Select(r => r["region"])).IsEquivalentTo(new object?[] { "red-wool" });
 
         // union + rect children all read back as wool/room (the mirror property)
         var facets = RegionCategorizer.DeriveFacets(doc);

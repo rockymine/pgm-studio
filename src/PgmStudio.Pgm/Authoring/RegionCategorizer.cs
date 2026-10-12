@@ -46,6 +46,7 @@ public static partial class RegionCategorizer
         // ── direct gameplay-signal sets ──────────────────────────────────────────────
         var spawnIds = AsList(data.GetValueOrDefault("spawns"))
             .OfType<Dict>().Select(s => RefId(s.GetValueOrDefault("region"))).Where(x => x.Length > 0).ToHashSet();
+        var teamIds = Editing.DocAccess.TeamIds(data);
         var obs = AsDict(data.GetValueOrDefault("observer_spawn"));
         var observerId = obs.Count > 0 ? RefId(obs.GetValueOrDefault("region")) : "";
 
@@ -107,6 +108,7 @@ public static partial class RegionCategorizer
             if (rule.GetValueOrDefault("enter") is string enter)
             {
                 if (enter.StartsWith("only-")) enterOnly.TryAdd(rid, enter["only-".Length..]);
+                else if (teamIds.Contains(enter)) enterOnly.TryAdd(rid, enter);
                 else if (enter.StartsWith("not-")) woolRoomIds.Add(rid);
             }
             if (MessageCategory(rule.GetValueOrDefault("message")) is { } hint2) msgHint.TryAdd(rid, hint2);

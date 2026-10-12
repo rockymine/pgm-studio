@@ -18,6 +18,12 @@ internal static class DocAccess
     public static Dict Filters(Dict doc) =>
         doc.TryGetValue("filters", out var f) && f is Dict d ? d : (Dict)(doc["filters"] = new Dict());
 
+    /// <summary>The ids of the teams the document declares — each one also a filter, which PGM reads as
+    /// matching that team's members.</summary>
+    public static HashSet<string> TeamIds(Dict doc) =>
+        (doc.GetValueOrDefault("teams") as List<object?> ?? []).OfType<Dict>()
+            .Select(team => team.GetValueOrDefault("id") as string).OfType<string>().ToHashSet();
+
     /// <summary>A top-level list (e.g. <c>kits</c>, <c>spawners</c>), created if missing or not a list.</summary>
     public static List<object?> EnsureList(Dict doc, string key) =>
         doc.TryGetValue(key, out var v) && v is List<object?> l ? l : (List<object?>)(doc[key] = new List<object?>());

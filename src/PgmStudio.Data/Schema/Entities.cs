@@ -630,6 +630,9 @@ public static class ArtifactKind
 {
     public const string SurfaceParquet = "surface_parquet";
     public const string IslandsJson = "islands_json";
+    // Every block id the scanned world holds, as a sorted JSON array: what the export reads the world's
+    // inventory clutter from (BlockDrops). Written by the world scan; a map scanned without it has none.
+    public const string WorldBlocksJson = "world_blocks_json";
     // symmetry_json was promoted to the `symmetry` table (M0003).
     public const string MapConfigJson = "map_config_json";
     // Editor-only sidecar: {region_key: editor_step} for freshly drawn, not-yet-wired regions (E10).

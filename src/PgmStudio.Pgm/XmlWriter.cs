@@ -117,7 +117,7 @@ public static partial class XmlWriter
     // ── top-level builder ───────────────────────────────────────────────────────────
     private static XElement BuildMapElem(MapXml m)
     {
-        var root = new XElement("map", new XAttribute("proto", "1.5.0"));
+        var root = new XElement("map", new XAttribute("proto", Authoring.MetaGenerator.Proto));
         root.Add(new XElement("name", m.Name));
         root.Add(new XElement("version", m.Version));
         // The author's own label(s), round-tripped verbatim, one <gamemode> element per id. PGM parses this

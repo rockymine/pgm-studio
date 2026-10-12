@@ -48,7 +48,7 @@ public static class ResourceRenewables
 
             m.Renewables.Add(new Renewable
             {
-                RegionId = "spawns", RenewFilter = $"only-{slug}", ReplaceFilter = "only-air", AvoidPlayers = AvoidPlayers,
+                RegionId = SpawnOreProtection.SpawnsRegion(m)!, RenewFilter = $"only-{slug}", ReplaceFilter = "only-air", AvoidPlayers = AvoidPlayers,
             });
         }
 

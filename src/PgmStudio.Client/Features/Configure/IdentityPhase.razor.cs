@@ -19,7 +19,7 @@ public partial class IdentityPhase
     private readonly List<AuthorRow> contributors = new();
 
     // Auto-derived identity shown locked — the generator (MetaGenerator) sets these, not the author.
-    private const string Version = "1.0.0";
+    private const string Version = "1.0";
     private const string Mode = "ctw";
     private const string Objective = "Capture the other teams' wools and bring them to your monuments to win.";
 

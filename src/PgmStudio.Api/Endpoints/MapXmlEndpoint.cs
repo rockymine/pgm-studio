@@ -10,7 +10,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Endpoints;
 
 /// <summary>
-/// GET /api/map/{slug}/xml — render the map as a PGM <c>map.xml</c> (proto 1.5.0). The export leg of the
+/// GET /api/map/{slug}/xml — render the map as a PGM <c>map.xml</c> (proto 1.5.1). The export leg of the
 /// round-trip: doc → <c>Deserializer.FromDict</c> → <c>MapXml</c> → <c>XmlWriter.ToXml</c> — the same
 /// path the round-trip harness (check #2) exercises across the corpus. For intent-authored maps this is
 /// what proves the generated document is a real, loadable PGM map. Delegates to

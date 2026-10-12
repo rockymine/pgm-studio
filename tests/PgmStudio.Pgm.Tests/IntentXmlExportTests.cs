@@ -49,7 +49,8 @@ public sealed class IntentXmlExportTests
         IntentGenerator.Apply(doc, FullIntent());
 
         var xml = XmlWriter.ToXml(Deserializer.FromDict(doc));
-        await Assert.That(xml).Contains("proto=\"1.5.0\"");
+        await Assert.That(xml).Contains("proto=\"1.5.1\"");
+        await Assert.That(xml).Contains("<version>1.0</version>");
         await Assert.That(xml).Contains("<kits>");
         // The phase is the studio's word for a map it authored; the date is the one the intent stated. Both
         // stand between the objective and the includes, where docs/pgm/template.xml puts them.
@@ -63,13 +64,16 @@ public sealed class IntentXmlExportTests
         await Assert.That(xml).Contains("<default");
         await Assert.That(xml).Contains("yaw=\"180\"");
 
-        // spawn protection: infinite damage-resistance in spawn + a force reset kit applied outside it
-        await Assert.That(xml).Contains("<effect duration=\"oo\" amplifier=\"100\">damage resistance</effect>");
-        await Assert.That(xml).Contains("<kit id=\"reset-resistance-kit\" force=\"true\">");
-        await Assert.That(xml).Contains("<apply kit=\"reset-resistance-kit\" region=\"not-spawns\"/>");
+        // spawn protection: damage immunity for the first seconds of a life, and nothing to take it away again
+        await Assert.That(xml).Contains("<effect duration=\"5s\" amplifier=\"100\">damage resistance</effect>");
+        await Assert.That(xml).DoesNotContain("force=\"true\"");
+        await Assert.That(xml).DoesNotContain("not-spawns");
 
-        // the spawn kit empties the inventory before it fills it — once, and on that kit only (a clear on the
-        // force-applied reset kit would wipe the inventory every tick)
+        // a team's own id is its filter: no <team> filter restates one
+        await Assert.That(xml).Contains("<apply enter=\"red-team\"");
+        await Assert.That(xml).DoesNotContain("only-red");
+
+        // the spawn kit empties the inventory before it fills it — once
         await Assert.That(xml.Split("<clear/>").Length - 1).IsEqualTo(1);
         await Assert.That(xml.IndexOf("<clear/>", StringComparison.Ordinal))
             .IsGreaterThan(xml.IndexOf("<kit id=\"spawn-kit\">", StringComparison.Ordinal));
@@ -82,10 +86,52 @@ public sealed class IntentXmlExportTests
         await Assert.That(((List<object?>)reparsed["spawners"]!).Count).IsEqualTo(2);
         // two teams, one wool each: the objective line counts per team, so it reads singular
         await Assert.That(reparsed["objective"]).IsEqualTo("Capture the wool!");
-        // build void enforcement + the spawn-leave reset complement survived
+        // build void enforcement survived
         await Assert.That(((Dict)reparsed["regions"]!).ContainsKey("not-build-area")).IsTrue();
-        await Assert.That(((Dict)reparsed["regions"]!).ContainsKey("not-spawns")).IsTrue();
     }
+
+    /// <summary>A union gathers two regions or more. One region is stated as itself: a union of one is the
+    /// same region under a second name, and every rule over it reads as though there were several.</summary>
+    [Test]
+    public async Task No_generated_union_holds_a_single_region()
+    {
+        foreach (var intent in new[] { FullIntent(), OneTeamDefendsOneRoom() })
+        {
+            var doc = BaseDoc();
+            IntentGenerator.Apply(doc, intent);
+            var map = MapParser.ParseXmlString(XmlWriter.ToXml(Deserializer.FromDict(doc)));
+            var singles = map.Regions.Values.Where(r => r.Type == "union" && (r.Children?.Count ?? 0) < 2)
+                .Select(r => r.Id).ToList();
+            await Assert.That(singles).IsEmpty();
+        }
+    }
+
+    /// <summary>One protected spawn and one wool room: the rules are stated on the room and the spawn
+    /// themselves, and the monument is still folded out of the spawn's block protection.</summary>
+    [Test]
+    public async Task A_single_room_and_spawn_carry_their_rules_directly()
+    {
+        var doc = BaseDoc();
+        IntentGenerator.Apply(doc, OneTeamDefendsOneRoom());
+        var map = Deserializer.FromDict(doc);
+
+        await Assert.That(map.ApplyRules.Where(r => r.EnterFilter == "not-red").Select(r => r.RegionId))
+            .IsEquivalentTo(new[] { "red-wool" });
+        await Assert.That(map.ApplyRules.Single(r => r.EnterFilter == "red-team").RegionId).IsEqualTo("red-spawn");
+        var spawns = map.Regions["spawns"];
+        await Assert.That(spawns.Type).IsEqualTo("complement");
+        await Assert.That(spawns.Children!).IsEquivalentTo(new[] { "red-spawn", "red-blue-monument" });
+        await Assert.That(map.ApplyRules.Single(r => r.BlockFilter == "never").RegionId).IsEqualTo("spawns");
+    }
+
+    private static MapIntent OneTeamDefendsOneRoom() => new()
+    {
+        Meta = new MetaIntent { Name = "One" },
+        Teams = [new TeamDef { Id = "red", Name = "Red", Color = "red" }, new TeamDef { Id = "blue", Name = "Blue", Color = "blue" }],
+        Spawns = [new SpawnIntent { Team = "red", Point = new(10, 12, 10), Protection = [new(0, 0, 20, 20)] }],
+        Wools = [new WoolIntent { Owner = "red", Protection = [new(5, 5, 15, 15)], Spawn = new(10.5, 13, 10.5),
+            Monuments = [new MonumentIntent { Team = "blue", Location = new(10, 13, 2) }] }],
+    };
 
     [Test]
     public async Task Multi_rect_protection_and_room_survive_the_xml_round_trip_as_unions()
@@ -181,8 +227,8 @@ public sealed class IntentXmlExportTests
     {
         // An intent whose team ids are bare colours — what the plan compiler emits. The document's own team
         // ids take the -team suffix, and so does every reference to them (the spawn link, the team filter's
-        // body, the wool's owner, its monument). Region and filter ids are named from the slug, so they are
-        // untouched: `red-spawn-point`, `only-red`, `red-wool` read the same either way.
+        // the enter rule naming it as a filter, the wool's owner, its monument). Region and filter ids are named
+        // from the slug, so they are untouched: `red-spawn-point`, `not-red`, `red-wool` read the same either way.
         var doc = BaseDoc();
         IntentGenerator.Apply(doc, new MapIntent
         {
@@ -196,7 +242,8 @@ public sealed class IntentXmlExportTests
         var xml = XmlWriter.ToXml(Deserializer.FromDict(doc));
         await Assert.That(xml).Contains("<team id=\"red-team\" color=\"red\"");
         await Assert.That(xml).Contains("<spawn team=\"red-team\"");
-        await Assert.That(xml).Contains("<team id=\"only-red\">red-team</team>");
+        await Assert.That(xml).Contains("<apply enter=\"red-team\" region=\"red-spawn\"");
+        await Assert.That(xml).Contains("<filter id=\"red-team\"/>");
         // A <wool> is written once per capturing team, so its `team` is the monument's, not the owner's.
         await Assert.That(xml).Contains("<wool team=\"blue-team\" color=\"red\"");
         await Assert.That(xml).Contains("id=\"red-spawn-point\"");

@@ -137,7 +137,8 @@ category already set by a more reliable signal.**
    the buff *outside* spawn; e.g. mushroom_gorge `base-sides`).
 7. **build** ← void-structure **and** permissive placement (§5).
 8. **mechanic** ← non-wool spawner `spawn_region` (step 3).
-9. **spawn | wool_room** ← `enter=only-<team>` rules, disambiguated **by the region's own name**:
+9. **spawn | wool_room** ← `enter=only-<team>` rules, and `enter=<team-id>` rules naming a declared team
+   directly (PGM reads a team id as a filter, and the generator writes it that way), disambiguated **by the region's own name**:
    a `*spawn*` name → spawn, a `*wool*`/`*room*`/`*monument*` name → wool_room; else left for the
    name heuristics (step 10). (Regions in `spawns[]` are already `spawn` from step 1, so this only
    resolves the remaining `only-<team>` zones.)

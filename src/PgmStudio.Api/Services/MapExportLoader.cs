@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using PgmStudio.Api.Endpoints;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -13,8 +14,8 @@ using Dict = Dictionary<string, object?>;
 /// <summary>
 /// The DB-touching prologue shared by <c>GET /map/{slug}/xml</c> and <c>GET /map/{slug}/export</c>. It loads
 /// exactly what <see cref="MapExportComposer.Compose"/> needs from the store — whether the map is
-/// intent-authored, the traversability segments, the stored authoring intent for a sketch map, the cached
-/// surface palette and spawn-ore renewables for everything else, and the accounts behind the tree builders a
+/// intent-authored, the traversability segments, the stored authoring intent for a sketch map, the world's
+/// block census and spawn-ore renewables for everything else, and the accounts behind the tree builders a
 /// sketch names — and hands them to the pure composer, so the database and the network stay here and the
 /// composition itself stays reachable by a driver that has neither.
 /// </summary>
@@ -33,19 +34,19 @@ public static class MapExportLoader
         // Only a sketch-originated map resolves the stored intent against the world it builds.
         MapIntent? intent = layoutBytes is not null ? await artifacts.LoadJsonOrEmptyAsync<MapIntent>(mapId, ArtifactKind.MapIntentJson, ct) : null;
 
-        // Only a non-sketch intent map draws on the cached scanned surface + resources (cache-only, never
-        // triggering a world scan on export).
-        IReadOnlySet<int>? surfacePalette = null;
+        // Only a non-sketch intent map draws on what the world scan recorded: the block ids the world holds and
+        // its resource blocks. Read from the store, never by scanning the world on export.
+        IReadOnlyList<int>? worldBlocks = null;
         IReadOnlyList<(string Type, int X, int Y, int Z)> resources = [];
         if (isIntent && layoutBytes is null)
         {
-            var surface = await feature.LayerCellsAsync(mapId, "surface", ct);
-            surfacePalette = surface?.Select(c => c.BlockId).ToHashSet();
+            if (await artifacts.LoadAsync(mapId, ArtifactKind.WorldBlocksJson, ct) is { } census)
+                worldBlocks = JsonSerializer.Deserialize<int[]>(census);
             resources = (await feature.ResourceBlocksAsync(mapId, ct)).Select(b => (b.Type, b.X, b.Y, b.Z)).ToList();
         }
 
         var accounts = layoutBytes is null ? null : await AccountsAsync(Encoding.UTF8.GetString(layoutBytes), players, ct);
-        return MapExportComposer.Compose(doc, layoutBytes, isIntent, segments, intent, surfacePalette, resources, accounts);
+        return MapExportComposer.Compose(doc, layoutBytes, isIntent, segments, intent, worldBlocks, resources, accounts);
     }
 
     /// <summary>The account behind each tree builder the layout names (<see cref="TreeBuilderCredits.Named"/>, which

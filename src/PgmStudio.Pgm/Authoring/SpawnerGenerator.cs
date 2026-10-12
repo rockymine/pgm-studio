@@ -51,14 +51,18 @@ public static class SpawnerGenerator
         var regions = DocAccess.Regions(doc);
         var written = DocAccess.EnsureList(doc, "spawners");
 
+        var kepts = new HashSet<string> { KeptRegionId };
         foreach (var previous in written.OfType<Dict>().ToList())
             if (Stem(previous) is { } stem)
+            {
                 foreach (var suffix in new[] { DropSuffix, ReachSuffix, KeepSuffix }) regions.Remove(stem + suffix);
+                kepts.Add(stem + KeepSuffix);
+            }
         written.RemoveAll(entry => entry is Dict spawner && Stem(spawner) is not null);
         regions.Remove(KeptRegionId);
         if (doc.GetValueOrDefault("apply_rules") is List<object?> rules)
             rules.RemoveAll(rule => rule is Dict applied
-                && applied.GetValueOrDefault("region") as string == KeptRegionId);
+                && applied.GetValueOrDefault("region") as string is { } region && kepts.Contains(region));
 
         // A generator with nothing to drop produces nothing, and one with no id has no region to name.
         var stated = (intent.Spawners ?? [])
@@ -130,15 +134,11 @@ public static class SpawnerGenerator
         }
 
         // One rule over every spawner's kept ground rather than one each: the rule is the same sentence
-        // whichever generator a player is standing at, and a union is what PGM reads it over.
+        // whichever generator a player is standing at.
         if (kept.Count == 0) return;
-        var union = new Dict { ["id"] = KeptRegionId, ["type"] = "union", ["children"] = kept.Cast<object?>().ToList() };
-        if (RegionBuilder.BuildUnionBounds(kept.Select(child => (Dict)regions[child]!)).bounds is { } bounds)
-            union["bounds_2d"] = bounds;
-        regions[KeptRegionId] = union;
         ApplyRuleEditor.CreateApplyRule(doc, new Dict
         {
-            ["block"] = "never", ["region"] = KeptRegionId, ["message"] = KeptMessage,
+            ["block"] = "never", ["region"] = RegionEditor.Gather(doc, KeptRegionId, kept), ["message"] = KeptMessage,
         });
     }
 

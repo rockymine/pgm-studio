@@ -85,10 +85,10 @@ and **confirmed by the author** — never auto-applied or silently mutated. Each
 | # | Template | Trigger (signal) | Emitted wiring | Recipe |
 |---|---|---|---|---|
 | 1 | **Build / void enforcement** | positive build region(s) from the Configure Build phase (+ `layer_y0.parquet`) | group buildable regions → apply `block-place=no-void` to the **complement**, with `block-break=over-void-breakable` beside it so what decoration left over the void can still be cut down | Cluster 2.4 |
-| 2 | **Spawn protection** | a team spawn region (`spawns[].region`) | on the protection zone, apply `enter=only-<team>`; on the shared `spawns` union, `block=never` (anti-grief; `never` is built-in — no new filter), **restated as `block-break=only-<ore>` + `block-place=only-<ore>-cause-world` where ore lives in a spawn** (below); optionally `use=only-<team>` | Cluster 1.1 |
+| 2 | **Spawn protection** | a team spawn region (`spawns[].region`) | on the protection zone, apply `enter=<team>` — a team id is itself the filter matching its members, so no `<team>` filter restates it; on the shared `spawns` region (a union only where two or more spawns are protected), `block=never` (anti-grief; `never` is built-in — no new filter), **restated as `block-break=only-<ore>` + `block-place=only-<ore>-cause-world` where ore lives in a spawn** (below); optionally `use=<team>` | Cluster 1.1 |
 | 3 | **Wool-room defense** | a wool-room region with a derived owner (§6 owner) | apply `enter=not-<owner>` (defender excluded) | Cluster 1.2 |
 | 4 | **Wool-room build/break** | a wool-room region | apply `block=<team>-woolrooms-filter` (team check + material whitelist) | Cluster 2.2 |
-| 5 | **Wool-room chest lockout** | a wool-room region with a derived owner | apply `use=deny(all(only-<owner>,chest-filter))` — the defenders cannot open the attackers' supply chest in their own room | Cluster 1.2 |
+| 5 | **Wool-room chest lockout** | a wool-room region with a derived owner | apply `use=deny(all(<owner>,chest-filter))` — the defenders cannot open the attackers' supply chest in their own room | Cluster 1.2 |
 
 **Template 2's blanket deny is wrong the moment a spawn holds ore.** `block=never` protects a spawn holding
 nothing but its own floor, and locks the CTW economy where it holds iron: the ore cannot be mined, so the

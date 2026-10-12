@@ -127,7 +127,7 @@ public sealed class SpawnerGeneratorTests
         await Assert.That(high["y"]).IsEqualTo(14d);
 
         var rule = ((List<object?>)doc["apply_rules"]!).OfType<Dict>()
-            .Single(applied => applied.GetValueOrDefault("region") as string == SpawnerGenerator.KeptRegionId);
+            .Single(applied => applied.GetValueOrDefault("region") as string == "mid" + SpawnerGenerator.KeepSuffix);
         await Assert.That(rule["block"]).IsEqualTo("never");
     }
 
@@ -214,7 +214,7 @@ public sealed class SpawnerGeneratorTests
 
         await Assert.That(spawner.SpawnRegion).IsEqualTo("emeralds" + SpawnerGenerator.DropSuffix);
         await Assert.That(spawner.PlayerRegion).IsEqualTo("emeralds" + SpawnerGenerator.ReachSuffix);
-        await Assert.That(map.ApplyRules.Single(rule => rule.RegionId == SpawnerGenerator.KeptRegionId)
+        await Assert.That(map.ApplyRules.Single(rule => rule.RegionId == "emeralds" + SpawnerGenerator.KeepSuffix)
             .BlockFilter).IsEqualTo("never");
         await Assert.That(spawner.Delay).IsEqualTo("30s");
         await Assert.That(spawner.MaxEntities).IsEqualTo(8);
