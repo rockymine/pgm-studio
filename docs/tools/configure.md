@@ -66,7 +66,7 @@ null `cores` and nothing about cores is generated or cleared.
 | `islandTeams` | island id → team; an authoring aid, read by the spawn step, not by the generator |
 | `spawns` | per team: the point, the yaw, and the protection zone as a union of rects |
 | `observer` | the `<default>` spawn — where spectators and pre-match players stand |
-| `flags` | The King of the Flag flags (`docs/pgm/flags.md` §7): a name, a `color`, the `posts` it stands at (`at`, `name`, `yaw`), a `pointsRate` (1), and the `carrier` — `lowered` to `carrierHearts` (6), `absorption`, or `boost` to `carrierHearts`. Unowned, so the posts fan by position |
+| `flags` | The flags (`docs/pgm/flags.md` §7–§8): a name, the `team` defending it or none, a `color`, the `posts` it stands at (`at`, `name`, `yaw`), a `pointsRate`, the `carrier` — `lowered` to `carrierHearts` (6), `absorption`, `boost` to `carrierHearts`, or `none` — a `recoverTime` and, on a team's flag, the `net` box its team captures in. A flag nobody owns is King of the Flag's, pays 1 a second and lowers its carrier, and its posts fan by position; a team's flag is Capture the Flag's, takes its team's colour, pays on capture, and fans by team |
 | `scoreBoxes` | The score boxes (`docs/pgm/score-boxes.md` §4): per box the `team` it scores for, the inclusive `box` it covers, the `points` it pays (1) and whether it sends its scorer `home` (true). Owned by a team, so they fan by team; no Configure phase states them yet |
 | `zones` | Zones the author states (`docs/pgm/zones.md` §3): per zone an `id`, the `area` rects, an optional `team`, who may `enter` (`anyone`, `team`, `nobody`), whether a block may be `place`d or broken (`break`), whether a player inside may come to `harm`, and a `kit` given inside. A team's zone fans by team, one with no team by position; no Configure phase states them yet |
 | `build` | `maxHeight`, the buildable `areas` and the no-build `holes` cut out of them, and the `mode` a player builds under: `void` builds anywhere but over the void outside what is left, `never` places and breaks nothing, `only` places and breaks the named `materials` and nothing else. Absent, a board with a wool, destroyable or core is `void` and any other is `never` |
@@ -75,8 +75,8 @@ null `cores` and nothing about cores is generated or cleared.
 | `destroyables` | per destroyable: owner, name, anchor, its shape, what it is built of and its float |
 | `shops` | per shop: an id, a name, its categories, and per icon the stack, every payment it costs and the action buying it triggers. The keeper says what it is called and what mob it is; where it stands is derived, one per shop at every team's spawn, unless it names a block or a region of its own (`docs/pgm/shops.md` §9). **The tool has no step for these** (`TC9`): they are stated through the API, carried here, and projected like any other slice |
 | `spawners` | per generator: an id, the block it drops into, how near a player must be standing, how much ground around it is kept from being built in or dug out, how long between drops, how many may lie uncollected and what it drops. What mints the currency a shop is priced in, since a spawn kit and the kill reward derived from it are the only other item sources a generated board has; the three regions and the one `never`-build rule over them are minted from the id (`docs/pgm/shops.md` §10) |
-| `controlPoints` · `scoreLimit` | per capture point: name, anchor, pad size, what holding it pays, how long it takes and whether it is held or touched (`captureMode`) — and the score the match ends at. Owned by nobody, so unlike every other objective they carry no team. **The tool has no step for these** (`TC7`): they are stated through the API (`docs/pgm/control-points.md` §9) or derived from a plan's own count (`docs/tools/plan.md`), carried here, and projected like any other slice |
-| `timeLimit` · `respawn` · `lives` · `rage` · `killHeight` | how the match ends and how the dead come back (`docs/pgm/match.md` §7): a time limit's `duration` and the `result` that decides it then, the respawn `delay` and whether it is `auto` or lets the dead `spectate`, the lives a blitz gives, whether every hit kills, and the height a player falls into the void below. Map-wide, so nothing fans. **The tool has no step for these** (`TC17`): they are stated through the API, carried here, and projected like any other slice |
+| `controlPoints` · `scoreLimit` | per capture point: name, anchor, pad size, what holding it pays, how long it takes and whether it is held or touched (`captureMode`) — and the score the match ends at, which the Match phase states. Owned by nobody, so unlike every other objective they carry no team. **The tool has no step for the points** (`TC7`): they are stated through the API (`docs/pgm/control-points.md` §9) or derived from a plan's own count (`docs/tools/plan.md`), carried here, and projected like any other slice |
+| `timeLimit` · `respawn` · `lives` · `rage` · `killHeight` | how the match ends and how the dead come back (`docs/pgm/match.md` §7): a time limit's `duration` and the `result` that decides it then, the respawn `delay` and whether it is `auto` or lets the dead `spectate`, the lives a blitz gives, whether every hit kills, and the height a player falls into the void below. Map-wide, so nothing fans. The Match phase states them |
 | `waterLanes` | the late-opening gaps — carried, never authored here (below) |
 | `structures` · `spawns[].piece` · `wools[].piece`/`entries` | written only by the plan compiler; consumed by the world export |
 
@@ -181,7 +181,7 @@ and is the subject of *What it refuses* below.
 
 ## Phases
 
-Nine phases on the rail, walked in order. A phase unlocks when the phases before it have their slice; the
+Ten phases on the rail, walked in order. A phase unlocks when the phases before it have their slice; the
 rail locks anything further on, and jumping back is always allowed.
 
 ### Import — phase zero
@@ -470,7 +470,7 @@ means breaching the casing is not enough and players must cut the ground out fro
 
 ### Flags — Posts
 
-**Posts** authors King of the Flag (`docs/pgm/flags.md` §7) and is mostly confirmation: the ingest scan read
+**Posts** authors King of the Flag and Capture the Flag (`docs/pgm/flags.md` §7–§8) and is mostly confirmation: the ingest scan read
 every banner the world holds, and PGM loads a flag only where a banner stands at its starting post, so a
 banner is where a flag starts. Clicking a scanned banner makes it a post of the selected flag, standing in the
 banner's own block and facing the way the banner faces; the first post a flag takes from a banner gives the flag
@@ -483,10 +483,22 @@ no banner* where no scanned banner stands in its block; any later post can be ma
 refuses such a flag (`OB36`, below). Every post is a goal the walk has to reach, so the pre-flight walk names a
 post no spawn can walk to and the export refuses it (`EX1`).
 
-**The inspector states the rest of the flag**: its name, its colour, the points a second it pays the team
-carrying it, and what carrying it does — fewer hearts or more, to the hearts stated, or a moment's shield. A
-flag belongs to nobody, so there is no team to set. The flag phase shares the objective gate, so a map whose
-only objective is a flag reaches Review.
+**The inspector states the rest of the flag**: its name, the team defending it, and what carrying it does —
+fewer hearts or more, to the hearts stated, a moment's shield, or nothing. A flag defended by nobody is King of
+the Flag's and states its colour and the points a second it pays the team carrying it; a team's flag takes its
+team's colour, pays only when captured, and is captured in a net round each other team's own flag. The flag
+phase shares the objective gate, so a map whose only objective is a flag reaches Review.
+
+### Match
+
+**Match** states how the match ends and how the dead come back (`docs/pgm/match.md` §7), and is one form. *How
+it ends* is the score limit, the time limit as PGM writes a duration and what decides a match at the bell —
+whoever is ahead, objectives, score or a tie — the lives a blitz gives each player, and whether every hit kills.
+*Coming back* is the respawn delay, whether the dead come back on a click or on their own and whether they watch
+the match while they wait, and the kill height a player falls into the void below. Every field may be left
+blank, which is the board's own default — the score limit the generator derives from the objectives, no time
+limit, two seconds on a click, no lives, no rage and the world's own void — so the phase never holds the rail
+back, and a blank field is removed from the intent rather than written.
 
 ### Review and export — Pre-flight · Region tree · XML
 

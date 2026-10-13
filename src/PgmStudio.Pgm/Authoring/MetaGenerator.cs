@@ -79,9 +79,13 @@ public static class MetaGenerator
         if (points == 1) clauses.Add("hold the hill");
         else if (points > 1) clauses.Add("hold the hills");
 
-        var flags = intent.Flags?.Count ?? 0;
+        var flags = intent.Flags?.Count(flag => !flag.Owned) ?? 0;
         if (flags == 1) clauses.Add("hold the flag");
         else if (flags > 1) clauses.Add("hold the flags");
+
+        var teamFlags = PerTeam(intent.Flags?.Count(flag => flag.Owned) ?? 0);
+        if (teamFlags == 1) clauses.Add("capture the enemy's flag");
+        else if (teamFlags > 1) clauses.Add("capture the enemy's flags");
 
         var boxes = PerTeam(intent.ScoreBoxes?.Count ?? 0);
         if (boxes == 1) clauses.Add("reach your score box");

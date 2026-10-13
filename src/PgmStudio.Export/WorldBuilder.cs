@@ -338,7 +338,8 @@ public static class WorldBuilder
         var boardSymmetry = intent.Symmetry
             ?? (symmetry.Mode is { } mode ? new SymmetryIntent { Mode = mode, CenterX = symmetry.CenterX, CenterZ = symmetry.CenterZ } : null);
         var resolvedFlags = StampFlags(world, terrain,
-            boardSymmetry is null ? intent.Flags : SymmetryExpander.FillFlags(intent.Flags, boardSymmetry), provenance);
+            boardSymmetry is null ? intent.Flags : SymmetryExpander.FillFlags(intent.Flags, intent.Teams ?? [], boardSymmetry),
+            intent.Teams, provenance);
 
         // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
@@ -746,7 +747,7 @@ public static class WorldBuilder
     /// <summary>Stand each flag's banner at every post, on the ground under it, and claim the cell, so the post
     /// the map names is the banner PGM looks for (<see cref="FlagStamper"/>).</summary>
     private static List<FlagIntent>? StampFlags(
-        VoxelWorld world, BuiltTerrain terrain, List<FlagIntent>? flags, WorldProvenance provenance)
+        VoxelWorld world, BuiltTerrain terrain, List<FlagIntent>? flags, List<TeamDef>? teams, WorldProvenance provenance)
     {
         if (flags is null) return null;
         return [.. flags.Select(flag => flag with
@@ -754,7 +755,7 @@ public static class WorldBuilder
             Posts = [.. flag.Posts.Select(post =>
             {
                 var banner = FlagStamper.BannerBox(terrain.SurfaceFor(post.Layer), post.At.X, post.At.Z);
-                FlagStamper.Stamp(world, banner, flag.Color, post.Yaw);
+                FlagStamper.Stamp(world, banner, flag.BannerColor(teams), post.Yaw);
                 provenance.ClaimRect(banner.MinX, banner.MinZ, banner.MaxX, banner.MaxZ, ProvenancePass.Structure, post.Stamp);
                 return post with { BannerBox = banner };
             })],

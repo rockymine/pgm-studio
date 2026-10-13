@@ -120,4 +120,27 @@ public sealed class FlagWorldTests
         await Assert.That(tile.Get<fNbt.NbtInt>("Base")!.Value).IsEqualTo(1).Because("red dye is damage 1");
         await Assert.That(BlockColors.DyeColor(BlockColors.DyeDamage("light_blue"))).IsEqualTo("light_blue");
     }
+
+    [Test]
+    public async Task A_team_flag_fans_to_the_other_team_whose_banner_is_in_that_team_colour()
+    {
+        var plan = PlanModel.Parse(Json)!;
+        var (layout, intent) = PlanCompiler.Compile(plan);
+        var red = intent.Teams![0];
+        var built = WorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json),
+            intent with { Flags = [new FlagIntent { Team = red.Id, Posts = [East] }] });
+        var banners = FeatureExtractors.Banners(AnvilRegion.FromWorld(built.World)).ToList();
+        var flags = built.ResolvedIntent.Flags!;
+
+        await Assert.That(flags.Count).IsEqualTo(2).Because("the other team gains its image of a team's flag");
+        foreach (var flag in flags)
+        {
+            var box = flag.Posts.Single().BannerBox!.Value;
+            var banner = banners.Single(found => (found.WorldX, found.WorldY, found.WorldZ) == (box.MinX, box.MinY, box.MinZ));
+            await Assert.That(banner.Color).IsEqualTo(BlockColors.Normalize(intent.Teams.Single(team => team.Id == flag.Team).Color));
+        }
+        var map = Written(built);
+        await Assert.That(map.FlagNets.Count).IsEqualTo(2);
+        await Assert.That(map.Flags.Select(flag => flag.Owner)).IsEquivalentTo(map.Teams.Select(team => team.Id));
+    }
 }

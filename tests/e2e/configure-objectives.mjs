@@ -54,13 +54,20 @@ async function arrange(objectives) {
  */
 const featureFaults = () => page.faults.filter(f => !f.includes("/api/minecraft/"));
 
-/** Open the wizard and click a phase on the activity rail by its title. */
-async function openPhase(title) {
+/** Open the wizard and click a phase on the activity rail by its title. A phase drawing the world canvas is
+ * waited on until the canvas has read the map's regions: leaving before then aborts that fetch, and the next
+ * phase would be blamed for it. */
+async function openPhase(title, { canvas = false } = {}) {
   clearFaults(page);
   await page.goto(`${BASE}/maps/${seed.mapSlug}/configure`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForSelector(".nav-btn", { timeout: 20000 });
+  const regions = canvas ? page.waitForResponse(r => r.url().includes("/regions/tree"), { timeout: 30000 }) : null;
   await page.click(`.nav-btn[title="${title}"]`);
   await page.waitForSelector(".editor-bar-phase", { timeout: 20000 });
+  if (regions) {
+    await regions;
+    await page.waitForLoadState("networkidle", { timeout: 30000 });
+  }
 }
 
 const intent = await api(`/map/${seed.mapSlug}/intent`);
@@ -71,7 +78,7 @@ checks.section("a map carrying wools AND a core shows both phases");
 
 await arrange({ cores: [core(owner)] });
 
-await openPhase("Cores");
+await openPhase("Cores", { canvas: true });
 const phaseTitle = await page.textContent(".editor-bar-phase span");
 checks.add("the Cores phase opens", phaseTitle?.trim() === "Cores", phaseTitle?.trim());
 
@@ -123,7 +130,7 @@ const flag = {
 };
 await arrange({ wools: [], flags: [flag] });
 
-await openPhase("Flags");
+await openPhase("Flags", { canvas: true });
 await page.waitForLoadState("networkidle", { timeout: 30000 });
 const flagTitle = await page.textContent(".editor-bar-phase span");
 checks.add("the Flags phase opens", flagTitle?.trim() === "Flags", flagTitle?.trim());
@@ -136,6 +143,29 @@ await openPhase("Review and export");
 const flagReview = await page.textContent(".editor-bar-phase span");
 checks.add("Review is reachable with a flag as the only objective", flagReview?.trim() === "Review and export",
            flagReview?.trim());
+
+// ── a team's flag, and the Match phase ───────────────────────────────────────────────────────────────
+checks.section("a team's flag is defended, and the Match phase states the match");
+
+await arrange({ wools: [], flags: [{ ...flag, team: owner, color: undefined, pointsRate: undefined, carrier: "none" }],
+                timeLimit: { duration: "12m", result: "score" }, lives: 2 });
+
+await openPhase("Flags", { canvas: true });
+const teamFlag = await page.textContent(".workspace");
+const ownerName = intent.teams?.[0]?.name || owner;
+checks.add("a team's flag reads as that team's", teamFlag.includes(`${ownerName}'s flag`), ownerName);
+checks.add("a team's flag states no points rate", !teamFlag.includes("Points a second"));
+
+await openPhase("Match");
+const matchTitle = await page.textContent(".editor-bar-phase span");
+checks.add("the Match phase opens", matchTitle?.trim() === "Match", matchTitle?.trim());
+const timeBox = await page.inputValue(".workspace input[placeholder='none']");
+checks.add("the stored time limit is shown", timeBox === "12m", timeBox);
+checks.add("the Match phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
+
+await openPhase("Review and export");
+const matchReview = await page.textContent(".editor-bar-phase span");
+checks.add("Review is reachable past the Match phase", matchReview?.trim() === "Review and export", matchReview?.trim());
 
 // Put the seed map back the way the other specs expect it.
 await api(`/map/${seed.mapSlug}/intent`, { method: "PUT", body: intent });

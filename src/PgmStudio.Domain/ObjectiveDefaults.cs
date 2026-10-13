@@ -98,6 +98,24 @@ public static class ObjectiveDefaults
     /// limit (200, on 5 of 10 maps stating one).</summary>
     public const int FlagScoreLimit = 200;
 
+    /// <summary>The score a Capture the Flag match ends at where the author states none: the corpus's commonest
+    /// limit (3, on 15 of the 30 CTF maps stating one), each capture paying one.</summary>
+    public const int CtfScoreLimit = 3;
+
+    /// <summary>What capturing a flag in a net pays (122 of 140 corpus nets).</summary>
+    public const int FlagNetPoints = 1;
+
+    /// <summary>How long a dropped team's flag lies before it goes home on its own: the corpus's commonest stated
+    /// recover time (42 of 166 owned flags).</summary>
+    public const string FlagRecoverTime = "15s";
+
+    /// <summary>How far a team's net reaches either side of its flag's post, in blocks: a 5×3×5 box, the corpus's
+    /// common net round a post (cylinders of radius 2 and 3, cuboids of 5×3×5).</summary>
+    public const int FlagNetReach = 2;
+
+    /// <summary>How many blocks tall a team's net is, from the block its flag stands in.</summary>
+    public const int FlagNetHeight = 3;
+
     /// <summary>What entering a score box pays (122 of 209 corpus boxes).</summary>
     public const int ScoreBoxPoints = 1;
 

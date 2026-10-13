@@ -23,6 +23,7 @@ public partial class FlagPostsStep
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private List<F.Flag> flags = new();
+    private List<AuthoringContext.Team> teams = new();
     private List<FlagSuggestionDto> banners = new();
     private F.Defaults defaults = F.Defaults.Empty;
     private bool loading = true;
@@ -43,7 +44,21 @@ public partial class FlagPostsStep
         new(FlagCarriers.Lowered, "Fewer hearts", "Carrying the flag lowers the carrier's health to the hearts below."),
         new(FlagCarriers.Absorption, "A moment's shield", "Picking the flag up gives absorption III for three seconds."),
         new(FlagCarriers.Boost, "More hearts", "Carrying the flag raises the carrier's health to the hearts below."),
+        new(FlagCarriers.None, "Nothing", "Carrying the flag does nothing to the carrier."),
     ];
+
+    private IReadOnlyList<SelectOption> OwnerOptions =>
+        [new(Nobody, "Nobody — King of the Flag"), .. AuthoringContext.TeamOptions(teams)];
+
+    // The picker's word for a flag nobody owns: a Select option cannot carry the empty string.
+    private const string Nobody = "nobody";
+
+    private string TeamName(string id) => teams.FirstOrDefault(team => team.Id == id)?.Name is { Length: > 0 } name ? name : id;
+
+    /// <summary>The colour a flag is drawn in: its own dye, or its team's colour.</summary>
+    private string Hex(F.Flag flag) => flag.Team.Length > 0 && flag.Color.Length == 0
+        ? GameColors.ChatHex(teams.FirstOrDefault(team => team.Id == flag.Team)?.Color)
+        : GameColors.DyeHex(flag.Color);
 
     /// <summary>Banners no flag stands at yet — the confirm list.</summary>
     private IEnumerable<FlagSuggestionDto> Unused =>
@@ -66,6 +81,7 @@ public partial class FlagPostsStep
             }
         }
         catch { banners = new(); }   // no scan, or no banners gathered
+        teams = AuthoringContext.LoadTeams(Wizard.Intent);
         flags = F.ParseFlags(Wizard.Intent, defaults);
         if (flags.Count > 0) { selectedFlag = 0; selectedPost = flags[0].Posts.Count > 0 ? 0 : -1; }
         loading = false;
@@ -116,7 +132,7 @@ public partial class FlagPostsStep
     private void AddBanner(FlagSuggestionDto banner)
     {
         var flag = SelectedFlag ?? AddFlag();
-        if (flag.Posts.Count == 0) flag.Color = banner.Color.Replace('_', ' ');
+        if (flag.Posts.Count == 0 && flag.Team.Length == 0) flag.Color = banner.Color.Replace('_', ' ');
         flag.Posts.Add(new F.Post { X = banner.X + 0.5, Y = banner.Y, Z = banner.Z + 0.5, Yaw = banner.Yaw });
         selectedPost = flag.Posts.Count - 1;
         Write();
@@ -138,6 +154,17 @@ public partial class FlagPostsStep
     private void SetColor(F.Flag flag, string color) { flag.Color = color; Write(); _ = Paint(); }
     private void SetRate(F.Flag flag, double rate) { flag.PointsRate = rate; Write(); }
     private void SetCarrier(F.Flag flag, string carrier) { flag.Carrier = carrier; Write(); }
+
+    // A team's flag takes its team's colour and asks nothing of the carrier unless the author says so; a flag
+    // given back to nobody is white and lowers its carrier, as a new one does.
+    private void SetOwner(F.Flag flag, string owner)
+    {
+        flag.Team = owner == Nobody ? "" : owner;
+        flag.Color = flag.Team.Length > 0 ? "" : "white";
+        flag.Carrier = flag.Team.Length > 0 ? FlagCarriers.None : defaults.Carrier;
+        Write();
+        _ = Paint();
+    }
     private void SetHearts(F.Flag flag, double hearts) { flag.CarrierHearts = (int)hearts; Write(); }
     private void SetPostName(F.Post post, string name) { post.Name = name.Trim(); Write(); }
 
@@ -180,7 +207,7 @@ public partial class FlagPostsStep
             {
                 var post = flags[f].Posts[p];
                 var (x, _, z) = F.Block(post);
-                shapes.Add(Marker($"post-{f}-{p}", x, z, GameColors.DyeHex(flags[f].Color), f == selectedFlag,
+                shapes.Add(Marker($"post-{f}-{p}", x, z, Hex(flags[f]), f == selectedFlag,
                                   $"{NameOf(flags[f], f)} · {PostName(post, p)}{(p == 0 ? " (start)" : "")}"));
             }
         var n = 0;

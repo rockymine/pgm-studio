@@ -8784,6 +8784,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the five filters, and the group cascade. All 225 parseable corpus maps with portals write the same portals
   back through both codecs. `docs/pgm/portals.md`. (`PG30`)
 
+- **A board states Capture the Flag (`PG38`)** — a `FlagIntent` naming a `Team` is that team's flag: owned, named
+  and coloured for its team, a pickup filter keeping its own team off it, recovered home after 15 seconds, and fanned
+  by team across the symmetry, its banner stood in its team's colour. Each team captures every other team's flag
+  in a net round its own flag's first post, paying 1, and the board ends at 3 and states `ctf`.
+  `docs/pgm/flags.md` §8. (`PG38`)
+
+- **Configure states the match (`TC17`)** — a Match phase between the objectives and Review: the score and time
+  limits and what decides a match at the bell, the lives a blitz gives, rage, the respawn delay and how the dead
+  come back, and the kill height, each blank for the board's own default. `docs/tools/configure.md`. (`TC17`)
+
+- **The Flags phase sets who defends a flag (`TC18`)** — *Defended by* makes a flag a team's, which takes its
+  team's colour and pays only on capture; a carrier may now be given nothing. `docs/tools/configure.md`. (`TC18`)
+
 - **Configure authors King of the Flag (`TC15`)** — a Flags phase whose Posts step confirms a scanned banner as a
   flag's post, places further posts on the ground, marks a start with no banner under it, and states the
   flag's colour, points rate and carrier; it shares the objective gate. On a map read from a world the export

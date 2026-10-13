@@ -29,7 +29,7 @@ public static class ScoreGenerator
 
     /// <summary>
     /// The limit the match ends at: the author's where they state one, the corpus's default on a board that
-    /// carries a point or a flag that pays, and none at all otherwise. Zero is an author asking for no limit — a
+    /// carries a point that pays, a team's flag or a flag that pays, and none at all otherwise. Zero is an author asking for no limit — a
     /// board played to a time limit instead — and is honoured rather than replaced.
     /// </summary>
     private static int? Limit(MapIntent intent)
@@ -37,7 +37,9 @@ public static class ScoreGenerator
         if (intent.ScoreLimit is { } stated) return stated > 0 ? stated : null;
         if (intent.ControlPoints?.Any(p => p.CaptureBox is not null && p.Points > 0) ?? false)
             return ObjectiveDefaults.ControlPointScoreLimit;
-        if (intent.Flags?.Any(flag => flag.Posts.Count > 0 && flag.PointsRate > 0) ?? false)
+        if (intent.Flags?.Any(flag => flag.Posts.Count > 0 && flag.Owned) ?? false)
+            return ObjectiveDefaults.CtfScoreLimit;
+        if (intent.Flags?.Any(flag => flag.Posts.Count > 0 && flag.PaysPerSecond > 0) ?? false)
             return ObjectiveDefaults.FlagScoreLimit;
         return null;
     }

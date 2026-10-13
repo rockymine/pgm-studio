@@ -53,7 +53,7 @@ public static class SymmetryExpander
             Destroyables = FillDestroyables(intent.Destroyables, teams, sym, order),
             Cores = FillCores(intent.Cores, teams, sym, order),
             ControlPoints = FillControlPoints(intent.ControlPoints, sym, order),
-            Flags = FillFlags(intent.Flags, sym, order),
+            Flags = FillFlags(intent.Flags, teams, sym, order),
             ScoreBoxes = FillScoreBoxes(intent.ScoreBoxes, teams, sym, order),
             Zones = FillZones(intent.Zones, teams, sym, order),
         };
@@ -370,41 +370,68 @@ public static class SymmetryExpander
         return result;
     }
 
-    /// <summary>Flags stated once each, belonging to nobody, with their posts fanned across <paramref name="sym"/>
-    /// as capture points are: every image of a post added after the authored ones and named on, its facing
-    /// turned with it, and one already standing where an image would go taken as that image.</summary>
-    public static List<FlagIntent>? FillFlags(List<FlagIntent>? authored, SymmetryIntent sym) =>
-        IsKnown(sym.Mode) ? FillFlags(authored, sym, Order(sym.Mode)) : authored;
+    /// <summary>Flags fanned across <paramref name="sym"/>. One nobody owns keeps its place in the list and gains
+    /// its posts' images as capture points do: every image of a post added after the authored ones and named on,
+    /// its facing turned with it, and one already standing where an image would go taken as that image. A team's
+    /// flag fans by team as a core does: each other team gains its image — posts and net turned, named and
+    /// coloured for that team — and a team already owning a flag keeps its own.</summary>
+    public static List<FlagIntent>? FillFlags(List<FlagIntent>? authored, List<TeamDef> teams, SymmetryIntent sym) =>
+        IsKnown(sym.Mode) ? FillFlags(authored, teams, sym, Order(sym.Mode)) : authored;
 
-    private static List<FlagIntent>? FillFlags(List<FlagIntent>? authored, SymmetryIntent sym, int order)
+    private static List<FlagIntent>? FillFlags(List<FlagIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
     {
         if (authored is null) return null;
-        return [.. authored.Select((flag, f) => flag with { Posts = FillPosts(flag.Posts, f) })];
-
-        List<FlagPostIntent> FillPosts(List<FlagPostIntent> posts, int flagIndex)
+        var stamped = authored.Select((flag, f) => flag with
         {
-            var result = posts.Select((post, i) => post with
+            Posts = [.. flag.Posts.Select((post, i) => post with
             {
-                Stamp = !string.IsNullOrEmpty(post.Stamp.Kind) ? post.Stamp
-                    : new StampId("flagpost", $"{flagIndex}-{i}", 0),
-            }).ToList();
-            var placed = result.Select(post => (post.At.X, post.At.Z)).ToList();
-            foreach (var src in result.ToList())
+                Stamp = !string.IsNullOrEmpty(post.Stamp.Kind) ? post.Stamp : new StampId("flagpost", $"{f}-{i}", 0),
+            })],
+        }).ToList();
+
+        var result = stamped.Select(flag => flag.Owned ? flag : flag with { Posts = FillPosts(flag.Posts) }).ToList();
+        var have = new HashSet<string>(stamped.Where(flag => flag.Owned).Select(flag => IntentNaming.TeamId(flag.Team)));
+        foreach (var src in stamped.Where(flag => flag.Owned))
+        {
+            var index = IndexOfTeam(teams, src.Team);
+            if (index < 0) continue;
+            for (var k = 1; k < order; k++)
+            {
+                var team = teams[(index + k) % teams.Count];
+                if (!have.Add(IntentNaming.TeamId(team.Id))) continue;
+                result.Add(src with
+                {
+                    Team = team.Id,
+                    Name = "",
+                    Color = null,
+                    Net = TransformBox(src.Net, sym, k),
+                    Posts = [.. src.Posts.Select(post => Turned(post, k) with { Name = post.Name })],
+                });
+            }
+        }
+        return result;
+
+        FlagPostIntent Turned(FlagPostIntent post, int k) => post with
+        {
+            Stamp = post.Stamp.At(k),
+            At = TransformPt(post.At, sym, k),
+            Yaw = post.Yaw is { } yaw ? TransformYaw(yaw, sym, k) : null,
+            BannerBox = TransformBox(post.BannerBox, sym, k),
+        };
+
+        List<FlagPostIntent> FillPosts(List<FlagPostIntent> posts)
+        {
+            var filled = new List<FlagPostIntent>(posts);
+            var placed = filled.Select(post => (post.At.X, post.At.Z)).ToList();
+            foreach (var src in posts)
                 for (var k = 1; k < order; k++)
                 {
-                    var at = TransformPt(src.At, sym, k);
-                    if (placed.Any(seen => SamePoint(seen, (at.X, at.Z)))) continue;
-                    placed.Add((at.X, at.Z));
-                    result.Add(src with
-                    {
-                        Stamp = src.Stamp.At(k),
-                        Name = src.Name.Length > 0 ? $"{src.Name} {k + 1}" : "",
-                        At = at,
-                        Yaw = src.Yaw is { } yaw ? TransformYaw(yaw, sym, k) : null,
-                        BannerBox = TransformBox(src.BannerBox, sym, k),
-                    });
+                    var image = Turned(src, k);
+                    if (placed.Any(seen => SamePoint(seen, (image.At.X, image.At.Z)))) continue;
+                    placed.Add((image.At.X, image.At.Z));
+                    filled.Add(image with { Name = src.Name.Length > 0 ? $"{src.Name} {k + 1}" : "" });
                 }
-            return result;
+            return filled;
         }
     }
 

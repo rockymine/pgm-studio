@@ -15,6 +15,9 @@ public static class FlagCarriers
     /// <summary>The carrier's health is raised to a stated number of hearts by health boost.</summary>
     public const string Boost = "boost";
 
-    /// <summary>The three, in the order a picker offers them.</summary>
-    public static readonly string[] All = [Lowered, Absorption, Boost];
+    /// <summary>Carrying the flag does nothing to the carrier.</summary>
+    public const string None = "none";
+
+    /// <summary>The four, in the order a picker offers them.</summary>
+    public static readonly string[] All = [Lowered, Absorption, Boost, None];
 }

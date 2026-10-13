@@ -62,10 +62,9 @@ public sealed record MapIntent
     /// one side; the expander produces the rest. Null/empty leaves them untouched.</summary>
     public List<ControlPointIntent>? ControlPoints { get; init; }
 
-    /// <summary>The King of the Flag flags: unowned, scoring for whoever holds one, each standing at one of its
-    /// posts (<c>docs/pgm/flags.md</c>). Like a capture point a flag belongs to nobody, so its posts fan by
-    /// position rather than by team, and a post at the board's centre of symmetry stays one. Null leaves the
-    /// map's flags untouched.</summary>
+    /// <summary>The flags (<c>docs/pgm/flags.md</c>): King of the Flag's, owned by nobody and scoring for whoever
+    /// holds one, whose posts fan by position as a capture point's do; and Capture the Flag's, each owned by a team,
+    /// which fan by team as a core does. Null leaves the map's flags untouched.</summary>
     public List<FlagIntent>? Flags { get; init; }
 
     /// <summary>The score boxes: each pays a team for every player of theirs who walks into it, and sends that
@@ -144,12 +143,13 @@ public sealed record MapIntent
             // limit it ends at and nothing else, which is what keeps it off the deathmatch tag.
             hasControlPoints: false,
             hasKing: ControlPoints is { Count: > 0 },
-            // PGM derives `ctf` from a flag; what the studio authors is King of the Flag, which a map states.
-            hasFlags: false,
+            // A team's flag is CTF, the tag PGM derives from any flag; one nobody owns is King of the Flag, which a
+            // map states.
+            hasFlags: Flags?.Any(flag => flag.Owned && flag.Posts.Count > 0) ?? false,
             scoresKillsOrDeaths: false,
             hasBlitz: Lives > 0,
             hasRage: Rage == true),
-        .. (Flags is { Count: > 0 } ? [Domain.Gamemodes.Kotf] : Array.Empty<string>()),
+        .. (Flags?.Any(flag => !flag.Owned) ?? false ? [Domain.Gamemodes.Kotf] : Array.Empty<string>()),
         // PGM tags a box auxiliary and derives no gamemode from it, so a score box board states its own.
         .. (ScoreBoxes is { Count: > 0 } ? [Domain.Gamemodes.Scorebox] : Array.Empty<string>()),
     ];
@@ -771,32 +771,65 @@ public sealed record RespawnIntent
 }
 
 /// <summary>
-/// One King of the Flag flag: a banner nobody owns, paying <see cref="PointsRate"/> a second to whichever team
-/// carries it, starting at its first post and coming back to one of them at random. What carrying it does to
-/// the carrier is <see cref="Carrier"/> (<c>docs/pgm/flags.md</c>).
+/// One flag (<c>docs/pgm/flags.md</c>). A flag nobody owns is King of the Flag's: it pays
+/// <see cref="PointsRate"/> a second to whichever team carries it, starting at its first post and coming back to
+/// one of them at random. A flag a <see cref="Team"/> owns is Capture the Flag's: it stands at that team's base,
+/// every other team may carry it off, and a team scores by bringing it into its own <see cref="Net"/>.
 /// </summary>
 public sealed record FlagIntent
 {
-    /// <summary>What the sidebar calls it. Empty names it "Flag".</summary>
+    /// <summary>What the sidebar calls it. Empty names a team's flag for the team, and nobody's "Flag".</summary>
     public string Name { get; init; } = "";
 
-    /// <summary>The banner's dye, and the flag's colour.</summary>
-    public string Color { get; init; } = "white";
+    /// <summary>The team defending it; empty for a flag nobody owns.</summary>
+    public string Team { get; init; } = "";
+
+    /// <summary>The banner's dye, and the flag's colour; null for its team's colour, or white.</summary>
+    public string? Color { get; init; }
 
     /// <summary>The places it stands at, the first where it starts. At least one, and every one walkable to.</summary>
     public List<FlagPostIntent> Posts { get; init; } = new();
 
-    /// <summary>What holding it pays, per second.</summary>
-    public double PointsRate { get; init; } = ObjectiveDefaults.FlagPointsRate;
+    /// <summary>What carrying it pays, per second; null for <see cref="ObjectiveDefaults.FlagPointsRate"/> on a flag
+    /// nobody owns and nothing on a team's.</summary>
+    public double? PointsRate { get; init; }
 
-    /// <summary>What carrying it does to the carrier (<see cref="FlagCarriers"/>).</summary>
+    /// <summary>What carrying it does to the carrier (<see cref="FlagCarriers"/>); null for
+    /// <see cref="FlagCarriers.Lowered"/> on a flag nobody owns and <see cref="FlagCarriers.None"/> on a team's.</summary>
     [WordSet(typeof(FlagCarriers))]
-    public string Carrier { get; init; } = FlagCarriers.Lowered;
+    public string? Carrier { get; init; }
 
     /// <summary>The hearts a <see cref="FlagCarriers.Lowered"/> or <see cref="FlagCarriers.Boost"/> carrier has
     /// while carrying it. A boost raises health two hearts at a time, so it takes the even number at or over
     /// this above ten.</summary>
     public int CarrierHearts { get; init; } = ObjectiveDefaults.FlagCarrierHearts;
+
+    /// <summary>How long it lies where it was dropped before it goes home, as PGM writes a duration; null for
+    /// <see cref="ObjectiveDefaults.FlagRecoverTime"/> on a team's flag and PGM's 30 seconds on nobody's.</summary>
+    public string? RecoverTime { get; init; }
+
+    /// <summary>On a team's flag, the blocks its team brings another team's flag into to capture it, inclusive;
+    /// null for a box round the flag's first post.</summary>
+    public BlockBox? Net { get; init; }
+
+    /// <summary>Whether a team owns it.</summary>
+    [JsonIgnore]
+    public bool Owned => Team.Length > 0;
+
+    /// <summary>What carrying it pays, per second, once the defaults are applied.</summary>
+    [JsonIgnore]
+    public double PaysPerSecond => PointsRate ?? (Owned ? 0 : ObjectiveDefaults.FlagPointsRate);
+
+    /// <summary>What carrying it does, once the defaults are applied.</summary>
+    [JsonIgnore]
+    public string CarrierEffect => Carrier ?? (Owned ? FlagCarriers.None : FlagCarriers.Lowered);
+
+    /// <summary>The banner's dye: the flag's own, else its team's colour as a dye, else white.</summary>
+    public string BannerColor(IEnumerable<TeamDef>? teams) =>
+        Color is { Length: > 0 } color ? color
+        : Owned && teams?.FirstOrDefault(team => IntentNaming.TeamId(team.Id) == IntentNaming.TeamId(Team)) is { } owner
+            ? BlockColors.Normalize(owner.Color).Replace('_', ' ')
+            : "white";
 }
 
 /// <summary>

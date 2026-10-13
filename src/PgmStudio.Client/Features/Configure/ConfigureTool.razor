@@ -114,6 +114,10 @@ else
   {
     <FlagPostsStep @key="@("flags-posts")" />
   }
+  else if (Phase.Id == "match")
+  {
+    <MatchPhase @key="@Phase.Id" />
+  }
   else if (Phase.Id == "review" && step == 0)
   {
     <ReviewPreflightStep @key="@("review-preflight")" />

@@ -106,20 +106,21 @@ and filter unchanged through both the XML and the JSON codec.
 
 ## 7. Authoring a King of the Flag board
 
-`MapIntent.Flags` states King of the Flag: each `FlagIntent` is a name, a colour, its posts — each a point, a
-name and an optional facing — a `PointsRate` (1 by the author's ruling, and on 47 of 55 corpus flags), and
-what carrying it does to the carrier. `FlagGenerator` writes it as one unowned flag over one post: a single
+`MapIntent.Flags` states King of the Flag with flags no team owns: each `FlagIntent` is a name, a colour, its
+posts — each a point, a name and an optional facing — a `PointsRate` (1 by the author's ruling, and on 47 of 55
+corpus flags), and what carrying it does to the carrier. `FlagGenerator` writes it as one unowned flag over one post: a single
 post where it stands at one place, a composite where it stands at several, starting at the first and coming
 back to one of them at random. Like a capture point a flag belongs to nobody, so under a symmetry its posts fan
 by position — each post off the centre gains its images, named on and turned — and a post at the centre stays
 one.
 
-The carrier is one of `FlagCarriers`. `lowered`, the default, gives a pickup kit of `<max-health>` at
+The carrier is one of `FlagCarriers`. `lowered`, the default on a flag nobody owns, gives a pickup kit of `<max-health>` at
 `CarrierHearts` — 6 hearts unstated, 12 health, the corpus's commonest King of the Flag carrier — and a drop kit
 of `<max-health>20`; PGM sets max health back to 20 on respawn too. `absorption` gives absorption III for three
 seconds and needs no drop kit. `boost` gives health boost raising the carrier to `CarrierHearts`, two hearts at a
 time above ten (12 at least), and a forced drop kit takes it away again: a forced kit's effect at duration 0
-removes that effect (`kits/PotionKit.java:28`). Kits carry `<max-health>` through every codec for this.
+removes that effect (`kits/PotionKit.java:28`). `none` gives no kit at all. Kits carry `<max-health>` through
+every codec for this.
 
 A board whose flags pay states a `<score>` limit of 200 where the author states none — the corpus's commonest,
 on 5 of the 10 King of the Flag maps that state one — through `ScoreGenerator`, which writes the one `<score>`
@@ -141,13 +142,36 @@ the walk has to reach: the export refuses a board whose post no spawn can walk t
 On a map read from a world, the Configure tool's Flags phase states the intent: a scanned banner becomes a post,
 and the export refuses a flag that does not start on one (`OB36`, `tools/configure.md`).
 
-## 8. What it refuses
+## 8. Authoring a Capture the Flag board
+
+A `FlagIntent` naming a `Team` is that team's flag, and `FlagGenerator` writes it as Capture the Flag is played
+on 65 corpus maps. It is owned by its team and named for it — "Red Flag" where the intent names none — and its
+colour is the team's, as a dye, unless the intent states one. PGM lets anyone pick a flag up, its own team
+included, so the flag carries a `pickup-filter` allowing everyone but its team, as 152 of the 166 corpus team
+flags do. It pays nothing while carried, since no corpus team flag states a points rate, and carrying it does
+nothing to the carrier unless the intent states a `Carrier`, as 98 of 166 do nothing. A dropped team flag goes
+home after `RecoverTime`, 15 seconds unstated — the corpus's commonest stated time, on 42 flags.
+
+**A team captures in its own base.** Each team owning a flag gains one net, declared beside the flags and taking
+every flag another team owns; a net naming no flag takes every flag, so a team with nobody else's flag to take
+gains none. The net is the flag's `Net` box, or a box reaching two blocks either side of the block the flag's
+first post stands in and three blocks up — 66 of the 116 corpus nets a sweep could place sit at the capturing
+team's own post, none at the captured flag's, and a cylinder of radius 2 or 3 or a 5×3×5 box is the common
+size. A capture pays 1 (122 of 140 nets) to the carrier's team, and the board ends at 3 where the author states
+no score limit, the commonest of the 30 CTF limits. Its `<gamemode>` is `ctf` and its objective reads "Capture
+the enemy's flag!".
+
+A team's flag fans by team as a core does: under a symmetry each other team gains its image — every post and the
+net turned, named and coloured for that team — and a team already owning a flag keeps its own. The world build
+fans it the same way before it stamps, so each team's banner stands in its team's colour.
+
+## 9. What it refuses
 
 A flag that defines its `pickup-kit`, `drop-kit` or `carry-kit` as a child element rather than naming a kit is
 refused (`UnsupportedMapException`): the studio reads kits by id, and an inline kit would be dropped. Three
 corpus maps write one.
 
-## 9. What the corpus builds
+## 10. What the corpus builds
 
 Of the 157 corpus maps carrying `<flags>`, three shapes cover all but four:
 

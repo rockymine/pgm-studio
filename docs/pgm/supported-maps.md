@@ -68,7 +68,7 @@ Swept over every `map.xml` in both corpora — 1,626 directories, which is more 
 round-trip harness runs because it counts the nested category folders too — **1,522 parse**. The 104 refused
 are 37 below the proto floor, 32 for an unread objective module (23 a score box that redeems items, 9
 `payloads`), 27 for a modern world, 5 for a `resize` region, and 3 for a flag whose kit is written inside it
-rather than named (`flags.md` §8). Of the maps that carry a control point or a score module, all 392 also survive the XML round trip
+rather than named (`flags.md` §9). Of the maps that carry a control point or a score module, all 392 also survive the XML round trip
 with every point and every knob unchanged. Of the 39 that carry a shop or a keeper, 35 parse — the other four
 are refused by the gates above, three for a score box that redeems items and one for a 1.21 world — and all 35 survive both
 codecs with every shop id, category, icon and keeper intact.

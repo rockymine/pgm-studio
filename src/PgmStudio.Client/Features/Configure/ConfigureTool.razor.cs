@@ -121,6 +121,8 @@ public partial class ConfigureTool : IDisposable
         "teams" => NonEmptyArray("teams"),
         "build" => Obj("build") is not null,
         _ when ConfigurePhases.IsObjective(phase.Id) => HasObjective(),
+        // Every member of the match has a default, so a board that states none is a board that takes them.
+        "match" => true,
         _ => false,
     };
 

@@ -8,8 +8,9 @@ namespace PgmStudio.Pgm.Tests;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// The King of the Flag slice: one unowned flag paying its rate to whoever carries it, over a post that brings
-/// it back to one of its places at random, and the kits carrying it gives and dropping it undoes.
+/// The flag slice. King of the Flag: one unowned flag paying its rate to whoever carries it, over a post that
+/// brings it back to one of its places at random, and the kits carrying it gives and dropping it undoes. Capture
+/// the Flag: a team's flag, carried off by any other team and captured in that team's net round its own flag.
 /// </summary>
 public sealed class FlagGeneratorTests
 {
@@ -126,5 +127,93 @@ public sealed class FlagGeneratorTests
         var image = posts[2];
         await Assert.That((image.At.X, image.At.Z)).IsEqualTo((-24.5, -0.5));
         await Assert.That(image.Yaw).IsEqualTo(90.0);
+    }
+
+    private static readonly TeamDef[] Teams =
+    [
+        new() { Id = "red-team", Name = "Red", Color = "red" },
+        new() { Id = "blue-team", Name = "Blue", Color = "blue" },
+    ];
+
+    private static FlagIntent Base(string team, double x) => new()
+    {
+        Team = team,
+        Posts = [new FlagPostIntent { Name = "Base", At = new Pt(x + 0.5, 12, 0.5) }],
+    };
+
+    [Test]
+    public async Task A_team_flag_is_owned_coloured_for_its_team_and_its_own_team_cannot_take_it()
+    {
+        var map = Written(new MapIntent
+        {
+            Meta = new MetaIntent { Name = "Two Bases" }, Teams = [.. Teams], Flags = [Base("red-team", -40), Base("blue-team", 40)],
+        });
+
+        var red = map.Flags.Single(flag => flag.Owner == "red-team");
+        await Assert.That((red.Name, red.Color)).IsEqualTo(("Red Flag", "red"));
+        await Assert.That(red.PointsRate).IsNull().Because("a team's flag scores on capture, not while carried");
+        await Assert.That(red.PickupKitId).IsEmpty().Because("carrying a team's flag does nothing unless stated");
+        await Assert.That(red.Post!.RecoverTime).IsEqualTo(ObjectiveDefaults.FlagRecoverTime);
+        var takers = map.Filters[red.PickupFilterId];
+        await Assert.That((takers.Type, takers.Child)).IsEqualTo(("not", "red-team"));
+        await Assert.That(map.DeclaredGamemode).IsEquivalentTo(new[] { Gamemodes.Ctf });
+        await Assert.That(map.Objective).IsEqualTo("Capture the enemy's flag!");
+        await Assert.That(map.Score!.Limit).IsEqualTo(ObjectiveDefaults.CtfScoreLimit);
+    }
+
+    [Test]
+    public async Task Each_team_captures_every_other_team_flag_in_a_net_round_its_own()
+    {
+        var map = Written(new MapIntent { Teams = [.. Teams], Flags = [Base("red-team", -40), Base("blue-team", 40)] });
+
+        await Assert.That(map.FlagNets.Count).IsEqualTo(2);
+        var redFlag = map.Flags.Single(flag => flag.Owner == "red-team").Id;
+        var blueNet = map.FlagNets.Single(net => net.Flags.SequenceEqual([redFlag]));
+        var region = map.Regions[blueNet.RegionId];
+        await Assert.That((region.MinX, region.MaxX)).IsEqualTo(((double?)38, (double?)43))
+            .Because("blue's net reaches two blocks either side of blue's own post, at x 40");
+        await Assert.That((region.MinY, region.MaxY)).IsEqualTo(((double?)12, (double?)15));
+        await Assert.That(blueNet.Points).IsEqualTo(ObjectiveDefaults.FlagNetPoints);
+    }
+
+    [Test]
+    public async Task A_team_flag_fans_to_every_other_team_with_its_net()
+    {
+        var map = Written(new MapIntent
+        {
+            Teams = [.. Teams],
+            Symmetry = new SymmetryIntent { Mode = "rot_180" },
+            Flags = [Base("red-team", -40) with { Net = new BlockBox(-45, 12, -2, -41, 14, 2) }],
+        });
+
+        var blue = map.Flags.Single(flag => flag.Owner == "blue-team");
+        await Assert.That((blue.Name, blue.Color)).IsEqualTo(("Blue Flag", "blue"));
+        await Assert.That(blue.Post!.Point!.Value.X).IsEqualTo(39.5);
+        var redNet = map.Regions[map.FlagNets.Single(net => net.Flags.SequenceEqual([blue.Id])).RegionId];
+        await Assert.That((redNet.MinX, redNet.MaxX)).IsEqualTo(((double?)-45, (double?)-40));
+        var blueNet = map.Regions[map.FlagNets.Single(net => net.Flags.SequenceEqual([map.Flags.Single(flag => flag.Owner == "red-team").Id])).RegionId];
+        await Assert.That((blueNet.MinX, blueNet.MaxX)).IsEqualTo(((double?)41, (double?)46));
+    }
+
+    [Test]
+    public async Task A_rebuild_writes_the_nets_and_the_pickup_filters_once()
+    {
+        var doc = new Dict();
+        var intent = new MapIntent { Teams = [.. Teams], Flags = [Base("red-team", -40), Base("blue-team", 40)] };
+        IntentGenerator.Apply(doc, intent);
+        IntentGenerator.Apply(doc, intent);
+        var map = MapParser.ParseXmlString(XmlWriter.ToXml(Deserializer.FromDict(doc)));
+
+        await Assert.That(map.FlagNets.Count).IsEqualTo(2);
+        await Assert.That(map.Filters.Keys.Count(id => id.EndsWith("-takers", StringComparison.Ordinal))).IsEqualTo(2);
+        await Assert.That(map.Regions.Keys.Count(id => id.EndsWith("-net", StringComparison.Ordinal))).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task A_lone_team_flag_has_no_net_since_a_net_naming_no_flag_takes_every_flag()
+    {
+        var map = Written(new MapIntent { Teams = [.. Teams], Flags = [Base("red-team", -40)] });
+
+        await Assert.That(map.FlagNets).IsEmpty();
     }
 }

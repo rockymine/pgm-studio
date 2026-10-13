@@ -1,5 +1,7 @@
 using System.Globalization;
 using PgmStudio.Domain;
+using PgmStudio.Geom;
+using PgmStudio.Pgm.Editing;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Authoring;
@@ -7,14 +9,19 @@ namespace PgmStudio.Pgm.Authoring;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// The King of the Flag slice of the declarative generator: one unowned <c>&lt;flag&gt;</c> per flag, paying its
-/// points rate to whoever carries it, over one post — composite where it stands at several places, so it comes
-/// back to one of them at random — and the two kits that carrying it gives and dropping it takes away
-/// (<c>docs/pgm/flags.md</c>). Clear-then-build over its own output; a null slice leaves the map's flags alone.
+/// The flag slice of the declarative generator (<c>docs/pgm/flags.md</c>). A flag nobody owns is King of the
+/// Flag's: one <c>&lt;flag&gt;</c> paying its points rate to whoever carries it, over one post — composite where it
+/// stands at several places, so it comes back to one of them at random — and the kits carrying it gives and
+/// dropping it takes away. A team's flag is Capture the Flag's: owned, carried off by any other team, and captured
+/// in that team's net — a region round its own flag's first post taking every other team's flag. Clear-then-build
+/// over its own output; a null slice leaves the map's flags alone.
 /// </summary>
 public static class FlagGenerator
 {
     private const string Key = "flags";
+    private const string NetKey = "flag_nets";
+    private const string TakersSuffix = "-takers";
+    private const string NetSuffix = "net";
 
     public static void Apply(Dict doc, MapIntent intent)
     {
@@ -22,40 +29,100 @@ public static class FlagGenerator
         Clear(doc);
 
         var flags = new List<object?>();
+        var written = new List<(FlagIntent Flag, string Id)>();
         var used = new HashSet<string>();
         foreach (var flag in intent.Flags)
         {
             if (flag.Posts.Count == 0) continue;
-            var baseId = flag.Name.Length > 0 ? IntentNaming.Slug(flag.Name) : "flag";
+            var team = flag.Owned ? intent.Teams?.FirstOrDefault(t => IntentNaming.TeamId(t.Id) == IntentNaming.TeamId(flag.Team)) : null;
+            var name = flag.Name.Length > 0 ? flag.Name
+                : flag.Owned ? $"{(team is { Name.Length: > 0 } ? team.Name : TeamPalette.Label(flag.Team))} Flag" : "";
+            var baseId = name.Length > 0 ? IntentNaming.Slug(name) : "flag";
             var id = baseId;
             for (var n = 2; !used.Add(id); n++) id = $"{baseId}-{n}";
-
-            var (pickup, drop) = CarrierKits(flag, id);
-            var kits = Kits(doc);
-            kits.Add(pickup);
-            if (drop is not null) kits.Add(drop);
 
             var entry = new Dict
             {
                 ["id"] = id,
-                ["color"] = flag.Color,
-                ["points_rate"] = flag.PointsRate,
-                ["pickup_kit"] = pickup["id"],
-                ["post"] = Post(flag.Posts),
+                ["color"] = flag.BannerColor(intent.Teams),
+                ["post"] = Post(flag),
             };
-            if (flag.Name.Length > 0) entry["name"] = flag.Name;
-            if (drop is not null) entry["drop_kit"] = drop["id"];
+            if (name.Length > 0) entry["name"] = name;
+            if (flag.PaysPerSecond > 0) entry["points_rate"] = flag.PaysPerSecond;
+            if (flag.Owned)
+            {
+                var owner = IntentNaming.TeamId(flag.Team);
+                entry["owner"] = owner;
+                // PGM lets anyone pick a flag up, its own team included, so a team's flag names who may.
+                FilterEditor.CreateFilter(doc, new Dict { ["id"] = id + TakersSuffix, ["type"] = "not", ["child"] = owner });
+                entry["pickup_filter"] = id + TakersSuffix;
+            }
+
+            if (CarrierKits(flag, id) is var (pickup, drop))
+            {
+                var kits = Kits(doc);
+                kits.Add(pickup);
+                entry["pickup_kit"] = pickup["id"];
+                if (drop is not null)
+                {
+                    kits.Add(drop);
+                    entry["drop_kit"] = drop["id"];
+                }
+            }
             flags.Add(entry);
+            written.Add((flag, id));
         }
         doc[Key] = flags;
+
+        var nets = Nets(doc, written);
+        if (nets.Count > 0) doc[NetKey] = nets;
+    }
+
+    /// <summary>One net per team owning a flag: its own flag's net box, or a box round that flag's first post,
+    /// taking every flag another team owns. A team with no other team's flag to take has none, since a net naming
+    /// no flag takes every flag.</summary>
+    private static List<object?> Nets(Dict doc, List<(FlagIntent Flag, string Id)> written)
+    {
+        var nets = new List<object?>();
+        var owned = written.Where(w => w.Flag.Owned).ToList();
+        var netted = new HashSet<string>();
+        foreach (var (flag, id) in owned)
+        {
+            var team = IntentNaming.TeamId(flag.Team);
+            if (!netted.Add(team)) continue;
+            var takes = owned.Where(other => IntentNaming.TeamId(other.Flag.Team) != team).Select(other => (object?)other.Id).ToList();
+            if (takes.Count == 0) continue;
+            var region = ObjectiveRegion.Emit(doc, id, flag.Net ?? NetRound(flag.Posts[0]), NetSuffix);
+            nets.Add(new Dict
+            {
+                ["region"] = region,
+                ["points"] = (double)ObjectiveDefaults.FlagNetPoints,
+                ["flags"] = takes,
+            });
+        }
+        return nets;
+    }
+
+    /// <summary>A box round a post: the block its banner stands in, reaching out either side and up.</summary>
+    public static BlockBox NetRound(FlagPostIntent post)
+    {
+        var (x, y, z) = post.BannerBox is { } banner
+            ? (banner.MinX, banner.MinY, banner.MinZ)
+            : ((int)Math.Floor(post.At.X), (int)Math.Floor(post.At.Y), (int)Math.Floor(post.At.Z));
+        const int reach = ObjectiveDefaults.FlagNetReach;
+        return new BlockBox(x - reach, y, z - reach, x + reach, y + ObjectiveDefaults.FlagNetHeight - 1, z + reach);
     }
 
     /// <summary>One place is a single post; several are a composite whose next is chosen at random among
     /// them, starting at the first.</summary>
-    private static Dict Post(List<FlagPostIntent> posts)
+    private static Dict Post(FlagIntent flag)
     {
-        if (posts.Count == 1) return Place(posts[0]);
-        return new Dict { ["posts"] = posts.Select(post => (object?)Place(post)).ToList() };
+        var post = flag.Posts.Count == 1
+            ? Place(flag.Posts[0])
+            : new Dict { ["posts"] = flag.Posts.Select(post => (object?)Place(post)).ToList() };
+        if ((flag.RecoverTime ?? (flag.Owned ? ObjectiveDefaults.FlagRecoverTime : null)) is { Length: > 0 } recover)
+            post["recover_time"] = recover;
+        return post;
     }
 
     /// <summary>One place: the centre of the banner the build stood there, or the stated point where nothing
@@ -73,11 +140,13 @@ public static class FlagGenerator
 
     /// <summary>The kit carrying the flag gives, and the one dropping it gives to undo that — none where the
     /// first undoes itself. PGM sets max health back to 20 on respawn, so a carrier who dies is whole again.</summary>
-    private static (Dict Pickup, Dict? Drop) CarrierKits(FlagIntent flag, string id)
+    private static (Dict Pickup, Dict? Drop)? CarrierKits(FlagIntent flag, string id)
     {
         var pickup = Kit($"{id}-carrier");
-        switch (flag.Carrier)
+        switch (flag.CarrierEffect)
         {
+            case FlagCarriers.None:
+                return null;
             case FlagCarriers.Absorption:
                 pickup["force"] = true;
                 pickup["effects"] = new List<object?> { Effect("absorption", "3s", 2) };
@@ -115,14 +184,23 @@ public static class FlagGenerator
         return kits;
     }
 
-    /// <summary>The flags this slice wrote and the kits they named.</summary>
+    /// <summary>The flags this slice wrote, the kits and filters they named, and the nets and their regions.</summary>
     private static void Clear(Dict doc)
     {
+        if (doc.GetValueOrDefault(NetKey) is List<object?> nets)
+        {
+            ObjectiveRegion.Clear(doc, nets);
+            doc.Remove(NetKey);
+        }
         if (doc.GetValueOrDefault(Key) is not List<object?> previous) return;
-        var kitIds = previous.OfType<Dict>()
+        var written = previous.OfType<Dict>().ToList();
+        var kitIds = written
             .SelectMany(flag => new[] { flag.GetValueOrDefault("pickup_kit") as string, flag.GetValueOrDefault("drop_kit") as string })
             .OfType<string>().ToHashSet();
         Kits(doc).RemoveAll(kit => kit is Dict d && d.GetValueOrDefault("id") is string kitId && kitIds.Contains(kitId));
+        var filters = DocAccess.Filters(doc);
+        foreach (var filter in written.Select(flag => flag.GetValueOrDefault("pickup_filter") as string).OfType<string>())
+            if (filter.EndsWith(TakersSuffix, StringComparison.Ordinal)) filters.Remove(filter);
         doc.Remove(Key);
     }
 }

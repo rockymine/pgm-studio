@@ -5,10 +5,11 @@ namespace PgmStudio.Client.Features.Configure;
 
 using Ctx = AuthoringContext;
 
-// The flag slice (intent.flags) the Flags phase authors: a King of the Flag flag is a name, a colour, the posts
-// it stands at — the first is where it starts, and PGM loads it only where a banner stands there — and what
-// carrying it does to the carrier. Everything else a flag in PGM can say is the generator's convention
-// (docs/pgm/flags.md §7).
+// The flag slice (intent.flags) the Flags phase authors: a flag is a name, the team defending it or nobody, a
+// colour, the posts it stands at — the first is where it starts, and PGM loads it only where a banner stands
+// there — and what carrying it does to the carrier. A flag nobody owns is King of the Flag's and pays while
+// carried; a team's flag is Capture the Flag's, takes its team's colour and is captured in another team's net.
+// Everything else a flag in PGM can say is the generator's convention (docs/pgm/flags.md §7).
 public static class FlagAuthoring
 {
     /// <summary>The numbers a flag takes when the author states none. Served by <c>GET /flag-suggestions</c> so
@@ -29,6 +30,9 @@ public static class FlagAuthoring
     public sealed class Flag
     {
         public string Name = "";
+        /// <summary>The team defending it; empty for a flag nobody owns.</summary>
+        public string Team = "";
+        /// <summary>The banner's dye; empty on a team's flag, which takes its team's colour.</summary>
         public string Color = "white";
         public List<Post> Posts = new();
         public double PointsRate;
@@ -46,12 +50,15 @@ public static class FlagAuthoring
         if (intent["flags"] is not JsonArray arr) return flags;
         foreach (var f in arr.OfType<JsonObject>())
         {
+            var team = Ctx.S(f, "team");
             var flag = new Flag
             {
                 Name = Ctx.S(f, "name"),
-                Color = Ctx.S(f, "color") is { Length: > 0 } color ? color : "white",
+                Team = team,
+                Color = Ctx.S(f, "color") is { Length: > 0 } color ? color : team.Length > 0 ? "" : "white",
                 PointsRate = f["pointsRate"] is null ? defaults.PointsRate : Ctx.D(f, "pointsRate"),
-                Carrier = Ctx.S(f, "carrier") is { Length: > 0 } carrier ? carrier : defaults.Carrier,
+                Carrier = Ctx.S(f, "carrier") is { Length: > 0 } carrier ? carrier
+                    : team.Length > 0 ? FlagCarriers.None : defaults.Carrier,
                 CarrierHearts = Ctx.I(f, "carrierHearts", defaults.CarrierHearts),
             };
             foreach (var p in (f["posts"] as JsonArray ?? []).OfType<JsonObject>())
@@ -80,8 +87,10 @@ public static class FlagAuthoring
             var priorPosts = (o["posts"] as JsonArray ?? []).OfType<JsonObject>()
                 .GroupBy(PostKey).ToDictionary(group => group.Key, group => group.First());
             o["name"] = flag.Name;
-            o["color"] = flag.Color;
-            o["pointsRate"] = flag.PointsRate;
+            // A team's flag takes its team's colour and pays nothing while carried, so it states neither.
+            if (flag.Team.Length > 0) o["team"] = flag.Team; else o.Remove("team");
+            if (flag.Color.Length > 0) o["color"] = flag.Color; else o.Remove("color");
+            if (flag.Team.Length > 0) o.Remove("pointsRate"); else o["pointsRate"] = flag.PointsRate;
             o["carrier"] = flag.Carrier;
             o["carrierHearts"] = flag.CarrierHearts;
             o["posts"] = new JsonArray(flag.Posts.Select(post =>

@@ -1,0 +1,75 @@
+@namespace PgmStudio.Client.Features.Configure
+
+@* Match phase body: how the match ends and how the dead come back — the score and time limits, what decides a
+   match at the bell, respawning, a blitz's lives, rage and the kill height (docs/pgm/match.md §7). Every field
+   is optional: one left blank is the board's own default. *@
+
+<Workspace>
+  <ContentColumn MaxWidth="720">
+
+    <Section Title="How it ends">
+      <div class="section-body">
+        <Field Label="Score limit">
+          <LabelHint>(blank for the board's own: 750 with hills, 3 with team flags, 200 with a flag nobody owns)</LabelHint>
+          <ChildContent>
+            <NumberField Value="@scoreLimit" Min="0" Max="100000" placeholder="the board's own"
+                         ValueChanged="@(value => { scoreLimit = (int)value; Sync(); })"
+                         OnCleared="@(() => { scoreLimit = null; Sync(); })" />
+          </ChildContent>
+        </Field>
+        <div class="field-row">
+          <Field Label="Time limit">
+            <LabelHint>(as PGM writes it: 10m, 8m30s)</LabelHint>
+            <ChildContent>
+              <input class="field-input" type="text" placeholder="none" value="@duration"
+                     @onchange="@(e => { duration = (e.Value?.ToString() ?? "").Trim(); Sync(); })" />
+            </ChildContent>
+          </Field>
+          <Field Label="At the bell">
+            <Select Slim="false" Options="@ResultOptions" Value="@result" ValueChanged="@(value => { result = value; Sync(); })" />
+          </Field>
+        </div>
+        <Field Label="Lives">
+          <LabelHint>(a team with nobody left alive is out; blank for no limit)</LabelHint>
+          <ChildContent>
+            <NumberField Value="@lives" Min="1" Max="100" placeholder="no limit"
+                         ValueChanged="@(value => { lives = (int)value; Sync(); })"
+                         OnCleared="@(() => { lives = null; Sync(); })" />
+          </ChildContent>
+        </Field>
+        <Field Label="Every hit kills">
+          <Select Slim="false" Options="@YesNo" Value="@(rage ? Yes : No)" ValueChanged="@(value => { rage = value == Yes; Sync(); })" />
+        </Field>
+      </div>
+    </Section>
+
+    <Section Title="Coming back">
+      <div class="section-body">
+        <div class="field-row">
+          <Field Label="Respawn after">
+            <LabelHint>(blank for two seconds)</LabelHint>
+            <ChildContent>
+              <input class="field-input" type="text" placeholder="2s" value="@delay"
+                     @onchange="@(e => { delay = (e.Value?.ToString() ?? "").Trim(); Sync(); })" />
+            </ChildContent>
+          </Field>
+          <Field Label="The dead come back">
+            <Select Slim="false" Options="@AutoOptions" Value="@(auto ? Yes : No)" ValueChanged="@(value => { auto = value == Yes; Sync(); })" />
+          </Field>
+        </div>
+        <Field Label="While they wait">
+          <Select Slim="false" Options="@SpectateOptions" Value="@(spectate ? Yes : No)" ValueChanged="@(value => { spectate = value == Yes; Sync(); })" />
+        </Field>
+        <Field Label="Kill height">
+          <LabelHint>(a player falling below it dies with what they carry; blank for the world's own void)</LabelHint>
+          <ChildContent>
+            <NumberField Value="@killHeight" Min="-64" Max="255" placeholder="none"
+                         ValueChanged="@(value => { killHeight = (int)value; Sync(); })"
+                         OnCleared="@(() => { killHeight = null; Sync(); })" />
+          </ChildContent>
+        </Field>
+      </div>
+    </Section>
+
+  </ContentColumn>
+</Workspace>

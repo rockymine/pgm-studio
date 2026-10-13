@@ -3,8 +3,9 @@
 @using PgmStudio.Vocabulary
 @using F = PgmStudio.Client.Features.Configure.FlagAuthoring
 
-@* Flags · posts: a King of the Flag flag starts at a banner the world scan found and comes back to one of its
-   posts at random. Confirm a scanned banner as a post, or place one with the point tool. *@
+@* Flags · posts: a flag starts at a banner the world scan found and comes back to one of its posts at random.
+   Confirm a scanned banner as a post, or place one with the point tool. A flag nobody owns is King of the Flag's;
+   a team's flag is Capture the Flag's. *@
 
 <Workspace>
 
@@ -12,8 +13,9 @@
       <Section Title="Flags">
         <Actions><Badge Class="@(flags.Count > 0 ? "badge--success" : "badge--dim")">@flags.Count flag@(flags.Count == 1 ? "" : "s")</Badge></Actions>
         <ChildContent>
-        <p class="section-desc">A team scores for every second it carries the flag. It starts at its first post,
-          which needs a banner in the world, and comes back to one of its posts at random.</p>
+        <p class="section-desc">A flag nobody owns pays the team carrying it every second. A team's flag is carried
+          off by the others, each of which scores by bringing it home to its own flag. A flag starts at its first
+          post, which needs a banner in the world, and comes back to one of its posts at random.</p>
 
         <div class="panel-list">
           @if (flags.Count == 0) { <div class="list-empty">No flags yet.</div> }
@@ -22,7 +24,7 @@
             var index = i;
             var flag = flags[index];
             <ListRow Compact Selected="selectedFlag == index" @key="index" OnClick="() => SelectFlag(index)">
-              <span class="geo-type-icon" style="--icon-tint: @GameColors.DyeHex(flag.Color)"><i data-lucide="flag"></i></span>
+              <span class="geo-type-icon" style="--icon-tint: @Hex(flag)"><i data-lucide="flag"></i></span>
               <span class="list-label">@NameOf(flag, index)</span>
               <Badge Kind="neutral">@flag.Posts.Count post@(flag.Posts.Count == 1 ? "" : "s")</Badge>
             </ListRow>
@@ -41,7 +43,7 @@
               var index = i;
               var post = current.Posts[index];
               <ListRow Compact Selected="selectedPost == index" @key="index" OnClick="() => SelectPost(index)">
-                <span class="geo-type-icon" style="--icon-tint: @GameColors.DyeHex(current.Color)"><i data-lucide="dot"></i></span>
+                <span class="geo-type-icon" style="--icon-tint: @Hex(current)"><i data-lucide="dot"></i></span>
                 <span class="list-label">@PostName(post, index)</span>
                 @if (index == 0)
                 {
@@ -88,33 +90,43 @@
       @if (SelectedFlag is { } sel)
       {
         <Section @key="selectedFlag">
-          <DetailHeader Icon="flag" IconTint="@GameColors.DyeHex(sel.Color)" Label="@NameOf(sel, selectedFlag)">
-            <Badge Kind="neutral">Nobody owns it</Badge>
+          <DetailHeader Icon="flag" IconTint="@Hex(sel)" Label="@NameOf(sel, selectedFlag)">
+            <Badge Kind="neutral">@(sel.Team.Length > 0 ? $"{TeamName(sel.Team)}'s flag" : "Nobody owns it")</Badge>
           </DetailHeader>
           <div class="section-body">
             <Field Label="Name">
               <input class="field-input" value="@sel.Name" placeholder="e.g. Flag"
                      @onchange="@(e => SetName(sel, e.Value?.ToString() ?? string.Empty))" />
             </Field>
-            <Field Label="Colour">
-              <LabelHint>(the banner a new post stands)</LabelHint>
+            <Field Label="Defended by">
+              <LabelHint>(a team's flag is captured by the others)</LabelHint>
               <ChildContent>
-                <div class="field-pick-row">
-                  <span class="field-swatch" style="--swatch: @GameColors.DyeHex(sel.Color)"></span>
-                  <Select Slim="false" Options="@ColorOptions" Value="@sel.Color" ValueChanged="@(color => SetColor(sel, color))" />
-                </div>
+                <Select Slim="false" Options="@OwnerOptions" Value="@(sel.Team.Length > 0 ? sel.Team : Nobody)"
+                        ValueChanged="@(owner => SetOwner(sel, owner))" />
               </ChildContent>
             </Field>
-            <Field Label="Points a second">
-              <LabelHint>(paid to the team carrying it)</LabelHint>
-              <ChildContent>
-                <NumberField Value="@sel.PointsRate" Min="0.1" Max="10" Step="0.5" ValueChanged="@(rate => SetRate(sel, rate))" />
-              </ChildContent>
-            </Field>
+            @if (sel.Team.Length == 0)
+            {
+              <Field Label="Colour">
+                <LabelHint>(the banner a new post stands)</LabelHint>
+                <ChildContent>
+                  <div class="field-pick-row">
+                    <span class="field-swatch" style="--swatch: @GameColors.DyeHex(sel.Color)"></span>
+                    <Select Slim="false" Options="@ColorOptions" Value="@sel.Color" ValueChanged="@(color => SetColor(sel, color))" />
+                  </div>
+                </ChildContent>
+              </Field>
+              <Field Label="Points a second">
+                <LabelHint>(paid to the team carrying it)</LabelHint>
+                <ChildContent>
+                  <NumberField Value="@sel.PointsRate" Min="0.1" Max="10" Step="0.5" ValueChanged="@(rate => SetRate(sel, rate))" />
+                </ChildContent>
+              </Field>
+            }
             <Field Label="The carrier">
               <Select Slim="false" Options="@CarrierOptions" Value="@sel.Carrier" ValueChanged="@(carrier => SetCarrier(sel, carrier))" />
             </Field>
-            @if (sel.Carrier != FlagCarriers.Absorption)
+            @if (sel.Carrier is FlagCarriers.Lowered or FlagCarriers.Boost)
             {
               <Field Label="Hearts while carrying">
                 <NumberField Value="@sel.CarrierHearts" Min="1" Max="20" ValueChanged="@(hearts => SetHearts(sel, hearts))" />
