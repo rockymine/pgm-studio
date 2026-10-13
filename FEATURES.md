@@ -8735,6 +8735,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
   carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
 
+- **A flag post is a goal the walk reads (`WS87`)** — `NavPoints` reads every place a flag post stands its flag at
+  as a goal of kind `flag`, owned as its flag, so `traversability`, `coverage` and the export's `EX1` walk to it
+  and an unreachable post refuses the export; the dressing pass's waypoints take the same posts.
+  `docs/world-scan/read-backs.md`. (`WS87`)
+
 - **A conquest kit hands out the blocks its board lets a player place (`PG23`)** — the spawn kit's blocks and
   tools follow the build mode: wood, clay and the digging tools on a `void` board, a stack of each named material
   on an `only` board, none on a `never` board; the kill reward follows the stacks. `docs/pgm/new-map-authoring.md`

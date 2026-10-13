@@ -219,8 +219,8 @@ on solid ground — is open wherever the map allows breaking in its column (`ter
 objective answers unreachable rather than sliding sideways to the nearest cell the team may stand on.
 
 **A control point is a goal the reads count, and it is the one nobody owns.** `NavPoints` resolves the places
-a match is played between from all four objective families — a wool, a destroyable, a core and a control
-point — and the reads that quantify over goals (`traversability`, `coverage`, `reach`, the export gate's
+a match is played between from every objective family — a wool, a destroyable, a core, a control point and a
+flag post — and the reads that quantify over goals (`traversability`, `coverage`, `reach`, the export gate's
 `EX1`) take that one set, so a capture board is measured rather than being read as two spawns and a dead
 field. A hill belongs to whoever is standing on it, so it carries **no owner**: the weaker question above is
 a defender's, and every team is simply required to reach a point. It is seated on its capture region, which
@@ -228,6 +228,14 @@ is the pad and the air a body occupies, falling back to the pad alone on a map t
 name is PGM's own — the author's where they wrote one, and `Hill`, `Hill 2`, `Hill 3` off a counter only an
 unnamed point advances (`ControlPointNaming`), so the document's points and an intent's are recognised as
 the same points rather than counted twice.
+
+**A flag post is a goal the reads count too.** `NavPoints` reads every place a flag stands its flag at — a
+post's point, each region it names, and every post of a composite — whether the flag holds its post inline or
+names one declared beside it in `flag_posts`. Each is a goal of kind `flag`, named for its flag and owned as the
+flag is, so an owned flag's attackers must stand at it and its defenders walk up to it, and every team must
+reach an unowned flag's posts; it is seated on the storey its point or its region states, which on a
+studio-built board is the banner's own block. The export's `EX1` refuses a board whose post cannot be walked to,
+as it refuses an unreachable wool, and the dressing pass's waypoints take the same posts.
 
 **A wool is judged where it is, which is not always where the map says.** A wool's point is its stated
 `location`, and on a map whose author never set one that coordinate can lie outside the world entirely — ten

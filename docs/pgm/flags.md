@@ -134,7 +134,9 @@ it stamps, and every image is a banner too. Each banner is a standing banner in 
 post's yaw in sixteenths of a turn from south, in the first air over the ground under the post's column; the
 block is recorded on the post as `BannerBox`, and the post's point is that block's centre, so the point PGM
 reads and the banner it looks for are one block. The ground around a post is a goal's ground to the dressing
-pass, kept clear of cover and of trees, boulders and buildings (`world-export/decoration.md` §3.1).
+pass, kept clear of cover and of trees, boulders and buildings (`world-export/decoration.md` §3.1). A post is a goal
+the walk has to reach: the export refuses a board whose post no spawn can walk to (`EX1`,
+`world-scan/read-backs.md`).
 
 The Configure tool has no Flags phase (`TC15`), so a King of the Flag intent today is stated through
 `PUT /api/map/{slug}/intent`.

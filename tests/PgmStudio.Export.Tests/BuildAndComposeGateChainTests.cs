@@ -88,4 +88,26 @@ public sealed class BuildAndComposeGateChainTests
             .Because($"it answered {result.Refusal?.Message}");
         await Assert.That(result.Xml).IsNotNull();
     }
+
+    /// <summary>A King of the Flag board: a spawn on the left plate and a flag post on the right one.</summary>
+    private static MapIntent FlagIntent() => new()
+    {
+        Teams = [new TeamDef { Id = "red", Color = "red" }, new TeamDef { Id = "blue", Color = "blue" }],
+        Spawns = [new SpawnIntent { Team = "red", Point = new Pt(-40, 2, 0), Yaw = 0 }],
+        Flags = [new FlagIntent { Name = "Flag", Posts = [new FlagPostIntent { Name = "East", At = new Pt(40.5, 0, 0.5) }] }],
+    };
+
+    /// <summary>A flag post is a goal the walk has to reach, so a post standing where nobody can walk refuses
+    /// the export as an unreachable wool does, and the same board on one plate composes.</summary>
+    [Test]
+    public async Task A_flag_post_nobody_can_walk_to_refuses_and_one_on_joined_ground_composes()
+    {
+        var cut = MapExportComposer.BuildAndCompose(Doc(), TwoIslands, FlagIntent());
+
+        await Assert.That(cut.Refusal?.Error).IsEqualTo("not traversable");
+        await Assert.That(cut.Refusal!.Findings.Single().Subjects!).Contains("flag Flag");
+
+        var joined = MapExportComposer.BuildAndCompose(Doc(), OneIsland, FlagIntent());
+        await Assert.That(joined.Refusal).IsNull().Because($"it answered {joined.Refusal?.Message}");
+    }
 }

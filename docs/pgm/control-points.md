@@ -393,8 +393,8 @@ round trip unchanged.
 
 **And the reads count one as a goal.** `NavPoints` resolves a point out of a document's `control_points`
 and `DeclaredGoals` out of an intent's, so `traversability`, `coverage`, `reach` and the export gate quantify
-over all four objective families rather than three. A point carries no owner — a hill belongs to whoever
-stands on it — which is the one difference from the other three: every team is required to reach it, and
+over every objective family, the control point among them. A point carries no owner — a hill belongs to whoever
+stands on it — which is its difference from a wool, a destroyable and a core: every team is required to reach it, and
 none of them gets the weaker "walk up to your own goal" question a defended wool room earns. *Measured on
 `opus5-sparholt`, a three-hill board: coverage went from 3 journeys and **72.1%** of the ground dead to 15
 journeys and **31.4%**, and the walk read from naming two spawns to naming the two spawns and the three

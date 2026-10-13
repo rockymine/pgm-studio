@@ -127,7 +127,7 @@ public static class DressingScope
     }
 
     /// <summary>The cells the map is <b>played between</b>: every spawn, every wool room and its monuments,
-    /// and every destroyable, core and capture point at its anchor. What the ways through the board are
+    /// every destroyable, core and capture point at its anchor, and every flag post. What the ways through the board are
     /// measured between (<c>DR-WAY</c>), and deliberately the same set a coverage read walks its journeys over
     /// (<c>NavPoints</c>) — a corridor is only a corridor because someone travels it, so the two must not
     /// disagree about who travels.</summary>
@@ -145,6 +145,7 @@ public static class DressingScope
         foreach (var destroyable in intent.Destroyables ?? []) At(destroyable.Anchor.X, destroyable.Anchor.Z);
         foreach (var core in intent.Cores ?? []) At(core.Anchor.X, core.Anchor.Z);
         foreach (var point in intent.ControlPoints ?? []) At(point.Anchor.X, point.Anchor.Z);
+        foreach (var post in FlagPosts(intent)) At(post.At.X, post.At.Z);
         return [.. cells.Distinct()];
     }
 
