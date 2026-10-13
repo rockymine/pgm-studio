@@ -116,25 +116,43 @@ public sealed class BlockRolesTests
     }
 
     [Test]
-    public async Task A_flower_is_stood_through_and_a_fence_is_not()
+    public async Task A_flower_is_walked_through_and_a_fence_is_not()
     {
         // Both stand on the ground and only one is in the way, which is why the headroom read cannot use
         // StandsOnGround.
         foreach (var id in new[] { 37, 38, 31, 6, 106, 50, 171, 78, 66, 63, 70, 30 })
-            await Assert.That(BlockRoles.StoodThrough(id)).IsTrue().Because($"block {id}");
-        foreach (var id in new[] { 85, 139, 101, 54, 145, 118, 81, 64, 65, 96, 107, 23, 52 })
+            await Assert.That(BlockRoles.WalkedThrough(id)).IsTrue().Because($"block {id}");
+        foreach (var id in new[] { 85, 139, 101, 54, 145, 118, 81, 96, 167, 23, 52 })
         {
             await Assert.That(BlockRoles.StandsOnGround(id)).IsTrue().Because($"block {id} is decoration");
-            await Assert.That(BlockRoles.StoodThrough(id)).IsFalse().Because($"block {id} stops a player");
+            await Assert.That(BlockRoles.WalkedThrough(id)).IsFalse().Because($"block {id} stops a player");
         }
     }
 
     [Test]
-    public async Task Nothing_a_tone_family_names_is_stood_through()
+    public async Task A_ladder_is_climbed_and_a_door_is_opened_and_both_are_walked_through()
+    {
+        foreach (var id in new[] { 65, 106 })
+        {
+            await Assert.That(BlockRoles.Climbable.Contains(id)).IsTrue().Because($"block {id}");
+            await Assert.That(BlockRoles.WalkedThrough(id)).IsTrue().Because($"block {id}");
+        }
+        foreach (var id in new[] { 64, 71, 193, 197, 107, 183, 187 })
+        {
+            await Assert.That(BlockRoles.Openable.Contains(id)).IsTrue().Because($"block {id}");
+            await Assert.That(BlockRoles.WalkedThrough(id)).IsTrue().Because($"block {id}");
+        }
+        // A trapdoor is as often a floor as a hatch, so it is neither.
+        foreach (var id in new[] { 96, 167 })
+            await Assert.That(BlockRoles.Openable.Contains(id) || BlockRoles.Climbable.Contains(id)).IsFalse();
+    }
+
+    [Test]
+    public async Task Nothing_a_tone_family_names_is_walked_through()
     {
         foreach (var family in TerrainPalette.Families)
             foreach (var block in family.Blocks)
-                await Assert.That(BlockRoles.StoodThrough(block.Id)).IsFalse();
+                await Assert.That(BlockRoles.WalkedThrough(block.Id)).IsFalse();
     }
 
     [Test]

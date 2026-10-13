@@ -125,6 +125,14 @@ The headroom test is what makes a building a building: the terrain under a wall 
 own top is the surface, and crossing it costs the climb. Without it a walled cell reads at the floor the wall
 stands beside, which is how a route comes to walk through a house for nothing.
 
+**A block a player's body passes through is air to the walk, not ground.** One reading,
+`BlockRoles.WalkedThrough`, is what every walk stands on and every headroom test clears: the built walk's
+runs (`WorldColumns.ForWalk`), the scan's segments and the traversability picture. It holds what grows except
+a cactus, what lies flat or hangs on a face — a torch, a sign, a carpet, a banner, a cobweb — what is climbed
+(`BlockRoles.Climbable`: a ladder and a vine) and what is opened (`BlockRoles.Openable`: every door and fence
+gate). So a tuft of grass does not lift the ground a block, a ladder against a wall is not a pillar to stand
+on, and a doorway is a way through. A fence, a wall, iron bars and a trapdoor stop a player and stay solid.
+
 **A prop's volume is out of the walk** (the author's ruling). A tree's trunk and crown and a boulder are
 solid — they take the headroom of the ground they stand on and roof what is under them like any block, so a
 player does not walk through a trunk — but no place is ever offered on them: their blocks are neither

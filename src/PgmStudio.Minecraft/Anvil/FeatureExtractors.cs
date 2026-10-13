@@ -1,6 +1,7 @@
 using fNbt;
 using static PgmStudio.Minecraft.Anvil.Nbt;
 using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Anvil;
 
@@ -42,19 +43,10 @@ public static class FeatureExtractors
 
     private static readonly HashSet<string> ChestTileIds = new(StringComparer.Ordinal) { "Chest", "TrappedChest" };
 
-    // Blocks a player walks through, which segment extraction skips: plants, torches, redstone, signs and
-    // plates; what a player opens or pushes through (doors, fence gates) and the cobweb a wool-room entrance
-    // is guarded with; and the PISTON_MOVING_PIECE marker (36) many CTW maps use as an invisible build boundary.
-    private static readonly HashSet<int> SegmentExclude = new()
-    {
-        6, 31, 32, 37, 38, 39, 40, 50, 55, 59, 63, 65, 66, 69, 70, 71, 72,
-        75, 76, 77, 78, 83, 104, 105, 106, 115, 141, 142, 143, 147, 148, 166,
-        30,                                 // cobweb
-        64, 193, 194, 195, 196, 197,        // wooden doors
-        107, 183, 184, 185, 186, 187,       // fence gates
-        68,                                 // wall sign
-        36,
-    };
+    // Blocks segment extraction skips: what a player walks through (BlockRoles.WalkedThrough), and the two
+    // invisible blocks a map lays that are no ground — the PISTON_MOVING_PIECE marker (36) many CTW maps use as
+    // a build boundary, and the barrier (166).
+    private static bool SegmentExclude(int id) => BlockRoles.WalkedThrough(id) || id is 36 or 166;
 
     /// <summary>Wool blocks (id 35) with colour from the data nibble (→ wools.parquet).</summary>
     public static IEnumerable<WoolFeature> Wools(IEnumerable<AnvilRegion.Chunk> chunks)
@@ -148,7 +140,7 @@ public static class FeatureExtractors
     /// build-region marker laid at the world floor (<see cref="SurfaceExtractors.FloorMarkerIds"/>), the rule
     /// the island scan reads too.</summary>
     private static bool IsSolid(int id, int y) =>
-        id != 0 && !SegmentExclude.Contains(id)
+        id != 0 && !SegmentExclude(id)
         && !(y <= SurfaceExtractors.FloorMarkerMaxY && SurfaceExtractors.FloorMarkerIds.Contains(id));
 
     /// <summary>Whether a block at y=0 is a floor mark: something there, so PGM's void filter reads the column
@@ -176,7 +168,7 @@ public static class FeatureExtractors
     /// stamper builds with (<see cref="PgmStudio.Domain.DoorMaterials"/>), plain glass and glass panes, and the
     /// nether brick fence. A cobweb is among the door materials but is walked through already.</summary>
     public static readonly IReadOnlySet<int> DoorIds = new HashSet<int>(
-        PgmStudio.Domain.DoorMaterials.Breakable.Select(choice => choice.BlockId).Where(id => !SegmentExclude.Contains(id)))
+        PgmStudio.Domain.DoorMaterials.Breakable.Select(choice => choice.BlockId).Where(id => !SegmentExclude(id)))
     {
         20, 102,                            // glass, glass pane
         113,                                // nether brick fence

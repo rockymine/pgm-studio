@@ -8705,6 +8705,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   Together a 1280 × 720 view draws and encodes in about a third of the time, with what the picture holds
   counted exactly as before. `docs/world-scan/read-backs.md`. (`WS82`)
 
+- **Every walk reads one answer for what a player walks through (`WS84`)** — `BlockRoles.WalkedThrough` is what
+  grows except a cactus, what lies flat or hangs on a face, what is climbed (`BlockRoles.Climbable`: a ladder, a
+  vine) and what is opened (`BlockRoles.Openable`: every door and fence gate). The built walk's runs
+  (`WorldColumns.ForWalk`), the scan's segments and the traversability picture's headroom all read it, so a
+  tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
+  carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
+
 - **A layer fanned onto its images turns its blocks with it (`WE146`)** — each cell a fanned shape paints
   carries the orbit image that won it, and what a material states — a ladder's side, a stair's climb, a log's
   axis, a torch, a chest, a fence gate — turns through `BlockGeometry.Turned` by that image's transform:
