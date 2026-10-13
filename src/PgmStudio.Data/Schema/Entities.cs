@@ -592,6 +592,19 @@ public sealed class DoorRunRow
     [Column("world_y_end"), NotNull] public int WorldYEnd { get; set; }
 }
 
+/// <summary>A ladder, vine or water run (M0068), as the feet heights a player climbs or swims through in its
+/// column — a <c>WalkLift</c>.</summary>
+[Table("lift_run")]
+public sealed class LiftRunRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("world_x"), NotNull] public int WorldX { get; set; }
+    [Column("world_z"), NotNull] public int WorldZ { get; set; }
+    [Column("world_y_start"), NotNull] public int WorldYStart { get; set; }
+    [Column("world_y_end"), NotNull] public int WorldYEnd { get; set; }
+}
+
 [Table("map_artifact")]
 public sealed class MapArtifactRow
 {

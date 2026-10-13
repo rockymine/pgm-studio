@@ -18,16 +18,12 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 TDM, KotH, the flag modes, rage, blitz and payload are about holding ground in PvP; where a board gives blocks
 at all, they are a few kit materials players may place and break for cover, and nothing else. King of the Flag
 is the first flag mode the studio authors, and CTF's nets follow it. Every flag post must be walkable to, and
-the walk cannot yet climb a ladder or swim up water, so the walk comes first. pgmvox
+the walk cannot yet take a running jump, so the walk comes first. pgmvox
 (`pgm-studio-mapgen/freeform/lib/pgmvox`) is the reference for both: `read/walk.py`, `core/move.py`,
 `play/objectives.py` `Flag` and `play/rules.py` `Build` and `JumpPad`.
 
 ### The walk a post is reached by
 
-- [ ] **WS85 — The walk climbs and swims up.** A ladder or vine (`BlockRoles.Climbable`) and a water column
-  are vertical moves, and a fall is caught by a climb block, as pgmvox's `walk` does (`read/walk.py:124`,
-  `:145-150`). They are edges in `Walk.Steps` (`Geom/Walk.cs:324`), so every caller of `Walk.Between`,
-  `Field` and `Components` gets them. `docs/world-scan/read-backs.md` §*What a walk costs*.
 - [ ] **WS86 — The walk takes a running jump.** A gap is cleared up to sprint-jump reach less 0.6: 3.85 blocks
   level and 2.78 at one block up, from pgmvox's `jump_reach` and `gap_cleared` (`core/move.py:90`), with a
   3-block-high corridor over the gap. The physics goes in `PgmStudio.Geom` beside `Walk`, and the edge in
@@ -67,7 +63,7 @@ the walk cannot yet climb a ladder or swim up water, so the walk comes first. pg
   `docs/world-export/structures.md`.
 - [ ] **TC15 — Configure's Flags phase.** A scanned banner is confirmed as the flag's starting post and its
   colour; further posts are placed on the ground. A post is refused unless the walk reaches it from every
-  spawn with no block placed (`WS85`, `WS86`), and the starting post is refused without a banner. Saving
+  spawn with no block placed (`WS86`), and the starting post is refused without a banner. Saving
   writes `MapIntent.Flags`. `docs/tools/configure.md`.
 
 ### Blocks off

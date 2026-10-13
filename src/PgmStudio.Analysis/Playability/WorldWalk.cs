@@ -76,7 +76,7 @@ public static class WorldWalk
             open.Where(floor.ContainsKey).Select(cell => new WalkPlace(cell.X, cell.Z, floor[cell])));
 
         return new WalkGround(ground, bridgeable, new CellRect(edit.MinX, edit.MinZ, edit.Width, edit.Height),
-            1, null, clear);
+            1, null, clear, WalkGround.ByCell(segments?.Lifts));
     }
 
     /// <summary>The box a walk is sized to: every declared region, unioned with the terrain's own extent.

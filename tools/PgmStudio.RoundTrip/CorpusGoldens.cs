@@ -178,17 +178,19 @@ public static class FeatureData
         return [.. result.Data.Select(d => d.ToDictionary(kv => kv.Key, kv => (object?)kv.Value))];
     }
 
-    /// <summary>A scanned map's segment index as the database holds it: its segments, floor marks and door
-    /// runs, from the files the scan wrote. Null where the map was not scanned.</summary>
+    /// <summary>A scanned map's segment index as the database holds it: its segments, floor marks, door runs
+    /// and lift runs, from the files the scan wrote. Null where the map was not scanned.</summary>
     public static async Task<SegmentIndex?> ReadIndex(string dir)
     {
         var segments = Path.Combine(dir, "layer_segments.parquet");
         if (!File.Exists(segments)) return null;
         var marks = Path.Combine(dir, "floor_marks.parquet");
         var doors = Path.Combine(dir, "door_runs.parquet");
+        var lifts = Path.Combine(dir, "lift_runs.parquet");
         return new SegmentIndex(await ReadSegments(segments),
                                 File.Exists(marks) ? await ReadFloorMarks(marks) : null,
-                                File.Exists(doors) ? await ReadSegments(doors) : null);
+                                File.Exists(doors) ? await ReadSegments(doors) : null,
+                                File.Exists(lifts) ? await ReadSegments(lifts) : null);
     }
 
     public static async Task<List<(int, int)>> ReadFloorMarks(string path) =>

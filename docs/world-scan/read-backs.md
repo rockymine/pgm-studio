@@ -141,7 +141,9 @@ blocks, then falling least, then climbing least. So a ten-block wall with a ladd
 block and ten blocks of distance where the bare wall costs nine placed, a fall a ladder catches is no drop,
 and a tunnel at the foot of a water column swims up to its surface. Where neither place is on a lift the step
 is priced exactly as before. On a built world the lifts come from the world's own runs
-(`WorldColumns.ForWalk`).
+(`WorldColumns.ForWalk`); on a scanned one they are read in the import's single world pass
+(`FeatureExtractors.LiftRuns` → `lift_run`, `lift_runs.parquet`), and a map scanned before that store has
+none until it is scanned again.
 
 **A prop's volume is out of the walk** (the author's ruling). A tree's trunk and crown and a boulder are
 solid — they take the headroom of the ground they stand on and roof what is under them like any block, so a

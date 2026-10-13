@@ -26,6 +26,10 @@ public readonly record struct FloorMarkFeature(int WorldX, int WorldZ, int Block
 /// blocks there opens it.</summary>
 public readonly record struct DoorRunFeature(int WorldX, int WorldZ, int WorldYStart, int WorldYEnd);
 
+/// <summary>A run a player climbs or swims, as the feet heights it carries them through, inclusive — a
+/// <see cref="PgmStudio.Geom.WalkLift"/> on its column.</summary>
+public readonly record struct LiftRunFeature(int WorldX, int WorldZ, int WorldYStart, int WorldYEnd);
+
 /// <summary>
 /// Locate specific block types across a set of region files — "where are the X blocks and what
 /// are they?". Each method scans the decoded block stream / tile-entity NBT and
@@ -211,6 +215,42 @@ public static class FeatureExtractors
                 }
             }
     }
+
+    /// <summary>Every run a player climbs or swims (→ lift_runs.parquet), as the feet heights it carries them
+    /// through: a ladder or a vine (<see cref="BlockRoles.Climbable"/>) over its own blocks, and a run of water
+    /// over its blocks and the surface on top of it.</summary>
+    public static IEnumerable<LiftRunFeature> LiftRuns(IEnumerable<AnvilRegion.Chunk> chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            var full = AnvilRegion.FullVolume(chunk);
+            for (var col = 0; col < 256; col++)
+            {
+                int x = chunk.ChunkX * 16 + (col & 15), z = chunk.ChunkZ * 16 + (col >> 4);
+                var (runStart, runKind) = (-1, LiftKind.None);
+                for (var y = 0; y <= 256; y++)
+                {
+                    var kind = y < 256 ? KindOf(full[(y << 8) | col]) : LiftKind.None;
+                    if (kind == runKind) continue;
+                    if (runKind != LiftKind.None)
+                    {
+                        var lift = runKind == LiftKind.Climbed
+                            ? PgmStudio.Geom.WalkLift.Climbed(runStart, y - 1)
+                            : PgmStudio.Geom.WalkLift.Swum(runStart, y - 1);
+                        yield return new LiftRunFeature(x, z, lift.Low, lift.High);
+                    }
+                    (runStart, runKind) = (y, kind);
+                }
+            }
+        }
+
+        static LiftKind KindOf(int id) =>
+            BlockRoles.Climbable.Contains(id) ? LiftKind.Climbed
+            : id is 8 or 9 ? LiftKind.Swum
+            : LiftKind.None;
+    }
+
+    private enum LiftKind { None, Climbed, Swum }
 
     /// <summary>All contiguous solid Y-runs per column, inclusive [start,end] (→ layer_segments.parquet).</summary>
     public static IEnumerable<SegmentFeature> Segments(IEnumerable<AnvilRegion.Chunk> chunks, int minRunLength = 1)

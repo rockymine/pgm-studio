@@ -8712,6 +8712,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
   carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
 
+- **The walk climbs a ladder or a vine and swims a water column (`WS85`)** — a `WalkLift` is the feet heights a
+  player moves through vertically in one cell; a step leaves from anywhere on its lift and arrives anywhere on
+  the next, placing fewest blocks, then falling least, then climbing least, with the blocks climbed counted as
+  distance. A ten-block wall with a ladder is crossed for no block, a fall a ladder catches is no drop, and a
+  tunnel at a water column's foot swims up to its surface. Built worlds read lifts from their own runs; scanned
+  ones from `lift_run` (`M0068`), gathered at ingest. `docs/world-scan/read-backs.md`. (`WS85`)
+
 - **A layer fanned onto its images turns its blocks with it (`WE146`)** — each cell a fanned shape paints
   carries the orbit image that won it, and what a material states — a ladder's side, a stair's climb, a log's
   axis, a torch, a chest, a fence gate — turns through `BlockGeometry.Turned` by that image's transform:

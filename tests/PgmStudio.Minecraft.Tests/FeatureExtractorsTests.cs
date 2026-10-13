@@ -233,4 +233,24 @@ public class FeatureExtractorsTests
 
         await Assert.That(FeatureExtractors.DoorRuns([chunk]).Count()).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task A_ladder_is_a_lift_over_its_blocks_and_water_over_its_blocks_and_surface()
+    {
+        var blocks = new byte[4096];
+        for (var y = 0; y < 3; y++) blocks[Idx(0, y, 0)] = 1;
+        for (var y = 3; y <= 9; y++) blocks[Idx(0, y, 0)] = 65;   // a ladder from 3 to 9
+        blocks[Idx(1, 0, 0)] = 1;
+        for (var y = 1; y <= 4; y++) blocks[Idx(1, y, 0)] = 9;    // water from 1 to 4
+        blocks[Idx(2, 5, 0)] = 106;                               // a single vine
+        blocks[Idx(3, 5, 0)] = 1;                                 // stone is no lift
+        var section = new NbtCompound
+        {
+            new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]),
+        };
+        var chunk = new AnvilRegion.Chunk(0, 0, new NbtCompound("Level") { new NbtList("Sections", new[] { section }) });
+
+        var runs = FeatureExtractors.LiftRuns([chunk]).Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)).ToHashSet();
+        await Assert.That(runs.SetEquals(new[] { (0, 0, 3, 9), (1, 0, 1, 5), (2, 0, 5, 5) })).IsTrue();
+    }
 }

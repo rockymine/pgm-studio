@@ -1,4 +1,5 @@
 using PgmStudio.Analysis.Playability;
+using PgmStudio.Analysis.Scan;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Analysis.Tests;
@@ -29,5 +30,19 @@ public sealed class WorldWalkTests
         var path = Walk.Between(zoned.Stand((0, 0))!.Value, zoned.Stand((8, 0))!.Value, zoned);
         await Assert.That(path).IsNotNull();
         await Assert.That(path!.Cost.Blocks).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task A_scanned_ladder_lifts_a_player_up_the_wall_it_stands_against()
+    {
+        // A floor whose top course is 0 at x 0, a wall to 10 at x 1, and a ladder in x 0 from 1 to 10.
+        var segments = new SegmentIndex([(0, 0, 0, 0), (1, 0, 0, 10)], liftRuns: [(0, 0, 1, 10)]);
+        var doc = new Dictionary<string, object?>();
+
+        var walk = WorldWalk.Ground(doc, segments);
+        var path = Walk.Between(walk.Stand((0, 0))!.Value, walk.Stand((1, 0))!.Value, walk);
+
+        await Assert.That(path).IsNotNull();
+        await Assert.That(path!.Cost.Blocks).IsEqualTo(0);
     }
 }
