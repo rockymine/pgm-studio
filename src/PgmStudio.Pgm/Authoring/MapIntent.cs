@@ -694,8 +694,13 @@ public sealed record ControlPointIntent
     /// <summary>What holding it pays its owner, per second.</summary>
     public double Points { get; init; } = ObjectiveDefaults.ControlPointPoints;
 
-    /// <summary>How long a team must hold it alone to take it, as a PGM duration.</summary>
+    /// <summary>How long a team must hold it alone to take it, as a PGM duration. A touch point is taken in
+    /// <see cref="ObjectiveDefaults.TouchCaptureTime"/> whatever this says.</summary>
     public string CaptureTime { get; init; } = ObjectiveDefaults.ControlPointCaptureTime;
+
+    /// <summary>How it is taken (<see cref="CaptureModes"/>): held alone for the capture time, or touched.</summary>
+    [WordSet(typeof(CaptureModes))]
+    public string CaptureMode { get; init; } = CaptureModes.Hold;
 
     /// <summary>The pad's resolved block course — one block tall, filled by the world-export path, the only
     /// place that knows the terrain it was cut into. The generator emits it as the point's progress display

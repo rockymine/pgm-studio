@@ -1,7 +1,9 @@
 using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Authoring;
 
+using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
@@ -32,10 +34,19 @@ using Dict = Dictionary<string, object?>;
 public static class ControlPointGenerator
 {
     private const string Key = "control_points";
+    private const string HeldPrefix = "__held-";
+    private const string TouchSuffix = "-touchers";
 
     public static void Apply(Dict doc, MapIntent intent)
     {
         var list = ObjectiveRegion.List(doc, Key);
+        var filters = DocAccess.Filters(doc);
+        foreach (var id in list.OfType<Dict>().Select(point => point.GetValueOrDefault("player_filter") as string).OfType<string>())
+            if (id.EndsWith(TouchSuffix, StringComparison.Ordinal))
+            {
+                filters.Remove(id);
+                filters.Remove(HeldPrefix + id[..^TouchSuffix.Length]);
+            }
         ObjectiveRegion.Clear(doc, list, "capture_region", "progress_region", "owner_region");
         if (intent.ControlPoints is null) return;
 
@@ -66,6 +77,7 @@ public static class ControlPointGenerator
                 // same way whether two players or ten walk onto the pad.
                 ["time_multiplier"] = 0d,
             };
+            if (point.CaptureMode == CaptureModes.Touch) Touch(doc, entry, id);
             if (point.Name.Length > 0) entry["name"] = point.Name;
             // The pad is where the pie is drawn, so the display region is exactly the course the stamper
             // laid — one block thick, and every block of it colour-affected.
@@ -77,5 +89,22 @@ public static class ControlPointGenerator
                 entry["owner_region"] = ObjectiveRegion.Emit(doc, id, marker, "marker");
             list.Add(entry);
         }
+    }
+
+    // A touch point (pgmvox's TouchPoint): taken in the shortest capture there is by whoever leads on it, with no
+    // neutral state between owners, and played only by the players whose team does not hold it — so a step onto
+    // it takes it however many of the holders stand there, and it stays taken until another team steps on.
+    private static void Touch(Dict doc, Dict entry, string id)
+    {
+        var held = HeldPrefix + id;
+        FilterEditor.CreateFilter(doc, new Dict { ["id"] = held, ["type"] = "objective", ["objective"] = id });
+        var touchers = id + TouchSuffix;
+        FilterEditor.CreateFilter(doc, new Dict { ["id"] = touchers, ["type"] = "not", ["child"] = held });
+        entry["capture_time"] = ObjectiveDefaults.TouchCaptureTime;
+        entry["capture_rule"] = "lead";
+        entry["neutral_state"] = false;
+        entry["incremental"] = false;
+        entry["show_progress"] = false;
+        entry["player_filter"] = touchers;
     }
 }

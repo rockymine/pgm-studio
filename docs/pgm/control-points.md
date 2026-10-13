@@ -441,9 +441,17 @@ An agent authors a capture board by adding one array to the intent it already po
 ]
 ```
 
-Four fields are knobs — `name`, `anchor`, `size` and `points`, plus `captureTime` — and everything else PGM
-will read off the point is §7's convention, written the same on every board. `scoreLimit` sits beside them on
-the intent and defaults to 750 on a board carrying a point that pays.
+Four fields are knobs — `name`, `anchor`, `size` and `points`, plus `captureTime` and `captureMode` — and
+everything else PGM will read off the point is §7's convention, written the same on every board. `scoreLimit`
+sits beside them on the intent and defaults to 750 on a board carrying a point that pays.
+
+**`captureMode` is how a point is taken, `hold` or `touch`** (`CaptureModes`). `hold`, the default, is §7's hill: a
+team holds it alone for its capture time, through a neutral state. `touch` is the arcade point pgmvox writes as
+its `TouchPoint`: a player of any team but the holder's takes it the moment they step on, and it stays theirs
+until another team does. The generator writes it as a capture time of `0.1s` — the shortest there is — under
+`capture-rule="lead"`, with no neutral state, nothing incremental and no progress pie, and a `player-filter` of
+`not(objective)` on the point's own id, so the holders standing on it count for nothing and one step by anyone
+else is enough. It is one point with a different capture, not another kind of objective.
 
 **The pad is cut into the ground rather than raised over it**, and that is the one way the stamper differs
 from every other objective's. A destroyable and a core float — the gap is what a raid climbs and what a core's

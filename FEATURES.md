@@ -8735,6 +8735,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
   carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
 
+- **A touch point is a capture setting (`PG28`)** — `ControlPointIntent.CaptureMode` is `hold` or `touch`
+  (`CaptureModes`); a touch point is taken in `0.1s` under `capture-rule="lead"` with no neutral state, played
+  only by the teams that do not hold it, so a step takes it and it stays taken until another team steps on.
+  `docs/pgm/control-points.md` §9. (`PG28`)
+
 - **A plan-built score box is air (`WE164`)** — the world build clears every score box to air after the dressing
   and every stamp, fanned by team across the board's symmetry, and the map names each box it cleared.
   `docs/pgm/score-boxes.md` §4. (`WE164`)

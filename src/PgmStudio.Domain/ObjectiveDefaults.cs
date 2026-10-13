@@ -78,6 +78,10 @@ public static class ObjectiveDefaults
     public const double ControlPointPoints = 1;
     public const string ControlPointCaptureTime = "5s";
 
+    /// <summary>How long a touch point takes to change hands: the shortest a capture can be, so a step onto it
+    /// is enough (pgmvox's <c>TouchPoint</c>).</summary>
+    public const string TouchCaptureTime = "0.1s";
+
     /// <summary>The score that ends a capture match. 750 is the modal corpus limit (44 of the 95 KotH maps
     /// that state one) and pairs with the rest of these: three points at 1/s is roughly eight minutes of a
     /// team holding two of them.</summary>

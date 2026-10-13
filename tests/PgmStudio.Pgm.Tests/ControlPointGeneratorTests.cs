@@ -2,6 +2,7 @@ using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests;
 
@@ -154,5 +155,54 @@ public sealed class ControlPointGeneratorTests
         await Assert.That(map.Regions.ContainsKey(point.CaptureRegionId)).IsTrue();
         await Assert.That(map.Regions.ContainsKey(point.ProgressRegionId)).IsTrue();
         await Assert.That(map.Score!.Limit).IsEqualTo(ObjectiveDefaults.ControlPointScoreLimit);
+    }
+
+    // ── a touch point ───────────────────────────────────────────────────────────────
+
+    private static MapXml Written(params ControlPointIntent[] points)
+        => MapParser.ParseXmlString(XmlWriter.ToXml(Deserializer.FromDict(Generate(points))));
+
+    [Test]
+    public async Task A_touch_point_changes_hands_on_a_step_with_no_neutral_state()
+    {
+        var point = Written(Sample() with { CaptureMode = CaptureModes.Touch }).ControlPoints.Single();
+
+        await Assert.That(point.CaptureTime).IsEqualTo(ObjectiveDefaults.TouchCaptureTime);
+        await Assert.That(point.CaptureRule).IsEqualTo("lead");
+        await Assert.That(point.NeutralState).IsFalse();
+        await Assert.That(point.Incremental).IsFalse();
+    }
+
+    // The holders are filtered off the point, so a step by anyone else takes it however many holders stand there.
+    [Test]
+    public async Task A_touch_point_is_played_only_by_the_teams_that_do_not_hold_it()
+    {
+        var map = Written(Sample() with { CaptureMode = CaptureModes.Touch });
+        var point = map.ControlPoints.Single();
+
+        var touchers = map.Filters[point.PlayerFilterId];
+        await Assert.That(touchers.Type).IsEqualTo("not");
+        var held = map.Filters[touchers.Child!];
+        await Assert.That((held.Type, held.Objective)).IsEqualTo(("objective", (string?)point.Id));
+    }
+
+    [Test]
+    public async Task A_held_point_keeps_its_neutral_state_and_names_no_player_filter()
+    {
+        var point = Written(Sample()).ControlPoints.Single();
+
+        await Assert.That(point.NeutralState).IsTrue();
+        await Assert.That(point.PlayerFilterId).IsEmpty();
+    }
+
+    [Test]
+    public async Task Applying_a_touch_point_twice_writes_its_filters_once()
+    {
+        var doc = new Dict();
+        var intent = new MapIntent { ControlPoints = [Sample() with { CaptureMode = CaptureModes.Touch }] };
+        ControlPointGenerator.Apply(doc, intent);
+        ControlPointGenerator.Apply(doc, intent);
+
+        await Assert.That(((Dict)doc["filters"]!).Count).IsEqualTo(2);
     }
 }

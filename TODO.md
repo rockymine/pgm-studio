@@ -16,16 +16,12 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 ## Conquest, continued: a box that sends its scorer home, a zone, a touch point
 **Conquest is played for control, and these are the shapes control takes besides a hill and a flag**, as
 pgmvox writes them (`pgm-studio-mapgen/freeform/lib/pgmvox/play/objectives.py`, `play/rules.py`). A score
-box and the portal home are authored; a zone and a touch point remain.
+box and the portal home are authored, and a touch point is a capture setting; a zone remains.
 
 - [ ] **PG27 — A zone, in general.** A region with rules of its own: no placing, no breaking, no harm, entry
   for one team or nobody, a kit given inside — what spawn protection, the build area and the wool room each
   state for one purpose. One `ZoneIntent` those three are written through, after pgmvox's `Zone`
   (`play/rules.py:490`), rather than a fourth special case. `docs/pgm/filter-region-wiring.md`.
-- [ ] **PG28 — A touch point is a capture setting.** `ControlPointIntent` gains a capture word: `hold` (today:
-  neutral state, capture time) or `touch` (taken at once by whoever enters, 0.1s, `capture-rule="lead"`, no
-  neutral state, kept until another team touches it), as pgmvox's `TouchPoint` writes it
-  (`play/objectives.py:706`). `ControlPointGenerator.cs:67`. `docs/pgm/control-points.md`.
 
 ## The programme: a board's source, every change to it, and the words it is stated in
 **The author put this programme first.** The studio keeps the source a board is stated in and every change to
