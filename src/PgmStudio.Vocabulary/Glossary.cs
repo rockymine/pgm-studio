@@ -710,6 +710,9 @@ public static class Glossary
         new("wool room",
             "The room a wool is kept in, defended by the team that owns it.",
             ["wool cage"], ["wool", "room piece", "protection"]),
+        new("zone",
+            "A region with rules of its own: who may enter, what may be built and whether anyone is hurt. Protection, a wool room and a build region are zones.",
+            [], ["protection", "wool room", "build region", "water lane"]),
     ];
 
     /// <summary>The terms a word names: its own term, or the term it is another name for, matched without

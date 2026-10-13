@@ -55,6 +55,7 @@ public static class SymmetryExpander
             ControlPoints = FillControlPoints(intent.ControlPoints, sym, order),
             Flags = FillFlags(intent.Flags, sym, order),
             ScoreBoxes = FillScoreBoxes(intent.ScoreBoxes, teams, sym, order),
+            Zones = FillZones(intent.Zones, teams, sym, order),
         };
     }
 
@@ -274,6 +275,30 @@ public static class SymmetryExpander
                 var team = teams[(index + k) % teams.Count];
                 if (!have.Add(team.Id)) continue;
                 result.Add(src with { Team = team.Id, Box = TransformBox(src.Box, sym, k)!.Value });
+            }
+        }
+        return result;
+    }
+
+    /// <summary>Zones fanned across the orbit: a team's zone onto every other team's image of it, a team already
+    /// holding one keeping its own, and a zone with no team onto its images by position, as a build region is.</summary>
+    private static List<ZoneIntent>? FillZones(List<ZoneIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
+    {
+        if (authored is null) return null;
+        var result = new List<ZoneIntent>();
+        var owned = authored.Where(zone => zone.Team.Length > 0).ToList();
+        var have = new HashSet<(string Id, string Team)>(owned.Select(zone => (zone.Id, zone.Team)));
+        foreach (var zone in authored)
+        {
+            if (zone.Team.Length == 0) { result.Add(zone with { Area = OrbitRects(zone.Area, sym, order) }); continue; }
+            result.Add(zone);
+            var index = IndexOfTeam(teams, zone.Team);
+            if (index < 0) continue;
+            for (var k = 1; k < order; k++)
+            {
+                var team = teams[(index + k) % teams.Count];
+                if (!have.Add((zone.Id, team.Id))) continue;
+                result.Add(zone with { Team = team.Id, Area = [.. zone.Area.Select(rect => TransformRect(rect, sym, k))] });
             }
         }
         return result;

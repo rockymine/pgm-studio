@@ -97,6 +97,11 @@ them one rather than with the contract work that shipped them.
   (`XmlWriter.cs:879`); a safe pad adds pgmvox's fall variable and fall-damage deny (`play/rules.py:477`). The
   launch is checked against its landing with pgmvox's `solve_launch` (`core/move.py`), ported beside
   `PgmStudio.Geom.Jump`. 215 corpus maps write `velocity=`. `docs/pgm/new-map-authoring.md`.
+- [ ] **G292 — A plan states a zone of rules.** `PlanZone` states build regions and water lanes; a third kind,
+  with `ZoneIntent`'s rules (`enter`, `place`, `break`, `harm`, `kit`), compiles into `MapIntent.Zones`
+  (`PlanCompiler.cs:413`). Blocked on the layout law: BZ5 forbids every zone touching a spawn piece and the BZ
+  rules read every zone a plan states (`PlanValidator.cs:686`), so a rule zone needs its own place in
+  `docs/generator/rules.md`, amended by its correction protocol. `docs/pgm/zones.md` §3.
 - [ ] **PG31 — A spawn keeps every region it states.** `Spawn.Region` holds one region, so a spawn written
   with several `<region>` children keeps the first and loses the rest on read — 83 spawns in 34 corpus maps
   (`skill_issue`'s defenders spawn at either end). A portal naming a lost one exports a reference to nothing.

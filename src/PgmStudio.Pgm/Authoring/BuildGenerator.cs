@@ -101,10 +101,7 @@ public static class BuildGenerator
     /// <summary>One rule over the whole map, deciding every block placed or broken by
     /// <paramref name="filter"/>. Using a block — a door, a button, a chest — is left alone.</summary>
     private static void ApplyEverywhere(Dict doc, string filter) =>
-        ApplyRuleEditor.CreateApplyRule(doc, new Dict
-        {
-            ["block_place"] = filter, ["block_break"] = filter, ["region"] = "everywhere", ["message"] = EditMessage,
-        });
+        ZoneWriter.Rules(doc, "everywhere", new ZoneRules { BlockPlace = filter, BlockBreak = filter, EditMessage = EditMessage });
 
     /// <summary>The filter an <see cref="BuildModes.Only"/> board's rule decides by: any of its materials, or
     /// <c>never</c> where it names none.</summary>
@@ -155,10 +152,9 @@ public static class BuildGenerator
         FilterEditor.CreateFilter(doc, new Dict { ["id"] = PlaceVoidLeaf, ["type"] = "void" });
         FilterEditor.CreateFilter(doc, new Dict { ["id"] = PlaceVoidFilter, ["type"] = "not", ["child"] = PlaceVoidLeaf });
         EnsureBreakVoidFilter(doc);
-        ApplyRuleEditor.CreateApplyRule(doc, new Dict
+        ZoneWriter.Rules(doc, "not-build-area", new ZoneRules
         {
-            ["block_place"] = PlaceVoidFilter, ["block_break"] = BreakVoidFilter,
-            ["region"] = "not-build-area", ["message"] = VoidMessage,
+            BlockPlace = PlaceVoidFilter, BlockBreak = BreakVoidFilter, EditMessage = VoidMessage,
         });
     }
 

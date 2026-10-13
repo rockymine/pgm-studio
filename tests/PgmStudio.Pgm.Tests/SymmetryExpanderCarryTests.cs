@@ -56,6 +56,7 @@ public sealed class SymmetryExpanderCarryTests
         }],
         Flags = [new FlagIntent { Name = "Flag", Posts = [new FlagPostIntent { Name = "Side", At = new Pt(0.5, 12, 30.5) }] }],
         ScoreBoxes = [new ScoreBoxIntent { Team = "red-team", Box = new BlockBox(28, 10, -2, 32, 13, 2) }],
+        Zones = [new ZoneIntent { Id = "lobby", Area = [new Rect(-4, -4, 4, 4)], Harm = false }],
         ControlPoints = [new ControlPointIntent
         {
             Name = "Side", Anchor = new Pt(0, 12, 30), Size = 7,

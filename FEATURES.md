@@ -8735,6 +8735,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
   carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
 
+- **A zone, in general (`PG27`)** — one writer for every region with rules of its own (`ZoneWriter`): a spawn's
+  protection, a wool room and the build region's void rule are written through it with their output unchanged,
+  and `MapIntent.Zones` states the rest — who may enter (`ZoneEntries`), placing, breaking, harm through the damage
+  module, and a kit inside — fanned by team or by position, ahead of the build rules. `docs/pgm/zones.md`. (`PG27`)
+
 - **The damage module survives the round trip (`PG32`)** — `<damage>` is read, written and stored (`damage`,
   `M0073`): every filter of every element in order, inline or named, and the two actions by id. All 106
   parseable corpus maps with the module write it back unchanged through both codecs. `docs/pgm/damage.md`. (`PG32`)

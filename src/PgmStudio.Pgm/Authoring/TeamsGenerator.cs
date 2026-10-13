@@ -197,13 +197,10 @@ public static class TeamsGenerator
             {
                 // One protection rect is the region itself; several union into it (the buildable-area pattern).
                 var protId = $"{slug}-spawn";
-                EmitRectUnion(doc, protId, "spawn", sp.Protection);
+                ZoneWriter.Region(doc, protId, "spawn", sp.Protection);
                 // Keep enemies out, per team: a team id is itself the filter matching its members. The block
                 // protection is shared, on the spawns region.
-                ApplyRuleEditor.CreateApplyRule(doc, new Dict
-                {
-                    ["enter"] = IntentNaming.TeamId(sp.Team), ["region"] = protId, ["message"] = ProtectionMessage,
-                });
+                ZoneWriter.Rules(doc, protId, new ZoneRules { Enter = IntentNaming.TeamId(sp.Team), EnterMessage = ProtectionMessage });
                 protIds.Add(protId);
             }
         }
@@ -214,31 +211,8 @@ public static class TeamsGenerator
         if (protIds.Count > 0)
         {
             var spawnsId = RegionEditor.Gather(doc, SpawnOreProtection.SpawnsId, protIds);
-            ApplyRuleEditor.CreateApplyRule(doc, new Dict
-            {
-                ["block"] = "never", ["region"] = spawnsId, ["message"] = BlockProtectionMessage,
-            });
+            ZoneWriter.Rules(doc, spawnsId, new ZoneRules { Block = "never", EditMessage = BlockProtectionMessage });
         }
-    }
-
-    // Emit a multi-rect footprint as the region <paramref name="id"/>: a single rect becomes <c>id</c>
-    // itself; several become <c>id-1…id-n</c> rectangles unioned into <c>id</c>. Callers reference <c>id</c>.
-    private static void EmitRectUnion(Dict doc, string id, string category, List<Rect> rects)
-    {
-        Dict RectDict(string rid, Rect r) => new()
-        {
-            ["type"] = "rectangle", ["id"] = rid, ["category"] = category,
-            ["coords"] = new Dict { ["min_x"] = r.MinX, ["min_z"] = r.MinZ, ["max_x"] = r.MaxX, ["max_z"] = r.MaxZ },
-        };
-        if (rects.Count == 1) { RegionEditor.CreateRegion(doc, RectDict(id, rects[0])); return; }
-        var rectIds = new List<string>();
-        for (var i = 0; i < rects.Count; i++)
-        {
-            var rid = $"{id}-{i + 1}";
-            RegionEditor.CreateRegion(doc, RectDict(rid, rects[i]));
-            rectIds.Add(rid);
-        }
-        RegionEditor.Gather(doc, id, rectIds);
     }
 
     // ── observer (<default>) spawn ─────────────────────────────────────────────────────

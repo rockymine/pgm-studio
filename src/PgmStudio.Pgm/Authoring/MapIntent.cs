@@ -73,6 +73,12 @@ public sealed record MapIntent
     /// as a spawn does. Null leaves the map's boxes untouched.</summary>
     public List<ScoreBoxIntent>? ScoreBoxes { get; init; }
 
+    /// <summary>The zones the author states beside the ones the other slices write — a region with rules of its
+    /// own: who may enter, whether blocks are placed or broken there, whether anyone is hurt, a kit given inside
+    /// (<c>docs/pgm/zones.md</c>). A team's zone fans by team; one with no team orbits by position, as a build
+    /// region does. Null leaves the map's zones untouched.</summary>
+    public List<ZoneIntent>? Zones { get; init; }
+
     /// <summary>The shops this board sells from, each with the keeper that opens it. <b>They do not fan by
     /// team and they carry no coordinates</b>: a shop is one catalogue for the whole map, and its keeper is
     /// placed by <see cref="ShopGenerator"/> at every team's spawn — one per shop per spawn, standing on the
@@ -745,6 +751,45 @@ public sealed record FlagIntent
     /// while carrying it. A boost raises health two hearts at a time, so it takes the even number at or over
     /// this above ten.</summary>
     public int CarrierHearts { get; init; } = ObjectiveDefaults.FlagCarrierHearts;
+}
+
+/// <summary>
+/// A zone: a region with rules of its own (<c>docs/pgm/zones.md</c>). What it leaves unsaid it leaves alone, so a
+/// zone that states nothing but a kit gives the kit and changes nothing else.
+/// </summary>
+public sealed record ZoneIntent
+{
+    /// <summary>What the map calls the zone; its region is <c>zone-</c> and this.</summary>
+    public string Id { get; init; } = "";
+
+    /// <summary>The rects it covers, unioned.</summary>
+    public List<Rect> Area { get; init; } = new();
+
+    /// <summary>The team it belongs to, or empty for none. A team's zone fans by team under a symmetry, and is what
+    /// <see cref="ZoneEntries.Team"/> lets in.</summary>
+    public string Team { get; init; } = "";
+
+    /// <summary>Who may walk in (<see cref="ZoneEntries"/>).</summary>
+    [WordSet(typeof(ZoneEntries))]
+    public string Enter { get; init; } = ZoneEntries.Anyone;
+
+    /// <summary>What a player turned away at its edge is told.</summary>
+    public string EnterMessage { get; init; } = "";
+
+    /// <summary>Whether a block may be placed in it.</summary>
+    public bool Place { get; init; } = true;
+
+    /// <summary>Whether a block may be broken in it.</summary>
+    public bool Break { get; init; } = true;
+
+    /// <summary>What a player refused an edit is told.</summary>
+    public string EditMessage { get; init; } = "";
+
+    /// <summary>Whether a player inside may be hurt.</summary>
+    public bool Harm { get; init; } = true;
+
+    /// <summary>The kit given to whoever is inside, by id, or empty for none.</summary>
+    public string Kit { get; init; } = "";
 }
 
 /// <summary>
