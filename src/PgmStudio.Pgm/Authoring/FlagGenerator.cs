@@ -58,9 +58,14 @@ public static class FlagGenerator
         return new Dict { ["posts"] = posts.Select(post => (object?)Place(post)).ToList() };
     }
 
+    /// <summary>One place: the centre of the banner the build stood there, or the stated point where nothing
+    /// was built.</summary>
     private static Dict Place(FlagPostIntent post)
     {
-        var place = new Dict { ["point"] = new Dict { ["x"] = post.At.X, ["y"] = post.At.Y, ["z"] = post.At.Z } };
+        var (x, y, z) = post.BannerBox is { } banner
+            ? (banner.MinX + 0.5, (double)banner.MinY, banner.MinZ + 0.5)
+            : (post.At.X, post.At.Y, post.At.Z);
+        var place = new Dict { ["point"] = new Dict { ["x"] = x, ["y"] = y, ["z"] = z } };
         if (post.Name.Length > 0) place["name"] = post.Name;
         if (post.Yaw is { } yaw) place["yaw"] = yaw.ToString("0.##", CultureInfo.InvariantCulture);
         return place;

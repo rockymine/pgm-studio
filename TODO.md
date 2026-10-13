@@ -23,12 +23,11 @@ is the reference for the rest: `play/objectives.py` `Flag` and `play/rules.py` `
 
 ### The flag
 
-- [ ] **WE163 — A plan-built flag post stamps its banner.** PGM refuses to load a flag with no banner at its
-  starting post (`Flag.java:121`, `ModuleLoadException`) and copies the banner's colour, patterns and facing
-  into the carried flag. `FlagStamper` places a standing banner in the flag's colour facing the post's yaw,
-  through a banner tile entity beside `SignBuilder`, with solid ground under every post, and fills
-  `BannerBox`. pgmvox's `Flag` stamps nothing, so its flag boards need a hand-placed banner.
-  `docs/world-export/structures.md`.
+- [ ] **WS87 — A flag post is a goal the reads count.** `NavPoints.Of` reads spawns, wools, destroyables, cores
+  and control points, so the export's `EX1`, `coverage` and `reach` never walk to a flag post. Each post of
+  `flags[].post` (a point, or every child of a composite) becomes a `NavPoint` of kind `post`, owned by the
+  flag's `owner`, seated on its point; `DressingScope.WaypointsOf` takes the same posts, since it must agree
+  with `NavPoints`. Re-record `--goldens`: 148 corpus flag maps gain goals. `docs/world-scan/read-backs.md`.
 - [ ] **TC15 — Configure's Flags phase.** A scanned banner is confirmed as the flag's starting post and its
   colour; further posts are placed on the ground. A post is refused unless the walk reaches it from every
   spawn with no block placed, and the starting post is refused without a banner. Saving

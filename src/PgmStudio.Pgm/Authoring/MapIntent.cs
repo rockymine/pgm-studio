@@ -752,6 +752,11 @@ public sealed record FlagPostIntent
 
     /// <summary>Which way the banner faces, in degrees, or null for the way it stands in the world.</summary>
     public double? Yaw { get; init; }
+
+    /// <summary>The block the post's banner was stood in — filled by the world-export path, the only place that
+    /// knows the ground under the post. The flag's post point is the centre of it, so the banner PGM looks for
+    /// and the point it looks at are the one block. Null on an intent that has not been through the build.</summary>
+    public BlockBox? BannerBox { get; init; }
 }
 
 /// <summary>

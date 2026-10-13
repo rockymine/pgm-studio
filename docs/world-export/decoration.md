@@ -319,8 +319,8 @@ own ground (§3.1) and nothing else.
 
 ### 3.1 The ground a goal is read against
 
-A destroyable, a core and a capture point are the three objectives with no room and no protection region, so
-nothing else holds ground around them — and what they need held is not the same thing a spawn needs. A
+A destroyable, a core, a capture point and a flag post are the objectives with no room and no protection
+region, so nothing else holds ground around them — and what they need held is not the same thing a spawn needs. A
 spawn's ground is **forbidden**: a prop there breaks play. A goal's ground is **kept open**, which is a
 narrower claim. Grass, fern and flowers grow across it and under a floating monument exactly as they grow
 anywhere, because none of them changes what a player can see or reach, and a monument standing in a ring of

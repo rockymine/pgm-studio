@@ -8735,6 +8735,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
   carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
 
+- **A plan-built flag post stands its banner (`WE163`)** — `FlagStamper` stands a banner in the flag's colour at
+  every post, turned to its yaw, in the first air over the ground; the build fans flag posts across the board's
+  symmetry before stamping, the post point is the banner's block centre, and a post's ground is a goal's to the
+  dressing pass. `docs/pgm/flags.md` §7. (`WE163`)
+
 - **Banners are gathered at import as the places a flag could start (`WS83`)** — `FeatureExtractors.Banners`
   reads every standing and wall banner in the single world pass, with the way it faces, its base dye and its
   patterns, into `flag_candidate` (`M0071`); the count is `flag_candidates` on the ingest responses, and `GET

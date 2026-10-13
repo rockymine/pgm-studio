@@ -41,9 +41,9 @@ attribute is optional and defaults as the table says.
 | `show-respawn-on-pickup` | false | |
 | `flag-proximity-metric`, `net-proximity-metric` | closest kill, closest player | the sidebar's distance |
 
-A flag is not loaded unless a **banner** stands at its starting post. `Flag` looks at the block under each
-point of the default post's fallback, and failing to find a standing or wall banner throws "must have a banner
-at its default post" (`flag/Flag.java:104`–`:124`). The banner's base colour, patterns and facing are copied
+A flag is not loaded unless a **banner** stands at its starting post. `Flag` looks at the block each point of
+the default post's fallback is in, or every block of a post's region, and failing to find a standing or wall
+banner throws "must have a banner at its default post" (`flag/Flag.java:104`–`:124`). The banner's base colour, patterns and facing are copied
 into the flag players carry, and an unset `color` is the banner's base colour (`:157`). At runtime the flag is
 always placed as a standing banner, on a sea lantern where the block under it cannot hold one.
 
@@ -127,9 +127,17 @@ a capture point and a flag both pay into. Its `<gamemode>` is `kotf`, since PGM 
 objective reads "Hold the flag!". It carries no wool, destroyable or core, so it is not built on
 (`new-map-authoring.md` §5c).
 
-PGM loads none of it until a banner stands at each flag's first post. A plan-built board does not stamp one yet
-(`WE163`) and the Configure tool has no Flags phase (`TC15`), so a King of the Flag intent today is stated through
-`PUT /api/map/{slug}/intent` over a world whose banners the author placed.
+PGM loads none of it until a banner stands at each flag's first post, so the world build stands one at every
+post (`FlagStamper`, `WorldBuilder.StampFlags`). Flags are stated on the intent alone, so the build fans their
+posts across the board's symmetry itself — the intent's, or the layout's where the intent states none — before
+it stamps, and every image is a banner too. Each banner is a standing banner in the flag's colour, turned to the
+post's yaw in sixteenths of a turn from south, in the first air over the ground under the post's column; the
+block is recorded on the post as `BannerBox`, and the post's point is that block's centre, so the point PGM
+reads and the banner it looks for are one block. The ground around a post is a goal's ground to the dressing
+pass, kept clear of cover and of trees, boulders and buildings (`world-export/decoration.md` §3.1).
+
+The Configure tool has no Flags phase (`TC15`), so a King of the Flag intent today is stated through
+`PUT /api/map/{slug}/intent`.
 
 ## 8. What it refuses
 

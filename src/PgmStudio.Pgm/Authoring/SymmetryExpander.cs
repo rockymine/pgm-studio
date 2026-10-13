@@ -322,6 +322,9 @@ public static class SymmetryExpander
     /// <summary>Flags stated once each, belonging to nobody, with their posts fanned across <paramref name="sym"/>
     /// as capture points are: every image of a post added after the authored ones and named on, its facing
     /// turned with it, and one already standing where an image would go taken as that image.</summary>
+    public static List<FlagIntent>? FillFlags(List<FlagIntent>? authored, SymmetryIntent sym) =>
+        IsKnown(sym.Mode) ? FillFlags(authored, sym, Order(sym.Mode)) : authored;
+
     private static List<FlagIntent>? FillFlags(List<FlagIntent>? authored, SymmetryIntent sym, int order)
     {
         if (authored is null) return null;
@@ -347,6 +350,7 @@ public static class SymmetryExpander
                         Name = src.Name.Length > 0 ? $"{src.Name} {k + 1}" : "",
                         At = at,
                         Yaw = src.Yaw is { } yaw ? TransformYaw(yaw, sym, k) : null,
+                        BannerBox = TransformBox(src.BannerBox, sym, k),
                     });
                 }
             return result;

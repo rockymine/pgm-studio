@@ -40,12 +40,22 @@ public static class BlockColors
     private static readonly Dictionary<string, int> ColorToBlockDamage =
         BlockDamageToColor.ToDictionary(kv => kv.Value, kv => kv.Key);
 
+    private static readonly Dictionary<string, int> ColorToDyeDamage =
+        DyeDamageToColor.ToDictionary(kv => kv.Value, kv => kv.Key);
+
     /// <summary>Colour slug for a coloured-block damage nibble; unknown damage falls back to <c>white</c>.</summary>
     public static string BlockColor(int damage) => BlockDamageToColor.GetValueOrDefault(damage, "white");
 
     /// <summary>Coloured-block damage nibble for a colour slug; unknown falls back to <c>0</c> (white). The
     /// same 0–15 scale applies to wool (35), stained clay (159), and stained glass + panes (95/160).</summary>
     public static int BlockDamage(string color) => ColorToBlockDamage.GetValueOrDefault(Normalize(color), 0);
+
+    /// <summary>Colour slug for a dye damage — the scale a banner's <c>Base</c> and pattern colours are written
+    /// in; unknown damage falls back to <c>white</c>.</summary>
+    public static string DyeColor(int damage) => DyeDamageToColor.GetValueOrDefault(damage, "white");
+
+    /// <summary>Dye damage for a colour slug; unknown falls back to <c>15</c> (white).</summary>
+    public static int DyeDamage(string color) => ColorToDyeDamage.GetValueOrDefault(Normalize(color), 15);
 
     /// <summary>Normalize a colour name to its canonical slug: lowercased, spaces/dashes to <c>_</c>, then
     /// display-name and chat-colour aliases mapped to their coloured-block equivalent (e.g. "Dark Aqua" →

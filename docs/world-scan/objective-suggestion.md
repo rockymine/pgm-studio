@@ -264,7 +264,7 @@ scored.
 `FeatureExtractors.Banners` reads each one in the import's single world pass, off its tile entity and the block
 it is in: the block (a standing banner, 176, or a wall banner, 177 — a tile entity over anything else is a
 leftover and is skipped), the data value that says which way it faces, its base dye and its patterns. A
-banner's dye is numbered the other way round from a wool's, so dye `d` is `WoolColors.All[15 − d]`. The rows
+banner's colours are dye damages, numbered the other way round from a wool's (`BlockColors.DyeColor`). The rows
 land in **`flag_candidate`** (`M0071`, `FlagCandidateStore`), delete-then-insert per map like the core
 candidates, and their count is `flag_candidates` on all three ingest responses.
 

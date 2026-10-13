@@ -102,6 +102,13 @@ public static class WorldBuilder
             Destroyables = intent.Destroyables?.Select((d, i) => d with { Stamp = Seed(d.Stamp, "destroyable", i) }).ToList(),
             Cores = intent.Cores?.Select((c, i) => c with { Stamp = Seed(c.Stamp, "core", i) }).ToList(),
             ControlPoints = intent.ControlPoints?.Select((p, i) => p with { Stamp = Seed(p.Stamp, "controlpoint", i) }).ToList(),
+            Flags = intent.Flags?.Select((flag, f) => flag with
+            {
+                Posts = [.. flag.Posts.Select((post, i) => post with
+                {
+                    Stamp = !string.IsNullOrEmpty(post.Stamp.Kind) ? post.Stamp : new StampId("flagpost", $"{f}-{i}", 0),
+                })],
+            }).ToList(),
             Structures = intent.Structures is not { } structures ? null : new StructureIntent
             {
                 RedstoneLines = [.. structures.RedstoneLines.Select((l, i) => l with { Stamp = Seed(l.Stamp, "redstoneline", i) })],
@@ -323,6 +330,15 @@ public static class WorldBuilder
         // pad already laid is a pad the finish leaves alone. Laid after it, the pad would be painted over.
         List<ControlPointIntent>? resolvedPoints =
             StampControlPoints(world, terrain, intent.ControlPoints, provenance);
+        // The board's symmetry, read once: the flag posts below fan across it, the painter folds every cell into
+        // the primary image before a pattern samples it (TP21), and the dressing pass fans each prop across it.
+        var symmetry = DressingScope.SymmetryOf(layoutJson);
+        // Flags are stated on the intent alone, never fanned by a refinement, so their posts are fanned here: a
+        // post's image is a banner PGM looks for as much as the post is.
+        var flagSymmetry = intent.Symmetry
+            ?? (symmetry.Mode is { } mode ? new SymmetryIntent { Mode = mode, CenterX = symmetry.CenterX, CenterZ = symmetry.CenterZ } : null);
+        var resolvedFlags = StampFlags(world, terrain,
+            flagSymmetry is null ? intent.Flags : SymmetryExpander.FillFlags(intent.Flags, flagSymmetry), provenance);
 
         // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
@@ -331,9 +347,6 @@ public static class WorldBuilder
         // TerrainThemeScope (a shape override, else the map default — docs/world-export/terrain-painting.md
         // TP10); team ownership is read through TeamTerritory — the canonical islands_json decomposition plus
         // the stored/pre-filled IslandTeams — so the tint agrees with configure.
-        // The board's symmetry, read once and used twice: the painter folds every cell into the primary image
-        // before a pattern samples it (TP21), and the dressing pass below fans each prop across the same orbit.
-        var symmetry = DressingScope.SymmetryOf(layoutJson);
         // EVERY layer is painted over its own span, made or not. A pass resolves its bands between a floor
         // and a top, and handing it the bedrock course for a storey standing at y20 gives that storey's fill
         // band the twenty courses beneath it — a lower layer's finished ground included. Nothing but the
@@ -500,6 +513,7 @@ public static class WorldBuilder
             Destroyables = resolvedDestroyables,
             Cores = resolvedCores,
             ControlPoints = resolvedPoints,
+            Flags = resolvedFlags,
         };
 
         // One list, in build order: what the build could not raise as authored — a goal over the ceiling, a
@@ -722,6 +736,24 @@ public static class WorldBuilder
             resolved.Add(point with { Size = size, PadBox = pad, CaptureBox = capture });
         }
         return resolved;
+    }
+
+    /// <summary>Stand each flag's banner at every post, on the ground under it, and claim the cell, so the post
+    /// the map names is the banner PGM looks for (<see cref="FlagStamper"/>).</summary>
+    private static List<FlagIntent>? StampFlags(
+        VoxelWorld world, BuiltTerrain terrain, List<FlagIntent>? flags, WorldProvenance provenance)
+    {
+        if (flags is null) return null;
+        return [.. flags.Select(flag => flag with
+        {
+            Posts = [.. flag.Posts.Select(post =>
+            {
+                var banner = FlagStamper.BannerBox(terrain.SurfaceFor(post.Layer), post.At.X, post.At.Z);
+                FlagStamper.Stamp(world, banner, flag.Color, post.Yaw);
+                provenance.ClaimRect(banner.MinX, banner.MinZ, banner.MaxX, banner.MaxZ, ProvenancePass.Structure, post.Stamp);
+                return post with { BannerBox = banner };
+            })],
+        })];
     }
 
     /// <summary><b><c>OB29</c> — every capture point whose display regions PGM will not recolour.</b> Colour

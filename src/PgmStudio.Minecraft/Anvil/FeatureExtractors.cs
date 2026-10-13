@@ -2,6 +2,7 @@ using fNbt;
 using static PgmStudio.Minecraft.Anvil.Nbt;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Domain;
 
 namespace PgmStudio.Minecraft.Anvil;
 
@@ -223,8 +224,8 @@ public static class FeatureExtractors
     }
 
     /// <summary>Every banner a world holds (→ flag_candidate), read off its tile entity and the block it is in. A
-    /// tile entity whose block is not a banner is a leftover and is skipped. A banner's dye is numbered the
-    /// other way round from a wool's, so dye <c>d</c> is wool colour <c>15 − d</c>.</summary>
+    /// tile entity whose block is not a banner is a leftover and is skipped. Its colours are dye damages
+    /// (<see cref="BlockColors.DyeColor"/>).</summary>
     public static IEnumerable<BannerFeature> Banners(IEnumerable<AnvilRegion.Chunk> chunks)
     {
         foreach (var chunk in chunks)
@@ -245,12 +246,10 @@ public static class FeatureExtractors
                 if (te.Get<NbtList>("Patterns") is { } laid)
                     foreach (var patternObj in laid)
                         if (patternObj is NbtCompound pattern && Str(pattern.Get("Pattern")) is { } code)
-                            patterns.Add($"{code}:{Dye(Int(pattern.Get("Color")) ?? 0)}");
-                yield return new BannerFeature(x, y, z, block == 177, section.Data[index], Dye(Int(te.Get("Base")) ?? 0), patterns);
+                            patterns.Add($"{code}:{BlockColors.DyeColor(Int(pattern.Get("Color")) ?? 0)}");
+                yield return new BannerFeature(x, y, z, block == 177, section.Data[index], BlockColors.DyeColor(Int(te.Get("Base")) ?? 0), patterns);
             }
         }
-
-        static string Dye(int value) => PgmStudio.Vocabulary.WoolColors.All[15 - Math.Clamp(value, 0, 15)];
     }
 
     /// <summary>Every run a player climbs or swims (→ lift_runs.parquet), as the feet heights it carries them
