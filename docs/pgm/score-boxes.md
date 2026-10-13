@@ -62,4 +62,6 @@ score box!". No score limit is written unless the author states `ScoreLimit`: th
 its 78 box maps and ends the rest anywhere from 1 to 750. A box board plays for control, so nothing is built
 on it unless the author says otherwise (`new-map-authoring.md` §5c).
 
-The box is air the world must leave clear; a plan-built board does not carve one yet (`WE164`).
+A box is entered on foot, so a plan-built board's world build clears every box to air after the dressing pass
+and every stamp, fanned by team across the board's symmetry first, since boxes are stated on the intent alone;
+the map then names every box the world cleared (`WorldBuilder.ClearScoreBoxes`).

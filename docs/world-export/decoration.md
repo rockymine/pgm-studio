@@ -333,6 +333,10 @@ comes from the box the stamper wrote wherever there is one, for the same reason 
 (OB8): the ground kept open is then the ground the structure occupies by construction, rather than by two
 derivations agreeing. `ObjectiveFootprint` answers for an intent that has not been through a world build.
 
+A score box is not goal ground, because it is entered rather than approached: the build clears every box's
+blocks to air after the dressing pass and every stamp, fanned by team across the board's symmetry, so whatever
+grew or was stamped into one is cut out of it (`pgm/score-boxes.md` §4).
+
 A tree, a boulder or a building inside that ground is a different case, and it is **declined** (`OB19`,
 `DressingScope.GoalClearanceAt`): the prop is not in the world, the finding names its kind, its id, the cell
 it rested on and the goal it reached into, and the map still exports. A goal is what the map is for and a

@@ -330,15 +330,15 @@ public static class WorldBuilder
         // pad already laid is a pad the finish leaves alone. Laid after it, the pad would be painted over.
         List<ControlPointIntent>? resolvedPoints =
             StampControlPoints(world, terrain, intent.ControlPoints, provenance);
-        // The board's symmetry, read once: the flag posts below fan across it, the painter folds every cell into
-        // the primary image before a pattern samples it (TP21), and the dressing pass fans each prop across it.
+        // The board's symmetry, read once: the flag posts and score boxes fan across it, the painter folds every
+        // cell into the primary image before a pattern samples it (TP21), and the dressing pass fans each prop.
         var symmetry = DressingScope.SymmetryOf(layoutJson);
         // Flags are stated on the intent alone, never fanned by a refinement, so their posts are fanned here: a
         // post's image is a banner PGM looks for as much as the post is.
-        var flagSymmetry = intent.Symmetry
+        var boardSymmetry = intent.Symmetry
             ?? (symmetry.Mode is { } mode ? new SymmetryIntent { Mode = mode, CenterX = symmetry.CenterX, CenterZ = symmetry.CenterZ } : null);
         var resolvedFlags = StampFlags(world, terrain,
-            flagSymmetry is null ? intent.Flags : SymmetryExpander.FillFlags(intent.Flags, flagSymmetry), provenance);
+            boardSymmetry is null ? intent.Flags : SymmetryExpander.FillFlags(intent.Flags, boardSymmetry), provenance);
 
         // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
@@ -450,6 +450,10 @@ public static class WorldBuilder
                 + $"column{(seen.Cells == 1 ? "" : "s")}, first at ({seen.X}, {seen.Z})",
                 Severity.Complaint, Subjects: key.Unit.Length > 0 ? [key.Layer, key.Unit] : [key.Layer]));
 
+        // ── Score boxes — air a player walks into, cleared over every pass that lays blocks so nothing grows
+        // or is stamped into one. Boxes are stated on the intent alone, so they are fanned by team here.
+        var resolvedBoxes = ClearScoreBoxes(world, intent, boardSymmetry);
+
         // ── The sky signs, now that every goal is placed ────────────────────────────────────────────
         // The altitude was decided with the terrain; what waited was where each marker stands.
         foreach (var (mx, mz, data, shape) in pendingMarkers)
@@ -514,6 +518,7 @@ public static class WorldBuilder
             Cores = resolvedCores,
             ControlPoints = resolvedPoints,
             Flags = resolvedFlags,
+            ScoreBoxes = resolvedBoxes,
         };
 
         // One list, in build order: what the build could not raise as authored — a goal over the ceiling, a
@@ -754,6 +759,22 @@ public static class WorldBuilder
                 return post with { BannerBox = banner };
             })],
         })];
+    }
+
+    /// <summary>Clear every score box to air, fanned by team across <paramref name="symmetry"/>, and answer the
+    /// boxes as built, so the map names every box the world cleared.</summary>
+    private static List<ScoreBoxIntent>? ClearScoreBoxes(VoxelWorld world, MapIntent intent, SymmetryIntent? symmetry)
+    {
+        if (intent.ScoreBoxes is not { } authored) return null;
+        var boxes = symmetry is not null && intent.Teams is { Count: > 1 } teams
+            ? SymmetryExpander.FillScoreBoxes(authored, teams, symmetry)!
+            : authored;
+        foreach (var box in boxes.Select(score => score.Box))
+            for (var x = box.MinX; x <= box.MaxX; x++)
+            for (var z = box.MinZ; z <= box.MaxZ; z++)
+            for (var y = box.MinY; y <= box.MaxY; y++)
+                world.SetBlock(x, y, z, Blocks.Air);
+        return boxes;
     }
 
     /// <summary><b><c>OB29</c> — every capture point whose display regions PGM will not recolour.</b> Colour

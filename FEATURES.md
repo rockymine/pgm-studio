@@ -8735,6 +8735,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
   carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
 
+- **A plan-built score box is air (`WE164`)** — the world build clears every score box to air after the dressing
+  and every stamp, fanned by team across the board's symmetry, and the map names each box it cleared.
+  `docs/pgm/score-boxes.md` §4. (`WE164`)
+
 - **A score box sends its scorer home (`PG26`)** — a `<score>`'s boxes are read, written and stored (`score_box`,
   `M0072`), and only a box that redeems items still refuses its map, so 1,522 of 1,626 corpus maps parse.
   `MapIntent.ScoreBoxes` states a box per team, written by `ScoreGenerator` with a portal on the same region

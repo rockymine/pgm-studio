@@ -256,6 +256,9 @@ public static class SymmetryExpander
 
     /// <summary>Score boxes stated for one team, fanned onto every other team's image of the box as a core is:
     /// a team already holding a box keeps its own.</summary>
+    public static List<ScoreBoxIntent>? FillScoreBoxes(List<ScoreBoxIntent>? authored, List<TeamDef> teams, SymmetryIntent sym) =>
+        IsKnown(sym.Mode) ? FillScoreBoxes(authored, teams, sym, Order(sym.Mode)) : authored;
+
     private static List<ScoreBoxIntent>? FillScoreBoxes(
         List<ScoreBoxIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
     {
