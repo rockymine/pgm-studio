@@ -28,10 +28,14 @@ rather than the goal and are not objectives, so they gate nothing. When a parser
 
 Read today: `wools`, `destroyables`, `cores`, `control-points`, `king`, `flags` and `score`.
 `control-points` and `king` are one PGM module under two spellings; `control-points.md` is what it reads, and
-`flags.md` what the flag module reads. **Refused: `payloads`, and a `<score>` carrying a `<box>`.** The last is the one exception to the
-gate reading root elements only: a scorebox is its own objective inside an element that *is* read, so
-skipping that check would export a scorebox map without its boxes. A payload is a furnace minecart players
-push around the board, and none of the geometry describing one is read.
+`flags.md` what the flag module reads, and `score-boxes.md` what a `<score>` box is read as. **Refused:
+`payloads`, and a score box that redeems items.** The last is the one exception to the gate reading root
+elements only: a box's `<redeemables>` is not read, so a box paying for items would export as one paying for
+nothing, and the gate looks one level into `<score>` for it. A payload is a furnace minecart players push
+around the board, and none of the geometry describing one is read.
+
+`portals` is read as well, though it is no objective: a map's lifts, home doors and lobby exits are how it is
+walked, and `portals.md` is what the parser reads.
 
 **No unread region type.** A region the parser does not read leaves the rule that names it with no region,
 and a rule with no region applies everywhere — so a dropped region is not a smaller map but a wrong one, a
@@ -58,12 +62,12 @@ one reads the document **after** variants and constants are resolved, because th
 categories inside an `<if variant>`. `shops.md` is what it reads. No corpus map is refused by it.
 
 Swept over every `map.xml` in both corpora — 1,626 directories, which is more than the 350-slug set the
-round-trip harness runs because it counts the nested category folders too — **1,470 parse**. The 156 refused
-are 84 for an unread objective module (75 a scorebox, 9 `payloads`), 37 below the proto floor, 27 for a
-modern world, 5 for a `resize` region, and 3 for a flag whose kit is written inside it rather than named
-(`flags.md` §8). Of the maps that carry a control point or a score module, all 392 also survive the XML round trip
+round-trip harness runs because it counts the nested category folders too — **1,522 parse**. The 104 refused
+are 37 below the proto floor, 32 for an unread objective module (23 a score box that redeems items, 9
+`payloads`), 27 for a modern world, 5 for a `resize` region, and 3 for a flag whose kit is written inside it
+rather than named (`flags.md` §8). Of the maps that carry a control point or a score module, all 392 also survive the XML round trip
 with every point and every knob unchanged. Of the 39 that carry a shop or a keeper, 35 parse — the other four
-are refused by the gates above, three for a scorebox and one for a 1.21 world — and all 35 survive both
+are refused by the gates above, three for a score box that redeems items and one for a 1.21 world — and all 35 survive both
 codecs with every shop id, category, icon and keeper intact.
 
 **The three module gates read the map's own body, before any include is spliced**, and that ordering is

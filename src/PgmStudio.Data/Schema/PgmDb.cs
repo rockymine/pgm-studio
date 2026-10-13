@@ -36,6 +36,8 @@ public sealed class PgmDb : DataConnection
     public ITable<FlagRow> Flags => this.GetTable<FlagRow>();
     public ITable<FlagPostRow> FlagPosts => this.GetTable<FlagPostRow>();
     public ITable<FlagNetRow> FlagNets => this.GetTable<FlagNetRow>();
+    public ITable<PortalRow> Portals => this.GetTable<PortalRow>();
+    public ITable<ScoreBoxRow> ScoreBoxes => this.GetTable<ScoreBoxRow>();
     public ITable<ShopRow> Shops => this.GetTable<ShopRow>();
     public ITable<ShopkeeperRow> Shopkeepers => this.GetTable<ShopkeeperRow>();
     public ITable<ModeRow> Modes => this.GetTable<ModeRow>();

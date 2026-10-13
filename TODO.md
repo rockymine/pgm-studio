@@ -13,6 +13,24 @@ blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smalle
 it is **4×4** (`WX2`). A dressed prop's 192-cell ceiling (`HP3`) and a room building's 20×20 measure the same
 concept since `WE71`, and holding them apart is a deliberate not-yet.
 
+## Conquest, continued: a box that sends its scorer home, a zone, a touch point
+**Conquest is played for control, and these are the shapes control takes besides a hill and a flag**, as
+pgmvox writes them (`pgm-studio-mapgen/freeform/lib/pgmvox/play/objectives.py`, `play/rules.py`). The codec
+reads score boxes and portals; what remains is stating them.
+
+- [~] **PG26 — A score box sends its scorer home.** `MapIntent.ScoreBoxes`: a team, a box and `Points` (1 in
+  122 of 209 corpus boxes), filtered to that team, and a portal on the same region landing on the team's spawn
+  point at its yaw, as 69 of the 82 corpus boxes with a portal do; `ScoreGenerator` writes both, fanned by
+  team, and the board states `<gamemode>scorebox</gamemode>`. `docs/pgm/score-boxes.md`.
+- [ ] **PG27 — A zone, in general.** A region with rules of its own: no placing, no breaking, no harm, entry
+  for one team or nobody, a kit given inside — what spawn protection, the build area and the wool room each
+  state for one purpose. One `ZoneIntent` those three are written through, after pgmvox's `Zone`
+  (`play/rules.py:490`), rather than a fourth special case. `docs/pgm/filter-region-wiring.md`.
+- [ ] **PG28 — A touch point is a capture setting.** `ControlPointIntent` gains a capture word: `hold` (today:
+  neutral state, capture time) or `touch` (taken at once by whoever enters, 0.1s, `capture-rule="lead"`, no
+  neutral state, kept until another team touches it), as pgmvox's `TouchPoint` writes it
+  (`play/objectives.py:706`). `ControlPointGenerator.cs:67`. `docs/pgm/control-points.md`.
+
 ## The programme: a board's source, every change to it, and the words it is stated in
 **The author put this programme first.** The studio keeps the source a board is stated in and every change to
 it, hands the author's hand edits to the agent's next round, and hands out the vocabulary the source is

@@ -357,6 +357,24 @@ public sealed class FlagNetRow
     [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
 }
 
+/// <summary>A portal (M0072): the whole statement as one JSON document in the map document's shape.</summary>
+[Table("portal")]
+public sealed class PortalRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
+}
+
+/// <summary>A score box (M0072), one JSON document in the map document's shape.</summary>
+[Table("score_box")]
+public sealed class ScoreBoxRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
+}
+
 // A shop and the whole tree under it. The categories are one JSON document rather than two more tables:
 // a category has no life outside its shop and an icon none outside its category, nothing queries into
 // either, and the studio's UI does not edit them.

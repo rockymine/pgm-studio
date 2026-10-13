@@ -315,6 +315,21 @@ public sealed class ScoreConfig
     /// Those already default to zero at proto 1.3.6 and above, so on every map the studio reads it changes
     /// nothing and is kept only so it round-trips.</summary>
     public bool King;
+    /// <summary>The score boxes, from every <c>&lt;score&gt;</c> element in order.</summary>
+    public List<ScoreBox> Boxes = [];
+}
+
+/// <summary>
+/// A score box: a region that pays its <see cref="Points"/> to the team of a player who enters it and passes
+/// its filter (<c>docs/pgm/score-boxes.md</c>). A box that redeems items is refused at read.
+/// </summary>
+public sealed class ScoreBox
+{
+    public string RegionId = "";
+    /// <summary>What entering pays; null pays nothing at every proto the studio reads.</summary>
+    public int? Points;
+    public string FilterId = "";
+    public bool? Silent;
 }
 
 /// <summary>
@@ -420,6 +435,30 @@ public sealed class FlagNet
     public List<string> Flags = [];
     /// <summary>The flags a capture here sends home, by id.</summary>
     public List<string> Rescue = [];
+}
+
+/// <summary>
+/// A portal: a region a player is moved out of on entering it, to a point or a region
+/// (<c>docs/pgm/portals.md</c>). Each coordinate is kept as written, because PGM reads <c>@</c> before a number
+/// as a place and a bare number as an offset from where the player stood.
+/// </summary>
+public sealed class Portal
+{
+    public string Id = "";
+    /// <summary>Where it is entered, by region id; empty where a <c>forward</c> or <c>transit</c> filter triggers it.</summary>
+    public string RegionId = "";
+    /// <summary>Where it lands, by region id, a random point in it; empty lands by the coordinates.</summary>
+    public string DestinationId = "";
+    public string X = "", Y = "", Z = "", Yaw = "", Pitch = "";
+    public string FilterId = "";
+    public string ObserversFilterId = "";
+    public string ForwardFilterId = "";
+    public string ReverseFilterId = "";
+    public string TransitFilterId = "";
+    public bool? Bidirectional;
+    public bool? Sound;
+    public bool? Smooth;
+    public bool? Protect;
 }
 
 /// <summary>
@@ -714,6 +753,7 @@ public sealed class MapXml
     public List<Flag> Flags = [];
     public List<FlagPost> FlagPosts = [];
     public List<FlagNet> FlagNets = [];
+    public List<Portal> Portals = [];
 
     /// <summary>The shops a player can buy from, and the keepers that open them. Two lists rather than one
     /// nesting the other, because PGM keeps them apart and so does the XML: a shop is referenced by id from

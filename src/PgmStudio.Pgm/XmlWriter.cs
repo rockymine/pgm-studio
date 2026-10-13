@@ -94,12 +94,21 @@ public static partial class XmlWriter
         }
         foreach (var post in AllPosts(m)) { Add(post.PickupFilterId); Add(post.RespawnFilterId); }
         foreach (var net in m.FlagNets) { Add(net.CaptureFilterId); Add(net.RespawnFilterId); }
+        foreach (var portal in m.Portals)
+        {
+            Add(portal.FilterId); Add(portal.ObserversFilterId); Add(portal.ForwardFilterId);
+            Add(portal.ReverseFilterId); Add(portal.TransitFilterId);
+        }
         foreach (var category in m.Shops.SelectMany(shop => shop.Categories))
         {
             Add(category.FilterId);
             foreach (var icon in category.Icons) Add(icon.FilterId);
         }
-        if (m.Score is { } score) Add(score.ScoreboardFilterId);
+        if (m.Score is { } score)
+        {
+            Add(score.ScoreboardFilterId);
+            foreach (var box in score.Boxes) Add(box.FilterId);
+        }
         return refs;
     }
 
@@ -122,6 +131,11 @@ public static partial class XmlWriter
             if (net.RegionId.Length > 0 && !IsSynthetic(net.RegionId)) refs.Add(net.RegionId);
         foreach (var post in AllPosts(m))
             foreach (var id in post.RegionIds) if (!IsSynthetic(id)) refs.Add(id);
+        foreach (var portal in m.Portals)
+            foreach (var id in new[] { portal.RegionId, portal.DestinationId })
+                if (id.Length > 0 && !IsSynthetic(id)) refs.Add(id);
+        foreach (var box in m.Score?.Boxes ?? [])
+            if (box.RegionId.Length > 0 && !IsSynthetic(box.RegionId)) refs.Add(box.RegionId);
         return refs;
     }
 
@@ -168,7 +182,8 @@ public static partial class XmlWriter
         WriteControlPoints(root, m.ControlPoints, m.Regions);
         var externalFilters = ExternalFilterRefs(m);
         WriteFlags(root, m, InlineFilter(m.Filters, externalFilters));
-        WriteScore(root, m.Score);
+        WritePortals(root, m, InlineFilter(m.Filters, externalFilters));
+        WriteScore(root, m.Score, m.Regions, InlineFilter(m.Filters, externalFilters));
         WriteShops(root, m.Shops);
         WriteShopkeepers(root, m.Shopkeepers);
 
@@ -640,12 +655,46 @@ public static partial class XmlWriter
         if (n.Rescue.Count > 0) Set(e, "rescue", string.Join(' ', n.Rescue));
         FilterProperty(e, "capture-filter", n.CaptureFilterId, inlineFilter);
         FilterProperty(e, "respawn-filter", n.RespawnFilterId, inlineFilter);
-        if (n.RegionId.Length > 0)
-        {
-            if (!IsSynthetic(n.RegionId)) Set(e, "region", n.RegionId);
-            else if (regions.TryGetValue(n.RegionId, out var region)) e.Add(new XElement("region", RegionElemInline(region)));
-        }
+        RegionProperty(e, "region", n.RegionId, regions);
         return e;
+    }
+
+    /// <summary>
+    /// The <c>&lt;portals&gt;</c> module, flat: a portal's region and destination as a reference, or inline in a
+    /// child of that name where the map wrote the shape there, and each filter the same way.
+    /// </summary>
+    private static void WritePortals(XElement parent, MapXml m, Func<string, XElement?> inlineFilter)
+    {
+        if (m.Portals.Count == 0) return;
+        var block = new XElement("portals"); parent.Add(block);
+        foreach (var p in m.Portals)
+        {
+            var e = new XElement("portal");
+            SetText(e, "id", p.Id);
+            SetText(e, "x", p.X); SetText(e, "y", p.Y); SetText(e, "z", p.Z);
+            SetText(e, "yaw", p.Yaw); SetText(e, "pitch", p.Pitch);
+            SetBool(e, "bidirectional", p.Bidirectional);
+            SetBool(e, "sound", p.Sound);
+            SetBool(e, "smooth", p.Smooth);
+            SetBool(e, "protect", p.Protect);
+            RegionProperty(e, "region", p.RegionId, m.Regions);
+            RegionProperty(e, "destination", p.DestinationId, m.Regions);
+            FilterProperty(e, "filter", p.FilterId, inlineFilter);
+            FilterProperty(e, "observers", p.ObserversFilterId, inlineFilter);
+            FilterProperty(e, "forward", p.ForwardFilterId, inlineFilter);
+            FilterProperty(e, "reverse", p.ReverseFilterId, inlineFilter);
+            FilterProperty(e, "transit", p.TransitFilterId, inlineFilter);
+            block.Add(e);
+        }
+    }
+
+    /// <summary>A region property: an attribute naming the region, or the shape itself inside a child element of
+    /// the property's name where the map wrote it inline.</summary>
+    private static void RegionProperty(XElement e, string name, string regionId, Dictionary<string, Region> regions)
+    {
+        if (regionId.Length == 0) return;
+        if (!IsSynthetic(regionId)) Set(e, name, regionId);
+        else if (regions.TryGetValue(regionId, out var region)) e.Add(new XElement(name, RegionElemInline(region)));
     }
 
     /// <summary>A filter property: an attribute naming the filter, or the filter itself inside a child element
@@ -679,7 +728,8 @@ public static partial class XmlWriter
     /// one, because a map with an empty <c>&lt;score&gt;</c> loads a score module and a map with none does
     /// not — which is the whole difference between a point that pays and a point that does not.
     /// </summary>
-    private static void WriteScore(XElement parent, ScoreConfig? score)
+    private static void WriteScore(XElement parent, ScoreConfig? score, Dictionary<string, Region> regions,
+                                   Func<string, XElement?> inlineFilter)
     {
         if (score is null) return;
         var block = new XElement("score"); parent.Add(block);
@@ -695,6 +745,15 @@ public static partial class XmlWriter
         {
             var e = new XElement("mercy", mercy.ToString(CultureInfo.InvariantCulture));
             if (score.MercyMin is { } min) Set(e, "min", min.ToString(CultureInfo.InvariantCulture));
+            block.Add(e);
+        }
+        foreach (var box in score.Boxes)
+        {
+            var e = new XElement("box");
+            if (box.Points is { } points) Set(e, "points", points.ToString(CultureInfo.InvariantCulture));
+            SetBool(e, "silent", box.Silent);
+            RegionProperty(e, "region", box.RegionId, regions);
+            FilterProperty(e, "filter", box.FilterId, inlineFilter);
             block.Add(e);
         }
 

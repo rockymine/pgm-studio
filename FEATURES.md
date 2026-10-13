@@ -8735,6 +8735,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
   carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
 
+- **Score boxes are read (`PG26`)** — a `<score>`'s boxes are read, written and stored (`score_box`, `M0072`): the
+  region named or inline, `points` or `value`, the filter and `silent`. Only a box that redeems items still
+  refuses its map, so 1,522 of 1,626 corpus maps parse and all 52 with a box write it back unchanged.
+  `docs/pgm/score-boxes.md`. (`PG26`)
+
+- **Portals survive the round trip (`PG30`)** — the `<portals>` module is read, written and stored (`portal`,
+  `M0072`): every coordinate as written, `@` place or bare offset, the region and destination named or inline,
+  the five filters, and the group cascade. All 225 parseable corpus maps with portals write the same portals
+  back through both codecs. `docs/pgm/portals.md`. (`PG30`)
+
 - **Configure authors King of the Flag (`TC15`)** — a Flags phase whose Posts step confirms a scanned banner as a
   flag's post, places further posts on the ground, marks a start with no banner under it, and states the
   flag's colour, points rate and carrier; it shares the objective gate. On a map read from a world the export

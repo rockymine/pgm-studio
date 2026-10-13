@@ -116,11 +116,10 @@ public sealed partial class MapParser
             .Distinct()
             .Select(t => $"`{t}`")
             .ToList();
-        // A scorebox is its own objective wearing <score>'s element: PGM gives a <box> its own map tag, and
-        // the region, filter and redeemables that make one are not read here. The module around it is, so
-        // the gate has to look one level in or a scorebox map would parse and export without its boxes.
-        if (_root.Elements("score").SelectMany(s => s.Elements("box")).Any())
-            unread.Add("`box` of `score`");
+        // A score box is read, but the items one redeems are not: a box that pays for them would export as a
+        // box that pays for nothing, so the gate looks one level into <score> for them.
+        if (_root.Elements("score").SelectMany(s => s.Elements("box")).Any(box => box.Element("redeemables") is not null))
+            unread.Add("`redeemables` of a score `box`");
         if (unread.Count == 0) return;
 
         throw new UnsupportedMapException(
@@ -183,6 +182,7 @@ public sealed partial class MapParser
         data.Cores = ParseCores();
         data.ControlPoints = ParseControlPoints();
         (data.Flags, data.FlagPosts, data.FlagNets) = ParseFlags();
+        data.Portals = ParsePortals();
         data.Score = ParseScore();
         // After the variants and constants are resolved, because the gate reads the shop content itself and
         // the corpus writes whole categories inside an <if variant>.
@@ -1140,6 +1140,32 @@ public sealed partial class MapParser
         Rescue = Words(leaf.GetOrNull("rescue") ?? leaf.Get("return")),
     };
 
+    /// <summary>
+    /// The <c>&lt;portals&gt;</c> module, flattened as PGM flattens it: a group's attributes are every portal's
+    /// under it. A region and a destination are a reference or a child wrapping the shape, and each filter an
+    /// attribute or a child (<c>docs/pgm/portals.md</c>).
+    /// </summary>
+    private List<Portal> ParsePortals() =>
+    [
+        .. Xml.Flatten(_root, "portals", "portal").Select((leaf, i) => new Portal
+        {
+            Id = leaf.Get("id"),
+            RegionId = ResolveRegionProperty(leaf, $"__portal_{i}_region", "region"),
+            DestinationId = ResolveRegionProperty(leaf, $"__portal_{i}_destination", "destination"),
+            X = leaf.Get("x"), Y = leaf.Get("y"), Z = leaf.Get("z"),
+            Yaw = leaf.Get("yaw"), Pitch = leaf.Get("pitch"),
+            FilterId = FilterProperty(leaf, "filter", $"__portal_{i}_filter"),
+            ObserversFilterId = FilterProperty(leaf, "observers", $"__portal_{i}_observers"),
+            ForwardFilterId = FilterProperty(leaf, "forward", $"__portal_{i}_forward"),
+            ReverseFilterId = FilterProperty(leaf, "reverse", $"__portal_{i}_reverse"),
+            TransitFilterId = FilterProperty(leaf, "transit", $"__portal_{i}_transit"),
+            Bidirectional = leaf.BoolOrNull("bidirectional"),
+            Sound = leaf.BoolOrNull("sound"),
+            Smooth = leaf.BoolOrNull("smooth"),
+            Protect = leaf.BoolOrNull("protect"),
+        }),
+    ];
+
     private static List<string> Words(string raw) => [.. raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)];
 
     /// <summary>An element's own attributes, inheriting nothing.</summary>
@@ -1235,6 +1261,18 @@ public sealed partial class MapParser
             score.Display = NonEmpty(Xml.Get(e, "display"), score.Display);
             score.ScoreboardFilterId = NonEmpty(Xml.Get(e, "scoreboard-filter"), score.ScoreboardFilterId);
             if (e.Elements("king").Any()) score.King = true;
+            foreach (var box in e.Elements("box"))
+            {
+                var key = $"__scorebox_{score.Boxes.Count}";
+                var leaf = new InheritedElement(box, Own(box));
+                score.Boxes.Add(new ScoreBox
+                {
+                    RegionId = ResolveRegionProperty(leaf, $"{key}_region", "region"),
+                    Points = ParseInt(Xml.GetOrNull(box, "points") ?? Xml.GetOrNull(box, "value")),
+                    FilterId = FilterProperty(leaf, "filter", $"{key}_filter"),
+                    Silent = leaf.BoolOrNull("silent"),
+                });
+            }
         }
         return score;
     }

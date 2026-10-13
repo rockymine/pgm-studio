@@ -19,6 +19,7 @@ public static class Serializer
         if (m.Flags.Count > 0) d["flags"] = m.Flags.Select(EncodeFlag).ToList<object?>();
         if (m.FlagPosts.Count > 0) d["flag_posts"] = m.FlagPosts.Select(EncodeFlagPost).ToList<object?>();
         if (m.FlagNets.Count > 0) d["flag_nets"] = m.FlagNets.Select(EncodeFlagNet).ToList<object?>();
+        if (m.Portals.Count > 0) d["portals"] = m.Portals.Select(EncodePortal).ToList<object?>();
         if (m.Shops.Count > 0) d["shops"] = m.Shops.Select(EncodeShop).ToList<object?>();
         if (m.Shopkeepers.Count > 0) d["shopkeepers"] = m.Shopkeepers.Select(EncodeShopkeeper).ToList<object?>();
         if (m.Score is { } score) d["score"] = EncodeScore(score);
@@ -448,6 +449,29 @@ public static class Serializer
         return r;
     }
 
+    public static Dict EncodePortal(Portal p)
+    {
+        var r = new Dict();
+        Text(r, "id", p.Id);
+        Text(r, "region", p.RegionId);
+        Text(r, "destination", p.DestinationId);
+        Text(r, "x", p.X);
+        Text(r, "y", p.Y);
+        Text(r, "z", p.Z);
+        Text(r, "yaw", p.Yaw);
+        Text(r, "pitch", p.Pitch);
+        Text(r, "filter", p.FilterId);
+        Text(r, "observers", p.ObserversFilterId);
+        Text(r, "forward", p.ForwardFilterId);
+        Text(r, "reverse", p.ReverseFilterId);
+        Text(r, "transit", p.TransitFilterId);
+        if (p.Bidirectional is { } bidirectional) r["bidirectional"] = bidirectional;
+        if (p.Sound is { } sound) r["sound"] = sound;
+        if (p.Smooth is { } smooth) r["smooth"] = smooth;
+        if (p.Protect is { } protect) r["protect"] = protect;
+        return r;
+    }
+
     private static void Text(Dict r, string key, string value)
     {
         if (value.Length > 0) r[key] = value;
@@ -466,6 +490,17 @@ public static class Serializer
         if (s.Display.Length > 0) r["display"] = s.Display;
         if (s.ScoreboardFilterId.Length > 0) r["scoreboard_filter"] = s.ScoreboardFilterId;
         if (s.King) r["king"] = true;
+        if (s.Boxes.Count > 0) r["boxes"] = s.Boxes.Select(EncodeScoreBox).ToList<object?>();
+        return r;
+    }
+
+    public static Dict EncodeScoreBox(ScoreBox b)
+    {
+        var r = new Dict();
+        Text(r, "region", b.RegionId);
+        if (b.Points is { } points) r["points"] = points;
+        Text(r, "filter", b.FilterId);
+        if (b.Silent is { } silent) r["silent"] = silent;
         return r;
     }
 

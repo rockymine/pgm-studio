@@ -38,6 +38,7 @@ public static class Deserializer
             Flags = ListOf(d, "flags").Select(x => DecodeFlag(AsDict(x))).ToList(),
             FlagPosts = ListOf(d, "flag_posts").Select(x => DecodeFlagPost(AsDict(x))).ToList(),
             FlagNets = ListOf(d, "flag_nets").Select(x => DecodeFlagNet(AsDict(x))).ToList(),
+            Portals = ListOf(d, "portals").Select(x => DecodePortal(AsDict(x))).ToList(),
             Shops = ListOf(d, "shops").Select(x => DecodeShop(AsDict(x))).ToList(),
             Shopkeepers = ListOf(d, "shopkeepers").Select(x => DecodeShopkeeper(AsDict(x))).ToList(),
             Score = Val(d, "score") is Dict score ? DecodeScore(score) : null,
@@ -470,6 +471,24 @@ public static class Deserializer
         Rescue = Words(d, "rescue"),
     };
 
+    public static Portal DecodePortal(Dict d) => new()
+    {
+        Id = Str(d, "id"),
+        RegionId = Str(d, "region"),
+        DestinationId = Str(d, "destination"),
+        X = Str(d, "x"), Y = Str(d, "y"), Z = Str(d, "z"),
+        Yaw = Str(d, "yaw"), Pitch = Str(d, "pitch"),
+        FilterId = Str(d, "filter"),
+        ObserversFilterId = Str(d, "observers"),
+        ForwardFilterId = Str(d, "forward"),
+        ReverseFilterId = Str(d, "reverse"),
+        TransitFilterId = Str(d, "transit"),
+        Bidirectional = AsBoolN(Val(d, "bidirectional")),
+        Sound = AsBoolN(Val(d, "sound")),
+        Smooth = AsBoolN(Val(d, "smooth")),
+        Protect = AsBoolN(Val(d, "protect")),
+    };
+
     private static ScoreConfig DecodeScore(Dict d) => new()
     {
         Initial = AsIntN(Val(d, "initial")),
@@ -482,6 +501,15 @@ public static class Deserializer
         Display = Str(d, "display"),
         ScoreboardFilterId = Str(d, "scoreboard_filter"),
         King = Val(d, "king") is true,
+        Boxes = ListOf(d, "boxes").Select(x => DecodeScoreBox(AsDict(x))).ToList(),
+    };
+
+    public static ScoreBox DecodeScoreBox(Dict d) => new()
+    {
+        RegionId = Str(d, "region"),
+        Points = AsIntN(Val(d, "points")),
+        FilterId = Str(d, "filter"),
+        Silent = AsBoolN(Val(d, "silent")),
     };
 
     private static ObjectiveMode DecodeMode(Dict d) => new()
