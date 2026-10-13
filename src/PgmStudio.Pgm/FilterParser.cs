@@ -34,9 +34,13 @@ internal sealed class FilterParser
     /// reference's id, or <paramref name="syntheticId"/> where it is anonymous; "" where the child holds no
     /// filter this reads.</summary>
     public string ParseFilterProperty(XElement wrapper, string syntheticId)
+        => wrapper.Elements().FirstOrDefault() is { } child ? ParseFilterElement(child, syntheticId) : "";
+
+    /// <summary>A filter written as the element itself: its id, its reference's id, or
+    /// <paramref name="syntheticId"/> where it is anonymous; "" where the element is no filter this reads.</summary>
+    public string ParseFilterElement(XElement element, string syntheticId)
     {
-        if (wrapper.Elements().FirstOrDefault() is not { } child) return "";
-        var filter = ParseFilterNode(child, syntheticId, 0);
+        var filter = ParseFilterNode(element, syntheticId, 0);
         if (filter is null) return "";
         if (filter.Type == "filter") return filter.RefId ?? "";
         if (filter.Id.Length == 0) { filter.Id = syntheticId; _registry.TryAdd(filter.Id, filter); }

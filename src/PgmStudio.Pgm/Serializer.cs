@@ -20,6 +20,7 @@ public static class Serializer
         if (m.FlagPosts.Count > 0) d["flag_posts"] = m.FlagPosts.Select(EncodeFlagPost).ToList<object?>();
         if (m.FlagNets.Count > 0) d["flag_nets"] = m.FlagNets.Select(EncodeFlagNet).ToList<object?>();
         if (m.Portals.Count > 0) d["portals"] = m.Portals.Select(EncodePortal).ToList<object?>();
+        if (m.Damage is { } damage) d["damage"] = EncodeDamage(damage);
         if (m.Shops.Count > 0) d["shops"] = m.Shops.Select(EncodeShop).ToList<object?>();
         if (m.Shopkeepers.Count > 0) d["shopkeepers"] = m.Shopkeepers.Select(EncodeShopkeeper).ToList<object?>();
         if (m.Score is { } score) d["score"] = EncodeScore(score);
@@ -446,6 +447,14 @@ public static class Serializer
         Text(r, "post_id", n.PostId);
         if (n.Flags.Count > 0) r["flags"] = n.Flags.ToList<object?>();
         if (n.Rescue.Count > 0) r["rescue"] = n.Rescue.ToList<object?>();
+        return r;
+    }
+
+    public static Dict EncodeDamage(DamageConfig damage)
+    {
+        var r = new Dict { ["filters"] = damage.FilterIds.ToList<object?>() };
+        Text(r, "attacker_action", damage.AttackerAction);
+        Text(r, "victim_action", damage.VictimAction);
         return r;
     }
 

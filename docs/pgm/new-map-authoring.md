@@ -189,7 +189,9 @@ fields the flat row cannot hold.
 
 **The region and filter registries are id-keyed.** Both are a flat dictionary from id to definition, with
 synthetic ids minted for anonymous elements at parse time, so every later reference — a wiring, a compound
-member, an objective's region — is a lookup rather than a search.
+member, an objective's region — is a lookup rather than a search. A synthetic id is the studio's and never
+PGM's: an anonymous element is written back where it was read, its own anonymous children written inside it,
+so no exported map names a synthetic id (`XmlWriter.RegionElemInline`).
 
 **A compound's `children` and a transform's `source_id` are string id references**, never inlined definitions.
 A region that contains another names it; nothing is duplicated by value, which is what lets

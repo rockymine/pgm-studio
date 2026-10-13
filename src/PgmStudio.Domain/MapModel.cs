@@ -438,6 +438,21 @@ public sealed class FlagNet
 }
 
 /// <summary>
+/// The <c>&lt;damage&gt;</c> module: the filters asked of every hit, in order, and the actions run on the
+/// attacker and the victim (<c>docs/pgm/damage.md</c>). PGM reads every <c>&lt;damage&gt;</c> element, so the
+/// filters of all of them are one list.
+/// </summary>
+public sealed class DamageConfig
+{
+    /// <summary>The filters, by id, in document order; each decides a hit it answers and passes the rest on.</summary>
+    public List<string> FilterIds = [];
+    /// <summary>The action run on the attacker of a hit, by id; empty for none.</summary>
+    public string AttackerAction = "";
+    /// <summary>The action run on the victim of a hit, by id; empty for none.</summary>
+    public string VictimAction = "";
+}
+
+/// <summary>
 /// A portal: a region a player is moved out of on entering it, to a point or a region
 /// (<c>docs/pgm/portals.md</c>). Each coordinate is kept as written, because PGM reads <c>@</c> before a number
 /// as a place and a bare number as an offset from where the player stood.
@@ -754,6 +769,8 @@ public sealed class MapXml
     public List<FlagPost> FlagPosts = [];
     public List<FlagNet> FlagNets = [];
     public List<Portal> Portals = [];
+    /// <summary>The <c>&lt;damage&gt;</c> module; null where the map states none.</summary>
+    public DamageConfig? Damage;
 
     /// <summary>The shops a player can buy from, and the keepers that open them. Two lists rather than one
     /// nesting the other, because PGM keeps them apart and so does the XML: a shop is referenced by id from

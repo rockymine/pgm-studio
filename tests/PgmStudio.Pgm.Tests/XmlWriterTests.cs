@@ -306,4 +306,33 @@ public sealed class XmlWriterTests
         await Assert.That(xml).DoesNotContain("uuid=\"\"")
             .Because("an empty uuid is a player PGM cannot resolve");
     }
+
+    /// <summary>A region written where it is used carries its anonymous children with it: nothing else defines
+    /// them, so a reference to one would name a region the map does not have, and PGM refuses such a map.</summary>
+    [Test]
+    public async Task An_inline_region_writes_its_anonymous_children_inline()
+    {
+        const string xml = """
+            <?xml version="1.0"?>
+            <map proto="1.5.0">
+              <name>Hills</name><version>1.0.0</version><objective>Hold</objective>
+              <control-points>
+                <control-point id="mid" capture-region="mid-capture">
+                  <owner-display-region>
+                    <union><cuboid min="0,10,0" max="2,11,2"/><cuboid min="8,10,8" max="10,11,10"/></union>
+                  </owner-display-region>
+                </control-point>
+              </control-points>
+              <regions><cuboid id="mid-capture" min="-3,5,-3" max="3,8,3"/></regions>
+            </map>
+            """;
+
+        var written = XmlWriter.ToXml(MapParser.ParseXmlString(xml));
+        var owner = System.Xml.Linq.XDocument.Parse(written).Descendants("owner-display-region").Single();
+
+        await Assert.That(written).DoesNotContain("id=\"__");
+        await Assert.That(owner.Descendants("cuboid").Count()).IsEqualTo(2);
+        await Assert.That(XmlWriter.ToXml(MapParser.ParseXmlString(written))).IsEqualTo(written)
+            .Because("the written map reads back and writes the same");
+    }
 }

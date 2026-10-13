@@ -39,6 +39,7 @@ public static class Deserializer
             FlagPosts = ListOf(d, "flag_posts").Select(x => DecodeFlagPost(AsDict(x))).ToList(),
             FlagNets = ListOf(d, "flag_nets").Select(x => DecodeFlagNet(AsDict(x))).ToList(),
             Portals = ListOf(d, "portals").Select(x => DecodePortal(AsDict(x))).ToList(),
+            Damage = d.GetValueOrDefault("damage") is Dict damage ? DecodeDamage(damage) : null,
             Shops = ListOf(d, "shops").Select(x => DecodeShop(AsDict(x))).ToList(),
             Shopkeepers = ListOf(d, "shopkeepers").Select(x => DecodeShopkeeper(AsDict(x))).ToList(),
             Score = Val(d, "score") is Dict score ? DecodeScore(score) : null,
@@ -469,6 +470,13 @@ public static class Deserializer
         PostId = Str(d, "post_id"),
         Flags = Words(d, "flags"),
         Rescue = Words(d, "rescue"),
+    };
+
+    public static DamageConfig DecodeDamage(Dict d) => new()
+    {
+        FilterIds = Words(d, "filters"),
+        AttackerAction = Str(d, "attacker_action"),
+        VictimAction = Str(d, "victim_action"),
     };
 
     public static Portal DecodePortal(Dict d) => new()

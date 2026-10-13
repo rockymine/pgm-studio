@@ -183,6 +183,7 @@ public sealed partial class MapParser
         data.ControlPoints = ParseControlPoints();
         (data.Flags, data.FlagPosts, data.FlagNets) = ParseFlags();
         data.Portals = ParsePortals();
+        data.Damage = ParseDamage();
         data.Score = ParseScore();
         // After the variants and constants are resolved, because the gate reads the shop content itself and
         // the corpus writes whole categories inside an <if variant>.
@@ -1165,6 +1166,26 @@ public sealed partial class MapParser
             Protect = leaf.BoolOrNull("protect"),
         }),
     ];
+
+    /// <summary>
+    /// The <c>&lt;damage&gt;</c> module: every child of every <c>&lt;damage&gt;</c> element is a filter, read in
+    /// order, and the last element stating an action wins it, as PGM reads them (<c>docs/pgm/damage.md</c>).
+    /// </summary>
+    private DamageConfig? ParseDamage()
+    {
+        var elements = _root.Elements("damage").ToList();
+        if (elements.Count == 0) return null;
+        var damage = new DamageConfig();
+        foreach (var e in elements)
+        {
+            damage.AttackerAction = NonEmpty(Xml.Get(e, "attacker-action"), damage.AttackerAction);
+            damage.VictimAction = NonEmpty(Xml.Get(e, "victim-action"), damage.VictimAction);
+            foreach (var child in e.Elements())
+                if (_filterParser.ParseFilterElement(child, $"__damage_{damage.FilterIds.Count}") is { Length: > 0 } id)
+                    damage.FilterIds.Add(id);
+        }
+        return damage;
+    }
 
     private static List<string> Words(string raw) => [.. raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)];
 

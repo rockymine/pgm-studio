@@ -34,8 +34,9 @@ elements only: a box's `<redeemables>` is not read, so a box paying for items wo
 nothing, and the gate looks one level into `<score>` for it. A payload is a furnace minecart players push
 around the board, and none of the geometry describing one is read.
 
-`portals` is read as well, though it is no objective: a map's lifts, home doors and lobby exits are how it is
-walked, and `portals.md` is what the parser reads.
+`portals` and `damage` are read as well, though neither is an objective: a map's lifts, home doors and lobby exits are how it is
+walked, a damage rule is what makes a lobby safe or a fall harmless, and `portals.md` and `damage.md` are what
+the parser reads.
 
 **No unread region type.** A region the parser does not read leaves the rule that names it with no region,
 and a rule with no region applies everywhere — so a dropped region is not a smaller map but a wrong one, a

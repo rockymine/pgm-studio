@@ -366,6 +366,15 @@ public sealed class PortalRow
     [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
 }
 
+/// <summary>A map's damage module (M0073), one JSON document in the map document's shape.</summary>
+[Table("damage")]
+public sealed class DamageRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
+}
+
 /// <summary>A score box (M0072), one JSON document in the map document's shape.</summary>
 [Table("score_box")]
 public sealed class ScoreBoxRow

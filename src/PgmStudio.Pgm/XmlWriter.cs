@@ -99,6 +99,7 @@ public static partial class XmlWriter
             Add(portal.FilterId); Add(portal.ObserversFilterId); Add(portal.ForwardFilterId);
             Add(portal.ReverseFilterId); Add(portal.TransitFilterId);
         }
+        foreach (var id in m.Damage?.FilterIds ?? []) Add(id);
         foreach (var category in m.Shops.SelectMany(shop => shop.Categories))
         {
             Add(category.FilterId);
@@ -174,7 +175,7 @@ public static partial class XmlWriter
         WriteAuthors(root, m.Authors);
         WriteTeams(root, m.Teams);
         WriteKits(root, m.Kits);
-        WriteSpawns(root, m.Spawns, m.ObserverSpawn);
+        WriteSpawns(root, m.Spawns, m.ObserverSpawn, m.Regions);
         WriteWools(root, m.Wools);
         WriteModes(root, m.Modes);
         WriteDestroyables(root, m.Destroyables, m.Regions);
@@ -183,6 +184,7 @@ public static partial class XmlWriter
         var externalFilters = ExternalFilterRefs(m);
         WriteFlags(root, m, InlineFilter(m.Filters, externalFilters));
         WritePortals(root, m, InlineFilter(m.Filters, externalFilters));
+        WriteDamage(root, m.Damage, InlineFilter(m.Filters, externalFilters));
         WriteScore(root, m.Score, m.Regions, InlineFilter(m.Filters, externalFilters));
         WriteShops(root, m.Shops);
         WriteShopkeepers(root, m.Shopkeepers);
@@ -374,15 +376,15 @@ public static partial class XmlWriter
         }
     }
 
-    private static void WriteSpawns(XElement parent, List<Spawn> spawns, Spawn? observer)
+    private static void WriteSpawns(XElement parent, List<Spawn> spawns, Spawn? observer, Dictionary<string, Region> regions)
     {
         if (spawns.Count == 0 && observer is null) return;
         var block = new XElement("spawns"); parent.Add(block);
-        if (observer is not null) WriteSpawnElem(block, observer, "default");
-        foreach (var s in spawns) WriteSpawnElem(block, s, "spawn");
+        if (observer is not null) WriteSpawnElem(block, observer, "default", regions);
+        foreach (var s in spawns) WriteSpawnElem(block, s, "spawn", regions);
     }
 
-    private static void WriteSpawnElem(XElement parent, Spawn spawn, string tag)
+    private static void WriteSpawnElem(XElement parent, Spawn spawn, string tag, Dictionary<string, Region> regions)
     {
         var e = new XElement(tag);
         if (spawn.Team.Length > 0) Set(e, "team", spawn.Team);
@@ -392,7 +394,7 @@ public static partial class XmlWriter
         if (region is not null && !IsSynthetic(region.Id))
             Set(e, "region", region.Id);
         else if (region is not null)
-            e.Add(new XElement("region", RegionElemInline(region)));
+            e.Add(new XElement("region", RegionElemInline(region, regions)));
         parent.Add(e);
     }
 
@@ -454,7 +456,7 @@ public static partial class XmlWriter
             if (d.RegionId.Length > 0 && !IsSynthetic(d.RegionId))
                 Set(e, "region", d.RegionId);
             else if (d.RegionId.Length > 0 && regions.TryGetValue(d.RegionId, out var region))
-                e.Add(new XElement("region", RegionElemInline(region)));
+                e.Add(new XElement("region", RegionElemInline(region, regions)));
             block.Add(e);
         }
     }
@@ -477,7 +479,7 @@ public static partial class XmlWriter
             if (c.RegionId.Length > 0 && !IsSynthetic(c.RegionId))
                 Set(e, "region", c.RegionId);
             else if (c.RegionId.Length > 0 && regions.TryGetValue(c.RegionId, out var region))
-                e.Add(new XElement("region", RegionElemInline(region)));
+                e.Add(new XElement("region", RegionElemInline(region, regions)));
             block.Add(e);
         }
     }
@@ -549,7 +551,7 @@ public static partial class XmlWriter
         {
             if (regionId.Length == 0) return;
             if (!IsSynthetic(regionId)) Set(leaf, name, regionId);
-            else if (regions.TryGetValue(regionId, out var region)) leaf.Add(new XElement(name, RegionElemInline(region)));
+            else if (regions.TryGetValue(regionId, out var region)) leaf.Add(new XElement(name, RegionElemInline(region, regions)));
         }
     }
 
@@ -633,7 +635,7 @@ public static partial class XmlWriter
         foreach (var id in p.RegionIds)
         {
             if (!IsSynthetic(id)) e.Add(new XElement("region", new XAttribute("id", id)));
-            else if (regions.TryGetValue(id, out var region)) e.Add(RegionElemInline(region));
+            else if (regions.TryGetValue(id, out var region)) e.Add(RegionElemInline(region, regions));
         }
         return e;
     }
@@ -688,13 +690,28 @@ public static partial class XmlWriter
         }
     }
 
+    /// <summary>
+    /// The <c>&lt;damage&gt;</c> module as one element: each filter written where the map wrote it inline, or as a
+    /// reference to the named one.
+    /// </summary>
+    private static void WriteDamage(XElement parent, DamageConfig? damage, Func<string, XElement?> inlineFilter)
+    {
+        if (damage is null) return;
+        var e = new XElement("damage");
+        SetText(e, "attacker-action", damage.AttackerAction);
+        SetText(e, "victim-action", damage.VictimAction);
+        foreach (var id in damage.FilterIds)
+            e.Add(IsSynthetic(id) && inlineFilter(id) is { } filter ? filter : new XElement("filter", new XAttribute("id", id)));
+        parent.Add(e);
+    }
+
     /// <summary>A region property: an attribute naming the region, or the shape itself inside a child element of
     /// the property's name where the map wrote it inline.</summary>
     private static void RegionProperty(XElement e, string name, string regionId, Dictionary<string, Region> regions)
     {
         if (regionId.Length == 0) return;
         if (!IsSynthetic(regionId)) Set(e, name, regionId);
-        else if (regions.TryGetValue(regionId, out var region)) e.Add(new XElement(name, RegionElemInline(region)));
+        else if (regions.TryGetValue(regionId, out var region)) e.Add(new XElement(name, RegionElemInline(region, regions)));
     }
 
     /// <summary>A filter property: an attribute naming the filter, or the filter itself inside a child element
@@ -1057,12 +1074,12 @@ public static partial class XmlWriter
             case "mirror":
                 e = new XElement("mirror"); Set(e, "origin", C3(r.OriginX, r.OriginY, r.OriginZ)); Set(e, "normal", C3(r.NormalX, r.NormalY, r.NormalZ));
                 if (!string.IsNullOrEmpty(r.SourceId) && !IsSynthetic(r.SourceId!)) Set(e, "region", r.SourceId);
-                else if (!string.IsNullOrEmpty(r.SourceId) && regions.TryGetValue(r.SourceId!, out var ms)) e.Add(RegionElemInline(ms));
+                else if (!string.IsNullOrEmpty(r.SourceId) && regions.TryGetValue(r.SourceId!, out var ms)) e.Add(RegionElemInline(ms, regions));
                 break;
             case "translate":
                 e = new XElement("translate"); Set(e, "offset", C3(r.OffsetX, r.OffsetY, r.OffsetZ));
                 if (!string.IsNullOrEmpty(r.SourceId) && !IsSynthetic(r.SourceId!)) Set(e, "region", r.SourceId);
-                else if (!string.IsNullOrEmpty(r.SourceId) && regions.TryGetValue(r.SourceId!, out var ts)) e.Add(RegionElemInline(ts));
+                else if (!string.IsNullOrEmpty(r.SourceId) && regions.TryGetValue(r.SourceId!, out var ts)) e.Add(RegionElemInline(ts, regions));
                 break;
             case "everywhere":
                 e = new XElement("everywhere"); break;
@@ -1091,11 +1108,14 @@ public static partial class XmlWriter
         return e;
     }
 
-    private static XElement RegionElemInline(Region r)
+    /// <summary>A region written where it is used rather than in the regions block. Its anonymous children are
+    /// written inline with it, since nothing else defines them; a named child stays a reference to the region the
+    /// block defines.</summary>
+    private static XElement RegionElemInline(Region r, Dictionary<string, Region> regions)
     {
-        var single = new Dictionary<string, Region> { [r.Id] = r };
-        return RegionElem(r.Id, single, new Dictionary<string, int>(), new HashSet<string>(), withId: false)
-               ?? new XElement("region");
+        var named = regions.Keys.Where(id => !IsSynthetic(id)).ToHashSet();
+        var scope = new Dictionary<string, Region>(regions) { [r.Id] = r };
+        return RegionElem(r.Id, scope, new Dictionary<string, int>(), named, withId: false) ?? new XElement("region");
     }
 
     private static XElement ApplyElem(ApplyRule rule, Dictionary<string, Region> regions)
@@ -1111,7 +1131,7 @@ public static partial class XmlWriter
         if (rule.RegionId.Length > 0 && !IsSynthetic(rule.RegionId))
             Set(e, "region", rule.RegionId);
         else if (rule.RegionId.Length > 0 && regions.TryGetValue(rule.RegionId, out var region))
-            e.Add(new XElement("region", RegionElemInline(region)));
+            e.Add(new XElement("region", RegionElemInline(region, regions)));
 
         A("message", rule.Message);   // message is always the last attribute
         return e;

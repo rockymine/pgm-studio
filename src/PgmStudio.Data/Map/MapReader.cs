@@ -173,6 +173,8 @@ public sealed class MapReader(PgmDb db)
             m.FlagNets.Add(Deserializer.DecodeFlagNet((Dict)JsonTree.FromJson(row.SpecJson)!));
         foreach (var row in await db.Portals.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
             m.Portals.Add(Deserializer.DecodePortal((Dict)JsonTree.FromJson(row.SpecJson)!));
+        if (await db.Damage.Where(x => x.MapId == id).FirstOrDefaultAsync(ct) is { } damageRow)
+            m.Damage = Deserializer.DecodeDamage((Dict)JsonTree.FromJson(damageRow.SpecJson)!);
 
         foreach (var shop in await db.Shops.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
             m.Shops.Add(Deserializer.DecodeShop(new Dict
