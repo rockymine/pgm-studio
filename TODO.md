@@ -53,13 +53,6 @@ is the reference for the rest: `play/objectives.py` `Flag` and `play/rules.py` `
 
 ### Blocks off
 
-- [ ] **PG22 — A conquest board refuses block interaction.** `BuildGenerator.Apply` writes no rule when
-  `Build.Areas` is empty (`BuildGenerator.cs:73-76`), so a generated KotH board lets anyone place and break
-  anything. `BuildIntent` gains a mode word: `void` (today's rule, for CTW, DTM and DTC), `never`
-  (`<apply block="never">`, use still allowed) and `only` (named materials placed and broken, nothing else), as
-  pgmvox's `Build` writes them (`play/rules.py:212`). It defaults to `never` on a board with no completion
-  objective. 39 of the 45 corpus KotF maps write `block="never"`. `docs/pgm/new-map-authoring.md` §5,
-  `docs/tools/configure.md`.
 - [ ] **PG23 — Cover a conquest kit gives.** An `only` board's materials arrive as a spawn-kit stack and a kill
   reward of the same material (leaves, say), so the only blocks in play are the ones the board hands out.
   `docs/pgm/new-map-authoring.md`.

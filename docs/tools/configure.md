@@ -66,7 +66,7 @@ null `cores` and nothing about cores is generated or cleared.
 | `islandTeams` | island id → team; an authoring aid, read by the spawn step, not by the generator |
 | `spawns` | per team: the point, the yaw, and the protection zone as a union of rects |
 | `observer` | the `<default>` spawn — where spectators and pre-match players stand |
-| `build` | `maxHeight` plus the buildable `areas` and the no-build `holes` cut out of them. The void rule follows from them: one apply over the negative of what is left, and none at all where no `areas` are declared |
+| `build` | `maxHeight`, the buildable `areas` and the no-build `holes` cut out of them, and the `mode` a player builds under: `void` builds anywhere but over the void outside what is left, `never` places and breaks nothing, `only` places and breaks the named `materials` and nothing else. Absent, a board with a wool, destroyable or core is `void` and any other is `never` |
 | `wools` | per wool: owner, colour, room rects, the source point, and one monument per capturing team |
 | `cores` | per core: owner, anchor, the casing's measurements, and `leak` |
 | `destroyables` | per destroyable: owner, name, anchor, its shape, what it is built of and its float |
@@ -343,6 +343,12 @@ buildable region.
 **Nothing wider is written beside it.** PGM stops at the first apply rule that decides, so a rule scoped to
 everywhere would decide inside the declared build area too — denying the very placements `areas` exists to
 permit — and would precede the spawn and wool-room protections (`docs/pgm/new-map-authoring.md` §5b).
+
+**A board played for control is not built on.** Where the intent carries no wool, destroyable or core — a KotH
+or a King of the Flag board — the build mode defaults to `never`: one rule over `everywhere` refusing every
+block placed or broken, and the `areas` build nothing. `only` is the same rule letting the named `materials`
+through, for a board whose kit hands out a few blocks of cover. A stated `mode` overrides the default either
+way (`docs/pgm/new-map-authoring.md` §5c). The wizard does not offer the word yet (`TC16`); it is stated on the intent.
 
 ### Wools — Objectives · Spawn · Monuments · Room
 

@@ -237,6 +237,20 @@ over open void without its own goal becoming unbreakable. `block-break-void-filt
 of the same rule: it allows over ground exactly as the place side does, and over the void allows only what
 the dressing stage leaves there.
 
+## 5c. A board played for control is not built on
+
+**A map played to complete an objective is built on, and a map played for control is not** (the author's
+ruling). A wool, a destroyable and a core are reached by building — bridges, towers, a way in — while a hill, a
+flag and a deathmatch are held by fighting over ground as it stands; where such a board hands out blocks at all
+they are a few kit materials for cover. 39 of the 45 corpus King of the Flag maps write `block="never"`.
+
+So `BuildIntent.Mode` is one of `BuildModes` — `void`, `never`, `only` — and null takes `BuildIntent.ModeFor`:
+`void` where the intent carries a wool, a destroyable or a core, `never` where it carries none. `void` is §5b's
+rule. `never` is one apply rule over `everywhere`, `block-place="never"` with `block-break="never"`, which
+leaves using a block — a door, a button — alone. `only` is the same rule deciding by an `any` of the named
+materials. The two are the board's whole block rule rather than a second rule beside the void's, so §5b's
+caution about a wider rule does not apply to them; they still come last, after the spawn protections.
+
 ## 6. What validation proves
 
 Three checks, each answering a different question.

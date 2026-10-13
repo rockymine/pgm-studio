@@ -82,6 +82,10 @@ them one rather than with the contract work that shipped them.
   step wrote `wools[].room` while the intent reads `protection`, and every room drawn there was dropped
   under a green Saved.
 
+- [ ] **TC16 — The Build phase offers the build mode.** `BuildIntent.Mode` (`void`, `never`, `only`, from
+  `BuildModes`) and `Materials` are stated on the intent and nowhere in the wizard: a select beside Build
+  height showing the default `BuildIntent.ModeFor` takes, and a material list where the mode is `only`.
+  `docs/tools/configure.md` §*Build*.
 - [ ] **PG24 — Jump pads.** `MapIntent.JumpPads`: a box, a velocity turned with the symmetry, a pad block and
   `safe`. `JumpPadGenerator` writes `<apply region velocity>`, which already round-trips
   (`XmlWriter.cs:879`); a safe pad adds pgmvox's fall variable and fall-damage deny (`play/rules.py:477`). The

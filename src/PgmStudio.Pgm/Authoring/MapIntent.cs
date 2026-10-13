@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Authoring;
 
@@ -317,6 +318,23 @@ public sealed record BuildIntent
     /// <summary>No-build cutouts subtracted from the area union (emitted as a <c>complement</c>). Empty →
     /// no holes (plain union). Orbited alongside <see cref="Areas"/> on symmetric maps.</summary>
     public List<Rect> Holes { get; init; } = new();
+
+    /// <summary>What a player may do to the board's blocks (<see cref="BuildModes"/>). Null takes
+    /// <see cref="ModeFor"/>: built on where the map carries a wool, a destroyable or a core, and left alone
+    /// where it is played for control.</summary>
+    [WordSet(typeof(BuildModes))]
+    public string? Mode { get; init; }
+
+    /// <summary>The materials an <see cref="BuildModes.Only"/> board lets players place and break, as PGM
+    /// material names.</summary>
+    public List<string> Materials { get; init; } = new();
+
+    /// <summary>The mode this intent's board is played under: the stated one, or the default its objectives
+    /// imply.</summary>
+    public string ModeFor(MapIntent intent) => Mode
+        ?? (intent.Wools is { Count: > 0 } || intent.Destroyables is { Count: > 0 } || intent.Cores is { Count: > 0 }
+            ? BuildModes.Void
+            : BuildModes.Never);
 }
 
 /// <summary>

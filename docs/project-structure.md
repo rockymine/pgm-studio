@@ -110,10 +110,10 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Export` | 22 | 5,024 | flat |
 | `Geom` | 55 | 7,208 | `Algorithms/` 20 · `Render/` 7 · `Relief/` 5 · 23 at root |
 | `Import` | 4 | 497 | flat |
-| `Migrations` | 70 | 4,640 | `Migrations/` 69 · 1 at root |
+| `Migrations` | 70 | 4,639 | `Migrations/` 69 · 1 at root |
 | `Minecraft` | 113 | 23,792 | `Render/` 22 · `Palette/` 18 · `Stamping/` 17 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
-| `Pgm` | 168 | 33,292 | `Compose/` 44 (nested) · `Authoring/` 29 · `Evaluate/` 23 (nested) · `Editing/` 11 · `Plan/` 11 · `Sketch/` 11 · `Shapes/` 10 · `Derive/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
-| `Vocabulary` | 35 | 2,798 | flat |
+| `Pgm` | 168 | 33,361 | `Compose/` 44 (nested) · `Authoring/` 29 · `Evaluate/` 23 (nested) · `Editing/` 11 · `Plan/` 11 · `Sketch/` 11 · `Shapes/` 10 · `Derive/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
+| `Vocabulary` | 36 | 2,821 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest

@@ -3,6 +3,8 @@ using System.Reflection;
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
 
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Pgm.Tests;
 
 using Dict = Dictionary<string, object?>;
@@ -38,6 +40,7 @@ public sealed class SymmetryExpanderCarryTests
         Build = new BuildIntent
         {
             MaxHeight = 40, Areas = [new Rect(0, 0, 10, 10)], Holes = [new Rect(4, 4, 6, 6)],
+            Mode = BuildModes.Only, Materials = ["leaves"],
         },
         WaterLanes = new WaterLaneIntent { Rects = [new Rect(20, 20, 24, 30)] },
         Wools = [new WoolIntent { Owner = "red-team", Color = "lime", Spawn = new Pt(5, 12, 5) }],

@@ -2,6 +2,8 @@ using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Detect;
 
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Pgm.Tests;
 
 using Dict = Dictionary<string, object?>;
@@ -101,7 +103,7 @@ public sealed class WaterLaneGeneratorTests
         var doc = Map();
         var intent = new MapIntent
         {
-            Build = new BuildIntent { MaxHeight = 24, Areas = [new Rect(-10, -10, 10, 10)] },
+            Build = new BuildIntent { Mode = BuildModes.Void, MaxHeight = 24, Areas = [new Rect(-10, -10, 10, 10)] },
             WaterLanes = new WaterLaneIntent { Rects = [new Rect(40, 40, 60, 60)] },
         };
         WaterLaneGenerator.Apply(doc, intent);
