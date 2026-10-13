@@ -474,4 +474,62 @@ public sealed class WalkTests
         await Assert.That(under.Select(place => place.Y)).IsEquivalentTo(new[] { 11 });
         await Assert.That(board.ClearAbove(under[0])).IsEqualTo(4);
     }
+
+    /// <summary>A floor at feet height 1 on cell (0, 0), and a ledge at feet height 11 on cell (1, 0): a wall
+    /// ten blocks high between them, with <paramref name="lift"/> standing against it on the floor's cell.</summary>
+    private static WalkGround Wall(WalkLift? lift)
+    {
+        var floor = new WalkPlace(0, 0, 1);
+        var ledge = new WalkPlace(1, 0, 11);
+        var lifts = lift is { } one ? new Dictionary<(int X, int Z), WalkLift[]> { [(0, 0)] = [one] } : null;
+        return new WalkGround(new HashSet<WalkPlace> { floor, ledge }, new HashSet<WalkPlace>(),
+            new CellRect(0, 0, 2, 1), 1, null, null, lifts);
+    }
+
+    [Test]
+    public async Task A_ladder_is_climbed_for_nothing_but_the_climb()
+    {
+        var bare = Walk.Between(new WalkPlace(0, 0, 1), new WalkPlace(1, 0, 11), Wall(null))!;
+        var laddered = Walk.Between(new WalkPlace(0, 0, 1), new WalkPlace(1, 0, 11), Wall(WalkLift.Climbed(1, 10)))!;
+
+        await Assert.That(bare.Cost.Blocks).IsEqualTo(9).Because("ten blocks up, one of them free");
+        await Assert.That(laddered.Cost.Blocks).IsEqualTo(0);
+        await Assert.That(laddered.Cost.Distance).IsEqualTo(10).Because("one step across and nine blocks climbed");
+    }
+
+    [Test]
+    public async Task A_fall_a_ladder_catches_is_no_drop()
+    {
+        var bare = Walk.Between(new WalkPlace(1, 0, 11), new WalkPlace(0, 0, 1), Wall(null))!;
+        var laddered = Walk.Between(new WalkPlace(1, 0, 11), new WalkPlace(0, 0, 1), Wall(WalkLift.Climbed(1, 10)))!;
+
+        await Assert.That((bare.Cost.Drops, bare.Cost.WorstDrop)).IsEqualTo((1, 10));
+        await Assert.That((laddered.Cost.Drops, laddered.Cost.WorstDrop)).IsEqualTo((0, 0));
+    }
+
+    [Test]
+    public async Task A_water_column_is_swum_up_from_the_tunnel_at_its_foot()
+    {
+        // A tunnel floor at feet height 1 on (0, 0); water from 1 to 10 on (1, 0), stood on at its surface.
+        var tunnel = new WalkPlace(0, 0, 1);
+        var surface = new WalkPlace(1, 0, 11);
+        var lifts = new Dictionary<(int X, int Z), WalkLift[]> { [(1, 0)] = [WalkLift.Swum(1, 10)] };
+        var ground = new WalkGround(new HashSet<WalkPlace> { tunnel, surface }, new HashSet<WalkPlace>(),
+            new CellRect(0, 0, 2, 1), 1, null, null, lifts);
+
+        var path = Walk.Between(tunnel, surface, ground)!;
+
+        await Assert.That(path.Cost.Blocks).IsEqualTo(0);
+        await Assert.That(path.Cost.Distance).IsEqualTo(10).Because("one step in, a block up, and nine blocks swum");
+    }
+
+    [Test]
+    public async Task A_ladder_joins_ground_a_free_rise_does_not()
+    {
+        var bare = Walk.Components(Wall(null), Walk.FreeRise);
+        var laddered = Walk.Components(Wall(WalkLift.Climbed(1, 10)), Walk.FreeRise);
+
+        await Assert.That(bare[new WalkPlace(0, 0, 1)]).IsNotEqualTo(bare[new WalkPlace(1, 0, 11)]);
+        await Assert.That(laddered[new WalkPlace(0, 0, 1)]).IsEqualTo(laddered[new WalkPlace(1, 0, 11)]);
+    }
 }

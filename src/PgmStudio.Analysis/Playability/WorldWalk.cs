@@ -153,13 +153,15 @@ public static class WorldWalk
     /// (<see cref="Editability.Result.BridgeableCells"/>) — one with nowhere to stand is a route the moment a
     /// player may place a block in it.</param>
     /// <param name="water">Cells a player swims, or null on a board with none.</param>
+    /// <param name="lifts">Every ladder, vine and water column, by cell.</param>
     public static WalkGround OfBuilt(
         IEnumerable<(int X, int Z, int YFloor, int YTop)> columns,
         IEnumerable<(int X, int Z, int YFloor, int YTop)> props,
         IEnumerable<(int X, int Z)> granted,
-        IReadOnlySet<(int X, int Z)>? water = null)
+        IReadOnlySet<(int X, int Z)>? water = null,
+        IEnumerable<(int X, int Z, WalkLift Lift)>? lifts = null)
     {
-        var solid = WalkGround.OfSpans(columns, props);
+        var solid = WalkGround.OfSpans(columns, props, lifts);
         var ground = new HashSet<WalkPlace>(solid.Ground);
         var clear = new Dictionary<WalkPlace, int>();
         var floor = new Dictionary<(int X, int Z), int>();
@@ -178,6 +180,6 @@ public static class WorldWalk
         var all = new HashSet<(int X, int Z)>(floor.Keys);
         all.UnionWith(open);
         var bounds = all.Count == 0 ? new CellRect(0, 0, 0, 0) : Cells.BoundingBox(all);
-        return new WalkGround(ground, bridgeable, bounds, 1, water, clear);
+        return new WalkGround(ground, bridgeable, bounds, 1, water, clear, solid.Lifts);
     }
 }

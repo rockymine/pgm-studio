@@ -133,6 +133,16 @@ a cactus, what lies flat or hangs on a face — a torch, a sign, a carpet, a ban
 gate). So a tuft of grass does not lift the ground a block, a ladder against a wall is not a pillar to stand
 on, and a doorway is a way through. A fence, a wall, iron bars and a trapdoor stop a player and stay solid.
 
+**A ladder, a vine and a water column are climbed, and the climb is distance, not blocks.** Each is a
+`WalkLift` on its cell: the feet heights a player moves up and down through, a climbed run's own blocks and a
+water run's blocks with its surface over them. A step leaves a place from any height on the lift it stands on
+and arrives at any height on the lift of the place it reaches, and of those it takes the one placing fewest
+blocks, then falling least, then climbing least. So a ten-block wall with a ladder against it is crossed for no
+block and ten blocks of distance where the bare wall costs nine placed, a fall a ladder catches is no drop,
+and a tunnel at the foot of a water column swims up to its surface. Where neither place is on a lift the step
+is priced exactly as before. On a built world the lifts come from the world's own runs
+(`WorldColumns.ForWalk`).
+
 **A prop's volume is out of the walk** (the author's ruling). A tree's trunk and crown and a boulder are
 solid — they take the headroom of the ground they stand on and roof what is under them like any block, so a
 player does not walk through a trunk — but no place is ever offered on them: their blocks are neither
