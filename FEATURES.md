@@ -8719,6 +8719,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tunnel at a water column's foot swims up to its surface. Built worlds read lifts from their own runs; scanned
   ones from `lift_run` (`M0068`), gathered at ingest. `docs/world-scan/read-backs.md`. (`WS85`)
 
+- **The walk takes a running jump (`WS86`)** — `PgmStudio.Geom.Jump` is the 1.8 sprint jump a tick at a time,
+  and a walk over a world's blocks jumps from ground at a gap's rim to ground across up to four blocks where the
+  reach for that rise allows it (3.85 level, 2.78 a block up, 4.52 a block down), over a line with nothing to
+  stand on and nothing solid in the body's way. A jump places no block; a part-bridged crossing is priced as the
+  bridge, and a plan's cells take none. `docs/world-scan/read-backs.md`. (`WS86`)
+
 - **A layer fanned onto its images turns its blocks with it (`WE146`)** — each cell a fanned shape paints
   carries the orbit image that won it, and what a material states — a ladder's side, a stair's climb, a log's
   axis, a torch, a chest, a fence gate — turns through `BlockGeometry.Turned` by that image's transform:

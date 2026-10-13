@@ -76,7 +76,7 @@ public static class WorldWalk
             open.Where(floor.ContainsKey).Select(cell => new WalkPlace(cell.X, cell.Z, floor[cell])));
 
         return new WalkGround(ground, bridgeable, new CellRect(edit.MinX, edit.MinZ, edit.Width, edit.Height),
-            1, null, clear, WalkGround.ByCell(segments?.Lifts));
+            1, null, clear, WalkGround.ByCell(segments?.Lifts)) { Jumps = true, Solid = segments?.Spans() };
     }
 
     /// <summary>The box a walk is sized to: every declared region, unioned with the terrain's own extent.
@@ -180,6 +180,7 @@ public static class WorldWalk
         var all = new HashSet<(int X, int Z)>(floor.Keys);
         all.UnionWith(open);
         var bounds = all.Count == 0 ? new CellRect(0, 0, 0, 0) : Cells.BoundingBox(all);
-        return new WalkGround(ground, bridgeable, bounds, 1, water, clear, solid.Lifts);
+        return new WalkGround(ground, bridgeable, bounds, 1, water, clear, solid.Lifts)
+            { Jumps = true, Solid = solid.Solid };
     }
 }

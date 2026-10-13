@@ -85,8 +85,8 @@ them one rather than with the contract work that shipped them.
 - [ ] **PG24 — Jump pads.** `MapIntent.JumpPads`: a box, a velocity turned with the symmetry, a pad block and
   `safe`. `JumpPadGenerator` writes `<apply region velocity>`, which already round-trips
   (`XmlWriter.cs:879`); a safe pad adds pgmvox's fall variable and fall-damage deny (`play/rules.py:477`). The
-  launch is checked against its landing with `solve_launch` (`core/move.py`) once `WS86` has the physics in
-  `Geom`. 215 corpus maps write `velocity=`. `docs/pgm/new-map-authoring.md`.
+  launch is checked against its landing with pgmvox's `solve_launch` (`core/move.py`), ported beside
+  `PgmStudio.Geom.Jump`. 215 corpus maps write `velocity=`. `docs/pgm/new-map-authoring.md`.
 - [ ] **PG26 — A score box sends its scorer home.** `MapIntent.ScoreBoxes`: a team, a box and `Points` (1 in
   122 of 209 corpus boxes), filtered to that team, and a portal on the same region to the team's spawn point
   and yaw, as the author knows the mode and pgmvox's `ScoreBox` writes it (`play/objectives.py:620`). The

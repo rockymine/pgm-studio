@@ -37,6 +37,10 @@ public sealed class SegmentIndex
         }
     }
 
+    /// <summary>Every column's solid spans, as <c>(floor, top)</c> inclusive.</summary>
+    public Dictionary<(int X, int Z), (int Floor, int Top)[]> Spans()
+        => _byCol.ToDictionary(column => (column.Key.x, column.Key.z), column => column.Value.ToArray());
+
     /// <summary>Columns whose y=0 block is a floor mark — not void to PGM, and no ground to stand on.</summary>
     public IReadOnlySet<(int, int)> FloorMarks => _floorMarks;
 

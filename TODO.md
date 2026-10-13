@@ -18,17 +18,8 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 TDM, KotH, the flag modes, rage, blitz and payload are about holding ground in PvP; where a board gives blocks
 at all, they are a few kit materials players may place and break for cover, and nothing else. King of the Flag
 is the first flag mode the studio authors, and CTF's nets follow it. Every flag post must be walkable to, and
-the walk cannot yet take a running jump, so the walk comes first. pgmvox
-(`pgm-studio-mapgen/freeform/lib/pgmvox`) is the reference for both: `read/walk.py`, `core/move.py`,
-`play/objectives.py` `Flag` and `play/rules.py` `Build` and `JumpPad`.
-
-### The walk a post is reached by
-
-- [ ] **WS86 — The walk takes a running jump.** A gap is cleared up to sprint-jump reach less 0.6: 3.85 blocks
-  level and 2.78 at one block up, from pgmvox's `jump_reach` and `gap_cleared` (`core/move.py:90`), with a
-  3-block-high corridor over the gap. The physics goes in `PgmStudio.Geom` beside `Walk`, and the edge in
-  `Walk.Steps`. pgmvox's `walk()` uses a fixed gap of 3, which over-reaches at +1, so the port uses the reach
-  per rise as its plan graph does (`plan/graph.py:50`). `docs/world-scan/read-backs.md`.
+the walk now climbs, swims and jumps the way a player does. pgmvox (`pgm-studio-mapgen/freeform/lib/pgmvox`)
+is the reference for the rest: `play/objectives.py` `Flag` and `play/rules.py` `Build`.
 
 ### The flag
 
@@ -63,7 +54,7 @@ the walk cannot yet take a running jump, so the walk comes first. pgmvox
   `docs/world-export/structures.md`.
 - [ ] **TC15 — Configure's Flags phase.** A scanned banner is confirmed as the flag's starting post and its
   colour; further posts are placed on the ground. A post is refused unless the walk reaches it from every
-  spawn with no block placed (`WS86`), and the starting post is refused without a banner. Saving
+  spawn with no block placed, and the starting post is refused without a banner. Saving
   writes `MapIntent.Flags`. `docs/tools/configure.md`.
 
 ### Blocks off

@@ -145,6 +145,15 @@ is priced exactly as before. On a built world the lifts come from the world's ow
 (`FeatureExtractors.LiftRuns` → `lift_run`, `lift_runs.parquet`), and a map scanned before that store has
 none until it is scanned again.
 
+**A gap a sprint jump clears is crossed for no block.** On ground read from a world's blocks the walk
+takes running jumps (`PgmStudio.Geom.Jump`, the 1.8 sprint jump a tick at a time): from ground at a gap's rim
+to ground at most a block higher, across up to four blocks edge to edge where the jump's reach for that rise
+less the player's width allows it — 3.85 blocks level, 2.78 a block up, 4.52 a block down. The line between
+has to be a gap, nothing to stand on at or a block under the lower end, and clear of every solid block up to
+three over the higher end, a crown hanging over it included. A jump costs the straight-line distance across.
+It is from ground to ground: a crossing bridged part way and jumped the rest is priced as the bridge. A plan's
+cells take no jumps, since a cell with no place there may be a wall.
+
 **A prop's volume is out of the walk** (the author's ruling). A tree's trunk and crown and a boulder are
 solid — they take the headroom of the ground they stand on and roof what is under them like any block, so a
 player does not walk through a trunk — but no place is ever offered on them: their blocks are neither
