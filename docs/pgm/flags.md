@@ -138,8 +138,8 @@ pass, kept clear of cover and of trees, boulders and buildings (`world-export/de
 the walk has to reach: the export refuses a board whose post no spawn can walk to (`EX1`,
 `world-scan/read-backs.md`).
 
-The Configure tool has no Flags phase (`TC15`), so a King of the Flag intent today is stated through
-`PUT /api/map/{slug}/intent`.
+On a map read from a world, the Configure tool's Flags phase states the intent: a scanned banner becomes a post,
+and the export refuses a flag that does not start on one (`OB36`, `tools/configure.md`).
 
 ## 8. What it refuses
 

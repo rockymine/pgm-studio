@@ -13,21 +13,6 @@ blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smalle
 it is **4×4** (`WX2`). A dressed prop's 192-cell ceiling (`HP3`) and a room building's 20×20 measure the same
 concept since `WE71`, and holding them apart is a deliberate not-yet.
 
-## Conquest maps: a flag to hold, a post a player can walk to, and no block to place
-**Conquest is played for control, not completion, and by the author's ruling it has block interaction off.**
-TDM, KotH, the flag modes, rage, blitz and payload are about holding ground in PvP; where a board gives blocks
-at all, they are a few kit materials players may place and break for cover, and nothing else. King of the Flag
-is the first flag mode the studio authors, and CTF's nets follow it. Every flag post must be walkable to, and
-the walk now climbs, swims and jumps the way a player does. pgmvox (`pgm-studio-mapgen/freeform/lib/pgmvox`)
-is the reference for the rest: `play/objectives.py` `Flag` and `play/rules.py` `Build`.
-
-### The flag
-
-- [ ] **TC15 — Configure's Flags phase.** A scanned banner is confirmed as the flag's starting post and its
-  colour; further posts are placed on the ground. A post is refused unless the walk reaches it from every
-  spawn with no block placed, and the starting post is refused without a banner. Saving
-  writes `MapIntent.Flags`. `docs/tools/configure.md`.
-
 ## The programme: a board's source, every change to it, and the words it is stated in
 **The author put this programme first.** The studio keeps the source a board is stated in and every change to
 it, hands the author's hand edits to the agent's next round, and hands out the vocabulary the source is

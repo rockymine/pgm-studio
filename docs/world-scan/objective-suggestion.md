@@ -271,6 +271,6 @@ candidates, and their count is `flag_candidates` on all three ingest responses.
 `GET /map/{slug}/flag-suggestions` serves them back, lowest first, each with the yaw a post standing there
 takes — a standing banner turns in sixteenths of a circle from south, a wall banner faces away from its wall —
 beside the King of the Flag defaults (`ObjectiveDefaults`), so the client holds no second copy of them. A map
-scanned before the store has no rows until it is scanned again. The Configure phase that confirms a banner as
-a flag's starting post is `TC15`.
+scanned before the store has no rows until it is scanned again. Configure's Flags phase confirms a banner as a
+flag's post, and the export asks the same rows whether each flag starts on one (`OB36`, `tools/configure.md`).
 

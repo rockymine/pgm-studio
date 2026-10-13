@@ -176,6 +176,11 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts, PgmStudio.
         return sources;
     }
 
+    /// <summary>The block every banner the world scan found stands in.</summary>
+    public async Task<List<(int X, int Y, int Z)>> BannersAsync(long mapId, CancellationToken ct = default)
+        => (await db.FlagCandidates.Where(x => x.MapId == mapId).ToListAsync(ct))
+            .Select(row => (row.WorldX, row.WorldY, row.WorldZ)).ToList();
+
     public async Task<List<ResourceSources.Block>> ResourceBlocksAsync(long mapId, CancellationToken ct = default)
         => (await db.ResourceBlocks.Where(x => x.MapId == mapId).ToListAsync(ct))
             .Select(r => new ResourceSources.Block(r.ResourceType, r.WorldX, r.WorldY, r.WorldZ)).ToList();

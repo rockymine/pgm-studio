@@ -6,6 +6,7 @@ using PgmStudio.Geom;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Stamping;
+using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
@@ -56,11 +57,14 @@ public static class MapExportComposer
     /// <para><b>resources</b> — The cached resource blocks, for a non-sketch intent map's renewables. Ignored for
     /// a sketch map, which derives its own renewable cubes from the world it just built.</para>
     /// <para><b>accounts</b> — The tree builders the layout names (<see cref="TreeBuilderCredits.Named"/>) that the
-    /// caller resolved to accounts, so their credit is written by uuid. Null credits every one by name.</para></summary>
+    /// caller resolved to accounts, so their credit is written by uuid. Null credits every one by name.</para>
+    /// <para><b>banners</b> — The block every banner the world scan found stands in, for a non-sketch intent map's
+    /// flags (<see cref="BannerlessFlags"/>). Ignored for a sketch map, whose build stands its own.</para></summary>
     public static ExportComposition Compose(
         Dict doc, byte[]? layoutBytes, bool isIntent, SegmentIndex? segments, MapIntent? intent,
         IReadOnlyCollection<int>? worldBlocks, IReadOnlyList<(string Type, int X, int Y, int Z)> resources,
-        IReadOnlyDictionary<string, (string Uuid, string Name)>? accounts = null)
+        IReadOnlyDictionary<string, (string Uuid, string Name)>? accounts = null,
+        IReadOnlyCollection<(int X, int Y, int Z)>? banners = null)
     {
         try
         {
@@ -76,6 +80,11 @@ public static class MapExportComposer
             // and an id outside PGM's enum fails the whole map to load (MapInfoImpl.parseGamemodes) however
             // clean everything else is.
             if (RefuseUnknownGamemode(doc) is { } gamemodeRefusal) return gamemodeRefusal;
+
+            // OB36 — PGM loads a flag only where a banner stands at its starting post, and an imported world's
+            // banners are the ones its scan found.
+            if (isIntent && BannerlessFlags(doc, banners ?? []).ToList() is { Count: > 0 } bannerless)
+                return Refuse("flag without a banner", bannerless);
 
             // EX1 — an intent-authored map must be traversable before it can export (§9), judged over the
             // world scanned into the store. A map that ships its own world has no authored ground to be held
@@ -415,6 +424,47 @@ public static class MapExportComposer
     /// <summary>One refusal, for the layer above to answer in the one envelope every gate in the studio
     /// refuses in. 409 is this composer's usual status — a document that is well-formed and conflicts with
     /// what the map is — and the two that are not say so.</summary>
+    /// <summary><b><c>OB36</c> — every flag whose starting post has no banner in <paramref name="banners"/>.</b>
+    /// PGM looks for a banner in the block each place of the flag's default post is in, the composite's
+    /// <c>fallback</c> or its first post, and refuses the map without one (<c>docs/pgm/flags.md</c> §2). A place
+    /// stated as a point or a block is asked; a place stated as a wider region is not, since which of its blocks
+    /// holds the banner is the world's to say.</summary>
+    public static IEnumerable<Finding> BannerlessFlags(Dict doc, IReadOnlyCollection<(int X, int Y, int Z)> banners)
+    {
+        if (doc.GetValueOrDefault("flags") is not List<object?> { Count: > 0 }) yield break;
+        var map = Deserializer.FromDict(doc);
+        var standing = banners.ToHashSet();
+
+        foreach (var flag in map.Flags)
+        {
+            var start = StartingPost(flag.Post ?? map.FlagPosts.FirstOrDefault(post => post.Id == flag.PostId));
+            if (start is null) continue;
+            var places = Blocks(start, map.Regions).ToList();
+            if (places.Count == 0 || places.Any(standing.Contains)) continue;
+
+            var (x, y, z) = places[0];
+            yield return new Finding(ObjectiveRules.FlagWithoutBanner,
+                $"flag '{flag.Id}' starts at {x}, {y}, {z}, and the scanned world has no banner there",
+                Field: "flags", Subjects: [flag.Id]);
+        }
+
+        static FlagPost? StartingPost(FlagPost? post) => post is { IsComposite: true }
+            ? StartingPost(post.Posts.FirstOrDefault(child => post.Fallback.Length > 0 && child.Id == post.Fallback)
+                           ?? post.Posts[0])
+            : post;
+
+        static IEnumerable<(int X, int Y, int Z)> Blocks(FlagPost post, Dictionary<string, Region> regions)
+        {
+            if (post.Point is { } point) yield return Floored(point.X, point.Y, point.Z);
+            foreach (var id in post.RegionIds)
+                if (regions.GetValueOrDefault(id) is { Type: "block" or "point", PosX: { } x, PosY: { } y, PosZ: { } z })
+                    yield return Floored(x, y, z);
+        }
+
+        static (int, int, int) Floored(double x, double y, double z) =>
+            ((int)Math.Floor(x), (int)Math.Floor(y), (int)Math.Floor(z));
+    }
+
     private static ExportComposition Refuse(string error, IReadOnlyList<Finding> findings, int status = 409) =>
         new(new Refusal(status, error, findings), null, null);
 

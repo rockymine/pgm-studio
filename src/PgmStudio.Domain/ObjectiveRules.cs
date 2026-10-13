@@ -72,6 +72,12 @@ public static class ObjectiveRules
     [Rule(RuleCategory.Conflict, RuleConcern.Objective, RuleConcern.Intent)]
     public const string WoolOnAnotherIsland = "OB35";
 
+    /// <summary>A flag's starting post has no banner in the scanned world, so PGM will not load the map.</summary>
+    /// <remarks>Move the first post in <c>flags.posts</c> until its block is a banner in the scanned
+    /// world.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.World)]
+    public const string FlagWithoutBanner = "OB36";
+
     /// <summary>A wool monument has no ground under it.</summary>
     /// <remarks>Move the room piece of the spawn in <c>pieces</c> until the monument stands on ground.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Terrain)]

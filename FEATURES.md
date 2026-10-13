@@ -8735,6 +8735,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
   carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
 
+- **Configure authors King of the Flag (`TC15`)** — a Flags phase whose Posts step confirms a scanned banner as a
+  flag's post, places further posts on the ground, marks a start with no banner under it, and states the
+  flag's colour, points rate and carrier; it shares the objective gate. On a map read from a world the export
+  refuses a flag that does not start on a scanned banner (`OB36`). `docs/tools/configure.md`. (`TC15`)
+
 - **A flag post is a goal the walk reads (`WS87`)** — `NavPoints` reads every place a flag post stands its flag at
   as a goal of kind `flag`, owned as its flag, so `traversability`, `coverage` and the export's `EX1` walk to it
   and an unreachable post refuses the export; the dressing pass's waypoints take the same posts.

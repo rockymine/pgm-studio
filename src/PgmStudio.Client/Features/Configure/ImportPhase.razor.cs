@@ -133,6 +133,7 @@ public partial class ImportPhase : IAsyncDisposable
         "wools"  => "Choose the wool colours and place monuments. Capture rules and wool room protection are added automatically.",
         "dtm"    => "Confirm the destroyables found in the world, or add your own.",
         "cores"  => "Confirm the cores found in the world and set how far their lava must fall.",
+        "flags"  => "Confirm the banners found in the world as flag posts, or place your own.",
         "review" => "Automatic checks make sure the map is playable. Then export the map.xml.",
         _ => "",
     };

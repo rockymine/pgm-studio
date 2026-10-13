@@ -178,7 +178,7 @@ and is the subject of *What it refuses* below.
 
 ## Phases
 
-Eight phases on the rail, walked in order. A phase unlocks when the phases before it have their slice; the
+Nine phases on the rail, walked in order. A phase unlocks when the phases before it have their slice; the
 rail locks anything further on, and jumping back is always allowed.
 
 ### Import — phase zero
@@ -465,6 +465,26 @@ Leak is not a block: it is an attribute on the `<core>` element and nowhere else
 that authors the element. Paired with the measured float it states the dig — a leak greater than the float
 means breaching the casing is not enough and players must cut the ground out from under it.
 
+### Flags — Posts
+
+**Posts** authors King of the Flag (`docs/pgm/flags.md` §7) and is mostly confirmation: the ingest scan read
+every banner the world holds, and PGM loads a flag only where a banner stands at its starting post, so a
+banner is where a flag starts. Clicking a scanned banner makes it a post of the selected flag, standing in the
+banner's own block and facing the way the banner faces; the first post a flag takes from a banner gives the flag
+the banner's colour, which is the colour PGM copies into the flag players carry. A post the scan has no banner
+for is placed with the point tool, in the first air over the ground of the clicked column, where a banner would
+stand.
+
+**The first post is where the flag starts, and it has to be a banner.** The list marks it, and reads *Start ·
+no banner* where no scanned banner stands in its block; any later post can be made the start. The export
+refuses such a flag (`OB36`, below). Every post is a goal the walk has to reach, so the pre-flight walk names a
+post no spawn can walk to and the export refuses it (`EX1`).
+
+**The inspector states the rest of the flag**: its name, its colour, the points a second it pays the team
+carrying it, and what carrying it does — fewer hearts or more, to the hearts stated, or a moment's shield. A
+flag belongs to nobody, so there is no team to set. The flag phase shares the objective gate, so a map whose
+only objective is a flag reaches Review.
+
 ### Review and export — Pre-flight · Region tree · XML
 
 **Pre-flight** runs five checks server-side over the generated map and reports the export verdict. Two are
@@ -547,6 +567,12 @@ unfinished rather than wrong and `PL3` already says it as a complaint.
 EX2 applies to every intent-authored map, EX3 and EX4 wherever the objectives have been written; a corpus map
 is exempt from all three, because 281 of the 1,616 maps in the two corpora declare no team and an FFA map with
 none is not a broken map.
+
+**A flag must start on a banner the scan found.** On a map read from a world, `GET /api/map/{slug}/xml` answers
+**409** `OB36` for a flag whose starting post — the composite's `fallback`, or its first post — stands where the
+world scan found no banner, naming the flag and the block, since PGM refuses to load a flag with none
+(`docs/pgm/flags.md` §2). A world scanned before banners were read has none on record and is scanned again. A
+plan-built board stands its own banners, so it is not asked.
 
 **A sketch-originated map's export also gates on its dressing document.** `DressingJson` reads every placed
 prop rather than reading what it can and dropping the rest — a document that fails to parse anywhere (an

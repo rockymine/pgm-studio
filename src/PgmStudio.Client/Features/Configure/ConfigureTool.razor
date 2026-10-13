@@ -110,6 +110,10 @@ else
   {
     <CoreCasingStep @key="@("cores-casing")" />
   }
+  else if (Phase.Id == "flags" && step == 0)
+  {
+    <FlagPostsStep @key="@("flags-posts")" />
+  }
   else if (Phase.Id == "review" && step == 0)
   {
     <ReviewPreflightStep @key="@("review-preflight")" />

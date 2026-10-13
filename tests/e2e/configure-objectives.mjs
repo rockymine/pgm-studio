@@ -1,8 +1,8 @@
 /**
  * The Configure wizard's objective phases, which are a group rather than a choice.
  *
- * A PGM map may carry wools, destroyables and cores at once, so Cores is its own phase beside Wools and
- * both are offered on every map. The two claims worth holding down in a browser are that the Cores phase
+ * A PGM map may carry wools, destroyables, cores and flags at once, so each is its own phase and every one
+ * is offered on every map. The two claims worth holding down in a browser are that the Cores phase
  * renders what the intent states, and that the objective phases share ONE completeness gate — a map whose
  * only objective is a core must not be held behind an empty wool slice, which is exactly what a per-phase
  * "your slice is present" rule did.
@@ -112,6 +112,30 @@ const locked = await page.$$eval(".nav-btn", els =>
 checks.add("no phase is locked", locked.length === 0, locked.join(" · "));
 
 checks.add("the core-only map raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
+
+// ── the Flags phase: a King of the Flag flag shares the same gate ────────────────────────────────────
+checks.section("a flag-only map shows its flag and reaches Review");
+
+// No banner stands at the seed world's (0, 9, 0), so the flag's start reads as one PGM would not load.
+const flag = {
+  name: "Probe Flag", color: "yellow", pointsRate: 1, carrier: "lowered", carrierHearts: 6,
+  posts: [{ name: "Mid", at: { x: 0.5, y: 9, z: 0.5 } }],
+};
+await arrange({ wools: [], flags: [flag] });
+
+await openPhase("Flags");
+await page.waitForLoadState("networkidle", { timeout: 30000 });
+const flagTitle = await page.textContent(".editor-bar-phase span");
+checks.add("the Flags phase opens", flagTitle?.trim() === "Flags", flagTitle?.trim());
+const flagPhase = await page.textContent(".workspace");
+checks.add("the stored flag is listed", flagPhase.includes("Probe Flag"));
+checks.add("a start with no banner under it says so", flagPhase.includes("Start · no banner"));
+checks.add("the Flags phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
+
+await openPhase("Review and export");
+const flagReview = await page.textContent(".editor-bar-phase span");
+checks.add("Review is reachable with a flag as the only objective", flagReview?.trim() === "Review and export",
+           flagReview?.trim());
 
 // Put the seed map back the way the other specs expect it.
 await api(`/map/${seed.mapSlug}/intent`, { method: "PUT", body: intent });
