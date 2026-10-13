@@ -164,6 +164,13 @@ public sealed class MapReader(PgmDb db)
                 ShowProgress = p.ShowProgress, Required = p.Required, Show = p.Show,
             });
 
+        foreach (var row in await db.FlagPosts.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.FlagPosts.Add(Deserializer.DecodeFlagPost((Dict)JsonTree.FromJson(row.SpecJson)!));
+        foreach (var row in await db.Flags.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.Flags.Add(Deserializer.DecodeFlag((Dict)JsonTree.FromJson(row.SpecJson)!));
+        foreach (var row in await db.FlagNets.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.FlagNets.Add(Deserializer.DecodeFlagNet((Dict)JsonTree.FromJson(row.SpecJson)!));
+
         foreach (var shop in await db.Shops.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
             m.Shops.Add(Deserializer.DecodeShop(new Dict
             {

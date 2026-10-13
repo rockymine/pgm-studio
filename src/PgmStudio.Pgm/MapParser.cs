@@ -67,7 +67,7 @@ public sealed partial class MapParser
     // not, because a payload is a furnace minecart players push around the board and none of the geometry
     // that describes one is read.
     private static readonly HashSet<string> ParsedObjectiveModules =
-        ["wools", "destroyables", "cores", "control-points", "king", "score"];
+        ["wools", "destroyables", "cores", "control-points", "king", "score", "flags"];
 
     // Reject maps outside the supported range up front rather than silently mis-parsing them: the
     // positional format below proto 1.4.0 (anonymous teams, no region/filter ids), modern worlds whose
@@ -182,6 +182,7 @@ public sealed partial class MapParser
         data.Destroyables = ParseDestroyables();
         data.Cores = ParseCores();
         data.ControlPoints = ParseControlPoints();
+        (data.Flags, data.FlagPosts, data.FlagNets) = ParseFlags();
         data.Score = ParseScore();
         // After the variants and constants are resolved, because the gate reads the shop content itself and
         // the corpus writes whole categories inside an <if variant>.
@@ -1013,6 +1014,153 @@ public sealed partial class MapParser
         }
         return points;
     }
+
+    /// <summary>
+    /// The <c>&lt;flags&gt;</c> module, read the way PGM reads it: the posts declared beside the flags, then the
+    /// flags, then the nets beside them, each flattened out of nested <c>&lt;flags&gt;</c> groups with the
+    /// groups' attributes cascading down (<c>docs/pgm/flags.md</c>).
+    /// </summary>
+    private (List<Flag> Flags, List<FlagPost> Posts, List<FlagNet> Nets) ParseFlags()
+    {
+        var posts = Xml.Flatten(_root, "flags", "post").Select((leaf, i) => ParseFlagPost(leaf, $"__flagpost_{i}")).ToList();
+
+        var flags = new List<Flag>();
+        foreach (var (leaf, i) in Xml.Flatten(_root, "flags", "flag").Select((leaf, i) => (leaf, i)))
+        {
+            var key = $"__flag_{i}";
+            foreach (var kit in new[] { "pickup-kit", "drop-kit", "carry-kit" })
+                if (leaf.Element.Element(kit) is not null)
+                    throw new UnsupportedMapException($"a flag defines its `{kit}` inline rather than naming a kit");
+
+            var postElement = leaf.Element.Elements().FirstOrDefault(child => child.Name.LocalName is "post" or "posts");
+            var flag = new Flag
+            {
+                Id = leaf.Get("id"),
+                Name = leaf.Get("name"),
+                Color = leaf.Get("color"),
+                Owner = leaf.Get("owner"),
+                Required = leaf.BoolOrNull("required"),
+                ShowOptions = leaf.Attributes.Where(a => a.Key == "show" || a.Key.StartsWith("show-", StringComparison.Ordinal)
+                        && a.Key != "show-respawn-on-pickup")
+                    .ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal),
+                ScoreboardFilterId = FilterProperty(leaf, "scoreboard-filter", $"{key}_scoreboard"),
+                Points = leaf.DoubleOrNull("points"),
+                PointsRate = leaf.DoubleOrNull("points-rate"),
+                PickupFilterId = FilterProperty(leaf, "pickup-filter", $"{key}_pickup"),
+                CaptureFilterId = FilterProperty(leaf, "capture-filter", $"{key}_capture"),
+                DropFilterId = FilterProperty(leaf, "drop-filter", $"{key}_drop"),
+                PickupKitId = leaf.Get("pickup-kit"),
+                DropKitId = leaf.Get("drop-kit"),
+                CarryKitId = leaf.Get("carry-kit"),
+                Shared = leaf.BoolOrNull("shared"),
+                CarryMessage = TextProperty(leaf, "carry-message"),
+                ShowRespawnOnPickup = leaf.BoolOrNull("show-respawn-on-pickup"),
+                AllowManualDrop = leaf.BoolOrNull("allow-manual-drop"),
+                DropOnWater = leaf.BoolOrNull("drop-on-water"),
+                Beam = leaf.BoolOrNull("beam"),
+                FlagProximityMetric = leaf.Get("flag-proximity-metric"),
+                FlagProximityHorizontal = leaf.BoolOrNull("flag-proximity-horizontal"),
+                NetProximityMetric = leaf.Get("net-proximity-metric"),
+                NetProximityHorizontal = leaf.BoolOrNull("net-proximity-horizontal"),
+                // A post written inside the flag stands alone: it inherits nothing from the flag or its groups.
+                Post = postElement is null ? null : ParseFlagPost(new InheritedElement(postElement, Own(postElement)), $"{key}_post"),
+            };
+            if (flag.Post is null) flag.PostId = leaf.Get("post");
+            flag.Nets = [.. leaf.Element.Elements("net").Select((net, n) =>
+                ParseFlagNet(new InheritedElement(net, Own(net)), $"{key}_net_{n}"))];
+            flags.Add(flag);
+        }
+
+        var nets = Xml.Flatten(_root, "flags", "net").Select((leaf, i) => ParseFlagNet(leaf, $"__flagnet_{i}")).ToList();
+        return (flags, posts, nets);
+    }
+
+    /// <summary>One post. A post holding <c>&lt;post&gt;</c> children is composite, and each child inherits
+    /// the composite's attributes; any other post is single, and is a point written as its text or the regions
+    /// its child elements state, one place per child.</summary>
+    private FlagPost ParseFlagPost(InheritedElement leaf, string key)
+    {
+        var post = new FlagPost
+        {
+            Id = leaf.Get("id"),
+            Name = leaf.Get("name"),
+            Owner = leaf.Get("owner"),
+            Sequential = leaf.BoolOrNull("sequential"),
+            Permanent = leaf.BoolOrNull("permanent"),
+            PointsRate = leaf.DoubleOrNull("points-rate"),
+            PickupFilterId = FilterProperty(leaf, "pickup-filter", $"{key}_pickup"),
+            RespawnFilterId = FilterProperty(leaf, "respawn-filter", $"{key}_respawn"),
+            RecoverTime = leaf.GetOrNull("recover-time") ?? leaf.Get("return-time"),
+            RespawnTime = leaf.Get("respawn-time"),
+            RespawnSpeed = leaf.DoubleOrNull("respawn-speed"),
+            Yaw = leaf.Get("yaw"),
+            Pitch = leaf.Get("pitch"),
+        };
+
+        var children = leaf.Element.Elements("post").ToList();
+        if (children.Count > 0)
+        {
+            post.Fallback = leaf.Get("fallback");
+            post.Posts = [.. children.Select((child, i) => ParseFlagPost(
+                new InheritedElement(child, Inherit(leaf.Attributes, child)), $"{key}_{i}"))];
+            return post;
+        }
+
+        var text = Xml.Text(leaf.Element).Trim();
+        if (text.Length > 0 && Xml.Coords3(text) is [{ } x, { } y, { } z]) post.Point = new Vec3(x, y, z);
+        foreach (var (child, i) in leaf.Element.Elements()
+                     .Where(child => child.Name.LocalName is not ("pickup-filter" or "respawn-filter"))
+                     .Select((child, i) => (child, i)))
+            if (_regionParser.ParseRegionProperty(new XElement("region", child), $"{key}_at_{i}") is { Id.Length: > 0 } region)
+                post.RegionIds.Add(region.Id);
+        return post;
+    }
+
+    private FlagNet ParseFlagNet(InheritedElement leaf, string key) => new()
+    {
+        Id = leaf.Get("id"),
+        RegionId = ResolveRegionProperty(leaf, $"{key}_region", "region"),
+        Owner = leaf.Get("owner"),
+        Points = leaf.DoubleOrNull("points"),
+        Sticky = leaf.BoolOrNull("sticky"),
+        CaptureFilterId = FilterProperty(leaf, "capture-filter", $"{key}_capture"),
+        RespawnFilterId = FilterProperty(leaf, "respawn-filter", $"{key}_respawn"),
+        RespawnTogether = leaf.BoolOrNull("respawn-together"),
+        RespawnMessage = TextProperty(leaf, "respawn-message"),
+        DenyMessage = TextProperty(leaf, "deny-message"),
+        Location = leaf.Get("location"),
+        PostId = leaf.Get("post"),
+        Flags = Words(leaf.GetOrNull("flags") ?? leaf.Get("flag")),
+        Rescue = Words(leaf.GetOrNull("rescue") ?? leaf.Get("return")),
+    };
+
+    private static List<string> Words(string raw) => [.. raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)];
+
+    /// <summary>An element's own attributes, inheriting nothing.</summary>
+    private static Dictionary<string, string> Own(XElement e) =>
+        e.Attributes().ToDictionary(a => a.Name.LocalName, a => a.Value, StringComparer.Ordinal);
+
+    /// <summary>A child post's attributes over the ones its composite sees, the child's own winning. The
+    /// composite's id and fallback name the composite and are not handed down.</summary>
+    private static Dictionary<string, string> Inherit(IReadOnlyDictionary<string, string> parent, XElement child)
+    {
+        var attributes = new Dictionary<string, string>(
+            parent.Where(a => a.Key is not ("id" or "fallback")), StringComparer.Ordinal);
+        foreach (var a in child.Attributes()) attributes[a.Name.LocalName] = a.Value;
+        return attributes;
+    }
+
+    /// <summary>A filter property as an attribute naming one, or as a child element wrapping one, which is
+    /// registered under <paramref name="syntheticId"/> when it carries no id of its own.</summary>
+    private string FilterProperty(InheritedElement e, string name, string syntheticId)
+    {
+        if (e.Element.Element(name) is { } wrapper) return _filterParser.ParseFilterProperty(wrapper, syntheticId);
+        return e.Get(name);
+    }
+
+    /// <summary>A message as an attribute or as a child element's text.</summary>
+    private static string TextProperty(InheritedElement e, string name)
+        => e.Element.Element(name) is { } child ? Xml.Text(child).Trim() : e.Get(name);
 
     // <control-point> leaves first and <hill> leaves after, which is the order PGM parses them in and
     // therefore the order its shared name counter runs in.

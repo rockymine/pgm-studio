@@ -23,17 +23,11 @@ is the reference for the rest: `play/objectives.py` `Flag` and `play/rules.py` `
 
 ### The flag
 
-- [ ] **PG20 — The parser reads `<flags>`.** `MapParser` refuses every map carrying it (`MapParser.cs:60`,
-  `ParsedObjectiveModules`): 157 of the corpus's 1,626 `map.xml`. Read `<flag>`, the single `<post>` and the
-  composite one (leaf points, nested posts inheriting their parent's attributes, `fallback`, `sequential`,
-  `respawn-filter`) and `<net>` (top-level and nested, `flag`/`flags`, `post`, `rescue`) into `MapModel`, write
-  them back, and add `flags` to `ParsedObjectiveModules`. PGM tags a flag map `ctf` only
-  (`FlagModule.java:28`); KotF is a stated `<gamemode>kotf</gamemode>`, which 29 of the 38 corpus `kotf/` maps
-  omit. `docs/pgm/flags.md` (new) and `docs/pgm/supported-maps.md`.
 - [ ] **PG21 — A King of the Flag intent.** `MapIntent.Flags`: name, colour, and posts (point, name, yaw). It
   is neutral, so it fans by position like `ControlPointIntent`. `FlagGenerator` writes one flag over one
   composite `<post>` with respawn random (`sequential` false), `points-rate` 1 (author; 47 of 55 corpus KotF
-  flags), the `<score>` limit KotH writes, and `<gamemode>kotf</gamemode>` through `Gamemodes.From`.
+  flags), the `<score>` limit KotH writes, and `<gamemode>kotf</gamemode>` as a declared gamemode
+  (`MetaGenerator`), since PGM derives only `ctf` (`docs/pgm/flags.md` §5).
   `BannerBox` is filled by the export. `docs/pgm/flags.md`, `docs/tools/configure.md`.
 - [ ] **PG25 — The carrier's pickup kit is one of three.** A flag states a `Carrier` word: `lowered` (default)
   writes `<max-health>` at a stated number of hearts, default 6 (12 health), with a drop kit restoring 20;

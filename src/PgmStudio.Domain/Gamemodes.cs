@@ -22,6 +22,7 @@ public static class Gamemodes
     public const string Cp = "cp";
     public const string Koth = "koth";
     public const string Tdm = "tdm";
+    public const string Ctf = "ctf";
 
     /// <summary>Every id PGM's own <c>Gamemode</c> enum recognizes (<c>Gamemode.java</c>), matched
     /// case-insensitively the same way <c>Gamemode.byId</c> does. A <c>&lt;gamemode&gt;</c> element outside
@@ -51,10 +52,12 @@ public static class Gamemodes
     /// — so a map spelling both elements is CP. <paramref name="scoresKillsOrDeaths"/> is the whole of what
     /// makes a map TDM: a <c>&lt;score&gt;</c> that only sets a limit is the ending a capture map is played
     /// to and names no gamemode of its own.</para>
+    /// <para><paramref name="hasFlags"/> is CTF, the one tag PGM's flag module adds. King of the Flag is a
+    /// gamemode a map states (<c>&lt;gamemode&gt;kotf&lt;/gamemode&gt;</c>) and PGM never derives.</para>
     /// </summary>
     public static IReadOnlyList<string> From(
         bool hasWools, bool hasRealDestroyable, bool hasCores,
-        bool hasControlPoints, bool hasKing, bool scoresKillsOrDeaths)
+        bool hasControlPoints, bool hasKing, bool hasFlags, bool scoresKillsOrDeaths)
     {
         var modes = new List<string>(4);
         if (hasWools) modes.Add(Ctw);
@@ -62,6 +65,7 @@ public static class Gamemodes
         if (hasCores) modes.Add(Dtc);
         if (hasControlPoints) modes.Add(Cp);
         else if (hasKing) modes.Add(Koth);
+        if (hasFlags) modes.Add(Ctf);
         if (scoresKillsOrDeaths) modes.Add(Tdm);
         return modes;
     }

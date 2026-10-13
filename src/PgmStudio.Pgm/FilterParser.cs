@@ -30,6 +30,19 @@ internal sealed class FilterParser
         return _registry;
     }
 
+    /// <summary>A filter property written as a child element wrapping one filter: the filter's id, its
+    /// reference's id, or <paramref name="syntheticId"/> where it is anonymous; "" where the child holds no
+    /// filter this reads.</summary>
+    public string ParseFilterProperty(XElement wrapper, string syntheticId)
+    {
+        if (wrapper.Elements().FirstOrDefault() is not { } child) return "";
+        var filter = ParseFilterNode(child, syntheticId, 0);
+        if (filter is null) return "";
+        if (filter.Type == "filter") return filter.RefId ?? "";
+        if (filter.Id.Length == 0) { filter.Id = syntheticId; _registry.TryAdd(filter.Id, filter); }
+        return filter.Id;
+    }
+
     private Filter? ParseFilterNode(XElement elem, string parentId, int index = 0)
     {
         var tag = elem.Name.LocalName;
@@ -57,6 +70,9 @@ internal sealed class FilterParser
             "offset" => ParseOffset(elem, id, parentId, index),
             "variable" => new Filter { Id = id, Type = "variable", Var = Xml.Get(elem, "var", ""), Value = text, Team = Xml.Get(elem, "team", "") },
             "completed" => new Filter { Id = id, Type = "completed", Objective = text },
+            "flag-carried" or "flag-dropped" or "flag-returned" or "flag-captured"
+                => new Filter { Id = id, Type = tag, Objective = text, Post = Xml.GetOrNull(elem, "post") },
+            "carrying-flag" => new Filter { Id = id, Type = "carrying-flag", Objective = text },
             "objective" => new Filter { Id = id, Type = "objective", Objective = text },
             "filter" => new Filter { Type = "filter", RefId = Xml.Get(elem, "id", "") },
             "kill-streak" => new Filter { Id = id, Type = "kill-streak", Min = SafeInt(Xml.GetOrNull(elem, "min")), Max = SafeInt(Xml.GetOrNull(elem, "max")), Count = SafeInt(Xml.GetOrNull(elem, "count")) },

@@ -54,7 +54,6 @@ public sealed class MapSupportTests
     // An objective module the parser does not read would be dropped in silence — the map would export
     // without its goal. Each of these declares a non-auxiliary gamemode in PGM.
     [Test]
-    [Arguments("<flags><flag id=\"f\"/></flags>")]
     [Arguments("<payloads><payload id=\"cart\" location=\"0,0,0\" radius=\"4\"/></payloads>")]
     // A scorebox is its own objective inside an element that is read, so the gate looks one level in.
     [Arguments("<score><limit>50</limit><box region=\"r\" points=\"1\"/></score>")]

@@ -105,6 +105,7 @@ public sealed record MapIntent
         // limit it ends at and nothing else, which is what keeps it off the deathmatch tag.
         hasControlPoints: false,
         hasKing: ControlPoints is { Count: > 0 },
+        hasFlags: false,
         scoresKillsOrDeaths: false);
 
     /// <summary>Map identity: name + authors/contributors. Version (1.0) and proto (1.5.1) are fixed; the

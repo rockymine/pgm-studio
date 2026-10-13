@@ -79,16 +79,19 @@ public sealed class MapRepository(PgmDb db)
         var withPoints = (await db.ControlPoints.Where(p => p.Element == "control-points").Select(p => p.MapId).Distinct().ToListAsync(ct)).ToHashSet();
         var withKing = (await db.ControlPoints.Where(p => p.Element == "king").Select(p => p.MapId).Distinct().ToListAsync(ct)).ToHashSet();
         // Only a score that pays for kills or deaths is a deathmatch; a bare limit is how a capture map ends.
+        var withFlags = (await db.Flags.Select(f => f.MapId).Distinct().ToListAsync(ct)).ToHashSet();
         var withKillScore = (await db.Scores.Where(s => (s.Kills ?? 0) != 0 || (s.Deaths ?? 0) != 0).Select(s => s.MapId).Distinct().ToListAsync(ct)).ToHashSet();
 
         var result = new Dictionary<long, IReadOnlyList<string>>();
-        foreach (var id in withWools.Union(withDestroyables).Union(withCores).Union(withPoints).Union(withKing).Union(withKillScore))
+        foreach (var id in withWools.Union(withDestroyables).Union(withCores).Union(withPoints).Union(withKing).Union(withFlags)
+                     .Union(withKillScore))
             result[id] = Domain.Gamemodes.From(
                 hasWools: withWools.Contains(id),
                 hasRealDestroyable: withDestroyables.Contains(id),
                 hasCores: withCores.Contains(id),
                 hasControlPoints: withPoints.Contains(id),
                 hasKing: withKing.Contains(id),
+                hasFlags: withFlags.Contains(id),
                 scoresKillsOrDeaths: withKillScore.Contains(id));
         return result;
     }

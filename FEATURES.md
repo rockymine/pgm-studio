@@ -3423,6 +3423,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   37 proto, 27 modern-world and 9 `payloads` maps), and all **286** carrying a control point or a score
   module survive the XML round trip with every point and knob unchanged. `docs/pgm/control-points.md`.
   (PG5, OB10)
+- **Flag maps are read and written (`PG20`).** `MapParser.ParseFlags` reads the whole `<flags>` module in
+  PGM's order — posts beside the flags, the flags, nets beside them — into `Flag`, `FlagPost` (single, or
+  composite with its places inheriting) and `FlagNet`, with nested groups' attributes cascading, inline
+  regions, filters and messages kept inline, and the five flag filters (`flag-carried`, `flag-dropped`,
+  `flag-returned`, `flag-captured`, `carrying-flag`). They round-trip through the XML writer, the map document
+  (`flags`, `flag_posts`, `flag_nets`) and storage (`flag`, `flag_post`, `flag_net`, `M0069`), and a flag map
+  derives `ctf`. A flag whose kit is written inside it is refused. **1,470 of 1,626 corpus maps parse**, and all
+  148 readable flag maps come back with every flag, post, net and filter unchanged through both codecs.
+  `docs/pgm/flags.md`. (`PG20`)
 - **KotH boards are authorable: the pad, the intent slice, and the score it pays into.** An agent adds one
   array to the intent it already posts — `PUT /api/map/{slug}/intent` with `controlPoints` — and the export
   does the rest. No second endpoint and no new document. **The stamper is the one that differs from every

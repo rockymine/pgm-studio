@@ -124,6 +124,9 @@ public sealed class MapWriter(PgmDb db)
         await db.Destroyables.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Cores.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.ControlPoints.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.Flags.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.FlagPosts.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.FlagNets.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Shops.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Shopkeepers.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Scores.Where(x => x.MapId == mapId).DeleteAsync(ct);
@@ -234,6 +237,13 @@ public sealed class MapWriter(PgmDb db)
                 Points = p.Points, OwnerPoints = p.OwnerPoints, PointsGrowth = p.PointsGrowth,
                 ShowProgress = p.ShowProgress, Required = p.Required, Show = p.Show,
             }, token: ct);
+
+        foreach (var post in m.FlagPosts)
+            await db.InsertAsync(new FlagPostRow { MapId = mapId, SpecJson = Json(Serializer.EncodeFlagPost(post)) }, token: ct);
+        foreach (var flag in m.Flags)
+            await db.InsertAsync(new FlagRow { MapId = mapId, SpecJson = Json(Serializer.EncodeFlag(flag)) }, token: ct);
+        foreach (var net in m.FlagNets)
+            await db.InsertAsync(new FlagNetRow { MapId = mapId, SpecJson = Json(Serializer.EncodeFlagNet(net)) }, token: ct);
 
         foreach (var shop in m.Shops)
             await db.InsertAsync(new ShopRow

@@ -35,6 +35,9 @@ public static class Deserializer
             Destroyables = ListOf(d, "destroyables").Select(x => DecodeDestroyable(AsDict(x))).ToList(),
             Cores = ListOf(d, "cores").Select(x => DecodeCore(AsDict(x))).ToList(),
             ControlPoints = ListOf(d, "control_points").Select(x => DecodeControlPoint(AsDict(x))).ToList(),
+            Flags = ListOf(d, "flags").Select(x => DecodeFlag(AsDict(x))).ToList(),
+            FlagPosts = ListOf(d, "flag_posts").Select(x => DecodeFlagPost(AsDict(x))).ToList(),
+            FlagNets = ListOf(d, "flag_nets").Select(x => DecodeFlagNet(AsDict(x))).ToList(),
             Shops = ListOf(d, "shops").Select(x => DecodeShop(AsDict(x))).ToList(),
             Shopkeepers = ListOf(d, "shopkeepers").Select(x => DecodeShopkeeper(AsDict(x))).ToList(),
             Score = Val(d, "score") is Dict score ? DecodeScore(score) : null,
@@ -188,7 +191,9 @@ public static class Deserializer
             case "pulse": f.Period = Str(d, "period"); f.Duration = Str(d, "duration"); f.FilterRefId = Str(d, "filter"); break;
             case "offset": f.Vector = Str(d, "vector"); f.Child = Str(d, "child"); break;
             case "variable": f.Var = Str(d, "var"); f.Value = Str(d, "value"); f.Team = Str(d, "team"); break;
-            case "completed" or "objective": f.Objective = Str(d, "objective"); break;
+            case "completed" or "objective" or "carrying-flag": f.Objective = Str(d, "objective"); break;
+            case "flag-carried" or "flag-dropped" or "flag-returned" or "flag-captured":
+                f.Objective = Str(d, "objective"); f.Post = Val(d, "post") as string; break;
             case "kill-streak":
                 f.Min = AsIntN(Val(d, "min")); f.Max = AsIntN(Val(d, "max")); f.Count = AsIntN(Val(d, "count")); break;
             case "class": f.Name = Str(d, "name"); break;
@@ -387,6 +392,81 @@ public static class Deserializer
         ShowProgress = AsBoolN(Val(d, "show_progress")),
         Required = AsBoolN(Val(d, "required")),
         Show = Val(d, "show") is not false,
+    };
+
+    public static Flag DecodeFlag(Dict d) => new()
+    {
+        Id = Str(d, "id"),
+        Name = Str(d, "name"),
+        Color = Str(d, "color"),
+        Owner = Str(d, "owner"),
+        Required = AsBoolN(Val(d, "required")),
+        ShowOptions = Val(d, "show_options") is Dict options
+            ? options.ToDictionary(o => o.Key, o => o.Value as string ?? "", StringComparer.Ordinal)
+            : new Dictionary<string, string>(StringComparer.Ordinal),
+        ScoreboardFilterId = Str(d, "scoreboard_filter"),
+        Points = AsDoubleN(Val(d, "points")),
+        PointsRate = AsDoubleN(Val(d, "points_rate")),
+        PickupFilterId = Str(d, "pickup_filter"),
+        CaptureFilterId = Str(d, "capture_filter"),
+        DropFilterId = Str(d, "drop_filter"),
+        PickupKitId = Str(d, "pickup_kit"),
+        DropKitId = Str(d, "drop_kit"),
+        CarryKitId = Str(d, "carry_kit"),
+        Shared = AsBoolN(Val(d, "shared")),
+        CarryMessage = Str(d, "carry_message"),
+        ShowRespawnOnPickup = AsBoolN(Val(d, "show_respawn_on_pickup")),
+        AllowManualDrop = AsBoolN(Val(d, "allow_manual_drop")),
+        DropOnWater = AsBoolN(Val(d, "drop_on_water")),
+        Beam = AsBoolN(Val(d, "beam")),
+        FlagProximityMetric = Str(d, "flag_proximity_metric"),
+        FlagProximityHorizontal = AsBoolN(Val(d, "flag_proximity_horizontal")),
+        NetProximityMetric = Str(d, "net_proximity_metric"),
+        NetProximityHorizontal = AsBoolN(Val(d, "net_proximity_horizontal")),
+        PostId = Str(d, "post_id"),
+        Post = Val(d, "post") is Dict post ? DecodeFlagPost(post) : null,
+        Nets = ListOf(d, "nets").Select(x => DecodeFlagNet(AsDict(x))).ToList(),
+    };
+
+    public static FlagPost DecodeFlagPost(Dict d) => new()
+    {
+        Id = Str(d, "id"),
+        Name = Str(d, "name"),
+        Owner = Str(d, "owner"),
+        Sequential = AsBoolN(Val(d, "sequential")),
+        Permanent = AsBoolN(Val(d, "permanent")),
+        PointsRate = AsDoubleN(Val(d, "points_rate")),
+        PickupFilterId = Str(d, "pickup_filter"),
+        RespawnFilterId = Str(d, "respawn_filter"),
+        RecoverTime = Str(d, "recover_time"),
+        RespawnTime = Str(d, "respawn_time"),
+        RespawnSpeed = AsDoubleN(Val(d, "respawn_speed")),
+        Yaw = Str(d, "yaw"),
+        Pitch = Str(d, "pitch"),
+        Point = Val(d, "point") is Dict at
+            ? new Vec3(AsDouble(Val(at, "x"), 0), AsDouble(Val(at, "y"), 0), AsDouble(Val(at, "z"), 0))
+            : null,
+        RegionIds = Words(d, "regions"),
+        Fallback = Str(d, "fallback"),
+        Posts = ListOf(d, "posts").Select(x => DecodeFlagPost(AsDict(x))).ToList(),
+    };
+
+    public static FlagNet DecodeFlagNet(Dict d) => new()
+    {
+        Id = Str(d, "id"),
+        RegionId = Str(d, "region"),
+        Owner = Str(d, "owner"),
+        Points = AsDoubleN(Val(d, "points")),
+        Sticky = AsBoolN(Val(d, "sticky")),
+        CaptureFilterId = Str(d, "capture_filter"),
+        RespawnFilterId = Str(d, "respawn_filter"),
+        RespawnTogether = AsBoolN(Val(d, "respawn_together")),
+        RespawnMessage = Str(d, "respawn_message"),
+        DenyMessage = Str(d, "deny_message"),
+        Location = Str(d, "location"),
+        PostId = Str(d, "post_id"),
+        Flags = Words(d, "flags"),
+        Rescue = Words(d, "rescue"),
     };
 
     private static ScoreConfig DecodeScore(Dict d) => new()

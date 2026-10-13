@@ -87,6 +87,13 @@ public static partial class XmlWriter
         }
         foreach (var r in m.Renewables) { Add(r.RenewFilter); Add(r.ReplaceFilter); }
         foreach (var p in m.ControlPoints) { Add(p.VisualMaterialsFilterId); Add(p.CaptureFilterId); Add(p.PlayerFilterId); }
+        foreach (var f in m.Flags)
+        {
+            Add(f.ScoreboardFilterId); Add(f.PickupFilterId); Add(f.CaptureFilterId); Add(f.DropFilterId);
+            foreach (var net in f.Nets) { Add(net.CaptureFilterId); Add(net.RespawnFilterId); }
+        }
+        foreach (var post in AllPosts(m)) { Add(post.PickupFilterId); Add(post.RespawnFilterId); }
+        foreach (var net in m.FlagNets) { Add(net.CaptureFilterId); Add(net.RespawnFilterId); }
         foreach (var category in m.Shops.SelectMany(shop => shop.Categories))
         {
             Add(category.FilterId);
@@ -111,7 +118,22 @@ public static partial class XmlWriter
                 if (id.Length > 0 && !IsSynthetic(id)) refs.Add(id);
         foreach (var keeper in m.Shopkeepers)
             if (keeper.RegionId.Length > 0 && !IsSynthetic(keeper.RegionId)) refs.Add(keeper.RegionId);
+        foreach (var net in m.FlagNets.Concat(m.Flags.SelectMany(f => f.Nets)))
+            if (net.RegionId.Length > 0 && !IsSynthetic(net.RegionId)) refs.Add(net.RegionId);
+        foreach (var post in AllPosts(m))
+            foreach (var id in post.RegionIds) if (!IsSynthetic(id)) refs.Add(id);
         return refs;
+    }
+
+    /// <summary>Every post a map's flags state, composites and their children alike.</summary>
+    private static IEnumerable<FlagPost> AllPosts(MapXml m)
+    {
+        var roots = m.FlagPosts.Concat(m.Flags.Select(f => f.Post).OfType<FlagPost>());
+        foreach (var post in roots)
+        {
+            yield return post;
+            foreach (var child in post.Posts) yield return child;
+        }
     }
 
     // ── top-level builder ───────────────────────────────────────────────────────────
@@ -144,11 +166,13 @@ public static partial class XmlWriter
         WriteDestroyables(root, m.Destroyables, m.Regions);
         WriteCores(root, m.Cores, m.Regions);
         WriteControlPoints(root, m.ControlPoints, m.Regions);
+        var externalFilters = ExternalFilterRefs(m);
+        WriteFlags(root, m, InlineFilter(m.Filters, externalFilters));
         WriteScore(root, m.Score);
         WriteShops(root, m.Shops);
         WriteShopkeepers(root, m.Shopkeepers);
 
-        if (m.Filters.Count > 0) WriteFiltersBlock(root, m.Filters, ExternalFilterRefs(m));
+        if (m.Filters.Count > 0) WriteFiltersBlock(root, m.Filters, externalFilters);
         if (m.Regions.Count > 0 || m.ApplyRules.Count > 0)
             WriteRegionsBlock(root, m.Regions, m.ApplyRules, ExternalRegionRefs(m));
 
@@ -513,6 +537,130 @@ public static partial class XmlWriter
         }
     }
 
+    /// <summary>
+    /// The <c>&lt;flags&gt;</c> module, flat: the posts declared beside the flags, the flags, and the nets
+    /// beside them, in the order PGM reads them. A filter or region the map wrote inline is written inline
+    /// again; one it named is named.
+    /// </summary>
+    private static void WriteFlags(XElement parent, MapXml m, Func<string, XElement?> inlineFilter)
+    {
+        if (m.Flags.Count == 0 && m.FlagPosts.Count == 0 && m.FlagNets.Count == 0) return;
+        var block = new XElement("flags");
+        parent.Add(block);
+        foreach (var post in m.FlagPosts) block.Add(FlagPostElem(post, m.Regions, inlineFilter));
+        foreach (var flag in m.Flags) block.Add(FlagElem(flag, m.Regions, inlineFilter));
+        foreach (var net in m.FlagNets) block.Add(FlagNetElem(net, nested: false, m.Regions, inlineFilter));
+    }
+
+    private static XElement FlagElem(Flag f, Dictionary<string, Region> regions, Func<string, XElement?> inlineFilter)
+    {
+        var e = new XElement("flag");
+        SetText(e, "id", f.Id);
+        SetText(e, "name", f.Name);
+        SetText(e, "color", f.Color);
+        SetText(e, "owner", f.Owner);
+        SetBool(e, "required", f.Required);
+        foreach (var (name, value) in f.ShowOptions) Set(e, name, value);
+        SetNumber(e, "points", f.Points);
+        SetNumber(e, "points-rate", f.PointsRate);
+        SetText(e, "pickup-kit", f.PickupKitId);
+        SetText(e, "drop-kit", f.DropKitId);
+        SetText(e, "carry-kit", f.CarryKitId);
+        SetBool(e, "shared", f.Shared);
+        SetText(e, "carry-message", f.CarryMessage);
+        SetBool(e, "show-respawn-on-pickup", f.ShowRespawnOnPickup);
+        SetBool(e, "allow-manual-drop", f.AllowManualDrop);
+        SetBool(e, "drop-on-water", f.DropOnWater);
+        SetBool(e, "beam", f.Beam);
+        SetText(e, "flag-proximity-metric", f.FlagProximityMetric);
+        SetBool(e, "flag-proximity-horizontal", f.FlagProximityHorizontal);
+        SetText(e, "net-proximity-metric", f.NetProximityMetric);
+        SetBool(e, "net-proximity-horizontal", f.NetProximityHorizontal);
+        FilterProperty(e, "scoreboard-filter", f.ScoreboardFilterId, inlineFilter);
+        FilterProperty(e, "pickup-filter", f.PickupFilterId, inlineFilter);
+        FilterProperty(e, "capture-filter", f.CaptureFilterId, inlineFilter);
+        FilterProperty(e, "drop-filter", f.DropFilterId, inlineFilter);
+        if (f.Post is { } post) e.Add(FlagPostElem(post, regions, inlineFilter));
+        else SetText(e, "post", f.PostId);
+        foreach (var net in f.Nets) e.Add(FlagNetElem(net, nested: true, regions, inlineFilter));
+        return e;
+    }
+
+    /// <summary>One post. A composite's children are written with only the attributes they do not share with
+    /// it, since they inherit the rest.</summary>
+    private static XElement FlagPostElem(FlagPost p, Dictionary<string, Region> regions, Func<string, XElement?> inlineFilter)
+    {
+        var e = new XElement("post");
+        SetText(e, "id", p.Id);
+        SetText(e, "name", p.Name);
+        SetText(e, "owner", p.Owner);
+        SetBool(e, "sequential", p.Sequential);
+        SetBool(e, "permanent", p.Permanent);
+        SetNumber(e, "points-rate", p.PointsRate);
+        SetText(e, "recover-time", p.RecoverTime);
+        SetText(e, "respawn-time", p.RespawnTime);
+        SetNumber(e, "respawn-speed", p.RespawnSpeed);
+        SetText(e, "yaw", p.Yaw);
+        SetText(e, "pitch", p.Pitch);
+        SetText(e, "fallback", p.Fallback);
+        FilterProperty(e, "pickup-filter", p.PickupFilterId, inlineFilter);
+        FilterProperty(e, "respawn-filter", p.RespawnFilterId, inlineFilter);
+
+        foreach (var child in p.Posts)
+        {
+            var childElem = FlagPostElem(child, regions, inlineFilter);
+            foreach (var attribute in childElem.Attributes().ToList())
+                if (e.Attribute(attribute.Name)?.Value == attribute.Value) attribute.Remove();
+            e.Add(childElem);
+        }
+        if (p.Point is { } at) e.Add(new XText($"{C(at.X)},{C(at.Y)},{C(at.Z)}"));
+        foreach (var id in p.RegionIds)
+        {
+            if (!IsSynthetic(id)) e.Add(new XElement("region", new XAttribute("id", id)));
+            else if (regions.TryGetValue(id, out var region)) e.Add(RegionElemInline(region));
+        }
+        return e;
+    }
+
+    private static XElement FlagNetElem(FlagNet n, bool nested, Dictionary<string, Region> regions, Func<string, XElement?> inlineFilter)
+    {
+        var e = new XElement("net");
+        SetText(e, "id", n.Id);
+        SetText(e, "owner", n.Owner);
+        SetNumber(e, "points", n.Points);
+        SetBool(e, "sticky", n.Sticky);
+        SetBool(e, "respawn-together", n.RespawnTogether);
+        SetText(e, "respawn-message", n.RespawnMessage);
+        SetText(e, "deny-message", n.DenyMessage);
+        SetText(e, "location", n.Location);
+        SetText(e, "post", n.PostId);
+        // A net inside a flag takes that flag, and PGM refuses one that names others.
+        if (!nested && n.Flags.Count > 0) Set(e, "flags", string.Join(' ', n.Flags));
+        if (n.Rescue.Count > 0) Set(e, "rescue", string.Join(' ', n.Rescue));
+        FilterProperty(e, "capture-filter", n.CaptureFilterId, inlineFilter);
+        FilterProperty(e, "respawn-filter", n.RespawnFilterId, inlineFilter);
+        if (n.RegionId.Length > 0)
+        {
+            if (!IsSynthetic(n.RegionId)) Set(e, "region", n.RegionId);
+            else if (regions.TryGetValue(n.RegionId, out var region)) e.Add(new XElement("region", RegionElemInline(region)));
+        }
+        return e;
+    }
+
+    /// <summary>A filter property: an attribute naming the filter, or the filter itself inside a child element
+    /// of the property's name where the map wrote it inline.</summary>
+    private static void FilterProperty(XElement e, string name, string filterId, Func<string, XElement?> inlineFilter)
+    {
+        if (filterId.Length == 0) return;
+        if (!IsSynthetic(filterId)) Set(e, name, filterId);
+        else if (inlineFilter(filterId) is { } filter) e.Add(new XElement(name, filter));
+    }
+
+    private static void SetText(XElement e, string name, string value)
+    {
+        if (value.Length > 0) Set(e, name, value);
+    }
+
     private static void SetBool(XElement e, string name, bool? value)
     {
         if (value is { } v) Set(e, name, v ? "true" : "false");
@@ -637,6 +785,19 @@ public static partial class XmlWriter
     private static void WriteFiltersBlock(XElement parent, Dictionary<string, Filter> filters, HashSet<string> external)
     {
         var counts = CountFilterParents(filters);
+        var topLevel = TopLevelFilters(filters, external, counts);
+        if (topLevel.Count == 0) return;
+        var block = new XElement("filters"); parent.Add(block);
+        foreach (var fid in filters.Keys)
+            if (topLevel.Contains(fid) && FilterElem(fid, filters, counts, topLevel, withId: true) is { } e)
+                block.Add(e);
+    }
+
+    /// <summary>The filters written in the <c>&lt;filters&gt;</c> block: every named one nothing else nests,
+    /// nested in two places, or referenced from outside the block.</summary>
+    private static HashSet<string> TopLevelFilters(Dictionary<string, Filter> filters, HashSet<string> external,
+        Dictionary<string, int> counts)
+    {
         var topLevel = new HashSet<string>();
         foreach (var fid in filters.Keys)
         {
@@ -644,11 +805,16 @@ public static partial class XmlWriter
             var c = counts.GetValueOrDefault(fid);
             if (c == 0 || c >= 2 || external.Contains(fid)) topLevel.Add(fid);
         }
-        if (topLevel.Count == 0) return;
-        var block = new XElement("filters"); parent.Add(block);
-        foreach (var fid in filters.Keys)
-            if (topLevel.Contains(fid) && FilterElem(fid, filters, counts, topLevel, withId: true) is { } e)
-                block.Add(e);
+        return topLevel;
+    }
+
+    /// <summary>How an element outside the block writes a synthetic filter it holds: the filter's own
+    /// element, inline, with what it nests resolved the way the block resolves it.</summary>
+    private static Func<string, XElement?> InlineFilter(Dictionary<string, Filter> filters, HashSet<string> external)
+    {
+        var counts = CountFilterParents(filters);
+        var topLevel = TopLevelFilters(filters, external, counts);
+        return fid => FilterElem(fid, filters, counts, topLevel, withId: false);
     }
 
     private static XElement? FilterChildElem(string childId, Dictionary<string, Filter> filters, Dictionary<string, int> counts, HashSet<string> topLevel)
@@ -712,7 +878,11 @@ public static partial class XmlWriter
                 if (!string.IsNullOrEmpty(f.Team)) Set(e, "team", f.Team);
                 e.Value = f.Value ?? "";
                 break;
-            case "completed" or "objective": e.Value = f.Objective ?? ""; break;
+            case "completed" or "objective" or "carrying-flag": e.Value = f.Objective ?? ""; break;
+            case "flag-carried" or "flag-dropped" or "flag-returned" or "flag-captured":
+                e.Value = f.Objective ?? "";
+                if (!string.IsNullOrEmpty(f.Post)) Set(e, "post", f.Post);
+                break;
             case "kill-streak":
                 if (f.Min is not null) Set(e, "min", f.Min.Value.ToString());
                 if (f.Max is not null) Set(e, "max", f.Max.Value.ToString());

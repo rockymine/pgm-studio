@@ -16,6 +16,9 @@ public static class Serializer
         if (m.Destroyables.Count > 0) d["destroyables"] = m.Destroyables.Select(EncodeDestroyable).ToList<object?>();
         if (m.Cores.Count > 0) d["cores"] = m.Cores.Select(EncodeCore).ToList<object?>();
         if (m.ControlPoints.Count > 0) d["control_points"] = m.ControlPoints.Select(EncodeControlPoint).ToList<object?>();
+        if (m.Flags.Count > 0) d["flags"] = m.Flags.Select(EncodeFlag).ToList<object?>();
+        if (m.FlagPosts.Count > 0) d["flag_posts"] = m.FlagPosts.Select(EncodeFlagPost).ToList<object?>();
+        if (m.FlagNets.Count > 0) d["flag_nets"] = m.FlagNets.Select(EncodeFlagNet).ToList<object?>();
         if (m.Shops.Count > 0) d["shops"] = m.Shops.Select(EncodeShop).ToList<object?>();
         if (m.Shopkeepers.Count > 0) d["shopkeepers"] = m.Shopkeepers.Select(EncodeShopkeeper).ToList<object?>();
         if (m.Score is { } score) d["score"] = EncodeScore(score);
@@ -364,6 +367,87 @@ public static class Serializer
         return r;
     }
 
+    // A flag, its post and its nets carry only what the map stated, for the reason a control point does.
+    public static Dict EncodeFlag(Flag f)
+    {
+        var r = new Dict { ["id"] = f.Id };
+        Text(r, "name", f.Name);
+        Text(r, "color", f.Color);
+        Text(r, "owner", f.Owner);
+        if (f.Required is { } required) r["required"] = required;
+        if (f.ShowOptions.Count > 0) r["show_options"] = f.ShowOptions.ToDictionary(o => o.Key, o => (object?)o.Value);
+        Text(r, "scoreboard_filter", f.ScoreboardFilterId);
+        if (f.Points is { } points) r["points"] = points;
+        if (f.PointsRate is { } rate) r["points_rate"] = rate;
+        Text(r, "pickup_filter", f.PickupFilterId);
+        Text(r, "capture_filter", f.CaptureFilterId);
+        Text(r, "drop_filter", f.DropFilterId);
+        Text(r, "pickup_kit", f.PickupKitId);
+        Text(r, "drop_kit", f.DropKitId);
+        Text(r, "carry_kit", f.CarryKitId);
+        if (f.Shared is { } shared) r["shared"] = shared;
+        Text(r, "carry_message", f.CarryMessage);
+        if (f.ShowRespawnOnPickup is { } showRespawn) r["show_respawn_on_pickup"] = showRespawn;
+        if (f.AllowManualDrop is { } manualDrop) r["allow_manual_drop"] = manualDrop;
+        if (f.DropOnWater is { } dropOnWater) r["drop_on_water"] = dropOnWater;
+        if (f.Beam is { } beam) r["beam"] = beam;
+        Text(r, "flag_proximity_metric", f.FlagProximityMetric);
+        if (f.FlagProximityHorizontal is { } flagHorizontal) r["flag_proximity_horizontal"] = flagHorizontal;
+        Text(r, "net_proximity_metric", f.NetProximityMetric);
+        if (f.NetProximityHorizontal is { } netHorizontal) r["net_proximity_horizontal"] = netHorizontal;
+        Text(r, "post_id", f.PostId);
+        if (f.Post is { } post) r["post"] = EncodeFlagPost(post);
+        if (f.Nets.Count > 0) r["nets"] = f.Nets.Select(EncodeFlagNet).ToList<object?>();
+        return r;
+    }
+
+    public static Dict EncodeFlagPost(FlagPost p)
+    {
+        var r = new Dict();
+        Text(r, "id", p.Id);
+        Text(r, "name", p.Name);
+        Text(r, "owner", p.Owner);
+        if (p.Sequential is { } sequential) r["sequential"] = sequential;
+        if (p.Permanent is { } permanent) r["permanent"] = permanent;
+        if (p.PointsRate is { } rate) r["points_rate"] = rate;
+        Text(r, "pickup_filter", p.PickupFilterId);
+        Text(r, "respawn_filter", p.RespawnFilterId);
+        Text(r, "recover_time", p.RecoverTime);
+        Text(r, "respawn_time", p.RespawnTime);
+        if (p.RespawnSpeed is { } speed) r["respawn_speed"] = speed;
+        Text(r, "yaw", p.Yaw);
+        Text(r, "pitch", p.Pitch);
+        if (p.Point is { } at) r["point"] = new Dict { ["x"] = at.X, ["y"] = at.Y, ["z"] = at.Z };
+        if (p.RegionIds.Count > 0) r["regions"] = p.RegionIds.ToList<object?>();
+        Text(r, "fallback", p.Fallback);
+        if (p.Posts.Count > 0) r["posts"] = p.Posts.Select(EncodeFlagPost).ToList<object?>();
+        return r;
+    }
+
+    public static Dict EncodeFlagNet(FlagNet n)
+    {
+        var r = new Dict { ["region"] = n.RegionId };
+        Text(r, "id", n.Id);
+        Text(r, "owner", n.Owner);
+        if (n.Points is { } points) r["points"] = points;
+        if (n.Sticky is { } sticky) r["sticky"] = sticky;
+        Text(r, "capture_filter", n.CaptureFilterId);
+        Text(r, "respawn_filter", n.RespawnFilterId);
+        if (n.RespawnTogether is { } together) r["respawn_together"] = together;
+        Text(r, "respawn_message", n.RespawnMessage);
+        Text(r, "deny_message", n.DenyMessage);
+        Text(r, "location", n.Location);
+        Text(r, "post_id", n.PostId);
+        if (n.Flags.Count > 0) r["flags"] = n.Flags.ToList<object?>();
+        if (n.Rescue.Count > 0) r["rescue"] = n.Rescue.ToList<object?>();
+        return r;
+    }
+
+    private static void Text(Dict r, string key, string value)
+    {
+        if (value.Length > 0) r[key] = value;
+    }
+
     private static Dict EncodeScore(ScoreConfig s)
     {
         var r = new Dict();
@@ -496,8 +580,11 @@ public static class Serializer
             case "variable":
                 b["var"] = f.Var ?? ""; b["value"] = f.Value ?? "";
                 if (!string.IsNullOrEmpty(f.Team)) b["team"] = f.Team; break;
-            case "completed" or "objective":
+            case "completed" or "objective" or "carrying-flag":
                 b["objective"] = f.Objective ?? ""; break;
+            case "flag-carried" or "flag-dropped" or "flag-returned" or "flag-captured":
+                b["objective"] = f.Objective ?? "";
+                if (!string.IsNullOrEmpty(f.Post)) b["post"] = f.Post; break;
             case "kill-streak":
                 if (f.Min is not null) b["min"] = f.Min;
                 if (f.Max is not null) b["max"] = f.Max;

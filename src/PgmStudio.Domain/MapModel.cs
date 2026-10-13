@@ -315,6 +315,111 @@ public sealed class ScoreConfig
 }
 
 /// <summary>
+/// A flag (CTF, King of the Flag): a banner carried from its post, scoring while carried or when brought to a
+/// <see cref="FlagNet"/>. Every knob is the author's or unset — <c>null</c> and <c>""</c> mean PGM's default,
+/// which <c>docs/pgm/flags.md</c> tables. A flag names its post either by id (<see cref="PostId"/>) or inline
+/// (<see cref="Post"/>), never both.
+/// <para>PGM loads a flag only where a banner stands at its starting post, and copies the banner's colour,
+/// patterns and facing into the flag players carry.</para>
+/// </summary>
+public sealed class Flag
+{
+    public string Id = "";
+    public string Name = "";                    // "" = PGM's "<Color> Flag", or "Flag"
+    public string Color = "";                   // a dye; "" = the banner's own base colour
+    public string Owner = "";                   // the team defending it; "" = nobody's
+    public bool? Required;
+    /// <summary><c>show</c> and the per-surface <c>show-*</c> options, attribute name to value, as written.</summary>
+    public Dictionary<string, string> ShowOptions = new(StringComparer.Ordinal);
+    public string ScoreboardFilterId = "";
+
+    public double? Points;                      // once, on capture
+    public double? PointsRate;                  // per second while carried, to the carrier's team where unowned
+
+    public string PickupFilterId = "";
+    public string CaptureFilterId = "";
+    public string DropFilterId = "";
+    public string PickupKitId = "";
+    public string DropKitId = "";
+    public string CarryKitId = "";
+
+    public bool? Shared;                        // several carriers at once
+    public string CarryMessage = "";
+    public bool? ShowRespawnOnPickup;
+    public bool? AllowManualDrop;
+    public bool? DropOnWater;
+    public bool? Beam;
+
+    public string FlagProximityMetric = "";
+    public bool? FlagProximityHorizontal;
+    public string NetProximityMetric = "";
+    public bool? NetProximityHorizontal;
+
+    /// <summary>A post declared beside the flags and named here, or "" where the flag carries its own.</summary>
+    public string PostId = "";
+    public FlagPost? Post;
+    /// <summary>The nets written inside this flag, which take this flag and no other.</summary>
+    public List<FlagNet> Nets = [];
+}
+
+/// <summary>
+/// Where a flag stands, and comes back to. A <b>single</b> post is one or more places — a point written as its
+/// text, or regions — and a <b>composite</b> post holds single posts (<see cref="Posts"/>), choosing the next one
+/// at random, or in order where <see cref="Sequential"/>, among those its <c>respawn-filter</c> allows. The flag
+/// starts at <see cref="Fallback"/>, or at the first.
+/// </summary>
+public sealed class FlagPost
+{
+    public string Id = "";
+    public string Name = "";
+    public string Owner = "";                   // a team controlling the post
+    public bool? Sequential;
+    public bool? Permanent;
+    public double? PointsRate;                  // per second while the flag stands here and the post is owned
+    public string PickupFilterId = "";
+    public string RespawnFilterId = "";
+    public string RecoverTime = "";             // a duration; "" = 30s
+    public string RespawnTime = "";             // a duration; set with RespawnSpeed it is refused by PGM
+    public double? RespawnSpeed;                // blocks a second; PGM's 8 where neither is set
+    public string Yaw = "";
+    public string Pitch = "";
+
+    /// <summary>The point written as the post's text, or null where it names regions instead.</summary>
+    public Vec3? Point;
+    /// <summary>The regions the flag may stand in, one per child element, by id.</summary>
+    public List<string> RegionIds = [];
+
+    public string Fallback = "";                // a composite's starting post, by id
+    public List<FlagPost> Posts = [];           // a composite's single posts
+
+    public bool IsComposite => Posts.Count > 0;
+}
+
+/// <summary>
+/// A region a flag is captured in: a carrier standing inside it scores <see cref="Points"/> for its team (or the
+/// net's <see cref="Owner"/>) and the flag goes back to a post — <see cref="PostId"/>, or its own.
+/// </summary>
+public sealed class FlagNet
+{
+    public string Id = "";
+    public string RegionId = "";
+    public string Owner = "";
+    public double? Points;
+    public bool? Sticky;
+    public string CaptureFilterId = "";
+    public string RespawnFilterId = "";
+    public bool? RespawnTogether;
+    public string RespawnMessage = "";
+    public string DenyMessage = "";
+    public string Location = "";                // the proximity point, as written
+    public string PostId = "";
+    /// <summary>The flags it takes, by id; empty takes every flag (or, nested in a flag, that one).</summary>
+    public List<string> Flags = [];
+    /// <summary>The flags a capture here sends home, by id.</summary>
+    public List<string> Rescue = [];
+}
+
+/// <summary>
 /// A shop: a menu a player opens by right-clicking a <see cref="Shopkeeper"/>, holding one or more
 /// categories of things to buy. Nothing about it is geometry and nothing about it is an objective — PGM tags
 /// a map carrying one <c>shops</c> and plays it exactly as it would otherwise — but a map whose blocks are
@@ -602,6 +707,11 @@ public sealed class MapXml
     public List<Core> Cores = [];
     public List<ControlPoint> ControlPoints = [];
 
+    /// <summary>The flags, and the posts and nets declared beside them rather than inside one.</summary>
+    public List<Flag> Flags = [];
+    public List<FlagPost> FlagPosts = [];
+    public List<FlagNet> FlagNets = [];
+
     /// <summary>The shops a player can buy from, and the keepers that open them. Two lists rather than one
     /// nesting the other, because PGM keeps them apart and so does the XML: a shop is referenced by id from
     /// a keeper, from an <c>&lt;open-shop&gt;</c> action, and from another map's <c>&lt;include&gt;</c> — and
@@ -667,5 +777,6 @@ public sealed class MapXml
         hasCores: Cores.Count > 0,
         hasControlPoints: ControlPoints.Any(p => p.Element == ControlPointElement.ControlPoints),
         hasKing: ControlPoints.Any(p => p.Element == ControlPointElement.King),
+        hasFlags: Flags.Count > 0,
         scoresKillsOrDeaths: Score is { } s && ((s.Kills ?? 0) != 0 || (s.Deaths ?? 0) != 0));
 }
