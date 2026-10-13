@@ -95,6 +95,7 @@ public sealed class MapReader(PgmDb db)
                 Id = kit.KitKey,
                 Force = kit.Force ?? false,
                 Clear = kit.Clear ?? false,
+                MaxHealth = kit.MaxHealth,
                 Items = items.Select(i => new KitItem { Slot = i.Slot ?? 0, Item = ItemSpec(i.SpecJson) }).ToList(),
                 Armor = armor.Select(a => new KitArmor { SlotName = a.SlotName, Item = ItemSpec(a.SpecJson) }).ToList(),
                 Effects = ListOfDicts(kit.EffectsJson).Select(e => new PotionEffect { Type = Str(e, "type"), Duration = Str(e, "duration"), Amplifier = Int(e, "amplifier") }).ToList(),

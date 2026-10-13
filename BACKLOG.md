@@ -87,9 +87,9 @@ them one rather than with the contract work that shipped them.
   height showing the default `BuildIntent.ModeFor` takes, and a material list where the mode is `only`.
   `docs/tools/configure.md` §*Build*.
 - [ ] **PG29 — A kit loses nothing it states, or the map is refused.** `MapParser.ParseKits` reads items,
-  armour, effects, `force` and `clear`, and drops every other kit element in silence, so an exported map plays
-  differently from the one read: `game-mode` in 325 corpus maps, `action` in 112, `double-jump` in 68,
-  `max-health` in 57, `health` in 56, `knockback-reduction` in 48, `walk-speed` in 40. Each is read and written
+  armour, effects, `max-health`, `force` and `clear`, and drops every other kit element in silence, so an exported map plays
+  differently from the one read: `game-mode` in 325 corpus maps, `action` in 112, `double-jump` in 68, `health`
+  in 56, `knockback-reduction` in 48, `walk-speed` in 40. Each is read and written
   (`Kit`, `XmlWriter`, `Serializer`, the `kit` row), or its presence refuses the map the way an unread objective
   module does. `docs/pgm/supported-maps.md`.
 - [ ] **PG24 — Jump pads.** `MapIntent.JumpPads`: a box, a velocity turned with the symmetry, a pad block and

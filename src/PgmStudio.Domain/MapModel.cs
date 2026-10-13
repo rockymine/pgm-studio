@@ -113,6 +113,9 @@ public sealed class Kit
     public List<KitItem> Items = [];
     public List<KitArmor> Armor = [];
     public List<PotionEffect> Effects = [];   // <effect duration=… amplifier=…>type</effect>
+    /// <summary><c>&lt;max-health&gt;</c>: the health, in half-hearts, a player is given the kit at; null where it
+    /// states none. PGM sets it back to 20 when a player respawns.</summary>
+    public double? MaxHealth;
 }
 
 public sealed class Spawn

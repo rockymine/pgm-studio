@@ -409,8 +409,14 @@ public sealed partial class MapParser
             var effects = ParsePotionEffects(kitElem);
 
             var clear = kitElem.Element("clear") is not null;
-            if (clear || items.Count > 0 || armor.Count > 0 || effects.Count > 0)
-                kits.Add(new Kit { Id = kitId, Force = Xml.BoolAttr(kitElem, "force"), Clear = clear, Items = items, Armor = armor, Effects = effects });
+            var maxHealth = kitElem.Element("max-health") is { } health
+                && double.TryParse(Xml.Text(health).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var hp) ? hp : (double?)null;
+            if (clear || items.Count > 0 || armor.Count > 0 || effects.Count > 0 || maxHealth is not null)
+                kits.Add(new Kit
+                {
+                    Id = kitId, Force = Xml.BoolAttr(kitElem, "force"), Clear = clear, Items = items, Armor = armor,
+                    Effects = effects, MaxHealth = maxHealth,
+                });
         }
         return kits;
     }

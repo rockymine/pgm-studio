@@ -289,6 +289,7 @@ public static partial class XmlWriter
                 var e = new XElement(armor.SlotName); WriteItemSpec(e, armor.Item); ke.Add(e);
             }
             foreach (var eff in kit.Effects) ke.Add(EffectElem(eff));
+            if (kit.MaxHealth is { } health) ke.Add(new XElement("max-health", C(health)));
         }
     }
 

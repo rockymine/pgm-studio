@@ -170,6 +170,7 @@ public sealed class KitRow
     [Column("force")] public bool? Force { get; set; }
     [Column("clear")] public bool? Clear { get; set; }
     [Column("effects_json")] public string? EffectsJson { get; set; }   // [{type,duration,amplifier}]
+    [Column("max_health")] public double? MaxHealth { get; set; }        // NULL = the kit states none
 }
 
 // An item of a kit: the slot, and the stack in it. The stack is one JSON object rather than a column per

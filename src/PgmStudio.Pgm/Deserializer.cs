@@ -215,6 +215,7 @@ public static class Deserializer
         Items = ListOf(d, "items").Select(i => DecodeKitItem(AsDict(i))).ToList(),
         Armor = ListOf(d, "armor").Select(a => DecodeKitArmor(AsDict(a))).ToList(),
         Effects = ListOf(d, "effects").Select(e => DecodeEffect(AsDict(e))).ToList(),
+        MaxHealth = AsDoubleN(Val(d, "max_health")),
     };
 
     private static PotionEffect DecodeEffect(Dict d) => new()

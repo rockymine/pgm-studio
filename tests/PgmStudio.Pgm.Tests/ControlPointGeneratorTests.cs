@@ -9,7 +9,7 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// The capture-point slice of the declarative generator: one <c>&lt;hill&gt;</c> per point, the capture
-/// volume and the pad it is drawn on as regions, and the <c>&lt;score&gt;</c> that makes the points pay.
+/// volume and the pad it is drawn on as regions.
 /// </summary>
 public sealed class ControlPointGeneratorTests
 {
@@ -113,35 +113,6 @@ public sealed class ControlPointGeneratorTests
         var doc = Generate(Sample("Side"), Sample("Side"));
         await Assert.That(Points(doc).OfType<Dict>().Select(d => d["id"]).Distinct().Count()).IsEqualTo(2);
     }
-
-    // ── the score module ────────────────────────────────────────────────────────────
-    // Without a <score> element PGM builds no score module and every `points` rate on the board pays
-    // nothing, all match, silently — so a board that scores must carry one.
-    [Test]
-    public async Task A_board_with_a_scoring_point_gets_the_corpus_score_limit()
-    {
-        var score = (Dict)Generate(Sample())["score"]!;
-        await Assert.That(score["limit"]).IsEqualTo((long)ObjectiveDefaults.ControlPointScoreLimit);
-    }
-
-    [Test]
-    public async Task An_authored_limit_wins()
-    {
-        var doc = Generate(new MapIntent { ControlPoints = [Sample()], ScoreLimit = 2500 });
-        await Assert.That(((Dict)doc["score"]!)["limit"]).IsEqualTo(2500L);
-    }
-
-    // Zero is an author asking for no limit — a board played to a time limit instead.
-    [Test]
-    public async Task A_limit_of_zero_writes_no_score_element()
-    {
-        var doc = Generate(new MapIntent { ControlPoints = [Sample()], ScoreLimit = 0 });
-        await Assert.That(doc.ContainsKey("score")).IsFalse();
-    }
-
-    [Test]
-    public async Task A_board_with_no_capture_point_gets_no_score_element()
-        => await Assert.That(Generate(new MapIntent()).ContainsKey("score")).IsFalse();
 
     // ── regenerating is a replace ───────────────────────────────────────────────────
     [Test]

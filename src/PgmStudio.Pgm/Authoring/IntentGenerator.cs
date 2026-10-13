@@ -23,9 +23,11 @@ public static class IntentGenerator
         ModesGenerator.Apply(doc, intent);
         DestroyableGenerator.Apply(doc, intent);
         CoreGenerator.Apply(doc, intent);
-        // After the two a mode acts on, and outside the ladder: a capture point is held rather than broken,
-        // so nothing about it softens with time. It brings its own <score>, which is what makes it pay.
+        // After the two a mode acts on, and outside the ladder: a capture point and a flag are held rather than
+        // broken, so nothing about them softens with time. The <score> both pay into comes after both.
         ControlPointGenerator.Apply(doc, intent);
+        FlagGenerator.Apply(doc, intent);
+        ScoreGenerator.Apply(doc, intent);
         // After the objectives and before the zoning, because a keeper is placed from the spawns rather than
         // from anything an objective decides, and it stamps nothing for a later pass to resolve.
         ShopGenerator.Apply(doc, intent);

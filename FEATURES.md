@@ -3438,6 +3438,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   built on. `never` is one apply rule over `everywhere` refusing every block placed or broken; `only` lets the
   named `Materials` through (`build-only`). A generated KotH board, which wrote no block rule at all when it
   declared no build area, now refuses every block. `docs/pgm/new-map-authoring.md` §5c. (`PG22`)
+- **A King of the Flag board is authored from the intent (`PG21`, `PG25`).** `MapIntent.Flags` states each flag's
+  name, colour, posts and points rate (1); `FlagGenerator` writes one unowned flag over a single or composite post
+  that brings it back to one of its places at random, its posts fanning by position under a symmetry. The carrier
+  is one of `FlagCarriers`: `lowered` to `CarrierHearts` (6) with a drop kit restoring 20, `absorption` III for
+  three seconds, or `boost` to `CarrierHearts` with a forced drop kit removing it — kits carry `<max-health>`
+  through every codec and storage (`M0070`) for it. `ScoreGenerator` writes the one `<score>` a point and a flag
+  both pay into, 200 for a flag board; the board declares `kotf` and reads "Hold the flag!".
+  `docs/pgm/flags.md` §7. (`PG21`, `PG25`)
 - **KotH boards are authorable: the pad, the intent slice, and the score it pays into.** An agent adds one
   array to the intent it already posts — `PUT /api/map/{slug}/intent` with `controlPoints` — and the export
   does the rest. No second endpoint and no new document. **The stamper is the one that differs from every

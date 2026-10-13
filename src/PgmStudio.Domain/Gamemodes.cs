@@ -23,6 +23,7 @@ public static class Gamemodes
     public const string Koth = "koth";
     public const string Tdm = "tdm";
     public const string Ctf = "ctf";
+    public const string Kotf = "kotf";
 
     /// <summary>Every id PGM's own <c>Gamemode</c> enum recognizes (<c>Gamemode.java</c>), matched
     /// case-insensitively the same way <c>Gamemode.byId</c> does. A <c>&lt;gamemode&gt;</c> element outside

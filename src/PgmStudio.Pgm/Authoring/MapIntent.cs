@@ -62,6 +62,12 @@ public sealed record MapIntent
     /// one side; the expander produces the rest. Null/empty leaves them untouched.</summary>
     public List<ControlPointIntent>? ControlPoints { get; init; }
 
+    /// <summary>The King of the Flag flags: unowned, scoring for whoever holds one, each standing at one of its
+    /// posts (<c>docs/pgm/flags.md</c>). Like a capture point a flag belongs to nobody, so its posts fan by
+    /// position rather than by team, and a post at the board's centre of symmetry stays one. Null leaves the
+    /// map's flags untouched.</summary>
+    public List<FlagIntent>? Flags { get; init; }
+
     /// <summary>The shops this board sells from, each with the keeper that opens it. <b>They do not fan by
     /// team and they carry no coordinates</b>: a shop is one catalogue for the whole map, and its keeper is
     /// placed by <see cref="ShopGenerator"/> at every team's spawn — one per shop per spawn, standing on the
@@ -97,17 +103,22 @@ public sealed record MapIntent
     /// It is a set because CTW, DTM and DTC coexist, and it is what the <c>&lt;gamemode&gt;</c> elements and
     /// the observer platform's own board are both written from, so the map and the sign in it cannot
     /// disagree.</summary>
-    public IReadOnlyList<string> Gamemodes => Domain.Gamemodes.From(
-        hasWools: Wools is { Count: > 0 },
-        hasRealDestroyable: Destroyables is { Count: > 0 },
-        hasCores: Cores is { Count: > 0 },
-        // What the studio authors is a hill, so the board is KotH rather than CP: one PGM module, and the
-        // spelling is the choice. Kills and deaths are never scored — a capture board's <score> states the
-        // limit it ends at and nothing else, which is what keeps it off the deathmatch tag.
-        hasControlPoints: false,
-        hasKing: ControlPoints is { Count: > 0 },
-        hasFlags: false,
-        scoresKillsOrDeaths: false);
+    public IReadOnlyList<string> Gamemodes =>
+    [
+        .. Domain.Gamemodes.From(
+            hasWools: Wools is { Count: > 0 },
+            hasRealDestroyable: Destroyables is { Count: > 0 },
+            hasCores: Cores is { Count: > 0 },
+            // What the studio authors is a hill, so the board is KotH rather than CP: one PGM module, and the
+            // spelling is the choice. Kills and deaths are never scored — a capture board's <score> states the
+            // limit it ends at and nothing else, which is what keeps it off the deathmatch tag.
+            hasControlPoints: false,
+            hasKing: ControlPoints is { Count: > 0 },
+            // PGM derives `ctf` from a flag; what the studio authors is King of the Flag, which a map states.
+            hasFlags: false,
+            scoresKillsOrDeaths: false),
+        .. (Flags is { Count: > 0 } ? [Domain.Gamemodes.Kotf] : Array.Empty<string>()),
+    ];
 
     /// <summary>Map identity: name + authors/contributors. Version (1.0) and proto (1.5.1) are fixed; the
     /// gamemode and the objective text are auto-derived from which objective modules the intent carries
@@ -693,6 +704,54 @@ public sealed record ControlPointIntent
     /// the marker is white while the point is neutral and takes the holder's dye the moment it is captured —
     /// which is what makes a marker on a goal nobody owns mean something.</summary>
     public BlockBox? MarkerBox { get; init; }
+}
+
+/// <summary>
+/// One King of the Flag flag: a banner nobody owns, paying <see cref="PointsRate"/> a second to whichever team
+/// carries it, starting at its first post and coming back to one of them at random. What carrying it does to
+/// the carrier is <see cref="Carrier"/> (<c>docs/pgm/flags.md</c>).
+/// </summary>
+public sealed record FlagIntent
+{
+    /// <summary>What the sidebar calls it. Empty names it "Flag".</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>The banner's dye, and the flag's colour.</summary>
+    public string Color { get; init; } = "white";
+
+    /// <summary>The places it stands at, the first where it starts. At least one, and every one walkable to.</summary>
+    public List<FlagPostIntent> Posts { get; init; } = new();
+
+    /// <summary>What holding it pays, per second.</summary>
+    public double PointsRate { get; init; } = ObjectiveDefaults.FlagPointsRate;
+
+    /// <summary>What carrying it does to the carrier (<see cref="FlagCarriers"/>).</summary>
+    [WordSet(typeof(FlagCarriers))]
+    public string Carrier { get; init; } = FlagCarriers.Lowered;
+
+    /// <summary>The hearts a <see cref="FlagCarriers.Lowered"/> or <see cref="FlagCarriers.Boost"/> carrier has
+    /// while carrying it. A boost raises health two hearts at a time, so it takes the even number at or over
+    /// this above ten.</summary>
+    public int CarrierHearts { get; init; } = ObjectiveDefaults.FlagCarrierHearts;
+}
+
+/// <summary>One place a flag stands at: where the banner is, and the way it faces.</summary>
+public sealed record FlagPostIntent
+{
+    /// <summary>Which layer's surface this stands on, or null for the top one.</summary>
+    public string? Layer { get; init; }
+
+    /// <summary>Which authored post this is an image of, and which image — set by whoever fanned the orbit.</summary>
+    public StampId Stamp { get; init; }
+
+    /// <summary>What the sidebar calls the post.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>The point the flag stands at: the block its banner is in, at the block's centre.</summary>
+    public Pt At { get; init; }
+
+    /// <summary>Which way the banner faces, in degrees, or null for the way it stands in the world.</summary>
+    public double? Yaw { get; init; }
 }
 
 /// <summary>

@@ -104,13 +104,40 @@ In the map document a flag is `flags[]`, the posts and nets beside them `flag_po
 Swept over every corpus map carrying `<flags>`, the 148 the studio reads come back with every flag, post, net
 and filter unchanged through both the XML and the JSON codec.
 
-## 7. What it refuses
+## 7. Authoring a King of the Flag board
+
+`MapIntent.Flags` states King of the Flag: each `FlagIntent` is a name, a colour, its posts — each a point, a
+name and an optional facing — a `PointsRate` (1 by the author's ruling, and on 47 of 55 corpus flags), and
+what carrying it does to the carrier. `FlagGenerator` writes it as one unowned flag over one post: a single
+post where it stands at one place, a composite where it stands at several, starting at the first and coming
+back to one of them at random. Like a capture point a flag belongs to nobody, so under a symmetry its posts fan
+by position — each post off the centre gains its images, named on and turned — and a post at the centre stays
+one.
+
+The carrier is one of `FlagCarriers`. `lowered`, the default, gives a pickup kit of `<max-health>` at
+`CarrierHearts` — 6 hearts unstated, 12 health, the corpus's commonest King of the Flag carrier — and a drop kit
+of `<max-health>20`; PGM sets max health back to 20 on respawn too. `absorption` gives absorption III for three
+seconds and needs no drop kit. `boost` gives health boost raising the carrier to `CarrierHearts`, two hearts at a
+time above ten (12 at least), and a forced drop kit takes it away again: a forced kit's effect at duration 0
+removes that effect (`kits/PotionKit.java:28`). Kits carry `<max-health>` through every codec for this.
+
+A board whose flags pay states a `<score>` limit of 200 where the author states none — the corpus's commonest,
+on 5 of the 10 King of the Flag maps that state one — through `ScoreGenerator`, which writes the one `<score>`
+a capture point and a flag both pay into. Its `<gamemode>` is `kotf`, since PGM would call it CTF, and its
+objective reads "Hold the flag!". It carries no wool, destroyable or core, so it is not built on
+(`new-map-authoring.md` §5c).
+
+PGM loads none of it until a banner stands at each flag's first post. A plan-built board does not stamp one yet
+(`WE163`) and the Configure tool has no Flags phase (`TC15`), so a King of the Flag intent today is stated through
+`PUT /api/map/{slug}/intent` over a world whose banners the author placed.
+
+## 8. What it refuses
 
 A flag that defines its `pickup-kit`, `drop-kit` or `carry-kit` as a child element rather than naming a kit is
 refused (`UnsupportedMapException`): the studio reads kits by id, and an inline kit would be dropped. Three
 corpus maps write one.
 
-## 8. What the corpus builds
+## 9. What the corpus builds
 
 Of the 157 corpus maps carrying `<flags>`, three shapes cover all but four:
 

@@ -53,6 +53,7 @@ public static class SymmetryExpander
             Destroyables = FillDestroyables(intent.Destroyables, teams, sym, order),
             Cores = FillCores(intent.Cores, teams, sym, order),
             ControlPoints = FillControlPoints(intent.ControlPoints, sym, order),
+            Flags = FillFlags(intent.Flags, sym, order),
         };
     }
 
@@ -316,6 +317,40 @@ public static class SymmetryExpander
                 });
             }
         return result;
+    }
+
+    /// <summary>Flags stated once each, belonging to nobody, with their posts fanned across <paramref name="sym"/>
+    /// as capture points are: every image of a post added after the authored ones and named on, its facing
+    /// turned with it, and one already standing where an image would go taken as that image.</summary>
+    private static List<FlagIntent>? FillFlags(List<FlagIntent>? authored, SymmetryIntent sym, int order)
+    {
+        if (authored is null) return null;
+        return [.. authored.Select((flag, f) => flag with { Posts = FillPosts(flag.Posts, f) })];
+
+        List<FlagPostIntent> FillPosts(List<FlagPostIntent> posts, int flagIndex)
+        {
+            var result = posts.Select((post, i) => post with
+            {
+                Stamp = !string.IsNullOrEmpty(post.Stamp.Kind) ? post.Stamp
+                    : new StampId("flagpost", $"{flagIndex}-{i}", 0),
+            }).ToList();
+            var placed = result.Select(post => (post.At.X, post.At.Z)).ToList();
+            foreach (var src in result.ToList())
+                for (var k = 1; k < order; k++)
+                {
+                    var at = TransformPt(src.At, sym, k);
+                    if (placed.Any(seen => SamePoint(seen, (at.X, at.Z)))) continue;
+                    placed.Add((at.X, at.Z));
+                    result.Add(src with
+                    {
+                        Stamp = src.Stamp.At(k),
+                        Name = src.Name.Length > 0 ? $"{src.Name} {k + 1}" : "",
+                        At = at,
+                        Yaw = src.Yaw is { } yaw ? TransformYaw(yaw, sym, k) : null,
+                    });
+                }
+            return result;
+        }
     }
 
     // Half a block: an anchor is authored on the half-block lattice, so two anchors nearer than that are the

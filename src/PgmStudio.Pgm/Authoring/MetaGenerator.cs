@@ -79,6 +79,10 @@ public static class MetaGenerator
         if (points == 1) clauses.Add("hold the hill");
         else if (points > 1) clauses.Add("hold the hills");
 
+        var flags = intent.Flags?.Count ?? 0;
+        if (flags == 1) clauses.Add("hold the flag");
+        else if (flags > 1) clauses.Add("hold the flags");
+
         if (clauses.Count == 0) return "";
 
         var joined = clauses.Count == 1

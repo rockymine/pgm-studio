@@ -83,6 +83,17 @@ public static class ObjectiveDefaults
     /// team holding two of them.</summary>
     public const int ControlPointScoreLimit = 750;
 
+    /// <summary>What holding a King of the Flag flag pays, per second (author; 47 of 55 corpus flags).</summary>
+    public const double FlagPointsRate = 1;
+
+    /// <summary>The hearts a lowered flag carrier keeps — 12 health, the corpus's commonest King of the Flag
+    /// carrier (health boost −3 on 6 maps).</summary>
+    public const int FlagCarrierHearts = 6;
+
+    /// <summary>The score a King of the Flag match ends at where the author states none: the corpus's commonest
+    /// limit (200, on 5 of 10 maps stating one).</summary>
+    public const int FlagScoreLimit = 200;
+
     /// <summary>The colour a pad is laid in, and therefore the colour it returns to whenever the point goes
     /// neutral — PGM restores the blocks it found rather than choosing one. White is what 263 of 359 corpus
     /// pads are, and it is the only neutral that reads as neutral against sixteen team dyes.</summary>

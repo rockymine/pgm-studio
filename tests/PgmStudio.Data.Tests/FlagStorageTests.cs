@@ -25,9 +25,12 @@ public sealed class FlagStorageTests
             <team id="red" color="red" max="8">Red</team>
             <team id="blue" color="blue" max="8">Blue</team>
           </teams>
+          <kits>
+            <kit id="carrier"><max-health>12</max-health></kit>
+          </kits>
           <flags>
             <post id="red-home" owner="red">-40.5,10,0.5</post>
-            <flag id="red-flag" owner="red" color="red" post="red-home" pickup-filter="only-blue">
+            <flag id="red-flag" owner="red" color="red" post="red-home" pickup-filter="only-blue" pickup-kit="carrier">
               <net points="1" respawn-together="true">
                 <region><cuboid min="40,10,-2" max="43,13,3"/></region>
               </net>
@@ -73,6 +76,8 @@ public sealed class FlagStorageTests
 
         await Assert.That(read.Flags.Count).IsEqualTo(2);
         await Assert.That(FlagsOf(read)).IsEqualTo(FlagsOf(parsed));
+        await Assert.That(read.Kits.Single(kit => kit.Id == "carrier").MaxHealth).IsEqualTo(12.0)
+            .Because("a carrier kit that lowers health is the whole of what the kit states");
     }
 
     [Test]

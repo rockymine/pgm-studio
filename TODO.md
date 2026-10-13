@@ -23,18 +23,6 @@ is the reference for the rest: `play/objectives.py` `Flag` and `play/rules.py` `
 
 ### The flag
 
-- [ ] **PG21 — A King of the Flag intent.** `MapIntent.Flags`: name, colour, and posts (point, name, yaw). It
-  is neutral, so it fans by position like `ControlPointIntent`. `FlagGenerator` writes one flag over one
-  composite `<post>` with respawn random (`sequential` false), `points-rate` 1 (author; 47 of 55 corpus KotF
-  flags), the `<score>` limit KotH writes, and `<gamemode>kotf</gamemode>` as a declared gamemode
-  (`MetaGenerator`), since PGM derives only `ctf` (`docs/pgm/flags.md` §5).
-  `BannerBox` is filled by the export. `docs/pgm/flags.md`, `docs/tools/configure.md`.
-- [ ] **PG25 — The carrier's pickup kit is one of three.** A flag states a `Carrier` word: `lowered` (default)
-  writes `<max-health>` at a stated number of hearts, default 6 (12 health), with a drop kit restoring 20;
-  `absorption` writes absorption amplifier 2 for 3 seconds; `boost` writes health boost at a stated level.
-  Corpus KotF pickup kits, per map: health boost −3 (12 health) in 6, absorption 2 for 3s in 5, health boost
-  −2 (16) in 2, `<max-health>14` in 1; none raises health. PGM resets max health on respawn
-  (`Alive.java:110`). `docs/pgm/flags.md`.
 - [ ] **WS83 — Banners are gathered at ingest.** A standing (176) or wall (177) banner is read in the single
   world pass beside chests and mob spawners (`FeatureExtractors.cs:84`, `:113`): position, base colour,
   patterns and facing, into `flag_candidate` rows (migration), served by `GET /map/{slug}/flag-suggestions`.

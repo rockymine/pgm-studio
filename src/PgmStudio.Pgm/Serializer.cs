@@ -135,15 +135,20 @@ public static class Serializer
         return r;
     }
 
-    private static Dict EncodeKit(Kit k) => new()
+    private static Dict EncodeKit(Kit k)
     {
-        ["id"] = k.Id,
-        ["force"] = k.Force,
-        ["clear"] = k.Clear,
-        ["items"] = k.Items.Select(EncodeKitItem).ToList<object?>(),
-        ["armor"] = k.Armor.Select(EncodeKitArmor).ToList<object?>(),
-        ["effects"] = k.Effects.Select(EncodeEffect).ToList<object?>(),
-    };
+        var r = new Dict
+        {
+            ["id"] = k.Id,
+            ["force"] = k.Force,
+            ["clear"] = k.Clear,
+            ["items"] = k.Items.Select(EncodeKitItem).ToList<object?>(),
+            ["armor"] = k.Armor.Select(EncodeKitArmor).ToList<object?>(),
+            ["effects"] = k.Effects.Select(EncodeEffect).ToList<object?>(),
+        };
+        if (k.MaxHealth is { } health) r["max_health"] = health;
+        return r;
+    }
 
     private static Dict EncodeEffect(PotionEffect e) => new()
     {

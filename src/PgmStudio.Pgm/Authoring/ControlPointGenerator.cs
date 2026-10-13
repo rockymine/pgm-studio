@@ -8,11 +8,8 @@ using Dict = Dictionary<string, object?>;
 /// Capture-point (CP/KotH) slice of the declarative generator: one <c>&lt;hill&gt;</c> per point, the two
 /// regions it is played and displayed through, and the <c>&lt;score&gt;</c> the match ends at.
 ///
-/// <para><b>The score is written here rather than beside the boilerplate, because without it the points do
-/// nothing.</b> PGM builds a score module only for a document that has a <c>&lt;score&gt;</c> element, and
-/// <c>ControlPoint.tickScore</c> looks that module up every tick — so a board whose every point names a
-/// <c>points</c> rate and declares no score scores nothing, silently, for the whole match. The two are one
-/// decision and one generator makes it.</para>
+/// <para>The <c>&lt;score&gt;</c> its points pay into is <see cref="ScoreGenerator"/>'s, which a flag pays into
+/// too.</para>
 ///
 /// <para><b>Most of what PGM will read off a point is not authored.</b> A hill and a control point disagree
 /// about nearly every default, so the studio writes its convention out in full rather than relying on either
@@ -29,8 +26,7 @@ using Dict = Dictionary<string, object?>;
 /// care where its blocks are. They do not overlap, which is what keeps PGM's
 /// <c>InverseFilter(progress)</c> over the owner region from eating the marker.</para>
 ///
-/// <para>Idempotent clear-then-build, the score element included — a board that states no scoring point
-/// leaves none behind, the same way a board that states no point leaves no <c>&lt;hill&gt;</c>. The intent
+/// <para>Idempotent clear-then-build — a board that states no point leaves no <c>&lt;hill&gt;</c>. The intent
 /// model authors new maps (<c>new-map-authoring.md</c> §7), so the slice owns its own output outright.</para>
 /// </summary>
 public static class ControlPointGenerator
@@ -41,7 +37,6 @@ public static class ControlPointGenerator
     {
         var list = ObjectiveRegion.List(doc, Key);
         ObjectiveRegion.Clear(doc, list, "capture_region", "progress_region", "owner_region");
-        doc.Remove("score");
         if (intent.ControlPoints is null) return;
 
         foreach (var point in intent.ControlPoints)
@@ -82,19 +77,5 @@ public static class ControlPointGenerator
                 entry["owner_region"] = ObjectiveRegion.Emit(doc, id, marker, "marker");
             list.Add(entry);
         }
-
-        if (ScoreLimit(intent) is { } limit) doc["score"] = new Dict { ["limit"] = (long)limit };
-    }
-
-    /// <summary>
-    /// The limit the match ends at: the author's where they state one, the corpus's default on a board that
-    /// carries a point that pays, and none at all otherwise. Zero is an author asking for no limit — a board
-    /// played to a time limit instead — and is honoured rather than replaced.
-    /// </summary>
-    private static int? ScoreLimit(MapIntent intent)
-    {
-        if (intent.ScoreLimit is { } stated) return stated > 0 ? stated : null;
-        var pays = intent.ControlPoints?.Any(p => p.CaptureBox is not null && p.Points > 0) ?? false;
-        return pays ? ObjectiveDefaults.ControlPointScoreLimit : null;
     }
 }

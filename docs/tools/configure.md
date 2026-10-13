@@ -66,6 +66,7 @@ null `cores` and nothing about cores is generated or cleared.
 | `islandTeams` | island id → team; an authoring aid, read by the spawn step, not by the generator |
 | `spawns` | per team: the point, the yaw, and the protection zone as a union of rects |
 | `observer` | the `<default>` spawn — where spectators and pre-match players stand |
+| `flags` | The King of the Flag flags (`docs/pgm/flags.md` §7): a name, a `color`, the `posts` it stands at (`at`, `name`, `yaw`), a `pointsRate` (1), and the `carrier` — `lowered` to `carrierHearts` (6), `absorption`, or `boost` to `carrierHearts`. Unowned, so the posts fan by position |
 | `build` | `maxHeight`, the buildable `areas` and the no-build `holes` cut out of them, and the `mode` a player builds under: `void` builds anywhere but over the void outside what is left, `never` places and breaks nothing, `only` places and breaks the named `materials` and nothing else. Absent, a board with a wool, destroyable or core is `void` and any other is `never` |
 | `wools` | per wool: owner, colour, room rects, the source point, and one monument per capturing team |
 | `cores` | per core: owner, anchor, the casing's measurements, and `leak` |
