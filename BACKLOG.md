@@ -87,6 +87,19 @@ them one rather than with the contract work that shipped them.
   (`XmlWriter.cs:879`); a safe pad adds pgmvox's fall variable and fall-damage deny (`play/rules.py:477`). The
   launch is checked against its landing with `solve_launch` (`core/move.py`) once `WS86` has the physics in
   `Geom`. 215 corpus maps write `velocity=`. `docs/pgm/new-map-authoring.md`.
+- [ ] **PG26 — A score box sends its scorer home.** `MapIntent.ScoreBoxes`: a team, a box and `Points` (1 in
+  122 of 209 corpus boxes), filtered to that team, and a portal on the same region to the team's spawn point
+  and yaw, as the author knows the mode and pgmvox's `ScoreBox` writes it (`play/objectives.py:620`). The
+  parser refuses a `<score>` carrying a `<box>` today (`docs/pgm/supported-maps.md`), so it reads one first.
+  Redeemables (38 of 209 boxes) are a later slice. `docs/pgm/new-map-authoring.md`.
+- [ ] **PG27 — A zone, in general.** A region with rules of its own: no placing, no breaking, no harm, entry
+  for one team or nobody, a kit given inside — what spawn protection, the build area and the wool room each
+  state for one purpose. One `ZoneIntent` those three are written through, after pgmvox's `Zone`
+  (`play/rules.py:490`), rather than a fourth special case. `docs/pgm/filter-region-wiring.md`.
+- [ ] **PG28 — A touch point is a capture setting.** `ControlPointIntent` gains a capture word: `hold` (today:
+  neutral state, capture time) or `touch` (taken at once by whoever enters, 0.1s, `capture-rule="lead"`, no
+  neutral state, kept until another team touches it), as pgmvox's `TouchPoint` writes it
+  (`play/objectives.py:706`). `ControlPointGenerator.cs:67`. `docs/pgm/control-points.md`.
 
 ## The sketch tool: shapes, islands, and the ground they become
 
