@@ -8735,6 +8735,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
   carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
 
+- **Banners are gathered at import as the places a flag could start (`WS83`)** — `FeatureExtractors.Banners`
+  reads every standing and wall banner in the single world pass, with the way it faces, its base dye and its
+  patterns, into `flag_candidate` (`M0071`); the count is `flag_candidates` on the ingest responses, and `GET
+  /map/{slug}/flag-suggestions` serves them with the yaw a post there takes and the King of the Flag defaults.
+  `docs/world-scan/objective-suggestion.md` §6. (`WS83`)
+
 - **The walk climbs a ladder or a vine and swims a water column (`WS85`)** — a `WalkLift` is the feet heights a
   player moves through vertically in one cell; a step leaves from anywhere on its lift and arrives anywhere on
   the next, placing fewest blocks, then falling least, then climbing least, with the blocks climbed counted as

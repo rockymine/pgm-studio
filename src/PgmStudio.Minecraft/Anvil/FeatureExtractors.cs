@@ -26,6 +26,12 @@ public readonly record struct FloorMarkFeature(int WorldX, int WorldZ, int Block
 /// blocks there opens it.</summary>
 public readonly record struct DoorRunFeature(int WorldX, int WorldZ, int WorldYStart, int WorldYEnd);
 
+/// <summary>A banner standing in a world: the block it is in, whether it hangs on a wall, the data value that
+/// says which way it faces (a standing banner's sixteenth of a turn, a wall banner's face), its base dye and
+/// its patterns as <c>pattern:dye</c> pairs, in the order they are laid.</summary>
+public readonly record struct BannerFeature(
+    int WorldX, int WorldY, int WorldZ, bool Wall, int Facing, string Color, IReadOnlyList<string> Patterns);
+
 /// <summary>A run a player climbs or swims, as the feet heights it carries them through, inclusive — a
 /// <see cref="PgmStudio.Geom.WalkLift"/> on its column.</summary>
 public readonly record struct LiftRunFeature(int WorldX, int WorldZ, int WorldYStart, int WorldYEnd);
@@ -214,6 +220,37 @@ public static class FeatureExtractors
                     }
                 }
             }
+    }
+
+    /// <summary>Every banner a world holds (→ flag_candidate), read off its tile entity and the block it is in. A
+    /// tile entity whose block is not a banner is a leftover and is skipped. A banner's dye is numbered the
+    /// other way round from a wool's, so dye <c>d</c> is wool colour <c>15 − d</c>.</summary>
+    public static IEnumerable<BannerFeature> Banners(IEnumerable<AnvilRegion.Chunk> chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            if (chunk.Level.Get<NbtList>("TileEntities") is not { } tiles) continue;
+            Dictionary<int, AnvilRegion.Section>? sections = null;
+            foreach (var teObj in tiles)
+            {
+                if (teObj is not NbtCompound te || Str(te.Get("id")) != "Banner") continue;
+                if (Int(te.Get("x")) is not { } x || Int(te.Get("y")) is not { } y || Int(te.Get("z")) is not { } z) continue;
+                sections ??= AnvilRegion.Sections(chunk).ToDictionary(section => section.SectionY);
+                if (!sections.TryGetValue(y >> 4, out var section)) continue;
+                var index = ((y & 15) << 8) | ((z & 15) << 4) | (x & 15);
+                var block = section.Ids[index];
+                if (block is not (176 or 177)) continue;
+
+                var patterns = new List<string>();
+                if (te.Get<NbtList>("Patterns") is { } laid)
+                    foreach (var patternObj in laid)
+                        if (patternObj is NbtCompound pattern && Str(pattern.Get("Pattern")) is { } code)
+                            patterns.Add($"{code}:{Dye(Int(pattern.Get("Color")) ?? 0)}");
+                yield return new BannerFeature(x, y, z, block == 177, section.Data[index], Dye(Int(te.Get("Base")) ?? 0), patterns);
+            }
+        }
+
+        static string Dye(int value) => PgmStudio.Vocabulary.WoolColors.All[15 - Math.Clamp(value, 0, 15)];
     }
 
     /// <summary>Every run a player climbs or swims (→ lift_runs.parquet), as the feet heights it carries them

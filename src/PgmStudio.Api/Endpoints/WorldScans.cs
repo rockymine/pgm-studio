@@ -11,5 +11,5 @@ internal static class WorldScans
     public static WorldScanDto Of(string slug, WorldFeatureWriter.Counts counts) =>
         new(slug, counts.WoolBlocks, counts.ResourceBlocks, counts.ChestItems, counts.SpawnerBlocks,
             counts.Segments, counts.Islands, counts.MonumentCandidates, counts.CoreCandidates,
-            counts.DestroyableCandidates);
+            counts.DestroyableCandidates, counts.FlagCandidates);
 }

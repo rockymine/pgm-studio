@@ -537,6 +537,21 @@ public sealed class CoreCandidateRow
     [Column("open_top"), NotNull] public bool OpenTop { get; set; }
 }
 
+/// <summary>A banner a scanned world holds (<c>flag_candidate</c>, M0071): where a flag could stand.</summary>
+[Table("flag_candidate")]
+public sealed class FlagCandidateRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("world_x"), NotNull] public int WorldX { get; set; }
+    [Column("world_y"), NotNull] public int WorldY { get; set; }
+    [Column("world_z"), NotNull] public int WorldZ { get; set; }
+    [Column("wall"), NotNull] public bool Wall { get; set; }
+    [Column("facing"), NotNull] public int Facing { get; set; }
+    [Column("color"), NotNull] public string Color { get; set; } = "";
+    [Column("patterns_json"), NotNull] public string PatternsJson { get; set; } = "[]";
+}
+
 /// <summary>A proposed destroyable (<c>destroyable_candidate</c>) — the mass's box, what it is made of, and
 /// the two neighbourhood readings that proposed it.</summary>
 [Table("destroyable_candidate")]

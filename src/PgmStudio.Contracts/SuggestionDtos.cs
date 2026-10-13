@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Contracts;
 
@@ -132,3 +133,37 @@ public sealed record DestroyableDefaultsDto(
 /// <param name="Elevation">Blocks above the median terrain of the ring around it.</param>
 public sealed record DestroyableSuggestionDto(
     SuggestedBoxDto Box, string Materials, int Blocks, int SameNearby, int Elevation);
+
+/// <summary>
+/// The banners the scan found, and what a King of the Flag flag is where the author states nothing
+/// (<c>GET /map/{slug}/flag-suggestions</c>). PGM loads a flag only where a banner stands at its starting post,
+/// so each banner is a place a flag could start.
+/// </summary>
+/// <param name="Defaults">What a flag the author adds is when they state nothing else.</param>
+/// <param name="Banners">Every banner the scan found, lowest first.</param>
+public sealed record FlagSuggestionsDto(FlagDefaultsDto Defaults, IReadOnlyList<FlagSuggestionDto> Banners);
+
+/// <summary>What a King of the Flag flag is when nobody has said otherwise.</summary>
+/// <param name="PointsRate">What holding it pays, per second.</param>
+/// <param name="Carrier">What carrying it does to the carrier.</param>
+/// <param name="CarrierHearts">The hearts a lowered carrier keeps.</param>
+/// <param name="ScoreLimit">The score the match ends at.</param>
+public sealed record FlagDefaultsDto(
+    double PointsRate,
+    [property: WordSet(typeof(FlagCarriers))] string Carrier,
+    int CarrierHearts,
+    int ScoreLimit);
+
+/// <summary>One banner standing in the scanned world.</summary>
+/// <param name="X">The block it is in.</param>
+/// <param name="Y">The block it is in.</param>
+/// <param name="Z">The block it is in.</param>
+/// <param name="Wall">Whether it hangs on a wall rather than standing on the ground.</param>
+/// <param name="Yaw">Which way it faces, in degrees — what a post standing here takes as its facing.</param>
+/// <param name="Color">Its base dye, which a flag left uncoloured takes as its colour.</param>
+/// <param name="Patterns">Its patterns, as <c>pattern:dye</c> pairs in the order they are laid.</param>
+public sealed record FlagSuggestionDto(
+    int X, int Y, int Z, bool Wall, double Yaw,
+    [property: WordSet(typeof(WoolColors))] string Color,
+    IReadOnlyList<string> Patterns);
+

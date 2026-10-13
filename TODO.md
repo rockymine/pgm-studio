@@ -23,11 +23,6 @@ is the reference for the rest: `play/objectives.py` `Flag` and `play/rules.py` `
 
 ### The flag
 
-- [ ] **WS83 — Banners are gathered at ingest.** A standing (176) or wall (177) banner is read in the single
-  world pass beside chests and mob spawners (`FeatureExtractors.cs:84`, `:113`): position, base colour,
-  patterns and facing, into `flag_candidate` rows (migration), served by `GET /map/{slug}/flag-suggestions`.
-  The world is discarded after import, so a banner not read then is gone (`objective-suggestion.md` §4).
-  `docs/world-scan/objective-suggestion.md`.
 - [ ] **WE163 — A plan-built flag post stamps its banner.** PGM refuses to load a flag with no banner at its
   starting post (`Flag.java:121`, `ModuleLoadException`) and copies the banner's colour, patterns and facing
   into the carried flag. `FlagStamper` places a standing banner in the flag's colour facing the post's yaw,

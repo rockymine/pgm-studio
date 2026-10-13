@@ -11,7 +11,7 @@ Both halves were measured before either was built, against ground truth the corp
 that declares an objective says exactly where it is, so the world can be scanned and the proposals scored
 without hand-labelling anything.
 
-## 1. Ground truth is the map's own XML, read the way §6 reads it
+## 1. Ground truth is the map's own XML
 
 A declared objective resolves to a region, and the region is **not** the structure: OB12 makes it a loose human
 box that routinely encloses decoration, terrain and air. The truth is the blocks *inside* that region matching
@@ -253,3 +253,24 @@ authored; **a composed plan gives truth by construction** — a plan states a co
 casing, the pipeline builds the world, and the detector has to propose that core at that casing with those
 parameters. Both directions are gated in the suite, and the second is what makes a claim about *parameters*
 (shell, open-top, size) rather than merely about position.
+
+## 6. Flags — a banner is where one could start
+
+**A banner is not a proposal to be weighed: it is the suggestion.** PGM loads a flag only where a banner stands
+at its starting post (`docs/pgm/flags.md` §2), so on a world built for a flag mode every banner is a place a
+flag was meant to start, and on any other world a banner is decoration a flag could still use. Nothing is
+scored.
+
+`FeatureExtractors.Banners` reads each one in the import's single world pass, off its tile entity and the block
+it is in: the block (a standing banner, 176, or a wall banner, 177 — a tile entity over anything else is a
+leftover and is skipped), the data value that says which way it faces, its base dye and its patterns. A
+banner's dye is numbered the other way round from a wool's, so dye `d` is `WoolColors.All[15 − d]`. The rows
+land in **`flag_candidate`** (`M0071`, `FlagCandidateStore`), delete-then-insert per map like the core
+candidates, and their count is `flag_candidates` on all three ingest responses.
+
+`GET /map/{slug}/flag-suggestions` serves them back, lowest first, each with the yaw a post standing there
+takes — a standing banner turns in sixteenths of a circle from south, a wall banner faces away from its wall —
+beside the King of the Flag defaults (`ObjectiveDefaults`), so the client holds no second copy of them. A map
+scanned before the store has no rows until it is scanned again. The Configure phase that confirms a banner as
+a flag's starting post is `TC15`.
+

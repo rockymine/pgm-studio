@@ -676,6 +676,7 @@ short of a side says so as well.
 | `GET /map/{slug}/monument-suggestions?box=&style=` | scored monument candidates in a box, each with its colour, confidence and evidence. `box` is required — the author marks the area |
 | `GET /map/{slug}/core-suggestions[?box=]` | the detected casings, plus the generator's casing defaults. The box is optional and narrows the list; one that is stated and cannot be read is refused (`RQ1`, `field: box`) rather than skipped, because skipping it answers every casing the map has and reads as the volume holding them all |
 | `GET /map/{slug}/destroyable-suggestions[?box=]` | the destroyables the scan proposed, each carrying the two readings it was proposed on — `sameNearby` and `elevation` — beside the generator's defaults and the style and material vocabularies. About two in three are real, which is why the step confirms rather than applies |
+| `GET /map/{slug}/flag-suggestions` | every banner the scan found — position, wall or standing, the yaw a post there takes, base dye and patterns — beside the King of the Flag defaults (points rate, carrier, carrier hearts, score limit). A banner is where a flag may start, since PGM loads none without one (`docs/world-scan/objective-suggestion.md` §6) |
 | `GET /map/{slug}/origin` | whether the map came from a sketch — which drops the Monuments step |
 
 ### Asking whether the map can be played

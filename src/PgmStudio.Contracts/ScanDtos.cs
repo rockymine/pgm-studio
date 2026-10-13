@@ -30,6 +30,7 @@ namespace PgmStudio.Contracts;
 /// <param name="CoreCandidates">Places that could be a core, scored.</param>
 /// <param name="DestroyableCandidates">Destroyables the scan proposed, from the mass's isolation and
 /// its height over the ring of terrain around it.</param>
+/// <param name="FlagCandidates">Banners the scan found, each a place a flag could stand.</param>
 public sealed record WorldScanDto(
     string Slug,
     [property: JsonPropertyName("wool_blocks")] int WoolBlocks,
@@ -41,6 +42,7 @@ public sealed record WorldScanDto(
     [property: JsonPropertyName("monument_candidates")] int MonumentCandidates,
     [property: JsonPropertyName("core_candidates")] int CoreCandidates,
     [property: JsonPropertyName("destroyable_candidates")] int DestroyableCandidates,
+    [property: JsonPropertyName("flag_candidates")] int FlagCandidates,
     [property: JsonPropertyName("region_dir"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? RegionDir = null,
     [property: JsonPropertyName("mca_files"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? McaFiles = null);
 
