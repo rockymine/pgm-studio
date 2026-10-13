@@ -100,6 +100,25 @@ public sealed record MapIntent
     /// author saying they want no limit, and is left alone.</summary>
     public int? ScoreLimit { get; init; }
 
+    /// <summary>How long the match runs and what decides it when the time runs out (<c>docs/pgm/match.md</c>).
+    /// Null leaves the map's time limit untouched; an empty duration states none.</summary>
+    public TimeLimitIntent? TimeLimit { get; init; }
+
+    /// <summary>How the dead come back. Null leaves the map's own respawn untouched.</summary>
+    public RespawnIntent? Respawn { get; init; }
+
+    /// <summary>The lives each player has: a team with nobody left alive is out, so a board that states them is
+    /// played to the last team standing as well as to its goals. Null leaves the map's blitz untouched; zero states
+    /// none.</summary>
+    public int? Lives { get; init; }
+
+    /// <summary>Whether every hit with a weapon kills. Null leaves the map's rage untouched.</summary>
+    public bool? Rage { get; init; }
+
+    /// <summary>The height a player falls into the void below, dying with what they carry, whatever ground is
+    /// under them. Null states none.</summary>
+    public int? KillHeight { get; init; }
+
     /// <summary><b>When each objective stops being what it is made of.</b> A destroy map whose monuments and
     /// cores stay obsidian for the whole match is a map that does not end: the material is what makes a goal
     /// a goal, and the ladder is what makes it winnable. Null takes
@@ -127,7 +146,9 @@ public sealed record MapIntent
             hasKing: ControlPoints is { Count: > 0 },
             // PGM derives `ctf` from a flag; what the studio authors is King of the Flag, which a map states.
             hasFlags: false,
-            scoresKillsOrDeaths: false),
+            scoresKillsOrDeaths: false,
+            hasBlitz: Lives > 0,
+            hasRage: Rage == true),
         .. (Flags is { Count: > 0 } ? [Domain.Gamemodes.Kotf] : Array.Empty<string>()),
         // PGM tags a box auxiliary and derives no gamemode from it, so a score box board states its own.
         .. (ScoreBoxes is { Count: > 0 } ? [Domain.Gamemodes.Scorebox] : Array.Empty<string>()),
@@ -722,6 +743,31 @@ public sealed record ControlPointIntent
     /// the marker is white while the point is neutral and takes the holder's dye the moment it is captured —
     /// which is what makes a marker on a goal nobody owns mean something.</summary>
     public BlockBox? MarkerBox { get; init; }
+}
+
+/// <summary>How long a match runs, and what decides it when the clock runs out (<c>docs/pgm/match.md</c>).</summary>
+public sealed record TimeLimitIntent
+{
+    /// <summary>How long the match runs, as PGM writes a duration: <c>10m</c>, <c>8m30s</c>. Empty states no
+    /// time limit.</summary>
+    public string Duration { get; init; } = "";
+
+    /// <summary>What decides the match when the time runs out (<see cref="TimeResults"/>).</summary>
+    [WordSet(typeof(TimeResults))]
+    public string Result { get; init; } = TimeResults.Default;
+}
+
+/// <summary>How the dead come back (<c>docs/pgm/match.md</c>).</summary>
+public sealed record RespawnIntent
+{
+    /// <summary>The least wait after death, as PGM writes a duration; empty for PGM's two seconds.</summary>
+    public string Delay { get; init; } = "";
+
+    /// <summary>Whether the dead come back on their own once the wait is over, rather than on a click.</summary>
+    public bool Auto { get; init; }
+
+    /// <summary>Whether the dead watch the match while they wait.</summary>
+    public bool Spectate { get; init; }
 }
 
 /// <summary>

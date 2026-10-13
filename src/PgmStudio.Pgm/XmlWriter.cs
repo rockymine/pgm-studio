@@ -100,6 +100,9 @@ public static partial class XmlWriter
             Add(portal.ReverseFilterId); Add(portal.TransitFilterId);
         }
         foreach (var id in m.Damage?.FilterIds ?? []) Add(id);
+        foreach (var rule in m.Respawns) Add(rule.FilterId);
+        foreach (var reward in m.KillRewards) Add(reward.FilterId);
+        if (m.Blitz is { } blitz) { Add(blitz.FilterId); Add(blitz.ScoreboardFilterId); Add(blitz.JoinFilterId); }
         foreach (var category in m.Shops.SelectMany(shop => shop.Categories))
         {
             Add(category.FilterId);
@@ -186,6 +189,7 @@ public static partial class XmlWriter
         WritePortals(root, m, InlineFilter(m.Filters, externalFilters));
         WriteDamage(root, m.Damage, InlineFilter(m.Filters, externalFilters));
         WriteScore(root, m.Score, m.Regions, InlineFilter(m.Filters, externalFilters));
+        WriteMatchRules(root, m, InlineFilter(m.Filters, externalFilters));
         WriteShops(root, m.Shops);
         WriteShopkeepers(root, m.Shopkeepers);
 
@@ -200,7 +204,7 @@ public static partial class XmlWriter
         WriteMaterialList(root, "itemkeep", "item", m.ItemKeep);
         WriteMaterialList(root, "itemremove", "item", m.ItemRemove);
         WriteMaterialList(root, "toolrepair", "tool", m.ToolRepair);
-        WriteKillRewards(root, m.KillRewards);
+        WriteKillRewards(root, m, InlineFilter(m.Filters, externalFilters));
         if (m.HungerDepletion is { Length: > 0 } hd)
             root.Add(new XElement("hunger", new XElement("depletion", hd)));
 
@@ -217,20 +221,23 @@ public static partial class XmlWriter
         parent.Add(block);
     }
 
-    private static void WriteKillRewards(XElement parent, List<KillReward> rewards)
+    /// <summary>The kill rewards as one flat <c>&lt;kill-rewards&gt;</c>: each reward's filter and kit named, or
+    /// written inside it where the map wrote them there.</summary>
+    private static void WriteKillRewards(XElement parent, MapXml m, Func<string, XElement?> inlineFilter)
     {
-        if (rewards.Count == 0) return;
+        if (m.KillRewards.Count == 0) return;
         var block = new XElement("kill-rewards");
-        foreach (var r in rewards)
+        foreach (var reward in m.KillRewards)
         {
             var re = new XElement("kill-reward");
-            foreach (var item in r.Items)
+            SetText(re, "action", reward.Action);
+            SetText(re, "victim-action", reward.VictimAction);
+            if (!IsSynthetic(reward.KitId)) SetText(re, "kit", reward.KitId);
+            FilterProperty(re, "filter", reward.FilterId, inlineFilter);
+            if (IsSynthetic(reward.KitId) && m.Kits.FirstOrDefault(kit => kit.Id == reward.KitId) is { } kit) re.Add(KitElem(kit));
+            foreach (var item in reward.Items)
             {
-                var ie = new XElement("item"); Set(ie, "material", item.Material);
-                if (item.Damage != 0) Set(ie, "damage", item.Damage.ToString());
-                if (item.Amount != 1) Set(ie, "amount", item.Amount.ToString());
-                if (item.TeamColor) Set(ie, "team-color", "true");
-                re.Add(ie);
+                var ie = new XElement("item"); WriteItemSpec(ie, item); re.Add(ie);
             }
             block.Add(re);
         }
@@ -286,28 +293,34 @@ public static partial class XmlWriter
         }
     }
 
+    // A kit written inside a kill reward carries a synthetic id and is written there instead.
     private static void WriteKits(XElement parent, List<Kit> kits)
     {
-        if (kits.Count == 0) return;
-        var block = new XElement("kits"); parent.Add(block);
-        foreach (var kit in kits)
+        var named = kits.Where(kit => !IsSynthetic(kit.Id)).ToList();
+        if (named.Count == 0) return;
+        parent.Add(new XElement("kits", named.Select(KitElem)));
+    }
+
+    private static XElement KitElem(Kit kit)
+    {
+        var ke = new XElement("kit");
+        if (!IsSynthetic(kit.Id)) Set(ke, "id", kit.Id);
+        if (kit.Force) Set(ke, "force", "true");
+        // PGM applies <clear> before every other sub-kit whatever its position (KitParser), but the
+        // canonical shape puts it first, ahead of the items it makes room for.
+        if (kit.Clear) ke.Add(new XElement("clear"));
+        foreach (var item in kit.Items)
         {
-            var ke = new XElement("kit"); Set(ke, "id", kit.Id); if (kit.Force) Set(ke, "force", "true"); block.Add(ke);
-            // PGM applies <clear> before every other sub-kit whatever its position (KitParser), but the
-            // canonical shape puts it first, ahead of the items it makes room for.
-            if (kit.Clear) ke.Add(new XElement("clear"));
-            foreach (var item in kit.Items)
-            {
-                var e = new XElement("item"); Set(e, "slot", item.Slot.ToString());
-                WriteItemSpec(e, item.Item); ke.Add(e);
-            }
-            foreach (var armor in kit.Armor)
-            {
-                var e = new XElement(armor.SlotName); WriteItemSpec(e, armor.Item); ke.Add(e);
-            }
-            foreach (var eff in kit.Effects) ke.Add(EffectElem(eff));
-            if (kit.MaxHealth is { } health) ke.Add(new XElement("max-health", C(health)));
+            var e = new XElement("item"); Set(e, "slot", item.Slot.ToString());
+            WriteItemSpec(e, item.Item); ke.Add(e);
         }
+        foreach (var armor in kit.Armor)
+        {
+            var e = new XElement(armor.SlotName); WriteItemSpec(e, armor.Item); ke.Add(e);
+        }
+        foreach (var eff in kit.Effects) ke.Add(EffectElem(eff));
+        if (kit.MaxHealth is { } health) ke.Add(new XElement("max-health", C(health)));
+        return ke;
     }
 
     /// <summary>
@@ -778,6 +791,54 @@ public static partial class XmlWriter
         {
             if (value is { } v) block.Add(new XElement(tag, v.ToString(CultureInfo.InvariantCulture)));
         }
+    }
+
+    /// <summary>
+    /// How the match ends and how the dead come back: the time limit, the map's own respawn and the filtered ones,
+    /// the lives a blitz gives, and rage (<c>docs/pgm/match.md</c>). A property PGM reads as an attribute or a child
+    /// is written as the corpus writes it.
+    /// </summary>
+    private static void WriteMatchRules(XElement parent, MapXml m, Func<string, XElement?> inlineFilter)
+    {
+        if (m.TimeLimit is { } time)
+        {
+            var e = new XElement("time", time.Duration);
+            SetText(e, "id", time.Id);
+            SetText(e, "result", time.Result);
+            SetText(e, "overtime", time.Overtime);
+            SetText(e, "max-overtime", time.MaxOvertime);
+            SetText(e, "end-overtime", time.EndOvertime);
+            SetBool(e, "show", time.Show);
+            parent.Add(e);
+        }
+        if (m.Respawn is { } own) parent.Add(RespawnElem(own, inlineFilter));
+        if (m.Respawns.Count > 0)
+            parent.Add(new XElement("respawns", m.Respawns.Select(rule => RespawnElem(rule, inlineFilter))));
+        if (m.Blitz is { } blitz)
+        {
+            var e = new XElement("blitz");
+            if (blitz.Lives is { } lives) e.Add(new XElement("lives", lives.ToString(CultureInfo.InvariantCulture)));
+            if (blitz.BroadcastLives is { } broadcast) e.Add(new XElement("broadcastLives", broadcast ? "true" : "false"));
+            if (blitz.Lightning is { } lightning) e.Add(new XElement("lightning", lightning ? "true" : "false"));
+            FilterProperty(e, "filter", blitz.FilterId, inlineFilter);
+            FilterProperty(e, "scoreboard-filter", blitz.ScoreboardFilterId, inlineFilter);
+            FilterProperty(e, "join-filter", blitz.JoinFilterId, inlineFilter);
+            parent.Add(e);
+        }
+        if (m.Rage) parent.Add(new XElement("rage"));
+    }
+
+    private static XElement RespawnElem(RespawnRule rule, Func<string, XElement?> inlineFilter)
+    {
+        var e = new XElement("respawn");
+        SetText(e, "delay", rule.Delay);
+        SetBool(e, "auto", rule.Auto);
+        SetBool(e, "blackout", rule.Blackout);
+        SetBool(e, "spectate", rule.Spectate);
+        SetBool(e, "bed", rule.Bed);
+        FilterProperty(e, "filter", rule.FilterId, inlineFilter);
+        if (rule.Message.Length > 0) e.Add(new XElement("message", rule.Message));
+        return e;
     }
 
     /// <summary>

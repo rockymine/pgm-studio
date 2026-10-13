@@ -130,6 +130,7 @@ public sealed class MapWriter(PgmDb db)
         await db.Portals.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.ScoreBoxes.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Damage.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.MatchRules.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Shops.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Shopkeepers.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Scores.Where(x => x.MapId == mapId).DeleteAsync(ct);
@@ -251,6 +252,8 @@ public sealed class MapWriter(PgmDb db)
             await db.InsertAsync(new PortalRow { MapId = mapId, SpecJson = Json(Serializer.EncodePortal(portal)) }, token: ct);
         if (m.Damage is { } damage)
             await db.InsertAsync(new DamageRow { MapId = mapId, SpecJson = Json(Serializer.EncodeDamage(damage)) }, token: ct);
+        if (Serializer.EncodeMatchRules(m) is { Count: > 0 } rules)
+            await db.InsertAsync(new MatchRulesRow { MapId = mapId, SpecJson = Json(rules) }, token: ct);
 
         foreach (var shop in m.Shops)
             await db.InsertAsync(new ShopRow

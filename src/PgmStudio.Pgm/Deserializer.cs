@@ -17,7 +17,7 @@ public static class Deserializer
         foreach (var w in ListOf(d, "wools")) wools.AddRange(DecodeWoolsEntry(AsDict(w)));
 
         var obs = Val(d, "observer_spawn");
-        return new MapXml
+        var map = new MapXml
         {
             Name = Str(d, "name"),
             Version = Str(d, "version"),
@@ -51,7 +51,58 @@ public static class Deserializer
             Regions = regions,
             ApplyRules = ListOf(d, "apply_rules").Select(r => DecodeApplyRule(AsDict(r))).ToList(),
         };
+        DecodeMatchRules(d, map);
+        return map;
     }
+
+    /// <summary>The match rules off the keys <see cref="Serializer.EncodeMatchRules"/> writes, onto
+    /// <paramref name="map"/>.</summary>
+    public static void DecodeMatchRules(Dict d, MapXml map)
+    {
+        if (Val(d, "time") is Dict time)
+            map.TimeLimit = new TimeLimit
+            {
+                Id = Str(time, "id"),
+                Duration = Str(time, "duration"),
+                Result = Str(time, "result"),
+                Overtime = Str(time, "overtime"),
+                MaxOvertime = Str(time, "max_overtime"),
+                EndOvertime = Str(time, "end_overtime"),
+                Show = AsBoolN(Val(time, "show")),
+            };
+        if (Val(d, "respawn") is Dict own) map.Respawn = DecodeRespawn(own);
+        map.Respawns = ListOf(d, "respawns").Select(x => DecodeRespawn(AsDict(x))).ToList();
+        if (Val(d, "blitz") is Dict blitz)
+            map.Blitz = new BlitzConfig
+            {
+                Lives = AsIntN(Val(blitz, "lives")),
+                BroadcastLives = AsBoolN(Val(blitz, "broadcast_lives")),
+                Lightning = AsBoolN(Val(blitz, "lightning")),
+                FilterId = Str(blitz, "filter"),
+                ScoreboardFilterId = Str(blitz, "scoreboard_filter"),
+                JoinFilterId = Str(blitz, "join_filter"),
+            };
+        map.Rage = AsBool(Val(d, "rage"), false);
+        map.KillRewards = ListOf(d, "kill_rewards").Select(x => AsDict(x)).Select(reward => new KillReward
+        {
+            Items = ListOf(reward, "items").Select(item => DecodeItemSpec(AsDict(item))).ToList(),
+            FilterId = Str(reward, "filter"),
+            KitId = Str(reward, "kit"),
+            Action = Str(reward, "action"),
+            VictimAction = Str(reward, "victim_action"),
+        }).ToList();
+    }
+
+    private static RespawnRule DecodeRespawn(Dict d) => new()
+    {
+        Delay = Str(d, "delay"),
+        Auto = AsBoolN(Val(d, "auto")),
+        Blackout = AsBoolN(Val(d, "blackout")),
+        Spectate = AsBoolN(Val(d, "spectate")),
+        Bed = AsBoolN(Val(d, "bed")),
+        FilterId = Str(d, "filter"),
+        Message = Str(d, "message"),
+    };
 
     /// <summary>Decode a single region from its JSON dict (for the DB → MapXml reader).</summary>
     public static Region RegionFromDict(Dict d) => DecodeRegion(d);

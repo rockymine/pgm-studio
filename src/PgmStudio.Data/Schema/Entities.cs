@@ -375,6 +375,16 @@ public sealed class DamageRow
     [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
 }
 
+/// <summary>A map's match rules (M0074) — its time limit, respawn rules, blitz, rage and kill rewards — as one
+/// JSON document holding the map document's keys for them.</summary>
+[Table("match_rules")]
+public sealed class MatchRulesRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
+}
+
 /// <summary>A score box (M0072), one JSON document in the map document's shape.</summary>
 [Table("score_box")]
 public sealed class ScoreBoxRow

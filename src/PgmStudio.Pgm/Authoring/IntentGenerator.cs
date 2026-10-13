@@ -28,6 +28,9 @@ public static class IntentGenerator
         ControlPointGenerator.Apply(doc, intent);
         FlagGenerator.Apply(doc, intent);
         ScoreGenerator.Apply(doc, intent);
+        // The time limit, respawn, lives, rage and kill height: map-wide, so they fan nowhere and read nothing an
+        // objective decides.
+        MatchGenerator.Apply(doc, intent);
         // After the objectives and before the zoning, because a keeper is placed from the spawns rather than
         // from anything an objective decides, and it stamps nothing for a later pass to resolve.
         ShopGenerator.Apply(doc, intent);

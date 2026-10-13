@@ -8740,6 +8740,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   and `MapIntent.Zones` states the rest — who may enter (`ZoneEntries`), placing, breaking, harm through the damage
   module, and a kit inside — fanned by team or by position, ahead of the build rules. `docs/pgm/zones.md`. (`PG27`)
 
+- **The match's own rules survive the round trip (`PG34`)** — `<time>`, the root `<respawn>` and the filtered
+  `<respawns>`, `<blitz>` and `<rage>` are read, written and stored (`match_rules`, `M0074`), a legacy time limit
+  inside `<score>` or `<blitz>` written at the root, and blitz and rage join a map's gamemodes after the rest, as PGM
+  sorts them. All 1,290 parseable corpus maps carrying any of them write them back unchanged through both codecs.
+  `docs/pgm/match.md`. (`PG34`)
+
+- **Kill rewards are read in full (`PG35`)** — every `<kill-reward>` under either spelling, grouped or not, with its
+  items as one `ItemSpec` each, its filter, its kit — named, or written inside it and kept as one of the map's kits —
+  and its two actions by id. `docs/pgm/match.md` §4. (`PG35`)
+
+- **A board states how its match ends (`PG36`, `PG37`)** — `MapIntent` states a time limit and the result that
+  decides it (`TimeResults`), the respawn delay and whether it is automatic or spectated, a blitz's lives, rage, and
+  a kill height, written by `MatchGenerator` as a portal over a `below` region dropping a player into the void; a
+  plan's refinement states the same members. `docs/pgm/match.md` §7. (`PG36`, `PG37`)
+
 - **The damage module survives the round trip (`PG32`)** — `<damage>` is read, written and stored (`damage`,
   `M0073`): every filter of every element in order, inline or named, and the two actions by id. All 106
   parseable corpus maps with the module write it back unchanged through both codecs. `docs/pgm/damage.md`. (`PG32`)

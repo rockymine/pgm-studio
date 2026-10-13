@@ -21,6 +21,7 @@ public static class Serializer
         if (m.FlagNets.Count > 0) d["flag_nets"] = m.FlagNets.Select(EncodeFlagNet).ToList<object?>();
         if (m.Portals.Count > 0) d["portals"] = m.Portals.Select(EncodePortal).ToList<object?>();
         if (m.Damage is { } damage) d["damage"] = EncodeDamage(damage);
+        foreach (var (key, value) in EncodeMatchRules(m)) d[key] = value;
         if (m.Shops.Count > 0) d["shops"] = m.Shops.Select(EncodeShop).ToList<object?>();
         if (m.Shopkeepers.Count > 0) d["shopkeepers"] = m.Shopkeepers.Select(EncodeShopkeeper).ToList<object?>();
         if (m.Score is { } score) d["score"] = EncodeScore(score);
@@ -455,6 +456,63 @@ public static class Serializer
         var r = new Dict { ["filters"] = damage.FilterIds.ToList<object?>() };
         Text(r, "attacker_action", damage.AttackerAction);
         Text(r, "victim_action", damage.VictimAction);
+        return r;
+    }
+
+    /// <summary>The match rules under the keys the map document carries them at — <c>time</c>, <c>respawn</c>,
+    /// <c>respawns</c>, <c>blitz</c>, <c>rage</c> — holding only what the map states; empty where it states none.</summary>
+    public static Dict EncodeMatchRules(MapXml m)
+    {
+        var r = new Dict();
+        if (m.TimeLimit is { } time)
+        {
+            var t = new Dict { ["duration"] = time.Duration };
+            Text(t, "id", time.Id);
+            Text(t, "result", time.Result);
+            Text(t, "overtime", time.Overtime);
+            Text(t, "max_overtime", time.MaxOvertime);
+            Text(t, "end_overtime", time.EndOvertime);
+            if (time.Show is { } show) t["show"] = show;
+            r["time"] = t;
+        }
+        if (m.Respawn is { } own) r["respawn"] = EncodeRespawn(own);
+        if (m.Respawns.Count > 0) r["respawns"] = m.Respawns.Select(EncodeRespawn).ToList<object?>();
+        if (m.Blitz is { } blitz)
+        {
+            var b = new Dict();
+            if (blitz.Lives is { } lives) b["lives"] = lives;
+            if (blitz.BroadcastLives is { } broadcast) b["broadcast_lives"] = broadcast;
+            if (blitz.Lightning is { } lightning) b["lightning"] = lightning;
+            Text(b, "filter", blitz.FilterId);
+            Text(b, "scoreboard_filter", blitz.ScoreboardFilterId);
+            Text(b, "join_filter", blitz.JoinFilterId);
+            r["blitz"] = b;
+        }
+        if (m.Rage) r["rage"] = true;
+        if (m.KillRewards.Count > 0) r["kill_rewards"] = m.KillRewards.Select(EncodeKillReward).ToList<object?>();
+        return r;
+    }
+
+    private static Dict EncodeKillReward(KillReward reward)
+    {
+        var r = new Dict { ["items"] = reward.Items.Select(item => (object?)ItemToDict(item)).ToList() };
+        Text(r, "filter", reward.FilterId);
+        Text(r, "kit", reward.KitId);
+        Text(r, "action", reward.Action);
+        Text(r, "victim_action", reward.VictimAction);
+        return r;
+    }
+
+    private static Dict EncodeRespawn(RespawnRule rule)
+    {
+        var r = new Dict();
+        Text(r, "delay", rule.Delay);
+        if (rule.Auto is { } auto) r["auto"] = auto;
+        if (rule.Blackout is { } blackout) r["blackout"] = blackout;
+        if (rule.Spectate is { } spectate) r["spectate"] = spectate;
+        if (rule.Bed is { } bed) r["bed"] = bed;
+        Text(r, "filter", rule.FilterId);
+        Text(r, "message", rule.Message);
         return r;
     }
 

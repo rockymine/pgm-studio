@@ -175,7 +175,7 @@ given, which is why every point edit comes before it.
 | `themes` · `mapTheme` | the theme registry, and the map's default theme — the registry's first where none is stated | `PUT …/sketch/themes/{themeId}`, `PUT …/sketch/map-theme` |
 | `biome` · `roomStyles` · `dressing` | the layout's own members, each replacing what the base held | `PUT …/sketch/biome`, `PUT …/sketch/room-styles/{part}`, the props routes |
 | `created` · `authors` | the intent's `meta.created` and `meta.authors`; a person is a bare name or `{name, contribution}` | `PATCH /map/{slug}/metadata` |
-| `controlPoints` · `scoreLimit` · `spawners` · `shops` | the intent's own members, each replacing what the base held; a capture point and a generator are each stated once and fanned across the board's symmetry | `PUT /map/{slug}/intent` |
+| `controlPoints` · `scoreLimit` · `timeLimit` · `respawn` · `lives` · `rage` · `killHeight` · `spawners` · `shops` | the intent's own members, each replacing what the base held; a capture point and a generator are each stated once and fanned across the board's symmetry | `PUT /map/{slug}/intent` |
 
 **A thing stated more than once is named, and a name stands for a copy.** A material the refinement uses in
 several places is stated once under `materials` and used as `{"use": "strata"}`. A row of the studio's library

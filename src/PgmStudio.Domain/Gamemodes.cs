@@ -25,6 +25,8 @@ public static class Gamemodes
     public const string Ctf = "ctf";
     public const string Kotf = "kotf";
     public const string Scorebox = "scorebox";
+    public const string Blitz = "blitz";
+    public const string Rage = "rage";
 
     /// <summary>Every id PGM's own <c>Gamemode</c> enum recognizes (<c>Gamemode.java</c>), matched
     /// case-insensitively the same way <c>Gamemode.byId</c> does. A <c>&lt;gamemode&gt;</c> element outside
@@ -56,10 +58,12 @@ public static class Gamemodes
     /// to and names no gamemode of its own.</para>
     /// <para><paramref name="hasFlags"/> is CTF, the one tag PGM's flag module adds. King of the Flag is a
     /// gamemode a map states (<c>&lt;gamemode&gt;kotf&lt;/gamemode&gt;</c>) and PGM never derives.</para>
+    /// <para><paramref name="hasBlitz"/> and <paramref name="hasRage"/> are PGM's two auxiliary gamemodes, which it
+    /// sorts after every other: a blitz CTW map is CTW and blitz.</para>
     /// </summary>
     public static IReadOnlyList<string> From(
         bool hasWools, bool hasRealDestroyable, bool hasCores,
-        bool hasControlPoints, bool hasKing, bool hasFlags, bool scoresKillsOrDeaths)
+        bool hasControlPoints, bool hasKing, bool hasFlags, bool scoresKillsOrDeaths, bool hasBlitz, bool hasRage)
     {
         var modes = new List<string>(4);
         if (hasWools) modes.Add(Ctw);
@@ -69,6 +73,8 @@ public static class Gamemodes
         else if (hasKing) modes.Add(Koth);
         if (hasFlags) modes.Add(Ctf);
         if (scoresKillsOrDeaths) modes.Add(Tdm);
+        if (hasBlitz) modes.Add(Blitz);
+        if (hasRage) modes.Add(Rage);
         return modes;
     }
 }
