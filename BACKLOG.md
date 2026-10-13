@@ -82,6 +82,12 @@ them one rather than with the contract work that shipped them.
   step wrote `wools[].room` while the intent reads `protection`, and every room drawn there was dropped
   under a green Saved.
 
+- [ ] **PG24 — Jump pads.** `MapIntent.JumpPads`: a box, a velocity turned with the symmetry, a pad block and
+  `safe`. `JumpPadGenerator` writes `<apply region velocity>`, which already round-trips
+  (`XmlWriter.cs:879`); a safe pad adds pgmvox's fall variable and fall-damage deny (`play/rules.py:477`). The
+  launch is checked against its landing with `solve_launch` (`core/move.py`) once `WS86` has the physics in
+  `Geom`. 215 corpus maps write `velocity=`. `docs/pgm/new-map-authoring.md`.
+
 ## The sketch tool: shapes, islands, and the ground they become
 
 The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
