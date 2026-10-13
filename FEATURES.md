@@ -8735,9 +8735,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
   carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
 
-- **Score boxes are read (`PG26`)** — a `<score>`'s boxes are read, written and stored (`score_box`, `M0072`): the
-  region named or inline, `points` or `value`, the filter and `silent`. Only a box that redeems items still
-  refuses its map, so 1,522 of 1,626 corpus maps parse and all 52 with a box write it back unchanged.
+- **A score box sends its scorer home (`PG26`)** — a `<score>`'s boxes are read, written and stored (`score_box`,
+  `M0072`), and only a box that redeems items still refuses its map, so 1,522 of 1,626 corpus maps parse.
+  `MapIntent.ScoreBoxes` states a box per team, written by `ScoreGenerator` with a portal on the same region
+  landing the scorer on their spawn, fanned by team, on a board that states `scorebox`.
   `docs/pgm/score-boxes.md`. (`PG26`)
 
 - **Portals survive the round trip (`PG30`)** — the `<portals>` module is read, written and stored (`portal`,

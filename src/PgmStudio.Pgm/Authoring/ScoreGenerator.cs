@@ -2,19 +2,29 @@ using PgmStudio.Domain;
 
 namespace PgmStudio.Pgm.Authoring;
 
+using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// The <c>&lt;score&gt;</c> a board ends at. Without one PGM builds no score module and nothing a point or a
-/// flag pays is counted, so a board whose objectives pay states a limit, and one whose objectives do not states
-/// none. One slice writes it because two objectives pay into it.
+/// The <c>&lt;score&gt;</c> a board ends at, and the score boxes it pays through. Without one PGM builds no score
+/// module and nothing a point, a flag or a box pays is counted, so a board whose objectives pay states one. One
+/// slice writes it because three objectives pay into it.
 /// </summary>
 public static class ScoreGenerator
 {
+    private const string BoxRegionSuffix = "score-box";
+
     public static void Apply(Dict doc, MapIntent intent)
     {
-        doc.Remove("score");
-        if (Limit(intent) is { } limit) doc["score"] = new Dict { ["limit"] = (long)limit };
+        Clear(doc);
+        var boxes = intent.ScoreBoxes ?? [];
+        var limit = Limit(intent);
+        if (limit is null && boxes.Count == 0) return;
+
+        var score = new Dict();
+        if (limit is { } stated) score["limit"] = (long)stated;
+        if (boxes.Count > 0) score["boxes"] = Boxes(doc, intent, boxes);
+        doc["score"] = score;
     }
 
     /// <summary>
@@ -30,5 +40,42 @@ public static class ScoreGenerator
         if (intent.Flags?.Any(flag => flag.Posts.Count > 0 && flag.PointsRate > 0) ?? false)
             return ObjectiveDefaults.FlagScoreLimit;
         return null;
+    }
+
+    // Each box is a cuboid region filtered to its team — a team id is itself the filter matching its members —
+    // and, sending its scorer home, a portal on the same region landing on the team's spawn point at its yaw.
+    private static List<object?> Boxes(Dict doc, MapIntent intent, List<ScoreBoxIntent> boxes)
+    {
+        var written = new List<object?>();
+        var portals = ObjectiveRegion.List(doc, "portals");
+        foreach (var (box, i) in boxes.Select((box, i) => (box, i)))
+        {
+            var team = IntentNaming.TeamId(box.Team);
+            var regionId = ObjectiveRegion.Emit(doc, $"{IntentNaming.Slug(box.Team)}-{i + 1}", box.Box, BoxRegionSuffix);
+            written.Add(new Dict { ["region"] = regionId, ["points"] = (long)box.Points, ["filter"] = team });
+
+            if (!box.Home || intent.Spawns.FirstOrDefault(spawn => IntentNaming.TeamId(spawn.Team) == team) is not { } spawn)
+                continue;
+            portals.Add(new Dict
+            {
+                ["region"] = regionId,
+                ["destination"] = $"{IntentNaming.Slug(spawn.Team)}-spawn-point",
+                ["yaw"] = "@" + spawn.Yaw.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["filter"] = team,
+            });
+        }
+        return written;
+    }
+
+    // A rebuild replaces what the last one wrote: the score, the box regions and the portals on them.
+    private static void Clear(Dict doc)
+    {
+        var regions = DocAccess.Regions(doc);
+        var boxRegions = ((doc.GetValueOrDefault("score") as Dict)?.GetValueOrDefault("boxes") as List<object?> ?? [])
+            .OfType<Dict>().Select(box => box.GetValueOrDefault("region") as string).OfType<string>().ToHashSet();
+        foreach (var id in boxRegions) regions.Remove(id);
+        if (doc.GetValueOrDefault("portals") is List<object?> portals)
+            portals.RemoveAll(portal => portal is Dict d && d.GetValueOrDefault("region") as string is { } r && boxRegions.Contains(r));
+        doc.Remove("score");
     }
 }

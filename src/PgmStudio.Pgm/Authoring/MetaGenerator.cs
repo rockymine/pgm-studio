@@ -83,6 +83,10 @@ public static class MetaGenerator
         if (flags == 1) clauses.Add("hold the flag");
         else if (flags > 1) clauses.Add("hold the flags");
 
+        var boxes = PerTeam(intent.ScoreBoxes?.Count ?? 0);
+        if (boxes == 1) clauses.Add("reach your score box");
+        else if (boxes > 1) clauses.Add("reach your score boxes");
+
         if (clauses.Count == 0) return "";
 
         var joined = clauses.Count == 1

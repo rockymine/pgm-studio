@@ -54,6 +54,7 @@ public static class SymmetryExpander
             Cores = FillCores(intent.Cores, teams, sym, order),
             ControlPoints = FillControlPoints(intent.ControlPoints, sym, order),
             Flags = FillFlags(intent.Flags, sym, order),
+            ScoreBoxes = FillScoreBoxes(intent.ScoreBoxes, teams, sym, order),
         };
     }
 
@@ -248,6 +249,28 @@ public static class SymmetryExpander
                     Anchor = TransformPt(src.Anchor, sym, k),
                     Box = TransformBox(src.Box, sym, k),
                 });
+            }
+        }
+        return result;
+    }
+
+    /// <summary>Score boxes stated for one team, fanned onto every other team's image of the box as a core is:
+    /// a team already holding a box keeps its own.</summary>
+    private static List<ScoreBoxIntent>? FillScoreBoxes(
+        List<ScoreBoxIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
+    {
+        if (authored is null) return null;
+        var result = new List<ScoreBoxIntent>(authored);
+        var have = new HashSet<string>(authored.Select(box => box.Team));
+        foreach (var src in authored)
+        {
+            var index = IndexOfTeam(teams, src.Team);
+            if (index < 0) continue;
+            for (var k = 1; k < order; k++)
+            {
+                var team = teams[(index + k) % teams.Count];
+                if (!have.Add(team.Id)) continue;
+                result.Add(src with { Team = team.Id, Box = TransformBox(src.Box, sym, k)!.Value });
             }
         }
         return result;

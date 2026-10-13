@@ -55,6 +55,7 @@ public sealed class SymmetryExpanderCarryTests
             OpenTop = true, Float = 6, Leak = 9, Box = new BlockBox(37, 18, 37, 43, 21, 43),
         }],
         Flags = [new FlagIntent { Name = "Flag", Posts = [new FlagPostIntent { Name = "Side", At = new Pt(0.5, 12, 30.5) }] }],
+        ScoreBoxes = [new ScoreBoxIntent { Team = "red-team", Box = new BlockBox(28, 10, -2, 32, 13, 2) }],
         ControlPoints = [new ControlPointIntent
         {
             Name = "Side", Anchor = new Pt(0, 12, 30), Size = 7,

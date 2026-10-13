@@ -94,6 +94,9 @@ public static class ObjectiveDefaults
     /// limit (200, on 5 of 10 maps stating one).</summary>
     public const int FlagScoreLimit = 200;
 
+    /// <summary>What entering a score box pays (122 of 209 corpus boxes).</summary>
+    public const int ScoreBoxPoints = 1;
+
     /// <summary>The colour a pad is laid in, and therefore the colour it returns to whenever the point goes
     /// neutral — PGM restores the blocks it found rather than choosing one. White is what 263 of 359 corpus
     /// pads are, and it is the only neutral that reads as neutral against sixteen team dyes.</summary>

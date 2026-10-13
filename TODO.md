@@ -15,13 +15,13 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 
 ## Conquest, continued: a box that sends its scorer home, a zone, a touch point
 **Conquest is played for control, and these are the shapes control takes besides a hill and a flag**, as
-pgmvox writes them (`pgm-studio-mapgen/freeform/lib/pgmvox/play/objectives.py`, `play/rules.py`). The codec
-reads score boxes and portals; what remains is stating them.
+pgmvox writes them (`pgm-studio-mapgen/freeform/lib/pgmvox/play/objectives.py`, `play/rules.py`). A score
+box and the portal home are authored; a zone and a touch point remain.
 
-- [~] **PG26 — A score box sends its scorer home.** `MapIntent.ScoreBoxes`: a team, a box and `Points` (1 in
-  122 of 209 corpus boxes), filtered to that team, and a portal on the same region landing on the team's spawn
-  point at its yaw, as 69 of the 82 corpus boxes with a portal do; `ScoreGenerator` writes both, fanned by
-  team, and the board states `<gamemode>scorebox</gamemode>`. `docs/pgm/score-boxes.md`.
+- [ ] **WE164 — A plan-built score box is air.** A box is entered on foot, so a box the terrain or a stamp fills
+  is one nobody scores in. `WorldBuilder` clears every box's blocks to air after the stamps, fanned by team
+  across the layout's symmetry as flag posts are before stamping, with the ground under it kept, the way
+  `ControlPointStamper.ClearCaptureVolume` clears a capture volume. `docs/world-export/structures.md`.
 - [ ] **PG27 — A zone, in general.** A region with rules of its own: no placing, no breaking, no harm, entry
   for one team or nobody, a kit given inside — what spawn protection, the build area and the wool room each
   state for one purpose. One `ZoneIntent` those three are written through, after pgmvox's `Zone`

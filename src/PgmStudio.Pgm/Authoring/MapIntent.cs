@@ -68,6 +68,11 @@ public sealed record MapIntent
     /// map's flags untouched.</summary>
     public List<FlagIntent>? Flags { get; init; }
 
+    /// <summary>The score boxes: each pays a team for every player of theirs who walks into it, and sends that
+    /// player home (<c>docs/pgm/score-boxes.md</c>). A box belongs to the team it scores for, so it fans by team
+    /// as a spawn does. Null leaves the map's boxes untouched.</summary>
+    public List<ScoreBoxIntent>? ScoreBoxes { get; init; }
+
     /// <summary>The shops this board sells from, each with the keeper that opens it. <b>They do not fan by
     /// team and they carry no coordinates</b>: a shop is one catalogue for the whole map, and its keeper is
     /// placed by <see cref="ShopGenerator"/> at every team's spawn — one per shop per spawn, standing on the
@@ -118,6 +123,8 @@ public sealed record MapIntent
             hasFlags: false,
             scoresKillsOrDeaths: false),
         .. (Flags is { Count: > 0 } ? [Domain.Gamemodes.Kotf] : Array.Empty<string>()),
+        // PGM tags a box auxiliary and derives no gamemode from it, so a score box board states its own.
+        .. (ScoreBoxes is { Count: > 0 } ? [Domain.Gamemodes.Scorebox] : Array.Empty<string>()),
     ];
 
     /// <summary>Map identity: name + authors/contributors. Version (1.0) and proto (1.5.1) are fixed; the
@@ -733,6 +740,26 @@ public sealed record FlagIntent
     /// while carrying it. A boost raises health two hearts at a time, so it takes the even number at or over
     /// this above ten.</summary>
     public int CarrierHearts { get; init; } = ObjectiveDefaults.FlagCarrierHearts;
+}
+
+/// <summary>
+/// One score box: the blocks a player of <see cref="Team"/> walks into to pay it <see cref="Points"/>, filtered to
+/// that team, and — where <see cref="Home"/> — a portal on the same blocks landing the scorer on their team's
+/// spawn point, facing the way it faces (<c>docs/pgm/score-boxes.md</c> §4).
+/// </summary>
+public sealed record ScoreBoxIntent
+{
+    /// <summary>The team the box scores for.</summary>
+    public string Team { get; init; } = "";
+
+    /// <summary>The blocks the box covers, inclusive.</summary>
+    public BlockBox Box { get; init; }
+
+    /// <summary>What entering the box pays the team.</summary>
+    public int Points { get; init; } = ObjectiveDefaults.ScoreBoxPoints;
+
+    /// <summary>Whether entering the box sends the scorer to their spawn point.</summary>
+    public bool Home { get; init; } = true;
 }
 
 /// <summary>One place a flag stands at: where the banner is, and the way it faces.</summary>

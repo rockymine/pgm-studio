@@ -44,3 +44,22 @@ through the XML and the JSON codec. The 23 that redeem items are refused.
 | a filter | 161 |
 | `silent` | 85 |
 | redeemables | 38 |
+
+## 4. Authoring a box
+
+`MapIntent.ScoreBoxes` states a board's boxes: each a `team`, the inclusive `box` of blocks it covers, the
+`points` it pays — 1 where unstated, as 122 of 209 corpus boxes pay — and whether it sends its scorer `home`,
+true where unstated. `ScoreGenerator` writes each into the `<score>` it already owns as a cuboid region
+filtered to its team, a team id being itself the filter matching its members, and a box sending its scorer
+home gains a portal on the same region, filtered the same way, landing on the team's spawn point at the
+spawn's yaw. That is the corpus pair of §2: the destination is the spawn region, so the scorer lands where
+the team spawns.
+
+A box belongs to the team it scores for, so under a symmetry it fans by team the way a core does: each other
+team gains its image of the box, with its own way home, and a team already holding a box keeps its own. The
+board states `<gamemode>scorebox</gamemode>`, which PGM would not derive, and its objective reads "Reach your
+score box!". No score limit is written unless the author states `ScoreLimit`: the corpus states none on 33 of
+its 78 box maps and ends the rest anywhere from 1 to 750. A box board plays for control, so nothing is built
+on it unless the author says otherwise (`new-map-authoring.md` §5c).
+
+The box is air the world must leave clear; a plan-built board does not carve one yet (`WE164`).
