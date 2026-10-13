@@ -179,9 +179,10 @@ region its underside, and `NavPoint.Seat` resolves that against a board so the r
 which storey a spawn is on.
 
 **A climb of Δ costs Δ−1 blocks.** One block up is a step; anything higher is ground the player first has to
-make. **A drop is free to 3 and counted beyond it**, because 4 is where fall damage starts — every kit carries
-a water bucket, so a fall walls off no route, but stopping to place and drink one is time the distance does
-not show, which is why it is reported as a count of falls rather than as blocks. **Void inside a build zone
+make. **A drop is free to 3 and counted beyond it**, because 4 is where fall damage starts — a fall hurts
+rather than stops, and a built-on board's kit carries a water bucket to break one, so a fall walls off no
+route, but the damage or the bucket is time the distance does not show, which is why it is reported as a count
+of falls rather than as blocks. **Void inside a build zone
 costs one block a cell**, and a bridged cell is given the height of the ground nearest it, so a crossing is
 level and the climb is charged where the player steps up onto the far side. **Water costs no block and blocks
 no route**; it is slower, so it doubles the distance of the cells it covers.

@@ -251,6 +251,15 @@ leaves using a block — a door, a button — alone. `only` is the same rule dec
 materials. The two are the board's whole block rule rather than a second rule beside the void's, so §5b's
 caution about a wider rule does not apply to them; they still come last, after the spawn protections.
 
+**The spawn kit hands out the blocks the mode lets a player place, and the tools that work them.** The fighting
+half of the Standard kit — sword, infinity bow, arrow, golden apple, armour, the spawn's resistance — is on
+every board (`TeamsGenerator.BuildHalf`). A `void` board adds wood, the team's clay, the pickaxe its goals need,
+an axe, a spade, shears and a water bucket. An `only` board adds a stack of 64 of each named material — a
+`wool:14` is wool at damage 14 — and nothing to dig with. A `never` board adds nothing, since a bucket emptied
+is a block placed. The kill reward is derived from the kit's stacks (`MapStandards`), so on an `only` board a
+kill pays 16 of each material, and the only blocks in play are the ones the board hands out. Of the 190 corpus
+conquest maps with a kit, 143 give a bow, about 30 a pickaxe and 12 a water bucket.
+
 ## 6. What validation proves
 
 Three checks, each answering a different question.

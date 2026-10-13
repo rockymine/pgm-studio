@@ -237,6 +237,52 @@ public sealed class TeamsGeneratorTests
         await Assert.That(pickaxe["material"]).IsEqualTo("iron pickaxe");
     }
 
+    private static List<string> KitMaterials(BuildIntent? build)
+    {
+        var doc = new Dict { ["regions"] = new Dict(), ["spawns"] = new List<object?>(), ["kits"] = new List<object?>() };
+        TeamsGenerator.Apply(doc, new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0) }], Build = build });
+        var kit = ((List<object?>)doc["kits"]!).OfType<Dict>().Single();
+        return [.. ((List<object?>)kit["items"]!).OfType<Dict>().Select(item => (string)item["material"]!)];
+    }
+
+    [Test]
+    public async Task A_board_nobody_builds_on_hands_out_no_block_and_no_tool_to_dig_with()
+    {
+        var materials = KitMaterials(new BuildIntent { Mode = BuildModes.Never });
+
+        await Assert.That(materials).IsEquivalentTo(new[] { "iron sword", "bow", "golden apple", "arrow" });
+    }
+
+    [Test]
+    public async Task A_board_built_on_hands_out_wood_clay_and_the_tools()
+    {
+        var materials = KitMaterials(new BuildIntent { Mode = BuildModes.Void });
+
+        foreach (var expected in new[] { "wood", "stained clay", "iron pickaxe", "iron axe", "iron spade", "shears", "water bucket" })
+            await Assert.That(materials).Contains(expected);
+    }
+
+    [Test]
+    public async Task An_only_board_hands_out_a_stack_of_each_material_and_kills_pay_it_back()
+    {
+        var doc = new Dict();
+        IntentGenerator.Apply(doc, new MapIntent
+        {
+            Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0) }],
+            Build = new BuildIntent { Mode = BuildModes.Only, Materials = ["leaves", "wool:14"] },
+        });
+        var map = Deserializer.FromDict(doc);
+
+        var stacks = map.Kits.Single().Items.Where(item => item.Item.Amount > 1).Select(item => item.Item).ToList();
+        await Assert.That(stacks.Select(item => (item.Material, item.Damage, item.Amount)))
+            .IsEquivalentTo(new[] { ("leaves", 0, TeamsGenerator.CoverStack), ("wool", 14, TeamsGenerator.CoverStack) });
+        await Assert.That(map.Kits.Single().Items.Select(item => item.Item.Material)).DoesNotContain("wood");
+
+        MapStandards.Apply(map);
+        await Assert.That(map.KillRewards.Single().Items.Select(item => (item.Material, item.Damage)))
+            .IsEquivalentTo(new[] { ("leaves", 0), ("wool", 14) });
+    }
+
     [Test]
     public async Task Spawns_link_to_the_fixed_kit_id()
     {

@@ -8735,6 +8735,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
   carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
 
+- **A conquest kit hands out the blocks its board lets a player place (`PG23`)** — the spawn kit's blocks and
+  tools follow the build mode: wood, clay and the digging tools on a `void` board, a stack of each named material
+  on an `only` board, none on a `never` board; the kill reward follows the stacks. `docs/pgm/new-map-authoring.md`
+  §5c. (`PG23`)
+
 - **A plan-built flag post stands its banner (`WE163`)** — `FlagStamper` stands a banner in the flag's colour at
   every post, turned to its yaw, in the first air over the ground; the build fans flag posts across the board's
   symmetry before stamping, the post point is the banner's block centre, and a post's ground is a goal's to the

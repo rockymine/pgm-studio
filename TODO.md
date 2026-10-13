@@ -33,12 +33,6 @@ is the reference for the rest: `play/objectives.py` `Flag` and `play/rules.py` `
   spawn with no block placed, and the starting post is refused without a banner. Saving
   writes `MapIntent.Flags`. `docs/tools/configure.md`.
 
-### Blocks off
-
-- [ ] **PG23 — Cover a conquest kit gives.** An `only` board's materials arrive as a spawn-kit stack and a kill
-  reward of the same material (leaves, say), so the only blocks in play are the ones the board hands out.
-  `docs/pgm/new-map-authoring.md`.
-
 ## The programme: a board's source, every change to it, and the words it is stated in
 **The author put this programme first.** The studio keeps the source a board is stated in and every change to
 it, hands the author's hand edits to the agent's next round, and hands out the vocabulary the source is

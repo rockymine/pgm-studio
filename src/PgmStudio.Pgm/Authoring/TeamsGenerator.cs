@@ -3,6 +3,7 @@ namespace PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 using PgmStudio.Geom;
+using PgmStudio.Vocabulary;
 
 /// <summary>
 /// Forward generation for the Teams slice of the declarative authoring model
@@ -53,17 +54,17 @@ public static class TeamsGenerator
     // ── kit ──────────────────────────────────────────────────────────────────────────
     // Clear-then-build: the kit is fully owned by the generator (a new map). Emit the single fixed
     // "Standard" preset whenever the map has spawns. Standard = the corpus norm (survey across 345
-    // kitted maps): iron tier + infinity bow, planks + team-coloured clay, golden apple + water bucket,
-    // team-coloured leather armour with chainmail leggings, all unbreakable.
+    // kitted maps): iron tier + infinity bow, golden apple, team-coloured leather armour with chainmail
+    // leggings, all unbreakable — and the blocks and tools of the board's build mode (BuildHalf).
     private static void GenerateKits(Dict doc, MapIntent intent)
     {
         var kits = DocAccess.EnsureList(doc, "kits");
         kits.Clear();
         if (intent.Spawns.Count > 0)
-            kits.Add(StandardSpawnKit(SpawnKitId, DestroyKitPairing.RequiredPickaxe(intent)));
+            kits.Add(StandardSpawnKit(SpawnKitId, BuildHalf(intent)));
     }
 
-    private static Dict StandardSpawnKit(string id, string pickaxe) => new()
+    private static Dict StandardSpawnKit(string id, IEnumerable<Dict> buildHalf) => new()
     {
         ["id"] = id,
         // Empty what the last life left behind before handing out the kit.
@@ -74,19 +75,10 @@ public static class TeamsGenerator
             // 7–8 = water bucket + golden apple; the utility items sit in the inventory row (28–30).
             Item(0, "iron sword", unbreakable: true),
             Item(1, "bow", unbreakable: true, enchantments: "infinity:1"),
-            // The corpus norm is a substitution, not an addition: a destroy map's kit carries whatever
-            // pickaxe its own destroyables/cores need in place of the iron one, not both (MG18).
-            Item(2, pickaxe, unbreakable: true, enchantments: "efficiency:1"),
-            Item(3, "iron axe", unbreakable: true, enchantments: "efficiency:1"),
-            Item(4, "wood", amount: 64),
-            Item(5, "stained clay", amount: 32, teamColor: true),
-            Item(7, "water bucket"),
             Item(8, "golden apple"),
-            // inventory row: one arrow (the infinity bow makes it endless) + the secondary tools
+            // one arrow: the infinity bow makes it endless
             Item(28, "arrow"),
-            Item(29, "shears", unbreakable: true),
-            Item(30, "iron spade", unbreakable: true),
-        },
+        }.Concat(buildHalf).OrderBy(item => (int)((Dict)item!)["slot"]!).ToList(),
         ["armor"] = new List<object?>
         {
             Armor("helmet", "leather helmet", teamColor: true, enchantments: "projectile_protection:1"),
@@ -98,16 +90,67 @@ public static class TeamsGenerator
         ["effects"] = new List<object?> { Effect("damage resistance", SpawnResistance, 100) },
     };
 
+    /// <summary>The blocks a player is handed and the tools that work them, by the board's build mode
+    /// (<c>docs/pgm/new-map-authoring.md</c> §5c). A <c>void</c> board hands out wood and the team's clay, the
+    /// pickaxe its goals need, and the axe, spade, shears and water bucket; an <c>only</c> board a stack of each
+    /// material it lets players place and nothing to dig with; a <c>never</c> board nothing. The kill reward is
+    /// derived from the stacks (<see cref="MapStandards"/>), so the blocks in play are the ones handed out.</summary>
+    private static IEnumerable<Dict> BuildHalf(MapIntent intent)
+    {
+        switch (intent.Build?.ModeFor(intent) ?? BuildModes.Void)
+        {
+            case BuildModes.Never:
+                yield break;
+            case BuildModes.Only:
+                foreach (var (material, i) in intent.Build!.Materials.Select((material, i) => (material, i)))
+                {
+                    var (name, damage) = Named(material);
+                    yield return Item(i < CoverSlots.Length ? CoverSlots[i] : 31 + i - CoverSlots.Length, name,
+                                      amount: CoverStack, damage: damage);
+                }
+                yield break;
+            default:
+                // The corpus norm is a substitution, not an addition: a destroy map's kit carries whatever
+                // pickaxe its own destroyables/cores need in place of the iron one, not both (MG18).
+                yield return Item(2, DestroyKitPairing.RequiredPickaxe(intent), unbreakable: true, enchantments: "efficiency:1");
+                yield return Item(3, "iron axe", unbreakable: true, enchantments: "efficiency:1");
+                yield return Item(4, "wood", amount: 64);
+                yield return Item(5, "stained clay", amount: 32, teamColor: true);
+                yield return Item(7, "water bucket");
+                yield return Item(29, "shears", unbreakable: true);
+                yield return Item(30, "iron spade", unbreakable: true);
+                yield break;
+        }
+    }
+
+    /// <summary>The hotbar slots an <c>only</c> board's materials take, between the weapons and the golden apple;
+    /// a seventh material onwards goes to the inventory row.</summary>
+    private static readonly int[] CoverSlots = [2, 3, 4, 5, 6, 7];
+
+    /// <summary>How many of each material an <c>only</c> board hands out: a full stack, the corpus's commonest
+    /// amount for a kit's blocks.</summary>
+    public const int CoverStack = 64;
+
+    // A material as PGM's filter names it — `leaves`, or `wool:14` with its data — split into an item's
+    // material and damage.
+    private static (string Name, int Damage) Named(string material)
+    {
+        var parts = material.Split(':', 2);
+        return (parts[0].Trim(), parts.Length == 2 && int.TryParse(parts[1], out var damage) ? damage : 0);
+    }
+
     /// <summary>How long the spawn kit's damage immunity lasts, in PGM's duration syntax.</summary>
     public const string SpawnResistance = "5s";
 
     private static Dict Effect(string type, string duration, int amplifier) =>
         new() { ["type"] = type, ["duration"] = duration, ["amplifier"] = amplifier };
 
-    private static Dict Item(int slot, string material, int amount = 1, bool unbreakable = false, bool teamColor = false, string? enchantments = null)
+    private static Dict Item(int slot, string material, int amount = 1, bool unbreakable = false, bool teamColor = false,
+                             string? enchantments = null, int damage = 0)
     {
         var r = new Dict { ["slot"] = slot, ["material"] = material };
         if (amount != 1) r["amount"] = amount;
+        if (damage != 0) r["damage"] = damage;
         if (unbreakable) r["unbreakable"] = true;
         if (teamColor) r["team_color"] = true;
         if (enchantments is not null) r["enchantments"] = enchantments;

@@ -348,8 +348,9 @@ permit — and would precede the spawn and wool-room protections (`docs/pgm/new-
 **A board played for control is not built on.** Where the intent carries no wool, destroyable or core — a KotH
 or a King of the Flag board — the build mode defaults to `never`: one rule over `everywhere` refusing every
 block placed or broken, and the `areas` build nothing. `only` is the same rule letting the named `materials`
-through, for a board whose kit hands out a few blocks of cover. A stated `mode` overrides the default either
-way (`docs/pgm/new-map-authoring.md` §5c). The wizard does not offer the word yet (`TC16`); it is stated on the intent.
+through, and the spawn kit hands out a stack of each of them in place of wood and clay — a `never` board's kit
+hands out no block and no digging tool at all. A stated `mode` overrides the default either way
+(`docs/pgm/new-map-authoring.md` §5c). The wizard does not offer the word yet (`TC16`); it is stated on the intent.
 
 ### Wools — Objectives · Spawn · Monuments · Room
 
@@ -778,8 +779,8 @@ every check passing, and the gate open.
 
 ## Limits
 
-**Kits cannot be edited.** Every generated team gets the fixed Standard preset, and the intent carries no kit
-field at all. The one kit statement in the studio is a spawn's `kit` field on the entity routes
+**Kits cannot be edited.** Every generated team gets the fixed Standard preset, its blocks and tools following
+the build mode, and the intent carries no kit field at all. The one kit statement in the studio is a spawn's `kit` field on the entity routes
 (`flow.md`), naming which kit it grants, and nothing anywhere authors what a kit *contains* — that is the author's decision rather than
 a gap, so a map wanting different starting gear is finished outside the studio.
 
