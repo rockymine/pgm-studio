@@ -83,7 +83,7 @@ public sealed class CompoundEdgesTests
         var emission = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, Cw));
         await Assert.That(Count(emission, NegativeSpaceKinds.Bay)).IsEqualTo(1);
 
-        var compoundOnly = CompoundEdges.Classify(ShapeEmitter.EmitCompound(ShapeFamily.Clamp, 12, 15, Cw));
+        var compoundOnly = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, Cw).WithoutRoom());
         await Assert.That(Count(compoundOnly, NegativeSpaceKinds.Bay)).IsEqualTo(0);
         await Assert.That(Count(compoundOnly, NegativeSpaceKinds.Notch)).IsEqualTo(1);
     }
@@ -98,42 +98,42 @@ public sealed class CompoundEdgesTests
         await Assert.That(c.Edges.All(e => e.Faces == NegativeSpaceKinds.Open)).IsTrue();
     }
 
-    // the terminal seals its own wall: room-owned boundary runs carry Terminal, split from colinear terrain
+    // the room seals its own wall: room-owned boundary runs carry OnRoom, split from colinear terrain
     // runs, and their summed length is exactly the room's exposed perimeter (its outline minus terrain seams)
     [Test]
-    public async Task Terminal_runs_split_from_terrain_and_cover_the_rooms_exposed_wall()
+    public async Task Room_runs_split_from_terrain_and_cover_the_rooms_exposed_wall()
     {
         // I 9x15 cw3: the room caps the lane — each side line splits into a free lane interval and a sealed
         // room interval, and the room's exposed wall is 3 of its 10-perimeter shared with the lane
         var i = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.I, 9, 15, Cw));
         await Assert.That(i.Edges.Contains(new ClassifiedEdge(3, 0, 3, 13, NegativeSpaceKinds.Open, 13))).IsTrue();
-        await Assert.That(i.Edges.Contains(new ClassifiedEdge(3, 13, 3, 15, NegativeSpaceKinds.Open, 2, Terminal: true))).IsTrue();
-        await Assert.That(i.Edges.Where(e => e.Terminal).Sum(e => e.Length)).IsEqualTo(7);
+        await Assert.That(i.Edges.Contains(new ClassifiedEdge(3, 13, 3, 15, NegativeSpaceKinds.Open, 2, OnRoom: true))).IsTrue();
+        await Assert.That(i.Edges.Where(e => e.OnRoom).Sum(e => e.Length)).IsEqualTo(7);
 
         // L 15x18 cw3: the room caps the band's far end — sealed right/bottom walls, and its top wall faces
         // the notch (owner and faced space are independent axes)
         var l = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, Cw));
-        await Assert.That(l.Edges.Where(e => e.Terminal).Sum(e => e.Length)).IsEqualTo(7);
-        await Assert.That(l.Edges.Any(e => e.Terminal && e.Faces == NegativeSpaceKinds.Notch)).IsTrue();
+        await Assert.That(l.Edges.Where(e => e.OnRoom).Sum(e => e.Length)).IsEqualTo(7);
+        await Assert.That(l.Edges.Any(e => e.OnRoom && e.Faces == NegativeSpaceKinds.Notch)).IsTrue();
 
         // clamp 12x15 cw3: the wool is clamped between the legs, its bottom wall facing the bay (the mouth
-        // side) — a terminal wall on the bay
+        // side) — a room wall on the bay
         var clamp = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, Cw));
-        await Assert.That(clamp.Edges.Any(e => e.Terminal && e.Faces == NegativeSpaceKinds.Bay)).IsTrue();
-        await Assert.That(clamp.Edges.Where(e => e.Terminal).Sum(e => e.Length)).IsEqualTo(12);
+        await Assert.That(clamp.Edges.Any(e => e.OnRoom && e.Faces == NegativeSpaceKinds.Bay)).IsTrue();
+        await Assert.That(clamp.Edges.Where(e => e.OnRoom).Sum(e => e.Length)).IsEqualTo(12);
     }
 
     [Test]
-    public async Task Terminal_free_bodies_have_no_terminal_runs()
+    public async Task Compounds_with_no_room_have_no_room_runs()
     {
-        var compound = CompoundEdges.Classify(ShapeEmitter.EmitCompound(ShapeFamily.U, 15, 18, Cw));
-        await Assert.That(compound.Edges.Any(e => e.Terminal)).IsFalse();
+        var compound = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, Cw).WithoutRoom());
+        await Assert.That(compound.Edges.Any(e => e.OnRoom)).IsFalse();
     }
 
     // the parts layer: a non-rectangular space slab-decomposes into rectangles, each classed by its OWN compound
     // walls. The uneven branch (a long and a short arm) wraps one six-edge bay that is itself a U — the bar
     // spanning the mouth under the short arm reads notch-grade (the arm's tip is reachable through it), the
-    // slot between the arms stays a bay, the corner beyond the short arm a notch
+    // part between the arms stays a bay, the corner beyond the short arm a notch
     [Test]
     public async Task Uneven_branch_bay_decomposes_into_mouth_bar_plus_bay_and_notch_legs()
     {
@@ -144,7 +144,7 @@ public sealed class CompoundEdgesTests
         static bool RectEq(CellRect a, CellRect b) => a == b;
         // the mouth bar: full width under the short arm, bordering its tip — notch-grade, not bay
         await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, new(3, 15, 18, 9)) && p.Kind == NegativeSpaceKinds.Notch)).IsTrue();
-        // the slot between the arms — a true bay part
+        // the part between the arms — a true bay part
         await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, new(3, 6, 6, 9)) && p.Kind == NegativeSpaceKinds.Bay)).IsTrue();
         // the corner beyond the short arm — a notch part
         await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, new(15, 6, 6, 9)) && p.Kind == NegativeSpaceKinds.Notch)).IsTrue();
@@ -163,15 +163,15 @@ public sealed class CompoundEdgesTests
     }
 
     // the nesting case: a degenerate E (equal long outer arms, a shorter middle arm) wraps one bay whose
-    // decomposition is three bay-grade parts — the mouth-front part covering the two slots behind it
+    // decomposition is three bay-grade parts — the mouth-front part covering the two parts behind it
     [Test]
-    public async Task Degenerate_E_bay_decomposes_into_a_front_bay_covering_two_slots()
+    public async Task Degenerate_E_bay_decomposes_into_a_front_bay_covering_two_parts()
     {
         var e = CompoundEdges.Classify(CompoundEmitter.SpineArms(spineLen: 15, barThickness: 3, arms: [(0, 3, 12), (6, 3, 6), (12, 3, 12)]));
         var bay = e.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(bay.Parts.Count).IsEqualTo(3);
         await Assert.That(bay.Parts.All(p => p.Kind == NegativeSpaceKinds.Bay)).IsTrue();
-        // the front part spans the mouth, covering both slots behind the short middle arm
+        // the front part spans the mouth, covering both parts behind the short middle arm
         await Assert.That(bay.Parts.Any(p => p.Rect == new CellRect(3, 9, 9, 6))).IsTrue();
         await Assert.That(bay.Form).IsEqualTo(new CompoundRead(CompoundForm.SpineArms, 2));
     }
@@ -221,27 +221,27 @@ public sealed class CompoundEdgesTests
         await Assert.That(ring.Spaces.Single().Mouths).IsEmpty();
     }
 
-    // the wall slots: which pieces wall a space, by slot/mark name — the derive-side twin of the published
-    // vacancy's Walls, present whenever the input carried slots
+    // the wall parts: which pieces wall a space, by part/mark name — the derive-side twin of the published
+    // vacancy's Walls, present whenever the input carried parts
     [Test]
-    public async Task Spaces_know_their_wall_slots()
+    public async Task Spaces_know_their_wall_parts()
     {
         var scythe = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, Cw));
         var bay = scythe.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
-        await Assert.That(bay.WallSlots.Contains(ApproachSlots.RoomRun)).IsTrue();
+        await Assert.That(bay.Walls.Contains(CompoundParts.RoomRun)).IsTrue();
 
         var u = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, Cw));
         var uBay = u.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
-        await Assert.That(uBay.WallSlots.Contains(ApproachSlots.Entry)).IsTrue();
-        await Assert.That(uBay.WallSlots.Any(s => s is ApproachSlots.Room or ApproachSlots.RoomRun)).IsFalse();
+        await Assert.That(uBay.Walls.Contains(CompoundParts.Entry)).IsTrue();
+        await Assert.That(uBay.Walls.Any(s => s is CompoundParts.Room or CompoundParts.RoomRun)).IsFalse();
 
         var clamp = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, Cw));
-        await Assert.That(clamp.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay).WallSlots
-            .Contains(ApproachSlots.Room)).IsTrue();
+        await Assert.That(clamp.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay).Walls
+            .Contains(CompoundParts.Room)).IsTrue();
 
-        // a slot-free input (raw rects) carries no wall slots
+        // a part-free input (raw rects) carries no wall parts
         var raw = CompoundEdges.Classify([new(0, 0, 3, 9), new(0, 9, 9, 3)]);
-        await Assert.That(raw.Spaces.All(s => s.WallSlots.Count == 0)).IsTrue();
+        await Assert.That(raw.Spaces.All(s => s.Walls.Count == 0)).IsTrue();
     }
 
     // the front flag: parts touching a mouth are the covering layer; covered parts are not front
@@ -292,7 +292,7 @@ public sealed class CompoundEdgesTests
     {
         var emit = ShapeEmitter.Emit(family, w, h, Cw);
         var cells = new HashSet<(int, int)>();
-        foreach (var r in emit.Compound.Pieces.Select(p => p.Rect).Append(emit.Room))
+        foreach (var r in emit.Pieces.Select(p => p.Rect))
             for (var x = r.X; x < r.X + r.Width; x++)
                 for (var z = r.Z; z < r.Z + r.Height; z++) cells.Add((x, z));
         var perimeter = cells.Sum(c => PgmStudio.Geom.Cells.N4(c).Count(n => !cells.Contains(n)));

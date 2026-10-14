@@ -6,9 +6,9 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The wool-box emitter's <b>slot roles</b> (the piece vocabulary, docs/generator/model.md §5.3).
-/// Every emitted piece carries its template slot (<see cref="GrownPiece.Slot"/>); the load-bearing invariant is
-/// that a family emits the <b>same slots in the same order</b> as its <see cref="ApproachSlots.Template"/> —
+/// The wool-box emitter's <b>part roles</b> (the piece vocabulary, docs/generator/model.md §5.3).
+/// Every emitted piece carries its template part (<see cref="GrownPiece.Part"/>); the load-bearing invariant is
+/// that a family emits the <b>same parts in the same order</b> as its <see cref="CompoundParts.Template"/> —
 /// a stable, named sequence the shift/width/docking rules can target instead of raw geometry.
 /// </summary>
 public sealed class WoolBoxEmitterTests
@@ -17,11 +17,11 @@ public sealed class WoolBoxEmitterTests
     private static WoolBox Box => new(0, 0, 20, 24);
     private const int Cw = 2;
 
-    // the emitted slots in emit order, terrain then the room (the form the §2 template is written in)
+    // the emitted parts in emit order, terrain then the room (the form the §2 template is written in)
     private static string Slots(PlacedApproach a) =>
-        string.Join(" · ", a.Terrain.Select(p => p.Slot).Append(a.WoolRoom.Slot));
+        string.Join(" · ", a.Pieces.Select(p => p.Part));
 
-    private static string Template(ShapeFamily f) => string.Join(" · ", ApproachSlots.Template(f));
+    private static string Template(ShapeFamily f) => string.Join(" · ", CompoundParts.Template(f));
 
     [Test]
     [Arguments(ShapeFamily.I)]
@@ -44,7 +44,7 @@ public sealed class WoolBoxEmitterTests
     [Arguments(ShapeFamily.Scythe)]
     [Arguments(ShapeFamily.H)]
     [Arguments(ShapeFamily.Donut)]
-    public async Task Flip_preserves_the_slot_sequence(ShapeFamily family)
+    public async Task Flip_preserves_the_part_sequence(ShapeFamily family)
     {
         // mirroring across the box's vertical centre changes handedness, never the template
         var normal = WoolBoxEmitter.Emit(family, Box, Cw);
@@ -58,21 +58,21 @@ public sealed class WoolBoxEmitterTests
         // the emitter side of the classifier's overhang test: H inserts a room-run between crossbar and wool
         var u = WoolBoxEmitter.Emit(ShapeFamily.U, Box, Cw);
         var h = WoolBoxEmitter.Emit(ShapeFamily.H, Box, Cw);
-        await Assert.That(u.Terrain.Any(p => p.Slot == ApproachSlots.RoomRun)).IsFalse();
-        await Assert.That(h.Terrain.Count(p => p.Slot == ApproachSlots.RoomRun)).IsEqualTo(1);
+        await Assert.That(u.Pieces.Any(p => p.Part == CompoundParts.RoomRun)).IsFalse();
+        await Assert.That(h.Pieces.Count(p => p.Part == CompoundParts.RoomRun)).IsEqualTo(1);
         // both are the two-leg branch: a bar and two entry legs
-        await Assert.That(u.Terrain.Count(p => p.Slot == ApproachSlots.Entry)).IsEqualTo(2);
-        await Assert.That(h.Terrain.Count(p => p.Slot == ApproachSlots.Entry)).IsEqualTo(2);
+        await Assert.That(u.Pieces.Count(p => p.Part == CompoundParts.Entry)).IsEqualTo(2);
+        await Assert.That(h.Pieces.Count(p => p.Part == CompoundParts.Entry)).IsEqualTo(2);
     }
 
     [Test]
-    public async Task The_room_piece_carries_the_room_slot_and_wool_room_role()
+    public async Task The_room_piece_carries_the_room_part_and_wool_room_role()
     {
         var a = WoolBoxEmitter.Emit(ShapeFamily.I, Box, Cw);
-        await Assert.That(a.WoolRoom.Slot).IsEqualTo(ApproachSlots.Room);
-        await Assert.That(a.WoolRoom.Role).IsEqualTo(PlanRoles.WoolRoom);   // slot is distinct from the map role
-        // terrain pieces keep the map-level piece role (the slot is the shape-internal taxonomy)
-        await Assert.That(a.Terrain.All(p => p.Role == PlanRoles.Piece)).IsTrue();
+        await Assert.That(a.WoolRoom.Part).IsEqualTo(CompoundParts.Room);
+        await Assert.That(a.WoolRoom.Role).IsEqualTo(PlanRoles.WoolRoom);   // part is distinct from the map role
+        // terrain pieces keep the map-level piece role (the part is the shape-internal taxonomy)
+        await Assert.That(a.Pieces.Where(p => p.Part != CompoundParts.Room).All(p => p.Role == PlanRoles.Piece)).IsTrue();
     }
 
     [Test]
@@ -80,8 +80,8 @@ public sealed class WoolBoxEmitterTests
     {
         var one = WoolBoxEmitter.Emit(ShapeFamily.Donut, Box, Cw, attachments: 1);
         var two = WoolBoxEmitter.Emit(ShapeFamily.Donut, Box, Cw, attachments: 2);
-        await Assert.That(one.Terrain.Count(p => p.Slot == ApproachSlots.Entry)).IsEqualTo(1);
-        await Assert.That(two.Terrain.Count(p => p.Slot == ApproachSlots.Entry)).IsEqualTo(2);
+        await Assert.That(one.Pieces.Count(p => p.Part == CompoundParts.Entry)).IsEqualTo(1);
+        await Assert.That(two.Pieces.Count(p => p.Part == CompoundParts.Entry)).IsEqualTo(2);
     }
 
     [Test]
@@ -89,8 +89,8 @@ public sealed class WoolBoxEmitterTests
     {
         var tucked = WoolBoxEmitter.Emit(ShapeFamily.Donut, Box, Cw);
         var held = WoolBoxEmitter.Emit(ShapeFamily.Donut, Box, Cw, woolExtend: true);
-        await Assert.That(tucked.Terrain.Any(p => p.Slot == ApproachSlots.Run)).IsFalse();
-        await Assert.That(held.Terrain.Count(p => p.Slot == ApproachSlots.Run)).IsEqualTo(1);
+        await Assert.That(tucked.Pieces.Any(p => p.Part == CompoundParts.Run)).IsFalse();
+        await Assert.That(held.Pieces.Count(p => p.Part == CompoundParts.Run)).IsEqualTo(1);
     }
 
     [Test]
@@ -108,7 +108,7 @@ public sealed class WoolBoxEmitterTests
         // so "the entry is piece N" stays a usable rule
         var small = WoolBoxEmitter.Emit(family, new WoolBox(0, 0, 16, 20), Cw);
         var large = WoolBoxEmitter.Emit(family, new WoolBox(0, 0, 28, 34), Cw);
-        await Assert.That(large.Terrain.Count).IsEqualTo(small.Terrain.Count);
-        await Assert.That(small.Terrain.Count + 1).IsEqualTo(ApproachSlots.Template(family).Count); // +room
+        await Assert.That(large.Pieces.Count).IsEqualTo(small.Pieces.Count);
+        await Assert.That(small.Pieces.Count).IsEqualTo(CompoundParts.Template(family).Count); // +room
     }
 }

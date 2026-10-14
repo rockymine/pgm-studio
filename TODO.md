@@ -30,3 +30,33 @@ reaching every outline a board states. The layer word (`B264`, `WE28`, `TS64`) w
 
   *Evidence: 51 of the 79 seeded outlines on the 5b and 5c boards are relief rings or prop points, and so is
   Gypsum Reach's wash, a push whose ring splices six authored points into a lobed ellipse.*
+
+## The layout vocabulary: one word for each thing the composer builds
+The composer is described by cells, pieces, parts, roles, compounds, forms, vacancies, rooms, markers, boxes,
+kinds, joints, layouts and lane widths, and these steps bring its types down to those words. Each leaves the
+composer's fingerprints unchanged except the last, which removes a random draw.
+
+- [ ] **G296 — A box holds its compound.** Every fill returns `Compound?` with an `out FillRejection`;
+  `PlacedHub`, `PlacedSpawn`, `PlacedApproach`, `PlacedFrontline` and `FillResult` go, which also ends the name
+  clash with `Minecraft/Stamping/SpawnStructureStamper.cs`'s `PlacedSpawn`. `BoxPartition`, `GrownUnit` and
+  `FilledUnit` become one `BoxLayout` whose boxes hold their compounds, the four piece-wrapping loops become
+  `GrownPieces.Lay`, and `Composer.Assemble` writes the plan's boxes, so `PlanBoxAnnotation` goes.
+  `docs/generator/vocabulary.md`.
+- [ ] **G297 — One edge interval and one lane width.** `EdgeInterval(Edge, Start, Length)` replaces
+  `BoxAbutment`, `SpaceMouth`, the interval inside `EdgeOffer` and the `(Start, Len)` / `(Start, Width)` tuples;
+  `BoxJoint.Grant` becomes a `Width`. The walkway width takes two names, `LaneWidth` and `WoolLaneWidth`, in
+  place of `cw`, `corridorWidth`, `corridorCells`, `laneCells`, `grantedWidthCells`, `HubCorridorCells` and the
+  rest, and `WidthClass` goes. `docs/generator/vocabulary.md`.
+- [ ] **G298 — One list of forms.** `ShapeFamily` merges into `CompoundForm`: I, L, U, H, Z, Scythe, Clamp,
+  Donut, P, G, Double-hole and Two-U, with `Isolated` a finding rather than a form. `FillMenu.For(kind)` is each
+  box kind's menu; the generator and catalog chips use the same names, the hub's Bar/Single/Twin/Ring becoming
+  I/L/U/Donut, and the *Wool approaches* heading reads *Wool shapes*. A migration rewrites `composed_board.hub`,
+  `.frontline` and `.wools` to the merged tokens. `docs/generator/model.md` §4.
+- [ ] **G299 — The composer keeps only what it reads.** Delete `PublishPolicy`, `ClosureAnalysis`, the unread
+  `Vacancy`, `EdgeSpan`, `BoxPartition.Structural`, `DockingGate.DockingEdges`/`CanDock` and the echo fields on
+  the hub and front line results; fold `WoolBoxEmitter.Emit(WoolBox, …)` into `Fill`, and drop *approach* as a
+  code word for a wool compound. `model.md` and `vocabulary.md` are restated in the plan's words.
+  `docs/generator/model.md`.
+- [ ] **G300 — Offers lose their grouping.** `OfferGrouping`, `EdgeOffer.GroupId` and the front line's coin flip
+  that sets them go; only tests and `unit-fingerprint.cs` read them. Removing the draw moves boards, so the
+  fingerprints are re-recorded and the reproduction gate reruns. `docs/generator/model.md` §7.

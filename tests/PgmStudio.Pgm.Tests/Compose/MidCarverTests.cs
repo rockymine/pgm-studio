@@ -212,7 +212,7 @@ public sealed class MidCarverTests
             .Select((leg, index) => new GrownPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2)))
             .Append(new GrownPiece("hub", new(legs.Min(l => l.X), halfGap + 2, 4, 3)))
             .ToList();
-        var unit = new GrownUnit(pieces, new GrownSpawn("hub", [0, 0], "front"), []);
+        var unit = new GrownUnit(pieces, new Marker("hub", 0, 0), "front", []);
         return MidCarver.TryCarve(env, design, unit)?.BandRect;
     }
 
@@ -268,7 +268,7 @@ public sealed class MidCarverTests
         MidResult Carve(params (int X, int W)[] legs) => MidCarver.TryCarve(env, design, new GrownUnit(
             legs.Select((leg, index) => new GrownPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2)))
                 .Append(new GrownPiece("hub", new(legs.Min(l => l.X), halfGap + 2, 4, 3))).ToList(),
-            new GrownSpawn("hub", [0, 0], "front"), []))!;
+            new Marker("hub", 0, 0), "front", []))!;
 
         var refused = Carve((-6, 4), (2, 3));
         await Assert.That(refused.Stones.Count).IsGreaterThan(0).Because("the wide empty crossing gets its stone");

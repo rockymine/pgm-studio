@@ -1,4 +1,3 @@
-using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
@@ -49,16 +48,15 @@ public static class BoxFiller
             : ok;
     }
 
-    /// <summary>Recover the box-local <see cref="ApproachShape"/> of a placed fill — the slot-typed terrain and
-    /// room rects shifted back to the box origin — so <c>BoxInterfaces.Of</c> can read the edge facts the
-    /// docking gate maps. (Only the geometry the gate reads is reconstructed; the marker offset and vacancies
-    /// ride along unused.)</summary>
-    private static ApproachShape BoxLocal(PlacedApproach a, Box box)
+    /// <summary>Recover the box-local <see cref="Compound"/> of a placed fill — its pieces, the room among them,
+    /// shifted back to the box origin — so <c>BoxInterfaces.Of</c> can read the edge facts the docking gate
+    /// maps.</summary>
+    private static Compound BoxLocal(PlacedApproach a, Box box)
     {
         int ox = box.Rect.X, oz = box.Rect.Z;
-        CellRect Local(CellRect r) => new(r.X - ox, r.Z - oz, r.Width, r.Height);
-        var terrain = a.Terrain.Select(p => (Local(p.Rect), p.Slot!)).ToList();
-        return new ApproachShape(new Compound(terrain, a.Vacancies), Local(a.WoolRoom.Rect), a.At);
+        return new Compound(
+            [.. a.Pieces.Select(p => new Piece(new(p.Rect.X - ox, p.Rect.Z - oz, p.Rect.Width, p.Rect.Height), p.Part!))],
+            a.Vacancies);
     }
 
     /// <summary>The <b>entry</b> interval a <paramref name="family"/> fill presents on its <paramref name="mouth"/>
@@ -75,7 +73,7 @@ public static class BoxFiller
             return null;
         var edge = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect.Width, box.Rect.Height)
             .FirstOrDefault(e => e.Edge == mouth);
-        var entry = edge?.Intervals.FirstOrDefault(i => i.Slot == ApproachSlots.Entry);
+        var entry = edge?.Intervals.FirstOrDefault(i => i.Part == CompoundParts.Entry);
         return entry is null ? null : (entry.Start, entry.LengthCells);
     }
 
@@ -99,8 +97,7 @@ public static class BoxFiller
     /// <summary>The <b>land</b> (walkable terrain) an emitted approach spends, in cells — the box's land
     /// currency (its footprint is fixed by the box; this is what fragment converts to build to hit the
     /// target).</summary>
-    public static int Land(PlacedApproach a) =>
-        a.Terrain.Sum(p => p.Rect.Width * p.Rect.Height) + a.WoolRoom.Rect.Width * a.WoolRoom.Rect.Height;
+    public static int Land(PlacedApproach a) => a.Pieces.Sum(p => p.Rect.Width * p.Rect.Height);
 
     /// <summary>True when the fill's land is within the box's land target — the two-currency balance a fill
     /// under budget satisfies directly; over budget is what fragment spends down.</summary>

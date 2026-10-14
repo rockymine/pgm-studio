@@ -115,7 +115,7 @@ Re-verified 2026-07-27 — both still present at `TeamUnitFiller.cs:137–143`.
   joints. Worse, this is exactly **FR6**: joint vs several *is* wide vs split frontline, an authored
   law. A coin flip stands in for it.
 - **The frontline's form choice is also the filler's.** `frontForm` picks Bar-for-branch-hub /
-  else staple-or-strand inside `TeamUnitFiller`, but form choice is declared the allocator's (§4, designations,
+  else staple-or-strand inside `TeamUnitFiller`, but form choice is declared the allocator's (§4,
   and the allocator already owns the hub-form choice). The two halves of one decision — the hub form
   and the form that answers it — sit on opposite sides of the allocate/fill seam. → **G111**
 

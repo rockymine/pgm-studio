@@ -73,10 +73,9 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
         }
 
         var svg = PlanBoardSvg.Render(WoolBoxEmitter.AsPlan(ok.Approach, "probe"), ProbeScale);
-        var slots = ok.Approach.Terrain.Select(p => p.Slot ?? "?")
-            .Append(ApproachSlots.Room).ToList();
+        var parts = ok.Approach.Pieces.Select(p => p.Part ?? "?").ToList();
         await Send.ResponseAsync(
-            new ShapeProbeResult(svg, null, BoxFiller.Land(ok.Approach), slots), cancellation: ct);
+            new ShapeProbeResult(svg, null, BoxFiller.Land(ok.Approach), parts), cancellation: ct);
     }
 
     /// <summary>Flatten a refusal onto the wire. The detail is the emitter's or the gate's own words — a

@@ -86,7 +86,7 @@ public static class WallPlacer
         {
             // across the ring's two legs where a pair stands there, else any pair that closes the way round
             var pairs = Pairs(candidates, region, owner, room).ToList();
-            var legs = pairs.Where(p => p.First.Cut?.Slot == ApproachSlots.Leg && p.Second.Cut?.Slot == ApproachSlots.Leg);
+            var legs = pairs.Where(p => p.First.Cut?.Part == CompoundParts.Leg && p.Second.Cut?.Part == CompoundParts.Leg);
             foreach (var (first, second) in legs.Concat(pairs))
                 if (Apply(pieces, [first, second], region, room, fromRoom) is { } walled) return walled;
         }

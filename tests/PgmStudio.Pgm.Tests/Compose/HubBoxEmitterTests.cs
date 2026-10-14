@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Tests.Compose;
 
-/// <summary>The hub box kind: a terminal-free <see cref="Compound"/> (Rectangle · L · U · Ring · P · Double-hole)
+/// <summary>The hub box kind: a room-free <see cref="Compound"/> (Rectangle · L · U · Ring · P · Double-hole)
 /// finished by the hub designation — no room, hub-labeled pieces, publishing one per-edge <see cref="EdgeOffer"/>
 /// as the constraint source (the offered widths the composer's per-edge constraint).</summary>
 public class HubBoxEmitterTests
@@ -12,15 +12,15 @@ public class HubBoxEmitterTests
     private static readonly Box Box6x5 = new("hub", BoxKind.Hub, new(10, 20, 6, 5), 30);
 
     [Test]
-    public async Task Rectangle_hub_fills_the_box_terminal_free_and_hub_labeled()
+    public async Task Rectangle_hub_fills_the_box_with_no_room_and_hub_labeled()
     {
         var hub = HubBoxEmitter.Fill(Box6x5, new CompoundRead(CompoundForm.Rectangle), cw: 2)!;
 
-        // one solid terrain piece covering the whole box, no terminal/room, labeled to the hub box, Bar slot
+        // one solid terrain piece covering the whole box, no room/room, labeled to the hub box, Bar part
         await Assert.That(hub.Pieces.Count).IsEqualTo(1);
         await Assert.That(hub.Pieces[0].Rect).IsEqualTo(new CellRect(10, 20, 6, 5));
         await Assert.That(hub.Pieces.All(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
-        await Assert.That(hub.Pieces.Any(p => p.Slot == ApproachSlots.Room)).IsFalse();
+        await Assert.That(hub.Pieces.Any(p => p.Part == CompoundParts.Room)).IsFalse();
         await Assert.That(hub.Form.Form).IsEqualTo(CompoundForm.Rectangle);
     }
 
@@ -120,7 +120,7 @@ public class HubBoxEmitterTests
     public async Task The_wide_holed_forms_fill_a_wide_box_and_fall_back_below_width_9()
     {
         // P (loop + overhanging bar), Double-hole (ring + full-height U) and G (ring + L) need width >= 9 at cw 2;
-        // on an 11x6 box all build — terminal-free, hub-labeled, each with an enclosed hole — and offer a long run
+        // on an 11x6 box all build — room-free, hub-labeled, each with an enclosed hole — and offer a long run
         var wide = new Box("hub", BoxKind.Hub, new(0, 0, 11, 6), 66);
         foreach (var form in new[] { CompoundForm.P, CompoundForm.DoubleHole, CompoundForm.G })
         {
@@ -128,7 +128,7 @@ public class HubBoxEmitterTests
             await Assert.That(hub).IsNotNull().Because($"{form} should fill an 11x6 hub");
             await Assert.That(hub.Form.Form).IsEqualTo(form);
             await Assert.That(hub.Pieces.All(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
-            await Assert.That(hub.Pieces.Any(p => p.Slot == ApproachSlots.Room)).IsFalse();
+            await Assert.That(hub.Pieces.Any(p => p.Part == CompoundParts.Room)).IsFalse();
             await Assert.That(hub.Offers.Max(o => o.Interval.LengthCells)).IsGreaterThanOrEqualTo(6);
         }
         // below width 9 all three directed-null (the box is too small for the loop/ring), not throw
@@ -189,12 +189,12 @@ public class HubBoxEmitterTests
         var box = new Box("hub", BoxKind.Hub, new(0, 0, 12, 5), 60);
         var wide = HubBoxEmitter.Fill(box, new CompoundRead(CompoundForm.SpineArms, 1), Cw,
             armLayout: [(0, 5)])!;
-        var leg = wide.Pieces.Single(p => p.Slot == ApproachSlots.Leg);
+        var leg = wide.Pieces.Single(p => p.Part == CompoundParts.Leg);
         await Assert.That(leg.Rect.Width).IsEqualTo(5);
 
         // and with no layout given it stays the uniform default it always was
         var plain = HubBoxEmitter.Fill(box, new CompoundRead(CompoundForm.SpineArms, 1), Cw)!;
-        await Assert.That(plain.Pieces.Single(p => p.Slot == ApproachSlots.Leg).Rect.Width).IsEqualTo(Cw);
+        await Assert.That(plain.Pieces.Single(p => p.Part == CompoundParts.Leg).Rect.Width).IsEqualTo(Cw);
     }
 
     /// <summary>A spine with no room for a corridor beside the leg is refused rather than built with a sliver

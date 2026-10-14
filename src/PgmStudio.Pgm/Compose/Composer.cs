@@ -193,15 +193,15 @@ public static class Composer
 
         plan.Zones.Add(new PlanZone { Id = "mid-band", Rect = mid.BandRect });
 
-        plan.Placements.Spawns.Add(new SpawnPlacement
+        plan.Placements.Spawns.Add(new SpawnMarker
         {
-            Piece = unit.Spawn.Piece, At = MarkerOffset(unit.Spawn.At, plan.Globals.Cell),
-            Facing = unit.Spawn.Facing,
+            Piece = unit.Spawn.Piece, At = MarkerOffset(unit.Spawn, plan.Globals.Cell),
+            Facing = unit.SpawnFacing,
         });
         foreach (var wool in unit.Wools)
-            plan.Placements.Wools.Add(new WoolPlacement
+            plan.Placements.Wools.Add(new WoolMarker
             {
-                Piece = wool.Piece, At = MarkerOffset(wool.At, plan.Globals.Cell),
+                Piece = wool.Piece, At = MarkerOffset(wool, plan.Globals.Cell),
             });
         foreach (var wall in walls)
             plan.Walls.Add(new PlanWall { A = wall.Outer, B = wall.Inner });
@@ -209,14 +209,14 @@ public static class Composer
         return plan;
     }
 
-    // The emitters work in cells; a placement states blocks, so the conversion happens here, at the one
+    // The emitters work in cells; a plan marker states blocks, so the conversion happens here, at the one
     // boundary where an emitted point becomes a stored offset.
     //
     // A marker must land on the block lattice with one parity on both axes (WX3), which SpawnPad.SameParity
     // is the one statement of.
-    internal static double[] MarkerOffset(double[] atCells, int cell)
+    internal static double[] MarkerOffset(Marker marker, int cell)
     {
-        var (x, z) = SpawnPad.SameParity(atCells[0] * cell, atCells[1] * cell);
+        var (x, z) = SpawnPad.SameParity(marker.X * cell, marker.Z * cell);
         return [x, z];
     }
 }

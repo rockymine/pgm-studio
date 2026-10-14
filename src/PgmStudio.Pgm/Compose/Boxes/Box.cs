@@ -17,7 +17,7 @@ public sealed record WoolFill(
     ShapeFamily Family, RoomPlacement Placement, bool Flip, bool WoolAtEnd = false, int AttachmentWidth = 0,
     RingWalls? RingWalls = null);
 
-/// <summary>A piece's box ownership — which box's fill it belongs to. Together with the piece's slot this is
+/// <summary>A piece's box ownership — which box's fill it belongs to. Together with the piece's part this is
 /// the full label (<c>wool-a/entry</c>) every compose-side rule binds to; the piece-id prefix is its
 /// serialization, never the source of truth.</summary>
 public sealed record BoxRef(string Id, BoxKind Kind)

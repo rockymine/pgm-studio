@@ -10,7 +10,7 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// the shift), the scythe entry's variable attachment width (measured ALONG the spine it docks, the same
 /// w2/w4/w6 grammar as the donut's), and the donut attachment sliding along the ring's edge (only the
 /// attachment moves, the ring is unchanged). Every variant must stay well-formed (no overlaps), keep its
-/// template slot order, and classify back to its family — the knobs move endpoints, never the identity.
+/// template part order, and classify back to its family — the knobs move endpoints, never the identity.
 /// </summary>
 public sealed class EmitterPlacementKnobTests
 {
@@ -22,7 +22,7 @@ public sealed class EmitterPlacementKnobTests
         var (family, _) = ShapeClassifier.Classify(WoolBoxEmitter.AsPlan(a), a.WoolRoom.Id);
         var cells = new HashSet<(int, int)>();
         var overlap = false;
-        foreach (var p in a.Terrain.Append(a.WoolRoom))
+        foreach (var p in a.Pieces)
             for (var x = p.Rect.X; x < p.Rect.X + p.Rect.Width; x++)
                 for (var z = p.Rect.Z; z < p.Rect.Z + p.Rect.Height; z++)
                     if (!cells.Add((x, z))) overlap = true;
@@ -44,8 +44,8 @@ public sealed class EmitterPlacementKnobTests
             await Assert.That(family).IsEqualTo(ShapeFamily.Scythe);
             await Assert.That(overlap).IsFalse();
             // the template order survives every shift
-            await Assert.That(a.Terrain.Select(p => p.Slot!).Append(a.WoolRoom.Slot!))
-                .IsEquivalentTo(ApproachSlots.Template(ShapeFamily.Scythe));
+            await Assert.That(a.Pieces.Select(p => p.Part!))
+                .IsEquivalentTo(CompoundParts.Template(ShapeFamily.Scythe));
         }
     }
 
@@ -55,8 +55,8 @@ public sealed class EmitterPlacementKnobTests
         // the docked piece resizes with the shift — a full-height spine over a dropped tail is a
         // different (wrong) shape
         var a = WoolBoxEmitter.Emit(ShapeFamily.Scythe, Box, Cw, entryShift: 4);
-        var tail = a.Terrain.Single(p => p.Slot == ApproachSlots.Entry);
-        var spine = a.Terrain.Single(p => p.Slot == ApproachSlots.EntryRun);
+        var tail = a.Pieces.Single(p => p.Part == CompoundParts.Entry);
+        var spine = a.Pieces.Single(p => p.Part == CompoundParts.EntryRun);
         await Assert.That(tail.Rect.Z).IsEqualTo(4);
         await Assert.That(spine.Rect.Z).IsEqualTo(4);     // shrunk from the top, flush with the tail
     }
@@ -65,7 +65,7 @@ public sealed class EmitterPlacementKnobTests
     public async Task A_shifted_wool_takes_the_return_leg_with_it()
     {
         var a = WoolBoxEmitter.Emit(ShapeFamily.Scythe, Box, Cw, woolShift: 3);
-        var ret = a.Terrain.Single(p => p.Slot == ApproachSlots.RoomRun);
+        var ret = a.Pieces.Single(p => p.Part == CompoundParts.RoomRun);
         await Assert.That(a.WoolRoom.Rect.Z).IsEqualTo(3);
         await Assert.That(ret.Rect.Z).IsEqualTo(3 + WoolBoxEmitter.RoomDepthCells);
     }
@@ -78,7 +78,7 @@ public sealed class EmitterPlacementKnobTests
         // the same w2/w4/w6 grammar as the donut's: the tail stacks parallel to the spine it docks,
         // never sticking away perpendicular — and a widened tail is still the same fold
         var a = WoolBoxEmitter.Emit(ShapeFamily.Scythe, Box, Cw, attachmentWidth: aw);
-        var tail = a.Terrain.Single(p => p.Slot == ApproachSlots.Entry);
+        var tail = a.Pieces.Single(p => p.Part == CompoundParts.Entry);
         await Assert.That(tail.Rect.Height).IsEqualTo(aw);     // widened along the docking edge
         await Assert.That(tail.Rect.Width).IsEqualTo(Cw);     // never thickened perpendicular
         var (family, overlap) = Read(a);
@@ -103,12 +103,12 @@ public sealed class EmitterPlacementKnobTests
     {
         var a = WoolBoxEmitter.Emit(ShapeFamily.Donut, Box, Cw,
             attachments: attachments, attachmentWidth: aw, attachmentOffset: offset);
-        var stub = a.Terrain.First(p => p.Slot == ApproachSlots.Entry);
+        var stub = a.Pieces.First(p => p.Part == CompoundParts.Entry);
         await Assert.That(stub.Rect.Z).IsEqualTo(offset);
         // only the attachment moves — the ring's bars and legs are byte-identical to the unshifted emission
         var b = WoolBoxEmitter.Emit(ShapeFamily.Donut, Box, Cw, attachments: attachments, attachmentWidth: aw);
-        var ringA = a.Terrain.Where(p => p.Slot != ApproachSlots.Entry).Select(p => string.Join(',', p.Rect));
-        var ringB = b.Terrain.Where(p => p.Slot != ApproachSlots.Entry).Select(p => string.Join(',', p.Rect));
+        var ringA = a.Pieces.Where(p => p.Part is not (CompoundParts.Entry or CompoundParts.Room)).Select(p => string.Join(',', p.Rect));
+        var ringB = b.Pieces.Where(p => p.Part is not (CompoundParts.Entry or CompoundParts.Room)).Select(p => string.Join(',', p.Rect));
         await Assert.That(ringA).IsEquivalentTo(ringB);
         var (family, overlap) = Read(a);
         await Assert.That(family).IsEqualTo(ShapeFamily.Donut);
@@ -126,21 +126,21 @@ public sealed class EmitterPlacementKnobTests
             var (read, overlap) = Read(a);
             await Assert.That(read).IsEqualTo(family);
             await Assert.That(overlap).IsFalse();
-            // the room hangs perpendicular off the terminal piece — its long axis flips vs the inline room
+            // the room hangs perpendicular off the room piece — its long axis flips vs the inline room
             await Assert.That(a.WoolRoom.Rect.Width).IsEqualTo(WoolBoxEmitter.RoomDepthCells);
             await Assert.That(a.WoolRoom.Rect.Height).IsEqualTo(Cw);
         }
     }
 
     [Test]
-    public async Task A_side_docked_room_shortens_the_terminal_piece()
+    public async Task A_side_docked_room_shortens_the_room_run()
     {
         // inline: the return leg stops a room-depth short and the room caps it; side-docked: the leg's top
         // is the room's line — it no longer runs out to hold the room
         var inline_ = WoolBoxEmitter.Emit(ShapeFamily.Scythe, Box, Cw);
         var docked = WoolBoxEmitter.Emit(ShapeFamily.Scythe, Box, Cw, roomPlacement: RoomPlacement.SideTuck);
-        var inlineLeg = inline_.Terrain.Single(p => p.Slot == ApproachSlots.RoomRun);
-        var dockedLeg = docked.Terrain.Single(p => p.Slot == ApproachSlots.RoomRun);
+        var inlineLeg = inline_.Pieces.Single(p => p.Part == CompoundParts.RoomRun);
+        var dockedLeg = docked.Pieces.Single(p => p.Part == CompoundParts.RoomRun);
         await Assert.That(inlineLeg.Rect.Z).IsEqualTo(WoolBoxEmitter.RoomDepthCells);
         await Assert.That(dockedLeg.Rect.Z).IsEqualTo(0);
         await Assert.That(docked.WoolRoom.Rect.X).IsEqualTo(dockedLeg.Rect.X + Cw);  // beside, not beyond

@@ -68,7 +68,7 @@ public sealed class ShapeCatalogTests
         }
         var w = wool!.Value;
         plan.Pieces.Add(new PlanPiece { Id = "wool", Role = PlanRoles.WoolRoom, Rect = new(w.Item1, w.Item2, 1, 1) });
-        plan.Placements.Wools.Add(new WoolPlacement { Piece = "wool", At = [0, 0] });
+        plan.Placements.Wools.Add(new WoolMarker { Piece = "wool", At = [0, 0] });
         return plan;
     }
 }

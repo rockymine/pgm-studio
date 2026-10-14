@@ -57,7 +57,7 @@ public sealed class ShapeProbeEndpointTests
     }
 
     [Test]
-    public async Task A_probe_that_fills_carries_the_shape_its_land_and_its_slots()
+    public async Task A_probe_that_fills_carries_the_shape_its_land_and_its_parts()
     {
         using var client = ApiTestFactory.Shared.CreateClient();
 
@@ -68,10 +68,10 @@ public sealed class ShapeProbeEndpointTests
         await Assert.That(probe.Svg).IsNotNull();
         await Assert.That(probe.Svg!).Contains("<svg");
         await Assert.That(probe.LandCells).IsGreaterThan(0);
-        // the slot template is the family's, terminal last — the panel prints it as the shape's anatomy
-        await Assert.That(probe.Slots).Contains(ApproachSlots.Room);
-        await Assert.That(probe.Slots).Contains(ApproachSlots.EntryBar);
-        await Assert.That(probe.Slots[^1]).IsEqualTo(ApproachSlots.Room);
+        // the slot template is the family's, room last — the panel prints it as the shape's anatomy
+        await Assert.That(probe.Parts).Contains(CompoundParts.Room);
+        await Assert.That(probe.Parts).Contains(CompoundParts.EntryBar);
+        await Assert.That(probe.Parts[^1]).IsEqualTo(CompoundParts.Room);
     }
 
     [Test]

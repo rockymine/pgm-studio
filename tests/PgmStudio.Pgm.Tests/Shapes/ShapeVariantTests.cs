@@ -5,7 +5,7 @@ namespace PgmStudio.Pgm.Tests.Shapes;
 
 /// <summary>
 /// Family stability under the emitter's placement manipulations: sliding an endpoint (entry or wool) off its
-/// box corner, docking the wool room off the side of the terminal piece, and moving a donut attachment along
+/// box corner, docking the wool room off the side of the room piece, and moving a donut attachment along
 /// the ring — each must keep the family it varies, both standalone and with neighbour terrain docked at the
 /// entry (an approach is classified inside a plan, so the read must not flip when a hub mass joins the
 /// component). Grids follow the catalog notation (t terrain, v void, w wool) plus h = docked neighbour

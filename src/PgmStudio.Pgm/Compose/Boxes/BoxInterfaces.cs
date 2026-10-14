@@ -10,23 +10,23 @@ public enum EdgeSpan { Long, Short }
 
 /// <summary>One <b>interval</b> of a box edge — the stretch a single piece presents to it: the interval's
 /// <see cref="Start"/> along the edge (box-local cells; x for a horizontal edge, z for a vertical one), its
-/// <see cref="LengthCells"/>, and the template <see cref="Slot"/> of the piece (the terminal room as the room
-/// slot). The §6 interface primitive at fact level: a shape whose face is two arm tips presents <b>two
-/// disjoint intervals on one edge</b> with the recess between them — which the flat slot list could never
+/// <see cref="LengthCells"/>, and the template <see cref="Part"/> of the piece (the room as the room part). The
+/// §6 interface primitive at fact level: a shape whose face is two arm tips presents <b>two
+/// disjoint intervals on one edge</b> with the recess between them — which the flat part list could never
 /// say, and which the multi-interval docking and offer rules bind to.</summary>
-public sealed record EdgeInterval(int Start, int LengthCells, string Slot);
+public sealed record EdgeInterval(int Start, int LengthCells, string Part);
 
 /// <summary>
 /// The <b>observed facts</b> about one box edge, read off the emitted shape (§4): which edge, its
 /// <see cref="Span"/> (long vs short), and its <see cref="Intervals"/> — the per-piece stretches on the edge,
-/// ordered along it, each carrying the template slot (<see cref="ApproachSlots"/>) of the piece presenting it,
-/// the room included. These are neutral observations — <b>no policy</b>. <see cref="Slots"/> is the flat
-/// per-interval slot view the gate's rules read; <see cref="TouchesRoom"/> and <see cref="HasTerrain"/> are
+/// ordered along it, each carrying the template part (<see cref="CompoundParts"/>) of the piece presenting it,
+/// the room included. These are neutral observations — <b>no policy</b>. <see cref="Parts"/> is the flat
+/// per-interval part view the gate's rules read; <see cref="TouchesRoom"/> and <see cref="HasTerrain"/> are
 /// convenience reads over it.
 ///
 /// <para>Whether an edge may actually <em>receive a dock</em> is a <b>rule, not a fact</b>: it must land on an
-/// entry (docking) slot, must not seal the wool, and must satisfy the family's span/count demand. Those rules
-/// are the <b>docking gate</b> (<see cref="DockingGate"/>), which maps these slots to dock roles and
+/// entry (docking) part, must not seal the wool, and must satisfy the family's span/count demand. Those rules
+/// are the <b>docking gate</b> (<see cref="DockingGate"/>), which maps these parts to dock roles and
 /// applies the demand — deliberately not baked in here, so every docking rule lives in one place (a room edge
 /// is legally docked at the elevation stage, which is exactly why "room ⇒ never-dock" is a policy, not a
 /// fact). It is <b>shape-relative</b>: the intervals are read off the shape, so the facts move with it — a
@@ -34,25 +34,25 @@ public sealed record EdgeInterval(int Start, int LengthCells, string Slot);
 /// </summary>
 public sealed record BoxEdgeInterface(BoxEdge Edge, EdgeSpan Span, int LengthCells, IReadOnlyList<EdgeInterval> Intervals)
 {
-    /// <summary>The slots on this edge, one per interval — the flat view the gate's per-slot rules read.</summary>
-    public IReadOnlyList<string> Slots => Intervals.Select(i => i.Slot).ToList();
+    /// <summary>The parts on this edge, one per interval — the flat view the gate's per-part rules read.</summary>
+    public IReadOnlyList<string> Parts => Intervals.Select(i => i.Part).ToList();
 
     /// <summary>The wool room reaches this edge (its rect is flush with it). A convenience read over
     /// <see cref="Intervals"/>; the "room ⇒ never-dock" verdict over it is the gate's, not this fact's.</summary>
-    public bool TouchesRoom => Intervals.Any(i => i.Slot == ApproachSlots.Room);
+    public bool TouchesRoom => Intervals.Any(i => i.Part == CompoundParts.Room);
 
     /// <summary>Walkable terrain (any non-room interval) reaches this edge. A convenience read over
     /// <see cref="Intervals"/>.</summary>
-    public bool HasTerrain => Intervals.Any(i => i.Slot != ApproachSlots.Room);
+    public bool HasTerrain => Intervals.Any(i => i.Part != CompoundParts.Room);
 }
 
 /// <summary>
 /// The valid-edges <b>data model</b>: read a box's four edges as
 /// <see cref="BoxEdgeInterface"/> <b>facts</b> off the emitted shape filling it. It <b>observes; it does not
 /// judge</b> — the multi-interval vocabulary a box exposes (four edges, each classified long/short and
-/// carrying the per-piece intervals on it), retiring both the single-mouth assumption and the flat slot list.
+/// carrying the per-piece intervals on it), retiring both the single-mouth assumption and the flat part list.
 /// The <b>rules</b> that turn these facts into a dockability verdict — which edges are legal docks, which
-/// slots never connect, how many a family demands — are the <see cref="DockingGate"/> over this model.
+/// parts never connect, how many a family demands — are the <see cref="DockingGate"/> over this model.
 /// The box-perimeter sibling of the shape-relative boundary read (<see cref="CompoundEdges"/>): this reads the
 /// box's four edge lines, that reads the shape's whole classified outline — the two agree wherever the shape
 /// reaches the box edge.
@@ -60,46 +60,15 @@ public sealed record BoxEdgeInterface(BoxEdge Edge, EdgeSpan Span, int LengthCel
 public static class BoxInterfaces
 {
     /// <summary>The four edges of a <paramref name="boxW"/>×<paramref name="boxH"/> box as
-    /// <see cref="BoxEdgeInterface"/> facts for the emitted <paramref name="shape"/> filling it (box-local
-    /// cells). Every edge is returned — the gate decides which are dockable.</summary>
-    public static IReadOnlyList<BoxEdgeInterface> Of(ApproachShape shape, int boxW, int boxH) =>
-        Of(shape.Compound.Pieces, shape.Room, boxW, boxH);
-
-    /// <summary>The four edges of a <b>terminal-free</b> <see cref="Compound"/> filling a
-    /// <paramref name="boxW"/>×<paramref name="boxH"/> box — the hub/frontline read. Same edge facts as the
-    /// approach overload, but <b>no room</b> to fold in (a compound has no terminal), so every interval is a terrain
-    /// piece: the offerable surface a designation publishes its <see cref="EdgeOffer"/>s over.</summary>
-    public static IReadOnlyList<BoxEdgeInterface> Of(Compound compound, int boxW, int boxH) =>
-        Of(compound.Pieces, null, boxW, boxH);
-
-    /// <summary>Merge an edge's per-piece <see cref="EdgeInterval"/>s into contiguous <b>runs</b> — a ring's
-    /// corner + leg + corner, or a spine + its arm, is one attachable surface, not one per piece; a genuine gap
-    /// (a U's bay, a twin frontline's inter-tip recess) stays two runs. The offer/vacancy read a designation
-    /// publishes is over runs, not raw piece intervals. Each run carries the outward
-    /// <see cref="ApproachSlots.Bar"/> slot.</summary>
-    public static IReadOnlyList<EdgeInterval> Runs(IReadOnlyList<EdgeInterval> intervals)
-    {
-        var runs = new List<EdgeInterval>();
-        foreach (var iv in intervals.OrderBy(i => i.Start))
-            if (runs.Count > 0 && iv.Start <= runs[^1].Start + runs[^1].LengthCells)
-            {
-                var last = runs[^1];
-                var end = Math.Max(last.Start + last.LengthCells, iv.Start + iv.LengthCells);
-                runs[^1] = last with { LengthCells = end - last.Start };
-            }
-            else runs.Add(new EdgeInterval(iv.Start, iv.LengthCells, ApproachSlots.Bar));
-        return runs;
-    }
-
-    private static IReadOnlyList<BoxEdgeInterface> Of(
-        IReadOnlyList<(CellRect Rect, string Slot)> terrain, CellRect? room, int boxW, int boxH)
+    /// <see cref="BoxEdgeInterface"/> facts for the <paramref name="compound"/> filling it (box-local cells), its
+    /// room included where it has one. Every edge is returned — the gate decides which are dockable.</summary>
+    public static IReadOnlyList<BoxEdgeInterface> Of(Compound compound, int boxW, int boxH)
     {
         BoxEdgeInterface Edge(BoxEdge e, int length, int perpendicular, Func<CellRect, bool> on, Func<CellRect, (int Start, int Len)> along)
         {
             var intervals = new List<EdgeInterval>();
-            foreach (var (r, slot) in terrain)
-                if (on(r)) { var (s, l) = along(r); intervals.Add(new EdgeInterval(s, l, slot)); }
-            if (room is { } rm && on(rm)) { var (s, l) = along(rm); intervals.Add(new EdgeInterval(s, l, ApproachSlots.Room)); }
+            foreach (var (r, part) in compound.Pieces)
+                if (on(r)) { var (start, len) = along(r); intervals.Add(new EdgeInterval(start, len, part)); }
             intervals.Sort((a, b) => a.Start.CompareTo(b.Start));
             return new(e, length >= perpendicular ? EdgeSpan.Long : EdgeSpan.Short, length, intervals);
         }
@@ -112,5 +81,24 @@ public static class BoxInterfaces
             Edge(BoxEdge.Left,   boxH, boxW, r => r.X == 0, AlongZ),
             Edge(BoxEdge.Right,  boxH, boxW, r => r.X + r.Width == boxW, AlongZ),
         ];
+    }
+
+    /// <summary>Merge an edge's per-piece <see cref="EdgeInterval"/>s into contiguous <b>runs</b> — a ring's
+    /// corner + leg + corner, or a spine + its arm, is one attachable surface, not one per piece; a genuine gap
+    /// (a U's bay, a twin frontline's inter-tip recess) stays two runs. The offer/vacancy read a
+    /// box publishes is over runs, not raw piece intervals. Each run carries the outward
+    /// <see cref="CompoundParts.Bar"/> part.</summary>
+    public static IReadOnlyList<EdgeInterval> Runs(IReadOnlyList<EdgeInterval> intervals)
+    {
+        var runs = new List<EdgeInterval>();
+        foreach (var iv in intervals.OrderBy(i => i.Start))
+            if (runs.Count > 0 && iv.Start <= runs[^1].Start + runs[^1].LengthCells)
+            {
+                var last = runs[^1];
+                var end = Math.Max(last.Start + last.LengthCells, iv.Start + iv.LengthCells);
+                runs[^1] = last with { LengthCells = end - last.Start };
+            }
+            else runs.Add(new EdgeInterval(iv.Start, iv.LengthCells, CompoundParts.Bar));
+        return runs;
     }
 }

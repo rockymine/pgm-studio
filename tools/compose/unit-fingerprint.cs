@@ -48,9 +48,9 @@ foreach (var (label, players) in presets)
         { sb.Append("NOFILL\n"); continue; }
         filled++;
         foreach (var p in f.Unit.Pieces)
-            sb.Append($"P({p.Id},[{string.Join(" ", p.Rect)}],{p.Role},{p.Slot},{p.Box?.Id}/{p.Box?.Kind});");
-        sb.Append($"spawn({f.Unit.Spawn.Piece},[{string.Join(" ", f.Unit.Spawn.At)}],{f.Unit.Spawn.Facing});");
-        foreach (var wl in f.Unit.Wools) sb.Append($"wool({wl.Piece},[{string.Join(" ", wl.At)}]);");
+            sb.Append($"P({p.Id},[{string.Join(" ", p.Rect)}],{p.Role},{p.Part},{p.Box?.Id}/{p.Box?.Kind});");
+        sb.Append($"spawn({f.Unit.Spawn.Piece},[{f.Unit.Spawn.X} {f.Unit.Spawn.Z}],{f.Unit.SpawnFacing});");
+        foreach (var wl in f.Unit.Wools) sb.Append($"wool({wl.Piece},[{wl.X} {wl.Z}]);");
         foreach (var o in f.FrontlineFace)
             sb.Append($"face({o.Edge}@{o.Interval.Start}+{o.Interval.LengthCells}:w{o.WidthClass}:{o.Grouping});");
         sb.Append('\n');

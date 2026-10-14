@@ -8,8 +8,8 @@ namespace PgmStudio.Pgm.Tests.Shapes;
 /// The emit↔derive mirror (docs/generator/model.md §5.4): emit every base family (and its variants)
 /// with <see cref="WoolBoxEmitter"/> and read each back with <see cref="ShapeClassifier"/> — requested ==
 /// derived is the mirror closing, on <b>one</b> <see cref="ShapeFamily"/> enum (no string bridge). It is a
-/// <b>true mirror</b>: each emission is also fed through <see cref="SlotAssignment"/> to re-derive every
-/// piece's slot from topology and assert it equals the slot the emitter stamped (§5.3). The emitted pieces
+/// <b>true mirror</b>: each emission is also fed through <see cref="PartAssignment"/> to re-derive every
+/// piece's part from topology and assert it equals the part the emitter stamped (§5.3). The emitted pieces
 /// must also tile without overlap.
 /// </summary>
 public sealed class ShapeMirrorTests
@@ -21,7 +21,7 @@ public sealed class ShapeMirrorTests
     private static int Overlaps(PlacedApproach a)
     {
         var seen = new HashSet<(int, int)>(); int n = 0;
-        foreach (var p in a.Terrain.Append(a.WoolRoom))
+        foreach (var p in a.Pieces)
             for (var x = p.Rect.X; x < p.Rect.X + p.Rect.Width; x++)
                 for (var z = p.Rect.Z; z < p.Rect.Z + p.Rect.Height; z++) if (!seen.Add((x, z))) n++;
         return n;
@@ -30,8 +30,8 @@ public sealed class ShapeMirrorTests
     private static ShapeFamily Derive(PlacedApproach a) =>
         ShapeClassifier.Classify(WoolBoxEmitter.AsPlan(a), a.WoolRoom.Id).Family;
 
-    // emitting SUCCEEDS -> classify reads back the requested family, no overlaps, and every piece's slot
-    // re-derived from topology equals the slot the emitter stamped (the true mirror). Too-small boxes throw
+    // emitting SUCCEEDS -> classify reads back the requested family, no overlaps, and every piece's part
+    // re-derived from topology equals the part the emitter stamped (the true mirror). Too-small boxes throw
     // ComposeException and are not failures (the caller sizes the box to the family).
     private static async Task MirrorOk(ShapeFamily family, Func<PlacedApproach> emit)
     {
@@ -41,10 +41,10 @@ public sealed class ShapeMirrorTests
         await Assert.That(derived).IsEqualTo(family);
         await Assert.That(Overlaps(a)).IsEqualTo(0);
 
-        var pieces = a.Terrain.Select(p => (p.Id, p.Rect)).Append((a.WoolRoom.Id, a.WoolRoom.Rect)).ToList();
-        var slots = SlotAssignment.AssignSlots(derived, pieces, a.WoolRoom.Id);
-        foreach (var p in a.Terrain.Append(a.WoolRoom))
-            await Assert.That(slots[p.Id]).IsEqualTo(p.Slot);
+        var pieces = a.Pieces.Select(p => (p.Id, p.Rect)).ToList();
+        var parts = PartAssignment.AssignParts(derived, pieces, a.WoolRoom.Id);
+        foreach (var p in a.Pieces)
+            await Assert.That(parts[p.Id]).IsEqualTo(p.Part);
     }
 
     [Test]
@@ -143,7 +143,7 @@ public sealed class ShapeMirrorTests
                     PlacedApproach a;
                     try { a = WoolBoxEmitter.Emit(ShapeFamily.I, new WoolBox(0, 0, W, H), cw, flip, RoomPlacement.SideTuck); }
                     catch (ComposeException) { continue; }
-                    CellRect lane = a.Terrain[0].Rect, rm = a.WoolRoom.Rect;
+                    CellRect lane = a.Pieces[0].Rect, rm = a.WoolRoom.Rect;
                     var side = rm.X == lane.X + lane.Width || rm.X + rm.Width == lane.X;
                     await Assert.That(Derive(a)).IsEqualTo(ShapeFamily.I);
                     await Assert.That(side).IsTrue();

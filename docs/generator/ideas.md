@@ -74,7 +74,7 @@ landed, the rest is the idea.
 - **G41-D** — vacancy publishing + spawn-in-hub-bay: fills publish claimable negative space (a U-hub's bay,
   a ring's hole); consumers claim it (the third wool / the spawn in the bay).
 - **G63-D** — the generic label-inheriting fragment pass + `GrowthOrder` strategies + vacancy allocation.
-  The isolation cut returns here as a slot-aware move (a cut severs a `run`/`bar`, never a `room`/`entry`) —
+  The isolation cut returns here as a part-aware move (a cut severs a `run`/`bar`, never a `room`/`entry`) —
   its old implementation is in git history.
 - **G97** — close the offer↔derive mirror (derived runs/kinds/holes match the offers' intent).
 - **G98** — `ComposeTargets`: prescriptive per-request fields (frontline runs, mid form, hub form), sampled
@@ -89,8 +89,8 @@ landed, the rest is the idea.
   keep-lowest-scoring hunt loop, the ranking harness + minimal-pair negatives.
 - **G69** — deriver primitives for dense mids (crossing-corridor read, rotation-that-means-rotation, robust
   stone classification) — the prerequisites of the cramming term.
-- **G66 / G67 / G68** — rule visualization (illustrated rule catalog + reject inspector), fill-time slot
-  invariants, evaluator-side slot terms.
+- **G66 / G67 / G68** — rule visualization (illustrated rule catalog + reject inspector), fill-time part
+  invariants, evaluator-side part terms.
 - **G43** — the composer↔teaching-set conformance sweep (aggregate soft distance per term).
 - **G127** — the flow graph: junction/lane-chain derivation + route signatures + the first flow terms.
   Revives G24's already-designed substrate, which is worth keeping written down because it is the part
@@ -168,7 +168,7 @@ landed, the rest is the idea.
 
 ## Realize & world
 
-- **G82 / G83** — entry widening for Z along its bar interface; wool-approach budget law (per-slot caps /
+- **G82 / G83** — entry widening for Z along its bar interface; wool-approach budget law (per-part caps /
   total path length). Reworded for the box path: the knob is `AttachmentWidth`, the law binds at allocation.
 
 ## Docs & hygiene
@@ -280,7 +280,7 @@ landed, the rest is the idea.
   `model.md` §4 describes them; the gap is the plumbing, not the geometry.
 
 - [ ] **G146 — two families are in the vocabulary but never on a board.** The emitter builds eight
-  terminal-capped families; the composer puts six on boards. **Z** is listed in
+  room-capped families; the composer puts six on boards. **Z** is listed in
   `FillMenu.ProductionFamilies` and `BoxFiller` fills it happily, but `UnitRequests.WoolRequest` never
   draws it — the rich branch picks donut, then U/H/clamp, else L, and the fallbacks are I. The only caller
   that could reach it is the roll-indexed `BoxFiller.Fill(box, mouth, cw, roll, …)` overload, which has no

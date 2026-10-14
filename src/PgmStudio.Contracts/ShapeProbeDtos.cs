@@ -4,16 +4,16 @@ namespace PgmStudio.Contracts;
 /// <paramref name="Rejection"/> is set: a probe either drew a shape or was refused, and a refusal is the
 /// interesting half — it is the only place the studio surfaces the emitter's own guards.
 /// <paramref name="LandCells"/> is the walkable terrain the fill spends (the box's land currency);
-/// <paramref name="Slots"/> names each emitted piece's template slot, in emit order.</summary>
+/// <paramref name="Parts"/> names each emitted piece's part, in emit order.</summary>
 /// <param name="Svg">The shape the emitter drew, ready to inject, or absent where it refused.</param>
 /// <param name="Rejection">Why it refused, or absent where it drew.</param>
 /// <param name="LandCells">The walkable terrain the fill spends — the box's land currency.</param>
-/// <param name="Slots">Each emitted piece's template slot, in emit order.</param>
+/// <param name="Parts">Each emitted piece's part, in emit order, the room last.</param>
 public sealed record ShapeProbeResult(
     string? Svg,
     ShapeRejectionDto? Rejection,
     int LandCells,
-    IReadOnlyList<string> Slots);
+    IReadOnlyList<string> Parts);
 
 /// <summary>A refusal in the shared directed-reason vocabulary, flattened for the wire.
 /// <paramref name="Code"/> is the case (<c>too-small</c>, <c>not-on-menu</c>, <c>illegal-dock</c>,

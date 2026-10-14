@@ -2,25 +2,40 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Shapes;
 
+/// <summary>A rectangle of cells and the part it plays in its compound (<see cref="CompoundParts"/>).</summary>
+public sealed record Piece(CellRect Rect, string Part);
+
 /// <summary>
-/// A shape combined out of rectangle pieces: the slotted <see cref="Pieces"/> and the bays, holes and notches they
-/// leave (<see cref="Vacancies"/>). It carries <b>no room, marker or id</b> — a <em>designation</em> adds those (an
-/// <see cref="ApproachShape"/>'s wool or spawn room, the hub's per-edge interfaces, the frontline's face). Its
-/// <see cref="CompoundForm"/> is what the pieces make, and one compound serves several uses: a staple is both a U and
-/// a Y, a solid rectangle both a straight lane and a hub. See <c>docs/generator/model.md</c> §4.
+/// A shape combined out of rectangle <see cref="Pieces"/>, and the bays, holes and notches they leave
+/// (<see cref="Vacancies"/>). A compound that ends in a room carries it as one of its pieces, the one whose part is
+/// <see cref="CompoundParts.Room"/>, and the <see cref="Marker"/> where its spawn or wool stands. Its
+/// <see cref="CompoundForm"/> is what the pieces make, and one compound serves several box kinds: a solid rectangle
+/// is both a straight lane and a hub. See <c>docs/generator/model.md</c> §4.
 /// </summary>
+/// <param name="Pieces">The pieces, each with its part; a room comes last.</param>
+/// <param name="Vacancies">The empty space the pieces leave inside their box.</param>
+/// <param name="Marker">Where the spawn or wool stands, in box-local cells inside the room piece; null for a
+/// compound with no room.</param>
 public sealed record Compound(
-    IReadOnlyList<(CellRect Rect, string Slot)> Pieces, IReadOnlyList<ShapeVacancy> Vacancies)
+    IReadOnlyList<Piece> Pieces, IReadOnlyList<ShapeVacancy> Vacancies, (double X, double Z)? Marker = null)
 {
+    /// <summary>The piece the compound ends in, or null for a compound with no room.</summary>
+    public Piece? Room => Pieces.FirstOrDefault(piece => piece.Part == CompoundParts.Room);
+
+    /// <summary>The same compound without its room and marker: the ground that leads to the room.</summary>
+    public Compound WithoutRoom() =>
+        new([.. Pieces.Where(piece => piece.Part != CompoundParts.Room)], Vacancies);
+
     /// <summary>The compound laid back onto its <paramref name="width"/> × <paramref name="height"/> box by
-    /// <paramref name="turn"/>: every piece and vacancy rect, and every vacancy mouth, with it.</summary>
+    /// <paramref name="turn"/>: every piece, vacancy and vacancy mouth, and the marker, with it.</summary>
     public Compound Turned(BoxTurn turn, int width, int height) => turn == BoxTurn.None ? this : new(
-        [.. Pieces.Select(piece => (turn.Rect(piece.Rect, width, height), piece.Slot))],
+        [.. Pieces.Select(piece => piece with { Rect = turn.Rect(piece.Rect, width, height) })],
         [.. Vacancies.Select(vacancy => vacancy with
         {
             Rect = turn.Rect(vacancy.Rect, width, height),
             Mouth = vacancy.Mouth?.Turned(turn),
-        })]);
+        })],
+        Marker is { } marker ? turn.Point(marker.X, marker.Z, width, height) : null);
 }
 
 /// <summary>

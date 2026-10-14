@@ -4,23 +4,27 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>The filled spawn box: its terrain pieces (slot- and box-labeled), the <see cref="PlanRoles.Spawn"/>
-/// room the lane dead-ends into, the spawn marker's offset within that room, and the length of the entry run
-/// (from the hub-side edge to the first turn/room) a wool box may dock along.</summary>
-public sealed record PlacedSpawn(IReadOnlyList<GrownPiece> Pieces, GrownPiece Room, double[] MarkerAt, int EntryLen);
+/// <summary>The filled spawn box: its pieces (part- and box-labeled), the <see cref="PlanRoles.Spawn"/> room the lane
+/// dead-ends into last, the <see cref="Marker"/> the spawn stands at, and the length of the entry run (from the
+/// hub-side edge to the first turn/room) a wool box may dock along.</summary>
+public sealed record PlacedSpawn(IReadOnlyList<GrownPiece> Pieces, Marker Marker, int EntryLen)
+{
+    /// <summary>The spawn room: the piece the marker stands on.</summary>
+    public GrownPiece Room => Pieces.Single(piece => piece.Id == Marker.Piece);
+}
 
 /// <summary>
 /// The spawn binding over <see cref="ShapeEmitter"/> — the <b>second box kind</b> after the wool box. A spawn
-/// is a terminal-capped approach like a wool arm, so the same emitter, classifier and mirror apply; it just
+/// is a compound ending in a room like a wool's, so the same emitter, classifier and mirror apply; it just
 /// admits a smaller <b>shape profile as data</b> (<see cref="Families"/> = {I, L} only, small boxes per SP)
-/// and its terminal is a <see cref="PlanRoles.Spawn"/> room carrying the spawn marker rather than a wool room.
+/// and its room is a <see cref="PlanRoles.Spawn"/> room carrying the spawn marker rather than a wool room.
 /// Making the machinery explicit is the point: the profile (families + <see cref="Box"/>) is plain data the
 /// per-box shape menu and footprint budget read directly — this and the wool box are the first two rows of
 /// the per-kind profile table.
 ///
 /// <para><c>Fill</c> fills a plan-cell <see cref="Box"/> the same way the wool box does — emit mouth-up,
-/// turn onto the docking edge (<see cref="ApproachShape.Turned"/>) — and stamps the spawn specifics: every piece
-/// carries its slot and the spawn <see cref="BoxRef"/>, the room takes the <see cref="PlanRoles.Spawn"/> role,
+/// turn onto the docking edge (<see cref="Compound.Turned"/>) — and stamps the spawn specifics: every piece
+/// carries its part and the spawn <see cref="BoxRef"/>, the room takes the <see cref="PlanRoles.Spawn"/> role,
 /// and it reports the entry-run length a wool box may dock along. The grower allocates the box against the hub's
 /// back edge and pins the entry run's cross band; the marker's facing (SP3, toward the axis) is stamped at
 /// assembly.</para>
@@ -47,10 +51,10 @@ public static class SpawnBoxEmitter
     }
 
     /// <summary>Fill a spawn <see cref="Box"/> (plan cells) docking <paramref name="mouth"/> with an I or L, its
-    /// terminal a <see cref="PlanRoles.Spawn"/> room. Mirrors the wool box's plan-cell fill — emit mouth-up, then
-    /// turn onto the mouth (<see cref="ApproachShape.Turned"/>) — but stamps the spawn role and reports the
+    /// room a <see cref="PlanRoles.Spawn"/> room. Mirrors the wool box's plan-cell fill — emit mouth-up, then
+    /// turn onto the mouth (<see cref="Compound.Turned"/>) — but stamps the spawn role and reports the
     /// <b>entry-run length</b> (outward from the mouth) a wool box may dock along. Pieces carry the
-    /// <paramref name="box"/> label + their slot; the room takes <paramref name="roomId"/>. <paramref name="flip"/>
+    /// <paramref name="box"/> label + their part; the room takes <paramref name="roomId"/>. <paramref name="flip"/>
     /// puts an L's hook on the other side. Null when the footprint is too small (a directed signal, not a throw).</summary>
     public static PlacedSpawn? Fill(Box box, BoxEdge mouth, ShapeFamily family, int cw, bool flip, string roomId) =>
         Fill(box, mouth, family, cw, flip, roomId, out _);
@@ -82,20 +86,12 @@ public static class SpawnBoxEmitter
         var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, alongLen, depth);
         var shape = mouthTop.Turned(mouth.TopOnto(), w, h);
 
-        var boxRef = new BoxRef(box.Id, BoxKind.Spawn);
-        var pieces = new List<GrownPiece>(shape.Compound.Pieces.Count + 1);
-        var n = 1;
-        foreach (var (r, slot) in shape.Compound.Pieces)
-            pieces.Add(new GrownPiece($"{box.Id}-t{n++}", new(box.Rect.X + r.X, box.Rect.Z + r.Z, r.Width, r.Height),
-                PlanRoles.Piece, slot, boxRef));
-        var rr = shape.Room;
-        var room = new GrownPiece(roomId, new(box.Rect.X + rr.X, box.Rect.Z + rr.Z, rr.Width, rr.Height),
-            PlanRoles.Spawn, ApproachSlots.Room, boxRef);
-        pieces.Add(room);
+        var (pieces, marker) = GrownPieces.Lay(
+            shape, box.Rect.X, box.Rect.Z, box.Id, roomId, BoxKind.Spawn, new BoxRef(box.Id, BoxKind.Spawn));
 
         // the entry run's outward length (perpendicular to the mouth) — the interval a wool box docks along
-        var entry = shape.Compound.Pieces.First(t => t.Slot == ApproachSlots.Entry).Rect;
+        var entry = shape.Pieces.First(piece => piece.Part == CompoundParts.Entry).Rect;
         var entryLen = mouth is BoxEdge.Top or BoxEdge.Bottom ? entry.Height : entry.Width;
-        return new PlacedSpawn(pieces, room, shape.At, entryLen);
+        return new PlacedSpawn(pieces, marker!, entryLen);
     }
 }

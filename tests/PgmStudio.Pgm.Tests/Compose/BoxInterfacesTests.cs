@@ -38,16 +38,16 @@ public sealed class BoxInterfacesTests
     [Test]
     public async Task The_slots_on_an_edge_are_the_pieces_that_reach_it()
     {
-        // the facts carry the template slots on each edge, room included — the raw observation the gate maps to
+        // the facts carry the template parts on each edge, room included — the raw observation the gate maps to
         // dock roles. The I's top edge is the entry, its bottom the room, its void sides carry nothing.
         var es = Edges(ShapeFamily.I, 6, 12);
-        await Assert.That(Edge(es, BoxEdge.Top).Slots).IsEquivalentTo(new[] { ApproachSlots.Entry });
-        await Assert.That(Edge(es, BoxEdge.Bottom).Slots).IsEquivalentTo(new[] { ApproachSlots.Room });
-        await Assert.That(Edge(es, BoxEdge.Left).Slots).IsEmpty();
+        await Assert.That(Edge(es, BoxEdge.Top).Parts).IsEquivalentTo(new[] { CompoundParts.Entry });
+        await Assert.That(Edge(es, BoxEdge.Bottom).Parts).IsEquivalentTo(new[] { CompoundParts.Room });
+        await Assert.That(Edge(es, BoxEdge.Left).Parts).IsEmpty();
     }
 
     // the interval facts: an edge carries the per-piece stretches ordered along it — a shape presenting two
-    // pieces to one edge yields two disjoint intervals with the gap between them, which the flat slot list
+    // pieces to one edge yields two disjoint intervals with the gap between them, which the flat part list
     // could never say
     [Test]
     public async Task An_edge_carries_disjoint_intervals_per_piece()
@@ -55,7 +55,7 @@ public sealed class BoxInterfacesTests
         // the clamp's mouth edge (bottom) holds BOTH leg entries, the bay's gap between them
         var mouth = Edge(Edges(ShapeFamily.Clamp, 6, 6), BoxEdge.Bottom);
         await Assert.That(mouth.Intervals.Count).IsEqualTo(2);
-        await Assert.That(mouth.Intervals.All(i => i.Slot == ApproachSlots.Entry)).IsTrue();
+        await Assert.That(mouth.Intervals.All(i => i.Part == CompoundParts.Entry)).IsTrue();
         await Assert.That(mouth.Intervals[0].Start + mouth.Intervals[0].LengthCells < mouth.Intervals[1].Start).IsTrue();
 
         // the U's two legs on its mouth edge
@@ -64,7 +64,7 @@ public sealed class BoxInterfacesTests
         // a single-piece edge is one interval spanning the piece
         var top = Edge(Edges(ShapeFamily.I, 6, 12), BoxEdge.Top);
         await Assert.That(top.Intervals.Count).IsEqualTo(1);
-        await Assert.That(top.Intervals[0].Slot).IsEqualTo(ApproachSlots.Entry);
+        await Assert.That(top.Intervals[0].Part).IsEqualTo(CompoundParts.Entry);
     }
 
     [Test]

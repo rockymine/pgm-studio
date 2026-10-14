@@ -3,11 +3,11 @@ using PgmStudio.Geom;
 namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>
-/// Emits the <b>terminal-free compounds</b> the vocabulary names (docs/generator/model.md §4) but the
-/// approach emitter (<see cref="ShapeEmitter"/>) can't build, as pure <see cref="Compound"/> — structural-slotted
-/// rects (<see cref="ApproachSlots.Bar"/> spines/crossbars, <see cref="ApproachSlots.Leg"/> arms/ring-arms) and,
-/// for the holed forms, the enclosed voids as <c>hole</c> vacancies. No terminal, marker, or id — a designation
-/// (approach's room, the hub's interfaces, the frontline's face) finishes them later.
+/// Emits the <b>room-free compounds</b> the vocabulary names (docs/generator/model.md §4) but the
+/// approach emitter (<see cref="ShapeEmitter"/>) can't build, as pure <see cref="Compound"/> — structural-part-named
+/// rects (<see cref="CompoundParts.Bar"/> spines/crossbars, <see cref="CompoundParts.Leg"/> arms/ring-arms) and,
+/// for the holed forms, the enclosed voids as <c>hole</c> vacancies. No room, marker or id: these are the hub's
+/// and the front line's forms.
 ///
 /// <para>Everything is one atom recombined <b>along shared edges</b> (§3): a spine plus <c>K</c> arms
 /// (<c>SpineArms</c> — T at K=1, Π/F at K=2, E at K=3, the arm placement a knob, <b>3 arms the maximum</b>),
@@ -24,11 +24,11 @@ public static class CompoundEmitter
     public const int MaxArms = 3;
 
     /// <summary>One filled <paramref name="w"/>×<paramref name="h"/> rectangle — a spine, the base of the ladder
-    /// (the solid hub reads as this). A single <see cref="ApproachSlots.Bar"/> piece, no void.</summary>
+    /// (the solid hub reads as this). A single <see cref="CompoundParts.Bar"/> piece, no void.</summary>
     public static Compound Rectangle(int w, int h)
     {
         if (w < 1 || h < 1) throw new ArgumentException($"a rectangle needs positive dims (got {w}x{h}).");
-        return new Compound([(new(0, 0, w, h), ApproachSlots.Bar)], []);
+        return new Compound([new(new(0, 0, w, h), CompoundParts.Bar)], []);
     }
 
     /// <summary>A full-width spine (top, <paramref name="cw"/> tall) with <paramref name="arms"/> equal arms
@@ -61,8 +61,8 @@ public static class CompoundEmitter
     /// <c>(Start, Width, Length)</c>, and the bar its own thickness — so an F can carry a long and a short leg on a
     /// fat bar, etc. Identity is <b>width-independent</b>: whatever the sizes, the classifier reads it by its arm
     /// count (an uneven F still reads <c>SpineArms(2)</c>). Arms must sit within the spine, a gap apart (so each is
-    /// a distinct run), and number at most <see cref="MaxArms"/>. Spine is a <see cref="ApproachSlots.Bar"/>, each
-    /// arm a <see cref="ApproachSlots.Leg"/>.</summary>
+    /// a distinct run), and number at most <see cref="MaxArms"/>. Spine is a <see cref="CompoundParts.Bar"/>, each
+    /// arm a <see cref="CompoundParts.Leg"/>.</summary>
     public static Compound SpineArms(int spineLen, int barThickness, IReadOnlyList<(int Start, int Width, int Length)> arms)
     {
         if (spineLen < 1 || barThickness < 1) throw new ArgumentException($"the spine needs positive dims ({spineLen}x{barThickness}).");
@@ -77,13 +77,13 @@ public static class CompoundEmitter
             if (i > 0 && s < sorted[i - 1].Start + sorted[i - 1].Width + 1)
                 throw new ArgumentException("two arms touch — arms need a gap so each is a distinct run.");
         }
-        var pieces = new List<(CellRect Rect, string Slot)> { (new(0, 0, spineLen, barThickness), ApproachSlots.Bar) };
-        foreach (var (s, w, len) in arms) pieces.Add((new(s, barThickness, w, len), ApproachSlots.Leg));
+        var pieces = new List<Piece> { new(new(0, 0, spineLen, barThickness), CompoundParts.Bar) };
+        foreach (var (s, w, len) in arms) pieces.Add(new(new(s, barThickness, w, len), CompoundParts.Leg));
         return new Compound(pieces, []);
     }
 
-    /// <summary>A rectangular ring — four bars around one enclosed void (the donut compound, terminal-free). Top and
-    /// bottom are <see cref="ApproachSlots.Bar"/>, the sides <see cref="ApproachSlots.Leg"/>; the hole is a
+    /// <summary>A rectangular ring — four bars around one enclosed void (the donut compound, room-free). Top and
+    /// bottom are <see cref="CompoundParts.Bar"/>, the sides <see cref="CompoundParts.Leg"/>; the hole is a
     /// <c>hole</c> vacancy.</summary>
     public static Compound Ring(int cw, int w, int h) => Ring(RingWalls.Uniform(cw), w, h);
 
@@ -112,7 +112,7 @@ public static class CompoundEmitter
     /// overhang and can slide along it as long as the hole stays enclosed (the <c>P</c>/<c>b</c>/<c>d</c> glyph — a
     /// loop on a stem). One void. <paramref name="loopW"/>×<paramref name="ringH"/> is the loop; the bar overhangs
     /// it by <paramref name="barExtend"/> cells total, the loop centred on the overhang. Bars are
-    /// <see cref="ApproachSlots.Bar"/>, the loop's sides <see cref="ApproachSlots.Leg"/>.</summary>
+    /// <see cref="CompoundParts.Bar"/>, the loop's sides <see cref="CompoundParts.Leg"/>.</summary>
     public static Compound P(int cw, int loopW, int ringH, int barExtend = 0) =>
         P(RingWalls.Uniform(cw), cw, loopW, ringH, barExtend);
 
@@ -126,12 +126,12 @@ public static class CompoundEmitter
         var ox = ext / 2;                                         // loop offset — centred on the overhang
         var w = loopW + ext;
         var loop = RingWallRects(walls, ox, 0, loopW, ringH);
-        var pieces = new List<(CellRect Rect, string Slot)>
+        var pieces = new List<Piece>
         {
-            (new(0, ringH - walls.Bottom, w, walls.Bottom), ApproachSlots.Bar),  // the long bottom bar (the loop slides along it)
-            (loop.Top, ApproachSlots.Bar),                        // loop top bar
-            (loop.Left, ApproachSlots.Leg),                       // loop left leg
-            (loop.Right, ApproachSlots.Leg),                      // loop right leg
+            new(new(0, ringH - walls.Bottom, w, walls.Bottom), CompoundParts.Bar),  // the long bottom bar (the loop slides along it)
+            new(loop.Top, CompoundParts.Bar),                        // loop top bar
+            new(loop.Left, CompoundParts.Leg),                       // loop left leg
+            new(loop.Right, CompoundParts.Leg),                      // loop right leg
         };
         return new Compound(pieces, [RingHole(walls, ox, 0, loopW, ringH)]);
     }
@@ -142,8 +142,8 @@ public static class CompoundEmitter
     /// bottom bars) or <b>variant</b> (a shorter U that slides along the edge) — either way both stay enclosed.
     /// <paramref name="ringW"/>×<paramref name="ringH"/> is the ring; <paramref name="uW"/> the U's outward reach
     /// (bay width <c>uW−cw</c>), <paramref name="uH"/> its height, <paramref name="uz"/> its slide (0 = flush with
-    /// the top bar; <c>-1</c> = a shorter, slid default). Bars are <see cref="ApproachSlots.Bar"/>, uprights
-    /// <see cref="ApproachSlots.Leg"/>; two <c>hole</c> vacancies.</summary>
+    /// the top bar; <c>-1</c> = a shorter, slid default). Bars are <see cref="CompoundParts.Bar"/>, uprights
+    /// <see cref="CompoundParts.Leg"/>; two <c>hole</c> vacancies.</summary>
     public static Compound DoubleHole(int cw, int ringW, int ringH, int uW = 0, int uH = 0, int uz = -1) =>
         DoubleHole(RingWalls.Uniform(cw), cw, ringW, ringH, uW, uH, uz);
 
@@ -160,9 +160,9 @@ public static class CompoundEmitter
         if (z < 0 || z + uh > ringH)
             throw new ArgumentException($"the U (z {z}, height {uh}) doesn't fit the ring's right edge (ring height {ringH}).");
         var pieces = RingPieces(walls, 0, 0, ringW, ringH);
-        pieces.Add((new(ringW, z, uw, cw), ApproachSlots.Bar));                       // U top arm (docks the ring's right leg)
-        pieces.Add((new(ringW, z + uh - cw, uw, cw), ApproachSlots.Bar));            // U bottom arm
-        pieces.Add((new(ringW + uw - cw, z + cw, cw, uh - 2 * cw), ApproachSlots.Leg)); // U outer wall (closes it)
+        pieces.Add(new(new(ringW, z, uw, cw), CompoundParts.Bar));                       // U top arm (docks the ring's right leg)
+        pieces.Add(new(new(ringW, z + uh - cw, uw, cw), CompoundParts.Bar));            // U bottom arm
+        pieces.Add(new(new(ringW + uw - cw, z + cw, cw, uh - 2 * cw), CompoundParts.Leg)); // U outer wall (closes it)
         return new Compound(pieces,
         [
             RingHole(walls, 0, 0, ringW, ringH),                 // hole 1 — the ring interior
@@ -176,8 +176,8 @@ public static class CompoundEmitter
     /// a second void the docking frontline seals flush into a <b>taller hole</b>, beside the ring's smaller one. The
     /// compound carries one enclosed void (the ring); the bay is the derive-side second space. <paramref name="ringW"/>×
     /// <paramref name="ringH"/> is the ring; the upright sits at the box's right edge (width <paramref name="w"/>),
-    /// the bay between it and the ring. Bars are <see cref="ApproachSlots.Bar"/>, uprights/legs
-    /// <see cref="ApproachSlots.Leg"/>.</summary>
+    /// the bay between it and the ring. Bars are <see cref="CompoundParts.Bar"/>, uprights/legs
+    /// <see cref="CompoundParts.Leg"/>.</summary>
     public static Compound G(int cw, int ringW, int ringH, int w) =>
         G(RingWalls.Uniform(cw), cw, ringW, ringH, w);
 
@@ -191,21 +191,21 @@ public static class CompoundEmitter
         // built bay-opening-DOWN (the shared bar on top, the L's foot part of it), so the hub's vertical flip turns
         // the open side toward the front — the branch convention, so a docking frontline seals the bay into a hole
         var ring = RingWallRects(walls, 0, 0, ringW, ringH);
-        var pieces = new List<(CellRect Rect, string Slot)>
+        var pieces = new List<Piece>
         {
-            (new(0, 0, w, walls.Top), ApproachSlots.Bar),                   // the shared top bar (ring top + the L's foot)
-            (ring.Bottom, ApproachSlots.Bar),                           // ring bottom bar
-            (ring.Left, ApproachSlots.Leg),                             // ring left leg
-            (ring.Right, ApproachSlots.Leg),                            // ring right leg — the bay's left wall
-            (new(w - cw, walls.Top, cw, ringH - walls.Top), ApproachSlots.Leg), // the L's upright — the bay's right wall, down to the open edge
+            new(new(0, 0, w, walls.Top), CompoundParts.Bar),                   // the shared top bar (ring top + the L's foot)
+            new(ring.Bottom, CompoundParts.Bar),                           // ring bottom bar
+            new(ring.Left, CompoundParts.Leg),                             // ring left leg
+            new(ring.Right, CompoundParts.Leg),                            // ring right leg — the bay's left wall
+            new(new(w - cw, walls.Top, cw, ringH - walls.Top), CompoundParts.Leg), // the L's upright — the bay's right wall, down to the open edge
         };
         return new Compound(pieces, [RingHole(walls, 0, 0, ringW, ringH)]);   // one enclosed void (the ring); the bay opens down
     }
 
     /// <summary>Two loops sharing one baseline — two enclosed voids kept apart by an <b>open</b> channel (twin
-    /// loops on an I, §5). A full-width baseline <see cref="ApproachSlots.Bar"/>, two top-bar
-    /// <see cref="ApproachSlots.Bar"/>s (one per loop) with a gap between them, and four
-    /// <see cref="ApproachSlots.Leg"/> uprights; two <c>hole</c> vacancies. <paramref name="hole"/> is each void's
+    /// loops on an I, §5). A full-width baseline <see cref="CompoundParts.Bar"/>, two top-bar
+    /// <see cref="CompoundParts.Bar"/>s (one per loop) with a gap between them, and four
+    /// <see cref="CompoundParts.Leg"/> uprights; two <c>hole</c> vacancies. <paramref name="hole"/> is each void's
     /// width, <paramref name="gap"/> the open channel width.</summary>
     public static Compound TwoUOnI(int cw, int h, int hole = 0, int gap = 0)
     {
@@ -214,15 +214,15 @@ public static class CompoundEmitter
         int hw = hole > 0 ? hole : cw, gp = gap > 0 ? gap : cw;
         int l0 = 0, l1 = cw + hw, l2 = 2 * cw + hw + gp, l3 = 3 * cw + hw + gp + hw;
         int w = l3 + cw, legH = h - 2 * cw, inner = cw;
-        var pieces = new List<(CellRect Rect, string Slot)>
+        var pieces = new List<Piece>
         {
-            (new(0, h - cw, w, cw), ApproachSlots.Bar),                // shared baseline (bottom)
-            (new(l0, 0, 2 * cw + hw, cw), ApproachSlots.Bar),         // left loop top bar (over l0..l1)
-            (new(l2, 0, 2 * cw + hw, cw), ApproachSlots.Bar),         // right loop top bar (over l2..l3)
-            (new(l0, inner, cw, legH), ApproachSlots.Leg),
-            (new(l1, inner, cw, legH), ApproachSlots.Leg),
-            (new(l2, inner, cw, legH), ApproachSlots.Leg),
-            (new(l3, inner, cw, legH), ApproachSlots.Leg),
+            new(new(0, h - cw, w, cw), CompoundParts.Bar),                // shared baseline (bottom)
+            new(new(l0, 0, 2 * cw + hw, cw), CompoundParts.Bar),         // left loop top bar (over l0..l1)
+            new(new(l2, 0, 2 * cw + hw, cw), CompoundParts.Bar),         // right loop top bar (over l2..l3)
+            new(new(l0, inner, cw, legH), CompoundParts.Leg),
+            new(new(l1, inner, cw, legH), CompoundParts.Leg),
+            new(new(l2, inner, cw, legH), CompoundParts.Leg),
+            new(new(l3, inner, cw, legH), CompoundParts.Leg),
         };
         return new Compound(pieces,
         [
@@ -232,18 +232,18 @@ public static class CompoundEmitter
     }
 
     private static ShapeVacancy Hole(int x, int z, int w, int h) =>
-        new("hole", new(x, z, w, h), null, [ApproachSlots.Bar, ApproachSlots.Bar, ApproachSlots.Leg, ApproachSlots.Leg]);
+        new("hole", new(x, z, w, h), null, [CompoundParts.Bar, CompoundParts.Bar, CompoundParts.Leg, CompoundParts.Leg]);
 
     // the four bars of a rectangular ring at (x, z), size w×h — top/bottom bars, left/right legs.
-    private static List<(CellRect Rect, string Slot)> RingPieces(RingWalls walls, int x, int z, int w, int h)
+    private static List<Piece> RingPieces(RingWalls walls, int x, int z, int w, int h)
     {
         var r = RingWallRects(walls, x, z, w, h);
         return
         [
-            (r.Top, ApproachSlots.Bar),
-            (r.Bottom, ApproachSlots.Bar),
-            (r.Left, ApproachSlots.Leg),
-            (r.Right, ApproachSlots.Leg),
+            new(r.Top, CompoundParts.Bar),
+            new(r.Bottom, CompoundParts.Bar),
+            new(r.Left, CompoundParts.Leg),
+            new(r.Right, CompoundParts.Leg),
         ];
     }
 
@@ -253,7 +253,7 @@ public static class CompoundEmitter
     ///
     /// <para>This is <b>the</b> place ring wall geometry lives. Six forms are built from these four walls — the
     /// Ring and Double-hole directly, the P's loop, the G's ring, and the donut's (in
-    /// <see cref="ShapeEmitter"/>) — and each assembles them in its own order with its own slot names, because
+    /// <see cref="ShapeEmitter"/>) — and each assembles them in its own order with its own part names, because
     /// piece order fixes emitted ids and the donut's walls are an entry/room bar rather than plain bars. So this
     /// owns <em>where</em> the walls are, not what they are called or in what order they are laid down; that
     /// split is what lets a per-side width be added once rather than in six copies.</para>

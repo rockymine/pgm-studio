@@ -72,7 +72,7 @@ public sealed record PlanProducibility(
 /// for free.</para>
 ///
 /// <para>Terrain and room are compared <b>separately</b>: a box whose corridor the emitters reproduce but whose
-/// terminal room they do not is a distinct, directed answer ("terrain replicable, room not"), because the room
+/// room they do not is a distinct, directed answer ("terrain replicable, room not"), because the room
 /// carries load-bearing export semantics (the bedrock floor and entrance line) rather than being just more
 /// terrain.</para>
 ///
@@ -273,7 +273,7 @@ public static class Producibility
             findings.Add(new Finding(BoxRules.NoFormForKind,
                 $"box '{box.Id}' has the kind '{box.Kind}', which no form the generator builds covers", Subjects: [box.Id]));
 
-        // the terrain/room split: the corridor reproduces but the terminal room does not. Only reachable past
+        // the terrain/room split: the corridor reproduces but the room does not. Only reachable past
         // the exact-match return above, so every candidate here already differs somewhere.
         if (roomPieces.Count > 0
             && candidates.FirstOrDefault(c => c.Mask is not null && c.Room is not null
@@ -297,7 +297,7 @@ public static class Producibility
     }
 
     /// <summary>What the derivers read the box as — the approach family for a roomed box, the compound form for a
-    /// terminal-free one. A hint that narrows a search, not a verdict (see <see cref="BoxProducibility"/>).</summary>
+    /// room-free one. A hint that narrows a search, not a verdict (see <see cref="BoxProducibility"/>).</summary>
     private static string Identify(IReadOnlySet<(int, int)> all, IReadOnlySet<(int, int)> roomCells)
     {
         if (all.Count == 0) return "empty";
@@ -454,8 +454,7 @@ public static class Producibility
                                 yield return new Candidate(label, cw, null, null, res.Rejection);
                                 continue;
                             }
-                            var mask = Mask(ok.Approach.Terrain.Select(p => p.Rect));
-                            mask.UnionWith(Mask([ok.Approach.WoolRoom.Rect]));
+                            var mask = Mask(ok.Approach.Pieces.Select(p => p.Rect));
                             yield return new Candidate(label, cw, mask, ok.Approach.WoolRoom.Rect, null);
                         }
     }

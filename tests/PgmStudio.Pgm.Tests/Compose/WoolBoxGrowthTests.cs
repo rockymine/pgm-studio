@@ -6,8 +6,8 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The wool arms as box fills: every wool-approach piece a filled unit carries is slot- and box-labeled, the
-/// wool room is emitted as a real role-bearing terminal, the labels survive every compose move up to
+/// The wool arms as box fills: every wool-approach piece a filled unit carries is part- and box-labeled, the
+/// wool room is emitted as a real role-bearing room, the labels survive every compose move up to
 /// assembly (where the written plan drops them by design), and the family variety the fill menu admits
 /// actually occurs across seeds.
 /// </summary>
@@ -46,25 +46,25 @@ public sealed class WoolBoxGrowthTests
     }
 
     [Test]
-    public async Task Every_wool_approach_piece_carries_its_slot_and_box_label()
+    public async Task Every_wool_approach_piece_carries_its_part_and_box_label()
     {
         var unit = Fill(16, seedFrom: 3);
         var boxed = unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Wool).ToList();
         await Assert.That(boxed).IsNotEmpty();
         foreach (var p in boxed)
         {
-            await Assert.That(p.Slot).IsNotNull();
+            await Assert.That(p.Part).IsNotNull();
             // terrain ids serialize the ownership as a prefix; the room carries its role-bearing name
-            if (p.Slot != ApproachSlots.Room)
+            if (p.Part != CompoundParts.Room)
                 await Assert.That(p.Id.StartsWith(p.Box!.Id)).IsTrue();
         }
-        // every wool/spawn box piece carries a slot + a box label
+        // every wool/spawn box piece carries a part + a box label
         foreach (var p in unit.Pieces.Where(p => p.Box?.Kind is BoxKind.Wool or BoxKind.Spawn))
-            await Assert.That(p.Slot).IsNotNull();
+            await Assert.That(p.Part).IsNotNull();
     }
 
     [Test]
-    public async Task The_wool_room_is_emitted_as_a_role_bearing_terminal()
+    public async Task The_wool_room_is_emitted_as_a_role_bearing_room()
     {
         var unit = Fill(12, seedFrom: 5);
         await Assert.That(unit.Wools).IsNotEmpty();
@@ -72,7 +72,7 @@ public sealed class WoolBoxGrowthTests
         {
             var room = unit.Pieces.Single(p => p.Id == wool.Piece);
             await Assert.That(room.Role).IsEqualTo(PlanRoles.WoolRoom);
-            await Assert.That(room.Slot).IsEqualTo(ApproachSlots.Room);
+            await Assert.That(room.Part).IsEqualTo(CompoundParts.Room);
         }
     }
 
@@ -87,7 +87,7 @@ public sealed class WoolBoxGrowthTests
             foreach (var boxId in unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Wool).Select(p => p.Box!.Id).Distinct())
             {
                 var boxPieces = unit.Pieces.Where(p => p.Box?.Id == boxId).ToList();
-                var room = boxPieces.Single(p => p.Slot == ApproachSlots.Room);
+                var room = boxPieces.Single(p => p.Part == CompoundParts.Room);
                 var (filled, roomCells) = BoxCells(boxPieces, room.Id);
                 var (family, _) = ShapeClassifier.Classify(filled, roomCells);
                 await Assert.That(FillMenu.ProductionFamilies.Contains(family)).IsTrue();
@@ -106,7 +106,7 @@ public sealed class WoolBoxGrowthTests
             foreach (var boxId in unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Wool).Select(p => p.Box!.Id).Distinct())
             {
                 var boxPieces = unit.Pieces.Where(p => p.Box?.Id == boxId).ToList();
-                var room = boxPieces.Single(p => p.Slot == ApproachSlots.Room);
+                var room = boxPieces.Single(p => p.Part == CompoundParts.Room);
                 var (filled, roomCells) = BoxCells(boxPieces, room.Id);
                 families.Add(ShapeClassifier.Classify(filled, roomCells).Family);
             }
@@ -118,8 +118,8 @@ public sealed class WoolBoxGrowthTests
     [Test]
     public async Task The_spawn_box_classifies_to_its_family_and_its_slots_mirror()
     {
-        // the spawn is the second box kind: its room a Spawn-role terminal, every piece slot- and box-labeled.
-        // Classify the box's own terrain and re-derive its slots — the same emit↔derive mirror the wool box
+        // the spawn is the second box kind: its room a Spawn-role room, every piece part- and box-labeled.
+        // Classify the box's own terrain and re-derive its parts — the same emit↔derive mirror the wool box
         // passes.
         var seen = new HashSet<ShapeFamily>();
         for (ulong seed = 1; seed <= 20; seed++)
@@ -129,16 +129,16 @@ public sealed class WoolBoxGrowthTests
                 var boxPieces = unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Spawn).ToList();
                 if (boxPieces.Count == 0) continue;
 
-                var room = boxPieces.Single(p => p.Slot == ApproachSlots.Room);
+                var room = boxPieces.Single(p => p.Part == CompoundParts.Room);
                 await Assert.That(room.Role).IsEqualTo(PlanRoles.Spawn);
 
                 var (filled, roomCells) = BoxCells(boxPieces, room.Id);
                 var family = ShapeClassifier.Classify(filled, roomCells).Family;
                 await Assert.That(SpawnBoxEmitter.Families.Contains(family)).IsTrue();
 
-                var slots = SlotAssignment.AssignSlots(family, boxPieces.Select(p => (p.Id, p.Rect)).ToList(), room.Id);
+                var parts = PartAssignment.AssignParts(family, boxPieces.Select(p => (p.Id, p.Rect)).ToList(), room.Id);
                 foreach (var p in boxPieces)
-                    await Assert.That(slots[p.Id]).IsEqualTo(p.Slot);
+                    await Assert.That(parts[p.Id]).IsEqualTo(p.Part);
                 seen.Add(family);
             }
         await Assert.That(seen).IsNotEmpty();
@@ -169,7 +169,7 @@ public sealed class WoolBoxGrowthTests
     [Test]
     public async Task Assembled_plans_carry_no_labels()
     {
-        // Assemble is the label boundary: PlanPiece has no slot/box field, so the write is label-free —
+        // Assemble is the label boundary: PlanPiece has no part/box field, so the write is label-free —
         // this pins the pieces still carry their roles (the room) while nothing else leaks
         var plan = Composer.Compose(new ComposeRequest(16, teams: 2, seed: 7));
         await Assert.That(plan.Pieces.Any(p => p.Role == PlanRoles.WoolRoom)).IsTrue();
@@ -190,7 +190,7 @@ public sealed class WoolBoxGrowthTests
         var hole = ok.Vacancies.Single(v => v.Kind == "hole");
         await Assert.That(hole.Rect.Width * hole.Rect.Height).IsEqualTo(15);         // the 3×5 hole (orientation aside)
         await Assert.That(Math.Min(hole.Rect.Width, hole.Rect.Height)).IsEqualTo(3);
-        var entry = ok.Approach.Terrain.Where(p => p.Slot == ApproachSlots.Entry).ToList();
+        var entry = ok.Approach.Pieces.Where(p => p.Part == CompoundParts.Entry).ToList();
         await Assert.That(entry.Count).IsEqualTo(1);
         await Assert.That(Math.Max(entry[0].Rect.Width, entry[0].Rect.Height)).IsEqualTo(5);   // the widened hub entry
     }

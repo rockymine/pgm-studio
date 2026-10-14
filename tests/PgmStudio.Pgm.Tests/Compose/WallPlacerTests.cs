@@ -21,8 +21,8 @@ public sealed class WallPlacerTests
             new GrownPiece("wool-a-t1", new CellRect(3, 9, 3, 6), Box: WoolBox),
             new GrownPiece("wool-a-room", new CellRect(3, 15, 3, 2), PlanRoles.WoolRoom, Box: WoolBox),
         ],
-        new GrownSpawn("hub-t1", [1, 1], "front"),
-        [new GrownWool("wool-a-room", [1, 1])]);
+        new Marker("hub-t1", 1, 1), "front",
+        [new Marker("wool-a-room", 1, 1)]);
 
     [Test]
     public async Task A_straight_lane_is_cut_at_the_standoff_and_walled_across_the_cut()
@@ -63,15 +63,15 @@ public sealed class WallPlacerTests
         [
             new GrownPiece("frontline-t1", new CellRect(-4, 6, 8, 6), Box: new BoxRef("frontline", BoxKind.Frontline)),
             new GrownPiece("hub-t1", new CellRect(-4, 12, 9, 12), Box: new BoxRef("hub", BoxKind.Hub)),
-            new GrownPiece("wool-b-t4", new CellRect(5, 14, 3, 5), Slot: ApproachSlots.Entry, Box: DonutBox),
-            new GrownPiece("wool-b-t1", new CellRect(8, 16, 9, 3), Slot: ApproachSlots.EntryBar, Box: DonutBox),
-            new GrownPiece("wool-b-t2", new CellRect(8, 12, 3, 4), Slot: ApproachSlots.Leg, Box: DonutBox),
-            new GrownPiece("wool-b-t3", new CellRect(14, 12, 3, 4), Slot: ApproachSlots.Leg, Box: DonutBox),
-            new GrownPiece("wool-b-t5", new CellRect(8, 9, 9, 3), Slot: ApproachSlots.RoomBar, Box: DonutBox),
+            new GrownPiece("wool-b-t4", new CellRect(5, 14, 3, 5), Part: CompoundParts.Entry, Box: DonutBox),
+            new GrownPiece("wool-b-t1", new CellRect(8, 16, 9, 3), Part: CompoundParts.EntryBar, Box: DonutBox),
+            new GrownPiece("wool-b-t2", new CellRect(8, 12, 3, 4), Part: CompoundParts.Leg, Box: DonutBox),
+            new GrownPiece("wool-b-t3", new CellRect(14, 12, 3, 4), Part: CompoundParts.Leg, Box: DonutBox),
+            new GrownPiece("wool-b-t5", new CellRect(8, 9, 9, 3), Part: CompoundParts.RoomBar, Box: DonutBox),
             new GrownPiece("wool-b-room", new CellRect(17, 9, 2, 3), PlanRoles.WoolRoom, Box: DonutBox),
         ],
-        new GrownSpawn("hub-t1", [1, 1], "front"),
-        [new GrownWool("wool-b-room", [1, 1])]);
+        new Marker("hub-t1", 1, 1), "front",
+        [new Marker("wool-b-room", 1, 1)]);
 
     [Test]
     public async Task A_donut_is_walled_across_each_leg_as_near_the_entry_bar_as_it_stands()

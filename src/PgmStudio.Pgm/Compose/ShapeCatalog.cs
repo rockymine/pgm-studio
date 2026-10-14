@@ -240,7 +240,7 @@ public static class ShapeCatalog
 
     // ── compounds ────────────────────────────────────────────────────────────────────────────────────────────
 
-    /// <summary>The terminal-free compounds: the hub's form menu and the frontline's, each at a box big enough for
+    /// <summary>The room-free compounds: the hub's form menu and the frontline's, each at a box big enough for
     /// the widest form so the grid reads as one family of shapes rather than a size ladder. Both menus are
     /// sampled by the allocator, so every entry is in the mix; the ring-wall and arm-layout axes are a separate
     /// slice (they multiply each form rather than adding one).</summary>
@@ -275,7 +275,7 @@ public static class ShapeCatalog
     };
 
     /// <summary>Wrap a compound's pieces as a standalone <c>symmetry:none</c> plan — the compound twin of
-    /// <see cref="WoolBoxEmitter.AsPlan"/>, which a terminal-free compound cannot use (it has no room).</summary>
+    /// <see cref="WoolBoxEmitter.AsPlan"/>, which a room-free compound cannot use (it has no room).</summary>
     private static PlanModel CompoundPlan(IReadOnlyList<GrownPiece> pieces, string name)
     {
         var plan = new PlanModel
@@ -295,8 +295,7 @@ public static class ShapeCatalog
     /// were parameterized.</summary>
     private static ulong PatternKey(PlacedApproach approach)
     {
-        var parts = approach.Terrain.Select(p => (Rect: p.Rect, Room: false))
-            .Append((Rect: approach.WoolRoom.Rect, Room: true)).ToList();
+        var parts = approach.Pieces.Select(p => (Rect: p.Rect, Room: p.Part == CompoundParts.Room)).ToList();
         int minX = parts.Min(p => p.Rect.X), minZ = parts.Min(p => p.Rect.Z);
         var maxZ = parts.Max(p => p.Rect.Z + p.Rect.Height);
         var hash = 14695981039346656037UL;

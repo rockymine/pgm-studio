@@ -142,7 +142,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
                     space.Kind, space.Cells.Count, narrowest?.Cells * board.Cell,
                     narrowest is null ? [] : [narrowest.From, narrowest.To],
                     narrowest?.X ?? 0, narrowest?.Z ?? 0, narrowest?.AlongX ?? false,
-                    space.WallSlots);
+                    space.Walls);
             })];
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException

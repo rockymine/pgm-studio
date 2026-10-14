@@ -6,8 +6,8 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The publish policy (docs/generator/audit.md §4.1): terminal-capped shapes veto their
-/// bays and holes, allow their notches (the clearance margin handles room proximity); terminal-free compounds
+/// The publish policy (docs/generator/audit.md §4.1): room-capped shapes veto their
+/// bays and holes, allow their notches (the clearance margin handles room proximity); room-free compounds
 /// allow everything. The publishable region is the front, unguarded parts. Publishing is an offer for a later
 /// pipeline step, never a fill.
 /// </summary>
@@ -19,45 +19,45 @@ public sealed class PublishPolicyTests
         c.Spaces.Single(s => s.Kind == kind);
 
     [Test]
-    public async Task Terminal_capped_bays_and_holes_veto_notches_allow()
+    public async Task Room_capped_bays_and_holes_veto_notches_allow()
     {
-        // the scythe's bay (walled by the terminal's path) and its notch
+        // the scythe's bay (walled by the room's path) and its notch
         var scythe = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, Cw));
-        await Assert.That(PublishPolicy.Space(SpaceOf(scythe, NegativeSpaceKinds.Bay), terminalCapped: true))
+        await Assert.That(PublishPolicy.Space(SpaceOf(scythe, NegativeSpaceKinds.Bay), roomCapped: true))
             .IsEqualTo(PublishVerdict.Veto);
-        await Assert.That(PublishPolicy.Space(SpaceOf(scythe, NegativeSpaceKinds.Notch), terminalCapped: true))
+        await Assert.That(PublishPolicy.Space(SpaceOf(scythe, NegativeSpaceKinds.Notch), roomCapped: true))
             .IsEqualTo(PublishVerdict.Allow);
 
-        // the U's entry-walled bay is vetoed alike — no room slot needed
+        // the U's entry-walled bay is vetoed alike — no room part needed
         var u = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, Cw));
-        await Assert.That(PublishPolicy.Space(SpaceOf(u, NegativeSpaceKinds.Bay), terminalCapped: true))
+        await Assert.That(PublishPolicy.Space(SpaceOf(u, NegativeSpaceKinds.Bay), roomCapped: true))
             .IsEqualTo(PublishVerdict.Veto);
 
         // the donut's hole is the shape's own device
         var donut = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Donut, 18, 15, Cw));
-        await Assert.That(PublishPolicy.Space(SpaceOf(donut, NegativeSpaceKinds.Hole), terminalCapped: true))
+        await Assert.That(PublishPolicy.Space(SpaceOf(donut, NegativeSpaceKinds.Hole), roomCapped: true))
             .IsEqualTo(PublishVerdict.Veto);
 
         // the Z's second notch is walled by the room-run and still publishes — proximity is the guard's job
         var z = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Z, 15, 21, Cw));
-        var roomRunNotch = z.Spaces.Single(s => s.WallSlots.Contains(ApproachSlots.RoomRun));
-        await Assert.That(PublishPolicy.Space(roomRunNotch, terminalCapped: true)).IsEqualTo(PublishVerdict.Allow);
+        var roomRunNotch = z.Spaces.Single(s => s.Walls.Contains(CompoundParts.RoomRun));
+        await Assert.That(PublishPolicy.Space(roomRunNotch, roomCapped: true)).IsEqualTo(PublishVerdict.Allow);
     }
 
     [Test]
-    public async Task Terminal_free_bodies_publish_their_bays_and_holes()
+    public async Task Compounds_with_no_room_publish_their_bays_and_holes()
     {
-        var u = CompoundEdges.Classify(ShapeEmitter.EmitCompound(ShapeFamily.U, 15, 18, Cw));
+        var u = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, Cw).WithoutRoom());
         var bay = SpaceOf(u, NegativeSpaceKinds.Bay);
-        await Assert.That(PublishPolicy.Space(bay, terminalCapped: false)).IsEqualTo(PublishVerdict.Allow);
-        await Assert.That(PublishPolicy.PublishableParts(bay, terminalCapped: false).Count).IsEqualTo(1);
+        await Assert.That(PublishPolicy.Space(bay, roomCapped: false)).IsEqualTo(PublishVerdict.Allow);
+        await Assert.That(PublishPolicy.PublishableParts(bay, roomCapped: false).Count).IsEqualTo(1);
 
         var ring = CompoundEdges.Classify(CompoundEmitter.Ring(Cw, 5 * Cw, 5 * Cw));
         var hole = SpaceOf(ring, NegativeSpaceKinds.Hole);
-        await Assert.That(PublishPolicy.PublishableParts(hole, terminalCapped: false).Count).IsEqualTo(1);
+        await Assert.That(PublishPolicy.PublishableParts(hole, roomCapped: false).Count).IsEqualTo(1);
     }
 
-    // the whole-classification read infers the context from the terminal-owned runs and applies the part
+    // the whole-classification read infers the context from the room-owned runs and applies the part
     // filter: front and unguarded
     [Test]
     public async Task Publishable_infers_context_and_filters_parts()
@@ -76,7 +76,7 @@ public sealed class PublishPolicyTests
         await Assert.That(scytheOffers.Count).IsEqualTo(1);
         await Assert.That(scytheOffers[0].Space.Kind).IsEqualTo(NegativeSpaceKinds.Notch);
 
-        // the degenerate E's covered slots stay back: only the front bay part is offered
+        // the degenerate E's covered parts stay back: only the front bay part is offered
         var e = CompoundEdges.Classify(CompoundEmitter.SpineArms(spineLen: 15, barThickness: 3, arms: [(0, 3, 12), (6, 3, 6), (12, 3, 12)]));
         var eOffers = PublishPolicy.Publishable(e);
         await Assert.That(eOffers.Count).IsEqualTo(1);

@@ -88,7 +88,7 @@ public class TeamUnitAllocatorTests
         var intoHub = spawn.Rect.X >= hub.Rect.X + hub.Rect.Width ? "left"
             : spawn.Rect.X + spawn.Rect.Width <= hub.Rect.X ? "right"
             : spawn.Rect.Z >= hub.Rect.Z + hub.Rect.Height ? "front" : "back";
-        await Assert.That(filled.Unit.Spawn.Facing).IsEqualTo(intoHub);
+        await Assert.That(filled.Unit.SpawnFacing).IsEqualTo(intoHub);
     }
 
     [Test]

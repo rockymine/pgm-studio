@@ -9,19 +9,22 @@ namespace PgmStudio.Pgm.Compose;
 /// <see cref="WoolBoxEmitter"/>-placed room deep in the box.</summary>
 public readonly record struct WoolBox(int X, int Z, int W, int H);
 
-/// <summary>An <see cref="ApproachShape"/> placed on the plan: its pieces as <see cref="Terrain"/> with ids, slots and
-/// box ownership, the dead-end <see cref="WoolRoom"/>, the wool marker at piece-relative offset <see cref="At"/>, and
-/// the published <see cref="Vacancies"/> (box-local).</summary>
+/// <summary>A wool compound placed on the plan: its <see cref="Pieces"/> with ids, parts and box ownership, the
+/// wool room last, the <see cref="Marker"/> the wool stands at, and the published <see cref="Vacancies"/>
+/// (box-local).</summary>
 public sealed record PlacedApproach(
-    IReadOnlyList<GrownPiece> Terrain, GrownPiece WoolRoom, double[] At,
-    IReadOnlyList<ShapeVacancy> Vacancies);
+    IReadOnlyList<GrownPiece> Pieces, Marker Marker, IReadOnlyList<ShapeVacancy> Vacancies)
+{
+    /// <summary>The wool room: the piece the marker stands on.</summary>
+    public GrownPiece WoolRoom => Pieces.Single(piece => piece.Id == Marker.Piece);
+}
 
 /// <summary>
 /// The wool binding over <see cref="ShapeEmitter"/> — the composer's mirror of the categorizer's shape
-/// read. The emitter owns the family geometry; this binding stamps what is wool-specific: the terminal
-/// becomes a <see cref="PlanRoles.WoolRoom"/> piece carrying the wool marker, every piece is wrapped as a
-/// composer-native <see cref="GrownPiece"/> with its slot and (when filling a typed box) its
-/// <see cref="BoxRef"/> ownership, and ids take the box's prefix. <see cref="AsPlan"/> wraps one emission
+/// read. The emitter owns the family geometry; this binding stamps what is wool-specific: the room becomes a
+/// <see cref="PlanRoles.WoolRoom"/> piece carrying the wool marker, every piece is laid as a composer-native
+/// <see cref="GrownPiece"/> with its part and (when filling a typed box) its <see cref="BoxRef"/> ownership,
+/// and ids take the box's prefix. <see cref="AsPlan"/> wraps one emission
 /// as a standalone plan for classification and rendering.
 /// </summary>
 public static class WoolBoxEmitter
@@ -48,7 +51,7 @@ public static class WoolBoxEmitter
     /// lanes). Knobs pass through to <see cref="ShapeEmitter.Emit"/>; see there for their meaning.</summary>
     public static PlacedApproach Emit(ShapeFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false, bool woolExtend = false, int attachmentWidth = 0, string idPrefix = "wa", int entryShift = 0, int woolShift = 0, int attachmentOffset = 0)
     {
-        ApproachShape shape;
+        Compound shape;
         try
         {
             shape = ShapeEmitter.Emit(family, box.W, box.H, corridorWidth, flip, roomPlacement, attachments, woolAtEnd, woolExtend, attachmentWidth, entryShift, woolShift, attachmentOffset);
@@ -59,7 +62,7 @@ public static class WoolBoxEmitter
                 ? $"wool box {box.W}x{box.H} is too small for family {family}."
                 : e.Message);
         }
-        return Wrap(shape, box.X, box.Z, idPrefix, $"{idPrefix}-wool", null);
+        return Lay(shape, box.X, box.Z, idPrefix, $"{idPrefix}-wool", null);
     }
 
     /// <summary>Fill a typed <paramref name="box"/> whose mouth is <paramref name="mouth"/> — any of the four
@@ -97,7 +100,7 @@ public static class WoolBoxEmitter
 
         // A knob combination the emitter does not build (a side-tuck room on an L, say) is a directed rejection
         // like every other refusal here — this type's contract is a data channel, never a throw.
-        ApproachShape raw;
+        Compound raw;
         try
         {
             raw = ShapeEmitter.Emit(family, canonW, canonH, corridorWidth, flip, roomPlacement,
@@ -107,8 +110,8 @@ public static class WoolBoxEmitter
         var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, canonW, canonH);
         var shape = mouthTop.Turned(mouth.TopOnto(), w, h);
 
-        var a = Wrap(shape, box.Rect.X, box.Rect.Z, box.Id, roomId ?? $"{box.Id}-room", box.Ref);
-        var vacancies = shape.Compound.Vacancies
+        var a = Lay(shape, box.Rect.X, box.Rect.Z, box.Id, roomId ?? $"{box.Id}-room", box.Ref);
+        var vacancies = shape.Vacancies
             .Select(v => new Vacancy(v.Kind,
                 new(box.Rect.X + v.Rect.X, box.Rect.Z + v.Rect.Z, v.Rect.Width, v.Rect.Height),
                 v.Mouth is { } e ? new BoxAbutment(e, e is BoxEdge.Top or BoxEdge.Bottom ? v.Rect.X : v.Rect.Z,
@@ -118,17 +121,10 @@ public static class WoolBoxEmitter
         return new FillResult.Ok(a, vacancies);
     }
 
-    // translate box-local -> absolute and wrap as pieces, each carrying its slot (and box ownership when given)
-    private static PlacedApproach Wrap(ApproachShape s, int x, int z, string idPrefix, string roomId, BoxRef? box)
+    private static PlacedApproach Lay(Compound shape, int x, int z, string idPrefix, string roomId, BoxRef? box)
     {
-        var terrain = new List<GrownPiece>(s.Compound.Pieces.Count);
-        for (var i = 0; i < s.Compound.Pieces.Count; i++)
-        {
-            var (r, slot) = s.Compound.Pieces[i];
-            terrain.Add(new GrownPiece($"{idPrefix}-t{i + 1}", new(x + r.X, z + r.Z, r.Width, r.Height), PlanRoles.Piece, slot, box));
-        }
-        var woolRoom = new GrownPiece(roomId, new(x + s.Room.X, z + s.Room.Z, s.Room.Width, s.Room.Height), PlanRoles.WoolRoom, ApproachSlots.Room, box);
-        return new PlacedApproach(terrain, woolRoom, s.At, s.Compound.Vacancies);
+        var (pieces, marker) = GrownPieces.Lay(shape, x, z, idPrefix, roomId, BoxKind.Wool, box);
+        return new PlacedApproach(pieces, marker!, shape.Vacancies);
     }
 
     /// <summary>Wrap a single emission as a standalone <c>symmetry:none</c> plan — the form the categorizer and
@@ -140,9 +136,8 @@ public static class WoolBoxEmitter
             Meta = new PlanMeta { Name = name },
             Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9 },
         };
-        foreach (var p in a.Terrain) plan.Pieces.Add(new PlanPiece { Id = p.Id, Role = p.Role, Rect = p.Rect });
-        plan.Pieces.Add(new PlanPiece { Id = a.WoolRoom.Id, Role = a.WoolRoom.Role, Rect = a.WoolRoom.Rect });
-        plan.Placements.Wools.Add(new WoolPlacement { Piece = a.WoolRoom.Id, At = Composer.MarkerOffset(a.At, plan.Globals.Cell) });
+        foreach (var p in a.Pieces) plan.Pieces.Add(new PlanPiece { Id = p.Id, Role = p.Role, Rect = p.Rect });
+        plan.Placements.Wools.Add(new WoolMarker { Piece = a.Marker.Piece, At = Composer.MarkerOffset(a.Marker, plan.Globals.Cell) });
         return plan;
     }
 }

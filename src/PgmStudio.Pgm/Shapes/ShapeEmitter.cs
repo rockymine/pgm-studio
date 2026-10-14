@@ -45,40 +45,23 @@ public static class BoxEdges
 /// no derive pass finds it. <see cref="Kind"/>: <c>bay</c> (open toward one edge — claimable by a later
 /// box), <c>notch</c> (a corner remainder, open on two edges), <c>hole</c> (enclosed by the shape).
 /// <see cref="Mouth"/> is the open edge of a bay (null for notches and holes); <see cref="Walls"/> are the
-/// template slots of the pieces bounding it.</summary>
+/// template parts of the pieces bounding it.</summary>
 public sealed record ShapeVacancy(string Kind, CellRect Rect, BoxEdge? Mouth, IReadOnlyList<string> Walls);
-
-/// <summary>A compound with a gameplay room attached: the <see cref="Compound"/> a wool or spawn box is, the
-/// <see cref="Room"/> at the end of it, and the marker <see cref="At"/> within the room (half-cell coordinates
-/// from the room's corner). All rects are box-local.</summary>
-public sealed record ApproachShape(Compound Compound, CellRect Room, double[] At)
-{
-
-    /// <summary>The emission laid back onto its <paramref name="width"/> × <paramref name="height"/> box by
-    /// <paramref name="turn"/>: the compound, the room, and the marker within the room.</summary>
-    public ApproachShape Turned(BoxTurn turn, int width, int height)
-    {
-        var (atX, atZ) = turn.Point(At[0], At[1], Room.Width, Room.Height);
-        return new(Compound.Turned(turn, width, height), turn.Rect(Room, width, height), [atX, atZ]);
-    }
-}
 
 /// <summary>
 /// The one shape emitter — fills a W×H box with a base family at a corridor width, in the canonical box-local
-/// frame. Pure cell geometry: no plan types, no roles, no ids — bindings (the wool box, the spawn box) stamp
-/// those. It emits in <b>two stages</b>: <see cref="EmitCompound"/> builds the terminal-free <see cref="Compound"/>
-/// (slot-typed rects (<see cref="ApproachSlots"/>) + vacancies, shared by every box kind), and a
-/// <b>designation</b> finishes it — <see cref="Emit"/> applies the approach designation (<see cref="ApproachShape"/>),
-/// stamping the terminal ("room") rect and marker; the hub/frontline designations read the same compound without a
-/// room. <see cref="OrientMouthTop"/> / <see cref="MouthEdge"/> place a family's mouth on the edge a caller docks.
+/// frame, as a <see cref="Compound"/> that ends in a room: part-named pieces (<see cref="CompoundParts"/>), the
+/// room piece last, its marker and the vacancies the pieces leave. Pure cell geometry: no plan types, roles or
+/// ids — the wool and spawn boxes stamp those. <see cref="OrientMouthTop"/> / <see cref="MouthEdge"/> place a
+/// family's mouth on the edge a caller docks.
 /// </summary>
 public static class ShapeEmitter
 {
-    /// <summary>The dead-end terminal's depth along the final corridor, in cells — a two-cell (~10-block)
+    /// <summary>The dead-end room's depth along the final corridor, in cells — a two-cell (~10-block)
     /// plateau that clears the export stamp.</summary>
     public const int RoomDepthCells = 2;
 
-    /// <summary>The canonical-frame mouth edge of <paramref name="family"/>: where its entry slot(s) dock the
+    /// <summary>The canonical-frame mouth edge of <paramref name="family"/>: where its entry part(s) dock the
     /// host. A flip mirrors the shape along this edge, so it never moves the mouth.</summary>
     public static BoxEdge MouthEdge(ShapeFamily family) => family switch
     {
@@ -114,16 +97,15 @@ public static class ShapeEmitter
             // (woolAtEnd) sits INSIDE the ring's span instead, so it needs none of it
             ShapeFamily.Donut => (4 * cw + (woolExtend ? cw : 0) + (woolAtEnd ? 0 : rd),
                 Math.Max(2 * cw + 1, attachments >= 2 ? 2 * aw + 1 : aw + cw)),
-            _ => throw new ArgumentOutOfRangeException(nameof(family), family, "the emitter fills terminal-capped families"),
+            _ => throw new ArgumentOutOfRangeException(nameof(family), family, "the emitter fills room-capped families"),
         };
     }
 
-    /// <summary>Emit <paramref name="family"/> into a W×H box at <paramref name="cw"/> (cells) as an
-    /// <b>approach</b>: build the terminal-free <see cref="EmitCompound"/> and stamp the approach designation onto it
-    /// (<see cref="ApproachShape"/>) — the terminal room and its marker. <paramref name="flip"/> mirrors the shape
+    /// <summary>Emit <paramref name="family"/> into a W×H box at <paramref name="cw"/> (cells) as a
+    /// compound ending in a room, with the room's marker. <paramref name="flip"/> mirrors the shape
     /// along its mouth (the turn goes left instead of right) so both handednesses are reachable. <paramref name="attachments"/> (donut) is the number of hub-side stubs, 1 or 2.
-    /// <paramref name="woolAtEnd"/> (U / H / donut) puts the terminal on an end of the crossbar / integrates it
-    /// at the ring corner. <paramref name="woolExtend"/> (donut) holds the terminal a short I out from the
+    /// <paramref name="woolAtEnd"/> (U / H / donut) puts the room on an end of the crossbar / integrates it
+    /// at the ring corner. <paramref name="woolExtend"/> (donut) holds the room a short I out from the
     /// shape. <paramref name="attachmentWidth"/> (donut, scythe) is the hub-interface width of the attachment in
     /// cells, measured ALONG the edge it docks (0 = one corridor width; the width grammar's w2/w4/w6 =
     /// <c>cw</c>/<c>2·cw</c>/<c>3·cw</c>). <paramref name="entryShift"/> / <paramref name="woolShift"/> (scythe)
@@ -135,38 +117,17 @@ public static class ShapeEmitter
     /// leg or bar can be wider than the rest; <c>null</c> builds every wall at <paramref name="cw"/>.
     /// Widening consumes the box's slack — the hole is what the walls leave — so a vector too fat for the box
     /// is refused rather than squashing the ring.</summary>
-    public static ApproachShape Emit(
+    public static Compound Emit(
         ShapeFamily family, int boxW, int boxH, int cw, bool flip = false,
         RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false,
         bool woolExtend = false, int attachmentWidth = 0, int entryShift = 0, int woolShift = 0,
         int attachmentOffset = 0, RingWalls? ringWalls = null)
-    {
-        var (terrain, room, at, vac) = Compose(
-            family, boxW, boxH, cw, flip, roomPlacement, attachments, woolAtEnd, woolExtend,
+    =>
+        Compose(family, boxW, boxH, cw, flip, roomPlacement, attachments, woolAtEnd, woolExtend,
             attachmentWidth, entryShift, woolShift, attachmentOffset, ringWalls);
-        return new ApproachShape(new Compound(terrain, vac), room, at);
-    }
-
-    /// <summary>The terminal-free <see cref="Compound"/> of <paramref name="family"/> in a W×H box at
-    /// <paramref name="cw"/> — the structural pieces and vacancies with <b>no terminal, marker, or id</b>, the
-    /// stage every designation builds on. Same geometry and knobs as <see cref="Emit"/>; it just withholds the
-    /// terminal (which the approach designation stamps). Hub/frontline designations read this same compound.</summary>
-    public static Compound EmitCompound(
-        ShapeFamily family, int boxW, int boxH, int cw, bool flip = false,
-        RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false,
-        bool woolExtend = false, int attachmentWidth = 0, int entryShift = 0, int woolShift = 0,
-        int attachmentOffset = 0, RingWalls? ringWalls = null)
-    {
-        var (terrain, _, _, vac) = Compose(
-            family, boxW, boxH, cw, flip, roomPlacement, attachments, woolAtEnd, woolExtend,
-            attachmentWidth, entryShift, woolShift, attachmentOffset, ringWalls);
-        return new Compound(terrain, vac);
-    }
-
 
     /// <summary>Build the family geometry into the canonical box, apply <paramref name="flip"/>, and return the
-    /// loose parts — the terminal-free terrain + vacancies plus the reserved terminal (room + marker). The one
-    /// per-family switch <see cref="Emit"/> and <see cref="EmitCompound"/> share; see <see cref="Emit"/> for the knobs.
+    /// compound: the pieces, the room last, its marker and the vacancies. See <see cref="Emit"/> for the knobs.
     /// Every segment abuts its neighbour along a full corridor-width edge; the shape stays inside the box; a box
     /// too small for the family's turns throws.
     ///
@@ -174,7 +135,7 @@ public static class ShapeEmitter
     /// canonical frame (<see cref="MouthEdge"/>): I/L/Z/scythe enter at the top, U/H at the bottom (their legs
     /// run down to the host), clamp/donut at the left (bars/stub open leftward). Callers reorient with
     /// <see cref="OrientMouthTop"/> to put any family's mouth on the edge they dock.</para></summary>
-    private static (List<(CellRect Rect, string Slot)> Terrain, CellRect Room, double[] At, List<ShapeVacancy> Vacancies) Compose(
+    private static Compound Compose(
         ShapeFamily family, int boxW, int boxH, int cw, bool flip,
         RoomPlacement roomPlacement, int attachments, bool woolAtEnd,
         bool woolExtend, int attachmentWidth, int entryShift, int woolShift,
@@ -182,7 +143,7 @@ public static class ShapeEmitter
     {
         var (W, H) = (boxW, boxH);
         if (family == ShapeFamily.Isolated)
-            throw new ArgumentException("the emitter fills terminal-capped families; Isolated is a derive-only reading.");
+            throw new ArgumentException("the emitter fills room-capped families; Isolated is a derive-only reading.");
         if (cw < 2) throw new ArgumentException($"corridor width {cw} < 2 (a lane is at least one 10-block cell pair).");
         if (cw > W) throw new ArgumentException($"corridor width {cw} exceeds box width {W}.");
         if (roomPlacement == RoomPlacement.SideTuck && family is not (ShapeFamily.I or ShapeFamily.Z or ShapeFamily.Scythe))
@@ -192,7 +153,7 @@ public static class ShapeEmitter
         if (attachmentOffset != 0 && family != ShapeFamily.Donut)
             throw new ArgumentException($"the attachment offset is a donut knob (requested {family}).");
 
-        var t = new List<(CellRect Rect, string Slot)>();
+        var t = new List<Piece>();
         var vac = new List<ShapeVacancy>();
         CellRect room;
         double[]? at = null;                                 // marker offset within the room (defaults to centre)
@@ -201,27 +162,27 @@ public static class ShapeEmitter
         {
             case ShapeFamily.I when roomPlacement == RoomPlacement.SideTuck:
             {
-                // straight lane; the room is a stub off the SIDE of the lane at the terminal — the catalog's
+                // straight lane; the room is a stub off the SIDE of the lane at the room — the catalog's
                 // side-tuck (tttt/vvvw): the lane runs straight to its end and the wool ducks off to one side.
                 // The room is BESIDE the lane (shares a vertical corridor-width edge), never a wide cap extending
                 // the lane's end. It reads I: the lane is straight and the room is excluded from the bend count.
                 Need(W >= cw + rd && H >= 2 * cw, family, W, H);
-                t.Add((new(0, 0, cw, H), ApproachSlots.Entry));   // straight vertical lane, full depth (left)
-                room = new(cw, H - cw, rd, cw);                   // room off the lane's right side, at the terminal
+                t.Add(new(new(0, 0, cw, H), CompoundParts.Entry));   // straight vertical lane, full depth (left)
+                room = new(cw, H - cw, rd, cw);                   // room off the lane's right side, at the room
                 at = [rd / 2.0, cw / 2.0];
                 if (H - cw > 0)
-                    vac.Add(new ShapeVacancy("notch", new(cw, 0, W - cw, H - cw), null, [ApproachSlots.Entry]));
+                    vac.Add(new ShapeVacancy("notch", new(cw, 0, W - cw, H - cw), null, [CompoundParts.Entry]));
                 break;
             }
             case ShapeFamily.I:
             {
                 Need(H >= rd + 1, family, W, H);
                 int lx = (W - cw) / 2, laneH = H - rd;
-                t.Add((new(lx, 0, cw, laneH), ApproachSlots.Entry));
+                t.Add(new(new(lx, 0, cw, laneH), CompoundParts.Entry));
                 room = new(lx, laneH, cw, rd);
-                if (lx > 0) vac.Add(new ShapeVacancy("notch", new(0, 0, lx, H), null, [ApproachSlots.Entry]));
+                if (lx > 0) vac.Add(new ShapeVacancy("notch", new(0, 0, lx, H), null, [CompoundParts.Entry]));
                 if (W - lx - cw > 0)
-                    vac.Add(new ShapeVacancy("notch", new(lx + cw, 0, W - lx - cw, H), null, [ApproachSlots.Entry]));
+                    vac.Add(new ShapeVacancy("notch", new(lx + cw, 0, W - lx - cw, H), null, [CompoundParts.Entry]));
                 break;
             }
             case ShapeFamily.L:
@@ -231,11 +192,11 @@ public static class ShapeEmitter
                 // the band sits in the vertical's own column and the shape collapses to a straight I).
                 Need(W >= cw + rd + 1 && H >= 2 * cw, family, W, H);
                 int vLx = 0, bandZ = H - cw;
-                t.Add((new(vLx, 0, cw, bandZ), ApproachSlots.Entry));       // vertical arm (enters at the mouth)
-                t.Add((new(0, bandZ, W - rd, cw), ApproachSlots.Run));      // horizontal band up to the room
+                t.Add(new(new(vLx, 0, cw, bandZ), CompoundParts.Entry));       // vertical arm (enters at the mouth)
+                t.Add(new(new(0, bandZ, W - rd, cw), CompoundParts.Run));      // horizontal band up to the room
                 room = new(W - rd, bandZ, rd, cw);                          // dead-end at the far side of the band
                 vac.Add(new ShapeVacancy("notch", new(cw, 0, W - cw, H - cw), null,
-                    [ApproachSlots.Entry, ApproachSlots.Run]));
+                    [CompoundParts.Entry, CompoundParts.Run]));
                 break;
             }
             case ShapeFamily.Z when roomPlacement == RoomPlacement.SideTuck:
@@ -247,12 +208,12 @@ public static class ShapeEmitter
                 Need(W >= 2 * cw + rd && H >= 3 * cw + 1, family, W, H);
                 int z1 = (H - cw) / 2;
                 int botZ = z1 + cw;
-                t.Add((new(0, 0, cw, z1), ApproachSlots.Entry));            // top arm (left) — the mouth
-                t.Add((new(0, z1, W, cw), ApproachSlots.Bar));              // crossing band
-                t.Add((new(W - cw, botZ, cw, H - botZ), ApproachSlots.RoomRun)); // bottom arm to the box bottom
+                t.Add(new(new(0, 0, cw, z1), CompoundParts.Entry));            // top arm (left) — the mouth
+                t.Add(new(new(0, z1, W, cw), CompoundParts.Bar));              // crossing band
+                t.Add(new(new(W - cw, botZ, cw, H - botZ), CompoundParts.RoomRun)); // bottom arm to the box bottom
                 room = new(W - cw - rd, H - cw, rd, cw);                    // room off the run's interior side
                 vac.Add(new ShapeVacancy("notch", new(cw, 0, W - cw, z1), null,
-                    [ApproachSlots.Entry, ApproachSlots.Bar]));
+                    [CompoundParts.Entry, CompoundParts.Bar]));
                 break;
             }
             case ShapeFamily.Z:
@@ -261,14 +222,14 @@ public static class ShapeEmitter
                 Need(W >= 2 * cw && H >= 3 * cw + rd, family, W, H);
                 int z1 = (H - rd - cw) / 2;                              // top-arm length (balanced with the bottom arm)
                 int botZ = z1 + cw, botLen = H - rd - botZ;
-                t.Add((new(0, 0, cw, z1), ApproachSlots.Entry));            // top arm (left) — the mouth
-                t.Add((new(0, z1, W, cw), ApproachSlots.Bar));              // crossing band
-                t.Add((new(W - cw, botZ, cw, botLen), ApproachSlots.RoomRun)); // bottom arm (right) up to the room
+                t.Add(new(new(0, 0, cw, z1), CompoundParts.Entry));            // top arm (left) — the mouth
+                t.Add(new(new(0, z1, W, cw), CompoundParts.Bar));              // crossing band
+                t.Add(new(new(W - cw, botZ, cw, botLen), CompoundParts.RoomRun)); // bottom arm (right) up to the room
                 room = new(W - cw, H - rd, cw, rd);
                 vac.Add(new ShapeVacancy("notch", new(cw, 0, W - cw, z1), null,
-                    [ApproachSlots.Entry, ApproachSlots.Bar]));
+                    [CompoundParts.Entry, CompoundParts.Bar]));
                 vac.Add(new ShapeVacancy("notch", new(0, botZ, W - cw, H - botZ), null,
-                    [ApproachSlots.Bar, ApproachSlots.RoomRun]));
+                    [CompoundParts.Bar, CompoundParts.RoomRun]));
                 break;
             }
             case ShapeFamily.Scythe:
@@ -288,9 +249,9 @@ public static class ShapeEmitter
                 if (woolShift < 0 || woolShift + rd > botZ - cw)
                     throw new ArgumentException(
                         $"wool shift {woolShift} leaves no return leg above the bar (box {W}x{H}).");
-                t.Add((new(0, entryShift, cw, aw), ApproachSlots.Entry));   // tail — the mouth, slid down the edge
-                t.Add((new(cw, entryShift, cw, botZ - entryShift), ApproachSlots.EntryRun)); // spine, shrunk with it
-                t.Add((new(cw, botZ, 3 * cw, cw), ApproachSlots.Bar));      // bottom bar (spine → return leg)
+                t.Add(new(new(0, entryShift, cw, aw), CompoundParts.Entry));   // tail — the mouth, slid down the edge
+                t.Add(new(new(cw, entryShift, cw, botZ - entryShift), CompoundParts.EntryRun)); // spine, shrunk with it
+                t.Add(new(new(cw, botZ, 3 * cw, cw), CompoundParts.Bar));      // bottom bar (spine → return leg)
                 if (roomPlacement == RoomPlacement.SideTuck)
                 {
                     // the wool docks the return leg's SIDE at its top end — the leg is shortened to the
@@ -300,16 +261,16 @@ public static class ShapeEmitter
                     if (woolShift + cw > botZ - 1)
                         throw new ArgumentException(
                             $"wool shift {woolShift} leaves no return leg above the bar (box {W}x{H}).");
-                    t.Add((new(3 * cw, woolShift, cw, botZ - woolShift), ApproachSlots.RoomRun));
+                    t.Add(new(new(3 * cw, woolShift, cw, botZ - woolShift), CompoundParts.RoomRun));
                     room = new(4 * cw, woolShift, rd, cw);                  // perpendicular, off the outer side
                 }
                 else
                 {
-                    t.Add((new(3 * cw, woolShift + rd, cw, botZ - woolShift - rd), ApproachSlots.RoomRun)); // return leg
+                    t.Add(new(new(3 * cw, woolShift + rd, cw, botZ - woolShift - rd), CompoundParts.RoomRun)); // return leg
                     room = new(3 * cw, woolShift, cw, rd);                  // wool caps the return leg
                 }
                 vac.Add(new ShapeVacancy("bay", new(2 * cw, 0, cw, botZ), BoxEdge.Top,
-                    [ApproachSlots.EntryRun, ApproachSlots.Bar, ApproachSlots.RoomRun]));
+                    [CompoundParts.EntryRun, CompoundParts.Bar, CompoundParts.RoomRun]));
                 break;
             }
             case ShapeFamily.H:
@@ -320,13 +281,13 @@ public static class ShapeEmitter
                 Need(W >= 3 * cw && H >= 2 * cw + 2 * rd, family, W, H);
                 int barZ = 2 * rd;                                       // wool + stub above the bar
                 int wx = woolAtEnd ? 0 : (W - cw) / 2;
-                t.Add((new(0, barZ, W, cw), ApproachSlots.Bar));                        // crossbar (full width)
-                t.Add((new(0, barZ + cw, cw, H - barZ - cw), ApproachSlots.Entry));     // left leg (down to the hub)
-                t.Add((new(W - cw, barZ + cw, cw, H - barZ - cw), ApproachSlots.Entry)); // right leg (down to the hub)
-                t.Add((new(wx, rd, cw, rd), ApproachSlots.RoomRun));        // room-run stub from the crossbar up to the wool
+                t.Add(new(new(0, barZ, W, cw), CompoundParts.Bar));                        // crossbar (full width)
+                t.Add(new(new(0, barZ + cw, cw, H - barZ - cw), CompoundParts.Entry));     // left leg (down to the hub)
+                t.Add(new(new(W - cw, barZ + cw, cw, H - barZ - cw), CompoundParts.Entry)); // right leg (down to the hub)
+                t.Add(new(new(wx, rd, cw, rd), CompoundParts.RoomRun));        // room-run stub from the crossbar up to the wool
                 room = new(wx, 0, cw, rd);                                  // wool caps the stub (middle or an end)
                 vac.Add(new ShapeVacancy("bay", new(cw, barZ + cw, W - 2 * cw, H - barZ - cw), BoxEdge.Bottom,
-                    [ApproachSlots.Entry, ApproachSlots.Bar, ApproachSlots.Entry]));
+                    [CompoundParts.Entry, CompoundParts.Bar, CompoundParts.Entry]));
                 break;
             }
             case ShapeFamily.U:
@@ -338,12 +299,12 @@ public static class ShapeEmitter
                 Need(W >= 3 * cw && H >= 2 * cw + rd, family, W, H);
                 int barZ = rd;                                           // wool sits directly above the bar
                 int wx = woolAtEnd ? 0 : (W - cw) / 2;
-                t.Add((new(0, barZ, W, cw), ApproachSlots.Bar));                        // crossbar (full width)
-                t.Add((new(0, barZ + cw, cw, H - barZ - cw), ApproachSlots.Entry));     // left leg (down to the hub)
-                t.Add((new(W - cw, barZ + cw, cw, H - barZ - cw), ApproachSlots.Entry)); // right leg (down to the hub)
+                t.Add(new(new(0, barZ, W, cw), CompoundParts.Bar));                        // crossbar (full width)
+                t.Add(new(new(0, barZ + cw, cw, H - barZ - cw), CompoundParts.Entry));     // left leg (down to the hub)
+                t.Add(new(new(W - cw, barZ + cw, cw, H - barZ - cw), CompoundParts.Entry)); // right leg (down to the hub)
                 room = new(wx, 0, cw, rd);                                  // wool flush on the crossbar
                 vac.Add(new ShapeVacancy("bay", new(cw, barZ + cw, W - 2 * cw, H - barZ - cw), BoxEdge.Bottom,
-                    [ApproachSlots.Entry, ApproachSlots.Bar, ApproachSlots.Entry]));
+                    [CompoundParts.Entry, CompoundParts.Bar, CompoundParts.Entry]));
                 break;
             }
             case ShapeFamily.Clamp:
@@ -361,21 +322,21 @@ public static class ShapeEmitter
                     // connector to the right leg) and its BOTTOM (the left leg) — two adjacent faces. The
                     // connector runs a row above the left leg, so the left leg reaches the mouth only through
                     // the wool: the wool is the cut cell. Both legs still meet the host on the bottom mouth.
-                    t.Add((new(W - cw, 0, cw, H), ApproachSlots.Entry));                   // right leg (full height, I)
-                    t.Add((new(cw, 0, gap, rd), ApproachSlots.Bar));                       // connector: wool → right leg
-                    t.Add((new(0, rd, cw, H - rd), ApproachSlots.Entry));                  // left leg (below the wool)
+                    t.Add(new(new(W - cw, 0, cw, H), CompoundParts.Entry));                   // right leg (full height, I)
+                    t.Add(new(new(cw, 0, gap, rd), CompoundParts.Bar));                       // connector: wool → right leg
+                    t.Add(new(new(0, rd, cw, H - rd), CompoundParts.Entry));                  // left leg (below the wool)
                     room = new(0, 0, cw, rd);                                              // wool in the corner
                     vac.Add(new ShapeVacancy("bay", new(cw, rd, gap, H - rd), BoxEdge.Bottom,
-                        [ApproachSlots.Entry, ApproachSlots.Room, ApproachSlots.Entry]));
+                        [CompoundParts.Entry, CompoundParts.Room, CompoundParts.Entry]));
                 }
                 else
                 {
                     // centered (I+I): two straight legs, the wool bridging them across the top.
-                    t.Add((new(0, 0, cw, H), ApproachSlots.Entry));                        // left leg (full height)
-                    t.Add((new(W - cw, 0, cw, H), ApproachSlots.Entry));                   // right leg (full height)
+                    t.Add(new(new(0, 0, cw, H), CompoundParts.Entry));                        // left leg (full height)
+                    t.Add(new(new(W - cw, 0, cw, H), CompoundParts.Entry));                   // right leg (full height)
                     room = new(cw, 0, gap, rd);                                            // wool bridges the two legs
                     vac.Add(new ShapeVacancy("bay", new(cw, rd, gap, H - rd), BoxEdge.Bottom,
-                        [ApproachSlots.Entry, ApproachSlots.Room, ApproachSlots.Entry]));
+                        [CompoundParts.Entry, CompoundParts.Room, CompoundParts.Entry]));
                 }
                 break;
             }
@@ -411,43 +372,40 @@ public static class ShapeEmitter
                         $"ring walls {walls.Top}/{walls.Right}/{walls.Bottom}/{walls.Left} do not fit the donut's " +
                         $"{span}x{ringH} ring in a {W}x{H} box.");
                 var ring = CompoundEmitter.RingWallRects(walls, ax, 0, span, ringH);
-                t.Add((ring.Top, ApproachSlots.EntryBar));                   // top bar
-                t.Add((ring.Left, ApproachSlots.Leg));                       // left leg (middle only — no corner overlap)
-                t.Add((ring.Right, ApproachSlots.Leg));                      // right leg (middle only)
-                t.Add((new(0, attachmentOffset, cw, aw), ApproachSlots.Entry)); // hub attachment, slid down the ring edge
-                if (attachments >= 2) t.Add((new(0, ringH - aw, cw, aw), ApproachSlots.Entry)); // second attachment (bottom-left)
+                t.Add(new(ring.Top, CompoundParts.EntryBar));                   // top bar
+                t.Add(new(ring.Left, CompoundParts.Leg));                       // left leg (middle only — no corner overlap)
+                t.Add(new(ring.Right, CompoundParts.Leg));                      // right leg (middle only)
+                t.Add(new(new(0, attachmentOffset, cw, aw), CompoundParts.Entry)); // hub attachment, slid down the ring edge
+                if (attachments >= 2) t.Add(new(new(0, ringH - aw, cw, aw), CompoundParts.Entry)); // second attachment (bottom-left)
                 if (woolAtEnd)
                 {
                     // the bottom wall, stopped short of the corner the wool takes
-                    t.Add((new(ring.Bottom.X, ring.Bottom.Z, span - walls.Right, ring.Bottom.Height), ApproachSlots.RoomBar));
+                    t.Add(new(new(ring.Bottom.X, ring.Bottom.Z, span - walls.Right, ring.Bottom.Height), CompoundParts.RoomBar));
                     room = new(ax + span - walls.Right, ringH - walls.Bottom, walls.Right, walls.Bottom);  // wool AT the bottom-right corner (integrated)
                 }
                 else
                 {
-                    t.Add((ring.Bottom, ApproachSlots.RoomBar));    // full bottom bar
+                    t.Add(new(ring.Bottom, CompoundParts.RoomBar));    // full bottom bar
                     int wxr = ax + span;                            // right of the ring's right leg
-                    if (woolExtend) { t.Add((new(wxr, ringH - walls.Bottom, cw, walls.Bottom), ApproachSlots.Run)); wxr += cw; }  // short I holding the wool
+                    if (woolExtend) { t.Add(new(new(wxr, ringH - walls.Bottom, cw, walls.Bottom), CompoundParts.Run)); wxr += cw; }  // short I holding the wool
                     room = new(wxr, ringH - walls.Bottom, rd, walls.Bottom);   // wool off the bottom-right
                 }
                 vac.Add(new ShapeVacancy("hole",
                     new(ax + walls.Left, walls.Top, span - walls.Left - walls.Right, ringH - walls.Top - walls.Bottom), null,
-                    [ApproachSlots.EntryBar, ApproachSlots.Leg, ApproachSlots.RoomBar, ApproachSlots.Leg]));
+                    [CompoundParts.EntryBar, CompoundParts.Leg, CompoundParts.RoomBar, CompoundParts.Leg]));
                 break;
             }
             default: throw new ArgumentOutOfRangeException(nameof(family), family, "unsupported family");
         }
 
         at ??= [room.Width / 2.0, room.Height / 2.0];
-        if (flip)
-        {
-            // mirror along the mouth: across the vertical centre for a top/bottom mouth, the horizontal one for a
-            // side mouth
-            var mirror = MouthEdge(family) is BoxEdge.Left or BoxEdge.Right ? BoxTurn.FlipZ : BoxTurn.FlipX;
-            var mirrored = new ApproachShape(new Compound(t, vac), room, at).Turned(mirror, W, H);
-            return ([.. mirrored.Compound.Pieces], mirrored.Room, mirrored.At, [.. mirrored.Compound.Vacancies]);
-        }
+        t.Add(new(room, CompoundParts.Room));
+        var compound = new Compound(t, vac, (room.X + at[0], room.Z + at[1]));
+        if (!flip) return compound;
 
-        return (t, room, at, vac);
+        // mirror along the mouth: across the vertical centre for a top/bottom mouth, the horizontal one for a side
+        // mouth
+        return compound.Turned(MouthEdge(family) is BoxEdge.Left or BoxEdge.Right ? BoxTurn.FlipZ : BoxTurn.FlipX, W, H);
     }
 
     /// <summary>Normalize an emission so its mouth lands on the TOP edge: maps every rect, the room, the
@@ -455,8 +413,8 @@ public static class ShapeEmitter
     /// map transposes). The three non-identity maps — vertical mirror, transpose, transpose + mirror — are
     /// pure reflections/rotations, so the family read is unchanged. Callers dock any edge by placing the
     /// normalized, mouth-up box themselves (a vertical flip at placement docks the bottom).</summary>
-    public static (ApproachShape Shape, int W, int H) OrientMouthTop(
-        ApproachShape s, ShapeFamily family, int boxW, int boxH)
+    public static (Compound Shape, int W, int H) OrientMouthTop(
+        Compound s, ShapeFamily family, int boxW, int boxH)
     {
         // The turn taking the family's mouth to the top: a flip for the bottom, a transpose for the left, and for
         // the right a transpose and a flip.

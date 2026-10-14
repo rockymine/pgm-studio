@@ -3915,7 +3915,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A plan can say which storey a goal stands on (`TN7`).** `layer` was a field on all six `MapIntent`
   placements and on neither plan placement, so the word existed everywhere the export reads it and nowhere
   the plan writes it: a plan-built goal on a stacked board always resolved against the top surface, and a
-  monument stated for a hall landed on the deck roofing it. `DestroyablePlacement` and `CorePlacement` now
+  monument stated for a hall landed on the deck roofing it. `DestroyableMarker` and `CoreMarker` now
   take a nullable `layer`, carried straight through the compiler. `docs/tools/plan.md` documents it beside
   the structure knobs.
 - **`SP1` says a plan declares no build zone rather than that its wools are unreachable (`B143`).** The rule
@@ -4226,7 +4226,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **An objective marker states the structure it builds (`G160`).** A core and a destroyable are placed as
   bare markers and take the generator's defaults; the knobs that vary them — a casing's footprint, height,
   wall thickness, capped-or-flush lava and float/leak pair, a destroyable's design, material and float — had
-  existed in `CorePlacement`/`DestroyablePlacement`, in `plan-doc.js`, in the compiler and in the stamper
+  existed in `CoreMarker`/`DestroyableMarker`, in `plan-doc.js`, in the compiler and in the stamper
   since each was written, reachable only by hand-editing the plan JSON. They are now the panel that opens
   when a marker is selected, so every core the tool placed is no longer a capped 5×5×5 and every destroyable
   no longer a floating obsidian `pillar-3`.
@@ -5139,11 +5139,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `docs/generator/model.md` §4 (the shape model). (G91)
 
 - **The terminal-free `Body` — the shape/designation split (M3, G90)** — `Pgm/Shapes/ShapeBody.cs` +
-  `ShapeEmitter.cs` + `ApproachSlots.cs`: `ShapeEmitter.Emit` — which baked a wool `room` into every family —
+  `ShapeEmitter.cs` + `CompoundParts.cs`: `ShapeEmitter.Emit` — which baked a wool `room` into every family —
   splits into a pure **`Body`** (`ShapeEmitter.Body` → a `ShapeBody`: structural-slotted rects + vacancies, no
   terminal/marker/id) and an **approach designation** (`ShapeEmitter.Approach(body, room, marker)`, which `Emit`
   composes over the body). `EmittedShape` now *is* a `ShapeBody` + the terminal room + marker (`Terrain`/
-  `Vacancies` read through to the body), so every consumer stays untouched. `ApproachSlots` gains the documented
+  `Vacancies` read through to the body), so every consumer stays untouched. `CompoundParts` gains the documented
   **structural-slot** (`run`/`bar`/`leg`, shared by every kind) vs **designation-mark** (`entry`/`room`, stamped
   by the approach) split — emitted strings unchanged, so the mirror stays byte-identical. The split is
   **byte-identical** wool/spawn output: the emit↔derive mirror, the G50–G52 placement-knob tests, `BoxInterfaces`
@@ -5232,7 +5232,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 - **Docking as a declarative slot-edge gate — `DockingGate` (M3, G80)** — `Compose/Boxes/DockingGate.cs`:
   the one place that decides whether a box edge may receive a dock, as a table over slots rather than
-  per-family imperative code. `SlotDockRole` tags each `ApproachSlots` slot once — `room` → **never-dock**
+  per-family imperative code. `PartDockRole` tags each `CompoundParts` slot once — `room` → **never-dock**
   (a dock seals the goal), `entry` → **docking edge** (the mouth), every corridor slot (`run`/`bar`/`leg` and
   the entry/room-qualified runs and bars) → **internal**; `FamilyDock` carries the per-family **demand** (how
   many distinct entry edges must connect: clamp 2, most 1) and **span** (clamp: the short edge). The gate
@@ -5299,9 +5299,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   mirror test (classifies to I/L, slots re-derive, `Spawn`-role room) across seeds. Contract:
   `docs/generator/model.md` §4/§5.3. (G78)
 
-- **Slot recovery — the emit↔derive mirror closes at the slot level (M2)** — `Pgm/Shapes/SlotAssignment.cs`
-  + `Geom/Cells.cs`: `SlotAssignment.AssignSlots(family, pieces, roomId)` re-derives every piece's
-  `ApproachSlots` slot from **topology alone** — path order for the chain families (I/L/Z/scythe), adjacency
+- **Slot recovery — the emit↔derive mirror closes at the slot level (M2)** — `Pgm/Shapes/PartAssignment.cs`
+  + `Geom/Cells.cs`: `PartAssignment.AssignParts(family, pieces, roomId)` re-derives every piece's
+  `CompoundParts` slot from **topology alone** — path order for the chain families (I/L/Z/scythe), adjacency
   for the branches (U/H/clamp), and hole-edge geometry for the donut (the enclosed void via the new
   `Cells.EnclosedVoid`; bars vs legs off the hole's opposite edges, the room-bar anchored by the entry-bar's
   hub attachment) — never a canonical rect position, so entry/wool shift, side-tuck, donut
@@ -5356,9 +5356,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `docs/generator/model.md` §4.7.
 
 - **Wool-box pieces carry their slot role** — `Pgm/Compose/WoolBoxEmitter.cs` + `TeamUnitGrower.cs`:
-  `WoolBoxEmitter` now tags every emitted piece with its **slot role** (`ApproachSlots` on `GrownPiece.Slot`) —
+  `WoolBoxEmitter` now tags every emitted piece with its **slot role** (`CompoundParts` on `GrownPiece.Slot`) —
   `entry` (the universal hub-attach), `run`, `bar`, `leg`, `room`, qualified `entry-run`/`room-run` and
-  `entry-bar`/`room-bar` — per the §2 piece-vocabulary table, exposed as data via `ApproachSlots.Template`.
+  `entry-bar`/`room-bar` — per the §2 piece-vocabulary table, exposed as data via `CompoundParts.Template`.
   It is a **shape-internal taxonomy, distinct from the map-level piece `role`** (terrain pieces keep `piece`),
   and is the foundation the shift (G50) / width (G51) / docking (G52) rules target — those name a slot instead
   of re-deriving it from geometry. Invariants held: a family emits a **stable piece count** (no collinear
@@ -8839,6 +8839,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   and `PlacedFrontline` are each box kind's result placed on the plan. The approach's rectangles have one name,
   `Compound.Pieces`, and the composer's fingerprints are unchanged. `docs/generator/model.md` §4. (`G294`)
 
+- **A compound ends in its room, and a marker is one type (`G295`)** — a `Piece` is a `CellRect` with its part
+  (`CompoundParts`, formerly slots), and a wool or spawn `Compound` carries its room as its last piece and the
+  marker inside it, so `ApproachShape`, `Designation` and the word *terminal* are gone. `Marker(Piece, X, Z)` is
+  where the spawn and every wool stand; `GrownPieces.Lay` lays a filled compound and works out each piece's role
+  once, from its part and the box kind. The plan's marker classes are `SpawnMarker`, `WoolMarker`, `IronMarker`,
+  `DestroyableMarker` and `CoreMarker`, with the JSON unchanged. The composer's fingerprints are unchanged.
+  `docs/generator/vocabulary.md`. (`G295`)
+
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
   Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.
@@ -11242,7 +11250,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   (`docs/tools/sketch.md`, `mapgen-review.md` MG9). `Retarget` is gone with it: a destroyable needs no room,
   no lane and no protection region, so rewriting a capture board's wool markers into monuments (MG1, the
   review's largest entry) put every goal at the back of a corridor it never wanted — a destroy board is now
-  authored as its own `plan`, `DestroyablePlacement`/`CorePlacement` placed on whichever piece the design
+  authored as its own `plan`, `DestroyableMarker`/`CoreMarker` placed on whichever piece the design
   wants. What replaced both is a new `PgmStudio.Pgm.DocumentOverlay`: `layout` and `intent` hand a
   `SketchLayout`/`MapIntent` fragment through **verbatim**, merged onto whatever `compose`/`plan` produced —
   an object key on both sides merges key by key, an array key on both sides is appended to, anything else the
@@ -11342,7 +11350,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   at 58 for exactly this reason, then promoted to a polygon again to recover the outline it already had, so
   the landform existed twice, in two idioms, in two files, with nothing checking the two agreed. `float` is
   now measured from the ground the world build actually solves, and a destroyable/core marker may name no
-  plan piece at all — `DestroyablePlacement.Piece`/`CorePlacement.Piece` empty reads `at` as an absolute board
+  plan piece at all — `DestroyableMarker.Piece`/`CoreMarker.Piece` empty reads `at` as an absolute board
   position (`PlanCompiler.ResolveGoalAnchor`) rather than a piece-relative offset, so a goal can ride an
   authored sketch landform with no tier manufactured to carry it, and `PlanValidator` no longer reports the
   absent piece as a dangling reference for these two marker kinds. The default float stays at 4 — a gameplay
@@ -11933,7 +11941,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   aliasing `OB17` and `OB19`** — no drift risk, since both already read the canonical constant, but the
   catalogue listed those two ids twice, so both are deleted and their call sites name `ObjectiveRules`
   directly. And four docstrings were **malformed XML** that truncated a member's entry in the emitted file
-  (`ApproachSlots`, `HouseStamper`, `HouseWindows`, `TopDownRender`) — invisible until something read the file.
+  (`CompoundParts`, `HouseStamper`, `HouseWindows`, `TopDownRender`) — invisible until something read the file.
 - **A map that puts something up for winning must say who is contesting it (EX4).** The author's ruling: the
   three gamemodes the studio authors — CTW, DTM, DTC — are played by teams, so a document declaring a wool, a
   destroyable or a core and no `<team>` is refused at the export gate. It is asked of the **objectives** rather

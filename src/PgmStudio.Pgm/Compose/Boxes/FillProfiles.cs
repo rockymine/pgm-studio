@@ -16,7 +16,7 @@ public static class FillProfiles
 {
     /// <summary>The families box <paramref name="kind"/> may fill at interface width <paramref name="cw"/>
     /// cells. Wool = the width-gated production menu; spawn = the straight/one-bend {I, L}. The hub is not here:
-    /// it is a <b>terminal-free compound</b>, so its profile is a <see cref="CompoundForm"/> menu (<see cref="HubForms"/>),
+    /// it is a <b>room-free compound</b>, so its profile is a <see cref="CompoundForm"/> menu (<see cref="HubForms"/>),
     /// not the <see cref="ShapeFamily"/> approach taxonomy.</summary>
     public static IReadOnlyList<ShapeFamily> Families(BoxKind kind, int cw, int laneCells) => kind switch
     {
@@ -27,7 +27,7 @@ public static class FillProfiles
 
     /// <summary>The <b>hub's</b> fill profile — its authored form menu as data (the <see cref="CompoundForm"/>s
     /// a hub may be, model.md §4). CompoundForm-typed, not <see cref="ShapeFamily"/>, because the hub is a
-    /// terminal-free compound rather than an approach; it composes <see cref="HubBoxEmitter.Forms"/> the way the
+    /// room-free compound rather than an approach; it composes <see cref="HubBoxEmitter.Forms"/> the way the
     /// wool/spawn rows compose their menus.</summary>
     public static IReadOnlyList<CompoundRead> HubForms => HubBoxEmitter.Forms;
 

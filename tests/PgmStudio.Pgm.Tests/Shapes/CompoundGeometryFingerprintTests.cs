@@ -4,12 +4,12 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Shapes;
 
 /// <summary>
-/// A characterization fingerprint of every compound form's emitted geometry — the exact rects, slots and <b>order</b>
+/// A characterization fingerprint of every compound form's emitted geometry — the exact rects, parts and <b>order</b>
 /// each produces at a range of sizes.
 ///
 /// <para>It exists to make the ring consolidation safe. Six forms hand-roll the same four-wall pattern (Ring and
 /// DoubleHole via <c>RingPieces</c>; P, G, TwoUOnI and the donut inline), and they differ in piece order, in
-/// which bar spans the full width rather than the ring's, and in slot names. Piece <b>order</b> is not cosmetic:
+/// which bar spans the full width rather than the ring's, and in part names. Piece <b>order</b> is not cosmetic:
 /// ids are stamped <c>{box}-t{n}</c> in emission order, so reordering renames pieces and moves every reference
 /// to them. Routing them through shared wall geometry must therefore leave this fingerprint byte-identical —
 /// which is what this asserts, written against the behaviour as it stands before the change.</para>
@@ -23,7 +23,7 @@ public sealed class CompoundGeometryFingerprintTests
     private static string R(CellRect r) => $"{r.X},{r.Z},{r.Width},{r.Height}";
 
     private static string Print(Compound compound) =>
-        string.Join(" | ", compound.Pieces.Select(p => $"{p.Slot}:{R(p.Rect)}"))
+        string.Join(" | ", compound.Pieces.Select(p => $"{p.Part}:{R(p.Rect)}"))
         + "  voids " + string.Join(" | ", compound.Vacancies.Select(v => $"{v.Kind}:{R(v.Rect)}"));
 
     [Test]
@@ -136,15 +136,14 @@ public sealed class CompoundGeometryFingerprintTests
     }
 
     /// <summary>The donut builds its own ring inline in <see cref="ShapeEmitter"/> — the sixth copy, with its own
-    /// slot names (entry-bar / room-bar rather than bar) and its own order (top, legs, attachment, bottom).</summary>
+    /// part names (entry-bar / room-bar rather than bar) and its own order (top, legs, attachment, bottom).</summary>
     [Test]
     public async Task Donut_geometry_is_stable()
     {
         var shape = ShapeEmitter.Emit(ShapeFamily.Donut, 12, 7, Cw);
-        var print = string.Join(" | ", shape.Compound.Pieces.Select(p => $"{p.Slot}:{R(p.Rect)}"));
+        var print = string.Join(" | ", shape.Pieces.Select(p => $"{p.Part}:{R(p.Rect)}"));
         await Assert.That(print).IsEqualTo(
-            "entry-bar:2,0,8,2 | leg:2,2,2,3 | leg:8,2,2,3 | entry:0,0,2,2 | room-bar:2,5,8,2");
-        await Assert.That(R(shape.Room)).IsEqualTo("10,5,2,2");
+            "entry-bar:2,0,8,2 | leg:2,2,2,3 | leg:8,2,2,3 | entry:0,0,2,2 | room-bar:2,5,8,2 | room:10,5,2,2");
     }
 
     /// <summary>The donut carrying a wider leg and a wider bar — the case both exemplars are authored around.
@@ -158,21 +157,23 @@ public sealed class CompoundGeometryFingerprintTests
             ringWalls: new RingWalls(Top: 3, Right: 2, Bottom: 2, Left: 2));
 
         // the top bar thickens; the hole loses that row rather than the box growing
-        var uTop = uniform.Compound.Pieces.First(t => t.Slot == ApproachSlots.EntryBar).Rect;
-        var wTop = widened.Compound.Pieces.First(t => t.Slot == ApproachSlots.EntryBar).Rect;
+        var uTop = uniform.Pieces.First(t => t.Part == CompoundParts.EntryBar).Rect;
+        var wTop = widened.Pieces.First(t => t.Part == CompoundParts.EntryBar).Rect;
         await Assert.That(uTop.Height).IsEqualTo(2);
         await Assert.That(wTop.Height).IsEqualTo(3);
-        await Assert.That(widened.Compound.Vacancies.Single(v => v.Kind == "hole").Rect.Height)
-            .IsEqualTo(uniform.Compound.Vacancies.Single(v => v.Kind == "hole").Rect.Height - 1);
+        await Assert.That(widened.Vacancies.Single(v => v.Kind == "hole").Rect.Height)
+            .IsEqualTo(uniform.Vacancies.Single(v => v.Kind == "hole").Rect.Height - 1);
 
         // and it still reads as a donut — a widened wall is the same family
         var cells = new HashSet<(int, int)>();
         var rooms = new HashSet<(int, int)>();
-        foreach (var (rect, _) in widened.Compound.Pieces)
+        foreach (var (rect, part) in widened.Pieces)
             for (var x = rect.X; x < rect.X + rect.Width; x++)
-                for (var z = rect.Z; z < rect.Z + rect.Height; z++) cells.Add((x, z));
-        for (var x = widened.Room.X; x < widened.Room.X + widened.Room.Width; x++)
-            for (var z = widened.Room.Z; z < widened.Room.Z + widened.Room.Height; z++) { cells.Add((x, z)); rooms.Add((x, z)); }
+                for (var z = rect.Z; z < rect.Z + rect.Height; z++)
+                {
+                    cells.Add((x, z));
+                    if (part == CompoundParts.Room) rooms.Add((x, z));
+                }
         await Assert.That(ShapeClassifier.Classify(cells, rooms).Family).IsEqualTo(ShapeFamily.Donut);
     }
 

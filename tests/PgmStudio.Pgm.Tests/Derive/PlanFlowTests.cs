@@ -27,8 +27,8 @@ public sealed class PlanFlowTests
             P("room", -6, -11, 4, 4, PlanRoles.WoolRoom),
             .. extra,
         ];
-        plan.Placements.Spawns = [new SpawnPlacement { Piece = "spawn", At = [2, 1] }];
-        plan.Placements.Wools = [new WoolPlacement { Piece = "room", At = [2, 2] }];
+        plan.Placements.Spawns = [new SpawnMarker { Piece = "spawn", At = [2, 1] }];
+        plan.Placements.Wools = [new WoolMarker { Piece = "room", At = [2, 2] }];
         return plan;
     }
 
@@ -39,7 +39,7 @@ public sealed class PlanFlowTests
 
         var destroy = Board();
         destroy.Placements.Wools = [];
-        destroy.Placements.Destroyables = [new DestroyablePlacement { Piece = "room", At = [2, 2] }];
+        destroy.Placements.Destroyables = [new DestroyableMarker { Piece = "room", At = [2, 2] }];
         var read = PlanFlow.Read(destroy);
         await Assert.That(read.Gamemode).IsEqualTo("destroy");
         await Assert.That(read.Legs).IsEmpty().Because("a destroy board has no carry, so no route is invented");

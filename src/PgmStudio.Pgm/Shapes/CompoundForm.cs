@@ -1,12 +1,11 @@
 namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>
-/// The <b>terminal-free compound</b> taxonomy (docs/generator/model.md §4) — the named recombinations
+/// The compound forms the hub and front line take (docs/generator/model.md §4) — the named recombinations
 /// of the rectangle atom, read by topology alone (the §4 feature axes: bends · fold · branch · void), never by a
-/// terminal. It is the derive-side identity of a <see cref="Compound"/>: <see cref="ShapeClassifier.ClassifyCompound"/>
+/// room. It is the derive-side identity of a <see cref="Compound"/>: <see cref="ShapeClassifier.ClassifyCompound"/>
 /// reads a compound back to one of these, closing the emit↔derive mirror for the compounds <see cref="CompoundEmitter"/>
-/// builds. Distinct from <see cref="ShapeFamily"/> — that is the terminal-<em>capped</em> approach taxonomy; a
-/// compound plus a designation (a terminal) becomes an approach.
+/// builds. Distinct from <see cref="ShapeFamily"/>, the forms a wool or spawn compound takes, which end in a room.
 ///
 /// <list type="bullet">
 /// <item><see cref="Rectangle"/> — one rectangle (a spine / the solid hub): no feature.</item>

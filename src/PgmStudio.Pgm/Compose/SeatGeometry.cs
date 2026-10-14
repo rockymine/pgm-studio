@@ -73,7 +73,7 @@ public static class SeatGeometry
     /// consumer's selection, not the hub's published capacity — see <see cref="BoxJoint.Grant"/>.</summary>
     internal static BoxJoint HubJointFrom(string hubId, string nbId, BoxAbutment abutment, int grantedWidthCells)
     {
-        var grant = new EdgeOffer(abutment.Edge, new EdgeInterval(abutment.Start, abutment.WidthCells, ApproachSlots.Bar),
+        var grant = new EdgeOffer(abutment.Edge, new EdgeInterval(abutment.Start, abutment.WidthCells, CompoundParts.Bar),
             grantedWidthCells, OfferGrouping.Several, $"hub-{abutment.Edge}");
         return new BoxJoint(hubId, nbId, abutment, grant);
     }

@@ -11,7 +11,7 @@ public sealed record FillMenuRow(int Lanes, string Reads, IReadOnlyList<ShapeFam
 /// The fill menu — the §4 <c>w2/w4/w6</c> table as data: an interface width gates what may fill the box
 /// behind it. The rungs are counted in <b>lanes</b>, not cells, so the table reads the same however wide a
 /// lane is on the board being composed: a <b>one-lane</b> touch is a chokepoint continuing a single lane,
-/// which admits every terminal-capped family (each docks through a one-lane entry); two lanes is the
+/// which admits every room-capped family (each docks through a one-lane entry); two lanes is the
 /// unstable middle that must resolve (split into lane + build-lane, or twist); three is multi-access. The
 /// two- and three-lane rows resolve into multi-shape patterns, which are not emittable yet — they are
 /// recorded so the data does not pretend a wide touch is just a wide lane. The names <c>w2/w4/w6</c> are the
@@ -45,7 +45,7 @@ public static class FillMenu
     public static readonly IReadOnlyList<FillMenuRow> Rows =
     [
         new(2, "chokepoint", ProductionFamilies,
-            "one lane's touch (10 blocks, G2 minimum) — a single terminal-capped shape docks through it"),
+            "one lane's touch (10 blocks, G2 minimum) — a single room-capped shape docks through it"),
         new(4, "unstable middle", [],
             "two lanes: resolves as 10 terrain + 10 build-lane, or a 20 stub that twists to L/I — a pattern, not a family"),
         new(6, "multi-access", [],

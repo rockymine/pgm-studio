@@ -15,7 +15,7 @@ public class TeamUnitFillerTests
     /// <paramref name="edge"/> — the allocator's per-dock grant.</summary>
     private static BoxJoint Joint(BoxEdge edge, int width, int start = 0, int len = 6, string nb = "nb") =>
         new("hub", nb, new BoxAbutment(edge, start, len),
-            new EdgeOffer(edge, new EdgeInterval(start, len, ApproachSlots.Bar), width, OfferGrouping.Several, $"hub-{edge}"));
+            new EdgeOffer(edge, new EdgeInterval(start, len, CompoundParts.Bar), width, OfferGrouping.Several, $"hub-{edge}"));
 
     [Test]
     public async Task A_neighbour_consumes_the_width_its_own_joint_was_granted()
@@ -57,7 +57,7 @@ public class TeamUnitFillerTests
     {
         // a hub that offers only its Top edge — an ungranted dock on the Bottom has nothing to consume
         var hub = new PlacedHub([],
-            [new EdgeOffer(BoxEdge.Top, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "g")],
+            [new EdgeOffer(BoxEdge.Top, new EdgeInterval(0, 6, CompoundParts.Bar), 4, OfferGrouping.Several, "g")],
             new CompoundRead(CompoundForm.Rectangle));
         var ungranted = new BoxJoint("hub", "nb", new BoxAbutment(BoxEdge.Bottom, 0, 6), null);
         await Assert.That(() => TeamUnitFiller.ConsumedCw(hub, ungranted, BoxEdge.Bottom)).Throws<ComposeException>();
@@ -105,14 +105,14 @@ public class TeamUnitFillerTests
             ],
             [
                 new BoxJoint("hub", "spawn", new BoxAbutment(BoxEdge.Bottom, 0, 6),
-                    new EdgeOffer(BoxEdge.Bottom, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "hub-Bottom")),
+                    new EdgeOffer(BoxEdge.Bottom, new EdgeInterval(0, 6, CompoundParts.Bar), 4, OfferGrouping.Several, "hub-Bottom")),
                 new BoxJoint("hub", "wool-a", new BoxAbutment(BoxEdge.Right, 0, 6),
-                    new EdgeOffer(BoxEdge.Right, new EdgeInterval(0, 6, ApproachSlots.Bar), 2, OfferGrouping.Several, "hub-Right")),
+                    new EdgeOffer(BoxEdge.Right, new EdgeInterval(0, 6, CompoundParts.Bar), 2, OfferGrouping.Several, "hub-Right")),
             ]);
 
         var filled = TeamUnitFiller.Fill(partition, new ComposeRng(1))!;
 
-        await Assert.That(filled.Unit.Spawn.Facing).IsEqualTo("front");                       // behind the hub, it faces through it
+        await Assert.That(filled.Unit.SpawnFacing).IsEqualTo("front");                       // behind the hub, it faces through it
         await Assert.That(filled.Unit.Wools.Count).IsEqualTo(1);
         // every team-unit box kind emitted its pieces, hub-first
         await Assert.That(filled.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
@@ -143,9 +143,9 @@ public class TeamUnitFillerTests
             ],
             [
                 new BoxJoint("hub", "spawn", new BoxAbutment(BoxEdge.Bottom, 0, 6),
-                    new EdgeOffer(BoxEdge.Bottom, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "hub-Bottom")),
+                    new EdgeOffer(BoxEdge.Bottom, new EdgeInterval(0, 6, CompoundParts.Bar), 4, OfferGrouping.Several, "hub-Bottom")),
                 new BoxJoint("hub", "frontline", new BoxAbutment(BoxEdge.Top, 0, 6),
-                    new EdgeOffer(BoxEdge.Top, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "hub-Top")),
+                    new EdgeOffer(BoxEdge.Top, new EdgeInterval(0, 6, CompoundParts.Bar), 4, OfferGrouping.Several, "hub-Top")),
             ]);
 
         var filled = TeamUnitFiller.Fill(partition, new ComposeRng(3))!;

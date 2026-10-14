@@ -16,7 +16,7 @@ fills a wool box through, so the profile check and the docking gate run exactly 
 and **a refusal comes back as a result rather than an error**. It is the only place in the studio that
 surfaces the fill guards at all.
 
-The shape model itself — what a compound is, what a designation adds, why the classifier reads width-free — is
+The shape model itself — what a compound is, what a room adds, why the classifier reads width-free — is
 `docs/generator/model.md` §4, which governs. This document is the page: what it shows, what it can be asked,
 and what it cannot say.
 
@@ -24,10 +24,10 @@ and what it cannot say.
 
 Three box kinds appear, and the split is by what the shape is *for* rather than by what holds it.
 
-A **wool approach** is a terminal-capped shape: a lane from a host that dead-ends at the room the wool sits
-in. A **hub compound** is the unit's constraint source — terminal-free, and the widths of its free edges set every
-neighbour's menu. A **frontline compound** is the join toward the symmetry axis — also terminal-free, with one
-edge designated the face. The spawn box is absent as a row of its own because a spawn is an approach too: it
+A **wool compound** ends in a room: a lane from a host that dead-ends at the room the wool sits in. A **hub
+compound** is the unit's constraint source — no room, and the widths of its free edges set every neighbour's
+menu. A **frontline compound** is the join toward the symmetry axis — no room either, with one edge the face.
+The spawn box is absent as a row of its own because a spawn compound ends in a room too: it
 reuses the same families at the map's lane width, differing only in what the room holds and how big it is.
 
 The **nine approach families** are an escalation, not a flat set — an L whose lane doubles back is a scythe, a
@@ -53,11 +53,11 @@ said 5×10.
 
 They are also the minimum for the family **with no knobs set**, and a knob can move them in either direction.
 The donut is the demonstration: bare it wants 5×10, and with `woolAtEnd` — the variant integrating the wool
-into the ring's own corner rather than hanging a room off the end — it fits 5×8, because the terminal sits
+into the ring's own corner rather than hanging a room off the end — it fits 5×8, because the room sits
 inside the ring's span instead of beyond it. The `too-small` refusal always reports the minimum **for the
 knobs asked for**, so the number to build against comes from the refusal rather than from the schema.
 
-The **compounds** are the two terminal-free menus. A hub may be a solid `bar`, the branch family at one arm
+The **compounds** are the two menus with no room. A hub may be a solid `bar`, the branch family at one arm
 (`single`) or two (`twin`), a `ring`, a `p` (a loop with an overhanging bar), a `double-hole` (a ring plus a
 docked U) or a `g` (a ring plus an L, whose open bay a docking frontline seals into a second hole). A
 frontline may be a `bar` — the wide face — or the branch family at one arm or two. The two menus overlap in
@@ -67,7 +67,7 @@ frontline's together.
 Beside the family sit the **knobs**, the variation the model allows without leaving the family: a `flip`,
 available everywhere, turning the shape's handedness; `sideTuck`, which turns the room off the end of the last
 segment perpendicular, built for I, Z and the scythe only; `woolAtEnd`, the U/H/clamp/donut variant putting
-the terminal on an end rather than the middle; and `attachW`, the donut's and the scythe's hub-entry width.
+the room on an end rather than the middle; and `attachW`, the donut's and the scythe's hub-entry width.
 The schema endpoint reports which knobs each family takes, so the panel greys the rest rather than sending a
 combination the emitter would reject.
 
@@ -131,10 +131,10 @@ what it does to that shape. Switching family drops any knob the new family does 
 it along, so a refusal is always one the author asked for; a `too-small` refusal offers a *Resize* button that
 takes the emitter's stated minimum verbatim rather than nudging one axis at a time.
 
-On success the panel reports the land the fill produced, in cells, and the **slot sequence** of the pieces it
+On success the panel reports the land the fill produced, in cells, and the **part sequence** of the pieces it
 laid — `bar · entry · entry · room` for a U, `entry-bar · leg · leg · entry · room-bar · room` for a donut.
 That sequence is the family's template, fixed per family and only resized, and it is the most useful thing on
-the panel for anyone reasoning about a shape: a slot is a template position rather than a property of a
+the panel for anyone reasoning about a shape: a part is a template position rather than a property of a
 rectangle, and it is what every composition rule is quantified over.
 
 ## What it refuses
@@ -162,7 +162,7 @@ Both endpoints are reads open to anyone, rooted at `/api`, and take no map ([`do
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `GET /shapes/catalog[?kind=&tier=&family=]` | `{shapes, total, byTier, byFamily, byKind, key}` — every card as `{id, kind, family, tier, boxW, boxH, corridorCells, knobs, note, svg}`, and `key` the four inks the SVGs are drawn in. Filters are CSV and narrow the returned cards; the tallies always describe the whole catalog | — |
-| `GET /shapes/probe?family=&w=&h=&cw=&mouth=&flip=&sideTuck=&woolAtEnd=&attachW=` | `{svg, rejection, landCells, slots}` — one emission through `BoxFiller`. A refusal is a 200 with `rejection` set and `svg` null | 400 unknown family |
+| `GET /shapes/probe?family=&w=&h=&cw=&mouth=&flip=&sideTuck=&woolAtEnd=&attachW=` | `{svg, rejection, landCells, parts}` — one emission through `BoxFiller`. A refusal is a 200 with `rejection` set and `svg` null | 400 unknown family |
 | `GET /shapes/probe/schema` | `{families, mouths, minCorridorCells, maxCorridorCells}` — per family its token, its minimum box in the dock frame, whether the production menu admits it, and which knobs it takes | — |
 
 The probe clamps rather than refuses out-of-range numbers: box width and height to 1–64, corridor width to
@@ -182,18 +182,18 @@ cheaper and more reliable than reading the emitter's guards, because it is the e
 
 ```
 GET /api/shapes/probe?family=donut&w=3&h=3&cw=2
-  → { "svg": null, "landCells": 0, "slots": [],
+  → { "svg": null, "landCells": 0, "parts": [],
       "rejection": { "code": "too-small", "minW": 5, "minH": 10,
                      "detail": "Below Donut's minimum box of 5×10 cells at this corridor width." } }
 
 GET /api/shapes/probe?family=u&w=8&h=8&cw=2&mouth=Top
-  → { "landCells": 36, "slots": ["bar", "entry", "entry", "room"], "rejection": null, "svg": "<svg …>" }
+  → { "landCells": 36, "parts": ["bar", "entry", "entry", "room"], "rejection": null, "svg": "<svg …>" }
 ```
 
 Fetch `/shapes/probe/schema` once and drive from it rather than from a hard-coded family list: it names every
 family the emitter builds, its minimum box, and the knobs it accepts, so a family gaining a knob does not need
 a matching edit in the caller. Both endpoints answer **SVG text inside JSON**, so an agent gets markup it must
-render to look at; the numbers — `landCells`, `slots`, and the rejection — are what can be read directly.
+render to look at; the numbers — `landCells`, `parts`, and the rejection — are what can be read directly.
 
 The question this page does *not* answer is whether the composer could have produced a particular box. That is
 `POST /api/plan/feasibility`, which takes a plan document as its body, searches the declared menus by calling

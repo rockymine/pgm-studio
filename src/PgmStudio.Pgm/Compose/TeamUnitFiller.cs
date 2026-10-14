@@ -4,7 +4,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>What filling an allocated partition produces: the <see cref="GrownUnit"/> the composer
-/// assembles (pieces + spawn/wool placements) plus the frontline's <see cref="FrontlineFace"/> offers the mid
+/// assembles (pieces + spawn/wool markers) plus the frontline's <see cref="FrontlineFace"/> offers the mid
 /// consumes (<c>mid = f(frontline)</c>), carried out for <see cref="MidCarver"/>.</summary>
 public sealed record FilledUnit(GrownUnit Unit, IReadOnlyList<EdgeOffer> FrontlineFace);
 
@@ -86,8 +86,9 @@ public static class TeamUnitFiller
             return null;
 
         var pieces = new List<GrownPiece>(hub.Pieces);
-        GrownSpawn? spawn = null;
-        var wools = new List<GrownWool>();
+        Marker? spawn = null;
+        string? spawnFacing = null;
+        var wools = new List<Marker>();
         var faceOffers = new List<EdgeOffer>();
 
         foreach (var j in hubJoints)
@@ -106,7 +107,8 @@ public static class TeamUnitFiller
                     if (fitS.Count == 0) return null;
                     var es = FillSpawn(hub, j, hubEdge, neighbour, mouth, fitS[rng.NextInt(0, fitS.Count)], flip: false, roomId)!;
                     pieces.AddRange(es.Pieces);
-                    spawn = new GrownSpawn(roomId, es.MarkerAt, TowardHub(hubEdge));
+                    spawn = es.Marker;
+                    spawnFacing = TowardHub(hubEdge);
                     break;
 
                 case BoxKind.Wool:
@@ -118,9 +120,8 @@ public static class TeamUnitFiller
                     if (BoxFiller.Fill(neighbour, mouth, cwW, wf.Family, wf.Flip, roomId, wf.Placement,
                             wf.WoolAtEnd, wf.AttachmentWidth, wf.RingWalls) is not FillResult.Ok okW)
                         return null;
-                    pieces.AddRange(okW.Approach.Terrain);
-                    pieces.Add(okW.Approach.WoolRoom);
-                    wools.Add(new GrownWool(roomId, okW.Approach.At));
+                    pieces.AddRange(okW.Approach.Pieces);
+                    wools.Add(okW.Approach.Marker);
                     break;
 
                 case BoxKind.Frontline:
@@ -156,8 +157,8 @@ public static class TeamUnitFiller
             }
         }
 
-        if (spawn is null) return null;   // a team unit is anchored by its spawn
-        return new FilledUnit(new GrownUnit(pieces, spawn, wools), faceOffers);
+        if (spawn is null || spawnFacing is null) return null;   // a team unit is anchored by its spawn
+        return new FilledUnit(new GrownUnit(pieces, spawn, spawnFacing, wools), faceOffers);
     }
 
     /// <summary>The box edge opposite <paramref name="e"/> — a neighbour docks the hub with the edge facing it.</summary>

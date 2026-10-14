@@ -9,19 +9,19 @@ namespace PgmStudio.Pgm.Compose;
 public enum OfferGrouping { Joint, Several }
 
 /// <summary>
-/// An <b>offer</b> (docs/generator/model.md §7) — the outward constraint a designation publishes:
+/// An <b>offer</b> (docs/generator/model.md §7) — the outward constraint a box publishes:
 /// <b>where</b> a neighbour may attach (the edge <see cref="Interval"/>, the shape-relative fact, so it
 /// moves with every knob), <b>at what width</b> (<see cref="WidthClass"/>, the w2/w4/w6 rung a consumer's fill
 /// menu reads as its <c>cw</c>), and <b>in which grouping</b> (<see cref="Grouping"/> over the offers sharing a
 /// <see cref="GroupId"/>). It is the forward twin of the derived <c>FrontlineRuns</c> / build-zone reads — the
-/// designation drives, the deriver verifies.
+/// box drives, the deriver verifies.
 ///
-/// <para>Produced by the <b>hub</b> designation (per-edge width offers — the constraint source; a consumed
-/// width is the neighbour's menu <c>cw</c>) and, ahead, the <b>frontline</b> designation (the face offer the mid
+/// <para>Produced by the <b>hub</b> (per-edge width offers — the constraint source; a consumed
+/// width is the neighbour's menu <c>cw</c>) and the <b>front line</b> (the face offer the mid
 /// consumes, with the inter-tip recess simply not offered).</para>
 ///
 /// <para>This record serves <b>two roles</b>, and they carry different quantities — do not read one as a copy of
-/// the other. As an <b>offer</b> it is published by a designation before any consumer exists, and its
+/// the other. As an <b>offer</b> it is published by a box before any consumer exists, and its
 /// <see cref="WidthClass"/> is a <em>capacity</em> derived from the length of the run it sits on. As a
 /// <see cref="BoxJoint.Grant"/> it records what one consumer was actually given at one dock, and its
 /// <see cref="WidthClass"/> is a <em>selection</em> made per consumer kind. One run can carry two docks at two

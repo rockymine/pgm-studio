@@ -137,7 +137,7 @@ public sealed class BoxFillerTests
                     .IsEqualTo(family);
 
                 // every piece stays inside the box footprint
-                foreach (var p in ok.Approach.Terrain.Append(ok.Approach.WoolRoom))
+                foreach (var p in ok.Approach.Pieces.Append(ok.Approach.WoolRoom))
                 {
                     await Assert.That(p.Rect.X).IsGreaterThanOrEqualTo(box.Rect.X);
                     await Assert.That(p.Rect.Z).IsGreaterThanOrEqualTo(box.Rect.Z);
@@ -147,7 +147,7 @@ public sealed class BoxFillerTests
 
                 // the wool marker lands inside its room
                 var room = ok.Approach.WoolRoom.Rect;
-                double mx = room.X + ok.Approach.At[0], mz = room.Z + ok.Approach.At[1];
+                double mx = room.X + ok.Approach.Marker.X, mz = room.Z + ok.Approach.Marker.Z;
                 await Assert.That(mx).IsGreaterThanOrEqualTo(room.X);
                 await Assert.That(mx).IsLessThanOrEqualTo(room.X + room.Width);
                 await Assert.That(mz).IsGreaterThanOrEqualTo(room.Z);

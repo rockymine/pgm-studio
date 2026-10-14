@@ -267,7 +267,7 @@ public sealed class SoftTermsTests
 
         var destroy = PlanModel.Parse(PlanTestSupport.ReadSeed("rotate-wide-frontline.plan.json"))!;
         destroy.Placements.Wools.Clear();
-        destroy.Placements.Destroyables.Add(new DestroyablePlacement { Id = "d", Piece = destroy.Pieces[0].Id });
+        destroy.Placements.Destroyables.Add(new DestroyableMarker { Id = "d", Piece = destroy.Pieces[0].Id });
 
         await Assert.That(new FrontlineWidth().Value(EvalContext.Build(destroy))).IsNull();
         await Assert.That(new FrontlineCount().Value(EvalContext.Build(destroy))).IsNotNull()

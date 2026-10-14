@@ -3,29 +3,29 @@ using PgmStudio.Geom;
 namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>
-/// The slot half of the emit↔derive mirror: given a classified <see cref="ShapeFamily"/> and its pieces (the
-/// terminal named), re-derive each piece's <see cref="ApproachSlots"/> slot from <b>topology alone</b> — path
+/// The part half of the emit↔derive mirror: given a classified <see cref="ShapeFamily"/> and its pieces (the
+/// room named), re-derive each piece's <see cref="CompoundParts"/> part from <b>topology alone</b> — path
 /// order for the chain families, adjacency for the branches, hole-edge geometry for the donut — and never
 /// from a canonical rect position, so the emitter's placement manipulations (entry/wool shift, side-tuck,
 /// donut attachment offset/width/count, room-at-end, flips, and any mouth reorientation) all survive. It is
-/// the classifier-side counterpart of the emitter's own slot stamping (<c>GrownPiece.Slot</c>): the emitter
-/// labels, this recovers, and asserting the two agree closes the mirror at the slot level, not just the
+/// the classifier-side counterpart of the emitter's own part stamping (<c>GrownPiece.Part</c>): the emitter
+/// labels, this recovers, and asserting the two agree closes the mirror at the part level, not just the
 /// family level. See <c>docs/generator/model.md</c> §4 — how a wool approach is built, and derivation.
 ///
 /// <para><b>Scope.</b> Like the family mirror, this reads the generator's own artifacts — a single approach's
 /// emitted pieces, bounded by its box — never a finished map's welded terrain (the mirror's scope, §5). It takes the family as
-/// given (from <see cref="ShapeClassifier"/>) and the terminal id (the room), the two facts the emitter
+/// given (from <see cref="ShapeClassifier"/>) and the room's id, the two facts the emitter
 /// always knows.</para>
 /// </summary>
-public static class SlotAssignment
+public static class PartAssignment
 {
-    /// <summary>Re-derive the slot of every piece in <paramref name="pieces"/> for the classified
-    /// <paramref name="family"/>, with <paramref name="roomId"/> naming the terminal. Returns id → slot,
-    /// with the terminal at <see cref="ApproachSlots.Room"/>.</summary>
-    public static IReadOnlyDictionary<string, string> AssignSlots(
+    /// <summary>Re-derive the part of every piece in <paramref name="pieces"/> for the classified
+    /// <paramref name="family"/>, with <paramref name="roomId"/> naming the room. Returns id → part,
+    /// with the room at <see cref="CompoundParts.Room"/>.</summary>
+    public static IReadOnlyDictionary<string, string> AssignParts(
         ShapeFamily family, IReadOnlyList<(string Id, CellRect Rect)> pieces, string roomId)
     {
-        var slots = new Dictionary<string, string> { [roomId] = ApproachSlots.Room };
+        var parts = new Dictionary<string, string> { [roomId] = CompoundParts.Room };
         var room = pieces.First(p => p.Id == roomId);
         var terrain = pieces.Where(p => p.Id != roomId).ToList();
 
@@ -33,20 +33,20 @@ public static class SlotAssignment
         {
             case ShapeFamily.I:                                  // entry · room — the lone terrain piece
             case ShapeFamily.Clamp:                              // entry · entry · room — both legs are entries
-                foreach (var t in terrain) slots[t.Id] = ApproachSlots.Entry;
+                foreach (var t in terrain) parts[t.Id] = CompoundParts.Entry;
                 break;
 
             case ShapeFamily.L:                                  // a simple path entry → … → room
             case ShapeFamily.Z:
             case ShapeFamily.Scythe:
-                AssignChain(family, room, terrain, slots);
+                AssignChain(family, room, terrain, parts);
                 break;
 
             case ShapeFamily.U:                                  // bar (room's neighbour) · two entry legs
             {
                 var bar = terrain.First(t => EdgeAdjacent(t.Rect, room.Rect));
-                slots[bar.Id] = ApproachSlots.Bar;
-                foreach (var t in terrain.Where(t => t.Id != bar.Id)) slots[t.Id] = ApproachSlots.Entry;
+                parts[bar.Id] = CompoundParts.Bar;
+                foreach (var t in terrain.Where(t => t.Id != bar.Id)) parts[t.Id] = CompoundParts.Entry;
                 break;
             }
 
@@ -54,30 +54,30 @@ public static class SlotAssignment
             {
                 var roomRun = terrain.First(t => EdgeAdjacent(t.Rect, room.Rect));
                 var bar = terrain.First(t => t.Id != roomRun.Id && EdgeAdjacent(t.Rect, roomRun.Rect));
-                slots[roomRun.Id] = ApproachSlots.RoomRun;
-                slots[bar.Id] = ApproachSlots.Bar;
+                parts[roomRun.Id] = CompoundParts.RoomRun;
+                parts[bar.Id] = CompoundParts.Bar;
                 foreach (var t in terrain.Where(t => t.Id != roomRun.Id && t.Id != bar.Id))
-                    slots[t.Id] = ApproachSlots.Entry;
+                    parts[t.Id] = CompoundParts.Entry;
                 break;
             }
 
             case ShapeFamily.Donut:
-                AssignDonut(room, terrain, slots);
+                AssignDonut(room, terrain, parts);
                 break;
 
             default:
-                throw new ArgumentOutOfRangeException(nameof(family), family, "no slot template for this family");
+                throw new ArgumentOutOfRangeException(nameof(family), family, "no part template for this family");
         }
-        return slots;
+        return parts;
     }
 
     // I/L/Z/scythe are simple piece paths with the room at one leaf; walk from the room to the far leaf and
     // zip the visited pieces onto the family template read back-to-front (template ends at the room).
     private static void AssignChain(
         ShapeFamily family, (string Id, CellRect Rect) room, List<(string Id, CellRect Rect)> terrain,
-        Dictionary<string, string> slots)
+        Dictionary<string, string> parts)
     {
-        var template = ApproachSlots.Template(family);            // [entry, …, room]
+        var template = CompoundParts.Template(family);            // [entry, …, room]
         var order = new List<(string Id, CellRect Rect)>();
         var visited = new HashSet<string> { room.Id };
         var cur = room;
@@ -91,7 +91,7 @@ public static class SlotAssignment
         }
         // order[0] is the room's neighbour (template[^2]); the last is the entry (template[0])
         for (var i = 0; i < order.Count; i++)
-            slots[order[i].Id] = template[template.Count - 2 - i];
+            parts[order[i].Id] = template[template.Count - 2 - i];
     }
 
     // The donut ring encloses a rectangular hole. Its four bordering pieces are two bars (on opposite hole
@@ -100,7 +100,7 @@ public static class SlotAssignment
     // other terrain piece is a hub attachment (an entry). All of it is read off the hole edges and adjacency,
     // so it is orientation-free and survives the attachment/room-at-end/extend/flip manipulations.
     private static void AssignDonut(
-        (string Id, CellRect Rect) room, List<(string Id, CellRect Rect)> terrain, Dictionary<string, string> slots)
+        (string Id, CellRect Rect) room, List<(string Id, CellRect Rect)> terrain, Dictionary<string, string> parts)
     {
         var mask = new HashSet<(int, int)>();
         foreach (var p in terrain.Append(room)) foreach (var c in CellsOf(p.Rect)) mask.Add(c);
@@ -140,14 +140,14 @@ public static class SlotAssignment
             terrain.Any(t => t.Id != rp.Id && t.Id != room.Id && !ringIds.Contains(t.Id) && EdgeAdjacent(t.Rect, rp.Rect));
 
         // room-bar: the ring piece the room reaches — directly, or through a wool-extend run kept as its own
-        // slot. When the room caps a ring corner it touches a bar and a leg both; pick the bar, identified as
+        // part. When the room caps a ring corner it touches a bar and a leg both; pick the bar, identified as
         // the one whose opposite ring piece carries the hub attachment (the entry-bar).
         var roomNbrs = terrain.Where(t => t.Id != room.Id && EdgeAdjacent(t.Rect, room.Rect)).ToList();
         (string Id, CellRect Rect) roomBar;
         var run = roomNbrs.FirstOrDefault(t => !ringIds.Contains(t.Id));
         if (run.Id is not null)
         {
-            slots[run.Id] = ApproachSlots.Run;
+            parts[run.Id] = CompoundParts.Run;
             roomBar = ring.First(t => EdgeAdjacent(t.Rect, run.Rect));
         }
         else
@@ -159,13 +159,13 @@ public static class SlotAssignment
         }
 
         var entryBar = Opposite(roomBar);
-        slots[roomBar.Id] = ApproachSlots.RoomBar;
-        slots[entryBar.Id] = ApproachSlots.EntryBar;
+        parts[roomBar.Id] = CompoundParts.RoomBar;
+        parts[entryBar.Id] = CompoundParts.EntryBar;
         foreach (var t in ring.Where(t => t.Id != roomBar.Id && t.Id != entryBar.Id))
-            slots[t.Id] = ApproachSlots.Leg;                     // the perpendicular pair
+            parts[t.Id] = CompoundParts.Leg;                     // the perpendicular pair
         // whatever is left — not ring, not room, not the run — is a hub attachment
-        foreach (var t in terrain.Where(t => !slots.ContainsKey(t.Id)))
-            slots[t.Id] = ApproachSlots.Entry;
+        foreach (var t in terrain.Where(t => !parts.ContainsKey(t.Id)))
+            parts[t.Id] = CompoundParts.Entry;
     }
 
     // two cell rects share a positive-length edge (abut on one axis with real overlap on the other) — a bare

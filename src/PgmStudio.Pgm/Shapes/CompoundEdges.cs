@@ -32,8 +32,8 @@ public sealed record SpaceCrossing(int Cells, string From, string To, int X, int
 /// kind; a hole is enclosed outright, whatever the count says), its <see cref="Parts"/> — the slab
 /// decomposition into rectangles, each classed by its own compound walls (a rectangular space is its own single
 /// part; <see cref="NegativeSpacePart.Front"/> marks the parts touching a mouth — the covering layer) — its
-/// <see cref="WallSlots"/>: the slot/mark names of the pieces walling it, first-encounter order (the
-/// derive-side twin of the emit-time <c>ShapeVacancy.Walls</c>; empty when the input carried no slots) — its
+/// <see cref="Walls"/>: the parts (or, on a board, the piece ids) walling it, first-encounter order (the
+/// derive-side twin of the emit-time <c>ShapeVacancy.Walls</c>; empty when the input named no owners) — its
 /// <see cref="Form"/>: the space's <b>own compound identity</b> (the void is a compound too — the uneven branch's
 /// six-edge bay reads as a two-arm spine, the Π it is), null when the space classifies to no compound — and
 /// its <see cref="Mouths"/>: the interval + width class of every opening (bay 1 · notch 2 · hole 0) — and its
@@ -42,24 +42,24 @@ public sealed record SpaceCrossing(int Cells, string From, string To, int X, int
 /// plan.</summary>
 public sealed record NegativeSpace(
     string Kind, IReadOnlySet<(int X, int Z)> Cells, int WallDirections,
-    IReadOnlyList<string> WallSlots, IReadOnlyList<NegativeSpacePart> Parts, CompoundRead? Form,
+    IReadOnlyList<string> Walls, IReadOnlyList<NegativeSpacePart> Parts, CompoundRead? Form,
     IReadOnlyList<SpaceMouth> Mouths, IReadOnlyList<SpaceCrossing> Crossings);
 
 /// <summary>A maximal straight run of the compound's boundary, classified along two independent axes: what it
 /// <see cref="Faces"/> (<see cref="NegativeSpaceKinds.Open"/> for a free outward edge, else the class of the
-/// notch/bay/hole it walls) and who owns it — <see cref="Terminal"/> marks a run on the terminal room's own
-/// wall. The owner is a <b>fact</b>; the verdict over it is the docking gate's rule (a terminal wall never
-/// receives a dock today — <c>SlotDockRole.NeverDock</c> — with the elevation-stage dock and the clamp's
+/// notch/bay/hole it walls) and who owns it — <see cref="OnRoom"/> marks a run on the room's own
+/// wall. The owner is a <b>fact</b>; the verdict over it is the docking gate's rule (a room wall never
+/// receives a dock today — <c>PartDockRole.NeverDock</c> — with the elevation-stage dock and the clamp's
 /// designated room faces as the sanctioned exceptions), so the free offerable surface is exactly the
-/// <see cref="NegativeSpaceKinds.Open"/> runs with <see cref="Terminal"/> false. Runs split where ownership
+/// <see cref="NegativeSpaceKinds.Open"/> runs with <see cref="OnRoom"/> false. Runs split where ownership
 /// changes: a room capping a lane splits the shared boundary line into a free terrain interval and a sealed
-/// room interval. <see cref="Guarded"/> is the third axis — the run lies inside the terminal's <b>clearance
+/// room interval. <see cref="Guarded"/> is the third axis — the run lies inside the room's <b>clearance
 /// margin</b> (the room inflated by the corridor minimum): sealed by rule even on terrain, because a piece
 /// docked there would sit too close to the room and alter the approach the emitter designed. Coordinates are
 /// cell-corner coordinates (a vertical run has <c>X1 == X2</c>, a horizontal one <c>Z1 == Z2</c>);
 /// <see cref="Length"/> is the run's extent in cells.</summary>
 public sealed record ClassifiedEdge(
-    int X1, int Z1, int X2, int Z2, string Faces, int Length, bool Terminal = false, bool Guarded = false);
+    int X1, int Z1, int X2, int Z2, string Faces, int Length, bool OnRoom = false, bool Guarded = false);
 
 /// <summary>Everything the edge read of one compound yields: its negative <see cref="Spaces"/> and its classified
 /// boundary <see cref="Edges"/>.</summary>
@@ -69,11 +69,11 @@ public sealed record EdgeClassification(IReadOnlyList<NegativeSpace> Spaces, IRe
 /// Reads a rectilinear compound's <b>edge taxonomy</b> off its geometry alone: every connected negative space
 /// within the compound's bounding box, classed by wall count (<see cref="NegativeSpaceKinds"/> — notch 2, bay 3,
 /// hole enclosed), and every boundary edge classed by the space it faces plus its ownership —
-/// <see cref="NegativeSpaceKinds.Open"/> runs that are not <see cref="ClassifiedEdge.Terminal"/> are the free
+/// <see cref="NegativeSpaceKinds.Open"/> runs that are not <see cref="ClassifiedEdge.OnRoom"/> are the free
 /// outward surface. This is the derive-side generalization of the emit-time
 /// <see cref="ShapeVacancy"/> publication: vacancies are exact but box-relative remainders a specific emitter
 /// declares; this read is shape-relative and total — it works on any rectangle set (an emitted approach, a
-/// terminal-free compound, a future hub compound) with no emitter cooperation. The two deliberately disagree on
+/// a hub or front line compound) with no emitter cooperation. The two deliberately disagree on
 /// one case: the box remainder beside a straight lane is a published <c>notch</c> vacancy (box-relative), but
 /// here it lies outside the shape's own bounding box and is no negative space at all — nothing encases it, so
 /// the lane's side is free surface.
@@ -84,8 +84,8 @@ public sealed record EdgeClassification(IReadOnlyList<NegativeSpace> Spaces, IRe
 /// </summary>
 public static class CompoundEdges
 {
-    /// <summary>Classify the union of <paramref name="rects"/> (<c>[x, z, w, h]</c> cell rects) — no slots, so
-    /// every space's <see cref="NegativeSpace.WallSlots"/> is empty.</summary>
+    /// <summary>Classify the union of <paramref name="rects"/> (<c>[x, z, w, h]</c> cell rects) — no owners, so
+    /// every space's <see cref="NegativeSpace.Walls"/> is empty.</summary>
     public static EdgeClassification Classify(IEnumerable<CellRect> rects)
     {
         var cells = new HashSet<(int, int)>();
@@ -95,84 +95,72 @@ public static class CompoundEdges
         return Classify(cells);
     }
 
-    /// <summary>Classify a terminal-free compound (its structural pieces), wall slots read from the pieces.</summary>
-    public static EdgeClassification Classify(Compound compound)
-    {
-        var cells = new HashSet<(int, int)>();
-        var slots = new Dictionary<(int, int), string>();
-        foreach (var (r, slot) in compound.Pieces)
-            for (var x = r.X; x < r.X + r.Width; x++)
-                for (var z = r.Z; z < r.Z + r.Height; z++) { cells.Add((x, z)); slots[(x, z)] = slot; }
-        return Classify(cells, new HashSet<(int, int)>(), clearance: null, slots);
-    }
-
-    /// <summary>The default clearance margin around a terminal room, in cells — two cells is the 10-block
-    /// corridor minimum, the smallest gap that keeps a docked piece from crowding the room.</summary>
+    /// <summary>The default clearance margin around a room, in cells — two cells is the 10-block corridor minimum,
+    /// the smallest gap that keeps a docked piece from crowding the room.</summary>
     public const int DefaultClearanceCells = 2;
 
-    /// <summary>Classify an approach emission as one mass — terrain plus the terminal room. The room takes part
-    /// in the walls it forms (a clamp's recess is a bay only because the room closes it; the same two bars
-    /// without the room wrap a mere notch), and every boundary run on the room's own wall is marked
-    /// <see cref="ClassifiedEdge.Terminal"/>.</summary>
-    public static EdgeClassification Classify(ApproachShape shape)
+    /// <summary>Classify a compound as one mass, its wall parts read from the pieces. A room takes part in the
+    /// walls it forms (a clamp's recess is a bay only because the room closes it; the same two bars without the
+    /// room wrap a mere notch), and every boundary run on the room's own wall is marked
+    /// <see cref="ClassifiedEdge.OnRoom"/>.</summary>
+    public static EdgeClassification Classify(Compound compound)
     {
-        var (cells, terminal, slots) = EmissionCells(shape);
-        return Classify(cells, terminal, clearance: null, slots);
+        var (cells, room, parts) = PieceCells(compound);
+        return Classify(cells, room, clearance: null, parts);
     }
 
-    /// <summary>Classify an approach emission with the terminal's <b>clearance margin</b> applied — the third
-    /// layer over spaces and parts. The room inflated by <paramref name="clearanceCells"/> is the guard region:
-    /// boundary runs inside it are <see cref="ClassifiedEdge.Guarded"/> (splitting from the free remainder of
-    /// their line), and every space part is split against it, the covered piece marked
-    /// <see cref="NegativeSpacePart.Guarded"/>. The room and its immediate approach are final as the emitter
-    /// designed them — nothing may dock or publish inside the margin, or the objective's approach changes out
-    /// from under the design.</summary>
-    public static EdgeClassification Classify(ApproachShape shape, int clearanceCells)
+    /// <summary>Classify a compound with its room's <b>clearance margin</b> applied — the third layer over spaces
+    /// and parts. The room inflated by <paramref name="clearanceCells"/> is the guard region: boundary runs inside
+    /// it are <see cref="ClassifiedEdge.Guarded"/> (splitting from the free remainder of their line), and every
+    /// space part is split against it, the covered piece marked <see cref="NegativeSpacePart.Guarded"/>. The room
+    /// and its immediate approach are final as the emitter designed them — nothing may dock or publish inside the
+    /// margin.</summary>
+    public static EdgeClassification Classify(Compound compound, int clearanceCells)
     {
-        var (cells, terminal, slots) = EmissionCells(shape);
+        var (cells, room, parts) = PieceCells(compound);
+        var roomRect = compound.Room?.Rect
+            ?? throw new ArgumentException("a clearance margin is measured around a room, and this compound has none.");
         var d = clearanceCells;
-        CellRect clearance = new(shape.Room.X - d, shape.Room.Z - d, shape.Room.Width + 2 * d, shape.Room.Height + 2 * d);
-        return Classify(cells, terminal, clearance, slots);
+        CellRect clearance = new(roomRect.X - d, roomRect.Z - d, roomRect.Width + 2 * d, roomRect.Height + 2 * d);
+        return Classify(cells, room, clearance, parts);
     }
 
-    private static (HashSet<(int, int)> Cells, HashSet<(int, int)> Terminal, Dictionary<(int, int), string> Slots)
-        EmissionCells(ApproachShape shape)
+    private static (HashSet<(int, int)> Cells, HashSet<(int, int)> Room, Dictionary<(int, int), string> Parts)
+        PieceCells(Compound compound)
     {
         var cells = new HashSet<(int, int)>();
-        var slots = new Dictionary<(int, int), string>();
-        foreach (var (r, slot) in shape.Compound.Pieces)
+        var room = new HashSet<(int, int)>();
+        var parts = new Dictionary<(int, int), string>();
+        foreach (var (r, part) in compound.Pieces)
             for (var x = r.X; x < r.X + r.Width; x++)
-                for (var z = r.Z; z < r.Z + r.Height; z++) { cells.Add((x, z)); slots[(x, z)] = slot; }
-        var terminal = new HashSet<(int, int)>();
-        for (var x = shape.Room.X; x < shape.Room.X + shape.Room.Width; x++)
-            for (var z = shape.Room.Z; z < shape.Room.Z + shape.Room.Height; z++)
-            {
-                cells.Add((x, z));
-                terminal.Add((x, z));
-                slots[(x, z)] = ApproachSlots.Room;
-            }
-        return (cells, terminal, slots);
+                for (var z = r.Z; z < r.Z + r.Height; z++)
+                {
+                    cells.Add((x, z));
+                    parts[(x, z)] = part;
+                    if (part == CompoundParts.Room) room.Add((x, z));
+                }
+        return (cells, room, parts);
     }
 
-    /// <summary>Classify a cell set with no terminal.</summary>
+    /// <summary>Classify a cell set with no room.</summary>
     public static EdgeClassification Classify(IReadOnlySet<(int, int)> cells) =>
-        Classify(cells, new HashSet<(int, int)>(), clearance: null, slots: null);
+        Classify(cells, new HashSet<(int, int)>(), clearance: null, owners: null);
 
-    /// <summary>Classify a cell set whose cells are owned — each space's <see cref="NegativeSpace.WallSlots"/>
+    /// <summary>Classify a cell set whose cells are owned — each space's <see cref="NegativeSpace.Walls"/>
     /// names the owners walling it, in first-encounter order. A board passes its piece ids, so a space says
     /// which pieces it lies between.</summary>
     public static EdgeClassification Classify(
-        IReadOnlySet<(int, int)> cells, IReadOnlyDictionary<(int, int), string> slots) =>
-        Classify(cells, new HashSet<(int, int)>(), clearance: null, slots);
+        IReadOnlySet<(int, int)> cells, IReadOnlyDictionary<(int, int), string> owners) =>
+        Classify(cells, new HashSet<(int, int)>(), clearance: null, owners);
 
-    /// <summary>Classify a cell set, marking boundary runs whose inner cell lies in <paramref name="terminal"/>
-    /// (the terminal room's own wall) — runs never merge across the terrain↔terminal ownership change.</summary>
-    public static EdgeClassification Classify(IReadOnlySet<(int, int)> cells, IReadOnlySet<(int, int)> terminal) =>
-        Classify(cells, terminal, clearance: null, slots: null);
+    /// <summary>Classify a cell set, marking boundary runs whose inner cell lies in <paramref name="room"/>
+    /// (the room's own wall) — runs never merge across the terrain↔room ownership change.</summary>
+    public static EdgeClassification Classify(IReadOnlySet<(int, int)> cells, IReadOnlySet<(int, int)> room) =>
+        Classify(cells, room, clearance: null, owners: null);
 
     private static EdgeClassification Classify(
-        IReadOnlySet<(int, int)> cells, IReadOnlySet<(int, int)> terminal, CellRect? clearance,
-        IReadOnlyDictionary<(int, int), string>? slots)
+        IReadOnlySet<(int, int)> cells, IReadOnlySet<(int, int)> room, CellRect? clearance,
+        IReadOnlyDictionary<(int, int), string>? owners)
     {
         if (cells.Count == 0) return new EdgeClassification([], []);
         var bb = Cells.BoundingBox(cells);
@@ -213,22 +201,22 @@ public static class CompoundEdges
                     parts = parts.SelectMany(p => SplitByClearance(p, clear)).ToList();
                 parts = parts.Select(p => p with { Front = TouchesAMouth(p.Rect, mouths, minX, minZ, maxX, maxZ) }).ToList();
                 spaces.Add(new NegativeSpace(
-                    kind, comp, walled.Count, WallSlotsOf(comp, cells, slots), parts, SpaceForm(comp), mouths,
-                    Crossings(comp, cells, slots)));
+                    kind, comp, walled.Count, WallsOf(comp, cells, owners), parts, SpaceForm(comp), mouths,
+                    Crossings(comp, cells, owners)));
             }
 
         // boundary edges — every filled↔empty cell seam, classed by the space behind it (outside the bounding
         // box is open), the inner cell's ownership, and the clearance guard (the void cell just beyond the
         // seam lies in the margin — docking there crowds the room), then merged into maximal same-key straight
-        // runs: a run never continues across a terrain↔terminal or free↔guarded change
+        // runs: a run never continues across a terrain↔room or free↔guarded change
         string FacingKind((int, int) n) =>
             spaceOf.TryGetValue(n, out var s) ? spaces[s].Kind : NegativeSpaceKinds.Open;
         bool Guarded((int, int) n) => clearance is { } g && g.Contains(n.Item1, n.Item2);
-        var vertical = new Dictionary<(int Line, string Kind, bool Terminal, bool Guarded), List<int>>();   // line x → unit spans z
-        var horizontal = new Dictionary<(int Line, string Kind, bool Terminal, bool Guarded), List<int>>(); // line z → unit spans x
+        var vertical = new Dictionary<(int Line, string Kind, bool OnRoom, bool Guarded), List<int>>();   // line x → unit spans z
+        var horizontal = new Dictionary<(int Line, string Kind, bool OnRoom, bool Guarded), List<int>>(); // line z → unit spans x
         foreach (var (x, z) in cells)
         {
-            var own = terminal.Contains((x, z));
+            var own = room.Contains((x, z));
             if (!cells.Contains((x + 1, z))) Add(vertical, (x + 1, FacingKind((x + 1, z)), own, Guarded((x + 1, z))), z);
             if (!cells.Contains((x - 1, z))) Add(vertical, (x, FacingKind((x - 1, z)), own, Guarded((x - 1, z))), z);
             if (!cells.Contains((x, z + 1))) Add(horizontal, (z + 1, FacingKind((x, z + 1)), own, Guarded((x, z + 1))), x);
@@ -236,11 +224,11 @@ public static class CompoundEdges
         }
         var edges = new List<ClassifiedEdge>();
         foreach (var ((line, kind, own, grd), spans) in vertical
-            .OrderBy(e => e.Key.Line).ThenBy(e => NegativeSpaceKinds.Rank(e.Key.Kind)).ThenBy(e => e.Key.Terminal).ThenBy(e => e.Key.Guarded))
+            .OrderBy(e => e.Key.Line).ThenBy(e => NegativeSpaceKinds.Rank(e.Key.Kind)).ThenBy(e => e.Key.OnRoom).ThenBy(e => e.Key.Guarded))
             foreach (var (lo, hi) in Runs(spans))
                 edges.Add(new ClassifiedEdge(line, lo, line, hi, kind, hi - lo, own, grd));
         foreach (var ((line, kind, own, grd), spans) in horizontal
-            .OrderBy(e => e.Key.Line).ThenBy(e => NegativeSpaceKinds.Rank(e.Key.Kind)).ThenBy(e => e.Key.Terminal).ThenBy(e => e.Key.Guarded))
+            .OrderBy(e => e.Key.Line).ThenBy(e => NegativeSpaceKinds.Rank(e.Key.Kind)).ThenBy(e => e.Key.OnRoom).ThenBy(e => e.Key.Guarded))
             foreach (var (lo, hi) in Runs(spans))
                 edges.Add(new ClassifiedEdge(lo, line, hi, line, kind, hi - lo, own, grd));
         return new EdgeClassification(spaces, edges);
@@ -267,16 +255,16 @@ public static class CompoundEdges
     public static int WidthClass(int widthCells) =>
         new[] { 2, 4, 6 }.OrderBy(r => Math.Abs(r - widthCells)).ThenBy(r => r).First();
 
-    // the distinct slot/mark names of the pieces walling a space, in first-encounter order over a
-    // deterministic scan (empty when the classification carried no slot map)
-    private static IReadOnlyList<string> WallSlotsOf(
-        HashSet<(int, int)> comp, IReadOnlySet<(int, int)> cells, IReadOnlyDictionary<(int, int), string>? slots)
+    // the distinct owner/mark names of the pieces walling a space, in first-encounter order over a
+    // deterministic scan (empty when the classification carried no owner map)
+    private static IReadOnlyList<string> WallsOf(
+        HashSet<(int, int)> comp, IReadOnlySet<(int, int)> cells, IReadOnlyDictionary<(int, int), string>? owners)
     {
-        if (slots is null) return [];
+        if (owners is null) return [];
         var walls = new List<string>();
         foreach (var c in comp.OrderBy(c => c.Item1).ThenBy(c => c.Item2))
             foreach (var n in Cells.N4(c))
-                if (cells.Contains(n) && slots.TryGetValue(n, out var s) && !walls.Contains(s)) walls.Add(s);
+                if (cells.Contains(n) && owners.TryGetValue(n, out var s) && !walls.Contains(s)) walls.Add(s);
         return walls;
     }
 
@@ -416,9 +404,9 @@ public static class CompoundEdges
     /// at each end. Measured once per run, from the end the compound closes, along each axis.</summary>
     private static List<SpaceCrossing> Crossings(
         IReadOnlySet<(int, int)> space, IReadOnlySet<(int, int)> compound,
-        IReadOnlyDictionary<(int, int), string>? slots)
+        IReadOnlyDictionary<(int, int), string>? owners)
     {
-        string Owner((int, int) cell) => slots is not null && slots.TryGetValue(cell, out var name) ? name : "";
+        string Owner((int, int) cell) => owners is not null && owners.TryGetValue(cell, out var name) ? name : "";
         var found = new List<SpaceCrossing>();
         foreach (var (dx, dz) in new[] { (1, 0), (0, 1) })
             foreach (var cell in space)

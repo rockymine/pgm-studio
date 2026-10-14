@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Tests.Compose;
 
-/// <summary>The frontline box kind: a terminal-free join (Bar · single · twin) — no room, front-labeled pieces,
+/// <summary>The frontline box kind: a room-free join (Bar · single · twin) — no room, front-labeled pieces,
 /// rotation fixed (spine docks the hub, face toward the axis), offering only its face with the mid's grouping
 /// contract (joint — one wide consumer; several — one per tip).</summary>
 public class FrontlineBoxEmitterTests
@@ -11,13 +11,13 @@ public class FrontlineBoxEmitterTests
     private static Box Box(string id = "front") => new(id, BoxKind.Frontline, new(0, 0, 8, 6), 48);
 
     [Test]
-    public async Task Bar_frontline_is_a_solid_wide_face_terminal_free()
+    public async Task Bar_frontline_is_a_solid_wide_face_with_no_room()
     {
         var f = FrontlineBoxEmitter.Fill(Box(), new CompoundRead(CompoundForm.Rectangle), cw: 2, OfferGrouping.Joint)!;
 
         await Assert.That(f.Pieces.Count).IsEqualTo(1);
         await Assert.That(f.Pieces.All(p => p.Box!.Kind == BoxKind.Frontline)).IsTrue();
-        await Assert.That(f.Pieces.Any(p => p.Slot == ApproachSlots.Room)).IsFalse();
+        await Assert.That(f.Pieces.Any(p => p.Part == CompoundParts.Room)).IsFalse();
         await Assert.That(f.SpineEdge).IsEqualTo(BoxEdge.Top);
         await Assert.That(f.FaceEdge).IsEqualTo(BoxEdge.Bottom);
         // the whole far edge is the wide face — one run

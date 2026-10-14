@@ -4,11 +4,11 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The docking gate: a dock is legal iff the box edge lands on an <c>entry</c> (docking) slot and touches
-/// no <c>room</c> (never-dock) slot — <see cref="DockingGate"/> resolving each edge to its slots via the
+/// The docking gate: a dock is legal iff the box edge lands on an <c>entry</c> (docking) part and touches
+/// no <c>room</c> (never-dock) part — <see cref="DockingGate"/> resolving each edge to its parts via the
 /// <see cref="BoxInterfaces"/> facts and applying the one table. Every family docks through a single mouth (the
 /// clamp too — its two legs meet the host on one edge, the wool clamped inside as a cut cell), so the verdict
-/// reads only the edge's slots and is shape-relative — the slots are read off the shape, not a fixed mouth edge.
+/// reads only the edge's parts and is shape-relative — the parts are read off the shape, not a fixed mouth edge.
 /// </summary>
 public sealed class DockingGateTests
 {
@@ -55,7 +55,7 @@ public sealed class DockingGateTests
     {
         // the emitter's canonical mouth for a scythe is the top edge, but the room also reaches the top-right,
         // so the top is never-dock; the gate finds the clean docking edge off the shape — the entry's left
-        // edge, parallel to the entry↔entry-run seam. This is the gate reading slots, not a fixed mouth edge.
+        // edge, parallel to the entry↔entry-run seam. This is the gate reading parts, not a fixed mouth edge.
         var es = Edges(ShapeFamily.Scythe, 8, 6);
         await Assert.That(ShapeEmitter.MouthEdge(ShapeFamily.Scythe)).IsEqualTo(BoxEdge.Top);
         await Assert.That(DockingGate.DockingEdges(es).Select(e => e.Edge)).IsEquivalentTo(new[] { BoxEdge.Left });
@@ -75,7 +75,7 @@ public sealed class DockingGateTests
     [Test]
     public async Task Check_mouth_admits_a_single_mouth_family_through_its_entry_edge()
     {
-        // the single-mouth verdict a filler consults: a terminal-capped family docks cleanly through the edge
+        // the single-mouth verdict a filler consults: a room-capped family docks cleanly through the edge
         // its entry reaches (I/L its top, U/H/clamp the leg edge at the bottom)
         await Assert.That(DockingGate.CheckMouth(Edges(ShapeFamily.I, 6, 12), BoxEdge.Top)).IsNull();
         await Assert.That(DockingGate.CheckMouth(Edges(ShapeFamily.L, 8, 8), BoxEdge.Top)).IsNull();
@@ -94,28 +94,12 @@ public sealed class DockingGateTests
     }
 
     [Test]
-    public async Task Approach_slot_roles_map_room_to_never_dock_entry_to_docking_rest_internal()
+    public async Task Part_roles_map_room_to_never_dock_entry_to_docking_rest_internal()
     {
-        await Assert.That(DockingGate.Role(Designation.Approach, ApproachSlots.Room)).IsEqualTo(SlotDockRole.NeverDock);
-        await Assert.That(DockingGate.Role(Designation.Approach, ApproachSlots.Entry)).IsEqualTo(SlotDockRole.DockingEdge);
-        foreach (var s in new[] { ApproachSlots.Run, ApproachSlots.Bar, ApproachSlots.Leg,
-                     ApproachSlots.EntryRun, ApproachSlots.RoomRun, ApproachSlots.EntryBar, ApproachSlots.RoomBar })
-            await Assert.That(DockingGate.Role(Designation.Approach, s)).IsEqualTo(SlotDockRole.Internal);
-    }
-
-    [Test]
-    public async Task Hub_and_frontline_designations_dock_their_mark_veto_nothing()
-    {
-        // no terminal on either → nothing never-docks; the mark is the docking edge, structural slots internal
-        await Assert.That(DockingGate.Role(Designation.Hub, DesignationMarks.Interface)).IsEqualTo(SlotDockRole.DockingEdge);
-        await Assert.That(DockingGate.Role(Designation.Frontline, DesignationMarks.Face)).IsEqualTo(SlotDockRole.DockingEdge);
-        foreach (var s in new[] { ApproachSlots.Run, ApproachSlots.Bar, ApproachSlots.Leg })
-        {
-            await Assert.That(DockingGate.Role(Designation.Hub, s)).IsEqualTo(SlotDockRole.Internal);
-            await Assert.That(DockingGate.Role(Designation.Frontline, s)).IsEqualTo(SlotDockRole.Internal);
-        }
-        // a mark belongs to its designation: the approach terminal is not a hub/frontline concern (no veto)
-        await Assert.That(DockingGate.Role(Designation.Hub, ApproachSlots.Room)).IsEqualTo(SlotDockRole.Internal);
-        await Assert.That(DockingGate.Role(Designation.Frontline, ApproachSlots.Room)).IsEqualTo(SlotDockRole.Internal);
+        await Assert.That(DockingGate.Role(CompoundParts.Room)).IsEqualTo(PartDockRole.NeverDock);
+        await Assert.That(DockingGate.Role(CompoundParts.Entry)).IsEqualTo(PartDockRole.DockingEdge);
+        foreach (var part in new[] { CompoundParts.Run, CompoundParts.Bar, CompoundParts.Leg,
+                     CompoundParts.EntryRun, CompoundParts.RoomRun, CompoundParts.EntryBar, CompoundParts.RoomBar })
+            await Assert.That(DockingGate.Role(part)).IsEqualTo(PartDockRole.Internal);
     }
 }

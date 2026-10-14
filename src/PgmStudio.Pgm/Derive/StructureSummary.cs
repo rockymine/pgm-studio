@@ -8,7 +8,7 @@ namespace PgmStudio.Pgm.Derive;
 /// The finished structural read of a composed unit — the third mirror surfaced as a browse/duel fact: the
 /// sorted wool <b>approach families</b>, the hub <b>compound form</b>, and the frontline <b>compound form</b> (or
 /// none). Derived from the generator's own labeled artifacts (each piece's <see cref="GrownPiece.Box"/> +
-/// <see cref="GrownPiece.Slot"/>), never from a finished map's welded terrain, so it reads uniformly off a
+/// <see cref="GrownPiece.Part"/>), never from a finished map's welded terrain, so it reads uniformly off a
 /// bare unit and needs no labels stored back. It is the canonical filter fact for the browse sieve and
 /// the bucket key for verdicts / duels: the same read the user sees on the card.
 /// <para>Reuses the two validated classifier entry points: <c>ShapeClassifier.Classify</c> (approach
@@ -33,7 +33,7 @@ public sealed record StructureSummary(
         foreach (var boxId in WoolBoxIds(unit))
         {
             var boxPieces = unit.Pieces.Where(p => p.Box?.Id == boxId).ToList();
-            var room = boxPieces.FirstOrDefault(p => p.Slot == ApproachSlots.Room);
+            var room = boxPieces.FirstOrDefault(p => p.Part == CompoundParts.Room);
             if (room is null) continue;
             var filled = new HashSet<(int, int)>();
             var roomCells = new HashSet<(int, int)>();

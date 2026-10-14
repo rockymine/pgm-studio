@@ -4,7 +4,7 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>The filled frontline box: its terrain pieces (front-labeled, <b>no terminal, no marker</b>), the
+/// <summary>The filled frontline box: its terrain pieces (front-labeled, <b>no room, no marker</b>), the
 /// <see cref="FaceOffers"/> the mid consumes, the <see cref="SpineEdge"/> that docks the hub and the
 /// <see cref="FaceEdge"/> toward the axis, and the <see cref="CompoundRead"/> form it was built as.</summary>
 public sealed record PlacedFrontline(
@@ -13,15 +13,15 @@ public sealed record PlacedFrontline(
 
 /// <summary>
 /// The frontline binding over <see cref="CompoundEmitter"/> — the <b>join box kind</b>
-/// (docs/generator/model.md §4, designations). Terminal-free like the hub, finished by the <b>Front designation</b>:
-/// one edge marked the <c>face</c> (where the fanned images meet the mid), no room. It is a <b>join, not a
+/// (docs/generator/model.md §4). Room-free like the hub, with one edge the <c>face</c> (where the fanned images
+/// meet the mid). It is a <b>join, not a
 /// placement</b> — its only interfaces are the <b>spine</b> (which docks the hub, consuming the hub's front-edge
 /// offer) and the <b>face</b> (which it offers to the mid); the sides are inert. <b>Rotation is fixed by the
-/// designation</b>: the spine docks the hub and the arm-tips are the face toward the axis, so the emitter works
+/// box kind</b>: the spine docks the hub and the arm-tips are the face toward the axis, so the emitter works
 /// in one canonical frame — spine <see cref="BoxEdge.Top"/>, face <see cref="BoxEdge.Bottom"/> — and the composer
 /// orients the placed box onto the hub.
 ///
-/// <para>The <b>face offer</b> is <see cref="Designation.Frontline"/>'s half of the offer mechanism, and its
+/// <para>The <b>face offer</b> is the front line's half of the offer mechanism, and its
 /// <see cref="OfferGrouping"/> is the mid's contract (model.md §7): <b>joint</b> — one mid consumer spans all tips
 /// (FR6's wide face; the inter-tip recess is simply not offered, staying CT9's hole) — vs <b>several</b> — one
 /// mid per tip (the twin / double frontline, K derived runs). Form menu (<see cref="Forms"/>): <b>Bar</b> (the
@@ -70,7 +70,7 @@ public static class FrontlineBoxEmitter
     }
 
     /// <summary>Fill a frontline <see cref="Box"/> (plan cells) as <paramref name="form"/> at strand width
-    /// <paramref name="cw"/>, terminal-free, with the spine docking <paramref name="spineMouth"/> (the box edge
+    /// <paramref name="cw"/>, room-free, with the spine docking <paramref name="spineMouth"/> (the box edge
     /// facing the hub) and the face on the opposite edge toward the axis. An optional <paramref name="armLayout"/>
     /// (from <see cref="SampleArms"/>) overrides the branch forms' canonical legs — the sampled variation; when
     /// absent the canonical fat L / symmetric twin builds. The compound is built spine-up and oriented
@@ -112,9 +112,9 @@ public static class FrontlineBoxEmitter
         var boxRef = new BoxRef(box.Id, BoxKind.Frontline);
         var pieces = new List<GrownPiece>(compound.Pieces.Count);
         var n = 1;
-        foreach (var (r, slot) in compound.Pieces)
+        foreach (var (r, part) in compound.Pieces)
             pieces.Add(new GrownPiece($"{box.Id}-t{n++}", new(box.Rect.X + r.X, box.Rect.Z + r.Z, r.Width, r.Height),
-                PlanRoles.Piece, slot, boxRef));
+                PlanRoles.Piece, part, boxRef));
 
         // the face is the arm-tip edge opposite the spine; only it is offered — the sides are inert and the spine
         // is the consumer side (it lands on the hub's offer).
