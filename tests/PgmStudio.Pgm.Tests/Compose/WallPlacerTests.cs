@@ -19,7 +19,7 @@ public sealed class WallPlacerTests
             new UnitPiece("frontline-t1", new CellRect(0, 0, 9, 3), Box: new BoxRef("frontline", BoxKind.Frontline)),
             new UnitPiece("hub-t1", new CellRect(0, 3, 9, 6), Box: new BoxRef("hub", BoxKind.Hub)),
             new UnitPiece("wool-a-t1", new CellRect(3, 9, 3, 6), Box: WoolBox),
-            new UnitPiece("wool-a-room", new CellRect(3, 15, 3, 2), PlanRoles.WoolRoom, Box: WoolBox),
+            new UnitPiece("wool-a-room", new CellRect(3, 15, 3, 2), WoolBox, PlanRoles.WoolRoom),
         ],
         new Marker("hub-t1", 1, 1), "front",
         [new Marker("wool-a-room", 1, 1)]);
@@ -49,7 +49,7 @@ public sealed class WallPlacerTests
             [
                 .. Straight().Pieces.Where(p => p.Id is "frontline-t1" or "hub-t1"),
                 new UnitPiece("wool-a-t1", new CellRect(3, 9, 3, 2), Box: WoolBox),
-                new UnitPiece("wool-a-room", new CellRect(3, 11, 3, 2), PlanRoles.WoolRoom, Box: WoolBox),
+                new UnitPiece("wool-a-room", new CellRect(3, 11, 3, 2), WoolBox, PlanRoles.WoolRoom),
             ],
         };
         await Assert.That(WallPlacer.Place(unit, cell: 4).Walls).IsEmpty();
@@ -68,7 +68,7 @@ public sealed class WallPlacerTests
             new UnitPiece("wool-b-t2", new CellRect(8, 12, 3, 4), Part: CompoundParts.Leg, Box: DonutBox),
             new UnitPiece("wool-b-t3", new CellRect(14, 12, 3, 4), Part: CompoundParts.Leg, Box: DonutBox),
             new UnitPiece("wool-b-t5", new CellRect(8, 9, 9, 3), Part: CompoundParts.RoomBar, Box: DonutBox),
-            new UnitPiece("wool-b-room", new CellRect(17, 9, 2, 3), PlanRoles.WoolRoom, Box: DonutBox),
+            new UnitPiece("wool-b-room", new CellRect(17, 9, 2, 3), DonutBox, PlanRoles.WoolRoom),
         ],
         new Marker("hub-t1", 1, 1), "front",
         [new Marker("wool-b-room", 1, 1)]);

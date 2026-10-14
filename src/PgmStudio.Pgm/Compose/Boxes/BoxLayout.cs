@@ -53,7 +53,7 @@ public sealed record BoxLayout(IReadOnlyList<Box> Boxes, IReadOnlyList<BoxJoint>
         Joints.Where(j => j.BoxA == id || j.BoxB == id).ToList();
 
     /// <summary>Read the partition implied by a team <paramref name="unit"/> — the derive-side mirror of what a
-    /// partition-first allocator emits. Labeled approach pieces group by their <see cref="BoxRef"/> into wool
+    /// partition-first allocator emits. Pieces group by their <see cref="BoxRef"/> into wool
     /// and spawn boxes; the structural pieces the grower authors directly (the hub, the frontline, the third
     /// wool lane) group by id into their plain boxes. Each box's footprint is its pieces' bounding envelope and
     /// its land the cells they cover; joints are the abutments between the footprints.</summary>
@@ -77,21 +77,9 @@ public sealed record BoxLayout(IReadOnlyList<Box> Boxes, IReadOnlyList<BoxJoint>
         return new BoxLayout(boxes, joints);
     }
 
-    /// <summary>The box a unit <paramref name="piece"/> belongs to — its carried <see cref="BoxRef"/> label
-    /// when it has one, else the plain box its id names (<see cref="Structural"/>). The single grouping key,
-    /// so anything that re-groups a unit's pieces (the partition mirror, the plan-box annotation) partitions
-    /// them identically.</summary>
-    public static (string Id, BoxKind Kind) KeyOf(UnitPiece piece) =>
-        piece.Box is { } box ? (box.Id, box.Kind) : Structural(piece);
-
-    /// <summary>The plain box an unlabeled structural piece belongs to, by id: the hub, the frontline (its
-    /// chains share one box), the third wool lane. Anything unexpected becomes its own single-piece box so the
-    /// mirror stays total rather than throwing.</summary>
-    private static (string Id, BoxKind Kind) Structural(UnitPiece p) =>
-        p.Id == "hub" ? ("hub", BoxKind.Hub)
-        : p.Id.StartsWith("frontline") ? ("frontline", BoxKind.Frontline)
-        : p.Id.StartsWith("wool-lane") ? ("wool-c", BoxKind.Wool)
-        : (p.Id, BoxKind.Mid);
+    /// <summary>The box a unit <paramref name="piece"/> fills — the single grouping key, so anything that
+    /// re-groups a unit's pieces (the partition mirror, the plan-box annotation) partitions them identically.</summary>
+    public static (string Id, BoxKind Kind) KeyOf(UnitPiece piece) => (piece.Box.Id, piece.Box.Kind);
 
     private static CellRect Bbox(IReadOnlyList<CellRect> rects)
     {

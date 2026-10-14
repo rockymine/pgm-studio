@@ -19,7 +19,7 @@ public enum LaneRead { I, L, Z, Complex, Plaza, None }
 /// room, …).
 ///
 /// <para><b>Every test is width-independent.</b> Turns are reflex corners of the terrain <em>outline</em> (the
-/// approach minus the room), so a lane and the same lane widened uniformly turn the same number of times. A
+/// compound minus the room), so a lane and the same lane widened uniformly turn the same number of times. A
 /// <b>fold</b> (scythe) is terrain that doubles back — some row or column crosses it in two runs, the lines
 /// through the wrapped bay — read on the terrain itself, so a shifted endpoint or a docked neighbour changes
 /// the verdict only by genuinely adding or filling a fold, never by moving the bounding box. A <b>branch</b>
@@ -38,7 +38,7 @@ public enum LaneRead { I, L, Z, Complex, Plaza, None }
 /// </summary>
 public static class ShapeClassifier
 {
-    /// <summary>Classify the approach the piece <paramref name="roomPieceId"/> caps in <paramref name="plan"/>
+    /// <summary>Classify the compound the piece <paramref name="roomPieceId"/> caps in <paramref name="plan"/>
     /// (buffers excluded from the terrain).</summary>
     public static (CompoundForm? Family, int Width) Classify(PlanModel plan, string roomPieceId)
     {
@@ -46,7 +46,7 @@ public static class ShapeClassifier
         return room is null ? (null, 0) : Classify(filled, room);
     }
 
-    /// <summary>Classify the approach a <paramref name="room"/> caps within <paramref name="filled"/> terrain
+    /// <summary>Classify the compound a <paramref name="room"/> caps within <paramref name="filled"/> terrain
     /// (both cell sets; <paramref name="filled"/> includes the room's own cells). The family read is
     /// width-independent; the reported width is the room terrain cross-section (lane convention).</summary>
     public static (CompoundForm? Family, int Width) Classify(IReadOnlySet<(int, int)> filled, IReadOnlySet<(int, int)> room)
@@ -139,7 +139,7 @@ public static class ShapeClassifier
     /// void contributes (P) or not (a clean ring). Void-free compounds are the solid <see cref="CompoundForm.I"/>
     /// or a spine with arms — <see cref="CompoundForm.L"/>, <see cref="CompoundForm.U"/> or <see cref="CompoundForm.E"/>
     /// by the number of runs hanging off it.
-    /// Width-independent, matching the approach classifier's philosophy.</summary>
+    /// Width-independent, like the classifier of compounds ending in a room.</summary>
     public static CompoundForm ClassifyCompound(IReadOnlySet<(int, int)> cells)
     {
         if (cells.Count == 0) throw new ArgumentException("cannot classify an empty compound.");

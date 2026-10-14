@@ -36,10 +36,6 @@ The composer is described by cells, pieces, parts, roles, compounds, forms, vaca
 kinds, joints, layouts and lane widths, and these steps bring its types down to those words. Each leaves the
 composer's fingerprints unchanged except the last, which removes a random draw.
 
-- [ ] **G299 — The composer keeps only what it reads.** Delete `PublishPolicy`, `ClosureAnalysis`, `EdgeSpan`,
-  `BoxLayout.Structural`, `DockingGate.DockingEdges`/`CanDock` and `BoxEdgeInterface.TouchesRoom`/`HasTerrain`,
-  and drop *approach* as a code word for a wool compound. `model.md` and `vocabulary.md` are restated in the
-  plan's words. `docs/generator/model.md`.
 - [ ] **G300 — Offers lose their grouping.** `OfferGrouping`, `EdgeOffer.GroupId` and the front line's coin flip
   that sets them go; only tests and `unit-fingerprint.cs` read them. Removing the draw moves boards, so the
   fingerprints are re-recorded and the reproduction gate reruns. `docs/generator/model.md` §7.

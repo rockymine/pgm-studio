@@ -34,7 +34,7 @@ internal enum DockStyle { FullMouth, Overhang, ContactPatch }
 
 public static class UnitRequests
 {
-    /// <summary>A wool family the <b>seat-and-shift</b> docks: a single-entry approach whose one narrow entry
+    /// <summary>A wool family the <b>seat-and-shift</b> docks: a single-entry wool shape whose one narrow entry
     /// lands on a hub run while the compound overhangs. The dual-entry staple/branch (<c>U</c>/<c>H</c>) is <b>not</b>
     /// one — both its entries must land on the host, so it docks its full mouth (the plain seat path), never an
     /// overhang (an overhang would strand the second entry off the hub — a pinch).</summary>

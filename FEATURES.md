@@ -8874,6 +8874,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `composed_board.hub`/`.frontline` and `plan.structure` words. The composer's fingerprints are unchanged.
   `docs/generator/model.md` §4. (`G298`)
 
+- **The composer keeps only what it reads (`G299`)** — `PublishPolicy`, `ClosureAnalysis`, `EdgeSpan` and the
+  gate's and edge's convenience reads are gone, and a laid piece always carries the box it fills, so nothing
+  guesses a box from a piece id. *Approach* no longer names a wool's compound in code: the catalog's wool cards
+  are wool shapes and its kind chip reads *Wool*. `model.md` and `vocabulary.md` speak of forms, compounds and
+  boxes. The composer's fingerprints are unchanged. `docs/generator/model.md`. (`G299`)
+
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
   Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.

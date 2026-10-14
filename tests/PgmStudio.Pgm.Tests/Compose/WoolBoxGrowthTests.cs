@@ -49,17 +49,17 @@ public sealed class WoolBoxGrowthTests
     public async Task Every_wool_approach_piece_carries_its_part_and_box_label()
     {
         var unit = Fill(16, seedFrom: 3);
-        var boxed = unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Wool).ToList();
+        var boxed = unit.Pieces.Where(p => p.Box.Kind == BoxKind.Wool).ToList();
         await Assert.That(boxed).IsNotEmpty();
         foreach (var p in boxed)
         {
             await Assert.That(p.Part).IsNotNull();
             // terrain ids serialize the ownership as a prefix; the room carries its role-bearing name
             if (p.Part != CompoundParts.Room)
-                await Assert.That(p.Id.StartsWith(p.Box!.Id)).IsTrue();
+                await Assert.That(p.Id.StartsWith(p.Box.Id)).IsTrue();
         }
         // every wool/spawn box piece carries a part + a box label
-        foreach (var p in unit.Pieces.Where(p => p.Box?.Kind is BoxKind.Wool or BoxKind.Spawn))
+        foreach (var p in unit.Pieces.Where(p => p.Box.Kind is BoxKind.Wool or BoxKind.Spawn))
             await Assert.That(p.Part).IsNotNull();
     }
 
@@ -84,9 +84,9 @@ public sealed class WoolBoxGrowthTests
         for (ulong seed = 1; seed <= 12; seed++)
         {
             if (TryFill(20, seed) is not { } unit) continue;
-            foreach (var boxId in unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Wool).Select(p => p.Box!.Id).Distinct())
+            foreach (var boxId in unit.Pieces.Where(p => p.Box.Kind == BoxKind.Wool).Select(p => p.Box.Id).Distinct())
             {
-                var boxPieces = unit.Pieces.Where(p => p.Box?.Id == boxId).ToList();
+                var boxPieces = unit.Pieces.Where(p => p.Box.Id == boxId).ToList();
                 var room = boxPieces.Single(p => p.Part == CompoundParts.Room);
                 var (filled, roomCells) = BoxCells(boxPieces, room.Id);
                 var (family, _) = ShapeClassifier.Classify(filled, roomCells);
@@ -103,9 +103,9 @@ public sealed class WoolBoxGrowthTests
         for (ulong seed = 1; seed <= 30; seed++)
         {
             if (TryFill(30, seed) is not { } unit) continue;
-            foreach (var boxId in unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Wool).Select(p => p.Box!.Id).Distinct())
+            foreach (var boxId in unit.Pieces.Where(p => p.Box.Kind == BoxKind.Wool).Select(p => p.Box.Id).Distinct())
             {
-                var boxPieces = unit.Pieces.Where(p => p.Box?.Id == boxId).ToList();
+                var boxPieces = unit.Pieces.Where(p => p.Box.Id == boxId).ToList();
                 var room = boxPieces.Single(p => p.Part == CompoundParts.Room);
                 var (filled, roomCells) = BoxCells(boxPieces, room.Id);
                 if (ShapeClassifier.Classify(filled, roomCells).Family is { } family) families.Add(family);
@@ -126,7 +126,7 @@ public sealed class WoolBoxGrowthTests
             foreach (var players in new[] { 12, 20, 30 })
             {
                 if (TryFill(players, seed) is not { } unit) continue;
-                var boxPieces = unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Spawn).ToList();
+                var boxPieces = unit.Pieces.Where(p => p.Box.Kind == BoxKind.Spawn).ToList();
                 if (boxPieces.Count == 0) continue;
 
                 var room = boxPieces.Single(p => p.Part == CompoundParts.Room);
@@ -158,7 +158,7 @@ public sealed class WoolBoxGrowthTests
                 if (TryFill(players, seed) is not { } unit) continue;
                 var hubX = unit.Pieces
                     .Where(p => p.Id == "hub" || p.Id.StartsWith("hub-")).Min(p => p.Rect.X);
-                var spawnPieces = unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Spawn).Select(p => p.Rect).ToList();
+                var spawnPieces = unit.Pieces.Where(p => p.Box.Kind == BoxKind.Spawn).Select(p => p.Rect).ToList();
                 if (spawnPieces.Count == 0) continue;
                 seats.Add(spawnPieces.Min(r => r.X) - hubX);
             }

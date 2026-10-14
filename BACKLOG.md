@@ -702,7 +702,7 @@ is the standard the copy is held to.
   sweep the comments that call a segment an edge. Mechanical — the type is a tuple list with a handful
   of consumers (`BoardDeriver`, the deriver gallery, the evaluator terms reading front edges) — but it
   has to land in one commit with the doc, or `model.md` will assert a rule the code visibly breaks.
-  Check `BoxEdgeInterface`/`EdgeSpan`/`EdgeInterval` in the same pass: those name a genuine full edge
+  Check `BoxEdgeInterface`/`EdgeInterval` in the same pass: those name a genuine full edge
   and its sub-intervals, so they are correct and should stay, which is exactly why the deriver's misuse
   is worth removing rather than tolerating.
 

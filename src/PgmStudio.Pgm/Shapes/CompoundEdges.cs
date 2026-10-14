@@ -47,7 +47,7 @@ public sealed record NegativeSpace(
 /// changes: a room capping a lane splits the shared boundary line into a free terrain interval and a sealed
 /// room interval. <see cref="Guarded"/> is the third axis — the run lies inside the room's <b>clearance
 /// margin</b> (the room inflated by the corridor minimum): sealed by rule even on terrain, because a piece
-/// docked there would sit too close to the room and alter the approach the emitter designed. Coordinates are
+/// docked there would sit too close to the room and alter the compound the emitter designed. Coordinates are
 /// cell-corner coordinates (a vertical run has <c>X1 == X2</c>, a horizontal one <c>Z1 == Z2</c>);
 /// <see cref="Length"/> is the run's extent in cells.</summary>
 public sealed record ClassifiedEdge(
@@ -64,7 +64,7 @@ public sealed record EdgeClassification(IReadOnlyList<NegativeSpace> Spaces, IRe
 /// <see cref="NegativeSpaceKinds.Open"/> runs that are not <see cref="ClassifiedEdge.OnRoom"/> are the free
 /// outward surface. This is the derive-side generalization of the emit-time
 /// <see cref="ShapeVacancy"/> publication: vacancies are exact but box-relative remainders a specific emitter
-/// declares; this read is shape-relative and total — it works on any rectangle set (an emitted approach, a
+/// declares; this read is shape-relative and total — it works on any rectangle set (an emitted wool compound, a
 /// a hub or front line compound) with no emitter cooperation. The two deliberately disagree on
 /// one case: the box remainder beside a straight lane is a published <c>notch</c> vacancy (box-relative), but
 /// here it lies outside the shape's own bounding box and is no negative space at all — nothing encases it, so
@@ -105,7 +105,7 @@ public static class CompoundEdges
     /// and parts. The room inflated by <paramref name="clearanceCells"/> is the guard region: boundary runs inside
     /// it are <see cref="ClassifiedEdge.Guarded"/> (splitting from the free remainder of their line), and every
     /// space part is split against it, the covered piece marked <see cref="NegativeSpacePart.Guarded"/>. The room
-    /// and its immediate approach are final as the emitter designed them — nothing may dock or publish inside the
+    /// and the ground around it are final as the emitter designed them — nothing may dock or publish inside the
     /// margin.</summary>
     public static EdgeClassification Classify(Compound compound, int clearanceCells)
     {

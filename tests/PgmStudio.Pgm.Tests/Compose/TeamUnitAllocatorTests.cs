@@ -82,8 +82,8 @@ public class TeamUnitAllocatorTests
         // the allocated partition round-trips through the filler: allocate -> fill, end to end for the first time
         var filled = TeamUnitFiller.Fill(partition, new ComposeRng(5));
         await Assert.That(filled).IsNotNull();
-        await Assert.That(filled!.Pieces.Any(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
-        await Assert.That(filled.Pieces.Any(p => p.Box!.Kind == BoxKind.Spawn)).IsTrue();
+        await Assert.That(filled!.Pieces.Any(p => p.Box.Kind == BoxKind.Hub)).IsTrue();
+        await Assert.That(filled.Pieces.Any(p => p.Box.Kind == BoxKind.Spawn)).IsTrue();
         // the spawn faces into the hub from whichever side it docks (mirror_z: front is −z)
         var intoHub = spawn.Rect.X >= hub.Rect.X + hub.Rect.Width ? "left"
             : spawn.Rect.X + spawn.Rect.Width <= hub.Rect.X ? "right"
@@ -149,7 +149,7 @@ public class TeamUnitAllocatorTests
                 if (hub is null || front is null) continue;
                 if (TeamUnitFiller.Fill(alloc, rng) is not { } filled) continue;
 
-                var hubCells = Mask(filled.Pieces.Where(p => p.Box?.Kind == BoxKind.Hub).ToList());
+                var hubCells = Mask(filled.Pieces.Where(p => p.Box.Kind == BoxKind.Hub).ToList());
                 if (hubCells.Count == 0) continue;
 
                 // the hub row the face docks against, and the patches the face makes along it
@@ -213,7 +213,7 @@ public class TeamUnitAllocatorTests
                 var spawn = a.Boxes.Single(b => b.Kind == BoxKind.Spawn).Rect;
                 if (spawn.X + spawn.Width != hub.X && spawn.X != hub.X + hub.Width) continue;
                 lateral++;
-                var hole = Enclosed(hub, filled.Pieces.Where(p => p.Box?.Kind == BoxKind.Hub).Select(p => p.Rect));
+                var hole = Enclosed(hub, filled.Pieces.Where(p => p.Box.Kind == BoxKind.Hub).Select(p => p.Rect));
                 var target2 = hole.Count > 0 ? hole.Min(c => c.Z) + hole.Max(c => c.Z) + 1 : 2 * hub.Z + hub.Height;
                 await Assert.That(Math.Abs(2 * spawn.Z + spawn.Height - target2)).IsLessThanOrEqualTo(2)
                     .Because($"{players}p/{land:0} seed {seed}: spawn z {spawn.Z}+{spawn.Height}, hub {hub}, hole cells {hole.Count}");

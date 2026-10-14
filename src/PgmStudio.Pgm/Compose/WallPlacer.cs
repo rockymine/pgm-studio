@@ -67,7 +67,7 @@ public static class WallPlacer
     {
         if (pieces.FirstOrDefault(p => p.Id == roomId) is not { Box: { } box } room) return null;
         var owner = Owners(pieces);
-        var front = pieces.Where(p => p.Box?.Kind == BoxKind.Frontline).SelectMany(p => Cells(p.Rect)).ToList();
+        var front = pieces.Where(p => p.Box.Kind == BoxKind.Frontline).SelectMany(p => Cells(p.Rect)).ToList();
         if (front.Count == 0) return null;
 
         var fromRoom = Distances(Cells(room.Rect), owner);
@@ -78,7 +78,7 @@ public static class WallPlacer
         bool OnRoute((int X, int Z) c) =>
             fromRoom.TryGetValue(c, out var r) && fromFront.TryGetValue(c, out var f) && r + f == shortest;
 
-        var region = pieces.Where(p => p.Box?.Id == box.Id).ToList();
+        var region = pieces.Where(p => p.Box.Id == box.Id).ToList();
         var approach = region.Where(p => p.Role != PlanRoles.WoolRoom).ToList();
         var candidates = Qualifying(approach, owner, fromRoom, cell).ToList();
 

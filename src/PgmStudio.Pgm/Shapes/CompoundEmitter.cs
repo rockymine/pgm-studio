@@ -4,7 +4,7 @@ namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>
 /// Emits the <b>room-free compounds</b> the vocabulary names (docs/generator/model.md §4) but the
-/// approach emitter (<see cref="ShapeEmitter"/>) can't build, as pure <see cref="Compound"/> — structural-part-named
+/// room emitter (<see cref="ShapeEmitter"/>) can't build, as pure <see cref="Compound"/> — structural-part-named
 /// rects (<see cref="CompoundParts.Bar"/> spines/crossbars, <see cref="CompoundParts.Leg"/> arms/ring-arms) and,
 /// for the holed forms, the enclosed voids as <c>hole</c> vacancies. No room, marker or id: these are the hub's
 /// and the front line's forms.

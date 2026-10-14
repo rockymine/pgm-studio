@@ -109,9 +109,9 @@ public class TeamUnitFillerTests
         await Assert.That(filled.SpawnFacing).IsEqualTo("front");                       // behind the hub, it faces through it
         await Assert.That(filled.Wools.Count).IsEqualTo(1);
         // every team-unit box kind emitted its pieces, hub-first
-        await Assert.That(filled.Pieces.Any(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
-        await Assert.That(filled.Pieces.Any(p => p.Box!.Kind == BoxKind.Spawn)).IsTrue();
-        await Assert.That(filled.Pieces.Any(p => p.Box!.Kind == BoxKind.Wool)).IsTrue();
+        await Assert.That(filled.Pieces.Any(p => p.Box.Kind == BoxKind.Hub)).IsTrue();
+        await Assert.That(filled.Pieces.Any(p => p.Box.Kind == BoxKind.Spawn)).IsTrue();
+        await Assert.That(filled.Pieces.Any(p => p.Box.Kind == BoxKind.Wool)).IsTrue();
         // the spawn/wool rooms are the placements' pieces
         await Assert.That(filled.Pieces.Any(p => p.Id == filled.Spawn.Piece)).IsTrue();
         await Assert.That(filled.Pieces.Any(p => p.Id == filled.Wools[0].Piece)).IsTrue();
@@ -143,7 +143,7 @@ public class TeamUnitFillerTests
         var filled = TeamUnitFiller.Fill(partition, new ComposeRng(3))!;
 
         // the frontline emitted its terrain but no room (a join, not a placement)
-        var front = filled.Pieces.Where(p => p.Box!.Kind == BoxKind.Frontline).ToList();
+        var front = filled.Pieces.Where(p => p.Box.Kind == BoxKind.Frontline).ToList();
         await Assert.That(front).IsNotEmpty();
         await Assert.That(filled.Wools.Count).IsEqualTo(0);
         // it docks the hub's Top edge, so its spine lies along its Bottom edge against the hub and its tips reach

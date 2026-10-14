@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>
-/// The per-<see cref="BoxKind"/> fill profile as data: which approach families a box kind admits at a given
+/// The per-<see cref="BoxKind"/> fill profile as data: which forms a box kind admits at a given
 /// interface width, and the footprint gate that decides whether a family fits a box. This is the single source
 /// the box menu and the footprint budget read, rather than each kind answering for itself in
 /// <see cref="FillMenu"/> (wool) and <see cref="SpawnBoxEmitter"/> (spawn). It composes those rather than

@@ -296,7 +296,7 @@ public static class Producibility
         return new BoxProducibility(box.Id, box.Kind, identity, null, nearest, findings);
     }
 
-    /// <summary>What the derivers read the box as — the approach family for a roomed box, the compound form for a
+    /// <summary>What the derivers read the box as — the form of a compound ending in a room, or of one without a
     /// room-free one. A hint that narrows a search, not a verdict (see <see cref="BoxProducibility"/>).</summary>
     private static string Identify(IReadOnlySet<(int, int)> all, IReadOnlySet<(int, int)> roomCells)
     {
@@ -321,8 +321,8 @@ public static class Producibility
         {
             PlanBoxKinds.Hub => HubCandidates(box, measuredLaneWidth, cell),
             PlanBoxKinds.Frontline => FrontlineCandidates(box, measuredLaneWidth),
-            PlanBoxKinds.Wool => ApproachCandidates(box, BoxKind.Wool, measuredLaneWidth),
-            PlanBoxKinds.Spawn => ApproachCandidates(box, BoxKind.Spawn, measuredLaneWidth),
+            PlanBoxKinds.Wool => RoomCandidates(box, BoxKind.Wool, measuredLaneWidth),
+            PlanBoxKinds.Spawn => RoomCandidates(box, BoxKind.Spawn, measuredLaneWidth),
             _ => [],
         };
 
@@ -435,14 +435,14 @@ public static class Producibility
         return new(box.Rect.X + room.X, box.Rect.Z + room.Z, room.Width, room.Height);
     }
 
-    private static IEnumerable<Candidate> ApproachCandidates(PlanBox box, BoxKind kind, int measuredLaneWidth)
+    private static IEnumerable<Candidate> RoomCandidates(PlanBox box, BoxKind kind, int measuredLaneWidth)
     {
         var b = new Box(box.Id, kind, box.Rect, box.Rect.Width * box.Rect.Height);
         foreach (var laneWidth in SearchWidths(measuredLaneWidth))
             foreach (var family in FillProfiles.Families(kind, laneWidth, laneWidth))
                 foreach (var mouth in AllEdges)
                     foreach (var flip in new[] { false, true })
-                        foreach (var (placement, atEnd, attachW) in ApproachKnobs(kind, family, laneWidth))
+                        foreach (var (placement, atEnd, attachW) in RoomKnobs(kind, family, laneWidth))
                         {
                             var label = $"{family}{(flip ? " flipped" : "")} mouth {mouth}" +
                                         $"{(placement == RoomPlacement.Inline ? "" : " side-tuck")}" +
@@ -466,7 +466,7 @@ public static class Producibility
     /// <summary>The per-family emit knobs, from the declared ranges: the room placement, the wool-at-an-end
     /// variant, and the donut's sampled hub-entry width (<c>laneWidth..DonutEntryMaxCells</c>). The donut's hole size is
     /// not a knob here — the allocator spends it as box <em>growth</em>, so a given footprint implies it.</summary>
-    private static IEnumerable<(RoomPlacement Placement, bool AtEnd, int AttachW)> ApproachKnobs(
+    private static IEnumerable<(RoomPlacement Placement, bool AtEnd, int AttachW)> RoomKnobs(
         BoxKind kind, CompoundForm family, int laneWidth)
     {
         if (kind == BoxKind.Spawn) { yield return (RoomPlacement.Inline, false, 0); yield break; }

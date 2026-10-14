@@ -6,7 +6,7 @@ one meaning**; where a term appears elsewhere it carries this meaning. When anot
 disagree, this one governs.
 
 **What this document owns:** the pipeline, the request and the budget that sizes everything, the plan,
-the shape model (compounds, rooms, and the wool families), composition, the board deriver, and
+the shape model (compounds, rooms, and the wool forms), composition, the board deriver, and
 the rule and scoring model. Terms are **defined where they are first used** rather than collected in a
 glossary — a definition sitting next to the mechanism it describes is one that cannot quietly stop
 matching it. **What it defers:**
@@ -27,7 +27,7 @@ emission through the real `BoxFiller`. Where the prose here and the running stud
 prose — the studio's figures are drawn by the code being described, and this document is not.
 
 **What this model deliberately cannot express, and will not learn to.** The vocabulary below — hubs,
-lanes, frontline boxes, approach families — is *one* way to think about a CTW board, and it aligns with
+lanes, frontline boxes, wool forms — is *one* way to think about a CTW board, and it aligns with
 the majority of the corpus once a map is broken down into a simplified rectilinear form. It is an
 **intentional abstraction whose product is a low-fidelity prototype of a layout**, drawn to be refined
 afterwards in the sketch tool. A map whose form is organic rather than rectilinear falls outside it: the
@@ -114,7 +114,7 @@ Sync is one-way while the staged loop runs: edit the plan, recompile, and whatev
 re-rolled. Once an author takes the sketch into the editor for hand work that stops — the plan freezes
 as provenance and sketch and intent become the working artifacts. Recovering plan meaning back out of
 edited geometry is deliberately out of scope, for the same reason a finished map's shapes cannot be
-classified back to the families that built them: the moves compose in one direction only.
+classified back to the forms that built them: the moves compose in one direction only.
 
 ---
 
@@ -235,8 +235,8 @@ an output, never an input. And the **attachment width** is the entry piece's own
 exceed the lane it feeds.
 
 Two modes matter more than the four names. **Generation-width** is the grammar: it gates what may be
-picked and sets how things connect. **Read-width** is identity, and a family is its turn count read
-width-free. Width chooses which family is *legal* and how it *joins*; it never changes what a shape
+picked and sets how things connect. **Read-width** is identity, and a form is its turn count read
+width-free. Width chooses which form is *legal* and how it *joins*; it never changes what a shape
 *is*.
 
 The rungs are counted in **lanes**, not cells, so the same table reads the same on any grid scale: one
@@ -307,7 +307,7 @@ lives only during composition. One is what a piece *is on the map*; the other is
 its shape*.
 
 **Derived** is everything structural: islands, the frontline, the hub, lanes, the mid, contacts, void
-topology, build-zone kinds, and a wool's approach family. None of it is written back. It is recomputed
+topology, build-zone kinds, and a wool's form. None of it is written back. It is recomputed
 from the authored part whenever the plan changes, which is what keeps a hand edit from having to
 maintain a dozen consistent secondary facts.
 
@@ -335,7 +335,7 @@ kind on the map, and the differences between a wool's terrain and a hub's are ad
 
 This section works up from the atom. First the compounds and the empty space they leave, since both are
 read off geometry alone and neither knows what a map is. Then what an emitter does with a compound, what
-each kind of box adds to it, and which compounds each kind is allowed. Then the wool approach in full,
+each kind of box adds to it, and which compounds each kind is allowed. Then the wool's compound in full,
 because it is the elaborate case and the one whose pieces carry labels. Last, reading a finished shape
 back, which is how all of it is checked.
 
@@ -412,7 +412,7 @@ The **set of compounds is open, the set of names is not**. A custom build may jo
 something no name covers — a staircase, or a hook doubling back on itself — and the classifier reads
 it without a new special case, because it reads topology rather than matching a catalog. That is why
 `CompoundForm` carries no zig and no hook entry: those two features are named further up, where they
-decide the Z and Scythe wool approaches, and the compound layer sees only bends it does not need to count.
+decide the Z and Scythe wool forms, and the compound layer sees only bends it does not need to count.
 
 Width sits orthogonal to all of this. The interface width reads a compound as a corridor or as an area; it
 never reads it as a different compound. A thick leg is a wide spot, not a new form.
@@ -442,7 +442,7 @@ Negative space is known twice over, from both ends. An emitter **declares** the 
 leave: every emission carries `Vacancies`, a list of `ShapeVacancy` giving each space's kind, its
 rectangle, the edge its mouth opens toward, and the parts of the pieces walling it. `CompoundEdges` then
 **reads** the same spaces back off the finished rectangles, and describes itself as the derive-side twin
-of that emit-time record. The two must agree, for the same reason the family and the compound readings must.
+of that emit-time record. The two must agree, for the same reason the readings of a compound with a room and without one must.
 
 The derive side is the richer of the two, because it is a **fact read off finished geometry**, total
 over any set of rectangles, and it carries more than a class name. Each space decomposes into
@@ -460,14 +460,6 @@ wall), and whether it is **guarded** (inside the room's clearance margin, the co
 runs that are open, not on the room, and not guarded. This is the surface the allocator seats against;
 it is a property of the emitted compound, not of its bounding box, which is why a neighbour never docks an
 empty stretch of an L's bounding box and meets the real terrain only at a corner.
-
-Not every space a shape leaves is offered onward. Publishing one is an **offer, never a fill** — a
-later step may claim it, a third wool seated in a free-standing U's bay or a ring's hole, or nothing
-may, and an unclaimed space is simply void. What may be published is a **veto**, and it turns on
-whether the shape carries a goal. A shape **ending in a room** vetoes its bays and its holes, because a
-bay walled by the room's own path would grant the wool a second approach and an enclosed hole is
-the shape's own device; it allows only its notches. A compound with **no room** vetoes nothing, having no
-goal to shelter.
 
 One word needs guarding. The **hole** here is a *shape-level* negative space — the donut's void, four
 walls, read off one compound's geometry. The board deriver also classes holes (`encased`, `gap`,
@@ -514,18 +506,18 @@ shape's base plan is not recoverable: the moves compose one way only.
 When nothing fits a box, that is a **signal rather than a failure**. An over-constrained box is
 answered by changing the box — resize it, relax an interface, split it — so the refusal feeds back up
 a level rather than aborting. Every fill therefore refuses with a **directed reason** rather than a
-bare nothing: too small, the form does not fit, that family is not on this box's menu, the dock would
+bare nothing: too small, the form does not fit, that form is not on this box's menu, the dock would
 be illegal, the requested knobs are unsupported. The reason names which knob to turn, and it is
 deliberately one vocabulary across every box kind, since a caller reasoning about why a box will not
 fill should not have to know which kind refused it.
 
-**Everything is emitted in one canonical orientation and turned afterwards.** An approach is built
-mouth-up and a compound spine-up, always, so the per-family geometry is written once rather than four
+**Everything is emitted in one canonical orientation and turned afterwards.** A compound ending in a room is built
+mouth-up and one without a room spine-up, always, so the per-form geometry is written once rather than four
 times. Placing it on the edge a box actually docks is a separate transform — one `BoxTurn`, which a
 `Compound` takes through `Turned` — where the top edge is the identity,
 the bottom a vertical mirror, and left or right a quarter turn that transposes the box. The piece
 rectangles, the marker, and the mouths of every published vacancy all
-follow that transform together. This is why the mouth edges differ per family in the canonical frame
+follow that transform together. This is why the mouth edges differ per form in the canonical frame
 — I, L, Z and the scythe enter at the top, the U, H and clamp at the bottom where their legs run
 down to the host, the donut at the left — and why that difference never reaches a caller, which asks
 for an edge and gets a shape facing it.
@@ -549,7 +541,7 @@ it.
 
 **A room and an entry are not the same kind of thing.** The room is always a **rectangle**: real material,
 the last piece of the compound, the goal rather than a corridor. The entry is a **name for whichever
-rectangle does the docking**, and whether that rectangle exists for the purpose depends on the family.
+rectangle does the docking**, and whether that rectangle exists for the purpose depends on the form.
 In an I the lane that runs the length of the box *is* the entry, and in an L it is the vertical arm —
 rectangles the shape would have regardless, labelled for what they do. In a donut the entry is a
 rectangle that exists for nothing else, a short attachment stub against the ring's edge, while the
@@ -557,12 +549,12 @@ ring's own top bar is separately labelled `entry-bar` beside it. A rule quantifi
 therefore has to mean that name; it can assume nothing about the rectangle's size, position or whether
 removing it would leave the rest of the shape intact.
 
-`ShapeEmitter` has a single per-family routine that computes a family's pieces, its room and its vacancies
+`ShapeEmitter` has a single per-form routine that computes a form's pieces, its room and its vacancies
 together and returns them as one `Compound`, the room last and the marker inside it; `WithoutRoom` is the
 ground that leads to the room. No wool compound is built by first constructing a generic compound and then
 adding a room, and the path never routes through `CompoundEmitter` at all, borrowing only its ring-wall
 geometry for the donut. The room is computed alongside the other pieces by a routine that knows the whole
-family.
+form.
 
 What that buys is at the reading end: identity can be taken in two independent registers, topology below
 and room placement above, and that is what lets one compound serve several finished shapes.
@@ -578,7 +570,7 @@ differ because the four boxes do different work on a map. The order of each menu
 contract: a draw resolves against the list by index.
 
 The **wool** menu is **I · L · Z · U · H · Donut · Clamp** — forms ending in a room, drawn in full under *How
-a wool approach is built*. It is the widest menu because a wool's ground is the most varied thing on the
+a wool's compound is built*. It is the widest menu because a wool's ground is the most varied thing on the
 board: it must reach a goal from a host, and there are many ways to make that walk interesting. The scythe
 is the one form ending in a room left off it: its bay opens onto its own docking edge, so a flush dock seals
 the bay against the host into a hole walled by the wool room, the motif WL8 forbids. The **spawn** menu is
@@ -602,10 +594,10 @@ centred I plus I, adjacent faces a corner L plus I, the bend forced because two 
 only corner-touch. A front line of **two I's** docked to one host individually is the other, the gap between
 them being the face recess of CT8.
 
-### 4.6 How a wool approach is built
+### 4.6 How a wool's compound is built
 
-An approach is a compound walked from a host to a goal, and the forms it takes are an escalation rather than
-a flat set. An L whose lane doubles back is a scythe; a scythe whose bay closes is a donut; a clamp
+A wool's compound is the ground walked from a host to its room, and the forms it takes are an escalation
+rather than a flat set. An L whose lane doubles back is a scythe; a scythe whose bay closes is a donut; a clamp
 whose wool docks flush on one bar is a U; a U that lifts its wool onto a stub is an H. Read in that
 order the catalog is four steps and two special cases, not nine unrelated pictures.
 
@@ -631,7 +623,7 @@ Scythe          Clamp           U               H
                                                  t.t
 ```
 
-The same family can seat its room in more than one way. All three of these are donuts:
+The same form can seat its room in more than one way. All three of these are donuts:
 
 ```
 Donut                  Donut                  Donut
@@ -642,13 +634,13 @@ Donut                  Donut                  Donut
   .tttw                  .ttw                   .ttttw
 ```
 
-The scythe is the one worth reading twice, because it is the only family the **fold** decides. It
+The scythe is the one worth reading twice, because it is the only form the **fold** decides. It
 enters at the top-left tail, drops a spine, runs a bottom bar, and climbs a return leg to the wool at
 the top right — three bends, with a tight bay between the spine and the return leg. It is not a
 symmetric U with the wool moved: a U's two legs meet a crossbar and branch, while the scythe's path
 never branches, it doubles back.
 
-The three donut figures are the same family under different room placements, and they show what the
+The three donut figures are the same form under different room placements, and they show what the
 room is free to do. In the first the room hangs off the ring's edge. In the second the bottom bar
 stops short and the **wool takes the ring's own corner**, integrated into the loop rather than
 attached to it — which is why that variant needs a narrower box than the others. In the third a short
@@ -657,7 +649,7 @@ and a rule that assumed it would be wrong on two of these three.
 
 What each form *means* on a map, which is the reason they are worth telling apart:
 
-| Family | Reads as |
+| Form | Reads as |
 |---|---|
 | *isolated* (no form) | wool ringed by void — no ground reaches it; reachable only by building |
 | **I** | a terrain lane caps the wool inline (a solid compound with no bends also reads I) |
@@ -671,10 +663,10 @@ What each form *means* on a map, which is the reason they are worth telling apar
 
 **The pieces are labelled as they are laid.** The emitter does not build a shape and then work out
 what its parts are; each rectangle is added already carrying its **part**, because the emitter is the
-only thing that knows the answer for certain. A family is therefore an ordered template of part-named
-pieces, fixed per family and only resized:
+only thing that knows the answer for certain. A form is therefore an ordered template of part-named
+pieces, fixed per form and only resized:
 
-| Family | Template |
+| Form | Template |
 |---|---|
 | **I** | `entry · room` |
 | **L** | `entry · run · room` |
@@ -685,16 +677,16 @@ pieces, fixed per family and only resized:
 | **H** | `bar · entry · entry · room-run · room` |
 | **Donut** | `entry-bar · leg · leg · entry · room-bar · room` |
 
-Two invariants hold the templates together. A family emits a **stable piece count** — collinear pieces
+Two invariants hold the templates together. A form emits a **stable piece count** — collinear pieces
 are never merged, because a stable set is what makes "the entry is piece N" a usable rule. And a
 **part is a template position, not a property of the rectangle**: a scythe's `entry-run` and a donut's
 `leg` may be the very same rectangle occupying different parts. The table is realized as data in
 `CompoundParts.Template(family)`, and each emitted piece carries its part on `Piece.Part`.
 
-Those are the base configurations. The knobs add pieces without changing the family: a second donut
+Those are the base configurations. The knobs add pieces without changing the form: a second donut
 attachment is another `entry`, and the wool-extend run of the third donut figure above is a `run`.
 
-**The knobs are the variation the model allows without leaving the family.** Beyond the room placements
+**The knobs are the variation the model allows without leaving the form.** Beyond the room placements
 already drawn, a shape can be flipped so its turn goes the other way — mirrored along its mouth, so a donut's
 entry stub moves to the far end of the edge it docks and its ring hangs the other way along the host; the room can tuck off the side of
 the last segment instead of capping it; the donut can take a second attachment, slide an attachment along
@@ -709,18 +701,18 @@ wider than the rest where more play should flow through that side. The hole is w
 so widening spends the box's slack, and a wall vector too fat for its box is **refused outright** rather
 than quietly squashing the ring into something thinner than asked for.
 
-Every family also has a **minimum box**, computed from the corridor width and whichever knobs are set,
+Every form also has a **minimum box**, computed from the corridor width and whichever knobs are set,
 below which the shape cannot be drawn at all — a donut integrating its wool at the ring corner needs a
 narrower box than one hanging the room off the end, because the room sits inside the ring's span
 instead of beyond it. Asking for a box under that minimum is refused, not shrunk to fit.
 
 The parts fall in two groups. The **structural parts** — `run`, `bar`, `leg` — are what the rectangle
 *does* in the compound, shared by every box kind. `entry` and `room` are the docking position and the
-piece the compound ends in, qualified `entry-run` / `room-run` / `entry-bar` / `room-bar` where a family
+piece the compound ends in, qualified `entry-run` / `room-run` / `entry-bar` / `room-bar` where a form
 carries two of a segment. One set of shift, widen and tail-follow knobs over the `entry` part is what drives
 a wool mouth and a spawn mouth alike.
 
-The payoff is that composition rules become properties of a **part**, defined once per family. Entry
+The payoff is that composition rules become properties of a **part**, defined once per form. Entry
 widening and entry shift live on the `entry` part. Wool docking — extend against side-dock — lives on
 the `room` part. Which pieces may split into build zones is stated per part: a `run` or `bar` can be
 cut into a lane plus a build-lane, while an `entry` or `room` typically stays whole.
@@ -757,7 +749,7 @@ width:
 3. **The wool is a cut cell** — removing it disconnects the terrain, so it is the closing wall
    bridging two otherwise-separate bars → **Clamp**.
 4. Otherwise the open path, by **bend count** — the reflex corners of the terrain *outline*, taken as
-   the approach minus the room so the count is width-invariant. **0 → I**, **1 → L**. At **two or
+   the compound minus the room so the count is width-invariant. **0 → I**, **1 → L**. At **two or
    more**, one fork remains: is there a **branch**?
    - A branch means two terrain runs meeting a shared bounding-box edge the wool is *not* on. The
      wool's own edge is excluded, which is what stops a fold's two path-ends reading as a fork.
@@ -767,21 +759,21 @@ width:
      fold wrapping a bay — is a **Scythe**; a staircase of opposing bends is a **Z**.
 
 Because no step consults the reference width, an H with one box leg and one thin leg still reads H, a
-uniformly widened Z stays Z, and a wide-bay scythe stays a scythe. Width chooses which family is
+uniformly widened Z stays Z, and a wide-bay scythe stays a scythe. Width chooses which form is
 *legal* and how it *joins*; it never changes what a shape *is*. This is the single most useful
 property of the taxonomy, because it means a shape can be widened for play reasons without silently
 becoming a different thing.
 
 The **fold** carries its own weight in that tree, because it is the test that decides exactly one
-family. A fold is terrain that doubles back on itself, width-independently — and it, not a
+form. A fold is terrain that doubles back on itself, width-independently — and it, not a
 bounding-box read of the bay it wraps, is what the classifier asks. Sliding an endpoint off a box
 corner opens the bay toward a second edge without unfolding the shape, so the fold read stays stable
 under the emitter's entry and wool shifts and under docked neighbour terrain. The gaps in U, H and
-Clamp are bay-shaped too, but there the family is already fixed by the branch and bridge tests. Fold
-and bay are *features*, never families.
+Clamp are bay-shaped too, but there the form is already fixed by the branch and bridge tests. Fold
+and bay are *features*, never forms.
 
 **Building and reading are a forward/inverse pair, and asserting they agree is the correctness test of
-the whole shape model.** Emit a family at every size and width, read it back, and require the answer
+the whole shape model.** Emit a form at every size and width, read it back, and require the answer
 to equal what was asked for. Nothing else checks the emitter: there is no independent oracle for
 "is this the shape it was supposed to be", so a disagreement between the two directions is the only
 signal that either is wrong, and a change that breaks one usually breaks it silently.
@@ -790,22 +782,22 @@ The scope of that check is **the generator's own artifacts** — emissions, synt
 composed pre-fragment units, where the wool box bounds what is read. Classifying **finished maps** —
 traced corpus maps, hand-authored plans — is out of scope **by decision**, not by omission, and the
 decision is permanent. Real maps differ too much from each other and from anything the generator
-would draw: each has been through fragmentation and hand editing, which move family identity onto
+would draw: each has been through fragmentation and hand editing, which move form identity onto
 the play surface of terrain plus build links and leave a base plan that is not recoverable from what
 survives. The classifier is the generator's **mirror** — without it there is no knowing what was
 generated — and never a reverse-engineering tool. Hypothesizing the moves a finished map went
 through is the human oracle's, deliberately not automated.
 
-The check runs in `tests/PgmStudio.Pgm.Tests/Shapes/`: emit every family × size × width, read back,
+The check runs in `tests/PgmStudio.Pgm.Tests/Shapes/`: emit every form × size × width, read back,
 assert equality with no overlap, and assert that the emitted part sequence equals
-`CompoundParts.Template`. A companion set pushes each family's pieces to extremes at a fixed width, so
+`CompoundParts.Template`. A companion set pushes each form's pieces to extremes at a fixed width, so
 every one must still read its own form — the width-independence proof. The catalog of forms ending in a room is
 inline in `ShapeCatalogTests` as the `t`/`v`/`w` grids this document states, so the doc and the assertion are
 read side by side and there is no third copy to drift.
 
-**Three readings are checked this way, not one.** The family reading is the one just described. The
+**Three readings are checked this way, not one.** The form reading is the one just described. The
 **part** reading is a second: `PartAssignment` re-derives each piece's part from topology alone — path
-order for the chain families, adjacency for the branches, hole-edge geometry for the donut — and never
+order for the chain forms, adjacency for the branches, hole-edge geometry for the donut — and never
 from where a rectangle happens to sit, so every placement knob above survives it. And the **vacancy**
 reading is a third: what an emitter declared it was leaving empty must match what `CompoundEdges` reads back
 off the finished rectangles. Emitter labels, deriver recovers, and the two are asserted equal at each
@@ -822,7 +814,7 @@ three an `E`, wherever along the spine they sit. Placement is deliberately invis
 
 The figures on this page are held to the same standard. `tools/deriver/figure-check.cs` parses every
 labelled grid out of this section and pushes it through the classifier that names that kind of thing —
-a compound through `ClassifyCompound`, a family through `ShapeClassifier`, a negative space through
+a compound through `ClassifyCompound`, a form through `ShapeClassifier`, a negative space through
 `CompoundEdges` — so a figure that does not read as labelled is a failure rather than something a reader
 has to catch. It reads the figures from the document rather than holding copies, which is what stops
 the two drifting apart.
@@ -835,7 +827,7 @@ at. `Producibility` answers the real question, and it is worth understanding how
 what keeps it honest.
 
 It answers **by search, never by inverse**. The parameter space is already written down as data — the
-hub and frontline form menus, the wool production families, the spawn sizes, the wall and lane widths —
+hub and frontline form menus, the wool production forms, the spawn sizes, the wall and lane widths —
 and every emitter is a pure function of an explicit tuple with no sampling inside it, since the sampling
 lives one level up in the allocator. So the search enumerates the tuples those tables admit, calls **the
 real emitters**, and compares the resulting cell masks against the box. Nothing about a rule is restated
@@ -846,7 +838,7 @@ imitating.
 When nothing reproduces a box, the enumeration has already produced the answer to *why*. The **nearest
 miss** is the candidate differing in the fewest cells, reported as the cells it emits that the box lacks
 and the cells the box has that it does not — which says where the drawn geometry left the parameter space
-without needing a bespoke analyser per family. Alongside it sit the emitters' own refusal reasons and a
+without needing a bespoke analyser per form. Alongside it sit the emitters' own refusal reasons and a
 measurement of the mask against the very constants the emitters read. Terrain and room are compared
 **separately**, because a box whose corridor reproduces but whose room does not is a different answer
 worth stating on its own: the room carries export semantics rather than being more terrain.
@@ -991,7 +983,7 @@ somewhere a fight happens.
 A request is a request, not a rectangle. It names which side of the hub the neighbour belongs on, what
 kind of box it is, and two extents: its **depth**, how far it reaches away from the hub, and its
 **along**, how far it runs parallel to the hub's edge. Nothing in a request is a coordinate. A wool's
-request also carries the shape family rolled for it, because the family is what set those two extents
+request also carries the form rolled for it, because the form is what set those two extents
 in the first place.
 
 Depth and along are named from the edge, not from the world. The same pair means an x-extent on a
@@ -1005,7 +997,7 @@ is slid, and the compound's bay stays an open notch instead of becoming a hole. 
 floored there, rounded up to an even width first where the symmetry's parity law would otherwise round
 it back under. A solid front imposes no floor and the sample is the funnel's own.
 
-The along-extent is checked against the hub's edge length, and the overhang families are deliberately
+The along-extent is checked against the hub's edge length, and the overhang forms are deliberately
 exempt from that check. A staple whose mouth is wider than the edge demotes to an L — which is to say,
 demotes into the overhang path — while an L or a donut may be born wider than the edge it will dock,
 because the overhang rule only ever needs its entry to land. This exemption is the whole permission
@@ -1046,7 +1038,7 @@ empty — is settled later, by a filler that cannot move the rectangle it was ha
 ### 5.7 The three dock rules
 
 Which seats are legal depends on the dock style, and the style is never sampled. It follows from the
-family roll that has already happened, which makes it a derived property of the request rather than a
+form roll that has already happened, which makes it a derived property of the request rather than a
 decision of its own.
 
 The three are not an arbitrary list. They are indexed by how much is known about where the shape's
@@ -1086,7 +1078,7 @@ floors the face's own width there.
 | overhang | `L` and `Donut` wools | one narrow entry interval |
 | contact patch | the frontline | every contact, each at least a lane wide |
 
-All three assume a shape docks through **one** mouth, and one family does not. The **clamp** clamps its
+All three assume a shape docks through **one** mouth, and one form does not. The **clamp** clamps its
 wool between two entry bars, so a legal dock has to satisfy both entries at once, along the short entry
 edge (`t` terrain, `w` wool, `.` void, `h` host):
 
@@ -1186,8 +1178,8 @@ information that should have governed it.
 
 Most of the fill is already determined. The hub re-emits the compound the allocator chose, at the same wall
 widths and arm layout, because a compound sampled twice would not agree with itself. A **wool** re-emits
-the exact family it was seated as, and must not re-pick: the box was positioned for *that* family's
-entry, so a different family of the same footprint would put its entry somewhere the seat never
+the exact form it was seated as, and must not re-pick: the box was positioned for *that* form's
+entry, so a different form of the same footprint would put its entry somewhere the seat never
 cleared. What each neighbour builds to is likewise fixed — the width its own joint was granted.
 
 Two kinds genuinely choose at fill time, and both choose within what was granted. A **spawn** picks
@@ -1346,7 +1338,7 @@ where each team's exposed front runs. Nothing here is authored and nothing here 
 recomputed whenever a plan changes, which is what lets a rule be stated over structure the author never
 has to maintain by hand.
 
-Two things share the verb. The **shape deriver** reads one box's terrain back to a family, and belongs
+Two things share the verb. The **shape deriver** reads one box's terrain back to a form, and belongs
 to the shape model rather than here. The **board deriver** reads the whole plan, and when this document
 says *the deriver* without qualification it means this one. It works in two layers over the same plan:
 a rect layer that compares piece rectangles pairwise, and a raster layer that fans every piece and zone
@@ -1485,7 +1477,7 @@ stop the stack. A room open on two sides stacks both ways. Where the forward sta
 into void — the room docked against the *side* of a lane rather than the end of it — the stack runs
 along that lane's own axis instead, so the whole corridor the room hangs off becomes the lane. Only
 wools stack a lane; a spawn never does. The lane's own topology is then read as a bend count, which is
-a board-level corridor reading and deliberately not the same taxonomy as a wool box's shape family.
+a board-level corridor reading and deliberately not the same taxonomy as a wool box's form.
 
 The **mid form** is the last of them, and it is entirely derived from the build regions already typed.
 Any `neutral↔neutral` region at all makes the mid a **hash** — fractured into interlinked islands. With
@@ -1523,7 +1515,7 @@ how good the result **reads**.
 | **fit gate** | does the choice fit the box | `ShapeEmitter.MinBox`, `FillProfiles.Fits` |
 | **demand** | a shape's requirement *on its environment* (inbound) | no live type — see below |
 | **offer** | what a shape imposes *outward*: the intervals it invites neighbours onto, and in which groupings | `EdgeOffer` |
-| **veto** | a never-attach or never-publish mark | `PartDockRole.NeverDock`, the publish policy's bay and hole veto |
+| **veto** | a never-attach mark | `PartDockRole.NeverDock` |
 | **gate** | the hard legality check applying demand, offer and veto, with a **directed rejection** | `DockingGate` → `DockRejection` |
 | **knob** | a free parameter *within* legality — never changes identity | entry shift, attachment width, arm placement |
 | **target** | a **per-request, prescriptive** constraint a compose holds and verifies | none live |
@@ -1566,8 +1558,8 @@ The kinds are not a filing convenience; they say *when* a rule runs, and that is
 than it appears.
 
 A **menu**, a **fit gate** and a **gate** run during composition, where the thing being judged still
-has a name — a family, a form, a part. The evaluator cannot enforce any of them, because by the time it
-sees a board those names are gone: the plan carries no parts and no family, only geometry and markers.
+has a name — a form, a part, a box. The evaluator cannot enforce any of them, because by the time it
+sees a board those names are gone: the plan carries no parts and no form, only geometry and markers.
 That is why the docking law is a compose-side gate and not an evaluator term, and why a rule stated as
 "an L may not dock here" has to be enforced where an L is still called one.
 
@@ -1619,7 +1611,7 @@ authored seed is what the *whole* pipeline should produce, never what any single
 own. A stage is therefore judged only against the rules that stage owns: fill and part invariants at
 emission, envelope terms on the assembled board, feel at realize. Comparing an intermediate artifact
 to a seed wholesale is a category error, and it is the same error as classifying a finished map back
-to a family — reading an artifact against a standard that belongs to a different stage of its life.
+to a form — reading an artifact against a standard that belongs to a different stage of its life.
 
 The laws themselves — every id, its number, its evidence, and the protocol for amending it — are in
 `rules.md`. What is here is the frame that makes those ids mean something: what kind of thing each one
@@ -1666,7 +1658,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `ComposeRequest` | `Compose/ComposeRequest.cs` | the compose input, validated at construction (§2.1). |
 | `UnitPlacement` | `Compose/UnitPlacement.cs` | re-anchors the finished unit on its **face** before the band is derived. |
 | `Producibility` | `Compose/Producibility.cs` | "could the composer have produced this?" — answered by search over the declared menus, not by inverse. |
-| `WoolBoxEmitter` | `Compose/WoolBoxEmitter.cs` | the wool binding over `ShapeEmitter` — fits a family to a wool box and returns its compound. |
+| `WoolBoxEmitter` | `Compose/WoolBoxEmitter.cs` | the wool binding over `ShapeEmitter` — fits a form to a wool box and returns its compound. |
 | `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding: profile {I, L} + `Fill`, returning the compound whose room the spawn stands in. |
 | `HubBoxEmitter` | `Compose/HubBoxEmitter.cs` | the **hub**: `Fill` builds its compound, with no room, and `Offers` reads the per-run `EdgeOffer`s it publishes as the constraint source. |
 | `FrontlineBoxEmitter` | `Compose/FrontlineBoxEmitter.cs` | the **front line**: a compound with no room whose spine docks the hub and whose arm-tips are the face toward the axis. |
@@ -1674,10 +1666,9 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `FillMenu` · `FillProfiles` | `Compose/Boxes/FillMenu.cs`, `Compose/Boxes/FillProfiles.cs` | each box kind's menu (`FillMenu.For(kind)`), the wool menu gated by width (`FillMenu.Rows`), and the footprint fit gate (`FillProfiles.Fits`). |
 | `BoxFiller` | `Compose/Boxes/BoxFiller.cs` | the one profile-gated fill entry point over a positioned `Box`: the compound, or the `FillRejection` saying why not (the spine G63 drives). |
 | `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface` **facts** (span + the template parts on each edge) — it observes; the docking *rules* over the facts are the `DockingGate`. |
-| `DockingGate` | `Compose/Boxes/DockingGate.cs` | the compose-side docking gate: `PartDockRole` (room→never-dock, entry→docking, rest→internal) + the verdict over the `BoxEdgeInterface` parts. A dock is legal iff it lands on an entry and seals no wool — no per-family imperative code, shape-relative. Every family now docks through a **single mouth**, so the verdict reads only the edge's parts, never a family name. Not an `ILayoutTerm`. |
+| `DockingGate` | `Compose/Boxes/DockingGate.cs` | the compose-side docking gate: `PartDockRole` (room→never-dock, entry→docking, rest→internal) + the verdict over the `BoxEdgeInterface` parts. A dock is legal iff it lands on an entry and seals no wool — no per-form imperative code, shape-relative. Every form now docks through a **single mouth**, so the verdict reads only the edge's parts, never a form name. Not an `ILayoutTerm`. |
 | `BoxLayout` | `Compose/Boxes/BoxLayout.cs` | one team's boxes and joints: typed `Box`es + `BoxJoint`s, with hard invariants (`Valid`) and `Of` the derive-side mirror reading the layout a team unit implies (`SharedEdge` finds the abutment intervals). The typed target the partition-first allocator (G63) emits; boxes may overlap, joints assert only real abutments. |
 | `MidCarver` | `Compose/MidCarver.cs` | the mid: the crossing's half-gap, the flush hull-exact build band, and the row of shared stones standing astride the axis inside it. |
-| `ClosureAnalysis` | `Compose/ClosureAnalysis.cs` | closure hole raster (`HoleSizes`, `AnyHoleRingedBy`). |
 | `ComposeGeometry` | `Compose/ComposeGeometry.cs` | fanning + the collinear-chain measurement. |
 | `PlanModel` | `Plan/PlanModel.cs` | the plan format. Its role and box-kind word sets, `PlanRoles` and `PlanBoxKinds`, are `PgmStudio.Vocabulary`'s. |
 

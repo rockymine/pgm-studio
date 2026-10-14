@@ -25,9 +25,9 @@ public sealed class DockingGateTests
     {
         // an I lane docks its entry mouth (top) and never its wool room (bottom)
         var es = Edges(CompoundForm.I, 6, 12);
-        await Assert.That(DockingGate.CanDock(es, BoxEdge.Top)).IsTrue();
+        await Assert.That(DockingGate.CheckMouth(es, BoxEdge.Top)).IsNull();
         await Assert.That(Check(es, BoxEdge.Bottom)).IsEqualTo(DockRejection.SealsWool);
-        await Assert.That(DockingGate.DockingEdges(es).Select(e => e.Edge)).IsEquivalentTo(new[] { BoxEdge.Top });
+        await Assert.That(es.Where(e => DockingGate.Check(e) is null).Select(e => e.Edge)).IsEquivalentTo(new[] { BoxEdge.Top });
     }
 
     [Test]
@@ -36,7 +36,7 @@ public sealed class DockingGateTests
         // the redefined clamp docks like a U: its two legs meet the host on the bottom mouth, and the wool is
         // clamped inside as a cut cell — the top, where the wool bridges the legs, seals the wool and never docks
         var es = Edges(CompoundForm.Clamp, 6, 6);
-        await Assert.That(DockingGate.CanDock(es, BoxEdge.Bottom)).IsTrue();          // the two legs meet the host
+        await Assert.That(DockingGate.CheckMouth(es, BoxEdge.Bottom)).IsNull();          // the two legs meet the host
         await Assert.That(Check(es, BoxEdge.Top)).IsEqualTo(DockRejection.SealsWool); // the clamped wool bridge
     }
 
@@ -46,7 +46,7 @@ public sealed class DockingGateTests
         // the corner (L+I) variant: the two legs still meet the host on the bottom; the wool sits in the top
         // corner, so the top touches the clamped wool and never docks
         var es = Edges(CompoundForm.Clamp, 6, 6, woolAtEnd: true);
-        await Assert.That(DockingGate.CanDock(es, BoxEdge.Bottom)).IsTrue();
+        await Assert.That(DockingGate.CheckMouth(es, BoxEdge.Bottom)).IsNull();
         await Assert.That(Check(es, BoxEdge.Top)).IsEqualTo(DockRejection.SealsWool);   // the corner wool
     }
 
@@ -58,7 +58,7 @@ public sealed class DockingGateTests
         // edge, parallel to the entry↔entry-run seam. This is the gate reading parts, not a fixed mouth edge.
         var es = Edges(CompoundForm.Scythe, 8, 6);
         await Assert.That(ShapeEmitter.MouthEdge(CompoundForm.Scythe)).IsEqualTo(BoxEdge.Top);
-        await Assert.That(DockingGate.DockingEdges(es).Select(e => e.Edge)).IsEquivalentTo(new[] { BoxEdge.Left });
+        await Assert.That(es.Where(e => DockingGate.Check(e) is null).Select(e => e.Edge)).IsEquivalentTo(new[] { BoxEdge.Left });
         await Assert.That(Check(es, BoxEdge.Top)).IsEqualTo(DockRejection.SealsWool);
         await Assert.That(Check(es, BoxEdge.Bottom)).IsEqualTo(DockRejection.NotAnEntryEdge);
     }
@@ -68,7 +68,7 @@ public sealed class DockingGateTests
     {
         // U enters at the two legs (the bottom edge); the wool sits flush on the crossbar at the top
         var es = Edges(CompoundForm.U, 6, 6);
-        await Assert.That(DockingGate.CanDock(es, BoxEdge.Bottom)).IsTrue();
+        await Assert.That(DockingGate.CheckMouth(es, BoxEdge.Bottom)).IsNull();
         await Assert.That(Check(es, BoxEdge.Top)).IsEqualTo(DockRejection.SealsWool);
     }
 

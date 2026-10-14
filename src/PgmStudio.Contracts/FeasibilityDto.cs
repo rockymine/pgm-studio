@@ -26,7 +26,7 @@ public sealed record NearestMissDto(
 /// directed reasons, as complaints — a box the emitters cannot reproduce is still a box an author drew.
 /// </summary>
 /// <param name="BoxId">The box this is about.</param>
-/// <param name="Kind">What the box is for — a spawn or wool approach, the hub, the frontline, the mid.</param>
+/// <param name="Kind">What the box is for — a spawn, a wool, the hub, the frontline, the mid.</param>
 /// <param name="Identity">What the derivers read the geometry as — a <b>hint, never a verdict</b>, since a
 /// shape can be recognisably a ring while no ring is emittable at its wall widths.</param>
 /// <param name="ProducibleAs">The parameter tuple that reproduces the box exactly, or absent where none

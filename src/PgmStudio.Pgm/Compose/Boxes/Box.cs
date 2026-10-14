@@ -6,7 +6,7 @@ namespace PgmStudio.Pgm.Compose;
 /// <summary>The typed box kinds of the partition scaffold (docs/generator/model.md §4).</summary>
 public enum BoxKind { Spawn, Hub, Wool, Frontline, Mid }
 
-/// <summary>The fill directive for a wool box the allocator chose: the approach <see cref="Family"/>, its room
+/// <summary>The fill directive for a wool box the allocator chose: the <see cref="Family"/>, its room
 /// <see cref="Placement"/> (back vs side-tuck), the <see cref="Flip"/> handedness, <see cref="WoolAtEnd"/>
 /// (the clamp's adjacent/corner L+I variant vs its centered I+I; the U/H wool-at-an-end knob), and
 /// <see cref="AttachmentWidth"/> (the donut's sampled hub-entry width in cells; 0 = one corridor), and

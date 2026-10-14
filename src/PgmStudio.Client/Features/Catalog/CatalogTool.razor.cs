@@ -38,11 +38,11 @@ public partial class CatalogTool
     private readonly HashSet<string> tierFilter = [];
     private readonly HashSet<string> familyFilter = [];
 
-    /// <summary>The box kinds a shape can fill. Spawn boxes reuse the approach families at the map's lane
+    /// <summary>The box kinds a shape can fill. Spawn boxes reuse the wool forms at the map's lane
     /// width rather than adding forms of their own, so they are not a separate row yet.</summary>
     private static readonly (string Token, string Label, string Hint)[] Kinds =
     [
-        ("wool", "Wool approach", "The path of land leading from a team's side to a wool room."),
+        ("wool", "Wool", "The path of land leading from a team's side to a wool room."),
         ("hub", "Hub", "The central area of a team's side, which the spawn, the wool approaches, and the front line connect to. Its edge widths decide which shapes can attach to it."),
         ("frontline", "Front line", "The edge of a team's land that faces the enemy across the gap. Players build bridges from here."),
     ];

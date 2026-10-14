@@ -20,7 +20,7 @@ public class HubBoxEmitterTests
         // one solid terrain piece covering the whole box, no room/room, labeled to the hub box, Bar part
         await Assert.That(hub.Pieces.Count).IsEqualTo(1);
         await Assert.That(UnitPieces.Lay(hub, box).Pieces[0].Rect).IsEqualTo(new CellRect(10, 20, 6, 5));
-        await Assert.That(UnitPieces.Lay(hub, box).Pieces.All(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
+        await Assert.That(UnitPieces.Lay(hub, box).Pieces.All(p => p.Box.Kind == BoxKind.Hub)).IsTrue();
         await Assert.That(hub.Pieces.Any(p => p.Part == CompoundParts.Room)).IsFalse();
     }
 
@@ -62,7 +62,7 @@ public class HubBoxEmitterTests
         var hub = HubBoxEmitter.Fill(box, CompoundForm.L, laneWidth: 2)!;
 
         await Assert.That(hub.Pieces.Count).IsEqualTo(2);
-        await Assert.That(UnitPieces.Lay(hub, box).Pieces.All(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
+        await Assert.That(UnitPieces.Lay(hub, box).Pieces.All(p => p.Box.Kind == BoxKind.Hub)).IsTrue();
         await Assert.That(HubBoxEmitter.Offers(box, hub).Count).IsEqualTo(4);                                     // top, bottom, left, right — one run each
         await Assert.That(HubBoxEmitter.Offers(box, hub).Single(o => o.Edge == BoxEdge.Left).Interval.Length).IsEqualTo(6);
     }
@@ -99,7 +99,7 @@ public class HubBoxEmitterTests
         var hub = HubBoxEmitter.Fill(box, CompoundForm.DoubleHole, laneWidth: 2)!;
 
         await Assert.That(hub.Pieces.Count).IsEqualTo(7);                                     // ring (4) + U (top/bottom arms + outer wall)
-        await Assert.That(UnitPieces.Lay(hub, box).Pieces.All(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
+        await Assert.That(UnitPieces.Lay(hub, box).Pieces.All(p => p.Box.Kind == BoxKind.Hub)).IsTrue();
         await Assert.That(HubBoxEmitter.Offers(box, hub).Count).IsGreaterThan(0);
     }
 
@@ -131,7 +131,7 @@ public class HubBoxEmitterTests
             var box = wide;
             var hub = HubBoxEmitter.Fill(box, form, laneWidth: 2)!;
             await Assert.That(hub).IsNotNull().Because($"{form} should fill an 11x6 hub");
-            await Assert.That(UnitPieces.Lay(hub, box).Pieces.All(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
+            await Assert.That(UnitPieces.Lay(hub, box).Pieces.All(p => p.Box.Kind == BoxKind.Hub)).IsTrue();
             await Assert.That(hub.Pieces.Any(p => p.Part == CompoundParts.Room)).IsFalse();
             await Assert.That(HubBoxEmitter.Offers(box, hub).Max(o => o.Interval.Length)).IsGreaterThanOrEqualTo(6);
         }

@@ -5,8 +5,8 @@ namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
 /// The valid-edges data model: <see cref="BoxInterfaces.Of"/> reads a box's four edges off the emitted
-/// shape as <see cref="BoxEdgeInterface"/> <b>facts</b> — long/short span, whether the wool room touches the
-/// edge, whether terrain reaches it. It observes; it does not judge — the dockability <em>rules</em> over
+/// shape as <see cref="BoxEdgeInterface"/> <b>facts</b> — its length, and the parts of the pieces reaching it,
+/// the room included. It observes; it does not judge — the dockability <em>rules</em> over
 /// these facts are the docking gate's. Shape-relative: the facts are read from the shape, so they move with the
 /// room's position rather than naming a box coordinate.
 /// </summary>
@@ -22,17 +22,21 @@ public sealed class BoxInterfacesTests
 
     private static BoxEdgeInterface Edge(IReadOnlyList<BoxEdgeInterface> es, BoxEdge e) => es.Single(x => x.Edge == e);
 
+    private static bool TouchesRoom(BoxEdgeInterface edge) => edge.Parts.Contains(CompoundParts.Room);
+
+    private static bool HasGround(BoxEdgeInterface edge) => edge.Parts.Any(part => part != CompoundParts.Room);
+
     [Test]
     public async Task I_the_room_edge_is_wool_touched_the_mouth_edge_is_clear_terrain()
     {
         // an I lane: entry on the top edge (the mouth), the wool room on the bottom
         var es = Edges(CompoundForm.I, 6, 12);
-        await Assert.That(Edge(es, BoxEdge.Bottom).TouchesRoom).IsTrue();      // room sits on the bottom edge
-        await Assert.That(Edge(es, BoxEdge.Top).HasTerrain).IsTrue();          // the entry reaches the top edge
-        await Assert.That(Edge(es, BoxEdge.Top).TouchesRoom).IsFalse();
+        await Assert.That(TouchesRoom(Edge(es, BoxEdge.Bottom))).IsTrue();      // room sits on the bottom edge
+        await Assert.That(HasGround(Edge(es, BoxEdge.Top))).IsTrue();          // the entry reaches the top edge
+        await Assert.That(TouchesRoom(Edge(es, BoxEdge.Top))).IsFalse();
         // the void side edges reach no terrain (a fact, not a verdict)
-        await Assert.That(Edge(es, BoxEdge.Left).HasTerrain).IsFalse();
-        await Assert.That(Edge(es, BoxEdge.Right).HasTerrain).IsFalse();
+        await Assert.That(HasGround(Edge(es, BoxEdge.Left))).IsFalse();
+        await Assert.That(HasGround(Edge(es, BoxEdge.Right))).IsFalse();
     }
 
     [Test]
@@ -68,13 +72,10 @@ public sealed class BoxInterfacesTests
     }
 
     [Test]
-    public async Task Span_is_long_on_the_boxs_longer_sides()
+    public async Task An_edge_is_as_long_as_its_side_of_the_box()
     {
-        // a 6×12 box: the 6-cell top/bottom edges are short, the 12-cell left/right are long
         var es = Edges(CompoundForm.I, 6, 12);
-        await Assert.That(Edge(es, BoxEdge.Top).Span).IsEqualTo(EdgeSpan.Short);
         await Assert.That(Edge(es, BoxEdge.Top).LengthCells).IsEqualTo(6);
-        await Assert.That(Edge(es, BoxEdge.Left).Span).IsEqualTo(EdgeSpan.Long);
         await Assert.That(Edge(es, BoxEdge.Left).LengthCells).IsEqualTo(12);
     }
 
@@ -84,10 +85,10 @@ public sealed class BoxInterfacesTests
         // the redefined clamp docks like a U: its two legs present terrain on the bottom mouth (and the sides),
         // and the wool is clamped between them at the top — exactly one edge (the top) touches the wool
         var es = Edges(CompoundForm.Clamp, 6, 6);
-        await Assert.That(Edge(es, BoxEdge.Bottom).HasTerrain).IsTrue();       // the two-leg mouth
+        await Assert.That(HasGround(Edge(es, BoxEdge.Bottom))).IsTrue();       // the two-leg mouth
         await Assert.That(Edge(es, BoxEdge.Bottom).Intervals.Count).IsEqualTo(2);
-        await Assert.That(es.Count(e => e.TouchesRoom)).IsEqualTo(1);          // exactly one edge is wool-touched
-        await Assert.That(es.Single(e => e.TouchesRoom).Edge).IsEqualTo(BoxEdge.Top);
+        await Assert.That(es.Count(TouchesRoom)).IsEqualTo(1);          // exactly one edge is wool-touched
+        await Assert.That(es.Single(TouchesRoom).Edge).IsEqualTo(BoxEdge.Top);
     }
 
     [Test]
@@ -95,9 +96,9 @@ public sealed class BoxInterfacesTests
     {
         // U/H enter at the bottom (the legs); the wool caps the crossbar at the top
         var es = Edges(CompoundForm.U, 6, 6);
-        await Assert.That(Edge(es, BoxEdge.Top).TouchesRoom).IsTrue();
-        await Assert.That(Edge(es, BoxEdge.Bottom).HasTerrain).IsTrue();
-        await Assert.That(Edge(es, BoxEdge.Bottom).TouchesRoom).IsFalse();
+        await Assert.That(TouchesRoom(Edge(es, BoxEdge.Top))).IsTrue();
+        await Assert.That(HasGround(Edge(es, BoxEdge.Bottom))).IsTrue();
+        await Assert.That(TouchesRoom(Edge(es, BoxEdge.Bottom))).IsFalse();
     }
 
     [Test]
@@ -109,12 +110,12 @@ public sealed class BoxInterfacesTests
         var box = (w: 12, h: 14);
         var normal = BoxInterfaces.Of(ShapeEmitter.Emit(CompoundForm.L, box.w, box.h, LaneWidth, flip: false), box.w, box.h);
         var flipped = BoxInterfaces.Of(ShapeEmitter.Emit(CompoundForm.L, box.w, box.h, LaneWidth, flip: true), box.w, box.h);
-        var normalRoom = normal.Where(e => e.TouchesRoom).Select(e => e.Edge).ToHashSet();
-        var flippedRoom = flipped.Where(e => e.TouchesRoom).Select(e => e.Edge).ToHashSet();
+        var normalRoom = normal.Where(TouchesRoom).Select(e => e.Edge).ToHashSet();
+        var flippedRoom = flipped.Where(TouchesRoom).Select(e => e.Edge).ToHashSet();
         await Assert.That(normalRoom).IsNotEmpty();
         await Assert.That(flippedRoom).IsNotEmpty();
         await Assert.That(normalRoom.SetEquals(flippedRoom)).IsFalse();     // the flip moved the room's edges
-        await Assert.That(normal.Any(e => e.HasTerrain)).IsTrue();
-        await Assert.That(flipped.Any(e => e.HasTerrain)).IsTrue();
+        await Assert.That(normal.Any(HasGround)).IsTrue();
+        await Assert.That(flipped.Any(HasGround)).IsTrue();
     }
 }

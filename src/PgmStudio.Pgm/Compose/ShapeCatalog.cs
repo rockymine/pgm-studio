@@ -30,7 +30,7 @@ public sealed record CatalogShape(
     PlanModel Plan);
 
 /// <summary>
-/// The vocabulary as data the studio can render — every approach family and compound form the pipeline can put in a
+/// The vocabulary as data the studio can render — every form the pipeline can put in a
 /// box, each one emitted once and badged with how far it actually gets (<see cref="CatalogTier"/>).
 ///
 /// <para>The reachable set is <b>collected by running the sampler</b>, never by restating its laws:
@@ -40,7 +40,7 @@ public sealed record CatalogShape(
 /// cap in <see cref="UnitTuning"/> therefore moves the catalog with it — there is no second copy of the mix to
 /// drift.</para>
 ///
-/// <para>Approaches are emitted <b>mouth-up</b> and deduplicated by cell pattern: the composer docks all four
+/// <para>Wool shapes are emitted <b>mouth-up</b> and deduplicated by cell pattern: the composer docks all four
 /// box edges, but the other three orientations are rigid motions of what is drawn here and would pad the grid
 /// four-fold without adding a shape. Both handednesses are kept — a flip is an authored variant, not a
 /// viewing angle.</para>
@@ -65,7 +65,7 @@ public static class ShapeCatalog
 
     private static IReadOnlyList<CatalogShape>? cached;
 
-    /// <summary>The whole catalog — wool approaches, then hub compounds, then frontline compounds. Built once and
+    /// <summary>The whole catalog — wool shapes, then hub compounds, then frontline compounds. Built once and
     /// held: it is a pure function of the emitters and the tuning constants.</summary>
     public static IReadOnlyList<CatalogShape> All()
     {
@@ -76,9 +76,9 @@ public static class ShapeCatalog
         return cached = shapes;
     }
 
-    // ── approaches ────────────────────────────────────────────────────────────────────────────────────────
+    // ── wool shapes ────────────────────────────────────────────────────────────────────────────────────────
 
-    /// <summary>The wool approaches, in tier order. The <b>in-mix</b> set is whatever the sampler sweep turned
+    /// <summary>The wool shapes, in tier order. The <b>in-mix</b> set is whatever the sampler sweep turned
     /// up; the <b>reachable</b> set is every family the fill menu lists that the sweep never asked for, at its
     /// minimum box; the <b>emitter-only</b> set is the families the menu excludes plus the knobs
     /// <see cref="WoolBoxEmitter.Fill"/> does not forward.</summary>
@@ -99,7 +99,7 @@ public static class ShapeCatalog
                 if (WoolBoxEmitter.Fill(box, BoxEdge.Top, fill.Family, lane, out _, flip, fill.Placement,
                         fill.WoolAtEnd, fill.AttachmentWidth) is not { } filled) continue;
                 if (!seen.Add(PatternKey(filled))) continue;
-                entries.Add(Approach($"wool-{++n}", fill.Family, CatalogTier.InMix, along, depth, lane,
+                entries.Add(WoolShape($"wool-{++n}", fill.Family, CatalogTier.InMix, along, depth, lane,
                     Knobs(fill, flip), null, filled));
             }
         }
@@ -111,7 +111,7 @@ public static class ShapeCatalog
             var box = new Box(WoolPrefix, BoxKind.Wool, new CellRect(0, 0, along, depth), along * depth);
             if (WoolBoxEmitter.Fill(box, BoxEdge.Top, family, lane, out _) is not { } filled) continue;
             if (!seen.Add(PatternKey(filled))) continue;
-            entries.Add(Approach($"wool-{++n}", family, CatalogTier.Reachable, along, depth, lane, [],
+            entries.Add(WoolShape($"wool-{++n}", family, CatalogTier.Reachable, along, depth, lane, [],
                 "On the fill menu and BoxFiller fills it, but no sampler draws one (G146).", filled));
         }
 
@@ -121,7 +121,7 @@ public static class ShapeCatalog
             var (w, h) = ShapeEmitter.MinBox(family, lane);
             var emitted = ShapeEmitter.Emit(family, w, h, lane);
             if (!seen.Add(PatternKey(emitted))) continue;
-            entries.Add(Approach($"wool-{++n}", family, CatalogTier.EmitterOnly, w, h, lane, [],
+            entries.Add(WoolShape($"wool-{++n}", family, CatalogTier.EmitterOnly, w, h, lane, [],
                 "Excluded from the production menu — its bay's mouth is its docking edge, so a flush dock " +
                 "seals it into a walled void (WL8). Elevation alternative: G81.", emitted));
         }
@@ -131,7 +131,7 @@ public static class ShapeCatalog
         {
             if (SmallestBox(family, lane, emit) is not var (w, h, emitted)) continue;
             if (!seen.Add(PatternKey(emitted))) continue;
-            entries.Add(Approach($"wool-{++n}", family, CatalogTier.EmitterOnly, w, h, lane, [knob], note, emitted));
+            entries.Add(WoolShape($"wool-{++n}", family, CatalogTier.EmitterOnly, w, h, lane, [knob], note, emitted));
         }
 
         return entries;
@@ -230,7 +230,7 @@ public static class ShapeCatalog
         return knobs;
     }
 
-    private static CatalogShape Approach(
+    private static CatalogShape WoolShape(
         string id, CompoundForm family, CatalogTier tier, int w, int h, int laneWidth,
         IReadOnlyList<string> knobs, string? note, Compound compound) =>
         new(id, "wool", family.ToString().ToLowerInvariant(), tier, w, h, laneWidth, knobs, note,

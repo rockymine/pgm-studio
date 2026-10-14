@@ -60,12 +60,4 @@ public static class DockingGate
         var edge = edges.FirstOrDefault(e => e.Edge == mouth);
         return edge is null ? DockRejection.NotAnEntryEdge : Check(edge);
     }
-
-    /// <summary>The edges a filled box exposes as legal docks — every edge <see cref="Check"/> clears.</summary>
-    public static IReadOnlyList<BoxEdgeInterface> DockingEdges(IReadOnlyList<BoxEdgeInterface> edges) =>
-        edges.Where(e => Check(e) is null).ToList();
-
-    /// <summary>True when <paramref name="edge"/> may receive a dock on the filled box.</summary>
-    public static bool CanDock(IReadOnlyList<BoxEdgeInterface> edges, BoxEdge edge) =>
-        edges.Where(e => e.Edge == edge).Any(e => Check(e) is null);
 }

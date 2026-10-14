@@ -113,12 +113,12 @@ what it would show before it is picked.
 
 **Everything is drawn mouth-up.** The composer docks all four box edges, but the other three orientations are
 rigid motions of what is drawn and would pad the grid fourfold without adding a shape. Both handednesses are
-kept, because a flip is an authored variant rather than a viewing angle. Approaches are then deduplicated by
+kept, because a flip is an authored variant rather than a viewing angle. Wool shapes are then deduplicated by
 cell pattern, so two parameterizations that occupy the same cells are one card.
 
 The catalog is a **bounded set** — a pure function of the emitters and the tuning constants — so the whole of
 it is fetched once and filtered in the page, which is what makes every chip instant and needs no cursor. Today
-that is 124 cards: 115 wool approaches, 6 hub compounds and 3 frontline compounds, of which 117 are in the mix, 1
+that is 124 cards: 115 wool shapes, 6 hub compounds and 3 frontline compounds, of which 117 are in the mix, 1
 reachable and 6 emitter-only. Those numbers move whenever the tuning does.
 
 ## The Shape settings panel

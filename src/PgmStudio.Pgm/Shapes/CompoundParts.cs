@@ -53,8 +53,8 @@ public static class CompoundParts
     };
 }
 
-/// <summary>Where the wool room sits relative to the approach's final segment. <see cref="Inline"/> continues
+/// <summary>Where the wool room sits relative to the compound's final segment. <see cref="Inline"/> continues
 /// it straight (the plain dead-end). <see cref="SideTuck"/> turns the room off perpendicular at the end — the
 /// catalog's <c>side-tuck</c>: still an <b>I</b> lane, because the categorizer excludes the room from the bend
-/// read, so the straight approach reads as I while the wool hangs off its end.</summary>
+/// read, so the straight compound reads as I while the wool hangs off its end.</summary>
 public enum RoomPlacement { Inline, SideTuck }

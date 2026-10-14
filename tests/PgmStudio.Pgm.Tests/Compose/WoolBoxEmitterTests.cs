@@ -69,7 +69,7 @@ public sealed class WoolBoxEmitterTests
     public async Task The_room_piece_carries_the_room_part_and_wool_room_role()
     {
         var a = ShapeEmitter.Emit(CompoundForm.I, Box.W, Box.H, LaneWidth);
-        var (pieces, marker) = UnitPieces.Lay(a, 0, 0, "wool", "wool-room", BoxKind.Wool, null);
+        var (pieces, marker) = UnitPieces.Lay(a, 0, 0, "wool", "wool-room", new BoxRef("wool", BoxKind.Wool));
         var room = pieces.Single(p => p.Id == marker!.Piece);
         await Assert.That(room.Part).IsEqualTo(CompoundParts.Room);
         await Assert.That(room.Role).IsEqualTo(PlanRoles.WoolRoom);   // part is distinct from the map role
