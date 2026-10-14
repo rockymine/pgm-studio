@@ -45,13 +45,6 @@ intent (`docs/pgm/new-map-authoring.md`; backend + every page-order step are lan
   redrew past 20 by 20 blocks builds with no finding, while `ST9` reads only the plan. The wool room loop calls
   the same check, and `WX13`'s text names wool rooms beside spawn rooms. `docs/refusals.md`.
 
-- [ ] **PG41 — A fanned block box lands one block from its own image.** `SymmetryExpander.TransformBox` turns
-  a `BlockBox`'s inclusive cell bounds with `Symmetry.Rect`, which is for positions, so about a centre on a
-  grid line every fanned box of a destroyable, core, score box, control point and flag net sits one block
-  off its cell image (`Symmetry.CellRect`). The point anchors beside those boxes fan the same way, so a fix
-  moves both together and changes each fan's tests. `SymmetryExpanderCarryTests`: core cells 37..43 under
-  rot_180 about the origin fan to -43..-37; the cell image is -44..-38. `docs/pgm/new-map-authoring.md` §4.
-
 **A monument sits inside its capturing team's spawn, and that settles which map each entry is about**
 (author; `docs/design-decisions.md`). The studio's own maps derive it — `WorldBuilder` fills the location
 from the air cell the spawn structure stamped, `OB25` says so, and `ConfigureTool.LoadOriginAsync` drops the

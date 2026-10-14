@@ -112,7 +112,8 @@ corpus flags), and what carrying it does to the carrier. `FlagGenerator` writes 
 post where it stands at one place, a composite where it stands at several, starting at the first and coming
 back to one of them at random. Like a capture point a flag belongs to nobody, so under a symmetry its posts fan
 by position — each post off the centre gains its images, named on and turned — and a post at the centre stays
-one.
+one: an image on the post's block or the block beside it is that post, since about a grid-line centre the
+middle block's image is its neighbour.
 
 The carrier is one of `FlagCarriers`. `lowered`, the default on a flag nobody owns, gives a pickup kit of `<max-health>` at
 `CarrierHearts` — 6 hearts unstated, 12 health, the corpus's commonest King of the Flag carrier — and a drop kit

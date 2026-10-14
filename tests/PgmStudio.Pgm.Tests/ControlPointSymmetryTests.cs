@@ -1,12 +1,14 @@
+using PgmStudio.Domain;
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
 /// How capture points fan across the orbit — the one fan that is not keyed on a team. A point belongs to
-/// nobody, so what orbits is its position, and a point standing on the centre of symmetry is its own image
-/// and stays one point. That is what makes the author's rule authorable: state the middle and one side, and
-/// the board comes back a middle and a matched pair.
+/// nobody, so what orbits is its pad, cell by cell, and a point whose image overlaps its own pad is its own
+/// image and stays one point. That is what makes the author's rule authorable: state the middle and one side,
+/// and the board comes back a middle and a matched pair.
 /// </summary>
 public sealed class ControlPointSymmetryTests
 {
@@ -20,6 +22,12 @@ public sealed class ControlPointSymmetryTests
     private static List<ControlPointIntent> Fan(MapIntent intent)
         => SymmetryExpander.Expand(intent).ControlPoints!;
 
+    private static (int MinX, int MinZ, int MaxX, int MaxZ) Pad(ControlPointIntent point)
+    {
+        var (x, z) = ObjectiveFootprint.AnchorCell(point.Anchor.X, point.Anchor.Z);
+        return ObjectiveFootprint.Centred(x, z, point.Size, point.Size);
+    }
+
     // ── two teams ───────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_point_on_the_centre_of_symmetry_stays_one_point()
@@ -30,8 +38,9 @@ public sealed class ControlPointSymmetryTests
     {
         var points = Fan(Board("rot_180", (0, 30)));
         await Assert.That(points.Count).IsEqualTo(2);
-        await Assert.That(points.Select(p => (p.Anchor.X, p.Anchor.Z)))
-            .IsEquivalentTo(new[] { (0d, 30d), (0d, -30d) });
+        var (minX, minZ, maxX, maxZ) = Pad(points[0]);
+        await Assert.That(Pad(points[1])).IsEqualTo(Symmetry.CellRect(minX, minZ, maxX, maxZ, "rot_180", 0, 0, 1))
+            .Because("the image's pad is the authored pad's cells turned");
     }
 
     // The author's board: state the middle and one side, get three points.
@@ -40,8 +49,9 @@ public sealed class ControlPointSymmetryTests
     {
         var points = Fan(Board("rot_180", (0, 0), (0, 30)));
         await Assert.That(points.Count).IsEqualTo(3);
+        // block 30's image about the grid line z = 0 is block -31
         await Assert.That(points.Select(p => p.Anchor.Z).Order())
-            .IsEquivalentTo(new[] { -30d, 0d, 30d });
+            .IsEquivalentTo(new[] { -31d, 0d, 30d });
     }
 
     [Test]

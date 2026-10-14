@@ -107,12 +107,22 @@ and the map is a block asymmetric in play. That is what a goal's anchor and a bu
 did until `B250`; both now convert to the cell first and turn the cell, and `ObjectiveFootprint.AnchorCell` is
 the one conversion the compiler's fan and the world's stamper share so the two cannot round apart.
 
+**The expander turns each field by what it names.** A position turns as a point: a spawn's point, a
+generator's drop point, a rectangle's edges. A block box turns cell by cell (`Symmetry.CellRect`): a goal's
+resolved box, a score box, a flag's net and banner, a capture point's pad. A goal's anchor turns by its
+footprint, `ObjectiveFootprint.ImageAnchor`, the plan compiler's own call, so an even-sided structure reverses
+its lean. A coordinate naming a block — a wool's location, a monument, a flag post — turns as that block when
+it is a whole number and as a point when it is the block's middle, which comes to the same block. On a board
+mirrored across the grid line `x = 0`, a box over blocks −60..−56 lands on 55..59, the columns the terrain puts
+there.
+
 **A capture point orbits by position, because it belongs to nobody.** Every other objective is fanned by
 *team* — the image takes the next team in list order and the position follows — but a hill is neutral, so the
 image is a position and the orbit's own order decides how many there are. One consequence makes the author's
 rule authorable and is worth stating plainly: a point standing on the centre of symmetry is **its own image**
-and stays one point, which falls out of comparing each image against the points already placed rather than
-being a case bolted on. State the middle and one side, and a two-team board comes back a middle and a matched
+and stays one point, which falls out of comparing each image's pad against the pads already placed rather than
+being a case bolted on. About a centre on a grid line no block is its own image, so the middle pad's image is
+the same pad one block over, and an image overlapping a placed pad is that pad. State the middle and one side, and a two-team board comes back a middle and a matched
 pair, a four-team board a middle and a ring of four (`control-points.md` §6). A point whose image another
 authored point already occupies is likewise not added twice.
 

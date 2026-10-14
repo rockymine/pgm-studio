@@ -102,12 +102,12 @@ public partial class ScoreBoxesStep
                 var team = teams[(index + k) % teams.Count].Id;
                 if (!have.Add(team)) continue;
                 var (minX, minZ, maxX, maxZ) =
-                    Symmetry.Rect(source.MinX, source.MinZ, source.MaxX, source.MaxZ, symMode, symCx, symCz, k);
+                    Symmetry.CellRect(source.MinX, source.MinZ, source.MaxX, source.MaxZ, symMode, symCx, symCz, k);
                 copies.Add(new Box
                 {
                     Id = -(copies.Count + 1), Team = team, Source = source,
-                    MinX = (int)Math.Round(minX), MinY = source.MinY, MinZ = (int)Math.Round(minZ),
-                    MaxX = (int)Math.Round(maxX), MaxY = source.MaxY, MaxZ = (int)Math.Round(maxZ),
+                    MinX = minX, MinY = source.MinY, MinZ = minZ,
+                    MaxX = maxX, MaxY = source.MaxY, MaxZ = maxZ,
                     Points = source.Points, Home = source.Home,
                 });
             }

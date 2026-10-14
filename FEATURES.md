@@ -8811,6 +8811,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   its team's, and open read-only in the inspector, as Spawn, Protection and Wool rooms do.
   `docs/tools/configure.md`. (`TC22`)
 
+- **A symmetry copy stands on its image's blocks (`PG41`)** — `SymmetryExpander` turns each field by what it
+  names: a block box cell by cell, a goal's anchor by its footprint as the plan compiler does, a block named by
+  a whole number as that block, and a position as a point. A copied score box, net, banner, pad, core,
+  destroyable, wool location and monument lands on the columns the terrain mirrors to, and a capture point or
+  post at a grid-line centre stays one. The Edit tool's quarter turn of a `<block>` region names the block its
+  bounds cover. `docs/pgm/new-map-authoring.md` §3. (`PG41`)
+
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
   Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.

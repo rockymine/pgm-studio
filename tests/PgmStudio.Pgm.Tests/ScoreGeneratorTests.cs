@@ -108,7 +108,8 @@ public sealed class ScoreGeneratorTests
 
         var blue = map.Score!.Boxes.Single(box => box.FilterId == "blue-team");
         var box = map.Regions[blue.RegionId];
-        await Assert.That((box.MinX, box.MaxX)).IsEqualTo(((double?)-32, (double?)-27));
+        // Red's blocks 28..32 turned about the grid line x = 0 are blocks -33..-29, written to an exclusive max.
+        await Assert.That((box.MinX, box.MaxX)).IsEqualTo(((double?)-33, (double?)-28));
         await Assert.That(map.Portals.Single(p => p.RegionId == blue.RegionId).DestinationId).IsEqualTo("blue-spawn-point");
     }
 

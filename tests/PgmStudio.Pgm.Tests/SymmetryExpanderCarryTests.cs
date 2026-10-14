@@ -28,6 +28,23 @@ public sealed class SymmetryExpanderCarryTests
         new() { Id = "blue-team", Color = "blue", Name = "Blue" },
     ];
 
+    /// <summary>The cells a goal anchored at <paramref name="anchor"/> stamps.</summary>
+    private static (int MinX, int MinZ, int MaxX, int MaxZ) Footprint(Pt anchor, int width, int depth)
+    {
+        var (x, z) = ObjectiveFootprint.AnchorCell(anchor.X, anchor.Z);
+        return ObjectiveFootprint.Centred(x, z, width, depth);
+    }
+
+    /// <summary>The image of a run of cells under the fixture's rot_180 about the origin.</summary>
+    private static (int MinX, int MinZ, int MaxX, int MaxZ) CellImage((int MinX, int MinZ, int MaxX, int MaxZ) cells)
+        => Symmetry.CellRect(cells.MinX, cells.MinZ, cells.MaxX, cells.MaxZ, "rot_180", 0, 0, 1);
+
+    private static BlockBox CellImage(BlockBox box)
+    {
+        var (minX, minZ, maxX, maxZ) = CellImage((box.MinX, box.MinZ, box.MaxX, box.MaxZ));
+        return new BlockBox(minX, box.MinY, minZ, maxX, box.MaxY, maxZ);
+    }
+
     /// <summary>An intent with every slice populated — the fixture the carry test measures against.</summary>
     private static MapIntent Full() => new()
     {
@@ -147,9 +164,12 @@ public sealed class SymmetryExpanderCarryTests
         await Assert.That(mirrored.Leak).IsEqualTo(9);
         await Assert.That(mirrored.DigDepth).IsEqualTo(4);
 
-        // rot_180 about the origin: the anchor and the casing box both invert.
-        await Assert.That((mirrored.Anchor.X, mirrored.Anchor.Z)).IsEqualTo((-40d, -40d));
-        await Assert.That(mirrored.Box).IsEqualTo(new BlockBox(-43, 18, -43, -37, 21, -37));
+        // rot_180 about the origin turns the casing's cells: what the copy stamps and what it is scoped by are
+        // the cell images of the authored ones.
+        var authored = Full().Cores![0];
+        await Assert.That(Footprint(mirrored.Anchor, mirrored.Size, mirrored.Size))
+            .IsEqualTo(CellImage(Footprint(authored.Anchor, authored.Size, authored.Size)));
+        await Assert.That(mirrored.Box).IsEqualTo(CellImage(authored.Box!.Value));
     }
 
     [Test]
@@ -163,7 +183,10 @@ public sealed class SymmetryExpanderCarryTests
         await Assert.That(mirrored.Style).IsEqualTo("cube-4");
         await Assert.That(mirrored.Materials).IsEqualTo("emerald block");
         await Assert.That(mirrored.Float).IsEqualTo(4);
-        await Assert.That(mirrored.Box).IsEqualTo(new BlockBox(-32, 16, -32, -29, 19, -29));
+        var authored = Full().Destroyables![0];
+        var (width, _, depth) = ObjectiveFootprint.Destroyable(DestroyableStyle.Cube4);
+        await Assert.That(Footprint(mirrored.Anchor, width, depth)).IsEqualTo(CellImage(Footprint(authored.Anchor, width, depth)));
+        await Assert.That(mirrored.Box).IsEqualTo(CellImage(authored.Box!.Value));
         // PGM rejects a nameless destroyable, and one name across both reads as one goal.
         await Assert.That(mirrored.Name).IsEqualTo("Blue Monument");
     }

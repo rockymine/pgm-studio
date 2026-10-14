@@ -380,9 +380,10 @@ or the ring, so a plan-compiled intent carries the whole set. The counts a board
 one per team, or one per team plus a centre; any other is `PL16`.
 
 **A map's source states one point of each orbit, and the board's symmetry fans it.** A refinement's
-`controlPoints` are each placed once; every image is added at the image of its anchor, named for its point
-and numbered on, and a point already standing within half a block of an image is taken as it — so the centre
-stays one point and a pair stated by hand stays a pair (`docs/tools/flow.md`).
+`controlPoints` are each placed once; every image is added with its pad's cells turned, named for its point and
+numbered on, and a point whose pad overlaps an image's is taken as it — so the centre stays one point and a
+pair stated by hand stays a pair (`docs/tools/flow.md`). On a board centred on a grid line the image of the
+block `x` is `−1−x`, so a point stated at `(−42, 0)` gains its image at `(41, −1)`.
 
 **It reads one, stores it and writes it back.** `MapParser.ParseControlPoints` reads both spellings into
 `Domain.ControlPoint`, carrying the element rather than resolving it; `ParseScore` reads `<score>` into

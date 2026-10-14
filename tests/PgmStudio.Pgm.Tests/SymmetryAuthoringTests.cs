@@ -31,7 +31,8 @@ public sealed class SymmetryAuthoringTests
         await Assert.That(res["counterpart"]).IsEqualTo("block_1");
         var reg = Region(doc, "block_1");
         await Assert.That(reg["type"]).IsEqualTo("block");
-        await Assert.That(Pos(reg, "x")).IsEqualTo(91.0); await Assert.That(Pos(reg, "z")).IsEqualTo(-24.0);
+        // the block it names is the block its bounds cover
+        await Assert.That(Pos(reg, "x")).IsEqualTo(90.0); await Assert.That(Pos(reg, "z")).IsEqualTo(-24.0);
         await Assert.That(Num(((Dict)reg["position"]!)["y"])).IsEqualTo(13.0);   // y preserved
         await Assert.That(Bd(reg)).IsEqualTo((90.0, -24.0, 91.0, -23.0));
     }

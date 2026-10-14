@@ -192,7 +192,8 @@ public sealed class FlagGeneratorTests
         var redNet = map.Regions[map.FlagNets.Single(net => net.Flags.SequenceEqual([blue.Id])).RegionId];
         await Assert.That((redNet.MinX, redNet.MaxX)).IsEqualTo(((double?)-45, (double?)-40));
         var blueNet = map.Regions[map.FlagNets.Single(net => net.Flags.SequenceEqual([map.Flags.Single(flag => flag.Owner == "red-team").Id])).RegionId];
-        await Assert.That((blueNet.MinX, blueNet.MaxX)).IsEqualTo(((double?)41, (double?)46));
+        // Red's blocks -45..-41 turned about the grid line x = 0 are blocks 40..44, written to an exclusive max.
+        await Assert.That((blueNet.MinX, blueNet.MaxX)).IsEqualTo(((double?)40, (double?)45));
     }
 
     [Test]

@@ -216,10 +216,11 @@ own (a room's rectangle, a point mark, a tree) is a complaint, as is one reachin
 
 **A statement about a symmetric board is made once, and the board's symmetry fans it.** The symmetry is the
 layout's own — `setup.mirror_mode` and its `center`. A capture point and a generator are each stated once and
-every image added, at the image of the point it stands on: an image of a capture point takes its name numbered
-on (`Bench`, `Bench 2`), and an image of a generator its id (`iron`, `iron-2`), since the regions a generator
-mints are named for it. One already standing within half a block of where an image would go is that image, so a
-point at the centre of symmetry stays one and a hand-placed pair stays a pair. A point edit and a bend to a shape
+every image added: a capture point's pad turned cell by cell, a generator at the image of its drop point. An
+image of a capture point takes its name numbered on (`Bench`, `Bench 2`), and an image of a generator its id
+(`iron`, `iron-2`), since the regions a generator mints are named for it. A capture point whose pad overlaps an
+image's, or a generator within half a block of one, is that image, so a point at the centre of symmetry stays
+one and a hand-placed pair stays a pair. A point edit and a bend to a shape
 the symmetry carries onto itself — a shape on the axis, which no group's fan copies — are made at every image:
 an insert or a move lands at the image of its point on the image of its edge, a remove takes the image point
 too, a pull lands the same fraction along the image of its edge — counted from the other end where the image runs
