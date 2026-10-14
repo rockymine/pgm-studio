@@ -84,7 +84,7 @@ public static class Producibility
     /// <summary>The corridor widths a box is searched at. A standalone box read does not know its board's
     /// size band or its grid scale, so the search covers the widths the composer emits at on the grids the
     /// studio draws on (<see cref="UnitTuning.CorridorCells"/> over the bands at cell 4 and cell 5), plus the
-    /// width the body itself <b>measures</b> — its narrowest cross-section, which is what a holed form built on
+    /// width the compound itself <b>measures</b> — its narrowest cross-section, which is what a holed form built on
     /// any other grid reads as.</summary>
     private static int[] SearchWidths(int measuredCw) =>
         new[] { 2, 3, 4, Math.Max(UnitTuning.WoolLaneFloorCells, measuredCw) }.Distinct().ToArray();
@@ -296,7 +296,7 @@ public static class Producibility
         return new BoxProducibility(box.Id, box.Kind, identity, null, nearest, findings);
     }
 
-    /// <summary>What the derivers read the box as — the approach family for a roomed box, the body compound for a
+    /// <summary>What the derivers read the box as — the approach family for a roomed box, the compound form for a
     /// terminal-free one. A hint that narrows a search, not a verdict (see <see cref="BoxProducibility"/>).</summary>
     private static string Identify(IReadOnlySet<(int, int)> all, IReadOnlySet<(int, int)> roomCells)
     {
@@ -306,8 +306,8 @@ public static class Producibility
             var read = ShapeClassifier.Classify(all, roomCells);
             return $"{read.Family} (w {read.Width})";
         }
-        var body = ShapeClassifier.ClassifyBody(all);
-        return body.Arms > 0 ? $"{body.Form}({body.Arms} arms)" : body.Form.ToString();
+        var compound = ShapeClassifier.ClassifyCompound(all);
+        return compound.Arms > 0 ? $"{compound.Form}({compound.Arms} arms)" : compound.Form.ToString();
     }
 
     /// <summary>One enumerated tuple: how it reads, the terrain+room mask it emits (<c>null</c> when the emitter
@@ -352,7 +352,7 @@ public static class Producibility
         CompoundRead form, PlanBox box, int cw)
     {
         yield return null;
-        if (form.Form != Compound.SpineArms) yield break;
+        if (form.Form != CompoundForm.SpineArms) yield break;
         var spineLen = box.Rect.Width;
         foreach (var layout in Memo($"hub-legs {spineLen} {form.Arms} {cw}",
                      () => SweepLayouts(seed => HubBoxEmitter.SampleArms(seed, spineLen, form.Arms, cw))))
@@ -420,7 +420,7 @@ public static class Producibility
         CompoundRead form, PlanBox box, BoxEdge mouth)
     {
         yield return null;                                   // the canonical fat L / symmetric twin
-        if (form.Form != Compound.SpineArms) yield break;
+        if (form.Form != CompoundForm.SpineArms) yield break;
         var spineLen = mouth is BoxEdge.Left or BoxEdge.Right ? box.Rect.Height : box.Rect.Width;
         foreach (var layout in Memo($"front-legs {spineLen} {form.Arms}",
                      () => SweepLayouts(seed => FrontlineBoxEmitter.SampleArms(seed, spineLen, form.Arms))))

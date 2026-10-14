@@ -30,7 +30,7 @@ public sealed record CatalogShape(
     PlanModel Plan);
 
 /// <summary>
-/// The vocabulary as data the studio can render — every approach family and body form the pipeline can put in a
+/// The vocabulary as data the studio can render — every approach family and compound form the pipeline can put in a
 /// box, each one emitted once and badged with how far it actually gets (<see cref="CatalogTier"/>).
 ///
 /// <para>The reachable set is <b>collected by running the sampler</b>, never by restating its laws:
@@ -65,14 +65,14 @@ public static class ShapeCatalog
 
     private static IReadOnlyList<CatalogShape>? cached;
 
-    /// <summary>The whole catalog — wool approaches, then hub bodies, then frontline bodies. Built once and
+    /// <summary>The whole catalog — wool approaches, then hub compounds, then frontline compounds. Built once and
     /// held: it is a pure function of the emitters and the tuning constants.</summary>
     public static IReadOnlyList<CatalogShape> All()
     {
         if (cached is not null) return cached;
         var shapes = new List<CatalogShape>();
         shapes.AddRange(WoolEntries());
-        shapes.AddRange(BodyEntries());
+        shapes.AddRange(CompoundEntries());
         return cached = shapes;
     }
 
@@ -144,16 +144,16 @@ public static class ShapeCatalog
     /// need, which is the misreading the whole page exists to avoid: the box is printed on the card, so a
     /// generous one reads as a requirement. Scans outward from <see cref="ShapeEmitter.MinBox"/> and takes
     /// the least-area success (ties to the squarer box, so a shape is legible rather than a sliver).</summary>
-    private static (int W, int H, EmittedApproach Emitted)? SmallestBox(
-        ShapeFamily family, int lane, Func<int, int, EmittedApproach> emit)
+    private static (int W, int H, PlacedApproach Emitted)? SmallestBox(
+        ShapeFamily family, int lane, Func<int, int, PlacedApproach> emit)
     {
         const int probe = 16;                                  // far past any knob's reach past the base minimum
         var (baseW, baseH) = ShapeEmitter.MinBox(family, lane);
-        (int W, int H, EmittedApproach Emitted)? best = null;
+        (int W, int H, PlacedApproach Emitted)? best = null;
         for (var w = baseW; w <= baseW + probe; w++)
             for (var h = baseH; h <= baseH + probe; h++)
             {
-                EmittedApproach emitted;
+                PlacedApproach emitted;
                 try { emitted = emit(w, h); }
                 catch (ArgumentException) { continue; }         // this box does not satisfy the knob's guard
                 catch (ComposeException) { continue; }
@@ -172,7 +172,7 @@ public static class ShapeCatalog
     /// <summary>The five knobs <see cref="ShapeEmitter.Emit"/> exposes and <see cref="WoolBoxEmitter.Fill"/>
     /// drops. Each is declared as a <b>function of the box</b>, not at a chosen size, so
     /// <see cref="SmallestBox"/> can ask the emitter what the knob actually costs.</summary>
-    private static IEnumerable<(ShapeFamily Family, string Knob, string Note, Func<int, int, EmittedApproach> Emit)>
+    private static IEnumerable<(ShapeFamily Family, string Knob, string Note, Func<int, int, PlacedApproach> Emit)>
         UnplumbedKnobs(int lane)
     {
         const string donutNote = "The emitter builds it and WoolBoxEmitter.Emit passes it, but the Fill path " +
@@ -234,17 +234,17 @@ public static class ShapeCatalog
 
     private static CatalogShape Approach(
         string id, ShapeFamily family, CatalogTier tier, int w, int h, int cw,
-        IReadOnlyList<string> knobs, string? note, EmittedApproach approach) =>
+        IReadOnlyList<string> knobs, string? note, PlacedApproach approach) =>
         new(id, "wool", family.ToString().ToLowerInvariant(), tier, w, h, cw, knobs, note,
             WoolBoxEmitter.AsPlan(approach, id));
 
-    // ── bodies ────────────────────────────────────────────────────────────────────────────────────────────
+    // ── compounds ────────────────────────────────────────────────────────────────────────────────────────────
 
-    /// <summary>The terminal-free bodies: the hub's form menu and the frontline's, each at a box big enough for
+    /// <summary>The terminal-free compounds: the hub's form menu and the frontline's, each at a box big enough for
     /// the widest form so the grid reads as one family of shapes rather than a size ladder. Both menus are
     /// sampled by the allocator, so every entry is in the mix; the ring-wall and arm-layout axes are a separate
     /// slice (they multiply each form rather than adding one).</summary>
-    private static IEnumerable<CatalogShape> BodyEntries()
+    private static IEnumerable<CatalogShape> CompoundEntries()
     {
         var cw = FillProfiles.HubWallCells;
         var n = 0;
@@ -253,7 +253,7 @@ public static class ShapeCatalog
             var box = new Box("hub", BoxKind.Hub, new CellRect(0, 0, 16, 12), 16 * 12);
             if (HubBoxEmitter.Fill(box, form, cw) is not { } hub) continue;
             yield return new CatalogShape($"hub-{++n}", "hub", Token(form), CatalogTier.InMix,
-                16, 12, cw, [], null, BodyPlan(hub.Pieces, $"hub-{n}"));
+                16, 12, cw, [], null, CompoundPlan(hub.Pieces, $"hub-{n}"));
         }
         n = 0;
         foreach (var form in FillProfiles.FrontlineForms)
@@ -261,22 +261,22 @@ public static class ShapeCatalog
             var box = new Box("frontline", BoxKind.Frontline, new CellRect(0, 0, 16, 10), 16 * 10);
             if (FrontlineBoxEmitter.Fill(box, form, cw, OfferGrouping.Joint) is not { } front) continue;
             yield return new CatalogShape($"front-{++n}", "frontline", Token(form), CatalogTier.InMix,
-                16, 10, cw, [], null, BodyPlan(front.Pieces, $"front-{n}"));
+                16, 10, cw, [], null, CompoundPlan(front.Pieces, $"front-{n}"));
         }
     }
 
-    /// <summary>A body form's display token — the same lowercase vocabulary the browse filter chips use.</summary>
+    /// <summary>A compound form's display token — the same lowercase vocabulary the browse filter chips use.</summary>
     private static string Token(CompoundRead form) => form.Form switch
     {
-        Compound.SpineArms => form.Arms switch { 1 => "single", 2 => "twin", _ => $"spine-arms-{form.Arms}" },
-        Compound.Rectangle => "bar",
-        Compound.DoubleHole => "double-hole",
+        CompoundForm.SpineArms => form.Arms switch { 1 => "single", 2 => "twin", _ => $"spine-arms-{form.Arms}" },
+        CompoundForm.Rectangle => "bar",
+        CompoundForm.DoubleHole => "double-hole",
         var other => other.ToString().ToLowerInvariant(),
     };
 
-    /// <summary>Wrap a body's pieces as a standalone <c>symmetry:none</c> plan — the body twin of
-    /// <see cref="WoolBoxEmitter.AsPlan"/>, which a terminal-free body cannot use (it has no room).</summary>
-    private static PlanModel BodyPlan(IReadOnlyList<GrownPiece> pieces, string name)
+    /// <summary>Wrap a compound's pieces as a standalone <c>symmetry:none</c> plan — the compound twin of
+    /// <see cref="WoolBoxEmitter.AsPlan"/>, which a terminal-free compound cannot use (it has no room).</summary>
+    private static PlanModel CompoundPlan(IReadOnlyList<GrownPiece> pieces, string name)
     {
         var plan = new PlanModel
         {
@@ -293,7 +293,7 @@ public static class ShapeCatalog
     /// <summary>A shape's cell pattern as one hash: the row runs of its terrain and room, translated to the
     /// pattern's own origin. Two emissions that occupy the same cells are the same catalog card however they
     /// were parameterized.</summary>
-    private static ulong PatternKey(EmittedApproach approach)
+    private static ulong PatternKey(PlacedApproach approach)
     {
         var parts = approach.Terrain.Select(p => (Rect: p.Rect, Room: false))
             .Append((Rect: approach.WoolRoom.Rect, Room: true)).ToList();

@@ -5,7 +5,7 @@ namespace PgmStudio.Pgm.Compose;
 
 /// <summary>Published negative space of a fill, in plan cell coordinates: a <see cref="ShapeVacancy"/>
 /// placed into the board frame, carrying its mouth as a box-edge interval so a later box can claim it
-/// (docs/generator/model.md §4 — what a body leaves empty). Unclaimed vacancies are just void (or a buffer when the void is
+/// (docs/generator/model.md §4 — what a compound leaves empty). Unclaimed vacancies are just void (or a buffer when the void is
 /// the point).</summary>
 public sealed record Vacancy(string Kind, CellRect Rect, BoxAbutment? Mouth, IReadOnlyList<string> Walls);
 
@@ -20,13 +20,13 @@ public sealed record Vacancy(string Kind, CellRect Rect, BoxAbutment? Mouth, IRe
 /// directed rejection, not a placement.
 ///
 /// <para><see cref="Rejection"/> projects every non-<see cref="Ok"/> case onto the shared
-/// <see cref="FillRejection"/> vocabulary the body kinds also report through, so a caller reasoning about
+/// <see cref="FillRejection"/> vocabulary the compound kinds also report through, so a caller reasoning about
 /// producibility reads one taxonomy across all four box kinds. The projection is the only mapping between the
 /// two — these cases stay the approach channel's own surface.</para>
 /// </summary>
 public abstract record FillResult
 {
-    public sealed record Ok(EmittedApproach Approach, IReadOnlyList<Vacancy> Vacancies) : FillResult;
+    public sealed record Ok(PlacedApproach Approach, IReadOnlyList<Vacancy> Vacancies) : FillResult;
 
     public sealed record TooSmall(ShapeFamily Family, int MinW, int MinH) : FillResult;
 

@@ -18,7 +18,7 @@ public sealed class WoolBoxEmitterTests
     private const int Cw = 2;
 
     // the emitted slots in emit order, terrain then the room (the form the §2 template is written in)
-    private static string Slots(EmittedApproach a) =>
+    private static string Slots(PlacedApproach a) =>
         string.Join(" · ", a.Terrain.Select(p => p.Slot).Append(a.WoolRoom.Slot));
 
     private static string Template(ShapeFamily f) => string.Join(" · ", ApproachSlots.Template(f));

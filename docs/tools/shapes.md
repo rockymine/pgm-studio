@@ -16,7 +16,7 @@ fills a wool box through, so the profile check and the docking gate run exactly 
 and **a refusal comes back as a result rather than an error**. It is the only place in the studio that
 surfaces the fill guards at all.
 
-The shape model itself — what a body is, what a designation adds, why the classifier reads width-free — is
+The shape model itself — what a compound is, what a designation adds, why the classifier reads width-free — is
 `docs/generator/model.md` §4, which governs. This document is the page: what it shows, what it can be asked,
 and what it cannot say.
 
@@ -25,8 +25,8 @@ and what it cannot say.
 Three box kinds appear, and the split is by what the shape is *for* rather than by what holds it.
 
 A **wool approach** is a terminal-capped shape: a lane from a host that dead-ends at the room the wool sits
-in. A **hub body** is the unit's constraint source — terminal-free, and the widths of its free edges set every
-neighbour's menu. A **frontline body** is the join toward the symmetry axis — also terminal-free, with one
+in. A **hub compound** is the unit's constraint source — terminal-free, and the widths of its free edges set every
+neighbour's menu. A **frontline compound** is the join toward the symmetry axis — also terminal-free, with one
 edge designated the face. The spawn box is absent as a row of its own because a spawn is an approach too: it
 reuses the same families at the map's lane width, differing only in what the room holds and how big it is.
 
@@ -57,7 +57,7 @@ into the ring's own corner rather than hanging a room off the end — it fits 5�
 inside the ring's span instead of beyond it. The `too-small` refusal always reports the minimum **for the
 knobs asked for**, so the number to build against comes from the refusal rather than from the schema.
 
-The **bodies** are the two terminal-free menus. A hub may be a solid `bar`, the branch family at one arm
+The **compounds** are the two terminal-free menus. A hub may be a solid `bar`, the branch family at one arm
 (`single`) or two (`twin`), a `ring`, a `p` (a loop with an overhanging bar), a `double-hole` (a ring plus a
 docked U) or a `g` (a ring plus an L, whose open bay a docking frontline seals into a second hole). A
 frontline may be a `bar` — the wide face — or the branch family at one arm or two. The two menus overlap in
@@ -99,7 +99,7 @@ admit it is `G81`.
 
 ## The grid
 
-Cards are laid out in pipeline-legibility order — straight, bent, branch, enclosing, then the bodies — so the
+Cards are laid out in pipeline-legibility order — straight, bent, branch, enclosing, then the compounds — so the
 grid reads as a progression rather than alphabetically. Each card is the shape in a square frame on the theme's board
 ground (white in the light theme), drawn in the same four inks as the Generator's boards (`generator.md`), then its family and the box it was emitted at, then tags for its tier, its kind, the corridor width
 and any knobs set. A non-in-mix card adds the note explaining its tier. The pictures carry no text; the page
@@ -116,7 +116,7 @@ cell pattern, so two parameterizations that occupy the same cells are one card.
 
 The catalog is a **bounded set** — a pure function of the emitters and the tuning constants — so the whole of
 it is fetched once and filtered in the page, which is what makes every chip instant and needs no cursor. Today
-that is 124 cards: 115 wool approaches, 6 hub bodies and 3 frontline bodies, of which 117 are in the mix, 1
+that is 124 cards: 115 wool approaches, 6 hub compounds and 3 frontline compounds, of which 117 are in the mix, 1
 reachable and 6 emitter-only. Those numbers move whenever the tuning does.
 
 ## The Shape settings panel
@@ -208,7 +208,7 @@ boards in four at twelve players and nine in ten at twenty, and it gets five car
 never a frequency.
 
 **The hub's two-arm form has no card.** `SpineArms(2)` is on the hub menu and the generator's own census finds
-it on 28 of 400 boards at twenty players, but the catalog emits every body at a fixed 16×12 box with no arm
+it on 28 of 400 boards at twenty players, but the catalog emits every compound at a fixed 16×12 box with no arm
 layout, and the default layout on a 16-wide spine wants two 6-cell legs where the leg-width cap allows 5 — so
 the form refuses and the card is dropped. The grid therefore shows six hub forms where the composer builds
 seven. The frontline's twin is unaffected because its own sampler admits end recesses.
@@ -219,7 +219,7 @@ with an *empty* menu — rendered as "it offers ." The refusal is correct and sa
 recorded in the data on purpose, since a wide touch resolves into multi-shape patterns rather than a wider
 lane, and those patterns are not emittable.
 
-**Only the wool box is probeable.** The panel builds a wool box and fills it, so hub and frontline bodies can
+**Only the wool box is probeable.** The panel builds a wool box and fills it, so hub and frontline compounds can
 be looked at in the grid but not driven — there is no settings panel for a ring's wall widths or a frontline's arm
 layout, which are exactly the axes that multiply those forms.
 

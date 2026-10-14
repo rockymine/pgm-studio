@@ -8,8 +8,8 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// neighbour's corridor width). Docking an un-offered edge is a directed error.</summary>
 public class TeamUnitFillerTests
 {
-    private static EmittedHub Hub() =>
-        HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, new(0, 0, 6, 6), 36), new CompoundRead(Compound.Rectangle), cw: 2)!;
+    private static PlacedHub Hub() =>
+        HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, new(0, 0, 6, 6), 36), new CompoundRead(CompoundForm.Rectangle), cw: 2)!;
 
     /// <summary>A hub joint granting <paramref name="width"/> over the dock <c>[start, start+len)</c> on
     /// <paramref name="edge"/> — the allocator's per-dock grant.</summary>
@@ -44,21 +44,21 @@ public class TeamUnitFillerTests
         // a derived (not allocated) partition carries no offer — the dock reads the capacity of the run it
         // lands on: the U's Bottom edge is two 2-cell leg tips, its Top one full 6-cell run
         var hub = HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, new(0, 0, 6, 6), 36),
-            new CompoundRead(Compound.SpineArms, 2), cw: 2)!;
+            new CompoundRead(CompoundForm.SpineArms, 2), cw: 2)!;
         var onTip = new BoxJoint("hub", "nb", new BoxAbutment(BoxEdge.Bottom, 4, 2), null);
         var onSpine = new BoxJoint("hub", "nb", new BoxAbutment(BoxEdge.Top, 0, 6), null);
 
-        await Assert.That(TeamUnitFiller.ConsumedCw(hub, onTip, BoxEdge.Bottom)).IsEqualTo(BodyEdges.WidthClass(2));
-        await Assert.That(TeamUnitFiller.ConsumedCw(hub, onSpine, BoxEdge.Top)).IsEqualTo(BodyEdges.WidthClass(6));
+        await Assert.That(TeamUnitFiller.ConsumedCw(hub, onTip, BoxEdge.Bottom)).IsEqualTo(CompoundEdges.WidthClass(2));
+        await Assert.That(TeamUnitFiller.ConsumedCw(hub, onSpine, BoxEdge.Top)).IsEqualTo(CompoundEdges.WidthClass(6));
     }
 
     [Test]
     public async Task Consuming_an_edge_the_hub_did_not_offer_is_a_directed_error()
     {
         // a hub that offers only its Top edge — an ungranted dock on the Bottom has nothing to consume
-        var hub = new EmittedHub([],
+        var hub = new PlacedHub([],
             [new EdgeOffer(BoxEdge.Top, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "g")],
-            new CompoundRead(Compound.Rectangle));
+            new CompoundRead(CompoundForm.Rectangle));
         var ungranted = new BoxJoint("hub", "nb", new BoxAbutment(BoxEdge.Bottom, 0, 6), null);
         await Assert.That(() => TeamUnitFiller.ConsumedCw(hub, ungranted, BoxEdge.Bottom)).Throws<ComposeException>();
     }

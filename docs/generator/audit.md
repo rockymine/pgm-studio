@@ -90,7 +90,7 @@ Measured over 400 seeds × 4 presets on the **placed rooms** (not the boxes), in
   distances are resolved downstream by scale and roughen, so an absolute block comparison is not
   decisive alone. The distributional argument survives it: this is not a constant offset, it is a
   narrower spread sitting at the corpus floor. The seat gap does **not** achieve WL7 — that is a
-  marker-to-marker *traversal* spread, not a body-adjacency floor, so it belongs with the
+  marker-to-marker *traversal* spread, not a compound-adjacency floor, so it belongs with the
   hub-growth / budget work that gives boxes room to spread. → **G110**
 - **WL2 — wool↔spawn ≥ 20. Fixed.** Was violated on the huge preset only (111/930 pairs under 20,
   min 12) by the third wool doubling onto the spawn's side. The seat-separation gap resolved it:
@@ -124,7 +124,7 @@ Re-verified 2026-07-27 — both still present at `TeamUnitFiller.cs:137–143`.
 On L/U hubs **without a frontline**, wool and spawn lanes can sit flush against the legs' walls. The
 hub's remaining free surface is exactly where build regions attach in later stages, so a build region
 would land touching the lane. Mechanism: a dock flush against a **non-corner run end** — a run ends
-mid-edge only where the body's mass stops, so that end is a leg's wall and gets no inset by design.
+mid-edge only where the compound's mass stops, so that end is a leg's wall and gets no inset by design.
 
 Measured **23/3/1/1** units per 200 (small/mid/big/huge), and **every one a branch hub** — so the
 attribution is exact but the frequency is a small-board effect. Fix direction: a ≥1-cell margin

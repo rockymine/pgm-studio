@@ -14,12 +14,12 @@ internal sealed record FullMouthDock(CellRect Box, BoxAbutment Abutment, Neighbo
 
 public static class UnitSeating
 {
-    /// <summary>Build the hub's body once and read what it offers: the box the filler re-emits, its per-edge
+    /// <summary>Build the hub's compound once and read what it offers: the box the filler re-emits, its per-edge
     /// <b>free runs</b> in box-local along-coords, and which box edge faces the axis. One offer per free run, so
-    /// a bay in the body simply yields no run over its stretch — which is how a caller sizing a neighbour learns
+    /// a bay in the compound simply yields no run over its stretch — which is how a caller sizing a neighbour learns
     /// there is one. Emitting is a pure function of the form, the walls and the arms, so the three readers of
-    /// this body (the request sizing, the seating, the filler) all see the same one without a draw between them.
-    /// <c>Holes</c> is the body's enclosed void, the cells inside its box no piece covers and the outside cannot
+    /// this compound (the request sizing, the seating, the filler) all see the same one without a draw between them.
+    /// <c>Holes</c> is the compound's enclosed void, the cells inside its box no piece covers and the outside cannot
     /// reach. A null box means the form does not fit the rect at all.</summary>
     internal static (Box? Box, IReadOnlyDictionary<BoxEdge, IReadOnlyList<(int Start, int Len)>> Runs, BoxEdge Front,
         IReadOnlySet<(int X, int Z)> Holes)
@@ -84,7 +84,7 @@ public static class UnitSeating
     }
 
     /// <summary>Seat every request on <paramref name="form"/>'s real free-edge intervals, seated on the hub
-    /// <paramref name="hubRect"/>. Builds the body once (<see cref="HubBoxEmitter"/>) — the same body the filler
+    /// <paramref name="hubRect"/>. Builds the compound once (<see cref="HubBoxEmitter"/>) — the same compound the filler
     /// re-emits, so both read the same runs — and reads its per-edge free runs off the emitted offers (the
     /// offerable surface, §4). Returns the hub box (carrying <paramref name="form"/> for the filler) plus the
     /// seated neighbour boxes and their hub joints, or <c>null</c> when the box is too small for the form or a
@@ -243,7 +243,7 @@ public static class UnitSeating
     }
 
     /// <summary>The centre of the hub's enclosed hole along <paramref name="edge"/>, in that edge's own
-    /// coordinates, or null for a body without one.</summary>
+    /// coordinates, or null for a compound without one.</summary>
     private static double? HoleCentre(BoxEdge edge, CellRect hub, IReadOnlySet<(int X, int Z)> holes)
     {
         if (holes.Count == 0) return null;
@@ -327,7 +327,7 @@ public static class UnitSeating
 
         // (see PinchesAtEnd for the end-alignment law the loop above applies)
 
-        // A bay-fronted hub — a G, U or L, whose body leaves a gap in its own front edge — is meant to be
+        // A bay-fronted hub — a G, U or L, whose compound leaves a gap in its own front edge — is meant to be
         // CLOSED by the frontline: a face spanning the bay rests on a shoulder each side and turns the bay
         // into a declared hole, which is the rotation device CT8 names. A face seated to one side of it leaves
         // the bay open as a notch and puts the whole crossing off the hub's flank. So where the edge has a bay
@@ -349,7 +349,7 @@ public static class UnitSeating
     }
 
     /// <summary>Whether a face covering edge-local <c>[lo, hi)</c> closes every bay in the hub's own front
-    /// edge — each gap between two of its free <paramref name="runs"/>, which is edge the hub's body leaves
+    /// edge — each gap between two of its free <paramref name="runs"/>, which is edge the hub's compound leaves
     /// without terrain. True for an edge with no bay at all, so a solid front never prefers one seat over
     /// another on this account.</summary>
     internal static bool Seals(IReadOnlyList<(int Start, int Len)> runs, int lo, int hi)
@@ -404,8 +404,8 @@ public static class UnitSeating
     }
 
     /// <summary>Seat a <b>rich</b> wool by the seat-and-shift: probe the family's narrow <b>entry</b> on its mouth,
-    /// place the box so that entry lands on a hub <paramref name="runs"/> interval while the wider body <b>overhangs</b>
-    /// the edge, and reject any placement whose box overlaps a seated box. Both handednesses are tried (the body
+    /// place the box so that entry lands on a hub <paramref name="runs"/> interval while the wider compound <b>overhangs</b>
+    /// the edge, and reject any placement whose box overlaps a seated box. Both handednesses are tried (the compound
     /// overhanging either way), so a crowded side does not sink the dock. Returns the plan-cell box, the actual
     /// hub↔box interface (the abutment — narrower than the box when it overhangs), and the chosen flip; or
     /// <c>null</c> when no clear placement exists (a directed signal the caller falls back on).</summary>

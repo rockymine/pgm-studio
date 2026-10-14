@@ -53,7 +53,7 @@ public sealed record BoxEdgeInterface(BoxEdge Edge, EdgeSpan Span, int LengthCel
 /// carrying the per-piece intervals on it), retiring both the single-mouth assumption and the flat slot list.
 /// The <b>rules</b> that turn these facts into a dockability verdict — which edges are legal docks, which
 /// slots never connect, how many a family demands — are the <see cref="DockingGate"/> over this model.
-/// The box-perimeter sibling of the shape-relative boundary read (<see cref="BodyEdges"/>): this reads the
+/// The box-perimeter sibling of the shape-relative boundary read (<see cref="CompoundEdges"/>): this reads the
 /// box's four edge lines, that reads the shape's whole classified outline — the two agree wherever the shape
 /// reaches the box edge.
 /// </summary>
@@ -62,15 +62,15 @@ public static class BoxInterfaces
     /// <summary>The four edges of a <paramref name="boxW"/>×<paramref name="boxH"/> box as
     /// <see cref="BoxEdgeInterface"/> facts for the emitted <paramref name="shape"/> filling it (box-local
     /// cells). Every edge is returned — the gate decides which are dockable.</summary>
-    public static IReadOnlyList<BoxEdgeInterface> Of(EmittedShape shape, int boxW, int boxH) =>
-        Of(shape.Terrain, shape.Room, boxW, boxH);
+    public static IReadOnlyList<BoxEdgeInterface> Of(ApproachShape shape, int boxW, int boxH) =>
+        Of(shape.Compound.Pieces, shape.Room, boxW, boxH);
 
-    /// <summary>The four edges of a <b>terminal-free</b> <see cref="ShapeBody"/> filling a
+    /// <summary>The four edges of a <b>terminal-free</b> <see cref="Compound"/> filling a
     /// <paramref name="boxW"/>×<paramref name="boxH"/> box — the hub/frontline read. Same edge facts as the
-    /// approach overload, but <b>no room</b> to fold in (a body has no terminal), so every interval is a terrain
+    /// approach overload, but <b>no room</b> to fold in (a compound has no terminal), so every interval is a terrain
     /// piece: the offerable surface a designation publishes its <see cref="EdgeOffer"/>s over.</summary>
-    public static IReadOnlyList<BoxEdgeInterface> Of(ShapeBody body, int boxW, int boxH) =>
-        Of(body.Pieces, null, boxW, boxH);
+    public static IReadOnlyList<BoxEdgeInterface> Of(Compound compound, int boxW, int boxH) =>
+        Of(compound.Pieces, null, boxW, boxH);
 
     /// <summary>Merge an edge's per-piece <see cref="EdgeInterval"/>s into contiguous <b>runs</b> — a ring's
     /// corner + leg + corner, or a spine + its arm, is one attachable surface, not one per piece; a genuine gap

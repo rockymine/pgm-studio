@@ -80,7 +80,7 @@ public static class Composer
             // plans, which may draw a front anywhere; it is read back there (BZ9).
 
             // the spend gate: what the unit actually built, against the band's budget. The allocator aims in box
-            // footprints, which is all it has before a fill exists, and a holed body's land is a fifth less than
+            // footprints, which is all it has before a fill exists, and a holed compound's land is a fifth less than
             // its footprint — so the contract is read here, off the pieces, and an attempt that left land
             // unplaced or overran the band is resampled rather than shipped.
             var built = LandCells(filled.Unit);

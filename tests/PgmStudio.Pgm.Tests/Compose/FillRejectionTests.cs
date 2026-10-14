@@ -22,17 +22,17 @@ public sealed class FillRejectionTests
     public async Task A_hub_too_small_for_its_form_reports_the_emitters_own_reason()
     {
         // a 3x3 box cannot hold a ring at cw 2 (needs 2cw+1 = 5 each way)
-        var hub = HubBoxEmitter.Fill(Hub(3, 3), new CompoundRead(Compound.Ring), Cw, false, out var why);
+        var hub = HubBoxEmitter.Fill(Hub(3, 3), new CompoundRead(CompoundForm.Ring), Cw, false, out var why);
         await Assert.That(hub).IsNull();
         await Assert.That(why).IsTypeOf<FillRejection.FormDoesNotFit>();
-        // the reason is the body emitter's own guard message, not a re-derivation of it
+        // the reason is the compound emitter's own guard message, not a re-derivation of it
         await Assert.That(((FillRejection.FormDoesNotFit)why!).Detail).IsNotEmpty();
     }
 
     [Test]
     public async Task Each_wide_holed_hub_form_below_width_9_says_why()
     {
-        foreach (var form in new[] { Compound.P, Compound.DoubleHole, Compound.G })
+        foreach (var form in new[] { CompoundForm.P, CompoundForm.DoubleHole, CompoundForm.G })
         {
             var hub = HubBoxEmitter.Fill(Hub(6, 5), new CompoundRead(form), Cw, false, out var why);
             await Assert.That(hub).IsNull().Because($"{form} needs width 9 at cw 2");
@@ -43,7 +43,7 @@ public sealed class FillRejectionTests
     [Test]
     public async Task A_hub_that_fills_carries_no_rejection()
     {
-        var hub = HubBoxEmitter.Fill(Hub(9, 9), new CompoundRead(Compound.Ring), Cw, false, out var why);
+        var hub = HubBoxEmitter.Fill(Hub(9, 9), new CompoundRead(CompoundForm.Ring), Cw, false, out var why);
         await Assert.That(hub).IsNotNull();
         await Assert.That(why).IsNull();
     }
@@ -82,7 +82,7 @@ public sealed class FillRejectionTests
     {
         // the single-arm frontline refuses a leg no wider than its notch (the banned T's thin band)
         var f = FrontlineBoxEmitter.Fill(
-            Front(4, 5), new CompoundRead(Compound.SpineArms, 1), Cw, OfferGrouping.Several, out var why);
+            Front(4, 5), new CompoundRead(CompoundForm.SpineArms, 1), Cw, OfferGrouping.Several, out var why);
         await Assert.That(f).IsNull();
         await Assert.That(why).IsTypeOf<FillRejection.FormDoesNotFit>();
         await Assert.That(((FillRejection.FormDoesNotFit)why!).Detail).Contains("notch");

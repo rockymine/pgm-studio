@@ -3,7 +3,7 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Shapes;
 
-/// <summary>One rectangle of a negative space's slab decomposition, classed by its <b>own</b> body walls —
+/// <summary>One rectangle of a negative space's slab decomposition, classed by its <b>own</b> compound walls —
 /// counting only real terrain, never sibling parts. The layer on top of the space class: a non-rectangular
 /// space is itself a compound of rectangles (the uneven branch's six-edge bay is a U — a bar at the mouth plus
 /// two legs), and classing each part separately is what lets a rule reach an inset feature — the bar part at
@@ -11,7 +11,7 @@ namespace PgmStudio.Pgm.Shapes;
 /// stateable while the space-level class stays correct.</summary>
 public sealed record NegativeSpacePart(CellRect Rect, string Kind, bool Guarded = false, bool Front = false);
 
-/// <summary>One <b>mouth</b> of a negative space — where it opens out of the body's bounding box: the open
+/// <summary>One <b>mouth</b> of a negative space — where it opens out of the compound's bounding box: the open
 /// <see cref="Side"/>, the interval along it (<see cref="Start"/> in cell-corner coordinates,
 /// <see cref="WidthCells"/> wide), and the <see cref="WidthClass"/> the width tapers to (the w2/w4/w6 rung —
 /// the interface-width grammar: a w2 mouth is a chokepoint lane, w4 the unstable middle, w6 multi-access). A
@@ -20,32 +20,32 @@ public sealed record NegativeSpacePart(CellRect Rect, string Kind, bool Guarded 
 /// which exists for bays only; here every non-enclosed space carries its mouths uniformly.</summary>
 public sealed record SpaceMouth(BoxEdge Side, int Start, int WidthCells, int WidthClass);
 
-/// <summary>One straight line across a negative space with body on <b>both</b> ends — what a player crosses,
+/// <summary>One straight line across a negative space with compound on <b>both</b> ends — what a player crosses,
 /// and the only run a jump is judged against: a run open at one end is a way out of the space rather than a
 /// gap over it. <see cref="Cells"/> is its length, <see cref="From"/> and <see cref="To"/> the owners walling
 /// each end (empty where the caller gave none), and (<see cref="X"/>, <see cref="Z"/>) its first empty cell,
 /// running along x when <see cref="AlongX"/> and along z otherwise.</summary>
 public sealed record SpaceCrossing(int Cells, string From, string To, int X, int Z, bool AlongX);
 
-/// <summary>One connected negative space read off a body: its <see cref="Kind"/>, its cells, the number of
-/// distinct axis directions the body walls it from (<see cref="WallDirections"/> — the wall count behind the
+/// <summary>One connected negative space read off a compound: its <see cref="Kind"/>, its cells, the number of
+/// distinct axis directions the compound walls it from (<see cref="WallDirections"/> — the wall count behind the
 /// kind; a hole is enclosed outright, whatever the count says), its <see cref="Parts"/> — the slab
-/// decomposition into rectangles, each classed by its own body walls (a rectangular space is its own single
+/// decomposition into rectangles, each classed by its own compound walls (a rectangular space is its own single
 /// part; <see cref="NegativeSpacePart.Front"/> marks the parts touching a mouth — the covering layer) — its
 /// <see cref="WallSlots"/>: the slot/mark names of the pieces walling it, first-encounter order (the
 /// derive-side twin of the emit-time <c>ShapeVacancy.Walls</c>; empty when the input carried no slots) — its
-/// <see cref="Form"/>: the space's <b>own compound identity</b> (the void is a body too — the uneven branch's
+/// <see cref="Form"/>: the space's <b>own compound identity</b> (the void is a compound too — the uneven branch's
 /// six-edge bay reads as a two-arm spine, the Π it is), null when the space classifies to no compound — and
 /// its <see cref="Mouths"/>: the interval + width class of every opening (bay 1 · notch 2 · hole 0) — and its
-/// <see cref="Crossings"/>: every straight line over it that body closes at both ends, which is what a
-/// player crosses. Cells are in the caller's own cell frame — box-local for a body, board cells for a
+/// <see cref="Crossings"/>: every straight line over it that compound closes at both ends, which is what a
+/// player crosses. Cells are in the caller's own cell frame — box-local for a compound, board cells for a
 /// plan.</summary>
 public sealed record NegativeSpace(
     string Kind, IReadOnlySet<(int X, int Z)> Cells, int WallDirections,
     IReadOnlyList<string> WallSlots, IReadOnlyList<NegativeSpacePart> Parts, CompoundRead? Form,
     IReadOnlyList<SpaceMouth> Mouths, IReadOnlyList<SpaceCrossing> Crossings);
 
-/// <summary>A maximal straight run of the body's boundary, classified along two independent axes: what it
+/// <summary>A maximal straight run of the compound's boundary, classified along two independent axes: what it
 /// <see cref="Faces"/> (<see cref="NegativeSpaceKinds.Open"/> for a free outward edge, else the class of the
 /// notch/bay/hole it walls) and who owns it — <see cref="Terminal"/> marks a run on the terminal room's own
 /// wall. The owner is a <b>fact</b>; the verdict over it is the docking gate's rule (a terminal wall never
@@ -61,28 +61,28 @@ public sealed record NegativeSpace(
 public sealed record ClassifiedEdge(
     int X1, int Z1, int X2, int Z2, string Faces, int Length, bool Terminal = false, bool Guarded = false);
 
-/// <summary>Everything the edge read of one body yields: its negative <see cref="Spaces"/> and its classified
+/// <summary>Everything the edge read of one compound yields: its negative <see cref="Spaces"/> and its classified
 /// boundary <see cref="Edges"/>.</summary>
 public sealed record EdgeClassification(IReadOnlyList<NegativeSpace> Spaces, IReadOnlyList<ClassifiedEdge> Edges);
 
 /// <summary>
-/// Reads a rectilinear body's <b>edge taxonomy</b> off its geometry alone: every connected negative space
-/// within the body's bounding box, classed by wall count (<see cref="NegativeSpaceKinds"/> — notch 2, bay 3,
+/// Reads a rectilinear compound's <b>edge taxonomy</b> off its geometry alone: every connected negative space
+/// within the compound's bounding box, classed by wall count (<see cref="NegativeSpaceKinds"/> — notch 2, bay 3,
 /// hole enclosed), and every boundary edge classed by the space it faces plus its ownership —
 /// <see cref="NegativeSpaceKinds.Open"/> runs that are not <see cref="ClassifiedEdge.Terminal"/> are the free
 /// outward surface. This is the derive-side generalization of the emit-time
 /// <see cref="ShapeVacancy"/> publication: vacancies are exact but box-relative remainders a specific emitter
 /// declares; this read is shape-relative and total — it works on any rectangle set (an emitted approach, a
-/// terminal-free compound, a future hub body) with no emitter cooperation. The two deliberately disagree on
+/// terminal-free compound, a future hub compound) with no emitter cooperation. The two deliberately disagree on
 /// one case: the box remainder beside a straight lane is a published <c>notch</c> vacancy (box-relative), but
 /// here it lies outside the shape's own bounding box and is no negative space at all — nothing encases it, so
 /// the lane's side is free surface.
 ///
 /// <para>The wall count is read per space, over all its cells: a direction counts as walled when any cell of
-/// the space has body terrain as its neighbour in that direction. A space touching no side of the bounding box
+/// the space has compound terrain as its neighbour in that direction. A space touching no side of the bounding box
 /// is enclosed and reads <see cref="NegativeSpaceKinds.Hole"/> regardless of count.</para>
 /// </summary>
-public static class BodyEdges
+public static class CompoundEdges
 {
     /// <summary>Classify the union of <paramref name="rects"/> (<c>[x, z, w, h]</c> cell rects) — no slots, so
     /// every space's <see cref="NegativeSpace.WallSlots"/> is empty.</summary>
@@ -95,12 +95,12 @@ public static class BodyEdges
         return Classify(cells);
     }
 
-    /// <summary>Classify a terminal-free body (its structural pieces), wall slots read from the pieces.</summary>
-    public static EdgeClassification Classify(ShapeBody body)
+    /// <summary>Classify a terminal-free compound (its structural pieces), wall slots read from the pieces.</summary>
+    public static EdgeClassification Classify(Compound compound)
     {
         var cells = new HashSet<(int, int)>();
         var slots = new Dictionary<(int, int), string>();
-        foreach (var (r, slot) in body.Pieces)
+        foreach (var (r, slot) in compound.Pieces)
             for (var x = r.X; x < r.X + r.Width; x++)
                 for (var z = r.Z; z < r.Z + r.Height; z++) { cells.Add((x, z)); slots[(x, z)] = slot; }
         return Classify(cells, new HashSet<(int, int)>(), clearance: null, slots);
@@ -114,7 +114,7 @@ public static class BodyEdges
     /// in the walls it forms (a clamp's recess is a bay only because the room closes it; the same two bars
     /// without the room wrap a mere notch), and every boundary run on the room's own wall is marked
     /// <see cref="ClassifiedEdge.Terminal"/>.</summary>
-    public static EdgeClassification Classify(EmittedShape shape)
+    public static EdgeClassification Classify(ApproachShape shape)
     {
         var (cells, terminal, slots) = EmissionCells(shape);
         return Classify(cells, terminal, clearance: null, slots);
@@ -127,7 +127,7 @@ public static class BodyEdges
     /// <see cref="NegativeSpacePart.Guarded"/>. The room and its immediate approach are final as the emitter
     /// designed them — nothing may dock or publish inside the margin, or the objective's approach changes out
     /// from under the design.</summary>
-    public static EdgeClassification Classify(EmittedShape shape, int clearanceCells)
+    public static EdgeClassification Classify(ApproachShape shape, int clearanceCells)
     {
         var (cells, terminal, slots) = EmissionCells(shape);
         var d = clearanceCells;
@@ -136,11 +136,11 @@ public static class BodyEdges
     }
 
     private static (HashSet<(int, int)> Cells, HashSet<(int, int)> Terminal, Dictionary<(int, int), string> Slots)
-        EmissionCells(EmittedShape shape)
+        EmissionCells(ApproachShape shape)
     {
         var cells = new HashSet<(int, int)>();
         var slots = new Dictionary<(int, int), string>();
-        foreach (var (r, slot) in shape.Terrain)
+        foreach (var (r, slot) in shape.Compound.Pieces)
             for (var x = r.X; x < r.X + r.Width; x++)
                 for (var z = r.Z; z < r.Z + r.Height; z++) { cells.Add((x, z)); slots[(x, z)] = slot; }
         var terminal = new HashSet<(int, int)>();
@@ -179,7 +179,7 @@ public static class BodyEdges
         int minX = bb.X, minZ = bb.Z, maxX = bb.MaxX - 1, maxZ = bb.MaxZ - 1;   // inclusive far corners
 
         // negative spaces — 4-connected components of the bounding box's complement, each classed by the axis
-        // directions the body walls it from (or enclosed outright)
+        // directions the compound walls it from (or enclosed outright)
         var spaces = new List<NegativeSpace>();
         var spaceOf = new Dictionary<(int, int), int>();
         for (var x = minX; x <= maxX; x++)
@@ -254,11 +254,11 @@ public static class BodyEdges
         l.Add(at);
     }
 
-    // the space's own compound identity — the void read as a body through the same classifier (null when it
+    // the space's own compound identity — the void read as a compound through the same classifier (null when it
     // classifies to no compound)
     private static CompoundRead? SpaceForm(HashSet<(int, int)> comp)
     {
-        try { return ShapeClassifier.ClassifyBody(comp); }
+        try { return ShapeClassifier.ClassifyCompound(comp); }
         catch (ArgumentException) { return null; }
     }
 
@@ -359,11 +359,11 @@ public static class BodyEdges
         yield return (lo, hi);
     }
 
-    // slab-decompose a space into rectangles and class each by its own body walls. Both slab orientations are
+    // slab-decompose a space into rectangles and class each by its own compound walls. Both slab orientations are
     // tried and the coarser one wins; on a tie the cut runs perpendicular to a bay's mouth, so the part at the
     // mouth spans it (the U-bar of the uneven branch's bay) and the legs behind it separate.
     private static IReadOnlyList<NegativeSpacePart> Decompose(
-        HashSet<(int, int)> comp, IReadOnlySet<(int, int)> body, List<(int Dx, int Dz)> walled)
+        HashSet<(int, int)> comp, IReadOnlySet<(int, int)> compound, List<(int Dx, int Dz)> walled)
     {
         var horizontal = Slabs(comp, horizontal: true);
         var vertical = Slabs(comp, horizontal: false);
@@ -374,7 +374,7 @@ public static class BodyEdges
             var openVertical = !walled.Contains((0, 1)) || !walled.Contains((0, -1));   // mouth up/down
             rects = openVertical ? horizontal : vertical;
         }
-        return rects.Select(r => new NegativeSpacePart(r, PartKind(r, body))).ToList();
+        return rects.Select(r => new NegativeSpacePart(r, PartKind(r, compound))).ToList();
     }
 
     // group consecutive lines (rows for horizontal slabs, columns for vertical) with identical interval
@@ -410,12 +410,12 @@ public static class BodyEdges
         return rects;
     }
 
-    // a part's own class: walls against real body terrain only — sibling parts count as open, which is the
+    // a part's own class: walls against real compound terrain only — sibling parts count as open, which is the
     // whole point (the bar part at a bay's mouth reads notch-grade even though the legs sit beside it)
-    /// <summary>Every maximal straight run over a space that body closes at <b>both</b> ends, with the owner
-    /// at each end. Measured once per run, from the end the body closes, along each axis.</summary>
+    /// <summary>Every maximal straight run over a space that compound closes at <b>both</b> ends, with the owner
+    /// at each end. Measured once per run, from the end the compound closes, along each axis.</summary>
     private static List<SpaceCrossing> Crossings(
-        IReadOnlySet<(int, int)> space, IReadOnlySet<(int, int)> body,
+        IReadOnlySet<(int, int)> space, IReadOnlySet<(int, int)> compound,
         IReadOnlyDictionary<(int, int), string>? slots)
     {
         string Owner((int, int) cell) => slots is not null && slots.TryGetValue(cell, out var name) ? name : "";
@@ -424,24 +424,24 @@ public static class BodyEdges
             foreach (var cell in space)
             {
                 var near = (cell.Item1 - dx, cell.Item2 - dz);
-                if (!body.Contains(near)) continue;
+                if (!compound.Contains(near)) continue;
                 var (x, z) = cell;
                 var length = 0;
                 while (space.Contains((x, z))) { length++; x += dx; z += dz; }
-                if (body.Contains((x, z)))
+                if (compound.Contains((x, z)))
                     found.Add(new SpaceCrossing(length, Owner(near), Owner((x, z)), cell.Item1, cell.Item2, dx == 1));
             }
         return found;
     }
 
-    private static string PartKind(CellRect r, IReadOnlySet<(int, int)> body)
+    private static string PartKind(CellRect r, IReadOnlySet<(int, int)> compound)
     {
         int x0 = r.X, z0 = r.Z, x1 = r.X + r.Width - 1, z1 = r.Z + r.Height - 1;
         var walls = 0;
-        if (Enumerable.Range(z0, r.Height).Any(z => body.Contains((x1 + 1, z)))) walls++;
-        if (Enumerable.Range(z0, r.Height).Any(z => body.Contains((x0 - 1, z)))) walls++;
-        if (Enumerable.Range(x0, r.Width).Any(x => body.Contains((x, z1 + 1)))) walls++;
-        if (Enumerable.Range(x0, r.Width).Any(x => body.Contains((x, z0 - 1)))) walls++;
+        if (Enumerable.Range(z0, r.Height).Any(z => compound.Contains((x1 + 1, z)))) walls++;
+        if (Enumerable.Range(z0, r.Height).Any(z => compound.Contains((x0 - 1, z)))) walls++;
+        if (Enumerable.Range(x0, r.Width).Any(x => compound.Contains((x, z1 + 1)))) walls++;
+        if (Enumerable.Range(x0, r.Width).Any(x => compound.Contains((x, z0 - 1)))) walls++;
         return walls >= 4 ? NegativeSpaceKinds.Hole
             : walls == 3 ? NegativeSpaceKinds.Bay
             : walls == 2 ? NegativeSpaceKinds.Notch

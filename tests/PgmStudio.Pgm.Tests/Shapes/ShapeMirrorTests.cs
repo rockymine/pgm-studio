@@ -18,7 +18,7 @@ public sealed class ShapeMirrorTests
         [ShapeFamily.I, ShapeFamily.L, ShapeFamily.Z, ShapeFamily.Scythe, ShapeFamily.Clamp, ShapeFamily.U, ShapeFamily.H, ShapeFamily.Donut];
 
     // a cell covered by more than one piece is a bug
-    private static int Overlaps(EmittedApproach a)
+    private static int Overlaps(PlacedApproach a)
     {
         var seen = new HashSet<(int, int)>(); int n = 0;
         foreach (var p in a.Terrain.Append(a.WoolRoom))
@@ -27,15 +27,15 @@ public sealed class ShapeMirrorTests
         return n;
     }
 
-    private static ShapeFamily Derive(EmittedApproach a) =>
+    private static ShapeFamily Derive(PlacedApproach a) =>
         ShapeClassifier.Classify(WoolBoxEmitter.AsPlan(a), a.WoolRoom.Id).Family;
 
     // emitting SUCCEEDS -> classify reads back the requested family, no overlaps, and every piece's slot
     // re-derived from topology equals the slot the emitter stamped (the true mirror). Too-small boxes throw
     // ComposeException and are not failures (the caller sizes the box to the family).
-    private static async Task MirrorOk(ShapeFamily family, Func<EmittedApproach> emit)
+    private static async Task MirrorOk(ShapeFamily family, Func<PlacedApproach> emit)
     {
-        EmittedApproach a;
+        PlacedApproach a;
         try { a = emit(); } catch (ComposeException) { return; }
         var derived = Derive(a);
         await Assert.That(derived).IsEqualTo(family);
@@ -54,7 +54,7 @@ public sealed class ShapeMirrorTests
     public async Task A_flip_mirrors_the_entry_along_the_mouth(ShapeFamily family)
     {
         // a single-entry family docked on a box's top: flipped, its entry lands at the mirror position along
-        // that edge, so an overhanging dock can hang the body either way
+        // that edge, so an overhanging dock can hang the compound either way
         const int cw = 3;
         var (along, depth) = WoolBoxEmitter.MouthBox(family, cw);
         var box = new PgmStudio.Pgm.Compose.Box("probe", BoxKind.Wool, new CellRect(0, 0, along + 2, depth + 2), 0);
@@ -140,7 +140,7 @@ public sealed class ShapeMirrorTests
             foreach (var (W, H) in new[] { (12, 16), (16, 22) })
                 foreach (var flip in new[] { false, true })
                 {
-                    EmittedApproach a;
+                    PlacedApproach a;
                     try { a = WoolBoxEmitter.Emit(ShapeFamily.I, new WoolBox(0, 0, W, H), cw, flip, RoomPlacement.SideTuck); }
                     catch (ComposeException) { continue; }
                     CellRect lane = a.Terrain[0].Rect, rm = a.WoolRoom.Rect;

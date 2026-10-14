@@ -28,19 +28,19 @@ public sealed record BoxRef(string Id, BoxKind Kind)
 /// <summary>A typed box of the partition: a bounding envelope (its contents must touch its edges and stay
 /// connected but need not fill it solid — never a fill target) plus the per-box half of the two-currency
 /// budget. <see cref="Rect"/> is in plan cell coordinates. <see cref="Form"/> is the compound the allocator
-/// chose for a body box (a hub) to fill it — the fill directive the filler re-emits, its real free-edge
+/// chose for a compound box (a hub) to fill it — the fill directive the filler re-emits, its real free-edge
 /// intervals (§4) the offerable surface neighbours seat against; <c>null</c> for a box whose kind carries
 /// no form (leaves the hub filler its default solid rectangle). <see cref="FlipV"/> is the hub form's
 /// orientation — reflect it vertically so its open feet face the front — the second half of that directive,
-/// carried so the filler re-emits the body the allocator seated against. <see cref="HubWalls"/> is the third
+/// carried so the filler re-emits the compound the allocator seated against. <see cref="HubWalls"/> is the third
 /// half of that directive for a ring-bodied form — the four wall widths when one is widened, in the
 /// <b>pre-flip</b> frame; <c>null</c> = every wall at the corridor width. <see cref="HubArms"/> is the branch
 /// forms' counterpart — each leg's <c>(Start, Width)</c> on the spine, <c>null</c> = every leg one corridor wide
 /// at the spine's ends. <see cref="HubCorridorCells"/> is the width those walls and legs are built to — the
 /// band's map corridor, so a big hub is a wide loop rather than a thin ring round a huge void; <c>null</c>
-/// takes <see cref="FillProfiles.HubWallCells"/>, the narrowest a body is producible at. All are carried for
+/// takes <see cref="FillProfiles.HubWallCells"/>, the narrowest a compound is producible at. All are carried for
 /// the same reason as the form itself: the allocator emits the hub to
-/// read the runs it offers and the filler re-emits it, so a body sampled twice would diverge. <see cref="Wool"/> is the wool box's
+/// read the runs it offers and the filler re-emits it, so a compound sampled twice would diverge. <see cref="Wool"/> is the wool box's
 /// fill directive (family + room placement + handedness), likewise carried so the filler re-emits what the
 /// allocator seated; <c>null</c> for a non-wool box.</summary>
 public sealed record Box(
@@ -50,8 +50,8 @@ public sealed record Box(
 {
     public BoxRef Ref => new(Id, Kind);
 
-    /// <summary>The width a hub body's walls and legs are emitted at — <see cref="HubCorridorCells"/> when the
+    /// <summary>The width a hub compound's walls and legs are emitted at — <see cref="HubCorridorCells"/> when the
     /// allocator stated one, else the producible floor. The allocator and the filler both read it here, so the
-    /// body emitted twice is the same body.</summary>
+    /// compound emitted twice is the same compound.</summary>
     public int HubCorridor => HubCorridorCells ?? FillProfiles.HubWallCells;
 }

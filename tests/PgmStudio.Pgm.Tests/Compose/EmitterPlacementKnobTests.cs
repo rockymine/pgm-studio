@@ -17,7 +17,7 @@ public sealed class EmitterPlacementKnobTests
     private static WoolBox Box => new(0, 0, 20, 24);
     private const int Cw = 2;
 
-    private static (ShapeFamily Family, bool Overlap) Read(EmittedApproach a)
+    private static (ShapeFamily Family, bool Overlap) Read(PlacedApproach a)
     {
         var (family, _) = ShapeClassifier.Classify(WoolBoxEmitter.AsPlan(a), a.WoolRoom.Id);
         var cells = new HashSet<(int, int)>();

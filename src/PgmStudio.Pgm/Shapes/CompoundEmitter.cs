@@ -4,7 +4,7 @@ namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>
 /// Emits the <b>terminal-free compounds</b> the vocabulary names (docs/generator/model.md §4) but the
-/// approach emitter (<see cref="ShapeEmitter"/>) can't build, as pure <see cref="ShapeBody"/> — structural-slotted
+/// approach emitter (<see cref="ShapeEmitter"/>) can't build, as pure <see cref="Compound"/> — structural-slotted
 /// rects (<see cref="ApproachSlots.Bar"/> spines/crossbars, <see cref="ApproachSlots.Leg"/> arms/ring-arms) and,
 /// for the holed forms, the enclosed voids as <c>hole</c> vacancies. No terminal, marker, or id — a designation
 /// (approach's room, the hub's interfaces, the frontline's face) finishes them later.
@@ -14,28 +14,28 @@ namespace PgmStudio.Pgm.Shapes;
 /// four bars around a void (<c>Ring</c>), a ring with one longer bar so a loop slides along it
 /// (<c>P</c>), a ring with a shorter U docked on its edge for a second void (<c>DoubleHole</c>), and
 /// two loops on a shared baseline (<see cref="TwoUOnI"/>). Each classifies back to itself through
-/// <see cref="ShapeClassifier.ClassifyBody"/> — the emit↔derive mirror for the body layer. Shapes are emitted in a
+/// <see cref="ShapeClassifier.ClassifyCompound"/> — the emit↔derive mirror for the compound layer. Shapes are emitted in a
 /// canonical frame (spines horizontal on top, arms hanging down; rings axis-aligned); a box too small for the
 /// form throws.</para>
 /// </summary>
-public static class BodyEmitter
+public static class CompoundEmitter
 {
     /// <summary>The most arms a spine carries (the branch family is capped at three).</summary>
     public const int MaxArms = 3;
 
     /// <summary>One filled <paramref name="w"/>×<paramref name="h"/> rectangle — a spine, the base of the ladder
     /// (the solid hub reads as this). A single <see cref="ApproachSlots.Bar"/> piece, no void.</summary>
-    public static ShapeBody Rectangle(int w, int h)
+    public static Compound Rectangle(int w, int h)
     {
         if (w < 1 || h < 1) throw new ArgumentException($"a rectangle needs positive dims (got {w}x{h}).");
-        return new ShapeBody([(new(0, 0, w, h), ApproachSlots.Bar)], []);
+        return new Compound([(new(0, 0, w, h), ApproachSlots.Bar)], []);
     }
 
     /// <summary>A full-width spine (top, <paramref name="cw"/> tall) with <paramref name="arms"/> equal arms
     /// hanging down, spread evenly with a one-corridor gap and overhang — K=1 a centred T, K=2 a Π, K=3 the E/comb.
     /// The <see cref="MaxArms">arm count</see> is capped at three. For a specific placement (an F, an off-centre
     /// arm) use the <see cref="SpineArms(int, IReadOnlyList{int}, int, int)"/> overload.</summary>
-    public static ShapeBody SpineArms(int cw, int arms, int armLen = 0)
+    public static Compound SpineArms(int cw, int arms, int armLen = 0)
     {
         if (arms < 1 || arms > MaxArms)
             throw new ArgumentException($"the branch family supports 1..{MaxArms} arms (requested {arms}).");
@@ -49,7 +49,7 @@ public static class BodyEmitter
     /// off one family (arms at the ends → Π, an end + the middle → F, three → E). A convenience over the general
     /// <see cref="SpineArms(int, int, IReadOnlyList{ValueTuple{int, int, int}})"/> with every arm one corridor wide
     /// and the same length.</summary>
-    public static ShapeBody SpineArms(int cw, IReadOnlyList<int> armStarts, int spineLen, int armLen = 0)
+    public static Compound SpineArms(int cw, IReadOnlyList<int> armStarts, int spineLen, int armLen = 0)
     {
         if (cw < 2) throw new ArgumentException($"corridor width {cw} < 2.");
         var al = armLen > 0 ? armLen : 3 * cw;
@@ -63,7 +63,7 @@ public static class BodyEmitter
     /// count (an uneven F still reads <c>SpineArms(2)</c>). Arms must sit within the spine, a gap apart (so each is
     /// a distinct run), and number at most <see cref="MaxArms"/>. Spine is a <see cref="ApproachSlots.Bar"/>, each
     /// arm a <see cref="ApproachSlots.Leg"/>.</summary>
-    public static ShapeBody SpineArms(int spineLen, int barThickness, IReadOnlyList<(int Start, int Width, int Length)> arms)
+    public static Compound SpineArms(int spineLen, int barThickness, IReadOnlyList<(int Start, int Width, int Length)> arms)
     {
         if (spineLen < 1 || barThickness < 1) throw new ArgumentException($"the spine needs positive dims ({spineLen}x{barThickness}).");
         if (arms.Count < 1 || arms.Count > MaxArms)
@@ -79,21 +79,21 @@ public static class BodyEmitter
         }
         var pieces = new List<(CellRect Rect, string Slot)> { (new(0, 0, spineLen, barThickness), ApproachSlots.Bar) };
         foreach (var (s, w, len) in arms) pieces.Add((new(s, barThickness, w, len), ApproachSlots.Leg));
-        return new ShapeBody(pieces, []);
+        return new Compound(pieces, []);
     }
 
-    /// <summary>A rectangular ring — four bars around one enclosed void (the donut body, terminal-free). Top and
+    /// <summary>A rectangular ring — four bars around one enclosed void (the donut compound, terminal-free). Top and
     /// bottom are <see cref="ApproachSlots.Bar"/>, the sides <see cref="ApproachSlots.Leg"/>; the hole is a
     /// <c>hole</c> vacancy.</summary>
-    public static ShapeBody Ring(int cw, int w, int h) => Ring(RingWalls.Uniform(cw), w, h);
+    public static Compound Ring(int cw, int w, int h) => Ring(RingWalls.Uniform(cw), w, h);
 
     /// <summary>A ring at per-side <paramref name="walls"/> — the widened form: one side thicker than the rest is
     /// the same shape carrying more play through that side. The hole is whatever the walls leave, so widening a
     /// wall narrows the void rather than growing the box.</summary>
-    public static ShapeBody Ring(RingWalls walls, int w, int h)
+    public static Compound Ring(RingWalls walls, int w, int h)
     {
         RequireRing(walls, w, h, "ring");
-        return new ShapeBody(RingPieces(walls, 0, 0, w, h), [RingHole(walls, 0, 0, w, h)]);
+        return new Compound(RingPieces(walls, 0, 0, w, h), [RingHole(walls, 0, 0, w, h)]);
     }
 
     /// <summary>The geometric requirement of a ring occupying <paramref name="w"/>×<paramref name="h"/> at
@@ -113,13 +113,13 @@ public static class BodyEmitter
     /// loop on a stem). One void. <paramref name="loopW"/>×<paramref name="ringH"/> is the loop; the bar overhangs
     /// it by <paramref name="barExtend"/> cells total, the loop centred on the overhang. Bars are
     /// <see cref="ApproachSlots.Bar"/>, the loop's sides <see cref="ApproachSlots.Leg"/>.</summary>
-    public static ShapeBody P(int cw, int loopW, int ringH, int barExtend = 0) =>
+    public static Compound P(int cw, int loopW, int ringH, int barExtend = 0) =>
         P(RingWalls.Uniform(cw), cw, loopW, ringH, barExtend);
 
     /// <summary>A P whose <b>loop</b> carries per-side <paramref name="walls"/>. <paramref name="cw"/> stays the
     /// corridor width the bar's overhang is measured in — only the loop's four walls widen, since the long bar
     /// past the loop is a run rather than a ring side.</summary>
-    public static ShapeBody P(RingWalls walls, int cw, int loopW, int ringH, int barExtend = 0)
+    public static Compound P(RingWalls walls, int cw, int loopW, int ringH, int barExtend = 0)
     {
         RequireRing(walls, loopW, ringH, "P loop");
         var ext = barExtend > 0 ? barExtend : 2 * cw;             // total overhang of the long bar past the loop
@@ -133,7 +133,7 @@ public static class BodyEmitter
             (loop.Left, ApproachSlots.Leg),                       // loop left leg
             (loop.Right, ApproachSlots.Leg),                      // loop right leg
         };
-        return new ShapeBody(pieces, [RingHole(walls, ox, 0, loopW, ringH)]);
+        return new Compound(pieces, [RingHole(walls, ox, 0, loopW, ringH)]);
     }
 
     /// <summary>A ring with a <b>U docked on its right edge</b> — the U's two arms land on the ring's right side and
@@ -144,13 +144,13 @@ public static class BodyEmitter
     /// (bay width <c>uW−cw</c>), <paramref name="uH"/> its height, <paramref name="uz"/> its slide (0 = flush with
     /// the top bar; <c>-1</c> = a shorter, slid default). Bars are <see cref="ApproachSlots.Bar"/>, uprights
     /// <see cref="ApproachSlots.Leg"/>; two <c>hole</c> vacancies.</summary>
-    public static ShapeBody DoubleHole(int cw, int ringW, int ringH, int uW = 0, int uH = 0, int uz = -1) =>
+    public static Compound DoubleHole(int cw, int ringW, int ringH, int uW = 0, int uH = 0, int uz = -1) =>
         DoubleHole(RingWalls.Uniform(cw), cw, ringW, ringH, uW, uH, uz);
 
     /// <summary>A double-hole whose <b>ring</b> carries per-side <paramref name="walls"/>. The docked U keeps
     /// <paramref name="cw"/>: its arms and outer wall are a corridor, and its bay is closed by the ring's right
     /// leg — so widening that leg thickens the wall between the two voids.</summary>
-    public static ShapeBody DoubleHole(
+    public static Compound DoubleHole(
         RingWalls walls, int cw, int ringW, int ringH, int uW = 0, int uH = 0, int uz = -1)
     {
         RequireRing(walls, ringW, ringH, "double-hole ring");
@@ -163,7 +163,7 @@ public static class BodyEmitter
         pieces.Add((new(ringW, z, uw, cw), ApproachSlots.Bar));                       // U top arm (docks the ring's right leg)
         pieces.Add((new(ringW, z + uh - cw, uw, cw), ApproachSlots.Bar));            // U bottom arm
         pieces.Add((new(ringW + uw - cw, z + cw, cw, uh - 2 * cw), ApproachSlots.Leg)); // U outer wall (closes it)
-        return new ShapeBody(pieces,
+        return new Compound(pieces,
         [
             RingHole(walls, 0, 0, ringW, ringH),                 // hole 1 — the ring interior
             Hole(ringW, z + cw, uw - cw, uh - 2 * cw),           // hole 2 — the U's bay, closed by the ring edge
@@ -174,17 +174,17 @@ public static class BodyEmitter
     /// U (two arms closing an enclosed bay), the L is a single upright plus the shared bottom bar as its foot, so its
     /// recess is a <b>bay open at the top</b> (three walls: the ring's right leg, the L's upright, the bottom bar) —
     /// a second void the docking frontline seals flush into a <b>taller hole</b>, beside the ring's smaller one. The
-    /// body carries one enclosed void (the ring); the bay is the derive-side second space. <paramref name="ringW"/>×
+    /// compound carries one enclosed void (the ring); the bay is the derive-side second space. <paramref name="ringW"/>×
     /// <paramref name="ringH"/> is the ring; the upright sits at the box's right edge (width <paramref name="w"/>),
     /// the bay between it and the ring. Bars are <see cref="ApproachSlots.Bar"/>, uprights/legs
     /// <see cref="ApproachSlots.Leg"/>.</summary>
-    public static ShapeBody G(int cw, int ringW, int ringH, int w) =>
+    public static Compound G(int cw, int ringW, int ringH, int w) =>
         G(RingWalls.Uniform(cw), cw, ringW, ringH, w);
 
     /// <summary>A G whose <b>ring</b> carries per-side <paramref name="walls"/>. <paramref name="cw"/> stays the
     /// corridor width of the docked L — its upright and the bay it leaves are a corridor, not a ring side — while
     /// the shared top bar takes the ring's top wall across its whole span.</summary>
-    public static ShapeBody G(RingWalls walls, int cw, int ringW, int ringH, int w)
+    public static Compound G(RingWalls walls, int cw, int ringW, int ringH, int w)
     {
         RequireRing(walls, ringW, ringH, "G ring");
         if (w < ringW + cw + 1) throw new ArgumentException($"width {w} leaves no bay + upright past the ring {ringW} at cw {cw}.");
@@ -199,7 +199,7 @@ public static class BodyEmitter
             (ring.Right, ApproachSlots.Leg),                            // ring right leg — the bay's left wall
             (new(w - cw, walls.Top, cw, ringH - walls.Top), ApproachSlots.Leg), // the L's upright — the bay's right wall, down to the open edge
         };
-        return new ShapeBody(pieces, [RingHole(walls, 0, 0, ringW, ringH)]);   // one enclosed void (the ring); the bay opens down
+        return new Compound(pieces, [RingHole(walls, 0, 0, ringW, ringH)]);   // one enclosed void (the ring); the bay opens down
     }
 
     /// <summary>Two loops sharing one baseline — two enclosed voids kept apart by an <b>open</b> channel (twin
@@ -207,7 +207,7 @@ public static class BodyEmitter
     /// <see cref="ApproachSlots.Bar"/>s (one per loop) with a gap between them, and four
     /// <see cref="ApproachSlots.Leg"/> uprights; two <c>hole</c> vacancies. <paramref name="hole"/> is each void's
     /// width, <paramref name="gap"/> the open channel width.</summary>
-    public static ShapeBody TwoUOnI(int cw, int h, int hole = 0, int gap = 0)
+    public static Compound TwoUOnI(int cw, int h, int hole = 0, int gap = 0)
     {
         if (cw < 2) throw new ArgumentException($"corridor width {cw} < 2.");
         if (h < 3 * cw) throw new ArgumentException($"height {h} is too small for two-U-on-I at cw {cw}.");
@@ -224,7 +224,7 @@ public static class BodyEmitter
             (new(l2, inner, cw, legH), ApproachSlots.Leg),
             (new(l3, inner, cw, legH), ApproachSlots.Leg),
         };
-        return new ShapeBody(pieces,
+        return new Compound(pieces,
         [
             Hole(l0 + cw, inner, hw, legH),                        // left void
             Hole(l2 + cw, inner, hw, legH),                       // right void

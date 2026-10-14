@@ -9,10 +9,10 @@ namespace PgmStudio.Pgm.Compose;
 /// <see cref="WoolBoxEmitter"/>-placed room deep in the box.</summary>
 public readonly record struct WoolBox(int X, int Z, int W, int H);
 
-/// <summary>The terrain a wool box was filled with: the approach-lane <see cref="Terrain"/> pieces plus the
-/// dead-end <see cref="WoolRoom"/>, with the wool marker at piece-relative offset <see cref="At"/> and the
-/// fill's published <see cref="Vacancies"/> (box-local shape vacancies).</summary>
-public sealed record EmittedApproach(
+/// <summary>An <see cref="ApproachShape"/> placed on the plan: its pieces as <see cref="Terrain"/> with ids, slots and
+/// box ownership, the dead-end <see cref="WoolRoom"/>, the wool marker at piece-relative offset <see cref="At"/>, and
+/// the published <see cref="Vacancies"/> (box-local).</summary>
+public sealed record PlacedApproach(
     IReadOnlyList<GrownPiece> Terrain, GrownPiece WoolRoom, double[] At,
     IReadOnlyList<ShapeVacancy> Vacancies);
 
@@ -46,9 +46,9 @@ public static class WoolBoxEmitter
     /// <summary>Emit <paramref name="family"/> into <paramref name="box"/> at the given
     /// <paramref name="corridorWidth"/> (cells), in the canonical frame (mouth per the family, top for
     /// lanes). Knobs pass through to <see cref="ShapeEmitter.Emit"/>; see there for their meaning.</summary>
-    public static EmittedApproach Emit(ShapeFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false, bool woolExtend = false, int attachmentWidth = 0, string idPrefix = "wa", int entryShift = 0, int woolShift = 0, int attachmentOffset = 0)
+    public static PlacedApproach Emit(ShapeFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false, bool woolExtend = false, int attachmentWidth = 0, string idPrefix = "wa", int entryShift = 0, int woolShift = 0, int attachmentOffset = 0)
     {
-        EmittedShape shape;
+        ApproachShape shape;
         try
         {
             shape = ShapeEmitter.Emit(family, box.W, box.H, corridorWidth, flip, roomPlacement, attachments, woolAtEnd, woolExtend, attachmentWidth, entryShift, woolShift, attachmentOffset);
@@ -97,7 +97,7 @@ public static class WoolBoxEmitter
 
         // A knob combination the emitter does not build (a side-tuck room on an L, say) is a directed rejection
         // like every other refusal here — this type's contract is a data channel, never a throw.
-        EmittedShape raw;
+        ApproachShape raw;
         try
         {
             raw = ShapeEmitter.Emit(family, canonW, canonH, corridorWidth, flip, roomPlacement,
@@ -108,7 +108,7 @@ public static class WoolBoxEmitter
         var shape = mouthTop.Turned(mouth.TopOnto(), w, h);
 
         var a = Wrap(shape, box.Rect.X, box.Rect.Z, box.Id, roomId ?? $"{box.Id}-room", box.Ref);
-        var vacancies = shape.Vacancies
+        var vacancies = shape.Compound.Vacancies
             .Select(v => new Vacancy(v.Kind,
                 new(box.Rect.X + v.Rect.X, box.Rect.Z + v.Rect.Z, v.Rect.Width, v.Rect.Height),
                 v.Mouth is { } e ? new BoxAbutment(e, e is BoxEdge.Top or BoxEdge.Bottom ? v.Rect.X : v.Rect.Z,
@@ -119,21 +119,21 @@ public static class WoolBoxEmitter
     }
 
     // translate box-local -> absolute and wrap as pieces, each carrying its slot (and box ownership when given)
-    private static EmittedApproach Wrap(EmittedShape s, int x, int z, string idPrefix, string roomId, BoxRef? box)
+    private static PlacedApproach Wrap(ApproachShape s, int x, int z, string idPrefix, string roomId, BoxRef? box)
     {
-        var terrain = new List<GrownPiece>(s.Terrain.Count);
-        for (var i = 0; i < s.Terrain.Count; i++)
+        var terrain = new List<GrownPiece>(s.Compound.Pieces.Count);
+        for (var i = 0; i < s.Compound.Pieces.Count; i++)
         {
-            var (r, slot) = s.Terrain[i];
+            var (r, slot) = s.Compound.Pieces[i];
             terrain.Add(new GrownPiece($"{idPrefix}-t{i + 1}", new(x + r.X, z + r.Z, r.Width, r.Height), PlanRoles.Piece, slot, box));
         }
         var woolRoom = new GrownPiece(roomId, new(x + s.Room.X, z + s.Room.Z, s.Room.Width, s.Room.Height), PlanRoles.WoolRoom, ApproachSlots.Room, box);
-        return new EmittedApproach(terrain, woolRoom, s.At, s.Vacancies);
+        return new PlacedApproach(terrain, woolRoom, s.At, s.Compound.Vacancies);
     }
 
     /// <summary>Wrap a single emission as a standalone <c>symmetry:none</c> plan — the form the categorizer and
     /// the shape gallery consume.</summary>
-    public static PlanModel AsPlan(EmittedApproach a, string name = "wool-box")
+    public static PlanModel AsPlan(PlacedApproach a, string name = "wool-box")
     {
         var plan = new PlanModel
         {

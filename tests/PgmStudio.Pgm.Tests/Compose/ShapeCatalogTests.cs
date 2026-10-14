@@ -126,7 +126,7 @@ public sealed class ShapeCatalogTests
         var fronts = Catalog.Where(s => s.Kind == "frontline").ToList();
         await Assert.That(hubs).IsNotEmpty();
         await Assert.That(fronts).IsNotEmpty();
-        // the allocator samples both menus, so a body form is never anything but in-mix
+        // the allocator samples both menus, so a compound form is never anything but in-mix
         foreach (var shape in hubs.Concat(fronts)) await Assert.That(shape.Tier).IsEqualTo(CatalogTier.InMix);
     }
 

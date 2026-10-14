@@ -49,21 +49,21 @@ public static class BoxFiller
             : ok;
     }
 
-    /// <summary>Recover the box-local <see cref="EmittedShape"/> of a placed fill — the slot-typed terrain and
+    /// <summary>Recover the box-local <see cref="ApproachShape"/> of a placed fill — the slot-typed terrain and
     /// room rects shifted back to the box origin — so <c>BoxInterfaces.Of</c> can read the edge facts the
     /// docking gate maps. (Only the geometry the gate reads is reconstructed; the marker offset and vacancies
     /// ride along unused.)</summary>
-    private static EmittedShape BoxLocal(EmittedApproach a, Box box)
+    private static ApproachShape BoxLocal(PlacedApproach a, Box box)
     {
         int ox = box.Rect.X, oz = box.Rect.Z;
         CellRect Local(CellRect r) => new(r.X - ox, r.Z - oz, r.Width, r.Height);
         var terrain = a.Terrain.Select(p => (Local(p.Rect), p.Slot!)).ToList();
-        return new EmittedShape(terrain, Local(a.WoolRoom.Rect), a.At, a.Vacancies);
+        return new ApproachShape(new Compound(terrain, a.Vacancies), Local(a.WoolRoom.Rect), a.At);
     }
 
     /// <summary>The <b>entry</b> interval a <paramref name="family"/> fill presents on its <paramref name="mouth"/>
     /// edge — box-local along-coords (x for a top/bottom mouth, z for a left/right one). This is the narrow dock
-    /// an <b>overhanging</b> placement aligns to the host: the entry lands on a hub run while the wider body
+    /// an <b>overhanging</b> placement aligns to the host: the entry lands on a hub run while the wider compound
     /// overhangs the edge into free space. <c>null</c> when the family does not fill the box or exposes no entry
     /// on that mouth.</summary>
     public static (int Start, int Len)? EntryOn(
@@ -99,10 +99,10 @@ public static class BoxFiller
     /// <summary>The <b>land</b> (walkable terrain) an emitted approach spends, in cells — the box's land
     /// currency (its footprint is fixed by the box; this is what fragment converts to build to hit the
     /// target).</summary>
-    public static int Land(EmittedApproach a) =>
+    public static int Land(PlacedApproach a) =>
         a.Terrain.Sum(p => p.Rect.Width * p.Rect.Height) + a.WoolRoom.Rect.Width * a.WoolRoom.Rect.Height;
 
     /// <summary>True when the fill's land is within the box's land target — the two-currency balance a fill
     /// under budget satisfies directly; over budget is what fragment spends down.</summary>
-    public static bool WithinLandTarget(Box box, EmittedApproach a) => Land(a) <= box.LandTargetCells;
+    public static bool WithinLandTarget(Box box, PlacedApproach a) => Land(a) <= box.LandTargetCells;
 }

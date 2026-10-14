@@ -6,19 +6,19 @@ namespace PgmStudio.Pgm.Derive;
 
 /// <summary>
 /// The finished structural read of a composed unit — the third mirror surfaced as a browse/duel fact: the
-/// sorted wool <b>approach families</b>, the hub <b>body form</b>, and the frontline <b>body form</b> (or
+/// sorted wool <b>approach families</b>, the hub <b>compound form</b>, and the frontline <b>compound form</b> (or
 /// none). Derived from the generator's own labeled artifacts (each piece's <see cref="GrownPiece.Box"/> +
 /// <see cref="GrownPiece.Slot"/>), never from a finished map's welded terrain, so it reads uniformly off a
 /// bare unit and needs no labels stored back. It is the canonical filter fact for the browse sieve and
 /// the bucket key for verdicts / duels: the same read the user sees on the card.
 /// <para>Reuses the two validated classifier entry points: <c>ShapeClassifier.Classify</c> (approach
-/// family, per wool box) and <see cref="ShapeClassifier.ClassifyBody"/> (body form, per hub/frontline box).
+/// family, per wool box) and <see cref="ShapeClassifier.ClassifyCompound"/> (compound form, per hub/frontline box).
 /// The wool-family scan is the pattern promoted from the box gallery tool.</para>
 /// </summary>
 public sealed record StructureSummary(
     IReadOnlyList<ShapeFamily> Wools,   // sorted (deterministic canonical order)
-    CompoundRead? Hub,                  // the hub body form (null only if a unit somehow has no hub box)
-    CompoundRead? Frontline)            // the frontline body form, or null = none (a real, sampled outcome)
+    CompoundRead? Hub,                  // the hub compound form (null only if a unit somehow has no hub box)
+    CompoundRead? Frontline)            // the frontline compound form, or null = none (a real, sampled outcome)
 {
     public static StructureSummary Derive(GrownUnit unit) => new(
         WoolFamilies(unit).OrderBy(f => f).ToList(),
@@ -51,7 +51,7 @@ public sealed record StructureSummary(
     private static IEnumerable<string> WoolBoxIds(GrownUnit unit) =>
         unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Wool).Select(p => p.Box!.Id).Distinct();
 
-    /// <summary>The body form of the single box of <paramref name="kind"/> (hub or frontline), or null when a
+    /// <summary>The compound form of the single box of <paramref name="kind"/> (hub or frontline), or null when a
     /// unit has none (a no-frontline unit).</summary>
     private static CompoundRead? BoxForm(GrownUnit unit, BoxKind kind)
     {
@@ -61,7 +61,7 @@ public sealed record StructureSummary(
         foreach (var p in unit.Pieces.Where(p => p.Box?.Id == boxId))
             foreach (var c in CellsOf(p.Rect))
                 cells.Add(c);
-        return cells.Count == 0 ? null : ShapeClassifier.ClassifyBody(cells);
+        return cells.Count == 0 ? null : ShapeClassifier.ClassifyCompound(cells);
     }
 
     private static IEnumerable<(int, int)> CellsOf(CellRect rect)
@@ -88,17 +88,17 @@ public static class StructureNames
     /// <summary>A wool approach family token: <c>donut</c>, <c>l</c>, <c>i</c>, <c>u</c>, <c>h</c>, <c>clamp</c>…</summary>
     public static string Family(ShapeFamily f) => f.ToString().ToLowerInvariant();
 
-    /// <summary>A body form token: <c>ring</c>, <c>g</c>, <c>p</c>, <c>double-hole</c>, <c>two-u</c>, <c>bar</c>
+    /// <summary>A compound form token: <c>ring</c>, <c>g</c>, <c>p</c>, <c>double-hole</c>, <c>two-u</c>, <c>bar</c>
     /// (solid), <c>single</c> / <c>twin</c> (one/two spine arms), <c>arms-N</c> otherwise, or <c>none</c>.</summary>
     public static string Form(CompoundRead? r) => r is null ? "none" : r.Form switch
     {
-        Compound.Rectangle => "bar",
-        Compound.SpineArms => r.Arms == 1 ? "single" : r.Arms == 2 ? "twin" : $"arms-{r.Arms}",
-        Compound.Ring => "ring",
-        Compound.DoubleHole => "double-hole",
-        Compound.P => "p",
-        Compound.G => "g",
-        Compound.TwoUOnI => "two-u",
+        CompoundForm.Rectangle => "bar",
+        CompoundForm.SpineArms => r.Arms == 1 ? "single" : r.Arms == 2 ? "twin" : $"arms-{r.Arms}",
+        CompoundForm.Ring => "ring",
+        CompoundForm.DoubleHole => "double-hole",
+        CompoundForm.P => "p",
+        CompoundForm.G => "g",
+        CompoundForm.TwoUOnI => "two-u",
         _ => r.Form.ToString().ToLowerInvariant(),
     };
 }

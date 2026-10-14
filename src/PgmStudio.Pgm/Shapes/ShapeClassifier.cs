@@ -131,30 +131,30 @@ public static class ShapeClassifier
         return (reflex == 0 ? LaneRead.I : reflex == 1 ? LaneRead.L : reflex == 2 ? LaneRead.Z : LaneRead.Complex, w);
     }
 
-    /// <summary>Read a <b>terminal-free body</b> (a <see cref="ShapeBody"/>'s cells) back to its
-    /// <see cref="Compound"/> — the derive side of the body mirror, by topology alone (§4 axes: void · branch ·
+    /// <summary>Read a <b>terminal-free compound</b> (a <see cref="Compound"/>'s cells) back to its
+    /// <see cref="CompoundForm"/> — the derive side of the compound mirror, by topology alone (§4 axes: void · branch ·
     /// bends), no terminal. Void count is the strongest signal. <b>Two voids</b> split on whether an <em>open
     /// channel</em> comes between them (two-U-on-I) or a solid wall does (double-hole); <b>one void</b> on whether
     /// an outer concavity — the loop overhanging its longer bar — adds reflex corners past the four a rectangular
-    /// void contributes (P) or not (a clean ring). Void-free bodies are the solid <see cref="Compound.Rectangle"/>
-    /// or a <see cref="Compound.SpineArms"/> whose arm count is the number of runs hanging off the spine.
+    /// void contributes (P) or not (a clean ring). Void-free compounds are the solid <see cref="CompoundForm.Rectangle"/>
+    /// or a <see cref="CompoundForm.SpineArms"/> whose arm count is the number of runs hanging off the spine.
     /// Width-independent, matching the approach classifier's philosophy.</summary>
-    public static CompoundRead ClassifyBody(IReadOnlySet<(int, int)> cells)
+    public static CompoundRead ClassifyCompound(IReadOnlySet<(int, int)> cells)
     {
-        if (cells.Count == 0) throw new ArgumentException("cannot classify an empty body.");
+        if (cells.Count == 0) throw new ArgumentException("cannot classify an empty compound.");
         var voids = VoidComponents(Cells.EnclosedVoid(cells));
 
         if (voids.Count == 2)
-            return new(ChannelBetween(cells, voids[0], voids[1]) ? Compound.TwoUOnI : Compound.DoubleHole);
+            return new(ChannelBetween(cells, voids[0], voids[1]) ? CompoundForm.TwoUOnI : CompoundForm.DoubleHole);
         if (voids.Count == 1)
             // a ring + an L reads as one enclosed void plus a three-walled bay (the L's open recess); a plain ring
             // or a P (loop on a longer bar — its concavities are two-walled notches) has no bay
-            return new(HasBay(cells) ? Compound.G : Cells.ReflexCorners(cells) > 4 ? Compound.P : Compound.Ring);
-        if (voids.Count != 0) throw new ArgumentException($"no body form has {voids.Count} voids.");
+            return new(HasBay(cells) ? CompoundForm.G : Cells.ReflexCorners(cells) > 4 ? CompoundForm.P : CompoundForm.Ring);
+        if (voids.Count != 0) throw new ArgumentException($"no compound form has {voids.Count} voids.");
 
         var bb = Cells.BoundingBox(cells);
-        if (cells.Count == (long)bb.Width * bb.Height) return new(Compound.Rectangle);
-        return new(Compound.SpineArms, ArmCount(cells, bb.X, bb.Z, bb.MaxX - 1, bb.MaxZ - 1));
+        if (cells.Count == (long)bb.Width * bb.Height) return new(CompoundForm.Rectangle);
+        return new(CompoundForm.SpineArms, ArmCount(cells, bb.X, bb.Z, bb.MaxX - 1, bb.MaxZ - 1));
     }
 
     // the enclosed void split into its 4-connected components (each a cell set) — two ⇒ a double-hole or two-U-on-I.
@@ -173,7 +173,7 @@ public static class ShapeClassifier
         return comps;
     }
 
-    // true when the body's bounding-box complement holds a BAY — a connected empty region walled on exactly three
+    // true when the compound's bounding-box complement holds a BAY — a connected empty region walled on exactly three
     // of the four axis directions (the fourth open to the bounding-box edge). The G's L-recess is one; a ring has
     // none (its only empty region is the 4-walled enclosed hole), and a P's concavities beside the loop are
     // 2-walled notches. Runs only in the one-void branch, so the enclosed hole (walled 4) never counts.
@@ -229,9 +229,9 @@ public static class ShapeClassifier
 
     // the arm count of a spine-with-arms: strip the spine — a contiguous full-span band against one side of the
     // bounding box — and count the runs left hanging off it. All four sides are tried and the BRANCHIEST read
-    // wins: a body can arrive in any orientation (a negative space's U carries its bar at the bottom), and a
+    // wins: a compound can arrive in any orientation (a negative space's U carries its bar at the bottom), and a
     // full-height end arm can masquerade as a side spine, whose strip merges the true arms into one run — the
-    // true spine's strip always separates every arm, so it yields the maximum. Emitted canonical bodies keep
+    // true spine's strip always separates every arm, so it yields the maximum. Emitted canonical compounds keep
     // their top-spine read (it is the maximal one).
     private static int ArmCount(IReadOnlySet<(int, int)> cells, int mnx, int mnz, int mxx, int mxz)
     {

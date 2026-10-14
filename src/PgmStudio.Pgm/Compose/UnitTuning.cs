@@ -81,7 +81,7 @@ public static class UnitTuning
     /// bought — the aspect is the draw, the spend is not.</summary>
     internal const double HubAspectHigh = 2.4;
 
-    /// <summary>The share of a box's footprint that comes out as <b>land</b> once a body is emitted into it:
+    /// <summary>The share of a box's footprint that comes out as <b>land</b> once a compound is emitted into it:
     /// a solid rectangle spends all of it, a ring, a branch or a donut keeps a hole. The allocator can only
     /// aim in footprints, so a unit's footprint allowance is its land budget over this.</summary>
     internal const double FootprintLandYield = 0.75;
@@ -89,13 +89,13 @@ public static class UnitTuning
     /// <summary>The band a unit's built land must fall in against its budget, as a fraction of it — below
     /// <see cref="SpendFloor"/> the attempt left land unplaced, above <see cref="SpendCeiling"/> it built a
     /// board bigger than the band. Either resamples. The band is wide because a box's footprint is the only
-    /// currency the allocator can aim in and a holed body's land is a fifth less than its footprint.</summary>
+    /// currency the allocator can aim in and a holed compound's land is a fifth less than its footprint.</summary>
     public const double SpendFloor = 0.70;
 
     /// <summary>The upper end of that band.</summary>
     public const double SpendCeiling = 1.30;
 
-    // ── the shape mix: which bodies a box may be ───────────────────────────────────────────────────────────
+    // ── the shape mix: which compounds a box may be ───────────────────────────────────────────────────────────
 
     /// <summary>The narrowest a composed hub hole is, in cells on a <paramref name="cell"/>-block grid:
     /// <c>LN6</c>'s floor for a hole touching no goal (<see cref="PlanValidator.MinPlainSpaceBlocks"/>),
@@ -109,7 +109,7 @@ public static class UnitTuning
     internal static int RingFitCells(int corridorCells, int cell) => 2 * corridorCells + HubHoleCells(cell);
 
     /// <summary>Of big-square hubs, how often the form is the <b>ring</b> specifically rather than another
-    /// negative-space body. The ring's void always fits and survives a frontline, so it carries most of them.</summary>
+    /// negative-space compound. The ring's void always fits and survives a frontline, so it carries most of them.</summary>
     internal const double RingChance = 0.85;
 
     /// <summary>Of ring-bodied hubs whose box has the slack for it, how often <b>one</b> wall comes out wider than
@@ -147,7 +147,7 @@ public static class UnitTuning
         return (deep, wide);
     }
 
-    /// <summary>The box width at or above which a hub is <b>wide enough for the holed wide bodies</b> at
+    /// <summary>The box width at or above which a hub is <b>wide enough for the holed wide compounds</b> at
     /// corridor width <paramref name="corridorCells"/> — the P (loop + overhanging bar) and the Double-hole
     /// (ring + docked U) each keep a bar beside their ring, so <c>w − 2·cw</c> has to fit a ring
     /// (<see cref="RingFitCells"/>). Below it the compact menu is used.</summary>
@@ -245,7 +245,7 @@ public static class UnitTuning
             : (rng.NextBool(ThirdWoolChance) ? WoolCounts.Max : WoolCounts.Max - 1);
 
     /// <summary>Assign each of <paramref name="woolCount"/> wools a hub side, given the <paramref name="spawn"/>'s
-    /// side. The two free body sides (back and the sides, minus the spawn's, <b>back first</b>) take a wool each;
+    /// side. The two free compound sides (back and the sides, minus the spawn's, <b>back first</b>) take a wool each;
     /// a third wool doubles up on the spawn's side. Front is never a wool side (it is the frontline's).</summary>
     public static IReadOnlyList<UnitSide> AssignWools(UnitSide spawn, int woolCount)
     {

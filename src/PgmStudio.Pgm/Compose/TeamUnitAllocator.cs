@@ -29,12 +29,12 @@ public static class TeamUnitAllocator
     /// <summary>Allocate a team unit's <see cref="BoxPartition"/> from the <paramref name="env"/> budget — the
     /// geometry layer over <see cref="UnitTuning.SamplePlan"/>. Positions the hub on the (u, v) grid, <b>owns the hub-form
     /// choice</b> (model.md §4, designations), and seats the spawn and wools on the chosen form's <b>real free-edge
-    /// intervals</b> — the offerable surface the body actually presents (§4), not its bounding box. So a
+    /// intervals</b> — the offerable surface the compound actually presents (§4), not its bounding box. So a
     /// non-rectangular hub (L/U/Ring/Double-hole) never leaves a neighbour docking an empty bbox stretch and only
     /// corner-touching it (a <c>t*/*t</c> pinch); the four-full-edges rectangle is just the degenerate case. The
     /// chosen form rides on the hub <see cref="Box.Form"/> for the filler to re-emit; each hub↔neighbour joint
     /// carries the hub's per-edge <b>width offer</b> (the plan <see cref="TeamUnitFiller"/> consumes). The
-    /// sampled form <b>falls back to the solid <see cref="Compound.Rectangle"/></b> when its free edges cannot host
+    /// sampled form <b>falls back to the solid <see cref="CompoundForm.Rectangle"/></b> when its free edges cannot host
     /// the plan. Returns the partition, or <c>null</c> when even the rectangle cannot host a neighbour (the box is
     /// too small — the directed "no shape fits" signal, §4).
     /// The frontline is allocated on the front side, its reach pushing the hub back so it sits between the hub
@@ -80,28 +80,28 @@ public static class TeamUnitAllocator
         var hubVMin = -(hubV / 2);
         var hubRect = frame.ToRect(hubUMin, hubU, hubVMin, hubV);
 
-        // The body comes first, because a neighbour docks onto what the hub OFFERS rather than onto its
+        // The compound comes first, because a neighbour docks onto what the hub OFFERS rather than onto its
         // bounding box. Pick the form from the box's real dims (frame-mapped — the wide axis affords the wide
-        // holed bodies), then its walls and, for a branch, its legs; the body is a pure function of those three,
+        // holed compounds), then its walls and, for a branch, its legs; the compound is a pure function of those three,
         // so reading it here and building it again downstream give the same runs without a draw between them.
         var sampled = ChooseHubForm(hubRect.Width, hubRect.Height, laneWidthCells, env.Cell, rng);
         var walls = ChooseHubWalls(sampled, hubRect.Width, hubRect.Height, laneWidthCells, env.Cell, rng);
-        var arms = sampled.Form == Compound.SpineArms
+        var arms = sampled.Form == CompoundForm.SpineArms
             ? HubBoxEmitter.SampleArms(rng, hubRect.Width, sampled.Arms, laneWidthCells)
             : null;
 
         // the neighbour requests (spawn + wools + the frontline join), sized out of the budget the hub left and
-        // against the free runs its front edge actually presents — a bay-fronted body (a G, U or L) hands the
+        // against the free runs its front edge actually presents — a bay-fronted compound (a G, U or L) hands the
         // frontline a floor its face has to reach, which is the width that closes the bay into a hole
         var frontRuns = UnitSeating.FrontRuns(sampled, hubRect, frame, laneWidthCells, walls, arms);
         var requests = UnitRequests.Sample(
             env, rng, budget, plan, laneWidthCells, hubU, hubV, frontReach, frontRuns);
-        // seat them on that body; fall back to the solid rectangle (four full edges) when the offerable surface
+        // seat them on that compound; fall back to the solid rectangle (four full edges) when the offerable surface
         // cannot host. The requests carry over unchanged: the fallback is always toward MORE free surface, so a
-        // request sized against a holed body's runs fits the rectangle that replaces it.
+        // request sized against a holed compound's runs fits the rectangle that replaces it.
         var seating = UnitSeating.Seat(sampled, hubRect, frame, laneWidthCells, env.WoolCorridorCells, seatGapCells, env.Cell, requests, rng, walls, arms);
-        if (seating is null && sampled.Form != Compound.Rectangle)
-            seating = UnitSeating.Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, laneWidthCells, env.WoolCorridorCells, seatGapCells, env.Cell, requests, rng);
+        if (seating is null && sampled.Form != CompoundForm.Rectangle)
+            seating = UnitSeating.Seat(new CompoundRead(CompoundForm.Rectangle), hubRect, frame, laneWidthCells, env.WoolCorridorCells, seatGapCells, env.Cell, requests, rng);
         if (seating is not { } s) return null;
 
         return new BoxPartition(s.Boxes, s.Joints);
@@ -110,27 +110,27 @@ public static class TeamUnitAllocator
     /// <summary>Choose the hub form for a <paramref name="boxW"/>×<paramref name="boxH"/> box (real cell dims, the
     /// frame having mapped the wide lateral axis onto width) at corridor width <paramref name="corridorCells"/>.
     /// A <b>wide</b> box (width ≥ <see cref="UnitTuning.WideHubCells"/>,
-    /// height ≥ <see cref="UnitTuning.RingFitCells"/>) affords the <b>wide holed bodies</b> — the P (a loop on a long overhanging
+    /// height ≥ <see cref="UnitTuning.RingFitCells"/>) affords the <b>wide holed compounds</b> — the P (a loop on a long overhanging
     /// bar), the Double-hole (a ring + a docked U, two equal holes), and the G (a ring + an L, the ring's hole plus a
     /// frontline-sealed bay — asymmetric holes), whose long runs are free surface — sampled alongside the elongated
     /// ring. A <b>big square-ish</b> box (both ≥ <see cref="UnitTuning.RingFitCells"/>) is too much solid area for the
-    /// budget, so it prefers negative space: mostly the ring, else a branch body. A small or thin box stays the
+    /// budget, so it prefers negative space: mostly the ring, else a branch compound. A small or thin box stays the
     /// compact solid/branch menu (the wider forms would directed-null and fall back).</summary>
     internal static CompoundRead ChooseHubForm(int boxW, int boxH, int corridorCells, int cell, ComposeRng rng)
     {
         if (boxW >= UnitTuning.WideHubCells(corridorCells, cell) && boxH >= UnitTuning.RingFitCells(corridorCells, cell))
             return rng.Pick(new[]
             {
-                new CompoundRead(Compound.P), new CompoundRead(Compound.DoubleHole),
-                new CompoundRead(Compound.G), new CompoundRead(Compound.Ring),
+                new CompoundRead(CompoundForm.P), new CompoundRead(CompoundForm.DoubleHole),
+                new CompoundRead(CompoundForm.G), new CompoundRead(CompoundForm.Ring),
                 // the U belongs here too: with the bay bounded above, a wide box spends its span on the legs, so
                 // the two-legged hub comes out with real legs rather than stubs either side of a gap
-                new CompoundRead(Compound.SpineArms, 2),
+                new CompoundRead(CompoundForm.SpineArms, 2),
             });
         if (boxW >= UnitTuning.RingFitCells(corridorCells, cell) && boxH >= UnitTuning.RingFitCells(corridorCells, cell))
-            return rng.NextBool(UnitTuning.RingChance) ? new CompoundRead(Compound.Ring)
-                : rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is Compound.SpineArms).ToList());
-        return rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is Compound.Rectangle or Compound.SpineArms).ToList());
+            return rng.NextBool(UnitTuning.RingChance) ? new CompoundRead(CompoundForm.Ring)
+                : rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is CompoundForm.SpineArms).ToList());
+        return rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is CompoundForm.Rectangle or CompoundForm.SpineArms).ToList());
     }
 
     /// <summary>Choose the four wall widths of a ring-bodied <paramref name="form"/> filling a
@@ -148,8 +148,8 @@ public static class TeamUnitAllocator
         // beside it — the same arithmetic the hub filler builds them with
         var (ringW, ringH) = form.Form switch
         {
-            Compound.Ring => (boxW, boxH),
-            Compound.P or Compound.DoubleHole or Compound.G => (boxW - 2 * corridorCells, boxH),
+            CompoundForm.Ring => (boxW, boxH),
+            CompoundForm.P or CompoundForm.DoubleHole or CompoundForm.G => (boxW - 2 * corridorCells, boxH),
             _ => (0, 0),                                        // no ring to widen
         };
         if (ringW <= 0 || !rng.NextBool(UnitTuning.WidenedRingChance)) return null;

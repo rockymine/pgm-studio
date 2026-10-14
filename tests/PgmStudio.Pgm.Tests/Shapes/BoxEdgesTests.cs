@@ -18,11 +18,11 @@ public sealed class BoxEdgesTests
     public async Task A_turned_vacancy_opens_on_the_edge_its_rectangle_touches()
     {
         // A bay along the top of a 7 × 4 box, open upward.
-        var body = new ShapeBody([], [new ShapeVacancy("bay", new CellRect(2, 0, 3, 1), BoxEdge.Top, [])]);
+        var compound = new Compound([], [new ShapeVacancy("bay", new CellRect(2, 0, 3, 1), BoxEdge.Top, [])]);
         foreach (var turn in Enum.GetValues<BoxTurn>())
         {
             var (width, height) = turn.Extent(7, 4);
-            var bay = body.Turned(turn, 7, 4).Vacancies.Single();
+            var bay = compound.Turned(turn, 7, 4).Vacancies.Single();
             var touches = bay.Mouth switch
             {
                 BoxEdge.Top => bay.Rect.Z == 0,

@@ -501,9 +501,9 @@ public static class BoardDeriver
             .Select(r => (Kind: zoneKind[r], Neutrals: zoneNeutral[r], Width: zoneWidth[r], IfaceMin: zoneIfaceMin[r], IfaceMax: zoneIfaceMax[r]))
             .ToList();
         // the negative spaces the pieces leave between them, classed and measured by the one reader that does
-        // it — the same classification a composed body publishes a vacancy from, run over the board's own
+        // it — the same classification a composed compound publishes a vacancy from, run over the board's own
         // terrain with the piece ids as the owners, so a space names the pieces it lies between.
-        var spaces = BodyEdges.Classify(
+        var spaces = CompoundEdges.Classify(
             (IReadOnlySet<(int, int)>)filled.Keys.ToHashSet(),
             filled.ToDictionary(entry => entry.Key, entry => entry.Value.PieceId)).Spaces;
 

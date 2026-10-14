@@ -16,28 +16,28 @@ public static class FillProfiles
 {
     /// <summary>The families box <paramref name="kind"/> may fill at interface width <paramref name="cw"/>
     /// cells. Wool = the width-gated production menu; spawn = the straight/one-bend {I, L}. The hub is not here:
-    /// it is a <b>terminal-free body</b>, so its profile is a <see cref="Compound"/> menu (<see cref="HubForms"/>),
+    /// it is a <b>terminal-free compound</b>, so its profile is a <see cref="CompoundForm"/> menu (<see cref="HubForms"/>),
     /// not the <see cref="ShapeFamily"/> approach taxonomy.</summary>
     public static IReadOnlyList<ShapeFamily> Families(BoxKind kind, int cw, int laneCells) => kind switch
     {
         BoxKind.Wool => FillMenu.FamiliesFor(cw, laneCells),
         BoxKind.Spawn => SpawnBoxEmitter.Families,
-        _ => [],                                          // hub = HubForms (Compound-typed); frontline has no profile
+        _ => [],                                          // hub = HubForms (CompoundForm-typed); frontline has no profile
     };
 
-    /// <summary>The <b>hub's</b> fill profile — its authored form menu as data (the <see cref="Compound"/> bodies
-    /// a hub may be, model.md §4). Compound-typed, not <see cref="ShapeFamily"/>, because the hub is a
-    /// terminal-free body rather than an approach; it composes <see cref="HubBoxEmitter.Forms"/> the way the
+    /// <summary>The <b>hub's</b> fill profile — its authored form menu as data (the <see cref="CompoundForm"/>s
+    /// a hub may be, model.md §4). CompoundForm-typed, not <see cref="ShapeFamily"/>, because the hub is a
+    /// terminal-free compound rather than an approach; it composes <see cref="HubBoxEmitter.Forms"/> the way the
     /// wool/spawn rows compose their menus.</summary>
     public static IReadOnlyList<CompoundRead> HubForms => HubBoxEmitter.Forms;
 
     /// <summary>The hub's wall/corridor width in cells (the branch and holed forms use it; the solid Rectangle
-    /// ignores it). One value so the allocator and the filler emit the hub body at the <b>same</b> width and thus
+    /// ignores it). One value so the allocator and the filler emit the hub compound at the <b>same</b> width and thus
     /// read the same free-edge intervals — a divergence would seat neighbours on runs the fill does not produce.</summary>
     public const int HubWallCells = 2;
 
     /// <summary>The <b>frontline's</b> fill profile — its authored form menu as data (Bar · single · twin, model.md §4),
-    /// Compound-typed like the hub. Composes <see cref="FrontlineBoxEmitter.Forms"/>, lifting the grower's
+    /// CompoundForm-typed like the hub. Composes <see cref="FrontlineBoxEmitter.Forms"/>, lifting the grower's
     /// <c>FrontForm { None, Single, Wide, Twin }</c> into the profile.</summary>
     public static IReadOnlyList<CompoundRead> FrontlineForms => FrontlineBoxEmitter.Forms;
 

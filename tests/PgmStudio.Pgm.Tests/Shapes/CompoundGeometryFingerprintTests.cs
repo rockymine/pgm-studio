@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Shapes;
 
 /// <summary>
-/// A characterization fingerprint of every body form's emitted geometry — the exact rects, slots and <b>order</b>
+/// A characterization fingerprint of every compound form's emitted geometry — the exact rects, slots and <b>order</b>
 /// each produces at a range of sizes.
 ///
 /// <para>It exists to make the ring consolidation safe. Six forms hand-roll the same four-wall pattern (Ring and
@@ -14,7 +14,7 @@ namespace PgmStudio.Pgm.Tests.Shapes;
 /// to them. Routing them through shared wall geometry must therefore leave this fingerprint byte-identical —
 /// which is what this asserts, written against the behaviour as it stands before the change.</para>
 /// </summary>
-public sealed class BodyGeometryFingerprintTests
+public sealed class CompoundGeometryFingerprintTests
 {
     private const int Cw = 2;
 
@@ -22,16 +22,16 @@ public sealed class BodyGeometryFingerprintTests
     // representation change cannot move a single expectation.
     private static string R(CellRect r) => $"{r.X},{r.Z},{r.Width},{r.Height}";
 
-    private static string Print(ShapeBody body) =>
-        string.Join(" | ", body.Pieces.Select(p => $"{p.Slot}:{R(p.Rect)}"))
-        + "  voids " + string.Join(" | ", body.Vacancies.Select(v => $"{v.Kind}:{R(v.Rect)}"));
+    private static string Print(Compound compound) =>
+        string.Join(" | ", compound.Pieces.Select(p => $"{p.Slot}:{R(p.Rect)}"))
+        + "  voids " + string.Join(" | ", compound.Vacancies.Select(v => $"{v.Kind}:{R(v.Rect)}"));
 
     [Test]
     public async Task Ring_geometry_is_stable()
     {
-        await Assert.That(Print(BodyEmitter.Ring(Cw, 9, 7))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.Ring(Cw, 9, 7))).IsEqualTo(
             "bar:0,0,9,2 | bar:0,5,9,2 | leg:0,2,2,3 | leg:7,2,2,3  voids hole:2,2,5,3");
-        await Assert.That(Print(BodyEmitter.Ring(Cw, 5, 5))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.Ring(Cw, 5, 5))).IsEqualTo(
             "bar:0,0,5,2 | bar:0,3,5,2 | leg:0,2,2,1 | leg:3,2,2,1  voids hole:2,2,1,1");
     }
 
@@ -42,15 +42,15 @@ public sealed class BodyGeometryFingerprintTests
     {
         // the right leg at 3 where the others are 2: the hole loses a column on that side, the box is unchanged
         var walls = new RingWalls(Top: 2, Right: 3, Bottom: 2, Left: 2);
-        await Assert.That(Print(BodyEmitter.Ring(walls, 9, 7))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.Ring(walls, 9, 7))).IsEqualTo(
             "bar:0,0,9,2 | bar:0,5,9,2 | leg:0,2,2,3 | leg:6,2,3,3  voids hole:2,2,4,3");
 
         // and it still reads as a ring — identity is width-independent, which is the whole premise
         var cells = new HashSet<(int, int)>();
-        foreach (var (rect, _) in BodyEmitter.Ring(walls, 9, 7).Pieces)
+        foreach (var (rect, _) in CompoundEmitter.Ring(walls, 9, 7).Pieces)
             for (var x = rect.X; x < rect.X + rect.Width; x++)
                 for (var z = rect.Z; z < rect.Z + rect.Height; z++) cells.Add((x, z));
-        await Assert.That(ShapeClassifier.ClassifyBody(cells).Form).IsEqualTo(Compound.Ring);
+        await Assert.That(ShapeClassifier.ClassifyCompound(cells).Form).IsEqualTo(CompoundForm.Ring);
     }
 
     /// <summary>The emitter enforces geometry only — walls must be a corridor and must leave a hole. How far the
@@ -59,11 +59,11 @@ public sealed class BodyGeometryFingerprintTests
     [Test]
     public async Task The_emitter_bounds_ring_walls_by_geometry_not_by_taste()
     {
-        await Assert.That(() => BodyEmitter.Ring(new RingWalls(2, 1, 2, 2), 9, 7)).Throws<ArgumentException>()
+        await Assert.That(() => CompoundEmitter.Ring(new RingWalls(2, 1, 2, 2), 9, 7)).Throws<ArgumentException>()
             .Because("a 1-cell wall is under the corridor minimum");
-        await Assert.That(() => BodyEmitter.Ring(new RingWalls(2, 5, 2, 5), 9, 7)).Throws<ArgumentException>()
+        await Assert.That(() => CompoundEmitter.Ring(new RingWalls(2, 5, 2, 5), 9, 7)).Throws<ArgumentException>()
             .Because("5 + 5 leaves no hole in a 9-wide box");
-        await Assert.That(Print(BodyEmitter.Ring(new RingWalls(2, 5, 2, 2), 11, 7))).IsNotEmpty()
+        await Assert.That(Print(CompoundEmitter.Ring(new RingWalls(2, 5, 2, 2), 11, 7))).IsNotEmpty()
             .Because("a lopsided 2/5 ring is legal geometry; the ratio law lives in the sampler");
     }
 
@@ -71,7 +71,7 @@ public sealed class BodyGeometryFingerprintTests
     public async Task P_geometry_is_stable()
     {
         // the long bottom bar comes FIRST here, unlike the ring's top-first order
-        await Assert.That(Print(BodyEmitter.P(Cw, 7, 7, 4))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.P(Cw, 7, 7, 4))).IsEqualTo(
             "bar:0,5,11,2 | bar:2,0,7,2 | leg:2,2,2,3 | leg:7,2,2,3  voids hole:4,2,3,3");
     }
 
@@ -80,7 +80,7 @@ public sealed class BodyGeometryFingerprintTests
     [Test]
     public async Task A_P_widens_its_loop_and_leaves_the_overhanging_bar_a_corridor()
     {
-        await Assert.That(Print(BodyEmitter.P(new RingWalls(2, 3, 2, 2), Cw, 7, 7, 4))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.P(new RingWalls(2, 3, 2, 2), Cw, 7, 7, 4))).IsEqualTo(
             "bar:0,5,11,2 | bar:2,0,7,2 | leg:2,2,2,3 | leg:6,2,3,3  voids hole:4,2,2,3");
     }
 
@@ -88,7 +88,7 @@ public sealed class BodyGeometryFingerprintTests
     public async Task G_geometry_is_stable()
     {
         // the shared top bar spans the FULL width, not the ring's
-        await Assert.That(Print(BodyEmitter.G(Cw, 7, 7, 11))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.G(Cw, 7, 7, 11))).IsEqualTo(
             "bar:0,0,11,2 | bar:0,5,7,2 | leg:0,2,2,3 | leg:5,2,2,3 | leg:9,2,2,5  voids hole:2,2,3,3");
     }
 
@@ -97,16 +97,16 @@ public sealed class BodyGeometryFingerprintTests
     [Test]
     public async Task A_G_carries_its_ring_top_across_the_shared_bar()
     {
-        await Assert.That(Print(BodyEmitter.G(new RingWalls(3, 2, 2, 2), Cw, 7, 7, 11))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.G(new RingWalls(3, 2, 2, 2), Cw, 7, 7, 11))).IsEqualTo(
             "bar:0,0,11,3 | bar:0,5,7,2 | leg:0,3,2,2 | leg:5,3,2,2 | leg:9,3,2,4  voids hole:2,3,3,2");
     }
 
     [Test]
     public async Task DoubleHole_geometry_is_stable()
     {
-        await Assert.That(Print(BodyEmitter.DoubleHole(Cw, 7, 7, 6, 7, 0))).IsNotEmpty();
+        await Assert.That(Print(CompoundEmitter.DoubleHole(Cw, 7, 7, 6, 7, 0))).IsNotEmpty();
         // pinned exactly so the consolidation cannot quietly reorder or resize it
-        await Assert.That(Print(BodyEmitter.DoubleHole(Cw, 7, 7, 6, 7, 0))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.DoubleHole(Cw, 7, 7, 6, 7, 0))).IsEqualTo(
             "bar:0,0,7,2 | bar:0,5,7,2 | leg:0,2,2,3 | leg:5,2,2,3 | bar:7,0,6,2 | bar:7,5,6,2 | leg:11,2,2,3"
             + "  voids hole:2,2,3,3 | hole:7,2,4,3");
     }
@@ -116,7 +116,7 @@ public sealed class BodyGeometryFingerprintTests
     [Test]
     public async Task A_double_hole_widens_the_leg_between_its_two_voids()
     {
-        await Assert.That(Print(BodyEmitter.DoubleHole(new RingWalls(2, 3, 2, 2), Cw, 7, 7, 6, 7, 0))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.DoubleHole(new RingWalls(2, 3, 2, 2), Cw, 7, 7, 6, 7, 0))).IsEqualTo(
             "bar:0,0,7,2 | bar:0,5,7,2 | leg:0,2,2,3 | leg:4,2,3,3 | bar:7,0,6,2 | bar:7,5,6,2 | leg:11,2,2,3"
             + "  voids hole:2,2,2,3 | hole:7,2,4,3");
     }
@@ -124,14 +124,14 @@ public sealed class BodyGeometryFingerprintTests
     [Test]
     public async Task TwoUOnI_geometry_is_stable()
     {
-        await Assert.That(Print(BodyEmitter.TwoUOnI(Cw, 7, 3, 2))).IsNotEmpty();
+        await Assert.That(Print(CompoundEmitter.TwoUOnI(Cw, 7, 3, 2))).IsNotEmpty();
     }
 
     [Test]
     public async Task SpineArms_geometry_is_stable()
     {
-        await Assert.That(Print(BodyEmitter.SpineArms(Cw, 1))).IsNotEmpty();
-        await Assert.That(Print(BodyEmitter.SpineArms(9, 2, [(0, 3, 5), (6, 3, 5)]))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.SpineArms(Cw, 1))).IsNotEmpty();
+        await Assert.That(Print(CompoundEmitter.SpineArms(9, 2, [(0, 3, 5), (6, 3, 5)]))).IsEqualTo(
             "bar:0,0,9,2 | leg:0,2,3,5 | leg:6,2,3,5  voids ");
     }
 
@@ -141,7 +141,7 @@ public sealed class BodyGeometryFingerprintTests
     public async Task Donut_geometry_is_stable()
     {
         var shape = ShapeEmitter.Emit(ShapeFamily.Donut, 12, 7, Cw);
-        var print = string.Join(" | ", shape.Terrain.Select(p => $"{p.Slot}:{R(p.Rect)}"));
+        var print = string.Join(" | ", shape.Compound.Pieces.Select(p => $"{p.Slot}:{R(p.Rect)}"));
         await Assert.That(print).IsEqualTo(
             "entry-bar:2,0,8,2 | leg:2,2,2,3 | leg:8,2,2,3 | entry:0,0,2,2 | room-bar:2,5,8,2");
         await Assert.That(R(shape.Room)).IsEqualTo("10,5,2,2");
@@ -158,17 +158,17 @@ public sealed class BodyGeometryFingerprintTests
             ringWalls: new RingWalls(Top: 3, Right: 2, Bottom: 2, Left: 2));
 
         // the top bar thickens; the hole loses that row rather than the box growing
-        var uTop = uniform.Terrain.First(t => t.Slot == ApproachSlots.EntryBar).Rect;
-        var wTop = widened.Terrain.First(t => t.Slot == ApproachSlots.EntryBar).Rect;
+        var uTop = uniform.Compound.Pieces.First(t => t.Slot == ApproachSlots.EntryBar).Rect;
+        var wTop = widened.Compound.Pieces.First(t => t.Slot == ApproachSlots.EntryBar).Rect;
         await Assert.That(uTop.Height).IsEqualTo(2);
         await Assert.That(wTop.Height).IsEqualTo(3);
-        await Assert.That(widened.Vacancies.Single(v => v.Kind == "hole").Rect.Height)
-            .IsEqualTo(uniform.Vacancies.Single(v => v.Kind == "hole").Rect.Height - 1);
+        await Assert.That(widened.Compound.Vacancies.Single(v => v.Kind == "hole").Rect.Height)
+            .IsEqualTo(uniform.Compound.Vacancies.Single(v => v.Kind == "hole").Rect.Height - 1);
 
         // and it still reads as a donut — a widened wall is the same family
         var cells = new HashSet<(int, int)>();
         var rooms = new HashSet<(int, int)>();
-        foreach (var (rect, _) in widened.Terrain)
+        foreach (var (rect, _) in widened.Compound.Pieces)
             for (var x = rect.X; x < rect.X + rect.Width; x++)
                 for (var z = rect.Z; z < rect.Z + rect.Height; z++) cells.Add((x, z));
         for (var x = widened.Room.X; x < widened.Room.X + widened.Room.Width; x++)

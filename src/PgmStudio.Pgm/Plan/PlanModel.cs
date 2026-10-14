@@ -356,7 +356,7 @@ public sealed class PlanZone
 }
 
 /// <summary>A <b>box</b>: the typed envelope grouping the pieces that realize one part of the partition —
-/// a wool approach, the spawn, the hub body, the frontline, the mid. <see cref="Rect"/> is <c>[x, z, w, h]</c>
+/// a wool approach, the spawn, the hub compound, the frontline, the mid. <see cref="Rect"/> is <c>[x, z, w, h]</c>
 /// in cells, drawn around its members rather than filled by them (boxes may overlap; a box's contents need
 /// not fill it solid).
 ///
@@ -370,7 +370,7 @@ public sealed class PlanBox
     /// <summary>What the editor and the reporting tools call this box.</summary>
     [JsonPropertyName("id")]      public string Id { get; set; } = "";
 
-    /// <summary>Which part of the partition its pieces realize — a spawn or wool approach, the hub body they
+    /// <summary>Which part of the partition its pieces realize — a spawn or wool approach, the hub compound they
     /// seat on, the frontline that fronts it, or the mid between the fanned images.</summary>
     [WordSet(typeof(PlanBoxKinds))]
     [JsonPropertyName("kind")]    public string Kind { get; set; } = PlanBoxKinds.Mid;

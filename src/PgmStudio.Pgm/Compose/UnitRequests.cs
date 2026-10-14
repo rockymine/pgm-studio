@@ -23,7 +23,7 @@ internal sealed record NeighbourRequest(
 /// (<c>U</c>/<c>H</c>/<c>Clamp</c>) dock here — an overhang would strand their second entry off the
 /// host.</item>
 /// <item><see cref="Overhang"/> — the family has exactly one entry and the emitter can say where, so only
-/// that interval must land and the body may hang past the run.</item>
+/// that interval must land and the compound may hang past the run.</item>
 /// <item><see cref="ContactPatch"/> — the frontline is a face, not a corridor, so it has no entry at all;
 /// what must hold is that every stretch where it meets a run is at least a lane wide.</item>
 /// </list>
@@ -35,7 +35,7 @@ internal enum DockStyle { FullMouth, Overhang, ContactPatch }
 public static class UnitRequests
 {
     /// <summary>A wool family the <b>seat-and-shift</b> docks: a single-entry approach whose one narrow entry
-    /// lands on a hub run while the body overhangs. The dual-entry staple/branch (<c>U</c>/<c>H</c>) is <b>not</b>
+    /// lands on a hub run while the compound overhangs. The dual-entry staple/branch (<c>U</c>/<c>H</c>) is <b>not</b>
     /// one — both its entries must land on the host, so it docks its full mouth (the plain seat path), never an
     /// overhang (an overhang would strand the second entry off the hub — a pinch).</summary>
     internal static bool Overhangs(ShapeFamily family) => family is ShapeFamily.L or ShapeFamily.Donut;
@@ -67,11 +67,11 @@ public static class UnitRequests
     /// <paramref name="budget"/> as it is sized, so what the unit leaves unspent is a number rather than an
     /// assumption. The spawn size is the one RNG draw here; the wool sizes read the budget (generic, no
     /// per-family solve), and the set is identical across a fallback re-seat, because the fallback is always
-    /// toward a body offering more free surface than the one it replaces.
+    /// toward a compound offering more free surface than the one it replaces.
     ///
-    /// <para><paramref name="frontRuns"/> is the hub body's own free runs on the front edge, read before this
+    /// <para><paramref name="frontRuns"/> is the hub compound's own free runs on the front edge, read before this
     /// is called. It is what lets the face be sized against the edge a neighbour will actually meet instead of
-    /// against the box: a body with a <b>bay</b> in its front hands the face a floor, and a face under it
+    /// against the box: a compound with a <b>bay</b> in its front hands the face a floor, and a face under it
     /// cannot be seated so as to close the bay however it is slid.</para></summary>
     internal static IReadOnlyList<NeighbourRequest> Sample(
         ComposeEnvelope env, ComposeRng rng, LandBudget budget, UnitPlan plan,
@@ -105,9 +105,9 @@ public static class UnitRequests
         // along the edge and free to overhang it — is the funnel: the mid meets only part of the hub front,
         // so the two onward routes around the front cost differently. The full face stays the common draw.
         var full = Math.Max(laneWidthCells, hubV - 2 * UnitTuning.CornerClearanceCells);
-        // the floor a bay-fronted body imposes: a face closing a bay has to reach a lane onto the shoulder
+        // the floor a bay-fronted compound imposes: a face closing a bay has to reach a lane onto the shoulder
         // each side of it, so the narrowest useful face spans from the near shoulder's lane to the far one's.
-        // Below that no seat can close the bay, and the body's own bay stays an open notch (CT8's rotation
+        // Below that no seat can close the bay, and the compound's own bay stays an open notch (CT8's rotation
         // hole is a hole the frontline made). A solid front imposes nothing and the sample is the funnel's.
         // the parity law below rounds an ODD face down a cell, which would take it back under a floor it
         // has to clear — so a floor is rounded UP to even first, and a draw above an even floor stays

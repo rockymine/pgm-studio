@@ -31,7 +31,7 @@ public static class PlanCompiler
 
     public static (SketchLayout Layout, MapIntent Intent) Compile(PlanModel plan)
     {
-        // Declare the plan's negative space before reading it, so a body's enclosed void is a buffer piece
+        // Declare the plan's negative space before reading it, so a compound's enclosed void is a buffer piece
         // whether or not the author drew one (PlanVoids). Idempotent, so compiling twice changes nothing.
         var declared = PlanVoids.Declare(plan);
         var d = ContactGraph.Build(declared);
@@ -160,7 +160,7 @@ public static class PlanCompiler
             }
         }
 
-        // Buffers state the negative space (PlanVoids): each becomes a subtract shape, so the ground a body
+        // Buffers state the negative space (PlanVoids): each becomes a subtract shape, so the ground a compound
         // encircles stays void instead of taking the fill its outline implies. A buffer never takes terrain
         // away from a piece — it is clipped to what no generating piece covers, which is what keeps it the
         // inert annotation it has always been where it overlaps one.

@@ -50,7 +50,7 @@ public static class SeatGeometry
     /// <summary>Two plan-cell rects lie within <paramref name="separationCells"/> cells of each other by rectilinear
     /// nearest-approach — touching (a separation of 0) and corner-touching included. Equivalent to inflating one
     /// rect by the separation on all four sides and testing overlap, so a diagonal corner meeting is caught, not
-    /// only a shared edge. The seat-step separation law reads it: no two neighbour bodies may sit this close
+    /// only a shared edge. The seat-step separation law reads it: no two neighbour compounds may sit this close
     /// (<paramref name="separationCells"/> is the map's lane width — w2 = 10 blocks, w3 = 15 on wide
     /// boards).</summary>
     internal static bool TooClose(CellRect first, CellRect second, int separationCells) =>

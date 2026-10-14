@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Tests.Derive;
 
-/// <summary>The structural read of a composed unit: wool approach families (sorted), the hub body form, and
+/// <summary>The structural read of a composed unit: wool approach families (sorted), the hub compound form, and
 /// the frontline form (or none). Reads uniformly off the labeled unit, matches the wool count, is
 /// deterministic per seed, and serializes to a stable canonical bucket key.</summary>
 public sealed class StructureSummaryTests
@@ -45,10 +45,10 @@ public sealed class StructureSummaryTests
     public async Task Form_tokens_map_the_body_vocabulary()
     {
         await Assert.That(StructureNames.Form(null)).IsEqualTo("none");
-        await Assert.That(StructureNames.Form(new CompoundRead(Compound.Rectangle))).IsEqualTo("bar");
-        await Assert.That(StructureNames.Form(new CompoundRead(Compound.SpineArms, 1))).IsEqualTo("single");
-        await Assert.That(StructureNames.Form(new CompoundRead(Compound.SpineArms, 2))).IsEqualTo("twin");
-        await Assert.That(StructureNames.Form(new CompoundRead(Compound.Ring))).IsEqualTo("ring");
-        await Assert.That(StructureNames.Form(new CompoundRead(Compound.DoubleHole))).IsEqualTo("double-hole");
+        await Assert.That(StructureNames.Form(new CompoundRead(CompoundForm.Rectangle))).IsEqualTo("bar");
+        await Assert.That(StructureNames.Form(new CompoundRead(CompoundForm.SpineArms, 1))).IsEqualTo("single");
+        await Assert.That(StructureNames.Form(new CompoundRead(CompoundForm.SpineArms, 2))).IsEqualTo("twin");
+        await Assert.That(StructureNames.Form(new CompoundRead(CompoundForm.Ring))).IsEqualTo("ring");
+        await Assert.That(StructureNames.Form(new CompoundRead(CompoundForm.DoubleHole))).IsEqualTo("double-hole");
     }
 }

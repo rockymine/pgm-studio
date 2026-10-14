@@ -200,7 +200,7 @@ public sealed class MidCarverTests
         Surface: 9, CorridorCells: 2, WoolCorridorCells: 2, BoardWidthBlocks: 300, BoardLengthBlocks: 300,
         LandPerTeam: 2800, UnitMinX: -40, UnitMinZ: -40, UnitMaxX: 40, UnitMaxZ: 40);
 
-    // A unit reduced to what the carve reads: a face at the near edge plus a body behind it to keep the front
+    // A unit reduced to what the carve reads: a face at the near edge plus a compound behind it to keep the front
     // row unambiguous. `legs` are (x, width) pairs on the face row. The face is seated at the half gap the
     // crossing under test opens, because a face anywhere else is one the band does not dock.
     private static CellRect? Band(string symmetry, bool split, params (int X, int W)[] legs)

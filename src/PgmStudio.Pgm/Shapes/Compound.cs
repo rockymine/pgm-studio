@@ -1,32 +1,45 @@
+using PgmStudio.Geom;
+
 namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>
-/// The <b>terminal-free compound</b> taxonomy (docs/generator/model.md §4) — the named recombinations
-/// of the rectangle atom, read by topology alone (the §4 feature axes: bends · fold · branch · void), never by a
-/// terminal. It is the derive-side identity of a <see cref="ShapeBody"/>: <see cref="ShapeClassifier.ClassifyBody"/>
-/// reads a body back to one of these, closing the emit↔derive mirror for the bodies <see cref="BodyEmitter"/>
-/// builds. Distinct from <see cref="ShapeFamily"/> — that is the terminal-<em>capped</em> approach taxonomy; a
-/// compound plus a designation (a terminal) becomes an approach.
-///
-/// <list type="bullet">
-/// <item><see cref="Rectangle"/> — one rectangle (a spine / the solid hub): no feature.</item>
-/// <item><see cref="SpineArms"/> — a spine plus <c>K</c> perpendicular arms (the branch family), K capped at 3:
-/// K=1 is L/T, K=2 is Π/F, K=3 is E. The arm count is the identity; where the arms sit is a placement knob.</item>
-/// <item><see cref="Ring"/> — four bars around one enclosed void (the donut body).</item>
-/// <item><see cref="DoubleHole"/> — a ring with a U docked on its edge, its bay the second void; the two holes may
-/// be the <em>same size</em> (a full-height U) or variant (a shorter, slid U), kept apart by a <em>solid</em> ring
-/// wall (contrast <see cref="TwoUOnI"/>).</item>
-/// <item><see cref="P"/> — a ring whose bottom bar runs longer than the loop, so the loop slides along it; one
-/// void with an overhang (the P/b/d glyph).</item>
-/// <item><see cref="G"/> — a ring with an L docked on its edge: one enclosed void (the ring) plus an <em>open</em>
-/// bay (the L's recess, three-walled) that a docking frontline seals into a taller hole — the asymmetric,
-/// open-bay cousin of <see cref="DoubleHole"/> (the G glyph).</item>
-/// <item><see cref="TwoUOnI"/> — two loops sharing one baseline: two voids kept apart by an <em>open</em> channel.</item>
-/// </list>
+/// A shape combined out of rectangle pieces: the slotted <see cref="Pieces"/> and the bays, holes and notches they
+/// leave (<see cref="Vacancies"/>). It carries <b>no room, marker or id</b> — a <em>designation</em> adds those (an
+/// <see cref="ApproachShape"/>'s wool or spawn room, the hub's per-edge interfaces, the frontline's face). Its
+/// <see cref="CompoundForm"/> is what the pieces make, and one compound serves several uses: a staple is both a U and
+/// a Y, a solid rectangle both a straight lane and a hub. See <c>docs/generator/model.md</c> §4.
 /// </summary>
-public enum Compound { Rectangle, SpineArms, Ring, DoubleHole, P, G, TwoUOnI }
+public sealed record Compound(
+    IReadOnlyList<(CellRect Rect, string Slot)> Pieces, IReadOnlyList<ShapeVacancy> Vacancies)
+{
+    /// <summary>The compound laid back onto its <paramref name="width"/> × <paramref name="height"/> box by
+    /// <paramref name="turn"/>: every piece and vacancy rect, and every vacancy mouth, with it.</summary>
+    public Compound Turned(BoxTurn turn, int width, int height) => turn == BoxTurn.None ? this : new(
+        [.. Pieces.Select(piece => (turn.Rect(piece.Rect, width, height), piece.Slot))],
+        [.. Vacancies.Select(vacancy => vacancy with
+        {
+            Rect = turn.Rect(vacancy.Rect, width, height),
+            Mouth = vacancy.Mouth?.Turned(turn),
+        })]);
+}
 
-/// <summary>A body's derive-side read: the <see cref="Compound"/> it classifies to and, for
-/// <see cref="Compound.SpineArms"/>, the arm count <see cref="Arms"/> (0 for every other form). The mirror closes
-/// when this equals what <see cref="BodyEmitter"/> was asked to build.</summary>
-public sealed record CompoundRead(Compound Form, int Arms = 0);
+/// <summary>
+/// The per-side widths of a ring's four walls, in cells — the widening knob every ring-bodied form shares
+/// (the Ring, the P's loop, the G's ring, the Double-hole's, and the donut's).
+///
+/// <para>A ring built at one corridor width has four equal walls; a ring built at four is the same shape with
+/// one side wider than the rest, which is how an author says more play flows through that side. Every emitter
+/// takes a single <c>cw</c> today, so <see cref="Uniform"/> is what they all pass and the widened cases are the
+/// reason this type exists at all.</para>
+/// </summary>
+public readonly record struct RingWalls(int Top, int Right, int Bottom, int Left)
+{
+    /// <summary>All four walls at one corridor width — the single-<c>cw</c> ring every form builds today.</summary>
+    public static RingWalls Uniform(int cw) => new(cw, cw, cw, cw);
+
+    /// <summary>The narrowest wall — what a corridor-minimum check reads.</summary>
+    public int Min => Math.Min(Math.Min(Top, Right), Math.Min(Bottom, Left));
+
+    /// <summary>The widest wall — the numerator of the spread ratio.</summary>
+    public int Max => Math.Max(Math.Max(Top, Right), Math.Max(Bottom, Left));
+}

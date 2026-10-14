@@ -87,7 +87,7 @@ public sealed class ProducibilityTests
     [Test]
     public async Task An_unequal_walled_ring_reproduces_and_names_its_walls()
     {
-        var hub = Producibility.Read(HubPlan(BodyEmitter.Ring(new RingWalls(2, 3, 2, 2), 10, 7))).First();
+        var hub = Producibility.Read(HubPlan(CompoundEmitter.Ring(new RingWalls(2, 3, 2, 2), 10, 7))).First();
 
         await Assert.That(hub.IsProducible).IsTrue().Because("a ring may carry one wall wider than the rest");
         await Assert.That(hub.Producible!.Label).Contains("Ring");
@@ -116,8 +116,8 @@ public sealed class ProducibilityTests
     [Test]
     public async Task A_ring_widened_past_the_ratio_cap_does_not_reproduce()
     {
-        var lawful = HubPlan(BodyEmitter.Ring(new RingWalls(2, 4, 2, 2), 13, 7));
-        var beyond = HubPlan(BodyEmitter.Ring(new RingWalls(2, 6, 2, 2), 13, 7));
+        var lawful = HubPlan(CompoundEmitter.Ring(new RingWalls(2, 4, 2, 2), 13, 7));
+        var beyond = HubPlan(CompoundEmitter.Ring(new RingWalls(2, 6, 2, 2), 13, 7));
 
         await Assert.That(Producibility.Read(lawful).First().IsProducible).IsTrue()
             .Because("4 is twice the 2-cell lane — the widest the spread law admits");
@@ -127,18 +127,18 @@ public sealed class ProducibilityTests
             .Because("the nearest miss is still a ring — the shape is right, the proportions are not");
     }
 
-    // wrap a body as a one-box hub plan at the origin — the form the producibility read consumes
-    private static PlanModel HubPlan(ShapeBody body)
+    // wrap a compound as a one-box hub plan at the origin — the form the producibility read consumes
+    private static PlanModel HubPlan(Compound compound)
     {
-        int w = body.Pieces.Max(p => p.Rect.X + p.Rect.Width), h = body.Pieces.Max(p => p.Rect.Z + p.Rect.Height);
+        int w = compound.Pieces.Max(p => p.Rect.X + p.Rect.Width), h = compound.Pieces.Max(p => p.Rect.Z + p.Rect.Height);
         var plan = new PlanModel
         {
             Meta = new PlanMeta { Name = "hub-probe" },
             Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9 },
             Boxes = [new PlanBox { Id = "hub", Kind = PlanBoxKinds.Hub, Rect = new(0, 0, w, h) }],
         };
-        for (var i = 0; i < body.Pieces.Count; i++)
-            plan.Pieces.Add(new PlanPiece { Id = $"hub-t{i + 1}", Role = PlanRoles.Piece, Rect = body.Pieces[i].Rect });
+        for (var i = 0; i < compound.Pieces.Count; i++)
+            plan.Pieces.Add(new PlanPiece { Id = $"hub-t{i + 1}", Role = PlanRoles.Piece, Rect = compound.Pieces[i].Rect });
         return plan;
     }
 
@@ -162,7 +162,7 @@ public sealed class ProducibilityTests
             if (!seen.Add(key)) continue;
 
             var box = new Box("front", BoxKind.Frontline, new(0, 0, spine, 5), spine * 5);
-            var built = FrontlineBoxEmitter.Fill(box, new CompoundRead(Compound.SpineArms, 2), 2,
+            var built = FrontlineBoxEmitter.Fill(box, new CompoundRead(CompoundForm.SpineArms, 2), 2,
                 OfferGrouping.Joint, BoxEdge.Top, armLayout: legs);
             if (built is null) continue;
             checkedLayouts++;
@@ -343,7 +343,7 @@ public sealed class ProducibilityTests
     {
         // a ring widened past the spread law: the shape is one the emitters build, the proportions are not one
         // the composer draws — the case that survives since the lawful widening reproduces
-        var hub = Producibility.Read(HubPlan(BodyEmitter.Ring(new RingWalls(2, 6, 2, 2), 13, 7))).First();
+        var hub = Producibility.Read(HubPlan(CompoundEmitter.Ring(new RingWalls(2, 6, 2, 2), 13, 7))).First();
         var hubGap = hub.Findings.FirstOrDefault(f => f.Rule == BoxRules.ProportionsOutOfReach);
         await Assert.That(hubGap).IsNotNull().Because("a Ring whose nearest miss is a Ring is a width gap");
         await Assert.That(hubGap!.Cites).IsEqualTo("G105");

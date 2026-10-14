@@ -6,7 +6,7 @@ one meaning**; where a term appears elsewhere it carries this meaning. When anot
 disagree, this one governs.
 
 **What this document owns:** the pipeline, the request and the budget that sizes everything, the plan,
-the shape model (bodies, designations, and the approach families), composition, the board deriver, and
+the shape model (compounds, designations, and the approach families), composition, the board deriver, and
 the rule and scoring model. Terms are **defined where they are first used** rather than collected in a
 glossary — a definition sitting next to the mechanism it describes is one that cannot quietly stop
 matching it. **What it defers:**
@@ -36,7 +36,7 @@ them, route structure being which island can be reached from where a player stan
 lane grammar or frontline box anywhere in it (`pgm-studio-mapgen/reports/opus5-thunder-series.md` measures
 all four). **That is a limitation rather than a defect, it is the author's stated position, and it stays.**
 Such a map is still authorable with the tool — trace each island's outline as a polygon in the sketch tool
-— it simply is not reachable through this model, and no body should be invented to make it so.
+— it simply is not reachable through this model, and no compound should be invented to make it so.
 
 ---
 
@@ -326,28 +326,28 @@ The field-level schema and the editor that writes it are in `../tools/plan.md`.
 
 ---
 
-## 4. The shape model — bodies, designations, and the piece vocabulary
+## 4. The shape model — compounds, designations, and the piece vocabulary
 
 Everything the generator puts inside a box is built from one atom, the rectangle, by two operations:
-recombining rectangles into a **body**, and finishing a body into the thing a particular kind of box
-needs. Holding those apart is what keeps the vocabulary small — a handful of bodies serve every box
+recombining rectangles into a **compound**, and finishing a compound into the thing a particular kind of box
+needs. Holding those apart is what keeps the vocabulary small — a handful of compounds serve every box
 kind on the map, and the differences between a wool's terrain and a hub's are added afterwards.
 
-This section works up from the atom. First the bodies and the empty space they leave, since both are
-read off geometry alone and neither knows what a map is. Then what an emitter does with a body, what
-each kind of box adds to it, and which bodies each kind is allowed. Then the wool approach in full,
+This section works up from the atom. First the compounds and the empty space they leave, since both are
+read off geometry alone and neither knows what a map is. Then what an emitter does with a compound, what
+each kind of box adds to it, and which compounds each kind is allowed. Then the wool approach in full,
 because it is the elaborate case and the one whose pieces carry labels. Last, reading a finished shape
 back, which is how all of it is checked.
 
-### 4.1 Every body is one rectangle, recombined
+### 4.1 Every compound is one rectangle, recombined
 
-The atom is a single rectangle. Every other body is that atom recombined: each step in the escalation
+The atom is a single rectangle. Every other compound is that atom recombined: each step in the escalation
 adds a rectangle and earns exactly one new feature — a branch, an enclosed void, a second void. The
 progression is not a filing system imposed afterwards; it is the order in which features become
-available, and a body possesses every feature of the steps below it.
+available, and a compound possesses every feature of the steps below it.
 
 Every figure in this section is drawn the same way: `t` is a cell the shape occupies, `.` a cell it
-does not, and `w` the wool where a figure has one. The body layer knows only the first two — what an
+does not, and `w` the wool where a figure has one. The compound layer knows only the first two — what an
 empty cell *means*, void a build zone may later span or simply outside, is decided later.
 
 ```
@@ -359,12 +359,12 @@ Rectangle              SpineArms(1)      SpineArms(2)      SpineArms(3)
   no feature           reads L or T      reads U or Π      reads E
 ```
 
-The branch row is **one** body, not three. A spine plus K perpendicular arms is a single form whose
+The branch row is **one** compound, not three. A spine plus K perpendicular arms is a single form whose
 letter is a placement-read of where the arms happen to sit, and that letter drifts as an arm slides
-along the spine without the body changing at all. Ell, staple and comb are one thing wearing three
+along the spine without the compound changing at all. Ell, staple and comb are one thing wearing three
 names. The arm count is the identity and it is capped at three.
 
-Enclosing a void is the next feature, and the three one-void bodies differ only in what sits beside
+Enclosing a void is the next feature, and the three one-void compounds differ only in what sits beside
 the loop:
 
 ```
@@ -395,9 +395,9 @@ DoubleHole                        TwoUOnI
   ttttttttt                         ttttttt
 ```
 
-These seven are `Compound` — the body taxonomy `BodyEmitter` builds and `ClassifyBody` reads back:
+These seven are `CompoundForm` — the compound taxonomy `CompoundEmitter` builds and `ClassifyCompound` reads back:
 
-| Body | Feature it adds | Told apart by |
+| Compound | Feature it adds | Told apart by |
 |---|---|---|
 | `Rectangle` | — | the bounding box is solid |
 | `SpineArms` | a branch (K = 1…3) | the arm count; where the arms sit is a knob |
@@ -407,20 +407,20 @@ These seven are `Compound` — the body taxonomy `BodyEmitter` builds and `Class
 | `DoubleHole` | a second void | two voids, a solid wall between them |
 | `TwoUOnI` | a second void | two voids, an open channel between them |
 
-The **set of bodies is open, the set of names is not**. A custom build may join rectangles into
+The **set of compounds is open, the set of names is not**. A custom build may join rectangles into
 something no name covers — a staircase, or a hook doubling back on itself — and the classifier reads
 it without a new special case, because it reads topology rather than matching a catalog. That is why
-`Compound` carries no zig and no hook entry: those two features are named further up, where they
-decide the Z and Scythe wool approaches, and the body layer sees only bends it does not need to count.
+`CompoundForm` carries no zig and no hook entry: those two features are named further up, where they
+decide the Z and Scythe wool approaches, and the compound layer sees only bends it does not need to count.
 
-Width sits orthogonal to all of this. The interface width reads a body as a corridor or as an area; it
-never reads it as a different body. A thick leg is a wide spot, not a new form.
+Width sits orthogonal to all of this. The interface width reads a compound as a corridor or as an area; it
+never reads it as a different compound. A thick leg is a wide spot, not a new form.
 
-### 4.2 What a body leaves empty
+### 4.2 What a compound leaves empty
 
-A body's shape is equally the shape of the emptiness around and inside it, and that emptiness is where
+A compound's shape is equally the shape of the emptiness around and inside it, and that emptiness is where
 neighbours attach. The connected empty regions escalate by **wall count** — how many of the four axis
-directions the body walls the region from:
+directions the compound walls the region from:
 
 ```
 notch — 2 walls        bay — 3 walls          hole — enclosed, 4
@@ -439,9 +439,9 @@ feature of the shape at all.
 
 Negative space is known twice over, from both ends. An emitter **declares** the spaces it means to
 leave: every emission carries `Vacancies`, a list of `ShapeVacancy` giving each space's kind, its
-rectangle, the edge its mouth opens toward, and the slots of the pieces walling it. `BodyEdges` then
+rectangle, the edge its mouth opens toward, and the slots of the pieces walling it. `CompoundEdges` then
 **reads** the same spaces back off the finished rectangles, and describes itself as the derive-side twin
-of that emit-time record. The two must agree, for the same reason the family and the body readings must.
+of that emit-time record. The two must agree, for the same reason the family and the compound readings must.
 
 The derive side is the richer of the two, because it is a **fact read off finished geometry**, total
 over any set of rectangles, and it carries more than a class name. Each space decomposes into
@@ -450,14 +450,14 @@ reach an inset leg that the flat class would have forbidden wholesale. Each spac
 **mouths**, one per open direction, so a bay has one, a notch two and a hole none; a mouth is an
 interval tapering to a `wN` width class, which is what says how wide a thing may dock *through* the
 opening. And each space carries the slots of the pieces walling it, plus its own compound form — the
-void read back as though it were a body.
+void read back as though it were a compound.
 
 The classification of the boundary runs is what turns all of this into a usable surface. Every run is
 read on **three independent axes**: what it faces, whether it is **terminal** (the room seals its own
 wall), and whether it is **guarded** (inside the room's clearance margin, the corridor minimum). The
 **offerable surface** — the free outward surface a neighbour may actually attach onto — is exactly the
 runs that are open, not terminal, and not guarded. This is the surface the allocator seats against;
-it is a property of the emitted body, not of its bounding box, which is why a neighbour never docks an
+it is a property of the emitted compound, not of its bounding box, which is why a neighbour never docks an
 empty stretch of an L's bounding box and meets the real terrain only at a corner.
 
 Not every space a shape leaves is offered onward. Publishing one is an **offer, never a fill** — a
@@ -465,18 +465,18 @@ later step may claim it, a third wool seated in a free-standing U's bay or a rin
 may, and an unclaimed space is simply void. What may be published is a **veto**, and it turns on
 whether the shape carries a goal. A **terminal-capped** shape vetoes its bays and its holes, because a
 bay walled by the terminal's own path would grant the wool a second approach and an enclosed hole is
-the shape's own device; it allows only its notches. A **terminal-free** body vetoes nothing, having no
+the shape's own device; it allows only its notches. A **terminal-free** compound vetoes nothing, having no
 goal to shelter.
 
 One word needs guarding. The **hole** here is a *shape-level* negative space — the donut's void, four
-walls, read off one body's geometry. The board deriver also classes holes (`encased`, `gap`,
+walls, read off one compound's geometry. The board deriver also classes holes (`encased`, `gap`,
 `frontline`, `middle`), but those are **connectivity** classes read off the whole finished board by
 what their boundary touches. The two are unrelated readings that happen to share a word, and a box's
 opening is neither: that is an interface.
 
-### 4.3 A body is not yet a placed shape
+### 4.3 A compound is not yet a placed shape
 
-A body is geometry with no purpose attached. It has no goal in it, nothing marks which of its edges a
+A compound is geometry with no purpose attached. It has no goal in it, nothing marks which of its edges a
 neighbour may land on, and it does not know whether it is a hub in the middle of a team's land or the
 arm running out to a wool. Turning it into something a map can use is the job of an **emitter**, and
 an emitter always fills a box that the allocator has already positioned. Footprints are never grown
@@ -490,17 +490,17 @@ generator room to vary without renegotiating the partition.
 
 Two emitters sit underneath everything, split by whether what they build ends in a goal:
 
-- **`BodyEmitter`** builds a body and stops. Its pieces carry only structural labels — a spine or a
+- **`CompoundEmitter`** builds a compound and stops. Its pieces carry only structural labels — a spine or a
   ring's bars are `bar`, its arms and side walls `leg` — because that is all a shape without a goal
   has to say about itself.
-- **`ShapeEmitter`** builds a **terminal-capped** shape: a body elaborated so that one rectangle at
+- **`ShapeEmitter`** builds a **terminal-capped** shape: a compound elaborated so that one rectangle at
   the end of it is a room, and one rectangle at the start of it is where a host connects.
 
 A box carries a **kind**, and there are five: `spawn`, `hub`, `wools`, `frontline` and `mid`. Four of
 them are filled by an emitter. The **wool box** and the **spawn box** both bind over `ShapeEmitter`,
 and a spawn is a terminal-capped approach exactly as a wool arm is — same emitter, same classifier,
 same round-trip check, differing only in what the room holds and how big it is. The **hub box** and the
-**frontline box** both bind over `BodyEmitter`, because neither ends in a goal. The fifth, the **mid**,
+**frontline box** both bind over `CompoundEmitter`, because neither ends in a goal. The fifth, the **mid**,
 holds no shape at all: it is the neutral band between the two frontlines, and what fills it is a build
 zone rather than terrain.
 
@@ -519,9 +519,9 @@ deliberately one vocabulary across every box kind, since a caller reasoning abou
 fill should not have to know which kind refused it.
 
 **Everything is emitted in one canonical orientation and turned afterwards.** An approach is built
-mouth-up and a body spine-up, always, so the per-family geometry is written once rather than four
+mouth-up and a compound spine-up, always, so the per-family geometry is written once rather than four
 times. Placing it on the edge a box actually docks is a separate transform — one `BoxTurn`, which an
-`EmittedShape` and a `ShapeBody` each take through `Turned` — where the top edge is the identity,
+`ApproachShape` and a `Compound` each take through `Turned` — where the top edge is the identity,
 the bottom a vertical mirror, and left or right a quarter turn that transposes the box. The piece
 rectangles, the marker's offset within its room, and the mouths of every published vacancy all
 follow that transform together. This is why the mouth edges differ per family in the canonical frame
@@ -531,15 +531,15 @@ for an edge and gets a shape facing it.
 
 ### 4.4 What each box kind adds
 
-What a box kind adds on top of a body is its **designation**. There are three, and the split is by
+What a box kind adds on top of a compound is its **designation**. There are three, and the split is by
 what the shape is *for*, not by which box holds it: wool and spawn share one, because a spawn arm and
 a wool arm are the same kind of thing.
 
-The **approach** is the designation with a goal. It finishes a body with a **terminal** — the room the
+The **approach** is the designation with a goal. It finishes a compound with a **terminal** — the room the
 wool or spawn marker sits in — and an **entry**, which names whichever rectangle a host connects
-through. The **hub** designation has no terminal; it publishes, per free run of its body, the width
+through; the compound with its room and marker is an `ApproachShape`. The **hub** designation has no terminal; it publishes, per free run of its compound, the width
 that run can carry, which is what makes the hub the constraint source every neighbour reads. The
-**frontline** designation also has no terminal; it designates one edge of its body the **face**, where
+**frontline** designation also has no terminal; it designates one edge of its compound the **face**, where
 the fanned images meet, and docks its host on the opposite edge.
 
 Having no terminal is the whole of what separates the second two from the first. A hub and a frontline
@@ -560,15 +560,15 @@ removing it would leave the rest of the shape intact.
 
 The two layers are real in the code, but not as a pipeline one stage feeds the next. `ShapeEmitter`
 has a single per-family routine that computes a family's terrain, its room and its vacancies together,
-and two entry points onto it: `Body` returns the terrain alone, terminal-free, and `Approach` combines
-such a body with a room and a marker into a finished emission. So an approach can be taken apart into
-body and terminal, and the hub and frontline reuse exactly that terminal-free half — but no approach is
-built by first constructing a generic body and then designating it, and the approach path never routes
-through `BodyEmitter` at all, borrowing only its ring-wall geometry for the donut. The room is computed
-alongside the terrain by a routine that knows the whole family, not bolted onto a finished body.
+and two entry points onto it: `Compound` returns the terrain alone, terminal-free, and `Approach` combines
+such a compound with a room and a marker into a finished emission. So an approach can be taken apart into
+compound and terminal, and the hub and frontline reuse exactly that terminal-free half — but no approach is
+built by first constructing a generic compound and then designating it, and the approach path never routes
+through `CompoundEmitter` at all, borrowing only its ring-wall geometry for the donut. The room is computed
+alongside the terrain by a routine that knows the whole family, not bolted onto a finished compound.
 
 What the split really buys is at the reading end: identity can be taken in two independent registers,
-topology below and terminal placement above, and that is what lets one body serve several finished
+topology below and terminal placement above, and that is what lets one compound serve several finished
 shapes.
 
 There is a fourth thing the designations were meant to carry and do not yet. The docking law is
@@ -578,9 +578,9 @@ Both marks exist as constants and `DockingGate.Role` already maps them. But no e
 onto a piece — the hub publishes offers and the frontline returns its face edge directly — and the
 gate's live check still scopes to the approach. Binding the two designations to that table is G88/G89.
 
-### 4.5 Which bodies each kind may take
+### 4.5 Which compounds each kind may take
 
-A designation does not admit every body. Each kind draws from an authored menu, and the menus differ
+A designation does not admit every compound. Each kind draws from an authored menu, and the menus differ
 because the three shapes do different work on a map.
 
 The **wool and spawn** menu is the nine **approach families** — the terminal-capped shapes, drawn in
@@ -588,7 +588,7 @@ full under *How a wool approach is built*. They are the widest menu because an a
 varied thing on the board: it must reach a goal from a host, and there are many ways to make that
 walk interesting.
 
-The **hub** menu is **Rectangle · L · U · Ring · P · Double-hole · G**: the compact bodies, plus the
+The **hub** menu is **Rectangle · L · U · Ring · P · Double-hole · G**: the compact compounds, plus the
 wide holed ones once the hub is laterally elongated. Zig, hook, the higher combs and `TwoUOnI` are
 deliberately excluded, because a hub stays rectangle-ish. The hub grows **wider, not squarer** — its
 lateral span is drawn from a larger cap than its depth — and the long edge does double duty: it gives
@@ -599,13 +599,13 @@ pair. Built by `HubBoxEmitter`.
 
 The **frontline** menu is a plain **Bar** for the wide face (FR6), the **branch family** — a spine
 plus K arms, single or twin or more — and the **holed** forms `P` and `TwoUOnI`, which present a
-closed recess. Rotation is fixed by the designation rather than sampled: the body docks the hub with
+closed recess. Rotation is fixed by the designation rather than sampled: the compound docks the hub with
 its spine and its arm-tips are the face toward the axis. The face offer carries a **grouping** —
 `Joint`, where one mid consumer must span every tip flush, or `Several`, where each tip takes its own
 consumer and the inter-tip recess is simply not offered, surviving as a deliberate hole. Joint against
 several *is* FR6's wide against split frontline. Built by `FrontlineBoxEmitter`.
 
-Two arrangements that get called shapes are not bodies at all, but docking patterns in the designation
+Two arrangements that get called shapes are not compounds at all, but docking patterns in the designation
 layer. The **clamp** is one compact terminal docked on two distinct faces — opposite faces give a
 centred I plus I, adjacent faces a corner L plus I, the bend forced because two straight bars would
 only corner-touch. The **twin frontline** is two Bars docked to one host individually, the gap between
@@ -613,12 +613,12 @@ them being the face recess of CT8.
 
 ### 4.6 How a wool approach is built
 
-An approach is a body walked from a host to a goal, and the nine of them are an escalation rather than
+An approach is a compound walked from a host to a goal, and the nine of them are an escalation rather than
 a flat set. An L whose lane doubles back is a scythe; a scythe whose bay closes is a donut; a clamp
 whose wool docks flush on one bar is a U; a U that lifts its wool onto a stub is an H. Read in that
 order the catalog is four steps and two special cases, not nine unrelated pictures.
 
-The two special cases are not bodies of their own. `Isolated` is any body at all with no terrain
+The two special cases are not compounds of their own. `Isolated` is any compound at all with no terrain
 reaching the wool — a reading, never something emitted. `Clamp` is the two-faced docking pattern seen
 as a family: the wool bridging two otherwise-separate bars.
 
@@ -669,7 +669,7 @@ What each family *means* on a map, which is the reason the nine are worth tellin
 | Family | Reads as |
 |---|---|
 | **Isolated** | wool ringed by void — no terrain approach; reachable only by building |
-| **I** | a terrain lane caps the wool inline (a solid body with no bends also reads I) |
+| **I** | a terrain lane caps the wool inline (a solid compound with no bends also reads I) |
 | **L** | one bend — terrain reaches the wool from two adjacent sides |
 | **Z** | a staircase of two opposing bends, no bay |
 | **Scythe** | a fold that wraps an **open bay** beside the wool |
@@ -724,7 +724,7 @@ narrower box than one hanging the room off the end, because the terminal sits in
 instead of beyond it. Asking for a box under that minimum is refused, not shrunk to fit.
 
 A slot is itself two layers, split by what supplies it. The **structural slot** — `run`, `bar`, `leg`
-— is what the rectangle *does* in the body, and is shared by every box kind. The **designation mark**
+— is what the rectangle *does* in the compound, and is shared by every box kind. The **designation mark**
 — `entry`, `room` — is the docking position and the terminal, supplied by the approach, and qualified
 `entry-run` / `room-run` / `entry-bar` / `room-bar` where a family carries two of a segment.
 `ApproachSlots` merges the two because the taxonomy began at wool approaches; splitting them is what
@@ -818,12 +818,12 @@ read side by side and there is no third copy to drift.
 **slot** reading is a second: `SlotAssignment` re-derives each piece's slot from topology alone — path
 order for the chain families, adjacency for the branches, hole-edge geometry for the donut — and never
 from where a rectangle happens to sit, so every placement knob above survives it. And the **vacancy**
-reading is a third: what an emitter declared it was leaving empty must match what `BodyEdges` reads back
+reading is a third: what an emitter declared it was leaving empty must match what `CompoundEdges` reads back
 off the finished rectangles. Emitter labels, deriver recovers, and the two are asserted equal at each
 level.
 
-The **body layer is checked the same way and separately**, so the wool and spawn path stays
-byte-identical: `BodyEmitter` emits a terminal-free compound and `ClassifyBody` reads it back by
+The **compound layer is checked the same way and separately**, so the wool and spawn path stays
+byte-identical: `CompoundEmitter` emits a terminal-free compound and `ClassifyCompound` reads it back by
 topology, strongest signal first — void count, then arm count, then bends. Void count does most of the
 work. **Two voids** split on whether an open channel or a solid wall separates them, giving `TwoUOnI`
 against `DoubleHole`. **One void** splits three ways on what sits beside the loop: an open bay is a
@@ -833,8 +833,8 @@ both read as two arms. Placement is deliberately invisible to it.
 
 The figures on this page are held to the same standard. `tools/deriver/figure-check.cs` parses every
 labelled grid out of this section and pushes it through the classifier that names that kind of thing —
-a body through `ClassifyBody`, a family through `ShapeClassifier`, a negative space through
-`BodyEdges` — so a figure that does not read as labelled is a failure rather than something a reader
+a compound through `ClassifyCompound`, a family through `ShapeClassifier`, a negative space through
+`CompoundEdges` — so a figure that does not read as labelled is a failure rather than something a reader
 has to catch. It reads the figures from the document rather than holding copies, which is what stops
 the two drifting apart.
 
@@ -934,7 +934,7 @@ board.
 
 The allocator can only aim in **footprints** — a box's rectangle is all it has before anything is
 filled — so the allowance the boxes share out is the land budget over the share of a footprint that
-survives as land once a body with a hole in it is emitted into it. What the unit actually built is read
+survives as land once a compound with a hole in it is emitted into it. What the unit actually built is read
 back off its filled pieces and held against **its own** budget — the nine tenths, not the band's whole
 land: an attempt that left land unplaced, or overran its share, is resampled rather than shipped. The band is
 wide, because footprint and land are different readings and only the second is the contract.
@@ -948,29 +948,29 @@ positioned relative to it. Nothing downstream re-opens that decision.
 Its **area** is what its share bought and its **aspect** is what varies between boards, sampled between
 1.3 and 2.4 wider than deep — so a hub spends what it was given whatever shape it comes out, and always
 grows wider rather than squarer. The long lateral edge is what gives the spawn and the wools room to
-attach with a gap between them, and past four corridors and a hole wide it affords the wide holed bodies,
+attach with a gap between them, and past four corridors and a hole wide it affords the wide holed compounds,
 whose bar and ring runs are long stretches of free surface. Every hole a composed hub keeps is at least 12
 blocks across — `LN6`'s floor for a plain hole — so a ring is only offered where two walls and that hole fit;
 a narrower hole is jumped rather than rounded and splits nothing. The frontline's reach pushes the hub's front
 edge back, so the frontline ends up between the hub and the axis rather than beside it.
 
 The allocator, not the filler, owns the choice of hub form, because the form decides where neighbours
-can sit. It emits the body once to read what that body offers, and the chosen form — with its wall
+can sit. It emits the compound once to read what that compound offers, and the chosen form — with its wall
 widths and arm layout, where it has them — rides on the hub box so the filler re-emits exactly the
-same body. A body sampled twice would not agree with itself.
+same compound. A compound sampled twice would not agree with itself.
 
 ### 5.4 The form decides where anything may dock
 
 Emitting is what turns a footprint into material. The form decides which cells inside the hub's
 rectangle are terrain and which are holes, and that distinction matters immediately, because the next
-thing read off the emitted body is where the hub actually has material along each of its four edges.
+thing read off the emitted compound is where the hub actually has material along each of its four edges.
 Those stretches are its **runs**.
 
 A run is not an edge and not a side. It is one contiguous interval of real material on one edge,
 measured in cells from that edge's origin. A solid rectangle offers a single run per edge, spanning it
 end to end. A ring or a U offers an edge broken into two runs with a hole between them, and a bay
 yields no run at all over its stretch. This is what stops a neighbour docking an empty stretch of an
-L-shaped hub's bounding box and meeting the real body only at a corner.
+L-shaped hub's bounding box and meeting the real compound only at a corner.
 
 Each run is published as an **offer**, carrying the width that run can support — a capacity derived
 from its own length. The offer bounds the search rather than filtering its output: a seat that would
@@ -978,11 +978,11 @@ put a neighbour where the hub has no material is never proposed, not proposed an
 
 ### 5.5 What the unit asks for
 
-With the body emitted and before any position exists, the allocator works out what the unit needs. It
+With the compound emitted and before any position exists, the allocator works out what the unit needs. It
 does not decide the counts: how many wool boxes there are and how large the spawn is both come off the
 budget ladders, and the allocator reads them as given. What the
-body buys it is the **runs** of §5.4: a neighbour is sized against the stretches the hub really offers
-rather than against its bounding box, which on a bay-fronted body are two different numbers — measured
+compound buys it is the **runs** of §5.4: a neighbour is sized against the stretches the hub really offers
+rather than against its bounding box, which on a bay-fronted compound are two different numbers — measured
 over the seed range, a `G` front is broken into runs on every board and a branch hub's on five in six,
 where a ring, a P, a double-hole and a solid rectangle are never broken at all. Its work
 here is to turn each into a `NeighbourRequest` — one per wool, one for the spawn, and one for the
@@ -1009,10 +1009,10 @@ Depth and along are named from the edge, not from the world. The same pair means
 neighbour docked to the hub's top and a z-extent on one docked to its left. That is inherent to an
 edge-relative frame, and it is the single most common source of confusion in the allocator.
 
-The one request the runs bound from **below** is the frontline's face. A body that leaves a bay in its
+The one request the runs bound from **below** is the frontline's face. A compound that leaves a bay in its
 own front is one the frontline is meant to close (§5.7), and the narrowest face that can is the one
 reaching a lane onto the shoulder each side of it — under that, no seat closes the bay however the face
-is slid, and the body's bay stays an open notch instead of becoming a hole. So the face's sample is
+is slid, and the compound's bay stays an open notch instead of becoming a hole. So the face's sample is
 floored there, rounded up to an even width first where the symmetry's parity law would otherwise round
 it back under. A solid front imposes no floor and the sample is the funnel's own.
 
@@ -1070,7 +1070,7 @@ the host, which is a pinch.
 
 **Overhang** knows there is exactly one entry and where it sits. The shape is emitted into a probe box
 to find the entry's interval, and the seat is then solved so that interval — and only that interval —
-lands inside a run. The body is free to hang past the run's end, over the bay or past the hub's corner.
+lands inside a run. The compound is free to hang past the run's end, over the bay or past the hub's corner.
 Both handednesses are tried and one legal placement is sampled.
 
 **Contact patch** applies to the frontline alone, which is a face rather than a corridor and so has no
@@ -1085,7 +1085,7 @@ seat may carry the face past the hub's corners by **two cells across both ends t
 which is the same allowance the sampled width is drawn with — a face is a front the mid meets, not a spur
 reaching off the hub's flank, and a seat bounded only by how much of the face still touches would let one
 hang almost entirely clear. And where the hub's own front edge carries a **bay**, a seat that spans it is
-preferred over one that does not: a G, U or L is a body whose bay the frontline is meant to *close*,
+preferred over one that does not: a G, U or L is a compound whose bay the frontline is meant to *close*,
 turning it into the declared hole that is CT8's rotation device, where a face seated to one side leaves it
 open as a notch and puts the whole crossing off the hub's flank. Preferred rather than required, because
 a face narrower than the bay and its two shoulders has no seat that could span it, which is why §5.5
@@ -1195,8 +1195,8 @@ Allocation settles structure and position; filling puts terrain inside what it s
 between them is not a formality, because a decision taken on the wrong side of it is taken without the
 information that should have governed it.
 
-Most of the fill is already determined. The hub re-emits the body the allocator chose, at the same wall
-widths and arm layout, because a body sampled twice would not agree with itself. A **wool** re-emits
+Most of the fill is already determined. The hub re-emits the compound the allocator chose, at the same wall
+widths and arm layout, because a compound sampled twice would not agree with itself. A **wool** re-emits
 the exact family it was seated as, and must not re-pick: the box was positioned for *that* family's
 entry, so a different family of the same footprint would put its entry somewhere the seat never
 cleared. What each neighbour builds to is likewise fixed — the width its own joint was granted.
@@ -1432,7 +1432,7 @@ inconvenience from reading as contested ground.
 Where terrain meets build, the deriver records the boundary. This is the part of the model where
 careless vocabulary does the most damage, so the terms are fixed:
 
-- an **edge** is one full side of a box or a body, end to end — never a portion of one;
+- an **edge** is one full side of a box or a compound, end to end — never a portion of one;
 - a **run** is one contiguous stretch along a boundary;
 - an **interval** is the stretch where two things actually touch.
 
@@ -1648,9 +1648,9 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 
 | Piece | Path | What |
 |---|---|---|
-| `ShapeEmitter` | `Shapes/ShapeEmitter.cs` | **emit**, in two stages: `Body` builds the terminal-free compound, a designation finishes it (`Emit` = the approach designation, stamping the terminal room + marker). No roles, no ids, no plan types. |
-| `BodyEmitter` · `Compound` | `Shapes/BodyEmitter.cs`, `Shapes/Compound.cs` | the terminal-free body vocabulary (`Rectangle · SpineArms · Ring · DoubleHole · P · G · TwoUOnI`) and its emitter. |
-| `BodyEdges` | `Shapes/BodyEdges.cs` | the edge-taxonomy reader (§4): negative spaces by wall count, their parts, mouths and the offerable surface — from geometry alone. |
+| `ShapeEmitter` | `Shapes/ShapeEmitter.cs` | **emit**, in two stages: `EmitCompound` builds the compound, a designation finishes it (`Emit` = the approach designation, stamping the terminal room + marker). No roles, no ids, no plan types. |
+| `CompoundEmitter` · `CompoundForm` | `Shapes/CompoundEmitter.cs`, `Shapes/CompoundForm.cs` | the compound forms (`Rectangle · SpineArms · Ring · DoubleHole · P · G · TwoUOnI`) and its emitter. |
+| `CompoundEdges` | `Shapes/CompoundEdges.cs` | the edge-taxonomy reader (§4): negative spaces by wall count, their parts, mouths and the offerable surface — from geometry alone. |
 | `ShapeClassifier` | `Shapes/ShapeClassifier.cs` | **shape deriver**: `Classify` → `ShapeFamily` (9 families), width-independent; `ClassifyOpen` → `LaneRead` is the board-level corridor bend read (`LaneName` → string `I/L/Z/complex/plaza/none`; the retired `WoolLaneShape` was a thin adapter over it). |
 | `SlotAssignment` | `Shapes/SlotAssignment.cs` | **slot deriver**: `AssignSlots(family, pieces, roomId)` → piece→slot, re-derived from topology — the emitter's slot mirror (§4). |
 
@@ -1681,8 +1681,8 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `Producibility` | `Compose/Producibility.cs` | "could the composer have produced this?" — answered by search over the declared menus, not by inverse. |
 | `WoolBoxEmitter` | `Compose/WoolBoxEmitter.cs` | the wool binding over `ShapeEmitter` — fills a wool box, terminal → wool room + marker. |
 | `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding: profile {I, L} + `Fill`, terminal → `Spawn` room + marker. |
-| `HubBoxEmitter` → `EmittedHub` | `Compose/HubBoxEmitter.cs` | the **hub** designation: a terminal-free body plus the per-run `EdgeOffer`s it publishes as the constraint source. |
-| `FrontlineBoxEmitter` → `EmittedFrontline` | `Compose/FrontlineBoxEmitter.cs` | the **frontline** designation: spine docks the hub, arm-tips are the face, carrying the face offers the mid consumes. |
+| `HubBoxEmitter` → `PlacedHub` | `Compose/HubBoxEmitter.cs` | the **hub** designation: a terminal-free compound plus the per-run `EdgeOffer`s it publishes as the constraint source. |
+| `FrontlineBoxEmitter` → `PlacedFrontline` | `Compose/FrontlineBoxEmitter.cs` | the **frontline** designation: spine docks the hub, arm-tips are the face, carrying the face offers the mid consumes. |
 | `EdgeOffer` · `OfferGrouping` | `Compose/Boxes/EdgeOffer.cs` | the **offer**: where a neighbour may attach, at what width, in which grouping (§7). |
 | `FillProfiles` | `Compose/Boxes/FillProfiles.cs` | the per-`BoxKind` profile as data: legal families + the footprint fit gate. |
 | `BoxFiller` | `Compose/Boxes/BoxFiller.cs` | the one profile-gated fill entry point over a positioned `Box` + land-vs-target accounting (the spine G63 drives). |

@@ -1,8 +1,8 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 // Figure check for the shape model's ASCII catalogs: every labelled grid drawn in the shape-model section of
 // docs/generator/model.md is parsed back out of the doc and pushed through the real classifier for its kind.
-// A body figure must read as its Compound (ClassifyBody), a family figure as its ShapeFamily
-// (ShapeClassifier.Classify), a negative-space figure as its NegativeSpaceKinds word (BodyEdges.Classify).
+// A compound figure must read as its CompoundForm (ClassifyCompound), a family figure as its ShapeFamily
+// (ShapeClassifier.Classify), a negative-space figure as its NegativeSpaceKinds word (CompoundEdges.Classify).
 //
 // The figures are READ FROM THE DOC, never duplicated here, so this cannot drift from what a reader sees.
 // Three of the figures were wrong when
@@ -132,19 +132,19 @@ foreach (var (label, grid) in figures)
             var (got, _) = ShapeClassifier.Classify(filled, wool);
             (claim, read, ok) = (family.ToString(), got.ToString(), got == family);
         }
-        else if (Enum.TryParse<Compound>(name, ignoreCase: true, out var compound))
+        else if (Enum.TryParse<CompoundForm>(name, ignoreCase: true, out var compound))
         {
-            var got = ShapeClassifier.ClassifyBody(Cells(grid, 't'));
-            var armsOk = compound != Compound.SpineArms || got.Arms == arms;
+            var got = ShapeClassifier.ClassifyCompound(Cells(grid, 't'));
+            var armsOk = compound != CompoundForm.SpineArms || got.Arms == arms;
             claim = compound + (arms > 0 ? $"({arms})" : "");
-            read = got.Form + (got.Form == Compound.SpineArms ? $"({got.Arms})" : "");
+            read = got.Form + (got.Form == CompoundForm.SpineArms ? $"({got.Arms})" : "");
             ok = got.Form == compound && armsOk;
         }
         else if (NegativeSpaceKinds.All.Contains(name.ToLowerInvariant()))
         {
-            // the drawn body's negative spaces must include one of the claimed class
+            // the drawn compound's negative spaces must include one of the claimed class
             var kind = name.ToLowerInvariant();
-            var spaces = BodyEdges.Classify(Cells(grid, 't')).Spaces;
+            var spaces = CompoundEdges.Classify(Cells(grid, 't')).Spaces;
             var kinds = spaces.Select(s => s.Kind).ToList();
             claim = kind;
             read = kinds.Count == 0 ? "(no space)" : string.Join("/", kinds.Distinct());

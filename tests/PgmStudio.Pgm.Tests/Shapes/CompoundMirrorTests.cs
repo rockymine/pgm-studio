@@ -4,36 +4,36 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Shapes;
 
 /// <summary>
-/// The body-layer emit↔derive mirror (docs/generator/model.md §5): every terminal-free compound
-/// <see cref="BodyEmitter"/> builds classifies back to itself through <see cref="ShapeClassifier.ClassifyBody"/>.
+/// The compound-layer emit↔derive mirror (docs/generator/model.md §5): every terminal-free compound
+/// <see cref="CompoundEmitter"/> builds classifies back to itself through <see cref="ShapeClassifier.ClassifyCompound"/>.
 /// Each emission must also be one connected mass, tile without overlap, and join along shared edges only — the
 /// alignment law (§3), asserted as the absence of a diagonal pinch. The branch family is capped at three arms and
 /// reads by arm count regardless of placement (an F and a Π both read <c>SpineArms(2)</c>).
 /// </summary>
-public sealed class BodyMirrorTests
+public sealed class CompoundMirrorTests
 {
-    private static HashSet<(int, int)> CellsOf(ShapeBody body)
+    private static HashSet<(int, int)> CellsOf(Compound compound)
     {
         var cells = new HashSet<(int, int)>();
-        foreach (var (r, _) in body.Pieces)
+        foreach (var (r, _) in compound.Pieces)
             for (var x = r.X; x < r.X + r.Width; x++)
                 for (var z = r.Z; z < r.Z + r.Height; z++) cells.Add((x, z));
         return cells;
     }
 
-    private static int Overlaps(ShapeBody body)
+    private static int Overlaps(Compound compound)
     {
         var seen = new HashSet<(int, int)>(); var n = 0;
-        foreach (var (r, _) in body.Pieces)
+        foreach (var (r, _) in compound.Pieces)
             for (var x = r.X; x < r.X + r.Width; x++)
                 for (var z = r.Z; z < r.Z + r.Height; z++) if (!seen.Add((x, z))) n++;
         return n;
     }
 
-    private static async Task Wellformed(ShapeBody body)
+    private static async Task Wellformed(Compound compound)
     {
-        var cells = CellsOf(body);
-        await Assert.That(Overlaps(body)).IsEqualTo(0);                         // pieces tile without overlap
+        var cells = CellsOf(compound);
+        await Assert.That(Overlaps(compound)).IsEqualTo(0);                         // pieces tile without overlap
         await Assert.That(Cells.Components(cells)).IsEqualTo(1);                // one connected mass
         await Assert.That(Cells.HasDiagonalPinch(cells)).IsFalse();            // edge-aligned joins only (§3)
     }
@@ -46,10 +46,10 @@ public sealed class BodyMirrorTests
     {
         foreach (var cw in new[] { 2, 3 })
         {
-            var body = BodyEmitter.SpineArms(cw, arms);
-            await Wellformed(body);
-            var read = ShapeClassifier.ClassifyBody(CellsOf(body));
-            await Assert.That(read.Form).IsEqualTo(Compound.SpineArms);
+            var compound = CompoundEmitter.SpineArms(cw, arms);
+            await Wellformed(compound);
+            var read = ShapeClassifier.ClassifyCompound(CellsOf(compound));
+            await Assert.That(read.Form).IsEqualTo(CompoundForm.SpineArms);
             await Assert.That(read.Arms).IsEqualTo(arms);
         }
     }
@@ -60,14 +60,14 @@ public sealed class BodyMirrorTests
     public async Task SpineArms_reads_by_count_regardless_of_placement()
     {
         const int cw = 2;
-        var pi = BodyEmitter.SpineArms(cw, [0, 4 * cw], 5 * cw);        // Π — arms at both ends
-        var f = BodyEmitter.SpineArms(cw, [0, 2 * cw], 5 * cw);        // F — an end and the middle
-        var e = BodyEmitter.SpineArms(cw, [0, 2 * cw, 4 * cw], 5 * cw); // E — three arms
-        foreach (var (body, arms) in new[] { (pi, 2), (f, 2), (e, 3) })
+        var pi = CompoundEmitter.SpineArms(cw, [0, 4 * cw], 5 * cw);        // Π — arms at both ends
+        var f = CompoundEmitter.SpineArms(cw, [0, 2 * cw], 5 * cw);        // F — an end and the middle
+        var e = CompoundEmitter.SpineArms(cw, [0, 2 * cw, 4 * cw], 5 * cw); // E — three arms
+        foreach (var (compound, arms) in new[] { (pi, 2), (f, 2), (e, 3) })
         {
-            await Wellformed(body);
-            var read = ShapeClassifier.ClassifyBody(CellsOf(body));
-            await Assert.That(read.Form).IsEqualTo(Compound.SpineArms);
+            await Wellformed(compound);
+            var read = ShapeClassifier.ClassifyCompound(CellsOf(compound));
+            await Assert.That(read.Form).IsEqualTo(CompoundForm.SpineArms);
             await Assert.That(read.Arms).IsEqualTo(arms);
         }
     }
@@ -77,18 +77,18 @@ public sealed class BodyMirrorTests
     [Test]
     public async Task SpineArms_reads_by_count_under_varied_atom_sizes()
     {
-        var f = BodyEmitter.SpineArms(spineLen: 14, barThickness: 4, arms: [(0, 4, 10), (8, 2, 4)]);
+        var f = CompoundEmitter.SpineArms(spineLen: 14, barThickness: 4, arms: [(0, 4, 10), (8, 2, 4)]);
         await Wellformed(f);
-        var read = ShapeClassifier.ClassifyBody(CellsOf(f));
-        await Assert.That(read.Form).IsEqualTo(Compound.SpineArms);
+        var read = ShapeClassifier.ClassifyCompound(CellsOf(f));
+        await Assert.That(read.Form).IsEqualTo(CompoundForm.SpineArms);
         await Assert.That(read.Arms).IsEqualTo(2);
     }
 
     [Test]
     public async Task SpineArms_caps_at_three_arms()
     {
-        await Assert.That(() => BodyEmitter.SpineArms(2, 4)).Throws<ArgumentException>();
-        await Assert.That(() => BodyEmitter.SpineArms(2, [0, 2, 4, 6], 8)).Throws<ArgumentException>();
+        await Assert.That(() => CompoundEmitter.SpineArms(2, 4)).Throws<ArgumentException>();
+        await Assert.That(() => CompoundEmitter.SpineArms(2, [0, 2, 4, 6], 8)).Throws<ArgumentException>();
     }
 
     [Test]
@@ -96,9 +96,9 @@ public sealed class BodyMirrorTests
     {
         foreach (var cw in new[] { 2, 3 })
         {
-            var body = BodyEmitter.Rectangle(4 * cw, 3 * cw);
-            await Wellformed(body);
-            await Assert.That(ShapeClassifier.ClassifyBody(CellsOf(body)).Form).IsEqualTo(Compound.Rectangle);
+            var compound = CompoundEmitter.Rectangle(4 * cw, 3 * cw);
+            await Wellformed(compound);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(compound)).Form).IsEqualTo(CompoundForm.Rectangle);
         }
     }
 
@@ -108,15 +108,15 @@ public sealed class BodyMirrorTests
     {
         foreach (var cw in new[] { 2, 3 })
         {
-            var ring = BodyEmitter.Ring(cw, 4 * cw, 4 * cw);
+            var ring = CompoundEmitter.Ring(cw, 4 * cw, 4 * cw);
             await Wellformed(ring);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(ring)))).IsEqualTo(1);
-            await Assert.That(ShapeClassifier.ClassifyBody(CellsOf(ring)).Form).IsEqualTo(Compound.Ring);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(ring)).Form).IsEqualTo(CompoundForm.Ring);
 
-            var p = BodyEmitter.P(cw, 4 * cw, 4 * cw);
+            var p = CompoundEmitter.P(cw, 4 * cw, 4 * cw);
             await Wellformed(p);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(p)))).IsEqualTo(1);
-            await Assert.That(ShapeClassifier.ClassifyBody(CellsOf(p)).Form).IsEqualTo(Compound.P);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(p)).Form).IsEqualTo(CompoundForm.P);
         }
     }
 
@@ -126,15 +126,15 @@ public sealed class BodyMirrorTests
     {
         foreach (var cw in new[] { 2, 3 })
         {
-            var dh = BodyEmitter.DoubleHole(cw, 5 * cw, 6 * cw);
+            var dh = CompoundEmitter.DoubleHole(cw, 5 * cw, 6 * cw);
             await Wellformed(dh);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(dh)))).IsEqualTo(2);
-            await Assert.That(ShapeClassifier.ClassifyBody(CellsOf(dh)).Form).IsEqualTo(Compound.DoubleHole);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(dh)).Form).IsEqualTo(CompoundForm.DoubleHole);
 
-            var twin = BodyEmitter.TwoUOnI(cw, 4 * cw);
+            var twin = CompoundEmitter.TwoUOnI(cw, 4 * cw);
             await Wellformed(twin);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(twin)))).IsEqualTo(2);
-            await Assert.That(ShapeClassifier.ClassifyBody(CellsOf(twin)).Form).IsEqualTo(Compound.TwoUOnI);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(twin)).Form).IsEqualTo(CompoundForm.TwoUOnI);
         }
     }
 
@@ -145,10 +145,10 @@ public sealed class BodyMirrorTests
     {
         foreach (var cw in new[] { 2, 3 })
         {
-            var g = BodyEmitter.G(cw, 4 * cw, 4 * cw, 6 * cw);
+            var g = CompoundEmitter.G(cw, 4 * cw, 4 * cw, 6 * cw);
             await Wellformed(g);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(g)))).IsEqualTo(1);   // only the ring is enclosed
-            await Assert.That(ShapeClassifier.ClassifyBody(CellsOf(g)).Form).IsEqualTo(Compound.G);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(g)).Form).IsEqualTo(CompoundForm.G);
         }
     }
 
@@ -159,20 +159,20 @@ public sealed class BodyMirrorTests
     {
         const int cw = 2;
         // equal: a full-height U whose bay matches the ring interior exactly
-        var equal = BodyEmitter.DoubleHole(cw, 4 * cw, 5 * cw, uW: 3 * cw, uH: 5 * cw, uz: 0);
+        var equal = CompoundEmitter.DoubleHole(cw, 4 * cw, 5 * cw, uW: 3 * cw, uH: 5 * cw, uz: 0);
         var holes = equal.Vacancies.Where(v => v.Kind == "hole").Select(v => (v.Rect.Width, v.Rect.Height)).ToList();
         await Wellformed(equal);
         await Assert.That(holes.Count).IsEqualTo(2);
         await Assert.That(holes[0]).IsEqualTo(holes[1]);                         // the two holes are the same size
-        await Assert.That(ShapeClassifier.ClassifyBody(CellsOf(equal)).Form).IsEqualTo(Compound.DoubleHole);
+        await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(equal)).Form).IsEqualTo(CompoundForm.DoubleHole);
 
         // variant: a shorter U slid down the edge, still two voids apart by the solid leg
         foreach (var uz in new[] { cw, 2 * cw, 3 * cw })
         {
-            var dh = BodyEmitter.DoubleHole(cw, 5 * cw, 8 * cw, uW: 2 * cw, uH: 3 * cw, uz: uz);
+            var dh = CompoundEmitter.DoubleHole(cw, 5 * cw, 8 * cw, uW: 2 * cw, uH: 3 * cw, uz: uz);
             await Wellformed(dh);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(dh)))).IsEqualTo(2);
-            await Assert.That(ShapeClassifier.ClassifyBody(CellsOf(dh)).Form).IsEqualTo(Compound.DoubleHole);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(dh)).Form).IsEqualTo(CompoundForm.DoubleHole);
         }
     }
 }

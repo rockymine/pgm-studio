@@ -7,7 +7,7 @@ namespace PgmStudio.Pgm.Compose;
 /// <summary>The filled spawn box: its terrain pieces (slot- and box-labeled), the <see cref="PlanRoles.Spawn"/>
 /// room the lane dead-ends into, the spawn marker's offset within that room, and the length of the entry run
 /// (from the hub-side edge to the first turn/room) a wool box may dock along.</summary>
-public sealed record EmittedSpawn(IReadOnlyList<GrownPiece> Pieces, GrownPiece Room, double[] MarkerAt, int EntryLen);
+public sealed record PlacedSpawn(IReadOnlyList<GrownPiece> Pieces, GrownPiece Room, double[] MarkerAt, int EntryLen);
 
 /// <summary>
 /// The spawn binding over <see cref="ShapeEmitter"/> — the <b>second box kind</b> after the wool box. A spawn
@@ -19,7 +19,7 @@ public sealed record EmittedSpawn(IReadOnlyList<GrownPiece> Pieces, GrownPiece R
 /// the per-kind profile table.
 ///
 /// <para><c>Fill</c> fills a plan-cell <see cref="Box"/> the same way the wool box does — emit mouth-up,
-/// turn onto the docking edge (<see cref="EmittedShape.Turned"/>) — and stamps the spawn specifics: every piece
+/// turn onto the docking edge (<see cref="ApproachShape.Turned"/>) — and stamps the spawn specifics: every piece
 /// carries its slot and the spawn <see cref="BoxRef"/>, the room takes the <see cref="PlanRoles.Spawn"/> role,
 /// and it reports the entry-run length a wool box may dock along. The grower allocates the box against the hub's
 /// back edge and pins the entry run's cross band; the marker's facing (SP3, toward the axis) is stamped at
@@ -48,18 +48,18 @@ public static class SpawnBoxEmitter
 
     /// <summary>Fill a spawn <see cref="Box"/> (plan cells) docking <paramref name="mouth"/> with an I or L, its
     /// terminal a <see cref="PlanRoles.Spawn"/> room. Mirrors the wool box's plan-cell fill — emit mouth-up, then
-    /// turn onto the mouth (<see cref="EmittedShape.Turned"/>) — but stamps the spawn role and reports the
+    /// turn onto the mouth (<see cref="ApproachShape.Turned"/>) — but stamps the spawn role and reports the
     /// <b>entry-run length</b> (outward from the mouth) a wool box may dock along. Pieces carry the
     /// <paramref name="box"/> label + their slot; the room takes <paramref name="roomId"/>. <paramref name="flip"/>
     /// puts an L's hook on the other side. Null when the footprint is too small (a directed signal, not a throw).</summary>
-    public static EmittedSpawn? Fill(Box box, BoxEdge mouth, ShapeFamily family, int cw, bool flip, string roomId) =>
+    public static PlacedSpawn? Fill(Box box, BoxEdge mouth, ShapeFamily family, int cw, bool flip, string roomId) =>
         Fill(box, mouth, family, cw, flip, roomId, out _);
 
     /// <inheritdoc cref="Fill(Box, BoxEdge, ShapeFamily, int, bool, string)"/>
     /// <remarks>On a <c>null</c> return, <b>why</b> the fill was refused — the directed reason in
     /// the shared <see cref="FillRejection"/> vocabulary (the family's minimum box, in the mouth's frame).
     /// <c>null</c> when the fill succeeded.</remarks>
-    public static EmittedSpawn? Fill(
+    public static PlacedSpawn? Fill(
         Box box, BoxEdge mouth, ShapeFamily family, int cw, bool flip, string roomId,
         out FillRejection? rejection)
     {
@@ -83,9 +83,9 @@ public static class SpawnBoxEmitter
         var shape = mouthTop.Turned(mouth.TopOnto(), w, h);
 
         var boxRef = new BoxRef(box.Id, BoxKind.Spawn);
-        var pieces = new List<GrownPiece>(shape.Terrain.Count + 1);
+        var pieces = new List<GrownPiece>(shape.Compound.Pieces.Count + 1);
         var n = 1;
-        foreach (var (r, slot) in shape.Terrain)
+        foreach (var (r, slot) in shape.Compound.Pieces)
             pieces.Add(new GrownPiece($"{box.Id}-t{n++}", new(box.Rect.X + r.X, box.Rect.Z + r.Z, r.Width, r.Height),
                 PlanRoles.Piece, slot, boxRef));
         var rr = shape.Room;
@@ -94,8 +94,8 @@ public static class SpawnBoxEmitter
         pieces.Add(room);
 
         // the entry run's outward length (perpendicular to the mouth) — the interval a wool box docks along
-        var entry = shape.Terrain.First(t => t.Slot == ApproachSlots.Entry).Rect;
+        var entry = shape.Compound.Pieces.First(t => t.Slot == ApproachSlots.Entry).Rect;
         var entryLen = mouth is BoxEdge.Top or BoxEdge.Bottom ? entry.Height : entry.Width;
-        return new EmittedSpawn(pieces, room, shape.At, entryLen);
+        return new PlacedSpawn(pieces, room, shape.At, entryLen);
     }
 }

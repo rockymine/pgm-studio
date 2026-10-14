@@ -29,7 +29,7 @@ public static class TeamUnitFiller
     /// (a partition derived rather than allocated) falls back to what the run this dock lands on can support.
     /// Throws <see cref="ComposeException"/> when the hub published no offer at all on that edge (the allocator
     /// only docks a neighbour where the hub offered).</summary>
-    public static int ConsumedCw(EmittedHub hub, BoxJoint joint, BoxEdge hubEdge)
+    public static int ConsumedCw(PlacedHub hub, BoxJoint joint, BoxEdge hubEdge)
     {
         if (joint.Grant is { } granted) return granted.WidthClass;
 
@@ -45,8 +45,8 @@ public static class TeamUnitFiller
     /// <paramref name="joint"/>, at the width that joint was granted (the spawn's mouth is
     /// <paramref name="spawnMouth"/>, the edge facing the hub). <c>null</c> when the footprint is too small — a
     /// directed signal the allocator resizes against.</summary>
-    public static EmittedSpawn? FillSpawn(
-        EmittedHub hub, BoxJoint joint, BoxEdge hubEdge, Box spawnBox, BoxEdge spawnMouth, ShapeFamily family,
+    public static PlacedSpawn? FillSpawn(
+        PlacedHub hub, BoxJoint joint, BoxEdge hubEdge, Box spawnBox, BoxEdge spawnMouth, ShapeFamily family,
         bool flip, string roomId) =>
         SpawnBoxEmitter.Fill(spawnBox, spawnMouth, family, ConsumedCw(hub, joint, hubEdge), flip, roomId);
 
@@ -55,7 +55,7 @@ public static class TeamUnitFiller
     /// <see cref="BoxFiller"/> so the dock is gated legal and the family is checked against the wool width menu
     /// (the granted width chooses the menu row).</summary>
     public static FillResult FillWool(
-        EmittedHub hub, BoxJoint joint, BoxEdge hubEdge, Box woolBox, BoxEdge woolMouth, ShapeFamily family,
+        PlacedHub hub, BoxJoint joint, BoxEdge hubEdge, Box woolBox, BoxEdge woolMouth, ShapeFamily family,
         bool flip, string roomId) =>
         BoxFiller.Fill(woolBox, woolMouth, ConsumedCw(hub, joint, hubEdge), family, flip, roomId);
 
@@ -77,10 +77,10 @@ public static class TeamUnitFiller
         var hubJoints = partition.JointsOf(hubBox.Id);
 
         // the hub emits first, at the form the allocator chose (Box.Form; the solid rectangle when unset) — the
-        // same body the allocator seated its neighbours against, so every dock lands on real terrain (§4's
+        // same compound the allocator seated its neighbours against, so every dock lands on real terrain (§4's
         // offerable surface), never an empty bounding-box stretch. It publishes each run at what that run can
         // support; what each neighbour was granted rides on its own joint.
-        var form = hubBox.Form ?? new CompoundRead(Compound.Rectangle);
+        var form = hubBox.Form ?? new CompoundRead(CompoundForm.Rectangle);
         if (HubBoxEmitter.Fill(hubBox, form, hubBox.HubCorridor, hubBox.FlipV, hubBox.HubWalls,
                 hubBox.HubArms) is not { } hub)
             return null;
@@ -134,10 +134,10 @@ public static class TeamUnitFiller
                     // the frontline form answers the hub form: a branch hub takes the wide Bar across its front
                     // (it overlaps the short leg), but a square or holed hub prefers a staple/strand — a solid Bar
                     // flush against an already-square hub reads flat (a square on a square).
-                    var hubForm = hubBox.Form?.Form ?? Compound.Rectangle;
-                    var bar = fitF.FirstOrDefault(f => f.Form == Compound.Rectangle);
-                    var strands = fitF.Where(f => f.Form == Compound.SpineArms).ToList();
-                    var frontForm = hubForm == Compound.SpineArms && bar is not null ? bar
+                    var hubForm = hubBox.Form?.Form ?? CompoundForm.Rectangle;
+                    var bar = fitF.FirstOrDefault(f => f.Form == CompoundForm.Rectangle);
+                    var strands = fitF.Where(f => f.Form == CompoundForm.SpineArms).ToList();
+                    var frontForm = hubForm == CompoundForm.SpineArms && bar is not null ? bar
                         : strands.Count > 0 ? strands[rng.NextInt(0, strands.Count)]
                         : fitF[rng.NextInt(0, fitF.Count)];
                     var grouping = rng.NextBool(0.5) ? OfferGrouping.Joint : OfferGrouping.Several;
@@ -145,7 +145,7 @@ public static class TeamUnitFiller
                     // under the leg laws: ≥2 wide, factor-2 pairs, 2–4 bays, capped end recesses) with the
                     // canonical fat L / symmetric twin as the fallback when the spine cannot host one
                     var spineLenF = mouth is BoxEdge.Left or BoxEdge.Right ? neighbour.Rect.Height : neighbour.Rect.Width;
-                    var layoutF = frontForm.Form == Compound.SpineArms
+                    var layoutF = frontForm.Form == CompoundForm.SpineArms
                         ? FrontlineBoxEmitter.SampleArms(rng, spineLenF, frontForm.Arms) : null;
                     var ef = (layoutF is null ? null
                             : FrontlineBoxEmitter.Fill(neighbour, frontForm, cwF, grouping, mouth, armLayout: layoutF))

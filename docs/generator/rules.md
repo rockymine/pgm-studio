@@ -1115,18 +1115,18 @@ same commit.
     around it (`TP6` rewrites only stone); nothing is filled downward. No other rule changes — `ST2`'s spawn
     piece never laid a floor, and `ST4`'s wall keeps its bedrock, which is a barrier rather than a plinth.
 
-40. **The hub's body is chosen before its neighbours are sized (2026-09-18).** Author's call. A neighbour
+40. **The hub's compound is chosen before its neighbours are sized (2026-09-18).** Author's call. A neighbour
     docks onto the **runs** a hub offers, and the allocator sized every one of them against the hub's
-    *bounding box* — two different numbers on a bay-fronted body, and `model.md` §5.4 already described the
+    *bounding box* — two different numbers on a bay-fronted compound, and `model.md` §5.4 already described the
     form as decided first. Measured over 480 boards, 104 have a front edge whose longest run is shorter than
     that box edge (median shortfall 32 blocks, max 96), and it is two forms entirely: `G` at **100%** and
     `SpineArms` at **85%**, against `Ring`, `P`, `DoubleHole` and `Rectangle` at none.
 
-    `Allocate` now picks the form, its walls and its arms, emits the body, reads its front runs, and sizes
-    the requests against those. Emitting is a pure function of those three, so the three readers of the body
+    `Allocate` now picks the form, its walls and its arms, emits the compound, reads its front runs, and sizes
+    the requests against those. Emitting is a pure function of those three, so the three readers of the compound
     — the sizing, the seating, the filler — see the same one with no draw between them. The fallback ladder
     is untouched: it demotes toward the solid rectangle, which offers strictly more free surface than any
-    holed body, so a request sized against a `G`'s runs fits the rectangle that replaces it.
+    holed compound, so a request sized against a `G`'s runs fits the rectangle that replaces it.
 
     What the sizing does with the runs is floor the **frontline's face** at the width that closes a bay — a
     lane onto the shoulder each side of it — since under that no seat closes it however the face is slid.
@@ -1145,7 +1145,7 @@ same commit.
     worst of 88. The seat now reads the same allowance, which takes it to **1%** and a worst of 8 — the
     budget itself — with `G`, `P`, `DoubleHole` and `Rectangle` hubs at none.
 
-    And a hub whose body leaves a **bay** in its own front edge is meant to have it **closed** by the
+    And a hub whose compound leaves a **bay** in its own front edge is meant to have it **closed** by the
     frontline, which turns the bay into the declared hole `CT8` calls the rotation device. Where any legal
     seat spans the bay, those are now the seats the sample is taken over: 59% of bay-fronted hubs were
     sealed, then 69% with the seat bounded and **75%** with the preference. Amendment 40 takes the rest.

@@ -8833,6 +8833,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the mouth-to-top turn and the turn onto a docking edge are each one, through `EmittedShape.Turned` and
   `ShapeBody.Turned`, and the composer's fingerprints are unchanged. `docs/generator/vocabulary.md`. (`G293`)
 
+- **The shape model's words name what the types are (`G294`)** — a `Compound` is a shape combined out of rectangle
+  pieces with the bays, holes and notches they leave, and its `CompoundForm` is what the pieces make; an
+  `ApproachShape` is a compound with a wool or spawn room attached; `PlacedApproach`, `PlacedSpawn`, `PlacedHub`
+  and `PlacedFrontline` are each box kind's result placed on the plan. The approach's rectangles have one name,
+  `Compound.Pieces`, and the composer's fingerprints are unchanged. `docs/generator/model.md` §4. (`G294`)
+
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
   Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.

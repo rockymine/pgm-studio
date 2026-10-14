@@ -200,7 +200,7 @@ row, `rot_180`:
 
 Read down the columns and the ladders are visible as behaviour. Eight and twelve players compose the same
 boards, because both are the nano band. Every board carries a frontline. The ring is the commonest hub at every
-size, and the wide holed bodies — double-hole, G and P — arrive only at thirty, where a hub is wide enough to
+size, and the wide holed compounds — double-hole, G and P — arrive only at thirty, where a hub is wide enough to
 keep a bar beside a ring whose hole is still 12 blocks. A wool count sums past the board count because a family
 is counted once per board however many approaches of it that board carries.
 
@@ -319,7 +319,7 @@ facing the mid." The drawer shows no raw numbers, no seed, no descriptor JSON an
 
 **Land spend is two currencies, and the compose answer says so.** *Footprint* is the box rectangle, fixed when the box
 was seated; *land* is what the filled pieces actually cover, which is what the spend gate holds against the
-budget. The per-box rows are footprints — a box does not know what its body left standing until it is filled —
+budget. The per-box rows are footprints — a box does not know what its compound left standing until it is filled —
 and the total land is the unit's own, for **one team unit**, the board being that unit fanned.
 
 The band's land buys two things, and the answer's `spend` reports both against their own shares. The **unit** takes nine

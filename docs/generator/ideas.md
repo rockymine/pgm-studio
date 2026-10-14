@@ -35,7 +35,7 @@ landed, the rest is the idea.
 - **G105** *(partial — the asymmetric ring, the branch leg sampler and its bounded bay shipped)* — bigger/better hubs: a raised
   depth cap, form→size fit, and the per-piece width knob where it is still uniform — the branch hub's **bar**
   thickness and **leg length** (the emitter's per-arm overload carries both; only the leg's width is sampled) and
-  a hub arm count of three (the E/comb the body emitter supports but `HubBoxEmitter` refuses).
+  a hub arm count of three (the E/comb the compound emitter supports but `HubBoxEmitter` refuses).
 - **G130** — **the budget has no price for a widened part.** Ring-wall widening ships (G129): a hub ring may carry
   one side wider than the rest, sampled under the ratio cap. What it costs is currently nothing — widening spends
   the box's *geometric* slack (the hole narrows, the box does not grow), so the two-currency budget sees the same
@@ -48,7 +48,7 @@ landed, the rest is the idea.
   (`UnitTuning.WoolCorridorCells`, `Box.HubCorridor`). The remaining cases are the parts *docked onto* a ring, which
   deliberately kept a plain `cw` — the P's overhanging bar, the G's L-upright, the DoubleHole's U — plus the
   approach lanes and the frontline's spine. **Relation to its neighbours:** G105 owns the per-piece width knob for
-  hub bodies, G82/G83 own entry widening for wool approaches; this is the generalization those are special cases
+  hub compounds, G82/G83 own entry widening for wool approaches; this is the generalization those are special cases
   of. Precedent for the knob exists on the approach side already — the donut's sampled hub-entry width
   (`AttachmentWidth`) is per-part width in all but name.
 - **G106** *(partial)* — the observed seat/emit failure modes (taxonomy §9 F2–F5): flush lanes at branch-hub
@@ -118,7 +118,7 @@ landed, the rest is the idea.
   > space-packing switchback against a defensible landing.
 
   **The flow read exists as a prototype, and it settles three things about this entry** ("Flow in generated
-  boards", 210 boards from `Composer.ComposeStages` with `PlanBoxAnnotation.Apply`, hub bodies and wool
+  boards", 210 boards from `Composer.ComposeStages` with `PlanBoxAnnotation.Apply`, hub compounds and wool
   families off `StructureSummary.Derive`; the family census widened to 5200 boards / 9154 wools).
 
   *It confirms the term order and supplies the numbers.* **Redundancy** reads **zero on 97% of boards** —
@@ -312,7 +312,7 @@ landed, the rest is the idea.
   gate the vacuous terms → this → soft rules become causal.
 
 - [ ] **G165 — dock arrangement belongs in the structure summary.** Which face of the hub each box seats on
-  is a board property with measured consequences and no representation anywhere: it is not the hub's body
+  is a board property with measured consequences and no representation anywhere: it is not the hub's compound
   form and not the approach family. With the compass rotated so the frontline is *front*, generated boards
   split **canonical** (spawn *back*, wools *left*+*right*) 27% against **lopsided** (spawn lateral, one wool
   on *back*) 73%, and the split predicts two things — the median spawn-distance imbalance is 0.18 against
@@ -335,8 +335,8 @@ landed, the rest is the idea.
 - [ ] **G167 — a holed hub should seat its docks across the hole.** A ring, double-hole, P or G hub only
   offers two ways across when the two docks straddle its void, and today that is left to chance: ring hubs
   deliver two ways on 163 of 224 spawn-to-wool crossings, and the ones that do not are dead by seating rather
-  than by shape — the same body form with both docks on one side is a wide room with a decorative hole in it.
-  When the sampled hub body encloses a void, prefer opposite walls for the two docks. The value is not the
+  than by shape — the same compound form with both docks on one side is a wide room with a decorative hole in it.
+  When the sampled hub compound encloses a void, prefer opposite walls for the two docks. The value is not the
   extra distance but what the `route-interference` term measures: the far way round drops interference from
   76% to 37%, which is
   the difference between an alternative and an alternative worth taking. Geometry change, so the same
@@ -370,7 +370,7 @@ asked to add to a board has to be able to learn what a board can hold.
   anyone accepts it. What is missing is a diff a canvas can render and an accept/reject step, not a model.
 
 - **G189 — draw a box, say what goes in it, and let the composer fill it.** Detection of what a drawn box
-  could be already exists (the box pipeline classifies a body and names its family); the other half is
+  could be already exists (the box pipeline classifies a compound and names its family); the other half is
   taking a rect plus a sentence and emitting the unit inside it. It is the composer's own vocabulary reached
   from the outside, and it is the most useful shape an agent could be handed: bounded, verifiable against
   the box's own gates, and impossible to spread across the rest of the board. `feasibility` is the read that
