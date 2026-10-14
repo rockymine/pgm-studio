@@ -1,7 +1,7 @@
 @namespace PgmStudio.Client.Features.Configure
 @using PgmStudio.Contracts
 
-@* Review & Export · Pre-flight step: the validation gate — a read-only overview, not a 3-column
+@* Export · Checks step: the validation gate — a read-only overview, not a 3-column
    editing workspace. The four generated-map checks run on GET /preflight; a single static top-down map
    (real islands + buildable bridges + spawn↔wool connectivity) is the picture of the validated map.
    Export (the XML step's Next) stays blocked until every gating check passes. *@
@@ -9,7 +9,7 @@
 <Workspace>
   <ContentColumn MaxWidth="760">
 
-    <Section Title="Pre-flight checks">
+    <Section Title="Checks">
       <Actions>
         @if (running) { <Badge Kind="neutral">Running…</Badge> }
         else if (data is { IntentMap: false }) { <Badge Kind="dim">Not needed</Badge> }
@@ -17,16 +17,16 @@
         else { <Badge Kind="error">Blocked</Badge> }
       </Actions>
       <ChildContent>
-        <p class="section-desc">These checks find maps that are valid but can't be played. Export is blocked
-          until every check passes.</p>
+        <p class="section-desc">These checks find what would stop the map from being played. Export opens once
+          they pass.</p>
 
         @if (error is not null)
         {
-          <div class="panel-warning"><strong>Couldn't run the checks.</strong> Select Re-run checks to try again. (@error)</div>
+          <div class="panel-warning"><strong>Couldn't run the checks.</strong> Select Run again to try again. (@error)</div>
         }
         else if (data is { IntentMap: false })
         {
-          <p class="panel-empty-msg panel-empty-msg--left">This map wasn't set up in this wizard, so there is
+          <p class="panel-empty-msg panel-empty-msg--left">This map wasn't set up in Configure, so there is
             nothing to check. It can be exported as it is.</p>
         }
         else
@@ -117,21 +117,15 @@
 
             @if (Blocked && Failed("traversability") is { } tf)
             {
-              <div class="panel-warning">
-                <strong>Export blocked.</strong> @tf.Detail. Go back to the <strong>Build</strong> phase and add a
-                bridge across the gap. The checks run again when you return.
-              </div>
+              <div class="panel-warning"><strong>Export blocked.</strong> @tf.Detail</div>
             }
             else if (Blocked && Failed("buildability") is { } bf)
             {
-              <div class="panel-warning"><strong>Something is placed over the void.</strong> @bf.Detail.</div>
+              <div class="panel-warning"><strong>Something is placed over the void.</strong> @bf.Detail</div>
             }
             else if (Blocked && Failed("round-trip") is { } rf)
             {
-              <div class="panel-warning">
-                <strong>Couldn't write valid XML.</strong> @rf.Detail. This is a problem in the studio, not in
-                your map.
-              </div>
+              <div class="panel-warning"><strong>Couldn't write the map file.</strong> @rf.Detail</div>
             }
 
             <div class="console-wrap console-wrap--separated">
@@ -158,15 +152,15 @@
             @if (data is { ExportReady: true })
             {
               <Badge Kind="success">Ready to export</Badge>
-              <span class="panel-save-status">Go to the XML step to export.</span>
+              <span class="panel-save-status">Export from the map.xml step.</span>
             }
             else
             {
               <Badge Kind="error">Export blocked</Badge>
-              <span class="panel-save-status">Fix the failed check, then run the checks again.</span>
+              <span class="panel-save-status">Fix what failed, then run the checks again.</span>
             }
             <Button OnClick="RunAsync" Disabled="@running">
-              <i data-lucide="refresh-cw"></i> Re-run checks
+              <i data-lucide="refresh-cw"></i> Run again
             </Button>
           </div>
         }

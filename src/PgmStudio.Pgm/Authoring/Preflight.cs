@@ -42,14 +42,14 @@ public static class Preflight
             var a = JsonTree.Canonical(parsed);
             var b = JsonTree.Canonical(reSerialized);
             if (JsonTree.DeepEquals(a, b))
-                return new("round-trip", "Round-trip", "pass", "codec parity — no field lost in XML ↔ dict");
+                return new("round-trip", "Map file", "pass", "The map file is complete and valid.");
             var diff = JsonTree.DiffKeys(a, b);
-            return new("round-trip", "Round-trip", "fail",
-                $"fields drifted through the export codec: {string.Join(", ", diff.Take(6))}");
+            return new("round-trip", "Map file", "fail",
+                $"Some settings change when the map file is written: {string.Join(", ", diff.Take(6))}. This is a studio problem, not your map.");
         }
         catch (Exception ex)
         {
-            return new("round-trip", "Round-trip", "fail", $"export codec rejected the generated map: {ex.Message}");
+            return new("round-trip", "Map file", "fail", $"The map file can't be written: {ex.Message} This is a studio problem, not your map.");
         }
     }
 
@@ -67,19 +67,19 @@ public static class Preflight
         // (intent declares it) ⇒ (the generated structure must read back). Skip what the intent doesn't author.
         void Expect(bool want, string label, Func<bool> ok) { if (want) (ok() ? recovered : missing).Add(label); }
 
-        Expect(intent.Spawns.Any(s => s.Protection.Count > 0), "spawn/protection", () => HasFacet("spawn", "protection"));
-        Expect((intent.Wools ?? []).Any(w => w.Protection.Count > 0), "wool/room",   () => HasFacet("wool", "room"));
-        Expect(intent.Build is { Areas.Count: > 0 },              "build",            () => HasFacet("build", null));
+        Expect(intent.Spawns.Any(s => s.Protection.Count > 0), "spawn protection", () => HasFacet("spawn", "protection"));
+        Expect((intent.Wools ?? []).Any(w => w.Protection.Count > 0), "wool rooms",   () => HasFacet("wool", "room"));
+        Expect(intent.Build is { Areas.Count: > 0 },              "build areas",        () => HasFacet("build", null));
         // Monuments are inline <monument location> on each wool (not regions, so no facet) — they read back
         // structurally: every declared wool must resolve a monument (PGM's load-time requirement).
-        Expect((intent.Wools ?? []).Any(w => w.Monuments.Count > 0), "wool/monument", () => MapValidity.Check(doc).Valid);
+        Expect((intent.Wools ?? []).Any(w => w.Monuments.Count > 0), "wool monuments", () => MapValidity.Check(doc).Valid);
 
         if (missing.Count > 0)
-            return new("mirror", "Mirror check", "fail",
-                $"generated structure not recovered: {string.Join(" · ", missing)}");
-        var detail = recovered.Count > 0
-            ? string.Join(" ", recovered.Select(r => $"{r} ✓"))
-            : "no classified structure to recover yet";
-        return new("mirror", "Mirror check", "pass", detail);
+            return new("mirror", "Regions", "fail", $"Not written as you set them: {Listed(missing)}.");
+        return new("mirror", "Regions", "pass",
+            recovered.Count > 0 ? $"Written as you set them: {Listed(recovered)}." : "Nothing to compare yet.");
+
+        static string Listed(List<string> parts) =>
+            parts.Count == 1 ? parts[0] : $"{string.Join(", ", parts[..^1])} and {parts[^1]}";
     }
 }

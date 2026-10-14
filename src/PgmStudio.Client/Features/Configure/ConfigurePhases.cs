@@ -29,7 +29,7 @@ public static class ConfigurePhases
         new("flags",  "flag",           "Flags",           ["Posts"],                                         "TC15"),
         new("score",  "goal",           "Score",           [],                                                "TC19"),
         new("match",  "timer",          "Match",           [],                                                "TC17"),
-        new("review", "badge-check",    "Review and export", ["Pre-flight", "Region tree", "XML"],              "N05"),
+        new("review", "badge-check",    "Export",          ["Checks", "All regions", "map.xml"],              "N05"),
     ];
 
     /// <summary>The intent keys the objective phases author, in rail order. Every one of them contributes to

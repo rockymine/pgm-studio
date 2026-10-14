@@ -110,9 +110,9 @@ checks.section("a core-only map is not held behind an empty wool slice");
 
 await arrange({ wools: [], cores: [core(owner)] });
 
-await openPhase("Review and export");
-const reviewTitle = await page.textContent(".editor-bar-phase span");
-checks.add("Review is reachable with no wools at all", reviewTitle?.trim() === "Review and export", reviewTitle?.trim());
+await openPhase("Export");
+const exportTitle = await page.textContent(".editor-bar-phase span");
+checks.add("Export is reachable with no wools at all", exportTitle?.trim() === "Export", exportTitle?.trim());
 
 const locked = await page.$$eval(".nav-btn", els =>
   els.filter(e => e.disabled).map(e => e.getAttribute("title")));
@@ -121,7 +121,7 @@ checks.add("no phase is locked", locked.length === 0, locked.join(" · "));
 checks.add("the core-only map raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 
 // ── the Flags phase: a King of the Flag flag shares the same gate ────────────────────────────────────
-checks.section("a flag-only map shows its flag and reaches Review");
+checks.section("a flag-only map shows its flag and reaches Export");
 
 // No banner stands at the seed world's (0, 9, 0), so the flag's start reads as one PGM would not load.
 const flag = {
@@ -139,10 +139,10 @@ checks.add("the stored flag is listed", flagPhase.includes("Probe Flag"));
 checks.add("a start with no banner under it says so", flagPhase.includes("Start · no banner"));
 checks.add("the Flags phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 
-await openPhase("Review and export");
-const flagReview = await page.textContent(".editor-bar-phase span");
-checks.add("Review is reachable with a flag as the only objective", flagReview?.trim() === "Review and export",
-           flagReview?.trim());
+await openPhase("Export");
+const flagExport = await page.textContent(".editor-bar-phase span");
+checks.add("Export is reachable with a flag as the only objective", flagExport?.trim() === "Export",
+           flagExport?.trim());
 
 // ── a team's flag, and the Match phase ───────────────────────────────────────────────────────────────
 checks.section("a team's flag is defended, and the Match phase states the match");
@@ -164,18 +164,18 @@ const timeBox = await page.inputValue(".workspace input[placeholder='e.g. 10m']"
 checks.add("the stored time limit is shown", timeBox === "12m", timeBox);
 checks.add("the Match phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 
-await openPhase("Review and export");
-const matchReview = await page.textContent(".editor-bar-phase span");
-checks.add("Review is reachable past the Match phase", matchReview?.trim() === "Review and export", matchReview?.trim());
+await openPhase("Export");
+const matchExport = await page.textContent(".editor-bar-phase span");
+checks.add("Export is reachable past the Match phase", matchExport?.trim() === "Export", matchExport?.trim());
 
 // ── the Score phase: a deathmatch is an objective, and a score box is listed ─────────────────────────
-checks.section("a board whose kills pay reaches Review, and its score box is listed");
+checks.section("a board whose kills pay reaches Export, and its score box is listed");
 
 await arrange({ wools: [], flags: [], killPoints: 1 });
-await openPhase("Review and export");
-const killReview = await page.textContent(".editor-bar-phase span");
-checks.add("Review is reachable with kills as the only objective", killReview?.trim() === "Review and export",
-           killReview?.trim());
+await openPhase("Export");
+const killExport = await page.textContent(".editor-bar-phase span");
+checks.add("Export is reachable with kills as the only objective", killExport?.trim() === "Export",
+           killExport?.trim());
 
 await arrange({
   wools: [], killPoints: 1,

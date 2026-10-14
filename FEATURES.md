@@ -8801,6 +8801,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   The Flags, Score and Match copy follows `docs/client/writing-for-the-ui.md`, and the glossary defines the new
   modes' words. `docs/tools/configure.md`. (`TC20`)
 
+- **Configure's last phase is Export, in a player's words (`TC21`)** — its steps are *Checks*, *All regions* and
+  *map.xml*; the checks are *Map file*, *Regions*, *Solid ground*, *Build areas*, *Reachability* and *Wool teams*,
+  each answering in a plain sentence, and the log closes on whether export is open. A blocked *map.xml* step says
+  why in the first finding's words and points back to *Checks*. `docs/tools/configure.md`. (`TC21`)
+
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
   Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.

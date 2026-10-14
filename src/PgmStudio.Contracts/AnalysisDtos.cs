@@ -185,7 +185,7 @@ public sealed record SlopesDto(Bounds2dDto Bounds, int Every, int Width, int Hei
 /// <param name="Detail">What it found, with the numbers in it.</param>
 public sealed record PreflightCheckDto(string Key, string Label, string Status, string Detail);
 
-/// <summary>GET /api/map/{slug}/preflight — the Review phase's pre-flight gate: the four generated-map
+/// <summary>GET /api/map/{slug}/preflight — the Configure Export phase's checks: the generated-map
 /// checks (round-trip · mirror-consistency · buildability · traversability), the validate log, and the
 /// export verdict. <c>ExportReady</c> mirrors what <c>GET /xml</c> enforces (round-trip must not throw and
 /// the spawn↔wool chain must be connected); mirror + buildability are advisory. Scoped to intent-authored

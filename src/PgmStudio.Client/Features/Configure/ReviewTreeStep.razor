@@ -1,6 +1,6 @@
 @namespace PgmStudio.Client.Features.Configure
 
-@* Review & Export · Region tree step: read-only inspect/debug view of the full generated tree.
+@* Export · Regions step: read-only view of the full generated region tree.
    Reuses the editor's RegionTree component (collapse · type icons · synthetic-id styling). Writes nothing. *@
 
 <Workspace>
@@ -10,9 +10,8 @@
         <Badge Kind="dim">Read-only@(RegionCount > 0 ? $" · {RegionCount} regions" : "")</Badge>
       </Actions>
       <ChildContent>
-        <p class="section-desc">Every region created for this map. To change one, go back to the phase that
-          creates it: Teams, Build, Wools, Destroyables, or Cores. Regions with ids like <code>__anon_1</code> are added
-          automatically to combine the others.</p>
+        <p class="section-desc">Every region written for this map. To change one, go back to the phase that sets
+          it. Regions named like <code>__anon_1</code> are added to combine the others.</p>
 
         @if (loading)
         {
@@ -20,7 +19,7 @@
         }
         else if (error is not null)
         {
-          <div class="panel-warning"><strong>Couldn't load the regions.</strong> Reload the page to try again. (@error)</div>
+          <div class="panel-warning"><strong>Couldn't load the regions.</strong> Reload the page to try again. @error</div>
         }
         else
         {

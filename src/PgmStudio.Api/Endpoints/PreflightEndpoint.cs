@@ -8,7 +8,7 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Api.Endpoints;
 
 /// <summary>
-/// GET /api/map/{slug}/preflight — the Review phase's pre-flight gate (new-map-authoring.md §6). Runs the
+/// GET /api/map/{slug}/preflight — the Configure Export phase's checks (new-map-authoring.md §6). Runs the
 /// four generated-map checks and reports the export verdict:
 /// <list type="number">
 /// <item><b>Round-trip</b> + <b>Mirror</b> — pure codec/categorizer checks (<see cref="Preflight"/>).</item>

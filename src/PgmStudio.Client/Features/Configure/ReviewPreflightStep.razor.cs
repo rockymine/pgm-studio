@@ -11,7 +11,7 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Features.Configure;
 
-// Review & Export · Pre-flight step: the validation gate. Not an editing workspace — a read-only
+// Export · Checks step: the validation gate. Not an editing workspace — a read-only
 // overview. Runs the four generated-map checks server-side (GET /preflight) and surfaces them as check
 // rows + a validate log over a single static top-down map (real island geometry + the orbit-filled build
 // bridges + the spawn↔wool nodes in their real team/dye colours), the playability picture in one image.
@@ -57,15 +57,13 @@ public partial class ReviewPreflightStep
 
     // Colour a console line by content — the log is plain text from the gate; error keywords win over the
     // success ones (so "not connected" reads as an error, not a "connected" success).
-    private static string LineClass(string line)
+    // A check's line takes its check's status; the closing line says whether export is open.
+    private string LineClass(string line)
     {
-        if (line.Contains("BLOCKED") || line.Contains("not connected") || line.Contains("drifted")
-            || line.Contains("rejected") || line.Contains("over open void") || line.Contains("not recovered"))
-            return "console-line console-line--error";
-        if (line.Contains("can't") || line.Contains("no Y=0") || line.Contains("nothing to pre-flight"))
-            return "console-line console-line--warning";
-        if (line.Contains("OPEN") || line.Contains("connected") || line.Contains("on solid ground"))
-            return "console-line console-line--success";
+        var status = Checks.FirstOrDefault(check => line.StartsWith(check.Label + ":", StringComparison.Ordinal))?.Status;
+        if (status == "fail" || line.StartsWith("Export is blocked", StringComparison.Ordinal)) return "console-line console-line--error";
+        if (status == "skip") return "console-line console-line--warning";
+        if (status == "pass" || line.StartsWith("Export is open", StringComparison.Ordinal)) return "console-line console-line--success";
         return "console-line console-line--info";
     }
 
