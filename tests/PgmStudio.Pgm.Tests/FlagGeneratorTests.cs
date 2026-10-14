@@ -216,4 +216,56 @@ public sealed class FlagGeneratorTests
 
         await Assert.That(map.FlagNets).IsEmpty();
     }
+
+    [Test]
+    public async Task A_team_capturing_only_at_home_captures_while_its_own_flag_stands_at_its_post()
+    {
+        var map = Written(new MapIntent
+        {
+            Teams = [.. Teams],
+            Symmetry = new SymmetryIntent { Mode = "rot_180" },
+            Flags = [Base("red-team", -40) with { Capture = FlagCaptures.Home }],
+        });
+
+        foreach (var flag in map.Flags)
+        {
+            var net = map.FlagNets.Single(net => !net.Flags.Contains(flag.Id));
+            var home = map.Filters[net.CaptureFilterId];
+            await Assert.That((home.Type, home.Objective)).IsEqualTo(("flag-returned", flag.Id))
+                .Because("a team's net captures only while that team's own flag is home, and the rule fans with the flag");
+        }
+    }
+
+    [Test]
+    public async Task A_team_capturing_anytime_states_no_capture_filter()
+    {
+        var map = Written(new MapIntent { Teams = [.. Teams], Flags = [Base("red-team", -40), Base("blue-team", 40)] });
+
+        await Assert.That(map.FlagNets.All(net => net.CaptureFilterId.Length == 0)).IsTrue();
+    }
+
+    [Test]
+    public async Task A_team_with_two_flags_captures_while_both_are_home_and_a_rebuild_writes_the_filters_once()
+    {
+        var doc = new Dict();
+        var intent = new MapIntent
+        {
+            Teams = [.. Teams],
+            Flags =
+            [
+                Base("red-team", -40) with { Name = "Red North", Capture = FlagCaptures.Home },
+                Base("red-team", -50) with { Name = "Red South" },
+                Base("blue-team", 40),
+            ],
+        };
+        IntentGenerator.Apply(doc, intent);
+        IntentGenerator.Apply(doc, intent);
+        var map = MapParser.ParseXmlString(XmlWriter.ToXml(Deserializer.FromDict(doc)));
+
+        var redNet = map.FlagNets.Single(net => net.CaptureFilterId.Length > 0);
+        var home = map.Filters[redNet.CaptureFilterId];
+        await Assert.That(home.Type).IsEqualTo("all");
+        await Assert.That(home.Children!.Count).IsEqualTo(2);
+        await Assert.That(map.Filters.Values.Count(filter => filter.Type == "flag-returned")).IsEqualTo(2);
+    }
 }

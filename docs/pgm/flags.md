@@ -161,6 +161,14 @@ size. A capture pays 1 (122 of 140 nets) to the carrier's team, and the board en
 no score limit, the commonest of the 30 CTF limits. Its `<gamemode>` is `ctf` and its objective reads "Capture
 the enemy's flag!".
 
+**When a team may capture is the author's choice.** `Capture` on a team's flag is one of `FlagCaptures`:
+`anytime`, the default, or `home`, under which its team's net captures only while every flag that team owns
+stands at a post. The net then carries a `capture-filter` of `<flag-returned>` on each of them — PGM's state
+for a flag standing at a post, recovered or never taken — under an `<all>` where the team owns several; a
+carrier refused by it waits in the net, which is sticky, and captures the moment the flag is back. The corpus
+rarely states a capture rule at all: 30 of its 142 team-flag nets carry a capture filter, most of them naming
+the team that may capture there.
+
 A team's flag fans by team as a core does: under a symmetry each other team gains its image — every post and the
 net turned, named and coloured for that team — and a team already owning a flag keeps its own. The world build
 fans it the same way before it stamps, so each team's banner stands in its team's colour.

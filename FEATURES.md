@@ -8790,6 +8790,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   in a net round its own flag's first post, paying 1, and the board ends at 3 and states `ctf`.
   `docs/pgm/flags.md` §8. (`PG38`)
 
+- **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
+  `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
+  Flags phase offers it as *Captures*. The filter editor reads the flag filters, taking its types from the parser.
+  `docs/pgm/flags.md` §8. (`PG39`)
+
 - **Configure states the match (`TC17`)** — a Match phase between the objectives and Review: the score and time
   limits and what decides a match at the bell, the lives a blitz gives, rage, the respawn delay and how the dead
   come back, and the kill height, each blank for the board's own default. `docs/tools/configure.md`. (`TC17`)

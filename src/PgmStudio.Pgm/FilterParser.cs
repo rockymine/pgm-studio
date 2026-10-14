@@ -47,6 +47,17 @@ internal sealed class FilterParser
         return filter.Id;
     }
 
+    /// <summary>Every filter type <see cref="ParseFilterNode"/> reads, by the tag it is written under — what the
+    /// document editor accepts as well.</summary>
+    public static readonly IReadOnlySet<string> Types = new HashSet<string>
+    {
+        "all", "any", "one", "not", "deny", "allow", "team", "material", "void", "cause", "blocks",
+        "carrying", "wearing", "holding", "alive", "dead", "participating", "observing",
+        "match-running", "match-started", "grounded", "never", "always", "time", "after", "pulse",
+        "offset", "variable", "completed", "flag-carried", "flag-dropped", "flag-returned", "flag-captured",
+        "carrying-flag", "objective", "kill-streak", "class", "region", "players", "spawn",
+    };
+
     private Filter? ParseFilterNode(XElement elem, string parentId, int index = 0)
     {
         var tag = elem.Name.LocalName;

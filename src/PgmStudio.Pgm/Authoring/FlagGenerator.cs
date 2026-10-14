@@ -22,6 +22,7 @@ public static class FlagGenerator
     private const string NetKey = "flag_nets";
     private const string TakersSuffix = "-takers";
     private const string NetSuffix = "net";
+    private const string HomeSuffix = "-home";
 
     public static void Apply(Dict doc, MapIntent intent)
     {
@@ -80,7 +81,8 @@ public static class FlagGenerator
 
     /// <summary>One net per team owning a flag: its own flag's net box, or a box round that flag's first post,
     /// taking every flag another team owns. A team with no other team's flag to take has none, since a net naming
-    /// no flag takes every flag.</summary>
+    /// no flag takes every flag. A team whose flag captures only at <see cref="FlagCaptures.Home"/> captures while
+    /// every flag of its own stands at a post.</summary>
     private static List<object?> Nets(Dict doc, List<(FlagIntent Flag, string Id)> written)
     {
         var nets = new List<object?>();
@@ -93,14 +95,32 @@ public static class FlagGenerator
             var takes = owned.Where(other => IntentNaming.TeamId(other.Flag.Team) != team).Select(other => (object?)other.Id).ToList();
             if (takes.Count == 0) continue;
             var region = ObjectiveRegion.Emit(doc, id, flag.Net ?? NetRound(flag.Posts[0]), NetSuffix);
-            nets.Add(new Dict
+            var net = new Dict
             {
                 ["region"] = region,
                 ["points"] = (double)ObjectiveDefaults.FlagNetPoints,
                 ["flags"] = takes,
-            });
+            };
+            var own = owned.Where(other => IntentNaming.TeamId(other.Flag.Team) == team).ToList();
+            if (own.Any(other => other.Flag.Capture == FlagCaptures.Home)) net["capture_filter"] = HomeFilter(doc, own.Select(other => other.Id).ToList());
+            nets.Add(net);
         }
         return nets;
+    }
+
+    /// <summary>A filter holding while each of <paramref name="flagIds"/> stands at a post — PGM's returned state —
+    /// one per flag, under an <c>all</c> where there are several.</summary>
+    private static string HomeFilter(Dict doc, List<string> flagIds)
+    {
+        foreach (var flagId in flagIds)
+            FilterEditor.CreateFilter(doc, new Dict { ["id"] = flagId + HomeSuffix, ["type"] = "flag-returned", ["objective"] = flagId });
+        if (flagIds.Count == 1) return flagIds[0] + HomeSuffix;
+        var all = flagIds[0] + "-all" + HomeSuffix;
+        FilterEditor.CreateFilter(doc, new Dict
+        {
+            ["id"] = all, ["type"] = "all", ["children"] = flagIds.Select(flagId => (object?)(flagId + HomeSuffix)).ToList(),
+        });
+        return all;
     }
 
     /// <summary>A box round a post: the block its banner stands in, reaching out either side and up.</summary>
@@ -189,6 +209,13 @@ public static class FlagGenerator
     {
         if (doc.GetValueOrDefault(NetKey) is List<object?> nets)
         {
+            var netFilters = DocAccess.Filters(doc);
+            foreach (var home in nets.OfType<Dict>().Select(net => net.GetValueOrDefault("capture_filter") as string).OfType<string>())
+            {
+                if ((netFilters.GetValueOrDefault(home) as Dict)?.GetValueOrDefault("children") is List<object?> children)
+                    foreach (var child in children.OfType<string>()) netFilters.Remove(child);
+                netFilters.Remove(home);
+            }
             ObjectiveRegion.Clear(doc, nets);
             doc.Remove(NetKey);
         }

@@ -47,6 +47,15 @@ public partial class FlagPostsStep
         new(FlagCarriers.None, "Nothing", "Carrying the flag does nothing to the carrier."),
     ];
 
+    private static readonly IReadOnlyList<SelectOption> CaptureOptions =
+    [
+        new(FlagCaptures.Anytime, "Any time", "A carrier captures the moment they reach the net."),
+        new(FlagCaptures.Home, "Only with their own flag home",
+            "A carrier captures only while their team's own flag stands at its post, and waits in the net until it does."),
+    ];
+
+    private void SetCapture(F.Flag flag, string capture) { flag.Capture = capture; Write(); }
+
     private IReadOnlyList<SelectOption> OwnerOptions =>
         [new(Nobody, "Nobody — King of the Flag"), .. AuthoringContext.TeamOptions(teams)];
 

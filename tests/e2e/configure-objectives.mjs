@@ -155,6 +155,7 @@ const teamFlag = await page.textContent(".workspace");
 const ownerName = intent.teams?.[0]?.name || owner;
 checks.add("a team's flag reads as that team's", teamFlag.includes(`${ownerName}'s flag`), ownerName);
 checks.add("a team's flag states no points rate", !teamFlag.includes("Points a second"));
+checks.add("a team's flag says when its team captures", teamFlag.includes("Captures"));
 
 await openPhase("Match");
 const matchTitle = await page.textContent(".editor-bar-phase span");

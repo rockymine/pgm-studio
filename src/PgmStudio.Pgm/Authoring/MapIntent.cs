@@ -812,6 +812,11 @@ public sealed record FlagIntent
     /// null for a box round the flag's first post.</summary>
     public BlockBox? Net { get; init; }
 
+    /// <summary>On a team's flag, when its team may capture in its net (<see cref="FlagCaptures"/>); null for
+    /// <see cref="FlagCaptures.Anytime"/>.</summary>
+    [WordSet(typeof(FlagCaptures))]
+    public string? Capture { get; init; }
+
     /// <summary>Whether a team owns it.</summary>
     [JsonIgnore]
     public bool Owned => Team.Length > 0;

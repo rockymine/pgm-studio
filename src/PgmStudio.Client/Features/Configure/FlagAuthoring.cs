@@ -38,6 +38,8 @@ public static class FlagAuthoring
         public double PointsRate;
         public string Carrier = FlagCarriers.Lowered;
         public int CarrierHearts;
+        /// <summary>On a team's flag, when its team may capture (<see cref="FlagCaptures"/>).</summary>
+        public string Capture = FlagCaptures.Anytime;
     }
 
     /// <summary>The block a post stands its flag in.</summary>
@@ -60,6 +62,7 @@ public static class FlagAuthoring
                 Carrier = Ctx.S(f, "carrier") is { Length: > 0 } carrier ? carrier
                     : team.Length > 0 ? FlagCarriers.None : defaults.Carrier,
                 CarrierHearts = Ctx.I(f, "carrierHearts", defaults.CarrierHearts),
+                Capture = Ctx.S(f, "capture") is { Length: > 0 } capture ? capture : FlagCaptures.Anytime,
             };
             foreach (var p in (f["posts"] as JsonArray ?? []).OfType<JsonObject>())
             {
@@ -93,6 +96,7 @@ public static class FlagAuthoring
             if (flag.Team.Length > 0) o.Remove("pointsRate"); else o["pointsRate"] = flag.PointsRate;
             o["carrier"] = flag.Carrier;
             o["carrierHearts"] = flag.CarrierHearts;
+            if (flag.Team.Length > 0) o["capture"] = flag.Capture; else o.Remove("capture");
             o["posts"] = new JsonArray(flag.Posts.Select(post =>
             {
                 var p = priorPosts.TryGetValue(Key(Block(post)), out var kept) ? (JsonObject)kept.DeepClone() : new JsonObject();

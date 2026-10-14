@@ -66,7 +66,7 @@ null `cores` and nothing about cores is generated or cleared.
 | `islandTeams` | island id → team; an authoring aid, read by the spawn step, not by the generator |
 | `spawns` | per team: the point, the yaw, and the protection zone as a union of rects |
 | `observer` | the `<default>` spawn — where spectators and pre-match players stand |
-| `flags` | The flags (`docs/pgm/flags.md` §7–§8): a name, the `team` defending it or none, a `color`, the `posts` it stands at (`at`, `name`, `yaw`), a `pointsRate`, the `carrier` — `lowered` to `carrierHearts` (6), `absorption`, `boost` to `carrierHearts`, or `none` — a `recoverTime` and, on a team's flag, the `net` box its team captures in. A flag nobody owns is King of the Flag's, pays 1 a second and lowers its carrier, and its posts fan by position; a team's flag is Capture the Flag's, takes its team's colour, pays on capture, and fans by team |
+| `flags` | The flags (`docs/pgm/flags.md` §7–§8): a name, the `team` defending it or none, a `color`, the `posts` it stands at (`at`, `name`, `yaw`), a `pointsRate`, the `carrier` — `lowered` to `carrierHearts` (6), `absorption`, `boost` to `carrierHearts`, or `none` — a `recoverTime` and, on a team's flag, the `net` box its team captures in and when it may `capture` (`anytime`, or `home` — only while its own flag stands at its post). A flag nobody owns is King of the Flag's, pays 1 a second and lowers its carrier, and its posts fan by position; a team's flag is Capture the Flag's, takes its team's colour, pays on capture, and fans by team |
 | `scoreBoxes` | The score boxes (`docs/pgm/score-boxes.md` §4): per box the `team` it scores for, the inclusive `box` it covers, the `points` it pays (1) and whether it sends its scorer `home` (true). Owned by a team, so they fan by team; no Configure phase states them yet |
 | `zones` | Zones the author states (`docs/pgm/zones.md` §3): per zone an `id`, the `area` rects, an optional `team`, who may `enter` (`anyone`, `team`, `nobody`), whether a block may be `place`d or broken (`break`), whether a player inside may come to `harm`, and a `kit` given inside. A team's zone fans by team, one with no team by position; no Configure phase states them yet |
 | `build` | `maxHeight`, the buildable `areas` and the no-build `holes` cut out of them, and the `mode` a player builds under: `void` builds anywhere but over the void outside what is left, `never` places and breaks nothing, `only` places and breaks the named `materials` and nothing else. Absent, a board with a wool, destroyable or core is `void` and any other is `never` |
@@ -486,7 +486,8 @@ post no spawn can walk to and the export refuses it (`EX1`).
 **The inspector states the rest of the flag**: its name, the team defending it, and what carrying it does —
 fewer hearts or more, to the hearts stated, a moment's shield, or nothing. A flag defended by nobody is King of
 the Flag's and states its colour and the points a second it pays the team carrying it; a team's flag takes its
-team's colour, pays only when captured, and is captured in a net round each other team's own flag. The flag
+team's colour, pays only when captured, and is captured in a net round each other team's own flag; *Captures*
+says whether its team scores in its own net any time or only while this flag is home. The flag
 phase shares the objective gate, so a map whose only objective is a flag reaches Review.
 
 ### Match

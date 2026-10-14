@@ -123,6 +123,15 @@
                 </ChildContent>
               </Field>
             }
+            @if (sel.Team.Length > 0)
+            {
+              <Field Label="Captures">
+                <LabelHint>(when this team may score in its net)</LabelHint>
+                <ChildContent>
+                  <Select Slim="false" Options="@CaptureOptions" Value="@sel.Capture" ValueChanged="@(capture => SetCapture(sel, capture))" />
+                </ChildContent>
+              </Field>
+            }
             <Field Label="The carrier">
               <Select Slim="false" Options="@CarrierOptions" Value="@sel.Carrier" ValueChanged="@(carrier => SetCarrier(sel, carrier))" />
             </Field>
