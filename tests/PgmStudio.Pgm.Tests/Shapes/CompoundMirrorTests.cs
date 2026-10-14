@@ -82,6 +82,20 @@ public sealed class CompoundMirrorTests
     }
 
     [Test]
+    public async Task A_compound_no_spine_carries_has_no_form()
+    {
+        // a staircase and a plus: void-free, not a rectangle, and no bounding-box edge is a full spine with arms
+        foreach (var rows in new[] { new[] { "tt.", ".tt", "..t" }, new[] { ".t.", "ttt", ".t." } })
+        {
+            var cells = new HashSet<(int, int)>();
+            for (var z = 0; z < rows.Length; z++)
+                for (var x = 0; x < rows[z].Length; x++)
+                    if (rows[z][x] == 't') cells.Add((x, z));
+            await Assert.That(ShapeClassifier.ClassifyCompound(cells)).IsNull();
+        }
+    }
+
+    [Test]
     public async Task SpineArms_caps_at_three_arms()
     {
         await Assert.That(() => CompoundEmitter.SpineArms(2, 4)).Throws<ArgumentException>();

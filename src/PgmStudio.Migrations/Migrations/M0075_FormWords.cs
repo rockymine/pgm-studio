@@ -4,8 +4,9 @@ namespace PgmStudio.Migrations.Migrations;
 
 /// <summary>
 /// A hub's and a front line's form are stored under the one list of form words a wool's already uses: <c>bar</c>
-/// reads <c>i</c>, <c>single</c> reads <c>l</c>, <c>twin</c> reads <c>u</c>, <c>ring</c> reads <c>donut</c>, and an
-/// <c>arms-N</c> comb reads <c>e</c>. The words live in <c>composed_board.hub</c> and <c>.frontline</c> and inside
+/// reads <c>i</c>, <c>single</c> reads <c>l</c>, <c>twin</c> reads <c>u</c>, <c>ring</c> reads <c>donut</c>, an
+/// <c>arms-N</c> comb reads <c>e</c>, and <c>arms-0</c>, a compound no spine carries, has no form and reads
+/// <c>none</c>. The words live in <c>composed_board.hub</c> and <c>.frontline</c> and inside
 /// <c>plan.structure</c>, the <c>wools:…|hub:…|front:…</c> key a generated plan is kept under; every row is
 /// rewritten in place. Wool words, <c>p</c>, <c>g</c>, <c>double-hole</c>, <c>two-u</c> and <c>none</c> are already
 /// the merged words.
@@ -19,6 +20,7 @@ public sealed class M0075_FormWords : Migration
     public override void Up()
     {
         foreach (var (old, merged) in Renamed) Rewrite(old, merged);
+        Rewrite("arms-0", "none");
         foreach (var column in new[] { "hub", "frontline" })
             Execute.Sql($"UPDATE composed_board SET `{column}` = 'e' WHERE `{column}` LIKE 'arms-%'");
         Execute.Sql(@"UPDATE plan SET structure = REGEXP_REPLACE(structure, '\\|hub:arms-[0-9]+\\|', '|hub:e|') "

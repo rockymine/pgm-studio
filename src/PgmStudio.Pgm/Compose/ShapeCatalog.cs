@@ -233,7 +233,7 @@ public static class ShapeCatalog
     private static CatalogShape WoolShape(
         string id, CompoundForm family, CatalogTier tier, int w, int h, int laneWidth,
         IReadOnlyList<string> knobs, string? note, Compound compound) =>
-        new(id, "wool", family.ToString().ToLowerInvariant(), tier, w, h, laneWidth, knobs, note,
+        new(id, "wool", family.Word(), tier, w, h, laneWidth, knobs, note,
             UnitPieces.AsPlan(compound, id, WoolPrefix));
 
     // ── compounds ────────────────────────────────────────────────────────────────────────────────────────────

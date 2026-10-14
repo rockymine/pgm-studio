@@ -133,7 +133,7 @@ foreach (var (label, grid) in figures)
         else if (Enum.TryParse<CompoundForm>(name, ignoreCase: true, out var compound))
         {
             var got = ShapeClassifier.ClassifyCompound(Cells(grid, 't'));
-            (claim, read, ok) = (compound.ToString(), got.ToString(), got == compound);
+            (claim, read, ok) = (compound.ToString(), got?.ToString() ?? "no form", got == compound);
         }
         else if (NegativeSpaceKinds.All.Contains(name.ToLowerInvariant()))
         {

@@ -117,7 +117,7 @@ public sealed class NumberBindingCultureTests
         => await UnderCommaDecimalCulture(async client =>
         {
             // Integers travel the same converter, and a group separator changes how they read too.
-            var probe = await client.GetFromJsonAsync<ShapeProbeResult>("/api/shapes/probe?family=i&w=8&h=8&cw=2");
+            var probe = await client.GetFromJsonAsync<ShapeProbeResult>("/api/shapes/probe?family=i&w=8&h=8&laneWidth=2");
             await Assert.That(probe!.Rejection).IsNull()
                 .Because("an 8x8 box fills an I — a size knob that mis-binds would refuse it");
         });

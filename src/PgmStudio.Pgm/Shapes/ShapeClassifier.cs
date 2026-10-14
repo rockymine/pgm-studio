@@ -138,9 +138,9 @@ public static class ShapeClassifier
     /// an outer concavity — the loop overhanging its longer bar — adds reflex corners past the four a rectangular
     /// void contributes (P) or not (a clean ring). Void-free compounds are the solid <see cref="CompoundForm.I"/>
     /// or a spine with arms — <see cref="CompoundForm.L"/>, <see cref="CompoundForm.U"/> or <see cref="CompoundForm.E"/>
-    /// by the number of runs hanging off it.
-    /// Width-independent, like the classifier of compounds ending in a room.</summary>
-    public static CompoundForm ClassifyCompound(IReadOnlySet<(int, int)> cells)
+    /// by the number of runs hanging off it, or null where no spine carries an arm (an S, a plus). Width-independent,
+    /// like the classifier of compounds ending in a room.</summary>
+    public static CompoundForm? ClassifyCompound(IReadOnlySet<(int, int)> cells)
     {
         if (cells.Count == 0) throw new ArgumentException("cannot classify an empty compound.");
         var voids = VoidComponents(Cells.EnclosedVoid(cells));
@@ -155,7 +155,8 @@ public static class ShapeClassifier
 
         var bb = Cells.BoundingBox(cells);
         if (cells.Count == (long)bb.Width * bb.Height) return CompoundForm.I;
-        return CompoundForms.SpineWith(ArmCount(cells, bb.X, bb.Z, bb.MaxX - 1, bb.MaxZ - 1));
+        var arms = ArmCount(cells, bb.X, bb.Z, bb.MaxX - 1, bb.MaxZ - 1);
+        return arms == 0 ? null : CompoundForms.SpineWith(arms);
     }
 
     // the enclosed void split into its 4-connected components (each a cell set) — two ⇒ a double-hole or two-U-on-I.

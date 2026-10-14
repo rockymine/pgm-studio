@@ -21,7 +21,7 @@ public sealed class FormWordsMigrationTests
         {
             await using (var db = TestDb.Connect())
             {
-                var boards = new[] { ("bar", "twin"), ("single", "none"), ("ring", "bar"), ("arms-3", "single"), ("two-u", "none") };
+                var boards = new[] { ("bar", "twin"), ("single", "none"), ("ring", "bar"), ("arms-3", "single"), ("two-u", "none"), ("arms-0", "twin") };
                 for (var seed = 0; seed < boards.Length; seed++)
                     db.Execute("INSERT INTO composed_board (composer_version, band, symmetry, cell, seed, score, wool_count, "
                                + "wools, hub, frontline, card_json, plan_json, created_at) VALUES ('v', 'b', 'rot_180', 5, "
@@ -43,7 +43,7 @@ public sealed class FormWordsMigrationTests
             await using (var db = TestDb.Connect())
             {
                 await Assert.That(db.Query<string>("SELECT CONCAT(hub, '/', frontline) FROM composed_board ORDER BY seed").ToList())
-                    .IsEquivalentTo(["i/u", "l/none", "donut/i", "e/l", "two-u/none"]);
+                    .IsEquivalentTo(["i/u", "l/none", "donut/i", "e/l", "two-u/none", "none/u"]);
                 await Assert.That(db.Query<string>("SELECT wools FROM composed_board").Distinct().ToList())
                     .IsEquivalentTo([",i,l,"]).Because("a wool's words are already the merged ones");
                 await Assert.That(db.Query<string>("SELECT structure FROM plan ORDER BY id").ToList())

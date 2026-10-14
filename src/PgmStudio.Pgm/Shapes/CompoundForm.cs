@@ -31,11 +31,12 @@ public enum CompoundForm { I, L, Z, Scythe, Clamp, U, H, Donut, E, P, G, DoubleH
 /// <summary>The forms by their arms, and each form's word on the wire.</summary>
 public static class CompoundForms
 {
-    /// <summary>The form of a spine carrying <paramref name="arms"/> perpendicular arms: one is an L, two a U,
-    /// three or more an E.</summary>
+    /// <summary>The form of a spine carrying <paramref name="arms"/> perpendicular arms, at least one: one is an L,
+    /// two a U, three or more an E.</summary>
     public static CompoundForm SpineWith(int arms) => arms switch
     {
-        <= 1 => CompoundForm.L,
+        < 1 => throw new ArgumentOutOfRangeException(nameof(arms), arms, "a spine form carries at least one arm."),
+        1 => CompoundForm.L,
         2 => CompoundForm.U,
         _ => CompoundForm.E,
     };

@@ -40,17 +40,17 @@ public static class UnitPieces
         Compound compound, int x, int z, string idPrefix, string roomId, BoxRef box)
     {
         var pieces = new List<UnitPiece>(compound.Pieces.Count);
-        var n = 1;
-        foreach (var (r, part) in compound.Pieces.Where(piece => piece.Part != CompoundParts.Room))
-            pieces.Add(new UnitPiece($"{idPrefix}-t{n++}", new(x + r.X, z + r.Z, r.Width, r.Height),
+        var number = 1;
+        foreach (var (rect, part) in compound.Pieces.Where(piece => piece.Part != CompoundParts.Room))
+            pieces.Add(new UnitPiece($"{idPrefix}-t{number++}", new(x + rect.X, z + rect.Z, rect.Width, rect.Height),
                 box, RoleOf(box.Kind, part), part));
         if (compound.Room is not { } room) return (pieces, null);
 
-        var rr = room.Rect;
-        pieces.Add(new UnitPiece(roomId, new(x + rr.X, z + rr.Z, rr.Width, rr.Height),
+        var roomRect = room.Rect;
+        pieces.Add(new UnitPiece(roomId, new(x + roomRect.X, z + roomRect.Z, roomRect.Width, roomRect.Height),
             box, RoleOf(box.Kind, CompoundParts.Room), CompoundParts.Room));
         var marker = compound.Marker ?? throw new ArgumentException("a compound that ends in a room carries its marker.");
-        return (pieces, new Marker(roomId, marker.X - rr.X, marker.Z - rr.Z));
+        return (pieces, new Marker(roomId, marker.X - roomRect.X, marker.Z - roomRect.Z));
     }
 
     /// <summary>The <paramref name="compound"/> filling <paramref name="box"/>, laid at the box's corner: its pieces

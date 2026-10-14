@@ -306,7 +306,7 @@ public static class Producibility
             var read = ShapeClassifier.Classify(all, roomCells);
             return read.Family is { } form ? $"{form} (w {read.Width})" : "no ground reaches the room";
         }
-        return ShapeClassifier.ClassifyCompound(all).ToString();
+        return ShapeClassifier.ClassifyCompound(all)?.ToString() ?? "no form";
     }
 
     /// <summary>One enumerated tuple: how it reads, the terrain+room mask it emits (<c>null</c> when the emitter
@@ -403,10 +403,10 @@ public static class Producibility
                     foreach (var layout in ArmLayouts(form, box, mouth))
                     {
                         var label = $"{Name(form)} spine {mouth}{(layout is null ? "" : " legs " + Legs(layout))}";
-                        var f = FrontlineBoxEmitter.Fill(b, form, laneWidth, out var why, mouth, layout);
-                        yield return f is null
+                        var front = FrontlineBoxEmitter.Fill(b, form, laneWidth, out var why, mouth, layout);
+                        yield return front is null
                             ? new Candidate(label, laneWidth, null, null, why)
-                            : new Candidate(label, laneWidth, Mask(Laid(f, b)), null, null);
+                            : new Candidate(label, laneWidth, Mask(Laid(front, b)), null, null);
                     }
     }
 
@@ -450,16 +450,16 @@ public static class Producibility
                                         $"{(attachW > 0 ? $" attach {attachW}" : "")}";
                             if (kind == BoxKind.Spawn)
                             {
-                                var s = SpawnBoxEmitter.Fill(b, mouth, family, laneWidth, flip, out var sWhy);
-                                yield return s is null
-                                    ? new Candidate(label, laneWidth, null, null, sWhy)
-                                    : new Candidate(label, laneWidth, Mask(Laid(s, b)), RoomOf(s, b), null);
+                                var spawn = SpawnBoxEmitter.Fill(b, mouth, family, laneWidth, flip, out var spawnWhy);
+                                yield return spawn is null
+                                    ? new Candidate(label, laneWidth, null, null, spawnWhy)
+                                    : new Candidate(label, laneWidth, Mask(Laid(spawn, b)), RoomOf(spawn, b), null);
                                 continue;
                             }
-                            var w = BoxFiller.Fill(b, mouth, laneWidth, family, out var wWhy, flip, placement, atEnd, attachW);
-                            yield return w is null
-                                ? new Candidate(label, laneWidth, null, null, wWhy)
-                                : new Candidate(label, laneWidth, Mask(Laid(w, b)), RoomOf(w, b), null);
+                            var wool = BoxFiller.Fill(b, mouth, laneWidth, family, out var woolWhy, flip, placement, atEnd, attachW);
+                            yield return wool is null
+                                ? new Candidate(label, laneWidth, null, null, woolWhy)
+                                : new Candidate(label, laneWidth, Mask(Laid(wool, b)), RoomOf(wool, b), null);
                         }
     }
 
