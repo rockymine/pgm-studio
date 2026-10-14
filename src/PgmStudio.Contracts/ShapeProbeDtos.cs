@@ -33,13 +33,13 @@ public sealed record ShapeRejectionDto(string Code, string Detail, int? MinW, in
 /// restated in the client, so a family gaining a knob does not need a matching edit in the page.</summary>
 /// <param name="Families">Every family the probe can ask for, with what each admits.</param>
 /// <param name="Mouths">Which side a fill may enter through.</param>
-/// <param name="MinCorridorCells">The narrowest corridor width the probe accepts.</param>
-/// <param name="MaxCorridorCells">The widest.</param>
+/// <param name="MinLaneWidth">The narrowest corridor width the probe accepts.</param>
+/// <param name="MaxLaneWidth">The widest.</param>
 public sealed record ShapeProbeSchema(
     IReadOnlyList<ShapeFamilyDto> Families,
     IReadOnlyList<string> Mouths,
-    int MinCorridorCells,
-    int MaxCorridorCells);
+    int MinLaneWidth,
+    int MaxLaneWidth);
 
 /// <summary>One family's probe surface: its token, the minimum box it needs at the default corridor width,
 /// which optional knobs it accepts, and whether the production menu admits it at all.

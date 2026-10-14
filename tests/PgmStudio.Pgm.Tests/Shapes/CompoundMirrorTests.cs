@@ -44,9 +44,9 @@ public sealed class CompoundMirrorTests
     [Arguments(3)]
     public async Task SpineArms_classifies_back_with_its_arm_count(int arms)
     {
-        foreach (var cw in new[] { 2, 3 })
+        foreach (var laneWidth in new[] { 2, 3 })
         {
-            var compound = CompoundEmitter.SpineArms(cw, arms);
+            var compound = CompoundEmitter.SpineArms(laneWidth, arms);
             await Wellformed(compound);
             var read = ShapeClassifier.ClassifyCompound(CellsOf(compound));
             await Assert.That(read.Form).IsEqualTo(CompoundForm.SpineArms);
@@ -59,10 +59,10 @@ public sealed class CompoundMirrorTests
     [Test]
     public async Task SpineArms_reads_by_count_regardless_of_placement()
     {
-        const int cw = 2;
-        var pi = CompoundEmitter.SpineArms(cw, [0, 4 * cw], 5 * cw);        // Π — arms at both ends
-        var f = CompoundEmitter.SpineArms(cw, [0, 2 * cw], 5 * cw);        // F — an end and the middle
-        var e = CompoundEmitter.SpineArms(cw, [0, 2 * cw, 4 * cw], 5 * cw); // E — three arms
+        const int laneWidth = 2;
+        var pi = CompoundEmitter.SpineArms(laneWidth, [0, 4 * laneWidth], 5 * laneWidth);        // Π — arms at both ends
+        var f = CompoundEmitter.SpineArms(laneWidth, [0, 2 * laneWidth], 5 * laneWidth);        // F — an end and the middle
+        var e = CompoundEmitter.SpineArms(laneWidth, [0, 2 * laneWidth, 4 * laneWidth], 5 * laneWidth); // E — three arms
         foreach (var (compound, arms) in new[] { (pi, 2), (f, 2), (e, 3) })
         {
             await Wellformed(compound);
@@ -94,9 +94,9 @@ public sealed class CompoundMirrorTests
     [Test]
     public async Task Rectangle_classifies_back()
     {
-        foreach (var cw in new[] { 2, 3 })
+        foreach (var laneWidth in new[] { 2, 3 })
         {
-            var compound = CompoundEmitter.Rectangle(4 * cw, 3 * cw);
+            var compound = CompoundEmitter.Rectangle(4 * laneWidth, 3 * laneWidth);
             await Wellformed(compound);
             await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(compound)).Form).IsEqualTo(CompoundForm.Rectangle);
         }
@@ -106,14 +106,14 @@ public sealed class CompoundMirrorTests
     [Test]
     public async Task Ring_and_P_split_on_the_overhang_at_one_void()
     {
-        foreach (var cw in new[] { 2, 3 })
+        foreach (var laneWidth in new[] { 2, 3 })
         {
-            var ring = CompoundEmitter.Ring(cw, 4 * cw, 4 * cw);
+            var ring = CompoundEmitter.Ring(laneWidth, 4 * laneWidth, 4 * laneWidth);
             await Wellformed(ring);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(ring)))).IsEqualTo(1);
             await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(ring)).Form).IsEqualTo(CompoundForm.Ring);
 
-            var p = CompoundEmitter.P(cw, 4 * cw, 4 * cw);
+            var p = CompoundEmitter.P(laneWidth, 4 * laneWidth, 4 * laneWidth);
             await Wellformed(p);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(p)))).IsEqualTo(1);
             await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(p)).Form).IsEqualTo(CompoundForm.P);
@@ -124,14 +124,14 @@ public sealed class CompoundMirrorTests
     [Test]
     public async Task DoubleHole_and_TwoUOnI_split_on_the_channel_at_two_voids()
     {
-        foreach (var cw in new[] { 2, 3 })
+        foreach (var laneWidth in new[] { 2, 3 })
         {
-            var dh = CompoundEmitter.DoubleHole(cw, 5 * cw, 6 * cw);
+            var dh = CompoundEmitter.DoubleHole(laneWidth, 5 * laneWidth, 6 * laneWidth);
             await Wellformed(dh);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(dh)))).IsEqualTo(2);
             await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(dh)).Form).IsEqualTo(CompoundForm.DoubleHole);
 
-            var twin = CompoundEmitter.TwoUOnI(cw, 4 * cw);
+            var twin = CompoundEmitter.TwoUOnI(laneWidth, 4 * laneWidth);
             await Wellformed(twin);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(twin)))).IsEqualTo(2);
             await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(twin)).Form).IsEqualTo(CompoundForm.TwoUOnI);
@@ -143,9 +143,9 @@ public sealed class CompoundMirrorTests
     [Test]
     public async Task G_reads_one_void_plus_a_bay_distinct_from_ring_and_P()
     {
-        foreach (var cw in new[] { 2, 3 })
+        foreach (var laneWidth in new[] { 2, 3 })
         {
-            var g = CompoundEmitter.G(cw, 4 * cw, 4 * cw, 6 * cw);
+            var g = CompoundEmitter.G(laneWidth, 4 * laneWidth, 4 * laneWidth, 6 * laneWidth);
             await Wellformed(g);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(g)))).IsEqualTo(1);   // only the ring is enclosed
             await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(g)).Form).IsEqualTo(CompoundForm.G);
@@ -157,9 +157,9 @@ public sealed class CompoundMirrorTests
     [Test]
     public async Task DoubleHole_holes_can_be_equal_or_variant()
     {
-        const int cw = 2;
+        const int laneWidth = 2;
         // equal: a full-height U whose bay matches the ring interior exactly
-        var equal = CompoundEmitter.DoubleHole(cw, 4 * cw, 5 * cw, uW: 3 * cw, uH: 5 * cw, uz: 0);
+        var equal = CompoundEmitter.DoubleHole(laneWidth, 4 * laneWidth, 5 * laneWidth, uW: 3 * laneWidth, uH: 5 * laneWidth, uz: 0);
         var holes = equal.Vacancies.Where(v => v.Kind == "hole").Select(v => (v.Rect.Width, v.Rect.Height)).ToList();
         await Wellformed(equal);
         await Assert.That(holes.Count).IsEqualTo(2);
@@ -167,9 +167,9 @@ public sealed class CompoundMirrorTests
         await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(equal)).Form).IsEqualTo(CompoundForm.DoubleHole);
 
         // variant: a shorter U slid down the edge, still two voids apart by the solid leg
-        foreach (var uz in new[] { cw, 2 * cw, 3 * cw })
+        foreach (var uz in new[] { laneWidth, 2 * laneWidth, 3 * laneWidth })
         {
-            var dh = CompoundEmitter.DoubleHole(cw, 5 * cw, 8 * cw, uW: 2 * cw, uH: 3 * cw, uz: uz);
+            var dh = CompoundEmitter.DoubleHole(laneWidth, 5 * laneWidth, 8 * laneWidth, uW: 2 * laneWidth, uH: 3 * laneWidth, uz: uz);
             await Wellformed(dh);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(dh)))).IsEqualTo(2);
             await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(dh)).Form).IsEqualTo(CompoundForm.DoubleHole);

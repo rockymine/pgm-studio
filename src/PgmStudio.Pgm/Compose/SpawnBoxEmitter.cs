@@ -27,14 +27,14 @@ public static class SpawnBoxEmitter
     /// <summary>The canonical (mouth-top) box a spawn family needs to carry a straight run of
     /// <paramref name="runCells"/> back from the hub and, for an L, a <paramref name="turnCells"/> sideways
     /// hook. Small by construction (SP): the spawn absorbs run length, not area.</summary>
-    public static (int W, int H) Box(ShapeFamily family, int cw, int runCells, int turnCells)
+    public static (int W, int H) Box(ShapeFamily family, int laneWidth, int runCells, int turnCells)
     {
-        var (minW, minH) = ShapeEmitter.MinBox(family, cw);
+        var (minW, minH) = ShapeEmitter.MinBox(family, laneWidth);
         var rd = ShapeEmitter.RoomDepthCells;
         return family switch
         {
-            ShapeFamily.I => (cw, Math.Max(minH, runCells + rd)),
-            ShapeFamily.L => (Math.Max(minW, cw + turnCells + rd), Math.Max(minH, runCells + cw)),
+            ShapeFamily.I => (laneWidth, Math.Max(minH, runCells + rd)),
+            ShapeFamily.L => (Math.Max(minW, laneWidth + turnCells + rd), Math.Max(minH, runCells + laneWidth)),
             _ => throw new ComposeException($"the spawn profile admits only I and L (requested {family})."),
         };
     }
@@ -43,15 +43,15 @@ public static class SpawnBoxEmitter
     /// box-local, ending in the room the spawn stands in. Mirrors the wool box's fill — emit mouth-up, then turn
     /// onto the mouth (<see cref="Compound.Turned"/>). <paramref name="flip"/> puts an L's hook on the other side.
     /// <c>null</c> when the footprint is too small (a directed signal, not a throw).</summary>
-    public static Compound? Fill(Box box, BoxEdge mouth, ShapeFamily family, int cw, bool flip) =>
-        Fill(box, mouth, family, cw, flip, out _);
+    public static Compound? Fill(Box box, BoxEdge mouth, ShapeFamily family, int laneWidth, bool flip) =>
+        Fill(box, mouth, family, laneWidth, flip, out _);
 
     /// <inheritdoc cref="Fill(Box, BoxEdge, ShapeFamily, int, bool)"/>
     /// <remarks>On a <c>null</c> return, <b>why</b> the fill was refused — the directed reason in
     /// the shared <see cref="FillRejection"/> vocabulary (the family's minimum box, in the box's own frame).
     /// <c>null</c> when the fill succeeded.</remarks>
     public static Compound? Fill(
-        Box box, BoxEdge mouth, ShapeFamily family, int cw, bool flip, out FillRejection? rejection)
+        Box box, BoxEdge mouth, ShapeFamily family, int laneWidth, bool flip, out FillRejection? rejection)
     {
         rejection = null;
         if (!Families.Contains(family))
@@ -60,7 +60,7 @@ public static class SpawnBoxEmitter
         // the mouth's along × depth frame (I/L never transpose, so the box dims map straight through)
         var lateral = mouth is BoxEdge.Left or BoxEdge.Right;
         var (alongLen, depth) = lateral ? (box.Rect.Height, box.Rect.Width) : (box.Rect.Width, box.Rect.Height);
-        var (minW, minH) = ShapeEmitter.MinBox(family, cw);
+        var (minW, minH) = ShapeEmitter.MinBox(family, laneWidth);
         if (alongLen < minW || depth < minH)
         {
             // report the minimum in the box's own frame, so a lateral mouth's caller reads it without transposing
@@ -68,7 +68,7 @@ public static class SpawnBoxEmitter
             return null;
         }
 
-        var raw = ShapeEmitter.Emit(family, alongLen, depth, cw, flip);
+        var raw = ShapeEmitter.Emit(family, alongLen, depth, laneWidth, flip);
         var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, alongLen, depth);
         return mouthTop.Turned(mouth.TopOnto(), w, h);
     }

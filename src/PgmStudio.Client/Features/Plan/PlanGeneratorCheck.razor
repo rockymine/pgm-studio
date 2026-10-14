@@ -53,7 +53,7 @@
           </button>
           @if (b.Producible)
           {
-            <div class="plan-feas-finding plan-feas-finding--ok">@b.ProducibleAs <span class="list-tag">cw @b.Cw</span></div>
+            <div class="plan-feas-finding plan-feas-finding--ok">@b.ProducibleAs <span class="list-tag">lane @b.LaneWidth</span></div>
           }
           else if (b.Nearest is not null)
           {

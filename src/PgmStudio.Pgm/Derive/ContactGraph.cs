@@ -49,7 +49,7 @@ public sealed record FrontlineEdge(string Piece, string Zone, int X1, int Z1, in
 /// </summary>
 public sealed class ContactGraph
 {
-    /// <summary>Minimum corridor width (blocks): a shared border at least this long is a full-width
+    /// <summary>Minimum lane width (blocks): a shared border at least this long is a full-width
     /// <see cref="ContactKind.Land"/> interface; a shorter positive border is a <see cref="ContactKind.Narrow"/>
     /// seam — still a walkable connection, just too thin to fight through (corridor quality, not connectivity,
     /// is judged later on the assembled footprint).</summary>

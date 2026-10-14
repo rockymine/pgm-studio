@@ -38,12 +38,12 @@ public sealed class CompoundTests
     [Arguments(ShapeFamily.Donut)]
     public async Task Every_family_ends_in_its_room(ShapeFamily family)
     {
-        foreach (var cw in new[] { 2, 3 })
+        foreach (var laneWidth in new[] { 2, 3 })
             foreach (var (W, H) in new[] { (16, 22), (18, 26) })
                 foreach (var flip in new[] { false, true })
                 {
                     Compound emit;
-                    try { emit = ShapeEmitter.Emit(family, W, H, cw, flip); }
+                    try { emit = ShapeEmitter.Emit(family, W, H, laneWidth, flip); }
                     catch (ArgumentException) { continue; }          // too small for these dims — skip
                     await AssertEndsInItsRoom(emit);
                 }
@@ -53,14 +53,14 @@ public sealed class CompoundTests
     [Test]
     public async Task The_placement_knobs_keep_the_room_last()
     {
-        const int cw = 2;
+        const int laneWidth = 2;
         Compound[] emits =
         [
-            ShapeEmitter.Emit(ShapeFamily.I, 16, 22, cw, roomPlacement: RoomPlacement.SideTuck),
-            ShapeEmitter.Emit(ShapeFamily.Donut, 18, 16, cw, attachments: 2),
-            ShapeEmitter.Emit(ShapeFamily.Donut, 18, 14, cw, woolExtend: true),
-            ShapeEmitter.Emit(ShapeFamily.Donut, 18, 14, cw, woolAtEnd: true),
-            ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 16, cw, entryShift: 3),
+            ShapeEmitter.Emit(ShapeFamily.I, 16, 22, laneWidth, roomPlacement: RoomPlacement.SideTuck),
+            ShapeEmitter.Emit(ShapeFamily.Donut, 18, 16, laneWidth, attachments: 2),
+            ShapeEmitter.Emit(ShapeFamily.Donut, 18, 14, laneWidth, woolExtend: true),
+            ShapeEmitter.Emit(ShapeFamily.Donut, 18, 14, laneWidth, woolAtEnd: true),
+            ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 16, laneWidth, entryShift: 3),
         ];
         foreach (var emit in emits) await AssertEndsInItsRoom(emit);
     }

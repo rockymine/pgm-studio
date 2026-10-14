@@ -112,7 +112,7 @@ public sealed class ShapeCatalogTests
         foreach (var shape in Wools.Where(s => s.Tier == CatalogTier.EmitterOnly))
         {
             var family = Enum.Parse<ShapeFamily>(shape.Family, ignoreCase: true);
-            var (minW, minH) = ShapeEmitter.MinBox(family, shape.CorridorCells);
+            var (minW, minH) = ShapeEmitter.MinBox(family, shape.LaneWidth);
             await Assert.That(shape.BoxW).IsGreaterThanOrEqualTo(minW);
             await Assert.That(shape.BoxH).IsGreaterThanOrEqualTo(minH);
             await Assert.That(shape.BoxW * shape.BoxH).IsLessThan(2 * minW * minH);

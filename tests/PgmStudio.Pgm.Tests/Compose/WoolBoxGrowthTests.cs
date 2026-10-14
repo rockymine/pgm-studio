@@ -180,11 +180,11 @@ public sealed class WoolBoxGrowthTests
     {
         // the donut growth knobs: a box bigger than the min is absorbed by the ring (its span derives from the
         // box), so the enclosed hole grows with it, and the sampled attachment width widens the hub entry —
-        // here the caps: hole 3 (along) × 5 (deep), entry 5 wide, at cw 2 / rd 2. Canonical frame: W = cw
-        // (attachment) + span (2·cw + holeDeep) + rd = 13; H = 2·cw + holeAlong = 7 (also ≥ entry + cw).
-        const int cw = 2;
+        // here the caps: hole 3 (along) × 5 (deep), entry 5 wide, at laneWidth 2 / rd 2. Canonical frame: W = laneWidth
+        // (attachment) + span (2·laneWidth + holeDeep) + rd = 13; H = 2·laneWidth + holeAlong = 7 (also ≥ entry + laneWidth).
+        const int laneWidth = 2;
         var box = new Box("wool-a", BoxKind.Wool, new(0, 0, 13, 7), 91);
-        var filled = BoxFiller.Fill(box, BoxEdge.Left, cw, ShapeFamily.Donut, out _, attachmentWidth: 5)!;
+        var filled = BoxFiller.Fill(box, BoxEdge.Left, laneWidth, ShapeFamily.Donut, out _, attachmentWidth: 5)!;
 
         var hole = filled.Vacancies.Single(v => v.Kind == "hole");
         await Assert.That(hole.Rect.Width * hole.Rect.Height).IsEqualTo(15);         // the 3×5 hole (orientation aside)

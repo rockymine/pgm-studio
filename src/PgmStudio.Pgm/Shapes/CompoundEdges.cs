@@ -11,14 +11,6 @@ namespace PgmStudio.Pgm.Shapes;
 /// stateable while the space-level class stays correct.</summary>
 public sealed record NegativeSpacePart(CellRect Rect, string Kind, bool Guarded = false, bool Front = false);
 
-/// <summary>One <b>mouth</b> of a negative space — where it opens out of the compound's bounding box: the open
-/// <see cref="Side"/>, the interval along it (<see cref="Start"/> in cell-corner coordinates,
-/// <see cref="WidthCells"/> wide), and the <see cref="WidthClass"/> the width tapers to (the w2/w4/w6 rung —
-/// the interface-width grammar: a w2 mouth is a chokepoint lane, w4 the unstable middle, w6 multi-access). A
-/// space has one mouth per open direction: a bay exactly one (the fact its offer/consumer rules read), a notch
-/// two, a hole none. The derive-side twin of the emit-time published vacancy's <c>BoxAbutment</c> mouth —
-/// which exists for bays only; here every non-enclosed space carries its mouths uniformly.</summary>
-public sealed record SpaceMouth(BoxEdge Side, int Start, int WidthCells, int WidthClass);
 
 /// <summary>One straight line across a negative space with compound on <b>both</b> ends — what a player crosses,
 /// and the only run a jump is judged against: a run open at one end is a way out of the space rather than a
@@ -43,7 +35,7 @@ public sealed record SpaceCrossing(int Cells, string From, string To, int X, int
 public sealed record NegativeSpace(
     string Kind, IReadOnlySet<(int X, int Z)> Cells, int WallDirections,
     IReadOnlyList<string> Walls, IReadOnlyList<NegativeSpacePart> Parts, CompoundRead? Form,
-    IReadOnlyList<SpaceMouth> Mouths, IReadOnlyList<SpaceCrossing> Crossings);
+    IReadOnlyList<EdgeInterval> Mouths, IReadOnlyList<SpaceCrossing> Crossings);
 
 /// <summary>A maximal straight run of the compound's boundary, classified along two independent axes: what it
 /// <see cref="Faces"/> (<see cref="NegativeSpaceKinds.Open"/> for a free outward edge, else the class of the
@@ -250,9 +242,9 @@ public static class CompoundEdges
         catch (ArgumentException) { return null; }
     }
 
-    /// <summary>The w2/w4/w6 rung a width in cells tapers to — nearest rung, ties to the smaller (the fill
-    /// menu's convention).</summary>
-    public static int WidthClass(int widthCells) =>
+    /// <summary>The lane width, in cells, a run <paramref name="widthCells"/> long can carry: the w2/w4/w6 rung it
+    /// tapers to — nearest rung, ties to the smaller (the fill menu's convention).</summary>
+    public static int LaneWidthOn(int widthCells) =>
         new[] { 2, 4, 6 }.OrderBy(r => Math.Abs(r - widthCells)).ThenBy(r => r).First();
 
     // the distinct owner/mark names of the pieces walling a space, in first-encounter order over a
@@ -271,14 +263,14 @@ public static class CompoundEdges
     // a part fronts the space when it holds at least one cell of a mouth interval — the covering layer the
     // publish policy's allow rules bind to
     private static bool TouchesAMouth(
-        CellRect rect, IReadOnlyList<SpaceMouth> mouths, int minX, int minZ, int maxX, int maxZ)
+        CellRect rect, IReadOnlyList<EdgeInterval> mouths, int minX, int minZ, int maxX, int maxZ)
     {
         bool In(int x, int z) =>
             x >= rect.X && x < rect.X + rect.Width && z >= rect.Z && z < rect.Z + rect.Height;
         foreach (var m in mouths)
-            for (var t = m.Start; t < m.Start + m.WidthCells; t++)
+            for (var t = m.Start; t < m.End; t++)
             {
-                var hit = m.Side switch
+                var hit = m.Edge switch
                 {
                     BoxEdge.Top => In(t, minZ),
                     BoxEdge.Bottom => In(t, maxZ),
@@ -293,10 +285,10 @@ public static class CompoundEdges
     // the mouths — one per open direction: the space's cell runs on the bounding-box border of that side (an
     // unwalled direction always reaches the border, or the cells would have flooded further). Enclosed spaces
     // yield none.
-    private static IReadOnlyList<SpaceMouth> Mouths(
+    private static IReadOnlyList<EdgeInterval> Mouths(
         HashSet<(int, int)> comp, List<(int Dx, int Dz)> walled, int minX, int minZ, int maxX, int maxZ)
     {
-        var mouths = new List<SpaceMouth>();
+        var mouths = new List<EdgeInterval>();
         foreach (var (dx, dz, side) in new[]
         {
             (0, -1, BoxEdge.Top), (0, 1, BoxEdge.Bottom), (-1, 0, BoxEdge.Left), (1, 0, BoxEdge.Right),
@@ -313,7 +305,7 @@ public static class CompoundEdges
             var spans = border.ToList();
             if (spans.Count == 0) continue;
             foreach (var (lo, hi) in Runs(spans))
-                mouths.Add(new SpaceMouth(side, lo, hi - lo, WidthClass(hi - lo)));
+                mouths.Add(new EdgeInterval(side, lo, hi - lo));
         }
         return mouths;
     }

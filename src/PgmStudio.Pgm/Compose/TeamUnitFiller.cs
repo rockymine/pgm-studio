@@ -7,7 +7,7 @@ namespace PgmStudio.Pgm.Compose;
 /// Fills an allocated team <see cref="BoxLayout"/> <b>hub-first</b> — the fill half of the allocate-then-fill
 /// pipeline. The hub emits first as the <b>constraint source</b> (<see cref="HubBoxEmitter"/>), and
 /// each neighbour box <b>consumes the hub's <see cref="EdgeOffer"/></b> on the edge it docks: the offered
-/// <see cref="EdgeOffer.WidthClass"/> <em>is</em> the neighbour's corridor width. The geometry is filled into
+/// <see cref="EdgeOffer.Width"/> <em>is</em> the neighbour's lane width. The geometry is filled into
 /// footprints the allocator positions, never grown outward.
 ///
 /// <para>Every box is filled with a <see cref="Compound"/> and laid onto the board with
@@ -15,33 +15,32 @@ namespace PgmStudio.Pgm.Compose;
 /// </summary>
 public static class TeamUnitFiller
 {
-    /// <summary>The corridor width the neighbour on <paramref name="joint"/> builds to, docking the hub's
+    /// <summary>The lane width the neighbour on <paramref name="joint"/> builds to, docking the hub's
     /// <paramref name="hubEdge"/> — the constraint-source contract: the hub sources the width, the neighbour
     /// builds to it. The grant is <b>per joint</b>, never per edge and not even per run: a third wool doubling
     /// onto the spawn's side shares the spawn's edge — on a solid hub, the very same run — at a different width,
-    /// so an edge- or run-keyed lookup would hand one of the two the other's <c>cw</c>. A joint carrying no offer
+    /// so an edge- or run-keyed lookup would hand one of the two the other's <c>laneWidth</c>. A joint carrying no offer
     /// (a partition derived rather than allocated) falls back to what the run this dock lands on can support.
     /// Throws <see cref="ComposeException"/> when the hub published no offer at all on that edge (the allocator
     /// only docks a neighbour where the hub offered).</summary>
-    public static int ConsumedCw(Box hubBox, Compound hub, BoxJoint joint, BoxEdge hubEdge)
+    public static int GrantedLaneWidth(Box hubBox, Compound hub, BoxJoint joint, BoxEdge hubEdge)
     {
-        if (joint.Grant is { } granted) return granted.WidthClass;
+        if (joint.Width is { } granted) return granted;
 
         var onEdge = HubBoxEmitter.Offers(hubBox, hub).Where(o => o.Edge == hubEdge).ToList();
         if (onEdge.Count == 0)
             throw new ComposeException($"the hub publishes no offer on its {hubEdge} edge to consume.");
-        int lo = joint.Abutment.Start, hi = lo + joint.Abutment.WidthCells;
-        var run = onEdge.FirstOrDefault(o => o.Interval.Start < hi && lo < o.Interval.Start + o.Interval.LengthCells);
-        return (run ?? onEdge[0]).WidthClass;
+        var run = onEdge.FirstOrDefault(o => o.Interval.Overlaps(joint.Shared));
+        return (run ?? onEdge[0]).Width;
     }
 
     /// <summary>
     /// Fill an allocated <paramref name="layout"/> into a team unit, hub-first (the allocate↔fill contract).
     /// The <b>allocator (C.2) provides</b>: the positioned boxes (plan-cell <see cref="Box.Rect"/>s — one hub,
-    /// one spawn, 1–3 wools, 0–1 frontline), the joints between them with the <b>corridor width each consumer
-    /// was granted, carried per joint as their <see cref="BoxJoint.Grant"/>s</b>. This <b>filler</b> emits the hub
+    /// one spawn, 1–3 wools, 0–1 frontline), the joints between them with the <b>lane width each consumer
+    /// was granted, carried per joint as their <see cref="BoxJoint.Width"/>s</b>. This <b>filler</b> emits the hub
     /// first at the form the allocator chose (<see cref="Box.Form"/>), then for each hub joint fills the
-    /// neighbour box — the spawn/wool consuming <b>its own joint's</b> granted width as its <c>cw</c>, docking the
+    /// neighbour box — the spawn/wool consuming <b>its own joint's</b> granted width as its <c>laneWidth</c>, docking the
     /// edge facing the hub — and lays every compound as the unit's pieces, with the spawn and wool markers.
     /// <c>null</c> on any directed fill failure (a form or family that does not fit), which the composer
     /// resamples.
@@ -57,7 +56,7 @@ public static class TeamUnitFiller
         // offerable surface), never an empty bounding-box stretch. It publishes each run at what that run can
         // support; what each neighbour was granted rides on its own joint.
         var form = hubBox.Form ?? new CompoundRead(CompoundForm.Rectangle);
-        if (HubBoxEmitter.Fill(hubBox, form, hubBox.HubCorridor, hubBox.FlipV, hubBox.HubWalls,
+        if (HubBoxEmitter.Fill(hubBox, form, hubBox.HubLaneWidth, hubBox.FlipV, hubBox.HubWalls,
                 hubBox.HubArms) is not { } hub)
             return null;
 
@@ -76,11 +75,11 @@ public static class TeamUnitFiller
             switch (neighbour.Kind)
             {
                 case BoxKind.Spawn:
-                    var cw = ConsumedCw(hubBox, hub, j, hubEdge);
+                    var laneWidth = GrantedLaneWidth(hubBox, hub, j, hubEdge);
                     var fitS = SpawnBoxEmitter.Families
-                        .Where(f => SpawnBoxEmitter.Fill(neighbour, mouth, f, cw, flip: false) is not null).ToList();
+                        .Where(f => SpawnBoxEmitter.Fill(neighbour, mouth, f, laneWidth, flip: false) is not null).ToList();
                     if (fitS.Count == 0) return null;
-                    var spawnFill = SpawnBoxEmitter.Fill(neighbour, mouth, fitS[rng.NextInt(0, fitS.Count)], cw, flip: false)!;
+                    var spawnFill = SpawnBoxEmitter.Fill(neighbour, mouth, fitS[rng.NextInt(0, fitS.Count)], laneWidth, flip: false)!;
                     (var spawnPieces, spawn) = UnitPieces.Lay(spawnFill, neighbour);
                     pieces.AddRange(spawnPieces);
                     spawnFacing = TowardHub(hubEdge);
@@ -90,9 +89,9 @@ public static class TeamUnitFiller
                     // fill the shape the allocator chose and seated (Box.Wool): the compact inline / side-tuck I, or
                     // a richer family docked by the seat-and-shift. The allocator positioned the box for this exact
                     // family's entry, so the filler re-emits it, not a re-picked family.
-                    cw = ConsumedCw(hubBox, hub, j, hubEdge);
+                    laneWidth = GrantedLaneWidth(hubBox, hub, j, hubEdge);
                     var wf = neighbour.Wool ?? new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false);
-                    if (BoxFiller.Fill(neighbour, mouth, cw, wf.Family, out _, wf.Flip, wf.Placement,
+                    if (BoxFiller.Fill(neighbour, mouth, laneWidth, wf.Family, out _, wf.Flip, wf.Placement,
                             wf.WoolAtEnd, wf.AttachmentWidth, wf.RingWalls) is not { } woolFill)
                         return null;
                     var (woolPieces, woolMarker) = UnitPieces.Lay(woolFill, neighbour);
@@ -104,9 +103,9 @@ public static class TeamUnitFiller
                     // a join, not a placement: the frontline's spine docks the hub with the mouth facing it (at
                     // the hub's front-edge offer width), and its face — opposite the spine, toward the axis —
                     // is what the mid docks. No room, no marker.
-                    cw = ConsumedCw(hubBox, hub, j, hubEdge);
+                    laneWidth = GrantedLaneWidth(hubBox, hub, j, hubEdge);
                     var fitF = FillProfiles.FrontlineForms
-                        .Where(f => FrontlineBoxEmitter.Fill(neighbour, f, cw, mouth) is not null).ToList();
+                        .Where(f => FrontlineBoxEmitter.Fill(neighbour, f, laneWidth, mouth) is not null).ToList();
                     if (fitF.Count == 0) return null;
                     // the frontline form answers the hub form: a branch hub takes the wide Bar across its front
                     // (it overlaps the short leg), but a square or holed hub prefers a staple/strand — a solid Bar
@@ -125,8 +124,8 @@ public static class TeamUnitFiller
                     var layoutF = frontForm.Form == CompoundForm.SpineArms
                         ? FrontlineBoxEmitter.SampleArms(rng, spineLenF, frontForm.Arms) : null;
                     var frontFill = (layoutF is null ? null
-                            : FrontlineBoxEmitter.Fill(neighbour, frontForm, cw, mouth, layoutF))
-                        ?? FrontlineBoxEmitter.Fill(neighbour, frontForm, cw, mouth)!;
+                            : FrontlineBoxEmitter.Fill(neighbour, frontForm, laneWidth, mouth, layoutF))
+                        ?? FrontlineBoxEmitter.Fill(neighbour, frontForm, laneWidth, mouth)!;
                     pieces.AddRange(UnitPieces.Lay(frontFill, neighbour).Pieces);
                     break;
             }
@@ -159,7 +158,7 @@ public static class TeamUnitFiller
     };
 
     private static BoxEdge HubEdge(BoxJoint j, string hubId) =>
-        j.BoxA == hubId ? j.Abutment.Edge : Opposite(j.Abutment.Edge);
+        j.BoxA == hubId ? j.Shared.Edge : Opposite(j.Shared.Edge);
 
     private static string Other(BoxJoint j, string id) => j.BoxA == id ? j.BoxB : j.BoxA;
 }

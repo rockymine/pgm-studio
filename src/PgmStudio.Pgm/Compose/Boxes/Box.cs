@@ -11,7 +11,7 @@ public enum BoxKind { Spawn, Hub, Wool, Frontline, Mid }
 /// (the clamp's adjacent/corner L+I variant vs its centered I+I; the U/H wool-at-an-end knob), and
 /// <see cref="AttachmentWidth"/> (the donut's sampled hub-entry width in cells; 0 = one corridor), and
 /// <see cref="RingWalls"/> (the donut's four wall widths when one is widened; <c>null</c> = every wall at the
-/// corridor width) — carried so the filler re-emits the exact shape the allocator seated (an overhang dock
+/// lane width) — carried so the filler re-emits the exact shape the allocator seated (an overhang dock
 /// aligns to a specific family's entry at its exact width).</summary>
 public sealed record WoolFill(
     ShapeFamily Family, RoomPlacement Placement, bool Flip, bool WoolAtEnd = false, int AttachmentWidth = 0,
@@ -34,11 +34,11 @@ public sealed record BoxRef(string Id, BoxKind Kind)
 /// orientation — reflect it vertically so its open feet face the front — the second half of that directive,
 /// carried so the filler re-emits the compound the allocator seated against. <see cref="HubWalls"/> is the third
 /// half of that directive for a ring-bodied form — the four wall widths when one is widened, in the
-/// <b>pre-flip</b> frame; <c>null</c> = every wall at the corridor width. <see cref="HubArms"/> is the branch
+/// <b>pre-flip</b> frame; <c>null</c> = every wall at the lane width. <see cref="HubArms"/> is the branch
 /// forms' counterpart — each leg's <c>(Start, Width)</c> on the spine, <c>null</c> = every leg one corridor wide
-/// at the spine's ends. <see cref="HubCorridorCells"/> is the width those walls and legs are built to — the
+/// at the spine's ends. <see cref="HubLaneWidth"/> is the width those walls and legs are built to — the
 /// band's map corridor, so a big hub is a wide loop rather than a thin ring round a huge void; <c>null</c>
-/// takes <see cref="FillProfiles.HubWallCells"/>, the narrowest a compound is producible at. All are carried for
+/// takes <see cref="FillProfiles.HubLaneWidthFloor"/>, the narrowest a compound is producible at. All are carried for
 /// the same reason as the form itself: the allocator emits the hub to
 /// read the runs it offers and the filler re-emits it, so a compound sampled twice would diverge. <see cref="Wool"/> is the wool box's
 /// fill directive (family + room placement + handedness), likewise carried so the filler re-emits what the
@@ -46,12 +46,8 @@ public sealed record BoxRef(string Id, BoxKind Kind)
 public sealed record Box(
     string Id, BoxKind Kind, CellRect Rect, int LandTargetCells,
     CompoundRead? Form = null, bool FlipV = false, WoolFill? Wool = null, RingWalls? HubWalls = null,
-    IReadOnlyList<(int Start, int Width)>? HubArms = null, int? HubCorridorCells = null)
+    IReadOnlyList<(int Start, int Width)>? HubArms = null, int HubLaneWidth = FillProfiles.HubLaneWidthFloor)
 {
     public BoxRef Ref => new(Id, Kind);
 
-    /// <summary>The width a hub compound's walls and legs are emitted at — <see cref="HubCorridorCells"/> when the
-    /// allocator stated one, else the producible floor. The allocator and the filler both read it here, so the
-    /// compound emitted twice is the same compound.</summary>
-    public int HubCorridor => HubCorridorCells ?? FillProfiles.HubWallCells;
 }

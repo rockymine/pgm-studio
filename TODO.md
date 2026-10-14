@@ -36,11 +36,6 @@ The composer is described by cells, pieces, parts, roles, compounds, forms, vaca
 kinds, joints, layouts and lane widths, and these steps bring its types down to those words. Each leaves the
 composer's fingerprints unchanged except the last, which removes a random draw.
 
-- [ ] **G297 — One edge interval and one lane width.** `EdgeInterval(Edge, Start, Length)` replaces
-  `BoxAbutment`, `SpaceMouth`, the interval inside `EdgeOffer` and the `(Start, Len)` / `(Start, Width)` tuples;
-  `BoxJoint.Grant` becomes a `Width`. The walkway width takes two names, `LaneWidth` and `WoolLaneWidth`, in
-  place of `cw`, `corridorWidth`, `corridorCells`, `laneCells`, `grantedWidthCells`, `HubCorridorCells` and the
-  rest, and `WidthClass` goes. `docs/generator/vocabulary.md`.
 - [ ] **G298 — One list of forms.** `ShapeFamily` merges into `CompoundForm`: I, L, U, H, Z, Scythe, Clamp,
   Donut, P, G, Double-hole and Two-U, with `Isolated` a finding rather than a form. `FillMenu.For(kind)` is each
   box kind's menu; the generator and catalog chips use the same names, the hub's Bar/Single/Twin/Ring becoming

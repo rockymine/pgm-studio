@@ -8,14 +8,6 @@ namespace PgmStudio.Pgm.Compose;
 /// edges all read <see cref="Long"/>.</summary>
 public enum EdgeSpan { Long, Short }
 
-/// <summary>One <b>interval</b> of a box edge — the stretch a single piece presents to it: the interval's
-/// <see cref="Start"/> along the edge (box-local cells; x for a horizontal edge, z for a vertical one), its
-/// <see cref="LengthCells"/>, and the template <see cref="Part"/> of the piece (the room as the room part). The
-/// §6 interface primitive at fact level: a shape whose face is two arm tips presents <b>two
-/// disjoint intervals on one edge</b> with the recess between them — which the flat part list could never
-/// say, and which the multi-interval docking and offer rules bind to.</summary>
-public sealed record EdgeInterval(int Start, int LengthCells, string Part);
-
 /// <summary>
 /// The <b>observed facts</b> about one box edge, read off the emitted shape (§4): which edge, its
 /// <see cref="Span"/> (long vs short), and its <see cref="Intervals"/> — the per-piece stretches on the edge,
@@ -35,7 +27,7 @@ public sealed record EdgeInterval(int Start, int LengthCells, string Part);
 public sealed record BoxEdgeInterface(BoxEdge Edge, EdgeSpan Span, int LengthCells, IReadOnlyList<EdgeInterval> Intervals)
 {
     /// <summary>The parts on this edge, one per interval — the flat view the gate's per-part rules read.</summary>
-    public IReadOnlyList<string> Parts => Intervals.Select(i => i.Part).ToList();
+    public IReadOnlyList<string> Parts => Intervals.Select(i => i.Part!).ToList();
 
     /// <summary>The wool room reaches this edge (its rect is flush with it). A convenience read over
     /// <see cref="Intervals"/>; the "room ⇒ never-dock" verdict over it is the gate's, not this fact's.</summary>
@@ -68,7 +60,7 @@ public static class BoxInterfaces
         {
             var intervals = new List<EdgeInterval>();
             foreach (var (r, part) in compound.Pieces)
-                if (on(r)) { var (start, len) = along(r); intervals.Add(new EdgeInterval(start, len, part)); }
+                if (on(r)) { var (start, len) = along(r); intervals.Add(new EdgeInterval(e, start, len, part)); }
             intervals.Sort((a, b) => a.Start.CompareTo(b.Start));
             return new(e, length >= perpendicular ? EdgeSpan.Long : EdgeSpan.Short, length, intervals);
         }
@@ -92,13 +84,12 @@ public static class BoxInterfaces
     {
         var runs = new List<EdgeInterval>();
         foreach (var iv in intervals.OrderBy(i => i.Start))
-            if (runs.Count > 0 && iv.Start <= runs[^1].Start + runs[^1].LengthCells)
+            if (runs.Count > 0 && iv.Start <= runs[^1].End)
             {
                 var last = runs[^1];
-                var end = Math.Max(last.Start + last.LengthCells, iv.Start + iv.LengthCells);
-                runs[^1] = last with { LengthCells = end - last.Start };
+                runs[^1] = last with { Length = Math.Max(last.End, iv.End) - last.Start };
             }
-            else runs.Add(new EdgeInterval(iv.Start, iv.LengthCells, CompoundParts.Bar));
+            else runs.Add(iv with { Part = null });
         return runs;
     }
 }

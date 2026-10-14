@@ -12,10 +12,10 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// </summary>
 public sealed class DockingGateTests
 {
-    private const int Cw = 2;
+    private const int LaneWidth = 2;
 
     private static IReadOnlyList<BoxEdgeInterface> Edges(ShapeFamily family, int w, int h, bool flip = false, bool woolAtEnd = false)
-        => BoxInterfaces.Of(ShapeEmitter.Emit(family, w, h, Cw, flip, woolAtEnd: woolAtEnd), w, h);
+        => BoxInterfaces.Of(ShapeEmitter.Emit(family, w, h, LaneWidth, flip, woolAtEnd: woolAtEnd), w, h);
 
     private static DockRejection? Check(IReadOnlyList<BoxEdgeInterface> es, BoxEdge e)
         => DockingGate.Check(es.Single(x => x.Edge == e));

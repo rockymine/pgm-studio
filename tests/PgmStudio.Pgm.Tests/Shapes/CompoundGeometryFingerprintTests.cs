@@ -16,7 +16,7 @@ namespace PgmStudio.Pgm.Tests.Shapes;
 /// </summary>
 public sealed class CompoundGeometryFingerprintTests
 {
-    private const int Cw = 2;
+    private const int LaneWidth = 2;
 
     // The recorded geometry strings predate CellRect; keep printing the four numbers so a pure
     // representation change cannot move a single expectation.
@@ -29,9 +29,9 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task Ring_geometry_is_stable()
     {
-        await Assert.That(Print(CompoundEmitter.Ring(Cw, 9, 7))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.Ring(LaneWidth, 9, 7))).IsEqualTo(
             "bar:0,0,9,2 | bar:0,5,9,2 | leg:0,2,2,3 | leg:7,2,2,3  voids hole:2,2,5,3");
-        await Assert.That(Print(CompoundEmitter.Ring(Cw, 5, 5))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.Ring(LaneWidth, 5, 5))).IsEqualTo(
             "bar:0,0,5,2 | bar:0,3,5,2 | leg:0,2,2,1 | leg:3,2,2,1  voids hole:2,2,1,1");
     }
 
@@ -71,7 +71,7 @@ public sealed class CompoundGeometryFingerprintTests
     public async Task P_geometry_is_stable()
     {
         // the long bottom bar comes FIRST here, unlike the ring's top-first order
-        await Assert.That(Print(CompoundEmitter.P(Cw, 7, 7, 4))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.P(LaneWidth, 7, 7, 4))).IsEqualTo(
             "bar:0,5,11,2 | bar:2,0,7,2 | leg:2,2,2,3 | leg:7,2,2,3  voids hole:4,2,3,3");
     }
 
@@ -80,7 +80,7 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task A_P_widens_its_loop_and_leaves_the_overhanging_bar_a_corridor()
     {
-        await Assert.That(Print(CompoundEmitter.P(new RingWalls(2, 3, 2, 2), Cw, 7, 7, 4))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.P(new RingWalls(2, 3, 2, 2), LaneWidth, 7, 7, 4))).IsEqualTo(
             "bar:0,5,11,2 | bar:2,0,7,2 | leg:2,2,2,3 | leg:6,2,3,3  voids hole:4,2,2,3");
     }
 
@@ -88,7 +88,7 @@ public sealed class CompoundGeometryFingerprintTests
     public async Task G_geometry_is_stable()
     {
         // the shared top bar spans the FULL width, not the ring's
-        await Assert.That(Print(CompoundEmitter.G(Cw, 7, 7, 11))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.G(LaneWidth, 7, 7, 11))).IsEqualTo(
             "bar:0,0,11,2 | bar:0,5,7,2 | leg:0,2,2,3 | leg:5,2,2,3 | leg:9,2,2,5  voids hole:2,2,3,3");
     }
 
@@ -97,16 +97,16 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task A_G_carries_its_ring_top_across_the_shared_bar()
     {
-        await Assert.That(Print(CompoundEmitter.G(new RingWalls(3, 2, 2, 2), Cw, 7, 7, 11))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.G(new RingWalls(3, 2, 2, 2), LaneWidth, 7, 7, 11))).IsEqualTo(
             "bar:0,0,11,3 | bar:0,5,7,2 | leg:0,3,2,2 | leg:5,3,2,2 | leg:9,3,2,4  voids hole:2,3,3,2");
     }
 
     [Test]
     public async Task DoubleHole_geometry_is_stable()
     {
-        await Assert.That(Print(CompoundEmitter.DoubleHole(Cw, 7, 7, 6, 7, 0))).IsNotEmpty();
+        await Assert.That(Print(CompoundEmitter.DoubleHole(LaneWidth, 7, 7, 6, 7, 0))).IsNotEmpty();
         // pinned exactly so the consolidation cannot quietly reorder or resize it
-        await Assert.That(Print(CompoundEmitter.DoubleHole(Cw, 7, 7, 6, 7, 0))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.DoubleHole(LaneWidth, 7, 7, 6, 7, 0))).IsEqualTo(
             "bar:0,0,7,2 | bar:0,5,7,2 | leg:0,2,2,3 | leg:5,2,2,3 | bar:7,0,6,2 | bar:7,5,6,2 | leg:11,2,2,3"
             + "  voids hole:2,2,3,3 | hole:7,2,4,3");
     }
@@ -116,7 +116,7 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task A_double_hole_widens_the_leg_between_its_two_voids()
     {
-        await Assert.That(Print(CompoundEmitter.DoubleHole(new RingWalls(2, 3, 2, 2), Cw, 7, 7, 6, 7, 0))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.DoubleHole(new RingWalls(2, 3, 2, 2), LaneWidth, 7, 7, 6, 7, 0))).IsEqualTo(
             "bar:0,0,7,2 | bar:0,5,7,2 | leg:0,2,2,3 | leg:4,2,3,3 | bar:7,0,6,2 | bar:7,5,6,2 | leg:11,2,2,3"
             + "  voids hole:2,2,2,3 | hole:7,2,4,3");
     }
@@ -124,13 +124,13 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task TwoUOnI_geometry_is_stable()
     {
-        await Assert.That(Print(CompoundEmitter.TwoUOnI(Cw, 7, 3, 2))).IsNotEmpty();
+        await Assert.That(Print(CompoundEmitter.TwoUOnI(LaneWidth, 7, 3, 2))).IsNotEmpty();
     }
 
     [Test]
     public async Task SpineArms_geometry_is_stable()
     {
-        await Assert.That(Print(CompoundEmitter.SpineArms(Cw, 1))).IsNotEmpty();
+        await Assert.That(Print(CompoundEmitter.SpineArms(LaneWidth, 1))).IsNotEmpty();
         await Assert.That(Print(CompoundEmitter.SpineArms(9, 2, [(0, 3, 5), (6, 3, 5)]))).IsEqualTo(
             "bar:0,0,9,2 | leg:0,2,3,5 | leg:6,2,3,5  voids ");
     }
@@ -140,7 +140,7 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task Donut_geometry_is_stable()
     {
-        var shape = ShapeEmitter.Emit(ShapeFamily.Donut, 12, 7, Cw);
+        var shape = ShapeEmitter.Emit(ShapeFamily.Donut, 12, 7, LaneWidth);
         var print = string.Join(" | ", shape.Pieces.Select(p => $"{p.Part}:{R(p.Rect)}"));
         await Assert.That(print).IsEqualTo(
             "entry-bar:2,0,8,2 | leg:2,2,2,3 | leg:8,2,2,3 | entry:0,0,2,2 | room-bar:2,5,8,2 | room:10,5,2,2");
@@ -152,8 +152,8 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task A_donut_can_carry_a_wider_leg_and_a_wider_bar()
     {
-        var uniform = ShapeEmitter.Emit(ShapeFamily.Donut, 13, 8, Cw);
-        var widened = ShapeEmitter.Emit(ShapeFamily.Donut, 13, 8, Cw,
+        var uniform = ShapeEmitter.Emit(ShapeFamily.Donut, 13, 8, LaneWidth);
+        var widened = ShapeEmitter.Emit(ShapeFamily.Donut, 13, 8, LaneWidth,
             ringWalls: new RingWalls(Top: 3, Right: 2, Bottom: 2, Left: 2));
 
         // the top bar thickens; the hole loses that row rather than the box growing
@@ -182,7 +182,7 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task A_donut_refuses_walls_its_box_has_no_slack_for()
     {
-        await Assert.That(() => ShapeEmitter.Emit(ShapeFamily.Donut, 13, 8, Cw,
+        await Assert.That(() => ShapeEmitter.Emit(ShapeFamily.Donut, 13, 8, LaneWidth,
             ringWalls: new RingWalls(Top: 4, Right: 2, Bottom: 4, Left: 2))).Throws<ArgumentException>();
     }
 }

@@ -53,12 +53,12 @@ public static class FillMenu
     ];
 
     /// <summary>The families an interface of <paramref name="widthCells"/> admits where one lane is
-    /// <paramref name="laneCells"/> cells, tapering to the nearest rung. A touch one lane wide is a
+    /// <paramref name="woolLaneWidth"/> cells, tapering to the nearest rung. A touch one lane wide is a
     /// chokepoint on any grid; wider rungs return empty until multi-shape patterns are emittable — the caller
     /// treats an empty menu as a directed signal, never a crash.</summary>
-    public static IReadOnlyList<ShapeFamily> FamiliesFor(int widthCells, int laneCells)
+    public static IReadOnlyList<ShapeFamily> FamiliesFor(int widthCells, int woolLaneWidth)
     {
-        var lane = Math.Max(1, laneCells);
+        var lane = Math.Max(1, woolLaneWidth);
         var row = Rows.OrderBy(r => Math.Abs(r.Lanes * lane - widthCells)).ThenBy(r => r.Lanes).First();
         return row.Families;
     }

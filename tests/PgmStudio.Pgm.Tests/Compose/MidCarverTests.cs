@@ -197,7 +197,7 @@ public sealed class MidCarverTests
     // ── the split band ────────────────────────────────────────────────────────────────────────────────────
     private static ComposeEnvelope Env(string symmetry) => new(
         symmetry, Teams: 2, PlayersPerTeam: 12, Band: SizeBands.Nano, Cell: 5,
-        Surface: 9, CorridorCells: 2, WoolCorridorCells: 2, BoardWidthBlocks: 300, BoardLengthBlocks: 300,
+        Surface: 9, LaneWidth: 2, WoolLaneWidth: 2, BoardWidthBlocks: 300, BoardLengthBlocks: 300,
         LandPerTeam: 2800, UnitMinX: -40, UnitMinZ: -40, UnitMaxX: 40, UnitMaxZ: 40);
 
     // A unit reduced to what the carve reads: a face at the near edge plus a compound behind it to keep the front

@@ -59,7 +59,7 @@ public sealed class ProducibilityTests
         var hub = Producibility.Read(stages.Plan).First(r => r.Kind == PlanBoxKinds.Hub);
         await Assert.That(hub.Producible).IsNotNull();
         await Assert.That(hub.Producible!.Label).IsNotEmpty();
-        await Assert.That(hub.Producible.Cw).IsGreaterThan(0);
+        await Assert.That(hub.Producible.LaneWidth).IsGreaterThan(0);
         await Assert.That(hub.Nearest).IsNull().Because("a reproduced box needs no nearest miss");
     }
 
@@ -251,7 +251,7 @@ public sealed class ProducibilityTests
         await Assert.That(front.IsProducible).IsTrue();
     }
 
-    /// <summary>The spanning-dock exemplar — the funnel at the composer's own corridor width — reads producible
+    /// <summary>The spanning-dock exemplar — the funnel at the composer's own lane width — reads producible
     /// end to end. It is the plan the half-scale g-hub trace was duplicated from, with the widths fixed, so it
     /// isolates the shifted frontline from that plan's tracing scale.</summary>
     [Test]

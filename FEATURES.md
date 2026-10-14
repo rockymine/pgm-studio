@@ -8857,6 +8857,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   browse feed stays label-free. The composer's fingerprints are unchanged. `docs/generator/vocabulary.md`.
   (`G296`)
 
+- **One edge interval and one lane width (`G297`)** — `EdgeInterval(Edge, Start, Length)` is every stretch along
+  a box edge: where two boxes touch (`BoxJoint.Shared`), where a hub offers a dock (`EdgeOffer.Interval`), where
+  a negative space opens (`NegativeSpace.Mouths`), the runs the seating reads and where a piece meets its box's
+  edge, so `BoxAbutment`, `SpaceMouth` and the run tuples are gone. A joint carries the lane `Width` its consumer
+  was given. The walkway width has two names, `laneWidth` and `woolLaneWidth`, in the composer, the probe's
+  `laneWidth` query, the catalog's `laneWidth` field and the feasibility read, and
+  `CompoundEdges.LaneWidthOn` says what a run of a given length carries. A hub leg's `(Start, Width)` stays a
+  leg layout. The composer's fingerprints are unchanged. `docs/generator/vocabulary.md`. (`G297`)
+
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
   Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.

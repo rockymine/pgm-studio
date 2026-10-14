@@ -40,9 +40,8 @@ foreach (var (label, players) in presets)
                 $"form={(b.Form is null ? "-" : $"{b.Form.Form}:{b.Form.Arms}")},flip={b.FlipV}," +
                 $"wool={(b.Wool is null ? "-" : $"{b.Wool.Family}:{b.Wool.Placement}:{b.Wool.Flip}:{b.Wool.WoolAtEnd}")});");
         foreach (var j in a.Joints)
-            sb.Append($"J({j.BoxA}->{j.BoxB},{j.Abutment.Edge}@{j.Abutment.Start}+{j.Abutment.WidthCells}," +
-                $"grant={(j.Grant is null ? "-" : $"{j.Grant.Edge}@{j.Grant.Interval.Start}+{j.Grant.Interval.LengthCells}" +
-                    $":w{j.Grant.WidthClass}:{j.Grant.Grouping}:{j.Grant.GroupId}")});");
+            sb.Append($"J({j.BoxA}->{j.BoxB},{j.Shared.Edge}@{j.Shared.Start}+{j.Shared.Length}," +
+                $"grant={(j.Width is null ? "-" : $"w{j.Width}")});");
 
         if (TeamUnitFiller.Fill(a, new ComposeRng((ulong)seed)) is not { } f)
         { sb.Append("NOFILL\n"); continue; }

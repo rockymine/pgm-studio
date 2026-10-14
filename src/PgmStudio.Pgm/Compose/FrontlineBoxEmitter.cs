@@ -56,7 +56,7 @@ public static class FrontlineBoxEmitter
         return [(end0, w1), (end0 + w1 + bay, rem - w1)];
     }
 
-    /// <summary>Fill a frontline <see cref="Box"/> as <paramref name="form"/> at strand width <paramref name="cw"/>:
+    /// <summary>Fill a frontline <see cref="Box"/> as <paramref name="form"/> at strand width <paramref name="laneWidth"/>:
     /// the compound, box-local, with no room, its spine docking <paramref name="spineMouth"/> (the box edge facing
     /// the hub) and its face on the opposite edge toward the axis. An optional <paramref name="armLayout"/> (from
     /// <see cref="SampleArms"/>) overrides the branch forms' canonical legs; when absent the canonical fat L /
@@ -64,15 +64,15 @@ public static class FrontlineBoxEmitter
     /// (<see cref="Compound.Turned"/>), so the composer places the box against any hub edge. <c>null</c> when the
     /// box is too small for the form (a directed signal).</summary>
     public static Compound? Fill(
-        Box box, CompoundRead form, int cw, BoxEdge spineMouth = BoxEdge.Top,
+        Box box, CompoundRead form, int laneWidth, BoxEdge spineMouth = BoxEdge.Top,
         IReadOnlyList<(int Start, int Width)>? armLayout = null) =>
-        Fill(box, form, cw, out _, spineMouth, armLayout);
+        Fill(box, form, laneWidth, out _, spineMouth, armLayout);
 
     /// <inheritdoc cref="Fill(Box, CompoundRead, int, BoxEdge, IReadOnlyList{ValueTuple{int, int}})"/>
     /// <remarks>On a <c>null</c> return, <b>why</b> the form was refused, in the shared <see cref="FillRejection"/>
     /// vocabulary.</remarks>
     public static Compound? Fill(
-        Box box, CompoundRead form, int cw, out FillRejection? rejection, BoxEdge spineMouth = BoxEdge.Top,
+        Box box, CompoundRead form, int laneWidth, out FillRejection? rejection, BoxEdge spineMouth = BoxEdge.Top,
         IReadOnlyList<(int Start, int Width)>? armLayout = null)
     {
         rejection = null;
@@ -80,11 +80,11 @@ public static class FrontlineBoxEmitter
         // turn onto the mouth, as a spawn or wool box turns its mouth-up emission
         var lateral = spineMouth is BoxEdge.Left or BoxEdge.Right;
         var (spineLen, reach) = lateral ? (box.Rect.Height, box.Rect.Width) : (box.Rect.Width, box.Rect.Height);
-        var built = BuildCompound(form, spineLen, reach, cw, armLayout, out var detail);
+        var built = BuildCompound(form, spineLen, reach, laneWidth, armLayout, out var detail);
         if (built is null)
         {
             rejection = new FillRejection.FormDoesNotFit(
-                detail ?? $"{form.Form} (arms {form.Arms}) does not fit a {spineLen}x{reach} spine frame at cw {cw}.");
+                detail ?? $"{form.Form} (arms {form.Arms}) does not fit a {spineLen}x{reach} spine frame at laneWidth {laneWidth}.");
             return null;
         }
         return built.Turned(spineMouth.TopOnto(), spineLen, reach);
@@ -94,7 +94,7 @@ public static class FrontlineBoxEmitter
     // armLayout (SampleArms) overrides the branch forms' canonical legs with the sampled per-leg sizes. `detail`
     // carries the refusing guard's own message — the reason the caller reports, not a re-derivation of it.
     private static Compound? BuildCompound(
-        CompoundRead form, int w, int h, int cw, IReadOnlyList<(int Start, int Width)>? armLayout,
+        CompoundRead form, int w, int h, int laneWidth, IReadOnlyList<(int Start, int Width)>? armLayout,
         out string? detail)
     {
         detail = null;
@@ -103,7 +103,7 @@ public static class FrontlineBoxEmitter
             if (form.Form == CompoundForm.SpineArms && armLayout is not null)
             {
                 if (armLayout.Count == form.Arms)
-                    return CompoundEmitter.SpineArms(w, cw, armLayout.Select(a => (a.Start, a.Width, h - cw)).ToList());
+                    return CompoundEmitter.SpineArms(w, laneWidth, armLayout.Select(a => (a.Start, a.Width, h - laneWidth)).ToList());
                 detail = $"the arm layout names {armLayout.Count} legs, the form {form.Arms}.";
                 return null;
             }
@@ -112,13 +112,13 @@ public static class FrontlineBoxEmitter
                 CompoundForm.Rectangle => CompoundEmitter.Rectangle(w, h),                                              // Bar — the wide face
                 // single — the FAT L, never a centred T strand: a T's narrow tip is the whole front-face hull,
                 // which forces a too-thin mid band. The one arm anchors at the spine's start and spans all but
-                // one corridor width (the void notch a real recess), so the face tip carries most of the bar;
-                // a leg not strictly wider than the notch (w < 2·cw + 1) is the thin-leg L with the same thin
+                // one lane width (the void notch a real recess), so the face tip carries most of the bar;
+                // a leg not strictly wider than the notch (w < 2·laneWidth + 1) is the thin-leg L with the same thin
                 // band and directed-nulls instead
-                CompoundForm.SpineArms when form.Arms == 1 => w - cw >= cw + 1
-                    ? CompoundEmitter.SpineArms(w, cw, [(0, w - cw, h - cw)])
-                    : Thin(out detail, w, cw),
-                CompoundForm.SpineArms when form.Arms == 2 => CompoundEmitter.SpineArms(cw, [0, w - cw], w, h - cw),    // twin — a strand at each end
+                CompoundForm.SpineArms when form.Arms == 1 => w - laneWidth >= laneWidth + 1
+                    ? CompoundEmitter.SpineArms(w, laneWidth, [(0, w - laneWidth, h - laneWidth)])
+                    : Thin(out detail, w, laneWidth),
+                CompoundForm.SpineArms when form.Arms == 2 => CompoundEmitter.SpineArms(laneWidth, [0, w - laneWidth], w, h - laneWidth),    // twin — a strand at each end
                 _ => throw new ComposeException($"the frontline menu is Bar / single / twin, not {form.Form} (arms {form.Arms})."),
             };
         }
@@ -126,10 +126,10 @@ public static class FrontlineBoxEmitter
     }
 
     // the fat-L law refusing a thin leg — named so the switch arm can report the reason it refuses on
-    private static Compound? Thin(out string? detail, int w, int cw)
+    private static Compound? Thin(out string? detail, int w, int laneWidth)
     {
-        detail = $"the single arm's leg ({w - cw}) must be wider than its notch ({cw}) — a thin leg " +
-                 $"re-creates the banned T's thin band; needs a spine of at least {2 * cw + 1}.";
+        detail = $"the single arm's leg ({w - laneWidth}) must be wider than its notch ({laneWidth}) — a thin leg " +
+                 $"re-creates the banned T's thin band; needs a spine of at least {2 * laneWidth + 1}.";
         return null;
     }
 }

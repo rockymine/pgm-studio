@@ -24,7 +24,7 @@ public sealed record CatalogShape(
     CatalogTier Tier,
     int BoxW,
     int BoxH,
-    int CorridorCells,
+    int LaneWidth,
     IReadOnlyList<string> Knobs,
     string? Note,
     PlanModel Plan);
@@ -84,7 +84,7 @@ public static class ShapeCatalog
     /// <see cref="WoolBoxEmitter.Fill"/> does not forward.</summary>
     private static IEnumerable<CatalogShape> WoolEntries()
     {
-        var lane = UnitTuning.WoolLaneFloorCells;
+        var lane = UnitTuning.WoolLaneWidthFloor;
         var seen = new HashSet<ulong>();            // dedupe by cell pattern across every tier
         var entries = new List<CatalogShape>();
         var sampled = new HashSet<ShapeFamily>();
@@ -209,13 +209,13 @@ public static class ShapeCatalog
             foreach (var share in BudgetShares)
                 for (ulong seed = 1; seed <= SweepSeeds; seed++)
                 {
-                    var (fill, along, depth) = UnitRequests.WoolRequest(new ComposeRng(seed), UnitTuning.WoolLaneFloorCells, edgeLen, share, ComposeRequest.DefaultCell);
+                    var (fill, along, depth) = UnitRequests.WoolRequest(new ComposeRng(seed), UnitTuning.WoolLaneWidthFloor, edgeLen, share, ComposeRequest.DefaultCell);
                     Keep(fill, along, depth);
                     // the seat step's fallback: any request that finds no placement is re-dispatched compact
                     var compact = UnitRequests.Compact(
                         new NeighbourRequest(UnitSide.Back, BoxKind.Wool, depth, along, "w", fill),
-                        UnitTuning.WoolLaneFloorCells, ComposeRequest.DefaultCell);
-                    if (compact.Wool is { } cw) Keep(cw, compact.Along, compact.Depth);
+                        UnitTuning.WoolLaneWidthFloor, ComposeRequest.DefaultCell);
+                    if (compact.Wool is { } laneWidth) Keep(laneWidth, compact.Along, compact.Depth);
                 }
 
         return requests;
@@ -232,9 +232,9 @@ public static class ShapeCatalog
     }
 
     private static CatalogShape Approach(
-        string id, ShapeFamily family, CatalogTier tier, int w, int h, int cw,
+        string id, ShapeFamily family, CatalogTier tier, int w, int h, int laneWidth,
         IReadOnlyList<string> knobs, string? note, Compound compound) =>
-        new(id, "wool", family.ToString().ToLowerInvariant(), tier, w, h, cw, knobs, note,
+        new(id, "wool", family.ToString().ToLowerInvariant(), tier, w, h, laneWidth, knobs, note,
             UnitPieces.AsPlan(compound, id, WoolPrefix));
 
     // ── compounds ────────────────────────────────────────────────────────────────────────────────────────────
@@ -245,22 +245,22 @@ public static class ShapeCatalog
     /// slice (they multiply each form rather than adding one).</summary>
     private static IEnumerable<CatalogShape> CompoundEntries()
     {
-        var cw = FillProfiles.HubWallCells;
+        var laneWidth = FillProfiles.HubLaneWidthFloor;
         var n = 0;
         foreach (var form in FillProfiles.HubForms)
         {
             var box = new Box("hub", BoxKind.Hub, new CellRect(0, 0, 16, 12), 16 * 12);
-            if (HubBoxEmitter.Fill(box, form, cw) is not { } hub) continue;
+            if (HubBoxEmitter.Fill(box, form, laneWidth) is not { } hub) continue;
             yield return new CatalogShape($"hub-{++n}", "hub", Token(form), CatalogTier.InMix,
-                16, 12, cw, [], null, UnitPieces.AsPlan(hub, $"hub-{n}", box.Id));
+                16, 12, laneWidth, [], null, UnitPieces.AsPlan(hub, $"hub-{n}", box.Id));
         }
         n = 0;
         foreach (var form in FillProfiles.FrontlineForms)
         {
             var box = new Box("frontline", BoxKind.Frontline, new CellRect(0, 0, 16, 10), 16 * 10);
-            if (FrontlineBoxEmitter.Fill(box, form, cw) is not { } front) continue;
+            if (FrontlineBoxEmitter.Fill(box, form, laneWidth) is not { } front) continue;
             yield return new CatalogShape($"front-{++n}", "frontline", Token(form), CatalogTier.InMix,
-                16, 10, cw, [], null, UnitPieces.AsPlan(front, $"front-{n}", box.Id));
+                16, 10, laneWidth, [], null, UnitPieces.AsPlan(front, $"front-{n}", box.Id));
         }
     }
 

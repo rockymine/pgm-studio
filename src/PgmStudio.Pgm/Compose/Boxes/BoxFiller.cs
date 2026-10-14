@@ -23,11 +23,11 @@ public static class BoxFiller
     /// <paramref name="mouth"/>: the compound, box-local, or <c>null</c> with <paramref name="rejection"/> set when
     /// the family is outside the box's profile, does not fit the footprint, or would dock illegally.</summary>
     public static Compound? Fill(
-        Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, out FillRejection? rejection,
+        Box box, BoxEdge mouth, int laneWidth, ShapeFamily family, out FillRejection? rejection,
         bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false,
         int attachmentWidth = 0, RingWalls? ringWalls = null)
     {
-        var menu = FillProfiles.Families(box.Kind, corridorWidth, corridorWidth);
+        var menu = FillProfiles.Families(box.Kind, laneWidth, laneWidth);
         if (!menu.Contains(family))
         {
             rejection = new FillRejection.NotOnMenu([.. menu.Select(f => f.ToString())]);
@@ -36,7 +36,7 @@ public static class BoxFiller
         if (box.Kind != BoxKind.Wool)
             throw new ComposeException(
                 $"BoxFiller fills wool boxes; the {box.Kind} box docks through its own binding.");
-        if (WoolBoxEmitter.Fill(box, mouth, family, corridorWidth, out rejection, flip, roomPlacement, woolAtEnd,
+        if (WoolBoxEmitter.Fill(box, mouth, family, laneWidth, out rejection, flip, roomPlacement, woolAtEnd,
                 attachmentWidth, ringWalls) is not { } compound)
             return null;
 
@@ -56,23 +56,22 @@ public static class BoxFiller
     /// an <b>overhanging</b> placement aligns to the host: the entry lands on a hub run while the wider compound
     /// overhangs the edge into free space. <c>null</c> when the family does not fill the box or exposes no entry
     /// on that mouth.</summary>
-    public static (int Start, int Len)? EntryOn(
-        Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, bool flip = false,
+    public static EdgeInterval? EntryOn(
+        Box box, BoxEdge mouth, int laneWidth, ShapeFamily family, bool flip = false,
         RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false, int attachmentWidth = 0)
     {
-        if (Fill(box, mouth, corridorWidth, family, out _, flip, roomPlacement, woolAtEnd, attachmentWidth)
+        if (Fill(box, mouth, laneWidth, family, out _, flip, roomPlacement, woolAtEnd, attachmentWidth)
             is not { } compound)
             return null;
         var edge = BoxInterfaces.Of(compound, box.Rect.Width, box.Rect.Height).FirstOrDefault(e => e.Edge == mouth);
-        var entry = edge?.Intervals.FirstOrDefault(i => i.Part == CompoundParts.Entry);
-        return entry is null ? null : (entry.Start, entry.LengthCells);
+        return edge?.Intervals.FirstOrDefault(i => i.Part == CompoundParts.Entry);
     }
 
     /// <summary>The families the box's profile admits that <b>actually fill</b> its footprint (the emit
     /// succeeds) — the legal fill set for this box, footprint gate included.</summary>
-    public static IReadOnlyList<ShapeFamily> FittingFamilies(Box box, BoxEdge mouth, int corridorWidth) =>
-        FillProfiles.Families(box.Kind, corridorWidth, corridorWidth)
-            .Where(f => Fill(box, mouth, corridorWidth, f, out _) is not null)
+    public static IReadOnlyList<ShapeFamily> FittingFamilies(Box box, BoxEdge mouth, int laneWidth) =>
+        FillProfiles.Families(box.Kind, laneWidth, laneWidth)
+            .Where(f => Fill(box, mouth, laneWidth, f, out _) is not null)
             .ToList();
 
     /// <summary>The <b>land</b> (walkable ground) a compound spends, in cells — its room included.</summary>

@@ -55,14 +55,14 @@ public sealed class ShapeMirrorTests
     {
         // a single-entry family docked on a box's top: flipped, its entry lands at the mirror position along
         // that edge, so an overhanging dock can hang the compound either way
-        const int cw = 3;
-        var (along, depth) = WoolBoxEmitter.MouthBox(family, cw);
+        const int laneWidth = 3;
+        var (along, depth) = WoolBoxEmitter.MouthBox(family, laneWidth);
         var box = new PgmStudio.Pgm.Compose.Box("probe", BoxKind.Wool, new CellRect(0, 0, along + 2, depth + 2), 0);
-        var plain = BoxFiller.EntryOn(box, BoxEdge.Top, cw, family);
-        var flipped = BoxFiller.EntryOn(box, BoxEdge.Top, cw, family, flip: true);
+        var plain = BoxFiller.EntryOn(box, BoxEdge.Top, laneWidth, family);
+        var flipped = BoxFiller.EntryOn(box, BoxEdge.Top, laneWidth, family, flip: true);
         await Assert.That(plain).IsNotNull();
-        await Assert.That(flipped!.Value.Start).IsEqualTo(along + 2 - plain!.Value.Start - plain.Value.Len);
-        await Assert.That(flipped.Value.Start).IsNotEqualTo(plain.Value.Start);
+        await Assert.That(flipped!.Start).IsEqualTo(along + 2 - plain!.Start - plain.Length);
+        await Assert.That(flipped.Start).IsNotEqualTo(plain.Start);
     }
 
     [Test]
@@ -76,10 +76,10 @@ public sealed class ShapeMirrorTests
     [Arguments(ShapeFamily.Donut)]
     public async Task Emitted_family_classifies_back(ShapeFamily family)
     {
-        foreach (var cw in new[] { 2, 3 })
+        foreach (var laneWidth in new[] { 2, 3 })
             foreach (var (W, H) in new[] { (12, 16), (16, 22) })
                 foreach (var flip in new[] { false, true })
-                    await MirrorOk(family, () => ShapeEmitter.Emit(family, W, H, cw, flip));
+                    await MirrorOk(family, () => ShapeEmitter.Emit(family, W, H, laneWidth, flip));
     }
 
     // a uniformly-widened approach reads the same family — the classifier counts turns on the terrain outline,
@@ -101,33 +101,33 @@ public sealed class ShapeMirrorTests
     [Test]
     public async Task Donut_variants_classify_back()
     {
-        foreach (var cw in new[] { 2, 3 })
+        foreach (var laneWidth in new[] { 2, 3 })
         {
-            var db = (W: 6 * cw + 4, H: 5 * cw);
-            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, db.W, db.H, cw, attachments: 1));
-            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, db.W, db.H, cw, attachments: 2));
-            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, db.W, db.H, cw, woolExtend: true));
-            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, db.W, db.H, cw, woolAtEnd: true));
-            var dbw = (W: 6 * cw + 4, H: 7 * cw);   // taller box for wide attachments
-            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, dbw.W, dbw.H, cw, attachmentWidth: 2 * cw));
-            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, dbw.W, dbw.H, cw, attachments: 2, attachmentWidth: 3 * cw));
-            // a SINGLE wide attachment needs only its own minimal ring (aw + cw tall), not the two-stub height
-            var dmin = (W: 6 * cw + 4, H: 3 * cw);
-            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, dmin.W, dmin.H, cw, attachmentWidth: 2 * cw));
+            var db = (W: 6 * laneWidth + 4, H: 5 * laneWidth);
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, db.W, db.H, laneWidth, attachments: 1));
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, db.W, db.H, laneWidth, attachments: 2));
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, db.W, db.H, laneWidth, woolExtend: true));
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, db.W, db.H, laneWidth, woolAtEnd: true));
+            var dbw = (W: 6 * laneWidth + 4, H: 7 * laneWidth);   // taller box for wide attachments
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, dbw.W, dbw.H, laneWidth, attachmentWidth: 2 * laneWidth));
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, dbw.W, dbw.H, laneWidth, attachments: 2, attachmentWidth: 3 * laneWidth));
+            // a SINGLE wide attachment needs only its own minimal ring (aw + laneWidth tall), not the two-stub height
+            var dmin = (W: 6 * laneWidth + 4, H: 3 * laneWidth);
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, dmin.W, dmin.H, laneWidth, attachmentWidth: 2 * laneWidth));
         }
     }
 
     [Test]
     public async Task U_and_H_variants_classify_back()
     {
-        foreach (var cw in new[] { 2, 3 })
+        foreach (var laneWidth in new[] { 2, 3 })
         {
-            var ub = (W: 4 * cw, H: 5 * cw);
-            await MirrorOk(ShapeFamily.U, () => ShapeEmitter.Emit(ShapeFamily.U, ub.W, ub.H, cw));
-            await MirrorOk(ShapeFamily.U, () => ShapeEmitter.Emit(ShapeFamily.U, ub.W, ub.H, cw, woolAtEnd: true));
-            var hb = (W: 4 * cw, H: 6 * cw);
-            await MirrorOk(ShapeFamily.H, () => ShapeEmitter.Emit(ShapeFamily.H, hb.W, hb.H, cw));
-            await MirrorOk(ShapeFamily.H, () => ShapeEmitter.Emit(ShapeFamily.H, hb.W, hb.H, cw, woolAtEnd: true));
+            var ub = (W: 4 * laneWidth, H: 5 * laneWidth);
+            await MirrorOk(ShapeFamily.U, () => ShapeEmitter.Emit(ShapeFamily.U, ub.W, ub.H, laneWidth));
+            await MirrorOk(ShapeFamily.U, () => ShapeEmitter.Emit(ShapeFamily.U, ub.W, ub.H, laneWidth, woolAtEnd: true));
+            var hb = (W: 4 * laneWidth, H: 6 * laneWidth);
+            await MirrorOk(ShapeFamily.H, () => ShapeEmitter.Emit(ShapeFamily.H, hb.W, hb.H, laneWidth));
+            await MirrorOk(ShapeFamily.H, () => ShapeEmitter.Emit(ShapeFamily.H, hb.W, hb.H, laneWidth, woolAtEnd: true));
         }
     }
 
@@ -136,12 +136,12 @@ public sealed class ShapeMirrorTests
     [Test]
     public async Task Side_tuck_reads_I_with_the_room_off_the_side()
     {
-        foreach (var cw in new[] { 2, 3 })
+        foreach (var laneWidth in new[] { 2, 3 })
             foreach (var (W, H) in new[] { (12, 16), (16, 22) })
                 foreach (var flip in new[] { false, true })
                 {
                     Compound a;
-                    try { a = ShapeEmitter.Emit(ShapeFamily.I, W, H, cw, flip, RoomPlacement.SideTuck); }
+                    try { a = ShapeEmitter.Emit(ShapeFamily.I, W, H, laneWidth, flip, RoomPlacement.SideTuck); }
                     catch (ArgumentException) { continue; }
                     CellRect lane = a.Pieces[0].Rect, rm = a.Room!.Rect;
                     var side = rm.X == lane.X + lane.Width || rm.X + rm.Width == lane.X;

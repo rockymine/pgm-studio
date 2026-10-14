@@ -85,7 +85,7 @@ public sealed class ShapeStressTests
 
     // ---- builders (local frame; every piece abuts its neighbour along a full edge) ---------------------
 
-    private static StressShape H(string name, ShapeFamily fam, int cw, int leftW, int rightW, int gap, int barTh, int legLen, int runW, int runLen, int roomDepth = 2)
+    private static StressShape H(string name, ShapeFamily fam, int laneWidth, int leftW, int rightW, int gap, int barTh, int legLen, int runW, int runLen, int roomDepth = 2)
     {
         int wtot = leftW + gap + rightW;
         int barZ = roomDepth + runLen, legZ = barZ + barTh;
@@ -100,7 +100,7 @@ public sealed class ShapeStressTests
         ]);
     }
 
-    private static StressShape Z(string name, ShapeFamily fam, int cw, int entryW, int entryLen, int barLen, int barTh, int runW, int runLen, int roomDepth = 2) =>
+    private static StressShape Z(string name, ShapeFamily fam, int laneWidth, int entryW, int entryLen, int barLen, int barTh, int runW, int runLen, int roomDepth = 2) =>
         new(name, fam,
         [
             new("entry",    0, 0, entryW, entryLen),
@@ -109,7 +109,7 @@ public sealed class ShapeStressTests
             new("room",     barLen - runW, entryLen + barTh + runLen, runW, roomDepth),
         ]);
 
-    private static StressShape Scythe(string name, ShapeFamily fam, int cw, int tailW, int tailH, int spineW, int barTh, int bayW, int runW, int runLen, int roomDepth = 2)
+    private static StressShape Scythe(string name, ShapeFamily fam, int laneWidth, int tailW, int tailH, int spineW, int barTh, int bayW, int runW, int runLen, int roomDepth = 2)
     {
         int spineLen = runLen + roomDepth;
         int botZ = spineLen;
@@ -126,7 +126,7 @@ public sealed class ShapeStressTests
         ]);
     }
 
-    private static StressShape Clamp(string name, ShapeFamily fam, int cw, int barW, int topTh, int botTh, int gap, int roomW)
+    private static StressShape Clamp(string name, ShapeFamily fam, int laneWidth, int barW, int topTh, int botTh, int gap, int roomW)
     {
         int botZ = topTh + gap;
         return new StressShape(name, fam,
@@ -137,7 +137,7 @@ public sealed class ShapeStressTests
         ]);
     }
 
-    private static StressShape U(string name, ShapeFamily fam, int cw, int leftW, int rightW, int gap, int barTh, int roomW, int legLen, int roomDepth = 2)
+    private static StressShape U(string name, ShapeFamily fam, int laneWidth, int leftW, int rightW, int gap, int barTh, int roomW, int legLen, int roomDepth = 2)
     {
         int wtot = leftW + gap + rightW, barZ = roomDepth, legZ = roomDepth + barTh, wx = (wtot - roomW) / 2;
         return new StressShape(name, fam,
@@ -149,16 +149,16 @@ public sealed class ShapeStressTests
         ]);
     }
 
-    private static StressShape Donut(string name, ShapeFamily fam, int cw, int legTh, int barTh, int holeW, int holeH, int awH, int roomDepth = 2)
+    private static StressShape Donut(string name, ShapeFamily fam, int laneWidth, int legTh, int barTh, int holeW, int holeH, int awH, int roomDepth = 2)
     {
-        int ax = cw;
+        int ax = laneWidth;
         int ringW = legTh + holeW + legTh;
         return new StressShape(name, fam,
         [
             new("entry-bar", ax, 0,               ringW, barTh),
             new("leg",       ax, barTh,           legTh, holeH),
             new("leg",       ax + legTh + holeW, barTh, legTh, holeH),
-            new("entry",     0,  0,               cw,    awH),
+            new("entry",     0,  0,               laneWidth,    awH),
             new("room-bar",  ax, barTh + holeH,   ringW, barTh),
             new("room",      ax + ringW, barTh + holeH, roomDepth, barTh),
         ]);

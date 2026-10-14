@@ -12,11 +12,11 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// </summary>
 public sealed class BoxInterfacesTests
 {
-    private const int Cw = 2;
+    private const int LaneWidth = 2;
 
     private static IReadOnlyList<BoxEdgeInterface> Edges(ShapeFamily family, int w, int h, bool flip = false)
     {
-        var shape = ShapeEmitter.Emit(family, w, h, Cw, flip);
+        var shape = ShapeEmitter.Emit(family, w, h, LaneWidth, flip);
         return BoxInterfaces.Of(shape, w, h);
     }
 
@@ -56,7 +56,7 @@ public sealed class BoxInterfacesTests
         var mouth = Edge(Edges(ShapeFamily.Clamp, 6, 6), BoxEdge.Bottom);
         await Assert.That(mouth.Intervals.Count).IsEqualTo(2);
         await Assert.That(mouth.Intervals.All(i => i.Part == CompoundParts.Entry)).IsTrue();
-        await Assert.That(mouth.Intervals[0].Start + mouth.Intervals[0].LengthCells < mouth.Intervals[1].Start).IsTrue();
+        await Assert.That(mouth.Intervals[0].Start + mouth.Intervals[0].Length < mouth.Intervals[1].Start).IsTrue();
 
         // the U's two legs on its mouth edge
         await Assert.That(Edge(Edges(ShapeFamily.U, 6, 6), BoxEdge.Bottom).Intervals.Count).IsEqualTo(2);
@@ -107,8 +107,8 @@ public sealed class BoxInterfacesTests
         // it touches changes — the facts are read off the shape, not a hard-coded box edge (an L's room caps a
         // corner, touching two edges; the flip moves it to the mirror corner)
         var box = (w: 12, h: 14);
-        var normal = BoxInterfaces.Of(ShapeEmitter.Emit(ShapeFamily.L, box.w, box.h, Cw, flip: false), box.w, box.h);
-        var flipped = BoxInterfaces.Of(ShapeEmitter.Emit(ShapeFamily.L, box.w, box.h, Cw, flip: true), box.w, box.h);
+        var normal = BoxInterfaces.Of(ShapeEmitter.Emit(ShapeFamily.L, box.w, box.h, LaneWidth, flip: false), box.w, box.h);
+        var flipped = BoxInterfaces.Of(ShapeEmitter.Emit(ShapeFamily.L, box.w, box.h, LaneWidth, flip: true), box.w, box.h);
         var normalRoom = normal.Where(e => e.TouchesRoom).Select(e => e.Edge).ToHashSet();
         var flippedRoom = flipped.Where(e => e.TouchesRoom).Select(e => e.Edge).ToHashSet();
         await Assert.That(normalRoom).IsNotEmpty();

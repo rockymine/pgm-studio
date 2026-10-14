@@ -11,7 +11,7 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// </summary>
 public sealed class BoxFillerTests
 {
-    private const int Cw = 2;
+    private const int LaneWidth = 2;
     private static Box WoolBox(int w, int h, int landTarget = 1000) => new("wool-a", BoxKind.Wool, new(0, 0, w, h), landTarget);
 
     // ── FillProfiles: the profile as data ────────────────────────────────────────────────────────────────
@@ -19,33 +19,33 @@ public sealed class BoxFillerTests
     [Test]
     public async Task Wool_profile_is_the_width_menu_spawn_profile_is_I_and_L()
     {
-        await Assert.That(FillProfiles.Families(BoxKind.Wool, Cw, Cw)).IsEquivalentTo(FillMenu.FamiliesFor(Cw, Cw));
-        await Assert.That(FillProfiles.Families(BoxKind.Wool, Cw, Cw)).Contains(ShapeFamily.Donut);   // admitted
-        await Assert.That(FillProfiles.Families(BoxKind.Spawn, Cw, Cw)).IsEquivalentTo(SpawnBoxEmitter.Families);
-        await Assert.That(FillProfiles.Families(BoxKind.Spawn, Cw, Cw)).IsEquivalentTo(new[] { ShapeFamily.I, ShapeFamily.L });
+        await Assert.That(FillProfiles.Families(BoxKind.Wool, LaneWidth, LaneWidth)).IsEquivalentTo(FillMenu.FamiliesFor(LaneWidth, LaneWidth));
+        await Assert.That(FillProfiles.Families(BoxKind.Wool, LaneWidth, LaneWidth)).Contains(ShapeFamily.Donut);   // admitted
+        await Assert.That(FillProfiles.Families(BoxKind.Spawn, LaneWidth, LaneWidth)).IsEquivalentTo(SpawnBoxEmitter.Families);
+        await Assert.That(FillProfiles.Families(BoxKind.Spawn, LaneWidth, LaneWidth)).IsEquivalentTo(new[] { ShapeFamily.I, ShapeFamily.L });
     }
 
     [Test]
     public async Task Fits_gates_on_both_the_profile_and_the_footprint()
     {
         // I is in the wool profile and tiny, so a roomy box holds it; the donut needs a big footprint
-        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.I, Cw, Cw, 16, 20)).IsTrue();
-        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.Donut, Cw, Cw, 16, 20)).IsTrue();
-        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.Donut, Cw, Cw, 6, 6)).IsFalse();   // footprint too small
+        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.I, LaneWidth, LaneWidth, 16, 20)).IsTrue();
+        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.Donut, LaneWidth, LaneWidth, 16, 20)).IsTrue();
+        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.Donut, LaneWidth, LaneWidth, 6, 6)).IsFalse();   // footprint too small
         // the scythe is a valid shape but not in the wool production profile → not admitted
-        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.Scythe, Cw, Cw, 20, 20)).IsFalse();
+        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.Scythe, LaneWidth, LaneWidth, 20, 20)).IsFalse();
         // U/H are not in the spawn profile
-        await Assert.That(FillProfiles.Fits(BoxKind.Spawn, ShapeFamily.U, Cw, Cw, 20, 20)).IsFalse();
-        await Assert.That(FillProfiles.Fits(BoxKind.Spawn, ShapeFamily.I, Cw, Cw, 6, 8)).IsTrue();
+        await Assert.That(FillProfiles.Fits(BoxKind.Spawn, ShapeFamily.U, LaneWidth, LaneWidth, 20, 20)).IsFalse();
+        await Assert.That(FillProfiles.Fits(BoxKind.Spawn, ShapeFamily.I, LaneWidth, LaneWidth, 6, 8)).IsTrue();
     }
 
     [Test]
     public async Task FittingFamilies_is_the_profile_intersect_footprint()
     {
-        var big = FillProfiles.FittingFamilies(BoxKind.Wool, Cw, Cw, 16, 22);
+        var big = FillProfiles.FittingFamilies(BoxKind.Wool, LaneWidth, LaneWidth, 16, 22);
         await Assert.That(big).Contains(ShapeFamily.Donut);
         // a footprint only a straight lane holds
-        var tiny = FillProfiles.FittingFamilies(BoxKind.Wool, Cw, Cw, 2, 4);
+        var tiny = FillProfiles.FittingFamilies(BoxKind.Wool, LaneWidth, LaneWidth, 2, 4);
         await Assert.That(tiny).IsEquivalentTo(new[] { ShapeFamily.I });
     }
 
@@ -54,7 +54,7 @@ public sealed class BoxFillerTests
     [Test]
     public async Task Fill_emits_a_legal_family_and_reports_its_land()
     {
-        var filled = BoxFiller.Fill(WoolBox(16, 22), BoxEdge.Top, Cw, ShapeFamily.L, out var rejection);
+        var filled = BoxFiller.Fill(WoolBox(16, 22), BoxEdge.Top, LaneWidth, ShapeFamily.L, out var rejection);
         await Assert.That(rejection).IsNull();
         // land = every terrain cell + the room, and the family reads back as requested
         await Assert.That(BoxFiller.Land(filled!)).IsGreaterThan(0);
@@ -66,14 +66,14 @@ public sealed class BoxFillerTests
     public async Task Fill_rejects_a_family_outside_the_profile()
     {
         // the scythe emits fine as a shape but is not in the wool production profile
-        await Assert.That(BoxFiller.Fill(WoolBox(20, 20), BoxEdge.Top, Cw, ShapeFamily.Scythe, out var rejection)).IsNull();
+        await Assert.That(BoxFiller.Fill(WoolBox(20, 20), BoxEdge.Top, LaneWidth, ShapeFamily.Scythe, out var rejection)).IsNull();
         await Assert.That(rejection).IsTypeOf<FillRejection.NotOnMenu>();
     }
 
     [Test]
     public async Task Fill_signals_too_small_rather_than_throwing()
     {
-        await Assert.That(BoxFiller.Fill(WoolBox(6, 6), BoxEdge.Top, Cw, ShapeFamily.Donut, out var rejection)).IsNull();
+        await Assert.That(BoxFiller.Fill(WoolBox(6, 6), BoxEdge.Top, LaneWidth, ShapeFamily.Donut, out var rejection)).IsNull();
         await Assert.That(rejection).IsTypeOf<FillRejection.TooSmall>();
     }
 
@@ -86,9 +86,9 @@ public sealed class BoxFillerTests
         foreach (var family in FillMenu.ProductionFamilies)
         {
             var box = WoolBox(16, 22);
-            if (BoxFiller.Fill(box, BoxEdge.Top, Cw, family, out var why) is null && why is FillRejection.TooSmall) continue;
-            await Assert.That(BoxFiller.Fill(box, BoxEdge.Top, Cw, family, out _)).IsNotNull();
-            await Assert.That(BoxFiller.Fill(box, BoxEdge.Bottom, Cw, family, out _)).IsNotNull();
+            if (BoxFiller.Fill(box, BoxEdge.Top, LaneWidth, family, out var why) is null && why is FillRejection.TooSmall) continue;
+            await Assert.That(BoxFiller.Fill(box, BoxEdge.Top, LaneWidth, family, out _)).IsNotNull();
+            await Assert.That(BoxFiller.Fill(box, BoxEdge.Bottom, LaneWidth, family, out _)).IsNotNull();
         }
     }
 
@@ -103,7 +103,7 @@ public sealed class BoxFillerTests
         foreach (var family in new[] { ShapeFamily.I, ShapeFamily.L, ShapeFamily.Z })
             foreach (var mouth in new[] { BoxEdge.Top, BoxEdge.Bottom, BoxEdge.Left, BoxEdge.Right })
             {
-                var filled = BoxFiller.Fill(box, mouth, Cw, family, out _);
+                var filled = BoxFiller.Fill(box, mouth, LaneWidth, family, out _);
                 await Assert.That(filled).IsNotNull();
 
                 await Assert.That(ShapeClassifier.Classify(UnitPieces.AsPlan(filled!, "wool-box"), "wa-room").Family)
@@ -126,7 +126,7 @@ public sealed class BoxFillerTests
     [Test]
     public async Task A_spawn_box_docks_through_its_own_binding_not_this_one()
     {
-        await Assert.That(() => BoxFiller.Fill(new Box("spawn-a", BoxKind.Spawn, new(0, 0, 6, 12), 100), BoxEdge.Top, Cw, ShapeFamily.I, out _))
+        await Assert.That(() => BoxFiller.Fill(new Box("spawn-a", BoxKind.Spawn, new(0, 0, 6, 12), 100), BoxEdge.Top, LaneWidth, ShapeFamily.I, out _))
             .Throws<ComposeException>();
     }
 }

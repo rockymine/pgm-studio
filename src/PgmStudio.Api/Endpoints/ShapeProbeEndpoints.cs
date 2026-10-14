@@ -28,7 +28,7 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
                     .Select(family => family.ToString().ToLowerInvariant())]),
             new QueryWord("w", "The box's width, in cells. Absent is 8, and out of range clamps.", Min: 1, Max: 64),
             new QueryWord("h", "The box's height, in cells. Absent is 8, and out of range clamps.", Min: 1, Max: 64),
-            new QueryWord("cw", "The corridor's width, in cells. Absent is 2, and out of range clamps.", Min: 1, Max: 8),
+            new QueryWord("laneWidth", "The lane width, in cells. Absent is 2, and out of range clamps.", Min: 1, Max: 8),
             new QueryWord("mouth", "The edge the box is entered through. Absent, or one that will not read, is `Top`.",
                 Enum.GetNames<BoxEdge>()),
             new QueryWord("flip", "Mirror the shape across its axis.", Value: QueryValue.Flag),
@@ -53,7 +53,7 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
 
         var boxW = Math.Clamp(Query<int?>("w", isRequired: false) ?? 8, 1, 64);
         var boxH = Math.Clamp(Query<int?>("h", isRequired: false) ?? 8, 1, 64);
-        var cw = Math.Clamp(Query<int?>("cw", isRequired: false) ?? 2, 1, 8);
+        var laneWidth = Math.Clamp(Query<int?>("laneWidth", isRequired: false) ?? 2, 1, 8);
         var flip = Query<bool?>("flip", isRequired: false) ?? false;
         var woolAtEnd = Query<bool?>("woolAtEnd", isRequired: false) ?? false;
         var sideTuck = Query<bool?>("sideTuck", isRequired: false) ?? false;
@@ -63,7 +63,7 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
 
         var placement = sideTuck ? RoomPlacement.SideTuck : RoomPlacement.Inline;
         var box = new Box("wool", BoxKind.Wool, new CellRect(0, 0, boxW, boxH), boxW * boxH);
-        if (BoxFiller.Fill(box, mouth, cw, family, out var rejection, flip, placement, woolAtEnd, attachW)
+        if (BoxFiller.Fill(box, mouth, laneWidth, family, out var rejection, flip, placement, woolAtEnd, attachW)
             is not { } compound)
         {
             await Send.ResponseAsync(
@@ -82,7 +82,7 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
     private static ShapeRejectionDto Flatten(FillRejection? rejection, ShapeFamily family) => rejection switch
     {
         FillRejection.TooSmall t => new("too-small",
-            $"Below {family}'s minimum box of {t.MinW}×{t.MinH} cells at this corridor width.", t.MinW, t.MinH),
+            $"Below {family}'s minimum box of {t.MinW}×{t.MinH} cells at this lane width.", t.MinW, t.MinH),
         FillRejection.NotOnMenu n => new("not-on-menu",
             $"Not on this box kind's fill menu — it offers {string.Join(", ", n.Menu)}.", null, null),
         FillRejection.IllegalDock d => new("illegal-dock",
@@ -103,7 +103,7 @@ public sealed class ShapeProbeSchemaEndpoint : EndpointWithoutRequest<ShapeProbe
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        const int cw = 2;
+        const int laneWidth = 2;
         var families = Enum.GetValues<ShapeFamily>()
             .Where(f => f != ShapeFamily.Isolated)
             .Select(f =>
@@ -111,7 +111,7 @@ public sealed class ShapeProbeSchemaEndpoint : EndpointWithoutRequest<ShapeProbe
                 // the DOCK frame (along × depth), not the emitter's canonical frame: the panel fills through a
                 // mouth, and a lateral-mouth family (donut, clamp) transposes between the two. Reporting
                 // ShapeEmitter.MinBox here would put 10×5 in the chip while a refusal said 5×10.
-                var (along, depth) = WoolBoxEmitter.MouthBox(f, cw);
+                var (along, depth) = WoolBoxEmitter.MouthBox(f, laneWidth);
                 return new ShapeFamilyDto(
                     f.ToString().ToLowerInvariant(), f.ToString(), along, depth,
                     FillMenu.ProductionFamilies.Contains(f), KnobsOf(f));

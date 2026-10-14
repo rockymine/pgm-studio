@@ -14,13 +14,13 @@ namespace PgmStudio.Pgm.Compose;
 /// </summary>
 public static class FillProfiles
 {
-    /// <summary>The families box <paramref name="kind"/> may fill at interface width <paramref name="cw"/>
+    /// <summary>The families box <paramref name="kind"/> may fill at interface width <paramref name="laneWidth"/>
     /// cells. Wool = the width-gated production menu; spawn = the straight/one-bend {I, L}. The hub is not here:
     /// it is a <b>room-free compound</b>, so its profile is a <see cref="CompoundForm"/> menu (<see cref="HubForms"/>),
     /// not the <see cref="ShapeFamily"/> approach taxonomy.</summary>
-    public static IReadOnlyList<ShapeFamily> Families(BoxKind kind, int cw, int laneCells) => kind switch
+    public static IReadOnlyList<ShapeFamily> Families(BoxKind kind, int laneWidth, int woolLaneWidth) => kind switch
     {
-        BoxKind.Wool => FillMenu.FamiliesFor(cw, laneCells),
+        BoxKind.Wool => FillMenu.FamiliesFor(laneWidth, woolLaneWidth),
         BoxKind.Spawn => SpawnBoxEmitter.Families,
         _ => [],                                          // hub = HubForms (CompoundForm-typed); frontline has no profile
     };
@@ -31,10 +31,10 @@ public static class FillProfiles
     /// wool/spawn rows compose their menus.</summary>
     public static IReadOnlyList<CompoundRead> HubForms => HubBoxEmitter.Forms;
 
-    /// <summary>The hub's wall/corridor width in cells (the branch and holed forms use it; the solid Rectangle
+    /// <summary>The hub's wall/lane width in cells (the branch and holed forms use it; the solid Rectangle
     /// ignores it). One value so the allocator and the filler emit the hub compound at the <b>same</b> width and thus
     /// read the same free-edge intervals — a divergence would seat neighbours on runs the fill does not produce.</summary>
-    public const int HubWallCells = 2;
+    public const int HubLaneWidthFloor = 2;
 
     /// <summary>The <b>frontline's</b> fill profile — its authored form menu as data (Bar · single · twin, model.md §4),
     /// CompoundForm-typed like the hub. Composes <see cref="FrontlineBoxEmitter.Forms"/>, lifting the grower's
@@ -42,19 +42,19 @@ public static class FillProfiles
     public static IReadOnlyList<CompoundRead> FrontlineForms => FrontlineBoxEmitter.Forms;
 
     /// <summary>True when <paramref name="family"/> is admitted by <paramref name="kind"/> at
-    /// <paramref name="cw"/> <b>and</b> its minimum box fits a footprint of <paramref name="w"/>×
+    /// <paramref name="laneWidth"/> <b>and</b> its minimum box fits a footprint of <paramref name="w"/>×
     /// <paramref name="h"/> cells — the profile's footprint gate.</summary>
-    public static bool Fits(BoxKind kind, ShapeFamily family, int cw, int laneCells, int w, int h)
+    public static bool Fits(BoxKind kind, ShapeFamily family, int laneWidth, int woolLaneWidth, int w, int h)
     {
-        if (!Families(kind, cw, laneCells).Contains(family)) return false;
-        var (minW, minH) = ShapeEmitter.MinBox(family, cw);
+        if (!Families(kind, laneWidth, woolLaneWidth).Contains(family)) return false;
+        var (minW, minH) = ShapeEmitter.MinBox(family, laneWidth);
         return w >= minW && h >= minH;
     }
 
-    /// <summary>The families <paramref name="kind"/> admits at <paramref name="cw"/> whose minimum box fits a
+    /// <summary>The families <paramref name="kind"/> admits at <paramref name="laneWidth"/> whose minimum box fits a
     /// footprint of <paramref name="w"/>×<paramref name="h"/> cells — the legal fill set for that box.</summary>
-    public static IReadOnlyList<ShapeFamily> FittingFamilies(BoxKind kind, int cw, int laneCells, int w, int h) =>
-        Families(kind, cw, laneCells).Where(f => Fits(kind, f, cw, laneCells, w, h)).ToList();
+    public static IReadOnlyList<ShapeFamily> FittingFamilies(BoxKind kind, int laneWidth, int woolLaneWidth, int w, int h) =>
+        Families(kind, laneWidth, woolLaneWidth).Where(f => Fits(kind, f, laneWidth, woolLaneWidth, w, h)).ToList();
 
     /// <summary>
     /// The spawn box's allowed footprints — the <b>size rule as data</b>, the size facet of the profile (the

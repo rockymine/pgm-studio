@@ -142,7 +142,7 @@ public partial class CatalogTool
     private bool probeOpen;
 
     private string probeFamily = "i";
-    private int probeW = 8, probeH = 8, probeCw = 2, probeAttachW;
+    private int probeW = 8, probeH = 8, probeLaneWidth = 2, probeAttachW;
     private string probeMouth = "Top";
     private bool probeFlip, probeSideTuck, probeWoolAtEnd;
 
@@ -170,7 +170,7 @@ public partial class CatalogTool
         if (shape.Kind == "wool") probeFamily = shape.Family;
         probeW = shape.BoxW;
         probeH = shape.BoxH;
-        probeCw = shape.CorridorCells;
+        probeLaneWidth = shape.LaneWidth;
         probeMouth = "Top";
         probeFlip = shape.Knobs.Contains("flipped");
         probeSideTuck = shape.Knobs.Contains("side-tuck");
@@ -208,7 +208,7 @@ public partial class CatalogTool
     {
         var mine = ++probeGeneration;
         var query =
-            $"api/shapes/probe?family={probeFamily}&w={probeW}&h={probeH}&cw={probeCw}&mouth={probeMouth}" +
+            $"api/shapes/probe?family={probeFamily}&w={probeW}&h={probeH}&laneWidth={probeLaneWidth}&mouth={probeMouth}" +
             $"&flip={probeFlip}&sideTuck={probeSideTuck}&woolAtEnd={probeWoolAtEnd}&attachW={probeAttachW}";
         try
         {
@@ -246,6 +246,6 @@ public partial class CatalogTool
 
     private Task OnWidth(double value) { probeW = (int)value; return Emit(); }
     private Task OnHeight(double value) { probeH = (int)value; return Emit(); }
-    private Task OnCorridor(double value) { probeCw = (int)value; return Emit(); }
+    private Task OnLaneWidth(double value) { probeLaneWidth = (int)value; return Emit(); }
     private Task OnAttachW(double value) { probeAttachW = (int)value; return Emit(); }
 }

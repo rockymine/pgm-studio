@@ -59,12 +59,11 @@ Re-verified against `TeamUnitAllocator.cs`, 2026-07-27; the code it cites moved 
 
 | allocator rule | law | verdict |
 |---|---|---|
-| `WoolLaneFloorCells = 2` | LN1 + `model.md` §2 ("the lane to the wool is simple, w2") | **grounded** as a producible floor |
+| `WoolLaneWidthFloor = 2` | LN1 + `model.md` §2 ("the lane to the wool is simple, w2") | **grounded** as a producible floor |
 | `CorridorBlocks` / `WoolCorridorBlocks` per band | G2, measured as the local thickness of 359 built maps | **grounded** |
 | `WoolLengthRatio = 3` | LN2 (20–50 blocks before a junction/dead end) | **grounded** on the lower bound; the 50 cap is unimplemented |
 | `CornerClearanceCells = 0` | the mass-level corner law | **vestigial** — it documents rather than acts (see below) |
-| the frontline joint's `faceWidth` | FR6 (split vs wide, band docks flush) | right kind (**offer**), law partially served |
-| `RingFitCells(cw, cell)`, `WideHubCells(cw, cell)` | geometry (a ring is two walls and a hole; a docked bar keeps one beside it) and `LN6`'s 12-block floor for a plain hole | **grounded** — derived from the corridor and the rule rather than stated |
+| `RingFitCells(laneWidth, cell)`, `WideHubCells(laneWidth, cell)` | geometry (a ring is two walls and a hole; a docked bar keeps one beside it) and `LN6`'s 12-block floor for a plain hole | **grounded** — derived from the corridor and the rule rather than stated |
 | `HubBoxCells` — area from the share, aspect sampled | none — HB1 constrains *width*, not box size | area **grounded** in G8 through the share; the 1.3–2.4 aspect is **invented** |
 | the box shares (`FrontlineShare`, `WoolShare`, `HubMinShare`) | G8 gives the total, nothing splits it | total **grounded**, the split **invented** |
 | `WoolCount` per band | WL6 gives 1–3; the corpus gives 1 at nano and 2 above | **grounded** |

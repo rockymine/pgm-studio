@@ -9,13 +9,13 @@ namespace PgmStudio.Contracts;
 /// <c>[x, z, w, h]</c> cell rects in the same frame a piece rect uses, so the canvas paints them as evidence —
 /// which is what turns "8 cells differ" into a visible answer.</summary>
 /// <param name="Label">The candidate that came closest, as the emitter names it.</param>
-/// <param name="Cw">The corridor width it was tried at.</param>
+/// <param name="LaneWidth">The lane width it was tried at, in cells.</param>
 /// <param name="DifferingCells">How many cells separate it from the box.</param>
 /// <param name="Extra">Cells the candidate emits that the box does not have, as <c>[x, z, w, h]</c> cell
 /// rects — the canvas paints them, which is what turns "8 cells differ" into a visible answer.</param>
 /// <param name="Missing">Cells the box has that the candidate does not, in the same frame.</param>
 public sealed record NearestMissDto(
-    string Label, int Cw, int DifferingCells,
+    string Label, int LaneWidth, int DifferingCells,
     IReadOnlyList<int[]> Extra, IReadOnlyList<int[]> Missing);
 
 /// <summary>
@@ -31,13 +31,13 @@ public sealed record NearestMissDto(
 /// shape can be recognisably a ring while no ring is emittable at its wall widths.</param>
 /// <param name="ProducibleAs">The parameter tuple that reproduces the box exactly, or absent where none
 /// does.</param>
-/// <param name="Cw">The corridor width the reproducing tuple uses, absent where nothing reproduced it.</param>
+/// <param name="LaneWidth">The lane width the reproducing tuple uses, absent where nothing reproduced it.</param>
 /// <param name="Nearest">The closest candidate, where nothing reproduced it exactly.</param>
 /// <param name="Findings">The directed reasons, as complaints — a box the emitters cannot reproduce is
 /// still a box an author drew.</param>
 public sealed record BoxFeasibilityDto(
     string BoxId, string Kind, string Identity,
-    string? ProducibleAs, int? Cw,
+    string? ProducibleAs, int? LaneWidth,
     NearestMissDto? Nearest,
     IReadOnlyList<Finding> Findings)
 {

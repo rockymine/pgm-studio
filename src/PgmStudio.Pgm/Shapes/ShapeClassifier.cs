@@ -107,7 +107,7 @@ public static class ShapeClassifier
     }
 
     /// <summary>Classify the open corridor a <paramref name="room"/> caps within a single unit's
-    /// <paramref name="filled"/> terrain. The corridor width <c>W</c> is the first cross-section; a cell is a
+    /// <paramref name="filled"/> terrain. The lane width <c>W</c> is the first cross-section; a cell is a
     /// JUNCTION if it sits in a filled <c>(W+1)×(W+1)</c> block (wider than the corridor); flood the non-junction
     /// terrain from the room = the corridor; its reflex corners are the bends.</summary>
     public static (LaneRead Read, int Width) ClassifyOpen(IReadOnlySet<(int, int)> filled, IReadOnlySet<(int, int)> room)

@@ -13,9 +13,9 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// </summary>
 public sealed class WoolBoxEmitterTests
 {
-    // a box comfortably large for every family's turns at cw = 2
+    // a box comfortably large for every family's turns at laneWidth = 2
     private static (int W, int H) Box => (20, 24);
-    private const int Cw = 2;
+    private const int LaneWidth = 2;
 
     // the emitted parts in emit order, terrain then the room (the form the §2 template is written in)
     private static string Slots(Compound a) =>
@@ -34,7 +34,7 @@ public sealed class WoolBoxEmitterTests
     [Arguments(ShapeFamily.Donut)]
     public async Task Family_emits_its_template_slots_in_order(ShapeFamily family)
     {
-        var a = ShapeEmitter.Emit(family, Box.W, Box.H, Cw);
+        var a = ShapeEmitter.Emit(family, Box.W, Box.H, LaneWidth);
         await Assert.That(Slots(a)).IsEqualTo(Template(family));
     }
 
@@ -47,8 +47,8 @@ public sealed class WoolBoxEmitterTests
     public async Task Flip_preserves_the_part_sequence(ShapeFamily family)
     {
         // mirroring across the box's vertical centre changes handedness, never the template
-        var normal = ShapeEmitter.Emit(family, Box.W, Box.H, Cw);
-        var flipped = ShapeEmitter.Emit(family, Box.W, Box.H, Cw, flip: true);
+        var normal = ShapeEmitter.Emit(family, Box.W, Box.H, LaneWidth);
+        var flipped = ShapeEmitter.Emit(family, Box.W, Box.H, LaneWidth, flip: true);
         await Assert.That(Slots(flipped)).IsEqualTo(Slots(normal));
     }
 
@@ -56,8 +56,8 @@ public sealed class WoolBoxEmitterTests
     public async Task U_and_H_differ_by_exactly_the_room_run_stub()
     {
         // the emitter side of the classifier's overhang test: H inserts a room-run between crossbar and wool
-        var u = ShapeEmitter.Emit(ShapeFamily.U, Box.W, Box.H, Cw);
-        var h = ShapeEmitter.Emit(ShapeFamily.H, Box.W, Box.H, Cw);
+        var u = ShapeEmitter.Emit(ShapeFamily.U, Box.W, Box.H, LaneWidth);
+        var h = ShapeEmitter.Emit(ShapeFamily.H, Box.W, Box.H, LaneWidth);
         await Assert.That(u.Pieces.Any(p => p.Part == CompoundParts.RoomRun)).IsFalse();
         await Assert.That(h.Pieces.Count(p => p.Part == CompoundParts.RoomRun)).IsEqualTo(1);
         // both are the two-leg branch: a bar and two entry legs
@@ -68,7 +68,7 @@ public sealed class WoolBoxEmitterTests
     [Test]
     public async Task The_room_piece_carries_the_room_part_and_wool_room_role()
     {
-        var a = ShapeEmitter.Emit(ShapeFamily.I, Box.W, Box.H, Cw);
+        var a = ShapeEmitter.Emit(ShapeFamily.I, Box.W, Box.H, LaneWidth);
         var (pieces, marker) = UnitPieces.Lay(a, 0, 0, "wool", "wool-room", BoxKind.Wool, null);
         var room = pieces.Single(p => p.Id == marker!.Piece);
         await Assert.That(room.Part).IsEqualTo(CompoundParts.Room);
@@ -80,8 +80,8 @@ public sealed class WoolBoxEmitterTests
     [Test]
     public async Task Donut_second_attachment_adds_another_entry_stub()
     {
-        var one = ShapeEmitter.Emit(ShapeFamily.Donut, Box.W, Box.H, Cw, attachments: 1);
-        var two = ShapeEmitter.Emit(ShapeFamily.Donut, Box.W, Box.H, Cw, attachments: 2);
+        var one = ShapeEmitter.Emit(ShapeFamily.Donut, Box.W, Box.H, LaneWidth, attachments: 1);
+        var two = ShapeEmitter.Emit(ShapeFamily.Donut, Box.W, Box.H, LaneWidth, attachments: 2);
         await Assert.That(one.Pieces.Count(p => p.Part == CompoundParts.Entry)).IsEqualTo(1);
         await Assert.That(two.Pieces.Count(p => p.Part == CompoundParts.Entry)).IsEqualTo(2);
     }
@@ -89,8 +89,8 @@ public sealed class WoolBoxEmitterTests
     [Test]
     public async Task Donut_wool_extend_adds_a_run_holding_the_wool_out()
     {
-        var tucked = ShapeEmitter.Emit(ShapeFamily.Donut, Box.W, Box.H, Cw);
-        var held = ShapeEmitter.Emit(ShapeFamily.Donut, Box.W, Box.H, Cw, woolExtend: true);
+        var tucked = ShapeEmitter.Emit(ShapeFamily.Donut, Box.W, Box.H, LaneWidth);
+        var held = ShapeEmitter.Emit(ShapeFamily.Donut, Box.W, Box.H, LaneWidth, woolExtend: true);
         await Assert.That(tucked.Pieces.Any(p => p.Part == CompoundParts.Run)).IsFalse();
         await Assert.That(held.Pieces.Count(p => p.Part == CompoundParts.Run)).IsEqualTo(1);
     }
@@ -108,8 +108,8 @@ public sealed class WoolBoxEmitterTests
     {
         // a family emits the same number of pieces regardless of box size — collinear pieces are never merged,
         // so "the entry is piece N" stays a usable rule
-        var small = ShapeEmitter.Emit(family, 16, 20, Cw);
-        var large = ShapeEmitter.Emit(family, 28, 34, Cw);
+        var small = ShapeEmitter.Emit(family, 16, 20, LaneWidth);
+        var large = ShapeEmitter.Emit(family, 28, 34, LaneWidth);
         await Assert.That(large.Pieces.Count).IsEqualTo(small.Pieces.Count);
         await Assert.That(small.Pieces.Count).IsEqualTo(CompoundParts.Template(family).Count); // +room
     }

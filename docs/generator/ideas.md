@@ -45,8 +45,8 @@ landed, the rest is the idea.
   rate is capped by chance rather than by budget.
 - **G131** — **per-part width beyond the ring.** G129 generalized the four walls of a ring; the rest of a board is
   still one lane width (`w` = 2 or 3 from the land budget) with the wool lane and hub wall as fixed constants
-  (`UnitTuning.WoolCorridorCells`, `Box.HubCorridor`). The remaining cases are the parts *docked onto* a ring, which
-  deliberately kept a plain `cw` — the P's overhanging bar, the G's L-upright, the DoubleHole's U — plus the
+  (`UnitTuning.WoolLaneWidth`, `Box.HubLaneWidth`). The remaining cases are the parts *docked onto* a ring, which
+  deliberately kept a plain lane width — the P's overhanging bar, the G's L-upright, the DoubleHole's U — plus the
   approach lanes and the frontline's spine. **Relation to its neighbours:** G105 owns the per-piece width knob for
   hub compounds, G82/G83 own entry widening for wool approaches; this is the generalization those are special cases
   of. Precedent for the knob exists on the approach side already — the donut's sampled hub-entry width
@@ -281,9 +281,7 @@ landed, the rest is the idea.
 - [ ] **G146 — two families are in the vocabulary but never on a board.** The emitter builds eight
   room-capped families; the composer puts six on boards. **Z** is listed in
   `FillMenu.ProductionFamilies` and `BoxFiller` fills it happily, but `UnitRequests.WoolRequest` never
-  draws it — the rich branch picks donut, then U/H/clamp, else L, and the fallbacks are I. The only caller
-  that could reach it is the roll-indexed `BoxFiller.Fill(box, mouth, cw, roll, …)` overload, which has no
-  caller in `src/` at all. So the menu advertises a family the sampler cannot produce, and the browse
+  draws it — the rich branch picks donut, then U/H/clamp, else L, and the fallbacks are I. So the menu advertises a family the sampler cannot produce, and the browse
   tool's own filter chip for it can never match. **Scythe** is the honest case: excluded from
   `ProductionFamilies` with a stated reason (its bay's mouth is its docking edge, so a flush dock seals it
   into WL8's forbidden enclosed void), with the elevation-stage alternative already parked as G81.
@@ -453,15 +451,15 @@ so the labeled corpus cannot be contaminated after the fact. Browse votes (absol
   survive** — hoisting one call above another moves the stream and every fingerprint goes red.
 
 - [~] **B41 — Should a host's published capacity bound the grant it hands out?** The naming half has landed
-  (`FEATURES.md`): `BoxJoint.Grant` is now distinct from a host's `EdgeOffer`, and the docstrings state the
-  split — an offer's `WidthClass` is a *capacity* derived from the run's length, a grant's is a *selection*
+  (`FEATURES.md`): `BoxJoint.Width` is distinct from a host's `EdgeOffer`, and the docstrings state the
+  split — an offer's `Width` is a *capacity* derived from the run's length, a joint's is a *selection*
   made per consumer kind. What remains is the behaviour question the rename deliberately did not answer.
-  Today the two are entirely unlinked: `Seat` reads the hub's offers, keeps only `(Start, LengthCells)` as its
-  **runs** and drops the published width, then `HubJoint` grants a width taken from the demand's kind
+  Today the two are entirely unlinked: `Seat` reads the hub's offers, keeps only their intervals as its
+  **runs** and drops the published width, then `HubJointFrom` gives a width taken from the demand's kind
   (the band's wool corridor for a wool, its map corridor otherwise). So a hub can grant a corridor **wider than the run it sits on
   claims to support** and nothing objects. Either that is intended — capacity is advisory, the consumer knows
   its own lane — or the grant should be clamped to the offer, in which case a narrow run would demote a
-  consumer's `cw` and some docks that succeed today would not.
+  consumer's lane width and some docks that succeed today would not.
   **Measure before deciding**: how often does the granted width actually exceed the published capacity of the
   run it lands on? If never, this is documentation; if often, it is a real gate the composer is missing.
   Changes what the filler builds, so it needs a before/after gallery and will move fingerprints.

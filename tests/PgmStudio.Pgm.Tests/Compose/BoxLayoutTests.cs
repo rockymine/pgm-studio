@@ -27,16 +27,16 @@ public sealed class BoxLayoutTests
     {
         // right/left/top/bottom abutments, box-local start on the first rect
         await Assert.That(BoxLayout.SharedEdge(new(0, 0, 4, 4), new(4, 0, 4, 4)))
-            .IsEqualTo(new BoxAbutment(BoxEdge.Right, 0, 4));
+            .IsEqualTo(new EdgeInterval(BoxEdge.Right, 0, 4));
         await Assert.That(BoxLayout.SharedEdge(new(4, 0, 4, 4), new(0, 0, 4, 4)))
-            .IsEqualTo(new BoxAbutment(BoxEdge.Left, 0, 4));
+            .IsEqualTo(new EdgeInterval(BoxEdge.Left, 0, 4));
         await Assert.That(BoxLayout.SharedEdge(new(0, 0, 4, 4), new(0, 4, 4, 4)))
-            .IsEqualTo(new BoxAbutment(BoxEdge.Bottom, 0, 4));
+            .IsEqualTo(new EdgeInterval(BoxEdge.Bottom, 0, 4));
         await Assert.That(BoxLayout.SharedEdge(new(0, 4, 4, 4), new(0, 0, 4, 4)))
-            .IsEqualTo(new BoxAbutment(BoxEdge.Top, 0, 4));
+            .IsEqualTo(new EdgeInterval(BoxEdge.Top, 0, 4));
         // a partial overlap: the interval is the shared span, offset into the first rect's edge
         await Assert.That(BoxLayout.SharedEdge(new(0, 0, 4, 10), new(4, 3, 4, 4)))
-            .IsEqualTo(new BoxAbutment(BoxEdge.Right, 3, 4));
+            .IsEqualTo(new EdgeInterval(BoxEdge.Right, 3, 4));
     }
 
     [Test]
@@ -67,10 +67,10 @@ public sealed class BoxLayoutTests
         await Assert.That(new BoxLayout([hub, hub with { Kind = BoxKind.Wool }], []).Valid()).IsFalse();    // dup id
         await Assert.That(new BoxLayout([hub with { LandTargetCells = 37 }], []).Valid()).IsFalse();        // land > footprint
         await Assert.That(new BoxLayout([hub, spawn], [joint with { BoxB = "ghost" }]).Valid()).IsFalse();  // dangling
-        await Assert.That(new BoxLayout([hub, spawn], [new BoxJoint("hub", "hub", joint.Abutment)]).Valid()).IsFalse(); // self
+        await Assert.That(new BoxLayout([hub, spawn], [new BoxJoint("hub", "hub", joint.Shared)]).Valid()).IsFalse(); // self
         // a joint asserting a contact the footprints do not share
         await Assert.That(new BoxLayout([hub, spawn],
-            [joint with { Abutment = new BoxAbutment(BoxEdge.Top, 0, 6) }]).Valid()).IsFalse();
+            [joint with { Shared = new EdgeInterval(BoxEdge.Top, 0, 6) }]).Valid()).IsFalse();
     }
 
     [Test]

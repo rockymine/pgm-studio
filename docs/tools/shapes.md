@@ -101,7 +101,7 @@ admit it is `G81`.
 
 Cards are laid out in pipeline-legibility order — straight, bent, branch, enclosing, then the compounds — so the
 grid reads as a progression rather than alphabetically. Each card is the shape in a square frame on the theme's board
-ground (white in the light theme), drawn in the same four inks as the Generator's boards (`generator.md`), then its family and the box it was emitted at, then tags for its tier, its kind, the corridor width
+ground (white in the light theme), drawn in the same four inks as the Generator's boards (`generator.md`), then its family and the box it was emitted at, then tags for its tier, its kind, the lane width
 and any knobs set. A non-in-mix card adds the note explaining its tier. The pictures carry no text; the page
 draws the role and zone key once above the grid, from the `key` the catalog returns.
 
@@ -122,7 +122,7 @@ reachable and 6 emitter-only. Those numbers move whenever the tuning does.
 ## The Shape settings panel
 
 Clicking a card opens the panel seeded from that exact shape, so editing starts from a known-good state rather
-than a guessed box. It carries the family, box width and height, corridor width, the mouth edge, the three
+than a guessed box. It carries the family, box width and height, lane width, the mouth edge, the three
 boolean knobs and the attachment width, and re-emits on every change. Requests are serialized by generation
 counter, so a fast drag cannot land an older answer over a newer one.
 
@@ -145,7 +145,7 @@ second copy free to disagree with the one that fired.
 
 | Code | Means | Carries |
 |---|---|---|
-| `too-small` | Below the family's minimum box at this corridor width | `minW`, `minH` — the panel offers a *Resize to w×h* button that takes them verbatim |
+| `too-small` | Below the family's minimum box at this lane width | `minW`, `minH` — the panel offers a *Resize to w×h* button that takes them verbatim |
 | `not-on-menu` | The family is not on this box kind's fill menu | the menu it does offer |
 | `illegal-dock` | The docking gate refused this mouth for this family | the gate's reason |
 | `unsupported-knobs` | The emitter rejects this knob combination | the emitter's detail |
@@ -161,11 +161,11 @@ Both endpoints are reads open to anyone, rooted at `/api`, and take no map ([`do
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /shapes/catalog[?kind=&tier=&family=]` | `{shapes, total, byTier, byFamily, byKind, key}` — every card as `{id, kind, family, tier, boxW, boxH, corridorCells, knobs, note, svg}`, and `key` the four inks the SVGs are drawn in. Filters are CSV and narrow the returned cards; the tallies always describe the whole catalog | — |
-| `GET /shapes/probe?family=&w=&h=&cw=&mouth=&flip=&sideTuck=&woolAtEnd=&attachW=` | `{svg, rejection, landCells, parts}` — one emission through `BoxFiller`. A refusal is a 200 with `rejection` set and `svg` null | 400 unknown family |
-| `GET /shapes/probe/schema` | `{families, mouths, minCorridorCells, maxCorridorCells}` — per family its token, its minimum box in the dock frame, whether the production menu admits it, and which knobs it takes | — |
+| `GET /shapes/catalog[?kind=&tier=&family=]` | `{shapes, total, byTier, byFamily, byKind, key}` — every card as `{id, kind, family, tier, boxW, boxH, laneWidth, knobs, note, svg}`, and `key` the four inks the SVGs are drawn in. Filters are CSV and narrow the returned cards; the tallies always describe the whole catalog | — |
+| `GET /shapes/probe?family=&w=&h=&laneWidth=&mouth=&flip=&sideTuck=&woolAtEnd=&attachW=` | `{svg, rejection, landCells, parts}` — one emission through `BoxFiller`. A refusal is a 200 with `rejection` set and `svg` null | 400 unknown family |
+| `GET /shapes/probe/schema` | `{families, mouths, minLaneWidth, maxLaneWidth}` — per family its token, its minimum box in the dock frame, whether the production menu admits it, and which knobs it takes | — |
 
-The probe clamps rather than refuses out-of-range numbers: box width and height to 1–64, corridor width to
+The probe clamps rather than refuses out-of-range numbers: box width and height to 1–64, lane width to
 1–8, attachment width to 0–8, and an unrecognised mouth falls back to `Top`.
 
 ## Driving it without the UI
@@ -181,12 +181,12 @@ The probe is the one to reach for when a question is about whether something *ca
 cheaper and more reliable than reading the emitter's guards, because it is the emitter:
 
 ```
-GET /api/shapes/probe?family=donut&w=3&h=3&cw=2
+GET /api/shapes/probe?family=donut&w=3&h=3&laneWidth=2
   → { "svg": null, "landCells": 0, "parts": [],
       "rejection": { "code": "too-small", "minW": 5, "minH": 10,
-                     "detail": "Below Donut's minimum box of 5×10 cells at this corridor width." } }
+                     "detail": "Below Donut's minimum box of 5×10 cells at this lane width." } }
 
-GET /api/shapes/probe?family=u&w=8&h=8&cw=2&mouth=Top
+GET /api/shapes/probe?family=u&w=8&h=8&laneWidth=2&mouth=Top
   → { "landCells": 36, "parts": ["bar", "entry", "entry", "room"], "rejection": null, "svg": "<svg …>" }
 ```
 
@@ -213,7 +213,7 @@ layout, and the default layout on a 16-wide spine wants two 6-cell legs where th
 the form refuses and the card is dropped. The grid therefore shows six hub forms where the composer builds
 seven. The frontline's twin is unaffected because its own sampler admits end recesses.
 
-**The corridor slider spans widths the menu does not fill.** It runs 2 to 5, but the width-to-menu table has
+**The lane width slider spans widths the menu does not fill.** It runs 2 to 5, but the width-to-menu table has
 families only on its `w2` row: `w3` tapers back to `w2` and fills, while `w4` and `w5` answer `not-on-menu`
 with an *empty* menu — rendered as "it offers ." The refusal is correct and says so badly. The wide rows are
 recorded in the data on purpose, since a wide touch resolves into multi-shape patterns rather than a wider

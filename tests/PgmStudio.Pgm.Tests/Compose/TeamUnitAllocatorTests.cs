@@ -177,11 +177,11 @@ public class TeamUnitAllocatorTests
     public async Task Neighbour_spawn_and_wool_bodies_keep_the_lane_width_gap()
     {
         // the seat-step separation law: no spawn/wool neighbour touches (or corner-touches) another spawn/wool —
-        // they stay at least the band's own corridor width apart.
+        // they stay at least the band's own lane width apart.
         foreach (var players in new[] { 8, 12, 16, 24, 32 })
         {
             var env = Envelope.Derive(new ComposeRequest(players), new ComposeRng(1));
-            var w = env.CorridorCells;                               // the map-wide lane width, and so the gap
+            var w = env.LaneWidth;                               // the map-wide lane width, and so the gap
             var land = env.LandPerTeam;
             for (ulong seed = 0; seed < 64; seed++)
             {
@@ -252,10 +252,12 @@ public class TeamUnitAllocatorTests
     public async Task In_line_keeps_only_the_seats_centred_within_a_cell_of_the_target()
     {
         // a 12-cell edge, a 4-cell dock, the target at 6: seats 3..5 centre within a cell of it
-        await Assert.That(UnitSeating.InLine([(0, 12)], 4, 6)).IsEquivalentTo(new[] { (3, 6) });
+        await Assert.That(UnitSeating.InLine([Run(0, 12)], 4, 6)).IsEquivalentTo(new[] { Run(3, 6) });
         // a run that stops short of the window is cut to what it covers, one wholly outside is dropped
-        await Assert.That(UnitSeating.InLine([(0, 5), (10, 2)], 4, 6)).IsEquivalentTo(new[] { (3, 2) });
+        await Assert.That(UnitSeating.InLine([Run(0, 5), Run(10, 2)], 4, 6)).IsEquivalentTo(new[] { Run(3, 2) });
     }
+
+    private static EdgeInterval Run(int start, int length) => new(BoxEdge.Top, start, length);
 
     // the cells of a box no rect covers and no empty path reaches from the box's border
     private static HashSet<(int X, int Z)> Enclosed(CellRect box, IEnumerable<CellRect> rects)

@@ -13,7 +13,7 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// </summary>
 public sealed class PublishPolicyTests
 {
-    private const int Cw = 3;
+    private const int LaneWidth = 3;
 
     private static NegativeSpace SpaceOf(EdgeClassification c, string kind) =>
         c.Spaces.Single(s => s.Kind == kind);
@@ -22,24 +22,24 @@ public sealed class PublishPolicyTests
     public async Task Room_capped_bays_and_holes_veto_notches_allow()
     {
         // the scythe's bay (walled by the room's path) and its notch
-        var scythe = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, Cw));
+        var scythe = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, LaneWidth));
         await Assert.That(PublishPolicy.Space(SpaceOf(scythe, NegativeSpaceKinds.Bay), roomCapped: true))
             .IsEqualTo(PublishVerdict.Veto);
         await Assert.That(PublishPolicy.Space(SpaceOf(scythe, NegativeSpaceKinds.Notch), roomCapped: true))
             .IsEqualTo(PublishVerdict.Allow);
 
         // the U's entry-walled bay is vetoed alike — no room part needed
-        var u = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, Cw));
+        var u = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, LaneWidth));
         await Assert.That(PublishPolicy.Space(SpaceOf(u, NegativeSpaceKinds.Bay), roomCapped: true))
             .IsEqualTo(PublishVerdict.Veto);
 
         // the donut's hole is the shape's own device
-        var donut = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Donut, 18, 15, Cw));
+        var donut = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Donut, 18, 15, LaneWidth));
         await Assert.That(PublishPolicy.Space(SpaceOf(donut, NegativeSpaceKinds.Hole), roomCapped: true))
             .IsEqualTo(PublishVerdict.Veto);
 
         // the Z's second notch is walled by the room-run and still publishes — proximity is the guard's job
-        var z = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Z, 15, 21, Cw));
+        var z = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Z, 15, 21, LaneWidth));
         var roomRunNotch = z.Spaces.Single(s => s.Walls.Contains(CompoundParts.RoomRun));
         await Assert.That(PublishPolicy.Space(roomRunNotch, roomCapped: true)).IsEqualTo(PublishVerdict.Allow);
     }
@@ -47,12 +47,12 @@ public sealed class PublishPolicyTests
     [Test]
     public async Task Compounds_with_no_room_publish_their_bays_and_holes()
     {
-        var u = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, Cw).WithoutRoom());
+        var u = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, LaneWidth).WithoutRoom());
         var bay = SpaceOf(u, NegativeSpaceKinds.Bay);
         await Assert.That(PublishPolicy.Space(bay, roomCapped: false)).IsEqualTo(PublishVerdict.Allow);
         await Assert.That(PublishPolicy.PublishableParts(bay, roomCapped: false).Count).IsEqualTo(1);
 
-        var ring = CompoundEdges.Classify(CompoundEmitter.Ring(Cw, 5 * Cw, 5 * Cw));
+        var ring = CompoundEdges.Classify(CompoundEmitter.Ring(LaneWidth, 5 * LaneWidth, 5 * LaneWidth));
         var hole = SpaceOf(ring, NegativeSpaceKinds.Hole);
         await Assert.That(PublishPolicy.PublishableParts(hole, roomCapped: false).Count).IsEqualTo(1);
     }
@@ -63,7 +63,7 @@ public sealed class PublishPolicyTests
     public async Task Publishable_infers_context_and_filters_parts()
     {
         // the L with its clearance: the notch offers its two unguarded parts; the room-corner stays back
-        var l = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, Cw), CompoundEdges.DefaultClearanceCells);
+        var l = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, LaneWidth), CompoundEdges.DefaultClearanceCells);
         var offered = PublishPolicy.Publishable(l);
         await Assert.That(offered.Count).IsEqualTo(1);
         await Assert.That(offered[0].Space.Kind).IsEqualTo(NegativeSpaceKinds.Notch);
@@ -71,7 +71,7 @@ public sealed class PublishPolicyTests
         await Assert.That(offered[0].Parts.All(p => !p.Guarded && p.Front)).IsTrue();
 
         // the scythe offers only its notch — the bay is vetoed wholesale
-        var scythe = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, Cw));
+        var scythe = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, LaneWidth));
         var scytheOffers = PublishPolicy.Publishable(scythe);
         await Assert.That(scytheOffers.Count).IsEqualTo(1);
         await Assert.That(scytheOffers[0].Space.Kind).IsEqualTo(NegativeSpaceKinds.Notch);
