@@ -162,13 +162,23 @@ public partial class FlagPostsStep
     private void SetName(F.Flag flag, string name) { flag.Name = name.Trim(); Write(); }
     private void SetColor(F.Flag flag, string color) { flag.Color = color; Write(); _ = Paint(); }
     private void SetRate(F.Flag flag, double rate) { flag.PointsRate = rate; Write(); }
+    // The name a flag is given when the author has not named it: its team's, or the next free "Flag".
+    private string DefaultName(F.Flag flag)
+    {
+        if (flag.Team.Length > 0) return $"{TeamName(flag.Team)} Flag";
+        var index = flags.IndexOf(flag);
+        return index <= 0 ? "Flag" : $"Flag {index + 1}";
+    }
+
     private void SetCarrier(F.Flag flag, string carrier) { flag.Carrier = carrier; Write(); }
 
     // A team's flag takes its team's colour and asks nothing of the carrier unless the author says so; a flag
     // given back to nobody is white and lowers its carrier, as a new one does.
     private void SetOwner(F.Flag flag, string owner)
     {
+        var named = flag.Name != DefaultName(flag);
         flag.Team = owner == Nobody ? "" : owner;
+        if (!named) flag.Name = DefaultName(flag);
         flag.Color = flag.Team.Length > 0 ? "" : "white";
         flag.Carrier = flag.Team.Length > 0 ? FlagCarriers.None : defaults.Carrier;
         Write();

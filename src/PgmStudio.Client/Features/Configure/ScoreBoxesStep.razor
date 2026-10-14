@@ -25,7 +25,8 @@
         <Actions><Badge Class="@(boxes.Count > 0 ? "badge--success" : "badge--dim")">@boxes.Count box@(boxes.Count == 1 ? "" : "es")</Badge></Actions>
         <ChildContent>
         <p class="section-desc">A player walking into their team's box scores for it and is sent home to their
-          spawn. Use the <strong>rectangle tool</strong> to draw one; it stands on the ground under its middle.</p>
+          spawn. Use the <strong>rectangle tool</strong> to draw one; it stands on the floor under its middle nearest
+          the spawns' height, and the inspector moves it up or down.</p>
         <div class="panel-list">
           @if (boxes.Count == 0) { <div class="list-empty">No score boxes yet.</div> }
           @foreach (var box in boxes)
@@ -64,6 +65,12 @@
             <Field Label="Scores for">
               <Select Slim="false" Options="@AuthoringContext.TeamOptions(teams)" Value="@sel.Team"
                       ValueChanged="@(team => SetTeam(sel, team))" />
+            </Field>
+            <Field Label="Bottom">
+              <LabelHint>(the block a player stands in to score; the box is @(sel.MaxY - sel.MinY + 1) tall)</LabelHint>
+              <ChildContent>
+                <NumberField Value="@sel.MinY" Min="-64" Max="320" ValueChanged="@(bottom => SetBottom(sel, (int)bottom))" />
+              </ChildContent>
             </Field>
             <Field Label="Points">
               <NumberField Value="@sel.Points" Min="1" Max="1000" ValueChanged="@(points => SetPoints(sel, (int)points))" />

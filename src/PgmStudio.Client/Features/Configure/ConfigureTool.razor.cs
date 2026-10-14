@@ -313,11 +313,26 @@ public partial class ConfigureTool : IDisposable
         StateHasChanged();
     }
 
+    /// <summary>The furthest phase the rail opens. The objective phases are a group rather than a sequence, so
+    /// reaching one reaches every one of them: a flag-only map is not walked through three empty objective phases
+    /// to its flags.</summary>
+    private int Reach
+    {
+        get
+        {
+            var reach = furthest;
+            while (reach + 1 < phases.Length && reach >= 0 && ConfigurePhases.IsObjective(phases[reach].Id)
+                   && ConfigurePhases.IsObjective(phases[reach + 1].Id))
+                reach++;
+            return reach;
+        }
+    }
+
     private async Task JumpPhase(string id)
     {
         // Index into THIS map's phase list, not the catalog — they are the same length today and need not be.
         var i = Array.FindIndex(phases, p => p.Id == id);
-        if (i < 0 || i > furthest || i == phaseIndex) return;   // locked / no-op
+        if (i < 0 || i > Reach || i == phaseIndex) return;   // locked / no-op
         await SaveIfDirtyAsync();   // leaving the current phase
         phaseIndex = i;
         step = 0;

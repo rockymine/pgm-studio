@@ -183,7 +183,8 @@ and is the subject of *What it refuses* below.
 ## Phases
 
 Eleven phases on the rail, walked in order. A phase unlocks when the phases before it have their slice; the
-rail locks anything further on, and jumping back is always allowed.
+rail locks anything further on, and jumping back is always allowed. The objective phases open together:
+reaching one opens all five, so a flag-only or a deathmatch board goes straight to its own phase.
 
 ### Import — phase zero
 
@@ -496,8 +497,9 @@ phase shares the objective gate, so a map whose only objective is a flag reaches
 **Score** is the objective phase for a board played for points rather than for a goal it carries off. *A kill
 pays* states `killPoints`: a board whose kills pay is a team deathmatch, and that alone satisfies the objective
 gate, so a deathmatch reaches Review with no wool, monument, core or flag. Its score boxes are drawn with the
-rectangle tool: a box stands on the ground under its middle, three blocks tall from the first air, and the
-inspector says which team scores in it, what it pays and whether it sends the scorer home to their spawn. Under
+rectangle tool: a box stands on the floor under its middle nearest the spawns' height — the board's playing
+level rather than a roof over it — three blocks tall from the first air, and the inspector moves its bottom and
+says which team scores in it, what it pays and whether it sends the scorer home to their spawn. Under
 the board's symmetry every other team gains its image of each box, which the canvas shows faintly; every box is
 a goal the pre-flight walk has to reach (`EX1`).
 

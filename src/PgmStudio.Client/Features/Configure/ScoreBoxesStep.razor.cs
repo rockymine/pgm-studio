@@ -10,8 +10,9 @@ namespace PgmStudio.Client.Features.Configure;
 
 using Ctx = AuthoringContext;
 
-// Score · boxes: the intent's killPoints and scoreBoxes. A box is drawn as a rectangle and stands on the ground
-// under its middle, BoxHeight blocks tall, so a player walks into it; its team, its points and whether it sends
+// Score · boxes: the intent's killPoints and scoreBoxes. A box is drawn as a rectangle and stands on the floor under
+// its middle nearest the height the spawns stand at — the board's playing level, not a roof over it — BoxHeight
+// blocks tall, so a player walks into it; its bottom is the inspector's to move; its team, its points and whether it sends
 // the scorer home are the inspector's. The generator fans each box onto every other team's image under the
 // board's symmetry, which the canvas previews (setAuthorMirror) rather than this step computing.
 public partial class ScoreBoxesStep
@@ -36,6 +37,7 @@ public partial class ScoreBoxesStep
     private readonly List<Box> boxes = new();
     private List<Ctx.Team> teams = new();
     private int? killPoints;
+    private int? playLevel;
     private string? symMode; private double symCx, symCz;
     private int nextId = 1;
     private int? selectedId;
@@ -58,6 +60,9 @@ public partial class ScoreBoxesStep
         teams = Ctx.LoadTeams(intent);
         (symMode, symCx, symCz) = Ctx.Sym(intent);
         killPoints = intent["killPoints"] is null ? null : Ctx.I(intent, "killPoints");
+        var spawnHeights = (intent["spawns"] as JsonArray ?? []).OfType<JsonObject>()
+            .Select(spawn => Ctx.D(spawn["point"] as JsonObject, "y")).ToList();
+        playLevel = spawnHeights.Count > 0 ? (int)Math.Round(spawnHeights.Average()) : null;
         foreach (var o in (intent["scoreBoxes"] as JsonArray ?? []).OfType<JsonObject>())
         {
             var b = o["box"] as JsonObject;
@@ -86,7 +91,7 @@ public partial class ScoreBoxesStep
     {
         var (minX, minZ) = ((int)Math.Floor(r.MinX), (int)Math.Floor(r.MinZ));
         var (maxX, maxZ) = (Math.Max(minX, (int)Math.Ceiling(r.MaxX) - 1), Math.Max(minZ, (int)Math.Ceiling(r.MaxZ) - 1));
-        if (await ColumnFloor.RestingYAsync(Http, Slug, (minX + maxX + 1) / 2.0, (minZ + maxZ + 1) / 2.0) is not { } y) return;
+        if (await ColumnFloor.RestingYAsync(Http, Slug, (minX + maxX + 1) / 2.0, (minZ + maxZ + 1) / 2.0, playLevel) is not { } y) return;
         var box = new Box
         {
             Id = nextId++, Team = teams.FirstOrDefault()?.Id ?? "",
@@ -124,6 +129,13 @@ public partial class ScoreBoxesStep
     private void SetTeam(Box box, string team) { box.Team = team; Write(); _ = Paint(); }
     private void SetPoints(Box box, int points) { box.Points = points; Write(); }
     private void SetHome(Box box, bool home) { box.Home = home; Write(); }
+
+    private void SetBottom(Box box, int bottom)
+    {
+        box.MaxY = bottom + (box.MaxY - box.MinY);
+        box.MinY = bottom;
+        Write();
+    }
 
     private async Task Remove(Box box)
     {
