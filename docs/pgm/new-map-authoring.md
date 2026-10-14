@@ -101,7 +101,9 @@ turns about a **cell boundary**, not about a block: the rot_180 image of the pos
 image of the *cell* `x` — the unit square from `x` to `x+1` — is the cell `−1−x`. Anything with a footprint
 therefore takes `Symmetry.Cell`/`Symmetry.CellRect`, which reflect the cell's middle and floor, while
 `Symmetry.Point`/`Symmetry.Rect` stay for what is genuinely a position: a prop's offset from its own anchor, a
-drawn outline, a facing. Reflecting a footprint as a position and flooring the result afterwards lands its
+drawn outline, a facing. A caller holding one axis rather than a mode and an image takes the same turns as
+`Symmetry.Apply`, `ApplyCell` and `ApplyRect`, and image 0 is the identity under every mode.
+Reflecting a footprint as a position and flooring the result afterwards lands its
 image one block short of where the terrain puts it — the ground mirrors and the stamp does not, nothing fails,
 and the map is a block asymmetric in play. That is what a goal's anchor and a building's wing rectangle each
 did until `B250`; both now convert to the cell first and turn the cell, and `ObjectiveFootprint.AnchorCell` is

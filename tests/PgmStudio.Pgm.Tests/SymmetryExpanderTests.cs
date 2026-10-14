@@ -316,13 +316,4 @@ public sealed class SymmetryExpanderTests
         var outp = SymmetryExpander.Expand(intent);
         await Assert.That(outp.Build!.Areas.Count).IsEqualTo(1);
     }
-
-    [Test]
-    public async Task Suggested_team_count_tracks_symmetry_order()
-    {
-        await Assert.That(SymmetryExpander.SuggestedTeamCount("rot_90")).IsEqualTo(4);
-        await Assert.That(SymmetryExpander.SuggestedTeamCount("rot_180")).IsEqualTo(2);
-        await Assert.That(SymmetryExpander.SuggestedTeamCount("mirror_x")).IsEqualTo(2);
-        await Assert.That(SymmetryExpander.SuggestedTeamCount("mirror_d2")).IsEqualTo(2);
-    }
 }

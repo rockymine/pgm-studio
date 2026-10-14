@@ -476,7 +476,9 @@ console error, which the smoke sweep turns into a failed page; a silent blank is
   which is why a scratch copy can disagree with the committed tool.
 - **Symmetry / orbit math is ONE canonical C# leaf plus the JS preview twin — do not add a third copy.** The
   canonical is **`PgmStudio.Geom.Symmetry`**; every C# site routes through it (`Pgm/SymmetryAuthoring`,
-  `SymmetryExpander`, `SketchRasterizer`, `Analysis/SymmetryDetector`, client `OrbitAssignment`). Live canvas
+  `SymmetryExpander`, `SketchRasterizer`, `Analysis/SymmetryDetector`, the relief fold, client `OrbitAssignment`),
+  and a caller holding one axis rather than a mode takes `Apply`, `ApplyCell` and `ApplyRect`. A turn inside a
+  box — the composer laying a shape onto the edge it docks — is `PgmStudio.Geom.BoxTurn`, not a symmetry. Live canvas
   previews are JS (`js/studio/geometry/symmetry.js`), the documented twin. A Configure phase lists every
   symmetry copy beside what was drawn, so it computes them in C# through the leaf and draws them as `ghost`
   author regions in each copy's own colour (Spawn, Protection and Wool rooms store them; Build and Score do

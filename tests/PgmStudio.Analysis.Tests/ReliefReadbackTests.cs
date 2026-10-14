@@ -188,6 +188,21 @@ public sealed class ReliefReadbackTests
     }
 
     [Test]
+    public async Task Every_image_of_the_stated_symmetry_is_measured_and_no_other()
+    {
+        // A ridge running along z is its own half-turn but not its own diagonal mirror or quarter turn, and a
+        // ramp rising along both axes at once is its own diagonal mirror but not its own half-turn.
+        var ridge = Field(60, 60, (x, _) => 8 + Math.Min(x, 59 - x) / 6);
+        var diagonal = Field(60, 60, (x, z) => 8 + (x + z) / 12);
+
+        await Assert.That(ReliefReadback.Read(ridge, "rot_180", 30, 30).SymmetryError).IsEqualTo(0);
+        await Assert.That(ReliefReadback.Read(ridge, "rot_90", 30, 30).SymmetryError).IsGreaterThan(0);
+        await Assert.That(ReliefReadback.Read(ridge, "mirror_d1", 30, 30).SymmetryError).IsGreaterThan(0);
+        await Assert.That(ReliefReadback.Read(diagonal, "mirror_d1", 30, 30).SymmetryError).IsEqualTo(0);
+        await Assert.That(ReliefReadback.Read(diagonal, "rot_180", 30, 30).SymmetryError).IsGreaterThan(0);
+    }
+
+    [Test]
     public async Task The_step_histogram_accounts_for_every_boundary()
     {
         var read = ReliefReadback.Read(Field(30, 30, (x, _) => x < 15 ? 8 : 14));

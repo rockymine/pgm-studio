@@ -74,7 +74,7 @@ public static class FrontlineBoxEmitter
     /// facing the hub) and the face on the opposite edge toward the axis. An optional <paramref name="armLayout"/>
     /// (from <see cref="SampleArms"/>) overrides the branch forms' canonical legs — the sampled variation; when
     /// absent the canonical fat L / symmetric twin builds. The body is built spine-up and oriented
-    /// onto the mouth (<see cref="BodyOrient"/>), so the composer places the box against any hub edge —
+    /// onto the mouth (<see cref="ShapeBody.Turned"/>), so the composer places the box against any hub edge —
     /// <see cref="BoxEdge.Top"/> is the canonical frame (spine top, face bottom). Publishes the <b>face offer</b>
     /// over the arm-tip runs on the face edge, grouped <paramref name="faceGrouping"/> (joint — one shared group
     /// the mid spans; several — one group per tip). <paramref name="faceWidth"/> is the width the mid reads,
@@ -97,7 +97,7 @@ public static class FrontlineBoxEmitter
         rejection = null;
         int boxW = box.Rect.Width, boxH = box.Rect.Height;
         // build spine-up in the spine-length × reach frame (transposed when the spine docks a lateral edge), then
-        // orient onto the mouth — the twin of a spawn/wool box emitting mouth-up and orienting via MouthOrient
+        // turn onto the mouth, as a spawn or wool box turns its mouth-up emission
         var lateral = spineMouth is BoxEdge.Left or BoxEdge.Right;
         var (spineLen, reach) = lateral ? (boxH, boxW) : (boxW, boxH);
         var built = BuildBody(form, spineLen, reach, cw, armLayout, out var detail);
@@ -107,7 +107,7 @@ public static class FrontlineBoxEmitter
                 detail ?? $"{form.Form} (arms {form.Arms}) does not fit a {spineLen}x{reach} spine frame at cw {cw}.");
             return null;
         }
-        var body = BodyOrient.To(built, spineMouth, spineLen, reach);
+        var body = built.Turned(spineMouth.TopOnto(), spineLen, reach);
 
         var boxRef = new BoxRef(box.Id, BoxKind.Frontline);
         var pieces = new List<GrownPiece>(body.Pieces.Count);

@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
 using PgmStudio.Vocabulary;
@@ -157,7 +158,7 @@ public static class HubBoxEmitter
             rejection = new FillRejection.FormDoesNotFit(detail ?? $"{form.Form} does not fit {boxW}x{boxH} at cw {cw}.");
             return null;
         }
-        if (flipV) body = BodyOrient.To(body, BoxEdge.Bottom, boxW, boxH);   // feet toward the box top, spine to bottom
+        if (flipV) body = body.Turned(BoxTurn.FlipZ, boxW, boxH);   // feet toward the box top, spine to bottom
 
         var boxRef = new BoxRef(box.Id, BoxKind.Hub);
         var pieces = new List<GrownPiece>(body.Pieces.Count);

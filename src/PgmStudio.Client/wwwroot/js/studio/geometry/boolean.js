@@ -357,13 +357,6 @@ export function computeMirrorPreview(groups, axis, cx, cz) {
 }
 
 function _transformRing(ring, axis, cx, cz) {
-  // rot_270 CCW = rot_90 CW: (Δx,Δz) → (Δz, −Δx). Other axes go through applySymmetry.
-  if (axis === "rot_270") {
-    return ring.map(([x, z]) => {
-      const dx = x - cx, dz = z - cz;
-      return [cx + dz, cz - dx];
-    });
-  }
   return ring.map(([x, z]) => applySymmetry(x, z, axis, cx, cz));
 }
 

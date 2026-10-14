@@ -105,7 +105,7 @@ public static class WoolBoxEmitter
         }
         catch (ArgumentException e) { return new FillResult.UnsupportedKnobs(family, e.Message); }
         var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, canonW, canonH);
-        var shape = MouthOrient.To(mouthTop, mouth, w, h);
+        var shape = mouthTop.Turned(mouth.TopOnto(), w, h);
 
         var a = Wrap(shape, box.Rect.X, box.Rect.Z, box.Id, roomId ?? $"{box.Id}-room", box.Ref);
         var vacancies = shape.Vacancies

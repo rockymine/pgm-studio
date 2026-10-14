@@ -520,8 +520,8 @@ fill should not have to know which kind refused it.
 
 **Everything is emitted in one canonical orientation and turned afterwards.** An approach is built
 mouth-up and a body spine-up, always, so the per-family geometry is written once rather than four
-times. Placing it on the edge a box actually docks is a separate transform — `MouthOrient` for the
-terminal-capped kinds, `BodyOrient` for the terminal-free ones — where the top edge is the identity,
+times. Placing it on the edge a box actually docks is a separate transform — one `BoxTurn`, which an
+`EmittedShape` and a `ShapeBody` each take through `Turned` — where the top edge is the identity,
 the bottom a vertical mirror, and left or right a quarter turn that transposes the box. The piece
 rectangles, the marker's offset within its room, and the mouths of every published vacancy all
 follow that transform together. This is why the mouth edges differ per family in the canonical frame

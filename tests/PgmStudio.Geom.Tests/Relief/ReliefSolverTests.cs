@@ -340,19 +340,48 @@ public sealed class ReliefSolverTests
         var folded = ReliefSolver.Solve(footprint, spec);
         var loose = ReliefSolver.Solve(footprint, spec with { FoldMode = null });
 
-        await Assert.That(WorstQuarterDifference(folded, CentreX, CentreZ)).IsEqualTo(0);
-        await Assert.That(WorstQuarterDifference(loose, CentreX, CentreZ)).IsGreaterThan(0);
+        await Assert.That(WorstImageDifference(folded, "rot_90", CentreX, CentreZ)).IsEqualTo(0);
+        await Assert.That(WorstImageDifference(loose, "rot_90", CentreX, CentreZ)).IsGreaterThan(0);
     }
 
-    /// <summary>The worst height difference between any cell and any of the other three images of its
-    /// quarter-turn orbit — zero exactly when every team stands on the same ground.</summary>
-    private static int WorstQuarterDifference(HeightField field, double centreX, double centreZ)
+    [Test]
+    [Arguments("mirror_d1")]
+    [Arguments("mirror_d2")]
+    public async Task A_diagonally_mirrored_map_is_mirrored_exactly(string mode)
+    {
+        // A diagonal has no half-turn in its orbit, so a fold that read it as one would copy each cell from a
+        // cell that is not its image. The board is square about its centre because a diagonal swaps the axes.
+        const double CentreX = 30, CentreZ = 30;
+        var footprint = Board(60, 60);
+        List<Mark> marks = [new RimMark(5)];
+        for (var image = 0; image < 2; image++)
+        {
+            var (markX, markZ) = Symmetry.Point(14, 9, mode, CentreX, CentreZ, image);
+            marks.Add(new PointMark(markX, markZ, 15, 4));
+        }
+
+        var spec = new ReliefSpec
+        {
+            Base = 5, Marks = marks, Grain = 1.2, GrainScale = 9, Seed = 3,
+            FoldMode = mode, FoldCentreX = CentreX, FoldCentreZ = CentreZ,
+        };
+
+        var folded = ReliefSolver.Solve(footprint, spec);
+        var loose = ReliefSolver.Solve(footprint, spec with { FoldMode = null });
+
+        await Assert.That(WorstImageDifference(folded, mode, CentreX, CentreZ)).IsEqualTo(0);
+        await Assert.That(WorstImageDifference(loose, mode, CentreX, CentreZ)).IsGreaterThan(0);
+    }
+
+    /// <summary>The worst height difference between any cell and any other image of it under
+    /// <paramref name="mode"/> — zero exactly when every team stands on the same ground.</summary>
+    private static int WorstImageDifference(HeightField field, string mode, double centreX, double centreZ)
     {
         var worst = 0;
         foreach (var (x, z) in field.Footprint.Land())
-            for (var image = 1; image < 4; image++)
+            for (var image = 1; image < Symmetry.Order(mode); image++)
             {
-                var (ix, iz) = Symmetry.Cell(x, z, "rot_90", centreX, centreZ, image);
+                var (ix, iz) = Symmetry.Cell(x, z, mode, centreX, centreZ, image);
                 if (!field.Has(ix, iz)) continue;
                 worst = Math.Max(worst, Math.Abs(field.At(x, z) - field.At(ix, iz)));
             }

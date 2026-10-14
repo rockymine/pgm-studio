@@ -568,6 +568,13 @@ centre. A layout that states no `mirror_mode` at all takes the default, `rot_180
 Both fold on the cell's **centre**, not its corner. Reflecting the corner pairs each cell with its image's
 *neighbour* — a one-cell shear that looks like symmetry and measures as a full block of unfairness.
 
+**Each mode folds onto its own image, taken from `Symmetry.Cell`.** A mirror's canonical half is the side its
+normal points away from: the −x half under `mirror_x`, the −z half under `mirror_z`, and under `mirror_d1` and
+`mirror_d2` one side of the diagonal through the centre. A half-turn's is the −z side of the line through the
+centre, and a quarter-turn's the quadrant below. The relief read-back's symmetry error compares each cell with
+every image its mode has, three under `rot_90`, through the same call, so a ridge that is its own half-turn
+still reads as unfair on a quarter-turn board.
+
 **An orbit of four wants the inverse, not the axis.** Every mirror and the half-turn are their own inverse, so
 a board under `mirror_x` or `rot_180` can read an image cell's height out of the source field through the same
 transform that placed it. A quarter-turn cannot: reading a `rot_90` image back through `rot_90` lands on the

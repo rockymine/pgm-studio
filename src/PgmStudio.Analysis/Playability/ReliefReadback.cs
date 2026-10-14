@@ -416,25 +416,18 @@ public static class ReliefReadback
         return new Fords(counted, onFoot, withBlock, descended);
     }
 
-    /// <summary>The worst block a cell differs from its own mirror image. Zero is a fair map; anything else is
+    /// <summary>The worst block a cell differs from any of its images. Zero is a fair map; anything else is
     /// one team owning a step the other does not, which nothing else in the report would show.</summary>
     private static int SymmetryError(HeightField field, string? mode, double centreX, double centreZ)
     {
-        if (Symmetry.Order(mode) == 1) return 0;
         var worst = 0;
         foreach (var (x, z) in field.Footprint.Land())
-        {
-            int mirroredX = (int)Math.Floor(2 * centreX - (x + 0.5));
-            int mirroredZ = (int)Math.Floor(2 * centreZ - (z + 0.5));
-            var (mx, mz) = mode switch
+            for (var image = 1; image < Symmetry.Order(mode); image++)
             {
-                "mirror_x" => (mirroredX, z),
-                "mirror_z" => (x, mirroredZ),
-                _ => (mirroredX, mirroredZ),
-            };
-            if (!field.Has(mx, mz)) continue;
-            worst = Math.Max(worst, Math.Abs(field.At(x, z) - field.At(mx, mz)));
-        }
+                var (mx, mz) = Symmetry.Cell(x, z, mode, centreX, centreZ, image);
+                if (!field.Has(mx, mz)) continue;
+                worst = Math.Max(worst, Math.Abs(field.At(x, z) - field.At(mx, mz)));
+            }
         return worst;
     }
 }

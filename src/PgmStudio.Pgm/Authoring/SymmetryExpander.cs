@@ -2,6 +2,7 @@ namespace PgmStudio.Pgm.Authoring;
 
 using PgmStudio.Domain;
 using PgmStudio.Geom;
+using PgmStudio.Vocabulary;
 
 /// <summary>
 /// Orbit-fill for the declarative intent (docs/pgm/new-map-authoring.md §3). Given an intent whose
@@ -23,9 +24,6 @@ using PgmStudio.Geom;
 /// </summary>
 public static class SymmetryExpander
 {
-    /// <summary>Suggested team count for a symmetry mode (§4): <c>rot_90</c>→4, everything else→2.</summary>
-    public static int SuggestedTeamCount(string mode) => Order(mode);
-
     /// <summary>Return an intent with teams (synthesized if absent), spawns/wools orbit-filled across all
     /// teams, and build areas orbited. No-op (returns the input) when there's no symmetry or an unknown
     /// mode.</summary>
@@ -34,7 +32,7 @@ public static class SymmetryExpander
         if (intent.Symmetry is not { } sym || string.IsNullOrWhiteSpace(sym.Mode)) return intent;
         if (!IsKnown(sym.Mode)) return intent;
 
-        var order = Order(sym.Mode);
+        var order = Symmetry.Order(sym.Mode);
         // Teams the author listed win; otherwise derive count from the symmetry and synthesize them (§4),
         // so "symmetry + one spawn" is a complete map. Orbit positions map onto this team list in order.
         var teams = intent.Teams is { Count: > 0 } provided ? provided : SynthesizeTeams(intent, order);
@@ -258,7 +256,7 @@ public static class SymmetryExpander
     /// <summary>Score boxes stated for one team, fanned onto every other team's image of the box as a core is:
     /// a team already holding a box keeps its own.</summary>
     public static List<ScoreBoxIntent>? FillScoreBoxes(List<ScoreBoxIntent>? authored, List<TeamDef> teams, SymmetryIntent sym) =>
-        IsKnown(sym.Mode) ? FillScoreBoxes(authored, teams, sym, Order(sym.Mode)) : authored;
+        IsKnown(sym.Mode) ? FillScoreBoxes(authored, teams, sym, Symmetry.Order(sym.Mode)) : authored;
 
     private static List<ScoreBoxIntent>? FillScoreBoxes(
         List<ScoreBoxIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
@@ -321,7 +319,7 @@ public static class SymmetryExpander
     /// <summary>Capture points stated once each, fanned across <paramref name="sym"/>: every image added, named
     /// for its point and numbered on, and one already standing where an image would go taken as that image.</summary>
     public static List<ControlPointIntent>? FillControlPoints(List<ControlPointIntent>? authored, SymmetryIntent sym) =>
-        IsKnown(sym.Mode) ? FillControlPoints(authored, sym, Order(sym.Mode)) : authored;
+        IsKnown(sym.Mode) ? FillControlPoints(authored, sym, Symmetry.Order(sym.Mode)) : authored;
 
     /// <summary>Generators stated once each, fanned across <paramref name="sym"/> as capture points are: every
     /// image added under its generator's id numbered on — the regions minted from it stay one per generator —
@@ -329,7 +327,7 @@ public static class SymmetryExpander
     public static List<SpawnerIntent>? FillSpawners(List<SpawnerIntent>? authored, SymmetryIntent sym)
     {
         if (authored is null || !IsKnown(sym.Mode)) return authored;
-        var order = Order(sym.Mode);
+        var order = Symmetry.Order(sym.Mode);
         var result = new List<SpawnerIntent>(authored);
         var placed = authored.Select(spawner => (spawner.At.X, spawner.At.Z)).ToList();
         foreach (var src in authored)
@@ -377,7 +375,7 @@ public static class SymmetryExpander
     /// flag fans by team as a core does: each other team gains its image — posts and net turned, named and
     /// coloured for that team — and a team already owning a flag keeps its own.</summary>
     public static List<FlagIntent>? FillFlags(List<FlagIntent>? authored, List<TeamDef> teams, SymmetryIntent sym) =>
-        IsKnown(sym.Mode) ? FillFlags(authored, teams, sym, Order(sym.Mode)) : authored;
+        IsKnown(sym.Mode) ? FillFlags(authored, teams, sym, Symmetry.Order(sym.Mode)) : authored;
 
     private static List<FlagIntent>? FillFlags(List<FlagIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
     {
@@ -527,10 +525,7 @@ public static class SymmetryExpander
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────────────────
-    private static int Order(string mode) => mode == "rot_90" ? 4 : 2;
-
-    private static bool IsKnown(string mode) =>
-        mode is "rot_90" or "rot_180" or "mirror_x" or "mirror_z" or "mirror_d1" or "mirror_d2";
+    private static bool IsKnown(string mode) => SymmetryModes.Fanned.Contains(mode);
 
     private static int IndexOfTeam(List<TeamDef> teams, string id)
     {

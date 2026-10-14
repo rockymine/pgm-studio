@@ -17,11 +17,37 @@ public sealed class SymmetryTests
         // reflection: the sign of the cross product of the two images is what says which happened.
         for (var k = 0; k < Symmetry.Order(mode); k++)
         {
-            (double X, double Z) Image(double x, double z) => k == 0 ? (x, z) : Symmetry.Point(x, z, mode, 0, 0, k);
+            (double X, double Z) Image(double x, double z) => Symmetry.Point(x, z, mode, 0, 0, k);
             var (ax, az) = Image(1, 0);
             var (bx, bz) = Image(0, 1);
             var turnedOver = ax * bz - az * bx < 0;
             await Assert.That(Symmetry.Reflects(mode, k)).IsEqualTo(turnedOver);
+        }
+    }
+
+    /// <summary>Image 0 is the point itself under every mode, a mirror and the half-turn included.</summary>
+    [Test]
+    [Arguments("mirror_x")] [Arguments("mirror_d1")] [Arguments("rot_180")] [Arguments("rot_90")] [Arguments("none")]
+    public async Task Image_zero_is_the_point_itself(string mode)
+    {
+        await Assert.That(Symmetry.Point(7.3, -2.6, mode, 0.5, 0.5, 0)).IsEqualTo((7.3, -2.6));
+        await Assert.That(Symmetry.Cell(7, -3, mode, 0.5, 0.5, 0)).IsEqualTo((7, -3));
+    }
+
+    /// <summary>A caller holding one concrete axis gets the same image as one holding the mode and the image
+    /// index that axis stands for — the point, the cell and the rectangle alike.</summary>
+    [Test]
+    [Arguments("mirror_x")] [Arguments("mirror_z")] [Arguments("mirror_d1")] [Arguments("mirror_d2")]
+    [Arguments("rot_180")] [Arguments("rot_90")]
+    public async Task An_axis_answers_what_its_mode_and_image_answer(string mode)
+    {
+        var axes = Symmetry.OrbitAxes(mode);
+        for (var k = 1; k < Symmetry.Order(mode); k++)
+        {
+            var axis = axes[k - 1];
+            await Assert.That(Symmetry.Apply(7.3, -2.6, axis, 0.5, 1)).IsEqualTo(Symmetry.Point(7.3, -2.6, mode, 0.5, 1, k));
+            await Assert.That(Symmetry.ApplyCell(7, -3, axis, 0.5, 1)).IsEqualTo(Symmetry.Cell(7, -3, mode, 0.5, 1, k));
+            await Assert.That(Symmetry.ApplyRect(2, -4, 9, 3, axis, 0.5, 1)).IsEqualTo(Symmetry.Rect(2, -4, 9, 3, mode, 0.5, 1, k));
         }
     }
 

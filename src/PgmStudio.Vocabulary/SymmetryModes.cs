@@ -31,6 +31,9 @@ public static class SymmetryModes
     /// <summary>Every mode a layout may state.</summary>
     public static readonly string[] All = [None, MirrorX, MirrorZ, MirrorD1, MirrorD2, Rot90, Rot180];
 
+    /// <summary>Every mode with images to fan onto: all of them but <see cref="None"/>.</summary>
+    public static readonly string[] Fanned = [MirrorX, MirrorZ, MirrorD1, MirrorD2, Rot90, Rot180];
+
     /// <summary>The modes the sketch tool's Settings step offers, in its order.</summary>
     public static readonly string[] Sketched = [MirrorX, MirrorZ, Rot180, Rot90, None];
 }

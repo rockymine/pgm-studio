@@ -5,6 +5,42 @@ namespace PgmStudio.Pgm.Shapes;
 /// <summary>One edge of an axis-aligned box, in box-local coordinates (Top = z min, Left = x min).</summary>
 public enum BoxEdge { Top, Bottom, Left, Right }
 
+/// <summary>How a <see cref="BoxTurn"/> moves an edge, read off the edge's outward direction.</summary>
+public static class BoxEdges
+{
+    /// <summary>The edge <paramref name="edge"/> becomes under <paramref name="turn"/>.</summary>
+    public static BoxEdge Turned(this BoxEdge edge, BoxTurn turn)
+    {
+        var (dx, dz) = turn.Direction(edge.Outward().Dx, edge.Outward().Dz);
+        return (dx, dz) switch
+        {
+            (0, < 0) => BoxEdge.Top,
+            (0, > 0) => BoxEdge.Bottom,
+            (< 0, 0) => BoxEdge.Left,
+            _ => BoxEdge.Right,
+        };
+    }
+
+    /// <summary>The turn that lays a shape's top edge onto <paramref name="edge"/>: the identity, a flip, or a
+    /// quarter turn.</summary>
+    public static BoxTurn TopOnto(this BoxEdge edge) => edge switch
+    {
+        BoxEdge.Top => BoxTurn.None,
+        BoxEdge.Bottom => BoxTurn.FlipZ,
+        BoxEdge.Right => BoxTurn.Clockwise,
+        BoxEdge.Left => BoxTurn.Anticlockwise,
+        _ => throw new ArgumentException($"unknown box edge {edge}."),
+    };
+
+    private static (int Dx, int Dz) Outward(this BoxEdge edge) => edge switch
+    {
+        BoxEdge.Top => (0, -1),
+        BoxEdge.Bottom => (0, 1),
+        BoxEdge.Left => (-1, 0),
+        _ => (1, 0),
+    };
+}
+
 /// <summary>Negative space a shape leaves inside its box, published at emit time — exact by construction,
 /// no derive pass finds it. <see cref="Kind"/>: <c>bay</c> (open toward one edge — claimable by a later
 /// box), <c>notch</c> (a corner remainder, open on two edges), <c>hole</c> (enclosed by the shape).
@@ -30,6 +66,14 @@ public sealed record EmittedShape(ShapeBody Body, CellRect Room, double[] At)
         IReadOnlyList<(CellRect Rect, string Slot)> terrain, CellRect room, double[] at,
         IReadOnlyList<ShapeVacancy> vacancies)
         : this(new ShapeBody(terrain, vacancies), room, at) { }
+
+    /// <summary>The emission laid back onto its <paramref name="width"/> × <paramref name="height"/> box by
+    /// <paramref name="turn"/>: the body, the room, and the marker within the room.</summary>
+    public EmittedShape Turned(BoxTurn turn, int width, int height)
+    {
+        var (atX, atZ) = turn.Point(At[0], At[1], Room.Width, Room.Height);
+        return new(Body.Turned(turn, width, height), turn.Rect(Room, width, height), [atX, atZ]);
+    }
 }
 
 /// <summary>
@@ -417,26 +461,10 @@ public static class ShapeEmitter
         if (flip)
         {
             // mirror along the mouth: across the vertical centre for a top/bottom mouth, the horizontal one for a
-            // side mouth. A CellRect is a value, so each mirrored rect is written back into its list.
-            var alongZ = MouthEdge(family) is BoxEdge.Left or BoxEdge.Right;
-            CellRect Mirror(CellRect r) => alongZ
-                ? r with { Z = H - r.Z - r.Height }
-                : r with { X = W - r.X - r.Width };
-            for (var i = 0; i < t.Count; i++)
-                t[i] = (Mirror(t[i].Rect), t[i].Slot);                                  // slot survives the mirror
-            room = Mirror(room);
-            at = alongZ ? [at[0], room.Height - at[1]] : [room.Width - at[0], at[1]];   // the marker mirrors within the room
-            for (var i = 0; i < vac.Count; i++)
-            {
-                var v = vac[i];
-                var m = (alongZ, v.Mouth) switch
-                {
-                    (false, BoxEdge.Left) => BoxEdge.Right, (false, BoxEdge.Right) => BoxEdge.Left,
-                    (true, BoxEdge.Top) => BoxEdge.Bottom, (true, BoxEdge.Bottom) => BoxEdge.Top,
-                    _ => v.Mouth,
-                };
-                vac[i] = v with { Rect = Mirror(v.Rect), Mouth = m };
-            }
+            // side mouth
+            var mirror = MouthEdge(family) is BoxEdge.Left or BoxEdge.Right ? BoxTurn.FlipZ : BoxTurn.FlipX;
+            var mirrored = new EmittedShape(t, room, at, vac).Turned(mirror, W, H);
+            return ([.. mirrored.Terrain], mirrored.Room, mirrored.At, [.. mirrored.Vacancies]);
         }
 
         return (t, room, at, vac);
@@ -450,46 +478,17 @@ public static class ShapeEmitter
     public static (EmittedShape Shape, int W, int H) OrientMouthTop(
         EmittedShape s, ShapeFamily family, int boxW, int boxH)
     {
-        var source = MouthEdge(family);
-        if (source == BoxEdge.Top) return (s, boxW, boxH);
-
-        Func<CellRect, CellRect> map = source switch
+        // The turn taking the family's mouth to the top: a flip for the bottom, a transpose for the left, and for
+        // the right a transpose and a flip.
+        var turn = MouthEdge(family) switch
         {
-            BoxEdge.Bottom => r => new(r.X, boxH - r.Z - r.Height, r.Width, r.Height),       // vertical mirror
-            BoxEdge.Left => r => new(r.Z, r.X, r.Height, r.Width),                       // transpose
-            _ => r => new(r.Z, boxW - r.X - r.Width, r.Height, r.Width),                    // transpose + vertical mirror
+            BoxEdge.Top => BoxTurn.None,
+            BoxEdge.Bottom => BoxTurn.FlipZ,
+            BoxEdge.Left => BoxTurn.Transpose,
+            _ => BoxTurn.Anticlockwise,
         };
-        var dims = source == BoxEdge.Bottom ? (W: boxW, H: boxH) : (W: boxH, H: boxW);
-
-        BoxEdge? MouthMap(BoxEdge? e) => e is null ? null : source switch
-        {
-            BoxEdge.Bottom => e switch
-            {
-                BoxEdge.Top => BoxEdge.Bottom, BoxEdge.Bottom => BoxEdge.Top, _ => e,
-            },
-            BoxEdge.Left => e switch
-            {
-                BoxEdge.Left => BoxEdge.Top, BoxEdge.Top => BoxEdge.Left,
-                BoxEdge.Right => BoxEdge.Bottom, _ => BoxEdge.Right,
-            },
-            _ => e switch
-            {
-                BoxEdge.Right => BoxEdge.Top, BoxEdge.Top => BoxEdge.Left,
-                BoxEdge.Left => BoxEdge.Bottom, _ => BoxEdge.Right,
-            },
-        };
-
-        var terrain = s.Terrain.Select(p => (map(p.Rect), p.Slot)).ToList();
-        var room = map(s.Room);
-        double ax = s.At[0], az = s.At[1];
-        double[] at = source switch
-        {
-            BoxEdge.Bottom => [ax, s.Room.Height - az],
-            BoxEdge.Left => [az, ax],
-            _ => [az, s.Room.Width - ax],
-        };
-        var vac = s.Vacancies.Select(v => v with { Rect = map(v.Rect), Mouth = MouthMap(v.Mouth) }).ToList();
-        return (new EmittedShape(terrain, room, at, vac), dims.W, dims.H);
+        var (w, h) = turn.Extent(boxW, boxH);
+        return (s.Turned(turn, boxW, boxH), w, h);
     }
 
     private static void Need(bool ok, ShapeFamily family, int w, int h)

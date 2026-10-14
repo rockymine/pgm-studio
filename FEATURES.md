@@ -8818,6 +8818,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   post at a grid-line centre stays one. The Edit tool's quarter turn of a `<block>` region names the block its
   bounds cover. `docs/pgm/new-map-authoring.md` §3. (`PG41`)
 
+- **A relief folds and is measured under its own mode (`WE165`)** — the fold copies each cell from its image under
+  `Symmetry.Cell`, the canonical half a mirror's normal points away from, so `mirror_d1` and `mirror_d2` fold onto
+  their own images rather than a half-turn's; the read-back's symmetry error compares every image the mode has,
+  three under `rot_90`. `docs/world-export/relief.md`. (`WE165`)
+
+- **Every symmetry turn goes through one leaf (`RP126`)** — `Symmetry.ApplyCell` and `ApplyRect` give a caller
+  holding one axis the cell and rectangle turns, and image 0 is the point itself under every mode. The sketch
+  rasterizer and layout check, the plan's fan, the orbit scatter, the region reflection, the expander and the
+  detector call them, and `SymmetryModes.Fanned` is the one list of modes with images.
+  `docs/pgm/new-map-authoring.md` §3. (`RP126`)
+
+- **One turn inside a box (`G293`)** — `Geom.BoxTurn` lays a box-local shape back onto its box; the emitter's flip,
+  the mouth-to-top turn and the turn onto a docking edge are each one, through `EmittedShape.Turned` and
+  `ShapeBody.Turned`, and the composer's fingerprints are unchanged. `docs/generator/vocabulary.md`. (`G293`)
+
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
   Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.

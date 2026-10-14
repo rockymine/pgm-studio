@@ -11,7 +11,18 @@ namespace PgmStudio.Pgm.Shapes;
 /// each designation finishes. See <c>docs/generator/model.md</c> §4 — the shape model.
 /// </summary>
 public sealed record ShapeBody(
-    IReadOnlyList<(CellRect Rect, string Slot)> Pieces, IReadOnlyList<ShapeVacancy> Vacancies);
+    IReadOnlyList<(CellRect Rect, string Slot)> Pieces, IReadOnlyList<ShapeVacancy> Vacancies)
+{
+    /// <summary>The body laid back onto its <paramref name="width"/> × <paramref name="height"/> box by
+    /// <paramref name="turn"/>: every piece and vacancy rect, and every vacancy mouth, with it.</summary>
+    public ShapeBody Turned(BoxTurn turn, int width, int height) => turn == BoxTurn.None ? this : new(
+        [.. Pieces.Select(piece => (turn.Rect(piece.Rect, width, height), piece.Slot))],
+        [.. Vacancies.Select(vacancy => vacancy with
+        {
+            Rect = turn.Rect(vacancy.Rect, width, height),
+            Mouth = vacancy.Mouth?.Turned(turn),
+        })]);
+}
 
 /// <summary>
 /// The per-side widths of a ring's four walls, in cells — the widening knob every ring-bodied form shares

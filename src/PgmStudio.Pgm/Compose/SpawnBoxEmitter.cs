@@ -19,7 +19,7 @@ public sealed record EmittedSpawn(IReadOnlyList<GrownPiece> Pieces, GrownPiece R
 /// the per-kind profile table.
 ///
 /// <para><c>Fill</c> fills a plan-cell <see cref="Box"/> the same way the wool box does — emit mouth-up,
-/// orient onto the docking edge via <see cref="MouthOrient"/> — and stamps the spawn specifics: every piece
+/// turn onto the docking edge (<see cref="EmittedShape.Turned"/>) — and stamps the spawn specifics: every piece
 /// carries its slot and the spawn <see cref="BoxRef"/>, the room takes the <see cref="PlanRoles.Spawn"/> role,
 /// and it reports the entry-run length a wool box may dock along. The grower allocates the box against the hub's
 /// back edge and pins the entry run's cross band; the marker's facing (SP3, toward the axis) is stamped at
@@ -48,7 +48,7 @@ public static class SpawnBoxEmitter
 
     /// <summary>Fill a spawn <see cref="Box"/> (plan cells) docking <paramref name="mouth"/> with an I or L, its
     /// terminal a <see cref="PlanRoles.Spawn"/> room. Mirrors the wool box's plan-cell fill — emit mouth-up, then
-    /// orient onto the mouth via <see cref="MouthOrient"/> — but stamps the spawn role and reports the
+    /// turn onto the mouth (<see cref="EmittedShape.Turned"/>) — but stamps the spawn role and reports the
     /// <b>entry-run length</b> (outward from the mouth) a wool box may dock along. Pieces carry the
     /// <paramref name="box"/> label + their slot; the room takes <paramref name="roomId"/>. <paramref name="flip"/>
     /// puts an L's hook on the other side. Null when the footprint is too small (a directed signal, not a throw).</summary>
@@ -80,7 +80,7 @@ public static class SpawnBoxEmitter
 
         var raw = ShapeEmitter.Emit(family, alongLen, depth, cw, flip);
         var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, alongLen, depth);
-        var shape = MouthOrient.To(mouthTop, mouth, w, h);
+        var shape = mouthTop.Turned(mouth.TopOnto(), w, h);
 
         var boxRef = new BoxRef(box.Id, BoxKind.Spawn);
         var pieces = new List<GrownPiece>(shape.Terrain.Count + 1);
