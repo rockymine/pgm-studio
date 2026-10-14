@@ -27,7 +27,7 @@ public static class ConfigurePhases
         new("dtm",    "gem",            "Destroyables",    ["Objectives"],                                    "N12"),
         new("cores",  "flame",          "Cores",           ["Objectives", "Casing"],                          "N12"),
         new("flags",  "flag",           "Flags",           ["Posts"],                                         "TC15"),
-        new("score",  "goal",           "Score",           ["Kills & boxes"],                                 "TC19"),
+        new("score",  "goal",           "Score",           [],                                                "TC19"),
         new("match",  "timer",          "Match",           [],                                                "TC17"),
         new("review", "badge-check",    "Review and export", ["Pre-flight", "Region tree", "XML"],              "N05"),
     ];

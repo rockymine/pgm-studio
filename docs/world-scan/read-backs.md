@@ -98,6 +98,13 @@ was already out when the attack came, which is a different origin from the one a
 a corpus of boards a nearer one. The slack and the stretch floor are the caller's, because a cell is one block
 at the built tier and several at the plan tier, so one number would mean two distances.
 
+**A scanned world's ground keeps what is built out from it and drops what floats free.** `WorldWalk.Ground`
+reads a column's lowest block as its base, and a mass whose base stands a clear twelve blocks over the map's
+middle is floating over the void (`IslandDetector.SplitBase`). Such a mass stays out of the walk unless one of
+its places is a free step from a place on the ground beside it, as a beam over the void is from the stairs that
+reach it; a lobby in the sky, touching nothing it can be walked onto from, stays out. A mass that joins can carry
+the next one.
+
 **A walk is narrowed to the side making it.** An `enter` rule keeps a team off ground, so the ground one
 side walks is not the ground another does: `WorldWalk.For` narrows a built world's walk by the rules the map
 states, and `PlanNav.For` narrows the plan tier's by the two the studio writes into every map it compiles —

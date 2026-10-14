@@ -8790,9 +8790,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   in a net round its own flag's first post, paying 1, and the board ends at 3 and states `ctf`.
   `docs/pgm/flags.md` §8. (`PG38`)
 
+- **A scanned world's walk keeps what is built out over the void (`WS89`)** — a floating mass joins the walk where one
+  of its places is a free step from the ground beside it, as a beam reached by stairs is; one touching nothing it can
+  be walked onto from, such as a lobby in the sky, stays out. Riad's beam post, three wide over the void, is reached.
+  `docs/world-scan/read-backs.md`. (`WS89`)
+
+- **Pre-flight knows the game mode (`TC20`)** — buildability and build zone reach are asked only of a map built on over
+  the void; the walk check names what it cannot reach in plain words and says to bridge only where players build; the
+  check map draws flag posts, score boxes and capture points with their own marks and a legend of what the map holds.
+  The Flags, Score and Match copy follows `docs/client/writing-for-the-ui.md`, and the glossary defines the new
+  modes' words. `docs/tools/configure.md`. (`TC20`)
+
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
-  Flags phase offers it as *Captures*. The filter editor reads the flag filters, taking its types from the parser.
+  Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.
   `docs/pgm/flags.md` §8. (`PG39`)
 
 - **A board states a team deathmatch (`PG40`)** — `MapIntent.KillPoints` writes the score's `<kills>`; such a board
@@ -8808,9 +8819,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 - **Configure states the match (`TC17`)** — a Match phase between the objectives and Review: the score and time
   limits and what decides a match at the bell, the lives a blitz gives, rage, the respawn delay and how the dead
-  come back, and the kill height, each blank for the board's own default. `docs/tools/configure.md`. (`TC17`)
+  come back, and the kill height, each blank for the map's own default. `docs/tools/configure.md`. (`TC17`)
 
-- **The Flags phase sets who defends a flag (`TC18`)** — *Defended by* makes a flag a team's, which takes its
+- **The Flags phase sets who defends a flag (`TC18`)** — *Defending team* makes a flag a team's, which takes its
   team's colour and pays only on capture; a carrier may now be given nothing. `docs/tools/configure.md`. (`TC18`)
 
 - **Configure authors King of the Flag (`TC15`)** — a Flags phase whose Posts step confirms a scanned banner as a

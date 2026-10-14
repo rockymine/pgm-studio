@@ -13,9 +13,6 @@
       <Section Title="Flags">
         <Actions><Badge Class="@(flags.Count > 0 ? "badge--success" : "badge--dim")">@flags.Count flag@(flags.Count == 1 ? "" : "s")</Badge></Actions>
         <ChildContent>
-        <p class="section-desc">A flag nobody owns pays the team carrying it every second. A team's flag is carried
-          off by the others, each of which scores by bringing it home to its own flag. A flag starts at its first
-          post, which needs a banner in the world, and comes back to one of its posts at random.</p>
 
         <div class="panel-list">
           @if (flags.Count == 0) { <div class="list-empty">No flags yet.</div> }
@@ -34,8 +31,8 @@
 
         @if (SelectedFlag is { } current)
         {
-          <p class="section-desc section-desc--separated"><strong>@NameOf(current, selectedFlag)</strong>'s posts.
-            Click the map with the <strong>point tool</strong> to add one.</p>
+          <p class="section-desc section-desc--separated">Click the map with the <strong>point tool</strong> to add a
+            post.</p>
           <div class="panel-list">
             @if (current.Posts.Count == 0) { <div class="list-empty">No posts yet.</div> }
             @for (var i = 0; i < current.Posts.Count; i++)
@@ -61,8 +58,7 @@
         else if (Unused.ToList() is { Count: > 0 } unused)
         {
           <p class="section-desc section-desc--separated">
-            <strong>@unused.Count</strong> banner@(unused.Count == 1 ? "" : "s") in the world. Click one to make it a
-            post of the selected flag.
+            Banners found in the world. Click one to add it as a post.
           </p>
           <div class="panel-list">
             @foreach (var banner in unused)
@@ -91,53 +87,41 @@
       {
         <Section @key="selectedFlag">
           <DetailHeader Icon="flag" IconTint="@Hex(sel)" Label="@NameOf(sel, selectedFlag)">
-            <Badge Kind="neutral">@(sel.Team.Length > 0 ? $"{TeamName(sel.Team)}'s flag" : "Nobody owns it")</Badge>
+            <Badge Kind="neutral">@(sel.Team.Length > 0 ? TeamName(sel.Team) : "Neutral")</Badge>
           </DetailHeader>
           <div class="section-body">
             <Field Label="Name">
               <input class="field-input" value="@sel.Name" placeholder="e.g. Flag"
                      @onchange="@(e => SetName(sel, e.Value?.ToString() ?? string.Empty))" />
             </Field>
-            <Field Label="Defended by">
-              <LabelHint>(a team's flag is captured by the others)</LabelHint>
-              <ChildContent>
-                <Select Slim="false" Options="@OwnerOptions" Value="@(sel.Team.Length > 0 ? sel.Team : Nobody)"
-                        ValueChanged="@(owner => SetOwner(sel, owner))" />
-              </ChildContent>
+            <Field Label="Defending team">
+              <Select Slim="false" Options="@OwnerOptions" Value="@(sel.Team.Length > 0 ? sel.Team : Nobody)"
+                      ValueChanged="@(owner => SetOwner(sel, owner))" />
             </Field>
             @if (sel.Team.Length == 0)
             {
               <Field Label="Colour">
-                <LabelHint>(the banner a new post stands)</LabelHint>
-                <ChildContent>
-                  <div class="field-pick-row">
-                    <span class="field-swatch" style="--swatch: @GameColors.DyeHex(sel.Color)"></span>
-                    <Select Slim="false" Options="@ColorOptions" Value="@sel.Color" ValueChanged="@(color => SetColor(sel, color))" />
-                  </div>
-                </ChildContent>
+                <div class="field-pick-row">
+                  <span class="field-swatch" style="--swatch: @GameColors.DyeHex(sel.Color)"></span>
+                  <Select Slim="false" Options="@ColorOptions" Value="@sel.Color" ValueChanged="@(color => SetColor(sel, color))" />
+                </div>
               </Field>
-              <Field Label="Points a second">
-                <LabelHint>(paid to the team carrying it)</LabelHint>
-                <ChildContent>
-                  <NumberField Value="@sel.PointsRate" Min="0.1" Max="10" Step="0.5" ValueChanged="@(rate => SetRate(sel, rate))" />
-                </ChildContent>
+              <Field Label="Points per second">
+                <NumberField Value="@sel.PointsRate" Min="0.1" Max="10" Step="0.5" ValueChanged="@(rate => SetRate(sel, rate))" />
               </Field>
             }
             @if (sel.Team.Length > 0)
             {
-              <Field Label="Captures">
-                <LabelHint>(when this team may score in its net)</LabelHint>
-                <ChildContent>
-                  <Select Slim="false" Options="@CaptureOptions" Value="@sel.Capture" ValueChanged="@(capture => SetCapture(sel, capture))" />
-                </ChildContent>
+              <Field Label="Capture">
+                <Select Slim="false" Options="@CaptureOptions" Value="@sel.Capture" ValueChanged="@(capture => SetCapture(sel, capture))" />
               </Field>
             }
-            <Field Label="The carrier">
+            <Field Label="Pickup kit">
               <Select Slim="false" Options="@CarrierOptions" Value="@sel.Carrier" ValueChanged="@(carrier => SetCarrier(sel, carrier))" />
             </Field>
             @if (sel.Carrier is FlagCarriers.Lowered or FlagCarriers.Boost)
             {
-              <Field Label="Hearts while carrying">
+              <Field Label="Carrier hearts">
                 <NumberField Value="@sel.CarrierHearts" Min="1" Max="20" ValueChanged="@(hearts => SetHearts(sel, hearts))" />
               </Field>
             }
@@ -162,9 +146,8 @@
               </Field>
               @if (selectedPost == 0 && !OnBanner(post))
               {
-                <p class="section-desc">No banner stands here in the scanned world, and PGM will not load a flag that
-                  starts without one. Start the flag at a scanned banner, or place a banner here and scan the world
-                  again.</p>
+                <p class="section-desc">There is no banner here. A flag must start on one, so start it at a scanned
+                  banner or place a banner in the world and scan again.</p>
               }
               <div class="ctrl-row ctrl-row--separated">
                 @if (selectedPost > 0)
@@ -185,8 +168,7 @@
       {
         <Section>
           <DetailHeader Icon="flag" IconMuted Label="Flag" />
-          <p class="section-desc">Add a flag, then confirm a banner as its first post. Every post must be reachable
-            on foot from every spawn; the pre-flight walk says which one is not.</p>
+          <p class="section-desc">Add a flag, then click a banner to make it the first post.</p>
         </Section>
       }
   </Inspector>

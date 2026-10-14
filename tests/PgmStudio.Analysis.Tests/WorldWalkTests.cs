@@ -45,4 +45,28 @@ public sealed class WorldWalkTests
         await Assert.That(path).IsNotNull();
         await Assert.That(path!.Cost.Blocks).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task A_beam_built_out_over_the_void_from_stairs_is_walked_and_a_lobby_in_the_sky_is_not()
+    {
+        // A field whose top course is 10 over x 0–29, z 0–29; a stair along z 5 rising a block a column from 11 at
+        // x 10 to 23 at x 22; a beam three wide over the void past the field, x 30–40, z 4–6, standing on 21–23;
+        // and a lobby over the void at x 30–34, z 20–24, standing on 60–62 beside the field at 10.
+        var rows = new List<(int X, int Z, int YStart, int YEnd)>();
+        for (var x = 0; x < 30; x++)
+            for (var z = 0; z < 30; z++)
+                rows.Add((x, z, 0, z == 5 && x is >= 10 and <= 22 ? x + 1 : 10));
+        for (var x = 23; x < 30; x++) rows[x * 30 + 5] = (x, 5, 0, 23);
+        for (var x = 30; x <= 40; x++)
+            for (var z = 4; z <= 6; z++) rows.Add((x, z, 21, 23));
+        for (var x = 30; x <= 34; x++)
+            for (var z = 20; z <= 24; z++) rows.Add((x, z, 60, 62));
+
+        var walk = WorldWalk.Ground(new Dictionary<string, object?>(), new SegmentIndex(rows));
+
+        var path = Walk.Between(walk.Stand((0, 0))!.Value, walk.Stand((40, 5))!.Value, walk);
+        await Assert.That(path).IsNotNull().Because("the beam is ground once its stairs reach it");
+        await Assert.That(walk.Ground.Any(place => place.X >= 30 && place.Z >= 20)).IsFalse()
+            .Because("a lobby whose floor no step reaches does not pose as ground");
+    }
 }

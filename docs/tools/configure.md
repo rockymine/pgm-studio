@@ -485,34 +485,34 @@ no banner* where no scanned banner stands in its block; any later post can be ma
 refuses such a flag (`OB36`, below). Every post is a goal the walk has to reach, so the pre-flight walk names a
 post no spawn can walk to and the export refuses it (`EX1`).
 
-**The inspector states the rest of the flag**: its name, the team defending it, and what carrying it does —
-fewer hearts or more, to the hearts stated, a moment's shield, or nothing. A flag defended by nobody is King of
-the Flag's and states its colour and the points a second it pays the team carrying it; a team's flag takes its
-team's colour, pays only when captured, and is captured in a net round each other team's own flag; *Captures*
-says whether its team scores in its own net any time or only while this flag is home. The flag
-phase shares the objective gate, so a map whose only objective is a flag reaches Review.
+**The inspector states the rest of the flag**: its name, its *Defending team*, its *Pickup kit* — *Lower health*
+or *Health boost* to the *Carrier hearts* stated, *Absorption*, or *None* — and, on a team's flag, *Capture*: *Any
+time* or *Only when own flag is home*. A flag with no defending team is King of the Flag's and states its
+*Colour* and its *Points per second*; a team's flag takes its team's colour, pays only when captured, and is
+captured in a net round each other team's own flag. The flag phase shares the objective gate, so a map whose
+only objective is a flag reaches Review.
 
-### Score — Kills & boxes
+### Score
 
-**Score** is the objective phase for a board played for points rather than for a goal it carries off. *A kill
-pays* states `killPoints`: a board whose kills pay is a team deathmatch, and that alone satisfies the objective
-gate, so a deathmatch reaches Review with no wool, monument, core or flag. Its score boxes are drawn with the
-rectangle tool: a box stands on the floor under its middle nearest the spawns' height — the board's playing
-level rather than a roof over it — three blocks tall from the first air, and the inspector moves its bottom and
-says which team scores in it, what it pays and whether it sends the scorer home to their spawn. Under
-the board's symmetry every other team gains its image of each box, which the canvas shows faintly; every box is
-a goal the pre-flight walk has to reach (`EX1`).
+**Score** is the objective phase for a map played for points rather than for a goal it carries off, and is one
+step. *Points per kill* states `killPoints`: a map whose kills score is a team deathmatch, and that alone
+satisfies the objective gate, so a deathmatch reaches Review with no wool, monument, core or flag. Score boxes
+are drawn with the rectangle tool: a box stands on the floor under its middle nearest the spawns' height — the
+map's playing level rather than a roof over it — three blocks tall from the first air, and the inspector sets
+its *Team*, its *Floor height*, its *Points* and whether it will *Teleport to spawn*. Under the map's symmetry
+every other team gains its image of each box, which the canvas shows faintly; every box is a goal the
+pre-flight walk has to reach (`EX1`).
 
 ### Match
 
-**Match** states how the match ends and how the dead come back (`docs/pgm/match.md` §7), and is one form. *How
-it ends* is the score limit, the time limit as PGM writes a duration and what decides a match at the bell —
-whoever is ahead, objectives, score or a tie — the lives a blitz gives each player, and whether every hit kills.
-*Coming back* is the respawn delay, whether the dead come back on a click or on their own and whether they watch
-the match while they wait, and the kill height a player falls into the void below. Every field may be left
-blank, which is the board's own default — the score limit the generator derives from the objectives, no time
-limit, two seconds on a click, no lives, no rage and the world's own void — so the phase never holds the rail
-back, and a blank field is removed from the intent rather than written.
+**Match** states how the match ends, how players respawn and the combat rules (`docs/pgm/match.md` §7), and is
+one form. *Match end* is the *Score limit*, the *Time limit* as PGM writes a duration, and the *Winner at time
+limit*: *Default* (the team furthest along its objectives, then the higher score), *Most objectives*, *Highest
+score* or *Tie*. *Respawn* is the *Respawn time*, *Auto respawn*, *Spectate while dead* and the *Lives* a blitz
+gives. *Combat* is *Rage* and the *Kill height* a player falls into the void below. A blank field is the map's
+own default — the score limit the generator derives from the objectives, no time limit, two seconds, no lives,
+no rage and the world's own void — so the phase never holds the rail back, and a blank field is removed from the
+intent rather than written.
 
 ### Review and export — Pre-flight · Region tree · XML
 
@@ -523,9 +523,9 @@ blocking and three advisory:
 |---|---|---|
 | Round-trip | codec parity — does the document survive XML ↔ dict with nothing lost | yes |
 | Mirror | do the symmetric halves agree — spawn, protection, wool, room, build | no |
-| Buildability | does every spawn, wool source and monument sit over solid ground | no |
-| Build zone reach | does every coast the plan put against a build zone still reach it — `EZ2` per gap, with its box and width. On a map read from a world, every coast counts, since the world is the ground; *skip* on a drawn map without a plan, or without a Y=0 layer | no |
-| Traversability | is the spawn↔wool chain connected across terrain and build geometry | yes |
+| Buildability | on a map built on over the void, does every spawn, wool source and monument sit over solid ground | no |
+| Build zone reach | does every coast the plan put against a build zone still reach it — `EZ2` per gap, with its box and width. On a map read from a world, every coast counts, since the world is the ground; *skip* on a map nobody builds over the void on, a drawn map without a plan, or one without a Y=0 layer | no |
+| Traversability | can every spawn and objective — wool, monument, core, capture point, flag post, score box — be reached on foot, across terrain and, where players build, build geometry | yes |
 | Wool teams | is every wool captured by each team but its defender, at a monument of its own, and do the wool and each monument stand on the islands of their teams — `OB34`, `OB35` (*Objectives follow the islands*, below) | no |
 
 They are drawn as check rows over a single static top-down picture of the map — real island geometry, the

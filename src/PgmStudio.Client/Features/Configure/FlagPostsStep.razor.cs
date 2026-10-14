@@ -41,23 +41,22 @@ public partial class FlagPostsStep
 
     private static readonly IReadOnlyList<SelectOption> CarrierOptions =
     [
-        new(FlagCarriers.Lowered, "Fewer hearts", "Carrying the flag lowers the carrier's health to the hearts below."),
-        new(FlagCarriers.Absorption, "A moment's shield", "Picking the flag up gives absorption III for three seconds."),
-        new(FlagCarriers.Boost, "More hearts", "Carrying the flag raises the carrier's health to the hearts below."),
-        new(FlagCarriers.None, "Nothing", "Carrying the flag does nothing to the carrier."),
+        new(FlagCarriers.Lowered, "Lower health", "The carrier's health drops to the hearts below."),
+        new(FlagCarriers.Absorption, "Absorption", "Absorption III for 3 seconds on pickup."),
+        new(FlagCarriers.Boost, "Health boost", "The carrier's health rises to the hearts below."),
+        new(FlagCarriers.None, "None"),
     ];
 
     private static readonly IReadOnlyList<SelectOption> CaptureOptions =
     [
-        new(FlagCaptures.Anytime, "Any time", "A carrier captures the moment they reach the net."),
-        new(FlagCaptures.Home, "Only with their own flag home",
-            "A carrier captures only while their team's own flag stands at its post, and waits in the net until it does."),
+        new(FlagCaptures.Anytime, "Any time"),
+        new(FlagCaptures.Home, "Only when own flag is home", "The carrier waits in the net until their team's flag is back."),
     ];
 
     private void SetCapture(F.Flag flag, string capture) { flag.Capture = capture; Write(); }
 
     private IReadOnlyList<SelectOption> OwnerOptions =>
-        [new(Nobody, "Nobody — King of the Flag"), .. AuthoringContext.TeamOptions(teams)];
+        [new(Nobody, "None (King of the Flag)"), .. AuthoringContext.TeamOptions(teams)];
 
     // The picker's word for a flag nobody owns: a Select option cannot carry the empty string.
     private const string Nobody = "nobody";

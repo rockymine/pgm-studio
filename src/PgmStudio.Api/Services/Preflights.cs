@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 using PgmStudio.Analysis.Playability;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
@@ -27,10 +28,18 @@ public static class Preflights
         }
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
 
+        // The objectives the map carries, whichever they are, and nothing it does not.
+        var objectives = new (int Count, string Noun)[]
+        {
+            (intent.Wools?.Count ?? 0, "wool"), (intent.Destroyables?.Count ?? 0, "monument"), (intent.Cores?.Count ?? 0, "core"),
+            (intent.ControlPoints?.Count ?? 0, "capture point"), (intent.Flags?.Count ?? 0, "flag"),
+            (intent.ScoreBoxes?.Count ?? 0, "score box"),
+        }.Where(entry => entry.Count > 0).Select(entry => Wording.Count(entry.Count, entry.Noun, entry.Noun == "score box" ? "score boxes" : null));
         var log = new List<string>
         {
-            $"intent → generate: {ListCount(doc, "teams")} teams · {intent.Wools?.Count ?? 0} wools · " +
-            $"{DictCount(doc, "regions")} regions · {DictCount(doc, "filters")} filters · {ListCount(doc, "apply_rules")} apply-rules",
+            $"generated: {string.Join(" · ", [Wording.Count(ListCount(doc, "teams"), "team"), .. objectives])}"
+                + (intent.KillPoints > 0 ? " · kills score" : "")
+                + $" · {DictCount(doc, "regions")} regions · {DictCount(doc, "filters")} filters · {ListCount(doc, "apply_rules")} apply-rules",
         };
 
         var roundTrip = Preflight.RoundTrip(doc);
@@ -42,10 +51,12 @@ public static class Preflights
         // meant to reach; a drawn map without a plan says nothing about which void is a crossing it asked for.
         var planned = await feature.PlannedGroundAsync(map.Id, ct)
             ?? (await artifacts.HasAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) ? null : EveryColumn(zones));
-        var reach = BuildZoneReachCheck(zones, planned);
+        var reach = (intent.Build ?? new BuildIntent()).ModeFor(intent) == BuildModes.Void
+            ? BuildZoneReachCheck(zones, planned)
+            : new Preflight.Check("buildzone", "Build zone reach", "skip", "players don't build over the void on this map");
 
         var trav = Traversability.Check(doc, await feature.WalkGroundAsync(map.Id, doc, ct: ct), DeclaredGoals.Of(doc, intent));
-        var travCheck = TraversabilityCheck(trav);
+        var travCheck = TraversabilityCheck(trav, intent);
         var woolTeams = WoolTeamsCheck(intent, await IslandTeamLookup.OfAsync(feature, map.Id, intent, ct));
 
         foreach (var c in new[] { roundTrip, mirror, build, reach, travCheck, woolTeams })
@@ -82,9 +93,13 @@ public static class Preflights
     // Every authored placement (spawn / wool source / monument) must sit over solid ground, not open void.
     // Asks the Y=0 read directly — the same question PGM's own <void/> filter asks — rather than reading it
     // off an edit zone, which answers why a column is editable and not whether anything is under it. Skips
-    // when there's no Y=0 layer: void can't be told from solid without it (xml-only / un-scanned map).
+    // when there's no Y=0 layer: void can't be told from solid without it (xml-only / un-scanned map). Asked
+    // only of a map built on over the void: on one where nobody builds, the void rule never fires, and a map
+    // floating above y=0 stands every spawn "over the void" while every one of them is on solid floor.
     private static Preflight.Check BuildabilityCheck(Editability.Result res, MapIntent intent)
     {
+        if ((intent.Build ?? new BuildIntent()).ModeFor(intent) != BuildModes.Void)
+            return new("buildability", "Buildability", "skip", "players don't build over the void on this map");
         if (!res.HasY0)
             return new("buildability", "Buildability", "skip", "no Y=0 layer — can't verify ground under placements");
 
@@ -128,14 +143,26 @@ public static class Preflights
             $"EZ2 — {string.Join(" · ", gaps.Select(gap => gap.Message))}");
     }
 
-    private static Preflight.Check TraversabilityCheck(Traversability.Result trav)
+    // On a map built on over the void a cut-off place is reached by bridging to it; on one where nobody builds,
+    // the place itself has to move, or the world has to join it.
+    private static Preflight.Check TraversabilityCheck(Traversability.Result trav, MapIntent intent)
     {
         if (trav.Connected)
             return new("traversability", "Traversability", "pass",
-                trav.HaveLayers ? "spawn ↔ objective chain connected across the build geometry" : "spawn ↔ objective chain connected (region centres)");
-        var isolated = string.Join(" · ", trav.Isolated.Select(i => i.For is { } team ? $"{i.Name} (for {team})" : i.Name).Take(6));
+                trav.HaveLayers ? "Every spawn and objective can be reached on foot." : "Every spawn and objective is connected (region centres).");
+        var isolated = string.Join(", ", trav.Isolated.Select(i => i.For is { } team ? $"{Named(i)} (for {team})" : Named(i)).Take(6));
+        var builds = (intent.Build ?? new BuildIntent()).ModeFor(intent) == BuildModes.Void;
         return new("traversability", "Traversability", "fail",
-            isolated.Length > 0 ? $"not connected — isolated: {isolated}. Add a bridge in Build" : trav.Message);
+            isolated.Length == 0 ? trav.Message
+            : $"Can't be reached on foot: {isolated}. " + (builds ? "Add a bridge in Build." : "Move it, or join it in the world and scan again."));
+
+        static string Named(Traversability.IsolatedPoint point) => point.Kind switch
+        {
+            "spawn" => $"{point.Name} spawn",
+            "wool" => $"{point.Name} wool",
+            "flag" => $"{point.Name} post",
+            _ => point.Name,
+        };
     }
 
     private static int ListCount(Dict doc, string key) => (doc.GetValueOrDefault(key) as List<object?>)?.Count ?? 0;

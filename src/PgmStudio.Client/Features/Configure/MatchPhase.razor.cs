@@ -7,7 +7,7 @@ namespace PgmStudio.Client.Features.Configure;
 
 using Ctx = AuthoringContext;
 
-// Match phase body: edits the intent's match members — scoreLimit, timeLimit, respawn, lives, rage and killHeight.
+// Match phase body: edits the intent's match members: scoreLimit, timeLimit, respawn, lives, rage and killHeight.
 // A member left at the board's own default is removed rather than written, so the generator's default applies
 // (docs/pgm/match.md §7). Edits patch the cascaded wizard's working Intent and mark it dirty.
 public partial class MatchPhase
@@ -29,15 +29,13 @@ public partial class MatchPhase
 
     private static readonly IReadOnlyList<SelectOption> ResultOptions =
     [
-        new(TimeResults.Default, "Whoever is ahead", "The team furthest along its objectives, then the higher score."),
-        new(TimeResults.Objectives, "Objectives", "The team furthest along its objectives."),
-        new(TimeResults.Score, "Score", "The team with the higher score."),
-        new(TimeResults.Tie, "A tie", "Nobody wins."),
+        new(TimeResults.Default, "Default", "The team furthest along its objectives, then the higher score."),
+        new(TimeResults.Objectives, "Most objectives"),
+        new(TimeResults.Score, "Highest score"),
+        new(TimeResults.Tie, "Tie"),
     ];
 
     private static readonly IReadOnlyList<SelectOption> YesNo = [new(No, "No"), new(Yes, "Yes")];
-    private static readonly IReadOnlyList<SelectOption> AutoOptions = [new(No, "On a click"), new(Yes, "On their own")];
-    private static readonly IReadOnlyList<SelectOption> SpectateOptions = [new(No, "They wait"), new(Yes, "They watch the match")];
 
     protected override void OnInitialized()
     {

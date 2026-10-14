@@ -46,7 +46,7 @@ public partial class ScoreBoxesStep
     private const string Home = "home";
     private const string Stays = "stays";
     private static readonly IReadOnlyList<SelectOption> HomeOptions =
-        [new(Home, "Is sent home", "Scoring sends the player to their team's spawn."), new(Stays, "Stays where they are")];
+        [new(Home, "Yes"), new(Stays, "No")];
 
     private string Slug => Wizard.Slug;
     private Box? Selected => boxes.FirstOrDefault(box => box.Id == selectedId);

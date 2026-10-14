@@ -152,15 +152,15 @@ await arrange({ wools: [], flags: [{ ...flag, team: owner, color: undefined, poi
 
 await openPhase("Flags", { canvas: true });
 const teamFlag = await page.textContent(".workspace");
-const ownerName = intent.teams?.[0]?.name || owner;
-checks.add("a team's flag reads as that team's", teamFlag.includes(`${ownerName}'s flag`), ownerName);
-checks.add("a team's flag states no points rate", !teamFlag.includes("Points a second"));
-checks.add("a team's flag says when its team captures", teamFlag.includes("Captures"));
+const defending = await page.inputValue(".field:has-text('Defending team') select");
+checks.add("a team's flag names its defending team", defending === owner, defending);
+checks.add("a team's flag states no points rate", !teamFlag.includes("Points per second"));
+checks.add("a team's flag says when its team captures", await page.locator(".field:has-text('Capture') select").count() > 0);
 
 await openPhase("Match");
 const matchTitle = await page.textContent(".editor-bar-phase span");
 checks.add("the Match phase opens", matchTitle?.trim() === "Match", matchTitle?.trim());
-const timeBox = await page.inputValue(".workspace input[placeholder='none']");
+const timeBox = await page.inputValue(".workspace input[placeholder='e.g. 10m']");
 checks.add("the stored time limit is shown", timeBox === "12m", timeBox);
 checks.add("the Match phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 
