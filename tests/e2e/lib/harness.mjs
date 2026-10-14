@@ -233,13 +233,50 @@ export function shapeAimPoints(shape, limit = 8) {
   return points;
 }
 
+/** Up to `count` world points that stand deepest inside the given polygons, each at least `spacing` blocks
+ *  from the others: where a placement that needs room around it is surest to land. A shape is read from its
+ *  `vertices`, or from its box where it has none. */
+export function deepestPoints(shapes, count, spacing) {
+  const rings = shapes.map(shape => shape.vertices?.length >= 3 ? shape.vertices
+    : [[shape.min_x, shape.min_z], [shape.max_x, shape.min_z], [shape.max_x, shape.max_z], [shape.min_x, shape.max_z]]);
+  const inside = (ring, x, z) => {
+    let hit = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, zi] = ring[i], [xj, zj] = ring[j];
+      if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) hit = !hit;
+    }
+    return hit;
+  };
+  const edgeDistance = (ring, x, z) => Math.min(...ring.map(([ax, az], i) => {
+    const [bx, bz] = ring[(i + 1) % ring.length];
+    const length = (bx - ax) ** 2 + (bz - az) ** 2;
+    const t = length === 0 ? 0 : Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (z - az) * (bz - az)) / length));
+    return Math.hypot(x - (ax + t * (bx - ax)), z - (az + t * (bz - az)));
+  }));
+  const candidates = [];
+  for (const ring of rings) {
+    const xs = ring.map(([x]) => x), zs = ring.map(([, z]) => z);
+    for (let x = Math.min(...xs); x <= Math.max(...xs); x += 2)
+      for (let z = Math.min(...zs); z <= Math.max(...zs); z += 2)
+        if (inside(ring, x, z)) candidates.push({ x, z, depth: edgeDistance(ring, x, z) });
+  }
+  candidates.sort((a, b) => b.depth - a.depth);
+  const picked = [];
+  for (const point of candidates) {
+    if (picked.length === count) break;
+    if (picked.every(other => Math.hypot(other.x - point.x, other.z - point.z) >= spacing)) picked.push(point);
+  }
+  return picked;
+}
+
 /** A world → client mapper for the canvas as it currently sits, solved rather than guessed. Where a board is
  *  on screen depends on the fit, so a click at a fixed fraction of the viewport lands wherever it happens to;
  *  two probes of the cursor readout fix the scale and the offset once, and the mapper it answers with turns
  *  any world block into the point to click. Null when the readout says nothing (no canvas, or a view that
- *  reports no world position). */
-export async function worldAimer(page) {
-  const box = await page.locator("canvas").boundingBox();
+ *  reports no world position). The probes land on `surface`, the board's own canvas unless a page draws other
+ *  canvases beside it. */
+export async function worldAimer(page, surface = page.locator("canvas")) {
+  const box = await surface.boundingBox();
   if (!box) return null;
 
   const cursor = page.locator(".canvas-readout .canvas-readout-item").first();
