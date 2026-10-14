@@ -1,3 +1,4 @@
+using System.Data;
 using FluentMigrator;
 using FluentMigrator.Runner;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,12 +49,26 @@ public static class SchemaMigrator
         else runner.MigrateUp();
     }
 
-    /// <summary>Roll back to a target version (0 = revert everything).</summary>
+    /// <summary>Roll back to a target version (0 = revert everything), then rebuild every table.</summary>
+    /// <remarks>MariaDB drops a column instantly: it leaves the table's definition but stays in its row format until
+    /// the table is rebuilt, and a later <c>ADD COLUMN</c> counts it against the 8126-byte row limit. Rolling a
+    /// migration back and applying it again would leave one more hidden column each time, so a rollback ends with
+    /// every table in the shape a fresh migrate gives it.</remarks>
     public static void MigrateDown(string connectionString, long version = 0)
     {
         using var sp = BuildServices(connectionString);
         using var scope = sp.CreateScope();
         scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateDown(version);
+        RebuildTables(scope.ServiceProvider.GetRequiredService<IMigrationProcessor>());
+    }
+
+    /// <summary>Rebuild every base table in the connection's database, which drops what instant column drops
+    /// left in its row format.</summary>
+    private static void RebuildTables(IMigrationProcessor processor)
+    {
+        var tables = processor.Read(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'");
+        foreach (DataRow row in tables.Tables[0].Rows) processor.Execute($"ALTER TABLE `{row[0]}` FORCE");
     }
 
     /// <summary>

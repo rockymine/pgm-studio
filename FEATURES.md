@@ -8885,6 +8885,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `ComposerVersion` is `walled-5`, the fingerprints are re-recorded and the generator's census is re-measured;
   the reproduction gate composes 408 of 408 with no findings. `docs/generator/model.md` §7. (`G300`)
 
+- **The Data suite passes however often it runs on one database (`RP127`)** — `SchemaMigrator.MigrateDown`
+  rebuilds every table after a rollback, so the hidden columns MariaDB's instant column drops leave behind no
+  longer pile up across the migration tests' down-and-up cycles until `room_style` passes the row limit.
+  `docs/cloud-setup.md`. (`RP127`)
+
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
   Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.

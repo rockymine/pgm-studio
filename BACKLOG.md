@@ -803,13 +803,3 @@ list. `docs/pgm/supported-maps.md`.
   turns on. The answer arrives when the generator next needs a structural change and the seam has to be
   argued about anyway; doing the rename as a standalone refactor before then buys nothing.
   See `docs/project-structure.md` §6.1.
-
-- [ ] **RP127 — The Data suite fails its second run on a reused test database.** On a freshly created
-  `pgm_studio_test` the suite passes 65 of 65. Run it again on the same database and one roll-back migration
-  test fails with MariaDB's *Row size too large* (8126 bytes), so some migration's `Down` and `Up` leave a
-  table wider than a fresh migrate does. Find that migration and make its `Down` undo what its `Up` adds. CI
-  starts from an empty database, which is why it stays green. `docs/cloud-setup.md`.
-
-  *Evidence: on 2026-10-14, three runs in a row on one database failed as 0, 1, 1, the first failure in
-  `NoteChangeMigrationTests` and later ones in `MapChangesMigrationTests`, with `FormWordsMigrationTests`
-  removed.*
