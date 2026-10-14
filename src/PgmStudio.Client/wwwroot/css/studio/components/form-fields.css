@@ -43,6 +43,7 @@
 }
 .field-input:not(textarea) { height: var(--control-height); }
 .field-input:focus     { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.field-input:disabled  { opacity: 0.7; cursor: default; }
 .field-input--separated { margin-top: var(--space-3); }
 .field-input--textarea { resize: vertical; min-height: 34px; line-height: 1.4; }
 .field-input--error    { border-color: var(--color-error) !important; }

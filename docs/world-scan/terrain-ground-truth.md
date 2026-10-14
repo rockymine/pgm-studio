@@ -82,13 +82,15 @@ zip or folder import carries no XML by design, because the XML is what the confi
 Those imports pass `PhantomErasure.None`, and §1 and §2 carry them entirely.
 
 `segment` is the other ingest derivation — the solid runs every walk stands on — and it applies §2 too:
-`FeatureExtractors.Segments` leaves out what a player walks through (`SegmentExclude`) and a floor marker at
-the world floor, so a floor marker is never standing ground. Walked through means plants, torches, redstone,
-signs and plates, block 36, and what a wool room's entrance is closed with: the cobweb a player pushes
-through, and the wooden door and fence gate a player opens. Read as solid, those sealed the room behind them
-into a component of its own; over the corpus, making them walk-through connects 56 of the 290 maps that read
-not connected, 45 of them through cobwebs alone. Trapdoors stay solid, since a closed one is as often a
-floor. §3 needs the XML and stays with the island picture.
+`FeatureExtractors.Segments` leaves out what a player walks through and a floor marker at the world floor, so
+a floor marker is never standing ground. Walked through is `BlockRoles.WalkedThrough`, the one reading the
+built walk and the traversability picture take as well: plants, torches, redstone, signs, plates, rails,
+carpet, banners and flower pots, what is climbed (a ladder, a vine), and what a wool room's entrance is closed
+with — the cobweb a player pushes through, and the door and fence gate a player opens. Read as solid, those
+sealed the room behind them into a component of its own; over the corpus, making them walk-through connects
+56 of the 290 maps that read not connected, 45 of them through cobwebs alone. Trapdoors stay solid, since a
+closed one is as often a floor. Two invisible blocks are skipped beside them as no ground: block 36 and the
+barrier. §3 needs the XML and stays with the island picture.
 
 A doorway a player breaks through is a third case, neither walked through nor ground. Glass, glass panes,
 stained glass and panes (the stamper's breakable door materials, `DoorMaterials`) and the nether brick fence

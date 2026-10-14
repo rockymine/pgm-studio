@@ -41,7 +41,7 @@ public sealed record DressingSymmetry(string? Mode = null, double CenterX = 0, d
     /// about the origin rather than the map's centre, because an offset is a direction and a direction has no
     /// position to mirror. This is what turns the prop instead of merely moving it.</summary>
     public (double X, double Z) TurnOffset(double dx, double dz, int k)
-        => k == 0 ? (dx, dz) : Symmetry.Point(dx, dz, Mode, 0, 0, k);
+        => Symmetry.Point(dx, dz, Mode, 0, 0, k);
 
     /// <summary>The <paramref name="k"/>-th image of a drawn outline, point by point. An area is mirrored as
     /// the shape it is rather than cell by cell: mirroring its cells one at a time rounds each of them

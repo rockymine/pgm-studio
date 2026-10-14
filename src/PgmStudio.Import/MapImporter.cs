@@ -61,6 +61,7 @@ public sealed class MapImporter(PgmDb db, MapArtifactStore artifacts)
     {
         await db.MonumentCandidates.Where(x => x.MapId == mapId).DeleteAsync();
         await db.CoreCandidates.Where(x => x.MapId == mapId).DeleteAsync();
+        await db.FlagCandidates.Where(x => x.MapId == mapId).DeleteAsync();
         var path = Path.Combine(dir, "monument_candidates.parquet");
         if (!File.Exists(path)) return 0;
         var rows = (await ParquetIo.ReadRowsAsync(path)).Select(r => new MonumentCandidateRow
@@ -91,6 +92,7 @@ public sealed class MapImporter(PgmDb db, MapArtifactStore artifacts)
         var ls = await BulkAsync(dir, "layer_segments.parquet", r => new SegmentRow { MapId = mapId, WorldX = ParquetIo.I(r["world_x"]), WorldZ = ParquetIo.I(r["world_z"]), WorldYStart = ParquetIo.I(r["world_y_start"]), WorldYEnd = ParquetIo.I(r["world_y_end"]) });
         await BulkAsync(dir, "floor_marks.parquet", r => new FloorMarkRow { MapId = mapId, WorldX = ParquetIo.I(r["world_x"]), WorldZ = ParquetIo.I(r["world_z"]), BlockId = ParquetIo.I(r["block_id"]) });
         await BulkAsync(dir, "door_runs.parquet", r => new DoorRunRow { MapId = mapId, WorldX = ParquetIo.I(r["world_x"]), WorldZ = ParquetIo.I(r["world_z"]), WorldYStart = ParquetIo.I(r["world_y_start"]), WorldYEnd = ParquetIo.I(r["world_y_end"]) });
+        await BulkAsync(dir, "lift_runs.parquet", r => new LiftRunRow { MapId = mapId, WorldX = ParquetIo.I(r["world_x"]), WorldZ = ParquetIo.I(r["world_z"]), WorldYStart = ParquetIo.I(r["world_y_start"]), WorldYEnd = ParquetIo.I(r["world_y_end"]) });
         return (wb, rb, ci, sb, ls);
     }
 

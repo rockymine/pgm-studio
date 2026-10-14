@@ -353,7 +353,7 @@ public static class SketchLayoutCheck
                     if (boxes.Count == 0) continue;
                     var body = (MinX: boxes.Min(b => b.MinX), MinZ: boxes.Min(b => b.MinZ),
                                 MaxX: boxes.Max(b => b.MaxX), MaxZ: boxes.Max(b => b.MaxZ));
-                    if (orbit.Select(axis => Turned(body, axis, centerX, centerZ)).Any(image => Meets(body, image)))
+                    if (orbit.Select(axis => Symmetry.ApplyRect(body.MinX, body.MinZ, body.MaxX, body.MaxZ, axis, centerX, centerZ)).Any(image => Meets(body, image)))
                         continue;
                     findings.Add(new Finding(SketchRules.BuiltOnOneImage,
                         $"group '{group.Id}' on layer '{layer.Id}' states "
@@ -520,7 +520,7 @@ public static class SketchLayoutCheck
             // Symmetry.Point's k, whose image index only varies for rot_90 — a mirror's k=0 is already the
             // mirrored copy, so counting images that way loses the half the author actually drew.
             Cover(box);
-            foreach (var axis in Symmetry.OrbitAxes(mode)) Cover(Turned(box, axis, centerX, centerZ));
+            foreach (var axis in Symmetry.OrbitAxes(mode)) Cover(Symmetry.ApplyRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, axis, centerX, centerZ));
         }
 
         if (extent.MaxX <= extent.MinX || Columns(extent) is not { } columns
@@ -651,19 +651,6 @@ public static class SketchLayoutCheck
         (double MinX, double MinZ, double MaxX, double MaxZ) a,
         (double MinX, double MinZ, double MaxX, double MaxZ) b) =>
         a.MinX <= b.MaxX && b.MinX <= a.MaxX && a.MinZ <= b.MaxZ && b.MinZ <= a.MaxZ;
-
-    // One orbit image of a box: transform its four corners about the centre and re-bound, since a rotation
-    // turns a rectangle into a new axis-aligned one.
-    private static (double MinX, double MinZ, double MaxX, double MaxZ) Turned(
-        (double MinX, double MinZ, double MaxX, double MaxZ) box, string axis, double cx, double cz)
-    {
-        (double X, double Z)[] corners =
-        [
-            Symmetry.Apply(box.MinX, box.MinZ, axis, cx, cz), Symmetry.Apply(box.MinX, box.MaxZ, axis, cx, cz),
-            Symmetry.Apply(box.MaxX, box.MinZ, axis, cx, cz), Symmetry.Apply(box.MaxX, box.MaxZ, axis, cx, cz),
-        ];
-        return (corners.Min(c => c.X), corners.Min(c => c.Z), corners.Max(c => c.X), corners.Max(c => c.Z));
-    }
 
     /// <summary>Why a stated <c>anchor_heights</c> is not read, or null where it is — the TIN is built over
     /// the shape's own ring, which only a polygon or a lasso has, and only where the array is the length of

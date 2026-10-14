@@ -5,6 +5,8 @@ using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Render;
 using PgmStudio.Pgm.Authoring;
 
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Export.Tests;
 
 using Dict = Dictionary<string, object?>;
@@ -35,7 +37,7 @@ public sealed class BridgeableColumnsTests
         {
             ["regions"] = new Dict(), ["filters"] = new Dict(), ["apply_rules"] = new List<object?>(),
         };
-        BuildGenerator.Apply(doc, new MapIntent { Build = new BuildIntent { Areas = [area] } });
+        BuildGenerator.Apply(doc, new MapIntent { Build = new BuildIntent { Mode = BuildModes.Void, Areas = [area] } });
         return doc;
     }
 

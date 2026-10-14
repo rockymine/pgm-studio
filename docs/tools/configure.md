@@ -66,13 +66,18 @@ null `cores` and nothing about cores is generated or cleared.
 | `islandTeams` | island id → team; an authoring aid, read by the spawn step, not by the generator |
 | `spawns` | per team: the point, the yaw, and the protection zone as a union of rects |
 | `observer` | the `<default>` spawn — where spectators and pre-match players stand |
-| `build` | `maxHeight` plus the buildable `areas` and the no-build `holes` cut out of them. The void rule follows from them: one apply over the negative of what is left, and none at all where no `areas` are declared |
+| `flags` | The flags (`docs/pgm/flags.md` §7–§8): a name, the `team` defending it or none, a `color`, the `posts` it stands at (`at`, `name`, `yaw`), a `pointsRate`, the `carrier` — `lowered` to `carrierHearts` (6), `absorption`, `boost` to `carrierHearts`, or `none` — a `recoverTime` and, on a team's flag, the `net` box its team captures in and when it may `capture` (`anytime`, or `home` — only while its own flag stands at its post). A flag nobody owns is King of the Flag's, pays 1 a second and lowers its carrier, and its posts fan by position; a team's flag is Capture the Flag's, takes its team's colour, pays on capture, and fans by team |
+| `scoreBoxes` | The score boxes (`docs/pgm/score-boxes.md` §4): per box the `team` it scores for, the inclusive `box` it covers, the `points` it pays (1) and whether it sends its scorer `home` (true). Owned by a team, so they fan by team; the Score phase states them |
+| `zones` | Zones the author states (`docs/pgm/zones.md` §3): per zone an `id`, the `area` rects, an optional `team`, who may `enter` (`anyone`, `team`, `nobody`), whether a block may be `place`d or broken (`break`), whether a player inside may come to `harm`, and a `kit` given inside. A team's zone fans by team, one with no team by position; no Configure phase states them yet |
+| `build` | `maxHeight`, the buildable `areas` and the no-build `holes` cut out of them, and the `mode` a player builds under: `void` builds anywhere but over the void outside what is left, `never` places and breaks nothing, `only` places and breaks the named `materials` and nothing else. Absent, a board with a wool, destroyable or core is `void` and any other is `never` |
 | `wools` | per wool: owner, colour, room rects, the source point, and one monument per capturing team |
 | `cores` | per core: owner, anchor, the casing's measurements, and `leak` |
 | `destroyables` | per destroyable: owner, name, anchor, its shape, what it is built of and its float |
 | `shops` | per shop: an id, a name, its categories, and per icon the stack, every payment it costs and the action buying it triggers. The keeper says what it is called and what mob it is; where it stands is derived, one per shop at every team's spawn, unless it names a block or a region of its own (`docs/pgm/shops.md` §9). **The tool has no step for these** (`TC9`): they are stated through the API, carried here, and projected like any other slice |
 | `spawners` | per generator: an id, the block it drops into, how near a player must be standing, how much ground around it is kept from being built in or dug out, how long between drops, how many may lie uncollected and what it drops. What mints the currency a shop is priced in, since a spawn kit and the kill reward derived from it are the only other item sources a generated board has; the three regions and the one `never`-build rule over them are minted from the id (`docs/pgm/shops.md` §10) |
-| `controlPoints` · `scoreLimit` | per capture point: name, anchor, pad size, what holding it pays and how long it takes — and the score the match ends at. Owned by nobody, so unlike every other objective they carry no team. **The tool has no step for these** (`TC7`): they are stated through the API (`docs/pgm/control-points.md` §9) or derived from a plan's own count (`docs/tools/plan.md`), carried here, and projected like any other slice |
+| `controlPoints` · `scoreLimit` | per capture point: name, anchor, pad size, what holding it pays, how long it takes and whether it is held or touched (`captureMode`) — and the score the match ends at, which the Match phase states. Owned by nobody, so unlike every other objective they carry no team. **The tool has no step for the points** (`TC7`): they are stated through the API (`docs/pgm/control-points.md` §9) or derived from a plan's own count (`docs/tools/plan.md`), carried here, and projected like any other slice |
+| `killPoints` | what a kill pays the killer's team (`docs/pgm/match.md` §7). A board whose kills pay is a team deathmatch, an objective in its own right, and ends after ten minutes where it states neither limit; the Score phase states it |
+| `timeLimit` · `respawn` · `lives` · `rage` · `killHeight` | how the match ends and how the dead come back (`docs/pgm/match.md` §7): a time limit's `duration` and the `result` that decides it then, the respawn `delay` and whether it is `auto` or lets the dead `spectate`, the lives a blitz gives, whether every hit kills, and the height a player falls into the void below. Map-wide, so nothing fans. The Match phase states them |
 | `waterLanes` | the late-opening gaps — carried, never authored here (below) |
 | `structures` · `spawns[].piece` · `wools[].piece`/`entries` | written only by the plan compiler; consumed by the world export |
 
@@ -158,7 +163,7 @@ apply-rule that decides, so a build rule emitted before the spawn and wool-room 
 short-circuit them.
 
 The output is a real PGM document. The intent above generates **16 regions, 18 filters and 10 apply-rules**
-from its 2 teams and 2 wools. The Review phase's tree shows the seven of those regions that carry a name —
+from its 2 teams and 2 wools. The Export phase's *All regions* step shows the seven of those regions that carry a name —
 `red-spawn-point`, `blue-spawn-point`, `observer-spawn`, `red-wool-spawn`, `blue-wool-spawn`, `woolrooms`,
 `not-build-area` — and the rest are the anonymous unions and complements holding them together. None of it is
 typed by an author.
@@ -171,14 +176,15 @@ as matching that team's members, so the spawn's `enter`, the wool room's `not-re
 the team directly rather than through a `<team>` filter restating it. The spawn kit's damage immunity lasts
 five seconds, the time a life spends leaving its spawn, and runs out by itself.
 
-Posted to a map with no scanned world, that intent passes round-trip and mirror, skips buildability and fails
-traversability, so its export gate stays shut — which is the tool's shape rather than a fault in the example,
+Posted to a map with no scanned world, that intent passes *Map file* and *Regions*, skips *Solid ground* and
+fails *Reachability*, so its export gate stays shut — which is the tool's shape rather than a fault in the example,
 and is the subject of *What it refuses* below.
 
 ## Phases
 
-Eight phases on the rail, walked in order. A phase unlocks when the phases before it have their slice; the
-rail locks anything further on, and jumping back is always allowed.
+Eleven phases on the rail, walked in order. A phase unlocks when the phases before it have their slice; the
+rail locks anything further on, and jumping back is always allowed. The objective phases open together:
+reaching one opens all five, so a flag-only or a deathmatch board goes straight to its own phase.
 
 ### Import — phase zero
 
@@ -302,7 +308,9 @@ orbits them onto the other teams as read-only copies that are listed so the unio
 rectangle tool. The islands' own terrain needs no rectangle — it is buildable through the void filter — so
 what is drawn here is the crossing: the places a player may bridge a gap. The generator unions the areas,
 subtracts the holes as a complement, and wires the void enforcement over the result (`not-build-area`,
-`block-place=block-place-void-filter`, which is `not(void)`).
+`block-place=block-place-void-filter`, which is `not(void)`). Under the map's symmetry every rectangle has its
+images, which the list shows beneath the drawn ones with a *Copy* badge and the canvas draws as ghosts; only
+the drawn ones are stored, and the generator orbits them as the step shows.
 
 **Breaking out there is a second rule, and it is not the same rule.** `block-break=block-break-void-filter`
 allows what placing allows, and over the void additionally admits what the dressing stage leaves hanging
@@ -332,7 +340,7 @@ two legs, is the composed board. A drawn board built without a plan has nothing 
 nothing; a map read from a world states its ground in the world itself, so there every coast counts. The fix is a build zone over the gap, extended or added, and never undoing the coast edit, which is
 the author's shape.
 
-This is the phase the pre-flight sends an author back to, because an unbridged gap is what breaks the map.
+This is the phase the *Checks* step sends an author back to, because an unbridged gap is what breaks the map.
 
 **The void rule is the buildable region's own edge, and there is exactly one of it.** The generator wires
 `block-place="block-place-void-filter"` with `block-break="block-break-void-filter"` over `not-build-area`,
@@ -343,6 +351,13 @@ buildable region.
 **Nothing wider is written beside it.** PGM stops at the first apply rule that decides, so a rule scoped to
 everywhere would decide inside the declared build area too — denying the very placements `areas` exists to
 permit — and would precede the spawn and wool-room protections (`docs/pgm/new-map-authoring.md` §5b).
+
+**A board played for control is not built on.** Where the intent carries no wool, destroyable or core — a KotH
+or a King of the Flag board — the build mode defaults to `never`: one rule over `everywhere` refusing every
+block placed or broken, and the `areas` build nothing. `only` is the same rule letting the named `materials`
+through, and the spawn kit hands out a stack of each of them in place of wood and clay — a `never` board's kit
+hands out no block and no digging tool at all. A stated `mode` overrides the default either way
+(`docs/pgm/new-map-authoring.md` §5c). The wizard does not offer the word yet (`TC16`); it is stated on the intent.
 
 ### Wools — Objectives · Spawn · Monuments · Room
 
@@ -370,7 +385,7 @@ team takes the one team left, and anything else is left without a team for the M
 old teams, which is how a wool comes to be exported for the wrong team. The Teams step's *Island owners* and the
 Objectives step both say what no longer agrees — a wool defended by another team than the island it spawns on, a
 monument where another team than its own places the wool, a core or destroyable on another team's island — and
-*Move the objectives to these teams* brings them along (`ObjectiveTeams`). The pre-flight's *Wool teams* check and
+*Move the objectives to these teams* brings them along (`ObjectiveTeams`). The *Wool teams* check and
 every intent save carry the same reading as complaints, `OB34` for a wool without exactly one monument for each
 team but its defender and `OB35` for a wool or monument on another team's island (`WoolTeams.Check`).
 
@@ -457,39 +472,85 @@ Leak is not a block: it is an attribute on the `<core>` element and nowhere else
 that authors the element. Paired with the measured float it states the dig — a leak greater than the float
 means breaching the casing is not enough and players must cut the ground out from under it.
 
-### Review and export — Pre-flight · Region tree · XML
+### Flags — Posts
 
-**Pre-flight** runs five checks server-side over the generated map and reports the export verdict. Two are
-blocking and three advisory:
+**Posts** authors King of the Flag and Capture the Flag (`docs/pgm/flags.md` §7–§8) and is mostly confirmation: the ingest scan read
+every banner the world holds, and PGM loads a flag only where a banner stands at its starting post, so a
+banner is where a flag starts. Clicking a scanned banner makes it a post of the selected flag, standing in the
+banner's own block and facing the way the banner faces; the first post a flag takes from a banner gives the flag
+the banner's colour, which is the colour PGM copies into the flag players carry. A post the scan has no banner
+for is placed with the point tool, in the first air over the ground of the clicked column, where a banner would
+stand.
+
+**The first post is where the flag starts, and it has to be a banner.** The list marks it, and reads *Start ·
+no banner* where no scanned banner stands in its block; any later post can be made the start. The export
+refuses such a flag (`OB36`, below). Every post is a goal the walk has to reach, so the *Reachability* check names a
+post no spawn can walk to and the export refuses it (`EX1`).
+
+**The inspector states the rest of the flag**: its name, its *Defending team*, its *Pickup kit* — *Lower health*
+or *Health boost* to the *Carrier hearts* stated, *Absorption*, or *None* — and, on a team's flag, *Capture*: *Any
+time* or *Own flag home*. A flag with no defending team is King of the Flag's and states its
+*Colour* and its *Points per second*; a team's flag takes its team's colour, pays only when captured, and is
+captured in a net round each other team's own flag. The flag phase shares the objective gate, so a map whose
+only objective is a flag reaches Export.
+
+### Score
+
+**Score** is the objective phase for a map played for points rather than for a goal it carries off, and is one
+step. *Points per kill* states `killPoints`: a map whose kills score is a team deathmatch, and that alone
+satisfies the objective gate, so a deathmatch reaches Export with no wool, monument, core or flag. Score boxes
+are drawn with the rectangle tool: a box stands on the floor under its middle nearest the spawns' height — the
+map's playing level rather than a roof over it — three blocks tall from the first air, and the inspector sets
+its *Team*, its *Floor height*, its *Points* and whether it will *Teleport to spawn*. Under the map's symmetry
+every other team gains its image of each box, listed with a *Copy* badge and drawn in that team's colour; a
+copy's inspector shows what it carries and is read-only, and only the drawn boxes are stored. Every box is a goal the
+*Reachability* check has to reach (`EX1`).
+
+### Match
+
+**Match** states how the match ends, how players respawn and the combat rules (`docs/pgm/match.md` §7), and is
+one form. *Match end* is the *Score limit*, the *Time limit* as PGM writes a duration, and the *Winner at time
+limit*: *Default* (the team furthest along its objectives, then the higher score), *Most objectives*, *Highest
+score* or *Tie*. *Respawn* is the *Respawn time*, *Auto respawn*, *Spectate while dead* and the *Lives* a blitz
+gives. *Combat* is *Rage* and the *Kill height* a player falls into the void below. A blank field is the map's
+own default — the score limit the generator derives from the objectives, no time limit, two seconds, no lives,
+no rage and the world's own void — so the phase never holds the rail back, and a blank field is removed from the
+intent rather than written.
+
+### Export — Checks · All regions · map.xml
+
+**Checks** runs six checks server-side over the generated map and reports whether it can be exported. Two block
+export and four advise:
 
 | Check | Asks | Blocks export |
 |---|---|---|
-| Round-trip | codec parity — does the document survive XML ↔ dict with nothing lost | yes |
-| Mirror | do the symmetric halves agree — spawn, protection, wool, room, build | no |
-| Buildability | does every spawn, wool source and monument sit over solid ground | no |
-| Build zone reach | does every coast the plan put against a build zone still reach it — `EZ2` per gap, with its box and width. On a map read from a world, every coast counts, since the world is the ground; *skip* on a drawn map without a plan, or without a Y=0 layer | no |
-| Traversability | is the spawn↔wool chain connected across terrain and build geometry | yes |
+| Map file | codec parity — does the document survive XML ↔ dict with nothing lost | yes |
+| Regions | does the written map read back with the regions the phases set — spawn protection, wool rooms, build areas, wool monuments | no |
+| Solid ground | on a map built on over the void, does every spawn, wool source and monument sit over solid ground | no |
+| Build areas | does every coast the plan put against a build zone still reach it — `EZ2` per gap, with its box and width. On a map read from a world, every coast counts, since the world is the ground; *skip* on a map nobody builds over the void on, a drawn map without a plan, or one without a Y=0 layer | no |
+| Reachability | can every spawn and objective — wool, monument, core, capture point, flag post, score box — be reached on foot, across terrain and, where players build, build geometry | yes |
 | Wool teams | is every wool captured by each team but its defender, at a monument of its own, and do the wool and each monument stand on the islands of their teams — `OB34`, `OB35` (*Objectives follow the islands*, below) | no |
 
 They are drawn as check rows over a single static top-down picture of the map — real island geometry, the
 orbit-filled build bridges, and the spawn and objective nodes in their team and dye colours — which is the
 playability question in one image. Every objective gates: a destroyable or core whose approach ground the
-spawns cannot reach fails the same check an unreachable wool does. A failed traversability links back to Build, because a bridge is the fix.
+spawns cannot reach fails the same check an unreachable wool does. A failed reachability links back to Build, because a bridge is the fix.
 
-**Pre-flight's `exportReady` is not the whole export gate on a sketch-origin map.** The five checks above run
+**The checks' `exportReady` is not the whole export gate on a sketch-origin map.** The six checks above run
 against the stored document and the scanned/cached surface; they do not build a world and so cannot see the
 four refusals below, which only fire from `GET /map/{slug}/xml` and `/export` themselves (`OB20` needs no
 world and could in principle run here too, but lives with the other three so a caller checks one place for
-everything Pre-flight cannot see). A sketch-origin map can therefore read pre-flight-ready and still 409 at
+everything the checks cannot see). A sketch-origin map can therefore pass every check and still 409 at
 Export — the honest answer is in *What
 it refuses*, not in this table.
 
-**Region tree** is the read-only inspect view of everything the generator produced. On an intent map the
+**All regions** is the read-only inspect view of everything the generator produced. On an intent map the
 shaping steps deliberately do not show a tree — structure is a generated artifact, not a thing to maintain —
 so this is where it can be looked at.
 
-**XML** shows the generated `map.xml`, segmented into containers picked on the left, and the editor bar's Next
-becomes **Export**. It is enabled only when the pre-flight gate is open. Both reads behind the step build the
+**map.xml** shows the generated `map.xml`, segmented into sections picked on the left, and the editor bar's Next
+becomes **Export**. It is enabled only when the export gate is open; while it is shut, the step says why in the
+first finding's words and points back to *Checks*. Both reads behind the step build the
 same world and cost the same half-second, so both say they are working: the document fetch fills the panes
 with *Generating XML…*, and the download reads *Exporting…* with the control disabled, which is also what
 stops a second click starting a second build.
@@ -540,6 +601,12 @@ EX2 applies to every intent-authored map, EX3 and EX4 wherever the objectives ha
 is exempt from all three, because 281 of the 1,616 maps in the two corpora declare no team and an FFA map with
 none is not a broken map.
 
+**A flag must start on a banner the scan found.** On a map read from a world, `GET /api/map/{slug}/xml` answers
+**409** `OB36` for a flag whose starting post — the composite's `fallback`, or its first post — stands where the
+world scan found no banner, naming the flag and the block, since PGM refuses to load a flag with none
+(`docs/pgm/flags.md` §2). A world scanned before banners were read has none on record and is scanned again. A
+plan-built board stands its own banners, so it is not asked.
+
 **A sketch-originated map's export also gates on its dressing document.** `DressingJson` reads every placed
 prop rather than reading what it can and dropping the rest — a document that fails to parse anywhere (an
 unrecognized `kind`, a field of the wrong shape) refuses the whole export rather than shipping the map with
@@ -563,9 +630,9 @@ is solid, and a pool of lava is crossed a block a column where the document lets
 ground at y=0, and is a wall where it forbids one.
 
 **The gate cannot open on a map with no scanned world.** Without a world there are no surface or `y=0`
-columns, so buildability reports *skip* and traversability has no walkable ground to connect anything
+columns, so *Solid ground* reports *skip* and *Reachability* has no walkable ground to connect anything
 across — every spawn and wool reads as isolated whatever the build areas say. Measured on a hand-authored
-intent with no world: round-trip and mirror pass, buildability skips, traversability fails on both spawns, and
+intent with no world: *Map file* and *Regions* pass, *Solid ground* skips, *Reachability* fails on both spawns, and
 `GET /xml` answers 409. Configure writes the XML for a world that exists; it cannot author one in a vacuum.
 
 **Every export checks its declared `<gamemode>` first, regardless of origin.** `MapExportComposer` reads the
@@ -669,6 +736,7 @@ short of a side says so as well.
 | `GET /map/{slug}/monument-suggestions?box=&style=` | scored monument candidates in a box, each with its colour, confidence and evidence. `box` is required — the author marks the area |
 | `GET /map/{slug}/core-suggestions[?box=]` | the detected casings, plus the generator's casing defaults. The box is optional and narrows the list; one that is stated and cannot be read is refused (`RQ1`, `field: box`) rather than skipped, because skipping it answers every casing the map has and reads as the volume holding them all |
 | `GET /map/{slug}/destroyable-suggestions[?box=]` | the destroyables the scan proposed, each carrying the two readings it was proposed on — `sameNearby` and `elevation` — beside the generator's defaults and the style and material vocabularies. About two in three are real, which is why the step confirms rather than applies |
+| `GET /map/{slug}/flag-suggestions` | every banner the scan found — position, wall or standing, the yaw a post there takes, base dye and patterns — beside the King of the Flag defaults (points rate, carrier, carrier hearts, score limit). A banner is where a flag may start, since PGM loads none without one (`docs/world-scan/objective-suggestion.md` §6) |
 | `GET /map/{slug}/origin` | whether the map came from a sketch — which drops the Monuments step |
 
 ### Asking whether the map can be played
@@ -737,7 +805,7 @@ world is exported.
 
 Two habits make this reliable. **Read the world before writing the intent**: `wool-sources` and
 `monument-suggestions` say what colours and capture points actually exist, which is the difference between
-authoring a map and guessing at one. And **treat pre-flight as the answer for its five checks, not the XML**:
+authoring a map and guessing at one. And **treat pre-flight as the answer for its six checks, not the XML**:
 it names which one failed and why, where `GET /xml` only says 409 — but on a sketch-origin map, a
 pre-flight-clean document can still 409 on `OB17` (*What it refuses*, above), since it reads the world
 `GET /xml` itself builds rather than anything pre-flight inspects — and `POST …/sketch/columns` is where to
@@ -761,7 +829,7 @@ GET  /api/map/voidwatch/editability      → the per-column grid of what makes e
 
 The first three carry `haveLayers` and `editability` carries `hasY0`. **False means the map has no scanned
 world**, and every one of these answers over ground: without it traversability reads each spawn and wool as
-isolated and the pre-flight's buildability check skips, which says the map has not been scanned rather than
+isolated and the *Solid ground* check skips, which says the map has not been scanned rather than
 that its design is wrong.
 
 The map that goes with this document is any sketch-origin map in the corpus of built maps. On
@@ -770,8 +838,8 @@ every check passing, and the gate open.
 
 ## Limits
 
-**Kits cannot be edited.** Every generated team gets the fixed Standard preset, and the intent carries no kit
-field at all. The one kit statement in the studio is a spawn's `kit` field on the entity routes
+**Kits cannot be edited.** Every generated team gets the fixed Standard preset, its blocks and tools following
+the build mode, and the intent carries no kit field at all. The one kit statement in the studio is a spawn's `kit` field on the entity routes
 (`flow.md`), naming which kit it grants, and nothing anywhere authors what a kit *contains* — that is the author's decision rather than
 a gap, so a map wanting different starting gear is finished outside the studio.
 
@@ -793,6 +861,6 @@ corpus map's XML is read through `GET /map/{slug}/xml` and its document changed 
 (`flow.md`); no tool surfaces either. That gap is exactly what the intent model
 closed for new maps.
 
-**Nothing here judges how a map plays.** Pre-flight asks whether the document is well-formed, whether the
-halves agree, whether placements stand on ground, and whether the objectives are reachable. Whether the map is
+**Nothing here judges how a map plays.** The checks ask whether the document is well-formed, whether the
+regions read back as they were set, whether placements stand on ground, and whether the objectives are reachable. Whether the map is
 any good to play is a human's.

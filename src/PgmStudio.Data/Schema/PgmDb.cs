@@ -33,6 +33,13 @@ public sealed class PgmDb : DataConnection
     public ITable<CoreRow> Cores => this.GetTable<CoreRow>();
     public ITable<ControlPointRow> ControlPoints => this.GetTable<ControlPointRow>();
     public ITable<ScoreRow> Scores => this.GetTable<ScoreRow>();
+    public ITable<FlagRow> Flags => this.GetTable<FlagRow>();
+    public ITable<FlagPostRow> FlagPosts => this.GetTable<FlagPostRow>();
+    public ITable<FlagNetRow> FlagNets => this.GetTable<FlagNetRow>();
+    public ITable<PortalRow> Portals => this.GetTable<PortalRow>();
+    public ITable<ScoreBoxRow> ScoreBoxes => this.GetTable<ScoreBoxRow>();
+    public ITable<DamageRow> Damage => this.GetTable<DamageRow>();
+    public ITable<MatchRulesRow> MatchRules => this.GetTable<MatchRulesRow>();
     public ITable<ShopRow> Shops => this.GetTable<ShopRow>();
     public ITable<ShopkeeperRow> Shopkeepers => this.GetTable<ShopkeeperRow>();
     public ITable<ModeRow> Modes => this.GetTable<ModeRow>();
@@ -48,9 +55,11 @@ public sealed class PgmDb : DataConnection
     public ITable<MonumentCandidateRow> MonumentCandidates => this.GetTable<MonumentCandidateRow>();
     public ITable<CoreCandidateRow> CoreCandidates => this.GetTable<CoreCandidateRow>();
     public ITable<DestroyableCandidateRow> DestroyableCandidates => this.GetTable<DestroyableCandidateRow>();
+    public ITable<FlagCandidateRow> FlagCandidates => this.GetTable<FlagCandidateRow>();
     public ITable<SegmentRow> Segments => this.GetTable<SegmentRow>();
     public ITable<FloorMarkRow> FloorMarks => this.GetTable<FloorMarkRow>();
     public ITable<DoorRunRow> DoorRuns => this.GetTable<DoorRunRow>();
+    public ITable<LiftRunRow> LiftRuns => this.GetTable<LiftRunRow>();
     public ITable<MapArtifactRow> Artifacts => this.GetTable<MapArtifactRow>();
     public ITable<MapChangeRow> MapChanges => this.GetTable<MapChangeRow>();
     public ITable<MapChangeDocumentRow> MapChangeDocuments => this.GetTable<MapChangeDocumentRow>();

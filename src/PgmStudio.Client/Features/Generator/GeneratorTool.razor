@@ -42,7 +42,7 @@
       </FilterPanel>
 
       <FilterPanel Title="Filter by shape" Active="ShapeFiltered" OnClear="ClearShapeFilters">
-          <FilterGroup Label="Wool approaches" Hint="has all" Multi>
+          <FilterGroup Label="Wool shapes" Hint="has all" Multi>
             @foreach (var w in WoolChips)
             {
               <Chip Active="woolFilter.Contains(w.Token)" Disabled="!w.InMix"

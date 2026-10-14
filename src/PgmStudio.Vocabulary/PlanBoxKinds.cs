@@ -2,7 +2,7 @@ namespace PgmStudio.Vocabulary;
 
 /// <summary>The kinds an authored <c>PlanBox</c> may carry — the partition's typed box vocabulary
 /// (docs/generator/model.md §4) as authoring strings. A box names <b>what its pieces realize</b>: the
-/// <see cref="Spawn"/> and <see cref="Wool"/> approaches (each a terminal capping a corridor), the
+/// <see cref="Spawn"/> and <see cref="Wool"/> boxes (each a room capping a corridor), the
 /// <see cref="Hub"/> body they seat on, the <see cref="Frontline"/> that fronts it, and the <see cref="Mid"/>
 /// between the fanned images.</summary>
 public static class PlanBoxKinds

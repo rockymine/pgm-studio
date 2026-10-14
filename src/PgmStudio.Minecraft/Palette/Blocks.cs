@@ -34,6 +34,7 @@ public static class Blocks
     public const int RedstoneWire = 55;
     public const int StandingSign = 63;
     public const int WallSign = 68;
+    public const int StandingBanner = 176;
     public const int RedstoneTorch = 76;
 
     /// <summary>Vines. The data is a <b>mask</b> of the sides the vine clings to — south 1, west 2, north 4,

@@ -281,7 +281,7 @@ public sealed class WorldColumnsTests
         }
         ColumnSegment[] terrain = [new(0, 0, 1, 6, "ground"), new(1, 0, 1, 6, "ground")];
 
-        var (ground, props, water) = WorldColumns.ForWalk(world, new WorldProvenance(), terrain);
+        var (ground, props, water, _) = WorldColumns.ForWalk(world, new WorldProvenance(), terrain);
 
         await Assert.That(ground.Any(run => run.X == 0 && run.YTop == 7)).IsTrue();
         await Assert.That(ground.Any(run => run.X == 1 && run.YTop == 7)).IsFalse();
@@ -312,7 +312,7 @@ public sealed class WorldColumnsTests
         ColumnSegment[] terrain =
             [new(0, 0, 1, 11, "ground"), new(2, 0, 1, 11, "ground"), new(3, 0, 1, 11, "ground")];
 
-        var (ground, props, _) = WorldColumns.ForWalk(world, provenance, terrain);
+        var (ground, props, _, _) = WorldColumns.ForWalk(world, provenance, terrain);
 
         // Every solid block is in exactly one of the two, and the tree's are the props.
         await Assert.That(props.OrderBy(span => span.X).ThenBy(span => span.YFloor))
@@ -321,5 +321,40 @@ public sealed class WorldColumnsTests
             .IsEquivalentTo(new[] { (0, 0), (1, 10) });
         await Assert.That(ground.Where(span => span.X == 2).Max(span => span.YTop)).IsEqualTo(14);
         await Assert.That(ground.Any(span => span.X == 1)).IsFalse();
+    }
+
+    [Test]
+    public async Task A_walk_stands_in_what_a_player_walks_through_rather_than_on_it()
+    {
+        // Stone [1, 6) under each of four columns, then a ladder, an oak door, a tuft of grass and a fence on
+        // top. The first three are air to the walk; the fence is a block a player stands on.
+        var world = new VoxelWorld();
+        var tops = new[] { 65, 64, 31, 85 };
+        for (var x = 0; x < tops.Length; x++)
+        {
+            for (var y = 1; y < 6; y++) world.SetBlock(x, y, 0, Blocks.Stone);
+            world.SetBlock(x, 6, 0, tops[x]);
+        }
+        ColumnSegment[] terrain = [.. Enumerable.Range(0, tops.Length).Select(x => new ColumnSegment(x, 0, 1, 6, "ground"))];
+
+        var (ground, props, _, lifts) = WorldColumns.ForWalk(world, new WorldProvenance(), terrain);
+
+        for (var x = 0; x < 3; x++)
+            await Assert.That(ground.Where(run => run.X == x).Max(run => run.YTop)).IsEqualTo(5).Because($"column {x}");
+        await Assert.That(ground.Where(run => run.X == 3).Max(run => run.YTop)).IsEqualTo(6);
+        await Assert.That(props).IsEmpty();
+        await Assert.That(lifts).IsEquivalentTo(new[] { (0, 0, WalkLift.Climbed(6, 6)) }).Because("the ladder is climbed");
+    }
+
+    [Test]
+    public async Task A_run_of_water_is_swum_up_to_its_surface()
+    {
+        var world = new VoxelWorld();
+        world.SetBlock(0, 0, 0, Blocks.Stone);
+        for (var y = 1; y <= 8; y++) world.SetBlock(0, y, 0, Blocks.StationaryWater);
+
+        var (_, _, _, lifts) = WorldColumns.ForWalk(world, new WorldProvenance(), [new ColumnSegment(0, 0, 0, 1, "ground")]);
+
+        await Assert.That(lifts).IsEquivalentTo(new[] { (0, 0, new WalkLift(1, 9)) });
     }
 }

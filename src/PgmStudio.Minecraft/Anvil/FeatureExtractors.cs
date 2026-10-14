@@ -1,6 +1,8 @@
 using fNbt;
 using static PgmStudio.Minecraft.Anvil.Nbt;
 using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Domain;
 
 namespace PgmStudio.Minecraft.Anvil;
 
@@ -25,6 +27,16 @@ public readonly record struct FloorMarkFeature(int WorldX, int WorldZ, int Block
 /// blocks there opens it.</summary>
 public readonly record struct DoorRunFeature(int WorldX, int WorldZ, int WorldYStart, int WorldYEnd);
 
+/// <summary>A banner standing in a world: the block it is in, whether it hangs on a wall, the data value that
+/// says which way it faces (a standing banner's sixteenth of a turn, a wall banner's face), its base dye and
+/// its patterns as <c>pattern:dye</c> pairs, in the order they are laid.</summary>
+public readonly record struct BannerFeature(
+    int WorldX, int WorldY, int WorldZ, bool Wall, int Facing, string Color, IReadOnlyList<string> Patterns);
+
+/// <summary>A run a player climbs or swims, as the feet heights it carries them through, inclusive — a
+/// <see cref="PgmStudio.Geom.WalkLift"/> on its column.</summary>
+public readonly record struct LiftRunFeature(int WorldX, int WorldZ, int WorldYStart, int WorldYEnd);
+
 /// <summary>
 /// Locate specific block types across a set of region files — "where are the X blocks and what
 /// are they?". Each method scans the decoded block stream / tile-entity NBT and
@@ -42,19 +54,10 @@ public static class FeatureExtractors
 
     private static readonly HashSet<string> ChestTileIds = new(StringComparer.Ordinal) { "Chest", "TrappedChest" };
 
-    // Blocks a player walks through, which segment extraction skips: plants, torches, redstone, signs and
-    // plates; what a player opens or pushes through (doors, fence gates) and the cobweb a wool-room entrance
-    // is guarded with; and the PISTON_MOVING_PIECE marker (36) many CTW maps use as an invisible build boundary.
-    private static readonly HashSet<int> SegmentExclude = new()
-    {
-        6, 31, 32, 37, 38, 39, 40, 50, 55, 59, 63, 65, 66, 69, 70, 71, 72,
-        75, 76, 77, 78, 83, 104, 105, 106, 115, 141, 142, 143, 147, 148, 166,
-        30,                                 // cobweb
-        64, 193, 194, 195, 196, 197,        // wooden doors
-        107, 183, 184, 185, 186, 187,       // fence gates
-        68,                                 // wall sign
-        36,
-    };
+    // Blocks segment extraction skips: what a player walks through (BlockRoles.WalkedThrough), and the two
+    // invisible blocks a map lays that are no ground — the PISTON_MOVING_PIECE marker (36) many CTW maps use as
+    // a build boundary, and the barrier (166).
+    private static bool SegmentExclude(int id) => BlockRoles.WalkedThrough(id) || id is 36 or 166;
 
     /// <summary>Wool blocks (id 35) with colour from the data nibble (→ wools.parquet).</summary>
     public static IEnumerable<WoolFeature> Wools(IEnumerable<AnvilRegion.Chunk> chunks)
@@ -148,7 +151,7 @@ public static class FeatureExtractors
     /// build-region marker laid at the world floor (<see cref="SurfaceExtractors.FloorMarkerIds"/>), the rule
     /// the island scan reads too.</summary>
     private static bool IsSolid(int id, int y) =>
-        id != 0 && !SegmentExclude.Contains(id)
+        id != 0 && !SegmentExclude(id)
         && !(y <= SurfaceExtractors.FloorMarkerMaxY && SurfaceExtractors.FloorMarkerIds.Contains(id));
 
     /// <summary>Whether a block at y=0 is a floor mark: something there, so PGM's void filter reads the column
@@ -176,7 +179,7 @@ public static class FeatureExtractors
     /// stamper builds with (<see cref="PgmStudio.Domain.DoorMaterials"/>), plain glass and glass panes, and the
     /// nether brick fence. A cobweb is among the door materials but is walked through already.</summary>
     public static readonly IReadOnlySet<int> DoorIds = new HashSet<int>(
-        PgmStudio.Domain.DoorMaterials.Breakable.Select(choice => choice.BlockId).Where(id => !SegmentExclude.Contains(id)))
+        PgmStudio.Domain.DoorMaterials.Breakable.Select(choice => choice.BlockId).Where(id => !SegmentExclude(id)))
     {
         20, 102,                            // glass, glass pane
         113,                                // nether brick fence
@@ -219,6 +222,71 @@ public static class FeatureExtractors
                 }
             }
     }
+
+    /// <summary>Every banner a world holds (→ flag_candidate), read off its tile entity and the block it is in. A
+    /// tile entity whose block is not a banner is a leftover and is skipped. Its colours are dye damages
+    /// (<see cref="BlockColors.DyeColor"/>).</summary>
+    public static IEnumerable<BannerFeature> Banners(IEnumerable<AnvilRegion.Chunk> chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            if (chunk.Level.Get<NbtList>("TileEntities") is not { } tiles) continue;
+            Dictionary<int, AnvilRegion.Section>? sections = null;
+            foreach (var teObj in tiles)
+            {
+                if (teObj is not NbtCompound te || Str(te.Get("id")) != "Banner") continue;
+                if (Int(te.Get("x")) is not { } x || Int(te.Get("y")) is not { } y || Int(te.Get("z")) is not { } z) continue;
+                sections ??= AnvilRegion.Sections(chunk).ToDictionary(section => section.SectionY);
+                if (!sections.TryGetValue(y >> 4, out var section)) continue;
+                var index = ((y & 15) << 8) | ((z & 15) << 4) | (x & 15);
+                var block = section.Ids[index];
+                if (block is not (176 or 177)) continue;
+
+                var patterns = new List<string>();
+                if (te.Get<NbtList>("Patterns") is { } laid)
+                    foreach (var patternObj in laid)
+                        if (patternObj is NbtCompound pattern && Str(pattern.Get("Pattern")) is { } code)
+                            patterns.Add($"{code}:{BlockColors.DyeColor(Int(pattern.Get("Color")) ?? 0)}");
+                yield return new BannerFeature(x, y, z, block == 177, section.Data[index], BlockColors.DyeColor(Int(te.Get("Base")) ?? 0), patterns);
+            }
+        }
+    }
+
+    /// <summary>Every run a player climbs or swims (→ lift_runs.parquet), as the feet heights it carries them
+    /// through: a ladder or a vine (<see cref="BlockRoles.Climbable"/>) over its own blocks, and a run of water
+    /// over its blocks and the surface on top of it.</summary>
+    public static IEnumerable<LiftRunFeature> LiftRuns(IEnumerable<AnvilRegion.Chunk> chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            var full = AnvilRegion.FullVolume(chunk);
+            for (var col = 0; col < 256; col++)
+            {
+                int x = chunk.ChunkX * 16 + (col & 15), z = chunk.ChunkZ * 16 + (col >> 4);
+                var (runStart, runKind) = (-1, LiftKind.None);
+                for (var y = 0; y <= 256; y++)
+                {
+                    var kind = y < 256 ? KindOf(full[(y << 8) | col]) : LiftKind.None;
+                    if (kind == runKind) continue;
+                    if (runKind != LiftKind.None)
+                    {
+                        var lift = runKind == LiftKind.Climbed
+                            ? PgmStudio.Geom.WalkLift.Climbed(runStart, y - 1)
+                            : PgmStudio.Geom.WalkLift.Swum(runStart, y - 1);
+                        yield return new LiftRunFeature(x, z, lift.Low, lift.High);
+                    }
+                    (runStart, runKind) = (y, kind);
+                }
+            }
+        }
+
+        static LiftKind KindOf(int id) =>
+            BlockRoles.Climbable.Contains(id) ? LiftKind.Climbed
+            : id is 8 or 9 ? LiftKind.Swum
+            : LiftKind.None;
+    }
+
+    private enum LiftKind { None, Climbed, Swum }
 
     /// <summary>All contiguous solid Y-runs per column, inclusive [start,end] (→ layer_segments.parquet).</summary>
     public static IEnumerable<SegmentFeature> Segments(IEnumerable<AnvilRegion.Chunk> chunks, int minRunLength = 1)

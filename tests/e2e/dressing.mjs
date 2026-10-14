@@ -8,7 +8,7 @@
  *   3. UI — the phase renders its placing tools, and dragging on the canvas actually places a prop.
  */
 
-import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE, TMP_DIR }
+import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE, TMP_DIR, worldAimer, deepestPoints }
   from "./lib/harness.mjs";
 import { mkdir } from "node:fs/promises";
 
@@ -133,13 +133,24 @@ try {
 
   await shot("dressing-phase.png");
 
-  // Drop a tree by clicking, which is the whole interaction. Both clicks land on the red island, since a
-  // marker dropped on the void is refused and the Placed list would not move.
-  const box = await page.locator("svg.map-canvas-svg").boundingBox();
+  // Drop a tree by clicking, which is the whole interaction. Every tree aims at a point deep inside the ground
+  // the layout carries, its own point each: a marker dropped on the void is refused, a tree wants room round it,
+  // and where the composed board sits on screen is the fit's business, so a fixed fraction of the viewport
+  // lands wherever it happens to.
+  const board = page.locator("svg.map-canvas-svg");
+  const box = await board.boundingBox();
+  const aim = await worldAimer(page, board);
+  const ground = (await api(`/map/${seed.sketchSlug}/sketch`)).layers.flatMap(layer => layer.layout?.shapes ?? [])
+    .filter(shape => !shape.role);
+  const spots = aim ? deepestPoints(ground, 4, 12).map(point => aim(point.x, point.z)) : [];
+  checks.add("the ground offers four places for a tree", spots.length === 4
+    && spots.every(spot => spot.x > box.x && spot.x < box.x + box.width && spot.y > box.y && spot.y < box.y + box.height),
+    `${spots.length} found`);
+  const placeAt = spot => page.mouse.click(spot.x, spot.y);
   const placedRows = () => page.locator(".geo-label").allInnerTexts();
   const before = await placedRows();
   await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
-  await page.mouse.click(box.x + box.width * 0.56, box.y + box.height * 0.62);
+  await placeAt(spots[0]);
   await page.waitForTimeout(1500);
   // What the phase draws for a tree is the recipe list, and the list is offered with the tool in hand too, so
   // the Placed list is what says one landed.
@@ -178,7 +189,7 @@ try {
     /in hand/.test(await panel()), (await panel()).match(/selected|in hand/)?.[0] ?? "(no badge)");
   await page.locator('.prop-card[title="spruce"]').click();
   await page.waitForTimeout(1500);
-  await page.mouse.click(box.x + box.width * 0.62, box.y + box.height * 0.59);
+  await placeAt(spots[1]);
   await page.waitForTimeout(1500);
   const placed = (await placedRows()).slice(before.length);
   checks.add("so the pick lands on the new tree and leaves the old one as it was",
@@ -189,9 +200,9 @@ try {
   await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
   await page.waitForTimeout(500);
   await page.keyboard.down("Shift");
-  await page.mouse.click(box.x + box.width * 0.52, box.y + box.height * 0.69);
+  await placeAt(spots[2]);
   await page.waitForTimeout(800);
-  await page.mouse.click(box.x + box.width * 0.64, box.y + box.height * 0.68);
+  await placeAt(spots[3]);
   await page.waitForTimeout(800);
   await page.keyboard.up("Shift");
   await page.waitForTimeout(500);

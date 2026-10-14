@@ -128,9 +128,12 @@ public static class WorldColumns
     /// ground it stands in and every other block is the prop's, so a crown hanging past a board's rim is the
     /// prop's all the way down. Lava is taken the way a prop is: nobody stands in it and nothing under it is a
     /// place to stand, where water is ground a player swims — and the third set, <c>Water</c>, is every column
-    /// a run of water tops, whatever put it there.</summary>
+    /// a run of water tops, whatever put it there. A block a player walks through
+    /// (<see cref="BlockRoles.WalkedThrough"/>) is in neither set: a ladder, a door or a tuft of grass is the
+    /// air a player stands in, not the ground under them. The fourth set, <c>Lifts</c>, is every run a player
+    /// moves up and down in: a ladder or a vine (<see cref="BlockRoles.Climbable"/>) and a run of water.</summary>
     public static (List<(int X, int Z, int YFloor, int YTop)> Ground, List<(int X, int Z, int YFloor, int YTop)> Props,
-        HashSet<(int X, int Z)> Water)
+        HashSet<(int X, int Z)> Water, List<(int X, int Z, WalkLift Lift)> Lifts)
         ForWalk(VoxelWorld world, WorldProvenance provenance, IReadOnlyList<ColumnSegment> terrain)
     {
         var laid = terrain.GroupBy(segment => segment.Cell)
@@ -138,8 +141,13 @@ public static class WorldColumns
         var ground = new List<(int X, int Z, int YFloor, int YTop)>();
         var props = new List<(int X, int Z, int YFloor, int YTop)>();
         var water = new HashSet<(int X, int Z)>();
-        foreach (var (x, z, runs) in Of(world))
+        var lifts = new List<(int X, int Z, WalkLift Lift)>();
+        foreach (var (x, z, read) in Of(world))
         {
+            foreach (var run in read)
+                if (Lift(run) is { } lift) lifts.Add((x, z, lift));
+            var runs = read.Where(run => !BlockRoles.WalkedThrough(run.BlockId)).ToList();
+            if (runs.Count == 0) continue;
             if (runs[0].BlockId is Blocks.Water or Blocks.StationaryWater) water.Add((x, z));
             if (!provenance.PropVolumeAt(x, z))
             {
@@ -162,7 +170,12 @@ public static class WorldColumns
                 }
             }
         }
-        return (ground, props, water);
+        return (ground, props, water, lifts);
+
+        static WalkLift? Lift(ColumnRun run) =>
+            BlockRoles.Climbable.Contains(run.BlockId) ? WalkLift.Climbed(run.YBottom, run.YTop)
+            : run.BlockId is Blocks.Water or Blocks.StationaryWater ? WalkLift.Swum(run.YBottom, run.YTop)
+            : null;
 
         static bool IsLava(int blockId) => blockId is Blocks.Lava or Blocks.StationaryLava;
 

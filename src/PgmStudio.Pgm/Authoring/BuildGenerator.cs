@@ -5,6 +5,7 @@ namespace PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 using PgmStudio.Geom;
+using PgmStudio.Vocabulary;
 
 /// <summary>
 /// Build slice of the declarative generator (new-map-authoring.md §5/§5b; docs/pgm/filter-region-wiring.md
@@ -27,6 +28,16 @@ using PgmStudio.Geom;
 public static class BuildGenerator
 {
     private const string VoidMessage = "You may not edit the void!";
+
+    /// <summary>The message a board's own block rule refuses with. With the <c>everywhere</c> region it is
+    /// what marks the rule as this generator's, so a re-apply finds it.</summary>
+    private const string EditMessage = "You may not edit this map!";
+
+    /// <summary>The filter an <see cref="BuildModes.Only"/> board's rule names. Named, so the writer gives it
+    /// an id the rule can reference; its material leaves are synthetic (<see cref="OnlyLeafPrefix"/>), so they
+    /// are written inside it.</summary>
+    private const string OnlyFilterId = "build-only";
+    private const string OnlyLeafPrefix = "__build-only";
 
     // A region this generator does not write. A stored document carrying one is scrubbed on re-apply, so a
     // board cannot hold a second void rule beside the template's — and an `everywhere` rule beside it is not
@@ -73,7 +84,39 @@ public static class BuildGenerator
         if (intent.Build is not { } b) return;
         if (b.MaxHeight is { } h) doc["max_build_height"] = Math.Min(h, MaxBuildHeight);
 
-        if (b.Areas.Count > 0) ApplyBuildAreas(doc, b);
+        switch (b.ModeFor(intent))
+        {
+            case BuildModes.Never:
+                ApplyEverywhere(doc, "never");
+                break;
+            case BuildModes.Only:
+                ApplyEverywhere(doc, OnlyFilter(doc, b.Materials));
+                break;
+            default:
+                if (b.Areas.Count > 0) ApplyBuildAreas(doc, b);
+                break;
+        }
+    }
+
+    /// <summary>One rule over the whole map, deciding every block placed or broken by
+    /// <paramref name="filter"/>. Using a block — a door, a button, a chest — is left alone.</summary>
+    private static void ApplyEverywhere(Dict doc, string filter) =>
+        ZoneWriter.Rules(doc, "everywhere", new ZoneRules { BlockPlace = filter, BlockBreak = filter, EditMessage = EditMessage });
+
+    /// <summary>The filter an <see cref="BuildModes.Only"/> board's rule decides by: any of its materials, or
+    /// <c>never</c> where it names none.</summary>
+    private static string OnlyFilter(Dict doc, IReadOnlyList<string> materials)
+    {
+        if (materials.Count == 0) return "never";
+        var children = new List<object?>();
+        foreach (var (material, i) in materials.Select((material, i) => (material, i)))
+        {
+            var id = $"{OnlyLeafPrefix}-{i + 1}";
+            FilterEditor.CreateFilter(doc, new Dict { ["id"] = id, ["type"] = "material", ["material"] = material });
+            children.Add(id);
+        }
+        FilterEditor.CreateFilter(doc, new Dict { ["id"] = OnlyFilterId, ["type"] = "any", ["children"] = children });
+        return OnlyFilterId;
     }
 
     private static void ApplyBuildAreas(Dict doc, BuildIntent b)
@@ -109,10 +152,9 @@ public static class BuildGenerator
         FilterEditor.CreateFilter(doc, new Dict { ["id"] = PlaceVoidLeaf, ["type"] = "void" });
         FilterEditor.CreateFilter(doc, new Dict { ["id"] = PlaceVoidFilter, ["type"] = "not", ["child"] = PlaceVoidLeaf });
         EnsureBreakVoidFilter(doc);
-        ApplyRuleEditor.CreateApplyRule(doc, new Dict
+        ZoneWriter.Rules(doc, "not-build-area", new ZoneRules
         {
-            ["block_place"] = PlaceVoidFilter, ["block_break"] = BreakVoidFilter,
-            ["region"] = "not-build-area", ["message"] = VoidMessage,
+            BlockPlace = PlaceVoidFilter, BlockBreak = BreakVoidFilter, EditMessage = VoidMessage,
         });
     }
 
@@ -180,8 +222,13 @@ public static class BuildGenerator
         DocAccess.Filters(doc).Remove("is-void");
         DocAccess.Filters(doc).Remove("over-void-breakable");
         foreach (var (filterId, _) in OverVoidMaterials) DocAccess.Filters(doc).Remove(filterId);
+        DocAccess.Filters(doc).Remove(OnlyFilterId);
+        foreach (var k in DocAccess.Filters(doc).Keys.Where(k => k.StartsWith(OnlyLeafPrefix, StringComparison.Ordinal)).ToList())
+            DocAccess.Filters(doc).Remove(k);
         if (doc.GetValueOrDefault("apply_rules") is List<object?> rules)
-            rules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string is "not-build-area" or ScrubbedVoidAreaId);
+            rules.RemoveAll(r => r is Dict d
+                && (d.GetValueOrDefault("region") as string is "not-build-area" or ScrubbedVoidAreaId
+                    || (d.GetValueOrDefault("region") as string == "everywhere" && d.GetValueOrDefault("message") as string == EditMessage)));
     }
 
     private static bool IsGenerated(string k) =>

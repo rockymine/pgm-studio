@@ -26,7 +26,8 @@ public sealed class Filter
     public string? Vector;             // offset
     public string? Var;                // variable
     public string? Value;              // variable
-    public string? Objective;          // completed / objective
+    public string? Objective;          // completed / objective / flag-* / carrying-flag (the flag)
+    public string? Post;               // flag-* (the post the flag is at)
     public int? Min, Max, Count;       // kill-streak / players
     public string? Name;               // class
     public string? Mob;                // spawn

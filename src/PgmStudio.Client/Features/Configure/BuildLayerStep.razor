@@ -10,25 +10,21 @@
       <Section Title="Buildable layer">
         <p class="section-desc">Use the <strong>rectangle tool</strong> to mark where players may build over the
           void, such as bridges and platforms. Island ground is already buildable. Switch to
-          <strong>Hole</strong> to cut out areas where building is not allowed.</p>
+          <strong>Hole</strong> to cut out areas where building is not allowed. The map's symmetry copies each
+          one.</p>
         <div class="panel-list">
           @if (boxes.Count == 0) { <div class="list-empty">Nothing drawn yet. Pick a tool and drag a rectangle.</div> }
-          @foreach (var b in boxes)
+          @foreach (var b in Rows)
           {
             <ListRow Compact Selected="selectedId == b.Id"
                  @key="b.Id" OnClick="() => SelectBox(b.Id)">
               <span class="list-swatch" style="--swatch: @(b.Hole ? HoleColor : AreaColor)"></span>
               <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
               <span class="list-label list-label--mono">@Label(b)</span>
-              <Badge Kind="dim">@(b.Hole ? "Hole" : "Bridge")</Badge>
+              <Badge Class="@(b.Authored ? "badge--success" : "badge--dim")">@(b.Authored ? "Main" : "Copy")</Badge>
             </ListRow>
           }
         </div>
-        @if (MirrorActive && boxes.Count > 0)
-        {
-          <p class="section-desc">The faint shapes on the canvas are symmetry copies. They are created
-            automatically, so they aren't listed here.</p>
-        }
         @if (boxes.Any(x => x.Hole) && !boxes.Any(x => !x.Hole))
         {
           <p class="section-desc">A hole only cuts into a bridge. Add a bridge for it to take effect.</p>
@@ -75,7 +71,7 @@
       {
         <Section @key="sel.Id">
           <DetailHeader Icon="rectangle-horizontal" IconMuted Mono Label="@Label(sel)">
-            <Badge Kind="dim">@(sel.Hole ? "Hole" : "Bridge")</Badge>
+            <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "Main" : "Copy")</Badge>
           </DetailHeader>
           <div class="section-body">
             <Field Label="Min">
@@ -90,10 +86,18 @@
                 <CoordField Prefix="Z" Value="@sel.MaxZ" ReadOnly tabindex="-1" />
               </div>
             </Field>
-            <p class="section-desc">Drag the handles on the canvas to resize it.</p>
-            <div class="section-footer section-footer--separated">
-              <Button Writes Variant="danger" Fill OnClick="() => Remove(sel.Id)">Remove @(sel.Hole ? "hole" : "bridge")</Button>
-            </div>
+            @if (sel.Source is { } source)
+            {
+              <p class="section-desc">Copied by symmetry from the main <strong>@Label(source)</strong>. Edit that
+                one to change it.</p>
+            }
+            else
+            {
+              <p class="section-desc">Drag the handles on the canvas to resize it.</p>
+              <div class="section-footer section-footer--separated">
+                <Button Writes Variant="danger" Fill OnClick="() => Remove(sel.Id)">Remove @(sel.Hole ? "hole" : "bridge")</Button>
+              </div>
+            }
           </div>
         </Section>
       }

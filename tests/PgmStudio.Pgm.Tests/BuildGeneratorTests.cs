@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests;
 
@@ -20,8 +21,10 @@ public sealed class BuildGeneratorTests
 
     private static MapIntent Intent(int? maxHeight = 24) => new()
     {
+        // A completion board's rule, which these tests are about; a board stating no objective takes Never.
         Build = new BuildIntent
         {
+            Mode = BuildModes.Void,
             MaxHeight = maxHeight,
             Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0), new Rect(-5, 0, 5, 50)],
         },
@@ -122,7 +125,7 @@ public sealed class BuildGeneratorTests
     public async Task Single_rectangle_skips_the_union()
     {
         var doc = Map();
-        BuildGenerator.Apply(doc, new MapIntent { Build = new BuildIntent { Areas = [new Rect(0, 0, 10, 10)] } });
+        BuildGenerator.Apply(doc, new MapIntent { Build = new BuildIntent { Mode = BuildModes.Void, Areas = [new Rect(0, 0, 10, 10)] } });
 
         await Assert.That(Regions(doc).ContainsKey("build-area")).IsFalse();   // no union for a lone rect
         var neg = (Dict)Regions(doc)["not-build-area"]!;
@@ -194,6 +197,7 @@ public sealed class BuildGeneratorTests
         {
             Build = new BuildIntent
             {
+                Mode = BuildModes.Void,
                 Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)],
                 Holes = [new Rect(10, 10, 20, 20)],
             },
@@ -219,6 +223,7 @@ public sealed class BuildGeneratorTests
         {
             Build = new BuildIntent
             {
+                Mode = BuildModes.Void,
                 Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)],
                 Holes = [new Rect(10, 10, 20, 20)],
             },
@@ -235,7 +240,7 @@ public sealed class BuildGeneratorTests
     public async Task Holes_cleared_on_reapply()
     {
         var doc = Map();
-        var intent = new MapIntent { Build = new BuildIntent { Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)], Holes = [new Rect(10, 10, 20, 20)] } };
+        var intent = new MapIntent { Build = new BuildIntent { Mode = BuildModes.Void, Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)], Holes = [new Rect(10, 10, 20, 20)] } };
         BuildGenerator.Apply(doc, intent);
         BuildGenerator.Apply(doc, intent);
 
@@ -251,7 +256,7 @@ public sealed class BuildGeneratorTests
         // The void boundary is the edge of the buildable region, so a board that declares none states
         // nothing about the void: no region, no apply rule, and the height cap regardless.
         var doc = Map();
-        BuildGenerator.Apply(doc, new MapIntent { Build = new BuildIntent { MaxHeight = 40 } });
+        BuildGenerator.Apply(doc, new MapIntent { Build = new BuildIntent { Mode = BuildModes.Void, MaxHeight = 40 } });
 
         await Assert.That(Regions(doc).Count).IsEqualTo(0);
         await Assert.That(Rules(doc).Count).IsEqualTo(0);
@@ -288,5 +293,52 @@ public sealed class BuildGeneratorTests
         await Assert.That(Regions(doc).ContainsKey("void-enforcement-exclusion-1")).IsFalse();
         await Assert.That(Rules(doc).Count).IsEqualTo(1);
         await Assert.That(Rules(doc).OfType<Dict>().Single()["region"]).IsEqualTo("not-build-area");
+    }
+
+    // ── a board played for control ─────────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task A_board_with_no_objective_to_complete_refuses_every_block()
+    {
+        // A conquest board is played for control, and by the author's ruling no block is placed or broken
+        // on it. Applying twice is still one rule.
+        var doc = Map();
+        var intent = new MapIntent { Build = new BuildIntent { Areas = [new Rect(0, 0, 10, 10)] } };
+
+        BuildGenerator.Apply(doc, intent);
+        BuildGenerator.Apply(doc, intent);
+
+        var rule = Rules(doc).OfType<Dict>().Single();
+        await Assert.That(rule["region"]).IsEqualTo("everywhere");
+        await Assert.That(rule["block_place"]).IsEqualTo("never");
+        await Assert.That(rule["block_break"]).IsEqualTo("never");
+        await Assert.That(Regions(doc).Count).IsEqualTo(0).Because("its build areas build nothing");
+    }
+
+    [Test]
+    public async Task A_board_with_a_wool_is_built_on()
+    {
+        var doc = Map();
+        var intent = Intent() with { Build = Intent().Build! with { Mode = null }, Wools = [new WoolIntent { Owner = "red" }] };
+
+        BuildGenerator.Apply(doc, intent);
+
+        await Assert.That(Rules(doc).OfType<Dict>().Single()["region"]).IsEqualTo("not-build-area");
+    }
+
+    [Test]
+    public async Task An_only_board_lets_its_materials_be_placed_and_broken_and_nothing_else()
+    {
+        var doc = Map();
+        BuildGenerator.Apply(doc, new MapIntent { Build = new BuildIntent { Mode = BuildModes.Only, Materials = ["leaves", "web"] } });
+
+        var rule = Rules(doc).OfType<Dict>().Single();
+        await Assert.That(rule["block_place"]).IsEqualTo(rule["block_break"]);
+        // The rule names a filter the XML defines, which is what PGM loads: a reference to a filter written
+        // nowhere is a map it refuses.
+        var xml = XDocument.Parse(XmlWriter.ToXml(Deserializer.FromDict(doc)));
+        var apply = xml.Descendants("apply").Single();
+        var named = xml.Descendants("filters").Elements().Single(e => e.Attribute("id")?.Value == apply.Attribute("block-place")!.Value);
+        await Assert.That(named.Elements("material").Select(m => m.Value)).IsEquivalentTo(new[] { "leaves", "web" });
     }
 }

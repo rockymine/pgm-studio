@@ -175,7 +175,7 @@ given, which is why every point edit comes before it.
 | `themes` · `mapTheme` | the theme registry, and the map's default theme — the registry's first where none is stated | `PUT …/sketch/themes/{themeId}`, `PUT …/sketch/map-theme` |
 | `biome` · `roomStyles` · `dressing` | the layout's own members, each replacing what the base held | `PUT …/sketch/biome`, `PUT …/sketch/room-styles/{part}`, the props routes |
 | `created` · `authors` | the intent's `meta.created` and `meta.authors`; a person is a bare name or `{name, contribution}` | `PATCH /map/{slug}/metadata` |
-| `controlPoints` · `scoreLimit` · `spawners` · `shops` | the intent's own members, each replacing what the base held; a capture point and a generator are each stated once and fanned across the board's symmetry | `PUT /map/{slug}/intent` |
+| `controlPoints` · `scoreLimit` · `timeLimit` · `respawn` · `lives` · `rage` · `killHeight` · `spawners` · `shops` | the intent's own members, each replacing what the base held; a capture point and a generator are each stated once and fanned across the board's symmetry | `PUT /map/{slug}/intent` |
 
 **A thing stated more than once is named, and a name stands for a copy.** A material the refinement uses in
 several places is stated once under `materials` and used as `{"use": "strata"}`. A row of the studio's library
@@ -216,10 +216,11 @@ own (a room's rectangle, a point mark, a tree) is a complaint, as is one reachin
 
 **A statement about a symmetric board is made once, and the board's symmetry fans it.** The symmetry is the
 layout's own — `setup.mirror_mode` and its `center`. A capture point and a generator are each stated once and
-every image added, at the image of the point it stands on: an image of a capture point takes its name numbered
-on (`Bench`, `Bench 2`), and an image of a generator its id (`iron`, `iron-2`), since the regions a generator
-mints are named for it. One already standing within half a block of where an image would go is that image, so a
-point at the centre of symmetry stays one and a hand-placed pair stays a pair. A point edit and a bend to a shape
+every image added: a capture point's pad turned cell by cell, a generator at the image of its drop point. An
+image of a capture point takes its name numbered on (`Bench`, `Bench 2`), and an image of a generator its id
+(`iron`, `iron-2`), since the regions a generator mints are named for it. A capture point whose pad overlaps an
+image's, or a generator within half a block of one, is that image, so a point at the centre of symmetry stays
+one and a hand-placed pair stays a pair. A point edit and a bend to a shape
 the symmetry carries onto itself — a shape on the axis, which no group's fan copies — are made at every image:
 an insert or a move lands at the image of its point on the image of its edge, a remove takes the image point
 too, a pull lands the same fraction along the image of its edge — counted from the other end where the image runs

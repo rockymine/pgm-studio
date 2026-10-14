@@ -4,16 +4,16 @@ namespace PgmStudio.Contracts;
 /// <paramref name="Rejection"/> is set: a probe either drew a shape or was refused, and a refusal is the
 /// interesting half — it is the only place the studio surfaces the emitter's own guards.
 /// <paramref name="LandCells"/> is the walkable terrain the fill spends (the box's land currency);
-/// <paramref name="Slots"/> names each emitted piece's template slot, in emit order.</summary>
+/// <paramref name="Parts"/> names each emitted piece's part, in emit order.</summary>
 /// <param name="Svg">The shape the emitter drew, ready to inject, or absent where it refused.</param>
 /// <param name="Rejection">Why it refused, or absent where it drew.</param>
 /// <param name="LandCells">The walkable terrain the fill spends — the box's land currency.</param>
-/// <param name="Slots">Each emitted piece's template slot, in emit order.</param>
+/// <param name="Parts">Each emitted piece's part, in emit order, the room last.</param>
 public sealed record ShapeProbeResult(
     string? Svg,
     ShapeRejectionDto? Rejection,
     int LandCells,
-    IReadOnlyList<string> Slots);
+    IReadOnlyList<string> Parts);
 
 /// <summary>A refusal in the shared directed-reason vocabulary, flattened for the wire.
 /// <paramref name="Code"/> is the case (<c>too-small</c>, <c>not-on-menu</c>, <c>illegal-dock</c>,
@@ -33,13 +33,13 @@ public sealed record ShapeRejectionDto(string Code, string Detail, int? MinW, in
 /// restated in the client, so a family gaining a knob does not need a matching edit in the page.</summary>
 /// <param name="Families">Every family the probe can ask for, with what each admits.</param>
 /// <param name="Mouths">Which side a fill may enter through.</param>
-/// <param name="MinCorridorCells">The narrowest corridor width the probe accepts.</param>
-/// <param name="MaxCorridorCells">The widest.</param>
+/// <param name="MinLaneWidth">The narrowest corridor width the probe accepts.</param>
+/// <param name="MaxLaneWidth">The widest.</param>
 public sealed record ShapeProbeSchema(
     IReadOnlyList<ShapeFamilyDto> Families,
     IReadOnlyList<string> Mouths,
-    int MinCorridorCells,
-    int MaxCorridorCells);
+    int MinLaneWidth,
+    int MaxLaneWidth);
 
 /// <summary>One family's probe surface: its token, the minimum box it needs at the default corridor width,
 /// which optional knobs it accepts, and whether the production menu admits it at all.

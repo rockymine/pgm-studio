@@ -31,6 +31,37 @@ public sealed class TraversabilityTests
         ["bounds_2d"] = new Dict { ["min"] = Xz(minx, minz), ["max"] = Xz(maxx, maxz) },
     };
 
+    /// <summary>A flag post is a goal the walk has to reach: one standing on ground nobody can walk to is an
+    /// isolated objective, as an unreachable wool is.</summary>
+    [Test]
+    public async Task A_flag_post_off_the_walked_ground_is_isolated()
+    {
+        var data = new Dict
+        {
+            ["regions"] = new Dict { ["home"] = Rect(0, 0, 4, 4) },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "home" } },
+            ["flags"] = new List<object?>
+            {
+                new Dict
+                {
+                    ["id"] = "hill", ["name"] = "Hill",
+                    ["post"] = new Dict { ["point"] = new Dict { ["x"] = 60.5, ["y"] = 1.0, ["z"] = 2.5 } },
+                },
+            },
+        };
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x < 10; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+        for (var x = 58; x < 64; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+
+        var cut = Walked(data, Flat(surface), bbox: (-2, -2, 70, 10));
+        await Assert.That(cut.Connected).IsFalse();
+        await Assert.That(cut.Isolated.Select(point => (point.Kind, point.Name))).Contains(("flag", "Hill"));
+
+        for (var x = 10; x < 58; x++) surface.Add((x, 1));
+        await Assert.That(Walked(data, Flat(surface), bbox: (-2, -2, 70, 10)).Connected).IsTrue()
+            .Because("a lane across joins the post to the spawn");
+    }
+
     [Test]
     public async Task Spawn_navpoint_lands_inside_a_disjoint_union_not_the_bounds_gap()
     {

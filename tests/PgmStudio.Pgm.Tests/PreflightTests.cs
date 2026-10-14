@@ -73,10 +73,10 @@ public sealed class PreflightTests
         var check = Preflight.Mirror(Generated(intent), intent);
         await Assert.That(check.Status).IsEqualTo("pass");
         // the four classifications the categorizer must read back
-        await Assert.That(check.Detail).Contains("spawn/protection");
-        await Assert.That(check.Detail).Contains("wool/room");
-        await Assert.That(check.Detail).Contains("build");
-        await Assert.That(check.Detail).Contains("wool/monument");
+        await Assert.That(check.Detail).Contains("spawn protection");
+        await Assert.That(check.Detail).Contains("wool rooms");
+        await Assert.That(check.Detail).Contains("build areas");
+        await Assert.That(check.Detail).Contains("wool monuments");
     }
 
     [Test]
@@ -101,6 +101,6 @@ public sealed class PreflightTests
         var intent = FullIntent();
         var check = Preflight.Mirror(BaseDoc(), intent);
         await Assert.That(check.Status).IsEqualTo("fail");
-        await Assert.That(check.Detail).Contains("spawn/protection");
+        await Assert.That(check.Detail).Contains("spawn protection");
     }
 }

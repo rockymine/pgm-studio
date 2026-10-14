@@ -4,13 +4,14 @@ using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis.Footprint;
 using PgmStudio.Data.Schema;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Services;
 
 /// <summary>Shared helpers for the symmetry endpoints.</summary>
 public static class SymmetrySupport
 {
-    public static readonly HashSet<string> ValidTypes = ["rot_90", "rot_180", "mirror_x", "mirror_z", "mirror_d1", "mirror_d2"];
+    public static readonly HashSet<string> ValidTypes = [.. SymmetryModes.Fanned];
 
     // Display-strength rank for primary tie-breaks.
     private static readonly Dictionary<string, int> Order = new()

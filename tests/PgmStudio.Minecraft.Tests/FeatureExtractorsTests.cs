@@ -233,4 +233,63 @@ public class FeatureExtractorsTests
 
         await Assert.That(FeatureExtractors.DoorRuns([chunk]).Count()).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task A_ladder_is_a_lift_over_its_blocks_and_water_over_its_blocks_and_surface()
+    {
+        var blocks = new byte[4096];
+        for (var y = 0; y < 3; y++) blocks[Idx(0, y, 0)] = 1;
+        for (var y = 3; y <= 9; y++) blocks[Idx(0, y, 0)] = 65;   // a ladder from 3 to 9
+        blocks[Idx(1, 0, 0)] = 1;
+        for (var y = 1; y <= 4; y++) blocks[Idx(1, y, 0)] = 9;    // water from 1 to 4
+        blocks[Idx(2, 5, 0)] = 106;                               // a single vine
+        blocks[Idx(3, 5, 0)] = 1;                                 // stone is no lift
+        var section = new NbtCompound
+        {
+            new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]),
+        };
+        var chunk = new AnvilRegion.Chunk(0, 0, new NbtCompound("Level") { new NbtList("Sections", new[] { section }) });
+
+        var runs = FeatureExtractors.LiftRuns([chunk]).Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)).ToHashSet();
+        await Assert.That(runs.SetEquals(new[] { (0, 0, 3, 9), (1, 0, 1, 5), (2, 0, 5, 5) })).IsTrue();
+    }
+
+    [Test]
+    public async Task A_banner_is_read_with_its_dye_its_patterns_and_the_way_it_faces()
+    {
+        var blocks = new byte[4096];
+        var data = new byte[2048];
+        blocks[Idx(1, 5, 1)] = 176;                               // a standing banner turned a quarter (data 4)
+        Nibble(data, Idx(1, 5, 1), 4);
+        blocks[Idx(3, 6, 2)] = 177;                               // a wall banner facing east (data 5)
+        Nibble(data, Idx(3, 6, 2), 5);
+        var tiles = new NbtList("TileEntities", NbtTagType.Compound)
+        {
+            Banner(1, 5, 1, dye: 4, new NbtCompound { new NbtString("Pattern", "bs"), new NbtInt("Color", 15) }),
+            Banner(3, 6, 2, dye: 14),
+            Banner(7, 5, 7, dye: 1),                              // a leftover over air
+        };
+        var section = new NbtCompound { new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", data) };
+        var chunk = new AnvilRegion.Chunk(0, 0, new NbtCompound("Level") { new NbtList("Sections", new[] { section }), tiles });
+
+        var banners = FeatureExtractors.Banners([chunk]).ToList();
+
+        await Assert.That(banners.Count).IsEqualTo(2);
+        var standing = banners.Single(banner => !banner.Wall);
+        await Assert.That((standing.WorldX, standing.WorldY, standing.WorldZ, standing.Facing)).IsEqualTo((1, 5, 1, 4));
+        await Assert.That(standing.Color).IsEqualTo("blue").Because("banner dye 4 is wool colour 11");
+        await Assert.That(standing.Patterns).IsEquivalentTo(new[] { "bs:white" });
+        var wall = banners.Single(banner => banner.Wall);
+        await Assert.That((wall.Facing, wall.Color)).IsEqualTo((5, "orange"));
+
+        // Two values a byte: an even index in the low half, an odd one in the high half.
+        static void Nibble(byte[] packed, int index, int value) =>
+            packed[index >> 1] |= (byte)((index & 1) == 0 ? value : value << 4);
+
+        static NbtCompound Banner(int x, int y, int z, int dye, params NbtCompound[] patterns) => new()
+        {
+            new NbtString("id", "Banner"), new NbtInt("x", x), new NbtInt("y", y), new NbtInt("z", z),
+            new NbtInt("Base", dye), new NbtList("Patterns", patterns, NbtTagType.Compound),
+        };
+    }
 }

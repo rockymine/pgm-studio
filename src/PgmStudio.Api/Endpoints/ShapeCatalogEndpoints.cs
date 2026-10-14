@@ -40,7 +40,7 @@ public sealed class ShapeCatalogEndpoint : EndpointWithoutRequest<CatalogPage>
             .Where(s => tiers.Count == 0 || tiers.Contains(TierToken(s.Tier)))
             .Where(s => families.Count == 0 || families.Contains(s.Family))
             .Select(s => new CatalogShapeDto(
-                s.Id, s.Kind, s.Family, TierToken(s.Tier), s.BoxW, s.BoxH, s.CorridorCells,
+                s.Id, s.Kind, s.Family, TierToken(s.Tier), s.BoxW, s.BoxH, s.LaneWidth,
                 s.Knobs, s.Note, PlanBoardSvg.Render(s.Plan, CardScale)))
             .ToList();
 

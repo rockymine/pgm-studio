@@ -38,11 +38,11 @@ public partial class CatalogTool
     private readonly HashSet<string> tierFilter = [];
     private readonly HashSet<string> familyFilter = [];
 
-    /// <summary>The box kinds a shape can fill. Spawn boxes reuse the approach families at the map's lane
+    /// <summary>The box kinds a shape can fill. Spawn boxes reuse the wool forms at the map's lane
     /// width rather than adding forms of their own, so they are not a separate row yet.</summary>
     private static readonly (string Token, string Label, string Hint)[] Kinds =
     [
-        ("wool", "Wool approach", "The path of land leading from a team's side to a wool room."),
+        ("wool", "Wool", "The path of land leading from a team's side to a wool room."),
         ("hub", "Hub", "The central area of a team's side, which the spawn, the wool approaches, and the front line connect to. Its edge widths decide which shapes can attach to it."),
         ("frontline", "Front line", "The edge of a team's land that faces the enemy across the gap. Players build bridges from here."),
     ];
@@ -60,8 +60,7 @@ public partial class CatalogTool
     /// grid reads as a progression rather than alphabetically.</summary>
     private static readonly string[] FamilyOrderTokens =
     [
-        "i", "l", "z", "scythe", "u", "h", "clamp", "donut",
-        "bar", "single", "twin", "ring", "p", "g", "double-hole",
+        "i", "l", "z", "scythe", "u", "h", "clamp", "donut", "e", "p", "g", "double-hole", "two-u",
     ];
 
     protected override async Task OnInitializedAsync()
@@ -119,8 +118,12 @@ public partial class CatalogTool
     }
 
     /// <summary>A family token as a name: a one-letter family stays a capital letter, a word is capitalised.</summary>
-    private static string FamilyLabel(string family) =>
-        family.Length == 0 ? family : char.ToUpperInvariant(family[0]) + family[1..];
+    private static string FamilyLabel(string family) => family switch
+    {
+        "" => family,
+        "two-u" => "Two-U",
+        _ => char.ToUpperInvariant(family[0]) + family[1..],
+    };
 
     private static string KindLabel(string kind) =>
         Kinds.FirstOrDefault(k => k.Token == kind).Label ?? kind;
@@ -142,7 +145,7 @@ public partial class CatalogTool
     private bool probeOpen;
 
     private string probeFamily = "i";
-    private int probeW = 8, probeH = 8, probeCw = 2, probeAttachW;
+    private int probeW = 8, probeH = 8, probeLaneWidth = 2, probeAttachW;
     private string probeMouth = "Top";
     private bool probeFlip, probeSideTuck, probeWoolAtEnd;
 
@@ -170,7 +173,7 @@ public partial class CatalogTool
         if (shape.Kind == "wool") probeFamily = shape.Family;
         probeW = shape.BoxW;
         probeH = shape.BoxH;
-        probeCw = shape.CorridorCells;
+        probeLaneWidth = shape.LaneWidth;
         probeMouth = "Top";
         probeFlip = shape.Knobs.Contains("flipped");
         probeSideTuck = shape.Knobs.Contains("side-tuck");
@@ -208,7 +211,7 @@ public partial class CatalogTool
     {
         var mine = ++probeGeneration;
         var query =
-            $"api/shapes/probe?family={probeFamily}&w={probeW}&h={probeH}&cw={probeCw}&mouth={probeMouth}" +
+            $"api/shapes/probe?family={probeFamily}&w={probeW}&h={probeH}&laneWidth={probeLaneWidth}&mouth={probeMouth}" +
             $"&flip={probeFlip}&sideTuck={probeSideTuck}&woolAtEnd={probeWoolAtEnd}&attachW={probeAttachW}";
         try
         {
@@ -246,6 +249,6 @@ public partial class CatalogTool
 
     private Task OnWidth(double value) { probeW = (int)value; return Emit(); }
     private Task OnHeight(double value) { probeH = (int)value; return Emit(); }
-    private Task OnCorridor(double value) { probeCw = (int)value; return Emit(); }
+    private Task OnLaneWidth(double value) { probeLaneWidth = (int)value; return Emit(); }
     private Task OnAttachW(double value) { probeAttachW = (int)value; return Emit(); }
 }

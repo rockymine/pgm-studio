@@ -356,7 +356,7 @@ public sealed class PlanZone
 }
 
 /// <summary>A <b>box</b>: the typed envelope grouping the pieces that realize one part of the partition —
-/// a wool approach, the spawn, the hub body, the frontline, the mid. <see cref="Rect"/> is <c>[x, z, w, h]</c>
+/// a wool approach, the spawn, the hub compound, the frontline, the mid. <see cref="Rect"/> is <c>[x, z, w, h]</c>
 /// in cells, drawn around its members rather than filled by them (boxes may overlap; a box's contents need
 /// not fill it solid).
 ///
@@ -370,7 +370,7 @@ public sealed class PlanBox
     /// <summary>What the editor and the reporting tools call this box.</summary>
     [JsonPropertyName("id")]      public string Id { get; set; } = "";
 
-    /// <summary>Which part of the partition its pieces realize — a spawn or wool approach, the hub body they
+    /// <summary>Which part of the partition its pieces realize — a spawn or wool approach, the hub compound they
     /// seat on, the frontline that fronts it, or the mid between the fanned images.</summary>
     [WordSet(typeof(PlanBoxKinds))]
     [JsonPropertyName("kind")]    public string Kind { get; set; } = PlanBoxKinds.Mid;
@@ -391,7 +391,7 @@ public sealed class PlanBox
 /// <em>refer</em> to one: a validator finding could name only the piece a marker sat on, and an agent holding
 /// "the second core" loses its reference the moment a different core is deleted.
 /// <para><see cref="Piece"/> is empty for a destroyable or a core placed by absolute board position
-/// (<see cref="DestroyablePlacement"/>/<see cref="CorePlacement"/>) — the one exception to "the piece it
+/// (<see cref="DestroyableMarker"/>/<see cref="CoreMarker"/>) — the one exception to "the piece it
 /// stands on", since those two need not stand on a piece at all.</para>
 /// </summary>
 public interface IPlanMarker
@@ -406,19 +406,19 @@ public interface IPlanMarker
 public sealed class PlanPlacements
 {
     /// <summary>Where the team enters the board.</summary>
-    [JsonPropertyName("spawns")]       public List<SpawnPlacement> Spawns { get; set; } = [];
+    [JsonPropertyName("spawns")]       public List<SpawnMarker> Spawns { get; set; } = [];
 
     /// <summary>The wools this team must capture, each on the piece that holds its room.</summary>
-    [JsonPropertyName("wools")]        public List<WoolPlacement> Wools { get; set; } = [];
+    [JsonPropertyName("wools")]        public List<WoolMarker> Wools { get; set; } = [];
 
     /// <summary>The resource markers — iron inside a spawn piece renews itself.</summary>
-    [JsonPropertyName("iron")]         public List<IronPlacement> Iron { get; set; } = [];
+    [JsonPropertyName("iron")]         public List<IronMarker> Iron { get; set; } = [];
 
     /// <summary>The DTM goals this team defends, each an anchor column the structure floats above.</summary>
-    [JsonPropertyName("destroyables")] public List<DestroyablePlacement> Destroyables { get; set; } = [];
+    [JsonPropertyName("destroyables")] public List<DestroyableMarker> Destroyables { get; set; } = [];
 
     /// <summary>The DTC goals this team defends, each an anchor column the structure floats above.</summary>
-    [JsonPropertyName("cores")]        public List<CorePlacement> Cores { get; set; } = [];
+    [JsonPropertyName("cores")]        public List<CoreMarker> Cores { get; set; } = [];
 
     /// <summary>How many capture points the board is played for, or absent for a board played for none.
     ///
@@ -449,7 +449,7 @@ public sealed class PlanPlacements
 /// orbit image. The offset
 /// is in blocks on a half-block lattice (0.5 steps) so a marker can sit at a block centre; whole
 /// integers (the common case) round-trip verbatim.</summary>
-public sealed class SpawnPlacement : IPlanMarker
+public sealed class SpawnMarker : IPlanMarker
 {
     /// <summary>What a finding indicts this marker by, and what an agent holding a reference to it names.
     /// Minted by the editor where the author does not state one.</summary>
@@ -481,7 +481,7 @@ public sealed class SpawnPlacement : IPlanMarker
 
 /// <summary>A wool on <see cref="Piece"/> at piece-relative block offset <see cref="At"/>. <see cref="Color"/> is optional;
 /// empty = auto (the team's first wool takes the team colour, later wools take distinct dyes).</summary>
-public sealed class WoolPlacement : IPlanMarker
+public sealed class WoolMarker : IPlanMarker
 {
     /// <summary>What a finding indicts this marker by, and what an agent holding a reference to it names.
     /// Minted by the editor where the author does not state one.</summary>
@@ -507,7 +507,7 @@ public sealed class WoolPlacement : IPlanMarker
 }
 
 /// <summary>An iron (resource) marker on <see cref="Piece"/> at piece-relative block offset <see cref="At"/>.</summary>
-public sealed class IronPlacement : IPlanMarker
+public sealed class IronMarker : IPlanMarker
 {
     /// <summary>What a finding indicts this marker by, and what an agent holding a reference to it names.
     /// Minted by the editor where the author does not state one.</summary>
@@ -537,7 +537,7 @@ public sealed class IronPlacement : IPlanMarker
 /// corpus's own centre of mass — a bare <c>{ piece, at }</c> or <c>{ at }</c> is a valid, typical
 /// destroyable.</para>
 /// </summary>
-public sealed class DestroyablePlacement : IPlanMarker
+public sealed class DestroyableMarker : IPlanMarker
 {
     /// <summary>What a finding indicts this marker by, and what an agent holding a reference to it names.
     /// Minted by the editor where the author does not state one.</summary>
@@ -580,7 +580,7 @@ public sealed class DestroyablePlacement : IPlanMarker
 /// players must dig — <c>max(0, leak − float)</c>. Setting one without the other says nothing, so authoring
 /// either requires both.</para>
 /// </summary>
-public sealed class CorePlacement : IPlanMarker
+public sealed class CoreMarker : IPlanMarker
 {
     /// <summary>What a finding indicts this marker by, and what an agent holding a reference to it names.
     /// Minted by the editor where the author does not state one.</summary>

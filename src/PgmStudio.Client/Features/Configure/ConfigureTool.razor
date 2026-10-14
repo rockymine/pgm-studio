@@ -16,7 +16,7 @@
 }
 else
 {
-<ConfigureLayout MapName="@mapName" Slug="@Slug" ActivePhaseId="@Phase.Id" Phases="@phases" Furthest="@furthest"
+<ConfigureLayout MapName="@mapName" Slug="@Slug" ActivePhaseId="@Phase.Id" Phases="@phases" Furthest="@furthest" Reach="@Reach"
               PhaseIcon="@Phase.Icon" PhaseTitle="@Phase.Title"
               Steps="@Phase.Steps" CurrentStep="@step" SaveStatus="@SaveStatus"
               BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
@@ -109,6 +109,18 @@ else
   else if (Phase.Id == "cores" && step == 1)
   {
     <CoreCasingStep @key="@("cores-casing")" />
+  }
+  else if (Phase.Id == "flags" && step == 0)
+  {
+    <FlagPostsStep @key="@("flags-posts")" />
+  }
+  else if (Phase.Id == "score")
+  {
+    <ScoreBoxesStep @key="@("score-boxes")" />
+  }
+  else if (Phase.Id == "match")
+  {
+    <MatchPhase @key="@Phase.Id" />
   }
   else if (Phase.Id == "review" && step == 0)
   {

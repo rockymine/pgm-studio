@@ -49,7 +49,7 @@ public sealed record FrontlineEdge(string Piece, string Zone, int X1, int Z1, in
 /// </summary>
 public sealed class ContactGraph
 {
-    /// <summary>Minimum corridor width (blocks): a shared border at least this long is a full-width
+    /// <summary>Minimum lane width (blocks): a shared border at least this long is a full-width
     /// <see cref="ContactKind.Land"/> interface; a shorter positive border is a <see cref="ContactKind.Narrow"/>
     /// seam — still a walkable connection, just too thin to fight through (corridor quality, not connectivity,
     /// is judged later on the assembled footprint).</summary>
@@ -545,26 +545,13 @@ public sealed class ContactGraph
     /// <summary>The orbit order of the plan's symmetry mode (team count).</summary>
     public int Order => Symmetry.Order(Mode);
 
-    /// <summary>The k-th orbit image of a point about the centre: image 0 is the identity, images 1..n−1 apply
-    /// the mode's concrete orbit axes in turn (so rot_180/mirror get a real identity that
-    /// <see cref="Symmetry.Point"/>'s k-agnostic form does not).</summary>
-    public (double X, double Z) FanPoint(double x, double z, int k)
-    {
-        if (k == 0) return (x, z);
-        var axes = Symmetry.OrbitAxes(Mode);
-        return k - 1 < axes.Length ? Symmetry.Apply(x, z, axes[k - 1], 0, 0) : (x, z);
-    }
+    /// <summary>The k-th orbit image of a point about the centre; image 0 is the point itself.</summary>
+    public (double X, double Z) FanPoint(double x, double z, int k) => Symmetry.Point(x, z, Mode, 0, 0, k);
 
-    /// <summary>The k-th orbit image of a block rect (four corners fanned and re-bounded), rounded to ints.</summary>
+    /// <summary>The k-th orbit image of a block rect, rounded to whole blocks.</summary>
     public BlockRect FanRect(BlockRect r, int k)
     {
-        (double x, double z)[] c =
-        [
-            FanPoint(r.MinX, r.MinZ, k), FanPoint(r.MinX, r.MaxZ, k),
-            FanPoint(r.MaxX, r.MinZ, k), FanPoint(r.MaxX, r.MaxZ, k),
-        ];
-        return new BlockRect(
-            (int)Math.Round(c.Min(p => p.x)), (int)Math.Round(c.Min(p => p.z)),
-            (int)Math.Round(c.Max(p => p.x)), (int)Math.Round(c.Max(p => p.z)));
+        var (minX, minZ, maxX, maxZ) = Symmetry.Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ, Mode, 0, 0, k);
+        return new BlockRect((int)Math.Round(minX), (int)Math.Round(minZ), (int)Math.Round(maxX), (int)Math.Round(maxZ));
     }
 }

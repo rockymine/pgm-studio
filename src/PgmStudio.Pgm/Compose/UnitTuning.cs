@@ -12,7 +12,7 @@ public static class UnitTuning
 {
     // ── the size ladders: the widths and shares a band buys ───────────────────────────────────────────────
 
-    /// <summary>The map-wide corridor width in <b>blocks</b>, per size band — measured as where a CTW map's
+    /// <summary>The map-wide lane width in <b>blocks</b>, per size band — measured as where a CTW map's
     /// ground actually sits (<c>docs/world-scan/map-size-ladder.md</c>): the modal local thickness runs
     /// 8 · 10 · 14 · 16 from the smallest maps up to the top of the ladder, and the quartile a working lane
     /// sits at is 8 · 12 · 14 · 16. Every non-wool box builds to this width (LN1).</summary>
@@ -24,16 +24,16 @@ public static class UnitTuning
         _ => 12,
     };
 
-    /// <summary>The map-wide corridor width in cells: <see cref="CorridorBlocks"/> laid on a
+    /// <summary>The map-wide lane width in cells: <see cref="CorridorBlocks"/> laid on a
     /// <paramref name="cell"/>-block grid, rounded to the nearest whole cell and never under two. Rounded
     /// rather than ceilinged because the width is a target and not a floor — a 10-block lane is nearer a
     /// 12-block target than a 15-block one — and the floor of two keeps every grid at a corridor a player
     /// can fight in.</summary>
-    internal static int CorridorCells(string band, int cell) =>
+    internal static int LaneWidth(string band, int cell) =>
         Math.Max(2, (int)Math.Round(CorridorBlocks(SizeBands.Canonical(band)) / (double)cell,
                                     MidpointRounding.AwayFromZero));
 
-    /// <summary>The <b>wool approach's</b> corridor width in blocks, per band — one rung below the map's
+    /// <summary>The <b>wool approach's</b> lane width in blocks, per band — one rung below the map's
     /// (<see cref="CorridorBlocks"/>), because the ground beside a goal is the tightest on the board and the
     /// corpus's narrow quartile is where a goal approach sits.</summary>
     internal static int WoolCorridorBlocks(string band) => band switch
@@ -44,10 +44,10 @@ public static class UnitTuning
         _ => 10,
     };
 
-    /// <summary>The wool approach's corridor width in cells on a <paramref name="cell"/>-block grid, never
-    /// under <see cref="WoolLaneFloorCells"/>.</summary>
-    internal static int WoolCorridorCells(string band, int cell) =>
-        Math.Max(WoolLaneFloorCells,
+    /// <summary>The wool approach's lane width in cells on a <paramref name="cell"/>-block grid, never
+    /// under <see cref="WoolLaneWidthFloor"/>.</summary>
+    internal static int WoolLaneWidth(string band, int cell) =>
+        Math.Max(WoolLaneWidthFloor,
                  (int)Math.Round(WoolCorridorBlocks(SizeBands.Canonical(band)) / (double)cell,
                                  MidpointRounding.AwayFromZero));
 
@@ -81,7 +81,7 @@ public static class UnitTuning
     /// bought — the aspect is the draw, the spend is not.</summary>
     internal const double HubAspectHigh = 2.4;
 
-    /// <summary>The share of a box's footprint that comes out as <b>land</b> once a body is emitted into it:
+    /// <summary>The share of a box's footprint that comes out as <b>land</b> once a compound is emitted into it:
     /// a solid rectangle spends all of it, a ring, a branch or a donut keeps a hole. The allocator can only
     /// aim in footprints, so a unit's footprint allowance is its land budget over this.</summary>
     internal const double FootprintLandYield = 0.75;
@@ -89,13 +89,13 @@ public static class UnitTuning
     /// <summary>The band a unit's built land must fall in against its budget, as a fraction of it — below
     /// <see cref="SpendFloor"/> the attempt left land unplaced, above <see cref="SpendCeiling"/> it built a
     /// board bigger than the band. Either resamples. The band is wide because a box's footprint is the only
-    /// currency the allocator can aim in and a holed body's land is a fifth less than its footprint.</summary>
+    /// currency the allocator can aim in and a holed compound's land is a fifth less than its footprint.</summary>
     public const double SpendFloor = 0.70;
 
     /// <summary>The upper end of that band.</summary>
     public const double SpendCeiling = 1.30;
 
-    // ── the shape mix: which bodies a box may be ───────────────────────────────────────────────────────────
+    // ── the shape mix: which compounds a box may be ───────────────────────────────────────────────────────────
 
     /// <summary>The narrowest a composed hub hole is, in cells on a <paramref name="cell"/>-block grid:
     /// <c>LN6</c>'s floor for a hole touching no goal (<see cref="PlanValidator.MinPlainSpaceBlocks"/>),
@@ -103,13 +103,13 @@ public static class UnitTuning
     internal static int HubHoleCells(int cell) =>
         (PlanValidator.MinPlainSpaceBlocks + cell - 1) / cell;
 
-    /// <summary>The smallest hub dimension a <b>ring</b> fits in at corridor width
-    /// <paramref name="corridorCells"/> — two walls and a hole of <see cref="HubHoleCells"/>. A hub at least this
+    /// <summary>The smallest hub dimension a <b>ring</b> fits in at lane width
+    /// <paramref name="laneWidth"/> — two walls and a hole of <see cref="HubHoleCells"/>. A hub at least this
     /// big on both axes is a "big square" and prefers negative space to solid area.</summary>
-    internal static int RingFitCells(int corridorCells, int cell) => 2 * corridorCells + HubHoleCells(cell);
+    internal static int RingFitCells(int laneWidth, int cell) => 2 * laneWidth + HubHoleCells(cell);
 
     /// <summary>Of big-square hubs, how often the form is the <b>ring</b> specifically rather than another
-    /// negative-space body. The ring's void always fits and survives a frontline, so it carries most of them.</summary>
+    /// negative-space compound. The ring's void always fits and survives a frontline, so it carries most of them.</summary>
     internal const double RingChance = 0.85;
 
     /// <summary>Of ring-bodied hubs whose box has the slack for it, how often <b>one</b> wall comes out wider than
@@ -128,7 +128,7 @@ public static class UnitTuning
 
     /// <summary>The hub's box dims in cells for a hub owed <paramref name="hubTargetCells"/> of footprint at
     /// lateral-to-depth <paramref name="aspect"/>, on a board whose corridor is
-    /// <paramref name="corridorCells"/>: the lateral (cross-axis) <c>Wide</c> span and the <c>Deep</c> depth
+    /// <paramref name="laneWidth"/>: the lateral (cross-axis) <c>Wide</c> span and the <c>Deep</c> depth
     /// toward the axis. The aspect is what varies between boards and the area is what the share fixed, so a
     /// hub spends what it was given whatever shape it comes out.
     ///
@@ -136,22 +136,22 @@ public static class UnitTuning
     /// a hub needs to come out a loop rather than a slab, and the lateral span is capped so the floor never
     /// pushes the box past its share. A shallower hub can only be solid however holed a form it is handed: its
     /// hole would be narrower than a lane.</para></summary>
-    internal static (int Deep, int Wide) HubBoxCells(double hubTargetCells, double aspect, int corridorCells)
+    internal static (int Deep, int Wide) HubBoxCells(double hubTargetCells, double aspect, int laneWidth)
     {
         var target = Math.Max(1.0, hubTargetCells);
-        var minDeep = 3 * corridorCells;
-        var minWide = corridorCells + 2;
+        var minDeep = 3 * laneWidth;
+        var minWide = laneWidth + 2;
         var wide = Math.Clamp((int)Math.Round(Math.Sqrt(target * Math.Max(1.0, aspect))),
                               minWide, Math.Max(minWide, (int)(target / minDeep)));
         var deep = Math.Max(minDeep, (int)Math.Round(target / wide));
         return (deep, wide);
     }
 
-    /// <summary>The box width at or above which a hub is <b>wide enough for the holed wide bodies</b> at
-    /// corridor width <paramref name="corridorCells"/> — the P (loop + overhanging bar) and the Double-hole
-    /// (ring + docked U) each keep a bar beside their ring, so <c>w − 2·cw</c> has to fit a ring
+    /// <summary>The box width at or above which a hub is <b>wide enough for the holed wide compounds</b> at
+    /// lane width <paramref name="laneWidth"/> — the P (loop + overhanging bar) and the Double-hole
+    /// (ring + docked U) each keep a bar beside their ring, so <c>w − 2·laneWidth</c> has to fit a ring
     /// (<see cref="RingFitCells"/>). Below it the compact menu is used.</summary>
-    internal static int WideHubCells(int corridorCells, int cell) => 2 * corridorCells + RingFitCells(corridorCells, cell);
+    internal static int WideHubCells(int laneWidth, int cell) => 2 * laneWidth + RingFitCells(laneWidth, cell);
 
     // ── the shape mix: how often each wool shape is sampled ────────────────────────────────────────────────
 
@@ -190,15 +190,15 @@ public static class UnitTuning
 
     /// <summary>The narrowest a wool lane may be at all, in cells — the <b>producible floor</b> a plan is
     /// gated against, not the width a composed wool is built to (that is
-    /// <see cref="WoolCorridorCells"/>, which rises with the band). Two cells is one corridor a player can
+    /// <see cref="WoolLaneWidth"/>, which rises with the band). Two cells is one corridor a player can
     /// fight in on any grid.</summary>
-    internal const int WoolLaneFloorCells = 2;
+    internal const int WoolLaneWidthFloor = 2;
 
     /// <summary>The widest hub-entry a donut may sample, in cells — the min-only entry (one corridor) read as a
     /// chokepoint, so the attachment stub varies up to this along the hub edge. Never under the wool lane it is
     /// sampled from: the lane derives from the band and the grid, so a ceiling stated in cells can fall below it,
     /// and an empty sample range throws rather than refusing the attempt.</summary>
-    internal static int DonutEntryMaxCells(int woolLaneCells) => Math.Max(woolLaneCells, 5);
+    internal static int DonutEntryMaxCells(int woolLaneWidth) => Math.Max(woolLaneWidth, 5);
 
     /// <summary>The donut's enclosed hole cap <b>along</b> the hub edge (the ring's mouth-side extent), in cells.
     /// Its legs run along it, so it is sampled from <see cref="WallPlacer.LaneCells"/> — the leg a wall crosses a
@@ -209,7 +209,7 @@ public static class UnitTuning
     /// the sampled growth reaches 3×5 — the box grows and the emitter's ring absorbs it (its span derives from
     /// the box). Floored at the wool lane for the same reason
     /// <see cref="DonutEntryMaxCells"/> is.</summary>
-    internal static int DonutHoleDeepMaxCells(int woolLaneCells) => Math.Max(woolLaneCells, 5);
+    internal static int DonutHoleDeepMaxCells(int woolLaneWidth) => Math.Max(woolLaneWidth, 5);
 
     /// <summary>The clearance kept between a docked neighbour and each hub <b>corner</b>, in cells. Zero under the
     /// mass-level corner law: two neighbours on adjacent hub sides meet only at the hub's own corner cell, which
@@ -245,7 +245,7 @@ public static class UnitTuning
             : (rng.NextBool(ThirdWoolChance) ? WoolCounts.Max : WoolCounts.Max - 1);
 
     /// <summary>Assign each of <paramref name="woolCount"/> wools a hub side, given the <paramref name="spawn"/>'s
-    /// side. The two free body sides (back and the sides, minus the spawn's, <b>back first</b>) take a wool each;
+    /// side. The two free compound sides (back and the sides, minus the spawn's, <b>back first</b>) take a wool each;
     /// a third wool doubles up on the spawn's side. Front is never a wool side (it is the frontline's).</summary>
     public static IReadOnlyList<UnitSide> AssignWools(UnitSide spawn, int woolCount)
     {

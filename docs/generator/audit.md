@@ -59,12 +59,11 @@ Re-verified against `TeamUnitAllocator.cs`, 2026-07-27; the code it cites moved 
 
 | allocator rule | law | verdict |
 |---|---|---|
-| `WoolLaneFloorCells = 2` | LN1 + `model.md` §2 ("the lane to the wool is simple, w2") | **grounded** as a producible floor |
+| `WoolLaneWidthFloor = 2` | LN1 + `model.md` §2 ("the lane to the wool is simple, w2") | **grounded** as a producible floor |
 | `CorridorBlocks` / `WoolCorridorBlocks` per band | G2, measured as the local thickness of 359 built maps | **grounded** |
 | `WoolLengthRatio = 3` | LN2 (20–50 blocks before a junction/dead end) | **grounded** on the lower bound; the 50 cap is unimplemented |
 | `CornerClearanceCells = 0` | the mass-level corner law | **vestigial** — it documents rather than acts (see below) |
-| the frontline joint's `faceWidth` | FR6 (split vs wide, band docks flush) | right kind (**offer**), law partially served |
-| `RingFitCells(cw, cell)`, `WideHubCells(cw, cell)` | geometry (a ring is two walls and a hole; a docked bar keeps one beside it) and `LN6`'s 12-block floor for a plain hole | **grounded** — derived from the corridor and the rule rather than stated |
+| `RingFitCells(laneWidth, cell)`, `WideHubCells(laneWidth, cell)` | geometry (a ring is two walls and a hole; a docked bar keeps one beside it) and `LN6`'s 12-block floor for a plain hole | **grounded** — derived from the corridor and the rule rather than stated |
 | `HubBoxCells` — area from the share, aspect sampled | none — HB1 constrains *width*, not box size | area **grounded** in G8 through the share; the 1.3–2.4 aspect is **invented** |
 | the box shares (`FrontlineShare`, `WoolShare`, `HubMinShare`) | G8 gives the total, nothing splits it | total **grounded**, the split **invented** |
 | `WoolCount` per band | WL6 gives 1–3; the corpus gives 1 at nano and 2 above | **grounded** |
@@ -90,7 +89,7 @@ Measured over 400 seeds × 4 presets on the **placed rooms** (not the boxes), in
   distances are resolved downstream by scale and roughen, so an absolute block comparison is not
   decisive alone. The distributional argument survives it: this is not a constant offset, it is a
   narrower spread sitting at the corpus floor. The seat gap does **not** achieve WL7 — that is a
-  marker-to-marker *traversal* spread, not a body-adjacency floor, so it belongs with the
+  marker-to-marker *traversal* spread, not a compound-adjacency floor, so it belongs with the
   hub-growth / budget work that gives boxes room to spread. → **G110**
 - **WL2 — wool↔spawn ≥ 20. Fixed.** Was violated on the huge preset only (111/930 pairs under 20,
   min 12) by the third wool doubling onto the spawn's side. The seat-separation gap resolved it:
@@ -102,20 +101,14 @@ Measured over 400 seeds × 4 presets on the **placed rooms** (not the boxes), in
   different instrument — 480 composed boards through `GET /api/compose` (240 each at 12 and 20
   players, `rot_180`), cross-tabulating each board's hub form against its frontline form —
   **87 branch hubs carry a frontline at 12 players and every one takes the Bar; 14 of 14 at 20.**
-  The arm is not dead; it is the only outcome. What remains open on FR6 is the *grouping* (§5), not
-  whether the wide face can be reached.
+  The arm is not dead; it is the only outcome.
 
 ## 5. Rules sitting in the wrong layer
 
-Re-verified 2026-07-27 — both still present at `TeamUnitFiller.cs:137–143`.
+Still present in `TeamUnitFiller.Fill`, where the front line is filled.
 
-- **The offer grouping is decided by the filler, by coin flip** (`rng.NextBool(0.5) ? Joint :
-  Several`). Grouping is part of an **offer** (§7: "the intervals it invites neighbours
-  onto, *in which groupings*"), and offers are the allocator's plan — the allocator is what writes
-  joints. Worse, this is exactly **FR6**: joint vs several *is* wide vs split frontline, an authored
-  law. A coin flip stands in for it.
-- **The frontline's form choice is also the filler's.** `frontForm` picks Bar-for-branch-hub /
-  else staple-or-strand inside `TeamUnitFiller`, but form choice is declared the allocator's (§4, designations,
+- **The frontline's form choice is the filler's.** `frontForm` picks the I for a branch hub, else an L
+  or a U, inside `TeamUnitFiller`, but form choice is declared the allocator's (§4,
   and the allocator already owns the hub-form choice). The two halves of one decision — the hub form
   and the form that answers it — sit on opposite sides of the allocate/fill seam. → **G111**
 
@@ -124,7 +117,7 @@ Re-verified 2026-07-27 — both still present at `TeamUnitFiller.cs:137–143`.
 On L/U hubs **without a frontline**, wool and spawn lanes can sit flush against the legs' walls. The
 hub's remaining free surface is exactly where build regions attach in later stages, so a build region
 would land touching the lane. Mechanism: a dock flush against a **non-corner run end** — a run ends
-mid-edge only where the body's mass stops, so that end is a leg's wall and gets no inset by design.
+mid-edge only where the compound's mass stops, so that end is a leg's wall and gets no inset by design.
 
 Measured **23/3/1/1** units per 200 (small/mid/big/huge), and **every one a branch hub** — so the
 attribution is exact but the frequency is a small-board effect. Fix direction: a ≥1-cell margin

@@ -1,0 +1,68 @@
+@namespace PgmStudio.Client.Features.Configure
+
+@* Match phase body: how the match ends, how players respawn, and the combat rules (docs/pgm/match.md §7).
+   Every field is optional; a blank field takes the map's default. *@
+
+<Workspace>
+  <ContentColumn MaxWidth="720">
+
+    <Section Title="Match end">
+      <div class="section-body">
+        <Field Label="Score limit">
+          <NumberField Value="@scoreLimit" Min="0" Max="100000" placeholder="Default"
+                       ValueChanged="@(value => { scoreLimit = (int)value; Sync(); })"
+                       OnCleared="@(() => { scoreLimit = null; Sync(); })" />
+        </Field>
+        <div class="field-row">
+          <Field Label="Time limit">
+            <input class="field-input" type="text" placeholder="e.g. 10m" value="@duration"
+                   @onchange="@(e => { duration = (e.Value?.ToString() ?? "").Trim(); Sync(); })" />
+          </Field>
+          <Field Label="Winner at time limit">
+            <Select Slim="false" Options="@ResultOptions" Value="@result" ValueChanged="@(value => { result = value; Sync(); })" />
+          </Field>
+        </div>
+      </div>
+    </Section>
+
+    <Section Title="Respawn">
+      <div class="section-body">
+        <div class="field-row">
+          <Field Label="Respawn time">
+            <input class="field-input" type="text" placeholder="2s" value="@delay"
+                   @onchange="@(e => { delay = (e.Value?.ToString() ?? "").Trim(); Sync(); })" />
+          </Field>
+          <Field Label="Auto respawn">
+            <Select Slim="false" Options="@YesNo" Value="@(auto ? Yes : No)" ValueChanged="@(value => { auto = value == Yes; Sync(); })" />
+          </Field>
+        </div>
+        <div class="field-row">
+          <Field Label="Spectate while dead">
+            <Select Slim="false" Options="@YesNo" Value="@(spectate ? Yes : No)" ValueChanged="@(value => { spectate = value == Yes; Sync(); })" />
+          </Field>
+          <Field Label="Lives">
+            <NumberField Value="@lives" Min="1" Max="100" placeholder="Unlimited"
+                         ValueChanged="@(value => { lives = (int)value; Sync(); })"
+                         OnCleared="@(() => { lives = null; Sync(); })" />
+          </Field>
+        </div>
+      </div>
+    </Section>
+
+    <Section Title="Combat">
+      <div class="section-body">
+        <div class="field-row">
+          <Field Label="Rage">
+            <Select Slim="false" Options="@YesNo" Value="@(rage ? Yes : No)" ValueChanged="@(value => { rage = value == Yes; Sync(); })" />
+          </Field>
+          <Field Label="Kill height">
+            <NumberField Value="@killHeight" Min="-64" Max="255" placeholder="None"
+                         ValueChanged="@(value => { killHeight = (int)value; Sync(); })"
+                         OnCleared="@(() => { killHeight = null; Sync(); })" />
+          </Field>
+        </div>
+      </div>
+    </Section>
+
+  </ContentColumn>
+</Workspace>

@@ -116,6 +116,11 @@ connection to `pgm_studio_test` (a module initializer forces `ConnectionStrings_
 an ambient dev-server value can't redirect the tests at the live DB) and shares one `[NotInParallel("api-db")]`
 group so no per-test schema reset overlaps another test.
 
+The Data suite's migration tests roll the schema back and apply it again, and the test database is kept between
+runs. MariaDB drops a column instantly, leaving it in the table's row format, so `SchemaMigrator.MigrateDown`
+rebuilds every table after a rollback; without that, a wide table such as `room_style` passes the 8126-byte row
+limit after a few dozen cycles and a later run fails with *Row size too large*.
+
 ## Block textures for `render/eye`
 
 `render/eye` draws with Minecraft's own block sprites, which the studio never ships (`docs/world-scan/read-backs.md`).

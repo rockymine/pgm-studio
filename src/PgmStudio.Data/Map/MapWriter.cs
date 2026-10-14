@@ -124,6 +124,13 @@ public sealed class MapWriter(PgmDb db)
         await db.Destroyables.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Cores.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.ControlPoints.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.Flags.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.FlagPosts.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.FlagNets.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.Portals.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.ScoreBoxes.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.Damage.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.MatchRules.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Shops.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Shopkeepers.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Scores.Where(x => x.MapId == mapId).DeleteAsync(ct);
@@ -148,7 +155,7 @@ public sealed class MapWriter(PgmDb db)
         {
             var kitId = await db.InsertWithInt64IdentityAsync(new KitRow
             {
-                MapId = mapId, KitKey = kit.Id, Force = kit.Force, Clear = kit.Clear,
+                MapId = mapId, KitKey = kit.Id, Force = kit.Force, Clear = kit.Clear, MaxHealth = kit.MaxHealth,
                 EffectsJson = kit.Effects.Count == 0 ? null
                     : Json(kit.Effects.Select(e => (object?)new Dict { ["type"] = e.Type, ["duration"] = e.Duration, ["amplifier"] = e.Amplifier }).ToList()),
             });
@@ -235,6 +242,19 @@ public sealed class MapWriter(PgmDb db)
                 ShowProgress = p.ShowProgress, Required = p.Required, Show = p.Show,
             }, token: ct);
 
+        foreach (var post in m.FlagPosts)
+            await db.InsertAsync(new FlagPostRow { MapId = mapId, SpecJson = Json(Serializer.EncodeFlagPost(post)) }, token: ct);
+        foreach (var flag in m.Flags)
+            await db.InsertAsync(new FlagRow { MapId = mapId, SpecJson = Json(Serializer.EncodeFlag(flag)) }, token: ct);
+        foreach (var net in m.FlagNets)
+            await db.InsertAsync(new FlagNetRow { MapId = mapId, SpecJson = Json(Serializer.EncodeFlagNet(net)) }, token: ct);
+        foreach (var portal in m.Portals)
+            await db.InsertAsync(new PortalRow { MapId = mapId, SpecJson = Json(Serializer.EncodePortal(portal)) }, token: ct);
+        if (m.Damage is { } damage)
+            await db.InsertAsync(new DamageRow { MapId = mapId, SpecJson = Json(Serializer.EncodeDamage(damage)) }, token: ct);
+        if (Serializer.EncodeMatchRules(m) is { Count: > 0 } rules)
+            await db.InsertAsync(new MatchRulesRow { MapId = mapId, SpecJson = Json(rules) }, token: ct);
+
         foreach (var shop in m.Shops)
             await db.InsertAsync(new ShopRow
             {
@@ -260,6 +280,8 @@ public sealed class MapWriter(PgmDb db)
                 Display = NullIfEmpty(score.Display), ScoreboardFilterKey = NullIfEmpty(score.ScoreboardFilterId),
                 King = score.King,
             }, token: ct);
+        foreach (var box in m.Score?.Boxes ?? [])
+            await db.InsertAsync(new ScoreBoxRow { MapId = mapId, SpecJson = Json(Serializer.EncodeScoreBox(box)) }, token: ct);
 
         foreach (var s in m.Spawns)
             await db.InsertAsync(new SpawnRow { MapId = mapId, IsObserver = false, Team = s.Team, Kit = NullIfEmpty(s.Kit), Yaw = s.Yaw, RegionKey = s.Region?.Id }, token: ct);

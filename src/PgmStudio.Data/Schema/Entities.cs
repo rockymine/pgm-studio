@@ -170,6 +170,7 @@ public sealed class KitRow
     [Column("force")] public bool? Force { get; set; }
     [Column("clear")] public bool? Clear { get; set; }
     [Column("effects_json")] public string? EffectsJson { get; set; }   // [{type,duration,amplifier}]
+    [Column("max_health")] public double? MaxHealth { get; set; }        // NULL = the kit states none
 }
 
 // An item of a kit: the slot, and the stack in it. The stack is one JSON object rather than a column per
@@ -328,6 +329,69 @@ public sealed class ScoreRow
     [Column("display")] public string? Display { get; set; }
     [Column("scoreboard_filter_key")] public string? ScoreboardFilterKey { get; set; }
     [Column("king"), NotNull] public bool King { get; set; }
+}
+
+/// <summary>A flag, a post declared beside the flags, or a net declared beside them (M0069): the whole
+/// statement as one JSON document in the map document's shape.</summary>
+[Table("flag")]
+public sealed class FlagRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
+}
+
+[Table("flag_post")]
+public sealed class FlagPostRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
+}
+
+[Table("flag_net")]
+public sealed class FlagNetRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
+}
+
+/// <summary>A portal (M0072): the whole statement as one JSON document in the map document's shape.</summary>
+[Table("portal")]
+public sealed class PortalRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
+}
+
+/// <summary>A map's damage module (M0073), one JSON document in the map document's shape.</summary>
+[Table("damage")]
+public sealed class DamageRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
+}
+
+/// <summary>A map's match rules (M0074) — its time limit, respawn rules, blitz, rage and kill rewards — as one
+/// JSON document holding the map document's keys for them.</summary>
+[Table("match_rules")]
+public sealed class MatchRulesRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
+}
+
+/// <summary>A score box (M0072), one JSON document in the map document's shape.</summary>
+[Table("score_box")]
+public sealed class ScoreBoxRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
 }
 
 // A shop and the whole tree under it. The categories are one JSON document rather than two more tables:
@@ -510,6 +574,21 @@ public sealed class CoreCandidateRow
     [Column("open_top"), NotNull] public bool OpenTop { get; set; }
 }
 
+/// <summary>A banner a scanned world holds (<c>flag_candidate</c>, M0071): where a flag could stand.</summary>
+[Table("flag_candidate")]
+public sealed class FlagCandidateRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("world_x"), NotNull] public int WorldX { get; set; }
+    [Column("world_y"), NotNull] public int WorldY { get; set; }
+    [Column("world_z"), NotNull] public int WorldZ { get; set; }
+    [Column("wall"), NotNull] public bool Wall { get; set; }
+    [Column("facing"), NotNull] public int Facing { get; set; }
+    [Column("color"), NotNull] public string Color { get; set; } = "";
+    [Column("patterns_json"), NotNull] public string PatternsJson { get; set; } = "[]";
+}
+
 /// <summary>A proposed destroyable (<c>destroyable_candidate</c>) — the mass's box, what it is made of, and
 /// the two neighbourhood readings that proposed it.</summary>
 [Table("destroyable_candidate")]
@@ -583,6 +662,19 @@ public sealed class FloorMarkRow
 /// opened by a walk where the map lets players break blocks in its column.</summary>
 [Table("door_run")]
 public sealed class DoorRunRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("world_x"), NotNull] public int WorldX { get; set; }
+    [Column("world_z"), NotNull] public int WorldZ { get; set; }
+    [Column("world_y_start"), NotNull] public int WorldYStart { get; set; }
+    [Column("world_y_end"), NotNull] public int WorldYEnd { get; set; }
+}
+
+/// <summary>A ladder, vine or water run (M0068), as the feet heights a player climbs or swims through in its
+/// column — a <c>WalkLift</c>.</summary>
+[Table("lift_run")]
+public sealed class LiftRunRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("map_id"), NotNull] public long MapId { get; set; }

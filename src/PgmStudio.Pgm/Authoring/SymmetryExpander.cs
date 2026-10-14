@@ -2,6 +2,7 @@ namespace PgmStudio.Pgm.Authoring;
 
 using PgmStudio.Domain;
 using PgmStudio.Geom;
+using PgmStudio.Vocabulary;
 
 /// <summary>
 /// Orbit-fill for the declarative intent (docs/pgm/new-map-authoring.md §3). Given an intent whose
@@ -23,9 +24,6 @@ using PgmStudio.Geom;
 /// </summary>
 public static class SymmetryExpander
 {
-    /// <summary>Suggested team count for a symmetry mode (§4): <c>rot_90</c>→4, everything else→2.</summary>
-    public static int SuggestedTeamCount(string mode) => Order(mode);
-
     /// <summary>Return an intent with teams (synthesized if absent), spawns/wools orbit-filled across all
     /// teams, and build areas orbited. No-op (returns the input) when there's no symmetry or an unknown
     /// mode.</summary>
@@ -34,7 +32,7 @@ public static class SymmetryExpander
         if (intent.Symmetry is not { } sym || string.IsNullOrWhiteSpace(sym.Mode)) return intent;
         if (!IsKnown(sym.Mode)) return intent;
 
-        var order = Order(sym.Mode);
+        var order = Symmetry.Order(sym.Mode);
         // Teams the author listed win; otherwise derive count from the symmetry and synthesize them (§4),
         // so "symmetry + one spawn" is a complete map. Orbit positions map onto this team list in order.
         var teams = intent.Teams is { Count: > 0 } provided ? provided : SynthesizeTeams(intent, order);
@@ -53,6 +51,9 @@ public static class SymmetryExpander
             Destroyables = FillDestroyables(intent.Destroyables, teams, sym, order),
             Cores = FillCores(intent.Cores, teams, sym, order),
             ControlPoints = FillControlPoints(intent.ControlPoints, sym, order),
+            Flags = FillFlags(intent.Flags, teams, sym, order),
+            ScoreBoxes = FillScoreBoxes(intent.ScoreBoxes, teams, sym, order),
+            Zones = FillZones(intent.Zones, teams, sym, order),
         };
     }
 
@@ -170,12 +171,12 @@ public static class SymmetryExpander
                     Reflected = src.Reflected != Symmetry.Reflects(sym.Mode, k),
                     Color = "",   // orbit copies default to the new owner team's colour (WoolGenerator.ColorSlug)
                     Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
-                    Spawn = TransformPt(src.Spawn, sym, k),
+                    Spawn = TransformBlock(src.Spawn, sym, k),
                     Monuments = [.. src.Monuments.Select(m => m with
                     {
                         // shift the capturing team by the same orbit step; transform its capture block
                         Team = RemapTeam(teams, m.Team, k),
-                        Location = TransformPt(m.Location, sym, k),
+                        Location = TransformBlock(m.Location, sym, k),
                     })],
                 });
             }
@@ -215,7 +216,7 @@ public static class SymmetryExpander
                     // PGM rejects a nameless destroyable, and one name for both teams reads as one goal —
                     // so the copy takes its new owner's, the same form the plan compiler mints.
                     Name = $"{owner.Name} Monument",
-                    Anchor = TransformPt(src.Anchor, sym, k),
+                    Anchor = TransformAnchor(src.Anchor, sym, k, DestroyableFootprint(src.Style)),
                     Box = TransformBox(src.Box, sym, k),
                 });
             }
@@ -244,9 +245,58 @@ public static class SymmetryExpander
                 {
                     Owner = owner.Id,
                     Stamp = src.Stamp.At(k),
-                    Anchor = TransformPt(src.Anchor, sym, k),
+                    Anchor = TransformAnchor(src.Anchor, sym, k, ObjectiveFootprint.Core(src.Size)),
                     Box = TransformBox(src.Box, sym, k),
                 });
+            }
+        }
+        return result;
+    }
+
+    /// <summary>Score boxes stated for one team, fanned onto every other team's image of the box as a core is:
+    /// a team already holding a box keeps its own.</summary>
+    public static List<ScoreBoxIntent>? FillScoreBoxes(List<ScoreBoxIntent>? authored, List<TeamDef> teams, SymmetryIntent sym) =>
+        IsKnown(sym.Mode) ? FillScoreBoxes(authored, teams, sym, Symmetry.Order(sym.Mode)) : authored;
+
+    private static List<ScoreBoxIntent>? FillScoreBoxes(
+        List<ScoreBoxIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
+    {
+        if (authored is null) return null;
+        var result = new List<ScoreBoxIntent>(authored);
+        var have = new HashSet<string>(authored.Select(box => box.Team));
+        foreach (var src in authored)
+        {
+            var index = IndexOfTeam(teams, src.Team);
+            if (index < 0) continue;
+            for (var k = 1; k < order; k++)
+            {
+                var team = teams[(index + k) % teams.Count];
+                if (!have.Add(team.Id)) continue;
+                result.Add(src with { Team = team.Id, Box = TransformBox(src.Box, sym, k)!.Value });
+            }
+        }
+        return result;
+    }
+
+    /// <summary>Zones fanned across the orbit: a team's zone onto every other team's image of it, a team already
+    /// holding one keeping its own, and a zone with no team onto its images by position, as a build region is.</summary>
+    private static List<ZoneIntent>? FillZones(List<ZoneIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
+    {
+        if (authored is null) return null;
+        var result = new List<ZoneIntent>();
+        var owned = authored.Where(zone => zone.Team.Length > 0).ToList();
+        var have = new HashSet<(string Id, string Team)>(owned.Select(zone => (zone.Id, zone.Team)));
+        foreach (var zone in authored)
+        {
+            if (zone.Team.Length == 0) { result.Add(zone with { Area = OrbitRects(zone.Area, sym, order) }); continue; }
+            result.Add(zone);
+            var index = IndexOfTeam(teams, zone.Team);
+            if (index < 0) continue;
+            for (var k = 1; k < order; k++)
+            {
+                var team = teams[(index + k) % teams.Count];
+                if (!have.Add((zone.Id, team.Id))) continue;
+                result.Add(zone with { Team = team.Id, Area = [.. zone.Area.Select(rect => TransformRect(rect, sym, k))] });
             }
         }
         return result;
@@ -269,7 +319,7 @@ public static class SymmetryExpander
     /// <summary>Capture points stated once each, fanned across <paramref name="sym"/>: every image added, named
     /// for its point and numbered on, and one already standing where an image would go taken as that image.</summary>
     public static List<ControlPointIntent>? FillControlPoints(List<ControlPointIntent>? authored, SymmetryIntent sym) =>
-        IsKnown(sym.Mode) ? FillControlPoints(authored, sym, Order(sym.Mode)) : authored;
+        IsKnown(sym.Mode) ? FillControlPoints(authored, sym, Symmetry.Order(sym.Mode)) : authored;
 
     /// <summary>Generators stated once each, fanned across <paramref name="sym"/> as capture points are: every
     /// image added under its generator's id numbered on — the regions minted from it stay one per generator —
@@ -277,7 +327,7 @@ public static class SymmetryExpander
     public static List<SpawnerIntent>? FillSpawners(List<SpawnerIntent>? authored, SymmetryIntent sym)
     {
         if (authored is null || !IsKnown(sym.Mode)) return authored;
-        var order = Order(sym.Mode);
+        var order = Symmetry.Order(sym.Mode);
         var result = new List<SpawnerIntent>(authored);
         var placed = authored.Select(spawner => (spawner.At.X, spawner.At.Z)).ToList();
         foreach (var src in authored)
@@ -296,16 +346,17 @@ public static class SymmetryExpander
     {
         if (authored is null) return null;
         var result = authored.Select((p, index) => p with { Stamp = Seed(p.Stamp, "controlpoint", index) }).ToList();
-        var placed = result.Select(p => (p.Anchor.X, p.Anchor.Z)).ToList();
+        var placed = result.Select(p => Pad(p.Anchor, p.Size)).ToList();
 
         foreach (var src in result.ToList())
             for (var k = 1; k < order; k++)
             {
-                var anchor = TransformPt(src.Anchor, sym, k);
-                // Its own image, or an image another authored point already occupies: either way the board
-                // has this point already, and adding it again would stack two goals on one pad.
-                if (placed.Any(seen => SamePoint(seen, (anchor.X, anchor.Z)))) continue;
-                placed.Add((anchor.X, anchor.Z));
+                var anchor = TransformAnchor(src.Anchor, sym, k, ObjectiveFootprint.ControlPoint(PadSize(src.Size)));
+                // An image overlapping a pad already placed is that pad: its own image, which about a centre on a
+                // grid line is the middle pad one block over, or a point another authored one already holds.
+                var pad = Pad(anchor, src.Size);
+                if (placed.Any(seen => Overlap(seen, pad))) continue;
+                placed.Add(pad);
                 result.Add(src with
                 {
                     Stamp = src.Stamp.At(k),
@@ -318,27 +369,138 @@ public static class SymmetryExpander
         return result;
     }
 
-    // Half a block: an anchor is authored on the half-block lattice, so two anchors nearer than that are the
-    // same column and the same pad.
+    /// <summary>Flags fanned across <paramref name="sym"/>. One nobody owns keeps its place in the list and gains
+    /// its posts' images as capture points do: every image of a post added after the authored ones and named on,
+    /// its facing turned with it, and one already standing where an image would go taken as that image. A team's
+    /// flag fans by team as a core does: each other team gains its image — posts and net turned, named and
+    /// coloured for that team — and a team already owning a flag keeps its own.</summary>
+    public static List<FlagIntent>? FillFlags(List<FlagIntent>? authored, List<TeamDef> teams, SymmetryIntent sym) =>
+        IsKnown(sym.Mode) ? FillFlags(authored, teams, sym, Symmetry.Order(sym.Mode)) : authored;
+
+    private static List<FlagIntent>? FillFlags(List<FlagIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
+    {
+        if (authored is null) return null;
+        var stamped = authored.Select((flag, f) => flag with
+        {
+            Posts = [.. flag.Posts.Select((post, i) => post with
+            {
+                Stamp = !string.IsNullOrEmpty(post.Stamp.Kind) ? post.Stamp : new StampId("flagpost", $"{f}-{i}", 0),
+            })],
+        }).ToList();
+
+        var result = stamped.Select(flag => flag.Owned ? flag : flag with { Posts = FillPosts(flag.Posts) }).ToList();
+        var have = new HashSet<string>(stamped.Where(flag => flag.Owned).Select(flag => IntentNaming.TeamId(flag.Team)));
+        foreach (var src in stamped.Where(flag => flag.Owned))
+        {
+            var index = IndexOfTeam(teams, src.Team);
+            if (index < 0) continue;
+            for (var k = 1; k < order; k++)
+            {
+                var team = teams[(index + k) % teams.Count];
+                if (!have.Add(IntentNaming.TeamId(team.Id))) continue;
+                result.Add(src with
+                {
+                    Team = team.Id,
+                    Name = "",
+                    Color = null,
+                    Net = TransformBox(src.Net, sym, k),
+                    Posts = [.. src.Posts.Select(post => Turned(post, k) with { Name = post.Name })],
+                });
+            }
+        }
+        return result;
+
+        FlagPostIntent Turned(FlagPostIntent post, int k) => post with
+        {
+            Stamp = post.Stamp.At(k),
+            At = TransformBlock(post.At, sym, k),
+            Yaw = post.Yaw is { } yaw ? TransformYaw(yaw, sym, k) : null,
+            BannerBox = TransformBox(post.BannerBox, sym, k),
+        };
+
+        // A post's image on the block beside a placed post, or on it, is that post: about a centre on a grid
+        // line no block is its own image, so the middle post's image is its neighbour.
+        List<FlagPostIntent> FillPosts(List<FlagPostIntent> posts)
+        {
+            var filled = new List<FlagPostIntent>(posts);
+            var placed = filled.Select(post => Cell(post.At)).ToList();
+            foreach (var src in posts)
+                for (var k = 1; k < order; k++)
+                {
+                    var image = Turned(src, k);
+                    var cell = Cell(image.At);
+                    if (placed.Any(seen => Math.Abs(seen.X - cell.X) <= 1 && Math.Abs(seen.Z - cell.Z) <= 1)) continue;
+                    placed.Add(cell);
+                    filled.Add(image with { Name = src.Name.Length > 0 ? $"{src.Name} {k + 1}" : "" });
+                }
+            return filled;
+        }
+    }
+
+    // Half a block: a position is authored on the half-block lattice, so two nearer than that are one.
     private static bool SamePoint((double X, double Z) a, (double X, double Z) b)
         => Math.Abs(a.X - b.X) < 0.5 && Math.Abs(a.Z - b.Z) < 0.5;
 
-    /// <summary>Orbit a resolved block volume: its footprint reflects/rotates, its height does not.</summary>
+    private static (int X, int Z) Cell(Pt at) => ((int)Math.Floor(at.X), (int)Math.Floor(at.Z));
+
+    private static int PadSize(int size)
+        => Math.Clamp(size, ObjectiveDefaults.MinControlPointSize, ObjectiveDefaults.MaxControlPointSize);
+
+    /// <summary>The cells a capture point's pad covers, as the stamper lays it.</summary>
+    private static (int MinX, int MinZ, int MaxX, int MaxZ) Pad(Pt anchor, int size)
+    {
+        var (x, z) = ObjectiveFootprint.AnchorCell(anchor.X, anchor.Z);
+        var (width, depth) = ObjectiveFootprint.ControlPoint(PadSize(size));
+        return ObjectiveFootprint.Centred(x, z, width, depth);
+    }
+
+    private static bool Overlap((int MinX, int MinZ, int MaxX, int MaxZ) one, (int MinX, int MinZ, int MaxX, int MaxZ) other)
+        => one.MinX <= other.MaxX && other.MinX <= one.MaxX && one.MinZ <= other.MaxZ && other.MinZ <= one.MaxZ;
+
+    /// <summary>Orbit a resolved block volume: its cells reflect/rotate, its height does not.</summary>
     private static BlockBox? TransformBox(BlockBox? box, SymmetryIntent sym, int k)
     {
         if (box is not { } source) return null;
         var (minX, minZ, maxX, maxZ) =
-            Symmetry.Rect(source.MinX, source.MinZ, source.MaxX, source.MaxZ, sym.Mode, sym.CenterX, sym.CenterZ, k);
-        return new BlockBox((int)Math.Round(minX), source.MinY, (int)Math.Round(minZ),
-                            (int)Math.Round(maxX), source.MaxY, (int)Math.Round(maxZ));
+            Symmetry.CellRect(source.MinX, source.MinZ, source.MaxX, source.MaxZ, sym.Mode, sym.CenterX, sym.CenterZ, k);
+        return new BlockBox(minX, source.MinY, minZ, maxX, source.MaxY, maxZ);
+    }
+
+    /// <summary>The anchor of a goal's image: its footprint turned cell by cell and the anchor read back off it,
+    /// as the plan compiler fans one, so an even-sided structure reverses its lean.</summary>
+    private static Pt TransformAnchor(Pt anchor, SymmetryIntent sym, int k, (int Width, int Depth) footprint)
+    {
+        var (x, z) = ObjectiveFootprint.ImageAnchor(
+            anchor.X, anchor.Z, sym.Mode, sym.CenterX, sym.CenterZ, k, footprint.Width, footprint.Depth);
+        return new Pt(x, anchor.Y, z);
+    }
+
+    private static (int Width, int Depth) DestroyableFootprint(string style)
+    {
+        var (width, _, depth) = ObjectiveFootprint.Destroyable(
+            DestroyableStyles.TryParse(style, out var parsed) ? parsed : ObjectiveDefaults.Style);
+        return (width, depth);
+    }
+
+    /// <summary>The image of a coordinate naming a block. A whole number is the block's index and lands on the
+    /// index of the block's image; a half is the block's middle and turns as a point does. A turn that swaps the
+    /// axes carries each axis's kind with it.</summary>
+    private static Pt TransformBlock(Pt p, SymmetryIntent sym, int k)
+    {
+        bool wholeX = p.X == Math.Floor(p.X), wholeZ = p.Z == Math.Floor(p.Z);
+        var (x, z) = Symmetry.Point(wholeX ? p.X + 0.5 : p.X, wholeZ ? p.Z + 0.5 : p.Z,
+                                    sym.Mode, sym.CenterX, sym.CenterZ, k);
+        var swaps = Math.Abs(Symmetry.Point(1, 0, sym.Mode, 0, 0, k).X) < 0.5;
+        var (imageWholeX, imageWholeZ) = swaps ? (wholeZ, wholeX) : (wholeX, wholeZ);
+        return new Pt(imageWholeX ? x - 0.5 : x, p.Y, imageWholeZ ? z - 0.5 : z);
     }
 
     // ── geometry (exact reflect/rotate, matching PGM MirroredRegion) ──────────────────────────────────
     // The reflection itself is exact float arithmetic for every mode (n² ∈ {1,2} ⇒ the 2/n² cancels;
-    // rotations are coordinate swaps). Each kind keeps its corpus grid: a spawn/point sits at a block
-    // CENTRE (x.5) or a block anchor (integer) — TransformPt preserves whichever exactly (snapping to a
-    // single grid would corrupt the other); a rectangle's bounds live on the 1×1 block grid, so
-    // TransformRect snaps corners to whole blocks — a drawn 20×50 box stays exactly 20×50 through the orbit.
+    // rotations are coordinate swaps). A position — where a player stands, a rectangle's edge — turns as a
+    // point; what names a block turns as that block (TransformBlock, TransformBox, TransformAnchor). A
+    // rectangle's bounds live on the 1×1 block grid, so TransformRect snaps corners to whole blocks — a drawn
+    // 20×50 box stays exactly 20×50 through the orbit.
     private static Pt TransformPt(Pt p, SymmetryIntent sym, int k)
     {
         var (x, z) = Symmetry.Point(p.X, p.Z, sym.Mode, sym.CenterX, sym.CenterZ, k);
@@ -363,10 +525,7 @@ public static class SymmetryExpander
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────────────────
-    private static int Order(string mode) => mode == "rot_90" ? 4 : 2;
-
-    private static bool IsKnown(string mode) =>
-        mode is "rot_90" or "rot_180" or "mirror_x" or "mirror_z" or "mirror_d1" or "mirror_d2";
+    private static bool IsKnown(string mode) => SymmetryModes.Fanned.Contains(mode);
 
     private static int IndexOfTeam(List<TeamDef> teams, string id)
     {

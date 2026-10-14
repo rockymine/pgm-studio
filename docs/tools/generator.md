@@ -70,7 +70,7 @@ page starts and `count` how many boards it returns (clamped 1–48; the page ask
 deterministic one chosen for that reason rather than the platform's, and no clock or identifier enters it.
 Sampling *order* is part of the promise: draws come off in one fixed sequence, so inserting a draw anywhere
 re-rolls every seed downstream of it. That is why any change to composition geometry bumps
-`ComposerVersion.Current` — `walled-4` today — and why the version rides on every library board and every
+`ComposerVersion.Current` — `walled-5` today — and why the version rides on every library board and every
 stored candidate.
 
 A stored row whose version is not the current one is **stale**, and the tray badges it. Nothing about the
@@ -81,7 +81,7 @@ The descriptor is the card's identity and the whole of what a pin needs:
 
 ```json ComposeRequestDto
 { "players": 12, "teams": 2, "symmetry": "rot_180", "cell": 4, "seed": 0,
-  "composerVersion": "walled-4", "schema": 1 }
+  "composerVersion": "walled-5", "schema": 1 }
 ```
 
 `schema` is the descriptor's own shape version, bumped if these fields change, so an old stored descriptor
@@ -183,7 +183,7 @@ the board's shape. Each band carries its measured land per team — 2250 blocks�
 milli and 8730 at centi — its corridor width in blocks — 12 · 14 · 16 · 16, with the wool
 approach one rung under — and its wool count: one a team at nano, two from micro up, sometimes three. Beside
 the ladders sit roughly a dozen sampling weights — how often a wool bends, how often a bent wool is a donut, how often a big
-square hub takes the ring — which steer the output's character more than anything else in the generator and
+square hub takes the donut — which steer the output's character more than anything else in the generator and
 are, by `docs/generator/audit.md`'s own account, the least principled part of the model.
 
 What that produces is measurable rather than arguable, and the feed reports it. Every response carries an
@@ -191,18 +191,18 @@ What that produces is measurable rather than arguable, and the feed reports it. 
 asking for something the settings never make still says what they do make. Four hundred composed boards per
 row, `rot_180`:
 
-| Players | Wool families seen | Hub forms | Frontline |
+| Players | Wool shapes | Hub forms | Frontline |
 |---|---|---|---|
-| 8 | I 334 · L 73 · clamp 5 · U 4 · H 1 | ring 294 · bar 51 · single 50 · twin 5 | bar 177 · twin 121 · single 102 |
-| 12 | I 334 · L 73 · clamp 5 · U 4 · H 1 | ring 294 · bar 51 · single 50 · twin 5 | bar 177 · twin 121 · single 102 |
-| 20 | I 355 · L 146 · donut 31 · U 18 · H 15 · clamp 14 | ring 208 · bar 140 · single 29 · twin 23 | bar 247 · single 79 · twin 74 |
-| 30 | I 370 · L 141 · donut 42 · U 22 · H 19 · clamp 19 | ring 200 · twin 76 · bar 41 · G 40 · double-hole 34 · P 11 | single 158 · twin 125 · bar 117 |
+| 8 | I 340 · L 66 · clamp 4 · H 2 · U 1 | donut 295 · L 60 · I 39 · U 6 | I 175 · L 117 · U 108 |
+| 12 | I 340 · L 66 · clamp 4 · H 2 · U 1 | donut 295 · L 60 · I 39 · U 6 | I 175 · L 117 · U 108 |
+| 20 | I 364 · L 127 · H 22 · donut 21 · U 20 · clamp 11 | donut 204 · I 137 · L 37 · U 22 | I 241 · L 90 · U 69 |
+| 30 | I 368 · L 134 · donut 26 · U 23 · clamp 22 · H 19 | donut 190 · U 81 · G 39 · I 38 · double-hole 31 · P 13 · L 8 | L 161 · I 134 · U 105 |
 
 Read down the columns and the ladders are visible as behaviour. Eight and twelve players compose the same
-boards, because both are the nano band. Every board carries a frontline. The ring is the commonest hub at every
-size, and the wide holed bodies — double-hole, G and P — arrive only at thirty, where a hub is wide enough to
-keep a bar beside a ring whose hole is still 12 blocks. A wool count sums past the board count because a family
-is counted once per board however many approaches of it that board carries.
+boards, because both are the nano band. Every board carries a frontline. The donut is the commonest hub at every
+size, and the wide holed compounds — double-hole, G and P — arrive only at thirty, where a hub is wide enough to
+keep a bar beside a ring whose hole is still 12 blocks. A wool count sums past the board count because a form
+is counted once per board however many of its wools take it.
 
 ## The library
 
@@ -250,8 +250,8 @@ from `SizeBands` in the vocabulary leaf rather than restated in the client; exac
 request names it by the count in the middle of its range. A band is one at a time because the feed is one band's
 library; a request is still bound only by the endpoint's own clamp, 6–47. Wools per team is one chip per count, `1` to `3` (`WoolCounts` in the vocabulary leaf, the range the composer draws from), and
 several may be ticked at once: a board matches any one ticked count, and none ticked takes any. The chips carry no
-counts, because the census holds forms, not wool counts. *Filter by shape* — wool approaches, hub and front line — is a set of ticked
-chips, each with the count of boards in the library that have it, and *Clear* empties all three. Wool approaches
+counts, because the census holds forms, not wool counts. *Filter by shape* — wool shapes, hub and front line — is a set of ticked
+chips, each with the count of boards in the library that have it, and *Clear* empties all three. Wool shapes
 are **must-include**: every family ticked has to be present on the board. Hub and front line are **any-of**.
 A side always has a front line; where the composer places no piece for it (the `none` form) the hub's own edge
 facing the mid is that front line, so its chip reads *Hub edge*.
@@ -313,13 +313,13 @@ the hub and front line forms. It returns runs of text, and a run that names a gl
 *wool room*, *approach*, *hub*, *front line*, *mid*) carries that term, which the drawer links to
 `/glossary#{slug}`. For a twelve-player, rotate-180 board with two wools: "A two-team layout for 6–13 players a
 team, copied by a half turn about the centre. Each team has two wools, each kept in its own wool room and reached
-by I-shaped and L-shaped approaches. The team's side is built around a ring-shaped hub, with a twin front line
+by I-shaped and L-shaped approaches. The team's side is built around a donut-shaped hub, with a U-shaped front line
 facing the mid." The drawer shows no raw numbers, no seed, no descriptor JSON and no hard-term list; the card's
 `descriptor`, `spend`, `hardTerms` and `topSoft` remain on `GET /compose` for an agent.
 
 **Land spend is two currencies, and the compose answer says so.** *Footprint* is the box rectangle, fixed when the box
 was seated; *land* is what the filled pieces actually cover, which is what the spend gate holds against the
-budget. The per-box rows are footprints — a box does not know what its body left standing until it is filled —
+budget. The per-box rows are footprints — a box does not know what its compound left standing until it is filled —
 and the total land is the unit's own, for **one team unit**, the board being that unit fanned.
 
 The band's land buys two things, and the answer's `spend` reports both against their own shares. The **unit** takes nine
@@ -438,8 +438,8 @@ all — it is authored at the plan tier instead, which is where a four-team capt
 
 **The composer reaches less of the shape vocabulary than the emitter builds**, and the gap is plumbing rather
 than geometry. `ShapeEmitter.Emit` takes five placement knobs — a second donut attachment, a moved attachment,
-an extended wool, and both scythe endpoint shifts — which `WoolBoxEmitter.Emit` passes through and
-`WoolBoxEmitter.Fill`, the only path the compose pipeline uses, forwards none of (`G145`). Two families are in
+an extended wool, and both scythe endpoint shifts — which `WoolBoxEmitter.Fill`, the only path the compose
+pipeline uses, forwards none of (`G145`). Two families are in
 the same position for a different reason: the **Z** is on the production menu and filled correctly but no
 sampler ever draws one, and the **scythe** is off the menu outright for a stated reason (`G146`). So a board
 can never carry any of the seven, however many seeds are walked — which is why both family chips render

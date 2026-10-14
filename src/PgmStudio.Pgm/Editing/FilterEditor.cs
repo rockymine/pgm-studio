@@ -9,13 +9,6 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public static class FilterEditor
 {
-    private static readonly HashSet<string> KnownTypes =
-    [
-        "all", "any", "one", "not", "deny", "allow", "team", "material", "void", "cause", "blocks",
-        "carrying", "wearing", "holding", "alive", "dead", "participating", "observing",
-        "match-running", "match-started", "grounded", "never", "always", "time", "after", "pulse",
-        "offset", "variable", "completed", "objective", "kill-streak", "class", "region", "players", "spawn",
-    ];
     private static readonly HashSet<string> Builtins = ["never", "always"];
 
     public static Dict CreateFilter(Dict data, Dict payload)
@@ -50,7 +43,7 @@ public static class FilterEditor
 
     private static void Validate(Dict data, Dict payload, string selfId)
     {
-        if (payload.GetValueOrDefault("type") is not string ftype || !KnownTypes.Contains(ftype))
+        if (payload.GetValueOrDefault("type") is not string ftype || !FilterParser.Types.Contains(ftype))
             throw EditException.Unreadable($"filter type '{payload.GetValueOrDefault("type")}' is not one the studio reads", "type");
         var filters = Filters(data);
         var teams = DocAccess.TeamIds(data);

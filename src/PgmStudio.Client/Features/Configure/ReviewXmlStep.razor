@@ -1,13 +1,13 @@
 @namespace PgmStudio.Client.Features.Configure
 
-@* Review & Export · XML step: the generated map.xml, segmented into containers picked on the
+@* Export · map.xml step: the generated map.xml, segmented into sections picked on the
    left (incl. a Full document view). The editor-bar Next is Export (download), gated on the open export gate
    (GET /xml's 409). A two-pane navigator — sidebar list + the selected block's serialized XML. *@
 
 <Workspace>
 
   <Sidebar Class="workspace-sidebar--narrow">
-      <Section Title="Containers">
+      <Section Title="Sections">
         @if (loading)
         {
           <p class="panel-empty-msg">Loading…</p>
@@ -45,8 +45,7 @@
       {
         <Section>
           <div class="panel-warning">
-            <strong>Export blocked.</strong> @blocked. Go back to <strong>Pre-flight</strong> to see what needs
-            fixing. Export checks again when you return.
+            <strong>Export is blocked.</strong> @blocked. The <strong>Checks</strong> step shows what to fix.
           </div>
         </Section>
       }

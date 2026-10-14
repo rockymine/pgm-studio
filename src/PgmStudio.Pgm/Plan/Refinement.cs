@@ -87,6 +87,24 @@ public sealed record Refinement
     /// <summary>The score the match ends at.</summary>
     [JsonPropertyName("scoreLimit")] public int? ScoreLimit { get; init; }
 
+    /// <summary>What a kill pays the killer's team.</summary>
+    [JsonPropertyName("killPoints")] public int? KillPoints { get; init; }
+
+    /// <summary>How long the match runs and what decides it then.</summary>
+    [JsonPropertyName("timeLimit")] public TimeLimitIntent? TimeLimit { get; init; }
+
+    /// <summary>How the dead come back.</summary>
+    [JsonPropertyName("respawn")] public RespawnIntent? Respawn { get; init; }
+
+    /// <summary>The lives each player has; zero states none.</summary>
+    [JsonPropertyName("lives")] public int? Lives { get; init; }
+
+    /// <summary>Whether every hit with a weapon kills.</summary>
+    [JsonPropertyName("rage")] public bool? Rage { get; init; }
+
+    /// <summary>The height a player falls into the void below.</summary>
+    [JsonPropertyName("killHeight")] public int? KillHeight { get; init; }
+
     /// <summary>The generators the board mints from, each stated once and fanned across the board's symmetry
     /// under its id numbered on, as the capture points are.</summary>
     [JsonPropertyName("spawners")] public List<SpawnerIntent>? Spawners { get; init; }
@@ -559,8 +577,8 @@ public sealed record Refinement
         }
     }
 
-    // What the intent carries that a plan cannot state: the map's date, its credits, its capture points and the
-    // score they end at, its generators and its shops. The capture points and the generators are stated once
+    // What the intent carries that a plan cannot state: the map's date, its credits, its capture points, how its
+    // match ends and how the dead come back, its generators and its shops. The capture points and the generators are stated once
     // each and fanned across the board's symmetry, the way the intent's own orbit fill fans them.
     private static void Play(JsonObject refinement, JsonObject intent, SymmetryIntent? board)
     {
@@ -569,7 +587,7 @@ public sealed record Refinement
         if (refinement["authors"] is JsonArray authors)
             (intent["meta"] as JsonObject ?? (JsonObject)(intent["meta"] = new JsonObject()))["authors"] = new JsonArray(
                 [.. authors.Select(person => person is JsonValue name ? new JsonObject { ["name"] = name.DeepClone() } : person?.DeepClone())]);
-        foreach (var key in (string[])["controlPoints", "scoreLimit", "spawners", "shops"])
+        foreach (var key in (string[])["controlPoints", "scoreLimit", "killPoints", "timeLimit", "respawn", "lives", "rage", "killHeight", "spawners", "shops"])
             if (refinement.ContainsKey(key)) intent[key] = refinement[key]?.DeepClone();
         if (board is null) return;
         if (refinement["controlPoints"] is JsonArray points)

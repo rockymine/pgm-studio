@@ -74,7 +74,11 @@ public static class MapStandards
             // (~24 blocks across ~2 items: a neutral block at 16, a team-coloured one at 8).
             var rewardItems = kit.Items
                 .Where(i => i.Item.Amount > 1 && i.Item.Material.Length > 0)
-                .Select(i => new KillRewardItem { Material = i.Item.Material, TeamColor = i.Item.TeamColor, Amount = i.Item.TeamColor ? 8 : 16 })
+                .Select(i => new ItemSpec
+                {
+                    Material = i.Item.Material, Damage = i.Item.Damage, TeamColor = i.Item.TeamColor,
+                    Amount = i.Item.TeamColor ? 8 : 16,
+                })
                 .ToList();
             if (rewardItems.Count > 0) m.KillRewards = [new KillReward { Items = rewardItems }];
         }

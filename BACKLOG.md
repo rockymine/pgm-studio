@@ -82,6 +82,32 @@ them one rather than with the contract work that shipped them.
   step wrote `wools[].room` while the intent reads `protection`, and every room drawn there was dropped
   under a green Saved.
 
+- [ ] **TC16 — The Build phase offers the build mode.** `BuildIntent.Mode` (`void`, `never`, `only`, from
+  `BuildModes`) and `Materials` are stated on the intent and nowhere in the wizard: a select beside Build
+  height showing the default `BuildIntent.ModeFor` takes, and a material list where the mode is `only`.
+  `docs/tools/configure.md` §*Build*.
+- [ ] **PG29 — A kit loses nothing it states, or the map is refused.** `MapParser.ParseKits` reads items,
+  armour, effects, `max-health`, `force` and `clear`, and drops every other kit element in silence, so an exported map plays
+  differently from the one read: `game-mode` in 325 corpus maps, `action` in 112, `double-jump` in 68, `health`
+  in 56, `knockback-reduction` in 48, `walk-speed` in 40. Each is read and written
+  (`Kit`, `XmlWriter`, `Serializer`, the `kit` row), or its presence refuses the map the way an unread objective
+  module does. `docs/pgm/supported-maps.md`.
+- [ ] **PG24 — Jump pads.** `MapIntent.JumpPads`: a box, a velocity turned with the symmetry, a pad block and
+  `safe`. `JumpPadGenerator` writes `<apply region velocity>`, which already round-trips
+  (`XmlWriter.cs:879`); a safe pad adds pgmvox's fall variable and fall-damage deny (`play/rules.py:477`). The
+  launch is checked against its landing with pgmvox's `solve_launch` (`core/move.py`), ported beside
+  `PgmStudio.Geom.Jump`. 215 corpus maps write `velocity=`. `docs/pgm/new-map-authoring.md`.
+- [ ] **G292 — A plan states a zone of rules.** `PlanZone` states build regions and water lanes; a third kind,
+  with `ZoneIntent`'s rules (`enter`, `place`, `break`, `harm`, `kit`), compiles into `MapIntent.Zones`
+  (`PlanCompiler.cs:413`). Blocked on the layout law: BZ5 forbids every zone touching a spawn piece and the BZ
+  rules read every zone a plan states (`PlanValidator.cs:686`), so a rule zone needs its own place in
+  `docs/generator/rules.md`, amended by its correction protocol. `docs/pgm/zones.md` §3.
+- [ ] **PG31 — A spawn keeps every region it states.** `Spawn.Region` holds one region, so a spawn written
+  with several `<region>` children keeps the first and loses the rest on read — 83 spawns in 34 corpus maps
+  (`skill_issue`'s defenders spawn at either end). A portal naming a lost one exports a reference to nothing.
+  `Spawn.Regions`, each with its own yaw, read and written by `MapParser`/`XmlWriter`, stored and served.
+  `docs/pgm/portals.md`.
+
 ## The sketch tool: shapes, islands, and the ground they become
 
 The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
@@ -411,7 +437,7 @@ Twelve judged donut boards at 20 and 30 players named what a larger composed boa
   from the spawn with a long way to its wool).*
 
 - [ ] **G280 — A donut may dock turned 90°, its entry and a third of its long bar against the hub's side
-  wall.** A new dock for `ShapeFamily.Donut` in `UnitSeating.SeatOverhang`/`WoolBoxEmitter`, beside the
+  wall.** A new dock for `CompoundForm.Donut` in `UnitSeating.SeatOverhang`/`WoolBoxEmitter`, beside the
   entry-stub dock. `docs/generator/model.md` §4.6.
 
   *Evidence: judged board p30 seed 32, where the author proposed it.*
@@ -676,7 +702,7 @@ is the standard the copy is held to.
   sweep the comments that call a segment an edge. Mechanical — the type is a tuple list with a handful
   of consumers (`BoardDeriver`, the deriver gallery, the evaluator terms reading front edges) — but it
   has to land in one commit with the doc, or `model.md` will assert a rule the code visibly breaks.
-  Check `BoxEdgeInterface`/`EdgeSpan`/`EdgeInterval` in the same pass: those name a genuine full edge
+  Check `BoxEdgeInterface`/`EdgeInterval` in the same pass: those name a genuine full edge
   and its sub-intervals, so they are correct and should stay, which is exactly why the deriver's misuse
   is worth removing rather than tolerating.
 

@@ -34,9 +34,9 @@ public sealed record ComposeRequestDto(
 public sealed record TermContribDto(string TermId, string RuleId, double Contribution);
 
 /// <summary>A board's structural read — the sieve/bucket vocabulary as display tokens: the sorted wool
-/// approach families, the hub body form, and the frontline form (<c>none</c> when the unit has no frontline).
+/// forms, the hub body form, and the frontline form (<c>none</c> when the unit has no frontline).
 /// The tokens double as the card badges and the filter values.</summary>
-/// <param name="Wools">The wool approach families the unit built, sorted.</param>
+/// <param name="Wools">The wool forms the unit built, sorted.</param>
 /// <param name="Hub">The hub body's form.</param>
 /// <param name="Frontline">The frontline's form, or <c>none</c> where the unit has no frontline.</param>
 public sealed record StructureSummaryDto(
@@ -51,7 +51,7 @@ public sealed record StructureSummaryDto(
 /// the box rectangle — fixed when the box is seated; <paramref name="LandCells"/> is the walkable terrain
 /// inside it — what the fill actually spends. A donut has a large footprint and modest land, because the
 /// enclosed hole is footprint it never spends, so either number alone misreads the shape.</para></summary>
-/// <param name="Kind">Which kind of box — a spawn, a wool approach, the hub, the frontline, the mid.</param>
+/// <param name="Kind">Which kind of box — a spawn, a wool, the hub, the frontline, the mid.</param>
 /// <param name="Boxes">How many there were (two wools read as one row of two).</param>
 /// <param name="LandCells">The walkable terrain inside them, which is what the fill actually spends.</param>
 /// <param name="FootprintCells">The box rectangles, which are fixed once the boxes are seated.</param>
@@ -116,7 +116,7 @@ public sealed record ComposeCard(
 /// rides on the box sizes the land budget buys, so a small board never reaches the wide hub forms at all — and
 /// a token missing from the whole library is the answer "these settings do not make one".</para></summary>
 /// <param name="Boards">How many boards the counts are drawn from — held, not matched.</param>
-/// <param name="Wools">How often each wool approach family turned up.</param>
+/// <param name="Wools">How often each wool form turned up.</param>
 /// <param name="Hubs">How often each hub form turned up.</param>
 /// <param name="Frontlines">How often each frontline form turned up.</param>
 public sealed record ObservedForms(

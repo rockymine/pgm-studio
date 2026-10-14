@@ -15,7 +15,7 @@ using Dict = Dictionary<string, object?>;
 /// The DB-touching prologue shared by <c>GET /map/{slug}/xml</c> and <c>GET /map/{slug}/export</c>. It loads
 /// exactly what <see cref="MapExportComposer.Compose"/> needs from the store — whether the map is
 /// intent-authored, the traversability segments, the stored authoring intent for a sketch map, the world's
-/// block census and spawn-ore renewables for everything else, and the accounts behind the tree builders a
+/// block census, spawn-ore renewables and banners for everything else, and the accounts behind the tree builders a
 /// sketch names — and hands them to the pure composer, so the database and the network stay here and the
 /// composition itself stays reachable by a driver that has neither.
 /// </summary>
@@ -38,15 +38,17 @@ public static class MapExportLoader
         // its resource blocks. Read from the store, never by scanning the world on export.
         IReadOnlyList<int>? worldBlocks = null;
         IReadOnlyList<(string Type, int X, int Y, int Z)> resources = [];
+        IReadOnlyList<(int X, int Y, int Z)> banners = [];
         if (isIntent && layoutBytes is null)
         {
+            banners = await feature.BannersAsync(mapId, ct);
             if (await artifacts.LoadAsync(mapId, ArtifactKind.WorldBlocksJson, ct) is { } census)
                 worldBlocks = JsonSerializer.Deserialize<int[]>(census);
             resources = (await feature.ResourceBlocksAsync(mapId, ct)).Select(b => (b.Type, b.X, b.Y, b.Z)).ToList();
         }
 
         var accounts = layoutBytes is null ? null : await AccountsAsync(Encoding.UTF8.GetString(layoutBytes), players, ct);
-        return MapExportComposer.Compose(doc, layoutBytes, isIntent, segments, intent, worldBlocks, resources, accounts);
+        return MapExportComposer.Compose(doc, layoutBytes, isIntent, segments, intent, worldBlocks, resources, accounts, banners);
     }
 
     /// <summary>The account behind each tree builder the layout names (<see cref="TreeBuilderCredits.Named"/>, which

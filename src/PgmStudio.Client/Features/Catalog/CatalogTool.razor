@@ -67,7 +67,7 @@
               <div class="lib-card-badges">
                 <span class="lib-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
                 <span class="lib-badge">@KindLabel(shape.Kind)</span>
-                <span class="lib-badge" title="Corridor width, in cells">Corridor @shape.CorridorCells</span>
+                <span class="lib-badge" title="Lane width, in cells">Lane @shape.LaneWidth</span>
                 @foreach (var knob in shape.Knobs)
                 {
                   <span class="lib-badge cat-knob">@knob</span>
@@ -117,7 +117,7 @@
         else if (probe is not null)
         {
           <p class="cat-probe-ok">
-            @probe.LandCells cells of land · @string.Join(" · ", probe.Slots)
+            @probe.LandCells cells of land · @string.Join(" · ", probe.Parts)
           </p>
         }
 
@@ -146,10 +146,10 @@
           </ChildContent>
         </Field>
 
-        <Field Label="Corridor width">
-          <LabelEnd><strong>w@(probeCw)</strong></LabelEnd>
+        <Field Label="Lane width">
+          <LabelEnd><strong>w@(probeLaneWidth)</strong></LabelEnd>
           <ChildContent>
-            <RangeField Min="2" Max="5" Value="probeCw" ValueChanged="OnCorridor" />
+            <RangeField Min="2" Max="5" Value="probeLaneWidth" ValueChanged="OnLaneWidth" />
           </ChildContent>
         </Field>
 

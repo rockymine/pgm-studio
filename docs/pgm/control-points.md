@@ -380,9 +380,10 @@ or the ring, so a plan-compiled intent carries the whole set. The counts a board
 one per team, or one per team plus a centre; any other is `PL16`.
 
 **A map's source states one point of each orbit, and the board's symmetry fans it.** A refinement's
-`controlPoints` are each placed once; every image is added at the image of its anchor, named for its point
-and numbered on, and a point already standing within half a block of an image is taken as it — so the centre
-stays one point and a pair stated by hand stays a pair (`docs/tools/flow.md`).
+`controlPoints` are each placed once; every image is added with its pad's cells turned, named for its point and
+numbered on, and a point whose pad overlaps an image's is taken as it — so the centre stays one point and a
+pair stated by hand stays a pair (`docs/tools/flow.md`). On a board centred on a grid line the image of the
+block `x` is `−1−x`, so a point stated at `(−42, 0)` gains its image at `(41, −1)`.
 
 **It reads one, stores it and writes it back.** `MapParser.ParseControlPoints` reads both spellings into
 `Domain.ControlPoint`, carrying the element rather than resolving it; `ParseScore` reads `<score>` into
@@ -393,8 +394,8 @@ round trip unchanged.
 
 **And the reads count one as a goal.** `NavPoints` resolves a point out of a document's `control_points`
 and `DeclaredGoals` out of an intent's, so `traversability`, `coverage`, `reach` and the export gate quantify
-over all four objective families rather than three. A point carries no owner — a hill belongs to whoever
-stands on it — which is the one difference from the other three: every team is required to reach it, and
+over every objective family, the control point among them. A point carries no owner — a hill belongs to whoever
+stands on it — which is its difference from a wool, a destroyable and a core: every team is required to reach it, and
 none of them gets the weaker "walk up to your own goal" question a defended wool room earns. *Measured on
 `opus5-sparholt`, a three-hill board: coverage went from 3 journeys and **72.1%** of the ground dead to 15
 journeys and **31.4%**, and the walk read from naming two spawns to naming the two spawns and the three
@@ -441,9 +442,17 @@ An agent authors a capture board by adding one array to the intent it already po
 ]
 ```
 
-Four fields are knobs — `name`, `anchor`, `size` and `points`, plus `captureTime` — and everything else PGM
-will read off the point is §7's convention, written the same on every board. `scoreLimit` sits beside them on
-the intent and defaults to 750 on a board carrying a point that pays.
+Four fields are knobs — `name`, `anchor`, `size` and `points`, plus `captureTime` and `captureMode` — and
+everything else PGM will read off the point is §7's convention, written the same on every board. `scoreLimit`
+sits beside them on the intent and defaults to 750 on a board carrying a point that pays.
+
+**`captureMode` is how a point is taken, `hold` or `touch`** (`CaptureModes`). `hold`, the default, is §7's hill: a
+team holds it alone for its capture time, through a neutral state. `touch` is the arcade point pgmvox writes as
+its `TouchPoint`: a player of any team but the holder's takes it the moment they step on, and it stays theirs
+until another team does. The generator writes it as a capture time of `0.1s` — the shortest there is — under
+`capture-rule="lead"`, with no neutral state, nothing incremental and no progress pie, and a `player-filter` of
+`not(objective)` on the point's own id, so the holders standing on it count for nothing and one step by anyone
+else is enough. It is one point with a different capture, not another kind of objective.
 
 **The pad is cut into the ground rather than raised over it**, and that is the one way the stamper differs
 from every other objective's. A destroyable and a core float — the gap is what a raid climbs and what a core's

@@ -1,6 +1,8 @@
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Data.Schema;
+using PgmStudio.Domain;
+using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Vocabulary;
 
@@ -79,17 +81,32 @@ public sealed class MapRepository(PgmDb db)
         var withPoints = (await db.ControlPoints.Where(p => p.Element == "control-points").Select(p => p.MapId).Distinct().ToListAsync(ct)).ToHashSet();
         var withKing = (await db.ControlPoints.Where(p => p.Element == "king").Select(p => p.MapId).Distinct().ToListAsync(ct)).ToHashSet();
         // Only a score that pays for kills or deaths is a deathmatch; a bare limit is how a capture map ends.
+        var withFlags = (await db.Flags.Select(f => f.MapId).Distinct().ToListAsync(ct)).ToHashSet();
         var withKillScore = (await db.Scores.Where(s => (s.Kills ?? 0) != 0 || (s.Deaths ?? 0) != 0).Select(s => s.MapId).Distinct().ToListAsync(ct)).ToHashSet();
+        // Blitz and rage are auxiliary: they join a map's gamemodes and make one of a map with no other.
+        var withBlitz = new HashSet<long>();
+        var withRage = new HashSet<long>();
+        foreach (var row in await db.MatchRules.ToListAsync(ct))
+        {
+            var rules = new MapXml();
+            Deserializer.DecodeMatchRules((Dictionary<string, object?>)JsonTree.FromJson(row.SpecJson)!, rules);
+            if (rules.Blitz is not null) withBlitz.Add(row.MapId);
+            if (rules.Rage) withRage.Add(row.MapId);
+        }
 
         var result = new Dictionary<long, IReadOnlyList<string>>();
-        foreach (var id in withWools.Union(withDestroyables).Union(withCores).Union(withPoints).Union(withKing).Union(withKillScore))
+        foreach (var id in withWools.Union(withDestroyables).Union(withCores).Union(withPoints).Union(withKing).Union(withFlags)
+                     .Union(withKillScore).Union(withBlitz).Union(withRage))
             result[id] = Domain.Gamemodes.From(
                 hasWools: withWools.Contains(id),
                 hasRealDestroyable: withDestroyables.Contains(id),
                 hasCores: withCores.Contains(id),
                 hasControlPoints: withPoints.Contains(id),
                 hasKing: withKing.Contains(id),
-                scoresKillsOrDeaths: withKillScore.Contains(id));
+                hasFlags: withFlags.Contains(id),
+                scoresKillsOrDeaths: withKillScore.Contains(id),
+                hasBlitz: withBlitz.Contains(id),
+                hasRage: withRage.Contains(id));
         return result;
     }
 

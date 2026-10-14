@@ -1,4 +1,3 @@
-using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
@@ -9,8 +8,8 @@ namespace PgmStudio.Pgm.Compose;
 /// land target) and the edge it docks its host through, it reads the box's <see cref="FillProfiles">profile</see>
 /// to decide which families are legal, emits one into the footprint (the room taking the box kind's role), and
 /// reports the <b>land</b> the fill produced against the target — the two-currency accounting (footprint is
-/// fixed once, land is what fragment later spends). "No shape fits" is a <see cref="FillResult"/> data channel,
-/// never a throw, so an over-constrained box feeds a directed box change up a level.
+/// fixed once, land is what fragment later spends). "No shape fits" is a <see cref="FillRejection"/>, never a
+/// throw, so an over-constrained box feeds a directed box change up a level.
 ///
 /// <para>Today it fills the <b>wool</b> box (over <see cref="WoolBoxEmitter.Fill"/>) — the kind where the
 /// footprint gate decides whether a share reaches a donut / U / H. The spawn box already fills through the
@@ -21,88 +20,60 @@ namespace PgmStudio.Pgm.Compose;
 public static class BoxFiller
 {
     /// <summary>Fill <paramref name="box"/> with a specific <paramref name="family"/>, docking
-    /// <paramref name="mouth"/>. Rejects (as a <see cref="FillResult"/>) when the family is outside the box's
-    /// profile or its minimum box does not fit the footprint. On success carries the emission + vacancies.</summary>
-    public static FillResult Fill(
-        Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, bool flip = false, string? roomId = null,
-        RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false, int attachmentWidth = 0,
-        RingWalls? ringWalls = null)
+    /// <paramref name="mouth"/>: the compound, box-local, or <c>null</c> with <paramref name="rejection"/> set when
+    /// the family is outside the box's profile, does not fit the footprint, or would dock illegally.</summary>
+    public static Compound? Fill(
+        Box box, BoxEdge mouth, int laneWidth, CompoundForm family, out FillRejection? rejection,
+        bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false,
+        int attachmentWidth = 0, RingWalls? ringWalls = null)
     {
-        var menu = FillProfiles.Families(box.Kind, corridorWidth, corridorWidth);
-        if (!menu.Contains(family)) return new FillResult.NoFamilyFits(menu);
-        var result = box.Kind switch
+        var menu = FillProfiles.Families(box.Kind, laneWidth, laneWidth);
+        if (!menu.Contains(family))
         {
-            BoxKind.Wool => WoolBoxEmitter.Fill(
-                box, mouth, family, corridorWidth, flip, roomId, roomPlacement, woolAtEnd, attachmentWidth, ringWalls),
-            _ => throw new ComposeException(
-                $"BoxFiller fills wool boxes; the {box.Kind} box docks through its own binding " +
-                "(spawn via SpawnBoxEmitter, G78; hub/frontline at G41-C)."),
-        };
-        if (result is not FillResult.Ok ok) return result;
+            rejection = new FillRejection.NotOnMenu([.. menu.Select(f => f.ToString())]);
+            return null;
+        }
+        if (box.Kind != BoxKind.Wool)
+            throw new ComposeException(
+                $"BoxFiller fills wool boxes; the {box.Kind} box docks through its own binding.");
+        if (WoolBoxEmitter.Fill(box, mouth, family, laneWidth, out rejection, flip, roomPlacement, woolAtEnd,
+                attachmentWidth, ringWalls) is not { } compound)
+            return null;
 
-        // the docking law: the host docks the mouth, so the mouth edge must be a legal dock. Read the
-        // box's edges off the placed fill (shape-relative) and gate them — an illegal dock (a sealed wool or a
-        // non-entry edge) is a directed rejection, never a placement.
-        var edges = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect.Width, box.Rect.Height);
-        return DockingGate.CheckMouth(edges, mouth) is { } rejection
-            ? new FillResult.IllegalDock(rejection, family, mouth)
-            : ok;
-    }
-
-    /// <summary>Recover the box-local <see cref="EmittedShape"/> of a placed fill — the slot-typed terrain and
-    /// room rects shifted back to the box origin — so <c>BoxInterfaces.Of</c> can read the edge facts the
-    /// docking gate maps. (Only the geometry the gate reads is reconstructed; the marker offset and vacancies
-    /// ride along unused.)</summary>
-    private static EmittedShape BoxLocal(EmittedApproach a, Box box)
-    {
-        int ox = box.Rect.X, oz = box.Rect.Z;
-        CellRect Local(CellRect r) => new(r.X - ox, r.Z - oz, r.Width, r.Height);
-        var terrain = a.Terrain.Select(p => (Local(p.Rect), p.Slot!)).ToList();
-        return new EmittedShape(terrain, Local(a.WoolRoom.Rect), a.At, a.Vacancies);
+        // the docking law: the host docks the mouth, so the mouth edge must be a legal dock. Read the box's edges
+        // off the fill and gate them — an illegal dock (a sealed wool or a non-entry edge) is a directed
+        // rejection, never a placement.
+        if (DockingGate.CheckMouth(BoxInterfaces.Of(compound, box.Rect.Width, box.Rect.Height), mouth) is { } dock)
+        {
+            rejection = new FillRejection.IllegalDock(dock, mouth);
+            return null;
+        }
+        return compound;
     }
 
     /// <summary>The <b>entry</b> interval a <paramref name="family"/> fill presents on its <paramref name="mouth"/>
     /// edge — box-local along-coords (x for a top/bottom mouth, z for a left/right one). This is the narrow dock
-    /// an <b>overhanging</b> placement aligns to the host: the entry lands on a hub run while the wider body
+    /// an <b>overhanging</b> placement aligns to the host: the entry lands on a hub run while the wider compound
     /// overhangs the edge into free space. <c>null</c> when the family does not fill the box or exposes no entry
     /// on that mouth.</summary>
-    public static (int Start, int Len)? EntryOn(
-        Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, bool flip = false,
+    public static EdgeInterval? EntryOn(
+        Box box, BoxEdge mouth, int laneWidth, CompoundForm family, bool flip = false,
         RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false, int attachmentWidth = 0)
     {
-        if (Fill(box, mouth, corridorWidth, family, flip, "probe", roomPlacement, woolAtEnd, attachmentWidth)
-            is not FillResult.Ok ok)
+        if (Fill(box, mouth, laneWidth, family, out _, flip, roomPlacement, woolAtEnd, attachmentWidth)
+            is not { } compound)
             return null;
-        var edge = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect.Width, box.Rect.Height)
-            .FirstOrDefault(e => e.Edge == mouth);
-        var entry = edge?.Intervals.FirstOrDefault(i => i.Slot == ApproachSlots.Entry);
-        return entry is null ? null : (entry.Start, entry.LengthCells);
+        var edge = BoxInterfaces.Of(compound, box.Rect.Width, box.Rect.Height).FirstOrDefault(e => e.Edge == mouth);
+        return edge?.Intervals.FirstOrDefault(i => i.Part == CompoundParts.Entry);
     }
 
     /// <summary>The families the box's profile admits that <b>actually fill</b> its footprint (the emit
     /// succeeds) — the legal fill set for this box, footprint gate included.</summary>
-    public static IReadOnlyList<ShapeFamily> FittingFamilies(Box box, BoxEdge mouth, int corridorWidth) =>
-        FillProfiles.Families(box.Kind, corridorWidth, corridorWidth)
-            .Where(f => Fill(box, mouth, corridorWidth, f) is FillResult.Ok)
+    public static IReadOnlyList<CompoundForm> FittingFamilies(Box box, BoxEdge mouth, int laneWidth) =>
+        FillProfiles.Families(box.Kind, laneWidth, laneWidth)
+            .Where(f => Fill(box, mouth, laneWidth, f, out _) is not null)
             .ToList();
 
-    /// <summary>Pick a legal family for the box by <paramref name="roll"/> (indexing the fitting set) and fill.
-    /// The profile-driven selection: a roll over the families the kind admits and the footprint holds, falling
-    /// back to the directed <see cref="FillResult.NoFamilyFits"/> signal when none fit.</summary>
-    public static FillResult Fill(Box box, BoxEdge mouth, int corridorWidth, int roll, bool flip = false, string? roomId = null)
-    {
-        var fitting = FittingFamilies(box, mouth, corridorWidth);
-        if (fitting.Count == 0) return new FillResult.NoFamilyFits(FillProfiles.Families(box.Kind, corridorWidth, corridorWidth));
-        return Fill(box, mouth, corridorWidth, fitting[((roll % fitting.Count) + fitting.Count) % fitting.Count], flip, roomId);
-    }
-
-    /// <summary>The <b>land</b> (walkable terrain) an emitted approach spends, in cells — the box's land
-    /// currency (its footprint is fixed by the box; this is what fragment converts to build to hit the
-    /// target).</summary>
-    public static int Land(EmittedApproach a) =>
-        a.Terrain.Sum(p => p.Rect.Width * p.Rect.Height) + a.WoolRoom.Rect.Width * a.WoolRoom.Rect.Height;
-
-    /// <summary>True when the fill's land is within the box's land target — the two-currency balance a fill
-    /// under budget satisfies directly; over budget is what fragment spends down.</summary>
-    public static bool WithinLandTarget(Box box, EmittedApproach a) => Land(a) <= box.LandTargetCells;
+    /// <summary>The <b>land</b> (walkable ground) a compound spends, in cells — its room included.</summary>
+    public static int Land(Compound compound) => compound.Pieces.Sum(p => p.Rect.Width * p.Rect.Height);
 }

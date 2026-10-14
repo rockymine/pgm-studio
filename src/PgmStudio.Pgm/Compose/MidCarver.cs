@@ -211,7 +211,7 @@ public static class MidCarver
 
     /// <summary>Carve the band for a composed unit, or null when the band cannot keep its contact discipline
     /// (the caller retries the attempt).</summary>
-    public static MidResult? TryCarve(ComposeEnvelope env, CrossingDesign design, GrownUnit unit)
+    public static MidResult? TryCarve(ComposeEnvelope env, CrossingDesign design, TeamUnit unit)
     {
         var frame = Frame.For(env.Symmetry);
         var h = design.HalfGapCells;
@@ -374,7 +374,7 @@ public static class MidCarver
     // touches NOTHING else, and it keeps two full cells of clearance to every wool-carrying piece across all
     // orbit images (BZ6).
     private static bool BandContactsOk(
-        ComposeEnvelope env, GrownUnit unit, CellRect band, IReadOnlySet<string> frontIds)
+        ComposeEnvelope env, TeamUnit unit, CellRect band, IReadOnlySet<string> frontIds)
     {
         foreach (var piece in unit.Pieces)
         {

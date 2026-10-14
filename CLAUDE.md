@@ -121,7 +121,7 @@ document rather than what a reader is looking for.
 | `generator/` | the layout-generation track — eight files, no others (below). |
 | `world-export/` | what the export **writes** into a world: `relief`, `terrain-painting`, `structures`, `decoration`, `tree-corpus`, `sketch-world-export`, `ideas`. |
 | `world-scan/` | what the studio **reads** out of a world — `read-backs.md` is every read of a built world, the pictures, their text twins and the numbers, over HTTP and at the CLI, and `answer-shapes.md` which of them a model can subtract from; beside it, what it reads out of a world it did *not* build: monument and objective suggestion, terrain ground truth, the block palette, the corpus studies behind them. |
-| `pgm/` | the map contract — destroyables/cores, control points, shops and shopkeepers, water lanes, regions and filters, include resolution, what the studio refuses to read, the intent model, `template.xml`. |
+| `pgm/` | the map contract — destroyables/cores, control points, flags, portals, damage, zones, shops and shopkeepers, water lanes, regions and filters, include resolution, what the studio refuses to read, the intent model, `template.xml`. |
 | `client/` | the browser half: the canvas JS layer, the component vocabulary, routing and how the client is served. |
 | `gameplay/` | what a map is played for — `approaches.md` (what the ground around an objective does, and the one document whose claims are the author's), the match-flow account, the traffic ground truth. |
 | root | whole-repo notes: `project-structure` (the package map — where a piece of code belongs), `architecture` (the boundary — how a request becomes work, and what the studio can say about itself), `design-decisions`, `refusals` (how every gate says no, and the rule-id catalogue), `access` (who may write, and how a request is signed in), `deployment` (pgmstudio.de: the machine, how a commit reaches it, how people get in), `cloud-setup`, `backlog-strategy` (the board's own reading — which entries are defects, which are questions, which share a cause, and the order that drains them). |
@@ -476,10 +476,13 @@ console error, which the smoke sweep turns into a failed page; a silent blank is
   which is why a scratch copy can disagree with the committed tool.
 - **Symmetry / orbit math is ONE canonical C# leaf plus the JS preview twin — do not add a third copy.** The
   canonical is **`PgmStudio.Geom.Symmetry`**; every C# site routes through it (`Pgm/SymmetryAuthoring`,
-  `SymmetryExpander`, `SketchRasterizer`, `Analysis/SymmetryDetector`, client `OrbitAssignment`). Live canvas
-  previews are JS (`js/studio/geometry/symmetry.js`), the documented twin. A Configure phase needing a
-  non-editable orbit *preview* renders it on the canvas via `setAuthorMirror`, not by computing orbit rects in
-  Blazor. (Spawn/Protection compute orbit in C# because they *store* it — `docs/pgm/new-map-authoring.md` §4.)
+  `SymmetryExpander`, `SketchRasterizer`, `Analysis/SymmetryDetector`, the relief fold, client `OrbitAssignment`),
+  and a caller holding one axis rather than a mode takes `Apply`, `ApplyCell` and `ApplyRect`. A turn inside a
+  box — the composer laying a shape onto the edge it docks — is `PgmStudio.Geom.BoxTurn`, not a symmetry. Live canvas
+  previews are JS (`js/studio/geometry/symmetry.js`), the documented twin. A Configure phase lists every
+  symmetry copy beside what was drawn, so it computes them in C# through the leaf and draws them as `ghost`
+  author regions in each copy's own colour (Spawn, Protection and Wool rooms store them; Build and Score do
+  not — `docs/pgm/new-map-authoring.md` §4).
 - **Do not use `app.MapStaticAssets()`** in this hosted-WASM setup: it breaks the framework boot. What serves
   the client instead — and the three Blazor interop details that each cost an afternoon — are in
   `docs/client/routing-and-ia.md` and `docs/client/canvas-interaction.md` §6.

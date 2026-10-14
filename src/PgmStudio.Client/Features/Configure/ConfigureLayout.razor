@@ -29,7 +29,7 @@
         var p = Phases[i];
         // The current phase is never locked — you can walk one step past the slice-derived frontier
         // (a not-yet-completed phase) and still see where you are; only forward jumps stay gated.
-        var locked = i > Furthest && p.Id != ActivePhaseId;
+        var locked = i > Math.Max(Furthest, Reach) && p.Id != ActivePhaseId;
         <NavButton Icon="@p.Icon" Title="@p.Title" Active="p.Id == ActivePhaseId"
                    Status="@(i < Furthest ? "green" : "")" Disabled="locked"
                    OnClick="() => OnJumpPhase.InvokeAsync(p.Id)" />

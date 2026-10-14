@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 using PgmStudio.Analysis.Playability;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
@@ -8,7 +9,7 @@ namespace PgmStudio.Api.Services;
 
 using Dict = Dictionary<string, object?>;
 
-/// <summary>The Review phase's pre-flight gate over a stored map — the checks <c>GET /map/{slug}/preflight</c>
+/// <summary>The Configure Export phase's checks over a stored map — the checks <c>GET /map/{slug}/preflight</c>
 /// answers and the report reads, and the export verdict they come to.</summary>
 public static class Preflights
 {
@@ -27,10 +28,18 @@ public static class Preflights
         }
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
 
+        // The objectives the map carries, whichever they are, and nothing it does not.
+        var objectives = new (int Count, string Noun)[]
+        {
+            (intent.Wools?.Count ?? 0, "wool"), (intent.Destroyables?.Count ?? 0, "monument"), (intent.Cores?.Count ?? 0, "core"),
+            (intent.ControlPoints?.Count ?? 0, "capture point"), (intent.Flags?.Count ?? 0, "flag"),
+            (intent.ScoreBoxes?.Count ?? 0, "score box"),
+        }.Where(entry => entry.Count > 0).Select(entry => Wording.Count(entry.Count, entry.Noun, entry.Noun == "score box" ? "score boxes" : null));
         var log = new List<string>
         {
-            $"intent → generate: {ListCount(doc, "teams")} teams · {intent.Wools?.Count ?? 0} wools · " +
-            $"{DictCount(doc, "regions")} regions · {DictCount(doc, "filters")} filters · {ListCount(doc, "apply_rules")} apply-rules",
+            $"Written: {string.Join(" · ", [Wording.Count(ListCount(doc, "teams"), "team"), .. objectives])}"
+                + (intent.KillPoints > 0 ? " · kills score" : "")
+                + $" · {DictCount(doc, "regions")} regions · {DictCount(doc, "filters")} filters · {ListCount(doc, "apply_rules")} apply-rules",
         };
 
         var roundTrip = Preflight.RoundTrip(doc);
@@ -42,19 +51,21 @@ public static class Preflights
         // meant to reach; a drawn map without a plan says nothing about which void is a crossing it asked for.
         var planned = await feature.PlannedGroundAsync(map.Id, ct)
             ?? (await artifacts.HasAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) ? null : EveryColumn(zones));
-        var reach = BuildZoneReachCheck(zones, planned);
+        var reach = (intent.Build ?? new BuildIntent()).ModeFor(intent) == BuildModes.Void
+            ? BuildZoneReachCheck(zones, planned)
+            : new Preflight.Check("buildzone", "Build areas", "skip", "Players don't build over the void on this map.");
 
         var trav = Traversability.Check(doc, await feature.WalkGroundAsync(map.Id, doc, ct: ct), DeclaredGoals.Of(doc, intent));
-        var travCheck = TraversabilityCheck(trav);
+        var travCheck = TraversabilityCheck(trav, intent);
         var woolTeams = WoolTeamsCheck(intent, await IslandTeamLookup.OfAsync(feature, map.Id, intent, ct));
 
         foreach (var c in new[] { roundTrip, mirror, build, reach, travCheck, woolTeams })
-            log.Add($"{c.Label.ToLowerInvariant()}: {c.Detail}");
+            log.Add($"{c.Label}: {c.Detail}");
 
         var exportReady = roundTrip.Status == "pass" && trav.Connected;
-        log.Add(exportReady
-            ? $"export gate OPEN — GET /map/{slug}/xml → 200"
-            : $"export gate BLOCKED — GET /map/{slug}/xml → {(roundTrip.Status != "pass" ? "HTTP 500 (codec)" : "HTTP 409 (traversability)")}");
+        log.Add(exportReady ? "Export is open."
+            : roundTrip.Status != "pass" ? "Export is blocked: the map file can't be written."
+            : "Export is blocked: something can't be reached on foot.");
 
         var travDto = new TraversabilityDto(
             trav.Connected, trav.ComponentCount, trav.Severity, trav.Message, trav.HaveLayers,
@@ -71,22 +82,26 @@ public static class Preflights
     // islands of those teams (OB34, OB35). It does not gate the export: the map plays, just not as intended.
     private static Preflight.Check WoolTeamsCheck(MapIntent intent, Func<double, double, string?>? islandTeamAt)
     {
-        if (intent.Wools is not { Count: > 0 }) return new("wool-teams", "Wool teams", "skip", "no wools");
+        if (intent.Wools is not { Count: > 0 }) return new("wool-teams", "Wool teams", "skip", "This map has no wools.");
         var findings = WoolTeams.Check(intent, islandTeamAt);
         return findings.Count == 0
-            ? new("wool-teams", "Wool teams", "pass", "every wool is captured by each team but its defender"
-                + (islandTeamAt is null ? "" : ", each on its own team's island"))
+            ? new("wool-teams", "Wool teams", "pass", "Every team but a wool's defender captures it"
+                + (islandTeamAt is null ? "." : ", at a monument on its own side."))
             : new("wool-teams", "Wool teams", "fail", string.Join("; ", findings.Select(finding => finding.Message)));
     }
 
     // Every authored placement (spawn / wool source / monument) must sit over solid ground, not open void.
     // Asks the Y=0 read directly — the same question PGM's own <void/> filter asks — rather than reading it
     // off an edit zone, which answers why a column is editable and not whether anything is under it. Skips
-    // when there's no Y=0 layer: void can't be told from solid without it (xml-only / un-scanned map).
+    // when there's no Y=0 layer: void can't be told from solid without it (xml-only / un-scanned map). Asked
+    // only of a map built on over the void: on one where nobody builds, the void rule never fires, and a map
+    // floating above y=0 stands every spawn "over the void" while every one of them is on solid floor.
     private static Preflight.Check BuildabilityCheck(Editability.Result res, MapIntent intent)
     {
+        if ((intent.Build ?? new BuildIntent()).ModeFor(intent) != BuildModes.Void)
+            return new("buildability", "Solid ground", "skip", "Players don't build over the void on this map.");
         if (!res.HasY0)
-            return new("buildability", "Buildability", "skip", "no Y=0 layer — can't verify ground under placements");
+            return new("buildability", "Solid ground", "skip", "The world has no scan of its lowest layer, so the ground can't be checked.");
 
         var placements = new List<(string Label, double X, double Z)>();
         foreach (var s in intent.Spawns) placements.Add(($"{Team(s.Team)} spawn", s.Point.X, s.Point.Z));
@@ -100,9 +115,9 @@ public static class Preflights
         // the connectivity check rather than flagged here, to avoid edge-rounding false positives).
         var overVoid = placements.Where(p => res.VoidAt(p.X, p.Z) == true).Select(p => p.Label).ToList();
         if (overVoid.Count == 0)
-            return new("buildability", "Buildability", "pass", $"all {placements.Count} spawn / wool / monument placements on solid ground");
-        return new("buildability", "Buildability", "fail",
-            $"{overVoid.Count} placement(s) over open void: {string.Join(", ", overVoid.Take(6))} — add a bridge in Build");
+            return new("buildability", "Solid ground", "pass", "Every spawn, wool and monument stands over solid ground.");
+        return new("buildability", "Solid ground", "fail",
+            $"Over the void: {string.Join(", ", overVoid.Take(6))}. Move it, or add a bridge under it in Build.");
 
         static string Team(string id) => string.IsNullOrWhiteSpace(id) ? "team" : id;
         static string WoolName(WoolIntent w) => string.IsNullOrWhiteSpace(w.Color) ? w.Owner : w.Color;
@@ -118,24 +133,36 @@ public static class Preflights
     private static Preflight.Check BuildZoneReachCheck(Editability.Result zones, HashSet<(int X, int Z)>? planned)
     {
         if (!zones.HasY0)
-            return new("buildzone", "Build zone reach", "skip", "no Y=0 layer — can't tell void from ground");
+            return new("buildzone", "Build areas", "skip", "The world has no scan of its lowest layer, so the void can't be told from ground.");
         if (planned is null)
-            return new("buildzone", "Build zone reach", "skip", "a drawn map with no plan — nothing says where the ground met a build zone");
+            return new("buildzone", "Build areas", "skip", "This map has no plan, so nothing says where a build area should meet the ground.");
         var gaps = BuildZoneGap.Check(zones, planned);
         if (gaps.Count == 0)
-            return new("buildzone", "Build zone reach", "pass", "every coast within reach of a build zone meets it");
-        return new("buildzone", "Build zone reach", "fail",
-            $"EZ2 — {string.Join(" · ", gaps.Select(gap => gap.Message))}");
+            return new("buildzone", "Build areas", "pass", "Every build area reaches the ground it was drawn to.");
+        return new("buildzone", "Build areas", "fail",
+            string.Join(" ", gaps.Select(gap => gap.Message)));
     }
 
-    private static Preflight.Check TraversabilityCheck(Traversability.Result trav)
+    // On a map built on over the void a cut-off place is reached by bridging to it; on one where nobody builds,
+    // the place itself has to move, or the world has to join it.
+    private static Preflight.Check TraversabilityCheck(Traversability.Result trav, MapIntent intent)
     {
         if (trav.Connected)
-            return new("traversability", "Traversability", "pass",
-                trav.HaveLayers ? "spawn ↔ objective chain connected across the build geometry" : "spawn ↔ objective chain connected (region centres)");
-        var isolated = string.Join(" · ", trav.Isolated.Select(i => i.For is { } team ? $"{i.Name} (for {team})" : i.Name).Take(6));
-        return new("traversability", "Traversability", "fail",
-            isolated.Length > 0 ? $"not connected — isolated: {isolated}. Add a bridge in Build" : trav.Message);
+            return new("traversability", "Reachability", "pass",
+                trav.HaveLayers ? "Every spawn and objective can be reached on foot." : "Every spawn and objective is connected (region centres).");
+        var isolated = string.Join(", ", trav.Isolated.Select(i => i.For is { } team ? $"{Named(i)} (for {team})" : Named(i)).Take(6));
+        var builds = (intent.Build ?? new BuildIntent()).ModeFor(intent) == BuildModes.Void;
+        return new("traversability", "Reachability", "fail",
+            isolated.Length == 0 ? trav.Message
+            : $"Can't be reached on foot: {isolated}. " + (builds ? "Add a bridge in Build." : "Move it, or join it in the world and scan again."));
+
+        static string Named(Traversability.IsolatedPoint point) => point.Kind switch
+        {
+            "spawn" => $"{point.Name} spawn",
+            "wool" => $"{point.Name} wool",
+            "flag" => $"{point.Name} post",
+            _ => point.Name,
+        };
     }
 
     private static int ListCount(Dict doc, string key) => (doc.GetValueOrDefault(key) as List<object?>)?.Count ?? 0;

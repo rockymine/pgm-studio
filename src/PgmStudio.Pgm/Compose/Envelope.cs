@@ -2,7 +2,7 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary> The globals a plan derives from its player count alone: size band, land budget, corridor width,
+/// <summary> The globals a plan derives from its player count alone: size band, land budget, lane width,
 /// fanned board size, and the cell region the team-unit grower may fill. See <see cref="Envelope.Derive"/>. </summary>
 /// <param name="Symmetry">The resolved symmetry mode (never null).</param>
 /// <param name="Teams">2 or 4.</param>
@@ -12,9 +12,9 @@ namespace PgmStudio.Pgm.Compose;
 /// built at.</param>
 /// <param name="Cell">Blocks per proxy cell.</param>
 /// <param name="Surface">Base island surface height.</param>
-/// <param name="CorridorCells">The map-wide corridor width in cells: the band's width in blocks
+/// <param name="LaneWidth">The map-wide lane width in cells: the band's width in blocks
 /// (<see cref="UnitTuning.CorridorBlocks"/>) laid on this grid. Every non-wool box builds to it.</param>
-/// <param name="WoolCorridorCells">The same for a wool approach, one rung narrower
+/// <param name="WoolLaneWidth">The same for a wool approach, one rung narrower
 /// (<see cref="UnitTuning.WoolCorridorBlocks"/>).</param>
 /// <param name="BoardWidthBlocks">The fanned board's non-doubled-axis extent, in blocks.</param>
 /// <param name="BoardLengthBlocks">The fanned board's doubled-axis extent (the direction symmetry fans), in
@@ -33,8 +33,8 @@ public sealed record ComposeEnvelope(
     string Band,
     int Cell,
     int Surface,
-    int CorridorCells,
-    int WoolCorridorCells,
+    int LaneWidth,
+    int WoolLaneWidth,
     int BoardWidthBlocks,
     int BoardLengthBlocks,
     double LandPerTeam,
@@ -128,7 +128,7 @@ public static class Envelope
 
         return new ComposeEnvelope(
             symmetry, request.Teams, request.PlayersPerTeam, band, cell, Surface: 9,
-            UnitTuning.CorridorCells(band, cell), UnitTuning.WoolCorridorCells(band, cell),
+            UnitTuning.LaneWidth(band, cell), UnitTuning.WoolLaneWidth(band, cell),
             boardWidthBlocks, boardLengthBlocks, landPerTeam,
             bounds.X, bounds.Z, bounds.X + bounds.Width, bounds.Z + bounds.Height);
     }

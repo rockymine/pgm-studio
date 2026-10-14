@@ -197,22 +197,25 @@ public sealed class MidCarverTests
     // ── the split band ────────────────────────────────────────────────────────────────────────────────────
     private static ComposeEnvelope Env(string symmetry) => new(
         symmetry, Teams: 2, PlayersPerTeam: 12, Band: SizeBands.Nano, Cell: 5,
-        Surface: 9, CorridorCells: 2, WoolCorridorCells: 2, BoardWidthBlocks: 300, BoardLengthBlocks: 300,
+        Surface: 9, LaneWidth: 2, WoolLaneWidth: 2, BoardWidthBlocks: 300, BoardLengthBlocks: 300,
         LandPerTeam: 2800, UnitMinX: -40, UnitMinZ: -40, UnitMaxX: 40, UnitMaxZ: 40);
 
-    // A unit reduced to what the carve reads: a face at the near edge plus a body behind it to keep the front
+    // A unit reduced to what the carve reads: a face at the near edge plus a compound behind it to keep the front
     // row unambiguous. `legs` are (x, width) pairs on the face row. The face is seated at the half gap the
     // crossing under test opens, because a face anywhere else is one the band does not dock.
+    private static readonly BoxRef Front = new("frontline", BoxKind.Frontline);
+    private static readonly BoxRef Hub = new("hub", BoxKind.Hub);
+
     private static CellRect? Band(string symmetry, bool split, params (int X, int W)[] legs)
     {
         var env = Env(symmetry);
         var design = MidCarver.Crossing(env, split, doubleRank: false, fine: false);
         var halfGap = design.HalfGapCells;
         var pieces = legs
-            .Select((leg, index) => new GrownPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2)))
-            .Append(new GrownPiece("hub", new(legs.Min(l => l.X), halfGap + 2, 4, 3)))
+            .Select((leg, index) => new UnitPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2), Front))
+            .Append(new UnitPiece("hub", new(legs.Min(l => l.X), halfGap + 2, 4, 3), Hub))
             .ToList();
-        var unit = new GrownUnit(pieces, new GrownSpawn("hub", [0, 0], "front"), []);
+        var unit = new TeamUnit(pieces, new Marker("hub", 0, 0), "front", []);
         return MidCarver.TryCarve(env, design, unit)?.BandRect;
     }
 
@@ -265,10 +268,10 @@ public sealed class MidCarverTests
         var env = Env("rot_180");
         var design = MidCarver.Crossing(env, splitBand: true, doubleRank: false, fine: false);
         var halfGap = design.HalfGapCells;
-        MidResult Carve(params (int X, int W)[] legs) => MidCarver.TryCarve(env, design, new GrownUnit(
-            legs.Select((leg, index) => new GrownPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2)))
-                .Append(new GrownPiece("hub", new(legs.Min(l => l.X), halfGap + 2, 4, 3))).ToList(),
-            new GrownSpawn("hub", [0, 0], "front"), []))!;
+        MidResult Carve(params (int X, int W)[] legs) => MidCarver.TryCarve(env, design, new TeamUnit(
+            legs.Select((leg, index) => new UnitPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2), Front))
+                .Append(new UnitPiece("hub", new(legs.Min(l => l.X), halfGap + 2, 4, 3), Hub)).ToList(),
+            new Marker("hub", 0, 0), "front", []))!;
 
         var refused = Carve((-6, 4), (2, 3));
         await Assert.That(refused.Stones.Count).IsGreaterThan(0).Because("the wide empty crossing gets its stone");

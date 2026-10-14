@@ -510,7 +510,7 @@ public static class SketchRasterizer
             foreach (var axis in axes)
             {
                 var mirrored = new Dictionary<(int, int), (int Top, int Floor)>();
-                foreach (var (k, v) in primary) mirrored[MirrorCell(k, axis, cx, cz)] = v;
+                foreach (var (k, v) in primary) mirrored[Symmetry.ApplyCell(k.Item1, k.Item2, axis, cx, cz)] = v;
                 Merge(cells, mirrored);
             }
         }
@@ -555,7 +555,7 @@ public static class SketchRasterizer
                         foreach (var cell in copy.Keys.ToList())
                         {
                             if (holes.Contains(cell)) continue;
-                            if (Sampled(field, MirrorCell(cell, back, cx, cz)) is not { } height) continue;
+                            if (Sampled(field, Symmetry.ApplyCell(cell.Item1, cell.Item2, back, cx, cz)) is not { } height) continue;
                             copy[cell] = (Math.Max(copy[cell].Floor + 1, height), copy[cell].Floor);
                         }
                     }
@@ -1006,7 +1006,7 @@ public static class SketchRasterizer
                 foreach (var axis in axes)
                     foreach (var (x, z) in cells.ToList())
                     {
-                        var (imageX, imageZ) = MirrorCell((x, z), axis, centerX, centerZ);
+                        var (imageX, imageZ) = Symmetry.ApplyCell(x, z, axis, centerX, centerZ);
                         cells.Add((imageX, imageZ));
                     }
                 return cells;
@@ -1838,13 +1838,6 @@ public static class SketchRasterizer
     }
 
     // ── symmetry ──────────────────────────────────────────────────────────────────────────────────
-    // Mirror a block cell's centre, then floor back to a cell (used only for the no-metadata fallback).
-    private static (int, int) MirrorCell((int X, int Z) c, string axis, double cx, double cz)
-    {
-        var (x, z) = MirrorPoint(c.X + 0.5, c.Z + 0.5, axis, cx, cz);
-        return ((int)Math.Floor(x), (int)Math.Floor(z));
-    }
-
     /// <summary>One shape's image under <paramref name="axis"/>. What a shape <b>says</b> travels with the
     /// image beside its geometry: an image whose paint is dropped is ground the map default finishes, and both
     /// grains of paint — the <c>theme</c> and the <c>material</c> — have to survive, since a scope resolver
@@ -1855,7 +1848,7 @@ public static class SketchRasterizer
         // (height is invariant) so a per-vertex surface mirrors correctly.
         if ((s.Type == "polygon" || s.Type == "lasso") && s.Vertices is { } verts)
         {
-            var nv = verts.Select(v => { var (x, z) = MirrorPoint(v[0], v[1], axis, cx, cz); return new[] { x, z }; }).ToArray();
+            var nv = verts.Select(v => { var (x, z) = Symmetry.Apply(v[0], v[1], axis, cx, cz); return new[] { x, z }; }).ToArray();
             Dictionary<string, SketchControl>? nc = null;
             if (s.Controls is { } ctrls)
             {
@@ -1863,8 +1856,8 @@ public static class SketchRasterizer
                 foreach (var (k, c) in ctrls)
                 {
                     var nco = new SketchControl();
-                    if (c.In  is { } i) { var (x, z) = MirrorPoint(i[0], i[1], axis, cx, cz); nco.In  = [x, z]; }
-                    if (c.Out is { } o) { var (x, z) = MirrorPoint(o[0], o[1], axis, cx, cz); nco.Out = [x, z]; }
+                    if (c.In  is { } i) { var (x, z) = Symmetry.Apply(i[0], i[1], axis, cx, cz); nco.In  = [x, z]; }
+                    if (c.Out is { } o) { var (x, z) = Symmetry.Apply(o[0], o[1], axis, cx, cz); nco.Out = [x, z]; }
                     nc[k] = nco;
                 }
             }
@@ -1879,7 +1872,7 @@ public static class SketchRasterizer
         // Rectangle/circle/path: flatten the transformed footprint to a polygon (uniform height carried). A
         // path mirrors as its band rather than as its centerline: a reflection reverses handedness, so
         // re-deriving the band on the far side would swap which edge a rough or tapered width was drawn on.
-        var ring = RingOf(s).Select(p => { var (x, z) = MirrorPoint(p[0], p[1], axis, cx, cz); return new[] { x, z }; }).ToArray();
+        var ring = RingOf(s).Select(p => { var (x, z) = Symmetry.Apply(p[0], p[1], axis, cx, cz); return new[] { x, z }; }).ToArray();
         return new SketchShape
         {
             Id = s.Id, Type = "polygon", Operation = s.Operation, Override = s.Override,
@@ -1888,8 +1881,4 @@ public static class SketchRasterizer
             Material = s.Material,
         };
     }
-
-    // The one canonical concrete-axis transform — every orbit axis stays consistent with the generator + JS.
-    private static (double, double) MirrorPoint(double x, double z, string axis, double cx, double cz)
-        => Symmetry.Apply(x, z, axis, cx, cz);
 }

@@ -1,0 +1,102 @@
+@namespace PgmStudio.Client.Features.Configure
+@using PgmStudio.Client.Models
+
+@* Score: what a kill pays, and the score boxes a team walks into to score. A box is drawn with the rectangle
+   tool, and the map's symmetry copies it to the other teams; the copies are listed and drawn read-only. *@
+
+<Workspace>
+
+  <Sidebar>
+      <Section Title="Kills">
+        <ChildContent>
+        <p class="section-desc">A map where kills score is a team deathmatch.</p>
+        <Field Label="Points per kill">
+          <NumberField Value="@killPoints" Min="1" Max="100" placeholder="None"
+                       ValueChanged="@(value => SetKillPoints((int)value))" OnCleared="@(() => SetKillPoints(null))" />
+        </Field>
+        </ChildContent>
+      </Section>
+
+      <Section Title="Score boxes">
+        <Actions><Badge Class="@(RowCount > 0 ? "badge--success" : "badge--dim")">@RowCount box@(RowCount == 1 ? "" : "es")</Badge></Actions>
+        <ChildContent>
+        @{ var rows = Rows.ToList(); }
+        <p class="section-desc">Use the <strong>rectangle tool</strong> to draw a box. The other teams get a copy
+          by symmetry.</p>
+        <div class="panel-list">
+          @if (rows.Count == 0) { <div class="list-empty">No score boxes yet. Draw one on the map.</div> }
+          @foreach (var box in rows)
+          {
+            <ListRow Compact Selected="selectedId == box.Id" @key="box.Id" OnClick="() => SelectBox(box.Id)">
+              <span class="geo-type-icon" style="--icon-tint: @Hex(box.Team)"><i data-lucide="goal"></i></span>
+              <span class="list-label">@TeamName(box.Team)</span>
+              <Badge Class="@(box.Authored ? "badge--success" : "badge--dim")">@(box.Authored ? "Main" : "Copy")</Badge>
+            </ListRow>
+          }
+        </div>
+        </ChildContent>
+      </Section>
+  </Sidebar>
+
+  <div class="sidebar-handle"></div>
+
+  <WorldCanvas @ref="canvas" Slug="@Slug" RectDraw="true" Category="__scorebox_authoring__"
+               OnRectDrawn="OnRectDrawn" OnGeometrySaved="OnGeometrySaved" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <Inspector>
+      @if (Selected is { } sel)
+      {
+        <Section @key="sel.Id">
+          <DetailHeader Icon="goal" IconTint="@Hex(sel.Team)" Label="Score box">
+            <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "Main" : "Copy")</Badge>
+          </DetailHeader>
+          @if (sel.Source is { } source)
+          {
+          <div class="section-body">
+            <Field Label="Team">
+              <Select Slim="false" Disabled Options="@AuthoringContext.TeamOptions(teams)" Value="@sel.Team" />
+            </Field>
+            <Field Label="Floor height"><NumberField Value="@sel.MinY" disabled /></Field>
+            <Field Label="Points"><NumberField Value="@sel.Points" disabled /></Field>
+            <Field Label="Teleport to spawn">
+              <Select Slim="false" Disabled Options="@HomeOptions" Value="@(sel.Home ? Home : Stays)" />
+            </Field>
+            <p class="section-desc">Copied from <strong>@TeamName(source.Team)</strong>'s box by symmetry. Edit that
+              box to change it.</p>
+          </div>
+          }
+          else
+          {
+          <div class="section-body">
+            <Field Label="Team">
+              <Select Slim="false" Options="@AuthoringContext.TeamOptions(teams)" Value="@sel.Team"
+                      ValueChanged="@(team => SetTeam(sel, team))" />
+            </Field>
+            <Field Label="Floor height">
+              <NumberField Value="@sel.MinY" Min="-64" Max="320" ValueChanged="@(bottom => SetBottom(sel, (int)bottom))" />
+            </Field>
+            <Field Label="Points">
+              <NumberField Value="@sel.Points" Min="1" Max="1000" ValueChanged="@(points => SetPoints(sel, (int)points))" />
+            </Field>
+            <Field Label="Teleport to spawn">
+              <Select Slim="false" Options="@HomeOptions" Value="@(sel.Home ? Home : Stays)" ValueChanged="@(home => SetHome(sel, home == Home))" />
+            </Field>
+            <div class="ctrl-row ctrl-row--separated">
+              <Button Writes Fill OnClick="() => Remove(sel)" Title="Remove box"><i data-lucide="trash-2"></i> Remove box</Button>
+            </div>
+          </div>
+          }
+        </Section>
+      }
+      else
+      {
+        <Section>
+          <DetailHeader Icon="goal" IconMuted Label="Score box" />
+          <p class="section-desc">Draw a box, then choose the team that scores in it.</p>
+        </Section>
+      }
+  </Inspector>
+
+</Workspace>

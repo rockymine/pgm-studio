@@ -1,7 +1,7 @@
 @namespace PgmStudio.Client.Features.Configure
 @using PgmStudio.Contracts
 
-@* Review & Export · Pre-flight step: the validation gate — a read-only overview, not a 3-column
+@* Export · Checks step: the validation gate — a read-only overview, not a 3-column
    editing workspace. The four generated-map checks run on GET /preflight; a single static top-down map
    (real islands + buildable bridges + spawn↔wool connectivity) is the picture of the validated map.
    Export (the XML step's Next) stays blocked until every gating check passes. *@
@@ -9,7 +9,7 @@
 <Workspace>
   <ContentColumn MaxWidth="760">
 
-    <Section Title="Pre-flight checks">
+    <Section Title="Checks">
       <Actions>
         @if (running) { <Badge Kind="neutral">Running…</Badge> }
         else if (data is { IntentMap: false }) { <Badge Kind="dim">Not needed</Badge> }
@@ -17,16 +17,16 @@
         else { <Badge Kind="error">Blocked</Badge> }
       </Actions>
       <ChildContent>
-        <p class="section-desc">These checks find maps that are valid but can't be played. Export is blocked
-          until every check passes.</p>
+        <p class="section-desc">These checks find what would stop the map from being played. Export opens once
+          they pass.</p>
 
         @if (error is not null)
         {
-          <div class="panel-warning"><strong>Couldn't run the checks.</strong> Select Re-run checks to try again. (@error)</div>
+          <div class="panel-warning"><strong>Couldn't run the checks.</strong> Select Run again to try again. (@error)</div>
         }
         else if (data is { IntentMap: false })
         {
-          <p class="panel-empty-msg panel-empty-msg--left">This map wasn't set up in this wizard, so there is
+          <p class="panel-empty-msg panel-empty-msg--left">This map wasn't set up in Configure, so there is
             nothing to check. It can be exported as it is.</p>
         }
         else
@@ -70,15 +70,28 @@
                   }
                   @foreach (var d in v.Points)
                   {
-                    @if (d.Spawn)
+                    var stroke = d.Isolated ? "#e5534b" : "white";
+                    var width = d.Isolated ? IsoSw : Sw;
+                    var title = d.Isolated ? $"{d.Name} (cut off)" : d.Name;
+                    @switch (d.Kind)
                     {
-                      <circle cx="@F(d.X)" cy="@F(d.Z)" r="@F(MarkerR)" fill="@d.Color"
-                              stroke="@(d.Isolated ? "#e5534b" : "white")" stroke-width="@(d.Isolated ? IsoSw : Sw)"><title>@d.Name spawn@(d.Isolated ? " (cut off)" : "")</title></circle>
-                    }
-                    else
-                    {
-                      <rect x="@F(d.X - MarkerR)" y="@F(d.Z - MarkerR)" width="@F(MarkerR * 2)" height="@F(MarkerR * 2)" fill="@d.Color"
-                            stroke="@(d.Isolated ? "#e5534b" : "white")" stroke-width="@(d.Isolated ? IsoSw : Sw)"><title>@d.Name wool@(d.Isolated ? " (cut off)" : "")</title></rect>
+                      case "spawn":
+                        <circle cx="@F(d.X)" cy="@F(d.Z)" r="@F(MarkerR)" fill="@d.Color" stroke="@stroke" stroke-width="@width"><title>@title</title></circle>
+                        break;
+                      case "flag":
+                        <polygon points="@Triangle(d.X, d.Z)" fill="@d.Color" stroke="@stroke" stroke-width="@width"><title>@title</title></polygon>
+                        break;
+                      case "scorebox":
+                        <rect x="@F(d.X - MarkerR)" y="@F(d.Z - MarkerR)" width="@F(MarkerR * 2)" height="@F(MarkerR * 2)" fill="none"
+                              stroke="@(d.Isolated ? stroke : d.Color)" stroke-width="@IsoSw"><title>@title</title></rect>
+                        break;
+                      case "point":
+                        <circle cx="@F(d.X)" cy="@F(d.Z)" r="@F(MarkerR)" fill="none" stroke="@(d.Isolated ? stroke : d.Color)" stroke-width="@IsoSw"><title>@title</title></circle>
+                        break;
+                      default:
+                        <rect x="@F(d.X - MarkerR)" y="@F(d.Z - MarkerR)" width="@F(MarkerR * 2)" height="@F(MarkerR * 2)" fill="@d.Color"
+                              stroke="@stroke" stroke-width="@width"><title>@title</title></rect>
+                        break;
                     }
                   }
                   @foreach (var mo in v.Monuments)
@@ -91,30 +104,28 @@
                 <Badge Class="@(data?.Traversability is { Connected: true } ? "badge--success" : "badge--error")">
                   @(data?.Traversability is { Connected: true } ? "Connected" : $"{data?.Traversability?.ComponentCount} separate parts")
                 </Badge>
-                Islands · <span class="preflight-key--bridge">buildable bridges</span> ·
-                <strong>dashed box:</strong> spawn protection · <strong>filled box:</strong> wool room ·
-                <strong>●</strong> spawn · <strong>■</strong> wool · <strong>◆</strong> monument.
-                A <span class="preflight-key--cut-off">red ring</span> marks a spawn or wool that is cut off.
+                @foreach (var (key, label, index) in Legend(v).Select((entry, index) => (entry.Key, entry.Label, index)))
+                {
+                  @(index > 0 ? " · " : "")
+                  @if (key == "bridge") { <span class="preflight-key--bridge">@label</span> }
+                  else if (key.Length > 0) { <strong>@key</strong>@(" " + label) }
+                  else { @label }
+                }.
+                A <span class="preflight-key--cut-off">red outline</span> marks anything that can't be reached.
               </p>
             }
 
             @if (Blocked && Failed("traversability") is { } tf)
             {
-              <div class="panel-warning">
-                <strong>Export blocked.</strong> @tf.Detail. Go back to the <strong>Build</strong> phase and add a
-                bridge across the gap. The checks run again when you return.
-              </div>
+              <div class="panel-warning"><strong>Export blocked.</strong> @tf.Detail</div>
             }
             else if (Blocked && Failed("buildability") is { } bf)
             {
-              <div class="panel-warning"><strong>Something is placed over the void.</strong> @bf.Detail.</div>
+              <div class="panel-warning"><strong>Something is placed over the void.</strong> @bf.Detail</div>
             }
             else if (Blocked && Failed("round-trip") is { } rf)
             {
-              <div class="panel-warning">
-                <strong>Couldn't write valid XML.</strong> @rf.Detail. This is a problem in the studio, not in
-                your map.
-              </div>
+              <div class="panel-warning"><strong>Couldn't write the map file.</strong> @rf.Detail</div>
             }
 
             <div class="console-wrap console-wrap--separated">
@@ -141,15 +152,15 @@
             @if (data is { ExportReady: true })
             {
               <Badge Kind="success">Ready to export</Badge>
-              <span class="panel-save-status">Go to the XML step to export.</span>
+              <span class="panel-save-status">Export from the map.xml step.</span>
             }
             else
             {
               <Badge Kind="error">Export blocked</Badge>
-              <span class="panel-save-status">Fix the failed check, then run the checks again.</span>
+              <span class="panel-save-status">Fix what failed, then run the checks again.</span>
             }
             <Button OnClick="RunAsync" Disabled="@running">
-              <i data-lucide="refresh-cw"></i> Re-run checks
+              <i data-lucide="refresh-cw"></i> Run again
             </Button>
           </div>
         }

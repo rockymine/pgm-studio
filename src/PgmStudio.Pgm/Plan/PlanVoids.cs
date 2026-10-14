@@ -6,11 +6,11 @@ namespace PgmStudio.Pgm.Plan;
 
 /// <summary>
 /// The compile step that gives a plan's negative space a name (docs/tools/plan.md). Terrain is
-/// stated by the pieces that generate it, so the ground a body encircles and no piece covers — a ring hub's
+/// stated by the pieces that generate it, so the ground a compound encircles and no piece covers — a ring hub's
 /// hole — is void by omission, and nothing in the document says so. This writes it down: every enclosed void
 /// becomes a <see cref="PlanRoles.Buffer"/> piece, the role that already means reserved empty space.
 ///
-/// <para><b>A hole is never scenery.</b> What a body encircles is ground players go round — the middle of a
+/// <para><b>A hole is never scenery.</b> What a compound encircles is ground players go round — the middle of a
 /// <c>donut</c> wool room, the yard of a ring hub — and a board's walls are drawn to guard it, so it is stated
 /// as negative space and a later shape may not quietly put ground back in it (<c>SK13</c>).</para>
 ///
@@ -49,7 +49,7 @@ public static class PlanVoids
     }
 
     /// <summary>The enclosed voids no buffer covers yet, as cell rects paired with the mirror flag of the
-    /// body enclosing them — what <see cref="Declare"/> adds. Empty when the plan declares everything.</summary>
+    /// compound enclosing them — what <see cref="Declare"/> adds. Empty when the plan declares everything.</summary>
     public static IReadOnlyList<(CellRect Rect, bool Mirrors)> Undeclared(PlanModel plan)
     {
         var graph = ContactGraph.Build(plan);
@@ -69,8 +69,8 @@ public static class PlanVoids
         foreach (var component in graph.Components)
         {
             var pieces = component.Select(id => graph.Piece(id)!.Value).ToList();
-            var body = pieces.Select(piece => Cells(piece.Rect, cell)).ToList();
-            foreach (var (minX, minZ, maxX, maxZ) in RectilinearUnion.EnclosedVoids(body, [.. ground, .. declared]))
+            var compound = pieces.Select(piece => Cells(piece.Rect, cell)).ToList();
+            foreach (var (minX, minZ, maxX, maxZ) in RectilinearUnion.EnclosedVoids(compound, [.. ground, .. declared]))
                 found.Add((CellRect.FromBounds(minX, minZ, maxX, maxZ), pieces[0].Mirrors));
         }
         return found;

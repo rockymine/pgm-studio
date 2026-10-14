@@ -33,9 +33,10 @@ public sealed class WayThroughTests
     [Test]
     public async Task A_building_across_the_only_neck_closes_the_way()
     {
-        // Two open halves joined by a three-cell neck. Nothing local can see that the neck is the only way:
-        // the ground beside the building is wide open on both faces.
-        var ground = Board(41, 21, (x, z) => x is >= 19 and <= 21 && z is < 9 or > 11);
+        // Two open halves joined by a three-cell neck over a chasm five blocks wide, past a sprint jump's
+        // reach. Nothing local can see that the neck is the only way: the ground beside the building is wide
+        // open on both faces.
+        var ground = Board(41, 21, (x, z) => x is >= 18 and <= 22 && z is < 9 or > 11);
         var ways = WayThrough.Of(ground, [(2, 10), (38, 10)]);
         await Assert.That(ways.HasRoutes).IsTrue();
 
@@ -49,7 +50,7 @@ public sealed class WayThroughTests
     [Test]
     public async Task The_same_building_beside_the_neck_stands()
     {
-        var ground = Board(41, 21, (x, z) => x is >= 19 and <= 21 && z is < 9 or > 11);
+        var ground = Board(41, 21, (x, z) => x is >= 18 and <= 22 && z is < 9 or > 11);
         var ways = WayThrough.Of(ground, [(2, 10), (38, 10)]);
 
         await Assert.That(ways.Admit("hall", Rect(4, 2, 6, 4))).IsNull();
@@ -84,7 +85,7 @@ public sealed class WayThroughTests
     {
         // A board with two necks. Either one alone is a detour the route absorbs; both blocked is a board in
         // two halves, and only a check that remembers what it already admitted can say so.
-        var ground = Board(41, 21, (x, z) => x is >= 19 and <= 21 && z is not (>= 4 and <= 6) and not (>= 14 and <= 16));
+        var ground = Board(41, 21, (x, z) => x is >= 18 and <= 22 && z is not (>= 4 and <= 6) and not (>= 14 and <= 16));
         var ways = WayThrough.Of(ground, [(2, 5), (38, 15)]);
         await Assert.That(ways.HasRoutes).IsTrue();
 

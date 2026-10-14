@@ -8,14 +8,14 @@ namespace PgmStudio.Pgm.Compose;
 
 /// <summary>The parameter tuple that reproduced a box's terrain exactly — what the composer would have had to
 /// draw to make it. <see cref="Label"/> names the tuple in the vocabulary's own terms.</summary>
-public sealed record ProducibleAs(string Label, int Cw);
+public sealed record ProducibleAs(string Label, int LaneWidth);
 
 /// <summary>The closest the emitters got when nothing reproduced the box: the candidate whose terrain differs in
 /// the fewest cells, and how it differs. <see cref="Extra"/> are cells the candidate emits that the box does not
 /// have, <see cref="Missing"/> cells the box has that the candidate does not — the pair that says <em>where</em>
 /// the authored geometry left the parameter space, without a bespoke per-family analyser.</summary>
 public sealed record NearestMiss(
-    string Label, int Cw, int DifferingCells,
+    string Label, int LaneWidth, int DifferingCells,
     IReadOnlyList<CellRect> Extra, IReadOnlyList<CellRect> Missing);
 
 /// <summary>
@@ -67,12 +67,12 @@ public sealed record PlanProducibility(
 ///
 /// <para>The <b>why</b> comes from three sources, all of them existing: the emitters' own
 /// <see cref="FillRejection"/> reasons; a measurement of the mask against the same constants the emitters read
-/// (<see cref="Cells.MinRunWidthRaw"/> vs <see cref="FillProfiles.HubWallCells"/> /
-/// <see cref="UnitTuning.WoolLaneFloorCells"/>); and the <b>nearest miss</b>, which the enumeration produces
+/// (<see cref="Cells.MinRunWidthRaw"/> vs <see cref="FillProfiles.HubLaneWidthFloor"/> /
+/// <see cref="UnitTuning.WoolLaneWidthFloor"/>); and the <b>nearest miss</b>, which the enumeration produces
 /// for free.</para>
 ///
 /// <para>Terrain and room are compared <b>separately</b>: a box whose corridor the emitters reproduce but whose
-/// terminal room they do not is a distinct, directed answer ("terrain replicable, room not"), because the room
+/// room they do not is a distinct, directed answer ("terrain replicable, room not"), because the room
 /// carries load-bearing export semantics (the bedrock floor and entrance line) rather than being just more
 /// terrain.</para>
 ///
@@ -83,11 +83,11 @@ public static class Producibility
 {
     /// <summary>The corridor widths a box is searched at. A standalone box read does not know its board's
     /// size band or its grid scale, so the search covers the widths the composer emits at on the grids the
-    /// studio draws on (<see cref="UnitTuning.CorridorCells"/> over the bands at cell 4 and cell 5), plus the
-    /// width the body itself <b>measures</b> — its narrowest cross-section, which is what a holed form built on
+    /// studio draws on (<see cref="UnitTuning.LaneWidth"/> over the bands at cell 4 and cell 5), plus the
+    /// width the compound itself <b>measures</b> — its narrowest cross-section, which is what a holed form built on
     /// any other grid reads as.</summary>
-    private static int[] SearchWidths(int measuredCw) =>
-        new[] { 2, 3, 4, Math.Max(UnitTuning.WoolLaneFloorCells, measuredCw) }.Distinct().ToArray();
+    private static int[] SearchWidths(int measuredLaneWidth) =>
+        new[] { 2, 3, 4, Math.Max(UnitTuning.WoolLaneWidthFloor, measuredLaneWidth) }.Distinct().ToArray();
 
     /// <summary>How many seeds to draw a composer sampler with when enumerating what it can produce — the
     /// frontline's arm layouts, the hub's ring walls and leg layouts. The sampler is the only thing that knows its
@@ -208,12 +208,12 @@ public static class Producibility
             var f = frame.FromRect(front.Rect);
             var patches = FrontPatches(plan, hub, front, frame);
             var weakest = patches.Count == 0 ? 0 : patches.Min();
-            if (weakest < UnitTuning.WoolLaneFloorCells)
+            if (weakest < UnitTuning.WoolLaneWidthFloor)
                 findings.Add(new Finding(BoxRules.FrontlinePatchNarrow,
                     patches.Count == 0
                         ? $"front line box '{front.Id}' meets the front of hub box '{hub.Id}' in no patch"
                         : $"front line box '{front.Id}' meets the front of hub box '{hub.Id}' in {patches.Count} " +
-                          $"patches, the narrowest {Wording.Count(weakest, "cell")} wide, less than {Wording.Count(UnitTuning.WoolLaneFloorCells, "cell")}",
+                          $"patches, the narrowest {Wording.Count(weakest, "cell")} wide, less than {Wording.Count(UnitTuning.WoolLaneWidthFloor, "cell")}",
                     Subjects: [front.Id, hub.Id]));
         }
 
@@ -224,10 +224,10 @@ public static class Producibility
         var seats = plan.Boxes.Where(b => b.Kind is PlanBoxKinds.Wool or PlanBoxKinds.Spawn).ToList();
         for (var i = 0; i < seats.Count; i++)
             for (var j = i + 1; j < seats.Count; j++)
-                if (SeatGeometry.TooClose(seats[i].Rect, seats[j].Rect, UnitTuning.WoolLaneFloorCells))
+                if (SeatGeometry.TooClose(seats[i].Rect, seats[j].Rect, UnitTuning.WoolLaneWidthFloor))
                     findings.Add(new Finding(BoxRules.SeatsTooClose,
                         $"boxes '{seats[i].Id}' and '{seats[j].Id}' stand less than " +
-                        $"{Wording.Count(UnitTuning.WoolLaneFloorCells, "cell")} apart", Subjects: [seats[i].Id, seats[j].Id], Cites: "G124"));
+                        $"{Wording.Count(UnitTuning.WoolLaneWidthFloor, "cell")} apart", Subjects: [seats[i].Id, seats[j].Id], Cites: "G124"));
 
         return findings;
     }
@@ -252,11 +252,11 @@ public static class Producibility
 
         // The measurement, against the same constant the emitter reads. Independent of the search: a corridor
         // narrower than any lane the vocabulary has is worth saying even when a nearest miss also fires.
-        var cwFloor = box.Kind == PlanBoxKinds.Wool ? UnitTuning.WoolLaneFloorCells : FillProfiles.HubWallCells;
+        var laneWidthFloor = box.Kind == PlanBoxKinds.Wool ? UnitTuning.WoolLaneWidthFloor : FillProfiles.HubLaneWidthFloor;
         var measured = Cells.MinRunWidthRaw(all, all);
-        if (measured < cwFloor)
+        if (measured < laneWidthFloor)
             findings.Add(new Finding(BoxRules.BoxTooNarrow,
-                $"box '{box.Id}' is {Wording.Count(measured, "cell")} across at its narrowest, less than {Wording.Count(cwFloor, "cell")}",
+                $"box '{box.Id}' is {Wording.Count(measured, "cell")} across at its narrowest, less than {Wording.Count(laneWidthFloor, "cell")}",
                 Subjects: [box.Id]));
 
         // enumerated lazily and kept as they come: an exact match ends the search, so the producible case — the
@@ -267,13 +267,13 @@ public static class Producibility
             candidates.Add(c);
             if (c.Mask is not null && c.Mask.SetEquals(all))    // exact terrain+room match — the box is producible
                 return new BoxProducibility(box.Id, box.Kind, identity,
-                    new ProducibleAs(c.Label, c.Cw), null, findings);
+                    new ProducibleAs(c.Label, c.LaneWidth), null, findings);
         }
         if (candidates.Count == 0)
             findings.Add(new Finding(BoxRules.NoFormForKind,
                 $"box '{box.Id}' has the kind '{box.Kind}', which no form the generator builds covers", Subjects: [box.Id]));
 
-        // the terrain/room split: the corridor reproduces but the terminal room does not. Only reachable past
+        // the terrain/room split: the corridor reproduces but the room does not. Only reachable past
         // the exact-match return above, so every candidate here already differs somewhere.
         if (roomPieces.Count > 0
             && candidates.FirstOrDefault(c => c.Mask is not null && c.Room is not null
@@ -287,7 +287,7 @@ public static class Producibility
         {
             findings.Add(new Finding(BoxRules.NoFormReproduces,
                 $"box '{box.Id}' differs in {Wording.Count(nearest.DifferingCells, "cell")} from {nearest.Label} at a lane width of " +
-                $"{Wording.Count(nearest.Cw, "cell")}, the nearest form the generator builds", Subjects: [box.Id]));
+                $"{Wording.Count(nearest.LaneWidth, "cell")}, the nearest form the generator builds", Subjects: [box.Id]));
             if (ProportionGap(box, identity, nearest) is { } gap) findings.Add(gap);
         }
         else if (candidates.Count > 0)
@@ -296,51 +296,50 @@ public static class Producibility
         return new BoxProducibility(box.Id, box.Kind, identity, null, nearest, findings);
     }
 
-    /// <summary>What the derivers read the box as — the approach family for a roomed box, the body compound for a
-    /// terminal-free one. A hint that narrows a search, not a verdict (see <see cref="BoxProducibility"/>).</summary>
+    /// <summary>What the derivers read the box as — the form of a compound ending in a room, or of one without a
+    /// room-free one. A hint that narrows a search, not a verdict (see <see cref="BoxProducibility"/>).</summary>
     private static string Identify(IReadOnlySet<(int, int)> all, IReadOnlySet<(int, int)> roomCells)
     {
         if (all.Count == 0) return "empty";
         if (roomCells.Count > 0)
         {
             var read = ShapeClassifier.Classify(all, roomCells);
-            return $"{read.Family} (w {read.Width})";
+            return read.Family is { } form ? $"{form} (w {read.Width})" : "no ground reaches the room";
         }
-        var body = ShapeClassifier.ClassifyBody(all);
-        return body.Arms > 0 ? $"{body.Form}({body.Arms} arms)" : body.Form.ToString();
+        return ShapeClassifier.ClassifyCompound(all)?.ToString() ?? "no form";
     }
 
     /// <summary>One enumerated tuple: how it reads, the terrain+room mask it emits (<c>null</c> when the emitter
     /// refused), the room rect it stamps, and the refusal reason when there is one.</summary>
     private sealed record Candidate(
-        string Label, int Cw, HashSet<(int, int)>? Mask, CellRect? Room, FillRejection? Rejection);
+        string Label, int LaneWidth, HashSet<(int, int)>? Mask, CellRect? Room, FillRejection? Rejection);
 
     /// <summary>Every tuple the declared production menus admit for this box kind, emitted into the box's own
     /// footprint by the real emitters. The menus are read as data — nothing here restates them.</summary>
-    private static IEnumerable<Candidate> Candidates(PlanBox box, IReadOnlySet<(int, int)> target, int measuredCw, int cell) =>
+    private static IEnumerable<Candidate> Candidates(PlanBox box, IReadOnlySet<(int, int)> target, int measuredLaneWidth, int cell) =>
         box.Kind switch
         {
-            PlanBoxKinds.Hub => HubCandidates(box, measuredCw, cell),
-            PlanBoxKinds.Frontline => FrontlineCandidates(box, measuredCw),
-            PlanBoxKinds.Wool => ApproachCandidates(box, BoxKind.Wool, measuredCw),
-            PlanBoxKinds.Spawn => ApproachCandidates(box, BoxKind.Spawn, measuredCw),
+            PlanBoxKinds.Hub => HubCandidates(box, measuredLaneWidth, cell),
+            PlanBoxKinds.Frontline => FrontlineCandidates(box, measuredLaneWidth),
+            PlanBoxKinds.Wool => RoomCandidates(box, BoxKind.Wool, measuredLaneWidth),
+            PlanBoxKinds.Spawn => RoomCandidates(box, BoxKind.Spawn, measuredLaneWidth),
             _ => [],
         };
 
-    private static IEnumerable<Candidate> HubCandidates(PlanBox box, int measuredCw, int cell)
+    private static IEnumerable<Candidate> HubCandidates(PlanBox box, int measuredLaneWidth, int cell)
     {
         var b = new Box(box.Id, BoxKind.Hub, box.Rect, box.Rect.Width * box.Rect.Height);
-        foreach (var cw in SearchWidths(measuredCw))
-        foreach (var form in FillProfiles.HubForms)
-            foreach (var walls in HubWallVectors(form, box, cw, cell))
-                foreach (var arms in HubArmLayouts(form, box, cw))
+        foreach (var laneWidth in SearchWidths(measuredLaneWidth))
+        foreach (var form in FillMenu.For(BoxKind.Hub))
+            foreach (var walls in HubWallVectors(form, box, laneWidth, cell))
+                foreach (var arms in HubArmLayouts(form, box, laneWidth))
                     foreach (var flip in new[] { false, true })
                     {
-                        var label = $"{Name(form)}{Widened(walls, cw)}{(arms is null ? "" : " legs " + Legs(arms))}{(flip ? " flipped" : "")}";
-                        var hub = HubBoxEmitter.Fill(b, form, cw, flip, out var why, walls, arms);
+                        var label = $"{Name(form)}{Widened(walls, laneWidth)}{(arms is null ? "" : " legs " + Legs(arms))}{(flip ? " flipped" : "")}";
+                        var hub = HubBoxEmitter.Fill(b, form, laneWidth, flip, out var why, walls, arms);
                         yield return hub is null
-                            ? new Candidate(label, cw, null, null, why)
-                            : new Candidate(label, cw, Mask(hub.Pieces.Select(p => p.Rect)), null, null);
+                            ? new Candidate(label, laneWidth, null, null, why)
+                            : new Candidate(label, laneWidth, Mask(Laid(hub, b)), null, null);
                     }
     }
 
@@ -349,13 +348,13 @@ public static class Producibility
     /// arms are, so the widths the search admits are exactly the widths the composer draws. The uniform default
     /// (<c>null</c>) leads, and a form without arms yields only that.</summary>
     private static IEnumerable<IReadOnlyList<(int Start, int Width)>?> HubArmLayouts(
-        CompoundRead form, PlanBox box, int cw)
+        CompoundForm form, PlanBox box, int laneWidth)
     {
         yield return null;
-        if (form.Form != Compound.SpineArms) yield break;
+        if (form.Arms() == 0) yield break;
         var spineLen = box.Rect.Width;
-        foreach (var layout in Memo($"hub-legs {spineLen} {form.Arms} {cw}",
-                     () => SweepLayouts(seed => HubBoxEmitter.SampleArms(seed, spineLen, form.Arms, cw))))
+        foreach (var layout in Memo($"hub-legs {spineLen} {form.Arms()} {laneWidth}",
+                     () => SweepLayouts(seed => HubBoxEmitter.SampleArms(seed, spineLen, form.Arms(), laneWidth))))
             yield return layout;
     }
 
@@ -376,40 +375,39 @@ public static class Producibility
     /// <see cref="TeamUnitAllocator.ChooseHubWalls"/> over many seeds rather than restating its law (one side
     /// widened, within twice the narrowest, only where the hole has the slack). The even-walled ring
     /// (<c>null</c>) is always offered first, and a form without a ring yields only that.</summary>
-    private static IEnumerable<RingWalls?> HubWallVectors(CompoundRead form, PlanBox box, int cw, int cell)
+    private static IEnumerable<RingWalls?> HubWallVectors(CompoundForm form, PlanBox box, int laneWidth, int cell)
     {
         yield return null;
         int w = box.Rect.Width, h = box.Rect.Height;
-        foreach (var walls in Memo($"hub-walls {form.Form} {form.Arms} {w} {h} {cw} {cell}", () =>
+        foreach (var walls in Memo($"hub-walls {form} {w} {h} {laneWidth} {cell}", () =>
                  {
                      var seen = new HashSet<RingWalls>();
                      var vectors = new List<RingWalls>();
                      for (ulong seed = 1; seed <= SamplerSweepSeeds; seed++)
-                         if (TeamUnitAllocator.ChooseHubWalls(form, w, h, cw, cell, new ComposeRng(seed)) is { } v
+                         if (TeamUnitAllocator.ChooseHubWalls(form, w, h, laneWidth, cell, new ComposeRng(seed)) is { } v
                              && seen.Add(v)) vectors.Add(v);
                      return vectors;
                  }))
             yield return walls;
     }
 
-    private static string Widened(RingWalls? walls, int cw) => walls is not { } v ? ""
+    private static string Widened(RingWalls? walls, int laneWidth) => walls is not { } v ? ""
         : $" walls {v.Top}/{v.Right}/{v.Bottom}/{v.Left}";
 
-    private static IEnumerable<Candidate> FrontlineCandidates(PlanBox box, int measuredCw)
+    private static IEnumerable<Candidate> FrontlineCandidates(PlanBox box, int measuredLaneWidth)
     {
         var b = new Box(box.Id, BoxKind.Frontline, box.Rect, box.Rect.Width * box.Rect.Height);
-        foreach (var cw in SearchWidths(measuredCw))
-            foreach (var form in FillProfiles.FrontlineForms)
+        foreach (var laneWidth in SearchWidths(measuredLaneWidth))
+            foreach (var form in FillMenu.For(BoxKind.Frontline))
                 foreach (var mouth in AllEdges)
-                    foreach (var grouping in new[] { OfferGrouping.Joint, OfferGrouping.Several })
-                        foreach (var layout in ArmLayouts(form, box, mouth))
-                        {
-                            var label = $"{Name(form)} spine {mouth}{(layout is null ? "" : " legs " + Legs(layout))}";
-                            var f = FrontlineBoxEmitter.Fill(b, form, cw, grouping, out var why, mouth, armLayout: layout);
-                            yield return f is null
-                                ? new Candidate(label, cw, null, null, why)
-                                : new Candidate(label, cw, Mask(f.Pieces.Select(p => p.Rect)), null, null);
-                        }
+                    foreach (var layout in ArmLayouts(form, box, mouth))
+                    {
+                        var label = $"{Name(form)} spine {mouth}{(layout is null ? "" : " legs " + Legs(layout))}";
+                        var front = FrontlineBoxEmitter.Fill(b, form, laneWidth, out var why, mouth, layout);
+                        yield return front is null
+                            ? new Candidate(label, laneWidth, null, null, why)
+                            : new Candidate(label, laneWidth, Mask(Laid(front, b)), null, null);
+                    }
     }
 
     /// <summary>The arm layouts a branch frontline form can take in this box — collected by <b>running</b>
@@ -417,24 +415,34 @@ public static class Producibility
     /// widths within factor 2, bay 2–4, recesses ≤ a third of the spine). The canonical layout (<c>null</c>) is
     /// always offered first.</summary>
     private static IEnumerable<IReadOnlyList<(int Start, int Width)>?> ArmLayouts(
-        CompoundRead form, PlanBox box, BoxEdge mouth)
+        CompoundForm form, PlanBox box, BoxEdge mouth)
     {
         yield return null;                                   // the canonical fat L / symmetric twin
-        if (form.Form != Compound.SpineArms) yield break;
+        if (form.Arms() == 0) yield break;
         var spineLen = mouth is BoxEdge.Left or BoxEdge.Right ? box.Rect.Height : box.Rect.Width;
-        foreach (var layout in Memo($"front-legs {spineLen} {form.Arms}",
-                     () => SweepLayouts(seed => FrontlineBoxEmitter.SampleArms(seed, spineLen, form.Arms))))
+        foreach (var layout in Memo($"front-legs {spineLen} {form.Arms()}",
+                     () => SweepLayouts(seed => FrontlineBoxEmitter.SampleArms(seed, spineLen, form.Arms()))))
             yield return layout;
     }
 
-    private static IEnumerable<Candidate> ApproachCandidates(PlanBox box, BoxKind kind, int measuredCw)
+    // a box-local compound's piece rects on the board, and its room's
+    private static IEnumerable<CellRect> Laid(Compound compound, Box box) =>
+        UnitPieces.Lay(compound, box).Pieces.Select(p => p.Rect);
+
+    private static CellRect RoomOf(Compound compound, Box box)
+    {
+        var room = compound.Room!.Rect;
+        return new(box.Rect.X + room.X, box.Rect.Z + room.Z, room.Width, room.Height);
+    }
+
+    private static IEnumerable<Candidate> RoomCandidates(PlanBox box, BoxKind kind, int measuredLaneWidth)
     {
         var b = new Box(box.Id, kind, box.Rect, box.Rect.Width * box.Rect.Height);
-        foreach (var cw in SearchWidths(measuredCw))
-            foreach (var family in FillProfiles.Families(kind, cw, cw))
+        foreach (var laneWidth in SearchWidths(measuredLaneWidth))
+            foreach (var family in FillProfiles.Families(kind, laneWidth, laneWidth))
                 foreach (var mouth in AllEdges)
                     foreach (var flip in new[] { false, true })
-                        foreach (var (placement, atEnd, attachW) in ApproachKnobs(kind, family, cw))
+                        foreach (var (placement, atEnd, attachW) in RoomKnobs(kind, family, laneWidth))
                         {
                             var label = $"{family}{(flip ? " flipped" : "")} mouth {mouth}" +
                                         $"{(placement == RoomPlacement.Inline ? "" : " side-tuck")}" +
@@ -442,37 +450,32 @@ public static class Producibility
                                         $"{(attachW > 0 ? $" attach {attachW}" : "")}";
                             if (kind == BoxKind.Spawn)
                             {
-                                var s = SpawnBoxEmitter.Fill(b, mouth, family, cw, flip, $"{box.Id}-room", out var sWhy);
-                                yield return s is null
-                                    ? new Candidate(label, cw, null, null, sWhy)
-                                    : new Candidate(label, cw, Mask(s.Pieces.Select(p => p.Rect)), s.Room.Rect, null);
+                                var spawn = SpawnBoxEmitter.Fill(b, mouth, family, laneWidth, flip, out var spawnWhy);
+                                yield return spawn is null
+                                    ? new Candidate(label, laneWidth, null, null, spawnWhy)
+                                    : new Candidate(label, laneWidth, Mask(Laid(spawn, b)), RoomOf(spawn, b), null);
                                 continue;
                             }
-                            var res = BoxFiller.Fill(b, mouth, cw, family, flip, $"{box.Id}-room", placement, atEnd, attachW);
-                            if (res is not FillResult.Ok ok)
-                            {
-                                yield return new Candidate(label, cw, null, null, res.Rejection);
-                                continue;
-                            }
-                            var mask = Mask(ok.Approach.Terrain.Select(p => p.Rect));
-                            mask.UnionWith(Mask([ok.Approach.WoolRoom.Rect]));
-                            yield return new Candidate(label, cw, mask, ok.Approach.WoolRoom.Rect, null);
+                            var wool = BoxFiller.Fill(b, mouth, laneWidth, family, out var woolWhy, flip, placement, atEnd, attachW);
+                            yield return wool is null
+                                ? new Candidate(label, laneWidth, null, null, woolWhy)
+                                : new Candidate(label, laneWidth, Mask(Laid(wool, b)), RoomOf(wool, b), null);
                         }
     }
 
     /// <summary>The per-family emit knobs, from the declared ranges: the room placement, the wool-at-an-end
-    /// variant, and the donut's sampled hub-entry width (<c>cw..DonutEntryMaxCells</c>). The donut's hole size is
+    /// variant, and the donut's sampled hub-entry width (<c>laneWidth..DonutEntryMaxCells</c>). The donut's hole size is
     /// not a knob here — the allocator spends it as box <em>growth</em>, so a given footprint implies it.</summary>
-    private static IEnumerable<(RoomPlacement Placement, bool AtEnd, int AttachW)> ApproachKnobs(
-        BoxKind kind, ShapeFamily family, int cw)
+    private static IEnumerable<(RoomPlacement Placement, bool AtEnd, int AttachW)> RoomKnobs(
+        BoxKind kind, CompoundForm family, int laneWidth)
     {
         if (kind == BoxKind.Spawn) { yield return (RoomPlacement.Inline, false, 0); yield break; }
         foreach (var placement in new[] { RoomPlacement.Inline, RoomPlacement.SideTuck })
             foreach (var atEnd in new[] { false, true })
             {
-                if (family != ShapeFamily.Donut) { yield return (placement, atEnd, 0); continue; }
+                if (family != CompoundForm.Donut) { yield return (placement, atEnd, 0); continue; }
                 yield return (placement, atEnd, 0);          // the min-only one-corridor entry
-                for (var aw = cw; aw <= UnitTuning.DonutEntryMaxCells(cw); aw++)
+                for (var aw = laneWidth; aw <= UnitTuning.DonutEntryMaxCells(laneWidth); aw++)
                     yield return (placement, atEnd, aw);
             }
     }
@@ -480,7 +483,7 @@ public static class Producibility
     /// <summary>
     /// The gap finding for a box whose <b>shape is in the vocabulary but whose proportions are not</b>: the
     /// nearest candidate is the same form the box reads as, so the emitters know this shape and only its
-    /// dimensions are out of reach. Every emitter takes a single corridor width, so that is very often what one
+    /// dimensions are out of reach. Every emitter takes a single lane width, so that is very often what one
     /// over-wide part runs into — and there are tasks that own it, which is more use to an author than a bare
     /// "no parameters reproduce".
     ///
@@ -541,7 +544,7 @@ public static class Producibility
             var missing = target.Except(c.Mask).ToList();
             var diff = extra.Count + missing.Count;
             if (best is not null && diff >= best.DifferingCells) continue;
-            best = new NearestMiss(c.Label, c.Cw, diff,
+            best = new NearestMiss(c.Label, c.LaneWidth, diff,
                 extra.Select(p => new CellRect(p.Item1, p.Item2, 1, 1)).ToList(),
                 missing.Select(p => new CellRect(p.Item1, p.Item2, 1, 1)).ToList());
         }
@@ -565,8 +568,7 @@ public static class Producibility
         return cells;
     }
 
-    private static string Name(CompoundRead form) =>
-        form.Arms > 0 ? $"{form.Form}({form.Arms})" : form.Form.ToString();
+    private static string Name(CompoundForm form) => form.ToString();
 
     private static string Legs(IReadOnlyList<(int Start, int Width)> layout) =>
         string.Join("+", layout.Select(a => $"{a.Start}:{a.Width}"));

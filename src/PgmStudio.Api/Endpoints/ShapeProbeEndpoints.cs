@@ -11,7 +11,7 @@ namespace PgmStudio.Api.Endpoints;
 /// GET /api/shapes/probe — emit one knob combination and report what the emitter said. This is the half of the
 /// catalog that a gallery cannot be: it goes through <see cref="BoxFiller"/>, so the profile check and the
 /// <see cref="DockingGate"/> run exactly as they do in composition, and a <b>refusal is a first-class answer</b>
-/// rather than an error. <see cref="FillResult"/> already carries every reason as data; this only flattens it
+/// rather than an error. <see cref="FillRejection"/> already carries every reason as data; this only flattens it
 /// for the wire, passing the emitter's own message through rather than rewording it.
 /// </summary>
 public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult>
@@ -24,11 +24,10 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
         Get("/shapes/probe");
         Description(b => b.Reads(
             new QueryWord("family", "The shape family to emit. Absent is `i`.",
-                [.. Enum.GetValues<ShapeFamily>().Where(family => family != ShapeFamily.Isolated)
-                    .Select(family => family.ToString().ToLowerInvariant())]),
+                [.. ShapeEmitter.Families.Select(family => family.Word())]),
             new QueryWord("w", "The box's width, in cells. Absent is 8, and out of range clamps.", Min: 1, Max: 64),
             new QueryWord("h", "The box's height, in cells. Absent is 8, and out of range clamps.", Min: 1, Max: 64),
-            new QueryWord("cw", "The corridor's width, in cells. Absent is 2, and out of range clamps.", Min: 1, Max: 8),
+            new QueryWord("laneWidth", "The lane width, in cells. Absent is 2, and out of range clamps.", Min: 1, Max: 8),
             new QueryWord("mouth", "The edge the box is entered through. Absent, or one that will not read, is `Top`.",
                 Enum.GetNames<BoxEdge>()),
             new QueryWord("flip", "Mirror the shape across its axis.", Value: QueryValue.Flag),
@@ -43,8 +42,8 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
     public override async Task HandleAsync(CancellationToken ct)
     {
         var familyToken = Query<string?>("family", isRequired: false) ?? "i";
-        if (!Enum.TryParse<ShapeFamily>(familyToken, ignoreCase: true, out var family) ||
-            family == ShapeFamily.Isolated)
+        if (!Enum.TryParse<CompoundForm>(familyToken, ignoreCase: true, out var family) ||
+            !ShapeEmitter.Families.Contains(family))
         {
             await Refusals.UnreadableAsync(HttpContext, "unknown family",
                 $"shape family '{familyToken}' is not one of the families the probe draws", ct, field: "family");
@@ -53,7 +52,7 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
 
         var boxW = Math.Clamp(Query<int?>("w", isRequired: false) ?? 8, 1, 64);
         var boxH = Math.Clamp(Query<int?>("h", isRequired: false) ?? 8, 1, 64);
-        var cw = Math.Clamp(Query<int?>("cw", isRequired: false) ?? 2, 1, 8);
+        var laneWidth = Math.Clamp(Query<int?>("laneWidth", isRequired: false) ?? 2, 1, 8);
         var flip = Query<bool?>("flip", isRequired: false) ?? false;
         var woolAtEnd = Query<bool?>("woolAtEnd", isRequired: false) ?? false;
         var sideTuck = Query<bool?>("sideTuck", isRequired: false) ?? false;
@@ -63,33 +62,31 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
 
         var placement = sideTuck ? RoomPlacement.SideTuck : RoomPlacement.Inline;
         var box = new Box("wool", BoxKind.Wool, new CellRect(0, 0, boxW, boxH), boxW * boxH);
-        var result = BoxFiller.Fill(box, mouth, cw, family, flip, "wool-room", placement, woolAtEnd, attachW);
-
-        if (result is not FillResult.Ok ok)
+        if (BoxFiller.Fill(box, mouth, laneWidth, family, out var rejection, flip, placement, woolAtEnd, attachW)
+            is not { } compound)
         {
             await Send.ResponseAsync(
-                new ShapeProbeResult(null, Flatten(result), 0, []), cancellation: ct);
+                new ShapeProbeResult(null, Flatten(rejection, family), 0, []), cancellation: ct);
             return;
         }
 
-        var svg = PlanBoardSvg.Render(WoolBoxEmitter.AsPlan(ok.Approach, "probe"), ProbeScale);
-        var slots = ok.Approach.Terrain.Select(p => p.Slot ?? "?")
-            .Append(ApproachSlots.Room).ToList();
+        var svg = PlanBoardSvg.Render(UnitPieces.AsPlan(compound, "probe"), ProbeScale);
+        var parts = compound.Pieces.Select(p => p.Part).ToList();
         await Send.ResponseAsync(
-            new ShapeProbeResult(svg, null, BoxFiller.Land(ok.Approach), slots), cancellation: ct);
+            new ShapeProbeResult(svg, null, BoxFiller.Land(compound), parts), cancellation: ct);
     }
 
     /// <summary>Flatten a refusal onto the wire. The detail is the emitter's or the gate's own words — a
     /// reworded guard is a second copy free to disagree with the one that fired.</summary>
-    private static ShapeRejectionDto Flatten(FillResult result) => result switch
+    private static ShapeRejectionDto Flatten(FillRejection? rejection, CompoundForm family) => rejection switch
     {
-        FillResult.TooSmall t => new("too-small",
-            $"Below {t.Family}'s minimum box of {t.MinW}×{t.MinH} cells at this corridor width.", t.MinW, t.MinH),
-        FillResult.NoFamilyFits n => new("not-on-menu",
+        FillRejection.TooSmall t => new("too-small",
+            $"Below {family}'s minimum box of {t.MinW}×{t.MinH} cells at this lane width.", t.MinW, t.MinH),
+        FillRejection.NotOnMenu n => new("not-on-menu",
             $"Not on this box kind's fill menu — it offers {string.Join(", ", n.Menu)}.", null, null),
-        FillResult.IllegalDock d => new("illegal-dock",
-            $"The docking gate refused a {d.Mouth} mouth for the {d.Family}: {d.Reason}.", null, null),
-        FillResult.UnsupportedKnobs u => new("unsupported-knobs", u.Detail, null, null),
+        FillRejection.IllegalDock d => new("illegal-dock",
+            $"The docking gate refused a {d.Mouth} mouth for the {family}: {d.Reason}.", null, null),
+        FillRejection.UnsupportedKnobs u => new("unsupported-knobs", u.Detail, null, null),
         _ => new("refused", "The fill was refused with no stated reason.", null, null),
     };
 }
@@ -105,18 +102,17 @@ public sealed class ShapeProbeSchemaEndpoint : EndpointWithoutRequest<ShapeProbe
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        const int cw = 2;
-        var families = Enum.GetValues<ShapeFamily>()
-            .Where(f => f != ShapeFamily.Isolated)
+        const int laneWidth = 2;
+        var families = ShapeEmitter.Families
             .Select(f =>
             {
                 // the DOCK frame (along × depth), not the emitter's canonical frame: the panel fills through a
                 // mouth, and a lateral-mouth family (donut, clamp) transposes between the two. Reporting
                 // ShapeEmitter.MinBox here would put 10×5 in the chip while a refusal said 5×10.
-                var (along, depth) = WoolBoxEmitter.MouthBox(f, cw);
+                var (along, depth) = WoolBoxEmitter.MouthBox(f, laneWidth);
                 return new ShapeFamilyDto(
-                    f.ToString().ToLowerInvariant(), f.ToString(), along, depth,
-                    FillMenu.ProductionFamilies.Contains(f), KnobsOf(f));
+                    f.Word(), f.ToString(), along, depth,
+                    FillMenu.For(BoxKind.Wool).Contains(f), KnobsOf(f));
             })
             .ToList();
 
@@ -127,12 +123,12 @@ public sealed class ShapeProbeSchemaEndpoint : EndpointWithoutRequest<ShapeProbe
     /// <summary>The optional knobs a family accepts, from the emitter's own guards: the side-tuck room is
     /// I/Z/scythe only, the wool-at-an-end is the U/H/clamp/donut variant, and the attachment width is the
     /// donut's hub-entry. A knob absent here is one the emitter rejects for that family outright.</summary>
-    private static IReadOnlyList<string> KnobsOf(ShapeFamily family)
+    private static IReadOnlyList<string> KnobsOf(CompoundForm family)
     {
         var knobs = new List<string> { "flip" };
-        if (family is ShapeFamily.I or ShapeFamily.Z or ShapeFamily.Scythe) knobs.Add("sideTuck");
-        if (family is ShapeFamily.U or ShapeFamily.H or ShapeFamily.Clamp or ShapeFamily.Donut) knobs.Add("woolAtEnd");
-        if (family is ShapeFamily.Donut or ShapeFamily.Scythe) knobs.Add("attachW");
+        if (family is CompoundForm.I or CompoundForm.Z or CompoundForm.Scythe) knobs.Add("sideTuck");
+        if (family is CompoundForm.U or CompoundForm.H or CompoundForm.Clamp or CompoundForm.Donut) knobs.Add("woolAtEnd");
+        if (family is CompoundForm.Donut or CompoundForm.Scythe) knobs.Add("attachW");
         return knobs;
     }
 }

@@ -5,7 +5,7 @@ namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
 /// Stage one: the board envelope derived from player count alone. The count selects a size band and the band
-/// carries the land (G8); the corridor width is the band's blocks laid on the grid; the fanned board dims land
+/// carries the land (G8); the lane width is the band's blocks laid on the grid; the fanned board dims land
 /// within their corpus-measured bands (G3) across a sweep of player counts and seeds; the whole stage is
 /// deterministic.
 /// </summary>
@@ -69,9 +69,9 @@ public sealed class EnvelopeTests
         // micro is 14 blocks and centi 16; both round to the nearest whole cell and never fall under two
         var micro = Envelope.Derive(new ComposeRequest(16, cell: cell), new ComposeRng(1));
         var centi = Envelope.Derive(new ComposeRequest(32, cell: cell), new ComposeRng(1));
-        await Assert.That(micro.CorridorCells).IsEqualTo(expectedMicro);
-        await Assert.That(centi.CorridorCells).IsEqualTo(expectedCenti);
-        await Assert.That(micro.WoolCorridorCells <= micro.CorridorCells).IsTrue();
+        await Assert.That(micro.LaneWidth).IsEqualTo(expectedMicro);
+        await Assert.That(centi.LaneWidth).IsEqualTo(expectedCenti);
+        await Assert.That(micro.WoolLaneWidth <= micro.LaneWidth).IsTrue();
     }
 
     [Test]

@@ -11,7 +11,7 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Features.Configure;
 
-// Review & Export · Pre-flight step: the validation gate. Not an editing workspace — a read-only
+// Export · Checks step: the validation gate. Not an editing workspace — a read-only
 // overview. Runs the four generated-map checks server-side (GET /preflight) and surfaces them as check
 // rows + a validate log over a single static top-down map (real island geometry + the orbit-filled build
 // bridges + the spawn↔wool nodes in their real team/dye colours), the playability picture in one image.
@@ -57,15 +57,13 @@ public partial class ReviewPreflightStep
 
     // Colour a console line by content — the log is plain text from the gate; error keywords win over the
     // success ones (so "not connected" reads as an error, not a "connected" success).
-    private static string LineClass(string line)
+    // A check's line takes its check's status; the closing line says whether export is open.
+    private string LineClass(string line)
     {
-        if (line.Contains("BLOCKED") || line.Contains("not connected") || line.Contains("drifted")
-            || line.Contains("rejected") || line.Contains("over open void") || line.Contains("not recovered"))
-            return "console-line console-line--error";
-        if (line.Contains("can't") || line.Contains("no Y=0") || line.Contains("nothing to pre-flight"))
-            return "console-line console-line--warning";
-        if (line.Contains("OPEN") || line.Contains("connected") || line.Contains("on solid ground"))
-            return "console-line console-line--success";
+        var status = Checks.FirstOrDefault(check => line.StartsWith(check.Label + ":", StringComparison.Ordinal))?.Status;
+        if (status == "fail" || line.StartsWith("Export is blocked", StringComparison.Ordinal)) return "console-line console-line--error";
+        if (status == "skip") return "console-line console-line--warning";
+        if (status == "pass" || line.StartsWith("Export is open", StringComparison.Ordinal)) return "console-line console-line--success";
         return "console-line console-line--info";
     }
 
@@ -83,7 +81,9 @@ public partial class ReviewPreflightStep
         IReadOnlyList<Marker> Monuments,
         IReadOnlyList<Dot> Points);
 
-    private readonly record struct Dot(double X, double Z, bool Spawn, string Color, string Name, bool Isolated);
+    /// <summary>A walk point: its kind (spawn, wool, destroyable, core, point, flag, scorebox), where it is, its
+    /// colour, what its tooltip calls it, and whether the walk cut it off.</summary>
+    private readonly record struct Dot(double X, double Z, string Kind, string Color, string Name, bool Isolated);
     private readonly record struct Zone(double X, double Z, double W, double H, string Color, string Name);
     private readonly record struct Marker(double X, double Z, string Color, string Name);
 
@@ -95,11 +95,10 @@ public partial class ReviewPreflightStep
         var teamColors = TeamColors();
         var isolated = (data?.Traversability?.Isolated ?? [])
             .Select(i => (i.Kind, i.Name)).ToHashSet();
+        var flagColors = FlagColors(teamColors);
         var points = (data?.Traversability?.Points ?? []).Select(p => new Dot(
-            p.X, p.Z, p.Kind == "spawn",
-            // spawn → its team's chat colour; wool → its dye colour (the point name is the dye).
-            p.Kind == "spawn" ? GameColors.ChatHex(teamColors.GetValueOrDefault(p.Name, p.Name)) : GameColors.DyeHex(p.Name),
-            p.Name, isolated.Contains((p.Kind, p.Name)))).ToList();
+            p.X, p.Z, p.Kind, DotColor(p.Kind, p.Name, teamColors, flagColors), DotName(p.Kind, p.Name),
+            isolated.Contains((p.Kind, p.Name)))).ToList();
         var (protections, rooms, monuments) = LoadAuthoredRegions(teamColors);
         if (islands.Count == 0 && bridges.Count == 0 && points.Count == 0) return null;
 
@@ -227,6 +226,41 @@ public partial class ReviewPreflightStep
         return (null, 0, 0);
     }
 
+    // A spawn and a score box take their team's colour, a wool its dye, a flag post its flag's banner, and a capture
+    // point, owned by nobody, white.
+    private static string DotColor(string kind, string name, Dictionary<string, string> teamColors,
+                                   Dictionary<string, string> flagColors) => kind switch
+    {
+        "spawn" => GameColors.ChatHex(teamColors.GetValueOrDefault(name, name)),
+        "scorebox" => GameColors.ChatHex(teamColors.GetValueOrDefault(name.Replace(" score box", ""), "")),
+        "flag" => flagColors.GetValueOrDefault(name, "#ffffff"),
+        "point" => "#ffffff",
+        _ => GameColors.DyeHex(name),
+    };
+
+    private static string DotName(string kind, string name) => kind switch
+    {
+        "spawn" => $"{name} spawn",
+        "wool" => $"{name} wool",
+        "flag" => $"{name} post",
+        _ => name,
+    };
+
+    // Each flag's drawn colour by the name the walk reads it under: its own dye, or its team's colour.
+    private Dictionary<string, string> FlagColors(Dictionary<string, string> teamColors)
+    {
+        var colors = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var flag in (Wizard.Intent["flags"] as JsonArray ?? []).OfType<JsonObject>())
+        {
+            var team = flag["team"]?.GetValue<string>() ?? "";
+            var name = flag["name"]?.GetValue<string>() ?? "";
+            var dye = flag["color"]?.GetValue<string>() ?? "";
+            if (name.Length == 0) continue;
+            colors[name] = dye.Length > 0 ? GameColors.DyeHex(dye) : GameColors.ChatHex(teamColors.GetValueOrDefault(team, ""));
+        }
+        return colors;
+    }
+
     private Dictionary<string, string> TeamColors()
     {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -264,6 +298,26 @@ public partial class ReviewPreflightStep
     private string IsoSw => F(Math.Max(1.0, Span * 0.011));   // the red ring on a cut-off node
     private double MarkerR => Math.Max(1.5, Span * 0.013);
     private string ProtDash => $"{F(Math.Max(1.0, Span * 0.012))} {F(Math.Max(0.8, Span * 0.009))}";   // dashed protection outline
+
+    // Triangle polygon points around a centre: a flag post, set apart from the spawn circle and the wool square.
+    private string Triangle(double x, double z) =>
+        $"{F(x)},{F(z - MarkerR * 1.2)} {F(x + MarkerR * 1.1)},{F(z + MarkerR)} {F(x - MarkerR * 1.1)},{F(z + MarkerR)}";
+
+    // The legend names only what the picture draws, each as its mark and its name.
+    private static IEnumerable<(string Key, string Label)> Legend(MapView v)
+    {
+        yield return ("", "Islands");
+        if (v.Bridges.Count > 0) yield return ("bridge", "buildable bridges");
+        if (v.Protections.Count > 0) yield return ("dashed box", "spawn protection");
+        if (v.Rooms.Count > 0) yield return ("filled box", "wool room");
+        foreach (var (kind, mark, label) in new[]
+                 {
+                     ("spawn", "●", "spawn"), ("wool", "■", "wool"), ("destroyable", "■", "monument"), ("core", "■", "core"),
+                     ("flag", "▲", "flag post"), ("scorebox", "□", "score box"), ("point", "○", "capture point"),
+                 })
+            if (v.Points.Any(point => point.Kind == kind)) yield return (mark, label);
+        if (v.Monuments.Count > 0) yield return ("◆", "wool monument");
+    }
 
     // Diamond polygon points around a centre (distinguishes a monument from the wool square / spawn circle).
     private string Diamond(double x, double z)

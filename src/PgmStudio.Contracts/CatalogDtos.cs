@@ -10,7 +10,7 @@ namespace PgmStudio.Contracts;
 /// <param name="Family">The emitter family it comes from.</param>
 /// <param name="BoxW">The box it needs, in cells across.</param>
 /// <param name="BoxH">The box it needs, in cells down.</param>
-/// <param name="CorridorCells">The corridor width it was drawn at.</param>
+/// <param name="LaneWidth">The corridor width it was drawn at.</param>
 /// <param name="Tier">How far the shape gets: <c>in-mix</c> (a sampler draws it), <c>reachable</c> (the
 /// filler accepts it but nothing asks) or <c>emitter-only</c> (only a direct emitter call builds it).</param>
 /// <param name="Knobs">Display tokens for what was set — <c>flipped</c>, <c>side-tuck</c>,
@@ -25,7 +25,7 @@ public sealed record CatalogShapeDto(
     string Tier,
     int BoxW,
     int BoxH,
-    int CorridorCells,
+    int LaneWidth,
     IReadOnlyList<string> Knobs,
     string? Note,
     string Svg);

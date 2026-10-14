@@ -142,7 +142,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
                     space.Kind, space.Cells.Count, narrowest?.Cells * board.Cell,
                     narrowest is null ? [] : [narrowest.From, narrowest.To],
                     narrowest?.X ?? 0, narrowest?.Z ?? 0, narrowest?.AlongX ?? false,
-                    space.WallSlots);
+                    space.Walls);
             })];
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException
@@ -480,9 +480,9 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<Feasibility
         read.IsProducible,
         read.Boxes.Select(b => new BoxFeasibilityDto(
             b.BoxId, b.Kind, b.Identity,
-            b.Producible?.Label, b.Producible?.Cw,
+            b.Producible?.Label, b.Producible?.LaneWidth,
             b.Nearest is null ? null : new NearestMissDto(
-                b.Nearest.Label, b.Nearest.Cw, b.Nearest.DifferingCells,
+                b.Nearest.Label, b.Nearest.LaneWidth, b.Nearest.DifferingCells,
                 [.. b.Nearest.Extra.Select(r => r.ToArray())], [.. b.Nearest.Missing.Select(r => r.ToArray())]),
             [.. b.Findings.AsComplaints()])).ToList(),
         [.. read.Unit.AsComplaints()]);

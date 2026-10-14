@@ -98,6 +98,13 @@ was already out when the attack came, which is a different origin from the one a
 a corpus of boards a nearer one. The slack and the stretch floor are the caller's, because a cell is one block
 at the built tier and several at the plan tier, so one number would mean two distances.
 
+**A scanned world's ground keeps what is built out from it and drops what floats free.** `WorldWalk.Ground`
+reads a column's lowest block as its base, and a mass whose base stands a clear twelve blocks over the map's
+middle is floating over the void (`IslandDetector.SplitBase`). Such a mass stays out of the walk unless one of
+its places is a free step from a place on the ground beside it, as a beam over the void is from the stairs that
+reach it; a lobby in the sky, touching nothing it can be walked onto from, stays out. A mass that joins can carry
+the next one.
+
 **A walk is narrowed to the side making it.** An `enter` rule keeps a team off ground, so the ground one
 side walks is not the ground another does: `WorldWalk.For` narrows a built world's walk by the rules the map
 states, and `PlanNav.For` narrows the plan tier's by the two the studio writes into every map it compiles —
@@ -125,6 +132,35 @@ The headroom test is what makes a building a building: the terrain under a wall 
 own top is the surface, and crossing it costs the climb. Without it a walled cell reads at the floor the wall
 stands beside, which is how a route comes to walk through a house for nothing.
 
+**A block a player's body passes through is air to the walk, not ground.** One reading,
+`BlockRoles.WalkedThrough`, is what every walk stands on and every headroom test clears: the built walk's
+runs (`WorldColumns.ForWalk`), the scan's segments and the traversability picture. It holds what grows except
+a cactus, what lies flat or hangs on a face — a torch, a sign, a carpet, a banner, a cobweb — what is climbed
+(`BlockRoles.Climbable`: a ladder and a vine) and what is opened (`BlockRoles.Openable`: every door and fence
+gate). So a tuft of grass does not lift the ground a block, a ladder against a wall is not a pillar to stand
+on, and a doorway is a way through. A fence, a wall, iron bars and a trapdoor stop a player and stay solid.
+
+**A ladder, a vine and a water column are climbed, and the climb is distance, not blocks.** Each is a
+`WalkLift` on its cell: the feet heights a player moves up and down through, a climbed run's own blocks and a
+water run's blocks with its surface over them. A step leaves a place from any height on the lift it stands on
+and arrives at any height on the lift of the place it reaches, and of those it takes the one placing fewest
+blocks, then falling least, then climbing least. So a ten-block wall with a ladder against it is crossed for no
+block and ten blocks of distance where the bare wall costs nine placed, a fall a ladder catches is no drop,
+and a tunnel at the foot of a water column swims up to its surface. Where neither place is on a lift the step
+is priced exactly as before. On a built world the lifts come from the world's own runs
+(`WorldColumns.ForWalk`); on a scanned one they are read in the import's single world pass
+(`FeatureExtractors.LiftRuns` → `lift_run`, `lift_runs.parquet`), and a map scanned before that store has
+none until it is scanned again.
+
+**A gap a sprint jump clears is crossed for no block.** On ground read from a world's blocks the walk
+takes running jumps (`PgmStudio.Geom.Jump`, the 1.8 sprint jump a tick at a time): from ground at a gap's rim
+to ground at most a block higher, across up to four blocks edge to edge where the jump's reach for that rise
+less the player's width allows it — 3.85 blocks level, 2.78 a block up, 4.52 a block down. The line between
+has to be a gap, nothing to stand on at or a block under the lower end, and clear of every solid block up to
+three over the higher end, a crown hanging over it included. A jump costs the straight-line distance across.
+It is from ground to ground: a crossing bridged part way and jumped the rest is priced as the bridge. A plan's
+cells take no jumps, since a cell with no place there may be a wall.
+
 **A prop's volume is out of the walk** (the author's ruling). A tree's trunk and crown and a boulder are
 solid — they take the headroom of the ground they stand on and roof what is under them like any block, so a
 player does not walk through a trunk — but no place is ever offered on them: their blocks are neither
@@ -150,9 +186,10 @@ region its underside, and `NavPoint.Seat` resolves that against a board so the r
 which storey a spawn is on.
 
 **A climb of Δ costs Δ−1 blocks.** One block up is a step; anything higher is ground the player first has to
-make. **A drop is free to 3 and counted beyond it**, because 4 is where fall damage starts — every kit carries
-a water bucket, so a fall walls off no route, but stopping to place and drink one is time the distance does
-not show, which is why it is reported as a count of falls rather than as blocks. **Void inside a build zone
+make. **A drop is free to 3 and counted beyond it**, because 4 is where fall damage starts — a fall hurts
+rather than stops, and a built-on board's kit carries a water bucket to break one, so a fall walls off no
+route, but the damage or the bucket is time the distance does not show, which is why it is reported as a count
+of falls rather than as blocks. **Void inside a build zone
 costs one block a cell**, and a bridged cell is given the height of the ground nearest it, so a crossing is
 level and the climb is charged where the player steps up onto the far side. **Water costs no block and blocks
 no route**; it is slower, so it doubles the distance of the cells it covers.
@@ -189,8 +226,8 @@ on solid ground — is open wherever the map allows breaking in its column (`ter
 objective answers unreachable rather than sliding sideways to the nearest cell the team may stand on.
 
 **A control point is a goal the reads count, and it is the one nobody owns.** `NavPoints` resolves the places
-a match is played between from all four objective families — a wool, a destroyable, a core and a control
-point — and the reads that quantify over goals (`traversability`, `coverage`, `reach`, the export gate's
+a match is played between from every objective family — a wool, a destroyable, a core, a control point and a
+flag post — and the reads that quantify over goals (`traversability`, `coverage`, `reach`, the export gate's
 `EX1`) take that one set, so a capture board is measured rather than being read as two spawns and a dead
 field. A hill belongs to whoever is standing on it, so it carries **no owner**: the weaker question above is
 a defender's, and every team is simply required to reach a point. It is seated on its capture region, which
@@ -198,6 +235,18 @@ is the pad and the air a body occupies, falling back to the pad alone on a map t
 name is PGM's own — the author's where they wrote one, and `Hill`, `Hill 2`, `Hill 3` off a counter only an
 unnamed point advances (`ControlPointNaming`), so the document's points and an intent's are recognised as
 the same points rather than counted twice.
+
+**A flag post is a goal the reads count too.** `NavPoints` reads every place a flag stands its flag at — a
+post's point, each region it names, and every post of a composite — whether the flag holds its post inline or
+names one declared beside it in `flag_posts`. Each is a goal of kind `flag`, named for its flag and owned as the
+flag is, so an owned flag's attackers must stand at it and its defenders walk up to it, and every team must
+reach an unowned flag's posts; it is seated on the storey its point or its region states, which on a
+studio-built board is the banner's own block. The export's `EX1` refuses a board whose post cannot be walked to,
+as it refuses an unreachable wool, and the dressing pass's waypoints take the same posts.
+
+**A score box is a goal as well.** Each box of the `<score>` module is a goal of kind `scorebox`, seated on its
+region and owned by nobody, since what a box asks is that a player can walk into it at all; `EX1` refuses a board
+whose box no spawn reaches.
 
 **A wool is judged where it is, which is not always where the map says.** A wool's point is its stated
 `location`, and on a map whose author never set one that coordinate can lie outside the world entirely — ten

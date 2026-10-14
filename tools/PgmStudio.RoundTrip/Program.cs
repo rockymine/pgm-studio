@@ -910,6 +910,8 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
         .Select(m => new FloorMarkRow { WorldX = m.WorldX, WorldZ = m.WorldZ, BlockId = m.BlockId }).ToList());
     await WriteParquet(Path.Combine(outDir, "door_runs.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.DoorRuns(chunks)
         .Select(d => new SegmentRow { WorldX = d.WorldX, WorldZ = d.WorldZ, WorldYStart = d.WorldYStart, WorldYEnd = d.WorldYEnd }).ToList());
+    await WriteParquet(Path.Combine(outDir, "lift_runs.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.LiftRuns(chunks)
+        .Select(l => new SegmentRow { WorldX = l.WorldX, WorldZ = l.WorldZ, WorldYStart = l.WorldYStart, WorldYEnd = l.WorldYEnd }).ToList());
 
     // Surface layer → layer.parquet (the cached artifact + the bounding-box source)
     var surface = PgmStudio.Minecraft.Anvil.SurfaceExtractors.Surface(chunks).ToList();

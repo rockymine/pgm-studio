@@ -253,19 +253,15 @@ public static class ReliefSolver
     private static (int X, int Z) Fold(int x, int z, ReliefSpec spec)
     {
         if (!Folds(spec)) return (x, z);
-        double centreX = x + 0.5, centreZ = z + 0.5;
-        int mirroredX = (int)Math.Floor(2 * spec.FoldCentreX - centreX);
-        int mirroredZ = (int)Math.Floor(2 * spec.FoldCentreZ - centreZ);
-        return spec.FoldMode switch
-        {
-            "mirror_x" => centreX <= spec.FoldCentreX ? (x, z) : (mirroredX, z),
-            "mirror_z" => centreZ <= spec.FoldCentreZ ? (x, z) : (x, mirroredZ),
-            "rot_90" => Quarter(centreX, centreZ, spec),
-            // A half-turn has no single axis, so the canonical half is one side of a line through the centre,
-            // broken along it by the other coordinate so the two images never both claim to be canonical.
-            _ => centreZ < spec.FoldCentreZ || (centreZ == spec.FoldCentreZ && centreX <= spec.FoldCentreX)
-                ? (x, z) : (mirroredX, mirroredZ),
-        };
+        double offsetX = x + 0.5 - spec.FoldCentreX, offsetZ = z + 0.5 - spec.FoldCentreZ;
+        if (spec.FoldMode == "rot_90") return Quarter(x + 0.5, z + 0.5, spec);
+        // A mirror's canonical half is the side its normal points away from; a half-turn has no single axis, so
+        // its canonical half is one side of a line through the centre, broken along it by the other coordinate
+        // so the two images never both claim to be canonical.
+        var canonical = Symmetry.Normal(spec.FoldMode) is { } normal
+            ? normal.Nx * offsetX + normal.Nz * offsetZ <= 0
+            : offsetZ < 0 || (offsetZ == 0 && offsetX <= 0);
+        return canonical ? (x, z) : Symmetry.Cell(x, z, spec.FoldMode, spec.FoldCentreX, spec.FoldCentreZ, 1);
     }
 
     /// <summary>The canonical cell of a <b>quarter-turn</b> orbit: whichever of its four images lies in the

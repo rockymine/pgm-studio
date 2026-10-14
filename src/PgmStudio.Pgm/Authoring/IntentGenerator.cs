@@ -23,9 +23,14 @@ public static class IntentGenerator
         ModesGenerator.Apply(doc, intent);
         DestroyableGenerator.Apply(doc, intent);
         CoreGenerator.Apply(doc, intent);
-        // After the two a mode acts on, and outside the ladder: a capture point is held rather than broken,
-        // so nothing about it softens with time. It brings its own <score>, which is what makes it pay.
+        // After the two a mode acts on, and outside the ladder: a capture point and a flag are held rather than
+        // broken, so nothing about them softens with time. The <score> both pay into comes after both.
         ControlPointGenerator.Apply(doc, intent);
+        FlagGenerator.Apply(doc, intent);
+        ScoreGenerator.Apply(doc, intent);
+        // The time limit, respawn, lives, rage and kill height: map-wide, so they fan nowhere and read nothing an
+        // objective decides.
+        MatchGenerator.Apply(doc, intent);
         // After the objectives and before the zoning, because a keeper is placed from the spawns rather than
         // from anything an objective decides, and it stamps nothing for a later pass to resolve.
         ShopGenerator.Apply(doc, intent);
@@ -35,6 +40,9 @@ public static class IntentGenerator
         // Water lanes before build: a lane is geometry the build slice must not see, and emitting it first
         // keeps the region ordering stable regardless of how many lanes a plan carries.
         WaterLaneGenerator.Apply(doc, intent);
+        // Zones before build: PGM stops at the first rule that decides, and a zone's "no placing" has to decide
+        // inside a build region too.
+        ZoneGenerator.Apply(doc, intent);
         // Build last: its broad not-build-area place rule ALLOWs editing any solid block, and PGM stops
         // at the first apply rule that decides — so it must come *after* the spawn/wool-room protections
         // (which sit outside the build area) or it short-circuits them. Matches docs/pgm/template.xml ordering.

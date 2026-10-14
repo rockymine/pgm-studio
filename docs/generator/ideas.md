@@ -35,7 +35,7 @@ landed, the rest is the idea.
 - **G105** *(partial — the asymmetric ring, the branch leg sampler and its bounded bay shipped)* — bigger/better hubs: a raised
   depth cap, form→size fit, and the per-piece width knob where it is still uniform — the branch hub's **bar**
   thickness and **leg length** (the emitter's per-arm overload carries both; only the leg's width is sampled) and
-  a hub arm count of three (the E/comb the body emitter supports but `HubBoxEmitter` refuses).
+  a hub arm count of three (the E/comb the compound emitter supports but `HubBoxEmitter` refuses).
 - **G130** — **the budget has no price for a widened part.** Ring-wall widening ships (G129): a hub ring may carry
   one side wider than the rest, sampled under the ratio cap. What it costs is currently nothing — widening spends
   the box's *geometric* slack (the hole narrows, the box does not grow), so the two-currency budget sees the same
@@ -45,10 +45,10 @@ landed, the rest is the idea.
   rate is capped by chance rather than by budget.
 - **G131** — **per-part width beyond the ring.** G129 generalized the four walls of a ring; the rest of a board is
   still one lane width (`w` = 2 or 3 from the land budget) with the wool lane and hub wall as fixed constants
-  (`UnitTuning.WoolCorridorCells`, `Box.HubCorridor`). The remaining cases are the parts *docked onto* a ring, which
-  deliberately kept a plain `cw` — the P's overhanging bar, the G's L-upright, the DoubleHole's U — plus the
+  (`UnitTuning.WoolLaneWidth`, `Box.HubLaneWidth`). The remaining cases are the parts *docked onto* a ring, which
+  deliberately kept a plain lane width — the P's overhanging bar, the G's L-upright, the DoubleHole's U — plus the
   approach lanes and the frontline's spine. **Relation to its neighbours:** G105 owns the per-piece width knob for
-  hub bodies, G82/G83 own entry widening for wool approaches; this is the generalization those are special cases
+  hub compounds, G82/G83 own entry widening for wool approaches; this is the generalization those are special cases
   of. Precedent for the knob exists on the approach side already — the donut's sampled hub-entry width
   (`AttachmentWidth`) is per-part width in all but name.
 - **G106** *(partial)* — the observed seat/emit failure modes (taxonomy §9 F2–F5): flush lanes at branch-hub
@@ -61,8 +61,7 @@ landed, the rest is the idea.
 - **G114** — the along-axis mirror so a tight-hub L bends back instead of reverting to I.
 - **G107–G111** — the taxonomy audit's five moves: `demand` as a live kind (G107), the `mix` kind (G108),
   budget ladders as derived targets (G109), WL7 separation by construction (G110, the traversal-spread
-  half), the frontline offer decisions moving to the allocator (G111 — joint-vs-several is FR6, currently a
-  coin flip in the filler).
+  half), the frontline's form choice moving to the allocator (G111).
 - **G124** — what the seat-separation law measures: today `TooClose` inflates **box envelopes**
   (corner-inclusive), so a donut's void margins make it over-reject placements whose emitted **terrain**
   keeps the gap (the hole-hub exemplar's donut box passes 1 cell from the spawn box while its terrain keeps
@@ -74,7 +73,7 @@ landed, the rest is the idea.
 - **G41-D** — vacancy publishing + spawn-in-hub-bay: fills publish claimable negative space (a U-hub's bay,
   a ring's hole); consumers claim it (the third wool / the spawn in the bay).
 - **G63-D** — the generic label-inheriting fragment pass + `GrowthOrder` strategies + vacancy allocation.
-  The isolation cut returns here as a slot-aware move (a cut severs a `run`/`bar`, never a `room`/`entry`) —
+  The isolation cut returns here as a part-aware move (a cut severs a `run`/`bar`, never a `room`/`entry`) —
   its old implementation is in git history.
 - **G97** — close the offer↔derive mirror (derived runs/kinds/holes match the offers' intent).
 - **G98** — `ComposeTargets`: prescriptive per-request fields (frontline runs, mid form, hub form), sampled
@@ -89,8 +88,8 @@ landed, the rest is the idea.
   keep-lowest-scoring hunt loop, the ranking harness + minimal-pair negatives.
 - **G69** — deriver primitives for dense mids (crossing-corridor read, rotation-that-means-rotation, robust
   stone classification) — the prerequisites of the cramming term.
-- **G66 / G67 / G68** — rule visualization (illustrated rule catalog + reject inspector), fill-time slot
-  invariants, evaluator-side slot terms.
+- **G66 / G67 / G68** — rule visualization (illustrated rule catalog + reject inspector), fill-time part
+  invariants, evaluator-side part terms.
 - **G43** — the composer↔teaching-set conformance sweep (aggregate soft distance per term).
 - **G127** — the flow graph: junction/lane-chain derivation + route signatures + the first flow terms.
   Revives G24's already-designed substrate, which is worth keeping written down because it is the part
@@ -118,7 +117,7 @@ landed, the rest is the idea.
   > space-packing switchback against a defensible landing.
 
   **The flow read exists as a prototype, and it settles three things about this entry** ("Flow in generated
-  boards", 210 boards from `Composer.ComposeStages` with `PlanBoxAnnotation.Apply`, hub bodies and wool
+  boards", 210 boards from `Composer.ComposeStages` with `PlanBoxAnnotation.Apply`, hub compounds and wool
   families off `StructureSummary.Derive`; the family census widened to 5200 boards / 9154 wools).
 
   *It confirms the term order and supplies the numbers.* **Redundancy** reads **zero on 97% of boards** —
@@ -168,7 +167,7 @@ landed, the rest is the idea.
 
 ## Realize & world
 
-- **G82 / G83** — entry widening for Z along its bar interface; wool-approach budget law (per-slot caps /
+- **G82 / G83** — entry widening for Z along its bar interface; wool-approach budget law (per-part caps /
   total path length). Reworded for the box path: the knob is `AttachmentWidth`, the law binds at allocation.
 
 ## Docs & hygiene
@@ -206,13 +205,13 @@ landed, the rest is the idea.
   else grounds: named membership (`PlanBoxes.MembersOf`, the `Members` list) ignores geometry entirely, so a
   piece can be dragged *out* of its box and still be carried when the box moves (`plan-canvas.js`, the box
   drag translates `d.carried` in both modes). That is not an authoring mode — named membership exists for
-  **provenance**, so a pinned board can record the grouping that actually produced it off `BoxPartition.KeyOf`
+  **provenance**, so a pinned board can record the grouping that actually produced it off `BoxLayout.KeyOf`
   rather than having it re-derived approximately. Exposing it as a toggle asks the author to edit with a
   mechanism built to preserve history.
   The fix is not a third mode, it is separating two questions that are currently one button. **Which pieces
   are members** is legitimately two modes (named vs containment) and both should stay. **What the rect is**
   should not be a mode at all: it should always be the bounding box of the members. That is not a new rule —
-  `BoxPartition.Of` already computes a box's rect as `Bbox(members)`, and `Box`'s own contract says a box's
+  `BoxLayout.Of` already computes a box's rect as `Bbox(members)`, and `Box`'s own contract says a box's
   contents "must touch its edges", which is the same statement. So dragging a member extends the box,
   dragging the box moves its members, and a member outside its own box becomes unrepresentable rather than
   merely strange. One case to decide: an empty box has no bounding box — keep its drawn rect until it has a
@@ -232,7 +231,7 @@ landed, the rest is the idea.
   of budget, median **115%**, and **28 of 40 boards are over**. So the budget is not a cap — it is an input
   the allocator consults for its decisions (lane width, whether there is a frontline, the hub caps, the wool
   count — `TeamUnitAllocator.cs:46-52`, `UnitTuning.WoolCount`) and then nothing reconciles the result
-  against it. `BoxFiller.WithinLandTarget` exists and no production path calls it.
+  against it.
   Nothing caught this because nothing measures it: the only land-ish term is `fill-ratio` (G8), which is land
   over the board's **bounding box**, not land against the **budget** — a different quantity that can sit
   happily in its band while the unit is at double its target.
@@ -267,8 +266,7 @@ landed, the rest is the idea.
   proves too coarse to act on.
 
 - [ ] **G145 — five emitter knobs are unreachable from the composer.** `ShapeEmitter.Emit` takes
-  `attachments`, `woolExtend`, `entryShift`, `woolShift` and `attachmentOffset`, and `WoolBoxEmitter.Emit`
-  passes all five through — but `WoolBoxEmitter.Fill`, the only path `BoxFiller` and therefore the whole
+  `attachments`, `woolExtend`, `entryShift`, `woolShift` and `attachmentOffset`, but `WoolBoxEmitter.Fill`, the only path `BoxFiller` and therefore the whole
   compose pipeline uses, forwards none of them (`WoolBoxEmitter.cs`, the `ShapeEmitter.Emit` call inside
   `Fill`). Nothing in the tree calls them, so the two-attachment donut, the extended-wool donut and both
   scythe endpoint shifts are built, tested, and **cannot appear on a generated board**.
@@ -280,15 +278,13 @@ landed, the rest is the idea.
   `model.md` §4 describes them; the gap is the plumbing, not the geometry.
 
 - [ ] **G146 — two families are in the vocabulary but never on a board.** The emitter builds eight
-  terminal-capped families; the composer puts six on boards. **Z** is listed in
-  `FillMenu.ProductionFamilies` and `BoxFiller` fills it happily, but `UnitRequests.WoolRequest` never
-  draws it — the rich branch picks donut, then U/H/clamp, else L, and the fallbacks are I. The only caller
-  that could reach it is the roll-indexed `BoxFiller.Fill(box, mouth, cw, roll, …)` overload, which has no
-  caller in `src/` at all. So the menu advertises a family the sampler cannot produce, and the browse
+  room-capped families; the composer puts six on boards. **Z** is listed in
+  the wool menu (`FillMenu.For(BoxKind.Wool)`) and `BoxFiller` fills it happily, but `UnitRequests.WoolRequest` never
+  draws it — the rich branch picks donut, then U/H/clamp, else L, and the fallbacks are I. So the menu advertises a family the sampler cannot produce, and the browse
   tool's own filter chip for it can never match. **Scythe** is the honest case: excluded from
-  `ProductionFamilies` with a stated reason (its bay's mouth is its docking edge, so a flush dock seals it
+  the wool menu with a stated reason (its bay's mouth is its docking edge, so a flush dock seals it
   into WL8's forbidden enclosed void), with the elevation-stage alternative already parked as G81.
-  Two separate decisions: either give the sampler a Z draw or drop Z from `ProductionFamilies` so the menu
+  Two separate decisions: either give the sampler a Z draw or drop Z from the wool menu so it
   stops advertising it (the second is a one-line honesty fix and should not wait on the first); and leave
   the scythe out until G81 lands. Either way the catalog page (G144) will render both under a
   *reachable* / *emitter-only* badge, so the gap becomes visible rather than folklore.
@@ -312,7 +308,7 @@ landed, the rest is the idea.
   gate the vacuous terms → this → soft rules become causal.
 
 - [ ] **G165 — dock arrangement belongs in the structure summary.** Which face of the hub each box seats on
-  is a board property with measured consequences and no representation anywhere: it is not the hub's body
+  is a board property with measured consequences and no representation anywhere: it is not the hub's compound
   form and not the approach family. With the compass rotated so the frontline is *front*, generated boards
   split **canonical** (spawn *back*, wools *left*+*right*) 27% against **lopsided** (spawn lateral, one wool
   on *back*) 73%, and the split predicts two things — the median spawn-distance imbalance is 0.18 against
@@ -335,8 +331,8 @@ landed, the rest is the idea.
 - [ ] **G167 — a holed hub should seat its docks across the hole.** A ring, double-hole, P or G hub only
   offers two ways across when the two docks straddle its void, and today that is left to chance: ring hubs
   deliver two ways on 163 of 224 spawn-to-wool crossings, and the ones that do not are dead by seating rather
-  than by shape — the same body form with both docks on one side is a wide room with a decorative hole in it.
-  When the sampled hub body encloses a void, prefer opposite walls for the two docks. The value is not the
+  than by shape — the same compound form with both docks on one side is a wide room with a decorative hole in it.
+  When the sampled hub compound encloses a void, prefer opposite walls for the two docks. The value is not the
   extra distance but what the `route-interference` term measures: the far way round drops interference from
   76% to 37%, which is
   the difference between an alternative and an alternative worth taking. Geometry change, so the same
@@ -370,7 +366,7 @@ asked to add to a board has to be able to learn what a board can hold.
   anyone accepts it. What is missing is a diff a canvas can render and an accept/reject step, not a model.
 
 - **G189 — draw a box, say what goes in it, and let the composer fill it.** Detection of what a drawn box
-  could be already exists (the box pipeline classifies a body and names its family); the other half is
+  could be already exists (the box pipeline classifies a compound and names its family); the other half is
   taking a rect plus a sentence and emitting the unit inside it. It is the composer's own vocabulary reached
   from the outside, and it is the most useful shape an agent could be handed: bounded, verifiable against
   the box's own gates, and impossible to spread across the rest of the board. `feasibility` is the read that
@@ -454,15 +450,15 @@ so the labeled corpus cannot be contaminated after the fact. Browse votes (absol
   survive** — hoisting one call above another moves the stream and every fingerprint goes red.
 
 - [~] **B41 — Should a host's published capacity bound the grant it hands out?** The naming half has landed
-  (`FEATURES.md`): `BoxJoint.Grant` is now distinct from a host's `EdgeOffer`, and the docstrings state the
-  split — an offer's `WidthClass` is a *capacity* derived from the run's length, a grant's is a *selection*
+  (`FEATURES.md`): `BoxJoint.Width` is distinct from a host's `EdgeOffer`, and the docstrings state the
+  split — an offer's `Width` is a *capacity* derived from the run's length, a joint's is a *selection*
   made per consumer kind. What remains is the behaviour question the rename deliberately did not answer.
-  Today the two are entirely unlinked: `Seat` reads the hub's offers, keeps only `(Start, LengthCells)` as its
-  **runs** and drops the published width, then `HubJoint` grants a width taken from the demand's kind
+  Today the two are entirely unlinked: `Seat` reads the hub's offers, keeps only their intervals as its
+  **runs** and drops the published width, then `HubJointFrom` gives a width taken from the demand's kind
   (the band's wool corridor for a wool, its map corridor otherwise). So a hub can grant a corridor **wider than the run it sits on
   claims to support** and nothing objects. Either that is intended — capacity is advisory, the consumer knows
   its own lane — or the grant should be clamped to the offer, in which case a narrow run would demote a
-  consumer's `cw` and some docks that succeed today would not.
+  consumer's lane width and some docks that succeed today would not.
   **Measure before deciding**: how often does the granted width actually exceed the published capacity of the
   run it lands on? If never, this is documentation; if often, it is a real gate the composer is missing.
   Changes what the filler builds, so it needs a before/after gallery and will move fingerprints.

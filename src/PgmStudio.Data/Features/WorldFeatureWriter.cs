@@ -25,7 +25,7 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
     /// <summary>The map_config key a finished sketch's scan records the layout revision under.</summary>
     public const string SketchScanRevision = "layout_revision";
 
-    public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int Segments, int Islands, int MonumentCandidates, int CoreCandidates, int DestroyableCandidates);
+    public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int Segments, int Islands, int MonumentCandidates, int CoreCandidates, int DestroyableCandidates, int FlagCandidates);
 
     /// <summary>One surface-scan row (layer.parquet schema).</summary>
     private sealed class LayerRow
@@ -73,6 +73,8 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
             .Select(m => new FloorMarkRow { MapId = mapId, WorldX = m.WorldX, WorldZ = m.WorldZ, BlockId = m.BlockId }).ToList();
         var doors = FeatureExtractors.DoorRuns(chunks)
             .Select(d => new DoorRunRow { MapId = mapId, WorldX = d.WorldX, WorldZ = d.WorldZ, WorldYStart = d.WorldYStart, WorldYEnd = d.WorldYEnd }).ToList();
+        var lifts = FeatureExtractors.LiftRuns(chunks)
+            .Select(l => new LiftRunRow { MapId = mapId, WorldX = l.WorldX, WorldZ = l.WorldZ, WorldYStart = l.WorldYStart, WorldYEnd = l.WorldYEnd }).ToList();
 
         // The world, read once, for both suggesters. Decoding is the world package's and what a monument or
         // a core is is a derivation, so the read happens here — at the one caller that has both — and each
@@ -94,10 +96,13 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
         // is the one thing this pass has and nothing after it does.
         var destroyables = DestroyableSuggester.Gather(byId);
 
+        // Banners in the same pass: a flag loads only where one stands, so each is a place a flag could be.
+        var banners = FeatureExtractors.Banners(chunks).ToList();
+
         // The whole replacement is one write. It drops six tables before it fills five of them, so a fault
         // between the two halves leaves a map whose features are gone and whose new ones are half there —
         // and a half-written scan reads exactly like a world that has less in it.
-        int monCount = 0, coreCount = 0, destroyableCount = 0, islands = 0;
+        int monCount = 0, coreCount = 0, destroyableCount = 0, flagCount = 0, islands = 0;
         await db.InOneWriteAsync(async () =>
         {
             await DeleteAsync(mapId, ct);
@@ -109,16 +114,19 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
             if (segs.Count > 0) await db.BulkCopyAsync(segs, ct);
             if (marks.Count > 0) await db.BulkCopyAsync(marks, ct);
             if (doors.Count > 0) await db.BulkCopyAsync(doors, ct);
+            if (lifts.Count > 0) await db.BulkCopyAsync(lifts, ct);
 
             monCount = await MonumentCandidateStore.WriteAsync(db, mapId, monuments, ct);
             coreCount = await CoreCandidateStore.WriteAsync(db, mapId, cores, ct);
             destroyableCount = await DestroyableCandidateStore.WriteAsync(db, mapId, destroyables, ct);
+            flagCount = await FlagCandidateStore.WriteAsync(db, mapId, banners, ct);
             islands = await WriteArtifactsAsync(mapId, chunks, erased, ct);
             await StoreArtifactAsync(mapId, ArtifactKind.WorldBlocksJson,
                 JsonSerializer.SerializeToUtf8Bytes(byId.Values.Distinct().Order().ToArray()), ct);
         }, ct);
 
-        return new Counts(wool.Count, res.Count, chests.Count, spawners.Count, segs.Count, islands, monCount, coreCount, destroyableCount);
+        return new Counts(wool.Count, res.Count, chests.Count, spawners.Count, segs.Count, islands, monCount, coreCount,
+            destroyableCount, flagCount);
     }
 
     /// <summary>
@@ -259,5 +267,6 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
         await db.Segments.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.FloorMarks.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.DoorRuns.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.LiftRuns.Where(x => x.MapId == mapId).DeleteAsync(ct);
     }
 }

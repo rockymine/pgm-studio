@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Authoring;
 
@@ -61,6 +62,22 @@ public sealed record MapIntent
     /// one side; the expander produces the rest. Null/empty leaves them untouched.</summary>
     public List<ControlPointIntent>? ControlPoints { get; init; }
 
+    /// <summary>The flags (<c>docs/pgm/flags.md</c>): King of the Flag's, owned by nobody and scoring for whoever
+    /// holds one, whose posts fan by position as a capture point's do; and Capture the Flag's, each owned by a team,
+    /// which fan by team as a core does. Null leaves the map's flags untouched.</summary>
+    public List<FlagIntent>? Flags { get; init; }
+
+    /// <summary>The score boxes: each pays a team for every player of theirs who walks into it, and sends that
+    /// player home (<c>docs/pgm/score-boxes.md</c>). A box belongs to the team it scores for, so it fans by team
+    /// as a spawn does. Null leaves the map's boxes untouched.</summary>
+    public List<ScoreBoxIntent>? ScoreBoxes { get; init; }
+
+    /// <summary>The zones the author states beside the ones the other slices write — a region with rules of its
+    /// own: who may enter, whether blocks are placed or broken there, whether anyone is hurt, a kit given inside
+    /// (<c>docs/pgm/zones.md</c>). A team's zone fans by team; one with no team orbits by position, as a build
+    /// region does. Null leaves the map's zones untouched.</summary>
+    public List<ZoneIntent>? Zones { get; init; }
+
     /// <summary>The shops this board sells from, each with the keeper that opens it. <b>They do not fan by
     /// team and they carry no coordinates</b>: a shop is one catalogue for the whole map, and its keeper is
     /// placed by <see cref="ShopGenerator"/> at every team's spawn — one per shop per spawn, standing on the
@@ -82,6 +99,30 @@ public sealed record MapIntent
     /// author saying they want no limit, and is left alone.</summary>
     public int? ScoreLimit { get; init; }
 
+    /// <summary>What a kill pays the killer's team. A board whose kills pay is a team deathmatch, played to a score
+    /// or, with neither limit stated, to <see cref="ObjectiveDefaults.DeathmatchTimeLimit"/>. Null or zero pays
+    /// nothing.</summary>
+    public int? KillPoints { get; init; }
+
+    /// <summary>How long the match runs and what decides it when the time runs out (<c>docs/pgm/match.md</c>).
+    /// Null leaves the map's time limit untouched; an empty duration states none.</summary>
+    public TimeLimitIntent? TimeLimit { get; init; }
+
+    /// <summary>How the dead come back. Null leaves the map's own respawn untouched.</summary>
+    public RespawnIntent? Respawn { get; init; }
+
+    /// <summary>The lives each player has: a team with nobody left alive is out, so a board that states them is
+    /// played to the last team standing as well as to its goals. Null leaves the map's blitz untouched; zero states
+    /// none.</summary>
+    public int? Lives { get; init; }
+
+    /// <summary>Whether every hit with a weapon kills. Null leaves the map's rage untouched.</summary>
+    public bool? Rage { get; init; }
+
+    /// <summary>The height a player falls into the void below, dying with what they carry, whatever ground is
+    /// under them. Null states none.</summary>
+    public int? KillHeight { get; init; }
+
     /// <summary><b>When each objective stops being what it is made of.</b> A destroy map whose monuments and
     /// cores stay obsidian for the whole match is a map that does not end: the material is what makes a goal
     /// a goal, and the ladder is what makes it winnable. Null takes
@@ -96,16 +137,27 @@ public sealed record MapIntent
     /// It is a set because CTW, DTM and DTC coexist, and it is what the <c>&lt;gamemode&gt;</c> elements and
     /// the observer platform's own board are both written from, so the map and the sign in it cannot
     /// disagree.</summary>
-    public IReadOnlyList<string> Gamemodes => Domain.Gamemodes.From(
-        hasWools: Wools is { Count: > 0 },
-        hasRealDestroyable: Destroyables is { Count: > 0 },
-        hasCores: Cores is { Count: > 0 },
-        // What the studio authors is a hill, so the board is KotH rather than CP: one PGM module, and the
-        // spelling is the choice. Kills and deaths are never scored — a capture board's <score> states the
-        // limit it ends at and nothing else, which is what keeps it off the deathmatch tag.
-        hasControlPoints: false,
-        hasKing: ControlPoints is { Count: > 0 },
-        scoresKillsOrDeaths: false);
+    public IReadOnlyList<string> Gamemodes =>
+    [
+        .. Domain.Gamemodes.From(
+            hasWools: Wools is { Count: > 0 },
+            hasRealDestroyable: Destroyables is { Count: > 0 },
+            hasCores: Cores is { Count: > 0 },
+            // What the studio authors is a hill, so the board is KotH rather than CP: one PGM module, and the
+            // spelling is the choice. A board is a deathmatch only where its kills pay; a capture board's <score>
+            // states the limit it ends at and nothing else.
+            hasControlPoints: false,
+            hasKing: ControlPoints is { Count: > 0 },
+            // A team's flag is CTF, the tag PGM derives from any flag; one nobody owns is King of the Flag, which a
+            // map states.
+            hasFlags: Flags?.Any(flag => flag.Owned && flag.Posts.Count > 0) ?? false,
+            scoresKillsOrDeaths: KillPoints > 0,
+            hasBlitz: Lives > 0,
+            hasRage: Rage == true),
+        .. (Flags?.Any(flag => !flag.Owned) ?? false ? [Domain.Gamemodes.Kotf] : Array.Empty<string>()),
+        // PGM tags a box auxiliary and derives no gamemode from it, so a score box board states its own.
+        .. (ScoreBoxes is { Count: > 0 } ? [Domain.Gamemodes.Scorebox] : Array.Empty<string>()),
+    ];
 
     /// <summary>Map identity: name + authors/contributors. Version (1.0) and proto (1.5.1) are fixed; the
     /// gamemode and the objective text are auto-derived from which objective modules the intent carries
@@ -316,6 +368,23 @@ public sealed record BuildIntent
     /// <summary>No-build cutouts subtracted from the area union (emitted as a <c>complement</c>). Empty →
     /// no holes (plain union). Orbited alongside <see cref="Areas"/> on symmetric maps.</summary>
     public List<Rect> Holes { get; init; } = new();
+
+    /// <summary>What a player may do to the board's blocks (<see cref="BuildModes"/>). Null takes
+    /// <see cref="ModeFor"/>: built on where the map carries a wool, a destroyable or a core, and left alone
+    /// where it is played for control.</summary>
+    [WordSet(typeof(BuildModes))]
+    public string? Mode { get; init; }
+
+    /// <summary>The materials an <see cref="BuildModes.Only"/> board lets players place and break, as PGM
+    /// material names.</summary>
+    public List<string> Materials { get; init; } = new();
+
+    /// <summary>The mode this intent's board is played under: the stated one, or the default its objectives
+    /// imply.</summary>
+    public string ModeFor(MapIntent intent) => Mode
+        ?? (intent.Wools is { Count: > 0 } || intent.Destroyables is { Count: > 0 } || intent.Cores is { Count: > 0 }
+            ? BuildModes.Void
+            : BuildModes.Never);
 }
 
 /// <summary>
@@ -657,8 +726,13 @@ public sealed record ControlPointIntent
     /// <summary>What holding it pays its owner, per second.</summary>
     public double Points { get; init; } = ObjectiveDefaults.ControlPointPoints;
 
-    /// <summary>How long a team must hold it alone to take it, as a PGM duration.</summary>
+    /// <summary>How long a team must hold it alone to take it, as a PGM duration. A touch point is taken in
+    /// <see cref="ObjectiveDefaults.TouchCaptureTime"/> whatever this says.</summary>
     public string CaptureTime { get; init; } = ObjectiveDefaults.ControlPointCaptureTime;
+
+    /// <summary>How it is taken (<see cref="CaptureModes"/>): held alone for the capture time, or touched.</summary>
+    [WordSet(typeof(CaptureModes))]
+    public string CaptureMode { get; init; } = CaptureModes.Hold;
 
     /// <summary>The pad's resolved block course — one block tall, filled by the world-export path, the only
     /// place that knows the terrain it was cut into. The generator emits it as the point's progress display
@@ -674,6 +748,181 @@ public sealed record ControlPointIntent
     /// the marker is white while the point is neutral and takes the holder's dye the moment it is captured —
     /// which is what makes a marker on a goal nobody owns mean something.</summary>
     public BlockBox? MarkerBox { get; init; }
+}
+
+/// <summary>How long a match runs, and what decides it when the clock runs out (<c>docs/pgm/match.md</c>).</summary>
+public sealed record TimeLimitIntent
+{
+    /// <summary>How long the match runs, as PGM writes a duration: <c>10m</c>, <c>8m30s</c>. Empty states no
+    /// time limit.</summary>
+    public string Duration { get; init; } = "";
+
+    /// <summary>What decides the match when the time runs out (<see cref="TimeResults"/>).</summary>
+    [WordSet(typeof(TimeResults))]
+    public string Result { get; init; } = TimeResults.Default;
+}
+
+/// <summary>How the dead come back (<c>docs/pgm/match.md</c>).</summary>
+public sealed record RespawnIntent
+{
+    /// <summary>The least wait after death, as PGM writes a duration; empty for PGM's two seconds.</summary>
+    public string Delay { get; init; } = "";
+
+    /// <summary>Whether the dead come back on their own once the wait is over, rather than on a click.</summary>
+    public bool Auto { get; init; }
+
+    /// <summary>Whether the dead watch the match while they wait.</summary>
+    public bool Spectate { get; init; }
+}
+
+/// <summary>
+/// One flag (<c>docs/pgm/flags.md</c>). A flag nobody owns is King of the Flag's: it pays
+/// <see cref="PointsRate"/> a second to whichever team carries it, starting at its first post and coming back to
+/// one of them at random. A flag a <see cref="Team"/> owns is Capture the Flag's: it stands at that team's base,
+/// every other team may carry it off, and a team scores by bringing it into its own <see cref="Net"/>.
+/// </summary>
+public sealed record FlagIntent
+{
+    /// <summary>What the sidebar calls it. Empty names a team's flag for the team, and nobody's "Flag".</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>The team defending it; empty for a flag nobody owns.</summary>
+    public string Team { get; init; } = "";
+
+    /// <summary>The banner's dye, and the flag's colour; null for its team's colour, or white.</summary>
+    public string? Color { get; init; }
+
+    /// <summary>The places it stands at, the first where it starts. At least one, and every one walkable to.</summary>
+    public List<FlagPostIntent> Posts { get; init; } = new();
+
+    /// <summary>What carrying it pays, per second; null for <see cref="ObjectiveDefaults.FlagPointsRate"/> on a flag
+    /// nobody owns and nothing on a team's.</summary>
+    public double? PointsRate { get; init; }
+
+    /// <summary>What carrying it does to the carrier (<see cref="FlagCarriers"/>); null for
+    /// <see cref="FlagCarriers.Lowered"/> on a flag nobody owns and <see cref="FlagCarriers.None"/> on a team's.</summary>
+    [WordSet(typeof(FlagCarriers))]
+    public string? Carrier { get; init; }
+
+    /// <summary>The hearts a <see cref="FlagCarriers.Lowered"/> or <see cref="FlagCarriers.Boost"/> carrier has
+    /// while carrying it. A boost raises health two hearts at a time, so it takes the even number at or over
+    /// this above ten.</summary>
+    public int CarrierHearts { get; init; } = ObjectiveDefaults.FlagCarrierHearts;
+
+    /// <summary>How long it lies where it was dropped before it goes home, as PGM writes a duration; null for
+    /// <see cref="ObjectiveDefaults.FlagRecoverTime"/> on a team's flag and PGM's 30 seconds on nobody's.</summary>
+    public string? RecoverTime { get; init; }
+
+    /// <summary>On a team's flag, the blocks its team brings another team's flag into to capture it, inclusive;
+    /// null for a box round the flag's first post.</summary>
+    public BlockBox? Net { get; init; }
+
+    /// <summary>On a team's flag, when its team may capture in its net (<see cref="FlagCaptures"/>); null for
+    /// <see cref="FlagCaptures.Anytime"/>.</summary>
+    [WordSet(typeof(FlagCaptures))]
+    public string? Capture { get; init; }
+
+    /// <summary>Whether a team owns it.</summary>
+    [JsonIgnore]
+    public bool Owned => Team.Length > 0;
+
+    /// <summary>What carrying it pays, per second, once the defaults are applied.</summary>
+    [JsonIgnore]
+    public double PaysPerSecond => PointsRate ?? (Owned ? 0 : ObjectiveDefaults.FlagPointsRate);
+
+    /// <summary>What carrying it does, once the defaults are applied.</summary>
+    [JsonIgnore]
+    public string CarrierEffect => Carrier ?? (Owned ? FlagCarriers.None : FlagCarriers.Lowered);
+
+    /// <summary>The banner's dye: the flag's own, else its team's colour as a dye, else white.</summary>
+    public string BannerColor(IEnumerable<TeamDef>? teams) =>
+        Color is { Length: > 0 } color ? color
+        : Owned && teams?.FirstOrDefault(team => IntentNaming.TeamId(team.Id) == IntentNaming.TeamId(Team)) is { } owner
+            ? BlockColors.Normalize(owner.Color).Replace('_', ' ')
+            : "white";
+}
+
+/// <summary>
+/// A zone: a region with rules of its own (<c>docs/pgm/zones.md</c>). What it leaves unsaid it leaves alone, so a
+/// zone that states nothing but a kit gives the kit and changes nothing else.
+/// </summary>
+public sealed record ZoneIntent
+{
+    /// <summary>What the map calls the zone; its region is <c>zone-</c> and this.</summary>
+    public string Id { get; init; } = "";
+
+    /// <summary>The rects it covers, unioned.</summary>
+    public List<Rect> Area { get; init; } = new();
+
+    /// <summary>The team it belongs to, or empty for none. A team's zone fans by team under a symmetry, and is what
+    /// <see cref="ZoneEntries.Team"/> lets in.</summary>
+    public string Team { get; init; } = "";
+
+    /// <summary>Who may walk in (<see cref="ZoneEntries"/>).</summary>
+    [WordSet(typeof(ZoneEntries))]
+    public string Enter { get; init; } = ZoneEntries.Anyone;
+
+    /// <summary>What a player turned away at its edge is told.</summary>
+    public string EnterMessage { get; init; } = "";
+
+    /// <summary>Whether a block may be placed in it.</summary>
+    public bool Place { get; init; } = true;
+
+    /// <summary>Whether a block may be broken in it.</summary>
+    public bool Break { get; init; } = true;
+
+    /// <summary>What a player refused an edit is told.</summary>
+    public string EditMessage { get; init; } = "";
+
+    /// <summary>Whether a player inside may be hurt.</summary>
+    public bool Harm { get; init; } = true;
+
+    /// <summary>The kit given to whoever is inside, by id, or empty for none.</summary>
+    public string Kit { get; init; } = "";
+}
+
+/// <summary>
+/// One score box: the blocks a player of <see cref="Team"/> walks into to pay it <see cref="Points"/>, filtered to
+/// that team, and — where <see cref="Home"/> — a portal on the same blocks landing the scorer on their team's
+/// spawn point, facing the way it faces (<c>docs/pgm/score-boxes.md</c> §4).
+/// </summary>
+public sealed record ScoreBoxIntent
+{
+    /// <summary>The team the box scores for.</summary>
+    public string Team { get; init; } = "";
+
+    /// <summary>The blocks the box covers, inclusive.</summary>
+    public BlockBox Box { get; init; }
+
+    /// <summary>What entering the box pays the team.</summary>
+    public int Points { get; init; } = ObjectiveDefaults.ScoreBoxPoints;
+
+    /// <summary>Whether entering the box sends the scorer to their spawn point.</summary>
+    public bool Home { get; init; } = true;
+}
+
+/// <summary>One place a flag stands at: where the banner is, and the way it faces.</summary>
+public sealed record FlagPostIntent
+{
+    /// <summary>Which layer's surface this stands on, or null for the top one.</summary>
+    public string? Layer { get; init; }
+
+    /// <summary>Which authored post this is an image of, and which image — set by whoever fanned the orbit.</summary>
+    public StampId Stamp { get; init; }
+
+    /// <summary>What the sidebar calls the post.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>The point the flag stands at: the block its banner is in, at the block's centre.</summary>
+    public Pt At { get; init; }
+
+    /// <summary>Which way the banner faces, in degrees, or null for the way it stands in the world.</summary>
+    public double? Yaw { get; init; }
+
+    /// <summary>The block the post's banner was stood in — filled by the world-export path, the only place that
+    /// knows the ground under the post. The flag's post point is the centre of it, so the banner PGM looks for
+    /// and the point it looks at are the one block. Null on an intent that has not been through the build.</summary>
+    public BlockBox? BannerBox { get; init; }
 }
 
 /// <summary>

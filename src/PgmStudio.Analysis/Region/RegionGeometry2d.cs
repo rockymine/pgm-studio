@@ -2,6 +2,7 @@ using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Utilities;
 
 using PgmStudio.Domain;
+using Symmetry = PgmStudio.Geom.Symmetry;
 
 namespace PgmStudio.Analysis.Region;
 
@@ -179,12 +180,25 @@ public static class RegionGeometry2d
 
     private static Geometry Reflect(Geometry geom, double nx, double nz, double ox, double oz)
     {
-        var n2 = nx * nx + nz * nz;
-        if (n2 == 0) return geom;
-        double r00 = 1 - 2 * nx * nx / n2, r01 = -2 * nx * nz / n2, r11 = 1 - 2 * nz * nz / n2;
-        // AffineTransformation(m00,m01,m02, m10,m11,m12): x'=m00*x+m01*z+m02, z'=m10*x+m11*z+m12
-        var at = new AffineTransformation(r00, r01, ox - r00 * ox - r01 * oz, r01, r11, oz - r01 * ox - r11 * oz);
-        return at.Transform(geom);
+        var reflected = geom.Copy();
+        reflected.Apply(new ReflectFilter(nx, nz, ox, oz));
+        reflected.GeometryChanged();
+        return reflected;
+    }
+
+    /// <summary>Every coordinate of a geometry through <see cref="Symmetry.ReflectPoint"/>; NTS's y is the
+    /// map's z.</summary>
+    private sealed class ReflectFilter(double nx, double nz, double ox, double oz) : ICoordinateSequenceFilter
+    {
+        public bool Done => false;
+        public bool GeometryChanged => true;
+
+        public void Filter(CoordinateSequence seq, int i)
+        {
+            var (x, z) = Symmetry.ReflectPoint(seq.GetX(i), seq.GetY(i), nx, nz, ox, oz);
+            seq.SetX(i, x);
+            seq.SetY(i, z);
+        }
     }
 
     // A zero- or negative-area envelope (min ≥ max on either axis) collapses to a point/line in NTS —

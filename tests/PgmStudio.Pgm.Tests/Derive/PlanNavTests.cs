@@ -98,8 +98,8 @@ public sealed class PlanNavTests
     public async Task Every_marker_is_fanned_and_named_by_kind()
     {
         var plan = Ring();
-        plan.Placements.Spawns = [new SpawnPlacement { Piece = "north", At = [1, 0] }];
-        plan.Placements.Wools = [new WoolPlacement { Piece = "south", At = [1, 0] }];
+        plan.Placements.Spawns = [new SpawnMarker { Piece = "north", At = [1, 0] }];
+        plan.Placements.Wools = [new WoolMarker { Piece = "south", At = [1, 0] }];
         var nav = PlanNav.Of(plan);
 
         var waypoints = nav.Waypoints().ToList();

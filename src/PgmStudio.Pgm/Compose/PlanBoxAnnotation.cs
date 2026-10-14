@@ -25,20 +25,20 @@ public static class PlanBoxAnnotation
         _ => PlanBoxKinds.Mid,
     };
 
-    /// <summary>The boxes a grown <paramref name="unit"/> implies: one per partition group
-    /// (<see cref="BoxPartition.Of"/> for the envelopes, <see cref="BoxPartition.KeyOf"/> for the members), in
+    /// <summary>The boxes a team <paramref name="unit"/> implies: one per partition group
+    /// (<see cref="BoxLayout.Of"/> for the envelopes, <see cref="BoxLayout.KeyOf"/> for the members), in
     /// the order the unit's pieces first reach them.</summary>
-    public static List<PlanBox> For(GrownUnit unit)
+    public static List<PlanBox> For(TeamUnit unit)
     {
         var members = new Dictionary<string, List<string>>();
         foreach (var piece in unit.Pieces)
         {
-            var (id, _) = BoxPartition.KeyOf(piece);
+            var (id, _) = BoxLayout.KeyOf(piece);
             if (!members.TryGetValue(id, out var list)) members[id] = list = [];
             list.Add(piece.Id);
         }
 
-        return BoxPartition.Of(unit).Boxes
+        return BoxLayout.Of(unit).Boxes
             .Select(b => new PlanBox
             {
                 Id = b.Id,
@@ -50,5 +50,5 @@ public static class PlanBoxAnnotation
     }
 
     /// <summary>Replace <paramref name="plan"/>'s boxes with the ones <paramref name="unit"/> implies.</summary>
-    public static void Apply(PlanModel plan, GrownUnit unit) => plan.Boxes = For(unit);
+    public static void Apply(PlanModel plan, TeamUnit unit) => plan.Boxes = For(unit);
 }

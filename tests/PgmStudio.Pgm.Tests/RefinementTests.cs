@@ -363,8 +363,8 @@ public sealed class RefinementTests
         var intent = JsonNode.Parse(refined.IntentJson)!;
         var points = intent["controlPoints"]!.AsArray()
             .Select(point => $"{point!["name"]} ({point["anchor"]!["x"]}, {point["anchor"]!["z"]})").ToList();
-        await Assert.That(points).IsEquivalentTo(["Bench (-42, 0)", "Crusher (0, 0)", "Bench 2 (42, 0)"])
-            .Because("the centre is its own image");
+        await Assert.That(points).IsEquivalentTo(["Bench (-42, 0)", "Crusher (0, 0)", "Bench 2 (41, -1)"])
+            .Because("block -42's image about the grid line is block 41, and the centre's pad overlaps its own image");
         var spawners = intent["spawners"]!.AsArray()
             .Select(spawner => $"{spawner!["id"]} ({spawner["at"]!["x"]}, {spawner["at"]!["z"]})").ToList();
         await Assert.That(spawners).IsEquivalentTo(

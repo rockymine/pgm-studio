@@ -95,6 +95,7 @@ public sealed class MapReader(PgmDb db)
                 Id = kit.KitKey,
                 Force = kit.Force ?? false,
                 Clear = kit.Clear ?? false,
+                MaxHealth = kit.MaxHealth,
                 Items = items.Select(i => new KitItem { Slot = i.Slot ?? 0, Item = ItemSpec(i.SpecJson) }).ToList(),
                 Armor = armor.Select(a => new KitArmor { SlotName = a.SlotName, Item = ItemSpec(a.SpecJson) }).ToList(),
                 Effects = ListOfDicts(kit.EffectsJson).Select(e => new PotionEffect { Type = Str(e, "type"), Duration = Str(e, "duration"), Amplifier = Int(e, "amplifier") }).ToList(),
@@ -164,6 +165,19 @@ public sealed class MapReader(PgmDb db)
                 ShowProgress = p.ShowProgress, Required = p.Required, Show = p.Show,
             });
 
+        foreach (var row in await db.FlagPosts.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.FlagPosts.Add(Deserializer.DecodeFlagPost((Dict)JsonTree.FromJson(row.SpecJson)!));
+        foreach (var row in await db.Flags.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.Flags.Add(Deserializer.DecodeFlag((Dict)JsonTree.FromJson(row.SpecJson)!));
+        foreach (var row in await db.FlagNets.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.FlagNets.Add(Deserializer.DecodeFlagNet((Dict)JsonTree.FromJson(row.SpecJson)!));
+        foreach (var row in await db.Portals.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.Portals.Add(Deserializer.DecodePortal((Dict)JsonTree.FromJson(row.SpecJson)!));
+        if (await db.Damage.Where(x => x.MapId == id).FirstOrDefaultAsync(ct) is { } damageRow)
+            m.Damage = Deserializer.DecodeDamage((Dict)JsonTree.FromJson(damageRow.SpecJson)!);
+        if (await db.MatchRules.Where(x => x.MapId == id).FirstOrDefaultAsync(ct) is { } rulesRow)
+            Deserializer.DecodeMatchRules((Dict)JsonTree.FromJson(rulesRow.SpecJson)!, m);
+
         foreach (var shop in await db.Shops.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
             m.Shops.Add(Deserializer.DecodeShop(new Dict
             {
@@ -185,6 +199,8 @@ public sealed class MapReader(PgmDb db)
                 Initial = sc.Initial, Limit = sc.Limit, EnforceLimit = sc.EnforceLimit,
                 Kills = sc.Kills, Deaths = sc.Deaths, Mercy = sc.Mercy, MercyMin = sc.MercyMin,
                 Display = sc.Display ?? "", ScoreboardFilterId = sc.ScoreboardFilterKey ?? "", King = sc.King,
+                Boxes = [.. (await db.ScoreBoxes.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+                    .Select(row => Deserializer.DecodeScoreBox((Dict)JsonTree.FromJson(row.SpecJson)!))],
             };
 
         foreach (var s in await db.Spawns.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))

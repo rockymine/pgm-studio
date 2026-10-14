@@ -3423,6 +3423,29 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   37 proto, 27 modern-world and 9 `payloads` maps), and all **286** carrying a control point or a score
   module survive the XML round trip with every point and knob unchanged. `docs/pgm/control-points.md`.
   (PG5, OB10)
+- **Flag maps are read and written (`PG20`).** `MapParser.ParseFlags` reads the whole `<flags>` module in
+  PGM's order — posts beside the flags, the flags, nets beside them — into `Flag`, `FlagPost` (single, or
+  composite with its places inheriting) and `FlagNet`, with nested groups' attributes cascading, inline
+  regions, filters and messages kept inline, and the five flag filters (`flag-carried`, `flag-dropped`,
+  `flag-returned`, `flag-captured`, `carrying-flag`). They round-trip through the XML writer, the map document
+  (`flags`, `flag_posts`, `flag_nets`) and storage (`flag`, `flag_post`, `flag_net`, `M0069`), and a flag map
+  derives `ctf`. A flag whose kit is written inside it is refused. **1,470 of 1,626 corpus maps parse**, and all
+  148 readable flag maps come back with every flag, post, net and filter unchanged through both codecs.
+  `docs/pgm/flags.md`. (`PG20`)
+- **A board played for control refuses block interaction (`PG22`).** `BuildIntent.Mode` is one of
+  `BuildModes` — `void`, `never`, `only` — and unstated it is `void` where the intent carries a wool, a
+  destroyable or a core and `never` where it carries none, by the author's ruling that conquest maps are not
+  built on. `never` is one apply rule over `everywhere` refusing every block placed or broken; `only` lets the
+  named `Materials` through (`build-only`). A generated KotH board, which wrote no block rule at all when it
+  declared no build area, now refuses every block. `docs/pgm/new-map-authoring.md` §5c. (`PG22`)
+- **A King of the Flag board is authored from the intent (`PG21`, `PG25`).** `MapIntent.Flags` states each flag's
+  name, colour, posts and points rate (1); `FlagGenerator` writes one unowned flag over a single or composite post
+  that brings it back to one of its places at random, its posts fanning by position under a symmetry. The carrier
+  is one of `FlagCarriers`: `lowered` to `CarrierHearts` (6) with a drop kit restoring 20, `absorption` III for
+  three seconds, or `boost` to `CarrierHearts` with a forced drop kit removing it — kits carry `<max-health>`
+  through every codec and storage (`M0070`) for it. `ScoreGenerator` writes the one `<score>` a point and a flag
+  both pay into, 200 for a flag board; the board declares `kotf` and reads "Hold the flag!".
+  `docs/pgm/flags.md` §7. (`PG21`, `PG25`)
 - **KotH boards are authorable: the pad, the intent slice, and the score it pays into.** An agent adds one
   array to the intent it already posts — `PUT /api/map/{slug}/intent` with `controlPoints` — and the export
   does the rest. No second endpoint and no new document. **The stamper is the one that differs from every
@@ -3892,7 +3915,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A plan can say which storey a goal stands on (`TN7`).** `layer` was a field on all six `MapIntent`
   placements and on neither plan placement, so the word existed everywhere the export reads it and nowhere
   the plan writes it: a plan-built goal on a stacked board always resolved against the top surface, and a
-  monument stated for a hall landed on the deck roofing it. `DestroyablePlacement` and `CorePlacement` now
+  monument stated for a hall landed on the deck roofing it. `DestroyableMarker` and `CoreMarker` now
   take a nullable `layer`, carried straight through the compiler. `docs/tools/plan.md` documents it beside
   the structure knobs.
 - **`SP1` says a plan declares no build zone rather than that its wools are unreachable (`B143`).** The rule
@@ -3982,8 +4005,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   identical. Number input ↔ canvas line stay in sync; → `intent.build.maxHeight`. (`BuildHeightStep`; N03)
 - **Build · Buildable-layer sub-step (N03)** — the **rectangle tool** draws over-void bridges (areas) and
   no-build holes (the negative-rectangle / complement case); a Bridge/Hole toggle picks which. Build areas
-  have no team identity, so it stores **authored-only** (`intent.build.areas`/`holes`) and the **canvas**
-  renders the symmetry mirror as ghost previews in JS (`setAuthorMirror`); `BuildGenerator` orbits + unions
+  have no team identity, so it stores **authored-only** (`intent.build.areas`/`holes`) and lists the symmetry
+  copies read-only beside them, drawn as ghosts (`TC22`); `BuildGenerator` orbits + unions
   them, complements the holes, and wraps the `not-build-area` negative. (`BuildLayerStep`; N03)
 - **Build · live buildability overlay (N03)** — a **Buildable** chip on the canvas sub-bar toggles a
   translucent per-column **verdict heatmap** (`GET /buildability`): green buildable · orange void-denied ·
@@ -4203,7 +4226,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **An objective marker states the structure it builds (`G160`).** A core and a destroyable are placed as
   bare markers and take the generator's defaults; the knobs that vary them — a casing's footprint, height,
   wall thickness, capped-or-flush lava and float/leak pair, a destroyable's design, material and float — had
-  existed in `CorePlacement`/`DestroyablePlacement`, in `plan-doc.js`, in the compiler and in the stamper
+  existed in `CoreMarker`/`DestroyableMarker`, in `plan-doc.js`, in the compiler and in the stamper
   since each was written, reachable only by hand-editing the plan JSON. They are now the panel that opens
   when a marker is selected, so every core the tool placed is no longer a capped 5×5×5 and every destroyable
   no longer a floating obsidian `pillar-3`.
@@ -4401,8 +4424,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   Parity unchanged (buildability/wool/traversability 10/10). (`A4`)
 - **One symmetry math, by runtime** — the canonical `PgmStudio.Geom.Symmetry` is shared by the WASM client
   (orbit assignment) **and** the server. Live canvas previews use the JS twin `geometry/symmetry.js`
-  (`applySymmetry`/`applySymmetryToBounds`/`orbitAxes`, all six modes) via the editor canvas's
-  `setAuthorMirror` + a non-selectable `ghost` flag — the same machinery the sketch tool's mirror uses.
+  (`applySymmetry`/`applySymmetryToBounds`/`orbitAxes`, all six modes) for the sketch tool's mirror; the
+  editor canvas draws Configure's copies, computed in C#, under a non-selectable `ghost` flag.
   Identity assignment is the shared `OrbitAssignment` (point-aware) for Protection/Wools and island-aware
   in Spawn. (N02/N03)
 - **New-map landing (Import flow)** — `/maps/new`: **Source** either lists importable local world folders
@@ -5116,11 +5139,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `docs/generator/model.md` §4 (the shape model). (G91)
 
 - **The terminal-free `Body` — the shape/designation split (M3, G90)** — `Pgm/Shapes/ShapeBody.cs` +
-  `ShapeEmitter.cs` + `ApproachSlots.cs`: `ShapeEmitter.Emit` — which baked a wool `room` into every family —
+  `ShapeEmitter.cs` + `CompoundParts.cs`: `ShapeEmitter.Emit` — which baked a wool `room` into every family —
   splits into a pure **`Body`** (`ShapeEmitter.Body` → a `ShapeBody`: structural-slotted rects + vacancies, no
   terminal/marker/id) and an **approach designation** (`ShapeEmitter.Approach(body, room, marker)`, which `Emit`
   composes over the body). `EmittedShape` now *is* a `ShapeBody` + the terminal room + marker (`Terrain`/
-  `Vacancies` read through to the body), so every consumer stays untouched. `ApproachSlots` gains the documented
+  `Vacancies` read through to the body), so every consumer stays untouched. `CompoundParts` gains the documented
   **structural-slot** (`run`/`bar`/`leg`, shared by every kind) vs **designation-mark** (`entry`/`room`, stamped
   by the approach) split — emitted strings unchanged, so the mirror stays byte-identical. The split is
   **byte-identical** wool/spawn output: the emit↔derive mirror, the G50–G52 placement-knob tests, `BoxInterfaces`
@@ -5209,7 +5232,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 - **Docking as a declarative slot-edge gate — `DockingGate` (M3, G80)** — `Compose/Boxes/DockingGate.cs`:
   the one place that decides whether a box edge may receive a dock, as a table over slots rather than
-  per-family imperative code. `SlotDockRole` tags each `ApproachSlots` slot once — `room` → **never-dock**
+  per-family imperative code. `PartDockRole` tags each `CompoundParts` slot once — `room` → **never-dock**
   (a dock seals the goal), `entry` → **docking edge** (the mouth), every corridor slot (`run`/`bar`/`leg` and
   the entry/room-qualified runs and bars) → **internal**; `FamilyDock` carries the per-family **demand** (how
   many distinct entry edges must connect: clamp 2, most 1) and **span** (clamp: the short edge). The gate
@@ -5276,9 +5299,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   mirror test (classifies to I/L, slots re-derive, `Spawn`-role room) across seeds. Contract:
   `docs/generator/model.md` §4/§5.3. (G78)
 
-- **Slot recovery — the emit↔derive mirror closes at the slot level (M2)** — `Pgm/Shapes/SlotAssignment.cs`
-  + `Geom/Cells.cs`: `SlotAssignment.AssignSlots(family, pieces, roomId)` re-derives every piece's
-  `ApproachSlots` slot from **topology alone** — path order for the chain families (I/L/Z/scythe), adjacency
+- **Slot recovery — the emit↔derive mirror closes at the slot level (M2)** — `Pgm/Shapes/PartAssignment.cs`
+  + `Geom/Cells.cs`: `PartAssignment.AssignParts(family, pieces, roomId)` re-derives every piece's
+  `CompoundParts` slot from **topology alone** — path order for the chain families (I/L/Z/scythe), adjacency
   for the branches (U/H/clamp), and hole-edge geometry for the donut (the enclosed void via the new
   `Cells.EnclosedVoid`; bars vs legs off the hole's opposite edges, the room-bar anchored by the entry-bar's
   hub attachment) — never a canonical rect position, so entry/wool shift, side-tuck, donut
@@ -5333,9 +5356,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `docs/generator/model.md` §4.7.
 
 - **Wool-box pieces carry their slot role** — `Pgm/Compose/WoolBoxEmitter.cs` + `TeamUnitGrower.cs`:
-  `WoolBoxEmitter` now tags every emitted piece with its **slot role** (`ApproachSlots` on `GrownPiece.Slot`) —
+  `WoolBoxEmitter` now tags every emitted piece with its **slot role** (`CompoundParts` on `GrownPiece.Slot`) —
   `entry` (the universal hub-attach), `run`, `bar`, `leg`, `room`, qualified `entry-run`/`room-run` and
-  `entry-bar`/`room-bar` — per the §2 piece-vocabulary table, exposed as data via `ApproachSlots.Template`.
+  `entry-bar`/`room-bar` — per the §2 piece-vocabulary table, exposed as data via `CompoundParts.Template`.
   It is a **shape-internal taxonomy, distinct from the map-level piece `role`** (terrain pieces keep `piece`),
   and is the foundation the shift (G50) / width (G51) / docking (G52) rules target — those name a slot instead
   of re-deriving it from geometry. Invariants held: a family emits a **stable piece count** (no collinear
@@ -8705,6 +8728,230 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   Together a 1280 × 720 view draws and encodes in about a third of the time, with what the picture holds
   counted exactly as before. `docs/world-scan/read-backs.md`. (`WS82`)
 
+- **Every walk reads one answer for what a player walks through (`WS84`)** — `BlockRoles.WalkedThrough` is what
+  grows except a cactus, what lies flat or hangs on a face, what is climbed (`BlockRoles.Climbable`: a ladder, a
+  vine) and what is opened (`BlockRoles.Openable`: every door and fence gate). The built walk's runs
+  (`WorldColumns.ForWalk`), the scan's segments and the traversability picture's headroom all read it, so a
+  tuft of grass no longer lifts a built column a block, a ladder is not a pillar to stand on, and a banner,
+  carpet or double plant is no longer scanned as ground. `docs/world-scan/read-backs.md`. (`WS84`)
+
+- **A zone, in general (`PG27`)** — one writer for every region with rules of its own (`ZoneWriter`): a spawn's
+  protection, a wool room and the build region's void rule are written through it with their output unchanged,
+  and `MapIntent.Zones` states the rest — who may enter (`ZoneEntries`), placing, breaking, harm through the damage
+  module, and a kit inside — fanned by team or by position, ahead of the build rules. `docs/pgm/zones.md`. (`PG27`)
+
+- **The match's own rules survive the round trip (`PG34`)** — `<time>`, the root `<respawn>` and the filtered
+  `<respawns>`, `<blitz>` and `<rage>` are read, written and stored (`match_rules`, `M0074`), a legacy time limit
+  inside `<score>` or `<blitz>` written at the root, and blitz and rage join a map's gamemodes after the rest, as PGM
+  sorts them. All 1,290 parseable corpus maps carrying any of them write them back unchanged through both codecs.
+  `docs/pgm/match.md`. (`PG34`)
+
+- **Kill rewards are read in full (`PG35`)** — every `<kill-reward>` under either spelling, grouped or not, with its
+  items as one `ItemSpec` each, its filter, its kit — named, or written inside it and kept as one of the map's kits —
+  and its two actions by id. `docs/pgm/match.md` §4. (`PG35`)
+
+- **A board states how its match ends (`PG36`, `PG37`)** — `MapIntent` states a time limit and the result that
+  decides it (`TimeResults`), the respawn delay and whether it is automatic or spectated, a blitz's lives, rage, and
+  a kill height, written by `MatchGenerator` as a portal over a `below` region dropping a player into the void; a
+  plan's refinement states the same members. `docs/pgm/match.md` §7. (`PG36`, `PG37`)
+
+- **The damage module survives the round trip (`PG32`)** — `<damage>` is read, written and stored (`damage`,
+  `M0073`): every filter of every element in order, inline or named, and the two actions by id. All 106
+  parseable corpus maps with the module write it back unchanged through both codecs. `docs/pgm/damage.md`. (`PG32`)
+
+- **No export names a region nothing defines (`PG33`)** — a region written where it is used carries its anonymous
+  children inline rather than as references to synthetic ids, so a hill's owner region written as an inline union
+  exports as shapes. 109 of 1,522 parseable corpus maps exported such a reference, which PGM refuses to load; none
+  do. `docs/pgm/new-map-authoring.md`. (`PG33`)
+
+- **A touch point is a capture setting (`PG28`)** — `ControlPointIntent.CaptureMode` is `hold` or `touch`
+  (`CaptureModes`); a touch point is taken in `0.1s` under `capture-rule="lead"` with no neutral state, played
+  only by the teams that do not hold it, so a step takes it and it stays taken until another team steps on.
+  `docs/pgm/control-points.md` §9. (`PG28`)
+
+- **A plan-built score box is air (`WE164`)** — the world build clears every score box to air after the dressing
+  and every stamp, fanned by team across the board's symmetry, and the map names each box it cleared.
+  `docs/pgm/score-boxes.md` §4. (`WE164`)
+
+- **A score box sends its scorer home (`PG26`)** — a `<score>`'s boxes are read, written and stored (`score_box`,
+  `M0072`), and only a box that redeems items still refuses its map, so 1,522 of 1,626 corpus maps parse.
+  `MapIntent.ScoreBoxes` states a box per team, written by `ScoreGenerator` with a portal on the same region
+  landing the scorer on their spawn, fanned by team, on a board that states `scorebox`.
+  `docs/pgm/score-boxes.md`. (`PG26`)
+
+- **Portals survive the round trip (`PG30`)** — the `<portals>` module is read, written and stored (`portal`,
+  `M0072`): every coordinate as written, `@` place or bare offset, the region and destination named or inline,
+  the five filters, and the group cascade. All 225 parseable corpus maps with portals write the same portals
+  back through both codecs. `docs/pgm/portals.md`. (`PG30`)
+
+- **A board states Capture the Flag (`PG38`)** — a `FlagIntent` naming a `Team` is that team's flag: owned, named
+  and coloured for its team, a pickup filter keeping its own team off it, recovered home after 15 seconds, and fanned
+  by team across the symmetry, its banner stood in its team's colour. Each team captures every other team's flag
+  in a net round its own flag's first post, paying 1, and the board ends at 3 and states `ctf`.
+  `docs/pgm/flags.md` §8. (`PG38`)
+
+- **A scanned world's walk keeps what is built out over the void (`WS89`)** — a floating mass joins the walk where one
+  of its places is a free step from the ground beside it, as a beam reached by stairs is; one touching nothing it can
+  be walked onto from, such as a lobby in the sky, stays out. Riad's beam post, three wide over the void, is reached.
+  `docs/world-scan/read-backs.md`. (`WS89`)
+
+- **Pre-flight knows the game mode (`TC20`)** — buildability and build zone reach are asked only of a map built on over
+  the void; the walk check names what it cannot reach in plain words and says to bridge only where players build; the
+  check map draws flag posts, score boxes and capture points with their own marks and a legend of what the map holds.
+  The Flags, Score and Match copy follows `docs/client/writing-for-the-ui.md`, and the glossary defines the new
+  modes' words. `docs/tools/configure.md`. (`TC20`)
+
+- **Configure's last phase is Export, in a player's words (`TC21`)** — its steps are *Checks*, *All regions* and
+  *map.xml*; the checks are *Map file*, *Regions*, *Solid ground*, *Build areas*, *Reachability* and *Wool teams*,
+  each answering in a plain sentence, and the log closes on whether export is open. A blocked *map.xml* step says
+  why in the first finding's words and points back to *Checks*. `docs/tools/configure.md`. (`TC21`)
+
+- **Every symmetry copy is listed (`TC22`)** — the Score and Build steps list each box's and each rectangle's
+  images beneath the drawn ones with a *Copy* badge, drawn as ghosts in their own colour, a score box's copy in
+  its team's, and open read-only in the inspector, as Spawn, Protection and Wool rooms do.
+  `docs/tools/configure.md`. (`TC22`)
+
+- **A symmetry copy stands on its image's blocks (`PG41`)** — `SymmetryExpander` turns each field by what it
+  names: a block box cell by cell, a goal's anchor by its footprint as the plan compiler does, a block named by
+  a whole number as that block, and a position as a point. A copied score box, net, banner, pad, core,
+  destroyable, wool location and monument lands on the columns the terrain mirrors to, and a capture point or
+  post at a grid-line centre stays one. The Edit tool's quarter turn of a `<block>` region names the block its
+  bounds cover. `docs/pgm/new-map-authoring.md` §3. (`PG41`)
+
+- **A relief folds and is measured under its own mode (`WE165`)** — the fold copies each cell from its image under
+  `Symmetry.Cell`, the canonical half a mirror's normal points away from, so `mirror_d1` and `mirror_d2` fold onto
+  their own images rather than a half-turn's; the read-back's symmetry error compares every image the mode has,
+  three under `rot_90`. `docs/world-export/relief.md`. (`WE165`)
+
+- **Every symmetry turn goes through one leaf (`RP126`)** — `Symmetry.ApplyCell` and `ApplyRect` give a caller
+  holding one axis the cell and rectangle turns, and image 0 is the point itself under every mode. The sketch
+  rasterizer and layout check, the plan's fan, the orbit scatter, the region reflection, the expander and the
+  detector call them, and `SymmetryModes.Fanned` is the one list of modes with images.
+  `docs/pgm/new-map-authoring.md` §3. (`RP126`)
+
+- **One turn inside a box (`G293`)** — `Geom.BoxTurn` lays a box-local shape back onto its box; the emitter's flip,
+  the mouth-to-top turn and the turn onto a docking edge are each one, through `EmittedShape.Turned` and
+  `ShapeBody.Turned`, and the composer's fingerprints are unchanged. `docs/generator/vocabulary.md`. (`G293`)
+
+- **The shape model's words name what the types are (`G294`)** — a `Compound` is a shape combined out of rectangle
+  pieces with the bays, holes and notches they leave, and its `CompoundForm` is what the pieces make; an
+  `ApproachShape` is a compound with a wool or spawn room attached; `PlacedApproach`, `PlacedSpawn`, `PlacedHub`
+  and `PlacedFrontline` are each box kind's result placed on the plan. The approach's rectangles have one name,
+  `Compound.Pieces`, and the composer's fingerprints are unchanged. `docs/generator/model.md` §4. (`G294`)
+
+- **A compound ends in its room, and a marker is one type (`G295`)** — a `Piece` is a `CellRect` with its part
+  (`CompoundParts`, formerly slots), and a wool or spawn `Compound` carries its room as its last piece and the
+  marker inside it, so `ApproachShape`, `Designation` and the word *terminal* are gone. `Marker(Piece, X, Z)` is
+  where the spawn and every wool stand; `GrownPieces.Lay` lays a filled compound and works out each piece's role
+  once, from its part and the box kind. The plan's marker classes are `SpawnMarker`, `WoolMarker`, `IronMarker`,
+  `DestroyableMarker` and `CoreMarker`, with the JSON unchanged. The composer's fingerprints are unchanged.
+  `docs/generator/vocabulary.md`. (`G295`)
+
+- **Every fill returns its compound (`G296`)** — the hub, spawn, wool and front line fills each return the
+  box-local `Compound` or `null` with a `FillRejection`, so `PlacedHub`, `PlacedSpawn`, `PlacedApproach`,
+  `PlacedFrontline`, `FillResult` and the unread `Vacancy` are gone, and with them the clash with the stamper's
+  `PlacedSpawn`. `UnitPieces.Lay` lays every compound onto the board, `HubBoxEmitter.Offers` reads what the
+  hub's runs carry, and `UnitPieces.AsPlan` is the one standalone plan of a compound. The allocator's output is
+  a `BoxLayout` and the filler's a `TeamUnit` of `UnitPiece`s; the wool emit path and the front line's unread
+  face offers are gone. The plan's boxes are still written when a board is kept (`PlanBoxAnnotation`), so the
+  browse feed stays label-free. The composer's fingerprints are unchanged. `docs/generator/vocabulary.md`.
+  (`G296`)
+
+- **One edge interval and one lane width (`G297`)** — `EdgeInterval(Edge, Start, Length)` is every stretch along
+  a box edge: where two boxes touch (`BoxJoint.Shared`), where a hub offers a dock (`EdgeOffer.Interval`), where
+  a negative space opens (`NegativeSpace.Mouths`), the runs the seating reads and where a piece meets its box's
+  edge, so `BoxAbutment`, `SpaceMouth` and the run tuples are gone. A joint carries the lane `Width` its consumer
+  was given. The walkway width has two names, `laneWidth` and `woolLaneWidth`, in the composer, the probe's
+  `laneWidth` query, the catalog's `laneWidth` field and the feasibility read, and
+  `CompoundEdges.LaneWidthOn` says what a run of a given length carries. A hub leg's `(Start, Width)` stays a
+  leg layout. The composer's fingerprints are unchanged. `docs/generator/vocabulary.md`. (`G297`)
+
+- **One list of forms (`G298`)** — `CompoundForm` is every form a compound takes: I, L, Z, Scythe, Clamp, U, H
+  and Donut ending in a room, and I, L, U, Donut, E, P, G, Double-hole and Two-U without one, so a hub's U and a
+  wool's U are one word. An isolated wool has no form (`ShapeClassifier.Classify` answers null). `FillMenu.For(kind)`
+  is each box kind's menu. The hub chips read I · L · U · Donut, the front-line chips I · L · U, the shape panel's
+  heading *Wool shapes*, and the layout description reads every form one way. `M0075` rewrites the stored
+  `composed_board.hub`/`.frontline` and `plan.structure` words. The composer's fingerprints are unchanged.
+  `docs/generator/model.md` §4. (`G298`)
+
+- **The composer keeps only what it reads (`G299`)** — `PublishPolicy`, `ClosureAnalysis`, `EdgeSpan` and the
+  gate's and edge's convenience reads are gone, and a laid piece always carries the box it fills, so nothing
+  guesses a box from a piece id. *Approach* no longer names a wool's compound in code: the catalog's wool cards
+  are wool shapes and its kind chip reads *Wool*. `model.md` and `vocabulary.md` speak of forms, compounds and
+  boxes. The composer's fingerprints are unchanged. `docs/generator/model.md`. (`G299`)
+
+- **Offers carry where and how wide, nothing else (`G300`)** — `OfferGrouping`, `EdgeOffer.GroupId` and the
+  front line's unread coin flip are gone. Dropping the draw moves 99 of the 120 fingerprinted boards, so
+  `ComposerVersion` is `walled-5`, the fingerprints are re-recorded and the generator's census is re-measured;
+  the reproduction gate composes 408 of 408 with no findings. `docs/generator/model.md` §7. (`G300`)
+
+- **The Data suite passes however often it runs on one database (`RP127`)** — `SchemaMigrator.MigrateDown`
+  rebuilds every table after a rollback, so the hidden columns MariaDB's instant column drops leave behind no
+  longer pile up across the migration tests' down-and-up cycles until `room_style` passes the row limit.
+  `docs/cloud-setup.md`. (`RP127`)
+
+- **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
+  `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
+  Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.
+  `docs/pgm/flags.md` §8. (`PG39`)
+
+- **A board states a team deathmatch (`PG40`)** — `MapIntent.KillPoints` writes the score's `<kills>`; such a board
+  states `tdm`, reads "Get the most kills!", and ends after ten minutes where it states neither limit — the corpus's
+  shape on 139 of its 167 kill-scoring maps. `docs/pgm/match.md` §7. (`PG40`)
+
+- **A score box is a goal the walk reads (`WS88`)** — `NavPoints` seats every score box as kind `scorebox`, and the
+  export refuses a board whose box no spawn can walk into. `docs/world-scan/read-backs.md`. (`WS88`)
+
+- **Configure states the score (`TC19`)** — a Score objective phase sets what a kill pays, which on its own passes
+  the objective gate, and draws score boxes on the ground with their team, points and home portal.
+  `docs/tools/configure.md`. (`TC19`)
+
+- **Configure states the match (`TC17`)** — a Match phase between the objectives and Review: the score and time
+  limits and what decides a match at the bell, the lives a blitz gives, rage, the respawn delay and how the dead
+  come back, and the kill height, each blank for the map's own default. `docs/tools/configure.md`. (`TC17`)
+
+- **The Flags phase sets who defends a flag (`TC18`)** — *Defending team* makes a flag a team's, which takes its
+  team's colour and pays only on capture; a carrier may now be given nothing. `docs/tools/configure.md`. (`TC18`)
+
+- **Configure authors King of the Flag (`TC15`)** — a Flags phase whose Posts step confirms a scanned banner as a
+  flag's post, places further posts on the ground, marks a start with no banner under it, and states the
+  flag's colour, points rate and carrier; it shares the objective gate. On a map read from a world the export
+  refuses a flag that does not start on a scanned banner (`OB36`). `docs/tools/configure.md`. (`TC15`)
+
+- **A flag post is a goal the walk reads (`WS87`)** — `NavPoints` reads every place a flag post stands its flag at
+  as a goal of kind `flag`, owned as its flag, so `traversability`, `coverage` and the export's `EX1` walk to it
+  and an unreachable post refuses the export; the dressing pass's waypoints take the same posts.
+  `docs/world-scan/read-backs.md`. (`WS87`)
+
+- **A conquest kit hands out the blocks its board lets a player place (`PG23`)** — the spawn kit's blocks and
+  tools follow the build mode: wood, clay and the digging tools on a `void` board, a stack of each named material
+  on an `only` board, none on a `never` board; the kill reward follows the stacks. `docs/pgm/new-map-authoring.md`
+  §5c. (`PG23`)
+
+- **A plan-built flag post stands its banner (`WE163`)** — `FlagStamper` stands a banner in the flag's colour at
+  every post, turned to its yaw, in the first air over the ground; the build fans flag posts across the board's
+  symmetry before stamping, the post point is the banner's block centre, and a post's ground is a goal's to the
+  dressing pass. `docs/pgm/flags.md` §7. (`WE163`)
+
+- **Banners are gathered at import as the places a flag could start (`WS83`)** — `FeatureExtractors.Banners`
+  reads every standing and wall banner in the single world pass, with the way it faces, its base dye and its
+  patterns, into `flag_candidate` (`M0071`); the count is `flag_candidates` on the ingest responses, and `GET
+  /map/{slug}/flag-suggestions` serves them with the yaw a post there takes and the King of the Flag defaults.
+  `docs/world-scan/objective-suggestion.md` §6. (`WS83`)
+
+- **The walk climbs a ladder or a vine and swims a water column (`WS85`)** — a `WalkLift` is the feet heights a
+  player moves through vertically in one cell; a step leaves from anywhere on its lift and arrives anywhere on
+  the next, placing fewest blocks, then falling least, then climbing least, with the blocks climbed counted as
+  distance. A ten-block wall with a ladder is crossed for no block, a fall a ladder catches is no drop, and a
+  tunnel at a water column's foot swims up to its surface. Built worlds read lifts from their own runs; scanned
+  ones from `lift_run` (`M0068`), gathered at ingest. `docs/world-scan/read-backs.md`. (`WS85`)
+
+- **The walk takes a running jump (`WS86`)** — `PgmStudio.Geom.Jump` is the 1.8 sprint jump a tick at a time,
+  and a walk over a world's blocks jumps from ground at a gap's rim to ground across up to four blocks where the
+  reach for that rise allows it (3.85 level, 2.78 a block up, 4.52 a block down), over a line with nothing to
+  stand on and nothing solid in the body's way. A jump places no block; a part-bridged crossing is priced as the
+  bridge, and a plan's cells take none. `docs/world-scan/read-backs.md`. (`WS86`)
+
 - **A layer fanned onto its images turns its blocks with it (`WE146`)** — each cell a fanned shape paints
   carries the orbit image that won it, and what a material states — a ladder's side, a stair's climb, a log's
   axis, a torch, a chest, a fence gate — turns through `BlockGeometry.Turned` by that image's transform:
@@ -11046,7 +11293,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   (`docs/tools/sketch.md`, `mapgen-review.md` MG9). `Retarget` is gone with it: a destroyable needs no room,
   no lane and no protection region, so rewriting a capture board's wool markers into monuments (MG1, the
   review's largest entry) put every goal at the back of a corridor it never wanted — a destroy board is now
-  authored as its own `plan`, `DestroyablePlacement`/`CorePlacement` placed on whichever piece the design
+  authored as its own `plan`, `DestroyableMarker`/`CoreMarker` placed on whichever piece the design
   wants. What replaced both is a new `PgmStudio.Pgm.DocumentOverlay`: `layout` and `intent` hand a
   `SketchLayout`/`MapIntent` fragment through **verbatim**, merged onto whatever `compose`/`plan` produced —
   an object key on both sides merges key by key, an array key on both sides is appended to, anything else the
@@ -11146,7 +11393,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   at 58 for exactly this reason, then promoted to a polygon again to recover the outline it already had, so
   the landform existed twice, in two idioms, in two files, with nothing checking the two agreed. `float` is
   now measured from the ground the world build actually solves, and a destroyable/core marker may name no
-  plan piece at all — `DestroyablePlacement.Piece`/`CorePlacement.Piece` empty reads `at` as an absolute board
+  plan piece at all — `DestroyableMarker.Piece`/`CoreMarker.Piece` empty reads `at` as an absolute board
   position (`PlanCompiler.ResolveGoalAnchor`) rather than a piece-relative offset, so a goal can ride an
   authored sketch landform with no tier manufactured to carry it, and `PlanValidator` no longer reports the
   absent piece as a dangling reference for these two marker kinds. The default float stays at 4 — a gameplay
@@ -11737,7 +11984,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   aliasing `OB17` and `OB19`** — no drift risk, since both already read the canonical constant, but the
   catalogue listed those two ids twice, so both are deleted and their call sites name `ObjectiveRules`
   directly. And four docstrings were **malformed XML** that truncated a member's entry in the emitted file
-  (`ApproachSlots`, `HouseStamper`, `HouseWindows`, `TopDownRender`) — invisible until something read the file.
+  (`CompoundParts`, `HouseStamper`, `HouseWindows`, `TopDownRender`) — invisible until something read the file.
 - **A map that puts something up for winning must say who is contesting it (EX4).** The author's ruling: the
   three gamemodes the studio authors — CTW, DTM, DTC — are played by teams, so a document declaring a wool, a
   destroyable or a core and no `<team>` is refused at the export gate. It is asked of the **objectives** rather

@@ -59,7 +59,7 @@ public sealed class ProducibilityTests
         var hub = Producibility.Read(stages.Plan).First(r => r.Kind == PlanBoxKinds.Hub);
         await Assert.That(hub.Producible).IsNotNull();
         await Assert.That(hub.Producible!.Label).IsNotEmpty();
-        await Assert.That(hub.Producible.Cw).IsGreaterThan(0);
+        await Assert.That(hub.Producible.LaneWidth).IsGreaterThan(0);
         await Assert.That(hub.Nearest).IsNull().Because("a reproduced box needs no nearest miss");
     }
 
@@ -87,10 +87,10 @@ public sealed class ProducibilityTests
     [Test]
     public async Task An_unequal_walled_ring_reproduces_and_names_its_walls()
     {
-        var hub = Producibility.Read(HubPlan(BodyEmitter.Ring(new RingWalls(2, 3, 2, 2), 10, 7))).First();
+        var hub = Producibility.Read(HubPlan(CompoundEmitter.Donut(new RingWalls(2, 3, 2, 2), 10, 7))).First();
 
         await Assert.That(hub.IsProducible).IsTrue().Because("a ring may carry one wall wider than the rest");
-        await Assert.That(hub.Producible!.Label).Contains("Ring");
+        await Assert.That(hub.Producible!.Label).Contains("Donut");
         await Assert.That(hub.Producible.Label).Contains("walls 2/3/2/2")
             .Because("the tuple that reproduced it names which side is wide, not just that one is");
         await Assert.That(hub.Nearest).IsNull().Because("a reproduced box needs no nearest miss");
@@ -104,10 +104,10 @@ public sealed class ProducibilityTests
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
         var hub = Producibility.Read(plan).First(r => r.Kind == PlanBoxKinds.Hub);
 
-        await Assert.That(hub.Identity).Contains("Ring").Because("topologically it is a ring");
+        await Assert.That(hub.Identity).Contains("Donut").Because("topologically it is a donut");
         await Assert.That(hub.IsProducible).IsFalse().Because("its 10-block hole is under the composed floor");
-        await Assert.That(hub.Nearest!.Label).Contains("Ring")
-            .Because("the nearest miss is still a ring — the shape is right, the hole is not");
+        await Assert.That(hub.Nearest!.Label).Contains("Donut")
+            .Because("the nearest miss is still a donut — the shape is right, the hole is not");
     }
 
     /// <summary>The widening is bounded, and the bound is the sampler's: a ring whose wide wall is more than
@@ -116,29 +116,29 @@ public sealed class ProducibilityTests
     [Test]
     public async Task A_ring_widened_past_the_ratio_cap_does_not_reproduce()
     {
-        var lawful = HubPlan(BodyEmitter.Ring(new RingWalls(2, 4, 2, 2), 13, 7));
-        var beyond = HubPlan(BodyEmitter.Ring(new RingWalls(2, 6, 2, 2), 13, 7));
+        var lawful = HubPlan(CompoundEmitter.Donut(new RingWalls(2, 4, 2, 2), 13, 7));
+        var beyond = HubPlan(CompoundEmitter.Donut(new RingWalls(2, 6, 2, 2), 13, 7));
 
         await Assert.That(Producibility.Read(lawful).First().IsProducible).IsTrue()
             .Because("4 is twice the 2-cell lane — the widest the spread law admits");
         var over = Producibility.Read(beyond).First();
         await Assert.That(over.IsProducible).IsFalse().Because("6 is three times the lane");
-        await Assert.That(over.Nearest!.Label).Contains("Ring")
-            .Because("the nearest miss is still a ring — the shape is right, the proportions are not");
+        await Assert.That(over.Nearest!.Label).Contains("Donut")
+            .Because("the nearest miss is still a donut — the shape is right, the proportions are not");
     }
 
-    // wrap a body as a one-box hub plan at the origin — the form the producibility read consumes
-    private static PlanModel HubPlan(ShapeBody body)
+    // wrap a compound as a one-box hub plan at the origin — the form the producibility read consumes
+    private static PlanModel HubPlan(Compound compound)
     {
-        int w = body.Pieces.Max(p => p.Rect.X + p.Rect.Width), h = body.Pieces.Max(p => p.Rect.Z + p.Rect.Height);
+        int w = compound.Pieces.Max(p => p.Rect.X + p.Rect.Width), h = compound.Pieces.Max(p => p.Rect.Z + p.Rect.Height);
         var plan = new PlanModel
         {
             Meta = new PlanMeta { Name = "hub-probe" },
             Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9 },
             Boxes = [new PlanBox { Id = "hub", Kind = PlanBoxKinds.Hub, Rect = new(0, 0, w, h) }],
         };
-        for (var i = 0; i < body.Pieces.Count; i++)
-            plan.Pieces.Add(new PlanPiece { Id = $"hub-t{i + 1}", Role = PlanRoles.Piece, Rect = body.Pieces[i].Rect });
+        for (var i = 0; i < compound.Pieces.Count; i++)
+            plan.Pieces.Add(new PlanPiece { Id = $"hub-t{i + 1}", Role = PlanRoles.Piece, Rect = compound.Pieces[i].Rect });
         return plan;
     }
 
@@ -162,12 +162,12 @@ public sealed class ProducibilityTests
             if (!seen.Add(key)) continue;
 
             var box = new Box("front", BoxKind.Frontline, new(0, 0, spine, 5), spine * 5);
-            var built = FrontlineBoxEmitter.Fill(box, new CompoundRead(Compound.SpineArms, 2), 2,
-                OfferGrouping.Joint, BoxEdge.Top, armLayout: legs);
+            var built = FrontlineBoxEmitter.Fill(box, CompoundForm.U, 2,
+                BoxEdge.Top, legs);
             if (built is null) continue;
             checkedLayouts++;
 
-            var read = Producibility.Read(FrontPlan(box, built.Pieces)).Single();
+            var read = Producibility.Read(FrontPlan(box, UnitPieces.Lay(built, box).Pieces)).Single();
             await Assert.That(read.IsProducible).IsTrue()
                 .Because($"legs {key} on a {spine} spine came out of the sampler, so the sweep must have seen it — "
                          + $"nearest was {read.Nearest?.Label ?? "none"}");
@@ -176,7 +176,7 @@ public sealed class ProducibilityTests
     }
 
     // wrap emitted frontline pieces as a one-box plan — the frontline twin of HubPlan
-    private static PlanModel FrontPlan(Box box, IReadOnlyList<GrownPiece> pieces)
+    private static PlanModel FrontPlan(Box box, IReadOnlyList<UnitPiece> pieces)
     {
         var plan = new PlanModel
         {
@@ -251,7 +251,7 @@ public sealed class ProducibilityTests
         await Assert.That(front.IsProducible).IsTrue();
     }
 
-    /// <summary>The spanning-dock exemplar — the funnel at the composer's own corridor width — reads producible
+    /// <summary>The spanning-dock exemplar — the funnel at the composer's own lane width — reads producible
     /// end to end. It is the plan the half-scale g-hub trace was duplicated from, with the widths fixed, so it
     /// isolates the shifted frontline from that plan's tracing scale.</summary>
     [Test]
@@ -343,7 +343,7 @@ public sealed class ProducibilityTests
     {
         // a ring widened past the spread law: the shape is one the emitters build, the proportions are not one
         // the composer draws — the case that survives since the lawful widening reproduces
-        var hub = Producibility.Read(HubPlan(BodyEmitter.Ring(new RingWalls(2, 6, 2, 2), 13, 7))).First();
+        var hub = Producibility.Read(HubPlan(CompoundEmitter.Donut(new RingWalls(2, 6, 2, 2), 13, 7))).First();
         var hubGap = hub.Findings.FirstOrDefault(f => f.Rule == BoxRules.ProportionsOutOfReach);
         await Assert.That(hubGap).IsNotNull().Because("a Ring whose nearest miss is a Ring is a width gap");
         await Assert.That(hubGap!.Cites).IsEqualTo("G105");

@@ -1,0 +1,110 @@
+using PgmStudio.Geom;
+using PgmStudio.Pgm.Shapes;
+
+namespace PgmStudio.Pgm.Compose;
+
+/// <summary>A <b>joint</b> of the layout: the <see cref="Shared"/> stretch where two boxes touch, read on
+/// <see cref="BoxA"/>'s frame, plus the box on the other side — the graph edge the docking gate and the repair
+/// search reason over. <see cref="Width"/> is the lane width the consumer was <b>given</b> at the dock, chosen per
+/// consumer kind (a wool reads the wool lane, a spawn or frontline the map lane): a selection, never the host's
+/// published capacity travelling forward. <c>null</c> for a plain abutment nobody was given anything across
+/// (a derived joint).</summary>
+public sealed record BoxJoint(string BoxA, string BoxB, EdgeInterval Shared, int? Width = null);
+
+/// <summary>
+/// The <b>constraint graph</b> a partition is: typed <see cref="Box"/>es (each an allocated
+/// <see cref="Box.Rect"/> footprint + its <see cref="Box.LandTargetCells"/> land half of the two-currency
+/// budget) and the <see cref="BoxJoint"/>s between them. This is what sampling produces once composition is
+/// partition-first — boxes allocated, then filled — replacing the imperative sample-then-place shape record.
+///
+/// <para><b>Boxes may overlap</b>: the partition allocates budgets and constraints, not exclusive area (the
+/// real invariant is piece-disjointness + image clearance, enforced downstream). A joint is only emitted where
+/// two box footprints <em>abut</em> along a genuine edge interval; interpenetrating footprints simply carry no
+/// joint. <see cref="Of"/> is the <b>derive-side mirror</b>: it reads the partition implied by a team unit
+/// (the emit side the allocator will produce), so an allocator's partition round-trips through it.</para>
+/// </summary>
+public sealed record BoxLayout(IReadOnlyList<Box> Boxes, IReadOnlyList<BoxJoint> Joints)
+{
+    /// <summary>The box with <paramref name="id"/>, or null.</summary>
+    public Box? ById(string id) => Boxes.FirstOrDefault(b => b.Id == id);
+
+    /// <summary>Every hard invariant of a well-formed partition: non-degenerate boxes, unique ids, the land
+    /// currency never exceeds a box's footprint, and every joint references two distinct real boxes along an
+    /// edge interval the two footprints actually share. Overlap between footprints is <b>not</b> a violation —
+    /// only a joint asserting a contact that is not there is.</summary>
+    public bool Valid()
+    {
+        if (Boxes.Any(b => b.Rect.Width <= 0 || b.Rect.Height <= 0)) return false;
+        if (Boxes.Select(b => b.Id).Distinct().Count() != Boxes.Count) return false;
+        if (Boxes.Any(b => b.LandTargetCells < 0 || b.LandTargetCells > b.Rect.Width * b.Rect.Height)) return false;
+        foreach (var j in Joints)
+        {
+            if (j.BoxA == j.BoxB) return false;
+            var a = ById(j.BoxA);
+            var b = ById(j.BoxB);
+            if (a is null || b is null) return false;
+            if (SharedEdge(a.Rect, b.Rect) is not { } shared || shared != j.Shared) return false;
+        }
+        return true;
+    }
+
+    /// <summary>The joints incident on the box with <paramref name="id"/>.</summary>
+    public IReadOnlyList<BoxJoint> JointsOf(string id) =>
+        Joints.Where(j => j.BoxA == id || j.BoxB == id).ToList();
+
+    /// <summary>Read the partition implied by a team <paramref name="unit"/> — the derive-side mirror of what a
+    /// partition-first allocator emits. Pieces group by their <see cref="BoxRef"/> into wool
+    /// and spawn boxes; the structural pieces the grower authors directly (the hub, the frontline, the third
+    /// wool lane) group by id into their plain boxes. Each box's footprint is its pieces' bounding envelope and
+    /// its land the cells they cover; joints are the abutments between the footprints.</summary>
+    public static BoxLayout Of(TeamUnit unit)
+    {
+        var order = new List<string>();
+        var groups = new Dictionary<string, (BoxKind Kind, List<CellRect> Rects)>();
+        foreach (var p in unit.Pieces)
+        {
+            var (id, kind) = KeyOf(p);
+            if (!groups.TryGetValue(id, out var g)) { g = (kind, new List<CellRect>()); groups[id] = g; order.Add(id); }
+            g.Rects.Add(p.Rect);
+        }
+
+        var boxes = order.Select(id => new Box(id, groups[id].Kind, Bbox(groups[id].Rects), Land(groups[id].Rects))).ToList();
+        var joints = new List<BoxJoint>();
+        for (var i = 0; i < boxes.Count; i++)
+            for (var j = i + 1; j < boxes.Count; j++)
+                if (SharedEdge(boxes[i].Rect, boxes[j].Rect) is { } shared)
+                    joints.Add(new BoxJoint(boxes[i].Id, boxes[j].Id, shared));
+        return new BoxLayout(boxes, joints);
+    }
+
+    /// <summary>The box a unit <paramref name="piece"/> fills — the single grouping key, so anything that
+    /// re-groups a unit's pieces (the partition mirror, the plan-box annotation) partitions them identically.</summary>
+    public static (string Id, BoxKind Kind) KeyOf(UnitPiece piece) => (piece.Box.Id, piece.Box.Kind);
+
+    private static CellRect Bbox(IReadOnlyList<CellRect> rects)
+    {
+        var minX = rects.Min(r => r.X);
+        var minZ = rects.Min(r => r.Z);
+        var maxX = rects.Max(r => r.X + r.Width);
+        var maxZ = rects.Max(r => r.Z + r.Height);
+        return new(minX, minZ, maxX - minX, maxZ - minZ);
+    }
+
+    private static int Land(IReadOnlyList<CellRect> rects) => rects.Sum(r => r.Width * r.Height);
+
+    /// <summary>The shared edge interval of two abutting rects (cell coordinates), on the first rect's frame,
+    /// or null when they do not touch along an edge (a gap, a bare corner, or interpenetration). The interval's
+    /// <see cref="EdgeInterval.Start"/> is box-local to <paramref name="a"/>'s edge origin.</summary>
+    public static EdgeInterval? SharedEdge(CellRect a, CellRect b)
+    {
+        int ax0 = a.X, az0 = a.Z, ax1 = a.X + a.Width, az1 = a.Z + a.Height;
+        int bx0 = b.X, bz0 = b.Z, bx1 = b.X + b.Width, bz1 = b.Z + b.Height;
+        int zLo = Math.Max(az0, bz0), zHi = Math.Min(az1, bz1);         // vertical-edge overlap (Left/Right)
+        int xLo = Math.Max(ax0, bx0), xHi = Math.Min(ax1, bx1);        // horizontal-edge overlap (Top/Bottom)
+        if (ax1 == bx0 && zHi > zLo) return new EdgeInterval(BoxEdge.Right, zLo - az0, zHi - zLo);
+        if (ax0 == bx1 && zHi > zLo) return new EdgeInterval(BoxEdge.Left, zLo - az0, zHi - zLo);
+        if (az1 == bz0 && xHi > xLo) return new EdgeInterval(BoxEdge.Bottom, xLo - ax0, xHi - xLo);
+        if (az0 == bz1 && xHi > xLo) return new EdgeInterval(BoxEdge.Top, xLo - ax0, xHi - xLo);
+        return null;
+    }
+}

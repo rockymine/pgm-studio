@@ -9,6 +9,8 @@ namespace PgmStudio.Client.Features.Configure;
 // Build · buildable-layer step: draw over-void bridges (areas) and no-build holes with the rectangle tool;
 // each is a dummy region on the reused canvas (selectable + resizable). Writes the build slice's areas/holes;
 // BuildGenerator unions the areas, subtracts the holes (complement), and wires the not-build-area negative.
+// The generator orbits each rectangle across the map's symmetry; the step lists and draws those copies
+// read-only, as SymmetryExpander.OrbitRects makes them, and stores only the drawn ones.
 public partial class BuildLayerStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
@@ -17,9 +19,16 @@ public partial class BuildLayerStep
     private const string AreaColor = "#22c55e";   // bridge — green
     private const string HoleColor = "#ef4444";   // hole — red
 
-    private sealed class Box { public int Id; public bool Hole; public double MinX, MinZ, MaxX, MaxZ; }
+    private sealed class Box
+    {
+        public int Id; public bool Hole; public double MinX, MinZ, MaxX, MaxZ;
+        public Box? Source;   // the drawn rectangle a symmetry copy is made from; null for a drawn one
+
+        public bool Authored => Source is null;
+    }
 
     private readonly List<Box> boxes = new();
+    private List<Box> copies = new();
     private int nextId = 1;
     private string drawMode = "area";   // area | hole
     private int? selectedId;
@@ -38,8 +47,13 @@ public partial class BuildLayerStep
     private void ToggleDrawMode() => drawMode = HoleMode ? "area" : "hole";
 
     private string Slug => Wizard.Slug;
-    private Box? Selected => selectedId is { } id ? boxes.FirstOrDefault(b => b.Id == id) : null;
-    private string Label(Box b) => $"{(b.Hole ? "hole" : "bridge")}-{boxes.Where(x => x.Hole == b.Hole).ToList().IndexOf(b) + 1}";
+    private IEnumerable<Box> Rows => boxes.Concat(copies);
+    private Box? Selected => selectedId is { } id ? Rows.FirstOrDefault(b => b.Id == id) : null;
+    private string Label(Box b)
+    {
+        var drawn = b.Source ?? b;
+        return $"{(drawn.Hole ? "hole" : "bridge")}-{boxes.Where(x => x.Hole == drawn.Hole).ToList().IndexOf(drawn) + 1}";
+    }
 
     protected override void OnInitialized() => LoadFromIntent();
 
@@ -63,10 +77,29 @@ public partial class BuildLayerStep
             symCx = D(sym, "centerX"); symCz = D(sym, "centerZ");
         }
         selectedId = null;
+        Fan();
     }
 
-    private bool MirrorActive => SymmetryOrder > 1;
-    private int SymmetryOrder => Symmetry.Order(symMode);
+    /// <summary>Each drawn rectangle's images under the symmetry, snapped to whole blocks; an image that lands
+    /// on a rectangle already there is one rectangle.</summary>
+    private void Fan()
+    {
+        copies = new();
+        var order = Symmetry.Order(symMode);
+        var seen = new HashSet<(bool, double, double, double, double)>(boxes.Select(b => (b.Hole, b.MinX, b.MinZ, b.MaxX, b.MaxZ)));
+        foreach (var source in boxes)
+            for (var k = 1; k < order; k++)
+            {
+                var (minX, minZ, maxX, maxZ) = Symmetry.Rect(source.MinX, source.MinZ, source.MaxX, source.MaxZ, symMode, symCx, symCz, k);
+                var image = (source.Hole, Math.Round(minX), Math.Round(minZ), Math.Round(maxX), Math.Round(maxZ));
+                if (!seen.Add(image)) continue;
+                copies.Add(new Box
+                {
+                    Id = -(copies.Count + 1), Hole = source.Hole, Source = source,
+                    MinX = image.Item2, MinZ = image.Item3, MaxX = image.Item4, MaxZ = image.Item5,
+                });
+            }
+    }
 
     private void AddBoxes(JsonArray? arr, bool hole)
     {
@@ -75,13 +108,7 @@ public partial class BuildLayerStep
             boxes.Add(new Box { Id = nextId++, Hole = hole, MinX = D(r, "minX"), MinZ = D(r, "minZ"), MaxX = D(r, "maxX"), MaxZ = D(r, "maxZ") });
     }
 
-    private async Task OnCanvasReady()
-    {
-        await Paint();
-        // The canvas mirrors the authored rects into ghost previews itself (shared geometry/symmetry.js),
-        // and re-derives them on every subsequent SetAuthorRegions — so this is set once.
-        if (canvas is not null) await canvas.SetAuthorMirrorAsync(symMode, symCx, symCz);
-    }
+    private Task OnCanvasReady() => Paint();
 
     private async Task OnRectDrawn((double MinX, double MinZ, double MaxX, double MaxZ) r)
     {
@@ -99,7 +126,7 @@ public partial class BuildLayerStep
 
     private async Task OnGeometrySaved((string Id, double MinX, double MinZ, double MaxX, double MaxZ) e)
     {
-        if (BoxFromRegion(e.Id) is not { } b) return;
+        if (BoxFromRegion(e.Id) is not { Authored: true } b) return;
         b.MinX = e.MinX; b.MinZ = e.MinZ; b.MaxX = e.MaxX; b.MaxZ = e.MaxZ;
         WriteLayer();
         await Paint();
@@ -108,7 +135,7 @@ public partial class BuildLayerStep
 
     private async Task OnCanvasSelect(string? id)
     {
-        var b = BoxFromRegion(id);
+        var b = BoxFromRegion(id) is { Authored: true } drawn ? drawn : null;
         selectedId = b?.Id;
         if (b is not null) await SelectOnCanvas(b.Id);
         else { if (canvas is not null) await canvas.SetSelectionAsync(Array.Empty<string>()); StateHasChanged(); }
@@ -130,15 +157,15 @@ public partial class BuildLayerStep
         await Paint();
     }
 
-    // Repaint the authored bridges/holes (editable, bridges green / holes red). The canvas adds the
-    // symmetry-orbited ghost copies itself from these (setAuthorMirror), so they're not computed here.
+    // Repaint the bridges/holes (bridges green / holes red): the drawn ones editable, their copies ghosted.
     private async Task Paint()
     {
         if (canvas is null) return;
-        await canvas.SetAuthorRegionsAsync(boxes.Select(b => (object)new
+        await canvas.SetAuthorRegionsAsync(Rows.Select(b => (object)new
         {
             id = RegionId(b.Id),
             type = "rectangle",
+            ghost = !b.Authored,
             label = b.Hole ? "No-build hole" : "Buildable bridge",
             color = b.Hole ? HoleColor : AreaColor,
             bounds = new { min_x = b.MinX, min_z = b.MinZ, max_x = b.MaxX, max_z = b.MaxZ },
@@ -148,6 +175,8 @@ public partial class BuildLayerStep
     // Persist the areas/holes into the build slice without disturbing the height (maxHeight).
     private void WriteLayer()
     {
+        Fan();
+        if (selectedId is { } id && Rows.All(box => box.Id != id)) selectedId = null;
         var b = Wizard.Intent["build"] as JsonObject;
         if (b is null) { b = new JsonObject(); Wizard.Intent["build"] = b; }
         b["areas"] = new JsonArray(boxes.Where(x => !x.Hole).Select(RectNode).ToArray());
@@ -158,10 +187,8 @@ public partial class BuildLayerStep
     private static JsonNode RectNode(Box b) =>
         new JsonObject { ["minX"] = b.MinX, ["minZ"] = b.MinZ, ["maxX"] = b.MaxX, ["maxZ"] = b.MaxZ };
 
-    private static string RegionId(int id) => $"bld-{id}";
-    private Box? BoxFromRegion(string? regionId)
-        => regionId is { } s && s.StartsWith("bld-") && int.TryParse(s[4..], out var id)
-            ? boxes.FirstOrDefault(b => b.Id == id) : null;
+    private static string RegionId(int id) => id > 0 ? $"bld-{id}" : $"bld-copy-{-id}";
+    private Box? BoxFromRegion(string? regionId) => Rows.FirstOrDefault(b => RegionId(b.Id) == regionId);
 
     private static double D(JsonObject? o, string k)
     {

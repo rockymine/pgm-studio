@@ -67,7 +67,7 @@ public sealed partial class MapParser
     // not, because a payload is a furnace minecart players push around the board and none of the geometry
     // that describes one is read.
     private static readonly HashSet<string> ParsedObjectiveModules =
-        ["wools", "destroyables", "cores", "control-points", "king", "score"];
+        ["wools", "destroyables", "cores", "control-points", "king", "score", "flags"];
 
     // Reject maps outside the supported range up front rather than silently mis-parsing them: the
     // positional format below proto 1.4.0 (anonymous teams, no region/filter ids), modern worlds whose
@@ -116,11 +116,10 @@ public sealed partial class MapParser
             .Distinct()
             .Select(t => $"`{t}`")
             .ToList();
-        // A scorebox is its own objective wearing <score>'s element: PGM gives a <box> its own map tag, and
-        // the region, filter and redeemables that make one are not read here. The module around it is, so
-        // the gate has to look one level in or a scorebox map would parse and export without its boxes.
-        if (_root.Elements("score").SelectMany(s => s.Elements("box")).Any())
-            unread.Add("`box` of `score`");
+        // A score box is read, but the items one redeems are not: a box that pays for them would export as a
+        // box that pays for nothing, so the gate looks one level into <score> for them.
+        if (_root.Elements("score").SelectMany(s => s.Elements("box")).Any(box => box.Element("redeemables") is not null))
+            unread.Add("`redeemables` of a score `box`");
         if (unread.Count == 0) return;
 
         throw new UnsupportedMapException(
@@ -182,7 +181,15 @@ public sealed partial class MapParser
         data.Destroyables = ParseDestroyables();
         data.Cores = ParseCores();
         data.ControlPoints = ParseControlPoints();
+        (data.Flags, data.FlagPosts, data.FlagNets) = ParseFlags();
+        data.Portals = ParsePortals();
+        data.Damage = ParseDamage();
         data.Score = ParseScore();
+        data.TimeLimit = ParseTimeLimit();
+        (data.Respawn, data.Respawns) = ParseRespawns();
+        data.Blitz = ParseBlitz();
+        data.Rage = _root.Element("rage") is not null;
+        data.KillRewards = ParseKillRewards(data.Kits);
         // After the variants and constants are resolved, because the gate reads the shop content itself and
         // the corpus writes whole categories inside an <if variant>.
         EnsureShopsReadable();
@@ -376,43 +383,83 @@ public sealed partial class MapParser
         return teams;
     }
 
-    private List<Kit> ParseKits()
+    private List<Kit> ParseKits() =>
+        [.. _root.Elements("kits").SelectMany(block => block.Elements("kit"))
+            .Select(kitElem => ParseKit(kitElem, Xml.Get(kitElem, "id", "")))
+            .OfType<Kit>()];
+
+    /// <summary>One kit under <paramref name="kitId"/>; null where it has no id or states nothing the studio
+    /// reads.</summary>
+    private static Kit? ParseKit(XElement kitElem, string kitId)
     {
-        var kits = new List<Kit>();
-        foreach (var kitElem in _root.Elements("kits").SelectMany(block => block.Elements("kit")))
+        if (kitId.Length == 0) return null;
+
+        var items = new List<KitItem>();
+        foreach (var itemElem in kitElem.Elements("item"))
         {
-            var kitId = Xml.Get(kitElem, "id", "");
-            if (kitId.Length == 0) continue;
-
-            var items = new List<KitItem>();
-            foreach (var itemElem in kitElem.Elements("item"))
-            {
-                var item = ParseItemSpec(itemElem);
-                if (item.Material.Length == 0) continue;
-                if (!int.TryParse(Xml.Get(itemElem, "slot", "0"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var slot)) continue;
-                items.Add(new KitItem { Slot = slot, Item = item });
-            }
-
-            var armor = new List<KitArmor>();
-            foreach (var slotName in new[] { "helmet", "chestplate", "leggings", "boots" })
-            {
-                var armorElem = kitElem.Elements(slotName).FirstOrDefault();
-                if (armorElem is null) continue;
-                var piece = ParseItemSpec(armorElem);
-                if (piece.Material.Length == 0) continue;
-                armor.Add(new KitArmor { SlotName = slotName, Item = piece });
-            }
-
-            // The kit's OWN effects: what the player gains for being given the kit, which is a different
-            // subject from the effects a potion item in it carries (those are on the item).
-            var effects = ParsePotionEffects(kitElem);
-
-            var clear = kitElem.Element("clear") is not null;
-            if (clear || items.Count > 0 || armor.Count > 0 || effects.Count > 0)
-                kits.Add(new Kit { Id = kitId, Force = Xml.BoolAttr(kitElem, "force"), Clear = clear, Items = items, Armor = armor, Effects = effects });
+            var item = ParseItemSpec(itemElem);
+            if (item.Material.Length == 0) continue;
+            if (!int.TryParse(Xml.Get(itemElem, "slot", "0"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var slot)) continue;
+            items.Add(new KitItem { Slot = slot, Item = item });
         }
-        return kits;
+
+        var armor = new List<KitArmor>();
+        foreach (var slotName in new[] { "helmet", "chestplate", "leggings", "boots" })
+        {
+            var armorElem = kitElem.Elements(slotName).FirstOrDefault();
+            if (armorElem is null) continue;
+            var piece = ParseItemSpec(armorElem);
+            if (piece.Material.Length == 0) continue;
+            armor.Add(new KitArmor { SlotName = slotName, Item = piece });
+        }
+
+        // The kit's OWN effects: what the player gains for being given the kit, which is a different
+        // subject from the effects a potion item in it carries (those are on the item).
+        var effects = ParsePotionEffects(kitElem);
+
+        var clear = kitElem.Element("clear") is not null;
+        var maxHealth = kitElem.Element("max-health") is { } health
+            && double.TryParse(Xml.Text(health).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var hp) ? hp : (double?)null;
+        if (!clear && items.Count == 0 && armor.Count == 0 && effects.Count == 0 && maxHealth is null) return null;
+        return new Kit
+        {
+            Id = kitId, Force = Xml.BoolAttr(kitElem, "force"), Clear = clear, Items = items, Armor = armor,
+            Effects = effects, MaxHealth = maxHealth,
+        };
     }
+
+    /// <summary>
+    /// What a kill pays: every <c>&lt;kill-reward&gt;</c> under either spelling, in or out of a group
+    /// (<c>docs/pgm/match.md</c>). A kit written inside a reward joins <paramref name="kits"/>; a childless
+    /// <c>&lt;kit id&gt;</c> there is a reference, as PGM reads one.
+    /// </summary>
+    private List<KillReward> ParseKillRewards(List<Kit> kits) =>
+    [
+        .. Xml.FlattenSpellings(_root, ["kill-rewards", "killrewards"], ["kill-reward", "killreward"]).Select((leaf, i) =>
+        {
+            var key = $"__kill_reward_{i}";
+            var reward = new KillReward
+            {
+                Items = [.. leaf.Element.Elements("item").Select(ParseItemSpec).Where(item => item.Material.Length > 0)],
+                FilterId = FilterProperty(leaf, "filter", $"{key}_filter"),
+                KitId = leaf.Get("kit"),
+                Action = leaf.Get("action"),
+                VictimAction = leaf.Get("victim-action"),
+            };
+            if (leaf.Element.Element("kit") is { } kitElem)
+            {
+                var id = Xml.Get(kitElem, "id");
+                var reference = kitElem.Attribute("parent") is null && kitElem.Attribute("parents") is null && !kitElem.HasElements;
+                if (!reference && ParseKit(kitElem, id.Length > 0 ? id : $"{key}_kit") is { } kit)
+                {
+                    kits.Add(kit);
+                    id = kit.Id;
+                }
+                reward.KitId = reference || kits.Any(k => k.Id == id) ? id : "";
+            }
+            return reward;
+        }),
+    ];
 
     // PGM's item flags, each hidden by writing show-<word>="false" and shown by default.
     private static readonly string[] ItemFlagWords =
@@ -1014,6 +1061,271 @@ public sealed partial class MapParser
         return points;
     }
 
+    /// <summary>
+    /// The <c>&lt;flags&gt;</c> module, read the way PGM reads it: the posts declared beside the flags, then the
+    /// flags, then the nets beside them, each flattened out of nested <c>&lt;flags&gt;</c> groups with the
+    /// groups' attributes cascading down (<c>docs/pgm/flags.md</c>).
+    /// </summary>
+    private (List<Flag> Flags, List<FlagPost> Posts, List<FlagNet> Nets) ParseFlags()
+    {
+        var posts = Xml.Flatten(_root, "flags", "post").Select((leaf, i) => ParseFlagPost(leaf, $"__flagpost_{i}")).ToList();
+
+        var flags = new List<Flag>();
+        foreach (var (leaf, i) in Xml.Flatten(_root, "flags", "flag").Select((leaf, i) => (leaf, i)))
+        {
+            var key = $"__flag_{i}";
+            foreach (var kit in new[] { "pickup-kit", "drop-kit", "carry-kit" })
+                if (leaf.Element.Element(kit) is not null)
+                    throw new UnsupportedMapException($"a flag defines its `{kit}` inline rather than naming a kit");
+
+            var postElement = leaf.Element.Elements().FirstOrDefault(child => child.Name.LocalName is "post" or "posts");
+            var flag = new Flag
+            {
+                Id = leaf.Get("id"),
+                Name = leaf.Get("name"),
+                Color = leaf.Get("color"),
+                Owner = leaf.Get("owner"),
+                Required = leaf.BoolOrNull("required"),
+                ShowOptions = leaf.Attributes.Where(a => a.Key == "show" || a.Key.StartsWith("show-", StringComparison.Ordinal)
+                        && a.Key != "show-respawn-on-pickup")
+                    .ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal),
+                ScoreboardFilterId = FilterProperty(leaf, "scoreboard-filter", $"{key}_scoreboard"),
+                Points = leaf.DoubleOrNull("points"),
+                PointsRate = leaf.DoubleOrNull("points-rate"),
+                PickupFilterId = FilterProperty(leaf, "pickup-filter", $"{key}_pickup"),
+                CaptureFilterId = FilterProperty(leaf, "capture-filter", $"{key}_capture"),
+                DropFilterId = FilterProperty(leaf, "drop-filter", $"{key}_drop"),
+                PickupKitId = leaf.Get("pickup-kit"),
+                DropKitId = leaf.Get("drop-kit"),
+                CarryKitId = leaf.Get("carry-kit"),
+                Shared = leaf.BoolOrNull("shared"),
+                CarryMessage = TextProperty(leaf, "carry-message"),
+                ShowRespawnOnPickup = leaf.BoolOrNull("show-respawn-on-pickup"),
+                AllowManualDrop = leaf.BoolOrNull("allow-manual-drop"),
+                DropOnWater = leaf.BoolOrNull("drop-on-water"),
+                Beam = leaf.BoolOrNull("beam"),
+                FlagProximityMetric = leaf.Get("flag-proximity-metric"),
+                FlagProximityHorizontal = leaf.BoolOrNull("flag-proximity-horizontal"),
+                NetProximityMetric = leaf.Get("net-proximity-metric"),
+                NetProximityHorizontal = leaf.BoolOrNull("net-proximity-horizontal"),
+                // A post written inside the flag stands alone: it inherits nothing from the flag or its groups.
+                Post = postElement is null ? null : ParseFlagPost(new InheritedElement(postElement, Own(postElement)), $"{key}_post"),
+            };
+            if (flag.Post is null) flag.PostId = leaf.Get("post");
+            flag.Nets = [.. leaf.Element.Elements("net").Select((net, n) =>
+                ParseFlagNet(new InheritedElement(net, Own(net)), $"{key}_net_{n}"))];
+            flags.Add(flag);
+        }
+
+        var nets = Xml.Flatten(_root, "flags", "net").Select((leaf, i) => ParseFlagNet(leaf, $"__flagnet_{i}")).ToList();
+        return (flags, posts, nets);
+    }
+
+    /// <summary>One post. A post holding <c>&lt;post&gt;</c> children is composite, and each child inherits
+    /// the composite's attributes; any other post is single, and is a point written as its text or the regions
+    /// its child elements state, one place per child.</summary>
+    private FlagPost ParseFlagPost(InheritedElement leaf, string key)
+    {
+        var post = new FlagPost
+        {
+            Id = leaf.Get("id"),
+            Name = leaf.Get("name"),
+            Owner = leaf.Get("owner"),
+            Sequential = leaf.BoolOrNull("sequential"),
+            Permanent = leaf.BoolOrNull("permanent"),
+            PointsRate = leaf.DoubleOrNull("points-rate"),
+            PickupFilterId = FilterProperty(leaf, "pickup-filter", $"{key}_pickup"),
+            RespawnFilterId = FilterProperty(leaf, "respawn-filter", $"{key}_respawn"),
+            RecoverTime = leaf.GetOrNull("recover-time") ?? leaf.Get("return-time"),
+            RespawnTime = leaf.Get("respawn-time"),
+            RespawnSpeed = leaf.DoubleOrNull("respawn-speed"),
+            Yaw = leaf.Get("yaw"),
+            Pitch = leaf.Get("pitch"),
+        };
+
+        var children = leaf.Element.Elements("post").ToList();
+        if (children.Count > 0)
+        {
+            post.Fallback = leaf.Get("fallback");
+            post.Posts = [.. children.Select((child, i) => ParseFlagPost(
+                new InheritedElement(child, Inherit(leaf.Attributes, child)), $"{key}_{i}"))];
+            return post;
+        }
+
+        var text = Xml.Text(leaf.Element).Trim();
+        if (text.Length > 0 && Xml.Coords3(text) is [{ } x, { } y, { } z]) post.Point = new Vec3(x, y, z);
+        foreach (var (child, i) in leaf.Element.Elements()
+                     .Where(child => child.Name.LocalName is not ("pickup-filter" or "respawn-filter"))
+                     .Select((child, i) => (child, i)))
+            if (_regionParser.ParseRegionProperty(new XElement("region", child), $"{key}_at_{i}") is { Id.Length: > 0 } region)
+                post.RegionIds.Add(region.Id);
+        return post;
+    }
+
+    private FlagNet ParseFlagNet(InheritedElement leaf, string key) => new()
+    {
+        Id = leaf.Get("id"),
+        RegionId = ResolveRegionProperty(leaf, $"{key}_region", "region"),
+        Owner = leaf.Get("owner"),
+        Points = leaf.DoubleOrNull("points"),
+        Sticky = leaf.BoolOrNull("sticky"),
+        CaptureFilterId = FilterProperty(leaf, "capture-filter", $"{key}_capture"),
+        RespawnFilterId = FilterProperty(leaf, "respawn-filter", $"{key}_respawn"),
+        RespawnTogether = leaf.BoolOrNull("respawn-together"),
+        RespawnMessage = TextProperty(leaf, "respawn-message"),
+        DenyMessage = TextProperty(leaf, "deny-message"),
+        Location = leaf.Get("location"),
+        PostId = leaf.Get("post"),
+        Flags = Words(leaf.GetOrNull("flags") ?? leaf.Get("flag")),
+        Rescue = Words(leaf.GetOrNull("rescue") ?? leaf.Get("return")),
+    };
+
+    /// <summary>
+    /// The <c>&lt;portals&gt;</c> module, flattened as PGM flattens it: a group's attributes are every portal's
+    /// under it. A region and a destination are a reference or a child wrapping the shape, and each filter an
+    /// attribute or a child (<c>docs/pgm/portals.md</c>).
+    /// </summary>
+    private List<Portal> ParsePortals() =>
+    [
+        .. Xml.Flatten(_root, "portals", "portal").Select((leaf, i) => new Portal
+        {
+            Id = leaf.Get("id"),
+            RegionId = ResolveRegionProperty(leaf, $"__portal_{i}_region", "region"),
+            DestinationId = ResolveRegionProperty(leaf, $"__portal_{i}_destination", "destination"),
+            X = leaf.Get("x"), Y = leaf.Get("y"), Z = leaf.Get("z"),
+            Yaw = leaf.Get("yaw"), Pitch = leaf.Get("pitch"),
+            FilterId = FilterProperty(leaf, "filter", $"__portal_{i}_filter"),
+            ObserversFilterId = FilterProperty(leaf, "observers", $"__portal_{i}_observers"),
+            ForwardFilterId = FilterProperty(leaf, "forward", $"__portal_{i}_forward"),
+            ReverseFilterId = FilterProperty(leaf, "reverse", $"__portal_{i}_reverse"),
+            TransitFilterId = FilterProperty(leaf, "transit", $"__portal_{i}_transit"),
+            Bidirectional = leaf.BoolOrNull("bidirectional"),
+            Sound = leaf.BoolOrNull("sound"),
+            Smooth = leaf.BoolOrNull("smooth"),
+            Protect = leaf.BoolOrNull("protect"),
+        }),
+    ];
+
+    /// <summary>
+    /// The <c>&lt;damage&gt;</c> module: every child of every <c>&lt;damage&gt;</c> element is a filter, read in
+    /// order, and the last element stating an action wins it, as PGM reads them (<c>docs/pgm/damage.md</c>).
+    /// </summary>
+    private DamageConfig? ParseDamage()
+    {
+        var elements = _root.Elements("damage").ToList();
+        if (elements.Count == 0) return null;
+        var damage = new DamageConfig();
+        foreach (var e in elements)
+        {
+            damage.AttackerAction = NonEmpty(Xml.Get(e, "attacker-action"), damage.AttackerAction);
+            damage.VictimAction = NonEmpty(Xml.Get(e, "victim-action"), damage.VictimAction);
+            foreach (var child in e.Elements())
+                if (_filterParser.ParseFilterElement(child, $"__damage_{damage.FilterIds.Count}") is { Length: > 0 } id)
+                    damage.FilterIds.Add(id);
+        }
+        return damage;
+    }
+
+    /// <summary>
+    /// The <c>&lt;time&gt;</c> limit: the root element, or on an older map the one inside <c>&lt;score&gt;</c> or
+    /// <c>&lt;blitz&gt;</c>, which PGM reads as the same limit (<c>docs/pgm/match.md</c>).
+    /// </summary>
+    private TimeLimit? ParseTimeLimit()
+    {
+        var e = _root.Element("time")
+            ?? _root.Elements("score").Select(s => s.Element("time")).OfType<XElement>().FirstOrDefault()
+            ?? _root.Elements("blitz").Select(b => b.Element("time")).OfType<XElement>().FirstOrDefault();
+        if (e is null) return null;
+        return new TimeLimit
+        {
+            Id = Xml.Get(e, "id"),
+            Duration = Xml.Text(e).Trim(),
+            Result = Xml.Get(e, "result"),
+            Overtime = Xml.Get(e, "overtime"),
+            MaxOvertime = Xml.Get(e, "max-overtime"),
+            EndOvertime = Xml.Get(e, "end-overtime"),
+            Show = BoolProperty(e, "show"),
+        };
+    }
+
+    /// <summary>
+    /// The respawn rules: the map's own, every root <c>&lt;respawn&gt;</c> merged in order with the legacy
+    /// <c>&lt;autorespawn/&gt;</c>, and the filtered ones under <c>&lt;respawns&gt;</c> flattened as PGM flattens
+    /// them (<c>docs/pgm/match.md</c>).
+    /// </summary>
+    private (RespawnRule? Own, List<RespawnRule> Filtered) ParseRespawns()
+    {
+        var filtered = Xml.Flatten(_root, "respawns", "respawn")
+            .Select((leaf, i) => ReadRespawn(leaf, new RespawnRule(), $"__respawn_{i}"))
+            .ToList();
+
+        RespawnRule? own = null;
+        foreach (var e in _root.Elements("respawn"))
+            own = ReadRespawn(new InheritedElement(e, Own(e)), own ?? new RespawnRule(), "");
+        if (_root.Element("autorespawn") is not null) (own ??= new RespawnRule()).Auto ??= true;
+        return (own, filtered);
+    }
+
+    private RespawnRule ReadRespawn(InheritedElement leaf, RespawnRule rule, string filterKey)
+    {
+        rule.Delay = NonEmpty(leaf.Get("delay"), rule.Delay);
+        rule.Auto = leaf.BoolOrNull("auto") ?? rule.Auto;
+        rule.Blackout = leaf.BoolOrNull("blackout") ?? rule.Blackout;
+        rule.Spectate = leaf.BoolOrNull("spectate") ?? rule.Spectate;
+        rule.Bed = leaf.BoolOrNull("bed") ?? rule.Bed;
+        rule.Message = NonEmpty(TextProperty(leaf, "message"), rule.Message);
+        if (filterKey.Length > 0) rule.FilterId = FilterProperty(leaf, "filter", filterKey);
+        return rule;
+    }
+
+    /// <summary>
+    /// The <c>&lt;blitz&gt;</c> module. PGM reads every element and keeps the last one's statement whole, so the
+    /// last is the one read (<c>docs/pgm/match.md</c>).
+    /// </summary>
+    private BlitzConfig? ParseBlitz()
+    {
+        if (_root.Elements("blitz").LastOrDefault() is not { } e) return null;
+        var leaf = new InheritedElement(e, Own(e));
+        return new BlitzConfig
+        {
+            Lives = IntProperty(e, "lives"),
+            // A child only: PGM reads no attribute of this name.
+            BroadcastLives = e.Element("broadcastLives") is { } broadcast ? BoolText(Xml.Text(broadcast)) : null,
+            Lightning = BoolProperty(e, "lightning"),
+            FilterId = FilterProperty(leaf, "filter", "__blitz_filter"),
+            ScoreboardFilterId = FilterProperty(leaf, "scoreboard-filter", "__blitz_scoreboard"),
+            JoinFilterId = FilterProperty(leaf, "join-filter", "__blitz_join"),
+        };
+    }
+
+    private static List<string> Words(string raw) => [.. raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)];
+
+    /// <summary>An element's own attributes, inheriting nothing.</summary>
+    private static Dictionary<string, string> Own(XElement e) =>
+        e.Attributes().ToDictionary(a => a.Name.LocalName, a => a.Value, StringComparer.Ordinal);
+
+    /// <summary>A child post's attributes over the ones its composite sees, the child's own winning. The
+    /// composite's id and fallback name the composite and are not handed down.</summary>
+    private static Dictionary<string, string> Inherit(IReadOnlyDictionary<string, string> parent, XElement child)
+    {
+        var attributes = new Dictionary<string, string>(
+            parent.Where(a => a.Key is not ("id" or "fallback")), StringComparer.Ordinal);
+        foreach (var a in child.Attributes()) attributes[a.Name.LocalName] = a.Value;
+        return attributes;
+    }
+
+    /// <summary>A filter property as an attribute naming one, or as a child element wrapping one, which is
+    /// registered under <paramref name="syntheticId"/> when it carries no id of its own.</summary>
+    private string FilterProperty(InheritedElement e, string name, string syntheticId)
+    {
+        if (e.Element.Element(name) is { } wrapper) return _filterParser.ParseFilterProperty(wrapper, syntheticId);
+        return e.Get(name);
+    }
+
+    /// <summary>A message as an attribute or as a child element's text.</summary>
+    private static string TextProperty(InheritedElement e, string name)
+        => e.Element.Element(name) is { } child ? Xml.Text(child).Trim() : e.Get(name);
+
     // <control-point> leaves first and <hill> leaves after, which is the order PGM parses them in and
     // therefore the order its shared name counter runs in.
     private IEnumerable<(InheritedElement Leaf, ControlPointElement Element)> ControlPointLeaves()
@@ -1081,6 +1393,18 @@ public sealed partial class MapParser
             score.Display = NonEmpty(Xml.Get(e, "display"), score.Display);
             score.ScoreboardFilterId = NonEmpty(Xml.Get(e, "scoreboard-filter"), score.ScoreboardFilterId);
             if (e.Elements("king").Any()) score.King = true;
+            foreach (var box in e.Elements("box"))
+            {
+                var key = $"__scorebox_{score.Boxes.Count}";
+                var leaf = new InheritedElement(box, Own(box));
+                score.Boxes.Add(new ScoreBox
+                {
+                    RegionId = ResolveRegionProperty(leaf, $"{key}_region", "region"),
+                    Points = ParseInt(Xml.GetOrNull(box, "points") ?? Xml.GetOrNull(box, "value")),
+                    FilterId = FilterProperty(leaf, "filter", $"{key}_filter"),
+                    Silent = leaf.BoolOrNull("silent"),
+                });
+            }
         }
         return score;
     }
@@ -1092,8 +1416,10 @@ public sealed partial class MapParser
     private static bool? BoolProperty(XElement e, string name)
     {
         var raw = Xml.GetOrNull(e, name) ?? (e.Elements(name).FirstOrDefault() is { } c ? Xml.Text(c) : null);
-        return raw is null ? null : raw.Trim().ToLowerInvariant() is "true" or "1" or "yes" or "on";
+        return raw is null ? null : BoolText(raw);
     }
+
+    private static bool BoolText(string raw) => raw.Trim().ToLowerInvariant() is "true" or "1" or "yes" or "on";
 
     private static int? ParseInt(string? raw) =>
         int.TryParse((raw ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : null;

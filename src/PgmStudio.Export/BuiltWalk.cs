@@ -30,16 +30,16 @@ public static class BuiltWalk
     /// knows.</summary>
     public static WalkGround Ground(BuiltWorld built, Dict? doc)
     {
-        var (ground, props, swum) = WorldColumns.ForWalk(built.World, built.Provenance, built.Columns ?? []);
+        var (ground, props, swum, lifts) = WorldColumns.ForWalk(built.World, built.Provenance, built.Columns ?? []);
         var water = swum.Count == 0 ? null : swum;
-        if (doc is null) return WorldWalk.OfBuilt(ground, props, [], water);
+        if (doc is null) return WorldWalk.OfBuilt(ground, props, [], water, lifts);
 
         var zones = BridgeableColumns.Zones(built.World, doc);
         var granted = zones.BridgeableCells().ToHashSet();
         foreach (var (x, z, _, top) in props)
             if (IsLava(built.World.GetBlock(x, top, z).Id) && zones.PlaceableOverGroundAt((x, z)))
                 granted.Add((x, z));
-        return WorldWalk.OfBuilt(ground, props, granted, water);
+        return WorldWalk.OfBuilt(ground, props, granted, water, lifts);
     }
 
     private static bool IsLava(int blockId) => blockId is Blocks.Lava or Blocks.StationaryLava;

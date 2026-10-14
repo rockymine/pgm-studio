@@ -30,6 +30,34 @@ internal sealed class FilterParser
         return _registry;
     }
 
+    /// <summary>A filter property written as a child element wrapping one filter: the filter's id, its
+    /// reference's id, or <paramref name="syntheticId"/> where it is anonymous; "" where the child holds no
+    /// filter this reads.</summary>
+    public string ParseFilterProperty(XElement wrapper, string syntheticId)
+        => wrapper.Elements().FirstOrDefault() is { } child ? ParseFilterElement(child, syntheticId) : "";
+
+    /// <summary>A filter written as the element itself: its id, its reference's id, or
+    /// <paramref name="syntheticId"/> where it is anonymous; "" where the element is no filter this reads.</summary>
+    public string ParseFilterElement(XElement element, string syntheticId)
+    {
+        var filter = ParseFilterNode(element, syntheticId, 0);
+        if (filter is null) return "";
+        if (filter.Type == "filter") return filter.RefId ?? "";
+        if (filter.Id.Length == 0) { filter.Id = syntheticId; _registry.TryAdd(filter.Id, filter); }
+        return filter.Id;
+    }
+
+    /// <summary>Every filter type <see cref="ParseFilterNode"/> reads, by the tag it is written under — what the
+    /// document editor accepts as well.</summary>
+    public static readonly IReadOnlySet<string> Types = new HashSet<string>
+    {
+        "all", "any", "one", "not", "deny", "allow", "team", "material", "void", "cause", "blocks",
+        "carrying", "wearing", "holding", "alive", "dead", "participating", "observing",
+        "match-running", "match-started", "grounded", "never", "always", "time", "after", "pulse",
+        "offset", "variable", "completed", "flag-carried", "flag-dropped", "flag-returned", "flag-captured",
+        "carrying-flag", "objective", "kill-streak", "class", "region", "players", "spawn",
+    };
+
     private Filter? ParseFilterNode(XElement elem, string parentId, int index = 0)
     {
         var tag = elem.Name.LocalName;
@@ -57,6 +85,9 @@ internal sealed class FilterParser
             "offset" => ParseOffset(elem, id, parentId, index),
             "variable" => new Filter { Id = id, Type = "variable", Var = Xml.Get(elem, "var", ""), Value = text, Team = Xml.Get(elem, "team", "") },
             "completed" => new Filter { Id = id, Type = "completed", Objective = text },
+            "flag-carried" or "flag-dropped" or "flag-returned" or "flag-captured"
+                => new Filter { Id = id, Type = tag, Objective = text, Post = Xml.GetOrNull(elem, "post") },
+            "carrying-flag" => new Filter { Id = id, Type = "carrying-flag", Objective = text },
             "objective" => new Filter { Id = id, Type = "objective", Objective = text },
             "filter" => new Filter { Type = "filter", RefId = Xml.Get(elem, "id", "") },
             "kill-streak" => new Filter { Id = id, Type = "kill-streak", Min = SafeInt(Xml.GetOrNull(elem, "min")), Max = SafeInt(Xml.GetOrNull(elem, "max")), Count = SafeInt(Xml.GetOrNull(elem, "count")) },

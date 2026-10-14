@@ -15,9 +15,15 @@ public sealed class SegmentIndex
 
     private readonly Dictionary<(int x, int z), List<(int ys, int ye)>> _doors = new();
 
+    /// <summary>Every ladder, vine and water run, as the feet heights a player climbs or swims through in its
+    /// column.</summary>
+    public IReadOnlyList<(int X, int Z, WalkLift Lift)> Lifts { get; }
+
     public SegmentIndex(IEnumerable<(int x, int z, int ys, int ye)> rows, IEnumerable<(int x, int z)>? floorMarks = null,
-        IEnumerable<(int x, int z, int ys, int ye)>? doorRuns = null)
+        IEnumerable<(int x, int z, int ys, int ye)>? doorRuns = null,
+        IEnumerable<(int x, int z, int low, int high)>? liftRuns = null)
     {
+        Lifts = [.. (liftRuns ?? []).Select(run => (run.x, run.z, new WalkLift(run.low, run.high)))];
         foreach (var (x, z, ys, ye) in rows)
         {
             if (!_byCol.TryGetValue((x, z), out var list)) { list = []; _byCol[(x, z)] = list; }
@@ -30,6 +36,10 @@ public sealed class SegmentIndex
             list.Add((ys, ye));
         }
     }
+
+    /// <summary>Every column's solid spans, as <c>(floor, top)</c> inclusive.</summary>
+    public Dictionary<(int X, int Z), (int Floor, int Top)[]> Spans()
+        => _byCol.ToDictionary(column => (column.Key.x, column.Key.z), column => column.Value.ToArray());
 
     /// <summary>Columns whose y=0 block is a floor mark — not void to PGM, and no ground to stand on.</summary>
     public IReadOnlySet<(int, int)> FloorMarks => _floorMarks;

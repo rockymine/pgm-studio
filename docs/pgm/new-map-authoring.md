@@ -93,26 +93,38 @@ walls cannot centre from a hand, and a reflection swaps the hands, so the export
 frame and lays the image out as the mirror of the original (`docs/world-export/structures.md` WX1). Configure's
 coverage assignment stores separately placed spawns rather than images of one, so those carry `false`.
 
-**The canvases only draw.** The JS ghosts — `plan-doc`'s mirror images, the sketch mirror layer, the editor's
-`setAuthorMirror` — are previews. They store nothing and decide nothing.
+**The canvases only draw.** The JS ghosts — `plan-doc`'s mirror images, the sketch mirror layer — and the
+Configure copies drawn as `ghost` author regions are previews. They store nothing and decide nothing.
 
 **A position and a cell do not turn the same way, and the leaf answers both.** A board whose extent is even
 turns about a **cell boundary**, not about a block: the rot_180 image of the position `x` is `−x`, but the
 image of the *cell* `x` — the unit square from `x` to `x+1` — is the cell `−1−x`. Anything with a footprint
 therefore takes `Symmetry.Cell`/`Symmetry.CellRect`, which reflect the cell's middle and floor, while
 `Symmetry.Point`/`Symmetry.Rect` stay for what is genuinely a position: a prop's offset from its own anchor, a
-drawn outline, a facing. Reflecting a footprint as a position and flooring the result afterwards lands its
+drawn outline, a facing. A caller holding one axis rather than a mode and an image takes the same turns as
+`Symmetry.Apply`, `ApplyCell` and `ApplyRect`, and image 0 is the identity under every mode.
+Reflecting a footprint as a position and flooring the result afterwards lands its
 image one block short of where the terrain puts it — the ground mirrors and the stamp does not, nothing fails,
 and the map is a block asymmetric in play. That is what a goal's anchor and a building's wing rectangle each
 did until `B250`; both now convert to the cell first and turn the cell, and `ObjectiveFootprint.AnchorCell` is
 the one conversion the compiler's fan and the world's stamper share so the two cannot round apart.
 
+**The expander turns each field by what it names.** A position turns as a point: a spawn's point, a
+generator's drop point, a rectangle's edges. A block box turns cell by cell (`Symmetry.CellRect`): a goal's
+resolved box, a score box, a flag's net and banner, a capture point's pad. A goal's anchor turns by its
+footprint, `ObjectiveFootprint.ImageAnchor`, the plan compiler's own call, so an even-sided structure reverses
+its lean. A coordinate naming a block — a wool's location, a monument, a flag post — turns as that block when
+it is a whole number and as a point when it is the block's middle, which comes to the same block. On a board
+mirrored across the grid line `x = 0`, a box over blocks −60..−56 lands on 55..59, the columns the terrain puts
+there.
+
 **A capture point orbits by position, because it belongs to nobody.** Every other objective is fanned by
 *team* — the image takes the next team in list order and the position follows — but a hill is neutral, so the
 image is a position and the orbit's own order decides how many there are. One consequence makes the author's
 rule authorable and is worth stating plainly: a point standing on the centre of symmetry is **its own image**
-and stays one point, which falls out of comparing each image against the points already placed rather than
-being a case bolted on. State the middle and one side, and a two-team board comes back a middle and a matched
+and stays one point, which falls out of comparing each image's pad against the pads already placed rather than
+being a case bolted on. About a centre on a grid line no block is its own image, so the middle pad's image is
+the same pad one block over, and an image overlapping a placed pad is that pad. State the middle and one side, and a two-team board comes back a middle and a matched
 pair, a four-team board a middle and a ring of four (`control-points.md` §6). A point whose image another
 authored point already occupies is likewise not added twice.
 
@@ -189,7 +201,9 @@ fields the flat row cannot hold.
 
 **The region and filter registries are id-keyed.** Both are a flat dictionary from id to definition, with
 synthetic ids minted for anonymous elements at parse time, so every later reference — a wiring, a compound
-member, an objective's region — is a lookup rather than a search.
+member, an objective's region — is a lookup rather than a search. A synthetic id is the studio's and never
+PGM's: an anonymous element is written back where it was read, its own anonymous children written inside it,
+so no exported map names a synthetic id (`XmlWriter.RegionElemInline`).
 
 **A compound's `children` and a transform's `source_id` are string id references**, never inlined definitions.
 A region that contains another names it; nothing is duplicated by value, which is what lets
@@ -236,6 +250,29 @@ block hanging over the void; only *placing* one out there is denied, which is wh
 over open void without its own goal becoming unbreakable. `block-break-void-filter` is the studio's reading
 of the same rule: it allows over ground exactly as the place side does, and over the void allows only what
 the dressing stage leaves there.
+
+## 5c. A board played for control is not built on
+
+**A map played to complete an objective is built on, and a map played for control is not** (the author's
+ruling). A wool, a destroyable and a core are reached by building — bridges, towers, a way in — while a hill, a
+flag and a deathmatch are held by fighting over ground as it stands; where such a board hands out blocks at all
+they are a few kit materials for cover. 39 of the 45 corpus King of the Flag maps write `block="never"`.
+
+So `BuildIntent.Mode` is one of `BuildModes` — `void`, `never`, `only` — and null takes `BuildIntent.ModeFor`:
+`void` where the intent carries a wool, a destroyable or a core, `never` where it carries none. `void` is §5b's
+rule. `never` is one apply rule over `everywhere`, `block-place="never"` with `block-break="never"`, which
+leaves using a block — a door, a button — alone. `only` is the same rule deciding by an `any` of the named
+materials. The two are the board's whole block rule rather than a second rule beside the void's, so §5b's
+caution about a wider rule does not apply to them; they still come last, after the spawn protections.
+
+**The spawn kit hands out the blocks the mode lets a player place, and the tools that work them.** The fighting
+half of the Standard kit — sword, infinity bow, arrow, golden apple, armour, the spawn's resistance — is on
+every board (`TeamsGenerator.BuildHalf`). A `void` board adds wood, the team's clay, the pickaxe its goals need,
+an axe, a spade, shears and a water bucket. An `only` board adds a stack of 64 of each named material — a
+`wool:14` is wool at damage 14 — and nothing to dig with. A `never` board adds nothing, since a bucket emptied
+is a block placed. The kill reward is derived from the kit's stacks (`MapStandards`), so on an `only` board a
+kill pays 16 of each material, and the only blocks in play are the ones the board hands out. Of the 190 corpus
+conquest maps with a kit, 143 give a bow, about 30 a pickaxe and 12 a water bucket.
 
 ## 6. What validation proves
 

@@ -9,9 +9,9 @@ using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Features.Configure;
 
-// Review & Export · XML step: the final step. Shows the generated PGM map.xml, segmented into
-// containers (Full document + teams/spawns/wools/filters/regions/apply rules) picked on the left. The
-// editor-bar Next becomes Export (download), enabled only when the pre-flight export gate is open — GET /xml
+// Export · map.xml step: the final step. Shows the generated PGM map.xml, segmented into
+// sections (Full document + teams/spawns/wools/filters/regions/apply rules) picked on the left. The
+// editor-bar Next becomes Export (download), enabled only when the export gate is open — GET /xml
 // returns 409 for an un-traversable intent map, which blocks both the preview and the download. Writes nothing.
 public partial class ReviewXmlStep : IDisposable
 {
@@ -43,7 +43,8 @@ public partial class ReviewXmlStep : IDisposable
             else if ((int)resp.StatusCode == 409)
             {
                 var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
-                blocked = refusal?.Message is { Length: > 0 } m ? m : "A spawn and a wool aren't connected";
+                var said = refusal?.Findings.FirstOrDefault()?.Message ?? refusal?.Message;
+                blocked = said is { Length: > 0 } m ? char.ToUpperInvariant(m[0]) + m[1..] : "Something can't be reached on foot";
                 Wizard.RegisterExport(false, null);
             }
             else if ((int)resp.StatusCode == 422)

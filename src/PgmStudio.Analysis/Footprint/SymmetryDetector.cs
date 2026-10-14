@@ -1,6 +1,7 @@
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Utilities;
 using PgmStudio.Analysis.Region;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Analysis.Footprint;
 
@@ -18,8 +19,8 @@ public static class SymmetryDetector
     public sealed record Mode(string Type, bool Detected, double Confidence);
     public sealed record Result(IReadOnlyList<Mode> Modes, double Cx, double Cz);
 
-    private static readonly string[] Candidates = ["mirror_x", "mirror_z", "mirror_d1", "mirror_d2", "rot_180", "rot_90"];
-    private static readonly string[] PairTransforms = ["mirror_x", "mirror_z", "mirror_d1", "mirror_d2", "rot_180", "rot_90", "rot_270"];
+    private static readonly string[] Candidates = SymmetryModes.Fanned;
+    private static readonly string[] PairTransforms = [.. Candidates.SelectMany(PgmStudio.Geom.Symmetry.OrbitAxes).Distinct()];
     private const double GroupIouThreshold = 0.85;
 
     private static readonly GeometryFactory Gf = new();

@@ -10,6 +10,9 @@ the **wiring relationship** and the **template catalog**. It does not restate:
 
 ## The relationship
 
+A region with rules of its own is a **zone**, and every zone the studio writes — a spawn's protection, a wool
+room, the build region's void rule and a zone an author states — goes through one writer (`zones.md`).
+
 A region is **inert geometry**. Behavior comes from an **apply-rule**: `region × event → filter`
 (plus optional actions `kit`/`lend_kit`/`velocity`/`message`). Events: `enter`, `leave`, `use`,
 `block`, `block_place`, `block_break`, `block_physics`, `block_place_against`, and the kit/velocity

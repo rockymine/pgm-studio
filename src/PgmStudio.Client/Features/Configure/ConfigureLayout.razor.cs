@@ -16,6 +16,8 @@ public partial class ConfigureLayout
     [Parameter] public IReadOnlyList<ConfigurePhase> Phases { get; set; } = ConfigurePhases.All;
     /// <summary>Highest phase index reached — phases past it are locked/dimmed. Use -1 to lock all (landing).</summary>
     [Parameter] public int Furthest { get; set; }
+    /// <summary>The furthest phase a click may open, at or past <see cref="Furthest"/>; below it, Furthest.</summary>
+    [Parameter] public int Reach { get; set; } = -1;
 
     [Parameter] public string PhaseIcon { get; set; } = "";
     [Parameter] public string PhaseTitle { get; set; } = "";

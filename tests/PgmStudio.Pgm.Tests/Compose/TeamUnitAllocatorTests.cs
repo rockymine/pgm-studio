@@ -82,13 +82,13 @@ public class TeamUnitAllocatorTests
         // the allocated partition round-trips through the filler: allocate -> fill, end to end for the first time
         var filled = TeamUnitFiller.Fill(partition, new ComposeRng(5));
         await Assert.That(filled).IsNotNull();
-        await Assert.That(filled!.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
-        await Assert.That(filled.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Spawn)).IsTrue();
+        await Assert.That(filled!.Pieces.Any(p => p.Box.Kind == BoxKind.Hub)).IsTrue();
+        await Assert.That(filled.Pieces.Any(p => p.Box.Kind == BoxKind.Spawn)).IsTrue();
         // the spawn faces into the hub from whichever side it docks (mirror_z: front is −z)
         var intoHub = spawn.Rect.X >= hub.Rect.X + hub.Rect.Width ? "left"
             : spawn.Rect.X + spawn.Rect.Width <= hub.Rect.X ? "right"
             : spawn.Rect.Z >= hub.Rect.Z + hub.Rect.Height ? "front" : "back";
-        await Assert.That(filled.Unit.Spawn.Facing).IsEqualTo(intoHub);
+        await Assert.That(filled.SpawnFacing).IsEqualTo(intoHub);
     }
 
     [Test]
@@ -100,8 +100,8 @@ public class TeamUnitAllocatorTests
         await Assert.That(NoOverlaps(partition.Boxes.Select(b => b.Rect))).IsTrue();   // the boxes tile without collision
 
         var filled = TeamUnitFiller.Fill(partition, new ComposeRng(11))!;
-        await Assert.That(filled.Unit.Wools.Count).IsGreaterThanOrEqualTo(1);
-        await Assert.That(NoOverlaps(filled.Unit.Pieces.Select(p => p.Rect))).IsTrue();  // a valid layout — no piece overlaps
+        await Assert.That(filled.Wools.Count).IsGreaterThanOrEqualTo(1);
+        await Assert.That(NoOverlaps(filled.Pieces.Select(p => p.Rect))).IsTrue();  // a valid layout — no piece overlaps
     }
 
     [Test]
@@ -118,7 +118,7 @@ public class TeamUnitAllocatorTests
                 if (alloc is not { } a) continue;
                 var filled = TeamUnitFiller.Fill(a, new ComposeRng(seed));
                 if (filled is null) continue;
-                await Assert.That(Cells.HasDiagonalPinch(Mask(filled.Unit.Pieces))).IsFalse();
+                await Assert.That(Cells.HasDiagonalPinch(Mask(filled.Pieces))).IsFalse();
             }
     }
 
@@ -149,7 +149,7 @@ public class TeamUnitAllocatorTests
                 if (hub is null || front is null) continue;
                 if (TeamUnitFiller.Fill(alloc, rng) is not { } filled) continue;
 
-                var hubCells = Mask(filled.Unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Hub).ToList());
+                var hubCells = Mask(filled.Pieces.Where(p => p.Box.Kind == BoxKind.Hub).ToList());
                 if (hubCells.Count == 0) continue;
 
                 // the hub row the face docks against, and the patches the face makes along it
@@ -177,11 +177,11 @@ public class TeamUnitAllocatorTests
     public async Task Neighbour_spawn_and_wool_bodies_keep_the_lane_width_gap()
     {
         // the seat-step separation law: no spawn/wool neighbour touches (or corner-touches) another spawn/wool —
-        // they stay at least the band's own corridor width apart.
+        // they stay at least the band's own lane width apart.
         foreach (var players in new[] { 8, 12, 16, 24, 32 })
         {
             var env = Envelope.Derive(new ComposeRequest(players), new ComposeRng(1));
-            var w = env.CorridorCells;                               // the map-wide lane width, and so the gap
+            var w = env.LaneWidth;                               // the map-wide lane width, and so the gap
             var land = env.LandPerTeam;
             for (ulong seed = 0; seed < 64; seed++)
             {
@@ -213,7 +213,7 @@ public class TeamUnitAllocatorTests
                 var spawn = a.Boxes.Single(b => b.Kind == BoxKind.Spawn).Rect;
                 if (spawn.X + spawn.Width != hub.X && spawn.X != hub.X + hub.Width) continue;
                 lateral++;
-                var hole = Enclosed(hub, filled.Unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Hub).Select(p => p.Rect));
+                var hole = Enclosed(hub, filled.Pieces.Where(p => p.Box.Kind == BoxKind.Hub).Select(p => p.Rect));
                 var target2 = hole.Count > 0 ? hole.Min(c => c.Z) + hole.Max(c => c.Z) + 1 : 2 * hub.Z + hub.Height;
                 await Assert.That(Math.Abs(2 * spawn.Z + spawn.Height - target2)).IsLessThanOrEqualTo(2)
                     .Because($"{players}p/{land:0} seed {seed}: spawn z {spawn.Z}+{spawn.Height}, hub {hub}, hole cells {hole.Count}");
@@ -232,7 +232,7 @@ public class TeamUnitAllocatorTests
             {
                 if (TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed)) is not { } a) continue;
                 var hub = a.ById("hub")!.Rect;
-                var lateral = a.Boxes.Where(b => b.Wool?.Family == ShapeFamily.Donut
+                var lateral = a.Boxes.Where(b => b.Wool?.Family == CompoundForm.Donut
                     && (b.Rect.X + b.Rect.Width == hub.X || b.Rect.X == hub.X + hub.Width)).ToList();
                 if (lateral.Count != 1) continue;
                 donuts++;
@@ -252,10 +252,12 @@ public class TeamUnitAllocatorTests
     public async Task In_line_keeps_only_the_seats_centred_within_a_cell_of_the_target()
     {
         // a 12-cell edge, a 4-cell dock, the target at 6: seats 3..5 centre within a cell of it
-        await Assert.That(UnitSeating.InLine([(0, 12)], 4, 6)).IsEquivalentTo(new[] { (3, 6) });
+        await Assert.That(UnitSeating.InLine([Run(0, 12)], 4, 6)).IsEquivalentTo(new[] { Run(3, 6) });
         // a run that stops short of the window is cut to what it covers, one wholly outside is dropped
-        await Assert.That(UnitSeating.InLine([(0, 5), (10, 2)], 4, 6)).IsEquivalentTo(new[] { (3, 2) });
+        await Assert.That(UnitSeating.InLine([Run(0, 5), Run(10, 2)], 4, 6)).IsEquivalentTo(new[] { Run(3, 2) });
     }
+
+    private static EdgeInterval Run(int start, int length) => new(BoxEdge.Top, start, length);
 
     // the cells of a box no rect covers and no empty path reaches from the box's border
     private static HashSet<(int X, int Z)> Enclosed(CellRect box, IEnumerable<CellRect> rects)
@@ -288,7 +290,7 @@ public class TeamUnitAllocatorTests
           a.Z - gap < b.Z + b.Height && b.Z < a.Z + a.Height + gap);
 
     // the unit's composed cell mask — every piece rasterized into one set (the surface the corner law reads)
-    private static HashSet<(int, int)> Mask(IReadOnlyList<GrownPiece> pieces)
+    private static HashSet<(int, int)> Mask(IReadOnlyList<UnitPiece> pieces)
     {
         var cells = new HashSet<(int, int)>();
         foreach (var p in pieces)

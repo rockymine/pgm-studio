@@ -177,7 +177,7 @@ public static class ComposedBoardLibrary
     /// the cell size.</summary>
     private static LandSpendDto Spend(ComposedStages stages)
     {
-        var byKind = BoxPartition.Of(stages.Unit).Boxes
+        var byKind = BoxLayout.Of(stages.Unit).Boxes
             .GroupBy(box => box.Kind)
             .Select(group => new BoxSpendDto(
                 group.Key.ToString().ToLowerInvariant(),

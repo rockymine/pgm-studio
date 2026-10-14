@@ -319,8 +319,8 @@ own ground (§3.1) and nothing else.
 
 ### 3.1 The ground a goal is read against
 
-A destroyable, a core and a capture point are the three objectives with no room and no protection region, so
-nothing else holds ground around them — and what they need held is not the same thing a spawn needs. A
+A destroyable, a core, a capture point and a flag post are the objectives with no room and no protection
+region, so nothing else holds ground around them — and what they need held is not the same thing a spawn needs. A
 spawn's ground is **forbidden**: a prop there breaks play. A goal's ground is **kept open**, which is a
 narrower claim. Grass, fern and flowers grow across it and under a floating monument exactly as they grow
 anywhere, because none of them changes what a player can see or reach, and a monument standing in a ring of
@@ -332,6 +332,10 @@ cover on that cell instead of skipping the cell, so a meadow stays continuous ac
 comes from the box the stamper wrote wherever there is one, for the same reason the emitted region does
 (OB8): the ground kept open is then the ground the structure occupies by construction, rather than by two
 derivations agreeing. `ObjectiveFootprint` answers for an intent that has not been through a world build.
+
+A score box is not goal ground, because it is entered rather than approached: the build clears every box's
+blocks to air after the dressing pass and every stamp, fanned by team across the board's symmetry, so whatever
+grew or was stamped into one is cut out of it (`pgm/score-boxes.md` §4).
 
 A tree, a boulder or a building inside that ground is a different case, and it is **declined** (`OB19`,
 `DressingScope.GoalClearanceAt`): the prop is not in the world, the finding names its kind, its id, the cell

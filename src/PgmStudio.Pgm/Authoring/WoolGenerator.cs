@@ -100,7 +100,7 @@ public static class WoolGenerator
             if (w.Protection.Count == 0) continue;   // no room yet → skip the source side (region/spawner/wiring)
 
             // One room rect is the region itself; several union into it (the buildable-area pattern).
-            EmitRectUnion(doc, roomId, "wool", w.Protection);
+            ZoneWriter.Region(doc, roomId, "wool", w.Protection);
             RegionEditor.CreateRegion(doc, new Dict
             {
                 ["type"] = "point", ["id"] = spawnId, ["category"] = "wool",
@@ -137,41 +137,21 @@ public static class WoolGenerator
             var union = RegionEditor.Gather(doc, $"{ownerSlug}s-woolrooms", roomsByOwner[ownerSlug]);
             ownerRooms.Add(union);
 
-            ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["enter"] = not, ["region"] = union, ["message"] = EnterMessage });
-            ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["block"] = roomFilter, ["region"] = union, ["message"] = EditMessage });
             // The defenders' own chests stay shut. A wool room holds a supply chest for the attackers who
-            // reach it; without this the defending team can walk to the edge of their own room and empty it,
-            // which is the one thing the enter rule above cannot stop — entering is denied, using a block
-            // across the boundary is not. Written as an inline filter expression rather than a named filter
-            // because it is a two-term composition used once per team, and spelling it out at the apply is
-            // where a reader of the XML will look for it.
-            ApplyRuleEditor.CreateApplyRule(doc, new Dict
+            // reach it; without the use rule the defending team can walk to the edge of their own room and empty
+            // it, which is the one thing the enter rule cannot stop — entering is denied, using a block across the
+            // boundary is not. Written as an inline filter expression rather than a named filter because it is a
+            // two-term composition used once per team, and spelling it out at the apply is where a reader of the
+            // XML will look for it.
+            ZoneWriter.Rules(doc, union, new ZoneRules
             {
-                ["use"] = $"deny(all({team},{ChestFilter}))", ["region"] = union,
+                Enter = not, EnterMessage = EnterMessage,
+                Block = roomFilter, EditMessage = EditMessage,
+                Use = $"deny(all({team},{ChestFilter}))",
             });
         }
         // every team's rooms together
         RegionEditor.Gather(doc, "woolrooms", ownerRooms);
-    }
-
-    // Emit a multi-rect footprint as the region <paramref name="id"/>: a single rect becomes <c>id</c>
-    // itself; several become <c>id-1…id-n</c> rectangles unioned into <c>id</c>. Callers reference <c>id</c>.
-    private static void EmitRectUnion(Dict doc, string id, string category, List<Rect> rects)
-    {
-        Dict RectDict(string rid, Rect r) => new()
-        {
-            ["type"] = "rectangle", ["id"] = rid, ["category"] = category,
-            ["coords"] = new Dict { ["min_x"] = r.MinX, ["min_z"] = r.MinZ, ["max_x"] = r.MaxX, ["max_z"] = r.MaxZ },
-        };
-        if (rects.Count == 1) { RegionEditor.CreateRegion(doc, RectDict(id, rects[0])); return; }
-        var rectIds = new List<string>();
-        for (var i = 0; i < rects.Count; i++)
-        {
-            var rid = $"{id}-{i + 1}";
-            RegionEditor.CreateRegion(doc, RectDict(rid, rects[i]));
-            rectIds.Add(rid);
-        }
-        RegionEditor.Gather(doc, id, rectIds);
     }
 
     private static string MonumentBlockId(string colorSlug, string teamSlug) => $"{colorSlug}-{teamSlug}-monument";

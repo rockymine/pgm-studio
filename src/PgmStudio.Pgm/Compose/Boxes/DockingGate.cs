@@ -2,17 +2,17 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>The dock role a template slot plays when a neighbour box meets the edge it sits on — the frozen
+/// <summary>The dock role a template part plays when a neighbour box meets the edge it sits on — the frozen
 /// docking law as data (docs/generator/rules.md). <see cref="DockingEdge"/>: an <c>entry</c> is where a
 /// host connects (its mouth). <see cref="NeverDock"/>: the wool <c>room</c> — a dock there seals the goal, so
 /// it never connects at this stage (it may, legally, at the elevation stage, which is why this is a rule,
 /// not a fact of the edge). <see cref="Internal"/>: a <c>run</c>/<c>bar</c>/<c>leg</c> (and the entry/room
 /// qualified runs and bars) is shape-internal corridor — it neither offers a dock nor forbids one.</summary>
-public enum SlotDockRole { DockingEdge, NeverDock, Internal }
+public enum PartDockRole { DockingEdge, NeverDock, Internal }
 
 /// <summary>Why a proposed dock is illegal — the directed signal a filler reports instead of silently dropping
 /// the connection. <see cref="SealsWool"/>: the edge touches the never-dock room. <see cref="NotAnEntryEdge"/>:
-/// no entry slot reaches the edge (nothing to dock to).</summary>
+/// no entry part reaches the edge (nothing to dock to).</summary>
 public enum DockRejection { SealsWool, NotAnEntryEdge }
 
 /// <summary>
@@ -24,45 +24,31 @@ public enum DockRejection { SealsWool, NotAnEntryEdge }
 ///
 /// <para>Every family docks through a <b>single mouth</b> (the clamp too — its two legs meet the host on one
 /// edge, the wool clamped inside as a cut cell), so a dock is legal iff the edge <b>lands on a docking-edge
-/// slot</b> (an entry) and <b>touches no never-dock slot</b> (the wool room). The gate resolves each edge to
-/// its slots via the <see cref="BoxEdgeInterface"/> facts (read off the shape), so validity is
+/// part</b> (an entry) and <b>touches no never-dock part</b> (the wool room). The gate resolves each edge to
+/// its parts via the <see cref="BoxEdgeInterface"/> facts (read off the shape), so validity is
 /// <b>shape-relative for free</b> — an entry shift moves the entry's edge and the verdict follows, with no
 /// per-family imperative code.</para>
 /// </summary>
 public static class DockingGate
 {
-    /// <summary>The dock role a slot or designation mark plays for its <paramref name="designation"/> — the
-    /// docking law as data, scoped per designation (<see cref="Designation"/>; model.md §4). The
-    /// <see cref="Designation.Approach"/> table is the approach law verbatim: only the bare <c>room</c> (the
-    /// wool/spawn terminal) never-docks and only the bare <c>entry</c> is a docking edge; every corridor slot —
-    /// runs, bars, legs, and the entry/room-qualified runs and bars — is internal. The
-    /// <see cref="Designation.Hub"/> and <see cref="Designation.Frontline"/> carry <b>no terminal</b>, so
-    /// nothing never-docks: the hub's per-edge <see cref="DesignationMarks.Interface"/> and the frontline's
-    /// <see cref="DesignationMarks.Face"/> are the docking edges their neighbours land on, every structural slot
-    /// internal. Nothing stamps those two marks yet — the hub publishes <c>EdgeOffer</c>s and the frontline
-    /// returns its face edge directly — so this table is the binding waiting for them, and
-    /// <see cref="Check"/> still scopes to the approach.</summary>
-    public static SlotDockRole Role(Designation designation, string slotOrMark) => designation switch
+    /// <summary>The dock role <paramref name="part"/> plays — the docking law as data: only the bare <c>room</c>
+    /// never-docks and only the bare <c>entry</c> is a docking edge; every corridor part — runs, bars, legs, and
+    /// the entry/room-qualified runs and bars — is internal.</summary>
+    public static PartDockRole Role(string part) => part switch
     {
-        Designation.Approach => slotOrMark switch
-        {
-            ApproachSlots.Room => SlotDockRole.NeverDock,
-            ApproachSlots.Entry => SlotDockRole.DockingEdge,
-            _ => SlotDockRole.Internal,
-        },
-        Designation.Hub => slotOrMark == DesignationMarks.Interface ? SlotDockRole.DockingEdge : SlotDockRole.Internal,
-        Designation.Frontline => slotOrMark == DesignationMarks.Face ? SlotDockRole.DockingEdge : SlotDockRole.Internal,
-        _ => SlotDockRole.Internal,
+        CompoundParts.Room => PartDockRole.NeverDock,
+        CompoundParts.Entry => PartDockRole.DockingEdge,
+        _ => PartDockRole.Internal,
     };
 
     /// <summary>Why docking on <paramref name="edge"/> is illegal, or <c>null</c> when it is a legal dock. The
     /// room veto is strongest (a sealed wool is unrecoverable here), then the edge must actually land on an
-    /// entry. Every family docks through a single mouth, so the verdict reads only the edge's slots — it needs
+    /// entry. Every family docks through a single mouth, so the verdict reads only the edge's parts — it needs
     /// no family name.</summary>
     public static DockRejection? Check(BoxEdgeInterface edge)
     {
-        if (edge.Slots.Any(s => Role(Designation.Approach, s) == SlotDockRole.NeverDock)) return DockRejection.SealsWool;
-        if (!edge.Slots.Any(s => Role(Designation.Approach, s) == SlotDockRole.DockingEdge)) return DockRejection.NotAnEntryEdge;
+        if (edge.Parts.Any(part => Role(part) == PartDockRole.NeverDock)) return DockRejection.SealsWool;
+        if (!edge.Parts.Any(part => Role(part) == PartDockRole.DockingEdge)) return DockRejection.NotAnEntryEdge;
         return null;
     }
 
@@ -74,12 +60,4 @@ public static class DockingGate
         var edge = edges.FirstOrDefault(e => e.Edge == mouth);
         return edge is null ? DockRejection.NotAnEntryEdge : Check(edge);
     }
-
-    /// <summary>The edges a filled box exposes as legal docks — every edge <see cref="Check"/> clears.</summary>
-    public static IReadOnlyList<BoxEdgeInterface> DockingEdges(IReadOnlyList<BoxEdgeInterface> edges) =>
-        edges.Where(e => Check(e) is null).ToList();
-
-    /// <summary>True when <paramref name="edge"/> may receive a dock on the filled box.</summary>
-    public static bool CanDock(IReadOnlyList<BoxEdgeInterface> edges, BoxEdge edge) =>
-        edges.Where(e => e.Edge == edge).Any(e => Check(e) is null);
 }

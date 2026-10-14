@@ -237,4 +237,62 @@ public sealed class NavPointsTests
         await Assert.That(ControlPointNaming.Displayed(["", "The Quarry", null, "  "]))
             .IsEquivalentTo(new[] { "Hill", "The Quarry", "Hill 2", "  " });
     }
+
+    /// <summary>A flag post is a goal: every place it stands its flag at — its point, each region it names, each
+    /// post of a composite — owned as its flag is, and a flag naming a post declared beside it reads that post.</summary>
+    [Test]
+    public async Task Every_place_a_flag_stands_at_is_a_goal_owned_as_its_flag()
+    {
+        var data = new Dict
+        {
+            ["regions"] = new Dict { ["east-block"] = Cuboid(40, 10, 0, 40, 10, 0) },
+            ["flag_posts"] = new List<object?>
+            {
+                new Dict { ["id"] = "red-home", ["point"] = new Dict { ["x"] = -40.5, ["y"] = 10.0, ["z"] = 0.5 } },
+            },
+            ["flags"] = new List<object?>
+            {
+                new Dict { ["id"] = "red-flag", ["owner"] = "red-team", ["post_id"] = "red-home" },
+                new Dict
+                {
+                    ["id"] = "hill-flag", ["name"] = "Hill",
+                    ["post"] = new Dict
+                    {
+                        ["posts"] = new List<object?>
+                        {
+                            new Dict { ["name"] = "Mid", ["point"] = new Dict { ["x"] = 0.5, ["y"] = 9.0, ["z"] = 0.5 } },
+                            new Dict { ["name"] = "East", ["regions"] = new List<object?> { "east-block" } },
+                        },
+                    },
+                },
+            },
+        };
+
+        var flags = NavPoints.Of(data, Bounds).Where(point => point.Kind == "flag").ToList();
+
+        await Assert.That(flags.Select(point => (point.Name, point.Owner, point.X, point.Z, point.Y))).IsEquivalentTo(new[]
+        {
+            ("red-flag", "red-team", -40, 0, (int?)10),
+            ("Hill", "", 0, 0, (int?)9),
+            ("Hill", "", 40, 0, (int?)10),
+        });
+    }
+
+    /// <summary>A score box is a goal a player stands in, seated on its region and owned by nobody.</summary>
+    [Test]
+    public async Task Every_score_box_is_a_goal_on_its_region()
+    {
+        var data = new Dict
+        {
+            ["regions"] = new Dict { ["red-1-score-box"] = Cuboid(30, 12, -2, 34, 15, 2) },
+            ["score"] = new Dict
+            {
+                ["boxes"] = new List<object?> { new Dict { ["region"] = "red-1-score-box", ["filter"] = "red-team" } },
+            },
+        };
+
+        var box = NavPoints.Of(data, Bounds).Single(point => point.Kind == "scorebox");
+
+        await Assert.That((box.Name, box.Owner, box.X, box.Z, box.Y)).IsEqualTo(("red-team score box", "", 32, 0, (int?)12));
+    }
 }

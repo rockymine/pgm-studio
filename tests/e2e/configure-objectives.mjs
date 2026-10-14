@@ -1,8 +1,8 @@
 /**
  * The Configure wizard's objective phases, which are a group rather than a choice.
  *
- * A PGM map may carry wools, destroyables and cores at once, so Cores is its own phase beside Wools and
- * both are offered on every map. The two claims worth holding down in a browser are that the Cores phase
+ * A PGM map may carry wools, destroyables, cores and flags at once, so each is its own phase and every one
+ * is offered on every map. The two claims worth holding down in a browser are that the Cores phase
  * renders what the intent states, and that the objective phases share ONE completeness gate — a map whose
  * only objective is a core must not be held behind an empty wool slice, which is exactly what a per-phase
  * "your slice is present" rule did.
@@ -54,13 +54,20 @@ async function arrange(objectives) {
  */
 const featureFaults = () => page.faults.filter(f => !f.includes("/api/minecraft/"));
 
-/** Open the wizard and click a phase on the activity rail by its title. */
-async function openPhase(title) {
+/** Open the wizard and click a phase on the activity rail by its title. A phase drawing the world canvas is
+ * waited on until the canvas has read the map's regions: leaving before then aborts that fetch, and the next
+ * phase would be blamed for it. */
+async function openPhase(title, { canvas = false } = {}) {
   clearFaults(page);
   await page.goto(`${BASE}/maps/${seed.mapSlug}/configure`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForSelector(".nav-btn", { timeout: 20000 });
+  const regions = canvas ? page.waitForResponse(r => r.url().includes("/regions/tree"), { timeout: 30000 }) : null;
   await page.click(`.nav-btn[title="${title}"]`);
   await page.waitForSelector(".editor-bar-phase", { timeout: 20000 });
+  if (regions) {
+    await regions;
+    await page.waitForLoadState("networkidle", { timeout: 30000 });
+  }
 }
 
 const intent = await api(`/map/${seed.mapSlug}/intent`);
@@ -71,7 +78,7 @@ checks.section("a map carrying wools AND a core shows both phases");
 
 await arrange({ cores: [core(owner)] });
 
-await openPhase("Cores");
+await openPhase("Cores", { canvas: true });
 const phaseTitle = await page.textContent(".editor-bar-phase span");
 checks.add("the Cores phase opens", phaseTitle?.trim() === "Cores", phaseTitle?.trim());
 
@@ -103,15 +110,84 @@ checks.section("a core-only map is not held behind an empty wool slice");
 
 await arrange({ wools: [], cores: [core(owner)] });
 
-await openPhase("Review and export");
-const reviewTitle = await page.textContent(".editor-bar-phase span");
-checks.add("Review is reachable with no wools at all", reviewTitle?.trim() === "Review and export", reviewTitle?.trim());
+await openPhase("Export");
+const exportTitle = await page.textContent(".editor-bar-phase span");
+checks.add("Export is reachable with no wools at all", exportTitle?.trim() === "Export", exportTitle?.trim());
 
 const locked = await page.$$eval(".nav-btn", els =>
   els.filter(e => e.disabled).map(e => e.getAttribute("title")));
 checks.add("no phase is locked", locked.length === 0, locked.join(" · "));
 
 checks.add("the core-only map raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
+
+// ── the Flags phase: a King of the Flag flag shares the same gate ────────────────────────────────────
+checks.section("a flag-only map shows its flag and reaches Export");
+
+// No banner stands at the seed world's (0, 9, 0), so the flag's start reads as one PGM would not load.
+const flag = {
+  name: "Probe Flag", color: "yellow", pointsRate: 1, carrier: "lowered", carrierHearts: 6,
+  posts: [{ name: "Mid", at: { x: 0.5, y: 9, z: 0.5 } }],
+};
+await arrange({ wools: [], flags: [flag] });
+
+await openPhase("Flags", { canvas: true });
+await page.waitForLoadState("networkidle", { timeout: 30000 });
+const flagTitle = await page.textContent(".editor-bar-phase span");
+checks.add("the Flags phase opens", flagTitle?.trim() === "Flags", flagTitle?.trim());
+const flagPhase = await page.textContent(".workspace");
+checks.add("the stored flag is listed", flagPhase.includes("Probe Flag"));
+checks.add("a start with no banner under it says so", flagPhase.includes("Start · no banner"));
+checks.add("the Flags phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
+
+await openPhase("Export");
+const flagExport = await page.textContent(".editor-bar-phase span");
+checks.add("Export is reachable with a flag as the only objective", flagExport?.trim() === "Export",
+           flagExport?.trim());
+
+// ── a team's flag, and the Match phase ───────────────────────────────────────────────────────────────
+checks.section("a team's flag is defended, and the Match phase states the match");
+
+await arrange({ wools: [], flags: [{ ...flag, team: owner, color: undefined, pointsRate: undefined, carrier: "none" }],
+                timeLimit: { duration: "12m", result: "score" }, lives: 2 });
+
+await openPhase("Flags", { canvas: true });
+const teamFlag = await page.textContent(".workspace");
+const defending = await page.inputValue(".field:has-text('Defending team') select");
+checks.add("a team's flag names its defending team", defending === owner, defending);
+checks.add("a team's flag states no points rate", !teamFlag.includes("Points per second"));
+checks.add("a team's flag says when its team captures", await page.locator(".field:has-text('Capture') select").count() > 0);
+
+await openPhase("Match");
+const matchTitle = await page.textContent(".editor-bar-phase span");
+checks.add("the Match phase opens", matchTitle?.trim() === "Match", matchTitle?.trim());
+const timeBox = await page.inputValue(".workspace input[placeholder='e.g. 10m']");
+checks.add("the stored time limit is shown", timeBox === "12m", timeBox);
+checks.add("the Match phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
+
+await openPhase("Export");
+const matchExport = await page.textContent(".editor-bar-phase span");
+checks.add("Export is reachable past the Match phase", matchExport?.trim() === "Export", matchExport?.trim());
+
+// ── the Score phase: a deathmatch is an objective, and a score box is listed ─────────────────────────
+checks.section("a board whose kills pay reaches Export, and its score box is listed");
+
+await arrange({ wools: [], flags: [], killPoints: 1 });
+await openPhase("Export");
+const killExport = await page.textContent(".editor-bar-phase span");
+checks.add("Export is reachable with kills as the only objective", killExport?.trim() === "Export",
+           killExport?.trim());
+
+await arrange({
+  wools: [], killPoints: 1,
+  scoreBoxes: [{ team: owner, box: { minX: 30, minY: 12, minZ: -2, maxX: 34, maxY: 14, maxZ: 2 }, points: 1, home: true }],
+});
+await openPhase("Score", { canvas: true });
+const scoreRows = await page.locator(".panel-list .list-row").allInnerTexts();
+const drawnBoxes = scoreRows.filter(row => row.includes("Main")).length;
+const copiedBoxes = scoreRows.filter(row => row.includes("Copy")).length;
+checks.add("the stored score box is listed with the other team's copy", drawnBoxes === 1 && copiedBoxes === 1,
+           JSON.stringify(scoreRows));
+checks.add("the Score phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 
 // Put the seed map back the way the other specs expect it.
 await api(`/map/${seed.mapSlug}/intent`, { method: "PUT", body: intent });

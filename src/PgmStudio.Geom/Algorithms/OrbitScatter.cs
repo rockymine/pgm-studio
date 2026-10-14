@@ -23,10 +23,7 @@ public static class OrbitScatter
         var order = Symmetry.Order(mode);
         for (var k = 1; k < order; k++)
         {
-            // The orbit acts on positions, and a cell's position is its middle — mirroring a cell's corner
-            // lands on the boundary between two cells and rounds to whichever side floating point prefers.
-            var (px, pz) = Symmetry.Point(x + 0.5, z + 0.5, mode, centerX, centerZ, k);
-            var image = (X: (int)Math.Floor(px), Z: (int)Math.Floor(pz));
+            var image = Symmetry.Cell(x, z, mode, centerX, centerZ, k);
             if (Precedes(image, best)) best = image;
         }
         return best;

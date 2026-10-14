@@ -140,18 +140,29 @@ public static class BlockRoles
         176, 177,                   // banner, wall banner
     ];
 
-    /// <summary>Whether a player can stand where this block is — the <b>headroom</b> question, which is
-    /// neither <see cref="StandsOnGround"/> nor air. A pass looking for ground steps past everything that
-    /// stands on it; a pass asking whether there is room to stand may not, because a fence and a flower both
-    /// stand on the ground and only one of them is in the way. What is stood through: everything that grows
-    /// except a cactus, which has a hitbox and hurts, plus the placed blocks that lie flat or hang on a face.
-    /// A cobweb is in it because a web course on top of an approach wall is a crossing a player makes with the
-    /// shears the kit carries, not a seal.
-    ///
-    /// <para>A door, a ladder, a trapdoor and a fence gate are read as blocking, since whether a player fits
-    /// depends on the open/closed state and a block id does not carry it.</para></summary>
-    public static bool StoodThrough(int blockId) =>
-        (Growing.Contains(blockId) && blockId != 81) || Underfoot.Contains(blockId);
+    /// <summary>What a player climbs: a ladder and a vine. Both are walked through, and a column of them is a
+    /// way up as well as a way past.</summary>
+    public static readonly IReadOnlySet<int> Climbable = new HashSet<int> { 65 /* ladder */, 106 /* vine */ };
+
+    /// <summary>What a player opens on foot: every door and every fence gate. An iron door is in it, since
+    /// the plate or button beside one is part of the doorway. A trapdoor is not: a closed one is as often a
+    /// floor as a hatch.</summary>
+    public static readonly IReadOnlySet<int> Openable = new HashSet<int>
+    {
+        64, 71, 193, 194, 195, 196, 197,    // doors: oak, iron, spruce, birch, jungle, acacia, dark oak
+        107, 183, 184, 185, 186, 187,       // fence gates: oak, spruce, birch, jungle, dark oak, acacia
+    };
+
+    /// <summary>Whether a player's body passes through this block on foot — the one answer every walk reads,
+    /// for the ground under a player and the headroom over them alike. It is neither
+    /// <see cref="StandsOnGround"/> nor air: a fence and a flower both stand on the ground and only one of
+    /// them is in the way. Walked through: everything that grows except a cactus, which has a hitbox and
+    /// hurts; the placed blocks that lie flat or hang on a face; what is climbed (<see cref="Climbable"/>);
+    /// and what is opened (<see cref="Openable"/>). A cobweb is in it because a web course on an approach wall
+    /// is a crossing a player makes with the shears the kit carries, not a seal.</summary>
+    public static bool WalkedThrough(int blockId) =>
+        (Growing.Contains(blockId) && blockId != 81) || Underfoot.Contains(blockId)
+        || Climbable.Contains(blockId) || Openable.Contains(blockId);
 
     /// <summary>The materials that do not fill their cube: the three families that are thinner than their
     /// block, composed rather than relisted (<see cref="BlockFamilies"/>). Only the single slabs are in it —

@@ -28,10 +28,9 @@ public sealed class ShapeProbeEndpointTests
         var schema = await client.GetFromJsonAsync<ShapeProbeSchema>("/api/shapes/probe/schema");
         var tokens = schema!.Families.Select(f => f.Token).ToList();
 
-        // every family the emitter builds, and only those — Isolated is a derive-only reading
-        foreach (var family in Enum.GetValues<ShapeFamily>().Where(f => f != ShapeFamily.Isolated))
-            await Assert.That(tokens).Contains(family.ToString().ToLowerInvariant());
-        await Assert.That(tokens).DoesNotContain("isolated");
+        // every form the emitter builds, and only those — the room-free hub forms are not the probe's
+        await Assert.That(tokens).IsEquivalentTo(ShapeEmitter.Families.Select(f => f.Word()));
+        await Assert.That(tokens).DoesNotContain("double-hole");
 
         // the menu flag is the page's honesty: Z is advertised, the scythe is not
         await Assert.That(schema.Families.Single(f => f.Token == "z").OnProductionMenu).IsTrue();
@@ -57,21 +56,21 @@ public sealed class ShapeProbeEndpointTests
     }
 
     [Test]
-    public async Task A_probe_that_fills_carries_the_shape_its_land_and_its_slots()
+    public async Task A_probe_that_fills_carries_the_shape_its_land_and_its_parts()
     {
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var probe = await client.GetFromJsonAsync<ShapeProbeResult>(
-            "/api/shapes/probe?family=donut&w=6&h=13&cw=2&mouth=Top");
+            "/api/shapes/probe?family=donut&w=6&h=13&laneWidth=2&mouth=Top");
 
         await Assert.That(probe!.Rejection).IsNull();
         await Assert.That(probe.Svg).IsNotNull();
         await Assert.That(probe.Svg!).Contains("<svg");
         await Assert.That(probe.LandCells).IsGreaterThan(0);
-        // the slot template is the family's, terminal last — the panel prints it as the shape's anatomy
-        await Assert.That(probe.Slots).Contains(ApproachSlots.Room);
-        await Assert.That(probe.Slots).Contains(ApproachSlots.EntryBar);
-        await Assert.That(probe.Slots[^1]).IsEqualTo(ApproachSlots.Room);
+        // the slot template is the family's, room last — the panel prints it as the shape's anatomy
+        await Assert.That(probe.Parts).Contains(CompoundParts.Room);
+        await Assert.That(probe.Parts).Contains(CompoundParts.EntryBar);
+        await Assert.That(probe.Parts[^1]).IsEqualTo(CompoundParts.Room);
     }
 
     [Test]
@@ -79,7 +78,7 @@ public sealed class ShapeProbeEndpointTests
     {
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var probe = await client.GetFromJsonAsync<ShapeProbeResult>("/api/shapes/probe?family=donut&w=4&h=4&cw=2");
+        var probe = await client.GetFromJsonAsync<ShapeProbeResult>("/api/shapes/probe?family=donut&w=4&h=4&laneWidth=2");
 
         await Assert.That(probe!.Svg).IsNull();
         await Assert.That(probe.Rejection).IsNotNull();
@@ -99,12 +98,12 @@ public sealed class ShapeProbeEndpointTests
         foreach (var family in new[] { "donut", "u", "h", "clamp", "l", "z" })
         {
             var refused = await client.GetFromJsonAsync<ShapeProbeResult>(
-                $"/api/shapes/probe?family={family}&w=2&h=2&cw=2");
+                $"/api/shapes/probe?family={family}&w=2&h=2&laneWidth=2");
             await Assert.That(refused!.Rejection?.Code).IsEqualTo("too-small")
                 .Because($"a 2x2 box is below every family's minimum ({family})");
 
             var retry = await client.GetFromJsonAsync<ShapeProbeResult>(
-                $"/api/shapes/probe?family={family}&w={refused.Rejection!.MinW}&h={refused.Rejection.MinH}&cw=2");
+                $"/api/shapes/probe?family={family}&w={refused.Rejection!.MinW}&h={refused.Rejection.MinH}&laneWidth=2");
             await Assert.That(retry!.Rejection).IsNull()
                 .Because($"the minimum box the refusal offered must fill for {family}");
         }
@@ -121,7 +120,7 @@ public sealed class ShapeProbeEndpointTests
         foreach (var family in schema!.Families)
         {
             var refused = await client.GetFromJsonAsync<ShapeProbeResult>(
-                $"/api/shapes/probe?family={family.Token}&w=1&h=1&cw=2");
+                $"/api/shapes/probe?family={family.Token}&w=1&h=1&laneWidth=2");
             if (refused!.Rejection is not { Code: "too-small" } size) continue;   // off-menu answers first
             await Assert.That(size.MinW).IsEqualTo(family.MinW)
                 .Because($"{family.Token}'s schema minimum must be the frame a refusal speaks");
@@ -136,7 +135,7 @@ public sealed class ShapeProbeEndpointTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var probe = await client.GetFromJsonAsync<ShapeProbeResult>(
-            "/api/shapes/probe?family=l&w=12&h=12&cw=2&sideTuck=true");
+            "/api/shapes/probe?family=l&w=12&h=12&laneWidth=2&sideTuck=true");
 
         await Assert.That(probe!.Svg).IsNull();
         await Assert.That(probe.Rejection!.Code).IsEqualTo("unsupported-knobs");
@@ -149,7 +148,7 @@ public sealed class ShapeProbeEndpointTests
     {
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var probe = await client.GetFromJsonAsync<ShapeProbeResult>("/api/shapes/probe?family=scythe&w=16&h=14&cw=2");
+        var probe = await client.GetFromJsonAsync<ShapeProbeResult>("/api/shapes/probe?family=scythe&w=16&h=14&laneWidth=2");
 
         await Assert.That(probe!.Svg).IsNull();
         await Assert.That(probe.Rejection!.Code).IsEqualTo("not-on-menu");
@@ -163,10 +162,10 @@ public sealed class ShapeProbeEndpointTests
         // a bad enum is a caller error, not a modelling answer — it must not masquerade as a refusal
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var resp = await client.GetAsync("/api/shapes/probe?family=triangle&w=8&h=8&cw=2");
+        var resp = await client.GetAsync("/api/shapes/probe?family=triangle&w=8&h=8&laneWidth=2");
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
 
-        var isolated = await client.GetAsync("/api/shapes/probe?family=isolated&w=8&h=8&cw=2");
+        var isolated = await client.GetAsync("/api/shapes/probe?family=isolated&w=8&h=8&laneWidth=2");
         await Assert.That(isolated.StatusCode).IsEqualTo(HttpStatusCode.BadRequest)
             .Because("Isolated is a derive-only reading the emitter refuses to build");
     }
@@ -180,7 +179,7 @@ public sealed class ShapeProbeEndpointTests
         foreach (var mouth in new[] { "Top", "Bottom", "Left", "Right" })
         {
             var probe = await client.GetFromJsonAsync<ShapeProbeResult>(
-                $"/api/shapes/probe?family=i&w=8&h=8&cw=2&mouth={mouth}");
+                $"/api/shapes/probe?family=i&w=8&h=8&laneWidth=2&mouth={mouth}");
             await Assert.That(probe!.Rejection).IsNull().Because($"an I in an 8x8 box fills a {mouth} mouth");
             await Assert.That(probe.Svg!).Contains("<svg");
         }

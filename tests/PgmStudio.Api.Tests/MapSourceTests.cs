@@ -428,7 +428,7 @@ public sealed class MapSourceTests
             layout = JsonDocument.Parse(halves).RootElement,
             intent = JsonDocument.Parse("""
                 {"meta":{"name":"Weirgate","authors":[],"contributors":[]},
-                 "build":{"areas":[{"minX":-5,"minZ":-20,"maxX":5,"maxZ":20}],"holes":[]}}
+                 "build":{"mode":"void","areas":[{"minX":-5,"minZ":-20,"maxX":5,"maxZ":20}],"holes":[]}}
                 """).RootElement,
             name = "Weirgate",
         };

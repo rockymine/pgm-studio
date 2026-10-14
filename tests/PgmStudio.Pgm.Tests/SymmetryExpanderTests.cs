@@ -206,11 +206,12 @@ public sealed class SymmetryExpanderTests
         var blueWool = outp.Wools!.First(w => w.Owner == "blue-team");
         // room reflected across the X-normal: x→-x
         await Assert.That(blueWool.Protection[0].MinX).IsEqualTo(-10.0); await Assert.That(blueWool.Protection[0].MaxX).IsEqualTo(0.0);
-        await Assert.That(blueWool.Spawn.X).IsEqualTo(-5.0);
+        // the wool's location and its monument name blocks: block 5 lands on block -6, inside the reflected room
+        await Assert.That(blueWool.Spawn.X).IsEqualTo(-6.0);
         // the capturer shifts by the same orbit step: blue captured red's wool, so red captures blue's
         await Assert.That(blueWool.Monuments.Count).IsEqualTo(1);
         await Assert.That(blueWool.Monuments[0].Team).IsEqualTo("red-team");
-        await Assert.That(blueWool.Monuments[0].Location.X).IsEqualTo(-5.0);
+        await Assert.That(blueWool.Monuments[0].Location.X).IsEqualTo(-6.0);
         // orbit copy defaults its colour to the new owner team (empty slug → owner colour)
         await Assert.That(blueWool.Color).IsEqualTo("");
     }
@@ -314,14 +315,5 @@ public sealed class SymmetryExpanderTests
         };
         var outp = SymmetryExpander.Expand(intent);
         await Assert.That(outp.Build!.Areas.Count).IsEqualTo(1);
-    }
-
-    [Test]
-    public async Task Suggested_team_count_tracks_symmetry_order()
-    {
-        await Assert.That(SymmetryExpander.SuggestedTeamCount("rot_90")).IsEqualTo(4);
-        await Assert.That(SymmetryExpander.SuggestedTeamCount("rot_180")).IsEqualTo(2);
-        await Assert.That(SymmetryExpander.SuggestedTeamCount("mirror_x")).IsEqualTo(2);
-        await Assert.That(SymmetryExpander.SuggestedTeamCount("mirror_d2")).IsEqualTo(2);
     }
 }

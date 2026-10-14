@@ -33,7 +33,7 @@ public static class SeatGeometry
     /// one mechanism covers both the same-edge abut and the cross-edge corner meeting exactly (the along + perp
     /// conditions reproduce <see cref="TooClose"/>), and a legal seat is sampled directly, never single-sample
     /// rejected.</summary>
-    internal static (int Start, int Len)? ProjectOntoEdge(BoxEdge edge, CellRect hub, int depth, CellRect seated, int separationCells)
+    internal static EdgeInterval? ProjectOntoEdge(BoxEdge edge, CellRect hub, int depth, CellRect seated, int separationCells)
     {
         int hx = hub.X, hz = hub.Z, hw = hub.Width, hh = hub.Height;
         int bx0 = seated.X, bz0 = seated.Z, bx1 = seated.X + seated.Width, bz1 = seated.Z + seated.Height;
@@ -44,13 +44,13 @@ public static class SeatGeometry
             BoxEdge.Left => (bx0 - separationCells < hx && hx - depth < bx1 + separationCells, bz0 - hz, bz1 - hz),
             _ => (bx0 - separationCells < hx + hw + depth && hx + hw < bx1 + separationCells, bz0 - hz, bz1 - hz),   // Right
         };
-        return perpNear ? (aStart, aEnd - aStart) : null;
+        return perpNear ? new EdgeInterval(edge, aStart, aEnd - aStart) : null;
     }
 
     /// <summary>Two plan-cell rects lie within <paramref name="separationCells"/> cells of each other by rectilinear
     /// nearest-approach — touching (a separation of 0) and corner-touching included. Equivalent to inflating one
     /// rect by the separation on all four sides and testing overlap, so a diagonal corner meeting is caught, not
-    /// only a shared edge. The seat-step separation law reads it: no two neighbour bodies may sit this close
+    /// only a shared edge. The seat-step separation law reads it: no two neighbour compounds may sit this close
     /// (<paramref name="separationCells"/> is the map's lane width — w2 = 10 blocks, w3 = 15 on wide
     /// boards).</summary>
     internal static bool TooClose(CellRect first, CellRect second, int separationCells) =>
@@ -68,15 +68,11 @@ public static class SeatGeometry
         BoxEdge.Left => BoxEdge.Right, _ => BoxEdge.Left,
     };
 
-    /// <summary>The hub↔neighbour joint over a ready-made <paramref name="abutment"/> (the abutment of an overhanging
-    /// dock), granting the consumer <c>w</c> as its corridor width across it. The width is the
-    /// consumer's selection, not the hub's published capacity — see <see cref="BoxJoint.Grant"/>.</summary>
-    internal static BoxJoint HubJointFrom(string hubId, string nbId, BoxAbutment abutment, int grantedWidthCells)
-    {
-        var grant = new EdgeOffer(abutment.Edge, new EdgeInterval(abutment.Start, abutment.WidthCells, ApproachSlots.Bar),
-            grantedWidthCells, OfferGrouping.Several, $"hub-{abutment.Edge}");
-        return new BoxJoint(hubId, nbId, abutment, grant);
-    }
+    /// <summary>The hub↔neighbour joint over a ready-made <paramref name="shared"/> stretch (the abutment of an
+    /// overhanging dock), giving the consumer <paramref name="laneWidth"/> across it — the consumer's selection, not
+    /// the hub's published capacity (<see cref="BoxJoint.Width"/>).</summary>
+    internal static BoxJoint HubJointFrom(string hubId, string nbId, EdgeInterval shared, int laneWidth) =>
+        new(hubId, nbId, shared, laneWidth);
 
     /// <summary>The hub's box edge facing <paramref name="side"/> — the (u, v) outward direction mapped through
     /// the <see cref="Frame"/> to a box-local edge (min-z Top, max-z Bottom, min-x Left, max-x Right).</summary>

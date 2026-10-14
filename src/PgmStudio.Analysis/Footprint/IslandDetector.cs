@@ -205,22 +205,29 @@ public static class IslandDetector
     /// </summary>
     public static HashSet<(int, int)> CleanedBaseFootprint(
         IEnumerable<(int X, int Z, int Y)> baseCells, int heightTolerance = 3, int heightOutlierMargin = 12)
+        => SplitBase(baseCells, heightTolerance, heightOutlierMargin).Grounded;
+
+    /// <summary>The cleaned base footprint (<see cref="CleanedBaseFootprint"/>) beside the floating masses it
+    /// leaves out, each as its cells, so a reader that can tell which of them are walked onto may take them back.</summary>
+    public static (HashSet<(int, int)> Grounded, List<List<(int X, int Z)>> Floating) SplitBase(
+        IEnumerable<(int X, int Z, int Y)> baseCells, int heightTolerance = 3, int heightOutlierMargin = 12)
     {
         var yByCell = new Dictionary<(int, int), int>();
         foreach (var (x, z, y) in baseCells) yByCell[(x, z)] = y;
-        if (yByCell.Count == 0) return [];
+        if (yByCell.Count == 0) return ([], []);
 
         var allYs = yByCell.Values.OrderBy(v => v).ToList();
         var terrainY = allYs[allYs.Count / 2];
 
         var kept = new HashSet<(int, int)>();
+        var floating = new List<List<(int X, int Z)>>();
         foreach (var comp in HeightAwareComponents(yByCell, 8, heightTolerance))
         {
             var ys = comp.Select(c => yByCell[c]).OrderBy(v => v).ToList();
-            if (ys[ys.Count / 2] > terrainY + heightOutlierMargin) continue;   // floating build over void
-            foreach (var c in comp) kept.Add(c);
+            if (ys[ys.Count / 2] > terrainY + heightOutlierMargin) floating.Add(comp);   // floating build over void
+            else foreach (var c in comp) kept.Add(c);
         }
-        return kept;
+        return (kept, floating);
     }
 
     // Join only across continuous terrain: two adjacent columns share a component when their Y is within

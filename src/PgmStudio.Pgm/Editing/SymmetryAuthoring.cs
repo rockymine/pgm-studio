@@ -133,7 +133,17 @@ public static class SymmetryAuthoring
             case "sphere":
                 region["origin"] = Rot((Dict)src["origin"]!); region["radius"] = src["radius"];
                 break;
-            default:   // point, block
+            case "block":   // names a block, so its image is the block its middle turns into
+            {
+                var position = (Dict)src["position"]!;
+                var (bx, bz) = Symmetry.RotatePoint(
+                    Num(position.GetValueOrDefault("x")) + 0.5, Num(position.GetValueOrDefault("z")) + 0.5, 90, cx, cz);
+                var turned = new Dict { ["x"] = Math.Floor(bx), ["z"] = Math.Floor(bz) };
+                if (position.ContainsKey("y")) turned["y"] = position["y"];
+                region["position"] = turned;
+                break;
+            }
+            default:   // point
                 region["position"] = Rot((Dict)src["position"]!);
                 break;
         }

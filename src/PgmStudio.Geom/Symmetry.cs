@@ -85,8 +85,10 @@ public static class Symmetry
         _ => Normal(axis) is { } n ? ReflectPoint(x, z, n.Nx, n.Nz, cx, cz) : (x, z),
     };
 
-    /// <summary>The <c>k</c>-th orbit image of a point under a named symmetry mode about (cx,cz).</summary>
-    public static (double X, double Z) Point(double x, double z, string? mode, double cx, double cz, int k) => mode switch
+    /// <summary>The <c>k</c>-th orbit image of a point under a named symmetry mode about (cx,cz). Image 0, and
+    /// every multiple of the mode's order, is the point itself.</summary>
+    public static (double X, double Z) Point(double x, double z, string? mode, double cx, double cz, int k) =>
+        k % Order(mode) == 0 ? (x, z) : mode switch
     {
         "rot_90" => RotatePoint(x, z, 90 * k, cx, cz),
         "rot_180" => RotatePoint(x, z, 180, cx, cz),
@@ -154,9 +156,16 @@ public static class Symmetry
     /// rather than inside one of them.</para>
     /// </summary>
     public static (int X, int Z) Cell(int x, int z, string? mode, double cx, double cz, int k)
+        => CellUnder(x, z, (px, pz) => Point(px, pz, mode, cx, cz, k));
+
+    /// <summary>The image of a cell under a single concrete axis, as <see cref="Apply"/> is a point's: the cell
+    /// twin for a caller that holds an axis rather than a mode and an image index.</summary>
+    public static (int X, int Z) ApplyCell(int x, int z, string axis, double cx, double cz)
+        => CellUnder(x, z, (px, pz) => Apply(px, pz, axis, cx, cz));
+
+    private static (int X, int Z) CellUnder(int x, int z, Func<double, double, (double X, double Z)> turn)
     {
-        if (k == 0) return (x, z);
-        var (px, pz) = Point(x + 0.5, z + 0.5, mode, cx, cz, k);
+        var (px, pz) = turn(x + 0.5, z + 0.5);
         return ((int)Math.Floor(px), (int)Math.Floor(pz));
     }
 
@@ -187,12 +196,18 @@ public static class Symmetry
     /// describes.</summary>
     public static (double MinX, double MinZ, double MaxX, double MaxZ) Rect(
         double minX, double minZ, double maxX, double maxZ, string? mode, double cx, double cz, int k)
+        => RectUnder(minX, minZ, maxX, maxZ, (x, z) => Point(x, z, mode, cx, cz, k));
+
+    /// <summary>The image of a rectangle whose bounds are positions under a single concrete axis, as
+    /// <see cref="Apply"/> is a point's. Raw — the caller rounds.</summary>
+    public static (double MinX, double MinZ, double MaxX, double MaxZ) ApplyRect(
+        double minX, double minZ, double maxX, double maxZ, string axis, double cx, double cz)
+        => RectUnder(minX, minZ, maxX, maxZ, (x, z) => Apply(x, z, axis, cx, cz));
+
+    private static (double MinX, double MinZ, double MaxX, double MaxZ) RectUnder(
+        double minX, double minZ, double maxX, double maxZ, Func<double, double, (double X, double Z)> turn)
     {
-        (double x, double z)[] corners =
-        [
-            Point(minX, minZ, mode, cx, cz, k), Point(minX, maxZ, mode, cx, cz, k),
-            Point(maxX, minZ, mode, cx, cz, k), Point(maxX, maxZ, mode, cx, cz, k),
-        ];
+        (double x, double z)[] corners = [turn(minX, minZ), turn(minX, maxZ), turn(maxX, minZ), turn(maxX, maxZ)];
         double nx = double.MaxValue, nz = double.MaxValue, xx = double.MinValue, xz = double.MinValue;
         foreach (var (x, z) in corners)
         {

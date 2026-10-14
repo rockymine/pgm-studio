@@ -1,0 +1,176 @@
+@namespace PgmStudio.Client.Features.Configure
+@using PgmStudio.Client.Models
+@using PgmStudio.Vocabulary
+@using F = PgmStudio.Client.Features.Configure.FlagAuthoring
+
+@* Flags · posts: a flag starts at a banner the world scan found and comes back to one of its posts at random.
+   Confirm a scanned banner as a post, or place one with the point tool. A flag nobody owns is King of the Flag's;
+   a team's flag is Capture the Flag's. *@
+
+<Workspace>
+
+  <Sidebar>
+      <Section Title="Flags">
+        <Actions><Badge Class="@(flags.Count > 0 ? "badge--success" : "badge--dim")">@flags.Count flag@(flags.Count == 1 ? "" : "s")</Badge></Actions>
+        <ChildContent>
+
+        <div class="panel-list">
+          @if (flags.Count == 0) { <div class="list-empty">No flags yet.</div> }
+          @for (var i = 0; i < flags.Count; i++)
+          {
+            var index = i;
+            var flag = flags[index];
+            <ListRow Compact Selected="selectedFlag == index" @key="index" OnClick="() => SelectFlag(index)">
+              <span class="geo-type-icon" style="--icon-tint: @Hex(flag)"><i data-lucide="flag"></i></span>
+              <span class="list-label">@NameOf(flag, index)</span>
+              <Badge Kind="neutral">@flag.Posts.Count post@(flag.Posts.Count == 1 ? "" : "s")</Badge>
+            </ListRow>
+          }
+        </div>
+        <Button Writes Full Class="action-btn--separated" OnClick="() => AddFlag()"><i data-lucide="plus"></i> Add a flag</Button>
+
+        @if (SelectedFlag is { } current)
+        {
+          <p class="section-desc section-desc--separated">Click the map with the <strong>point tool</strong> to add a
+            post.</p>
+          <div class="panel-list">
+            @if (current.Posts.Count == 0) { <div class="list-empty">No posts yet.</div> }
+            @for (var i = 0; i < current.Posts.Count; i++)
+            {
+              var index = i;
+              var post = current.Posts[index];
+              <ListRow Compact Selected="selectedPost == index" @key="index" OnClick="() => SelectPost(index)">
+                <span class="geo-type-icon" style="--icon-tint: @Hex(current)"><i data-lucide="dot"></i></span>
+                <span class="list-label">@PostName(post, index)</span>
+                @if (index == 0)
+                {
+                  <Badge Class="@(OnBanner(post) ? "badge--success" : "badge--warning")">@(OnBanner(post) ? "Start" : "Start · no banner")</Badge>
+                }
+              </ListRow>
+            }
+          </div>
+        }
+
+        @if (loading)
+        {
+          <div class="list-empty">Loading banners…</div>
+        }
+        else if (Unused.ToList() is { Count: > 0 } unused)
+        {
+          <p class="section-desc section-desc--separated">
+            Banners found in the world. Click one to add it as a post.
+          </p>
+          <div class="panel-list">
+            @foreach (var banner in unused)
+            {
+              <ListRow Compact Writes @key="banner" OnClick="() => AddBanner(banner)">
+                <span class="geo-type-icon" style="--icon-tint: @GameColors.DyeHex(banner.Color)"><i data-lucide="scan-search"></i></span>
+                <span class="list-label list-label--mono">@banner.X, @banner.Y, @banner.Z</span>
+                <Badge Kind="dim">@banner.Color</Badge>
+              </ListRow>
+            }
+          </div>
+        }
+        </ChildContent>
+      </Section>
+  </Sidebar>
+
+  <div class="sidebar-handle"></div>
+
+  <WorldCanvas @ref="canvas" Slug="@Slug" PointPick="true" Category="__flag_posts__"
+                OnPointPick="OnPointPick" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <Inspector>
+      @if (SelectedFlag is { } sel)
+      {
+        <Section @key="selectedFlag">
+          <DetailHeader Icon="flag" IconTint="@Hex(sel)" Label="@NameOf(sel, selectedFlag)">
+            <Badge Kind="neutral">@(sel.Team.Length > 0 ? TeamName(sel.Team) : "Neutral")</Badge>
+          </DetailHeader>
+          <div class="section-body">
+            <Field Label="Name">
+              <input class="field-input" value="@sel.Name" placeholder="e.g. Flag"
+                     @onchange="@(e => SetName(sel, e.Value?.ToString() ?? string.Empty))" />
+            </Field>
+            <Field Label="Defending team">
+              <Select Slim="false" Options="@OwnerOptions" Value="@(sel.Team.Length > 0 ? sel.Team : Nobody)"
+                      ValueChanged="@(owner => SetOwner(sel, owner))" />
+            </Field>
+            @if (sel.Team.Length == 0)
+            {
+              <Field Label="Colour">
+                <div class="field-pick-row">
+                  <span class="field-swatch" style="--swatch: @GameColors.DyeHex(sel.Color)"></span>
+                  <Select Slim="false" Options="@ColorOptions" Value="@sel.Color" ValueChanged="@(color => SetColor(sel, color))" />
+                </div>
+              </Field>
+              <Field Label="Points per second">
+                <NumberField Value="@sel.PointsRate" Min="0.1" Max="10" Step="0.5" ValueChanged="@(rate => SetRate(sel, rate))" />
+              </Field>
+            }
+            @if (sel.Team.Length > 0)
+            {
+              <Field Label="Capture">
+                <Select Slim="false" Options="@CaptureOptions" Value="@sel.Capture" ValueChanged="@(capture => SetCapture(sel, capture))" />
+              </Field>
+            }
+            <Field Label="Pickup kit">
+              <Select Slim="false" Options="@CarrierOptions" Value="@sel.Carrier" ValueChanged="@(carrier => SetCarrier(sel, carrier))" />
+            </Field>
+            @if (sel.Carrier is FlagCarriers.Lowered or FlagCarriers.Boost)
+            {
+              <Field Label="Carrier hearts">
+                <NumberField Value="@sel.CarrierHearts" Min="1" Max="20" ValueChanged="@(hearts => SetHearts(sel, hearts))" />
+              </Field>
+            }
+
+            @if (SelectedPost is { } post)
+            {
+              <Field Label="@($"Post · {PostName(post, selectedPost)}")">
+                <ChildContent>
+                  <div class="ctrl-row">
+                    <CoordField Prefix="X" Value="@F.Block(post).X" ReadOnly="true" />
+                    <CoordField Prefix="Y" Value="@F.Block(post).Y" ReadOnly="true" />
+                    <CoordField Prefix="Z" Value="@F.Block(post).Z" ReadOnly="true" />
+                  </div>
+                </ChildContent>
+              </Field>
+              <Field Label="Post name">
+                <LabelHint>(optional)</LabelHint>
+                <ChildContent>
+                  <input class="field-input" value="@post.Name" placeholder="e.g. Mid"
+                         @onchange="@(e => SetPostName(post, e.Value?.ToString() ?? string.Empty))" />
+                </ChildContent>
+              </Field>
+              @if (selectedPost == 0 && !OnBanner(post))
+              {
+                <p class="section-desc">There is no banner here. A flag must start on one, so start it at a scanned
+                  banner or place a banner in the world and scan again.</p>
+              }
+              <div class="ctrl-row ctrl-row--separated">
+                @if (selectedPost > 0)
+                {
+                  <Button Writes Fill OnClick="() => MakeStart(sel, post)"><i data-lucide="flag"></i> Start here</Button>
+                }
+                <Button Writes Fill OnClick="() => RemovePost(sel, post)" Title="Remove post"><i data-lucide="trash-2"></i> Remove post</Button>
+              </div>
+            }
+
+            <div class="ctrl-row ctrl-row--separated">
+              <Button Writes Fill OnClick="() => RemoveFlag(sel)" Title="Remove flag"><i data-lucide="trash-2"></i> Remove flag</Button>
+            </div>
+          </div>
+        </Section>
+      }
+      else
+      {
+        <Section>
+          <DetailHeader Icon="flag" IconMuted Label="Flag" />
+          <p class="section-desc">Add a flag, then click a banner to make it the first post.</p>
+        </Section>
+      }
+  </Inspector>
+
+</Workspace>

@@ -127,7 +127,7 @@ public static class DressingScope
     }
 
     /// <summary>The cells the map is <b>played between</b>: every spawn, every wool room and its monuments,
-    /// and every destroyable, core and capture point at its anchor. What the ways through the board are
+    /// every destroyable, core and capture point at its anchor, and every flag post. What the ways through the board are
     /// measured between (<c>DR-WAY</c>), and deliberately the same set a coverage read walks its journeys over
     /// (<c>NavPoints</c>) — a corridor is only a corridor because someone travels it, so the two must not
     /// disagree about who travels.</summary>
@@ -145,6 +145,7 @@ public static class DressingScope
         foreach (var destroyable in intent.Destroyables ?? []) At(destroyable.Anchor.X, destroyable.Anchor.Z);
         foreach (var core in intent.Cores ?? []) At(core.Anchor.X, core.Anchor.Z);
         foreach (var point in intent.ControlPoints ?? []) At(point.Anchor.X, point.Anchor.Z);
+        foreach (var post in FlagPosts(intent)) At(post.At.X, post.At.Z);
         return [.. cells.Distinct()];
     }
 
@@ -154,8 +155,8 @@ public static class DressingScope
     /// goal a place rather than a thing hidden in a wood.</summary>
     public const int GoalClearance = 4;
 
-    /// <summary>The ground read against a destroyable, a core or a capture point: every block its structure
-    /// covers, grown by <see cref="GoalClearance"/>.
+    /// <summary>The ground read against a destroyable, a core, a capture point or a flag post: every block its
+    /// structure covers, grown by <see cref="GoalClearance"/>.
     ///
     /// <para>Every rect comes from the box the stamper wrote where there is one, for the same reason the
     /// emitted region does (OB8) — the ground kept open is then the ground the structure occupies, by
@@ -185,6 +186,8 @@ public static class DressingScope
             var (width, depth) = ObjectiveFootprint.ControlPoint(point.Size);
             rects.Add(Ground(point.PadBox, point.Anchor, width, depth));
         }
+        foreach (var post in FlagPosts(intent))
+            rects.Add(Ground(post.BannerBox, post.At, 1, 1));
 
         // Held as rects rather than expanded into a cell set: a goal's clearance is a handful of boxes, and the
         // question is asked once per candidate cell rather than per block of ground.
@@ -272,6 +275,8 @@ public static class DressingScope
             rects.Add(Disc(core.Anchor));
         foreach (var point in intent.ControlPoints ?? [])
             rects.Add(Disc(point.Anchor));
+        foreach (var post in FlagPosts(intent))
+            rects.Add(Disc(post.At));
         return (x, z) => rects.Any(r => x >= r.MinX && x <= r.MaxX && z >= r.MinZ && z <= r.MaxZ);
 
         static (int, int, int, int) Disc(Pt anchor)
@@ -281,6 +286,10 @@ public static class DressingScope
             return (anchorX - reach, anchorZ - reach, anchorX + reach, anchorZ + reach);
         }
     }
+
+    // Every place a flag stands: a post is a goal as a capture point is, held by whoever stands at it.
+    private static IEnumerable<FlagPostIntent> FlagPosts(MapIntent intent)
+        => (intent.Flags ?? []).SelectMany(flag => flag.Posts);
 
     private static Func<int, int, bool> EitherOf(Func<int, int, bool> first, Func<int, int, bool> second)
         => (x, z) => first(x, z) || second(x, z);

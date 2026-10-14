@@ -22,13 +22,17 @@
 /// a storey is enclosed: a player builds up through open air and falls down through it, so a step between two
 /// places is only a step where the span between them fits under the lower one's clearance. A place absent
 /// from it has open sky, which is every place on a board with nothing stacked over it.</param>
+/// <param name="Lifts">The ladders, vines and water columns of each cell (<see cref="WalkLift"/>): a step may
+/// leave a place from anywhere on the lift it stands on and arrive anywhere on the lift of the place it
+/// reaches, for the blocks climbed. A plan has none and leaves this null.</param>
 public sealed record WalkGround(
     IReadOnlySet<WalkPlace> Ground,
     IReadOnlySet<WalkPlace> Bridgeable,
     CellRect Bounds,
     int BlocksPerCell = 1,
     IReadOnlySet<(int X, int Z)>? Water = null,
-    IReadOnlyDictionary<WalkPlace, int>? Clear = null)
+    IReadOnlyDictionary<WalkPlace, int>? Clear = null,
+    IReadOnlyDictionary<(int X, int Z), WalkLift[]>? Lifts = null)
 {
     /// <summary>Every place a route may enter — ground plus what can be bridged onto. Computed once at
     /// construction, because the solve asks it per neighbour and a union rebuilt per call would dominate the
@@ -44,6 +48,36 @@ public sealed record WalkGround(
     /// and the only place the storey is deliberately discarded.</summary>
     public IReadOnlySet<(int X, int Z)> Footprint { get; } =
         Union(Ground, Bridgeable).Select(place => place.Cell).ToHashSet();
+
+    /// <summary>Whether this walk takes running jumps (<see cref="Jump"/>): true on ground read from a world's
+    /// own blocks, where a cell with no place is a gap; false on a plan's cells, where it may be a wall.</summary>
+    public bool Jumps { get; init; }
+
+    /// <summary>The ground a world has, cell by cell, before any walk narrowed it — what a jump asks whether a
+    /// cell is a gap of. A cell an <c>enter</c> rule bars a team from is still ground underfoot, and a build
+    /// zone over the void is still a gap.</summary>
+    public IReadOnlyDictionary<(int X, int Z), WalkPlace[]> Floors { get; init; } = Stack(Ground);
+
+    /// <summary>Every solid span of each cell, as <c>(floor, top)</c> inclusive, where the ground was read from
+    /// a world's blocks — what a jump's line has to pass clear of, a crown over a gap included. Null on ground
+    /// stated without its blocks, where a jump reads the places instead.</summary>
+    public IReadOnlyDictionary<(int X, int Z), (int Floor, int Top)[]>? Solid { get; init; }
+
+    private HashSet<WalkPlace>? _rims;
+
+    /// <summary>The places a jump is taken from: those beside a cell with nowhere to stand at their own height
+    /// or one under it, so a jump is only ever tried over a gap. Worked out on first ask, and carried by
+    /// <c>with</c> like the sets above.</summary>
+    public IReadOnlySet<WalkPlace> Rims => _rims ??= [.. Passable.Where(place =>
+        Around.Any(side => !HasFloorFrom((place.X + side.X, place.Z + side.Z), place.Y - 1)))];
+
+    private static readonly (int X, int Z)[] Around =
+        [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)];
+
+    /// <summary>Whether a cell holds ground at <paramref name="y"/> or above (<see cref="Floors"/>) — ground a
+    /// player at that height walks onto rather than jumps across.</summary>
+    public bool HasFloorFrom((int X, int Z) cell, int y)
+        => Floors.TryGetValue(cell, out var places) && places.Any(place => place.Y >= y);
 
     /// <summary>Where a player walking in at terrain level ends up in a cell: its lowest place, or null where
     /// the cell holds none. What a caller naming a cell and no storey means.</summary>
@@ -66,8 +100,22 @@ public sealed record WalkGround(
     /// roofed sixteen blocks up is not a step from a deck twenty-six blocks over it, and the same gallery
     /// where the roof is cut away is. On a board with nothing stacked over it every place has open sky, so
     /// this never refuses a step.</summary>
-    public bool Steps(WalkPlace from, WalkPlace to)
-        => Math.Abs(from.Y - to.Y) <= ClearAbove(from.Y <= to.Y ? from : to);
+    public bool Steps(WalkPlace from, WalkPlace to) => Fits(from.Y, to.Y, from, to);
+
+    /// <summary>Whether a move between heights <paramref name="leave"/> and <paramref name="arrive"/> fits
+    /// under the clearance of the lower of the two places it joins — <see cref="Steps"/> for a step taken off
+    /// or onto a lift, where the heights moved between are not the places' own.</summary>
+    public bool Fits(int leave, int arrive, WalkPlace from, WalkPlace to)
+        => Math.Abs(leave - arrive) <= ClearAbove(from.Y <= to.Y ? from : to);
+
+    /// <summary>The lift a place stands on, or null where its cell has none that holds it.</summary>
+    public WalkLift? LiftAt(WalkPlace place)
+    {
+        if (Lifts is null || !Lifts.TryGetValue(place.Cell, out var lifts)) return null;
+        foreach (var lift in lifts)
+            if (lift.Holds(place.Y)) return lift;
+        return null;
+    }
 
     private static HashSet<WalkPlace> Union(IReadOnlySet<WalkPlace> ground, IReadOnlySet<WalkPlace> bridgeable)
     {
@@ -91,7 +139,7 @@ public sealed record WalkGround(
     public WalkGround Narrowed(Func<WalkPlace, bool> keep) => new(
         new HashSet<WalkPlace>(Ground.Where(keep)),
         new HashSet<WalkPlace>(Bridgeable.Where(keep)),
-        Bounds, BlocksPerCell, Water, Clear);
+        Bounds, BlocksPerCell, Water, Clear, Lifts) { Jumps = Jumps, Floors = Floors, Solid = Solid };
 
     /// <summary>The board a set of solid spans makes: every place a player can stand in them, with the room
     /// over each. Nothing is bridgeable — a caller that knows where a block may be placed adds that itself —
@@ -100,9 +148,11 @@ public sealed record WalkGround(
     /// once, and a cell whose spans offer nowhere to stand contributes no place.</param>
     /// <param name="props">Every span a prop stamped, in the same shape: solid over the ground it stands in,
     /// and never a place of its own (<see cref="Walk.Standing"/>).</param>
+    /// <param name="lifts">Every ladder, vine and water column, by cell.</param>
     public static WalkGround OfSpans(
         IEnumerable<(int X, int Z, int YFloor, int YTop)> columns,
-        IEnumerable<(int X, int Z, int YFloor, int YTop)> props)
+        IEnumerable<(int X, int Z, int YFloor, int YTop)> props,
+        IEnumerable<(int X, int Z, WalkLift Lift)>? lifts = null)
     {
         var stacks = new Dictionary<(int X, int Z), List<(int Floor, int Top)>>();
         foreach (var (x, z, floor, top) in columns)
@@ -129,7 +179,21 @@ public sealed record WalkGround(
 
         var footprint = ground.Select(place => place.Cell).ToHashSet();
         return new WalkGround(ground, new HashSet<WalkPlace>(),
-            footprint.Count == 0 ? new CellRect(0, 0, 0, 0) : Cells.BoundingBox(footprint), 1, null, clear);
+            footprint.Count == 0 ? new CellRect(0, 0, 0, 0) : Cells.BoundingBox(footprint), 1, null, clear,
+            ByCell(lifts))
+        {
+            Jumps = true,
+            Solid = stacks.Keys.Union(propStacks.Keys).ToDictionary(cell => cell, cell =>
+                (stacks.GetValueOrDefault(cell) ?? []).Concat(propStacks.GetValueOrDefault(cell) ?? []).ToArray()),
+        };
+    }
+
+    /// <summary>Lifts gathered by cell, or null where there are none.</summary>
+    public static IReadOnlyDictionary<(int X, int Z), WalkLift[]>? ByCell(IEnumerable<(int X, int Z, WalkLift Lift)>? lifts)
+    {
+        var byCell = (lifts ?? []).GroupBy(entry => (entry.X, entry.Z))
+            .ToDictionary(group => group.Key, group => group.Select(entry => entry.Lift).ToArray());
+        return byCell.Count == 0 ? null : byCell;
     }
 
     /// <summary>Ground that is just a set of cells: everything in it is stood on for nothing, nothing is
@@ -195,7 +259,8 @@ public enum WalkAim
 /// <para>It is eight-connected because a player walks diagonally, and it counts a diagonal as the
 /// <see cref="Diagonal"/> hundredths of a block it is rather than as one step. It charges a climb in the
 /// blocks a player places to get up it, bridges void at one block a cell, counts a fall without pricing it,
-/// and slows through water. Nothing in it is weighted: there are no preference coefficients to calibrate,
+/// slows through water, climbs a ladder, a vine or a water column (<see cref="WalkLift"/>) for the blocks
+/// climbed, and takes a running jump across a gap the sprint jump clears (<see cref="Jump"/>). Nothing in it is weighted: there are no preference coefficients to calibrate,
 /// only quantities, each in the unit its own rule is stated in.</para>
 ///
 /// <para>Where two routes tie on the answers above, the one whose worst moment is furthest from the void
@@ -317,11 +382,21 @@ public static class Walk
     private static readonly (int X, int Z)[] Sides =
         [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)];
 
-    /// <summary>Every place one step from <paramref name="place"/>, and whether that step is diagonal. The
-    /// one definition of an edge in this walk: eight-connected, a diagonal refused where it would cut a
-    /// corner across nothing, and a storey refused where the span between the two places does not fit under
-    /// the lower one's clearance.</summary>
-    private static IEnumerable<(WalkPlace Next, bool Diagonal)> Steps(WalkPlace place, WalkGround ground)
+    /// <summary>One step and what it costs: the distance in hundredths of a block, and the height gained and
+    /// lost crossing from one cell to the next. <see cref="Rise"/> and <see cref="Fall"/> are measured
+    /// between the heights the player crosses at, which are the two places' own unless a lift carried them —
+    /// the blocks climbed on a lift are distance, not rise.</summary>
+    private readonly record struct WalkStep(WalkPlace Next, bool Diagonal, int Hundredths, int Rise, int Fall)
+    {
+        /// <summary>The blocks a player places to make the step: every block of rise over the free one.</summary>
+        public int Blocks => Math.Max(0, Rise - FreeRise);
+    }
+
+    /// <summary>Every place one step from <paramref name="place"/>, priced. The one definition of an edge in
+    /// this walk: eight-connected, a diagonal refused where it would cut a corner across nothing, a storey
+    /// refused where the span between the two places does not fit under the lower one's clearance, and a
+    /// running jump from a gap's rim (<see cref="Leap"/>).</summary>
+    private static IEnumerable<WalkStep> Steps(WalkPlace place, WalkGround ground)
     {
         foreach (var (dx, dz) in Sides)
         {
@@ -335,8 +410,123 @@ public static class Walk
                     || !ground.Footprint.Contains((place.X, place.Z + dz)))) continue;
 
             foreach (var next in stack)
-                if (ground.Steps(place, next)) yield return (next, dx != 0 && dz != 0);
+                if (Priced(place, next, dx != 0 && dz != 0, ground) is { } step) yield return step;
         }
+
+        if (!Leaps(place, ground)) yield break;
+        foreach (var offset in JumpOffsets.Values)
+        {
+            if (!ground.Stacks.TryGetValue((place.X + offset.X, place.Z + offset.Z), out var landing)) continue;
+            foreach (var next in landing)
+                if (Leap(place, next, offset, ground) is { } step) yield return step;
+        }
+    }
+
+    /// <summary>One jump's offset: how far across it lands, the gap it clears edge to edge, and the cells the
+    /// line between the two passes over.</summary>
+    private readonly record struct JumpOffset(int X, int Z, double Gap, (int X, int Z)[] Over);
+
+    /// <summary>Every offset a jump of up to <see cref="Jump.MaxGap"/> blocks lands at, by offset.</summary>
+    private static readonly Dictionary<(int X, int Z), JumpOffset> JumpOffsets = Offsets();
+
+    private static Dictionary<(int X, int Z), JumpOffset> Offsets()
+    {
+        var offsets = new Dictionary<(int X, int Z), JumpOffset>();
+        var reach = Jump.MaxGap + 1;
+        for (var dx = -reach; dx <= reach; dx++)
+            for (var dz = -reach; dz <= reach; dz++)
+            {
+                var gap = Math.Sqrt(Math.Pow(Math.Max(0, Math.Abs(dx) - 1), 2) + Math.Pow(Math.Max(0, Math.Abs(dz) - 1), 2));
+                if (gap < 1 || gap > Jump.MaxGap) continue;
+                var samples = Math.Max(Math.Abs(dx), Math.Abs(dz)) * 3;
+                var over = Enumerable.Range(1, samples - 1)
+                    .Select(sample => ((int)Math.Round(dx * sample / (double)samples), (int)Math.Round(dz * sample / (double)samples)))
+                    .Where(cell => cell != (0, 0) && cell != (dx, dz)).Distinct().ToArray();
+                offsets[(dx, dz)] = new JumpOffset(dx, dz, gap, over);
+            }
+        return offsets;
+    }
+
+    /// <summary>Whether a jump is tried from a place at all: on ground that takes them, from the rim of a gap,
+    /// with room over it to leave the ground.</summary>
+    private static bool Leaps(WalkPlace place, WalkGround ground)
+        => ground.Jumps && ground.Rims.Contains(place) && ground.ClearAbove(place) >= Jump.Headroom;
+
+    /// <summary>A running jump from ground to ground across a gap, or null where it is not one: landing at most
+    /// a block higher and inside the sprint jump's reach for that rise (<see cref="Jump.Clears"/>), over
+    /// cells with nowhere to stand at or a block under the lower end, and with nothing solid along the line
+    /// from there up to the player's body over the higher end. It places no block and costs the straight-line
+    /// distance across.</summary>
+    private static WalkStep? Leap(WalkPlace from, WalkPlace to, JumpOffset offset, WalkGround ground)
+    {
+        var rise = to.Y - from.Y;
+        // A jump is from ground to ground. A cell a player would bridge is air until the block is there, and a
+        // crossing bridged part way and jumped the rest is priced as the bridge.
+        if (rise > 1 || !ground.Ground.Contains(from) || !ground.Ground.Contains(to) || !Jump.Clears(offset.Gap, rise))
+            return null;
+        var low = Math.Min(from.Y, to.Y) - 1;
+        var body = Math.Max(from.Y, to.Y) + Jump.Headroom;
+        foreach (var (dx, dz) in offset.Over)
+        {
+            var cell = (from.X + dx, from.Z + dz);
+            if (ground.HasFloorFrom(cell, low)) return null;
+            if (ground.Solid is { } solid)
+            {
+                // A block one under the lower end is ground a place at that end's own height would stand on.
+                if (solid.TryGetValue(cell, out var spans) && spans.Any(span => span.Floor < body && span.Top >= low - 1))
+                    return null;
+            }
+            else if (ground.Floors.TryGetValue(cell, out var under)
+                && under.Any(place => ground.ClearAbove(place) is var room and not int.MaxValue && place.Y + room < body))
+                return null;
+        }
+        var across = (int)Math.Round(Math.Sqrt(offset.X * offset.X + offset.Z * offset.Z) * Straight);
+        return new WalkStep(to, offset.X != 0 && offset.Z != 0, across, Math.Max(0, rise), Math.Max(0, -rise));
+    }
+
+    /// <summary>The step a route takes between two of its places, priced as the walk prices it: a step to a
+    /// neighbouring cell, or a jump to one further off.</summary>
+    private static WalkStep? StepOf(WalkPlace from, WalkPlace to, WalkGround ground)
+    {
+        var (dx, dz) = (to.X - from.X, to.Z - from.Z);
+        if (Math.Abs(dx) <= 1 && Math.Abs(dz) <= 1) return Priced(from, to, dx != 0 && dz != 0, ground);
+        return Leaps(from, ground) && JumpOffsets.TryGetValue((dx, dz), out var offset) ? Leap(from, to, offset, ground) : null;
+    }
+
+    /// <summary>The step from one place to a neighbouring one, or null where it does not fit under the
+    /// clearance. Off a lift a player leaves from any height on it, and onto one arrives at any height on it
+    /// and climbs to the place: of those, the step taken is the one placing fewest blocks, then falling least
+    /// past <see cref="FreeDrop"/>, then climbing least. Where neither place is on a lift it is the plain
+    /// step between their own heights.</summary>
+    private static WalkStep? Priced(WalkPlace from, WalkPlace to, bool diagonal, WalkGround ground)
+    {
+        var flat = (diagonal ? Diagonal : Straight) * (ground.Water?.Contains(to.Cell) == true ? WaterSlowdown : 1);
+        var leave = ground.LiftAt(from);
+        var enter = ground.LiftAt(to);
+        if (leave is null && enter is null)
+            return ground.Steps(from, to)
+                ? new WalkStep(to, diagonal, flat, Math.Max(0, to.Y - from.Y), Math.Max(0, from.Y - to.Y))
+                : null;
+
+        var (leaveLow, leaveHigh) = leave is { } off ? (Math.Min(off.Low, from.Y), off.High) : (from.Y, from.Y);
+        var (enterLow, enterHigh) = enter is { } on ? (Math.Min(on.Low, to.Y), on.High) : (to.Y, to.Y);
+        WalkStep? best = null;
+        (int Blocks, int Drop, int Climbed) bestKey = default;
+        for (var height = leaveLow; height <= leaveHigh; height++)
+        {
+            // Arrive inside the free band where the lift allows it, nearest the place; else at its nearer end.
+            var arrive = enterHigh < height - FreeDrop ? enterHigh
+                : enterLow > height + FreeRise ? enterLow
+                : Math.Clamp(to.Y, Math.Max(enterLow, height - FreeDrop), Math.Min(enterHigh, height + FreeRise));
+            if (!ground.Fits(height, arrive, from, to)) continue;
+
+            var climbed = Math.Abs(height - from.Y) + Math.Abs(arrive - to.Y);
+            var step = new WalkStep(to, diagonal, flat + climbed * Straight,
+                Math.Max(0, arrive - height), Math.Max(0, height - arrive));
+            var key = (step.Blocks, step.Fall > FreeDrop ? step.Fall : 0, climbed);
+            if (best is null || key.CompareTo(bestKey) < 0) (best, bestKey) = (step, key);
+        }
+        return best;
     }
 
     /// <summary>Which places can reach each other, as a place → component id map with ids from 1. Two places
@@ -365,10 +555,10 @@ public static class Walk
             while (frontier.Count > 0)
             {
                 var place = frontier.Dequeue();
-                foreach (var (next, _) in Steps(place, ground))
+                foreach (var step in Steps(place, ground))
                 {
-                    if (Math.Abs(next.Y - place.Y) > rise) continue;
-                    if (labels.TryAdd(next, id)) frontier.Enqueue(next);
+                    if (step.Rise > rise || step.Fall > rise) continue;
+                    if (labels.TryAdd(step.Next, id)) frontier.Enqueue(step.Next);
                 }
             }
         }
@@ -570,17 +760,17 @@ public static class Walk
         /// <summary>This tally, one step further — from <paramref name="from"/> to <paramref name="to"/>.</summary>
         public Tally Then(WalkPlace from, WalkPlace to, WalkGround ground)
         {
-            var step = from.X != to.X && from.Z != to.Z ? Diagonal : Straight;
-            if (ground.Water?.Contains(to.Cell) == true) step *= WaterSlowdown;
-
-            var blocks = Blocks + StandingBlocks(to, ground);
-            // The rise is the two places' own difference — a place is where the feet are, so nothing has to
-            // be looked up to price a step between two of them.
-            if (to.Y - from.Y > FreeRise) blocks += to.Y - from.Y - FreeRise;
-            var (drops, worst) = from.Y - to.Y > FreeDrop
-                ? (Drops + 1, Math.Max(WorstDrop, from.Y - to.Y))
+            var diagonal = from.X != to.X && from.Z != to.Z;
+            // A route read back from a picture may join two places no step joins; it is priced as the plain
+            // step between their heights rather than refused.
+            var step = StepOf(from, to, ground)
+                ?? new WalkStep(to, diagonal, diagonal ? Diagonal : Straight,
+                    Math.Max(0, to.Y - from.Y), Math.Max(0, from.Y - to.Y));
+            var (drops, worst) = step.Fall > FreeDrop
+                ? (Drops + 1, Math.Max(WorstDrop, step.Fall))
                 : (Drops, WorstDrop);
-            return new Tally(Hundredths + step, blocks, drops, worst);
+            return new Tally(Hundredths + step.Hundredths, Blocks + StandingBlocks(to, ground) + step.Blocks,
+                drops, worst);
         }
 
         public WalkCost Cost(WalkGround ground)
@@ -624,16 +814,12 @@ public static class Walk
             if (target is { } goal && place == goal) break;
             var here = best[place];
 
-            foreach (var (next, diagonal) in Steps(place, ground))
+            foreach (var step in Steps(place, ground))
             {
+                var next = step.Next;
                 if (settled.Contains(next)) continue;
-                var step = diagonal ? Diagonal : Straight;
-                if (ground.Water?.Contains(next.Cell) == true) step *= WaterSlowdown;
-
-                var blocks = here.Blocks + StandingBlocks(next, ground);
-                if (next.Y - place.Y > FreeRise) blocks += next.Y - place.Y - FreeRise;
-
-                var candidate = (here.Distance + step, blocks, Math.Max(here.Deficit, Deficit(next)));
+                var blocks = here.Blocks + StandingBlocks(next, ground) + step.Blocks;
+                var candidate = (here.Distance + step.Hundredths, blocks, Math.Max(here.Deficit, Deficit(next)));
                 if (best.TryGetValue(next, out var known) && Rank(known).CompareTo(Rank(candidate)) <= 0) continue;
                 best[next] = candidate;
                 came[next] = place;

@@ -1,8 +1,8 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 // Figure check for the shape model's ASCII catalogs: every labelled grid drawn in the shape-model section of
 // docs/generator/model.md is parsed back out of the doc and pushed through the real classifier for its kind.
-// A body figure must read as its Compound (ClassifyBody), a family figure as its ShapeFamily
-// (ShapeClassifier.Classify), a negative-space figure as its NegativeSpaceKinds word (BodyEdges.Classify).
+// A compound figure must read as its CompoundForm (ClassifyCompound), a family figure as its CompoundForm
+// (ShapeClassifier.Classify), a negative-space figure as its NegativeSpaceKinds word (CompoundEdges.Classify).
 //
 // The figures are READ FROM THE DOC, never duplicated here, so this cannot drift from what a reader sees.
 // Three of the figures were wrong when
@@ -37,7 +37,7 @@ static bool IsGridRow(string line) =>
     line.Trim().Length > 0 && line.All(c => c is 't' or '.' or 'w' or ' ') && line.Any(c => c is 't' or 'w');
 
 // Figures sit side by side separated by runs of two or more spaces, so a label line splits into one group
-// per column. The group's first word is the claim (Rectangle, SpineArms(3), I, notch); the rest of the group
+// per column. The group's first word is the claim (I, E, Donut, notch); the rest of the group
 // is descriptive ("notch — 2 walls") and ignored. Splitting on single spaces would read every word of a
 // multi-word label as its own column and truncate the grid beneath it.
 static List<(int Col, string Label)> Labels(string line)
@@ -116,35 +116,30 @@ var checkedCount = 0;
 foreach (var (label, grid) in figures)
 {
     var name = label;
-    var arms = 0;
-    var paren = name.IndexOf('(');
-    if (paren > 0) { int.TryParse(name[(paren + 1)..].TrimEnd(')'), out arms); name = name[..paren]; }
-
     var hasWool = grid.Any(r => r.Contains('w'));
     string claim, read;
     bool ok;
     try
     {
-        if (hasWool && Enum.TryParse<ShapeFamily>(name, ignoreCase: true, out var family))
+        if (hasWool && (name == "Isolated" || Enum.TryParse<CompoundForm>(name, ignoreCase: true, out _)))
         {
+            // a wool figure claims its form, or Isolated: no ground reaches the wool, so no form at all
+            CompoundForm? family = name == "Isolated" ? null : Enum.Parse<CompoundForm>(name, ignoreCase: true);
             var filled = Cells(grid, 't', 'w');
             var wool = Cells(grid, 'w');
             var (got, _) = ShapeClassifier.Classify(filled, wool);
-            (claim, read, ok) = (family.ToString(), got.ToString(), got == family);
+            (claim, read, ok) = (name, got?.ToString() ?? "Isolated", got == family);
         }
-        else if (Enum.TryParse<Compound>(name, ignoreCase: true, out var compound))
+        else if (Enum.TryParse<CompoundForm>(name, ignoreCase: true, out var compound))
         {
-            var got = ShapeClassifier.ClassifyBody(Cells(grid, 't'));
-            var armsOk = compound != Compound.SpineArms || got.Arms == arms;
-            claim = compound + (arms > 0 ? $"({arms})" : "");
-            read = got.Form + (got.Form == Compound.SpineArms ? $"({got.Arms})" : "");
-            ok = got.Form == compound && armsOk;
+            var got = ShapeClassifier.ClassifyCompound(Cells(grid, 't'));
+            (claim, read, ok) = (compound.ToString(), got?.ToString() ?? "no form", got == compound);
         }
         else if (NegativeSpaceKinds.All.Contains(name.ToLowerInvariant()))
         {
-            // the drawn body's negative spaces must include one of the claimed class
+            // the drawn compound's negative spaces must include one of the claimed class
             var kind = name.ToLowerInvariant();
-            var spaces = BodyEdges.Classify(Cells(grid, 't')).Spaces;
+            var spaces = CompoundEdges.Classify(Cells(grid, 't')).Spaces;
             var kinds = spaces.Select(s => s.Kind).ToList();
             claim = kind;
             read = kinds.Count == 0 ? "(no space)" : string.Join("/", kinds.Distinct());

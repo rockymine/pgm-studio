@@ -113,6 +113,9 @@ public sealed class Kit
     public List<KitItem> Items = [];
     public List<KitArmor> Armor = [];
     public List<PotionEffect> Effects = [];   // <effect duration=… amplifier=…>type</effect>
+    /// <summary><c>&lt;max-health&gt;</c>: the health, in half-hearts, a player is given the kit at; null where it
+    /// states none. PGM sets it back to 20 when a player respawns.</summary>
+    public double? MaxHealth;
 }
 
 public sealed class Spawn
@@ -312,6 +315,224 @@ public sealed class ScoreConfig
     /// Those already default to zero at proto 1.3.6 and above, so on every map the studio reads it changes
     /// nothing and is kept only so it round-trips.</summary>
     public bool King;
+    /// <summary>The score boxes, from every <c>&lt;score&gt;</c> element in order.</summary>
+    public List<ScoreBox> Boxes = [];
+}
+
+/// <summary>
+/// A score box: a region that pays its <see cref="Points"/> to the team of a player who enters it and passes
+/// its filter (<c>docs/pgm/score-boxes.md</c>). A box that redeems items is refused at read.
+/// </summary>
+public sealed class ScoreBox
+{
+    public string RegionId = "";
+    /// <summary>What entering pays; null pays nothing at every proto the studio reads.</summary>
+    public int? Points;
+    public string FilterId = "";
+    public bool? Silent;
+}
+
+/// <summary>
+/// A flag (CTF, King of the Flag): a banner carried from its post, scoring while carried or when brought to a
+/// <see cref="FlagNet"/>. Every knob is the author's or unset — <c>null</c> and <c>""</c> mean PGM's default,
+/// which <c>docs/pgm/flags.md</c> tables. A flag names its post either by id (<see cref="PostId"/>) or inline
+/// (<see cref="Post"/>), never both.
+/// <para>PGM loads a flag only where a banner stands at its starting post, and copies the banner's colour,
+/// patterns and facing into the flag players carry.</para>
+/// </summary>
+public sealed class Flag
+{
+    public string Id = "";
+    public string Name = "";                    // "" = PGM's "<Color> Flag", or "Flag"
+    public string Color = "";                   // a dye; "" = the banner's own base colour
+    public string Owner = "";                   // the team defending it; "" = nobody's
+    public bool? Required;
+    /// <summary><c>show</c> and the per-surface <c>show-*</c> options, attribute name to value, as written.</summary>
+    public Dictionary<string, string> ShowOptions = new(StringComparer.Ordinal);
+    public string ScoreboardFilterId = "";
+
+    public double? Points;                      // once, on capture
+    public double? PointsRate;                  // per second while carried, to the carrier's team where unowned
+
+    public string PickupFilterId = "";
+    public string CaptureFilterId = "";
+    public string DropFilterId = "";
+    public string PickupKitId = "";
+    public string DropKitId = "";
+    public string CarryKitId = "";
+
+    public bool? Shared;                        // several carriers at once
+    public string CarryMessage = "";
+    public bool? ShowRespawnOnPickup;
+    public bool? AllowManualDrop;
+    public bool? DropOnWater;
+    public bool? Beam;
+
+    public string FlagProximityMetric = "";
+    public bool? FlagProximityHorizontal;
+    public string NetProximityMetric = "";
+    public bool? NetProximityHorizontal;
+
+    /// <summary>A post declared beside the flags and named here, or "" where the flag carries its own.</summary>
+    public string PostId = "";
+    public FlagPost? Post;
+    /// <summary>The nets written inside this flag, which take this flag and no other.</summary>
+    public List<FlagNet> Nets = [];
+}
+
+/// <summary>
+/// Where a flag stands, and comes back to. A <b>single</b> post is one or more places — a point written as its
+/// text, or regions — and a <b>composite</b> post holds single posts (<see cref="Posts"/>), choosing the next one
+/// at random, or in order where <see cref="Sequential"/>, among those its <c>respawn-filter</c> allows. The flag
+/// starts at <see cref="Fallback"/>, or at the first.
+/// </summary>
+public sealed class FlagPost
+{
+    public string Id = "";
+    public string Name = "";
+    public string Owner = "";                   // a team controlling the post
+    public bool? Sequential;
+    public bool? Permanent;
+    public double? PointsRate;                  // per second while the flag stands here and the post is owned
+    public string PickupFilterId = "";
+    public string RespawnFilterId = "";
+    public string RecoverTime = "";             // a duration; "" = 30s
+    public string RespawnTime = "";             // a duration; set with RespawnSpeed it is refused by PGM
+    public double? RespawnSpeed;                // blocks a second; PGM's 8 where neither is set
+    public string Yaw = "";
+    public string Pitch = "";
+
+    /// <summary>The point written as the post's text, or null where it names regions instead.</summary>
+    public Vec3? Point;
+    /// <summary>The regions the flag may stand in, one per child element, by id.</summary>
+    public List<string> RegionIds = [];
+
+    public string Fallback = "";                // a composite's starting post, by id
+    public List<FlagPost> Posts = [];           // a composite's single posts
+
+    public bool IsComposite => Posts.Count > 0;
+}
+
+/// <summary>
+/// A region a flag is captured in: a carrier standing inside it scores <see cref="Points"/> for its team (or the
+/// net's <see cref="Owner"/>) and the flag goes back to a post — <see cref="PostId"/>, or its own.
+/// </summary>
+public sealed class FlagNet
+{
+    public string Id = "";
+    public string RegionId = "";
+    public string Owner = "";
+    public double? Points;
+    public bool? Sticky;
+    public string CaptureFilterId = "";
+    public string RespawnFilterId = "";
+    public bool? RespawnTogether;
+    public string RespawnMessage = "";
+    public string DenyMessage = "";
+    public string Location = "";                // the proximity point, as written
+    public string PostId = "";
+    /// <summary>The flags it takes, by id; empty takes every flag (or, nested in a flag, that one).</summary>
+    public List<string> Flags = [];
+    /// <summary>The flags a capture here sends home, by id.</summary>
+    public List<string> Rescue = [];
+}
+
+/// <summary>
+/// The <c>&lt;damage&gt;</c> module: the filters asked of every hit, in order, and the actions run on the
+/// attacker and the victim (<c>docs/pgm/damage.md</c>). PGM reads every <c>&lt;damage&gt;</c> element, so the
+/// filters of all of them are one list.
+/// </summary>
+public sealed class DamageConfig
+{
+    /// <summary>The filters, by id, in document order; each decides a hit it answers and passes the rest on.</summary>
+    public List<string> FilterIds = [];
+    /// <summary>The action run on the attacker of a hit, by id; empty for none.</summary>
+    public string AttackerAction = "";
+    /// <summary>The action run on the victim of a hit, by id; empty for none.</summary>
+    public string VictimAction = "";
+}
+
+/// <summary>
+/// The <c>&lt;time&gt;</c> module: how long a match runs, and what decides it when the clock runs out
+/// (<c>docs/pgm/match.md</c>). Every duration is kept as written.
+/// </summary>
+public sealed class TimeLimit
+{
+    public string Id = "";
+    /// <summary>How long the match runs, as written: <c>10m</c>, <c>1h</c>, <c>8m30s</c>.</summary>
+    public string Duration = "";
+    /// <summary>What wins at the end: <c>score</c>, <c>objectives</c>, <c>tie</c> or a team id; empty for the
+    /// match's own victory conditions.</summary>
+    public string Result = "";
+    public string Overtime = "";
+    public string MaxOvertime = "";
+    public string EndOvertime = "";
+    /// <summary>Whether the clock is shown; null where unstated, which shows it.</summary>
+    public bool? Show;
+}
+
+/// <summary>
+/// How the dead come back (<c>docs/pgm/match.md</c>): the map's own <c>&lt;respawn&gt;</c>, or one of the
+/// <c>&lt;respawns&gt;</c> each filtered to the players it is for. Every field is the map's or unset.
+/// </summary>
+public sealed class RespawnRule
+{
+    /// <summary>The least wait after death, as written; empty for PGM's 2s.</summary>
+    public string Delay = "";
+    /// <summary>Whether the dead are respawned as soon as the wait is over.</summary>
+    public bool? Auto;
+    /// <summary>Whether the screen goes dark while they wait.</summary>
+    public bool? Blackout;
+    /// <summary>Whether they watch the match as an observer while they wait.</summary>
+    public bool? Spectate;
+    /// <summary>Whether a bed a player slept in is where they come back.</summary>
+    public bool? Bed;
+    /// <summary>Who the rule is for, by id; empty on the map's own respawn, which every player falls back to.</summary>
+    public string FilterId = "";
+    /// <summary>What a waiting player is shown once they may respawn, as written.</summary>
+    public string Message = "";
+}
+
+/// <summary>
+/// The <c>&lt;blitz&gt;</c> module: every player has a number of lives, and a team with none left is out
+/// (<c>docs/pgm/match.md</c>).
+/// </summary>
+public sealed class BlitzConfig
+{
+    /// <summary>The lives each player starts with; null where unstated, which is one.</summary>
+    public int? Lives;
+    /// <summary>Whether a death tells the match how many lives the player has left; null shows it.</summary>
+    public bool? BroadcastLives;
+    public bool? Lightning;
+    /// <summary>Who the lives count for, by id; empty for everyone.</summary>
+    public string FilterId = "";
+    public string ScoreboardFilterId = "";
+    /// <summary>Who may still join once the match has started, by id; empty for nobody.</summary>
+    public string JoinFilterId = "";
+}
+
+/// <summary>
+/// A portal: a region a player is moved out of on entering it, to a point or a region
+/// (<c>docs/pgm/portals.md</c>). Each coordinate is kept as written, because PGM reads <c>@</c> before a number
+/// as a place and a bare number as an offset from where the player stood.
+/// </summary>
+public sealed class Portal
+{
+    public string Id = "";
+    /// <summary>Where it is entered, by region id; empty where a <c>forward</c> or <c>transit</c> filter triggers it.</summary>
+    public string RegionId = "";
+    /// <summary>Where it lands, by region id, a random point in it; empty lands by the coordinates.</summary>
+    public string DestinationId = "";
+    public string X = "", Y = "", Z = "", Yaw = "", Pitch = "";
+    public string FilterId = "";
+    public string ObserversFilterId = "";
+    public string ForwardFilterId = "";
+    public string ReverseFilterId = "";
+    public string TransitFilterId = "";
+    public bool? Bidirectional;
+    public bool? Sound;
+    public bool? Smooth;
+    public bool? Protect;
 }
 
 /// <summary>
@@ -550,18 +771,21 @@ public sealed class FillAction
     public string Trigger = "";
 }
 
-/// <summary>A <c>&lt;kill-reward&gt;</c> — items granted to a player for a kill.</summary>
+/// <summary>
+/// A <c>&lt;kill-reward&gt;</c>: what a kill pays the killer where its filter allows — items, a kit, or both
+/// (<c>docs/pgm/match.md</c>). A kit written inside the reward is one of the map's kits, under a synthetic id
+/// where it states none, and is written back inside it.
+/// </summary>
 public sealed class KillReward
 {
-    public List<KillRewardItem> Items = [];
-}
-
-public sealed class KillRewardItem
-{
-    public string Material = "";
-    public int Amount = 1;
-    public int Damage;
-    public bool TeamColor;
+    public List<ItemSpec> Items = [];
+    /// <summary>Which kills pay it, by id; empty for every kill.</summary>
+    public string FilterId = "";
+    /// <summary>The kit given with it, by id; empty for none.</summary>
+    public string KitId = "";
+    /// <summary>The action run on the killer and the one run on the victim, by id; empty for none.</summary>
+    public string Action = "";
+    public string VictimAction = "";
 }
 
 /// <summary>The parsed PGM map — the flat parser domain (mirrors datatypes.MapXml).</summary>
@@ -601,6 +825,26 @@ public sealed class MapXml
     public List<Destroyable> Destroyables = [];
     public List<Core> Cores = [];
     public List<ControlPoint> ControlPoints = [];
+
+    /// <summary>The flags, and the posts and nets declared beside them rather than inside one.</summary>
+    public List<Flag> Flags = [];
+    public List<FlagPost> FlagPosts = [];
+    public List<FlagNet> FlagNets = [];
+    public List<Portal> Portals = [];
+    /// <summary>The <c>&lt;damage&gt;</c> module; null where the map states none.</summary>
+    public DamageConfig? Damage;
+
+    /// <summary>The match's time limit; null where the map states none.</summary>
+    public TimeLimit? TimeLimit;
+    /// <summary>The map's own respawn rule, which every player not taken by a filtered one falls back to; null
+    /// where the map states none.</summary>
+    public RespawnRule? Respawn;
+    /// <summary>The filtered respawn rules, in document order; the first whose filter allows a player is theirs.</summary>
+    public List<RespawnRule> Respawns = [];
+    /// <summary>The <c>&lt;blitz&gt;</c> module; null where the map states none.</summary>
+    public BlitzConfig? Blitz;
+    /// <summary>Whether <c>&lt;rage&gt;</c> is stated: every hit with a weapon kills.</summary>
+    public bool Rage;
 
     /// <summary>The shops a player can buy from, and the keepers that open them. Two lists rather than one
     /// nesting the other, because PGM keeps them apart and so does the XML: a shop is referenced by id from
@@ -651,12 +895,14 @@ public sealed class MapXml
     /// </summary>
     public Dictionary<string, string> Constants = new(StringComparer.Ordinal);
 
+    /// <summary>What a kill pays, in document order. Every reward that allows a kill pays it.</summary>
+    public List<KillReward> KillRewards = [];
+
     // Standard boilerplate (added to generated maps at export; see MapStandards). Not round-tripped
     // from corpus maps, so these stay empty for parsed maps.
     public List<string> ItemKeep = [];        // materials kept on death
     public List<string> ItemRemove = [];      // materials removed on death (team-coloured armor)
     public List<string> ToolRepair = [];      // tool/weapon materials auto-repaired
-    public List<KillReward> KillRewards = []; // items granted per kill
     public string? HungerDepletion;           // null = no <hunger>; "off"/"on" → <hunger><depletion>…</depletion></hunger>
 
     /// <summary>This map's gamemodes, derived from its objective modules — see
@@ -667,5 +913,8 @@ public sealed class MapXml
         hasCores: Cores.Count > 0,
         hasControlPoints: ControlPoints.Any(p => p.Element == ControlPointElement.ControlPoints),
         hasKing: ControlPoints.Any(p => p.Element == ControlPointElement.King),
-        scoresKillsOrDeaths: Score is { } s && ((s.Kills ?? 0) != 0 || (s.Deaths ?? 0) != 0));
+        hasFlags: Flags.Count > 0,
+        scoresKillsOrDeaths: Score is { } s && ((s.Kills ?? 0) != 0 || (s.Deaths ?? 0) != 0),
+        hasBlitz: Blitz is not null,
+        hasRage: Rage);
 }

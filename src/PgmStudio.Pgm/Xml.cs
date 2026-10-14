@@ -77,6 +77,28 @@ internal static class Xml
         }
     }
 
+    /// <summary>
+    /// Flatten a module PGM reads under more than one spelling, a leaf written directly under the root included:
+    /// <c>&lt;kill-rewards&gt;</c> and <c>&lt;killrewards&gt;</c> holding <c>&lt;kill-reward&gt;</c> or
+    /// <c>&lt;killreward&gt;</c>. Group attributes cascade to each leaf as in <see cref="Flatten"/>.
+    /// </summary>
+    public static List<InheritedElement> FlattenSpellings(XElement root, string[] groupTags, string[] leafTags)
+    {
+        var leaves = new List<InheritedElement>();
+        Walk(root, new Dictionary<string, string>());
+        return leaves;
+
+        void Walk(XElement group, Dictionary<string, string> inherited)
+        {
+            foreach (var child in group.Elements())
+            {
+                var tag = child.Name.LocalName;
+                if (groupTags.Contains(tag)) Walk(child, AttributesOf(child, inherited));
+                else if (leafTags.Contains(tag)) leaves.Add(new InheritedElement(child, AttributesOf(child, inherited)));
+            }
+        }
+    }
+
     private static Dictionary<string, string> AttributesOf(XElement e, Dictionary<string, string>? inherited)
     {
         var attrs = inherited is null ? new Dictionary<string, string>() : new Dictionary<string, string>(inherited);

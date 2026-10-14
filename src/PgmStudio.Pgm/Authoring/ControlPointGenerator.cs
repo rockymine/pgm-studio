@@ -1,18 +1,17 @@
 using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Authoring;
 
+using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// Capture-point (CP/KotH) slice of the declarative generator: one <c>&lt;hill&gt;</c> per point, the two
 /// regions it is played and displayed through, and the <c>&lt;score&gt;</c> the match ends at.
 ///
-/// <para><b>The score is written here rather than beside the boilerplate, because without it the points do
-/// nothing.</b> PGM builds a score module only for a document that has a <c>&lt;score&gt;</c> element, and
-/// <c>ControlPoint.tickScore</c> looks that module up every tick — so a board whose every point names a
-/// <c>points</c> rate and declares no score scores nothing, silently, for the whole match. The two are one
-/// decision and one generator makes it.</para>
+/// <para>The <c>&lt;score&gt;</c> its points pay into is <see cref="ScoreGenerator"/>'s, which a flag pays into
+/// too.</para>
 ///
 /// <para><b>Most of what PGM will read off a point is not authored.</b> A hill and a control point disagree
 /// about nearly every default, so the studio writes its convention out in full rather than relying on either
@@ -29,19 +28,26 @@ using Dict = Dictionary<string, object?>;
 /// care where its blocks are. They do not overlap, which is what keeps PGM's
 /// <c>InverseFilter(progress)</c> over the owner region from eating the marker.</para>
 ///
-/// <para>Idempotent clear-then-build, the score element included — a board that states no scoring point
-/// leaves none behind, the same way a board that states no point leaves no <c>&lt;hill&gt;</c>. The intent
+/// <para>Idempotent clear-then-build — a board that states no point leaves no <c>&lt;hill&gt;</c>. The intent
 /// model authors new maps (<c>new-map-authoring.md</c> §7), so the slice owns its own output outright.</para>
 /// </summary>
 public static class ControlPointGenerator
 {
     private const string Key = "control_points";
+    private const string HeldPrefix = "__held-";
+    private const string TouchSuffix = "-touchers";
 
     public static void Apply(Dict doc, MapIntent intent)
     {
         var list = ObjectiveRegion.List(doc, Key);
+        var filters = DocAccess.Filters(doc);
+        foreach (var id in list.OfType<Dict>().Select(point => point.GetValueOrDefault("player_filter") as string).OfType<string>())
+            if (id.EndsWith(TouchSuffix, StringComparison.Ordinal))
+            {
+                filters.Remove(id);
+                filters.Remove(HeldPrefix + id[..^TouchSuffix.Length]);
+            }
         ObjectiveRegion.Clear(doc, list, "capture_region", "progress_region", "owner_region");
-        doc.Remove("score");
         if (intent.ControlPoints is null) return;
 
         foreach (var point in intent.ControlPoints)
@@ -71,6 +77,7 @@ public static class ControlPointGenerator
                 // same way whether two players or ten walk onto the pad.
                 ["time_multiplier"] = 0d,
             };
+            if (point.CaptureMode == CaptureModes.Touch) Touch(doc, entry, id);
             if (point.Name.Length > 0) entry["name"] = point.Name;
             // The pad is where the pie is drawn, so the display region is exactly the course the stamper
             // laid — one block thick, and every block of it colour-affected.
@@ -82,19 +89,22 @@ public static class ControlPointGenerator
                 entry["owner_region"] = ObjectiveRegion.Emit(doc, id, marker, "marker");
             list.Add(entry);
         }
-
-        if (ScoreLimit(intent) is { } limit) doc["score"] = new Dict { ["limit"] = (long)limit };
     }
 
-    /// <summary>
-    /// The limit the match ends at: the author's where they state one, the corpus's default on a board that
-    /// carries a point that pays, and none at all otherwise. Zero is an author asking for no limit — a board
-    /// played to a time limit instead — and is honoured rather than replaced.
-    /// </summary>
-    private static int? ScoreLimit(MapIntent intent)
+    // A touch point (pgmvox's TouchPoint): taken in the shortest capture there is by whoever leads on it, with no
+    // neutral state between owners, and played only by the players whose team does not hold it — so a step onto
+    // it takes it however many of the holders stand there, and it stays taken until another team steps on.
+    private static void Touch(Dict doc, Dict entry, string id)
     {
-        if (intent.ScoreLimit is { } stated) return stated > 0 ? stated : null;
-        var pays = intent.ControlPoints?.Any(p => p.CaptureBox is not null && p.Points > 0) ?? false;
-        return pays ? ObjectiveDefaults.ControlPointScoreLimit : null;
+        var held = HeldPrefix + id;
+        FilterEditor.CreateFilter(doc, new Dict { ["id"] = held, ["type"] = "objective", ["objective"] = id });
+        var touchers = id + TouchSuffix;
+        FilterEditor.CreateFilter(doc, new Dict { ["id"] = touchers, ["type"] = "not", ["child"] = held });
+        entry["capture_time"] = ObjectiveDefaults.TouchCaptureTime;
+        entry["capture_rule"] = "lead";
+        entry["neutral_state"] = false;
+        entry["incremental"] = false;
+        entry["show_progress"] = false;
+        entry["player_filter"] = touchers;
     }
 }

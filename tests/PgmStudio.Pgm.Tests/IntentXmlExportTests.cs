@@ -1,6 +1,8 @@
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
 
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Pgm.Tests;
 
 using Dict = Dictionary<string, object?>;
@@ -176,7 +178,7 @@ public sealed class IntentXmlExportTests
             Meta = new MetaIntent { Name = "Holey" },
             Teams = [new TeamDef { Id = "red-team", Name = "Red", Color = "red" }, new TeamDef { Id = "blue-team", Name = "Blue", Color = "blue" }],
             Spawns = [new SpawnIntent { Team = "red-team", Point = new(10, 12, 10) }, new SpawnIntent { Team = "blue-team", Point = new(-10, 12, -10) }],
-            Build = new BuildIntent { Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)], Holes = [new Rect(10, 10, 20, 20)] },
+            Build = new BuildIntent { Mode = BuildModes.Void, Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)], Holes = [new Rect(10, 10, 20, 20)] },
         };
         IntentGenerator.Apply(doc, intent);
 
@@ -203,7 +205,7 @@ public sealed class IntentXmlExportTests
             Meta = new MetaIntent { Name = "Permanent Void" },
             Teams = [new TeamDef { Id = "red-team", Name = "Red", Color = "red" }, new TeamDef { Id = "blue-team", Name = "Blue", Color = "blue" }],
             Spawns = [new SpawnIntent { Team = "red-team", Point = new(10, 12, 10) }, new SpawnIntent { Team = "blue-team", Point = new(-10, 12, -10) }],
-            Build = new BuildIntent { Areas = [new Rect(-2, 58, 2, 62)] },
+            Build = new BuildIntent { Mode = BuildModes.Void, Areas = [new Rect(-2, 58, 2, 62)] },
         };
         IntentGenerator.Apply(doc, intent);
 

@@ -78,10 +78,53 @@ public static class ObjectiveDefaults
     public const double ControlPointPoints = 1;
     public const string ControlPointCaptureTime = "5s";
 
+    /// <summary>How long a touch point takes to change hands: the shortest a capture can be, so a step onto it
+    /// is enough (pgmvox's <c>TouchPoint</c>).</summary>
+    public const string TouchCaptureTime = "0.1s";
+
     /// <summary>The score that ends a capture match. 750 is the modal corpus limit (44 of the 95 KotH maps
     /// that state one) and pairs with the rest of these: three points at 1/s is roughly eight minutes of a
     /// team holding two of them.</summary>
     public const int ControlPointScoreLimit = 750;
+
+    /// <summary>What holding a King of the Flag flag pays, per second (author; 47 of 55 corpus flags).</summary>
+    public const double FlagPointsRate = 1;
+
+    /// <summary>The hearts a lowered flag carrier keeps — 12 health, the corpus's commonest King of the Flag
+    /// carrier (health boost −3 on 6 maps).</summary>
+    public const int FlagCarrierHearts = 6;
+
+    /// <summary>The score a King of the Flag match ends at where the author states none: the corpus's commonest
+    /// limit (200, on 5 of 10 maps stating one).</summary>
+    public const int FlagScoreLimit = 200;
+
+    /// <summary>The score a Capture the Flag match ends at where the author states none: the corpus's commonest
+    /// limit (3, on 15 of the 30 CTF maps stating one), each capture paying one.</summary>
+    public const int CtfScoreLimit = 3;
+
+    /// <summary>What a kill pays on a team deathmatch board (147 of the 167 corpus maps scoring kills).</summary>
+    public const int KillPoints = 1;
+
+    /// <summary>How long a deathmatch runs where it states neither limit: the corpus's commonest (43 of the 167 maps
+    /// scoring kills, 139 of which state no score limit).</summary>
+    public const string DeathmatchTimeLimit = "10m";
+
+    /// <summary>What capturing a flag in a net pays (122 of 140 corpus nets).</summary>
+    public const int FlagNetPoints = 1;
+
+    /// <summary>How long a dropped team's flag lies before it goes home on its own: the corpus's commonest stated
+    /// recover time (42 of 166 owned flags).</summary>
+    public const string FlagRecoverTime = "15s";
+
+    /// <summary>How far a team's net reaches either side of its flag's post, in blocks: a 5×3×5 box, the corpus's
+    /// common net round a post (cylinders of radius 2 and 3, cuboids of 5×3×5).</summary>
+    public const int FlagNetReach = 2;
+
+    /// <summary>How many blocks tall a team's net is, from the block its flag stands in.</summary>
+    public const int FlagNetHeight = 3;
+
+    /// <summary>What entering a score box pays (122 of 209 corpus boxes).</summary>
+    public const int ScoreBoxPoints = 1;
 
     /// <summary>The colour a pad is laid in, and therefore the colour it returns to whenever the point goes
     /// neutral — PGM restores the blocks it found rather than choosing one. White is what 263 of 359 corpus

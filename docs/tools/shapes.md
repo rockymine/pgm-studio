@@ -16,7 +16,7 @@ fills a wool box through, so the profile check and the docking gate run exactly 
 and **a refusal comes back as a result rather than an error**. It is the only place in the studio that
 surfaces the fill guards at all.
 
-The shape model itself — what a body is, what a designation adds, why the classifier reads width-free — is
+The shape model itself — what a compound is, what a room adds, why the classifier reads width-free — is
 `docs/generator/model.md` §4, which governs. This document is the page: what it shows, what it can be asked,
 and what it cannot say.
 
@@ -24,13 +24,13 @@ and what it cannot say.
 
 Three box kinds appear, and the split is by what the shape is *for* rather than by what holds it.
 
-A **wool approach** is a terminal-capped shape: a lane from a host that dead-ends at the room the wool sits
-in. A **hub body** is the unit's constraint source — terminal-free, and the widths of its free edges set every
-neighbour's menu. A **frontline body** is the join toward the symmetry axis — also terminal-free, with one
-edge designated the face. The spawn box is absent as a row of its own because a spawn is an approach too: it
+A **wool compound** ends in a room: a lane from a host that dead-ends at the room the wool sits in. A **hub
+compound** is the unit's constraint source — no room, and the widths of its free edges set every neighbour's
+menu. A **frontline compound** is the join toward the symmetry axis — no room either, with one edge the face.
+The spawn box is absent as a row of its own because a spawn compound ends in a room too: it
 reuses the same families at the map's lane width, differing only in what the room holds and how big it is.
 
-The **nine approach families** are an escalation, not a flat set — an L whose lane doubles back is a scythe, a
+The **eight forms ending in a room** are an escalation, not a flat set — an L whose lane doubles back is a scythe, a
 scythe whose bay closes is a donut, a clamp whose wool docks flush is a U, a U that lifts its wool onto a stub
 is an H:
 
@@ -44,7 +44,9 @@ is an H:
 | `u` | two legs meet a crossbar, the wool flush on it | 6×6 |
 | `h` | two legs meet a crossbar, the wool on a stub lifted off it | 6×8 |
 | `donut` | terrain encloses a void — a full loop, multi-access | 5×10 |
-| `isolated` | wool ringed by void — a reading, never emitted, and absent from the page | — |
+
+A wool ringed by void, which no ground reaches, has no form at all: the classifier answers none, nothing emits
+one, and the page has no card for it.
 
 The minimums are the emitter's own, reported by `GET /api/shapes/probe/schema` in the **dock frame** rather
 than the emitter's canonical one: the panel fills through a mouth, and a lateral-mouth family like the donut
@@ -53,21 +55,21 @@ said 5×10.
 
 They are also the minimum for the family **with no knobs set**, and a knob can move them in either direction.
 The donut is the demonstration: bare it wants 5×10, and with `woolAtEnd` — the variant integrating the wool
-into the ring's own corner rather than hanging a room off the end — it fits 5×8, because the terminal sits
+into the ring's own corner rather than hanging a room off the end — it fits 5×8, because the room sits
 inside the ring's span instead of beyond it. The `too-small` refusal always reports the minimum **for the
 knobs asked for**, so the number to build against comes from the refusal rather than from the schema.
 
-The **bodies** are the two terminal-free menus. A hub may be a solid `bar`, the branch family at one arm
-(`single`) or two (`twin`), a `ring`, a `p` (a loop with an overhanging bar), a `double-hole` (a ring plus a
-docked U) or a `g` (a ring plus an L, whose open bay a docking frontline seals into a second hole). A
-frontline may be a `bar` — the wide face — or the branch family at one arm or two. The two menus overlap in
-their tokens and the page's Family filter is one flat list, so picking `bar` shows the hub's and the
-frontline's together.
+The **compounds** are the two menus with no room, named from the same list of forms as the wools. A hub may
+be a solid `i`, a spine with one arm (`l`) or two (`u`), a `donut`, a `p` (a loop with an overhanging bar), a
+`double-hole` (a ring plus a docked U) or a `g` (a ring plus an L, whose open bay a docking frontline seals into
+a second hole). A frontline may be an `i` — the wide face — an `l` or a `u`. One word names one shape whichever
+box holds it, and the page's Family filter is one flat list, so picking `u` shows the wool's, the hub's and the
+frontline's U together.
 
 Beside the family sit the **knobs**, the variation the model allows without leaving the family: a `flip`,
 available everywhere, turning the shape's handedness; `sideTuck`, which turns the room off the end of the last
 segment perpendicular, built for I, Z and the scythe only; `woolAtEnd`, the U/H/clamp/donut variant putting
-the terminal on an end rather than the middle; and `attachW`, the donut's and the scythe's hub-entry width.
+the room on an end rather than the middle; and `attachW`, the donut's and the scythe's hub-entry width.
 The schema endpoint reports which knobs each family takes, so the panel greys the rest rather than sending a
 combination the emitter would reject.
 
@@ -99,9 +101,9 @@ admit it is `G81`.
 
 ## The grid
 
-Cards are laid out in pipeline-legibility order — straight, bent, branch, enclosing, then the bodies — so the
+Cards are laid out in pipeline-legibility order — straight, bent, branch, enclosing, then the compounds — so the
 grid reads as a progression rather than alphabetically. Each card is the shape in a square frame on the theme's board
-ground (white in the light theme), drawn in the same four inks as the Generator's boards (`generator.md`), then its family and the box it was emitted at, then tags for its tier, its kind, the corridor width
+ground (white in the light theme), drawn in the same four inks as the Generator's boards (`generator.md`), then its family and the box it was emitted at, then tags for its tier, its kind, the lane width
 and any knobs set. A non-in-mix card adds the note explaining its tier. The pictures carry no text; the page
 draws the role and zone key once above the grid, from the `key` the catalog returns.
 
@@ -111,18 +113,18 @@ what it would show before it is picked.
 
 **Everything is drawn mouth-up.** The composer docks all four box edges, but the other three orientations are
 rigid motions of what is drawn and would pad the grid fourfold without adding a shape. Both handednesses are
-kept, because a flip is an authored variant rather than a viewing angle. Approaches are then deduplicated by
+kept, because a flip is an authored variant rather than a viewing angle. Wool shapes are then deduplicated by
 cell pattern, so two parameterizations that occupy the same cells are one card.
 
 The catalog is a **bounded set** — a pure function of the emitters and the tuning constants — so the whole of
 it is fetched once and filtered in the page, which is what makes every chip instant and needs no cursor. Today
-that is 124 cards: 115 wool approaches, 6 hub bodies and 3 frontline bodies, of which 117 are in the mix, 1
+that is 124 cards: 115 wool shapes, 6 hub compounds and 3 frontline compounds, of which 117 are in the mix, 1
 reachable and 6 emitter-only. Those numbers move whenever the tuning does.
 
 ## The Shape settings panel
 
 Clicking a card opens the panel seeded from that exact shape, so editing starts from a known-good state rather
-than a guessed box. It carries the family, box width and height, corridor width, the mouth edge, the three
+than a guessed box. It carries the family, box width and height, lane width, the mouth edge, the three
 boolean knobs and the attachment width, and re-emits on every change. Requests are serialized by generation
 counter, so a fast drag cannot land an older answer over a newer one.
 
@@ -131,10 +133,10 @@ what it does to that shape. Switching family drops any knob the new family does 
 it along, so a refusal is always one the author asked for; a `too-small` refusal offers a *Resize* button that
 takes the emitter's stated minimum verbatim rather than nudging one axis at a time.
 
-On success the panel reports the land the fill produced, in cells, and the **slot sequence** of the pieces it
+On success the panel reports the land the fill produced, in cells, and the **part sequence** of the pieces it
 laid — `bar · entry · entry · room` for a U, `entry-bar · leg · leg · entry · room-bar · room` for a donut.
 That sequence is the family's template, fixed per family and only resized, and it is the most useful thing on
-the panel for anyone reasoning about a shape: a slot is a template position rather than a property of a
+the panel for anyone reasoning about a shape: a part is a template position rather than a property of a
 rectangle, and it is what every composition rule is quantified over.
 
 ## What it refuses
@@ -145,7 +147,7 @@ second copy free to disagree with the one that fired.
 
 | Code | Means | Carries |
 |---|---|---|
-| `too-small` | Below the family's minimum box at this corridor width | `minW`, `minH` — the panel offers a *Resize to w×h* button that takes them verbatim |
+| `too-small` | Below the family's minimum box at this lane width | `minW`, `minH` — the panel offers a *Resize to w×h* button that takes them verbatim |
 | `not-on-menu` | The family is not on this box kind's fill menu | the menu it does offer |
 | `illegal-dock` | The docking gate refused this mouth for this family | the gate's reason |
 | `unsupported-knobs` | The emitter rejects this knob combination | the emitter's detail |
@@ -161,11 +163,11 @@ Both endpoints are reads open to anyone, rooted at `/api`, and take no map ([`do
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /shapes/catalog[?kind=&tier=&family=]` | `{shapes, total, byTier, byFamily, byKind, key}` — every card as `{id, kind, family, tier, boxW, boxH, corridorCells, knobs, note, svg}`, and `key` the four inks the SVGs are drawn in. Filters are CSV and narrow the returned cards; the tallies always describe the whole catalog | — |
-| `GET /shapes/probe?family=&w=&h=&cw=&mouth=&flip=&sideTuck=&woolAtEnd=&attachW=` | `{svg, rejection, landCells, slots}` — one emission through `BoxFiller`. A refusal is a 200 with `rejection` set and `svg` null | 400 unknown family |
-| `GET /shapes/probe/schema` | `{families, mouths, minCorridorCells, maxCorridorCells}` — per family its token, its minimum box in the dock frame, whether the production menu admits it, and which knobs it takes | — |
+| `GET /shapes/catalog[?kind=&tier=&family=]` | `{shapes, total, byTier, byFamily, byKind, key}` — every card as `{id, kind, family, tier, boxW, boxH, laneWidth, knobs, note, svg}`, and `key` the four inks the SVGs are drawn in. Filters are CSV and narrow the returned cards; the tallies always describe the whole catalog | — |
+| `GET /shapes/probe?family=&w=&h=&laneWidth=&mouth=&flip=&sideTuck=&woolAtEnd=&attachW=` | `{svg, rejection, landCells, parts}` — one emission through `BoxFiller`. A refusal is a 200 with `rejection` set and `svg` null | 400 unknown family |
+| `GET /shapes/probe/schema` | `{families, mouths, minLaneWidth, maxLaneWidth}` — per family its token, its minimum box in the dock frame, whether the production menu admits it, and which knobs it takes | — |
 
-The probe clamps rather than refuses out-of-range numbers: box width and height to 1–64, corridor width to
+The probe clamps rather than refuses out-of-range numbers: box width and height to 1–64, lane width to
 1–8, attachment width to 0–8, and an unrecognised mouth falls back to `Top`.
 
 ## Driving it without the UI
@@ -181,19 +183,19 @@ The probe is the one to reach for when a question is about whether something *ca
 cheaper and more reliable than reading the emitter's guards, because it is the emitter:
 
 ```
-GET /api/shapes/probe?family=donut&w=3&h=3&cw=2
-  → { "svg": null, "landCells": 0, "slots": [],
+GET /api/shapes/probe?family=donut&w=3&h=3&laneWidth=2
+  → { "svg": null, "landCells": 0, "parts": [],
       "rejection": { "code": "too-small", "minW": 5, "minH": 10,
-                     "detail": "Below Donut's minimum box of 5×10 cells at this corridor width." } }
+                     "detail": "Below Donut's minimum box of 5×10 cells at this lane width." } }
 
-GET /api/shapes/probe?family=u&w=8&h=8&cw=2&mouth=Top
-  → { "landCells": 36, "slots": ["bar", "entry", "entry", "room"], "rejection": null, "svg": "<svg …>" }
+GET /api/shapes/probe?family=u&w=8&h=8&laneWidth=2&mouth=Top
+  → { "landCells": 36, "parts": ["bar", "entry", "entry", "room"], "rejection": null, "svg": "<svg …>" }
 ```
 
 Fetch `/shapes/probe/schema` once and drive from it rather than from a hard-coded family list: it names every
 family the emitter builds, its minimum box, and the knobs it accepts, so a family gaining a knob does not need
 a matching edit in the caller. Both endpoints answer **SVG text inside JSON**, so an agent gets markup it must
-render to look at; the numbers — `landCells`, `slots`, and the rejection — are what can be read directly.
+render to look at; the numbers — `landCells`, `parts`, and the rejection — are what can be read directly.
 
 The question this page does *not* answer is whether the composer could have produced a particular box. That is
 `POST /api/plan/feasibility`, which takes a plan document as its body, searches the declared menus by calling
@@ -203,23 +205,23 @@ the real emitters, and reports the nearest miss when nothing reproduces a box. `
 
 **The grid's proportions are not the boards' proportions.** Cards are distinct *shapes*, and the sampler that
 varies a donut's box dimensions and attachment width most produces the most distinct shapes — 73 of the 98
-cards are donuts. The census the generator reports says the opposite about real boards: an I is on three
-boards in four at twelve players and nine in ten at twenty, and it gets five cards. The page is a vocabulary,
+cards are donuts. The census the generator reports says the opposite about real boards: an I is on more than four
+boards in five at twelve players and nine in ten at twenty, and it gets five cards. The page is a vocabulary,
 never a frequency.
 
-**The hub's two-arm form has no card.** `SpineArms(2)` is on the hub menu and the generator's own census finds
-it on 28 of 400 boards at twenty players, but the catalog emits every body at a fixed 16×12 box with no arm
+**The hub's U has no card.** `U` is on the hub menu and the generator's own census finds
+it on 22 of 400 boards at twenty players, but the catalog emits every compound at a fixed 16×12 box with no arm
 layout, and the default layout on a 16-wide spine wants two 6-cell legs where the leg-width cap allows 5 — so
 the form refuses and the card is dropped. The grid therefore shows six hub forms where the composer builds
-seven. The frontline's twin is unaffected because its own sampler admits end recesses.
+seven. The frontline's U is unaffected because its own sampler admits end recesses.
 
-**The corridor slider spans widths the menu does not fill.** It runs 2 to 5, but the width-to-menu table has
+**The lane width slider spans widths the menu does not fill.** It runs 2 to 5, but the width-to-menu table has
 families only on its `w2` row: `w3` tapers back to `w2` and fills, while `w4` and `w5` answer `not-on-menu`
 with an *empty* menu — rendered as "it offers ." The refusal is correct and says so badly. The wide rows are
 recorded in the data on purpose, since a wide touch resolves into multi-shape patterns rather than a wider
 lane, and those patterns are not emittable.
 
-**Only the wool box is probeable.** The panel builds a wool box and fills it, so hub and frontline bodies can
+**Only the wool box is probeable.** The panel builds a wool box and fills it, so hub and frontline compounds can
 be looked at in the grid but not driven — there is no settings panel for a ring's wall widths or a frontline's arm
 layout, which are exactly the axes that multiply those forms.
 

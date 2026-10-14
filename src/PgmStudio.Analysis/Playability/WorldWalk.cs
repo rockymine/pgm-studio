@@ -57,12 +57,16 @@ public static class WorldWalk
             }
 
         // Two filters, and each rules out something the other cannot see. The cleaned base footprint drops a
-        // build floating over void, whose storeys must not pose as free standing-ground over nothing. The
-        // standing surfaces drop a column with nowhere in it to stand.
-        var standable = segments is null
-            ? new HashSet<(int X, int Z)>()
-            : new HashSet<(int X, int Z)>(
-                IslandDetector.CleanedBaseFootprint(segments.BaseColumns()).Where(floor.ContainsKey));
+        // build floating over void, whose storeys must not pose as free standing-ground over nothing, unless it is
+        // built out from the ground and walked onto (Attached). The standing surfaces drop a column with nowhere
+        // in it to stand.
+        var standable = new HashSet<(int X, int Z)>();
+        if (segments is not null)
+        {
+            var (grounded, floating) = IslandDetector.SplitBase(segments.BaseColumns());
+            standable.UnionWith(grounded.Where(floor.ContainsKey));
+            Attach(standable, floating, places);
+        }
         var ground = new HashSet<WalkPlace>(places.Where(place => standable.Contains(place.Cell)));
 
         // A cell is bridgeable only where the map GRANTS building — a build zone the author drew, or a
@@ -76,7 +80,41 @@ public static class WorldWalk
             open.Where(floor.ContainsKey).Select(cell => new WalkPlace(cell.X, cell.Z, floor[cell])));
 
         return new WalkGround(ground, bridgeable, new CellRect(edit.MinX, edit.MinZ, edit.Width, edit.Height),
-            1, null, clear);
+            1, null, clear, WalkGround.ByCell(segments?.Lifts)) { Jumps = true, Solid = segments?.Spans() };
+    }
+
+    /// <summary>
+    /// Take back each floating mass a player walks onto from the standable ground: one with a place a free step
+    /// from a place on the standable cell beside it, as a beam or a balcony built out over the void is from the
+    /// stairs that reach it. A mass that joins can carry the next one; a mass reached from nowhere, such as a lobby
+    /// in the sky, stays out.
+    /// </summary>
+    private static void Attach(HashSet<(int X, int Z)> standable, List<List<(int X, int Z)>> floating,
+        HashSet<WalkPlace> places)
+    {
+        var tops = places.GroupBy(place => place.Cell).ToDictionary(group => group.Key, group => group.Select(place => place.Y).ToList());
+        for (var joined = true; joined;)
+        {
+            joined = false;
+            foreach (var mass in floating.ToList())
+            {
+                if (!mass.Any(cell => Steps(cell).Any(next => standable.Contains(next) && Meet(cell, next)))) continue;
+                standable.UnionWith(mass.Where(tops.ContainsKey));
+                floating.Remove(mass);
+                joined = true;
+            }
+        }
+
+        bool Meet((int X, int Z) a, (int X, int Z) b) =>
+            tops.TryGetValue(a, out var ats) && tops.TryGetValue(b, out var bts)
+            && ats.Any(at => bts.Any(bt => Math.Abs(at - bt) <= Walk.FreeRise));
+
+        static IEnumerable<(int X, int Z)> Steps((int X, int Z) cell)
+        {
+            for (var dx = -1; dx <= 1; dx++)
+                for (var dz = -1; dz <= 1; dz++)
+                    if (dx != 0 || dz != 0) yield return (cell.X + dx, cell.Z + dz);
+        }
     }
 
     /// <summary>The box a walk is sized to: every declared region, unioned with the terrain's own extent.
@@ -153,13 +191,15 @@ public static class WorldWalk
     /// (<see cref="Editability.Result.BridgeableCells"/>) — one with nowhere to stand is a route the moment a
     /// player may place a block in it.</param>
     /// <param name="water">Cells a player swims, or null on a board with none.</param>
+    /// <param name="lifts">Every ladder, vine and water column, by cell.</param>
     public static WalkGround OfBuilt(
         IEnumerable<(int X, int Z, int YFloor, int YTop)> columns,
         IEnumerable<(int X, int Z, int YFloor, int YTop)> props,
         IEnumerable<(int X, int Z)> granted,
-        IReadOnlySet<(int X, int Z)>? water = null)
+        IReadOnlySet<(int X, int Z)>? water = null,
+        IEnumerable<(int X, int Z, WalkLift Lift)>? lifts = null)
     {
-        var solid = WalkGround.OfSpans(columns, props);
+        var solid = WalkGround.OfSpans(columns, props, lifts);
         var ground = new HashSet<WalkPlace>(solid.Ground);
         var clear = new Dictionary<WalkPlace, int>();
         var floor = new Dictionary<(int X, int Z), int>();
@@ -178,6 +218,7 @@ public static class WorldWalk
         var all = new HashSet<(int X, int Z)>(floor.Keys);
         all.UnionWith(open);
         var bounds = all.Count == 0 ? new CellRect(0, 0, 0, 0) : Cells.BoundingBox(all);
-        return new WalkGround(ground, bridgeable, bounds, 1, water, clear);
+        return new WalkGround(ground, bridgeable, bounds, 1, water, clear, solid.Lifts)
+            { Jumps = true, Solid = solid.Solid };
     }
 }

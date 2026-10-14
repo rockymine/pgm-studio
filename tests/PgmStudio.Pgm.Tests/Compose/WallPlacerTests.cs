@@ -14,15 +14,15 @@ public sealed class WallPlacerTests
     private static readonly BoxRef WoolBox = new("wool-a", BoxKind.Wool);
 
     // a frontline, a hub, a straight lane six cells long and a room at its end, in one column on a 4-block grid
-    private static GrownUnit Straight() => new(
+    private static TeamUnit Straight() => new(
         [
-            new GrownPiece("frontline-t1", new CellRect(0, 0, 9, 3), Box: new BoxRef("frontline", BoxKind.Frontline)),
-            new GrownPiece("hub-t1", new CellRect(0, 3, 9, 6), Box: new BoxRef("hub", BoxKind.Hub)),
-            new GrownPiece("wool-a-t1", new CellRect(3, 9, 3, 6), Box: WoolBox),
-            new GrownPiece("wool-a-room", new CellRect(3, 15, 3, 2), PlanRoles.WoolRoom, Box: WoolBox),
+            new UnitPiece("frontline-t1", new CellRect(0, 0, 9, 3), Box: new BoxRef("frontline", BoxKind.Frontline)),
+            new UnitPiece("hub-t1", new CellRect(0, 3, 9, 6), Box: new BoxRef("hub", BoxKind.Hub)),
+            new UnitPiece("wool-a-t1", new CellRect(3, 9, 3, 6), Box: WoolBox),
+            new UnitPiece("wool-a-room", new CellRect(3, 15, 3, 2), WoolBox, PlanRoles.WoolRoom),
         ],
-        new GrownSpawn("hub-t1", [1, 1], "front"),
-        [new GrownWool("wool-a-room", [1, 1])]);
+        new Marker("hub-t1", 1, 1), "front",
+        [new Marker("wool-a-room", 1, 1)]);
 
     [Test]
     public async Task A_straight_lane_is_cut_at_the_standoff_and_walled_across_the_cut()
@@ -48,8 +48,8 @@ public sealed class WallPlacerTests
             Pieces =
             [
                 .. Straight().Pieces.Where(p => p.Id is "frontline-t1" or "hub-t1"),
-                new GrownPiece("wool-a-t1", new CellRect(3, 9, 3, 2), Box: WoolBox),
-                new GrownPiece("wool-a-room", new CellRect(3, 11, 3, 2), PlanRoles.WoolRoom, Box: WoolBox),
+                new UnitPiece("wool-a-t1", new CellRect(3, 9, 3, 2), Box: WoolBox),
+                new UnitPiece("wool-a-room", new CellRect(3, 11, 3, 2), WoolBox, PlanRoles.WoolRoom),
             ],
         };
         await Assert.That(WallPlacer.Place(unit, cell: 4).Walls).IsEmpty();
@@ -59,19 +59,19 @@ public sealed class WallPlacerTests
 
     // a donut docked on the hub's right: an entry stub reaching past the entry bar beside the near leg, the two
     // legs, and the room at the far corner of the room bar
-    private static GrownUnit Donut() => new(
+    private static TeamUnit Donut() => new(
         [
-            new GrownPiece("frontline-t1", new CellRect(-4, 6, 8, 6), Box: new BoxRef("frontline", BoxKind.Frontline)),
-            new GrownPiece("hub-t1", new CellRect(-4, 12, 9, 12), Box: new BoxRef("hub", BoxKind.Hub)),
-            new GrownPiece("wool-b-t4", new CellRect(5, 14, 3, 5), Slot: ApproachSlots.Entry, Box: DonutBox),
-            new GrownPiece("wool-b-t1", new CellRect(8, 16, 9, 3), Slot: ApproachSlots.EntryBar, Box: DonutBox),
-            new GrownPiece("wool-b-t2", new CellRect(8, 12, 3, 4), Slot: ApproachSlots.Leg, Box: DonutBox),
-            new GrownPiece("wool-b-t3", new CellRect(14, 12, 3, 4), Slot: ApproachSlots.Leg, Box: DonutBox),
-            new GrownPiece("wool-b-t5", new CellRect(8, 9, 9, 3), Slot: ApproachSlots.RoomBar, Box: DonutBox),
-            new GrownPiece("wool-b-room", new CellRect(17, 9, 2, 3), PlanRoles.WoolRoom, Box: DonutBox),
+            new UnitPiece("frontline-t1", new CellRect(-4, 6, 8, 6), Box: new BoxRef("frontline", BoxKind.Frontline)),
+            new UnitPiece("hub-t1", new CellRect(-4, 12, 9, 12), Box: new BoxRef("hub", BoxKind.Hub)),
+            new UnitPiece("wool-b-t4", new CellRect(5, 14, 3, 5), Part: CompoundParts.Entry, Box: DonutBox),
+            new UnitPiece("wool-b-t1", new CellRect(8, 16, 9, 3), Part: CompoundParts.EntryBar, Box: DonutBox),
+            new UnitPiece("wool-b-t2", new CellRect(8, 12, 3, 4), Part: CompoundParts.Leg, Box: DonutBox),
+            new UnitPiece("wool-b-t3", new CellRect(14, 12, 3, 4), Part: CompoundParts.Leg, Box: DonutBox),
+            new UnitPiece("wool-b-t5", new CellRect(8, 9, 9, 3), Part: CompoundParts.RoomBar, Box: DonutBox),
+            new UnitPiece("wool-b-room", new CellRect(17, 9, 2, 3), DonutBox, PlanRoles.WoolRoom),
         ],
-        new GrownSpawn("hub-t1", [1, 1], "front"),
-        [new GrownWool("wool-b-room", [1, 1])]);
+        new Marker("hub-t1", 1, 1), "front",
+        [new Marker("wool-b-room", 1, 1)]);
 
     [Test]
     public async Task A_donut_is_walled_across_each_leg_as_near_the_entry_bar_as_it_stands()

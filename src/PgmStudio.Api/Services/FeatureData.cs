@@ -57,9 +57,11 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts, PgmStudio.
         if (rows.Count == 0) return null;
         var marks = await db.FloorMarks.Where(m => m.MapId == mapId).Select(m => new { m.WorldX, m.WorldZ }).ToListAsync(ct);
         var doors = await db.DoorRuns.Where(d => d.MapId == mapId).ToListAsync(ct);
+        var lifts = await db.LiftRuns.Where(l => l.MapId == mapId).ToListAsync(ct);
         return new SegmentIndex(rows.Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)),
                                 marks.Select(m => (m.WorldX, m.WorldZ)),
-                                doors.Select(d => (d.WorldX, d.WorldZ, d.WorldYStart, d.WorldYEnd)));
+                                doors.Select(d => (d.WorldX, d.WorldZ, d.WorldYStart, d.WorldYEnd)),
+                                lifts.Select(l => (l.WorldX, l.WorldZ, l.WorldYStart, l.WorldYEnd)));
     }
 
     /// <summary>The map's segment rows, narrowed in the database by <paramref name="narrow"/> where a read
@@ -173,6 +175,11 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts, PgmStudio.
         sources.AddRange(WoolSources.PgmSpawnerSources(doc, (await MapBboxAsync(mapId, ct))?.bounds));   // PGM <spawner> modules (from the map XML)
         return sources;
     }
+
+    /// <summary>The block every banner the world scan found stands in.</summary>
+    public async Task<List<(int X, int Y, int Z)>> BannersAsync(long mapId, CancellationToken ct = default)
+        => (await db.FlagCandidates.Where(x => x.MapId == mapId).ToListAsync(ct))
+            .Select(row => (row.WorldX, row.WorldY, row.WorldZ)).ToList();
 
     public async Task<List<ResourceSources.Block>> ResourceBlocksAsync(long mapId, CancellationToken ct = default)
         => (await db.ResourceBlocks.Where(x => x.MapId == mapId).ToListAsync(ct))

@@ -121,11 +121,15 @@ public partial class ConfigureTool : IDisposable
         "teams" => NonEmptyArray("teams"),
         "build" => Obj("build") is not null,
         _ when ConfigurePhases.IsObjective(phase.Id) => HasObjective(),
+        // Every member of the match has a default, so a board that states none is a board that takes them.
+        "match" => true,
         _ => false,
     };
 
-    /// <summary>Whether the map states any objective at all — the shared gate behind every objective phase.</summary>
-    private bool HasObjective() => ConfigurePhases.ObjectiveSlices.Any(NonEmptyArray);
+    /// <summary>Whether the map states any objective at all — the shared gate behind every objective phase. A board
+    /// whose kills pay is played for them, so it has one.</summary>
+    private bool HasObjective() =>
+        ConfigurePhases.ObjectiveSlices.Any(NonEmptyArray) || (intent?["killPoints"] is JsonValue kills && kills.TryGetValue(out int paid) && paid > 0);
 
     // Identity's slice is complete once it has a name and at least one (non-blank) author — the minimum
     // the generator needs (docs/tools/configure.md, Identity). Authors are {name, contribution?} objects.
@@ -309,11 +313,26 @@ public partial class ConfigureTool : IDisposable
         StateHasChanged();
     }
 
+    /// <summary>The furthest phase the rail opens. The objective phases are a group rather than a sequence, so
+    /// reaching one reaches every one of them: a flag-only map is not walked through three empty objective phases
+    /// to its flags.</summary>
+    private int Reach
+    {
+        get
+        {
+            var reach = furthest;
+            while (reach + 1 < phases.Length && reach >= 0 && ConfigurePhases.IsObjective(phases[reach].Id)
+                   && ConfigurePhases.IsObjective(phases[reach + 1].Id))
+                reach++;
+            return reach;
+        }
+    }
+
     private async Task JumpPhase(string id)
     {
         // Index into THIS map's phase list, not the catalog — they are the same length today and need not be.
         var i = Array.FindIndex(phases, p => p.Id == id);
-        if (i < 0 || i > furthest || i == phaseIndex) return;   // locked / no-op
+        if (i < 0 || i > Reach || i == phaseIndex) return;   // locked / no-op
         await SaveIfDirtyAsync();   // leaving the current phase
         phaseIndex = i;
         step = 0;

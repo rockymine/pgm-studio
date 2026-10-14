@@ -1,7 +1,7 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 // team-unit fingerprint: a total hash of allocate->fill over every symmetry x preset x seed. Serializes
 // EVERYTHING the allocator decides (box rects, hub form, flip, per-wool fill, every joint + its offer, the
-// spawn facing) and everything the filler emits (piece id, rect, role, slot, owning box), then hashes it —
+// spawn facing) and everything the filler emits (piece id, rect, role, part, owning box), then hashes it —
 // per preset and overall. The check a refactor runs against: a pure structure pass must leave the total
 // bit-identical, and a behavioural change should move exactly the presets it claims to.
 // Run: dotnet run tools/compose/unit-fingerprint.cs
@@ -37,22 +37,19 @@ foreach (var (label, players) in presets)
         alloc++;
         foreach (var b in a.Boxes)
             sb.Append($"B({b.Id},{b.Kind},[{string.Join(" ", b.Rect)}],land={b.LandTargetCells}," +
-                $"form={(b.Form is null ? "-" : $"{b.Form.Form}:{b.Form.Arms}")},flip={b.FlipV}," +
+                $"form={b.Form?.ToString() ?? "-"},flip={b.FlipV}," +
                 $"wool={(b.Wool is null ? "-" : $"{b.Wool.Family}:{b.Wool.Placement}:{b.Wool.Flip}:{b.Wool.WoolAtEnd}")});");
         foreach (var j in a.Joints)
-            sb.Append($"J({j.BoxA}->{j.BoxB},{j.Abutment.Edge}@{j.Abutment.Start}+{j.Abutment.WidthCells}," +
-                $"grant={(j.Grant is null ? "-" : $"{j.Grant.Edge}@{j.Grant.Interval.Start}+{j.Grant.Interval.LengthCells}" +
-                    $":w{j.Grant.WidthClass}:{j.Grant.Grouping}:{j.Grant.GroupId}")});");
+            sb.Append($"J({j.BoxA}->{j.BoxB},{j.Shared.Edge}@{j.Shared.Start}+{j.Shared.Length}," +
+                $"grant={(j.Width is null ? "-" : $"w{j.Width}")});");
 
         if (TeamUnitFiller.Fill(a, new ComposeRng((ulong)seed)) is not { } f)
         { sb.Append("NOFILL\n"); continue; }
         filled++;
-        foreach (var p in f.Unit.Pieces)
-            sb.Append($"P({p.Id},[{string.Join(" ", p.Rect)}],{p.Role},{p.Slot},{p.Box?.Id}/{p.Box?.Kind});");
-        sb.Append($"spawn({f.Unit.Spawn.Piece},[{string.Join(" ", f.Unit.Spawn.At)}],{f.Unit.Spawn.Facing});");
-        foreach (var wl in f.Unit.Wools) sb.Append($"wool({wl.Piece},[{string.Join(" ", wl.At)}]);");
-        foreach (var o in f.FrontlineFace)
-            sb.Append($"face({o.Edge}@{o.Interval.Start}+{o.Interval.LengthCells}:w{o.WidthClass}:{o.Grouping});");
+        foreach (var p in f.Pieces)
+            sb.Append($"P({p.Id},[{string.Join(" ", p.Rect)}],{p.Role},{p.Part},{p.Box.Id}/{p.Box.Kind});");
+        sb.Append($"spawn({f.Spawn.Piece},[{f.Spawn.X} {f.Spawn.Z}],{f.SpawnFacing});");
+        foreach (var wl in f.Wools) sb.Append($"wool({wl.Piece},[{wl.X} {wl.Z}]);");
         sb.Append('\n');
     }
 
