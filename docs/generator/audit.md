@@ -101,20 +101,14 @@ Measured over 400 seeds × 4 presets on the **placed rooms** (not the boxes), in
   different instrument — 480 composed boards through `GET /api/compose` (240 each at 12 and 20
   players, `rot_180`), cross-tabulating each board's hub form against its frontline form —
   **87 branch hubs carry a frontline at 12 players and every one takes the Bar; 14 of 14 at 20.**
-  The arm is not dead; it is the only outcome. What remains open on FR6 is the *grouping* (§5), not
-  whether the wide face can be reached.
+  The arm is not dead; it is the only outcome.
 
 ## 5. Rules sitting in the wrong layer
 
-Re-verified 2026-07-27 — both still present at `TeamUnitFiller.cs:137–143`.
+Still present in `TeamUnitFiller.Fill`, where the front line is filled.
 
-- **The offer grouping is decided by the filler, by coin flip** (`rng.NextBool(0.5) ? Joint :
-  Several`). Grouping is part of an **offer** (§7: "the intervals it invites neighbours
-  onto, *in which groupings*"), and offers are the allocator's plan — the allocator is what writes
-  joints. Worse, this is exactly **FR6**: joint vs several *is* wide vs split frontline, an authored
-  law. A coin flip stands in for it.
-- **The frontline's form choice is also the filler's.** `frontForm` picks Bar-for-branch-hub /
-  else staple-or-strand inside `TeamUnitFiller`, but form choice is declared the allocator's (§4,
+- **The frontline's form choice is the filler's.** `frontForm` picks the I for a branch hub, else an L
+  or a U, inside `TeamUnitFiller`, but form choice is declared the allocator's (§4,
   and the allocator already owns the hub-form choice). The two halves of one decision — the hub form
   and the form that answers it — sit on opposite sides of the allocate/fill seam. → **G111**
 

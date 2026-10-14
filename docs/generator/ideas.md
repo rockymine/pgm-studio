@@ -61,8 +61,7 @@ landed, the rest is the idea.
 - **G114** — the along-axis mirror so a tight-hub L bends back instead of reverting to I.
 - **G107–G111** — the taxonomy audit's five moves: `demand` as a live kind (G107), the `mix` kind (G108),
   budget ladders as derived targets (G109), WL7 separation by construction (G110, the traversal-spread
-  half), the frontline offer decisions moving to the allocator (G111 — joint-vs-several is FR6, currently a
-  coin flip in the filler).
+  half), the frontline's form choice moving to the allocator (G111).
 - **G124** — what the seat-separation law measures: today `TooClose` inflates **box envelopes**
   (corner-inclusive), so a donut's void margins make it over-reject placements whose emitted **terrain**
   keeps the gap (the hole-hub exemplar's donut box passes 1 cell from the spawn box while its terrain keeps

@@ -8880,6 +8880,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   are wool shapes and its kind chip reads *Wool*. `model.md` and `vocabulary.md` speak of forms, compounds and
   boxes. The composer's fingerprints are unchanged. `docs/generator/model.md`. (`G299`)
 
+- **Offers carry where and how wide, nothing else (`G300`)** — `OfferGrouping`, `EdgeOffer.GroupId` and the
+  front line's unread coin flip are gone. Dropping the draw moves 99 of the 120 fingerprinted boards, so
+  `ComposerVersion` is `walled-5`, the fingerprints are re-recorded and the generator's census is re-measured;
+  the reproduction gate composes 408 of 408 with no findings. `docs/generator/model.md` §7. (`G300`)
+
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
   Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.

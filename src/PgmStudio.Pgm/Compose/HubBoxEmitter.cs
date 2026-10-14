@@ -178,12 +178,8 @@ public static class HubBoxEmitter
     {
         var offers = new List<EdgeOffer>();
         foreach (var edge in BoxInterfaces.Of(compound, box.Rect.Width, box.Rect.Height))
-        {
-            var k = 0;
             foreach (var run in BoxInterfaces.Runs(edge.Intervals))
-                offers.Add(new EdgeOffer(run, CompoundEdges.LaneWidthOn(run.Length),
-                    OfferGrouping.Several, $"{box.Id}-{edge.Edge}-{k++}"));
-        }
+                offers.Add(new EdgeOffer(run, CompoundEdges.LaneWidthOn(run.Length)));
         return offers;
     }
 }

@@ -205,12 +205,12 @@ the real emitters, and reports the nearest miss when nothing reproduces a box. `
 
 **The grid's proportions are not the boards' proportions.** Cards are distinct *shapes*, and the sampler that
 varies a donut's box dimensions and attachment width most produces the most distinct shapes — 73 of the 98
-cards are donuts. The census the generator reports says the opposite about real boards: an I is on three
-boards in four at twelve players and nine in ten at twenty, and it gets five cards. The page is a vocabulary,
+cards are donuts. The census the generator reports says the opposite about real boards: an I is on more than four
+boards in five at twelve players and nine in ten at twenty, and it gets five cards. The page is a vocabulary,
 never a frequency.
 
 **The hub's U has no card.** `U` is on the hub menu and the generator's own census finds
-it on 28 of 400 boards at twenty players, but the catalog emits every compound at a fixed 16×12 box with no arm
+it on 22 of 400 boards at twenty players, but the catalog emits every compound at a fixed 16×12 box with no arm
 layout, and the default layout on a 16-wide spine wants two 6-cell legs where the leg-width cap allows 5 — so
 the form refuses and the card is dropped. The grid therefore shows six hub forms where the composer builds
 seven. The frontline's U is unaffected because its own sampler admits end recesses.

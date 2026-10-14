@@ -30,12 +30,3 @@ reaching every outline a board states. The layer word (`B264`, `WE28`, `TS64`) w
 
   *Evidence: 51 of the 79 seeded outlines on the 5b and 5c boards are relief rings or prop points, and so is
   Gypsum Reach's wash, a push whose ring splices six authored points into a lobed ellipse.*
-
-## The layout vocabulary: one word for each thing the composer builds
-The composer is described by cells, pieces, parts, roles, compounds, forms, vacancies, rooms, markers, boxes,
-kinds, joints, layouts and lane widths, and these steps bring its types down to those words. Each leaves the
-composer's fingerprints unchanged except the last, which removes a random draw.
-
-- [ ] **G300 — Offers lose their grouping.** `OfferGrouping`, `EdgeOffer.GroupId` and the front line's coin flip
-  that sets them go; only tests and `unit-fingerprint.cs` read them. Removing the draw moves boards, so the
-  fingerprints are re-recorded and the reproduction gate reruns. `docs/generator/model.md` §7.

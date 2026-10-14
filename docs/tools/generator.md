@@ -70,7 +70,7 @@ page starts and `count` how many boards it returns (clamped 1–48; the page ask
 deterministic one chosen for that reason rather than the platform's, and no clock or identifier enters it.
 Sampling *order* is part of the promise: draws come off in one fixed sequence, so inserting a draw anywhere
 re-rolls every seed downstream of it. That is why any change to composition geometry bumps
-`ComposerVersion.Current` — `walled-4` today — and why the version rides on every library board and every
+`ComposerVersion.Current` — `walled-5` today — and why the version rides on every library board and every
 stored candidate.
 
 A stored row whose version is not the current one is **stale**, and the tray badges it. Nothing about the
@@ -81,7 +81,7 @@ The descriptor is the card's identity and the whole of what a pin needs:
 
 ```json ComposeRequestDto
 { "players": 12, "teams": 2, "symmetry": "rot_180", "cell": 4, "seed": 0,
-  "composerVersion": "walled-4", "schema": 1 }
+  "composerVersion": "walled-5", "schema": 1 }
 ```
 
 `schema` is the descriptor's own shape version, bumped if these fields change, so an old stored descriptor
@@ -193,16 +193,16 @@ row, `rot_180`:
 
 | Players | Wool shapes | Hub forms | Frontline |
 |---|---|---|---|
-| 8 | I 334 · L 73 · clamp 5 · U 4 · H 1 | donut 294 · I 51 · L 50 · U 5 | I 177 · U 121 · L 102 |
-| 12 | I 334 · L 73 · clamp 5 · U 4 · H 1 | donut 294 · I 51 · L 50 · U 5 | I 177 · U 121 · L 102 |
-| 20 | I 355 · L 146 · donut 31 · U 18 · H 15 · clamp 14 | donut 208 · I 140 · L 29 · U 23 | I 247 · L 79 · U 74 |
-| 30 | I 370 · L 141 · donut 42 · U 22 · H 19 · clamp 19 | donut 200 · U 76 · I 41 · G 40 · double-hole 34 · P 11 | L 158 · U 125 · I 117 |
+| 8 | I 340 · L 66 · clamp 4 · H 2 · U 1 | donut 295 · L 60 · I 39 · U 6 | I 175 · L 117 · U 108 |
+| 12 | I 340 · L 66 · clamp 4 · H 2 · U 1 | donut 295 · L 60 · I 39 · U 6 | I 175 · L 117 · U 108 |
+| 20 | I 364 · L 127 · H 22 · donut 21 · U 20 · clamp 11 | donut 204 · I 137 · L 37 · U 22 | I 241 · L 90 · U 69 |
+| 30 | I 368 · L 134 · donut 26 · U 23 · clamp 22 · H 19 | donut 190 · U 81 · G 39 · I 38 · double-hole 31 · P 13 · L 8 | L 161 · I 134 · U 105 |
 
 Read down the columns and the ladders are visible as behaviour. Eight and twelve players compose the same
 boards, because both are the nano band. Every board carries a frontline. The donut is the commonest hub at every
 size, and the wide holed compounds — double-hole, G and P — arrive only at thirty, where a hub is wide enough to
-keep a bar beside a ring whose hole is still 12 blocks. A wool count sums past the board count because a family
-is counted once per board however many approaches of it that board carries.
+keep a bar beside a ring whose hole is still 12 blocks. A wool count sums past the board count because a form
+is counted once per board however many of its wools take it.
 
 ## The library
 

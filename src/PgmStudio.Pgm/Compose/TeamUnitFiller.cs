@@ -115,7 +115,6 @@ public static class TeamUnitFiller
                     var frontForm = hubForm.Arms() > 0 && fitF.Contains(CompoundForm.I) ? CompoundForm.I
                         : strands.Count > 0 ? strands[rng.NextInt(0, strands.Count)]
                         : fitF[rng.NextInt(0, fitF.Count)];
-                    _ = rng.NextBool(0.5);   // the face offer's grouping, drawn and unread
                     // the branch forms take a sampled leg layout (SampleArms — varied leg widths/placements
                     // under the leg laws: ≥2 wide, factor-2 pairs, 2–4 bays, capped end recesses) with the
                     // canonical fat L / symmetric twin as the fallback when the spine cannot host one

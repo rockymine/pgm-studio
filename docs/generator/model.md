@@ -1514,7 +1514,7 @@ how good the result **reads**.
 | **menu** | a generative allowlist — what may be *chosen* (empty = a directed signal) | `FillMenu.For`, `FillMenu.Rows`, `FillProfiles.Families` |
 | **fit gate** | does the choice fit the box | `ShapeEmitter.MinBox`, `FillProfiles.Fits` |
 | **demand** | a shape's requirement *on its environment* (inbound) | no live type — see below |
-| **offer** | what a shape imposes *outward*: the intervals it invites neighbours onto, and in which groupings | `EdgeOffer` |
+| **offer** | what a shape imposes *outward*: the intervals it invites neighbours onto, and how wide | `EdgeOffer` |
 | **veto** | a never-attach mark | `PartDockRole.NeverDock` |
 | **gate** | the hard legality check applying demand, offer and veto, with a **directed rejection** | `DockingGate` → `DockRejection` |
 | **knob** | a free parameter *within* legality — never changes identity | entry shift, attachment width, arm placement |
@@ -1537,13 +1537,6 @@ seven frontline runs*; a target says *this compose wants exactly two, connected*
 finished compose from the outside; targets steer it first and verify afterwards. They are not
 interchangeable, and a band pressed into service as a target silently turns an observation about the
 corpus into a requirement on the generator.
-
-An offer carries one thing beyond where and how wide, because those two do not say whether neighbours
-may **share**. Its grouping is either *several* — each interval takes its own consumer, as a hub's four
-edges do — or *joint*, where one consumer must span the whole group flush, as a wide face across both
-tips of a twin frontline does, preserving the recess between them as a deliberate hole. Joint against
-several *is* the law about wide against split frontlines, which is why the grouping belongs to the
-offer rather than to whoever consumes it.
 
 Three of the kinds are currently vocabulary without machinery, and saying so is part of the model
 rather than an apology for it. **Demand** has no live type: the dual-entry requirement survives only
@@ -1662,7 +1655,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding: profile {I, L} + `Fill`, returning the compound whose room the spawn stands in. |
 | `HubBoxEmitter` | `Compose/HubBoxEmitter.cs` | the **hub**: `Fill` builds its compound, with no room, and `Offers` reads the per-run `EdgeOffer`s it publishes as the constraint source. |
 | `FrontlineBoxEmitter` | `Compose/FrontlineBoxEmitter.cs` | the **front line**: a compound with no room whose spine docks the hub and whose arm-tips are the face toward the axis. |
-| `EdgeOffer` · `OfferGrouping` | `Compose/Boxes/EdgeOffer.cs` | the **offer**: where a neighbour may attach, at what width, in which grouping (§7). |
+| `EdgeOffer` | `Compose/Boxes/EdgeOffer.cs` | the **offer**: where a neighbour may attach, and at what width (§7). |
 | `FillMenu` · `FillProfiles` | `Compose/Boxes/FillMenu.cs`, `Compose/Boxes/FillProfiles.cs` | each box kind's menu (`FillMenu.For(kind)`), the wool menu gated by width (`FillMenu.Rows`), and the footprint fit gate (`FillProfiles.Fits`). |
 | `BoxFiller` | `Compose/Boxes/BoxFiller.cs` | the one profile-gated fill entry point over a positioned `Box`: the compound, or the `FillRejection` saying why not (the spine G63 drives). |
 | `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface` **facts** (span + the template parts on each edge) — it observes; the docking *rules* over the facts are the `DockingGate`. |

@@ -25,7 +25,7 @@ public class HubBoxEmitterTests
     }
 
     [Test]
-    public async Task Rectangle_hub_publishes_one_offer_per_edge_severally()
+    public async Task A_solid_hub_publishes_one_offer_per_edge()
     {
         var box = new Box("hub", BoxKind.Hub, new(0, 0, 6, 5), 30);
         var hub = HubBoxEmitter.Fill(box, CompoundForm.I, laneWidth: 2)!;
@@ -33,11 +33,9 @@ public class HubBoxEmitterTests
         await Assert.That(HubBoxEmitter.Offers(box, hub).Count).IsEqualTo(4);
         await Assert.That(HubBoxEmitter.Offers(box, hub).Select(o => o.Edge))
             .IsEquivalentTo(new[] { BoxEdge.Top, BoxEdge.Bottom, BoxEdge.Left, BoxEdge.Right });
-        await Assert.That(HubBoxEmitter.Offers(box, hub).All(o => o.Grouping == OfferGrouping.Several)).IsTrue();
         // the interval is the whole free edge: top/bottom span the width (6), left/right the height (5)
         await Assert.That(HubBoxEmitter.Offers(box, hub).Single(o => o.Edge == BoxEdge.Top).Interval.Length).IsEqualTo(6);
         await Assert.That(HubBoxEmitter.Offers(box, hub).Single(o => o.Edge == BoxEdge.Left).Interval.Length).IsEqualTo(5);
-        await Assert.That(HubBoxEmitter.Offers(box, hub).Select(o => o.GroupId).Distinct().Count()).IsEqualTo(4);
     }
 
     [Test]
