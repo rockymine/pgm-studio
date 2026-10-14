@@ -487,7 +487,7 @@ post no spawn can walk to and the export refuses it (`EX1`).
 
 **The inspector states the rest of the flag**: its name, its *Defending team*, its *Pickup kit* — *Lower health*
 or *Health boost* to the *Carrier hearts* stated, *Absorption*, or *None* — and, on a team's flag, *Capture*: *Any
-time* or *Only when own flag is home*. A flag with no defending team is King of the Flag's and states its
+time* or *Own flag home*. A flag with no defending team is King of the Flag's and states its
 *Colour* and its *Points per second*; a team's flag takes its team's colour, pays only when captured, and is
 captured in a net round each other team's own flag. The flag phase shares the objective gate, so a map whose
 only objective is a flag reaches Review.

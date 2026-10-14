@@ -50,7 +50,7 @@ public partial class FlagPostsStep
     private static readonly IReadOnlyList<SelectOption> CaptureOptions =
     [
         new(FlagCaptures.Anytime, "Any time"),
-        new(FlagCaptures.Home, "Only when own flag is home", "The carrier waits in the net until their team's flag is back."),
+        new(FlagCaptures.Home, "Own flag home", "The carrier waits in the net until their team's flag is back."),
     ];
 
     private void SetCapture(F.Flag flag, string capture) { flag.Capture = capture; Write(); }
