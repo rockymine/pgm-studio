@@ -91,6 +91,8 @@ public static class MetaGenerator
         if (boxes == 1) clauses.Add("reach your score box");
         else if (boxes > 1) clauses.Add("reach your score boxes");
 
+        if (intent.KillPoints > 0) clauses.Add("get the most kills");
+
         if (clauses.Count == 0) return "";
 
         var joined = clauses.Count == 1

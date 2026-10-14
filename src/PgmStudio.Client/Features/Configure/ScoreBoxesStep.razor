@@ -1,0 +1,90 @@
+@namespace PgmStudio.Client.Features.Configure
+@using PgmStudio.Client.Models
+
+@* Score · boxes: what a kill pays, and the score boxes — a region a team walks into to score, which sends the
+   scorer home. Draw a box with the rectangle tool; the board's symmetry gives every other team its image. *@
+
+<Workspace>
+
+  <Sidebar>
+      <Section Title="Kills">
+        <ChildContent>
+        <p class="section-desc">A board whose kills pay is a team deathmatch. With neither a score limit nor a time
+          limit stated, it ends after ten minutes.</p>
+        <Field Label="A kill pays">
+          <LabelHint>(blank for nothing)</LabelHint>
+          <ChildContent>
+            <NumberField Value="@killPoints" Min="1" Max="100" placeholder="nothing"
+                         ValueChanged="@(value => SetKillPoints((int)value))" OnCleared="@(() => SetKillPoints(null))" />
+          </ChildContent>
+        </Field>
+        </ChildContent>
+      </Section>
+
+      <Section Title="Score boxes">
+        <Actions><Badge Class="@(boxes.Count > 0 ? "badge--success" : "badge--dim")">@boxes.Count box@(boxes.Count == 1 ? "" : "es")</Badge></Actions>
+        <ChildContent>
+        <p class="section-desc">A player walking into their team's box scores for it and is sent home to their
+          spawn. Use the <strong>rectangle tool</strong> to draw one; it stands on the ground under its middle.</p>
+        <div class="panel-list">
+          @if (boxes.Count == 0) { <div class="list-empty">No score boxes yet.</div> }
+          @foreach (var box in boxes)
+          {
+            <ListRow Compact Selected="selectedId == box.Id" @key="box.Id" OnClick="() => SelectBox(box.Id)">
+              <span class="geo-type-icon" style="--icon-tint: @Hex(box.Team)"><i data-lucide="goal"></i></span>
+              <span class="list-label">@TeamName(box.Team)'s box</span>
+              <Badge Kind="neutral">@box.Points point@(box.Points == 1 ? "" : "s")</Badge>
+            </ListRow>
+          }
+        </div>
+        @if (MirrorActive && boxes.Count > 0)
+        {
+          <p class="section-desc">The faint shapes on the canvas are each other team's image of a box. They are
+            created automatically, so they aren't listed here.</p>
+        }
+        </ChildContent>
+      </Section>
+  </Sidebar>
+
+  <div class="sidebar-handle"></div>
+
+  <WorldCanvas @ref="canvas" Slug="@Slug" RectDraw="true" Category="__scorebox_authoring__"
+               OnRectDrawn="OnRectDrawn" OnGeometrySaved="OnGeometrySaved" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <Inspector>
+      @if (Selected is { } sel)
+      {
+        <Section @key="sel.Id">
+          <DetailHeader Icon="goal" IconTint="@Hex(sel.Team)" Label="@($"{TeamName(sel.Team)}'s box")">
+            <Badge Kind="dim">@sel.MinY–@sel.MaxY</Badge>
+          </DetailHeader>
+          <div class="section-body">
+            <Field Label="Scores for">
+              <Select Slim="false" Options="@AuthoringContext.TeamOptions(teams)" Value="@sel.Team"
+                      ValueChanged="@(team => SetTeam(sel, team))" />
+            </Field>
+            <Field Label="Points">
+              <NumberField Value="@sel.Points" Min="1" Max="1000" ValueChanged="@(points => SetPoints(sel, (int)points))" />
+            </Field>
+            <Field Label="The scorer">
+              <Select Slim="false" Options="@HomeOptions" Value="@(sel.Home ? Home : Stays)" ValueChanged="@(home => SetHome(sel, home == Home))" />
+            </Field>
+            <div class="ctrl-row ctrl-row--separated">
+              <Button Writes Fill OnClick="() => Remove(sel)" Title="Remove box"><i data-lucide="trash-2"></i> Remove box</Button>
+            </div>
+          </div>
+        </Section>
+      }
+      else
+      {
+        <Section>
+          <DetailHeader Icon="goal" IconMuted Label="Score box" />
+          <p class="section-desc">Draw a box, then say which team scores in it. Every box must be reachable on
+            foot from every spawn; the pre-flight walk says which one is not.</p>
+        </Section>
+      }
+  </Inspector>
+
+</Workspace>

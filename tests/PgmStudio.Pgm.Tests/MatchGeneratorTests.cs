@@ -97,4 +97,23 @@ public sealed class MatchGeneratorTests
         var gone = Written(new MapIntent(), doc);
         await Assert.That(gone.Portals).IsEmpty();
     }
+
+    [Test]
+    public async Task A_deathmatch_stating_no_limit_ends_on_the_corpus_clock_and_reads_as_one()
+    {
+        var map = Written(new MapIntent { Meta = new MetaIntent { Name = "Pit" }, KillPoints = 1 });
+
+        await Assert.That(map.TimeLimit!.Duration).IsEqualTo(ObjectiveDefaults.DeathmatchTimeLimit);
+        await Assert.That(map.Score!.Kills).IsEqualTo(1);
+        await Assert.That(map.DeclaredGamemode).IsEquivalentTo([Gamemodes.Tdm]);
+        await Assert.That(map.Objective).IsEqualTo("Get the most kills!");
+    }
+
+    [Test]
+    public async Task A_deathmatch_with_a_score_limit_or_a_stated_clock_takes_no_default_clock()
+    {
+        await Assert.That(Written(new MapIntent { KillPoints = 1, ScoreLimit = 50 }).TimeLimit).IsNull();
+        await Assert.That(Written(new MapIntent { KillPoints = 1, TimeLimit = new TimeLimitIntent { Duration = "5m" } }).TimeLimit!.Duration)
+            .IsEqualTo("5m");
+    }
 }

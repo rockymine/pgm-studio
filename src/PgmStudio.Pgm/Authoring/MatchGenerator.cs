@@ -8,8 +8,8 @@ using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// How the match ends and how the dead come back (<c>docs/pgm/match.md</c>): the time limit, the map's own
-/// respawn, a blitz's lives, rage, and the kill height — a portal under the board dropping whoever falls past it
+/// How the match ends and how the dead come back (<c>docs/pgm/match.md</c>): the time limit — the corpus's clock on a
+/// deathmatch stating no limit — the map's own respawn, a blitz's lives, rage, and the kill height — a portal under the board dropping whoever falls past it
 /// into the void. A rule the intent leaves null is left as the map has it; the kill height is this slice's own and
 /// is rebuilt every time.
 /// </summary>
@@ -24,6 +24,9 @@ public static class MatchGenerator
     public static void Apply(Dict doc, MapIntent intent)
     {
         if (intent.TimeLimit is { } time) Set(doc, "time", time.Duration.Length == 0 ? null : TimeLimit(time));
+        // A deathmatch stating no limit of either kind would never end, so it ends on the corpus's clock.
+        else if (intent.KillPoints > 0 && intent.ScoreLimit is null && !doc.ContainsKey("time"))
+            doc["time"] = new Dict { ["duration"] = ObjectiveDefaults.DeathmatchTimeLimit };
         if (intent.Respawn is { } respawn) doc["respawn"] = Respawn(respawn);
         if (intent.Lives is { } lives) Set(doc, "blitz", lives > 0 ? new Dict { ["lives"] = (long)lives } : null);
         if (intent.Rage is { } rage) Set(doc, "rage", rage ? true : null);

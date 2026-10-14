@@ -27,16 +27,17 @@ public static class ConfigurePhases
         new("dtm",    "gem",            "Destroyables",    ["Objectives"],                                    "N12"),
         new("cores",  "flame",          "Cores",           ["Objectives", "Casing"],                          "N12"),
         new("flags",  "flag",           "Flags",           ["Posts"],                                         "TC15"),
+        new("score",  "goal",           "Score",           ["Kills & boxes"],                                 "TC19"),
         new("match",  "timer",          "Match",           [],                                                "TC17"),
         new("review", "badge-check",    "Review and export", ["Pre-flight", "Region tree", "XML"],              "N05"),
     ];
 
     /// <summary>The intent keys the objective phases author, in rail order. Every one of them contributes to
     /// the shared objective gate, so a DTC map is never held up by an empty wool slice.</summary>
-    public static readonly string[] ObjectiveSlices = ["wools", "destroyables", "cores", "flags"];
+    public static readonly string[] ObjectiveSlices = ["wools", "destroyables", "cores", "flags", "scoreBoxes"];
 
     /// <summary>Whether a phase authors one of the map's objectives (and so shares the objective gate).</summary>
-    public static bool IsObjective(string phaseId) => phaseId is "wools" or "dtm" or "cores" or "flags";
+    public static bool IsObjective(string phaseId) => phaseId is "wools" or "dtm" or "cores" or "flags" or "score";
 
     public static int IndexOf(string id) => Array.FindIndex(All, p => p.Id == id);
 }

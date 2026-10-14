@@ -126,8 +126,10 @@ public partial class ConfigureTool : IDisposable
         _ => false,
     };
 
-    /// <summary>Whether the map states any objective at all — the shared gate behind every objective phase.</summary>
-    private bool HasObjective() => ConfigurePhases.ObjectiveSlices.Any(NonEmptyArray);
+    /// <summary>Whether the map states any objective at all — the shared gate behind every objective phase. A board
+    /// whose kills pay is played for them, so it has one.</summary>
+    private bool HasObjective() =>
+        ConfigurePhases.ObjectiveSlices.Any(NonEmptyArray) || (intent?["killPoints"] is JsonValue kills && kills.TryGetValue(out int paid) && paid > 0);
 
     // Identity's slice is complete once it has a name and at least one (non-blank) author — the minimum
     // the generator needs (docs/tools/configure.md, Identity). Authors are {name, contribution?} objects.

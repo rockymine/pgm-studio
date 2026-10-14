@@ -139,4 +139,13 @@ public sealed class ScoreGeneratorTests
         await Assert.That(((List<object?>)((Dict)doc["score"]!)["boxes"]!).Count).IsEqualTo(2);
         await Assert.That(((List<object?>)doc["portals"]!).Count).IsEqualTo(2);
     }
+
+    [Test]
+    public async Task A_board_whose_kills_pay_scores_them_and_states_no_limit_of_its_own()
+    {
+        var score = (Dict)Generate(new MapIntent { KillPoints = ObjectiveDefaults.KillPoints })["score"]!;
+
+        await Assert.That(score["kills"]).IsEqualTo((long)ObjectiveDefaults.KillPoints);
+        await Assert.That(score.ContainsKey("limit")).IsFalse();
+    }
 }

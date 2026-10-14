@@ -65,3 +65,7 @@ on it unless the author says otherwise (`new-map-authoring.md` §5c).
 A box is entered on foot, so a plan-built board's world build clears every box to air after the dressing pass
 and every stamp, fanned by team across the board's symmetry first, since boxes are stated on the intent alone;
 the map then names every box the world cleared (`WorldBuilder.ClearScoreBoxes`).
+
+A box is a goal the reads walk to: `NavPoints` seats each box on its region as kind `scorebox`, owned by nobody,
+and the export's `EX1` refuses a board whose box no spawn can walk into (`world-scan/read-backs.md`). On a map
+read from a world, the Configure tool's Score phase draws the boxes (`tools/configure.md`).

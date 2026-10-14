@@ -237,6 +237,10 @@ reach an unowned flag's posts; it is seated on the storey its point or its regio
 studio-built board is the banner's own block. The export's `EX1` refuses a board whose post cannot be walked to,
 as it refuses an unreachable wool, and the dressing pass's waypoints take the same posts.
 
+**A score box is a goal as well.** Each box of the `<score>` module is a goal of kind `scorebox`, seated on its
+region and owned by nobody, since what a box asks is that a player can walk into it at all; `EX1` refuses a board
+whose box no spawn reaches.
+
 **A wool is judged where it is, which is not always where the map says.** A wool's point is its stated
 `location`, and on a map whose author never set one that coordinate can lie outside the world entirely — ten
 corpus CTW maps do this and play fine, because the wool reaches players from a spawner, a chest or blocks in

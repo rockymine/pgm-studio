@@ -168,6 +168,24 @@ await openPhase("Review and export");
 const matchReview = await page.textContent(".editor-bar-phase span");
 checks.add("Review is reachable past the Match phase", matchReview?.trim() === "Review and export", matchReview?.trim());
 
+// ── the Score phase: a deathmatch is an objective, and a score box is listed ─────────────────────────
+checks.section("a board whose kills pay reaches Review, and its score box is listed");
+
+await arrange({ wools: [], flags: [], killPoints: 1 });
+await openPhase("Review and export");
+const killReview = await page.textContent(".editor-bar-phase span");
+checks.add("Review is reachable with kills as the only objective", killReview?.trim() === "Review and export",
+           killReview?.trim());
+
+await arrange({
+  wools: [], killPoints: 1,
+  scoreBoxes: [{ team: owner, box: { minX: 30, minY: 12, minZ: -2, maxX: 34, maxY: 14, maxZ: 2 }, points: 1, home: true }],
+});
+await openPhase("Score", { canvas: true });
+const scorePhase = await page.textContent(".workspace");
+checks.add("the stored score box is listed", scorePhase.includes("1 box"), scorePhase.slice(0, 200));
+checks.add("the Score phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
+
 // Put the seed map back the way the other specs expect it.
 await api(`/map/${seed.mapSlug}/intent`, { method: "PUT", body: intent });
 

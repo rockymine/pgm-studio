@@ -7,11 +7,11 @@ using PgmStudio.Geom;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>One place a match starts or ends a journey at, as the map document states it: a spawn, a wool, a
-/// destroyable, a core, a control point or a flag post. <see cref="Owner"/> is the team that defends it, which is what tells the journey a
+/// destroyable, a core, a control point, a flag post or a score box. <see cref="Owner"/> is the team that defends it, which is what tells the journey a
 /// team must make to a goal from the one it makes to its own — an attacker has to stand on the goal, and a
 /// defender only has to reach the border of the ground its own goal's protection bars it from.</summary>
-/// <param name="Kind">What it is: <c>spawn</c>, <c>wool</c>, <c>destroyable</c>, <c>core</c>, <c>point</c> or
-/// <c>flag</c>.</param>
+/// <param name="Kind">What it is: <c>spawn</c>, <c>wool</c>, <c>destroyable</c>, <c>core</c>, <c>point</c>,
+/// <c>flag</c> or <c>scorebox</c>.</param>
 /// <param name="Name">What names it — a team for a spawn, a colour for a wool, the goal's own name.</param>
 /// <param name="Owner">The team that defends it — a spawn's own team, a destroyable's or core's stated owner,
 /// and for a wool the team its room belongs to — <c>wool.team</c>, which the document carries because the
@@ -45,8 +45,8 @@ public sealed record NavPoint(string Kind, string Name, string Owner, int X, int
 /// </summary>
 public static class NavPoints
 {
-    /// <summary>Every spawn, wool, destroyable, core, control point and flag post a match is played between, in that
-    /// order.</summary>
+    /// <summary>Every spawn, wool, destroyable, core, control point, flag post and score box a match is played
+    /// between, in that order.</summary>
     /// <param name="data">The map document.</param>
     /// <param name="bounds">The extent a region resolves its geometry within.</param>
     /// <param name="declared">Goals stated somewhere the document cannot carry them. A destroyable's region is
@@ -129,6 +129,17 @@ public static class NavPoints
             foreach (var (x, z, y) in Places(post, regions, bounds))
                 points.Add(new NavPoint("flag", name, owner, x, z, y));
         }
+
+        // A score box pays the team that walks into it, so it is a goal a player has to stand in; seated on its
+        // region and owned by nobody, since what is asked is that a player can get there at all.
+        if (data.GetValueOrDefault("score") is Dict score)
+            foreach (var box in MapDoc.AsList(score.GetValueOrDefault("boxes")).OfType<Dict>())
+            {
+                var region = RegionGeometry2d.Resolve(box.GetValueOrDefault("region"), regions);
+                var team = box.GetValueOrDefault("filter") as string ?? "";
+                if (Centre(region, regions, bounds) is { } at)
+                    points.Add(new NavPoint("scorebox", team.Length > 0 ? $"{team} score box" : "score box", "", at.x, at.z, Height(region)));
+            }
 
         if (declared is { Count: > 0 })
         {

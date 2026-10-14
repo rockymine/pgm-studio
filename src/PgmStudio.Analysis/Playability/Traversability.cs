@@ -79,9 +79,9 @@ public static class Traversability
         // ruling). A destroyable or a core floats a few blocks above the terrain by design, so what is judged
         // is not its own column but the ground around it — the seat below reads the nearest place a player
         // stands on — and a goal whose approach ground is cut off from the spawns is a match nobody can
-        // finish, exactly as an unreachable wool is. A control point and a flag post are goals a player has to
-        // stand **on**, which is the same question asked of the pad or the banner itself.
-        var gating = placed.Where(p => p.Point.Kind is "spawn" or "wool" or "destroyable" or "core" or "point" or "flag").ToList();
+        // finish, exactly as an unreachable wool is. A control point, a flag post and a score box are goals a player
+        // has to stand **on**, which is the same question asked of the pad, the banner or the box itself.
+        var gating = placed.Where(p => p.Point.Kind is "spawn" or "wool" or "destroyable" or "core" or "point" or "flag" or "scorebox").ToList();
         var comps = gating.Where(p => p.Component > 0).Select(p => p.Component).ToList();
         var distinct = comps.ToHashSet();
         // most-common component; ties broken by first appearance in `comps` (matches Counter.most_common)

@@ -67,7 +67,7 @@ null `cores` and nothing about cores is generated or cleared.
 | `spawns` | per team: the point, the yaw, and the protection zone as a union of rects |
 | `observer` | the `<default>` spawn — where spectators and pre-match players stand |
 | `flags` | The flags (`docs/pgm/flags.md` §7–§8): a name, the `team` defending it or none, a `color`, the `posts` it stands at (`at`, `name`, `yaw`), a `pointsRate`, the `carrier` — `lowered` to `carrierHearts` (6), `absorption`, `boost` to `carrierHearts`, or `none` — a `recoverTime` and, on a team's flag, the `net` box its team captures in and when it may `capture` (`anytime`, or `home` — only while its own flag stands at its post). A flag nobody owns is King of the Flag's, pays 1 a second and lowers its carrier, and its posts fan by position; a team's flag is Capture the Flag's, takes its team's colour, pays on capture, and fans by team |
-| `scoreBoxes` | The score boxes (`docs/pgm/score-boxes.md` §4): per box the `team` it scores for, the inclusive `box` it covers, the `points` it pays (1) and whether it sends its scorer `home` (true). Owned by a team, so they fan by team; no Configure phase states them yet |
+| `scoreBoxes` | The score boxes (`docs/pgm/score-boxes.md` §4): per box the `team` it scores for, the inclusive `box` it covers, the `points` it pays (1) and whether it sends its scorer `home` (true). Owned by a team, so they fan by team; the Score phase states them |
 | `zones` | Zones the author states (`docs/pgm/zones.md` §3): per zone an `id`, the `area` rects, an optional `team`, who may `enter` (`anyone`, `team`, `nobody`), whether a block may be `place`d or broken (`break`), whether a player inside may come to `harm`, and a `kit` given inside. A team's zone fans by team, one with no team by position; no Configure phase states them yet |
 | `build` | `maxHeight`, the buildable `areas` and the no-build `holes` cut out of them, and the `mode` a player builds under: `void` builds anywhere but over the void outside what is left, `never` places and breaks nothing, `only` places and breaks the named `materials` and nothing else. Absent, a board with a wool, destroyable or core is `void` and any other is `never` |
 | `wools` | per wool: owner, colour, room rects, the source point, and one monument per capturing team |
@@ -76,6 +76,7 @@ null `cores` and nothing about cores is generated or cleared.
 | `shops` | per shop: an id, a name, its categories, and per icon the stack, every payment it costs and the action buying it triggers. The keeper says what it is called and what mob it is; where it stands is derived, one per shop at every team's spawn, unless it names a block or a region of its own (`docs/pgm/shops.md` §9). **The tool has no step for these** (`TC9`): they are stated through the API, carried here, and projected like any other slice |
 | `spawners` | per generator: an id, the block it drops into, how near a player must be standing, how much ground around it is kept from being built in or dug out, how long between drops, how many may lie uncollected and what it drops. What mints the currency a shop is priced in, since a spawn kit and the kill reward derived from it are the only other item sources a generated board has; the three regions and the one `never`-build rule over them are minted from the id (`docs/pgm/shops.md` §10) |
 | `controlPoints` · `scoreLimit` | per capture point: name, anchor, pad size, what holding it pays, how long it takes and whether it is held or touched (`captureMode`) — and the score the match ends at, which the Match phase states. Owned by nobody, so unlike every other objective they carry no team. **The tool has no step for the points** (`TC7`): they are stated through the API (`docs/pgm/control-points.md` §9) or derived from a plan's own count (`docs/tools/plan.md`), carried here, and projected like any other slice |
+| `killPoints` | what a kill pays the killer's team (`docs/pgm/match.md` §7). A board whose kills pay is a team deathmatch, an objective in its own right, and ends after ten minutes where it states neither limit; the Score phase states it |
 | `timeLimit` · `respawn` · `lives` · `rage` · `killHeight` | how the match ends and how the dead come back (`docs/pgm/match.md` §7): a time limit's `duration` and the `result` that decides it then, the respawn `delay` and whether it is `auto` or lets the dead `spectate`, the lives a blitz gives, whether every hit kills, and the height a player falls into the void below. Map-wide, so nothing fans. The Match phase states them |
 | `waterLanes` | the late-opening gaps — carried, never authored here (below) |
 | `structures` · `spawns[].piece` · `wools[].piece`/`entries` | written only by the plan compiler; consumed by the world export |
@@ -181,7 +182,7 @@ and is the subject of *What it refuses* below.
 
 ## Phases
 
-Ten phases on the rail, walked in order. A phase unlocks when the phases before it have their slice; the
+Eleven phases on the rail, walked in order. A phase unlocks when the phases before it have their slice; the
 rail locks anything further on, and jumping back is always allowed.
 
 ### Import — phase zero
@@ -489,6 +490,16 @@ the Flag's and states its colour and the points a second it pays the team carryi
 team's colour, pays only when captured, and is captured in a net round each other team's own flag; *Captures*
 says whether its team scores in its own net any time or only while this flag is home. The flag
 phase shares the objective gate, so a map whose only objective is a flag reaches Review.
+
+### Score — Kills & boxes
+
+**Score** is the objective phase for a board played for points rather than for a goal it carries off. *A kill
+pays* states `killPoints`: a board whose kills pay is a team deathmatch, and that alone satisfies the objective
+gate, so a deathmatch reaches Review with no wool, monument, core or flag. Its score boxes are drawn with the
+rectangle tool: a box stands on the ground under its middle, three blocks tall from the first air, and the
+inspector says which team scores in it, what it pays and whether it sends the scorer home to their spawn. Under
+the board's symmetry every other team gains its image of each box, which the canvas shows faintly; every box is
+a goal the pre-flight walk has to reach (`EX1`).
 
 ### Match
 

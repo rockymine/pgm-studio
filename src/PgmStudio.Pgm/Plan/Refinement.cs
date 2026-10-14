@@ -87,6 +87,9 @@ public sealed record Refinement
     /// <summary>The score the match ends at.</summary>
     [JsonPropertyName("scoreLimit")] public int? ScoreLimit { get; init; }
 
+    /// <summary>What a kill pays the killer's team.</summary>
+    [JsonPropertyName("killPoints")] public int? KillPoints { get; init; }
+
     /// <summary>How long the match runs and what decides it then.</summary>
     [JsonPropertyName("timeLimit")] public TimeLimitIntent? TimeLimit { get; init; }
 
@@ -584,7 +587,7 @@ public sealed record Refinement
         if (refinement["authors"] is JsonArray authors)
             (intent["meta"] as JsonObject ?? (JsonObject)(intent["meta"] = new JsonObject()))["authors"] = new JsonArray(
                 [.. authors.Select(person => person is JsonValue name ? new JsonObject { ["name"] = name.DeepClone() } : person?.DeepClone())]);
-        foreach (var key in (string[])["controlPoints", "scoreLimit", "timeLimit", "respawn", "lives", "rage", "killHeight", "spawners", "shops"])
+        foreach (var key in (string[])["controlPoints", "scoreLimit", "killPoints", "timeLimit", "respawn", "lives", "rage", "killHeight", "spawners", "shops"])
             if (refinement.ContainsKey(key)) intent[key] = refinement[key]?.DeepClone();
         if (board is null) return;
         if (refinement["controlPoints"] is JsonArray points)

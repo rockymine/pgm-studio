@@ -95,6 +95,11 @@ through the XML and the JSON codec.
 | `rage` | every hit kills | `<rage/>` |
 | `killHeight` | the height a player falls into the void below | a `kill-height` region below it and a portal on it to `@-64` |
 
+`KillPoints` beside them states what a kill pays, and `ScoreGenerator` writes it as the score's `<kills>`: a
+board whose kills pay is a team deathmatch, stated `tdm`, reading "Get the most kills!", and played to a clock —
+147 of the 167 corpus maps scoring kills pay 1 a kill, 139 state no score limit, and ten minutes is their
+commonest time — so one stating neither limit ends after ten minutes.
+
 A member the intent leaves null is left as the map has it, so a board built from an imported map keeps the
 rules it came with; the kill height is the generator's own, rebuilt on every write and removed when the intent
 states none. The rules are map-wide, so nothing fans across a symmetry. A board stating `lives` or `rage` states

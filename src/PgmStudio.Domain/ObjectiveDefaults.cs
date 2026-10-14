@@ -102,6 +102,13 @@ public static class ObjectiveDefaults
     /// limit (3, on 15 of the 30 CTF maps stating one), each capture paying one.</summary>
     public const int CtfScoreLimit = 3;
 
+    /// <summary>What a kill pays on a team deathmatch board (147 of the 167 corpus maps scoring kills).</summary>
+    public const int KillPoints = 1;
+
+    /// <summary>How long a deathmatch runs where it states neither limit: the corpus's commonest (43 of the 167 maps
+    /// scoring kills, 139 of which state no score limit).</summary>
+    public const string DeathmatchTimeLimit = "10m";
+
     /// <summary>What capturing a flag in a net pays (122 of 140 corpus nets).</summary>
     public const int FlagNetPoints = 1;
 

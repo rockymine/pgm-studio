@@ -99,6 +99,11 @@ public sealed record MapIntent
     /// author saying they want no limit, and is left alone.</summary>
     public int? ScoreLimit { get; init; }
 
+    /// <summary>What a kill pays the killer's team. A board whose kills pay is a team deathmatch, played to a score
+    /// or, with neither limit stated, to <see cref="ObjectiveDefaults.DeathmatchTimeLimit"/>. Null or zero pays
+    /// nothing.</summary>
+    public int? KillPoints { get; init; }
+
     /// <summary>How long the match runs and what decides it when the time runs out (<c>docs/pgm/match.md</c>).
     /// Null leaves the map's time limit untouched; an empty duration states none.</summary>
     public TimeLimitIntent? TimeLimit { get; init; }
@@ -139,14 +144,14 @@ public sealed record MapIntent
             hasRealDestroyable: Destroyables is { Count: > 0 },
             hasCores: Cores is { Count: > 0 },
             // What the studio authors is a hill, so the board is KotH rather than CP: one PGM module, and the
-            // spelling is the choice. Kills and deaths are never scored — a capture board's <score> states the
-            // limit it ends at and nothing else, which is what keeps it off the deathmatch tag.
+            // spelling is the choice. A board is a deathmatch only where its kills pay; a capture board's <score>
+            // states the limit it ends at and nothing else.
             hasControlPoints: false,
             hasKing: ControlPoints is { Count: > 0 },
             // A team's flag is CTF, the tag PGM derives from any flag; one nobody owns is King of the Flag, which a
             // map states.
             hasFlags: Flags?.Any(flag => flag.Owned && flag.Posts.Count > 0) ?? false,
-            scoresKillsOrDeaths: false,
+            scoresKillsOrDeaths: KillPoints > 0,
             hasBlitz: Lives > 0,
             hasRage: Rage == true),
         .. (Flags?.Any(flag => !flag.Owned) ?? false ? [Domain.Gamemodes.Kotf] : Array.Empty<string>()),

@@ -77,6 +77,7 @@ public sealed class SymmetryExpanderCarryTests
             Id = "mid", At = new Pt(0, 12, 0), Drops = [new SpawnerDrop("emerald")],
         }],
         ScoreLimit = ObjectiveDefaults.ControlPointScoreLimit,
+        KillPoints = 1,
         TimeLimit = new TimeLimitIntent { Duration = "10m", Result = TimeResults.Score },
         Respawn = new RespawnIntent { Delay = "3s", Auto = true },
         Lives = 2,

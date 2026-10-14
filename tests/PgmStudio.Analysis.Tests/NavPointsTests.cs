@@ -277,4 +277,22 @@ public sealed class NavPointsTests
             ("Hill", "", 40, 0, (int?)10),
         });
     }
+
+    /// <summary>A score box is a goal a player stands in, seated on its region and owned by nobody.</summary>
+    [Test]
+    public async Task Every_score_box_is_a_goal_on_its_region()
+    {
+        var data = new Dict
+        {
+            ["regions"] = new Dict { ["red-1-score-box"] = Cuboid(30, 12, -2, 34, 15, 2) },
+            ["score"] = new Dict
+            {
+                ["boxes"] = new List<object?> { new Dict { ["region"] = "red-1-score-box", ["filter"] = "red-team" } },
+            },
+        };
+
+        var box = NavPoints.Of(data, Bounds).Single(point => point.Kind == "scorebox");
+
+        await Assert.That((box.Name, box.Owner, box.X, box.Z, box.Y)).IsEqualTo(("red-team score box", "", 32, 0, (int?)12));
+    }
 }

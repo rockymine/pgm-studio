@@ -6,9 +6,9 @@ using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// The <c>&lt;score&gt;</c> a board ends at, and the score boxes it pays through. Without one PGM builds no score
-/// module and nothing a point, a flag or a box pays is counted, so a board whose objectives pay states one. One
-/// slice writes it because three objectives pay into it.
+/// The <c>&lt;score&gt;</c> a board ends at, what a kill pays, and the score boxes it pays through. Without one PGM
+/// builds no score module and nothing a point, a flag, a box or a kill pays is counted, so a board whose objectives
+/// pay states one. One slice writes it because everything that pays pays into it.
 /// </summary>
 public static class ScoreGenerator
 {
@@ -19,10 +19,12 @@ public static class ScoreGenerator
         Clear(doc);
         var boxes = intent.ScoreBoxes ?? [];
         var limit = Limit(intent);
-        if (limit is null && boxes.Count == 0) return;
+        var kills = intent.KillPoints is > 0 ? intent.KillPoints : null;
+        if (limit is null && boxes.Count == 0 && kills is null) return;
 
         var score = new Dict();
         if (limit is { } stated) score["limit"] = (long)stated;
+        if (kills is { } paid) score["kills"] = (long)paid;
         if (boxes.Count > 0) score["boxes"] = Boxes(doc, intent, boxes);
         doc["score"] = score;
     }

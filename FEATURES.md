@@ -8795,6 +8795,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   Flags phase offers it as *Captures*. The filter editor reads the flag filters, taking its types from the parser.
   `docs/pgm/flags.md` §8. (`PG39`)
 
+- **A board states a team deathmatch (`PG40`)** — `MapIntent.KillPoints` writes the score's `<kills>`; such a board
+  states `tdm`, reads "Get the most kills!", and ends after ten minutes where it states neither limit — the corpus's
+  shape on 139 of its 167 kill-scoring maps. `docs/pgm/match.md` §7. (`PG40`)
+
+- **A score box is a goal the walk reads (`WS88`)** — `NavPoints` seats every score box as kind `scorebox`, and the
+  export refuses a board whose box no spawn can walk into. `docs/world-scan/read-backs.md`. (`WS88`)
+
+- **Configure states the score (`TC19`)** — a Score objective phase sets what a kill pays, which on its own passes
+  the objective gate, and draws score boxes on the ground with their team, points and home portal.
+  `docs/tools/configure.md`. (`TC19`)
+
 - **Configure states the match (`TC17`)** — a Match phase between the objectives and Review: the score and time
   limits and what decides a match at the bell, the lives a blitz gives, rage, the respawn delay and how the dead
   come back, and the kill height, each blank for the board's own default. `docs/tools/configure.md`. (`TC17`)
