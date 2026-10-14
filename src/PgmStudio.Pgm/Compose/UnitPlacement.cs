@@ -26,7 +26,7 @@ public static class UnitPlacement
     /// <summary>The face's lateral extent in frame coordinates: the <c>v</c> hull of the front-most row of
     /// terrain. Read off the emitted pieces rather than the frontline's box, because a branch front's face is
     /// its arm tips — the box can be wider than what actually fronts the mid.</summary>
-    internal static (int Lo, int Hi)? FaceExtent(GrownUnit unit, Frame frame)
+    internal static (int Lo, int Hi)? FaceExtent(TeamUnit unit, Frame frame)
     {
         if (unit.Pieces.Count == 0) return null;
         var uv = unit.Pieces.Select(p => frame.FromRect(p.Rect)).ToList();
@@ -42,7 +42,7 @@ public static class UnitPlacement
     /// <para>An odd face hull cannot centre on whole cells — its midpoint falls between two of them — so the
     /// shift is rounded and the residual half cell is left for the composer's own front-slack gate to judge.
     /// The face-parity law keeps the common case exact.</para></summary>
-    public static GrownUnit CentreFaceOnAxis(GrownUnit unit, string symmetry)
+    public static TeamUnit CentreFaceOnAxis(TeamUnit unit, string symmetry)
     {
         if (!MidCarver.LateralFlip(symmetry)) return unit;
         var frame = Frame.For(symmetry);

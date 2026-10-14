@@ -8,8 +8,8 @@ namespace PgmStudio.Pgm.Compose;
 /// land target) and the edge it docks its host through, it reads the box's <see cref="FillProfiles">profile</see>
 /// to decide which families are legal, emits one into the footprint (the room taking the box kind's role), and
 /// reports the <b>land</b> the fill produced against the target — the two-currency accounting (footprint is
-/// fixed once, land is what fragment later spends). "No shape fits" is a <see cref="FillResult"/> data channel,
-/// never a throw, so an over-constrained box feeds a directed box change up a level.
+/// fixed once, land is what fragment later spends). "No shape fits" is a <see cref="FillRejection"/>, never a
+/// throw, so an over-constrained box feeds a directed box change up a level.
 ///
 /// <para>Today it fills the <b>wool</b> box (over <see cref="WoolBoxEmitter.Fill"/>) — the kind where the
 /// footprint gate decides whether a share reaches a donut / U / H. The spawn box already fills through the
@@ -20,43 +20,35 @@ namespace PgmStudio.Pgm.Compose;
 public static class BoxFiller
 {
     /// <summary>Fill <paramref name="box"/> with a specific <paramref name="family"/>, docking
-    /// <paramref name="mouth"/>. Rejects (as a <see cref="FillResult"/>) when the family is outside the box's
-    /// profile or its minimum box does not fit the footprint. On success carries the emission + vacancies.</summary>
-    public static FillResult Fill(
-        Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, bool flip = false, string? roomId = null,
-        RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false, int attachmentWidth = 0,
-        RingWalls? ringWalls = null)
+    /// <paramref name="mouth"/>: the compound, box-local, or <c>null</c> with <paramref name="rejection"/> set when
+    /// the family is outside the box's profile, does not fit the footprint, or would dock illegally.</summary>
+    public static Compound? Fill(
+        Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, out FillRejection? rejection,
+        bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false,
+        int attachmentWidth = 0, RingWalls? ringWalls = null)
     {
         var menu = FillProfiles.Families(box.Kind, corridorWidth, corridorWidth);
-        if (!menu.Contains(family)) return new FillResult.NoFamilyFits(menu);
-        var result = box.Kind switch
+        if (!menu.Contains(family))
         {
-            BoxKind.Wool => WoolBoxEmitter.Fill(
-                box, mouth, family, corridorWidth, flip, roomId, roomPlacement, woolAtEnd, attachmentWidth, ringWalls),
-            _ => throw new ComposeException(
-                $"BoxFiller fills wool boxes; the {box.Kind} box docks through its own binding " +
-                "(spawn via SpawnBoxEmitter, G78; hub/frontline at G41-C)."),
-        };
-        if (result is not FillResult.Ok ok) return result;
+            rejection = new FillRejection.NotOnMenu([.. menu.Select(f => f.ToString())]);
+            return null;
+        }
+        if (box.Kind != BoxKind.Wool)
+            throw new ComposeException(
+                $"BoxFiller fills wool boxes; the {box.Kind} box docks through its own binding.");
+        if (WoolBoxEmitter.Fill(box, mouth, family, corridorWidth, out rejection, flip, roomPlacement, woolAtEnd,
+                attachmentWidth, ringWalls) is not { } compound)
+            return null;
 
-        // the docking law: the host docks the mouth, so the mouth edge must be a legal dock. Read the
-        // box's edges off the placed fill (shape-relative) and gate them — an illegal dock (a sealed wool or a
-        // non-entry edge) is a directed rejection, never a placement.
-        var edges = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect.Width, box.Rect.Height);
-        return DockingGate.CheckMouth(edges, mouth) is { } rejection
-            ? new FillResult.IllegalDock(rejection, family, mouth)
-            : ok;
-    }
-
-    /// <summary>Recover the box-local <see cref="Compound"/> of a placed fill — its pieces, the room among them,
-    /// shifted back to the box origin — so <c>BoxInterfaces.Of</c> can read the edge facts the docking gate
-    /// maps.</summary>
-    private static Compound BoxLocal(PlacedApproach a, Box box)
-    {
-        int ox = box.Rect.X, oz = box.Rect.Z;
-        return new Compound(
-            [.. a.Pieces.Select(p => new Piece(new(p.Rect.X - ox, p.Rect.Z - oz, p.Rect.Width, p.Rect.Height), p.Part!))],
-            a.Vacancies);
+        // the docking law: the host docks the mouth, so the mouth edge must be a legal dock. Read the box's edges
+        // off the fill and gate them — an illegal dock (a sealed wool or a non-entry edge) is a directed
+        // rejection, never a placement.
+        if (DockingGate.CheckMouth(BoxInterfaces.Of(compound, box.Rect.Width, box.Rect.Height), mouth) is { } dock)
+        {
+            rejection = new FillRejection.IllegalDock(dock, mouth);
+            return null;
+        }
+        return compound;
     }
 
     /// <summary>The <b>entry</b> interval a <paramref name="family"/> fill presents on its <paramref name="mouth"/>
@@ -68,11 +60,10 @@ public static class BoxFiller
         Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, bool flip = false,
         RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false, int attachmentWidth = 0)
     {
-        if (Fill(box, mouth, corridorWidth, family, flip, "probe", roomPlacement, woolAtEnd, attachmentWidth)
-            is not FillResult.Ok ok)
+        if (Fill(box, mouth, corridorWidth, family, out _, flip, roomPlacement, woolAtEnd, attachmentWidth)
+            is not { } compound)
             return null;
-        var edge = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect.Width, box.Rect.Height)
-            .FirstOrDefault(e => e.Edge == mouth);
+        var edge = BoxInterfaces.Of(compound, box.Rect.Width, box.Rect.Height).FirstOrDefault(e => e.Edge == mouth);
         var entry = edge?.Intervals.FirstOrDefault(i => i.Part == CompoundParts.Entry);
         return entry is null ? null : (entry.Start, entry.LengthCells);
     }
@@ -81,25 +72,9 @@ public static class BoxFiller
     /// succeeds) — the legal fill set for this box, footprint gate included.</summary>
     public static IReadOnlyList<ShapeFamily> FittingFamilies(Box box, BoxEdge mouth, int corridorWidth) =>
         FillProfiles.Families(box.Kind, corridorWidth, corridorWidth)
-            .Where(f => Fill(box, mouth, corridorWidth, f) is FillResult.Ok)
+            .Where(f => Fill(box, mouth, corridorWidth, f, out _) is not null)
             .ToList();
 
-    /// <summary>Pick a legal family for the box by <paramref name="roll"/> (indexing the fitting set) and fill.
-    /// The profile-driven selection: a roll over the families the kind admits and the footprint holds, falling
-    /// back to the directed <see cref="FillResult.NoFamilyFits"/> signal when none fit.</summary>
-    public static FillResult Fill(Box box, BoxEdge mouth, int corridorWidth, int roll, bool flip = false, string? roomId = null)
-    {
-        var fitting = FittingFamilies(box, mouth, corridorWidth);
-        if (fitting.Count == 0) return new FillResult.NoFamilyFits(FillProfiles.Families(box.Kind, corridorWidth, corridorWidth));
-        return Fill(box, mouth, corridorWidth, fitting[((roll % fitting.Count) + fitting.Count) % fitting.Count], flip, roomId);
-    }
-
-    /// <summary>The <b>land</b> (walkable terrain) an emitted approach spends, in cells — the box's land
-    /// currency (its footprint is fixed by the box; this is what fragment converts to build to hit the
-    /// target).</summary>
-    public static int Land(PlacedApproach a) => a.Pieces.Sum(p => p.Rect.Width * p.Rect.Height);
-
-    /// <summary>True when the fill's land is within the box's land target — the two-currency balance a fill
-    /// under budget satisfies directly; over budget is what fragment spends down.</summary>
-    public static bool WithinLandTarget(Box box, PlacedApproach a) => Land(a) <= box.LandTargetCells;
+    /// <summary>The <b>land</b> (walkable ground) a compound spends, in cells — its room included.</summary>
+    public static int Land(Compound compound) => compound.Pieces.Sum(p => p.Rect.Width * p.Rect.Height);
 }

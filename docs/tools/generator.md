@@ -438,8 +438,8 @@ all — it is authored at the plan tier instead, which is where a four-team capt
 
 **The composer reaches less of the shape vocabulary than the emitter builds**, and the gap is plumbing rather
 than geometry. `ShapeEmitter.Emit` takes five placement knobs — a second donut attachment, a moved attachment,
-an extended wool, and both scythe endpoint shifts — which `WoolBoxEmitter.Emit` passes through and
-`WoolBoxEmitter.Fill`, the only path the compose pipeline uses, forwards none of (`G145`). Two families are in
+an extended wool, and both scythe endpoint shifts — which `WoolBoxEmitter.Fill`, the only path the compose
+pipeline uses, forwards none of (`G145`). Two families are in
 the same position for a different reason: the **Z** is on the production menu and filled correctly but no
 sampler ever draws one, and the **scythe** is off the menu outright for a stated reason (`G146`). So a board
 can never carry any of the seven, however many seeds are walked — which is why both family chips render

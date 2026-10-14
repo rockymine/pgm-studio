@@ -206,13 +206,13 @@ landed, the rest is the idea.
   else grounds: named membership (`PlanBoxes.MembersOf`, the `Members` list) ignores geometry entirely, so a
   piece can be dragged *out* of its box and still be carried when the box moves (`plan-canvas.js`, the box
   drag translates `d.carried` in both modes). That is not an authoring mode — named membership exists for
-  **provenance**, so a pinned board can record the grouping that actually produced it off `BoxPartition.KeyOf`
+  **provenance**, so a pinned board can record the grouping that actually produced it off `BoxLayout.KeyOf`
   rather than having it re-derived approximately. Exposing it as a toggle asks the author to edit with a
   mechanism built to preserve history.
   The fix is not a third mode, it is separating two questions that are currently one button. **Which pieces
   are members** is legitimately two modes (named vs containment) and both should stay. **What the rect is**
   should not be a mode at all: it should always be the bounding box of the members. That is not a new rule —
-  `BoxPartition.Of` already computes a box's rect as `Bbox(members)`, and `Box`'s own contract says a box's
+  `BoxLayout.Of` already computes a box's rect as `Bbox(members)`, and `Box`'s own contract says a box's
   contents "must touch its edges", which is the same statement. So dragging a member extends the box,
   dragging the box moves its members, and a member outside its own box becomes unrepresentable rather than
   merely strange. One case to decide: an empty box has no bounding box — keep its drawn rect until it has a
@@ -232,7 +232,7 @@ landed, the rest is the idea.
   of budget, median **115%**, and **28 of 40 boards are over**. So the budget is not a cap — it is an input
   the allocator consults for its decisions (lane width, whether there is a frontline, the hub caps, the wool
   count — `TeamUnitAllocator.cs:46-52`, `UnitTuning.WoolCount`) and then nothing reconciles the result
-  against it. `BoxFiller.WithinLandTarget` exists and no production path calls it.
+  against it.
   Nothing caught this because nothing measures it: the only land-ish term is `fill-ratio` (G8), which is land
   over the board's **bounding box**, not land against the **budget** — a different quantity that can sit
   happily in its band while the unit is at double its target.
@@ -267,8 +267,7 @@ landed, the rest is the idea.
   proves too coarse to act on.
 
 - [ ] **G145 — five emitter knobs are unreachable from the composer.** `ShapeEmitter.Emit` takes
-  `attachments`, `woolExtend`, `entryShift`, `woolShift` and `attachmentOffset`, and `WoolBoxEmitter.Emit`
-  passes all five through — but `WoolBoxEmitter.Fill`, the only path `BoxFiller` and therefore the whole
+  `attachments`, `woolExtend`, `entryShift`, `woolShift` and `attachmentOffset`, but `WoolBoxEmitter.Fill`, the only path `BoxFiller` and therefore the whole
   compose pipeline uses, forwards none of them (`WoolBoxEmitter.cs`, the `ShapeEmitter.Emit` call inside
   `Fill`). Nothing in the tree calls them, so the two-attachment donut, the extended-wool donut and both
   scythe endpoint shifts are built, tested, and **cannot appear on a generated board**.

@@ -13,17 +13,17 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// </summary>
 public sealed class WoolBoxGrowthTests
 {
-    private static GrownUnit? TryFill(int players, ulong seed)
+    private static TeamUnit? TryFill(int players, ulong seed)
     {
         var request = new ComposeRequest(players, seed: seed);
         var rng = new ComposeRng(seed);
         var env = Envelope.Derive(request, rng);
         var crossing = MidCarver.Crossing(env, splitBand: false, doubleRank: false, fine: false);
         if (TeamUnitAllocator.Allocate(env, rng, crossing) is not { } alloc) return null;
-        return TeamUnitFiller.Fill(alloc, rng)?.Unit;
+        return TeamUnitFiller.Fill(alloc, rng);
     }
 
-    private static GrownUnit Fill(int players, ulong seedFrom)
+    private static TeamUnit Fill(int players, ulong seedFrom)
     {
         for (var seed = seedFrom; seed < seedFrom + 20; seed++)
             if (TryFill(players, seed) is { } unit) return unit;
@@ -31,7 +31,7 @@ public sealed class WoolBoxGrowthTests
     }
 
     private static (HashSet<(int, int)> Filled, HashSet<(int, int)> Room) BoxCells(
-        IReadOnlyList<GrownPiece> boxPieces, string roomId)
+        IReadOnlyList<UnitPiece> boxPieces, string roomId)
     {
         var filled = new HashSet<(int, int)>();
         var roomCells = new HashSet<(int, int)>();
@@ -184,13 +184,12 @@ public sealed class WoolBoxGrowthTests
         // (attachment) + span (2·cw + holeDeep) + rd = 13; H = 2·cw + holeAlong = 7 (also ≥ entry + cw).
         const int cw = 2;
         var box = new Box("wool-a", BoxKind.Wool, new(0, 0, 13, 7), 91);
-        var ok = (FillResult.Ok)BoxFiller.Fill(
-            box, BoxEdge.Left, cw, ShapeFamily.Donut, roomId: "wool-a-room", attachmentWidth: 5);
+        var filled = BoxFiller.Fill(box, BoxEdge.Left, cw, ShapeFamily.Donut, out _, attachmentWidth: 5)!;
 
-        var hole = ok.Vacancies.Single(v => v.Kind == "hole");
+        var hole = filled.Vacancies.Single(v => v.Kind == "hole");
         await Assert.That(hole.Rect.Width * hole.Rect.Height).IsEqualTo(15);         // the 3×5 hole (orientation aside)
         await Assert.That(Math.Min(hole.Rect.Width, hole.Rect.Height)).IsEqualTo(3);
-        var entry = ok.Approach.Pieces.Where(p => p.Part == CompoundParts.Entry).ToList();
+        var entry = filled.Pieces.Where(p => p.Part == CompoundParts.Entry).ToList();
         await Assert.That(entry.Count).IsEqualTo(1);
         await Assert.That(Math.Max(entry[0].Rect.Width, entry[0].Rect.Height)).IsEqualTo(5);   // the widened hub entry
     }

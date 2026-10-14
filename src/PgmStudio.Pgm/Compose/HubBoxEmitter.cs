@@ -1,15 +1,7 @@
 using PgmStudio.Geom;
-using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
-using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Compose;
-
-/// <summary>The filled hub box: its terrain pieces (part- and box-labeled, <b>no room, no marker</b>), the
-/// per-edge <see cref="EdgeOffer"/>s it publishes as the constraint source, and the <see cref="CompoundRead"/>
-/// form it was built as (the emit-side record the compound mirror verifies).</summary>
-public sealed record PlacedHub(
-    IReadOnlyList<GrownPiece> Pieces, IReadOnlyList<EdgeOffer> Offers, CompoundRead Form);
 
 /// <summary>
 /// The hub binding over <see cref="CompoundEmitter"/> — the <b>constraint-source box kind</b>
@@ -19,13 +11,12 @@ public sealed record PlacedHub(
 /// of the spawn/wool/frontline neighbours, published here as <see cref="EdgeOffer"/>s (the
 /// hub's half of the offer mechanism): a consumed <see cref="EdgeOffer.WidthClass"/> is
 /// the neighbour's corridor width. The composer decides which offer each neighbour takes and drives the per-edge
-/// widths; this emitter produces the compound and the offers it sources.
+/// widths; this emitter produces the compound and reads the offers it sources.
 ///
 /// <para>Form menu (<see cref="Forms"/>, authored — model.md §4): <b>Rectangle · L · U · Ring · P · Double-hole · G</b>,
 /// compact optionally-holed compounds, deliberately not Zig/Hook/the higher combs. Each is one <see cref="CompoundForm"/>
 /// sized to fill the box, so its outward walls touch the box edges and become offers; a compound too small for its
-/// form at the given <c>cw</c> is a <b>directed null</b>, not a throw. Pieces carry the hub <see cref="BoxRef"/>
-/// and their structural part, extending the label-preservation invariant to the hub.</para>
+/// form at the given <c>cw</c> is a <b>directed null</b>, not a throw.</para>
 /// </summary>
 public static class HubBoxEmitter
 {
@@ -122,22 +113,19 @@ public static class HubBoxEmitter
         return w1 < cw || w2 > cap ? null : [(0, w1), (w1 + bay, w2)];
     }
 
-    /// <summary>Fill a hub <see cref="Box"/> (plan cells) as <paramref name="form"/> at wall/corridor width
-    /// <paramref name="cw"/>, room-free, publishing one <see cref="EdgeOffer"/> per free run on each edge at
-    /// the width that run can <b>support</b> (its length class). That is the hub's surface, not a per-neighbour
-    /// agreement: one run can carry two docks at two widths, so the width a given neighbour builds to rides on
-    /// its <see cref="BoxJoint.Grant"/>, not here. <paramref name="flipV"/>
+    /// <summary>Fill a hub <see cref="Box"/> as <paramref name="form"/> at wall/corridor width <paramref name="cw"/>:
+    /// the compound, box-local, with no room. <see cref="Offers"/> reads what each of its free runs can carry.
+    /// <paramref name="flipV"/>
     /// reflects the compound across the box's horizontal midline (box-local z) — the branch/holed forms are built
     /// spine-first (arms hanging down), so flipping turns the open feet toward the box top; the allocator sets it
-    /// per frame so a form's solid edges cover the demanded sides (symmetric forms are unaffected). Pieces carry
-    /// the hub <paramref name="box"/> label and their compound part; there is no room and no marker. <paramref name="cw"/>
+    /// per frame so a form's solid edges cover the demanded sides (symmetric forms are unaffected). <paramref name="cw"/>
     /// is ignored by the solid Rectangle. <paramref name="ringWalls"/> widens the four walls of a ring-bodied form
     /// (Ring/P/Double-hole/G) independently, spending the box's slack rather than growing it; <c>null</c> keeps all
     /// four at <paramref name="cw"/>, and it is ignored by the forms without a ring. Walls are given in the
     /// <b>pre-flip</b> compound frame, so <paramref name="flipV"/> swaps which of top/bottom faces the box top.
     /// <c>null</c> when the box is too small for the form (a directed signal);
     /// throws <see cref="ComposeException"/> only for a form off the hub menu.</summary>
-    public static PlacedHub? Fill(
+    public static Compound? Fill(
         Box box, CompoundRead form, int cw, bool flipV = false, RingWalls? ringWalls = null,
         IReadOnlyList<(int Start, int Width)>? armLayout = null) =>
         Fill(box, form, cw, flipV, out _, ringWalls, armLayout);
@@ -146,7 +134,7 @@ public static class HubBoxEmitter
     /// <remarks>On a <c>null</c> return, <b>why</b> the form was refused — the directed reason in
     /// the shared <see cref="FillRejection"/> vocabulary, carrying the compound emitter's own dimension message
     /// rather than discarding it. <c>null</c> when the fill succeeded.</remarks>
-    public static PlacedHub? Fill(
+    public static Compound? Fill(
         Box box, CompoundRead form, int cw, bool flipV, out FillRejection? rejection,
         RingWalls? ringWalls = null, IReadOnlyList<(int Start, int Width)>? armLayout = null)
     {
@@ -158,16 +146,7 @@ public static class HubBoxEmitter
             rejection = new FillRejection.FormDoesNotFit(detail ?? $"{form.Form} does not fit {boxW}x{boxH} at cw {cw}.");
             return null;
         }
-        if (flipV) compound = compound.Turned(BoxTurn.FlipZ, boxW, boxH);   // feet toward the box top, spine to bottom
-
-        var boxRef = new BoxRef(box.Id, BoxKind.Hub);
-        var pieces = new List<GrownPiece>(compound.Pieces.Count);
-        var n = 1;
-        foreach (var (r, part) in compound.Pieces)
-            pieces.Add(new GrownPiece($"{box.Id}-t{n++}", new(box.Rect.X + r.X, box.Rect.Z + r.Z, r.Width, r.Height),
-                PlanRoles.Piece, part, boxRef));
-
-        return new PlacedHub(pieces, Offers(box, compound, boxW, boxH), form);
+        return flipV ? compound.Turned(BoxTurn.FlipZ, boxW, boxH) : compound;   // feet toward the box top
     }
 
     // build the compound of `form` sized to fill the boxW×boxH box at `cw`; null when the box is too small for it
@@ -209,14 +188,14 @@ public static class HubBoxEmitter
         catch (ArgumentException e) { detail = e.Message; return null; }
     }
 
-    // one offer per contiguous free run on each box edge, Several-grouped (each neighbour docks its own run),
-    // at the w2/w4/w6 rung the run's own length can support — the hub's capacity. What a particular neighbour
-    // was granted is on its joint: two neighbours can share one run at different widths, which a per-run (let
-    // alone per-edge) width could not express.
-    private static IReadOnlyList<EdgeOffer> Offers(Box box, Compound compound, int boxW, int boxH)
+    /// <summary>One offer per contiguous free run on each edge of the hub <paramref name="compound"/> filling
+    /// <paramref name="box"/>, at the w2/w4/w6 rung the run's own length can support — the hub's capacity. What a
+    /// particular neighbour was granted is on its joint: two neighbours can share one run at different widths,
+    /// which a per-run (let alone per-edge) width could not express.</summary>
+    public static IReadOnlyList<EdgeOffer> Offers(Box box, Compound compound)
     {
         var offers = new List<EdgeOffer>();
-        foreach (var edge in BoxInterfaces.Of(compound, boxW, boxH))
+        foreach (var edge in BoxInterfaces.Of(compound, box.Rect.Width, box.Rect.Height))
         {
             var k = 0;
             foreach (var run in BoxInterfaces.Runs(edge.Intervals))

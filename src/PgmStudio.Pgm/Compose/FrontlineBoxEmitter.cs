@@ -1,32 +1,19 @@
-using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
-using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Compose;
-
-/// <summary>The filled frontline box: its terrain pieces (front-labeled, <b>no room, no marker</b>), the
-/// <see cref="FaceOffers"/> the mid consumes, the <see cref="SpineEdge"/> that docks the hub and the
-/// <see cref="FaceEdge"/> toward the axis, and the <see cref="CompoundRead"/> form it was built as.</summary>
-public sealed record PlacedFrontline(
-    IReadOnlyList<GrownPiece> Pieces, IReadOnlyList<EdgeOffer> FaceOffers,
-    BoxEdge SpineEdge, BoxEdge FaceEdge, CompoundRead Form);
 
 /// <summary>
 /// The frontline binding over <see cref="CompoundEmitter"/> — the <b>join box kind</b>
 /// (docs/generator/model.md §4). Room-free like the hub, with one edge the <c>face</c> (where the fanned images
 /// meet the mid). It is a <b>join, not a
 /// placement</b> — its only interfaces are the <b>spine</b> (which docks the hub, consuming the hub's front-edge
-/// offer) and the <b>face</b> (which it offers to the mid); the sides are inert. <b>Rotation is fixed by the
+/// offer) and the <b>face</b> (which the mid docks); the sides are inert. <b>Rotation is fixed by the
 /// box kind</b>: the spine docks the hub and the arm-tips are the face toward the axis, so the emitter works
 /// in one canonical frame — spine <see cref="BoxEdge.Top"/>, face <see cref="BoxEdge.Bottom"/> — and the composer
 /// orients the placed box onto the hub.
 ///
-/// <para>The <b>face offer</b> is the front line's half of the offer mechanism, and its
-/// <see cref="OfferGrouping"/> is the mid's contract (model.md §7): <b>joint</b> — one mid consumer spans all tips
-/// (FR6's wide face; the inter-tip recess is simply not offered, staying CT9's hole) — vs <b>several</b> — one
-/// mid per tip (the twin / double frontline, K derived runs). Form menu (<see cref="Forms"/>): <b>Bar</b> (the
-/// wide face, FR6), and the branch family <b>single</b> (<c>SpineArms(1)</c>, FR3/FR4) and <b>twin</b>
-/// (<c>SpineArms(2)</c>, CT8) — lifting the grower's <c>FrontForm { None, Single, Wide, Twin }</c> into data.</para>
+/// <para>Form menu (<see cref="Forms"/>): <b>Bar</b> (the wide face, FR6), and the branch family <b>single</b>
+/// (<c>SpineArms(1)</c>, FR3/FR4) and <b>twin</b> (<c>SpineArms(2)</c>, CT8).</para>
 /// </summary>
 public static class FrontlineBoxEmitter
 {
@@ -69,37 +56,30 @@ public static class FrontlineBoxEmitter
         return [(end0, w1), (end0 + w1 + bay, rem - w1)];
     }
 
-    /// <summary>Fill a frontline <see cref="Box"/> (plan cells) as <paramref name="form"/> at strand width
-    /// <paramref name="cw"/>, room-free, with the spine docking <paramref name="spineMouth"/> (the box edge
-    /// facing the hub) and the face on the opposite edge toward the axis. An optional <paramref name="armLayout"/>
-    /// (from <see cref="SampleArms"/>) overrides the branch forms' canonical legs — the sampled variation; when
-    /// absent the canonical fat L / symmetric twin builds. The compound is built spine-up and oriented
-    /// onto the mouth (<see cref="Compound.Turned"/>), so the composer places the box against any hub edge —
-    /// <see cref="BoxEdge.Top"/> is the canonical frame (spine top, face bottom). Publishes the <b>face offer</b>
-    /// over the arm-tip runs on the face edge, grouped <paramref name="faceGrouping"/> (joint — one shared group
-    /// the mid spans; several — one group per tip). <paramref name="faceWidth"/> is the width the mid reads,
-    /// defaulting to each run's own class. Pieces carry the frontline <paramref name="box"/> label; no room, no
-    /// marker. <c>null</c> when the box is too small for the form; throws for a form off the frontline menu.</summary>
-    public static PlacedFrontline? Fill(
-        Box box, CompoundRead form, int cw, OfferGrouping faceGrouping, BoxEdge spineMouth = BoxEdge.Top,
-        int? faceWidth = null, IReadOnlyList<(int Start, int Width)>? armLayout = null) =>
-        Fill(box, form, cw, faceGrouping, out _, spineMouth, faceWidth, armLayout);
+    /// <summary>Fill a frontline <see cref="Box"/> as <paramref name="form"/> at strand width <paramref name="cw"/>:
+    /// the compound, box-local, with no room, its spine docking <paramref name="spineMouth"/> (the box edge facing
+    /// the hub) and its face on the opposite edge toward the axis. An optional <paramref name="armLayout"/> (from
+    /// <see cref="SampleArms"/>) overrides the branch forms' canonical legs; when absent the canonical fat L /
+    /// symmetric twin builds. The compound is built spine-up and turned onto the mouth
+    /// (<see cref="Compound.Turned"/>), so the composer places the box against any hub edge. <c>null</c> when the
+    /// box is too small for the form (a directed signal).</summary>
+    public static Compound? Fill(
+        Box box, CompoundRead form, int cw, BoxEdge spineMouth = BoxEdge.Top,
+        IReadOnlyList<(int Start, int Width)>? armLayout = null) =>
+        Fill(box, form, cw, out _, spineMouth, armLayout);
 
-    /// <inheritdoc cref="Fill(Box, CompoundRead, int, OfferGrouping, BoxEdge, int?, IReadOnlyList{ValueTuple{int, int}})"/>
-    /// <remarks>On a <c>null</c> return, <b>why</b> the form was refused — the directed reason in
-    /// the shared <see cref="FillRejection"/> vocabulary, carrying the compound emitter's own message (including the
-    /// fat-L thin-leg guard) rather than discarding it. <c>null</c> when the fill succeeded.</remarks>
-    public static PlacedFrontline? Fill(
-        Box box, CompoundRead form, int cw, OfferGrouping faceGrouping, out FillRejection? rejection,
-        BoxEdge spineMouth = BoxEdge.Top,
-        int? faceWidth = null, IReadOnlyList<(int Start, int Width)>? armLayout = null)
+    /// <inheritdoc cref="Fill(Box, CompoundRead, int, BoxEdge, IReadOnlyList{ValueTuple{int, int}})"/>
+    /// <remarks>On a <c>null</c> return, <b>why</b> the form was refused, in the shared <see cref="FillRejection"/>
+    /// vocabulary.</remarks>
+    public static Compound? Fill(
+        Box box, CompoundRead form, int cw, out FillRejection? rejection, BoxEdge spineMouth = BoxEdge.Top,
+        IReadOnlyList<(int Start, int Width)>? armLayout = null)
     {
         rejection = null;
-        int boxW = box.Rect.Width, boxH = box.Rect.Height;
         // build spine-up in the spine-length × reach frame (transposed when the spine docks a lateral edge), then
         // turn onto the mouth, as a spawn or wool box turns its mouth-up emission
         var lateral = spineMouth is BoxEdge.Left or BoxEdge.Right;
-        var (spineLen, reach) = lateral ? (boxH, boxW) : (boxW, boxH);
+        var (spineLen, reach) = lateral ? (box.Rect.Height, box.Rect.Width) : (box.Rect.Width, box.Rect.Height);
         var built = BuildCompound(form, spineLen, reach, cw, armLayout, out var detail);
         if (built is null)
         {
@@ -107,34 +87,8 @@ public static class FrontlineBoxEmitter
                 detail ?? $"{form.Form} (arms {form.Arms}) does not fit a {spineLen}x{reach} spine frame at cw {cw}.");
             return null;
         }
-        var compound = built.Turned(spineMouth.TopOnto(), spineLen, reach);
-
-        var boxRef = new BoxRef(box.Id, BoxKind.Frontline);
-        var pieces = new List<GrownPiece>(compound.Pieces.Count);
-        var n = 1;
-        foreach (var (r, part) in compound.Pieces)
-            pieces.Add(new GrownPiece($"{box.Id}-t{n++}", new(box.Rect.X + r.X, box.Rect.Z + r.Z, r.Width, r.Height),
-                PlanRoles.Piece, part, boxRef));
-
-        // the face is the arm-tip edge opposite the spine; only it is offered — the sides are inert and the spine
-        // is the consumer side (it lands on the hub's offer).
-        var face = Opposite(spineMouth);
-        var faceIface = BoxInterfaces.Of(compound, boxW, boxH).Single(e => e.Edge == face);
-        var joint = faceGrouping == OfferGrouping.Joint;
-        var offers = BoxInterfaces.Runs(faceIface.Intervals)
-            .Select((run, k) => new EdgeOffer(face, run, faceWidth ?? CompoundEdges.WidthClass(run.LengthCells),
-                faceGrouping, joint ? $"{box.Id}-face" : $"{box.Id}-face-{k}"))
-            .ToList();
-
-        return new PlacedFrontline(pieces, offers, spineMouth, face, form);
+        return built.Turned(spineMouth.TopOnto(), spineLen, reach);
     }
-
-    /// <summary>The box edge opposite <paramref name="e"/> — the face sits opposite the spine.</summary>
-    private static BoxEdge Opposite(BoxEdge e) => e switch
-    {
-        BoxEdge.Top => BoxEdge.Bottom, BoxEdge.Bottom => BoxEdge.Top,
-        BoxEdge.Left => BoxEdge.Right, _ => BoxEdge.Left,
-    };
 
     // build the compound of `form` sized to fill the box, spine along the top; null when the box is too small. An
     // armLayout (SampleArms) overrides the branch forms' canonical legs with the sampled per-leg sizes. `detail`

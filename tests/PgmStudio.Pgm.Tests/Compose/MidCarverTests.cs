@@ -209,10 +209,10 @@ public sealed class MidCarverTests
         var design = MidCarver.Crossing(env, split, doubleRank: false, fine: false);
         var halfGap = design.HalfGapCells;
         var pieces = legs
-            .Select((leg, index) => new GrownPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2)))
-            .Append(new GrownPiece("hub", new(legs.Min(l => l.X), halfGap + 2, 4, 3)))
+            .Select((leg, index) => new UnitPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2)))
+            .Append(new UnitPiece("hub", new(legs.Min(l => l.X), halfGap + 2, 4, 3)))
             .ToList();
-        var unit = new GrownUnit(pieces, new Marker("hub", 0, 0), "front", []);
+        var unit = new TeamUnit(pieces, new Marker("hub", 0, 0), "front", []);
         return MidCarver.TryCarve(env, design, unit)?.BandRect;
     }
 
@@ -265,9 +265,9 @@ public sealed class MidCarverTests
         var env = Env("rot_180");
         var design = MidCarver.Crossing(env, splitBand: true, doubleRank: false, fine: false);
         var halfGap = design.HalfGapCells;
-        MidResult Carve(params (int X, int W)[] legs) => MidCarver.TryCarve(env, design, new GrownUnit(
-            legs.Select((leg, index) => new GrownPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2)))
-                .Append(new GrownPiece("hub", new(legs.Min(l => l.X), halfGap + 2, 4, 3))).ToList(),
+        MidResult Carve(params (int X, int W)[] legs) => MidCarver.TryCarve(env, design, new TeamUnit(
+            legs.Select((leg, index) => new UnitPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2)))
+                .Append(new UnitPiece("hub", new(legs.Min(l => l.X), halfGap + 2, 4, 3))).ToList(),
             new Marker("hub", 0, 0), "front", []))!;
 
         var refused = Carve((-6, 4), (2, 3));

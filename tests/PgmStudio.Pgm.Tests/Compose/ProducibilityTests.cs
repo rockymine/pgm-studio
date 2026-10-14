@@ -163,11 +163,11 @@ public sealed class ProducibilityTests
 
             var box = new Box("front", BoxKind.Frontline, new(0, 0, spine, 5), spine * 5);
             var built = FrontlineBoxEmitter.Fill(box, new CompoundRead(CompoundForm.SpineArms, 2), 2,
-                OfferGrouping.Joint, BoxEdge.Top, armLayout: legs);
+                BoxEdge.Top, legs);
             if (built is null) continue;
             checkedLayouts++;
 
-            var read = Producibility.Read(FrontPlan(box, built.Pieces)).Single();
+            var read = Producibility.Read(FrontPlan(box, UnitPieces.Lay(built, box).Pieces)).Single();
             await Assert.That(read.IsProducible).IsTrue()
                 .Because($"legs {key} on a {spine} spine came out of the sampler, so the sweep must have seen it — "
                          + $"nearest was {read.Nearest?.Label ?? "none"}");
@@ -176,7 +176,7 @@ public sealed class ProducibilityTests
     }
 
     // wrap emitted frontline pieces as a one-box plan — the frontline twin of HubPlan
-    private static PlanModel FrontPlan(Box box, IReadOnlyList<GrownPiece> pieces)
+    private static PlanModel FrontPlan(Box box, IReadOnlyList<UnitPiece> pieces)
     {
         var plan = new PlanModel
         {

@@ -8,7 +8,7 @@ namespace PgmStudio.Pgm.Shapes;
 /// order for the chain families, adjacency for the branches, hole-edge geometry for the donut — and never
 /// from a canonical rect position, so the emitter's placement manipulations (entry/wool shift, side-tuck,
 /// donut attachment offset/width/count, room-at-end, flips, and any mouth reorientation) all survive. It is
-/// the classifier-side counterpart of the emitter's own part stamping (<c>GrownPiece.Part</c>): the emitter
+/// the classifier-side counterpart of the emitter's own part stamping (<c>UnitPiece.Part</c>): the emitter
 /// labels, this recovers, and asserting the two agree closes the mirror at the part level, not just the
 /// family level. See <c>docs/generator/model.md</c> §4 — how a wool approach is built, and derivation.
 ///

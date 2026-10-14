@@ -10,7 +10,7 @@ namespace PgmStudio.Pgm.Compose;
 public sealed record ComposedWall(string Outer, string Inner);
 
 /// <summary>
-/// Seats the bedrock walls on every wool approach of a grown unit, where the author holds a defence: each on a
+/// Seats the bedrock walls on every wool approach of a team unit, where the author holds a defence: each on a
 /// seam with no ground beyond either end so it is crossed rather than rounded (<c>PL17</c>), a lane mouth wide
 /// (<c>ST8</c>), and at least <c>ST8</c>'s nearest standoff in front of the room. A plain approach takes one wall
 /// across the route the attack takes, at <c>ST8</c>'s standoff — or, where the room lies deeper than that, the
@@ -29,7 +29,7 @@ public static class WallPlacer
     public static int LaneCells(int cell) => (PlanValidator.WallStandoffMinBlocks + cell - 1) / cell + 1;
 
     /// <summary>The unit with every seated wall's lane cut in two, and the walls.</summary>
-    public static (GrownUnit Unit, IReadOnlyList<ComposedWall> Walls) Place(GrownUnit unit, int cell)
+    public static (TeamUnit Unit, IReadOnlyList<ComposedWall> Walls) Place(TeamUnit unit, int cell)
     {
         var pieces = unit.Pieces.ToList();
         var walls = new List<ComposedWall>();
@@ -60,10 +60,10 @@ public static class WallPlacer
 
     /// <summary>A seam a wall may stand on: the lane piece it cuts, if any, and its standoff from the room in
     /// blocks.</summary>
-    private readonly record struct Candidate(Seam Seam, GrownPiece? Cut, int Standoff);
+    private readonly record struct Candidate(Seam Seam, UnitPiece? Cut, int Standoff);
 
-    private static (List<GrownPiece> Pieces, IReadOnlyList<ComposedWall> Walls)? Seat(
-        List<GrownPiece> pieces, string roomId, int cell)
+    private static (List<UnitPiece> Pieces, IReadOnlyList<ComposedWall> Walls)? Seat(
+        List<UnitPiece> pieces, string roomId, int cell)
     {
         if (pieces.FirstOrDefault(p => p.Id == roomId) is not { Box: { } box } room) return null;
         var owner = Owners(pieces);
@@ -106,7 +106,7 @@ public static class WallPlacer
     /// wide, void past both ends, one piece on each side and neither of them the room, and far enough in front
     /// of the room.</summary>
     private static IEnumerable<Candidate> Qualifying(
-        IReadOnlyList<GrownPiece> approach, IReadOnlyDictionary<(int X, int Z), GrownPiece> owner,
+        IReadOnlyList<UnitPiece> approach, IReadOnlyDictionary<(int X, int Z), UnitPiece> owner,
         IReadOnlyDictionary<(int X, int Z), int> fromRoom, int cell)
     {
         foreach (var (seam, cut) in Candidates(approach))
@@ -129,7 +129,7 @@ public static class WallPlacer
 
     /// <summary>Whether a box's pieces close round void: a cell inside their bounds the outside cannot reach
     /// without crossing them.</summary>
-    private static bool Encloses(IReadOnlyList<GrownPiece> region)
+    private static bool Encloses(IReadOnlyList<UnitPiece> region)
     {
         var land = region.SelectMany(p => Cells(p.Rect)).ToHashSet();
         int minX = land.Min(c => c.X) - 1, maxX = land.Max(c => c.X) + 1;
@@ -146,8 +146,8 @@ public static class WallPlacer
     /// <summary>The pairs of seams that between them close the way from the approach's entry to the room while
     /// neither does alone — one across each way round a hole — the pair standing farthest from the room first.</summary>
     private static IEnumerable<(Candidate First, Candidate Second)> Pairs(
-        IReadOnlyList<Candidate> candidates, IReadOnlyList<GrownPiece> region,
-        IReadOnlyDictionary<(int X, int Z), GrownPiece> owner, GrownPiece room)
+        IReadOnlyList<Candidate> candidates, IReadOnlyList<UnitPiece> region,
+        IReadOnlyDictionary<(int X, int Z), UnitPiece> owner, UnitPiece room)
     {
         var land = region.SelectMany(p => Cells(p.Rect)).ToHashSet();
         var entries = land.Where(c => Neighbours(c).Any(n => owner.ContainsKey(n) && !land.Contains(n))).ToList();
@@ -170,8 +170,8 @@ public static class WallPlacer
     /// <summary>The walls on <paramref name="chosen"/>, each lane seam cut first: a wall's inner piece is the
     /// side the room reaches with every chosen seam closed, or the nearer the room where the room reaches both.
     /// Null when a cut leaves a seam without one piece on each side.</summary>
-    private static (List<GrownPiece> Pieces, IReadOnlyList<ComposedWall> Walls)? Apply(
-        List<GrownPiece> pieces, IReadOnlyList<Candidate> chosen, IReadOnlyList<GrownPiece> region, GrownPiece room,
+    private static (List<UnitPiece> Pieces, IReadOnlyList<ComposedWall> Walls)? Apply(
+        List<UnitPiece> pieces, IReadOnlyList<Candidate> chosen, IReadOnlyList<UnitPiece> region, UnitPiece room,
         IReadOnlyDictionary<(int X, int Z), int> fromRoom)
     {
         var land = region.SelectMany(p => Cells(p.Rect)).ToHashSet();
@@ -221,7 +221,7 @@ public static class WallPlacer
     }
 
     /// <summary>Every seam an approach offers: each cut across one of its pieces, and each of its four sides.</summary>
-    private static IEnumerable<(Seam Seam, GrownPiece? Cut)> Candidates(IReadOnlyList<GrownPiece> approach)
+    private static IEnumerable<(Seam Seam, UnitPiece? Cut)> Candidates(IReadOnlyList<UnitPiece> approach)
     {
         foreach (var piece in approach)
         {
@@ -246,9 +246,9 @@ public static class WallPlacer
                 yield return (x, z);
     }
 
-    private static Dictionary<(int X, int Z), GrownPiece> Owners(IEnumerable<GrownPiece> pieces)
+    private static Dictionary<(int X, int Z), UnitPiece> Owners(IEnumerable<UnitPiece> pieces)
     {
-        var owner = new Dictionary<(int X, int Z), GrownPiece>();
+        var owner = new Dictionary<(int X, int Z), UnitPiece>();
         foreach (var piece in pieces)
             foreach (var c in Cells(piece.Rect)) owner[c] = piece;
         return owner;
@@ -259,7 +259,7 @@ public static class WallPlacer
 
     /// <summary>The four-connected step count from <paramref name="sources"/> to every land cell.</summary>
     private static Dictionary<(int X, int Z), int> Distances(
-        IEnumerable<(int X, int Z)> sources, IReadOnlyDictionary<(int X, int Z), GrownPiece> land)
+        IEnumerable<(int X, int Z)> sources, IReadOnlyDictionary<(int X, int Z), UnitPiece> land)
     {
         var distance = new Dictionary<(int X, int Z), int>();
         var queue = new Queue<(int X, int Z)>();

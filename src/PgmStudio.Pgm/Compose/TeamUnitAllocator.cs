@@ -26,7 +26,7 @@ public sealed record UnitPlan(UnitSide Spawn, IReadOnlyList<UnitSide> Wools);
 /// </summary>
 public static class TeamUnitAllocator
 {
-    /// <summary>Allocate a team unit's <see cref="BoxPartition"/> from the <paramref name="env"/> budget — the
+    /// <summary>Allocate a team unit's <see cref="BoxLayout"/> from the <paramref name="env"/> budget — the
     /// geometry layer over <see cref="UnitTuning.SamplePlan"/>. Positions the hub on the (u, v) grid, <b>owns the hub-form
     /// choice</b> (model.md §4), and seats the spawn and wools on the chosen form's <b>real free-edge
     /// intervals</b> — the offerable surface the compound actually presents (§4), not its bounding box. So a
@@ -39,7 +39,7 @@ public static class TeamUnitAllocator
     /// too small — the directed "no shape fits" signal, §4).
     /// The frontline is allocated on the front side, its reach pushing the hub back so it sits between the hub
     /// and the axis; the filler fills it as a join and carries its face offer to the mid.</summary>
-    public static BoxPartition? Allocate(
+    public static BoxLayout? Allocate(
         ComposeEnvelope env, ComposeRng rng, CrossingDesign? crossing = null)
     {
         var frame = Frame.For(env.Symmetry);
@@ -104,7 +104,7 @@ public static class TeamUnitAllocator
             seating = UnitSeating.Seat(new CompoundRead(CompoundForm.Rectangle), hubRect, frame, laneWidthCells, env.WoolCorridorCells, seatGapCells, env.Cell, requests, rng);
         if (seating is not { } s) return null;
 
-        return new BoxPartition(s.Boxes, s.Joints);
+        return new BoxLayout(s.Boxes, s.Joints);
     }
 
     /// <summary>Choose the hub form for a <paramref name="boxW"/>×<paramref name="boxH"/> box (real cell dims, the

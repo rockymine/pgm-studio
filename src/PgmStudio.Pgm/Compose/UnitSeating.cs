@@ -39,15 +39,15 @@ public static class UnitSeating
                 armLayout: arms) is not { } hub)
             return (null, empty, frontEdge, new HashSet<(int X, int Z)>());
 
-        var runs = hub.Offers.GroupBy(o => o.Edge).ToDictionary(
+        var runs = HubBoxEmitter.Offers(hubBox, hub).GroupBy(o => o.Edge).ToDictionary(
             g => g.Key,
             g => (IReadOnlyList<(int Start, int Len)>)g.Select(o => (o.Interval.Start, o.Interval.LengthCells)).ToList());
-        return (hubBox, runs, frontEdge, Enclosed(hubRect, hub.Pieces));
+        return (hubBox, runs, frontEdge, Enclosed(hubRect, UnitPieces.Lay(hub, hubBox).Pieces));
     }
 
     /// <summary>The cells inside <paramref name="box"/> that none of <paramref name="pieces"/> covers and that no
     /// empty path reaches from the box's border — a ring's hole, where a bay open to an edge is not one.</summary>
-    private static HashSet<(int X, int Z)> Enclosed(CellRect box, IReadOnlyList<GrownPiece> pieces)
+    private static HashSet<(int X, int Z)> Enclosed(CellRect box, IReadOnlyList<UnitPiece> pieces)
     {
         var land = new HashSet<(int X, int Z)>();
         foreach (var piece in pieces)
@@ -321,7 +321,7 @@ public static class UnitSeating
             var overhangs = seat < 0 || seat + request.Along > edgeLen;
             if (seated.Any(b => b.Kind is BoxKind.Spawn or BoxKind.Wool
                     && (overhangs ? SeatGeometry.TooClose(b.Rect, box, seatGapCells) : SeatGeometry.Overlap(b.Rect, box)))) continue;
-            if (BoxPartition.SharedEdge(hubRect, box) is { } abutment) placements.Add((seat, box, abutment));
+            if (BoxLayout.SharedEdge(hubRect, box) is { } abutment) placements.Add((seat, box, abutment));
         }
         if (placements.Count == 0) return null;
 
@@ -427,7 +427,7 @@ public static class UnitSeating
                 for (var seat = rs - e.Start; seat <= rs + rl - e.Start - e.Len; seat++)
                 {
                     var box = SeatGeometry.NeighbourRect(edge, seat, request.Depth, request.Along, hubRect);
-                    if (BoxPartition.SharedEdge(hubRect, box) is not null
+                    if (BoxLayout.SharedEdge(hubRect, box) is not null
                         && !seated.Any(b => SeatGeometry.Overlap(b.Rect, box))
                         && !seated.Any(b => b.Kind is BoxKind.Spawn or BoxKind.Wool && SeatGeometry.TooClose(b.Rect, box, separationCells)))
                         placements.Add((box, flip));
@@ -436,6 +436,6 @@ public static class UnitSeating
         if (placements.Count == 0) return null;
 
         var (chosen, chosenFlip) = placements[rng.NextInt(0, placements.Count)];
-        return (chosen, BoxPartition.SharedEdge(hubRect, chosen)!, chosenFlip);
+        return (chosen, BoxLayout.SharedEdge(hubRect, chosen)!, chosenFlip);
     }
 }

@@ -592,10 +592,8 @@ pair. Built by `HubBoxEmitter`.
 The **frontline** menu is a plain **Bar** for the wide face (FR6), the **branch family** — a spine
 plus K arms, single or twin or more — and the **holed** forms `P` and `TwoUOnI`, which present a
 closed recess. Rotation is fixed by the box kind rather than sampled: the compound docks the hub with
-its spine and its arm-tips are the face toward the axis. The face offer carries a **grouping** —
-`Joint`, where one mid consumer must span every tip flush, or `Several`, where each tip takes its own
-consumer and the inter-tip recess is simply not offered, surviving as a deliberate hole. Joint against
-several *is* FR6's wide against split frontline. Built by `FrontlineBoxEmitter`.
+its spine and its arm-tips are the face toward the axis. The mid reads that face off the laid pieces
+(`MidCarver`), so the front line publishes nothing of its own. Built by `FrontlineBoxEmitter`.
 
 Two arrangements that get called shapes are not compounds at all, but docking patterns. The **clamp** is one compact room docked on two distinct faces — opposite faces give a
 centred I plus I, adjacent faces a corner L plus I, the bend forced because two straight bars would
@@ -689,7 +687,7 @@ Two invariants hold the templates together. A family emits a **stable piece coun
 are never merged, because a stable set is what makes "the entry is piece N" a usable rule. And a
 **part is a template position, not a property of the rectangle**: a scythe's `entry-run` and a donut's
 `leg` may be the very same rectangle occupying different parts. The table is realized as data in
-`CompoundParts.Template(family)`, and each emitted piece carries its part on `GrownPiece.Part`.
+`CompoundParts.Template(family)`, and each emitted piece carries its part on `Piece.Part`.
 
 Those are the base configurations. The knobs add pieces without changing the family: a second donut
 attachment is another `entry`, and the wool-extend run of the third donut figure above is a `run`.
@@ -870,7 +868,7 @@ failure this must not have.
 
 Composition takes a budget and returns one team unit with terrain in it. It runs in two halves that
 must not be confused. **Allocation** decides structure and position while nothing is yet made of
-anything: it begins with a budget and ends with a `BoxPartition` — typed boxes and the joints between
+anything: it begins with a budget and ends with a `BoxLayout` — typed boxes and the joints between
 them — and everything it produces is a rectangle in plan cells. **Filling**
 then puts terrain inside those rectangles, deciding only what allocation left open.
 
@@ -1197,9 +1195,7 @@ strand, because a solid Bar flush against an already-square hub reads flat.
 
 The frontline's choice is where the seam currently leaks, and it is a known defect rather than a
 design. Its **form choice** is declared the allocator's, since form is what decides where anything may
-dock. Its offer **grouping** — one consumer spanning every tip against one consumer per tip, which is
-FR6, an authored law — is part of an offer, and an offer is the allocator's plan. Both are made in the
-filler today, the grouping by coin flip. Tracked in `audit.md` as G111.
+dock, and it is made in the filler today. Tracked in `audit.md` as G111.
 
 ### 5.12 Placing the finished unit
 
@@ -1656,28 +1652,28 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | Piece | Path | What |
 |---|---|---|
 | `Composer` | `Compose/Composer.cs` | `Compose(ComposeRequest)` — the entry point: envelope → crossing → allocate → fill → carve → wall → assemble, gated by the evaluator's hard terms. |
-| `TeamUnitAllocator` | `Compose/TeamUnitAllocator.cs` | the allocate entry point: hub size, hub position (the unit's only absolute rect) and hub-form choice → `BoxPartition`. |
+| `TeamUnitAllocator` | `Compose/TeamUnitAllocator.cs` | the allocate entry point: hub size, hub position (the unit's only absolute rect) and hub-form choice → `BoxLayout`. |
 | `UnitTuning` | `Compose/UnitTuning.cs` | the size ladders, the shape mix, the seat clearances, and the placement plan (`UnitPlan`) they feed. |
 | `UnitRequests` · `NeighbourRequest` · `DockStyle` | `Compose/UnitRequests.cs` | what hangs off the hub, sized coordinate-free, and the dock style each request implies. |
 | `UnitSeating` · `FullMouthDock` | `Compose/UnitSeating.cs` | requests → seats, under the three dock rules (full mouth · overhang · contact patch). |
 | `SeatGeometry` | `Compose/SeatGeometry.cs` | `NeighbourRect` and the edge arithmetic around it: projection onto an edge, clearance, the hub joint each dock records. |
-| `TeamUnitFiller` | `Compose/TeamUnitFiller.cs` | fills the allocated partition hub-first (offer consumption) → `FilledUnit` (a `GrownUnit` + the frontline face offers); faces the spawn into the hub. |
+| `TeamUnitFiller` | `Compose/TeamUnitFiller.cs` | fills the `BoxLayout` hub-first (offer consumption), every box with a `Compound`, laid as the `TeamUnit`'s pieces; faces the spawn into the hub. |
 | `WallPlacer` · `ComposedWall` | `Compose/WallPlacer.cs` | one defence wall per wool approach and two round a donut's hole, cutting a straight lane where the seam needs it (§5.14). |
-| `GrownUnit` · `GrownPiece` | `Compose/GrownUnit.cs` | the composed unit records (pieces with `Part`/`Box` labels, the spawn and wool `Marker`s), and `GrownPieces.Lay`, which lays a filled compound onto the board. |
+| `TeamUnit` · `UnitPiece` | `Compose/TeamUnit.cs` | the composed unit records (pieces with `Part`/`Box` labels, the spawn and wool `Marker`s), and `UnitPieces.Lay`, which lays a filled compound onto the board. |
 | `Envelope` → `ComposeEnvelope` | `Compose/Envelope.cs` | the budget: player count → land-per-team, board extent, unit bounds (§2.2). |
 | `ComposeRequest` | `Compose/ComposeRequest.cs` | the compose input, validated at construction (§2.1). |
 | `UnitPlacement` | `Compose/UnitPlacement.cs` | re-anchors the finished unit on its **face** before the band is derived. |
 | `Producibility` | `Compose/Producibility.cs` | "could the composer have produced this?" — answered by search over the declared menus, not by inverse. |
-| `WoolBoxEmitter` | `Compose/WoolBoxEmitter.cs` | the wool binding over `ShapeEmitter` — fills a wool box, its room a wool room with the wool's marker. |
-| `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding: profile {I, L} + `Fill`, its room the `spawn` room with the spawn's marker. |
-| `HubBoxEmitter` → `PlacedHub` | `Compose/HubBoxEmitter.cs` | the **hub**: a compound with no room, plus the per-run `EdgeOffer`s it publishes as the constraint source. |
-| `FrontlineBoxEmitter` → `PlacedFrontline` | `Compose/FrontlineBoxEmitter.cs` | the **front line**: spine docks the hub, arm-tips are the face, carrying the face offers the mid consumes. |
+| `WoolBoxEmitter` | `Compose/WoolBoxEmitter.cs` | the wool binding over `ShapeEmitter` — fits a family to a wool box and returns its compound. |
+| `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding: profile {I, L} + `Fill`, returning the compound whose room the spawn stands in. |
+| `HubBoxEmitter` | `Compose/HubBoxEmitter.cs` | the **hub**: `Fill` builds its compound, with no room, and `Offers` reads the per-run `EdgeOffer`s it publishes as the constraint source. |
+| `FrontlineBoxEmitter` | `Compose/FrontlineBoxEmitter.cs` | the **front line**: a compound with no room whose spine docks the hub and whose arm-tips are the face toward the axis. |
 | `EdgeOffer` · `OfferGrouping` | `Compose/Boxes/EdgeOffer.cs` | the **offer**: where a neighbour may attach, at what width, in which grouping (§7). |
 | `FillProfiles` | `Compose/Boxes/FillProfiles.cs` | the per-`BoxKind` profile as data: legal families + the footprint fit gate. |
-| `BoxFiller` | `Compose/Boxes/BoxFiller.cs` | the one profile-gated fill entry point over a positioned `Box` + land-vs-target accounting (the spine G63 drives). |
+| `BoxFiller` | `Compose/Boxes/BoxFiller.cs` | the one profile-gated fill entry point over a positioned `Box`: the compound, or the `FillRejection` saying why not (the spine G63 drives). |
 | `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface` **facts** (span + the template parts on each edge) — it observes; the docking *rules* over the facts are the `DockingGate`. |
 | `DockingGate` | `Compose/Boxes/DockingGate.cs` | the compose-side docking gate: `PartDockRole` (room→never-dock, entry→docking, rest→internal) + the verdict over the `BoxEdgeInterface` parts. A dock is legal iff it lands on an entry and seals no wool — no per-family imperative code, shape-relative. Every family now docks through a **single mouth**, so the verdict reads only the edge's parts, never a family name. Not an `ILayoutTerm`. |
-| `BoxPartition` | `Compose/Boxes/BoxPartition.cs` | the partition constraint graph: typed `Box`es + `BoxJoint`s, with hard invariants (`Valid`) and `Of` the derive-side mirror reading the partition a grown unit implies (`SharedEdge` finds the abutment intervals). The typed target the partition-first allocator (G63) emits; boxes may overlap, joints assert only real abutments. |
+| `BoxLayout` | `Compose/Boxes/BoxLayout.cs` | one team's boxes and joints: typed `Box`es + `BoxJoint`s, with hard invariants (`Valid`) and `Of` the derive-side mirror reading the layout a team unit implies (`SharedEdge` finds the abutment intervals). The typed target the partition-first allocator (G63) emits; boxes may overlap, joints assert only real abutments. |
 | `MidCarver` | `Compose/MidCarver.cs` | the mid: the crossing's half-gap, the flush hull-exact build band, and the row of shared stones standing astride the axis inside it. |
 | `ClosureAnalysis` | `Compose/ClosureAnalysis.cs` | closure hole raster (`HoleSizes`, `AnyHoleRingedBy`). |
 | `ComposeGeometry` | `Compose/ComposeGeometry.cs` | fanning + the collinear-chain measurement. |

@@ -69,7 +69,7 @@ public sealed class FillRejectionTests
     {
         // an L spawn needs more than 2x2; the reported minimum is in the box frame, so a lateral mouth needs no
         // transposing by the caller
-        var spawn = SpawnBoxEmitter.Fill(Spawn(2, 2), BoxEdge.Left, ShapeFamily.L, Cw, false, "r", out var why);
+        var spawn = SpawnBoxEmitter.Fill(Spawn(2, 2), BoxEdge.Left, ShapeFamily.L, Cw, false, out var why);
         await Assert.That(spawn).IsNull();
         await Assert.That(why).IsTypeOf<FillRejection.TooSmall>();
         var min = (FillRejection.TooSmall)why!;
@@ -82,7 +82,7 @@ public sealed class FillRejectionTests
     {
         // the single-arm frontline refuses a leg no wider than its notch (the banned T's thin band)
         var f = FrontlineBoxEmitter.Fill(
-            Front(4, 5), new CompoundRead(CompoundForm.SpineArms, 1), Cw, OfferGrouping.Several, out var why);
+            Front(4, 5), new CompoundRead(CompoundForm.SpineArms, 1), Cw, out var why);
         await Assert.That(f).IsNull();
         await Assert.That(why).IsTypeOf<FillRejection.FormDoesNotFit>();
         await Assert.That(((FillRejection.FormDoesNotFit)why!).Detail).Contains("notch");
@@ -93,21 +93,21 @@ public sealed class FillRejectionTests
     {
         // a side-tuck room is supported for I/Z/scythe only — an L asking for one must not escape as an
         // ArgumentException straight through BoxFiller, whose contract says rejections are a data channel
-        var res = BoxFiller.Fill(Wool(20, 20), BoxEdge.Top, Cw, ShapeFamily.L,
+        var res = BoxFiller.Fill(Wool(20, 20), BoxEdge.Top, Cw, ShapeFamily.L, out var why,
             roomPlacement: RoomPlacement.SideTuck);
-        await Assert.That(res).IsTypeOf<FillResult.UnsupportedKnobs>();
-        await Assert.That(res.Rejection).IsTypeOf<FillRejection.UnsupportedKnobs>();
+        await Assert.That(res).IsNull();
+        await Assert.That(why).IsTypeOf<FillRejection.UnsupportedKnobs>();
     }
 
     [Test]
-    public async Task Every_approach_rejection_projects_onto_the_shared_vocabulary()
+    public async Task Every_wool_refusal_is_in_the_shared_vocabulary()
     {
-        // one taxonomy across the box kinds: the approach channel's own cases map onto FillRejection, and an Ok
-        // maps to no reason at all
-        await Assert.That(BoxFiller.Fill(Wool(20, 20), BoxEdge.Top, Cw, ShapeFamily.Scythe).Rejection)
-            .IsTypeOf<FillRejection.NotOnMenu>();
-        await Assert.That(BoxFiller.Fill(Wool(6, 6), BoxEdge.Top, Cw, ShapeFamily.Donut).Rejection)
-            .IsTypeOf<FillRejection.TooSmall>();
-        await Assert.That(BoxFiller.Fill(Wool(16, 22), BoxEdge.Top, Cw, ShapeFamily.L).Rejection).IsNull();
+        // one taxonomy across the box kinds, and a fill that succeeds carries no reason at all
+        BoxFiller.Fill(Wool(20, 20), BoxEdge.Top, Cw, ShapeFamily.Scythe, out var offMenu);
+        await Assert.That(offMenu).IsTypeOf<FillRejection.NotOnMenu>();
+        BoxFiller.Fill(Wool(6, 6), BoxEdge.Top, Cw, ShapeFamily.Donut, out var tooSmall);
+        await Assert.That(tooSmall).IsTypeOf<FillRejection.TooSmall>();
+        BoxFiller.Fill(Wool(16, 22), BoxEdge.Top, Cw, ShapeFamily.L, out var none);
+        await Assert.That(none).IsNull();
     }
 }

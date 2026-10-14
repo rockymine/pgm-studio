@@ -8847,6 +8847,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `DestroyableMarker` and `CoreMarker`, with the JSON unchanged. The composer's fingerprints are unchanged.
   `docs/generator/vocabulary.md`. (`G295`)
 
+- **Every fill returns its compound (`G296`)** — the hub, spawn, wool and front line fills each return the
+  box-local `Compound` or `null` with a `FillRejection`, so `PlacedHub`, `PlacedSpawn`, `PlacedApproach`,
+  `PlacedFrontline`, `FillResult` and the unread `Vacancy` are gone, and with them the clash with the stamper's
+  `PlacedSpawn`. `UnitPieces.Lay` lays every compound onto the board, `HubBoxEmitter.Offers` reads what the
+  hub's runs carry, and `UnitPieces.AsPlan` is the one standalone plan of a compound. The allocator's output is
+  a `BoxLayout` and the filler's a `TeamUnit` of `UnitPiece`s; the wool emit path and the front line's unread
+  face offers are gone. The plan's boxes are still written when a board is kept (`PlanBoxAnnotation`), so the
+  browse feed stays label-free. The composer's fingerprints are unchanged. `docs/generator/vocabulary.md`.
+  (`G296`)
+
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
   Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.

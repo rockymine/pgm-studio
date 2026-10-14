@@ -54,14 +54,11 @@ public sealed class BoxFillerTests
     [Test]
     public async Task Fill_emits_a_legal_family_and_reports_its_land()
     {
-        var box = WoolBox(16, 22);
-        var res = BoxFiller.Fill(box, BoxEdge.Top, Cw, ShapeFamily.L);
-        await Assert.That(res).IsTypeOf<FillResult.Ok>();
-        var ok = (FillResult.Ok)res;
+        var filled = BoxFiller.Fill(WoolBox(16, 22), BoxEdge.Top, Cw, ShapeFamily.L, out var rejection);
+        await Assert.That(rejection).IsNull();
         // land = every terrain cell + the room, and the family reads back as requested
-        var land = BoxFiller.Land(ok.Approach);
-        await Assert.That(land).IsGreaterThan(0);
-        await Assert.That(ShapeClassifier.Classify(WoolBoxEmitter.AsPlan(ok.Approach), ok.Approach.WoolRoom.Id).Family)
+        await Assert.That(BoxFiller.Land(filled!)).IsGreaterThan(0);
+        await Assert.That(ShapeClassifier.Classify(UnitPieces.AsPlan(filled!, "wool-box"), "wa-room").Family)
             .IsEqualTo(ShapeFamily.L);
     }
 
@@ -69,96 +66,67 @@ public sealed class BoxFillerTests
     public async Task Fill_rejects_a_family_outside_the_profile()
     {
         // the scythe emits fine as a shape but is not in the wool production profile
-        var res = BoxFiller.Fill(WoolBox(20, 20), BoxEdge.Top, Cw, ShapeFamily.Scythe);
-        await Assert.That(res).IsTypeOf<FillResult.NoFamilyFits>();
+        await Assert.That(BoxFiller.Fill(WoolBox(20, 20), BoxEdge.Top, Cw, ShapeFamily.Scythe, out var rejection)).IsNull();
+        await Assert.That(rejection).IsTypeOf<FillRejection.NotOnMenu>();
     }
 
     [Test]
     public async Task Fill_signals_too_small_rather_than_throwing()
     {
-        var res = BoxFiller.Fill(WoolBox(6, 6), BoxEdge.Top, Cw, ShapeFamily.Donut);
-        await Assert.That(res).IsTypeOf<FillResult.TooSmall>();
-    }
-
-    [Test]
-    public async Task Roll_fill_picks_a_fitting_family()
-    {
-        var box = WoolBox(16, 22);
-        var fitting = BoxFiller.FittingFamilies(box, BoxEdge.Top, Cw);
-        await Assert.That(fitting).IsNotEmpty();
-        for (var roll = 0; roll < fitting.Count; roll++)
-        {
-            var res = BoxFiller.Fill(box, BoxEdge.Top, Cw, roll);
-            await Assert.That(res).IsTypeOf<FillResult.Ok>();
-        }
-    }
-
-    [Test]
-    public async Task Land_target_is_the_two_currency_check()
-    {
-        var box = WoolBox(16, 22, landTarget: 1);   // an impossibly low target
-        var ok = (FillResult.Ok)BoxFiller.Fill(box, BoxEdge.Top, Cw, ShapeFamily.I);
-        await Assert.That(BoxFiller.WithinLandTarget(box, ok.Approach)).IsFalse();   // over target → fragment's job
-        var roomy = WoolBox(16, 22, landTarget: 10_000);
-        await Assert.That(BoxFiller.WithinLandTarget(roomy, ok.Approach)).IsTrue();
+        await Assert.That(BoxFiller.Fill(WoolBox(6, 6), BoxEdge.Top, Cw, ShapeFamily.Donut, out var rejection)).IsNull();
+        await Assert.That(rejection).IsTypeOf<FillRejection.TooSmall>();
     }
 
     [Test]
     public async Task Fill_gates_the_dock_through_the_mouth_admitting_the_production_menu()
     {
         // the docking gate is wired into the fill: every production family docks cleanly through the mouth
-        // it exposes its entry on, top or bottom, so a legal fill still returns Ok (the wiring is byte-identical
-        // for the menu). Clamp/scythe never reach the gate here — the profile stops them first (NoFamilyFits).
+        // it exposes its entry on, top or bottom, so a legal fill still fills. Clamp/scythe never reach the gate
+        // here — the profile stops them first (NotOnMenu).
         foreach (var family in FillMenu.ProductionFamilies)
         {
             var box = WoolBox(16, 22);
-            if (BoxFiller.Fill(box, BoxEdge.Top, Cw, family) is FillResult.TooSmall) continue;
-            await Assert.That(BoxFiller.Fill(box, BoxEdge.Top, Cw, family)).IsTypeOf<FillResult.Ok>();
-            await Assert.That(BoxFiller.Fill(box, BoxEdge.Bottom, Cw, family)).IsTypeOf<FillResult.Ok>();
+            if (BoxFiller.Fill(box, BoxEdge.Top, Cw, family, out var why) is null && why is FillRejection.TooSmall) continue;
+            await Assert.That(BoxFiller.Fill(box, BoxEdge.Top, Cw, family, out _)).IsNotNull();
+            await Assert.That(BoxFiller.Fill(box, BoxEdge.Bottom, Cw, family, out _)).IsNotNull();
         }
     }
 
     [Test]
     public async Task Fill_docks_all_four_mouths_keeping_the_family_in_the_box()
     {
-        // a plan-cell box docks the host on whichever edge faces it, so the filler orients the shape onto any of
-        // the four mouths (Left/Right are a quarter turn). An Ok result already proves the entry landed on the
-        // requested mouth (the gate admitted it); we also check the family survives, the fill stays in the box,
-        // and the marker sits in the room.
+        // a box docks the host on whichever edge faces it, so the filler orients the shape onto any of the four
+        // mouths (Left/Right are a quarter turn). A fill already proves the entry landed on the requested mouth
+        // (the gate admitted it); we also check the family survives, the fill stays in the box, and the marker
+        // sits in the room.
         var box = new Box("wool-a", BoxKind.Wool, new(3, 5, 16, 20), 10_000);
         foreach (var family in new[] { ShapeFamily.I, ShapeFamily.L, ShapeFamily.Z })
             foreach (var mouth in new[] { BoxEdge.Top, BoxEdge.Bottom, BoxEdge.Left, BoxEdge.Right })
             {
-                var res = BoxFiller.Fill(box, mouth, Cw, family);
-                await Assert.That(res).IsTypeOf<FillResult.Ok>();
-                var ok = (FillResult.Ok)res;
+                var filled = BoxFiller.Fill(box, mouth, Cw, family, out _);
+                await Assert.That(filled).IsNotNull();
 
-                await Assert.That(ShapeClassifier.Classify(WoolBoxEmitter.AsPlan(ok.Approach), ok.Approach.WoolRoom.Id).Family)
+                await Assert.That(ShapeClassifier.Classify(UnitPieces.AsPlan(filled!, "wool-box"), "wa-room").Family)
                     .IsEqualTo(family);
 
-                // every piece stays inside the box footprint
-                foreach (var p in ok.Approach.Pieces.Append(ok.Approach.WoolRoom))
+                // every piece stays inside the box footprint (box-local)
+                foreach (var p in filled!.Pieces)
                 {
-                    await Assert.That(p.Rect.X).IsGreaterThanOrEqualTo(box.Rect.X);
-                    await Assert.That(p.Rect.Z).IsGreaterThanOrEqualTo(box.Rect.Z);
-                    await Assert.That(p.Rect.X + p.Rect.Width).IsLessThanOrEqualTo(box.Rect.X + box.Rect.Width);
-                    await Assert.That(p.Rect.Z + p.Rect.Height).IsLessThanOrEqualTo(box.Rect.Z + box.Rect.Height);
+                    await Assert.That(p.Rect.X >= 0 && p.Rect.Z >= 0).IsTrue();
+                    await Assert.That(p.Rect.MaxX <= box.Rect.Width && p.Rect.MaxZ <= box.Rect.Height).IsTrue();
                 }
 
                 // the wool marker lands inside its room
-                var room = ok.Approach.WoolRoom.Rect;
-                double mx = room.X + ok.Approach.Marker.X, mz = room.Z + ok.Approach.Marker.Z;
-                await Assert.That(mx).IsGreaterThanOrEqualTo(room.X);
-                await Assert.That(mx).IsLessThanOrEqualTo(room.X + room.Width);
-                await Assert.That(mz).IsGreaterThanOrEqualTo(room.Z);
-                await Assert.That(mz).IsLessThanOrEqualTo(room.Z + room.Height);
+                var room = filled.Room!.Rect;
+                var (mx, mz) = filled.Marker!.Value;
+                await Assert.That(mx >= room.X && mx <= room.MaxX && mz >= room.Z && mz <= room.MaxZ).IsTrue();
             }
     }
 
     [Test]
     public async Task A_spawn_box_docks_through_its_own_binding_not_this_one()
     {
-        await Assert.That(() => BoxFiller.Fill(new Box("spawn-a", BoxKind.Spawn, new(0, 0, 6, 12), 100), BoxEdge.Top, Cw, ShapeFamily.I))
+        await Assert.That(() => BoxFiller.Fill(new Box("spawn-a", BoxKind.Spawn, new(0, 0, 6, 12), 100), BoxEdge.Top, Cw, ShapeFamily.I, out _))
             .Throws<ComposeException>();
     }
 }

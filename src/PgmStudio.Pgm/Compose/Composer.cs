@@ -8,12 +8,12 @@ namespace PgmStudio.Pgm.Compose;
 
 /// <summary>Everything one compose attempt produced, kept apart so tests can gate each step separately.</summary>
 public sealed record ComposedStages(
-    ComposeEnvelope Envelope, GrownUnit Unit, CrossingDesign Crossing, MidResult Mid, PlanModel Plan);
+    ComposeEnvelope Envelope, TeamUnit Unit, CrossingDesign Crossing, MidResult Mid, PlanModel Plan);
 
 /// <summary>
 /// Composes a full <see cref="PlanModel"/> from nothing but a player count and team shape, through the
 /// partition-first box pipeline: derive the board envelope (<see cref="Envelope"/>), fix the crossing
-/// arithmetic (<see cref="MidCarver.Crossing"/>), allocate the team unit's box partition under the front
+/// arithmetic (<see cref="MidCarver.Crossing"/>), allocate the team unit's box layout under the front
 /// guard (<see cref="TeamUnitAllocator"/>), fill it hub-first into labeled pieces + rooms
 /// (<see cref="TeamUnitFiller"/>), carve the mid band (<see cref="MidCarver.TryCarve"/>), and assemble the
 /// plan. The mid is one build band spanning the axis, docked <b>flush</b> against the unit's front faces — a
@@ -69,11 +69,11 @@ public static class Composer
 
         for (var attempt = 0; attempt < ComposeAttempts; attempt++)
         {
-            if (TeamUnitAllocator.Allocate(envelope, rng, crossing) is not { } partition) continue;
-            if (TeamUnitFiller.Fill(partition, rng) is not { } filled) continue;
+            if (TeamUnitAllocator.Allocate(envelope, rng, crossing) is not { } layout) continue;
+            if (TeamUnitFiller.Fill(layout, rng) is not { } filled) continue;
             // place the finished unit rather than take where it was built: the allocator anchors on the hub, but
             // the face is what the mid docks, so re-anchor the unit on its face before the band is derived
-            filled = filled with { Unit = UnitPlacement.CentreFaceOnAxis(filled.Unit, envelope.Symmetry) };
+            var unit = UnitPlacement.CentreFaceOnAxis(filled, envelope.Symmetry);
             // no parallel-fronts resample is needed: under a laterally-flipping symmetry a front sitting off
             // the axis would make the band overflow past the faces it docks, but centring the unit on its face
             // leaves a residual offset of half a cell at most. The rule still binds authored
@@ -83,7 +83,7 @@ public static class Composer
             // footprints, which is all it has before a fill exists, and a holed compound's land is a fifth less than
             // its footprint — so the contract is read here, off the pieces, and an attempt that left land
             // unplaced or overran the band is resampled rather than shipped.
-            var built = LandCells(filled.Unit);
+            var built = LandCells(unit);
             if (built < envelope.UnitBudgetCells * UnitTuning.SpendFloor
                 || built > envelope.UnitBudgetCells * UnitTuning.SpendCeiling)
             {
@@ -93,10 +93,10 @@ public static class Composer
                 continue;
             }
 
-            var mid = MidCarver.TryCarve(envelope, crossing, filled.Unit);
+            var mid = MidCarver.TryCarve(envelope, crossing, unit);
             if (mid is null) continue;
 
-            var (walled, walls) = WallPlacer.Place(filled.Unit, envelope.Cell);
+            var (walled, walls) = WallPlacer.Place(unit, envelope.Cell);
             var plan = Assemble(request, envelope, walled, mid, walls);
             var violation = LayoutEvaluator.Gate(EvalContext.Build(plan), EvaluationProfile.Composer);
             if (violation is not null)
@@ -113,10 +113,10 @@ public static class Composer
             $"(players {request.PlayersPerTeam}, teams {request.Teams}, symmetry '{request.Symmetry}', seed {request.Seed})");
     }
 
-    /// <summary>The land a grown unit holds, in cells — the distinct cells its pieces cover, so two pieces
+    /// <summary>The land a team unit holds, in cells — the distinct cells its pieces cover, so two pieces
     /// meeting on a shared run count the overlap once. This is the currency the band's budget is stated in and
     /// the one the corpus was measured in: ground a player stands on, not the boxes it was seated in.</summary>
-    public static int LandCells(GrownUnit unit)
+    public static int LandCells(TeamUnit unit)
     {
         var cells = new HashSet<(int X, int Z)>();
         foreach (var piece in unit.Pieces)
@@ -166,7 +166,7 @@ public static class Composer
     }
 
     internal static PlanModel Assemble(
-        ComposeRequest request, ComposeEnvelope envelope, GrownUnit unit, MidResult mid,
+        ComposeRequest request, ComposeEnvelope envelope, TeamUnit unit, MidResult mid,
         IReadOnlyList<ComposedWall> walls)
     {
         var plan = new PlanModel

@@ -1,7 +1,7 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 // team-unit fingerprint: a total hash of allocate->fill over every symmetry x preset x seed. Serializes
 // EVERYTHING the allocator decides (box rects, hub form, flip, per-wool fill, every joint + its offer, the
-// spawn facing) and everything the filler emits (piece id, rect, role, slot, owning box), then hashes it —
+// spawn facing) and everything the filler emits (piece id, rect, role, part, owning box), then hashes it —
 // per preset and overall. The check a refactor runs against: a pure structure pass must leave the total
 // bit-identical, and a behavioural change should move exactly the presets it claims to.
 // Run: dotnet run tools/compose/unit-fingerprint.cs
@@ -47,12 +47,10 @@ foreach (var (label, players) in presets)
         if (TeamUnitFiller.Fill(a, new ComposeRng((ulong)seed)) is not { } f)
         { sb.Append("NOFILL\n"); continue; }
         filled++;
-        foreach (var p in f.Unit.Pieces)
+        foreach (var p in f.Pieces)
             sb.Append($"P({p.Id},[{string.Join(" ", p.Rect)}],{p.Role},{p.Part},{p.Box?.Id}/{p.Box?.Kind});");
-        sb.Append($"spawn({f.Unit.Spawn.Piece},[{f.Unit.Spawn.X} {f.Unit.Spawn.Z}],{f.Unit.SpawnFacing});");
-        foreach (var wl in f.Unit.Wools) sb.Append($"wool({wl.Piece},[{wl.X} {wl.Z}]);");
-        foreach (var o in f.FrontlineFace)
-            sb.Append($"face({o.Edge}@{o.Interval.Start}+{o.Interval.LengthCells}:w{o.WidthClass}:{o.Grouping});");
+        sb.Append($"spawn({f.Spawn.Piece},[{f.Spawn.X} {f.Spawn.Z}],{f.SpawnFacing});");
+        foreach (var wl in f.Wools) sb.Append($"wool({wl.Piece},[{wl.X} {wl.Z}]);");
         sb.Append('\n');
     }
 

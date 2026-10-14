@@ -11,7 +11,7 @@ namespace PgmStudio.Api.Endpoints;
 /// GET /api/shapes/probe — emit one knob combination and report what the emitter said. This is the half of the
 /// catalog that a gallery cannot be: it goes through <see cref="BoxFiller"/>, so the profile check and the
 /// <see cref="DockingGate"/> run exactly as they do in composition, and a <b>refusal is a first-class answer</b>
-/// rather than an error. <see cref="FillResult"/> already carries every reason as data; this only flattens it
+/// rather than an error. <see cref="FillRejection"/> already carries every reason as data; this only flattens it
 /// for the wire, passing the emitter's own message through rather than rewording it.
 /// </summary>
 public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult>
@@ -63,32 +63,31 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
 
         var placement = sideTuck ? RoomPlacement.SideTuck : RoomPlacement.Inline;
         var box = new Box("wool", BoxKind.Wool, new CellRect(0, 0, boxW, boxH), boxW * boxH);
-        var result = BoxFiller.Fill(box, mouth, cw, family, flip, "wool-room", placement, woolAtEnd, attachW);
-
-        if (result is not FillResult.Ok ok)
+        if (BoxFiller.Fill(box, mouth, cw, family, out var rejection, flip, placement, woolAtEnd, attachW)
+            is not { } compound)
         {
             await Send.ResponseAsync(
-                new ShapeProbeResult(null, Flatten(result), 0, []), cancellation: ct);
+                new ShapeProbeResult(null, Flatten(rejection, family), 0, []), cancellation: ct);
             return;
         }
 
-        var svg = PlanBoardSvg.Render(WoolBoxEmitter.AsPlan(ok.Approach, "probe"), ProbeScale);
-        var parts = ok.Approach.Pieces.Select(p => p.Part ?? "?").ToList();
+        var svg = PlanBoardSvg.Render(UnitPieces.AsPlan(compound, "probe"), ProbeScale);
+        var parts = compound.Pieces.Select(p => p.Part).ToList();
         await Send.ResponseAsync(
-            new ShapeProbeResult(svg, null, BoxFiller.Land(ok.Approach), parts), cancellation: ct);
+            new ShapeProbeResult(svg, null, BoxFiller.Land(compound), parts), cancellation: ct);
     }
 
     /// <summary>Flatten a refusal onto the wire. The detail is the emitter's or the gate's own words — a
     /// reworded guard is a second copy free to disagree with the one that fired.</summary>
-    private static ShapeRejectionDto Flatten(FillResult result) => result switch
+    private static ShapeRejectionDto Flatten(FillRejection? rejection, ShapeFamily family) => rejection switch
     {
-        FillResult.TooSmall t => new("too-small",
-            $"Below {t.Family}'s minimum box of {t.MinW}×{t.MinH} cells at this corridor width.", t.MinW, t.MinH),
-        FillResult.NoFamilyFits n => new("not-on-menu",
+        FillRejection.TooSmall t => new("too-small",
+            $"Below {family}'s minimum box of {t.MinW}×{t.MinH} cells at this corridor width.", t.MinW, t.MinH),
+        FillRejection.NotOnMenu n => new("not-on-menu",
             $"Not on this box kind's fill menu — it offers {string.Join(", ", n.Menu)}.", null, null),
-        FillResult.IllegalDock d => new("illegal-dock",
-            $"The docking gate refused a {d.Mouth} mouth for the {d.Family}: {d.Reason}.", null, null),
-        FillResult.UnsupportedKnobs u => new("unsupported-knobs", u.Detail, null, null),
+        FillRejection.IllegalDock d => new("illegal-dock",
+            $"The docking gate refused a {d.Mouth} mouth for the {family}: {d.Reason}.", null, null),
+        FillRejection.UnsupportedKnobs u => new("unsupported-knobs", u.Detail, null, null),
         _ => new("refused", "The fill was refused with no stated reason.", null, null),
     };
 }

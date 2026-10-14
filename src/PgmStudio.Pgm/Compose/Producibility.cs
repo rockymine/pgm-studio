@@ -340,7 +340,7 @@ public static class Producibility
                         var hub = HubBoxEmitter.Fill(b, form, cw, flip, out var why, walls, arms);
                         yield return hub is null
                             ? new Candidate(label, cw, null, null, why)
-                            : new Candidate(label, cw, Mask(hub.Pieces.Select(p => p.Rect)), null, null);
+                            : new Candidate(label, cw, Mask(Laid(hub, b)), null, null);
                     }
     }
 
@@ -401,15 +401,14 @@ public static class Producibility
         foreach (var cw in SearchWidths(measuredCw))
             foreach (var form in FillProfiles.FrontlineForms)
                 foreach (var mouth in AllEdges)
-                    foreach (var grouping in new[] { OfferGrouping.Joint, OfferGrouping.Several })
-                        foreach (var layout in ArmLayouts(form, box, mouth))
-                        {
-                            var label = $"{Name(form)} spine {mouth}{(layout is null ? "" : " legs " + Legs(layout))}";
-                            var f = FrontlineBoxEmitter.Fill(b, form, cw, grouping, out var why, mouth, armLayout: layout);
-                            yield return f is null
-                                ? new Candidate(label, cw, null, null, why)
-                                : new Candidate(label, cw, Mask(f.Pieces.Select(p => p.Rect)), null, null);
-                        }
+                    foreach (var layout in ArmLayouts(form, box, mouth))
+                    {
+                        var label = $"{Name(form)} spine {mouth}{(layout is null ? "" : " legs " + Legs(layout))}";
+                        var f = FrontlineBoxEmitter.Fill(b, form, cw, out var why, mouth, layout);
+                        yield return f is null
+                            ? new Candidate(label, cw, null, null, why)
+                            : new Candidate(label, cw, Mask(Laid(f, b)), null, null);
+                    }
     }
 
     /// <summary>The arm layouts a branch frontline form can take in this box — collected by <b>running</b>
@@ -427,6 +426,16 @@ public static class Producibility
             yield return layout;
     }
 
+    // a box-local compound's piece rects on the board, and its room's
+    private static IEnumerable<CellRect> Laid(Compound compound, Box box) =>
+        UnitPieces.Lay(compound, box).Pieces.Select(p => p.Rect);
+
+    private static CellRect RoomOf(Compound compound, Box box)
+    {
+        var room = compound.Room!.Rect;
+        return new(box.Rect.X + room.X, box.Rect.Z + room.Z, room.Width, room.Height);
+    }
+
     private static IEnumerable<Candidate> ApproachCandidates(PlanBox box, BoxKind kind, int measuredCw)
     {
         var b = new Box(box.Id, kind, box.Rect, box.Rect.Width * box.Rect.Height);
@@ -442,20 +451,16 @@ public static class Producibility
                                         $"{(attachW > 0 ? $" attach {attachW}" : "")}";
                             if (kind == BoxKind.Spawn)
                             {
-                                var s = SpawnBoxEmitter.Fill(b, mouth, family, cw, flip, $"{box.Id}-room", out var sWhy);
+                                var s = SpawnBoxEmitter.Fill(b, mouth, family, cw, flip, out var sWhy);
                                 yield return s is null
                                     ? new Candidate(label, cw, null, null, sWhy)
-                                    : new Candidate(label, cw, Mask(s.Pieces.Select(p => p.Rect)), s.Room.Rect, null);
+                                    : new Candidate(label, cw, Mask(Laid(s, b)), RoomOf(s, b), null);
                                 continue;
                             }
-                            var res = BoxFiller.Fill(b, mouth, cw, family, flip, $"{box.Id}-room", placement, atEnd, attachW);
-                            if (res is not FillResult.Ok ok)
-                            {
-                                yield return new Candidate(label, cw, null, null, res.Rejection);
-                                continue;
-                            }
-                            var mask = Mask(ok.Approach.Pieces.Select(p => p.Rect));
-                            yield return new Candidate(label, cw, mask, ok.Approach.WoolRoom.Rect, null);
+                            var w = BoxFiller.Fill(b, mouth, cw, family, out var wWhy, flip, placement, atEnd, attachW);
+                            yield return w is null
+                                ? new Candidate(label, cw, null, null, wWhy)
+                                : new Candidate(label, cw, Mask(Laid(w, b)), RoomOf(w, b), null);
                         }
     }
 

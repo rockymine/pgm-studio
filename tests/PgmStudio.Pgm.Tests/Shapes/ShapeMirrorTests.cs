@@ -18,7 +18,7 @@ public sealed class ShapeMirrorTests
         [ShapeFamily.I, ShapeFamily.L, ShapeFamily.Z, ShapeFamily.Scythe, ShapeFamily.Clamp, ShapeFamily.U, ShapeFamily.H, ShapeFamily.Donut];
 
     // a cell covered by more than one piece is a bug
-    private static int Overlaps(PlacedApproach a)
+    private static int Overlaps(Compound a)
     {
         var seen = new HashSet<(int, int)>(); int n = 0;
         foreach (var p in a.Pieces)
@@ -27,24 +27,24 @@ public sealed class ShapeMirrorTests
         return n;
     }
 
-    private static ShapeFamily Derive(PlacedApproach a) =>
-        ShapeClassifier.Classify(WoolBoxEmitter.AsPlan(a), a.WoolRoom.Id).Family;
+    private static ShapeFamily Derive(Compound a) =>
+        ShapeClassifier.Classify(UnitPieces.AsPlan(a, "wool-box"), "wa-room").Family;
 
     // emitting SUCCEEDS -> classify reads back the requested family, no overlaps, and every piece's part
     // re-derived from topology equals the part the emitter stamped (the true mirror). Too-small boxes throw
-    // ComposeException and are not failures (the caller sizes the box to the family).
-    private static async Task MirrorOk(ShapeFamily family, Func<PlacedApproach> emit)
+    // ArgumentException and are not failures (the caller sizes the box to the family).
+    private static async Task MirrorOk(ShapeFamily family, Func<Compound> emit)
     {
-        PlacedApproach a;
-        try { a = emit(); } catch (ComposeException) { return; }
+        Compound a;
+        try { a = emit(); } catch (ArgumentException) { return; }
         var derived = Derive(a);
         await Assert.That(derived).IsEqualTo(family);
         await Assert.That(Overlaps(a)).IsEqualTo(0);
 
-        var pieces = a.Pieces.Select(p => (p.Id, p.Rect)).ToList();
-        var parts = PartAssignment.AssignParts(derived, pieces, a.WoolRoom.Id);
-        foreach (var p in a.Pieces)
-            await Assert.That(parts[p.Id]).IsEqualTo(p.Part);
+        var pieces = a.Pieces.Select((p, i) => ($"p{i}", p.Rect)).ToList();
+        var parts = PartAssignment.AssignParts(derived, pieces, $"p{a.Pieces.Count - 1}");
+        for (var i = 0; i < a.Pieces.Count; i++)
+            await Assert.That(parts[$"p{i}"]).IsEqualTo(a.Pieces[i].Part);
     }
 
     [Test]
@@ -79,7 +79,7 @@ public sealed class ShapeMirrorTests
         foreach (var cw in new[] { 2, 3 })
             foreach (var (W, H) in new[] { (12, 16), (16, 22) })
                 foreach (var flip in new[] { false, true })
-                    await MirrorOk(family, () => WoolBoxEmitter.Emit(family, new WoolBox(0, 0, W, H), cw, flip));
+                    await MirrorOk(family, () => ShapeEmitter.Emit(family, W, H, cw, flip));
     }
 
     // a uniformly-widened approach reads the same family — the classifier counts turns on the terrain outline,
@@ -95,7 +95,7 @@ public sealed class ShapeMirrorTests
     public async Task Width_invariance_under_uniform_scaling(ShapeFamily family)
     {
         foreach (var k in new[] { 1, 2, 3 })
-            await MirrorOk(family, () => WoolBoxEmitter.Emit(family, new WoolBox(0, 0, 6 * (2 * k), 10 * (2 * k)), 2 * k));
+            await MirrorOk(family, () => ShapeEmitter.Emit(family, 6 * (2 * k), 10 * (2 * k), 2 * k));
     }
 
     [Test]
@@ -103,17 +103,17 @@ public sealed class ShapeMirrorTests
     {
         foreach (var cw in new[] { 2, 3 })
         {
-            var db = new WoolBox(0, 0, 6 * cw + 4, 5 * cw);
-            await MirrorOk(ShapeFamily.Donut, () => WoolBoxEmitter.Emit(ShapeFamily.Donut, db, cw, attachments: 1));
-            await MirrorOk(ShapeFamily.Donut, () => WoolBoxEmitter.Emit(ShapeFamily.Donut, db, cw, attachments: 2));
-            await MirrorOk(ShapeFamily.Donut, () => WoolBoxEmitter.Emit(ShapeFamily.Donut, db, cw, woolExtend: true));
-            await MirrorOk(ShapeFamily.Donut, () => WoolBoxEmitter.Emit(ShapeFamily.Donut, db, cw, woolAtEnd: true));
-            var dbw = new WoolBox(0, 0, 6 * cw + 4, 7 * cw);   // taller box for wide attachments
-            await MirrorOk(ShapeFamily.Donut, () => WoolBoxEmitter.Emit(ShapeFamily.Donut, dbw, cw, attachmentWidth: 2 * cw));
-            await MirrorOk(ShapeFamily.Donut, () => WoolBoxEmitter.Emit(ShapeFamily.Donut, dbw, cw, attachments: 2, attachmentWidth: 3 * cw));
+            var db = (W: 6 * cw + 4, H: 5 * cw);
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, db.W, db.H, cw, attachments: 1));
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, db.W, db.H, cw, attachments: 2));
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, db.W, db.H, cw, woolExtend: true));
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, db.W, db.H, cw, woolAtEnd: true));
+            var dbw = (W: 6 * cw + 4, H: 7 * cw);   // taller box for wide attachments
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, dbw.W, dbw.H, cw, attachmentWidth: 2 * cw));
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, dbw.W, dbw.H, cw, attachments: 2, attachmentWidth: 3 * cw));
             // a SINGLE wide attachment needs only its own minimal ring (aw + cw tall), not the two-stub height
-            var dmin = new WoolBox(0, 0, 6 * cw + 4, 3 * cw);
-            await MirrorOk(ShapeFamily.Donut, () => WoolBoxEmitter.Emit(ShapeFamily.Donut, dmin, cw, attachmentWidth: 2 * cw));
+            var dmin = (W: 6 * cw + 4, H: 3 * cw);
+            await MirrorOk(ShapeFamily.Donut, () => ShapeEmitter.Emit(ShapeFamily.Donut, dmin.W, dmin.H, cw, attachmentWidth: 2 * cw));
         }
     }
 
@@ -122,12 +122,12 @@ public sealed class ShapeMirrorTests
     {
         foreach (var cw in new[] { 2, 3 })
         {
-            var ub = new WoolBox(0, 0, 4 * cw, 5 * cw);
-            await MirrorOk(ShapeFamily.U, () => WoolBoxEmitter.Emit(ShapeFamily.U, ub, cw));
-            await MirrorOk(ShapeFamily.U, () => WoolBoxEmitter.Emit(ShapeFamily.U, ub, cw, woolAtEnd: true));
-            var hb = new WoolBox(0, 0, 4 * cw, 6 * cw);
-            await MirrorOk(ShapeFamily.H, () => WoolBoxEmitter.Emit(ShapeFamily.H, hb, cw));
-            await MirrorOk(ShapeFamily.H, () => WoolBoxEmitter.Emit(ShapeFamily.H, hb, cw, woolAtEnd: true));
+            var ub = (W: 4 * cw, H: 5 * cw);
+            await MirrorOk(ShapeFamily.U, () => ShapeEmitter.Emit(ShapeFamily.U, ub.W, ub.H, cw));
+            await MirrorOk(ShapeFamily.U, () => ShapeEmitter.Emit(ShapeFamily.U, ub.W, ub.H, cw, woolAtEnd: true));
+            var hb = (W: 4 * cw, H: 6 * cw);
+            await MirrorOk(ShapeFamily.H, () => ShapeEmitter.Emit(ShapeFamily.H, hb.W, hb.H, cw));
+            await MirrorOk(ShapeFamily.H, () => ShapeEmitter.Emit(ShapeFamily.H, hb.W, hb.H, cw, woolAtEnd: true));
         }
     }
 
@@ -140,10 +140,10 @@ public sealed class ShapeMirrorTests
             foreach (var (W, H) in new[] { (12, 16), (16, 22) })
                 foreach (var flip in new[] { false, true })
                 {
-                    PlacedApproach a;
-                    try { a = WoolBoxEmitter.Emit(ShapeFamily.I, new WoolBox(0, 0, W, H), cw, flip, RoomPlacement.SideTuck); }
-                    catch (ComposeException) { continue; }
-                    CellRect lane = a.Pieces[0].Rect, rm = a.WoolRoom.Rect;
+                    Compound a;
+                    try { a = ShapeEmitter.Emit(ShapeFamily.I, W, H, cw, flip, RoomPlacement.SideTuck); }
+                    catch (ArgumentException) { continue; }
+                    CellRect lane = a.Pieces[0].Rect, rm = a.Room!.Rect;
                     var side = rm.X == lane.X + lane.Width || rm.X + rm.Width == lane.X;
                     await Assert.That(Derive(a)).IsEqualTo(ShapeFamily.I);
                     await Assert.That(side).IsTrue();
@@ -154,7 +154,7 @@ public sealed class ShapeMirrorTests
     [Test]
     public async Task Emitter_refuses_the_derive_only_isolated_family()
     {
-        await Assert.That(() => WoolBoxEmitter.Emit(ShapeFamily.Isolated, new WoolBox(0, 0, 20, 24), 2))
-            .Throws<ComposeException>();
+        await Assert.That(() => ShapeEmitter.Emit(ShapeFamily.Isolated, 20, 24, 2))
+            .Throws<ArgumentException>();
     }
 }

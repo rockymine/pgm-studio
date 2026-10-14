@@ -5,12 +5,8 @@ namespace PgmStudio.Pgm.Compose;
 /// <summary>
 /// <b>Why</b> a box fill was refused — the one directed-reason vocabulary every box kind reports through.
 ///
-/// <para>The box kinds cannot share a single result <em>type</em>: an approach fill carries an
-/// <see cref="PlacedApproach"/> keyed by <see cref="ShapeFamily"/> while a compound fill carries an
-/// <see cref="PlacedHub"/>/<see cref="PlacedFrontline"/> keyed by <see cref="CompoundRead"/> (the same split
-/// <see cref="FillProfiles.Families"/> vs <see cref="FillProfiles.HubForms"/> already makes deliberately). They
-/// can and do share the <em>reason</em>, which is what a caller reasoning about producibility actually reads —
-/// so a refusal is legible without knowing which kind produced it.</para>
+/// <para>Every fill answers the same way: the <see cref="Shapes.Compound"/> it built, or <c>null</c> and one of
+/// these, so a refusal is legible without knowing which kind produced it.</para>
 ///
 /// <para>What was attempted is not carried here: the caller passed the form/family in, so repeating it in the
 /// rejection would be a second copy free to disagree. A rejection says only what the caller could not have

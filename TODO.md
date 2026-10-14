@@ -36,12 +36,6 @@ The composer is described by cells, pieces, parts, roles, compounds, forms, vaca
 kinds, joints, layouts and lane widths, and these steps bring its types down to those words. Each leaves the
 composer's fingerprints unchanged except the last, which removes a random draw.
 
-- [ ] **G296 — A box holds its compound.** Every fill returns `Compound?` with an `out FillRejection`;
-  `PlacedHub`, `PlacedSpawn`, `PlacedApproach`, `PlacedFrontline` and `FillResult` go, which also ends the name
-  clash with `Minecraft/Stamping/SpawnStructureStamper.cs`'s `PlacedSpawn`. `BoxPartition`, `GrownUnit` and
-  `FilledUnit` become one `BoxLayout` whose boxes hold their compounds, the four piece-wrapping loops become
-  `GrownPieces.Lay`, and `Composer.Assemble` writes the plan's boxes, so `PlanBoxAnnotation` goes.
-  `docs/generator/vocabulary.md`.
 - [ ] **G297 — One edge interval and one lane width.** `EdgeInterval(Edge, Start, Length)` replaces
   `BoxAbutment`, `SpaceMouth`, the interval inside `EdgeOffer` and the `(Start, Len)` / `(Start, Width)` tuples;
   `BoxJoint.Grant` becomes a `Width`. The walkway width takes two names, `LaneWidth` and `WoolLaneWidth`, in
@@ -52,11 +46,10 @@ composer's fingerprints unchanged except the last, which removes a random draw.
   box kind's menu; the generator and catalog chips use the same names, the hub's Bar/Single/Twin/Ring becoming
   I/L/U/Donut, and the *Wool approaches* heading reads *Wool shapes*. A migration rewrites `composed_board.hub`,
   `.frontline` and `.wools` to the merged tokens. `docs/generator/model.md` §4.
-- [ ] **G299 — The composer keeps only what it reads.** Delete `PublishPolicy`, `ClosureAnalysis`, the unread
-  `Vacancy`, `EdgeSpan`, `BoxPartition.Structural`, `DockingGate.DockingEdges`/`CanDock` and the echo fields on
-  the hub and front line results; fold `WoolBoxEmitter.Emit(WoolBox, …)` into `Fill`, and drop *approach* as a
-  code word for a wool compound. `model.md` and `vocabulary.md` are restated in the plan's words.
-  `docs/generator/model.md`.
+- [ ] **G299 — The composer keeps only what it reads.** Delete `PublishPolicy`, `ClosureAnalysis`, `EdgeSpan`,
+  `BoxLayout.Structural`, `DockingGate.DockingEdges`/`CanDock` and `BoxEdgeInterface.TouchesRoom`/`HasTerrain`,
+  and drop *approach* as a code word for a wool compound. `model.md` and `vocabulary.md` are restated in the
+  plan's words. `docs/generator/model.md`.
 - [ ] **G300 — Offers lose their grouping.** `OfferGrouping`, `EdgeOffer.GroupId` and the front line's coin flip
   that sets them go; only tests and `unit-fingerprint.cs` read them. Removing the draw moves boards, so the
   fingerprints are re-recorded and the reproduction gate reruns. `docs/generator/model.md` §7.

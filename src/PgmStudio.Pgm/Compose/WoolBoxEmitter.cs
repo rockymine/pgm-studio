@@ -1,31 +1,13 @@
-using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>A wool box: the axis-aligned cell region a single wool's approach is emitted into. The approach
-/// enters at the <b>mouth</b> (the top edge, <c>z = Z</c> — the hub-side interface) and dead-ends at the
-/// <see cref="WoolBoxEmitter"/>-placed room deep in the box.</summary>
-public readonly record struct WoolBox(int X, int Z, int W, int H);
-
-/// <summary>A wool compound placed on the plan: its <see cref="Pieces"/> with ids, parts and box ownership, the
-/// wool room last, the <see cref="Marker"/> the wool stands at, and the published <see cref="Vacancies"/>
-/// (box-local).</summary>
-public sealed record PlacedApproach(
-    IReadOnlyList<GrownPiece> Pieces, Marker Marker, IReadOnlyList<ShapeVacancy> Vacancies)
-{
-    /// <summary>The wool room: the piece the marker stands on.</summary>
-    public GrownPiece WoolRoom => Pieces.Single(piece => piece.Id == Marker.Piece);
-}
-
 /// <summary>
 /// The wool binding over <see cref="ShapeEmitter"/> — the composer's mirror of the categorizer's shape
-/// read. The emitter owns the family geometry; this binding stamps what is wool-specific: the room becomes a
-/// <see cref="PlanRoles.WoolRoom"/> piece carrying the wool marker, every piece is laid as a composer-native
-/// <see cref="GrownPiece"/> with its part and (when filling a typed box) its <see cref="BoxRef"/> ownership,
-/// and ids take the box's prefix. <see cref="AsPlan"/> wraps one emission
-/// as a standalone plan for classification and rendering.
+/// read. The emitter owns the family geometry; this binding fits it to a box: the minimum box in the dock's
+/// frame, and the turn that lays the mouth-up emission onto the edge the box docks. Laying the compound gives
+/// its room the <see cref="PlanRoles.WoolRoom"/> role (<see cref="UnitPieces.Lay(Compound, Box)"/>).
 /// </summary>
 public static class WoolBoxEmitter
 {
@@ -46,37 +28,19 @@ public static class WoolBoxEmitter
         return ShapeEmitter.MouthEdge(family) is BoxEdge.Left or BoxEdge.Right ? (h, w) : (w, h);
     }
 
-    /// <summary>Emit <paramref name="family"/> into <paramref name="box"/> at the given
-    /// <paramref name="corridorWidth"/> (cells), in the canonical frame (mouth per the family, top for
-    /// lanes). Knobs pass through to <see cref="ShapeEmitter.Emit"/>; see there for their meaning.</summary>
-    public static PlacedApproach Emit(ShapeFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false, bool woolExtend = false, int attachmentWidth = 0, string idPrefix = "wa", int entryShift = 0, int woolShift = 0, int attachmentOffset = 0)
-    {
-        Compound shape;
-        try
-        {
-            shape = ShapeEmitter.Emit(family, box.W, box.H, corridorWidth, flip, roomPlacement, attachments, woolAtEnd, woolExtend, attachmentWidth, entryShift, woolShift, attachmentOffset);
-        }
-        catch (ArgumentException e)
-        {
-            throw new ComposeException(e.Message.Contains("too small")
-                ? $"wool box {box.W}x{box.H} is too small for family {family}."
-                : e.Message);
-        }
-        return Lay(shape, box.X, box.Z, idPrefix, $"{idPrefix}-wool", null);
-    }
-
     /// <summary>Fill a typed <paramref name="box"/> whose mouth is <paramref name="mouth"/> — any of the four
-    /// box edges — with one family, as a <see cref="FillResult"/> (the data-channel form: "no shape fits" is a
-    /// signal, not a throw). The shape is emitted mouth-up (<see cref="ShapeEmitter.OrientMouthTop"/>) in the
-    /// mouth's <b>along × depth</b> frame, then rotated/flipped so its entry lands on <paramref name="mouth"/>
-    /// and it fills the box's dims; pieces carry the box's <see cref="BoxRef"/> and id prefix, the room takes
-    /// <paramref name="roomId"/>, and vacancies are published in plan cell coordinates. A plan-cell box docks
-    /// the host on whichever edge faces it, so the partitioner drives all four mouths.</summary>
-    public static FillResult Fill(
-        Box box, BoxEdge mouth, ShapeFamily family, int corridorWidth,
-        bool flip = false, string? roomId = null, RoomPlacement roomPlacement = RoomPlacement.Inline,
+    /// box edges — with one family: the compound, box-local, ending in the wool room. The shape is emitted
+    /// mouth-up (<see cref="ShapeEmitter.OrientMouthTop"/>) in the mouth's <b>along × depth</b> frame, then turned
+    /// so its entry lands on <paramref name="mouth"/> and it fills the box's dims. A box docks the host on
+    /// whichever edge faces it, so the allocator drives all four mouths. <c>null</c> with
+    /// <paramref name="rejection"/> set when the family does not fit the box or the knobs are not ones the
+    /// emitter builds — "no shape fits" is a signal, never a throw.</summary>
+    public static Compound? Fill(
+        Box box, BoxEdge mouth, ShapeFamily family, int corridorWidth, out FillRejection? rejection,
+        bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline,
         bool woolAtEnd = false, int attachmentWidth = 0, RingWalls? ringWalls = null)
     {
+        rejection = null;
         // the mouth's frame: its along-edge length and the depth perpendicular to it. Top/Bottom run along the
         // box width; Left/Right run along its height (the shape is rotated a quarter turn onto them).
         var lateral = mouth is BoxEdge.Left or BoxEdge.Right;
@@ -94,50 +58,25 @@ public static class WoolBoxEmitter
         if (canonW < minW || canonH < minH)
         {
             int minAlong = famTransposes ? minH : minW, minDepth = famTransposes ? minW : minH;
-            return lateral ? new FillResult.TooSmall(family, minDepth, minAlong)
-                           : new FillResult.TooSmall(family, minAlong, minDepth);
+            rejection = lateral ? new FillRejection.TooSmall(minDepth, minAlong)
+                                : new FillRejection.TooSmall(minAlong, minDepth);
+            return null;
         }
 
         // A knob combination the emitter does not build (a side-tuck room on an L, say) is a directed rejection
-        // like every other refusal here — this type's contract is a data channel, never a throw.
+        // like every other refusal here.
         Compound raw;
         try
         {
             raw = ShapeEmitter.Emit(family, canonW, canonH, corridorWidth, flip, roomPlacement,
                 woolAtEnd: woolAtEnd, attachmentWidth: attachmentWidth, ringWalls: ringWalls);
         }
-        catch (ArgumentException e) { return new FillResult.UnsupportedKnobs(family, e.Message); }
-        var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, canonW, canonH);
-        var shape = mouthTop.Turned(mouth.TopOnto(), w, h);
-
-        var a = Lay(shape, box.Rect.X, box.Rect.Z, box.Id, roomId ?? $"{box.Id}-room", box.Ref);
-        var vacancies = shape.Vacancies
-            .Select(v => new Vacancy(v.Kind,
-                new(box.Rect.X + v.Rect.X, box.Rect.Z + v.Rect.Z, v.Rect.Width, v.Rect.Height),
-                v.Mouth is { } e ? new BoxAbutment(e, e is BoxEdge.Top or BoxEdge.Bottom ? v.Rect.X : v.Rect.Z,
-                    e is BoxEdge.Top or BoxEdge.Bottom ? v.Rect.Width : v.Rect.Height) : null,
-                v.Walls))
-            .ToList();
-        return new FillResult.Ok(a, vacancies);
-    }
-
-    private static PlacedApproach Lay(Compound shape, int x, int z, string idPrefix, string roomId, BoxRef? box)
-    {
-        var (pieces, marker) = GrownPieces.Lay(shape, x, z, idPrefix, roomId, BoxKind.Wool, box);
-        return new PlacedApproach(pieces, marker!, shape.Vacancies);
-    }
-
-    /// <summary>Wrap a single emission as a standalone <c>symmetry:none</c> plan — the form the categorizer and
-    /// the shape gallery consume.</summary>
-    public static PlanModel AsPlan(PlacedApproach a, string name = "wool-box")
-    {
-        var plan = new PlanModel
+        catch (ArgumentException e)
         {
-            Meta = new PlanMeta { Name = name },
-            Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9 },
-        };
-        foreach (var p in a.Pieces) plan.Pieces.Add(new PlanPiece { Id = p.Id, Role = p.Role, Rect = p.Rect });
-        plan.Placements.Wools.Add(new WoolMarker { Piece = a.Marker.Piece, At = Composer.MarkerOffset(a.Marker, plan.Globals.Cell) });
-        return plan;
+            rejection = new FillRejection.UnsupportedKnobs(e.Message);
+            return null;
+        }
+        var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, canonW, canonH);
+        return mouthTop.Turned(mouth.TopOnto(), w, h);
     }
 }

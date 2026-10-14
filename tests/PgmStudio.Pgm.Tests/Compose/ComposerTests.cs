@@ -26,7 +26,7 @@ public sealed class ComposerTests
     }
 
     /// <summary>The land a plan's pieces cover, in cells — the distinct cells, so a shared run counts once.
-    /// The same reading the spend gate takes off the grown unit, read back off the assembled plan.</summary>
+    /// The same reading the spend gate takes off the team unit, read back off the assembled plan.</summary>
     private static int UnitLandCells(PlanModel plan)
     {
         var cells = new HashSet<(int, int)>();

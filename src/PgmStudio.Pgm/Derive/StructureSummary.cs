@@ -7,8 +7,8 @@ namespace PgmStudio.Pgm.Derive;
 /// <summary>
 /// The finished structural read of a composed unit — the third mirror surfaced as a browse/duel fact: the
 /// sorted wool <b>approach families</b>, the hub <b>compound form</b>, and the frontline <b>compound form</b> (or
-/// none). Derived from the generator's own labeled artifacts (each piece's <see cref="GrownPiece.Box"/> +
-/// <see cref="GrownPiece.Part"/>), never from a finished map's welded terrain, so it reads uniformly off a
+/// none). Derived from the generator's own labeled artifacts (each piece's <see cref="UnitPiece.Box"/> +
+/// <see cref="UnitPiece.Part"/>), never from a finished map's welded terrain, so it reads uniformly off a
 /// bare unit and needs no labels stored back. It is the canonical filter fact for the browse sieve and
 /// the bucket key for verdicts / duels: the same read the user sees on the card.
 /// <para>Reuses the two validated classifier entry points: <c>ShapeClassifier.Classify</c> (approach
@@ -20,14 +20,14 @@ public sealed record StructureSummary(
     CompoundRead? Hub,                  // the hub compound form (null only if a unit somehow has no hub box)
     CompoundRead? Frontline)            // the frontline compound form, or null = none (a real, sampled outcome)
 {
-    public static StructureSummary Derive(GrownUnit unit) => new(
+    public static StructureSummary Derive(TeamUnit unit) => new(
         WoolFamilies(unit).OrderBy(f => f).ToList(),
         BoxForm(unit, BoxKind.Hub),
         BoxForm(unit, BoxKind.Frontline));
 
     /// <summary>Classify each wool box to its emitted approach family (box scope — its own pieces + room).
     /// Public because the box gallery tool shares this exact read.</summary>
-    public static List<ShapeFamily> WoolFamilies(GrownUnit unit)
+    public static List<ShapeFamily> WoolFamilies(TeamUnit unit)
     {
         var fams = new List<ShapeFamily>();
         foreach (var boxId in WoolBoxIds(unit))
@@ -48,12 +48,12 @@ public sealed record StructureSummary(
         return fams;
     }
 
-    private static IEnumerable<string> WoolBoxIds(GrownUnit unit) =>
+    private static IEnumerable<string> WoolBoxIds(TeamUnit unit) =>
         unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Wool).Select(p => p.Box!.Id).Distinct();
 
     /// <summary>The compound form of the single box of <paramref name="kind"/> (hub or frontline), or null when a
     /// unit has none (a no-frontline unit).</summary>
-    private static CompoundRead? BoxForm(GrownUnit unit, BoxKind kind)
+    private static CompoundRead? BoxForm(TeamUnit unit, BoxKind kind)
     {
         var boxId = unit.Pieces.Where(p => p.Box?.Kind == kind).Select(p => p.Box!.Id).Distinct().FirstOrDefault();
         if (boxId is null) return null;

@@ -4,47 +4,47 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The partition constraint graph: <see cref="BoxPartition"/> is typed boxes (footprint + land target)
-/// and the joints between them, with hard invariants (<see cref="BoxPartition.Valid"/>), and
-/// <see cref="BoxPartition.Of"/> the derive-side mirror reading the partition a grown unit implies. Joints are
-/// the abutments between footprints (<see cref="BoxPartition.SharedEdge"/>); overlap is legal, a phantom joint
+/// The partition constraint graph: <see cref="BoxLayout"/> is typed boxes (footprint + land target)
+/// and the joints between them, with hard invariants (<see cref="BoxLayout.Valid"/>), and
+/// <see cref="BoxLayout.Of"/> the derive-side mirror reading the partition a team unit implies. Joints are
+/// the abutments between footprints (<see cref="BoxLayout.SharedEdge"/>); overlap is legal, a phantom joint
 /// is not.
 /// </summary>
-public sealed class BoxPartitionTests
+public sealed class BoxLayoutTests
 {
-    private static GrownUnit? TryFill(int players, ulong seed)
+    private static TeamUnit? TryFill(int players, ulong seed)
     {
         var request = new ComposeRequest(players, seed: seed);
         var rng = new ComposeRng(seed);
         var env = Envelope.Derive(request, rng);
         var crossing = MidCarver.Crossing(env, splitBand: false, doubleRank: false, fine: false);
         if (TeamUnitAllocator.Allocate(env, rng, crossing) is not { } alloc) return null;
-        return TeamUnitFiller.Fill(alloc, rng)?.Unit;
+        return TeamUnitFiller.Fill(alloc, rng);
     }
 
     [Test]
     public async Task Shared_edge_is_the_abutment_interval_on_the_first_rects_frame()
     {
         // right/left/top/bottom abutments, box-local start on the first rect
-        await Assert.That(BoxPartition.SharedEdge(new(0, 0, 4, 4), new(4, 0, 4, 4)))
+        await Assert.That(BoxLayout.SharedEdge(new(0, 0, 4, 4), new(4, 0, 4, 4)))
             .IsEqualTo(new BoxAbutment(BoxEdge.Right, 0, 4));
-        await Assert.That(BoxPartition.SharedEdge(new(4, 0, 4, 4), new(0, 0, 4, 4)))
+        await Assert.That(BoxLayout.SharedEdge(new(4, 0, 4, 4), new(0, 0, 4, 4)))
             .IsEqualTo(new BoxAbutment(BoxEdge.Left, 0, 4));
-        await Assert.That(BoxPartition.SharedEdge(new(0, 0, 4, 4), new(0, 4, 4, 4)))
+        await Assert.That(BoxLayout.SharedEdge(new(0, 0, 4, 4), new(0, 4, 4, 4)))
             .IsEqualTo(new BoxAbutment(BoxEdge.Bottom, 0, 4));
-        await Assert.That(BoxPartition.SharedEdge(new(0, 4, 4, 4), new(0, 0, 4, 4)))
+        await Assert.That(BoxLayout.SharedEdge(new(0, 4, 4, 4), new(0, 0, 4, 4)))
             .IsEqualTo(new BoxAbutment(BoxEdge.Top, 0, 4));
         // a partial overlap: the interval is the shared span, offset into the first rect's edge
-        await Assert.That(BoxPartition.SharedEdge(new(0, 0, 4, 10), new(4, 3, 4, 4)))
+        await Assert.That(BoxLayout.SharedEdge(new(0, 0, 4, 10), new(4, 3, 4, 4)))
             .IsEqualTo(new BoxAbutment(BoxEdge.Right, 3, 4));
     }
 
     [Test]
     public async Task Shared_edge_is_null_for_a_gap_a_bare_corner_or_interpenetration()
     {
-        await Assert.That(BoxPartition.SharedEdge(new(0, 0, 4, 4), new(5, 0, 4, 4))).IsNull();   // gap
-        await Assert.That(BoxPartition.SharedEdge(new(0, 0, 4, 4), new(4, 4, 4, 4))).IsNull();   // bare corner
-        await Assert.That(BoxPartition.SharedEdge(new(0, 0, 4, 4), new(2, 0, 4, 4))).IsNull();   // overlap, no edge
+        await Assert.That(BoxLayout.SharedEdge(new(0, 0, 4, 4), new(5, 0, 4, 4))).IsNull();   // gap
+        await Assert.That(BoxLayout.SharedEdge(new(0, 0, 4, 4), new(4, 4, 4, 4))).IsNull();   // bare corner
+        await Assert.That(BoxLayout.SharedEdge(new(0, 0, 4, 4), new(2, 0, 4, 4))).IsNull();   // overlap, no edge
     }
 
     [Test]
@@ -52,8 +52,8 @@ public sealed class BoxPartitionTests
     {
         var hub = new Box("hub", BoxKind.Hub, new(0, 0, 6, 6), 30);
         var spawn = new Box("spawn", BoxKind.Spawn, new(0, 6, 6, 8), 30);
-        var joint = new BoxJoint("hub", "spawn", BoxPartition.SharedEdge(hub.Rect, spawn.Rect)!);
-        await Assert.That(new BoxPartition([hub, spawn], [joint]).Valid()).IsTrue();
+        var joint = new BoxJoint("hub", "spawn", BoxLayout.SharedEdge(hub.Rect, spawn.Rect)!);
+        await Assert.That(new BoxLayout([hub, spawn], [joint]).Valid()).IsTrue();
     }
 
     [Test]
@@ -61,25 +61,25 @@ public sealed class BoxPartitionTests
     {
         var hub = new Box("hub", BoxKind.Hub, new(0, 0, 6, 6), 30);
         var spawn = new Box("spawn", BoxKind.Spawn, new(0, 6, 6, 8), 30);
-        var joint = new BoxJoint("hub", "spawn", BoxPartition.SharedEdge(hub.Rect, spawn.Rect)!);
+        var joint = new BoxJoint("hub", "spawn", BoxLayout.SharedEdge(hub.Rect, spawn.Rect)!);
 
-        await Assert.That(new BoxPartition([hub with { Rect = new(0, 0, 6, 0) }, spawn], []).Valid()).IsFalse();  // degenerate
-        await Assert.That(new BoxPartition([hub, hub with { Kind = BoxKind.Wool }], []).Valid()).IsFalse();    // dup id
-        await Assert.That(new BoxPartition([hub with { LandTargetCells = 37 }], []).Valid()).IsFalse();        // land > footprint
-        await Assert.That(new BoxPartition([hub, spawn], [joint with { BoxB = "ghost" }]).Valid()).IsFalse();  // dangling
-        await Assert.That(new BoxPartition([hub, spawn], [new BoxJoint("hub", "hub", joint.Abutment)]).Valid()).IsFalse(); // self
+        await Assert.That(new BoxLayout([hub with { Rect = new(0, 0, 6, 0) }, spawn], []).Valid()).IsFalse();  // degenerate
+        await Assert.That(new BoxLayout([hub, hub with { Kind = BoxKind.Wool }], []).Valid()).IsFalse();    // dup id
+        await Assert.That(new BoxLayout([hub with { LandTargetCells = 37 }], []).Valid()).IsFalse();        // land > footprint
+        await Assert.That(new BoxLayout([hub, spawn], [joint with { BoxB = "ghost" }]).Valid()).IsFalse();  // dangling
+        await Assert.That(new BoxLayout([hub, spawn], [new BoxJoint("hub", "hub", joint.Abutment)]).Valid()).IsFalse(); // self
         // a joint asserting a contact the footprints do not share
-        await Assert.That(new BoxPartition([hub, spawn],
+        await Assert.That(new BoxLayout([hub, spawn],
             [joint with { Abutment = new BoxAbutment(BoxEdge.Top, 0, 6) }]).Valid()).IsFalse();
     }
 
     [Test]
-    public async Task The_mirror_reads_a_valid_partition_off_a_grown_unit()
+    public async Task The_mirror_reads_a_valid_partition_off_a_team_unit()
     {
         for (ulong seed = 1; seed <= 8; seed++)
         {
             if (TryFill(24, seed) is not { } unit) continue;
-            var partition = BoxPartition.Of(unit);
+            var partition = BoxLayout.Of(unit);
             await Assert.That(partition.Valid()).IsTrue();
             // the spine and the wool boxes are all present as typed boxes
             await Assert.That(partition.Boxes.Any(b => b.Kind == BoxKind.Hub)).IsTrue();
@@ -100,7 +100,7 @@ public sealed class BoxPartitionTests
         for (ulong seed = 1; seed <= 12; seed++)
         {
             if (TryFill(24, seed) is not { } unit) continue;
-            var partition = BoxPartition.Of(unit);
+            var partition = BoxLayout.Of(unit);
             await Assert.That(partition.JointsOf("hub")).IsNotEmpty();
             var spawn = partition.Boxes.First(b => b.Kind == BoxKind.Spawn);
             if (partition.JointsOf("hub").Any(j => j.BoxA == spawn.Id || j.BoxB == spawn.Id)) sawSpawnJoint = true;
