@@ -24,8 +24,7 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
         Get("/shapes/probe");
         Description(b => b.Reads(
             new QueryWord("family", "The shape family to emit. Absent is `i`.",
-                [.. Enum.GetValues<ShapeFamily>().Where(family => family != ShapeFamily.Isolated)
-                    .Select(family => family.ToString().ToLowerInvariant())]),
+                [.. ShapeEmitter.Families.Select(family => family.Word())]),
             new QueryWord("w", "The box's width, in cells. Absent is 8, and out of range clamps.", Min: 1, Max: 64),
             new QueryWord("h", "The box's height, in cells. Absent is 8, and out of range clamps.", Min: 1, Max: 64),
             new QueryWord("laneWidth", "The lane width, in cells. Absent is 2, and out of range clamps.", Min: 1, Max: 8),
@@ -43,8 +42,8 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
     public override async Task HandleAsync(CancellationToken ct)
     {
         var familyToken = Query<string?>("family", isRequired: false) ?? "i";
-        if (!Enum.TryParse<ShapeFamily>(familyToken, ignoreCase: true, out var family) ||
-            family == ShapeFamily.Isolated)
+        if (!Enum.TryParse<CompoundForm>(familyToken, ignoreCase: true, out var family) ||
+            !ShapeEmitter.Families.Contains(family))
         {
             await Refusals.UnreadableAsync(HttpContext, "unknown family",
                 $"shape family '{familyToken}' is not one of the families the probe draws", ct, field: "family");
@@ -79,7 +78,7 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
 
     /// <summary>Flatten a refusal onto the wire. The detail is the emitter's or the gate's own words — a
     /// reworded guard is a second copy free to disagree with the one that fired.</summary>
-    private static ShapeRejectionDto Flatten(FillRejection? rejection, ShapeFamily family) => rejection switch
+    private static ShapeRejectionDto Flatten(FillRejection? rejection, CompoundForm family) => rejection switch
     {
         FillRejection.TooSmall t => new("too-small",
             $"Below {family}'s minimum box of {t.MinW}×{t.MinH} cells at this lane width.", t.MinW, t.MinH),
@@ -104,8 +103,7 @@ public sealed class ShapeProbeSchemaEndpoint : EndpointWithoutRequest<ShapeProbe
     public override async Task HandleAsync(CancellationToken ct)
     {
         const int laneWidth = 2;
-        var families = Enum.GetValues<ShapeFamily>()
-            .Where(f => f != ShapeFamily.Isolated)
+        var families = ShapeEmitter.Families
             .Select(f =>
             {
                 // the DOCK frame (along × depth), not the emitter's canonical frame: the panel fills through a
@@ -113,8 +111,8 @@ public sealed class ShapeProbeSchemaEndpoint : EndpointWithoutRequest<ShapeProbe
                 // ShapeEmitter.MinBox here would put 10×5 in the chip while a refusal said 5×10.
                 var (along, depth) = WoolBoxEmitter.MouthBox(f, laneWidth);
                 return new ShapeFamilyDto(
-                    f.ToString().ToLowerInvariant(), f.ToString(), along, depth,
-                    FillMenu.ProductionFamilies.Contains(f), KnobsOf(f));
+                    f.Word(), f.ToString(), along, depth,
+                    FillMenu.For(BoxKind.Wool).Contains(f), KnobsOf(f));
             })
             .ToList();
 
@@ -125,12 +123,12 @@ public sealed class ShapeProbeSchemaEndpoint : EndpointWithoutRequest<ShapeProbe
     /// <summary>The optional knobs a family accepts, from the emitter's own guards: the side-tuck room is
     /// I/Z/scythe only, the wool-at-an-end is the U/H/clamp/donut variant, and the attachment width is the
     /// donut's hub-entry. A knob absent here is one the emitter rejects for that family outright.</summary>
-    private static IReadOnlyList<string> KnobsOf(ShapeFamily family)
+    private static IReadOnlyList<string> KnobsOf(CompoundForm family)
     {
         var knobs = new List<string> { "flip" };
-        if (family is ShapeFamily.I or ShapeFamily.Z or ShapeFamily.Scythe) knobs.Add("sideTuck");
-        if (family is ShapeFamily.U or ShapeFamily.H or ShapeFamily.Clamp or ShapeFamily.Donut) knobs.Add("woolAtEnd");
-        if (family is ShapeFamily.Donut or ShapeFamily.Scythe) knobs.Add("attachW");
+        if (family is CompoundForm.I or CompoundForm.Z or CompoundForm.Scythe) knobs.Add("sideTuck");
+        if (family is CompoundForm.U or CompoundForm.H or CompoundForm.Clamp or CompoundForm.Donut) knobs.Add("woolAtEnd");
+        if (family is CompoundForm.Donut or CompoundForm.Scythe) knobs.Add("attachW");
         return knobs;
     }
 }

@@ -61,12 +61,20 @@ public static class ShapeEmitter
     /// plateau that clears the export stamp.</summary>
     public const int RoomDepthCells = 2;
 
+    /// <summary>The room-capped forms the emitter builds; the rest of <see cref="CompoundForm"/> is the
+    /// room-free hub and front-line forms <see cref="CompoundEmitter"/> builds.</summary>
+    public static readonly IReadOnlyList<CompoundForm> Families =
+    [
+        CompoundForm.I, CompoundForm.L, CompoundForm.Z, CompoundForm.Scythe,
+        CompoundForm.Clamp, CompoundForm.U, CompoundForm.H, CompoundForm.Donut,
+    ];
+
     /// <summary>The canonical-frame mouth edge of <paramref name="family"/>: where its entry part(s) dock the
     /// host. A flip mirrors the shape along this edge, so it never moves the mouth.</summary>
-    public static BoxEdge MouthEdge(ShapeFamily family) => family switch
+    public static BoxEdge MouthEdge(CompoundForm family) => family switch
     {
-        ShapeFamily.U or ShapeFamily.H or ShapeFamily.Clamp => BoxEdge.Bottom,
-        ShapeFamily.Donut => BoxEdge.Left,
+        CompoundForm.U or CompoundForm.H or CompoundForm.Clamp => BoxEdge.Bottom,
+        CompoundForm.Donut => BoxEdge.Left,
         _ => BoxEdge.Top,
     };
 
@@ -74,28 +82,28 @@ public static class ShapeEmitter
     /// given options — the emit-side counterpart of every <c>Emit</c> size guard, so a caller can size a box
     /// (or signal a directed too-small) without exception control flow.</summary>
     public static (int W, int H) MinBox(
-        ShapeFamily family, int laneWidth, RoomPlacement roomPlacement = RoomPlacement.Inline,
+        CompoundForm family, int laneWidth, RoomPlacement roomPlacement = RoomPlacement.Inline,
         int attachments = 1, bool woolExtend = false, int attachmentWidth = 0, bool woolAtEnd = false)
     {
         var rd = RoomDepthCells;
         var aw = attachmentWidth > 0 ? attachmentWidth : laneWidth;
         return family switch
         {
-            ShapeFamily.I when roomPlacement == RoomPlacement.SideTuck => (laneWidth + rd, 2 * laneWidth),
-            ShapeFamily.I => (laneWidth, rd + 1),
-            ShapeFamily.L => (laneWidth + rd + 1, 2 * laneWidth),
-            ShapeFamily.Z when roomPlacement == RoomPlacement.SideTuck => (2 * laneWidth + rd, 3 * laneWidth + 1),
-            ShapeFamily.Z => (2 * laneWidth, 3 * laneWidth + rd),
-            ShapeFamily.Scythe when roomPlacement == RoomPlacement.SideTuck => (4 * laneWidth + rd, 2 * laneWidth + rd),
-            ShapeFamily.Scythe => (4 * laneWidth, 2 * laneWidth + rd),
+            CompoundForm.I when roomPlacement == RoomPlacement.SideTuck => (laneWidth + rd, 2 * laneWidth),
+            CompoundForm.I => (laneWidth, rd + 1),
+            CompoundForm.L => (laneWidth + rd + 1, 2 * laneWidth),
+            CompoundForm.Z when roomPlacement == RoomPlacement.SideTuck => (2 * laneWidth + rd, 3 * laneWidth + 1),
+            CompoundForm.Z => (2 * laneWidth, 3 * laneWidth + rd),
+            CompoundForm.Scythe when roomPlacement == RoomPlacement.SideTuck => (4 * laneWidth + rd, 2 * laneWidth + rd),
+            CompoundForm.Scythe => (4 * laneWidth, 2 * laneWidth + rd),
             // the clamp's legs only have to reach the mouth past the wool — it has no crossbar to clear, so it
             // does NOT inherit the U's 2·laneWidth leg run (that depth became a 4-cell void under every clamp)
-            ShapeFamily.Clamp => (3 * laneWidth, laneWidth + rd),
-            ShapeFamily.U => (3 * laneWidth, 2 * laneWidth + rd),
-            ShapeFamily.H => (3 * laneWidth, 2 * laneWidth + 2 * rd),
+            CompoundForm.Clamp => (3 * laneWidth, laneWidth + rd),
+            CompoundForm.U => (3 * laneWidth, 2 * laneWidth + rd),
+            CompoundForm.H => (3 * laneWidth, 2 * laneWidth + 2 * rd),
             // the trailing `rd` is the room hanging off the ring's bottom-right; the corner-integrated wool
             // (woolAtEnd) sits INSIDE the ring's span instead, so it needs none of it
-            ShapeFamily.Donut => (4 * laneWidth + (woolExtend ? laneWidth : 0) + (woolAtEnd ? 0 : rd),
+            CompoundForm.Donut => (4 * laneWidth + (woolExtend ? laneWidth : 0) + (woolAtEnd ? 0 : rd),
                 Math.Max(2 * laneWidth + 1, attachments >= 2 ? 2 * aw + 1 : aw + laneWidth)),
             _ => throw new ArgumentOutOfRangeException(nameof(family), family, "the emitter fills room-capped families"),
         };
@@ -118,7 +126,7 @@ public static class ShapeEmitter
     /// Widening consumes the box's slack — the hole is what the walls leave — so a vector too fat for the box
     /// is refused rather than squashing the ring.</summary>
     public static Compound Emit(
-        ShapeFamily family, int boxW, int boxH, int laneWidth, bool flip = false,
+        CompoundForm family, int boxW, int boxH, int laneWidth, bool flip = false,
         RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false,
         bool woolExtend = false, int attachmentWidth = 0, int entryShift = 0, int woolShift = 0,
         int attachmentOffset = 0, RingWalls? ringWalls = null)
@@ -136,21 +144,21 @@ public static class ShapeEmitter
     /// run down to the host), clamp/donut at the left (bars/stub open leftward). Callers reorient with
     /// <see cref="OrientMouthTop"/> to put any family's mouth on the edge they dock.</para></summary>
     private static Compound Compose(
-        ShapeFamily family, int boxW, int boxH, int laneWidth, bool flip,
+        CompoundForm family, int boxW, int boxH, int laneWidth, bool flip,
         RoomPlacement roomPlacement, int attachments, bool woolAtEnd,
         bool woolExtend, int attachmentWidth, int entryShift, int woolShift,
         int attachmentOffset, RingWalls? ringWalls)
     {
         var (W, H) = (boxW, boxH);
-        if (family == ShapeFamily.Isolated)
-            throw new ArgumentException("the emitter fills room-capped families; Isolated is a derive-only reading.");
+        if (!Families.Contains(family))
+            throw new ArgumentException($"the emitter fills room-capped forms; {family} is a room-free form.");
         if (laneWidth < 2) throw new ArgumentException($"lane width {laneWidth} < 2 (a lane is at least one 10-block cell pair).");
         if (laneWidth > W) throw new ArgumentException($"lane width {laneWidth} exceeds box width {W}.");
-        if (roomPlacement == RoomPlacement.SideTuck && family is not (ShapeFamily.I or ShapeFamily.Z or ShapeFamily.Scythe))
+        if (roomPlacement == RoomPlacement.SideTuck && family is not (CompoundForm.I or CompoundForm.Z or CompoundForm.Scythe))
             throw new ArgumentException($"side-tuck room is supported for I, Z and scythe (requested {family}).");
-        if ((entryShift != 0 || woolShift != 0) && family != ShapeFamily.Scythe)
+        if ((entryShift != 0 || woolShift != 0) && family != CompoundForm.Scythe)
             throw new ArgumentException($"entry/wool shifts are scythe endpoint knobs (requested {family}).");
-        if (attachmentOffset != 0 && family != ShapeFamily.Donut)
+        if (attachmentOffset != 0 && family != CompoundForm.Donut)
             throw new ArgumentException($"the attachment offset is a donut knob (requested {family}).");
 
         var t = new List<Piece>();
@@ -160,7 +168,7 @@ public static class ShapeEmitter
         var rd = RoomDepthCells;
         switch (family)
         {
-            case ShapeFamily.I when roomPlacement == RoomPlacement.SideTuck:
+            case CompoundForm.I when roomPlacement == RoomPlacement.SideTuck:
             {
                 // straight lane; the room is a stub off the SIDE of the lane at the room — the catalog's
                 // side-tuck (tttt/vvvw): the lane runs straight to its end and the wool ducks off to one side.
@@ -174,7 +182,7 @@ public static class ShapeEmitter
                     vac.Add(new ShapeVacancy("notch", new(laneWidth, 0, W - laneWidth, H - laneWidth), null, [CompoundParts.Entry]));
                 break;
             }
-            case ShapeFamily.I:
+            case CompoundForm.I:
             {
                 Need(H >= rd + 1, family, W, H);
                 int lx = (W - laneWidth) / 2, laneH = H - rd;
@@ -185,7 +193,7 @@ public static class ShapeEmitter
                     vac.Add(new ShapeVacancy("notch", new(lx + laneWidth, 0, W - lx - laneWidth, H), null, [CompoundParts.Entry]));
                 break;
             }
-            case ShapeFamily.L:
+            case CompoundForm.L:
             {
                 // vertical arm down one side, a horizontal band across the bottom, room at its far end. The
                 // +1 guarantees ≥1 cell of horizontal arm beyond the vertical, so the bend is real (without it
@@ -199,7 +207,7 @@ public static class ShapeEmitter
                     [CompoundParts.Entry, CompoundParts.Run]));
                 break;
             }
-            case ShapeFamily.Z when roomPlacement == RoomPlacement.SideTuck:
+            case CompoundForm.Z when roomPlacement == RoomPlacement.SideTuck:
             {
                 // the run reaches the box bottom and the room docks its SIDE at the end, perpendicular —
                 // the run is shortened in the sense that it no longer extends past the lane to hold the
@@ -216,7 +224,7 @@ public static class ShapeEmitter
                     [CompoundParts.Entry, CompoundParts.Bar]));
                 break;
             }
-            case ShapeFamily.Z:
+            case CompoundForm.Z:
             {
                 // top arm on the left, a full-width band, bottom arm on the right ending in the room.
                 Need(W >= 2 * laneWidth && H >= 3 * laneWidth + rd, family, W, H);
@@ -232,7 +240,7 @@ public static class ShapeEmitter
                     [CompoundParts.Bar, CompoundParts.RoomRun]));
                 break;
             }
-            case ShapeFamily.Scythe:
+            case CompoundForm.Scythe:
             {
                 // the S-hook (ttvw/vtvt/vttt): enter at the top-left tail, drop the spine, run the bottom,
                 // climb the return leg to the wool at top-right — three bends with a tight bay between the
@@ -273,7 +281,7 @@ public static class ShapeEmitter
                     [CompoundParts.EntryRun, CompoundParts.Bar, CompoundParts.RoomRun]));
                 break;
             }
-            case ShapeFamily.H:
+            case CompoundForm.H:
             {
                 // the branch with a room-run STUB: two legs run down to the hub and merge at a crossbar; the wool
                 // caps a short stub rising from the crossbar's opposite side — its middle, or an end (woolAtEnd).
@@ -290,7 +298,7 @@ public static class ShapeEmitter
                     [CompoundParts.Entry, CompoundParts.Bar, CompoundParts.Entry]));
                 break;
             }
-            case ShapeFamily.U:
+            case CompoundForm.U:
             {
                 // the branch with the wool FLUSH on the crossbar (no stub): two legs down to the hub, the
                 // crossbar, and the wool docked directly on the crossbar's opposite side — middle, or an end
@@ -307,7 +315,7 @@ public static class ShapeEmitter
                     [CompoundParts.Entry, CompoundParts.Bar, CompoundParts.Entry]));
                 break;
             }
-            case ShapeFamily.Clamp:
+            case CompoundForm.Clamp:
             {
                 // the wool clamped INSIDE the shape as a cut cell: two legs run down to the hub (one U-style
                 // mouth, MouthEdge Bottom) and the wool is their ONLY bridge — remove it and the terrain falls
@@ -340,7 +348,7 @@ public static class ShapeEmitter
                 }
                 break;
             }
-            case ShapeFamily.Donut:
+            case CompoundForm.Donut:
             {
                 // a rectangular ring around an enclosed hole (multi-access), built from NON-overlapping rects.
                 // Hub-side attachment stub(s) extend the bars leftward (single = top only, double = top+bottom).
@@ -414,7 +422,7 @@ public static class ShapeEmitter
     /// pure reflections/rotations, so the family read is unchanged. Callers dock any edge by placing the
     /// normalized, mouth-up box themselves (a vertical flip at placement docks the bottom).</summary>
     public static (Compound Shape, int W, int H) OrientMouthTop(
-        Compound s, ShapeFamily family, int boxW, int boxH)
+        Compound s, CompoundForm family, int boxW, int boxH)
     {
         // The turn taking the family's mouth to the top: a flip for the bottom, a transpose for the left, and for
         // the right a transpose and a flip.
@@ -429,7 +437,7 @@ public static class ShapeEmitter
         return (s.Turned(turn, boxW, boxH), w, h);
     }
 
-    private static void Need(bool ok, ShapeFamily family, int w, int h)
+    private static void Need(bool ok, CompoundForm family, int w, int h)
     {
         if (!ok) throw new ArgumentException($"box {w}x{h} is too small for family {family}.");
     }

@@ -351,24 +351,23 @@ does not, and `w` the wool where a figure has one. The compound layer knows only
 empty cell *means*, void a build zone may later span or simply outside, is decided later.
 
 ```
-Rectangle              SpineArms(1)      SpineArms(2)      SpineArms(3)
-                       — one branch      — two branches    — three
+I                      L                 U                 E
+— no feature           — one branch      — two branches    — three
   tttttt               t.....            t....t            t..t..t
   tttttt               t.....            t....t            t..t..t
                        tttttt            tttttt            ttttttt
-  no feature           reads L or T      reads U or Π      reads E
 ```
 
-The branch row is **one** compound, not three. A spine plus K perpendicular arms is a single form whose
-letter is a placement-read of where the arms happen to sit, and that letter drifts as an arm slides
-along the spine without the compound changing at all. Ell, staple and comb are one thing wearing three
-names. The arm count is the identity and it is capped at three.
+L, U and E are one construction — a spine plus K perpendicular arms — told apart by the arm count alone.
+Where the arms sit along the spine is a knob and never a form: arms at both ends and arms at an end and the
+middle both read U, so an arm sliding along the spine never changes what the compound is. The arm count is
+capped at three.
 
 Enclosing a void is the next feature, and the three one-void compounds differ only in what sits beside
 the loop:
 
 ```
-Ring                   P                      G
+Donut                  P                      G
 — one void             — void + overhang      — void + open bay
 
   ttttttt              ttttt..                ttttt.t
@@ -386,7 +385,7 @@ Two voids is the last step, and the two forms that reach it are told apart by wh
 holes — a solid wall or an open channel:
 
 ```
-DoubleHole                        TwoUOnI
+DoubleHole                        TwoU
 — two voids, solid wall between   — two voids, open channel between
 
   ttttttttt                         ttt.ttt
@@ -395,17 +394,19 @@ DoubleHole                        TwoUOnI
   ttttttttt                         ttttttt
 ```
 
-These seven are `CompoundForm` — the compound taxonomy `CompoundEmitter` builds and `ClassifyCompound` reads back:
+These are the room-free forms `CompoundEmitter` builds and `ClassifyCompound` reads back. They sit in the one
+list of forms, `CompoundForm`, beside the forms a compound ending in a room takes (§4.6) — the same I, L, U and
+Donut name the same shapes on either side:
 
-| Compound | Feature it adds | Told apart by |
+| Form | Feature it adds | Told apart by |
 |---|---|---|
-| `Rectangle` | — | the bounding box is solid |
-| `SpineArms` | a branch (K = 1…3) | the arm count; where the arms sit is a knob |
-| `Ring` | an enclosed void | one void, no overhang and no bay |
+| `I` | — | the bounding box is solid |
+| `L` · `U` · `E` | a branch (one, two or three arms) | the arm count; where the arms sit is a knob |
+| `Donut` | an enclosed void | one void, no overhang and no bay |
 | `P` | a void with an overhang | one void, the loop's bar running past it |
 | `G` | a void beside an open bay | one void plus a three-walled bay |
 | `DoubleHole` | a second void | two voids, a solid wall between them |
-| `TwoUOnI` | a second void | two voids, an open channel between them |
+| `TwoU` | a second void | two voids, an open channel between them |
 
 The **set of compounds is open, the set of names is not**. A custom build may join rectangles into
 something no name covers — a staircase, or a hook doubling back on itself — and the classifier reads
@@ -570,46 +571,47 @@ The docking law is one table over parts: the `room` never docks, the `entry` is 
 every other part is internal. A hub or front line carries neither, so the gate's check runs where a wool or
 spawn box docks; the hub publishes offers and the front line returns its face edge directly.
 
-### 4.5 Which compounds each kind may take
+### 4.5 Which forms each kind may take
 
-A box kind does not admit every compound. Each kind draws from an authored menu, and the menus differ
-because the three shapes do different work on a map.
+A box kind does not admit every form. Each kind draws from its own menu, `FillMenu.For(kind)`, and the menus
+differ because the four boxes do different work on a map. The order of each menu is part of the sampling
+contract: a draw resolves against the list by index.
 
-The **wool and spawn** menu is the nine **wool families** — the shapes ending in a room, drawn in
-full under *How a wool approach is built*. They are the widest menu because an approach is the most
-varied thing on the board: it must reach a goal from a host, and there are many ways to make that
-walk interesting.
+The **wool** menu is **I · L · Z · U · H · Donut · Clamp** — forms ending in a room, drawn in full under *How
+a wool approach is built*. It is the widest menu because a wool's ground is the most varied thing on the
+board: it must reach a goal from a host, and there are many ways to make that walk interesting. The scythe
+is the one form ending in a room left off it: its bay opens onto its own docking edge, so a flush dock seals
+the bay against the host into a hole walled by the wool room, the motif WL8 forbids. The **spawn** menu is
+**I · L**, because a spawn never forks or folds.
 
-The **hub** menu is **Rectangle · L · U · Ring · P · Double-hole · G**: the compact compounds, plus the
-wide holed ones once the hub is laterally elongated. Zig, hook, the higher combs and `TwoUOnI` are
-deliberately excluded, because a hub stays rectangle-ish. The hub grows **wider, not squarer** — its
-lateral span is drawn from a larger cap than its depth — and the long edge does double duty: it gives
-neighbours room to attach, and it reaches the width the holed forms need. A P is a loop with an
-overhanging bar; a double-hole is a ring plus a full-height U, giving two equal holes; a G is a ring
-plus an L, whose open bay a docking frontline seals into a taller hole, for a deliberately asymmetric
-pair. Built by `HubBoxEmitter`.
+The **hub** menu is **I · L · U · Donut · P · Double-hole · G**: the compact forms, plus the wide holed ones
+once the hub is laterally elongated. Z, the scythe, E and Two-U are deliberately excluded, because a hub
+stays rectangle-ish. The hub grows **wider, not squarer** — its lateral span is drawn from a larger cap than
+its depth — and the long edge does double duty: it gives neighbours room to attach, and it reaches the width
+of 9 the holed forms need. A P is a loop with an overhanging bar; a double-hole is a ring plus a
+full-height U, giving two equal holes; a G is a ring plus an L, whose open bay a docking frontline seals
+into a taller hole, for a deliberately asymmetric pair. Built by `HubBoxEmitter`.
 
-The **frontline** menu is a plain **Bar** for the wide face (FR6), the **branch family** — a spine
-plus K arms, single or twin or more — and the **holed** forms `P` and `TwoUOnI`, which present a
-closed recess. Rotation is fixed by the box kind rather than sampled: the compound docks the hub with
-its spine and its arm-tips are the face toward the axis. The mid reads that face off the laid pieces
-(`MidCarver`), so the front line publishes nothing of its own. Built by `FrontlineBoxEmitter`.
+The **front line** menu is **I · L · U**: the wide I across the hub's face (FR6), the fat L (FR3/FR4) and the
+U (CT8). Rotation is fixed by the box kind rather than sampled: the compound docks the hub with its spine
+and its arm-tips are the face toward the axis. The mid reads that face off the laid pieces (`MidCarver`), so
+the front line publishes nothing of its own. Built by `FrontlineBoxEmitter`.
 
 Two arrangements that get called shapes are not compounds at all, but docking patterns. The **clamp** is one compact room docked on two distinct faces — opposite faces give a
 centred I plus I, adjacent faces a corner L plus I, the bend forced because two straight bars would
-only corner-touch. The **twin frontline** is two Bars docked to one host individually, the gap between
+only corner-touch. A front line of **two I's** docked to one host individually is the other, the gap between
 them being the face recess of CT8.
 
 ### 4.6 How a wool approach is built
 
-An approach is a compound walked from a host to a goal, and the nine of them are an escalation rather than
+An approach is a compound walked from a host to a goal, and the forms it takes are an escalation rather than
 a flat set. An L whose lane doubles back is a scythe; a scythe whose bay closes is a donut; a clamp
 whose wool docks flush on one bar is a U; a U that lifts its wool onto a stub is an H. Read in that
 order the catalog is four steps and two special cases, not nine unrelated pictures.
 
-The two special cases are not compounds of their own. `Isolated` is any compound at all with no terrain
-reaching the wool — a reading, never something emitted. `Clamp` is the two-faced docking pattern seen
-as a family: the wool bridging two otherwise-separate bars.
+The two special cases are not steps of their own. An **isolated** wool — one no ground reaches — has no form
+at all: the classifier answers none, and nothing emits one. `Clamp` is the two-faced docking pattern seen
+as a form: the wool bridging two otherwise-separate bars.
 
 The figures below are the shapes `ShapeEmitter` builds, drawn at one cell per corridor width. The
 mouth — the edge a host connects through — is at the top for I, L, Z and the scythe, at the bottom for
@@ -653,11 +655,11 @@ attached to it — which is why that variant needs a narrower box than the other
 run holds the room out away from the ring. The wool is not obliged to sit against the ring at all,
 and a rule that assumed it would be wrong on two of these three.
 
-What each family *means* on a map, which is the reason the nine are worth telling apart:
+What each form *means* on a map, which is the reason they are worth telling apart:
 
 | Family | Reads as |
 |---|---|
-| **Isolated** | wool ringed by void — no terrain approach; reachable only by building |
+| *isolated* (no form) | wool ringed by void — no ground reaches it; reachable only by building |
 | **I** | a terrain lane caps the wool inline (a solid compound with no bends also reads I) |
 | **L** | one bend — terrain reaches the wool from two adjacent sides |
 | **Z** | a staircase of two opposing bends, no bay |
@@ -701,7 +703,7 @@ That last one propagates rather than merely moving a rectangle: a shifted entry 
 spine it docks with it, and a shifted wool shortens the return leg the same way, because a full-height
 spine standing over a dropped tail is a different shape wearing the same name.
 
-`RingWalls` is the widest of them. Every ring-bodied form — the `Ring`, the `P`'s loop, the `G`'s ring,
+`RingWalls` is the widest of them. Every ring-bodied form — the `Donut` hub, the `P`'s loop, the `G`'s ring,
 the `DoubleHole` and the donut — takes its four wall widths independently, so one bar or leg can run
 wider than the rest where more play should flow through that side. The hole is whatever the walls leave,
 so widening spends the box's slack, and a wall vector too fat for its box is **refused outright** rather
@@ -746,11 +748,11 @@ guesswork:
 ### 4.7 Derivation and classification
 
 Every shape the generator builds can be read back from its geometry alone, and the reading is what
-proves the building. `ShapeClassifier.Classify` takes one box's terrain and returns its family. It is
+proves the building. `ShapeClassifier.Classify` takes one box's terrain and returns its form. It is
 a single decision tree, ordered **strongest signal first**, and nothing in it keys off an absolute
 width:
 
-1. **No terrain touches the wool** → **Isolated**.
+1. **No terrain touches the wool** → no form at all: the wool is isolated.
 2. **Terrain encloses a void** → **Donut**. A loop may carry a thick corner and still be a donut.
 3. **The wool is a cut cell** — removing it disconnects the terrain, so it is the closing wall
    bridging two otherwise-separate bars → **Clamp**.
@@ -797,7 +799,7 @@ through is the human oracle's, deliberately not automated.
 The check runs in `tests/PgmStudio.Pgm.Tests/Shapes/`: emit every family × size × width, read back,
 assert equality with no overlap, and assert that the emitted part sequence equals
 `CompoundParts.Template`. A companion set pushes each family's pieces to extremes at a fixed width, so
-every one must still read its own family — the width-independence proof. The nine-family catalog itself is
+every one must still read its own form — the width-independence proof. The catalog of forms ending in a room is
 inline in `ShapeCatalogTests` as the `t`/`v`/`w` grids this document states, so the doc and the assertion are
 read side by side and there is no third copy to drift.
 
@@ -812,11 +814,11 @@ level.
 The **compound layer is checked the same way and separately**, so the wool and spawn path stays
 byte-identical: `CompoundEmitter` emits a compound with no room and `ClassifyCompound` reads it back by
 topology, strongest signal first — void count, then arm count, then bends. Void count does most of the
-work. **Two voids** split on whether an open channel or a solid wall separates them, giving `TwoUOnI`
+work. **Two voids** split on whether an open channel or a solid wall separates them, giving `TwoU`
 against `DoubleHole`. **One void** splits three ways on what sits beside the loop: an open bay is a
-`G`, an overhanging bar a `P`, and neither a plain `Ring`. **No void** splits on whether the bounding
-box is solid — a `Rectangle` — or branches, in which case only the arm count matters, so an F and a Π
-both read as two arms. Placement is deliberately invisible to it.
+`G`, an overhanging bar a `P`, and neither a plain `Donut`. **No void** splits on whether the bounding
+box is solid — an `I` — or branches, in which case only the arm count matters: one arm is an `L`, two a `U`,
+three an `E`, wherever along the spine they sit. Placement is deliberately invisible to it.
 
 The figures on this page are held to the same standard. `tools/deriver/figure-check.cs` parses every
 labelled grid out of this section and pushes it through the classifier that names that kind of thing —
@@ -1517,7 +1519,7 @@ how good the result **reads**.
 | Kind | Is | Exemplar |
 |---|---|---|
 | **fact** | an observation off geometry, no policy | `BoxEdgeInterface.Intervals`, the negative-space classes, `FrontlineRuns` |
-| **menu** | a generative allowlist — what may be *chosen* (empty = a directed signal) | `FillProfiles.Families`, `FillMenu.Rows` |
+| **menu** | a generative allowlist — what may be *chosen* (empty = a directed signal) | `FillMenu.For`, `FillMenu.Rows`, `FillProfiles.Families` |
 | **fit gate** | does the choice fit the box | `ShapeEmitter.MinBox`, `FillProfiles.Fits` |
 | **demand** | a shape's requirement *on its environment* (inbound) | no live type — see below |
 | **offer** | what a shape imposes *outward*: the intervals it invites neighbours onto, and in which groupings | `EdgeOffer` |
@@ -1633,10 +1635,10 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 
 | Piece | Path | What |
 |---|---|---|
-| `ShapeEmitter` | `Shapes/ShapeEmitter.cs` | **emit**: `Emit` builds a `ShapeFamily`'s `Compound`, the room its last piece and the marker inside it. No roles, no ids, no plan types. |
-| `CompoundEmitter` · `CompoundForm` | `Shapes/CompoundEmitter.cs`, `Shapes/CompoundForm.cs` | the compound forms (`Rectangle · SpineArms · Ring · DoubleHole · P · G · TwoUOnI`) and its emitter. |
+| `ShapeEmitter` | `Shapes/ShapeEmitter.cs` | **emit**: `Emit` builds one of the eight forms ending in a room (`ShapeEmitter.Families`) as a `Compound`, the room its last piece and the marker inside it. No roles, no ids, no plan types. |
+| `CompoundEmitter` · `CompoundForm` | `Shapes/CompoundEmitter.cs`, `Shapes/CompoundForm.cs` | the one list of forms, `I · L · Z · Scythe · Clamp · U · H · Donut · E · P · G · DoubleHole · TwoU` (`Word()` is each form's stored token), and the emitter of the room-free ones. |
 | `CompoundEdges` | `Shapes/CompoundEdges.cs` | the edge-taxonomy reader (§4): negative spaces by wall count, their parts, mouths and the offerable surface — from geometry alone. |
-| `ShapeClassifier` | `Shapes/ShapeClassifier.cs` | **shape deriver**: `Classify` → `ShapeFamily` (9 families), width-independent; `ClassifyOpen` → `LaneRead` is the board-level corridor bend read (`LaneName` → string `I/L/Z/complex/plaza/none`; the retired `WoolLaneShape` was a thin adapter over it). |
+| `ShapeClassifier` | `Shapes/ShapeClassifier.cs` | **shape deriver**: `Classify` → a `CompoundForm`, or none for an isolated wool, width-independent; `ClassifyOpen` → `LaneRead` is the board-level corridor bend read (`LaneName` → string `I/L/Z/complex/plaza/none`; the retired `WoolLaneShape` was a thin adapter over it). |
 | `PartAssignment` | `Shapes/PartAssignment.cs` | **part deriver**: `AssignParts(family, pieces, roomId)` → piece→part, re-derived from topology — the emitter's part mirror (§4). |
 
 **The board deriver — islands / voids / interfaces**
@@ -1669,7 +1671,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `HubBoxEmitter` | `Compose/HubBoxEmitter.cs` | the **hub**: `Fill` builds its compound, with no room, and `Offers` reads the per-run `EdgeOffer`s it publishes as the constraint source. |
 | `FrontlineBoxEmitter` | `Compose/FrontlineBoxEmitter.cs` | the **front line**: a compound with no room whose spine docks the hub and whose arm-tips are the face toward the axis. |
 | `EdgeOffer` · `OfferGrouping` | `Compose/Boxes/EdgeOffer.cs` | the **offer**: where a neighbour may attach, at what width, in which grouping (§7). |
-| `FillProfiles` | `Compose/Boxes/FillProfiles.cs` | the per-`BoxKind` profile as data: legal families + the footprint fit gate. |
+| `FillMenu` · `FillProfiles` | `Compose/Boxes/FillMenu.cs`, `Compose/Boxes/FillProfiles.cs` | each box kind's menu (`FillMenu.For(kind)`), the wool menu gated by width (`FillMenu.Rows`), and the footprint fit gate (`FillProfiles.Fits`). |
 | `BoxFiller` | `Compose/Boxes/BoxFiller.cs` | the one profile-gated fill entry point over a positioned `Box`: the compound, or the `FillRejection` saying why not (the spine G63 drives). |
 | `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface` **facts** (span + the template parts on each edge) — it observes; the docking *rules* over the facts are the `DockingGate`. |
 | `DockingGate` | `Compose/Boxes/DockingGate.cs` | the compose-side docking gate: `PartDockRole` (room→never-dock, entry→docking, rest→internal) + the verdict over the `BoxEdgeInterface` parts. A dock is legal iff it lands on an entry and seals no wool — no per-family imperative code, shape-relative. Every family now docks through a **single mouth**, so the verdict reads only the edge's parts, never a family name. Not an `ILayoutTerm`. |

@@ -183,7 +183,7 @@ the board's shape. Each band carries its measured land per team — 2250 blocks�
 milli and 8730 at centi — its corridor width in blocks — 12 · 14 · 16 · 16, with the wool
 approach one rung under — and its wool count: one a team at nano, two from micro up, sometimes three. Beside
 the ladders sit roughly a dozen sampling weights — how often a wool bends, how often a bent wool is a donut, how often a big
-square hub takes the ring — which steer the output's character more than anything else in the generator and
+square hub takes the donut — which steer the output's character more than anything else in the generator and
 are, by `docs/generator/audit.md`'s own account, the least principled part of the model.
 
 What that produces is measurable rather than arguable, and the feed reports it. Every response carries an
@@ -191,15 +191,15 @@ What that produces is measurable rather than arguable, and the feed reports it. 
 asking for something the settings never make still says what they do make. Four hundred composed boards per
 row, `rot_180`:
 
-| Players | Wool families seen | Hub forms | Frontline |
+| Players | Wool shapes | Hub forms | Frontline |
 |---|---|---|---|
-| 8 | I 334 · L 73 · clamp 5 · U 4 · H 1 | ring 294 · bar 51 · single 50 · twin 5 | bar 177 · twin 121 · single 102 |
-| 12 | I 334 · L 73 · clamp 5 · U 4 · H 1 | ring 294 · bar 51 · single 50 · twin 5 | bar 177 · twin 121 · single 102 |
-| 20 | I 355 · L 146 · donut 31 · U 18 · H 15 · clamp 14 | ring 208 · bar 140 · single 29 · twin 23 | bar 247 · single 79 · twin 74 |
-| 30 | I 370 · L 141 · donut 42 · U 22 · H 19 · clamp 19 | ring 200 · twin 76 · bar 41 · G 40 · double-hole 34 · P 11 | single 158 · twin 125 · bar 117 |
+| 8 | I 334 · L 73 · clamp 5 · U 4 · H 1 | donut 294 · I 51 · L 50 · U 5 | I 177 · U 121 · L 102 |
+| 12 | I 334 · L 73 · clamp 5 · U 4 · H 1 | donut 294 · I 51 · L 50 · U 5 | I 177 · U 121 · L 102 |
+| 20 | I 355 · L 146 · donut 31 · U 18 · H 15 · clamp 14 | donut 208 · I 140 · L 29 · U 23 | I 247 · L 79 · U 74 |
+| 30 | I 370 · L 141 · donut 42 · U 22 · H 19 · clamp 19 | donut 200 · U 76 · I 41 · G 40 · double-hole 34 · P 11 | L 158 · U 125 · I 117 |
 
 Read down the columns and the ladders are visible as behaviour. Eight and twelve players compose the same
-boards, because both are the nano band. Every board carries a frontline. The ring is the commonest hub at every
+boards, because both are the nano band. Every board carries a frontline. The donut is the commonest hub at every
 size, and the wide holed compounds — double-hole, G and P — arrive only at thirty, where a hub is wide enough to
 keep a bar beside a ring whose hole is still 12 blocks. A wool count sums past the board count because a family
 is counted once per board however many approaches of it that board carries.
@@ -250,8 +250,8 @@ from `SizeBands` in the vocabulary leaf rather than restated in the client; exac
 request names it by the count in the middle of its range. A band is one at a time because the feed is one band's
 library; a request is still bound only by the endpoint's own clamp, 6–47. Wools per team is one chip per count, `1` to `3` (`WoolCounts` in the vocabulary leaf, the range the composer draws from), and
 several may be ticked at once: a board matches any one ticked count, and none ticked takes any. The chips carry no
-counts, because the census holds forms, not wool counts. *Filter by shape* — wool approaches, hub and front line — is a set of ticked
-chips, each with the count of boards in the library that have it, and *Clear* empties all three. Wool approaches
+counts, because the census holds forms, not wool counts. *Filter by shape* — wool shapes, hub and front line — is a set of ticked
+chips, each with the count of boards in the library that have it, and *Clear* empties all three. Wool shapes
 are **must-include**: every family ticked has to be present on the board. Hub and front line are **any-of**.
 A side always has a front line; where the composer places no piece for it (the `none` form) the hub's own edge
 facing the mid is that front line, so its chip reads *Hub edge*.
@@ -313,7 +313,7 @@ the hub and front line forms. It returns runs of text, and a run that names a gl
 *wool room*, *approach*, *hub*, *front line*, *mid*) carries that term, which the drawer links to
 `/glossary#{slug}`. For a twelve-player, rotate-180 board with two wools: "A two-team layout for 6–13 players a
 team, copied by a half turn about the centre. Each team has two wools, each kept in its own wool room and reached
-by I-shaped and L-shaped approaches. The team's side is built around a ring-shaped hub, with a twin front line
+by I-shaped and L-shaped approaches. The team's side is built around a donut-shaped hub, with a U-shaped front line
 facing the mid." The drawer shows no raw numbers, no seed, no descriptor JSON and no hard-term list; the card's
 `descriptor`, `spend`, `hardTerms` and `topSoft` remain on `GET /compose` for an agent.
 

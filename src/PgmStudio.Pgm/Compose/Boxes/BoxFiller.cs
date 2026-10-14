@@ -23,7 +23,7 @@ public static class BoxFiller
     /// <paramref name="mouth"/>: the compound, box-local, or <c>null</c> with <paramref name="rejection"/> set when
     /// the family is outside the box's profile, does not fit the footprint, or would dock illegally.</summary>
     public static Compound? Fill(
-        Box box, BoxEdge mouth, int laneWidth, ShapeFamily family, out FillRejection? rejection,
+        Box box, BoxEdge mouth, int laneWidth, CompoundForm family, out FillRejection? rejection,
         bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false,
         int attachmentWidth = 0, RingWalls? ringWalls = null)
     {
@@ -57,7 +57,7 @@ public static class BoxFiller
     /// overhangs the edge into free space. <c>null</c> when the family does not fill the box or exposes no entry
     /// on that mouth.</summary>
     public static EdgeInterval? EntryOn(
-        Box box, BoxEdge mouth, int laneWidth, ShapeFamily family, bool flip = false,
+        Box box, BoxEdge mouth, int laneWidth, CompoundForm family, bool flip = false,
         RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false, int attachmentWidth = 0)
     {
         if (Fill(box, mouth, laneWidth, family, out _, flip, roomPlacement, woolAtEnd, attachmentWidth)
@@ -69,7 +69,7 @@ public static class BoxFiller
 
     /// <summary>The families the box's profile admits that <b>actually fill</b> its footprint (the emit
     /// succeeds) — the legal fill set for this box, footprint gate included.</summary>
-    public static IReadOnlyList<ShapeFamily> FittingFamilies(Box box, BoxEdge mouth, int laneWidth) =>
+    public static IReadOnlyList<CompoundForm> FittingFamilies(Box box, BoxEdge mouth, int laneWidth) =>
         FillProfiles.Families(box.Kind, laneWidth, laneWidth)
             .Where(f => Fill(box, mouth, laneWidth, f, out _) is not null)
             .ToList();

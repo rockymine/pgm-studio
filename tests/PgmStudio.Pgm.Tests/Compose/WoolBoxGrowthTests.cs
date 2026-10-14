@@ -90,7 +90,7 @@ public sealed class WoolBoxGrowthTests
                 var room = boxPieces.Single(p => p.Part == CompoundParts.Room);
                 var (filled, roomCells) = BoxCells(boxPieces, room.Id);
                 var (family, _) = ShapeClassifier.Classify(filled, roomCells);
-                await Assert.That(FillMenu.ProductionFamilies.Contains(family)).IsTrue();
+                await Assert.That(family is { } read && FillMenu.For(BoxKind.Wool).Contains(read)).IsTrue();
             }
         }
     }
@@ -99,7 +99,7 @@ public sealed class WoolBoxGrowthTests
     public async Task Bent_and_branching_families_occur_across_seeds()
     {
         // the menu must actually escalate: big budgets produce more than straight lanes
-        var families = new HashSet<ShapeFamily>();
+        var families = new HashSet<CompoundForm>();
         for (ulong seed = 1; seed <= 30; seed++)
         {
             if (TryFill(30, seed) is not { } unit) continue;
@@ -108,11 +108,11 @@ public sealed class WoolBoxGrowthTests
                 var boxPieces = unit.Pieces.Where(p => p.Box?.Id == boxId).ToList();
                 var room = boxPieces.Single(p => p.Part == CompoundParts.Room);
                 var (filled, roomCells) = BoxCells(boxPieces, room.Id);
-                families.Add(ShapeClassifier.Classify(filled, roomCells).Family);
+                if (ShapeClassifier.Classify(filled, roomCells).Family is { } family) families.Add(family);
             }
         }
         await Assert.That(families.Count >= 2).IsTrue();
-        await Assert.That(families.Any(f => f != ShapeFamily.I)).IsTrue();
+        await Assert.That(families.Any(f => f != CompoundForm.I)).IsTrue();
     }
 
     [Test]
@@ -121,7 +121,7 @@ public sealed class WoolBoxGrowthTests
         // the spawn is the second box kind: its room a Spawn-role room, every piece part- and box-labeled.
         // Classify the box's own terrain and re-derive its parts — the same emit↔derive mirror the wool box
         // passes.
-        var seen = new HashSet<ShapeFamily>();
+        var seen = new HashSet<CompoundForm>();
         for (ulong seed = 1; seed <= 20; seed++)
             foreach (var players in new[] { 12, 20, 30 })
             {
@@ -133,8 +133,8 @@ public sealed class WoolBoxGrowthTests
                 await Assert.That(room.Role).IsEqualTo(PlanRoles.Spawn);
 
                 var (filled, roomCells) = BoxCells(boxPieces, room.Id);
-                var family = ShapeClassifier.Classify(filled, roomCells).Family;
-                await Assert.That(SpawnBoxEmitter.Families.Contains(family)).IsTrue();
+                var family = ShapeClassifier.Classify(filled, roomCells).Family ?? throw new InvalidOperationException("no ground reaches the spawn room");
+                await Assert.That(FillMenu.For(BoxKind.Spawn).Contains(family)).IsTrue();
 
                 var parts = PartAssignment.AssignParts(family, boxPieces.Select(p => (p.Id, p.Rect)).ToList(), room.Id);
                 foreach (var p in boxPieces)
@@ -184,7 +184,7 @@ public sealed class WoolBoxGrowthTests
         // (attachment) + span (2·laneWidth + holeDeep) + rd = 13; H = 2·laneWidth + holeAlong = 7 (also ≥ entry + laneWidth).
         const int laneWidth = 2;
         var box = new Box("wool-a", BoxKind.Wool, new(0, 0, 13, 7), 91);
-        var filled = BoxFiller.Fill(box, BoxEdge.Left, laneWidth, ShapeFamily.Donut, out _, attachmentWidth: 5)!;
+        var filled = BoxFiller.Fill(box, BoxEdge.Left, laneWidth, CompoundForm.Donut, out _, attachmentWidth: 5)!;
 
         var hole = filled.Vacancies.Single(v => v.Kind == "hole");
         await Assert.That(hole.Rect.Width * hole.Rect.Height).IsEqualTo(15);         // the 3×5 hole (orientation aside)

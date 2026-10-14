@@ -13,30 +13,13 @@ namespace PgmStudio.Pgm.Compose;
 /// the neighbour's lane width. The composer decides which offer each neighbour takes and drives the per-edge
 /// widths; this emitter produces the compound and reads the offers it sources.
 ///
-/// <para>Form menu (<see cref="Forms"/>, authored — model.md §4): <b>Rectangle · L · U · Ring · P · Double-hole · G</b>,
-/// compact optionally-holed compounds, deliberately not Zig/Hook/the higher combs. Each is one <see cref="CompoundForm"/>
+/// <para>Form menu (<see cref="FillMenu.For"/>, authored — model.md §4): <b>I · L · U · Donut · P · Double-hole · G</b>,
+/// compact optionally-holed compounds, deliberately not Z, scythe or E. Each is one <see cref="CompoundForm"/>
 /// sized to fill the box, so its outward walls touch the box edges and become offers; a compound too small for its
 /// form at the given <c>laneWidth</c> is a <b>directed null</b>, not a throw.</para>
 /// </summary>
 public static class HubBoxEmitter
 {
-    /// <summary>The hub's authored form menu as data — the <see cref="CompoundForm"/>s a hub may be (model.md §4). A
-    /// hub stays rectangle-ish, so the menu is the compact forms plus the <b>wide holed</b> compounds a laterally
-    /// elongated hub affords: the solid Rectangle, the branch family at one arm (L) and two (U), the Ring, the
-    /// <b>P</b> (a loop on a longer bar — the bar's overhang is a long free run), the <b>Double-hole</b> (a ring +
-    /// a docked U — two equal holes), and the <b>G</b> (a ring + an L — the ring's hole plus a frontline-sealed bay,
-    /// asymmetric holes). The wide forms need width ≥ 9 and fall back (a directed null) below it.</summary>
-    public static readonly IReadOnlyList<CompoundRead> Forms =
-    [
-        new(CompoundForm.Rectangle),
-        new(CompoundForm.SpineArms, 1),   // L — a spine with one end arm
-        new(CompoundForm.SpineArms, 2),   // U — a spine with two end arms, the bay between
-        new(CompoundForm.Ring),           // one enclosed hole
-        new(CompoundForm.P),              // a loop on a longer bar — the overhang a long free run
-        new(CompoundForm.DoubleHole),     // a ring + a docked U — two holes
-        new(CompoundForm.G),              // a ring + an L — the ring's hole + a frontline-sealed bay (asymmetric holes)
-    ];
-
     /// <summary>How wide a branch hub's leg may grow, as a multiple of the corridor — the numerator over
     /// <see cref="LegWidthCapDenominator"/>, so 5/2 is two and a half corridors, floored. A leg wider than this
     /// stops reading as a leg and starts reading as a second compound.</summary>
@@ -126,16 +109,16 @@ public static class HubBoxEmitter
     /// <c>null</c> when the box is too small for the form (a directed signal);
     /// throws <see cref="ComposeException"/> only for a form off the hub menu.</summary>
     public static Compound? Fill(
-        Box box, CompoundRead form, int laneWidth, bool flipV = false, RingWalls? ringWalls = null,
+        Box box, CompoundForm form, int laneWidth, bool flipV = false, RingWalls? ringWalls = null,
         IReadOnlyList<(int Start, int Width)>? armLayout = null) =>
         Fill(box, form, laneWidth, flipV, out _, ringWalls, armLayout);
 
-    /// <inheritdoc cref="Fill(Box, CompoundRead, int, bool, RingWalls?, IReadOnlyList{ValueTuple{int, int}})"/>
+    /// <inheritdoc cref="Fill(Box, CompoundForm, int, bool, RingWalls?, IReadOnlyList{ValueTuple{int, int}})"/>
     /// <remarks>On a <c>null</c> return, <b>why</b> the form was refused — the directed reason in
     /// the shared <see cref="FillRejection"/> vocabulary, carrying the compound emitter's own dimension message
     /// rather than discarding it. <c>null</c> when the fill succeeded.</remarks>
     public static Compound? Fill(
-        Box box, CompoundRead form, int laneWidth, bool flipV, out FillRejection? rejection,
+        Box box, CompoundForm form, int laneWidth, bool flipV, out FillRejection? rejection,
         RingWalls? ringWalls = null, IReadOnlyList<(int Start, int Width)>? armLayout = null)
     {
         rejection = null;
@@ -143,7 +126,7 @@ public static class HubBoxEmitter
         var compound = BuildCompound(form, boxW, boxH, laneWidth, ringWalls, armLayout, out var detail);
         if (compound is null)                                    // too small for the form at this laneWidth — a directed signal
         {
-            rejection = new FillRejection.FormDoesNotFit(detail ?? $"{form.Form} does not fit {boxW}x{boxH} at laneWidth {laneWidth}.");
+            rejection = new FillRejection.FormDoesNotFit(detail ?? $"{form} does not fit {boxW}x{boxH} at lane width {laneWidth}.");
             return null;
         }
         return flipV ? compound.Turned(BoxTurn.FlipZ, boxW, boxH) : compound;   // feet toward the box top
@@ -153,7 +136,7 @@ public static class HubBoxEmitter
     // (the CompoundEmitter's own dim guards, surfaced as a directed signal rather than an exception). `detail` carries
     // the guard's own message on refusal — the reason the caller reports, not a re-derivation of it.
     private static Compound? BuildCompound(
-        CompoundRead form, int w, int h, int laneWidth, RingWalls? ringWalls,
+        CompoundForm form, int w, int h, int laneWidth, RingWalls? ringWalls,
         IReadOnlyList<(int Start, int Width)>? armLayout, out string? detail)
     {
         detail = null;
@@ -172,17 +155,16 @@ public static class HubBoxEmitter
         }
         try
         {
-            return form.Form switch
+            return form switch
             {
-                CompoundForm.Rectangle => CompoundEmitter.Rectangle(w, h),
-                CompoundForm.SpineArms when form.Arms == 1 => Branch(1),                                          // L: one end arm
-                CompoundForm.SpineArms when form.Arms == 2 => Branch(2),                                          // U: two end arms
-                CompoundForm.SpineArms => throw new ComposeException($"a hub arm-form takes 1 (L) or 2 (U) arms, not {form.Arms}."),
-                CompoundForm.Ring => CompoundEmitter.Ring(walls, w, h),
+                CompoundForm.I => CompoundEmitter.Rectangle(w, h),
+                CompoundForm.L => Branch(1),                                          // L: one end arm
+                CompoundForm.U => Branch(2),                                          // U: two end arms
+                CompoundForm.Donut => CompoundEmitter.Donut(walls, w, h),
                 CompoundForm.P => CompoundEmitter.P(walls, laneWidth, w - 2 * laneWidth, h, 2 * laneWidth),                                  // loop of width w−bar, the bar overhanging by 2·laneWidth
                 CompoundForm.DoubleHole => CompoundEmitter.DoubleHole(walls, laneWidth, w - 2 * laneWidth, h, 2 * laneWidth, h, 0),          // ring left, a full-height U on its right (two equal holes) — fits a shallow-wide hub
                 CompoundForm.G => CompoundEmitter.G(walls, laneWidth, w - 2 * laneWidth, h, w),                                       // ring left, an L on its right — the ring hole + a frontline-sealed bay
-                _ => throw new ComposeException($"the hub form menu excludes {form.Form}."),
+                _ => throw new ComposeException($"the hub form menu excludes {form}."),
             };
         }
         catch (ArgumentException e) { detail = e.Message; return null; }

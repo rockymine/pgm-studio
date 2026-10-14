@@ -23,7 +23,7 @@ public static class UnitSeating
     /// reach. A null box means the form does not fit the rect at all.</summary>
     internal static (Box? Box, IReadOnlyDictionary<BoxEdge, IReadOnlyList<EdgeInterval>> Runs, BoxEdge Front,
         IReadOnlySet<(int X, int Z)> Holes)
-        Emit(CompoundRead form, CellRect hubRect, Frame frame, int laneWidth,
+        Emit(CompoundForm form, CellRect hubRect, Frame frame, int laneWidth,
              RingWalls? walls, IReadOnlyList<(int Start, int Width)>? arms)
     {
         var frontEdge = SeatGeometry.SideEdge(frame, UnitSide.Front);
@@ -76,7 +76,7 @@ public static class UnitSeating
     /// frontline's face has to span. Empty when the form does not fit — the caller then sizes as if the edge were
     /// solid, which is what the rectangle it falls back to offers anyway.</summary>
     internal static IReadOnlyList<EdgeInterval> FrontRuns(
-        CompoundRead form, CellRect hubRect, Frame frame, int laneWidth,
+        CompoundForm form, CellRect hubRect, Frame frame, int laneWidth,
         RingWalls? walls, IReadOnlyList<(int Start, int Width)>? arms)
     {
         var (box, runs, front, _) = Emit(form, hubRect, frame, laneWidth, walls, arms);
@@ -90,7 +90,7 @@ public static class UnitSeating
     /// seated neighbour boxes and their hub joints, or <c>null</c> when the box is too small for the form or a
     /// request finds no free run to dock (the directed signal the caller answers by falling back / resampling).</summary>
     internal static (List<Box> Boxes, List<BoxJoint> Joints)? Seat(
-        CompoundRead form, CellRect hubRect, Frame frame, int laneWidth, int woolLaneWidth, int seatGapCells,
+        CompoundForm form, CellRect hubRect, Frame frame, int laneWidth, int woolLaneWidth, int seatGapCells,
         int cell, IReadOnlyList<NeighbourRequest> requests, ComposeRng rng,
         RingWalls? walls = null, IReadOnlyList<(int Start, int Width)>? arms = null)
     {

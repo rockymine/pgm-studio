@@ -55,7 +55,7 @@ public static class TeamUnitFiller
         // same compound the allocator seated its neighbours against, so every dock lands on real terrain (§4's
         // offerable surface), never an empty bounding-box stretch. It publishes each run at what that run can
         // support; what each neighbour was granted rides on its own joint.
-        var form = hubBox.Form ?? new CompoundRead(CompoundForm.Rectangle);
+        var form = hubBox.Form ?? CompoundForm.I;
         if (HubBoxEmitter.Fill(hubBox, form, hubBox.HubLaneWidth, hubBox.FlipV, hubBox.HubWalls,
                 hubBox.HubArms) is not { } hub)
             return null;
@@ -76,7 +76,7 @@ public static class TeamUnitFiller
             {
                 case BoxKind.Spawn:
                     var laneWidth = GrantedLaneWidth(hubBox, hub, j, hubEdge);
-                    var fitS = SpawnBoxEmitter.Families
+                    var fitS = FillMenu.For(BoxKind.Spawn)
                         .Where(f => SpawnBoxEmitter.Fill(neighbour, mouth, f, laneWidth, flip: false) is not null).ToList();
                     if (fitS.Count == 0) return null;
                     var spawnFill = SpawnBoxEmitter.Fill(neighbour, mouth, fitS[rng.NextInt(0, fitS.Count)], laneWidth, flip: false)!;
@@ -90,7 +90,7 @@ public static class TeamUnitFiller
                     // a richer family docked by the seat-and-shift. The allocator positioned the box for this exact
                     // family's entry, so the filler re-emits it, not a re-picked family.
                     laneWidth = GrantedLaneWidth(hubBox, hub, j, hubEdge);
-                    var wf = neighbour.Wool ?? new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false);
+                    var wf = neighbour.Wool ?? new WoolFill(CompoundForm.I, RoomPlacement.Inline, false);
                     if (BoxFiller.Fill(neighbour, mouth, laneWidth, wf.Family, out _, wf.Flip, wf.Placement,
                             wf.WoolAtEnd, wf.AttachmentWidth, wf.RingWalls) is not { } woolFill)
                         return null;
@@ -104,16 +104,15 @@ public static class TeamUnitFiller
                     // the hub's front-edge offer width), and its face — opposite the spine, toward the axis —
                     // is what the mid docks. No room, no marker.
                     laneWidth = GrantedLaneWidth(hubBox, hub, j, hubEdge);
-                    var fitF = FillProfiles.FrontlineForms
+                    var fitF = FillMenu.For(BoxKind.Frontline)
                         .Where(f => FrontlineBoxEmitter.Fill(neighbour, f, laneWidth, mouth) is not null).ToList();
                     if (fitF.Count == 0) return null;
-                    // the frontline form answers the hub form: a branch hub takes the wide Bar across its front
-                    // (it overlaps the short leg), but a square or holed hub prefers a staple/strand — a solid Bar
+                    // the frontline form answers the hub form: a branch hub takes the wide I across its front
+                    // (it overlaps the short leg), but a square or holed hub prefers an L or U — a solid I
                     // flush against an already-square hub reads flat (a square on a square).
-                    var hubForm = hubBox.Form?.Form ?? CompoundForm.Rectangle;
-                    var bar = fitF.FirstOrDefault(f => f.Form == CompoundForm.Rectangle);
-                    var strands = fitF.Where(f => f.Form == CompoundForm.SpineArms).ToList();
-                    var frontForm = hubForm == CompoundForm.SpineArms && bar is not null ? bar
+                    var hubForm = hubBox.Form ?? CompoundForm.I;
+                    var strands = fitF.Where(f => f.Arms() > 0).ToList();
+                    var frontForm = hubForm.Arms() > 0 && fitF.Contains(CompoundForm.I) ? CompoundForm.I
                         : strands.Count > 0 ? strands[rng.NextInt(0, strands.Count)]
                         : fitF[rng.NextInt(0, fitF.Count)];
                     _ = rng.NextBool(0.5);   // the face offer's grouping, drawn and unread
@@ -121,8 +120,8 @@ public static class TeamUnitFiller
                     // under the leg laws: ≥2 wide, factor-2 pairs, 2–4 bays, capped end recesses) with the
                     // canonical fat L / symmetric twin as the fallback when the spine cannot host one
                     var spineLenF = mouth is BoxEdge.Left or BoxEdge.Right ? neighbour.Rect.Height : neighbour.Rect.Width;
-                    var layoutF = frontForm.Form == CompoundForm.SpineArms
-                        ? FrontlineBoxEmitter.SampleArms(rng, spineLenF, frontForm.Arms) : null;
+                    var layoutF = frontForm.Arms() > 0
+                        ? FrontlineBoxEmitter.SampleArms(rng, spineLenF, frontForm.Arms()) : null;
                     var frontFill = (layoutF is null ? null
                             : FrontlineBoxEmitter.Fill(neighbour, frontForm, laneWidth, mouth, layoutF))
                         ?? FrontlineBoxEmitter.Fill(neighbour, frontForm, laneWidth, mouth)!;

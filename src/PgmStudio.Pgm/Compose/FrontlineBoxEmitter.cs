@@ -12,21 +12,11 @@ namespace PgmStudio.Pgm.Compose;
 /// in one canonical frame — spine <see cref="BoxEdge.Top"/>, face <see cref="BoxEdge.Bottom"/> — and the composer
 /// orients the placed box onto the hub.
 ///
-/// <para>Form menu (<see cref="Forms"/>): <b>Bar</b> (the wide face, FR6), and the branch family <b>single</b>
-/// (<c>SpineArms(1)</c>, FR3/FR4) and <b>twin</b> (<c>SpineArms(2)</c>, CT8).</para>
+/// <para>Form menu (<see cref="FillMenu.For"/>): the wide <b>I</b> (FR6), the fat <b>L</b> (FR3/FR4) and the
+/// <b>U</b> (CT8).</para>
 /// </summary>
 public static class FrontlineBoxEmitter
 {
-    /// <summary>The frontline's authored form menu as data (model.md §4): the wide <b>Bar</b> and the branch family at
-    /// one arm (single — the <b>fat L</b>) and two (twin). The holed forms (P, two-U-on-I) are authored additions
-    /// beyond the grower's <c>FrontForm</c> and land next.</summary>
-    public static readonly IReadOnlyList<CompoundRead> Forms =
-    [
-        new(CompoundForm.Rectangle),      // Bar — the wide face (FR6 / FrontForm.Wide)
-        new(CompoundForm.SpineArms, 1),   // single — the fat L (FR3/FR4 / FrontForm.Single)
-        new(CompoundForm.SpineArms, 2),   // twin (CT8 / FrontForm.Twin)
-    ];
-
     /// <summary>Sample a branch frontline's <b>leg layout</b> — the variation knob over the canonical forms (the
     /// fat L, the symmetric twin): per-leg (Start, Width) on a <paramref name="w"/>-wide spine. The laws: every
     /// leg at least <b>2 wide</b>; at most two legs, their widths within <b>factor 2</b> of each other (never a 2
@@ -64,15 +54,15 @@ public static class FrontlineBoxEmitter
     /// (<see cref="Compound.Turned"/>), so the composer places the box against any hub edge. <c>null</c> when the
     /// box is too small for the form (a directed signal).</summary>
     public static Compound? Fill(
-        Box box, CompoundRead form, int laneWidth, BoxEdge spineMouth = BoxEdge.Top,
+        Box box, CompoundForm form, int laneWidth, BoxEdge spineMouth = BoxEdge.Top,
         IReadOnlyList<(int Start, int Width)>? armLayout = null) =>
         Fill(box, form, laneWidth, out _, spineMouth, armLayout);
 
-    /// <inheritdoc cref="Fill(Box, CompoundRead, int, BoxEdge, IReadOnlyList{ValueTuple{int, int}})"/>
+    /// <inheritdoc cref="Fill(Box, CompoundForm, int, BoxEdge, IReadOnlyList{ValueTuple{int, int}})"/>
     /// <remarks>On a <c>null</c> return, <b>why</b> the form was refused, in the shared <see cref="FillRejection"/>
     /// vocabulary.</remarks>
     public static Compound? Fill(
-        Box box, CompoundRead form, int laneWidth, out FillRejection? rejection, BoxEdge spineMouth = BoxEdge.Top,
+        Box box, CompoundForm form, int laneWidth, out FillRejection? rejection, BoxEdge spineMouth = BoxEdge.Top,
         IReadOnlyList<(int Start, int Width)>? armLayout = null)
     {
         rejection = null;
@@ -84,7 +74,7 @@ public static class FrontlineBoxEmitter
         if (built is null)
         {
             rejection = new FillRejection.FormDoesNotFit(
-                detail ?? $"{form.Form} (arms {form.Arms}) does not fit a {spineLen}x{reach} spine frame at laneWidth {laneWidth}.");
+                detail ?? $"{form} does not fit a {spineLen}x{reach} spine frame at lane width {laneWidth}.");
             return null;
         }
         return built.Turned(spineMouth.TopOnto(), spineLen, reach);
@@ -94,32 +84,32 @@ public static class FrontlineBoxEmitter
     // armLayout (SampleArms) overrides the branch forms' canonical legs with the sampled per-leg sizes. `detail`
     // carries the refusing guard's own message — the reason the caller reports, not a re-derivation of it.
     private static Compound? BuildCompound(
-        CompoundRead form, int w, int h, int laneWidth, IReadOnlyList<(int Start, int Width)>? armLayout,
+        CompoundForm form, int w, int h, int laneWidth, IReadOnlyList<(int Start, int Width)>? armLayout,
         out string? detail)
     {
         detail = null;
         try
         {
-            if (form.Form == CompoundForm.SpineArms && armLayout is not null)
+            if (form.Arms() > 0 && armLayout is not null)
             {
-                if (armLayout.Count == form.Arms)
+                if (armLayout.Count == form.Arms())
                     return CompoundEmitter.SpineArms(w, laneWidth, armLayout.Select(a => (a.Start, a.Width, h - laneWidth)).ToList());
-                detail = $"the arm layout names {armLayout.Count} legs, the form {form.Arms}.";
+                detail = $"the arm layout names {armLayout.Count} legs, the form {form.Arms()}.";
                 return null;
             }
-            return form.Form switch
+            return form switch
             {
-                CompoundForm.Rectangle => CompoundEmitter.Rectangle(w, h),                                              // Bar — the wide face
+                CompoundForm.I => CompoundEmitter.Rectangle(w, h),                                              // Bar — the wide face
                 // single — the FAT L, never a centred T strand: a T's narrow tip is the whole front-face hull,
                 // which forces a too-thin mid band. The one arm anchors at the spine's start and spans all but
                 // one lane width (the void notch a real recess), so the face tip carries most of the bar;
                 // a leg not strictly wider than the notch (w < 2·laneWidth + 1) is the thin-leg L with the same thin
                 // band and directed-nulls instead
-                CompoundForm.SpineArms when form.Arms == 1 => w - laneWidth >= laneWidth + 1
+                CompoundForm.L => w - laneWidth >= laneWidth + 1
                     ? CompoundEmitter.SpineArms(w, laneWidth, [(0, w - laneWidth, h - laneWidth)])
                     : Thin(out detail, w, laneWidth),
-                CompoundForm.SpineArms when form.Arms == 2 => CompoundEmitter.SpineArms(laneWidth, [0, w - laneWidth], w, h - laneWidth),    // twin — a strand at each end
-                _ => throw new ComposeException($"the frontline menu is Bar / single / twin, not {form.Form} (arms {form.Arms})."),
+                CompoundForm.U => CompoundEmitter.SpineArms(laneWidth, [0, w - laneWidth], w, h - laneWidth),    // twin — a strand at each end
+                _ => throw new ComposeException($"the frontline menu is I / L / U, not {form}."),
             };
         }
         catch (ArgumentException e) { detail = e.Message; return null; }

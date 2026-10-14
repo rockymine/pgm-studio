@@ -21,8 +21,6 @@ public sealed class StructureSummaryTests
                 // one family per wool box == the plan's wool count
                 await Assert.That(s.Wools.Count).IsEqualTo(stages.Plan.Placements.Wools.Count)
                     .Because($"{players}p seed {seed}");
-                // every wool reads a real (non-Isolated) family
-                await Assert.That(s.Wools.All(f => f != ShapeFamily.Isolated)).IsTrue();
                 // sorted (canonical order)
                 await Assert.That(s.Wools.SequenceEqual(s.Wools.OrderBy(f => f))).IsTrue();
                 // a unit always has a hub
@@ -45,10 +43,10 @@ public sealed class StructureSummaryTests
     public async Task Form_tokens_map_the_body_vocabulary()
     {
         await Assert.That(StructureNames.Form(null)).IsEqualTo("none");
-        await Assert.That(StructureNames.Form(new CompoundRead(CompoundForm.Rectangle))).IsEqualTo("bar");
-        await Assert.That(StructureNames.Form(new CompoundRead(CompoundForm.SpineArms, 1))).IsEqualTo("single");
-        await Assert.That(StructureNames.Form(new CompoundRead(CompoundForm.SpineArms, 2))).IsEqualTo("twin");
-        await Assert.That(StructureNames.Form(new CompoundRead(CompoundForm.Ring))).IsEqualTo("ring");
-        await Assert.That(StructureNames.Form(new CompoundRead(CompoundForm.DoubleHole))).IsEqualTo("double-hole");
+        await Assert.That(StructureNames.Form(CompoundForm.I)).IsEqualTo("i");
+        await Assert.That(StructureNames.Form(CompoundForm.L)).IsEqualTo("l");
+        await Assert.That(StructureNames.Form(CompoundForm.U)).IsEqualTo("u");
+        await Assert.That(StructureNames.Form(CompoundForm.Donut)).IsEqualTo("donut");
+        await Assert.That(StructureNames.Form(CompoundForm.DoubleHole)).IsEqualTo("double-hole");
     }
 }

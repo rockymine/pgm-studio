@@ -28,15 +28,15 @@ public sealed class CompoundTests
     }
 
     [Test]
-    [Arguments(ShapeFamily.I)]
-    [Arguments(ShapeFamily.L)]
-    [Arguments(ShapeFamily.Z)]
-    [Arguments(ShapeFamily.Scythe)]
-    [Arguments(ShapeFamily.Clamp)]
-    [Arguments(ShapeFamily.U)]
-    [Arguments(ShapeFamily.H)]
-    [Arguments(ShapeFamily.Donut)]
-    public async Task Every_family_ends_in_its_room(ShapeFamily family)
+    [Arguments(CompoundForm.I)]
+    [Arguments(CompoundForm.L)]
+    [Arguments(CompoundForm.Z)]
+    [Arguments(CompoundForm.Scythe)]
+    [Arguments(CompoundForm.Clamp)]
+    [Arguments(CompoundForm.U)]
+    [Arguments(CompoundForm.H)]
+    [Arguments(CompoundForm.Donut)]
+    public async Task Every_family_ends_in_its_room(CompoundForm family)
     {
         foreach (var laneWidth in new[] { 2, 3 })
             foreach (var (W, H) in new[] { (16, 22), (18, 26) })
@@ -56,11 +56,11 @@ public sealed class CompoundTests
         const int laneWidth = 2;
         Compound[] emits =
         [
-            ShapeEmitter.Emit(ShapeFamily.I, 16, 22, laneWidth, roomPlacement: RoomPlacement.SideTuck),
-            ShapeEmitter.Emit(ShapeFamily.Donut, 18, 16, laneWidth, attachments: 2),
-            ShapeEmitter.Emit(ShapeFamily.Donut, 18, 14, laneWidth, woolExtend: true),
-            ShapeEmitter.Emit(ShapeFamily.Donut, 18, 14, laneWidth, woolAtEnd: true),
-            ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 16, laneWidth, entryShift: 3),
+            ShapeEmitter.Emit(CompoundForm.I, 16, 22, laneWidth, roomPlacement: RoomPlacement.SideTuck),
+            ShapeEmitter.Emit(CompoundForm.Donut, 18, 16, laneWidth, attachments: 2),
+            ShapeEmitter.Emit(CompoundForm.Donut, 18, 14, laneWidth, woolExtend: true),
+            ShapeEmitter.Emit(CompoundForm.Donut, 18, 14, laneWidth, woolAtEnd: true),
+            ShapeEmitter.Emit(CompoundForm.Scythe, 18, 16, laneWidth, entryShift: 3),
         ];
         foreach (var emit in emits) await AssertEndsInItsRoom(emit);
     }
@@ -69,7 +69,7 @@ public sealed class CompoundTests
     [Test]
     public async Task A_turn_keeps_the_marker_inside_the_room()
     {
-        var emit = ShapeEmitter.Emit(ShapeFamily.L, 15, 18, 3);
+        var emit = ShapeEmitter.Emit(CompoundForm.L, 15, 18, 3);
         foreach (var turn in Enum.GetValues<BoxTurn>())
         {
             var (width, height) = turn.Extent(15, 18);

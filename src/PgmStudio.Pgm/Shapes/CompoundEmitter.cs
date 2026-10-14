@@ -10,10 +10,10 @@ namespace PgmStudio.Pgm.Shapes;
 /// and the front line's forms.
 ///
 /// <para>Everything is one atom recombined <b>along shared edges</b> (§3): a spine plus <c>K</c> arms
-/// (<c>SpineArms</c> — T at K=1, Π/F at K=2, E at K=3, the arm placement a knob, <b>3 arms the maximum</b>),
-/// four bars around a void (<c>Ring</c>), a ring with one longer bar so a loop slides along it
+/// (<c>SpineArms</c> — L at K=1, U at K=2, E at K=3, the arm placement a knob, <b>3 arms the maximum</b>),
+/// four bars around a void (<c>Donut</c>), a ring with one longer bar so a loop slides along it
 /// (<c>P</c>), a ring with a shorter U docked on its edge for a second void (<c>DoubleHole</c>), and
-/// two loops on a shared baseline (<see cref="TwoUOnI"/>). Each classifies back to itself through
+/// two loops on a shared baseline (<see cref="TwoU"/>). Each classifies back to itself through
 /// <see cref="ShapeClassifier.ClassifyCompound"/> — the emit↔derive mirror for the compound layer. Shapes are emitted in a
 /// canonical frame (spines horizontal on top, arms hanging down; rings axis-aligned); a box too small for the
 /// form throws.</para>
@@ -60,7 +60,7 @@ public static class CompoundEmitter
     /// hanging down, each atom rectangle <b>free to differ in size</b> — <paramref name="arms"/> gives each arm's
     /// <c>(Start, Width, Length)</c>, and the bar its own thickness — so an F can carry a long and a short leg on a
     /// fat bar, etc. Identity is <b>width-independent</b>: whatever the sizes, the classifier reads it by its arm
-    /// count (an uneven F still reads <c>SpineArms(2)</c>). Arms must sit within the spine, a gap apart (so each is
+    /// count (an uneven pair still reads <c>U</c>). Arms must sit within the spine, a gap apart (so each is
     /// a distinct run), and number at most <see cref="MaxArms"/>. Spine is a <see cref="CompoundParts.Bar"/>, each
     /// arm a <see cref="CompoundParts.Leg"/>.</summary>
     public static Compound SpineArms(int spineLen, int barThickness, IReadOnlyList<(int Start, int Width, int Length)> arms)
@@ -85,12 +85,12 @@ public static class CompoundEmitter
     /// <summary>A rectangular ring — four bars around one enclosed void (the donut compound, room-free). Top and
     /// bottom are <see cref="CompoundParts.Bar"/>, the sides <see cref="CompoundParts.Leg"/>; the hole is a
     /// <c>hole</c> vacancy.</summary>
-    public static Compound Ring(int laneWidth, int w, int h) => Ring(RingWalls.Uniform(laneWidth), w, h);
+    public static Compound Donut(int laneWidth, int w, int h) => Donut(RingWalls.Uniform(laneWidth), w, h);
 
     /// <summary>A ring at per-side <paramref name="walls"/> — the widened form: one side thicker than the rest is
     /// the same shape carrying more play through that side. The hole is whatever the walls leave, so widening a
     /// wall narrows the void rather than growing the box.</summary>
-    public static Compound Ring(RingWalls walls, int w, int h)
+    public static Compound Donut(RingWalls walls, int w, int h)
     {
         RequireRing(walls, w, h, "ring");
         return new Compound(RingPieces(walls, 0, 0, w, h), [RingHole(walls, 0, 0, w, h)]);
@@ -207,7 +207,7 @@ public static class CompoundEmitter
     /// <see cref="CompoundParts.Bar"/>s (one per loop) with a gap between them, and four
     /// <see cref="CompoundParts.Leg"/> uprights; two <c>hole</c> vacancies. <paramref name="hole"/> is each void's
     /// width, <paramref name="gap"/> the open channel width.</summary>
-    public static Compound TwoUOnI(int laneWidth, int h, int hole = 0, int gap = 0)
+    public static Compound TwoU(int laneWidth, int h, int hole = 0, int gap = 0)
     {
         if (laneWidth < 2) throw new ArgumentException($"lane width {laneWidth} < 2.");
         if (h < 3 * laneWidth) throw new ArgumentException($"height {h} is too small for two-U-on-I at laneWidth {laneWidth}.");
@@ -252,7 +252,7 @@ public static class CompoundEmitter
     /// and bottom bars span the full width, the legs fill between them.
     ///
     /// <para>This is <b>the</b> place ring wall geometry lives. Six forms are built from these four walls — the
-    /// Ring and Double-hole directly, the P's loop, the G's ring, and the donut's (in
+    /// Donut and Double-hole directly, the P's loop, the G's ring, and the donut's (in
     /// <see cref="ShapeEmitter"/>) — and each assembles them in its own order with its own part names, because
     /// piece order fixes emitted ids and the donut's walls are an entry/room bar rather than plain bars. So this
     /// owns <em>where</em> the walls are, not what they are called or in what order they are laid down; that

@@ -22,7 +22,7 @@ public static class WoolBoxEmitter
     /// top-mouth family (I/L/Z/U/H) maps straight through. This is the one place the per-family mouth facing is
     /// resolved, so the allocator sizes every family the same way.</summary>
     public static (int Along, int Depth) MouthBox(
-        ShapeFamily family, int laneWidth, RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false)
+        CompoundForm family, int laneWidth, RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false)
     {
         var (w, h) = ShapeEmitter.MinBox(family, laneWidth, roomPlacement, woolAtEnd: woolAtEnd);
         return ShapeEmitter.MouthEdge(family) is BoxEdge.Left or BoxEdge.Right ? (h, w) : (w, h);
@@ -36,7 +36,7 @@ public static class WoolBoxEmitter
     /// <paramref name="rejection"/> set when the family does not fit the box or the knobs are not ones the
     /// emitter builds — "no shape fits" is a signal, never a throw.</summary>
     public static Compound? Fill(
-        Box box, BoxEdge mouth, ShapeFamily family, int laneWidth, out FillRejection? rejection,
+        Box box, BoxEdge mouth, CompoundForm family, int laneWidth, out FillRejection? rejection,
         bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline,
         bool woolAtEnd = false, int attachmentWidth = 0, RingWalls? ringWalls = null)
     {
@@ -53,7 +53,7 @@ public static class WoolBoxEmitter
         var (minW, minH) = ShapeEmitter.MinBox(family, laneWidth, roomPlacement, woolAtEnd: woolAtEnd);
         // a widened donut hub-entry raises the ring-edge floor past the default min box — gate it here so an
         // oversized attachment returns the directed TooSmall instead of throwing out of the emitter
-        if (family == ShapeFamily.Donut && attachmentWidth > laneWidth)
+        if (family == CompoundForm.Donut && attachmentWidth > laneWidth)
             minH = Math.Max(minH, attachmentWidth + laneWidth);
         if (canonW < minW || canonH < minH)
         {

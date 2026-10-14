@@ -3,7 +3,7 @@ using PgmStudio.Geom;
 namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>
-/// The part half of the emit↔derive mirror: given a classified <see cref="ShapeFamily"/> and its pieces (the
+/// The part half of the emit↔derive mirror: given a classified <see cref="CompoundForm"/> and its pieces (the
 /// room named), re-derive each piece's <see cref="CompoundParts"/> part from <b>topology alone</b> — path
 /// order for the chain families, adjacency for the branches, hole-edge geometry for the donut — and never
 /// from a canonical rect position, so the emitter's placement manipulations (entry/wool shift, side-tuck,
@@ -23,7 +23,7 @@ public static class PartAssignment
     /// <paramref name="family"/>, with <paramref name="roomId"/> naming the room. Returns id → part,
     /// with the room at <see cref="CompoundParts.Room"/>.</summary>
     public static IReadOnlyDictionary<string, string> AssignParts(
-        ShapeFamily family, IReadOnlyList<(string Id, CellRect Rect)> pieces, string roomId)
+        CompoundForm family, IReadOnlyList<(string Id, CellRect Rect)> pieces, string roomId)
     {
         var parts = new Dictionary<string, string> { [roomId] = CompoundParts.Room };
         var room = pieces.First(p => p.Id == roomId);
@@ -31,18 +31,18 @@ public static class PartAssignment
 
         switch (family)
         {
-            case ShapeFamily.I:                                  // entry · room — the lone terrain piece
-            case ShapeFamily.Clamp:                              // entry · entry · room — both legs are entries
+            case CompoundForm.I:                                  // entry · room — the lone terrain piece
+            case CompoundForm.Clamp:                              // entry · entry · room — both legs are entries
                 foreach (var t in terrain) parts[t.Id] = CompoundParts.Entry;
                 break;
 
-            case ShapeFamily.L:                                  // a simple path entry → … → room
-            case ShapeFamily.Z:
-            case ShapeFamily.Scythe:
+            case CompoundForm.L:                                  // a simple path entry → … → room
+            case CompoundForm.Z:
+            case CompoundForm.Scythe:
                 AssignChain(family, room, terrain, parts);
                 break;
 
-            case ShapeFamily.U:                                  // bar (room's neighbour) · two entry legs
+            case CompoundForm.U:                                  // bar (room's neighbour) · two entry legs
             {
                 var bar = terrain.First(t => EdgeAdjacent(t.Rect, room.Rect));
                 parts[bar.Id] = CompoundParts.Bar;
@@ -50,7 +50,7 @@ public static class PartAssignment
                 break;
             }
 
-            case ShapeFamily.H:                                  // room · room-run · bar · two entry legs
+            case CompoundForm.H:                                  // room · room-run · bar · two entry legs
             {
                 var roomRun = terrain.First(t => EdgeAdjacent(t.Rect, room.Rect));
                 var bar = terrain.First(t => t.Id != roomRun.Id && EdgeAdjacent(t.Rect, roomRun.Rect));
@@ -61,7 +61,7 @@ public static class PartAssignment
                 break;
             }
 
-            case ShapeFamily.Donut:
+            case CompoundForm.Donut:
                 AssignDonut(room, terrain, parts);
                 break;
 
@@ -74,7 +74,7 @@ public static class PartAssignment
     // I/L/Z/scythe are simple piece paths with the room at one leaf; walk from the room to the far leaf and
     // zip the visited pieces onto the family template read back-to-front (template ends at the room).
     private static void AssignChain(
-        ShapeFamily family, (string Id, CellRect Rect) room, List<(string Id, CellRect Rect)> terrain,
+        CompoundForm family, (string Id, CellRect Rect) room, List<(string Id, CellRect Rect)> terrain,
         Dictionary<string, string> parts)
     {
         var template = CompoundParts.Template(family);            // [entry, …, room]

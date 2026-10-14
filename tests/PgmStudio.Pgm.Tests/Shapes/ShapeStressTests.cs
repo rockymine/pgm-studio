@@ -16,42 +16,42 @@ public sealed class ShapeStressTests
     public static IEnumerable<Func<StressShape>> Cases() =>
     [
         // H — the two-leg branch with a room-run stub
-        () => H("H control",           ShapeFamily.H, W, 2, 2, 2, 2, 8, 2, 4),
-        () => H("H box+thin legs",     ShapeFamily.H, W, 6, 2, 2, 2, 8, 2, 4),
-        () => H("H box bar",           ShapeFamily.H, W, 2, 2, 2, 5, 8, 2, 4),
-        () => H("H very long room-run",ShapeFamily.H, W, 2, 2, 2, 2, 8, 2, 18),
-        () => H("H long legs",         ShapeFamily.H, W, 2, 2, 2, 2, 20, 2, 4),
-        () => H("H ALL extreme",       ShapeFamily.H, W, 6, 2, 2, 5, 10, 2, 18),
-        () => H("H wide gap",          ShapeFamily.H, W, 2, 2, 8, 2, 8, 2, 4),
+        () => H("H control",           CompoundForm.H, W, 2, 2, 2, 2, 8, 2, 4),
+        () => H("H box+thin legs",     CompoundForm.H, W, 6, 2, 2, 2, 8, 2, 4),
+        () => H("H box bar",           CompoundForm.H, W, 2, 2, 2, 5, 8, 2, 4),
+        () => H("H very long room-run",CompoundForm.H, W, 2, 2, 2, 2, 8, 2, 18),
+        () => H("H long legs",         CompoundForm.H, W, 2, 2, 2, 2, 20, 2, 4),
+        () => H("H ALL extreme",       CompoundForm.H, W, 6, 2, 2, 5, 10, 2, 18),
+        () => H("H wide gap",          CompoundForm.H, W, 2, 2, 8, 2, 8, 2, 4),
         // Z — two opposing turns
-        () => Z("Z control",           ShapeFamily.Z, W, 2, 6, 10, 2, 2, 6),
-        () => Z("Z box entry",         ShapeFamily.Z, W, 6, 6, 12, 2, 2, 6),
-        () => Z("Z box bar",           ShapeFamily.Z, W, 2, 6, 10, 5, 2, 6),
-        () => Z("Z very long room-run",ShapeFamily.Z, W, 2, 6, 10, 2, 2, 20),
-        () => Z("Z wide bar",          ShapeFamily.Z, W, 4, 6, 24, 2, 4, 6),
+        () => Z("Z control",           CompoundForm.Z, W, 2, 6, 10, 2, 2, 6),
+        () => Z("Z box entry",         CompoundForm.Z, W, 6, 6, 12, 2, 2, 6),
+        () => Z("Z box bar",           CompoundForm.Z, W, 2, 6, 10, 5, 2, 6),
+        () => Z("Z very long room-run",CompoundForm.Z, W, 2, 6, 10, 2, 2, 20),
+        () => Z("Z wide bar",          CompoundForm.Z, W, 4, 6, 24, 2, 4, 6),
         // Scythe — a fold with an open bay
-        () => Scythe("Scythe control",    ShapeFamily.Scythe, W, 2, 2, 2, 2, 2, 2, 6),
-        () => Scythe("Scythe wide entry", ShapeFamily.Scythe, W, 2, 8, 2, 2, 2, 2, 6),
-        () => Scythe("Scythe box spine",  ShapeFamily.Scythe, W, 2, 2, 5, 2, 2, 2, 6),
-        () => Scythe("Scythe box bar",    ShapeFamily.Scythe, W, 2, 2, 2, 5, 2, 2, 6),
-        () => Scythe("Scythe long run",   ShapeFamily.Scythe, W, 2, 2, 2, 2, 2, 2, 20),
-        () => Scythe("Scythe wide bay",   ShapeFamily.Scythe, W, 2, 2, 2, 2, 6, 2, 6),
+        () => Scythe("Scythe control",    CompoundForm.Scythe, W, 2, 2, 2, 2, 2, 2, 6),
+        () => Scythe("Scythe wide entry", CompoundForm.Scythe, W, 2, 8, 2, 2, 2, 2, 6),
+        () => Scythe("Scythe box spine",  CompoundForm.Scythe, W, 2, 2, 5, 2, 2, 2, 6),
+        () => Scythe("Scythe box bar",    CompoundForm.Scythe, W, 2, 2, 2, 5, 2, 2, 6),
+        () => Scythe("Scythe long run",   CompoundForm.Scythe, W, 2, 2, 2, 2, 2, 2, 20),
+        () => Scythe("Scythe wide bay",   CompoundForm.Scythe, W, 2, 2, 2, 2, 6, 2, 6),
         // Clamp — the wool caught between two parallel bars (it bridges them)
-        () => Clamp("Clamp control",      ShapeFamily.Clamp, W, 4, 2, 2, 4, 2),
-        () => Clamp("Clamp box+thin bar", ShapeFamily.Clamp, W, 4, 5, 2, 4, 2),
-        () => Clamp("Clamp long span",    ShapeFamily.Clamp, W, 4, 2, 2, 20, 2),
+        () => Clamp("Clamp control",      CompoundForm.Clamp, W, 4, 2, 2, 4, 2),
+        () => Clamp("Clamp box+thin bar", CompoundForm.Clamp, W, 4, 5, 2, 4, 2),
+        () => Clamp("Clamp long span",    CompoundForm.Clamp, W, 4, 2, 2, 20, 2),
         // U — the wool flush on a crossbar wider than itself
-        () => U("U control",       ShapeFamily.U, W, 2, 2, 2, 2, 2, 6),
-        () => U("U box+thin legs", ShapeFamily.U, W, 6, 2, 2, 2, 2, 6),
-        () => U("U box bar",       ShapeFamily.U, W, 2, 2, 2, 5, 2, 6),
-        () => U("U wide gap",      ShapeFamily.U, W, 2, 2, 8, 2, 2, 6),
-        () => U("U long legs",     ShapeFamily.U, W, 2, 2, 2, 2, 2, 20),
+        () => U("U control",       CompoundForm.U, W, 2, 2, 2, 2, 2, 6),
+        () => U("U box+thin legs", CompoundForm.U, W, 6, 2, 2, 2, 2, 6),
+        () => U("U box bar",       CompoundForm.U, W, 2, 2, 2, 5, 2, 6),
+        () => U("U wide gap",      CompoundForm.U, W, 2, 2, 8, 2, 2, 6),
+        () => U("U long legs",     CompoundForm.U, W, 2, 2, 2, 2, 2, 20),
         // Donut — a ring around a hole, docked by an attachment
-        () => Donut("Donut control",   ShapeFamily.Donut, W, 2, 2, 2, 2, 2),
-        () => Donut("Donut box legs",  ShapeFamily.Donut, W, 5, 2, 2, 2, 2),
-        () => Donut("Donut box bars",  ShapeFamily.Donut, W, 2, 5, 4, 4, 2),
-        () => Donut("Donut big hole",  ShapeFamily.Donut, W, 2, 2, 10, 10, 2),
-        () => Donut("Donut wide attach",ShapeFamily.Donut, W, 2, 2, 2, 2, 6),
+        () => Donut("Donut control",   CompoundForm.Donut, W, 2, 2, 2, 2, 2),
+        () => Donut("Donut box legs",  CompoundForm.Donut, W, 5, 2, 2, 2, 2),
+        () => Donut("Donut box bars",  CompoundForm.Donut, W, 2, 5, 4, 4, 2),
+        () => Donut("Donut big hole",  CompoundForm.Donut, W, 2, 2, 10, 10, 2),
+        () => Donut("Donut wide attach",CompoundForm.Donut, W, 2, 2, 2, 2, 6),
     ];
 
     [Test]
@@ -85,7 +85,7 @@ public sealed class ShapeStressTests
 
     // ---- builders (local frame; every piece abuts its neighbour along a full edge) ---------------------
 
-    private static StressShape H(string name, ShapeFamily fam, int laneWidth, int leftW, int rightW, int gap, int barTh, int legLen, int runW, int runLen, int roomDepth = 2)
+    private static StressShape H(string name, CompoundForm fam, int laneWidth, int leftW, int rightW, int gap, int barTh, int legLen, int runW, int runLen, int roomDepth = 2)
     {
         int wtot = leftW + gap + rightW;
         int barZ = roomDepth + runLen, legZ = barZ + barTh;
@@ -100,7 +100,7 @@ public sealed class ShapeStressTests
         ]);
     }
 
-    private static StressShape Z(string name, ShapeFamily fam, int laneWidth, int entryW, int entryLen, int barLen, int barTh, int runW, int runLen, int roomDepth = 2) =>
+    private static StressShape Z(string name, CompoundForm fam, int laneWidth, int entryW, int entryLen, int barLen, int barTh, int runW, int runLen, int roomDepth = 2) =>
         new(name, fam,
         [
             new("entry",    0, 0, entryW, entryLen),
@@ -109,7 +109,7 @@ public sealed class ShapeStressTests
             new("room",     barLen - runW, entryLen + barTh + runLen, runW, roomDepth),
         ]);
 
-    private static StressShape Scythe(string name, ShapeFamily fam, int laneWidth, int tailW, int tailH, int spineW, int barTh, int bayW, int runW, int runLen, int roomDepth = 2)
+    private static StressShape Scythe(string name, CompoundForm fam, int laneWidth, int tailW, int tailH, int spineW, int barTh, int bayW, int runW, int runLen, int roomDepth = 2)
     {
         int spineLen = runLen + roomDepth;
         int botZ = spineLen;
@@ -126,7 +126,7 @@ public sealed class ShapeStressTests
         ]);
     }
 
-    private static StressShape Clamp(string name, ShapeFamily fam, int laneWidth, int barW, int topTh, int botTh, int gap, int roomW)
+    private static StressShape Clamp(string name, CompoundForm fam, int laneWidth, int barW, int topTh, int botTh, int gap, int roomW)
     {
         int botZ = topTh + gap;
         return new StressShape(name, fam,
@@ -137,7 +137,7 @@ public sealed class ShapeStressTests
         ]);
     }
 
-    private static StressShape U(string name, ShapeFamily fam, int laneWidth, int leftW, int rightW, int gap, int barTh, int roomW, int legLen, int roomDepth = 2)
+    private static StressShape U(string name, CompoundForm fam, int laneWidth, int leftW, int rightW, int gap, int barTh, int roomW, int legLen, int roomDepth = 2)
     {
         int wtot = leftW + gap + rightW, barZ = roomDepth, legZ = roomDepth + barTh, wx = (wtot - roomW) / 2;
         return new StressShape(name, fam,
@@ -149,7 +149,7 @@ public sealed class ShapeStressTests
         ]);
     }
 
-    private static StressShape Donut(string name, ShapeFamily fam, int laneWidth, int legTh, int barTh, int holeW, int holeH, int awH, int roomDepth = 2)
+    private static StressShape Donut(string name, CompoundForm fam, int laneWidth, int legTh, int barTh, int holeW, int holeH, int awH, int roomDepth = 2)
     {
         int ax = laneWidth;
         int ringW = legTh + holeW + legTh;
@@ -166,5 +166,5 @@ public sealed class ShapeStressTests
 
     // role-tagged rectangle: [x, z, w, h] in cells; z grows downward, mouth/hub is the deep end
     public sealed record P(string Role, int X, int Z, int W, int H);
-    public sealed record StressShape(string Name, ShapeFamily Family, List<P> Pieces);
+    public sealed record StressShape(string Name, CompoundForm Family, List<P> Pieces);
 }

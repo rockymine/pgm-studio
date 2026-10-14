@@ -14,7 +14,7 @@ public enum BoxKind { Spawn, Hub, Wool, Frontline, Mid }
 /// lane width) — carried so the filler re-emits the exact shape the allocator seated (an overhang dock
 /// aligns to a specific family's entry at its exact width).</summary>
 public sealed record WoolFill(
-    ShapeFamily Family, RoomPlacement Placement, bool Flip, bool WoolAtEnd = false, int AttachmentWidth = 0,
+    CompoundForm Family, RoomPlacement Placement, bool Flip, bool WoolAtEnd = false, int AttachmentWidth = 0,
     RingWalls? RingWalls = null);
 
 /// <summary>A piece's box ownership — which box's fill it belongs to. Together with the piece's part this is
@@ -45,7 +45,7 @@ public sealed record BoxRef(string Id, BoxKind Kind)
 /// allocator seated; <c>null</c> for a non-wool box.</summary>
 public sealed record Box(
     string Id, BoxKind Kind, CellRect Rect, int LandTargetCells,
-    CompoundRead? Form = null, bool FlipV = false, WoolFill? Wool = null, RingWalls? HubWalls = null,
+    CompoundForm? Form = null, bool FlipV = false, WoolFill? Wool = null, RingWalls? HubWalls = null,
     IReadOnlyList<(int Start, int Width)>? HubArms = null, int HubLaneWidth = FillProfiles.HubLaneWidthFloor)
 {
     public BoxRef Ref => new(Id, Kind);

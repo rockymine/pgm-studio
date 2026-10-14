@@ -304,10 +304,9 @@ public static class Producibility
         if (roomCells.Count > 0)
         {
             var read = ShapeClassifier.Classify(all, roomCells);
-            return $"{read.Family} (w {read.Width})";
+            return read.Family is { } form ? $"{form} (w {read.Width})" : "no ground reaches the room";
         }
-        var compound = ShapeClassifier.ClassifyCompound(all);
-        return compound.Arms > 0 ? $"{compound.Form}({compound.Arms} arms)" : compound.Form.ToString();
+        return ShapeClassifier.ClassifyCompound(all).ToString();
     }
 
     /// <summary>One enumerated tuple: how it reads, the terrain+room mask it emits (<c>null</c> when the emitter
@@ -331,7 +330,7 @@ public static class Producibility
     {
         var b = new Box(box.Id, BoxKind.Hub, box.Rect, box.Rect.Width * box.Rect.Height);
         foreach (var laneWidth in SearchWidths(measuredLaneWidth))
-        foreach (var form in FillProfiles.HubForms)
+        foreach (var form in FillMenu.For(BoxKind.Hub))
             foreach (var walls in HubWallVectors(form, box, laneWidth, cell))
                 foreach (var arms in HubArmLayouts(form, box, laneWidth))
                     foreach (var flip in new[] { false, true })
@@ -349,13 +348,13 @@ public static class Producibility
     /// arms are, so the widths the search admits are exactly the widths the composer draws. The uniform default
     /// (<c>null</c>) leads, and a form without arms yields only that.</summary>
     private static IEnumerable<IReadOnlyList<(int Start, int Width)>?> HubArmLayouts(
-        CompoundRead form, PlanBox box, int laneWidth)
+        CompoundForm form, PlanBox box, int laneWidth)
     {
         yield return null;
-        if (form.Form != CompoundForm.SpineArms) yield break;
+        if (form.Arms() == 0) yield break;
         var spineLen = box.Rect.Width;
-        foreach (var layout in Memo($"hub-legs {spineLen} {form.Arms} {laneWidth}",
-                     () => SweepLayouts(seed => HubBoxEmitter.SampleArms(seed, spineLen, form.Arms, laneWidth))))
+        foreach (var layout in Memo($"hub-legs {spineLen} {form.Arms()} {laneWidth}",
+                     () => SweepLayouts(seed => HubBoxEmitter.SampleArms(seed, spineLen, form.Arms(), laneWidth))))
             yield return layout;
     }
 
@@ -376,11 +375,11 @@ public static class Producibility
     /// <see cref="TeamUnitAllocator.ChooseHubWalls"/> over many seeds rather than restating its law (one side
     /// widened, within twice the narrowest, only where the hole has the slack). The even-walled ring
     /// (<c>null</c>) is always offered first, and a form without a ring yields only that.</summary>
-    private static IEnumerable<RingWalls?> HubWallVectors(CompoundRead form, PlanBox box, int laneWidth, int cell)
+    private static IEnumerable<RingWalls?> HubWallVectors(CompoundForm form, PlanBox box, int laneWidth, int cell)
     {
         yield return null;
         int w = box.Rect.Width, h = box.Rect.Height;
-        foreach (var walls in Memo($"hub-walls {form.Form} {form.Arms} {w} {h} {laneWidth} {cell}", () =>
+        foreach (var walls in Memo($"hub-walls {form} {w} {h} {laneWidth} {cell}", () =>
                  {
                      var seen = new HashSet<RingWalls>();
                      var vectors = new List<RingWalls>();
@@ -399,7 +398,7 @@ public static class Producibility
     {
         var b = new Box(box.Id, BoxKind.Frontline, box.Rect, box.Rect.Width * box.Rect.Height);
         foreach (var laneWidth in SearchWidths(measuredLaneWidth))
-            foreach (var form in FillProfiles.FrontlineForms)
+            foreach (var form in FillMenu.For(BoxKind.Frontline))
                 foreach (var mouth in AllEdges)
                     foreach (var layout in ArmLayouts(form, box, mouth))
                     {
@@ -416,13 +415,13 @@ public static class Producibility
     /// widths within factor 2, bay 2–4, recesses ≤ a third of the spine). The canonical layout (<c>null</c>) is
     /// always offered first.</summary>
     private static IEnumerable<IReadOnlyList<(int Start, int Width)>?> ArmLayouts(
-        CompoundRead form, PlanBox box, BoxEdge mouth)
+        CompoundForm form, PlanBox box, BoxEdge mouth)
     {
         yield return null;                                   // the canonical fat L / symmetric twin
-        if (form.Form != CompoundForm.SpineArms) yield break;
+        if (form.Arms() == 0) yield break;
         var spineLen = mouth is BoxEdge.Left or BoxEdge.Right ? box.Rect.Height : box.Rect.Width;
-        foreach (var layout in Memo($"front-legs {spineLen} {form.Arms}",
-                     () => SweepLayouts(seed => FrontlineBoxEmitter.SampleArms(seed, spineLen, form.Arms))))
+        foreach (var layout in Memo($"front-legs {spineLen} {form.Arms()}",
+                     () => SweepLayouts(seed => FrontlineBoxEmitter.SampleArms(seed, spineLen, form.Arms()))))
             yield return layout;
     }
 
@@ -468,13 +467,13 @@ public static class Producibility
     /// variant, and the donut's sampled hub-entry width (<c>laneWidth..DonutEntryMaxCells</c>). The donut's hole size is
     /// not a knob here — the allocator spends it as box <em>growth</em>, so a given footprint implies it.</summary>
     private static IEnumerable<(RoomPlacement Placement, bool AtEnd, int AttachW)> ApproachKnobs(
-        BoxKind kind, ShapeFamily family, int laneWidth)
+        BoxKind kind, CompoundForm family, int laneWidth)
     {
         if (kind == BoxKind.Spawn) { yield return (RoomPlacement.Inline, false, 0); yield break; }
         foreach (var placement in new[] { RoomPlacement.Inline, RoomPlacement.SideTuck })
             foreach (var atEnd in new[] { false, true })
             {
-                if (family != ShapeFamily.Donut) { yield return (placement, atEnd, 0); continue; }
+                if (family != CompoundForm.Donut) { yield return (placement, atEnd, 0); continue; }
                 yield return (placement, atEnd, 0);          // the min-only one-corridor entry
                 for (var aw = laneWidth; aw <= UnitTuning.DonutEntryMaxCells(laneWidth); aw++)
                     yield return (placement, atEnd, aw);
@@ -569,8 +568,7 @@ public static class Producibility
         return cells;
     }
 
-    private static string Name(CompoundRead form) =>
-        form.Arms > 0 ? $"{form.Form}({form.Arms})" : form.Form.ToString();
+    private static string Name(CompoundForm form) => form.ToString();
 
     private static string Legs(IReadOnlyList<(int Start, int Width)> layout) =>
         string.Join("+", layout.Select(a => $"{a.Start}:{a.Width}"));

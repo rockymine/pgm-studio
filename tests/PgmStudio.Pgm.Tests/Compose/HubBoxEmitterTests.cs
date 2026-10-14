@@ -15,7 +15,7 @@ public class HubBoxEmitterTests
     public async Task Rectangle_hub_fills_the_box_with_no_room_and_hub_labeled()
     {
         var box = Box6x5;
-        var hub = HubBoxEmitter.Fill(box, new CompoundRead(CompoundForm.Rectangle), laneWidth: 2)!;
+        var hub = HubBoxEmitter.Fill(box, CompoundForm.I, laneWidth: 2)!;
 
         // one solid terrain piece covering the whole box, no room/room, labeled to the hub box, Bar part
         await Assert.That(hub.Pieces.Count).IsEqualTo(1);
@@ -28,7 +28,7 @@ public class HubBoxEmitterTests
     public async Task Rectangle_hub_publishes_one_offer_per_edge_severally()
     {
         var box = new Box("hub", BoxKind.Hub, new(0, 0, 6, 5), 30);
-        var hub = HubBoxEmitter.Fill(box, new CompoundRead(CompoundForm.Rectangle), laneWidth: 2)!;
+        var hub = HubBoxEmitter.Fill(box, CompoundForm.I, laneWidth: 2)!;
 
         await Assert.That(HubBoxEmitter.Offers(box, hub).Count).IsEqualTo(4);
         await Assert.That(HubBoxEmitter.Offers(box, hub).Select(o => o.Edge))
@@ -44,7 +44,7 @@ public class HubBoxEmitterTests
     public async Task Every_run_offers_the_width_its_own_length_can_support()
     {
         var box = new Box("hub", BoxKind.Hub, new(0, 0, 8, 5), 40);
-        var hub = HubBoxEmitter.Fill(box, new CompoundRead(CompoundForm.Rectangle),
+        var hub = HubBoxEmitter.Fill(box, CompoundForm.I,
             laneWidth: 2)!;
 
         // the hub publishes capacity, not a per-neighbour agreement: Top/Bottom span 8, Left/Right span 5. What a
@@ -59,7 +59,7 @@ public class HubBoxEmitterTests
     {
         // spine [0,0,8,2] + one arm [0,2,2,4]; the left edge (spine corner + arm) merges to one full-height run
         var box = new Box("hub", BoxKind.Hub, new(0, 0, 8, 6), 48);
-        var hub = HubBoxEmitter.Fill(box, new CompoundRead(CompoundForm.SpineArms, 1), laneWidth: 2)!;
+        var hub = HubBoxEmitter.Fill(box, CompoundForm.L, laneWidth: 2)!;
 
         await Assert.That(hub.Pieces.Count).IsEqualTo(2);
         await Assert.That(UnitPieces.Lay(hub, box).Pieces.All(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
@@ -72,7 +72,7 @@ public class HubBoxEmitterTests
     {
         // spine [0,0,8,2] + arms [0,2,2,4] and [6,2,2,4]; the bottom edge is the bay — two arm-tip runs with a gap
         var box = new Box("hub", BoxKind.Hub, new(0, 0, 8, 6), 48);
-        var hub = HubBoxEmitter.Fill(box, new CompoundRead(CompoundForm.SpineArms, 2), laneWidth: 2)!;
+        var hub = HubBoxEmitter.Fill(box, CompoundForm.U, laneWidth: 2)!;
 
         await Assert.That(hub.Pieces.Count).IsEqualTo(3);
         await Assert.That(HubBoxEmitter.Offers(box, hub).Count(o => o.Edge == BoxEdge.Bottom)).IsEqualTo(2);
@@ -84,7 +84,7 @@ public class HubBoxEmitterTests
     public async Task Ring_hub_walls_a_hole_and_offers_four_full_edges()
     {
         var box = new Box("hub", BoxKind.Hub, new(0, 0, 9, 9), 81);
-        var hub = HubBoxEmitter.Fill(box, new CompoundRead(CompoundForm.Ring), laneWidth: 2)!;
+        var hub = HubBoxEmitter.Fill(box, CompoundForm.Donut, laneWidth: 2)!;
 
         await Assert.That(hub.Pieces.Count).IsEqualTo(4);                                     // four ring bars
         // every outer edge is a solid wall → one full-length run each (corner + leg + corner merged)
@@ -96,7 +96,7 @@ public class HubBoxEmitterTests
     public async Task DoubleHole_hub_builds_two_holes_hub_labeled()
     {
         var box = new Box("hub", BoxKind.Hub, new(0, 0, 12, 8), 96);
-        var hub = HubBoxEmitter.Fill(box, new CompoundRead(CompoundForm.DoubleHole), laneWidth: 2)!;
+        var hub = HubBoxEmitter.Fill(box, CompoundForm.DoubleHole, laneWidth: 2)!;
 
         await Assert.That(hub.Pieces.Count).IsEqualTo(7);                                     // ring (4) + U (top/bottom arms + outer wall)
         await Assert.That(UnitPieces.Lay(hub, box).Pieces.All(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
@@ -107,7 +107,7 @@ public class HubBoxEmitterTests
     public async Task Too_small_a_box_is_a_directed_null_not_a_throw()
     {
         // a 3x3 box cannot hold a ring at laneWidth 2 (needs 2cw+1 = 5 each way)
-        await Assert.That(HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, new(0, 0, 3, 3), 9), new CompoundRead(CompoundForm.Ring), laneWidth: 2))
+        await Assert.That(HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, new(0, 0, 3, 3), 9), CompoundForm.Donut, laneWidth: 2))
             .IsNull();
     }
 
@@ -116,7 +116,7 @@ public class HubBoxEmitterTests
     {
         // TwoUOnI is a compound form but not a hub form (the hub menu is the compact + wide-holed compounds; P and
         // Double-hole are on it, TwoUOnI is not)
-        await Assert.That(() => HubBoxEmitter.Fill(Box6x5, new CompoundRead(CompoundForm.TwoUOnI), laneWidth: 2))
+        await Assert.That(() => HubBoxEmitter.Fill(Box6x5, CompoundForm.TwoU, laneWidth: 2))
             .Throws<ComposeException>();
     }
 
@@ -129,16 +129,16 @@ public class HubBoxEmitterTests
         foreach (var form in new[] { CompoundForm.P, CompoundForm.DoubleHole, CompoundForm.G })
         {
             var box = wide;
-            var hub = HubBoxEmitter.Fill(box, new CompoundRead(form), laneWidth: 2)!;
+            var hub = HubBoxEmitter.Fill(box, form, laneWidth: 2)!;
             await Assert.That(hub).IsNotNull().Because($"{form} should fill an 11x6 hub");
             await Assert.That(UnitPieces.Lay(hub, box).Pieces.All(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
             await Assert.That(hub.Pieces.Any(p => p.Part == CompoundParts.Room)).IsFalse();
             await Assert.That(HubBoxEmitter.Offers(box, hub).Max(o => o.Interval.Length)).IsGreaterThanOrEqualTo(6);
         }
         // below width 9 all three directed-null (the box is too small for the loop/ring), not throw
-        await Assert.That(HubBoxEmitter.Fill(Box6x5, new CompoundRead(CompoundForm.P), laneWidth: 2)).IsNull();
-        await Assert.That(HubBoxEmitter.Fill(Box6x5, new CompoundRead(CompoundForm.DoubleHole), laneWidth: 2)).IsNull();
-        await Assert.That(HubBoxEmitter.Fill(Box6x5, new CompoundRead(CompoundForm.G), laneWidth: 2)).IsNull();
+        await Assert.That(HubBoxEmitter.Fill(Box6x5, CompoundForm.P, laneWidth: 2)).IsNull();
+        await Assert.That(HubBoxEmitter.Fill(Box6x5, CompoundForm.DoubleHole, laneWidth: 2)).IsNull();
+        await Assert.That(HubBoxEmitter.Fill(Box6x5, CompoundForm.G, laneWidth: 2)).IsNull();
     }
 
     // ── the branch hub's leg sampler ──────────────────────────────────────────────────────────────────────
@@ -191,13 +191,13 @@ public class HubBoxEmitterTests
     public async Task A_hub_leg_can_emit_wider_than_one_corridor()
     {
         var box = new Box("hub", BoxKind.Hub, new(0, 0, 12, 5), 60);
-        var wide = HubBoxEmitter.Fill(box, new CompoundRead(CompoundForm.SpineArms, 1), LaneWidth,
+        var wide = HubBoxEmitter.Fill(box, CompoundForm.L, LaneWidth,
             armLayout: [(0, 5)])!;
         var leg = wide.Pieces.Single(p => p.Part == CompoundParts.Leg);
         await Assert.That(leg.Rect.Width).IsEqualTo(5);
 
         // and with no layout given it stays the uniform default it always was
-        var plain = HubBoxEmitter.Fill(box, new CompoundRead(CompoundForm.SpineArms, 1), LaneWidth)!;
+        var plain = HubBoxEmitter.Fill(box, CompoundForm.L, LaneWidth)!;
         await Assert.That(plain.Pieces.Single(p => p.Part == CompoundParts.Leg).Rect.Width).IsEqualTo(LaneWidth);
     }
 
@@ -208,11 +208,11 @@ public class HubBoxEmitterTests
     {
         // an L needs leg + notch = 2 corridors, a U needs legs + bay = 3
         await Assert.That(HubBoxEmitter.Fill(
-            new Box("hub", BoxKind.Hub, new(0, 0, 3, 5), 15), new CompoundRead(CompoundForm.SpineArms, 1), LaneWidth)).IsNull();
+            new Box("hub", BoxKind.Hub, new(0, 0, 3, 5), 15), CompoundForm.L, LaneWidth)).IsNull();
         await Assert.That(HubBoxEmitter.Fill(
-            new Box("hub", BoxKind.Hub, new(0, 0, 5, 5), 25), new CompoundRead(CompoundForm.SpineArms, 2), LaneWidth)).IsNull();
+            new Box("hub", BoxKind.Hub, new(0, 0, 5, 5), 25), CompoundForm.U, LaneWidth)).IsNull();
         await Assert.That(HubBoxEmitter.Fill(
-            new Box("hub", BoxKind.Hub, new(0, 0, 4, 5), 20), new CompoundRead(CompoundForm.SpineArms, 1), LaneWidth)).IsNotNull();
+            new Box("hub", BoxKind.Hub, new(0, 0, 4, 5), 20), CompoundForm.L, LaneWidth)).IsNotNull();
     }
 
     /// <summary>The point of bounding the bay above: on a spine too wide for two corridor legs and a small gap,

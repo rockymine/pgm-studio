@@ -60,8 +60,7 @@ public partial class CatalogTool
     /// grid reads as a progression rather than alphabetically.</summary>
     private static readonly string[] FamilyOrderTokens =
     [
-        "i", "l", "z", "scythe", "u", "h", "clamp", "donut",
-        "bar", "single", "twin", "ring", "p", "g", "double-hole",
+        "i", "l", "z", "scythe", "u", "h", "clamp", "donut", "e", "p", "g", "double-hole", "two-u",
     ];
 
     protected override async Task OnInitializedAsync()
@@ -119,8 +118,12 @@ public partial class CatalogTool
     }
 
     /// <summary>A family token as a name: a one-letter family stays a capital letter, a word is capitalised.</summary>
-    private static string FamilyLabel(string family) =>
-        family.Length == 0 ? family : char.ToUpperInvariant(family[0]) + family[1..];
+    private static string FamilyLabel(string family) => family switch
+    {
+        "" => family,
+        "two-u" => "Two-U",
+        _ => char.ToUpperInvariant(family[0]) + family[1..],
+    };
 
     private static string KindLabel(string kind) =>
         Kinds.FirstOrDefault(k => k.Token == kind).Label ?? kind;

@@ -232,7 +232,7 @@ public class TeamUnitAllocatorTests
             {
                 if (TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed)) is not { } a) continue;
                 var hub = a.ById("hub")!.Rect;
-                var lateral = a.Boxes.Where(b => b.Wool?.Family == ShapeFamily.Donut
+                var lateral = a.Boxes.Where(b => b.Wool?.Family == CompoundForm.Donut
                     && (b.Rect.X + b.Rect.Width == hub.X || b.Rect.X == hub.X + hub.Width)).ToList();
                 if (lateral.Count != 1) continue;
                 donuts++;

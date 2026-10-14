@@ -28,10 +28,9 @@ public sealed class ShapeProbeEndpointTests
         var schema = await client.GetFromJsonAsync<ShapeProbeSchema>("/api/shapes/probe/schema");
         var tokens = schema!.Families.Select(f => f.Token).ToList();
 
-        // every family the emitter builds, and only those — Isolated is a derive-only reading
-        foreach (var family in Enum.GetValues<ShapeFamily>().Where(f => f != ShapeFamily.Isolated))
-            await Assert.That(tokens).Contains(family.ToString().ToLowerInvariant());
-        await Assert.That(tokens).DoesNotContain("isolated");
+        // every form the emitter builds, and only those — the room-free hub forms are not the probe's
+        await Assert.That(tokens).IsEquivalentTo(ShapeEmitter.Families.Select(f => f.Word()));
+        await Assert.That(tokens).DoesNotContain("double-hole");
 
         // the menu flag is the page's honesty: Z is advertised, the scythe is not
         await Assert.That(schema.Families.Single(f => f.Token == "z").OnProductionMenu).IsTrue();

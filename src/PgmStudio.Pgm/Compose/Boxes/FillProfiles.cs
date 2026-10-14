@@ -14,37 +14,25 @@ namespace PgmStudio.Pgm.Compose;
 /// </summary>
 public static class FillProfiles
 {
-    /// <summary>The families box <paramref name="kind"/> may fill at interface width <paramref name="laneWidth"/>
-    /// cells. Wool = the width-gated production menu; spawn = the straight/one-bend {I, L}. The hub is not here:
-    /// it is a <b>room-free compound</b>, so its profile is a <see cref="CompoundForm"/> menu (<see cref="HubForms"/>),
-    /// not the <see cref="ShapeFamily"/> approach taxonomy.</summary>
-    public static IReadOnlyList<ShapeFamily> Families(BoxKind kind, int laneWidth, int woolLaneWidth) => kind switch
+    /// <summary>The forms box <paramref name="kind"/> may fill at interface width <paramref name="laneWidth"/>
+    /// cells: the wool menu gated by width (<see cref="FillMenu.FamiliesFor"/>), the spawn's whole menu. The hub
+    /// and the front line fill through their own emitters and are not gated here.</summary>
+    public static IReadOnlyList<CompoundForm> Families(BoxKind kind, int laneWidth, int woolLaneWidth) => kind switch
     {
         BoxKind.Wool => FillMenu.FamiliesFor(laneWidth, woolLaneWidth),
-        BoxKind.Spawn => SpawnBoxEmitter.Families,
-        _ => [],                                          // hub = HubForms (CompoundForm-typed); frontline has no profile
+        BoxKind.Spawn => FillMenu.For(BoxKind.Spawn),
+        _ => [],
     };
 
-    /// <summary>The <b>hub's</b> fill profile — its authored form menu as data (the <see cref="CompoundForm"/>s
-    /// a hub may be, model.md §4). CompoundForm-typed, not <see cref="ShapeFamily"/>, because the hub is a
-    /// room-free compound rather than an approach; it composes <see cref="HubBoxEmitter.Forms"/> the way the
-    /// wool/spawn rows compose their menus.</summary>
-    public static IReadOnlyList<CompoundRead> HubForms => HubBoxEmitter.Forms;
-
-    /// <summary>The hub's wall/lane width in cells (the branch and holed forms use it; the solid Rectangle
+    /// <summary>The hub's wall/lane width in cells (the branch and holed forms use it; the solid I
     /// ignores it). One value so the allocator and the filler emit the hub compound at the <b>same</b> width and thus
     /// read the same free-edge intervals — a divergence would seat neighbours on runs the fill does not produce.</summary>
     public const int HubLaneWidthFloor = 2;
 
-    /// <summary>The <b>frontline's</b> fill profile — its authored form menu as data (Bar · single · twin, model.md §4),
-    /// CompoundForm-typed like the hub. Composes <see cref="FrontlineBoxEmitter.Forms"/>, lifting the grower's
-    /// <c>FrontForm { None, Single, Wide, Twin }</c> into the profile.</summary>
-    public static IReadOnlyList<CompoundRead> FrontlineForms => FrontlineBoxEmitter.Forms;
-
     /// <summary>True when <paramref name="family"/> is admitted by <paramref name="kind"/> at
     /// <paramref name="laneWidth"/> <b>and</b> its minimum box fits a footprint of <paramref name="w"/>×
     /// <paramref name="h"/> cells — the profile's footprint gate.</summary>
-    public static bool Fits(BoxKind kind, ShapeFamily family, int laneWidth, int woolLaneWidth, int w, int h)
+    public static bool Fits(BoxKind kind, CompoundForm family, int laneWidth, int woolLaneWidth, int w, int h)
     {
         if (!Families(kind, laneWidth, woolLaneWidth).Contains(family)) return false;
         var (minW, minH) = ShapeEmitter.MinBox(family, laneWidth);
@@ -53,7 +41,7 @@ public static class FillProfiles
 
     /// <summary>The families <paramref name="kind"/> admits at <paramref name="laneWidth"/> whose minimum box fits a
     /// footprint of <paramref name="w"/>×<paramref name="h"/> cells — the legal fill set for that box.</summary>
-    public static IReadOnlyList<ShapeFamily> FittingFamilies(BoxKind kind, int laneWidth, int woolLaneWidth, int w, int h) =>
+    public static IReadOnlyList<CompoundForm> FittingFamilies(BoxKind kind, int laneWidth, int woolLaneWidth, int w, int h) =>
         Families(kind, laneWidth, woolLaneWidth).Where(f => Fits(kind, f, laneWidth, woolLaneWidth, w, h)).ToList();
 
     /// <summary>
@@ -65,10 +53,10 @@ public static class FillProfiles
     /// <see cref="SpawnBoxEmitter.Box"/> — edit this table to retune the spawn's size or add a variant; the size
     /// stays a rule, never a solver.
     /// </summary>
-    public static readonly IReadOnlyList<(ShapeFamily Family, int RunCells, int TurnCells)> SpawnSizes =
+    public static readonly IReadOnlyList<(CompoundForm Family, int RunCells, int TurnCells)> SpawnSizes =
     [
-        (ShapeFamily.I, 0, 0),   // direct — the room sits at the hub edge (~10×10)
-        (ShapeFamily.I, 2, 0),   // a short run-up back from the hub (~10×20)
-        (ShapeFamily.L, 2, 2),   // a one-lane L hook (~20×20)
+        (CompoundForm.I, 0, 0),   // direct — the room sits at the hub edge (~10×10)
+        (CompoundForm.I, 2, 0),   // a short run-up back from the hub (~10×20)
+        (CompoundForm.L, 2, 2),   // a one-lane L hook (~20×20)
     ];
 }

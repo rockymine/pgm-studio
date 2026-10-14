@@ -8866,6 +8866,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `CompoundEdges.LaneWidthOn` says what a run of a given length carries. A hub leg's `(Start, Width)` stays a
   leg layout. The composer's fingerprints are unchanged. `docs/generator/vocabulary.md`. (`G297`)
 
+- **One list of forms (`G298`)** — `CompoundForm` is every form a compound takes: I, L, Z, Scythe, Clamp, U, H
+  and Donut ending in a room, and I, L, U, Donut, E, P, G, Double-hole and Two-U without one, so a hub's U and a
+  wool's U are one word. An isolated wool has no form (`ShapeClassifier.Classify` answers null). `FillMenu.For(kind)`
+  is each box kind's menu. The hub chips read I · L · U · Donut, the front-line chips I · L · U, the shape panel's
+  heading *Wool shapes*, and the layout description reads every form one way. `M0075` rewrites the stored
+  `composed_board.hub`/`.frontline` and `plan.structure` words. The composer's fingerprints are unchanged.
+  `docs/generator/model.md` §4. (`G298`)
+
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the
   Flags phase offers it as *Capture*. The filter editor reads the flag filters, taking its types from the parser.

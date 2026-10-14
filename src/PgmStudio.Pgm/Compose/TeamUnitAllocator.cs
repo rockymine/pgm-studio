@@ -34,7 +34,7 @@ public static class TeamUnitAllocator
     /// corner-touching it (a <c>t*/*t</c> pinch); the four-full-edges rectangle is just the degenerate case. The
     /// chosen form rides on the hub <see cref="Box.Form"/> for the filler to re-emit; each hub↔neighbour joint
     /// carries the hub's per-edge <b>width offer</b> (the plan <see cref="TeamUnitFiller"/> consumes). The
-    /// sampled form <b>falls back to the solid <see cref="CompoundForm.Rectangle"/></b> when its free edges cannot host
+    /// sampled form <b>falls back to the solid <see cref="CompoundForm.I"/></b> when its free edges cannot host
     /// the plan. Returns the partition, or <c>null</c> when even the rectangle cannot host a neighbour (the box is
     /// too small — the directed "no shape fits" signal, §4).
     /// The frontline is allocated on the front side, its reach pushing the hub back so it sits between the hub
@@ -56,7 +56,7 @@ public static class TeamUnitAllocator
         var budget = new LandBudget(env.UnitBudgetCells);
         // the spawn costs what a spawn box costs rather than a share of the board: it is a room and a run-up at
         // the map's lane width, the same size on every band
-        var (estW, estH) = SpawnBoxEmitter.Box(ShapeFamily.I, laneWidth, 2, 0);
+        var (estW, estH) = SpawnBoxEmitter.Box(CompoundForm.I, laneWidth, 2, 0);
         var claimed = estW * (double)estH
                     + budget.Share(UnitTuning.FrontlineShare)
                     + plan.Wools.Count * budget.Share(UnitTuning.WoolShare);
@@ -86,8 +86,8 @@ public static class TeamUnitAllocator
         // so reading it here and building it again downstream give the same runs without a draw between them.
         var sampled = ChooseHubForm(hubRect.Width, hubRect.Height, laneWidth, env.Cell, rng);
         var walls = ChooseHubWalls(sampled, hubRect.Width, hubRect.Height, laneWidth, env.Cell, rng);
-        var arms = sampled.Form == CompoundForm.SpineArms
-            ? HubBoxEmitter.SampleArms(rng, hubRect.Width, sampled.Arms, laneWidth)
+        var arms = sampled.Arms() > 0
+            ? HubBoxEmitter.SampleArms(rng, hubRect.Width, sampled.Arms(), laneWidth)
             : null;
 
         // the neighbour requests (spawn + wools + the frontline join), sized out of the budget the hub left and
@@ -100,8 +100,8 @@ public static class TeamUnitAllocator
         // cannot host. The requests carry over unchanged: the fallback is always toward MORE free surface, so a
         // request sized against a holed compound's runs fits the rectangle that replaces it.
         var seating = UnitSeating.Seat(sampled, hubRect, frame, laneWidth, env.WoolLaneWidth, seatGapCells, env.Cell, requests, rng, walls, arms);
-        if (seating is null && sampled.Form != CompoundForm.Rectangle)
-            seating = UnitSeating.Seat(new CompoundRead(CompoundForm.Rectangle), hubRect, frame, laneWidth, env.WoolLaneWidth, seatGapCells, env.Cell, requests, rng);
+        if (seating is null && sampled != CompoundForm.I)
+            seating = UnitSeating.Seat(CompoundForm.I, hubRect, frame, laneWidth, env.WoolLaneWidth, seatGapCells, env.Cell, requests, rng);
         if (seating is not { } s) return null;
 
         return new BoxLayout(s.Boxes, s.Joints);
@@ -116,21 +116,21 @@ public static class TeamUnitAllocator
     /// ring. A <b>big square-ish</b> box (both ≥ <see cref="UnitTuning.RingFitCells"/>) is too much solid area for the
     /// budget, so it prefers negative space: mostly the ring, else a branch compound. A small or thin box stays the
     /// compact solid/branch menu (the wider forms would directed-null and fall back).</summary>
-    internal static CompoundRead ChooseHubForm(int boxW, int boxH, int laneWidth, int cell, ComposeRng rng)
+    internal static CompoundForm ChooseHubForm(int boxW, int boxH, int laneWidth, int cell, ComposeRng rng)
     {
         if (boxW >= UnitTuning.WideHubCells(laneWidth, cell) && boxH >= UnitTuning.RingFitCells(laneWidth, cell))
             return rng.Pick(new[]
             {
-                new CompoundRead(CompoundForm.P), new CompoundRead(CompoundForm.DoubleHole),
-                new CompoundRead(CompoundForm.G), new CompoundRead(CompoundForm.Ring),
+                CompoundForm.P, CompoundForm.DoubleHole,
+                CompoundForm.G, CompoundForm.Donut,
                 // the U belongs here too: with the bay bounded above, a wide box spends its span on the legs, so
                 // the two-legged hub comes out with real legs rather than stubs either side of a gap
-                new CompoundRead(CompoundForm.SpineArms, 2),
+                CompoundForm.U,
             });
         if (boxW >= UnitTuning.RingFitCells(laneWidth, cell) && boxH >= UnitTuning.RingFitCells(laneWidth, cell))
-            return rng.NextBool(UnitTuning.RingChance) ? new CompoundRead(CompoundForm.Ring)
-                : rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is CompoundForm.SpineArms).ToList());
-        return rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is CompoundForm.Rectangle or CompoundForm.SpineArms).ToList());
+            return rng.NextBool(UnitTuning.RingChance) ? CompoundForm.Donut
+                : rng.Pick(FillMenu.For(BoxKind.Hub).Where(f => f.Arms() > 0).ToList());
+        return rng.Pick(FillMenu.For(BoxKind.Hub).Where(f => f is CompoundForm.I || f.Arms() > 0).ToList());
     }
 
     /// <summary>Choose the four wall widths of a ring-bodied <paramref name="form"/> filling a
@@ -142,13 +142,13 @@ public static class TeamUnitAllocator
     /// side is widened, drawn evenly from the four; the amount is capped so the widest wall is never more than
     /// twice the narrowest, the same spread law the frontline's arms keep. The hole it leaves stays at least a
     /// corridor and at least <see cref="UnitTuning.HubHoleCells"/>.</para></summary>
-    internal static RingWalls? ChooseHubWalls(CompoundRead form, int boxW, int boxH, int laneWidth, int cell, ComposeRng rng)
+    internal static RingWalls? ChooseHubWalls(CompoundForm form, int boxW, int boxH, int laneWidth, int cell, ComposeRng rng)
     {
         // the ring inside each form: the Ring is the box, the docked forms (P/DoubleHole/G) keep a bar's width
         // beside it — the same arithmetic the hub filler builds them with
-        var (ringW, ringH) = form.Form switch
+        var (ringW, ringH) = form switch
         {
-            CompoundForm.Ring => (boxW, boxH),
+            CompoundForm.Donut => (boxW, boxH),
             CompoundForm.P or CompoundForm.DoubleHole or CompoundForm.G => (boxW - 2 * laneWidth, boxH),
             _ => (0, 0),                                        // no ring to widen
         };

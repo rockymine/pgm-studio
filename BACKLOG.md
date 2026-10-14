@@ -437,7 +437,7 @@ Twelve judged donut boards at 20 and 30 players named what a larger composed boa
   from the spawn with a long way to its wool).*
 
 - [ ] **G280 — A donut may dock turned 90°, its entry and a third of its long bar against the hub's side
-  wall.** A new dock for `ShapeFamily.Donut` in `UnitSeating.SeatOverhang`/`WoolBoxEmitter`, beside the
+  wall.** A new dock for `CompoundForm.Donut` in `UnitSeating.SeatOverhang`/`WoolBoxEmitter`, beside the
   entry-stub dock. `docs/generator/model.md` §4.6.
 
   *Evidence: judged board p30 seed 32, where the author proposed it.*

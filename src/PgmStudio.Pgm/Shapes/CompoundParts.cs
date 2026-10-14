@@ -39,16 +39,16 @@ public static class CompoundParts
     /// the <see cref="Room"/> last — model.md §4's piece-vocabulary table as data. This is the base configuration
     /// (single donut attachment, no wool-extend, inline room); the optional donut knobs add pieces
     /// (a second attachment is another <see cref="Entry"/>, a wool-extend a <see cref="Run"/>).</summary>
-    public static IReadOnlyList<string> Template(ShapeFamily family) => family switch
+    public static IReadOnlyList<string> Template(CompoundForm family) => family switch
     {
-        ShapeFamily.I     => [Entry, Room],
-        ShapeFamily.L     => [Entry, Run, Room],
-        ShapeFamily.Z     => [Entry, Bar, RoomRun, Room],
-        ShapeFamily.Scythe => [Entry, EntryRun, Bar, RoomRun, Room],
-        ShapeFamily.Clamp => [Entry, Entry, Room],
-        ShapeFamily.U     => [Bar, Entry, Entry, Room],
-        ShapeFamily.H     => [Bar, Entry, Entry, RoomRun, Room],
-        ShapeFamily.Donut => [EntryBar, Leg, Leg, Entry, RoomBar, Room],
+        CompoundForm.I     => [Entry, Room],
+        CompoundForm.L     => [Entry, Run, Room],
+        CompoundForm.Z     => [Entry, Bar, RoomRun, Room],
+        CompoundForm.Scythe => [Entry, EntryRun, Bar, RoomRun, Room],
+        CompoundForm.Clamp => [Entry, Entry, Room],
+        CompoundForm.U     => [Bar, Entry, Entry, Room],
+        CompoundForm.H     => [Bar, Entry, Entry, RoomRun, Room],
+        CompoundForm.Donut => [EntryBar, Leg, Leg, Entry, RoomBar, Room],
         _ => throw new ArgumentOutOfRangeException(nameof(family), family, "no part template for this family"),
     };
 }

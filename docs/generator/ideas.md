@@ -280,12 +280,12 @@ landed, the rest is the idea.
 
 - [ ] **G146 — two families are in the vocabulary but never on a board.** The emitter builds eight
   room-capped families; the composer puts six on boards. **Z** is listed in
-  `FillMenu.ProductionFamilies` and `BoxFiller` fills it happily, but `UnitRequests.WoolRequest` never
+  the wool menu (`FillMenu.For(BoxKind.Wool)`) and `BoxFiller` fills it happily, but `UnitRequests.WoolRequest` never
   draws it — the rich branch picks donut, then U/H/clamp, else L, and the fallbacks are I. So the menu advertises a family the sampler cannot produce, and the browse
   tool's own filter chip for it can never match. **Scythe** is the honest case: excluded from
-  `ProductionFamilies` with a stated reason (its bay's mouth is its docking edge, so a flush dock seals it
+  the wool menu with a stated reason (its bay's mouth is its docking edge, so a flush dock seals it
   into WL8's forbidden enclosed void), with the elevation-stage alternative already parked as G81.
-  Two separate decisions: either give the sampler a Z draw or drop Z from `ProductionFamilies` so the menu
+  Two separate decisions: either give the sampler a Z draw or drop Z from the wool menu so it
   stops advertising it (the second is a one-line honesty fix and should not wait on the first); and leave
   the scythe out until G81 lands. Either way the catalog page (G144) will render both under a
   *reachable* / *emitter-only* badge, so the gap becomes visible rather than folklore.

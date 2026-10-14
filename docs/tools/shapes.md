@@ -30,7 +30,7 @@ menu. A **frontline compound** is the join toward the symmetry axis — no room 
 The spawn box is absent as a row of its own because a spawn compound ends in a room too: it
 reuses the same families at the map's lane width, differing only in what the room holds and how big it is.
 
-The **nine approach families** are an escalation, not a flat set — an L whose lane doubles back is a scythe, a
+The **eight forms ending in a room** are an escalation, not a flat set — an L whose lane doubles back is a scythe, a
 scythe whose bay closes is a donut, a clamp whose wool docks flush is a U, a U that lifts its wool onto a stub
 is an H:
 
@@ -44,7 +44,9 @@ is an H:
 | `u` | two legs meet a crossbar, the wool flush on it | 6×6 |
 | `h` | two legs meet a crossbar, the wool on a stub lifted off it | 6×8 |
 | `donut` | terrain encloses a void — a full loop, multi-access | 5×10 |
-| `isolated` | wool ringed by void — a reading, never emitted, and absent from the page | — |
+
+A wool ringed by void, which no ground reaches, has no form at all: the classifier answers none, nothing emits
+one, and the page has no card for it.
 
 The minimums are the emitter's own, reported by `GET /api/shapes/probe/schema` in the **dock frame** rather
 than the emitter's canonical one: the panel fills through a mouth, and a lateral-mouth family like the donut
@@ -57,12 +59,12 @@ into the ring's own corner rather than hanging a room off the end — it fits 5�
 inside the ring's span instead of beyond it. The `too-small` refusal always reports the minimum **for the
 knobs asked for**, so the number to build against comes from the refusal rather than from the schema.
 
-The **compounds** are the two menus with no room. A hub may be a solid `bar`, the branch family at one arm
-(`single`) or two (`twin`), a `ring`, a `p` (a loop with an overhanging bar), a `double-hole` (a ring plus a
-docked U) or a `g` (a ring plus an L, whose open bay a docking frontline seals into a second hole). A
-frontline may be a `bar` — the wide face — or the branch family at one arm or two. The two menus overlap in
-their tokens and the page's Family filter is one flat list, so picking `bar` shows the hub's and the
-frontline's together.
+The **compounds** are the two menus with no room, named from the same list of forms as the wools. A hub may
+be a solid `i`, a spine with one arm (`l`) or two (`u`), a `donut`, a `p` (a loop with an overhanging bar), a
+`double-hole` (a ring plus a docked U) or a `g` (a ring plus an L, whose open bay a docking frontline seals into
+a second hole). A frontline may be an `i` — the wide face — an `l` or a `u`. One word names one shape whichever
+box holds it, and the page's Family filter is one flat list, so picking `u` shows the wool's, the hub's and the
+frontline's U together.
 
 Beside the family sit the **knobs**, the variation the model allows without leaving the family: a `flip`,
 available everywhere, turning the shape's handedness; `sideTuck`, which turns the room off the end of the last
@@ -207,11 +209,11 @@ cards are donuts. The census the generator reports says the opposite about real 
 boards in four at twelve players and nine in ten at twenty, and it gets five cards. The page is a vocabulary,
 never a frequency.
 
-**The hub's two-arm form has no card.** `SpineArms(2)` is on the hub menu and the generator's own census finds
+**The hub's U has no card.** `U` is on the hub menu and the generator's own census finds
 it on 28 of 400 boards at twenty players, but the catalog emits every compound at a fixed 16×12 box with no arm
 layout, and the default layout on a 16-wide spine wants two 6-cell legs where the leg-width cap allows 5 — so
 the form refuses and the card is dropped. The grid therefore shows six hub forms where the composer builds
-seven. The frontline's twin is unaffected because its own sampler admits end recesses.
+seven. The frontline's U is unaffected because its own sampler admits end recesses.
 
 **The lane width slider spans widths the menu does not fill.** It runs 2 to 5, but the width-to-menu table has
 families only on its `w2` row: `w3` tapers back to `w2` and fills, while `w4` and `w5` answer `not-on-menu`

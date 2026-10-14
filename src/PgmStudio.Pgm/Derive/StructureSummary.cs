@@ -16,9 +16,9 @@ namespace PgmStudio.Pgm.Derive;
 /// The wool-family scan is the pattern promoted from the box gallery tool.</para>
 /// </summary>
 public sealed record StructureSummary(
-    IReadOnlyList<ShapeFamily> Wools,   // sorted (deterministic canonical order)
-    CompoundRead? Hub,                  // the hub compound form (null only if a unit somehow has no hub box)
-    CompoundRead? Frontline)            // the frontline compound form, or null = none (a real, sampled outcome)
+    IReadOnlyList<CompoundForm> Wools,   // sorted (deterministic canonical order)
+    CompoundForm? Hub,                  // the hub compound form (null only if a unit somehow has no hub box)
+    CompoundForm? Frontline)            // the frontline compound form, or null = none (a real, sampled outcome)
 {
     public static StructureSummary Derive(TeamUnit unit) => new(
         WoolFamilies(unit).OrderBy(f => f).ToList(),
@@ -27,9 +27,9 @@ public sealed record StructureSummary(
 
     /// <summary>Classify each wool box to its emitted approach family (box scope — its own pieces + room).
     /// Public because the box gallery tool shares this exact read.</summary>
-    public static List<ShapeFamily> WoolFamilies(TeamUnit unit)
+    public static List<CompoundForm> WoolFamilies(TeamUnit unit)
     {
-        var fams = new List<ShapeFamily>();
+        var fams = new List<CompoundForm>();
         foreach (var boxId in WoolBoxIds(unit))
         {
             var boxPieces = unit.Pieces.Where(p => p.Box?.Id == boxId).ToList();
@@ -43,7 +43,7 @@ public sealed record StructureSummary(
                     filled.Add(c);
                     if (p.Id == room.Id) roomCells.Add(c);
                 }
-            fams.Add(ShapeClassifier.Classify(filled, roomCells).Family);
+            if (ShapeClassifier.Classify(filled, roomCells).Family is { } family) fams.Add(family);
         }
         return fams;
     }
@@ -53,7 +53,7 @@ public sealed record StructureSummary(
 
     /// <summary>The compound form of the single box of <paramref name="kind"/> (hub or frontline), or null when a
     /// unit has none (a no-frontline unit).</summary>
-    private static CompoundRead? BoxForm(TeamUnit unit, BoxKind kind)
+    private static CompoundForm? BoxForm(TeamUnit unit, BoxKind kind)
     {
         var boxId = unit.Pieces.Where(p => p.Box?.Kind == kind).Select(p => p.Box!.Id).Distinct().FirstOrDefault();
         if (boxId is null) return null;
@@ -71,7 +71,7 @@ public sealed record StructureSummary(
                 yield return (x, z);
     }
 
-    /// <summary>A stable, lowercase, order-independent key: <c>wools:donut,l|hub:ring|front:none</c>. Persisted
+    /// <summary>A stable, lowercase, order-independent key: <c>wools:donut,l|hub:donut|front:none</c>. Persisted
     /// on a pinned plan and used as the verdict/duel bucket key.</summary>
     public string Canonical() =>
         CanonicalOf(Wools.Select(StructureNames.Family), StructureNames.Form(Hub), StructureNames.Form(Frontline));
@@ -85,20 +85,10 @@ public sealed record StructureSummary(
 /// the filter chips, the canonical bucket key, and the sieve query. Lowercase and stable.</summary>
 public static class StructureNames
 {
-    /// <summary>A wool approach family token: <c>donut</c>, <c>l</c>, <c>i</c>, <c>u</c>, <c>h</c>, <c>clamp</c>…</summary>
-    public static string Family(ShapeFamily f) => f.ToString().ToLowerInvariant();
+    /// <summary>A wool shape token: <c>donut</c>, <c>l</c>, <c>i</c>, <c>u</c>, <c>h</c>, <c>clamp</c>…</summary>
+    public static string Family(CompoundForm f) => f.Word();
 
-    /// <summary>A compound form token: <c>ring</c>, <c>g</c>, <c>p</c>, <c>double-hole</c>, <c>two-u</c>, <c>bar</c>
-    /// (solid), <c>single</c> / <c>twin</c> (one/two spine arms), <c>arms-N</c> otherwise, or <c>none</c>.</summary>
-    public static string Form(CompoundRead? r) => r is null ? "none" : r.Form switch
-    {
-        CompoundForm.Rectangle => "bar",
-        CompoundForm.SpineArms => r.Arms == 1 ? "single" : r.Arms == 2 ? "twin" : $"arms-{r.Arms}",
-        CompoundForm.Ring => "ring",
-        CompoundForm.DoubleHole => "double-hole",
-        CompoundForm.P => "p",
-        CompoundForm.G => "g",
-        CompoundForm.TwoUOnI => "two-u",
-        _ => r.Form.ToString().ToLowerInvariant(),
-    };
+    /// <summary>A hub or front-line form token: <c>i</c>, <c>l</c>, <c>u</c>, <c>e</c>, <c>donut</c>, <c>g</c>,
+    /// <c>p</c>, <c>double-hole</c>, <c>two-u</c>, or <c>none</c> where the unit has no such box.</summary>
+    public static string Form(CompoundForm? f) => f?.Word() ?? "none";
 }

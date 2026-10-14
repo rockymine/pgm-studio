@@ -95,10 +95,10 @@ public sealed class PlanStoreTests
         var store = new PlanStore(db);
 
         var descriptor = ComposeDescriptor.For(new ComposeRequest(12, 2, "rot_180", seed: 5));
-        var row = await store.SaveGeneratedAsync(PlanJson("bucketed"), descriptor, "wools:donut,l|hub:ring|front:none");
+        var row = await store.SaveGeneratedAsync(PlanJson("bucketed"), descriptor, "wools:donut,l|hub:donut|front:none");
 
-        await Assert.That(row.Structure).IsEqualTo("wools:donut,l|hub:ring|front:none");
-        await Assert.That((await store.GetByIdAsync(row.Id))!.Structure).IsEqualTo("wools:donut,l|hub:ring|front:none");
+        await Assert.That(row.Structure).IsEqualTo("wools:donut,l|hub:donut|front:none");
+        await Assert.That((await store.GetByIdAsync(row.Id))!.Structure).IsEqualTo("wools:donut,l|hub:donut|front:none");
     }
 
     [Test]

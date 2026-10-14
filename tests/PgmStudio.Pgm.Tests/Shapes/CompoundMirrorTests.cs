@@ -8,7 +8,7 @@ namespace PgmStudio.Pgm.Tests.Shapes;
 /// <see cref="CompoundEmitter"/> builds classifies back to itself through <see cref="ShapeClassifier.ClassifyCompound"/>.
 /// Each emission must also be one connected mass, tile without overlap, and join along shared edges only — the
 /// alignment law (§3), asserted as the absence of a diagonal pinch. The branch family is capped at three arms and
-/// reads by arm count regardless of placement (an F and a Π both read <c>SpineArms(2)</c>).
+/// reads by arm count regardless of placement (arms at both ends and arms at an end and the middle both read <c>U</c>).
 /// </summary>
 public sealed class CompoundMirrorTests
 {
@@ -49,39 +49,36 @@ public sealed class CompoundMirrorTests
             var compound = CompoundEmitter.SpineArms(laneWidth, arms);
             await Wellformed(compound);
             var read = ShapeClassifier.ClassifyCompound(CellsOf(compound));
-            await Assert.That(read.Form).IsEqualTo(CompoundForm.SpineArms);
-            await Assert.That(read.Arms).IsEqualTo(arms);
+            await Assert.That(read).IsEqualTo(CompoundForms.SpineWith(arms));
         }
     }
 
-    // arm placement is a knob, not an identity: F (an end + the middle) and Π (both ends) both read SpineArms(2);
-    // E (three) reads SpineArms(3). The letter is the placement; the arm count is the topology.
+    // arm placement is a knob, not an identity: arms at an end and the middle and arms at both ends both read U;
+    // three arms read E. The arm count is the form; where the arms stand is not.
     [Test]
     public async Task SpineArms_reads_by_count_regardless_of_placement()
     {
         const int laneWidth = 2;
-        var pi = CompoundEmitter.SpineArms(laneWidth, [0, 4 * laneWidth], 5 * laneWidth);        // Π — arms at both ends
-        var f = CompoundEmitter.SpineArms(laneWidth, [0, 2 * laneWidth], 5 * laneWidth);        // F — an end and the middle
-        var e = CompoundEmitter.SpineArms(laneWidth, [0, 2 * laneWidth, 4 * laneWidth], 5 * laneWidth); // E — three arms
+        var pi = CompoundEmitter.SpineArms(laneWidth, [0, 4 * laneWidth], 5 * laneWidth);        // arms at both ends
+        var f = CompoundEmitter.SpineArms(laneWidth, [0, 2 * laneWidth], 5 * laneWidth);        // an end and the middle
+        var e = CompoundEmitter.SpineArms(laneWidth, [0, 2 * laneWidth, 4 * laneWidth], 5 * laneWidth); // three arms
         foreach (var (compound, arms) in new[] { (pi, 2), (f, 2), (e, 3) })
         {
             await Wellformed(compound);
             var read = ShapeClassifier.ClassifyCompound(CellsOf(compound));
-            await Assert.That(read.Form).IsEqualTo(CompoundForm.SpineArms);
-            await Assert.That(read.Arms).IsEqualTo(arms);
+            await Assert.That(read).IsEqualTo(CompoundForms.SpineWith(arms));
         }
     }
 
-    // the atom rectangles are free to differ in size — identity is width-independent, so an F with a fat bar and a
-    // long + a short leg (different widths too) still reads SpineArms(2).
+    // the atom rectangles are free to differ in size — identity is width-independent, so a U with a fat bar and a
+    // long + a short leg (different widths too) still reads U.
     [Test]
     public async Task SpineArms_reads_by_count_under_varied_atom_sizes()
     {
         var f = CompoundEmitter.SpineArms(spineLen: 14, barThickness: 4, arms: [(0, 4, 10), (8, 2, 4)]);
         await Wellformed(f);
         var read = ShapeClassifier.ClassifyCompound(CellsOf(f));
-        await Assert.That(read.Form).IsEqualTo(CompoundForm.SpineArms);
-        await Assert.That(read.Arms).IsEqualTo(2);
+        await Assert.That(read).IsEqualTo(CompoundForm.U);
     }
 
     [Test]
@@ -98,7 +95,7 @@ public sealed class CompoundMirrorTests
         {
             var compound = CompoundEmitter.Rectangle(4 * laneWidth, 3 * laneWidth);
             await Wellformed(compound);
-            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(compound)).Form).IsEqualTo(CompoundForm.Rectangle);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(compound))).IsEqualTo(CompoundForm.I);
         }
     }
 
@@ -108,15 +105,15 @@ public sealed class CompoundMirrorTests
     {
         foreach (var laneWidth in new[] { 2, 3 })
         {
-            var ring = CompoundEmitter.Ring(laneWidth, 4 * laneWidth, 4 * laneWidth);
+            var ring = CompoundEmitter.Donut(laneWidth, 4 * laneWidth, 4 * laneWidth);
             await Wellformed(ring);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(ring)))).IsEqualTo(1);
-            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(ring)).Form).IsEqualTo(CompoundForm.Ring);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(ring))).IsEqualTo(CompoundForm.Donut);
 
             var p = CompoundEmitter.P(laneWidth, 4 * laneWidth, 4 * laneWidth);
             await Wellformed(p);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(p)))).IsEqualTo(1);
-            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(p)).Form).IsEqualTo(CompoundForm.P);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(p))).IsEqualTo(CompoundForm.P);
         }
     }
 
@@ -129,12 +126,12 @@ public sealed class CompoundMirrorTests
             var dh = CompoundEmitter.DoubleHole(laneWidth, 5 * laneWidth, 6 * laneWidth);
             await Wellformed(dh);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(dh)))).IsEqualTo(2);
-            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(dh)).Form).IsEqualTo(CompoundForm.DoubleHole);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(dh))).IsEqualTo(CompoundForm.DoubleHole);
 
-            var twin = CompoundEmitter.TwoUOnI(laneWidth, 4 * laneWidth);
+            var twin = CompoundEmitter.TwoU(laneWidth, 4 * laneWidth);
             await Wellformed(twin);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(twin)))).IsEqualTo(2);
-            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(twin)).Form).IsEqualTo(CompoundForm.TwoUOnI);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(twin))).IsEqualTo(CompoundForm.TwoU);
         }
     }
 
@@ -148,7 +145,7 @@ public sealed class CompoundMirrorTests
             var g = CompoundEmitter.G(laneWidth, 4 * laneWidth, 4 * laneWidth, 6 * laneWidth);
             await Wellformed(g);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(g)))).IsEqualTo(1);   // only the ring is enclosed
-            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(g)).Form).IsEqualTo(CompoundForm.G);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(g))).IsEqualTo(CompoundForm.G);
         }
     }
 
@@ -164,7 +161,7 @@ public sealed class CompoundMirrorTests
         await Wellformed(equal);
         await Assert.That(holes.Count).IsEqualTo(2);
         await Assert.That(holes[0]).IsEqualTo(holes[1]);                         // the two holes are the same size
-        await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(equal)).Form).IsEqualTo(CompoundForm.DoubleHole);
+        await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(equal))).IsEqualTo(CompoundForm.DoubleHole);
 
         // variant: a shorter U slid down the edge, still two voids apart by the solid leg
         foreach (var uz in new[] { laneWidth, 2 * laneWidth, 3 * laneWidth })
@@ -172,7 +169,7 @@ public sealed class CompoundMirrorTests
             var dh = CompoundEmitter.DoubleHole(laneWidth, 5 * laneWidth, 8 * laneWidth, uW: 2 * laneWidth, uH: 3 * laneWidth, uz: uz);
             await Wellformed(dh);
             await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(dh)))).IsEqualTo(2);
-            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(dh)).Form).IsEqualTo(CompoundForm.DoubleHole);
+            await Assert.That(ShapeClassifier.ClassifyCompound(CellsOf(dh))).IsEqualTo(CompoundForm.DoubleHole);
         }
     }
 }

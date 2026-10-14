@@ -39,7 +39,7 @@ public sealed class ShapeCatalogTests
     {
         // the mix is drawn from the sampler, so it can only ever be a subset of what the fill menu allows
         var inMix = Wools.Where(s => s.Tier == CatalogTier.InMix).Select(s => s.Family).Distinct();
-        var menu = FillMenu.ProductionFamilies.Select(f => f.ToString().ToLowerInvariant()).ToList();
+        var menu = FillMenu.For(BoxKind.Wool).Select(f => f.ToString().ToLowerInvariant()).ToList();
         foreach (var family in inMix) await Assert.That(menu).Contains(family);
     }
 
@@ -56,7 +56,7 @@ public sealed class ShapeCatalogTests
     public async Task Z_is_on_the_menu_but_no_sampler_draws_it_so_it_reads_reachable()
     {
         // the honesty case the page exists for: the menu advertises Z, the sampler never asks
-        await Assert.That(FillMenu.ProductionFamilies).Contains(ShapeFamily.Z);
+        await Assert.That(FillMenu.For(BoxKind.Wool)).Contains(CompoundForm.Z);
         var z = Wools.Where(s => s.Family == "z").ToList();
         await Assert.That(z).IsNotEmpty();
         foreach (var shape in z) await Assert.That(shape.Tier).IsEqualTo(CatalogTier.Reachable);
@@ -111,7 +111,7 @@ public sealed class ShapeCatalogTests
         // twice the family's own minimum means a display size was hard-coded again rather than derived.
         foreach (var shape in Wools.Where(s => s.Tier == CatalogTier.EmitterOnly))
         {
-            var family = Enum.Parse<ShapeFamily>(shape.Family, ignoreCase: true);
+            var family = Enum.Parse<CompoundForm>(shape.Family, ignoreCase: true);
             var (minW, minH) = ShapeEmitter.MinBox(family, shape.LaneWidth);
             await Assert.That(shape.BoxW).IsGreaterThanOrEqualTo(minW);
             await Assert.That(shape.BoxH).IsGreaterThanOrEqualTo(minH);

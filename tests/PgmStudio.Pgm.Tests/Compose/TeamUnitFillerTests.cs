@@ -11,7 +11,7 @@ public class TeamUnitFillerTests
     private static readonly Box HubBox = new("hub", BoxKind.Hub, new(0, 0, 6, 6), 36);
 
     private static Compound Hub() =>
-        HubBoxEmitter.Fill(HubBox, new CompoundRead(CompoundForm.Rectangle), laneWidth: 2)!;
+        HubBoxEmitter.Fill(HubBox, CompoundForm.I, laneWidth: 2)!;
 
     /// <summary>A hub joint granting <paramref name="width"/> over the dock <c>[start, start+len)</c> on
     /// <paramref name="edge"/> — the allocator's per-dock grant.</summary>
@@ -45,7 +45,7 @@ public class TeamUnitFillerTests
         // a derived (not allocated) partition carries no offer — the dock reads the capacity of the run it
         // lands on: the U's Bottom edge is two 2-cell leg tips, its Top one full 6-cell run
         var hub = HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, new(0, 0, 6, 6), 36),
-            new CompoundRead(CompoundForm.SpineArms, 2), laneWidth: 2)!;
+            CompoundForm.U, laneWidth: 2)!;
         var onTip = new BoxJoint("hub", "nb", new EdgeInterval(BoxEdge.Bottom, 4, 2), null);
         var onSpine = new BoxJoint("hub", "nb", new EdgeInterval(BoxEdge.Top, 0, 6), null);
 
@@ -69,7 +69,7 @@ public class TeamUnitFillerTests
         // the spawn box sits below the hub, docking the hub's Bottom edge with its Top mouth, granted w4
         var spawnBox = new Box("spawn-a", BoxKind.Spawn, new(0, 6, 4, 10), 40);
         var laneWidth = TeamUnitFiller.GrantedLaneWidth(HubBox, hub, Joint(BoxEdge.Bottom, 4), BoxEdge.Bottom);
-        var spawn = SpawnBoxEmitter.Fill(spawnBox, BoxEdge.Top, ShapeFamily.I, laneWidth, flip: false);
+        var spawn = SpawnBoxEmitter.Fill(spawnBox, BoxEdge.Top, CompoundForm.I, laneWidth, flip: false);
 
         await Assert.That(spawn).IsNotNull();
         // filled at laneWidth 4: the spawn corridor is four cells wide across the mouth

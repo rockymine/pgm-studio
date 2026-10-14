@@ -37,7 +37,7 @@ foreach (var (label, players) in presets)
         alloc++;
         foreach (var b in a.Boxes)
             sb.Append($"B({b.Id},{b.Kind},[{string.Join(" ", b.Rect)}],land={b.LandTargetCells}," +
-                $"form={(b.Form is null ? "-" : $"{b.Form.Form}:{b.Form.Arms}")},flip={b.FlipV}," +
+                $"form={b.Form?.ToString() ?? "-"},flip={b.FlipV}," +
                 $"wool={(b.Wool is null ? "-" : $"{b.Wool.Family}:{b.Wool.Placement}:{b.Wool.Flip}:{b.Wool.WoolAtEnd}")});");
         foreach (var j in a.Joints)
             sb.Append($"J({j.BoxA}->{j.BoxB},{j.Shared.Edge}@{j.Shared.Start}+{j.Shared.Length}," +

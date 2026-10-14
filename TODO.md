@@ -36,11 +36,6 @@ The composer is described by cells, pieces, parts, roles, compounds, forms, vaca
 kinds, joints, layouts and lane widths, and these steps bring its types down to those words. Each leaves the
 composer's fingerprints unchanged except the last, which removes a random draw.
 
-- [ ] **G298 — One list of forms.** `ShapeFamily` merges into `CompoundForm`: I, L, U, H, Z, Scythe, Clamp,
-  Donut, P, G, Double-hole and Two-U, with `Isolated` a finding rather than a form. `FillMenu.For(kind)` is each
-  box kind's menu; the generator and catalog chips use the same names, the hub's Bar/Single/Twin/Ring becoming
-  I/L/U/Donut, and the *Wool approaches* heading reads *Wool shapes*. A migration rewrites `composed_board.hub`,
-  `.frontline` and `.wools` to the merged tokens. `docs/generator/model.md` §4.
 - [ ] **G299 — The composer keeps only what it reads.** Delete `PublishPolicy`, `ClosureAnalysis`, `EdgeSpan`,
   `BoxLayout.Structural`, `DockingGate.DockingEdges`/`CanDock` and `BoxEdgeInterface.TouchesRoom`/`HasTerrain`,
   and drop *approach* as a code word for a wool compound. `model.md` and `vocabulary.md` are restated in the

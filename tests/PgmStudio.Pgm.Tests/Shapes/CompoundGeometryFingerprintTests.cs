@@ -29,9 +29,9 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task Ring_geometry_is_stable()
     {
-        await Assert.That(Print(CompoundEmitter.Ring(LaneWidth, 9, 7))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.Donut(LaneWidth, 9, 7))).IsEqualTo(
             "bar:0,0,9,2 | bar:0,5,9,2 | leg:0,2,2,3 | leg:7,2,2,3  voids hole:2,2,5,3");
-        await Assert.That(Print(CompoundEmitter.Ring(LaneWidth, 5, 5))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.Donut(LaneWidth, 5, 5))).IsEqualTo(
             "bar:0,0,5,2 | bar:0,3,5,2 | leg:0,2,2,1 | leg:3,2,2,1  voids hole:2,2,1,1");
     }
 
@@ -42,15 +42,15 @@ public sealed class CompoundGeometryFingerprintTests
     {
         // the right leg at 3 where the others are 2: the hole loses a column on that side, the box is unchanged
         var walls = new RingWalls(Top: 2, Right: 3, Bottom: 2, Left: 2);
-        await Assert.That(Print(CompoundEmitter.Ring(walls, 9, 7))).IsEqualTo(
+        await Assert.That(Print(CompoundEmitter.Donut(walls, 9, 7))).IsEqualTo(
             "bar:0,0,9,2 | bar:0,5,9,2 | leg:0,2,2,3 | leg:6,2,3,3  voids hole:2,2,4,3");
 
         // and it still reads as a ring — identity is width-independent, which is the whole premise
         var cells = new HashSet<(int, int)>();
-        foreach (var (rect, _) in CompoundEmitter.Ring(walls, 9, 7).Pieces)
+        foreach (var (rect, _) in CompoundEmitter.Donut(walls, 9, 7).Pieces)
             for (var x = rect.X; x < rect.X + rect.Width; x++)
                 for (var z = rect.Z; z < rect.Z + rect.Height; z++) cells.Add((x, z));
-        await Assert.That(ShapeClassifier.ClassifyCompound(cells).Form).IsEqualTo(CompoundForm.Ring);
+        await Assert.That(ShapeClassifier.ClassifyCompound(cells)).IsEqualTo(CompoundForm.Donut);
     }
 
     /// <summary>The emitter enforces geometry only — walls must be a corridor and must leave a hole. How far the
@@ -59,11 +59,11 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task The_emitter_bounds_ring_walls_by_geometry_not_by_taste()
     {
-        await Assert.That(() => CompoundEmitter.Ring(new RingWalls(2, 1, 2, 2), 9, 7)).Throws<ArgumentException>()
+        await Assert.That(() => CompoundEmitter.Donut(new RingWalls(2, 1, 2, 2), 9, 7)).Throws<ArgumentException>()
             .Because("a 1-cell wall is under the corridor minimum");
-        await Assert.That(() => CompoundEmitter.Ring(new RingWalls(2, 5, 2, 5), 9, 7)).Throws<ArgumentException>()
+        await Assert.That(() => CompoundEmitter.Donut(new RingWalls(2, 5, 2, 5), 9, 7)).Throws<ArgumentException>()
             .Because("5 + 5 leaves no hole in a 9-wide box");
-        await Assert.That(Print(CompoundEmitter.Ring(new RingWalls(2, 5, 2, 2), 11, 7))).IsNotEmpty()
+        await Assert.That(Print(CompoundEmitter.Donut(new RingWalls(2, 5, 2, 2), 11, 7))).IsNotEmpty()
             .Because("a lopsided 2/5 ring is legal geometry; the ratio law lives in the sampler");
     }
 
@@ -124,7 +124,7 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task TwoUOnI_geometry_is_stable()
     {
-        await Assert.That(Print(CompoundEmitter.TwoUOnI(LaneWidth, 7, 3, 2))).IsNotEmpty();
+        await Assert.That(Print(CompoundEmitter.TwoU(LaneWidth, 7, 3, 2))).IsNotEmpty();
     }
 
     [Test]
@@ -140,7 +140,7 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task Donut_geometry_is_stable()
     {
-        var shape = ShapeEmitter.Emit(ShapeFamily.Donut, 12, 7, LaneWidth);
+        var shape = ShapeEmitter.Emit(CompoundForm.Donut, 12, 7, LaneWidth);
         var print = string.Join(" | ", shape.Pieces.Select(p => $"{p.Part}:{R(p.Rect)}"));
         await Assert.That(print).IsEqualTo(
             "entry-bar:2,0,8,2 | leg:2,2,2,3 | leg:8,2,2,3 | entry:0,0,2,2 | room-bar:2,5,8,2 | room:10,5,2,2");
@@ -152,8 +152,8 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task A_donut_can_carry_a_wider_leg_and_a_wider_bar()
     {
-        var uniform = ShapeEmitter.Emit(ShapeFamily.Donut, 13, 8, LaneWidth);
-        var widened = ShapeEmitter.Emit(ShapeFamily.Donut, 13, 8, LaneWidth,
+        var uniform = ShapeEmitter.Emit(CompoundForm.Donut, 13, 8, LaneWidth);
+        var widened = ShapeEmitter.Emit(CompoundForm.Donut, 13, 8, LaneWidth,
             ringWalls: new RingWalls(Top: 3, Right: 2, Bottom: 2, Left: 2));
 
         // the top bar thickens; the hole loses that row rather than the box growing
@@ -174,7 +174,7 @@ public sealed class CompoundGeometryFingerprintTests
                     cells.Add((x, z));
                     if (part == CompoundParts.Room) rooms.Add((x, z));
                 }
-        await Assert.That(ShapeClassifier.Classify(cells, rooms).Family).IsEqualTo(ShapeFamily.Donut);
+        await Assert.That(ShapeClassifier.Classify(cells, rooms).Family).IsEqualTo(CompoundForm.Donut);
     }
 
     /// <summary>A wall vector too fat for the box it is asked to fill is refused, not squashed — the box's slack
@@ -182,7 +182,7 @@ public sealed class CompoundGeometryFingerprintTests
     [Test]
     public async Task A_donut_refuses_walls_its_box_has_no_slack_for()
     {
-        await Assert.That(() => ShapeEmitter.Emit(ShapeFamily.Donut, 13, 8, LaneWidth,
+        await Assert.That(() => ShapeEmitter.Emit(CompoundForm.Donut, 13, 8, LaneWidth,
             ringWalls: new RingWalls(Top: 4, Right: 2, Bottom: 4, Left: 2))).Throws<ArgumentException>();
     }
 }

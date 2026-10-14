@@ -34,7 +34,7 @@ public sealed record SpaceCrossing(int Cells, string From, string To, int X, int
 /// plan.</summary>
 public sealed record NegativeSpace(
     string Kind, IReadOnlySet<(int X, int Z)> Cells, int WallDirections,
-    IReadOnlyList<string> Walls, IReadOnlyList<NegativeSpacePart> Parts, CompoundRead? Form,
+    IReadOnlyList<string> Walls, IReadOnlyList<NegativeSpacePart> Parts, CompoundForm? Form,
     IReadOnlyList<EdgeInterval> Mouths, IReadOnlyList<SpaceCrossing> Crossings);
 
 /// <summary>A maximal straight run of the compound's boundary, classified along two independent axes: what it
@@ -236,7 +236,7 @@ public static class CompoundEdges
 
     // the space's own compound identity — the void read as a compound through the same classifier (null when it
     // classifies to no compound)
-    private static CompoundRead? SpaceForm(HashSet<(int, int)> comp)
+    private static CompoundForm? SpaceForm(HashSet<(int, int)> comp)
     {
         try { return ShapeClassifier.ClassifyCompound(comp); }
         catch (ArgumentException) { return null; }

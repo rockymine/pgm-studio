@@ -87,7 +87,7 @@ public static class ShapeCatalog
         var lane = UnitTuning.WoolLaneWidthFloor;
         var seen = new HashSet<ulong>();            // dedupe by cell pattern across every tier
         var entries = new List<CatalogShape>();
-        var sampled = new HashSet<ShapeFamily>();
+        var sampled = new HashSet<CompoundForm>();
         var n = 0;
 
         foreach (var (fill, along, depth) in SampledRequests())
@@ -105,7 +105,7 @@ public static class ShapeCatalog
         }
 
         // families the menu admits that no sampler asks for — drawn at their minimum box so the shape is legible
-        foreach (var family in FillMenu.ProductionFamilies.Where(f => !sampled.Contains(f)))
+        foreach (var family in FillMenu.For(BoxKind.Wool).Where(f => !sampled.Contains(f)))
         {
             var (along, depth) = WoolBoxEmitter.MouthBox(family, lane);
             var box = new Box(WoolPrefix, BoxKind.Wool, new CellRect(0, 0, along, depth), along * depth);
@@ -145,7 +145,7 @@ public static class ShapeCatalog
     /// generous one reads as a requirement. Scans outward from <see cref="ShapeEmitter.MinBox"/> and takes
     /// the least-area success (ties to the squarer box, so a shape is legible rather than a sliver).</summary>
     private static (int W, int H, Compound Emitted)? SmallestBox(
-        ShapeFamily family, int lane, Func<int, int, Compound> emit)
+        CompoundForm family, int lane, Func<int, int, Compound> emit)
     {
         const int probe = 16;                                  // far past any knob's reach past the base minimum
         var (baseW, baseH) = ShapeEmitter.MinBox(family, lane);
@@ -162,32 +162,31 @@ public static class ShapeCatalog
         return best;
     }
 
-    /// <summary>The families the emitter builds that <see cref="FillMenu.ProductionFamilies"/> leaves off, read
+    /// <summary>The families the emitter builds that the wool menu (<see cref="FillMenu.For"/>) leaves off, read
     /// off the two lists rather than hard-coded, so admitting one removes it from here automatically.</summary>
-    private static IEnumerable<ShapeFamily> EmitterOnlyFamilies =>
-        Enum.GetValues<ShapeFamily>()
-            .Where(f => f != ShapeFamily.Isolated && !FillMenu.ProductionFamilies.Contains(f));
+    private static IEnumerable<CompoundForm> EmitterOnlyFamilies =>
+        ShapeEmitter.Families.Where(f => !FillMenu.For(BoxKind.Wool).Contains(f));
 
     /// <summary>The five knobs <see cref="ShapeEmitter.Emit"/> exposes and <see cref="WoolBoxEmitter.Fill"/>
     /// drops. Each is declared as a <b>function of the box</b>, not at a chosen size, so
     /// <see cref="SmallestBox"/> can ask the emitter what the knob actually costs.</summary>
-    private static IEnumerable<(ShapeFamily Family, string Knob, string Note, Func<int, int, Compound> Emit)>
+    private static IEnumerable<(CompoundForm Family, string Knob, string Note, Func<int, int, Compound> Emit)>
         UnplumbedKnobs(int lane)
     {
         const string donutNote = "The emitter builds it, but the Fill path " +
                                  "the composer uses does not forward it (G145).";
         const string scytheNote = "A scythe endpoint shift — unreachable twice over: the knob is not " +
                                   "forwarded (G145) and the family is off the menu (G146).";
-        yield return (ShapeFamily.Donut, "two attachments", donutNote,
-            (w, h) => ShapeEmitter.Emit(ShapeFamily.Donut, w, h, lane, attachments: 2));
-        yield return (ShapeFamily.Donut, "moved attachment", donutNote,
-            (w, h) => ShapeEmitter.Emit(ShapeFamily.Donut, w, h, lane, attachmentOffset: 4));
-        yield return (ShapeFamily.Donut, "wool extended", donutNote,
-            (w, h) => ShapeEmitter.Emit(ShapeFamily.Donut, w, h, lane, woolExtend: true));
-        yield return (ShapeFamily.Scythe, "entry shifted", scytheNote,
-            (w, h) => ShapeEmitter.Emit(ShapeFamily.Scythe, w, h, lane, entryShift: 3));
-        yield return (ShapeFamily.Scythe, "wool shifted", scytheNote,
-            (w, h) => ShapeEmitter.Emit(ShapeFamily.Scythe, w, h, lane, woolShift: 3));
+        yield return (CompoundForm.Donut, "two attachments", donutNote,
+            (w, h) => ShapeEmitter.Emit(CompoundForm.Donut, w, h, lane, attachments: 2));
+        yield return (CompoundForm.Donut, "moved attachment", donutNote,
+            (w, h) => ShapeEmitter.Emit(CompoundForm.Donut, w, h, lane, attachmentOffset: 4));
+        yield return (CompoundForm.Donut, "wool extended", donutNote,
+            (w, h) => ShapeEmitter.Emit(CompoundForm.Donut, w, h, lane, woolExtend: true));
+        yield return (CompoundForm.Scythe, "entry shifted", scytheNote,
+            (w, h) => ShapeEmitter.Emit(CompoundForm.Scythe, w, h, lane, entryShift: 3));
+        yield return (CompoundForm.Scythe, "wool shifted", scytheNote,
+            (w, h) => ShapeEmitter.Emit(CompoundForm.Scythe, w, h, lane, woolShift: 3));
     }
 
     /// <summary>The distinct wool requests the sampler can make — collected by <b>running</b>
@@ -196,7 +195,7 @@ public static class ShapeCatalog
     /// records what it produced.</summary>
     private static IEnumerable<(WoolFill Fill, int Along, int Depth)> SampledRequests()
     {
-        var distinct = new HashSet<(ShapeFamily, RoomPlacement, bool, int, int, int)>();
+        var distinct = new HashSet<(CompoundForm, RoomPlacement, bool, int, int, int)>();
         var requests = new List<(WoolFill, int, int)>();
 
         void Keep(WoolFill fill, int along, int depth)
@@ -226,13 +225,13 @@ public static class ShapeCatalog
         var knobs = new List<string>();
         if (flip) knobs.Add("flipped");
         if (fill.Placement == RoomPlacement.SideTuck) knobs.Add("side-tuck");
-        if (fill.WoolAtEnd) knobs.Add(fill.Family == ShapeFamily.Clamp ? "corner wool" : "wool at end");
+        if (fill.WoolAtEnd) knobs.Add(fill.Family == CompoundForm.Clamp ? "corner wool" : "wool at end");
         if (fill.AttachmentWidth > 0) knobs.Add($"attach {fill.AttachmentWidth}");
         return knobs;
     }
 
     private static CatalogShape Approach(
-        string id, ShapeFamily family, CatalogTier tier, int w, int h, int laneWidth,
+        string id, CompoundForm family, CatalogTier tier, int w, int h, int laneWidth,
         IReadOnlyList<string> knobs, string? note, Compound compound) =>
         new(id, "wool", family.ToString().ToLowerInvariant(), tier, w, h, laneWidth, knobs, note,
             UnitPieces.AsPlan(compound, id, WoolPrefix));
@@ -247,7 +246,7 @@ public static class ShapeCatalog
     {
         var laneWidth = FillProfiles.HubLaneWidthFloor;
         var n = 0;
-        foreach (var form in FillProfiles.HubForms)
+        foreach (var form in FillMenu.For(BoxKind.Hub))
         {
             var box = new Box("hub", BoxKind.Hub, new CellRect(0, 0, 16, 12), 16 * 12);
             if (HubBoxEmitter.Fill(box, form, laneWidth) is not { } hub) continue;
@@ -255,7 +254,7 @@ public static class ShapeCatalog
                 16, 12, laneWidth, [], null, UnitPieces.AsPlan(hub, $"hub-{n}", box.Id));
         }
         n = 0;
-        foreach (var form in FillProfiles.FrontlineForms)
+        foreach (var form in FillMenu.For(BoxKind.Frontline))
         {
             var box = new Box("frontline", BoxKind.Frontline, new CellRect(0, 0, 16, 10), 16 * 10);
             if (FrontlineBoxEmitter.Fill(box, form, laneWidth) is not { } front) continue;
@@ -265,13 +264,7 @@ public static class ShapeCatalog
     }
 
     /// <summary>A compound form's display token — the same lowercase vocabulary the browse filter chips use.</summary>
-    private static string Token(CompoundRead form) => form.Form switch
-    {
-        CompoundForm.SpineArms => form.Arms switch { 1 => "single", 2 => "twin", _ => $"spine-arms-{form.Arms}" },
-        CompoundForm.Rectangle => "bar",
-        CompoundForm.DoubleHole => "double-hole",
-        var other => other.ToString().ToLowerInvariant(),
-    };
+    private static string Token(CompoundForm form) => form.Word();
 
     // ── identity ──────────────────────────────────────────────────────────────────────────────────────────
 

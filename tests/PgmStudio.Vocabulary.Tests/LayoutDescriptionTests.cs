@@ -6,7 +6,7 @@ public class LayoutDescriptionTests
 {
     private static IReadOnlyList<DescriptionPart> Describe(
         int players = 10, int teams = 2, string symmetry = SymmetryModes.Rot180, int wools = 1,
-        string[]? forms = null, string hub = "ring", string frontline = "twin") =>
+        string[]? forms = null, string hub = "donut", string frontline = "u") =>
         LayoutDescription.Of(players, teams, symmetry, wools, forms ?? ["l"], hub, frontline);
 
     [Test]
@@ -17,7 +17,7 @@ public class LayoutDescriptionTests
         await Assert.That(text).IsEqualTo(
             "A two-team layout for 6–13 players a team, copied by a half turn about the centre. "
             + "Each team has one wool, kept in a wool room and reached by an L-shaped approach. "
-            + "The team's side is built around a ring-shaped hub, with a twin front line facing the mid.");
+            + "The team's side is built around a donut-shaped hub, with a U-shaped front line facing the mid.");
     }
 
     [Test]

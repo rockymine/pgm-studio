@@ -16,7 +16,7 @@ public class FrontlineBoxEmitterTests
     [Test]
     public async Task Bar_frontline_is_a_solid_wide_face_with_no_room()
     {
-        var f = FrontlineBoxEmitter.Fill(Box(), new CompoundRead(CompoundForm.Rectangle), laneWidth: 2)!;
+        var f = FrontlineBoxEmitter.Fill(Box(), CompoundForm.I, laneWidth: 2)!;
 
         await Assert.That(f.Pieces.Count).IsEqualTo(1);
         await Assert.That(f.Room).IsNull();
@@ -28,7 +28,7 @@ public class FrontlineBoxEmitterTests
     [Test]
     public async Task The_spine_lies_along_the_top_and_the_tips_along_the_face()
     {
-        var f = FrontlineBoxEmitter.Fill(Box(), new CompoundRead(CompoundForm.SpineArms, 2), laneWidth: 2)!;
+        var f = FrontlineBoxEmitter.Fill(Box(), CompoundForm.U, laneWidth: 2)!;
         await Assert.That(Runs(f, BoxEdge.Top).Single().Length).IsEqualTo(8);
         await Assert.That(Runs(f, BoxEdge.Bottom).Count).IsEqualTo(2);
     }
@@ -38,7 +38,7 @@ public class FrontlineBoxEmitterTests
     {
         // never the centred T: a T's narrow tip is the whole front-face hull, forcing a too-thin mid band. The
         // fat L anchors its one arm at the spine's start and spans all but one lane width (the void notch)
-        var f = FrontlineBoxEmitter.Fill(Box(), new CompoundRead(CompoundForm.SpineArms, 1), laneWidth: 2)!;
+        var f = FrontlineBoxEmitter.Fill(Box(), CompoundForm.L, laneWidth: 2)!;
 
         await Assert.That(f.Pieces.Count).IsEqualTo(2);                        // spine + the one fat leg
         var tips = Runs(f, BoxEdge.Bottom);
@@ -53,7 +53,7 @@ public class FrontlineBoxEmitterTests
         // the thin-leg L (leg ≤ notch) has the same too-thin band as the banned T and directed-nulls
         var box = new Box("frontline", BoxKind.Frontline, new(0, 0, 4, 4), 16);
         await Assert.That(FrontlineBoxEmitter.Fill(
-            box, new CompoundRead(CompoundForm.SpineArms, 1), laneWidth: 2)).IsNull();
+            box, CompoundForm.L, laneWidth: 2)).IsNull();
     }
 
     [Test]
@@ -61,7 +61,7 @@ public class FrontlineBoxEmitterTests
     {
         // an F on a 10-wide front: legs 2 and 3 with a 2-bay and a 3-wide end recess (ttvvtttxxx)
         var box = new Box("frontline", BoxKind.Frontline, new(0, 0, 10, 6), 60);
-        var f = FrontlineBoxEmitter.Fill(box, new CompoundRead(CompoundForm.SpineArms, 2), laneWidth: 2,
+        var f = FrontlineBoxEmitter.Fill(box, CompoundForm.U, laneWidth: 2,
             armLayout: [(0, 2), (4, 3)])!;
 
         await Assert.That(f.Pieces.Count).IsEqualTo(3);                        // spine + two uneven legs
@@ -101,13 +101,13 @@ public class FrontlineBoxEmitterTests
     public async Task Too_small_a_box_is_a_directed_null()
     {
         await Assert.That(FrontlineBoxEmitter.Fill(new Box("f", BoxKind.Frontline, new(0, 0, 3, 3), 9),
-            new CompoundRead(CompoundForm.SpineArms, 2), laneWidth: 2)).IsNull();
+            CompoundForm.U, laneWidth: 2)).IsNull();
     }
 
     [Test]
     public async Task A_form_off_the_frontline_menu_throws()
     {
-        await Assert.That(() => FrontlineBoxEmitter.Fill(Box(), new CompoundRead(CompoundForm.Ring), laneWidth: 2))
+        await Assert.That(() => FrontlineBoxEmitter.Fill(Box(), CompoundForm.Donut, laneWidth: 2))
             .Throws<ComposeException>();
     }
 }

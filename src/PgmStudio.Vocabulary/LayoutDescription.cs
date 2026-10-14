@@ -33,7 +33,7 @@ public static class LayoutDescription
             new("wool room", "wool room"),
             new(" and reached by "),
             new(ApproachForms(woolForms, woolsPerTeam), "approach"),
-            new($". The team's side is built around {HubForm(hub)} "),
+            new($". The team's side is built around {Phrase(hub)} "),
             new("hub", "hub"),
             new(", "),
             .. FrontLinePhrase(frontline),
@@ -80,30 +80,24 @@ public static class LayoutDescription
         };
     }
 
+    /// <summary>A form word as an article and an adjective — one reading for a wool's, a hub's and a front line's.</summary>
     private static (string Article, string Adjective) Shaped(string form) => form switch
     {
         "i" => ("an", "I-shaped"),
         "l" => ("an", "L-shaped"),
-        "u" => ("a", "U-shaped"),
+        "e" => ("an", "E-shaped"),
         "h" => ("an", "H-shaped"),
-        "z" => ("a", "Z-shaped"),
-        "donut" => ("a", "donut-shaped"),
-        "clamp" => ("a", "clamp-shaped"),
-        "scythe" => ("a", "scythe-shaped"),
+        "double-hole" => ("a", "two-holed"),
+        "two-u" => ("a", "double-U-shaped"),
+        _ when form.Length == 1 => ("a", $"{form.ToUpperInvariant()}-shaped"),
         _ => ("a", $"{form}-shaped"),
     };
 
-    private static string HubForm(string hub) => hub switch
+    private static string Phrase(string form)
     {
-        "bar" => "a bar-shaped",
-        "single" => "a single-piece",
-        "twin" => "a twin",
-        "ring" => "a ring-shaped",
-        "g" => "a G-shaped",
-        "p" => "a P-shaped",
-        "double-hole" => "a two-holed",
-        _ => $"a {hub}",
-    };
+        var (article, adjective) = Shaped(form);
+        return $"{article} {adjective}";
+    }
 
     private static IEnumerable<DescriptionPart> FrontLinePhrase(string frontline)
     {
@@ -115,14 +109,7 @@ public static class LayoutDescription
             yield return new("front line", "front line");
             yield break;
         }
-        var form = frontline switch
-        {
-            "bar" => "a bar-shaped",
-            "single" => "a single-piece",
-            "twin" => "a twin",
-            _ => $"a {frontline}",
-        };
-        yield return new($"with {form} ");
+        yield return new($"with {Phrase(frontline)} ");
         yield return new("front line", "front line");
         yield return new(" facing the ");
         yield return new("mid", "mid");

@@ -12,31 +12,31 @@ namespace PgmStudio.Pgm.Tests.Shapes;
 /// </summary>
 public sealed class ShapeCatalogTests
 {
-    public static IEnumerable<Func<(string Name, ShapeFamily Family, string[] Rows)>> Catalog() =>
+    public static IEnumerable<Func<(string Name, CompoundForm? Family, string[] Rows)>> Catalog() =>
     [
-        () => ("isolated",      ShapeFamily.Isolated, ["vv", "wv", "vv"]),
-        () => ("i-straight",    ShapeFamily.I,        ["tttw", "vvvv"]),
-        () => ("i-sidetuck",    ShapeFamily.I,        ["tttt", "vvvw"]),
-        () => ("l-corner-1",    ShapeFamily.L,        ["vw", "vt", "tt"]),
-        () => ("l-corner-2",    ShapeFamily.L,        ["tttv", "vvtw"]),
-        () => ("clamp",         ShapeFamily.Clamp,    ["tt", "vw", "tt"]),
-        () => ("clamp-corner",  ShapeFamily.Clamp,    ["ttw", "vvt", "ttt"]),
-        () => ("scythe-1",      ShapeFamily.Scythe,   ["tttv", "tvtw"]),
-        () => ("scythe-2",      ShapeFamily.Scythe,   ["tttvv", "tvttw"]),
-        () => ("scythe-3-wide", ShapeFamily.Scythe,   ["ttttv", "ttvtw"]),
-        () => ("u-flush-1",     ShapeFamily.U,        ["ttv", "vtw", "ttv"]),
-        () => ("u-flush-2",     ShapeFamily.U,        ["ttv", "vtv", "ttw"]),
-        () => ("h-stub-1",      ShapeFamily.H,        ["ttvv", "vtvv", "tttw"]),
-        () => ("h-stub-2",      ShapeFamily.H,        ["ttvw", "vtvt", "tttt"]),
-        () => ("h-stub-3",      ShapeFamily.H,        ["vwv", "vtv", "ttt", "tvt"]),
-        () => ("donut-1",       ShapeFamily.Donut,    ["ttttv", "vtvtv", "vtttw"]),
-        () => ("donut-2",       ShapeFamily.Donut,    ["ttttv", "ttvtv", "vtttw"]),
-        () => ("donut-3",       ShapeFamily.Donut,    ["ttttvv", "ttvtvv", "vttttw"]),
+        () => ("isolated",      null,                  ["vv", "wv", "vv"]),
+        () => ("i-straight",    CompoundForm.I,        ["tttw", "vvvv"]),
+        () => ("i-sidetuck",    CompoundForm.I,        ["tttt", "vvvw"]),
+        () => ("l-corner-1",    CompoundForm.L,        ["vw", "vt", "tt"]),
+        () => ("l-corner-2",    CompoundForm.L,        ["tttv", "vvtw"]),
+        () => ("clamp",         CompoundForm.Clamp,    ["tt", "vw", "tt"]),
+        () => ("clamp-corner",  CompoundForm.Clamp,    ["ttw", "vvt", "ttt"]),
+        () => ("scythe-1",      CompoundForm.Scythe,   ["tttv", "tvtw"]),
+        () => ("scythe-2",      CompoundForm.Scythe,   ["tttvv", "tvttw"]),
+        () => ("scythe-3-wide", CompoundForm.Scythe,   ["ttttv", "ttvtw"]),
+        () => ("u-flush-1",     CompoundForm.U,        ["ttv", "vtw", "ttv"]),
+        () => ("u-flush-2",     CompoundForm.U,        ["ttv", "vtv", "ttw"]),
+        () => ("h-stub-1",      CompoundForm.H,        ["ttvv", "vtvv", "tttw"]),
+        () => ("h-stub-2",      CompoundForm.H,        ["ttvw", "vtvt", "tttt"]),
+        () => ("h-stub-3",      CompoundForm.H,        ["vwv", "vtv", "ttt", "tvt"]),
+        () => ("donut-1",       CompoundForm.Donut,    ["ttttv", "vtvtv", "vtttw"]),
+        () => ("donut-2",       CompoundForm.Donut,    ["ttttv", "ttvtv", "vtttw"]),
+        () => ("donut-3",       CompoundForm.Donut,    ["ttttvv", "ttvtvv", "vttttw"]),
     ];
 
     [Test]
     [MethodDataSource(nameof(Catalog))]
-    public async Task Catalog_fixture_classifies_to_its_family((string Name, ShapeFamily Family, string[] Rows) fixture)
+    public async Task Catalog_fixture_classifies_to_its_family((string Name, CompoundForm? Family, string[] Rows) fixture)
     {
         var (_, family, rows) = fixture;
         var plan = BuildPlan(rows);

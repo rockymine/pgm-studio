@@ -48,11 +48,11 @@ public sealed class CompoundEdgesTests
     [Test]
     public async Task Holed_compounds_read_their_voids()
     {
-        await AssertSpaces(CompoundEdges.Classify(CompoundEmitter.Ring(LaneWidth, 5 * LaneWidth, 5 * LaneWidth)), notches: 0, bays: 0, holes: 1);
+        await AssertSpaces(CompoundEdges.Classify(CompoundEmitter.Donut(LaneWidth, 5 * LaneWidth, 5 * LaneWidth)), notches: 0, bays: 0, holes: 1);
         await AssertSpaces(CompoundEdges.Classify(CompoundEmitter.DoubleHole(LaneWidth, 4 * LaneWidth, 5 * LaneWidth, uW: 3 * LaneWidth, uH: 5 * LaneWidth, uz: 0)),
             notches: 0, bays: 0, holes: 2);
         // two loops on a shared baseline: two holes, and the open channel between them is a bay
-        await AssertSpaces(CompoundEdges.Classify(CompoundEmitter.TwoUOnI(LaneWidth, 5 * LaneWidth)), notches: 0, bays: 1, holes: 2);
+        await AssertSpaces(CompoundEdges.Classify(CompoundEmitter.TwoU(LaneWidth, 5 * LaneWidth)), notches: 0, bays: 1, holes: 2);
         // P: the loop's hole plus the wrapped corners where the long bar overhangs it
         var p = CompoundEdges.Classify(CompoundEmitter.P(LaneWidth, 4 * LaneWidth, 5 * LaneWidth));
         await Assert.That(Count(p, NegativeSpaceKinds.Hole)).IsEqualTo(1);
@@ -63,14 +63,14 @@ public sealed class CompoundEdgesTests
     public async Task Approach_emissions_read_their_features()
     {
         // L: one wrapped corner; Z: one per opposing bend
-        await AssertSpaces(CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, LaneWidth)), notches: 1, bays: 0, holes: 0);
-        await AssertSpaces(CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Z, 15, 21, LaneWidth)), notches: 2, bays: 0, holes: 0);
+        await AssertSpaces(CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.L, 15, 18, LaneWidth)), notches: 1, bays: 0, holes: 0);
+        await AssertSpaces(CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.Z, 15, 21, LaneWidth)), notches: 2, bays: 0, holes: 0);
         // scythe: the fold's bay + the corner behind the entry tail
-        await AssertSpaces(CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, LaneWidth)), notches: 1, bays: 1, holes: 0);
+        await AssertSpaces(CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.Scythe, 18, 15, LaneWidth)), notches: 1, bays: 1, holes: 0);
         // U: the recess between the legs; the room on the bar wraps a corner each side
-        await AssertSpaces(CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, LaneWidth)), notches: 2, bays: 1, holes: 0);
+        await AssertSpaces(CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.U, 15, 18, LaneWidth)), notches: 2, bays: 1, holes: 0);
         // donut: the enclosed ring void (the stub and room wrap corners, never a bay)
-        var donut = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Donut, 18, 15, LaneWidth));
+        var donut = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.Donut, 18, 15, LaneWidth));
         await Assert.That(Count(donut, NegativeSpaceKinds.Hole)).IsEqualTo(1);
         await Assert.That(Count(donut, NegativeSpaceKinds.Bay)).IsEqualTo(0);
     }
@@ -80,10 +80,10 @@ public sealed class CompoundEdgesTests
     [Test]
     public async Task Clamp_recess_is_a_bay_only_with_the_room()
     {
-        var emission = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, LaneWidth));
+        var emission = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.Clamp, 12, 15, LaneWidth));
         await Assert.That(Count(emission, NegativeSpaceKinds.Bay)).IsEqualTo(1);
 
-        var compoundOnly = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, LaneWidth).WithoutRoom());
+        var compoundOnly = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.Clamp, 12, 15, LaneWidth).WithoutRoom());
         await Assert.That(Count(compoundOnly, NegativeSpaceKinds.Bay)).IsEqualTo(0);
         await Assert.That(Count(compoundOnly, NegativeSpaceKinds.Notch)).IsEqualTo(1);
     }
@@ -93,7 +93,7 @@ public sealed class CompoundEdgesTests
     [Test]
     public async Task A_straight_lane_has_no_negative_space()
     {
-        var c = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.I, 9, 15, LaneWidth));
+        var c = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.I, 9, 15, LaneWidth));
         await Assert.That(c.Spaces).IsEmpty();
         await Assert.That(c.Edges.All(e => e.Faces == NegativeSpaceKinds.Open)).IsTrue();
     }
@@ -105,20 +105,20 @@ public sealed class CompoundEdgesTests
     {
         // I 9x15 cw3: the room caps the lane — each side line splits into a free lane interval and a sealed
         // room interval, and the room's exposed wall is 3 of its 10-perimeter shared with the lane
-        var i = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.I, 9, 15, LaneWidth));
+        var i = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.I, 9, 15, LaneWidth));
         await Assert.That(i.Edges.Contains(new ClassifiedEdge(3, 0, 3, 13, NegativeSpaceKinds.Open, 13))).IsTrue();
         await Assert.That(i.Edges.Contains(new ClassifiedEdge(3, 13, 3, 15, NegativeSpaceKinds.Open, 2, OnRoom: true))).IsTrue();
         await Assert.That(i.Edges.Where(e => e.OnRoom).Sum(e => e.Length)).IsEqualTo(7);
 
         // L 15x18 cw3: the room caps the band's far end — sealed right/bottom walls, and its top wall faces
         // the notch (owner and faced space are independent axes)
-        var l = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, LaneWidth));
+        var l = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.L, 15, 18, LaneWidth));
         await Assert.That(l.Edges.Where(e => e.OnRoom).Sum(e => e.Length)).IsEqualTo(7);
         await Assert.That(l.Edges.Any(e => e.OnRoom && e.Faces == NegativeSpaceKinds.Notch)).IsTrue();
 
         // clamp 12x15 cw3: the wool is clamped between the legs, its bottom wall facing the bay (the mouth
         // side) — a room wall on the bay
-        var clamp = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, LaneWidth));
+        var clamp = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.Clamp, 12, 15, LaneWidth));
         await Assert.That(clamp.Edges.Any(e => e.OnRoom && e.Faces == NegativeSpaceKinds.Bay)).IsTrue();
         await Assert.That(clamp.Edges.Where(e => e.OnRoom).Sum(e => e.Length)).IsEqualTo(12);
     }
@@ -126,7 +126,7 @@ public sealed class CompoundEdgesTests
     [Test]
     public async Task Compounds_with_no_room_have_no_room_runs()
     {
-        var compound = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, LaneWidth).WithoutRoom());
+        var compound = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.U, 15, 18, LaneWidth).WithoutRoom());
         await Assert.That(compound.Edges.Any(e => e.OnRoom)).IsFalse();
     }
 
@@ -156,10 +156,10 @@ public sealed class CompoundEdgesTests
     {
         var f = CompoundEdges.Classify(CompoundEmitter.SpineArms(spineLen: 21, barThickness: 6, arms: [(0, 3, 18), (9, 6, 9)]));
         var bay = f.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
-        await Assert.That(bay.Form).IsEqualTo(new CompoundRead(CompoundForm.SpineArms, 2));
+        await Assert.That(bay.Form).IsEqualTo(CompoundForm.U);
 
-        var ring = CompoundEdges.Classify(CompoundEmitter.Ring(LaneWidth, 5 * LaneWidth, 5 * LaneWidth));
-        await Assert.That(ring.Spaces.Single().Form).IsEqualTo(new CompoundRead(CompoundForm.Rectangle));
+        var ring = CompoundEdges.Classify(CompoundEmitter.Donut(LaneWidth, 5 * LaneWidth, 5 * LaneWidth));
+        await Assert.That(ring.Spaces.Single().Form).IsEqualTo(CompoundForm.I);
     }
 
     // the nesting case: a degenerate E (equal long outer arms, a shorter middle arm) wraps one bay whose
@@ -173,7 +173,7 @@ public sealed class CompoundEdgesTests
         await Assert.That(bay.Parts.All(p => p.Kind == NegativeSpaceKinds.Bay)).IsTrue();
         // the front part spans the mouth, covering both parts behind the short middle arm
         await Assert.That(bay.Parts.Any(p => p.Rect == new CellRect(3, 9, 9, 6))).IsTrue();
-        await Assert.That(bay.Form).IsEqualTo(new CompoundRead(CompoundForm.SpineArms, 2));
+        await Assert.That(bay.Form).IsEqualTo(CompoundForm.U);
     }
 
     // the clearance layer: the room inflated by the corridor minimum guards terrain edges near the room
@@ -181,7 +181,7 @@ public sealed class CompoundEdgesTests
     [Test]
     public async Task Room_clearance_guards_nearby_edges_and_splits_the_space()
     {
-        var l = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, LaneWidth), CompoundEdges.DefaultClearanceCells);
+        var l = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.L, 15, 18, LaneWidth), CompoundEdges.DefaultClearanceCells);
 
         // the band-top line: free terrain up to the margin, then a guarded interval before the room
         await Assert.That(l.Edges.Contains(new ClassifiedEdge(3, 15, 11, 15, NegativeSpaceKinds.Notch, 8))).IsTrue();
@@ -196,7 +196,7 @@ public sealed class CompoundEdgesTests
         await Assert.That(notch.Parts.Count(p => !p.Guarded)).IsEqualTo(2);
 
         // without the clearance overload nothing is guarded
-        var plain = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, LaneWidth));
+        var plain = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.L, 15, 18, LaneWidth));
         await Assert.That(plain.Edges.Any(e => e.Guarded)).IsFalse();
         await Assert.That(plain.Spaces.SelectMany(s => s.Parts).Any(p => p.Guarded)).IsFalse();
     }
@@ -206,18 +206,18 @@ public sealed class CompoundEdgesTests
     [Test]
     public async Task Spaces_know_their_mouths()
     {
-        var scythe = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, LaneWidth));
+        var scythe = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.Scythe, 18, 15, LaneWidth));
         var bay = scythe.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(bay.Mouths.Count).IsEqualTo(1);
         await Assert.That(bay.Mouths[0]).IsEqualTo(new EdgeInterval(BoxEdge.Top, 6, 3));
 
-        var l = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, LaneWidth));
+        var l = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.L, 15, 18, LaneWidth));
         var notch = l.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Notch);
         await Assert.That(notch.Mouths.Count).IsEqualTo(2);
         await Assert.That(notch.Mouths.Any(m => m.Edge == BoxEdge.Top)).IsTrue();
         await Assert.That(notch.Mouths.Any(m => m.Edge == BoxEdge.Right)).IsTrue();
 
-        var ring = CompoundEdges.Classify(CompoundEmitter.Ring(LaneWidth, 5 * LaneWidth, 5 * LaneWidth));
+        var ring = CompoundEdges.Classify(CompoundEmitter.Donut(LaneWidth, 5 * LaneWidth, 5 * LaneWidth));
         await Assert.That(ring.Spaces.Single().Mouths).IsEmpty();
     }
 
@@ -226,16 +226,16 @@ public sealed class CompoundEdgesTests
     [Test]
     public async Task Spaces_know_their_wall_parts()
     {
-        var scythe = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, LaneWidth));
+        var scythe = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.Scythe, 18, 15, LaneWidth));
         var bay = scythe.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(bay.Walls.Contains(CompoundParts.RoomRun)).IsTrue();
 
-        var u = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, LaneWidth));
+        var u = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.U, 15, 18, LaneWidth));
         var uBay = u.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(uBay.Walls.Contains(CompoundParts.Entry)).IsTrue();
         await Assert.That(uBay.Walls.Any(s => s is CompoundParts.Room or CompoundParts.RoomRun)).IsFalse();
 
-        var clamp = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, LaneWidth));
+        var clamp = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.Clamp, 12, 15, LaneWidth));
         await Assert.That(clamp.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay).Walls
             .Contains(CompoundParts.Room)).IsTrue();
 
@@ -254,7 +254,7 @@ public sealed class CompoundEdgesTests
         await Assert.That(bay.Parts.Count(p => !p.Front)).IsEqualTo(2);
 
         // a single-part space is its own front
-        var l = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, LaneWidth));
+        var l = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.L, 15, 18, LaneWidth));
         await Assert.That(l.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Notch).Parts.Single().Front).IsTrue();
     }
 
@@ -271,12 +271,12 @@ public sealed class CompoundEdgesTests
     [Test]
     public async Task Rectangular_spaces_are_their_own_single_part()
     {
-        var u = CompoundEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, LaneWidth));
+        var u = CompoundEdges.Classify(ShapeEmitter.Emit(CompoundForm.U, 15, 18, LaneWidth));
         var bay = u.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(bay.Parts.Count).IsEqualTo(1);
         await Assert.That(bay.Parts[0].Kind).IsEqualTo(NegativeSpaceKinds.Bay);
 
-        var ring = CompoundEdges.Classify(CompoundEmitter.Ring(LaneWidth, 5 * LaneWidth, 5 * LaneWidth));
+        var ring = CompoundEdges.Classify(CompoundEmitter.Donut(LaneWidth, 5 * LaneWidth, 5 * LaneWidth));
         var hole = ring.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Hole);
         await Assert.That(hole.Parts.Count).IsEqualTo(1);
         await Assert.That(hole.Parts[0].Kind).IsEqualTo(NegativeSpaceKinds.Hole);
@@ -284,11 +284,11 @@ public sealed class CompoundEdgesTests
 
     // every filled↔empty seam is covered by exactly one classified run: the run lengths sum to the perimeter
     [Test]
-    [Arguments(ShapeFamily.L, 15, 18)]
-    [Arguments(ShapeFamily.Scythe, 18, 15)]
-    [Arguments(ShapeFamily.U, 15, 18)]
-    [Arguments(ShapeFamily.Donut, 18, 15)]
-    public async Task Classified_runs_cover_the_whole_boundary(ShapeFamily family, int w, int h)
+    [Arguments(CompoundForm.L, 15, 18)]
+    [Arguments(CompoundForm.Scythe, 18, 15)]
+    [Arguments(CompoundForm.U, 15, 18)]
+    [Arguments(CompoundForm.Donut, 18, 15)]
+    public async Task Classified_runs_cover_the_whole_boundary(CompoundForm family, int w, int h)
     {
         var emit = ShapeEmitter.Emit(family, w, h, LaneWidth);
         var cells = new HashSet<(int, int)>();

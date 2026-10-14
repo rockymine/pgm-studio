@@ -1120,7 +1120,7 @@ same commit.
     *bounding box* — two different numbers on a bay-fronted compound, and `model.md` §5.4 already described the
     form as decided first. Measured over 480 boards, 104 have a front edge whose longest run is shorter than
     that box edge (median shortfall 32 blocks, max 96), and it is two forms entirely: `G` at **100%** and
-    `SpineArms` at **85%**, against `Ring`, `P`, `DoubleHole` and `Rectangle` at none.
+    the spine forms `L` and `U` at **85%**, against `Donut`, `P`, `DoubleHole` and `I` at none.
 
     `Allocate` now picks the form, its walls and its arms, emits the compound, reads its front runs, and sizes
     the requests against those. Emitting is a pure function of those three, so the three readers of the compound

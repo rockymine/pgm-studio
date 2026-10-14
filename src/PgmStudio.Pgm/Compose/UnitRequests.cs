@@ -38,7 +38,7 @@ public static class UnitRequests
     /// lands on a hub run while the compound overhangs. The dual-entry staple/branch (<c>U</c>/<c>H</c>) is <b>not</b>
     /// one — both its entries must land on the host, so it docks its full mouth (the plain seat path), never an
     /// overhang (an overhang would strand the second entry off the hub — a pinch).</summary>
-    internal static bool Overhangs(ShapeFamily family) => family is ShapeFamily.L or ShapeFamily.Donut;
+    internal static bool Overhangs(CompoundForm family) => family is CompoundForm.L or CompoundForm.Donut;
 
     /// <summary>The narrowest face that can close every bay in a front edge's free <paramref name="runs"/>:
     /// from a lane onto the first run's far shoulder to a lane onto the last run's near one. Zero for an edge
@@ -80,7 +80,7 @@ public static class UnitRequests
     {
         var requests = new List<NeighbourRequest>();
 
-        var iSizes = FillProfiles.SpawnSizes.Where(sz => sz.Family == ShapeFamily.I).ToList();
+        var iSizes = FillProfiles.SpawnSizes.Where(sz => sz.Family == CompoundForm.I).ToList();
         var size = iSizes[rng.NextInt(0, iSizes.Count)];
         var (spW, spH) = SpawnBoxEmitter.Box(size.Family, laneWidth, size.RunCells, size.TurnCells);
         requests.Add(new NeighbourRequest(plan.Spawn, BoxKind.Spawn, spH, spW, "spawn"));
@@ -136,7 +136,7 @@ public static class UnitRequests
     /// trades sides with a lateral wool. A unit without a donut comes back unchanged.</summary>
     private static List<NeighbourRequest> BackOfDonut(List<NeighbourRequest> requests)
     {
-        var donut = requests.FirstOrDefault(r => r.Wool?.Family == ShapeFamily.Donut);
+        var donut = requests.FirstOrDefault(r => r.Wool?.Family == CompoundForm.Donut);
         if (donut is null) return requests;
         var spawnSide = requests[0].Side;
         var traded = requests.Select(r => r with
@@ -174,14 +174,14 @@ public static class UnitRequests
     {
         if (rng.NextBool(UnitTuning.BentWoolChance))
         {
-            var family = rng.NextBool(UnitTuning.DonutChance) ? ShapeFamily.Donut
-                : rng.NextBool(UnitTuning.StapleChance) ? rng.Pick(new[] { ShapeFamily.U, ShapeFamily.H, ShapeFamily.Clamp })
-                : ShapeFamily.L;
+            var family = rng.NextBool(UnitTuning.DonutChance) ? CompoundForm.Donut
+                : rng.NextBool(UnitTuning.StapleChance) ? rng.Pick(new[] { CompoundForm.U, CompoundForm.H, CompoundForm.Clamp })
+                : CompoundForm.L;
             // clamp: adjacent vs centered; donut: the wool at the ring's corner vs on a trailing room
             var woolAtEnd = family switch
             {
-                ShapeFamily.Clamp => rng.NextBool(UnitTuning.ClampAdjacentChance),
-                ShapeFamily.Donut => rng.NextBool(UnitTuning.DonutCornerWoolChance),
+                CompoundForm.Clamp => rng.NextBool(UnitTuning.ClampAdjacentChance),
+                CompoundForm.Donut => rng.NextBool(UnitTuning.DonutCornerWoolChance),
                 _ => false,
             };
             var (along, depth) = WoolBoxEmitter.MouthBox(family, woolLaneWidth, woolAtEnd: woolAtEnd);
@@ -189,7 +189,7 @@ public static class UnitRequests
             // chokepoint) and the enclosed hole up to the along × deep caps — the box grows and the emitter's
             // ring absorbs it. The min box stays the floor, so a crowded hub falls back exactly as before.
             var attachW = 0;
-            if (family == ShapeFamily.Donut)
+            if (family == CompoundForm.Donut)
             {
                 attachW = rng.NextInt(woolLaneWidth, UnitTuning.DonutEntryMaxCells(woolLaneWidth) + 1);
                 // the hole is one a player rounds rather than jumps, so neither extent starts under a hub hole's;
@@ -209,7 +209,7 @@ public static class UnitRequests
                                          Overhangs(family) ? MaxAlongCells(woolLaneWidth) : edgeLen,
                                          MaxDepthCells(woolLaneWidth));
             if (!Overhangs(family) && along > edgeLen)
-                (family, woolAtEnd, (along, depth)) = (ShapeFamily.L, false, WoolBoxEmitter.MouthBox(ShapeFamily.L, woolLaneWidth));
+                (family, woolAtEnd, (along, depth)) = (CompoundForm.L, false, WoolBoxEmitter.MouthBox(CompoundForm.L, woolLaneWidth));
             return (new WoolFill(family, RoomPlacement.Inline, false, woolAtEnd, attachW), along, depth);
         }
 
@@ -222,12 +222,12 @@ public static class UnitRequests
         // NB the short-circuit is load-bearing: a lane that would run long side-tucks WITHOUT consuming a draw
         if (budgetDepth > maxDepth || rng.NextBool(UnitTuning.SideRoomChance))
         {
-            var tuck = new WoolFill(ShapeFamily.I, RoomPlacement.SideTuck, false);
+            var tuck = new WoolFill(CompoundForm.I, RoomPlacement.SideTuck, false);
             var (along, depth) = WoolBoxEmitter.MouthBox(tuck.Family, woolLaneWidth, tuck.Placement);
             return (tuck, along, depth);
         }
 
-        return (new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false),
+        return (new WoolFill(CompoundForm.I, RoomPlacement.Inline, false),
             woolLaneWidth, Math.Clamp(budgetDepth, Math.Min(rd + WallPlacer.LaneCells(cell), maxDepth), maxDepth));
     }
 
@@ -269,7 +269,7 @@ public static class UnitRequests
         {
             Along = laneWidth,
             Depth = Math.Clamp(request.Depth, walled, cap),
-            Wool = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false),
+            Wool = new WoolFill(CompoundForm.I, RoomPlacement.Inline, false),
         };
     }
 }

@@ -39,7 +39,7 @@ public sealed class PlanFeasibilityEndpointTests
         // the hub is a ring whose 10-block hole is under the composed floor: unproducible, its nearest still a ring
         var hub = body.GetProperty("boxes").EnumerateArray().First(b => b.GetProperty("kind").GetString() == "hub");
         await Assert.That(hub.GetProperty("producible").GetBoolean()).IsFalse();
-        await Assert.That(hub.GetProperty("nearest").GetProperty("label").GetString()).Contains("Ring");
+        await Assert.That(hub.GetProperty("nearest").GetProperty("label").GetString()).Contains("Donut");
 
         // and the other side of the same wire: the spawn reproduces — a producible box carries its tuple and no
         // nearest miss, in the same response as an unproducible one

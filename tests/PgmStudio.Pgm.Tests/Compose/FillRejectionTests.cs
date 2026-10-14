@@ -22,7 +22,7 @@ public sealed class FillRejectionTests
     public async Task A_hub_too_small_for_its_form_reports_the_emitters_own_reason()
     {
         // a 3x3 box cannot hold a ring at laneWidth 2 (needs 2cw+1 = 5 each way)
-        var hub = HubBoxEmitter.Fill(Hub(3, 3), new CompoundRead(CompoundForm.Ring), LaneWidth, false, out var why);
+        var hub = HubBoxEmitter.Fill(Hub(3, 3), CompoundForm.Donut, LaneWidth, false, out var why);
         await Assert.That(hub).IsNull();
         await Assert.That(why).IsTypeOf<FillRejection.FormDoesNotFit>();
         // the reason is the compound emitter's own guard message, not a re-derivation of it
@@ -34,7 +34,7 @@ public sealed class FillRejectionTests
     {
         foreach (var form in new[] { CompoundForm.P, CompoundForm.DoubleHole, CompoundForm.G })
         {
-            var hub = HubBoxEmitter.Fill(Hub(6, 5), new CompoundRead(form), LaneWidth, false, out var why);
+            var hub = HubBoxEmitter.Fill(Hub(6, 5), form, LaneWidth, false, out var why);
             await Assert.That(hub).IsNull().Because($"{form} needs width 9 at laneWidth 2");
             await Assert.That(why).IsNotNull().Because($"{form}'s refusal must carry a reason");
         }
@@ -43,7 +43,7 @@ public sealed class FillRejectionTests
     [Test]
     public async Task A_hub_that_fills_carries_no_rejection()
     {
-        var hub = HubBoxEmitter.Fill(Hub(9, 9), new CompoundRead(CompoundForm.Ring), LaneWidth, false, out var why);
+        var hub = HubBoxEmitter.Fill(Hub(9, 9), CompoundForm.Donut, LaneWidth, false, out var why);
         await Assert.That(hub).IsNotNull();
         await Assert.That(why).IsNull();
     }
@@ -52,14 +52,14 @@ public sealed class FillRejectionTests
     public async Task The_reason_carrying_overload_agrees_with_the_plain_one()
     {
         // the plain signature must stay a pure view over the same implementation — same verdict, every form/size
-        foreach (var form in HubBoxEmitter.Forms)
+        foreach (var form in FillMenu.For(BoxKind.Hub))
             foreach (var (w, h) in new[] { (3, 3), (6, 5), (9, 9), (11, 6), (12, 8) })
                 foreach (var flip in new[] { false, true })
                 {
                     var plain = HubBoxEmitter.Fill(Hub(w, h), form, LaneWidth, flip);
                     var withReason = HubBoxEmitter.Fill(Hub(w, h), form, LaneWidth, flip, out var why);
                     await Assert.That(plain is null).IsEqualTo(withReason is null)
-                        .Because($"{form.Form}/{form.Arms} on {w}x{h} flip {flip}");
+                        .Because($"{form} on {w}x{h} flip {flip}");
                     await Assert.That(why is null).IsEqualTo(withReason is not null);
                 }
     }
@@ -69,7 +69,7 @@ public sealed class FillRejectionTests
     {
         // an L spawn needs more than 2x2; the reported minimum is in the box frame, so a lateral mouth needs no
         // transposing by the caller
-        var spawn = SpawnBoxEmitter.Fill(Spawn(2, 2), BoxEdge.Left, ShapeFamily.L, LaneWidth, false, out var why);
+        var spawn = SpawnBoxEmitter.Fill(Spawn(2, 2), BoxEdge.Left, CompoundForm.L, LaneWidth, false, out var why);
         await Assert.That(spawn).IsNull();
         await Assert.That(why).IsTypeOf<FillRejection.TooSmall>();
         var min = (FillRejection.TooSmall)why!;
@@ -82,7 +82,7 @@ public sealed class FillRejectionTests
     {
         // the single-arm frontline refuses a leg no wider than its notch (the banned T's thin band)
         var f = FrontlineBoxEmitter.Fill(
-            Front(4, 5), new CompoundRead(CompoundForm.SpineArms, 1), LaneWidth, out var why);
+            Front(4, 5), CompoundForm.L, LaneWidth, out var why);
         await Assert.That(f).IsNull();
         await Assert.That(why).IsTypeOf<FillRejection.FormDoesNotFit>();
         await Assert.That(((FillRejection.FormDoesNotFit)why!).Detail).Contains("notch");
@@ -93,7 +93,7 @@ public sealed class FillRejectionTests
     {
         // a side-tuck room is supported for I/Z/scythe only — an L asking for one must not escape as an
         // ArgumentException straight through BoxFiller, whose contract says rejections are a data channel
-        var res = BoxFiller.Fill(Wool(20, 20), BoxEdge.Top, LaneWidth, ShapeFamily.L, out var why,
+        var res = BoxFiller.Fill(Wool(20, 20), BoxEdge.Top, LaneWidth, CompoundForm.L, out var why,
             roomPlacement: RoomPlacement.SideTuck);
         await Assert.That(res).IsNull();
         await Assert.That(why).IsTypeOf<FillRejection.UnsupportedKnobs>();
@@ -103,11 +103,11 @@ public sealed class FillRejectionTests
     public async Task Every_wool_refusal_is_in_the_shared_vocabulary()
     {
         // one taxonomy across the box kinds, and a fill that succeeds carries no reason at all
-        BoxFiller.Fill(Wool(20, 20), BoxEdge.Top, LaneWidth, ShapeFamily.Scythe, out var offMenu);
+        BoxFiller.Fill(Wool(20, 20), BoxEdge.Top, LaneWidth, CompoundForm.Scythe, out var offMenu);
         await Assert.That(offMenu).IsTypeOf<FillRejection.NotOnMenu>();
-        BoxFiller.Fill(Wool(6, 6), BoxEdge.Top, LaneWidth, ShapeFamily.Donut, out var tooSmall);
+        BoxFiller.Fill(Wool(6, 6), BoxEdge.Top, LaneWidth, CompoundForm.Donut, out var tooSmall);
         await Assert.That(tooSmall).IsTypeOf<FillRejection.TooSmall>();
-        BoxFiller.Fill(Wool(16, 22), BoxEdge.Top, LaneWidth, ShapeFamily.L, out var none);
+        BoxFiller.Fill(Wool(16, 22), BoxEdge.Top, LaneWidth, CompoundForm.L, out var none);
         await Assert.That(none).IsNull();
     }
 }

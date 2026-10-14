@@ -12,7 +12,7 @@ public enum LaneRead { I, L, Z, Complex, Plaza, None }
 /// <summary>
 /// The canonical shape classifier — one decision tree over the terrain, read <b>width-independently</b> (nothing
 /// keys off the absolute width of any piece; uniform scaling and per-piece thickness never change the family).
-/// Order, strongest signal first: <b>isolated</b> (no terrain touches the room) → <b>donut</b> (terrain
+/// Order, strongest signal first: no form at all where no terrain touches the room → <b>donut</b> (terrain
 /// encloses a void) → <b>clamp</b> (the room bridges two opposite bars — removing it disconnects the terrain)
 /// → else the open path <b>I/L/Z/scythe</b> off the turn count, with the two-leg branch splitting into <b>U/H</b>.
 /// Nothing here is wool-specific: the <b>room</b> is whatever piece the shape caps (a wool room, a spawn
@@ -40,23 +40,23 @@ public static class ShapeClassifier
 {
     /// <summary>Classify the approach the piece <paramref name="roomPieceId"/> caps in <paramref name="plan"/>
     /// (buffers excluded from the terrain).</summary>
-    public static (ShapeFamily Family, int Width) Classify(PlanModel plan, string roomPieceId)
+    public static (CompoundForm? Family, int Width) Classify(PlanModel plan, string roomPieceId)
     {
         var (filled, room) = CellSets(plan, roomPieceId);
-        return room is null ? (ShapeFamily.Isolated, 0) : Classify(filled, room);
+        return room is null ? (null, 0) : Classify(filled, room);
     }
 
     /// <summary>Classify the approach a <paramref name="room"/> caps within <paramref name="filled"/> terrain
     /// (both cell sets; <paramref name="filled"/> includes the room's own cells). The family read is
     /// width-independent; the reported width is the room terrain cross-section (lane convention).</summary>
-    public static (ShapeFamily Family, int Width) Classify(IReadOnlySet<(int, int)> filled, IReadOnlySet<(int, int)> room)
+    public static (CompoundForm? Family, int Width) Classify(IReadOnlySet<(int, int)> filled, IReadOnlySet<(int, int)> room)
     {
         // the terrain component reachable from the room — so unrelated terrain in a multi-shape plan can't
         // contaminate the enclosed-void / branch tests.
         var comp = Cells.Flood(room, filled);
 
         var terr = new HashSet<(int, int)>(comp); terr.ExceptWith(room);
-        if (!terr.Any(c => Cells.N4(c).Any(room.Contains))) return (ShapeFamily.Isolated, 0);
+        if (!terr.Any(c => Cells.N4(c).Any(room.Contains))) return (null, 0);
 
         // reported width from the room terrain cross-section (lane convention), orthogonal to the family.
         var seeds = new List<(int, int)>();
@@ -64,7 +64,7 @@ public static class ShapeClassifier
         int width = Cells.MinRunWidth(terr, seeds);
 
         // 1. donut — terrain encloses a void. The strongest signal (a loop can carry a locally thick corner).
-        if (Cells.HasEnclosedVoid(comp)) return (ShapeFamily.Donut, width);
+        if (Cells.HasEnclosedVoid(comp)) return (CompoundForm.Donut, width);
 
         // 2. clamp — the room is a cut cell caught between terrain on TWO OR MORE distinct faces: remove it
         //    and the terrain falls into two pieces. Two faces suffice — opposite (the centered clamp) or adjacent
@@ -76,14 +76,14 @@ public static class ShapeClassifier
         bool top = Side(rminx, rmaxx, rminz - 1, rminz - 1), bot = Side(rminx, rmaxx, rmaxz + 1, rmaxz + 1);
         bool left = Side(rminx - 1, rminx - 1, rminz, rmaxz), right = Side(rmaxx + 1, rmaxx + 1, rminz, rmaxz);
         int grippedFaces = (top ? 1 : 0) + (bot ? 1 : 0) + (left ? 1 : 0) + (right ? 1 : 0);
-        if (grippedFaces >= 2 && Cells.Components(terr) >= 2) return (ShapeFamily.Clamp, width);
+        if (grippedFaces >= 2 && Cells.Components(terr) >= 2) return (CompoundForm.Clamp, width);
 
         // 3. the open path — turns are reflex corners of the terrain outline (room excluded), so the count is
         //    width-invariant: a lane and the same lane widened uniformly read the same. 0 = I, 1 = L; ≥2 forks
         //    into branch (U/H) / scythe / Z.
         int bends = Cells.ReflexCorners(terr);
-        if (bends == 0) return (ShapeFamily.I, width);
-        if (bends == 1) return (ShapeFamily.L, width);
+        if (bends == 0) return (CompoundForm.I, width);
+        if (bends == 1) return (CompoundForm.L, width);
 
         // ≥2 turns and two terrain legs sharing a bounding-box edge the room does NOT sit on = a branch. Split
         // by how the room docks the crossbar: flush against a bar wider than itself (the crossbar reaches past
@@ -94,8 +94,8 @@ public static class ShapeClassifier
         // bounding box, so the verdict only changes when cells actually add or fill a fold — never because a
         // shifted endpoint or a docked neighbour merely moved the bounding box.
         if (ParallelArms(comp, terr, room))
-            return (FlushOnBar(terr, rminx, rmaxx, rminz, rmaxz) ? ShapeFamily.U : ShapeFamily.H, width);
-        return (Cells.HasFold(terr) ? ShapeFamily.Scythe : ShapeFamily.Z, width);
+            return (FlushOnBar(terr, rminx, rmaxx, rminz, rmaxz) ? CompoundForm.U : CompoundForm.H, width);
+        return (Cells.HasFold(terr) ? CompoundForm.Scythe : CompoundForm.Z, width);
     }
 
     /// <summary>The open (room-free) read of the corridor the piece <paramref name="roomPieceId"/> caps in
@@ -136,25 +136,26 @@ public static class ShapeClassifier
     /// bends), no room. Void count is the strongest signal. <b>Two voids</b> split on whether an <em>open
     /// channel</em> comes between them (two-U-on-I) or a solid wall does (double-hole); <b>one void</b> on whether
     /// an outer concavity — the loop overhanging its longer bar — adds reflex corners past the four a rectangular
-    /// void contributes (P) or not (a clean ring). Void-free compounds are the solid <see cref="CompoundForm.Rectangle"/>
-    /// or a <see cref="CompoundForm.SpineArms"/> whose arm count is the number of runs hanging off the spine.
+    /// void contributes (P) or not (a clean ring). Void-free compounds are the solid <see cref="CompoundForm.I"/>
+    /// or a spine with arms — <see cref="CompoundForm.L"/>, <see cref="CompoundForm.U"/> or <see cref="CompoundForm.E"/>
+    /// by the number of runs hanging off it.
     /// Width-independent, matching the approach classifier's philosophy.</summary>
-    public static CompoundRead ClassifyCompound(IReadOnlySet<(int, int)> cells)
+    public static CompoundForm ClassifyCompound(IReadOnlySet<(int, int)> cells)
     {
         if (cells.Count == 0) throw new ArgumentException("cannot classify an empty compound.");
         var voids = VoidComponents(Cells.EnclosedVoid(cells));
 
         if (voids.Count == 2)
-            return new(ChannelBetween(cells, voids[0], voids[1]) ? CompoundForm.TwoUOnI : CompoundForm.DoubleHole);
+            return ChannelBetween(cells, voids[0], voids[1]) ? CompoundForm.TwoU : CompoundForm.DoubleHole;
         if (voids.Count == 1)
             // a ring + an L reads as one enclosed void plus a three-walled bay (the L's open recess); a plain ring
             // or a P (loop on a longer bar — its concavities are two-walled notches) has no bay
-            return new(HasBay(cells) ? CompoundForm.G : Cells.ReflexCorners(cells) > 4 ? CompoundForm.P : CompoundForm.Ring);
+            return HasBay(cells) ? CompoundForm.G : Cells.ReflexCorners(cells) > 4 ? CompoundForm.P : CompoundForm.Donut;
         if (voids.Count != 0) throw new ArgumentException($"no compound form has {voids.Count} voids.");
 
         var bb = Cells.BoundingBox(cells);
-        if (cells.Count == (long)bb.Width * bb.Height) return new(CompoundForm.Rectangle);
-        return new(CompoundForm.SpineArms, ArmCount(cells, bb.X, bb.Z, bb.MaxX - 1, bb.MaxZ - 1));
+        if (cells.Count == (long)bb.Width * bb.Height) return CompoundForm.I;
+        return CompoundForms.SpineWith(ArmCount(cells, bb.X, bb.Z, bb.MaxX - 1, bb.MaxZ - 1));
     }
 
     // the enclosed void split into its 4-connected components (each a cell set) — two ⇒ a double-hole or two-U-on-I.
