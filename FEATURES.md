@@ -4005,8 +4005,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   identical. Number input ↔ canvas line stay in sync; → `intent.build.maxHeight`. (`BuildHeightStep`; N03)
 - **Build · Buildable-layer sub-step (N03)** — the **rectangle tool** draws over-void bridges (areas) and
   no-build holes (the negative-rectangle / complement case); a Bridge/Hole toggle picks which. Build areas
-  have no team identity, so it stores **authored-only** (`intent.build.areas`/`holes`) and the **canvas**
-  renders the symmetry mirror as ghost previews in JS (`setAuthorMirror`); `BuildGenerator` orbits + unions
+  have no team identity, so it stores **authored-only** (`intent.build.areas`/`holes`) and lists the symmetry
+  copies read-only beside them, drawn as ghosts (`TC22`); `BuildGenerator` orbits + unions
   them, complements the holes, and wraps the `not-build-area` negative. (`BuildLayerStep`; N03)
 - **Build · live buildability overlay (N03)** — a **Buildable** chip on the canvas sub-bar toggles a
   translucent per-column **verdict heatmap** (`GET /buildability`): green buildable · orange void-denied ·
@@ -4424,8 +4424,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   Parity unchanged (buildability/wool/traversability 10/10). (`A4`)
 - **One symmetry math, by runtime** — the canonical `PgmStudio.Geom.Symmetry` is shared by the WASM client
   (orbit assignment) **and** the server. Live canvas previews use the JS twin `geometry/symmetry.js`
-  (`applySymmetry`/`applySymmetryToBounds`/`orbitAxes`, all six modes) via the editor canvas's
-  `setAuthorMirror` + a non-selectable `ghost` flag — the same machinery the sketch tool's mirror uses.
+  (`applySymmetry`/`applySymmetryToBounds`/`orbitAxes`, all six modes) for the sketch tool's mirror; the
+  editor canvas draws Configure's copies, computed in C#, under a non-selectable `ghost` flag.
   Identity assignment is the shared `OrbitAssignment` (point-aware) for Protection/Wools and island-aware
   in Spawn. (N02/N03)
 - **New-map landing (Import flow)** — `/maps/new`: **Source** either lists importable local world folders
@@ -8805,6 +8805,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   *map.xml*; the checks are *Map file*, *Regions*, *Solid ground*, *Build areas*, *Reachability* and *Wool teams*,
   each answering in a plain sentence, and the log closes on whether export is open. A blocked *map.xml* step says
   why in the first finding's words and points back to *Checks*. `docs/tools/configure.md`. (`TC21`)
+
+- **Every symmetry copy is listed (`TC22`)** — the Score and Build steps list each box's and each rectangle's
+  images beneath the drawn ones with a *Copy* badge, drawn as ghosts in their own colour, a score box's copy in
+  its team's, and open read-only in the inspector, as Spawn, Protection and Wool rooms do.
+  `docs/tools/configure.md`. (`TC22`)
 
 - **A team may capture only with its own flag home (`PG39`)** — `FlagIntent.Capture` (`FlagCaptures`: `anytime`,
   `home`) puts a `<flag-returned>` capture filter on that team's net, an `<all>` over every flag it owns, and the

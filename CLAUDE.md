@@ -477,9 +477,10 @@ console error, which the smoke sweep turns into a failed page; a silent blank is
 - **Symmetry / orbit math is ONE canonical C# leaf plus the JS preview twin — do not add a third copy.** The
   canonical is **`PgmStudio.Geom.Symmetry`**; every C# site routes through it (`Pgm/SymmetryAuthoring`,
   `SymmetryExpander`, `SketchRasterizer`, `Analysis/SymmetryDetector`, client `OrbitAssignment`). Live canvas
-  previews are JS (`js/studio/geometry/symmetry.js`), the documented twin. A Configure phase needing a
-  non-editable orbit *preview* renders it on the canvas via `setAuthorMirror`, not by computing orbit rects in
-  Blazor. (Spawn/Protection compute orbit in C# because they *store* it — `docs/pgm/new-map-authoring.md` §4.)
+  previews are JS (`js/studio/geometry/symmetry.js`), the documented twin. A Configure phase lists every
+  symmetry copy beside what was drawn, so it computes them in C# through the leaf and draws them as `ghost`
+  author regions in each copy's own colour (Spawn, Protection and Wool rooms store them; Build and Score do
+  not — `docs/pgm/new-map-authoring.md` §4).
 - **Do not use `app.MapStaticAssets()`** in this hosted-WASM setup: it breaks the framework boot. What serves
   the client instead — and the three Blazor interop details that each cost an afternoon — are in
   `docs/client/routing-and-ia.md` and `docs/client/canvas-interaction.md` §6.

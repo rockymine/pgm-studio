@@ -176,8 +176,8 @@ as matching that team's members, so the spawn's `enter`, the wool room's `not-re
 the team directly rather than through a `<team>` filter restating it. The spawn kit's damage immunity lasts
 five seconds, the time a life spends leaving its spawn, and runs out by itself.
 
-Posted to a map with no scanned world, that intent passes round-trip and mirror, skips buildability and fails
-traversability, so its export gate stays shut — which is the tool's shape rather than a fault in the example,
+Posted to a map with no scanned world, that intent passes *Map file* and *Regions*, skips *Solid ground* and
+fails *Reachability*, so its export gate stays shut — which is the tool's shape rather than a fault in the example,
 and is the subject of *What it refuses* below.
 
 ## Phases
@@ -308,7 +308,9 @@ orbits them onto the other teams as read-only copies that are listed so the unio
 rectangle tool. The islands' own terrain needs no rectangle — it is buildable through the void filter — so
 what is drawn here is the crossing: the places a player may bridge a gap. The generator unions the areas,
 subtracts the holes as a complement, and wires the void enforcement over the result (`not-build-area`,
-`block-place=block-place-void-filter`, which is `not(void)`).
+`block-place=block-place-void-filter`, which is `not(void)`). Under the map's symmetry every rectangle has its
+images, which the list shows beneath the drawn ones with a *Copy* badge and the canvas draws as ghosts; only
+the drawn ones are stored, and the generator orbits them as the step shows.
 
 **Breaking out there is a second rule, and it is not the same rule.** `block-break=block-break-void-filter`
 allows what placing allows, and over the void additionally admits what the dressing stage leaves hanging
@@ -500,7 +502,8 @@ satisfies the objective gate, so a deathmatch reaches Export with no wool, monum
 are drawn with the rectangle tool: a box stands on the floor under its middle nearest the spawns' height — the
 map's playing level rather than a roof over it — three blocks tall from the first air, and the inspector sets
 its *Team*, its *Floor height*, its *Points* and whether it will *Teleport to spawn*. Under the map's symmetry
-every other team gains its image of each box, which the canvas shows faintly; every box is a goal the
+every other team gains its image of each box, listed with a *Copy* badge and drawn in that team's colour; a
+copy's inspector shows what it carries and is read-only, and only the drawn boxes are stored. Every box is a goal the
 *Reachability* check has to reach (`EX1`).
 
 ### Match
@@ -627,9 +630,9 @@ is solid, and a pool of lava is crossed a block a column where the document lets
 ground at y=0, and is a wall where it forbids one.
 
 **The gate cannot open on a map with no scanned world.** Without a world there are no surface or `y=0`
-columns, so buildability reports *skip* and traversability has no walkable ground to connect anything
+columns, so *Solid ground* reports *skip* and *Reachability* has no walkable ground to connect anything
 across — every spawn and wool reads as isolated whatever the build areas say. Measured on a hand-authored
-intent with no world: round-trip and mirror pass, buildability skips, traversability fails on both spawns, and
+intent with no world: *Map file* and *Regions* pass, *Solid ground* skips, *Reachability* fails on both spawns, and
 `GET /xml` answers 409. Configure writes the XML for a world that exists; it cannot author one in a vacuum.
 
 **Every export checks its declared `<gamemode>` first, regardless of origin.** `MapExportComposer` reads the

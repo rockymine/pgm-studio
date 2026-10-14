@@ -182,8 +182,11 @@ await arrange({
   scoreBoxes: [{ team: owner, box: { minX: 30, minY: 12, minZ: -2, maxX: 34, maxY: 14, maxZ: 2 }, points: 1, home: true }],
 });
 await openPhase("Score", { canvas: true });
-const scorePhase = await page.textContent(".workspace");
-checks.add("the stored score box is listed", scorePhase.includes("1 box"), scorePhase.slice(0, 200));
+const scoreRows = await page.locator(".panel-list .list-row").allInnerTexts();
+const drawnBoxes = scoreRows.filter(row => row.includes("Main")).length;
+const copiedBoxes = scoreRows.filter(row => row.includes("Copy")).length;
+checks.add("the stored score box is listed with the other team's copy", drawnBoxes === 1 && copiedBoxes === 1,
+           JSON.stringify(scoreRows));
 checks.add("the Score phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 
 // Put the seed map back the way the other specs expect it.

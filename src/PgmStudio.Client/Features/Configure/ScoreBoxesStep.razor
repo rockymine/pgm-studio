@@ -2,7 +2,7 @@
 @using PgmStudio.Client.Models
 
 @* Score: what a kill pays, and the score boxes a team walks into to score. A box is drawn with the rectangle
-   tool, and the map's symmetry copies it to the other teams. *@
+   tool, and the map's symmetry copies it to the other teams; the copies are listed and drawn read-only. *@
 
 <Workspace>
 
@@ -18,25 +18,22 @@
       </Section>
 
       <Section Title="Score boxes">
-        <Actions><Badge Class="@(boxes.Count > 0 ? "badge--success" : "badge--dim")">@boxes.Count box@(boxes.Count == 1 ? "" : "es")</Badge></Actions>
+        <Actions><Badge Class="@(RowCount > 0 ? "badge--success" : "badge--dim")">@RowCount box@(RowCount == 1 ? "" : "es")</Badge></Actions>
         <ChildContent>
-        <p class="section-desc">Draw a box with the <strong>rectangle tool</strong>.</p>
+        @{ var rows = Rows.ToList(); }
+        <p class="section-desc">Use the <strong>rectangle tool</strong> to draw a box. The other teams get a copy
+          by symmetry.</p>
         <div class="panel-list">
-          @if (boxes.Count == 0) { <div class="list-empty">No score boxes yet. Draw one on the map.</div> }
-          @foreach (var box in boxes)
+          @if (rows.Count == 0) { <div class="list-empty">No score boxes yet. Draw one on the map.</div> }
+          @foreach (var box in rows)
           {
             <ListRow Compact Selected="selectedId == box.Id" @key="box.Id" OnClick="() => SelectBox(box.Id)">
               <span class="geo-type-icon" style="--icon-tint: @Hex(box.Team)"><i data-lucide="goal"></i></span>
               <span class="list-label">@TeamName(box.Team)</span>
-              <Badge Kind="neutral">@box.Points point@(box.Points == 1 ? "" : "s")</Badge>
+              <Badge Class="@(box.Authored ? "badge--success" : "badge--dim")">@(box.Authored ? "Main" : "Copy")</Badge>
             </ListRow>
           }
         </div>
-        @if (MirrorActive && boxes.Count > 0)
-        {
-          <p class="section-desc">The faint shapes on the canvas are symmetry copies. They are created
-            automatically, so they aren't listed here.</p>
-        }
         </ChildContent>
       </Section>
   </Sidebar>
@@ -53,8 +50,25 @@
       {
         <Section @key="sel.Id">
           <DetailHeader Icon="goal" IconTint="@Hex(sel.Team)" Label="Score box">
-            <Badge Kind="dim">Y @sel.MinY–@sel.MaxY</Badge>
+            <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "Main" : "Copy")</Badge>
           </DetailHeader>
+          @if (sel.Source is { } source)
+          {
+          <div class="section-body">
+            <Field Label="Team">
+              <Select Slim="false" Disabled Options="@AuthoringContext.TeamOptions(teams)" Value="@sel.Team" />
+            </Field>
+            <Field Label="Floor height"><NumberField Value="@sel.MinY" disabled /></Field>
+            <Field Label="Points"><NumberField Value="@sel.Points" disabled /></Field>
+            <Field Label="Teleport to spawn">
+              <Select Slim="false" Disabled Options="@HomeOptions" Value="@(sel.Home ? Home : Stays)" />
+            </Field>
+            <p class="section-desc">Copied from <strong>@TeamName(source.Team)</strong>'s box by symmetry. Edit that
+              box to change it.</p>
+          </div>
+          }
+          else
+          {
           <div class="section-body">
             <Field Label="Team">
               <Select Slim="false" Options="@AuthoringContext.TeamOptions(teams)" Value="@sel.Team"
@@ -73,6 +87,7 @@
               <Button Writes Fill OnClick="() => Remove(sel)" Title="Remove box"><i data-lucide="trash-2"></i> Remove box</Button>
             </div>
           </div>
+          }
         </Section>
       }
       else

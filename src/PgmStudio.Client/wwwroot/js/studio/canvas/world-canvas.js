@@ -65,7 +65,6 @@ import { SelectController } from "../controllers/select-controller.js";
 import { chatColorHex, dyeColorHex } from "../render/palette.js";
 import { blockToExtentBounds } from "../geometry/region-convert.js";
 import { pointInRing } from "../geometry/polygon.js";
-import { applySymmetryToBounds, orbitAxes } from "../geometry/symmetry.js";
 import { paintShape, paintAnchorBlock } from "../render/shape-render.js";
 import { primitiveStyle, UNKNOWN_KIND_COLOR } from "../render/primitive-style.js";
 import { paintSymmetryOverlay } from "../render/symmetry-render.js";
@@ -101,7 +100,6 @@ export class WorldCanvas extends CanvasBase {
   #addedNodes     = [];
   #authorRegionIds = [];   // ids of "dummy" authoring regions (e.g. intent-backed spawn-protection rects)
   #authorRegionNodes = []; // the authored nodes themselves, kept so the mirror preview can re-derive
-  #authorMirror = null;    // {type, cx, cz} — when set, authored rects get symmetry-orbited ghost copies
 
   // draw controller (instantiated in constructor)
   #drawCtrl = null;
@@ -510,40 +508,17 @@ export class WorldCanvas extends CanvasBase {
     this.#renderAuthorRegions();
   }
 
-  // When set, every authored rectangle gets its symmetry-orbited copies rendered as non-editable ghosts
-  // (reusing the shared geometry/symmetry.js — the same math the sketch tool's mirror preview uses).
-  setAuthorMirror(type, cx, cz) {
-    this.#authorMirror = type ? { type, cx, cz } : null;
-    this.#renderAuthorRegions();
-  }
-
   #renderAuthorRegions() {
     this.#batching = true;
     try {
       for (const id of this.#authorRegionIds) this.removeRegion(id);
-      const all = [...this.#authorRegionNodes, ...this.#mirrorGhosts(this.#authorRegionNodes)];
+      const all = this.#authorRegionNodes;
       this.#authorRegionIds = all.map(n => n.id);
       for (const node of all) this.addRegion(node);
     } finally {
       this.#batching = false;
     }
     this.#paintWorld();
-  }
-
-  #mirrorGhosts(nodes) {
-    if (!this.#authorMirror) return [];
-    const { type, cx, cz } = this.#authorMirror;
-    const axes = orbitAxes(type);
-    const out = [];
-    for (const n of nodes) {
-      if (!n.bounds || n.marker || n.ghost) continue;   // mirror real rectangles only (not markers/ghosts)
-      axes.forEach((ax, j) => out.push({
-        id: `${n.id}~m${j}`, type: "rectangle", ghost: true,
-        color: n.color, label: `${n.label ?? n.id} (symmetry copy)`,
-        bounds: applySymmetryToBounds(n.bounds, ax, cx, cz),
-      }));
-    }
-    return out;
   }
 
   renameNode(oldId, newId) {

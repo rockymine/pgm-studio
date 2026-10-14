@@ -93,8 +93,8 @@ walls cannot centre from a hand, and a reflection swaps the hands, so the export
 frame and lays the image out as the mirror of the original (`docs/world-export/structures.md` WX1). Configure's
 coverage assignment stores separately placed spawns rather than images of one, so those carry `false`.
 
-**The canvases only draw.** The JS ghosts — `plan-doc`'s mirror images, the sketch mirror layer, the editor's
-`setAuthorMirror` — are previews. They store nothing and decide nothing.
+**The canvases only draw.** The JS ghosts — `plan-doc`'s mirror images, the sketch mirror layer — and the
+Configure copies drawn as `ghost` author regions are previews. They store nothing and decide nothing.
 
 **A position and a cell do not turn the same way, and the leaf answers both.** A board whose extent is even
 turns about a **cell boundary**, not about a block: the rot_180 image of the position `x` is `−x`, but the

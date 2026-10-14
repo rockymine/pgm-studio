@@ -112,8 +112,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     setPointPick(on) { canvas.setPointPick(on); },
     // Render intent-backed "dummy" regions (e.g. spawn-protection rects) as selectable/resizable shapes.
     setAuthorRegions(nodes) { canvas.setAuthorRegions(nodes ?? []); },
-    // Symmetry-orbit the authored rects into non-editable ghost previews (shared geometry/symmetry.js).
-    setAuthorMirror(type, cx, cz) { canvas.setAuthorMirror(type ?? null, cx, cz); },
     fitIsland(id) { canvas.fitIsland(id); },
     resetView() { canvas.resetView(); },
     // The painted surface owns a canvas element, a resize observer and a theme watcher, and every Configure

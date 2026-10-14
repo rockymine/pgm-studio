@@ -224,13 +224,6 @@ public partial class WorldCanvas
         if (handle is not null) await handle.InvokeVoidAsync("setAuthorRegions", (object)nodes.ToArray());
     }
 
-    /// <summary>Orbit the authored rectangles into non-editable ghost previews by the given symmetry
-    /// (null type clears it). The canvas computes them with the shared geometry/symmetry.js.</summary>
-    public async Task SetAuthorMirrorAsync(string? type, double cx, double cz)
-    {
-        if (handle is not null) await handle.InvokeVoidAsync("setAuthorMirror", type, cx, cz);
-    }
-
     /// <summary>A region's footprint was changed by a resize drag (the canvas already shows it live).
     /// The host patches the intent slice it renders and refreshes its inspector. Args: region id + new {min,max}{x,z}.</summary>
     [JSInvokable]
