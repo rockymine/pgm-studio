@@ -121,7 +121,7 @@ public static class BuildGenerator
 
     private static void ApplyBuildAreas(Dict doc, BuildIntent b)
     {
-        var areaIds = CreateRects(doc, b.Areas, "build-area", "build");
+        var areaIds = CreateRects(doc, [.. b.Areas.Select(area => area.Rect)], "build-area", "build");
 
         // ≥2 rects → union them into build-area; a lone rectangle is the area region itself.
         string buildAreaId;

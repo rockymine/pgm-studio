@@ -90,7 +90,7 @@ public static class SymmetryExpander
         if (b.Areas.Count == 0 && b.Holes.Count == 0) return build;
         // `with`, not a named rebuild — see the MapIntent-level comment above: a field this method does not
         // name keeps its value instead of being dropped on every symmetric map.
-        return b with { Areas = OrbitRects(b.Areas, sym, order), Holes = OrbitRects(b.Holes, sym, order) };
+        return b with { Areas = OrbitAreas(b.Areas, sym, order), Holes = OrbitRects(b.Holes, sym, order) };
     }
 
     // Lanes orbit exactly as build areas do — same rects, same dedup — so a lane drawn on one side opens on
@@ -98,7 +98,21 @@ public static class SymmetryExpander
     private static WaterLaneIntent? OrbitWaterLanes(WaterLaneIntent? lanes, SymmetryIntent sym, int order)
     {
         if (lanes is not { Rects.Count: > 0 } l) return lanes;
-        return new WaterLaneIntent { Rects = OrbitRects(l.Rects, sym, order) };
+        return new WaterLaneIntent { Rects = OrbitAreas(l.Rects, sym, order) };
+    }
+
+    // An area keeps its id and each image it adds states none, the way a filled spawn does.
+    private static List<PieceArea> OrbitAreas(List<PieceArea> areas, SymmetryIntent sym, int order)
+    {
+        var seen = new HashSet<(double, double, double, double)>();
+        var outp = new List<PieceArea>();
+        void Add(PieceArea area) { if (seen.Add((area.MinX, area.MinZ, area.MaxX, area.MaxZ))) outp.Add(area); }
+        foreach (var area in areas)
+        {
+            Add(area);
+            for (var k = 1; k < order; k++) Add(TransformRect(area.Rect, sym, k));
+        }
+        return outp;
     }
 
     private static List<Rect> OrbitRects(List<Rect> rects, SymmetryIntent sym, int order)

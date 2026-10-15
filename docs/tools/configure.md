@@ -58,11 +58,12 @@ island exclusion (`PATCH /api/configure/{slug}/exclude-island`) and the import i
 Every slice is optional, and **null means "leave it alone"** rather than "empty" — a map with no cores has a
 null `cores` and nothing about cores is generated or cleared.
 
-**Every play piece carries an `id`,** each spawn, wool, destroyable and core, unique among them, and it is what
-addresses one piece wherever one is meant (`PlayIds`). An intent stored with a piece that states none is given
-one from what names the piece: `spawn-{team}`, `wool-{owner}-{color}` (or `wool-{owner}` with no colour),
-`destroyable-{owner}`, `core-{owner}`, numbered `-2`, `-3`… where two would share one, the same words the sketch
-names a room's shape by. An id stated is kept as stated, and two pieces stating one id are refused **409**
+**Every play piece carries an `id`,** each spawn, wool, destroyable, core, build area, water lane, iron cube
+and approach wall, unique among them, and it is what addresses one piece wherever one is meant (`PlayIds`). An
+intent stored with a piece that states none is given one from what names the piece: `spawn-{team}`,
+`wool-{owner}-{color}` (or `wool-{owner}` with no colour), `destroyable-{owner}`, `core-{owner}`, the same words
+the sketch names a room's shape by, and `build-{n}`, `water-lane-{n}`, `iron-{n}`, `wall-{n}` by the piece's
+place in its list, numbered `-2`, `-3`… where two would share one. An id stated is kept as stated, and two pieces stating one id are refused **409**
 `RQ5` with nothing stored.
 
 | Slice | Holds |
@@ -123,7 +124,7 @@ writes:
   "observer": { "point": { "x": 0.5, "y": 30, "z": 0.5 }, "yaw": 0 },
   "build": {
     "maxHeight": 30,
-    "areas": [ { "minX": -30, "minZ": -70, "maxX": 30, "maxZ": 70 } ],
+    "areas": [ { "id": "build-1", "minX": -30, "minZ": -70, "maxX": 30, "maxZ": 70 } ],
     "holes": []
   },
   "wools": [

@@ -351,7 +351,7 @@ public static class PlanCompiler
         // plan space, so this leaves it unset for WorldBuilder to fill (BuildCeiling).
         var build = new BuildIntent
         {
-            Areas = FanRects(plan.BuildZones.Select(z => z.Rect), d),
+            Areas = FanRects(plan.BuildZones.Select(z => z.Rect), d).ConvertAll<PieceArea>(rect => rect),
             Holes = FanRects(plan.BuildZones.SelectMany(z => z.Holes), d),
         };
 
@@ -361,7 +361,7 @@ public static class PlanCompiler
         // shared fragment fills a flat region and has nowhere to put a cutout, so honouring one would promise
         // something the export cannot deliver.
         var laneRects = FanRects(plan.WaterLanes.Select(z => z.Rect), d);
-        var waterLanes = laneRects.Count > 0 ? new WaterLaneIntent { Rects = laneRects } : null;
+        var waterLanes = laneRects.Count > 0 ? new WaterLaneIntent { Rects = laneRects.ConvertAll<PieceArea>(rect => rect) } : null;
 
         // A nominal height over the nominal ground: the plan states neither the relief that will roll under
         // the centre nor anything drawn over it, so this is a starting point rather than an answer. The

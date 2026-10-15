@@ -4,13 +4,15 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
-/// The id every play piece of an intent carries: a spawn, a wool, a destroyable and a core. A piece is
+/// The id every play piece of an intent carries: a spawn, a wool, a destroyable, a core, a build area, a water
+/// lane, an iron cube and an approach wall. A piece is
 /// addressed by it wherever one piece is meant — a sketch selection, a move, a place that holds it — so it is
 /// stated once and kept through every edit.
 ///
 /// <para>A piece stored without one is given one from what names it: <c>spawn-{team}</c>,
 /// <c>wool-{owner}-{colour}</c>, <c>destroyable-{owner}</c>, <c>core-{owner}</c>, the same words the sketch
-/// names a room's shape by, with <c>-2</c>, <c>-3</c>… where two pieces would share one. An id the intent
+/// names a room's shape by, and <c>build-{n}</c>, <c>water-lane-{n}</c>, <c>iron-{n}</c>, <c>wall-{n}</c> by
+/// position in their list, with <c>-2</c>, <c>-3</c>… where two pieces would share one. An id the intent
 /// already states is kept as stated.</para>
 /// </summary>
 public static class PlayIds
@@ -39,6 +41,19 @@ public static class PlayIds
                 Id = Mint(goal.Id, $"destroyable-{goal.Owner}"),
             }).ToList(),
             Cores = intent.Cores?.Select(core => core with { Id = Mint(core.Id, $"core-{core.Owner}") }).ToList(),
+            Build = intent.Build is { } build
+                ? build with { Areas = [.. build.Areas.Select((area, at) => area with { Id = Mint(area.Id, $"build-{at + 1}") })] }
+                : null,
+            WaterLanes = intent.WaterLanes is { } lanes
+                ? lanes with { Rects = [.. lanes.Rects.Select((lane, at) => lane with { Id = Mint(lane.Id, $"water-lane-{at + 1}") })] }
+                : null,
+            Structures = intent.Structures is { } structures
+                ? structures with
+                {
+                    IronCubes = [.. structures.IronCubes.Select((cube, at) => cube with { Id = Mint(cube.Id, $"iron-{at + 1}") })],
+                    Walls = [.. structures.Walls.Select((wall, at) => wall with { Id = Mint(wall.Id, $"wall-{at + 1}") })],
+                }
+                : null,
         };
     }
 
@@ -68,5 +83,13 @@ public static class PlayIds
         for (var at = 0; at < (intent.Destroyables?.Count ?? 0); at++)
             yield return (intent.Destroyables![at].Id, $"destroyables[{at}].id");
         for (var at = 0; at < (intent.Cores?.Count ?? 0); at++) yield return (intent.Cores![at].Id, $"cores[{at}].id");
+        for (var at = 0; at < (intent.Build?.Areas.Count ?? 0); at++)
+            yield return (intent.Build!.Areas[at].Id, $"build.areas[{at}].id");
+        for (var at = 0; at < (intent.WaterLanes?.Rects.Count ?? 0); at++)
+            yield return (intent.WaterLanes!.Rects[at].Id, $"waterLanes.rects[{at}].id");
+        for (var at = 0; at < (intent.Structures?.IronCubes.Count ?? 0); at++)
+            yield return (intent.Structures!.IronCubes[at].Id, $"structures.ironCubes[{at}].id");
+        for (var at = 0; at < (intent.Structures?.Walls.Count ?? 0); at++)
+            yield return (intent.Structures!.Walls[at].Id, $"structures.walls[{at}].id");
     }
 }
