@@ -70,7 +70,7 @@ public sealed class WorldReadEndpointTests
             "render/section?axis=x&from=-30&to=30&at=0",
             "render/isometric",
             "render/isometric?corner=north-west&scale=2",
-            "render/xray",
+            "render/isometric?box=-8,0,-8,8,255,8",
         ])
         {
             var resp = await client.GetAsync($"/api/map/{slug}/{read}");
@@ -202,7 +202,8 @@ public sealed class WorldReadEndpointTests
     }
 
     /// <summary>The x-ray's text twin is the void scan it is drawn from — an island with no roof over any of it
-    /// holds no room — and a corner the camera cannot stand at is refused by name, with the four it can.</summary>
+    /// holds no room, so there is no lining to draw — and a corner the camera cannot stand at, or a box that is
+    /// not six numbers, is refused by name.</summary>
     [Test]
     public async Task The_x_ray_answers_its_void_scan_and_a_corner_it_has_no_name_for_is_refused()
     {
@@ -215,6 +216,18 @@ public sealed class WorldReadEndpointTests
         var text = await scan.Content.ReadAsStringAsync();
         await Assert.That(text).Contains("roofed voids  0");
         await Assert.That(text).Contains("nothing roofed");
+
+        var picture = await client.GetAsync($"/api/map/{slug}/render/xray");
+        await Assert.That(picture.StatusCode).IsEqualTo(HttpStatusCode.UnprocessableEntity);
+        await Assert.That(await picture.Content.ReadAsStringAsync()).Contains("no roofed void");
+
+        var sky = await client.GetAsync($"/api/map/{slug}/render/isometric?box=0,200,0,4,210,4");
+        await Assert.That(sky.StatusCode).IsEqualTo(HttpStatusCode.UnprocessableEntity);
+        await Assert.That(await sky.Content.ReadAsStringAsync()).Contains("holds nothing to draw");
+
+        var unread = await client.GetAsync($"/api/map/{slug}/render/isometric?box=0,0,4,4");
+        await Assert.That(unread.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        await Assert.That(await unread.Content.ReadAsStringAsync()).Contains("six whole numbers");
 
         var nowhere = await client.GetAsync($"/api/map/{slug}/render/isometric?corner=overhead");
         await Assert.That(nowhere.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);

@@ -33,8 +33,8 @@ public static class SlopeGrid
         if (surface.Count == 0) return null;
         every = Math.Clamp(every, 1, 8);
 
-        int minX = surface.Keys.Min(cell => cell.X), maxX = surface.Keys.Max(cell => cell.X);
-        int minZ = surface.Keys.Min(cell => cell.Z), maxZ = surface.Keys.Max(cell => cell.Z);
+        var extent = BlockRect.Around(surface.Keys);
+        int minX = extent.MinX, maxX = extent.MaxX - 1, minZ = extent.MinZ, maxZ = extent.MaxZ - 1;
         var width = (maxX - minX) / every + 1;
         var height = (maxZ - minZ) / every + 1;
 

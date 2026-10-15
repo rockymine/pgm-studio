@@ -114,21 +114,25 @@ public sealed class PlanEvaluateEndpointTests
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
         var measured = body.GetProperty("violations").EnumerateArray()
-            .Where(v => v.GetProperty("kind").GetString() == "soft" && v.TryGetProperty("value", out _))
+            .Where(v => v.GetProperty("kind").GetString() == "soft"
+                        && v.GetProperty("finding").TryGetProperty("measured", out _))
             .ToList();
         await Assert.That(measured.Count).IsGreaterThan(0).Because(body.ToString());
         foreach (var violation in measured)
         {
-            var value = violation.GetProperty("value").GetDouble();
-            var band = violation.GetProperty("band").EnumerateArray().Select(e => e.GetDouble()).ToList();
-            await Assert.That(band.Count).IsEqualTo(2);
-            await Assert.That(value < band[0] || value > band[1]).IsTrue().Because(violation.ToString());
+            var reading = violation.GetProperty("finding").GetProperty("measured");
+            var value = reading.GetProperty("value").GetDouble();
+            var (low, high) = (reading.GetProperty("low").GetDouble(), reading.GetProperty("high").GetDouble());
+            await Assert.That(value < low || value > high).IsTrue().Because(violation.ToString());
             // a soft term scores and stops nothing, so its finding is a complaint
             await Assert.That(violation.GetProperty("finding").GetProperty("severity").GetString()).IsEqualTo("complaint");
         }
-        // a hard fire has no band to be outside of, so it carries neither
-        foreach (var hard in body.GetProperty("violations").EnumerateArray().Where(v => v.GetProperty("kind").GetString() == "hard"))
-            await Assert.That(hard.TryGetProperty("band", out _)).IsFalse();
+        // a hard floor carries the number it measured and its floor alone; WL2 is measured, so it stops nothing
+        var wl2 = body.GetProperty("violations").EnumerateArray()
+            .Single(v => v.GetProperty("finding").GetProperty("rule").GetString() == "WL2").GetProperty("finding");
+        await Assert.That(wl2.GetProperty("measured").GetProperty("low").GetDouble()).IsEqualTo(20);
+        await Assert.That(wl2.GetProperty("measured").TryGetProperty("high", out _)).IsFalse();
+        await Assert.That(wl2.GetProperty("severity").GetString()).IsEqualTo("complaint");
     }
 
     /// <summary>A plan with no geometry is answered rather than refused — a 400 blanked the editor's score

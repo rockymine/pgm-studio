@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Domain;
 using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
@@ -351,9 +352,9 @@ public static class StructureFinder
                                Dictionary<(int X, int Z), int> claimed, int[] accentSlots,
                                out int blocksWide, out int blocksHigh)
     {
-        int minX = topY.Keys.Min(cell => cell.X), maxX = topY.Keys.Max(cell => cell.X);
-        int minZ = topY.Keys.Min(cell => cell.Z), maxZ = topY.Keys.Max(cell => cell.Z);
-        blocksWide = maxX - minX + 1; blocksHigh = maxZ - minZ + 1;
+        var extent = BlockRect.Around(topY.Keys);
+        int minX = extent.MinX, maxX = extent.MaxX - 1, minZ = extent.MinZ, maxZ = extent.MaxZ - 1;
+        blocksWide = extent.Width; blocksHigh = extent.Depth;
 
         var terrain = naturalY.Values.ToList();
         int lowest = terrain.Count > 0 ? terrain.Min() : 0, highest = terrain.Count > 0 ? terrain.Max() : 0;

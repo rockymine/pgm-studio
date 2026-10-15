@@ -147,9 +147,9 @@ public static class MirrorReport
             return true;
         }
 
-        int minX = spans.Keys.Min(cell => cell.X), maxX = spans.Keys.Max(cell => cell.X);
-        int minZ = spans.Keys.Min(cell => cell.Z), maxZ = spans.Keys.Max(cell => cell.Z);
-        int blocksWide = maxX - minX + 1, blocksHigh = maxZ - minZ + 1;
+        var extent = BlockRect.Around(spans.Keys);
+        int minX = extent.MinX, maxX = extent.MaxX - 1, minZ = extent.MinZ, maxZ = extent.MaxZ - 1;
+        int blocksWide = extent.Width, blocksHigh = extent.Depth;
 
         var heights = top.Values.ToList();
         int lowest = heights.Min(), highest = heights.Max();

@@ -575,6 +575,10 @@ public static class PlanValidator
     private static Finding Lint(string rule, string msg, DocumentEdit? edit, params string[] subjects) =>
         new(rule, msg, Severity.Complaint, Subjects: subjects.Length > 0 ? subjects : null, Edit: edit);
 
+    /// <summary>A complaint that measured one number, carrying it and the range it is held to.</summary>
+    private static Finding Lint(string rule, string msg, Measurement measured, params string[] subjects) =>
+        new(rule, msg, Severity.Complaint, Subjects: subjects.Length > 0 ? subjects : null, Measured: measured);
+
     /// <summary>The change that grades a seam two pieces step across: a <c>line</c> relief mark six wide,
     /// running from a point inside the higher piece to a point inside the lower, stating the two surfaces
     /// at its ends. The run is the step's own size each side of the seam, so the mark solves to a slope a
@@ -870,7 +874,8 @@ public static class PlanValidator
                 var arrival = other.Value.Surface > room.Surface ? "drops" : "climbs";
                 yield return Lint(LayoutRules.WoolEntryStep,
                     $"room piece '{roomId}' of a wool {arrival} {delta} blocks to piece "
-                    + $"'{(seam.A == roomId ? seam.B : seam.A)}' where they share an edge, more than 1 block", seam.A, seam.B);
+                    + $"'{(seam.A == roomId ? seam.B : seam.A)}' where they share an edge, more than 1 block",
+                    new Measurement(delta, High: 1), seam.A, seam.B);
             }
         }
     }
@@ -1161,7 +1166,7 @@ public static class PlanValidator
                 yield return Lint(LayoutRules.FrontlineShare,
                     $"piece '{face.Piece}' has front line along {face.FrontlineBlocks} of the {face.ExposedBlocks} "
                     + $"blocks of its {face.Side} side facing void, less than a third",
-                    face.Piece);
+                    new Measurement(face.FrontlineShare, Low: shareFloor), face.Piece);
 
             // FR9 is the absolute floor FR8's share cannot see: a crossing narrow in blocks reads as a
             // funnel however much of its face it takes, and a 10-block front on a 10-block face passes the
@@ -1170,7 +1175,7 @@ public static class PlanValidator
                 yield return Lint(LayoutRules.MinimumFrontline,
                     $"piece '{face.Piece}' has {face.FrontlineBlocks} blocks of front line along its {face.Side} "
                     + $"side, less than {MinFrontlineBlocks} blocks",
-                    face.Piece);
+                    new Measurement(face.FrontlineBlocks, Low: MinFrontlineBlocks), face.Piece);
         }
 
         // WL12, WL20 and LN6 — how narrow a gap is. The space reader measures every straight run the terrain
@@ -1211,6 +1216,7 @@ public static class PlanValidator
                 yield return Lint(rule,
                     $"pieces {Named(run.From)} and {Named(run.To)} have a {(beside.Count > 0 ? "gap" : space.Kind)} "
                     + $"{crossing} blocks across between them at cell ({run.X}, {run.Z}), less than {floor} blocks",
+                    new Measurement(crossing, Low: floor),
                     [.. new[] { run.From, run.To }.Where(name => name.Length > 0).Distinct()]);
             }
         }
@@ -1226,7 +1232,7 @@ public static class PlanValidator
                 yield return Lint(LayoutRules.TeamGapWidth,
                     $"team sides of pieces {Wording.Ids(gap.PiecesA)} and of pieces {Wording.Ids(gap.PiecesB)} have a gap of "
                     + $"{gap.Blocks} blocks between them, " + Beyond(gap.Blocks, 15, 40),
-                    [.. gap.PiecesA.Concat(gap.PiecesB)]);
+                    new Measurement(gap.Blocks, 15, 40), [.. gap.PiecesA.Concat(gap.PiecesB)]);
             }
     }
 

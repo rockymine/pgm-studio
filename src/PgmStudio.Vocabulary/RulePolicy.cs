@@ -1,15 +1,17 @@
 namespace PgmStudio.Vocabulary;
 
 /// <summary>
-/// Which rules stop the work. A rule's level comes from the first of three places that states one: an admin's
-/// setting (<see cref="RuleLevelSources.Studio"/>), the configuration (<see cref="RuleLevelSources.Config"/>), or
-/// the minimal mode, which relaxes every rule outside the set it is given (<see cref="RuleLevelSources.Mode"/>).
-/// A rule none of them names does what its code says.
+/// Which rules stop the work. A rule's level comes from the first of four places that states one: an admin's
+/// setting (<see cref="RuleLevelSources.Studio"/>), the configuration (<see cref="RuleLevelSources.Config"/>), the
+/// set of rules measured rather than enforced (<see cref="RuleLevelSources.Tier"/>), or the minimal mode, which
+/// relaxes every rule outside the set it is given (<see cref="RuleLevelSources.Mode"/>). A rule none of them
+/// names does what its code says.
 ///
 /// <para>A <see cref="RuleLevels.Hint"/> answers a refusal under that rule as a complaint, so the work goes ahead
 /// and the finding still rides along, and a dressing site that would have turned a prop away seats it instead. A
 /// <see cref="RuleLevels.Refuse"/> answers a complaint under that rule as a refusal, so every gate that asks
-/// whether anything stops the work stops on it.</para>
+/// whether anything stops the work stops on it. A <see cref="RuleLevels.Measure"/> answers a refusal as a
+/// complaint, as a hint does; what it adds is how the finding is read, as its <see cref="Finding.Measured"/>.</para>
 ///
 /// <para>The settings are replaced whole and read without locking: every reader sees one complete set.</para>
 /// </summary>
@@ -17,10 +19,12 @@ public static class RulePolicy
 {
     private sealed record Settings(
         HashSet<string>? Minimal,
+        HashSet<string> Measured,
         IReadOnlyDictionary<string, string> Config,
         IReadOnlyDictionary<string, string> Studio);
 
-    private static volatile Settings current = new(null, new Dictionary<string, string>(), new Dictionary<string, string>());
+    private static volatile Settings current =
+        new(null, [], new Dictionary<string, string>(), new Dictionary<string, string>());
 
     /// <summary>Whether the studio runs the minimal mode.</summary>
     public static bool Minimal => current.Minimal is not null;
@@ -31,6 +35,10 @@ public static class RulePolicy
 
     /// <summary>Every rule keeps its code's refusals unless a setting says otherwise.</summary>
     public static void UseFull() => current = current with { Minimal = null };
+
+    /// <summary>The rules measured rather than enforced: each is a <see cref="RuleLevels.Measure"/> unless a
+    /// setting says otherwise.</summary>
+    public static void UseMeasured(IEnumerable<string> measured) => current = current with { Measured = [.. measured] };
 
     /// <summary>The levels the configuration states, rule id to <see cref="RuleLevels"/> word.</summary>
     public static void Configure(IReadOnlyDictionary<string, string> levels) =>
@@ -47,19 +55,20 @@ public static class RulePolicy
         var settings = current;
         if (settings.Studio.TryGetValue(rule, out var studio)) return (studio, RuleLevelSources.Studio);
         if (settings.Config.TryGetValue(rule, out var config)) return (config, RuleLevelSources.Config);
+        if (settings.Measured.Contains(rule)) return (RuleLevels.Measure, RuleLevelSources.Tier);
         if (settings.Minimal is { } kept && !kept.Contains(rule)) return (RuleLevels.Hint, RuleLevelSources.Mode);
         return null;
     }
 
     /// <summary>Whether a refusal or a decline citing <paramref name="rule"/> stops the work or turns something
     /// away.</summary>
-    public static bool Enforces(string rule) => LevelOf(rule)?.Level != RuleLevels.Hint;
+    public static bool Enforces(string rule) => LevelOf(rule)?.Level is not (RuleLevels.Hint or RuleLevels.Measure);
 
     /// <summary>The severity a finding is answered with. A decline is left as it is: it says something is not in
     /// the world, and only the site that dropped it can decide to keep it instead.</summary>
     public static Severity Apply(string rule, Severity severity) => (severity, LevelOf(rule)?.Level) switch
     {
-        (Severity.Refusal, RuleLevels.Hint) => Severity.Complaint,
+        (Severity.Refusal, RuleLevels.Hint or RuleLevels.Measure) => Severity.Complaint,
         (Severity.Complaint, RuleLevels.Refuse) => Severity.Refusal,
         _ => severity,
     };

@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Painting;
@@ -183,9 +184,9 @@ public static class SurfaceReport
         ground = columns.Where(entry => !entry.Value.Built && entry.Value.Depth == 0)
             .ToDictionary(entry => entry.Key, entry => (entry.Value.Ground, entry.Value.GroundData));
 
-        int minX = columns.Keys.Min(cell => cell.X), maxX = columns.Keys.Max(cell => cell.X);
-        int minZ = columns.Keys.Min(cell => cell.Z), maxZ = columns.Keys.Max(cell => cell.Z);
-        int blocksWide = maxX - minX + 1, blocksHigh = maxZ - minZ + 1;
+        var extent = BlockRect.Around(columns.Keys);
+        int minX = extent.MinX, maxX = extent.MaxX - 1, minZ = extent.MinZ, maxZ = extent.MaxZ - 1;
+        int blocksWide = extent.Width, blocksHigh = extent.Depth;
 
         var pixels = new byte[blocksWide * blocksHigh * 3];
         for (var row = 0; row < blocksHigh; row++)

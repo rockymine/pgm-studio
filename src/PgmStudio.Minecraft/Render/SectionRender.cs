@@ -233,13 +233,13 @@ public static class SectionRender
     /// <summary>How far the world reaches on the axis a cut's <c>at</c> is taken on, in blocks, or null for a
     /// world with no chunk. Chunk-aligned, since that is the granularity a world is stored at, and it is what
     /// lets a caller be told the range instead of being handed a picture of nothing.</summary>
-    public static (int Min, int Max)? Span(IEnumerable<AnvilRegion.Chunk> chunks, SectionAxis axis)
+    public static (int Min, int Max)? Span(VoxelWorld world, SectionAxis axis)
     {
         int? min = null, max = null;
-        foreach (var chunk in chunks)
+        foreach (var (chunkX, chunkZ) in world.Chunks.Keys)
         {
             // The cut runs along one axis, so `at` names the other: a cut along x is taken at a z.
-            var index = axis == SectionAxis.AlongX ? chunk.ChunkZ : chunk.ChunkX;
+            var index = axis == SectionAxis.AlongX ? chunkZ : chunkX;
             min = min is { } low ? Math.Min(low, index) : index;
             max = max is { } high ? Math.Max(high, index) : index;
         }

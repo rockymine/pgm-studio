@@ -79,7 +79,7 @@ public sealed class ThinMiddle : ILayoutTerm
         var distance = Math.Max(0, floor - band.Width) / (floor / 2.0);
         if (distance <= 0) return TermScores.Clean(this);
         return TermScores.Soft(this, distance, $"the mid build region is {band.Width:0} blocks wide, less than {floor} blocks",
-            [band.Zone.Id], [Ev.Rect(EvidenceTags.Offender, band.Zone.Rect)]);
+            [band.Zone.Id], [Ev.Rect(EvidenceTags.Offender, band.Zone.Rect)], new Measurement(band.Width, Low: floor));
     }
 }
 
@@ -103,7 +103,8 @@ public sealed class LongMiddle : ILayoutTerm
         return TermScores.Soft(this, distance,
             $"the mid build region is {band.Length:0} blocks long, {band.Length / band.Width:0.##} times its width, more "
             + $"than {MaxLengthPerWidth:0} times",
-            [band.Zone.Id], [Ev.Rect(EvidenceTags.Offender, band.Zone.Rect)]);
+            [band.Zone.Id], [Ev.Rect(EvidenceTags.Offender, band.Zone.Rect)],
+            new Measurement(band.Length / band.Width, High: MaxLengthPerWidth));
     }
 }
 

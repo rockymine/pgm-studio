@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Evaluate;
 
 /// <summary>
@@ -68,6 +69,7 @@ public abstract class SoftTerm : ILayoutTerm
 
         var (edge, side) = value.Value > band.Value.Hi ? (band.Value.Hi, "more") : (band.Value.Lo, "less");
         var message = $"{Reads(ctx, Measures.Value(value.Value, Unit))}, {side} than {Measures.Bound(edge, Unit)}";
-        return TermScores.Soft(this, distance, message, Subjects(ctx), Evidence(ctx, value.Value, band.Value), value.Value, band.Value);
+        return TermScores.Soft(this, distance, message, Subjects(ctx), Evidence(ctx, value.Value, band.Value),
+            new Measurement(value.Value, band.Value.Lo, band.Value.Hi));
     }
 }

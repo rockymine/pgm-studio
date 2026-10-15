@@ -22,6 +22,13 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [ ] **TS130 — Point edits and bends reach every outline.** *Parked (author): tangled with how land is made,
+  which the pgmvox port's layer document redesigns; picked up when that work needs it.* `editShapes` and
+  `bendShapes` address a shape's `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already
+  writes a relief `area` mark's and a push's `ring` and a stroke's, fluid's or flora's `points`
+  (`Refinement.Outlined`). Both reach those three, each refused where an edit folds the ring.
+  `docs/tools/flow.md`.
+
 - [ ] **C104 — Where a sketch's layers live.** *Parked (author): deciding the direction themselves.* The
   floating `SketchLayerStrip` is taller than the dock, scrolls sideways and clips its add button on canvases
   under about 820px, and the overlay chips (Shapes, Mirror, Chunks, Blocks, Contours) crowd the canvas beside it.
@@ -674,6 +681,20 @@ is the standard the copy is held to.
   same rule. *Open (author): whether Info's mode needs an undo at all.* `docs/tools/sketch.md`.
 
 ## Refactoring and cleanup
+
+- [ ] **RP129 — A read of a world in memory does not encode it as NBT first.** Seven renderers take
+  `IEnumerable<AnvilRegion.Chunk>` so one path reads both a `.mca` file and a built world, and the built one
+  arrives through `AnvilRegion.FromWorld`, which runs `AnvilRegionWriter.BuildLevel` over every chunk on every
+  call: `TopDownRender:130`, `SectionRender:81`, `SectionText:64`, `SurfaceReport:80` and `:98`,
+  `StructureFinder:124`, `HeightProfileRender:65`, `MirrorReport:51`, and `WorldReads.Reach`
+  (`WorldReadEndpoints:123`). Give the renderers one section reader both sources answer — the file's decoded
+  sections, or `VoxelWorld`'s own — so a built world is read where it stands; measure a board's `report` before
+  and after. `docs/world-scan/read-backs.md`.
+
+- [ ] **RP130 — A scale word is read once.** Outside `WorldRenderEndpoint.ScaleRange`, three routes clamp their
+  own `scale` by hand: `render/walk` 1–8 default 2 (`WorldReadEndpoints:1134`), the change diff 1–16 default 4
+  (`MapChangeEndpoints:144`) and the terrain preview (`TerrainPreviewEndpoints:124`). Give them the same range
+  reader, so the word is declared and clamped in one place. `docs/world-scan/read-backs.md`.
 
 - [ ] **RP107 — The edit-route count is stated from the code.** `MapEdit.cs`, `EditException.cs` and
   `docs/architecture.md` say "thirty-six edit routes"; there are 20 `MapEdit.RunAsync` call sites. State the

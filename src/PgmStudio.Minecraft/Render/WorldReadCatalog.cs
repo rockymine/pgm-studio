@@ -107,22 +107,25 @@ public static class WorldReadCatalog
             + "do not. The read for whether a board somebody believes is symmetric actually is."),
 
         new("render/isometric", null,
-            "The whole board from above at 2:1, every block a cube in the colour the 3-D preview gives it, the "
-            + "faces falling away from the top. `corner` stands the camera at any of the four. The read for "
-            + "whether a thing has the bulk it should — a ship with its masts up, a hill that rises — which every "
-            + "plan-shaped read answers as a patch.",
+            "The board from above at 2:1, every block a cube in the colour the 3-D preview gives it, the faces "
+            + "falling away from the top. `corner` stands the camera at any of the four, and `box` frames the "
+            + "picture to one place. The read for whether a thing has the bulk it should — a ship with its masts "
+            + "up, a hill that rises — which every plan-shaped read answers as a patch.",
             "Whatever is roofed is out of sight: a room under a meadow draws as the meadow. `render/xray` is the "
             + "read that opens it."),
 
         new("render/xray", null,
-            "The isometric with the ground and the buildings that hide a roofed room washed out to one pale "
-            + "skin, the room's lining drawn in its own colours and everything else calmed toward grey. A roofed "
-            + "void is air with solid over it in its own column, six blocks or more, no run of it taller than "
-            + "twenty-four — a chamber, a tunnel, a house's rooms, the shade under a crown. `?format=text` answers "
-            + "the void scan the picture is drawn from: every roofed void, largest first, its size, its bounds "
-            + "and whether any air reaching the sky reaches it — a SEALED void is a space nothing can walk into.",
-            "A made thing and a placed prop are never washed out, so the shade under a tree stays behind its "
-            + "crown and a lamp hanging in a room stays lit — the scan still counts the void either way."),
+            "The board's underground: only what lines a void the ground roofs — a tunnel, a crypt, a cave, not a "
+            + "house's rooms or the shade under a crown — its floor, its walls and whatever stands in it, with the "
+            + "ceiling lifted off so it is seen into from above. A roofed void is air "
+            + "with solid over it in its own column, six blocks or more, no run of it taller than twenty-four — "
+            + "a chamber, a tunnel, a house's rooms, the shade under a crown. `corner` and `box` frame it as they "
+            + "do the isometric. `?format=text` answers the void scan the picture is drawn from: every roofed "
+            + "void, largest first, its size, its bounds and whether any air reaching the sky reaches it — a "
+            + "SEALED void is a space nothing can walk into.",
+            "The voids are found over the whole board before a box frames the drawing, so a void the box cuts "
+            + "is still the void it is. The text scan names every roofed void, a building's included; a board "
+            + "with no underground has no x-ray picture."),
 
         new("column", "--column",
             "One or more columns bedrock-to-sky, every block named, as text. THE WORKHORSE: every picture "

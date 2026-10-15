@@ -32,7 +32,7 @@ public sealed class RulesEndpointTests
 
     private sealed record Row(
         string Rule, string Family, string Owner, string Means, string? Fix,
-        string? Category, List<string>? Concerns);
+        string? Category, List<string>? Concerns, string? Level = null, string? LevelSource = null);
 
     /// <summary>The gate rules that carry no category, named rather than counted. Each states how a room
     /// frame is derived and no finding cites one, so there is no caller to branch and nothing to do about it
@@ -61,6 +61,20 @@ public sealed class RulesEndpointTests
         await Assert.That(wl2.Owner).StartsWith($"{Layout.FullName}.");
         await Assert.That(wl2.Means).Contains("spawn");
         await Assert.That(wl2.Fix).Contains("`pieces`");
+    }
+
+    /// <summary>Walks, distances, gap widths and front lines are measured rather than enforced: every rule of the
+    /// six families answers the measure tier, except the one stating a fault in the pieces.</summary>
+    [Test]
+    public async Task The_measured_families_answer_the_measure_tier_and_WL14_does_not()
+    {
+        var rules = await RulesAsync();
+        var measured = rules.Where(rule => rule.Family is "GO" or "WL" or "CT" or "LN" or "FR" or "MD").ToList();
+
+        await Assert.That(measured.Where(rule => rule.Rule != "WL14")
+            .All(rule => rule is { Level: "measure", LevelSource: "tier" })).IsTrue();
+        await Assert.That(measured.Single(rule => rule.Rule == "WL14").Level).IsNull();
+        await Assert.That(rules.Single(rule => rule.Rule == "PL1").Level).IsNull();
     }
 
     /// <summary>A document field is marked in a fix and nowhere else: a meaning says what is wrong, and only

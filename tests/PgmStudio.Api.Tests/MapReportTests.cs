@@ -136,7 +136,8 @@ public sealed partial class MapReportTests
                 .IsTrue().Because($"the report's {picture.GetProperty("name").GetString()} is what {route} draws");
         }
         var routes = pictures.Select(picture => picture.GetProperty("route").GetString()!).ToList();
-        await Assert.That(routes).Contains("render/xray").Because("a wool room is a roofed room worth seeing");
+        await Assert.That(routes).DoesNotContain("render/xray")
+            .Because("a wool room is a building's room, and the board has no underground for an x-ray to draw");
         await Assert.That(routes.Any(route => route.StartsWith("render/eye?", StringComparison.Ordinal))).IsTrue();
     }
 

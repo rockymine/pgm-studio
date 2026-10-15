@@ -34,7 +34,7 @@
             <span class="problem-sum" title="@title">@title</span>
             @if (row.Reading is not null)
             {
-              <span class="problem-val">@RuleWords.TermValue(row.Term!, row.Reading.Value)</span>
+              <span class="problem-val">@row.Reading.Value</span>
             }
           </summary>
           @if (isOpen)

@@ -68,7 +68,8 @@ public static class StraitReadback
                 $"team sides of pieces {Wording.Ids(strait.PiecesA)} and of pieces {Wording.Ids(strait.PiecesB)} "
                 + $"have a gap of {built} blocks between them in the sketch and {strait.Blocks} in the plan, "
                 + (built < Narrowest ? $"less than {Narrowest} blocks" : $"more than {Widest} blocks"),
-                Severity.Complaint, Subjects: [.. strait.PiecesA.Concat(strait.PiecesB)]));
+                Severity.Complaint, Subjects: [.. strait.PiecesA.Concat(strait.PiecesB)],
+                Measured: new Measurement(built, Narrowest, Widest)));
         }
         return new Findings(findings);
     }

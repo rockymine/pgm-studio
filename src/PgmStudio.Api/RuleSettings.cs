@@ -4,8 +4,9 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api;
 
 /// <summary>
-/// Reads which rules stop the work from the configuration: <c>Rules:Mode</c> (<c>full</c>, the default, or
-/// <c>minimal</c>) and <c>Rules:Levels:&lt;rule&gt;</c> (<c>refuse</c> or <c>hint</c>). A level naming a rule the
+/// Reads which rules stop the work: the rules the studio measures (<see cref="MeasuredRules"/>), and from the
+/// configuration <c>Rules:Mode</c> (<c>full</c>, the default, or <c>minimal</c>) and <c>Rules:Levels:&lt;rule&gt;</c>
+/// (<c>refuse</c>, <c>hint</c> or <c>measure</c>). A level naming a rule the
 /// studio does not declare, or a word that is not a level, stops the studio starting, because a setting that
 /// silently does nothing is the fault a setting must not have.
 /// </summary>
@@ -13,6 +14,8 @@ public static class RuleSettings
 {
     public static void Configure(IConfiguration configuration)
     {
+        RulePolicy.UseMeasured(MeasuredRules.Measured());
+
         var mode = configuration["Rules:Mode"];
         if (string.Equals(mode, "minimal", StringComparison.OrdinalIgnoreCase))
             RulePolicy.UseMinimal(MinimalRules.Enforced());

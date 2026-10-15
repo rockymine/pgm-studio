@@ -43,8 +43,8 @@ internal sealed class MapReport(
     /// <summary>How far either side of a line or a route the things standing beside it are named.</summary>
     private const int Beside = 2;
 
-    /// <summary>The smallest roofed void an x-ray is drawn for. Below it the picture is the isometric drawn one
-    /// shade paler, which costs a look and answers nothing.</summary>
+    /// <summary>The smallest underground void an x-ray is drawn for. Below it the picture is a few blocks of
+    /// lining, which costs a look and answers nothing.</summary>
     private const int RoomWorthAnXRay = 200;
 
     /// <summary>The most characters a section runs across; a longer cut samples every few blocks.</summary>
@@ -162,7 +162,8 @@ internal sealed class MapReport(
         var headline = new MapReportHeadlineDto(walked, scrambled, barrier, placed, declined, worstStep, worstRoute,
             [.. Says(walked, scrambled, barrier, placed, declined, worstStep, worstRoute)]);
 
-        var named = Pictures(read, extent, cavities.Count > 0 && cavities[0].Cells >= RoomWorthAnXRay, coverage,
+        var named = Pictures(read, extent,
+                             cavities.Any(cavity => cavity.Underground && cavity.Cells >= RoomWorthAnXRay), coverage,
                              await KeptViews.LoadAsync(artifacts, map.Id, ct));
         var drawn = pictures ? await DrawAsync(read, named, ct) : await UnaskedAsync(named, ct);
 
@@ -422,8 +423,8 @@ internal sealed class MapReport(
     /// which is drawn under the eye's own turn.</summary>
     private sealed record Picture(string Name, string Route, Func<byte[]?>? Draw, EyeAim? Eye = null);
 
-    /// <summary>Every picture the report names: the board in the round from two opposite corners, and in x-ray
-    /// where it roofs a room worth seeing; the board from above, one question at a time; the two sections, the
+    /// <summary>Every picture the report names: the board's isometric from two opposite corners, and its x-ray
+    /// where the ground roofs a void worth seeing; the board from above, one question at a time; the two sections, the
     /// coverage, and every view of it from a player's eye the board keeps or suggests.</summary>
     private static List<Picture> Pictures(BuiltRead read, (int MinX, int MinZ, int MaxX, int MaxZ)? extent,
                                           bool roomWorthAnXRay, GroundCoverage.Result? coverage,

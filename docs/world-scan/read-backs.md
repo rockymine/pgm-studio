@@ -48,8 +48,8 @@ half a cube's width, 1 to 8, default 3.
 | `editability` | — | which columns a player may edit and **what makes each one editable**, as JSON: digit rows over a bounding box, the four `EditZone` words, a colour each, the counts, and `findings`. The zones are `build_zone` · `ground` · `filtered` · `sealed`, read by following PGM's own resolution — the first region-filter application that does not abstain settles the column, and place and break are the separate scopes PGM makes them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16); `layer` draws one storey |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one it was laid to |
-| `render/isometric` | — | the whole board from above at 2:1, a cube a block in the 3-D preview's colours; `corner` = `south-east` · `north-east` · `north-west` · `south-west` stands the camera |
-| `render/xray` | — | the isometric with the ground and the buildings over every roofed void washed out to one pale skin; `?format=text` answers the void scan — every roofed void, its size, its bounds and whether anything can walk into it |
+| `render/isometric` | — | the board from above at 2:1, a cube a block in the 3-D preview's colours; `corner` = `south-east` · `north-east` · `north-west` · `south-west` stands the camera, `box` = `x0,y0,z0,x1,y1,z1` frames it to one place |
+| `render/xray` | — | the underground: only what lines a void the ground roofs, ceilings lifted off; takes `corner` and `box` as the isometric does; `?format=text` answers the void scan — every roofed void, its size, its bounds and whether anything can walk into it |
 | `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort`, `team` whose walk it is |
 | `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells, places, steps, rises, falls, worstStep, beside}`. `?from=x,z&to=x,z`, `aim` and `team` as above; `?beside=N` (0–6) adds every distinct thing recorded within `N` cells of the route |
 | `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated. The header also carries the terrain's inclination at the cell, so a slope band can be checked against the angle that chose it |
@@ -401,7 +401,7 @@ route from a spawn to a goal, with the route it is on. Each is the number its re
 who doubts one opens that reading.
 
 **The pictures are named, and drawn only when asked for.** The board in the round from two opposite corners —
-in x-ray as well where it roofs a room of two hundred blocks or more — the board from above one question at a
+in x-ray as well where the ground roofs a void of two hundred blocks or more — the board from above one question at a
 time, the heightmap, the paint, traversability, the mirror, the two sections, the coverage, and every view of
 the board from a player's eye that it keeps or suggests. Each carries the `GET` route that draws it, which is
 how a picture is drawn again from the board as it stands. `?pictures=true` draws every one into the answer as
@@ -525,9 +525,14 @@ its silhouette.
 quarter at a time, so the four corners are `south-east` — the default, over +x and +z — `north-east`,
 `north-west` and `south-west`. A corner with no name is refused **400**, naming the four.
 
+**A box frames the picture to one place.** `box` is the volume `x0,y0,z0,x1,y1,z1`, both corners inclusive and
+read in either order, the same wire form every route that takes a stated volume reads. Only the blocks inside it
+are drawn, and the picture fits itself to them, so one place takes the whole frame at whatever `scale` is
+asked. A box that is not six whole numbers is refused **400**; one that holds nothing to draw is a **422** that
+names it.
+
 **An isometric draws a room under a meadow as the meadow**, because the meadow is nearer the camera and is
-painted last. `render/xray` is the same camera with one rule added: nothing standing between the camera and a
-roofed void may paint over it.
+painted last. `render/xray` draws the room instead of the meadow.
 
 **A roofed void is air with solid over it in its own column** — the plain meaning of underground, and a test
 that finds a room without being told where to look: a chamber, a tunnel, a house's rooms and the shade under a
@@ -536,31 +541,29 @@ highest block. A run taller than twenty-four blocks is the air under a cloud or 
 than a room, and is dropped without dropping a room in the same column; a void of fewer than six blocks is not
 named.
 
-**The x-ray draws three classes of block.** The *veil* is every block of ground or building on the line of
-sight out of a void — the diagonal (+1, +1, +1) toward the camera — drawn at 15% opacity, nine tenths of the way
-to grey, and only its outer skin, so a hill still reads as a hill and the room reads through it. The *lining* is every
-block with a face onto a void — the floor, the far walls, whatever stands on the floor — drawn opaque in its
-own colour. Everything else is drawn opaque and pulled 60% of the way to grey, so the room's own colours are
-the only chroma in the frame.
-
-**A made thing and a placed prop are never veiled.** A lamp hanging in a room stands on the sight line
-exactly as the ceiling does, and nothing in the blocks tells one from the other. The build does. A run a
-sketch layer laid is ground unless the layer is `kind: "made"` — the attribution `WorldColumns.Attributed`
-makes once, for this read and for the 3-D preview's payload. A run no layer laid is a placed prop's where a
-prop claimed its column last and a building's anywhere else (`WorldProvenance`). So a hillside and a house's
-roof wash out to show the chamber and the rooms under them, while a ship, a tree and a boulder stand as they
-are — the shade under a crown stays behind it, and the scan still counts it.
+**The x-ray draws the underground: what lines a void the ground roofs.** A void is underground where a block of
+a sketch layer's ground stands over some of its air — a tunnel, a crypt, a cave — and not where a building or
+a tree roofs it, since a house's rooms and the shade under a crown are voids the isometric already shows from
+outside. A world with no layer attribution counts every void. A block with a face onto an underground void's
+air is its lining — the floor, the walls, whatever stands in it — and of those the ceiling is left out: a block
+with the void's air under it and none over it. What remains is each void drawn as its floor and its walls, open
+to the camera, with everything round it gone; a lamp standing in a room has the room's air over it and stays.
+The voids are found over the whole board before a `box` frames the drawing, so a void the box cuts through is
+still the void it is, and the caption names the box beside the scan's count. A board, or a box, with no
+underground lining is a **422** that says so.
 
 **The x-ray's text twin is the void scan.** `render/xray?format=text` answers every roofed void, largest first:
-its cells, its x, y and z range in the world's own blocks whichever corner was asked, and whether any air
-reaching the open sky reaches it. A void none reaches is `SEALED - nothing walks in`. A chamber with a stair
+its cells, its x, y and z range in the world's own blocks whichever corner was asked, what roofs it — `ground`
+for a void the picture draws, `a build` for a building's or a crown's — and whether any air reaching the open
+sky reaches it. A void none reaches is `SEALED - nothing walks in`. A chamber with a stair
 down to it is open through its own shaft, so a sealed one is a space no player can enter — which on a board
 that meant to build a room is a finding.
 
 ```text
 GET /api/map/{slug}/render/isometric                       the board from the south-east
 GET /api/map/{slug}/render/isometric?corner=north-west     from the far corner
-GET /api/map/{slug}/render/xray                            the ground over every room washed out
+GET /api/map/{slug}/render/isometric?box=-20,0,-20,20,255,20   one place, framed
+GET /api/map/{slug}/render/xray                            the underground, ceilings lifted
 GET /api/map/{slug}/render/xray?format=text                the void scan
 ```
 

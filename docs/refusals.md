@@ -304,15 +304,31 @@ return;` — which writes only the refusals, so a complaint never arrives dresse
 ## Which rules stop the work
 
 **A rule's level says what a finding citing it does on this studio: `refuse` stops the work wherever a gate asks,
-`hint` lets the work go ahead with the finding beside it.** A rule with no level does what its code says. The
-level comes from the first of three places that states one: an admin's setting on the rules page, the studio's
-configuration, and its mode. `RulePolicy` (`PgmStudio.Vocabulary`) holds all three, and `Finding` asks it when one
+`hint` lets the work go ahead with the finding beside it, and `measure` lets it go ahead with the finding read as
+the number it measured against its range.** A rule with no level does what its code says. The level comes from
+the first of four places that states one: an admin's setting on the rules page, the studio's configuration, the
+tier the rule's family is measured in, and the studio's mode. `RulePolicy` (`PgmStudio.Vocabulary`) holds all three, and `Finding` asks it when one
 is made, so a refusal under a hinted rule is written with `severity: complaint` from the start and a complaint under
 a refused one with `severity: refusal`. Every gate's `Refuses` reads the result without knowing a setting exists. A
 decline is never changed: it says something is not in the world.
 
+**Walks, distances, gap widths and front lines are measured rather than enforced.** Every rule of the families
+`GO`, `WL`, `CT`, `LN`, `FR` and `MD` is a `measure` with `levelSource: tier` unless a setting says otherwise
+(`MeasuredRules`, `PgmStudio.Api`) — except `WL14`, a wool room touching its own spawn, which is a fault in the
+pieces and keeps its code's refusal. A measure answers a refusal as a complaint, as a hint does, and its finding
+carries `measured`: the `value` it took and the `low` and `high` it is held to, an edge absent where the rule
+states only the other. The check lists draw that reading — the number, the range, and a bar where both edges are
+known — rather than the sentence. What stays hard is what makes a map that works: valid XML and pieces, nothing
+built inside a house, a sensible goal, float and reach; what is a hint is spacing, ground under a house, sketch
+overlaps and style. Those two are the code's own levels, so no setting states them.
+
+```json
+{"rule": "WL2", "message": "the walking distance from a spawn to its nearest wool is 10 blocks, less than 20 blocks",
+ "severity": "complaint", "subjects": ["spawn", "wool"], "measured": {"value": 10, "low": 20}}
+```
+
 **The configuration states levels per rule, and the mode relaxes many at once.** `Rules:Levels:<rule>` takes
-`refuse` or `hint` (in `appsettings.json`, or as `Rules__Levels__GO1=refuse` in the environment; an id with a hyphen
+`refuse`, `hint` or `measure` (in `appsettings.json`, or as `Rules__Levels__GO1=refuse` in the environment; an id with a hyphen
 is set through `env "Rules__Levels__DR-CROSS=hint"`, since a shell cannot name such a variable itself). `Rules:Mode`
 takes `full`, the default, or `minimal`. A level naming a rule the studio does not declare, a word that is not a
 level, or a mode that is not one of the two stops the studio starting, because a setting that silently does
@@ -339,7 +355,7 @@ other decline still drops what it names.
 | Endpoint | Does | Fails with |
 |---|---|---|
 | `GET /rules` | every rule, each carrying `level` and `levelSource` where a setting states one | 400 `RQ1` a word not in a filter's set |
-| `PUT /rules/{rule}/level` | stores an admin's level, `{"level": "refuse"}` or `{"level": "hint"}`, and answers the rule as it now stands. Admin only | 400 `RQ1` not a level · 404 `RQ4` no such rule |
+| `PUT /rules/{rule}/level` | stores an admin's level, `{"level": "refuse"}`, `{"level": "hint"}` or `{"level": "measure"}`, and answers the rule as it now stands. Admin only | 400 `RQ1` not a level · 404 `RQ4` no such rule |
 | `DELETE /rules/{rule}/level` | takes the admin's level off, so the configuration or the code decides, and answers the rule. Admin only | 404 `RQ4` no such rule |
 
 ## What a success carries
