@@ -14,6 +14,7 @@ public class RulePolicyTests
     {
         RulePolicy.Configure(new Dictionary<string, string>());
         RulePolicy.Store(new Dictionary<string, string>());
+        RulePolicy.UseMeasured([]);
     }
 
     [Test]
@@ -60,5 +61,29 @@ public class RulePolicyTests
 
         await Assert.That(new Finding("XQ5", "dropped", Severity.Decline).Severity).IsEqualTo(Severity.Decline);
         await Assert.That(new Finding("XQ6", "dropped", Severity.Decline).Severity).IsEqualTo(Severity.Decline);
+    }
+
+    [Test]
+    public async Task A_measured_rule_answers_a_refusal_as_a_complaint_and_turns_nothing_away()
+    {
+        RulePolicy.UseMeasured(["XQ7"]);
+
+        await Assert.That(RulePolicy.LevelOf("XQ7")).IsEqualTo((RuleLevels.Measure, RuleLevelSources.Tier));
+        await Assert.That(new Finding("XQ7", "a walk too short", Measured: new Measurement(12, Low: 20)).Severity)
+            .IsEqualTo(Severity.Complaint);
+        await Assert.That(RulePolicy.Enforces("XQ7")).IsFalse();
+    }
+
+    /// <summary>The tier is the studio's default and every setting overrides it: a configured level, and an
+    /// admin's over that.</summary>
+    [Test]
+    public async Task A_setting_wins_over_the_tier()
+    {
+        RulePolicy.UseMeasured(["XQ8", "XQ9"]);
+        RulePolicy.Configure(new Dictionary<string, string> { ["XQ8"] = RuleLevels.Refuse });
+        RulePolicy.Store(new Dictionary<string, string> { ["XQ9"] = RuleLevels.Hint });
+
+        await Assert.That(new Finding("XQ8", "a remark", Severity.Complaint).Refuses).IsTrue();
+        await Assert.That(RulePolicy.LevelOf("XQ9")).IsEqualTo((RuleLevels.Hint, RuleLevelSources.Studio));
     }
 }

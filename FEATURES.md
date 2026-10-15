@@ -9408,6 +9408,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   as its text. It is an agent's read; the Sketch tool has no page for it.
   (`Export/BoardIsometric`, `Api/Services/MapReport`, `Minecraft/Anvil/WorldColumns`,
   `docs/world-scan/read-backs.md`, `docs/tools/sketch.md`)
+- **A rule's third level, the measure (`RP128`).** `RuleLevels.Measure` never refuses and reads a finding as the
+  number it measured against its range: `Finding.Measured` is `{value, low, high}`, and `Violation` reads its
+  value and band from it. Every rule of `GO`, `WL`, `CT`, `LN`, `FR` and `MD` but `WL14` is a measure by default
+  (`levelSource: tier`); the soft terms, the hard floors `WL2` and `WL19`, `MD7`/`MD8`, and the validator's
+  `WL11`/`WL12`/`WL20`/`LN6`/`FR8`/`FR9`/`CT12` carry their numbers, and the check lists draw them.
+  (`Vocabulary/RulePolicy`, `Vocabulary/Measurement`, `Api/MeasuredRules`, `docs/refusals.md`)
 - **The board's isometric framed to one place, and the x-ray as the rooms alone (`WS90`).** `render/isometric`
   and `render/xray` take `box=x0,y0,z0,x1,y1,z1`, `BlockBox`'s wire form, and draw only what is inside it, so a
   place fills the frame; a box with nothing in it is a 422 naming it. The x-ray draws the underground: every block

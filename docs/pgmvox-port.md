@@ -156,9 +156,8 @@ then. Before any phase reaches pgmstudio.de, a migration dry run over every stor
 
 - The framed isometric shipped as `WS90`: `render/isometric` and `render/xray` take a `box`, so each place gets
   its own picture, and the x-ray draws the rooms alone, as pgmvox's does.
-- The three rule tiers made explicit (`RP128`). `Rules:Mode` and per-rule levels exist; what is missing is a
-  third tier, the measure, shown as a number against a target and never refusing. Which rule takes which tier
-  is the author's D4, below.
+- The three rule tiers shipped as `RP128`: a rule's level may be `measure`, which never refuses and is read as
+  the number it measured against its range, and the families of D4's measures take it by default.
 
 A section along a bent or diagonal line is not ported. 47 of the 49 cutaways pgmvox's boards draw are straight
 cuts along x or z, which `render/section` already draws, and `transect` answers along any polyline in numbers.

@@ -52,12 +52,13 @@ public partial class Rules
     private string? levelError;
 
     /// <summary>The levels an admin picks between: none of their own (the configuration or the code decides), always
-    /// stop, never stop.</summary>
+    /// stop, never stop, never stop and read as a number against its range.</summary>
     private static readonly (string? Value, string Label)[] LevelChoices =
     [
         (null, "Default"),
         (RuleLevels.Refuse, "Stops the work"),
         (RuleLevels.Hint, "Hint only"),
+        (RuleLevels.Measure, "Measure"),
     ];
 
     protected override async Task OnParametersSetAsync()
@@ -171,6 +172,7 @@ public partial class Rules
         var by = rule.LevelSource switch
         {
             RuleLevelSources.Mode => "set by the studio's minimal mode",
+            RuleLevelSources.Tier => "because the studio measures this family rather than enforcing it",
             RuleLevelSources.Config => "set in the studio's configuration",
             RuleLevelSources.Studio => "set by an admin",
             _ => "",
@@ -179,6 +181,7 @@ public partial class Rules
         {
             RuleLevels.Refuse => $"Stops the work wherever a check asks, {by}.",
             RuleLevels.Hint => $"Never stops the work: the finding is shown beside the result, {by}.",
+            RuleLevels.Measure => $"Never stops the work: the finding is shown as the number it measured against its range, {by}.",
             _ => "Does what its code says: where a check refuses on it the work stops, where it remarks the finding rides along.",
         };
     }

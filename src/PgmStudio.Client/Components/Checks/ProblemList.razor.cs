@@ -99,10 +99,19 @@ public partial class ProblemList
 
     private Reading? ReadingOf(Problem problem)
     {
-        if (problem is not { Term: { } term, Value: { } value, Band: [var low, var high] }) return null;
-        var source = terms.FirstOrDefault(each => each.Term == term) is { } known ? RuleWords.BandSource(known) : "learned from maps";
-        var sentence = $"Measured {RuleWords.TermValue(term, value)}. Usually {RuleWords.TermValue(term, low)} to "
-                       + $"{RuleWords.TermValue(term, high)}, {source}.";
+        if (problem.Finding.Measured is not { } measured) return null;
+        var value = measured.Value;
+        string Said(double number) => problem.Term is { } term
+            ? RuleWords.TermValue(term, number)
+            : number.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        if (measured is not { Low: { } low, High: { } high })
+        {
+            var edge = measured.Low is { } least ? $"At least {Said(least)}" : $"At most {Said(measured.High ?? value)}";
+            return new Reading(value, $"Measured {Said(value)}. {edge}.", null);
+        }
+        var source = problem.Term is { } named && terms.FirstOrDefault(each => each.Term == named) is { } known
+            ? RuleWords.BandSource(known) : "as the rule states it";
+        var sentence = $"Measured {Said(value)}. Usually {Said(low)} to {Said(high)}, {source}.";
         var max = Math.Max(high * 1.6, value * 1.15);
         var bar = low < 0 || max <= 0 ? null
             : new Bar(low / max * 100, Math.Max(1.5, (high - low) / max * 100), Math.Min(100, value / max * 100));

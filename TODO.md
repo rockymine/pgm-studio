@@ -16,13 +16,5 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 ## The programme: bringing pgmvox into the studio
 **The author put this programme first.** `docs/pgmvox-port.md` is the programme: pgmvox's capabilities move
 into the studio one phase at a time, each proven against a pgmvox fixture, until a board built on pgmstudio.de
-reaches the ceiling a pgmvox board does. Phase 0 is open; it adds no concept, and the author notices only better
-boards. The phases after it are pulled up as one group each when the one ahead drains.
-
-### Phase 0 — the rule tiers
-
-- [ ] **RP128 — A rule's third level: a measure.** `RuleLevels` holds `refuse` and `hint`; add `measure`, a
-  finding that carries a number and its target and never refuses, rendered as the number against the target.
-  The author's tiers (D4): hard — valid XML and pieces, nothing built inside a house, a sensible goal, float and
-  reach; hint — spacing, ground under a house, sketch overlaps, style; measure — walks, distances, gap widths,
-  front lines (`GO`, `WL`, `CT`, `LN`, `FR`, `MD`). `docs/refusals.md` § levels.
+reaches the ceiling a pgmvox board does. Phase 0 has shipped. Phase 1, the plan of places, is next to be pulled up
+as one group; each phase after it follows when the one ahead drains.

@@ -68,6 +68,7 @@ public enum Severity
 /// document's own vocabulary — a ramp mark for a seam that steps, a bench under a house on falling ground, a
 /// prop moved out of a road's standoff. Absent where the fix is a decision rather than a mechanical
 /// change. A reader applies it rather than re-deriving it from the sentence.</param>
+/// <param name="Measured">The number the finding measured and the range it is held to, where it measured one.</param>
 public sealed record Finding(
     string Rule,
     string Message,
@@ -75,7 +76,8 @@ public sealed record Finding(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Field = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? Subjects = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Cites = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] DocumentEdit? Edit = null)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] DocumentEdit? Edit = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Measurement? Measured = null)
 {
     /// <summary>What became of what it is about, as <see cref="RulePolicy"/> answers it: a refusal under a rule
     /// the policy does not enforce is a complaint.</summary>
