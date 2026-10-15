@@ -153,14 +153,18 @@ then. Before any phase reaches pgmstudio.de, a migration dry run over every stor
 
 ### Phase 0 — in the live studio, with no new words
 
-**The quick wins need no new concept, and the author notices only better boards.**
+**The quick wins need no new concept, and the author notices only better boards.** Its two entries are on
+`TODO.md`.
 
-- Framed reads: an isometric of any box, so each place gets its own picture at four or five pixels a block, and a
-  section along any polyline. These are what let an agent look at a place up close, and they are the most
-  valuable item in this phase.
-- Jump pads (`PG24`), with pgmvox's `solve_launch` ported beside `Geom.Jump`.
-- The three rule tiers made explicit. `Rules:Mode` and per-rule levels exist; what is missing is a third tier,
-  the measure, shown as a number against a target and never refusing.
+- Framed reads (`WS90`): an isometric of any box, so each place gets its own picture at four or five pixels a
+  block, and a section along any polyline. These are what let an agent look at a place up close, and they are
+  the most valuable item in this phase.
+- The three rule tiers made explicit (`RP128`). `Rules:Mode` and per-rule levels exist; what is missing is a
+  third tier, the measure, shown as a number against a target and never refusing. Which rule takes which tier
+  is the author's D4, below.
+
+Jump pads (`PG24`) are not in this phase: the studio does not have them as a capability yet, and they stay a
+backlog entry of their own.
 
 ### Phase 1 — the plan of places and its review sheet
 
@@ -286,17 +290,17 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 
 ## The author's decisions
 
-**These are open, and each blocks the phase named.** A recommendation is given where there is one.
+**Five are taken and two are open; each open one blocks the phase named.**
 
-| # | Decision | Blocks | Recommendation |
+| # | Decision | Blocks | Answer |
 |---|---|---|---|
-| D1 | Port to C#, or run pgmvox as a service beside the studio | 2 | C#, one operation at a time, pgmvox as the laboratory |
-| D2 | Does the layer document replace the sketch (with a migration), or stand beside it first | 2 | replace, after a beta in which both exist |
-| D3 | Where the beta runs: a second instance on pgmstudio.de with a copy of the database, or a switch on the live one | 2 | a second instance; the live studio does not change until the migration has run clean |
-| D4 | Which rules are hard, which a hint, which a measure | 0 | hard: valid XML and pieces, nothing built inside a house, a sensible goal, float and reach; hint: spacing, ground under a house, sketch overlaps, style; measure: walks, distances, gap widths, front lines (GO, WL, CT, LN, FR, MD) |
-| D5 | Phase order: the plan of places before the ground, or after it | 1 | before: it is cheap, needs no engine, and the planning step is what made the freeform boards' places good |
-| D6 | The eight shape decisions (`INVENTORY.md` §5.6, P1–P8): names of places and paths, width as full width, units and one rounding step, noise as a statistical contract, every operation declaring its `mode`, its reads and writes, a seed per operation, symmetry stated once | 2 | adopt the inventory's proposals as written, before the first operation |
-| D7 | When the programme starts: behind `TS130` (the programme on `TODO.md`) or beside it | all | behind it; Phase 0 alone can run beside, because it adds no concept |
+| D1 | Port to C#, or run pgmvox as a service beside the studio | 2 | **taken:** C#, one operation at a time, pgmvox as the laboratory |
+| D2 | Does the layer document replace the sketch (with a migration), or stand beside it first | 2 | open; recommended: replace, after a beta in which both exist |
+| D3 | Where the beta runs: a second instance on pgmstudio.de with a copy of the database, or a switch on the live one | 2 | open; recommended: a second instance, so the live studio does not change until the migration has run clean |
+| D4 | Which rules are hard, which a hint, which a measure | 0 | **taken:** hard: valid XML and pieces, nothing built inside a house, a sensible goal, float and reach; hint: spacing, ground under a house, sketch overlaps, style; measure: walks, distances, gap widths, front lines (GO, WL, CT, LN, FR, MD) |
+| D5 | Phase order: the plan of places before the ground, or after it | 1 | **taken:** before; it is cheap, needs no engine, and the planning step is what made the freeform boards' places good |
+| D6 | The eight shape decisions (`INVENTORY.md` §5.6, P1–P8): names of places and paths, width as full width, units and one rounding step, noise as a statistical contract, every operation declaring its `mode`, its reads and writes, a seed per operation, symmetry stated once | 2 | **taken:** the inventory's proposals as written, before the first operation |
+| D7 | When the programme starts | all | **taken:** now, as the programme on `TODO.md`. `TS130` is parked in `BACKLOG.md`: it is tangled with how land is made, which Phase 2 redesigns, and is taken up when that work reaches it, beside `B264`, `WE28` and `TS64`, which retire there |
 
 ## What this does not decide
 

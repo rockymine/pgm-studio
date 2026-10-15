@@ -489,8 +489,7 @@ question by the same name"*, applied, and the readings that ground was settled f
 Of the causes this section named earlier, the client reading its own schema closed with `C51` (`FEATURES.md`) and
 the compiler's lost identity is `B213` alone, so neither stands as a programme. What is left whole, after the walk, is **the layer
 word** (`B264`, `WE28`, `TS64` — a layer is first-class in the export and an afterthought everywhere
-else), and it waits behind the programme the author put first: a board's source, every change to it, and the
-words it is stated in (`TODO.md`). The pgmvox port's layer document makes every layer addressable by construction, so all three retire when its
+else), and the pgmvox port (`TODO.md`) takes it over. The port's layer document makes every layer addressable by construction, so all three retire when its
 Phase 2 lands rather than being built (`docs/pgmvox-port.md`). The two shop entries that remain (`PG15`, `PG16`) are independent
 extensions of a landed slice rather than one cause, and are therefore roadmap rather than programme.
 

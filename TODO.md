@@ -13,20 +13,25 @@ blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smalle
 it is **4×4** (`WX2`). A dressed prop's 192-cell ceiling (`HP3`) and a room building's 20×20 measure the same
 concept since `WE71`, and holding them apart is a deliberate not-yet.
 
-## The programme: a board's source, every change to it, and the words it is stated in
-**The author put this programme first.** The studio keeps the source a board is stated in and every change to
-it, hands the author's hand edits to the agent's next round, and hands out the vocabulary the source is
-written in. The source, its changes, the kit it is written in, coasts, pulls, basins, outlines and the fan
-as statements, and `pgm-studio-mapgen` stated in all of them have shipped; what remains is the point edits
-reaching every outline a board states. The layer word (`B264`, `WE28`, `TS64`) waits behind it.
+## The programme: bringing pgmvox into the studio
+**The author put this programme first.** `docs/pgmvox-port.md` is the programme: pgmvox's capabilities move
+into the studio one phase at a time, each proven against a pgmvox fixture, until a board built on pgmstudio.de
+reaches the ceiling a pgmvox board does. Phase 0 is open; it adds no concept, and the author notices only better
+boards. The phases after it are pulled up as one group each when the one ahead drains.
 
-### A point edit and a bend reach every outline
+### Phase 0 — framed reads and the rule tiers
 
-- [ ] **TS130 — Point edits and bends reach every outline.** `editShapes` and `bendShapes` address a shape's
-  `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already writes a relief `area` mark's and a
-  push's `ring` and a stroke's, fluid's or flora's `points` (`Refinement.Outlined`). Both reach those three,
-  each refused where an edit folds the ring, so a mark or a prop takes a pull or a bend instead of stated
-  points. `docs/tools/flow.md`.
+- [ ] **WS90 — An isometric of any box, and a section along any line.** `render/isometric` and `render/xray`
+  draw the whole board (`BoardIsometric`); give both a `box` of `x0,z0,x1,z1[,y0,y1]`, refused 422 where it misses
+  the world as `render/section`'s `at` is, so one place is drawn at four or five pixels a block (`scale` up to 8, today's ceiling). Give
+  `render/section` a `points` polyline in `transect`'s spelling, cut and unrolled block by block along it, with
+  `?format=text` from `SectionText`. `docs/world-scan/read-backs.md`.
 
-  *Evidence: 51 of the 79 seeded outlines on the 5b and 5c boards are relief rings or prop points, and so is
-  Gypsum Reach's wash, a push whose ring splices six authored points into a lobed ellipse.*
+  *Evidence: both reads frame the whole world today, so a place is as small in the picture as the board is
+  large; the port asks for one picture per place at four or five pixels a block.*
+
+- [ ] **RP128 — A rule's third level: a measure.** `RuleLevels` holds `refuse` and `hint`; add `measure`, a
+  finding that carries a number and its target and never refuses, rendered as the number against the target.
+  The author's tiers (D4): hard — valid XML and pieces, nothing built inside a house, a sensible goal, float and
+  reach; hint — spacing, ground under a house, sketch overlaps, style; measure — walks, distances, gap widths,
+  front lines (`GO`, `WL`, `CT`, `LN`, `FR`, `MD`). `docs/refusals.md` § levels.

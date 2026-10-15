@@ -22,6 +22,13 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [ ] **TS130 — Point edits and bends reach every outline.** *Parked (author): tangled with how land is made,
+  which the pgmvox port's layer document redesigns; picked up when that work needs it.* `editShapes` and
+  `bendShapes` address a shape's `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already
+  writes a relief `area` mark's and a push's `ring` and a stroke's, fluid's or flora's `points`
+  (`Refinement.Outlined`). Both reach those three, each refused where an edit folds the ring.
+  `docs/tools/flow.md`.
+
 - [ ] **C104 — Where a sketch's layers live.** *Parked (author): deciding the direction themselves.* The
   floating `SketchLayerStrip` is taller than the dock, scrolls sideways and clips its add button on canvases
   under about 820px, and the overlay chips (Shapes, Mirror, Chunks, Blocks, Contours) crowd the canvas beside it.
