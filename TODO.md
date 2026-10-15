@@ -19,13 +19,12 @@ into the studio one phase at a time, each proven against a pgmvox fixture, until
 reaches the ceiling a pgmvox board does. Phase 0 is open; it adds no concept, and the author notices only better
 boards. The phases after it are pulled up as one group each when the one ahead drains.
 
-### Phase 0 — framed reads and the rule tiers
+### Phase 0 — the framed isometric and the rule tiers
 
-- [ ] **WS90 — An isometric of any box, and a section along any line.** `render/isometric` and `render/xray`
-  draw the whole board (`BoardIsometric`); give both a `box` of `x0,z0,x1,z1[,y0,y1]`, refused 422 where it misses
-  the world as `render/section`'s `at` is, so one place is drawn at four or five pixels a block (`scale` up to 8, today's ceiling). Give
-  `render/section` a `points` polyline in `transect`'s spelling, cut and unrolled block by block along it, with
-  `?format=text` from `SectionText`. `docs/world-scan/read-backs.md`.
+- [ ] **WS90 — An isometric of any box.** `render/isometric` and `render/xray` draw the whole board
+  (`BoardIsometric`); give both a `box` of `x0,z0,x1,z1[,y0,y1]`, refused 422 where it misses the world as
+  `render/section`'s `at` is, so one place is drawn at four or five pixels a block (`scale` up to 8, today's
+  ceiling). `docs/world-scan/read-backs.md`.
 
   *Evidence: both reads frame the whole world today, so a place is as small in the picture as the board is
   large; the port asks for one picture per place at four or five pixels a block.*

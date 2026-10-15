@@ -35,7 +35,7 @@ these faults. A check found to be needed later is filed and built on its own, ou
 |---|---|---|
 | Vocabulary | anything can be built; a missing thing costs 5–60 lines, not a schema change | the layer document and its operation families (Phases 2–7), and the made thing as the escape hatch (Phase 8) |
 | The plan of places | places with a reason and a way in, numbers against targets, reviewed before a block is placed | the design document and its review sheet (Phase 1) |
-| Looking up close | one picture per place, sections along any line | framed renders (Phase 0) and reads after any step (Phase 2) |
+| Looking up close | one picture per place, and sections through it | framed renders (Phase 0) and reads after any step (Phase 2) |
 | Accumulation | every board's "what I wanted, how hard" table grew the library | the port protocol below, and the made-thing rule (Phase 8) |
 
 ## Where the two stand on 15 October
@@ -67,7 +67,7 @@ through the studio's Anvil writer and draws through its renderer.
 | Lines | a relief line plus a stroke | walls, hedges and fences along a line; paths graded, paved, stepped and half-stepped; roads found to a grade | 6 |
 | Style | theme buckets: rim, wall, surface, fill, bedrock | a grammar over sections and faces, seven styles, one plan in any of them | 7 |
 | Bespoke things | seven prop kinds | anything | 8 |
-| Renders | whole-board isometric | isometric of any box, cutaways along any line | 0 |
+| Renders | whole-board isometric | isometric of any box | 0 |
 
 ## How a capability moves
 
@@ -156,12 +156,15 @@ then. Before any phase reaches pgmstudio.de, a migration dry run over every stor
 **The quick wins need no new concept, and the author notices only better boards.** Its two entries are on
 `TODO.md`.
 
-- Framed reads (`WS90`): an isometric of any box, so each place gets its own picture at four or five pixels a
-  block, and a section along any polyline. These are what let an agent look at a place up close, and they are
-  the most valuable item in this phase.
+- The framed isometric (`WS90`): an isometric of any box, so each place gets its own picture at four or five
+  pixels a block. It is what lets an agent look at a place up close, and it is the most valuable item in this
+  phase.
 - The three rule tiers made explicit (`RP128`). `Rules:Mode` and per-rule levels exist; what is missing is a
   third tier, the measure, shown as a number against a target and never refusing. Which rule takes which tier
   is the author's D4, below.
+
+A section along a bent or diagonal line is not ported. 47 of the 49 cutaways pgmvox's boards draw are straight
+cuts along x or z, which `render/section` already draws, and `transect` answers along any polyline in numbers.
 
 Jump pads (`PG24`) are not in this phase: the studio does not have them as a capability yet, and they stay a
 backlog entry of their own.
