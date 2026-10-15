@@ -48,8 +48,9 @@ public partial class ProblemList
     /// <summary>One rule's row: its findings of one kind, and for a term out of range, its reading.</summary>
     private sealed record Row(string Key, ProblemKind Kind, string Rule, string? Term, List<Problem> Places, Reading? Reading);
 
-    /// <summary>A term's value against its band, as a sentence and as a bar.</summary>
-    private sealed record Reading(double Value, string Sentence, Bar? Bar);
+    /// <summary>A measured value against its range: the value as the row's header shows it, a sentence, and a bar
+    /// where both edges are known.</summary>
+    private sealed record Reading(string Value, string Sentence, Bar? Bar);
 
     /// <summary>Positions on a bar from zero, in percent: the band's start and width and the value's mark.</summary>
     private sealed record Bar(double Left, double Width, double Mark);
@@ -107,7 +108,7 @@ public partial class ProblemList
         if (measured is not { Low: { } low, High: { } high })
         {
             var edge = measured.Low is { } least ? $"At least {Said(least)}" : $"At most {Said(measured.High ?? value)}";
-            return new Reading(value, $"Measured {Said(value)}. {edge}.", null);
+            return new Reading(Said(value), $"Measured {Said(value)}. {edge}.", null);
         }
         var source = problem.Term is { } named && terms.FirstOrDefault(each => each.Term == named) is { } known
             ? RuleWords.BandSource(known) : "as the rule states it";
@@ -115,7 +116,7 @@ public partial class ProblemList
         var max = Math.Max(high * 1.6, value * 1.15);
         var bar = low < 0 || max <= 0 ? null
             : new Bar(low / max * 100, Math.Max(1.5, (high - low) / max * 100), Math.Min(100, value / max * 100));
-        return new Reading(value, sentence, bar);
+        return new Reading(Said(value), sentence, bar);
     }
 
     private RuleDto? RuleOf(string rule) => rules.GetValueOrDefault(rule);
