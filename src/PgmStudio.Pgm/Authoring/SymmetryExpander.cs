@@ -143,6 +143,9 @@ public static class SymmetryExpander
                     Point = TransformPt(src.Point, sym, k),
                     Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
                     Yaw = TransformYaw(src.Yaw, sym, k),
+                    Footprint = src.Footprint is { } footprint ? TransformRect(footprint, sym, k) : null,
+                    Iron = [.. src.Iron.Select(iron => TransformPt(iron, sym, k))],
+                    Doors = TransformDoors(src.Doors, sym, k),
                 });
             }
         }
@@ -171,6 +174,8 @@ public static class SymmetryExpander
                     Reflected = src.Reflected != Symmetry.Reflects(sym.Mode, k),
                     Color = "",   // orbit copies default to the new owner team's colour (WoolGenerator.ColorSlug)
                     Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
+                    Footprint = src.Footprint is { } footprint ? TransformRect(footprint, sym, k) : null,
+                    Entries = [.. src.Entries.Select(entry => TransformRect(entry, sym, k))],
                     Spawn = TransformBlock(src.Spawn, sym, k),
                     Monuments = [.. src.Monuments.Select(m => m with
                     {
@@ -522,6 +527,22 @@ public static class SymmetryExpander
         var (tx, tz) = Symmetry.Point(-Math.Sin(rad), Math.Cos(rad), sym.Mode, 0, 0, k);
         var deg = Math.Atan2(-tx, tz) * 180.0 / Math.PI;
         return Math.Round(((deg % 360) + 360) % 360, 1);
+    }
+
+    // The walls a room opens through, as the edges their outward normals point at once turned by the linear
+    // part of the symmetry op. Order is kept, because the first door is the one a room is measured from.
+    private static List<string> TransformDoors(List<string> doors, SymmetryIntent sym, int k)
+    {
+        var turned = new List<string>(doors.Count);
+        foreach (var door in doors)
+        {
+            if (RoomEdges.OfWord(door) is not { } edge) { turned.Add(door); continue; }
+            var (ox, oz) = edge.Outward();
+            var (tx, tz) = Symmetry.Point(ox, oz, sym.Mode, 0, 0, k);
+            var step = ((int)Math.Round(tx), (int)Math.Round(tz));
+            turned.Add(RoomEdges.Nearest(step, RoomEdges.All) is { } image ? image.Word() : door);
+        }
+        return turned;
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────────────────

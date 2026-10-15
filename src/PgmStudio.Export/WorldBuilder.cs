@@ -248,17 +248,13 @@ public static class WorldBuilder
                         new StampId("ironcube", $"{s.Stamp.Unit}:{ironIndex++}", s.Stamp.Image));
                 }
 
-            resolvedSpawns.Add(new SpawnIntent
+            resolvedSpawns.Add(s with
             {
-                Team = s.Team,
                 // The player stands on the pad — the exported point follows it (WX5).
                 Point = new Pt(frame.Pad.CenterX, fy + 1, frame.Pad.CenterZ),
                 // Encase the auto-placed spawn room (unless the author drew their own protection).
                 Protection = s.Protection.Count > 0 ? s.Protection
                     : [new Rect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)],
-                Yaw = s.Yaw,
-                Footprint = s.Footprint,
-                Iron = s.Iron,
             });
         }
 
@@ -269,17 +265,13 @@ public static class WorldBuilder
         {
             var w = wools[i];
             var frame = woolFrame[i];
-            resolvedWools[i] = new WoolIntent
+            resolvedWools[i] = w with
             {
-                Owner = w.Owner,
-                Color = w.Color,
                 // Encase the auto-placed wool cage (unless the author drew their own region).
                 Protection = w.Protection.Count > 0
                     ? w.Protection : [new Rect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)],
                 // The wool dispenses from the pad — the exported point follows it (WX5).
                 Spawn = new Pt(frame.Pad.CenterX, woolFloor[i], frame.Pad.CenterZ),
-                Footprint = w.Footprint,
-                Entries = w.Entries,
                 // Only teams that actually got a spawn cube have a placement cell; a capturer without a
                 // spawn has no world location, so skip it rather than emit a phantom monument at (0,0,0).
                 Monuments = [.. Capturers(w, teams)

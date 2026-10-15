@@ -31,6 +31,8 @@ public static class IntentWrite
         if (Unbindable(body) is { } unreadable) return new(new Refusal(400, "unreadable document", [unreadable]));
         var intent = Stated(body) ?? new MapIntent();
         if (Unnamable(intent) is { } named) return new(named);
+        if (PlayIds.Duplicates(intent).ToList() is { Count: > 0 } twice) return new(new Refusal(409, "id taken", twice));
+        intent = PlayIds.Assign(intent);
 
         if (await ProjectionRefusalAsync(reader, slug, intent, ct) is { } unprojectable) return new(unprojectable);
         if (await UnseatedMonumentsAsync(features, artifacts, mapId, intent, ct) is { } unseated) return new(unseated);

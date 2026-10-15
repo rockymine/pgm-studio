@@ -223,7 +223,8 @@ landed.
 
 - Play pieces as sketch objects: a spawn, a wool room, a monument, a core, iron, a build zone and a protection
   zone placed, dragged and turned in the sketch, each writing its entry of the intent, so moving one recompiles
-  nothing.
+  nothing. The intent is the one place a piece is stored, a drag moves its whole symmetry orbit, every piece has a
+  stable id (shipped as `TS174`), and Configure's detection flow stays for maps read from a world (D13).
 - The places layer and the design document: `design_json` inside `PUT source`, with diff; places drawn with the
   sketch's own tools on a layer that never rasterizes, linking only to intent objects; the review sheet, note
   anchors on places, routes, targets and sections, and a verdict.
@@ -348,7 +349,7 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 
 ## The author's decisions
 
-**Eight are taken and four are open; each open one blocks the phase named.**
+**Nine are taken and four are open; each open one blocks the phase named.**
 
 | # | Decision | Blocks | Answer |
 |---|---|---|---|
@@ -364,6 +365,7 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 | D10 | Does `POST /plan/compile` stay, as a one-shot converter from rectangles | 1 | open; recommended: yes, since the generator compiles its pieces anyway and the converter costs nothing beside it |
 | D11 | Which of `pgm-studio-mapgen`'s 174 plan-and-refinement specs move to sketch sources | 1 | open; recommended: the boards still worked on, with the rest frozen as archive |
 | D12 | The order a map is made in | 1 | **taken:** idea, places, terraform with water and caves, layout, look, review, build, play review; a map may also start from one section (*The order a map is made in*) |
+| D13 | Play pieces in the sketch: where a piece is stored, what a drag moves, how it is named, what Configure keeps | 1 | **taken:** the intent is the one store and the sketch draws from it; a drag moves the whole orbit; every piece has a stable id, migrated onto stored maps; imported maps keep Configure's detection flow |
 
 ## What this does not decide
 

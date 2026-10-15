@@ -421,6 +421,9 @@ public sealed record TeamDef
 /// Standard preset (not author-selectable yet — see <c>TeamsGenerator</c>), so it isn't part of the intent.</summary>
 public sealed record SpawnIntent
 {
+    /// <summary>The piece's id, unique among the intent's play pieces (<see cref="PlayIds"/>).</summary>
+    public string Id { get; init; } = "";
+
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
@@ -489,6 +492,9 @@ public sealed record ObserverIntent
 /// captured by the teams in <see cref="Monuments"/> (one each, the non-owners).</summary>
 public sealed record WoolIntent
 {
+    /// <summary>The piece's id, unique among the intent's play pieces (<see cref="PlayIds"/>).</summary>
+    public string Id { get; init; } = "";
+
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
@@ -569,6 +575,9 @@ public sealed record MonumentIntent
 /// </summary>
 public sealed record DestroyableIntent
 {
+    /// <summary>The piece's id, unique among the intent's play pieces (<see cref="PlayIds"/>).</summary>
+    public string Id { get; init; } = "";
+
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
@@ -626,6 +635,9 @@ public sealed record DestroyableIntent
 /// </summary>
 public sealed record CoreIntent
 {
+    /// <summary>The piece's id, unique among the intent's play pieces (<see cref="PlayIds"/>).</summary>
+    public string Id { get; init; } = "";
+
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>

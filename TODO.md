@@ -22,14 +22,23 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS169 — Play pieces are sketch objects that write the intent.** A spawn, a wool room, a monument, a core,
-  iron, a build zone and a protection zone are placed, dragged and turned in the sketch like a house or a tree,
-  and each writes its entry of `MapIntent` (`Spawns`, `Wools`, `Destroyables`, …), so moving one recompiles
-  nothing. Configure's placement steps become the inspector of a selected piece. `docs/tools/sketch.md`,
-  `docs/tools/configure.md`.
+- [ ] **TS175 — One way to move a play piece, and the room stored once.** `PATCH /map/{slug}/intent/pieces/{id}`
+  moves or turns any spawn, wool, destroyable or core by its id and moves its whole symmetry orbit, generalizing
+  `RoomPieceMove`; a copy broken out of the orbit is moved alone. The room rectangle stops being stored in the
+  layout's structural shapes: the sketch, the paint scope and the relief pin read it from the intent, and a
+  migration carries an author-corrected `height_authored` onto the intent first. `docs/tools/sketch.md`.
 
-  *Evidence: a monument stated in a plan moves only through `PlanCompiler.Compile` and `sketch/from-plan`, which
-  replaces every shape the plan made and answers 409 per relief it would orphan (`docs/tools/flow.md`).*
+  *Evidence: a Configure edit writes only the intent, so the layout's copy of the room goes stale until the next
+  `sketch/from-plan` (`PlanCompiler.AppendStructuralShape`, `sketch-bridge.js` `moveStructural`).*
+
+- [ ] **TS169 — Play pieces are sketch objects.** Every spawn, wool room, destroyable, core, iron cube, build area
+  and the observer is drawn in the sketch from the intent, selected, dragged and turned through TS175's route,
+  with an inspector beside it and new pieces placed from the toolbar, reusing the dressing controller's grips and
+  drag. `docs/tools/sketch.md`.
+
+- [ ] **TS176 — Configure's placement steps become the sketch's inspector.** On a map the studio built, the
+  spawn, protection, wool, destroyable, core and build steps are the inspector of a selected piece; on a map
+  read from a world, detection and the monument-seat check stay Configure's own flow. `docs/tools/configure.md`.
 
 - [ ] **TS170 — The places layer and the design document.** `design_json` stored inside `PUT source` as numbered
   changes, with diff; places drawn with the sketch's own tools on a layer that never rasterizes, each with its
