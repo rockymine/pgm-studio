@@ -22,11 +22,12 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [~] **TS169 — Play pieces are sketch objects.** A new Layout phase picks, drags and turns the pieces as Draw does,
-  and alone adds and deletes them, from the plan editor's Pieces, Zones and Markers toolbars carried across without
-  the plan's terrain piece and buffer, rooms and zones drawn as rectangles only (D14). Adding needs a route that
-  places one piece and its images in the intent. The plan inspector's fields move across to the picked piece with
-  their own text. `docs/tools/sketch.md`.
+- [~] **TS169 — Play pieces are sketch objects.** Draw splits into a Ground step and a Layout step (D14). Layout picks,
+  drags and turns the pieces as Ground does, and alone adds and deletes them, from the plan editor's Pieces, Zones
+  and Markers toolbars carried across without the plan's terrain piece and buffer, rooms and zones drawn as
+  rectangles only. A spawn or wool room placed over no ground also adds a rectangle shape of ground the size of the
+  room. Adding needs a route that places one piece and its images in the intent. The plan inspector's fields move
+  across to the picked piece with their own text. `docs/tools/sketch.md`.
 
 - [ ] **TS176 — Configure's placement steps become the sketch's inspector.** On a map the studio built, the
   spawn, protection, wool, destroyable, core and build steps are the inspector of a selected piece; on a map
