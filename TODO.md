@@ -37,6 +37,16 @@ studio usable.
   layer's read-only view; note anchors on places, routes, targets and sections, and a verdict.
   `pgm-studio-mapgen/analysis/freeform-vs-studio/PLAN-REVIEW-DESIGN.md` is the design. `docs/tools/sketch.md`.
 
+- [ ] **TS172 — The look is stated before the review.** A palette, a house style per area, tree and rock zones and
+  the biome as sketch data, drawn on the review sheet and applied by the build, so the author judges what a board
+  is made of before it is built (D12, phase 5). `docs/tools/sketch.md`.
+
+  *Evidence: four of the seven points of Abbeymoor's first review were paint, materials or dressing, and no picture
+  before its build showed any of them (`experiment/REVIEW-1.md`).*
+
+- [ ] **TS173 — A map's size is stated with its idea.** A size in Sketch Info, beside the symmetry, read by the
+  places and the terraform; today Info says there is no size to set. `docs/tools/sketch.md`.
+
 - [ ] **G301 — The generator emits a sketch.** The composer keeps its piece model (`Compose/Composer`) and ends in a
   layout and an intent rather than a stored plan, so a kept candidate opens in Sketch. `docs/generator/model.md`,
   `docs/tools/generator.md`.
