@@ -99,8 +99,8 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
 }
 
 /// <summary>
-/// PATCH /api/map/{slug}/intent/pieces/{id} — put one play piece, and every orbit image of it, where the
-/// sketch just dragged it. <see cref="PlayPieceMove"/> holds what that means and what refuses it; this route
+/// PATCH /api/map/{slug}/intent/pieces/{id} — move one play piece, and every orbit image of it, where the
+/// sketch just dragged it, or turn a room in place. <see cref="PlayPieceMove"/> holds what that means and what refuses it; this route
 /// reads the stored intent, hands it over, and stores and projects the answer the way an ordinary intent PUT
 /// does, so the map.xml the move implies is rewritten in the same call.
 /// </summary>
@@ -121,8 +121,20 @@ public sealed class IntentPieceMoveEndpoint(
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
-        var (moved, refused) = PlayPieceMove.Apply(
-            intent, Route<string>("id")!, req.Part, new Rect(req.MinX, req.MinZ, req.MaxX, req.MaxZ));
+        var id = Route<string>("id")!;
+        var bounds = new[] { req.MinX, req.MinZ, req.MaxX, req.MaxZ };
+        var placed = bounds.All(bound => bound is not null);
+        if (placed == (req.Turn is not null) || (!placed && bounds.Any(bound => bound is not null)))
+        {
+            await Refusals.StopAsync(HttpContext, 400, "the move cannot be made", Findings.Of(new Finding(
+                RequestRules.Unreadable, "the request states neither all four bounds of a placed rectangle nor a "
+                + "`turn`, or states both", Field: "turn")), ct);
+            return;
+        }
+        var (moved, refused) = placed
+            ? PlayPieceMove.Apply(intent, id, req.Part, new Rect(req.MinX!.Value, req.MinZ!.Value, req.MaxX!.Value,
+                                                                 req.MaxZ!.Value), req.Alone)
+            : PlayPieceMove.Turn(intent, id, req.Part, req.Turn!.Value, req.Alone);
 
         // 404 where the id names nothing, 400 where the move itself cannot be made: one names a
         // subject the studio does not hold and the other a request it cannot act on, and only the second is

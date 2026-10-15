@@ -236,8 +236,10 @@ public sealed record MapMetadataRequest(
     [property: JsonPropertyName("max_build_height")] double? MaxBuildHeight = null,
     IReadOnlyList<MapAuthorDto>? Authors = null);
 
-/// <summary>Put one play piece where the sketch dragged it — a spawn, a wool, a destroyable or a core, named
-/// by the path's <c>id</c>. Every orbit image of the piece moves with it.</summary>
+/// <summary>Move or turn one play piece — a spawn, a wool, a destroyable or a core, named by the path's
+/// <c>id</c>. A body states the four bounds of a placed rectangle, which moves the piece there, or a
+/// <c>turn</c>, which turns a room in place; never both. Every orbit image of the piece moves or turns with it
+/// unless the body states <c>alone</c>.</summary>
 /// <param name="Part">Absent for the piece itself — a room's region, which carries the room seated on it, or
 /// an objective's structure — the room's own region word (<c>spawn</c>, <c>woolRoom</c>) for the same, or
 /// <c>building</c> for the footprint raised on a room's region.</param>
@@ -248,9 +250,15 @@ public sealed record MapMetadataRequest(
 /// <param name="MinZ">Its north edge.</param>
 /// <param name="MaxX">Its east edge.</param>
 /// <param name="MaxZ">Its south edge.</param>
+/// <param name="Turn">Quarter turns clockwise seen from above, about the middle of the room's region — or of its
+/// building, with <c>part</c> <c>building</c>. Negative turns the other way. An objective states no facing and
+/// is refused one.</param>
+/// <param name="Alone">Move or turn the named image without the other images of its authored unit.</param>
 public sealed record PieceMoveRequest(
-    [property: WordSet(typeof(StructuralRoles))] string? Part,
-    [property: JsonPropertyName("minX")] double MinX,
-    [property: JsonPropertyName("minZ")] double MinZ,
-    [property: JsonPropertyName("maxX")] double MaxX,
-    [property: JsonPropertyName("maxZ")] double MaxZ);
+    [property: WordSet(typeof(StructuralRoles))] string? Part = null,
+    [property: JsonPropertyName("minX")] double? MinX = null,
+    [property: JsonPropertyName("minZ")] double? MinZ = null,
+    [property: JsonPropertyName("maxX")] double? MaxX = null,
+    [property: JsonPropertyName("maxZ")] double? MaxZ = null,
+    int? Turn = null,
+    bool Alone = false);

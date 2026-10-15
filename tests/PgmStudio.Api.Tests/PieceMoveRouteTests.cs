@@ -162,4 +162,34 @@ public sealed class PieceMoveRouteTests
         await Assert.That(await ProtectionAsync(client, slug))
             .IsEqualTo((100, 50, 110, 60));
     }
+
+    /// <summary>A turn is asked of the same route and stored the same way: the ten-block region turns about
+    /// its middle, a square, so it stands where it stood and the building on it turns.</summary>
+    [Test]
+    public async Task A_turn_is_stored_with_the_room_turned()
+    {
+        var (client, slug) = await BoardAsync();
+        using var _ = client;
+
+        var turned = await MoveAsync(client, slug, "spawn-red", new { turn = 1 });
+        await Assert.That(turned.IsSuccessStatusCode).IsTrue().Because(await turned.Content.ReadAsStringAsync());
+
+        var spawn = await SpawnAsync(client, slug);
+        await Assert.That(spawn.GetProperty("protection").EnumerateArray().Single().GetProperty("minX").GetDouble())
+            .IsEqualTo(0);
+        await Assert.That(spawn.GetProperty("point").GetProperty("z").GetDouble()).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task A_body_stating_a_rectangle_and_a_turn_answers_400()
+    {
+        var (client, slug) = await BoardAsync();
+        using var _ = client;
+
+        var both = await MoveAsync(client, slug, "spawn-red", new { minX = 0, minZ = 0, maxX = 10, maxZ = 10, turn = 1 });
+        var neither = await MoveAsync(client, slug, "spawn-red", new { part = "building" });
+
+        await Assert.That(both.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        await Assert.That(neither.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
 }

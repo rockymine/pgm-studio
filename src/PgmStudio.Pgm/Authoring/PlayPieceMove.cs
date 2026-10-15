@@ -17,10 +17,16 @@ namespace PgmStudio.Pgm.Authoring;
 /// entries — because the region is the ground they stand on. Moving the <b>building</b> moves the building
 /// alone. A goal has one rectangle, its structure's footprint, and moving it moves the anchor.</para>
 ///
+/// <para><b>A room also turns,</b> a quarter at a time about the middle of its region — the region, the marker, the
+/// building, the iron, the entries and the doors with it — or its building alone about the building's middle. An
+/// objective states no facing, so it does not turn.</para>
+///
 /// <para><b>The orbit moves together.</b> Every piece of the same kind stating the same
 /// <see cref="StampId.Identity"/> is an image of one authored unit, and image <c>j</c> of a unit whose image
 /// <c>i</c> moved by <c>d</c> moves by <c>d</c> turned through the symmetry's step <c>j − i</c>, so a mirrored
-/// board stays mirrored. A piece with no stamp is its own unit and moves alone.</para>
+/// board stays mirrored; it turns the same way where the step is a rotation and the other way where it is a
+/// reflection. A piece with no stamp is its own unit and moves alone, and <c>alone</c> moves or turns the named
+/// image without its others.</para>
 /// </summary>
 public static class PlayPieceMove
 {
@@ -28,7 +34,8 @@ public static class PlayPieceMove
     /// <paramref name="part"/> — the room's own region word or absent for the piece itself, <c>building</c> for
     /// a room's building — stands at <paramref name="placed"/>, or the findings that stopped it and a null
     /// intent. Pure: the caller stores and projects.</summary>
-    public static (MapIntent? Intent, Findings Refused) Apply(MapIntent intent, string id, string? part, Rect placed)
+    public static (MapIntent? Intent, Findings Refused) Apply(
+        MapIntent intent, string id, string? part, Rect placed, bool alone = false)
     {
         var building = part == StructuralRoles.Building;
         var mode = intent.Symmetry?.Mode;
@@ -39,7 +46,7 @@ public static class PlayPieceMove
             var stopped = Stopped(spawn.Protection, spawn.Footprint, building, placed);
             if (stopped is not null) return (null, stopped);
             var (dx, dz) = Shift(building ? spawn.Footprint!.Value : spawn.Protection[0], placed);
-            var spawns = Orbit(intent.Spawns, spawnAt, entry => entry.Stamp, mode, dx, dz,
+            var spawns = Orbit(intent.Spawns, spawnAt, entry => entry.Stamp, mode, alone, dx, dz,
                 (entry, x, z) => building ? entry with { Footprint = Slide(entry.Footprint, x, z) } : entry with
                 {
                     Protection = [.. entry.Protection.Select(r => Slide(r, x, z))],
@@ -59,7 +66,7 @@ public static class PlayPieceMove
             var stopped = Stopped(wool.Protection, wool.Footprint, building, placed);
             if (stopped is not null) return (null, stopped);
             var (dx, dz) = Shift(building ? wool.Footprint!.Value : wool.Protection[0], placed);
-            var moved = Orbit(wools, woolAt, entry => entry.Stamp, mode, dx, dz,
+            var moved = Orbit(wools, woolAt, entry => entry.Stamp, mode, alone, dx, dz,
                 (entry, x, z) => building ? entry with { Footprint = Slide(entry.Footprint, x, z) } : entry with
                 {
                     Protection = [.. entry.Protection.Select(r => Slide(r, x, z))],
@@ -80,7 +87,7 @@ public static class PlayPieceMove
                 DestroyableStyles.TryParse(goal.Style, out var style) ? style : ObjectiveDefaults.Style);
             if (GoalShift(goal.Anchor, width, depth, placed, out var dx, out var dz) is { } stopped)
                 return (null, stopped);
-            var moved = Orbit(destroyables, goalAt, entry => entry.Stamp, mode, dx, dz,
+            var moved = Orbit(destroyables, goalAt, entry => entry.Stamp, mode, alone, dx, dz,
                 (entry, x, z) => entry with { Anchor = Slide(entry.Anchor, x, z), Box = null });
             return (intent with { Destroyables = moved }, Findings.None);
         }
@@ -93,11 +100,45 @@ public static class PlayPieceMove
             var (width, depth) = ObjectiveFootprint.Core(core.Size);
             if (GoalShift(core.Anchor, width, depth, placed, out var dx, out var dz) is { } stopped)
                 return (null, stopped);
-            var moved = Orbit(cores, coreAt, entry => entry.Stamp, mode, dx, dz,
+            var moved = Orbit(cores, coreAt, entry => entry.Stamp, mode, alone, dx, dz,
                 (entry, x, z) => entry with { Anchor = Slide(entry.Anchor, x, z), Box = null });
             return (intent with { Cores = moved }, Findings.None);
         }
 
+        return Refuse(RequestRules.NoSuchSubject, "id", $"the map has no play piece with the id '{id}'", id);
+    }
+
+    /// <summary>The intent with the room <paramref name="id"/> — or, with <paramref name="part"/>
+    /// <c>building</c>, its building alone — turned <paramref name="quarters"/> quarter turns clockwise seen from
+    /// above, and its orbit images with it, or the findings that stopped it and a null intent.</summary>
+    public static (MapIntent? Intent, Findings Refused) Turn(
+        MapIntent intent, string id, string? part, int quarters, bool alone = false)
+    {
+        var building = part == StructuralRoles.Building;
+        var mode = intent.Symmetry?.Mode;
+        if (intent.Spawns.FindIndex(spawn => spawn.Id == id) is var spawnAt and >= 0)
+        {
+            if ((Unpartable(part, StructuralRoles.Spawn) ?? Unturnable(intent.Spawns[spawnAt].Protection,
+                    intent.Spawns[spawnAt].Footprint, building)) is { } stopped) return (null, stopped);
+            var spawns = Images(intent.Spawns, spawnAt, entry => entry.Stamp, mode, alone,
+                (entry, step) => TurnSpawn(entry, building, Handed(quarters, mode, step)));
+            return Checked(intent with { Spawns = spawns }, Carried(intent.Spawns, spawns)
+                .Select(entry => (entry.Id, entry.Protection, entry.Footprint)));
+        }
+
+        var wools = intent.Wools ?? [];
+        if (wools.FindIndex(wool => wool.Id == id) is var woolAt and >= 0)
+        {
+            if ((Unpartable(part, StructuralRoles.WoolRoom) ?? Unturnable(wools[woolAt].Protection,
+                    wools[woolAt].Footprint, building)) is { } stopped) return (null, stopped);
+            var turned = Images(wools, woolAt, entry => entry.Stamp, mode, alone,
+                (entry, step) => TurnWool(entry, building, Handed(quarters, mode, step)));
+            return Checked(intent with { Wools = turned }, Carried(wools, turned)
+                .Select(entry => (entry.Id, entry.Protection, entry.Footprint)));
+        }
+
+        if ((intent.Destroyables ?? []).Any(goal => goal.Id == id) || (intent.Cores ?? []).Any(core => core.Id == id))
+            return Refuse(RequestRules.Unreadable, "turn", $"'{id}' is an objective, which states no facing to turn");
         return Refuse(RequestRules.NoSuchSubject, "id", $"the map has no play piece with the id '{id}'", id);
     }
 
@@ -106,12 +147,24 @@ public static class PlayPieceMove
     /// step between the two images. A resolved goal box is dropped by the caller's slide, since the world
     /// build resolves it again over the ground the goal now stands on.</summary>
     private static List<T> Orbit<T>(
-        List<T> pieces, int at, Func<T, StampId> stampOf, string? mode, double dx, double dz,
-        Func<T, double, double, T> slide)
+        List<T> pieces, int at, Func<T, StampId> stampOf, string? mode, bool alone, double dx, double dz,
+        Func<T, double, double, T> slide) =>
+        Images(pieces, at, stampOf, mode, alone, (piece, step) =>
+        {
+            if (step == 0) return slide(piece, dx, dz);
+            var (x, z) = Symmetry.Point(dx, dz, mode, 0, 0, step);
+            return slide(piece, Math.Round(x), Math.Round(z));
+        });
+
+    /// <summary>The list with <paramref name="change"/> applied to the piece at <paramref name="at"/> (step 0)
+    /// and, unless <paramref name="alone"/>, to every other image of its unit, given the symmetry step from the
+    /// named image to it.</summary>
+    private static List<T> Images<T>(
+        List<T> pieces, int at, Func<T, StampId> stampOf, string? mode, bool alone, Func<T, int, T> change)
     {
-        var moved = new List<T>(pieces) { [at] = slide(pieces[at], dx, dz) };
+        var changed = new List<T>(pieces) { [at] = change(pieces[at], 0) };
         var stamp = stampOf(pieces[at]);
-        if (string.IsNullOrEmpty(stamp.Kind)) return moved;
+        if (alone || string.IsNullOrEmpty(stamp.Kind)) return changed;
 
         var order = Symmetry.Order(mode);
         for (var index = 0; index < pieces.Count; index++)
@@ -119,11 +172,95 @@ public static class PlayPieceMove
             var image = stampOf(pieces[index]);
             if (index == at || image.Identity != stamp.Identity || image.Image == stamp.Image) continue;
             if (image.Image >= order || stamp.Image >= order) continue;
-            var step = ((image.Image - stamp.Image) % order + order) % order;
-            var (x, z) = Symmetry.Point(dx, dz, mode, 0, 0, step);
-            moved[index] = slide(pieces[index], Math.Round(x), Math.Round(z));
+            changed[index] = change(pieces[index], ((image.Image - stamp.Image) % order + order) % order);
         }
-        return moved;
+        return changed;
+    }
+
+    /// <summary>The quarter turns an image takes for the named one's <paramref name="quarters"/>: the same where
+    /// the step between them is a rotation, the other way where it is a reflection.</summary>
+    private static int Handed(int quarters, string? mode, int step) =>
+        Symmetry.Reflects(mode, step) ? -quarters : quarters;
+
+    private static SpawnIntent TurnSpawn(SpawnIntent spawn, bool building, int quarters)
+    {
+        if (building) return spawn with { Footprint = Pivot.Of(spawn.Footprint!.Value, quarters).Rect(spawn.Footprint!.Value) };
+        var pivot = Pivot.Of(spawn.Protection[0], quarters);
+        return spawn with
+        {
+            Protection = [pivot.Rect(spawn.Protection[0])],
+            Point = pivot.Point(spawn.Point),
+            Footprint = spawn.Footprint is { } house ? pivot.Rect(house) : null,
+            Iron = [.. spawn.Iron.Select(pivot.Point)],
+            Doors = [.. spawn.Doors.Select(pivot.Door)],
+            Yaw = ((spawn.Yaw + 90 * pivot.Quarters) % 360 + 360) % 360,
+        };
+    }
+
+    private static WoolIntent TurnWool(WoolIntent wool, bool building, int quarters)
+    {
+        if (building) return wool with { Footprint = Pivot.Of(wool.Footprint!.Value, quarters).Rect(wool.Footprint!.Value) };
+        var pivot = Pivot.Of(wool.Protection[0], quarters);
+        return wool with
+        {
+            Protection = [pivot.Rect(wool.Protection[0])],
+            Spawn = pivot.Point(wool.Spawn),
+            Footprint = wool.Footprint is { } house ? pivot.Rect(house) : null,
+            Entries = [.. wool.Entries.Select(pivot.Rect)],
+        };
+    }
+
+    /// <summary>What stops a turn: a region of several rectangles, or a building to turn that is not stated.</summary>
+    private static Findings? Unturnable(IReadOnlyList<Rect> protection, Rect? footprint, bool building)
+    {
+        if (protection.Count != 1)
+            return Findings.Of(new Finding(RequestRules.Unreadable,
+                $"the room's `protection` has {protection.Count} rectangles, not 1", Field: "protection"));
+        if (building && footprint is null)
+            return Findings.Of(new Finding(RequestRules.Unreadable, "the room states no `footprint`", Field: "part"));
+        return null;
+    }
+
+    /// <summary>A quarter turn clockwise seen from above about the middle of a rectangle, then the half-block
+    /// shift that keeps the turned rectangle on the block grid, applied alike to everything the rectangle
+    /// carries.</summary>
+    private readonly record struct Pivot(double X, double Z, int Quarters, double ShiftX, double ShiftZ)
+    {
+        public static Pivot Of(Rect around, int quarters)
+        {
+            var turn = ((quarters % 4) + 4) % 4;
+            var pivot = new Pivot((around.MinX + around.MaxX) / 2, (around.MinZ + around.MaxZ) / 2, turn, 0, 0);
+            var turned = pivot.Rect(around);
+            return pivot with { ShiftX = Math.Floor(turned.MinX) - turned.MinX, ShiftZ = Math.Floor(turned.MinZ) - turned.MinZ };
+        }
+
+        private (double X, double Z) Turned(double x, double z)
+        {
+            double dx = x - X, dz = z - Z;
+            for (var k = 0; k < Quarters; k++) (dx, dz) = (-dz, dx);
+            return (X + dx + ShiftX, Z + dz + ShiftZ);
+        }
+
+        public Rect Rect(Rect r)
+        {
+            var (ax, az) = Turned(r.MinX, r.MinZ);
+            var (bx, bz) = Turned(r.MaxX, r.MaxZ);
+            return new Rect(Math.Min(ax, bx), Math.Min(az, bz), Math.Max(ax, bx), Math.Max(az, bz));
+        }
+
+        public Pt Point(Pt p)
+        {
+            var (x, z) = Turned(p.X, p.Z);
+            return p with { X = x, Z = z };
+        }
+
+        public string Door(string word)
+        {
+            if (RoomEdges.OfWord(word) is not { } edge) return word;
+            var (dx, dz) = edge.Outward();
+            for (var k = 0; k < Quarters; k++) (dx, dz) = (-dz, dx);
+            return RoomEdges.Nearest((dx, dz), RoomEdges.All) is { } image ? image.Word() : word;
+        }
     }
 
     /// <summary>The entries the move replaced — every other entry is the same object it was.</summary>

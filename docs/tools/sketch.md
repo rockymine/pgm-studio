@@ -2612,7 +2612,10 @@ span shifts the marker inside it and every rule resolved against that frame with
 moves**: every image of the piece's authored unit — the pieces of one kind sharing its stamp — moves by the
 drag's displacement turned through the symmetry, so dragging red's spawn five blocks east across a mirror in x
 moves blue's five blocks west, and a building is held inside its own region on every image it carries. A piece
-stating no stamp is its own unit and moves alone. And a plan rebuild draws the rectangle from the plan again, which is the
+stating no stamp is its own unit and moves alone, and the route's `alone` moves one image without the others.
+The same route **turns a room** a quarter at a time about the middle of its region, its doors and the way its
+players face turning with it, and a mirror image turns the other way (`docs/tools/configure.md`); the canvas
+offers no turn yet (`TS169`). And a plan rebuild draws the rectangle from the plan again, which is the
 standing rule for structure rather than anything about this edit.
 
 The layout model carries one shape type the **Draw** dock cannot draw: a `circle`, which rasterizes as a 64-gon
