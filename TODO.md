@@ -22,11 +22,12 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS169 — Play pieces are sketch objects.** Every spawn, wool room, destroyable, core, iron cube, build area,
-  water lane and the observer is drawn in every phase of the sketch from the intent, and picked, dragged and turned
-  through the piece route from Draw as well as from a new Layout phase. Layout alone adds them, from the plan
-  editor's piece and marker toolbars carried across, and rooms and zones are drawn as rectangles only (D14).
-  `docs/tools/sketch.md`.
+- [ ] **TS169 — Play pieces are sketch objects.** Every spawn, wool room, destroyable, core, iron cube, approach
+  wall, build area, water lane and the observer is drawn in every phase of the sketch from the intent, and picked,
+  dragged and turned through the piece route from Draw as well as from a new Layout phase. Layout alone adds them,
+  from the plan editor's Pieces, Zones and Markers toolbars carried across without the plan's terrain piece and
+  buffer, and rooms and zones are drawn as rectangles only (D14). The inspectors move across with their own text;
+  a room's adds a turn clockwise and counterclockwise. `docs/tools/sketch.md`.
 
 - [ ] **TS176 — Configure's placement steps become the sketch's inspector.** On a map the studio built, the
   spawn, protection, wool, destroyable, core and build steps are the inspector of a selected piece; on a map
@@ -54,6 +55,16 @@ studio usable.
   *Evidence: the building is a bare `Rect? Footprint` on `SpawnIntent` and `WoolIntent` (`Pgm/Authoring/MapIntent.cs`)
   stamped with one style per kind (`SketchLayout.RoomStyles`), while a dressed house carries wings and a style of its
   own; a wool room's chests are derived at build time in its interior corners (`Minecraft/Stamping/WoolChests.cs`).*
+
+- [ ] **WE167 — An approach wall is a line at any angle, and its chest is a marker.** `WallStructure`
+  (`Pgm/Authoring/MapIntent.cs`) becomes two ends and a thickness of 2, drawn and dragged in Layout like a
+  polyline and snapped to shape edges, and stamped as bedrock from the world's floor to its top, with no cobweb
+  course. Its defence chests leave it: a new marker kind places the `DefenseChest` stamp the objectives already
+  carry, on the face `ChestOnMinFace` names. A migration carries every stored wall box into the line down its
+  middle and a chest marker on that face. `docs/world-export/structures.md`, `docs/tools/sketch.md`.
+
+  *Evidence: a wall is stored as an axis-aligned box over a seam between two plan pieces (ST4), so no wall can
+  run diagonally.*
 
 - [ ] **TS173 — A map's size is stated with its idea.** A size in Sketch Info, beside the symmetry, read by the
   places and the terraform; today Info says there is no size to set. `docs/tools/sketch.md`.
