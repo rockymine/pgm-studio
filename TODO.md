@@ -49,6 +49,16 @@ studio usable.
   *Evidence: four of the seven points of Abbeymoor's first review were paint, materials or dressing, and no picture
   before its build showed any of them (`experiment/REVIEW-1.md`).*
 
+- [ ] **WE166 — A room's building is a house.** A spawn's and a wool's `footprint` becomes a house record of the
+  shape a dressed house takes — position, wings, its own style — with the room's interior as a part of it: the
+  pad, the doors, the chests and the monuments, placed relative to the house. The map-wide `roomStyles` become
+  the default a room's house starts from, and a migration carries every stored `footprint` into a one-wing
+  house. `docs/world-export/structures.md`.
+
+  *Evidence: the building is a bare `Rect? Footprint` on `SpawnIntent` and `WoolIntent` (`Pgm/Authoring/MapIntent.cs`)
+  stamped with one style per kind (`SketchLayout.RoomStyles`), while a dressed house carries wings and a style of its
+  own; a wool room's chests are derived at build time in its interior corners (`Minecraft/Stamping/WoolChests.cs`).*
+
 - [ ] **TS173 — A map's size is stated with its idea.** A size in Sketch Info, beside the symmetry, read by the
   places and the terraform; today Info says there is no size to set. `docs/tools/sketch.md`.
 
