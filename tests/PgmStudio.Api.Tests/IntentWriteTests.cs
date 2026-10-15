@@ -256,4 +256,33 @@ public sealed class IntentWriteTests
 
         await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
     }
+
+    /// <summary>Every play piece an intent stores carries an id, minted where the caller stated none and kept
+    /// where it did, so the piece can be addressed by it; two pieces stating one id are refused under
+    /// <c>RQ5</c> and nothing is stored.</summary>
+    [Test]
+    public async Task A_stored_play_piece_carries_an_id_and_two_may_not_share_one()
+    {
+        var (client, slug) = await MapWithAnAuthorAsync();
+        using var _ = client;
+        const string Teams = """[{"id":"red-team","name":"Red","color":"red"},{"id":"blue-team","name":"Blue","color":"blue"}]""";
+
+        var stored = await PutIntentAsync(client, $"/api/map/{slug}/intent", $$$"""
+            {"teams":{{{Teams}}},
+             "spawns":[{"team":"red-team","point":{"x":0,"y":10,"z":-20}},
+                       {"id":"blue-home","team":"blue-team","point":{"x":0,"y":10,"z":20}}]}
+            """);
+        await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
+        var intent = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/intent");
+        await Assert.That(intent.GetProperty("spawns").EnumerateArray().Select(spawn => spawn.GetProperty("id").GetString() ?? ""))
+            .IsEquivalentTo(new[] { "spawn-red-team", "blue-home" });
+
+        var twice = await PutIntentAsync(client, $"/api/map/{slug}/intent", $$$"""
+            {"teams":{{{Teams}}},
+             "spawns":[{"id":"home","team":"red-team","point":{"x":0,"y":10,"z":-20}},
+                       {"id":"home","team":"blue-team","point":{"x":0,"y":10,"z":20}}]}
+            """);
+        await Assert.That((int)twice.StatusCode).IsEqualTo(409);
+        await Assert.That(await twice.Content.ReadAsStringAsync()).Contains("RQ5");
+    }
 }

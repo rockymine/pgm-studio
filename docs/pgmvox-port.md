@@ -154,6 +154,45 @@ so a volcano layer over the volcano place is one statement.
 **The intent stays the one source of play.** A play piece writes the intent and the intent writes the XML, as
 today; pgmvox's own `map.xml` builder is retired for any board that passes through the studio.
 
+## The order a map is made in
+
+**A map is made in eight phases, and each writes one thing and reads only what the phases before it wrote.** The
+order is the author's (D12). It follows what the pgmvox runs actually did, with the one step they kept in the
+agent's head written down first, and with the look stated before the review rather than first seen after the
+build. Traced on Abbeymoor, the layout was decided before `land.py` and its coordinates typed again in
+`plan.py`, and four of the seven points of the author's first review were paint, materials or dressing that no
+picture before the build showed (`pgm-studio-mapgen/analysis/freeform-vs-studio/experiment/REVIEW-1.md`).
+
+| # | Phase | Writes | Fixes |
+|---|---|---|---|
+| 1 | Idea | the brief | game mode, teams and their size, map size, symmetry, mood |
+| 2 | Places | the places layer, with spawns and objectives as rough points | where things go and the routes between them, each place with what it is and why a player goes there |
+| 3 | Terraform | land shapes, relief, water, caves | the ground, shaped round the places: outline, heights, which basins hold water and at what level, caves and their entrances |
+| 4 | Layout | exact play pieces, paths, plazas, house footprints | where each piece stands to the block |
+| 5 | Look | palette, a house style per area, tree and rock zones, biome | what each area is made of, as data |
+| 6 | Review | the author's notes and a verdict | the go, or the changes |
+| 7 | Build | the world | the paint applied, houses built, trees and dressing placed, objectives and markers stamped |
+| 8 | Play review | in-game notes, each tied to its place | the corrections |
+
+**Places come before the ground because the ground is shaped round them.** Written down, the terraform reads
+where the village and the hill are instead of restating them, and a place moves without editing three files.
+
+**Water and caves are terraform.** A pgmvox board already fixes its water levels in the land pass, and a cave
+holds resources or leads somewhere, so both are part of the ground the review judges (the author's ruling).
+
+**The look is stated before the review and applied after it.** Palette, house styles, tree and rock zones and the
+biome are data the review sheet draws, so what the author reacted to after the build is on the sheet before it.
+
+**The review is one sheet, measured on real ground.** It carries the places, the ground with its water and caves,
+the layout, the look's zones, and the walk and sight numbers read off the sketch's ground. A rough look at the
+places alone, after phase 2, is cheap and optional.
+
+**The build executes what was stated.** A correction found in play goes back to the phase that owns it.
+
+**A map may also start from one section.** Phases 2 to 5 run for the spawn or a monument's ground alone, the
+section is reviewed with its look fixed, and the rest of the map grows round it through the same phases, reusing
+that look. It needs a place that carries its own house style, tree kind and floor height, which phase 5 gives.
+
 ## The phases
 
 **Each phase ships on its own and leaves the studio usable.** A phase is pulled onto `TODO.md` as one group when
@@ -177,17 +216,21 @@ backlog entry of their own.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-**The sketch becomes the only document a map is drawn in, and the plan stops being a level.** A map starts the
-way a pgmvox board did: what it is for and where its places sit, then its land shaped and terraformed in one
-pass, then the features. Each step below leaves the studio usable, and the plan keeps working until its
-replacement has landed.
+**The sketch becomes the only document a map is drawn in, and the plan stops being a level.** A map is made in the
+order above: its places, then its ground with water and caves, then its layout and its look, then the review,
+then the build. Each step below leaves the studio usable, and the plan keeps working until its replacement has
+landed.
 
 - Play pieces as sketch objects: a spawn, a wool room, a monument, a core, iron, a build zone and a protection
   zone placed, dragged and turned in the sketch, each writing its entry of the intent, so moving one recompiles
-  nothing.
+  nothing. The intent is the one place a piece is stored, a drag moves its whole symmetry orbit, every piece has a
+  stable id (shipped as `TS174`), and Configure's detection flow stays for maps read from a world (D13).
 - The places layer and the design document: `design_json` inside `PUT source`, with diff; places drawn with the
   sketch's own tools on a layer that never rasterizes, linking only to intent objects; the review sheet, note
   anchors on places, routes, targets and sections, and a verdict.
+- The look as data: a palette, a house style per area, tree and rock zones and the biome stated before the
+  review, drawn on the sheet, and applied by the build.
+- A map's size stated with its idea, in Info, where the sketch has no size to set today.
 - The generator emits a sketch. Its piece model stays its own (`docs/generator/model.md`) and ends in a layout and
   an intent rather than a plan.
 - The rules move onto the sketch: the measures read off the sketch's rasterized ground, which never builds a
@@ -306,7 +349,7 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 
 ## The author's decisions
 
-**Seven are taken and four are open; each open one blocks the phase named.**
+**Nine are taken and four are open; each open one blocks the phase named.**
 
 | # | Decision | Blocks | Answer |
 |---|---|---|---|
@@ -321,6 +364,8 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 | D9 | What becomes of the stored plans (48 of 64 maps on pgmstudio.de hold one) | 1 | **taken:** kept, read-only, as history. Each map's sketch and intent carry its play forward; nothing reads the plan again |
 | D10 | Does `POST /plan/compile` stay, as a one-shot converter from rectangles | 1 | open; recommended: yes, since the generator compiles its pieces anyway and the converter costs nothing beside it |
 | D11 | Which of `pgm-studio-mapgen`'s 174 plan-and-refinement specs move to sketch sources | 1 | open; recommended: the boards still worked on, with the rest frozen as archive |
+| D12 | The order a map is made in | 1 | **taken:** idea, places, terraform with water and caves, layout, look, review, build, play review; a map may also start from one section (*The order a map is made in*) |
+| D13 | Play pieces in the sketch: where a piece is stored, what a drag moves, how it is named, what Configure keeps | 1 | **taken:** the intent is the one store and the sketch draws from it; a drag moves the whole orbit; every piece has a stable id, migrated onto stored maps; imported maps keep Configure's detection flow |
 
 ## What this does not decide
 

@@ -81,4 +81,22 @@ public sealed class SpawnAndWoolAnchorTests
 
         await Assert.That(Built(plan, lying)).IsEqualTo(Built(plan));
     }
+
+    /// <summary>The resolved spawn and wool are the authored ones with the point moved: their id, layer,
+    /// stamp and doors reach the export unchanged.</summary>
+    [Test]
+    public async Task The_resolved_spawn_and_wool_keep_what_they_were_stated_with()
+    {
+        var (layout, intent) = PlanCompiler.Compile(PlanAt(spawnSurface: 12, woolSurface: 12));
+        var stated = PlayIds.Assign(intent);
+        var built = WorldBuilder.Build(layout.ToJson(), stated);
+
+        var spawn = built.ResolvedIntent.Spawns[0];
+        var wool = built.ResolvedIntent.Wools![0];
+        await Assert.That(spawn.Id).IsEqualTo(stated.Spawns[0].Id);
+        await Assert.That(spawn.Stamp).IsEqualTo(stated.Spawns[0].Stamp);
+        await Assert.That(spawn.Doors).IsEquivalentTo(stated.Spawns[0].Doors);
+        await Assert.That(wool.Id).IsEqualTo(stated.Wools![0].Id);
+        await Assert.That(wool.Stamp).IsEqualTo(stated.Wools[0].Stamp);
+    }
 }

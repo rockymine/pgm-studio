@@ -9408,6 +9408,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   as its text. It is an agent's read; the Sketch tool has no page for it.
   (`Export/BoardIsometric`, `Api/Services/MapReport`, `Minecraft/Anvil/WorldColumns`,
   `docs/world-scan/read-backs.md`, `docs/tools/sketch.md`)
+- **Every play piece carries an id (`TS174`).** Each spawn, wool, destroyable and core of an intent has an `id`,
+  minted at the store where none is stated (`spawn-{team}`, `wool-{owner}-{color}`, `destroyable-{owner}`,
+  `core-{owner}`) and kept where one is; two pieces stating one id are refused `409 RQ5`, and `M0076` gave every
+  stored intent its ids. Orbit images now carry their spawn's footprint, iron and doors and their wool's footprint
+  and entries turned, and the world build's resolved spawns and wools keep their id, layer, stamp and doors.
+  (`Pgm/Authoring/PlayIds`, `Pgm/Authoring/SymmetryExpander`, `Export/WorldBuilder`, `docs/tools/configure.md`)
 - **A rule's third level, the measure (`RP128`).** `RuleLevels.Measure` never refuses and reads a finding as the
   number it measured against its range: `Finding.Measured` is `{value, low, high}`, and `Violation` reads its
   value and band from it. Every rule of `GO`, `WL`, `CT`, `LN`, `FR` and `MD` but `WL14` is a measure by default

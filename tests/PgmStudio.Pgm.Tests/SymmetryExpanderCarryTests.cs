@@ -214,4 +214,42 @@ public sealed class SymmetryExpanderCarryTests
         await Assert.That(((List<object?>)doc["cores"]!).Count).IsEqualTo(2);
         await Assert.That(((List<object?>)doc["destroyables"]!).Count).IsEqualTo(2);
     }
+
+    /// <summary>An image is its authored room turned, not a copy of it: the footprint, the iron and the doors
+    /// of a spawn and the footprint and entries of a wool land where the room's own image stands.</summary>
+    [Test]
+    public async Task An_image_carries_its_room_turned_rather_than_copied()
+    {
+        var intent = new MapIntent
+        {
+            Teams = TwoTeams(),
+            Symmetry = new SymmetryIntent { Mode = "rot_180", CenterX = 0, CenterZ = 0 },
+            Spawns =
+            [
+                new SpawnIntent
+                {
+                    Team = "red-team", Point = new Pt(5, 12, 6), Protection = [new Rect(0, 0, 10, 12)],
+                    Footprint = new Rect(2, 3, 8, 9), Iron = [new Pt(1, 12, 1)], Doors = ["+x", "-z"],
+                },
+            ],
+            Wools =
+            [
+                new WoolIntent
+                {
+                    Owner = "red-team", Protection = [new Rect(20, 0, 30, 10)], Spawn = new Pt(25, 12, 5),
+                    Footprint = new Rect(21, 1, 29, 9), Entries = [new Rect(30, 2, 30, 6)],
+                },
+            ],
+        };
+
+        var expanded = SymmetryExpander.Expand(intent);
+        var spawn = expanded.Spawns.Single(entry => entry.Team == "blue-team");
+        var wool = expanded.Wools!.Single(entry => entry.Owner == "blue-team");
+
+        await Assert.That(spawn.Footprint).IsEqualTo(new Rect(-8, -9, -2, -3));
+        await Assert.That(spawn.Iron.Single()).IsEqualTo(new Pt(-1, 12, -1));
+        await Assert.That(spawn.Doors).IsEquivalentTo(new[] { "-x", "+z" });
+        await Assert.That(wool.Footprint).IsEqualTo(new Rect(-29, -9, -21, -1));
+        await Assert.That(wool.Entries.Single()).IsEqualTo(new Rect(-30, -6, -30, -2));
+    }
 }
