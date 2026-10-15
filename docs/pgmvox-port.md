@@ -300,7 +300,7 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 
 ## What this does not decide
 
-**How much of a house style is data.** pgmvox's ten-slot archetype made its houses look right and the studio's 57
+**How much of a house style is data.** pgmvox's ten-slot archetype made its houses look right and the studio's 61
 styles make its houses varied; the archetype as a library row, with the styles mapped onto archetypes, is the
 obvious meeting point and has not been tried.
 
