@@ -682,6 +682,20 @@ is the standard the copy is held to.
 
 ## Refactoring and cleanup
 
+- [ ] **RP129 — A read of a world in memory does not encode it as NBT first.** Seven renderers take
+  `IEnumerable<AnvilRegion.Chunk>` so one path reads both a `.mca` file and a built world, and the built one
+  arrives through `AnvilRegion.FromWorld`, which runs `AnvilRegionWriter.BuildLevel` over every chunk on every
+  call: `TopDownRender:130`, `SectionRender:81`, `SectionText:64`, `SurfaceReport:80` and `:98`,
+  `StructureFinder:124`, `HeightProfileRender:65`, `MirrorReport:51`, and `WorldReads.Reach`
+  (`WorldReadEndpoints:123`). Give the renderers one section reader both sources answer — the file's decoded
+  sections, or `VoxelWorld`'s own — so a built world is read where it stands; measure a board's `report` before
+  and after. `docs/world-scan/read-backs.md`.
+
+- [ ] **RP130 — A scale word is read once.** Outside `WorldRenderEndpoint.ScaleRange`, three routes clamp their
+  own `scale` by hand: `render/walk` 1–8 default 2 (`WorldReadEndpoints:1134`), the change diff 1–16 default 4
+  (`MapChangeEndpoints:144`) and the terrain preview (`TerrainPreviewEndpoints:124`). Give them the same range
+  reader, so the word is declared and clamped in one place. `docs/world-scan/read-backs.md`.
+
 - [ ] **RP107 — The edit-route count is stated from the code.** `MapEdit.cs`, `EditException.cs` and
   `docs/architecture.md` say "thirty-six edit routes"; there are 20 `MapEdit.RunAsync` call sites. State the
   number nowhere, or derive it. `docs/architecture.md`.
