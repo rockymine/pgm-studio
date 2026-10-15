@@ -22,10 +22,11 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS169 — Play pieces are sketch objects.** Every spawn, wool room, destroyable, core, iron cube, build area
-  and the observer is drawn in the sketch from the intent, selected, dragged and turned through the piece route,
-  with an inspector beside it and new pieces placed from the toolbar, reusing the dressing controller's grips and
-  drag. `docs/tools/sketch.md`.
+- [ ] **TS169 — Play pieces are sketch objects.** Every spawn, wool room, destroyable, core, iron cube, build area,
+  water lane and the observer is drawn in every phase of the sketch from the intent, and picked, dragged and turned
+  through the piece route from Draw as well as from a new Layout phase. Layout alone adds them, from the plan
+  editor's piece and marker toolbars carried across, and rooms and zones are drawn as rectangles only (D14).
+  `docs/tools/sketch.md`.
 
 - [ ] **TS176 — Configure's placement steps become the sketch's inspector.** On a map the studio built, the
   spawn, protection, wool, destroyable, core and build steps are the inspector of a selected piece; on a map

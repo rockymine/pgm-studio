@@ -224,7 +224,9 @@ landed.
 - Play pieces as sketch objects: a spawn, a wool room, a monument, a core, iron, a build zone and a protection
   zone placed, dragged and turned in the sketch, each writing its entry of the intent, so moving one recompiles
   nothing. The intent is the one place a piece is stored, a drag moves its whole symmetry orbit, every piece has a
-  stable id (shipped as `TS174`), and Configure's detection flow stays for maps read from a world (D13).
+  stable id (shipped as `TS174`), and Configure's detection flow stays for maps read from a world (D13). Pieces
+  are added in a Layout phase of their own and moved or turned from any phase, every phase drawing the same
+  board, and rooms and zones are rectangles only (D14).
 - The places layer and the design document: `design_json` inside `PUT source`, with diff; places drawn with the
   sketch's own tools on a layer that never rasterizes, linking only to intent objects; the review sheet, note
   anchors on places, routes, targets and sections, and a verdict.
@@ -349,7 +351,7 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 
 ## The author's decisions
 
-**Nine are taken and four are open; each open one blocks the phase named.**
+**Ten are taken and four are open; each open one blocks the phase named.**
 
 | # | Decision | Blocks | Answer |
 |---|---|---|---|
@@ -366,6 +368,7 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 | D11 | Which of `pgm-studio-mapgen`'s 174 plan-and-refinement specs move to sketch sources | 1 | open; recommended: the boards still worked on, with the rest frozen as archive |
 | D12 | The order a map is made in | 1 | **taken:** idea, places, terraform with water and caves, layout, look, review, build, play review; a map may also start from one section (*The order a map is made in*) |
 | D13 | Play pieces in the sketch: where a piece is stored, what a drag moves, how it is named, what Configure keeps | 1 | **taken:** the intent is the one store and the sketch draws from it; a drag moves the whole orbit; every piece has a stable id, migrated onto stored maps; imported maps keep Configure's detection flow |
+| D14 | Where play pieces are placed in the sketch, and what a room can be drawn as | 1 | **taken:** a Layout phase of its own holds the tools that add a piece, and later the analysis of the layout; every piece and every shape is drawn in every phase, and a piece is picked, moved and turned from Draw as well as Layout, so the two are one board seen for two jobs rather than two layers switched on and off. A spawn, a wool room, a build zone and a water lane are rectangles only |
 
 ## What this does not decide
 
