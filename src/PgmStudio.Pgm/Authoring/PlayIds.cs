@@ -13,10 +13,13 @@ namespace PgmStudio.Pgm.Authoring;
 /// <c>wool-{owner}-{colour}</c>, <c>destroyable-{owner}</c>, <c>core-{owner}</c>, the same words the sketch
 /// names a room's shape by, and <c>build-{n}</c>, <c>water-lane-{n}</c>, <c>iron-{n}</c>, <c>wall-{n}</c> by
 /// position in their list, with <c>-2</c>, <c>-3</c>… where two pieces would share one. An id the intent
-/// already states is kept as stated.</para>
+/// already states is kept as stated. The observer is the one piece of its kind and is <see cref="Observer"/>.</para>
 /// </summary>
 public static class PlayIds
 {
+    /// <summary>The observer's id: a map has one observer, so the id is the word for it.</summary>
+    public const string Observer = "observer";
+
     /// <summary>The intent with every play piece carrying an id: stated ones kept, the rest minted.</summary>
     public static MapIntent Assign(MapIntent intent)
     {
@@ -73,7 +76,8 @@ public static class PlayIds
         }
     }
 
-    private static IEnumerable<string> Stated(MapIntent intent) =>
+    /// <summary>Every id the intent's pieces state.</summary>
+    public static IEnumerable<string> Stated(MapIntent intent) =>
         Named(intent).Select(entry => entry.Id).Where(id => id.Length > 0);
 
     private static IEnumerable<(string Id, string Field)> Named(MapIntent intent)
@@ -91,5 +95,6 @@ public static class PlayIds
             yield return (intent.Structures!.IronCubes[at].Id, $"structures.ironCubes[{at}].id");
         for (var at = 0; at < (intent.Structures?.Walls.Count ?? 0); at++)
             yield return (intent.Structures!.Walls[at].Id, $"structures.walls[{at}].id");
+        if (intent.Observer is not null) yield return (Observer, "observer");
     }
 }

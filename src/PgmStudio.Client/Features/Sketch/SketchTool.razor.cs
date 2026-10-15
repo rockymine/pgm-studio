@@ -575,7 +575,6 @@ public partial class SketchTool
             "studio.mountSketch", svgRef, wrapRef, readout!.Cursor, readout.Zoom, readout.Size, selfRef, Slug);
         await handle.InvokeVoidAsync("setReadOnly", writeClosed);
         await ReloadLayoutAsync();
-        await LoadObjectives();
         await LoadNameAsync();
         await JS.InvokeVoidAsync("studio.watchTabShown", KeyOwner, selfRef, nameof(TabShown));
         await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
@@ -618,28 +617,6 @@ public partial class SketchTool
 
     /// <summary>The name this tool's chords are registered and dropped under.</summary>
     private const string KeyOwner = "sketch-tool";
-
-    /// <summary>Where the map's destroyables and cores stand, from the intent that places them. The sketch
-    /// draws the ground and does not own an objective, so these arrive as markers the canvas is handed: an
-    /// author refining the ground can see what it has to carry. A map with no intent has none.</summary>
-    private async Task LoadObjectives()
-    {
-        if (handle is null) return;
-        JsonElement intent;
-        try { intent = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/intent"); }
-        catch { return; }
-        if (intent.ValueKind != JsonValueKind.Object) return;
-
-        var markers = new List<object>();
-        foreach (var (key, kind) in new[] { ("destroyables", "destroyable"), ("cores", "core") })
-            if (intent.TryGetProperty(key, out var list) && list.ValueKind == JsonValueKind.Array)
-                foreach (var entry in list.EnumerateArray())
-                    if (entry.TryGetProperty("anchor", out var at) && at.ValueKind == JsonValueKind.Object
-                        && at.TryGetProperty("x", out var x) && at.TryGetProperty("z", out var z))
-                        markers.Add(new { kind, x = x.GetDouble(), z = z.GetDouble() });
-
-        await handle.InvokeVoidAsync("setObjectives", JsonSerializer.Serialize(markers));
-    }
 
     private async Task SetTool(string t)
     {
@@ -808,6 +785,11 @@ public partial class SketchTool
 
     /// <summary>Correct the height the selected region was compiled at. The bridge writes the number and the
     /// author's-height flag together, which is what makes the correction outlive the next recompile.</summary>
+    private Task TurnStructural(int quarters) =>
+        selectedStructural is null || handle is null
+            ? Task.CompletedTask
+            : handle.InvokeVoidAsync("turnStructural", selectedStructural.Id, quarters).AsTask();
+
     private Task SetStructuralHeight(double height) =>
         selectedStructural is null || handle is null
             ? Task.CompletedTask

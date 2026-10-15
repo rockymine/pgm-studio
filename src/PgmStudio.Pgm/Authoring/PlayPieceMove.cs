@@ -5,8 +5,8 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
-/// Move one play piece — a spawn, a wool, a destroyable or a core — by its id, and every orbit image of it
-/// with it. The sketch draws the pieces out of the intent, so a drag on the canvas arrives here or the picture
+/// Move one play piece — a spawn, a wool, a destroyable, a core, a build area, a water lane, an iron cube, an
+/// approach wall or the observer — by its id, and every orbit image of it with it. The sketch draws the pieces out of the intent, so a drag on the canvas arrives here or the picture
 /// and the world build answer differently.
 ///
 /// <para><b>It moves and never resizes.</b> A room's marker is a fraction of its region and a goal's structure
@@ -26,7 +26,8 @@ namespace PgmStudio.Pgm.Authoring;
 /// <c>i</c> moved by <c>d</c> moves by <c>d</c> turned through the symmetry's step <c>j − i</c>, so a mirrored
 /// board stays mirrored; it turns the same way where the step is a rotation and the other way where it is a
 /// reflection. A piece with no stamp is its own unit and moves alone, and <c>alone</c> moves or turns the named
-/// image without its others.</para>
+/// image without its others. A build area or a water lane carries no stamp, so its images are the areas standing
+/// where the symmetry carries it. The symmetry is the intent's, or where the intent states none the board's.</para>
 /// </summary>
 public static class PlayPieceMove
 {
@@ -35,10 +36,11 @@ public static class PlayPieceMove
     /// a room's building — stands at <paramref name="placed"/>, or the findings that stopped it and a null
     /// intent. Pure: the caller stores and projects.</summary>
     public static (MapIntent? Intent, Findings Refused) Apply(
-        MapIntent intent, string id, string? part, Rect placed, bool alone = false)
+        MapIntent intent, string id, string? part, Rect placed, bool alone = false, SymmetryIntent? board = null)
     {
         var building = part == StructuralRoles.Building;
-        var mode = intent.Symmetry?.Mode;
+        var symmetry = intent.Symmetry ?? board;
+        var mode = symmetry?.Mode;
         if (intent.Spawns.FindIndex(spawn => spawn.Id == id) is var spawnAt and >= 0)
         {
             if (Unpartable(part, StructuralRoles.Spawn) is { } unpartable) return (null, unpartable);
@@ -82,10 +84,7 @@ public static class PlayPieceMove
         if (destroyables.FindIndex(goal => goal.Id == id) is var goalAt and >= 0)
         {
             if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
-            var goal = destroyables[goalAt];
-            var (width, _, depth) = ObjectiveFootprint.Destroyable(
-                DestroyableStyles.TryParse(goal.Style, out var style) ? style : ObjectiveDefaults.Style);
-            if (GoalShift(goal.Anchor, width, depth, placed, out var dx, out var dz) is { } stopped)
+            if (BlockShift(PlayPieces.Destroyable(destroyables[goalAt]), placed, out var dx, out var dz) is { } stopped)
                 return (null, stopped);
             var moved = Orbit(destroyables, goalAt, entry => entry.Stamp, mode, alone, dx, dz,
                 (entry, x, z) => entry with { Anchor = Slide(entry.Anchor, x, z), Box = null });
@@ -96,13 +95,66 @@ public static class PlayPieceMove
         if (cores.FindIndex(core => core.Id == id) is var coreAt and >= 0)
         {
             if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
-            var core = cores[coreAt];
-            var (width, depth) = ObjectiveFootprint.Core(core.Size);
-            if (GoalShift(core.Anchor, width, depth, placed, out var dx, out var dz) is { } stopped)
+            if (BlockShift(PlayPieces.Core(cores[coreAt]), placed, out var dx, out var dz) is { } stopped)
                 return (null, stopped);
             var moved = Orbit(cores, coreAt, entry => entry.Stamp, mode, alone, dx, dz,
                 (entry, x, z) => entry with { Anchor = Slide(entry.Anchor, x, z), Box = null });
             return (intent with { Cores = moved }, Findings.None);
+        }
+
+        if (intent.Build is { } build && build.Areas.FindIndex(area => area.Id == id) is var areaAt and >= 0)
+        {
+            if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+            if (SameSpan(build.Areas[areaAt].Rect, placed) is { } stopped) return (null, stopped);
+            var (dx, dz) = Shift(build.Areas[areaAt].Rect, placed);
+            return (intent with { Build = build with { Areas = MoveAreas(build.Areas, areaAt, dx, dz, symmetry, alone) } },
+                    Findings.None);
+        }
+
+        if (intent.WaterLanes is { } lanes && lanes.Rects.FindIndex(lane => lane.Id == id) is var laneAt and >= 0)
+        {
+            if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+            if (SameSpan(lanes.Rects[laneAt].Rect, placed) is { } stopped) return (null, stopped);
+            var (dx, dz) = Shift(lanes.Rects[laneAt].Rect, placed);
+            return (intent with { WaterLanes = lanes with { Rects = MoveAreas(lanes.Rects, laneAt, dx, dz, symmetry, alone) } },
+                    Findings.None);
+        }
+
+        if (intent.Structures is { } structures)
+        {
+            if (structures.IronCubes.FindIndex(cube => cube.Id == id) is var cubeAt and >= 0)
+            {
+                if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+                var cube = structures.IronCubes[cubeAt];
+                if (BlockShift(PlayPieces.Iron(cube.MinX, cube.MinZ), placed, out var dx, out var dz) is { } stopped)
+                    return (null, stopped);
+                var moved = Orbit(structures.IronCubes, cubeAt, entry => entry.Stamp, mode, alone, dx, dz,
+                    (entry, x, z) => entry with { MinX = entry.MinX + (int)x, MinZ = entry.MinZ + (int)z });
+                return (intent with { Structures = structures with { IronCubes = moved } }, Findings.None);
+            }
+
+            if (structures.Walls.FindIndex(wall => wall.Id == id) is var wallAt and >= 0)
+            {
+                if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+                var wall = structures.Walls[wallAt];
+                if (BlockShift(new Rect(wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ), placed, out var dx, out var dz)
+                    is { } stopped) return (null, stopped);
+                var moved = Orbit(structures.Walls, wallAt, entry => entry.Stamp, mode, alone, dx, dz,
+                    (entry, x, z) => entry with
+                    {
+                        MinX = entry.MinX + (int)x, MinZ = entry.MinZ + (int)z,
+                        MaxX = entry.MaxX + (int)x, MaxZ = entry.MaxZ + (int)z,
+                    });
+                return (intent with { Structures = structures with { Walls = moved } }, Findings.None);
+            }
+        }
+
+        if (id == PlayIds.Observer && intent.Observer is { } observer)
+        {
+            if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+            if (BlockShift(PlayPieces.Observer(observer), placed, out var dx, out var dz) is { } stopped)
+                return (null, stopped);
+            return (intent with { Observer = observer with { Point = Slide(observer.Point, dx, dz) } }, Findings.None);
         }
 
         return Refuse(RequestRules.NoSuchSubject, "id", $"the map has no play piece with the id '{id}'", id);
@@ -112,10 +164,11 @@ public static class PlayPieceMove
     /// <c>building</c>, its building alone — turned <paramref name="quarters"/> quarter turns clockwise seen from
     /// above, and its orbit images with it, or the findings that stopped it and a null intent.</summary>
     public static (MapIntent? Intent, Findings Refused) Turn(
-        MapIntent intent, string id, string? part, int quarters, bool alone = false)
+        MapIntent intent, string id, string? part, int quarters, bool alone = false, SymmetryIntent? board = null)
     {
         var building = part == StructuralRoles.Building;
-        var mode = intent.Symmetry?.Mode;
+        var symmetry = intent.Symmetry ?? board;
+        var mode = symmetry?.Mode;
         if (intent.Spawns.FindIndex(spawn => spawn.Id == id) is var spawnAt and >= 0)
         {
             if ((Unpartable(part, StructuralRoles.Spawn) ?? Unturnable(intent.Spawns[spawnAt].Protection,
@@ -137,8 +190,26 @@ public static class PlayPieceMove
                 .Select(entry => (entry.Id, entry.Protection, entry.Footprint)));
         }
 
+        if (intent.Build is { } build && build.Areas.FindIndex(area => area.Id == id) is var areaAt and >= 0)
+        {
+            if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+            return (intent with { Build = build with { Areas = TurnAreas(build.Areas, areaAt, quarters, symmetry, alone) } },
+                    Findings.None);
+        }
+
+        if (intent.WaterLanes is { } lanes && lanes.Rects.FindIndex(lane => lane.Id == id) is var laneAt and >= 0)
+        {
+            if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+            return (intent with { WaterLanes = lanes with { Rects = TurnAreas(lanes.Rects, laneAt, quarters, symmetry, alone) } },
+                    Findings.None);
+        }
+
         if ((intent.Destroyables ?? []).Any(goal => goal.Id == id) || (intent.Cores ?? []).Any(core => core.Id == id))
             return Refuse(RequestRules.Unreadable, "turn", $"'{id}' is an objective, which states no facing to turn");
+        if (intent.Structures is { } structures
+            && (structures.IronCubes.Any(cube => cube.Id == id) || structures.Walls.Any(wall => wall.Id == id))
+            || id == PlayIds.Observer && intent.Observer is not null)
+            return Refuse(RequestRules.Unreadable, "turn", $"'{id}' is not a room or an area, which are what turns");
         return Refuse(RequestRules.NoSuchSubject, "id", $"the map has no play piece with the id '{id}'", id);
     }
 
@@ -176,6 +247,49 @@ public static class PlayPieceMove
         }
         return changed;
     }
+
+    /// <summary>The areas with the one at <paramref name="at"/> moved by (<paramref name="dx"/>,
+    /// <paramref name="dz"/>), and unless <paramref name="alone"/> each area standing where the symmetry carries
+    /// it moved by that displacement turned through the same step.</summary>
+    private static List<PieceArea> MoveAreas(
+        List<PieceArea> areas, int at, double dx, double dz, SymmetryIntent? symmetry, bool alone) =>
+        AreaImages(areas, at, symmetry, alone, (area, step) =>
+        {
+            var (x, z) = step == 0 ? (dx, dz) : Symmetry.Point(dx, dz, symmetry!.Mode, 0, 0, step);
+            return area with { MinX = area.MinX + x, MinZ = area.MinZ + z, MaxX = area.MaxX + x, MaxZ = area.MaxZ + z };
+        });
+
+    /// <summary>The areas with the one at <paramref name="at"/> turned a quarter at a time about its middle, and
+    /// its images turned the same way under a rotation and the other way under a reflection.</summary>
+    private static List<PieceArea> TurnAreas(
+        List<PieceArea> areas, int at, int quarters, SymmetryIntent? symmetry, bool alone) =>
+        AreaImages(areas, at, symmetry, alone, (area, step) =>
+        {
+            var turned = Pivot.Of(area.Rect, Handed(quarters, symmetry?.Mode, step)).Rect(area.Rect);
+            return area with { MinX = turned.MinX, MinZ = turned.MinZ, MaxX = turned.MaxX, MaxZ = turned.MaxZ };
+        });
+
+    /// <summary>The list with <paramref name="change"/> applied to the area at <paramref name="at"/> (step 0)
+    /// and, unless <paramref name="alone"/>, to each area whose bounds are its image under a step of the
+    /// symmetry, read before any of them changed.</summary>
+    private static List<PieceArea> AreaImages(
+        List<PieceArea> areas, int at, SymmetryIntent? symmetry, bool alone, Func<PieceArea, int, PieceArea> change)
+    {
+        var changed = new List<PieceArea>(areas) { [at] = change(areas[at], 0) };
+        if (alone || symmetry is null) return changed;
+        var named = areas[at];
+        for (var step = 1; step < Symmetry.Order(symmetry.Mode); step++)
+        {
+            var (minX, minZ, maxX, maxZ) = Symmetry.Rect(named.MinX, named.MinZ, named.MaxX, named.MaxZ,
+                symmetry.Mode, symmetry.CenterX, symmetry.CenterZ, step);
+            var image = areas.FindIndex(area => Near(area.MinX, minX) && Near(area.MinZ, minZ)
+                                                && Near(area.MaxX, maxX) && Near(area.MaxZ, maxZ));
+            if (image >= 0 && image != at) changed[image] = change(areas[image], step);
+        }
+        return changed;
+    }
+
+    private static bool Near(double a, double b) => Math.Abs(a - b) < 1e-6;
 
     /// <summary>The quarter turns an image takes for the named one's <paramref name="quarters"/>: the same where
     /// the step between them is a rotation, the other way where it is a reflection.</summary>
@@ -312,20 +426,21 @@ public static class PlayPieceMove
             $"the request's `part` is '{part}', and the piece takes {takes}", Field: "part"));
     }
 
-    /// <summary>An objective's displacement: its footprint is the structure centred on the anchor, in whole
-    /// blocks, and the placed rectangle has to be that footprint somewhere else.</summary>
-    private static Findings? GoalShift(Pt anchor, int width, int depth, Rect placed, out double dx, out double dz)
+    /// <summary>The displacement from <paramref name="standing"/> to <paramref name="placed"/> for a piece
+    /// that moves by whole blocks, or what stops it: a span that changed, or a move off the block grid.</summary>
+    private static Findings? BlockShift(Rect standing, Rect placed, out double dx, out double dz)
     {
         dx = dz = 0;
-        var (minX, minZ, maxX, maxZ) = ObjectiveFootprint.Centred(anchor.X, anchor.Z, width, depth);
-        var standing = new Rect(minX, minZ, maxX + 1, maxZ + 1);
-        if (SpanOf(standing) != SpanOf(placed)) return Resized(standing, placed);
+        if (SameSpan(standing, placed) is { } resized) return resized;
         (dx, dz) = Shift(standing, placed);
         if (dx != Math.Floor(dx) || dz != Math.Floor(dz))
             return Findings.Of(new Finding(RequestRules.Unreadable,
-                "the placed rectangle is off the block grid, and an objective moves by whole blocks", Field: "placed"));
+                "the placed rectangle is off the block grid, and the piece moves by whole blocks", Field: "placed"));
         return null;
     }
+
+    private static Findings? SameSpan(Rect standing, Rect placed) =>
+        SpanOf(standing) != SpanOf(placed) ? Resized(standing, placed) : null;
 
     private static Findings Resized(Rect was, Rect placed) =>
         Findings.Of(new Finding(RequestRules.Unreadable,

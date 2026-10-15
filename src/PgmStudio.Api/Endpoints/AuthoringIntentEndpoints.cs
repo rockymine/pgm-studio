@@ -28,6 +28,22 @@ public sealed class IntentGetEndpoint(MapRepository repo, MapArtifactStore artif
     }
 }
 
+/// <summary>GET /api/map/{slug}/intent/pieces — every play piece of the map's intent where the sketch draws it,
+/// at the rectangle the piece route reads it as standing on.</summary>
+public sealed class IntentPiecesEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<List<PlayPieceDto>>
+{
+    public override void Configure() { Get("/map/{slug}/intent/pieces"); Description(b => b.Refuses(404)); }
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+        await Send.OkAsync([.. PlayPieces.Of(intent).Select(piece => new PlayPieceDto(
+            piece.Id, piece.Kind, piece.Color, piece.Rect.MinX, piece.Rect.MinZ, piece.Rect.MaxX, piece.Rect.MaxZ,
+            piece.Carried))], ct);
+    }
+}
+
 /// <summary>PUT /api/map/{slug}/intent — store the intent the author edited and regenerate the map from
 /// it. Replaces the stored intent wholesale, which is what makes a deletion in Configure stick.</summary>
 public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features, PlayerLookup players) : EndpointWithoutRequest
@@ -100,7 +116,7 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
 
 /// <summary>
 /// PATCH /api/map/{slug}/intent/pieces/{id} — move one play piece, and every orbit image of it, where the
-/// sketch just dragged it, or turn a room in place. <see cref="PlayPieceMove"/> holds what that means and what refuses it; this route
+/// sketch just dragged it, or turn a room or an area in place. <see cref="PlayPieceMove"/> holds what that means and what refuses it; this route
 /// reads the stored intent, hands it over, and stores and projects the answer the way an ordinary intent PUT
 /// does, so the map.xml the move implies is rewritten in the same call.
 /// </summary>
@@ -131,10 +147,14 @@ public sealed class IntentPieceMoveEndpoint(
                 + "`turn`, or states both", Field: "turn")), ct);
             return;
         }
+        var layout = await artifacts.LoadLayoutAsync(map.Id, ct) is { Length: > 0 } stored
+            ? PgmStudio.Pgm.Sketch.SketchLayout.Parse(Encoding.UTF8.GetString(stored))
+            : null;
+        var board = layout?.Setup?.Board;
         var (moved, refused) = placed
             ? PlayPieceMove.Apply(intent, id, req.Part, new Rect(req.MinX!.Value, req.MinZ!.Value, req.MaxX!.Value,
-                                                                 req.MaxZ!.Value), req.Alone)
-            : PlayPieceMove.Turn(intent, id, req.Part, req.Turn!.Value, req.Alone);
+                                                                 req.MaxZ!.Value), req.Alone, board)
+            : PlayPieceMove.Turn(intent, id, req.Part, req.Turn!.Value, req.Alone, board);
 
         // 404 where the id names nothing, 400 where the move itself cannot be made: one names a
         // subject the studio does not hold and the other a request it cannot act on, and only the second is

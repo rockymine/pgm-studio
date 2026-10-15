@@ -987,6 +987,6 @@ refused rather than compiled.
 
 Once a plan has been built, the rooms it placed are drawn into the sketch from the intent: the Sketch tool's
 Draw phase picks one and corrects the height it was compiled at, and the correction survives a recompile; and
-a picked piece drags, the move being written to the intent, which is where the room is. A destroy objective is
-not drawn in the sketch (`TS169`). What a drag does not do is resize, and a plan rebuild places the rooms from
+a picked piece drags, the move being written to the intent, which is where the room is. Every other piece the
+plan places — a goal, a build area, a wall — is drawn there too and moves the same way. What a drag does not do is resize, and a plan rebuild places the rooms from
 the plan again — the plan owns a board's structure.

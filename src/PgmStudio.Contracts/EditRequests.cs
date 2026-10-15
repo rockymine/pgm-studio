@@ -245,14 +245,14 @@ public sealed record MapMetadataRequest(
 /// <c>building</c> for the footprint raised on a room's region.</param>
 /// <param name="MinX">The placed rectangle's west edge, in world blocks. The four are the same bounds the
 /// piece's own rectangle states — a room's <c>protection</c> or <c>footprint</c>, a goal's structure from its
-/// first block's edge to past its last — and together they <b>move and do not resize</b>: a span differing
+/// first block's edge to past its last, the rectangle <c>GET …/intent/pieces</c> answers for any piece — and together they <b>move and do not resize</b>: a span differing
 /// from the one they replace is refused as <c>RQ1</c>.</param>
 /// <param name="MinZ">Its north edge.</param>
 /// <param name="MaxX">Its east edge.</param>
 /// <param name="MaxZ">Its south edge.</param>
 /// <param name="Turn">Quarter turns clockwise seen from above, about the middle of the room's region — or of its
-/// building, with <c>part</c> <c>building</c>. Negative turns the other way. An objective states no facing and
-/// is refused one.</param>
+/// building, with <c>part</c> <c>building</c> — or of a build area or water lane. Negative turns the other way.
+/// Any other piece states no facing and is refused one.</param>
 /// <param name="Alone">Move or turn the named image without the other images of its authored unit.</param>
 public sealed record PieceMoveRequest(
     [property: WordSet(typeof(StructuralRoles))] string? Part = null,
@@ -262,3 +262,25 @@ public sealed record PieceMoveRequest(
     [property: JsonPropertyName("maxZ")] double? MaxZ = null,
     int? Turn = null,
     bool Alone = false);
+
+/// <summary>One play piece where the sketch draws it — the answer of <c>GET /map/{slug}/intent/pieces</c>, one
+/// per spawn, wool room, destroyable, core, build area, water lane, iron cube, approach wall and the observer,
+/// the images the map's symmetry draws included.</summary>
+/// <param name="Id">The piece's id, which <c>PATCH …/intent/pieces/{id}</c> moves it by.</param>
+/// <param name="Kind">What the piece is.</param>
+/// <param name="Color">The team or dye colour it is drawn in, or empty for a piece that belongs to no team.</param>
+/// <param name="MinX">Its west edge, in world blocks: the rectangle a move of it states.</param>
+/// <param name="MinZ">Its north edge.</param>
+/// <param name="MaxX">Its east edge.</param>
+/// <param name="MaxZ">Its south edge.</param>
+/// <param name="Carried">True where the piece moves only with something else: an image the symmetry draws that
+/// the intent does not store, or an iron cube seated in a spawn room.</param>
+public sealed record PlayPieceDto(
+    string Id,
+    [property: WordSet(typeof(PlayPieceKinds))] string Kind,
+    string Color,
+    [property: JsonPropertyName("minX")] double MinX,
+    [property: JsonPropertyName("minZ")] double MinZ,
+    [property: JsonPropertyName("maxX")] double MaxX,
+    [property: JsonPropertyName("maxZ")] double MaxZ,
+    bool Carried);

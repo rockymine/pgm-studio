@@ -438,6 +438,11 @@ public static class RoomFrames
     /// it stops reading as a line to hold and becomes a blank face.</summary>
     public const int WallCoursesMax = 4;
 
+    /// <summary>The low edge of the cube an iron marker at <paramref name="marker"/> stands for, on one axis.
+    /// Rounding away from zero keeps a half-block landing symmetric: an orbit image of the cube covers the
+    /// images of its cells rather than a row one block off.</summary>
+    public static int IronCorner(double marker) => (int)Math.Round(marker - IronSpan / 2.0, MidpointRounding.AwayFromZero);
+
     /// <summary>Resolve one iron marker into the cube it stamps (WX8), or an unplaceable marker (WX9). The
     /// cube centres on the marker, put back on the block lattice, and stands where it lands: it fits inside
     /// the piece and clear of the room, or it does not. The room never gives an edge up for it and nothing
@@ -453,10 +458,7 @@ public static class RoomFrames
     /// <param name="room">The room's footprint, or null where the piece carries none.</param>
     public static IronResolution PlaceIron(double ironX, double ironZ, BlockRect piece, BlockRect? room = null)
     {
-        // Rounding away from zero keeps a half-block landing symmetric: an orbit image of the cube covers the
-        // images of its cells rather than a row one block off.
-        int Lo(double marker) => (int)Math.Round(marker - IronSpan / 2.0, MidpointRounding.AwayFromZero);
-        int cubeMinX = Lo(ironX), cubeMinZ = Lo(ironZ);
+        int cubeMinX = IronCorner(ironX), cubeMinZ = IronCorner(ironZ);
         int cubeMaxX = cubeMinX + IronSpan, cubeMaxZ = cubeMinZ + IronSpan;
 
         var onPiece = cubeMinX >= piece.MinX && cubeMinZ >= piece.MinZ

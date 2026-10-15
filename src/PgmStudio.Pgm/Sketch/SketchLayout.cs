@@ -1,6 +1,8 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using PgmStudio.Geom;
+using PgmStudio.Pgm.Authoring;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Sketch;
@@ -382,6 +384,13 @@ public sealed class SketchSetup
 
     /// <summary>The editor's working bounds.</summary>
     [JsonPropertyName("bbox")]        public SketchBbox? Bbox { get; set; }
+
+    /// <summary>The symmetry the board is drawn through, as an intent states one, or null for a board with
+    /// none.</summary>
+    [JsonIgnore]
+    public SymmetryIntent? Board => Symmetry.Order(MirrorMode) > 1
+        ? new SymmetryIntent { Mode = MirrorMode, CenterX = Center?.Cx ?? 0, CenterZ = Center?.Cz ?? 0 }
+        : null;
 }
 
 /// <summary>The point a drawing folds about. Half-integers are ordinary: a fold between two blocks sits on

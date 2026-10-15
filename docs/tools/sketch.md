@@ -2172,6 +2172,7 @@ Every endpoint is rooted at `/api`; a read is open to anyone and a write needs s
 |---|---|---|---|
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`, whose layout is a **ground layer** at `base_y` 0 under the id `ground`. A frame seeds the `setup` beside it, and `mode` is any `SymmetryModes` word, `none` included, with anything else read as `rot_180`; without a frame the editor uses its 120×80 `rot_180` default. A board is a stack and a flat one is a stack of one, so the ground is written here rather than invented by whichever surface draws on the board first | — |
 | `GET /map/{slug}/sketch` | — | the stored layout with the map's rooms drawn in from the intent, or `{}`. The `ETag` is the revision to state on the next write | 404 |
+| `GET /map/{slug}/intent/pieces` | — | `[{id, kind, color, minX, minZ, maxX, maxZ, carried}]` — every play piece where the sketch draws it, at the rectangle `PATCH …/intent/pieces/{id}` reads it as standing on; `carried` marks an image the intent does not store and an iron cube seated in a spawn room | 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick, but for the rooms: a room shape is stored as its `rooms` record and its rectangle is dropped; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
 | `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned, dropped}` — merges the finish, the relief and any author-corrected room height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge, and so does one `SK1` per group whose **posted** relief the carry replaced with the stored one. `dropped` names the stored shapes the rebuild does not keep — every one whose id the compile does not produce and which carries no `intentRef`, which is a shape drawn in the sketch — with one `SK29` complaint naming them | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built, and — where a plan is stored beside it — re-reads that plan's CTW strait over the drawn ground (`CT12`) | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
@@ -2581,11 +2582,18 @@ alone is not a backup of the notes (`docs/deployment.md`).
 
 The rooms are drawn in from the intent, and **no shape edit reshapes one**. A spawn or wool room and the
 building inside it are rendered so they stay visible while the ground around them is refined; a vertex, bend
-or shape patch on one is refused, and a recompile places them from the plan again. A destroy objective is not
-drawn (`TS169`). The building is drawn where the plan tool draws it, so the two tools show one rectangle rather
-than each showing its own.
+or shape patch on one is refused, and a recompile places them from the plan again. The building is drawn where
+the plan tool draws it, so the two tools show one rectangle rather than each showing its own.
 
-**One of them can be picked, moved, and corrected.** In the Draw phase — the only
+**Every other play piece is drawn too, from `GET /map/{slug}/intent/pieces`**: each destroyable and core at its
+structure's footprint, each build area, water lane, iron cube and approach wall at its rectangle, and the
+observer at the block it stands in, in the colour the plan tool draws the same thing in (`PlayPieces`). Unlike a
+room none of these is ground, so none is a shape of the layout: the canvas holds them beside the rooms and
+writes none of them into a save. An image the symmetry draws that the intent does not store, and an iron cube
+seated in a spawn room, is drawn dashed and cannot be picked, since it moves only with the piece it is an image
+of or the room it stands in.
+
+**Any of them can be picked and moved, and a room corrected.** In the Draw phase — the only
 phase that edits geometry — a click lands on the piece under the cursor before the ground under it, because
 the piece is drawn over that ground and is what the pointer is on; `ctrl`-click reaches past it to the island,
 the same modifier that already means *deeper*. The picked piece is ringed on the canvas and opens a rail of its
@@ -2594,7 +2602,8 @@ number is the plan's flat surface and every recompile writes it again, until an 
 correcting it writes the number and the author's-height flag together, which is what makes the correction
 survive the next compile (the room's record, matched by its id, `SketchLayout.CarryRoomGround`). A **building**
 footprint carries no height of its own — the region it stands in is what a group's relief is held against —
-so its rail states that and offers no field. Picking a piece drops whatever terrain selection was standing,
+so its rail states that and offers no field, and a piece that is not a room has a rail of its kind and extent
+alone. Picking a piece drops whatever terrain selection was standing,
 chrome included: one click selects one thing, and a room and the ground under it are two.
 
 **A picked piece drags, and where a room is belongs to the intent.** The drag is block-granular and snaps to
@@ -2613,9 +2622,12 @@ moves**: every image of the piece's authored unit — the pieces of one kind sha
 drag's displacement turned through the symmetry, so dragging red's spawn five blocks east across a mirror in x
 moves blue's five blocks west, and a building is held inside its own region on every image it carries. A piece
 stating no stamp is its own unit and moves alone, and the route's `alone` moves one image without the others.
-The same route **turns a room** a quarter at a time about the middle of its region, its doors and the way its
-players face turning with it, and a mirror image turns the other way (`docs/tools/configure.md`); the canvas
-offers no turn yet (`TS169`). And a plan rebuild draws the rectangle from the plan again, which is the
+The rest move the same way, block by block for the pieces that stand on whole blocks, and a build area or a
+water lane, which carries no stamp, moves the areas standing where the symmetry carries it. Where the intent
+states no symmetry — an intent compiled from a plan states none — the route takes the board's from the sketch's
+setup. The same route **turns a room** a quarter at a time about the middle of its region, its doors and the way
+its players face turning with it, and a mirror image turns the other way (`docs/tools/configure.md`); the rail of
+a picked room, building, build area or water lane turns it with its two turn buttons. And a plan rebuild draws the rectangle from the plan again, which is the
 standing rule for structure rather than anything about this edit.
 
 The layout model carries one shape type the **Draw** dock cannot draw: a `circle`, which rasterizes as a 64-gon

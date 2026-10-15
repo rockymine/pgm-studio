@@ -22,12 +22,11 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS169 — Play pieces are sketch objects.** Every spawn, wool room, destroyable, core, iron cube, approach
-  wall, build area, water lane and the observer is drawn in every phase of the sketch from the intent, and picked,
-  dragged and turned through the piece route from Draw as well as from a new Layout phase. Layout alone adds them,
-  from the plan editor's Pieces, Zones and Markers toolbars carried across without the plan's terrain piece and
-  buffer, and rooms and zones are drawn as rectangles only (D14). The inspectors move across with their own text;
-  a room's adds a turn clockwise and counterclockwise. `docs/tools/sketch.md`.
+- [~] **TS169 — Play pieces are sketch objects.** A new Layout phase picks, drags and turns the pieces as Draw does,
+  and alone adds and deletes them, from the plan editor's Pieces, Zones and Markers toolbars carried across without
+  the plan's terrain piece and buffer, rooms and zones drawn as rectangles only (D14). Adding needs a route that
+  places one piece and its images in the intent. The plan inspector's fields move across to the picked piece with
+  their own text. `docs/tools/sketch.md`.
 
 - [ ] **TS176 — Configure's placement steps become the sketch's inspector.** On a map the studio built, the
   spawn, protection, wool, destroyable, core and build steps are the inspector of a selected piece; on a map

@@ -5,9 +5,9 @@
 
 <Inspector>
   <Section>
-    <DetailHeader Icon="@(Piece.IsRegion ? "square-dashed" : "house")" Label="@Label">
+    <DetailHeader Icon="@Icon" Label="@Label">
       <span class="detail-header-badges">
-        <Badge Kind="neutral">@Piece.Who</Badge>
+        @if (Piece.Who.Length > 0) { <Badge Kind="neutral">@Piece.Who</Badge> }
         <Badge Kind="neutral">@Piece.Dim</Badge>
         @if (Piece.HeightAuthored) { <Badge Kind="warning">corrected</Badge> }
       </span>
@@ -30,7 +30,7 @@
         }
       </p>
     }
-    else
+    else if (!Piece.Piece)
     {
       <p class="section-desc">
         The building has no height of its own. Change the height on the region around it.
@@ -40,11 +40,22 @@
     <div class="section-header section-header--ruled"><h2 class="section-title">Position</h2></div>
     <p class="section-desc">
       Drag to move it.
-      @(Piece.IsRegion
-        ? "The marker, building, and iron on it move with it."
-        : "The region under it stays where it is.")
-      It can't be resized. Rebuilding from the plan puts it back.
+      @if (!Piece.Piece)
+      {
+        @(Piece.IsRegion
+          ? "The marker, building, and iron on it move with it."
+          : "The region under it stays where it is.")
+      }
+      It can't be resized.
+      @if (!Piece.Piece) { <text>Rebuilding from the plan puts it back.</text> }
     </p>
+    @if (Piece.Turns)
+    {
+      <div class="panel-actions">
+        <Button Variant="icon" Icon="rotate-ccw" Title="Turn counterclockwise" Writes OnClick="() => OnTurn.InvokeAsync(-1)" />
+        <Button Variant="icon" Icon="rotate-cw" Title="Turn clockwise" Writes OnClick="() => OnTurn.InvokeAsync(1)" />
+      </div>
+    }
     @if (!string.IsNullOrEmpty(Note))
     {
       <p class="field-error">@Note</p>

@@ -407,4 +407,85 @@ public sealed class PlayPieceMoveTests
         await Assert.That(turned).IsNull();
         await Assert.That(refused.Single().Field).IsEqualTo("turn");
     }
+
+    /// <summary>Two build areas mirrored across <c>x = 50</c>, a lane beside them, an iron cube and a wall
+    /// stamped as images of one unit each, and the observer; the intent states no symmetry, as a plan's
+    /// compiled one does, so the board's comes from the sketch.</summary>
+    private static MapIntent Fanned() => new()
+    {
+        Build = new BuildIntent { Areas = [new PieceArea(10, 20, 20, 30, "build-1"), new PieceArea(80, 20, 90, 30, "build-2")] },
+        WaterLanes = new WaterLaneIntent { Rects = [new PieceArea(30, 0, 34, 8, "water-lane-1")] },
+        Structures = new StructureIntent
+        {
+            IronCubes = [new IronCube(5, 5, true, new StampId("ironcube", "0", 0), "iron-1"),
+                         new IronCube(92, 5, true, new StampId("ironcube", "0", 1), "iron-2")],
+            Walls = [new WallStructure(40, 10, 42, 18, 20, Stamp: new StampId("wall", "0", 0), Id: "wall-1"),
+                     new WallStructure(58, 10, 60, 18, 20, Stamp: new StampId("wall", "0", 1), Id: "wall-2")],
+        },
+        Observer = new ObserverIntent { Point = new Pt(50.5, 30, 50.5) },
+    };
+
+    private static readonly SymmetryIntent MirrorX = new() { Mode = "mirror_x", CenterX = 50, CenterZ = 50 };
+
+    [Test]
+    public async Task A_build_area_moves_and_its_image_where_the_board_carries_it()
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Fanned(), "build-1", null, new Rect(12, 24, 22, 34), board: MirrorX);
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        await Assert.That(moved!.Build!.Areas[0]).IsEqualTo(new PieceArea(12, 24, 22, 34, "build-1"));
+        await Assert.That(moved.Build.Areas[1]).IsEqualTo(new PieceArea(78, 24, 88, 34, "build-2"))
+            .Because("a mirror image moves by the reflected displacement");
+    }
+
+    [Test]
+    public async Task With_no_symmetry_anywhere_an_area_moves_alone()
+    {
+        var (moved, _) = PlayPieceMove.Apply(Fanned(), "build-1", null, new Rect(12, 24, 22, 34));
+
+        await Assert.That(moved!.Build!.Areas[1]).IsEqualTo(new PieceArea(80, 20, 90, 30, "build-2"));
+    }
+
+    [Test]
+    public async Task An_area_turns_about_its_middle()
+    {
+        var (turned, _) = PlayPieceMove.Turn(Fanned(), "water-lane-1", null, 1, board: MirrorX);
+
+        await Assert.That(turned!.WaterLanes!.Rects.Single()).IsEqualTo(new PieceArea(28, 2, 36, 6, "water-lane-1"));
+    }
+
+    [Test]
+    public async Task An_iron_cube_and_a_wall_move_their_orbit_by_whole_blocks()
+    {
+        var (cubes, _) = PlayPieceMove.Apply(Fanned(), "iron-1", null,
+            new Rect(6, 7, 6 + RoomFrames.IronSpan, 7 + RoomFrames.IronSpan), board: MirrorX);
+        await Assert.That(cubes!.Structures!.IronCubes.Select(cube => (cube.MinX, cube.MinZ)))
+            .IsEquivalentTo(new[] { (6, 7), (91, 7) });
+
+        var (walls, _) = PlayPieceMove.Apply(Fanned(), "wall-1", null, new Rect(41, 12, 43, 20), board: MirrorX);
+        await Assert.That(walls!.Structures!.Walls[1]).IsEqualTo(Fanned().Structures!.Walls[1] with
+        {
+            MinX = 57, MinZ = 12, MaxX = 59, MaxZ = 20,
+        });
+    }
+
+    [Test]
+    public async Task The_observer_moves_by_its_block()
+    {
+        var (moved, _) = PlayPieceMove.Apply(Fanned(), PlayIds.Observer, null, new Rect(53, 47, 54, 48));
+
+        await Assert.That(moved!.Observer!.Point).IsEqualTo(new Pt(53.5, 30, 47.5));
+    }
+
+    [Test]
+    public async Task A_wall_resized_or_turned_is_refused()
+    {
+        var (resized, why) = PlayPieceMove.Apply(Fanned(), "wall-1", null, new Rect(40, 10, 43, 18));
+        await Assert.That(resized).IsNull();
+        await Assert.That(why.Single().Field).IsEqualTo("placed");
+
+        var (turned, refused) = PlayPieceMove.Turn(Fanned(), "wall-1", null, 1);
+        await Assert.That(turned).IsNull();
+        await Assert.That(refused.Single().Field).IsEqualTo("turn");
+    }
 }

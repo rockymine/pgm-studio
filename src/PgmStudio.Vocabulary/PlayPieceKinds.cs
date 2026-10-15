@@ -1,0 +1,38 @@
+namespace PgmStudio.Vocabulary;
+
+/// <summary>
+/// What a play piece the sketch draws is. The studio names a piece's kind on the wire, the client draws and
+/// labels it by the word, and a room's two kinds are spelled as the room's region words are.
+/// </summary>
+public static class PlayPieceKinds
+{
+    /// <summary>A team's spawn room.</summary>
+    public const string Spawn = StructuralRoles.Spawn;
+
+    /// <summary>A wool room.</summary>
+    public const string WoolRoom = StructuralRoles.WoolRoom;
+
+    /// <summary>A destroyable objective.</summary>
+    public const string Destroyable = "destroyable";
+
+    /// <summary>A core objective.</summary>
+    public const string Core = "core";
+
+    /// <summary>A build area: ground over the void a player may build on.</summary>
+    public const string BuildArea = "buildArea";
+
+    /// <summary>A water lane: a gap that opens part-way through the match.</summary>
+    public const string WaterLane = "waterLane";
+
+    /// <summary>An iron cube.</summary>
+    public const string IronCube = "ironCube";
+
+    /// <summary>A bedrock approach wall.</summary>
+    public const string Wall = "wall";
+
+    /// <summary>The observer's spawn.</summary>
+    public const string Observer = "observer";
+
+    /// <summary>Every kind.</summary>
+    public static readonly string[] All = [Spawn, WoolRoom, Destroyable, Core, BuildArea, WaterLane, IronCube, Wall, Observer];
+}

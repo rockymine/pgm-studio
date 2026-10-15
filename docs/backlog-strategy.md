@@ -303,7 +303,7 @@ were premises the code no longer holds.
 |---|---|
 | `WE95`, `WE96` | ruled out. The two boards that prompted them had been asked for trees with stated features, and the agent built those out of layers; a vine on a crown is something the tree generator could state, and nothing ever asked for a mushroom under one. Checking the studio against everything an agent might do has no end |
 | `WS1` | ruled off. The thin-lane case has not come up again, because no board since has been authored at that scale |
-| `TS75` | both halves measurably false. The sketch draws a destroyable and a core from the intent's anchor (`sketch-render.js` `paintObjectives`), read-only by a decision stated there — *Configure is where one is edited*; and `PlanBoardScene` fans both, `B128`'s empty-`piece` case included. Rendered on the entry's own evidence board, `tallow-mirefast`'s wardstone draws at both orbit images |
+| `TS75` | both halves measurably false. The sketch draws a destroyable and a core from the intent, at the structure centred on its anchor (`PlayPieces`); and `PlanBoardScene` fans both, `B128`'s empty-`piece` case included. Rendered on the entry's own evidence board, `tallow-mirefast`'s wardstone draws at both orbit images |
 | `WE79` | fixed. `PlaceStroke` seats through `DressingContext.GroundFor` and claims on the prop's own layer. Measured on two storeys — a street at y10 under a deck at y25 — a stroke naming `street` paves at **y9**, one naming nothing paves at y24, and one naming a layer the board lacks paves nothing and declines `DR-LAYER` |
 
 **Water is not widened to meet its hollow, and the two complaints are the answer (author, 2026-09-08).**
