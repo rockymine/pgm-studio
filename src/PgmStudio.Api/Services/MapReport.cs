@@ -62,7 +62,7 @@ internal sealed class MapReport(
     {
         if (await WorldReads.LoadAsync(map, reader, artifacts, ct) is not { } read) return null;
         var layoutJson = Encoding.UTF8.GetString(
-            await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) ?? []);
+            await artifacts.LoadLayoutAsync(map.Id, ct) ?? []);
         var layout = SketchLayout.Stated(layoutJson);
         var built = read.Built;
         var surface = built.Surface;

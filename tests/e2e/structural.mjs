@@ -4,8 +4,9 @@
  * Two halves, both driven on a REAL composed board (the seed's plan is straight from the generator, single
  * height — so its same-plane pieces fuse into one island polygon, exactly the case where a spawn/wool would
  * otherwise vanish):
- *   1. an API check — compiling the plan yields role-tagged spawn/wool rectangles ALONGSIDE the fused terrain,
- *      and they carry the link (intentRef) + colour the sketch renders from;
+ *   1. an API check — the compiled layout stores no room, only what it says about each room's ground, and the
+ *      sketch reads it back with role-tagged spawn/wool rectangles drawn from the intent ALONGSIDE the fused
+ *      terrain, each under its piece's id and with the colour the sketch renders from;
  *   2. a visual check — the plan tool and the sketch tool are screenshotted (the sketch is the seed draft that
  *      carries that same compiled layout), so the surfaced pieces can be seen where the terrain has fused.
  */
@@ -23,9 +24,16 @@ await mkdir(OUT, { recursive: true });
 checks.section("compiled layout surfaces the plan's structural pieces");
 
 const compiled = await api("/plan/compile", { method: "POST", body: seed.planJson });
-// The layout is a stack of layers and a layer holds its own drawing, so the shapes are read per layer.
-// A compiled plan is the flat case — a stack of one, called `ground`.
-const shapes = (compiled.layout?.layers ?? []).flatMap(layer => layer.layout?.shapes ?? []);
+const stored = (compiled.layout?.layers ?? []).flatMap(layer => layer.layout?.shapes ?? []);
+checks.add("the compiled layout stores no room", !stored.some(s => s.role), `${stored.length} shapes`);
+checks.add("the compiled layout states the rooms' ground", Object.keys(compiled.layout?.rooms ?? {}).length > 0,
+  Object.keys(compiled.layout?.rooms ?? {}).join(", "));
+
+// The draft holds that layout and its intent; the sketch reads it with the rooms drawn in. The layout is a
+// stack of layers and a layer holds its own drawing, so the shapes are read per layer.
+const read = await api(`/map/${seed.sketchSlug}/sketch`);
+const intent = await api(`/map/${seed.sketchSlug}/intent`);
+const shapes = (read.layers ?? []).flatMap(layer => layer.layout?.shapes ?? []);
 const spawns  = shapes.filter(s => s.role === "spawn");
 const wools   = shapes.filter(s => s.role === "woolRoom");
 const terrain = shapes.filter(s => !s.role);
@@ -35,9 +43,10 @@ checks.add("wool rooms surfaced", wools.length >= 2, `${wools.length} wool recta
 checks.add("structural shapes are rectangles",
   [...spawns, ...wools].every(s => s.type === "rectangle" && s.min_x !== undefined),
   "each carries a rectangle footprint");
-checks.add("each is linked back to its intent entity",
-  [...spawns, ...wools].every(s => s.intentRef) && spawns.every(s => s.color),
-  "intentRef + colour present");
+const pieces = new Set([...(intent.spawns ?? []), ...(intent.wools ?? [])].map(piece => piece.id));
+checks.add("each is drawn under its piece's id",
+  [...spawns, ...wools].every(s => pieces.has(s.id)) && spawns.every(s => s.color),
+  "piece id + colour present");
 // The very case the feature exists for: the single-height board fused its terrain, yet the pieces survive.
 checks.add("terrain fused below the surfaced pieces",
   terrain.length > 0 && terrain.length < spawns.length + wools.length,

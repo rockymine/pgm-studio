@@ -2,6 +2,7 @@ using System.Text;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
+using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Services;
@@ -39,9 +40,14 @@ public static class MapRestore
                 Field: "note")));
 
         var writes = new Dictionary<string, byte[]>();
-        foreach (var (kind, data) in await log.DocumentsAtAsync(map.Slug, number, ct))
+        foreach (var (kind, kept) in await log.DocumentsAtAsync(map.Slug, number, ct))
+        {
+            // A layout is restored as the store keeps one, its room shapes folded into their records.
+            var data = kind == ArtifactKind.SketchLayoutJson
+                ? Encoding.UTF8.GetBytes(RoomShapes.Fold(Encoding.UTF8.GetString(kept))) : kept;
             if (await artifacts.LoadAsync(map.Id, kind, ct) is not { } held || !held.AsSpan().SequenceEqual(data))
                 writes[kind] = data;
+        }
         if (writes.Count == 0) return new(null, null, []);
 
         if (writes.TryGetValue(ArtifactKind.SketchLayoutJson, out var layout))

@@ -4,8 +4,8 @@ namespace PgmStudio.Pgm.Tests.Sketch;
 
 /// <summary>
 /// What a rebuild from the plan does not keep of the shapes a stored layout holds. Geometry is the plan's, so
-/// the invariant is exact: every stored shape is either produced again by the compile, stands for an intent
-/// entity, or is named as dropped — none is lost without a name.
+/// the invariant is exact: every stored shape is either produced again by the compile, is a room the intent
+/// draws, or is named as dropped — none is lost without a name.
 /// </summary>
 public sealed class SketchShapeDropTests
 {
@@ -14,13 +14,13 @@ public sealed class SketchShapeDropTests
         "shapes": [ {{string.Join(",", shapes)}} ], "groups": [] } }] }
     """;
 
-    private static string Shape(string id, string? intentRef = null) =>
-        $$"""{ "id": "{{id}}", "type": "rectangle", "operation": "add", "min_x": 0, "min_z": 0, "max_x": 4, "max_z": 4{{(intentRef is null ? "" : $", \"role\": \"spawn\", \"intentRef\": \"{intentRef}\"")}} }""";
+    private static string Shape(string id, string? role = null) =>
+        $$"""{ "id": "{{id}}", "type": "rectangle", "operation": "add", "min_x": 0, "min_z": 0, "max_x": 4, "max_z": 4{{(role is null ? "" : $", \"role\": \"{role}\"")}} }""";
 
     [Test]
     public async Task Every_stored_shape_is_recompiled_projected_or_named_as_dropped()
     {
-        var stored = Layout(Shape("plan-a"), Shape("plan-b"), Shape("circle-1"), Shape("red-room", "red"),
+        var stored = Layout(Shape("plan-a"), Shape("plan-b"), Shape("circle-1"), Shape("spawn-red", "spawn"),
                             Shape("sketch-2"));
         var compiled = Layout(Shape("plan-a"), Shape("plan-c"));
 

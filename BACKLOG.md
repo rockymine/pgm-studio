@@ -181,6 +181,11 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Relief
 
+- [ ] **TS178 — A finished sketch's scan follows the intent's rooms.** The scan is redrawn when the layout's
+  revision moves past the one it was drawn from (`SketchFinish.RefreshAsync`, `WorldFeatureWriter.SketchScanRevision`),
+  but a room pins the relief under it and lives in the intent, so a move through the piece route alone leaves the
+  scan describing the room where it stood. Key the scan on both revisions. `docs/tools/sketch.md`.
+
 - [ ] **WE28 — A relief is keyed by group id, and a stacked board's storeys share one namespace.**
   `SketchReliefJson` rides top-level on the layout keyed by group, and a group id is unique across the stack
   only by the author keeping it so: two storeys of one board are the same footprint one layer up, told apart

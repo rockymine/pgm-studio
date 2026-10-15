@@ -41,7 +41,6 @@ public sealed record SketchShapeRow(
 public sealed record SketchStructuralRow(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("role")] string Role,
-    [property: JsonPropertyName("intentRef")] string? IntentRef,
     [property: JsonPropertyName("color")] string? Color,
     [property: JsonPropertyName("baseHeight")] double? BaseHeight,
     [property: JsonPropertyName("heightAuthored")] bool HeightAuthored,
@@ -50,15 +49,15 @@ public sealed record SketchStructuralRow(
     [property: JsonPropertyName("maxX")] double MaxX,
     [property: JsonPropertyName("maxZ")] double MaxZ)
 {
-    /// <summary>Whether this piece is a region — the shape that carries a height and an intent entity — as
-    /// against the building footprint drawn inside one.</summary>
+    /// <summary>Whether this piece is a region — the shape that carries a height — as against the building
+    /// footprint drawn inside one.</summary>
     public bool IsRegion => Role != StructuralRoles.Building;
 
     /// <summary>The piece's extent in blocks, the way every other selection on this canvas reads one.</summary>
     public string Dim => $"{MaxX - MinX:0.#} × {MaxZ - MinZ:0.#}";
 
-    /// <summary>Who it belongs to: a spawn's team, a wool's dye colour. What the canvas label says.</summary>
-    public string Who => Role == StructuralRoles.Spawn ? (IntentRef ?? "") : (Color ?? "");
+    /// <summary>Who it belongs to: a spawn's team colour, a wool's dye. What the canvas label says.</summary>
+    public string Who => Color ?? "";
 }
 
 public sealed record SketchGroupRow(

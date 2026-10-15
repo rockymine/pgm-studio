@@ -13,6 +13,11 @@ namespace PgmStudio.Pgm.Tests;
 public sealed class PlanCompilerTests
 {
     private static PlanModel Plan(string json) => PlanModel.Parse(json)!;
+
+    /// <summary>The compiled board's first layer as a reader sees it, with the rooms drawn in from the
+    /// compiled intent.</summary>
+    private static List<SketchShape> Drawn(SketchLayout layout, PgmStudio.Pgm.Authoring.MapIntent intent) =>
+        SketchLayout.Stack(SketchLayout.Parse(RoomShapes.Project(layout.ToJson(), intent)))[0].Shapes;
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
     private static string Ser(object o) => JsonSerializer.Serialize(o, Web);
 
@@ -226,20 +231,25 @@ public sealed class PlanCompilerTests
     [Test]
     public async Task Structural_pieces_surface_as_locked_role_rectangles_distinct_from_the_fused_terrain()
     {
-        var (layout, _) = PlanCompiler.Compile(Plan(StructuralUnit));
-        var shapes = SketchLayout.Stack(layout)[0].Shapes;
+        var (layout, intent) = PlanCompiler.Compile(Plan(StructuralUnit));
+        var shapes = Drawn(layout, intent);
         var spawns  = shapes.Where(s => s.Role == "spawn").ToList();
         var wools   = shapes.Where(s => s.Role == "woolRoom").ToList();
         var terrain = shapes.Where(s => s.Role is null).ToList();
 
-        // Both teams' spawn + wool room surface as their own labelled rectangles, linked + coloured for the
-        // sketch (spawn keyed by team, wool by owner:colour).
+        // Both teams' spawn + wool room surface as their own labelled rectangles, named by their pieces' ids
+        // and coloured for the sketch.
         await Assert.That(spawns.Count).IsEqualTo(2);
         await Assert.That(wools.Count).IsEqualTo(2);
         await Assert.That(spawns.All(s => s.Type == "rectangle")).IsTrue();
-        await Assert.That(spawns.Select(s => s.IntentRef!)).IsEquivalentTo(new[] { "red", "blue" });
-        await Assert.That(spawns.Single(s => s.IntentRef == "red").Color).IsEqualTo("red");
-        await Assert.That(wools.Select(w => w.IntentRef!)).IsEquivalentTo(new[] { "red:red", "blue:blue" });
+        await Assert.That(spawns.Select(s => s.Id)).IsEquivalentTo(intent.Spawns.Select(spawn => spawn.Id));
+        await Assert.That(spawns.Single(s => s.Id == "spawn-red").Color).IsEqualTo("red");
+        await Assert.That(wools.Select(w => w.Id)).IsEquivalentTo(new[] { "wool-red-red", "wool-blue-blue" });
+
+        // The stored layout holds none of them: only what it states about the authored room's ground.
+        await Assert.That(SketchLayout.Stack(layout)[0].Shapes.Any(s => s.Role is not null)).IsFalse();
+        await Assert.That(layout.Rooms!.Keys).IsEquivalentTo(new[] { "spawn-red", "wool-red-red" });
+        await Assert.That(layout.Rooms["spawn-red"].ReliefScope).IsEqualTo(ReliefScopes.Follow);
 
         // The terrain the pieces sit on has fused to fewer polygons than there are structural pieces — the very
         // case the annotation exists to survive.
@@ -259,7 +269,7 @@ public sealed class PlanCompilerTests
     public async Task Each_region_carries_the_building_raised_inside_it()
     {
         var (layout, intent) = PlanCompiler.Compile(Plan(StatedBuildings));
-        var shapes = SketchLayout.Stack(layout)[0].Shapes;
+        var shapes = Drawn(layout, intent);
         var buildings = shapes.Where(s => s.Role == StructuralRoles.Building).ToList();
 
         // One per room, named off the region shape it stands in, and carrying no height of its own — the
@@ -268,8 +278,8 @@ public sealed class PlanCompilerTests
         await Assert.That(buildings.Select(b => b.Id))
             .IsEquivalentTo(new[] { "spawn-red-building", "spawn-blue-building",
                                     "wool-red-red-building", "wool-blue-blue-building" });
-        await Assert.That(buildings.All(b => b.IntentRef is null && b.BaseHeight is null
-                                             && b.ReliefScope is null && b.Doors is null)).IsTrue();
+        await Assert.That(buildings.All(b => b.BaseHeight is null && b.ReliefScope is null && b.Doors is null))
+            .IsTrue();
 
         // Each stands inside the region it belongs to, and is the same rectangle the intent hands the export.
         foreach (var region in shapes.Where(s => s.Role is StructuralRoles.Spawn or StructuralRoles.WoolRoom))
@@ -290,8 +300,8 @@ public sealed class PlanCompilerTests
     {
         // The shape is a picture of what the plan states, not of what WX1 would default: a rectangle nobody
         // drew, shown as though they had, is the opacity a stated footprint exists against.
-        var (layout, _) = PlanCompiler.Compile(Plan(StructuralUnit));
-        var shapes = SketchLayout.Stack(layout)[0].Shapes;
+        var (layout, intent) = PlanCompiler.Compile(Plan(StructuralUnit));
+        var shapes = Drawn(layout, intent);
         await Assert.That(shapes.Where(s => s.Role == StructuralRoles.Building)).IsEmpty();
         await Assert.That(shapes.Count(s => s.Role is StructuralRoles.Spawn or StructuralRoles.WoolRoom))
             .IsEqualTo(4);
@@ -300,12 +310,11 @@ public sealed class PlanCompilerTests
     [Test]
     public async Task Structural_role_shapes_contribute_no_terrain_cells()
     {
-        var (layout, _) = PlanCompiler.Compile(Plan(StructuralUnit));
-        var withRoles = SketchRasterizer.Rasterize(layout.ToJson()).ToHashSet();
+        var (layout, intent) = PlanCompiler.Compile(Plan(StructuralUnit));
+        var withRoles = SketchRasterizer.Rasterize(RoomShapes.Project(layout.ToJson(), intent)).ToHashSet();
 
-        // Strip the structural shapes and rasterize again — an identical footprint proves the rasterizer never
+        // The layout alone, which holds no room shape — an identical footprint proves the rasterizer never
         // turned a locked annotation into ground (they overlap the fused terrain but add nothing to it).
-        SketchLayout.Stack(layout)[0].Shapes.RemoveAll(s => s.Role is not null);
         var terrainOnly = SketchRasterizer.Rasterize(layout.ToJson()).ToHashSet();
 
         await Assert.That(terrainOnly.Count).IsGreaterThan(0);

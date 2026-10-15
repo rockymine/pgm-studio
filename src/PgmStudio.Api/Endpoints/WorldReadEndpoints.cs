@@ -64,7 +64,7 @@ internal static class WorldReads
     public static async Task<WorldDocuments?> DocumentsAsync(
         MapRow map, MapReader reader, MapArtifactStore artifacts, CancellationToken ct)
     {
-        var layout = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
+        var layout = await artifacts.LoadLayoutAsync(map.Id, ct);
         if (layout is null) return null;
 
         var intentBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.MapIntentJson, ct) ?? [];
@@ -1258,7 +1258,7 @@ internal sealed class RouteReadEndpoint(MapRepository repo, MapReader reader, Ma
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        var layout = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
+        var layout = await artifacts.LoadLayoutAsync(map.Id, ct);
         var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
         if (read is null || layout is null)
         {
@@ -1315,7 +1315,7 @@ internal sealed class ThemeCensusReadEndpoint(MapRepository repo, MapReader read
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        var layout = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
+        var layout = await artifacts.LoadLayoutAsync(map.Id, ct);
         var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
         if (read is null || layout is null)
         {

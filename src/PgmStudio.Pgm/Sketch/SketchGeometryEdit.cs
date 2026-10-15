@@ -23,12 +23,11 @@ namespace PgmStudio.Pgm.Sketch;
 /// </summary>
 public static class SketchGeometryEdit
 {
-    /// <summary>The three fields a shape patch may not write. <c>role</c> and <c>intentRef</c> are the
-    /// identity a plan recompile matches a shape by, so moving either silently rebinds the piece to a
-    /// different intent or to none; <c>height_authored</c> is the mark that says a floor was corrected by
-    /// hand, and setting it by hand is claiming a correction that was never made. All three are written by
-    /// the compiler and read by it, and a caller has no way to state a coherent value for any of them.</summary>
-    public static readonly string[] Structural = ["role", "intentRef", "height_authored"];
+    /// <summary>The two fields a shape patch may not write. <c>role</c> says a shape is a play room drawn in
+    /// from the intent, which no patch can make or unmake; <c>height_authored</c> is the mark that says a
+    /// floor was corrected by hand, and setting it by hand is claiming a correction that was never
+    /// made.</summary>
+    public static readonly string[] Structural = ["role", "height_authored"];
 
     /// <summary>The layer at <paramref name="layerId"/> with <paramref name="stated"/> merged onto it, or a
     /// new layer at the end of the stack where the id names none.
@@ -121,6 +120,12 @@ public static class SketchGeometryEdit
     /// one leave a patch with no single subject.</para></summary>
     public static GeometryEdit AddShape(string? layoutJson, string layerId, JsonObject shape, string? groupId)
     {
+        // A room is drawn in from the intent, so a shape the sketch adds is never one.
+        if (shape.ContainsKey("role"))
+            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                $"the shape added to layer '{layerId}' states `role`, and a room is placed in the game settings",
+                Field: "role"));
+
         var root = Root(layoutJson);
         var layers = Layers(root);
         if (LayerAt(layers, layerId) is not { } layer) return GeometryEdit.Missing;
@@ -152,7 +157,7 @@ public static class SketchGeometryEdit
 
     /// <summary>The shape at <paramref name="shapeId"/> with <paramref name="stated"/> merged onto it —
     /// a stated field replaces what the shape carried and a stated null takes the field off, so the one call
-    /// both writes and clears. The three <see cref="Structural"/> fields are refused, and <c>id</c> is the
+    /// both writes and clears. The two <see cref="Structural"/> fields are refused, and <c>id</c> is the
     /// address and is kept whatever the body says.</summary>
     public static GeometryEdit PatchShape(string? layoutJson, string shapeId, JsonObject stated)
     {
@@ -389,7 +394,7 @@ public static class SketchGeometryEdit
     }
 
     /// <summary>The vertex list of a shape that can take a per-vertex edit, or the finding that refuses it: a
-    /// <c>role</c> shape is the plan's own rectangle and is the compiler's to draw, and a rectangle or a
+    /// <c>role</c> shape is a room drawn in from the intent, which says where it is, and a rectangle or a
     /// circle states its bounds rather than an outline.</summary>
     private static GeometryEdit? Outline(
         JsonArray layers, string shapeId, out JsonObject shape, out JsonArray vertices)

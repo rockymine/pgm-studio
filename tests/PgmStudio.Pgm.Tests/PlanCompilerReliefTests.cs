@@ -28,11 +28,12 @@ public sealed class PlanCompilerReliefTests
         }
         """;
 
+    /// <summary>The compiled board as a world build reads it, with the rooms drawn in from the compiled
+    /// intent, and the id the authored spawn's room is drawn under.</summary>
     private static (SketchLayout Layout, string SpawnShapeId) Compile()
     {
         var (layout, intent) = PlanCompiler.Compile(PlanModel.Parse(Json)!);
-        var team = intent.Teams![0].Id;
-        return (layout, $"spawn-{team}");
+        return (SketchLayout.Parse(RoomShapes.Project(layout.ToJson(), intent))!, intent.Spawns[0].Id);
     }
 
     [Test]

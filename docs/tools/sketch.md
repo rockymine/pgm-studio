@@ -341,18 +341,25 @@ there is no shape to state it on; a role shape naming no theme says nothing and 
 The plinth the build levels under a room's footprint is finished by whatever theme resolves there
 (`docs/world-export/terrain-painting.md` § the scope, § the runtime seam).
 
-**A room projects as two shapes, because it is two rectangles.** `spawn` and `woolRoom` are the *region* — the
-ground the room stands on and the protection around it — and carry the `intentRef` back to the entity they
-belong to, the `color` their labelled box is filled with, and the height the group's relief is held against.
-`building` is the *footprint* raised inside one of them, the rectangle the shell is stamped on
-(`docs/world-export/structures.md` WX1), drawn in the **building ink** — the same one a house dressed onto the
-ground takes, because a room's footprint is the single-wing case of that building — as an outline over the box
-rather than a second filled one. It carries no `intentRef` and no height of its own: the region shape is what a group's relief is held
-against and what an author corrects a height on, so a second shape claiming that identity would be a second
-answer to one question. Its id is the region's plus `-building`, so a recompile writes the same shape over the
-same one. **Only a stated footprint projects** — a placement that leaves it to `WX1`'s default shows its
-region alone, since drawing a rectangle nobody stated as though they had is the opacity a stated footprint
-exists against.
+**A room is drawn from the intent, and the layout stores only what it says about the ground under it.** Every
+spawn and wool whose `protection` is one rectangle is drawn into the first layer as it is read
+(`RoomShapes.Project`) — by `GET /sketch`, by every partial write, by the world build — and no stored layout
+holds one. What the layout states about a room lives in its **`rooms`** record, keyed by the id the room is
+drawn under: `floor`, `base_height`, `anchor_heights`, `relief_scope`, `height_authored`, `doors`, `theme` and
+`material`, each meaning what it means on a shape. A body `PUT` back with its rooms drawn is stored folded
+(`RoomShapes.Fold`): the rectangles go, and what each room shape stated about its ground lands in its record.
+A room with no record is ordinary ground the relief does not pin.
+
+**A room is drawn as two shapes, because it is two rectangles.** `spawn` and `woolRoom` are the *region* — the
+ground the room stands on and the protection around it — drawn under the piece's id, with the `color` their
+labelled box is filled with, and the height the group's relief is held against. `building` is the *footprint*
+raised inside one of them, the rectangle the shell is stamped on (`docs/world-export/structures.md` WX1), drawn
+in the **building ink** — the same one a house dressed onto the ground takes, because a room's footprint is
+the single-wing case of that building — as an outline over the box rather than a second filled one. It carries
+no height of its own: the region is what a group's relief is held against and what an author corrects a height
+on. Its id is the region's plus `-building`. **Only a stated footprint is drawn** — a room that leaves it to
+`WX1`'s default shows its region alone, since drawing a rectangle nobody stated as though they had is the
+opacity a stated footprint exists against. A region stated as several rectangles is not drawn at all.
 
 **Its footprint stays inside the fused polygon, and has to.** A room places no terrain of its own, so the
 ground it stands on is the group's; that overlap is what binds the room to its group's relief, since an
@@ -2074,8 +2081,7 @@ the old fusion has nowhere correct to land. `?force=true` accepts the loss and p
 call and not the server's.
 
 **A shape drawn in the sketch is not carried, and the rebuild names it.** Geometry is the plan's, so a stored
-shape the compile does not produce and which stands for no intent entity (no `intentRef`) is not in the layout
-the rebuild stores. That is right, and it is not silent: the answer's `dropped` lists those shapes by id beside
+shape the compile does not produce, and which is not a room, is not in the layout the rebuild stores. That is right, and it is not silent: the answer's `dropped` lists those shapes by id beside
 `orphaned`, and one `SK29` complaint names them on the 200.
 
 **And a relief in the posted body loses to the stored one, which the same route now says out loud.** The carry
@@ -2165,10 +2171,9 @@ Every endpoint is rooted at `/api`; a read is open to anyone and a write needs s
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`, whose layout is a **ground layer** at `base_y` 0 under the id `ground`. A frame seeds the `setup` beside it, and `mode` is any `SymmetryModes` word, `none` included, with anything else read as `rot_180`; without a frame the editor uses its 120×80 `rot_180` default. A board is a stack and a flat one is a stack of one, so the ground is written here rather than invented by whichever surface draws on the board first | — |
-| `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
-| `GET /map/{slug}/sketch` | — | the stored layout, or `{}`. The `ETag` is the revision to state on the next write | 404 |
-| `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
-| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned, dropped}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge, and so does one `SK1` per group whose **posted** relief the carry replaced with the stored one. `dropped` names the stored shapes the rebuild does not keep — every one whose id the compile does not produce and which carries no `intentRef`, which is a shape drawn in the sketch — with one `SK29` complaint naming them | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
+| `GET /map/{slug}/sketch` | — | the stored layout with the map's rooms drawn in from the intent, or `{}`. The `ETag` is the revision to state on the next write | 404 |
+| `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick, but for the rooms: a room shape is stored as its `rooms` record and its rectangle is dropped; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned, dropped}` — merges the finish, the relief and any author-corrected room height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge, and so does one `SK1` per group whose **posted** relief the carry replaced with the stored one. `dropped` names the stored shapes the rebuild does not keep — every one whose id the compile does not produce and which carries no `intentRef`, which is a shape drawn in the sketch — with one `SK29` complaint naming them | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built, and — where a plan is stored beside it — re-reads that plan's CTW strait over the drawn ground (`CT12`) | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
 | `DELETE /map/{slug}/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name, credited to nobody but its originator, with nothing drawn; the Plan tool asks the same on the way out | — |
 
@@ -2574,11 +2579,11 @@ points of its outline, which keeps the pick's query inside a request line — th
 cut short. The pictures sit in a folder beside the database rather than in it, so a backup of the database
 alone is not a backup of the notes (`docs/deployment.md`).
 
-The structural pieces a plan projects in keep their **geometry read-only**. A spawn or wool room and the
-building inside it are rendered so they stay visible while the ground around them is refined, and neither can
-be moved or reshaped here — the plan draws them, and a recompile redraws them. A destroy objective has no
-sketch presence at all. The building is drawn where the plan tool draws it, so the two tools show one
-rectangle rather than each showing its own.
+The rooms are drawn in from the intent, and **no shape edit reshapes one**. A spawn or wool room and the
+building inside it are rendered so they stay visible while the ground around them is refined; a vertex, bend
+or shape patch on one is refused, and a recompile places them from the plan again. A destroy objective is not
+drawn (`TS169`). The building is drawn where the plan tool draws it, so the two tools show one rectangle rather
+than each showing its own.
 
 **One of them can be picked, moved, and corrected.** In the Draw phase — the only
 phase that edits geometry — a click lands on the piece under the cursor before the ground under it, because
@@ -2587,7 +2592,7 @@ the same modifier that already means *deeper*. The picked piece is ringed on the
 own: what kind it is, whose it is, its extent, and — for a **region** — the height it was compiled at. That
 number is the plan's flat surface and every recompile writes it again, until an author corrects it here;
 correcting it writes the number and the author's-height flag together, which is what makes the correction
-survive the next compile (matched by `intentRef`, `SketchLayout.CarryStructuralHeight`). A **building**
+survive the next compile (the room's record, matched by its id, `SketchLayout.CarryRoomGround`). A **building**
 footprint carries no height of its own — the region it stands in is what a group's relief is held against —
 so its rail states that and offers no field. Picking a piece drops whatever terrain selection was standing,
 chrome included: one click selects one thing, and a room and the ground under it are two.

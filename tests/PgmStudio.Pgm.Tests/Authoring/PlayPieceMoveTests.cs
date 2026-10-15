@@ -158,7 +158,7 @@ public sealed class PlayPieceMoveTests
     }
 
     [Test]
-    public async Task A_goal_has_no_building()
+    public async Task An_objective_has_no_building()
     {
         var (moved, refused) = PlayPieceMove.Apply(Board(), "destroyable-red", StructuralRoles.Building, new Rect(39, 4, 42, 7));
 
@@ -202,14 +202,27 @@ public sealed class PlayPieceMoveTests
     }
 
     [Test]
-    [Arguments("spawn")]
-    [Arguments("lane")]
-    public async Task A_part_other_than_the_building_is_refused(string part)
+    [Arguments("spawn-red", StructuralRoles.WoolRoom)]
+    [Arguments("spawn-red", "lane")]
+    [Arguments("wool-red-blue", StructuralRoles.Spawn)]
+    [Arguments("core-red", StructuralRoles.Spawn)]
+    public async Task A_part_the_piece_does_not_have_is_refused(string id, string part)
     {
-        var (moved, refused) = PlayPieceMove.Apply(Board(), "spawn-red", part, new Rect(0, 0, 10, 10));
+        var (moved, refused) = PlayPieceMove.Apply(Board(), id, part, new Rect(0, 0, 10, 10));
 
         await Assert.That(moved).IsNull();
         await Assert.That(refused.Single().Field).IsEqualTo("part");
+    }
+
+    /// <summary>A room's own region word names the region, so a client may send the role of the shape it
+    /// dragged.</summary>
+    [Test]
+    public async Task A_rooms_region_word_moves_the_region()
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Board(), "spawn-red", StructuralRoles.Spawn, new Rect(100, 50, 110, 60));
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        await Assert.That(Spawn(moved!).Protection.Single()).IsEqualTo(new Rect(100, 50, 110, 60));
     }
 
     [Test]

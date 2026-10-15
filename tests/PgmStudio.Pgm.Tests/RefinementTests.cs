@@ -20,13 +20,16 @@ public sealed class RefinementTests
              {"id":"moor-12","type":"polygon","operation":"add","base_height":12,
               "vertices":[[0,0],[40,0],[40,40],[0,40]]},
              {"id":"crag-20","type":"polygon","operation":"add","base_height":20,
-              "vertices":[[40,0],[60,0],[60,20],[40,20]]},
-             {"id":"spawn-red","type":"rectangle","operation":"add","role":"spawn","intentRef":"red",
-              "min_x":2,"max_x":8,"min_z":2,"max_z":8,"base_height":12}],
-           "groups":[{"id":"moor","name":"Moor","shapeIds":["moor-12","crag-20"]}]}}]}
+              "vertices":[[40,0],[60,0],[60,20],[40,20]]}],
+           "groups":[{"id":"moor","name":"Moor","shapeIds":["moor-12","crag-20"]}]}}],
+         "rooms":{"spawn-red":{"base_height":12}}}
         """;
 
-    private const string Intent = """{"meta":{"name":"Weirgate","authors":[],"contributors":[]}}""";
+    private const string Intent = """
+        {"meta":{"name":"Weirgate","authors":[],"contributors":[]},
+         "teams":[{"id":"red","name":"Red","color":"red"}],
+         "spawns":[{"id":"spawn-red","team":"red","protection":[{"minX":2,"minZ":2,"maxX":8,"maxZ":8}]}]}
+        """;
 
     private static Refined Apply(string refinement) => Refinement.Apply(refinement, Layout, Intent);
 
@@ -34,6 +37,11 @@ public sealed class RefinementTests
         JsonNode.Parse(refined.LayoutJson)!["layers"]!.AsArray().OfType<JsonObject>()
             .SelectMany(layer => layer["layout"]!["shapes"]!.AsArray().OfType<JsonObject>())
             .Single(shape => shape["id"]!.GetValue<string>() == id);
+
+    /// <summary>What the refined layout states about a room's ground — a room is the intent's, so the layout
+    /// stores no shape for it.</summary>
+    private static JsonObject Room(Refined refined, string id) =>
+        JsonNode.Parse(refined.LayoutJson)!["rooms"]![id]!.AsObject();
 
     private static JsonArray Layers(Refined refined) => JsonNode.Parse(refined.LayoutJson)!["layers"]!.AsArray();
 
@@ -46,7 +54,7 @@ public sealed class RefinementTests
 
         await Assert.That(Shape(refined, "moor-12")["theme"]!.GetValue<string>()).IsEqualTo("heath");
         await Assert.That(Shape(refined, "crag-20")["theme"]!.GetValue<string>()).IsEqualTo("granite");
-        await Assert.That(Shape(refined, "spawn-red")["theme"]!.GetValue<string>()).IsEqualTo("yard")
+        await Assert.That(Room(refined, "spawn-red")["theme"]!.GetValue<string>()).IsEqualTo("yard")
             .Because("a room piece is not terrain, so only its own id reaches it");
         await Assert.That(refined.Findings).IsEmpty();
     }
@@ -211,7 +219,8 @@ public sealed class RefinementTests
         await Assert.That(refined.Findings.Single(finding => finding.Field == "outlines.spawn-red").Message).Contains("spawn");
         await Assert.That(refined.Findings.Single(finding => finding.Field == "outlines.nowhere").Rule)
             .IsEqualTo(SourceRules.NamesNothing);
-        await Assert.That(Shape(refined, "spawn-red")["type"]!.GetValue<string>()).IsEqualTo("rectangle");
+        await Assert.That(Room(refined, "spawn-red")["base_height"]!.GetValue<double>()).IsEqualTo(12)
+            .Because("the room is left as it was");
     }
 
     [Test]

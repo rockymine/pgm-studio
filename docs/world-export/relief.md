@@ -729,8 +729,8 @@ offers whichever question applies: a skirt for a shape standing out of the terra
 that is terrain.
 
 **A structural annotation binds by footprint, not by membership, and its held height can be corrected once the
-ground is real.** A spawn or wool room the plan compiler projects into the layout is a held shape that is never
-listed in its group's own `shapeIds` — that list is read elsewhere as the group's terrain rings, and the
+ground is real.** A spawn or wool room is drawn into the layout from the intent as it is read, carrying its
+`rooms` record (`docs/tools/sketch.md`), and is never listed in its group's own `shapeIds` — that list is read elsewhere as the group's terrain rings, and the
 annotation is not terrain. It binds instead by overlapping the ground the group's own shapes already claimed,
 so `hold`/`exclude` apply to it exactly as they would an ordinary member shape. Its stated `floor`/`base_height`
 starts out as the plan's flat `surface`, because that is the only height a plan-space piece can state before any
@@ -783,16 +783,14 @@ of the back wool room and whose skirt reaches ten blocks further, tilted a room 
 20 20 19 19 19 19`, and the room's own floor course stayed flat over it: bedrock to y19 at the front of the
 room, bedrock to y17 at the back, planks at y20 the whole way, and two courses of air under half the floor.
 
-`height_authored: true` marks a shape whose `floor`/`base_height` the author corrected in the sketch rather than
+`height_authored: true` marks a room whose `floor`/`base_height` the author corrected in the sketch rather than
 the compiler, and **it is what turns the seating off**: a height stated against real ground is a statement, and
-a room the author deliberately sank or raised keeps the height they gave it. A recompile carries those fields
-forward matched by the shape's `intentRef` a recompile carries those fields forward matched by the shape's `intentRef`
-(`SketchLayout.CarryStructuralHeight`) instead of overwriting them with the plan's own number, since the
-compiler regenerates the shape's id and rect every time but a spawn or wool room keeps the same team/
-owner:colour identity across a recompile. This is narrower than a relief's own carry: a relief is carried
-unconditionally because it cannot be re-derived from anything, while an unmarked structural shape keeps tracking
-the plan's `surface` on every compile, so the mechanism never masks a deliberate plan-side height change the
-author never asked to keep.
+a room the author deliberately sank or raised keeps the height they gave it. These fields live in the layout's
+`rooms` record, keyed by the room's id — its piece's — and a recompile carries a marked record forward
+(`SketchLayout.CarryRoomGround`) instead of overwriting it with the plan's own number, since the piece keeps its
+id across a recompile. This is narrower than a relief's own carry: a relief is carried unconditionally because
+it cannot be re-derived from anything, while an unmarked room keeps tracking the plan's `surface` on every
+compile, so the mechanism never masks a deliberate plan-side height change the author never asked to keep.
 
 ## 12. What the corpus says, and what it says about this
 

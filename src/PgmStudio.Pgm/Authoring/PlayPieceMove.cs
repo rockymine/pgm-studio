@@ -25,19 +25,16 @@ namespace PgmStudio.Pgm.Authoring;
 public static class PlayPieceMove
 {
     /// <summary>The intent with the piece <paramref name="id"/> and its images moved so that its
-    /// <paramref name="part"/> — absent for the piece itself, <c>building</c> for a room's building — stands at
-    /// <paramref name="placed"/>, or the findings that stopped it and a null intent. Pure: the caller stores
-    /// and projects.</summary>
+    /// <paramref name="part"/> — the room's own region word or absent for the piece itself, <c>building</c> for
+    /// a room's building — stands at <paramref name="placed"/>, or the findings that stopped it and a null
+    /// intent. Pure: the caller stores and projects.</summary>
     public static (MapIntent? Intent, Findings Refused) Apply(MapIntent intent, string id, string? part, Rect placed)
     {
         var building = part == StructuralRoles.Building;
-        if (!string.IsNullOrEmpty(part) && !building)
-            return Refuse(RequestRules.Unreadable, "part",
-                $"the request's `part` is '{part}', not absent or '{StructuralRoles.Building}'");
-
         var mode = intent.Symmetry?.Mode;
         if (intent.Spawns.FindIndex(spawn => spawn.Id == id) is var spawnAt and >= 0)
         {
+            if (Unpartable(part, StructuralRoles.Spawn) is { } unpartable) return (null, unpartable);
             var spawn = intent.Spawns[spawnAt];
             var stopped = Stopped(spawn.Protection, spawn.Footprint, building, placed);
             if (stopped is not null) return (null, stopped);
@@ -57,6 +54,7 @@ public static class PlayPieceMove
         var wools = intent.Wools ?? [];
         if (wools.FindIndex(wool => wool.Id == id) is var woolAt and >= 0)
         {
+            if (Unpartable(part, StructuralRoles.WoolRoom) is { } unpartable) return (null, unpartable);
             var wool = wools[woolAt];
             var stopped = Stopped(wool.Protection, wool.Footprint, building, placed);
             if (stopped is not null) return (null, stopped);
@@ -76,10 +74,11 @@ public static class PlayPieceMove
         var destroyables = intent.Destroyables ?? [];
         if (destroyables.FindIndex(goal => goal.Id == id) is var goalAt and >= 0)
         {
+            if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
             var goal = destroyables[goalAt];
             var (width, _, depth) = ObjectiveFootprint.Destroyable(
                 DestroyableStyles.TryParse(goal.Style, out var style) ? style : ObjectiveDefaults.Style);
-            if (GoalShift(goal.Anchor, width, depth, building, placed, out var dx, out var dz) is { } stopped)
+            if (GoalShift(goal.Anchor, width, depth, placed, out var dx, out var dz) is { } stopped)
                 return (null, stopped);
             var moved = Orbit(destroyables, goalAt, entry => entry.Stamp, mode, dx, dz,
                 (entry, x, z) => entry with { Anchor = Slide(entry.Anchor, x, z), Box = null });
@@ -89,9 +88,10 @@ public static class PlayPieceMove
         var cores = intent.Cores ?? [];
         if (cores.FindIndex(core => core.Id == id) is var coreAt and >= 0)
         {
+            if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
             var core = cores[coreAt];
             var (width, depth) = ObjectiveFootprint.Core(core.Size);
-            if (GoalShift(core.Anchor, width, depth, building, placed, out var dx, out var dz) is { } stopped)
+            if (GoalShift(core.Anchor, width, depth, placed, out var dx, out var dz) is { } stopped)
                 return (null, stopped);
             var moved = Orbit(cores, coreAt, entry => entry.Stamp, mode, dx, dz,
                 (entry, x, z) => entry with { Anchor = Slide(entry.Anchor, x, z), Box = null });
@@ -164,22 +164,29 @@ public static class PlayPieceMove
         return (intent, Findings.None);
     }
 
-    /// <summary>A goal's displacement: its footprint is the structure centred on the anchor, in whole blocks,
-    /// and the placed rectangle has to be that footprint somewhere else.</summary>
-    private static Findings? GoalShift(Pt anchor, int width, int depth, bool building, Rect placed,
-                                       out double dx, out double dz)
+    /// <summary>A part the piece does not have: a room takes its own region word or <c>building</c>, and an
+    /// objective, whose one rectangle is its structure, takes none. Absent is always the piece itself.</summary>
+    private static Findings? Unpartable(string? part, string? region)
+    {
+        if (string.IsNullOrEmpty(part) || part == region || (region is not null && part == StructuralRoles.Building))
+            return null;
+        var takes = region is null ? "no `part`" : $"'{region}' or '{StructuralRoles.Building}'";
+        return Findings.Of(new Finding(RequestRules.Unreadable,
+            $"the request's `part` is '{part}', and the piece takes {takes}", Field: "part"));
+    }
+
+    /// <summary>An objective's displacement: its footprint is the structure centred on the anchor, in whole
+    /// blocks, and the placed rectangle has to be that footprint somewhere else.</summary>
+    private static Findings? GoalShift(Pt anchor, int width, int depth, Rect placed, out double dx, out double dz)
     {
         dx = dz = 0;
-        if (building)
-            return Findings.Of(new Finding(RequestRules.Unreadable,
-                "a goal has no building; its one rectangle is its structure", Field: "part"));
         var (minX, minZ, maxX, maxZ) = ObjectiveFootprint.Centred(anchor.X, anchor.Z, width, depth);
         var standing = new Rect(minX, minZ, maxX + 1, maxZ + 1);
         if (SpanOf(standing) != SpanOf(placed)) return Resized(standing, placed);
         (dx, dz) = Shift(standing, placed);
         if (dx != Math.Floor(dx) || dz != Math.Floor(dz))
             return Findings.Of(new Finding(RequestRules.Unreadable,
-                "a goal moves by whole blocks; the placed rectangle is off the block grid", Field: "placed"));
+                "the placed rectangle is off the block grid, and an objective moves by whole blocks", Field: "placed"));
         return null;
     }
 

@@ -239,7 +239,8 @@ public sealed record MapMetadataRequest(
 /// <summary>Put one play piece where the sketch dragged it — a spawn, a wool, a destroyable or a core, named
 /// by the path's <c>id</c>. Every orbit image of the piece moves with it.</summary>
 /// <param name="Part">Absent for the piece itself — a room's region, which carries the room seated on it, or
-/// a goal's structure — or <c>building</c> for the footprint raised on a room's region.</param>
+/// an objective's structure — the room's own region word (<c>spawn</c>, <c>woolRoom</c>) for the same, or
+/// <c>building</c> for the footprint raised on a room's region.</param>
 /// <param name="MinX">The placed rectangle's west edge, in world blocks. The four are the same bounds the
 /// piece's own rectangle states — a room's <c>protection</c> or <c>footprint</c>, a goal's structure from its
 /// first block's edge to past its last — and together they <b>move and do not resize</b>: a span differing
@@ -248,7 +249,7 @@ public sealed record MapMetadataRequest(
 /// <param name="MaxX">Its east edge.</param>
 /// <param name="MaxZ">Its south edge.</param>
 public sealed record PieceMoveRequest(
-    string? Part,
+    [property: WordSet(typeof(StructuralRoles))] string? Part,
     [property: JsonPropertyName("minX")] double MinX,
     [property: JsonPropertyName("minZ")] double MinZ,
     [property: JsonPropertyName("maxX")] double MaxX,

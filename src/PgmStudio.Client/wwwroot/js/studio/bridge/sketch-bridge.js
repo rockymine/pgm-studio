@@ -262,7 +262,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // rail are told too, or the group list goes on lighting a row whose chrome is gone.
     if (s) { fire("OnShapeSelected", null); fire("OnGroupSelected", null); }
     fire("OnStructuralSelected", s ? JSON.stringify({
-      id: s.id, role: s.role, intentRef: s.intentRef ?? null, color: s.color ?? null,
+      id: s.id, role: s.role, color: s.color ?? null,
       baseHeight: s.base_height ?? null, heightAuthored: s.height_authored === true,
       minX: s.min_x, minZ: s.min_z, maxX: s.max_x, maxZ: s.max_z,
     }) : null);
@@ -275,7 +275,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
    * on it, and every mirror image of the piece moves with it; both are the intent's rule and happen on the
    * far side, so nothing here has to know them.
    *
-   * A region's shape id is its piece's id, and a building's is that id with `-building` after it.
+   * A region's shape id is its piece's id, and a building's is that id with `-building` after it. The
+   * rectangle is not part of the sketch document — the studio draws the rooms in from the intent — so the
+   * move dirties nothing here.
    */
   async function moveStructural(piece, putBack) {
     if (!slug) { canvas.restoreStructural(putBack); return; }
@@ -285,7 +287,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       const res = await fetch(
         `/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(id)}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ part: building ? "building" : null, minX: piece.min_x, minZ: piece.min_z,
+          body: JSON.stringify({ part: piece.role, minX: piece.min_x, minZ: piece.min_z,
                                  maxX: piece.max_x, maxZ: piece.max_z }),
         });
       if (!res.ok) {
@@ -299,8 +301,30 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       return;
     }
     fire("OnStructuralNote", null);
+    await refreshRooms();
     selectStructural(piece.id);
-    markDirty();
+  }
+
+  /**
+   * Read the rooms back after a move. The move carried more than the dragged rectangle — the building on a
+   * region, every mirror image of the piece — so where each room stands is taken from the studio's answer,
+   * and what the canvas holds about a room's ground (a height corrected and not yet saved) is kept.
+   */
+  async function refreshRooms() {
+    let doc;
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch`);
+      if (!res.ok) return;
+      doc = await res.json();
+    } catch { return; }
+    const ground = layers[0];
+    if (!ground) return;
+    const held = new Map((ground.structural ?? []).map(sh => [sh.id, sh]));
+    ground.structural = (doc.layers?.[0]?.layout?.shapes ?? []).filter(sh => sh.role).map(sh => {
+      const kept = held.get(sh.id);
+      return kept ? { ...kept, min_x: sh.min_x, min_z: sh.min_z, max_x: sh.max_x, max_z: sh.max_z } : sh;
+    });
+    if (active === 0) canvas.setStructural(ground.structural);
   }
 
   /**
@@ -1239,8 +1263,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
       canvas.setReliefDoc(s.relief && typeof s.relief === "object" ? s.relief : null);
       const raw = (s.layers && s.layers.length) ? s.layers : [];
-      // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
-      // — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (groups, raster,
+      // A layer's shapes are partitioned on load: role-tagged shapes are the play rooms the studio drew in
+      // from the intent — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (groups, raster,
       // mirror, edit) so they can neither be reshaped nor double-cover the ground. Everything else is terrain.
       // What the editor does not draw — a layer's `kind`, `part_of` and `seat`, and any other field the document
       // carries on a layer or its layout — is held as it was read and written back with it, so saving a board

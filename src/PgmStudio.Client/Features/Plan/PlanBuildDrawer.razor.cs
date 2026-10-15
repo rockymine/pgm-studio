@@ -253,8 +253,8 @@ public partial class PlanBuildDrawer
         await JS.InvokeVoidAsync("studio.downloadText", $"{slug}.{compileTab}.json", text, "application/json");
     }
 
-    // Drive the draft pipeline from a successful compile: push the compiled layout, rasterize it, then push
-    // the compiled intent. Any non-2xx step aborts with a message naming that step.
+    // Drive the draft pipeline from a successful compile: push the compiled layout, then the compiled intent,
+    // then rasterize the two. Any non-2xx step aborts with a message naming that step.
     //
     // A map-backed plan builds onto its OWN row: one map carries plan → sketch → configure, keeps its plan
     // blob beside the layout it compiled into, and re-running refreshes it in place instead of leaving a
@@ -316,13 +316,14 @@ public partial class PlanBuildDrawer
             if (!await Ok(layoutResp, "save the layout")) return;
             droppedShapes = (await layoutResp.Content.ReadFromJsonAsync<SketchFromPlanDto>())?.Dropped ?? [];
 
-            draftStep = "Building the world"; StateHasChanged();
-            using var finishResp = await Http.PostAsync($"api/map/{slug}/sketch/finish", null);
-            if (!await Ok(finishResp, "build the world")) return;
-
+            // The game settings before the world: the rooms the world is built around are the intent's.
             draftStep = "Applying game settings"; StateHasChanged();
             using var intentResp = await Http.PutAsync($"api/map/{slug}/intent/from-plan", new StringContent(compiledIntentRaw, Encoding.UTF8, "application/json"));
             if (!await Ok(intentResp, "apply the game settings")) return;
+
+            draftStep = "Building the world"; StateHasChanged();
+            using var finishResp = await Http.PostAsync($"api/map/{slug}/sketch/finish", null);
+            if (!await Ok(finishResp, "build the world")) return;
 
             draftSlug = slug;
             await LoadStateAsync();   // the map now holds a sketch and a world — the next build is a rebuild

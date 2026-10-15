@@ -4,140 +4,99 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Tests.Sketch;
 
 /// <summary>
-/// What happens to an author-stated structural height when a plan is recompiled over it. Unlike a relief
-/// (<see cref="SketchReliefCarryTests"/>), a structural shape's height rides on the shape itself, and the
-/// compiler regenerates that shape's id and rect on every compile — so the carry cannot match by either. It
-/// matches by <c>intentRef</c>, the team/owner:colour identity a spawn or wool room keeps across a recompile,
-/// and only for a shape the author actually corrected (<c>height_authored</c>).
+/// What happens to an author-stated room height when a plan is recompiled over it. Unlike a relief
+/// (<see cref="SketchReliefCarryTests"/>), a room's height rides on the room's record in the layout, keyed by
+/// the room's id — its piece's, which survives a recompile — and only a record the author actually corrected
+/// (<c>height_authored</c>) is carried.
 /// </summary>
-public sealed class SketchStructuralHeightCarryTests
+public sealed class RoomGroundCarryTests
 {
-    // A freshly compiled layout: one structural spawn annotation at the plan's flat surface (9), one plain
-    // terrain shape it sits on. The compiler never sets height_authored.
-    private static string Compiled(string intentRef = "red", double baseHeight = 9) => $$"""
+    // A freshly compiled layout: one plain terrain shape and the record the compiler writes for the authored
+    // spawn room, at the plan's flat surface (9). The compiler never sets height_authored.
+    private static string Compiled(double baseHeight = 9) => $$"""
     {
       "layers": [{ "id": "ground", "base_y": 0, "layout": {
         "shapes": [
           { "id": "s0", "type": "polygon", "operation": "add", "base_height": 9,
-            "vertices": [[0,0],[0,20],[20,20],[20,0]] },
-          { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
-            "intentRef": "{{intentRef}}", "color": "red",
-            "min_x": 0, "min_z": 0, "max_x": 10, "max_z": 10,
-            "base_height": {{baseHeight}}, "relief_scope": "follow" }
+            "vertices": [[0,0],[0,20],[20,20],[20,0]] }
         ],
         "groups": [ { "id": "team", "mirrors": true, "shapeIds": ["s0"] } ]
-      } }]
+      } }],
+      "rooms": { "spawn-red": { "base_height": {{baseHeight}}, "relief_scope": "follow", "doors": ["-z"] } }
     }
     """;
 
-    // A stored layout carrying an author correction: the spawn piece's floor/base_height moved once real
-    // relief existed, flagged height_authored so a recompile knows to keep it.
-    private static string StoredWithCorrection(string intentRef = "red", double floor = 2, double baseHeight = 4) => $$"""
+    // A stored layout carrying an author correction: the room's floor and top moved once real relief existed,
+    // flagged height_authored so a recompile knows to keep it.
+    private static string StoredWithCorrection(string room = "spawn-red", double floor = 2, double baseHeight = 4) => $$"""
     {
-      "layers": [{ "id": "ground", "base_y": 0, "layout": {
-        "shapes": [
-          { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
-            "intentRef": "{{intentRef}}", "color": "red",
-            "min_x": 0, "min_z": 0, "max_x": 10, "max_z": 10,
-            "floor": {{floor}}, "base_height": {{baseHeight}}, "relief_scope": "hold",
-            "height_authored": true }
-        ],
-        "groups": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
-      } }]
+      "layers": [{ "id": "ground", "base_y": 0, "layout": { "shapes": [], "groups": [] } }],
+      "rooms": { "{{room}}": { "floor": {{floor}}, "base_height": {{baseHeight}}, "relief_scope": "hold",
+                               "height_authored": true } }
     }
     """;
+
+    private static RoomGround Room(string layoutJson, string id) => SketchLayout.Parse(layoutJson)!.Rooms![id];
 
     [Test]
-    public async Task An_authored_height_survives_a_recompile_matched_by_intent_ref()
+    public async Task An_authored_height_survives_a_recompile_matched_by_the_rooms_id()
     {
-        var merged = SketchLayout.CarryStructuralHeight(Compiled(), StoredWithCorrection());
-        var state = SketchLayout.Parse(merged);
-        var spawn = SketchLayout.Stack(state)[0].Shapes.Single(s => s.Id == "spawn-red");
+        var spawn = Room(SketchLayout.CarryRoomGround(Compiled(), StoredWithCorrection()), "spawn-red");
 
         await Assert.That(spawn.Floor).IsEqualTo(2);
         await Assert.That(spawn.BaseHeight).IsEqualTo(4);
         await Assert.That(spawn.HeightAuthored).IsTrue();
-        // The compiler's own rect is untouched. The scope is not: a corrected height is one the author means
-        // against the relief, so carrying it turns the shape from following the ground to holding its number.
-        await Assert.That(spawn.MinX).IsEqualTo(0);
+        // A corrected height is one the author means against the relief, so carrying it turns the room from
+        // following the ground to holding its number; what else the compile stated stands.
         await Assert.That(spawn.ReliefScope).IsEqualTo(ReliefScopes.Hold);
+        await Assert.That(spawn.Doors).IsEquivalentTo(new[] { "-z" });
     }
 
     [Test]
-    public async Task An_untouched_piece_keeps_tracking_the_plans_own_surface()
+    public async Task An_untouched_room_keeps_tracking_the_plans_own_surface()
     {
-        // Stored has no height_authored flag at all — nothing to carry, the fresh plan value stands.
-        const string stored = """
-        {
-          "layers": [{ "id": "ground", "base_y": 0, "layout": {
-            "shapes": [
-              { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
-                "intentRef": "red", "color": "red",
-                "min_x": 0, "min_z": 0, "max_x": 10, "max_z": 10, "base_height": 9, "relief_scope": "follow" }
-            ],
-            "groups": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
-          } }]
-        }
-        """;
-        var merged = SketchLayout.CarryStructuralHeight(Compiled(), stored);
-        await Assert.That(merged).IsEqualTo(Compiled());
+        const string stored = """{ "rooms": { "spawn-red": { "base_height": 9, "relief_scope": "follow" } } }""";
+        await Assert.That(SketchLayout.CarryRoomGround(Compiled(), stored)).IsEqualTo(Compiled());
     }
 
+    /// <summary>A correction stays with its room: one the compile no longer draws is kept under its id, where
+    /// a room given that id again picks it up.</summary>
     [Test]
-    public async Task A_correction_on_a_different_intent_ref_does_not_cross_over()
+    public async Task A_correction_on_another_room_does_not_cross_over()
     {
-        // The stored correction belongs to "blue"; the compiled layout only has a "red" spawn piece.
-        var merged = SketchLayout.CarryStructuralHeight(Compiled(), StoredWithCorrection(intentRef: "blue"));
-        await Assert.That(merged).IsEqualTo(Compiled());
+        var merged = SketchLayout.CarryRoomGround(Compiled(), StoredWithCorrection(room: "spawn-blue"));
+
+        await Assert.That(Room(merged, "spawn-red").BaseHeight).IsEqualTo(9);
+        await Assert.That(Room(merged, "spawn-blue").HeightAuthored).IsTrue();
     }
 
     [Test]
     public async Task No_stored_layout_leaves_the_compiled_json_untouched()
     {
-        await Assert.That(SketchLayout.CarryStructuralHeight(Compiled(), null)).IsEqualTo(Compiled());
-        await Assert.That(SketchLayout.CarryStructuralHeight(Compiled(), "")).IsEqualTo(Compiled());
+        await Assert.That(SketchLayout.CarryRoomGround(Compiled(), null)).IsEqualTo(Compiled());
+        await Assert.That(SketchLayout.CarryRoomGround(Compiled(), "")).IsEqualTo(Compiled());
     }
 
     [Test]
-    public async Task Terrain_shapes_without_a_role_are_never_matched()
-    {
-        // A plain terrain shape sharing no intentRef can't accidentally pick up a correction — role gates it.
-        var merged = SketchLayout.CarryStructuralHeight(Compiled(), StoredWithCorrection());
-        var state = SketchLayout.Parse(merged);
-        var terrain = SketchLayout.Stack(state)[0].Shapes.Single(s => s.Id == "s0");
-        await Assert.That(terrain.BaseHeight).IsEqualTo(9);
-        await Assert.That(terrain.HeightAuthored).IsNull();
-    }
-
-    [Test]
-    public async Task Carrying_structural_height_leaves_relief_and_finish_carries_alone()
+    public async Task Carrying_room_ground_leaves_relief_and_finish_carries_alone()
     {
         // All three carries run together on a recompile (SketchFromPlanEndpoint) and must not interfere.
         const string stored = """
         {
-          "layers": [{ "id": "ground", "base_y": 0, "layout": {
-            "shapes": [
-              { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
-                "intentRef": "red", "color": "red",
-                "min_x": 0, "min_z": 0, "max_x": 10, "max_z": 10,
-                "floor": 2, "base_height": 4, "relief_scope": "hold", "height_authored": true }
-            ],
-            "groups": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
-          } }],
+          "layers": [{ "id": "ground", "base_y": 0, "layout": { "shapes": [], "groups": [] } }],
+          "rooms": { "spawn-red": { "floor": 2, "base_height": 4, "relief_scope": "hold", "height_authored": true } },
           "mapTheme": "grass",
           "relief": { "team": { "base": 6 } }
         }
         """;
-        var compiled = Compiled();
-        var merged = SketchLayout.CarryStructuralHeight(
-            SketchLayout.CarryRelief(SketchLayout.CarryFinish(compiled, stored), stored), stored);
+        var merged = SketchLayout.CarryRoomGround(
+            SketchLayout.CarryRelief(SketchLayout.CarryFinish(Compiled(), stored), stored), stored);
         var state = SketchLayout.Parse(merged);
 
         await Assert.That(state!.MapTheme).IsEqualTo("grass");
         await Assert.That(state.Relief!.ContainsKey("team")).IsTrue();
-        var spawn = SketchLayout.Stack(state)[0].Shapes.Single(s => s.Id == "spawn-red");
-        await Assert.That(spawn.Floor).IsEqualTo(2);
-        await Assert.That(spawn.BaseHeight).IsEqualTo(4);
+        await Assert.That(state.Rooms!["spawn-red"].Floor).IsEqualTo(2);
+        await Assert.That(state.Rooms["spawn-red"].BaseHeight).IsEqualTo(4);
     }
 
     // A held spawn piece over an island whose relief climbs from 6 to 26 (SketchReliefScopeTests' fixture),
@@ -151,7 +110,7 @@ public sealed class SketchStructuralHeightCarryTests
           { "id": "land", "type": "rectangle", "operation": "add",
             "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 60, "base_height": 5, "floor": 0 },
           { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
-            "intentRef": "red", "color": "red",
+            "color": "red",
             "min_x": 22, "min_z": 22, "max_x": 38, "max_z": 38,
             "base_height": HEIGHT, "relief_scope": "hold", "height_authored": true }
         ],
@@ -190,7 +149,7 @@ public sealed class SketchStructuralHeightCarryTests
           { "id": "land", "type": "rectangle", "operation": "add",
             "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 60, "base_height": 5, "floor": 0 },
           { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
-            "intentRef": "red", "color": "red",
+            "color": "red",
             "min_x": 22, "min_z": 22, "max_x": 38, "max_z": 38,
             "base_height": 9, "relief_scope": "follow"DOORS }
         ],

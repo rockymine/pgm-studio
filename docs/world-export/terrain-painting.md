@@ -389,9 +389,9 @@ because the relief owns the ground. The failure is silent — the stroke rasteri
 census counts the theme at zero cells and the board paints as though the shape were not there.
 
 **A structural annotation is a scope over ground it did not place, and that is how a room's floor is stated.**
-A spawn, a wool room and the building footprint inside one reach the sketch as role-tagged rectangles: the
-plan's own pieces, drawn over terrain the fused island already holds so they stay visible while a plan is
-refined. They place nothing, so they are read exactly the way a `height_mode` shape is — a candidate for the
+A spawn, a wool room and the building footprint inside one reach the sketch as role-tagged rectangles drawn in
+from the intent, over terrain the fused island already holds, and the theme or material one states lives in
+the layout's `rooms` record under its id. They place nothing, so they are read exactly the way a `height_mode` shape is — a candidate for the
 paint on the cells they cover at whatever height they carry, never the surface another shape is measured
 against. Area still decides between an annotation and the island under it, so a room's rectangle wins on its
 own footprint and the board keeps its own ground everywhere else; an annotation stating no theme states
