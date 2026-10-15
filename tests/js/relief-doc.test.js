@@ -41,6 +41,31 @@ test("a stored mark keeps its id, and one without gets one", () => {
   assert.notEqual(second.id, "r7");
 });
 
+test("a mark with no id is never given one a later mark already holds", () => {
+  // The rim the inspector switches on is stored first and with no id, ahead of a point stored as r1.
+  const doc = ReliefDoc.from({ i1: { marks: [{ kind: "rim", h: 11, depth: 1 }, { kind: "point", id: "r1", at: [0, 0], h: 5 }] } });
+  const ids = doc.marks.map(mark => mark.id);
+  assert.equal(new Set(ids).size, 2);
+  assert.equal(ids[1], "r1");
+});
+
+test("a mark list written whole names the entry that states no id", () => {
+  const doc = ReliefDoc.from({ i1: { marks: [{ kind: "point", id: "r1", at: [0, 0], h: 5 }] } });
+  doc.updateRelief("i1", { marks: [{ kind: "rim", h: 11, depth: 1 }, ...doc.peek("i1").marks] });
+  const ids = doc.marks.map(mark => mark.id);
+  assert.ok(ids[0]);
+  assert.equal(new Set(ids).size, 2);
+  assert.equal(ids[1], "r1");
+});
+
+test("two marks stored under one id are told apart on reading", () => {
+  const doc = ReliefDoc.from({ i1: { marks: [{ kind: "rim", id: "r1", h: 11, depth: 1 }, { kind: "point", id: "r1", at: [0, 0], h: 5 }] } });
+  const ids = doc.marks.map(mark => mark.id);
+  assert.equal(new Set(ids).size, 2);
+  assert.equal(ids[0], "r1");
+  assert.equal(doc.byId(ids[1]).kind, "point");
+});
+
 test("a group that states nothing is left out of the stored form entirely", () => {
   // Opening the phase and closing it again must not add a key to the layout.
   const doc = new ReliefDoc();
