@@ -1125,6 +1125,5 @@ work; this document only establishes that what it would emit is what a hand plac
 carry was the storage half, and the Draw phase now picks the piece and offers its height on a rail of its own,
 writing through the sketch's ordinary save rather than a new endpoint. **Moving the piece** is done too
 (`S25b`), and it is a write back to the intent rather than a canvas affordance: the release asks
-`PATCH …/intent/rooms/{reference}` and a refusal puts the rectangle back. Giving a destroyable or a core the
-same treatment is larger and is neither: such a marker has no rect in the plan to surface at all, so netting it
-into the sketch is downstream of deciding what its rect *is* — a plan-space question, not a sketch one.
+`PATCH …/intent/pieces/{id}` and a refusal puts the rectangle back. The route moves a destroyable or a core
+too, its rectangle being the structure centred on its anchor.

@@ -99,45 +99,39 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
 }
 
 /// <summary>
-/// PATCH /api/map/{slug}/intent/rooms/{reference} — put one room piece where the sketch just dragged it.
-///
-/// <para>The sketch draws a spawn, a wool room and the building inside one as locked annotations projected
-/// out of the intent, so a drag on that canvas has to arrive back here or the picture and the world build
-/// disagree about where a room is. <c>{reference}</c> is the annotation's own <c>intentRef</c> — a
-/// team id for a spawn, <c>owner:colour</c> for a wool — and the body says which of the room's two rectangles
-/// moved and where it landed. <see cref="RoomPieceMove"/> holds what that means and what refuses it; this
-/// route reads the stored intent, hands it over, and stores and projects the answer the way an ordinary
-/// intent PUT does, so the map.xml the move implies is rewritten in the same call.</para>
+/// PATCH /api/map/{slug}/intent/pieces/{id} — put one play piece, and every orbit image of it, where the
+/// sketch just dragged it. <see cref="PlayPieceMove"/> holds what that means and what refuses it; this route
+/// reads the stored intent, hands it over, and stores and projects the answer the way an ordinary intent PUT
+/// does, so the map.xml the move implies is rewritten in the same call.
 /// </summary>
-public sealed class IntentRoomMoveEndpoint(
+public sealed class IntentPieceMoveEndpoint(
     MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features,
     PlayerLookup players)
-    : Endpoint<RoomMoveRequest>
+    : Endpoint<PieceMoveRequest>
 {
     public override void Configure()
     {
-        Patch("/map/{slug}/intent/rooms/{reference}");
+        Patch("/map/{slug}/intent/pieces/{id}");
         Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(400, 404, 409, 422));
     }
 
-    public override async Task HandleAsync(RoomMoveRequest req, CancellationToken ct)
+    public override async Task HandleAsync(PieceMoveRequest req, CancellationToken ct)
     {
         var slug = Route<string>("slug")!;
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
-        var (moved, refused) = RoomPieceMove.Apply(
-            intent, Route<string>("reference")!, req.Part ?? "",
-            new Rect(req.MinX, req.MinZ, req.MaxX, req.MaxZ));
+        var (moved, refused) = PlayPieceMove.Apply(
+            intent, Route<string>("id")!, req.Part, new Rect(req.MinX, req.MinZ, req.MaxX, req.MaxZ));
 
-        // 404 where the reference names nothing, 400 where the move itself cannot be made: one names a
+        // 404 where the id names nothing, 400 where the move itself cannot be made: one names a
         // subject the studio does not hold and the other a request it cannot act on, and only the second is
         // something the caller can fix by asking differently.
         if (moved is null)
         {
             var missing = refused.Any(finding => finding.Rule == RequestRules.NoSuchSubject);
             await Refusals.StopAsync(HttpContext, missing ? 404 : 400,
-                                     missing ? "no such room" : "the move cannot be made", refused, ct);
+                                     missing ? "no such piece" : "the move cannot be made", refused, ct);
             return;
         }
 

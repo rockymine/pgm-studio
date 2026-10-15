@@ -1,0 +1,286 @@
+using PgmStudio.Domain;
+using PgmStudio.Geom;
+using PgmStudio.Pgm.Authoring;
+using PgmStudio.Vocabulary;
+
+namespace PgmStudio.Pgm.Tests.Authoring;
+
+/// <summary>
+/// Moving a play piece back from the sketch, by its id. Three rules carry the weight. <b>A room's region is
+/// the ground</b>, so moving it carries what is seated on it. <b>A piece moves and does not resize</b>, since a
+/// marker is a fraction of its rectangle and a goal is centred on its anchor. And <b>the orbit moves
+/// together</b>: every image of the authored unit moves by the displacement turned through the step between
+/// the two images, so a mirrored board stays mirrored.
+/// </summary>
+public sealed class PlayPieceMoveTests
+{
+    private static MapIntent Board() => new()
+    {
+        Spawns =
+        [
+            new SpawnIntent
+            {
+                Id = "spawn-red", Team = "red",
+                Point = new Pt(5, 12, 5),
+                Protection = [new Rect(0, 0, 10, 10)],
+                Footprint = new Rect(2, 2, 8, 8),
+                Iron = [new Pt(1, 12, 1)],
+            },
+        ],
+        Wools =
+        [
+            new WoolIntent
+            {
+                Id = "wool-red-blue", Owner = "red", Color = "blue",
+                Spawn = new Pt(25, 12, 5),
+                Protection = [new Rect(20, 0, 30, 10)],
+                Footprint = new Rect(22, 2, 28, 8),
+                Entries = [new Rect(20, 4, 20, 6)],
+            },
+        ],
+        Destroyables = [new DestroyableIntent { Id = "destroyable-red", Owner = "red", Style = "cube-3", Anchor = new Pt(40, 12, 5) }],
+        Cores = [new CoreIntent { Id = "core-red", Owner = "red", Anchor = new Pt(60, 12, 5) }],
+    };
+
+    /// <summary>Red's spawn and its mirror across <c>x = 50</c>, both images of the authored unit
+    /// <c>spawn:home</c>.</summary>
+    private static MapIntent Mirrored(string mode = "mirror_x") => new()
+    {
+        Symmetry = new SymmetryIntent { Mode = mode, CenterX = 50, CenterZ = 50 },
+        Spawns =
+        [
+            new SpawnIntent
+            {
+                Id = "spawn-red", Team = "red", Stamp = new StampId("spawn", "home", 0),
+                Point = new Pt(5, 12, 5), Protection = [new Rect(0, 0, 10, 10)], Footprint = new Rect(2, 2, 8, 8),
+            },
+            new SpawnIntent
+            {
+                Id = "spawn-blue", Team = "blue", Stamp = new StampId("spawn", "home", 1),
+                Point = new Pt(95, 12, 5), Protection = [new Rect(90, 0, 100, 10)], Footprint = new Rect(92, 2, 98, 8),
+            },
+        ],
+    };
+
+    private static SpawnIntent Spawn(MapIntent intent, int at = 0) => intent.Spawns[at];
+    private static WoolIntent Wool(MapIntent intent) => intent.Wools![0];
+
+    [Test]
+    public async Task Moving_a_spawns_region_carries_the_room_seated_on_it()
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Board(), "spawn-red", null, new Rect(100, 50, 110, 60));
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        var spawn = Spawn(moved!);
+        await Assert.That(spawn.Protection.Single()).IsEqualTo(new Rect(100, 50, 110, 60));
+        // Everything on that ground travelled the same hundred and fifty blocks.
+        await Assert.That(spawn.Point.X).IsEqualTo(105);
+        await Assert.That(spawn.Point.Z).IsEqualTo(55);
+        await Assert.That(spawn.Footprint).IsEqualTo(new Rect(102, 52, 108, 58));
+        await Assert.That(spawn.Iron.Single().X).IsEqualTo(101);
+        await Assert.That(spawn.Iron.Single().Z).IsEqualTo(51);
+    }
+
+    /// <summary>What a marker stands on is measured by the world build against the terrain it laid, so a Y
+    /// carried here would be a second answer to a question already settled.</summary>
+    [Test]
+    public async Task A_moved_marker_keeps_the_height_it_was_stated_at()
+    {
+        var (moved, _) = PlayPieceMove.Apply(Board(), "spawn-red", null, new Rect(100, 50, 110, 60));
+
+        await Assert.That(Spawn(moved!).Point.Y).IsEqualTo(12);
+    }
+
+    [Test]
+    public async Task Moving_a_wools_region_carries_its_marker_footprint_and_entries()
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Board(), "wool-red-blue", null, new Rect(20, 40, 30, 50));
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        var wool = Wool(moved!);
+        await Assert.That(wool.Protection.Single()).IsEqualTo(new Rect(20, 40, 30, 50));
+        await Assert.That(wool.Spawn.Z).IsEqualTo(45);
+        await Assert.That(wool.Footprint).IsEqualTo(new Rect(22, 42, 28, 48));
+        await Assert.That(wool.Entries.Single()).IsEqualTo(new Rect(20, 44, 20, 46));
+    }
+
+    [Test]
+    public async Task Moving_a_building_moves_the_footprint_and_nothing_else()
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Board(), "spawn-red", StructuralRoles.Building, new Rect(1, 1, 7, 7));
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        var spawn = Spawn(moved!);
+        await Assert.That(spawn.Footprint).IsEqualTo(new Rect(1, 1, 7, 7));
+        await Assert.That(spawn.Protection.Single()).IsEqualTo(new Rect(0, 0, 10, 10));
+        await Assert.That(spawn.Point.X).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task A_building_carried_off_its_region_is_refused()
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Board(), "spawn-red", StructuralRoles.Building, new Rect(6, 6, 12, 12));
+
+        await Assert.That(moved).IsNull();
+        await Assert.That(refused.Single().Rule).IsEqualTo(RoomFrameRules.FootprintOffPiece);
+    }
+
+    /// <summary>A goal's one rectangle is its structure, from its first block's edge to past its last: a
+    /// <c>cube-3</c> on the anchor <c>(40, 5)</c> covers blocks 39–41, so it stands at 39 to 42.</summary>
+    [Test]
+    public async Task Moving_a_destroyable_moves_its_anchor_by_whole_blocks()
+    {
+        var board = Board();
+        board = board with
+        {
+            Destroyables = [board.Destroyables![0] with { Box = new BlockBox(39, 14, 4, 41, 16, 6) }],
+        };
+        var (moved, refused) = PlayPieceMove.Apply(board, "destroyable-red", null, new Rect(49, 14, 52, 17));
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        var goal = moved!.Destroyables![0];
+        await Assert.That(goal.Anchor).IsEqualTo(new Pt(50, 12, 15));
+        // The resolved box was measured over the ground it stood on, so it is resolved again over the new.
+        await Assert.That(goal.Box).IsNull();
+    }
+
+    [Test]
+    public async Task Moving_a_core_moves_its_anchor()
+    {
+        var board = Board();
+        var size = board.Cores![0].Size;
+        var (minX, minZ, _, _) = ObjectiveFootprint.Centred(60, 5, size, size);
+        var (moved, refused) = PlayPieceMove.Apply(
+            board, "core-red", null, new Rect(minX + 3, minZ - 2, minX + 3 + size, minZ - 2 + size));
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        await Assert.That(moved!.Cores![0].Anchor).IsEqualTo(new Pt(63, 12, 3));
+    }
+
+    [Test]
+    public async Task A_goal_has_no_building()
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Board(), "destroyable-red", StructuralRoles.Building, new Rect(39, 4, 42, 7));
+
+        await Assert.That(moved).IsNull();
+        await Assert.That(refused.Single().Field).IsEqualTo("part");
+    }
+
+    [Test]
+    [Arguments("spawn-red", null, 0, 0, 12, 10)]                         // wider
+    [Arguments("spawn-red", null, 0, 0, 10, 8)]                          // shallower
+    [Arguments("spawn-red", StructuralRoles.Building, 2, 2, 9, 8)]       // the building too
+    [Arguments("destroyable-red", null, 39, 4, 43, 7)]                   // and a goal
+    public async Task A_move_that_resizes_is_refused(string id, string? part, int minX, int minZ, int maxX, int maxZ)
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Board(), id, part, new Rect(minX, minZ, maxX, maxZ));
+
+        await Assert.That(moved).IsNull();
+        await Assert.That(refused.Single().Rule).IsEqualTo(RequestRules.Unreadable);
+        await Assert.That(refused.Single().Message).Contains("of the rectangle it replaces");
+    }
+
+    [Test]
+    public async Task A_region_of_several_rectangles_has_no_rectangle_to_move()
+    {
+        var board = Board();
+        var spawn = board.Spawns[0] with { Protection = [new Rect(0, 0, 10, 10), new Rect(10, 0, 20, 10)] };
+        var (moved, refused) = PlayPieceMove.Apply(board with { Spawns = [spawn] }, "spawn-red", null, new Rect(100, 50, 110, 60));
+
+        await Assert.That(moved).IsNull();
+        await Assert.That(refused.Single().Field).IsEqualTo("protection");
+    }
+
+    [Test]
+    public async Task An_id_naming_no_piece_is_a_missing_subject()
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Board(), "spawn-green", null, new Rect(0, 0, 10, 10));
+
+        await Assert.That(moved).IsNull();
+        await Assert.That(refused.Single().Rule).IsEqualTo(RequestRules.NoSuchSubject);
+        await Assert.That(refused.Single().SubjectIds.Single()).IsEqualTo("spawn-green");
+    }
+
+    [Test]
+    [Arguments("spawn")]
+    [Arguments("lane")]
+    public async Task A_part_other_than_the_building_is_refused(string part)
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Board(), "spawn-red", part, new Rect(0, 0, 10, 10));
+
+        await Assert.That(moved).IsNull();
+        await Assert.That(refused.Single().Field).IsEqualTo("part");
+    }
+
+    [Test]
+    public async Task Moving_one_piece_leaves_every_other_piece_where_it_was()
+    {
+        var board = Board();
+        var (moved, _) = PlayPieceMove.Apply(board, "spawn-red", null, new Rect(100, 50, 110, 60));
+
+        await Assert.That(Wool(moved!)).IsEqualTo(Wool(board));
+        await Assert.That(moved!.Destroyables![0]).IsEqualTo(board.Destroyables![0]);
+    }
+
+    /// <summary>Red's room moved five blocks east and three south; across a mirror in x, blue's moves five
+    /// west and three south, so the two stay each other's reflection.</summary>
+    [Test]
+    public async Task A_mirror_image_moves_by_the_reflected_displacement()
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Mirrored(), "spawn-red", null, new Rect(5, 3, 15, 13));
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        var blue = Spawn(moved!, 1);
+        await Assert.That(blue.Protection.Single()).IsEqualTo(new Rect(85, 3, 95, 13));
+        await Assert.That(blue.Point).IsEqualTo(new Pt(90, 12, 8));
+        await Assert.That(blue.Footprint).IsEqualTo(new Rect(87, 5, 93, 11));
+    }
+
+    /// <summary>Under a half turn about <c>(50, 50)</c> the image's displacement is the authored one
+    /// reversed on both axes, whichever of the two images the drag was on.</summary>
+    [Test]
+    public async Task A_half_turn_image_moves_by_the_reversed_displacement()
+    {
+        var board = Mirrored("rot_180");
+        board = board with
+        {
+            Spawns =
+            [
+                board.Spawns[0],
+                board.Spawns[1] with { Point = new Pt(95, 12, 95), Protection = [new Rect(90, 90, 100, 100)], Footprint = new Rect(92, 92, 98, 98) },
+            ],
+        };
+        var (moved, refused) = PlayPieceMove.Apply(board, "spawn-blue", null, new Rect(88, 91, 98, 101));
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        await Assert.That(Spawn(moved!, 0).Protection.Single()).IsEqualTo(new Rect(2, -1, 12, 9));
+    }
+
+    /// <summary>A building is held inside its own region on every image the orbit carries, not only on the
+    /// one the request named: an image hand-corrected to stand nearer its edge refuses the whole move.</summary>
+    [Test]
+    public async Task A_building_carried_off_its_region_on_an_image_refuses_the_move()
+    {
+        var board = Mirrored();
+        board = board with { Spawns = [board.Spawns[0], board.Spawns[1] with { Footprint = new Rect(90, 2, 96, 8) }] };
+
+        var (moved, refused) = PlayPieceMove.Apply(board, "spawn-red", StructuralRoles.Building, new Rect(4, 2, 10, 8));
+
+        await Assert.That(moved).IsNull();
+        await Assert.That(refused.Single().Rule).IsEqualTo(RoomFrameRules.FootprintOffPiece);
+        await Assert.That(refused.Single().SubjectIds.Single()).IsEqualTo("spawn-blue");
+    }
+
+    /// <summary>A piece stating no stamp is its own authored unit — two spawns written by hand are two
+    /// statements — so it moves alone.</summary>
+    [Test]
+    public async Task A_piece_with_no_stamp_moves_alone()
+    {
+        var board = Mirrored();
+        board = board with { Spawns = [.. board.Spawns.Select(spawn => spawn with { Stamp = default })] };
+
+        var (moved, _) = PlayPieceMove.Apply(board, "spawn-red", null, new Rect(5, 3, 15, 13));
+
+        await Assert.That(Spawn(moved!, 1)).IsEqualTo(board.Spawns[1]);
+    }
+}

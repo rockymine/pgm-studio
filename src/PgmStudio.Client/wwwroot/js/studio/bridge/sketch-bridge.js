@@ -272,29 +272,20 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
    * The release of a drag on a plan piece. Where the rectangle *is* is the intent's answer, not the canvas's
    * — the sketch draws these out of it — so the move is asked rather than told: the intent write goes first,
    * and a refusal puts the piece back where it stood and says why. Moving the region carries the room seated
-   * on it; that is the intent's rule and happens on the far side, so nothing here has to know it.
+   * on it, and every mirror image of the piece moves with it; both are the intent's rule and happen on the
+   * far side, so nothing here has to know them.
    *
-   * The dragged rectangle also rides on the sketch document, which is the picture of the same fact, so the
-   * board is marked dirty on the way through and saves with the ordinary debounce.
+   * A region's shape id is its piece's id, and a building's is that id with `-building` after it.
    */
   async function moveStructural(piece, putBack) {
     if (!slug) { canvas.restoreStructural(putBack); return; }
-    // A building carries no intentRef of its own — a second shape claiming the region's identity would be a
-    // second answer to one question — so its region is the shape its id was derived from.
-    const owner = piece.role === "building"
-      ? canvas.getStructural(piece.id.replace(/-building$/, ""))
-      : piece;
-    const reference = owner?.intentRef;
-    if (!reference) {
-      canvas.restoreStructural(putBack);
-      fire("OnStructuralNote", "This piece isn't linked to the map's game settings, so it can't be moved.");
-      return;
-    }
+    const building = piece.role === "building";
+    const id = building ? piece.id.replace(/-building$/, "") : piece.id;
     try {
       const res = await fetch(
-        `/api/map/${encodeURIComponent(slug)}/intent/rooms/${encodeURIComponent(reference)}`, {
+        `/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(id)}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ part: piece.role, minX: piece.min_x, minZ: piece.min_z,
+          body: JSON.stringify({ part: building ? "building" : null, minX: piece.min_x, minZ: piece.min_z,
                                  maxX: piece.max_x, maxZ: piece.max_z }),
         });
       if (!res.ok) {

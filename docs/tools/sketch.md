@@ -2594,17 +2594,20 @@ chrome included: one click selects one thing, and a room and the ground under it
 
 **A picked piece drags, and where a room is belongs to the intent.** The drag is block-granular and snaps to
 nothing — a region's edges answer to the plan's grid rather than to the shapes drawn beside it — and the
-release **asks** rather than tells: it writes through `PATCH /map/{slug}/intent/rooms/{reference}`, and a
-refusal puts the rectangle back where it stood and says why on the rail. That is the whole of what keeps the
+release **asks** rather than tells: it writes through `PATCH /map/{slug}/intent/pieces/{id}`, addressed by
+the play piece's id — a region's shape id is its piece's, a building's is that id with `-building` after it —
+and a refusal puts the rectangle back where it stood and says why on the rail. That is the whole of what keeps the
 two from diverging, since the sketch draws these rectangles out of the intent in the first place. Moving the
 **region carries the room seated on it** — the marker players or a wool arrive at, the building raised on it,
 the iron beside it, the entry interfaces its doors are cut on — because the region *is* the ground rather
 than a zone drawn beside it, and leaving any of them behind puts it off the ground it belongs to. Moving the
 **building** moves the building alone, and one carried outside its region is refused under `WX12`. It **moves
 and does not resize**: a spawn or wool's marker is a fractional offset into its own rectangle, so a changed
-span shifts the marker inside it and every rule resolved against that frame with it. Only **one image**
-moves — each image of a mirrored board is its own entry with its own team, so moving red's spawn is a
-statement about red's spawn. And a plan rebuild draws the rectangle from the plan again, which is the
+span shifts the marker inside it and every rule resolved against that frame with it. **The whole orbit
+moves**: every image of the piece's authored unit — the pieces of one kind sharing its stamp — moves by the
+drag's displacement turned through the symmetry, so dragging red's spawn five blocks east across a mirror in x
+moves blue's five blocks west, and a building is held inside its own region on every image it carries. A piece
+stating no stamp is its own unit and moves alone. And a plan rebuild draws the rectangle from the plan again, which is the
 standing rule for structure rather than anything about this edit.
 
 The layout model carries one shape type the **Draw** dock cannot draw: a `circle`, which rasterizes as a 64-gon

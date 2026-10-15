@@ -6,19 +6,19 @@ using System.Text.Json;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// <c>PATCH /map/{slug}/intent/rooms/{reference}</c> — the route a drag on the sketch canvas arrives at
-///. The sketch draws a spawn, a wool room and the building inside one out of the stored intent, so a
-/// move has to be written back there or the picture and the world build disagree about where a room is.
+/// <c>PATCH /map/{slug}/intent/pieces/{id}</c> — the route a drag on the sketch canvas arrives at. The
+/// sketch draws the play pieces out of the stored intent, so a move has to be written back there or the
+/// picture and the world build disagree about where a piece is.
 ///
-/// <para>What the route owns rather than <c>RoomPieceMove</c> is the round trip: the stored intent is read,
+/// <para>What the route owns rather than <c>PlayPieceMove</c> is the round trip: the stored intent is read,
 /// the moved one is stored and projected the way an ordinary intent PUT is, and a refusal is answered at the
-/// status that says whose fault it is — <b>404</b> where the reference names no room, <b>400</b> where the
-/// move itself cannot be made.</para>
+/// status that says whose fault it is — <b>404</b> where the id names no piece, <b>400</b> where the move
+/// itself cannot be made.</para>
 ///
 /// <para>Runs against the <c>pgm_studio_test</c> schema, so it runs serially with the other DB suites.</para>
 /// </summary>
 [NotInParallel("api-db")]
-public sealed class RoomMoveRouteTests
+public sealed class PieceMoveRouteTests
 {
     /// <summary>One team, one spawn on a ten-block region with a marker in the middle of it and a building
     /// on it — the smallest board that can answer every rule the move has.</summary>
@@ -46,8 +46,8 @@ public sealed class RoomMoveRouteTests
     }
 
     private static Task<HttpResponseMessage> MoveAsync(
-        HttpClient client, string slug, string reference, object body) =>
-        client.PatchAsJsonAsync($"/api/map/{slug}/intent/rooms/{reference}", body);
+        HttpClient client, string slug, string id, object body) =>
+        client.PatchAsJsonAsync($"/api/map/{slug}/intent/pieces/{id}", body);
 
     /// <summary>The bounds the map's own <c>red-spawn</c> protection region carries, read off the region tree
     /// — the projected document rather than the intent artifact, which is what makes it a projection test.</summary>
@@ -82,8 +82,8 @@ public sealed class RoomMoveRouteTests
         var (client, slug) = await BoardAsync();
         using var _ = client;
 
-        var moved = await MoveAsync(client, slug, "red",
-            new { part = "spawn", minX = 100, minZ = 50, maxX = 110, maxZ = 60 });
+        var moved = await MoveAsync(client, slug, "spawn-red",
+            new { minX = 100, minZ = 50, maxX = 110, maxZ = 60 });
         await Assert.That(moved.IsSuccessStatusCode).IsTrue().Because(await moved.Content.ReadAsStringAsync());
 
         var spawn = await SpawnAsync(client, slug);
@@ -96,16 +96,16 @@ public sealed class RoomMoveRouteTests
         await Assert.That(spawn.GetProperty("footprint").GetProperty("minX").GetDouble()).IsEqualTo(102);
     }
 
-    /// <summary>A reference naming no room is a subject the studio does not hold, which is a different fault
+    /// <summary>An id naming no piece is a subject the studio does not hold, which is a different fault
     /// from a move it cannot make: only one of them is something the caller can fix by asking differently.</summary>
     [Test]
-    public async Task A_reference_naming_no_room_answers_404()
+    public async Task An_id_naming_no_piece_answers_404()
     {
         var (client, slug) = await BoardAsync();
         using var _ = client;
 
-        var missing = await MoveAsync(client, slug, "green",
-            new { part = "spawn", minX = 0, minZ = 0, maxX = 10, maxZ = 10 });
+        var missing = await MoveAsync(client, slug, "spawn-green",
+            new { minX = 0, minZ = 0, maxX = 10, maxZ = 10 });
 
         await Assert.That(missing.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
         await Assert.That(await missing.Content.ReadAsStringAsync()).Contains("RQ4");
@@ -117,11 +117,11 @@ public sealed class RoomMoveRouteTests
         var (client, slug) = await BoardAsync();
         using var _ = client;
 
-        var refused = await MoveAsync(client, slug, "red",
-            new { part = "spawn", minX = 0, minZ = 0, maxX = 20, maxZ = 10 });
+        var refused = await MoveAsync(client, slug, "spawn-red",
+            new { minX = 0, minZ = 0, maxX = 20, maxZ = 10 });
 
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
-        await Assert.That(await refused.Content.ReadAsStringAsync()).Contains("of the region it replaces");
+        await Assert.That(await refused.Content.ReadAsStringAsync()).Contains("of the rectangle it replaces");
 
         // And the board is exactly as it was — a refused move is not a partial one.
         var region = (await SpawnAsync(client, slug)).GetProperty("protection").EnumerateArray().Single();
@@ -136,7 +136,7 @@ public sealed class RoomMoveRouteTests
         var (client, slug) = await BoardAsync();
         using var _ = client;
 
-        var refused = await MoveAsync(client, slug, "red",
+        var refused = await MoveAsync(client, slug, "spawn-red",
             new { part = "building", minX = 6, minZ = 6, maxX = 12, maxZ = 12 });
 
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
@@ -155,8 +155,8 @@ public sealed class RoomMoveRouteTests
         await Assert.That(await ProtectionAsync(client, slug))
             .IsEqualTo((0, 0, 10, 10));
 
-        var moved = await MoveAsync(client, slug, "red",
-            new { part = "spawn", minX = 100, minZ = 50, maxX = 110, maxZ = 60 });
+        var moved = await MoveAsync(client, slug, "spawn-red",
+            new { minX = 100, minZ = 50, maxX = 110, maxZ = 60 });
         await Assert.That(moved.IsSuccessStatusCode).IsTrue().Because(await moved.Content.ReadAsStringAsync());
 
         await Assert.That(await ProtectionAsync(client, slug))
