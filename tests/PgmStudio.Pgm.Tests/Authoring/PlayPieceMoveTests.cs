@@ -296,4 +296,115 @@ public sealed class PlayPieceMoveTests
 
         await Assert.That(Spawn(moved!, 1)).IsEqualTo(board.Spawns[1]);
     }
+
+    // ── turning ─────────────────────────────────────────────────────────────────────────────────────
+
+    private static MapIntent Turnable() => new()
+    {
+        Spawns =
+        [
+            new SpawnIntent
+            {
+                Id = "spawn-red", Team = "red", Point = new Pt(2, 12, 3), Yaw = 180, Doors = ["-z"],
+                Protection = [new Rect(0, 0, 10, 6)], Footprint = new Rect(1, 1, 5, 5), Iron = [new Pt(9, 12, 5)],
+            },
+        ],
+    };
+
+    /// <summary>A quarter turn clockwise seen from above, about the region's middle (5, 3): the 10 by 6 region
+    /// stands 6 by 10, and everything on it turns with it — north becomes east, and a player who faced south
+    /// faces west.</summary>
+    [Test]
+    public async Task A_quarter_turn_turns_the_room_and_everything_on_it()
+    {
+        var (turned, refused) = PlayPieceMove.Turn(Turnable(), "spawn-red", null, 1);
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        var spawn = Spawn(turned!);
+        await Assert.That(spawn.Protection.Single()).IsEqualTo(new Rect(2, -2, 8, 8));
+        await Assert.That((spawn.Point.X, spawn.Point.Z)).IsEqualTo((5.0, 0.0));
+        await Assert.That(spawn.Footprint).IsEqualTo(new Rect(3, -1, 7, 3));
+        await Assert.That(spawn.Doors).IsEquivalentTo(new[] { "+x" });
+        await Assert.That(spawn.Yaw).IsEqualTo(270);
+    }
+
+    [Test]
+    public async Task Four_quarter_turns_are_no_turn()
+    {
+        var board = Turnable();
+        var turned = board;
+        for (var k = 0; k < 4; k++) turned = PlayPieceMove.Turn(turned, "spawn-red", null, 1).Intent!;
+
+        var (was, now) = (Spawn(board), Spawn(turned));
+        await Assert.That(now.Protection.Single()).IsEqualTo(was.Protection.Single());
+        await Assert.That(now.Point).IsEqualTo(was.Point);
+        await Assert.That(now.Footprint).IsEqualTo(was.Footprint);
+        await Assert.That(now.Doors).IsEquivalentTo(was.Doors);
+        await Assert.That(now.Yaw).IsEqualTo(was.Yaw);
+    }
+
+    /// <summary>A region whose sides differ by an odd number of blocks has no turn about its middle that stays
+    /// on the block grid, so the whole room is shifted the half block that puts it back.</summary>
+    [Test]
+    public async Task A_turned_region_stays_on_the_block_grid()
+    {
+        var board = Turnable() with
+        {
+            Spawns = [Turnable().Spawns[0] with { Protection = [new Rect(0, 0, 5, 2)], Footprint = null, Iron = [] }],
+        };
+        var region = Spawn(PlayPieceMove.Turn(board, "spawn-red", null, 1).Intent!).Protection.Single();
+
+        await Assert.That(region).IsEqualTo(new Rect(1, -2, 3, 3));
+    }
+
+    /// <summary>A mirror image turns the other way, so the two stay each other's reflection: red's north door
+    /// turning east is blue's turning west.</summary>
+    [Test]
+    public async Task A_mirror_image_turns_the_other_way()
+    {
+        var board = Mirrored();
+        board = board with { Spawns = [.. board.Spawns.Select(spawn => spawn with { Doors = ["-z"] })] };
+
+        var turned = PlayPieceMove.Turn(board, "spawn-red", null, 1).Intent!;
+
+        await Assert.That(Spawn(turned, 0).Doors).IsEquivalentTo(new[] { "+x" });
+        await Assert.That(Spawn(turned, 1).Doors).IsEquivalentTo(new[] { "-x" });
+    }
+
+    [Test]
+    public async Task Alone_moves_or_turns_the_named_image_and_no_other()
+    {
+        var board = Mirrored();
+
+        var moved = PlayPieceMove.Apply(board, "spawn-red", null, new Rect(5, 3, 15, 13), alone: true).Intent!;
+        var turned = PlayPieceMove.Turn(board, "spawn-red", null, 1, alone: true).Intent!;
+
+        await Assert.That(Spawn(moved, 1)).IsEqualTo(board.Spawns[1]);
+        await Assert.That(Spawn(turned, 1)).IsEqualTo(board.Spawns[1]);
+        await Assert.That(Spawn(turned, 0)).IsNotEqualTo(board.Spawns[0]);
+    }
+
+    /// <summary>The building turns about its own middle and is held inside its region as a move holds it.</summary>
+    [Test]
+    public async Task A_building_turned_off_its_region_is_refused()
+    {
+        var board = Turnable() with
+        {
+            Spawns = [Turnable().Spawns[0] with { Footprint = new Rect(1, 0, 9, 4) }],
+        };
+
+        var (turned, refused) = PlayPieceMove.Turn(board, "spawn-red", StructuralRoles.Building, 1);
+
+        await Assert.That(turned).IsNull();
+        await Assert.That(refused.Single().Rule).IsEqualTo(RoomFrameRules.FootprintOffPiece);
+    }
+
+    [Test]
+    public async Task An_objective_states_no_facing_to_turn()
+    {
+        var (turned, refused) = PlayPieceMove.Turn(Board(), "core-red", null, 1);
+
+        await Assert.That(turned).IsNull();
+        await Assert.That(refused.Single().Field).IsEqualTo("turn");
+    }
 }

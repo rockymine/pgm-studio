@@ -9423,6 +9423,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`RoomShapes.Fold`). `M0077` carried every stored room shape into its record.
   (`Pgm/Authoring/PlayPieceMove`, `Pgm/Sketch/RoomShapes`, `Data/Map/MapArtifactStore.LoadLayoutAsync`,
   `docs/tools/sketch.md`, `docs/tools/configure.md`)
+- **A room turns, and one image moves alone (`TS177`).** The piece route takes a `turn` — quarter turns clockwise
+  seen from above — about the middle of a room's region, carrying its marker, building, iron, entries, doors and
+  yaw, or about its building's middle alone; a mirror image turns the other way. `alone` moves or turns the named
+  image without the rest of its orbit. (`Pgm/Authoring/PlayPieceMove`, `docs/tools/configure.md`)
 - **A rule's third level, the measure (`RP128`).** `RuleLevels.Measure` never refuses and reads a finding as the
   number it measured against its range: `Finding.Measured` is `{value, low, high}`, and `Violation` reads its
   value and band from it. Every rule of `GO`, `WL`, `CT`, `LN`, `FR` and `MD` but `WL14` is a measure by default

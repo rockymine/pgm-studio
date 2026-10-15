@@ -22,13 +22,8 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS177 — A play piece turns, and one image can leave its orbit.** `PATCH /map/{slug}/intent/pieces/{id}`
-  takes a quarter turn about the piece's centre as well as a move (`PlayPieceMove`), turning its region, building,
-  doors, iron and entries and its orbit images by the turned step; and an image can be broken out of its orbit by
-  clearing its stamp, after which it moves alone. `docs/tools/sketch.md`, `docs/tools/configure.md`.
-
 - [ ] **TS169 — Play pieces are sketch objects.** Every spawn, wool room, destroyable, core, iron cube, build area
-  and the observer is drawn in the sketch from the intent, selected, dragged and turned through the piece route (TS177),
+  and the observer is drawn in the sketch from the intent, selected, dragged and turned through the piece route,
   with an inspector beside it and new pieces placed from the toolbar, reusing the dressing controller's grips and
   drag. `docs/tools/sketch.md`.
 
