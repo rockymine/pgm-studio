@@ -34,7 +34,7 @@ these faults. A check found to be needed later is filed and built on its own, ou
 | | What it is | Where it lands here |
 |---|---|---|
 | Vocabulary | anything can be built; a missing thing costs 5–60 lines, not a schema change | the layer document and its operation families (Phases 2–7), and the made thing as the escape hatch (Phase 8) |
-| The plan of places | places with a reason and a way in, numbers against targets, reviewed before a block is placed | the design document and its review sheet (Phase 1) |
+| The plan of places | places with a reason and a way in, numbers against targets, reviewed before a block is placed | the sketch as the one document, its places layer and its review sheet (Phase 1) |
 | Looking up close | one picture per place, and sections through it | framed renders (Phase 0) and reads after any step (Phase 2) |
 | Accumulation | every board's "what I wanted, how hard" table grew the library | the port protocol below, and the made-thing rule (Phase 8) |
 
@@ -137,9 +137,19 @@ relief keyed by layer and group) and `TS64` (a made thing as one row in the laye
 make terrain addressable. In a layer document every layer is addressable by construction, so the three are not
 built: they retire, on the author's call, in the commit that lands Phase 2's document.
 
-**The plan of places will be a fifth document beside the four levels, compiling into nothing.** It states what the
-map is for, and every level is measured against it (`PLAN-REVIEW-DESIGN.md`). Layers and pieces may name the
-place they build, so the review can show one place's steps.
+**The sketch will be the map's one document, and the box plan stops being a level.** The box plan began as the
+way into a capture-the-wool board, and keeping it beside the sketch is what makes a monument a plan marker that
+only a recompile moves, makes the relief ride beside shapes a recompile replaces, and makes `from-plan` merge
+and answer 409. In the sketch the play pieces are objects placed and dragged like houses and trees, each writing
+its entry of the intent, and the places are an annotation layer drawn over the ground that makes no terrain.
+Rectangles stay a way of drawing: the generator emits a sketch from its own piece model, and a box drawn on a
+grid is a sketch shape like any other. The stored plans are kept as history, read-only.
+
+**The places are the design, and they link to play, not to geometry.** A place — the village, the delta, the
+volcano — has a kind, what it is, why a player goes there, how it is reached, and its own rough geometry in
+blocks; it may name the intent object it holds (`PLAN-REVIEW-DESIGN.md`). It never names the shapes that realise
+it, since a shape is stretched and redrawn as the ground is worked. A ground layer may take a place as its area,
+so a volcano layer over the volcano place is one statement.
 
 **The intent stays the one source of play.** A play piece writes the intent and the intent writes the XML, as
 today; pgmvox's own `map.xml` builder is retired for any board that passes through the studio.
@@ -165,20 +175,29 @@ cuts along x or z, which `render/section` already draws, and `transect` answers 
 Jump pads (`PG24`) are not in this phase: the studio does not have them as a capability yet, and they stay a
 backlog entry of their own.
 
-### Phase 1 — the plan of places and its review sheet
+### Phase 1 — one document: the sketch, its play pieces and its places
 
-**The planning step was the most useful thing the freeform runs added, and it needs no new engine.**
-`PLAN-REVIEW-DESIGN.md` is its design; the work is its §7 order.
+**The sketch becomes the only document a map is drawn in, and the plan stops being a level.** A map starts the
+way a pgmvox board did: what it is for and where its places sit, then its land shaped and terraformed in one
+pass, then the features. Each step below leaves the studio usable, and the plan keeps working until its
+replacement has landed.
 
-- `design_json` stored per map as numbered changes, inside `PUT source`, with diff. Its fields: identity,
-  places (what, why, reach, floor, storey), routes, targets, sections, look, adds, review.
-- The sheet: places, routes and sections drawn over whatever level exists, as a tab beside Sketch.
-- Note anchors for `place`, `route`, `target`, `section`; a verdict of proposed, changes or approved. The agent's
-  skill does not build on a design that is not approved; the API does not enforce it.
-- Targets measured by the studio on the best level that exists. `sight` is the one new read.
-- In-game notes tagged with the place their ground falls in.
+- Play pieces as sketch objects: a spawn, a wool room, a monument, a core, iron, a build zone and a protection
+  zone placed, dragged and turned in the sketch, each writing its entry of the intent, so moving one recompiles
+  nothing.
+- The places layer and the design document: `design_json` inside `PUT source`, with diff; places drawn with the
+  sketch's own tools on a layer that never rasterizes, linking only to intent objects; the review sheet, note
+  anchors on places, routes, targets and sections, and a verdict.
+- The generator emits a sketch. Its piece model stays its own (`docs/generator/model.md`) and ends in a layout and
+  an intent rather than a plan.
+- The rules move onto the sketch: the measures read off the sketch's rasterized ground, which never builds a
+  world, and the refusals asked between play pieces. `sight` is the one new read; in-game notes are tagged with
+  the place their ground falls in.
+- The plan retires: the Plan tool and `from-plan` go, every stored plan is kept read-only as history, and
+  `pgm-studio-mapgen`'s specs, `drive.py` and the skill move to sketch sources.
 
-**What the author notices:** feedback before anything is built, on a sheet with reasons on it.
+**What the author notices:** a monument dragged where the landscape wants it, places with reasons reviewed
+before anything is built, and boards that stop looking alike because none of them starts as rectangles.
 
 ### Phase 2 — the layer document and the ground
 
@@ -219,18 +238,15 @@ time. Shipped behind the author's choice of beta (decision D3).
 
 **What the author notices:** crypts and mines without the lid trick.
 
-### Phase 5 — play pieces and stamps
+### Phase 5 — stamps and uploaded worlds
 
-- A wool room, monument, core, point, spawn, build zone, protection zone or wall as a piece of any shape that
-  stands anywhere on the land, writing the intent. The box plan and the generator stay, as one way to make many
-  pieces and the first ground at once.
+- A control point and a wall as play pieces of any shape, beside the ones Phase 1 places.
 - Stamps as the last stage, each switchable per piece: goal marker, build-zone outline, defence wall, wool-room
   loot, kit pairing, float check.
 - A world built elsewhere uploaded with its `map.xml`, read into the intent, with the stamps run over it on
   export. `POST /map/import-folder` reads a server-side folder today; an upload route is what is missing.
 
-**What the author notices:** objectives where the landscape wants them, and every pgmvox board playable with the
-studio's markers and outlines on it.
+**What the author notices:** every pgmvox board playable with the studio's markers and outlines on it.
 
 ### Phase 6 — built things
 
@@ -254,7 +270,8 @@ pillars, patterns along each straight run, marks and words.
   (Brittlebush, Claywork, Terra, Marble, Foundry, Segment, Drastic) are the first rows.
 - A grammar layer that acts on any shape: a made section, a wall, a cliff face, a wool room. Faces on grown
   ground (`grammar.dress`) come with it.
-- A box plan read as a grammar blueprint in one step, so a planned board is coloured the moment it is drawn.
+- A sketch drawn in rectangles read as a grammar blueprint in one step, so a planned board is coloured the
+  moment it is drawn.
 - Facade patterns on masses and floor fields as carpets.
 - The decisions the grammar takes, shown: which fill each section got, which bays it refused and why. The
   Recipe Inspector's grammar tab is the prototype.
@@ -272,9 +289,9 @@ in a row.
 ## What an agent does on pgmstudio.de, phase by phase
 
 **The order of work stays `ORDER-OF-WORK.md`'s, and each phase of this programme takes over one step of it from
-pgmvox.** Places on the outline with targets (Phase 1); ground layers, then `slopes`, `incline` and `walk` read
+pgmvox.** Places and play pieces in the sketch, with targets (Phase 1); ground layers, then `slopes`, `incline` and `walk` read
 after the last one, posted again until the numbers meet their targets (Phase 2); carves and the x-ray (Phase 4);
-made ground and houses (Phases 6 and 7); the intent, then stamps and gates (Phase 5). A step the studio cannot
+made ground and houses (Phases 6 and 7); stamps and gates (Phase 5). A step the studio cannot
 take yet is taken in pgmvox and uploaded, and the board's report says which.
 
 **The `pgm-board` skill and `AGENT-GUIDE.md` change with each phase.** The commit that ships a phase is followed by
@@ -285,11 +302,11 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 - Every operation not yet ported, and every new one tried first.
 - The boards built on it, with their history; they are the evidence each move is tested against.
 - The reads of a world that is not a stored map, until the upload route of Phase 5 lands.
-- Its plan raster and walk graph, until the plan of places carries polygons and storeys.
+- Its plan raster and walk graph, until the places layer carries polygons and storeys.
 
 ## The author's decisions
 
-**Five are taken and two are open; each open one blocks the phase named.**
+**Seven are taken and four are open; each open one blocks the phase named.**
 
 | # | Decision | Blocks | Answer |
 |---|---|---|---|
@@ -300,6 +317,10 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 | D5 | Phase order: the plan of places before the ground, or after it | 1 | **taken:** before; it is cheap, needs no engine, and the planning step is what made the freeform boards' places good |
 | D6 | The eight shape decisions (`INVENTORY.md` §5.6, P1–P8): names of places and paths, width as full width, units and one rounding step, noise as a statistical contract, every operation declaring its `mode`, its reads and writes, a seed per operation, symmetry stated once | 2 | **taken:** the inventory's proposals as written, before the first operation |
 | D7 | When the programme starts | all | **taken:** now, as the programme on `TODO.md`. `TS130` is parked in `BACKLOG.md`: it is tangled with how land is made, which Phase 2 redesigns, and is taken up when that work reaches it, beside `B264`, `WE28` and `TS64`, which retire there |
+| D8 | Does the box plan stay a level beside the sketch | 1 | **taken:** no. The sketch is the one document: play pieces are sketch objects writing the intent, places an annotation layer, the generator emits a sketch, and the Plan tool retires |
+| D9 | What becomes of the stored plans (48 of 64 maps on pgmstudio.de hold one) | 1 | **taken:** kept, read-only, as history. Each map's sketch and intent carry its play forward; nothing reads the plan again |
+| D10 | Does `POST /plan/compile` stay, as a one-shot converter from rectangles | 1 | open; recommended: yes, since the generator compiles its pieces anyway and the converter costs nothing beside it |
+| D11 | Which of `pgm-studio-mapgen`'s 174 plan-and-refinement specs move to sketch sources | 1 | open; recommended: the boards still worked on, with the rest frozen as archive |
 
 ## What this does not decide
 
@@ -307,7 +328,7 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 styles make its houses varied; the archetype as a library row, with the styles mapped onto archetypes, is the
 obvious meeting point and has not been tried.
 
-**Whether the plan of places replaces pgmvox's raster plan.** A design with polygons, storeys and per-piece
+**Whether the places layer replaces pgmvox's raster plan.** A design with polygons, storeys and per-place
 heights would; until Phase 1 has run on real boards, the raster stays the freeform planner.
 
 **The made thing's limits.** Size, how its source is stored, and whether it may be edited in the browser are
