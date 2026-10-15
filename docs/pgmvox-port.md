@@ -25,8 +25,10 @@ brief built twice at that depth, once on pgmstudio.de and once with pgmvox, and 
 
 **A second measure is the playtest's thirty faults.** Of the faults the author found on 10 October, the studio
 would have caught nine, partly caught four, and not caught or could not have built seventeen
-(`playtest-feedback-2026-10-10.md`). Every class among the seventeen either gets a gate here or is named as the
-author's to judge.
+(`playtest-feedback-2026-10-10.md`). The classes that cost a match — a goal nobody finds, a mode that plays
+wrong, a board too dense to fight in — get a gate or a target here. Micro-geometry (a ladder in water, a stair
+attached by its front, a shaft that misses its tunnel) does not: it is a real mistake, but a rule for each costs
+more than it saves, and the author's review catches it.
 
 **Four things made the freeform boards good, and the port has to bring all four.** Operations are only the first.
 
@@ -62,7 +64,7 @@ through the studio's Anvil writer and draws through its renderer.
 | Paint | band stacks on depth, inward, height, slope | the same, plus paint layers by place and line, beds that dip and fold, wet beds, per-column undersides | 3 |
 | Underground | a whole-column subtract under a lid (`SK13` refuses the rest) | tunnels, chambers, galleries, shafts, bores in a 3D grid | 4 |
 | Play pieces | a goal sits where the plan's rectangle put it | pieces of any shape, anywhere on the land | 5 |
-| Houses | 57 styles, axis-aligned, no clay colours, no stair roofs in the rows | any heading, jetties, posts, chimneys, wood doors | 0, 6 |
+| Houses | 61 styles, 28 with stair roofs, ten in clay; axis-aligned only | any heading, jetties, posts, chimneys, wood doors | 6 |
 | Lines | a relief line plus a stroke | walls, hedges and fences along a line; paths graded, paved, stepped and half-stepped; roads found to a grade | 6 |
 | Style | theme buckets: rim, wall, surface, fill, bedrock | a grammar over sections and faces, seven styles, one plan in any of them | 7 |
 | Bespoke things | seven prop kinds | anything | 8 |
@@ -132,9 +134,10 @@ fast, runs in the browser and folds cleanly under symmetry, so the ground keeps 
 bodies and floating undersides run afterwards over `VoxelWorld`, so `SK13`'s cut-and-lid stops being the only
 way down.
 
-**The layer document is to resolve the layer word.** `B264` (Configure cannot address a storey), `WE28` (a relief keyed
-by layer and group) and `TS64` (a made thing as one row in the layer strip) are the studio's half-built answer
-to the same question, and the programme absorbs them rather than building beside them.
+**The layer document makes the layer word unnecessary.** `B264` (Configure cannot address a storey), `WE28` (a
+relief keyed by layer and group) and `TS64` (a made thing as one row in the layer strip) were the planned way to
+make terrain addressable. In a layer document every layer is addressable by construction, so the three are not
+built: they retire, on the author's call, in the commit that lands Phase 2's document.
 
 **The plan of places will be a fifth document beside the four levels, compiling into nothing.** It states what the
 map is for, and every level is measured against it (`PLAN-REVIEW-DESIGN.md`). Layers and pieces may name the
@@ -153,14 +156,12 @@ then. Before any phase reaches pgmstudio.de, a migration dry run over every stor
 
 **The quick wins need no new concept, and the author notices only better boards.**
 
-- Library data: houses in yellow, orange and brown clay, and `roof.stair` on the rows that want it. None of the
-  57 seeded styles has either today, and ten are all stone; this is most of the gap between the two sides' houses.
-- Jump pads (`PG24`), with pgmvox's `solve_launch` ported beside `Geom.Jump`.
-- The playtest's gates, each as a finding on the built world: a goal visible from where attackers arrive, a stair
-  attached by its back, no ladder in water, joins that open into what they join, a tree-cover ceiling per mode,
-  and the float rule (three of air under a monument and a core, reachable from below) read off the built world.
 - Framed reads: an isometric of any box, so each place gets its own picture at four or five pixels a block, and a
-  section along any polyline. These are what let an agent look at a place up close.
+  section along any polyline. These are what let an agent look at a place up close, and they are the most
+  valuable item in this phase.
+- Jump pads (`PG24`), with pgmvox's `solve_launch` ported beside `Geom.Jump`.
+- A tree-cover ceiling per mode, as a finding on the built world: five of the thirty playtest faults were
+  vegetation too dense to fight in.
 - The three rule tiers made explicit. `Rules:Mode` and per-rule levels exist; what is missing is a third tier,
   the measure, shown as a number against a target and never refusing.
 
@@ -186,7 +187,7 @@ then. Before any phase reaches pgmstudio.de, a migration dry run over every stor
 - The document: layers, stages, areas and their distance, numbers as fields, the cache, per-layer delta and diff,
   and the existing reads (`column`, `transect`, `slopes`, `incline`, `walk`) taken after any layer with `?step=`.
 - The relief solver and the sketch's shapes as layer kinds, and a migration that carries every stored sketch
-  into layers without loss. `WE28`, `B264` and `TS64` close here.
+  into layers without loss. `WE28`, `B264` and `TS64` retire in the same commit.
 - A Layers tab in Sketch, as the terrain-layer prototype draws it: reorder, toggle, drag an area, see what a
   layer changed.
 - The ground operations, in the order `pgmvox-cleanup/INVENTORY.md` §4.3 ranks them by how much board code they
@@ -297,9 +298,8 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 | D3 | Where the beta runs: a second instance on pgmstudio.de with a copy of the database, or a switch on the live one | 2 | a second instance; the live studio does not change until the migration has run clean |
 | D4 | Which rules are hard, which a hint, which a measure | 0 | hard: valid XML and pieces, nothing built inside a house, a sensible goal, float and reach; hint: spacing, ground under a house, sketch overlaps, style; measure: walks, distances, gap widths, front lines (GO, WL, CT, LN, FR, MD) |
 | D5 | Phase order: the plan of places before the ground, or after it | 1 | before: it is cheap, needs no engine, and the planning step is what made the freeform boards' places good |
-| D6 | Clay colours and stair roofs into the live library now | 0 | yes |
-| D7 | The eight shape decisions (`INVENTORY.md` §5.6, P1–P8): names of places and paths, width as full width, units and one rounding step, noise as a statistical contract, every operation declaring its `mode`, its reads and writes, a seed per operation, symmetry stated once | 2 | adopt the inventory's proposals as written, before the first operation |
-| D8 | When the programme starts: behind `TS130` (the programme on `TODO.md`) or beside it | all | behind it; Phase 0 alone can run beside, because it adds no concept |
+| D6 | The eight shape decisions (`INVENTORY.md` §5.6, P1–P8): names of places and paths, width as full width, units and one rounding step, noise as a statistical contract, every operation declaring its `mode`, its reads and writes, a seed per operation, symmetry stated once | 2 | adopt the inventory's proposals as written, before the first operation |
+| D7 | When the programme starts: behind `TS130` (the programme on `TODO.md`) or beside it | all | behind it; Phase 0 alone can run beside, because it adds no concept |
 
 ## What this does not decide
 

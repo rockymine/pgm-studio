@@ -490,7 +490,8 @@ Of the causes this section named earlier, the client reading its own schema clos
 the compiler's lost identity is `B213` alone, so neither stands as a programme. What is left whole, after the walk, is **the layer
 word** (`B264`, `WE28`, `TS64` — a layer is first-class in the export and an afterthought everywhere
 else), and it waits behind the programme the author put first: a board's source, every change to it, and the
-words it is stated in (`TODO.md`). It is also the foundation of the pgmvox port, whose Phase 2 absorbs all three entries (`docs/pgmvox-port.md`). The two shop entries that remain (`PG15`, `PG16`) are independent
+words it is stated in (`TODO.md`). The pgmvox port's layer document makes every layer addressable by construction, so all three retire when its
+Phase 2 lands rather than being built (`docs/pgmvox-port.md`). The two shop entries that remain (`PG15`, `PG16`) are independent
 extensions of a landed slice rather than one cause, and are therefore roadmap rather than programme.
 
 **The rule over Phases 1 and 2.** A programme pulled up from `BACKLOG.md` is worked to its end before
