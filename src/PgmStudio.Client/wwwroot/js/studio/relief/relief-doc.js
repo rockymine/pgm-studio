@@ -203,18 +203,28 @@ export class ReliefDoc {
   #nextId = 1;
 
   /** Read a stored document. A mark whose kind the client cannot draw is dropped rather than carried as a
-   *  shape nothing can edit — the same rule the dressing document follows, for the same reason. */
+   *  shape nothing can edit — the same rule the dressing document follows, for the same reason. A mark with
+   *  no id, or with one an earlier mark already holds, is given a fresh one minted above every stored id. */
   static from(stored) {
     const doc = new ReliefDoc();
-    for (const [groupId, relief] of Object.entries(stored ?? {})) {
-      if (!groupId || !relief || typeof relief !== "object") continue;
+    const groups = Object.entries(stored ?? {}).filter(([groupId, relief]) =>
+      groupId && relief && typeof relief === "object");
+    const stated = groups.flatMap(([, relief]) => [...(relief.marks ?? []), ...(relief.pushes ?? [])])
+                         .map(entry => entry?.id).filter(Boolean);
+    doc.#nextId = Math.max(1, ...stated.map(id => (parseInt(String(id).replace(/\D/g, ""), 10) || 0) + 1));
+    const taken = new Set();
+    const named = entry => {
+      const id = entry.id && !taken.has(entry.id) ? entry.id : doc.#mintId();
+      taken.add(id);
+      return { ...entry, id };
+    };
+    for (const [groupId, relief] of groups) {
       const kept = { ...defaultRelief(), ...relief };
       kept.marks = (relief.marks ?? []).filter(mark => MARK_KINDS.includes(mark?.kind) || mark?.kind === RIM_KIND)
-                                       .map(mark => reachOf({ ...mark, id: mark.id || doc.#mintId() }));
-      kept.pushes = (relief.pushes ?? []).map(push => ({ ...push, id: push.id || doc.#mintId() }));
+                                       .map(mark => reachOf(named(mark)));
+      kept.pushes = (relief.pushes ?? []).map(named);
       doc.#byGroup.set(groupId, kept);
     }
-    doc.#nextId = Math.max(doc.#nextId, ...doc.#allIds().map(id => (parseInt(String(id).replace(/\D/g, ""), 10) || 0) + 1));
     return doc;
   }
 
@@ -344,6 +354,17 @@ export class ReliefDoc {
    *  stated against. */
   updateRelief(groupId, patch) {
     const relief = this.reliefOf(groupId);
+    // A list written whole — the rim the inspector switches on is one — names an entry stating no id, or one
+    // another entry of the document already holds, as the document names every entry.
+    for (const list of ["marks", "pushes"]) {
+      if (!Array.isArray(patch[list])) continue;
+      const taken = new Set(this.#allIds().filter(id => !relief[list].some(entry => entry.id === id)));
+      patch = { ...patch, [list]: patch[list].map(entry => {
+        const id = entry.id && !taken.has(entry.id) ? entry.id : this.#mintId();
+        taken.add(id);
+        return { ...entry, id };
+      }) };
+    }
     Object.assign(relief, patch);
     return relief;
   }
