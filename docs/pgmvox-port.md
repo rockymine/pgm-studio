@@ -25,10 +25,9 @@ brief built twice at that depth, once on pgmstudio.de and once with pgmvox, and 
 
 **A second measure is the playtest's thirty faults.** Of the faults the author found on 10 October, the studio
 would have caught nine, partly caught four, and not caught or could not have built seventeen
-(`playtest-feedback-2026-10-10.md`). The classes that cost a match — a goal nobody finds, a mode that plays
-wrong, a board too dense to fight in — get a gate or a target here. Micro-geometry (a ladder in water, a stair
-attached by its front, a shaft that misses its tunnel) does not: it is a real mistake, but a rule for each costs
-more than it saves, and the author's review catches it.
+(`playtest-feedback-2026-10-10.md`). They are a measure, not a work list: **no phase of this programme adds a
+playtest check.** Each check is a rule to maintain and a refusal to explain, and the author's review catches
+these faults. A check found to be needed later is filed and built on its own, outside the programme.
 
 **Four things made the freeform boards good, and the port has to bring all four.** Operations are only the first.
 
@@ -160,8 +159,6 @@ then. Before any phase reaches pgmstudio.de, a migration dry run over every stor
   section along any polyline. These are what let an agent look at a place up close, and they are the most
   valuable item in this phase.
 - Jump pads (`PG24`), with pgmvox's `solve_launch` ported beside `Geom.Jump`.
-- A tree-cover ceiling per mode, as a finding on the built world: five of the thirty playtest faults were
-  vegetation too dense to fight in.
 - The three rule tiers made explicit. `Rules:Mode` and per-rule levels exist; what is missing is a third tier,
   the measure, shown as a number against a target and never refusing.
 
