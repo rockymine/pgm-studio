@@ -22,17 +22,13 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS175 — One way to move a play piece, and the room stored once.** `PATCH /map/{slug}/intent/pieces/{id}`
-  moves or turns any spawn, wool, destroyable or core by its id and moves its whole symmetry orbit, generalizing
-  `RoomPieceMove`; a copy broken out of the orbit is moved alone. The room rectangle stops being stored in the
-  layout's structural shapes: the sketch, the paint scope and the relief pin read it from the intent, and a
-  migration carries an author-corrected `height_authored` onto the intent first. `docs/tools/sketch.md`.
-
-  *Evidence: a Configure edit writes only the intent, so the layout's copy of the room goes stale until the next
-  `sketch/from-plan` (`PlanCompiler.AppendStructuralShape`, `sketch-bridge.js` `moveStructural`).*
+- [ ] **TS177 — A play piece turns, and one image can leave its orbit.** `PATCH /map/{slug}/intent/pieces/{id}`
+  takes a quarter turn about the piece's centre as well as a move (`PlayPieceMove`), turning its region, building,
+  doors, iron and entries and its orbit images by the turned step; and an image can be broken out of its orbit by
+  clearing its stamp, after which it moves alone. `docs/tools/sketch.md`, `docs/tools/configure.md`.
 
 - [ ] **TS169 — Play pieces are sketch objects.** Every spawn, wool room, destroyable, core, iron cube, build area
-  and the observer is drawn in the sketch from the intent, selected, dragged and turned through TS175's route,
+  and the observer is drawn in the sketch from the intent, selected, dragged and turned through the piece route (TS177),
   with an inspector beside it and new pieces placed from the toolbar, reusing the dressing controller's grips and
   drag. `docs/tools/sketch.md`.
 

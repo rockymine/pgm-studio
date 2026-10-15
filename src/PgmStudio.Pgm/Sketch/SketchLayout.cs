@@ -71,6 +71,11 @@ public sealed class SketchLayout
     /// cannot express, so it is carried across one under its own rule.</summary>
     [JsonPropertyName("relief")] public Dictionary<string, SketchReliefJson>? Relief { get; set; }
 
+    /// <summary>What the layout states about the ground under each play room, by the id of the shape the room
+    /// is drawn as (<see cref="RoomGround"/>). The rooms themselves are the intent's, drawn in by
+    /// <see cref="RoomShapes.Project"/>; absent, every room is ordinary ground the relief does not pin.</summary>
+    [JsonPropertyName("rooms")] public Dictionary<string, RoomGround>? Rooms { get; set; }
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public string ToJson() => JsonSerializer.Serialize(this, Json);
@@ -209,8 +214,7 @@ public sealed class SketchLayout
     }
 
     /// <summary>The stored shapes a rebuild from <paramref name="compiledJson"/> does not keep, by id: a shape
-    /// whose id the compile does not produce and that carries no <see cref="SketchShape.IntentRef"/> — which is
-    /// a shape drawn in the sketch rather than one the plan or the intent accounts for (<see
+    /// the author drew in the sketch, whose id the compile does not produce (<see
     /// cref="SketchRules.ShapeDropped"/>). Geometry is the plan's, so nothing carries one across.</summary>
     public static IReadOnlyList<string> DroppedShapes(string compiledJson, string? storedJson)
     {
@@ -220,72 +224,44 @@ public sealed class SketchLayout
             Stack(Parse(compiledJson)).SelectMany(layer => layer.Shapes).Select(shape => shape.Id),
             StringComparer.Ordinal);
         return Stack(stored).SelectMany(layer => layer.Shapes)
-            .Where(shape => shape.IntentRef is not { Length: > 0 } && !compiled.Contains(shape.Id))
+            .Where(shape => shape.Role is null && !compiled.Contains(shape.Id))
             .Select(shape => shape.Id)
             .Distinct(StringComparer.Ordinal)
             .ToList();
     }
 
-    /// <summary>A freshly compiled layout with every author-stated structural height carried onto it —
-    /// the shape-level counterpart to <see cref="CarryRelief"/>. A plan recompile writes a fresh Floor/
-    /// BaseHeight for every Role-tagged shape it holds a group's relief against, because that is the only
-    /// height a plan-space piece can state before any terrain exists; once the ground is real and an author
-    /// corrects that number in the sketch, <see cref="SketchShape.HeightAuthored"/> marks the shape so this
-    /// carries its Floor/BaseHeight/AnchorHeights forward instead of letting the recompile hand back the
-    /// plan's flat number. Matched by <see cref="SketchShape.IntentRef"/> — the identity that survives a
-    /// recompile — not by shape id, which the compiler regenerates every time. A shape with no author-owned
-    /// match in the stored layout is untouched, so a piece never corrected keeps tracking the plan.</summary>
-    public static string CarryStructuralHeight(string compiledJson, string? storedJson)
+    /// <summary>A freshly compiled layout with every room height the author corrected carried onto it. A plan
+    /// recompile writes a fresh <see cref="RoomGround"/> for every room it holds a relief against, because the
+    /// plan's flat surface is the only height a plan-space piece can state; once an author corrects that
+    /// number in the sketch, <see cref="RoomGround.HeightAuthored"/> marks the record, and this carries its
+    /// floor, top and corners forward, held, instead of the plan's number. Matched by the room's id, which
+    /// is its piece's and survives a recompile.</summary>
+    public static string CarryRoomGround(string compiledJson, string? storedJson)
     {
         var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
-        var authored = StructuralHeights(stored);
+        var authored = (stored?.Rooms ?? new Dictionary<string, RoomGround>()).Where(room => room.Value.HeightAuthored == true).ToList();
         if (authored.Count == 0) return compiledJson;
 
         JsonNode? node;
         try { node = JsonNode.Parse(compiledJson); } catch (JsonException) { return compiledJson; }
         if (node is not JsonObject target) return compiledJson;
 
-        var carried = false;
-        foreach (var shapes in ShapeArrays(target))
-            foreach (var shapeNode in shapes)
-            {
-                if (shapeNode is not JsonObject shape) continue;
-                if (shape["role"] is not JsonValue) continue;                 // not a structural annotation
-                if (shape["intentRef"]?.GetValue<string?>() is not { } intentRef) continue;
-                if (!authored.TryGetValue(intentRef, out var height)) continue;
-
-                shape["floor"] = height.Floor is { } floor ? JsonValue.Create(floor) : null;
-                shape["base_height"] = height.BaseHeight is { } baseHeight ? JsonValue.Create(baseHeight) : null;
-                shape["anchor_heights"] = height.AnchorHeights is { } anchorHeights
-                    ? JsonSerializer.SerializeToNode(anchorHeights, Json) : null;
-                shape["height_authored"] = JsonValue.Create(true);
-                // A corrected height is a height the author means against the relief, so the shape holds it
-                // rather than following the surface the field settles on. Without this the carried number
-                // would be read and then overruled by the solve on the next build.
-                shape["relief_scope"] = JsonValue.Create(ReliefScopes.Hold);
-                carried = true;
-            }
-        return carried ? target.ToJsonString(Json) : compiledJson;
+        var rooms = target["rooms"] as JsonObject ?? new JsonObject();
+        foreach (var (id, height) in authored)
+        {
+            var ground = rooms[id]?.Deserialize<RoomGround>(Json) ?? new RoomGround();
+            ground.Floor = height.Floor;
+            ground.BaseHeight = height.BaseHeight;
+            ground.AnchorHeights = height.AnchorHeights;
+            ground.HeightAuthored = true;
+            // A corrected height is a height the author means against the relief, so the room holds it rather
+            // than following the surface the field settles on.
+            ground.ReliefScope = ReliefScopes.Hold;
+            rooms[id] = JsonSerializer.SerializeToNode(ground, Json);
+        }
+        target["rooms"] = rooms;
+        return target.ToJsonString(Json);
     }
-
-    // Every Role-tagged shape's stated height, keyed by IntentRef, over every layer a stored layout carries
-    // — only the ones the author actually corrected.
-    private static Dictionary<string, StructuralHeight> StructuralHeights(SketchLayout? state)
-    {
-        var shapes = Stack(state).SelectMany(layer => layer.Shapes);
-        return shapes.Where(s => s.Role is not null && s.HeightAuthored == true && s.IntentRef is { Length: > 0 })
-                     .ToDictionary(s => s.IntentRef!, s => new StructuralHeight(s.Floor, s.BaseHeight, s.AnchorHeights));
-    }
-
-    // The shape arrays a compiled layout holds its structural annotations in, one per layer.
-    private static IEnumerable<JsonArray> ShapeArrays(JsonObject root)
-    {
-        if (root["layers"] is not JsonArray layers) yield break;
-        foreach (var layer in layers)
-            if (layer?["layout"]?["shapes"] is JsonArray shapes) yield return shapes;
-    }
-
-    private readonly record struct StructuralHeight(double? Floor, double? BaseHeight, double[]? AnchorHeights);
 }
 
 /// <summary>
@@ -587,29 +563,18 @@ public sealed class SketchShape
     /// <summary>Where the shape's base sits, in blocks.</summary>
     [JsonPropertyName("floor")]          public double? Floor { get; set; }
 
-    // Structural annotation. A shape carrying a Role is not terrain the author drew — it is the spawn
-    // or wool-room piece the plan already placed, projected in from the map intent so it stays visible while
-    // a plan is refined. Role-tagged shapes are locked (read-only) and contribute nothing to the terrain:
-    // the rasterizer skips them, so they never carve or double-cover the ground the fused group already
-    // holds. IntentRef links back to the intent entity (a team id for a spawn, owner:colour for a wool);
-    // Colour is the dye/team slug the client fills the labelled box with.
-    /// <summary>What this shape is, where it is not terrain the author drew but a piece the plan placed —
-    /// a spawn or a wool room, projected in from the map intent so it stays visible while a plan is refined.
-    /// A shape carrying one is locked and contributes no terrain: the rasterizer skips it.</summary>
+    /// <summary>What this shape is, where it is not terrain the author drew but a play room — a spawn, a wool
+    /// room or the building on one, drawn in from the intent by <see cref="RoomShapes.Project"/> and never
+    /// stored. A shape carrying one is locked and contributes no terrain: the rasterizer skips it.</summary>
+    [WordSet(typeof(StructuralRoles))]
     [JsonPropertyName("role")]       public string? Role { get; set; }
-
-    /// <summary>Which intent entity it stands for — a team id for a spawn, <c>owner:colour</c> for a
-    /// wool.</summary>
-    [JsonPropertyName("intentRef")]  public string? IntentRef { get; set; }
 
     /// <summary>The dye or team slug the labelled box is filled with.</summary>
     [JsonPropertyName("color")]      public string? Color { get; set; }
 
-    /// <summary>Whether a role-tagged shape's <see cref="Floor"/> and <see cref="BaseHeight"/> were stated by
-    /// the author rather than derived from the plan's flat surface. It is what tells a recompile which shapes
-    /// to leave alone: absent, they track the plan on every compile; true, the stored heights carry forward
-    /// onto the freshly compiled shape with the same <see cref="IntentRef"/>. Never set by the
-    /// compiler.</summary>
+    /// <summary>Whether a room shape's <see cref="Floor"/> and <see cref="BaseHeight"/> were stated by the
+    /// author rather than derived from the plan's flat surface. Absent, they track the plan on every compile;
+    /// true, a recompile keeps them (<see cref="SketchLayout.CarryRoomGround"/>). Never set by the compiler.</summary>
     [JsonPropertyName("height_authored")] public bool? HeightAuthored { get; set; }
 
     /// <summary>Which sides of a structural room its doors stand on (<c>-z</c>, <c>+z</c>, <c>-x</c>,

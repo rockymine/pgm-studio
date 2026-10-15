@@ -46,7 +46,7 @@ public static class MapFindings
             findings.AddRange(PlanValidator.Completeness(plan));
         }
 
-        if (await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) is { Length: > 0 } layoutBytes)
+        if (await artifacts.LoadLayoutAsync(map.Id, ct) is { Length: > 0 } layoutBytes)
         {
             var layoutJson = Encoding.UTF8.GetString(layoutBytes);
             findings.AddRange(SketchMaterialGate.Check(layoutJson));

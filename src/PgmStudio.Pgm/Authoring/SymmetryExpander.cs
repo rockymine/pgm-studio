@@ -15,6 +15,8 @@ using PgmStudio.Vocabulary;
 /// step <c>k</c> of the symmetry maps the unit owned by <c>Teams[i]</c> onto <c>Teams[(i+k) % n]</c>.
 /// For a clean symmetric map the team count equals the symmetry order (<c>rot_90</c>→4, mirrors/<c>rot_180</c>→2)
 /// so each team is filled exactly once.</para>
+/// <para><b>A filled image states no id.</b> It is not a piece the intent stores, so it cannot carry the id of
+/// the one it was turned from; <see cref="PlayIds.Assign"/> names it where a reader needs one.</para>
 /// <para><b>Author overrides win.</b> A team that already has an authored spawn/wool is never overwritten —
 /// only missing teams are filled. So the author can hand-correct any orbit member after the fill.</para>
 /// <para>Geometry uses the canonical <see cref="Symmetry"/> transforms. Build areas <i>are</i> orbited too
@@ -138,7 +140,7 @@ public static class SymmetryExpander
                 result.Add(src with
                 {
                     Team = target,
-                    Stamp = src.Stamp.At(k),
+                    Id = "", Stamp = src.Stamp.At(k),
                     Reflected = src.Reflected != Symmetry.Reflects(sym.Mode, k),
                     Point = TransformPt(src.Point, sym, k),
                     Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
@@ -170,7 +172,7 @@ public static class SymmetryExpander
                 result.Add(src with
                 {
                     Owner = owner.Id,
-                    Stamp = src.Stamp.At(k),
+                    Id = "", Stamp = src.Stamp.At(k),
                     Reflected = src.Reflected != Symmetry.Reflects(sym.Mode, k),
                     Color = "",   // orbit copies default to the new owner team's colour (WoolGenerator.ColorSlug)
                     Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
@@ -217,7 +219,7 @@ public static class SymmetryExpander
                 result.Add(src with
                 {
                     Owner = owner.Id,
-                    Stamp = src.Stamp.At(k),
+                    Id = "", Stamp = src.Stamp.At(k),
                     // PGM rejects a nameless destroyable, and one name for both teams reads as one goal —
                     // so the copy takes its new owner's, the same form the plan compiler mints.
                     Name = $"{owner.Name} Monument",
@@ -249,7 +251,7 @@ public static class SymmetryExpander
                 result.Add(src with
                 {
                     Owner = owner.Id,
-                    Stamp = src.Stamp.At(k),
+                    Id = "", Stamp = src.Stamp.At(k),
                     Anchor = TransformAnchor(src.Anchor, sym, k, ObjectiveFootprint.Core(src.Size)),
                     Box = TransformBox(src.Box, sym, k),
                 });

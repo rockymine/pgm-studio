@@ -17,6 +17,10 @@ namespace PgmStudio.Api.Services;
 /// that the build cannot is a <b>complaint</b> riding back on the 200. Anything less would make the small
 /// route the way to get past the big route's gate.</para>
 ///
+/// <para><b>A part is read in the layout as a reader sees it</b>, with the play rooms drawn in, and the layout
+/// is stored folded (<see cref="RoomShapes.Fold"/>) — so a room's ground is edited through its shape's id
+/// and lands in the record the store keeps.</para>
+///
 /// <para>The <c>If-Match</c> guards the layout, which is the document the edited part lives in and the one a
 /// concurrent edit would lose — not the part, which has no revision of its own.</para>
 /// </summary>
@@ -40,7 +44,7 @@ public static class SketchPartWrite
         Complaints.Unwalked(http, SketchMaterialGate.GroundRules);
 
         var written = await DocumentWrite.StoreAsync(artifacts, mapId, ArtifactKind.SketchLayoutJson,
-            "sketch layout", Encoding.UTF8.GetBytes(layoutJson), Revisions.Expected(http), ct);
+            "sketch layout", Encoding.UTF8.GetBytes(RoomShapes.Fold(layoutJson)), Revisions.Expected(http), ct);
 
         return written.Refusal is { } refusal
             ? new(null, id, Findings.None, refusal)
@@ -60,10 +64,10 @@ public static class SketchPartWrite
         return false;
     }
 
-    /// <summary>The stored layout as text, or null where the map carries none.</summary>
+    /// <summary>The stored layout as text with the play rooms drawn in, or null where the map carries none.</summary>
     public static async Task<string?> LayoutOf(MapArtifactStore artifacts, long mapId, CancellationToken ct)
     {
-        var data = await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct);
+        var data = await artifacts.LoadLayoutAsync(mapId, ct);
         return data is null ? null : Encoding.UTF8.GetString(data);
     }
 }

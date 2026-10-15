@@ -99,7 +99,8 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
     };
 }
 
-/// <summary>GET /api/map/{slug}/sketch — the stored sketch layout (the JS-origin blob), or {} if none.</summary>
+/// <summary>GET /api/map/{slug}/sketch — the stored sketch layout (the JS-origin blob) with the map's play
+/// rooms drawn in from its intent (<see cref="RoomShapes.Project"/>), or {} if none.</summary>
 public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure()
@@ -114,7 +115,7 @@ public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artif
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        var data = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
+        var data = await artifacts.LoadLayoutAsync(map.Id, ct);
         if (await artifacts.RevisionAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) is { } revision)
             Revisions.Answer(HttpContext, revision);
         await Send.OkAsync(JsonSerializer.Deserialize<JsonElement>(data ?? "{}"u8.ToArray()), ct);
@@ -129,6 +130,11 @@ public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artif
 /// under a hole before the hole goes, a wall raised before the ground it stands on. Refusing the store there
 /// loses the work, and the client cannot even see that it did. <see cref="SketchFinishEndpoint"/> is where
 /// the same check becomes fatal, which is the stage that declares the drawing done.</para>
+///
+/// <para><b>A room shape in the body is the picture <see cref="SketchGetEndpoint"/> drew, and is stored as
+/// its record.</b> The room is the intent's, so the rectangle is dropped and what the shape states about the
+/// ground under it — its height, its relief scope, its theme — is kept in <c>rooms</c> under its id
+/// (<see cref="RoomShapes.Fold"/>).</para>
 ///
 /// <para>400 `{error, findings}` when a bound <c>roomStyles.wool</c> or <c>roomStyles.spawn</c> fails
 /// <see cref="HouseStyleValidation"/>. That one still refuses: a style snapshot enters the studio here and
@@ -151,14 +157,15 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
         if (await Refusals.StopAsync(HttpContext, 400, "invalid style or theme", findings, ct)) return;
 
         // The document's own gate, read but never fatal: the layout is stored and the author is told what
-        // will not be built, which is what a working document owes them.
-        var layout = SketchLayout.Stated(layoutJson);
-        Complaints.Unread(HttpContext, layoutJson, layout);
-        var document = SketchLayoutCheck.Check(layout);
+        // will not be built, which is what a working document owes them. It reads the board with its rooms,
+        // which is the board the build makes.
+        Complaints.Unread(HttpContext, layoutJson, SketchLayout.Stated(layoutJson));
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+        var document = SketchLayoutCheck.Check(SketchLayout.Stated(RoomShapes.Project(layoutJson, intent)));
         Complaints.Add(HttpContext, document.AsComplaints());
 
         var written = await DocumentWrite.StoreAsync(artifacts, map.Id, ArtifactKind.SketchLayoutJson,
-            "sketch layout", bytes, Revisions.Expected(HttpContext), ct);
+            "sketch layout", Encoding.UTF8.GetBytes(RoomShapes.Fold(layoutJson)), Revisions.Expected(HttpContext), ct);
         if (written.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
 
         Revisions.Answer(HttpContext, written.Revision!.Value);
@@ -180,11 +187,9 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
 /// and does not write. Sending <c>?force=true</c> accepts the loss and proceeds, which is the author's call to
 /// make and not the server's.</para>
 ///
-/// <para><b>A structural piece's stated height is carried a third way</b>
-/// (<see cref="SketchLayout.CarryStructuralHeight"/>): matched by <c>intentRef</c>, not by shape id or
-/// group, since the compiler regenerates both of those every time but a spawn or wool room keeps the same
-/// team/owner:colour identity across a recompile. Only a shape the author actually corrected
-/// (<c>height_authored</c>) carries forward — an untouched piece keeps tracking the plan's own
+/// <para><b>A room's stated height is carried a third way</b> (<see cref="SketchLayout.CarryRoomGround"/>):
+/// matched by the room's id, which is its piece's and survives a recompile. Only a room the author actually
+/// corrected (<c>height_authored</c>) carries forward — an untouched one keeps tracking the plan's own
 /// <c>surface</c>, so this never masks a deliberate plan-side height change.</para></summary>
 public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<SketchFromPlanDto>
 {
@@ -238,8 +243,9 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
                 + $"{(dropped.Count == 1 ? "has" : "have")} no counterpart in the plan the rebuild compiles",
                 Severity.Complaint, Field: "layers", Subjects: dropped)]);
 
-        var merged = SketchLayout.CarryStructuralHeight(
-            SketchLayout.CarryRelief(SketchLayout.CarryFinish(compiled, storedJson), storedJson), storedJson);
+        var merged = SketchLayout.CarryRoomGround(
+            SketchLayout.CarryRelief(SketchLayout.CarryFinish(RoomShapes.Fold(compiled), storedJson), storedJson),
+            storedJson);
 
         // Both gates the plain PUT runs, over the document that is actually stored — which is the merged
         // one, not the posted one, since the carry is what decides whether a shape's theme has a registry to

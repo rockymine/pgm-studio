@@ -46,7 +46,7 @@ public static class SketchFinish
         // The revision is read before the bytes, so a write landing between the two leaves the scan behind
         // rather than ahead: the next read refreshes it.
         var revision = await artifacts.RevisionAsync(mapId, ArtifactKind.SketchLayoutJson, ct) ?? 0;
-        var data = await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct);
+        var data = await artifacts.LoadLayoutAsync(mapId, ct);
         if (data is null)
             return Refuse(422, "nothing to finish", new Finding(SketchRules.NothingStored,
                 "the map has no stored sketch layout"));
@@ -123,7 +123,7 @@ public static class SketchFinish
         if (config[WorldFeatureWriter.SketchScanRevision] is JsonValue scanned
             && scanned.TryGetValue<long>(out var at) && at == revision) return false;
 
-        if (await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is not { } data) return false;
+        if (await artifacts.LoadLayoutAsync(mapId, ct) is not { } data) return false;
         var cells = SketchRasterizer.RasterizeColumns(Encoding.UTF8.GetString(data));
         var islands = IslandDetector.Detect(cells.Select(cell => (cell.X, cell.Z)), minIslandSize: 1);
         if (islands.Count == 0) return false;

@@ -11,6 +11,7 @@ using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Pgm;
+using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
@@ -139,7 +140,8 @@ public static class MapSource
         }
         else
         {
-            layoutJson = drawnLayout!;
+            // A drawn layout read back with its rooms drawn in is stored as the store keeps one.
+            layoutJson = RoomShapes.Fold(drawnLayout!);
             intentJson = drawnIntent!;
         }
         // A library name is resolved into the copy the board holds, and kept recorded with the row it came from.
@@ -168,7 +170,8 @@ public static class MapSource
         if (IntentWrite.Stated(intentJson) is { } intent && IntentWrite.Unnamable(intent, "intent") is { } unnamable)
             return new(unnamable);
         var planBytes = Encoding.UTF8.GetBytes(plan ?? "{}");
-        var prepared = SketchFinish.Prepare(layoutJson, planBytes);
+        var prepared = SketchFinish.Prepare(
+            RoomShapes.Project(layoutJson, IntentWrite.Stated(intentJson) ?? new MapIntent()), planBytes);
         if (prepared.Refusal is { } unbuildable) return new(unbuildable);
         Complaints.Add(http, prepared.Judged.Complaints);
 

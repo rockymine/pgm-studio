@@ -1,7 +1,10 @@
+using System.Text;
 using System.Text.Json;
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Data.Schema;
+using PgmStudio.Pgm.Authoring;
+using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Data.Map;
 
@@ -44,6 +47,16 @@ public sealed class MapArtifactStore(PgmDb db)
     public async Task<T> LoadJsonOrEmptyAsync<T>(long mapId, string kind, CancellationToken ct = default)
         where T : new()
         => await LoadJsonAsync<T>(mapId, kind, ct) ?? new T();
+
+    /// <summary>The map's sketch layout as a reader sees it — its play rooms drawn in from the intent
+    /// (<see cref="RoomShapes.Project"/>) — or null when it holds none. A write that stores the layout back
+    /// reads <see cref="LoadAsync"/> instead, since a stored layout holds no room shape.</summary>
+    public async Task<byte[]?> LoadLayoutAsync(long mapId, CancellationToken ct = default)
+    {
+        if (await LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is not { } layout) return null;
+        var intent = await LoadJsonOrEmptyAsync<MapIntent>(mapId, ArtifactKind.MapIntentJson, ct);
+        return Encoding.UTF8.GetBytes(RoomShapes.Project(Encoding.UTF8.GetString(layout), intent));
+    }
 
     /// <summary>Whether the map holds this artifact. Several answers hang off presence alone — a map is
     /// intent-authored iff it has an intent, sketch-origin iff it has a sketch layout, scanned iff it has a

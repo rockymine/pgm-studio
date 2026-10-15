@@ -53,9 +53,11 @@ async function main() {
   const finished = await api(`/map/${carried.slug}/sketch/finish`, { method: "POST" });
   console.log(`  configure  ${finished.slug} (finished to world geometry)`);
 
-  // 3. a sketch-stage draft that still holds its layout, so the Sketch tool opens on real content
+  // 3. a sketch-stage draft that still holds its layout, so the Sketch tool opens on real content — and its
+  //    intent, which is where its rooms are drawn from
   const draft = await api("/sketch", { method: "POST", body: { name: "E2E sketch draft" } });
   await api(`/map/${draft.slug}/sketch`, { method: "PUT", body: compiled.layout });
+  await api(`/map/${draft.slug}/intent`, { method: "PUT", body: intent });
   console.log(`  sketch     ${draft.slug}`);
 
   const seed = {

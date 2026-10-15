@@ -58,6 +58,7 @@ internal sealed class CarriedShapes : ISchemaProcessor
         new(typeof(SketchRoomStyles), nameof(SketchRoomStyles.Wool), CarriedForm.Whole, [typeof(HouseStyle)], Null: true),
         new(typeof(SketchRoomStyles), nameof(SketchRoomStyles.Spawn), CarriedForm.Whole, [typeof(HouseStyle)], Null: true),
         new(typeof(SketchShape), nameof(SketchShape.Material), CarriedForm.Whole, [typeof(TerrainMaterial)]),
+        new(typeof(RoomGround), nameof(RoomGround.Material), CarriedForm.Whole, [typeof(TerrainMaterial)]),
 
         // The documents an answer carries whole, whose types Contracts cannot name.
         new(typeof(CompiledPlanDto), nameof(CompiledPlanDto.Layout), CarriedForm.Whole, [typeof(SketchLayout)]),

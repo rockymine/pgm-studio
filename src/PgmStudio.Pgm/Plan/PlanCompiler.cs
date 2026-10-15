@@ -40,72 +40,18 @@ public static class PlanCompiler
         return (layout, intent);
     }
 
-    // Project a plan's placed structural piece — a spawn building or a wool room — into the layout as a
-    // locked annotation rectangle, so refining a plan in the sketch keeps it visible instead of letting
-    // it dissolve into the fused island polygon. The piece rect is the whole story: it is the
-    // protection/room region, it sizes the stamped foundation, and the marker sits relative to it, so the
-    // rectangle alone re-secures the link back to the intent entity. Role-tagged, so the rasterizer skips it
-    // as terrain (the ground under it is already the island) and the sketch renders it read-only.
-    //
-    // The authored (k = 0) image also binds into its island's relief solve as `follow`: the room takes the
-    // height the field settles on under it and is held flat there, so the ground around it keeps its shape and
-    // the floor arrives level with it rather than the plan's flat number cutting through the relief. An author
-    // who wants the stated height against the relief says `hold` instead — which is what correcting a piece's
-    // height in the sketch writes (docs/world-export/relief.md §11 — the rasterizer matches it to its island by
-    // footprint, not by list membership, since an annotation is never added to an island's own ShapeIds).
-    // Every other orbit image needs no binding of its own — its ground comes back from the same solved
-    // field, reflected, so it is pinned by construction (§8).
-    private static void AppendStructuralShape(
-        SketchLayout layout, string id, string role, string intentRef, string color, BlockRect rect,
-        int surface, int orbitIndex, IEnumerable<RoomEdge>? doors = null)
+    /// <summary>What the layout states about the ground under the authored image of a room the plan placed:
+    /// it binds into its island's relief as <c>follow</c>, taking the height the field settles on under it
+    /// and held flat there, starting from the plan's surface, level with the ground through its doors. Every
+    /// other orbit image needs no record — its ground comes back from the same solved field, reflected — and
+    /// an author who wants the stated height against the relief corrects it in the sketch, which writes
+    /// <c>hold</c> (docs/world-export/relief.md §11).</summary>
+    private static RoomGround AuthoredRoom(int surface, IEnumerable<RoomEdge> doors) => new()
     {
-        var shapes = SketchLayout.Stack(layout).FirstOrDefault()?.Layout?.Shapes;
-        if (shapes is null) return;
-        var shape = new SketchShape
-        {
-            Id = id,
-            Type = "rectangle",
-            Operation = "add",
-            Role = role,
-            IntentRef = intentRef,
-            Color = color,
-            MinX = rect.MinX, MinZ = rect.MinZ, MaxX = rect.MaxX, MaxZ = rect.MaxZ,
-        };
-        if (orbitIndex == 0)
-        {
-            shape.BaseHeight = surface;
-            shape.ReliefScope = ReliefScopes.Follow;
-            // Only the authored image states a door: the mirror images take their ground from the same
-            // relief read through the same transform, so a side named in plan space would be the wrong one.
-            if (doors is not null)
-                shape.Doors = [.. doors.Distinct().Select(RoomEdges.Word)];
-        }
-        shapes.Add(shape);
-    }
-
-    /// <summary>The building a role piece raises, projected beside the region shape it stands inside — the
-    /// second half of what a room is (docs/world-export/structures.md WX1), so a sketch shows the ground and
-    /// the house on it rather than one rectangle standing for both.</summary>
-    /// <remarks>It carries no <c>IntentRef</c>, no relief scope and no height. The region shape is what a
-    /// group's relief is held against and what an author corrects a height on; a second shape claiming the
-    /// same identity would be a second answer to that one question. This one is a picture of the footprint
-    /// and its id is derived from the region's, so a recompile writes the same shape over the same one.</remarks>
-    private static void AppendBuildingShape(
-        SketchLayout layout, string regionId, string color, Rect? footprint)
-    {
-        if (footprint is not { } rect) return;
-        var shapes = SketchLayout.Stack(layout).FirstOrDefault()?.Layout?.Shapes;
-        if (shapes is null) return;
-        shapes.Add(new SketchShape
-        {
-            Id = $"{regionId}-building",
-            Type = "rectangle",
-            Operation = "add",
-            Role = StructuralRoles.Building,
-            Color = color,
-            MinX = (int)rect.MinX, MinZ = (int)rect.MinZ, MaxX = (int)rect.MaxX, MaxZ = (int)rect.MaxZ,
-        });
-    }
+        BaseHeight = surface,
+        ReliefScope = ReliefScopes.Follow,
+        Doors = [.. doors.Distinct().Select(RoomEdges.Word)],
+    };
 
     // ── layout: unioned shapes + mirror islands + framing ───────────────────────────────────────────────
 
@@ -239,6 +185,11 @@ public static class PlanCompiler
         var teams = Palette.Take(Math.Max(1, order))
             .Select(s => new TeamDef { Id = s.Id, Name = s.Name, Color = s.Color }).ToList();
 
+        // The rooms the layout states a ground for, by their index in the lists below, keyed by the ids the
+        // pieces are given once every list is built.
+        var spawnRooms = new Dictionary<int, RoomGround>();
+        var woolRooms = new Dictionary<int, RoomGround>();
+
         var spawns = new List<SpawnIntent>();
         for (var k = 0; k < order; k++)
             for (var spawnIndex = 0; spawnIndex < plan.Placements.Spawns.Count; spawnIndex++)
@@ -285,13 +236,8 @@ public static class PlanCompiler
                     // they stand (WorldBuilder.SpawnDoors), so this is where the turn has to happen.
                     Doors = [.. FanDoors(d, doors, bx, bz, k).Select(RoomEdges.Word)],
                 });
-                if (piece.Value.Role == PlanRoles.Spawn)
-                {
-                    AppendStructuralShape(layout, $"spawn-{teams[k].Id}", StructuralRoles.Spawn, teams[k].Id,
-                        teams[k].Color, prot, piece.Value.Surface, k, doors);
-                    AppendBuildingShape(layout, $"spawn-{teams[k].Id}", teams[k].Color,
-                        FanFootprint(d, piece.Value.Rect, s.Footprint, k));
-                }
+                if (piece.Value.Role == PlanRoles.Spawn && k == 0)
+                    spawnRooms[spawns.Count - 1] = AuthoredRoom(piece.Value.Surface, doors);
             }
 
         // wools: team-outer, placement-inner (matches the intent's grouping); auto colour with a global dye cursor
@@ -332,14 +278,9 @@ public static class PlanCompiler
                     // course its cage puts it on, over the ground WorldBuilder measured.
                     Spawn = new Pt(px, piece.Value.Surface, pz),
                 });
-                if (isRoomPiece)
-                {
-                    AppendStructuralShape(layout, $"wool-{teams[k].Id}-{color}", StructuralRoles.WoolRoom,
-                        $"{teams[k].Id}:{color}", color, room, piece.Value.Surface, k,
-                        PieceDoors.ForWoolRoom(d, w.Piece, piece.Value.Rect));
-                    AppendBuildingShape(layout, $"wool-{teams[k].Id}-{color}", color,
-                        FanFootprint(d, piece.Value.Rect, w.Footprint, k));
-                }
+                if (isRoomPiece && k == 0)
+                    woolRooms[wools.Count - 1] = AuthoredRoom(
+                        piece.Value.Surface, PieceDoors.ForWoolRoom(d, w.Piece, piece.Value.Rect));
             }
 
         // destroyables: team-outer like wools — a destroyable is a goal one team defends, so an orbit image
@@ -430,7 +371,7 @@ public static class PlanCompiler
 
         var structures = BuildStructures(plan, d);
 
-        return new MapIntent
+        var intent = PlayIds.Assign(new MapIntent
         {
             Teams = teams,
             MaxPlayers = plan.Globals.MaxPlayers,
@@ -449,7 +390,13 @@ public static class PlanCompiler
                 Contributors = [.. plan.Meta?.Contributors ?? []],
             },
             Structures = structures.IsEmpty ? null : structures,
-        };
+        });
+
+        var rooms = spawnRooms.Select(room => (Id: intent.Spawns[room.Key].Id, Ground: room.Value))
+            .Concat(woolRooms.Select(room => (Id: intent.Wools![room.Key].Id, Ground: room.Value)))
+            .ToDictionary(room => room.Id, room => room.Ground);
+        if (rooms.Count > 0) layout.Rooms = rooms;
+        return intent;
     }
 
     /// <summary>The capture points the plan is played for, placed. The plan states a count and nothing else,

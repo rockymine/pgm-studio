@@ -118,8 +118,11 @@ public static class WorldBuilder
         };
     }
 
+    /// <summary>The world a layout and an intent build. The layout is read with the intent's rooms drawn in
+    /// (<see cref="RoomShapes.Project"/>), whichever road it came by.</summary>
     public static BuiltWorld Build(string layoutJson, MapIntent intent)
     {
+        layoutJson = RoomShapes.Project(layoutJson, intent);
         intent = WithStampIds(intent);
         var columns = SketchRasterizer.RasterizeColumns(layoutJson);
         // Which layers are made things, read before the terrain so the terrain can answer where the GROUND

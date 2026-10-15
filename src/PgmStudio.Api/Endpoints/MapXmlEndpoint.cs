@@ -39,7 +39,7 @@ public sealed class MapXmlEndpoint(
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var doc = await reader.ReadDocAsync(map, ct);
-        var layoutBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
+        var layoutBytes = await artifacts.LoadLayoutAsync(map.Id, ct);
         var result = await MapExportLoader.ComposeAsync(map.Id, doc, layoutBytes, feature, artifacts, players, ct);
         if (result.Refusal is { } refusal)
         {

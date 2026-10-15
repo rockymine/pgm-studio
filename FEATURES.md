@@ -9414,6 +9414,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   stored intent its ids. Orbit images now carry their spawn's footprint, iron and doors and their wool's footprint
   and entries turned, and the world build's resolved spawns and wools keep their id, layer, stamp and doors.
   (`Pgm/Authoring/PlayIds`, `Pgm/Authoring/SymmetryExpander`, `Export/WorldBuilder`, `docs/tools/configure.md`)
+- **One route moves any play piece, and a room is stored once (`TS175`).** `PATCH /map/{slug}/intent/pieces/{id}`
+  moves a spawn, a wool, a destroyable or a core by its id — a room's region with everything seated on it, or
+  its building alone, or a goal's structure — and every orbit image of it by the displacement turned through the
+  symmetry. A room's rectangle is the intent's alone: the sketch layout stores what it says about the ground
+  under each room in its `rooms` record, keyed by the room's id, and the rooms are drawn in from the intent
+  wherever a layout is read (`RoomShapes.Project`) and folded back out wherever one is stored
+  (`RoomShapes.Fold`). `M0077` carried every stored room shape into its record.
+  (`Pgm/Authoring/PlayPieceMove`, `Pgm/Sketch/RoomShapes`, `Data/Map/MapArtifactStore.LoadLayoutAsync`,
+  `docs/tools/sketch.md`, `docs/tools/configure.md`)
 - **A rule's third level, the measure (`RP128`).** `RuleLevels.Measure` never refuses and reads a finding as the
   number it measured against its range: `Finding.Measured` is `{value, low, high}`, and `Violation` reads its
   value and band from it. Every rule of `GO`, `WL`, `CT`, `LN`, `FR` and `MD` but `WL14` is a measure by default

@@ -68,9 +68,8 @@ public sealed class SketchGeometryEditTests
 
     [Test]
     [Arguments("role")]
-    [Arguments("intentRef")]
     [Arguments("height_authored")]
-    public async Task A_patch_refuses_the_three_fields_the_compiler_owns(string field)
+    public async Task A_patch_refuses_the_two_fields_a_room_owns(string field)
     {
         var edited = SketchGeometryEdit.PatchShape(Board, "s1", new JsonObject { [field] = "wool" });
         await Assert.That(edited.Layout).IsNull();

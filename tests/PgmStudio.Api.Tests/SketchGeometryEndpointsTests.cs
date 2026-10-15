@@ -14,9 +14,9 @@ namespace PgmStudio.Api.Tests;
 ///
 /// <para>Two judgements are pinned here. A layer that already groups its shapes takes no shape that names
 /// none, because the orbit fan and the relief are both read off a group's list and an ungrouped shape on a
-/// grouped layer is built once, where it was drawn, on flat ground. And a shape patch refuses the three
-/// fields the plan compiler owns, because <c>role</c> and <c>intentRef</c> are the identity a recompile
-/// matches by and <c>height_authored</c> is a claim that a floor was corrected by hand.</para>
+/// grouped layer is built once, where it was drawn, on flat ground. And a shape patch refuses the two fields
+/// a room owns, because <c>role</c> is what makes a shape a room drawn in from the intent and
+/// <c>height_authored</c> is a claim that a floor was corrected by hand.</para>
 ///
 /// <para>Runs against the <c>pgm_studio_test</c> schema, so it runs serially with the other DB suites.</para>
 /// </summary>
@@ -127,7 +127,6 @@ public sealed class SketchGeometryEndpointsTests
 
     [Test]
     [Arguments("role")]
-    [Arguments("intentRef")]
     [Arguments("height_authored")]
     public async Task A_shape_patch_refuses_the_fields_the_compiler_owns(string field)
     {
@@ -509,23 +508,27 @@ public sealed class SketchGeometryEndpointsTests
         await Assert.That(Ring(await ShapeAsync(client, "coast"))).IsEquivalentTo(before);
     }
 
-    /// <summary>The plan compiles a room's rectangle and a recompile redraws it, so its points are the
-    /// compiler's rather than a caller's.</summary>
+    /// <summary>A room is drawn in from the intent, so its points are the intent's rather than the sketch's,
+    /// and no shape the sketch adds can be one.</summary>
     [Test]
-    public async Task A_role_shapes_vertices_are_the_compilers()
+    public async Task A_rooms_vertices_are_the_intents()
     {
         using var client = await RingAsync();
-        (await client.PatchAsync($"{Sketch}/shapes/coast", Body("""{"height_mode":"flat"}"""))).EnsureSuccessStatusCode();
+        (await client.PutAsync($"/api/map/{SketchBoard.Slug}/intent", Body("""
+            {"teams":[{"id":"red","name":"Red","color":"red"}],
+             "spawns":[{"team":"red","point":{"x":5,"y":12,"z":5},
+                        "protection":[{"minX":0,"minZ":0,"maxX":10,"maxZ":10}]}]}
+            """))).EnsureSuccessStatusCode();
 
-        var drawn = await client.PostAsync($"{Sketch}/layers/layer0/shapes?group=i", Body("""
-            {"id":"hall","type":"polygon","role":"room","vertices":[[0,0],[10,0],[10,10],[0,10]]}
-            """));
-        drawn.EnsureSuccessStatusCode();
-
-        var refused = await client.PatchAsync($"{Sketch}/shapes/hall/vertices/0", Body("""{"x":1,"z":1}"""));
+        var refused = await client.PatchAsync($"{Sketch}/shapes/spawn-red/vertices/0", Body("""{"x":1,"z":1}"""));
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
         await Assert.That((await refused.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("findings")[0].GetProperty("field").GetString()).IsEqualTo("role");
+
+        var added = await client.PostAsync($"{Sketch}/layers/layer0/shapes?group=i", Body("""
+            {"id":"hall","type":"rectangle","role":"spawn","min_x":0,"min_z":0,"max_x":10,"max_z":10}
+            """));
+        await Assert.That(added.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }
 
     /// <summary>A vertex edit on an id that names nothing is a 404, the same as every other shape route.</summary>

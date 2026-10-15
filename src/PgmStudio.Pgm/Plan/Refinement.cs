@@ -138,7 +138,9 @@ public sealed record Refinement
         var findings = new List<Finding>();
         if (JsonNode.Parse(refinementJson) is not JsonObject refinement)
             return new(layoutJson, intentJson, new Findings(findings));
-        var layout = JsonNode.Parse(layoutJson) as JsonObject ?? [];
+        // A refinement addresses a room by the id of the shape it is drawn as, so it is applied to the layout
+        // with the rooms drawn in, and what it stated about one is folded back into the room's record.
+        var layout = JsonNode.Parse(RoomShapes.Project(layoutJson, RoomsOf(intentJson))) as JsonObject ?? [];
         var intent = JsonNode.Parse(intentJson) as JsonObject ?? [];
         Name(refinement, findings);
         if (findings.Any(finding => finding.Refuses)) return new(layoutJson, intentJson, new Findings(findings));
@@ -162,7 +164,13 @@ public sealed record Refinement
         var (mode, centreX, centreZ) = SketchGeometryEdit.SymmetryOf(layout);
         Play(refinement, intent,
              Symmetry.Order(mode) > 1 ? new SymmetryIntent { Mode = mode, CenterX = centreX, CenterZ = centreZ } : null);
-        return new(edited, intent.ToJsonString(), new Findings(findings));
+        return new(RoomShapes.Fold(edited), intent.ToJsonString(), new Findings(findings));
+    }
+
+    private static MapIntent RoomsOf(string intentJson)
+    {
+        try { return JsonSerializer.Deserialize<MapIntent>(intentJson, SketchLayout.Json) ?? new MapIntent(); }
+        catch (JsonException) { return new MapIntent(); }
     }
 
     // The materials named once: every `use` in a statement that paints or builds is replaced by a copy of the

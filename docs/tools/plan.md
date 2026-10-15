@@ -463,16 +463,12 @@ answer is what keeps this to the crossing `CT12` judged. Only a pair the plan **
 strait already out of band is the plan's own finding and saying it twice would read as two faults; and a board
 with no wool, or a symmetry that is not a mirror pair, is not this rule's to judge in the first place.
 
-Spawn-role and wool-room-role pieces are additionally emitted as **structural shapes** — locked annotation
-rectangles tagged with their role and an `intentRef` back to the entity they belong to — so a room stays
-visible in the Sketch tool instead of dissolving into the fused group. The authored image also pins its
-group's relief solve at the piece's own surface, so the ground is solved knowing the floor must arrive there.
-
-**A stated footprint rides across as a second shape**, tagged `building` and named for the region shape it
-stands in. The region is the ground, the building is the house on it, and a sketch that showed only the first
-would hide the rectangle the export actually stamps — the very thing stating a footprint is for. It carries no
-height and no `intentRef`: the region shape is the one a group's relief is held against. A placement that
-states no footprint projects its region alone rather than a picture of `WX1`'s default.
+**A room is the intent's, and the layout says only how the ground meets it.** The compiled layout holds no
+rectangle for a spawn or a wool room: the Sketch tool draws each one from the intent, with its building where
+the placement states a footprint (`docs/tools/sketch.md`). What the compile writes for the authored image of a
+spawn-role or wool-room-role piece is its entry in the layout's `rooms` record, under the piece's id — the
+piece's surface as its top, `relief_scope: follow`, and the sides its doors stand on — which pins its group's
+relief solve at the piece's own surface, so the ground is solved knowing the floor must arrive there.
 
 **The intent** (`MapIntent`) is the gameplay. Teams come from the red/blue/yellow/green palette in orbit order.
 Each spawn fans to one per team, with its yaw fanned from the facing; each wool fans team-outer, its entries
@@ -989,8 +985,8 @@ else; the map's real pre-flight, its region tree and its XML are Configure's.
 Destroy objectives are offered only at symmetry order 2, and a hand-written plan that places them elsewhere is
 refused rather than compiled.
 
-Once a plan has been built, the structural pieces it projected into the sketch keep their geometry there: the
-Sketch tool's Draw phase picks one and corrects the height it was compiled at, and the correction survives a
-recompile; and a picked piece drags, the move being written back to the intent so the two cannot diverge. A
-destroy objective has no sketch presence at all. What a drag does not do is resize, and a plan rebuild draws
-the rectangle from the plan again — the plan owns a board's structure.
+Once a plan has been built, the rooms it placed are drawn into the sketch from the intent: the Sketch tool's
+Draw phase picks one and corrects the height it was compiled at, and the correction survives a recompile; and
+a picked piece drags, the move being written to the intent, which is where the room is. A destroy objective is
+not drawn in the sketch (`TS169`). What a drag does not do is resize, and a plan rebuild places the rooms from
+the plan again — the plan owns a board's structure.

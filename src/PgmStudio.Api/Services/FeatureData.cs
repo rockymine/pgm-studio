@@ -142,7 +142,7 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts, PgmStudio.
     /// are unchanged and the world is kept (<see cref="PgmStudio.Export.BuiltWorlds"/>).</summary>
     public async Task<(PgmStudio.Export.BuiltWorld World, string LayoutJson)?> BuiltAsync(long mapId, CancellationToken ct)
     {
-        if (await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is not { } layout) return null;
+        if (await artifacts.LoadLayoutAsync(mapId, ct) is not { } layout) return null;
         var layoutJson = System.Text.Encoding.UTF8.GetString(layout);
         var intent = await artifacts.LoadJsonOrEmptyAsync<PgmStudio.Pgm.Authoring.MapIntent>(
             mapId, ArtifactKind.MapIntentJson, ct);
