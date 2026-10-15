@@ -7,10 +7,10 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Export.Tests;
 
 /// <summary>
-/// A board drawn in the round. The isometric cannot see under a roof; the x-ray washes out the ground and the
-/// buildings in the way and leaves a made thing or a placed prop standing, so a lamp hanging in a chamber
-/// shows through a hillside while it is one of those; and the void scan names a chamber by its own blocks,
-/// sealed until something opens it to the sky.
+/// A board drawn from its corners. The isometric cannot see under a roof; the x-ray draws only what lines a
+/// roofed void, ceiling lifted, so a lamp in a chamber is in the picture and the ground over it is not; a box
+/// frames either picture without changing what the void scan finds; and the void scan names a chamber by its
+/// own blocks, sealed until something opens it to the sky.
 ///
 /// <para>Driven over one chamber: a stone slab ten blocks square and ten deep on a ground layer, a 4×4×4 room
 /// hollowed out of it at x, y and z 3 to 6, and a gold lamp hanging in the room at (4, 5, 4) on a layer of its
@@ -59,6 +59,16 @@ public sealed class BoardIsometricTests
         return count;
     }
 
+    /// <summary>How many pixels of the picture are not its background.</summary>
+    private static int Painted(byte[] png)
+    {
+        var image = PngReader.Decode(png);
+        var count = 0;
+        for (var offset = 0; offset + 3 < image.Rgba.Length; offset += 4)
+            if (image.Rgba[offset] != 0xF7 || image.Rgba[offset + 1] != 0xF7 || image.Rgba[offset + 2] != 0xF4) count++;
+        return count;
+    }
+
     [Test]
     public async Task The_isometric_cannot_see_into_a_roofed_room()
     {
@@ -69,30 +79,74 @@ public sealed class BoardIsometricTests
     }
 
     [Test]
-    public async Task The_x_ray_washes_out_the_ground_over_a_room_and_leaves_a_made_thing_in_it()
+    public async Task The_x_ray_lifts_the_ceiling_off_a_room_and_draws_what_stands_in_it()
     {
-        var made = BoardIsometric.XRay(Chamber(lampIsMade: true), 0, Scale, "chamber");
-        var ground = BoardIsometric.XRay(Chamber(lampIsMade: false), 0, Scale, "chamber");
+        var xray = BoardIsometric.XRay(Chamber(), 0, Scale, "chamber");
 
-        await Assert.That(Gilded(made!.Value.Png)).IsGreaterThan(0);
-        await Assert.That(Gilded(ground!.Value.Png)).IsEqualTo(0);
+        await Assert.That(xray).IsNotNull();
+        await Assert.That(Gilded(xray!.Value.Png)).IsGreaterThan(0);
     }
 
-    /// <summary>A lamp no layer drew is a placed prop's where a prop claimed its column, and stands; where a
-    /// building claimed it, it is the building's, and washes out with the roof it hangs from.</summary>
+    /// <summary>Gold laid on the ground in a corner far from the room is not the room's lining, so the x-ray
+    /// draws the same gold with it as without it, where the isometric shows it.</summary>
     [Test]
-    public async Task The_x_ray_leaves_a_placed_prop_standing_and_washes_out_a_building()
+    public async Task The_x_ray_draws_nothing_that_does_not_line_a_void()
     {
-        static BuiltWorld Hung(ProvenancePass pass) => Chamber(also: (_, segments, provenance) =>
+        var gilded = Chamber(also: (world, _, _) => world.SetBlock(0, 10, 0, Gold));
+
+        await Assert.That(Gilded(BoardIsometric.Isometric(gilded, 0, Scale, "chamber")!)).IsGreaterThan(0);
+        await Assert.That(Gilded(BoardIsometric.XRay(gilded, 0, Scale, "chamber")!.Value.Png))
+            .IsEqualTo(Gilded(BoardIsometric.XRay(Chamber(), 0, Scale, "chamber")!.Value.Png));
+    }
+
+    /// <summary>The same room with its roof laid by no layer is a building's room rather than the ground's, so
+    /// the void scan still names it and the x-ray, which draws the underground, has nothing to draw.</summary>
+    [Test]
+    public async Task A_room_a_building_roofs_is_not_underground()
+    {
+        var housed = Chamber(also: (_, segments, _) => segments.RemoveAll(segment => segment.YFloor == 7));
+
+        await Assert.That(BoardIsometric.Scan(housed).Cavities.Single().Underground).IsFalse();
+        await Assert.That(BoardIsometric.XRay(housed, 0, Scale, "chamber")).IsNull();
+    }
+
+    [Test]
+    public async Task A_board_with_nothing_roofed_has_no_x_ray()
+    {
+        var shafted = Chamber(also: (world, _, _) =>
         {
-            segments.RemoveAll(segment => segment.Layer == "lamp");
-            provenance.Claim(4, 4, pass);
+            for (var x = 3; x <= 6; x++)
+                for (var z = 3; z <= 6; z++)
+                    for (var y = 7; y <= 9; y++) world.SetBlock(x, y, z, 0);
         });
 
-        await Assert.That(Gilded(BoardIsometric.XRay(Hung(ProvenancePass.Prop), 0, Scale, "chamber")!.Value.Png))
-            .IsGreaterThan(0);
-        await Assert.That(Gilded(BoardIsometric.XRay(Hung(ProvenancePass.Structure), 0, Scale, "chamber")!.Value.Png))
-            .IsEqualTo(0);
+        await Assert.That(BoardIsometric.XRay(shafted, 0, Scale, "chamber")).IsNull();
+    }
+
+    /// <summary>A box over one corner of the slab draws fewer cubes than the whole board, and a box over empty
+    /// sky draws nothing. Counted in painted pixels, since a picture is never narrower than its caption.</summary>
+    [Test]
+    public async Task A_box_frames_the_isometric_to_what_is_inside_it()
+    {
+        var whole = Painted(BoardIsometric.Isometric(Chamber(), 0, Scale, "chamber")!);
+        var corner = Painted(BoardIsometric.Isometric(Chamber(), 0, Scale, "chamber", new BlockBox(0, 0, 0, 2, 9, 2))!);
+
+        await Assert.That(corner * 2).IsLessThan(whole);
+        await Assert.That(BoardIsometric.Isometric(Chamber(), 0, Scale, "chamber", new BlockBox(0, 50, 0, 9, 60, 9)))
+            .IsNull();
+    }
+
+    /// <summary>The voids are found over the whole board and only the drawing is framed, so a box that cuts the
+    /// room through still draws it as the sealed room it is, and one clear of it has no lining to draw.</summary>
+    [Test]
+    public async Task A_box_frames_the_x_ray_without_changing_the_voids_it_names()
+    {
+        var (scanned, _) = BoardIsometric.Scan(Chamber());
+        var cut = BoardIsometric.XRay(Chamber(), 0, Scale, "chamber", new BlockBox(0, 0, 0, 4, 9, 9));
+
+        await Assert.That(cut).IsNotNull();
+        await Assert.That(cut!.Value.Cavities).IsEquivalentTo(scanned);
+        await Assert.That(BoardIsometric.XRay(Chamber(), 0, Scale, "chamber", new BlockBox(8, 0, 8, 9, 9, 9))).IsNull();
     }
 
     [Test]
@@ -102,7 +156,7 @@ public sealed class BoardIsometricTests
 
         await Assert.That(cavities.Count).IsEqualTo(1);
         // Sixty-four blocks of room, one of them the lamp.
-        await Assert.That(cavities[0]).IsEqualTo(new BoardIsometric.Cavity(63, (3, 3, 3), (6, 6, 6), Sealed: true));
+        await Assert.That(cavities[0]).IsEqualTo(new BoardIsometric.Cavity(63, (3, 3, 3), (6, 6, 6), Sealed: true, Underground: true));
         await Assert.That(blocks).IsEqualTo(10 * 10 * 10 - 64 + 1);
         await Assert.That(BoardIsometric.VoidText(cavities, blocks)).Contains("SEALED");
     }
@@ -118,7 +172,7 @@ public sealed class BoardIsometricTests
         var (cavities, _) = BoardIsometric.Scan(shafted);
 
         // The shaft's column has nothing over it, so its four blocks of room are open air rather than roofed.
-        await Assert.That(cavities.Single()).IsEqualTo(new BoardIsometric.Cavity(59, (3, 3, 3), (6, 6, 6), Sealed: false));
+        await Assert.That(cavities.Single()).IsEqualTo(new BoardIsometric.Cavity(59, (3, 3, 3), (6, 6, 6), Sealed: false, Underground: true));
     }
 
     [Test]

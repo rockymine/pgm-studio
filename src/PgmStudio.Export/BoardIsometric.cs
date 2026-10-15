@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using PgmStudio.Geom;
 using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
@@ -7,10 +8,11 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Export;
 
 /// <summary>
-/// A built board drawn in the round: from above at 2:1 as cubes painted back to front, and as an x-ray that
-/// washes out the ground and the buildings between the camera and a roofed room — with the void scan beside it, what
-/// covered space the board holds, how big, and which of it nothing can walk into. Drawn off the world block by
-/// block in the colour the 3-D preview gives it, so what is drawn is what was built.
+/// A built board drawn from above at 2:1 as cubes painted back to front, from one of its four corners: the
+/// isometric, every block; the x-ray, only the blocks that line a void the ground roofs, with its ceiling lifted
+/// off so the underground is seen into from above; and the void scan, what covered space the board holds, how big, and which
+/// of it nothing can walk into. Drawn off the world block by block in the colour the 3-D preview gives it, so what
+/// is drawn is what was built. Both pictures take a box, and draw only what is inside it.
 ///
 /// <para>The camera sits at (+∞, +∞, +∞) and never moves; turning the board a quarter at a time about the
 /// vertical is what turns the view, so one projection looks from all four corners.</para>
@@ -23,7 +25,11 @@ public static class BoardIsometric
     /// <param name="Max">Its greatest corner.</param>
     /// <param name="Sealed">Whether no air that reaches the open sky reaches it — a space nothing can walk
     /// into, which on a board that meant to build a room is a finding.</param>
-    public sealed record Cavity(int Cells, (int X, int Y, int Z) Min, (int X, int Y, int Z) Max, bool Sealed);
+    /// <param name="Underground">Whether the ground roofs it: a block a sketch layer laid, not a made thing,
+    /// stands over some of its air. A building's rooms and the shade under a crown are not; on a world with no
+    /// layer attribution every void is.</param>
+    public sealed record Cavity(int Cells, (int X, int Y, int Z) Min, (int X, int Y, int Z) Max, bool Sealed,
+                                bool Underground);
 
     /// <summary>The smallest roofed void worth naming, in blocks of air.</summary>
     public const int SmallestCavity = 6;
@@ -40,62 +46,47 @@ public static class BoardIsometric
     // lit: a sculpture in quartz is near white already, and lifting its top flattens it into a silhouette.
     private const double TopLight = 1.0, RightLight = 0.78, LeftLight = 0.55;
 
-    // The veil keeps almost none of a block's chroma — a hillside drawn over a room at a sixth of its opacity
-    // still tints the room its own green — and the mass around a room is pulled most of the way to grey, so the
-    // room's own colours are the only chroma in the frame.
-    private const double VeilChroma = 0.9, VeilOpacity = 0.15, Calm = 0.6;
-
     private const int BackgroundRgb = 0xF7F7F4, CaptionRgb = 0x6E6E76, Margin = 30, Foot = 26, CaptionPixel = 2;
 
     /// <summary>The board from above, seen from the <paramref name="quarter"/>th of <see cref="Corners"/>, each
-    /// cube <paramref name="scale"/> pixels across half its width. Null where the world holds no block.</summary>
-    public static byte[]? Isometric(BuiltWorld built, int quarter, int scale, string name)
+    /// cube <paramref name="scale"/> pixels across half its width, and only what lies in <paramref name="within"/>
+    /// where one is given. Null where that holds no block.</summary>
+    public static byte[]? Isometric(BuiltWorld built, int quarter, int scale, string name, BlockBox? within = null)
     {
-        var blocks = Blocks(built, quarter, kept: null);
+        var blocks = Turn(Blocks(built, within), quarter);
         if (blocks.Count == 0) return null;
         var shown = blocks.Where(block => Shows(blocks, block.Key)).ToDictionary();
-        return Paint(shown, [], scale, $"{name} - isometric from the {Corners[Quarter(quarter)]}");
+        return Paint(shown, scale, $"{name} - isometric from the {Corners[Quarter(quarter)]}{Framed(within)}");
     }
 
-    /// <summary>The board with whatever hides a roofed room taken down to a wash, so the room is in the picture,
-    /// and the voids it found. Every block of ground or building on the line of sight out of a roofed void is
-    /// the veil, drawn thin and near grey, one skin deep; every block with a face onto a void is its lining,
-    /// drawn opaque in its own colour; everything else is drawn opaque and calmed toward grey. A made thing and
-    /// a placed prop are never veiled: the sight line alone cannot tell a lamp from a lid, and one standing in
-    /// a room is the room's subject. On a board with nothing roofed the veil is empty and the picture is the
-    /// isometric. Null where the world holds no block.</summary>
-    public static (byte[] Png, IReadOnlyList<Cavity> Cavities)? XRay(BuiltWorld built, int quarter, int scale, string name)
+    /// <summary>The board's underground: what lines every <see cref="Cavity.Underground"/> void — a tunnel, a
+    /// crypt or a cave, not a house's rooms or the shade under a crown. Every block with a face onto such a void
+    /// is drawn, less its ceiling — a block with the void's air under it and no void air over it — so each is
+    /// seen as its floor, its walls and whatever stands in it, open to the camera. The voids are found over the
+    /// whole world and only the drawing takes
+    /// <paramref name="within"/>, so a void the box cuts is still the void it is; the cavities answered are all
+    /// of them, as <see cref="Scan"/> answers. Null where the board, or the box, holds no lining.</summary>
+    public static (byte[] Png, IReadOnlyList<Cavity> Cavities)? XRay(
+        BuiltWorld built, int quarter, int scale, string name, BlockBox? within = null)
     {
-        var kept = new HashSet<(int X, int Y, int Z)>();
-        var blocks = Blocks(built, quarter, kept);
+        var (blocks, found) = Found(built);
         if (blocks.Count == 0) return null;
-        var found = Voids(blocks, quarter);
-        var air = found.SelectMany(entry => entry.Air).ToHashSet();
+        var air = found.Where(entry => entry.Cavity.Underground).SelectMany(entry => entry.Air).ToHashSet();
 
-        var lining = new HashSet<(int X, int Y, int Z)>();
+        var lining = new Dictionary<(int X, int Y, int Z), int>();
         foreach (var (x, y, z) in air)
             foreach (var cell in Around(x, y, z))
-                if (blocks.ContainsKey(cell)) lining.Add(cell);
-        var hidden = Sightline(blocks, air);
-        hidden.ExceptWith(kept);
+                if (blocks.TryGetValue(cell, out var rgb)
+                    && (within is not { } box || box.Contains(cell.X, cell.Y, cell.Z))
+                    && !(air.Contains((cell.X, cell.Y - 1, cell.Z)) && !air.Contains((cell.X, cell.Y + 1, cell.Z))))
+                    lining[cell] = rgb;
+        if (lining.Count == 0) return null;
 
-        var solid = new Dictionary<(int X, int Y, int Z), int>();
-        var veiled = new Dictionary<(int X, int Y, int Z), int>();
-        foreach (var (cell, rgb) in blocks)
-        {
-            if (hidden.Contains(cell)) veiled[cell] = Desaturate(rgb, VeilChroma);
-            else solid[cell] = lining.Contains(cell) ? rgb : Desaturate(rgb, Calm);
-        }
-
-        // The opaque pass is culled against the opaque set alone, since a block hidden only by veiled mass now
-        // shows; the veil is culled against itself, which leaves one skin rather than washes stacked opaque.
-        var shown = solid.Where(block => Shows(solid, block.Key)).ToDictionary();
-        var skin = veiled.Where(block => Shows(veiled, block.Key)).ToDictionary();
-        foreach (var (cell, rgb) in skin) shown[cell] = rgb;
-
+        var turned = Turn(lining, quarter);
+        var shown = turned.Where(block => Shows(turned, block.Key)).ToDictionary();
         var cavities = found.Select(entry => entry.Cavity).ToList();
-        var caption = $"{name} - x-ray from the {Corners[Quarter(quarter)]} - {Summary(cavities)}";
-        return (Paint(shown, [.. skin.Keys], scale, caption), cavities);
+        var caption = $"{name} - x-ray from the {Corners[Quarter(quarter)]}{Framed(within)} - {Summary(cavities)}";
+        return (Paint(shown, scale, caption), cavities);
     }
 
     /// <summary>The void scan as text: every roofed void the board holds, largest first, with its size, its
@@ -108,19 +99,29 @@ public static class BoardIsometric
         text.Append(CultureInfo.InvariantCulture,
             $"a void is air with solid over it in its own column, {SmallestCavity} blocks or more, no run taller than {TallestRoom}\n\n");
         if (cavities.Count == 0) return text.Append("nothing roofed\n").ToString();
-        text.Append("cells   x range          y range      z range          reached\n");
+        text.Append("cells   x range          y range      z range          roofed by  reached\n");
         foreach (var cavity in cavities)
             text.Append(CultureInfo.InvariantCulture,
                 $"{cavity.Cells,5}   {cavity.Min.X,5}..{cavity.Max.X,-6}  {cavity.Min.Y,4}..{cavity.Max.Y,-5}  "
-                + $"{cavity.Min.Z,5}..{cavity.Max.Z,-6}  {(cavity.Sealed ? "SEALED - nothing walks in" : "open")}\n");
+                + $"{cavity.Min.Z,5}..{cavity.Max.Z,-6}  {(cavity.Underground ? "ground   " : "a build  ")}  "
+                + $"{(cavity.Sealed ? "SEALED - nothing walks in" : "open")}\n");
         return text.ToString();
     }
 
     /// <summary>Every roofed void of the board, largest first, and how many blocks it holds.</summary>
     public static (IReadOnlyList<Cavity> Cavities, int Blocks) Scan(BuiltWorld built)
     {
-        var blocks = Blocks(built, 0, kept: null);
-        return blocks.Count == 0 ? ([], 0) : ([.. Voids(blocks, 0).Select(entry => entry.Cavity)], blocks.Count);
+        var (blocks, found) = Found(built);
+        return ([.. found.Select(entry => entry.Cavity)], blocks.Count);
+    }
+
+    /// <summary>The whole world's blocks and every roofed void in them, each told whether the ground roofs it.</summary>
+    private static (Dictionary<(int X, int Y, int Z), int> Blocks,
+                    List<(Cavity Cavity, HashSet<(int X, int Y, int Z)> Air)> Found) Found(BuiltWorld built)
+    {
+        var ground = built.Columns is null ? null : new HashSet<(int X, int Y, int Z)>();
+        var blocks = Blocks(built, within: null, ground);
+        return (blocks, blocks.Count == 0 ? [] : Voids(blocks, ground));
     }
 
     /// <summary>The voids in a caption's words — the pixel font has no comma, and the bounds are the text
@@ -130,31 +131,33 @@ public static class BoardIsometric
         : string.Create(CultureInfo.InvariantCulture,
             $"{cavities.Count} roofed voids - {cavities.Count(cavity => cavity.Sealed)} sealed");
 
+    /// <summary>The box a picture was framed to, in a caption's words; nothing for the whole board.</summary>
+    private static string Framed(BlockBox? within) => within is not { } box
+        ? ""
+        : string.Create(CultureInfo.InvariantCulture,
+            $" - x {box.MinX}..{box.MaxX} y {box.MinY}..{box.MaxY} z {box.MinZ}..{box.MaxZ}");
+
     // ── the blocks ─────────────────────────────────────────────────────────────────
 
-    /// <summary>Every block the world holds, in its colour, turned <paramref name="quarter"/> quarters. Where
-    /// <paramref name="kept"/> is given it collects every block of a made thing — a run a made layer drew — and
-    /// of a placed prop: a run no layer drew, in a column a prop claimed last. A run no layer drew anywhere
-    /// else is a building's.</summary>
+    /// <summary>Every block the world holds inside <paramref name="within"/>, or all of them, in its colour and
+    /// at the world's own coordinates. Where <paramref name="ground"/> is given it collects every block of the
+    /// ground: a run a sketch layer laid that is not a made thing.</summary>
     private static Dictionary<(int X, int Y, int Z), int> Blocks(
-        BuiltWorld built, int quarter, HashSet<(int X, int Y, int Z)>? kept)
+        BuiltWorld built, BlockBox? within, HashSet<(int X, int Y, int Z)>? ground = null)
     {
         var made = built.MadeLayers ?? new HashSet<string>();
         var blocks = new Dictionary<(int X, int Y, int Z), int>();
-        foreach (var (x, z, runs) in WorldColumns.Attributed(built.World, kept is null ? null : built.Columns))
+        foreach (var (x, z, runs) in WorldColumns.Attributed(built.World, ground is null ? null : built.Columns, within))
         {
             var biome = built.World.GetBiome(x, z);
-            var (turnedX, turnedZ) = Turned(x, z, quarter);
             foreach (var (run, layer) in runs)
             {
                 var rgb = BlockPalette.PackedRgbIn(run.BlockId, run.BlockData, biome, x, z);
-                var keep = kept is not null && (layer is null
-                    ? built.Provenance.PassAt(x, z) is ProvenancePass.Prop
-                    : made.Contains(layer));
+                var laid = ground is not null && layer is not null && !made.Contains(layer);
                 for (var y = run.YBottom; y <= run.YTop; y++)
                 {
-                    blocks[(turnedX, y, turnedZ)] = rgb;
-                    if (keep) kept!.Add((turnedX, y, turnedZ));
+                    blocks[(x, y, z)] = rgb;
+                    if (laid) ground!.Add((x, y, z));
                 }
             }
         }
@@ -163,18 +166,18 @@ public static class BoardIsometric
 
     private static int Quarter(int quarter) => ((quarter % 4) + 4) % 4;
 
-    private static (int X, int Z) Turned(int x, int z, int quarter)
+    /// <summary>The blocks turned <paramref name="quarter"/> quarters about the vertical, which is what stands
+    /// the camera at that corner.</summary>
+    private static Dictionary<(int X, int Y, int Z), int> Turn(Dictionary<(int X, int Y, int Z), int> blocks, int quarter)
     {
-        for (var turn = 0; turn < Quarter(quarter); turn++) (x, z) = (-z, x);
-        return (x, z);
-    }
-
-    /// <summary>The world's own coordinates of a turned cell.</summary>
-    private static (int X, int Y, int Z) Untouched((int X, int Y, int Z) cell, int quarter)
-    {
-        var (x, z) = (cell.X, cell.Z);
-        for (var turn = 0; turn < Quarter(quarter); turn++) (x, z) = (z, -x);
-        return (x, cell.Y, z);
+        var turned = new Dictionary<(int X, int Y, int Z), int>(blocks.Count);
+        foreach (var ((x, y, z), rgb) in blocks)
+        {
+            var (turnedX, turnedZ) = (x, z);
+            for (var turn = 0; turn < Quarter(quarter); turn++) (turnedX, turnedZ) = (-turnedZ, turnedX);
+            turned[(turnedX, y, turnedZ)] = rgb;
+        }
+        return turned;
     }
 
     /// <summary>Whether a block shows the camera anything: one of its three camera-facing neighbours is missing.</summary>
@@ -188,10 +191,8 @@ public static class BoardIsometric
     // ── painting ───────────────────────────────────────────────────────────────────
 
     /// <summary>The blocks painted back to front with a caption under them. Depth along the camera is x + y + z,
-    /// so ascending order draws the near ones last and no depth buffer is needed. <paramref name="veiled"/>
-    /// names the blocks painted at the veil's opacity over what is already down.</summary>
-    private static byte[] Paint(Dictionary<(int X, int Y, int Z), int> shown, HashSet<(int X, int Y, int Z)> veiled,
-                                int scale, string caption)
+    /// so ascending order draws the near ones last and no depth buffer is needed.</summary>
+    private static byte[] Paint(Dictionary<(int X, int Y, int Z), int> shown, int scale, string caption)
     {
         int across = scale, down = Math.Max(1, scale / 2), up = scale;
         int leftmost = int.MaxValue, rightmost = int.MinValue, topmost = int.MaxValue, bottommost = int.MinValue;
@@ -223,7 +224,6 @@ public static class BoardIsometric
         {
             var anchorX = originX + (cell.X - cell.Z) * across;
             var anchorY = originY + (cell.X + cell.Z) * down - cell.Y * up;
-            var opacity = veiled.Contains(cell) ? VeilOpacity : 1.0;
             foreach (var (light, spans) in faces)
             {
                 var face = Shade(shown[cell], light);
@@ -232,8 +232,7 @@ public static class BoardIsometric
                     {
                         int pixelX = anchorX + column, pixelY = anchorY + row;
                         if (pixelX < 0 || pixelY < 0 || pixelX >= width || pixelY >= height) continue;
-                        if (opacity >= 1) Raster.Set(pixels, width, pixelX, pixelY, face);
-                        else Raster.Over(pixels, width, pixelX, pixelY, face, opacity);
+                        Raster.Set(pixels, width, pixelX, pixelY, face);
                     }
             }
         }
@@ -273,15 +272,6 @@ public static class BoardIsometric
 
     private static int Channel(int value, double light) => Math.Clamp((int)((value & 0xFF) * light), 0, 255);
 
-    /// <summary>A colour pulled toward its own grey: 0 leaves it, 1 flattens it to its luminance.</summary>
-    private static int Desaturate(int rgb, double amount)
-    {
-        int red = (rgb >> 16) & 0xFF, green = (rgb >> 8) & 0xFF, blue = rgb & 0xFF;
-        var grey = 0.299 * red + 0.587 * green + 0.114 * blue;
-        int Pulled(int channel) => Math.Clamp((int)(channel + (grey - channel) * amount), 0, 255);
-        return (Pulled(red) << 16) | (Pulled(green) << 8) | Pulled(blue);
-    }
-
     // ── the void scan ──────────────────────────────────────────────────────────────
 
     /// <summary>Every roofed void in the blocks, largest first, with the air it holds. A void is air with solid
@@ -291,7 +281,7 @@ public static class BoardIsometric
     /// void that no air reaching the open sky reaches is sealed; the sky is flooded from the shell of air padded
     /// a block round the board.</summary>
     private static List<(Cavity Cavity, HashSet<(int X, int Y, int Z)> Air)> Voids(
-        Dictionary<(int X, int Y, int Z), int> blocks, int quarter)
+        Dictionary<(int X, int Y, int Z), int> blocks, HashSet<(int X, int Y, int Z)>? ground)
     {
         var columns = new Dictionary<(int X, int Z), List<int>>();
         foreach (var (x, y, z) in blocks.Keys)
@@ -374,39 +364,20 @@ public static class BoardIsometric
             }
             if (held.Count < SmallestCavity) continue;
 
-            var air = held.Select(index =>
+            var air = held.Select((int X, int Y, int Z) (index) =>
             {
                 var (rest, x) = Math.DivRem(index, spanX);
                 var (y, z) = Math.DivRem(rest, spanZ);
                 return ((int)x + lowX, (int)y + lowY, (int)z + lowZ);
             }).ToHashSet();
-            var world = air.Select(cell => Untouched(cell, quarter)).ToList();
             found.Add((new Cavity(air.Count,
-                (world.Min(cell => cell.X), world.Min(cell => cell.Y), world.Min(cell => cell.Z)),
-                (world.Max(cell => cell.X), world.Max(cell => cell.Y), world.Max(cell => cell.Z)),
-                !held.Any(index => sky[index] == 1)), air));
+                (air.Min(cell => cell.X), air.Min(cell => cell.Y), air.Min(cell => cell.Z)),
+                (air.Max(cell => cell.X), air.Max(cell => cell.Y), air.Max(cell => cell.Z)),
+                !held.Any(index => sky[index] == 1),
+                ground is null || air.Any(cell => ground.Contains((cell.X, cell.Y + 1, cell.Z)))), air));
         }
         // Stable, so two voids of one size keep the order the scan met them in and a world reads back the
         // same way twice.
         return [.. found.OrderByDescending(entry => entry.Cavity.Cells)];
-    }
-
-    /// <summary>The solid blocks standing between the camera and a roofed void. The line of sight out of a block
-    /// is the diagonal (+1, +1, +1), every block on one line shares <c>(x − y, z − y)</c>, and one void cell opens
-    /// its whole line — so only the lowest void on each line is found, and everything solid above it on that line
-    /// is what the world hides the room with.</summary>
-    private static HashSet<(int X, int Y, int Z)> Sightline(
-        Dictionary<(int X, int Y, int Z), int> blocks, HashSet<(int X, int Y, int Z)> air)
-    {
-        var hidden = new HashSet<(int X, int Y, int Z)>();
-        if (air.Count == 0) return hidden;
-        var top = blocks.Keys.Max(cell => cell.Y);
-        var lowest = new Dictionary<(int Across, int Into), int>();
-        foreach (var (x, y, z) in air)
-            if (!lowest.TryGetValue((x - y, z - y), out var floor) || y < floor) lowest[(x - y, z - y)] = y;
-        foreach (var ((across, into), floor) in lowest)
-            for (var y = floor + 1; y <= top; y++)
-                if (blocks.ContainsKey((across + y, y, into + y))) hidden.Add((across + y, y, into + y));
-        return hidden;
     }
 }

@@ -245,9 +245,9 @@ public static class TopDownRender
         DropFloorMarkers(columns);
         if (columns.Count == 0) return null;
 
-        int minX = columns.Keys.Min(cell => cell.X), maxX = columns.Keys.Max(cell => cell.X);
-        int minZ = columns.Keys.Min(cell => cell.Z), maxZ = columns.Keys.Max(cell => cell.Z);
-        int blocksWide = maxX - minX + 1, blocksHigh = maxZ - minZ + 1;
+        var extent = BlockRect.Around(columns.Keys);
+        int minX = extent.MinX, maxX = extent.MaxX - 1, minZ = extent.MinZ, maxZ = extent.MaxZ - 1;
+        int blocksWide = extent.Width, blocksHigh = extent.Depth;
 
         var heights = columns.Values.Select(column => column.SurfaceY).ToList();
         int lowest = heights.Min(), highest = heights.Max();

@@ -67,7 +67,6 @@ through the studio's Anvil writer and draws through its renderer.
 | Lines | a relief line plus a stroke | walls, hedges and fences along a line; paths graded, paved, stepped and half-stepped; roads found to a grade | 6 |
 | Style | theme buckets: rim, wall, surface, fill, bedrock | a grammar over sections and faces, seven styles, one plan in any of them | 7 |
 | Bespoke things | seven prop kinds | anything | 8 |
-| Renders | whole-board isometric | isometric of any box | 0 |
 
 ## How a capability moves
 
@@ -153,12 +152,10 @@ then. Before any phase reaches pgmstudio.de, a migration dry run over every stor
 
 ### Phase 0 — in the live studio, with no new words
 
-**The quick wins need no new concept, and the author notices only better boards.** Its two entries are on
-`TODO.md`.
+**The quick wins need no new concept, and the author notices only better boards.**
 
-- The framed isometric (`WS90`): an isometric of any box, so each place gets its own picture at four or five
-  pixels a block. It is what lets an agent look at a place up close, and it is the most valuable item in this
-  phase.
+- The framed isometric shipped as `WS90`: `render/isometric` and `render/xray` take a `box`, so each place gets
+  its own picture, and the x-ray draws the rooms alone, as pgmvox's does.
 - The three rule tiers made explicit (`RP128`). `Rules:Mode` and per-rule levels exist; what is missing is a
   third tier, the measure, shown as a number against a target and never refusing. Which rule takes which tier
   is the author's D4, below.

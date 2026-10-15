@@ -147,10 +147,14 @@ internal static class WorldReads
 internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest
 {
-    /// <summary>How many pixels a block takes, 1–16, default 4. Bigger than a preview's scale because these
-    /// draw a whole board rather than a swatch, and a board at one pixel a block is a thumbnail.</summary>
+    /// <summary>How many pixels a block takes, clamped to <see cref="ScaleRange"/>.</summary>
     protected int Scale => Query<int?>("scale", isRequired: false) is { } asked
-        ? Math.Clamp(asked, 1, 16) : 4;
+        ? Math.Clamp(asked, ScaleRange.Least, ScaleRange.Most) : ScaleRange.Absent;
+
+    /// <summary>The scale a read takes: 1–16, default 4, for a read drawing a block as a flat square. Bigger
+    /// than a preview's scale because these draw a whole board rather than a swatch, and a board at one pixel a
+    /// block is a thumbnail.</summary>
+    protected virtual (int Least, int Most, int Absent) ScaleRange => (1, 16, 4);
 
     protected int? OptionalInt(string name) => Query<int?>(name, isRequired: false);
 
@@ -391,7 +395,7 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
 
         // A cut along x is taken at a z and a cut along z at an x, which is the thing about this route
         // easiest to have backwards — so the refusal names the axis as well as the range.
-        if (SectionRender.Span(AnvilRegion.FromWorld(read.Built.World), axis) is { } span
+        if (SectionRender.Span(read.Built.World, axis) is { } span
             && (at < span.Min || at > span.Max))
         {
             var named = axis == SectionAxis.AlongX ? "z" : "x";
@@ -744,9 +748,10 @@ internal sealed class MirrorReadEndpoint(MapRepository repo, MapReader reader, M
         read.LaidTo?.CenterZ ?? 0);
 }
 
-/// <summary>The camera the two reads drawn in the round share: the corner of the board it stands at, and how
-/// big a cube is drawn. Declared once, so the two cannot describe the same words two ways.</summary>
-internal abstract class InTheRoundEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+/// <summary>The two reads <see cref="BoardIsometric"/> draws, the isometric and the x-ray, and the words they
+/// share: the corner the camera stands at, how big a cube is drawn, and the box the picture is framed to.
+/// Declared once, so the two cannot describe the same words two ways.</summary>
+internal abstract class BoardIsometricEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : WorldRenderEndpoint(repo, reader, artifacts)
 {
     protected static QueryWord Corner => new("corner",
@@ -757,7 +762,15 @@ internal abstract class InTheRoundEndpoint(MapRepository repo, MapReader reader,
         "Half a cube's width in pixels, 1 to 8 — each block is drawn twice that wide. Absent draws at 3, and out "
         + "of range clamps.", Min: 1, Max: 8);
 
-    protected override string Empty => "the world has no block";
+    protected static QueryWord Framing => new("box",
+        "Draw only the blocks inside this volume, as `x0,y0,z0,x1,y1,z1` in either corner order, both corners "
+        + "inclusive. Absent draws the whole board.");
+
+    protected override (int Least, int Most, int Absent) ScaleRange => (1, 8, 3);
+
+    protected override string Empty => Box is { } box
+        ? $"the box {box.MinX},{box.MinY},{box.MinZ},{box.MaxX},{box.MaxY},{box.MaxZ} holds nothing to draw"
+        : "the world has no block";
 
     /// <summary>The quarter turns that stand the camera at the asked corner. A corner the board has no name for
     /// is refused by name rather than drawn from a guess.</summary>
@@ -774,41 +787,54 @@ internal abstract class InTheRoundEndpoint(MapRepository repo, MapReader reader,
         }
     }
 
-    protected int CubeScale => Query<int?>("scale", isRequired: false) is { } asked ? Math.Clamp(asked, 1, 8) : 3;
+    /// <summary>The volume the picture is framed to, or null for the whole board. A box that is not six whole
+    /// numbers is refused by name.</summary>
+    protected BlockBox? Box
+    {
+        get
+        {
+            if (Query<string?>("box", isRequired: false) is not { } asked) return null;
+            return BlockBox.TryParse(asked, out var box)
+                ? box
+                : throw new ArgumentException($"`box` '{asked}' is not six whole numbers, x0,y0,z0,x1,y1,z1");
+        }
+    }
 }
 
-/// <summary>GET /api/map/{slug}/render/isometric — the whole board from above at 2:1, every block a cube in the
-/// colour the 3-D preview gives it, from one of its four corners. The read for whether a thing has the bulk it
-/// should, which every plan-shaped read answers as a patch.</summary>
+/// <summary>GET /api/map/{slug}/render/isometric — the board from above at 2:1, every block a cube in the colour
+/// the 3-D preview gives it, from one of its four corners, framed to a box where one is given. The read for
+/// whether a thing has the bulk it should, which every plan-shaped read answers as a patch.</summary>
 internal sealed class IsometricReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
-    : InTheRoundEndpoint(repo, reader, artifacts)
+    : BoardIsometricEndpoint(repo, reader, artifacts)
 {
     public override void Configure()
     {
         Get("/map/{slug}/render/isometric");
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/isometric"));
-        Description(b => b.Png().Refuses(400, 404, 422).Reads(Corner, Cube));
+        Description(b => b.Png().Refuses(400, 404, 422).Reads(Corner, Cube, Framing));
     }
 
     protected override byte[]? Draw(BuiltRead read) =>
-        BoardIsometric.Isometric(read.Built, Quarter, CubeScale, read.Name);
+        BoardIsometric.Isometric(read.Built, Quarter, Scale, read.Name, Box);
 }
 
-/// <summary>GET /api/map/{slug}/render/xray — the isometric with the ground that hides a roofed room washed out,
-/// so the room is in the picture. <c>?format=text</c> answers the void scan the picture is drawn from: every
-/// roofed void, its size, its bounds, and whether anything can walk into it.</summary>
+/// <summary>GET /api/map/{slug}/render/xray — only what lines the board's roofed voids, ceilings lifted off, so
+/// every room is seen into from above. <c>?format=text</c> answers the void scan the picture is drawn from:
+/// every roofed void, its size, its bounds, and whether anything can walk into it.</summary>
 internal sealed class XRayReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
-    : InTheRoundEndpoint(repo, reader, artifacts)
+    : BoardIsometricEndpoint(repo, reader, artifacts)
 {
     public override void Configure()
     {
         Get("/map/{slug}/render/xray");
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/xray"));
-        Description(b => b.Png().AlsoText().Refuses(400, 404, 422).Reads(Corner, Cube));
+        Description(b => b.Png().AlsoText().Refuses(400, 404, 422).Reads(Corner, Cube, Framing));
     }
 
+    protected override string Empty => Box is null ? "the board has no roofed void" : base.Empty;
+
     protected override byte[]? Draw(BuiltRead read) =>
-        BoardIsometric.XRay(read.Built, Quarter, CubeScale, read.Name)?.Png;
+        BoardIsometric.XRay(read.Built, Quarter, Scale, read.Name, Box)?.Png;
 
     protected override string? Text(BuiltRead read)
     {
@@ -1174,9 +1200,8 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
 
         // The world's own chunk-aligned extent on each axis — a cut along z is taken at an x, so the span
         // along x is what `SectionRender.Span` answers for a cut Along z, and the same the other way round.
-        var chunks = AnvilRegion.FromWorld(read.Built.World).ToList();
-        var xSpan = SectionRender.Span(chunks, SectionAxis.AlongZ);
-        var zSpan = SectionRender.Span(chunks, SectionAxis.AlongX);
+        var xSpan = SectionRender.Span(read.Built.World, SectionAxis.AlongZ);
+        var zSpan = SectionRender.Span(read.Built.World, SectionAxis.AlongX);
         foreach (var point in points)
             if (xSpan is not { } xRange || zSpan is not { } zRange
                 || point.X < xRange.Min || point.X > xRange.Max || point.Z < zRange.Min || point.Z > zRange.Max)

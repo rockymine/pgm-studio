@@ -9404,10 +9404,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   props placed and declined, the worst step from a spawn to a goal — then every reading a drive asks for after
   a store, each beside the route that answers it alone and made by the same call, and the pictures by route,
   drawn on `?pictures=true`; `?format=text` answers one document. The board in the round is the studio's own:
-  `render/isometric` from any corner, and `render/xray`, which washes out the ground and the buildings over a
-  roofed room and answers the void scan as its text. It is an agent's read; the Sketch tool has no page for it.
+  `render/isometric` from any corner, and `render/xray`, which draws the underground and answers the void scan
+  as its text. It is an agent's read; the Sketch tool has no page for it.
   (`Export/BoardIsometric`, `Api/Services/MapReport`, `Minecraft/Anvil/WorldColumns`,
   `docs/world-scan/read-backs.md`, `docs/tools/sketch.md`)
+- **The board's isometric framed to one place, and the x-ray as the rooms alone (`WS90`).** `render/isometric`
+  and `render/xray` take `box=x0,y0,z0,x1,y1,z1`, `BlockBox`'s wire form, and draw only what is inside it, so a
+  place fills the frame; a box with nothing in it is a 422 naming it. The x-ray draws the underground: every block
+  lining a void the ground roofs, less its ceiling, as pgmvox's `xray_shell` does but without a building's rooms
+  or a crown's shade, and with the voids found over the whole board before the box frames the drawing. (`Export/BoardIsometric`, `Api/Endpoints/WorldReadEndpoints`,
+  `docs/world-scan/read-backs.md`)
 - **A style written in its retired shape is refused by its path (`TS127`).** A part written as a material
   rather than as its courses — `{floor, ceiling, wall}`, the shape before `HouseStyle` — reads as a part with no
   stack, and every road that binds one answered `500 RQ2` at `RoomPart.At`. The reader's walk refuses it by its

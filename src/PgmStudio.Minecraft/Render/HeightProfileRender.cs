@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
@@ -109,9 +110,9 @@ public static class HeightProfileRender
         foreach (var chunk in chunks) Scan(chunk, ground, flooded);
         if (ground.Count == 0) return null;
 
-        int minX = ground.Keys.Min(cell => cell.X), maxX = ground.Keys.Max(cell => cell.X);
-        int minZ = ground.Keys.Min(cell => cell.Z), maxZ = ground.Keys.Max(cell => cell.Z);
-        int blocksWide = maxX - minX + 1, blocksHigh = maxZ - minZ + 1;
+        var extent = BlockRect.Around(ground.Keys);
+        int minX = extent.MinX, maxX = extent.MaxX - 1, minZ = extent.MinZ, maxZ = extent.MaxZ - 1;
+        int blocksWide = extent.Width, blocksHigh = extent.Depth;
         int lowest = ground.Values.Min(), highest = ground.Values.Max();
         var span = Math.Max(1, highest - lowest);
 
