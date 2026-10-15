@@ -30,9 +30,12 @@ checks.add("the browser is handed the world ZIP", saved.suggestedFilename() === 
 checks.add("the map now has its world", (await api(`/map/${unbuilt.slug}/state`)).artifacts.world);
 
 checks.section("a map with no game settings says why and saves nothing");
+// A draft of its own: the layout alone, with no intent beside it.
+const unset = await api("/sketch", { method: "POST", body: { name: "E2E no settings" } });
+await api(`/map/${unset.slug}/sketch`, { method: "PUT", body: compiled.layout });
 let unexpected = null;
 page.on("download", (file) => { unexpected = file.suggestedFilename(); });
-await page.goto(`${BASE}/maps/${seed.sketchSlug}/sketch`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/maps/${unset.slug}/sketch`, { waitUntil: "networkidle" });
 await download.waitFor({ timeout: 60000 });
 await download.click();
 const problems = page.locator(".problems-pop");
@@ -44,7 +47,7 @@ checks.add("the refusal is the export's own sentence", said.includes("spawn"), s
 checks.add("nothing is saved", unexpected === null, unexpected ?? "");
 const configure = problems.locator("a", { hasText: "Open Configure" }).first();
 checks.add("it offers Configure, where the game is set up",
-  (await configure.getAttribute("href"))?.endsWith(`maps/${seed.sketchSlug}/configure`) ?? false);
+  (await configure.getAttribute("href"))?.endsWith(`maps/${unset.slug}/configure`) ?? false);
 clearFaults(page);   // the export's 409 is the refusal this section asked for
 
 checks.section("Draw's Done goes on to Terraform");
@@ -54,6 +57,7 @@ await page.locator(".editor-bar", { hasText: "Terraform" }).waitFor({ timeout: 3
 checks.add("the next phase is Terraform", true);
 
 await api(`/map/${unbuilt.slug}`, { method: "DELETE" });
+await api(`/map/${unset.slug}`, { method: "DELETE" });
 checks.add("sketch download is clean", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
 checks.finish();
 await browser.close();
