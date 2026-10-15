@@ -22,6 +22,19 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [ ] **RP132 — Ground presets: a form laid as one object, a style spread over an area.** *Parked (author):
+  filed for now; picked up with Phase 2's ground operations.* A preset expands into ordinary ground layers, as a
+  grammar style expands into paint, so the Layers tab still edits its parts. A **form** is laid at an anchor: a
+  caldera lake, a somma or a maar at a centre, turn and size, a fissure along a drawn polyline, each with a seed
+  and its numbers as fields. A **style** fills whatever area it is given at that area's size: a snowfield's
+  outcrops, drifts and crevasses, and an area may be stated against another layer (snow where the somma raised
+  the ground). Both need noise sampled at world coordinates, so a seed gives the same ground wherever the area
+  sits. `docs/pgmvox-port.md`.
+
+  *Evidence: `pgm-studio-mapgen/freeform/lib/studies/fire-and-ice/` composes these five as fixed 300 × 300
+  stamps; the fissure's path is constants in `round2.fissure`, and `noise.fbm` seeds a lattice over the array's
+  shape, not its coordinates (`pgmvox/geom/noise.py:25`).*
+
 - [ ] **TS130 — Point edits and bends reach every outline.** *Parked (author): tangled with how land is made,
   which the pgmvox port's layer document redesigns; picked up when that work needs it.* `editShapes` and
   `bendShapes` address a shape's `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already
