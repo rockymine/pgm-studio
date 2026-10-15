@@ -44,6 +44,18 @@ const STRUCT_KIND = { spawn: "spawn", woolRoom: "wool" };
 // colours the plan drew them in without the render leaf importing the plan module.
 const ROLE_FILL = { spawn: "var(--canvas-role-spawn)", woolRoom: "var(--canvas-role-wool-room)" };
 
+// Every other play piece, in the colour the plan draws the same thing in. A goal, a cube and the observer are
+// small and solid; an area and a wall are ground a player crosses, so they are washed in rather than filled.
+const PIECE_FILL = {
+  destroyable: { color: OBJECTIVE_COLORS.destroyable, alpha: 0.85 },
+  core:        { color: OBJECTIVE_COLORS.core, alpha: 0.85 },
+  ironCube:    { color: OBJECTIVE_COLORS.iron, alpha: 0.85 },
+  observer:    { color: OBJECTIVE_COLORS.spawn, alpha: 0.85 },
+  buildArea:   { color: "var(--accent)", alpha: 0.12, dash: [6, 4] },
+  waterLane:   { color: "var(--canvas-zone-water-lane)", alpha: 0.3 },
+  wall:        { color: "var(--canvas-seam-wall)", alpha: 0.85 },
+};
+
 /**
  * The plan's structural pieces — the spawn and wool-room regions the plan already placed, projected
  * from the map intent as **locked, labelled** rectangles so they stay visible while a plan is refined. They
@@ -65,6 +77,17 @@ export function paintStructural(painter, shapes, selectedId = null) {
     // The ring goes outside whatever the piece draws for itself, in the selection ink every other picked
     // thing on this canvas wears, so a picked region and a picked island read as the same kind of state.
     if (s.id === selectedId) painter.rect(box, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
+    // A piece that is not a room is drawn in its kind's colour and carries no label: what it is shows by its
+    // colour and its shape. One that moves only with something else is dashed and fainter.
+    if (s.piece) {
+      const look = PIECE_FILL[s.role] ?? { color: UNKNOWN_KIND_COLOR, alpha: 0.5 };
+      const dash = s.carried ? [3, 3] : look.dash;
+      painter.rect(box, {
+        fill: look.color, fillAlpha: s.carried ? look.alpha / 2 : look.alpha,
+        stroke: look.color, strokeAlpha: 0.95, width: 2, ...(dash ? { dash } : {}),
+      });
+      continue;
+    }
     // A building is drawn as a building, in the same ink a dressed house takes, because that is what it is:
     // a room's footprint is the single-wing case of the one an author draws in the Dressing phase. It is
     // unfilled where a prop is filled, and only because it stands on a box already filled with its region's
@@ -87,24 +110,6 @@ export function paintStructural(painter, shapes, selectedId = null) {
     const size = Math.max(2, Math.min(h * 0.4, w / (0.6 * Math.max(1, text.length))));
     painter.text(text, (s.min_x + s.max_x) / 2, (s.min_z + s.max_z) / 2,
       { fill: "var(--canvas-ink)", halo: "var(--bg-canvas)", haloWidth: 3, size, weight: 600 });
-  }
-}
-
-/**
- * Where the map's destroyables and cores stand, from the intent that places them (their anchor column). A
- * marker and nothing else: the sketch draws the ground, and these are here so an author refining it can see
- * what the ground has to carry — the plan names them, and Configure is where one is edited.
- *
- * Drawn in the objective's own colour at a fixed block size, so a board zoomed out still shows where they
- * are rather than a dot that shrinks away.
- */
-export function paintObjectives(painter, objectives) {
-  const half = 1.6;
-  for (const { kind, x, z } of objectives ?? []) {
-    if (!Number.isFinite(x) || !Number.isFinite(z)) continue;
-    const color = OBJECTIVE_COLORS[kind] ?? UNKNOWN_KIND_COLOR;
-    painter.rect({ min_x: x - half, min_z: z - half, max_x: x + half, max_z: z + half },
-      { fill: color, fillAlpha: 0.85, stroke: "var(--canvas-ink)", strokeAlpha: 0.7, width: 1.5 });
   }
 }
 

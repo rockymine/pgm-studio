@@ -56,6 +56,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let groups = [];            // alias of layers[active].groups — kept current by recompute()
   let mirrorVisible = true;
   let selectedStructuralId = null; // the picked plan piece, whose rail states the height it carries
+  // Every play piece that is not a room, as the intent places it: drawn and moved with the rooms, never
+  // written into the layout, because none of them is ground the layout states.
+  let pieces = [];
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let dressingMode = false;    // the Dressing phase is up: props are, and a shape is not reachable under them
   // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override
@@ -262,7 +265,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // rail are told too, or the group list goes on lighting a row whose chrome is gone.
     if (s) { fire("OnShapeSelected", null); fire("OnGroupSelected", null); }
     fire("OnStructuralSelected", s ? JSON.stringify({
-      id: s.id, role: s.role, color: s.color ?? null,
+      id: s.id, role: s.role, color: s.color ?? null, piece: s.piece === true,
       baseHeight: s.base_height ?? null, heightAuthored: s.height_authored === true,
       minX: s.min_x, minZ: s.min_z, maxX: s.max_x, maxZ: s.max_z,
     }) : null);
@@ -287,7 +290,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       const res = await fetch(
         `/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(id)}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ part: piece.role, minX: piece.min_x, minZ: piece.min_z,
+          body: JSON.stringify({ part: piece.piece ? undefined : piece.role, minX: piece.min_x, minZ: piece.min_z,
                                  maxX: piece.max_x, maxZ: piece.max_z }),
         });
       if (!res.ok) {
@@ -302,7 +305,57 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     }
     fire("OnStructuralNote", null);
     await refreshRooms();
+    await refreshPieces();
     selectStructural(piece.id);
+  }
+
+  /**
+   * Turn a picked room, its building, or an area a quarter at a time — `quarters` clockwise seen from above,
+   * negative the other way. Asked of the intent the way a move is, and read back the same way.
+   */
+  async function turnStructural(id, quarters) {
+    const piece = canvas.getStructural(id);
+    if (!slug || !piece) return;
+    const target = piece.role === "building" ? piece.id.replace(/-building$/, "") : piece.id;
+    try {
+      const res = await fetch(
+        `/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(target)}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ part: piece.piece ? undefined : piece.role, turn: quarters }),
+        });
+      if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return; }
+    } catch {
+      fire("OnStructuralNote", "Couldn't reach the studio, so the piece wasn't turned. Try again.");
+      return;
+    }
+    fire("OnStructuralNote", null);
+    await refreshRooms();
+    await refreshPieces();
+    selectStructural(id);
+  }
+
+  /** The rooms of the layer being drawn on, and on the ground layer every other piece with them. */
+  function showStructural() {
+    const rooms = layers[active].structural ?? [];
+    canvas.setStructural(active === 0 ? [...rooms, ...pieces] : rooms);
+  }
+
+  /** Read every piece that is not a room from the intent, where the studio says it stands. */
+  async function refreshPieces() {
+    if (!slug) return;
+    let list;
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces`);
+      if (!res.ok) return;
+      list = await res.json();
+    } catch { return; }
+    pieces = (Array.isArray(list) ? list : [])
+      .filter(p => p.kind !== "spawn" && p.kind !== "woolRoom")
+      .map(p => ({
+        id: p.id, type: "rectangle", role: p.kind, color: p.color || null, piece: true, carried: p.carried === true,
+        min_x: p.minX, min_z: p.minZ, max_x: p.maxX, max_z: p.maxZ,
+      }));
+    showStructural();
   }
 
   /**
@@ -324,7 +377,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       const kept = held.get(sh.id);
       return kept ? { ...kept, min_x: sh.min_x, min_z: sh.min_z, max_x: sh.max_x, max_z: sh.max_z } : sh;
     });
-    if (active === 0) canvas.setStructural(ground.structural);
+    if (active === 0) showStructural();
   }
 
   /**
@@ -341,7 +394,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     if (!s || s.role === "building") return;
     s.base_height = clampHeight(height);
     s.height_authored = true;
-    canvas.setStructural(list);
+    showStructural();
     canvas.selectStructural(id);
     selectStructural(id);
     markDirty();
@@ -497,7 +550,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   function loadActiveToCanvas() {
     canvas.clearShapes();
     for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
-    canvas.setStructural(layers[active].structural ?? []);
+    showStructural();
     selectShape(null);
     pushActiveLayer();
     groups = layers[active].groups ?? [];
@@ -1126,12 +1179,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     /** Let go of the picked plan piece — what a rail's Close does. */
     clearStructural() { selectStructural(null); },
     /** Arm a theme so a click on a shape paints it; "" puts the brush down. */
-    /** Where the map's destroyables and cores stand, from the intent — markers the board carries, not shapes
-     *  it owns, so they are handed in rather than read out of the layout. */
-    setObjectives(json) {
-      let list; try { list = JSON.parse(json); } catch { list = []; }
-      canvas.setObjectives(Array.isArray(list) ? list : []);
-    },
+    /** Turn the picked room, building or area `quarters` quarter turns clockwise. */
+    turnStructural(id, quarters) { return turnStructural(id, quarters); },
     setThemeBrush(id) { setThemeBrush(id); },
     /** Draw what a change did over the board: `{before, after, world}` — the two layouts and the diff's world
      *  half, which may be absent — or null to take it away. */
@@ -1294,7 +1343,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       for (let i = 0; i < layers.length; i++) if (i !== active) layers[i].groups = computeLayerGroups(layers[i]);
       canvas.clearShapes();
       for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
-      canvas.setStructural(layers[active].structural ?? []);
+      showStructural();
+      refreshPieces();
       pushActiveLayer();
       recompute(true);
       // Frame what was loaded: applySetup states the working area, and the drawing is what should be on

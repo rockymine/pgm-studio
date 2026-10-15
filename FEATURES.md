@@ -9427,6 +9427,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   seen from above — about the middle of a room's region, carrying its marker, building, iron, entries, doors and
   yaw, or about its building's middle alone; a mirror image turns the other way. `alone` moves or turns the named
   image without the rest of its orbit. (`Pgm/Authoring/PlayPieceMove`, `docs/tools/configure.md`)
+- **Every play piece is drawn, picked, dragged and turned in the sketch (`TS169`).** A build area, a water lane, an
+  iron cube and an approach wall carry an id (`M0078`); `GET …/intent/pieces` answers every piece at the rectangle
+  the piece route reads it as standing on (`PlayPieces`), and the route moves each of them, a build area's images by
+  where the symmetry carries it, with the board's symmetry from the sketch where the intent states none. The Draw
+  phase draws them all and picks and drags any, and a room's, building's or area's rail turns it.
+  (`Pgm/Authoring/PlayPieces`, `docs/tools/sketch.md`)
 - **A rule's third level, the measure (`RP128`).** `RuleLevels.Measure` never refuses and reads a finding as the
   number it measured against its range: `Finding.Measured` is `{value, low, high}`, and `Violation` reads its
   value and band from it. Every rule of `GO`, `WL`, `CT`, `LN`, `FR` and `MD` but `WL14` is a measure by default

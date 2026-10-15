@@ -45,7 +45,6 @@ import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   paintSketchShape, paintGroups, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostGroups, paintRaster, paintStructural,
-  paintObjectives,
   paintContours, paintHeightMap, heightMapBitmap,
 } from "../render/sketch-render.js";
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
@@ -99,7 +98,6 @@ export class SketchCanvas extends CanvasBase {
   #structural  = [];          // locked plan pieces — the plan's own, never edited/rasterized as terrain
   #selectedStructuralId = null;   // the picked plan piece, where the phase editing geometry may pick one
   #dragStartPiece = null;         // where the dragged piece stood, so a refused move can be answered
-  #objectives  = [];          // {kind, x, z} — where the intent's destroyables and cores stand, marker only
   #diff        = null;        // what a change did, from diffOverlay — drawn over the board while one is picked
   #selectedId  = null;        // drilled/single-member shape (drives the edit-controller handles)
   #selectedGroupId = null;   // selected group (drives the group bbox chrome + whole-group drag)
@@ -951,7 +949,6 @@ export class SketchCanvas extends CanvasBase {
     // outlines), not behind the Shapes toggle, so they stay visible while a plan is refined.
     painter.layer("structural", () => {
       paintStructural(painter, this.#structural, this.#selectedStructuralId);
-      paintObjectives(painter, this.#objectives);
     });
     painter.layer("selection", () => this.#paintSelectionHighlight());
     painter.layer("marks",     () => this.#paintReliefMarks(painter));
@@ -1017,9 +1014,6 @@ export class SketchCanvas extends CanvasBase {
 
   /** The picked plan piece itself, for a caller that needs what it states rather than which one it is. */
   getStructural(id) { return this.#structural.find(s => s.id === id) ?? null; }
-
-  /** Where the map's destroyables and cores stand: `[{kind, x, z}]`, drawn as markers and nothing else. */
-  setObjectives(objectives) { this.#objectives = objectives ?? []; this.#paintWorld(); }
 
   /** What a change did, as `diffOverlay` reads it, drawn over everything the board holds; null takes it away. */
   setDiff(overlay) { this.#diff = overlay ?? null; this.#paintWorld(); }
@@ -1620,7 +1614,7 @@ export class SketchCanvas extends CanvasBase {
   #hitStructural(wx, wz) {
     for (let i = this.#structural.length - 1; i >= 0; i--) {
       const s = this.#structural[i];
-      if (containsPoint(s, wx, wz)) return s.id;
+      if (!s.carried && containsPoint(s, wx, wz)) return s.id;
     }
     return null;
   }

@@ -192,4 +192,30 @@ public sealed class PieceMoveRouteTests
         await Assert.That(both.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
         await Assert.That(neither.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }
+
+    /// <summary>An intent compiled from a plan states no symmetry, so the route reads the board's off the
+    /// sketch: a build area moved on a mirrored sketch moves its mirror image with it.</summary>
+    [Test]
+    public async Task With_no_symmetry_in_the_intent_the_sketchs_board_moves_the_image()
+    {
+        var (client, slug) = await BoardAsync();
+        var sketch = await client.PutAsync($"/api/map/{slug}/sketch", new StringContent(
+            """{"setup":{"mirror_mode":"mirror_x","center":{"cx":50,"cz":50}},"layers":[{"id":"ground","shapes":[]}]}""",
+            Encoding.UTF8, "application/json"));
+        await Assert.That(sketch.IsSuccessStatusCode).IsTrue().Because(await sketch.Content.ReadAsStringAsync());
+        var stored = await client.PutAsync($"/api/map/{slug}/intent", new StringContent("""
+            {"meta":{"name":"Weirgate"},
+             "build":{"areas":[{"id":"bridge","minX":10,"minZ":20,"maxX":20,"maxZ":30},
+                               {"id":"bridge-image","minX":80,"minZ":20,"maxX":90,"maxZ":30}]}}
+            """, Encoding.UTF8, "application/json"));
+        await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
+
+        var moved = await MoveAsync(client, slug, "bridge", new { minX = 12, minZ = 20, maxX = 22, maxZ = 30 });
+        await Assert.That(moved.IsSuccessStatusCode).IsTrue().Because(await moved.Content.ReadAsStringAsync());
+
+        var areas = (await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/intent"))
+            .GetProperty("build").GetProperty("areas").EnumerateArray()
+            .Select(area => (area.GetProperty("id").GetString()!, area.GetProperty("minX").GetDouble())).ToList();
+        await Assert.That(areas).IsEquivalentTo(new[] { ("bridge", 12.0), ("bridge-image", 78.0) });
+    }
 }

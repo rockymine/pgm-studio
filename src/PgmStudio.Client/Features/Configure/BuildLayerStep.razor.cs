@@ -22,6 +22,7 @@ public partial class BuildLayerStep
     private sealed class Box
     {
         public int Id; public bool Hole; public double MinX, MinZ, MaxX, MaxZ;
+        public string Piece = "";   // the stored area's id, kept so a save does not rename it
         public Box? Source;   // the drawn rectangle a symmetry copy is made from; null for a drawn one
 
         public bool Authored => Source is null;
@@ -105,7 +106,7 @@ public partial class BuildLayerStep
     {
         if (arr is null) return;
         foreach (var r in arr.OfType<JsonObject>())
-            boxes.Add(new Box { Id = nextId++, Hole = hole, MinX = D(r, "minX"), MinZ = D(r, "minZ"), MaxX = D(r, "maxX"), MaxZ = D(r, "maxZ") });
+            boxes.Add(new Box { Id = nextId++, Hole = hole, Piece = r["id"]?.GetValue<string>() ?? "", MinX = D(r, "minX"), MinZ = D(r, "minZ"), MaxX = D(r, "maxX"), MaxZ = D(r, "maxZ") });
     }
 
     private Task OnCanvasReady() => Paint();
@@ -179,9 +180,16 @@ public partial class BuildLayerStep
         if (selectedId is { } id && Rows.All(box => box.Id != id)) selectedId = null;
         var b = Wizard.Intent["build"] as JsonObject;
         if (b is null) { b = new JsonObject(); Wizard.Intent["build"] = b; }
-        b["areas"] = new JsonArray(boxes.Where(x => !x.Hole).Select(RectNode).ToArray());
+        b["areas"] = new JsonArray(boxes.Where(x => !x.Hole).Select(AreaNode).ToArray());
         b["holes"] = new JsonArray(boxes.Where(x => x.Hole).Select(RectNode).ToArray());
         Wizard.MarkDirty();
+    }
+
+    private static JsonNode AreaNode(Box b)
+    {
+        var node = (JsonObject)RectNode(b);
+        if (b.Piece.Length > 0) node["id"] = b.Piece;
+        return node;
     }
 
     private static JsonNode RectNode(Box b) =>

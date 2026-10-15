@@ -294,7 +294,7 @@ public static class WorldBuilder
         // region and of the terrain. Derived here rather than in the compiler because the clearance rule reads
         // the terrain the world actually placed; the areas arrive already fanned, so the marker is symmetric.
         if (intent.Build is { } build)
-            BuildMarkerStamper.Stamp(world, BlockRects(build.Areas), BlockRects(build.Holes), terrain.Ground);
+            BuildMarkerStamper.Stamp(world, BlockRects(build.Areas.Select(area => area.Rect)), BlockRects(build.Holes), terrain.Ground);
 
         // ── Destroyables (DTM) — the box is computed once here and carried on the resolved intent, so the
         // region the generator emits is the volume these blocks were stamped into (OB8).

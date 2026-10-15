@@ -42,6 +42,7 @@ public sealed record SketchStructuralRow(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("role")] string Role,
     [property: JsonPropertyName("color")] string? Color,
+    [property: JsonPropertyName("piece")] bool Piece,
     [property: JsonPropertyName("baseHeight")] double? BaseHeight,
     [property: JsonPropertyName("heightAuthored")] bool HeightAuthored,
     [property: JsonPropertyName("minX")] double MinX,
@@ -50,8 +51,11 @@ public sealed record SketchStructuralRow(
     [property: JsonPropertyName("maxZ")] double MaxZ)
 {
     /// <summary>Whether this piece is a region — the shape that carries a height — as against the building
-    /// footprint drawn inside one.</summary>
-    public bool IsRegion => Role != StructuralRoles.Building;
+    /// footprint drawn inside one or a play piece that is not a room.</summary>
+    public bool IsRegion => !Piece && Role != StructuralRoles.Building;
+
+    /// <summary>Whether the piece turns: a room, its building, a build area and a water lane.</summary>
+    public bool Turns => !Piece || Role is PlayPieceKinds.BuildArea or PlayPieceKinds.WaterLane;
 
     /// <summary>The piece's extent in blocks, the way every other selection on this canvas reads one.</summary>
     public string Dim => $"{MaxX - MinX:0.#} × {MaxZ - MinZ:0.#}";

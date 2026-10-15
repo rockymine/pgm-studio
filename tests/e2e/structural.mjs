@@ -52,6 +52,29 @@ checks.add("terrain fused below the surfaced pieces",
   terrain.length > 0 && terrain.length < spawns.length + wools.length,
   `${terrain.length} terrain polygon(s) vs ${spawns.length + wools.length} structural pieces`);
 
+// ── 1b. every other piece is drawn from the intent and moves through the piece route ──────────────────
+checks.section("every play piece is read where the sketch draws it");
+
+const drawn = await api(`/map/${seed.sketchSlug}/intent/pieces`);
+const kinds = new Set(drawn.map(piece => piece.kind));
+checks.add("the pieces read carries the rooms and the rest", kinds.has("spawn") && kinds.has("buildArea"),
+  [...kinds].join(", "));
+checks.add("every piece has an id", drawn.every(piece => piece.id), `${drawn.length} pieces`);
+const area = drawn.find(piece => piece.kind === "buildArea" && !piece.carried);
+if (area) {
+  await api(`/map/${seed.sketchSlug}/intent/pieces/${encodeURIComponent(area.id)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ minX: area.minX + 1, minZ: area.minZ, maxX: area.maxX + 1, maxZ: area.maxZ }),
+  });
+  const after = (await api(`/map/${seed.sketchSlug}/intent/pieces`)).find(piece => piece.id === area.id);
+  checks.add("a build area dragged a block stands where it was dragged", after?.minX === area.minX + 1,
+    `${area.id}: ${area.minX} → ${after?.minX}`);
+  await api(`/map/${seed.sketchSlug}/intent/pieces/${encodeURIComponent(area.id)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ minX: area.minX, minZ: area.minZ, maxX: area.maxX, maxZ: area.maxZ }),
+  });
+}
+
 // ── 2. screenshot the plan tool and the sketch tool ───────────────────────────────────────────────────
 checks.section("plan → sketch, captured");
 

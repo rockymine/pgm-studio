@@ -234,7 +234,9 @@ public readonly record struct RedstoneLine(int X1, int Z1, int X2, int Z2, Stamp
 /// <param name="Renew">Whether the marker sits inside a spawn-role piece, in which case the cube regrows
 /// through the map's renewables wiring.</param>
 /// <param name="Stamp">Which stamping of the structure this is.</param>
-public readonly record struct IronCube(int MinX, int MinZ, bool Renew, StampId Stamp = default);
+/// <param name="Id">The piece's id, which the piece route finds it by.</param>
+[method: JsonConstructor]
+public readonly record struct IronCube(int MinX, int MinZ, bool Renew, StampId Stamp = default, string Id = "");
 
 /// <summary>A pre-built bedrock approach wall: a min-inclusive/max-exclusive footprint (two thick across the
 /// seam, full interface width along it) rising from y=0 up to <see cref="TopY"/> inclusive, capped by one
@@ -255,8 +257,11 @@ public readonly record struct IronCube(int MinX, int MinZ, bool Renew, StampId S
 /// can be opened while the other stays solid, and which face that is decides which team can reach the
 /// supply. Recomputed per orbit image, since a reflection swaps the two.</param>
 /// <param name="Stamp">Which stamping of the structure this is.</param>
+/// <param name="Id">The piece's id, which the piece route finds it by.</param>
+[method: JsonConstructor]
 public readonly record struct WallStructure(
-    int MinX, int MinZ, int MaxX, int MaxZ, int TopY, bool ChestOnMinFace = true, StampId Stamp = default);
+    int MinX, int MinZ, int MaxX, int MaxZ, int TopY, bool ChestOnMinFace = true, StampId Stamp = default,
+    string Id = "");
 
 /// <summary>The confirmed map symmetry: a <see cref="Mode"/> (<c>mirror_x</c>/<c>mirror_z</c>/
 /// <c>mirror_d1</c>/<c>mirror_d2</c>/<c>rot_180</c>/<c>rot_90</c>) about the centre (<see cref="CenterX"/>,
@@ -350,6 +355,24 @@ public sealed record MetaIntent
     public List<AuthorIntent> Contributors { get; init; } = new();
 }
 
+/// <summary>A rectangle that is a play piece of its own — a build area or a water lane — and the id the piece
+/// route finds it by. A rectangle with no id is one a reader has not named yet; <see cref="PlayIds"/> names it.
+/// </summary>
+/// <param name="MinX">Its west edge.</param>
+/// <param name="MinZ">Its north edge.</param>
+/// <param name="MaxX">Its east edge.</param>
+/// <param name="MaxZ">Its south edge.</param>
+/// <param name="Id">The piece's id.</param>
+[method: JsonConstructor]
+public readonly record struct PieceArea(double MinX, double MinZ, double MaxX, double MaxZ, string Id = "")
+{
+    /// <summary>Its bounds.</summary>
+    [JsonIgnore] public Rect Rect => new(MinX, MinZ, MaxX, MaxZ);
+
+    /// <summary>An unnamed area over <paramref name="rect"/>.</summary>
+    public static implicit operator PieceArea(Rect rect) => new(rect.MinX, rect.MinZ, rect.MaxX, rect.MaxZ);
+}
+
 /// <summary>Where players may build. <see cref="Areas"/> are the buildable rectangles (the over-void
 /// bridges/platforms — the islands' terrain is auto-buildable via the void filter, so it needs no rect,
 /// see new-map-authoring.md §5); they're unioned and the void boundary is wired automatically.
@@ -363,7 +386,7 @@ public sealed record BuildIntent
     public int? MaxHeight { get; init; }
 
     /// <summary>The buildable rectangles (over-void footprints/bridges), unioned by the generator.</summary>
-    public List<Rect> Areas { get; init; } = new();
+    public List<PieceArea> Areas { get; init; } = new();
 
     /// <summary>No-build cutouts subtracted from the area union (emitted as a <c>complement</c>). Empty →
     /// no holes (plain union). Orbited alongside <see cref="Areas"/> on symmetric maps.</summary>
@@ -399,7 +422,7 @@ public sealed record BuildIntent
 public sealed record WaterLaneIntent
 {
     /// <summary>The lane footprints in map coordinates, orbited on symmetric maps. Empty → no lanes.</summary>
-    public List<Rect> Rects { get; init; } = new();
+    public List<PieceArea> Rects { get; init; } = new();
 }
 
 /// <summary>A team to generate. <see cref="Id"/> is the stable identifier rules/spawns reference and the

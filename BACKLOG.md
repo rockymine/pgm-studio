@@ -746,6 +746,17 @@ server's backups.
   deploy failed — a GitHub issue opened with a fine-grained token scoped to issues, or mail — since today a
   failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
+- [ ] **RP132 — A session that ends under an open page says "sign in to save".** The client asks `api/me`
+  once a page load (`StudioAccess.MeAsync` caches it), so a cookie that lapses or is cleared while a tool is
+  open leaves the page writable, and the next write comes back `401 RQ7`, which each tool shows as its own
+  error. A client `DelegatingHandler` that sees `RQ7` on any request calls `StudioAccess.Forget()` and has the
+  shell re-ask, so every `Writes` control closes with the sign-in reason and the bar offers
+  `StudioAccess.SignInHref` back to the same page; the refused write says the session ended rather than
+  that saving failed. `docs/access.md`.
+
+  *Evidence: the author hit a sign-in error on pgmstudio.de while signed in, gone after a reload — a stale
+  cached caller over a session the server no longer had.*
+
 ## The remainder: work no concept above has claimed
 
 - [ ] **TE2 — Write `docs/tools/edit.md`.** The `TE` prefix obliges a document that does not exist. The region,

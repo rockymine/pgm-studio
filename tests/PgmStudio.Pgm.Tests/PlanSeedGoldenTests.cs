@@ -101,8 +101,8 @@ public sealed class PlanSeedGoldenTests
         await Assert.That(gotSpawns.SetEquals(wantSpawns)).IsTrue();
 
         await Assert.That(intent.Build!.MaxHeight).IsEqualTo(seed.Build!.MaxHeight);
-        var gotAreas = intent.Build!.Areas.Select(PlanTestSupport.R).ToHashSet();
-        var wantAreas = seed.Build!.Areas.Select(PlanTestSupport.R).ToHashSet();
+        var gotAreas = intent.Build!.Areas.Select(area => PlanTestSupport.R(area.Rect)).ToHashSet();
+        var wantAreas = seed.Build!.Areas.Select(area => PlanTestSupport.R(area.Rect)).ToHashSet();
         await Assert.That(gotAreas.SetEquals(wantAreas)).IsTrue();
 
         await Assert.That(PlanTestSupport.T(intent.Observer!.Point)).IsEqualTo(PlanTestSupport.T(seed.Observer!.Point));
