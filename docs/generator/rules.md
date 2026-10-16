@@ -688,33 +688,29 @@ disagree with the one that runs.
   the same rule, whether it stands beside a spawn room or alone on a piece that carries none: the
   cube fits inside the piece it rides or the marker resolves unplaceable (`WX9`) and nothing is
   stamped for it.
-- **ST4 [corpus; amendment 43]** *Pre-built wall*: 2 blocks thick, full seam width, **three courses of
-  bedrock** over the ground it crosses — measured from the surface the **relief solved**, not the surface
-  the plan drew the approach at — over solid bedrock down to y=0, capped by **one course of cobweb**. The
-  top is **one level across the whole run**, taken from the **highest** ground the wall crosses: a top that
-  followed the ground per column would step with it and read as a curved wall, and a top taken from the
-  average buries the wall wherever the ground rises past it. Ground that falls away along the seam therefore
-  leaves the wall taller at its low end, and past **four courses** there the export complains — a wall that
-  tall stops reading as a line to hold and becomes a blank face a team builds over rather than fights at. The web is part of the barrier, not decoration on it: it costs an
-  attacker who bridges the top real time to cross and is cut with the shears every kit carries,
-  which is what lets the stone itself be short enough that both halves of the lane still read as
-  one place. Corpus pattern (11 walls over 5 seeds): walls sit on **gentle seams** — every marked
-  interface has Δ ∈ {0, ±2} and border 10–15; nobody walls a cliff. Narrow seams are legal wall
-  carriers. Each wall carries a **defence chest** set into **one** face (`DefenseChest`): the
-  chest replaces the one bedrock block at the approach's ground level and the block above it is
-  carved to air so the lid opens — a niche, not a box in front of the wall. Only that one face is
-  opened, and the column **behind** each chest is left as bedrock, so a full vertical bedrock wall
-  still stands: breaking the chest meets bedrock, not a way through. **Which face opens is
-  derived**: the **approach** side, the one further from the wool, which is the same side the wall
-  already takes its height from. A wall is a place a defence is *built* — a few courses of bedrock
-  and a barricade raised on it out of what the chest holds — and both teams reach that line across
-  the ground the attack arrives over, so the supply opens away from the wool and is met on the way
-  to it rather than hidden behind the bedrock. `ContactGraph.WallChestPiece` answers it and the
-  compiler resolves it to a face per orbit image, a reflection swapping which face has the smaller
-  coordinate. One chest on a lane ≤ 10 wide, two on a
-  wider one, evenly spaced along it. A full 27-slot half-stack loadout each: dark-oak + spruce
-  planks and crafting tables to build with, end stone + a redstone block to reinforce, and two
-  Efficiency II iron pickaxes.
+- **ST4 [corpus; amendments 43, 58]** *Pre-built wall*: a line between two block corners, **2 blocks thick**
+  across it at any angle, **three courses of bedrock** over the ground it crosses — measured from the surface
+  the **relief solved**, not the surface the plan drew the approach at — over solid bedrock down to y=0, and
+  nothing over the bedrock. The top is **one level across the whole run**, taken from the **highest** ground
+  the wall crosses: a top that followed the ground per column would step with it and read as a curved wall,
+  and a top taken from the average buries the wall wherever the ground rises past it. Ground that falls away
+  along the run therefore leaves the wall taller at its low end, and past **four courses** there the export
+  complains — a wall that tall stops reading as a line to hold and becomes a blank face a team builds over
+  rather than fights at. A plan-compiled wall is the line down the middle of its seam's box, full seam
+  width. Corpus pattern (11 walls over 5 seeds): walls sit on **gentle seams** — every marked interface has
+  Δ ∈ {0, ±2} and border 10–15; nobody walls a cliff. Narrow seams are legal wall carriers.
+
+  A wall's supply is a **defence chest**, a marker of its own (`ChestMarker`, `DefenseChest`) standing on the
+  ground at one block and fronting one way. A compiled wall gets one on a lane ≤ 10 long and two on a longer
+  one, evenly spaced along it, each **one block out from one face**, fronting away from the wall; a chest
+  placed by hand beside a wall fronts away from it, and any chest turns a quarter at a time. **Which face is
+  derived**: the **approach** side, the one further from the wool, which is the same side the wall already
+  takes its height from. A wall is a place a defence is *built* — a few courses of bedrock and a barricade
+  raised on it out of what the chest holds — and both teams reach that line across the ground the attack
+  arrives over, so the supply stands away from the wool and is met on the way to it. `ContactGraph.WallChestPiece`
+  answers it and the compiler resolves it to a face per orbit image, a reflection swapping which face has the
+  smaller coordinate. A full 27-slot half-stack loadout each: dark-oak + spruce planks and crafting tables to
+  build with, end stone + a redstone block to reinforce, and two Efficiency II iron pickaxes.
 - **ST5 [author]** *Build-region outline*: the build region is marked in the world by an **unpowered
   redstone line at y=1**, one air block clear of the region — so two blocks out from its edge — and
   holding that same one-block clearance from terrain. Only the **void-facing** edges carry a line: an
@@ -1342,3 +1338,8 @@ same commit.
     the three floors it checked and could not state them in one text. `WL12` keeps the 16-block gap toward
     the front or another goal, `WL20` takes the 12-block gap toward a goal's own ground, and `LN6` the
     12-block floor of a hole touching no goal. Each check is unchanged.
+58. **`ST4`: a wall is a line of pure bedrock, and its chest a marker beside it (2026-10-16).** Author's call. A
+    wall stored as an axis-aligned box over a seam could run no other way, so it is a line between two block
+    corners, two blocks thick at any angle; its cobweb course is gone and it is bedrock to its top. Its chests
+    left the wall's face for markers of their own, one block out from that face, so a chest is placed, moved
+    and turned like any other piece. The height rule and the four-course cap are unchanged.

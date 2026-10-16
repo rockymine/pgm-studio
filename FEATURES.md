@@ -9442,6 +9442,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   structure and a wool's colour, in one body the plan inspector and the sketch both show (`ObjectiveFields`),
   written through `PATCH …/intent/pieces/{id}/settings` one setting at a time; what a unit shares every image
   takes. (`Pgm/Authoring/PlayPieceSettings`, `Client/Components/Editor/ObjectiveFields`, `docs/tools/sketch.md`)
+- **An approach wall is a line of bedrock at any angle, and its chest a marker (`WE167`).** A wall is two ends on
+  block corners, two blocks thick across its line (`Geom/WallLine`), bedrock to three courses over the highest
+  ground it crosses and nothing over it; a defence chest is a `ChestMarker` of its own, one block out from the
+  face the compile derives, fronting away from the wall. Layout drags a wall along a line and clicks a chest
+  down, and a chest turns. `M0079` carried every stored wall, current and recorded, into the line down its box
+  and its chests into markers. (`Pgm/Authoring/ApproachWalls`, `docs/generator/rules.md` ST4)
 - **A note's pin is a speech bubble (`TS184`).** It carries no number, in the column, on the picture and in
   History. (`Client/Features/Sketch/SketchNotesColumn`, `docs/tools/sketch.md`)
 - **A room's point is drawn, dragged and read in the sketch (`TS176`).** `GET …/intent/pieces` answers a spawn's

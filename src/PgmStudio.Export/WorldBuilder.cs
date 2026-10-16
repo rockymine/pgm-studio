@@ -114,6 +114,7 @@ public static class WorldBuilder
                 RedstoneLines = [.. structures.RedstoneLines.Select((l, i) => l with { Stamp = Seed(l.Stamp, "redstoneline", i) })],
                 IronCubes = [.. structures.IronCubes.Select((c, i) => c with { Stamp = Seed(c.Stamp, "ironcube", i) })],
                 Walls = [.. structures.Walls.Select((w, i) => w with { Stamp = Seed(w.Stamp, "wall", i) })],
+                Chests = [.. structures.Chests.Select((c, i) => c with { Stamp = Seed(c.Stamp, "chest", i) })],
             },
         };
     }
@@ -577,20 +578,22 @@ public static class WorldBuilder
         if (s is null) return said;
         foreach (var w in s.Walls)
         {
-            var top = StructureStamper.StampWall(world, surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.TopY);
-            DefenseChest.Stamp(world, surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.ChestOnMinFace);
+            var cells = w.Cells().ToList();
+            var top = StructureStamper.StampWall(world, surface, cells, w.TopY);
 
             // The wall's top is one level, taken from the highest ground it crosses, so ground that falls
             // away along the seam leaves it taller at the low end. Said once per wall, at the column a
             // player meets it tallest.
-            var proud = StructureStamper.WallCoursesProud(surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, top);
+            var proud = StructureStamper.WallCoursesProud(surface, cells, top);
             if (proud > RoomFrames.WallCoursesMax)
                 said.Add(new Finding(LayoutRules.WallHeight,
-                    $"approach wall '{w.Stamp.Unit}' from ({w.MinX}, {w.MinZ}) to ({w.MaxX - 1}, {w.MaxZ - 1}) "
+                    $"approach wall '{w.Stamp.Unit}' from ({w.X1}, {w.Z1}) to ({w.X2}, {w.Z2}) "
                     + $"stands {proud} blocks above the ground at its lowest column, "
                     + $"more than {RoomFrames.WallCoursesMax} blocks",
                     Severity.Complaint, Subjects: [w.Stamp.Unit]));
         }
+        foreach (var chest in s.Chests)
+            DefenseChest.Place(world, surface, chest.X, chest.Z, RoomEdges.OfWord(chest.Facing) ?? RoomEdge.PosZ);
         foreach (var ic in s.IronCubes)
             StructureStamper.StampIronCubeAt(world, surface, ic.MinX, ic.MinZ, RoomFrames.IronSpan);
         foreach (var line in s.RedstoneLines)
@@ -604,17 +607,10 @@ public static class WorldBuilder
     private static void ClaimStructures(WorldProvenance provenance, StructureIntent? s)
     {
         if (s is null) return;
-        for (var i = 0; i < s.Walls.Count; i++)
-        {
-            // The columns the stamp filled, from the stamper's own walk. Its footprint is max-EXCLUSIVE and
-            // ClaimRect's is max-inclusive, so a rect carried across by hand records a bedrock line a column
-            // thicker on each axis than the one a player meets — 26x3 in the sidecar for a 25x2 wall — and a
-            // wall's thickness is exactly what decides whether it can be built over.
-            var w = s.Walls[i];
-            provenance.Claim(
-                StructureStamper.WallCells(w.MinX, w.MinZ, w.MaxX, w.MaxZ),
-                ProvenancePass.Structure, w.Stamp);
-        }
+        foreach (var wall in s.Walls)
+            provenance.Claim(wall.Cells(), ProvenancePass.Structure, wall.Stamp);
+        foreach (var chest in s.Chests)
+            provenance.ClaimRect(chest.X, chest.Z, chest.X, chest.Z, ProvenancePass.Structure, chest.Stamp);
         for (var i = 0; i < s.IronCubes.Count; i++)
         {
             var cube = s.IronCubes[i];

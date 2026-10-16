@@ -166,9 +166,8 @@ cubes and approach walls. Iron is complete end to end and reachable only by hand
 never authors it**, so it exists on maps someone drew and on no map it composed. Approach walls the composer
 seats itself (`model.md` §5.14).
 
-Worth reading before touching it, because it settles a question MG26 raises elsewhere: the wall is two blocks
-thick so one face can be opened while the other stays solid, and which face carries its defence chests is
-authored as a **piece id** rather than a coordinate, precisely so it survives the orbit — a reflection swaps
+Worth reading before touching it, because it settles a question MG26 raises elsewhere: which face of the wall
+its defence chests stand beside is answered as a **piece id** rather than a coordinate, precisely so it survives the orbit — a reflection swaps
 which face has the smaller coordinate, and only the piece it looks out at is invariant. That is the pattern
 every fanned decision should follow.
 

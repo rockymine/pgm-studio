@@ -423,9 +423,9 @@ public static class RoomFrames
     /// marker rather than reading a size off it.</summary>
     public const int IronSpan = 3;
 
-    /// <summary>Courses of bedrock an approach wall stands above the ground it bars (ST4). Three, plus the
-    /// cobweb course the stamper caps it with — tall enough to stop a player walking or jumping the line,
-    /// short enough that both halves of the lane still read as one place.
+    /// <summary>Courses of bedrock an approach wall stands above the ground it bars (ST4). Three — tall enough to
+    /// stop a player walking or jumping the line, short enough that both halves of the lane still read as one
+    /// place.
     /// <para>It sits here rather than beside either user because both the plan compiler, which answers the
     /// wall's height before a world exists, and the stamper, which lays it over the ground the relief
     /// solved, measure from it — and a second <c>const</c> aliasing one that exists is two rules.</para>

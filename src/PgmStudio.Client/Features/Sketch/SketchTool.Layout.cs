@@ -47,6 +47,7 @@ public partial class SketchTool
             }
             : [],
         new(PlayPieceKinds.Wall, "Wall", Icon: PlanPalette.MarkerIcon("wall")),
+        new(PlayPieceKinds.Chest, "Defence chest", Icon: "box"),
     ];
 
     private Task StepDraw(int step)

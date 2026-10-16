@@ -204,50 +204,38 @@ public static class StructureStamper
                            BlockGeometry.Fronting(RoomEdge.PosZ));
     }
 
-    /// <summary>Raise a solid bedrock wall over a seam footprint from y=0 to <see cref="RoomFrames.WallCourses"/>
-    /// courses over the ground it crosses, and lay one course of cobweb over it (ST4). Footprint is
-    /// min-inclusive, max-exclusive; it is two blocks thick across the seam and spans the full shared-interface
-    /// width along it. The top it reached is returned, so a caller can say how tall the wall came out.
-    /// <para>The web is the wall's last course, not decoration on it: a bedrock line a team cannot break is
-    /// also a line they cannot see over, so an attacker who bridges to the top meets a course that costs time
-    /// to cross and can be cut away with the shears every kit carries. It is why the bedrock itself is short —
-    /// the barrier is three courses of stone and one of web, not five of stone.</para>
+    /// <summary>Raise a solid bedrock wall in <paramref name="cells"/> from y=0 to <see cref="RoomFrames.WallCourses"/>
+    /// courses over the ground they cross (ST4) — the columns of a wall's line (<c>WallLine.Cells</c>). The top it
+    /// reached is returned, so a caller can say how tall the wall came out.
     /// <para><b>The height comes from the ground the relief solved, not from the surface the plan drew.</b> A
     /// piece states one surface and the relief then lifts the ground under the seam by whatever its marks and
-    /// pushes say, and a wall measured from the plan's own number does not move with it — it is left under the
-    /// terrain it was meant to bar, with its defence chest standing correctly on the ground above it, because
-    /// the chest reads the solved surface and the wall did not. <paramref name="topY"/> is the plan tier's
-    /// answer and is used only where the surface has nothing to say about a column.</para>
+    /// pushes say, and a wall measured from the plan's own number does not move with it. <paramref name="topY"/>
+    /// is the plan tier's answer and is used only where the surface has nothing to say about a column.</para>
     /// <para><b>The top is one level across the whole run, and that level is the highest ground the wall
-    /// crosses.</b> A top that followed the ground per column would step with it and read as a curved wall,
-    /// which is not how a map is built; a top taken from the average buries the wall wherever the ground rises
-    /// past it, which is the fault this measures from in the first place. The highest is the only level that
-    /// is both straight and never under the terrain.</para></summary>
+    /// crosses.</b> A top that followed the ground per column would step with it and read as a curved wall; a top
+    /// taken from the average buries the wall wherever the ground rises past it. The highest is the only level
+    /// that is both straight and never under the terrain.</para></summary>
     public static int StampWall(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
-        int minX, int minZ, int maxX, int maxZ, int topY)
+        IReadOnlyCollection<(int X, int Z)> cells, int topY)
     {
-        var top = WallTop(surfaceTop, minX, minZ, maxX, maxZ, topY);
-        foreach (var (x, z) in WallCells(minX, minZ, maxX, maxZ))
-        {
+        var top = WallTop(surfaceTop, cells, topY);
+        foreach (var (x, z) in cells)
             for (var y = 0; y <= top; y++) world.SetBlock(x, y, z, Blocks.Bedrock);
-            if (top + 1 < VoxelWorld.MaxHeight) world.SetBlock(x, top + 1, z, Blocks.Cobweb);
-        }
         return top;
     }
 
     /// <summary>The course an approach wall's bedrock tops out at: <see cref="RoomFrames.WallCourses"/> over
-    /// the highest ground its footprint crosses, with <paramref name="topY"/> — the plan tier's own answer —
-    /// as the fallback where the surface has nothing to say about it.
-    /// <para>It is a method rather than two copies of one sum because the plan preview draws the same wall
-    /// the stamper lays, and a preview that answered a different height would draw a board that is not the
-    /// one being built.</para></summary>
+    /// the highest ground its columns cross, with <paramref name="topY"/> — the plan tier's own answer — as the
+    /// fallback where the surface has nothing to say about them. The plan preview draws the wall from it too, so
+    /// the preview and the stamp answer one height.</summary>
     public static int WallTop(
-        IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int minX, int minZ, int maxX, int maxZ, int topY)
+        IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IEnumerable<(int X, int Z)> cells, int topY)
     {
-        // Max-exclusive footprint against SurfaceYOver's max-inclusive one.
-        var standing = PositionSnap.SurfaceYOver(
-            surfaceTop, minX, minZ, maxX - 1, maxZ - 1, topY - RoomFrames.WallCourses + 1);
+        var standing = int.MinValue;
+        foreach (var cell in cells)
+            if (surfaceTop.TryGetValue(cell, out var t) && t > standing) standing = t;
+        if (standing == int.MinValue) standing = topY - RoomFrames.WallCourses + 1;
         return Math.Clamp(standing + RoomFrames.WallCourses - 1, 0, VoxelWorld.MaxHeight - 1);
     }
 
@@ -255,24 +243,11 @@ public static class StructureStamper
     /// lowest ground along its own run — the number ST4 caps, and the one a player at the low end meets.
     /// Answers <see cref="RoomFrames.WallCourses"/> on a seam whose ground is level.</summary>
     public static int WallCoursesProud(
-        IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int minX, int minZ, int maxX, int maxZ, int top)
+        IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IEnumerable<(int X, int Z)> cells, int top)
     {
         var lowest = int.MaxValue;
-        foreach (var cell in WallCells(minX, minZ, maxX, maxZ))
+        foreach (var cell in cells)
             if (surfaceTop.TryGetValue(cell, out var t) && t < lowest) lowest = t;
         return lowest == int.MaxValue ? RoomFrames.WallCourses : top - lowest + 1;
-    }
-
-    /// <summary>The columns <see cref="StampWall"/> fills, for a caller recording what it covered — the same
-    /// reason <see cref="FoundationCells"/> and <see cref="RedstoneLineCells"/> exist. The footprint is
-    /// <b>max-exclusive</b> and a provenance rect is max-inclusive, so a wall whose bounds are carried across
-    /// by hand is recorded a column wider than it is built on each axis, and every read that trusts the
-    /// sidecar draws a bedrock line thicker than it plays — which is exactly what decides whether it can be
-    /// built over.</summary>
-    public static IEnumerable<(int X, int Z)> WallCells(int minX, int minZ, int maxX, int maxZ)
-    {
-        for (var x = minX; x < maxX; x++)
-        for (var z = minZ; z < maxZ; z++)
-            yield return (x, z);
     }
 }

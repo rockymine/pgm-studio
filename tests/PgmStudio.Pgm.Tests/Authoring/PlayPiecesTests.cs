@@ -34,7 +34,8 @@ public sealed class PlayPiecesTests
         Structures = new StructureIntent
         {
             IronCubes = [new IronCube(70, 5, true, Id: "iron-1")],
-            Walls = [new WallStructure(80, 0, 82, 8, 20, Id: "wall-1")],
+            Walls = [new WallStructure(81, 0, 81, 8, 20, Id: "wall-1")],
+            Chests = [new ChestMarker(79, 4, "-x", Id: "chest-1")],
         },
         Observer = new ObserverIntent { Point = new Pt(50.5, 30, 50.5) },
     };

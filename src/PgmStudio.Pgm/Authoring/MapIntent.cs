@@ -206,11 +206,14 @@ public sealed record StructureIntent
     /// unplaceable and is not here at all (WX9).</summary>
     public List<IronCube> IronCubes { get; init; } = new();
 
-    /// <summary>Pre-built bedrock approach walls over a wool-lane interface seam (ST4).</summary>
+    /// <summary>Pre-built bedrock approach walls (ST4).</summary>
     public List<WallStructure> Walls { get; init; } = new();
 
+    /// <summary>Defence chests, each standing at its own block (ST4).</summary>
+    public List<ChestMarker> Chests { get; init; } = new();
+
     /// <summary>True when every directive list is empty (no structures to stamp).</summary>
-    public bool IsEmpty => RedstoneLines.Count == 0 && IronCubes.Count == 0 && Walls.Count == 0;
+    public bool IsEmpty => RedstoneLines.Count == 0 && IronCubes.Count == 0 && Walls.Count == 0 && Chests.Count == 0;
 }
 
 /// <summary>An entrance redstone line: a straight wire row between the two block ends (inclusive), a torch at
@@ -238,30 +241,37 @@ public readonly record struct RedstoneLine(int X1, int Z1, int X2, int Z2, Stamp
 [method: JsonConstructor]
 public readonly record struct IronCube(int MinX, int MinZ, bool Renew, StampId Stamp = default, string Id = "");
 
-/// <summary>A pre-built bedrock approach wall: a min-inclusive/max-exclusive footprint (two thick across the
-/// seam, full interface width along it) rising from y=0 up to <see cref="TopY"/> inclusive, capped by one
-/// course of cobweb (ST4).
-/// <para><see cref="ChestOnMinFace"/> picks which of the wall's two faces its defence chests are set into —
-/// the low-coordinate one across the seam, or the high one. The wall is two blocks thick precisely so one
-/// face can be opened while the other stays solid bedrock, and which face that is decides which team can
-/// reach the supply, so it is authored (<c>PlanWall.Side</c>) rather than left to whichever piece happened to
-/// have the smaller coordinate. Recomputed per orbit image, because a reflection swaps the two faces.</para>
-/// </summary>
-/// <param name="MinX">Its west edge, inclusive.</param>
-/// <param name="MinZ">Its north edge, inclusive.</param>
-/// <param name="MaxX">Its east edge, exclusive.</param>
-/// <param name="MaxZ">Its south edge, exclusive.</param>
-/// <param name="TopY">The height it rises to, inclusive.</param>
-/// <param name="ChestOnMinFace">Which of the wall's two faces its defence chests are set into — the
-/// low-coordinate one across the seam, or the high one. The wall is two blocks thick precisely so one face
-/// can be opened while the other stays solid, and which face that is decides which team can reach the
-/// supply. Recomputed per orbit image, since a reflection swaps the two.</param>
+/// <summary>A pre-built bedrock approach wall: a line between two block corners, <see cref="WallLine.Thickness"/>
+/// blocks thick across it at any angle, rising from y=0 up to <see cref="TopY"/> inclusive (ST4). Its columns are
+/// <see cref="WallLine.Cells"/>.</summary>
+/// <param name="X1">One end, east–west, on a block corner.</param>
+/// <param name="Z1">That end, north–south.</param>
+/// <param name="X2">The other end, east–west.</param>
+/// <param name="Z2">That end, north–south.</param>
+/// <param name="TopY">The height it rises to where the ground under it has nothing to say, inclusive.</param>
 /// <param name="Stamp">Which stamping of the structure this is.</param>
 /// <param name="Id">The piece's id, which the piece route finds it by.</param>
 [method: JsonConstructor]
 public readonly record struct WallStructure(
-    int MinX, int MinZ, int MaxX, int MaxZ, int TopY, bool ChestOnMinFace = true, StampId Stamp = default,
-    string Id = "");
+    int X1, int Z1, int X2, int Z2, int TopY, StampId Stamp = default, string Id = "")
+{
+    /// <summary>The columns the wall stands in.</summary>
+    public IEnumerable<(int X, int Z)> Cells() => WallLine.Cells(X1, Z1, X2, Z2);
+
+    /// <summary>The block rectangle those columns span.</summary>
+    public BlockRect Bounds() => WallLine.Bounds(X1, Z1, X2, Z2);
+}
+
+/// <summary>A defence chest standing on the ground at one block, fronting <see cref="Facing"/>: the supply an
+/// approach wall's attackers or defenders take building blocks from (ST4).</summary>
+/// <param name="X">The block it stands in, east–west.</param>
+/// <param name="Z">That block, north–south.</param>
+/// <param name="Facing">The way its lid opens toward, as an edge word (<c>-z</c>, <c>+z</c>, <c>-x</c>,
+/// <c>+x</c>).</param>
+/// <param name="Stamp">Which stamping of the structure this is.</param>
+/// <param name="Id">The piece's id, which the piece route finds it by.</param>
+[method: JsonConstructor]
+public readonly record struct ChestMarker(int X, int Z, string Facing, StampId Stamp = default, string Id = "");
 
 /// <summary>The confirmed map symmetry: a <see cref="Mode"/> (<c>mirror_x</c>/<c>mirror_z</c>/
 /// <c>mirror_d1</c>/<c>mirror_d2</c>/<c>rot_180</c>/<c>rot_90</c>) about the centre (<see cref="CenterX"/>,

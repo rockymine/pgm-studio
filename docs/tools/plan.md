@@ -367,10 +367,10 @@ does — a step, a drop, a cliff — is decided by the ground: a plan states a s
 carves the rest, and what happens where two surfaces meet follows from them rather than from a mark.
 
 `walls` marks a pair whose interface carries a pre-built approach
-wall: a bedrock barrier two blocks thick and three courses tall across the full interface width, stamped on
-the attack side, which slows a wool raid and gives the defence a prepared line. Which of its two faces carries
-the defence chests is **not authored**: the wall is two blocks thick so exactly one face can be opened, and it
-is the **approach** face — the side further from the wool, which is the side both teams reach the line across.
+wall: a bedrock barrier two blocks thick and three courses tall down the middle of the interface, its full
+width, which slows a wool raid and gives the defence a prepared line. The compile stands its defence chests one
+block out from one face, and which face is **not authored**: it is the **approach** face — the side further
+from the wool, which is the side both teams reach the line across.
 
 The wall's top is one level, three courses over the **highest** solved ground along its run. Per column it
 would step with the terrain and read as a curve, and from the average it would be buried wherever the ground

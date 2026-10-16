@@ -743,8 +743,10 @@ piece is picked, dragged and turned the same way; only Layout adds or deletes on
 
 **Layout's dock is the plan editor's three families.** *Pieces* places a spawn piece or a wool room, *Zones* a
 build area or a water lane — each dragged out as a rectangle, the size it is drawn at — and *Markers* puts down
-an iron marker, a destroyable or a core with a click, centred on the block clicked, or drags out a wall, held to 2
-blocks across its thinner side. A destroyable and a core are offered at two teams only, as the plan offers them.
+an iron marker, a destroyable, a core or a defence chest with a click, centred on the block clicked, or drags out a
+wall along the line from the block the drag starts at to the one it ends at, two blocks thick at whatever angle
+that runs. A chest placed beside a wall fronts away from it, and its rail turns it a quarter at a time. A
+destroyable and a core are offered at two teams only, as the plan offers them.
 Each writes through `POST /map/{slug}/intent/pieces`, which places the piece and every image the symmetry draws
 of it (`PlayPieceAdd`): a spawn goes to the first team that has none and faces the middle of the board, a team's
 first wool takes its colour and every later one the next dye no wool on the board has, and a goal takes the
@@ -2206,8 +2208,8 @@ Every endpoint is rooted at `/api`; a read is open to anyone and a write needs s
 |---|---|---|---|
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`, whose layout is a **ground layer** at `base_y` 0 under the id `ground`. A frame seeds the `setup` beside it, and `mode` is any `SymmetryModes` word, `none` included, with anything else read as `rot_180`; without a frame the editor uses its 120×80 `rot_180` default. A board is a stack and a flat one is a stack of one, so the ground is written here rather than invented by whichever surface draws on the board first | — |
 | `GET /map/{slug}/sketch` | — | the stored layout with the map's rooms drawn in from the intent, or `{}`. The `ETag` is the revision to state on the next write | 404 |
-| `GET /map/{slug}/intent/pieces` | — | `[{id, kind, color, minX, minZ, maxX, maxZ, carried}]` — every play piece where the sketch draws it, at the rectangle `PATCH …/intent/pieces/{id}` reads it as standing on; `carried` marks an image the intent does not store and an iron cube seated in a spawn room; a room's point is `{room}-marker` | 404 |
-| `POST /map/{slug}/intent/pieces` | `{kind, minX, minZ, maxX, maxZ, team?}` — a room's or an area's rectangle, a wall's 2-thick one, or the block a goal, a cube or the observer stands on | `{id}` — the authored image's id; the piece is stored with every image the symmetry draws of it | **400 `RQ1`** an unknown kind, a rectangle with no area, a wall not 2 blocks thick, a team the map lacks or that has a spawn, a spawn where every team has one, a second observer · 404 · **409 `RQ5`** a stale `If-Match` or a region the map already names · 422 |
+| `GET /map/{slug}/intent/pieces` | — | `[{id, kind, color, minX, minZ, maxX, maxZ, carried, line?}]` — every play piece where the sketch draws it, at the rectangle `PATCH …/intent/pieces/{id}` reads it as standing on; `carried` marks an image the intent does not store and an iron cube seated in a spawn room; a room's point is `{room}-marker`; a wall's rectangle spans its columns and `line` is its two ends `[x1, z1, x2, z2]` | 404 |
+| `POST /map/{slug}/intent/pieces` | `{kind, minX, minZ, maxX, maxZ, team?}` — a room's or an area's rectangle, or the block a goal, a cube, a chest or the observer stands on; a wall states `{kind, ends: [x1, z1, x2, z2]}`, its two ends on block corners, in place of the rectangle | `{id}` — the authored image's id; the piece is stored with every image the symmetry draws of it | **400 `RQ1`** an unknown kind, a rectangle with no area, a wall stating a rectangle or two ends at one point, a team the map lacks or that has a spawn, a spawn where every team has one, a second observer · 404 · **409 `RQ5`** a stale `If-Match` or a region the map already names · 422 |
 | `PATCH /map/{slug}/intent/pieces/{id}/settings` | `{key, text?, number?, flag?, alone?}` — `key` one of `name`, `color`, `style`, `materials`, `float`, `lava`, `lavaHeight`, `openTop`, `leak`, `facing`; `text` for a name, colour, design or material, `number` for the rest and for a facing's quarter turns clockwise, `flag` for `openTop`; none of the three puts it back to its default | `{}` — the setting stored, on every image of the unit for what a unit shares | **400 `RQ1`** a setting the piece's kind lacks, or a value it cannot take · **404 `RQ4`** the id names no piece · 409 · 422 |
 | `DELETE /map/{slug}/intent/pieces/{id}` | `?alone=true` to keep the other images | `{}` — the piece and every image of its unit taken out of the intent | **400 `RQ1`** a room's point, which goes with its room · **404 `RQ4`** the id names no piece · 409 · 422 |
 | `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick, but for the rooms: a room shape is stored as its `rooms` record and its rectangle is dropped; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
@@ -2623,7 +2625,8 @@ or shape patch on one is refused, and a recompile places them from the plan agai
 the plan tool draws it, so the two tools show one rectangle rather than each showing its own.
 
 **Every other play piece is drawn too, from `GET /map/{slug}/intent/pieces`**: each destroyable and core at its
-structure's footprint, each build area, water lane, iron cube and approach wall at its rectangle, and the
+structure's footprint, each build area, water lane and iron cube at its rectangle, each approach wall as the
+band two blocks thick along its line, each defence chest at its block, and the
 observer at the block it stands in, and each room's point — where a spawn's team arrives (`spawnPoint`) and where
 a wool is dispensed (`woolSpawn`) — at the block-wide square centred on it, its id the room's with `-marker` after
 it, in the colour the plan tool draws the same thing in (`PlayPieces`). Unlike a

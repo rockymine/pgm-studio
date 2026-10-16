@@ -14,7 +14,8 @@ namespace PgmStudio.Pgm.Authoring;
 /// turn and delete together. A build area or a water lane carries no stamp, and its images are the areas the
 /// symmetry carries it onto.</para>
 ///
-/// <para><b>A room or an area is the rectangle drawn; a goal, a cube and the observer are a point.</b> A spawn
+/// <para><b>A room or an area is the rectangle drawn; a goal, a cube, a chest and the observer are a point, and a
+/// wall is a line between two ends (<see cref="Wall"/>).</b> A chest fronts away from a wall beside it. A spawn
 /// faces the middle of the board and opens its door on that side; a team's first wool takes its colour and
 /// every later one the next dye no wool on the board has; a goal takes the default structure, centred on the
 /// block the point is in. The symmetry is the intent's, or where it states none the board's.</para>
@@ -33,6 +34,8 @@ public static class PlayPieceAdd
         var owner = team ?? teams.FirstOrDefault()?.Id ?? "";
         if (team is not null && teams.All(listed => listed.Id != team))
             return Refuse(RequestRules.Unreadable, "team", $"the map has no team '{team}'");
+        if (kind == PlayPieceKinds.Wall)
+            return Refuse(RequestRules.Unreadable, "kind", "a wall is placed by its two ends, not a rectangle");
         if (placed.MaxX <= placed.MinX || placed.MaxZ <= placed.MinZ)
             return Refuse(RequestRules.Unreadable, "placed", "the placed rectangle has no area");
 
@@ -127,29 +130,19 @@ public static class PlayPieceAdd
                 added = intent with { Structures = structures with { IronCubes = [.. structures.IronCubes, .. cubes] } };
                 break;
             }
-            case PlayPieceKinds.Wall:
+            case PlayPieceKinds.Chest:
             {
                 var structures = intent.Structures ?? new StructureIntent();
-                var span = (X: placed.MaxX - placed.MinX, Z: placed.MaxZ - placed.MinZ);
-                if (span.X != 2 && span.Z != 2)
-                    return Refuse(RequestRules.Unreadable, "placed",
-                        $"the placed wall is {span.X:0.#} by {span.Z:0.#} blocks, and a wall is 2 blocks thick");
-                stamp = new StampId("wall", Unit(structures.Walls.Select(wall => wall.Stamp), "wall"), 0);
-                var thinX = span.X == 2;
-                // The stamper levels a wall on the highest ground it crosses; the stated top answers only where no ground
-                // does, so it is the one the walls already standing state, or a wall's courses over the nominal ground.
-                var top = structures.Walls.Count > 0 ? structures.Walls[0].TopY : RoomFrames.WallCourses - 1;
-                var walls = Images(placed, symmetry).Select((image, k) =>
+                stamp = new StampId("chest", Unit(structures.Chests.Select(chest => chest.Stamp), "chest"), 0);
+                var (x, z) = ((int)Math.Floor(cx), (int)Math.Floor(cz));
+                var (fx, fz) = AwayFromWall(structures.Walls, x, z);
+                var chests = Images(new Rect(x, z, x + 1, z + 1), symmetry).Select((image, k) =>
                 {
-                    // The chest face is the low one on the authored wall; an image's is whichever its outward
-                    // normal is carried onto.
-                    var (nx, nz) = k == 0 || symmetry is null ? (thinX ? -1.0 : 0, thinX ? 0 : -1.0)
-                        : Symmetry.Point(thinX ? -1 : 0, thinX ? 0 : -1, symmetry.Mode, 0, 0, k);
-                    var imageThinX = image.MaxX - image.MinX == 2;
-                    return new WallStructure((int)image.MinX, (int)image.MinZ, (int)image.MaxX, (int)image.MaxZ, top,
-                        ChestOnMinFace: (imageThinX ? nx : nz) < 0, Stamp: stamp.At(k));
+                    var (ix, iz) = k == 0 || symmetry is null ? (fx, fz) : Symmetry.Point(fx, fz, symmetry.Mode, 0, 0, k);
+                    var facing = RoomEdges.Nearest(((int)Math.Round(ix), (int)Math.Round(iz)), RoomEdges.All)!.Value.Word();
+                    return new ChestMarker((int)image.MinX, (int)image.MinZ, facing, stamp.At(k));
                 });
-                added = intent with { Structures = structures with { Walls = [.. structures.Walls, .. walls] } };
+                added = intent with { Structures = structures with { Chests = [.. structures.Chests, .. chests] } };
                 break;
             }
             case PlayPieceKinds.Observer:
@@ -208,6 +201,9 @@ public static class PlayPieceAdd
             if (structures.Walls.Any(wall => wall.Id == id))
                 return (intent with { Structures = structures with
                     { Walls = Without(structures.Walls, wall => wall.Id, wall => wall.Stamp) } }, Findings.None);
+            if (structures.Chests.Any(chest => chest.Id == id))
+                return (intent with { Structures = structures with
+                    { Chests = Without(structures.Chests, chest => chest.Id, chest => chest.Stamp) } }, Findings.None);
         }
         if (id == PlayIds.Observer && intent.Observer is not null)
             return (intent with { Observer = null }, Findings.None);
@@ -217,6 +213,45 @@ public static class PlayPieceAdd
                 $"'{id}' is a room's marker, which goes with its room", Field: "id", Subjects: [id])));
         return (null, Findings.Of(new Finding(RequestRules.NoSuchSubject,
             $"the map has no play piece with the id '{id}'", Field: "id", Subjects: [id])));
+    }
+
+    /// <summary>The intent with an approach wall added from (<paramref name="x1"/>, <paramref name="z1"/>) to
+    /// (<paramref name="x2"/>, <paramref name="z2"/>), block corners, and every image the symmetry draws of it,
+    /// and the id of the authored image; or the findings that stopped it and a null intent.</summary>
+    public static (MapIntent? Intent, string Id, Findings Refused) Wall(
+        MapIntent intent, int x1, int z1, int x2, int z2, SymmetryIntent? board = null)
+    {
+        if (x1 == x2 && z1 == z2) return Refuse(RequestRules.Unreadable, "ends", "the wall's two ends are one point");
+        var symmetry = intent.Symmetry ?? board;
+        var structures = intent.Structures ?? new StructureIntent();
+        var stamp = new StampId("wall", Unit(structures.Walls.Select(wall => wall.Stamp), "wall"), 0);
+        // The stamper levels a wall on the highest ground it crosses; the stated top answers only where no ground
+        // does, so it is the one the walls already standing state, or a wall's courses over the nominal ground.
+        var top = structures.Walls.Count > 0 ? structures.Walls[0].TopY : RoomFrames.WallCourses - 1;
+        var walls = new List<WallStructure> { new(x1, z1, x2, z2, top, stamp) };
+        for (var step = 1; symmetry is not null && step < Symmetry.Order(symmetry.Mode); step++)
+        {
+            var (ax, az) = Symmetry.Point(x1, z1, symmetry.Mode, symmetry.CenterX, symmetry.CenterZ, step);
+            var (bx, bz) = Symmetry.Point(x2, z2, symmetry.Mode, symmetry.CenterX, symmetry.CenterZ, step);
+            var image = new WallStructure((int)Math.Round(ax), (int)Math.Round(az), (int)Math.Round(bx), (int)Math.Round(bz),
+                                          top, stamp.At(step));
+            if (walls.All(standing => !SameLine(standing, image))) walls.Add(image);
+        }
+        var added = intent with { Structures = structures with { Walls = [.. structures.Walls, .. walls] } };
+        return Named(added, named => named.Structures!.Walls.First(wall => wall.Stamp == stamp).Id);
+    }
+
+    private static bool SameLine(WallStructure a, WallStructure b) =>
+        (a.X1, a.Z1, a.X2, a.Z2) == (b.X1, b.Z1, b.X2, b.Z2) || (a.X1, a.Z1, a.X2, a.Z2) == (b.X2, b.Z2, b.X1, b.Z1);
+
+    /// <summary>The way a chest placed at (<paramref name="x"/>, <paramref name="z"/>) fronts: away from the wall
+    /// whose columns lie next to it, or south where none does.</summary>
+    private static (double X, double Z) AwayFromWall(IEnumerable<WallStructure> walls, int x, int z)
+    {
+        foreach (var wall in walls)
+            foreach (var (wx, wz) in wall.Cells())
+                if (Math.Abs(wx - x) + Math.Abs(wz - z) == 1) return (x - wx, z - wz);
+        return (0, 1);
     }
 
     /// <summary>The rectangle and each image the symmetry carries it onto that is not the same rectangle, the
@@ -291,7 +326,7 @@ public static class PlayPieceAdd
         PlayPieceKinds.Destroyable => intent.Destroyables!.First(goal => goal.Stamp == stamp).Id,
         PlayPieceKinds.Core => intent.Cores!.First(core => core.Stamp == stamp).Id,
         PlayPieceKinds.IronCube => intent.Structures!.IronCubes.First(cube => cube.Stamp == stamp).Id,
-        _ => intent.Structures!.Walls.First(wall => wall.Stamp == stamp).Id,
+        _ => intent.Structures!.Chests.First(chest => chest.Stamp == stamp).Id,
     };
 
     private static (MapIntent? Intent, string Id, Findings Refused) Named(MapIntent added, Func<MapIntent, string> idOf)

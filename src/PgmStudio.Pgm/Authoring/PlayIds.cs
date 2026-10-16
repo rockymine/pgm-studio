@@ -5,13 +5,13 @@ namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
 /// The id every play piece of an intent carries: a spawn, a wool, a destroyable, a core, a build area, a water
-/// lane, an iron cube and an approach wall. A piece is
+/// lane, an iron cube, an approach wall and a defence chest. A piece is
 /// addressed by it wherever one piece is meant — a sketch selection, a move, a place that holds it — so it is
 /// stated once and kept through every edit.
 ///
 /// <para>A piece stored without one is given one from what names it: <c>spawn-{team}</c>,
 /// <c>wool-{owner}-{colour}</c>, <c>destroyable-{owner}</c>, <c>core-{owner}</c>, the same words the sketch
-/// names a room's shape by, and <c>build-{n}</c>, <c>water-lane-{n}</c>, <c>iron-{n}</c>, <c>wall-{n}</c> by
+/// names a room's shape by, and <c>build-{n}</c>, <c>water-lane-{n}</c>, <c>iron-{n}</c>, <c>wall-{n}</c>, <c>chest-{n}</c> by
 /// position in their list, with <c>-2</c>, <c>-3</c>… where two pieces would share one. An id the intent
 /// already states is kept as stated. The observer is the one piece of its kind and is <see cref="Observer"/>, and a
 /// room's marker is the room's id with <c>-marker</c> after it.</para>
@@ -66,6 +66,7 @@ public static class PlayIds
                 {
                     IronCubes = [.. structures.IronCubes.Select((cube, at) => cube with { Id = Mint(cube.Id, $"iron-{at + 1}") })],
                     Walls = [.. structures.Walls.Select((wall, at) => wall with { Id = Mint(wall.Id, $"wall-{at + 1}") })],
+                    Chests = [.. structures.Chests.Select((chest, at) => chest with { Id = Mint(chest.Id, $"chest-{at + 1}") })],
                 }
                 : null,
         };
@@ -106,6 +107,8 @@ public static class PlayIds
             yield return (intent.Structures!.IronCubes[at].Id, $"structures.ironCubes[{at}].id");
         for (var at = 0; at < (intent.Structures?.Walls.Count ?? 0); at++)
             yield return (intent.Structures!.Walls[at].Id, $"structures.walls[{at}].id");
+        for (var at = 0; at < (intent.Structures?.Chests.Count ?? 0); at++)
+            yield return (intent.Structures!.Chests[at].Id, $"structures.chests[{at}].id");
         if (intent.Observer is not null) yield return (Observer, "observer");
     }
 }

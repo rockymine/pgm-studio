@@ -10,16 +10,12 @@ namespace PgmStudio.Minecraft.Stamping;
 /// the tools to place it — planks and crafting tables to wall up, end stone and a redstone block to reinforce,
 /// and a pair of Efficiency pickaxes to cut back through when the line moves.
 ///
-/// <para>It sits at <b>two</b> places, and both are ground a team holds. A bedrock approach wall (ST4) takes one
-/// or two set into a single face: the wall is a team's line, and a chest at it turns a bare slab into a place a
-/// defence is built. A goal takes one on the ground beside the monument a team is defending — on the terrain,
-/// not in the bedrock plate buried under it, which is three courses down and out of sight.</para>
+/// <para>It sits at <b>two</b> places, and both are ground a team holds. A defence chest marker (ST4) stands one
+/// on the ground where it is placed, beside the approach wall it serves; a goal takes one on the ground beside
+/// the monument a team is defending — on the terrain, not in the bedrock plate buried under it.</para>
 ///
-/// <para><c>Embed</c> is what both go through, and the niche is the same at either: the chest replaces one
-/// block and the block over it is carved to air so the lid opens, since a solid block directly above a chest
-/// blocks it. Nothing else is touched — at the wall the column behind the chest stays bedrock and so does the
-/// whole far face, so a full vertical bedrock wall still stands: break the chest and meet bedrock, not a way
-/// through.</para>
+/// <para><c>Embed</c> is what both go through: the chest replaces one block and the block over it is carved to
+/// air so the lid opens, since a solid block directly above a chest blocks it.</para>
 /// </summary>
 public static class DefenseChest
 {
@@ -31,57 +27,14 @@ public static class DefenseChest
     private const int DarkOakPlanks = 5;     // minecraft:planks damage — dark oak
     private const int SprucePlanks = 1;      // minecraft:planks damage — spruce
 
-    /// <summary>A lane this wide or narrower carries one chest; a wider one carries two.</summary>
-    public const int SingleChestMaxLane = 10;
-
-    /// <summary>Set one or two defence chests into a single face of a bedrock approach wall over <c>[minX, maxX) × [minZ, maxZ)</c>,
-    /// resting at the approach's own ground level. The wall is thin across the seam and long along it (the lane);
-    /// the number of chests follows the lane width, and only one face is opened so a full bedrock wall stands
-    /// behind them. <paramref name="onMinFace"/> is which face that is — the low-coordinate side across the seam,
-    /// or the high one — and it is the map's answer to which team the supply is for. A wall thinner than two
-    /// blocks across is left whole: there would be no bedrock to back a chest with.</summary>
-    public static void Stamp(
-        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
-        int minX, int minZ, int maxX, int maxZ, bool onMinFace)
+    /// <summary>Set a defence chest on the ground at (<paramref name="x"/>, <paramref name="z"/>), fronting the
+    /// edge <paramref name="facing"/> names: it rests on that column's solved surface, so it is reached from the
+    /// ground however the terrain runs under it.</summary>
+    public static void Place(
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int x, int z, RoomEdge facing)
     {
-        if (maxX <= minX || maxZ <= minZ) return;
-
-        var thinAlongX = maxX - minX <= maxZ - minZ;
-        var thickness = thinAlongX ? maxX - minX : maxZ - minZ;
-        if (thickness < 2) return;   // one block thick — a chest anywhere would breach it, so place none
-
-        var laneWidth = thinAlongX ? maxZ - minZ : maxX - minX;
-        var count = laneWidth <= SingleChestMaxLane ? 1 : 2;
-
-        // One face only, so the other face and the column behind each chest stay solid. A chest fronts the
-        // approach it serves: outward from the wall, away from the seam.
-        if (thinAlongX)
-            foreach (var z in Positions(minZ, laneWidth, count))
-                Embed(world, surfaceTop, onMinFace ? minX : maxX - 1, z, dirX: onMinFace ? -1 : 1, dirZ: 0);
-        else
-            foreach (var x in Positions(minX, laneWidth, count))
-                Embed(world, surfaceTop, x, onMinFace ? minZ : maxZ - 1, dirX: 0, dirZ: onMinFace ? -1 : 1);
-    }
-
-    // Where the chests sit along the lane: evenly spaced, so one lands mid-wall and two split it into thirds.
-    private static IEnumerable<int> Positions(int lo, int length, int count)
-    {
-        for (var i = 0; i < count; i++) yield return lo + (int)((long)(i + 1) * length / (count + 1));
-    }
-
-    // Set a chest into the face column (faceX, faceZ), fronting the approach (the direction dirX/dirZ points).
-    // It sits at the approach's ground Y, so it is reached from the ground rather than from the middle of the
-    // wall. Only this column is touched, so the column behind it (deeper into the wall) stays bedrock.
-    private static void Embed(
-        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
-        int faceX, int faceZ, int dirX, int dirZ)
-    {
-        // The approach column is one block out from the face; its first air is the Y a player stands on.
-        var groundTop = surfaceTop.TryGetValue((faceX + dirX, faceZ + dirZ), out var outside)
-            ? outside
-            : surfaceTop.GetValueOrDefault((faceX, faceZ), 1);
-        if (groundTop < 1 || groundTop >= VoxelWorld.MaxHeight - 1) return;
-        Embed(world, faceX, groundTop, faceZ, BlockGeometry.Fronting(RoomEdges.Nearest((dirX, dirZ), RoomEdges.All)!.Value));
+        if (!surfaceTop.TryGetValue((x, z), out var groundTop)) groundTop = 1;
+        Embed(world, x, groundTop, z, BlockGeometry.Fronting(facing));
     }
 
     /// <summary>Set one chest at <paramref name="x"/>/<paramref name="y"/>/<paramref name="z"/>, facing

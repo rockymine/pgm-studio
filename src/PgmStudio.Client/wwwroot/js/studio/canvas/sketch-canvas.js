@@ -756,6 +756,7 @@ export class SketchCanvas extends CanvasBase {
       if (!piece) return;
       piece.min_x += dx; piece.max_x += dx;
       piece.min_z += dz; piece.max_z += dz;
+      if (piece.line) piece.line = [piece.line[0] + dx, piece.line[1] + dz, piece.line[2] + dx, piece.line[3] + dz];
       this.#paintWorld();
       return;
     }

@@ -56,6 +56,7 @@ const PIECE_FILL = {
   buildArea:   { color: "var(--accent)", alpha: 0.12, dash: [6, 4] },
   waterLane:   { color: "var(--canvas-zone-water-lane)", alpha: 0.3 },
   wall:        { color: "var(--canvas-seam-wall)", alpha: 0.85 },
+  chest:       { color: OBJECTIVE_COLORS.wool, alpha: 0.85 },
 };
 
 /**
@@ -78,16 +79,23 @@ export function paintStructural(painter, shapes, selectedId = null) {
     const box = { min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z };
     // The ring goes outside whatever the piece draws for itself, in the selection ink every other picked
     // thing on this canvas wears, so a picked region and a picked island read as the same kind of state.
-    if (s.id === selectedId) painter.rect(box, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
+    // A wall is the band its line is laid in, at whatever angle the line runs.
+    const band = s.line ? wallBand(s.line) : null;
+    if (s.id === selectedId) {
+      if (band) painter.ring(band, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
+      else painter.rect(box, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
+    }
     // A piece that is not a room is drawn in its kind's colour and carries no label: what it is shows by its
     // colour and its shape. One that moves only with something else is dashed and fainter.
     if (s.piece) {
       const look = PIECE_FILL[s.role] ?? { color: UNKNOWN_KIND_COLOR, alpha: 0.5 };
       const dash = s.carried ? [3, 3] : look.dash;
-      painter.rect(box, {
+      const style = {
         fill: look.color, fillAlpha: s.carried ? look.alpha / 2 : look.alpha,
         stroke: look.color, strokeAlpha: 0.95, width: 2, ...(dash ? { dash } : {}),
-      });
+      };
+      if (band) painter.ring(band, style);
+      else painter.rect(box, style);
       continue;
     }
     // A building is drawn as a building, in the same ink a dressed house takes, because that is what it is:
@@ -113,6 +121,13 @@ export function paintStructural(painter, shapes, selectedId = null) {
     painter.text(text, (s.min_x + s.max_x) / 2, (s.min_z + s.max_z) / 2,
       { fill: "var(--canvas-ink)", halo: "var(--bg-canvas)", haloWidth: 3, size, weight: 600 });
   }
+}
+
+/** The four corners of the band a wall from (x1, z1) to (x2, z2) stands in: two blocks across, square at the ends. */
+export function wallBand([x1, z1, x2, z2]) {
+  const length = Math.hypot(x2 - x1, z2 - z1) || 1;
+  const nx = -(z2 - z1) / length, nz = (x2 - x1) / length;
+  return [[x1 + nx, z1 + nz], [x2 + nx, z2 + nz], [x2 - nx, z2 - nz], [x1 - nx, z1 - nz]];
 }
 
 /**

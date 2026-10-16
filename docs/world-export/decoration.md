@@ -1173,7 +1173,7 @@ therefore never handed a tree, however that tree's blocks happen to read. It cha
 prop still draws by its own material, so leaves stay foliage and a road's gravel stays ground.
 
 **And a claim is walked, not carried across as a rectangle.** Every stamper that fills a footprint publishes
-the columns it filled — `StructureStamper.FoundationCells` for a room's own plinth, `WallCells` for an approach wall,
+the columns it filled — `StructureStamper.FoundationCells` for a room's own plinth, `WallLine.Cells` for an approach wall,
 `RedstoneLineCells` for an entrance row — and the claim is made over that walk. The two conventions are
 genuinely different and neither is wrong: a stamp's footprint is **max-exclusive**, because that is what an
 intent rect means over whole world blocks, and `WorldProvenance.ClaimRect` is **max-inclusive**. So a rect
@@ -1249,7 +1249,7 @@ prop, each image fronting its own turn of the facing and holding the same stacks
 buildings and before the boulders and the trees, so a wood grows round it rather than through it.
 
 **Every chest in a built world is set by one placer.** `ChestBuilder.Place` writes the block and the tile
-entity carrying its items; a prop's chest, a bedrock wall's defence chests and a wool room's corner chests all
+entity carrying its items; a prop's chest, a defence chest and a wool room's corner chests all
 go through it, and only what is in them differs. What is written is what the chest holds for the whole match:
 the world's own contents, never refilled. PGM's `<lootables>` fills a chest the other way — each item into a
 random free slot, cleared and refilled on an interval or a trigger — so a chest that refills cannot keep the

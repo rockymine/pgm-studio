@@ -6,7 +6,7 @@ namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
 /// Move one play piece — a spawn, a wool, a destroyable, a core, a build area, a water lane, an iron cube, an
-/// approach wall or the observer — by its id, and every orbit image of it with it. The sketch draws the pieces out of the intent, so a drag on the canvas arrives here or the picture
+/// approach wall, a defence chest or the observer — by its id, and every orbit image of it with it. The sketch draws the pieces out of the intent, so a drag on the canvas arrives here or the picture
 /// and the world build answer differently.
 ///
 /// <para><b>It moves and never resizes.</b> A room's marker is a fraction of its region and a goal's structure
@@ -18,8 +18,8 @@ namespace PgmStudio.Pgm.Authoring;
 /// alone, and moving the <b>marker</b> moves the point alone, by whole blocks and inside the building. A goal has one rectangle, its structure's footprint, and moving it moves the anchor.</para>
 ///
 /// <para><b>A room also turns,</b> a quarter at a time about the middle of its region — the region, the marker, the
-/// building, the iron, the entries and the doors with it — or its building alone about the building's middle. An
-/// objective states no facing, so it does not turn.</para>
+/// building, the iron, the entries and the doors with it — or its building alone about the building's middle. A
+/// defence chest turns the way it fronts. An objective states no facing, so it does not turn.</para>
 ///
 /// <para><b>The orbit moves together.</b> Every piece of the same kind stating the same
 /// <see cref="StampId.Identity"/> is an image of one authored unit, and image <c>j</c> of a unit whose image
@@ -138,16 +138,24 @@ public static class PlayPieceMove
             if (structures.Walls.FindIndex(wall => wall.Id == id) is var wallAt and >= 0)
             {
                 if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
-                var wall = structures.Walls[wallAt];
-                if (BlockShift(new Rect(wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ), placed, out var dx, out var dz)
-                    is { } stopped) return (null, stopped);
+                if (BlockShift(PlayPieces.Wall(structures.Walls[wallAt]), placed, out var dx, out var dz) is { } stopped)
+                    return (null, stopped);
                 var moved = Orbit(structures.Walls, wallAt, entry => entry.Stamp, mode, alone, dx, dz,
                     (entry, x, z) => entry with
                     {
-                        MinX = entry.MinX + (int)x, MinZ = entry.MinZ + (int)z,
-                        MaxX = entry.MaxX + (int)x, MaxZ = entry.MaxZ + (int)z,
+                        X1 = entry.X1 + (int)x, Z1 = entry.Z1 + (int)z, X2 = entry.X2 + (int)x, Z2 = entry.Z2 + (int)z,
                     });
                 return (intent with { Structures = structures with { Walls = moved } }, Findings.None);
+            }
+
+            if (structures.Chests.FindIndex(chest => chest.Id == id) is var chestAt and >= 0)
+            {
+                if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+                if (BlockShift(PlayPieces.Chest(structures.Chests[chestAt]), placed, out var dx, out var dz) is { } stopped)
+                    return (null, stopped);
+                var moved = Orbit(structures.Chests, chestAt, entry => entry.Stamp, mode, alone, dx, dz,
+                    (entry, x, z) => entry with { X = entry.X + (int)x, Z = entry.Z + (int)z });
+                return (intent with { Structures = structures with { Chests = moved } }, Findings.None);
             }
         }
 
@@ -258,6 +266,14 @@ public static class PlayPieceMove
         if (PlayIds.RoomOfMarker(id) is { } room
             && (intent.Spawns.Any(spawn => spawn.Id == room) || (intent.Wools ?? []).Any(wool => wool.Id == room)))
             return Refuse(RequestRules.Unreadable, "turn", $"'{id}' is a room's marker, which turns with its room");
+        if (intent.Structures is { } chested
+            && chested.Chests.FindIndex(chest => chest.Id == id) is var chestAt and >= 0)
+        {
+            if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+            var chests = Images(chested.Chests, chestAt, entry => entry.Stamp, mode, alone, (entry, step) =>
+                entry with { Facing = TurnedEdge(entry.Facing, Handed(quarters, mode, step)) });
+            return (intent with { Structures = chested with { Chests = chests } }, Findings.None);
+        }
         if (intent.Structures is { } structures
             && (structures.IronCubes.Any(cube => cube.Id == id) || structures.Walls.Any(wall => wall.Id == id))
             || id == PlayIds.Observer && intent.Observer is not null)
@@ -365,6 +381,10 @@ public static class PlayPieceMove
         });
         return (intent with { Spawns = spawns }, Findings.None);
     }
+
+    /// <summary>An edge word turned <paramref name="quarters"/> quarter turns clockwise seen from above.</summary>
+    private static string TurnedEdge(string word, int quarters) =>
+        new Pivot(0, 0, ((quarters % 4) + 4) % 4, 0, 0).Door(word);
 
     /// <summary>The quarter turns an image takes for the named one's <paramref name="quarters"/>: the same where
     /// the step between them is a rotation, the other way where it is a reflection.</summary>

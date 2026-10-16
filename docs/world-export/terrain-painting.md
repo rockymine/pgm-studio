@@ -68,10 +68,10 @@ consults splits by how a stamp is anchored:
   terrain (`structures.md` WX1). What is read is the building, not the ground under it — the ground is
   painted.
 - **Interface-relative** — the **bedrock approach wall** (`StructureStamper.StampWall`, from
-  `StructureIntent.Walls`; rule ST4). Not a piece but a **seam barrier**: two blocks thick across the shared
-  edge between two pieces, the interface width along it, filled with bedrock from y=0 up to three courses
-  over the **solved** surface and capped by one course of cobweb — so it stands **above** the terrain on both
-  sides. It is the solved surface and not the piece's own that decides this: a relief lifts the ground under
+  `StructureIntent.Walls`; rule ST4). Not a piece but a **barrier along a line**: two blocks thick across it
+  at any angle, filled with bedrock from y=0 up to three courses over the **solved** surface — so it stands
+  **above** the terrain on both sides. A plan-compiled wall runs down the shared edge between two pieces, the
+  interface width along it. It is the solved surface and not the piece's own that decides this: a relief lifts the ground under
   a seam and the plan's number does not move with it, so a wall measured from the plan is left under the
   terrain (amendment 43). The top is one level over the whole run, taken from the highest ground it crosses.
 

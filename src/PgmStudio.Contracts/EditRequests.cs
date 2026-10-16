@@ -275,6 +275,7 @@ public sealed record PieceMoveRequest(
 /// <param name="MaxZ">Its south edge.</param>
 /// <param name="Carried">True where the piece moves only with something else: an image the symmetry draws that
 /// the intent does not store, or an iron cube seated in a spawn room.</param>
+/// <param name="Line">A wall's two ends, <c>[x1, z1, x2, z2]</c> on block corners; absent for every other piece.</param>
 public sealed record PlayPieceDto(
     string Id,
     [property: WordSet(typeof(PlayPieceKinds))] string Kind,
@@ -283,25 +284,29 @@ public sealed record PlayPieceDto(
     [property: JsonPropertyName("minZ")] double MinZ,
     [property: JsonPropertyName("maxX")] double MaxX,
     [property: JsonPropertyName("maxZ")] double MaxZ,
-    bool Carried);
+    bool Carried,
+    int[]? Line = null);
 
 /// <summary>A play piece to add — the body of <c>POST /map/{slug}/intent/pieces</c>. The piece arrives with every
 /// image the map's symmetry draws of it.</summary>
 /// <param name="Kind">What to add.</param>
 /// <param name="MinX">The placed rectangle's west edge, in world blocks: a room's region or an area for a spawn, a
-/// wool room, a build area, a water lane and a wall, which is 2 blocks thick; the block clicked for a destroyable,
-/// a core, an iron cube and the observer, which stand centred on it.</param>
+/// wool room, a build area and a water lane; the block clicked for a destroyable, a core, an iron cube, a defence
+/// chest and the observer, which stand centred on it.</param>
 /// <param name="MinZ">Its north edge.</param>
 /// <param name="MaxX">Its east edge.</param>
 /// <param name="MaxZ">Its south edge.</param>
 /// <param name="Team">The team the authored image belongs to; absent takes the first in orbit order.</param>
+/// <param name="Ends">A wall's two ends, <c>[x1, z1, x2, z2]</c> on block corners, which a wall states in place
+/// of the rectangle.</param>
 public sealed record PieceAddRequest(
     [property: WordSet(typeof(PlayPieceKinds))] string Kind,
-    [property: JsonPropertyName("minX")] double MinX,
-    [property: JsonPropertyName("minZ")] double MinZ,
-    [property: JsonPropertyName("maxX")] double MaxX,
-    [property: JsonPropertyName("maxZ")] double MaxZ,
-    string? Team = null);
+    [property: JsonPropertyName("minX")] double? MinX = null,
+    [property: JsonPropertyName("minZ")] double? MinZ = null,
+    [property: JsonPropertyName("maxX")] double? MaxX = null,
+    [property: JsonPropertyName("maxZ")] double? MaxZ = null,
+    string? Team = null,
+    int[]? Ends = null);
 
 /// <summary>One setting of a play piece — the body of <c>PATCH /map/{slug}/intent/pieces/{id}/settings</c>: a
 /// goal's name, design, material, lava, float or leak, a wool's colour, or a spawn's facing.</summary>

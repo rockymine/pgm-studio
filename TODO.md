@@ -56,20 +56,10 @@ studio usable.
   stamped with one style per kind (`SketchLayout.RoomStyles`), while a dressed house carries wings and a style of its
   own; a wool room's chests are derived at build time in its interior corners (`Minecraft/Stamping/WoolChests.cs`).*
 
-- [ ] **WE167 — An approach wall is a line at any angle, and its chest is a marker.** `WallStructure`
-  (`Pgm/Authoring/MapIntent.cs`) becomes two ends and a thickness of 2, drawn and dragged in Layout like a
-  polyline and snapped to shape edges, and stamped as bedrock from the world's floor to its top, with no cobweb
-  course. Its defence chests leave it: a new marker kind places the `DefenseChest` stamp the objectives already
-  carry, standing one block outside the wall on the face `ChestOnMinFace` names, wherever a wall is made —
-  composed, placed in Layout or migrated. A migration carries every stored wall box into the line down its
-  middle and a chest marker on that face. `docs/world-export/structures.md`, `docs/tools/sketch.md`.
-
-  *Evidence: a wall is stored as an axis-aligned box over a seam between two plan pieces (ST4), so no wall can
-  run diagonally.*
-
-- [ ] **G301 — The generator emits a sketch.** The composer keeps its piece model (`Compose/Composer`) and ends in a
-  layout and an intent rather than a stored plan, so a kept candidate opens in Sketch. `docs/generator/model.md`,
-  `docs/tools/generator.md`.
+- [ ] **TS185 — A wall's ends drag apart, and a line snaps to shape edges.** A picked wall in Layout shows a
+  handle at each end, and dragging one moves that end alone, its orbit images with it, the end snapping to the
+  nearest shape edge within a few blocks. The piece route takes the moved end as a `part`.
+  `docs/tools/sketch.md`.
 
 - [ ] **TS171 — The plan's rules read the sketch.** The measures (`GO`, `WL`, `CT`, `LN`, `FR`, `MD`) read off the
   sketch's rasterized ground, as `StraitReadback` already reads `CT12`; the refusals (`PL*`, `WL14`, the pad
