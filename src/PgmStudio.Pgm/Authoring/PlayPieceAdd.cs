@@ -211,6 +211,10 @@ public static class PlayPieceAdd
         }
         if (id == PlayIds.Observer && intent.Observer is not null)
             return (intent with { Observer = null }, Findings.None);
+        if (PlayIds.RoomOfMarker(id) is { } room
+            && (intent.Spawns.Any(spawn => spawn.Id == room) || intent.Wools?.Any(wool => wool.Id == room) is true))
+            return (null, Findings.Of(new Finding(RequestRules.Unreadable,
+                $"'{id}' is a room's marker, which goes with its room", Field: "id", Subjects: [id])));
         return (null, Findings.Of(new Finding(RequestRules.NoSuchSubject,
             $"the map has no play piece with the id '{id}'", Field: "id", Subjects: [id])));
     }

@@ -22,10 +22,6 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS176 — Configure's placement steps become the sketch's inspector.** On a map the studio built, the
-  spawn, protection, wool, destroyable, core and build steps are the inspector of a selected piece; on a map
-  read from a world, detection and the monument-seat check stay Configure's own flow. `docs/tools/configure.md`.
-
 - [ ] **TS170 — The places layer and the design document.** `design_json` stored inside `PUT source` as numbered
   changes, with diff; places drawn with the sketch's own tools on a layer that never rasterizes, each with its
   kind, what, why, reach and own geometry, linking only to the intent object it holds; the review sheet as the

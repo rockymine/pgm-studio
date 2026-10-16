@@ -19,7 +19,14 @@ public sealed class PlayPiecesTests
                 Iron = [new Pt(2.5, 12, 2.5)],
             },
         ],
-        Wools = [new WoolIntent { Id = "wool-red-blue", Owner = "red", Color = "blue", Protection = [new Rect(20, 0, 30, 10)] }],
+        Wools =
+        [
+            new WoolIntent
+            {
+                Id = "wool-red-blue", Owner = "red", Color = "blue", Spawn = new Pt(25.5, 12, 5.5),
+                Protection = [new Rect(20, 0, 30, 10)],
+            },
+        ],
         Destroyables = [new DestroyableIntent { Id = "destroyable-red", Owner = "red", Style = "cube-3", Anchor = new Pt(40, 12, 5) }],
         Cores = [new CoreIntent { Id = "core-red", Owner = "red", Anchor = new Pt(60, 12, 5) }],
         Build = new BuildIntent { Areas = [new PieceArea(0, 20, 10, 30, "build-1")] },
@@ -68,5 +75,41 @@ public sealed class PlayPiecesTests
 
         await Assert.That(areas.Select(area => area.Carried)).IsEquivalentTo(new[] { false, true });
         await Assert.That(areas[1].Rect).IsEqualTo(new Rect(190, 20, 200, 30));
+    }
+
+    [Test]
+    public async Task A_room_s_marker_is_its_point_and_moves_alone()
+    {
+        var marker = PlayPieces.Of(Board()).Single(piece => piece.Id == "spawn-red-marker");
+        await Assert.That(marker.Rect).IsEqualTo(new Rect(4.5, 4.5, 5.5, 5.5));
+
+        var (moved, _) = PlayPieceMove.Apply(Board(), marker.Id, null, new Rect(6.5, 2.5, 7.5, 3.5));
+
+        var spawn = moved!.Spawns.Single();
+        await Assert.That(spawn.Point).IsEqualTo(new Pt(7, 12, 3));
+        await Assert.That(spawn.Protection).IsEquivalentTo(Board().Spawns[0].Protection)
+            .Because("the region stays where it stood");
+    }
+
+    [Test]
+    public async Task A_marker_is_held_inside_its_room()
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Board(), "wool-red-blue-marker", null, new Rect(30, 5, 31, 6));
+
+        await Assert.That(moved).IsNull();
+        await Assert.That(refused.Single().Subjects!).Contains("wool-red-blue-marker");
+    }
+
+    [Test]
+    public async Task A_marker_moves_by_whole_blocks_and_is_not_deleted_or_turned_alone()
+    {
+        var (offGrid, _) = PlayPieceMove.Apply(Board(), "spawn-red-marker", null, new Rect(5, 5, 6, 6));
+        var (turned, _) = PlayPieceMove.Turn(Board(), "spawn-red-marker", null, 1);
+        var (deleted, refused) = PlayPieceAdd.Delete(Board(), "spawn-red-marker");
+
+        await Assert.That(offGrid).IsNull();
+        await Assert.That(turned).IsNull();
+        await Assert.That(deleted).IsNull();
+        await Assert.That(refused.Single().Rule).IsEqualTo(RequestRules.Unreadable);
     }
 }

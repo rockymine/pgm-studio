@@ -15,7 +15,7 @@ namespace PgmStudio.Pgm.Authoring;
 ///
 /// <para><b>Moving a room's region carries the room on it</b> — the marker, the building, the iron, the
 /// entries — because the region is the ground they stand on. Moving the <b>building</b> moves the building
-/// alone. A goal has one rectangle, its structure's footprint, and moving it moves the anchor.</para>
+/// alone, and moving the <b>marker</b> moves the point alone, by whole blocks and inside the building. A goal has one rectangle, its structure's footprint, and moving it moves the anchor.</para>
 ///
 /// <para><b>A room also turns,</b> a quarter at a time about the middle of its region — the region, the marker, the
 /// building, the iron, the entries and the doors with it — or its building alone about the building's middle. An
@@ -41,6 +41,8 @@ public static class PlayPieceMove
         var building = part == StructuralRoles.Building;
         var symmetry = intent.Symmetry ?? board;
         var mode = symmetry?.Mode;
+        if (PlayIds.RoomOfMarker(id) is { } room && Marker(intent, room, part, placed, mode, alone) is { } marked)
+            return marked;
         if (intent.Spawns.FindIndex(spawn => spawn.Id == id) is var spawnAt and >= 0)
         {
             if (Unpartable(part, StructuralRoles.Spawn) is { } unpartable) return (null, unpartable);
@@ -160,6 +162,53 @@ public static class PlayPieceMove
         return Refuse(RequestRules.NoSuchSubject, "id", $"the map has no play piece with the id '{id}'", id);
     }
 
+    /// <summary>The intent with the marker of the room <paramref name="room"/> and its images moved by whole blocks
+    /// to <paramref name="placed"/>, held inside the room's building where it states one and its region where
+    /// not; the findings that stopped it; or null where no room has that id.</summary>
+    private static (MapIntent? Intent, Findings Refused)? Marker(
+        MapIntent intent, string room, string? part, Rect placed, string? mode, bool alone)
+    {
+        if (intent.Spawns.FindIndex(spawn => spawn.Id == room) is var spawnAt and >= 0)
+        {
+            if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+            if (BlockShift(PlayPieces.Marker(intent.Spawns[spawnAt].Point), placed, out var dx, out var dz) is { } stopped)
+                return (null, stopped);
+            var spawns = Orbit(intent.Spawns, spawnAt, entry => entry.Stamp, mode, alone, dx, dz,
+                (entry, x, z) => entry with { Point = Slide(entry.Point, x, z) });
+            return Seated(intent with { Spawns = spawns }, Carried(intent.Spawns, spawns)
+                .Select(entry => (entry.Id, entry.Point, entry.Protection, entry.Footprint)));
+        }
+
+        var wools = intent.Wools ?? [];
+        if (wools.FindIndex(wool => wool.Id == room) is var woolAt and >= 0)
+        {
+            if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+            if (BlockShift(PlayPieces.Marker(wools[woolAt].Spawn), placed, out var dx, out var dz) is { } stopped)
+                return (null, stopped);
+            var moved = Orbit(wools, woolAt, entry => entry.Stamp, mode, alone, dx, dz,
+                (entry, x, z) => entry with { Spawn = Slide(entry.Spawn, x, z) });
+            return Seated(intent with { Wools = moved }, Carried(wools, moved)
+                .Select(entry => (entry.Id, entry.Spawn, entry.Protection, entry.Footprint)));
+        }
+        return null;
+    }
+
+    /// <summary>The moved intent, unless a marker it moved now stands outside its room — on the image the
+    /// request named or on one its orbit moved.</summary>
+    private static (MapIntent? Intent, Findings Refused) Seated(
+        MapIntent intent, IEnumerable<(string Id, Pt Point, List<Rect> Protection, Rect? Footprint)> rooms)
+    {
+        foreach (var (id, point, protection, footprint) in rooms)
+        {
+            Rect? bound = footprint ?? (protection.Count == 1 ? protection[0] : null);
+            if (bound is { } inside && !Holds(inside, PlayPieces.Marker(point)))
+                return (null, Findings.Of(new Finding(RequestRules.Unreadable,
+                    $"the marker of '{id}' would stand outside its {(footprint is null ? "region" : "building")}",
+                    Field: "placed", Subjects: [PlayIds.Marker(id)])));
+        }
+        return (intent, Findings.None);
+    }
+
     /// <summary>The intent with the room <paramref name="id"/> — or, with <paramref name="part"/>
     /// <c>building</c>, its building alone — turned <paramref name="quarters"/> quarter turns clockwise seen from
     /// above, and its orbit images with it, or the findings that stopped it and a null intent.</summary>
@@ -206,6 +255,9 @@ public static class PlayPieceMove
 
         if ((intent.Destroyables ?? []).Any(goal => goal.Id == id) || (intent.Cores ?? []).Any(core => core.Id == id))
             return Refuse(RequestRules.Unreadable, "turn", $"'{id}' is an objective, which states no facing to turn");
+        if (PlayIds.RoomOfMarker(id) is { } room
+            && (intent.Spawns.Any(spawn => spawn.Id == room) || (intent.Wools ?? []).Any(wool => wool.Id == room)))
+            return Refuse(RequestRules.Unreadable, "turn", $"'{id}' is a room's marker, which turns with its room");
         if (intent.Structures is { } structures
             && (structures.IronCubes.Any(cube => cube.Id == id) || structures.Walls.Any(wall => wall.Id == id))
             || id == PlayIds.Observer && intent.Observer is not null)

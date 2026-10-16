@@ -9442,6 +9442,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   structure and a wool's colour, in one body the plan inspector and the sketch both show (`ObjectiveFields`),
   written through `PATCH …/intent/pieces/{id}/settings` one setting at a time; what a unit shares every image
   takes. (`Pgm/Authoring/PlayPieceSettings`, `Client/Components/Editor/ObjectiveFields`, `docs/tools/sketch.md`)
+- **A room's point is drawn, dragged and read in the sketch (`TS176`).** `GET …/intent/pieces` answers a spawn's
+  point (`spawnPoint`) and a wool's (`woolSpawn`) under the room's id with `-marker` after it, and the piece route
+  moves one alone by whole blocks, held inside the room's building or its region; its rail shows its `X` and `Z`.
+  Configure keeps its own steps, which a map read from a world is placed with. (`Pgm/Authoring/PlayPieceMove`,
+  `docs/tools/sketch.md`)
 - **A rule's third level, the measure (`RP128`).** `RuleLevels.Measure` never refuses and reads a finding as the
   number it measured against its range: `Finding.Measured` is `{value, low, high}`, and `Violation` reads its
   value and band from it. Every rule of `GO`, `WL`, `CT`, `LN`, `FR` and `MD` but `WL14` is a measure by default
