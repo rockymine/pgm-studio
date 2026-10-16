@@ -54,6 +54,9 @@ public static class PlacesCheck
                     $"the place at {field} holds '{held}', and the map has no play piece with that id",
                     Field: $"{field}.holds", Subjects: [held]));
         }
+        if (document.Verdict is { } verdict && !PlanVerdicts.All.Contains(verdict))
+            refused.Add(new Finding(RequestRules.Unreadable,
+                $"the `verdict` is '{verdict}', not one of {string.Join(", ", PlanVerdicts.All)}", Field: "verdict"));
         if (document.Area is { } area && (area.Length != 4 || area[2] <= area[0] || area[3] <= area[1]))
             refused.Add(new Finding(RequestRules.Unreadable,
                 "the `area` is not [minX, minZ, maxX, maxZ] with each max past its min", Field: "area"));

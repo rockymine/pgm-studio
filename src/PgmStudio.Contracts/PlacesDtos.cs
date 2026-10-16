@@ -9,9 +9,13 @@ namespace PgmStudio.Contracts;
 /// <param name="Places">The places, in the order they are listed.</param>
 /// <param name="Area">The ground the board is meant to fill, <c>[minX, minZ, maxX, maxZ]</c> in blocks, where the
 /// one drawing it states one; absent leaves the board the size of what is drawn.</param>
+/// <param name="Verdict">Where the places stand with the map's author; absent is <c>proposed</c>. An agent builds
+/// on places the author has <c>approved</c>.</param>
 public sealed record PlacesDocument(
     List<Place>? Places = null,
-    double[]? Area = null);
+    double[]? Area = null,
+    [property: WordSet(typeof(PlanVerdicts))]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Verdict = null);
 
 /// <summary>One place: a name, the shape it is drawn as, and the play piece it holds.</summary>
 /// <param name="Id">Its id, unique among the map's places, which a note on it names.</param>

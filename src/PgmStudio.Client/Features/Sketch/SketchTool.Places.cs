@@ -115,11 +115,15 @@ public partial class SketchTool
         if (handle is not null) await handle.InvokeVoidAsync("selectPlace", (string?)null);
     }
 
+    /// <summary>Say where the places stand with the author.</summary>
+    private Task SetVerdict(string verdict) => StoreAsync(placesDocument with { Verdict = verdict });
+
+    private Task StorePlacesAsync(List<Place> places) => StoreAsync(placesDocument with { Places = places });
+
     /// <summary>Store the places as the whole document, and draw what was stored; a refusal keeps what the map
     /// holds and says why.</summary>
-    private async Task StorePlacesAsync(List<Place> places)
+    private async Task StoreAsync(PlacesDocument next)
     {
-        var next = placesDocument with { Places = places };
         var response = await Http.PutAsJsonAsync($"api/map/{Slug}/places", next, PlacesJson);
         if (response.IsSuccessStatusCode)
         {

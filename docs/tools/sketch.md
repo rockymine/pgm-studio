@@ -113,7 +113,9 @@ and, at most, the id of the play piece it holds. Places make no terrain and link
 layout is redrawn as the ground is worked, so a place states its own geometry rather than naming one. What an
 author or an agent has to say about a place is the thread of a note on it. `area` is the ground the board is
 meant to fill, `[minX, minZ, maxX, maxZ]`, for an agent drawing a board that does not exist yet; a person's
-board is the size of what is drawn.
+board is the size of what is drawn. `verdict` is where the places stand with the author — `proposed`, `changes`
+or `approved`, absent being `proposed` — and an agent builds on places the author approved; nothing the studio
+stores is refused for it.
 
 ```json PUT /api/map/{slug}/places
 {"places": [
@@ -764,7 +766,8 @@ a lasso — and a polygon and a polyline beside them; each draws a place rather 
 stored at once under the next free `place-{n}`, named *Place n*, and picked. The column lists the places, a click
 on one on the canvas or in the list picks it, and its panel names it, sets the play piece it holds and deletes
 it; every change stores the whole document through `PUT /map/{slug}/places`, so each is a change in the map's
-history. Under the panel sits the notes column for the place: the threads pinned to it and the ones written on
+history. Above the list, **Verdict** says where the places stand with the author. Under the panel sits the
+notes column for the place: the threads pinned to it and the ones written on
 its ground, and **New note** pins one to it. The places are drawn in this step and in Review's Cameras step, and
 a click here picks a place and nothing under it.
 
@@ -2247,7 +2250,7 @@ Every endpoint is rooted at `/api`; a read is open to anyone and a write needs s
 | `PATCH /map/{slug}/intent/pieces/{id}/settings` | `{key, text?, number?, flag?, alone?}` — `key` one of `name`, `color`, `style`, `materials`, `float`, `lava`, `lavaHeight`, `openTop`, `leak`, `facing`; `text` for a name, colour, design or material, `number` for the rest and for a facing's quarter turns clockwise, `flag` for `openTop`; none of the three puts it back to its default | `{}` — the setting stored, on every image of the unit for what a unit shares | **400 `RQ1`** a setting the piece's kind lacks, or a value it cannot take · **404 `RQ4`** the id names no piece · 409 · 422 |
 | `DELETE /map/{slug}/intent/pieces/{id}` | `?alone=true` to keep the other images | `{}` — the piece and every image of its unit taken out of the intent | **400 `RQ1`** a room's point, which goes with its room · **404 `RQ4`** the id names no piece · 409 · 422 |
 | `GET /map/{slug}/places` | — | the places as stored, or `{}`; the `ETag` is the revision to state on the next write | 404 |
-| `PUT /map/{slug}/places` | `{places: [{id, name, shape, points, holds?}], area?}`; `?note=` kept on the change | `{}` — stored verbatim as one change in the map's history | **400 `RQ1`** a place with no id, a shape that is not `point`, `box`, `ring` or `line` or carries the wrong number of points, a point that is not `[x, z]`, an `area` whose max is not past its min · **400 `RQ5`** two places stating one id · **400 `RQ4`** a place holding a play piece the map has none of · **409 `RQ13`** a stale `If-Match` · 404 |
+| `PUT /map/{slug}/places` | `{places: [{id, name, shape, points, holds?}], area?, verdict?}`; `?note=` kept on the change | `{}` — stored verbatim as one change in the map's history | **400 `RQ1`** a place with no id, a shape that is not `point`, `box`, `ring` or `line` or carries the wrong number of points, a point that is not `[x, z]`, an `area` whose max is not past its min, a `verdict` that is not `proposed`, `changes` or `approved` · **400 `RQ5`** two places stating one id · **400 `RQ4`** a place holding a play piece the map has none of · **409 `RQ13`** a stale `If-Match` · 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick, but for the rooms: a room shape is stored as its `rooms` record and its rectangle is dropped; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
 | `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned, dropped}` — merges the finish, the relief and any author-corrected room height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge, and so does one `SK1` per group whose **posted** relief the carry replaced with the stored one. `dropped` names the stored shapes the rebuild does not keep — every one whose id the compile does not produce and which carries no `intentRef`, which is a shape drawn in the sketch — with one `SK29` complaint naming them | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built, and — where a plan is stored beside it — re-reads that plan's CTW strait over the drawn ground (`CT12`) | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |

@@ -1,7 +1,11 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* The map's places, as the canvas draws them. Choosing one picks it as a click on it would. *@
+@* The map's places, as the canvas draws them, under where they stand with the author. Choosing one picks it as a
+   click on it would. *@
 
+<Section Title="Verdict">
+  <Select Slim="false" Options="Verdicts" Value="@(Verdict ?? PlanVerdicts.Proposed)" ValueChanged="OnVerdict" />
+</Section>
 <Section Title="Places">
   <div class="panel-list">
     @foreach (var place in Places)
@@ -20,4 +24,14 @@
     [Parameter, EditorRequired] public IReadOnlyList<Place> Places { get; set; } = [];
     [Parameter] public string? SelectedId { get; set; }
     [Parameter] public EventCallback<string> OnSelect { get; set; }
+
+    /// <summary>Where the places stand with the author; null is proposed.</summary>
+    [Parameter] public string? Verdict { get; set; }
+    [Parameter] public EventCallback<string> OnVerdict { get; set; }
+
+    private static readonly SelectOption[] Verdicts =
+    [
+        new(PlanVerdicts.Proposed, "Proposed"), new(PlanVerdicts.Changes, "Changes asked"),
+        new(PlanVerdicts.Approved, "Approved"),
+    ];
 }

@@ -71,6 +71,7 @@ public sealed class PlacesEndpointsTests
             ("""{"places":[{"id":"a","name":"A","shape":"blob","points":[[0,0]]}]}""", "places[0].shape"),
             ("""{"places":[{"id":"a","name":"A","shape":"point","points":[[0,0]]},{"id":"a","name":"B","shape":"point","points":[[1,1]]}]}""", "places[1].id"),
             ("""{"places":[{"id":"a","name":"A","shape":"point","points":[[0,0]],"holds":"core-blue"}]}""", "places[0].holds"),
+            ("""{"places":[],"verdict":"maybe"}""", "verdict"),
         })
         {
             var put = await PutAsync(client, slug, body);

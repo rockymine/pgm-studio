@@ -22,9 +22,6 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS183 — The plan's verdict.** `proposed`, `changes` or `approved` on the places document, one control in
-  the Plan step; a convention an agent follows, blocking no write. `docs/tools/sketch.md`.
-
 - [ ] **TS172 — The look is stated before the review.** A palette, a house style per area, tree and rock zones and
   the biome as sketch data, drawn on the review sheet and applied by the build, so the author judges what a board
   is made of before it is built (D12, phase 5). `docs/tools/sketch.md`.
