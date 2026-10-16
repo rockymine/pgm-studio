@@ -19,8 +19,8 @@ Decoration the Dressing phase. Info states what the
 board is and is its own body; Review is the board as a player sees it, with the author's notes on it, in two
 steps: Cameras, on the canvas, and Notes, a body of its own. The
 other phases share the one live canvas, which stays mounted while Info or Notes is up so the
-drawing state and the zoom survive the trip. Draw, Terraform, Palette, Decoration and History have no steps: each
-swaps what the columns hold and which overlays the layer bar offers, and the canvas is reused as it stands.
+drawing state and the zoom survive the trip. Draw has two steps, Ground and Layout, on that one canvas. Terraform,
+Palette, Decoration and History have no steps: each swaps what the columns hold and which overlays the layer bar offers, and the canvas is reused as it stands.
 `?phase=review` opens the tool on Review and `?phase=history` on History. What a drive reads back about the board is not a phase: it is `GET /map/{slug}/report`, an agent's
 read (*The report*, under the API).
 
