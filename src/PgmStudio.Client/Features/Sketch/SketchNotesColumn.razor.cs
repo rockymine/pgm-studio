@@ -241,10 +241,6 @@ public partial class SketchNotesColumn : IDisposable
             && Landed(before.Change, message.Change) == 0;
     }
 
-    /// <summary>What a note's pin carries: its number, or nothing for a note on the whole map.</summary>
-    public static string Glyph(MapNoteDto note) =>
-        note.Anchor.Kind == NoteAnchors.Map ? "" : note.Id.ToString(CultureInfo.InvariantCulture);
-
     /// <summary>The pin's class: its shape says whether the note is on the map or on a picture.</summary>
     public static string PinClass(MapNoteDto note) =>
         note.Anchor.Kind == NoteAnchors.Map ? "note-pin note-pin--map" : "note-pin";

@@ -9442,6 +9442,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   structure and a wool's colour, in one body the plan inspector and the sketch both show (`ObjectiveFields`),
   written through `PATCH …/intent/pieces/{id}/settings` one setting at a time; what a unit shares every image
   takes. (`Pgm/Authoring/PlayPieceSettings`, `Client/Components/Editor/ObjectiveFields`, `docs/tools/sketch.md`)
+- **A note's pin is a speech bubble (`TS184`).** It carries no number, in the column, on the picture and in
+  History. (`Client/Features/Sketch/SketchNotesColumn`, `docs/tools/sketch.md`)
 - **A room's point is drawn, dragged and read in the sketch (`TS176`).** `GET …/intent/pieces` answers a spawn's
   point (`spawnPoint`) and a wool's (`woolSpawn`) under the room's id with `-marker` after it, and the piece route
   moves one alone by whole blocks, held inside the room's building or its region; its rail shows its `X` and `Z`.

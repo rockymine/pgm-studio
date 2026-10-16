@@ -1685,7 +1685,8 @@ Waiting (on you), With agent, Resolved, on one line — then the notes on the wh
 longer offers. Choosing a note, by its row or by its pin on the picture, opens its thread, and **‹ All notes**
 goes back. A row reads the way a chat app previews a thread: what the note is pinned to, then its status as a
 muted word and as much of the last message as fits, then at its foot the note's pin and how many messages the
-thread holds. Every pin is one colour, in the column and on the picture; the status is a word, never a hue. A
+thread holds. A pin is an empty speech bubble, one colour in the column and on the picture, carrying no number;
+the status is a word, never a hue. A
 thread is a head — the pin, what the note is pinned to in at most two lines, and its status under that — then its
 messages top to bottom with their pictures, and the reply box at the foot.
 

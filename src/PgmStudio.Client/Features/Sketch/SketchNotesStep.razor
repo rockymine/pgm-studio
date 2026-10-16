@@ -97,7 +97,7 @@
                 {
                   var (x, y) = PinAt(note);
                   <button type="button" class="@(SketchNotesColumn.PinClass(note) + " ingame__pin")" @key="note.Id"
-                          style="@PinStyle(x, y)" aria-label="@($"Open note {note.Id}")" @onclick="() => OpenNote(note)">@note.Id</button>
+                          style="@PinStyle(x, y)" aria-label="Open note" @onclick="() => OpenNote(note)"></button>
                 }
               }
               @if (tool is not null)

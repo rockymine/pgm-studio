@@ -65,7 +65,7 @@
       <div class="notes-column__head notes-column__head--step">
         <button type="button" class="notes-column__back" @onclick="OnBack">‹ All notes</button>
         <div class="notes-column__threadhead">
-          <span class="@PinClass(note)">@Glyph(note)</span>
+          <span class="@PinClass(note)"></span>
           <b class="notes-column__threadtitle" title="@Title(note)">@Title(note)</b>
           <div class="notes-column__threadmeta"><NoteStatus Status="@note.Status" /></div>
         </div>
@@ -185,6 +185,6 @@
     private RenderFragment Row(MapNoteDto note) => @<button type="button" class="notes-row" @key="note.Id" @onclick="() => OnOpen.InvokeAsync(note)">
         <b title="@Title(note)">@Title(note)</b>
         <span class="notes-row__meta"><NoteStatus Status="@note.Status" /><span class="notes-row__last">@Last(note)</span></span>
-        <span class="notes-row__thread"><span class="@PinClass(note)">@Glyph(note)</span>@MessageCount(note)</span>
+        <span class="notes-row__thread"><span class="@PinClass(note)"></span>@MessageCount(note)</span>
       </button>;
 }
