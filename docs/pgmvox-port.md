@@ -228,19 +228,19 @@ landed.
   are added in a Layout step of Draw, after its Ground step, and moved or turned from either step, every phase
   drawing the same board; a room placed over no ground brings a rectangle of ground of its own, and rooms and
   zones are rectangles only (D14).
-- The places layer and the design document: `design_json` inside `PUT source`, with diff; places drawn with the
-  sketch's own tools on a layer that never rasterizes, linking only to intent objects; the review sheet, note
-  anchors on places, routes, targets and sections, and a verdict.
+- The places: a document stored with the map and changed in its one history, drawn in a Plan step of Draw
+  before Ground with the notes step's tools on a layer that never rasterizes, each place naming at most the play
+  piece it holds; notes anchored to places, Review drawing them over its cameras, and a verdict (D15).
 - The look as data: a palette, a house style per area, tree and rock zones and the biome stated before the
   review, drawn on the sheet, and applied by the build.
-- A map's size stated with its idea, in Info, where the sketch has no size to set today.
+- A working area an agent may state in the places document; a person's board is cropped to what it draws.
 - The generator emits a sketch. Its piece model stays its own (`docs/generator/model.md`) and ends in a layout and
   an intent rather than a plan.
 - The rules move onto the sketch: the measures read off the sketch's rasterized ground, which never builds a
   world, and the refusals asked between play pieces. `sight` is the one new read; in-game notes are tagged with
   the place their ground falls in.
 - The plan retires: the Plan tool and `from-plan` go, every stored plan is kept read-only as history, and
-  `pgm-studio-mapgen`'s specs, `drive.py` and the skill move to sketch sources.
+  `drive.py` and the skill move to sketch sources; the specs stay as they are (D11).
 
 **What the author notices:** a monument dragged where the landscape wants it, places with reasons reviewed
 before anything is built, and boards that stop looking alike because none of them starts as rectangles.
@@ -352,7 +352,7 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 
 ## The author's decisions
 
-**Ten are taken and four are open; each open one blocks the phase named.**
+**Twelve are taken and three are open; each open one blocks the phase named.**
 
 | # | Decision | Blocks | Answer |
 |---|---|---|---|
@@ -366,10 +366,11 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 | D8 | Does the box plan stay a level beside the sketch | 1 | **taken:** no. The sketch is the one document: play pieces are sketch objects writing the intent, places an annotation layer, the generator emits a sketch, and the Plan tool retires |
 | D9 | What becomes of the stored plans (48 of 64 maps on pgmstudio.de hold one) | 1 | **taken:** kept, read-only, as history. Each map's sketch and intent carry its play forward; nothing reads the plan again |
 | D10 | Does `POST /plan/compile` stay, as a one-shot converter from rectangles | 1 | open; recommended: yes, since the generator compiles its pieces anyway and the converter costs nothing beside it |
-| D11 | Which of `pgm-studio-mapgen`'s 174 plan-and-refinement specs move to sketch sources | 1 | open; recommended: the boards still worked on, with the rest frozen as archive |
+| D11 | Which of `pgm-studio-mapgen`'s 174 plan-and-refinement specs move to sketch sources | 1 | **taken:** none. They are experiments and stay frozen as they are; a plan that is wanted later comes across through the one-way converter (D10) |
 | D12 | The order a map is made in | 1 | **taken:** idea, places, terraform with water and caves, layout, look, review, build, play review; a map may also start from one section (*The order a map is made in*) |
 | D13 | Play pieces in the sketch: where a piece is stored, what a drag moves, how it is named, what Configure keeps | 1 | **taken:** the intent is the one store and the sketch draws from it; a drag moves the whole orbit; every piece has a stable id, migrated onto stored maps; imported maps keep Configure's detection flow |
 | D14 | Where play pieces are placed in the sketch, and what a room can be drawn as | 1 | **taken:** Draw has two steps, Ground and then Layout, one click apart in the bar, so the two can later fold into one. Layout holds the tools that add and delete a piece, and later the analysis of the layout; every piece and every shape is drawn in every phase, and a piece is picked, moved and turned from either step, so the two are one board seen for two jobs rather than two layers switched on and off. A spawn or wool room placed where no ground lies also draws an ordinary rectangle of ground under it, the size of the room, which Ground then shapes like any other; a build zone and a water lane stand over the void and bring none, and a goal, an iron cube or the observer placed over no ground is complained of. A spawn, a wool room, a build zone and a water lane are rectangles only, sized when they are drawn; resizing one afterwards is `TS179` |
+| D15 | Where the places are drawn, what a place shows, and where its versions live | 1 | **taken:** Draw gains a Plan step before Ground, laid out as Review's Cameras step: the board top-down, the notes step's drawing tools, the places listed on the left and a place's thread on the right. A place states what it holds and nothing more; whatever an agent has to say about it goes in its thread. Its versions are changes in the map's one history, and Review's Cameras step draws the places as an overlay, a note on ground being tagged with the place it falls in |
 
 ## What this does not decide
 

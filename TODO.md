@@ -22,11 +22,22 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS170 — The places layer and the design document.** `design_json` stored inside `PUT source` as numbered
-  changes, with diff; places drawn with the sketch's own tools on a layer that never rasterizes, each with its
-  kind, what, why, reach and own geometry, linking only to the intent object it holds; the review sheet as the
-  layer's read-only view; note anchors on places, routes, targets and sections, and a verdict.
-  `pgm-studio-mapgen/analysis/freeform-vs-studio/PLAN-REVIEW-DESIGN.md` is the design. `docs/tools/sketch.md`.
+- [ ] **TS180 — Places are stored with the map, in its one history.** A `places` document per map, written by
+  `PUT /map/{slug}/places` and as a member of `PUT source`, each write a numbered change of the map's change log
+  with its `because`, so its diff and restore are the History phase's. A place is an id, a name, a kind, its own
+  geometry (point, box, ring or line, in blocks), a text and optionally the play piece it holds; the document may
+  state a working area for an agent. `PLAN-REVIEW-DESIGN.md` §2 is the shape. `docs/tools/sketch.md`.
+
+- [ ] **TS181 — Draw's Plan step, before Ground.** The Cameras step's layout: the board top-down in the middle
+  over whatever ground exists, the notes step's point, box and lasso tools with polygon and polyline beside them
+  to draw a place, the places listed on the left with what a change made new, and the picked place's thread on
+  the right. The canvas states what a place holds and nothing else. `docs/tools/sketch.md`.
+
+- [ ] **TS182 — Notes on places.** A note anchors to a place by id; Review's Cameras step draws the places as an
+  overlay; a point, box or lasso note is tagged with the place its ground falls in. `docs/tools/sketch.md`.
+
+- [ ] **TS183 — The plan's verdict.** `proposed`, `changes` or `approved` on the places document, one control in
+  the Plan step; a convention an agent follows, blocking no write. `docs/tools/sketch.md`.
 
 - [ ] **TS172 — The look is stated before the review.** A palette, a house style per area, tree and rock zones and
   the biome as sketch data, drawn on the review sheet and applied by the build, so the author judges what a board
@@ -49,14 +60,12 @@ studio usable.
   (`Pgm/Authoring/MapIntent.cs`) becomes two ends and a thickness of 2, drawn and dragged in Layout like a
   polyline and snapped to shape edges, and stamped as bedrock from the world's floor to its top, with no cobweb
   course. Its defence chests leave it: a new marker kind places the `DefenseChest` stamp the objectives already
-  carry, on the face `ChestOnMinFace` names. A migration carries every stored wall box into the line down its
+  carry, standing one block outside the wall on the face `ChestOnMinFace` names, wherever a wall is made —
+  composed, placed in Layout or migrated. A migration carries every stored wall box into the line down its
   middle and a chest marker on that face. `docs/world-export/structures.md`, `docs/tools/sketch.md`.
 
   *Evidence: a wall is stored as an axis-aligned box over a seam between two plan pieces (ST4), so no wall can
   run diagonally.*
-
-- [ ] **TS173 — A map's size is stated with its idea.** A size in Sketch Info, beside the symmetry, read by the
-  places and the terraform; today Info says there is no size to set. `docs/tools/sketch.md`.
 
 - [ ] **G301 — The generator emits a sketch.** The composer keeps its piece model (`Compose/Composer`) and ends in a
   layout and an intent rather than a stored plan, so a kept candidate opens in Sketch. `docs/generator/model.md`,
@@ -64,11 +73,12 @@ studio usable.
 
 - [ ] **TS171 — The plan's rules read the sketch.** The measures (`GO`, `WL`, `CT`, `LN`, `FR`, `MD`) read off the
   sketch's rasterized ground, as `StraitReadback` already reads `CT12`; the refusals (`PL*`, `WL14`, the pad
-  fits) are asked between play pieces. `sight` is the one new read, and an in-game note is tagged with the place
-  its ground falls in. `PlanValidator` is the source each rule moves out of. `docs/tools/sketch.md`.
+  fits) are asked between play pieces, and a places document's targets are measured the same way. `sight` is
+  the one new read. `PlanValidator` is the source each rule moves out of. `docs/tools/sketch.md`.
 
 - [ ] **RP131 — The plan retires as a level.** The Plan tool, `PUT …/sketch/from-plan` and the `plan` stage go;
   every stored plan stays as read-only history (D9), with the migration carrying no row away. `drive.py`, the
-  `pgm-board` skill and `ORDER-OF-WORK.md` move to sketch sources, and which of the 174 plan specs move is D11.
+  `pgm-board` skill and `ORDER-OF-WORK.md` move to sketch sources; no plan spec moves (D11), and `POST
+  /plan/compile` stays as the one-way import.
   `docs/tools/flow.md`, `docs/tools/plan.md`.
 
