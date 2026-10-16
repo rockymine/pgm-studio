@@ -8,7 +8,7 @@
     <DetailHeader Icon="@Icon" Label="@Label">
       <span class="detail-header-badges">
         @if (Piece.Who.Length > 0) { <Badge Kind="neutral">@Piece.Who</Badge> }
-        <Badge Kind="neutral">@Piece.Dim</Badge>
+        @if (!Piece.IsPoint) { <Badge Kind="neutral">@Piece.Dim</Badge> }
         @if (Piece.HeightAuthored) { <Badge Kind="warning">corrected</Badge> }
       </span>
     </DetailHeader>
@@ -38,6 +38,11 @@
     }
 
     <div class="section-header section-header--ruled"><h2 class="section-title">Position</h2></div>
+    @if (Piece.IsPoint)
+    {
+      <Field Label="X"><span class="plan-stepper-value">@($"{Piece.Middle.X:0.#}")</span></Field>
+      <Field Label="Z"><span class="plan-stepper-value">@($"{Piece.Middle.Z:0.#}")</span></Field>
+    }
     <p class="section-desc">
       Drag to move it.
       @if (!Piece.Piece)
@@ -46,7 +51,7 @@
           ? "The marker, building, and iron on it move with it."
           : "The region under it stays where it is.")
       }
-      It can't be resized.
+      @if (!Piece.IsPoint) { <text>It can't be resized.</text> }
       @if (!Piece.Piece) { <text>Rebuilding from the plan puts it back.</text> }
     </p>
     @if (Yaw is { } yaw)
@@ -73,7 +78,7 @@
     {
       <p class="field-error">@Note</p>
     }
-    @if (OnDelete is not null && Piece.Role != StructuralRoles.Building)
+    @if (OnDelete is not null && Piece.Role != StructuralRoles.Building && !Piece.IsPoint)
     {
       <Button Full Variant="danger" Writes OnClick="OnDelete">
         <i data-lucide="trash-2"></i> Delete

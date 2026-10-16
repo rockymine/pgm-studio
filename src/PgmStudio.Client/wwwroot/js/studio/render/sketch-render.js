@@ -51,6 +51,8 @@ const PIECE_FILL = {
   core:        { color: OBJECTIVE_COLORS.core, alpha: 0.85 },
   ironCube:    { color: OBJECTIVE_COLORS.iron, alpha: 0.85 },
   observer:    { color: OBJECTIVE_COLORS.spawn, alpha: 0.85 },
+  spawnPoint:  { color: OBJECTIVE_COLORS.spawn, alpha: 0.95 },
+  woolSpawn:   { color: OBJECTIVE_COLORS.wool, alpha: 0.95 },
   buildArea:   { color: "var(--accent)", alpha: 0.12, dash: [6, 4] },
   waterLane:   { color: "var(--canvas-zone-water-lane)", alpha: 0.3 },
   wall:        { color: "var(--canvas-seam-wall)", alpha: 0.85 },

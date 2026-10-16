@@ -13,12 +13,23 @@ namespace PgmStudio.Pgm.Authoring;
 /// <c>wool-{owner}-{colour}</c>, <c>destroyable-{owner}</c>, <c>core-{owner}</c>, the same words the sketch
 /// names a room's shape by, and <c>build-{n}</c>, <c>water-lane-{n}</c>, <c>iron-{n}</c>, <c>wall-{n}</c> by
 /// position in their list, with <c>-2</c>, <c>-3</c>… where two pieces would share one. An id the intent
-/// already states is kept as stated. The observer is the one piece of its kind and is <see cref="Observer"/>.</para>
+/// already states is kept as stated. The observer is the one piece of its kind and is <see cref="Observer"/>, and a
+/// room's marker is the room's id with <c>-marker</c> after it.</para>
 /// </summary>
 public static class PlayIds
 {
     /// <summary>The observer's id: a map has one observer, so the id is the word for it.</summary>
     public const string Observer = "observer";
+
+    private const string MarkerSuffix = "-marker";
+
+    /// <summary>The id of the marker standing in the room <paramref name="roomId"/>.</summary>
+    public static string Marker(string roomId) => roomId + MarkerSuffix;
+
+    /// <summary>The room a marker id names, or null where <paramref name="id"/> names no marker.</summary>
+    public static string? RoomOfMarker(string id) =>
+        id.EndsWith(MarkerSuffix, StringComparison.Ordinal) && id.Length > MarkerSuffix.Length
+            ? id[..^MarkerSuffix.Length] : null;
 
     /// <summary>The intent with every play piece carrying an id: stated ones kept, the rest minted.</summary>
     public static MapIntent Assign(MapIntent intent)

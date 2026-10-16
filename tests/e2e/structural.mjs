@@ -75,6 +75,25 @@ if (area) {
   });
 }
 
+const point = drawn.find(piece => piece.kind === "spawnPoint" && !piece.carried);
+checks.add("each spawn room's point is drawn", !!point, point?.id ?? "none");
+if (point) {
+  const room = drawn.find(piece => piece.id === point.id.replace(/-marker$/, ""));
+  await api(`/map/${seed.sketchSlug}/intent/pieces/${encodeURIComponent(point.id)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ minX: point.minX + 1, minZ: point.minZ, maxX: point.maxX + 1, maxZ: point.maxZ }),
+  });
+  const after = await api(`/map/${seed.sketchSlug}/intent/pieces`);
+  const moved = after.find(piece => piece.id === point.id);
+  const stood = after.find(piece => piece.id === room?.id);
+  checks.add("a spawn point dragged a block moves alone", moved?.minX === point.minX + 1 && stood?.minX === room?.minX,
+    `${point.id}: ${point.minX} → ${moved?.minX}, room ${room?.minX} → ${stood?.minX}`);
+  await api(`/map/${seed.sketchSlug}/intent/pieces/${encodeURIComponent(point.id)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ minX: point.minX, minZ: point.minZ, maxX: point.maxX, maxZ: point.maxZ }),
+  });
+}
+
 // ── 2. screenshot the plan tool and the sketch tool ───────────────────────────────────────────────────
 checks.section("plan → sketch, captured");
 

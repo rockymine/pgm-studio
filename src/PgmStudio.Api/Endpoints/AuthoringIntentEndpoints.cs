@@ -124,7 +124,7 @@ public sealed class IntentPieceDeleteEndpoint(
         Description(b => b.Reads(new QueryWord("alone",
                 "Take out the named image only, keeping the other images the symmetry draws of it.",
                 Value: QueryValue.Flag))
-            .Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
+            .Produces<AppliedDto>(200, "application/json").Refuses(400, 404, 409, 422));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -137,7 +137,9 @@ public sealed class IntentPieceDeleteEndpoint(
                                                   await IntentPieceMoveEndpoint.BoardAsync(artifacts, map.Id, ct));
         if (kept is null)
         {
-            await Refusals.StopAsync(HttpContext, 404, "no such piece", refused, ct);
+            var missing = refused.Any(finding => finding.Rule == RequestRules.NoSuchSubject);
+            await Refusals.StopAsync(HttpContext, missing ? 404 : 400,
+                                     missing ? "no such piece" : "the piece cannot be deleted", refused, ct);
             return;
         }
         var applied = await IntentWrite.StoreAndProjectAsync(

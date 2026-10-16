@@ -56,6 +56,7 @@ public partial class SketchStructuralInspector
         PlayPieceKinds.IronCube => "pickaxe",
         PlayPieceKinds.Wall => "brick-wall",
         PlayPieceKinds.Observer => "eye",
+        PlayPieceKinds.SpawnPoint or PlayPieceKinds.WoolSpawn => "crosshair",
         StructuralRoles.Building => "house",
         _ => "square-dashed",
     };
@@ -72,6 +73,8 @@ public partial class SketchStructuralInspector
         PlayPieceKinds.IronCube => "Iron marker",
         PlayPieceKinds.Wall => "Wall",
         PlayPieceKinds.Observer => "Observer",
+        PlayPieceKinds.SpawnPoint => "Spawn point",
+        PlayPieceKinds.WoolSpawn => "Wool spawn",
         _ => Piece.Role,
     };
 

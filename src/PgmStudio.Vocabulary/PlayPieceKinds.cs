@@ -33,6 +33,12 @@ public static class PlayPieceKinds
     /// <summary>The observer's spawn.</summary>
     public const string Observer = "observer";
 
+    /// <summary>The point a spawn's team arrives at, inside its spawn room, which it comes and goes with.</summary>
+    public const string SpawnPoint = "spawnPoint";
+
+    /// <summary>The point a wool is dispensed at, inside its wool room, the same way.</summary>
+    public const string WoolSpawn = "woolSpawn";
+
     /// <summary>Every kind.</summary>
-    public static readonly string[] All = [Spawn, WoolRoom, Destroyable, Core, BuildArea, WaterLane, IronCube, Wall, Observer];
+    public static readonly string[] All = [Spawn, WoolRoom, Destroyable, Core, BuildArea, WaterLane, IronCube, Wall, Observer, SpawnPoint, WoolSpawn];
 }

@@ -31,7 +31,11 @@ public static class PlayPieces
         foreach (var spawn in expanded.Spawns)
         {
             if (spawn.Protection.Count > 0)
+            {
                 yield return Piece(spawn.Id, PlayPieceKinds.Spawn, TeamColor(spawn.Team), spawn.Protection[0]);
+                yield return new PlayPiece(PlayIds.Marker(spawn.Id), PlayPieceKinds.SpawnPoint, TeamColor(spawn.Team),
+                                           Marker(spawn.Point), !stored.Contains(spawn.Id));
+            }
             for (var at = 0; at < spawn.Iron.Count; at++)
                 yield return new PlayPiece($"{spawn.Id}-iron-{at + 1}", PlayPieceKinds.IronCube, TeamColor(spawn.Team),
                                            Iron(RoomFrames.IronCorner(spawn.Iron[at].X), RoomFrames.IronCorner(spawn.Iron[at].Z)),
@@ -39,8 +43,12 @@ public static class PlayPieces
         }
         foreach (var wool in expanded.Wools ?? [])
             if (wool.Protection.Count > 0)
-                yield return Piece(wool.Id, PlayPieceKinds.WoolRoom, wool.Color.Length > 0 ? wool.Color : TeamColor(wool.Owner),
-                                   wool.Protection[0]);
+            {
+                var color = wool.Color.Length > 0 ? wool.Color : TeamColor(wool.Owner);
+                yield return Piece(wool.Id, PlayPieceKinds.WoolRoom, color, wool.Protection[0]);
+                yield return new PlayPiece(PlayIds.Marker(wool.Id), PlayPieceKinds.WoolSpawn, color, Marker(wool.Spawn),
+                                           !stored.Contains(wool.Id));
+            }
         foreach (var goal in expanded.Destroyables ?? [])
             yield return Piece(goal.Id, PlayPieceKinds.Destroyable, TeamColor(goal.Owner), Destroyable(goal));
         foreach (var core in expanded.Cores ?? [])
@@ -74,6 +82,9 @@ public static class PlayPieces
 
     /// <summary>An iron cube's footprint from its min corner.</summary>
     public static Rect Iron(int minX, int minZ) => new(minX, minZ, minX + RoomFrames.IronSpan, minZ + RoomFrames.IronSpan);
+
+    /// <summary>A room's marker: the block-wide square centred on its point.</summary>
+    public static Rect Marker(Pt point) => new(point.X - 0.5, point.Z - 0.5, point.X + 0.5, point.Z + 0.5);
 
     /// <summary>The block the observer stands in.</summary>
     public static Rect Observer(ObserverIntent observer) =>
