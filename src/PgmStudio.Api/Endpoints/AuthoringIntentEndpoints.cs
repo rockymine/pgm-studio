@@ -44,6 +44,75 @@ public sealed class IntentPiecesEndpoint(MapRepository repo, MapArtifactStore ar
     }
 }
 
+/// <summary>POST /api/map/{slug}/intent/pieces — add one play piece and every image the map's symmetry draws of
+/// it, answering the id of its authored image. <see cref="PlayPieceAdd"/> holds what each kind is given.</summary>
+public sealed class IntentPieceAddEndpoint(
+    MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features,
+    PlayerLookup players)
+    : Endpoint<PieceAddRequest>
+{
+    public override void Configure()
+    {
+        Post("/map/{slug}/intent/pieces");
+        Description(b => b.Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409, 422));
+    }
+
+    public override async Task HandleAsync(PieceAddRequest req, CancellationToken ct)
+    {
+        var slug = Route<string>("slug")!;
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+        var (added, id, refused) = PlayPieceAdd.Apply(intent, req.Kind, new Rect(req.MinX, req.MinZ, req.MaxX, req.MaxZ),
+                                                      req.Team, await IntentPieceMoveEndpoint.BoardAsync(artifacts, map.Id, ct));
+        if (added is null)
+        {
+            await Refusals.StopAsync(HttpContext, 400, "the piece cannot be added", refused, ct);
+            return;
+        }
+        var applied = await IntentWrite.StoreAndProjectAsync(
+            repo, reader, writer, artifacts, features, players, slug, map.Id,
+            JsonSerializer.Serialize(added, MapArtifactStore.Json), Revisions.Expected(HttpContext), ct);
+        if (applied.Refusal is not null) { await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct); return; }
+        await Send.OkAsync(new PartWrittenDto(id), ct);
+    }
+}
+
+/// <summary>DELETE /api/map/{slug}/intent/pieces/{id} — take one play piece out of the intent, and every image of
+/// it unless <c>?alone=true</c>.</summary>
+public sealed class IntentPieceDeleteEndpoint(
+    MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features,
+    PlayerLookup players)
+    : EndpointWithoutRequest
+{
+    public override void Configure()
+    {
+        Delete("/map/{slug}/intent/pieces/{id}");
+        Description(b => b.Reads(new QueryWord("alone",
+                "Take out the named image only, keeping the other images the symmetry draws of it.",
+                Value: QueryValue.Flag))
+            .Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var slug = Route<string>("slug")!;
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+        var alone = Query<bool>("alone", isRequired: false);
+        var (kept, refused) = PlayPieceAdd.Delete(intent, Route<string>("id")!, alone,
+                                                  await IntentPieceMoveEndpoint.BoardAsync(artifacts, map.Id, ct));
+        if (kept is null)
+        {
+            await Refusals.StopAsync(HttpContext, 404, "no such piece", refused, ct);
+            return;
+        }
+        var applied = await IntentWrite.StoreAndProjectAsync(
+            repo, reader, writer, artifacts, features, players, slug, map.Id,
+            JsonSerializer.Serialize(kept, MapArtifactStore.Json), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
+    }
+}
+
 /// <summary>PUT /api/map/{slug}/intent — store the intent the author edited and regenerate the map from
 /// it. Replaces the stored intent wholesale, which is what makes a deletion in Configure stick.</summary>
 public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features, PlayerLookup players) : EndpointWithoutRequest
@@ -147,10 +216,7 @@ public sealed class IntentPieceMoveEndpoint(
                 + "`turn`, or states both", Field: "turn")), ct);
             return;
         }
-        var layout = await artifacts.LoadLayoutAsync(map.Id, ct) is { Length: > 0 } stored
-            ? PgmStudio.Pgm.Sketch.SketchLayout.Parse(Encoding.UTF8.GetString(stored))
-            : null;
-        var board = layout?.Setup?.Board;
+        var board = await BoardAsync(artifacts, map.Id, ct);
         var (moved, refused) = placed
             ? PlayPieceMove.Apply(intent, id, req.Part, new Rect(req.MinX!.Value, req.MinZ!.Value, req.MaxX!.Value,
                                                                  req.MaxZ!.Value), req.Alone, board)
@@ -172,4 +238,11 @@ public sealed class IntentPieceMoveEndpoint(
             JsonSerializer.Serialize(moved, MapArtifactStore.Json), Revisions.Expected(HttpContext), ct);
         await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
+
+    /// <summary>The symmetry the map's sketch is drawn through, which a piece route takes where the intent
+    /// states none.</summary>
+    internal static async Task<SymmetryIntent?> BoardAsync(MapArtifactStore artifacts, long mapId, CancellationToken ct) =>
+        await artifacts.LoadLayoutAsync(mapId, ct) is { Length: > 0 } stored
+            ? PgmStudio.Pgm.Sketch.SketchLayout.Parse(Encoding.UTF8.GetString(stored))?.Setup?.Board
+            : null;
 }

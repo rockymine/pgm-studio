@@ -1012,6 +1012,12 @@ export class SketchCanvas extends CanvasBase {
     else this.#paintWorld();
   }
 
+  /** Whether a click on the rectangle tool places at the block clicked rather than being a misfire. */
+  setClickPlaces(on) { this.#draw?.setClickPlaces(on); }
+
+  /** Whether ground of the active layer covers the point. */
+  groundAt(wx, wz) { return !!this.#hitGroup(wx, wz); }
+
   /** The picked plan piece itself, for a caller that needs what it states rather than which one it is. */
   getStructural(id) { return this.#structural.find(s => s.id === id) ?? null; }
 

@@ -284,3 +284,21 @@ public sealed record PlayPieceDto(
     [property: JsonPropertyName("maxX")] double MaxX,
     [property: JsonPropertyName("maxZ")] double MaxZ,
     bool Carried);
+
+/// <summary>A play piece to add — the body of <c>POST /map/{slug}/intent/pieces</c>. The piece arrives with every
+/// image the map's symmetry draws of it.</summary>
+/// <param name="Kind">What to add.</param>
+/// <param name="MinX">The placed rectangle's west edge, in world blocks: a room's region or an area for a spawn, a
+/// wool room, a build area, a water lane and a wall, which is 2 blocks thick; the block clicked for a destroyable,
+/// a core, an iron cube and the observer, which stand centred on it.</param>
+/// <param name="MinZ">Its north edge.</param>
+/// <param name="MaxX">Its east edge.</param>
+/// <param name="MaxZ">Its south edge.</param>
+/// <param name="Team">The team the authored image belongs to; absent takes the first in orbit order.</param>
+public sealed record PieceAddRequest(
+    [property: WordSet(typeof(PlayPieceKinds))] string Kind,
+    [property: JsonPropertyName("minX")] double MinX,
+    [property: JsonPropertyName("minZ")] double MinZ,
+    [property: JsonPropertyName("maxX")] double MaxX,
+    [property: JsonPropertyName("maxZ")] double MaxZ,
+    string? Team = null);

@@ -212,7 +212,7 @@
           @* Nothing is drawn in the isometric preview, so the dock goes with the tools it holds. *@
           @if (!iso.ThreeD)
           {
-          <CanvasDock>
+          <CanvasDock FlyoutOpen="@(openFlyout is not null)" OnDismissFlyout="CloseFlyouts">
             @* Getting around the canvas and picking what is already on it — the whole dock in a select-only
                phase (Theme). Every group after this one authors something, which is Draw's and Dressing's. *@
             <DockGroup Viewing>
@@ -246,6 +246,25 @@
                   <DockButton Icon="@stater.Icon" Title="@stater.Name" @key="stater.Tool"
                               Active="@(tool == stater.Tool)" OnClick="() => SetTool(stater.Tool)" />
                 }
+              </DockGroup>
+            }
+            else if (LayoutActive)
+            {
+              @* The plan editor's three families, each down to its last-picked option and a chevron. Arming one
+                 places that piece: a room or a zone is dragged out, a marker is put down with a click. *@
+              <DockGroup>
+                <DockFlyoutGroup Items="PieceItems" ActiveKey="@pieceActive" Label="Pieces"
+                                 Armed="@(tool == PieceTool(pieceActive))"
+                                 Open="@(openFlyout == "pieces")" OnToggleOpen='() => ToggleFlyout("pieces")'
+                                 OnPick="ArmPiece" />
+                <DockFlyoutGroup Items="ZoneItems" ActiveKey="@zoneActive" Label="Zones"
+                                 Armed="@(tool == PieceTool(zoneActive))"
+                                 Open="@(openFlyout == "zones")" OnToggleOpen='() => ToggleFlyout("zones")'
+                                 OnPick="ArmPiece" />
+                <DockFlyoutGroup Items="MarkerItems" ActiveKey="@markerActive" Label="Markers"
+                                 Armed="@(tool == PieceTool(markerActive))"
+                                 Open="@(openFlyout == "markers")" OnToggleOpen='() => ToggleFlyout("markers")'
+                                 OnPick="ArmPiece" />
               </DockGroup>
             }
             else if (!ScopeApplyActive && !HistoryActive)
@@ -314,7 +333,8 @@
              here is the height a region was compiled at. *@
           <div class="sidebar-handle"></div>
           <SketchStructuralInspector Piece="selectedStructural" Note="@structuralNote"
-                                     OnSetHeight="SetStructuralHeight" OnTurn="TurnStructural" OnClose="ClearStructural" />
+                                     OnSetHeight="SetStructuralHeight" OnTurn="TurnStructural" OnClose="ClearStructural"
+                                     OnDelete="@(LayoutActive ? DeleteStructural : null)" />
         }
         else
         {

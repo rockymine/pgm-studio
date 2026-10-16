@@ -40,6 +40,11 @@ const PREVIEW_FILL_ALPHA = 0.20;
 const PREVIEW_DASH = [5, 3];
 
 export class SketchDrawController {
+  #clickPlaces = false;   // a click hands its one block on as a rectangle, for a tool that places at a point
+
+  /** Whether a click, rather than only a drag, completes a rectangle. */
+  setClickPlaces(on) { this.#clickPlaces = !!on; }
+
   #drawHandlesLayer;
   #getViewport;
   #callbacks;
@@ -224,7 +229,8 @@ export class SketchDrawController {
     this.refreshDrawHandles();
     this.#repaint();
     const { min_x: minX, max_x: maxX, min_z: minZ, max_z: maxZ } = drawnBoundsFromBlocks(startBx, startBz, currentBx, currentBz);
-    if (maxX - minX <= 1 && maxZ - minZ <= 1) return;  // reject single-click misfire
+    // A single click is a misfire, except where the tool places at a click.
+    if (maxX - minX <= 1 && maxZ - minZ <= 1 && !this.#clickPlaces) return;
     this.#callbacks.onShapeCreated?.({
       type: "rectangle", operation: this.#activeOperation, override: false,
       min_x: minX, max_x: maxX, min_z: minZ, max_z: maxZ,
