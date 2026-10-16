@@ -22,9 +22,6 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS182 — Notes on places.** A note anchors to a place by id; Review's Cameras step draws the places as an
-  overlay; a point, box or lasso note is tagged with the place its ground falls in. `docs/tools/sketch.md`.
-
 - [ ] **TS183 — The plan's verdict.** `proposed`, `changes` or `approved` on the places document, one control in
   the Plan step; a convention an agent follows, blocking no write. `docs/tools/sketch.md`.
 

@@ -120,3 +120,6 @@
 .note-message__mark svg { width: var(--icon-xs); height: var(--icon-xs); flex: none; }
 .note-message__picture { display: flex; flex-direction: column; gap: 2px; color: var(--text-muted); font-size: var(--font-xs); text-decoration: none; }
 .note-message__picture img { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: var(--radius-sm); display: block; }
+
+/* A place's notes sit in its inspector, under its own fields, as wide as the inspector is. */
+.workspace-inspector .notes-column { width: auto; margin: var(--space-3); min-height: calc(320px * var(--ui-scale)); }

@@ -764,7 +764,9 @@ a lasso — and a polygon and a polyline beside them; each draws a place rather 
 stored at once under the next free `place-{n}`, named *Place n*, and picked. The column lists the places, a click
 on one on the canvas or in the list picks it, and its panel names it, sets the play piece it holds and deletes
 it; every change stores the whole document through `PUT /map/{slug}/places`, so each is a change in the map's
-history. The places are drawn in this step only, and a click here picks a place and nothing under it.
+history. Under the panel sits the notes column for the place: the threads pinned to it and the ones written on
+its ground, and **New note** pins one to it. The places are drawn in this step and in Review's Cameras step, and
+a click here picks a place and nothing under it.
 
 **Layout's dock is the plan editor's three families.** *Pieces* places a spawn piece or a wool room, *Zones* a
 build area or a water lane — each dragged out as a rectangle, the size it is drawn at — and *Markers* puts down
@@ -1654,13 +1656,13 @@ marked on a picture of a board that is gone.
 **An admin leaves a note pinned to exactly the place it is about; an agent answers it on the note; the author
 closes it.** Nobody types a coordinate: the anchor carries them. The notes column sits beside the picture for a
 caller who may read and answer notes — an admin, or a token an admin issued with the notes permission
-(`docs/access.md`) — and nobody else sees it. Notes exist in Review's Notes step alone, and History, which lists
-the threads written in a span; no other phase, page or rail item shows them, and the sketch surface never draws
-them.
+(`docs/access.md`) — and nobody else sees it. Notes exist in Review's Notes step, Draw's Plan step, where a picked
+place's panel carries the same column for that place's notes, and History, which lists the threads written in a
+span; no other phase, page or rail item shows them, and the sketch surface never draws them.
 
-**A note is one piece of text with one anchor**, and the anchor is what makes it directed. Every note is written
-on the picture in view, so every anchor but the last is a picture, and each of those keeps the exact camera the
-picture was drawn with and the picture's size:
+**A note is one piece of text with one anchor**, and the anchor is what makes it directed. A note written in Review
+is written on the picture in view, so every anchor there but `map` is a picture, and each of those keeps the
+exact camera the picture was drawn with and the picture's size; a note written in Plan is pinned to a place:
 
 | Anchor | Made with | What it keeps |
 |---|---|---|
@@ -1669,6 +1671,13 @@ picture was drawn with and the picture's size:
 | `lasso` | the **Lasso** tool: an outline | the outline, every ground column the rays through the pixels inside it hit, and the void they cross |
 | `view` | a new note with no mark | the camera and the picture |
 | `map` | **Pin to the whole map instead** | nothing spatial |
+| `place` | **New note** in a picked place's panel, in Plan | the place's id, under `place` |
+
+**A note on ground is tagged with the place the ground falls in.** A `point` takes the place its block stands in,
+and a `box` or a `lasso` the place holding most of the columns it hit — inside a box or a ring, or within two
+blocks of a point or a line, the last place listed first (`PlaceLookup`) — so the studio stores that place's id
+under the anchor's `place`, and the thread is listed in that place's panel beside the ones pinned to it. Review's
+Cameras step draws the places over the board, so a camera is stood with them in sight.
 
 **The area is what was seen.** The studio does the projection, not the browser: the column sends the mark in
 the picture's pixels, and `render/eye/pick` re-casts the ray through each pixel against the world the picture
@@ -2331,7 +2340,7 @@ permission (`docs/access.md`). A member, and every other token, is refused `RQ8`
 |---|---|---|
 | `GET /notes?status=&since=` | every note on every map, newest change first, each a `MapNoteDto` with its map's slug and name. `status` takes one status or several between commas — `open` is what an agent starts on; `since`, an ISO 8601 instant, keeps the threads whose last message or status change is at or after it | 400 `no such status` `RQ1` · 400 `no such instant` `RQ1` |
 | `GET /map/{slug}/notes` | the map's notes, newest change first: `[{id, map, mapName, anchor, status, createdAt, updatedAt, messages[]}]`, each message `{id, author, authorUuid, token, body, change, picture, at, mark}` — `token` is the label of the token an agent wrote it with, null for a browser | 404 |
-| `POST /map/{slug}/notes` | the note written. Body `{body, anchor, picture?, change?}`; `change` is the map's change it was written at, and absent takes the latest. A note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a picture no upload answered, a `change` that has not landed · 404 |
+| `POST /map/{slug}/notes` | the note written. Body `{body, anchor, picture?, change?}`; `change` is the map's change it was written at, and absent takes the latest. A note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a `place` anchor naming no place the map has, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a picture no upload answered, a `change` that has not landed · 404 |
 | `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, change?, mark?}`; `mark` is a `point`, `box` or `lasso` anchor as `render/eye/pick` answered it, held to everything a note's anchor of that kind is; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser. A token's `answered` reply on a picture note, at the latest change and with no `picture`, carries the note's camera drawn over the board as stored | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH`, a `change` that has not landed, or a `mark` that is not one (`field` names it) · 404 no such map, or no note by that id on it |
 | `PATCH /map/{slug}/notes/{id}` | the note changed. Body `{status}`: `resolved`, `wont-do` or `open` to reopen | 400 `not a change` `RQ1` · 403 `RQ8` to a token — an agent answers in a reply, and only the author closes a thread · 404 |
 | `GET /notes/handoff` | `{ready, waiting, fresh, handedAt, session}` — whether this studio names an agent, how many notes on every map are open, how many of those were written or answered since the last hand-off, and when that was and the session it started | — |

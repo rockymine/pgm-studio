@@ -8,7 +8,8 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>Draw's Plan step: the map's places, drawn over the board with the notes step's tools, listed, picked
-/// and named, and stored whole through <c>PUT /map/{slug}/places</c> after every change.</summary>
+/// and named, and stored whole through <c>PUT /map/{slug}/places</c> after every change. Review's Cameras step
+/// draws them too.</summary>
 public partial class SketchTool
 {
     private PlacesDocument placesDocument = new();
@@ -41,15 +42,18 @@ public partial class SketchTool
             placePieces = [.. pieces.Where(piece => !piece.Carried).Select(piece => new SelectOption(piece.Id, piece.Id))];
         }
         catch (HttpRequestException) { }
+        await notes.LoadAsync();
         await PushPlacesAsync();
     }
 
-    /// <summary>Draw the places on the canvas while the Plan step is up, and let a click pick one there.</summary>
+    /// <summary>Draw the places on the canvas while the Plan step or Review's Cameras step is up, and let a click
+    /// pick one in Plan.</summary>
     private async Task PushPlacesAsync()
     {
         if (handle is null) return;
         await handle.InvokeVoidAsync("setPlacesPickable", PlanActive);
-        await handle.InvokeVoidAsync("setPlaces", PlanActive ? JsonSerializer.Serialize(PlaceList, PlacesJson) : "[]");
+        await handle.InvokeVoidAsync("setPlaces",
+            PlanActive || CamerasActive ? JsonSerializer.Serialize(PlaceList, PlacesJson) : "[]");
         await handle.InvokeVoidAsync("selectPlace", selectedPlaceId);
     }
 

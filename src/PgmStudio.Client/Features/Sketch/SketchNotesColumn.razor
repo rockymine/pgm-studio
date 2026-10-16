@@ -45,14 +45,14 @@
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
         @{ var here = OnThisPicture.Where(Passes).ToList(); }
         @foreach (var note in here) { @Row(note) }
-        @if (here.Count == 0) { <p class="notes-column__empty">No matching notes on this view.</p> }
-        @{ var whole = OnTheMap.Where(Passes).ToList(); }
+        @if (here.Count == 0) { <p class="notes-column__empty">No matching notes on this @(PlaceId is null ? "view" : "place").</p> }
+        @{ var whole = PlaceId is null ? OnTheMap.Where(Passes).ToList() : []; }
         @if (whole.Count > 0)
         {
           <div class="notes-column__group">WHOLE MAP</div>
           @foreach (var note in whole) { @Row(note) }
         }
-        @{ var elsewhere = Elsewhere.Where(Passes).ToList(); }
+        @{ var elsewhere = PlaceId is null ? Elsewhere.Where(Passes).ToList() : []; }
         @if (elsewhere.Count > 0)
         {
           <div class="notes-column__group">OTHER VIEWS</div>
@@ -156,7 +156,7 @@
           @if (Stale) { <Button Variant="primary" Icon="refresh-cw" OnClick="OnRedraw">Draw the pictures again</Button> }
           else if (HasMark) { <Button OnClick="OnClearMark">Clear mark</Button> }
         </div>
-        @if (!WholeMap)
+        @if (!WholeMap && PlaceId is null)
         {
           <Chip OnClick="OnWholeMap">Pin to the whole map instead</Chip>
         }

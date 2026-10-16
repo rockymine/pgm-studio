@@ -9442,6 +9442,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   structure and a wool's colour, in one body the plan inspector and the sketch both show (`ObjectiveFields`),
   written through `PATCH …/intent/pieces/{id}/settings` one setting at a time; what a unit shares every image
   takes. (`Pgm/Authoring/PlayPieceSettings`, `Client/Components/Editor/ObjectiveFields`, `docs/tools/sketch.md`)
+- **Notes are pinned to places, and a note on ground is tagged with its place (`TS182`).** A `place` anchor names
+  one of the map's places, and a picked place's panel in Plan carries the notes column for its threads; a point,
+  box or lasso note is tagged with the place its ground falls in (`PlaceLookup`), and Review's Cameras step draws
+  the places. (`Api/Services/PlaceLookup`, `Client/Features/Sketch/SketchPlaceNotes`, `docs/tools/sketch.md`)
 - **Draw's Plan step draws the places, before Ground (`TS181`).** A point, a box, a polygon, a lasso or a polyline
   draws a place over the board; the column lists them, a click picks one, and its panel names it and sets the
   play piece it holds, every change stored through `PUT …/places`. (`Client/Features/Sketch/SketchTool.Places`,

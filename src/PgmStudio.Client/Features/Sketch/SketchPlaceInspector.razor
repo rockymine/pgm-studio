@@ -1,8 +1,8 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* The picked place: its name, and the play piece it holds. *@
+@* The picked place: its name, the play piece it holds, and its notes under them. *@
 
-<Inspector>
+<Inspector Class="workspace-inspector--wide">
   <Section>
     <DetailHeader Icon="@SketchPlaces.Icon(Place.Shape)" Label="Place" />
     <Field Label="Name">
@@ -23,6 +23,7 @@
       <i data-lucide="x"></i> Deselect
     </Button>
   </Section>
+  @ChildContent
 </Inspector>
 
 @code {
@@ -37,6 +38,9 @@
     [Parameter] public EventCallback<Place> OnChange { get; set; }
     [Parameter] public EventCallback OnDelete { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>What sits under the place's own fields: its notes.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private Task Renamed(ChangeEventArgs change) =>
         OnChange.InvokeAsync(Place with { Name = change.Value?.ToString()?.Trim() ?? "" });

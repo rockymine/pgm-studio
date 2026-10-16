@@ -354,7 +354,9 @@
           @if (SelectedPlace is { } place)
           {
             <SketchPlaceInspector Place="place" Pieces="placePieces" Note="@placeNote"
-                                  OnChange="ChangePlace" OnDelete="DeletePlace" OnClose="ClosePlace" />
+                                  OnChange="ChangePlace" OnDelete="DeletePlace" OnClose="ClosePlace">
+              <SketchPlaceNotes Slug="@Slug" Place="place" Notes="notes" />
+            </SketchPlaceInspector>
           }
           else
           {

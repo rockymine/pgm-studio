@@ -45,9 +45,10 @@ public sealed record EyePickDto(
     IReadOnlyList<int[]> OverVoid, int? Standing, long Change);
 
 /// <summary>
-/// What a note is pinned to. A <c>map</c> note names nothing spatial. Every other kind was written on a picture
-/// in the Review phase and keeps the view it was, the exact camera and the picture's size; a <c>point</c>,
-/// <c>box</c> or <c>lasso</c> also keeps the mark in that picture's pixels and the ground it was projected onto.
+/// What a note is pinned to. A <c>map</c> note names nothing spatial, and a <c>place</c> note names one of the
+/// map's places. Every other kind was written on a picture in the Review phase and keeps the view it was, the
+/// exact camera and the picture's size; a <c>point</c>, <c>box</c> or <c>lasso</c> also keeps the mark in that
+/// picture's pixels and the ground it was projected onto, and the place that ground falls in.
 /// </summary>
 /// <param name="Kind">What it is pinned to.</param>
 /// <param name="ViewId">The gallery view the picture was, or null for a map note.</param>
@@ -62,6 +63,8 @@ public sealed record EyePickDto(
 /// <param name="Columns">The ground an area's pixels hit, each <c>[x, y, z]</c>.</param>
 /// <param name="OverVoid">The void an area was drawn over, each <c>[x, y, z]</c> at the level of the ground
 /// beside it.</param>
+/// <param name="Place">The place a <c>place</c> note is pinned to, by id; for a <c>point</c>, <c>box</c> or
+/// <c>lasso</c>, the place its ground falls in, which the studio fills where the map has one there.</param>
 public sealed record NoteAnchorDto(
     [property: WordSet(typeof(NoteAnchors))] string Kind,
     string? ViewId = null,
@@ -73,7 +76,8 @@ public sealed record NoteAnchorDto(
     BlockAtDto? Hit = null,
     BlockAtDto? Ground = null,
     IReadOnlyList<int[]>? Columns = null,
-    IReadOnlyList<int[]>? OverVoid = null);
+    IReadOnlyList<int[]>? OverVoid = null,
+    string? Place = null);
 
 /// <summary>One message in a note's thread.</summary>
 /// <param name="Id">Its id.</param>

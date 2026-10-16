@@ -250,6 +250,7 @@ public partial class SketchTool
         await iso.LeaveAsync();
         await views.BeginPlacingAsync();
         await SetTool("eye");
+        await PushPlacesAsync();
     }
 
     /// <summary>Review's Notes step: the pictures, and the threads beside them.</summary>
@@ -257,6 +258,7 @@ public partial class SketchTool
     {
         await views.EndPlacingAsync();
         await SetTool("select");
+        await PushPlacesAsync();
     }
 
     /// <summary>The board could not be built for the Board layer.</summary>

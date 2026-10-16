@@ -41,9 +41,10 @@ public static class NoteStatuses
 }
 
 /// <summary>
-/// What a note is pinned to. Every anchor but <see cref="Map"/> is a picture taken in the Review phase and keeps
-/// its camera: <see cref="View"/> is the picture itself, <see cref="Point"/> one block on it, <see cref="Box"/>
-/// and <see cref="Lasso"/> the ground their pixels' rays hit.
+/// What a note is pinned to. <see cref="Map"/> is the whole map and <see cref="Place"/> one of its places. Every
+/// other anchor is a picture taken in the Review phase and keeps its camera: <see cref="View"/> is the picture
+/// itself, <see cref="Point"/> one block on it, <see cref="Box"/> and <see cref="Lasso"/> the ground their pixels'
+/// rays hit.
 /// </summary>
 public static class NoteAnchors
 {
@@ -52,13 +53,14 @@ public static class NoteAnchors
     public const string Point = "point";
     public const string Box = "box";
     public const string Lasso = "lasso";
+    public const string Place = "place";
 
-    public static readonly string[] All = [Map, View, Point, Box, Lasso];
+    public static readonly string[] All = [Map, View, Point, Box, Lasso, Place];
 
     public static bool IsValid(string? kind) => kind is not null && All.Contains(kind);
 
     /// <summary>Whether the anchor is drawn on a picture and so carries a camera.</summary>
-    public static bool OnPicture(string kind) => kind is not Map;
+    public static bool OnPicture(string kind) => kind is not (Map or Place);
 
     /// <summary>Whether the anchor names ground — a block or an area — rather than a whole picture.</summary>
     public static bool Marks(string kind) => kind is Point or Box or Lasso;

@@ -29,6 +29,10 @@ public partial class SketchNotesColumn : IDisposable
     /// <summary>The gallery views there are, so a note on a picture no longer offered is told apart.</summary>
     [Parameter] public IReadOnlyCollection<string> ViewIds { get; set; } = [];
     [Parameter] public string? ViewId { get; set; }
+
+    /// <summary>The place whose notes the column lists — the ones pinned to it and the ones on its ground — in
+    /// place of a picture's; null beside a picture.</summary>
+    [Parameter] public string? PlaceId { get; set; }
     [Parameter] public string? ViewName { get; set; }
     [Parameter] public MapNoteDto? Current { get; set; }
     [Parameter] public string Filter { get; set; } = All;
@@ -98,7 +102,9 @@ public partial class SketchNotesColumn : IDisposable
     private (long Id, int Messages)? followed;
     private bool toEnd;
 
-    private IEnumerable<MapNoteDto> OnThisPicture => Notes.Where(note => note.Anchor.ViewId is { } view && view == ViewId);
+    private IEnumerable<MapNoteDto> OnThisPicture => PlaceId is { } place
+        ? Notes.Where(note => note.Anchor.Place == place)
+        : Notes.Where(note => note.Anchor.ViewId is { } view && view == ViewId);
     private IEnumerable<MapNoteDto> OnTheMap => Notes.Where(note => note.Anchor.Kind == NoteAnchors.Map);
     private IEnumerable<MapNoteDto> Elsewhere =>
         Notes.Where(note => note.Anchor.ViewId is { } view && view != ViewId && !ViewIds.Contains(view));
@@ -123,7 +129,7 @@ public partial class SketchNotesColumn : IDisposable
     };
 
     private int Count(string filter) =>
-        OnThisPicture.Concat(OnTheMap).Concat(Elsewhere).Count(note => Passes(note, filter));
+        (PlaceId is null ? OnThisPicture.Concat(OnTheMap).Concat(Elsewhere) : OnThisPicture).Count(note => Passes(note, filter));
 
     /// <summary>Send the new note. The column owns the sending, so the button says so from the click on and a
     /// second click sends nothing; the text box clears only once the note has landed.</summary>

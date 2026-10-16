@@ -36,6 +36,17 @@ internal static class NoteWire
 
     public static string AnchorJson(NoteAnchorDto anchor) => JsonSerializer.Serialize(anchor, MapArtifactStore.Json);
 
+    /// <summary>The place the ground a mark was projected onto falls in: a point's block, or the place holding most
+    /// of an area's columns; null where the mark hit no ground or the ground is in no place.</summary>
+    public static string? PlaceOf(NoteAnchorDto mark, IReadOnlyList<Place> places)
+    {
+        if (places.Count == 0) return null;
+        if ((mark.Ground ?? mark.Hit) is { } block) return PlaceLookup.At(places, block.X, block.Z);
+        return mark.Columns is { Count: > 0 } columns
+            ? PlaceLookup.Of(places, columns.Select(column => ((double)column[0], (double)column[2])))
+            : null;
+    }
+
     /// <summary>A message as <paramref name="caller"/> writes it, with the mark a reply carries.</summary>
     public static MapNoteMessageRow Message(Caller caller, string body, long change, string? picture, DateTime at,
                                             NoteAnchorDto? mark = null) => new()
@@ -293,7 +304,8 @@ public sealed class MapNotesEndpoint(MapRepository repo, MapNoteStore notes) : E
 /// picture it was written on and the change it was written at. A note an author writes waits for an agent; one
 /// an agent writes is a question and waits for the author.</summary>
 public sealed class MapNoteCreateEndpoint(
-    MapRepository repo, MapNoteStore notes, NotePictures pictures, Callers callers, MapChangeLog log)
+    MapRepository repo, MapNoteStore notes, NotePictures pictures, Callers callers, MapChangeLog log,
+    MapArtifactStore artifacts)
     : Endpoint<MapNoteRequest, MapNoteDto>
 {
     public override void Configure()
@@ -315,9 +327,20 @@ public sealed class MapNoteCreateEndpoint(
             return;
         }
 
+        // A place note names a place the map has; a note on ground is tagged with the place that ground is in.
+        var places = (await artifacts.LoadJsonAsync<PlacesDocument>(map.Id, ArtifactKind.PlacesJson, ct))?.Places ?? [];
+        var anchor = request.Anchor;
+        if (anchor.Kind == NoteAnchors.Place && places.All(place => place.Id != anchor.Place))
+        {
+            await Refusals.UnreadableAsync(HttpContext, "not a note",
+                $"the request's `anchor.place` '{anchor.Place}' is not one of the map's places", ct, "anchor.place");
+            return;
+        }
+        if (NoteAnchors.Marks(anchor.Kind))
+            anchor = anchor with { Place = NoteWire.PlaceOf(anchor, places) };
+
         var caller = await callers.OfAsync(HttpContext, ct);
         var now = DateTime.UtcNow;
-        var anchor = request.Anchor;
         var stored = await notes.CreateAsync(new MapNoteRow
         {
             MapSlug = map.Slug,

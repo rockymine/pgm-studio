@@ -46,8 +46,27 @@ await name.fill("Abbey Hill");
 await name.press("Enter");
 await page.locator(".panel-list .list-label", { hasText: "Abbey Hill" }).waitFor({ timeout: 30000 });
 checks.add("the name is stored", (await api(`/map/${seed.sketchSlug}/places`)).places[0].name === "Abbey Hill");
+
+checks.section("a note written in the place's panel is pinned to it");
+await page.click(".workspace-inspector .notes-column button:has-text('New note')");
+await page.fill("#note-body", "Is the hill tall enough to hold?");
+await page.click(".workspace-inspector .notes-column button:has-text('Send')");
+let notes = [];
+for (let tries = 0; tries < 30 && !notes.some(note => note.anchor.kind === "place"); tries++) {
+  await page.waitForTimeout(500);
+  notes = await api(`/map/${seed.sketchSlug}/notes`);
+}
+const pinned = notes.find(note => note.anchor.kind === "place");
+checks.add("the note is pinned to the place", pinned?.anchor.place === place?.id,
+  JSON.stringify(pinned?.anchor ?? notes.map(note => note.anchor)));
+await page.locator(".workspace-inspector .notes-column__thread", { hasText: "Is the hill tall enough" })
+  .waitFor({ timeout: 30000 }).catch(() => {});
+checks.add("the panel opens the note's thread",
+  await page.locator(".workspace-inspector .notes-column__back").count() > 0
+  && !(await page.locator(".workspace-inspector #note-body").count()));
 await page.waitForTimeout(800);
 await page.screenshot({ path: `${OUT}sketch-places.png` });
+
 
 await api(`/map/${seed.sketchSlug}/places`, { method: "PUT", body: {} });
 checks.add("sketch places is clean", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));

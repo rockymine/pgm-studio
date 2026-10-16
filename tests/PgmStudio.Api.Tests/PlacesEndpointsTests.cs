@@ -81,4 +81,35 @@ public sealed class PlacesEndpointsTests
         var read = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/places");
         await Assert.That(read.EnumerateObject().Any()).IsFalse().Because("a refused write stores nothing");
     }
+
+    [Test]
+    public async Task A_note_pins_to_a_place_and_a_note_on_its_ground_is_tagged_with_it()
+    {
+        var (client, slug) = await BoardAsync();
+        var put = await PutAsync(client, slug, Places);
+        await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());
+
+        var pinned = await client.PostAsJsonAsync($"/api/map/{slug}/notes",
+            new { body = "Is the hill tall enough?", anchor = new { kind = "place", place = "home" } });
+        await Assert.That(pinned.StatusCode).IsEqualTo(HttpStatusCode.OK).Because(await pinned.Content.ReadAsStringAsync());
+
+        var nowhere = await client.PostAsJsonAsync($"/api/map/{slug}/notes",
+            new { body = "Here?", anchor = new { kind = "place", place = "the-abbey" } });
+        await Assert.That(nowhere.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+
+        var camera = new { x = 5, y = 30, z = 5, yaw = 0, pitch = 60, fov = 70 };
+        var onGround = await client.PostAsJsonAsync($"/api/map/{slug}/notes", new
+        {
+            body = "This block.",
+            anchor = new
+            {
+                kind = "point", viewId = "above", viewName = "Above", camera, width = 640, height = 360,
+                marks = new[] { new { x = 320, y = 180 } }, ground = new { x = 4, y = 12, z = 6 },
+            },
+        });
+        var written = await onGround.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(onGround.StatusCode).IsEqualTo(HttpStatusCode.OK).Because(written.ToString());
+        await Assert.That(written.GetProperty("anchor").GetProperty("place").GetString()).IsEqualTo("home")
+            .Because("the block it names is inside the box the place is drawn as");
+    }
 }
