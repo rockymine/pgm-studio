@@ -22,11 +22,6 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS181 — Draw's Plan step, before Ground.** The Cameras step's layout: the board top-down in the middle
-  over whatever ground exists, the notes step's point, box and lasso tools with polygon and polyline beside them
-  to draw a place, the places listed on the left with what a change made new, and the picked place's thread on
-  the right. The canvas states what a place holds and nothing else. `docs/tools/sketch.md`.
-
 - [ ] **TS182 — Notes on places.** A note anchors to a place by id; Review's Cameras step draws the places as an
   overlay; a point, box or lasso note is tagged with the place its ground falls in. `docs/tools/sketch.md`.
 

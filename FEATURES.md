@@ -9442,6 +9442,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   structure and a wool's colour, in one body the plan inspector and the sketch both show (`ObjectiveFields`),
   written through `PATCH …/intent/pieces/{id}/settings` one setting at a time; what a unit shares every image
   takes. (`Pgm/Authoring/PlayPieceSettings`, `Client/Components/Editor/ObjectiveFields`, `docs/tools/sketch.md`)
+- **Draw's Plan step draws the places, before Ground (`TS181`).** A point, a box, a polygon, a lasso or a polyline
+  draws a place over the board; the column lists them, a click picks one, and its panel names it and sets the
+  play piece it holds, every change stored through `PUT …/places`. (`Client/Features/Sketch/SketchTool.Places`,
+  `docs/tools/sketch.md`)
 - **A map's places are stored with it, in its one history (`TS180`).** `GET·PUT /map/{slug}/places` reads and
   writes `map_places_json`, a kept document diffed and restored beside the layout and the intent; a place is a
   name over a point, box, ring or line and at most the play piece it holds, and `PUT source` takes `places`

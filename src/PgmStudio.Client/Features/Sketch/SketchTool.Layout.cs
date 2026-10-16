@@ -6,13 +6,16 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
-/// <summary>Draw's two steps: Ground, where the shapes are drawn, and Layout, where the play pieces are placed
-/// from the plan editor's three toolbars. Both draw every piece and pick, drag and turn any of them.</summary>
+/// <summary>Draw's three steps: Plan, where the places are drawn; Ground, where the shapes are drawn; and Layout,
+/// where the play pieces are placed from the plan editor's three toolbars. Ground and Layout draw every piece and
+/// pick, drag and turn any of them.</summary>
 public partial class SketchTool
 {
-    private static readonly string[] DrawSteps = ["Ground", "Layout"];
-    private const int LayoutStep = 1;
-    private int drawStep;
+    private static readonly string[] DrawSteps = ["Plan", "Ground", "Layout"];
+    private const int PlanStep = 0;
+    private const int GroundStep = 1;
+    private const int LayoutStep = 2;
+    private int drawStep = GroundStep;
     private string? openFlyout;
     private string pieceActive = PlayPieceKinds.Spawn;
     private string zoneActive = PlayPieceKinds.BuildArea;
@@ -50,11 +53,12 @@ public partial class SketchTool
         new(PlayPieceKinds.Chest, "Defence chest", Icon: "box"),
     ];
 
-    private Task StepDraw(int step)
+    private async Task StepDraw(int step)
     {
         drawStep = step;
         openFlyout = null;
-        return SetTool("select");
+        await SetTool("select");
+        await PushPlacesAsync();
     }
 
     private void ToggleFlyout(string family) => openFlyout = openFlyout == family ? null : family;

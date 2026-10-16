@@ -1,0 +1,23 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* The map's places, as the canvas draws them. Choosing one picks it as a click on it would. *@
+
+<Section Title="Places">
+  <div class="panel-list">
+    @foreach (var place in Places)
+    {
+      <ListRow Compact Selected="@(place.Id == SelectedId)" @key="place.Id" OnClick="() => OnSelect.InvokeAsync(place.Id)">
+        <ChildContent>
+          <span class="geo-type-icon"><i data-lucide="@SketchPlaces.Icon(place.Shape)"></i></span>
+          <span class="list-label" title="@place.Name">@place.Name</span>
+        </ChildContent>
+      </ListRow>
+    }
+  </div>
+</Section>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<Place> Places { get; set; } = [];
+    [Parameter] public string? SelectedId { get; set; }
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
+}

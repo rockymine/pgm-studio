@@ -19,7 +19,7 @@ Decoration the Dressing phase. Info states what the
 board is and is its own body; Review is the board as a player sees it, with the author's notes on it, in two
 steps: Cameras, on the canvas, and Notes, a body of its own. The
 other phases share the one live canvas, which stays mounted while Info or Notes is up so the
-drawing state and the zoom survive the trip. Draw has two steps, Ground and Layout, on that one canvas. Terraform,
+drawing state and the zoom survive the trip. Draw has three steps, Plan, Ground and Layout, on that one canvas. Terraform,
 Palette, Decoration and History have no steps: each swaps what the columns hold and which overlays the layer bar offers, and the canvas is reused as it stands.
 `?phase=review` opens the tool on Review and `?phase=history` on History. What a drive reads back about the board is not a phase: it is `GET /map/{slug}/report`, an agent's
 read (*The report*, under the API).
@@ -753,9 +753,18 @@ Draw.
 
 ### Draw
 
-The canvas, and where the geometry is made. **It has two steps, Ground and Layout, one click apart in the bar**:
-Ground draws the shapes, and Layout places the play pieces. Both draw every shape and every piece, and in both a
-piece is picked, dragged and turned the same way; only Layout adds or deletes one, and only Ground draws a shape.
+The canvas, and where the geometry is made. **It has three steps, Plan, Ground and Layout, one click apart in the
+bar**: Plan draws the places, Ground draws the shapes, and Layout places the play pieces. Ground and Layout draw
+every shape and every piece, and in both a piece is picked, dragged and turned the same way; only Layout adds or
+deletes one, and only Ground draws a shape. Draw opens on Ground, and Info's last step goes on to Plan, where a
+new map starts.
+
+**Plan draws the places over whatever the board holds**, top-down, with the notes step's marks — a point, a box,
+a lasso — and a polygon and a polyline beside them; each draws a place rather than ground. A drawn place is
+stored at once under the next free `place-{n}`, named *Place n*, and picked. The column lists the places, a click
+on one on the canvas or in the list picks it, and its panel names it, sets the play piece it holds and deletes
+it; every change stores the whole document through `PUT /map/{slug}/places`, so each is a change in the map's
+history. The places are drawn in this step only, and a click here picks a place and nothing under it.
 
 **Layout's dock is the plan editor's three families.** *Pieces* places a spawn piece or a wool room, *Zones* a
 build area or a water lane — each dragged out as a rectangle, the size it is drawn at — and *Markers* puts down
