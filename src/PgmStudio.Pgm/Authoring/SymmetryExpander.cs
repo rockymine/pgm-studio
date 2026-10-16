@@ -37,7 +37,7 @@ public static class SymmetryExpander
         var order = Symmetry.Order(sym.Mode);
         // Teams the author listed win; otherwise derive count from the symmetry and synthesize them (§4),
         // so "symmetry + one spawn" is a complete map. Orbit positions map onto this team list in order.
-        var teams = intent.Teams is { Count: > 0 } provided ? provided : SynthesizeTeams(intent, order);
+        var teams = TeamsOf(intent, order);
         if (teams.Count <= 1) return intent;
 
         // `with`, never a fresh MapIntent: a rebuild that names its fields drops every slice added after it
@@ -62,6 +62,11 @@ public static class SymmetryExpander
     // ── team synthesis ──────────────────────────────────────────────────────────────────
     // No teams listed → derive count from the symmetry order and assign palette colours. Team 0's id is
     // anchored to whatever the author authored against (their one spawn/wool) so the orbit attaches to it.
+    /// <summary>The teams a map with <paramref name="order"/> symmetry images plays, in orbit order: the ones the
+    /// intent lists, or one per image named from the team palette.</summary>
+    public static List<TeamDef> TeamsOf(MapIntent intent, int order) =>
+        intent.Teams is { Count: > 0 } provided ? provided : SynthesizeTeams(intent, order);
+
     private static List<TeamDef> SynthesizeTeams(MapIntent intent, int order)
     {
         var colors = TeamPalette.Take(order);

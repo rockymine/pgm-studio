@@ -59,6 +59,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // Every play piece that is not a room, as the intent places it: drawn and moved with the rooms, never
   // written into the layout, because none of them is ground the layout states.
   let pieces = [];
+  let pieceKind = null;        // the play piece the Layout step places next, or null
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let dressingMode = false;    // the Dressing phase is up: props are, and a shape is not reachable under them
   // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override
@@ -129,6 +130,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   /** Hand the canvas back to select, and have the toolbar follow. */
   function putDownTool() {
+    armPiece(null);
     canvas.setActiveTool("select");
     fire("OnToolChanged", "select");
   }
@@ -143,13 +145,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   const canvas = new SketchCanvas(svgEl, wrapEl, {
     cursorEl: coordsEl, zoomEl, dimEl,
-    onShapeCreated: edit((partial) => {
-      const shape = { ...partial, id: genId(), override: partial.override ?? false, base_height: clampHeight(partial.base_height ?? NEW_SHAPE_HEIGHT), floor: clampFloor(partial.floor) };
-      canvas.addShape(shape);
-      recompute();
-      if (dropTool()) selectShape(shape.id);
-      markDirty();
-    }),
+    onShapeCreated: (partial) => pieceKind ? placePiece(pieceKind, partial) : addShape(partial),
     onShapeUpdated: edit(() => { recompute(); markDirty(); }),
     onShapeSelected: (id) => selectShape(id),
     // A brush in hand paints the shape it is clicked on; shift widens it to every shape the group holds, and
@@ -332,6 +328,76 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     await refreshRooms();
     await refreshPieces();
     selectStructural(id);
+  }
+
+  /** A drawn rectangle becomes a shape of the active layer. */
+  const addShape = edit((partial) => {
+    const shape = { ...partial, id: genId(), override: partial.override ?? false, base_height: clampHeight(partial.base_height ?? NEW_SHAPE_HEIGHT), floor: clampFloor(partial.floor) };
+    canvas.addShape(shape);
+    recompute();
+    if (dropTool()) selectShape(shape.id);
+    markDirty();
+  });
+
+  // The pieces a click places, centred on the block clicked; every other kind is the rectangle dragged out.
+  const POINT_KINDS = new Set(["destroyable", "core", "ironCube", "observer"]);
+  const ROOM_KINDS = new Set(["spawn", "woolRoom"]);
+
+  /** Arm the rectangle tool to place `kind` rather than draw a shape, or `null` to put it back to drawing. */
+  function armPiece(kind) {
+    pieceKind = readOnly ? null : kind || null;
+    canvas.setClickPlaces(!!pieceKind && POINT_KINDS.has(pieceKind));
+    if (pieceKind) { selectShape(null); canvas.setActiveTool("rectangle"); }
+  }
+
+  /**
+   * Place a piece where the rectangle was drawn — a wall held to 2 blocks across its thinner side, a click's
+   * block for a piece that stands on a point — and read it back. A spawn or wool room placed over no ground
+   * also draws a rectangle of ground the size of the room, as an ordinary shape of the active layer.
+   */
+  async function placePiece(kind, partial) {
+    let [minX, minZ, maxX, maxZ] = [partial.min_x, partial.min_z, partial.max_x, partial.max_z];
+    if (POINT_KINDS.has(kind)) [maxX, maxZ] = [minX + 1, minZ + 1];
+    if (kind === "wall") {
+      if (maxX - minX <= maxZ - minZ) maxX = minX + 2; else maxZ = minZ + 2;
+    }
+    if (!slug) return;
+    let id;
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, minX, minZ, maxX, maxZ }),
+      });
+      if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return; }
+      id = (await res.json()).id;
+    } catch {
+      fire("OnStructuralNote", "Couldn't reach the studio, so the piece wasn't placed. Try again.");
+      return;
+    }
+    if (ROOM_KINDS.has(kind) && !canvas.groundAt((minX + maxX) / 2, (minZ + maxZ) / 2))
+      addShape({ type: "rectangle", operation: "add", override: false, min_x: minX, min_z: minZ, max_x: maxX, max_z: maxZ });
+    else dropTool();
+    fire("OnStructuralNote", null);
+    await refreshRooms();
+    await refreshPieces();
+    selectStructural(id);
+  }
+
+  /** Delete a picked piece and every image of it, and read the board back. */
+  async function deleteStructural(id) {
+    const piece = canvas.getStructural(id);
+    if (!slug || !piece) return;
+    try {
+      const res = await fetch(
+        `/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(piece.id)}`, { method: "DELETE" });
+      if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return; }
+    } catch {
+      fire("OnStructuralNote", "Couldn't reach the studio, so the piece wasn't deleted. Try again.");
+      return;
+    }
+    selectStructural(null);
+    await refreshRooms();
+    await refreshPieces();
   }
 
   /** The rooms of the layer being drawn on, and on the ground layer every other piece with them. */
@@ -955,6 +1021,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   const handle = {
     setTool(tool)      {
+      armPiece(null);
       if (readOnly && !VIEW_TOOLS.has(tool)) { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); return; }
       canvas.setActiveTool(tool === "select" ? "select" : tool);
       // Leaving select mode clears the selection — otherwise arrow-nudge keeps moving a shape that's no
@@ -1181,6 +1248,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     /** Arm a theme so a click on a shape paints it; "" puts the brush down. */
     /** Turn the picked room, building or area `quarters` quarter turns clockwise. */
     turnStructural(id, quarters) { return turnStructural(id, quarters); },
+    /** Arm the Layout step's placing tool with a play piece kind. */
+    armPiece(kind) { armPiece(kind); },
+    /** Delete the picked play piece and its images. */
+    deleteStructural(id) { return deleteStructural(id); },
     setThemeBrush(id) { setThemeBrush(id); },
     /** Draw what a change did over the board: `{before, after, world}` — the two layouts and the diff's world
      *  half, which may be absent — or null to take it away. */

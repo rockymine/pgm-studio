@@ -50,11 +50,15 @@ checks.add("it offers Configure, where the game is set up",
   (await configure.getAttribute("href"))?.endsWith(`maps/${unset.slug}/configure`) ?? false);
 clearFaults(page);   // the export's 409 is the refusal this section asked for
 
-checks.section("Draw's Done goes on to Terraform");
+checks.section("Draw's Next goes to Layout, and Layout's on to Terraform");
 await page.goto(`${BASE}/maps/${seed.sketchSlug}/sketch`, { waitUntil: "networkidle" });
-await page.locator(".editor-bar", { hasText: "Draw" }).locator("button", { hasText: "Next" }).click();
+const next = page.locator(".editor-bar", { hasText: "Draw" }).locator("button", { hasText: "Next" });
+await next.click();
+await page.locator(".flow-step--active", { hasText: "Layout" }).waitFor({ timeout: 30000 });
+checks.add("Ground's next step is Layout", true);
+await next.click();
 await page.locator(".editor-bar", { hasText: "Terraform" }).waitFor({ timeout: 30000 });
-checks.add("the next phase is Terraform", true);
+checks.add("Layout's next phase is Terraform", true);
 
 await api(`/map/${unbuilt.slug}`, { method: "DELETE" });
 await api(`/map/${unset.slug}`, { method: "DELETE" });

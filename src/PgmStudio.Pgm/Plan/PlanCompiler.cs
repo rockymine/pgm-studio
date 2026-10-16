@@ -19,16 +19,6 @@ public static class PlanCompiler
     private static readonly (string Id, string Name, string Color)[] Palette =
         [("red", "Red", "red"), ("blue", "Blue", "blue"), ("yellow", "Yellow", "yellow"), ("green", "Green", "green")];
 
-    // PGM rejects a nameless destroyable, so the compiler names one rather than the author: "Red Monument",
-    // then "Red Monument 2" for a team's second. "Monument" is PGM's own player-facing word for a DTM goal —
-    // the codebase reserves the term for the CTW wool monument, but the map's audience is players.
-    private static string MonumentName(string teamName, int index) =>
-        index == 0 ? $"{teamName} Monument" : $"{teamName} Monument {index + 1}";
-
-    // Distinct dyes for a team's non-first wools, so every wool across the board keys to a unique colour.
-    private static readonly string[] Dyes =
-        ["orange", "light_blue", "pink", "lime", "cyan", "purple", "magenta", "white", "gray", "brown", "black", "silver"];
-
     public static (SketchLayout Layout, MapIntent Intent) Compile(PlanModel plan)
     {
         // Declare the plan's negative space before reading it, so a compound's enclosed void is a buffer piece
@@ -253,7 +243,7 @@ public static class PlanCompiler
                 var (px, pz) = d.FanPoint(bx, bz, k);
                 var color = !string.IsNullOrEmpty(w.Color) ? w.Color
                     : i == 0 ? teams[k].Color
-                    : Dyes[dyeCursor++ % Dyes.Length];
+                    : PieceDefaults.Dyes[dyeCursor++ % PieceDefaults.Dyes.Length];
                 var room = d.FanRect(piece.Value.Rect, k);
                 // A wool-room ROLE piece carries the entry interfaces the cage's doors are cut on (WX6); a
                 // wool on a plain piece has none, and a cage with no entry keeps a door per wall.
@@ -309,7 +299,7 @@ public static class PlanCompiler
                 {
                     Owner = teams[k].Id,
                     Stamp = Stamp("destroyable", b.Id, i, k),
-                    Name = !string.IsNullOrEmpty(b.Name) ? b.Name : MonumentName(teams[k].Name, i),
+                    Name = !string.IsNullOrEmpty(b.Name) ? b.Name : PieceDefaults.MonumentName(teams[k].Name, i),
                     Style = !string.IsNullOrEmpty(b.Style) ? b.Style : DestroyableStyles.Slug(ObjectiveDefaults.Style),
                     Materials = !string.IsNullOrEmpty(b.Materials) ? b.Materials : ObjectiveDefaults.Materials,
                     Anchor = new Pt(px, anchor.Surface, pz),

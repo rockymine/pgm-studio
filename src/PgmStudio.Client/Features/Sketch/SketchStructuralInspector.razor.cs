@@ -24,6 +24,9 @@ public partial class SketchStructuralInspector
 
     [Parameter] public EventCallback OnClose { get; set; }
 
+    /// <summary>Delete the piece and its images; offered only where pieces are added, which is Layout.</summary>
+    [Parameter] public Func<Task>? OnDelete { get; set; }
+
     /// <summary>Turn the piece a quarter at a time: 1 clockwise seen from above, -1 the other way.</summary>
     [Parameter] public EventCallback<int> OnTurn { get; set; }
 

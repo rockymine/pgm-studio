@@ -60,6 +60,12 @@
     {
       <p class="field-error">@Note</p>
     }
+    @if (OnDelete is not null && Piece.Role != StructuralRoles.Building)
+    {
+      <Button Full Variant="danger" Writes OnClick="OnDelete">
+        <i data-lucide="trash-2"></i> Delete
+      </Button>
+    }
     <Button Full OnClick="() => OnClose.InvokeAsync()">
       <i data-lucide="x"></i> Deselect
     </Button>

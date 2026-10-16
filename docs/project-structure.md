@@ -102,9 +102,9 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 27 | 5,176 | `Playability/` 16 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 172 | 24,398 | `Endpoints/` 83 · `Services/` 68 · `Access/` 14 · `Http/` 3 · 4 at root |
-| `Client` | 267 | 32,748 | `Features/` 147 (nested) · `Components/` 90 (nested) · `Pages/` 17 · `Layout/` 5 · `Models/` 5 · 3 at root |
-| `Contracts` | 37 | 4,257 | flat |
+| `Api` | 172 | 24,471 | `Endpoints/` 83 · `Services/` 68 · `Access/` 14 · `Http/` 3 · 4 at root |
+| `Client` | 268 | 32,856 | `Features/` 148 (nested) · `Components/` 90 (nested) · `Pages/` 17 · `Layout/` 5 · `Models/` 5 · 3 at root |
+| `Contracts` | 37 | 4,275 | flat |
 | `Data` | 26 | 4,424 | `Map/` 7 · `Features/` 6 · `Theme/` 5 · `Access/` 3 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 32 | 4,199 | flat |
 | `Export` | 22 | 5,103 | flat |
@@ -112,7 +112,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Import` | 4 | 498 | flat |
 | `Migrations` | 79 | 5,217 | `Migrations/` 78 · 1 at root |
 | `Minecraft` | 114 | 23,885 | `Render/` 22 · `Palette/` 18 · `Stamping/` 18 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
-| `Pgm` | 169 | 34,825 | `Compose/` 38 (nested) · `Authoring/` 36 · `Evaluate/` 23 (nested) · `Sketch/` 12 · `Editing/` 11 · `Plan/` 11 · `Derive/` 9 · `Shapes/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
+| `Pgm` | 171 | 35,137 | `Authoring/` 38 · `Compose/` 38 (nested) · `Evaluate/` 23 (nested) · `Sketch/` 12 · `Editing/` 11 · `Plan/` 11 · `Derive/` 9 · `Shapes/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
 | `Vocabulary` | 43 | 3,020 | flat |
 <!-- /census -->
 

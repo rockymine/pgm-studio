@@ -9433,6 +9433,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where the symmetry carries it, with the board's symmetry from the sketch where the intent states none. The Draw
   phase draws them all and picks and drags any, and a room's, building's or area's rail turns it.
   (`Pgm/Authoring/PlayPieces`, `docs/tools/sketch.md`)
+- **Draw is a Ground step and a Layout step, and Layout places and deletes the pieces (`TS169`).** Layout's dock is
+  the plan editor's Pieces, Zones and Markers; `POST …/intent/pieces` adds a piece with every image the symmetry
+  draws of it and `DELETE …/intent/pieces/{id}` takes it out (`PlayPieceAdd`). A spawn goes to the first team with
+  none, a later wool takes a dye no wool has, and a room placed over no ground draws a rectangle of ground under
+  it. (`Pgm/Authoring/PlayPieceAdd`, `Client/Features/Sketch/SketchTool.Layout`, `docs/tools/sketch.md`)
 - **A rule's third level, the measure (`RP128`).** `RuleLevels.Measure` never refuses and reads a finding as the
   number it measured against its range: `Finding.Measured` is `{value, low, high}`, and `Violation` reads its
   value and band from it. Every rule of `GO`, `WL`, `CT`, `LN`, `FR` and `MD` but `WL14` is a measure by default

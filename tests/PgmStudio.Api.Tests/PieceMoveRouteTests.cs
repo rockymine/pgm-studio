@@ -218,4 +218,35 @@ public sealed class PieceMoveRouteTests
             .Select(area => (area.GetProperty("id").GetString()!, area.GetProperty("minX").GetDouble())).ToList();
         await Assert.That(areas).IsEquivalentTo(new[] { ("bridge", 12.0), ("bridge-image", 78.0) });
     }
+
+    /// <summary>A piece added through the route arrives with its image on a mirrored sketch, answers its id, and
+    /// deleting that id takes both out again.</summary>
+    [Test]
+    public async Task An_added_piece_and_its_image_are_stored_and_deleted_together()
+    {
+        var (client, slug) = await BoardAsync();
+        var sketch = await client.PutAsync($"/api/map/{slug}/sketch", new StringContent(
+            """{"setup":{"mirror_mode":"mirror_x","center":{"cx":50,"cz":50}},"layers":[{"id":"ground","shapes":[]}]}""",
+            Encoding.UTF8, "application/json"));
+        await Assert.That(sketch.IsSuccessStatusCode).IsTrue().Because(await sketch.Content.ReadAsStringAsync());
+
+        var added = await client.PostAsJsonAsync($"/api/map/{slug}/intent/pieces",
+            new { kind = "buildArea", minX = 10, minZ = 20, maxX = 20, maxZ = 30 });
+        await Assert.That(added.IsSuccessStatusCode).IsTrue().Because(await added.Content.ReadAsStringAsync());
+        var id = (await added.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        static async Task<List<double>> AreasAsync(HttpClient client, string slug) =>
+            [.. (await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/intent/pieces"))
+                .EnumerateArray().Where(piece => piece.GetProperty("kind").GetString() == "buildArea")
+                .Select(piece => piece.GetProperty("minX").GetDouble())];
+        await Assert.That(await AreasAsync(client, slug)).IsEquivalentTo(new[] { 10.0, 80.0 });
+
+        var deleted = await client.DeleteAsync($"/api/map/{slug}/intent/pieces/{id}");
+        await Assert.That(deleted.IsSuccessStatusCode).IsTrue().Because(await deleted.Content.ReadAsStringAsync());
+        await Assert.That(await AreasAsync(client, slug)).IsEmpty();
+
+        var unknown = await client.PostAsJsonAsync($"/api/map/{slug}/intent/pieces",
+            new { kind = "bridge", minX = 0, minZ = 0, maxX = 4, maxZ = 4 });
+        await Assert.That((int)unknown.StatusCode).IsEqualTo(400);
+    }
 }

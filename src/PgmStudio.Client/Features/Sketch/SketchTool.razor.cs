@@ -135,7 +135,9 @@ public partial class SketchTool
             if (HistoryActive) return new("history", "History", [], 0, "Draw", GoReview, GoDraw, NoStep);
             if (CamerasActive) return new("eye", "Review", ReviewSteps, 0, "Next", GoDressing, ShowNotes, StepReview);
             if (NotesActive) return new("eye", "Review", ReviewSteps, 1, "Next", ShowCameras, GoHistory, StepReview);
-            return new("pencil-ruler", "Draw", [], 0, "Next", GoInfo, GoRelief, NoStep);
+            return new("pencil-ruler", "Draw", DrawSteps, drawStep, "Next",
+                drawStep == LayoutStep ? () => StepDraw(0) : GoInfo,
+                drawStep == LayoutStep ? GoRelief : () => StepDraw(LayoutStep), StepDraw);
         }
     }
 
