@@ -31,7 +31,8 @@ const toNotes = async () => {
 };
 
 checks.section("Review opens on Cameras, where the map's picture is chosen");
-await page.waitForSelector(".flow-step--active", { timeout: 60000 });
+// Review's own steps, not the Draw steps a page shows before a linked phase is entered.
+await page.waitForSelector(".flow-step >> text=Notes", { timeout: 60000 });
 checks.add("the first step is Cameras", (await page.locator(".flow-step--active").textContent())?.trim() === "Cameras");
 const own = views.views.find((view) => view.own);
 const row = page.locator(".list-row-pair", { hasText: own.name });
