@@ -758,6 +758,9 @@ public static class ArtifactKind
     // named views. A sidecar rather than a part of the layout, so keeping a picture is not an edit to the
     // board and the world it builds.
     public const string MapViewsJson = "map_views_json";
+    // The map's places (docs/tools/sketch.md, Draw's Plan step): named shapes stating what the board is for,
+    // drawn over its ground and making none. Kept, so every write is a change in the map's history.
+    public const string PlacesJson = "map_places_json";
     // The refinement a map's source last stated (docs/tools/flow.md, A map's source): everything its plan
     // cannot, as the source stated it, and `{}` where a source stated none.
     public const string RefinementJson = "refinement_json";
@@ -772,6 +775,7 @@ public static class ArtifactKind
         [RefinementJson] = Vocabulary.MapDocuments.Refinement,
         [SketchLayoutJson] = Vocabulary.MapDocuments.Layout,
         [MapIntentJson] = Vocabulary.MapDocuments.Intent,
+        [PlacesJson] = Vocabulary.MapDocuments.Places,
     };
 }
 

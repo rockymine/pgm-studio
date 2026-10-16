@@ -27,6 +27,8 @@ namespace PgmStudio.Api.Endpoints;
 /// <param name="Intent">What the drawn board is played for; stated with its layout.</param>
 /// <param name="Refinement">Everything the base cannot state, applied onto it before anything is judged, and kept
 /// as the map's refinement.</param>
+/// <param name="Places">What the map is for, as named shapes over its ground, checked against the play pieces the
+/// source stores. Absent keeps the places the map holds.</param>
 /// <param name="After">The change the source was built against. Every later change is one it has not seen, and a
 /// map made from a refinement refuses a source over one (<c>SR1</c>). Absent takes the change the map's source was
 /// last applied as.</param>
@@ -39,6 +41,7 @@ public sealed record MapSourceRequest(
     SketchLayout? Layout = null,
     MapIntent? Intent = null,
     Refinement? Refinement = null,
+    PlacesDocument? Places = null,
     long? After = null,
     string? Name = null,
     ChangeOrigin? Origin = null,

@@ -22,12 +22,6 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS180 — Places are stored with the map, in its one history.** A `places` document per map, written by
-  `PUT /map/{slug}/places` and as a member of `PUT source`, each write a numbered change of the map's change log
-  with its `because`, so its diff and restore are the History phase's. A place is an id, a name, a kind, its own
-  geometry (point, box, ring or line, in blocks), a text and optionally the play piece it holds; the document may
-  state a working area for an agent. `PLAN-REVIEW-DESIGN.md` §2 is the shape. `docs/tools/sketch.md`.
-
 - [ ] **TS181 — Draw's Plan step, before Ground.** The Cameras step's layout: the board top-down in the middle
   over whatever ground exists, the notes step's point, box and lasso tools with polygon and polyline beside them
   to draw a place, the places listed on the left with what a change made new, and the picked place's thread on

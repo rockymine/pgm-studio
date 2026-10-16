@@ -23,6 +23,7 @@ public partial class SketchHistoryList
         {
             MapDocuments.Layout => "sketch",
             MapDocuments.Intent => "game settings",
+            MapDocuments.Places => "plan",
             _ => document,
         }).Distinct());
 

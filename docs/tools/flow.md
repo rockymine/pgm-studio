@@ -269,7 +269,7 @@ asking.
 **Everything is decided before the stored map is touched.** A document its binder cannot read, a plan the gates
 refuse, a refinement that refuses, a style or theme the gate refuses, a person nobody could be called and a
 drawing the finish would refuse are each decided from the source alone, so a refused reload leaves the board it
-would have replaced. Only then are the four documents stored as **one change** on the slug's history, numbered
+would have replaced. Only then are the documents stored as **one change** on the slug's history, numbered
 above every change the slug has answered. A browser tab that read the old board is therefore refused `RQ13` when
 it saves, rather than writing it back over the new one (`docs/refusals.md`).
 
@@ -379,7 +379,8 @@ same bytes, so a map can be read, compared and put back as it stood at any of it
 (`docs/architecture.md` has how they are stored).
 
 **Two changes compare document by document, in the shape a finding's fix is stated in.**
-`GET /map/{slug}/diff?from=&to=` answers the edits taking the four documents at `from` to those at `to`,
+`GET /map/{slug}/diff?from=&to=` answers the edits taking the five kept documents — the plan, the refinement,
+the places, the layout and the intent — at `from` to those at `to`,
 each naming its document, the path it lands on, one of `add`, `set`, `move` and `remove`, the value, the value
 it replaced, and the change in words (`docs/refusals.md`). A thing in a list is named by its `id` wherever it
 sits, so a shape drawn ahead of the others is one `add` rather than every later shape changing; a list whose
@@ -469,6 +470,7 @@ separately addressable.
 |---|---|---|---|
 | plan | `PlanModel` | its own layer | `GET·PUT /map/{slug}/plan`, `POST /plan/compile`, the `/plans` store |
 | refinement | `Refinement` | its own layer, as the map's source stated it | `GET /map/{slug}/refinement`, `PUT /map/{slug}/source` |
+| places | `PlacesDocument` | its own layer; a source that states none keeps the map's | `GET·PUT /map/{slug}/places`, `PUT /map/{slug}/source` |
 | sketch layout | `SketchLayout` | its own layer, whole | `GET·PUT /map/{slug}/sketch` |
 | layers | `SketchLayer` | under the layout's `layers` | `GET /sketch/layers`, `GET·PUT·DELETE /sketch/layers/{layerId}` |
 | groups | `SketchGroup` | under a layer's `groups` | `GET /sketch/groups`, `PUT·DELETE /sketch/layers/{layerId}/groups/{groupId}` |

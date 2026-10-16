@@ -9442,6 +9442,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   structure and a wool's colour, in one body the plan inspector and the sketch both show (`ObjectiveFields`),
   written through `PATCH …/intent/pieces/{id}/settings` one setting at a time; what a unit shares every image
   takes. (`Pgm/Authoring/PlayPieceSettings`, `Client/Components/Editor/ObjectiveFields`, `docs/tools/sketch.md`)
+- **A map's places are stored with it, in its one history (`TS180`).** `GET·PUT /map/{slug}/places` reads and
+  writes `map_places_json`, a kept document diffed and restored beside the layout and the intent; a place is a
+  name over a point, box, ring or line and at most the play piece it holds, and `PUT source` takes `places`
+  as a member, keeping the map's own where it states none. (`Contracts/PlacesDtos`, `Api/Services/PlacesCheck`,
+  `docs/tools/sketch.md`)
 - **An approach wall is a line of bedrock at any angle, and its chest a marker (`WE167`).** A wall is two ends on
   block corners, two blocks thick across its line (`Geom/WallLine`), bedrock to three courses over the highest
   ground it crosses and nothing over it; a defence chest is a `ChestMarker` of its own, one block out from the
