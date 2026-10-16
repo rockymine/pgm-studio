@@ -49,6 +49,19 @@
       It can't be resized.
       @if (!Piece.Piece) { <text>Rebuilding from the plan puts it back.</text> }
     </p>
+    @if (Yaw is { } yaw)
+    {
+      <Field Label="Facing">
+        <div class="ctrl-row">
+          <span class="plan-stepper-value">@($"{yaw:0}°")</span>
+          <Button Variant="icon" Writes OnClick="() => OnFace.InvokeAsync()" Title="Turn"><i data-lucide="rotate-cw"></i></Button>
+        </div>
+      </Field>
+    }
+    @if (Settings is { } settings && Vocabulary is { } words)
+    {
+      <ObjectiveFields Kind="@ObjectiveKind" Values="settings" Vocabulary="words" OnSet="OnSetting" />
+    }
     @if (Piece.Turns)
     {
       <div class="panel-actions">

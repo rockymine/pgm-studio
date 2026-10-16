@@ -77,6 +77,40 @@ public sealed class IntentPieceAddEndpoint(
     }
 }
 
+/// <summary>PATCH /api/map/{slug}/intent/pieces/{id}/settings — set one of a play piece's settings.
+/// <see cref="PlayPieceSettings"/> holds which a kind has and which every image shares.</summary>
+public sealed class IntentPieceSettingEndpoint(
+    MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features,
+    PlayerLookup players)
+    : Endpoint<PieceSettingRequest>
+{
+    public override void Configure()
+    {
+        Patch("/map/{slug}/intent/pieces/{id}/settings");
+        Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(400, 404, 409, 422));
+    }
+
+    public override async Task HandleAsync(PieceSettingRequest req, CancellationToken ct)
+    {
+        var slug = Route<string>("slug")!;
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+        var (set, refused) = PlayPieceSettings.Apply(intent, Route<string>("id")!, req.Key, new PieceValue(req.Text, req.Number, req.Flag), req.Alone,
+                                                     await IntentPieceMoveEndpoint.BoardAsync(artifacts, map.Id, ct));
+        if (set is null)
+        {
+            var missing = refused.Any(finding => finding.Rule == RequestRules.NoSuchSubject);
+            await Refusals.StopAsync(HttpContext, missing ? 404 : 400,
+                                     missing ? "no such piece" : "the setting cannot be made", refused, ct);
+            return;
+        }
+        var applied = await IntentWrite.StoreAndProjectAsync(
+            repo, reader, writer, artifacts, features, players, slug, map.Id,
+            JsonSerializer.Serialize(set, MapArtifactStore.Json), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
+    }
+}
+
 /// <summary>DELETE /api/map/{slug}/intent/pieces/{id} — take one play piece out of the intent, and every image of
 /// it unless <c>?alone=true</c>.</summary>
 public sealed class IntentPieceDeleteEndpoint(

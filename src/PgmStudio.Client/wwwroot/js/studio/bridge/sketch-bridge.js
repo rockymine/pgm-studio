@@ -1252,6 +1252,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     armPiece(kind) { armPiece(kind); },
     /** Delete the picked play piece and its images. */
     deleteStructural(id) { return deleteStructural(id); },
+    /** Read every piece that is not a room back from the intent — after a setting changed one's footprint. */
+    refreshPieces() { return refreshPieces(); },
     setThemeBrush(id) { setThemeBrush(id); },
     /** Draw what a change did over the board: `{before, after, world}` — the two layouts and the diff's world
      *  half, which may be absent — or null to take it away. */

@@ -9438,6 +9438,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   draws of it and `DELETE …/intent/pieces/{id}` takes it out (`PlayPieceAdd`). A spawn goes to the first team with
   none, a later wool takes a dye no wool has, and a room placed over no ground draws a rectangle of ground under
   it. (`Pgm/Authoring/PlayPieceAdd`, `Client/Features/Sketch/SketchTool.Layout`, `docs/tools/sketch.md`)
+- **A picked piece's rail sets what the plan editor set for it (`TS169`).** A spawn's facing, a goal's name and
+  structure and a wool's colour, in one body the plan inspector and the sketch both show (`ObjectiveFields`),
+  written through `PATCH …/intent/pieces/{id}/settings` one setting at a time; what a unit shares every image
+  takes. (`Pgm/Authoring/PlayPieceSettings`, `Client/Components/Editor/ObjectiveFields`, `docs/tools/sketch.md`)
 - **A rule's third level, the measure (`RP128`).** `RuleLevels.Measure` never refuses and reads a finding as the
   number it measured against its range: `Finding.Measured` is `{value, low, high}`, and `Violation` reads its
   value and band from it. Every rule of `GO`, `WL`, `CT`, `LN`, `FR` and `MD` but `WL14` is a measure by default

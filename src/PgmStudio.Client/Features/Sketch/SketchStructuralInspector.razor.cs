@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Components;
+using PgmStudio.Client.Components;
+using PgmStudio.Contracts;
 
 using PgmStudio.Vocabulary;
 
@@ -23,6 +25,23 @@ public partial class SketchStructuralInspector
     [Parameter] public string? Note { get; set; }
 
     [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>What a goal or a wool states, read from the intent; null while it loads or for any other piece.</summary>
+    [Parameter] public ObjectiveFieldValues? Settings { get; set; }
+
+    /// <summary>The objective vocabulary the settings are offered from.</summary>
+    [Parameter] public ObjectiveVocabularyDto? Vocabulary { get; set; }
+
+    /// <summary>The way a spawn's players face on arriving, in degrees; null for any other piece.</summary>
+    [Parameter] public double? Yaw { get; set; }
+
+    [Parameter] public EventCallback<ObjectiveFieldChange> OnSetting { get; set; }
+
+    /// <summary>Turn a spawn's facing a quarter clockwise.</summary>
+    [Parameter] public EventCallback OnFace { get; set; }
+
+    /// <summary>The objective fields' word for the piece's kind.</summary>
+    private string ObjectiveKind => Piece.Role == PlayPieceKinds.WoolRoom ? "wool" : Piece.Role;
 
     /// <summary>Delete the piece and its images; offered only where pieces are added, which is Layout.</summary>
     [Parameter] public Func<Task>? OnDelete { get; set; }

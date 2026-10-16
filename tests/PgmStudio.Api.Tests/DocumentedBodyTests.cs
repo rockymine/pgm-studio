@@ -47,6 +47,7 @@ public sealed class DocumentedBodyTests
             route = route.Replace("{slug}", slug);
             if (route.Contains("/notes/{id}")) route = route.Replace("{id}", await NoteAsync(client, slug));
             if (route.Contains("/changes/{number}")) route = route.Replace("{number}", await ChangeAsync(client, slug));
+            if (route.Contains("/intent/pieces/{id}")) route = route.Replace("{id}", await PieceAsync(client, slug));
         }
         if (route == "/api/notes/handoff") await NoteAsync(client, await OriginateMapAsync(client));
 
@@ -97,6 +98,14 @@ public sealed class DocumentedBodyTests
         var created = await client.PostAsync(
             "/api/sketch", new StringContent("{\"name\":\"documented-body\"}", Encoding.UTF8, "application/json"));
         return (await created.Content.ReadFromJsonAsync<Originated>())!.Slug;
+    }
+
+    /// <summary>A destroyable on that map, for the routes that address one play piece.</summary>
+    private static async Task<string> PieceAsync(HttpClient client, string slug)
+    {
+        var placed = await client.PostAsync($"/api/map/{slug}/intent/pieces", new StringContent(
+            "{\"kind\":\"destroyable\",\"minX\":-12,\"minZ\":4,\"maxX\":-11,\"maxZ\":5}", Encoding.UTF8, "application/json"));
+        return (await placed.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetString()!;
     }
 
     /// <summary>A note on that map, for the routes that answer in a note's thread.</summary>

@@ -956,9 +956,9 @@ monument per wool its team will capture, all of which are refusals rather than w
 ## Limits
 
 **The plan is retiring as a level.** The author ruled that the sketch becomes the map's one document (D8 in
-`docs/pgmvox-port.md`): its play pieces move into the sketch (`TS169`), the generator emits a sketch (`G301`),
-and the Plan tool goes with every stored plan kept as read-only history (`RP131`). Until those land, everything
-below is the tool as it runs.
+`docs/pgmvox-port.md`): its play pieces are placed, moved, turned and set in the sketch's Layout step, shipped as
+`TS169`; the generator emits a sketch (`G301`), and the Plan tool goes with every stored plan kept as read-only
+history (`RP131`). Until those land, everything below is the tool as it runs.
 
 **Plan draws rectangles on a coarse grid, and that is the whole of its geometry.** Every footprint is an
 axis-aligned cell rect, so the smallest thing a plan can say is one cell wide — five blocks at the default
