@@ -302,3 +302,20 @@ public sealed record PieceAddRequest(
     [property: JsonPropertyName("maxX")] double MaxX,
     [property: JsonPropertyName("maxZ")] double MaxZ,
     string? Team = null);
+
+/// <summary>One setting of a play piece — the body of <c>PATCH /map/{slug}/intent/pieces/{id}/settings</c>: a
+/// goal's name, design, material, lava, float or leak, a wool's colour, or a spawn's facing.</summary>
+/// <param name="Key">Which setting.</param>
+/// <param name="Text">What a name, a colour, a design or a material becomes.</param>
+/// <param name="Number">What a float, a leak or a lava size becomes, or the quarter turns clockwise a facing
+/// turns.</param>
+/// <param name="Flag">Whether a core's lava is open to its rim, for <c>openTop</c>.</param>
+/// <param name="Alone">Set it on the named image only, where it is one every image of the unit shares.</param>
+/// <remarks>A body stating none of <c>text</c>, <c>number</c> and <c>flag</c> puts the setting back to its
+/// default.</remarks>
+public sealed record PieceSettingRequest(
+    [property: WordSet(typeof(PieceSettings))] string Key,
+    string? Text = null,
+    int? Number = null,
+    bool? Flag = null,
+    bool Alone = false);

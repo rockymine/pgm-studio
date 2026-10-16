@@ -22,11 +22,6 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [~] **TS169 — Play pieces are sketch objects.** The plan inspector's fields move across to a piece picked in the
-  sketch, with their own text: a spawn's facing, a goal's name, style, materials and float, a core's lava, leak,
-  open top and dig depth, and a wool's colour, each written to the intent through the piece's id. `PlanInspector`
-  is the source; `docs/tools/sketch.md`.
-
 - [ ] **TS176 — Configure's placement steps become the sketch's inspector.** On a map the studio built, the
   spawn, protection, wool, destroyable, core and build steps are the inspector of a selected piece; on a map
   read from a world, detection and the monument-seat check stay Configure's own flow. `docs/tools/configure.md`.

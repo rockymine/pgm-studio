@@ -291,6 +291,29 @@ public static class PlayPieceMove
 
     private static bool Near(double a, double b) => Math.Abs(a - b) < 1e-6;
 
+    /// <summary>The intent with the spawn <paramref name="id"/>'s facing — the way its players face on arriving,
+    /// and the door that opens that way — turned <paramref name="quarters"/> quarter turns clockwise, its region
+    /// left where it stands, and its images turned the same way under a rotation and the other way under a
+    /// reflection; or the findings that stopped it and a null intent.</summary>
+    public static (MapIntent? Intent, Findings Refused) Face(
+        MapIntent intent, string id, int quarters, bool alone = false, SymmetryIntent? board = null)
+    {
+        var mode = (intent.Symmetry ?? board)?.Mode;
+        if (intent.Spawns.FindIndex(spawn => spawn.Id == id) is not (var spawnAt and >= 0))
+            return Refuse(RequestRules.NoSuchSubject, "id", $"the map has no spawn with the id '{id}'", id);
+        var spawns = Images(intent.Spawns, spawnAt, entry => entry.Stamp, mode, alone, (entry, step) =>
+        {
+            var pivot = Pivot.Of(entry.Protection.Count > 0 ? entry.Protection[0] : new Rect(0, 0, 1, 1),
+                                 Handed(quarters, mode, step));
+            return entry with
+            {
+                Doors = [.. entry.Doors.Select(pivot.Door)],
+                Yaw = ((entry.Yaw + 90 * pivot.Quarters) % 360 + 360) % 360,
+            };
+        });
+        return (intent with { Spawns = spawns }, Findings.None);
+    }
+
     /// <summary>The quarter turns an image takes for the named one's <paramref name="quarters"/>: the same where
     /// the step between them is a rotation, the other way where it is a reflection.</summary>
     private static int Handed(int quarters, string? mode, int step) =>

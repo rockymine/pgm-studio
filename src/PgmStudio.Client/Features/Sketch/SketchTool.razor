@@ -334,7 +334,9 @@
           <div class="sidebar-handle"></div>
           <SketchStructuralInspector Piece="selectedStructural" Note="@structuralNote"
                                      OnSetHeight="SetStructuralHeight" OnTurn="TurnStructural" OnClose="ClearStructural"
-                                     OnDelete="@(LayoutActive ? DeleteStructural : null)" />
+                                     OnDelete="@(LayoutActive ? DeleteStructural : null)"
+                                     Settings="pieceSettings" Vocabulary="objectiveWords" Yaw="spawnYaw"
+                                     OnSetting="SetObjectiveField" OnFace="FaceSpawn" />
         }
         else
         {

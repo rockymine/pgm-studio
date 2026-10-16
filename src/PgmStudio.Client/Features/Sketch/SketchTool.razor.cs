@@ -773,6 +773,7 @@ public partial class SketchTool
     {
         selectedStructural = json is null ? null : JsonSerializer.Deserialize<SketchStructuralRow>(json);
         if (selectedStructural is null) structuralNote = null;
+        _ = LoadPieceSettingsAsync();
         StateHasChanged();
     }
 

@@ -1,0 +1,99 @@
+@namespace PgmStudio.Client.Components
+
+@* The settings an objective states beside where it stands: a goal's name and structure, a wool's colour. The
+   plan editor's marker and the sketch's picked piece both show these, so the two read the same and write the
+   same keys. Only what differs from the default is stated: a field set back to its default writes null. *@
+
+@if (Kind is "destroyable" or "core")
+{
+  <Field Label="Name">
+    <LabelHint>@(Kind == "core" ? "(optional)" : "(optional, defaults to the team's)")</LabelHint>
+    <ChildContent>
+      <input class="field-input" value="@Values.Name" placeholder="@(Kind == "core" ? "Core" : "Red Monument")"
+             @onchange="@(e => SetText(PieceSettings.Name, e.Value?.ToString(), string.Empty))" />
+    </ChildContent>
+  </Field>
+}
+@if (Kind == "wool")
+{
+  @* A wool states a dye or states nothing. Nothing is not a default the inspector can show a value for: it is
+     resolved against the owning team and the wools placed before this one, so the option reads as what it is
+     rather than naming a colour. *@
+  <Field Label="Colour">
+    <div class="field-pick-row">
+      <span class="field-swatch" style="--swatch: @WoolSwatch"></span>
+      <Select Slim="false" Options="WoolColorOptions" Placeholder="Auto" Value="@WoolColor"
+              ValueChanged="@(value => SetText(PieceSettings.Color, value, string.Empty))" />
+    </div>
+  </Field>
+}
+@if (Kind == "destroyable")
+{
+  <Field Label="Design">
+    <Select Slim="false" Options="DestroyableStyleOptions" Value="@DestroyableStyle"
+            ValueChanged="@(value => SetText(PieceSettings.Style, value, Vocabulary.Destroyable.Style))" />
+  </Field>
+  <Field Label="Material">
+    <Select Slim="false" Options="DestroyableMaterialOptions" Value="@DestroyableMaterials"
+            ValueChanged="@(value => SetText(PieceSettings.Materials, value, Vocabulary.Destroyable.Materials))" />
+  </Field>
+  <Field Label="Float">
+    <LabelHint>(air under it)</LabelHint>
+    <ChildContent>
+      <NumberField Min="0" Max="64" Value="DestroyableFloat"
+                   ValueChanged="@(value => SetNumber(PieceSettings.Float, (int)value, Vocabulary.Destroyable.Float))" />
+    </ChildContent>
+  </Field>
+}
+else if (Kind == "core")
+{
+  @* A core is chosen, not designed: the author states the lava and the casing follows, so a casing with nothing
+     in it cannot be typed. The readout is the obsidian those two imply. *@
+  <Field Label="Lava footprint">
+    <LabelHint>(width and depth)</LabelHint>
+    <ChildContent>
+      <Select Slim="false" Options="LavaOptions" Value="@CoreLava.ToString()"
+              ValueChanged="@(value => SetNumber(PieceSettings.Lava, Num(value, CoreLava), Vocabulary.Core.Lava))" />
+    </ChildContent>
+  </Field>
+  <Field Label="Lava height">
+    <LabelHint>(layers)</LabelHint>
+    <ChildContent>
+      <Select Slim="false" Options="LavaHeightOptions" Value="@CoreLavaHeight.ToString()"
+              ValueChanged="@(value => SetNumber(PieceSettings.LavaHeight, Num(value, CoreLavaHeight), Vocabulary.Core.LavaHeight))" />
+    </ChildContent>
+  </Field>
+  <Field Label="Casing">
+    <div class="filter-group-options">
+      <Chip Active="@(!CoreOpenTop)" OnClick="@(() => Set(PieceSettings.OpenTop, null))"
+            Title="A lid over the lava">capped</Chip>
+      <Chip Active="@CoreOpenTop" OnClick="@(() => Set(PieceSettings.OpenTop, true))"
+            Title="Lava flush with the rim">open</Chip>
+    </div>
+  </Field>
+  <p class="section-desc">@CoreCasingReadout</p>
+  <Field Label="Float">
+    <LabelHint>(air under the casing)</LabelHint>
+    <ChildContent>
+      <NumberField Min="0" Max="64" Value="CoreFloat"
+                   ValueChanged="@(value => SetNumber(PieceSettings.Float, (int)value, Vocabulary.Core.Float))" />
+    </ChildContent>
+  </Field>
+  <Field Label="Leak">
+    <LabelHint>(fall before it counts)</LabelHint>
+    <ChildContent>
+      <NumberField Min="0" Max="64" Value="CoreLeak"
+                   ValueChanged="@(value => SetNumber(PieceSettings.Leak, (int)value, Vocabulary.Core.Leak))" />
+    </ChildContent>
+  </Field>
+  <p class="section-desc">
+    @if (CoreDigDepth > 0)
+    {
+      <text>Leaking it means breaking the casing and digging @CoreDigDepth block@(CoreDigDepth == 1 ? "" : "s") below it.</text>
+    }
+    else
+    {
+      <text>The lava leaks as soon as the casing is broken, with no digging.</text>
+    }
+  </p>
+}
