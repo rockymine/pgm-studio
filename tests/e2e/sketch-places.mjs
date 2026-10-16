@@ -41,7 +41,7 @@ const last = changes.changes.at(-1);
 checks.add("its write is a change naming the places", last.documents.includes("places"), last.documents.join(","));
 
 checks.section("a place is renamed in its panel");
-const name = page.locator(".field-input").first();
+const name = page.locator(".workspace-inspector input.field-input").first();
 await name.fill("Abbey Hill");
 await name.press("Enter");
 await page.locator(".panel-list .list-label", { hasText: "Abbey Hill" }).waitFor({ timeout: 30000 });
