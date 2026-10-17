@@ -16,7 +16,7 @@ public sealed class FrontlineCount : SoftTerm
     {
         var runs = ctx.Board.FrontlineRuns;
         if (runs.Count == 0) return null;
-        return runs.Count / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
+        return runs.Count / (double)ctx.Order;
     }
 
     public override MeasureUnit Unit => MeasureUnit.Count;
@@ -40,8 +40,8 @@ public sealed class FrontlineWidth : SoftTerm
 
     public override double? Value(EvalContext ctx)
     {
-        var goals = ctx.Plan.Placements;
-        if (goals.Wools.Count == 0 && (goals.Destroyables.Count > 0 || goals.Cores.Count > 0)) return null;
+        var goals = ctx.Goals;
+        if (goals.Wools == 0 && (goals.Destroyables > 0 || goals.Cores > 0)) return null;
 
         var runs = ctx.Board.FrontlineRuns;
         if (runs.Count == 0) return null;

@@ -22,9 +22,9 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [~] **TS171 — The plan's rules read the sketch.** The evaluator's measures (`GO`, `WL`, `CT`, `LN`, `FR`,
-  `MD`) and `BZ9` read the sketch's `BoardStructure` (`SketchGround`), as numbers on findings and never as a
-  score; the seam and surface rules `ContactGraph` answers on the plan (`G2`, `G5`, `EL1`, `SP8`, `WL11`, the
+- [~] **TS171 — The plan's rules read the sketch.** The walked measures (`GO`, the `WL` walks, `LN5`, `CT14`)
+  walk the sketch's ground, the mid band's (`MD7`, `MD8`) and `BZ9` read it, all as numbers on findings and never
+  as a score (`SketchMeasures`); the seam and surface rules `ContactGraph` answers on the plan (`G2`, `G5`, `EL1`, `SP8`, `WL11`, the
   wall rules, `BZ5`, `BZ11`, `BZ12`) are rewritten on the raster's seams and relief; a wool room's entries are
   derived from the seams it shares with that ground, and a places document's targets are measured the same way. `sight` is the one new read. `PlanValidator` is the source each rule moves out of.
   `docs/tools/sketch.md`.

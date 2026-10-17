@@ -7,13 +7,42 @@ namespace PgmStudio.Pgm.Sketch;
 /// <summary>
 /// The ground a sketched board's structure is read off, one block to a cell: every column the layout builds,
 /// owned by the group whose shape forms it, and every spawn and wool region, owned by the room it holds. A
-/// cell's team is the image of the spawn nearest it, the half or quarter of the board that team plays from;
+/// cell's team is the image of the mirrored group that drew it, or where its group does not mirror, the image of
+/// the spawn nearest it;
 /// building is allowed where the intent states a build area, and each wool's room is its region at every
 /// image. <see cref="BoardDeriver.Derive(BoardGround)"/> reads it as it reads a plan's.
 /// </summary>
 public static class SketchGround
 {
-    /// <summary>The ground the layout and the intent's play pieces make; null where the layout builds nothing.</summary>
+    /// <summary>The ground the layout and the intent's play pieces make, <paramref name="cell"/> blocks to a cell;
+    /// null where the layout builds nothing. A cell of several blocks stands where more than half its blocks do,
+    /// owned by the owner and the team most of them carry, and is buildable where more than half of them are.</summary>
+    public static BoardGround? Of(string layoutJson, MapIntent intent, int cell)
+    {
+        var blocks = Of(layoutJson, intent);
+        if (blocks is null || cell <= 1) return blocks;
+        var half = cell * cell / 2;
+        (int, int) Coarse((int X, int Z) block) => ((int)Math.Floor(block.X / (double)cell), (int)Math.Floor(block.Z / (double)cell));
+
+        var filled = new Dictionary<(int, int), (string Owner, int K)>();
+        foreach (var group in blocks.Filled.GroupBy(entry => Coarse(entry.Key)).Where(group => group.Count() > half))
+            filled[group.Key] = (Most(group.Select(entry => entry.Value.Owner)), Most(group.Select(entry => entry.Value.K)));
+        var build = blocks.Build.GroupBy(Coarse).Where(group => group.Count() > half).Select(group => group.Key).ToHashSet();
+        var rooms = blocks.WoolRooms
+            .Select(room => room with
+            {
+                Cells = room.Cells.Select(Coarse).ToHashSet(), MarkerX = room.MarkerX / cell, MarkerZ = room.MarkerZ / cell,
+            })
+            .ToList();
+        return new BoardGround(cell, filled, build, [], blocks.SpawnOwners, blocks.WoolOwners, rooms,
+            [.. filled.Where(entry => entry.Value.K == 0).Select(entry => entry.Key)]);
+    }
+
+    private static T Most<T>(IEnumerable<T> values) where T : notnull =>
+        values.GroupBy(value => value).OrderByDescending(group => group.Count()).First().Key;
+
+    /// <summary>The ground the layout and the intent's play pieces make, one block to a cell; null where the
+    /// layout builds nothing.</summary>
     public static BoardGround? Of(string layoutJson, MapIntent intent)
     {
         var footprint = SketchRasterizer.Rasterize(layoutJson);
@@ -23,9 +52,20 @@ public static class SketchGround
         int TeamOf(double x, double z) => spawns.Count == 0 ? 0
             : spawns.MinBy(spawn => Distance(spawn.Point.X, spawn.Point.Z, x + 0.5, z + 0.5))!.Stamp.Image;
 
+        // A mirrored group's copies carry the image that drew them, which is the team the fan gives them; ground
+        // drawn by hand on each side, unmirrored, belongs to the team whose spawn is nearest.
+        var state = SketchLayout.Parse(layoutJson);
+        var mirrored = SketchLayout.Stack(state)
+            .SelectMany(layer => layer.Groups.Where(group => group.Mirrors).SelectMany(group => group.ShapeIds.Select(id => (layer.Id, id))))
+            .ToHashSet();
+        var images = new Dictionary<(int, int), int>();
+        foreach (var ((layer, x, z), (shape, image)) in SketchRasterizer.ShapeScopeOwners(layoutJson, shape => shape.Role is null))
+            if (mirrored.Contains((layer, shape))) images[(x, z)] = image;
+
         var filled = new Dictionary<(int, int), (string Owner, int K)>();
         foreach (var (x, z) in footprint)
-            filled[(x, z)] = (groups.GetValueOrDefault((x, z), GroundOwner), TeamOf(x, z));
+            filled[(x, z)] = (groups.GetValueOrDefault((x, z), GroundOwner),
+                images.TryGetValue((x, z), out var image) ? image : TeamOf(x, z));
 
         var wools = intent.Wools ?? [];
         foreach (var spawn in spawns)

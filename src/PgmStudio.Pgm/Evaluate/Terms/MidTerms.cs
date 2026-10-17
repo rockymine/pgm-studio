@@ -13,7 +13,7 @@ public sealed class NeutralSteppingCount : SoftTerm
     public override string RuleId => LayoutRules.SharedSteppingStones;
 
     public override double? Value(EvalContext ctx) =>
-        ctx.Board.SteppingKind.Count(k => k == "neutral") / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
+        ctx.Board.SteppingKind.Count(k => k == "neutral") / (double)ctx.Order;
 
     public override MeasureUnit Unit => MeasureUnit.Count;
 
@@ -30,7 +30,7 @@ public sealed class TeamSteppingCount : SoftTerm
     public override string RuleId => LayoutRules.TeamSteppingStones;
 
     public override double? Value(EvalContext ctx) =>
-        ctx.Board.SteppingKind.Count(k => k == "team") / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
+        ctx.Board.SteppingKind.Count(k => k == "team") / (double)ctx.Order;
 
     public override MeasureUnit Unit => MeasureUnit.Count;
 
@@ -64,7 +64,7 @@ public sealed class IsolationCutCount : SoftTerm
     public override string RuleId => LayoutRules.TeamSideCuts;
 
     public override double? Value(EvalContext ctx) =>
-        ctx.Board.Zones.Count(z => z.Kind is "intra" or "self") / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
+        ctx.Board.Zones.Count(z => z.Kind is "intra" or "self") / (double)ctx.Order;
 
     public override MeasureUnit Unit => MeasureUnit.Count;
 

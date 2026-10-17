@@ -59,6 +59,7 @@ public static class MapFindings
                 boardFindings = SketchBoardCheck.Check(layoutJson, intent, layout?.Setup?.Board);
                 findings.AddRange(boardFindings);
                 asked.UnionWith(SketchBoardCheck.Asks);
+                findings.AddRange(SketchMeasures.Check(layoutJson, intent, layout?.Setup?.Board));
             }
         }
 

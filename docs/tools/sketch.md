@@ -2307,7 +2307,17 @@ their ids: a face's front line under a third of its void side or under 15 blocks
 goal under 16 blocks, beside a team's own ground under 12, and a plain hole under 12 (`WL12`, `WL20`, `LN6`),
 and on a two-team wool board the strait outside 15 to 40 blocks (`CT12`). The plan's own strait, re-read off
 the sketch, is said only where the sketch's board does not report one, which is a strait the plan passed and
-the drawing closed. Where the map still holds a plan, the plan answers every other rule and none of these.
+the drawing closed.
+
+**The board's measures are read off the same ground**, at the 5-block cell the corpus's bands were measured at
+(`SketchMeasures`): a cell stands where more than half its blocks do. The evaluator's own terms answer them —
+front faces per team and the widest (`FR4`, `FR6`), crossings, neutral and team stepping stones, cuts, enclosed
+holes and uncrossed middle holes (`CT1`, `CT4`, `CT13`, `CT5`, `CT8`, `CT9`), and the narrowest lane to a wool
+room (`LN1`) — and a value outside its band is a complaint carrying the number and the band. Nothing is summed
+or ranked: a measure says how the board will play and the author weighs it. Compiled from a seed plan, the
+sketch measures what the plan measures; where a centre island straddles both images of a rot_180 board, which
+team its stepping stones count for is the deriver's tie to break and can differ by one stone. Where the map
+still holds a plan, the plan answers every other rule and none of these.
 
 ## The API
 
