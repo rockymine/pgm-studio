@@ -31,24 +31,21 @@ public static class BoardDeriver
         return blocks;
     }
 
-    public static BoardStructure Derive(PlanModel plan)
+    /// <summary>The structure of the board the plan's fanned pieces and zones make.</summary>
+    public static BoardStructure Derive(PlanModel plan) => Derive(Ground(plan));
+
+    /// <summary>The ground a plan states, in cells: every non-buffer piece fanned to each orbit image, its zones
+    /// and their holes, its buffers as declared voids, and each wool's room at every image.</summary>
+    public static BoardGround Ground(PlanModel plan)
     {
         int order = Symmetry.Order(plan.Globals.Symmetry);
         string[] axes = Symmetry.OrbitAxes(plan.Globals.Symmetry);
-        var roleOf = plan.Pieces.ToDictionary(p => p.Id, p => p.Role);        // authored piece role (wool-room/spawn carry intent)
 
-        var filled = new Dictionary<(int, int), (string PieceId, int K)>();   // generating-piece cells → hosting piece image
-        var build = new HashSet<(int, int)>();                                // buildable (zone) cells
-        var declaredVoid = new HashSet<(int, int)>();                         // buffer pieces + zone holes = declared empties
-
-        foreach (var p in plan.Pieces)
-            foreach (var c in FanCells(p.Rect, axes, order))
-            {
-                if (p.Role == PlanRoles.Buffer) declaredVoid.Add(c);
-                else filled[c] = (p.Id, 0);   // K unused post-fan; kept for clarity
-            }
-        // re-tag with image K so marker hosting resolves per image
-        filled.Clear();
+        var filled = new Dictionary<(int, int), (string Owner, int K)>();
+        var build = new HashSet<(int, int)>();
+        var declaredVoid = new HashSet<(int, int)>();
+        foreach (var p in plan.Pieces.Where(p => p.Role == PlanRoles.Buffer))
+            foreach (var c in FanCells(p.Rect, axes, order)) declaredVoid.Add(c);
         foreach (var p in plan.Pieces)
         {
             if (p.Role == PlanRoles.Buffer) continue;
@@ -60,6 +57,39 @@ public static class BoardDeriver
             foreach (var c in FanCells(z.Rect, axes, order)) build.Add(c);
             foreach (var h in z.Holes) foreach (var c in FanCells(h, axes, order)) declaredVoid.Add(c);
         }
+
+        var spawnOwners = plan.Placements.Spawns.Select(s => s.Piece)
+            .Concat(plan.Pieces.Where(p => p.Role == PlanRoles.Spawn).Select(p => p.Id)).ToHashSet();
+        var woolOwners = plan.Placements.Wools.Select(w => w.Piece)
+            .Concat(plan.Pieces.Where(p => p.Role == PlanRoles.WoolRoom).Select(p => p.Id)).ToHashSet();
+
+        var woolRooms = new List<BoardWoolRoom>();
+        for (var k = 0; k < order; k++)
+            for (var at = 0; at < plan.Placements.Wools.Count; at++)
+            {
+                var w = plan.Placements.Wools[at];
+                if (plan.Pieces.FirstOrDefault(p => p.Id == w.Piece) is not { } piece) continue;
+                var (markerX, markerZ) = MarkerCell(piece.Rect, w.At, plan.Globals.Cell, k, axes);
+                woolRooms.Add(new BoardWoolRoom(at, k, FanCellsK(piece.Rect, axes, k).ToHashSet(), markerX, markerZ));
+            }
+
+        var unit = new HashSet<(int, int)>();
+        foreach (var p in plan.Pieces.Where(p => p.Role != PlanRoles.Buffer))
+            foreach (var c in FanCellsK(p.Rect, axes, 0)) unit.Add(c);
+
+        return new BoardGround(plan.Globals.Cell, filled, build, declaredVoid, spawnOwners, woolOwners, woolRooms, unit);
+    }
+
+    /// <summary>The structure of the board <paramref name="ground"/> makes: islands and their roles, stepping
+    /// stones, the build zones and what they link, wool approaches, lanes and shapes, the front, intra and self
+    /// edges and the runs they make, enclosed voids and the negative spaces between the owners.</summary>
+    public static BoardStructure Derive(BoardGround ground)
+    {
+        var filled = ground.Filled;
+        var build = ground.Build;
+        var declaredVoid = ground.DeclaredVoid;
+        bool IsSpawn((int, int) c) => ground.SpawnOwners.Contains(filled[c].Owner);
+        bool IsWool((int, int) c) => ground.WoolOwners.Contains(filled[c].Owner);
 
         // islands — 4-connected components of filled cells
         var islandOf = new Dictionary<(int, int), int>();
@@ -80,38 +110,26 @@ public static class BoardDeriver
         }
 
         // anchor role per island — team (spawn) / objective (wool, no spawn) / neutral (in build) / decorative
-        var spawnKeys = new HashSet<(string, int)>();
-        var woolKeys = new HashSet<(string, int)>();
-        for (var k = 0; k < order; k++)
-        {
-            foreach (var s in plan.Placements.Spawns) spawnKeys.Add((s.Piece, k));
-            foreach (var w in plan.Placements.Wools) woolKeys.Add((w.Piece, k));
-        }
         var roles = new string[islands.Count];
         for (var i = 0; i < islands.Count; i++)
         {
-            // the authored wool-room / spawn ROLE is the strongest intent signal — use it alongside the markers
-            bool hasSpawn = islands[i].Any(c => spawnKeys.Contains(filled[c]) || roleOf[filled[c].PieceId] == PlanRoles.Spawn),
-                 hasWool = islands[i].Any(c => woolKeys.Contains(filled[c]) || roleOf[filled[c].PieceId] == PlanRoles.WoolRoom),
+            bool hasSpawn = islands[i].Any(IsSpawn),
+                 hasWool = islands[i].Any(IsWool),
                  touchesBuild = islands[i].Any(c => Cells.N4(c).Any(build.Contains) || build.Contains(c));
             roles[i] = hasSpawn ? "team" : hasWool ? "objective" : touchesBuild ? "neutral" : "decorative";
         }
 
         // per-wool approach count — arms (connected filled clusters adjacent to the room) touching the wool's piece
         var approaches = new List<(int Island, double Bx, double Bz, int Count)>();
-        for (var k = 0; k < order; k++)
-            foreach (var w in plan.Placements.Wools)
-            {
-                var piece = plan.Pieces.FirstOrDefault(p => p.Id == w.Piece);
-                if (piece is null) continue;
-                var room = FanCellsK(piece.Rect, axes, k).Where(filled.ContainsKey).ToHashSet();
-                if (room.Count == 0) continue;
-                int isl = islandOf[room.First()];
-                var arm = new HashSet<(int, int)>();
-                foreach (var c in room) foreach (var nb in Cells.N4(c)) if (filled.ContainsKey(nb) && !room.Contains(nb)) arm.Add(nb);
-                var (markerX, markerZ) = MarkerCell(piece.Rect, w.At, plan.Globals.Cell, k, axes);
-                approaches.Add((isl, markerX, markerZ, Cells.Components(arm)));
-            }
+        foreach (var wool in ground.WoolRooms)
+        {
+            var room = wool.Cells.Where(filled.ContainsKey).ToHashSet();
+            if (room.Count == 0) continue;
+            int isl = islandOf[room.First()];
+            var arm = new HashSet<(int, int)>();
+            foreach (var c in room) foreach (var nb in Cells.N4(c)) if (filled.ContainsKey(nb) && !room.Contains(nb)) arm.Add(nb);
+            approaches.Add((isl, wool.MarkerX, wool.MarkerZ, Cells.Components(arm)));
+        }
 
         // frontline edges — a void-facing OUTSIDE edge (buildable AND empty neighbour; never an interior seam). An
         // island has a frontline only if its border is VOID-DOMINANT (more void-border than build-border) — it is
@@ -164,8 +182,8 @@ public static class BoardDeriver
         for (var i = 0; i < islands.Count; i++)
         {
             islandTeam[i] = filled[islands[i].First()].K;
-            hasSpawnI[i] = islands[i].Any(c => spawnKeys.Contains(filled[c]) || roleOf[filled[c].PieceId] == PlanRoles.Spawn);
-            hasWoolI[i] = islands[i].Any(c => woolKeys.Contains(filled[c]) || roleOf[filled[c].PieceId] == PlanRoles.WoolRoom);
+            hasSpawnI[i] = islands[i].Any(IsSpawn);
+            hasWoolI[i] = islands[i].Any(IsWool);
         }
 
         // a region is single-team if every island it touches belongs to one team
@@ -326,52 +344,47 @@ public static class BoardDeriver
             }
             return (added, reason, len);
         }
-        foreach (var w in plan.Placements.Wools)
+        foreach (var wool in ground.WoolRooms.OrderBy(wool => wool.Wool).ThenBy(wool => wool.K))
         {
-            var pc = plan.Pieces.FirstOrDefault(p => p.Id == w.Piece);
-            if (pc is null) continue;
-            for (var k = 0; k < order; k++)
+            var room = wool.Cells;
+            if (room.Count == 0) continue;
+            int rminx = room.Min(c => c.Item1), rmaxx = room.Max(c => c.Item1);
+            int rminz = room.Min(c => c.Item2), rmaxz = room.Max(c => c.Item2);
+            var lane = new HashSet<(int, int)>();
+            foreach (var (dx, dz) in new[] { (0, 1), (0, -1), (1, 0), (-1, 0) })
             {
-                var room = FanCellsK(pc.Rect, axes, k).ToHashSet();
-                if (room.Count == 0) continue;
-                int rminx = room.Min(c => c.Item1), rmaxx = room.Max(c => c.Item1);
-                int rminz = room.Min(c => c.Item2), rmaxz = room.Max(c => c.Item2);
-                var lane = new HashSet<(int, int)>();
-                foreach (var (dx, dz) in new[] { (0, 1), (0, -1), (1, 0), (-1, 0) })
+                List<(int, int)> band; (int, int) edge;
+                if (dz != 0)
                 {
-                    List<(int, int)> band; (int, int) edge;
-                    if (dz != 0)
-                    {
-                        int z0 = dz > 0 ? rmaxz + 1 : rminz - 1, zEdge = dz > 0 ? rmaxz + 1 : rminz;
-                        band = Enumerable.Range(rminx, rmaxx - rminx + 1).Select(x => (x, z0)).ToList();
-                        edge = (0, zEdge);
-                    }
-                    else
-                    {
-                        int x0 = dx > 0 ? rmaxx + 1 : rminx - 1, xEdge = dx > 0 ? rmaxx + 1 : rminx;
-                        band = Enumerable.Range(rminz, rmaxz - rminz + 1).Select(z => (x0, z)).ToList();
-                        edge = (xEdge, 0);
-                    }
-                    if (!band.Any(c => LaneTerr(c, room))) continue;   // this side faces no terrain
-                    foreach (var c in band.Where(c => LaneTerr(c, room)))
-                        redstoneEdges.Add(dz != 0 ? (c.Item1, edge.Item2, c.Item1 + 1, edge.Item2)
-                                                  : (edge.Item1, c.Item2, edge.Item1, c.Item2 + 1));
-                    var (fwd, reason, len) = StackBand(band, (dx, dz), room);
-                    foreach (var c in fwd) lane.Add(c);
-                    // side-dock (L): the forward stack dead-ended into void after ~a bar's thickness — the room is
-                    // docked against the side of a lane running perpendicular. Stack that lane along its own axis.
-                    if (reason == "void" && len <= 2 && fwd.Count > 0)
-                    {
-                        (int cx, int cz) cross = dz != 0 ? (1, 0) : (0, 1);
-                        double Key((int, int) c) => c.Item1 * cross.cx + c.Item2 * cross.cz;
-                        var loFace = fwd.Where(c => Key(c) == fwd.Min(Key)).ToList();
-                        var hiFace = fwd.Where(c => Key(c) == fwd.Max(Key)).ToList();
-                        foreach (var c in StackBand(loFace, (-cross.cx, -cross.cz), room).Cells) lane.Add(c);
-                        foreach (var c in StackBand(hiFace, (cross.cx, cross.cz), room).Cells) lane.Add(c);
-                    }
+                    int z0 = dz > 0 ? rmaxz + 1 : rminz - 1, zEdge = dz > 0 ? rmaxz + 1 : rminz;
+                    band = Enumerable.Range(rminx, rmaxx - rminx + 1).Select(x => (x, z0)).ToList();
+                    edge = (0, zEdge);
                 }
-                laneCells.UnionWith(lane);
+                else
+                {
+                    int x0 = dx > 0 ? rmaxx + 1 : rminx - 1, xEdge = dx > 0 ? rmaxx + 1 : rminx;
+                    band = Enumerable.Range(rminz, rmaxz - rminz + 1).Select(z => (x0, z)).ToList();
+                    edge = (xEdge, 0);
+                }
+                if (!band.Any(c => LaneTerr(c, room))) continue;   // this side faces no terrain
+                foreach (var c in band.Where(c => LaneTerr(c, room)))
+                    redstoneEdges.Add(dz != 0 ? (c.Item1, edge.Item2, c.Item1 + 1, edge.Item2)
+                                              : (edge.Item1, c.Item2, edge.Item1, c.Item2 + 1));
+                var (fwd, reason, len) = StackBand(band, (dx, dz), room);
+                foreach (var c in fwd) lane.Add(c);
+                // side-dock (L): the forward stack dead-ended into void after ~a bar's thickness — the room is
+                // docked against the side of a lane running perpendicular. Stack that lane along its own axis.
+                if (reason == "void" && len <= 2 && fwd.Count > 0)
+                {
+                    (int cx, int cz) cross = dz != 0 ? (1, 0) : (0, 1);
+                    double Key((int, int) c) => c.Item1 * cross.cx + c.Item2 * cross.cz;
+                    var loFace = fwd.Where(c => Key(c) == fwd.Min(Key)).ToList();
+                    var hiFace = fwd.Where(c => Key(c) == fwd.Max(Key)).ToList();
+                    foreach (var c in StackBand(loFace, (-cross.cx, -cross.cz), room).Cells) lane.Add(c);
+                    foreach (var c in StackBand(hiFace, (cross.cx, cross.cz), room).Cells) lane.Add(c);
+                }
             }
+            laneCells.UnionWith(lane);
         }
 
         // per-wool LANE SHAPE — the corridor's topology, read independent of the objective-lane tiles above. A
@@ -381,18 +394,10 @@ public static class BoardDeriver
         // "none" = no corridor at all (the room docks a build zone directly — the isolated whole-island room).
         // shape is a TEAM-LOCAL property — read it on the k=0 unit terrain only, never the fanned board (a fanned
         // mirror image merges into the corridor near the centre and corrupts the trace).
-        var filledK0 = new Dictionary<(int, int), (string PieceId, int K)>();
-        foreach (var p in plan.Pieces)
-        {
-            if (p.Role == PlanRoles.Buffer) continue;
-            foreach (var c in FanCellsK(p.Rect, axes, 0)) filledK0[c] = (p.Id, 0);
-        }
         var woolShapes = new List<(string Shape, int Width)>();
-        foreach (var w in plan.Placements.Wools)
+        foreach (var wool in ground.WoolRooms.Where(wool => wool.K == 0).OrderBy(wool => wool.Wool))
         {
-            var pc = plan.Pieces.FirstOrDefault(p => p.Id == w.Piece);
-            if (pc is null) continue;
-            var (read, laneW) = ShapeClassifier.ClassifyOpen(filledK0.Keys.ToHashSet(), FanCellsK(pc.Rect, axes, 0).ToHashSet());
+            var (read, laneW) = ShapeClassifier.ClassifyOpen(ground.UnitFilled, wool.Cells);
             woolShapes.Add((ShapeClassifier.LaneName(read), laneW));
         }
 
@@ -505,9 +510,9 @@ public static class BoardDeriver
         // terrain with the piece ids as the owners, so a space names the pieces it lies between.
         var spaces = CompoundEdges.Classify(
             (IReadOnlySet<(int, int)>)filled.Keys.ToHashSet(),
-            filled.ToDictionary(entry => entry.Key, entry => entry.Value.PieceId)).Spaces;
+            filled.ToDictionary(entry => entry.Key, entry => entry.Value.Owner)).Spaces;
 
-        return new BoardStructure(plan.Globals.Cell, filled, build, buildKindOf, zones, midForm, islands, islandOf, roles, steppingKind, approaches, woolShapes, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids, frontlineRuns, spaces);
+        return new BoardStructure(ground.Cell, filled, build, buildKindOf, zones, midForm, islands, islandOf, roles, steppingKind, approaches, woolShapes, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids, frontlineRuns, spaces);
     }
 
     // group frontline segments into runs — a run is one island's contiguous void-facing face (segments joined by
