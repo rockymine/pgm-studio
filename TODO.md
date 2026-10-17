@@ -22,13 +22,6 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS172 — The look is stated before the review.** A palette, a house style per area, tree and rock zones and
-  the biome as sketch data, drawn on the review sheet and applied by the build, so the author judges what a board
-  is made of before it is built (D12, phase 5). `docs/tools/sketch.md`.
-
-  *Evidence: four of the seven points of Abbeymoor's first review were paint, materials or dressing, and no picture
-  before its build showed any of them (`experiment/REVIEW-1.md`).*
-
 - [ ] **WE166 — A room's building is a house.** A spawn's and a wool's `footprint` becomes a house record of the
   shape a dressed house takes — position, wings, its own style — with the room's interior as a part of it: the
   pad, the doors, the chests and the monuments, placed relative to the house. The map-wide `roomStyles` become
