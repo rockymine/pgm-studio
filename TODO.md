@@ -22,12 +22,11 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [~] **TS171 — The plan's rules read the sketch.** The flow's measures (`LN5`, `CT14`) walk the sketch's
-  ground through a `PlanNav` stated from it, as numbers on findings and never as a score (`SketchMeasures`); the
-  seam and surface rules `ContactGraph` answers on the plan (`G2`, `G5`, `EL1`, `SP8`, `WL11`, the
-  wall rules, `BZ5`, `BZ11`, `BZ12`) are rewritten on the raster's seams and relief; a wool room's entries are
-  derived from the seams it shares with that ground, and a places document's targets are measured the same way. `sight` is the one new read. `PlanValidator` is the source each rule moves out of.
-  `docs/tools/sketch.md`.
+- [~] **TS171 — The plan's rules read the sketch.** The seam and surface rules `ContactGraph` answers on the
+  plan (`G2`, `G5`, `EL1`, `SP8`, `WL11`, the wall rules, `BZ5`, `BZ11`, `BZ12`) are rewritten on the raster's
+  seams and relief; a wool room's entries are derived from the seams it shares with that ground, and a places
+  document's targets are measured the same way. `sight` is the one new read. `PlanValidator` is the source each
+  rule moves out of. `docs/tools/sketch.md`.
 
 - [ ] **RP131 — The plan retires as a level.** The Plan tool, `PUT …/sketch/from-plan` and the `plan` stage go;
   every stored plan stays as read-only history (D9), with the migration carrying no row away. `drive.py`, the

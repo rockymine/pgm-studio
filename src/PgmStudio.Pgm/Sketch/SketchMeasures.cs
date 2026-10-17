@@ -13,7 +13,8 @@ namespace PgmStudio.Pgm.Sketch;
 /// faces per team and the widest of them (<c>FR4</c>, <c>FR6</c>), the stepping stones, crossings, cuts and holes
 /// of the middle (<c>CT1</c>, <c>CT4</c>, <c>CT5</c>, <c>CT8</c>, <c>CT9</c>, <c>CT13</c>) and the narrowest lane to
 /// a wool room (<c>LN1</c>), the walks between its markers (<c>WL</c>, <c>GO</c>) and the band between the fronts
-/// (<c>MD7</c>, <c>MD8</c>). Each is the evaluator's own term, held to the band the corpus taught it, and a
+/// (<c>MD7</c>, <c>MD8</c>), and the flow of a match over the board: ground no journey reaches and the two sides'
+/// routes laid over each other (<c>LN5</c>, <c>CT14</c>). Each is the evaluator's own term, held to the band the corpus taught it, and a
 /// value outside its band is said as a complaint carrying the number. Nothing is summed: a measure describes
 /// how the board will play, and the author weighs it.
 /// </summary>
@@ -32,7 +33,7 @@ public static class SketchMeasures
         new WoolWoolDistance(), new SpawnWoolDistance(), new SpawnWoolSpread(), new WoolFrontDistance(),
         new WoolFrontBalance(), new SpawnWoolRatio(), new WoolFrontRatio(), new WoolFrontRemoteness(),
         new GoalSpawnRatio(), new OwnGoalDistance(), new OpposingGoalDistance(), new GoalSpawnDistance(),
-        new ThinMiddle(), new LongMiddle(),
+        new ThinMiddle(), new LongMiddle(), new DeadShare(), new RouteInterference(),
     ];
 
     /// <summary>What the board the layout and the intent build measures outside its bands; nothing where it builds
@@ -87,7 +88,18 @@ public static class SketchMeasures
                 [.. enemy.OfType<(int, int)>()]);
         }
 
-        return EvalContext.OfBoard(structure, walks, goalGround, teams, (intent.Symmetry ?? board)?.Mode,
+        var pois = new List<PlanPoi>();
+        void Poi(string id, string kind, StampId stamp, Pt point)
+        {
+            var (x, z) = Coarse(point, ground.Cell);
+            pois.Add(new PlanPoi(string.IsNullOrEmpty(stamp.Unit) ? id : stamp.Unit, kind, stamp.Image, x, z));
+        }
+        foreach (var spawn in intent.Spawns) Poi(spawn.Id, "spawn", spawn.Stamp, spawn.Point);
+        foreach (var wool in intent.Wools ?? []) Poi(wool.Id, "wool", wool.Stamp, wool.Spawn);
+        foreach (var goal in intent.Destroyables ?? []) Poi(goal.Id, "destroyable", goal.Stamp, goal.Anchor);
+        foreach (var core in intent.Cores ?? []) Poi(core.Id, "core", core.Stamp, core.Anchor);
+
+        return EvalContext.OfBoard(structure, PlanNav.Of(ground, pois), walks, goalGround, teams, (intent.Symmetry ?? board)?.Mode,
             new BoardGoals(wools.Count, goals.Count(goal => goal.Kind == "destroyable"), goals.Count(goal => goal.Kind == "core")),
             intent.MaxPlayers, SeedEnvelopes.Default);
     }

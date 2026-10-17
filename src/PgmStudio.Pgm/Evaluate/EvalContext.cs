@@ -45,7 +45,7 @@ public sealed class EvalContext
     private readonly Lazy<BoardStructure> _board;
     public BoardStructure Board => _board.Value;
 
-    private readonly Lazy<PlanFlow.Result>? _flow;
+    private readonly Lazy<PlanFlow.Result> _flow;
     private readonly Lazy<BoardWalks> _walks;
     private readonly Lazy<GoalDistances.GoalGround?> _goalGround;
 
@@ -58,13 +58,14 @@ public sealed class EvalContext
     /// <summary>What the board asks of the two sides: each demand set's walk, its decisions, and the ground no
     /// journey reaches. Lazy for the same reason <see cref="Board"/> is — a hard-only gate never pays for a
     /// traversal it does not read.</summary>
-    public PlanFlow.Result Flow => _flow?.Value ?? throw NoPlan();
+    public PlanFlow.Result Flow => _flow.Value;
 
     private EvalContext(
         PlanModel? plan, ContactGraph? contacts, Findings? findings, SeedEnvelopes envelopes, int order, BoardGoals goals,
         int maxPlayers, Lazy<BoardStructure> board, Lazy<BoardWalks> walks, Lazy<GoalDistances.GoalGround?> goalGround,
-        Func<BoardStructure, MidBand?> mid)
+        Func<BoardStructure, MidBand?> mid, Func<PlanFlow.Result> flow)
     {
+        _flow = new Lazy<PlanFlow.Result>(flow);
         MaxPlayers = maxPlayers;
         _mid = new Lazy<MidBand?>(() => mid(board.Value));
         _walks = walks;
@@ -76,7 +77,6 @@ public sealed class EvalContext
         Order = order;
         Goals = goals;
         _board = board;
-        if (plan is not null) _flow = new Lazy<PlanFlow.Result>(() => PlanFlow.Read(plan));
     }
 
     /// <summary>Build the context for a plan, deriving the contact graph and running the structural validator
@@ -92,17 +92,17 @@ public sealed class EvalContext
             new Lazy<BoardStructure>(() => BoardDeriver.Derive(plan)),
             new Lazy<BoardWalks>(() => BoardWalks.Of(plan)),
             new Lazy<GoalDistances.GoalGround?>(() => GoalDistances.Ground(plan)),
-            _ => MidBand.Read(plan));
+            _ => MidBand.Read(plan), () => PlanFlow.Read(plan));
     }
 
     /// <summary>The context for a board read off a ground with no plan behind it: the terms that read only the
     /// board's structure answer it, and one that asks for the plan is refused.</summary>
     public static EvalContext OfBoard(
-        BoardStructure board, BoardWalks walks, GoalDistances.GoalGround? goalGround, int order, string? mode,
-        BoardGoals goals, int maxPlayers, SeedEnvelopes envelopes) =>
+        BoardStructure board, PlanNav nav, BoardWalks walks, GoalDistances.GoalGround? goalGround, int order,
+        string? mode, BoardGoals goals, int maxPlayers, SeedEnvelopes envelopes) =>
         new(null, null, null, envelopes, order, goals, maxPlayers, new Lazy<BoardStructure>(() => board),
             new Lazy<BoardWalks>(() => walks), new Lazy<GoalDistances.GoalGround?>(() => goalGround),
-            structure => MidBand.Of(structure, mode));
+            structure => MidBand.Of(structure, mode), () => PlanFlow.Read(nav, () => board));
 
     private static InvalidOperationException NoPlan() =>
         new("this board was read off a ground with no plan behind it");

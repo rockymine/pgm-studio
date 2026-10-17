@@ -1,6 +1,7 @@
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Render;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Derive;
 
@@ -192,6 +193,28 @@ public sealed class PlanNav
         holes.Sort((a, b) => b.Count.CompareTo(a.Count));
 
         return new PlanNav(ground, bridge, lane, pieceAt, roleOf, surfaceAt, holes, pois, bounds, plan.Globals.Cell);
+    }
+
+    /// <summary>A board's ground walked the way a plan's is: its standing cells as ground, owned by the owner each
+    /// carries and named for the image it is, its build cells beyond them as bridge, every owner a spawn or a wool
+    /// room stands on in that role, and <paramref name="pois"/> as the places a journey runs between. A ground
+    /// read off a sketch states no surface a walk climbs between, so every cell stands at one height.</summary>
+    public static PlanNav Of(BoardGround board, IEnumerable<PlanPoi> pois)
+    {
+        var ground = board.Filled.Keys.ToHashSet();
+        var bridge = board.Build.Where(cell => !ground.Contains(cell)).ToHashSet();
+        var pieceAt = board.Filled.ToDictionary(entry => entry.Key,
+            entry => entry.Value.K == 0 ? entry.Value.Owner : $"{entry.Value.Owner}#{entry.Value.K}");
+        var roleOf = board.Filled.Values.Select(value => value.Owner).Distinct().ToDictionary(owner => owner,
+            owner => board.SpawnOwners.Contains(owner) ? PlanRoles.Spawn
+                : board.WoolOwners.Contains(owner) ? PlanRoles.WoolRoom : PlanRoles.Piece);
+        var surfaceAt = ground.Concat(bridge).ToDictionary(cell => cell, _ => 0);
+        var navigable = new HashSet<(int X, int Z)>(ground);
+        navigable.UnionWith(bridge);
+        var bounds = navigable.Count == 0 ? new CellRect(0, 0, 0, 0) : Cells.BoundingBox([.. navigable]);
+        var holes = Pockets(navigable, bounds);
+        holes.Sort((a, b) => b.Count.CompareTo(a.Count));
+        return new PlanNav(ground, bridge, [], pieceAt, roleOf, surfaceAt, holes, [.. pois], bounds, board.Cell);
     }
 
     /// <summary>Snap a cell onto the navigable set — a marker sits on a piece by construction, but a place an

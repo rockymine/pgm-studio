@@ -2320,10 +2320,13 @@ spread and ratio, wool to the crossing and its balance, ratio and remoteness (`W
 stands where an earlier one's symmetry image does is that one's copy — and on a two-team board a goal's walks
 over the whole closure (`GO1` to `GO4`). And the band between the fronts — the rectangle round the board's
 front-to-front build cells, which a composed plan names its mid band — measured across the fronts against its
-floor for the board's size and front to front against twice its width (`MD7`, `MD8`). A value outside its band is a complaint carrying the number and the
+floor for the board's size and front to front against twice its width (`MD7`, `MD8`). And the flow of a match
+over the board, walked as the plan's flow is (`PlanNav` stated from the ground, every cell at one height): the
+share of ground no journey reaches and how far the attack's and the defence's routes lie over each other
+(`LN5`, `CT14`). A value outside its band is a complaint carrying the number and the
 band, and a term with no band yet says nothing. Nothing is summed or ranked: a measure says how the board will
-play and the author weighs it. Compiled from a seed plan, the sketch measures what the plan measures — 898 of
-903 values over the 49 seeds — and the rest are where a centre island straddles both images of a rot_180 board,
+play and the author weighs it. Compiled from a seed plan, the sketch measures what the plan measures — 984 of
+989 values over the 49 seeds — and the rest are where a centre island straddles both images of a rot_180 board,
 whose team is the deriver's tie to break. Where the map
 still holds a plan, the plan answers every other rule and none of these.
 

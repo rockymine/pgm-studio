@@ -9474,8 +9474,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`Pgm/Derive/BoardGround`, `Pgm/Sketch/SketchBoardCheck`, `docs/tools/sketch.md`)
 - **The board's measures are read off the sketch's ground (`TS171`).** The evaluator's board terms — `FR4`,
   `FR6`, `CT1`, `CT4`, `CT5`, `CT8`, `CT9`, `CT13`, `LN1` — and its walks — `WL7`, `WL9`, `WL10`, `WL13`,
-  `WL15`–`WL18`, `GO1`–`GO4` — and its mid band — `MD7`, `MD8`, the rectangle round the front-to-front build
-  cells — measure the sketch read at the corpus's 5-block cell and say a value outside its
+  `WL15`–`WL18`, `GO1`–`GO4` — its mid band — `MD7`, `MD8`, the rectangle round the front-to-front build
+  cells — and its flow — `LN5`, `CT14`, over a `PlanNav` stated from the ground — measure the sketch read at the corpus's 5-block cell and say a value outside its
   band as a complaint with its number, never summed into a score; compiled from a seed, the sketch measures
   what its plan does. (`Pgm/Sketch/SketchMeasures`, `Pgm/Evaluate/EvalContext`, `Pgm/Evaluate/BoardWalks`,
   `docs/tools/sketch.md`)
