@@ -42,4 +42,16 @@ public sealed class RoomHouseTests
         await Assert.That(moved.Room).IsEqualTo(new Rect(3, -1, 9, 5));
         await Assert.That(moved.Wings[0].Spec.StoreysHigh).IsEqualTo(2);
     }
+
+    [Test]
+    public async Task A_wings_words_are_written_as_words_whatever_the_options()
+    {
+        var wing = RoomHouse.Over(new Rect(0, 0, 6, 6)).Wings[0]
+            with { Spec = new Domain.WingSpec(Form: Domain.RoofForm.Hip, Ridge: Domain.RidgeAxis.AlongX) };
+        var json = System.Text.Json.JsonSerializer.Serialize(new RoomHouse { Wings = [wing] },
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+
+        await Assert.That(json).Contains("\"ridge\":\"alongX\"");
+        await Assert.That(json).Contains("\"form\":\"hip\"");
+    }
 }

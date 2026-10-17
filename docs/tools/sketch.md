@@ -1247,6 +1247,14 @@ Seven things can be placed, in three placement geometries.
 | Boulder | `boulder` | a click | the built-in recipe, a mossy erratic of size 4, until it is tuned |
 | Chest | `chest` | a click | on the ground, fronting `negZ`, holding nothing until its stacks are listed (`docs/world-export/decoration.md` §8a) |
 
+**A building grows a wing the way an outline grows a point.** A picked building shows the outline editor's round
+insert marker at the middle of the free wall nearest the pointer — a run of wall no other wing stands against, at
+least 4 blocks long — and a press on it adds a wing along that wall, the wall's length and 5 blocks deep, shrunk
+short of any building it would run into (`shared/building.js`). The new wing is picked, and its square corner grips
+resize it; a drag never adds one. The inspector lists the wings, deletes any but the last or one the others meet
+through, and sets the picked wing's **Storeys**, **Roof**, **Ridge** and whether its roof crosses the wing it meets
+(`SketchHouseWings`). A room's house in Layout is the same building and takes the same gestures (Layout, below).
+
 **Every one of them takes a style, and for the two that lay ground the style and the material are separate
 questions.** A **stroke** replaces the surface it crosses rather than adding to it — it is a finish, not
 terrain, which is why it carries a material and no height. Its `style` shapes the *band*: `solid` holds one width the whole way for a clean utility road, `worn` thins it by

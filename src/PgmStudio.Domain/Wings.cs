@@ -1,9 +1,17 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace PgmStudio.Domain;
+
+/// <summary>Writes a wing's words the way every document spells them, camel-cased (<c>alongX</c>, <c>gable</c>),
+/// whichever serializer options the document is written with.</summary>
+public sealed class WingWordConverter<T>() : JsonStringEnumConverter<T>(JsonNamingPolicy.CamelCase) where T : struct, Enum;
 
 /// <summary>
 /// Which roof a house wears. They are the same building underneath — every one of them is a height field over
 /// the same plan (<c>RoofField</c>) — which is why one stamper builds all six.
 /// </summary>
+[JsonConverter(typeof(WingWordConverter<RoofForm>))]
 public enum RoofForm
 {
     /// <summary>Two slopes meeting at a ridge that runs the length of the building.</summary>
@@ -31,6 +39,7 @@ public enum RoofForm
 }
 
 /// <summary>Which way a wing's ridge runs, where its own proportions are not what should decide.</summary>
+[JsonConverter(typeof(WingWordConverter<RidgeAxis>))]
 public enum RidgeAxis
 {
     /// <summary>Along x, so the slopes are taken across z.</summary>

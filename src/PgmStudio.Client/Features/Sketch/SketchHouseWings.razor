@@ -1,0 +1,118 @@
+@namespace PgmStudio.Client.Features.Sketch
+@using System.Text.Json.Nodes
+@using PgmStudio.Vocabulary
+
+@* A building's wings, listed, and what the picked one states about itself: how many storeys stand on it, the
+   roof it wears, which way its ridge runs, and whether its roof crosses the wing it runs into. The same body for
+   a dressed house in Decoration and a room's house in Layout. *@
+
+<div class="section-header section-header--ruled">
+  <h2 class="section-title">Wings</h2>
+  <Badge Kind="dim">@(Wings.Count == 1 ? "1 wing" : $"{Wings.Count} wings")</Badge>
+</div>
+<div class="panel-list">
+  @for (var at = 0; at < Wings.Count; at++)
+  {
+    var wing = at;
+    <ListRow Compact Selected="@(wing == Picked)" @key="wing" OnClick="() => OnPick.InvokeAsync(wing)">
+      <ChildContent>
+        <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
+        <span class="list-label">@Name(wing)</span>
+        <span class="list-tag">@Size(wing)</span>
+      </ChildContent>
+      <Trailing>
+        @if (Wings.Count > 1 && !(KeepsFirst && wing == 0))
+        {
+          <Button Variant="icon" Icon="trash-2" Title="@($"Delete {Name(wing).ToLowerInvariant()}")" Writes
+                  OnClick="() => OnDelete.InvokeAsync(wing)" />
+        }
+      </Trailing>
+    </ListRow>
+  }
+</div>
+@if (Spec is { } spec)
+{
+  <div class="field-row">
+    <Field Label="Storeys">
+      <Select Slim="false" Options="StoreyOptions" Value="@Number(spec, StoreysHigh)" ValueChanged="value => Set(spec, StoreysHigh, value)" />
+    </Field>
+    <Field Label="Roof">
+      <Select Slim="false" Options="RoofOptions" Value="@Text(spec, Form)" ValueChanged="value => Set(spec, Form, value)" />
+    </Field>
+  </div>
+  <Field Label="Ridge">
+    <div class="chip-row">
+      @foreach (var (word, label) in Ridges)
+      {
+        <Chip Active="@(Text(spec, Ridge) == word)" @key="word" OnClick="() => Set(spec, Ridge, word)">@label</Chip>
+      }
+    </div>
+  </Field>
+  @if (Picked > 0)
+  {
+    <label class="check-row">
+      <input type="checkbox" checked="@(spec[Projects]?.GetValue<bool>() == true)"
+             @onchange="change => Set(spec, Projects, change.Value is true ? bool.TrueString : string.Empty)" />
+      Roof crosses the wing it meets
+    </label>
+  }
+}
+
+@code {
+    /// <summary>The building's wings, each <c>{corners, spec?}</c>.</summary>
+    [Parameter, EditorRequired] public JsonArray Wings { get; set; } = [];
+
+    /// <summary>Which wing is picked, counted from 0.</summary>
+    [Parameter] public int Picked { get; set; }
+
+    /// <summary>Whether the first wing is the building's own and cannot be deleted — a room's, which holds its
+    /// pad.</summary>
+    [Parameter] public bool KeepsFirst { get; set; }
+
+    [Parameter] public EventCallback<int> OnPick { get; set; }
+    [Parameter] public EventCallback<int> OnDelete { get; set; }
+
+    /// <summary>A wing's spec changed: the wing and the whole spec it now states.</summary>
+    [Parameter] public EventCallback<(int Wing, JsonObject Spec)> OnSpec { get; set; }
+
+    private const string StoreysHigh = "storeysHigh", Form = "form", Ridge = "ridge", Projects = "projects";
+
+    private static readonly SelectOption[] StoreyOptions =
+        [new("", "All"), new("1", "1"), new("2", "2"), new("3", "3")];
+
+    private static readonly SelectOption[] RoofOptions =
+        [new("", "The house's"), .. RoofForms.Offered.Select(form => new SelectOption(form, char.ToUpperInvariant(form[0]) + form[1..]))];
+
+    private static readonly (string Word, string Label)[] Ridges = [("", "Follows shape"), ("alongX", "Along x"), ("alongZ", "Along z")];
+
+    private JsonObject? Spec => Picked >= 0 && Picked < Wings.Count && Wings[Picked] is JsonObject wing
+        ? (wing["spec"] as JsonObject)?.DeepClone() as JsonObject ?? new JsonObject() : null;
+
+    private string Name(int wing) => KeepsFirst && wing == 0 ? "Room" : $"Wing {wing + 1}";
+
+    private string Size(int wing)
+    {
+        if (Wings[wing]?["corners"] is not JsonArray { Count: 2 } corners) return "";
+        double Coordinate(int corner, int axis) => corners[corner]?[axis]?.GetValue<double>() ?? 0;
+        var width = Math.Abs(Math.Floor(Coordinate(1, 0)) - Math.Floor(Coordinate(0, 0))) + 1;
+        var depth = Math.Abs(Math.Floor(Coordinate(1, 1)) - Math.Floor(Coordinate(0, 1))) + 1;
+        return $"{width:0} × {depth:0}";
+    }
+
+    private static string Text(JsonObject spec, string key) =>
+        spec[key] is JsonValue value && value.TryGetValue<string>(out var text) ? text : "";
+
+    private static string Number(JsonObject spec, string key) =>
+        spec[key] is JsonValue value && value.TryGetValue<int>(out var number) && number > 0 ? number.ToString() : "";
+
+    /// <summary>Set one field of the picked wing's spec; an empty value takes the field out, back to the
+    /// building's own.</summary>
+    private Task Set(JsonObject spec, string key, string value)
+    {
+        if (string.IsNullOrEmpty(value)) spec.Remove(key);
+        else if (key == StoreysHigh && int.TryParse(value, out var storeys)) spec[key] = storeys;
+        else if (key == Projects) spec[key] = true;
+        else spec[key] = value;
+        return OnSpec.InvokeAsync((Picked, spec));
+    }
+}

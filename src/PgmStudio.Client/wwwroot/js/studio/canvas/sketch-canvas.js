@@ -395,13 +395,6 @@ export class SketchCanvas extends CanvasBase {
   setGhostGroups(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; this.#renderSetup(); }
   /** Show and edit placed dressing — on for the Dressing phase, off everywhere else. */
-  /** Join the selected buildings into one, or take a joined one apart. What both the chord and the inspector's
-   *  button call, so neither can drift from the other. */
-  joinDressing() {
-    if (!this.#dressing) return;
-    this.#callbacks.onDressingJoin?.(this.#dressing.joinSelection());
-  }
-
   setDressingMode(on) {
     this.#dressingOn = !!on;
     if (!on) { this.#dressing?.cancel(); this.#dressing?.select(null); }
@@ -550,7 +543,7 @@ export class SketchCanvas extends CanvasBase {
     if (this._activeTool === "eye") { this.#view = this.#grabView(svgPt) ?? { ax: bx, az: bz, bx, bz, live: true, grab: "look" }; this.#paintWorld(); return; }
     if (this._activeTool === "split") { this.#onSplitClick(bx, bz); return; }
     if (this.#reliefOn && this.#reliefTools?.onMouseDown(bx, bz, this._activeTool)) return;
-    if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool, e.shiftKey)) return;
+    if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool)) return;
     if (this._readOnly) return;
     this.#draw?.onMouseDown(bx, bz, this._activeTool);
   }
@@ -577,6 +570,7 @@ export class SketchCanvas extends CanvasBase {
     }
     this.#updateDim();
     this.#edit?.onPointerMove(svgPt.x, svgPt.y, this._activeTool);
+    if (this.#dressingOn) this.#dressing?.onPointerHover(svgPt.x, svgPt.y, this._activeTool);
   }
 
   _onToolMouseup(e, svgPt) {
@@ -1313,6 +1307,8 @@ export class SketchCanvas extends CanvasBase {
       // A finished placement hands the canvas back, the same as a finished draw tool: the prop just put down
       // is the one to move or tune, and select is the mode that does either.
       onPlaced: () => { this.#placementClick = true; this.#callbacks.onDressingPlaced?.(); },
+      // A wing added off a wall is one edit, answered with what it did or why it did nothing.
+      onWingAdded: (result) => { this.#paintWorld(); this.#callbacks.onDressingWing?.(result); },
       // A marker (a tree, a boulder) may only land on the rasterized terrain — the export refuses one seated on
       // nothing, so the canvas refuses to drop it there in the first place.
       onTerrain: (bx, bz) => this.#cellOnTerrain(bx, bz),
@@ -1386,12 +1382,6 @@ export class SketchCanvas extends CanvasBase {
       { id: "sketch.promote", keys: "shift+p", label: "Move the shape into its own group",
         group: "Sketch", when: () => writable() && !!this.#selectedId,
         run: () => this.#callbacks.onShapePromote?.(this.#selectedId) },
-      // The label says *building* rather than group: a group on this canvas is a shape's orbit, and one chord
-      // listed twice under one word in the help sheet is two operations nobody can tell apart.
-      { id: "dressing.join", keys: "mod+g",
-        label: "Join or separate buildings",
-        group: "Decoration", when: () => writable() && this.#dressingOn && !!this.#dressing?.selectedId,
-        run: () => this.joinDressing() },
     ]);
 
     // A click-by-click draw ends on Enter or on a click back at its first vertex. Neither is a click count,

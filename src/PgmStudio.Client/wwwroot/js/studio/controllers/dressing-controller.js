@@ -26,8 +26,9 @@
 import { paintDressingPreview, paintMarkerGhost } from "../render/dressing-render.js";
 import { buildingsOverlap, defaultProp, isMarker, isRect, propAnchor, propReach, rectFootprint, rectsJoinUp,
          onLayer, translateProp, wingCorners, wingRects, withCorners } from "../dressing/dressing-doc.js";
+import { wallNear, wingOffWall } from "../shared/building.js";
 import { douglasPeucker, simplifyRing } from "../geometry/simplify.js";
-import { svgEl, handleRectAttrs } from "../render/svg.js";
+import { svgEl, handleRectAttrs, insertGhost } from "../render/svg.js";
 import { toScreen } from "../geometry/transform.js";
 
 /** Tool name → the kind of prop it places. The canvas passes tool names through, so this is also the test for
@@ -39,6 +40,10 @@ export const DRESSING_TOOLS = { "dress:stroke": "stroke", "dress:fluid": "fluid"
 // it: a lasso outlines land, where a route runs THROUGH it, so a bend the outline can afford to round off is
 // a bend a path would visibly miss.
 const TRACE_SIMPLIFY_TOLERANCE = 3;
+
+// How near a free wall of a picked building the pointer shows the insert marker, in screen px — the distance the
+// outline editor shows its own at.
+const WALL_REACH = 10;
 
 // How near a prop's anchor a click counts as picking it, in blocks — a marker is small, so its own reach is
 // too tight a target at a low zoom.
@@ -59,7 +64,9 @@ export class DressingController {
   #drag = null;           // moving an already-placed prop
   #pointDrag = null;      // reshaping one: { id, idx, wing } — idx -1 is a marker's own anchor
   #selectedId = null;
-  #alsoSelected = [];     // ids selected beside the primary, in click order — what a join reads
+  #selectedWing = 0;      // which wing of a picked building its settings are edited for
+  #wall = null;           // the free wall of the picked building the pointer is near, where a press adds a wing
+  #wallGhost = null;
   #settings = {};         // per-kind starting values for the next prop placed
   #onTerrain;             // (bx, bz) → is this cell on the rasterized terrain a marker can seat on?
   #editable;              // () → may this page change the placements at all?
@@ -87,38 +94,30 @@ export class DressingController {
   get activeKind() { return DRESSING_TOOLS[this.#tool] ?? null; }
   get selectedId() { return this.#selectedId; }
 
+  /** Which wing of the picked building is picked, counted from 0. */
+  get selectedWing() { return this.#selectedWing; }
+
   /** The starting values the next prop of a kind takes. The inspector edits these when nothing is selected. */
   settingsFor(kind) { return this.#settings[kind]; }
   setSettings(kind, patch) { this.#settings[kind] = { ...this.#settings[kind], ...patch }; }
 
-  /** The whole selection, primary first, dropping anything since deleted. One prop is the common case and the
-   *  inspector still reads `selectedId`; the rest exist so two buildings can be named at once for a join. */
-  get selection() {
-    const ids = [this.#selectedId, ...this.#alsoSelected];
-    return ids.filter((id, at) => id && ids.indexOf(id) === at && this.#doc.byId(id));
-  }
-
-  /**
-   * Pick a prop. `additive` adds it beside whatever is already picked instead of replacing it — shift-click,
-   * and the only way to name the two buildings a join is asked of. Picking an already-picked prop additively
-   * drops it, so a shift-click both adds and takes back.
-   */
-  select(id, additive = false) {
+  /** Pick a prop, and its first wing where it is a building. */
+  select(id, wing = 0) {
     const live = this.#doc.byId(id) ? id : null;
-    if (additive && live && this.#selectedId && live !== this.#selectedId) {
-      const at = this.#alsoSelected.indexOf(live);
-      if (at >= 0) this.#alsoSelected.splice(at, 1);
-      else this.#alsoSelected.push(live);
-    } else if (additive && live && live === this.#selectedId) {
-      // Taking back the primary promotes the next one picked, so the selection never loses its head.
-      this.#selectedId = this.#alsoSelected.shift() ?? null;
-    } else {
-      this.#selectedId = live;
-      this.#alsoSelected = [];
-    }
+    this.#selectedId = live;
+    this.#selectedWing = live ? Math.max(0, Math.min(wing, (this.#doc.byId(live).wings?.length ?? 1) - 1)) : 0;
+    this.#wall = null;
     this.#callbacks.onSelected?.(this.#selectedId);
     this.refreshHandles();
     this.#callbacks.onPreviewChanged?.();
+  }
+
+  /** Pick one wing of the picked building, whose settings the inspector edits. */
+  selectWing(wing) {
+    const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
+    if (!prop || !isRect(prop) || wing < 0 || wing >= (prop.wings?.length ?? 0)) return;
+    this.#selectedWing = wing;
+    this.#callbacks.onSelected?.(this.#selectedId);
   }
 
   /** Delete the selection. Returns true if something went. */
@@ -131,72 +130,55 @@ export class DressingController {
   }
 
   /**
-   * Join the selected buildings into one, or take a joined one apart again — the same chord both ways, because
-   * an author holding two rectangles and an author holding an L are the same author changing their mind.
+   * Add a wing off the free wall the pointer is near, the wall's length and five deep, shrunk short of any
+   * building it would run into, and pick it. Answers what happened, for the host to report.
    *
-   * <p>Joining keeps the earliest-placed building: it holds the id, the style, the door edge, the seed and the
-   * layer, and gains the others' wings in the order they were picked. Taking apart is the exact inverse — one
-   * building per wing, each keeping what the whole one stated — so the pair round-trips.</p>
-   *
-   * <p><b>What is not decided here is whether the wings make a building.</b> Two rectangles are a hall and a
-   * cross wing only if their ridges cross, and a ridge follows proportions the server resolves, so the joint
-   * model is asked rather than copied — the prop's preview answers `HJ1`–`HJ5` and the inspector reads the
-   * refusal. What is refused here is the one case no reading is needed for and every join would fail on
-   * anyway: two buildings standing on the same ground.</p>
-   *
-   * <p>The result is the only announcement: the host fires one change carrying it, because two events for one
-   * edit race each other and the second short-circuits the first's preview round trip on an unchanged prop.</p>
-   *
-   * @returns {{ done: string, wings?: number } | { refused: string }} what happened, for the host to report.
+   * @returns {{ done: string, wings: number } | { refused: string }}
    */
-  joinSelection() {
-    const picked = this.selection.map(id => this.#doc.byId(id)).filter(prop => isRect(prop));
-    if (picked.length === 0) return { refused: "Select two buildings to join them." };
-
-    if (picked.length === 1) {
-      const only = picked[0];
-      const wings = only.wings ?? [];
-      if (wings.length < 2) {
-        return { refused: "That building is one rectangle already. Shift-click a second one to join them." };
-      }
-      // Apart: the first wing stays where it is so the building an author was looking at keeps its place in
-      // the list, and every other wing becomes a building of its own carrying the same finish.
-      this.#doc.update(only.id, { wings: [wings[0]] });
-      let seed = only.seed ?? 0;
-      const made = [only.id];
-      for (const wing of wings.slice(1)) {
-        made.push(this.#doc.add({ ...only, id: "", seed: ++seed, wings: [wing] }).id);
-      }
-      this.#selectedId = made[0];
-      this.#alsoSelected = made.slice(1);
-      this.#callbacks.onSelected?.(this.#selectedId);
-      this.refreshHandles();
-      return { done: "apart", wings: wings.length };
-    }
-
-    for (let a = 0; a < picked.length; a++)
-      for (let b = a + 1; b < picked.length; b++)
-        if (buildingsOverlap(picked[a], picked[b])) {
-          return { refused: "Those buildings overlap. Move one so they touch along an edge "
-                          + "without sharing blocks." };
-        }
-
-    const order = this.#doc.props.filter(prop => picked.some(one => one.id === prop.id));
-    const rects = order.flatMap(prop => wingRects(prop));
-    if (!rectsJoinUp(rects)) {
-      return { refused: "Those buildings don't touch. Move them "
-                      + "until they meet along an edge." };
-    }
-
-    const [keep, ...rest] = order;
-    const wings = order.flatMap(prop => prop.wings ?? []);
-    this.#doc.update(keep.id, { wings });
-    for (const gone of rest) this.#doc.remove(gone.id);
-    this.#selectedId = keep.id;
-    this.#alsoSelected = [];
+  addWing() {
+    const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
+    if (!prop || !isRect(prop) || !this.#wall || !this.#editable()) return { refused: "Point at a wall of the building." };
+    const others = this.#doc.props.filter(other => other.id !== prop.id && isRect(other) && onLayer(other, prop.layer))
+      .flatMap(other => wingRects(other));
+    const rect = wingOffWall([...wingRects(prop), ...others], this.#wall);
+    if (!rect) return { refused: "There is no room for a wing off that wall." };
+    const wings = [...(prop.wings ?? []), { corners: [[rect.minX, rect.minZ], [rect.maxX, rect.maxZ]] }];
+    this.#doc.update(prop.id, { wings });
+    this.#wall = null;
+    this.#selectedWing = wings.length - 1;
     this.#callbacks.onSelected?.(this.#selectedId);
     this.refreshHandles();
-    return { done: "joined", wings: wings.length };
+    return { done: "added", wings: wings.length };
+  }
+
+  /**
+   * Take a wing out of the picked building. The last wing is the building itself, and a wing whose going
+   * leaves the rest no longer joined edge to edge would leave two buildings, so both are refused.
+   *
+   * @returns {{ done: string, wings: number } | { refused: string }}
+   */
+  deleteWing(wing) {
+    const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
+    if (!prop || !isRect(prop) || !this.#editable()) return { refused: "Select a building." };
+    const wings = prop.wings ?? [];
+    if (wings.length < 2) return { refused: "A building keeps at least one wing." };
+    const rest = wings.filter((_, at) => at !== wing);
+    if (!rectsJoinUp(wingRects({ wings: rest }))) return { refused: "The other wings would no longer meet." };
+    this.#doc.update(prop.id, { wings: rest });
+    this.#selectedWing = Math.min(this.#selectedWing, rest.length - 1);
+    this.#callbacks.onSelected?.(this.#selectedId);
+    this.refreshHandles();
+    return { done: "deleted", wings: rest.length };
+  }
+
+  /** Change what one wing of the picked building states about itself — its storeys, roof, ridge and joint. */
+  updateWing(wing, spec) {
+    const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
+    if (!prop || !isRect(prop) || !prop.wings?.[wing]) return null;
+    const wings = prop.wings.map((each, at) => at === wing ? { ...each, spec } : each);
+    const updated = this.#doc.update(prop.id, { wings });
+    this.#callbacks.onChanged?.();
+    return updated;
   }
 
   /** Change the selected prop's knobs, and remember them as the starting point for the next one of its kind —
@@ -216,9 +198,8 @@ export class DressingController {
   }
 
   // ── pointer ────────────────────────────────────────────────────────────────
-  /** Press. Returns true when the dressing phase consumed it. `additive` is shift held: it adds to the
-   *  selection instead of replacing it, which is how the two buildings of a join are named. */
-  onMouseDown(bx, bz, activeTool, additive = false) {
+  /** Press. Returns true when the dressing phase consumed it. */
+  onMouseDown(bx, bz, activeTool) {
     const kind = DRESSING_TOOLS[activeTool];
     if (kind) {
       if (!this.#editable()) return true;   // a page that may not write places nothing
@@ -231,10 +212,12 @@ export class DressingController {
     }
     if (activeTool !== "select" && activeTool !== null) return false;
 
-    // Select mode: pick the prop under the cursor and start dragging it.
+    // Select mode: pick the prop under the cursor, and the wing of it under the cursor, and start dragging it.
     const hit = this.#hitTest(bx, bz);
-    this.select(hit?.id ?? null, additive);
-    this.#drag = hit && !additive && this.#editable() ? { id: hit.id, fromX: bx, fromZ: bz, moved: false } : null;
+    const wing = hit && isRect(hit)
+      ? Math.max(0, wingRects(hit).findIndex(r => bx >= r.minX && bx <= r.maxX && bz >= r.minZ && bz <= r.maxZ)) : 0;
+    this.select(hit?.id ?? null, wing);
+    this.#drag = hit && this.#editable() ? { id: hit.id, fromX: bx, fromZ: bz, moved: false } : null;
     return hit !== null;
   }
 
@@ -278,6 +261,26 @@ export class DressingController {
     }
     if (this.#cursor) { this.#cursor = null; this.#callbacks.onPreviewChanged?.(); }
     return false;
+  }
+
+  /** Pointer move in world coordinates: show the insert marker on the free wall of the picked building the
+   *  pointer is near, or hide it. */
+  onPointerHover(wx, wz, activeTool) {
+    const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
+    const viewport = this.#getViewport();
+    const wall = prop && isRect(prop) && this.#editable() && (activeTool === "select" || !activeTool)
+      ? wallNear(wingRects(prop), wx, wz, WALL_REACH / (viewport.scale || 1)) : null;
+    this.#wall = wall;
+    if (!this.#handlesLayer) return;
+    if (!wall) { if (this.#wallGhost) this.#wallGhost.style.display = "none"; return; }
+    if (!this.#wallGhost || !this.#wallGhost.isConnected) {
+      this.#wallGhost = insertGhost(() => this.#callbacks.onWingAdded?.(this.addWing()));
+      this.#handlesLayer.appendChild(this.#wallGhost);
+    }
+    const sp = toScreen(wall.mid[0], wall.mid[1], viewport);
+    this.#wallGhost.setAttribute("cx", String(sp.x));
+    this.#wallGhost.setAttribute("cy", String(sp.y));
+    this.#wallGhost.style.display = "";
   }
 
   /** Release — the drag's last point is the stroke's last point, which is the whole interaction. */

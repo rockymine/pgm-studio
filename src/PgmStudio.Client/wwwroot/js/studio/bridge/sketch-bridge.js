@@ -172,13 +172,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // A placed prop ends its tool, the same as a completed draw: the toolbar follows the canvas back to select.
     // A tool kept in hand lets go of the prop instead, so the inspector shows what the next press places.
     onDressingPlaced:  () => { if (!dropTool()) canvas.dressingTools?.select(null); },
-    // A join is one edit and one undo step, and it answers a sentence either way — what it did, or why it
-    // would not. The refusals it cannot answer are the joint model's, and those arrive with the preview.
-    onDressingJoin: edit((result) => {
+    // A wing added off a wall is one edit and one undo step; a press that adds none says why.
+    onDressingWing: edit((result) => {
       if (result?.refused) fire("OnDressing", dressingState(result.refused));
-      else afterDressingChange(result?.done === "apart"
-        ? `Taken apart into ${result.wings} buildings.`
-        : `Joined into one building of ${result?.wings ?? 0} wings.`);
+      else afterDressingChange();
     }),
     // Relief marks follow exactly the same three rules, for the same reasons.
     onReliefChanged: edit(() => afterReliefChange()),
@@ -907,9 +904,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     return JSON.stringify({
       props: canvas.dressing.props,
       selectedId,
-      // Every picked id, primary first. The inspector edits one prop and the join reads the rest, so the
-      // selection travels whole rather than the host inferring a second pick it cannot see.
-      selection: tools?.selection ?? (selectedId ? [selectedId] : []),
+      // Which wing of a picked building the inspector edits.
+      wing: tools?.selectedWing ?? 0,
       selected: selectedId ? canvas.dressing.byId(selectedId) : null,
       // The recipes travel with the state, because a placement names one and a preview of a placement has no
       // document behind it: what the inspector posts has to carry both halves or the key resolves to nothing.
@@ -1331,9 +1327,19 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     selectProp(id) { canvas.dressingTools?.select(id || null); },
     deleteProp() { if (canvas.dressingTools?.deleteSelected()) afterDressingChange(); },
-    /** Join the selected buildings, or take a joined one apart — the inspector button's half of `mod+g`, so
-     *  the two run the same operation rather than each having their own. */
-    joinDressing() { canvas.joinDressing(); },
+    /** Pick one wing of the picked building, whose settings the inspector edits. */
+    selectWing(wing) { canvas.dressingTools?.selectWing(wing); fire("OnDressing", dressingState()); },
+    /** Take a wing out of the picked building; a refusal says why and changes nothing. */
+    deleteWing(wing) {
+      const result = canvas.dressingTools?.deleteWing(wing);
+      if (result?.refused) fire("OnDressing", dressingState(result.refused));
+      else afterDressingChange();
+    },
+    /** State what one wing of the picked building says about itself: its storeys, roof, ridge and joint. */
+    updateWing(wing, specJson) {
+      let spec; try { spec = JSON.parse(specJson); } catch { return; }
+      if (canvas.dressingTools?.updateWing(wing, spec)) afterDressingChange();
+    },
     /** Put a library recipe in the document's registry and answer the key it is stated under — which the
      *  inspector's picker then names on the placement, so the document always states what its placements name.
      *  The key is the row's name where that name is free or already holds this very recipe, and a numbered
@@ -1547,7 +1553,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     "setRoomStyle", "defineTheme", "deleteTheme", "setThemeJson", "setMapTheme",
     "setThemeSource", "setBiome",
     "assignShape", "assignGroup",
-    "deleteProp", "joinDressing", "pullRecipe", "updateProp",
+    "deleteProp", "deleteWing", "updateWing", "pullRecipe", "updateProp",
     "deleteMark", "updateMark", "renameMark", "updateGroupRelief", "setPushAmount",
   ];
   for (const verb of MUTATORS) {

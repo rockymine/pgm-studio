@@ -491,10 +491,11 @@ test("moving a selected prop to another storey writes its layer, and the next on
   assert.equal(doc.props[1].layer, "roof", "a storey is where one prop rests, not a starting value");
 });
 
-// ── joining buildings into one ────────────────────────────────────────────────
-// A building is one rectangle or several touching ones. Two rectangles an author drew separately become one
-// building by being picked together and joined; the same chord takes a joined one apart. What is asserted is
-// that the pair round-trips and that the wings survive it, since a wing carries its own roof and ridge.
+// ── a building's wings ────────────────────────────────────────────────────────
+// A building is one rectangle or several touching ones. A wing is added the way a point is added to an outline:
+// the pointer near the middle of a free wall shows the insert marker, and a press there adds a wing along that
+// wall, five deep, shrunk to what fits. What is asserted is the wing it adds and that a wing's going never
+// leaves two buildings.
 
 /** Place a building at a rectangle, returning its id. */
 function building(tools, doc, [x0, z0], [x1, z1]) {
@@ -502,35 +503,77 @@ function building(tools, doc, [x0, z0], [x1, z1]) {
   return doc.props[doc.props.length - 1].id;
 }
 
-test("two picked buildings join into one of two wings, and take apart again", () => {
+test("a press on a free wall adds a wing the wall's length and five deep, and picks it", () => {
   const { doc, tools } = controller();
-  const west = building(tools, doc, [0, 0], [9, 7]);
-  const east = building(tools, doc, [10, 0], [19, 7]);   // abutting along x = 10
-  assert.equal(doc.props.length, 2);
+  const hall = building(tools, doc, [0, 0], [9, 7]);
+  tools.select(hall);
+  tools.onPointerHover(10.2, 4, "select");
 
-  tools.select(west);
-  tools.select(east, true);
-  assert.deepEqual(tools.selection, [west, east]);
-
-  assert.deepEqual(tools.joinSelection(), { done: "joined", wings: 2 });
-  assert.equal(doc.props.length, 1);
-  assert.equal(doc.byId(west).wings.length, 2);
-
-  assert.deepEqual(tools.joinSelection(), { done: "apart", wings: 2 });
-  assert.equal(doc.props.length, 2);
-  assert.equal(doc.byId(west).wings.length, 1);
+  assert.deepEqual(tools.addWing(), { done: "added", wings: 2 });
+  assert.deepEqual(doc.byId(hall).wings[1].corners, [[10, 0], [14, 7]]);
+  assert.equal(tools.selectedWing, 1);
 });
 
-test("a join is refused where the two buildings stand on the same ground", () => {
+test("a wing added off a wall stops short of the building beside it", () => {
   const { doc, tools } = controller();
-  const first = building(tools, doc, [0, 0], [9, 7]);
-  const second = building(tools, doc, [5, 0], [14, 7]);   // overlapping x = 5..9
-  tools.select(first);
-  tools.select(second, true);
+  const hall = building(tools, doc, [0, 0], [9, 7]);
+  building(tools, doc, [14, 0], [20, 7]);
+  tools.select(hall);
+  tools.onPointerHover(10.2, 4, "select");
 
-  const answer = tools.joinSelection();
-  assert.ok(answer.refused, "two buildings sharing ground are not one building");
-  assert.equal(doc.props.length, 2, "a refused join changes nothing");
+  tools.addWing();
+  assert.deepEqual(doc.byId(hall).wings[1].corners, [[10, 0], [13, 7]], "four deep, the room between them");
+});
+
+test("a press far from every wall adds nothing", () => {
+  const { doc, tools } = controller();
+  const hall = building(tools, doc, [0, 0], [9, 7]);
+  tools.select(hall);
+  tools.onPointerHover(40, 40, "select");
+
+  assert.ok(tools.addWing().refused);
+  assert.equal(doc.byId(hall).wings.length, 1);
+});
+
+test("a press on a wing picks that wing", () => {
+  const { doc, tools } = controller();
+  const hall = building(tools, doc, [0, 0], [9, 7]);
+  tools.select(hall);
+  tools.onPointerHover(10.2, 4, "select");
+  tools.addWing();
+  tools.onMouseUp();
+
+  tools.onMouseDown(2, 2, "select");
+  tools.onMouseUp();
+  assert.equal(tools.selectedWing, 0);
+  tools.onMouseDown(12, 2, "select");
+  tools.onMouseUp();
+  assert.equal(tools.selectedWing, 1);
+});
+
+test("a wing is deleted, but never the last one nor one the others meet through", () => {
+  const { doc, tools } = controller();
+  const hall = building(tools, doc, [0, 0], [9, 7]);
+  tools.select(hall);
+  assert.ok(tools.deleteWing(0).refused, "a building keeps a wing");
+
+  doc.update(hall, { wings: [
+    { corners: [[0, 0], [9, 7]] }, { corners: [[10, 0], [14, 7]] }, { corners: [[15, 0], [19, 7]] },
+  ] });
+  assert.ok(tools.deleteWing(1).refused, "the outer wings would no longer meet");
+  assert.deepEqual(tools.deleteWing(2), { done: "deleted", wings: 2 });
+  assert.equal(doc.byId(hall).wings.length, 2);
+});
+
+test("a wing's spec is set on that wing alone", () => {
+  const { doc, tools } = controller();
+  const hall = building(tools, doc, [0, 0], [9, 7]);
+  doc.update(hall, { wings: [{ corners: [[0, 0], [9, 7]] }, { corners: [[10, 0], [14, 7]] }] });
+  tools.select(hall);
+
+  tools.updateWing(1, { ridge: "alongZ", storeysHigh: 1 });
+  assert.deepEqual(doc.byId(hall).wings[1].spec, { ridge: "alongZ", storeysHigh: 1 });
+  assert.equal(doc.byId(hall).wings[0].spec, undefined);
 });
 
 test("a building is not dragged onto another building's ground", () => {
@@ -550,37 +593,6 @@ test("a building is not dragged onto another building's ground", () => {
   assert.ok(west > 9, `stopped against the standing building, not through it (reached x=${west})`);
   assert.equal(doc.props.length, 2);
   assert.equal(doc.byId(still).wings.length, 1);
-});
-
-test("shift-clicking a picked building takes it back out of the selection", () => {
-  const { doc, tools } = controller();
-  const west = building(tools, doc, [0, 0], [9, 7]);
-  const east = building(tools, doc, [10, 0], [19, 7]);
-  tools.select(west);
-  tools.select(east, true);
-  tools.select(east, true);
-  assert.deepEqual(tools.selection, [west]);
-});
-
-test("a join is refused where the two buildings do not touch", () => {
-  const { doc, tools } = controller();
-  const here = building(tools, doc, [0, 0], [9, 7]);
-  const yonder = building(tools, doc, [40, 40], [49, 47]);
-  tools.select(here);
-  tools.select(yonder, true);
-
-  const answer = tools.joinSelection();
-  assert.ok(answer.refused, "wings that never meet are not one shell under one roof");
-  assert.equal(doc.props.length, 2);
-});
-
-test("a corner touch is not an edge to join on", () => {
-  const { doc, tools } = controller();
-  const first = building(tools, doc, [0, 0], [9, 7]);
-  const second = building(tools, doc, [10, 8], [19, 15]);   // meets the first at one corner only
-  tools.select(first);
-  tools.select(second, true);
-  assert.ok(tools.joinSelection().refused);
 });
 
 // ── the recipe registry ───────────────────────────────────────────────────────

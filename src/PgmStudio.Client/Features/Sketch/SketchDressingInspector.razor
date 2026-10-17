@@ -314,16 +314,10 @@
             in the <strong>Library</strong> under Houses.</p>
         }
 
-        <div class="section-header section-header--ruled"><h2 class="section-title">Wings</h2></div>
-        <p class="section-desc">Shift-click a second building, then press <kbd>@JoinChord</kbd> to join them.
-          Press it again to split them.</p>
-        <div class="panel-actions">
-          <Button Writes OnClick="Join" Disabled="@(!CanJoin)">
-            <i data-lucide="@(Wings > 1 ? "ungroup" : "group")"></i> @JoinLabel
-          </Button>
-          <Badge Kind="dim">@Wings @(Wings == 1 ? "wing" : "wings")</Badge>
-          @if (picked > 1) { <Badge Kind="neutral">@picked selected</Badge> }
-        </div>
+        @if (editingSelection && prop?["wings"] is System.Text.Json.Nodes.JsonArray wings)
+        {
+          <SketchHouseWings Wings="wings" Picked="pickedWing" OnPick="PickWing" OnDelete="DeleteWing" OnSpec="SetWingSpec" />
+        }
 
         <div class="section-header section-header--ruled"><h2 class="section-title">Door</h2></div>
 
