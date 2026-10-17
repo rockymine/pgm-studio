@@ -63,6 +63,10 @@ internal static class NoteWire
 
     public static string AnchorJson(NoteAnchorDto anchor) => JsonSerializer.Serialize(anchor, MapArtifactStore.Json);
 
+    /// <summary>The place a stored anchor names, or null.</summary>
+    public static string? PlaceOfAnchor(string anchorJson) =>
+        JsonSerializer.Deserialize<NoteAnchorDto>(anchorJson, MapArtifactStore.Json)?.Place;
+
     /// <summary>The place the ground a mark was projected onto falls in: a point's block, or the place holding most
     /// of an area's columns; null where the mark hit no ground or the ground is in no place.</summary>
     public static string? PlaceOf(NoteAnchorDto mark, IReadOnlyList<Place> places)
@@ -331,7 +335,8 @@ public sealed class MapNotesEndpoint(MapRepository repo, MapNoteStore notes, Cal
 
 /// <summary>POST /api/map/{slug}/notes — a new note: its body, what it is pinned to, the
 /// picture it was written on and the change it was written at. A note an author writes waits for an agent; one
-/// an agent writes is a question and waits for the author.</summary>
+/// an agent writes is a question and waits for the author. A place holds one thread, so a second <c>place</c>
+/// note on it is refused 409.</summary>
 public sealed class MapNoteCreateEndpoint(
     MapRepository repo, MapNoteStore notes, NotePictures pictures, Callers callers, MapChangeLog log,
     MapArtifactStore artifacts)
@@ -341,7 +346,7 @@ public sealed class MapNoteCreateEndpoint(
     {
         Post("/map/{slug}/notes");
         Policies(AccessPolicies.Notes);
-        Description(b => b.Produces<MapNoteDto>(200, "application/json").Refuses(400, 404));
+        Description(b => b.Produces<MapNoteDto>(200, "application/json").Refuses(400, 404, 409));
     }
 
     public override async Task HandleAsync(MapNoteRequest request, CancellationToken ct)
@@ -363,6 +368,17 @@ public sealed class MapNoteCreateEndpoint(
         {
             await Refusals.UnreadableAsync(HttpContext, "not a note",
                 $"the request's `anchor.place` '{anchor.Place}' is not one of the map's places", ct, "anchor.place");
+            return;
+        }
+        if (anchor.Kind == NoteAnchors.Place
+            && (await notes.OfMapAsync(map.Slug, ct)).FirstOrDefault(stored => stored.Note.AnchorKind == NoteAnchors.Place
+                && NoteWire.PlaceOfAnchor(stored.Note.AnchorJson) == anchor.Place) is { } thread)
+        {
+            await Refusals.WriteAsync(HttpContext, 409, "place has its thread",
+                [new Finding(RequestRules.Taken,
+                    $"the place '{anchor.Place}' already has its thread, note {thread.Note.Id}; a place holds one, "
+                    + $"so the request is a reply to it: POST /api/map/{map.Slug}/notes/{thread.Note.Id}/replies",
+                    Field: "anchor.place")], ct);
             return;
         }
         if (NoteAnchors.Marks(anchor.Kind))

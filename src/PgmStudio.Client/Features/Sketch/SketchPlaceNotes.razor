@@ -2,8 +2,8 @@
 @using System.Net.Http.Json
 @inject HttpClient Http
 
-@* One place's notes as one conversation under its fields: every thread pinned to it, oldest first, and a text box
-   that answers the newest thread or starts the first. Opening the place reads what was new in it. *@
+@* A place's one thread under its fields, and a text box that answers it or writes its first message. Opening the
+   place reads what was new in it. *@
 
 @if (Notes.Allowed)
 {
@@ -20,7 +20,7 @@
     private string? shownPlace;
     private readonly HashSet<string> marked = [];
 
-    private IEnumerable<MapNoteDto> Threads => Notes.All.Where(note => note.Anchor.Place == Place.Id);
+    private MapNoteDto? Thread => SketchPlaces.Thread(Notes.All, Place.Id);
 
     protected override void OnParametersSet()
     {
@@ -31,22 +31,21 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Each thread is read once at the length it was shown, so a read that does not land is not asked again.
-        var unread = Threads.Where(note => note.Unread > 0 && marked.Add($"{note.Id}:{note.Messages.Count}")).ToList();
-        if (unread.Count == 0) return;
-        foreach (var note in unread) await Http.PostAsync($"api/map/{Slug}/notes/{note.Id}/read", null);
+        // The thread is read once at the length it was shown, so a read that does not land is not asked again.
+        if (Thread is not { Unread: > 0 } thread || !marked.Add($"{thread.Id}:{thread.Messages.Count}")) return;
+        await Http.PostAsync($"api/map/{Slug}/notes/{thread.Id}/read", null);
         await Notes.LoadAsync();
     }
 
-    /// <summary>Answer the place's newest thread, or start its first.</summary>
+    /// <summary>Answer the place's thread, or write its first message.</summary>
     private async Task<bool> SendAsync(string body)
     {
         error = null;
-        var newest = Threads.MaxBy(note => note.CreatedAt);
-        var answer = newest is null
+        var thread = Thread;
+        var answer = thread is null
             ? await Http.PostAsJsonAsync($"api/map/{Slug}/notes",
                 new MapNoteRequest(body, new NoteAnchorDto(NoteAnchors.Place, Place: Place.Id)))
-            : await Http.PostAsJsonAsync($"api/map/{Slug}/notes/{newest.Id}/replies", new NoteReplyRequest(body));
+            : await Http.PostAsJsonAsync($"api/map/{Slug}/notes/{thread.Id}/replies", new NoteReplyRequest(body));
         if (!answer.IsSuccessStatusCode)
         {
             error = await ServerRefusal.SentenceAsync(answer);

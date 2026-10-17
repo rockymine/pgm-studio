@@ -9442,9 +9442,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   structure and a wool's colour, in one body the plan inspector and the sketch both show (`ObjectiveFields`),
   written through `PATCH …/intent/pieces/{id}/settings` one setting at a time; what a unit shares every image
   takes. (`Pgm/Authoring/PlayPieceSettings`, `Client/Components/Editor/ObjectiveFields`, `docs/tools/sketch.md`)
-- **A place's notes are one conversation, and the list counts what is new (`TS186`).** A picked place's panel
-  runs its threads together under its fields over one text box that answers the newest; a place's row carries a
-  speech bubble, filled with the count of messages new to the caller or an outline once read. `MapNoteDto.unread`
+- **A place holds one thread, and the list counts what is new (`TS186`).** A picked place's panel shows its
+  thread under its fields over one text box, and a second `place` note on it is refused 409 `RQ5`; a place's row
+  carries a speech bubble, filled with the count of messages new to the caller or an outline once read. `MapNoteDto.unread`
   counts them per reader from `map_note_read` (`M0080`), moved on by a reply or `POST …/notes/{id}/read`.
   (`Client/Features/Sketch/SketchPlaceNotes`, `Api/Endpoints/NoteEndpoints`, `docs/tools/sketch.md`)
 - **The places carry a verdict (`TS183`).** `proposed`, `changes` or `approved` on the places document

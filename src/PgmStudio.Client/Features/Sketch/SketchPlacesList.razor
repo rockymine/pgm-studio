@@ -1,6 +1,6 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* The map's places, as the canvas draws them, under where they stand with the author. A place with notes carries a
+@* The map's places, as the canvas draws them, under where they stand with the author. A place with a thread carries a
    speech bubble: filled with how many messages are new, or an outline once all are read. Choosing one picks it
    as a click on it would. *@
 
@@ -15,8 +15,7 @@
         <ChildContent>
           <span class="geo-type-icon"><i data-lucide="@SketchPlaces.Icon(place.Shape)"></i></span>
           <span class="list-label" title="@place.Name">@place.Name</span>
-          @{ var threads = Notes.Where(note => note.Anchor.Place == place.Id).ToList(); }
-          @if (threads.Count > 0 && threads.Sum(note => note.Unread) is var unread)
+          @if (SketchPlaces.Thread(Notes, place.Id) is { Unread: var unread })
           {
             <span class="@(unread > 0 ? "note-pin" : "note-pin note-pin--read")"
                   title="@(unread > 0 ? (unread == 1 ? "1 new message" : $"{unread} new messages") : "Notes")">@(unread > 0 ? unread : "")</span>

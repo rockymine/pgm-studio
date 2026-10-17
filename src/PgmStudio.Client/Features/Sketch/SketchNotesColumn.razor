@@ -2,9 +2,9 @@
 
 @* The notes column beside Review's picture, in two steps. The overview lists the notes on the picture in
    view, under four filters, and then the notes on the whole map; choosing one opens its thread, and a new note
-   shows what it is pinned to over its text. ‹ All notes goes back from either. Under a place it is one
-   conversation instead: every thread pinned to the place, oldest first, over one text box. The host owns what
-   is shown and what is drawn; this column only renders it and says what was asked. *@
+   shows what it is pinned to over its text. ‹ All notes goes back from either. Under a place it is the
+   place's one thread over its text box, with nothing to choose. The host owns what is shown and what is drawn;
+   this column only renders it and says what was asked. *@
 
 <aside class="@(Embedded ? "notes-column notes-column--embedded" : "notes-column")" aria-label="Notes">
   @switch (Step)
@@ -46,14 +46,14 @@
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
         @{ var here = OnThisPicture.Where(Passes).ToList(); }
         @foreach (var note in here) { @Row(note) }
-        @if (here.Count == 0) { <p class="notes-column__empty">No matching notes on this @(PlaceId is null ? "view" : "place").</p> }
-        @{ var whole = PlaceId is null ? OnTheMap.Where(Passes).ToList() : []; }
+        @if (here.Count == 0) { <p class="notes-column__empty">No matching notes on this view.</p> }
+        @{ var whole = OnTheMap.Where(Passes).ToList(); }
         @if (whole.Count > 0)
         {
           <div class="notes-column__group">WHOLE MAP</div>
           @foreach (var note in whole) { @Row(note) }
         }
-        @{ var elsewhere = PlaceId is null ? Elsewhere.Where(Passes).ToList() : []; }
+        @{ var elsewhere = Elsewhere.Where(Passes).ToList(); }
         @if (elsewhere.Count > 0)
         {
           <div class="notes-column__group">OTHER VIEWS</div>
@@ -109,7 +109,7 @@
 
     case NotesStep.Conversation:
       <div class="notes-column__thread" @ref="thread">
-        @foreach (var note in Conversation) { ThreadBody(__builder, note); }
+        @if (Conversation is { } conversation) { ThreadBody(__builder, conversation); }
       </div>
       <div class="notes-column__compose">
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
@@ -137,7 +137,7 @@
           @if (Stale) { <Button Variant="primary" Icon="refresh-cw" OnClick="OnRedraw">Draw the pictures again</Button> }
           else if (HasMark) { <Button OnClick="OnClearMark">Clear mark</Button> }
         </div>
-        @if (!WholeMap && PlaceId is null)
+        @if (!WholeMap)
         {
           <Chip OnClick="OnWholeMap">Pin to the whole map instead</Chip>
         }

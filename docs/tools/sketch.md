@@ -768,11 +768,11 @@ on one on the canvas or in the list picks it, and its panel names it, sets the p
 it; every change stores the whole document through `PUT /map/{slug}/places`, so each is a change in the map's
 history. Above the list, **Verdict** says where the places stand with the author.
 
-**A place's notes are one conversation, and the list says which places have one.** A place with a note on it
-carries a speech bubble at the end of its row: filled, with the count inside, while it holds messages that are
-new to the caller, and an outline once they have all been read. Under the picked place's fields its notes fill
-the panel to the bottom — every thread pinned to it or written on its ground, oldest first, run together over one text box, with no
-filters and no New note step. What is written there answers the place's newest thread, or starts its first, and
+**A place holds one thread, and the list says which places have one.** A thread is about its place and nothing
+else, so there is nothing to choose: to talk about another place, pick it. A place with a thread carries a speech
+bubble at the end of its row: filled, with the count inside, while it holds messages that are new to the caller,
+and an outline once they have all been read. Under the picked place's fields the thread fills the panel to the
+bottom over one text box, with no filters and no New note step; the first message written there starts it, and
 opening the place reads what was new in it. The places are drawn in this step and in Review's Cameras step, and
 a click here picks a place and nothing under it.
 
@@ -1665,7 +1665,7 @@ marked on a picture of a board that is gone.
 closes it.** Nobody types a coordinate: the anchor carries them. The notes column sits beside the picture for a
 caller who may read and answer notes — an admin, or a token an admin issued with the notes permission
 (`docs/access.md`) — and nobody else sees it. Notes exist in Review's Notes step, Draw's Plan step, where a picked
-place's panel carries that place's notes as one conversation, and History, which lists the threads written in a
+place's panel carries that place's one thread, and History, which lists the threads written in a
 span; no other phase, page or rail item shows them, and the sketch surface never draws them.
 
 **A note is one piece of text with one anchor**, and the anchor is what makes it directed. A note written in Review
@@ -1684,7 +1684,8 @@ exact camera the picture was drawn with and the picture's size; a note written i
 **A note on ground is tagged with the place the ground falls in.** A `point` takes the place its block stands in,
 and a `box` or a `lasso` the place holding most of the columns it hit — inside a box or a ring, or within two
 blocks of a point or a line, the last place listed first (`PlaceLookup`) — so the studio stores that place's id
-under the anchor's `place`, and the thread runs in that place's conversation beside the ones pinned to it. Review's
+under the anchor's `place`. Such a note stays a thread of its own in Review; the place's thread is only the
+`place` one. Review's
 Cameras step draws the places over the board, so a camera is stood with them in sight.
 
 **The area is what was seen.** The studio does the projection, not the browser: the column sends the mark in
@@ -2348,7 +2349,7 @@ permission (`docs/access.md`). A member, and every other token, is refused `RQ8`
 |---|---|---|
 | `GET /notes?status=&since=` | every note on every map, newest change first, each a `MapNoteDto` with its map's slug and name. `status` takes one status or several between commas — `open` is what an agent starts on; `since`, an ISO 8601 instant, keeps the threads whose last message or status change is at or after it | 400 `no such status` `RQ1` · 400 `no such instant` `RQ1` |
 | `GET /map/{slug}/notes` | the map's notes, newest change first: `[{id, map, mapName, anchor, status, createdAt, updatedAt, messages[], unread}]`, each message `{id, author, authorUuid, token, body, change, picture, at, mark}` — `token` is the label of the token an agent wrote it with, null for a browser. `unread` counts the messages new to the caller: written by someone else after the newest one they have seen | 404 |
-| `POST /map/{slug}/notes` | the note written. Body `{body, anchor, picture?, change?}`; `change` is the map's change it was written at, and absent takes the latest. A note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a `place` anchor naming no place the map has, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a picture no upload answered, a `change` that has not landed · 404 |
+| `POST /map/{slug}/notes` | the note written. Body `{body, anchor, picture?, change?}`; `change` is the map's change it was written at, and absent takes the latest. A note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a `place` anchor naming no place the map has, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a picture no upload answered, a `change` that has not landed · 404 · 409 `place has its thread` `RQ5` — a `place` anchor naming a place that already has its thread; the finding names the note to reply to |
 | `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, change?, mark?}`; `mark` is a `point`, `box` or `lasso` anchor as `render/eye/pick` answered it, held to everything a note's anchor of that kind is; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser. A token's `answered` reply on a picture note, at the latest change and with no `picture`, carries the note's camera drawn over the board as stored | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH`, a `change` that has not landed, or a `mark` that is not one (`field` names it) · 404 no such map, or no note by that id on it |
 | `POST /map/{slug}/notes/{id}/read` | the note, with `unread` 0: the caller has seen the thread to its newest message. A reply of the caller's own reads the thread up to it too. A reader is the person, a token by its label, or an open studio's local admin | 404 no such map, or no note by that id on it |
 | `PATCH /map/{slug}/notes/{id}` | the note changed. Body `{status}`: `resolved`, `wont-do` or `open` to reopen | 400 `not a change` `RQ1` · 403 `RQ8` to a token — an agent answers in a reply, and only the author closes a thread · 404 |

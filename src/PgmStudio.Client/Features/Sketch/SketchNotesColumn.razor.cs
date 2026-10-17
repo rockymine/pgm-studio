@@ -11,7 +11,7 @@ namespace PgmStudio.Client.Features.Sketch;
 /// <summary>Which step the notes column is on.</summary>
 public enum NotesStep { Overview, Thread, New, Conversation }
 
-/// <summary>The notes column: the overview under its filters, one thread, a new note, or a place's conversation.</summary>
+/// <summary>The notes column: the overview under its filters, one thread, a new note, or a place's one thread.</summary>
 public partial class SketchNotesColumn : IDisposable
 {
     [Inject] private IJSRuntime JS { get; set; } = default!;
@@ -30,8 +30,7 @@ public partial class SketchNotesColumn : IDisposable
     [Parameter] public IReadOnlyCollection<string> ViewIds { get; set; } = [];
     [Parameter] public string? ViewId { get; set; }
 
-    /// <summary>The place whose notes the column lists — the ones pinned to it and the ones on its ground — in
-    /// place of a picture's; null beside a picture.</summary>
+    /// <summary>The place whose thread the conversation step shows; null beside a picture.</summary>
     [Parameter] public string? PlaceId { get; set; }
 
     /// <summary>Whether the column sits inside a panel rather than beside a picture: no frame of its own, and as
@@ -106,12 +105,10 @@ public partial class SketchNotesColumn : IDisposable
     private string? followed;
     private bool toEnd;
 
-    private IEnumerable<MapNoteDto> OnThisPicture => PlaceId is { } place
-        ? Notes.Where(note => note.Anchor.Place == place)
-        : Notes.Where(note => note.Anchor.ViewId is { } view && view == ViewId);
-    /// <summary>A place's conversation: its threads, oldest first.</summary>
-    private IEnumerable<MapNoteDto> Conversation =>
-        OnThisPicture.OrderBy(note => note.CreatedAt).ThenBy(note => note.Id);
+    private IEnumerable<MapNoteDto> OnThisPicture =>
+        Notes.Where(note => note.Anchor.ViewId is { } view && view == ViewId);
+    /// <summary>A place's conversation: the one thread pinned to it, or null before its first message.</summary>
+    private MapNoteDto? Conversation => SketchPlaces.Thread(Notes, PlaceId);
     private IEnumerable<MapNoteDto> OnTheMap => Notes.Where(note => note.Anchor.Kind == NoteAnchors.Map);
     private IEnumerable<MapNoteDto> Elsewhere =>
         Notes.Where(note => note.Anchor.ViewId is { } view && view != ViewId && !ViewIds.Contains(view));
@@ -136,7 +133,7 @@ public partial class SketchNotesColumn : IDisposable
     };
 
     private int Count(string filter) =>
-        (PlaceId is null ? OnThisPicture.Concat(OnTheMap).Concat(Elsewhere) : OnThisPicture).Count(note => Passes(note, filter));
+        OnThisPicture.Concat(OnTheMap).Concat(Elsewhere).Count(note => Passes(note, filter));
 
     /// <summary>Send the new note. The column owns the sending, so the button says so from the click on and a
     /// second click sends nothing; the text box clears only once the note has landed.</summary>
@@ -184,7 +181,7 @@ public partial class SketchNotesColumn : IDisposable
         var showing = Step switch
         {
             NotesStep.Thread when Current is { } note => $"{note.Id}:{note.Messages.Count}",
-            NotesStep.Conversation => $"{PlaceId}:{Conversation.Sum(note => note.Messages.Count)}",
+            NotesStep.Conversation => $"{PlaceId}:{Conversation?.Messages.Count ?? 0}",
             _ => null,
         };
         if (showing is not null && showing != followed) toEnd = true;

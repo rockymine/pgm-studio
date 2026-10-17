@@ -136,9 +136,14 @@ public partial class SketchTool
     }
 }
 
-/// <summary>How a place is shown: the glyph for its shape.</summary>
+/// <summary>How a place is shown: the glyph for its shape, and its one thread.</summary>
 public static class SketchPlaces
 {
+    /// <summary>The thread pinned to <paramref name="placeId"/>, or null where it has none yet.</summary>
+    public static MapNoteDto? Thread(IEnumerable<MapNoteDto> notes, string? placeId) =>
+        placeId is null ? null
+        : notes.FirstOrDefault(note => note.Anchor.Kind == NoteAnchors.Place && note.Anchor.Place == placeId);
+
     public static string Icon(string shape) => shape switch
     {
         PlaceShapes.Point => "pin",

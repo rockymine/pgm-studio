@@ -84,7 +84,7 @@ public sealed class PlacesEndpointsTests
     }
 
     [Test]
-    public async Task A_note_pins_to_a_place_and_a_note_on_its_ground_is_tagged_with_it()
+    public async Task A_place_holds_one_thread_and_a_note_on_its_ground_is_tagged_with_it()
     {
         var (client, slug) = await BoardAsync();
         var put = await PutAsync(client, slug, Places);
@@ -93,6 +93,11 @@ public sealed class PlacesEndpointsTests
         var pinned = await client.PostAsJsonAsync($"/api/map/{slug}/notes",
             new { body = "Is the hill tall enough?", anchor = new { kind = "place", place = "home" } });
         await Assert.That(pinned.StatusCode).IsEqualTo(HttpStatusCode.OK).Because(await pinned.Content.ReadAsStringAsync());
+
+        var second = await client.PostAsJsonAsync($"/api/map/{slug}/notes",
+            new { body = "And the east face?", anchor = new { kind = "place", place = "home" } });
+        await Assert.That(second.StatusCode).IsEqualTo(HttpStatusCode.Conflict).Because("a place holds one thread");
+        await Assert.That(await second.Content.ReadAsStringAsync()).Contains("RQ5");
 
         var nowhere = await client.PostAsJsonAsync($"/api/map/{slug}/notes",
             new { body = "Here?", anchor = new { kind = "place", place = "the-abbey" } });
