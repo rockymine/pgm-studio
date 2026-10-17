@@ -200,7 +200,7 @@ public static class PieceInterfaces
     // A short name for an island: its distinct authored piece ids, at most three, so a finding stays a sentence.
     private static IReadOnlyList<string> PieceNames(BoardStructure board, int island) =>
         [.. board.Islands[island]
-            .Select(cell => board.Filled.GetValueOrDefault(cell).PieceId)
+            .Select(cell => board.Filled.GetValueOrDefault(cell).Owner)
             .Where(id => id is not null)
             .Distinct().Order().Take(3)];
 }

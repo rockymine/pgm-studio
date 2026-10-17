@@ -695,7 +695,7 @@ piece, so it is mined once rather than renewed), `WX4` (a pad shifted inward for
 exported point with it) and `WX8` (an iron marker whose cube does not fit — beside a spawn room, or off the
 edge of any piece it rides). The piece-interface set quantifies over one shared read
 (`PieceInterfaces`, aggregating the contact graph and the board deriver) rather than private geometry:
-`SP8` (a spawn egress stepping Δ≥2 ahead of the door), `WL11` (the same step at a wool room's entry, measured
+`SP8` (a spawn egress stepping Δ≥2 ahead of the door — the first door its room is cut with, `PieceDoors.ForSpawn`, which is the wall its facing leans into only where the piece meets nothing), `WL11` (the same step at a wool room's entry, measured
 at every one of them since a room has no facing, and met by the **attacker** — a team is kept out of its own
 wool), `SP9` (a door with under 15 blocks of ground or bridgeable zone before the void), `ST8` (an approach wall over an interface outside 10–20 blocks), `ST11` (one seated
 outside 10–20 blocks in front of the wool room's entrance), `ST9` (a building over 20×20 blocks — the footprint the
@@ -901,6 +901,8 @@ which is seconds a read would spend on every call, so each is named in `unasked`
 and scan it does ask, as drawn now rather than as Finish saw it: everything Finish judges
 (`SketchFinish.Judge` — the board's own gate, a board carrying no finish, and the plan's straits re-read off
 the ground, `CT12`), and a coast pulled back from a build zone (`EZ2`), off the scan brought up to the layout.
+A map holding an intent has its play pieces asked of the intent instead of the plan, under the same ids
+(`docs/tools/sketch.md`, `IntentCheck`).
 Standing ground nobody may edit (`EZ1`) is judged over the built world and is named in `unasked` with
 `GET /api/map/{slug}/editability`. So a vertex moved or a coast bent after Finish is heard here without
 finishing again. `GET /api/map/{slug}/state` is the other half: what may be done next, with the route for

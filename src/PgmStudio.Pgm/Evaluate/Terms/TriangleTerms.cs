@@ -27,8 +27,7 @@ public sealed class SpawnWoolSpread : SoftTerm
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
-        ctx.Plan.Placements.Spawns.Select(s => s.Piece)
-            .Concat(ctx.Plan.Placements.Wools.Select(w => w.Piece)).Distinct().ToList();
+        ctx.Walks.Spawns.Select(s => s.Owner).Concat(ctx.Walks.Wools.Select(w => w.Owner)).Distinct().ToList();
 }
 
 /// <summary>WL10 (distance half): how far the <b>most exposed wool</b> sits from the frontline edge — the
@@ -52,7 +51,7 @@ public sealed class WoolFrontDistance : SoftTerm
         $"wool '{Triangle.Extremes(ctx, Triangle.FrontDistances(ctx)).Near}' has a walking distance of {value} to the crossing";
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
-        ctx.Plan.Placements.Wools.Select(w => w.Piece).ToList();
+        ctx.Walks.Wools.Select(w => w.Owner).ToList();
 }
 
 /// <summary>WL10 (triangle half): the spawn–wool–frontline <b>triangle stays balanced across a team's
@@ -86,8 +85,7 @@ public sealed class WoolFrontBalance : SoftTerm
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
-        ctx.Plan.Placements.Spawns.Select(s => s.Piece)
-            .Concat(ctx.Plan.Placements.Wools.Select(w => w.Piece)).Distinct().ToList();
+        ctx.Walks.Spawns.Select(s => s.Owner).Concat(ctx.Walks.Wools.Select(w => w.Owner)).Distinct().ToList();
 }
 
 /// <summary>WL9 (factor half): the <b>size-independent</b> spawn↔wool imbalance — the ratio (max ÷ min) of the
@@ -121,8 +119,7 @@ public sealed class SpawnWoolRatio : SoftTerm
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
-        ctx.Plan.Placements.Spawns.Select(s => s.Piece)
-            .Concat(ctx.Plan.Placements.Wools.Select(w => w.Piece)).Distinct().ToList();
+        ctx.Walks.Spawns.Select(s => s.Owner).Concat(ctx.Walks.Wools.Select(w => w.Owner)).Distinct().ToList();
 }
 
 /// <summary>WL10 (factor half): the <b>size-independent</b> wool↔frontline imbalance — the ratio (max ÷ min)
@@ -154,7 +151,7 @@ public sealed class WoolFrontRatio : SoftTerm
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
-        ctx.Plan.Placements.Wools.Select(w => w.Piece).ToList();
+        ctx.Walks.Wools.Select(w => w.Owner).ToList();
 }
 
 /// <summary>WL10 (remoteness half): how far the <b>most remote wool</b> sits from the frontline edge — the
@@ -180,12 +177,12 @@ public sealed class WoolFrontRemoteness : SoftTerm
         $"wool '{Triangle.Extremes(ctx, Triangle.FrontDistances(ctx)).Far}' has a walking distance of {value} to the crossing";
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
-        ctx.Plan.Placements.Wools.Select(w => w.Piece).ToList();
+        ctx.Walks.Wools.Select(w => w.Owner).ToList();
 }
 
 /// <summary>The shared per-wool distance reads of the spawn–wool–frontline triangle, all by <see cref="Walk"/>
 /// over the walkable set (pieces + zones) in blocks, index-aligned with
-/// <c>Plan.Placements.Wools</c> (<c>null</c> where a wool is unreachable or the target is absent).</summary>
+/// <c>Walks.Wools</c> (<c>null</c> where a wool is unreachable or the target is absent).</summary>
 internal static class Triangle
 {
     /// <summary>The ids of the wools a per-wool list holds its smallest and its largest value for, the list
@@ -194,20 +191,18 @@ internal static class Triangle
     {
         var known = perWool.Select((value, index) => (value, index)).Where(entry => entry.value is not null).ToList();
         if (known.Count == 0) return ("", "");
-        var wools = ctx.Plan.Placements.Wools;
+        var wools = ctx.Walks.Wools;
         return (wools[known.MinBy(entry => entry.value).index].Id, wools[known.MaxBy(entry => entry.value).index].Id);
     }
 
     /// <summary>Per wool: the traversal distance from the nearest spawn, in blocks.</summary>
     public static List<double?> SpawnDistances(EvalContext ctx)
     {
-        var ground = SurfaceNav.Ground(ctx);
-        var spawns = ctx.Plan.Placements.Spawns
-            .Select(s => SurfaceNav.MarkerCell(ctx, s.Piece, s.At, ground.Footprint))
-            .Where(c => c is not null).Select(c => c!.Value).ToList();
-        return ctx.Plan.Placements.Wools.Select(w =>
+        var ground = ctx.Walks.Ground;
+        var spawns = ctx.Walks.Spawns.Where(s => s.Cell is not null).Select(s => s.Cell!.Value).ToList();
+        return ctx.Walks.Wools.Select(w =>
         {
-            if (spawns.Count == 0 || SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Footprint) is not { } wc)
+            if (spawns.Count == 0 || w.Cell is not { } wc)
                 return (double?)null;
             if (ground.Stand(wc) is not { } target) return null;
             double? best = null;
@@ -225,24 +220,18 @@ internal static class Triangle
     /// cannot reach it.</summary>
     public static List<double?> FrontDistances(EvalContext ctx)
     {
-        var ground = SurfaceNav.Ground(ctx);
+        var ground = ctx.Walks.Ground;
         var band = FrontBand(ctx);
-        return ctx.Plan.Placements.Wools
-            .Select(w => SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Footprint) is { } cell
-                ? ToBand(ground, band, cell) : null)
-            .ToList();
+        return ctx.Walks.Wools.Select(w => w.Cell is { } cell ? ToBand(ground, band, cell) : null).ToList();
     }
 
     /// <summary>Per spawn: the same traversal from the spawn marker to the nearest front-front build cell —
     /// how far a player who has just spawned walks before the crossing, in blocks.</summary>
     public static List<double?> SpawnFrontDistances(EvalContext ctx)
     {
-        var ground = SurfaceNav.Ground(ctx);
+        var ground = ctx.Walks.Ground;
         var band = FrontBand(ctx);
-        return ctx.Plan.Placements.Spawns
-            .Select(s => SurfaceNav.MarkerCell(ctx, s.Piece, s.At, ground.Footprint) is { } cell
-                ? ToBand(ground, band, cell) : null)
-            .ToList();
+        return ctx.Walks.Spawns.Select(s => s.Cell is { } cell ? ToBand(ground, band, cell) : null).ToList();
     }
 
     private static HashSet<(int X, int Z)> FrontBand(EvalContext ctx) =>

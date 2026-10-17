@@ -1,0 +1,134 @@
+using PgmStudio.Geom;
+using PgmStudio.Pgm.Authoring;
+using PgmStudio.Pgm.Derive;
+
+namespace PgmStudio.Pgm.Sketch;
+
+/// <summary>
+/// The ground a sketched board's structure is read off, one block to a cell: every column the layout builds,
+/// owned by the group whose shape forms it, and every spawn and wool region, owned by the room it holds. A
+/// cell's team is the image of the mirrored group that drew it, or where its group does not mirror, the image of
+/// the spawn nearest it;
+/// building is allowed where the intent states a build area, and each wool's room is its region at every
+/// image. <see cref="BoardDeriver.Derive(BoardGround)"/> reads it as it reads a plan's.
+/// </summary>
+public static class SketchGround
+{
+    /// <summary>The ground the layout and the intent's play pieces make, <paramref name="cell"/> blocks to a cell;
+    /// null where the layout builds nothing. A cell of several blocks stands where more than half its blocks do,
+    /// owned by the owner and the team most of them carry, and is buildable where more than half of them are.</summary>
+    public static BoardGround? Of(string layoutJson, MapIntent intent, int cell)
+    {
+        var blocks = Of(layoutJson, intent);
+        if (blocks is null || cell <= 1) return blocks;
+        var half = cell * cell / 2;
+        (int, int) Coarse((int X, int Z) block) => ((int)Math.Floor(block.X / (double)cell), (int)Math.Floor(block.Z / (double)cell));
+
+        var filled = new Dictionary<(int, int), (string Owner, int K)>();
+        foreach (var group in blocks.Filled.GroupBy(entry => Coarse(entry.Key)).Where(group => group.Count() > half))
+            filled[group.Key] = (Most(group.Select(entry => entry.Value.Owner)), Most(group.Select(entry => entry.Value.K)));
+        var build = blocks.Build.GroupBy(Coarse).Where(group => group.Count() > half).Select(group => group.Key).ToHashSet();
+        var rooms = blocks.WoolRooms
+            .Select(room => room with
+            {
+                Cells = room.Cells.Select(Coarse).ToHashSet(), MarkerX = room.MarkerX / cell, MarkerZ = room.MarkerZ / cell,
+            })
+            .ToList();
+        return new BoardGround(cell, filled, build, [], blocks.SpawnOwners, blocks.WoolOwners, rooms,
+            [.. filled.Where(entry => entry.Value.K == 0).Select(entry => entry.Key)]);
+    }
+
+    private static T Most<T>(IEnumerable<T> values) where T : notnull =>
+        values.GroupBy(value => value).OrderByDescending(group => group.Count()).First().Key;
+
+    /// <summary>The ground the layout and the intent's play pieces make, one block to a cell; null where the
+    /// layout builds nothing.</summary>
+    public static BoardGround? Of(string layoutJson, MapIntent intent)
+    {
+        var footprint = SketchRasterizer.Rasterize(layoutJson);
+        if (footprint.Count == 0) return null;
+        var groups = SketchRasterizer.GroupOwners(layoutJson);
+        var spawns = intent.Spawns.Where(spawn => spawn.Protection.Count > 0).ToList();
+        int TeamOf(double x, double z) => spawns.Count == 0 ? 0
+            : spawns.MinBy(spawn => Distance(spawn.Point.X, spawn.Point.Z, x + 0.5, z + 0.5))!.Stamp.Image;
+
+        // A mirrored group's copies carry the image that drew them, which is the team the fan gives them; ground
+        // drawn by hand on each side, unmirrored, belongs to the team whose spawn is nearest.
+        var state = SketchLayout.Parse(layoutJson);
+        var mirrored = SketchLayout.Stack(state)
+            .SelectMany(layer => layer.Groups.Where(group => group.Mirrors).SelectMany(group => group.ShapeIds.Select(id => (layer.Id, id))))
+            .ToHashSet();
+        var images = new Dictionary<(int, int), int>();
+        foreach (var ((layer, x, z), (shape, image)) in SketchRasterizer.ShapeScopeOwners(layoutJson, shape => shape.Role is null))
+            if (mirrored.Contains((layer, shape))) images[(x, z)] = image;
+
+        var filled = new Dictionary<(int, int), (string Owner, int K)>();
+        foreach (var (x, z) in footprint)
+            filled[(x, z)] = (groups.GetValueOrDefault((x, z), GroundOwner),
+                images.TryGetValue((x, z), out var image) ? image : TeamOf(x, z));
+
+        var wools = intent.Wools ?? [];
+        foreach (var spawn in spawns)
+            foreach (var cell in Cells(spawn.Protection)) filled[cell] = (spawn.Id, spawn.Stamp.Image);
+        foreach (var wool in wools)
+            foreach (var cell in Cells(wool.Protection)) filled[cell] = (wool.Id, wool.Stamp.Image);
+
+        var build = Cells((intent.Build?.Areas ?? []).Select(area => area.Rect)).ToHashSet();
+        var units = wools.Select(wool => wool.Stamp.Unit).Distinct().ToList();
+        var rooms = wools.Where(wool => wool.Protection.Count > 0)
+            .Select(wool => new BoardWoolRoom(units.IndexOf(wool.Stamp.Unit), wool.Stamp.Image,
+                Cells(wool.Protection).ToHashSet(), wool.Spawn.X, wool.Spawn.Z))
+            .ToList();
+
+        // A room's ground is its owner's however the regions overlap, so a spawn sharing ground with a wool is both.
+        HashSet<string> OwnersOf(IEnumerable<Rect> regions) =>
+            Cells(regions).Where(filled.ContainsKey).Select(cell => filled[cell].Owner).ToHashSet(StringComparer.Ordinal);
+        return new BoardGround(1, filled, build, [],
+            OwnersOf(spawns.SelectMany(spawn => spawn.Protection)), OwnersOf(wools.SelectMany(wool => wool.Protection)), rooms,
+            [.. filled.Where(entry => entry.Value.K == 0).Select(entry => entry.Key)]);
+    }
+
+    /// <summary>The build areas the author placed rather than the symmetry carried, in the intent's order: an area
+    /// that stands where an earlier one's image does is that one's copy, and an area that is its own image is
+    /// authored. Every area is authored where no symmetry is stated.</summary>
+    public static List<PieceArea> AuthoredAreas(MapIntent intent, SymmetryIntent? board = null) =>
+        Authored(intent.Build?.Areas ?? [], intent.Symmetry ?? board);
+
+    /// <summary>The water lanes the author placed rather than the symmetry carried, read as
+    /// <see cref="AuthoredAreas"/> reads build areas.</summary>
+    public static List<PieceArea> AuthoredLanes(MapIntent intent, SymmetryIntent? board = null) =>
+        Authored(intent.WaterLanes?.Rects ?? [], intent.Symmetry ?? board);
+
+    private static List<PieceArea> Authored(IEnumerable<PieceArea> areas, SymmetryIntent? symmetry)
+    {
+        var authored = new List<PieceArea>();
+        foreach (var area in areas)
+        {
+            var image = symmetry is not null && Enumerable.Range(1, Math.Max(0, Symmetry.Order(symmetry.Mode) - 1)).Any(step =>
+                authored.Any(earlier =>
+                {
+                    var (minX, minZ, maxX, maxZ) = Symmetry.Rect(earlier.MinX, earlier.MinZ, earlier.MaxX, earlier.MaxZ,
+                        symmetry.Mode, symmetry.CenterX, symmetry.CenterZ, step);
+                    return Near(minX, area.MinX) && Near(minZ, area.MinZ) && Near(maxX, area.MaxX) && Near(maxZ, area.MaxZ);
+                }));
+            if (!image) authored.Add(area);
+        }
+        return authored;
+    }
+
+    private static bool Near(double a, double b) => Math.Abs(a - b) < 1e-6;
+
+    /// <summary>Who a column standing in no group is owned by.</summary>
+    public const string GroundOwner = "ground";
+
+    private static IEnumerable<(int, int)> Cells(IEnumerable<Rect> rects)
+    {
+        foreach (var rect in rects)
+            for (var x = (int)Math.Floor(rect.MinX); x < (int)Math.Ceiling(rect.MaxX); x++)
+                for (var z = (int)Math.Floor(rect.MinZ); z < (int)Math.Ceiling(rect.MaxZ); z++)
+                    yield return (x, z);
+    }
+
+    private static double Distance(double x1, double z1, double x2, double z2) =>
+        (x1 - x2) * (x1 - x2) + (z1 - z2) * (z1 - z2);
+}

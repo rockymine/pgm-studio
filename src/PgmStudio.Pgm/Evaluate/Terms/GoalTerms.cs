@@ -19,7 +19,7 @@ public sealed class GoalSpawnRatio : SoftTerm
 
     public override double? Value(EvalContext ctx)
     {
-        var ratios = GoalDistances.Read(ctx.Plan)
+        var ratios = GoalDistances.Read(ctx.GoalGround)
             .Where(goal => goal.Ratio is not null)
             .Select(goal => goal.Ratio!.Value)
             .ToList();
@@ -35,16 +35,15 @@ public sealed class GoalSpawnRatio : SoftTerm
     protected override string Reads(EvalContext ctx, string value)
     {
         var band = AuthoredBand!.Value;
-        var goal = GoalDistances.Read(ctx.Plan).Where(walk => walk.Ratio is not null)
+        var goal = GoalDistances.Read(ctx.GoalGround).Where(walk => walk.Ratio is not null)
             .OrderByDescending(walk => band.Distance(walk.Ratio!.Value)).First();
         return $"{GoalWords.Kind(goal.Kind)} '{goal.Id}' has {value} the walking distance from the nearest enemy spawn "
             + "that it has from its team's nearest spawn";
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
-        ctx.Plan.Placements.Destroyables.Select(goal => goal.Piece)
-            .Concat(ctx.Plan.Placements.Cores.Select(goal => goal.Piece))
-            .Concat(ctx.Plan.Placements.Spawns.Select(spawn => spawn.Piece))
+        (ctx.GoalGround?.Goals ?? []).Select(goal => goal.Owner)
+            .Concat(ctx.Walks.Spawns.Select(spawn => spawn.Owner))
             .Where(piece => piece.Length > 0)
             .Distinct()
             .ToList();
@@ -63,7 +62,7 @@ public sealed class GoalSpawnDistance : SoftTerm
 
     public override double? Value(EvalContext ctx)
     {
-        var distances = GoalDistances.Read(ctx.Plan)
+        var distances = GoalDistances.Read(ctx.GoalGround)
             .Where(goal => goal.OwnSpawnBlocks is not null)
             .Select(goal => goal.OwnSpawnBlocks!.Value)
             .ToList();
@@ -79,15 +78,14 @@ public sealed class GoalSpawnDistance : SoftTerm
     protected override string Reads(EvalContext ctx, string value)
     {
         var band = AuthoredBand!.Value;
-        var goal = GoalDistances.Read(ctx.Plan).Where(walk => walk.OwnSpawnBlocks is not null)
+        var goal = GoalDistances.Read(ctx.GoalGround).Where(walk => walk.OwnSpawnBlocks is not null)
             .OrderByDescending(walk => band.Distance(walk.OwnSpawnBlocks!.Value)).First();
         return $"{GoalWords.Kind(goal.Kind)} '{goal.Id}' has a walking distance of {value} from its team's nearest spawn";
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
-        ctx.Plan.Placements.Destroyables.Select(goal => goal.Piece)
-            .Concat(ctx.Plan.Placements.Cores.Select(goal => goal.Piece))
-            .Concat(ctx.Plan.Placements.Spawns.Select(spawn => spawn.Piece))
+        (ctx.GoalGround?.Goals ?? []).Select(goal => goal.Owner)
+            .Concat(ctx.Walks.Spawns.Select(spawn => spawn.Owner))
             .Where(piece => piece.Length > 0)
             .Distinct()
             .ToList();
@@ -117,7 +115,7 @@ public sealed class OpposingGoalDistance : GoalPairTerm
     protected override bool Opposing => true;
 }
 
-/// <summary>What <c>GO2</c> and <c>GO3</c> share: both read <see cref="GoalDistances.Pairs"/> and score the
+/// <summary>What <c>GO2</c> and <c>GO3</c> share: both read <see cref="GoalDistances.Pairs(GoalDistances.GoalGround)"/> and score the
 /// pair their band judges hardest, and they differ only in which half of that list they take. The half is
 /// the whole difference, so it is what the subclass states and nothing else is.</summary>
 public abstract class GoalPairTerm : SoftTerm
@@ -130,7 +128,7 @@ public abstract class GoalPairTerm : SoftTerm
 
     public override double? Value(EvalContext ctx)
     {
-        var walks = GoalDistances.Pairs(ctx.Plan)
+        var walks = GoalDistances.Pairs(ctx.GoalGround)
             .Where(pair => pair.Opposing == Opposing && pair.Blocks is not null)
             .Select(pair => pair.Blocks!.Value)
             .ToList();
@@ -146,14 +144,13 @@ public abstract class GoalPairTerm : SoftTerm
     protected override string Reads(EvalContext ctx, string value)
     {
         var band = AuthoredBand!.Value;
-        var pair = GoalDistances.Pairs(ctx.Plan).Where(walk => walk.Opposing == Opposing && walk.Blocks is not null)
+        var pair = GoalDistances.Pairs(ctx.GoalGround).Where(walk => walk.Opposing == Opposing && walk.Blocks is not null)
             .OrderByDescending(walk => band.Distance(walk.Blocks!.Value)).First();
         return $"objectives '{pair.From}' and '{pair.To}' have a walking distance of {value} between them";
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
-        ctx.Plan.Placements.Destroyables.Select(goal => goal.Piece)
-            .Concat(ctx.Plan.Placements.Cores.Select(goal => goal.Piece))
+        (ctx.GoalGround?.Goals ?? []).Select(goal => goal.Owner)
             .Where(piece => piece.Length > 0)
             .Distinct()
             .ToList();

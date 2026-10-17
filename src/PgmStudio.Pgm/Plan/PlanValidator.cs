@@ -825,7 +825,7 @@ public static class PlanValidator
         {
             var piece = d.Piece(s.Piece);
             if (piece is null) continue;
-            var (dirX, dirZ) = DoorDirection(s.Facing);
+            var (dirX, dirZ) = DoorDirection(d, s);
             foreach (var seam in seams)
             {
                 if (seam.A != s.Piece && seam.B != s.Piece) continue;
@@ -892,7 +892,7 @@ public static class PlanValidator
         {
             var piece = d.Piece(s.Piece);
             if (piece is null) continue;
-            var (dirX, dirZ) = DoorDirection(s.Facing);
+            var (dirX, dirZ) = DoorDirection(d, s);
             var (markerX, markerZ) = PlanMarkers.Block(piece.Value.Rect, s.At);
 
             // walk the ray out of the spawn piece, then count crossable ground until the first bare block
@@ -1153,7 +1153,18 @@ public static class PlanValidator
         try { board = BoardDeriver.Derive(plan); }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException
                                        or NullReferenceException or IndexOutOfRangeException or KeyNotFoundException)
-        { yield break; }
+        { return []; }
+        var goalPieces = plan.Pieces.Where(piece => piece.Role is PlanRoles.WoolRoom or PlanRoles.Spawn)
+            .Select(piece => piece.Id).ToHashSet(StringComparer.Ordinal);
+        return BoardEdges(board, goalPieces, plan.Placements.Wools.Count > 0 && Symmetry.Order(plan.Globals.Symmetry) == 2);
+    }
+
+    /// <summary>The rules every board's structure answers, whatever ground it was read off: <c>FR8</c> and
+    /// <c>FR9</c> on each face's front line, <c>WL12</c>, <c>WL20</c> and <c>LN6</c> on each gap's narrowest
+    /// run, and, where <paramref name="strait"/> — a two-team board carrying wools — <c>CT12</c> on the strait.
+    /// <paramref name="goalOwners"/> are the owners a spawn or a wool room stands on.</summary>
+    public static IEnumerable<Finding> BoardEdges(BoardStructure board, IReadOnlySet<string> goalOwners, bool strait)
+    {
 
         // A crossing spans the face it docks against on every authored board (shares read 1.00, worst
         // incidental partial 0.40); the funnel fault reads 0.25 — a 10-block zone on an 80-block face. The
@@ -1184,9 +1195,7 @@ public static class PlanValidator
         // blocks so they hold at any grid scale — a goal across from the frontline or another goal (WL12), a
         // goal across from its team's own ground (WL20), and the narrowest run of a hole touching no goal
         // (LN6).
-        var goalPieces = new HashSet<string>(
-            plan.Pieces.Where(piece => piece.Role is PlanRoles.WoolRoom or PlanRoles.Spawn).Select(piece => piece.Id),
-            StringComparer.Ordinal);
+        var goalPieces = goalOwners;
         var frontPieces = PieceInterfaces.Frontages(board).Where(face => face.FrontlineBlocks > 0)
             .Select(face => face.Piece).ToHashSet(StringComparer.Ordinal);
         var reported = new HashSet<(string, string, int)>();
@@ -1224,7 +1233,7 @@ public static class PlanValidator
         // CT12 judges the CTW strait: the direct crossing between the two team islands of a two-team wool
         // board. Chains over stepping stones are not straits (each hop is G5's), and a mid island between
         // the teams makes the crossing indirect by construction.
-        if (plan.Placements.Wools.Count > 0 && Symmetry.Order(plan.Globals.Symmetry) == 2)
+        if (strait)
             foreach (var gap in PieceInterfaces.IslandGaps(board))
             {
                 if (!gap.Direct || gap.RoleA != "team" || gap.RoleB != "team") continue;
@@ -1256,14 +1265,20 @@ public static class PlanValidator
         try { board = BoardDeriver.Derive(plan); }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException
                                        or NullReferenceException or IndexOutOfRangeException or KeyNotFoundException)
-        { yield break; }
+        { return []; }
 
         var zoneOf = new Dictionary<(int X, int Z), string>();
         foreach (var zone in plan.BuildZones)
             for (var cx = zone.Rect.X; cx < zone.Rect.X + zone.Rect.Width; cx++)
                 for (var cz = zone.Rect.Z; cz < zone.Rect.Z + zone.Rect.Height; cz++)
                     zoneOf.TryAdd((cx, cz), zone.Id);
+        return ZoneReach(board, zoneOf);
+    }
 
+    /// <summary><c>BZ9</c> over any board: each connected region of the build cells <paramref name="zoneOf"/> names
+    /// by the zone it belongs to, and the stretch of it that runs past the last ground it docks.</summary>
+    public static IEnumerable<Finding> ZoneReach(BoardStructure board, IReadOnlyDictionary<(int X, int Z), string> zoneOf)
+    {
         foreach (var region in Regions(zoneOf.Keys))
         {
             // A zone docked left and right bridges in x, so what may overhang is its extent in z, and the
@@ -1278,8 +1293,8 @@ public static class PlanValidator
             var zones = region.Select(cell => zoneOf[cell]).Distinct().OrderBy(id => id, StringComparer.Ordinal).ToList();
             yield return Lint(LayoutRules.ZoneOverhang,
                 $"build region{(zones.Count > 1 ? "s" : "")} {Wording.Ids(zones)} {(zones.Count > 1 ? "run" : "runs")} "
-                + $"{overhang.Count * plan.Globals.Cell} blocks past the last piece {(zones.Count > 1 ? "they touch" : "it touches")}, "
-                + $"at {axis} {Runs(overhang, plan.Globals.Cell)}",
+                + $"{overhang.Count * board.Cell} blocks past the last piece {(zones.Count > 1 ? "they touch" : "it touches")}, "
+                + $"at {axis} {Runs(overhang, board.Cell)}",
                 [.. zones]);
         }
     }
@@ -1365,18 +1380,13 @@ public static class PlanValidator
         return runs.Count == 1 ? runs[0] : string.Join(" and ", runs);
     }
 
-    // The board direction a door's facing opens toward (front = −z, the reading the editor renders).
-    private static (int X, int Z) DoorDirection(string facing) => facing switch
-    {
-        "back" => (0, 1),
-        "left" => (-1, 0),
-        "right" => (1, 0),
-        _ => (0, -1),
-    };
+    // The board direction a spawn's first door opens toward: the door its room is cut with.
+    private static (int X, int Z) DoorDirection(ContactGraph d, SpawnMarker spawn) =>
+        PieceDoors.ForSpawn(d, spawn.Piece, spawn.Facing) is [var door, ..] ? door.Outward() : SpawnFacings.Direction(spawn.Facing);
 
     // The rectilinear gap between two axis-aligned segments: the interval gap per axis, largest axis wins —
     // for parallel segments that overlap laterally this is exactly the perpendicular standoff.
-    private static int SegmentGap(int ax1, int az1, int ax2, int az2, int bx1, int bz1, int bx2, int bz2)
+    internal static int SegmentGap(int ax1, int az1, int ax2, int az2, int bx1, int bz1, int bx2, int bz2)
     {
         var gapX = Math.Max(0, Math.Max(Math.Min(bx1, bx2) - Math.Max(ax1, ax2), Math.Min(ax1, ax2) - Math.Max(bx1, bx2)));
         var gapZ = Math.Max(0, Math.Max(Math.Min(bz1, bz2) - Math.Max(az1, az2), Math.Min(az1, az2) - Math.Max(bz1, bz2)));

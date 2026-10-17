@@ -25,7 +25,7 @@ public sealed class FillRatio : SoftTerm
     /// is what the ratio is measuring. Nothing stamped on the terrain counts either; a house is not board.</summary>
     public override double? Value(EvalContext ctx)
     {
-        if (ctx.Plan.Placements.Wools.Count == 0) return null;
+        if (ctx.Goals.Wools == 0) return null;
         var ground = ctx.Board.Filled.Keys.ToList();
         if (ground.Count == 0) return null;
         double w = ground.Max(cell => cell.Item1) - ground.Min(cell => cell.Item1) + 1;

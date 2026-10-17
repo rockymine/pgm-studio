@@ -1060,18 +1060,30 @@ public static class WorldBuilder
         UnreflectedWoolFrame(w, RoomStyleScope.StyleOf(w.House, mapStyle, HouseStyle.Wool) is not null)
             with { Reflected = w.Reflected };
 
-    private static RoomFrame UnreflectedWoolFrame(WoolIntent w, bool shellBound)
+    private static RoomFrame UnreflectedWoolFrame(WoolIntent w, bool shellBound) =>
+        ResolvedWool(w, shellBound, out _) ?? DefaultFrame(w.Spawn.X, w.Spawn.Z, [], shellBound);
+
+    /// <summary>The frame a wool resolves on its region, or null with the refusal that stopped it — null and
+    /// no refusal where it stands on no region.</summary>
+    internal static RoomFrame? ResolvedWool(WoolIntent w, bool shellBound, out Finding? refusal)
     {
-        if (Ground(w.Protection) is { } ground)
-        {
-            var (markerX, markerZ) = PositionSnap.SnapHalfXZ(w.Spawn.X, w.Spawn.Z);
-            var frame = RoomFrames.Resolve(
-                ground, StatedFootprint(w.House?.Room), shellBound, markerX, markerZ,
-                [.. w.Entries.Select(e => (e.MinX, e.MinZ, e.MaxX, e.MaxZ))], [], out _);
-            if (frame is not null) return frame;
-        }
-        return DefaultFrame(w.Spawn.X, w.Spawn.Z, [], shellBound);
+        refusal = null;
+        if (Ground(w.Protection) is not { } ground) return null;
+        var (markerX, markerZ) = PositionSnap.SnapHalfXZ(w.Spawn.X, w.Spawn.Z);
+        return RoomFrames.Resolve(
+            ground, StatedFootprint(w.House?.Room), shellBound, markerX, markerZ, WoolEntries(w, ground), [], out refusal);
     }
+
+    /// <summary>The seams a wool room's doors are cut on: its stated entries, or where it states none, every
+    /// side of the ground it stands on, which keeps a door on each wall.</summary>
+    private static List<(double MinX, double MinZ, double MaxX, double MaxZ)> WoolEntries(WoolIntent w, BlockRect ground) =>
+        w.Entries.Count > 0
+            ? [.. w.Entries.Select(e => (e.MinX, e.MinZ, e.MaxX, e.MaxZ))]
+            :
+            [
+                (ground.MinX, ground.MinZ, ground.MaxX, ground.MinZ), (ground.MinX, ground.MaxZ, ground.MaxX, ground.MaxZ),
+                (ground.MinX, ground.MinZ, ground.MinX, ground.MaxZ), (ground.MaxX, ground.MinZ, ground.MaxX, ground.MaxZ),
+            ];
 
     /// <inheritdoc cref="WoolFrame"/>
     /// <remarks>A spawn resolves its room together with the region's iron markers: each cube stands clear of
@@ -1084,18 +1096,20 @@ public static class WorldBuilder
         return room with { Frame = room.Frame with { Reflected = s.Reflected } };
     }
 
-    private static ResolvedRoom UnreflectedSpawnRoom(SpawnIntent s, bool shellBound)
+    private static ResolvedRoom UnreflectedSpawnRoom(SpawnIntent s, bool shellBound) =>
+        ResolvedSpawn(s, shellBound, out _)
+        ?? new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, s.DoorEdges(), shellBound), []);
+
+    /// <summary>The room a spawn resolves on its region, its iron with it, or null with the refusal that
+    /// stopped it — null and no refusal where it stands on no region.</summary>
+    internal static ResolvedRoom? ResolvedSpawn(SpawnIntent s, bool shellBound, out Finding? refusal)
     {
-        var doorEdges = SpawnDoors(s);
-        if (Ground(s.Protection) is { } ground)
-        {
-            var (markerX, markerZ) = PositionSnap.SnapHalfXZ(s.Point.X, s.Point.Z);
-            var room = RoomFrames.ResolveRoom(
-                ground, StatedFootprint(s.House?.Room), shellBound, markerX, markerZ, [], doorEdges,
-                [.. s.Iron.Select(iron => PositionSnap.SnapHalfXZ(iron.X, iron.Z))], out _);
-            if (room is not null) return room;
-        }
-        return new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, doorEdges, shellBound), []);
+        refusal = null;
+        if (Ground(s.Protection) is not { } ground) return null;
+        var (markerX, markerZ) = PositionSnap.SnapHalfXZ(s.Point.X, s.Point.Z);
+        return RoomFrames.ResolveRoom(
+            ground, StatedFootprint(s.House?.Room), shellBound, markerX, markerZ, [], s.DoorEdges(),
+            [.. s.Iron.Select(iron => PositionSnap.SnapHalfXZ(iron.X, iron.Z))], out refusal);
     }
 
     /// <summary>The complaint a resolved room raises when it is larger than a room (<c>WX13</c>), or null.
@@ -1140,20 +1154,6 @@ public static class WorldBuilder
                 rooms,
                 Severity.Complaint, Field: $"roomStyles.{kind}", Subjects: units);
         }
-    }
-
-    /// <summary>The walls a spawn hall opens through: the ones the intent names, in the order it names them.
-    /// A hand-authored intent names none and gets the wall its yaw leans into — a yaw is one angle and a
-    /// board is not obliged to have put a door there, so it answers one door rather than a door per
-    /// wall.</summary>
-    private static IReadOnlyList<RoomEdge> SpawnDoors(SpawnIntent s)
-    {
-        var named = s.Doors.Select(RoomEdges.OfWord).OfType<RoomEdge>().ToList();
-        if (named.Count > 0) return named;
-        var yaw = ((s.Yaw % 360) + 360) % 360 * Math.PI / 180;
-        return RoomEdges.Nearest(
-            ((int)Math.Round(-Math.Sin(yaw)), (int)Math.Round(Math.Cos(yaw))), RoomEdges.All)
-            is { } edge ? [edge] : [];
     }
 
     /// <summary>The ground a room stands on: what the region encloses, as one block rect, or null where the

@@ -58,7 +58,8 @@ building is the room's house (`House`, its room capped by `ST9`), the region is 
 by `ST10`), and an intent that states no region at all falls back to the marker-anchored default
 frame, the one a 10×10 piece would resolve to. The wool room's fanned entry interfaces ride beside
 it (`WoolIntent.Entries` — terrain↔room land seams plus build-zone frontline edges, as degenerate
-rects on the region's boundary); a cage with none keeps a door per wall. A spawn's walls ride the same way
+rects on the region's boundary); a cage with none keeps a door per wall of the house it states, every
+side of its region standing in for an entry. A spawn's walls ride the same way
 (`SpawnIntent.Doors`, edge words in the order they were cut), so nothing downstream re-derives a door from a
 yaw — a hall opening on two walls faces the corner between them and its yaw names no wall at all.
 

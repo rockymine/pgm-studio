@@ -153,7 +153,7 @@ whose author rulings are already filed — `G2` (G287), `G5` and `CT12` (G285), 
 | `G8` | land per team of 2250, 4025, 7075 and 8730 by size band | the share of its frame the ground fills, a learned band, with ground off every route its own rule (`LN5`); the land budget is only the composer's spend gate |
 | `LN1` | a 10-block base, capped about 16 in front of a wool | the narrowest wool lane against a learned band; no cap |
 | `LN2` | 20 to 50 blocks to a junction or dead end | a learned band of 25 to 110; `ComposeGeometry.LaneChainMaxBlocks` is read by nothing |
-| `BZ6`, `MD7` | the middle build zone | only a zone whose id is `mid-band`, so a hand-drawn plan's middle is never judged |
+| `BZ6`, `MD7` | the middle build zone | on a plan, only a zone whose id is `mid-band`, so a hand-drawn plan's middle is never judged; on a sketch `MD7` and `MD8` read the board's front-to-front build cells, and `BZ6` is not asked |
 | `SP1` | the route may pass a spawn on a wide lane | walks piece to piece, so passing beside a spawn on its own piece counts as through it |
 | `SP2` | the spawn at the back of its lane | the back half of the spawn's own piece |
 | `ST1` | the wool room's region, cage and entry lines | only producibility cites it, for a box room that differs from the composer's 2-cell room |

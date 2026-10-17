@@ -25,23 +25,21 @@ public sealed class WoolWoolDistance : SoftTerm
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
-        ctx.Plan.Placements.Wools.Select(w => w.Piece).ToList();
+        ctx.Walks.Wools.Select(w => w.Owner).ToList();
 
     protected override IReadOnlyList<Evidence> Evidence(EvalContext ctx, double value, Band band)
     {
         var (_, a, b, _, _) = Closest(ctx);
         return a is null || b is null
             ? []
-            : SurfaceNav.RouteEvidence(SurfaceNav.Ground(ctx), a.Value, b.Value, $"{value:0} < {band.Lo:0}");
+            : SurfaceNav.RouteEvidence(ctx.Walks.Ground, a.Value, b.Value, $"{value:0} < {band.Lo:0}");
     }
 
     // The closest wool pair by surface traversal, in blocks, its endpoint cells and the two wools' ids.
     private static (double? Blocks, (int, int)? A, (int, int)? B, string First, string Second) Closest(EvalContext ctx)
     {
-        var ground = SurfaceNav.Ground(ctx);
-        var wools = ctx.Plan.Placements.Wools
-            .Select(w => (w.Id, Cell: SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Footprint)))
-            .Where(w => w.Cell is not null).Select(w => (w.Id, Cell: w.Cell!.Value)).ToList();
+        var ground = ctx.Walks.Ground;
+        var wools = ctx.Walks.Wools.Where(w => w.Cell is not null).Select(w => (w.Id, Cell: w.Cell!.Value)).ToList();
         if (wools.Count < 2) return (null, null, null, "", "");
 
         double? best = null;

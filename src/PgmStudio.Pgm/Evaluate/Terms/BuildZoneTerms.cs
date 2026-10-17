@@ -1,6 +1,7 @@
 using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
+using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Vocabulary;
 
@@ -74,12 +75,12 @@ public sealed class ThinMiddle : ILayoutTerm
 
     public TermScore Measure(EvalContext ctx)
     {
-        if (MidBand.Read(ctx.Plan) is not { } band) return TermScores.Clean(this);
-        var floor = WidthFloorBlocks(SizeBands.Of(ctx.Plan.Globals.MaxPlayers));
+        if (ctx.Mid is not { } band) return TermScores.Clean(this);
+        var floor = WidthFloorBlocks(SizeBands.Of(ctx.MaxPlayers));
         var distance = Math.Max(0, floor - band.Width) / (floor / 2.0);
         if (distance <= 0) return TermScores.Clean(this);
         return TermScores.Soft(this, distance, $"the mid build region is {band.Width:0} blocks wide, less than {floor} blocks",
-            [band.Zone.Id], [Ev.Rect(EvidenceTags.Offender, band.Zone.Rect)], new Measurement(band.Width, Low: floor));
+            band.Subjects, [Ev.Rect(EvidenceTags.Offender, band.Rect)], new Measurement(band.Width, Low: floor));
     }
 }
 
@@ -97,26 +98,43 @@ public sealed class LongMiddle : ILayoutTerm
 
     public TermScore Measure(EvalContext ctx)
     {
-        if (MidBand.Read(ctx.Plan) is not { } band) return TermScores.Clean(this);
+        if (ctx.Mid is not { } band) return TermScores.Clean(this);
         var distance = Math.Max(0, band.Length / band.Width - MaxLengthPerWidth);
         if (distance <= 0) return TermScores.Clean(this);
         return TermScores.Soft(this, distance,
             $"the mid build region is {band.Length:0} blocks long, {band.Length / band.Width:0.##} times its width, more "
             + $"than {MaxLengthPerWidth:0} times",
-            [band.Zone.Id], [Ev.Rect(EvidenceTags.Offender, band.Zone.Rect)],
+            band.Subjects, [Ev.Rect(EvidenceTags.Offender, band.Rect)],
             new Measurement(band.Length / band.Width, High: MaxLengthPerWidth));
     }
 }
 
-/// <summary>The <c>mid-band</c> zone of a composed layout, measured in blocks across the fronts and front to
-/// front. Null where the plan has none, or one with no width.</summary>
-internal sealed record MidBand(PlanZone Zone, double Width, double Length)
+/// <summary>The build band between the fronts, in cells, measured in blocks across the fronts and front to
+/// front, with what a finding over it highlights. Null where there is none, or one with no width.</summary>
+internal sealed record MidBand(CellRect Rect, double Width, double Length, IReadOnlyList<string> Subjects)
 {
+    /// <summary>A composed plan's <c>mid-band</c> zone.</summary>
     public static MidBand? Read(PlanModel plan)
     {
         if (plan.Zones.FirstOrDefault(z => z.Id == "mid-band") is not { } zone) return null;
-        var span = Frame.For(plan.Globals.Symmetry).FromRect(zone.Rect);
-        double width = span.VSpan * plan.Globals.Cell, length = span.USpan * plan.Globals.Cell;
-        return width <= 0 ? null : new MidBand(zone, width, length);
+        return Measured(zone.Rect, plan.Globals.Symmetry, plan.Globals.Cell, [zone.Id]);
+    }
+
+    /// <summary>The rectangle round a board's front-to-front build cells: the region linking the two fronts,
+    /// which a composed plan names its mid band.</summary>
+    public static MidBand? Of(BoardStructure board, string? mode)
+    {
+        var band = board.BuildKindOf.Where(entry => entry.Value == "front-front").Select(entry => entry.Key).ToList();
+        if (band.Count == 0) return null;
+        int minX = band.Min(cell => cell.Item1), minZ = band.Min(cell => cell.Item2);
+        var rect = new CellRect(minX, minZ, band.Max(cell => cell.Item1) - minX + 1, band.Max(cell => cell.Item2) - minZ + 1);
+        return Measured(rect, mode ?? "", board.Cell, []);
+    }
+
+    private static MidBand? Measured(CellRect rect, string mode, int cell, IReadOnlyList<string> subjects)
+    {
+        var span = Frame.For(mode).FromRect(rect);
+        double width = span.VSpan * cell, length = span.USpan * cell;
+        return width <= 0 ? null : new MidBand(rect, width, length, subjects);
     }
 }
