@@ -1153,7 +1153,18 @@ public static class PlanValidator
         try { board = BoardDeriver.Derive(plan); }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException
                                        or NullReferenceException or IndexOutOfRangeException or KeyNotFoundException)
-        { yield break; }
+        { return []; }
+        var goalPieces = plan.Pieces.Where(piece => piece.Role is PlanRoles.WoolRoom or PlanRoles.Spawn)
+            .Select(piece => piece.Id).ToHashSet(StringComparer.Ordinal);
+        return BoardEdges(board, goalPieces, plan.Placements.Wools.Count > 0 && Symmetry.Order(plan.Globals.Symmetry) == 2);
+    }
+
+    /// <summary>The rules every board's structure answers, whatever ground it was read off: <c>FR8</c> and
+    /// <c>FR9</c> on each face's front line, <c>WL12</c>, <c>WL20</c> and <c>LN6</c> on each gap's narrowest
+    /// run, and, where <paramref name="strait"/> — a two-team board carrying wools — <c>CT12</c> on the strait.
+    /// <paramref name="goalOwners"/> are the owners a spawn or a wool room stands on.</summary>
+    public static IEnumerable<Finding> BoardEdges(BoardStructure board, IReadOnlySet<string> goalOwners, bool strait)
+    {
 
         // A crossing spans the face it docks against on every authored board (shares read 1.00, worst
         // incidental partial 0.40); the funnel fault reads 0.25 — a 10-block zone on an 80-block face. The
@@ -1184,9 +1195,7 @@ public static class PlanValidator
         // blocks so they hold at any grid scale — a goal across from the frontline or another goal (WL12), a
         // goal across from its team's own ground (WL20), and the narrowest run of a hole touching no goal
         // (LN6).
-        var goalPieces = new HashSet<string>(
-            plan.Pieces.Where(piece => piece.Role is PlanRoles.WoolRoom or PlanRoles.Spawn).Select(piece => piece.Id),
-            StringComparer.Ordinal);
+        var goalPieces = goalOwners;
         var frontPieces = PieceInterfaces.Frontages(board).Where(face => face.FrontlineBlocks > 0)
             .Select(face => face.Piece).ToHashSet(StringComparer.Ordinal);
         var reported = new HashSet<(string, string, int)>();
@@ -1224,7 +1233,7 @@ public static class PlanValidator
         // CT12 judges the CTW strait: the direct crossing between the two team islands of a two-team wool
         // board. Chains over stepping stones are not straits (each hop is G5's), and a mid island between
         // the teams makes the crossing indirect by construction.
-        if (plan.Placements.Wools.Count > 0 && Symmetry.Order(plan.Globals.Symmetry) == 2)
+        if (strait)
             foreach (var gap in PieceInterfaces.IslandGaps(board))
             {
                 if (!gap.Direct || gap.RoleA != "team" || gap.RoleB != "team") continue;

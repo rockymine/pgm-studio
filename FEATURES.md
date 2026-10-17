@@ -9468,6 +9468,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `WX4`, `WX6`, `WX8`, `PL8`. A wool room stating no entry stands on its own house with a door per wall,
   rather than on the default room around its marker. (`Export/RoomCheck`, `Export/WorldBuilder`,
   `docs/world-export/structures.md`)
+- **The board's structure is read off the sketch's ground (`TS171`).** `BoardDeriver` reads a `BoardGround`, of
+  which a plan states one and the sketch another (`SketchGround`, one block to a cell), and the findings read
+  answers `FR8`, `FR9`, `WL12`, `WL20`, `LN6` and `CT12` off the board the drawing builds.
+  (`Pgm/Derive/BoardGround`, `Pgm/Sketch/SketchBoardCheck`, `docs/tools/sketch.md`)
 - **A place holds one thread, and the list counts what is new (`TS186`).** A picked place's panel shows its
   thread under its fields over one text box, and a second `place` note on it is refused 409 `RQ5`; a place's row
   carries a speech bubble, filled with the count of messages new to the caller or an outline once read. `MapNoteDto.unread`

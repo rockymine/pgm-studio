@@ -1,5 +1,6 @@
 using System.Text;
 using PgmStudio.Contracts;
+using PgmStudio.Domain;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Export;
@@ -41,13 +42,24 @@ public static class MapFindings
         var layoutBytes = await artifacts.LoadLayoutAsync(map.Id, ct);
         var intent = await artifacts.LoadJsonAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
 
-        // The play pieces are asked of the intent where the map holds one, since that is what it builds; the
-        // plan answers the rest, and none of those twice.
+        // The play pieces are asked of the intent where the map holds one, since that is what it builds, and the
+        // board's structure of the ground its sketch builds; the plan answers the rest, and none of those twice.
+        var asked = new HashSet<string>();
+        var boardFindings = Findings.None;
         if (intent is not null)
         {
-            var layout = layoutBytes is { Length: > 0 } ? SketchLayout.Parse(Encoding.UTF8.GetString(layoutBytes)) : null;
+            var layoutJson = layoutBytes is { Length: > 0 } ? Encoding.UTF8.GetString(layoutBytes) : null;
+            var layout = layoutJson is null ? null : SketchLayout.Parse(layoutJson);
             findings.AddRange(IntentCheck.Check(intent, layout?.Setup?.Board));
             findings.AddRange(RoomCheck.Check(intent, RoomStyleScope.StylesOf(layout)));
+            asked.UnionWith(IntentCheck.Asks);
+            asked.UnionWith(RoomCheck.Asks);
+            if (layoutJson is not null)
+            {
+                boardFindings = SketchBoardCheck.Check(layoutJson, intent, layout?.Setup?.Board);
+                findings.AddRange(boardFindings);
+                asked.UnionWith(SketchBoardCheck.Asks);
+            }
         }
 
         var planBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
@@ -56,15 +68,18 @@ public static class MapFindings
             // Both halves, because they answer different questions and a driver wants both: whether what the
             // plan says is coherent, and whether it yet says the things a map cannot exist without.
             findings.AddRange(PlanValidator.Check(plan).Concat(PlanValidator.Completeness(plan))
-                .Where(finding => intent is null
-                                  || !(IntentCheck.Asks.Contains(finding.Rule) || RoomCheck.Asks.Contains(finding.Rule))));
+                .Where(finding => !asked.Contains(finding.Rule)));
         }
 
         if (layoutBytes is { Length: > 0 })
         {
             var layoutJson = Encoding.UTF8.GetString(layoutBytes);
             findings.AddRange(SketchMaterialGate.Check(layoutJson));
-            findings.AddRange(SketchFinish.Judge(layoutJson, planBytes));
+            // The plan's strait re-read off the sketch is said unless the sketch's own board already reports the
+            // strait, which leaves it the case the board cannot see: a strait the plan passed, closed.
+            var measuredStrait = boardFindings.Any(finding => finding.Rule == LayoutRules.TeamGapWidth);
+            findings.AddRange(SketchFinish.Judge(layoutJson, planBytes)
+                .Where(finding => !(measuredStrait && finding.Rule == LayoutRules.TeamGapWidth)));
         }
 
         // A coast pulled back from a build zone, asked off the scan — which is brought up to the layout first,

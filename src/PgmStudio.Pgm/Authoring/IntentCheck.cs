@@ -75,7 +75,7 @@ public static class IntentCheck
                     Subjects: [core.Id]));
         }
 
-        var teams = intent.Teams is { Count: > 0 } stated ? stated.Count : Symmetry.Order(symmetry?.Mode);
+        var teams = Teams(intent, board);
         if (teams != 2)
             foreach (var (kind, count) in new[] { ("monuments", goals.Count), ("cores", cores.Count) })
                 if (count > 0)
@@ -119,6 +119,11 @@ public static class IntentCheck
         }
         return findings;
     }
+
+    /// <summary>How many teams the map plays: the ones it states, or where it states none, as many as its
+    /// symmetry — the intent's, else <paramref name="board"/>'s — has images.</summary>
+    public static int Teams(MapIntent intent, SymmetryIntent? board = null) =>
+        intent.Teams is { Count: > 0 } stated ? stated.Count : Symmetry.Order((intent.Symmetry ?? board)?.Mode);
 
     /// <summary>Whether a piece is the authored unit rather than an image the symmetry carried.</summary>
     private static bool Authored(StampId stamp) => string.IsNullOrEmpty(stamp.Kind) || stamp.Image == 0;

@@ -2297,8 +2297,17 @@ shell the map binds for its kind. A room that will not frame on its region is re
 between the walls (`WX4`), a wool room whose stated entries reach no wall (`WX6`) — and the build stamps the
 default room around its marker in its place. A pad moved inward to clear the walls (`WX4`) and iron with no
 place for its cube (`WX8`) are complaints, and a spawn room seating fewer monuments than the wools its team
-captures is refused (`PL8`). Where the map still holds a plan, the plan answers every other rule and none of
-these.
+captures is refused (`PL8`).
+
+**And the board's structure is read off the ground the sketch builds** (`SketchBoardCheck`), one block to a
+cell: every column the layout raises, owned by the group that draws it, and every spawn and wool region, owned
+by its room, a cell's team being the image of the spawn nearest it and building allowed over the intent's build
+areas (`SketchGround`). The board deriver reads it as it reads a plan's ground, and the same rules answer under
+their ids: a face's front line under a third of its void side or under 15 blocks (`FR8`, `FR9`), a gap beside a
+goal under 16 blocks, beside a team's own ground under 12, and a plain hole under 12 (`WL12`, `WL20`, `LN6`),
+and on a two-team wool board the strait outside 15 to 40 blocks (`CT12`). The plan's own strait, re-read off
+the sketch, is said only where the sketch's board does not report one, which is a strait the plan passed and
+the drawing closed. Where the map still holds a plan, the plan answers every other rule and none of these.
 
 ## The API
 
