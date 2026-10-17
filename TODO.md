@@ -22,10 +22,12 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS188 — A room's house is shaped and styled in Layout.** A picked room's building in Layout gains a wing
-  dragged off any wall of it, a wing deleted, and a style of the room's own picked from the library over the map's
-  — what `house.wings` and `house.style` already take through `PUT …/intent` and the piece route. The rail is
-  `SketchTool.Layout`; the joint refusals are `WingJoints`'. `docs/tools/sketch.md`.
+- [ ] **TS188 — A house gains a wing the way an outline gains a point.** Hovering the middle of a free wall of a
+  picked house shows the polygon editor's round insert marker; a click adds a wing along that wall, 5 blocks deep
+  and the wall's length, picked, its corners dragged to resize — a drag never adds one. The same in Decoration for
+  a dressed house and in Layout for a room's (`house.wings`), whose panel also lists the wings, deletes any but the
+  room, sets a wing's storeys, roof and ridge, and picks the room's own style over the map's (`house.style`).
+  Mocked at https://claude.ai/artifact/FNc15rnJMTFYqJJ7gbPTHk. `docs/tools/sketch.md`.
 
 - [ ] **TS185 — A wall's ends drag apart, and a line snaps to shape edges.** A picked wall in Layout shows a
   handle at each end, and dragging one moves that end alone, its orbit images with it, the end snapping to the
