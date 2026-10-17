@@ -9479,7 +9479,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `Pgm/Sketch/SketchBoardCheck`, `docs/tools/sketch.md`)
 - **A drawn step is asked only where a match crosses it (`TS171`).** `SP8` at a spawn's door and `WL11` at a
   wool room's entries — the sides of its region that meet ground — read the sketch's built heights, and `ST11`
-  holds an approach wall to its seat in front of the entrance it stands before; the plan's `EL1` is not asked
+  says an approach wall crowding the entrance it stands before; the plan's `EL1` is not asked
   of a board that has a sketch. (`Pgm/Sketch/SketchSeamCheck`, `docs/tools/sketch.md`)
 - **The board's measures are read off the sketch's ground (`TS171`).** The evaluator's board terms — `FR4`,
   `FR6`, `CT1`, `CT4`, `CT5`, `CT8`, `CT9`, `CT13`, `LN1` — and its walks — `WL7`, `WL9`, `WL10`, `WL13`,

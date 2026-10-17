@@ -164,13 +164,16 @@ public sealed class SketchSeamCheckTests
     }
 
     [Test]
-    public async Task A_wall_on_the_approach_is_held_to_its_seat_in_front_of_the_entrance()
+    public async Task A_wall_crowding_the_entrance_is_a_standoff_and_one_seated_or_farther_out_is_not()
     {
         var near = Check(intent => WithWall(intent, -10, -10, 10, -10), Apron(-15, 5, 9));
-        var seated = Check(intent => WithWall(intent, -10, 0, 10, 0), Apron(-15, 5, 9));
+        var seated = Check(intent => WithWall(intent, -10, 0, 10, 0), Apron(-15, 12, 9));
+        var farther = Check(intent => WithWall(intent, -10, 10, 10, 10), Apron(-15, 12, 9));
 
         await Assert.That(near.Single(finding => finding.Rule == LayoutRules.ApproachWallStandoff).Message)
             .Contains("stands 5 blocks from the entrance");
         await Assert.That(seated.Select(finding => finding.Rule)).DoesNotContain(LayoutRules.ApproachWallStandoff);
+        await Assert.That(farther.Select(finding => finding.Rule)).DoesNotContain(LayoutRules.ApproachWallStandoff)
+            .Because("a wool takes a wall per approach, and one 25 blocks out guards its own");
     }
 }

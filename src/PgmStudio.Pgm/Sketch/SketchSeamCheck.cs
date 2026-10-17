@@ -12,7 +12,7 @@ namespace PgmStudio.Pgm.Sketch;
 /// (<see cref="SketchGround"/>): a region narrower than a corridor (<c>G2</c>), a region or lane against a spawn
 /// (<c>BZ5</c>), regions stitched into one rectangle (<c>BZ11</c>), a lane over ground (<c>BZ12</c>), a wall
 /// against a wool's room (<c>PL13</c>) or with ground running past its end (<c>PL17</c>), the mouth a wall bars
-/// (<c>ST8</c>) and how far it stands from the entrance it defends (<c>ST11</c>), the ground ahead of a spawn's
+/// (<c>ST8</c>) and a wall crowding the entrance it stands before (<c>ST11</c>), the ground ahead of a spawn's
 /// door (<c>SP9</c>), and a step of two blocks or more at a spawn's door (<c>SP8</c>) or a wool room's entry
 /// (<c>WL11</c>). Each is the rule the plan is asked under the same id, measured in blocks; a piece is asked
 /// once, by its authored image. A wool room's entries are the sides of its region that meet ground.
@@ -97,8 +97,9 @@ public static class SketchSeamCheck
                     $"approach wall '{wall.Id}' bars a mouth {mouth} blocks across, "
                     + Beyond(mouth, PlanValidator.WallMouthMinBlocks, PlanValidator.WallMouthMaxBlocks), wall.Id));
 
-            // The entrance it defends: the nearest entry it stands in front of, parallel to it and joined to it by
-            // unbroken ground across the span they share; a wall barring a side approach defends a flank.
+            // The entrance it stands before: the nearest entry parallel to it and joined to it by unbroken ground
+            // across the span they share; a wall barring a side approach defends a flank. Only the near half of
+            // the seat is asked, since a wool takes a wall per approach and one farther out guards its own.
             var alongX = Math.Abs(wall.X2 - wall.X1) >= Math.Abs(wall.Z2 - wall.Z1);
             var defended = entries
                 .Where(entry => entry.Side.Edge.AlongX() == alongX && Joined(wall, entry.Side, alongX, ground))
@@ -106,12 +107,10 @@ public static class SketchSeamCheck
                     entry.Side.X1, entry.Side.Z1, entry.Side.X2, entry.Side.Z2)))
                 .OrderBy(entry => entry.Gap)
                 .FirstOrDefault();
-            if (defended.Wool is not null
-                && (defended.Gap < PlanValidator.WallStandoffMinBlocks || defended.Gap > PlanValidator.WallStandoffMaxBlocks))
+            if (defended.Wool is not null && defended.Gap < PlanValidator.WallStandoffMinBlocks)
                 findings.Add(Complaint(LayoutRules.ApproachWallStandoff,
                     $"approach wall '{wall.Id}' stands {defended.Gap} blocks from the entrance of wool '{defended.Wool}', "
-                    + Beyond(defended.Gap, PlanValidator.WallStandoffMinBlocks, PlanValidator.WallStandoffMaxBlocks),
-                    wall.Id, defended.Wool));
+                    + $"less than {PlanValidator.WallStandoffMinBlocks} blocks", wall.Id, defended.Wool));
         }
 
         foreach (var spawn in intent.Spawns.Where(spawn => Authored(spawn.Stamp) && spawn.Protection.Count > 0))

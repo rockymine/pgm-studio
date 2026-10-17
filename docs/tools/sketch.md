@@ -2329,11 +2329,11 @@ entries are the sides of its region that meet ground, since a room has no facing
 from a region to one owner's ground steps two blocks or more, the step is `SP8` ahead of a spawn's first door —
 its own side, and the half of each flank side toward it — and `WL11` at a wool's entry, each with its number.
 A step anywhere else is a cliff the author drew, so the plan's `EL1` is not asked of a board that has a
-sketch. An approach wall's standoff is `ST11`: the nearest entry parallel to it that it overlaps along its
-line, joined to it by unbroken ground, held to 10 to 20 blocks. Compiled from a seed, the sketch's seams say
-what its plan's do, with one difference: a wall standing in front of a wool's entrance on ground that runs on
-past the pieces the wall divides is asked on the sketch and not on the plan, which asks only a wall on the
-piece that touches the room.
+sketch. An approach wall under 10 blocks from the entrance it stands before — the nearest entry parallel to
+it that it overlaps along its line, joined to it by unbroken ground — is `ST11`. A wall farther out is not
+asked: a wool takes a wall per approach, and one standing out on an approach around a hole guards its own,
+which ground alone cannot tell from a wall seated too far back. Compiled from a seed, the sketch's seams say
+what its plan's do.
 
 **The board's measures are read off the same ground**, at the 5-block cell the corpus's bands were measured at
 (`SketchMeasures`): a cell stands where more than half its blocks do. The evaluator's own terms answer them.
