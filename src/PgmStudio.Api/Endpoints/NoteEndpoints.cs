@@ -376,8 +376,8 @@ public sealed class MapNoteCreateEndpoint(
         {
             await Refusals.WriteAsync(HttpContext, 409, "place has its thread",
                 [new Finding(RequestRules.Taken,
-                    $"the place '{anchor.Place}' already has its thread, note {thread.Note.Id}; a place holds one, "
-                    + $"so the request is a reply to it: POST /api/map/{map.Slug}/notes/{thread.Note.Id}/replies",
+                    $"the place '{anchor.Place}' already has its one thread, note {thread.Note.Id}, which takes a reply at "
+                    + $"POST /api/map/{map.Slug}/notes/{thread.Note.Id}/replies",
                     Field: "anchor.place")], ct);
             return;
         }
