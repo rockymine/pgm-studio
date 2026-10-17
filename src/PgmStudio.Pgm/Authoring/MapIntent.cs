@@ -607,10 +607,15 @@ public readonly record struct StatedDoor(
     /// <summary>A door on the wall facing <paramref name="edge"/>, centred on the point.</summary>
     public static StatedDoor At(RoomEdge edge, double x, double z) => new(edge.Word(), x, z);
 
-    /// <summary>The door asked of a frame, or null where the edge names no wall.</summary>
-    public AskedDoor? Asked() => RoomEdges.OfWord(Edge) is { } edge
-        ? new AskedDoor(edge, X is { } x && Z is { } z ? (edge.AlongX() ? x : z) : null)
-        : null;
+    /// <summary>The door asked of a frame, or null where the edge names no wall. A point names the wall's block
+    /// line too: the row or column just inside the edge it lies on.</summary>
+    public AskedDoor? Asked()
+    {
+        if (RoomEdges.OfWord(Edge) is not { } edge) return null;
+        if (X is not { } x || Z is not { } z) return new AskedDoor(edge);
+        var across = edge.AlongX() ? z : x;
+        return new AskedDoor(edge, edge.AlongX() ? x : z, (int)Math.Floor(edge.Positive() ? across - 1 : across));
+    }
 
     /// <summary>The doors asked of a frame, in order, leaving out any whose edge names no wall.</summary>
     public static List<AskedDoor> Asked(IEnumerable<StatedDoor> doors) =>

@@ -9487,6 +9487,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   meets its layout — the world build, the export and the findings read; `WL11` and `ST11` read a wool's doors
   as its entries, and a door with no ground just outside it is `WL21`. (`Pgm/Sketch/WoolDoors`,
   `Pgm/Sketch/SketchSeamCheck`, `docs/world-export/structures.md`, `docs/generator/rules.md`)
+- **A door may stand on any wing's outer wall (`TS189`).** A door stated beyond the room's span keeps its place
+  and is cut in the wall of the wing it lands on, and the line it was stated on picks between two walls facing
+  its way. (`Domain/RoomFrames`, `Minecraft/Houses/BuildingPlan.WallFacing`, `docs/world-export/structures.md`)
 - **A drawn step is asked only where a match crosses it (`TS171`).** `SP8` at a spawn's door and `WL11` at a
   wool room's entries — the sides of its region that meet ground — read the sketch's built heights, and `ST11`
   says an approach wall crowding the entrance it stands before; the plan's `EL1` is not asked

@@ -63,7 +63,11 @@ edge word, and the point on that wall it is centred on, `{"edge": "-z", "x": 12,
 interface (terrain↔room land seams plus build-zone frontline edges) and a spawn's centred on each wall it
 cut. A cage stating none takes one door, on the side of its region meeting the most ground — terrain or a
 build area just outside it — the side facing the middle on a tie (`WoolDoors.Settled`, read off the layout
-the build stands on; with no layout to read, the side facing the middle). So nothing downstream re-derives a
+the build stands on; with no layout to read, the side facing the middle). **A door may stand on any wing's
+outer wall.** One stated within the room's span along its wall is clamped onto the run between the room's
+corners; one beyond it keeps its place and is cut in the wall of the wing it lands on, the wall facing its
+edge that holds its point — and where two walls facing one way both hold it, the one on the line it was
+stated on. So nothing downstream re-derives a
 door from a yaw — a hall opening on two walls faces the corner between them and its yaw names no wall at
 all.
 

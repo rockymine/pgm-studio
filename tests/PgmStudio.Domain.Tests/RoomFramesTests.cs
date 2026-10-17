@@ -350,4 +350,19 @@ public sealed class RoomFramesTests
         var largeSeats = RoomFrames.MonumentSlots(large, large.Doors[0]).Count;
         await Assert.That(largeSeats).IsGreaterThan(smallSeats);
     }
+
+    [Test]
+    public async Task A_door_stated_beyond_the_frame_keeps_its_place_and_one_within_it_is_clamped_onto_its_wall()
+    {
+        // The frame is x 1..7 of a piece reaching x 20: a door at x 12 stands on another wing of the house.
+        var beyond = RoomFrames.Resolve(new BlockRect(0, 0, 20, 10), new BlockRect(1, 1, 7, 9), shellBound: true, 4, 4,
+            [new AskedDoor(RoomEdge.NegZ, 12, 0)], spawn: false, out _)!;
+        var within = RoomFrames.Resolve(new BlockRect(0, 0, 20, 10), new BlockRect(1, 1, 7, 9), shellBound: true, 4, 4,
+            [new AskedDoor(RoomEdge.NegZ, 6.5, 1)], spawn: false, out _)!;
+
+        await Assert.That(beyond.Doors.Single()).IsEqualTo(new RoomDoor(RoomEdge.NegZ, 11, 2, 0));
+        await Assert.That(within.Doors.Single().Lo + within.Doors.Single().Width).IsLessThanOrEqualTo(within.MaxX - 1)
+            .Because("a door within the frame's span is clamped onto the run between its corners");
+        await Assert.That(within.Doors.Single().Line).IsEqualTo(1);
+    }
 }

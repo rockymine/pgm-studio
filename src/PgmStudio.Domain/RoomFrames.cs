@@ -6,12 +6,14 @@ namespace PgmStudio.Domain;
 
 /// <summary>A door opening cut into a room shell wall: the <see cref="Edge"/> it sits on, the low
 /// along-axis block coordinate <see cref="Lo"/> (x for a Z edge, z for an X edge), and its
-/// <see cref="Width"/> in blocks.</summary>
-public readonly record struct RoomDoor(RoomEdge Edge, int Lo, int Width);
+/// <see cref="Width"/> in blocks. <see cref="Line"/> is the block line across that axis the door was stated
+/// on, where it names one — what tells two walls facing one way apart on a house of several wings.</summary>
+public readonly record struct RoomDoor(RoomEdge Edge, int Lo, int Width, int? Line = null);
 
-/// <summary>A door asked of a room's frame: the wall it is cut in, and the block coordinate along that wall it
-/// is centred on (x for a Z edge, z for an X edge), or null to centre it on the wall.</summary>
-public readonly record struct AskedDoor(RoomEdge Edge, double? Along = null);
+/// <summary>A door asked of a room's frame: the wall it is cut in, the block coordinate along that wall it is
+/// centred on (x for a Z edge, z for an X edge), or null to centre it on the wall, and the block line across
+/// it the wall stands on, where the door names one.</summary>
+public readonly record struct AskedDoor(RoomEdge Edge, double? Along = null, int? Line = null);
 
 /// <summary>A monument seat inside a spawn room: the interior floor cell and the <see cref="Wall"/> the
 /// pedestal hugs (which side its label sign hangs toward the room centre from).</summary>
@@ -380,8 +382,9 @@ public static class RoomFrames
             return null;
         }
 
-        // Each door centres where it asks, or on its wall, and is clamped onto the run between the corners. A
-        // wall carries one door: a second asking the same wall at the same place is the same door.
+        // Each door centres where it asks, or on its wall. One asked within the frame's span is clamped onto the
+        // run between the frame's corners; one beyond it stands on another wing of the house and keeps its place.
+        // A wall carries one door: a second asking the same wall at the same place is the same door.
         var cut = new List<RoomDoor>();
         foreach (var asked in doors)
         {
@@ -389,10 +392,13 @@ public static class RoomFrames
             var interiorAcross = (alongX ? maxX - minX : maxZ - minZ) - 2 * wall;
             var width = DoorWidth(interiorAcross);
             var (runLo, runHi) = alongX ? (minX + wall, maxX - wall) : (minZ + wall, maxZ - wall);
+            var (spanLo, spanHi) = alongX ? (minX, maxX) : (minZ, maxZ);
             var lo = asked.Along is { } along
-                ? Math.Min(Math.Max((int)Math.Round(along - width / 2.0, MidpointRounding.AwayFromZero), runLo), runHi - width)
+                ? (int)Math.Round(along - width / 2.0, MidpointRounding.AwayFromZero) is var ideal && along >= spanLo && along <= spanHi
+                    ? Math.Min(Math.Max(ideal, runLo), runHi - width)
+                    : ideal
                 : alongX ? minX + (maxX - minX - width) / 2 : minZ + (maxZ - minZ - width) / 2;
-            var door = new RoomDoor(asked.Edge, lo, width);
+            var door = new RoomDoor(asked.Edge, lo, width, asked.Line);
             if (!cut.Contains(door)) cut.Add(door);
         }
         if (cut.Count == 0 && !spawn)

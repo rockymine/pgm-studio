@@ -1017,7 +1017,7 @@ public static class HouseStamper
             foreach (var door in doors)
             {
                 var about = door.Lo + (door.Width - 1) / 2;
-                if (body.WallFacing(door.Edge, about) is not { } wall) continue;
+                if (body.WallFacing(door.Edge, about, door.Line) is not { } wall) continue;
                 if (Fit(wall, door.Width, 2 * door.Lo + door.Width - 1, reflected) is { } fitted)
                     carried.Add(new WallOpening(wall, fitted.Lo, fitted.Width));
             }
