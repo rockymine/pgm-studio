@@ -7,9 +7,9 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Pgm.Tests.Sketch;
 
 /// <summary>
-/// The evaluator's board measures read off the ground a sketch builds. A seed compiled to a layout and an intent
-/// and read back at the corpus's cell measures what the plan measures, term by term, and a term the sketch asks
-/// never reaches for a plan it does not have.
+/// The evaluator's measures read off the ground a sketch builds — the board's structure and the walks between its
+/// markers. A seed compiled to a layout and an intent and read back at the corpus's cell measures what the plan
+/// measures, term by term, and a term the sketch asks never reaches for a plan it does not have.
 /// </summary>
 public sealed class SketchMeasuresTests
 {
@@ -25,12 +25,13 @@ public sealed class SketchMeasuresTests
     [Arguments("base-4team.plan.json")]
     [Arguments("big-board-wool-two-sided-plaza-parallel-mid.plan.json")]
     [Arguments("four-team-wool-two-sided.plan.json")]
+    [Arguments("traced/agrorythe.plan.json")]
+    [Arguments("traced/kanto.plan.json")]
     public async Task A_compiled_seed_measures_on_its_sketch_what_its_plan_measures(string seed)
     {
         var (plan, layout, intent) = Compiled(seed);
         var planned = EvalContext.Build(plan, SeedEnvelopes.Default);
-        var ground = SketchGround.Of(layout, intent, SketchMeasures.CorpusCell)!;
-        var sketched = EvalContext.OfBoard(BoardDeriver.Derive(ground), planned.Order, planned.Goals, SeedEnvelopes.Default);
+        var sketched = SketchMeasures.Context(layout, intent, SketchLayout.Parse(layout)?.Setup?.Board)!;
 
         foreach (var term in SketchMeasures.Terms)
             await Assert.That(term.Value(sketched)).IsEqualTo(term.Value(planned)).Because($"{term.RuleId} on {seed}");
@@ -40,8 +41,7 @@ public sealed class SketchMeasuresTests
     public async Task A_board_read_off_no_plan_refuses_a_term_that_asks_for_one()
     {
         var (_, layout, intent) = Compiled("base-2island.plan.json");
-        var board = BoardDeriver.Derive(SketchGround.Of(layout, intent, SketchMeasures.CorpusCell)!);
-        var context = EvalContext.OfBoard(board, 2, new BoardGoals(1, 0, 0), SeedEnvelopes.Default);
+        var context = SketchMeasures.Context(layout, intent, SketchLayout.Parse(layout)?.Setup?.Board)!;
 
         await Assert.That(() => context.Plan).Throws<InvalidOperationException>();
         await Assert.That(() => new PgmStudio.Pgm.Evaluate.Terms.MaxChainLength().Value(context)).Throws<InvalidOperationException>();

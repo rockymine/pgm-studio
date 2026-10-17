@@ -36,6 +36,14 @@ public sealed class EvalContext
     public BoardStructure Board => _board.Value;
 
     private readonly Lazy<PlanFlow.Result>? _flow;
+    private readonly Lazy<BoardWalks> _walks;
+    private readonly Lazy<GoalDistances.GoalGround?> _goalGround;
+
+    /// <summary>The team's own ground and the markers its distance terms walk between.</summary>
+    public BoardWalks Walks => _walks.Value;
+
+    /// <summary>The fanned closure a destroy goal's walks are taken over, or null where the board answers none.</summary>
+    public GoalDistances.GoalGround? GoalGround => _goalGround.Value;
 
     /// <summary>What the board asks of the two sides: each demand set's walk, its decisions, and the ground no
     /// journey reaches. Lazy for the same reason <see cref="Board"/> is — a hard-only gate never pays for a
@@ -44,8 +52,10 @@ public sealed class EvalContext
 
     private EvalContext(
         PlanModel? plan, ContactGraph? contacts, Findings? findings, SeedEnvelopes envelopes, int order, BoardGoals goals,
-        Lazy<BoardStructure> board)
+        Lazy<BoardStructure> board, Lazy<BoardWalks> walks, Lazy<GoalDistances.GoalGround?> goalGround)
     {
+        _walks = walks;
+        _goalGround = goalGround;
         _plan = plan;
         _contacts = contacts;
         _findings = findings;
@@ -66,13 +76,18 @@ public sealed class EvalContext
         return new EvalContext(plan, contacts, findings, envelopes ?? SeedEnvelopes.Empty,
             Symmetry.Order(plan.Globals.Symmetry),
             new BoardGoals(placed.Wools.Count, placed.Destroyables.Count, placed.Cores.Count),
-            new Lazy<BoardStructure>(() => BoardDeriver.Derive(plan)));
+            new Lazy<BoardStructure>(() => BoardDeriver.Derive(plan)),
+            new Lazy<BoardWalks>(() => BoardWalks.Of(plan)),
+            new Lazy<GoalDistances.GoalGround?>(() => GoalDistances.Ground(plan)));
     }
 
     /// <summary>The context for a board read off a ground with no plan behind it: the terms that read only the
     /// board's structure answer it, and one that asks for the plan is refused.</summary>
-    public static EvalContext OfBoard(BoardStructure board, int order, BoardGoals goals, SeedEnvelopes envelopes) =>
-        new(null, null, null, envelopes, order, goals, new Lazy<BoardStructure>(() => board));
+    public static EvalContext OfBoard(
+        BoardStructure board, BoardWalks walks, GoalDistances.GoalGround? goalGround, int order, BoardGoals goals,
+        SeedEnvelopes envelopes) =>
+        new(null, null, null, envelopes, order, goals, new Lazy<BoardStructure>(() => board),
+            new Lazy<BoardWalks>(() => walks), new Lazy<GoalDistances.GoalGround?>(() => goalGround));
 
     private static InvalidOperationException NoPlan() =>
         new("this board was read off a ground with no plan behind it");

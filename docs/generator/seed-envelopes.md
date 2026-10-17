@@ -13,11 +13,11 @@ Held out: `traced/3084` (wools do not attribute — degenerate band).
 | term | rule | lo | hi | maps | scope |
 |---|---|---|---|---|---|
 | `fill-ratio` | G8 | 0.201 | 0.542 | 31 | authored + traced |
-| `dead-share` | G8 | 0 | 0.12 | 31 | authored + traced |
-| `route-interference` | CT8 | 0 | 0.875 | 31 | authored + traced |
+| `dead-share` | LN5 | 0 | 0.12 | 31 | authored + traced |
+| `route-interference` | CT14 | 0 | 0.875 | 31 | authored + traced |
 | `enclosed-void-count` | CT8 | 0 | 15 | 31 | authored + traced |
 | `neutral-stepping-count` | CT4 | 0 | 4.5 | 31 | authored + traced |
-| `team-stepping-count` | CT4 | 0 | 2 | 31 | authored + traced |
+| `team-stepping-count` | CT13 | 0 | 2 | 31 | authored + traced |
 | `band-count` | CT1 | 0 | 3 | 31 | authored + traced |
 | `isolation-cut-count` | CT5 | 0 | 6 | 31 | authored + traced |
 | `uncrossed-middle-void` | CT9 | 0 | 0 | 31 | authored + traced |
@@ -26,13 +26,13 @@ Held out: `traced/3084` (wools do not attribute — degenerate band).
 | `max-chain-length` | LN2 | 25 | 110 | 16 | authored-only |
 | `lane-width` | LN1 | 10 | 30 | 31 | authored + traced |
 | `wool-wool-distance` | WL7 | 50 | 227 | 20 | authored + traced |
-| `spawn-wool-distance` | WL2 | 29 | 176 | 31 | authored + traced |
+| `spawn-wool-distance` | WL13 | 29 | 176 | 31 | authored + traced |
 | `spawn-wool-spread` | WL9 | 0 | 73 | 20 | authored + traced |
 | `wool-front-distance` | WL10 | 22 | 147 | 22 | authored + traced |
-| `wool-front-balance` | WL10 | 0 | 116 | 16 | authored + traced |
-| `spawn-wool-ratio` | WL9 | 1.031 | 1.22 | 9 | authored-only |
-| `wool-front-ratio` | WL10 | 1 | 1.439 | 7 | authored-only |
-| `wool-front-remoteness` | WL10 | 25 | 130 | 11 | authored-only |
+| `wool-front-balance` | WL16 | 0 | 116 | 16 | authored + traced |
+| `spawn-wool-ratio` | WL15 | 1.031 | 1.22 | 9 | authored-only |
+| `wool-front-ratio` | WL17 | 1 | 1.439 | 7 | authored-only |
+| `wool-front-remoteness` | WL18 | 25 | 130 | 11 | authored-only |
 | `goal-spawn-ratio` | GO1 | 0 | 0 | 0 | authored-only |
 | `own-goal-distance` | GO2 | 0 | 0 | 0 | authored-only |
 | `opposing-goal-distance` | GO3 | 0 | 0 | 0 | authored-only |

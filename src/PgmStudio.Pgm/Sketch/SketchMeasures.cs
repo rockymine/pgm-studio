@@ -1,3 +1,5 @@
+using PgmStudio.Domain;
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Evaluate;
@@ -20,27 +22,102 @@ public static class SketchMeasures
     /// a count or a width to mean what the band means.</summary>
     public const int CorpusCell = 5;
 
-    /// <summary>The terms asked, each reading the board's structure and nothing of a plan.</summary>
+    /// <summary>The terms asked: those reading the board's structure, and those walking a team's own ground or the
+    /// fanned closure between its markers, and nothing of a plan.</summary>
     public static readonly IReadOnlyList<SoftTerm> Terms =
     [
         new FrontlineCount(), new FrontlineWidth(), new BandCount(), new NeutralSteppingCount(), new TeamSteppingCount(),
         new IsolationCutCount(), new EnclosedVoidCount(), new UncrossedMiddleVoid(), new LaneWidth(),
+        new WoolWoolDistance(), new SpawnWoolDistance(), new SpawnWoolSpread(), new WoolFrontDistance(),
+        new WoolFrontBalance(), new SpawnWoolRatio(), new WoolFrontRatio(), new WoolFrontRemoteness(),
+        new GoalSpawnRatio(), new OwnGoalDistance(), new OpposingGoalDistance(), new GoalSpawnDistance(),
     ];
 
     /// <summary>What the board the layout and the intent build measures outside its bands; nothing where it builds
     /// no ground.</summary>
     public static Findings Check(string layoutJson, MapIntent intent, SymmetryIntent? board = null)
     {
-        if (SketchGround.Of(layoutJson, intent, CorpusCell) is not { } ground) return Findings.None;
-        BoardStructure structure;
-        try { structure = BoardDeriver.Derive(ground); }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or KeyNotFoundException)
-        { return Findings.None; }
-        var context = EvalContext.OfBoard(structure, Math.Max(1, IntentCheck.Teams(intent, board)),
-            new BoardGoals((intent.Wools ?? []).Count, (intent.Destroyables ?? []).Count, (intent.Cores ?? []).Count),
-            SeedEnvelopes.Default);
+        if (Context(layoutJson, intent, board) is not { } context) return Findings.None;
         return new Findings([
             .. Terms.Select(term => term.Measure(context).Violation).OfType<Violation>().Select(violation => violation.Finding),
         ]);
     }
+
+    /// <summary>The context the terms read the sketch's board in: its structure at the corpus's cell, the team's
+    /// own ground and the build cells with the authored spawns and wools seated on them, and on a two-team board
+    /// the fanned closure with each goal and the other team's copy of it. Null where the layout builds nothing.</summary>
+    public static EvalContext? Context(string layoutJson, MapIntent intent, SymmetryIntent? board = null)
+    {
+        if (SketchGround.Of(layoutJson, intent, CorpusCell) is not { } ground) return null;
+        BoardStructure structure;
+        try { structure = BoardDeriver.Derive(ground); }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or KeyNotFoundException)
+        { return null; }
+
+        var spawns = intent.Spawns.Where(spawn => Authored(spawn.Stamp)).ToList();
+        var wools = (intent.Wools ?? []).Where(wool => Authored(wool.Stamp)).ToList();
+        var goals = (intent.Destroyables ?? []).Where(goal => Authored(goal.Stamp)).Select(goal => (goal.Id, Kind: "destroyable", goal.Stamp, goal.Anchor))
+            .Concat((intent.Cores ?? []).Where(core => Authored(core.Stamp)).Select(core => (core.Id, Kind: "core", core.Stamp, core.Anchor)))
+            .ToList();
+        var teams = Math.Max(1, IntentCheck.Teams(intent, board));
+
+        var own = ground.UnitFilled.Concat(AuthoredBuild(intent, board, ground)).ToHashSet();
+        var ownGround = WalkGround.Over(own, ground.Cell);
+        (int, int)? Seat(Pt point, IReadOnlySet<(int, int)> walkable) =>
+            Cells.SnapToWalkable(Coarse(point, ground.Cell), walkable, radius: 2);
+        var walks = new BoardWalks(ownGround,
+            [.. spawns.Select(spawn => new BoardMarker(spawn.Id, spawn.Id, Seat(spawn.Point, own)))],
+            [.. wools.Select(wool => new BoardMarker(wool.Id, wool.Id, Seat(wool.Spawn, own)))]);
+
+        GoalDistances.GoalGround? goalGround = null;
+        if (teams == 2 && goals.Count > 0 && spawns.Count > 0)
+        {
+            var closure = ground.Filled.Keys.Concat(ground.Build).ToHashSet();
+            var images = (intent.Destroyables ?? []).Select(goal => (goal.Stamp, goal.Anchor))
+                .Concat((intent.Cores ?? []).Select(core => (core.Stamp, core.Anchor)))
+                .Where(goal => goal.Stamp.Image == 1)
+                .ToDictionary(goal => goal.Stamp.Identity, goal => goal.Anchor);
+            var seats = goals.Select(goal => new GoalDistances.GoalSeat(goal.Id, goal.Kind, goal.Id, Seat(goal.Anchor, closure),
+                images.TryGetValue(goal.Stamp.Identity, out var image) ? Seat(image, closure) : null)).ToList();
+            var enemy = intent.Spawns.Where(spawn => spawn.Stamp.Image == 1).Select(spawn => Seat(spawn.Point, closure));
+            goalGround = new GoalDistances.GoalGround(WalkGround.Over(closure, ground.Cell), seats,
+                [.. spawns.Select(spawn => Seat(spawn.Point, closure)).OfType<(int, int)>()],
+                [.. enemy.OfType<(int, int)>()]);
+        }
+
+        return EvalContext.OfBoard(structure, walks, goalGround, teams,
+            new BoardGoals(wools.Count, goals.Count(goal => goal.Kind == "destroyable"), goals.Count(goal => goal.Kind == "core")),
+            SeedEnvelopes.Default);
+    }
+
+    /// <summary>The build cells of the areas the author placed rather than the symmetry carried: an area that
+    /// stands where an earlier one's image does is that one's copy, and an area that is its own image is
+    /// authored.</summary>
+    private static IEnumerable<(int, int)> AuthoredBuild(MapIntent intent, SymmetryIntent? board, BoardGround ground)
+    {
+        var symmetry = intent.Symmetry ?? board;
+        var authored = new List<Rect>();
+        foreach (var area in intent.Build?.Areas ?? [])
+        {
+            var rect = area.Rect;
+            var image = symmetry is not null && Enumerable.Range(1, Math.Max(0, Symmetry.Order(symmetry.Mode) - 1)).Any(step =>
+                authored.Any(earlier =>
+                {
+                    var (minX, minZ, maxX, maxZ) = Symmetry.Rect(earlier.MinX, earlier.MinZ, earlier.MaxX, earlier.MaxZ,
+                        symmetry.Mode, symmetry.CenterX, symmetry.CenterZ, step);
+                    return Near(minX, rect.MinX) && Near(minZ, rect.MinZ) && Near(maxX, rect.MaxX) && Near(maxZ, rect.MaxZ);
+                }));
+            if (!image) authored.Add(rect);
+        }
+        return ground.Build.Where(cell => authored.Any(rect =>
+            (cell.Item1 + 0.5) * ground.Cell >= rect.MinX && (cell.Item1 + 0.5) * ground.Cell < rect.MaxX
+            && (cell.Item2 + 0.5) * ground.Cell >= rect.MinZ && (cell.Item2 + 0.5) * ground.Cell < rect.MaxZ));
+    }
+
+    private static bool Near(double a, double b) => Math.Abs(a - b) < 1e-6;
+
+    private static bool Authored(StampId stamp) => string.IsNullOrEmpty(stamp.Kind) || stamp.Image == 0;
+
+    private static (int, int) Coarse(Pt point, int cell) =>
+        ((int)Math.Floor(point.X / cell), (int)Math.Floor(point.Z / cell));
 }

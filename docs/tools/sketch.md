@@ -2310,13 +2310,18 @@ the sketch, is said only where the sketch's board does not report one, which is 
 the drawing closed.
 
 **The board's measures are read off the same ground**, at the 5-block cell the corpus's bands were measured at
-(`SketchMeasures`): a cell stands where more than half its blocks do. The evaluator's own terms answer them —
-front faces per team and the widest (`FR4`, `FR6`), crossings, neutral and team stepping stones, cuts, enclosed
-holes and uncrossed middle holes (`CT1`, `CT4`, `CT13`, `CT5`, `CT8`, `CT9`), and the narrowest lane to a wool
-room (`LN1`) — and a value outside its band is a complaint carrying the number and the band. Nothing is summed
-or ranked: a measure says how the board will play and the author weighs it. Compiled from a seed plan, the
-sketch measures what the plan measures; where a centre island straddles both images of a rot_180 board, which
-team its stepping stones count for is the deriver's tie to break and can differ by one stone. Where the map
+(`SketchMeasures`): a cell stands where more than half its blocks do. The evaluator's own terms answer them.
+Off the board's structure: front faces per team and the widest (`FR4`, `FR6`), crossings, neutral and team
+stepping stones, cuts, enclosed holes and uncrossed middle holes (`CT1`, `CT4`, `CT13`, `CT5`, `CT8`, `CT9`),
+and the narrowest lane to a wool room (`LN1`). Off the walks, in blocks: wool to wool, spawn to wool and its
+spread and ratio, wool to the crossing and its balance, ratio and remoteness (`WL7`, `WL13`, `WL9`, `WL15`,
+`WL10`, `WL16`, `WL17`, `WL18`), each over the authored team's ground and its own build areas — an area that
+stands where an earlier one's symmetry image does is that one's copy — and on a two-team board a goal's walks
+over the whole closure (`GO1` to `GO4`). A value outside its band is a complaint carrying the number and the
+band, and a term with no band yet says nothing. Nothing is summed or ranked: a measure says how the board will
+play and the author weighs it. Compiled from a seed plan, the sketch measures what the plan measures — 898 of
+903 values over the 49 seeds — and the rest are where a centre island straddles both images of a rot_180 board,
+whose team is the deriver's tie to break. Where the map
 still holds a plan, the plan answers every other rule and none of these.
 
 ## The API

@@ -11,21 +11,17 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 /// measures is the shape of the board, which is what a layout term is scoring.</summary>
 internal static class SurfaceNav
 {
-    /// <summary>The walkable surface as ground a walk runs over, answering in blocks at the plan's own cell
-    /// size. It is the team's own terrain unioned with the build zones, rasterized straight from the plan:
-    /// the distances taken across it are intra-team, so the un-fanned surface is the correct one and the
-    /// cheaper one, and the gate needs no board derivation.</summary>
-    public static WalkGround Ground(EvalContext ctx)
-        => WalkGround.Over(Walkable(ctx), ctx.Plan.Globals.Cell);
-
-    public static HashSet<(int, int)> Walkable(EvalContext ctx)
+    /// <summary>The walkable cells of a plan: the team's own terrain unioned with the build zones, rasterized
+    /// straight from the plan. The distances taken across it are intra-team, so the un-fanned surface is the
+    /// correct one and the cheaper one, and the gate needs no board derivation.</summary>
+    public static HashSet<(int, int)> Walkable(PlanModel plan)
     {
         var walkable = new HashSet<(int, int)>();
-        foreach (var p in ctx.Plan.Pieces)
+        foreach (var p in plan.Pieces)
             if (!PlanRoles.IsAnnotation(p.Role))   // buffers are reserved empty space, never walkable
                 AddRect(walkable, p.Rect);
         // A water lane is closed at the tick the gate measures, so it is not walkable ground yet.
-        foreach (var z in ctx.Plan.BuildZones)
+        foreach (var z in plan.BuildZones)
             AddRect(walkable, z.Rect);
         return walkable;
     }
@@ -41,10 +37,6 @@ internal static class SurfaceNav
     /// walkable cell (a marker sits on its own filled piece; this fixes the odd off-by-one). A marker naming
     /// no piece reads its offset as an absolute cell position from the symmetry centre — the one shape a
     /// destroyable or core may take. Null if a named piece is unknown or no walkable cell is within reach.</summary>
-    public static (int, int)? MarkerCell(EvalContext ctx, string pieceId, double[] at, IReadOnlySet<(int, int)> walkable)
-        => MarkerCell(ctx.Plan, pieceId, at, walkable);
-
-    /// <summary>As above, straight off the plan — for a reader that has no <see cref="EvalContext"/>.</summary>
     public static (int, int)? MarkerCell(PlanModel plan, string pieceId, double[] at, IReadOnlySet<(int, int)> walkable)
     {
         var cell = plan.Globals.Cell;

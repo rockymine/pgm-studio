@@ -27,27 +27,22 @@ public sealed class SpawnWoolDistance : SoftTerm
     }
 
     protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
-        ctx.Plan.Placements.Spawns.Select(s => s.Piece)
-            .Concat(ctx.Plan.Placements.Wools.Select(w => w.Piece)).Distinct().ToList();
+        ctx.Walks.Spawns.Select(s => s.Owner).Concat(ctx.Walks.Wools.Select(w => w.Owner)).Distinct().ToList();
 
     protected override IReadOnlyList<Evidence> Evidence(EvalContext ctx, double value, Band band)
     {
         var (_, a, b, _, _) = Closest(ctx);
         return a is null || b is null
             ? []
-            : SurfaceNav.RouteEvidence(SurfaceNav.Ground(ctx), a.Value, b.Value, $"{value:0} < {band.Lo:0}");
+            : SurfaceNav.RouteEvidence(ctx.Walks.Ground, a.Value, b.Value, $"{value:0} < {band.Lo:0}");
     }
 
     // The nearest spawn→wool pair by surface traversal, in blocks, its endpoint cells and the two markers' ids.
     internal static (double? Blocks, (int, int)? A, (int, int)? B, string Spawn, string Wool) Closest(EvalContext ctx)
     {
-        var ground = SurfaceNav.Ground(ctx);
-        var spawns = ctx.Plan.Placements.Spawns
-            .Select(s => (s.Id, Cell: SurfaceNav.MarkerCell(ctx, s.Piece, s.At, ground.Footprint)))
-            .Where(s => s.Cell is not null).Select(s => (s.Id, Cell: s.Cell!.Value)).ToList();
-        var wools = ctx.Plan.Placements.Wools
-            .Select(w => (w.Id, Cell: SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Footprint)))
-            .Where(w => w.Cell is not null).Select(w => (w.Id, Cell: w.Cell!.Value)).ToList();
+        var ground = ctx.Walks.Ground;
+        var spawns = ctx.Walks.Spawns.Where(s => s.Cell is not null).Select(s => (s.Id, Cell: s.Cell!.Value)).ToList();
+        var wools = ctx.Walks.Wools.Where(w => w.Cell is not null).Select(w => (w.Id, Cell: w.Cell!.Value)).ToList();
         if (spawns.Count == 0 || wools.Count == 0) return (null, null, null, "", "");
 
         double? best = null;
@@ -84,9 +79,8 @@ public sealed class SpawnWoolFloor : ILayoutTerm
 
         var evidence = a is null || b is null
             ? (IReadOnlyList<Evidence>)[]
-            : SurfaceNav.RouteEvidence(SurfaceNav.Ground(ctx), a.Value, b.Value, $"{blocks:0} < {MinBlocks}");
-        var subjects = ctx.Plan.Placements.Spawns.Select(s => s.Piece)
-            .Concat(ctx.Plan.Placements.Wools.Select(w => w.Piece)).Distinct().ToList();
+            : SurfaceNav.RouteEvidence(ctx.Walks.Ground, a.Value, b.Value, $"{blocks:0} < {MinBlocks}");
+        var subjects = ctx.Walks.Spawns.Select(s => s.Owner).Concat(ctx.Walks.Wools.Select(w => w.Owner)).Distinct().ToList();
         return TermScores.Violated(this, $"the walking distance from a spawn to its nearest wool is {blocks:0} blocks, less than {MinBlocks} blocks", subjects, evidence,
             new Measurement(blocks.Value, Low: MinBlocks));
     }
