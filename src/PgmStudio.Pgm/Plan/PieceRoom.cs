@@ -73,7 +73,7 @@ public static class PieceRoom
         double markerX, double markerZ)
     {
         var frame = RoomFrames.Resolve(piece, footprint, shellBound: true,
-            piece.MinX + markerX, piece.MinZ + markerZ, [], doors, out _);
+            piece.MinX + markerX, piece.MinZ + markerZ, [.. doors.Select(door => new AskedDoor(door))], spawn: true, out _);
         if (frame is null || RoomEdges.Nearest(SpawnFacings.Direction(facing), doors) is not { } door) return null;
         if (frame.Doors.FirstOrDefault(cut => cut.Edge == door) is not { Width: > 0 } opening) return null;
 
@@ -96,7 +96,8 @@ public static class PieceRoom
             var (cubeMinX, cubeMinZ) = alongX ? (aside, outward) : (outward, aside);
             double ironX = cubeMinX + RoomFrames.IronSpan / 2.0, ironZ = cubeMinZ + RoomFrames.IronSpan / 2.0;
             var seated = RoomFrames.ResolveRoom(piece, footprint, shellBound: true,
-                piece.MinX + markerX, piece.MinZ + markerZ, [], doors, [(ironX, ironZ)], out _);
+                piece.MinX + markerX, piece.MinZ + markerZ, [.. doors.Select(door => new AskedDoor(door))], spawn: true,
+                [(ironX, ironZ)], out _);
             if (seated?.Iron is [{ Placeable: true }, ..]) return [ironX - piece.MinX, ironZ - piece.MinZ];
         }
         return null;

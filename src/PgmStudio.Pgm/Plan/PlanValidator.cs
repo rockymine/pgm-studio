@@ -443,10 +443,10 @@ public static class PlanValidator
         var rect = piece.Value.Rect;
         var (markerX, markerZ) = PlanMarkers.Block(rect, at);
         var isSpawn = role == PlanRoles.Spawn;
-        List<(double MinX, double MinZ, double MaxX, double MaxZ)> entries = isSpawn
-            ? []
-            : [.. PlanCompiler.WoolEntrySegments(d, pieceId)
-                .Select(seg => ((double)seg.MinX, (double)seg.MinZ, (double)seg.MaxX, (double)seg.MaxZ))];
+        List<AskedDoor> doors = isSpawn
+            ? [.. spawnDoorEdges.Select(edge => new AskedDoor(edge))]
+            : RoomFrames.EntryDoors(PlanCompiler.WoolEntrySegments(d, pieceId)
+                .Select(seg => ((double)seg.MinX, (double)seg.MinZ, (double)seg.MaxX, (double)seg.MaxZ)), rect);
         List<(double X, double Z)> ironMarkers = isSpawn
             ? [.. plan.Placements.Iron.Where(ir => ir.Piece == pieceId)
                 .Select(ir => PlanMarkers.Block(rect, ir.At))]
@@ -456,7 +456,7 @@ public static class PlanValidator
         // walls inset into it. A footprint that holds a room but not a shell is not refused anywhere; the
         // building simply does not stand on it.
         var room = RoomFrames.ResolveRoom(rect, PlanMarkers.Footprint(rect, footprint), shellBound: false,
-            markerX, markerZ, entries, spawnDoorEdges, ironMarkers, out var refusal);
+            markerX, markerZ, doors, isSpawn, ironMarkers, out var refusal);
         if (refusal is not null)
             findings.Add(refusal with
             {

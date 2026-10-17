@@ -15,7 +15,7 @@ public sealed class RoomCheckTests
 {
     private static SpawnIntent Spawn() => new()
     {
-        Id = "spawn-red", Team = "red", Stamp = new StampId("spawn", "0", 0), Doors = ["+x"],
+        Id = "spawn-red", Team = "red", Stamp = new StampId("spawn", "0", 0), Doors = [new StatedDoor("+x")],
         Point = new Pt(10.5, 12, 10.5), Protection = [new Rect(0, 0, 20, 20)], House = RoomHouse.Over(new Rect(4, 4, 16, 16)),
     };
 
@@ -49,9 +49,9 @@ public sealed class RoomCheckTests
     }
 
     [Test]
-    public async Task A_wool_room_whose_stated_entries_reach_no_wall_has_no_door()
+    public async Task A_wool_room_whose_stated_doors_name_no_wall_has_no_door()
     {
-        var closed = Clean() with { Wools = [Wool("wool-lime") with { Entries = [new Rect(40, 8, 41, 8)] }] };
+        var closed = Clean() with { Wools = [Wool("wool-lime") with { Doors = [new StatedDoor("up", 40, 8)] }] };
 
         await Assert.That(Rules(closed)).IsEquivalentTo(new[] { RoomFrameRules.RoomUnreachable });
     }
@@ -76,7 +76,7 @@ public sealed class RoomCheckTests
     [Test]
     public async Task An_image_the_symmetry_carried_is_not_asked_again()
     {
-        var mirrored = Clean() with { Wools = [Wool("wool-lime"), Wool("wool-lime", image: 1) with { Entries = [new Rect(40, 8, 41, 8)] }] };
+        var mirrored = Clean() with { Wools = [Wool("wool-lime"), Wool("wool-lime", image: 1) with { Doors = [new StatedDoor("up", 40, 8)] }] };
 
         await Assert.That(Rules(mirrored)).IsEmpty();
     }

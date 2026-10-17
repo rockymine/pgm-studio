@@ -39,8 +39,9 @@ public static class RoomStylePreview
         var (width, depth) = HouseFootprints.PieceOf(footprint);
         // A whole-number marker in both axes: the pad is square, so a piece whose axes differ in parity is
         // refused outright where the marker is taken as the piece centre (WX3).
-        return RoomFrames.Resolve(new BlockRect(0, 0, width, depth), footprint: null, shellBound: true,
-                width / 2, depth / 2, [(0, 0, width, 0)], [], out _)
+        var piece = new BlockRect(0, 0, width, depth);
+        return RoomFrames.Resolve(piece, footprint: null, shellBound: true,
+                width / 2, depth / 2, RoomFrames.EntryDoors([(0, 0, width, 0)], piece), spawn: false, out _)
             ?? throw new InvalidOperationException(
                 $"the {footprint} sample piece ({width}×{depth}) does not resolve to a shell");
     }

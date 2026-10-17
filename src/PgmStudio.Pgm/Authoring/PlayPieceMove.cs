@@ -52,9 +52,10 @@ public static class PlayPieceMove
             if (stopped is not null) return (null, stopped);
             var (dx, dz) = Shift(building ? WingOf(spawn.House, wing)!.Value : spawn.Protection[0], placed);
             var spawns = Orbit(intent.Spawns, spawnAt, entry => entry.Stamp, mode, alone, dx, dz,
-                (entry, x, z) => building ? entry with { House = Slide(entry.House, x, z) } : entry with
+                (entry, x, z) => building ? entry with { House = Slide(entry.House, x, z), Doors = Slide(entry.Doors, x, z) } : entry with
                 {
                     Protection = [.. entry.Protection.Select(r => Slide(r, x, z))],
+                    Doors = Slide(entry.Doors, x, z),
                     Point = Slide(entry.Point, x, z),
                     House = Slide(entry.House, x, z),
                     Iron = [.. entry.Iron.Select(pt => Slide(pt, x, z))],
@@ -72,12 +73,12 @@ public static class PlayPieceMove
             if (stopped is not null) return (null, stopped);
             var (dx, dz) = Shift(building ? WingOf(wool.House, wing)!.Value : wool.Protection[0], placed);
             var moved = Orbit(wools, woolAt, entry => entry.Stamp, mode, alone, dx, dz,
-                (entry, x, z) => building ? entry with { House = Slide(entry.House, x, z) } : entry with
+                (entry, x, z) => building ? entry with { House = Slide(entry.House, x, z), Doors = Slide(entry.Doors, x, z) } : entry with
                 {
                     Protection = [.. entry.Protection.Select(r => Slide(r, x, z))],
                     Spawn = Slide(entry.Spawn, x, z),
                     House = Slide(entry.House, x, z),
-                    Entries = [.. entry.Entries.Select(r => Slide(r, x, z))],
+                    Doors = Slide(entry.Doors, x, z),
                 });
             return Checked(intent with { Wools = moved }, Carried(wools, moved)
                 .Select(entry => (entry.Id, entry.Protection, entry.House?.Bounds)));
@@ -425,7 +426,7 @@ public static class PlayPieceMove
 
     /// <summary>An edge word turned <paramref name="quarters"/> quarter turns clockwise seen from above.</summary>
     private static string TurnedEdge(string word, int quarters) =>
-        new Pivot(0, 0, ((quarters % 4) + 4) % 4, 0, 0).Door(word);
+        RoomEdges.OfWord(word) is { } edge ? new Pivot(0, 0, ((quarters % 4) + 4) % 4, 0, 0).Edge(edge).Word() : word;
 
     /// <summary>The quarter turns an image takes for the named one's <paramref name="quarters"/>: the same where
     /// the step between them is a rotation, the other way where it is a reflection.</summary>
@@ -434,7 +435,7 @@ public static class PlayPieceMove
 
     private static SpawnIntent TurnSpawn(SpawnIntent spawn, bool building, int quarters)
     {
-        if (building) return spawn with { House = Turned(spawn.House!, quarters) };
+        if (building) return spawn with { House = Turned(spawn.House!, quarters), Doors = Turned(spawn.Doors, spawn.House!, quarters) };
         var pivot = Pivot.Of(spawn.Protection[0], quarters);
         return spawn with
         {
@@ -449,14 +450,14 @@ public static class PlayPieceMove
 
     private static WoolIntent TurnWool(WoolIntent wool, bool building, int quarters)
     {
-        if (building) return wool with { House = Turned(wool.House!, quarters) };
+        if (building) return wool with { House = Turned(wool.House!, quarters), Doors = Turned(wool.Doors, wool.House!, quarters) };
         var pivot = Pivot.Of(wool.Protection[0], quarters);
         return wool with
         {
             Protection = [pivot.Rect(wool.Protection[0])],
             Spawn = pivot.Point(wool.Spawn),
             House = wool.House?.Mapped(pivot.Rect),
-            Entries = [.. wool.Entries.Select(pivot.Rect)],
+            Doors = [.. wool.Doors.Select(pivot.Door)],
         };
     }
 
@@ -504,13 +505,14 @@ public static class PlayPieceMove
             return p with { X = x, Z = z };
         }
 
-        public string Door(string word)
+        public RoomEdge Edge(RoomEdge edge)
         {
-            if (RoomEdges.OfWord(word) is not { } edge) return word;
             var (dx, dz) = edge.Outward();
             for (var k = 0; k < Quarters; k++) (dx, dz) = (-dz, dx);
-            return RoomEdges.Nearest((dx, dz), RoomEdges.All) is { } image ? image.Word() : word;
+            return RoomEdges.Nearest((dx, dz), RoomEdges.All) ?? edge;
         }
+
+        public StatedDoor Door(StatedDoor door) => door.Mapped(Turned, Edge);
     }
 
     /// <summary>The entries the move replaced — every other entry is the same object it was.</summary>
@@ -599,6 +601,13 @@ public static class PlayPieceMove
     /// <summary>A house turned about the middle of the rectangle round its wings.</summary>
     private static RoomHouse Turned(RoomHouse house, int quarters) =>
         house.Mapped(Pivot.Of(house.Bounds!.Value, quarters).Rect);
+
+    /// <summary>A room's doors turned with its house, about the same pivot.</summary>
+    private static List<StatedDoor> Turned(List<StatedDoor> doors, RoomHouse house, int quarters) =>
+        [.. doors.Select(Pivot.Of(house.Bounds!.Value, quarters).Door)];
+
+    private static List<StatedDoor> Slide(List<StatedDoor> doors, double dx, double dz) =>
+        [.. doors.Select(door => door.Slid(dx, dz))];
 
     /// <summary>A point on the moved ground. Its Y is the nominal surface it was stated at and is left alone:
     /// what it stands on is measured by the world build against the terrain it laid.</summary>

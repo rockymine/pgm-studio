@@ -15,7 +15,7 @@ public sealed class PlanCompilerSpawnDoorsTests
     private static Dictionary<string, string[]> DoorsByTeam(string json)
     {
         var (_, intent) = PlanCompiler.Compile(PlanModel.Parse(json)!);
-        return intent.Spawns.ToDictionary(s => s.Team, s => s.Doors.ToArray(), StringComparer.Ordinal);
+        return intent.Spawns.ToDictionary(s => s.Team, s => s.Doors.Select(door => door.Edge).ToArray(), StringComparer.Ordinal);
     }
 
     // A corner spawn on a board with an arm along each of its inner walls — Quatrefoil's shape, quarter-turn
@@ -58,7 +58,7 @@ public sealed class PlanCompilerSpawnDoorsTests
     {
         var (_, intent) = PlanCompiler.Compile(PlanModel.Parse(Quarters)!);
         foreach (var spawn in intent.Spawns)
-        foreach (var word in spawn.Doors)
+        foreach (var word in spawn.Doors.Select(door => door.Edge))
         {
             var (ox, oz) = RoomEdges.OfWord(word)!.Value.Outward();
             // The hall sits in a corner, so the step toward the middle is minus the sign of its own position.

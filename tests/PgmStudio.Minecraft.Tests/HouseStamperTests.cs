@@ -2048,9 +2048,9 @@ public sealed class HouseStamperTests
             foreach (var door in RoomEdges.All)
             {
                 var room = RoomFrames.Resolve(new BlockRect(piece.MinX, piece.MinZ, piece.MaxX, piece.MaxZ), null,
-                    shellBound: true, piece.MarkerX, piece.MarkerZ, [], [door], out _)!;
+                    shellBound: true, piece.MarkerX, piece.MarkerZ, [new AskedDoor(door)], spawn: true, out _)!;
                 var image = RoomFrames.Resolve(new BlockRect(-piece.MaxX, -piece.MaxZ, -piece.MinX, -piece.MinZ),
-                    null, shellBound: true, -piece.MarkerX, -piece.MarkerZ, [], [door.Opposite()], out _)!;
+                    null, shellBound: true, -piece.MarkerX, -piece.MarkerZ, [new AskedDoor(door.Opposite())], spawn: true, out _)!;
                 var (world, turned) = (new VoxelWorld(), new VoxelWorld());
                 HouseStamper.Stamp(world, room, FloorY, named.Style);
                 HouseStamper.Stamp(turned, image, FloorY, named.Style);
@@ -2087,13 +2087,13 @@ public sealed class HouseStamperTests
                 foreach (var door in RoomEdges.All)
                 {
                     var room = RoomFrames.Resolve(new BlockRect(piece.MinX, piece.MinZ, piece.MaxX, piece.MaxZ),
-                        null, shellBound: true, piece.MarkerX, piece.MarkerZ, [], [door], out _)!;
+                        null, shellBound: true, piece.MarkerX, piece.MarkerZ, [new AskedDoor(door)], spawn: true, out _)!;
                     var mirroredDoor = door.AlongX() == acrossX ? door : door.Opposite();
                     var image = (acrossX
                         ? RoomFrames.Resolve(new BlockRect(-piece.MaxX, piece.MinZ, -piece.MinX, piece.MaxZ), null,
-                            shellBound: true, -piece.MarkerX, piece.MarkerZ, [], [mirroredDoor], out _)!
+                            shellBound: true, -piece.MarkerX, piece.MarkerZ, [new AskedDoor(mirroredDoor)], spawn: true, out _)!
                         : RoomFrames.Resolve(new BlockRect(piece.MinX, -piece.MaxZ, piece.MaxX, -piece.MinZ), null,
-                            shellBound: true, piece.MarkerX, -piece.MarkerZ, [], [mirroredDoor], out _)!)
+                            shellBound: true, piece.MarkerX, -piece.MarkerZ, [new AskedDoor(mirroredDoor)], spawn: true, out _)!)
                         with { Reflected = true };
                     var (world, mirrored) = (new VoxelWorld(), new VoxelWorld());
                     HouseStamper.Stamp(world, room, FloorY, named.Style);

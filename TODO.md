@@ -22,13 +22,12 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS189 — A room's doors are stated, drawn and placed by hand.** One door shape for both rooms — the
-  edge a wall faces and the block along it — replaces `SpawnIntent.Doors` (edge words) and `WoolIntent.Entries`
-  (segments), with a migration (dry run first) carrying each spawn door to its wall's centre and each entry to
-  its midpoint. A door may stand on any wing's outer wall; `Doorways` already finds the wall facing its edge
-  that holds its point. A room stating none gets one door, on the side of its region meeting the most ground,
-  ties to the side nearer the symmetry centre — not one per wall (`WorldBuilder.WoolEntries`). In Layout's
-  house view doors are drawn on the outline, and shift-click on an outer edge adds or removes one there
+- [~] **TS189 — A room's doors are stated, drawn and placed by hand.** Both rooms state `Doors` as
+  `StatedDoor`s. A wool stating none gets one door, on the side of its region meeting the most ground, ties to
+  the side nearer the symmetry centre — not one per wall (`WorldBuilder.WoolDoors`). A door may stand on any
+  wing's outer wall: the resolver keeps a point off the frame's wall rather than clamping it there, and
+  `BuildingPlan.WallFacing` takes the point's line where two walls facing one way hold it. In Layout's house
+  view doors are drawn on the outline, and shift-click on an outer edge adds or removes one there
   (`room-house-controller.js`, a `PUT …/intent/pieces/{id}/doors`). `WL11` and `ST11` read the doors as a wool's
   entries, and a wool door with no ground before it is a complaint. `docs/tools/sketch.md`,
   `docs/world-export/structures.md`.

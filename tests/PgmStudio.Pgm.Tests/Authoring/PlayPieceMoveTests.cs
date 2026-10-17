@@ -35,7 +35,7 @@ public sealed class PlayPieceMoveTests
                 Spawn = new Pt(25, 12, 5),
                 Protection = [new Rect(20, 0, 30, 10)],
                 House = RoomHouse.Over(new Rect(22, 2, 28, 8)),
-                Entries = [new Rect(20, 4, 20, 6)],
+                Doors = [StatedDoor.At(RoomEdge.NegX, 20, 5)],
             },
         ],
         Destroyables = [new DestroyableIntent { Id = "destroyable-red", Owner = "red", Style = "cube-3", Anchor = new Pt(40, 12, 5) }],
@@ -101,7 +101,7 @@ public sealed class PlayPieceMoveTests
         await Assert.That(wool.Protection.Single()).IsEqualTo(new Rect(20, 40, 30, 50));
         await Assert.That(wool.Spawn.Z).IsEqualTo(45);
         await Assert.That(wool.House?.Room).IsEqualTo(new Rect(22, 42, 28, 48));
-        await Assert.That(wool.Entries.Single()).IsEqualTo(new Rect(20, 44, 20, 46));
+        await Assert.That(wool.Doors.Single()).IsEqualTo(StatedDoor.At(RoomEdge.NegX, 20, 45));
     }
 
     [Test]
@@ -321,7 +321,7 @@ public sealed class PlayPieceMoveTests
         [
             new SpawnIntent
             {
-                Id = "spawn-red", Team = "red", Point = new Pt(2, 12, 3), Yaw = 180, Doors = ["-z"],
+                Id = "spawn-red", Team = "red", Point = new Pt(2, 12, 3), Yaw = 180, Doors = [new StatedDoor("-z")],
                 Protection = [new Rect(0, 0, 10, 6)], House = RoomHouse.Over(new Rect(1, 1, 5, 5)), Iron = [new Pt(9, 12, 5)],
             },
         ],
@@ -340,7 +340,7 @@ public sealed class PlayPieceMoveTests
         await Assert.That(spawn.Protection.Single()).IsEqualTo(new Rect(2, -2, 8, 8));
         await Assert.That((spawn.Point.X, spawn.Point.Z)).IsEqualTo((5.0, 0.0));
         await Assert.That(spawn.House?.Room).IsEqualTo(new Rect(3, -1, 7, 3));
-        await Assert.That(spawn.Doors).IsEquivalentTo(new[] { "+x" });
+        await Assert.That(spawn.Doors.Select(door => door.Edge)).IsEquivalentTo(new[] { "+x" });
         await Assert.That(spawn.Yaw).IsEqualTo(270);
     }
 
@@ -379,12 +379,12 @@ public sealed class PlayPieceMoveTests
     public async Task A_mirror_image_turns_the_other_way()
     {
         var board = Mirrored();
-        board = board with { Spawns = [.. board.Spawns.Select(spawn => spawn with { Doors = ["-z"] })] };
+        board = board with { Spawns = [.. board.Spawns.Select(spawn => spawn with { Doors = [new StatedDoor("-z")] })] };
 
         var turned = PlayPieceMove.Turn(board, "spawn-red", null, 1).Intent!;
 
-        await Assert.That(Spawn(turned, 0).Doors).IsEquivalentTo(new[] { "+x" });
-        await Assert.That(Spawn(turned, 1).Doors).IsEquivalentTo(new[] { "-x" });
+        await Assert.That(Spawn(turned, 0).Doors.Select(door => door.Edge)).IsEquivalentTo(new[] { "+x" });
+        await Assert.That(Spawn(turned, 1).Doors.Select(door => door.Edge)).IsEquivalentTo(new[] { "-x" });
     }
 
     [Test]

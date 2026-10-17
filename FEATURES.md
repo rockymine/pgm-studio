@@ -9477,6 +9477,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   drawing builds, and `G5` the hops between its landmasses; compiled from a seed, each says what the plan's does.
   The plan's `SP8` and `SP9` read the door the room is cut with. (`Pgm/Sketch/SketchSeamCheck`,
   `Pgm/Sketch/SketchBoardCheck`, `docs/tools/sketch.md`)
+- **A room's doors are stated in one shape (`TS189`).** Spawn and wool rooms both state `Doors`, each the way
+  its wall faces and the point it is centred on, or no point for a door centred on its wall; the plan states a
+  wool's at each entry interface's midpoint and a spawn's centred on each wall it cuts, and `M0082` carries
+  every stored door word and entry across. (`Pgm/Authoring/MapIntent` `StatedDoor`, `Domain/RoomFrames`
+  `AskedDoor`, `docs/world-export/structures.md`)
 - **A drawn step is asked only where a match crosses it (`TS171`).** `SP8` at a spawn's door and `WL11` at a
   wool room's entries — the sides of its region that meet ground — read the sketch's built heights, and `ST11`
   says an approach wall crowding the entrance it stands before; the plan's `EL1` is not asked

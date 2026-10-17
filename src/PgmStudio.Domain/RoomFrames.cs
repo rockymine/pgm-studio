@@ -9,6 +9,10 @@ namespace PgmStudio.Domain;
 /// <see cref="Width"/> in blocks.</summary>
 public readonly record struct RoomDoor(RoomEdge Edge, int Lo, int Width);
 
+/// <summary>A door asked of a room's frame: the wall it is cut in, and the block coordinate along that wall it
+/// is centred on (x for a Z edge, z for an X edge), or null to centre it on the wall.</summary>
+public readonly record struct AskedDoor(RoomEdge Edge, double? Along = null);
+
 /// <summary>A monument seat inside a spawn room: the interior floor cell and the <see cref="Wall"/> the
 /// pedestal hugs (which side its label sign hangs toward the room centre from).</summary>
 public readonly record struct MonumentSlot(int X, int Z, RoomEdge Wall);
@@ -272,19 +276,26 @@ public static class RoomFrames
     /// <remarks>The frame-only convenience: no iron markers, returns just the frame.</remarks>
     public static RoomFrame? Resolve(
         BlockRect piece, BlockRect? footprint, bool shellBound,
-        double markerX, double markerZ,
-        IReadOnlyList<(double MinX, double MinZ, double MaxX, double MaxZ)> entries,
-        IReadOnlyList<RoomEdge> spawnDoorEdges,
+        double markerX, double markerZ, IReadOnlyList<AskedDoor> doors, bool spawn,
         out Finding? refusal)
-        => ResolveRoom(piece, footprint, shellBound, markerX, markerZ,
-            entries, spawnDoorEdges, [], out refusal)?.Frame;
+        => ResolveRoom(piece, footprint, shellBound, markerX, markerZ, doors, spawn, [], out refusal)?.Frame;
+
+    /// <summary>The doors a set of entry segments asks for: one per degenerate rect lying on an edge of
+    /// <paramref name="piece"/>, centred on the segment; a segment on no edge asks for none.</summary>
+    public static List<AskedDoor> EntryDoors(
+        IEnumerable<(double MinX, double MinZ, double MaxX, double MaxZ)> entries, BlockRect piece)
+    {
+        var doors = new List<AskedDoor>();
+        foreach (var entry in entries)
+            if (ClassifyEntry(entry, piece.MinX, piece.MinZ, piece.MaxX, piece.MaxZ) is { } placed)
+                doors.Add(new AskedDoor(placed.Edge, (placed.Lo + placed.Hi) / 2));
+        return doors;
+    }
 
     /// <summary>
-    /// Resolve a room from its piece rect, its marker, its entry interfaces, and the piece's iron markers
-    /// (WX1–WX9). <paramref name="entries"/> are degenerate rects on the piece boundary (a seam or
-    /// build-zone interface segment; zero-thickness on the seam axis); pass
-    /// <paramref name="spawnDoorEdges"/> instead for a spawn room, whose doors are named as whole walls
-    /// rather than cut from a segment.
+    /// Resolve a room from its piece rect, its marker, the doors asked of it, and the piece's iron markers
+    /// (WX1–WX9). Each door is cut in the wall it names, centred where it asks or on the wall, clamped onto
+    /// the run between the wall's corners.
     /// <paramref name="ironMarkers"/> resolve to cubes standing clear of the shell in the ring around it
     /// (WX8), or to unplaceable markers (WX9). Null with a <paramref name="refusal"/> naming the
     /// <see cref="RoomFrameRules"/> id that refused — the same finding the validator reports.
@@ -304,22 +315,23 @@ public static class RoomFrames
     /// frame's <see cref="RoomFrame.Wall"/> is what says which happened.</param>
     /// <param name="markerX">The spawn or wool point's x, in absolute blocks — where the pad centres (WX3–WX5).</param>
     /// <param name="markerZ">The same point's z.</param>
-    /// <param name="entries">Degenerate rects on the piece boundary, one door cut per distinct edge (WX6).</param>
-    /// <param name="spawnDoorEdges">A spawn room's doors, one per named wall, in place of
-    /// <paramref name="entries"/>. Empty leaves the room to <paramref name="entries"/> as a wool cage does.</param>
+    /// <param name="doors">The doors asked of the room, in the order they are cut. A wool room asking none is
+    /// unreachable (WX6).</param>
+    /// <param name="spawn">Whether the room is a spawn's, whose default footprint keeps ground in front of each
+    /// of its doors (WX1).</param>
     /// <param name="ironMarkers">The piece's iron markers, resolved in input order (WX8/WX9).</param>
     /// <param name="refusal">The <see cref="RoomFrameRules"/> finding that refused, where the result is null.</param>
     public static ResolvedRoom? ResolveRoom(
         BlockRect piece, BlockRect? footprint, bool shellBound,
         double markerX, double markerZ,
-        IReadOnlyList<(double MinX, double MinZ, double MaxX, double MaxZ)> entries,
-        IReadOnlyList<RoomEdge> spawnDoorEdges,
+        IReadOnlyList<AskedDoor> doors, bool spawn,
         IReadOnlyList<(double X, double Z)> ironMarkers,
         out Finding? refusal)
     {
         refusal = null;
         int pieceMinX = piece.MinX, pieceMinZ = piece.MinZ, pieceMaxX = piece.MaxX, pieceMaxZ = piece.MaxZ;
-        var room = footprint ?? DefaultFootprint(piece, spawnDoorEdges, markerX, markerZ, shellBound);
+        var room = footprint ?? DefaultFootprint(
+            piece, spawn ? [.. doors.Select(door => door.Edge).Distinct()] : [], markerX, markerZ, shellBound);
         int minX = room.MinX, minZ = room.MinZ, maxX = room.MaxX, maxZ = room.MaxZ;
         // A shell stands where one is bound and the footprint can carry it. A room too small for walls is not
         // a refusal: its pad, chests and monuments are what a room is, and they need the same floor either
@@ -368,48 +380,29 @@ public static class RoomFrames
             return null;
         }
 
-        List<RoomDoor> doors;
-        if (spawnDoorEdges.Count > 0)
+        // Each door centres where it asks, or on its wall, and is clamped onto the run between the corners. A
+        // wall carries one door: a second asking the same wall at the same place is the same door.
+        var cut = new List<RoomDoor>();
+        foreach (var asked in doors)
         {
-            // A named wall centres its door on itself: the wall is the whole opening's context, where a wool
-            // cage's is the segment its neighbour abuts along.
-            doors = [];
-            foreach (var doorEdge in spawnDoorEdges.Distinct())
-            {
-                var alongX = doorEdge.AlongX();
-                var interiorAcross = (alongX ? maxX - minX : maxZ - minZ) - 2 * wall;
-                var width = DoorWidth(interiorAcross);
-                var lo = alongX
-                    ? minX + (maxX - minX - width) / 2
-                    : minZ + (maxZ - minZ - width) / 2;
-                doors.Add(new RoomDoor(doorEdge, lo, width));
-            }
+            var alongX = asked.Edge.AlongX();
+            var interiorAcross = (alongX ? maxX - minX : maxZ - minZ) - 2 * wall;
+            var width = DoorWidth(interiorAcross);
+            var (runLo, runHi) = alongX ? (minX + wall, maxX - wall) : (minZ + wall, maxZ - wall);
+            var lo = asked.Along is { } along
+                ? Math.Min(Math.Max((int)Math.Round(along - width / 2.0, MidpointRounding.AwayFromZero), runLo), runHi - width)
+                : alongX ? minX + (maxX - minX - width) / 2 : minZ + (maxZ - minZ - width) / 2;
+            var door = new RoomDoor(asked.Edge, lo, width);
+            if (!cut.Contains(door)) cut.Add(door);
         }
-        else
+        if (cut.Count == 0 && !spawn)
         {
-            doors = [];
-            foreach (var entry in entries)
-            {
-                if (ClassifyEntry(entry, pieceMinX, pieceMinZ, pieceMaxX, pieceMaxZ) is not { } placed) continue;
-                var (edge, intervalLo, intervalHi) = placed;
-                var alongX = edge.AlongX();
-                var interiorAcross = (alongX ? maxX - minX : maxZ - minZ) - 2 * wall;
-                var width = DoorWidth(interiorAcross);
-                // Centre the door on the entry interval, clamped onto the wall run between the corners.
-                var (runLo, runHi) = alongX ? (minX + wall, maxX - wall) : (minZ + wall, maxZ - wall);
-                var ideal = (int)Math.Round((intervalLo + intervalHi) / 2.0 - width / 2.0, MidpointRounding.AwayFromZero);
-                var lo = Math.Min(Math.Max(ideal, runLo), runHi - width);
-                doors.Add(new RoomDoor(edge, lo, width));
-            }
-            if (doors.Count == 0)
-            {
-                refusal = new Finding(RoomFrameRules.RoomUnreachable,
-                    "has no shared edge with another piece or a build region");
-                return null;
-            }
+            refusal = new Finding(RoomFrameRules.RoomUnreachable,
+                "has no shared edge with another piece or a build region");
+            return null;
         }
 
-        return new ResolvedRoom(new RoomFrame(minX, minZ, maxX, maxZ, pad.Value, doors, wall), iron);
+        return new ResolvedRoom(new RoomFrame(minX, minZ, maxX, maxZ, pad.Value, cut, wall), iron);
     }
 
     /// <summary>The least air a cube keeps between itself and the room shell (WX8): the standing room a

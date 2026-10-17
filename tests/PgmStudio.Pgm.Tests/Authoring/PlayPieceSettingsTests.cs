@@ -18,9 +18,9 @@ public sealed class PlayPieceSettingsTests
         Spawns =
         [
             new SpawnIntent { Id = "spawn-red", Team = "red", Stamp = new StampId("spawn", "0", 0), Yaw = 270,
-                              Doors = ["+x"], Protection = [new Rect(-40, -6, -30, 6)] },
+                              Doors = [new StatedDoor("+x")], Protection = [new Rect(-40, -6, -30, 6)] },
             new SpawnIntent { Id = "spawn-blue", Team = "blue", Stamp = new StampId("spawn", "0", 1), Yaw = 90,
-                              Doors = ["-x"], Protection = [new Rect(30, -6, 40, 6)] },
+                              Doors = [new StatedDoor("-x")], Protection = [new Rect(30, -6, 40, 6)] },
         ],
         Wools = [new WoolIntent { Id = "wool-red", Owner = "red", Stamp = new StampId("wool", "0", 0) },
                  new WoolIntent { Id = "wool-blue", Owner = "blue", Stamp = new StampId("wool", "0", 1) }],
@@ -75,7 +75,7 @@ public sealed class PlayPieceSettingsTests
 
         await Assert.That(faced!.Spawns.Select(spawn => spawn.Yaw)).IsEquivalentTo(new[] { 0.0, 0.0 })
             .Because("red turns from east to south and its mirror from west to south");
-        await Assert.That(faced.Spawns[0].Doors).IsEquivalentTo(new[] { "+z" });
+        await Assert.That(faced.Spawns[0].Doors.Select(door => door.Edge)).IsEquivalentTo(new[] { "+z" });
         await Assert.That(faced.Spawns[0].Protection.Single()).IsEqualTo(new Rect(-40, -6, -30, 6));
     }
 

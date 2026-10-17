@@ -1071,19 +1071,13 @@ public static class WorldBuilder
         if (Ground(w.Protection) is not { } ground) return null;
         var (markerX, markerZ) = PositionSnap.SnapHalfXZ(w.Spawn.X, w.Spawn.Z);
         return RoomFrames.Resolve(
-            ground, StatedFootprint(w.House?.Room), shellBound, markerX, markerZ, WoolEntries(w, ground), [], out refusal);
+            ground, StatedFootprint(w.House?.Room), shellBound, markerX, markerZ, WoolDoors(w), spawn: false, out refusal);
     }
 
-    /// <summary>The seams a wool room's doors are cut on: its stated entries, or where it states none, every
-    /// side of the ground it stands on, which keeps a door on each wall.</summary>
-    private static List<(double MinX, double MinZ, double MaxX, double MaxZ)> WoolEntries(WoolIntent w, BlockRect ground) =>
-        w.Entries.Count > 0
-            ? [.. w.Entries.Select(e => (e.MinX, e.MinZ, e.MaxX, e.MaxZ))]
-            :
-            [
-                (ground.MinX, ground.MinZ, ground.MaxX, ground.MinZ), (ground.MinX, ground.MaxZ, ground.MaxX, ground.MaxZ),
-                (ground.MinX, ground.MinZ, ground.MinX, ground.MaxZ), (ground.MaxX, ground.MinZ, ground.MaxX, ground.MaxZ),
-            ];
+    /// <summary>The doors a wool room is cut with: its stated ones, or where it states none, one centred on
+    /// every wall.</summary>
+    private static List<AskedDoor> WoolDoors(WoolIntent w) =>
+        w.Doors.Count > 0 ? StatedDoor.Asked(w.Doors) : [.. RoomEdges.All.Select(edge => new AskedDoor(edge))];
 
     /// <inheritdoc cref="WoolFrame"/>
     /// <remarks>A spawn resolves its room together with the region's iron markers: each cube stands clear of
@@ -1098,7 +1092,7 @@ public static class WorldBuilder
 
     private static ResolvedRoom UnreflectedSpawnRoom(SpawnIntent s, bool shellBound) =>
         ResolvedSpawn(s, shellBound, out _)
-        ?? new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, s.DoorEdges(), shellBound), []);
+        ?? new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, s.AskedDoors(), shellBound), []);
 
     /// <summary>The room a spawn resolves on its region, its iron with it, or null with the refusal that
     /// stopped it — null and no refusal where it stands on no region.</summary>
@@ -1108,7 +1102,7 @@ public static class WorldBuilder
         if (Ground(s.Protection) is not { } ground) return null;
         var (markerX, markerZ) = PositionSnap.SnapHalfXZ(s.Point.X, s.Point.Z);
         return RoomFrames.ResolveRoom(
-            ground, StatedFootprint(s.House?.Room), shellBound, markerX, markerZ, [], s.DoorEdges(),
+            ground, StatedFootprint(s.House?.Room), shellBound, markerX, markerZ, s.AskedDoors(), spawn: true,
             [.. s.Iron.Select(iron => PositionSnap.SnapHalfXZ(iron.X, iron.Z))], out refusal);
     }
 
@@ -1174,22 +1168,16 @@ public static class WorldBuilder
     // fallback when an authored piece refuses to frame (the validator gates plan exports, so reaching that
     // fallback means a hand-edited intent — stamping the default beats failing the export).
     private static RoomFrame DefaultFrame(
-        double x, double z, IReadOnlyList<RoomEdge> spawnDoorEdges, bool shellBound)
+        double x, double z, IReadOnlyList<AskedDoor> spawnDoors, bool shellBound)
     {
         var (anchorX, anchorZ) = PositionSnap.SnapXZ(x, z);
         int minX = anchorX - 5, minZ = anchorZ - 5, maxX = anchorX + 5, maxZ = anchorZ + 5;
-        List<(double MinX, double MinZ, double MaxX, double MaxZ)> entries = spawnDoorEdges.Count == 0
-            ?
-            [
-                (minX, minZ, maxX, minZ), (minX, maxZ, maxX, maxZ),
-                (minX, minZ, minX, maxZ), (maxX, minZ, maxX, maxZ),
-            ]
-            : [];
+        var piece = new BlockRect(minX, minZ, maxX, maxZ);
+        var doors = spawnDoors.Count > 0 ? spawnDoors : [.. RoomEdges.All.Select(edge => new AskedDoor(edge))];
         // The footprint is stated rather than defaulted: this synthetic rect is the room a piece-less marker
         // has always resolved to, so the shell is its own one-block inset and no door gap is taken out of it.
-        return RoomFrames.Resolve(new BlockRect(minX, minZ, maxX, maxZ),
-            new BlockRect(minX + 1, minZ + 1, maxX - 1, maxZ - 1), shellBound,
-            anchorX, anchorZ, entries, spawnDoorEdges, out _)!;
+        return RoomFrames.Resolve(piece, new BlockRect(minX + 1, minZ + 1, maxX - 1, maxZ - 1), shellBound,
+            anchorX, anchorZ, doors, spawn: spawnDoors.Count > 0, out _)!;
     }
 
     /// <summary>The teams that capture a wool: its authored monument teams, or — when none were authored

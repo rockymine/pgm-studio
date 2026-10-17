@@ -220,11 +220,11 @@ public static class PlanCompiler
                             })]
                         : [],
                     Yaw = FanYaw(d, bx, bz, fx, fz, k),
-                    // A door is a direction, and it is fanned the way the yaw beside it is: the region, the
-                    // footprint and the iron all turn with the orbit, so a side stated in the authored unit's
-                    // frame is the wrong side on every image but the first. The stamper reads these words as
-                    // they stand (SpawnIntent.DoorEdges), so this is where the turn has to happen.
-                    Doors = [.. FanDoors(d, doors, bx, bz, k).Select(RoomEdges.Word)],
+                    // A spawn's door is centred on its wall, and the wall is fanned the way the yaw beside it is:
+                    // the region, the footprint and the iron all turn with the orbit, so a side stated in the
+                    // authored unit's frame is the wrong side on every image but the first. The stamper reads
+                    // the doors as they stand, so this is where the turn has to happen.
+                    Doors = [.. FanDoors(d, doors, bx, bz, k).Select(StatedDoor.Centred)],
                 });
                 if (piece.Value.Role == PlanRoles.Spawn && k == 0)
                     spawnRooms[spawns.Count - 1] = AuthoredRoom(piece.Value.Surface, doors);
@@ -245,8 +245,8 @@ public static class PlanCompiler
                     : i == 0 ? teams[k].Color
                     : PieceDefaults.Dyes[dyeCursor++ % PieceDefaults.Dyes.Length];
                 var room = d.FanRect(piece.Value.Rect, k);
-                // A wool-room ROLE piece carries the entry interfaces the cage's doors are cut on (WX6); a
-                // wool on a plain piece has none, and a cage with no entry keeps a door per wall.
+                // A wool-room ROLE piece opens a door at each entry interface (WX6); a wool on a plain piece
+                // states none, and a cage with no door keeps a door per wall.
                 var isRoomPiece = piece.Value.Role == PlanRoles.WoolRoom;
                 wools.Add(new WoolIntent
                 {
@@ -257,12 +257,8 @@ public static class PlanCompiler
                     // The whole wool-room piece: the room region, and the ground the cage is framed on.
                     Protection = [new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ)],
                     House = FanFootprint(d, piece.Value.Rect, w.Footprint, k) is { } woolHouse ? RoomHouse.Over(woolHouse) : null,
-                    Entries = isRoomPiece
-                        ? [.. WoolEntrySegments(d, w.Piece).Select(seg =>
-                            {
-                                var fanned = d.FanRect(seg, k);
-                                return new Rect(fanned.MinX, fanned.MinZ, fanned.MaxX, fanned.MaxZ);
-                            })]
+                    Doors = isRoomPiece
+                        ? [.. WoolEntrySegments(d, w.Piece).SelectMany(seg => EntryDoor(d, piece.Value.Rect, seg, k))]
                         : [],
                     // Nominal, like the spawn's above and the goal anchor's below: the wool's real Y is the
                     // course its cage puts it on, over the ground WorldBuilder measured.
@@ -585,6 +581,16 @@ public static class PlanCompiler
                 segments.Add(new BlockRect(Math.Min(edge.X1, edge.X2), Math.Min(edge.Z1, edge.Z2),
                     Math.Max(edge.X1, edge.X2), Math.Max(edge.Z1, edge.Z2)));
         return segments;
+    }
+
+    /// <summary>The door an entry segment of a wool room opens, on orbit image <paramref name="k"/>: centred on
+    /// the segment, on the wall of <paramref name="room"/> it lies along; none for a segment on no edge.</summary>
+    private static IEnumerable<StatedDoor> EntryDoor(ContactGraph d, BlockRect room, BlockRect seg, int k)
+    {
+        if (RoomFrames.EntryDoors([(seg.MinX, seg.MinZ, seg.MaxX, seg.MaxZ)], room) is not [var asked]) yield break;
+        double x = (seg.MinX + seg.MaxX) / 2.0, z = (seg.MinZ + seg.MaxZ) / 2.0;
+        var (fannedX, fannedZ) = d.FanPoint(x, z, k);
+        foreach (var edge in FanDoors(d, [asked.Edge], x, z, k)) yield return StatedDoor.At(edge, fannedX, fannedZ);
     }
 
     // Fan a set of cell rects to every orbit image, de-duplicating exact repeats (self-symmetric rects).

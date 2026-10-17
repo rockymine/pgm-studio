@@ -59,7 +59,7 @@ public static class PlayPieceAdd
                 var authored = new SpawnIntent
                 {
                     Team = owner, Stamp = stamp, Point = new Pt(cx, 0, cz), Protection = [placed],
-                    Yaw = YawOf(door), Doors = [RoomEdges.Nearest(door, RoomEdges.All)!.Value.Word()],
+                    Yaw = YawOf(door), Doors = [StatedDoor.Centred(RoomEdges.Nearest(door, RoomEdges.All)!.Value)],
                 };
                 added = intent with { Spawns = [.. intent.Spawns, .. Orbit(new MapIntent { Spawns = [authored] }).Spawns] };
                 break;

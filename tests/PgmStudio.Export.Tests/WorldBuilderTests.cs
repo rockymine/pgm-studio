@@ -150,7 +150,7 @@ public sealed class WorldBuilderTests
         // recorded on the intent has to reach it — on the region-framed path and on the default one alike.
         var region = new SpawnIntent
         {
-            Team = "red", Point = new Pt(-20, 1, 0), Protection = [new Rect(-30, -10, -10, 10)], Doors = ["+x"],
+            Team = "red", Point = new Pt(-20, 1, 0), Protection = [new Rect(-30, -10, -10, 10)], Doors = [new StatedDoor("+x")],
             Reflected = reflected,
         };
         var bare = new SpawnIntent { Team = "red", Point = new Pt(-20, 1, 0), Reflected = reflected };
@@ -201,7 +201,7 @@ public sealed class WorldBuilderTests
                 new WoolIntent
                 {
                     Owner = "red", Color = "red", Spawn = new Pt(-10, 1, 10), Protection = [piece],
-                    Entries = [new Rect(piece.MinX, piece.MaxZ, piece.MaxX, piece.MaxZ)],
+                    Doors = [StatedDoor.At(RoomEdge.PosZ, (piece.MinX + piece.MaxX) / 2, piece.MaxZ)],
                     Monuments = [new MonumentIntent { Team = "blue" }],
                 },
             ],
@@ -549,7 +549,7 @@ public sealed class WorldBuilderTests
                 {
                     Owner = "red", Color = "red", Spawn = new Pt(-10, 1, 10), Protection = [piece],
                     Stamp = new StampId("wool", "w0", 0),
-                    Entries = [new Rect(piece.MinX, piece.MaxZ, piece.MaxX, piece.MaxZ)],
+                    Doors = [StatedDoor.At(RoomEdge.PosZ, (piece.MinX + piece.MaxX) / 2, piece.MaxZ)],
                     Monuments = [new MonumentIntent { Team = "blue" }],
                 },
             ],

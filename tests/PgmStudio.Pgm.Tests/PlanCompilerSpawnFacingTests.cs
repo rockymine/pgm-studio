@@ -140,7 +140,7 @@ public sealed class PlanCompilerSpawnFacingTests
         // The exporter never re-derives a door from the yaw: a diagonal yaw names no wall, so the walls the
         // compiler cut are stated, in the order it cut them.
         var (_, intent) = PlanCompiler.Compile(PlanModel.Parse(Plan("front"))!);
-        await Assert.That(intent.Spawns.Single(s => s.Team == "red").Doors).IsEquivalentTo(new[] { "-x" });
+        await Assert.That(intent.Spawns.Single(s => s.Team == "red").Doors.Select(door => door.Edge)).IsEquivalentTo(new[] { "-x" });
     }
 
     [Test]

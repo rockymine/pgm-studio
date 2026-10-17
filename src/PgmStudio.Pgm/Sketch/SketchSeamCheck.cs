@@ -114,7 +114,7 @@ public static class SketchSeamCheck
         }
 
         foreach (var spawn in intent.Spawns.Where(spawn => Authored(spawn.Stamp) && spawn.Protection.Count > 0))
-            if (spawn.DoorEdges() is [var door, ..])
+            if (spawn.AskedDoors() is [var asked, ..] && asked.Edge is var door)
                 foreach (var side in Sides(spawn.Protection).Select(side => Ahead(side, door, spawn.Protection)).OfType<Side>())
                     foreach (var (owner, step) in Steps(side, spawn.Protection, ground, tops))
                         findings.Add(Complaint(LayoutRules.SpawnExitStep,
@@ -129,7 +129,7 @@ public static class SketchSeamCheck
                         + "entry, more than 1 block", new Measurement(step, High: 1), Subjects(wool.Id, owner)));
 
         foreach (var spawn in intent.Spawns.Where(spawn => Authored(spawn.Stamp) && spawn.Protection.Count > 0))
-            if (spawn.DoorEdges() is [var door, ..] && Ahead(spawn, door, ground) is var ahead && ahead < DoorGroundBlocks)
+            if (spawn.AskedDoors() is [var asked, ..] && asked.Edge is var door && Ahead(spawn, door, ground) is var ahead && ahead < DoorGroundBlocks)
                 findings.Add(Complaint(LayoutRules.SpawnDoorGround,
                     $"spawn '{spawn.Id}' has {ahead} blocks of ground ahead of its {door.Word()} door, less than {DoorGroundBlocks} blocks",
                     spawn.Id));

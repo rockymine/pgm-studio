@@ -75,7 +75,8 @@ away from being something else.
 
 **Doors** (begin at layer 1; widths per `structures.md` WX7 — 4 on a roomy even wall, 3 on an odd wall, 2 at
 the 4-across minimum):
-- **Wool cage:** one door per **entry interface** (a land seam or an abutting build zone — WX6), **3 tall**
+- **Wool cage:** one door per **stated door** — the plan states one at each entry interface, a land seam or an
+  abutting build zone (WX6) — **3 tall**
   (layers 1–3), made of **stained-glass panes (id 160) in the room's wool colour**. The marker-anchored
   default cage keeps a door per wall. The material is one of the four `Domain.DoorMaterials` choices — air,
   cobweb, stained glass, panes — and no more: the wool room's block rule is a whitelist, so a door it does

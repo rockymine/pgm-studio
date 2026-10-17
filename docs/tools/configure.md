@@ -87,7 +87,7 @@ place in its list, numbered `-2`, `-3`… where two would share one. An id state
 | `killPoints` | what a kill pays the killer's team (`docs/pgm/match.md` §7). A board whose kills pay is a team deathmatch, an objective in its own right, and ends after ten minutes where it states neither limit; the Score phase states it |
 | `timeLimit` · `respawn` · `lives` · `rage` · `killHeight` | how the match ends and how the dead come back (`docs/pgm/match.md` §7): a time limit's `duration` and the `result` that decides it then, the respawn `delay` and whether it is `auto` or lets the dead `spectate`, the lives a blitz gives, whether every hit kills, and the height a player falls into the void below. Map-wide, so nothing fans. The Match phase states them |
 | `waterLanes` | the late-opening gaps — carried, never authored here (below) |
-| `structures` · `spawns[].piece` · `wools[].piece`/`entries` | written only by the plan compiler; consumed by the world export |
+| `structures` · `spawns[].piece` · `wools[].piece`/`doors` | written only by the plan compiler; consumed by the world export |
 
 **Map identity is half derived and half stated.** `MetaGenerator` writes the version (`1.0` — a map's first
 version; it moves only once a server has loaded the map) and the phase
@@ -149,7 +149,7 @@ optional**: left empty it takes the owner team's colour.
 
 **A step overwrites only what it owns.** The plan compiler writes keys no Configure step models — a spawn's
 `piece` and `iron`, which size the stamped spawn room and place its renewable ore; a wool's `piece` and
-`entries`, which size the cage and cut its doors — and rebuilding an entry from the fields a step knows about
+`doors`, which size the cage and cut its doors — and rebuilding an entry from the fields a step knows about
 would delete them silently, showing up only in the exported world. So each step starts from the entry it is
 replacing and carries the rest through (`IntentSlice`). The same mechanism is why a slice the tool has no UI
 for survives a save untouched.

@@ -135,7 +135,7 @@ public sealed class SketchSeamCheckTests
     {
         var findings = Check(intent => intent with
         {
-            Spawns = [.. intent.Spawns.Select(spawn => spawn.Stamp.Image == 0 ? spawn with { Doors = ["-z"] } : spawn)],
+            Spawns = [.. intent.Spawns.Select(spawn => spawn.Stamp.Image == 0 ? spawn with { Doors = [new StatedDoor("-z")] } : spawn)],
         });
 
         await Assert.That(findings.Single(finding => finding.Rule == LayoutRules.SpawnDoorGround).Message)
