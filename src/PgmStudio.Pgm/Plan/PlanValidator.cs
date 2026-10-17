@@ -1386,7 +1386,7 @@ public static class PlanValidator
 
     // The rectilinear gap between two axis-aligned segments: the interval gap per axis, largest axis wins —
     // for parallel segments that overlap laterally this is exactly the perpendicular standoff.
-    private static int SegmentGap(int ax1, int az1, int ax2, int az2, int bx1, int bz1, int bx2, int bz2)
+    internal static int SegmentGap(int ax1, int az1, int ax2, int az2, int bx1, int bz1, int bx2, int bz2)
     {
         var gapX = Math.Max(0, Math.Max(Math.Min(bx1, bx2) - Math.Max(ax1, ax2), Math.Min(ax1, ax2) - Math.Max(bx1, bx2)));
         var gapZ = Math.Max(0, Math.Max(Math.Min(bz1, bz2) - Math.Max(az1, az2), Math.Min(az1, az2) - Math.Max(bz1, bz2)));

@@ -62,6 +62,7 @@ public static class MapFindings
                 asked.UnionWith(SketchBoardCheck.Asks);
                 findings.AddRange(SketchSeamCheck.Check(layoutJson, intent, layout?.Setup?.Board));
                 asked.UnionWith(SketchSeamCheck.Asks);
+                asked.UnionWith(SketchSeamCheck.Retires);
                 findings.AddRange(SketchMeasures.Check(layoutJson, intent, layout?.Setup?.Board));
             }
         }

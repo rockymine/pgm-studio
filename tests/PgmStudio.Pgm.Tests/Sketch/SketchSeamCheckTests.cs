@@ -26,17 +26,22 @@ public sealed class SketchSeamCheckTests
     {"id":"quay","type":"rectangle","operation":"add","min_x":30,"min_z":-10,"max_x":60,"max_z":10,"base_height":8}
     """;
 
-    private static (string Layout, MapIntent Intent) Compiled()
+    private static (string Layout, MapIntent Intent) Compiled(params string[] shapes)
     {
         var (layout, intent) = PlanCompiler.Compile(PlanModel.Parse(Banded)!);
         var node = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(layout, SketchLayout.Json))!;
-        node["layers"]![0]!["layout"]!["shapes"]!.AsArray().Add(System.Text.Json.Nodes.JsonNode.Parse(Quay));
+        foreach (var shape in shapes.Prepend(Quay))
+            node["layers"]![0]!["layout"]!["shapes"]!.AsArray().Add(System.Text.Json.Nodes.JsonNode.Parse(shape));
         return (node.ToJsonString(), intent);
     }
 
-    private static List<Finding> Check(Func<MapIntent, MapIntent> change)
+    // Ground drawn against one side of the room at a height: the room stands at 9.
+    private static string Apron(double minZ, double maxZ, int height) =>
+        $$"""{"id":"apron-{{minZ}}","type":"rectangle","operation":"add","min_x":-10,"min_z":{{minZ}},"max_x":10,"max_z":{{maxZ}},"base_height":{{height}}}""";
+
+    private static List<Finding> Check(Func<MapIntent, MapIntent> change, params string[] shapes)
     {
-        var (layout, intent) = Compiled();
+        var (layout, intent) = Compiled(shapes);
         return [.. SketchSeamCheck.Check(layout, change(intent), SketchLayout.Parse(layout)?.Setup?.Board)];
     }
 
@@ -135,5 +140,37 @@ public sealed class SketchSeamCheckTests
 
         await Assert.That(findings.Single(finding => finding.Rule == LayoutRules.SpawnDoorGround).Message)
             .Contains("0 blocks of ground ahead of its -z door");
+    }
+
+    [Test]
+    public async Task Ground_ahead_of_the_door_stepping_two_blocks_is_a_step_and_one_block_is_not()
+    {
+        var steep = Check(intent => intent, Apron(-15, -5, 12));
+        var gentle = Check(intent => intent, Apron(-15, -5, 10));
+
+        await Assert.That(steep.Single(finding => finding.Rule == LayoutRules.SpawnExitStep).Measured!.Value).IsEqualTo(3);
+        await Assert.That(gentle.Select(finding => finding.Rule)).DoesNotContain(LayoutRules.SpawnExitStep);
+    }
+
+    [Test]
+    public async Task A_step_behind_the_spawn_is_not_its_exit_but_is_a_wools_entry()
+    {
+        var findings = Check(intent => intent, Apron(-35, -25, 14));
+
+        await Assert.That(findings.Select(finding => finding.Rule)).DoesNotContain(LayoutRules.SpawnExitStep)
+            .Because("the ground lies behind the spawn's +z door");
+        await Assert.That(findings.Single(finding => finding.Rule == LayoutRules.WoolEntryStep).Message)
+            .Contains("steps 5 blocks").And.Contains("-z entry");
+    }
+
+    [Test]
+    public async Task A_wall_on_the_approach_is_held_to_its_seat_in_front_of_the_entrance()
+    {
+        var near = Check(intent => WithWall(intent, -10, -10, 10, -10), Apron(-15, 5, 9));
+        var seated = Check(intent => WithWall(intent, -10, 0, 10, 0), Apron(-15, 5, 9));
+
+        await Assert.That(near.Single(finding => finding.Rule == LayoutRules.ApproachWallStandoff).Message)
+            .Contains("stands 5 blocks from the entrance");
+        await Assert.That(seated.Select(finding => finding.Rule)).DoesNotContain(LayoutRules.ApproachWallStandoff);
     }
 }

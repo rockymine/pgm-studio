@@ -22,11 +22,10 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [~] **TS171 — The plan's rules read the sketch.** The step rules `ContactGraph` answers on the plan (`EL1`,
-  `SP8`, `WL11`) and the wall standoff (`ST11`) are rewritten on the raster's seams and relief; a wool room's
-  entries are derived from the seams it shares with that ground, and a places document's targets are measured
-  the same way. `sight` is the one new read. `PlanValidator` is the source each rule moves out of.
-  `docs/tools/sketch.md`.
+- [~] **TS171 — The plan's rules read the sketch.** The stamper cuts a sketch-authored wool's doors on the
+  sides of its region that meet ground, as `SketchSeamCheck` reads its entries, rather than on all four
+  (`WorldBuilder.WoolEntries`); a places document's targets are measured off the same ground. `sight` is the
+  one new read. `PlanValidator` is the source each rule moves out of. `docs/tools/sketch.md`.
 
 - [ ] **RP131 — The plan retires as a level.** The Plan tool, `PUT …/sketch/from-plan` and the `plan` stage go;
   every stored plan stays as read-only history (D9), with the migration carrying no row away. `drive.py`, the
