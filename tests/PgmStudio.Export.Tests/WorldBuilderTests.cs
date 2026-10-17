@@ -125,10 +125,10 @@ public sealed class WorldBuilderTests
     }
 
     [Test]
-    public async Task A_wool_room_stating_no_entry_stands_on_its_house_with_a_door_on_every_wall()
+    public async Task A_wool_room_stating_no_door_stands_on_its_house_with_one_door_toward_the_middle()
     {
-        // A wool room placed on the sketch states its house and no entry: the cage is that house, and with
-        // nothing saying which side players come from it keeps a door on each wall.
+        // A wool room placed on the sketch states its house and no door: the cage is that house, and with no
+        // ground to read it takes one door, on the side of its region facing the board's middle.
         var wool = new WoolIntent
         {
             Owner = "red", Spawn = new Pt(-20.5, 1, 0.5), Protection = [new Rect(-32, -12, -8, 12)],
@@ -138,7 +138,7 @@ public sealed class WorldBuilderTests
         var frame = WorldBuilder.WoolFrame(wool, HouseStyle.Wool);
 
         await Assert.That((frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)).IsEqualTo((-27, -6, -13, 8));
-        await Assert.That(frame.Doors.Select(door => door.Edge).Distinct().Count()).IsEqualTo(4);
+        await Assert.That(frame.Doors.Select(door => door.Edge)).IsEquivalentTo(new[] { RoomEdge.PosX });
     }
 
     [Test]

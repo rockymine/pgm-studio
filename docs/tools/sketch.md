@@ -2325,7 +2325,10 @@ crosses — outside 10 to 20 blocks is `ST8`. A spawn's first door with under 15
 area ahead of it, stepped out of its region along the door, is `SP9`.
 
 **A step is asked only where a match crosses it**: at a spawn's door and at a wool room's entry. A wool's
-entries are the sides of its region that meet ground, since a room has no facing. Where the easiest crossing
+entries are the sides of its region its doors open through; a wool stating none takes one, on the side of
+its region meeting the most ground, the side facing the middle on a tie (`WoolDoors`), and a wool door whose
+doorstep — a block either side of its centre, just outside the region — is neither ground nor a build area is
+`WL21`. Where the easiest crossing
 from a region to one owner's ground steps two blocks or more, the step is `SP8` ahead of a spawn's first door —
 its own side, and the half of each flank side toward it — and `WL11` at a wool's entry, each with its number.
 A step anywhere else is a cliff the author drew, so the plan's `EL1` is not asked of a board that has a

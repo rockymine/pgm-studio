@@ -246,7 +246,7 @@ public static class PlanCompiler
                     : PieceDefaults.Dyes[dyeCursor++ % PieceDefaults.Dyes.Length];
                 var room = d.FanRect(piece.Value.Rect, k);
                 // A wool-room ROLE piece opens a door at each entry interface (WX6); a wool on a plain piece
-                // states none, and a cage with no door keeps a door per wall.
+                // states none, and a cage with no door takes one on the side its build finds the most ground.
                 var isRoomPiece = piece.Value.Role == PlanRoles.WoolRoom;
                 wools.Add(new WoolIntent
                 {

@@ -51,6 +51,8 @@ public static class MapFindings
         {
             var layoutJson = layoutBytes is { Length: > 0 } ? Encoding.UTF8.GetString(layoutBytes) : null;
             var layout = layoutJson is null ? null : SketchLayout.Parse(layoutJson);
+            // A wool stating no door is asked with the one its build gives it.
+            if (layoutJson is not null) intent = WoolDoors.Settled(intent, layoutJson);
             findings.AddRange(IntentCheck.Check(intent, layout?.Setup?.Board));
             findings.AddRange(RoomCheck.Check(intent, RoomStyleScope.StylesOf(layout)));
             asked.UnionWith(IntentCheck.Asks);

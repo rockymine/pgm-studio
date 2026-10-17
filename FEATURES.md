@@ -9482,6 +9482,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wool's at each entry interface's midpoint and a spawn's centred on each wall it cuts, and `M0082` carries
   every stored door word and entry across. (`Pgm/Authoring/MapIntent` `StatedDoor`, `Domain/RoomFrames`
   `AskedDoor`, `docs/world-export/structures.md`)
+- **A wool room takes one door, not one per wall (`TS189`).** A wool stating no door is given one, on the side
+  of its region the most ground or build area meets, the side facing the middle on a tie, wherever its intent
+  meets its layout — the world build, the export and the findings read; `WL11` and `ST11` read a wool's doors
+  as its entries, and a door with no ground just outside it is `WL21`. (`Pgm/Sketch/WoolDoors`,
+  `Pgm/Sketch/SketchSeamCheck`, `docs/world-export/structures.md`, `docs/generator/rules.md`)
 - **A drawn step is asked only where a match crosses it (`TS171`).** `SP8` at a spawn's door and `WL11` at a
   wool room's entries — the sides of its region that meet ground — read the sketch's built heights, and `ST11`
   says an approach wall crowding the entrance it stands before; the plan's `EL1` is not asked

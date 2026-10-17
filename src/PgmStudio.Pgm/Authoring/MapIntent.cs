@@ -583,7 +583,8 @@ public sealed record WoolIntent
 
     /// <summary>The doors the room opens through (WX6), already fanned: the plan states one where each land seam
     /// or build-zone edge meets the region. The exporter cuts the cage doors and lays the entrance redstone on
-    /// exactly these. Empty keeps a door per wall.</summary>
+    /// exactly these. Empty takes one door, on the side of the region meeting the most ground
+    /// (<see cref="Sketch.WoolDoors"/>).</summary>
     public List<StatedDoor> Doors { get; init; } = new();
 }
 

@@ -188,6 +188,12 @@ public static class LayoutRules
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Objective, RuleConcern.Spawn)]
     public const string RoomHomeGapWidth = "WL20";
 
+    /// <summary>A wool room's door has no ground or build area just outside it.</summary>
+    /// <remarks>Either move the door to a side of the wool's region with ground outside it, or add a build area in
+    /// front of the door to <c>build.areas</c>.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Terrain)]
+    public const string WoolDoorGround = "WL21";
+
     /// <summary>The walking distance from a spawn to its team's nearest wool is not between 29 and 176
     /// blocks.</summary>
     /// <remarks>Move the <c>rect</c> of the nearest wool's room piece in <c>pieces</c> until its walking distance

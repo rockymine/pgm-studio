@@ -124,7 +124,7 @@ public static class WorldBuilder
     public static BuiltWorld Build(string layoutJson, MapIntent intent)
     {
         layoutJson = RoomShapes.Project(layoutJson, intent);
-        intent = WithStampIds(intent);
+        intent = PgmStudio.Pgm.Sketch.WoolDoors.Settled(WithStampIds(intent), layoutJson);
         var columns = SketchRasterizer.RasterizeColumns(layoutJson);
         // Which layers are made things, read before the terrain so the terrain can answer where the GROUND
         // is rather than what is highest. Everything below that rests on the board asks that question.
@@ -1071,13 +1071,18 @@ public static class WorldBuilder
         if (Ground(w.Protection) is not { } ground) return null;
         var (markerX, markerZ) = PositionSnap.SnapHalfXZ(w.Spawn.X, w.Spawn.Z);
         return RoomFrames.Resolve(
-            ground, StatedFootprint(w.House?.Room), shellBound, markerX, markerZ, WoolDoors(w), spawn: false, out refusal);
+            ground, StatedFootprint(w.House?.Room), shellBound, markerX, markerZ, CageDoors(w), spawn: false, out refusal);
     }
 
-    /// <summary>The doors a wool room is cut with: its stated ones, or where it states none, one centred on
-    /// every wall.</summary>
-    private static List<AskedDoor> WoolDoors(WoolIntent w) =>
-        w.Doors.Count > 0 ? StatedDoor.Asked(w.Doors) : [.. RoomEdges.All.Select(edge => new AskedDoor(edge))];
+    /// <summary>The doors a wool room is cut with: its stated ones, or where it states none, one centred on the
+    /// side of its region facing the board's centre — an intent read against its layout states one on the side
+    /// meeting the most ground (<see cref="PgmStudio.Pgm.Sketch.WoolDoors.Settled"/>).</summary>
+    private static List<AskedDoor> CageDoors(WoolIntent w) =>
+        w.Doors.Count > 0 ? StatedDoor.Asked(w.Doors) : [new AskedDoor(Toward(w.Protection))];
+
+    // The side of a region facing the board's centre, with no ground to read.
+    private static RoomEdge Toward(IReadOnlyList<Rect> regions) =>
+        PgmStudio.Pgm.Sketch.WoolDoors.Side(regions, _ => false, (0, 0));
 
     /// <inheritdoc cref="WoolFrame"/>
     /// <remarks>A spawn resolves its room together with the region's iron markers: each cube stands clear of
@@ -1164,16 +1169,16 @@ public static class WorldBuilder
         : null;
 
     // The legacy default: the room a 10×10 piece centred on the integer-snapped marker resolves to — the
-    // original 8×8 shell, with a door per wall for a wool cage or the single yaw door for a spawn. Also the
-    // fallback when an authored piece refuses to frame (the validator gates plan exports, so reaching that
-    // fallback means a hand-edited intent — stamping the default beats failing the export).
+    // original 8×8 shell, with the single yaw door for a spawn and for a wool cage one facing the board's
+    // centre. Also the fallback when an authored piece refuses to frame (the validator gates plan exports, so
+    // reaching that fallback means a hand-edited intent — stamping the default beats failing the export).
     private static RoomFrame DefaultFrame(
         double x, double z, IReadOnlyList<AskedDoor> spawnDoors, bool shellBound)
     {
         var (anchorX, anchorZ) = PositionSnap.SnapXZ(x, z);
         int minX = anchorX - 5, minZ = anchorZ - 5, maxX = anchorX + 5, maxZ = anchorZ + 5;
         var piece = new BlockRect(minX, minZ, maxX, maxZ);
-        var doors = spawnDoors.Count > 0 ? spawnDoors : [.. RoomEdges.All.Select(edge => new AskedDoor(edge))];
+        IReadOnlyList<AskedDoor> doors = spawnDoors.Count > 0 ? spawnDoors : [new AskedDoor(Toward([new Rect(minX, minZ, maxX, maxZ)]))];
         // The footprint is stated rather than defaulted: this synthetic rect is the room a piece-less marker
         // has always resolved to, so the shell is its own one-block inset and no door gap is taken out of it.
         return RoomFrames.Resolve(piece, new BlockRect(minX + 1, minZ + 1, maxX - 1, maxZ - 1), shellBound,

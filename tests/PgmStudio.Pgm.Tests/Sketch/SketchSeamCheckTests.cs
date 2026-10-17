@@ -153,14 +153,33 @@ public sealed class SketchSeamCheckTests
     }
 
     [Test]
-    public async Task A_step_behind_the_spawn_is_not_its_exit_but_is_a_wools_entry()
+    public async Task A_step_behind_the_spawn_is_not_its_exit_and_is_a_wools_entry_only_where_a_door_opens()
     {
-        var findings = Check(intent => intent, Apron(-35, -25, 14));
+        var undoored = Check(intent => intent, Apron(-35, -25, 14));
+        var doored = Check(intent => intent with
+        {
+            Wools = [.. intent.Wools!.Select(wool => wool.Stamp.Image == 0 ? wool with { Doors = [StatedDoor.Centred(RoomEdge.NegZ)] } : wool)],
+        }, Apron(-35, -25, 14));
 
-        await Assert.That(findings.Select(finding => finding.Rule)).DoesNotContain(LayoutRules.SpawnExitStep)
+        await Assert.That(undoored.Select(finding => finding.Rule)).DoesNotContain(LayoutRules.SpawnExitStep)
             .Because("the ground lies behind the spawn's +z door");
-        await Assert.That(findings.Single(finding => finding.Rule == LayoutRules.WoolEntryStep).Message)
+        await Assert.That(undoored.Select(finding => finding.Rule)).DoesNotContain(LayoutRules.WoolEntryStep)
+            .Because("the wool's one door opens on the strait it meets as much of, toward the middle");
+        await Assert.That(doored.Single(finding => finding.Rule == LayoutRules.WoolEntryStep).Message)
             .Contains("steps 5 blocks").And.Contains("-z entry");
+    }
+
+    [Test]
+    public async Task A_wool_door_opening_onto_the_void_is_a_door_onto_no_ground()
+    {
+        var findings = Check(intent => intent with
+        {
+            Wools = [.. intent.Wools!.Select(wool => wool.Stamp.Image == 0 ? wool with { Doors = [StatedDoor.Centred(RoomEdge.NegX)] } : wool)],
+        });
+
+        await Assert.That(findings.Single(finding => finding.Rule == LayoutRules.WoolDoorGround).Message)
+            .Contains("-x door opening onto no ground");
+        await Assert.That(Check(intent => intent).Select(finding => finding.Rule)).DoesNotContain(LayoutRules.WoolDoorGround);
     }
 
     [Test]

@@ -14,8 +14,9 @@ namespace PgmStudio.Pgm.Sketch;
 /// against a wool's room (<c>PL13</c>) or with ground running past its end (<c>PL17</c>), the mouth a wall bars
 /// (<c>ST8</c>) and a wall crowding the entrance it stands before (<c>ST11</c>), the ground ahead of a spawn's
 /// door (<c>SP9</c>), and a step of two blocks or more at a spawn's door (<c>SP8</c>) or a wool room's entry
-/// (<c>WL11</c>). Each is the rule the plan is asked under the same id, measured in blocks; a piece is asked
-/// once, by its authored image. A wool room's entries are the sides of its region that meet ground.
+/// (<c>WL11</c>), and a wool room's door opening onto no ground (<c>WL21</c>). Each is the rule the plan is asked
+/// under the same id, measured in blocks; a piece is asked once, by its authored image. A wool room's entries are
+/// the sides of its region its doors open through, a wool stating none taking the one its build gives it.
 /// </summary>
 public static class SketchSeamCheck
 {
@@ -25,7 +26,7 @@ public static class SketchSeamCheck
         LayoutRules.CorridorWidth, LayoutRules.ZoneTouchesSpawn, LayoutRules.StitchedZones,
         LayoutRules.WaterLaneOverGround, PlanRules.WallOnWoolRoom, PlanRules.WallAtJunction,
         LayoutRules.ApproachWallEdgeLength, LayoutRules.SpawnDoorGround, LayoutRules.ApproachWallStandoff,
-        LayoutRules.SpawnExitStep, LayoutRules.WoolEntryStep,
+        LayoutRules.SpawnExitStep, LayoutRules.WoolEntryStep, LayoutRules.WoolDoorGround,
     ]);
 
     /// <summary>The rules the plan raises that a drawn board does not: a step anywhere but a spawn's door or a
@@ -39,6 +40,7 @@ public static class SketchSeamCheck
     /// no ground.</summary>
     public static Findings Check(string layoutJson, MapIntent intent, SymmetryIntent? board = null)
     {
+        intent = WoolDoors.Settled(intent, layoutJson);
         if (SketchGround.Of(layoutJson, intent) is not { } ground) return Findings.None;
         var areas = SketchGround.AuthoredAreas(intent, board);
         var lanes = SketchGround.AuthoredLanes(intent, board);
@@ -69,8 +71,7 @@ public static class SketchSeamCheck
         var tops = new Dictionary<(int X, int Z), int>();
         foreach (var column in SketchRasterizer.RasterizeColumns(layoutJson))
             if (!tops.TryGetValue((column.X, column.Z), out var top) || column.YTop > top) tops[(column.X, column.Z)] = column.YTop;
-        var entries = (intent.Wools ?? []).SelectMany(wool => Sides(wool.Protection)
-                .Where(side => MeetsGround(side, wool.Protection, ground)).Select(side => (Wool: wool.Id, Side: side)))
+        var entries = (intent.Wools ?? []).SelectMany(wool => Entries(wool).Select(side => (Wool: wool.Id, Side: side)))
             .ToList();
 
         var woolRegions = (intent.Wools ?? []).SelectMany(wool => wool.Protection.Select(region => (wool.Id, Cells: Cells(region).ToHashSet())))
@@ -122,11 +123,17 @@ public static class SketchSeamCheck
                             + "more than 1 block", new Measurement(step, High: 1), Subjects(spawn.Id, owner)));
 
         foreach (var wool in (intent.Wools ?? []).Where(wool => Authored(wool.Stamp)))
-            foreach (var side in Sides(wool.Protection))
+        {
+            foreach (var side in Entries(wool))
                 foreach (var (owner, step) in Steps(side, wool.Protection, ground, tops))
                     findings.Add(Complaint(LayoutRules.WoolEntryStep,
                         $"the room of wool '{wool.Id}' steps {step} blocks to the ground of {Named(owner)} at its {side.Edge.Word()} "
                         + "entry, more than 1 block", new Measurement(step, High: 1), Subjects(wool.Id, owner)));
+            foreach (var door in StatedDoor.Asked(wool.Doors))
+                if (!Opens(wool.Protection, door, ground))
+                    findings.Add(Complaint(LayoutRules.WoolDoorGround,
+                        $"the room of wool '{wool.Id}' has its {door.Edge.Word()} door opening onto no ground", wool.Id));
+        }
 
         foreach (var spawn in intent.Spawns.Where(spawn => Authored(spawn.Stamp) && spawn.Protection.Count > 0))
             if (spawn.AskedDoors() is [var asked, ..] && asked.Edge is var door && Ahead(spawn, door, ground) is var ahead && ahead < DoorGroundBlocks)
@@ -207,9 +214,30 @@ public static class SketchSeamCheck
         return ahead.Count == 0 ? null : side with { Blocks = ahead };
     }
 
-    // Whether ground lies just outside a side, beyond the room's own regions: the side is an entry.
-    private static bool MeetsGround(Side side, IReadOnlyList<Rect> own, BoardGround ground) =>
-        side.Blocks.Any(pair => !Within(own, pair.Outside) && ground.Filled.ContainsKey(pair.Outside));
+    // The sides of a wool's region its doors open through: a side of the region's bounds per edge a door faces.
+    private static IEnumerable<Side> Entries(WoolIntent wool)
+    {
+        if (wool.Protection.Count == 0) yield break;
+        var edges = StatedDoor.Asked(wool.Doors).Select(door => door.Edge).ToHashSet();
+        foreach (var side in Sides([Bounds(wool.Protection)]).Where(side => edges.Contains(side.Edge))) yield return side;
+    }
+
+    private static Rect Bounds(IReadOnlyList<Rect> regions) =>
+        new(regions.Min(r => r.MinX), regions.Min(r => r.MinZ), regions.Max(r => r.MaxX), regions.Max(r => r.MaxZ));
+
+    // Whether ground or a build area lies just outside a door, within a block either side of its centre.
+    private static bool Opens(IReadOnlyList<Rect> regions, AskedDoor door, BoardGround ground)
+    {
+        var side = Sides([Bounds(regions)]).First(side => side.Edge == door.Edge);
+        var middle = side.Edge.AlongX() ? (side.X1 + side.X2) / 2.0 : (side.Z1 + side.Z2) / 2.0;
+        var centre = door.Along ?? middle;
+        return side.Blocks.Any(pair =>
+        {
+            var along = side.Edge.AlongX() ? pair.Outside.Item1 + 0.5 : pair.Outside.Item2 + 0.5;
+            return Math.Abs(along - centre) <= 1.5 && !Within(regions, pair.Outside)
+                && (ground.Filled.ContainsKey(pair.Outside) || ground.Build.Contains(pair.Outside));
+        });
+    }
 
     // Each owner of the ground outside a side whose easiest crossing steps two blocks or more, with that step: a
     // block along the side a player crosses at one block or less is the way in, however steep the rest is.

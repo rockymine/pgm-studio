@@ -61,7 +61,9 @@ frame, the one a 10×10 piece would resolve to. **Both rooms state their doors i
 edge word, and the point on that wall it is centred on, `{"edge": "-z", "x": 12, "z": -40}`, or no point,
 `{"edge": "+x"}`, for a door centred on its wall. The plan states a wool's at the midpoint of each entry
 interface (terrain↔room land seams plus build-zone frontline edges) and a spawn's centred on each wall it
-cut; a cage stating none keeps a door per wall of the house it states. So nothing downstream re-derives a
+cut. A cage stating none takes one door, on the side of its region meeting the most ground — terrain or a
+build area just outside it — the side facing the middle on a tie (`WoolDoors.Settled`, read off the layout
+the build stands on; with no layout to read, the side facing the middle). So nothing downstream re-derives a
 door from a yaw — a hall opening on two walls faces the corner between them and its yaw names no wall at
 all.
 

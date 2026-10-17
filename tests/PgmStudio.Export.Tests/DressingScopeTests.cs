@@ -326,8 +326,9 @@ public sealed class DressingScopeTests
     [Test]
     public async Task A_wool_rooms_entry_keeps_the_shorter_lane_clear()
     {
-        // A legacy wool at (0,0) resolves the default cage with a door on every wall, so each face carries a
-        // ten-block approach — z 8..12 stands in the south one; z 17+ is past it.
+        // A legacy wool at (0,0) resolves the default cage with one door, on its −z face where every side faces
+        // the middle alike, so that face carries a ten-block approach — z −8..−12 stands in it; z −17 and past
+        // is beyond it, and the doorless +z face keeps nothing clear.
         var wool = new MapIntent
         {
             Wools = [new WoolIntent { Owner = "blue", Color = "blue", Spawn = new Pt(0, 8, 0) }],
@@ -335,8 +336,9 @@ public sealed class DressingScopeTests
         var (world, surface) = Ground(-40, 80);
         var keptClear = DressingScope.KeptClearAt(world, surface, wool, RoomShells.BuiltIn);
 
-        await Assert.That(keptClear(0, 10)).IsEqualTo(KeepOut.Approach);
-        await Assert.That(keptClear(0, 21)).IsNull();
+        await Assert.That(keptClear(0, -10)).IsEqualTo(KeepOut.Approach);
+        await Assert.That(keptClear(0, -21)).IsNull();
+        await Assert.That(keptClear(0, 10)).IsNull();
     }
 
     // ── the point-and-radius foliage render's source ───────────────────────────────────────────────────
