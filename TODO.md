@@ -24,9 +24,8 @@ studio usable.
 
 - [~] **TS171 — The plan's rules read the sketch.** The measures (`GO`, `WL`, `CT`, `LN`, `FR`, `MD`) and the
   ground's complaints (`EL1`, `SP8`, `WL11`, the wall, zone and space rules) read off the sketch's rasterized
-  ground through one board derivation, as `StraitReadback` already reads `CT12`; the room-frame rules (`WX3`,
-  `WX4`, `WX6`, `WX8`, `PL8`) are asked of the intent's resolved rooms, and a places document's targets are
-  measured the same way. `sight` is the one new read. `PlanValidator` is the source each rule moves out of.
+  ground through one board derivation, as `StraitReadback` already reads `CT12`, and a wool room's entries are
+  derived from the seams it shares with that ground; a places document's targets are measured the same way. `sight` is the one new read. `PlanValidator` is the source each rule moves out of.
   `docs/tools/sketch.md`.
 
 - [ ] **RP131 — The plan retires as a level.** The Plan tool, `PUT …/sketch/from-plan` and the `plan` stage go;

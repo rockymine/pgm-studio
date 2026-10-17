@@ -9463,6 +9463,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   rules about its pieces — `PL2`, `PL3`, `PL10`, `PL14`, `OB22`, `DC1`, `OB14`, `ST2`, `SP2`, `ST9`, `ST10` — by
   each unit's authored image, and a plan it still holds answers none of them twice.
   (`Pgm/Authoring/IntentCheck`, `Api/Services/MapFindings`, `docs/tools/sketch.md`)
+- **The rooms the export stamps are asked before it does (`TS171`).** Each spawn and wool room is resolved as
+  the build resolves it and its refusals and complaints answered on the findings read — `WX2`, `WX12`, `WX3`,
+  `WX4`, `WX6`, `WX8`, `PL8`. A wool room stating no entry stands on its own house with a door per wall,
+  rather than on the default room around its marker. (`Export/RoomCheck`, `Export/WorldBuilder`,
+  `docs/world-export/structures.md`)
 - **A place holds one thread, and the list counts what is new (`TS186`).** A picked place's panel shows its
   thread under its fields over one text box, and a second `place` note on it is refused 409 `RQ5`; a place's row
   carries a speech bubble, filled with the count of messages new to the caller or an outline once read. `MapNoteDto.unread`

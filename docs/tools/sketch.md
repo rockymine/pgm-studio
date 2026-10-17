@@ -2289,8 +2289,16 @@ objective (`PL3`, a complaint), a wool colour that is no dye (`PL14`), a monumen
 a map whose teams are not two (`OB14`), and four complaints about where pieces stand — an iron cube outside
 every spawn region (`ST2`), a spawn in the half of its region nearer the symmetry centre (`SP2`), a room's
 building over 20 by 20 blocks across all its wings (`ST9`) and a room's region over 20 by 30 (`ST10`). A unit
-is asked once, by its authored image, and the board's symmetry is the intent's or the sketch's. Where the map
-still holds a plan, the plan answers every other rule and none of these.
+is asked once, by its authored image, and the board's symmetry is the intent's or the sketch's.
+
+**So is every room the export stamps** (`RoomCheck`), resolved by the resolver the build itself calls, under the
+shell the map binds for its kind. A room that will not frame on its region is refused — a house too small
+(`WX2`) or reaching off its region (`WX12`), a marker half on a grid line (`WX3`), a pad that does not fit
+between the walls (`WX4`), a wool room whose stated entries reach no wall (`WX6`) — and the build stamps the
+default room around its marker in its place. A pad moved inward to clear the walls (`WX4`) and iron with no
+place for its cube (`WX8`) are complaints, and a spawn room seating fewer monuments than the wools its team
+captures is refused (`PL8`). Where the map still holds a plan, the plan answers every other rule and none of
+these.
 
 ## The API
 

@@ -125,6 +125,23 @@ public sealed class WorldBuilderTests
     }
 
     [Test]
+    public async Task A_wool_room_stating_no_entry_stands_on_its_house_with_a_door_on_every_wall()
+    {
+        // A wool room placed on the sketch states its house and no entry: the cage is that house, and with
+        // nothing saying which side players come from it keeps a door on each wall.
+        var wool = new WoolIntent
+        {
+            Owner = "red", Spawn = new Pt(-20.5, 1, 0.5), Protection = [new Rect(-32, -12, -8, 12)],
+            House = RoomHouse.Over(new Rect(-27, -6, -13, 8)),
+        };
+
+        var frame = WorldBuilder.WoolFrame(wool, HouseStyle.Wool);
+
+        await Assert.That((frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)).IsEqualTo((-27, -6, -13, 8));
+        await Assert.That(frame.Doors.Select(door => door.Edge).Distinct().Count()).IsEqualTo(4);
+    }
+
+    [Test]
     [Arguments(false)]
     [Arguments(true)]
     public async Task A_reflected_room_resolves_a_reflected_frame(bool reflected)

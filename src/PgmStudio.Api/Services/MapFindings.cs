@@ -2,6 +2,7 @@ using System.Text;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Export;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
@@ -44,8 +45,9 @@ public static class MapFindings
         // plan answers the rest, and none of those twice.
         if (intent is not null)
         {
-            var board = layoutBytes is { Length: > 0 } ? SketchLayout.Parse(Encoding.UTF8.GetString(layoutBytes))?.Setup?.Board : null;
-            findings.AddRange(IntentCheck.Check(intent, board));
+            var layout = layoutBytes is { Length: > 0 } ? SketchLayout.Parse(Encoding.UTF8.GetString(layoutBytes)) : null;
+            findings.AddRange(IntentCheck.Check(intent, layout?.Setup?.Board));
+            findings.AddRange(RoomCheck.Check(intent, RoomStyleScope.StylesOf(layout)));
         }
 
         var planBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
@@ -54,7 +56,8 @@ public static class MapFindings
             // Both halves, because they answer different questions and a driver wants both: whether what the
             // plan says is coherent, and whether it yet says the things a map cannot exist without.
             findings.AddRange(PlanValidator.Check(plan).Concat(PlanValidator.Completeness(plan))
-                .Where(finding => intent is null || !IntentCheck.Asks.Contains(finding.Rule)));
+                .Where(finding => intent is null
+                                  || !(IntentCheck.Asks.Contains(finding.Rule) || RoomCheck.Asks.Contains(finding.Rule))));
         }
 
         if (layoutBytes is { Length: > 0 })
