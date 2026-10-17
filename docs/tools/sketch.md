@@ -808,6 +808,14 @@ a turn does; a field put back to its default writes null. A destroyable made of 
 { "key": "materials", "text": "gold block" }
 ```
 
+A room's house is written whole through `PUT /map/{slug}/intent/pieces/{id}/house`, the room's wing first and every
+other image of the room carried through the symmetry (`PlayPieceHouse`); a style left out wears the map's. A spawn's
+house of two wings:
+
+```json PUT /api/map/{slug}/intent/pieces/{id}/house
+{ "house": { "wings": [ { "corners": [[-16, -16], [-5, -5]] }, { "corners": [[-4, -14], [-1, -7]] } ] } }
+```
+
 A build area placed by hand, which answers the id it was given:
 
 ```json POST /api/map/{slug}/intent/pieces

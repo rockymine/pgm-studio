@@ -58,6 +58,7 @@ internal sealed class CarriedShapes : ISchemaProcessor
         new(typeof(SketchRoomStyles), nameof(SketchRoomStyles.Wool), CarriedForm.Whole, [typeof(HouseStyle)], Null: true),
         new(typeof(SketchRoomStyles), nameof(SketchRoomStyles.Spawn), CarriedForm.Whole, [typeof(HouseStyle)], Null: true),
         new(typeof(RoomHouse), nameof(RoomHouse.Style), CarriedForm.Whole, [typeof(HouseStyle)], Null: true),
+        new(typeof(PieceHouseRequest), nameof(PieceHouseRequest.House), CarriedForm.Whole, [typeof(RoomHouse)]),
         new(typeof(SketchShape), nameof(SketchShape.Material), CarriedForm.Whole, [typeof(TerrainMaterial)]),
         new(typeof(RoomGround), nameof(RoomGround.Material), CarriedForm.Whole, [typeof(TerrainMaterial)]),
 

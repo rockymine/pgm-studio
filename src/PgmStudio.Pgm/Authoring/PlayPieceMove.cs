@@ -299,7 +299,7 @@ public static class PlayPieceMove
     /// <summary>The list with <paramref name="change"/> applied to the piece at <paramref name="at"/> (step 0)
     /// and, unless <paramref name="alone"/>, to every other image of its unit, given the symmetry step from the
     /// named image to it.</summary>
-    private static List<T> Images<T>(
+    internal static List<T> Images<T>(
         List<T> pieces, int at, Func<T, StampId> stampOf, string? mode, bool alone, Func<T, int, T> change)
     {
         var changed = new List<T>(pieces) { [at] = change(pieces[at], 0) };

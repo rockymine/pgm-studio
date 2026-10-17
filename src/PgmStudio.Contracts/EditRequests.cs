@@ -311,6 +311,11 @@ public sealed record PieceAddRequest(
     string? Team = null,
     int[]? Ends = null);
 
+/// <summary>A room's house, whole — the body of <c>PUT /map/{slug}/intent/pieces/{id}/house</c>.</summary>
+/// <param name="House">The house: its wings, the room first, and the style it states, absent for the map's.</param>
+/// <param name="Alone">Set it on the named image only, rather than on every image of its unit.</param>
+public sealed record PieceHouseRequest(System.Text.Json.JsonElement House, bool Alone = false);
+
 /// <summary>One setting of a play piece — the body of <c>PATCH /map/{slug}/intent/pieces/{id}/settings</c>: a
 /// goal's name, design, material, lava, float or leak, a wool's colour, or a spawn's facing.</summary>
 /// <param name="Key">Which setting.</param>
