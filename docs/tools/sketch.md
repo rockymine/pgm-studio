@@ -2282,6 +2282,16 @@ does the **finish**, which is where a board carrying one is stopped. `SK2` is ou
 under either reading — a board too large to realize is measured off the shapes' own boxes, and must refuse
 before anything walks a column of it.
 
+**The play pieces are asked of the intent.** `GET /map/{slug}/findings` asks a map holding an intent the rules
+about its pieces under the ids the plan answers them by (`IntentCheck`): a map with no spawn (`PL2`) or no
+objective (`PL3`, a complaint), a wool colour that is no dye (`PL14`), a monument form that is not one
+(`PL10`), a goal floated over its cap (`OB22`), a core's lava outside its range (`DC1`), monuments or cores on
+a map whose teams are not two (`OB14`), and four complaints about where pieces stand — an iron cube outside
+every spawn region (`ST2`), a spawn in the half of its region nearer the symmetry centre (`SP2`), a room's
+building over 20 by 20 blocks across all its wings (`ST9`) and a room's region over 20 by 30 (`ST10`). A unit
+is asked once, by its authored image, and the board's symmetry is the intent's or the sketch's. Where the map
+still holds a plan, the plan answers every other rule and none of these.
+
 ## The API
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone who may edit the map

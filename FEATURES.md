@@ -9459,6 +9459,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   moves that end alone by block corners, snapped to a drawn shape's outline within 3 blocks, and the piece route
   takes it as `part` `start` or `end`, every image moving its matching end.
   (`Pgm/Authoring/PlayPieceMove`, `Client/wwwroot/js/studio/controllers/wall-end-controller`, `docs/tools/sketch.md`)
+- **The play pieces are asked of the intent (`TS171`).** A map's findings ask the intent it builds the plan's
+  rules about its pieces — `PL2`, `PL3`, `PL10`, `PL14`, `OB22`, `DC1`, `OB14`, `ST2`, `SP2`, `ST9`, `ST10` — by
+  each unit's authored image, and a plan it still holds answers none of them twice.
+  (`Pgm/Authoring/IntentCheck`, `Api/Services/MapFindings`, `docs/tools/sketch.md`)
 - **A place holds one thread, and the list counts what is new (`TS186`).** A picked place's panel shows its
   thread under its fields over one text box, and a second `place` note on it is refused 409 `RQ5`; a place's row
   carries a speech bubble, filled with the count of messages new to the caller or an outline once read. `MapNoteDto.unread`

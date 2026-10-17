@@ -901,6 +901,8 @@ which is seconds a read would spend on every call, so each is named in `unasked`
 and scan it does ask, as drawn now rather than as Finish saw it: everything Finish judges
 (`SketchFinish.Judge` — the board's own gate, a board carrying no finish, and the plan's straits re-read off
 the ground, `CT12`), and a coast pulled back from a build zone (`EZ2`), off the scan brought up to the layout.
+A map holding an intent has its play pieces asked of the intent instead of the plan, under the same ids
+(`docs/tools/sketch.md`, `IntentCheck`).
 Standing ground nobody may edit (`EZ1`) is judged over the built world and is named in `unasked` with
 `GET /api/map/{slug}/editability`. So a vertex moved or a coast bent after Finish is heard here without
 finishing again. `GET /api/map/{slug}/state` is the other half: what may be done next, with the route for

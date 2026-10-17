@@ -2,6 +2,7 @@ using System.Text;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
@@ -36,17 +37,27 @@ public static class MapFindings
         MapArtifactStore artifacts, FeatureData feature, MapReader reader, MapRow map, CancellationToken ct)
     {
         var findings = new List<Finding>();
+        var layoutBytes = await artifacts.LoadLayoutAsync(map.Id, ct);
+        var intent = await artifacts.LoadJsonAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+
+        // The play pieces are asked of the intent where the map holds one, since that is what it builds; the
+        // plan answers the rest, and none of those twice.
+        if (intent is not null)
+        {
+            var board = layoutBytes is { Length: > 0 } ? SketchLayout.Parse(Encoding.UTF8.GetString(layoutBytes))?.Setup?.Board : null;
+            findings.AddRange(IntentCheck.Check(intent, board));
+        }
 
         var planBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
         if (planBytes is { Length: > 0 } && PlanModel.Parse(Encoding.UTF8.GetString(planBytes)) is { } plan)
         {
             // Both halves, because they answer different questions and a driver wants both: whether what the
             // plan says is coherent, and whether it yet says the things a map cannot exist without.
-            findings.AddRange(PlanValidator.Check(plan));
-            findings.AddRange(PlanValidator.Completeness(plan));
+            findings.AddRange(PlanValidator.Check(plan).Concat(PlanValidator.Completeness(plan))
+                .Where(finding => intent is null || !IntentCheck.Asks.Contains(finding.Rule)));
         }
 
-        if (await artifacts.LoadLayoutAsync(map.Id, ct) is { Length: > 0 } layoutBytes)
+        if (layoutBytes is { Length: > 0 })
         {
             var layoutJson = Encoding.UTF8.GetString(layoutBytes);
             findings.AddRange(SketchMaterialGate.Check(layoutJson));
