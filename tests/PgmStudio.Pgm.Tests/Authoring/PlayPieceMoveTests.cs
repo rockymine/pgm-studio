@@ -486,6 +486,41 @@ public sealed class PlayPieceMoveTests
     }
 
     [Test]
+    public async Task A_walls_end_moves_alone_and_the_matching_end_of_its_image_follows()
+    {
+        var (moved, refused) = PlayPieceMove.Apply(Fanned(), "wall-1", PieceParts.End, new Rect(44, 22, 44, 22), board: MirrorX);
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        await Assert.That(moved!.Structures!.Walls[0]).IsEqualTo(Fanned().Structures!.Walls[0] with { X2 = 44, Z2 = 22 });
+        await Assert.That(moved.Structures.Walls[1]).IsEqualTo(Fanned().Structures!.Walls[1] with { X2 = 56, Z2 = 22 })
+            .Because("the mirror image's end at (59, 18) is the image of the moved one, and moves the reflected way");
+
+        var (start, _) = PlayPieceMove.Apply(Fanned(), "wall-2", PieceParts.Start, new Rect(62, 8, 62, 8), board: MirrorX);
+        await Assert.That(start!.Structures!.Walls[0]).IsEqualTo(Fanned().Structures!.Walls[0] with { X1 = 38, Z1 = 8 });
+
+        var (alone, _) = PlayPieceMove.Apply(Fanned(), "wall-1", PieceParts.End, new Rect(44, 22, 44, 22), alone: true, board: MirrorX);
+        await Assert.That(alone!.Structures!.Walls[1]).IsEqualTo(Fanned().Structures!.Walls[1]);
+    }
+
+    [Test]
+    public async Task A_walls_end_is_one_block_corner_apart_from_the_other()
+    {
+        var (spanned, why) = PlayPieceMove.Apply(Fanned(), "wall-1", PieceParts.End, new Rect(44, 22, 45, 23));
+        await Assert.That(spanned).IsNull();
+        await Assert.That(why.Single().Field).IsEqualTo("placed");
+
+        var (offGrid, _) = PlayPieceMove.Apply(Fanned(), "wall-1", PieceParts.End, new Rect(44.5, 22, 44.5, 22));
+        await Assert.That(offGrid).IsNull();
+
+        var (collapsed, _) = PlayPieceMove.Apply(Fanned(), "wall-1", PieceParts.End, new Rect(41, 10, 41, 10));
+        await Assert.That(collapsed).IsNull();
+
+        var (building, part) = PlayPieceMove.Apply(Fanned(), "wall-1", StructuralRoles.Building, new Rect(41, 12, 43, 20));
+        await Assert.That(building).IsNull();
+        await Assert.That(part.Single().Field).IsEqualTo("part");
+    }
+
+    [Test]
     public async Task The_observer_moves_by_its_block()
     {
         var (moved, _) = PlayPieceMove.Apply(Fanned(), PlayIds.Observer, null, new Rect(53, 47, 54, 48));

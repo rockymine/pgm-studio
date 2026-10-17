@@ -138,7 +138,11 @@ public static class PlayPieceMove
 
             if (structures.Walls.FindIndex(wall => wall.Id == id) is var wallAt and >= 0)
             {
-                if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+                if (part is PieceParts.Start or PieceParts.End)
+                    return WallEnd(intent, structures, wallAt, part == PieceParts.End, placed, symmetry, alone);
+                if (!string.IsNullOrEmpty(part))
+                    return Refuse(RequestRules.Unreadable, "part",
+                        $"the request's `part` is '{part}', and a wall takes '{PieceParts.Start}', '{PieceParts.End}' or none");
                 if (BlockShift(PlayPieces.Wall(structures.Walls[wallAt]), placed, out var dx, out var dz) is { } stopped)
                     return (null, stopped);
                 var moved = Orbit(structures.Walls, wallAt, entry => entry.Stamp, mode, alone, dx, dz,
@@ -170,6 +174,42 @@ public static class PlayPieceMove
 
         return Refuse(RequestRules.NoSuchSubject, "id", $"the map has no play piece with the id '{id}'", id);
     }
+
+    /// <summary>The intent with one end of the wall at <paramref name="at"/> — its second where
+    /// <paramref name="second"/> — moved to the block corner <paramref name="placed"/> states, the other end left
+    /// standing, and the matching end of every image moved by the displacement turned through the step to it.</summary>
+    private static (MapIntent? Intent, Findings Refused) WallEnd(
+        MapIntent intent, StructureIntent structures, int at, bool second, Rect placed, SymmetryIntent? symmetry,
+        bool alone)
+    {
+        if (placed.MinX != placed.MaxX || placed.MinZ != placed.MaxZ)
+            return Refuse(RequestRules.Unreadable, "placed",
+                "a wall's end is one block corner, and the request's `placed` spans blocks");
+        if (placed.MinX != Math.Floor(placed.MinX) || placed.MinZ != Math.Floor(placed.MinZ))
+            return Refuse(RequestRules.Unreadable, "placed", "a wall's end stands on a block corner, and the request's `placed` is off the block grid");
+        var wall = structures.Walls[at];
+        var (oldX, oldZ) = second ? (wall.X2, wall.Z2) : (wall.X1, wall.Z1);
+        var (otherX, otherZ) = second ? (wall.X1, wall.Z1) : (wall.X2, wall.Z2);
+        if ((int)placed.MinX == otherX && (int)placed.MinZ == otherZ)
+            return Refuse(RequestRules.Unreadable, "placed", "a wall's two ends would stand on one corner", wall.Id);
+        double dx = placed.MinX - oldX, dz = placed.MinZ - oldZ;
+        var mode = symmetry?.Mode;
+        var walls = Images(structures.Walls, at, entry => entry.Stamp, mode, alone, (entry, step) =>
+        {
+            if (step == 0) return Ended(entry, second, (int)placed.MinX, (int)placed.MinZ);
+            var (imageX, imageZ) = Symmetry.Point(oldX, oldZ, mode, symmetry!.CenterX, symmetry.CenterZ, step);
+            var nearSecond = Distance(entry.X2, entry.Z2, imageX, imageZ) < Distance(entry.X1, entry.Z1, imageX, imageZ);
+            var (x, z) = Symmetry.Point(dx, dz, mode, 0, 0, step);
+            var (fromX, fromZ) = nearSecond ? (entry.X2, entry.Z2) : (entry.X1, entry.Z1);
+            return Ended(entry, nearSecond, fromX + (int)Math.Round(x), fromZ + (int)Math.Round(z));
+        });
+        return (intent with { Structures = structures with { Walls = walls } }, Findings.None);
+    }
+
+    private static WallStructure Ended(WallStructure wall, bool second, int x, int z) =>
+        second ? wall with { X2 = x, Z2 = z } : wall with { X1 = x, Z1 = z };
+
+    private static double Distance(double x1, double z1, double x2, double z2) => Math.Abs(x1 - x2) + Math.Abs(z1 - z2);
 
     /// <summary>The intent with the marker of the room <paramref name="room"/> and its images moved by whole blocks
     /// to <paramref name="placed"/>, held inside the room's building where it states one and its region where
@@ -299,7 +339,7 @@ public static class PlayPieceMove
     /// <summary>The list with <paramref name="change"/> applied to the piece at <paramref name="at"/> (step 0)
     /// and, unless <paramref name="alone"/>, to every other image of its unit, given the symmetry step from the
     /// named image to it.</summary>
-    private static List<T> Images<T>(
+    internal static List<T> Images<T>(
         List<T> pieces, int at, Func<T, StampId> stampOf, string? mode, bool alone, Func<T, int, T> change)
     {
         var changed = new List<T>(pieces) { [at] = change(pieces[at], 0) };

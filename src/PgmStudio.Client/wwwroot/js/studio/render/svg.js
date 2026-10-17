@@ -18,6 +18,25 @@ export function svgEl(tag, attrs = {}, children = []) {
   return el;
 }
 
+/** The radius, in screen px, of the marker an edge shows where a press adds to it. */
+export const INSERT_GHOST_R = 4;
+
+/** The round marker an edge shows where a press adds to it — a point to an outline, a wing to a house. Placed
+ *  with `cx`/`cy`; a press on it runs `onPress` and is the marker's alone, never a pan or a re-pick. */
+export function insertGhost(onPress) {
+  const el = svgEl("circle", {
+    r: String(INSERT_GHOST_R), fill: "var(--bg-deep)", stroke: "var(--accent-light)", "stroke-width": "1.5",
+  });
+  el.style.cursor = "copy";
+  el.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    onPress();
+  });
+  el.addEventListener("click", (e) => e.stopPropagation());
+  return el;
+}
+
 /** Return the x/y/width/height attributes for a centered square handle rect. */
 export function handleRectAttrs(cx, cy, half) {
   return { x: cx - half, y: cy - half, width: half * 2, height: half * 2 };

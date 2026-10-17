@@ -19,14 +19,13 @@
  *                                            holds the snapshots and applies the same turn to a whole group
  */
 
-import { svgEl } from "../render/svg.js";
+import { svgEl, insertGhost } from "../render/svg.js";
 import { renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
 import { toScreen } from "../geometry/transform.js";
 import { toBounds, distToSegment } from "../geometry/shape.js";
 import { ringSelfIntersects } from "../geometry/polygon.js";
 
 const VERTEX_R           = 4;   // a point of an outline, drawn as a disc the size of the insert ghost
-const GHOST_R            = 4;
 const EDGE_THRESHOLD     = 10;  // screen px — hover distance to show midpoint ghost
 const BEZIER_R           = 3;   // bezier tangent handle radius (px)
 const BEZIER_COLLAPSE_PX = 5;   // screen px — collapse the handle when this close to the vertex
@@ -284,16 +283,7 @@ export class SketchEditController {
   #showGhost(sx, sy, edgeIdx) {
     this.#hoveredEdgeIdx = edgeIdx;
     if (!this.#ghostEl) {
-      const el = svgEl("circle", {
-        r: String(GHOST_R), fill: "var(--bg-deep)", stroke: "var(--accent-light)", "stroke-width": "1.5",
-      });
-      el.style.cursor = "copy";
-      el.addEventListener("mousedown", (e) => {
-        if (e.button !== 0) return;
-        e.stopPropagation();
-        this.#insertEdgeVertex(this.#selectedId, this.#hoveredEdgeIdx);
-      });
-      el.addEventListener("click", (e) => e.stopPropagation());
+      const el = insertGhost(() => this.#insertEdgeVertex(this.#selectedId, this.#hoveredEdgeIdx));
       this.#handlesLayer.appendChild(el);
       this.#ghostEl = el;
     }

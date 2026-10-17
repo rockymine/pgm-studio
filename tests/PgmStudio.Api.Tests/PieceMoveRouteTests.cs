@@ -77,6 +77,31 @@ public sealed class PieceMoveRouteTests
             .GetProperty("spawns").EnumerateArray().First();
 
     [Test]
+    public async Task A_rooms_house_is_set_whole_and_a_wing_it_cannot_stand_is_refused()
+    {
+        var (client, slug) = await BoardAsync();
+        using var _ = client;
+
+        var grown = await client.PutAsJsonAsync($"/api/map/{slug}/intent/pieces/spawn-red/house", new
+        {
+            house = new { wings = new object[] { new { corners = new[] { new[] { 2, 2 }, new[] { 7, 7 } } },
+                                                 new { corners = new[] { new[] { 2, 8 }, new[] { 7, 9 } } } } },
+        });
+        await Assert.That(grown.StatusCode).IsEqualTo(HttpStatusCode.BadRequest).Because("a wing 2 blocks deep is no wing");
+        await Assert.That(await grown.Content.ReadAsStringAsync()).Contains("WX2");
+
+        var set = await client.PutAsJsonAsync($"/api/map/{slug}/intent/pieces/spawn-red/house", new
+        {
+            house = new { wings = new object[] { new { corners = new[] { new[] { 2, 2 }, new[] { 5, 7 } } },
+                                                 new { corners = new[] { new[] { 6, 2 }, new[] { 9, 7 } } } } },
+        });
+        await Assert.That(set.IsSuccessStatusCode).IsTrue().Because(await set.Content.ReadAsStringAsync());
+        var wings = (await SpawnAsync(client, slug)).GetProperty("house").GetProperty("wings");
+        await Assert.That(wings.GetArrayLength()).IsEqualTo(2);
+        await Assert.That(wings[1].GetProperty("corners")[1][0].GetDouble()).IsEqualTo(9);
+    }
+
+    [Test]
     public async Task A_moved_region_is_stored_with_the_room_seated_on_it()
     {
         var (client, slug) = await BoardAsync();

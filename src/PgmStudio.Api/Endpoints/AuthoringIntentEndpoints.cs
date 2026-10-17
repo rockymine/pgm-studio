@@ -125,6 +125,48 @@ public sealed class IntentPieceSettingEndpoint(
     }
 }
 
+/// <summary>PUT /api/map/{slug}/intent/pieces/{id}/house — set a room's house whole, on every image of its unit
+/// unless <c>alone</c>. <see cref="PlayPieceHouse"/> holds what it refuses.</summary>
+public sealed class IntentPieceHouseEndpoint(
+    MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features,
+    PlayerLookup players)
+    : Endpoint<PieceHouseRequest>
+{
+    public override void Configure()
+    {
+        Put("/map/{slug}/intent/pieces/{id}/house");
+        Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(400, 404, 409, 422));
+    }
+
+    public override async Task HandleAsync(PieceHouseRequest req, CancellationToken ct)
+    {
+        var slug = Route<string>("slug")!;
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        RoomHouse? house;
+        try { house = req.House.Deserialize<RoomHouse>(MapArtifactStore.Json); }
+        catch (JsonException) { house = null; }
+        if (house is null)
+        {
+            await Refusals.UnreadableAsync(HttpContext, "not a house", "the request's `house` is not a house", ct, "house");
+            return;
+        }
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+        var (set, refused) = PlayPieceHouse.Apply(intent, Route<string>("id")!, house, req.Alone,
+                                                  await IntentPieceMoveEndpoint.BoardAsync(artifacts, map.Id, ct));
+        if (set is null)
+        {
+            var missing = refused.Any(finding => finding.Rule == RequestRules.NoSuchSubject);
+            await Refusals.StopAsync(HttpContext, missing ? 404 : 400,
+                                     missing ? "no such piece" : "the house cannot be built", refused, ct);
+            return;
+        }
+        var applied = await IntentWrite.StoreAndProjectAsync(
+            repo, reader, writer, artifacts, features, players, slug, map.Id,
+            JsonSerializer.Serialize(set, MapArtifactStore.Json), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
+    }
+}
+
 /// <summary>DELETE /api/map/{slug}/intent/pieces/{id} — take one play piece out of the intent, and every image of
 /// it unless <c>?alone=true</c>.</summary>
 public sealed class IntentPieceDeleteEndpoint(

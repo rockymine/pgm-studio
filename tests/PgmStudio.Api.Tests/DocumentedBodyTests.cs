@@ -47,7 +47,9 @@ public sealed class DocumentedBodyTests
             route = route.Replace("{slug}", slug);
             if (route.Contains("/notes/{id}")) route = route.Replace("{id}", await NoteAsync(client, slug));
             if (route.Contains("/changes/{number}")) route = route.Replace("{number}", await ChangeAsync(client, slug));
-            if (route.Contains("/intent/pieces/{id}")) route = route.Replace("{id}", await PieceAsync(client, slug));
+            if (route.Contains("/intent/pieces/{id}"))
+                route = route.Replace("{id}", await PieceAsync(client, slug, room: route.EndsWith("/house", StringComparison.Ordinal),
+                    wall: example.Json.Contains("\"part\": \"end\"", StringComparison.Ordinal)));
         }
         if (route == "/api/notes/handoff") await NoteAsync(client, await OriginateMapAsync(client));
 
@@ -100,9 +102,25 @@ public sealed class DocumentedBodyTests
         return (await created.Content.ReadFromJsonAsync<Originated>())!.Slug;
     }
 
-    /// <summary>A destroyable on that map, for the routes that address one play piece.</summary>
-    private static async Task<string> PieceAsync(HttpClient client, string slug)
+    /// <summary>A piece on that map, for the routes that address one: a spawn on a twenty-block region round
+    /// (-10, -10) for a route about a room's house, a destroyable for the rest.</summary>
+    private static async Task<string> PieceAsync(HttpClient client, string slug, bool room, bool wall)
     {
+        if (wall)
+        {
+            var raised = await client.PostAsync($"/api/map/{slug}/intent/pieces", new StringContent(
+                "{\"kind\":\"wall\",\"ends\":[-10,4,-10,16]}", Encoding.UTF8, "application/json"));
+            return (await raised.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetString()!;
+        }
+        if (room)
+        {
+            var stated = await client.PutAsync($"/api/map/{slug}/intent", new StringContent(
+                "{\"teams\":[{\"id\":\"red\",\"name\":\"Red\",\"color\":\"red\"}],\"spawns\":[{\"team\":\"red\","
+                + "\"point\":{\"x\":-10,\"y\":12,\"z\":-10},\"protection\":[{\"minX\":-20,\"minZ\":-20,\"maxX\":0,\"maxZ\":0}],"
+                + "\"id\":\"spawn-red\"}]}", Encoding.UTF8, "application/json"));
+            if (!stated.IsSuccessStatusCode) throw new InvalidOperationException($"no room stated: {await stated.Content.ReadAsStringAsync()}");
+            return "spawn-red";
+        }
         var placed = await client.PostAsync($"/api/map/{slug}/intent/pieces", new StringContent(
             "{\"kind\":\"destroyable\",\"minX\":-12,\"minZ\":4,\"maxX\":-11,\"maxZ\":5}", Encoding.UTF8, "application/json"));
         return (await placed.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetString()!;

@@ -586,9 +586,11 @@ public sealed record RoomHouse
     /// <summary>The wings, the room first; each two opposite corners of the cells it covers, inclusive.</summary>
     public List<AuthoredWing> Wings { get; init; } = [];
 
-    /// <summary>The house style it is stamped in, as a style document; absent wears the map's.</summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public JsonElement? Style { get; init; }
+    /// <summary>The house style it is stamped in: an object is the style, an explicit <c>null</c> is no building —
+    /// the pad on open ground — and absent wears the map's. A bare element, because a nullable one reads the
+    /// stated null as absent.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public JsonElement Style { get; init; }
 
     /// <summary>The house of one wing covering <paramref name="room"/>, max-exclusive.</summary>
     public static RoomHouse Over(Rect room) => new() { Wings = [Wing(room)] };

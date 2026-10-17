@@ -37,6 +37,13 @@ public partial class SketchStructuralInspector
 
     [Parameter] public EventCallback<ObjectiveFieldChange> OnSetting { get; set; }
 
+    /// <summary>The house of a room whose wing is picked, shaped here and on the canvas; null where the piece is
+    /// not one, or outside Layout.</summary>
+    [Parameter] public RenderFragment? House { get; set; }
+
+    /// <summary>Whether a wall's ends drag apart here, which is Layout.</summary>
+    [Parameter] public bool EndsDrag { get; set; }
+
     /// <summary>Turn a spawn's facing a quarter clockwise.</summary>
     [Parameter] public EventCallback OnFace { get; set; }
 

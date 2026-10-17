@@ -9448,6 +9448,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   joint. The sketch draws every wing and a drag of any moves the house (`wing`); a stated `footprint` is refused
   by name. `M0081` carried every stored footprint, current and recorded, into a one-wing house.
   (`Pgm/Authoring/MapIntent`, `Domain/Wings`, `docs/world-export/structures.md` §1, §9)
+- **A house gains a wing the way an outline gains a point (`TS188`).** The middle of a picked house's free wall
+  shows the outline editor's insert marker, and a click adds a wing along it, 5 deep and shrunk to fit; square
+  corner grips resize a wing, and join and split are gone. The same in Decoration for a dressed house and in Layout
+  for a room's, whose rail lists the wings, sets each one's storeys, roof and ridge, and dresses the house in the
+  map's style, a library shell or open ground, written whole through `PUT …/intent/pieces/{id}/house`.
+  (`Client/wwwroot/js/studio/shared/building`, `controllers/room-house-controller`, `Pgm/Authoring/PlayPieceHouse`,
+  `docs/tools/sketch.md`)
+- **A wall's ends drag apart (`TS185`).** A picked approach wall in Layout wears a grip on each end; dragging one
+  moves that end alone by block corners, snapped to a drawn shape's outline within 3 blocks, and the piece route
+  takes it as `part` `start` or `end`, every image moving its matching end.
+  (`Pgm/Authoring/PlayPieceMove`, `Client/wwwroot/js/studio/controllers/wall-end-controller`, `docs/tools/sketch.md`)
 - **A place holds one thread, and the list counts what is new (`TS186`).** A picked place's panel shows its
   thread under its fields over one text box, and a second `place` note on it is refused 409 `RQ5`; a place's row
   carries a speech bubble, filled with the count of messages new to the caller or an outline once read. `MapNoteDto.unread`

@@ -33,7 +33,7 @@ import { contourAt, markFromDrag } from "../relief/contour-drag.js";
 import { douglasPeucker, simplifyRing } from "../geometry/simplify.js";
 import { distToSegment } from "../geometry/shape.js";
 import { pointInRing } from "../geometry/polygon.js";
-import { svgEl, handleRectAttrs } from "../render/svg.js";
+import { svgEl, handleRectAttrs, insertGhost } from "../render/svg.js";
 import { toScreen } from "../geometry/transform.js";
 
 /** Tool name → the kind of mark it places. The canvas passes tool names through, so this is also the test for
@@ -60,7 +60,6 @@ const POINT_HALF = 4;
 // how big that ghost is. Both are the draw stage's, since it is the same gesture on the same kind
 // of outline and an author should not have to learn it twice.
 const EDGE_THRESHOLD = 10;
-const GHOST_R = 4;
 
 export class ReliefController {
   #doc;
@@ -287,16 +286,7 @@ export class ReliefController {
     if (!this.#handlesLayer) return;
     this.#hoveredEdge = edge;
     if (!this.#ghostEl || !this.#ghostEl.isConnected) {
-      const el = svgEl("circle", {
-        r: String(GHOST_R), fill: "var(--bg-deep)", stroke: "var(--accent-light)", "stroke-width": "1.5",
-      });
-      el.style.cursor = "copy";
-      el.addEventListener("mousedown", (event) => {
-        if (event.button !== 0) return;
-        event.stopPropagation();   // the press adds a point rather than starting a pan or a re-pick
-        this.insertPoint(this.#hoveredEdge);
-      });
-      el.addEventListener("click", (event) => event.stopPropagation());
+      const el = insertGhost(() => this.insertPoint(this.#hoveredEdge));
       this.#handlesLayer.appendChild(el);
       this.#ghostEl = el;
     }

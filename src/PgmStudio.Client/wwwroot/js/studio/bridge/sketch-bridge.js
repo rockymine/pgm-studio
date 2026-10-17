@@ -19,6 +19,7 @@ import { isHeightMode, isReliefScope } from "../shared/relief-words.js";
 import { diffOverlay } from "../render/diff-render.js";
 import { DRESSING_TOOLS } from "../controllers/dressing-controller.js";
 import { RELIEF_TOOLS } from "../controllers/relief-controller.js";
+import { rectsJoinUp, wingRects } from "../dressing/dressing-doc.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
 // axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
@@ -166,19 +167,22 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // The drag is already inside the step the pointer opened, so the whole of it is one undo; the release
     // is where the intent is asked, and it is not a step of its own — it answers about a move already drawn.
     onStructuralMoved: (piece, putBack) => moveStructural(piece, putBack),
+    // A room's house shaped on the canvas — a wing resized or added — is written whole, keeping what each wing
+    // and the house already stated.
+    onRoomHouseEdited: (room, wings) => reshapeHouse(room, wings),
+    onRoomHouseRefused: (sentence) => fire("OnStructuralNote", sentence),
+    // A wall's end dragged to a corner is asked of the intent the way a whole-wall drag is.
+    onWallEndMoved: (piece, part, x, z, putBack) => moveWallEnd(piece, part, x, z, putBack),
     // Placing, moving and picking a prop all happen on the canvas; the bridge only has to relay the result.
     onDressingChanged: edit(() => afterDressingChange()),
     onPropSelected:    () => fire("OnDressing", dressingState()),
     // A placed prop ends its tool, the same as a completed draw: the toolbar follows the canvas back to select.
     // A tool kept in hand lets go of the prop instead, so the inspector shows what the next press places.
     onDressingPlaced:  () => { if (!dropTool()) canvas.dressingTools?.select(null); },
-    // A join is one edit and one undo step, and it answers a sentence either way — what it did, or why it
-    // would not. The refusals it cannot answer are the joint model's, and those arrive with the preview.
-    onDressingJoin: edit((result) => {
+    // A wing added off a wall is one edit and one undo step; a press that adds none says why.
+    onDressingWing: edit((result) => {
       if (result?.refused) fire("OnDressing", dressingState(result.refused));
-      else afterDressingChange(result?.done === "apart"
-        ? `Taken apart into ${result.wings} buildings.`
-        : `Joined into one building of ${result?.wings ?? 0} wings.`);
+      else afterDressingChange();
     }),
     // Relief marks follow exactly the same three rules, for the same reasons.
     onReliefChanged: edit(() => afterReliefChange()),
@@ -316,6 +320,30 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     selectStructural(piece.id);
   }
 
+  /** The release of a drag on one end of a picked wall: the end, `start` or `end`, asked to stand on the block
+   *  corner (x, z), the wall put back where it stood on a refusal. */
+  async function moveWallEnd(piece, part, x, z, putBack) {
+    if (!slug) { canvas.restoreStructural(putBack); return; }
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(piece.id)}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ part, minX: x, minZ: z, maxX: x, maxZ: z }),
+      });
+      if (!res.ok) {
+        canvas.restoreStructural(putBack);
+        fire("OnStructuralNote", await refusalText(res));
+        return;
+      }
+    } catch {
+      canvas.restoreStructural(putBack);
+      fire("OnStructuralNote", "Couldn't reach the studio, so the wall wasn't changed. Try again.");
+      return;
+    }
+    fire("OnStructuralNote", null);
+    await refreshPieces();
+    selectStructural(piece.id);
+  }
+
   /**
    * Turn a picked room, its building, or an area a quarter at a time — `quarters` clockwise seen from above,
    * negative the other way. Asked of the intent the way a move is, and read back the same way.
@@ -428,6 +456,53 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       : (partial.vertices ?? []).map(([x, z]) => [x, z]);
     dropTool();
     fire("OnPlaceDrawn", JSON.stringify({ shape: shape === "lasso" ? "ring" : shape, points }));
+  }
+
+  /** The house the intent states for `room`, or null where it states none. */
+  async function storedHouse(room) {
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent`);
+      if (!res.ok) return null;
+      const intent = await res.json();
+      return [...(intent.spawns ?? []), ...(intent.wools ?? [])].find(entry => entry.id === room)?.house ?? null;
+    } catch { return null; }
+  }
+
+  /** Write `room`'s house as the canvas now draws its wings — max-exclusive rectangles, the room's first — each
+   *  wing keeping what it stated about itself, and pick `pick`, the last wing where none is named. */
+  async function reshapeHouse(room, rects, pick = rects.length - 1) {
+    const house = await storedHouse(room) ?? {};
+    const wings = rects.map((r, at) => ({ ...(house.wings?.[at] ?? {}), corners: [[r.min_x, r.min_z], [r.max_x - 1, r.max_z - 1]] }));
+    await writeHouse(room, { ...house, wings }, pick);
+  }
+
+  /** Write `room`'s house whole, read the board back and pick wing `pick` of it; a refusal puts the drawing back
+   *  and says why. */
+  async function writeHouse(room, house, pick = 0) {
+    if (!slug) return;
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(room)}/house`, {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ house }),
+      });
+      if (!res.ok) fire("OnStructuralNote", await refusalText(res));
+      else fire("OnStructuralNote", null);
+    } catch {
+      fire("OnStructuralNote", "Couldn't reach the studio, so the house wasn't changed. Try again.");
+    }
+    await refreshRooms();
+    await refreshPieces();
+    selectStructural(pick > 0 ? `${room}-building-${pick + 1}` : `${room}-building`);
+  }
+
+  /** Take wing `wing` out of `room`'s house. The room's own wing stays, and so does any wing the rest would no
+   *  longer meet; a refusal says why and changes nothing. */
+  async function deleteRoomWing(room, wing) {
+    const house = await storedHouse(room);
+    const wings = house?.wings ?? [];
+    if (wing <= 0 || wing >= wings.length) { fire("OnStructuralNote", "The room's own wing stays."); return; }
+    const rest = wings.filter((_, at) => at !== wing);
+    if (!rectsJoinUp(wingRects({ wings: rest }))) { fire("OnStructuralNote", "The other wings would no longer meet."); return; }
+    await writeHouse(room, { ...house, wings: rest }, wing - 1);
   }
 
   /** Delete a picked piece and every image of it, and read the board back. */
@@ -907,9 +982,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     return JSON.stringify({
       props: canvas.dressing.props,
       selectedId,
-      // Every picked id, primary first. The inspector edits one prop and the join reads the rest, so the
-      // selection travels whole rather than the host inferring a second pick it cannot see.
-      selection: tools?.selection ?? (selectedId ? [selectedId] : []),
+      // Which wing of a picked building the inspector edits.
+      wing: tools?.selectedWing ?? 0,
       selected: selectedId ? canvas.dressing.byId(selectedId) : null,
       // The recipes travel with the state, because a placement names one and a preview of a placement has no
       // document behind it: what the inspector posts has to carry both halves or the key resolves to nothing.
@@ -1331,9 +1405,31 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     selectProp(id) { canvas.dressingTools?.select(id || null); },
     deleteProp() { if (canvas.dressingTools?.deleteSelected()) afterDressingChange(); },
-    /** Join the selected buildings, or take a joined one apart — the inspector button's half of `mod+g`, so
-     *  the two run the same operation rather than each having their own. */
-    joinDressing() { canvas.joinDressing(); },
+    /** Write a room's house whole — its wings and its style — as the Layout inspector states it, and pick wing
+     *  `pick` of it. */
+    setRoomHouse(room, houseJson, pick) {
+      let house; try { house = JSON.parse(houseJson); } catch { return; }
+      return writeHouse(room, house, pick ?? 0);
+    },
+    /** Take one wing out of a room's house, and pick the one before it. */
+    deleteRoomWing(room, wing) { return deleteRoomWing(room, wing); },
+    /** Pick a plan piece by its id, as a click on it would. */
+    pickStructural(id) { selectStructural(id || null); },
+    /** Shape a picked room's house and drag a picked wall's ends on the canvas — Layout only. */
+    setLayoutEditing(on) { canvas.setLayoutEditing(!!on); },
+    /** Pick one wing of the picked building, whose settings the inspector edits. */
+    selectWing(wing) { canvas.dressingTools?.selectWing(wing); fire("OnDressing", dressingState()); },
+    /** Take a wing out of the picked building; a refusal says why and changes nothing. */
+    deleteWing(wing) {
+      const result = canvas.dressingTools?.deleteWing(wing);
+      if (result?.refused) fire("OnDressing", dressingState(result.refused));
+      else afterDressingChange();
+    },
+    /** State what one wing of the picked building says about itself: its storeys, roof, ridge and joint. */
+    updateWing(wing, specJson) {
+      let spec; try { spec = JSON.parse(specJson); } catch { return; }
+      if (canvas.dressingTools?.updateWing(wing, spec)) afterDressingChange();
+    },
     /** Put a library recipe in the document's registry and answer the key it is stated under — which the
      *  inspector's picker then names on the placement, so the document always states what its placements name.
      *  The key is the row's name where that name is free or already holds this very recipe, and a numbered
@@ -1547,7 +1643,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     "setRoomStyle", "defineTheme", "deleteTheme", "setThemeJson", "setMapTheme",
     "setThemeSource", "setBiome",
     "assignShape", "assignGroup",
-    "deleteProp", "joinDressing", "pullRecipe", "updateProp",
+    "deleteProp", "deleteWing", "updateWing", "pullRecipe", "updateProp",
     "deleteMark", "updateMark", "renameMark", "updateGroupRelief", "setPushAmount",
   ];
   for (const verb of MUTATORS) {

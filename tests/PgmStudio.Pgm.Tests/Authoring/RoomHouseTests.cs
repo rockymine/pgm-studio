@@ -42,4 +42,30 @@ public sealed class RoomHouseTests
         await Assert.That(moved.Room).IsEqualTo(new Rect(3, -1, 9, 5));
         await Assert.That(moved.Wings[0].Spec.StoreysHigh).IsEqualTo(2);
     }
+
+    [Test]
+    public async Task A_wings_words_are_written_as_words_whatever_the_options()
+    {
+        var wing = RoomHouse.Over(new Rect(0, 0, 6, 6)).Wings[0]
+            with { Spec = new Domain.WingSpec(Form: Domain.RoofForm.Hip, Ridge: Domain.RidgeAxis.AlongX) };
+        var json = System.Text.Json.JsonSerializer.Serialize(new RoomHouse { Wings = [wing] },
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+
+        await Assert.That(json).Contains("\"ridge\":\"alongX\"");
+        await Assert.That(json).Contains("\"form\":\"hip\"");
+    }
+
+    [Test]
+    public async Task A_stated_null_style_reads_back_as_null_and_an_absent_one_stays_absent()
+    {
+        var options = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+
+        var open = System.Text.Json.JsonSerializer.Deserialize<RoomHouse>("""{"wings":[],"style":null}""", options)!;
+        var unstated = System.Text.Json.JsonSerializer.Deserialize<RoomHouse>("""{"wings":[]}""", options)!;
+
+        await Assert.That(open.Style.ValueKind).IsEqualTo(System.Text.Json.JsonValueKind.Null);
+        await Assert.That(System.Text.Json.JsonSerializer.Serialize(open, options)).Contains("\"style\":null");
+        await Assert.That(unstated.Style.ValueKind).IsEqualTo(System.Text.Json.JsonValueKind.Undefined);
+        await Assert.That(System.Text.Json.JsonSerializer.Serialize(unstated, options)).DoesNotContain("style");
+    }
 }

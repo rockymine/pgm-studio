@@ -808,6 +808,35 @@ a turn does; a field put back to its default writes null. A destroyable made of 
 { "key": "materials", "text": "gold block" }
 ```
 
+**A room's house is shaped where the room is placed.** Picking a wing of a room's building in Layout shows square
+grips on the corners of every wing of its house and the round insert marker on its free walls, the gestures a
+dressed house takes in Decoration (`RoomHouseController`): a corner drags to resize its wing, held to 4 blocks
+across and to the room's region, and a press on the marker adds a wing along that wall, 5 blocks deep and shrunk to
+fit the region, or says there is no room for one. The rail lists the wings with the room's own first, which stays;
+deletes any other the rest still meet through; sets the picked wing's **Storeys**, **Roof**, **Ridge** and whether its
+roof crosses the wing it meets; and dresses the house in a **Style** — the map's for its kind, a library shell copied
+onto it, or **Open ground**, the pad with no building over it (`SketchRoomHouse`).
+
+Every change writes the house whole through `PUT /map/{slug}/intent/pieces/{id}/house`, the room's wing first and
+every other image of the room carried through the symmetry (`PlayPieceHouse`). A style left out wears the map's, and
+a stated `null` is open ground. A spawn's house of two wings:
+
+```json PUT /api/map/{slug}/intent/pieces/{id}/house
+{ "house": { "wings": [ { "corners": [[-16, -16], [-5, -5]] }, { "corners": [[-4, -14], [-1, -7]] } ] } }
+```
+
+**A picked wall's ends drag apart.** In Layout a picked approach wall wears a square grip on each end of its line,
+and dragging one moves that end alone, by block corners, the other standing where it was
+(`WallEndController`). The end snaps to the nearest point on a drawn shape's outline within 3 blocks, so a
+wall run from shore to shore meets both. The release asks `PATCH /map/{slug}/intent/pieces/{id}` with `part`
+`start` or `end` and the corner the end lands on as all four bounds, and every image of the wall moves its
+matching end the mirrored or turned way; a refusal puts the wall back. The second end of a wall moved to
+(-6, 20):
+
+```json PATCH /api/map/{slug}/intent/pieces/{id}
+{ "part": "end", "minX": -6, "minZ": 20, "maxX": -6, "maxZ": 20 }
+```
+
 A build area placed by hand, which answers the id it was given:
 
 ```json POST /api/map/{slug}/intent/pieces
@@ -1238,6 +1267,14 @@ Seven things can be placed, in three placement geometries.
 | Tree | `tree` | a click | the built-in recipe, an oak 12 tall, until a tree is picked |
 | Boulder | `boulder` | a click | the built-in recipe, a mossy erratic of size 4, until it is tuned |
 | Chest | `chest` | a click | on the ground, fronting `negZ`, holding nothing until its stacks are listed (`docs/world-export/decoration.md` §8a) |
+
+**A building grows a wing the way an outline grows a point.** A picked building shows the outline editor's round
+insert marker at the middle of the free wall nearest the pointer — a run of wall no other wing stands against, at
+least 4 blocks long — and a press on it adds a wing along that wall, the wall's length and 5 blocks deep, shrunk
+short of any building it would run into (`shared/building.js`). The new wing is picked, and its square corner grips
+resize it; a drag never adds one. The inspector lists the wings, deletes any but the last or one the others meet
+through, and sets the picked wing's **Storeys**, **Roof**, **Ridge** and whether its roof crosses the wing it meets
+(`SketchHouseWings`). A room's house in Layout is the same building and takes the same gestures (Layout, below).
 
 **Every one of them takes a style, and for the two that lay ground the style and the material are separate
 questions.** A **stroke** replaces the surface it crosses rather than adding to it — it is a finish, not
@@ -2713,7 +2750,8 @@ than a zone drawn beside it, and leaving any of them behind puts it off the grou
 under `WX12`. Moving a
 room's **point** moves the point alone, by whole blocks, and one carried outside the room's building — or its
 region, where the room states no building — is refused; its rail shows the point's `X` and `Z`, and it turns
-and is deleted only with its room. It **moves
+and is deleted only with its room. A wall's **end**, dragged by its grip in Layout, moves alone and is the one
+drag that snaps, to the outline of a drawn shape (Layout, above). It **moves
 and does not resize**: a spawn or wool's marker is a fractional offset into its own rectangle, so a changed
 span shifts the marker inside it and every rule resolved against that frame with it. **The whole orbit
 moves**: every image of the piece's authored unit — the pieces of one kind sharing its stamp — moves by the

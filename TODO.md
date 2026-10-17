@@ -22,16 +22,6 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS188 — A room's house is shaped and styled in Layout.** A picked room's building in Layout gains a wing
-  dragged off any wall of it, a wing deleted, and a style of the room's own picked from the library over the map's
-  — what `house.wings` and `house.style` already take through `PUT …/intent` and the piece route. The rail is
-  `SketchTool.Layout`; the joint refusals are `WingJoints`'. `docs/tools/sketch.md`.
-
-- [ ] **TS185 — A wall's ends drag apart, and a line snaps to shape edges.** A picked wall in Layout shows a
-  handle at each end, and dragging one moves that end alone, its orbit images with it, the end snapping to the
-  nearest shape edge within a few blocks. The piece route takes the moved end as a `part`.
-  `docs/tools/sketch.md`.
-
 - [ ] **TS171 — The plan's rules read the sketch.** The measures (`GO`, `WL`, `CT`, `LN`, `FR`, `MD`) read off the
   sketch's rasterized ground, as `StraitReadback` already reads `CT12`; the refusals (`PL*`, `WL14`, the pad
   fits) are asked between play pieces, and a places document's targets are measured the same way. `sight` is

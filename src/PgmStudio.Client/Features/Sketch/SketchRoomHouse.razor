@@ -1,0 +1,58 @@
+@namespace PgmStudio.Client.Features.Sketch
+@using System.Text.Json.Nodes
+@using PgmStudio.Contracts
+
+@* A room's house in Layout: the style it is stamped in — the map's for its kind, a library shell copied onto it,
+   or none, a pad on open ground — and its wings, the room's own first. *@
+
+<div class="section-header section-header--ruled"><h2 class="section-title">Style</h2></div>
+<p class="section-desc">Picking a shell copies it to this room. Later library edits don't change it.</p>
+<div class="prop-cards">
+  <button class="prop-card @(Worn == MapStyle ? "prop-card--active" : null)" title="The map's style for this kind of room"
+          @onclick="() => OnStyle.InvokeAsync(new Choice(null, false))">
+    <span class="prop-card-label">Map's style</span>
+  </button>
+  @foreach (var shell in Shells)
+  {
+    <button class="prop-card @(Worn == shell.Name ? "prop-card--active" : null)" title="@shell.Name" @key="shell.Id"
+            @onclick="() => OnStyle.InvokeAsync(new Choice(shell, false))">
+      <span class="prop-card-art">@((MarkupString)shell.Preview)</span>
+      <span class="prop-card-label">@shell.Name</span>
+    </button>
+  }
+  <button class="prop-card @(Worn == OpenGround ? "prop-card--active" : null)" title="No building — the pad on open ground"
+          @onclick="() => OnStyle.InvokeAsync(new Choice(null, true))">
+    <span class="prop-card-label">Open ground</span>
+  </button>
+</div>
+
+@if (House["wings"] is JsonArray wings)
+{
+  <SketchHouseWings Wings="wings" Picked="Picked" KeepsFirst OnPick="OnPick" OnDelete="OnDelete" OnSpec="OnSpec" />
+}
+
+@code {
+    /// <summary>The house, <c>{wings, style?}</c>, as the intent states it.</summary>
+    [Parameter, EditorRequired] public JsonObject House { get; set; } = default!;
+
+    [Parameter] public IReadOnlyList<RoomStyleSummary> Shells { get; set; } = [];
+
+    /// <summary>Which wing is picked, counted from 0 — the room's own.</summary>
+    [Parameter] public int Picked { get; set; }
+
+    [Parameter] public EventCallback<Choice> OnStyle { get; set; }
+    [Parameter] public EventCallback<int> OnPick { get; set; }
+    [Parameter] public EventCallback<int> OnDelete { get; set; }
+    [Parameter] public EventCallback<(int Wing, JsonObject Spec)> OnSpec { get; set; }
+
+    /// <summary>A style picked: a library shell, open ground, or neither — the map's.</summary>
+    public readonly record struct Choice(RoomStyleSummary? Shell, bool OpenGround);
+
+    private const string MapStyle = "", OpenGround = "\0open";
+
+    /// <summary>What the house wears: the map's where it states no style, open ground where it states null, else the
+    /// name of the shell whose style it holds, or none of them where it holds one no listed shell has.</summary>
+    private string? Worn => !House.TryGetPropertyValue("style", out var style) ? MapStyle
+        : style is null ? OpenGround
+        : Shells.FirstOrDefault(shell => JsonNode.DeepEquals(style, JsonNode.Parse(shell.Style)))?.Name;
+}

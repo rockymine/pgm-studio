@@ -375,7 +375,8 @@
                                      OnSetHeight="SetStructuralHeight" OnTurn="TurnStructural" OnClose="ClearStructural"
                                      OnDelete="@(LayoutActive ? DeleteStructural : null)"
                                      Settings="pieceSettings" Vocabulary="objectiveWords" Yaw="spawnYaw"
-                                     OnSetting="SetObjectiveField" OnFace="FaceSpawn" />
+                                     OnSetting="SetObjectiveField" OnFace="FaceSpawn"
+                                   House="@RoomHouseBody" EndsDrag="LayoutActive" />
         }
         else
         {
@@ -391,3 +392,8 @@
       </div>
   </ChildContent>
 </StudioShell>
+
+@code {
+    /// <summary>The picked room's house, for the structural inspector; null where no room's wing is picked in Layout.</summary>
+    private RenderFragment? RoomHouseBody => roomHouse is not { } house ? null : @<SketchRoomHouse House="house" Shells="houseShells" Picked="houseWing" OnStyle="SetRoomHouseStyle" OnPick="PickRoomWing" OnDelete="DeleteRoomWing" OnSpec="SetRoomWingSpec" />;
+}
