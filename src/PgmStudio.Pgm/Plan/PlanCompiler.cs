@@ -223,7 +223,7 @@ public static class PlanCompiler
                     // A door is a direction, and it is fanned the way the yaw beside it is: the region, the
                     // footprint and the iron all turn with the orbit, so a side stated in the authored unit's
                     // frame is the wrong side on every image but the first. The stamper reads these words as
-                    // they stand (WorldBuilder.SpawnDoors), so this is where the turn has to happen.
+                    // they stand (SpawnIntent.DoorEdges), so this is where the turn has to happen.
                     Doors = [.. FanDoors(d, doors, bx, bz, k).Select(RoomEdges.Word)],
                 });
                 if (piece.Value.Role == PlanRoles.Spawn && k == 0)

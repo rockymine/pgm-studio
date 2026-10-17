@@ -2308,7 +2308,22 @@ goal under 16 blocks, beside a team's own ground under 12, and a plain hole unde
 and on a two-team wool board the strait outside 15 to 40 blocks (`CT12`), each read over the authored build
 areas where one is asked of an area. The plan's own strait, re-read off
 the sketch, is said only where the sketch's board does not report one, which is a strait the plan passed and
-the drawing closed. A build area running past the last ground it docks is `BZ9`, its id named.
+the drawing closed. A build area running past the last ground it docks is `BZ9`, its id named. And a hop
+outside 10 to 20 blocks is `G5`: the straight span between the nearest cells of two landmasses one build
+region touches, where it runs inside that region and through no third one, asked within the authored team's
+ground — a gap to another team's ground is the strait, and one inside an image repeats the unit's. Ground no
+group mirrors carries the nearest spawn's team, so a hop from the unit to neutral ground on the far side is
+not asked.
+
+**And where the intent's pieces meet that ground** (`SketchSeamCheck`), the same rules answer under their
+ids, each piece asked once by its authored image. A build area or water lane under 10 blocks across its
+shorter side is `G2`, one touching a spawn's region `BZ5`, a lane over ground `BZ12`, and build areas that
+touch and together fill one rectangle `BZ11`. An approach wall beside or over a wool's region is refused
+(`PL13`); otherwise ground one block past either end, on either face, is `PL17`, and the mouth it bars — the
+blocks of its line with ground on both faces, so a line drawn on past the shore bars only the ground it
+crosses — outside 10 to 20 blocks is `ST8`. A spawn's first door with under 15 blocks of ground or build
+area ahead of it, stepped out of its region along the door, is `SP9`. Compiled from a seed, the sketch's
+seams say what its plan's do.
 
 **The board's measures are read off the same ground**, at the 5-block cell the corpus's bands were measured at
 (`SketchMeasures`): a cell stands where more than half its blocks do. The evaluator's own terms answer them.

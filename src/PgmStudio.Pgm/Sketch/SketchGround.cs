@@ -91,11 +91,18 @@ public static class SketchGround
     /// <summary>The build areas the author placed rather than the symmetry carried, in the intent's order: an area
     /// that stands where an earlier one's image does is that one's copy, and an area that is its own image is
     /// authored. Every area is authored where no symmetry is stated.</summary>
-    public static List<PieceArea> AuthoredAreas(MapIntent intent, SymmetryIntent? board = null)
+    public static List<PieceArea> AuthoredAreas(MapIntent intent, SymmetryIntent? board = null) =>
+        Authored(intent.Build?.Areas ?? [], intent.Symmetry ?? board);
+
+    /// <summary>The water lanes the author placed rather than the symmetry carried, read as
+    /// <see cref="AuthoredAreas"/> reads build areas.</summary>
+    public static List<PieceArea> AuthoredLanes(MapIntent intent, SymmetryIntent? board = null) =>
+        Authored(intent.WaterLanes?.Rects ?? [], intent.Symmetry ?? board);
+
+    private static List<PieceArea> Authored(IEnumerable<PieceArea> areas, SymmetryIntent? symmetry)
     {
-        var symmetry = intent.Symmetry ?? board;
         var authored = new List<PieceArea>();
-        foreach (var area in intent.Build?.Areas ?? [])
+        foreach (var area in areas)
         {
             var image = symmetry is not null && Enumerable.Range(1, Math.Max(0, Symmetry.Order(symmetry.Mode) - 1)).Any(step =>
                 authored.Any(earlier =>

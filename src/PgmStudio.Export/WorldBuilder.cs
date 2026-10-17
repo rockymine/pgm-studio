@@ -1098,7 +1098,7 @@ public static class WorldBuilder
 
     private static ResolvedRoom UnreflectedSpawnRoom(SpawnIntent s, bool shellBound) =>
         ResolvedSpawn(s, shellBound, out _)
-        ?? new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, SpawnDoors(s), shellBound), []);
+        ?? new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, s.DoorEdges(), shellBound), []);
 
     /// <summary>The room a spawn resolves on its region, its iron with it, or null with the refusal that
     /// stopped it — null and no refusal where it stands on no region.</summary>
@@ -1108,7 +1108,7 @@ public static class WorldBuilder
         if (Ground(s.Protection) is not { } ground) return null;
         var (markerX, markerZ) = PositionSnap.SnapHalfXZ(s.Point.X, s.Point.Z);
         return RoomFrames.ResolveRoom(
-            ground, StatedFootprint(s.House?.Room), shellBound, markerX, markerZ, [], SpawnDoors(s),
+            ground, StatedFootprint(s.House?.Room), shellBound, markerX, markerZ, [], s.DoorEdges(),
             [.. s.Iron.Select(iron => PositionSnap.SnapHalfXZ(iron.X, iron.Z))], out refusal);
     }
 
@@ -1154,20 +1154,6 @@ public static class WorldBuilder
                 rooms,
                 Severity.Complaint, Field: $"roomStyles.{kind}", Subjects: units);
         }
-    }
-
-    /// <summary>The walls a spawn hall opens through: the ones the intent names, in the order it names them.
-    /// A hand-authored intent names none and gets the wall its yaw leans into — a yaw is one angle and a
-    /// board is not obliged to have put a door there, so it answers one door rather than a door per
-    /// wall.</summary>
-    private static IReadOnlyList<RoomEdge> SpawnDoors(SpawnIntent s)
-    {
-        var named = s.Doors.Select(RoomEdges.OfWord).OfType<RoomEdge>().ToList();
-        if (named.Count > 0) return named;
-        var yaw = ((s.Yaw % 360) + 360) % 360 * Math.PI / 180;
-        return RoomEdges.Nearest(
-            ((int)Math.Round(-Math.Sin(yaw)), (int)Math.Round(Math.Cos(yaw))), RoomEdges.All)
-            is { } edge ? [edge] : [];
     }
 
     /// <summary>The ground a room stands on: what the region encloses, as one block rect, or null where the

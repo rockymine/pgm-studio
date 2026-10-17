@@ -508,6 +508,19 @@ public sealed record SpawnIntent
     /// stamps nothing and is flagged at validation (WX9). Empty on hand-authored intents and on spawns whose
     /// iron rides <see cref="StructureIntent.IronCubes"/> instead.</summary>
     public List<Pt> Iron { get; init; } = new();
+
+    /// <summary>The walls the hall opens through: the ones <see cref="Doors"/> names, in its order. An intent
+    /// naming none gets the wall its yaw leans into — a yaw is one angle and a board is not obliged to have put
+    /// a door there, so it answers one door rather than a door per wall.</summary>
+    public IReadOnlyList<RoomEdge> DoorEdges()
+    {
+        var named = Doors.Select(RoomEdges.OfWord).OfType<RoomEdge>().ToList();
+        if (named.Count > 0) return named;
+        var yaw = ((Yaw % 360) + 360) % 360 * Math.PI / 180;
+        return RoomEdges.Nearest(
+            ((int)Math.Round(-Math.Sin(yaw)), (int)Math.Round(Math.Cos(yaw))), RoomEdges.All)
+            is { } edge ? [edge] : [];
+    }
 }
 
 /// <summary>The observer/default spawn point.</summary>

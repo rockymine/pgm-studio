@@ -43,7 +43,8 @@ public static class MapFindings
         var intent = await artifacts.LoadJsonAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
 
         // The play pieces are asked of the intent where the map holds one, since that is what it builds, and the
-        // board's structure of the ground its sketch builds; the plan answers the rest, and none of those twice.
+        // board's structure and its seams of the ground its sketch builds; the plan answers the rest, and none of
+        // those twice.
         var asked = new HashSet<string>();
         var boardFindings = Findings.None;
         if (intent is not null)
@@ -59,6 +60,8 @@ public static class MapFindings
                 boardFindings = SketchBoardCheck.Check(layoutJson, intent, layout?.Setup?.Board);
                 findings.AddRange(boardFindings);
                 asked.UnionWith(SketchBoardCheck.Asks);
+                findings.AddRange(SketchSeamCheck.Check(layoutJson, intent, layout?.Setup?.Board));
+                asked.UnionWith(SketchSeamCheck.Asks);
                 findings.AddRange(SketchMeasures.Check(layoutJson, intent, layout?.Setup?.Board));
             }
         }

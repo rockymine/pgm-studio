@@ -4,6 +4,7 @@ using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests.Sketch;
 
@@ -69,6 +70,27 @@ public sealed class SketchBoardCheckTests
 
         await Assert.That(strait.Measured!.Value).IsLessThan(15);
         await Assert.That(strait.Message).Contains("less than 15 blocks");
+    }
+
+    [Test]
+    public async Task A_hop_bridged_to_more_of_the_units_ground_is_held_to_its_band()
+    {
+        List<Finding> Hop(int gap)
+        {
+            var (layout, intent) = Compiled(
+                $$"""
+                {"id":"islet","type":"rectangle","operation":"add","min_x":{{10 + gap}},"min_z":-25,"max_x":{{30 + gap}},"max_z":-15,"base_height":8}
+                """);
+            intent = intent with
+            {
+                Build = intent.Build! with { Areas = [.. intent.Build!.Areas, new PieceArea(10, -25, 10 + gap, -15, "bridge")] },
+            };
+            return [.. SketchBoardCheck.Check(layout, intent, SketchLayout.Parse(layout)?.Setup?.Board)];
+        }
+
+        await Assert.That(Hop(25).Single(finding => finding.Rule == LayoutRules.VoidHop).Message)
+            .Contains("a gap of 25 blocks between them, more than 20 blocks");
+        await Assert.That(Hop(15).Select(finding => finding.Rule)).DoesNotContain(LayoutRules.VoidHop);
     }
 
     [Test]

@@ -825,7 +825,7 @@ public static class PlanValidator
         {
             var piece = d.Piece(s.Piece);
             if (piece is null) continue;
-            var (dirX, dirZ) = DoorDirection(s.Facing);
+            var (dirX, dirZ) = DoorDirection(d, s);
             foreach (var seam in seams)
             {
                 if (seam.A != s.Piece && seam.B != s.Piece) continue;
@@ -892,7 +892,7 @@ public static class PlanValidator
         {
             var piece = d.Piece(s.Piece);
             if (piece is null) continue;
-            var (dirX, dirZ) = DoorDirection(s.Facing);
+            var (dirX, dirZ) = DoorDirection(d, s);
             var (markerX, markerZ) = PlanMarkers.Block(piece.Value.Rect, s.At);
 
             // walk the ray out of the spawn piece, then count crossable ground until the first bare block
@@ -1380,14 +1380,9 @@ public static class PlanValidator
         return runs.Count == 1 ? runs[0] : string.Join(" and ", runs);
     }
 
-    // The board direction a door's facing opens toward (front = −z, the reading the editor renders).
-    private static (int X, int Z) DoorDirection(string facing) => facing switch
-    {
-        "back" => (0, 1),
-        "left" => (-1, 0),
-        "right" => (1, 0),
-        _ => (0, -1),
-    };
+    // The board direction a spawn's first door opens toward: the door its room is cut with.
+    private static (int X, int Z) DoorDirection(ContactGraph d, SpawnMarker spawn) =>
+        PieceDoors.ForSpawn(d, spawn.Piece, spawn.Facing) is [var door, ..] ? door.Outward() : SpawnFacings.Direction(spawn.Facing);
 
     // The rectilinear gap between two axis-aligned segments: the interval gap per axis, largest axis wins —
     // for parallel segments that overlap laterally this is exactly the perpendicular standoff.

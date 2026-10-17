@@ -1,6 +1,7 @@
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Derive;
+using PgmStudio.Pgm.Evaluate.Terms;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Vocabulary;
 
@@ -21,6 +22,7 @@ public static class SketchBoardCheck
     [
         LayoutRules.FrontlineShare, LayoutRules.MinimumFrontline, LayoutRules.RoomFrontGapWidth,
         LayoutRules.RoomHomeGapWidth, LayoutRules.HoleWidth, LayoutRules.TeamGapWidth, LayoutRules.ZoneOverhang,
+        LayoutRules.VoidHop,
     ]);
 
     /// <summary>What the board the layout and the intent build breaks; nothing where it builds no ground.</summary>
@@ -38,6 +40,94 @@ public static class SketchBoardCheck
             for (var x = (int)Math.Floor(area.MinX); x < (int)Math.Ceiling(area.MaxX); x++)
                 for (var z = (int)Math.Floor(area.MinZ); z < (int)Math.Ceiling(area.MaxZ); z++)
                     zoneOf.TryAdd((x, z), area.Id);
-        return new Findings([.. PlanValidator.BoardEdges(structure, rooms, strait), .. PlanValidator.ZoneReach(structure, zoneOf)]);
+        return new Findings([
+            .. PlanValidator.BoardEdges(structure, rooms, strait), .. PlanValidator.ZoneReach(structure, zoneOf), .. Hops(structure),
+        ]);
+    }
+
+    // G5: the void between every two landmasses one build region touches, measured on the straight span between
+    // their nearest cells, where that span runs inside the region and through no third landmass. A pair is asked
+    // within the authored unit's ground: a gap between two teams' ground is CT12's strait, and one inside an
+    // image repeats the unit's.
+    private static IEnumerable<Finding> Hops(BoardStructure board)
+    {
+        int Team(int island) => board.Islands[island].GroupBy(cell => board.Filled[cell].K).MaxBy(group => group.Count())!.Key;
+
+        var seen = new HashSet<(int, int)>();
+        foreach (var region in Regions(board.Build))
+        {
+            var touching = new Dictionary<int, List<(int X, int Z)>>();
+            foreach (var cell in region)
+                foreach (var near in Geom.Cells.N4(cell).Append(cell))
+                    if (board.IslandOf.TryGetValue(near, out var island) && board.Roles[island] != "decorative")
+                        (touching.TryGetValue(island, out var edge) ? edge : touching[island] = []).Add(near);
+            var islands = touching.Keys.Order().ToList();
+            for (var i = 0; i < islands.Count; i++)
+                for (var j = i + 1; j < islands.Count; j++)
+                {
+                    var (a, b) = (islands[i], islands[j]);
+                    if (Team(a) != 0 || Team(b) != 0 || !seen.Add((a, b))) continue;
+                    var (from, to, span) = Nearest(touching[a], touching[b]);
+                    if (span == 0 || !Open(from, to, region, board.IslandOf, a, b)) continue;
+                    if (span >= GapHopBand.MinHop && span <= GapHopBand.MaxHop) continue;
+                    var (sideA, sideB) = (Ground(board, a), Ground(board, b));
+                    yield return new Finding(LayoutRules.VoidHop,
+                        $"ground {Wording.Ids(sideA)} and ground {Wording.Ids(sideB)} have a gap of {span} blocks between them, "
+                        + (span < GapHopBand.MinHop ? $"less than {GapHopBand.MinHop} blocks" : $"more than {GapHopBand.MaxHop} blocks"),
+                        Severity.Complaint, Subjects: [.. sideA.Concat(sideB).Distinct()]);
+                }
+        }
+    }
+
+    private static IReadOnlyList<string> Ground(BoardStructure board, int island) =>
+        [.. board.Islands[island].Select(cell => board.Filled[cell].Owner).Distinct().Order(StringComparer.Ordinal)];
+
+    // The buildable cells in four-connected groups.
+    private static IEnumerable<HashSet<(int X, int Z)>> Regions(IReadOnlySet<(int, int)> build)
+    {
+        var left = build.ToHashSet();
+        while (left.Count > 0)
+        {
+            var start = left.First();
+            var region = new HashSet<(int X, int Z)> { start };
+            var queue = new Queue<(int, int)>([start]);
+            left.Remove(start);
+            while (queue.TryDequeue(out var cell))
+                foreach (var near in Geom.Cells.N4(cell))
+                    if (left.Remove(near)) { region.Add(near); queue.Enqueue(near); }
+            yield return region;
+        }
+    }
+
+    // The two cells, one of each side, with the least void between them: the cells clear on each axis, or where
+    // both axes are clear, the diagonal they make.
+    private static ((int X, int Z) From, (int X, int Z) To, int Span) Nearest(List<(int X, int Z)> sideA, List<(int X, int Z)> sideB)
+    {
+        var best = (From: sideA[0], To: sideB[0], Span: int.MaxValue);
+        var targets = sideB.Distinct().ToList();
+        foreach (var from in sideA.Distinct())
+            foreach (var to in targets)
+            {
+                var gapX = Math.Max(0, Math.Abs(from.X - to.X) - 1);
+                var gapZ = Math.Max(0, Math.Abs(from.Z - to.Z) - 1);
+                var span = gapX == 0 ? gapZ : gapZ == 0 ? gapX : (int)Math.Round(Math.Sqrt(gapX * gapX + gapZ * gapZ));
+                if (span < best.Span) best = (from, to, span);
+            }
+        return best;
+    }
+
+    // Whether the straight line between two cells' centres crosses only the region's cells and the two sides' own.
+    private static bool Open((int X, int Z) from, (int X, int Z) to, HashSet<(int X, int Z)> region,
+        Dictionary<(int, int), int> islandOf, int a, int b)
+    {
+        var steps = 4 * Math.Max(Math.Abs(to.X - from.X), Math.Abs(to.Z - from.Z));
+        for (var step = 1; step < steps; step++)
+        {
+            var cell = ((int)Math.Floor(from.X + 0.5 + (to.X - from.X) * step / (double)steps),
+                (int)Math.Floor(from.Z + 0.5 + (to.Z - from.Z) * step / (double)steps));
+            if (islandOf.TryGetValue(cell, out var island)) { if (island != a && island != b) return false; continue; }
+            if (!region.Contains(cell)) return false;
+        }
+        return true;
     }
 }
