@@ -1,6 +1,7 @@
 using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Derive;
+using PgmStudio.Pgm.Evaluate.Terms;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Vocabulary;
 
@@ -32,6 +33,15 @@ public sealed class EvalContext
     /// <summary>What the board is played for.</summary>
     public BoardGoals Goals { get; }
 
+    /// <summary>How many players the board is laid out for, which sizes its middle.</summary>
+    public int MaxPlayers { get; }
+
+    private readonly Lazy<MidBand?> _mid;
+
+    /// <summary>The build band between the fronts, measured across them and front to front; null where the board
+    /// has none.</summary>
+    internal MidBand? Mid => _mid.Value;
+
     private readonly Lazy<BoardStructure> _board;
     public BoardStructure Board => _board.Value;
 
@@ -52,8 +62,11 @@ public sealed class EvalContext
 
     private EvalContext(
         PlanModel? plan, ContactGraph? contacts, Findings? findings, SeedEnvelopes envelopes, int order, BoardGoals goals,
-        Lazy<BoardStructure> board, Lazy<BoardWalks> walks, Lazy<GoalDistances.GoalGround?> goalGround)
+        int maxPlayers, Lazy<BoardStructure> board, Lazy<BoardWalks> walks, Lazy<GoalDistances.GoalGround?> goalGround,
+        Func<BoardStructure, MidBand?> mid)
     {
+        MaxPlayers = maxPlayers;
+        _mid = new Lazy<MidBand?>(() => mid(board.Value));
         _walks = walks;
         _goalGround = goalGround;
         _plan = plan;
@@ -75,19 +88,21 @@ public sealed class EvalContext
         var placed = plan.Placements;
         return new EvalContext(plan, contacts, findings, envelopes ?? SeedEnvelopes.Empty,
             Symmetry.Order(plan.Globals.Symmetry),
-            new BoardGoals(placed.Wools.Count, placed.Destroyables.Count, placed.Cores.Count),
+            new BoardGoals(placed.Wools.Count, placed.Destroyables.Count, placed.Cores.Count), plan.Globals.MaxPlayers,
             new Lazy<BoardStructure>(() => BoardDeriver.Derive(plan)),
             new Lazy<BoardWalks>(() => BoardWalks.Of(plan)),
-            new Lazy<GoalDistances.GoalGround?>(() => GoalDistances.Ground(plan)));
+            new Lazy<GoalDistances.GoalGround?>(() => GoalDistances.Ground(plan)),
+            _ => MidBand.Read(plan));
     }
 
     /// <summary>The context for a board read off a ground with no plan behind it: the terms that read only the
     /// board's structure answer it, and one that asks for the plan is refused.</summary>
     public static EvalContext OfBoard(
-        BoardStructure board, BoardWalks walks, GoalDistances.GoalGround? goalGround, int order, BoardGoals goals,
-        SeedEnvelopes envelopes) =>
-        new(null, null, null, envelopes, order, goals, new Lazy<BoardStructure>(() => board),
-            new Lazy<BoardWalks>(() => walks), new Lazy<GoalDistances.GoalGround?>(() => goalGround));
+        BoardStructure board, BoardWalks walks, GoalDistances.GoalGround? goalGround, int order, string? mode,
+        BoardGoals goals, int maxPlayers, SeedEnvelopes envelopes) =>
+        new(null, null, null, envelopes, order, goals, maxPlayers, new Lazy<BoardStructure>(() => board),
+            new Lazy<BoardWalks>(() => walks), new Lazy<GoalDistances.GoalGround?>(() => goalGround),
+            structure => MidBand.Of(structure, mode));
 
     private static InvalidOperationException NoPlan() =>
         new("this board was read off a ground with no plan behind it");

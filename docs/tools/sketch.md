@@ -2305,9 +2305,10 @@ by its room, a cell's team being the image of the spawn nearest it and building 
 areas (`SketchGround`). The board deriver reads it as it reads a plan's ground, and the same rules answer under
 their ids: a face's front line under a third of its void side or under 15 blocks (`FR8`, `FR9`), a gap beside a
 goal under 16 blocks, beside a team's own ground under 12, and a plain hole under 12 (`WL12`, `WL20`, `LN6`),
-and on a two-team wool board the strait outside 15 to 40 blocks (`CT12`). The plan's own strait, re-read off
+and on a two-team wool board the strait outside 15 to 40 blocks (`CT12`), each read over the authored build
+areas where one is asked of an area. The plan's own strait, re-read off
 the sketch, is said only where the sketch's board does not report one, which is a strait the plan passed and
-the drawing closed.
+the drawing closed. A build area running past the last ground it docks is `BZ9`, its id named.
 
 **The board's measures are read off the same ground**, at the 5-block cell the corpus's bands were measured at
 (`SketchMeasures`): a cell stands where more than half its blocks do. The evaluator's own terms answer them.
@@ -2317,7 +2318,9 @@ and the narrowest lane to a wool room (`LN1`). Off the walks, in blocks: wool to
 spread and ratio, wool to the crossing and its balance, ratio and remoteness (`WL7`, `WL13`, `WL9`, `WL15`,
 `WL10`, `WL16`, `WL17`, `WL18`), each over the authored team's ground and its own build areas — an area that
 stands where an earlier one's symmetry image does is that one's copy — and on a two-team board a goal's walks
-over the whole closure (`GO1` to `GO4`). A value outside its band is a complaint carrying the number and the
+over the whole closure (`GO1` to `GO4`). And the band between the fronts — the rectangle round the board's
+front-to-front build cells, which a composed plan names its mid band — measured across the fronts against its
+floor for the board's size and front to front against twice its width (`MD7`, `MD8`). A value outside its band is a complaint carrying the number and the
 band, and a term with no band yet says nothing. Nothing is summed or ranked: a measure says how the board will
 play and the author weighs it. Compiled from a seed plan, the sketch measures what the plan measures — 898 of
 903 values over the 49 seeds — and the rest are where a centre island straddles both images of a rot_180 board,

@@ -12,7 +12,8 @@ namespace PgmStudio.Pgm.Sketch;
 /// The measures a board's structure answers, read off the ground the sketch builds at the corpus's cell: front
 /// faces per team and the widest of them (<c>FR4</c>, <c>FR6</c>), the stepping stones, crossings, cuts and holes
 /// of the middle (<c>CT1</c>, <c>CT4</c>, <c>CT5</c>, <c>CT8</c>, <c>CT9</c>, <c>CT13</c>) and the narrowest lane to
-/// a wool room (<c>LN1</c>). Each is the evaluator's own term, held to the band the corpus taught it, and a
+/// a wool room (<c>LN1</c>), the walks between its markers (<c>WL</c>, <c>GO</c>) and the band between the fronts
+/// (<c>MD7</c>, <c>MD8</c>). Each is the evaluator's own term, held to the band the corpus taught it, and a
 /// value outside its band is said as a complaint carrying the number. Nothing is summed: a measure describes
 /// how the board will play, and the author weighs it.
 /// </summary>
@@ -24,13 +25,14 @@ public static class SketchMeasures
 
     /// <summary>The terms asked: those reading the board's structure, and those walking a team's own ground or the
     /// fanned closure between its markers, and nothing of a plan.</summary>
-    public static readonly IReadOnlyList<SoftTerm> Terms =
+    public static readonly IReadOnlyList<ILayoutTerm> Terms =
     [
         new FrontlineCount(), new FrontlineWidth(), new BandCount(), new NeutralSteppingCount(), new TeamSteppingCount(),
         new IsolationCutCount(), new EnclosedVoidCount(), new UncrossedMiddleVoid(), new LaneWidth(),
         new WoolWoolDistance(), new SpawnWoolDistance(), new SpawnWoolSpread(), new WoolFrontDistance(),
         new WoolFrontBalance(), new SpawnWoolRatio(), new WoolFrontRatio(), new WoolFrontRemoteness(),
         new GoalSpawnRatio(), new OwnGoalDistance(), new OpposingGoalDistance(), new GoalSpawnDistance(),
+        new ThinMiddle(), new LongMiddle(),
     ];
 
     /// <summary>What the board the layout and the intent build measures outside its bands; nothing where it builds
@@ -85,36 +87,19 @@ public static class SketchMeasures
                 [.. enemy.OfType<(int, int)>()]);
         }
 
-        return EvalContext.OfBoard(structure, walks, goalGround, teams,
+        return EvalContext.OfBoard(structure, walks, goalGround, teams, (intent.Symmetry ?? board)?.Mode,
             new BoardGoals(wools.Count, goals.Count(goal => goal.Kind == "destroyable"), goals.Count(goal => goal.Kind == "core")),
-            SeedEnvelopes.Default);
+            intent.MaxPlayers, SeedEnvelopes.Default);
     }
 
-    /// <summary>The build cells of the areas the author placed rather than the symmetry carried: an area that
-    /// stands where an earlier one's image does is that one's copy, and an area that is its own image is
-    /// authored.</summary>
+    /// <summary>The build cells of the areas the author placed rather than the symmetry carried.</summary>
     private static IEnumerable<(int, int)> AuthoredBuild(MapIntent intent, SymmetryIntent? board, BoardGround ground)
     {
-        var symmetry = intent.Symmetry ?? board;
-        var authored = new List<Rect>();
-        foreach (var area in intent.Build?.Areas ?? [])
-        {
-            var rect = area.Rect;
-            var image = symmetry is not null && Enumerable.Range(1, Math.Max(0, Symmetry.Order(symmetry.Mode) - 1)).Any(step =>
-                authored.Any(earlier =>
-                {
-                    var (minX, minZ, maxX, maxZ) = Symmetry.Rect(earlier.MinX, earlier.MinZ, earlier.MaxX, earlier.MaxZ,
-                        symmetry.Mode, symmetry.CenterX, symmetry.CenterZ, step);
-                    return Near(minX, rect.MinX) && Near(minZ, rect.MinZ) && Near(maxX, rect.MaxX) && Near(maxZ, rect.MaxZ);
-                }));
-            if (!image) authored.Add(rect);
-        }
+        var authored = SketchGround.AuthoredAreas(intent, board).Select(area => area.Rect).ToList();
         return ground.Build.Where(cell => authored.Any(rect =>
             (cell.Item1 + 0.5) * ground.Cell >= rect.MinX && (cell.Item1 + 0.5) * ground.Cell < rect.MaxX
             && (cell.Item2 + 0.5) * ground.Cell >= rect.MinZ && (cell.Item2 + 0.5) * ground.Cell < rect.MaxZ));
     }
-
-    private static bool Near(double a, double b) => Math.Abs(a - b) < 1e-6;
 
     private static bool Authored(StampId stamp) => string.IsNullOrEmpty(stamp.Kind) || stamp.Image == 0;
 

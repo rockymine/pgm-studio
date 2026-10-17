@@ -33,8 +33,21 @@ public sealed class SketchMeasuresTests
         var planned = EvalContext.Build(plan, SeedEnvelopes.Default);
         var sketched = SketchMeasures.Context(layout, intent, SketchLayout.Parse(layout)?.Setup?.Board)!;
 
-        foreach (var term in SketchMeasures.Terms)
+        foreach (var term in SketchMeasures.Terms.OfType<SoftTerm>())
             await Assert.That(term.Value(sketched)).IsEqualTo(term.Value(planned)).Because($"{term.RuleId} on {seed}");
+    }
+
+    [Test]
+    [Arguments("base-2island.plan.json")]
+    [Arguments("base-2wool.plan.json")]
+    public async Task The_band_between_the_fronts_measures_as_the_plans_mid_band_does(string seed)
+    {
+        var (plan, layout, intent) = Compiled(seed);
+        var planned = EvalContext.Build(plan, SeedEnvelopes.Default);
+        var sketched = SketchMeasures.Context(layout, intent, SketchLayout.Parse(layout)?.Setup?.Board)!;
+
+        foreach (var term in new ILayoutTerm[] { new PgmStudio.Pgm.Evaluate.Terms.ThinMiddle(), new PgmStudio.Pgm.Evaluate.Terms.LongMiddle() })
+            await Assert.That(term.Measure(sketched).Distance).IsEqualTo(term.Measure(planned).Distance).Because($"{term.RuleId} on {seed}");
     }
 
     [Test]

@@ -10,7 +10,8 @@ namespace PgmStudio.Pgm.Sketch;
 /// The rules a board's structure answers, read off the ground the sketch builds rather than the plan's
 /// rectangles (<see cref="SketchGround"/>): a face's front line (<c>FR8</c>, <c>FR9</c>), the narrowest run of
 /// each gap beside a goal, beside a team's own ground and in a plain hole (<c>WL12</c>, <c>WL20</c>,
-/// <c>LN6</c>), and the strait between the two teams of a wool board (<c>CT12</c>). Each is the rule the plan
+/// <c>LN6</c>), the strait between the two teams of a wool board (<c>CT12</c>), and a build area running past the
+/// last ground it docks (<c>BZ9</c>). Each is the rule the plan
 /// is asked under the same id, measured in blocks, and an owner it names is a group or a room.
 /// </summary>
 public static class SketchBoardCheck
@@ -19,7 +20,7 @@ public static class SketchBoardCheck
     public static readonly IReadOnlySet<string> Asks = new HashSet<string>(
     [
         LayoutRules.FrontlineShare, LayoutRules.MinimumFrontline, LayoutRules.RoomFrontGapWidth,
-        LayoutRules.RoomHomeGapWidth, LayoutRules.HoleWidth, LayoutRules.TeamGapWidth,
+        LayoutRules.RoomHomeGapWidth, LayoutRules.HoleWidth, LayoutRules.TeamGapWidth, LayoutRules.ZoneOverhang,
     ]);
 
     /// <summary>What the board the layout and the intent build breaks; nothing where it builds no ground.</summary>
@@ -32,6 +33,11 @@ public static class SketchBoardCheck
         { return Findings.None; }
         var rooms = ground.SpawnOwners.Concat(ground.WoolOwners).ToHashSet(StringComparer.Ordinal);
         var strait = (intent.Wools ?? []).Count > 0 && IntentCheck.Teams(intent, board) == 2;
-        return new Findings([.. PlanValidator.BoardEdges(structure, rooms, strait)]);
+        var zoneOf = new Dictionary<(int X, int Z), string>();
+        foreach (var area in SketchGround.AuthoredAreas(intent, board))
+            for (var x = (int)Math.Floor(area.MinX); x < (int)Math.Ceiling(area.MaxX); x++)
+                for (var z = (int)Math.Floor(area.MinZ); z < (int)Math.Ceiling(area.MaxZ); z++)
+                    zoneOf.TryAdd((x, z), area.Id);
+        return new Findings([.. PlanValidator.BoardEdges(structure, rooms, strait), .. PlanValidator.ZoneReach(structure, zoneOf)]);
     }
 }

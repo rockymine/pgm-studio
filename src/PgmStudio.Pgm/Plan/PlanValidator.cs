@@ -1265,14 +1265,20 @@ public static class PlanValidator
         try { board = BoardDeriver.Derive(plan); }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException
                                        or NullReferenceException or IndexOutOfRangeException or KeyNotFoundException)
-        { yield break; }
+        { return []; }
 
         var zoneOf = new Dictionary<(int X, int Z), string>();
         foreach (var zone in plan.BuildZones)
             for (var cx = zone.Rect.X; cx < zone.Rect.X + zone.Rect.Width; cx++)
                 for (var cz = zone.Rect.Z; cz < zone.Rect.Z + zone.Rect.Height; cz++)
                     zoneOf.TryAdd((cx, cz), zone.Id);
+        return ZoneReach(board, zoneOf);
+    }
 
+    /// <summary><c>BZ9</c> over any board: each connected region of the build cells <paramref name="zoneOf"/> names
+    /// by the zone it belongs to, and the stretch of it that runs past the last ground it docks.</summary>
+    public static IEnumerable<Finding> ZoneReach(BoardStructure board, IReadOnlyDictionary<(int X, int Z), string> zoneOf)
+    {
         foreach (var region in Regions(zoneOf.Keys))
         {
             // A zone docked left and right bridges in x, so what may overhang is its extent in z, and the
@@ -1287,8 +1293,8 @@ public static class PlanValidator
             var zones = region.Select(cell => zoneOf[cell]).Distinct().OrderBy(id => id, StringComparer.Ordinal).ToList();
             yield return Lint(LayoutRules.ZoneOverhang,
                 $"build region{(zones.Count > 1 ? "s" : "")} {Wording.Ids(zones)} {(zones.Count > 1 ? "run" : "runs")} "
-                + $"{overhang.Count * plan.Globals.Cell} blocks past the last piece {(zones.Count > 1 ? "they touch" : "it touches")}, "
-                + $"at {axis} {Runs(overhang, plan.Globals.Cell)}",
+                + $"{overhang.Count * board.Cell} blocks past the last piece {(zones.Count > 1 ? "they touch" : "it touches")}, "
+                + $"at {axis} {Runs(overhang, board.Cell)}",
                 [.. zones]);
         }
     }

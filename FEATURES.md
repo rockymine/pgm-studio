@@ -9470,11 +9470,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `docs/world-export/structures.md`)
 - **The board's structure is read off the sketch's ground (`TS171`).** `BoardDeriver` reads a `BoardGround`, of
   which a plan states one and the sketch another (`SketchGround`, one block to a cell), and the findings read
-  answers `FR8`, `FR9`, `WL12`, `WL20`, `LN6` and `CT12` off the board the drawing builds.
+  answers `FR8`, `FR9`, `WL12`, `WL20`, `LN6`, `CT12` and `BZ9` off the board the drawing builds.
   (`Pgm/Derive/BoardGround`, `Pgm/Sketch/SketchBoardCheck`, `docs/tools/sketch.md`)
 - **The board's measures are read off the sketch's ground (`TS171`).** The evaluator's board terms — `FR4`,
   `FR6`, `CT1`, `CT4`, `CT5`, `CT8`, `CT9`, `CT13`, `LN1` — and its walks — `WL7`, `WL9`, `WL10`, `WL13`,
-  `WL15`–`WL18`, `GO1`–`GO4` — measure the sketch read at the corpus's 5-block cell and say a value outside its
+  `WL15`–`WL18`, `GO1`–`GO4` — and its mid band — `MD7`, `MD8`, the rectangle round the front-to-front build
+  cells — measure the sketch read at the corpus's 5-block cell and say a value outside its
   band as a complaint with its number, never summed into a score; compiled from a seed, the sketch measures
   what its plan does. (`Pgm/Sketch/SketchMeasures`, `Pgm/Evaluate/EvalContext`, `Pgm/Evaluate/BoardWalks`,
   `docs/tools/sketch.md`)

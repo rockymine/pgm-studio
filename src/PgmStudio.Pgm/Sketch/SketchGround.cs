@@ -88,6 +88,29 @@ public static class SketchGround
             [.. filled.Where(entry => entry.Value.K == 0).Select(entry => entry.Key)]);
     }
 
+    /// <summary>The build areas the author placed rather than the symmetry carried, in the intent's order: an area
+    /// that stands where an earlier one's image does is that one's copy, and an area that is its own image is
+    /// authored. Every area is authored where no symmetry is stated.</summary>
+    public static List<PieceArea> AuthoredAreas(MapIntent intent, SymmetryIntent? board = null)
+    {
+        var symmetry = intent.Symmetry ?? board;
+        var authored = new List<PieceArea>();
+        foreach (var area in intent.Build?.Areas ?? [])
+        {
+            var image = symmetry is not null && Enumerable.Range(1, Math.Max(0, Symmetry.Order(symmetry.Mode) - 1)).Any(step =>
+                authored.Any(earlier =>
+                {
+                    var (minX, minZ, maxX, maxZ) = Symmetry.Rect(earlier.MinX, earlier.MinZ, earlier.MaxX, earlier.MaxZ,
+                        symmetry.Mode, symmetry.CenterX, symmetry.CenterZ, step);
+                    return Near(minX, area.MinX) && Near(minZ, area.MinZ) && Near(maxX, area.MaxX) && Near(maxZ, area.MaxZ);
+                }));
+            if (!image) authored.Add(area);
+        }
+        return authored;
+    }
+
+    private static bool Near(double a, double b) => Math.Abs(a - b) < 1e-6;
+
     /// <summary>Who a column standing in no group is owned by.</summary>
     public const string GroundOwner = "ground";
 
