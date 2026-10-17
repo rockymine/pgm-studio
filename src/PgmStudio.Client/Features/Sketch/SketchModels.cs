@@ -54,8 +54,8 @@ public sealed record SketchStructuralRow(
     /// footprint drawn inside one or a play piece that is not a room.</summary>
     public bool IsRegion => !Piece && Role != StructuralRoles.Building;
 
-    /// <summary>Whether the piece turns: a room, its building, a build area and a water lane.</summary>
-    public bool Turns => !Piece || Role is PlayPieceKinds.BuildArea or PlayPieceKinds.WaterLane;
+    /// <summary>Whether the piece turns: a room, its building, a build area, a water lane and a defence chest.</summary>
+    public bool Turns => !Piece || Role is PlayPieceKinds.BuildArea or PlayPieceKinds.WaterLane or PlayPieceKinds.Chest;
 
     /// <summary>Whether the piece is a room's point — where a spawn's team arrives or a wool is dispensed —
     /// which stands where its room does and is neither added nor deleted alone.</summary>

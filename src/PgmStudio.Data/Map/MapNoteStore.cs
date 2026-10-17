@@ -58,12 +58,29 @@ public sealed class MapNoteStore(PgmDb db)
             .Set(note => note.UpdatedAt, at)
             .UpdateAsync(ct);
 
+    /// <summary>How far <paramref name="reader"/> has read each of <paramref name="noteIds"/>: the newest message
+    /// they have seen, by note; a note they have never opened is absent.</summary>
+    public async Task<Dictionary<long, long>> ReadUpToAsync(string reader, IReadOnlyCollection<long> noteIds,
+                                                            CancellationToken ct = default) =>
+        noteIds.Count == 0 ? []
+        : await db.MapNoteReads.Where(read => read.Reader == reader && noteIds.Contains(read.NoteId))
+            .ToDictionaryAsync(read => read.NoteId, read => read.LastMessageId, ct);
+
+    /// <summary>Say <paramref name="reader"/> has seen a note's thread up to <paramref name="messageId"/>; a mark
+    /// never moves back.</summary>
+    public Task MarkReadAsync(long noteId, string reader, long messageId, CancellationToken ct = default) =>
+        db.MapNoteReads.InsertOrUpdateAsync(
+            () => new MapNoteReadRow { NoteId = noteId, Reader = reader, LastMessageId = messageId },
+            read => new MapNoteReadRow { LastMessageId = read.LastMessageId > messageId ? read.LastMessageId : messageId },
+            ct);
+
     /// <summary>Let go of every note on a map, with its thread. Answers how many there were.</summary>
     public Task<int> DeleteMapAsync(string slug, CancellationToken ct = default) =>
         db.InOneWriteAsync(async () =>
         {
             var ids = db.MapNotes.Where(note => note.MapSlug == slug).Select(note => note.Id);
             await db.MapNoteMessages.Where(message => ids.Contains(message.NoteId)).DeleteAsync(ct);
+            await db.MapNoteReads.Where(read => ids.Contains(read.NoteId)).DeleteAsync(ct);
             return await db.MapNotes.Where(note => note.MapSlug == slug).DeleteAsync(ct);
         }, ct);
 

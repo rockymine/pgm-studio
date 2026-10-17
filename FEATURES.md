@@ -9442,6 +9442,38 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   structure and a wool's colour, in one body the plan inspector and the sketch both show (`ObjectiveFields`),
   written through `PATCH …/intent/pieces/{id}/settings` one setting at a time; what a unit shares every image
   takes. (`Pgm/Authoring/PlayPieceSettings`, `Client/Components/Editor/ObjectiveFields`, `docs/tools/sketch.md`)
+- **A place holds one thread, and the list counts what is new (`TS186`).** A picked place's panel shows its
+  thread under its fields over one text box, and a second `place` note on it is refused 409 `RQ5`; a place's row
+  carries a speech bubble, filled with the count of messages new to the caller or an outline once read. `MapNoteDto.unread`
+  counts them per reader from `map_note_read` (`M0080`), moved on by a reply or `POST …/notes/{id}/read`.
+  (`Client/Features/Sketch/SketchPlaceNotes`, `Api/Endpoints/NoteEndpoints`, `docs/tools/sketch.md`)
+- **The places carry a verdict (`TS183`).** `proposed`, `changes` or `approved` on the places document
+  (`PlanVerdicts`), set from Plan's **Verdict**; an agent builds on approved places, and no write is refused for
+  it. (`Vocabulary/PlanVerdicts`, `docs/tools/sketch.md`)
+- **Notes are pinned to places, and a note on ground is tagged with its place (`TS182`).** A `place` anchor names
+  one of the map's places, and a picked place's panel in Plan carries its threads; a point,
+  box or lasso note is tagged with the place its ground falls in (`PlaceLookup`), and Review's Cameras step draws
+  the places. (`Api/Services/PlaceLookup`, `Client/Features/Sketch/SketchPlaceNotes`, `docs/tools/sketch.md`)
+- **Plan and the places are an admin's (`TS187`).** Draw shows its Plan step, and Review's Cameras step the
+  places, only to an admin; `PUT …/places` and `places` in `PUT …/source` take the notes policy, refused `RQ8`
+  to anyone else. (`Client/Features/Sketch/SketchTool.Places`, `docs/access.md`, `docs/tools/sketch.md`)
+- **Draw's Plan step draws the places, before Ground (`TS181`).** A point, a box, a polygon, a lasso or a polyline
+  draws a place over the board; the column lists them, a click picks one, and its panel names it and sets the
+  play piece it holds, every change stored through `PUT …/places`. (`Client/Features/Sketch/SketchTool.Places`,
+  `docs/tools/sketch.md`)
+- **A map's places are stored with it, in its one history (`TS180`).** `GET·PUT /map/{slug}/places` reads and
+  writes `map_places_json`, a kept document diffed and restored beside the layout and the intent; a place is a
+  name over a point, box, ring or line and at most the play piece it holds, and `PUT source` takes `places`
+  as a member, keeping the map's own where it states none. (`Contracts/PlacesDtos`, `Api/Services/PlacesCheck`,
+  `docs/tools/sketch.md`)
+- **An approach wall is a line of bedrock at any angle, and its chest a marker (`WE167`).** A wall is two ends on
+  block corners, two blocks thick across its line (`Geom/WallLine`), bedrock to three courses over the highest
+  ground it crosses and nothing over it; a defence chest is a `ChestMarker` of its own, one block out from the
+  face the compile derives, fronting away from the wall. Layout drags a wall along a line and clicks a chest
+  down, and a chest turns. `M0079` carried every stored wall, current and recorded, into the line down its box
+  and its chests into markers. (`Pgm/Authoring/ApproachWalls`, `docs/generator/rules.md` ST4)
+- **A note's pin is a speech bubble (`TS184`).** It carries no number, in the column, on the picture and in
+  History. (`Client/Features/Sketch/SketchNotesColumn`, `docs/tools/sketch.md`)
 - **A room's point is drawn, dragged and read in the sketch (`TS176`).** `GET …/intent/pieces` answers a spawn's
   point (`spawnPoint`) and a wool's (`woolSpawn`) under the room's id with `-marker` after it, and the piece route
   moves one alone by whole blocks, held inside the room's building or its region; its rail shows its `X` and `Z`.

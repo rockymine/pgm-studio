@@ -209,6 +209,9 @@
   --canvas-evidence-offender: #e5534b;
   --canvas-evidence-bound:    #e8b923;
 
+  /* A place: a named shape over the board saying what it is for, making no ground. */
+  --canvas-place:             #38bdf8;
+
   /* A drop or drag the canvas will refuse — off the ground, or past the largest footprint. */
   --canvas-refused: #c0392b;
 
@@ -350,4 +353,5 @@
   --canvas-region: #64748b;   /* slate-500 — region fallback, darker for light bg */
   --canvas-box-mid: #64748b;   /* slate-500 — the slate-400 dash fades on the light viewport */
   --canvas-evidence-bound: #ca8a04;   /* yellow-600 — amber-yellow is near-invisible on slate-200 */
+  --canvas-place: #0284c7;
 }

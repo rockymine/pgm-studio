@@ -60,6 +60,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // written into the layout, because none of them is ground the layout states.
   let pieces = [];
   let pieceKind = null;        // the play piece the Layout step places next, or null
+  let placeShape = null;       // the shape of place the Plan step draws next, or null
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let dressingMode = false;    // the Dressing phase is up: props are, and a shape is not reachable under them
   // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override
@@ -131,6 +132,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   /** Hand the canvas back to select, and have the toolbar follow. */
   function putDownTool() {
     armPiece(null);
+    armPlace(null);
     canvas.setActiveTool("select");
     fire("OnToolChanged", "select");
   }
@@ -145,7 +147,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   const canvas = new SketchCanvas(svgEl, wrapEl, {
     cursorEl: coordsEl, zoomEl, dimEl,
-    onShapeCreated: (partial) => pieceKind ? placePiece(pieceKind, partial) : addShape(partial),
+    onShapeCreated: (partial) => pieceKind ? placePiece(pieceKind, partial)
+      : placeShape ? drawnPlace(placeShape, partial) : addShape(partial),
+    onPlaceSelected: (id) => fire("OnPlaceSelected", id ?? null),
     onShapeUpdated: edit(() => { recompute(); markDirty(); }),
     onShapeSelected: (id) => selectShape(id),
     // A brush in hand paints the shape it is clicked on; shift widens it to every shape the group holds, and
@@ -340,7 +344,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   });
 
   // The pieces a click places, centred on the block clicked; every other kind is the rectangle dragged out.
-  const POINT_KINDS = new Set(["destroyable", "core", "ironCube", "observer"]);
+  const POINT_KINDS = new Set(["destroyable", "core", "ironCube", "chest", "observer"]);
   const ROOM_KINDS = new Set(["spawn", "woolRoom"]);
 
   /** Arm the rectangle tool to place `kind` rather than draw a shape, or `null` to put it back to drawing. */
@@ -351,22 +355,34 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   /**
-   * Place a piece where the rectangle was drawn — a wall held to 2 blocks across its thinner side, a click's
-   * block for a piece that stands on a point — and read it back. A spawn or wool room placed over no ground
-   * also draws a rectangle of ground the size of the room, as an ordinary shape of the active layer.
+   * The two block corners a wall dragged from block `from` to block `to` runs between: the outer corners along
+   * each axis the drag moved on, and the shared grid line on one it did not, so a straight drag lays the wall
+   * over the blocks it crossed.
+   */
+  function wallEnds(from, to) {
+    const ends = (a, b) => b > a ? [a, b + 1] : b < a ? [a + 1, b] : [a, a];
+    const [x1, x2] = ends(from[0], to[0]);
+    const [z1, z2] = ends(from[1], to[1]);
+    return [x1, z1, x2, z2];
+  }
+
+  /**
+   * Place a piece where the rectangle was drawn — a wall along the line the drag ran, a click's block for a
+   * piece that stands on a point — and read it back. A spawn or wool room placed over no ground also draws a
+   * rectangle of ground the size of the room, as an ordinary shape of the active layer.
    */
   async function placePiece(kind, partial) {
     let [minX, minZ, maxX, maxZ] = [partial.min_x, partial.min_z, partial.max_x, partial.max_z];
     if (POINT_KINDS.has(kind)) [maxX, maxZ] = [minX + 1, minZ + 1];
-    if (kind === "wall") {
-      if (maxX - minX <= maxZ - minZ) maxX = minX + 2; else maxZ = minZ + 2;
-    }
     if (!slug) return;
+    const body = kind === "wall"
+      ? { kind, ends: wallEnds(partial.from ?? [minX, minZ], partial.to ?? [maxX - 1, maxZ - 1]) }
+      : { kind, minX, minZ, maxX, maxZ };
     let id;
     try {
       const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, minX, minZ, maxX, maxZ }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return; }
       id = (await res.json()).id;
@@ -381,6 +397,30 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     await refreshRooms();
     await refreshPieces();
     selectStructural(id);
+  }
+
+  // The canvas tool each shape of place is drawn with; a point is a click.
+  const PLACE_TOOLS = { point: "rectangle", box: "rectangle", ring: "polygon", lasso: "lasso", line: "polyline" };
+
+  /** Arm the canvas to draw a place of `shape` — a point, a box, a ring, a lasso or a line — or `null` to put it
+   *  back to drawing ground. */
+  function armPlace(shape) {
+    placeShape = readOnly ? null : shape || null;
+    if (!placeShape) return;
+    pieceKind = null;
+    canvas.setClickPlaces(placeShape === "point");
+    selectShape(null);
+    canvas.setActiveTool(PLACE_TOOLS[placeShape]);
+  }
+
+  /** A drawn place handed on as `{shape, points}`: the block a point was clicked on, the corners of a box, the
+   *  outline of a ring or a lasso, the run of a line. Nothing is added to the drawing. */
+  function drawnPlace(shape, partial) {
+    const points = shape === "point" ? [[partial.min_x + 0.5, partial.min_z + 0.5]]
+      : shape === "box" ? [[partial.min_x, partial.min_z], [partial.max_x, partial.max_z]]
+      : (partial.vertices ?? []).map(([x, z]) => [x, z]);
+    dropTool();
+    fire("OnPlaceDrawn", JSON.stringify({ shape: shape === "lasso" ? "ring" : shape, points }));
   }
 
   /** Delete a picked piece and every image of it, and read the board back. */
@@ -419,7 +459,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       .filter(p => p.kind !== "spawn" && p.kind !== "woolRoom")
       .map(p => ({
         id: p.id, type: "rectangle", role: p.kind, color: p.color || null, piece: true, carried: p.carried === true,
-        min_x: p.minX, min_z: p.minZ, max_x: p.maxX, max_z: p.maxZ,
+        min_x: p.minX, min_z: p.minZ, max_x: p.maxX, max_z: p.maxZ, ...(p.line ? { line: p.line } : {}),
       }));
     showStructural();
   }
@@ -1022,6 +1062,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   const handle = {
     setTool(tool)      {
       armPiece(null);
+      armPlace(null);
       if (readOnly && !VIEW_TOOLS.has(tool)) { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); return; }
       canvas.setActiveTool(tool === "select" ? "select" : tool);
       // Leaving select mode clears the selection — otherwise arrow-nudge keeps moving a shape that's no
@@ -1250,6 +1291,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     turnStructural(id, quarters) { return turnStructural(id, quarters); },
     /** Arm the Layout step's placing tool with a play piece kind. */
     armPiece(kind) { armPiece(kind); },
+    armPlace(shape) { armPlace(shape); },
+    /** The map's places, as `[{id, name, shape, points}]` JSON, drawn over the board. */
+    setPlaces(json) { canvas.setPlaces(JSON.parse(json || "[]")); },
+    selectPlace(id) { canvas.selectPlace(id ?? null); },
+    setPlacesPickable(on) { canvas.setPlacesPickable(on); },
     /** Delete the picked play piece and its images. */
     deleteStructural(id) { return deleteStructural(id); },
     /** Read every piece that is not a room back from the intent — after a setting changed one's footprint. */

@@ -38,7 +38,7 @@ public sealed class PlayIdsTests
             Structures = new StructureIntent
             {
                 IronCubes = [new IronCube(1, 1, true)],
-                Walls = [new WallStructure(0, 0, 2, 8, 20), new WallStructure(30, 0, 32, 8, 20)],
+                Walls = [new WallStructure(1, 0, 1, 8, 20), new WallStructure(31, 0, 31, 8, 20)],
             },
         });
 

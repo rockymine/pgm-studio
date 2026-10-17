@@ -102,7 +102,9 @@ public static class DressingScope
             foreach (var cube in structures.IronCubes)
                 KeepRect(cube.MinX, cube.MinZ, cube.MinX + RoomFrames.IronSpan - 1,
                          cube.MinZ + RoomFrames.IronSpan - 1, KeepOut.Structure);
-            foreach (var wall in structures.Walls) KeepRect(wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ, KeepOut.Structure);
+            foreach (var wall in structures.Walls)
+                foreach (var (x, z) in wall.Cells()) KeepRect(x, z, x, z, KeepOut.Structure);
+            foreach (var chest in structures.Chests) KeepRect(chest.X, chest.Z, chest.X, chest.Z, KeepOut.Structure);
             foreach (var line in structures.RedstoneLines) KeepRect(Math.Min(line.X1, line.X2), Math.Min(line.Z1, line.Z2), Math.Max(line.X1, line.X2), Math.Max(line.Z1, line.Z2), KeepOut.Structure);
         }
 

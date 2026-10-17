@@ -676,7 +676,7 @@ internal sealed class SurfaceReadEndpoint(MapRepository repo, MapReader reader, 
 
 /// <summary>GET /api/map/{slug}/render/traversability — the navigable components, with the spawns and goals
 /// drawn on them. Headroom is what a player's body passes through rather than air, so a flower, a torch, a
-/// carpet and an approach wall's cobweb course leave a column navigable while a fence, a wall and a chest
+/// carpet and a cobweb leave a column navigable while a fence, a wall and a chest
 /// stop it.</summary>
 internal sealed class TraversabilityReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : WorldRenderEndpoint(repo, reader, artifacts)

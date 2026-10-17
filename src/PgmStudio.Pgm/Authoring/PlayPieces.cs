@@ -12,7 +12,8 @@ namespace PgmStudio.Pgm.Authoring;
 /// <param name="Rect">Where it stands, in blocks.</param>
 /// <param name="Carried">True where the piece does not move on its own: an image the symmetry draws and the
 /// intent does not store, or an iron cube seated in a room.</param>
-public readonly record struct PlayPiece(string Id, string Kind, string Color, Rect Rect, bool Carried);
+/// <param name="Line">A wall's two ends, <c>[x1, z1, x2, z2]</c> on block corners; null for every other piece.</param>
+public readonly record struct PlayPiece(string Id, string Kind, string Color, Rect Rect, bool Carried, int[]? Line = null);
 
 /// <summary>
 /// Every play piece of an intent as the sketch draws it, each at the rectangle the piece route reads it as
@@ -60,7 +61,9 @@ public static class PlayPieces
         foreach (var cube in expanded.Structures?.IronCubes ?? [])
             yield return Piece(cube.Id, PlayPieceKinds.IronCube, "", Iron(cube.MinX, cube.MinZ));
         foreach (var wall in expanded.Structures?.Walls ?? [])
-            yield return Piece(wall.Id, PlayPieceKinds.Wall, "", new Rect(wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ));
+            yield return Piece(wall.Id, PlayPieceKinds.Wall, "", Wall(wall)) with { Line = [wall.X1, wall.Z1, wall.X2, wall.Z2] };
+        foreach (var chest in expanded.Structures?.Chests ?? [])
+            yield return Piece(chest.Id, PlayPieceKinds.Chest, "", Chest(chest));
         if (expanded.Observer is { } observer)
             yield return Piece(PlayIds.Observer, PlayPieceKinds.Observer, "", Observer(observer));
     }
@@ -82,6 +85,16 @@ public static class PlayPieces
 
     /// <summary>An iron cube's footprint from its min corner.</summary>
     public static Rect Iron(int minX, int minZ) => new(minX, minZ, minX + RoomFrames.IronSpan, minZ + RoomFrames.IronSpan);
+
+    /// <summary>The rectangle a wall's columns span.</summary>
+    public static Rect Wall(WallStructure wall)
+    {
+        var bounds = wall.Bounds();
+        return new Rect(bounds.MinX, bounds.MinZ, bounds.MaxX, bounds.MaxZ);
+    }
+
+    /// <summary>The block a defence chest stands in.</summary>
+    public static Rect Chest(ChestMarker chest) => new(chest.X, chest.Z, chest.X + 1, chest.Z + 1);
 
     /// <summary>A room's marker: the block-wide square centred on its point.</summary>
     public static Rect Marker(Pt point) => new(point.X - 0.5, point.Z - 0.5, point.X + 0.5, point.Z + 0.5);

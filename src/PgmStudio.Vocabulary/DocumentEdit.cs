@@ -3,15 +3,16 @@ using System.Text.Json.Serialization;
 
 namespace PgmStudio.Vocabulary;
 
-/// <summary>The four documents a studio-authored map is stated in: the plan it was drawn from, the refinement
-/// stating what the plan cannot, the layout that is built, and the intent it is played for. Spelled by the
+/// <summary>The five documents a studio-authored map is stated in: the plan it was drawn from, the refinement
+/// stating what the plan cannot, the places saying what the board is for, the layout that is built, and the
+/// intent it is played for. Spelled by the
 /// studio that keeps them, the edits that name one, and every reader of a map's changes.</summary>
 public static class MapDocuments
 {
-    public const string Plan = "plan", Refinement = "refinement", Layout = "layout", Intent = "intent";
+    public const string Plan = "plan", Refinement = "refinement", Places = "places", Layout = "layout", Intent = "intent";
 
-    /// <summary>The four, in the order a map is stated in them.</summary>
-    public static readonly string[] All = [Plan, Refinement, Layout, Intent];
+    /// <summary>The five, in the order a map is stated in them.</summary>
+    public static readonly string[] All = [Plan, Refinement, Places, Layout, Intent];
 
     /// <summary>What an edit names when its change lands on the request a refusal answered rather than on a
     /// document: a route or query parameter the request is sent again with. Not one of <see cref="All"/>,
@@ -20,10 +21,10 @@ public static class MapDocuments
 }
 
 /// <summary>
-/// One mechanical change to one of the four documents at one path: a change a gate states as a finding's fix,
+/// One mechanical change to one of the five documents at one path: a change a gate states as a finding's fix,
 /// or one that landed between two of a map's changes.
 ///
-/// <para><b>Document</b> names which of the four the path is into (<see cref="MapDocuments"/>), or the request
+/// <para><b>Document</b> names which of the five the path is into (<see cref="MapDocuments"/>), or the request
 /// itself (<see cref="MapDocuments.Request"/>) where the change is a parameter to send it again with. <b>Path</b> is
 /// the field the change lands on, spelled the way an unread field is (<c>relief.team.marks</c>,
 /// <c>dressing.props[erratic-broken]</c>): members joined by dots, an array element by its <c>id</c> in brackets
@@ -35,7 +36,7 @@ public static class MapDocuments
 /// sentence: a landed edit in the past tense, a proposed one opening with its own verb and stating its
 /// value.</para>
 /// </summary>
-/// <param name="Document">Which document: <c>plan</c>, <c>refinement</c>, <c>layout</c> or <c>intent</c>, or
+/// <param name="Document">Which document: <c>plan</c>, <c>refinement</c>, <c>places</c>, <c>layout</c> or <c>intent</c>, or
 /// <c>request</c>.</param>
 /// <param name="Path">Where in it the change lands.</param>
 /// <param name="Op"><c>add</c>, <c>set</c>, <c>move</c> or <c>remove</c>.</param>

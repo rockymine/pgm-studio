@@ -312,6 +312,13 @@ public sealed class AccessTests
             new NoteReplyRequest("Moved the red monument eight blocks back."))).Content.ReadFromJsonAsync<MapNoteDto>();
         await Assert.That(answered!.Status).IsEqualTo(NoteStatuses.Answered);
         await Assert.That(answered.Messages[1].Token).IsEqualTo("mapgen");
+        await Assert.That(answered.Unread).IsEqualTo(0).Because("a reply reads the thread up to itself");
+        var seen = (await admin.GetFromJsonAsync<List<MapNoteDto>>($"/api/map/{slug}/notes"))!.Single(found => found.Id == written.Id);
+        await Assert.That(seen.Unread).IsEqualTo(1).Because("the agent's answer is new to the author, and their own note is not");
+        var read = await (await admin.PostAsync($"/api/map/{slug}/notes/{written.Id}/read", null)).Content.ReadFromJsonAsync<MapNoteDto>();
+        await Assert.That(read!.Unread).IsEqualTo(0);
+        await Assert.That((await admin.GetFromJsonAsync<List<MapNoteDto>>($"/api/map/{slug}/notes"))!.Single(found => found.Id == written.Id).Unread)
+            .IsEqualTo(0);
         await AssertRefusedAsync(await agent.PatchAsJsonAsync($"/api/map/{slug}/notes/{written.Id}",
             new NoteChangeRequest(NoteStatuses.Resolved)), HttpStatusCode.Forbidden, "RQ8");
         var asked = await (await agent.PostAsJsonAsync($"/api/map/{slug}/notes",
@@ -321,6 +328,24 @@ public sealed class AccessTests
         var resolved = await (await admin.PatchAsJsonAsync($"/api/map/{slug}/notes/{written.Id}",
             new NoteChangeRequest(NoteStatuses.Resolved))).Content.ReadFromJsonAsync<MapNoteDto>();
         await Assert.That(resolved!.Status).IsEqualTo(NoteStatuses.Resolved);
+    }
+
+    [Test]
+    public async Task A_maps_places_are_written_by_an_admin_and_not_by_its_member_owner()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        using var member = InvitedFactory.As(Owner);
+        var slug = await OriginateAsync(member, "Fenmoor");
+
+        await AssertRefusedAsync(await member.PutAsJsonAsync($"/api/map/{slug}/places", new PlacesDocument()),
+            HttpStatusCode.Forbidden, "RQ8");
+        await AssertRefusedAsync(await member.PutAsync($"/api/map/{slug}/source",
+            new StringContent("""{"places":{}}""", System.Text.Encoding.UTF8, "application/json")), HttpStatusCode.Forbidden, "RQ8");
+
+        using var admin = InvitedFactory.As(Admin);
+        var put = await admin.PutAsJsonAsync($"/api/map/{slug}/places", new PlacesDocument());
+        await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());
     }
 
     [Test]

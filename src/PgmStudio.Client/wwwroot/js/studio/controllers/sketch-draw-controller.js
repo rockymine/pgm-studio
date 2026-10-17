@@ -231,9 +231,11 @@ export class SketchDrawController {
     const { min_x: minX, max_x: maxX, min_z: minZ, max_z: maxZ } = drawnBoundsFromBlocks(startBx, startBz, currentBx, currentBz);
     // A single click is a misfire, except where the tool places at a click.
     if (maxX - minX <= 1 && maxZ - minZ <= 1 && !this.#clickPlaces) return;
+    // The two blocks the drag ran between ride along, for a tool that places a line rather than a box.
     this.#callbacks.onShapeCreated?.({
       type: "rectangle", operation: this.#activeOperation, override: false,
       min_x: minX, max_x: maxX, min_z: minZ, max_z: maxZ,
+      from: [startBx, startBz], to: [currentBx, currentBz],
     });
   }
 

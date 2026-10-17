@@ -554,7 +554,7 @@ public sealed class WorldBuilderTests
             Meta = new MetaIntent { Name = "Test", Authors = [new AuthorIntent { Name = "alice" }] },
             Structures = new StructureIntent
             {
-                Walls = [new WallStructure(-10, 4, 15, 6, 8, true, new StampId("wall", "w0", 0))],
+                Walls = [new WallStructure(-10, 5, 15, 5, 8, new StampId("wall", "w0", 0))],
             },
         });
     }

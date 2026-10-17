@@ -155,8 +155,8 @@ public sealed class PlanStructuresTests
         await Assert.That(s.Walls.All(w => w.TopY == 11)).IsTrue();
         // not the defence side 'mid' (surface 11 → would be 13).
         await Assert.That(s.Walls.Any(w => w.TopY == 13)).IsFalse();
-        // 2 thick across the z-seam at z=10 (footprint z ∈ [9, 11)).
-        await Assert.That(s.Walls.Any(w => w.MinZ == 9 && w.MaxZ == 11)).IsTrue();
+        // Along the z-seam at z=10, which puts its two columns at z 9 and 10.
+        await Assert.That(s.Walls.Any(w => w.Z1 == 10 && w.Z2 == 10)).IsTrue();
     }
 
     [Test]
@@ -170,7 +170,7 @@ public sealed class PlanStructuresTests
         // opposite teams.
         var s = Structures();
         await Assert.That(s.Walls.Count).IsEqualTo(2);
-        await Assert.That(s.Walls.Single(w => w.MinZ == 9).ChestOnMinFace).IsTrue();
-        await Assert.That(s.Walls.Single(w => w.MinZ == -11).ChestOnMinFace).IsFalse();
+        await Assert.That(s.Chests.Where(c => c.Z == 8).Select(c => c.Facing)).IsEquivalentTo(new[] { "-z" });
+        await Assert.That(s.Chests.Where(c => c.Z == -9).Select(c => c.Facing)).IsEquivalentTo(new[] { "+z" });
     }
 }

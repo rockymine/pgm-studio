@@ -527,6 +527,7 @@ public static class PlanCompiler
             // both teams reach the line across. Carried as a piece rather than a face so it survives the
             // orbit: a reflection swaps which of the two faces has the smaller coordinate.
             var chestRect = approach.Rect;
+            var unit = wallIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
             for (var k = 0; k < d.Order; k++)
             {
                 var r = d.FanRect(new BlockRect(minX, minZ, maxX, maxZ), k);
@@ -534,8 +535,11 @@ public static class PlanCompiler
                 var face = d.FanRect(chestRect, k);
                 var thinAlongX = r.MaxX - r.MinX <= r.MaxZ - r.MinZ;
                 var onMinFace = thinAlongX ? face.MaxX <= r.MinX + 1 : face.MaxZ <= r.MinZ + 1;
-                s.Walls.Add(new WallStructure(r.MinX, r.MinZ, r.MaxX, r.MaxZ, topY, onMinFace,
-                    new StampId("wall", wallIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), k)));
+                var image = k;
+                var (wall, chests) = ApproachWalls.OverSeam(new BlockRect(r.MinX, r.MinZ, r.MaxX, r.MaxZ), topY, onMinFace,
+                    new StampId("wall", unit, k), chest => new StampId("chest", $"{unit}-{chest}", image));
+                s.Walls.Add(wall);
+                s.Chests.AddRange(chests);
             }
         }
 

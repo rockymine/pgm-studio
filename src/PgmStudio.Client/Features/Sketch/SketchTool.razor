@@ -107,6 +107,11 @@
           {
             <SketchViewList Views="views" />
           }
+          else if (PlanActive)
+          {
+            <SketchPlacesList Places="PlaceList" SelectedId="@selectedPlaceId" OnSelect="SelectPlace" Notes="notes.All"
+                              Verdict="@placesDocument.Verdict" OnVerdict="SetVerdict" />
+          }
           else if (ReliefActive)
           {
             @* Relief needs BOTH: the group tree, because the group is the unit a relief is solved over and
@@ -248,6 +253,23 @@
                 }
               </DockGroup>
             }
+            else if (PlanActive)
+            {
+              @* A place is drawn with the notes step's marks — a point, a box, a lasso — and a polygon and a line
+                 beside them. Each draws a place rather than ground. *@
+              <DockGroup>
+                <DockButton Icon="pin" Title="Point" Active="@(tool == PlaceTool(PlaceShapes.Point))"
+                            OnClick="() => ArmPlace(PlaceShapes.Point)" />
+                <DockButton Icon="rectangle-horizontal" Title="Box" Active="@(tool == PlaceTool(PlaceShapes.Box))"
+                            OnClick="() => ArmPlace(PlaceShapes.Box)" />
+                <DockButton Icon="pentagon" Title="Polygon" Active="@(tool == PlaceTool(PlaceShapes.Ring))"
+                            OnClick="() => ArmPlace(PlaceShapes.Ring)" />
+                <DockButton Icon="lasso" Title="Lasso" Active="@(tool == PlaceTool("lasso"))"
+                            OnClick='() => ArmPlace("lasso")' />
+                <DockButton Icon="spline" Title="Polyline" Active="@(tool == PlaceTool(PlaceShapes.Line))"
+                            OnClick="() => ArmPlace(PlaceShapes.Line)" />
+              </DockGroup>
+            }
             else if (LayoutActive)
             {
               @* The plan editor's three families, each down to its last-picked option and a chevron. Arming one
@@ -326,6 +348,23 @@
                                 TargetShapeIds="ScopeTargetShapeIds"
                                 AddOpen="themeAddOpen" AddOpenChanged="v => themeAddOpen = v"
                                 OnHold="SetThemeBrush" />
+        }
+        else if (PlanActive)
+        {
+          <div class="sidebar-handle"></div>
+          @if (SelectedPlace is { } place)
+          {
+            <SketchPlaceInspector Place="place" Pieces="placePieces" Note="@placeNote"
+                                  OnChange="ChangePlace" OnDelete="DeletePlace" OnClose="ClosePlace">
+              <SketchPlaceNotes Slug="@Slug" Place="place" Notes="notes" />
+            </SketchPlaceInspector>
+          }
+          else
+          {
+            <Inspector>
+              @if (!string.IsNullOrEmpty(placeNote)) { <p class="field-error">@placeNote</p> }
+            </Inspector>
+          }
         }
         else if (selectedStructural is not null)
         {

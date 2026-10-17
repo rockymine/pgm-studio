@@ -40,7 +40,7 @@ public sealed class IntentPiecesEndpoint(MapRepository repo, MapArtifactStore ar
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
         await Send.OkAsync([.. PlayPieces.Of(intent).Select(piece => new PlayPieceDto(
             piece.Id, piece.Kind, piece.Color, piece.Rect.MinX, piece.Rect.MinZ, piece.Rect.MaxX, piece.Rect.MaxZ,
-            piece.Carried))], ct);
+            piece.Carried, piece.Line))], ct);
     }
 }
 
@@ -62,8 +62,22 @@ public sealed class IntentPieceAddEndpoint(
         var slug = Route<string>("slug")!;
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
-        var (added, id, refused) = PlayPieceAdd.Apply(intent, req.Kind, new Rect(req.MinX, req.MinZ, req.MaxX, req.MaxZ),
-                                                      req.Team, await IntentPieceMoveEndpoint.BoardAsync(artifacts, map.Id, ct));
+        var board = await IntentPieceMoveEndpoint.BoardAsync(artifacts, map.Id, ct);
+        var rect = new[] { req.MinX, req.MinZ, req.MaxX, req.MaxZ };
+        var wall = req.Kind == PlayPieceKinds.Wall;
+        if (wall ? req.Ends is not { Length: 4 } || rect.Any(bound => bound is not null) : rect.Any(bound => bound is null) || req.Ends is not null)
+        {
+            await Refusals.StopAsync(HttpContext, 400, "the piece cannot be added", Findings.Of(new Finding(
+                RequestRules.Unreadable, wall
+                    ? "a wall states its two `ends` as [x1, z1, x2, z2], and no rectangle"
+                    : "the request states all four bounds of a placed rectangle, and no `ends`",
+                Field: wall ? "ends" : "minX")), ct);
+            return;
+        }
+        var (added, id, refused) = wall
+            ? PlayPieceAdd.Wall(intent, req.Ends![0], req.Ends[1], req.Ends[2], req.Ends[3], board)
+            : PlayPieceAdd.Apply(intent, req.Kind, new Rect(req.MinX!.Value, req.MinZ!.Value, req.MaxX!.Value, req.MaxZ!.Value),
+                                 req.Team, board);
         if (added is null)
         {
             await Refusals.StopAsync(HttpContext, 400, "the piece cannot be added", refused, ct);

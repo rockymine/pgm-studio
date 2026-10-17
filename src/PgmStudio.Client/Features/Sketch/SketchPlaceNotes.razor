@@ -1,0 +1,60 @@
+@namespace PgmStudio.Client.Features.Sketch
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+@* A place's one thread under its fields, and a text box that answers it or writes its first message. Opening the
+   place reads what was new in it. *@
+
+@if (Notes.Allowed)
+{
+  <SketchNotesColumn Embedded Step="NotesStep.Conversation" Notes="Notes.All" PlaceId="@Place.Id" ViewName="@Place.Name"
+                     Error="@error" MeUuid="@Notes.MeUuid" OnReply="SendAsync" />
+}
+
+@code {
+    [Parameter, EditorRequired] public string Slug { get; set; } = "";
+    [Parameter, EditorRequired] public Place Place { get; set; } = default!;
+    [Parameter, EditorRequired] public SketchNotes Notes { get; set; } = default!;
+
+    private string? error;
+    private string? shownPlace;
+    private readonly HashSet<string> marked = [];
+
+    private MapNoteDto? Thread => SketchPlaces.Thread(Notes.All, Place.Id);
+
+    protected override void OnParametersSet()
+    {
+        if (shownPlace == Place.Id) return;
+        shownPlace = Place.Id;
+        error = null;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // The thread is read once at the length it was shown, so a read that does not land is not asked again.
+        if (Thread is not { Unread: > 0 } thread || !marked.Add($"{thread.Id}:{thread.Messages.Count}")) return;
+        await Http.PostAsync($"api/map/{Slug}/notes/{thread.Id}/read", null);
+        await Notes.LoadAsync();
+    }
+
+    /// <summary>Answer the place's thread, or write its first message.</summary>
+    private async Task<bool> SendAsync(string body)
+    {
+        error = null;
+        var thread = Thread;
+        var answer = thread is null
+            ? await Http.PostAsJsonAsync($"api/map/{Slug}/notes",
+                new MapNoteRequest(body, new NoteAnchorDto(NoteAnchors.Place, Place: Place.Id)))
+            : await Http.PostAsJsonAsync($"api/map/{Slug}/notes/{thread.Id}/replies", new NoteReplyRequest(body));
+        if (!answer.IsSuccessStatusCode)
+        {
+            error = await ServerRefusal.SentenceAsync(answer);
+            StateHasChanged();
+            return false;
+        }
+        await Notes.LoadAsync();
+        // The column calls back through a delegate rather than an event, so this host draws itself again.
+        StateHasChanged();
+        return true;
+    }
+}

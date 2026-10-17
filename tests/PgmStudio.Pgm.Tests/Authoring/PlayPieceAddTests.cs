@@ -84,14 +84,33 @@ public sealed class PlayPieceAddTests
     }
 
     [Test]
-    public async Task A_wall_is_two_blocks_thick_and_its_mirror_opens_the_other_way()
+    public async Task A_wall_is_a_line_between_its_ends_and_its_mirror_is_the_mirrored_line()
     {
-        var (thick, _, why) = PlayPieceAdd.Apply(Board(), PlayPieceKinds.Wall, new Rect(-10, 0, -7, 8), board: MirrorX);
-        await Assert.That(thick).IsNull();
-        await Assert.That(why.Single().Field).IsEqualTo("placed");
+        var (added, id, _) = PlayPieceAdd.Wall(Board(), -9, 0, -9, 8, board: MirrorX);
 
-        var (added, _, _) = PlayPieceAdd.Apply(Board(), PlayPieceKinds.Wall, new Rect(-10, 0, -8, 8), board: MirrorX);
-        await Assert.That(added!.Structures!.Walls.Select(wall => wall.ChestOnMinFace)).IsEquivalentTo(new[] { true, false });
+        await Assert.That(added!.Structures!.Walls.Select(wall => (wall.X1, wall.Z1, wall.X2, wall.Z2)))
+            .IsEquivalentTo(new[] { (-9, 0, -9, 8), (9, 0, 9, 8) });
+        await Assert.That(added.Structures.Walls[0].Id).IsEqualTo(id);
+        await Assert.That(PlayPieceAdd.Wall(Board(), 3, 3, 3, 3).Intent).IsNull();
+    }
+
+    [Test]
+    public async Task A_wall_is_not_placed_as_a_rectangle()
+    {
+        var (added, _, why) = PlayPieceAdd.Apply(Board(), PlayPieceKinds.Wall, new Rect(-10, 0, -8, 8), board: MirrorX);
+
+        await Assert.That(added).IsNull();
+        await Assert.That(why.Single().Field).IsEqualTo("kind");
+    }
+
+    [Test]
+    public async Task A_chest_beside_a_wall_fronts_away_from_it_and_its_mirror_the_other_way()
+    {
+        var (walled, _, _) = PlayPieceAdd.Wall(Board(), -9, 0, -9, 8, board: MirrorX);
+        var (added, _, _) = PlayPieceAdd.Apply(walled!, PlayPieceKinds.Chest, new Rect(-11, 4, -10, 5), board: MirrorX);
+
+        await Assert.That(added!.Structures!.Chests.Select(chest => (chest.X, chest.Z, chest.Facing)))
+            .IsEquivalentTo(new[] { (-11, 4, "-x"), (10, 4, "+x") });
     }
 
     [Test]

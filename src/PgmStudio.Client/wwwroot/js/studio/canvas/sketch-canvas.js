@@ -44,7 +44,7 @@ import { paintDiff } from "../render/diff-render.js";
 import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
-  paintSketchShape, paintGroups, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostGroups, paintRaster, paintStructural,
+  paintSketchShape, paintGroups, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostGroups, paintRaster, paintStructural, paintPlaces, placeAt,
   paintContours, paintHeightMap, heightMapBitmap,
 } from "../render/sketch-render.js";
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
@@ -96,6 +96,9 @@ export class SketchCanvas extends CanvasBase {
 
   #shapes      = new Map();   // id → shape (source for paint / hit-test / edit)
   #structural  = [];          // locked plan pieces — the plan's own, never edited/rasterized as terrain
+  #places      = [];          // the map's places — named shapes over the board, making no ground
+  #selectedPlaceId = null;    // the picked place, where the step drawing places may pick one
+  #placesPickable = false;    // whether a click lands on a place before anything under it
   #selectedStructuralId = null;   // the picked plan piece, where the phase editing geometry may pick one
   #dragStartPiece = null;         // where the dragged piece stood, so a refused move can be answered
   #diff        = null;        // what a change did, from diffOverlay — drawn over the board while one is picked
@@ -610,6 +613,15 @@ export class SketchCanvas extends CanvasBase {
     }
     if (this.#themeBrush && !shape) this.#callbacks.onThemeDrop?.();
 
+    // The step that draws places picks them and nothing else: the board under them is the ground they are
+    // drawn over, not what the step is about.
+    if (this.#placesPickable) {
+      const place = placeAt(this.#places, svgPt.x, svgPt.y, 8 / (this._scale || 1));
+      this.selectPlace(place?.id ?? null);
+      this.#callbacks.onPlaceSelected?.(place?.id ?? null);
+      return;
+    }
+
     // A phase that places its own things picks the group and stops there. Reaching a member would select a
     // shape the phase cannot change and the chords can, and the group is the unit it is about anyway — a
     // relief is solved over one, and its base, reach and step are what a click on the ground should reach.
@@ -756,6 +768,7 @@ export class SketchCanvas extends CanvasBase {
       if (!piece) return;
       piece.min_x += dx; piece.max_x += dx;
       piece.min_z += dz; piece.max_z += dz;
+      if (piece.line) piece.line = [piece.line[0] + dx, piece.line[1] + dz, piece.line[2] + dx, piece.line[3] + dz];
       this.#paintWorld();
       return;
     }
@@ -950,6 +963,7 @@ export class SketchCanvas extends CanvasBase {
     painter.layer("structural", () => {
       paintStructural(painter, this.#structural, this.#selectedStructuralId);
     });
+    painter.layer("places", () => paintPlaces(painter, this.#places, this.#selectedPlaceId));
     painter.layer("selection", () => this.#paintSelectionHighlight());
     painter.layer("marks",     () => this.#paintReliefMarks(painter));
     painter.layer("dressing",  () => this.#paintDressing(painter));
@@ -1011,6 +1025,24 @@ export class SketchCanvas extends CanvasBase {
     if (next) { this.#selectedId = null; this.#selectedGroupId = null; this.#setLevel("group"); }
     else this.#paintWorld();
   }
+
+  /** The map's places, drawn over the board. A selection outliving its place is dropped. */
+  setPlaces(places) {
+    this.#places = places ?? [];
+    if (!this.#places.some(p => p.id === this.#selectedPlaceId)) this.#selectedPlaceId = null;
+    this.#paintWorld();
+  }
+
+  /** Pick a place, or `null` to let it go. */
+  selectPlace(id) {
+    const next = this.#places.some(p => p.id === id) ? id : null;
+    if (next === this.#selectedPlaceId) return;
+    this.#selectedPlaceId = next;
+    this.#paintWorld();
+  }
+
+  /** Whether a click lands on a place before anything under it — the step that draws places. */
+  setPlacesPickable(on) { this.#placesPickable = !!on; }
 
   /** Whether a click on the rectangle tool places at the block clicked rather than being a misfire. */
   setClickPlaces(on) { this.#draw?.setClickPlaces(on); }

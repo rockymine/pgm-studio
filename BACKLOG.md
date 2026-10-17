@@ -22,6 +22,14 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [ ] **TS172 — The look is stated before the review.** *Parked (author): too much for now; the programme goes on
+  without it.* A palette, a house style per area, tree and rock zones and
+  the biome as sketch data, drawn on the review sheet and applied by the build, so the author judges what a board
+  is made of before it is built (D12, phase 5). `docs/tools/sketch.md`.
+
+  *Evidence: four of the seven points of Abbeymoor's first review were paint, materials or dressing, and no picture
+  before its build showed any of them (`experiment/REVIEW-1.md`).*
+
 - [ ] **TS130 — Point edits and bends reach every outline.** *Parked (author): tangled with how land is made,
   which the pgmvox port's layer document redesigns; picked up when that work needs it.* `editShapes` and
   `bendShapes` address a shape's `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already

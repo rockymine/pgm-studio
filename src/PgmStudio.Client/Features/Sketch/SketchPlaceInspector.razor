@@ -1,0 +1,46 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* The picked place: its name, the play piece it holds, and its notes under them, filling the panel. *@
+
+<Inspector Class="workspace-inspector--wide workspace-inspector--place">
+  <DetailHeader Icon="@SketchPlaces.Icon(Place.Shape)" Label="Place">
+    <span class="detail-header-badges">
+      <Button Variant="icon" Icon="trash-2" Title="Delete this place" Writes OnClick="() => OnDelete.InvokeAsync()" />
+      <Button Variant="icon" Icon="x" Title="Deselect" OnClick="() => OnClose.InvokeAsync()" />
+    </span>
+  </DetailHeader>
+  <Field Label="Name">
+    <input class="field-input" value="@Place.Name" @onchange="Renamed" />
+  </Field>
+  <Field Label="Holds">
+    <Select Slim="false" Options="Pieces" Placeholder="Nothing" Value="@(Place.Holds ?? "")" ValueChanged="Held" />
+  </Field>
+  @if (!string.IsNullOrEmpty(Note))
+  {
+    <p class="field-error">@Note</p>
+  }
+  @ChildContent
+</Inspector>
+
+@code {
+    [Parameter, EditorRequired] public Place Place { get; set; } = default!;
+
+    /// <summary>The play pieces a place may hold, by id.</summary>
+    [Parameter] public IReadOnlyList<SelectOption> Pieces { get; set; } = [];
+
+    /// <summary>Why the last write was not stored, in the studio's own sentence.</summary>
+    [Parameter] public string? Note { get; set; }
+
+    [Parameter] public EventCallback<Place> OnChange { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>What sits under the place's own fields: its notes.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private Task Renamed(ChangeEventArgs change) =>
+        OnChange.InvokeAsync(Place with { Name = change.Value?.ToString()?.Trim() ?? "" });
+
+    private Task Held(string held) =>
+        OnChange.InvokeAsync(Place with { Holds = string.IsNullOrEmpty(held) ? null : held });
+}

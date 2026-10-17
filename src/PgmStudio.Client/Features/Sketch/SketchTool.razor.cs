@@ -126,7 +126,7 @@ public partial class SketchTool
                 var last = SketchInfoPhase.Steps.Count - 1;
                 return new("book-open-text", "Info", SketchInfoPhase.Steps, infoStep, infoStep == last ? "Continue" : "Next",
                     () => { infoStep = 0; return Task.CompletedTask; },
-                    () => { if (infoStep < last) { infoStep++; return Task.CompletedTask; } return GoDraw(); },
+                    () => { if (infoStep < last) { infoStep++; return Task.CompletedTask; } return OpenDraw(); },
                     step => { infoStep = step; return Task.CompletedTask; });
             }
             if (ThemeActive) return new("palette", "Palette", [], 0, "Next", GoRelief, GoDressing, NoStep);
@@ -135,9 +135,9 @@ public partial class SketchTool
             if (HistoryActive) return new("history", "History", [], 0, "Draw", GoReview, GoDraw, NoStep);
             if (CamerasActive) return new("eye", "Review", ReviewSteps, 0, "Next", GoDressing, ShowNotes, StepReview);
             if (NotesActive) return new("eye", "Review", ReviewSteps, 1, "Next", ShowCameras, GoHistory, StepReview);
-            return new("pencil-ruler", "Draw", DrawSteps, drawStep, "Next",
-                drawStep == LayoutStep ? () => StepDraw(0) : GoInfo,
-                drawStep == LayoutStep ? GoRelief : () => StepDraw(LayoutStep), StepDraw);
+            return new("pencil-ruler", "Draw", DrawStepNames, drawStep - FirstDrawStep, "Next",
+                drawStep == FirstDrawStep ? GoInfo : () => StepDraw(drawStep - 1),
+                drawStep == LayoutStep ? GoRelief : () => StepDraw(drawStep + 1), step => StepDraw(step + FirstDrawStep));
         }
     }
 
@@ -250,6 +250,7 @@ public partial class SketchTool
         await iso.LeaveAsync();
         await views.BeginPlacingAsync();
         await SetTool("eye");
+        await PushPlacesAsync();
     }
 
     /// <summary>Review's Notes step: the pictures, and the threads beside them.</summary>
@@ -257,6 +258,7 @@ public partial class SketchTool
     {
         await views.EndPlacingAsync();
         await SetTool("select");
+        await PushPlacesAsync();
     }
 
     /// <summary>The board could not be built for the Board layer.</summary>
@@ -382,6 +384,7 @@ public partial class SketchTool
         // The kept views and the one being placed are drawn only while the phase that places them is up.
         if (phase != "review") await views.ClearCanvasAsync();
         await PushPhaseOverlays(phase);
+        await PushPlacesAsync();
     }
 
     // ── the overlays a phase offers, and which of them it turns on as it is entered ──
@@ -578,6 +581,7 @@ public partial class SketchTool
         await handle.InvokeVoidAsync("setReadOnly", writeClosed);
         await ReloadLayoutAsync();
         await LoadNameAsync();
+        await LoadPlacesAsync();
         await JS.InvokeVoidAsync("studio.watchTabShown", KeyOwner, selfRef, nameof(TabShown));
         await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
             System.Text.Json.JsonSerializer.Serialize(Shortcuts));

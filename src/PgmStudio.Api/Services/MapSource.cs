@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using PgmStudio.Api.Access;
 using PgmStudio.Api.Endpoints;
 using PgmStudio.Contracts;
@@ -42,7 +43,7 @@ public sealed record MapSourceApplied(Refusal? Refusal, MapSourceDto? Answer = n
 public static class MapSource
 {
     /// <summary>The documents a source states, as its body spells them, each read by its own reader.</summary>
-    private static readonly string[] Documents = ["plan", "layout", "intent", "refinement"];
+    private static readonly string[] Documents = ["plan", "layout", "intent", "refinement", "places"];
 
     /// <summary>The members that say something about the source itself, which bind to its record.</summary>
     private static readonly string[] About = ["after", "name", "origin", "note"];
@@ -90,6 +91,11 @@ public static class MapSource
         var drawnLayout = Raw(stated["layout"]);
         var drawnIntent = Raw(stated["intent"]);
         var refinement = Raw(stated["refinement"]);
+        var places = Raw(stated["places"]);
+        if (places is not null && !(await http.RequestServices.GetRequiredService<Callers>().OfAsync(http, ct)).MayNote)
+            return Refuse(403, "not permitted", new Finding(RequestRules.NotPermitted,
+                "the source states `places`, and a map's places are written by an admin or by a token carrying the "
+                + "notes permission", Field: "places"));
         if ((drawnLayout is null) != (drawnIntent is null))
             return Refuse(400, "no base", new Finding(RequestRules.Unreadable,
                 $"the source states a drawn {(drawnLayout is null ? "game settings" : "layout")} and no "
@@ -176,7 +182,17 @@ public static class MapSource
         Complaints.Add(http, prepared.Judged.Complaints);
 
         var storedIntent = JsonSerializer.Serialize(IntentWrite.Stated(intentJson), MapArtifactStore.Json);
-        var edits = await EditsAsync(log, slug, plan, kept, layoutJson, storedIntent, ct);
+        // The places are checked against the play pieces the source stores, and a source stating none keeps the
+        // map's own, as it keeps the pictures kept of it.
+        if (places is not null)
+        {
+            var (_, unplaced) = PlacesCheck.Check(places, IntentWrite.Stated(intentJson) ?? new MapIntent());
+            if (unplaced.Refuses) return new(new Refusal(400, "the places cannot be stored", [.. unplaced.Refusals]));
+        }
+        var keptPlaces = places is not null ? Encoding.UTF8.GetBytes(places)
+            : existing is null ? null : await artifacts.LoadAsync(existing.Id, ArtifactKind.PlacesJson, ct);
+        var edits = await EditsAsync(log, slug, plan, kept, keptPlaces is null ? null : Encoding.UTF8.GetString(keptPlaces),
+            layoutJson, storedIntent, ct);
         var configure = $"/maps/{slug}/configure";
         if (dry)
             return new(null, new MapSourceDto(slug, null, existing is not null, edits, prepared.Cells.Count,
@@ -195,6 +211,7 @@ public static class MapSource
         try
         {
             if (keptViews is not null) await artifacts.SaveAsync(mapId, ArtifactKind.MapViewsJson, keptViews, ct);
+            if (keptPlaces is not null) await artifacts.SaveAsync(mapId, ArtifactKind.PlacesJson, keptPlaces, ct);
             await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, planBytes, ct);
             await artifacts.SaveAsync(mapId, ArtifactKind.RefinementJson, Encoding.UTF8.GetBytes(kept ?? "{}"), ct);
             var layoutRevision = await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson,
@@ -236,8 +253,8 @@ public static class MapSource
     /// <summary>What the source changes in the documents the slug holds at its latest change — every document
     /// stated for the first time where it holds none. The intent is compared in the form it is stored in.</summary>
     private static async Task<IReadOnlyList<DocumentEdit>> EditsAsync(
-        MapChangeLog log, string slug, string? plan, string? refinement, string layoutJson, string storedIntent,
-        CancellationToken ct)
+        MapChangeLog log, string slug, string? plan, string? refinement, string? places, string layoutJson,
+        string storedIntent, CancellationToken ct)
     {
         var latest = await log.LatestAsync(slug, ct);
         var held = latest > 0 ? await log.DocumentsAtAsync(slug, latest, ct) : new Dictionary<string, byte[]>();
@@ -246,9 +263,10 @@ public static class MapSource
             [MapDocuments.Plan] = plan ?? "{}", [MapDocuments.Refinement] = refinement ?? "{}",
             [MapDocuments.Layout] = layoutJson, [MapDocuments.Intent] = storedIntent,
         };
+        if (places is not null) posted[MapDocuments.Places] = places;
         return
         [
-            .. MapDocuments.All.SelectMany(document => DocumentDiff.Between(document,
+            .. MapDocuments.All.Where(posted.ContainsKey).SelectMany(document => DocumentDiff.Between(document,
                 held.TryGetValue(MapChangeRead.KindOf(document), out var bytes) ? Encoding.UTF8.GetString(bytes) : null,
                 posted[document])),
         ];

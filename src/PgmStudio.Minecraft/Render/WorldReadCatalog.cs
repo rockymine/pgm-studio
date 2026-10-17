@@ -91,8 +91,8 @@ public static class WorldReadCatalog
         new("render/traversability", "--traversability-map",
             "The navigable components, with the spawns and goals drawn on them. The read for whether a board "
             + "hangs together as one place a player can walk.",
-            "Headroom is what a player's body passes through, not air: a flower, a torch, a carpet and an "
-            + "approach wall's cobweb course leave a column navigable, while a fence, a wall and a chest stop "
+            "Headroom is what a player's body passes through, not air: a flower, a torch, a carpet and a "
+            + "cobweb leave a column navigable, while a fence, a wall and a chest stop "
             + "it. A door and a ladder read as blocking, since a block id does not say whether one is open."),
 
         new("render/structures", "--structures",

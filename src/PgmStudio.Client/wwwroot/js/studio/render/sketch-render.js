@@ -56,6 +56,7 @@ const PIECE_FILL = {
   buildArea:   { color: "var(--accent)", alpha: 0.12, dash: [6, 4] },
   waterLane:   { color: "var(--canvas-zone-water-lane)", alpha: 0.3 },
   wall:        { color: "var(--canvas-seam-wall)", alpha: 0.85 },
+  chest:       { color: OBJECTIVE_COLORS.wool, alpha: 0.85 },
 };
 
 /**
@@ -78,16 +79,23 @@ export function paintStructural(painter, shapes, selectedId = null) {
     const box = { min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z };
     // The ring goes outside whatever the piece draws for itself, in the selection ink every other picked
     // thing on this canvas wears, so a picked region and a picked island read as the same kind of state.
-    if (s.id === selectedId) painter.rect(box, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
+    // A wall is the band its line is laid in, at whatever angle the line runs.
+    const band = s.line ? wallBand(s.line) : null;
+    if (s.id === selectedId) {
+      if (band) painter.ring(band, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
+      else painter.rect(box, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
+    }
     // A piece that is not a room is drawn in its kind's colour and carries no label: what it is shows by its
     // colour and its shape. One that moves only with something else is dashed and fainter.
     if (s.piece) {
       const look = PIECE_FILL[s.role] ?? { color: UNKNOWN_KIND_COLOR, alpha: 0.5 };
       const dash = s.carried ? [3, 3] : look.dash;
-      painter.rect(box, {
+      const style = {
         fill: look.color, fillAlpha: s.carried ? look.alpha / 2 : look.alpha,
         stroke: look.color, strokeAlpha: 0.95, width: 2, ...(dash ? { dash } : {}),
-      });
+      };
+      if (band) painter.ring(band, style);
+      else painter.rect(box, style);
       continue;
     }
     // A building is drawn as a building, in the same ink a dressed house takes, because that is what it is:
@@ -113,6 +121,69 @@ export function paintStructural(painter, shapes, selectedId = null) {
     painter.text(text, (s.min_x + s.max_x) / 2, (s.min_z + s.max_z) / 2,
       { fill: "var(--canvas-ink)", halo: "var(--bg-canvas)", haloWidth: 3, size, weight: 600 });
   }
+}
+
+/**
+ * The map's places: a name over a point, a box, a ring or a line, drawn over the board in the one ink a place
+ * takes and labelled at its first point. They make no ground, so none is filled more than a tint; the picked one
+ * is drawn in the selection ink.
+ */
+export function paintPlaces(painter, places, selectedId = null) {
+  for (const place of places ?? []) {
+    const points = place.points ?? [];
+    if (points.length === 0) continue;
+    const picked = place.id === selectedId;
+    const ink = picked ? "var(--accent)" : "var(--canvas-place)";
+    const style = { fill: ink, fillAlpha: 0.12, stroke: ink, strokeAlpha: 0.95, width: picked ? 3 : 2, dash: picked ? null : [6, 4] };
+    if (place.shape === "point") painter.dot(points[0][0], points[0][1], { fill: ink, radiusPx: picked ? 6 : 5 });
+    else if (place.shape === "box" && points.length === 2)
+      painter.rect({ min_x: Math.min(points[0][0], points[1][0]), min_z: Math.min(points[0][1], points[1][1]),
+                     max_x: Math.max(points[0][0], points[1][0]), max_z: Math.max(points[0][1], points[1][1]) }, style);
+    else if (place.shape === "ring") painter.ring(points, style);
+    else if (place.shape === "line")
+      for (let i = 1; i < points.length; i++)
+        painter.line(points[i - 1][0], points[i - 1][1], points[i][0], points[i][1], { stroke: ink, strokeAlpha: 0.95, width: picked ? 4 : 3 });
+    if (place.name)
+      painter.text(place.name, points[0][0], points[0][1],
+        { fill: "var(--canvas-ink)", halo: "var(--bg-canvas)", haloWidth: 3, size: 4, weight: 600, dy: -8 });
+  }
+}
+
+/** The place under (wx, wz), the last drawn first — inside a box or a ring, within `reach` blocks of a point or
+ *  a line — or null. */
+export function placeAt(places, wx, wz, reach) {
+  const near = (ax, az, bx, bz) => {
+    const dx = bx - ax, dz = bz - az, length = dx * dx + dz * dz;
+    const t = length === 0 ? 0 : Math.max(0, Math.min(1, ((wx - ax) * dx + (wz - az) * dz) / length));
+    return Math.hypot(wx - (ax + t * dx), wz - (az + t * dz)) <= reach;
+  };
+  for (let i = (places ?? []).length - 1; i >= 0; i--) {
+    const place = places[i], points = place.points ?? [];
+    if (place.shape === "point" && points.length && Math.hypot(wx - points[0][0], wz - points[0][1]) <= reach) return place;
+    if (place.shape === "box" && points.length === 2) {
+      const [a, b] = points;
+      if (wx >= Math.min(a[0], b[0]) && wx <= Math.max(a[0], b[0]) && wz >= Math.min(a[1], b[1]) && wz <= Math.max(a[1], b[1])) return place;
+    }
+    if (place.shape === "ring" && points.length >= 3) {
+      let inside = false;
+      for (let j = 0, k = points.length - 1; j < points.length; k = j++) {
+        const [xj, zj] = points[j], [xk, zk] = points[k];
+        if ((zj > wz) !== (zk > wz) && wx < (xk - xj) * (wz - zj) / (zk - zj) + xj) inside = !inside;
+      }
+      if (inside) return place;
+    }
+    if (place.shape === "line")
+      for (let j = 1; j < points.length; j++)
+        if (near(points[j - 1][0], points[j - 1][1], points[j][0], points[j][1])) return place;
+  }
+  return null;
+}
+
+/** The four corners of the band a wall from (x1, z1) to (x2, z2) stands in: two blocks across, square at the ends. */
+export function wallBand([x1, z1, x2, z2]) {
+  const length = Math.hypot(x2 - x1, z2 - z1) || 1;
+  const nx = -(z2 - z1) / length, nz = (x2 - x1) / length;
+  return [[x1 + nx, z1 + nz], [x2 + nx, z2 + nz], [x2 - nx, z2 - nz], [x1 - nx, z1 - nz]];
 }
 
 /**

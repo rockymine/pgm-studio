@@ -239,12 +239,12 @@ public sealed class StructureStamperTests
         var w = new VoxelWorld();
         // The plan drew the approach at a surface that puts topY at 11. The relief then lifted the seam to
         // 12, and a wall laid to 11 would be buried under the ground it is meant to bar.
-        var top = StructureStamper.StampWall(w, RisingUnderTheWall(), -30, 39, -20, 41, topY: 11);
+        var top = StructureStamper.StampWall(w, RisingUnderTheWall(), Box(-30, 39, -20, 41), topY: 11);
 
         await Assert.That(top).IsEqualTo(12 + RoomFrames.WallCourses - 1);
         await Assert.That(w.GetBlock(-21, 12, 39).Id).IsEqualTo(Blocks.Bedrock);   // over the high ground
         await Assert.That(w.GetBlock(-21, 14, 39).Id).IsEqualTo(Blocks.Bedrock);   // three courses of it
-        await Assert.That(w.GetBlock(-21, 15, 39).Id).IsEqualTo(Blocks.Cobweb);
+        await Assert.That(w.GetBlock(-21, 15, 39).Id).IsEqualTo(Blocks.Air);       // and nothing over the bedrock
     }
 
     [Test]
@@ -252,19 +252,19 @@ public sealed class StructureStamperTests
     {
         var w = new VoxelWorld();
         var surface = RisingUnderTheWall();
-        var top = StructureStamper.StampWall(w, surface, -30, 39, -20, 41, topY: 11);
+        var top = StructureStamper.StampWall(w, surface, Box(-30, 39, -20, 41), topY: 11);
 
         // Level end to end — it does not step down with the ground, which would read as a curved wall.
         await Assert.That(w.GetBlock(-30, top, 39).Id).IsEqualTo(Blocks.Bedrock);
         await Assert.That(w.GetBlock(-21, top, 39).Id).IsEqualTo(Blocks.Bedrock);
-        await Assert.That(w.GetBlock(-30, top + 1, 39).Id).IsEqualTo(Blocks.Cobweb);
-        await Assert.That(w.GetBlock(-21, top + 1, 39).Id).IsEqualTo(Blocks.Cobweb);
+        await Assert.That(w.GetBlock(-30, top + 1, 39).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(w.GetBlock(-21, top + 1, 39).Id).IsEqualTo(Blocks.Air);
 
         // So the three blocks the seam falls are added to the face at the low end: three courses proud at
         // the high end and six at the low, which is what ST4's cap of four is asked of.
-        await Assert.That(StructureStamper.WallCoursesProud(surface, -30, 39, -20, 41, top)).IsEqualTo(6);
+        await Assert.That(StructureStamper.WallCoursesProud(surface, Box(-30, 39, -20, 41), top)).IsEqualTo(6);
         await Assert.That(StructureStamper.WallCoursesProud(
-            surface, -25, 39, -20, 41, top)).IsEqualTo(RoomFrames.WallCourses);
+            surface, Box(-25, 39, -20, 41), top)).IsEqualTo(RoomFrames.WallCourses);
     }
 
     [Test]
@@ -272,7 +272,7 @@ public sealed class StructureStamperTests
     {
         var w = new VoxelWorld();
         // Footprint 2 thick across z, 10 wide across x; top at y=13.
-        StructureStamper.StampWall(w, NoSurface, minX: -30, minZ: 39, maxX: -20, maxZ: 41, topY: 13);
+        StructureStamper.StampWall(w, NoSurface, Box(-30, 39, -20, 41), topY: 13);
 
         await Assert.That(w.GetBlock(-30, 0, 39).Id).IsEqualTo(Blocks.Bedrock);    // reaches the floor
         await Assert.That(w.GetBlock(-25, 13, 40).Id).IsEqualTo(Blocks.Bedrock);   // top bedrock course
@@ -285,16 +285,27 @@ public sealed class StructureStamperTests
     }
 
     [Test]
-    public async Task Wall_is_capped_by_one_course_of_cobweb_over_its_whole_footprint()
+    public async Task Wall_is_bedrock_to_its_top_and_nothing_over_it()
     {
         var w = new VoxelWorld();
-        StructureStamper.StampWall(w, NoSurface, minX: -30, minZ: 39, maxX: -20, maxZ: 41, topY: 13);
+        StructureStamper.StampWall(w, NoSurface, Box(-30, 39, -20, 41), topY: 13);
 
         for (var x = -30; x < -20; x++)
         for (var z = 39; z < 41; z++)
-            await Assert.That(w.GetBlock(x, 14, z).Id).IsEqualTo(Blocks.Cobweb);
-        await Assert.That(w.GetBlock(-25, 15, 40).Id).IsEqualTo(Blocks.Air);   // one course, and nothing above it
-        await Assert.That(w.GetBlock(-20, 14, 39).Id).IsEqualTo(Blocks.Air);   // exclusive at maxX, like the bedrock
+        {
+            await Assert.That(w.GetBlock(x, 13, z).Id).IsEqualTo(Blocks.Bedrock);
+            await Assert.That(w.GetBlock(x, 14, z).Id).IsEqualTo(Blocks.Air);
+        }
+    }
+
+    /// <summary>The columns of a box, max-exclusive — the cells a wall's line fills along a grid line.</summary>
+    private static List<(int X, int Z)> Box(int minX, int minZ, int maxX, int maxZ)
+    {
+        var cells = new List<(int X, int Z)>();
+        for (var x = minX; x < maxX; x++)
+        for (var z = minZ; z < maxZ; z++)
+            cells.Add((x, z));
+        return cells;
     }
 
     [Test]

@@ -419,8 +419,8 @@ public sealed class PlayPieceMoveTests
         {
             IronCubes = [new IronCube(5, 5, true, new StampId("ironcube", "0", 0), "iron-1"),
                          new IronCube(92, 5, true, new StampId("ironcube", "0", 1), "iron-2")],
-            Walls = [new WallStructure(40, 10, 42, 18, 20, Stamp: new StampId("wall", "0", 0), Id: "wall-1"),
-                     new WallStructure(58, 10, 60, 18, 20, Stamp: new StampId("wall", "0", 1), Id: "wall-2")],
+            Walls = [new WallStructure(41, 10, 41, 18, 20, Stamp: new StampId("wall", "0", 0), Id: "wall-1"),
+                     new WallStructure(59, 10, 59, 18, 20, Stamp: new StampId("wall", "0", 1), Id: "wall-2")],
         },
         Observer = new ObserverIntent { Point = new Pt(50.5, 30, 50.5) },
     };
@@ -465,7 +465,7 @@ public sealed class PlayPieceMoveTests
         var (walls, _) = PlayPieceMove.Apply(Fanned(), "wall-1", null, new Rect(41, 12, 43, 20), board: MirrorX);
         await Assert.That(walls!.Structures!.Walls[1]).IsEqualTo(Fanned().Structures!.Walls[1] with
         {
-            MinX = 57, MinZ = 12, MaxX = 59, MaxZ = 20,
+            X1 = 58, Z1 = 12, X2 = 58, Z2 = 20,
         });
     }
 

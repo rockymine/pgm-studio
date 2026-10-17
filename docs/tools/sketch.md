@@ -19,7 +19,7 @@ Decoration the Dressing phase. Info states what the
 board is and is its own body; Review is the board as a player sees it, with the author's notes on it, in two
 steps: Cameras, on the canvas, and Notes, a body of its own. The
 other phases share the one live canvas, which stays mounted while Info or Notes is up so the
-drawing state and the zoom survive the trip. Draw has two steps, Ground and Layout, on that one canvas. Terraform,
+drawing state and the zoom survive the trip. Draw has three steps, Plan, Ground and Layout, on that one canvas, and Plan is an admin's only. Terraform,
 Palette, Decoration and History have no steps: each swaps what the columns hold and which overlays the layer bar offers, and the canvas is reused as it stands.
 `?phase=review` opens the tool on Review and `?phase=history` on History. What a drive reads back about the board is not a phase: it is `GET /map/{slug}/report`, an agent's
 read (*The report*, under the API).
@@ -93,7 +93,7 @@ below from the phase that feeds it.
 
 ## What it writes
 
-One artifact: the `sketch_layout_json` blob on the map row, read and written through `MapArtifactStore`
+The drawing is one artifact: the `sketch_layout_json` blob on the map row, read and written through `MapArtifactStore`
 like every other artifact. It is stored **verbatim** as the browser produced it —
 authoring source rather than a canonical document — which is why the editor's own save replaces the whole blob
 and a deletion therefore sticks. Only the plan-compile path merges (below).
@@ -105,6 +105,24 @@ The identity of the map — its display name and authors — lives on the map ro
 `{id, name, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?, picture}`, where a view is only where the eye stands and
 what it looks at, or which way it turns, and `picture` marks the one the map's picture is drawn from. It sits beside the layout rather than in it, so keeping a picture is not an edit to the board and does
 not change the world the board builds — and a board loaded again over its own slug keeps its views.
+
+**The map's places are a third artifact, `map_places_json`, and a kept one**: every write is a change in the
+map's history, diffed and restored beside the layout and the intent. A place is a name over its own shape — a
+`point`, a `box` between two corners, a `ring` of three points or more, or a `line` of two or more, in blocks —
+and, at most, the id of the play piece it holds. Places make no terrain and link to nothing else: a shape of the
+layout is redrawn as the ground is worked, so a place states its own geometry rather than naming one. What an
+author or an agent has to say about a place is the thread of a note on it. `area` is the ground the board is
+meant to fill, `[minX, minZ, maxX, maxZ]`, for an agent drawing a board that does not exist yet; a person's
+board is the size of what is drawn. `verdict` is where the places stand with the author — `proposed`, `changes`
+or `approved`, absent being `proposed` — and an agent builds on places the author approved; nothing the studio
+stores is refused for it.
+
+```json PUT /api/map/{slug}/places
+{"places": [
+  {"id": "abbey-hill", "name": "Abbey Hill", "shape": "ring", "points": [[-58, -88], [-26, -88], [-26, -56], [-58, -56]]},
+  {"id": "hill-track", "name": "Hill track", "shape": "line", "points": [[0, -112], [-24, -94], [-40, -80]]}
+]}
+```
 
 **The notes an admin leaves in the Review phase are rows, not an artifact.** `map_note` holds one per note —
 its map by slug, what it is pinned to and its status — and `map_note_message` its thread, each message
@@ -737,14 +755,38 @@ Draw.
 
 ### Draw
 
-The canvas, and where the geometry is made. **It has two steps, Ground and Layout, one click apart in the bar**:
-Ground draws the shapes, and Layout places the play pieces. Both draw every shape and every piece, and in both a
-piece is picked, dragged and turned the same way; only Layout adds or deletes one, and only Ground draws a shape.
+The canvas, and where the geometry is made. **It has three steps, Plan, Ground and Layout, one click apart in the
+bar**: Plan draws the places, Ground draws the shapes, and Layout places the play pieces. Ground and Layout draw
+every shape and every piece, and in both a piece is picked, dragged and turned the same way; only Layout adds or
+deletes one, and only Ground draws a shape. Draw opens on Ground, and Info's last step goes on to Draw's first
+step, where a new map starts.
+
+**Plan and the places are an admin's.** The places are the plan an agent and an admin talk over, so they are
+written by the same people the notes are: an admin in a browser, or a token carrying the notes permission
+(`docs/access.md`). Anyone else's Draw has two steps, Ground and Layout, and Review's Cameras step draws no
+places for them.
+
+**Plan draws the places over whatever the board holds**, top-down, with the notes step's marks — a point, a box,
+a lasso — and a polygon and a polyline beside them; each draws a place rather than ground. A drawn place is
+stored at once under the next free `place-{n}`, named *Place n*, and picked. The column lists the places, a click
+on one on the canvas or in the list picks it, and its panel names it, sets the play piece it holds and deletes
+it; every change stores the whole document through `PUT /map/{slug}/places`, so each is a change in the map's
+history. Above the list, **Verdict** says where the places stand with the author.
+
+**A place holds one thread, and the list says which places have one.** A thread is about its place and nothing
+else, so there is nothing to choose: to talk about another place, pick it. A place with a thread carries a speech
+bubble at the end of its row: filled, with the count inside, while it holds messages that are new to the caller,
+and an outline once they have all been read. Under the picked place's fields the thread fills the panel to the
+bottom over one text box, with no filters and no New note step; the first message written there starts it, and
+opening the place reads what was new in it. The places are drawn in this step and in Review's Cameras step, and
+a click here picks a place and nothing under it.
 
 **Layout's dock is the plan editor's three families.** *Pieces* places a spawn piece or a wool room, *Zones* a
 build area or a water lane — each dragged out as a rectangle, the size it is drawn at — and *Markers* puts down
-an iron marker, a destroyable or a core with a click, centred on the block clicked, or drags out a wall, held to 2
-blocks across its thinner side. A destroyable and a core are offered at two teams only, as the plan offers them.
+an iron marker, a destroyable, a core or a defence chest with a click, centred on the block clicked, or drags out a
+wall along the line from the block the drag starts at to the one it ends at, two blocks thick at whatever angle
+that runs. A chest placed beside a wall fronts away from it, and its rail turns it a quarter at a time. A
+destroyable and a core are offered at two teams only, as the plan offers them.
 Each writes through `POST /map/{slug}/intent/pieces`, which places the piece and every image the symmetry draws
 of it (`PlayPieceAdd`): a spawn goes to the first team that has none and faces the middle of the board, a team's
 first wool takes its colour and every later one the next dye no wool on the board has, and a goal takes the
@@ -1627,13 +1669,13 @@ marked on a picture of a board that is gone.
 **An admin leaves a note pinned to exactly the place it is about; an agent answers it on the note; the author
 closes it.** Nobody types a coordinate: the anchor carries them. The notes column sits beside the picture for a
 caller who may read and answer notes — an admin, or a token an admin issued with the notes permission
-(`docs/access.md`) — and nobody else sees it. Notes exist in Review's Notes step alone, and History, which lists
-the threads written in a span; no other phase, page or rail item shows them, and the sketch surface never draws
-them.
+(`docs/access.md`) — and nobody else sees it. Notes exist in Review's Notes step, Draw's Plan step, where a picked
+place's panel carries that place's one thread, and History, which lists the threads written in a
+span; no other phase, page or rail item shows them, and the sketch surface never draws them.
 
-**A note is one piece of text with one anchor**, and the anchor is what makes it directed. Every note is written
-on the picture in view, so every anchor but the last is a picture, and each of those keeps the exact camera the
-picture was drawn with and the picture's size:
+**A note is one piece of text with one anchor**, and the anchor is what makes it directed. A note written in Review
+is written on the picture in view, so every anchor there but `map` is a picture, and each of those keeps the
+exact camera the picture was drawn with and the picture's size; a note written in Plan is pinned to a place:
 
 | Anchor | Made with | What it keeps |
 |---|---|---|
@@ -1642,6 +1684,14 @@ picture was drawn with and the picture's size:
 | `lasso` | the **Lasso** tool: an outline | the outline, every ground column the rays through the pixels inside it hit, and the void they cross |
 | `view` | a new note with no mark | the camera and the picture |
 | `map` | **Pin to the whole map instead** | nothing spatial |
+| `place` | the first message written in a picked place's panel, in Plan | the place's id, under `place` |
+
+**A note on ground is tagged with the place the ground falls in.** A `point` takes the place its block stands in,
+and a `box` or a `lasso` the place holding most of the columns it hit — inside a box or a ring, or within two
+blocks of a point or a line, the last place listed first (`PlaceLookup`) — so the studio stores that place's id
+under the anchor's `place`. Such a note stays a thread of its own in Review; the place's thread is only the
+`place` one. Review's
+Cameras step draws the places over the board, so a camera is stood with them in sight.
 
 **The area is what was seen.** The studio does the projection, not the browser: the column sends the mark in
 the picture's pixels, and `render/eye/pick` re-casts the ray through each pixel against the world the picture
@@ -1685,7 +1735,8 @@ Waiting (on you), With agent, Resolved, on one line — then the notes on the wh
 longer offers. Choosing a note, by its row or by its pin on the picture, opens its thread, and **‹ All notes**
 goes back. A row reads the way a chat app previews a thread: what the note is pinned to, then its status as a
 muted word and as much of the last message as fits, then at its foot the note's pin and how many messages the
-thread holds. Every pin is one colour, in the column and on the picture; the status is a word, never a hue. A
+thread holds. A pin is an empty speech bubble, one colour in the column and on the picture, carrying no number;
+the status is a word, never a hue. A
 thread is a head — the pin, what the note is pinned to in at most two lines, and its status under that — then its
 messages top to bottom with their pictures, and the reply box at the foot.
 
@@ -2205,10 +2256,12 @@ Every endpoint is rooted at `/api`; a read is open to anyone and a write needs s
 |---|---|---|---|
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`, whose layout is a **ground layer** at `base_y` 0 under the id `ground`. A frame seeds the `setup` beside it, and `mode` is any `SymmetryModes` word, `none` included, with anything else read as `rot_180`; without a frame the editor uses its 120×80 `rot_180` default. A board is a stack and a flat one is a stack of one, so the ground is written here rather than invented by whichever surface draws on the board first | — |
 | `GET /map/{slug}/sketch` | — | the stored layout with the map's rooms drawn in from the intent, or `{}`. The `ETag` is the revision to state on the next write | 404 |
-| `GET /map/{slug}/intent/pieces` | — | `[{id, kind, color, minX, minZ, maxX, maxZ, carried}]` — every play piece where the sketch draws it, at the rectangle `PATCH …/intent/pieces/{id}` reads it as standing on; `carried` marks an image the intent does not store and an iron cube seated in a spawn room; a room's point is `{room}-marker` | 404 |
-| `POST /map/{slug}/intent/pieces` | `{kind, minX, minZ, maxX, maxZ, team?}` — a room's or an area's rectangle, a wall's 2-thick one, or the block a goal, a cube or the observer stands on | `{id}` — the authored image's id; the piece is stored with every image the symmetry draws of it | **400 `RQ1`** an unknown kind, a rectangle with no area, a wall not 2 blocks thick, a team the map lacks or that has a spawn, a spawn where every team has one, a second observer · 404 · **409 `RQ5`** a stale `If-Match` or a region the map already names · 422 |
+| `GET /map/{slug}/intent/pieces` | — | `[{id, kind, color, minX, minZ, maxX, maxZ, carried, line?}]` — every play piece where the sketch draws it, at the rectangle `PATCH …/intent/pieces/{id}` reads it as standing on; `carried` marks an image the intent does not store and an iron cube seated in a spawn room; a room's point is `{room}-marker`; a wall's rectangle spans its columns and `line` is its two ends `[x1, z1, x2, z2]` | 404 |
+| `POST /map/{slug}/intent/pieces` | `{kind, minX, minZ, maxX, maxZ, team?}` — a room's or an area's rectangle, or the block a goal, a cube, a chest or the observer stands on; a wall states `{kind, ends: [x1, z1, x2, z2]}`, its two ends on block corners, in place of the rectangle | `{id}` — the authored image's id; the piece is stored with every image the symmetry draws of it | **400 `RQ1`** an unknown kind, a rectangle with no area, a wall stating a rectangle or two ends at one point, a team the map lacks or that has a spawn, a spawn where every team has one, a second observer · 404 · **409 `RQ5`** a stale `If-Match` or a region the map already names · 422 |
 | `PATCH /map/{slug}/intent/pieces/{id}/settings` | `{key, text?, number?, flag?, alone?}` — `key` one of `name`, `color`, `style`, `materials`, `float`, `lava`, `lavaHeight`, `openTop`, `leak`, `facing`; `text` for a name, colour, design or material, `number` for the rest and for a facing's quarter turns clockwise, `flag` for `openTop`; none of the three puts it back to its default | `{}` — the setting stored, on every image of the unit for what a unit shares | **400 `RQ1`** a setting the piece's kind lacks, or a value it cannot take · **404 `RQ4`** the id names no piece · 409 · 422 |
 | `DELETE /map/{slug}/intent/pieces/{id}` | `?alone=true` to keep the other images | `{}` — the piece and every image of its unit taken out of the intent | **400 `RQ1`** a room's point, which goes with its room · **404 `RQ4`** the id names no piece · 409 · 422 |
+| `GET /map/{slug}/places` | — | the places as stored, or `{}`; the `ETag` is the revision to state on the next write | 404 |
+| `PUT /map/{slug}/places` | `{places: [{id, name, shape, points, holds?}], area?, verdict?}`; `?note=` kept on the change | `{}` — stored verbatim as one change in the map's history | **400 `RQ1`** a place with no id, a shape that is not `point`, `box`, `ring` or `line` or carries the wrong number of points, a point that is not `[x, z]`, an `area` whose max is not past its min, a `verdict` that is not `proposed`, `changes` or `approved` · **400 `RQ5`** two places stating one id · **400 `RQ4`** a place holding a play piece the map has none of · **403 `RQ8`** a caller who is neither an admin nor a token carrying the notes permission · **409 `RQ13`** a stale `If-Match` · 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick, but for the rooms: a room shape is stored as its `rooms` record and its rectangle is dropped; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
 | `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned, dropped}` — merges the finish, the relief and any author-corrected room height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge, and so does one `SK1` per group whose **posted** relief the carry replaced with the stored one. `dropped` names the stored shapes the rebuild does not keep — every one whose id the compile does not produce and which carries no `intentRef`, which is a shape drawn in the sketch — with one `SK29` complaint naming them | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built, and — where a plan is stored beside it — re-reads that plan's CTW strait over the drawn ground (`CT12`) | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
@@ -2300,9 +2353,10 @@ permission (`docs/access.md`). A member, and every other token, is refused `RQ8`
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `GET /notes?status=&since=` | every note on every map, newest change first, each a `MapNoteDto` with its map's slug and name. `status` takes one status or several between commas — `open` is what an agent starts on; `since`, an ISO 8601 instant, keeps the threads whose last message or status change is at or after it | 400 `no such status` `RQ1` · 400 `no such instant` `RQ1` |
-| `GET /map/{slug}/notes` | the map's notes, newest change first: `[{id, map, mapName, anchor, status, createdAt, updatedAt, messages[]}]`, each message `{id, author, authorUuid, token, body, change, picture, at, mark}` — `token` is the label of the token an agent wrote it with, null for a browser | 404 |
-| `POST /map/{slug}/notes` | the note written. Body `{body, anchor, picture?, change?}`; `change` is the map's change it was written at, and absent takes the latest. A note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a picture no upload answered, a `change` that has not landed · 404 |
+| `GET /map/{slug}/notes` | the map's notes, newest change first: `[{id, map, mapName, anchor, status, createdAt, updatedAt, messages[], unread}]`, each message `{id, author, authorUuid, token, body, change, picture, at, mark}` — `token` is the label of the token an agent wrote it with, null for a browser. `unread` counts the messages new to the caller: written by someone else after the newest one they have seen | 404 |
+| `POST /map/{slug}/notes` | the note written. Body `{body, anchor, picture?, change?}`; `change` is the map's change it was written at, and absent takes the latest. A note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a `place` anchor naming no place the map has, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a picture no upload answered, a `change` that has not landed · 404 · 409 `place has its thread` `RQ5` — a `place` anchor naming a place that already has its thread; the finding names the note to reply to |
 | `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, change?, mark?}`; `mark` is a `point`, `box` or `lasso` anchor as `render/eye/pick` answered it, held to everything a note's anchor of that kind is; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser. A token's `answered` reply on a picture note, at the latest change and with no `picture`, carries the note's camera drawn over the board as stored | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH`, a `change` that has not landed, or a `mark` that is not one (`field` names it) · 404 no such map, or no note by that id on it |
+| `POST /map/{slug}/notes/{id}/read` | the note, with `unread` 0: the caller has seen the thread to its newest message. A reply of the caller's own reads the thread up to it too. A reader is the person, a token by its label, or an open studio's local admin | 404 no such map, or no note by that id on it |
 | `PATCH /map/{slug}/notes/{id}` | the note changed. Body `{status}`: `resolved`, `wont-do` or `open` to reopen | 400 `not a change` `RQ1` · 403 `RQ8` to a token — an agent answers in a reply, and only the author closes a thread · 404 |
 | `GET /notes/handoff` | `{ready, waiting, fresh, handedAt, session}` — whether this studio names an agent, how many notes on every map are open, how many of those were written or answered since the last hand-off, and when that was and the session it started | — |
 | `POST /notes/handoff` | the same, after the Routine is fired with the maps and their counts as its text. Body `{again?}`: `true` repeats a hand-off nothing was written since | 403 `RQ8` to a token — the author hands notes over · 409 `RQ16` no note waits, or none was written since the last hand-off · 503 `RQ12` no agent named · 503 `RQ19` the Routine refused |
@@ -2622,7 +2676,8 @@ or shape patch on one is refused, and a recompile places them from the plan agai
 the plan tool draws it, so the two tools show one rectangle rather than each showing its own.
 
 **Every other play piece is drawn too, from `GET /map/{slug}/intent/pieces`**: each destroyable and core at its
-structure's footprint, each build area, water lane, iron cube and approach wall at its rectangle, and the
+structure's footprint, each build area, water lane and iron cube at its rectangle, each approach wall as the
+band two blocks thick along its line, each defence chest at its block, and the
 observer at the block it stands in, and each room's point — where a spawn's team arrives (`spawnPoint`) and where
 a wool is dispensed (`woolSpawn`) — at the block-wide square centred on it, its id the room's with `-marker` after
 it, in the colour the plan tool draws the same thing in (`PlayPieces`). Unlike a
