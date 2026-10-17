@@ -41,6 +41,9 @@ public partial class SketchStructuralInspector
     /// not one, or outside Layout.</summary>
     [Parameter] public RenderFragment? House { get; set; }
 
+    /// <summary>Whether a wall's ends drag apart here, which is Layout.</summary>
+    [Parameter] public bool EndsDrag { get; set; }
+
     /// <summary>Turn a spawn's facing a quarter clockwise.</summary>
     [Parameter] public EventCallback OnFace { get; set; }
 

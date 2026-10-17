@@ -384,7 +384,7 @@ public partial class SketchTool
         // The kept views and the one being placed are drawn only while the phase that places them is up.
         if (phase != "review") await views.ClearCanvasAsync();
         await PushPhaseOverlays(phase);
-        await PushHouseEditingAsync();
+        await PushLayoutEditingAsync();
         await PushPlacesAsync();
     }
 

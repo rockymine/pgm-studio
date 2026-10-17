@@ -30,7 +30,7 @@ public sealed class WordSetSchemaTests
         typeof(RoomParts), typeof(RoofForms), typeof(PorchEdges), typeof(WindowForms),
         typeof(DoorHeadForms), typeof(DoorHeadFills), typeof(Landform), typeof(EditZone),
         typeof(WoolColors), typeof(TreeForms), typeof(TreeSpeciesNames),
-        typeof(BoulderForms), typeof(BlockKinds), typeof(BiomeKinds), typeof(StructuralRoles),
+        typeof(BoulderForms), typeof(BlockKinds), typeof(BiomeKinds), typeof(PieceParts),
         typeof(NegativeSpaceKinds), typeof(SizeBands), typeof(AccessModes), typeof(StudioRoles),
         typeof(NoteStatuses), typeof(NoteAnchors), typeof(MapDocuments), typeof(SymmetryModes),
         typeof(RuleLevels), typeof(RuleLevelSources), typeof(FlagCarriers), typeof(PlayPieceKinds), typeof(PieceSettings), typeof(PlaceShapes), typeof(PlanVerdicts),

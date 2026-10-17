@@ -48,7 +48,8 @@ public sealed class DocumentedBodyTests
             if (route.Contains("/notes/{id}")) route = route.Replace("{id}", await NoteAsync(client, slug));
             if (route.Contains("/changes/{number}")) route = route.Replace("{number}", await ChangeAsync(client, slug));
             if (route.Contains("/intent/pieces/{id}"))
-                route = route.Replace("{id}", await PieceAsync(client, slug, room: route.EndsWith("/house", StringComparison.Ordinal)));
+                route = route.Replace("{id}", await PieceAsync(client, slug, room: route.EndsWith("/house", StringComparison.Ordinal),
+                    wall: example.Json.Contains("\"part\": \"end\"", StringComparison.Ordinal)));
         }
         if (route == "/api/notes/handoff") await NoteAsync(client, await OriginateMapAsync(client));
 
@@ -103,8 +104,14 @@ public sealed class DocumentedBodyTests
 
     /// <summary>A piece on that map, for the routes that address one: a spawn on a twenty-block region round
     /// (-10, -10) for a route about a room's house, a destroyable for the rest.</summary>
-    private static async Task<string> PieceAsync(HttpClient client, string slug, bool room)
+    private static async Task<string> PieceAsync(HttpClient client, string slug, bool room, bool wall)
     {
+        if (wall)
+        {
+            var raised = await client.PostAsync($"/api/map/{slug}/intent/pieces", new StringContent(
+                "{\"kind\":\"wall\",\"ends\":[-10,4,-10,16]}", Encoding.UTF8, "application/json"));
+            return (await raised.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetString()!;
+        }
         if (room)
         {
             var stated = await client.PutAsync($"/api/map/{slug}/intent", new StringContent(

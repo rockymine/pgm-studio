@@ -52,6 +52,7 @@
           : "The region under it stays where it is.")
       }
       @if (House is not null) { <text>Drag a corner to resize a wing, or click the + on a free wall to add one.</text> }
+      else if (EndsDrag && Piece.Role == PlayPieceKinds.Wall) { <text>Drag an end to move it alone. It snaps to the edge of a shape.</text> }
       else if (!Piece.IsPoint) { <text>It can't be resized.</text> }
       @if (!Piece.Piece) { <text>Rebuilding from the plan puts it back.</text> }
     </p>

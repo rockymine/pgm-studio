@@ -825,6 +825,18 @@ a stated `null` is open ground. A spawn's house of two wings:
 { "house": { "wings": [ { "corners": [[-16, -16], [-5, -5]] }, { "corners": [[-4, -14], [-1, -7]] } ] } }
 ```
 
+**A picked wall's ends drag apart.** In Layout a picked approach wall wears a square grip on each end of its line,
+and dragging one moves that end alone, by block corners, the other standing where it was
+(`WallEndController`). The end snaps to the nearest point on a drawn shape's outline within 3 blocks, so a
+wall run from shore to shore meets both. The release asks `PATCH /map/{slug}/intent/pieces/{id}` with `part`
+`start` or `end` and the corner the end lands on as all four bounds, and every image of the wall moves its
+matching end the mirrored or turned way; a refusal puts the wall back. The second end of a wall moved to
+(-6, 20):
+
+```json PATCH /api/map/{slug}/intent/pieces/{id}
+{ "part": "end", "minX": -6, "minZ": 20, "maxX": -6, "maxZ": 20 }
+```
+
 A build area placed by hand, which answers the id it was given:
 
 ```json POST /api/map/{slug}/intent/pieces
@@ -2738,7 +2750,8 @@ than a zone drawn beside it, and leaving any of them behind puts it off the grou
 under `WX12`. Moving a
 room's **point** moves the point alone, by whole blocks, and one carried outside the room's building — or its
 region, where the room states no building — is refused; its rail shows the point's `X` and `Z`, and it turns
-and is deleted only with its room. It **moves
+and is deleted only with its room. A wall's **end**, dragged by its grip in Layout, moves alone and is the one
+drag that snaps, to the outline of a drawn shape (Layout, above). It **moves
 and does not resize**: a spawn or wool's marker is a fractional offset into its own rectangle, so a changed
 span shifts the marker inside it and every rule resolved against that frame with it. **The whole orbit
 moves**: every image of the piece's authored unit — the pieces of one kind sharing its stamp — moves by the

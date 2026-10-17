@@ -61,11 +61,12 @@ public partial class SketchTool
         StateHasChanged();
     }
 
-    /// <summary>Let the canvas shape a picked room's house in Layout alone, and read the house for the step.</summary>
-    private async Task PushHouseEditingAsync()
+    /// <summary>Let the canvas shape a picked room's house and drag a picked wall's ends in Layout alone, and read
+    /// the house for the step.</summary>
+    private async Task PushLayoutEditingAsync()
     {
         if (handle is null) return;
-        await handle.InvokeVoidAsync("setHouseEditing", LayoutActive);
+        await handle.InvokeVoidAsync("setLayoutEditing", LayoutActive);
         await LoadRoomHouseAsync();
     }
 

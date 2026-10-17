@@ -9455,6 +9455,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   map's style, a library shell or open ground, written whole through `PUT …/intent/pieces/{id}/house`.
   (`Client/wwwroot/js/studio/shared/building`, `controllers/room-house-controller`, `Pgm/Authoring/PlayPieceHouse`,
   `docs/tools/sketch.md`)
+- **A wall's ends drag apart (`TS185`).** A picked approach wall in Layout wears a grip on each end; dragging one
+  moves that end alone by block corners, snapped to a drawn shape's outline within 3 blocks, and the piece route
+  takes it as `part` `start` or `end`, every image moving its matching end.
+  (`Pgm/Authoring/PlayPieceMove`, `Client/wwwroot/js/studio/controllers/wall-end-controller`, `docs/tools/sketch.md`)
 - **A place holds one thread, and the list counts what is new (`TS186`).** A picked place's panel shows its
   thread under its fields over one text box, and a second `place` note on it is refused 409 `RQ5`; a place's row
   carries a speech bubble, filled with the count of messages new to the caller or an outline once read. `MapNoteDto.unread`

@@ -171,6 +171,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // and the house already stated.
     onRoomHouseEdited: (room, wings) => reshapeHouse(room, wings),
     onRoomHouseRefused: (sentence) => fire("OnStructuralNote", sentence),
+    // A wall's end dragged to a corner is asked of the intent the way a whole-wall drag is.
+    onWallEndMoved: (piece, part, x, z, putBack) => moveWallEnd(piece, part, x, z, putBack),
     // Placing, moving and picking a prop all happen on the canvas; the bridge only has to relay the result.
     onDressingChanged: edit(() => afterDressingChange()),
     onPropSelected:    () => fire("OnDressing", dressingState()),
@@ -314,6 +316,30 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     }
     fire("OnStructuralNote", null);
     await refreshRooms();
+    await refreshPieces();
+    selectStructural(piece.id);
+  }
+
+  /** The release of a drag on one end of a picked wall: the end, `start` or `end`, asked to stand on the block
+   *  corner (x, z), the wall put back where it stood on a refusal. */
+  async function moveWallEnd(piece, part, x, z, putBack) {
+    if (!slug) { canvas.restoreStructural(putBack); return; }
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(piece.id)}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ part, minX: x, minZ: z, maxX: x, maxZ: z }),
+      });
+      if (!res.ok) {
+        canvas.restoreStructural(putBack);
+        fire("OnStructuralNote", await refusalText(res));
+        return;
+      }
+    } catch {
+      canvas.restoreStructural(putBack);
+      fire("OnStructuralNote", "Couldn't reach the studio, so the wall wasn't changed. Try again.");
+      return;
+    }
+    fire("OnStructuralNote", null);
     await refreshPieces();
     selectStructural(piece.id);
   }
@@ -1389,8 +1415,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     deleteRoomWing(room, wing) { return deleteRoomWing(room, wing); },
     /** Pick a plan piece by its id, as a click on it would. */
     pickStructural(id) { selectStructural(id || null); },
-    /** Shape a picked room's house on the canvas — Layout only. */
-    setHouseEditing(on) { canvas.setHouseEditing(!!on); },
+    /** Shape a picked room's house and drag a picked wall's ends on the canvas — Layout only. */
+    setLayoutEditing(on) { canvas.setLayoutEditing(!!on); },
     /** Pick one wing of the picked building, whose settings the inspector edits. */
     selectWing(wing) { canvas.dressingTools?.selectWing(wing); fire("OnDressing", dressingState()); },
     /** Take a wing out of the picked building; a refusal says why and changes nothing. */

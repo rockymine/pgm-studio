@@ -242,11 +242,12 @@ public sealed record MapMetadataRequest(
 /// unless the body states <c>alone</c>.</summary>
 /// <param name="Part">Absent for the piece itself — a room's region, which carries the room seated on it, or
 /// an objective's structure — the room's own region word (<c>spawn</c>, <c>woolRoom</c>) for the same, or
-/// <c>building</c> for the house raised on a room's region, which moves and turns whole.</param>
+/// <c>building</c> for the house raised on a room's region, which moves and turns whole; or <c>start</c> or
+/// <c>end</c> for one end of an approach wall, which moves alone and leaves the other where it stands.</param>
 /// <param name="MinX">The placed rectangle's west edge, in world blocks. The four are the same bounds the
 /// piece's own rectangle states — a room's <c>protection</c>, the wing of its house <c>wing</c> names, a goal's structure from its
 /// first block's edge to past its last, the rectangle <c>GET …/intent/pieces</c> answers for any piece — and together they <b>move and do not resize</b>: a span differing
-/// from the one they replace is refused as <c>RQ1</c>.</param>
+/// from the one they replace is refused as <c>RQ1</c>. A wall's end is one block corner, all four bounds on it.</param>
 /// <param name="MinZ">Its north edge.</param>
 /// <param name="MaxX">Its east edge.</param>
 /// <param name="MaxZ">Its south edge.</param>
@@ -257,7 +258,7 @@ public sealed record MapMetadataRequest(
 /// <param name="Wing">With <c>part</c> <c>building</c>, which wing of the house the placed rectangle is, counted
 /// from 0 — the room; the whole house moves with it.</param>
 public sealed record PieceMoveRequest(
-    [property: WordSet(typeof(StructuralRoles))] string? Part = null,
+    [property: WordSet(typeof(PieceParts))] string? Part = null,
     [property: JsonPropertyName("minX")] double? MinX = null,
     [property: JsonPropertyName("minZ")] double? MinZ = null,
     [property: JsonPropertyName("maxX")] double? MaxX = null,
