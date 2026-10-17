@@ -1,7 +1,8 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* The map's places, as the canvas draws them, under where they stand with the author. Choosing one picks it as a
-   click on it would. *@
+@* The map's places, as the canvas draws them, under where they stand with the author. A place with notes carries a
+   speech bubble: filled with how many messages are new, or an outline once all are read. Choosing one picks it
+   as a click on it would. *@
 
 <Section Title="Verdict">
   <Select Slim="false" Options="Verdicts" Value="@(Verdict ?? PlanVerdicts.Proposed)" ValueChanged="OnVerdict" />
@@ -14,6 +15,12 @@
         <ChildContent>
           <span class="geo-type-icon"><i data-lucide="@SketchPlaces.Icon(place.Shape)"></i></span>
           <span class="list-label" title="@place.Name">@place.Name</span>
+          @{ var threads = Notes.Where(note => note.Anchor.Place == place.Id).ToList(); }
+          @if (threads.Count > 0 && threads.Sum(note => note.Unread) is var unread)
+          {
+            <span class="@(unread > 0 ? "note-pin" : "note-pin note-pin--read")"
+                  title="@(unread > 0 ? (unread == 1 ? "1 new message" : $"{unread} new messages") : "Notes")">@(unread > 0 ? unread : "")</span>
+          }
         </ChildContent>
       </ListRow>
     }
@@ -23,6 +30,9 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<Place> Places { get; set; } = [];
     [Parameter] public string? SelectedId { get; set; }
+
+    /// <summary>The map's notes, which say which places have a conversation and how much of it is new.</summary>
+    [Parameter] public IReadOnlyList<MapNoteDto> Notes { get; set; } = [];
     [Parameter] public EventCallback<string> OnSelect { get; set; }
 
     /// <summary>Where the places stand with the author; null is proposed.</summary>

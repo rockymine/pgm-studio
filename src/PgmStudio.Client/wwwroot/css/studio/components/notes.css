@@ -7,6 +7,7 @@
   background: var(--accent-bg-hover); color: var(--text-white);
 }
 .note-pin--map { border-radius: 4px; }
+.note-pin--read { background: none; border: 2px solid var(--accent-bg-hover); }
 .note-status { color: var(--text-muted); font-size: var(--font-sm); white-space: nowrap; }
 .notes-row__meta .note-status::after { content: " ·"; }
 
@@ -120,6 +121,8 @@
 .note-message__mark svg { width: var(--icon-xs); height: var(--icon-xs); flex: none; }
 .note-message__picture { display: flex; flex-direction: column; gap: 2px; color: var(--text-muted); font-size: var(--font-xs); text-decoration: none; }
 .note-message__picture img { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: var(--radius-sm); display: block; }
-
-/* A place's notes sit in its inspector, under its own fields, as wide as the inspector is. */
-.workspace-inspector .notes-column { width: auto; margin: var(--space-3); min-height: calc(320px * var(--ui-scale)); }
+/* A place's notes fill its panel under its fields, as wide as they are. */
+.notes-column--embedded { width: auto; flex: 1; min-height: 0; border: 0; border-radius: 0; background: none; }
+.notes-column--embedded .notes-column__thread,
+.notes-column--embedded .notes-column__compose { padding-inline: 0; }
+.workspace-inspector--place .workspace-scroll { overflow: hidden; }

@@ -450,6 +450,7 @@ public sealed class SchemaCompletenessTests
         "POST /api/plan/{planId}/author",
         "POST /api/auth/sign-out",
         "POST /api/users/{uuid}/invite",
+        "POST /api/map/{slug}/notes/{id}/read",
     ];
 
     /// <summary>And that list stays honest from the other side: a route on it that grows a declared body has

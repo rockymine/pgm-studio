@@ -107,10 +107,12 @@ public sealed record NoteMessageDto(
 /// <param name="CreatedAt">When it was written, in UTC.</param>
 /// <param name="UpdatedAt">When its thread last changed, in UTC.</param>
 /// <param name="Messages">The thread, oldest first; the first message is the note itself.</param>
+/// <param name="Unread">How many of its messages are new to the caller: written by someone else after the newest
+/// one the caller has seen, which a reply of theirs or <c>POST …/notes/{id}/read</c> moves on.</param>
 public sealed record MapNoteDto(
     long Id, string Map, string MapName, NoteAnchorDto Anchor,
     [property: WordSet(typeof(NoteStatuses))] string Status,
-    DateTime CreatedAt, DateTime UpdatedAt, IReadOnlyList<NoteMessageDto> Messages);
+    DateTime CreatedAt, DateTime UpdatedAt, IReadOnlyList<NoteMessageDto> Messages, int Unread);
 
 /// <summary>A new note (<c>POST /api/map/{slug}/notes</c>).</summary>
 /// <param name="Body">What it says.</param>

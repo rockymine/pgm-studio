@@ -2,10 +2,11 @@
 
 @* The notes column beside Review's picture, in two steps. The overview lists the notes on the picture in
    view, under four filters, and then the notes on the whole map; choosing one opens its thread, and a new note
-   shows what it is pinned to over its text. ‹ All notes goes back from either. The phase owns what is shown
-   and what is drawn on the picture; this column only renders it and says what was asked. *@
+   shows what it is pinned to over its text. ‹ All notes goes back from either. Under a place it is one
+   conversation instead: every thread pinned to the place, oldest first, over one text box. The host owns what
+   is shown and what is drawn; this column only renders it and says what was asked. *@
 
-<aside class="notes-column" aria-label="Notes">
+<aside class="@(Embedded ? "notes-column notes-column--embedded" : "notes-column")" aria-label="Notes">
   @switch (Step)
   {
     case NotesStep.Overview:
@@ -71,44 +72,7 @@
         </div>
       </div>
       <div class="notes-column__thread" @ref="thread">
-        @for (var i = 0; i < note.Messages.Count; i++)
-        {
-          var message = note.Messages[i];
-          var first = i == 0;
-          @if (!first && Landed(note.Messages[i - 1].Change, message.Change) is > 0 and var between)
-          {
-            @Marker(between, note.Messages[i - 1].Change)
-          }
-          var who = Writers.Describe(message.Author, message.Token);
-          <div class="@MessageClass(note, i)" @key="message.Id">
-            <span class="note-message__avatar">
-              <AuthorMark Agent="@(message.Token is not null)" Uuid="@message.AuthorUuid" Name="@message.Author" Title="@who" Size="28" />
-            </span>
-            <div class="note-message__bubble">
-              <div class="note-message__who" title="@who">
-                <b>@Writers.Name(message.Author, message.Token)</b>
-                @if (message.Token is not null) { <span class="note-message__badge">agent</span> }
-                <span>@Ago(message.At) · change @message.Change</span>
-              </div>
-              <div class="note-message__body">@message.Body</div>
-              @if (message.Mark is { } pinned)
-              {
-                <div class="note-message__mark"><i data-lucide="pin"></i>@MarkLine(pinned)</div>
-              }
-              @if (message.Picture is { } picture)
-              {
-                <a class="note-message__picture" href="@($"api/notes/pictures/{picture}")" target="_blank" rel="noopener">
-                  <img src="@($"api/notes/pictures/{picture}")" width="1920" height="1080" alt="@(first ? "The picture the note was written on" : "The same camera after the change")" loading="lazy" />
-                  <span>@(first ? "before" : "after") · change @message.Change</span>
-                </a>
-              }
-            </div>
-          </div>
-        }
-        @if (note.Messages.Count > 0 && Landed(note.Messages[^1].Change, null) is > 0 and var since)
-        {
-          @Marker(since, note.Messages[^1].Change)
-        }
+        @{ ThreadBody(__builder, note); }
       </div>
       <div class="notes-column__compose">
         @if (ReplyMark is { } replyMark)
@@ -137,6 +101,23 @@
             <Button Icon="x" OnClick="OnWontDo" Busy="Busy" BusyLabel="Declining…"
                     Title="Close it as not to be done; it stays listed, and Reopen hands it back">Won't do</Button>
           }
+          <Button Variant="primary" Disabled="@(string.IsNullOrWhiteSpace(reply) || !Ready)" Busy="sending" BusyLabel="Sending…"
+                  OnClick="SendReplyAsync">Send</Button>
+        </div>
+      </div>
+      break;
+
+    case NotesStep.Conversation:
+      <div class="notes-column__thread" @ref="thread">
+        @foreach (var note in Conversation) { ThreadBody(__builder, note); }
+      </div>
+      <div class="notes-column__compose">
+        @if (Error is not null) { <p class="notes-column__error">@Error</p> }
+        @if (sent is not null) { <span class="notes-column__sent" role="status">✓ @sent</span> }
+        <textarea id="note-reply" class="field-input" rows="3" placeholder="Write… (Ctrl+Enter sends)" aria-label="Reply" value="@reply"
+                  readonly="@sending" @oninput="e => reply = e.Value?.ToString() ?? string.Empty"
+                  @onkeydown="key => SendOnKey(key, SendReplyAsync)"></textarea>
+        <div class="notes-column__send">
           <Button Variant="primary" Disabled="@(string.IsNullOrWhiteSpace(reply) || !Ready)" Busy="sending" BusyLabel="Sending…"
                   OnClick="SendReplyAsync">Send</Button>
         </div>
@@ -177,6 +158,49 @@
 </aside>
 
 @code {
+
+    /// <summary>One thread's messages, with where the board changed between them and since the last.</summary>
+    private void ThreadBody(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder, MapNoteDto note)
+    {
+        @for (var i = 0; i < note.Messages.Count; i++)
+        {
+          var message = note.Messages[i];
+          var first = i == 0;
+          @if (!first && Landed(note.Messages[i - 1].Change, message.Change) is > 0 and var between)
+          {
+            @Marker(between, note.Messages[i - 1].Change)
+          }
+          var who = Writers.Describe(message.Author, message.Token);
+          <div class="@MessageClass(note, i)" @key="message.Id">
+            <span class="note-message__avatar">
+              <AuthorMark Agent="@(message.Token is not null)" Uuid="@message.AuthorUuid" Name="@message.Author" Title="@who" Size="28" />
+            </span>
+            <div class="note-message__bubble">
+              <div class="note-message__who" title="@who">
+                <b>@Writers.Name(message.Author, message.Token)</b>
+                @if (message.Token is not null) { <span class="note-message__badge">agent</span> }
+                <span>@Ago(message.At) · change @message.Change</span>
+              </div>
+              <div class="note-message__body">@message.Body</div>
+              @if (message.Mark is { } pinned)
+              {
+                <div class="note-message__mark"><i data-lucide="pin"></i>@MarkLine(pinned)</div>
+              }
+              @if (message.Picture is { } picture)
+              {
+                <a class="note-message__picture" href="@($"api/notes/pictures/{picture}")" target="_blank" rel="noopener">
+                  <img src="@($"api/notes/pictures/{picture}")" width="1920" height="1080" alt="@(first ? "The picture the note was written on" : "The same camera after the change")" loading="lazy" />
+                  <span>@(first ? "before" : "after") · change @message.Change</span>
+                </a>
+              }
+            </div>
+          </div>
+        }
+        @if (note.Messages.Count > 0 && Landed(note.Messages[^1].Change, null) is > 0 and var since)
+        {
+          @Marker(since, note.Messages[^1].Change)
+        }
+    }
     /// <summary>Where the board changed between two messages, or since the last: how many changes landed, which
     /// opens History on them.</summary>
     private RenderFragment Marker(int count, long after) => @<button type="button" class="notes-column__landed"

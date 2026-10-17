@@ -114,6 +114,15 @@ public sealed class MapNoteMessageRow
     [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
 }
 
+/// <summary>How far one reader has read one note's thread (M0080): the newest message they have seen.</summary>
+[Table("map_note_read")]
+public sealed class MapNoteReadRow
+{
+    [PrimaryKey, Column("note_id")] public long NoteId { get; set; }
+    [PrimaryKey, Column("reader")] public string Reader { get; set; } = "";
+    [Column("last_message_id"), NotNull] public long LastMessageId { get; set; }
+}
+
 /// <summary>One board of the composed-board library (M0047): what the composer made for a size band, a symmetry,
 /// a cell and a seed under one composer version. <c>wools</c> holds the wool families between commas
 /// (<c>,i,l,</c>) so a filter can ask for each; <c>card_json</c> is the rest of the card, its fired hard terms,

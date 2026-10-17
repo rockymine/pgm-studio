@@ -9,9 +9,9 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>Which step the notes column is on.</summary>
-public enum NotesStep { Overview, Thread, New }
+public enum NotesStep { Overview, Thread, New, Conversation }
 
-/// <summary>The notes column: the overview under its filters, one thread, or a new note.</summary>
+/// <summary>The notes column: the overview under its filters, one thread, a new note, or a place's conversation.</summary>
 public partial class SketchNotesColumn : IDisposable
 {
     [Inject] private IJSRuntime JS { get; set; } = default!;
@@ -33,6 +33,10 @@ public partial class SketchNotesColumn : IDisposable
     /// <summary>The place whose notes the column lists — the ones pinned to it and the ones on its ground — in
     /// place of a picture's; null beside a picture.</summary>
     [Parameter] public string? PlaceId { get; set; }
+
+    /// <summary>Whether the column sits inside a panel rather than beside a picture: no frame of its own, and as
+    /// wide as the panel's fields.</summary>
+    [Parameter] public bool Embedded { get; set; }
     [Parameter] public string? ViewName { get; set; }
     [Parameter] public MapNoteDto? Current { get; set; }
     [Parameter] public string Filter { get; set; } = All;
@@ -99,12 +103,15 @@ public partial class SketchNotesColumn : IDisposable
     private string? sent;
     private CancellationTokenSource? confirming;
     private ElementReference thread;
-    private (long Id, int Messages)? followed;
+    private string? followed;
     private bool toEnd;
 
     private IEnumerable<MapNoteDto> OnThisPicture => PlaceId is { } place
         ? Notes.Where(note => note.Anchor.Place == place)
         : Notes.Where(note => note.Anchor.ViewId is { } view && view == ViewId);
+    /// <summary>A place's conversation: its threads, oldest first.</summary>
+    private IEnumerable<MapNoteDto> Conversation =>
+        OnThisPicture.OrderBy(note => note.CreatedAt).ThenBy(note => note.Id);
     private IEnumerable<MapNoteDto> OnTheMap => Notes.Where(note => note.Anchor.Kind == NoteAnchors.Map);
     private IEnumerable<MapNoteDto> Elsewhere =>
         Notes.Where(note => note.Anchor.ViewId is { } view && view != ViewId && !ViewIds.Contains(view));
@@ -171,17 +178,22 @@ public partial class SketchNotesColumn : IDisposable
         StateHasChanged();
     }
 
-    /// <summary>A thread opens on its newest message, and follows it as messages land.</summary>
+    /// <summary>A thread or a conversation opens on its newest message, and follows it as messages land.</summary>
     protected override void OnParametersSet()
     {
-        (long, int)? showing = Step == NotesStep.Thread && Current is { } note ? (note.Id, note.Messages.Count) : null;
+        var showing = Step switch
+        {
+            NotesStep.Thread when Current is { } note => $"{note.Id}:{note.Messages.Count}",
+            NotesStep.Conversation => $"{PlaceId}:{Conversation.Sum(note => note.Messages.Count)}",
+            _ => null,
+        };
         if (showing is not null && showing != followed) toEnd = true;
         followed = showing;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!toEnd || Step != NotesStep.Thread) return;
+        if (!toEnd || Step is not (NotesStep.Thread or NotesStep.Conversation)) return;
         toEnd = false;
         await JS.InvokeVoidAsync("studio.scrollToEnd", thread);
     }
@@ -210,8 +222,16 @@ public partial class SketchNotesColumn : IDisposable
     {
         NoteAnchors.Map => "Whole map",
         NoteAnchors.View => $"This view{Of(note)}",
+        // A place's notes are listed under the place, so what tells two apart is what the first one says.
+        NoteAnchors.Place => note.Messages.FirstOrDefault()?.Body is { Length: > 0 } body ? FirstSentence(body) : "Place",
         var kind => $"{char.ToUpperInvariant(kind[0])}{kind[1..]}{Of(note)}",
     };
+
+    private static string FirstSentence(string body)
+    {
+        var end = body.IndexOfAny(['.', '?', '!', '\n']);
+        return end > 0 ? body[..(end + (body[end] == '\n' ? 0 : 1))] : body;
+    }
 
     private static string Of(MapNoteDto note) => note.Anchor.ViewName is { Length: > 0 } name ? $" on {name}" : "";
 

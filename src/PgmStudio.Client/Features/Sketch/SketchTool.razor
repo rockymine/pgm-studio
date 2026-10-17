@@ -109,7 +109,7 @@
           }
           else if (PlanActive)
           {
-            <SketchPlacesList Places="PlaceList" SelectedId="@selectedPlaceId" OnSelect="SelectPlace"
+            <SketchPlacesList Places="PlaceList" SelectedId="@selectedPlaceId" OnSelect="SelectPlace" Notes="notes.All"
                               Verdict="@placesDocument.Verdict" OnVerdict="SetVerdict" />
           }
           else if (ReliefActive)

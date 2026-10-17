@@ -2,17 +2,13 @@
 @using System.Net.Http.Json
 @inject HttpClient Http
 
-@* One place's notes — the threads pinned to it and the ones written on its ground — in the notes column Review
-   shows beside a picture, and a new note written here is pinned to the place. *@
+@* One place's notes as one conversation under its fields: every thread pinned to it, oldest first, and a text box
+   that answers the newest thread or starts the first. Opening the place reads what was new in it. *@
 
 @if (Notes.Allowed)
 {
-  <SketchNotesColumn Step="step" Notes="Notes.All" PlaceId="@Place.Id" ViewName="@Place.Name"
-                     Current="Current" Filter="@filter" AnchorTitle="@Place.Name" AnchorBody="This place."
-                     WholeMap="false" Busy="busy" Error="@error" MeUuid="@Notes.MeUuid"
-                     OnFilter="picked => filter = picked" OnOpen="Open" OnBack="Back" OnNew="() => step = NotesStep.New"
-                     OnResolve="() => ChangeAsync(NoteStatuses.Resolved)" OnReopen="() => ChangeAsync(NoteStatuses.Open)"
-                     OnWontDo="() => ChangeAsync(NoteStatuses.WontDo)" OnSend="SendAsync" OnReply="ReplyAsync" />
+  <SketchNotesColumn Embedded Step="NotesStep.Conversation" Notes="Notes.All" PlaceId="@Place.Id" ViewName="@Place.Name"
+                     Error="@error" MeUuid="@Notes.MeUuid" OnReply="SendAsync" />
 }
 
 @code {
@@ -20,82 +16,46 @@
     [Parameter, EditorRequired] public Place Place { get; set; } = default!;
     [Parameter, EditorRequired] public SketchNotes Notes { get; set; } = default!;
 
-    private NotesStep step = NotesStep.Overview;
-    private string filter = SketchNotesColumn.All;
-    private long? currentId;
-    private bool busy;
     private string? error;
     private string? shownPlace;
+    private readonly HashSet<string> marked = [];
 
-    private MapNoteDto? Current => Notes.All.FirstOrDefault(note => note.Id == currentId);
+    private IEnumerable<MapNoteDto> Threads => Notes.All.Where(note => note.Anchor.Place == Place.Id);
 
     protected override void OnParametersSet()
     {
-        // Another place picked starts on its own overview.
         if (shownPlace == Place.Id) return;
         shownPlace = Place.Id;
-        step = NotesStep.Overview;
-        currentId = null;
         error = null;
     }
 
-    private void Open(MapNoteDto note)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        currentId = note.Id;
-        step = NotesStep.Thread;
+        // Each thread is read once at the length it was shown, so a read that does not land is not asked again.
+        var unread = Threads.Where(note => note.Unread > 0 && marked.Add($"{note.Id}:{note.Messages.Count}")).ToList();
+        if (unread.Count == 0) return;
+        foreach (var note in unread) await Http.PostAsync($"api/map/{Slug}/notes/{note.Id}/read", null);
+        await Notes.LoadAsync();
     }
 
-    private void Back()
-    {
-        currentId = null;
-        step = NotesStep.Overview;
-    }
-
+    /// <summary>Answer the place's newest thread, or start its first.</summary>
     private async Task<bool> SendAsync(string body)
     {
         error = null;
-        var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/notes",
-            new MapNoteRequest(body, new NoteAnchorDto(NoteAnchors.Place, Place: Place.Id)));
+        var newest = Threads.MaxBy(note => note.CreatedAt);
+        var answer = newest is null
+            ? await Http.PostAsJsonAsync($"api/map/{Slug}/notes",
+                new MapNoteRequest(body, new NoteAnchorDto(NoteAnchors.Place, Place: Place.Id)))
+            : await Http.PostAsJsonAsync($"api/map/{Slug}/notes/{newest.Id}/replies", new NoteReplyRequest(body));
         if (!answer.IsSuccessStatusCode)
         {
             error = await ServerRefusal.SentenceAsync(answer);
+            StateHasChanged();
             return false;
         }
-        var written = await answer.Content.ReadFromJsonAsync<MapNoteDto>();
         await Notes.LoadAsync();
-        currentId = written?.Id;
-        step = written is null ? NotesStep.Overview : NotesStep.Thread;
         // The column calls back through a delegate rather than an event, so this host draws itself again.
         StateHasChanged();
         return true;
-    }
-
-    private async Task<bool> ReplyAsync(string body)
-    {
-        if (Current is not { } note) return false;
-        error = null;
-        var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/notes/{note.Id}/replies", new NoteReplyRequest(body));
-        if (!answer.IsSuccessStatusCode)
-        {
-            error = await ServerRefusal.SentenceAsync(answer);
-            return false;
-        }
-        await Notes.LoadAsync();
-        StateHasChanged();
-        return true;
-    }
-
-    private async Task ChangeAsync(string status)
-    {
-        if (Current is not { } note) return;
-        busy = true;
-        error = null;
-        try
-        {
-            var answer = await Http.PatchAsJsonAsync($"api/map/{Slug}/notes/{note.Id}", new NoteChangeRequest(status));
-            if (!answer.IsSuccessStatusCode) error = await ServerRefusal.SentenceAsync(answer);
-            else await Notes.LoadAsync();
-        }
-        finally { busy = false; }
     }
 }

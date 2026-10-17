@@ -47,9 +47,11 @@ await name.press("Enter");
 await page.locator(".panel-list .list-label", { hasText: "Abbey Hill" }).waitFor({ timeout: 30000 });
 checks.add("the name is stored", (await api(`/map/${seed.sketchSlug}/places`)).places[0].name === "Abbey Hill");
 
-checks.section("a note written in the place's panel is pinned to it");
-await page.click(".workspace-inspector .notes-column button:has-text('New note')");
-await page.fill("#note-body", "Is the hill tall enough to hold?");
+checks.section("the place's panel is one conversation, and a note written in it is pinned to the place");
+checks.add("the panel has no New note step and no filters",
+  !(await page.locator(".workspace-inspector .notes-column button:has-text('New note')").count())
+  && !(await page.locator(".workspace-inspector .notes-column__filters").count()));
+await page.fill(".workspace-inspector #note-reply", "Is the hill tall enough to hold?");
 await page.click(".workspace-inspector .notes-column button:has-text('Send')");
 let notes = [];
 for (let tries = 0; tries < 30 && !notes.some(note => note.anchor.kind === "place"); tries++) {
@@ -61,9 +63,17 @@ checks.add("the note is pinned to the place", pinned?.anchor.place === place?.id
   JSON.stringify(pinned?.anchor ?? notes.map(note => note.anchor)));
 await page.locator(".workspace-inspector .notes-column__thread", { hasText: "Is the hill tall enough" })
   .waitFor({ timeout: 30000 }).catch(() => {});
-checks.add("the panel opens the note's thread",
-  await page.locator(".workspace-inspector .notes-column__back").count() > 0
-  && !(await page.locator(".workspace-inspector #note-body").count()));
+checks.add("the conversation shows the note",
+  await page.locator(".workspace-inspector .notes-column__thread", { hasText: "Is the hill tall enough" }).count() > 0);
+await page.fill(".workspace-inspector #note-reply", "And the east face?");
+await page.click(".workspace-inspector .notes-column button:has-text('Send')");
+await page.locator(".workspace-inspector .notes-column__thread", { hasText: "And the east face?" })
+  .waitFor({ timeout: 30000 }).catch(() => {});
+const threads = (await api(`/map/${seed.sketchSlug}/notes`)).filter(note => note.anchor.kind === "place");
+checks.add("a second message answers the place's thread", threads.length === 1 && threads[0].messages.length === 2,
+  JSON.stringify(threads.map(note => note.messages.length)));
+checks.add("the place's row carries a read speech bubble",
+  await page.locator(".panel-list .note-pin--read").count() === 1);
 await page.waitForTimeout(800);
 await page.screenshot({ path: `${OUT}sketch-places.png` });
 

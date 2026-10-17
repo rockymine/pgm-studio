@@ -312,6 +312,13 @@ public sealed class AccessTests
             new NoteReplyRequest("Moved the red monument eight blocks back."))).Content.ReadFromJsonAsync<MapNoteDto>();
         await Assert.That(answered!.Status).IsEqualTo(NoteStatuses.Answered);
         await Assert.That(answered.Messages[1].Token).IsEqualTo("mapgen");
+        await Assert.That(answered.Unread).IsEqualTo(0).Because("a reply reads the thread up to itself");
+        var seen = (await admin.GetFromJsonAsync<List<MapNoteDto>>($"/api/map/{slug}/notes"))!.Single(found => found.Id == written.Id);
+        await Assert.That(seen.Unread).IsEqualTo(1).Because("the agent's answer is new to the author, and their own note is not");
+        var read = await (await admin.PostAsync($"/api/map/{slug}/notes/{written.Id}/read", null)).Content.ReadFromJsonAsync<MapNoteDto>();
+        await Assert.That(read!.Unread).IsEqualTo(0);
+        await Assert.That((await admin.GetFromJsonAsync<List<MapNoteDto>>($"/api/map/{slug}/notes"))!.Single(found => found.Id == written.Id).Unread)
+            .IsEqualTo(0);
         await AssertRefusedAsync(await agent.PatchAsJsonAsync($"/api/map/{slug}/notes/{written.Id}",
             new NoteChangeRequest(NoteStatuses.Resolved)), HttpStatusCode.Forbidden, "RQ8");
         var asked = await (await agent.PostAsJsonAsync($"/api/map/{slug}/notes",

@@ -20,6 +20,7 @@ public sealed class PgmDb : DataConnection
     public ITable<RuleLevelRow> RuleLevels => this.GetTable<RuleLevelRow>();
     public ITable<MapNoteRow> MapNotes => this.GetTable<MapNoteRow>();
     public ITable<MapNoteMessageRow> MapNoteMessages => this.GetTable<MapNoteMessageRow>();
+    public ITable<MapNoteReadRow> MapNoteReads => this.GetTable<MapNoteReadRow>();
     public ITable<ComposedBoardRow> ComposedBoards => this.GetTable<ComposedBoardRow>();
     public ITable<TeamRow> Teams => this.GetTable<TeamRow>();
     public ITable<KitRow> Kits => this.GetTable<KitRow>();

@@ -25,14 +25,41 @@ internal static class NoteWire
     public const int LongestBody = 10_000, MostLassoPoints = 2_000, MostColumns = 250_000;
     public const int WidestPicture = 1920, HighestPicture = 1080;
 
-    public static MapNoteDto Dto(StoredNote stored, string mapName) => new(
+    /// <summary>The note as <paramref name="caller"/> reads it: its messages after <paramref name="readUpTo"/>
+    /// that someone else wrote are new to them.</summary>
+    public static MapNoteDto Dto(StoredNote stored, string mapName, Caller caller, long readUpTo) => new(
         stored.Note.Id, stored.Note.MapSlug, mapName,
         JsonSerializer.Deserialize<NoteAnchorDto>(stored.Note.AnchorJson, MapArtifactStore.Json) ?? new NoteAnchorDto(NoteAnchors.Map),
         stored.Note.Status, stored.Note.CreatedAt, stored.Note.UpdatedAt,
         [.. stored.Messages.Select(message => new NoteMessageDto(
             message.Id, message.AuthorName, message.AuthorUuid, message.TokenLabel, message.Body, message.Change,
             message.Picture, message.CreatedAt,
-            message.MarkJson is { } mark ? JsonSerializer.Deserialize<NoteAnchorDto>(mark, MapArtifactStore.Json) : null))]);
+            message.MarkJson is { } mark ? JsonSerializer.Deserialize<NoteAnchorDto>(mark, MapArtifactStore.Json) : null))],
+        stored.Messages.Count(message => message.Id > readUpTo && !Wrote(caller, message)));
+
+    /// <summary>Notes as <paramref name="caller"/> reads them, each under its map's name.</summary>
+    public static async Task<List<MapNoteDto>> DtosAsync(MapNoteStore notes, Caller caller, IReadOnlyList<StoredNote> found,
+                                                         Func<string, string> mapName, CancellationToken ct)
+    {
+        var read = await notes.ReadUpToAsync(Reader(caller), [.. found.Select(stored => stored.Note.Id)], ct);
+        return [.. found.Select(stored =>
+            Dto(stored, mapName(stored.Note.MapSlug), caller, read.GetValueOrDefault(stored.Note.Id)))];
+    }
+
+    /// <summary>One note as <paramref name="caller"/> reads it.</summary>
+    public static async Task<MapNoteDto> DtoAsync(MapNoteStore notes, Caller caller, StoredNote stored, string mapName,
+                                                  CancellationToken ct) =>
+        (await DtosAsync(notes, caller, [stored], _ => mapName, ct))[0];
+
+    /// <summary>Whose reading a mark keeps: a token by its label, else the person, else the open studio's local
+    /// admin.</summary>
+    public static string Reader(Caller caller) =>
+        caller.ViaToken ? $"token:{caller.Token}" : caller.Uuid ?? "local";
+
+    /// <summary>Whether <paramref name="caller"/> wrote <paramref name="message"/>: the same account through the
+    /// same token, or through none.</summary>
+    private static bool Wrote(Caller caller, MapNoteMessageRow message) =>
+        message.TokenLabel == caller.Token && string.Equals(message.AuthorUuid, caller.Uuid, StringComparison.OrdinalIgnoreCase);
 
     public static string AnchorJson(NoteAnchorDto anchor) => JsonSerializer.Serialize(anchor, MapArtifactStore.Json);
 
@@ -157,7 +184,7 @@ internal static class NoteWire
 /// <summary>GET /api/notes — every note on every map, newest change first, for an agent starting on what the
 /// author left. <c>status</c> takes one status or several between commas; absent is every note. <c>since</c>
 /// keeps the threads that moved at or after an instant, which is how a scheduled check asks what is new.</summary>
-public sealed class NotesAcrossMapsEndpoint(MapNoteStore notes, PgmDb db) : EndpointWithoutRequest<List<MapNoteDto>>
+public sealed class NotesAcrossMapsEndpoint(MapNoteStore notes, PgmDb db, Callers callers) : EndpointWithoutRequest<List<MapNoteDto>>
 {
     public override void Configure()
     {
@@ -195,7 +222,8 @@ public sealed class NotesAcrossMapsEndpoint(MapNoteStore notes, PgmDb db) : Endp
         }
         var found = await notes.AcrossMapsAsync(asked, since, ct);
         var names = await NoteWire.NamesAsync(db, found.Select(stored => stored.Note.MapSlug), ct);
-        await Send.OkAsync([.. found.Select(stored => NoteWire.Dto(stored, names.GetValueOrDefault(stored.Note.MapSlug, stored.Note.MapSlug)))], ct);
+        await Send.OkAsync(await NoteWire.DtosAsync(notes, await callers.OfAsync(HttpContext, ct), found,
+            slug => names.GetValueOrDefault(slug, slug), ct), ct);
     }
 }
 
@@ -284,7 +312,7 @@ public sealed class NoteHandoffEndpoint(MapNoteStore notes, AgentHandoff agent, 
 }
 
 /// <summary>GET /api/map/{slug}/notes — one map's notes with their threads, newest change first.</summary>
-public sealed class MapNotesEndpoint(MapRepository repo, MapNoteStore notes) : EndpointWithoutRequest<List<MapNoteDto>>
+public sealed class MapNotesEndpoint(MapRepository repo, MapNoteStore notes, Callers callers) : EndpointWithoutRequest<List<MapNoteDto>>
 {
     public override void Configure()
     {
@@ -296,7 +324,8 @@ public sealed class MapNotesEndpoint(MapRepository repo, MapNoteStore notes) : E
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        await Send.OkAsync([.. (await notes.OfMapAsync(map.Slug, ct)).Select(stored => NoteWire.Dto(stored, map.Name))], ct);
+        await Send.OkAsync(await NoteWire.DtosAsync(notes, await callers.OfAsync(HttpContext, ct),
+            await notes.OfMapAsync(map.Slug, ct), _ => map.Name, ct), ct);
     }
 }
 
@@ -351,7 +380,8 @@ public sealed class MapNoteCreateEndpoint(
             CreatedAt = now,
             UpdatedAt = now,
         }, NoteWire.Message(caller, request.Body, request.Change ?? latest, request.Picture, now), ct);
-        await Send.OkAsync(NoteWire.Dto(stored, map.Name), ct);
+        await notes.MarkReadAsync(stored.Note.Id, NoteWire.Reader(caller), stored.Messages[^1].Id, ct);
+        await Send.OkAsync(await NoteWire.DtoAsync(notes, caller, stored, map.Name, ct), ct);
     }
 }
 
@@ -414,7 +444,8 @@ public sealed class NoteReplyEndpoint(
         var reply = NoteWire.Message(caller, request.Body, request.Change ?? latest, picture, DateTime.UtcNow, request.Mark);
         reply.NoteId = stored.Note.Id;
         await notes.AddAsync(reply, status, ct);
-        await Send.OkAsync(NoteWire.Dto((await notes.GetAsync(map.Slug, stored.Note.Id, ct))!, map.Name), ct);
+        await notes.MarkReadAsync(stored.Note.Id, NoteWire.Reader(caller), reply.Id, ct);
+        await Send.OkAsync(await NoteWire.DtoAsync(notes, caller, (await notes.GetAsync(map.Slug, stored.Note.Id, ct))!, map.Name, ct), ct);
     }
 
     /// <summary>The note's own camera drawn over the board as stored and kept, answering the picture's hash; null
@@ -463,7 +494,8 @@ public sealed class NoteChangeEndpoint(MapRepository repo, MapNoteStore notes, C
             await Refusals.NotFoundAsync(HttpContext, "note", ct, Route<string>("id"));
             return;
         }
-        if (await callers.OfAsync(HttpContext, ct) is { ViaToken: true })
+        var caller = await callers.OfAsync(HttpContext, ct);
+        if (caller.ViaToken)
         {
             await Refusals.WriteAsync(HttpContext, 403, "not permitted",
                 [new Finding(RequestRules.NotPermitted,
@@ -478,7 +510,33 @@ public sealed class NoteChangeEndpoint(MapRepository repo, MapNoteStore notes, C
             return;
         }
         await notes.ChangeAsync(stored.Note.Id, request.Status, DateTime.UtcNow, ct);
-        await Send.OkAsync(NoteWire.Dto((await notes.GetAsync(map.Slug, stored.Note.Id, ct))!, map.Name), ct);
+        await Send.OkAsync(await NoteWire.DtoAsync(notes, caller, (await notes.GetAsync(map.Slug, stored.Note.Id, ct))!, map.Name, ct), ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/notes/{id}/read — the caller has seen the thread to its newest message, so none
+/// of its messages is new to them any more.</summary>
+public sealed class NoteReadEndpoint(MapRepository repo, MapNoteStore notes, Callers callers)
+    : EndpointWithoutRequest<MapNoteDto>
+{
+    public override void Configure()
+    {
+        Post("/map/{slug}/notes/{id}/read");
+        Policies(AccessPolicies.Notes);
+        Description(b => b.Produces<MapNoteDto>(200, "application/json").Refuses(404));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        if (await notes.GetAsync(map.Slug, Route<long>("id"), ct) is not { } stored)
+        {
+            await Refusals.NotFoundAsync(HttpContext, "note", ct, Route<string>("id"));
+            return;
+        }
+        var caller = await callers.OfAsync(HttpContext, ct);
+        if (stored.Messages.Count > 0) await notes.MarkReadAsync(stored.Note.Id, NoteWire.Reader(caller), stored.Messages[^1].Id, ct);
+        await Send.OkAsync(await NoteWire.DtoAsync(notes, caller, stored, map.Name, ct), ct);
     }
 }
 
