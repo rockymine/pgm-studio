@@ -38,6 +38,9 @@ public sealed record SpawnStructure
     /// where the <see cref="Frame"/> has walls to raise it on. A house style rather than a room style, for the
     /// reason a wool structure's is: this is the stamping shape.</summary>
     public HouseStyle? Shell { get; init; } = HouseStyle.Spawn;
+
+    /// <inheritdoc cref="WoolStructure.Wings"/>
+    public IReadOnlyList<Wing> Wings { get; init; } = [];
 }
 
 /// <summary>What one spawn structure placed: where the team comes in, and every monument it carries.</summary>
@@ -50,14 +53,18 @@ public static class SpawnStructureStamper
     {
         var frame = room.Frame;
         if (room.Ground is { } ground)
+        {
             StructureStamper.StampFoundation(world, ground, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ);
+            foreach (var wing in room.Wings.Skip(1))
+                StructureStamper.StampFoundation(world, ground, wing.MinX, wing.MinZ, wing.MaxX + 1, wing.MaxZ + 1);
+        }
 
         // The frame says whether a building stands here, not the binding: a footprint that cannot carry walls
         // resolves with none (WX2), and stamping a style onto it would raise a house the room has no floor
         // for. The spawn point and the monuments are what a room is and go down either way.
         if (room.Shell is { } shell && frame.Wall > 0)
             HouseStamper.Stamp(world, frame, room.FloorY,
-                shell with { Doorway = shell.Doorway with { Door = DoorMaterial.Air } }, room.TeamColor);
+                shell with { Doorway = shell.Doorway with { Door = DoorMaterial.Air } }, room.TeamColor, room.Wings);
 
         // After the shell, so the pad is the floor the spawn point sits on rather than whatever a style laid.
         var point = PadStamp.Lay(world, frame.Pad, room.FloorY, Blocks.Wool, room.TeamColor);

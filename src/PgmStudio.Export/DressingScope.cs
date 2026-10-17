@@ -236,9 +236,9 @@ public static class DressingScope
         var rects = new List<(int MinX, int MinZ, int MaxX, int MaxZ)>();
 
         foreach (var spawn in intent.Spawns)
-            AddFrontages(rects, WorldBuilder.SpawnRoom(spawn, shells.SpawnBound).Frame, SpawnApproach);
+            AddFrontages(rects, WorldBuilder.SpawnRoom(spawn, shells.Spawn).Frame, SpawnApproach);
         foreach (var wool in intent.Wools ?? [])
-            AddFrontages(rects, WorldBuilder.WoolFrame(wool, shells.WoolBound), WoolApproach);
+            AddFrontages(rects, WorldBuilder.WoolFrame(wool, shells.Wool), WoolApproach);
 
         return (x, z) => rects.Any(r => x >= r.MinX && x <= r.MaxX && z >= r.MinZ && z <= r.MaxZ);
     }

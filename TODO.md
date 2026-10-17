@@ -22,15 +22,10 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **WE166 — A room's building is a house.** A spawn's and a wool's `footprint` becomes a house record of the
-  shape a dressed house takes — position, wings, its own style — with the room's interior as a part of it: the
-  pad, the doors, the chests and the monuments, placed relative to the house. The map-wide `roomStyles` become
-  the default a room's house starts from, and a migration carries every stored `footprint` into a one-wing
-  house. `docs/world-export/structures.md`.
-
-  *Evidence: the building is a bare `Rect? Footprint` on `SpawnIntent` and `WoolIntent` (`Pgm/Authoring/MapIntent.cs`)
-  stamped with one style per kind (`SketchLayout.RoomStyles`), while a dressed house carries wings and a style of its
-  own; a wool room's chests are derived at build time in its interior corners (`Minecraft/Stamping/WoolChests.cs`).*
+- [ ] **TS188 — A room's house is shaped and styled in Layout.** A picked room's building in Layout gains a wing
+  dragged off any wall of it, a wing deleted, and a style of the room's own picked from the library over the map's
+  — what `house.wings` and `house.style` already take through `PUT …/intent` and the piece route. The rail is
+  `SketchTool.Layout`; the joint refusals are `WingJoints`'. `docs/tools/sketch.md`.
 
 - [ ] **TS185 — A wall's ends drag apart, and a line snaps to shape edges.** A picked wall in Layout shows a
   handle at each end, and dragging one moves that end alone, its orbit images with it, the end snapping to the

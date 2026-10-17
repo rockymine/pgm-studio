@@ -22,6 +22,11 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [ ] **WE168 — A room's interior is placed relative to its house.** *Parked (author): later; derived for now.*
+  The chests (`WoolChests`, `RoomFrames.InteriorCorners`) and the monuments (`RoomFrames.MonumentSlots`) are
+  stated on the room's `house` as positions relative to its first wing, movable in Layout, and a migration
+  carries each derived position into the stored one. `docs/world-export/structures.md`.
+
 - [ ] **TS172 — The look is stated before the review.** *Parked (author): too much for now; the programme goes on
   without it.* A palette, a house style per area, tree and rock zones and
   the biome as sketch data, drawn on the review sheet and applied by the build, so the author judges what a board

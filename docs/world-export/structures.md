@@ -54,13 +54,26 @@ the OB8 discipline the destroyable/core boxes established.
 spawn each carry one `Protection` — a union of rectangles, one for a plan-compiled room (its piece,
 fanned per orbit image) and as many as an author drew for a hand-authored one — and the room is
 framed on what that union encloses. There is no second rectangle naming the same ground: the
-building is the intent's other rect (`Footprint`, capped by `ST9`), the region is this one (capped
+building is the room's house (`House`, its room capped by `ST9`), the region is this one (capped
 by `ST10`), and an intent that states no region at all falls back to the marker-anchored default
 frame, the one a 10×10 piece would resolve to. The wool room's fanned entry interfaces ride beside
 it (`WoolIntent.Entries` — terrain↔room land seams plus build-zone frontline edges, as degenerate
 rects on the region's boundary); a cage with none keeps a door per wall. A spawn's walls ride the same way
 (`SpawnIntent.Doors`, edge words in the order they were cut), so nothing downstream re-derives a door from a
 yaw — a hall opening on two walls faces the corner between them and its yaw names no wall at all.
+
+**A room's building is a house, in the shape a dressed house takes.** `House` is a list of wings, each two
+opposite corners of the first and last cells it covers — the `AuthoredWing` a dressed house is drawn in, with the
+same `WingSpec` for its storeys, roof and ridge — and a style it may state of its own (§9). The **first wing is
+the room**: the frame is resolved from it, so the pad, the chests and the monuments are laid inside it exactly as
+in a room of one wing. The wings after it are building joined to the room, stamped with it as one plan
+(`RoomHouses.Of`, then `HouseStamper` over every wing) and standing on a foundation of their own. A joined wing is
+held to the room's ground and to the joint model: one reaching outside the region (`WX12`), or meeting the rest at
+a joint a building cannot be made at (the `HJ` ids, `docs/world-export/decoration.md` §8), leaves the room standing
+alone, and the build says so as a complaint naming the room. A room stating no house takes `WX1`'s default, one
+wing. A plan placement's `footprint` compiles to a house of one wing over it, and the sketch draws each wing as a
+`building` shape — `{id}-building` for the room, `{id}-building-2` on for the rest — where a drag of any one moves
+the whole house (`wing` on `PATCH …/intent/pieces/{id}`). An intent stating a room's `footprint` is refused by name.
 
 Two authoring facts frame the rules. The plan format is generic over scale: `PlanGlobals.Cell` is
 any blocks-per-cell value (default 5), so a room piece has no fixed block size and every minimum
@@ -290,8 +303,8 @@ the preview both call, so the stamped volume, the emitted region and the drawn b
    (with the legacy default for piece-less markers) and `PlanStructurePreview` consumes the same
    derivation — the preview cannot lie. The floor is the highest surface over the footprint
    (`WorldBuilder.FrameFloor`), which is its own mirror, so orbit images rest level.
-2. **The shell template** — `CubeStamper` stamps the frame's footprint: floor + perimeter walls +
-   roof, each a course stack its `RoomStyle` supplies (§7), the roof hole proportional with a cap
+2. **The shell template** — `HouseStamper` stamps the room's house over the frame, every wing of it where it
+   has more than one (`RoomHouses.Of`): floor + perimeter walls + roof, each a course stack its style supplies (§7), the roof hole proportional with a cap
    (`RoofHoleSpan` — the 8-wide shell keeps its 4×4 hole), then the pad and the doors stamped over
    them. `PadStamp.Lay` writes the pad: one square of the block the caller names — the team's wool
    for a spawn, the objective's for a wool room — and it answers the point that square resolves to
@@ -1202,11 +1215,11 @@ change every one of them.
 ## 9. What a map binds
 
 A map binds **two** styles, one per kind: the shell every wool cage is stamped with, and the shell every spawn
-cube is. They may be the same style; nothing else is offered. There is no per-room override, and the reason is
-§1's: a room is fanned across the symmetry orbit, so one team's cage and the other's are the same building seen
-from the other side. A shell that differed between them would be a sightline one team has and the other does
-not — a fairness break of exactly the kind the orbit exists to prevent, and one an author would have no way to
-see while choosing it.
+cube is. They may be the same style. **A room's house may state a style of its own over its kind's**
+(`RoomHouse.Style`, a snapshot in the same shape): absent wears the map's, a style wears that one, and null asks
+for open ground. The orbit's fairness holds per room: a room is stored once and fanned across the symmetry orbit,
+so one team's cage and the other's are the same house seen from the other side, wearing the one style the room
+states. Two different rooms may differ, and do so for every team alike.
 
 The binding lives on the **sketch layout**, under a `roomStyles` key beside the geometry, because that is what
 the export reads: `WorldBuilder` is handed the layout JSON and nothing else about the map. It is a
@@ -1215,10 +1228,11 @@ that library row later cannot rebuild a shipped map's rooms. The `style_id` a ma
 which is the point: there is no reference to go stale, and the picker's "from *Slate cage*" selection is a
 note on the session rather than a fact about the map.
 
-`RoomStyleScope` is the read side, `TerrainThemeScope`'s sibling — with one shape difference that says the
-whole thing. A theme resolves **per cell**, because a theme is scoped to a footprint; a room style resolves
-**per map**, so `StylesOf` takes a layout and returns the pair. There is no `StyleAt`, and there is nothing for
-one to take.
+`RoomStyleScope` is the read side, `TerrainThemeScope`'s sibling. A theme resolves **per cell**, because a theme
+is scoped to a footprint; a room style resolves **per room**: `StylesOf` takes a layout and returns the map's
+pair, and `StyleOf` answers one room's — its house's own where it states one, else the pair's. A house style
+that does not read wears the map's, and the intent write refuses one before it is stored (`not a house`, `RQ1`,
+naming the field), with a house of no wing and a wing that is not two corners.
 
 An **absent or unreadable** snapshot falls back to the built-in shell for its kind, so a map that never opened
 the step exports the shipped rooms and a hand-edited layout that broke its snapshot loses its chosen shell

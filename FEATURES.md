@@ -9442,6 +9442,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   structure and a wool's colour, in one body the plan inspector and the sketch both show (`ObjectiveFields`),
   written through `PATCH …/intent/pieces/{id}/settings` one setting at a time; what a unit shares every image
   takes. (`Pgm/Authoring/PlayPieceSettings`, `Client/Components/Editor/ObjectiveFields`, `docs/tools/sketch.md`)
+- **A room's building is a house (`WE166`).** A spawn's and a wool's `house` is wings in the dressed house's
+  `AuthoredWing` shape and a style of its own over the map's `roomStyles`; the first wing is the room, the rest are
+  stamped onto it (`Export/RoomHouses`), refused onto the room alone with a complaint off its region or at a bad
+  joint. The sketch draws every wing and a drag of any moves the house (`wing`); a stated `footprint` is refused
+  by name. `M0081` carried every stored footprint, current and recorded, into a one-wing house.
+  (`Pgm/Authoring/MapIntent`, `Domain/Wings`, `docs/world-export/structures.md` §1, §9)
 - **A place holds one thread, and the list counts what is new (`TS186`).** A picked place's panel shows its
   thread under its fields over one text box, and a second `place` note on it is refused 409 `RQ5`; a place's row
   carries a speech bubble, filled with the count of messages new to the caller or an outline once read. `MapNoteDto.unread`

@@ -289,7 +289,7 @@ public sealed class PlanCompilerTests
                               && building.MaxX <= region.MaxX && building.MaxZ <= region.MaxZ).IsTrue();
         }
         var spawnBuilding = buildings.Single(b => b.Id == "spawn-red-building");
-        var spawnFootprint = intent.Spawns.Single(sp => sp.Team == "red").Footprint!.Value;
+        var spawnFootprint = intent.Spawns.Single(sp => sp.Team == "red").House!.Room!.Value;
         await Assert.That((spawnBuilding.MinX, spawnBuilding.MinZ, spawnBuilding.MaxX, spawnBuilding.MaxZ))
             .IsEqualTo(((int)spawnFootprint.MinX, (int)spawnFootprint.MinZ,
                         (int)spawnFootprint.MaxX, (int)spawnFootprint.MaxZ));

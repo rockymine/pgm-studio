@@ -269,7 +269,7 @@ public sealed class IntentPieceMoveEndpoint(
         var board = await BoardAsync(artifacts, map.Id, ct);
         var (moved, refused) = placed
             ? PlayPieceMove.Apply(intent, id, req.Part, new Rect(req.MinX!.Value, req.MinZ!.Value, req.MaxX!.Value,
-                                                                 req.MaxZ!.Value), req.Alone, board)
+                                                                 req.MaxZ!.Value), req.Alone, board, req.Wing)
             : PlayPieceMove.Turn(intent, id, req.Part, req.Turn!.Value, req.Alone, board);
 
         // 404 where the id names nothing, 400 where the move itself cannot be made: one names a

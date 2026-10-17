@@ -23,7 +23,7 @@ public sealed class PlayPieceMoveTests
                 Id = "spawn-red", Team = "red",
                 Point = new Pt(5, 12, 5),
                 Protection = [new Rect(0, 0, 10, 10)],
-                Footprint = new Rect(2, 2, 8, 8),
+                House = RoomHouse.Over(new Rect(2, 2, 8, 8)),
                 Iron = [new Pt(1, 12, 1)],
             },
         ],
@@ -34,7 +34,7 @@ public sealed class PlayPieceMoveTests
                 Id = "wool-red-blue", Owner = "red", Color = "blue",
                 Spawn = new Pt(25, 12, 5),
                 Protection = [new Rect(20, 0, 30, 10)],
-                Footprint = new Rect(22, 2, 28, 8),
+                House = RoomHouse.Over(new Rect(22, 2, 28, 8)),
                 Entries = [new Rect(20, 4, 20, 6)],
             },
         ],
@@ -52,12 +52,12 @@ public sealed class PlayPieceMoveTests
             new SpawnIntent
             {
                 Id = "spawn-red", Team = "red", Stamp = new StampId("spawn", "home", 0),
-                Point = new Pt(5, 12, 5), Protection = [new Rect(0, 0, 10, 10)], Footprint = new Rect(2, 2, 8, 8),
+                Point = new Pt(5, 12, 5), Protection = [new Rect(0, 0, 10, 10)], House = RoomHouse.Over(new Rect(2, 2, 8, 8)),
             },
             new SpawnIntent
             {
                 Id = "spawn-blue", Team = "blue", Stamp = new StampId("spawn", "home", 1),
-                Point = new Pt(95, 12, 5), Protection = [new Rect(90, 0, 100, 10)], Footprint = new Rect(92, 2, 98, 8),
+                Point = new Pt(95, 12, 5), Protection = [new Rect(90, 0, 100, 10)], House = RoomHouse.Over(new Rect(92, 2, 98, 8)),
             },
         ],
     };
@@ -76,7 +76,7 @@ public sealed class PlayPieceMoveTests
         // Everything on that ground travelled the same hundred and fifty blocks.
         await Assert.That(spawn.Point.X).IsEqualTo(105);
         await Assert.That(spawn.Point.Z).IsEqualTo(55);
-        await Assert.That(spawn.Footprint).IsEqualTo(new Rect(102, 52, 108, 58));
+        await Assert.That(spawn.House?.Room).IsEqualTo(new Rect(102, 52, 108, 58));
         await Assert.That(spawn.Iron.Single().X).IsEqualTo(101);
         await Assert.That(spawn.Iron.Single().Z).IsEqualTo(51);
     }
@@ -100,20 +100,36 @@ public sealed class PlayPieceMoveTests
         var wool = Wool(moved!);
         await Assert.That(wool.Protection.Single()).IsEqualTo(new Rect(20, 40, 30, 50));
         await Assert.That(wool.Spawn.Z).IsEqualTo(45);
-        await Assert.That(wool.Footprint).IsEqualTo(new Rect(22, 42, 28, 48));
+        await Assert.That(wool.House?.Room).IsEqualTo(new Rect(22, 42, 28, 48));
         await Assert.That(wool.Entries.Single()).IsEqualTo(new Rect(20, 44, 20, 46));
     }
 
     [Test]
-    public async Task Moving_a_building_moves_the_footprint_and_nothing_else()
+    public async Task Moving_a_building_moves_the_house_and_nothing_else()
     {
         var (moved, refused) = PlayPieceMove.Apply(Board(), "spawn-red", StructuralRoles.Building, new Rect(1, 1, 7, 7));
 
         await Assert.That(refused.Count).IsEqualTo(0);
         var spawn = Spawn(moved!);
-        await Assert.That(spawn.Footprint).IsEqualTo(new Rect(1, 1, 7, 7));
+        await Assert.That(spawn.House?.Room).IsEqualTo(new Rect(1, 1, 7, 7));
         await Assert.That(spawn.Protection.Single()).IsEqualTo(new Rect(0, 0, 10, 10));
         await Assert.That(spawn.Point.X).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task Dragging_a_joined_wing_moves_the_whole_house()
+    {
+        var board = Board();
+        var house = new RoomHouse { Wings = [.. RoomHouse.Over(new Rect(2, 2, 6, 8)).Wings, .. RoomHouse.Over(new Rect(6, 4, 9, 8)).Wings] };
+        board = board with { Spawns = [Spawn(board) with { House = house }] };
+
+        var (moved, refused) = PlayPieceMove.Apply(board, "spawn-red", StructuralRoles.Building, new Rect(5, 3, 8, 7), wing: 1);
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        await Assert.That(Spawn(moved!).House!.Rects()).IsEquivalentTo(new[] { new Rect(1, 1, 5, 7), new Rect(5, 3, 8, 7) })
+            .Because("both wings shift by the one wing's move");
+        await Assert.That(PlayPieceMove.Apply(board, "spawn-red", StructuralRoles.Building, new Rect(5, 3, 8, 7), wing: 2).Refused.Count)
+            .IsGreaterThan(0).Because("the house has no third wing");
     }
 
     [Test]
@@ -246,7 +262,7 @@ public sealed class PlayPieceMoveTests
         var blue = Spawn(moved!, 1);
         await Assert.That(blue.Protection.Single()).IsEqualTo(new Rect(85, 3, 95, 13));
         await Assert.That(blue.Point).IsEqualTo(new Pt(90, 12, 8));
-        await Assert.That(blue.Footprint).IsEqualTo(new Rect(87, 5, 93, 11));
+        await Assert.That(blue.House?.Room).IsEqualTo(new Rect(87, 5, 93, 11));
     }
 
     /// <summary>Under a half turn about <c>(50, 50)</c> the image's displacement is the authored one
@@ -260,7 +276,7 @@ public sealed class PlayPieceMoveTests
             Spawns =
             [
                 board.Spawns[0],
-                board.Spawns[1] with { Point = new Pt(95, 12, 95), Protection = [new Rect(90, 90, 100, 100)], Footprint = new Rect(92, 92, 98, 98) },
+                board.Spawns[1] with { Point = new Pt(95, 12, 95), Protection = [new Rect(90, 90, 100, 100)], House = RoomHouse.Over(new Rect(92, 92, 98, 98)) },
             ],
         };
         var (moved, refused) = PlayPieceMove.Apply(board, "spawn-blue", null, new Rect(88, 91, 98, 101));
@@ -275,7 +291,7 @@ public sealed class PlayPieceMoveTests
     public async Task A_building_carried_off_its_region_on_an_image_refuses_the_move()
     {
         var board = Mirrored();
-        board = board with { Spawns = [board.Spawns[0], board.Spawns[1] with { Footprint = new Rect(90, 2, 96, 8) }] };
+        board = board with { Spawns = [board.Spawns[0], board.Spawns[1] with { House = RoomHouse.Over(new Rect(90, 2, 96, 8)) }] };
 
         var (moved, refused) = PlayPieceMove.Apply(board, "spawn-red", StructuralRoles.Building, new Rect(4, 2, 10, 8));
 
@@ -306,7 +322,7 @@ public sealed class PlayPieceMoveTests
             new SpawnIntent
             {
                 Id = "spawn-red", Team = "red", Point = new Pt(2, 12, 3), Yaw = 180, Doors = ["-z"],
-                Protection = [new Rect(0, 0, 10, 6)], Footprint = new Rect(1, 1, 5, 5), Iron = [new Pt(9, 12, 5)],
+                Protection = [new Rect(0, 0, 10, 6)], House = RoomHouse.Over(new Rect(1, 1, 5, 5)), Iron = [new Pt(9, 12, 5)],
             },
         ],
     };
@@ -323,7 +339,7 @@ public sealed class PlayPieceMoveTests
         var spawn = Spawn(turned!);
         await Assert.That(spawn.Protection.Single()).IsEqualTo(new Rect(2, -2, 8, 8));
         await Assert.That((spawn.Point.X, spawn.Point.Z)).IsEqualTo((5.0, 0.0));
-        await Assert.That(spawn.Footprint).IsEqualTo(new Rect(3, -1, 7, 3));
+        await Assert.That(spawn.House?.Room).IsEqualTo(new Rect(3, -1, 7, 3));
         await Assert.That(spawn.Doors).IsEquivalentTo(new[] { "+x" });
         await Assert.That(spawn.Yaw).IsEqualTo(270);
     }
@@ -338,7 +354,7 @@ public sealed class PlayPieceMoveTests
         var (was, now) = (Spawn(board), Spawn(turned));
         await Assert.That(now.Protection.Single()).IsEqualTo(was.Protection.Single());
         await Assert.That(now.Point).IsEqualTo(was.Point);
-        await Assert.That(now.Footprint).IsEqualTo(was.Footprint);
+        await Assert.That(now.House?.Room).IsEqualTo(was.House?.Room);
         await Assert.That(now.Doors).IsEquivalentTo(was.Doors);
         await Assert.That(now.Yaw).IsEqualTo(was.Yaw);
     }
@@ -350,7 +366,7 @@ public sealed class PlayPieceMoveTests
     {
         var board = Turnable() with
         {
-            Spawns = [Turnable().Spawns[0] with { Protection = [new Rect(0, 0, 5, 2)], Footprint = null, Iron = [] }],
+            Spawns = [Turnable().Spawns[0] with { Protection = [new Rect(0, 0, 5, 2)], House = null, Iron = [] }],
         };
         var region = Spawn(PlayPieceMove.Turn(board, "spawn-red", null, 1).Intent!).Protection.Single();
 
@@ -390,7 +406,7 @@ public sealed class PlayPieceMoveTests
     {
         var board = Turnable() with
         {
-            Spawns = [Turnable().Spawns[0] with { Footprint = new Rect(1, 0, 9, 4) }],
+            Spawns = [Turnable().Spawns[0] with { House = RoomHouse.Over(new Rect(1, 0, 9, 4)) }],
         };
 
         var (turned, refused) = PlayPieceMove.Turn(board, "spawn-red", StructuralRoles.Building, 1);

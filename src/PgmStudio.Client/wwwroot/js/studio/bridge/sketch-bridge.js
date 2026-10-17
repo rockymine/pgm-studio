@@ -271,6 +271,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     }) : null);
   }
 
+  /** The piece a structural shape is part of, and which wing of its house a building shape is. */
+  function structuralTarget(piece) {
+    const building = piece.role === "building" ? /-building(?:-(\d+))?$/.exec(piece.id) : null;
+    return building ? { id: piece.id.slice(0, building.index), wing: building[1] ? Number(building[1]) - 1 : 0 }
+                    : { id: piece.id, wing: 0 };
+  }
+
   /**
    * The release of a drag on a plan piece. Where the rectangle *is* is the intent's answer, not the canvas's
    * — the sketch draws these out of it — so the move is asked rather than told: the intent write goes first,
@@ -278,20 +285,20 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
    * on it, and every mirror image of the piece moves with it; both are the intent's rule and happen on the
    * far side, so nothing here has to know them.
    *
-   * A region's shape id is its piece's id, and a building's is that id with `-building` after it. The
+   * A region's shape id is its piece's id, and a building's is that id with `-building` after it, then `-2`
+   * on for every wing past the house's first; the move names which wing was dragged and moves the house. The
    * rectangle is not part of the sketch document — the studio draws the rooms in from the intent — so the
    * move dirties nothing here.
    */
   async function moveStructural(piece, putBack) {
     if (!slug) { canvas.restoreStructural(putBack); return; }
-    const building = piece.role === "building";
-    const id = building ? piece.id.replace(/-building$/, "") : piece.id;
+    const { id, wing } = structuralTarget(piece);
     try {
       const res = await fetch(
         `/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(id)}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ part: piece.piece ? undefined : piece.role, minX: piece.min_x, minZ: piece.min_z,
-                                 maxX: piece.max_x, maxZ: piece.max_z }),
+                                 maxX: piece.max_x, maxZ: piece.max_z, wing: wing || undefined }),
         });
       if (!res.ok) {
         canvas.restoreStructural(putBack);
@@ -316,7 +323,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   async function turnStructural(id, quarters) {
     const piece = canvas.getStructural(id);
     if (!slug || !piece) return;
-    const target = piece.role === "building" ? piece.id.replace(/-building$/, "") : piece.id;
+    const target = structuralTarget(piece).id;
     try {
       const res = await fetch(
         `/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(target)}`, {

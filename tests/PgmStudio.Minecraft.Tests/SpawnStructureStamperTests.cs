@@ -20,6 +20,22 @@ public sealed class SpawnStructureStamperTests
     private static RoomFrame Baseline() => RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), new BlockRect(-4, -4, 4, 4), shellBound: true, 0, 0, [], [RoomEdge.NegZ], out _)!;
 
     [Test]
+    public async Task A_joined_wing_is_built_onto_the_room()
+    {
+        var frame = Baseline();
+        Wing[] wings = [new(frame.MinX, frame.MinZ, frame.MaxX - 1, frame.MaxZ - 1), new(frame.MaxX, -2, frame.MaxX + 3, 2)];
+        var alone = new VoxelWorld();
+        SpawnStructureStamper.Stamp(alone, new SpawnStructure { Frame = frame, FloorY = 64, TeamColor = 11 });
+        var joined = new VoxelWorld();
+        SpawnStructureStamper.Stamp(joined, new SpawnStructure { Frame = frame, FloorY = 64, TeamColor = 11, Wings = wings });
+
+        var farWall = (X: frame.MaxX + 3, Y: 65, Z: 0);
+        await Assert.That(alone.GetBlock(farWall.X, farWall.Y, farWall.Z).Item1).IsEqualTo(Blocks.Air);
+        await Assert.That(joined.GetBlock(farWall.X, farWall.Y, farWall.Z).Item1).IsNotEqualTo(Blocks.Air)
+            .Because("the joined wing's far wall stands");
+    }
+
+    [Test]
     public async Task One_wool_places_a_single_monument_at_a_door_wall_corner()
     {
         var w = new VoxelWorld();

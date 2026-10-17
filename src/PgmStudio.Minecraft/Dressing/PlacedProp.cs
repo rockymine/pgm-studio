@@ -348,21 +348,6 @@ public sealed record FloraProp : PlacedProp
     public FloraSpec Spec { get; init; } = new();
 }
 
-/// <summary>
-/// One wing as an author drew it: the two opposite corners of its rectangle, and everything it states about
-/// itself.
-///
-/// <para>The corners are <b>doubles in any order</b>, because that is what a drag produces — an author pulling
-/// up-left and one pulling down-right placed the same building — and they are floored and normalized on the
-/// way to a <see cref="Wing"/>. What the wing states is the very same <see cref="WingSpec"/> the model
-/// carries, rather than a second copy of its fields under the same names, so a wing cannot mean one thing in
-/// a document and another in the building raised from it.</para>
-/// </summary>
-/// <param name="Corners">Exactly two opposite <c>[x, z]</c> corners.</param>
-/// <param name="Spec">How tall, what roof, which way the ridge runs, and whether it projects. Every field
-/// optional: a wing that states nothing is a rectangle wearing the building's own everything, which is what
-/// every wing meant before there was anything else to say.</param>
-public sealed record AuthoredWing(IReadOnlyList<double[]> Corners, WingSpec Spec = default);
 
 /// <summary>The rule ids a placed building is refused by for its own shape, before the joint model
 /// (<see cref="WingJointRules"/>) is asked anything. Stable names, kept apart from any task-tracking id.</summary>

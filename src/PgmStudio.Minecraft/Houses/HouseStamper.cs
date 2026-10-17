@@ -88,10 +88,17 @@ public static class HouseStamper
     /// walking out, and a wool structure takes one per entry interface; neither is something a building can
     /// work out from its own proportions, so where a frame says, the frame wins. A
     /// <see cref="RoomFrame.Reflected"/> frame is laid out from the other hand, so a mirror image of a room is
-    /// stamped as the mirror of it.</summary>
-    public static void Stamp(VoxelWorld world, RoomFrame frame, int floorY, HouseStyle style, int color = -1)
-        => Stamp(world, frame.MinX, frame.MinZ, frame.Width, frame.Depth, floorY, style, color, frame.Doors,
-                 frame.Reflected);
+    /// stamped as the mirror of it. <paramref name="wings"/> is the room's house where it has more than the
+    /// frame: the frame's own wing first, then the wings joined to it.</summary>
+    public static void Stamp(VoxelWorld world, RoomFrame frame, int floorY, HouseStyle style, int color = -1,
+                             IReadOnlyList<Wing>? wings = null)
+    {
+        if (wings is { Count: > 0 })
+            Stamp(world, new BuildingPlan(wings), floorY, style, color, frame.Doors, frame.Reflected);
+        else
+            Stamp(world, frame.MinX, frame.MinZ, frame.Width, frame.Depth, floorY, style, color, frame.Doors,
+                  frame.Reflected);
+    }
 
     /// <summary>Stamp a house whose walls occupy <paramref name="width"/> x <paramref name="depth"/> blocks
     /// with their south-west corner at <paramref name="minX"/>/<paramref name="minZ"/>, standing on

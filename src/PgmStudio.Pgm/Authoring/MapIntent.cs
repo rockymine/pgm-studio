@@ -450,7 +450,7 @@ public sealed record TeamDef
 }
 
 /// <summary>One team's spawn: where players materialise (<see cref="Point"/>), the region that ground is
-/// (<see cref="Protection"/>) and the building raised on it (<see cref="Footprint"/>). The kit is the fixed
+/// (<see cref="Protection"/>) and the house raised on it (<see cref="House"/>). The kit is the fixed
 /// Standard preset (not author-selectable yet — see <c>TeamsGenerator</c>), so it isn't part of the intent.</summary>
 public sealed record SpawnIntent
 {
@@ -498,10 +498,10 @@ public sealed record SpawnIntent
     /// leaves the room a door on the wall its yaw leans into.</summary>
     public List<string> Doors { get; init; } = new();
 
-    /// <summary>The building raised on the region — the footprint the shell is stamped on, which the plan
-    /// states and the author resizes. Null leaves it to the default: the region inset by a block on every
-    /// side and by up to the door gap in front of each door (WX1).</summary>
-    public Rect? Footprint { get; init; }
+    /// <summary>The house raised on the region, which the plan states and the author reshapes. Null leaves
+    /// it to the default: one wing, the region inset by a block on every side and by up to the door gap in
+    /// front of each door (WX1).</summary>
+    public RoomHouse? House { get; init; }
 
     /// <summary>Iron markers on the spawn's ground (fanned world points). Each resolves to a renewable iron
     /// cube standing clear of the room shell in the ring around it (WX8), or to an unplaceable marker that
@@ -564,16 +564,62 @@ public sealed record WoolIntent
     /// owner.</summary>
     public List<MonumentIntent> Monuments { get; init; } = new();
 
-    /// <summary>The cage raised on the region — the footprint the shell is stamped on, which the plan states
-    /// and the author resizes. Null leaves it to the default: the region inset by a block on every side
-    /// (WX1). A wool room names no door, so no side of it is opened wider than the rest.</summary>
-    public Rect? Footprint { get; init; }
+    /// <summary>The house raised on the region, which the plan states and the author reshapes. Null leaves
+    /// it to the default: one wing, the region inset by a block on every side (WX1). A wool room names no
+    /// door, so no side of it is opened wider than the rest.</summary>
+    public RoomHouse? House { get; init; }
 
     /// <summary>The room's entry interfaces (WX6), as degenerate rects on the region's boundary (zero
     /// thickness across the seam), already fanned: every terrain↔room land seam plus every abutting
     /// build-zone edge. The exporter cuts the cage doors and lays the entrance redstone on exactly these.
     /// Empty where the plan derived none, and a cage with no entry keeps a door per wall.</summary>
     public List<Rect> Entries { get; init; } = new();
+}
+
+/// <summary>
+/// A room's building, in the shape a dressed house takes: its wings, absolute, and the style it wears. The first
+/// wing is the room — its pad, its chests and its monuments are laid inside it — and the rest are building
+/// joined to it. A house stating no style wears the map's style for its kind (<c>roomStyles</c>).
+/// </summary>
+public sealed record RoomHouse
+{
+    /// <summary>The wings, the room first; each two opposite corners of the cells it covers, inclusive.</summary>
+    public List<AuthoredWing> Wings { get; init; } = [];
+
+    /// <summary>The house style it is stamped in, as a style document; absent wears the map's.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? Style { get; init; }
+
+    /// <summary>The house of one wing covering <paramref name="room"/>, max-exclusive.</summary>
+    public static RoomHouse Over(Rect room) => new() { Wings = [Wing(room)] };
+
+    /// <summary>The cells the first wing covers, max-exclusive — the room; null for a house with no wing.</summary>
+    [JsonIgnore]
+    public Rect? Room => Wings.Count == 0 ? null : RectOf(Wings[0]);
+
+    /// <summary>The rectangle round every wing, max-exclusive; null for a house with no wing.</summary>
+    [JsonIgnore]
+    public Rect? Bounds => Wings.Count == 0 ? null : Wings.Select(RectOf).Aggregate((all, wing) => new Rect(
+        Math.Min(all.MinX, wing.MinX), Math.Min(all.MinZ, wing.MinZ), Math.Max(all.MaxX, wing.MaxX), Math.Max(all.MaxZ, wing.MaxZ)));
+
+    /// <summary>The cells each wing covers, max-exclusive, the room first.</summary>
+    public IEnumerable<Rect> Rects() => Wings.Select(RectOf);
+
+    /// <summary>The same house with every wing's cells mapped by <paramref name="map"/>, each wing keeping what it
+    /// states about itself.</summary>
+    public RoomHouse Mapped(Func<Rect, Rect> map) =>
+        this with { Wings = [.. Wings.Select(wing => Wing(map(RectOf(wing))) with { Spec = wing.Spec })] };
+
+    /// <summary>The cells a wing covers, max-exclusive; its corners are floored and inclusive.</summary>
+    public static Rect RectOf(AuthoredWing wing)
+    {
+        double x1 = wing.Corners[0][0], z1 = wing.Corners[0][1], x2 = wing.Corners[1][0], z2 = wing.Corners[1][1];
+        return new Rect(Math.Floor(Math.Min(x1, x2)), Math.Floor(Math.Min(z1, z2)),
+            Math.Floor(Math.Max(x1, x2)) + 1, Math.Floor(Math.Max(z1, z2)) + 1);
+    }
+
+    private static AuthoredWing Wing(Rect cells) =>
+        new([[cells.MinX, cells.MinZ], [cells.MaxX - 1, cells.MaxZ - 1]]);
 }
 
 /// <summary>A capture point: the team that captures this wool, and where they place it.</summary>

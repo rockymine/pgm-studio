@@ -207,7 +207,7 @@ public static class ShopGenerator
 
     private static Rect? Room(SpawnIntent spawn)
     {
-        if (spawn.Footprint is { } footprint) return Inset(footprint, 1);
+        if (spawn.House?.Room is { } footprint) return Inset(footprint, 1);
         if (spawn.Protection.Count == 0) return null;
         var bounds = new Rect(
             spawn.Protection.Min(rect => rect.MinX), spawn.Protection.Min(rect => rect.MinZ),

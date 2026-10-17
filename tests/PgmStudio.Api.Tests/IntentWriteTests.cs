@@ -154,6 +154,25 @@ public sealed class IntentWriteTests
         await Assert.That(await AuthorsOfAsync(client, slug)).IsEquivalentTo(new[] { "Haiku 4.5", "O'Brien" });
     }
 
+    /// <summary>A room's building is its house, so a room stating a <c>footprint</c> is refused by name rather
+    /// than stood in the default building, and a house the build cannot raise is refused naming its field.</summary>
+    [Test]
+    [Arguments("""{"spawns":[{"team":"red","footprint":{"minX":2,"minZ":2,"maxX":8,"maxZ":8}}]}""", "spawns[0].footprint")]
+    [Arguments("""{"spawns":[{"team":"red","house":{"wings":[]}}]}""", "spawns[0].house.wings")]
+    [Arguments("""{"wools":[{"owner":"red","house":{"wings":[{"corners":[[2,2]]}]}}]}""", "wools[0].house.wings[0]")]
+    public async Task A_room_house_the_build_cannot_raise_is_refused_naming_its_field(string body, string field)
+    {
+        var (client, slug) = await MapWithAnAuthorAsync();
+        using var _ = client;
+
+        var stored = await PutIntentAsync(client, $"/api/map/{slug}/intent", body);
+
+        await Assert.That((int)stored.StatusCode).IsEqualTo(400);
+        var finding = (await stored.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo(field);
+    }
+
     private static string WoolIntent(string monuments) => $$"""
         {"meta":{"name":"Dressed","authors":[],"contributors":[]},
          "gamemodes":["ctw"],

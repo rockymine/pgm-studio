@@ -36,7 +36,8 @@ public static class PlayPieceMove
     /// a room's building — stands at <paramref name="placed"/>, or the findings that stopped it and a null
     /// intent. Pure: the caller stores and projects.</summary>
     public static (MapIntent? Intent, Findings Refused) Apply(
-        MapIntent intent, string id, string? part, Rect placed, bool alone = false, SymmetryIntent? board = null)
+        MapIntent intent, string id, string? part, Rect placed, bool alone = false, SymmetryIntent? board = null,
+        int wing = 0)
     {
         var building = part == StructuralRoles.Building;
         var symmetry = intent.Symmetry ?? board;
@@ -47,19 +48,19 @@ public static class PlayPieceMove
         {
             if (Unpartable(part, StructuralRoles.Spawn) is { } unpartable) return (null, unpartable);
             var spawn = intent.Spawns[spawnAt];
-            var stopped = Stopped(spawn.Protection, spawn.Footprint, building, placed);
+            var stopped = Stopped(spawn.Protection, WingOf(spawn.House, wing), building, placed);
             if (stopped is not null) return (null, stopped);
-            var (dx, dz) = Shift(building ? spawn.Footprint!.Value : spawn.Protection[0], placed);
+            var (dx, dz) = Shift(building ? WingOf(spawn.House, wing)!.Value : spawn.Protection[0], placed);
             var spawns = Orbit(intent.Spawns, spawnAt, entry => entry.Stamp, mode, alone, dx, dz,
-                (entry, x, z) => building ? entry with { Footprint = Slide(entry.Footprint, x, z) } : entry with
+                (entry, x, z) => building ? entry with { House = Slide(entry.House, x, z) } : entry with
                 {
                     Protection = [.. entry.Protection.Select(r => Slide(r, x, z))],
                     Point = Slide(entry.Point, x, z),
-                    Footprint = Slide(entry.Footprint, x, z),
+                    House = Slide(entry.House, x, z),
                     Iron = [.. entry.Iron.Select(pt => Slide(pt, x, z))],
                 });
             return Checked(intent with { Spawns = spawns }, Carried(intent.Spawns, spawns)
-                .Select(entry => (entry.Id, entry.Protection, entry.Footprint)));
+                .Select(entry => (entry.Id, entry.Protection, entry.House?.Bounds)));
         }
 
         var wools = intent.Wools ?? [];
@@ -67,19 +68,19 @@ public static class PlayPieceMove
         {
             if (Unpartable(part, StructuralRoles.WoolRoom) is { } unpartable) return (null, unpartable);
             var wool = wools[woolAt];
-            var stopped = Stopped(wool.Protection, wool.Footprint, building, placed);
+            var stopped = Stopped(wool.Protection, WingOf(wool.House, wing), building, placed);
             if (stopped is not null) return (null, stopped);
-            var (dx, dz) = Shift(building ? wool.Footprint!.Value : wool.Protection[0], placed);
+            var (dx, dz) = Shift(building ? WingOf(wool.House, wing)!.Value : wool.Protection[0], placed);
             var moved = Orbit(wools, woolAt, entry => entry.Stamp, mode, alone, dx, dz,
-                (entry, x, z) => building ? entry with { Footprint = Slide(entry.Footprint, x, z) } : entry with
+                (entry, x, z) => building ? entry with { House = Slide(entry.House, x, z) } : entry with
                 {
                     Protection = [.. entry.Protection.Select(r => Slide(r, x, z))],
                     Spawn = Slide(entry.Spawn, x, z),
-                    Footprint = Slide(entry.Footprint, x, z),
+                    House = Slide(entry.House, x, z),
                     Entries = [.. entry.Entries.Select(r => Slide(r, x, z))],
                 });
             return Checked(intent with { Wools = moved }, Carried(wools, moved)
-                .Select(entry => (entry.Id, entry.Protection, entry.Footprint)));
+                .Select(entry => (entry.Id, entry.Protection, entry.House?.Bounds)));
         }
 
         var destroyables = intent.Destroyables ?? [];
@@ -184,7 +185,7 @@ public static class PlayPieceMove
             var spawns = Orbit(intent.Spawns, spawnAt, entry => entry.Stamp, mode, alone, dx, dz,
                 (entry, x, z) => entry with { Point = Slide(entry.Point, x, z) });
             return Seated(intent with { Spawns = spawns }, Carried(intent.Spawns, spawns)
-                .Select(entry => (entry.Id, entry.Point, entry.Protection, entry.Footprint)));
+                .Select(entry => (entry.Id, entry.Point, entry.Protection, entry.House?.Room)));
         }
 
         var wools = intent.Wools ?? [];
@@ -196,7 +197,7 @@ public static class PlayPieceMove
             var moved = Orbit(wools, woolAt, entry => entry.Stamp, mode, alone, dx, dz,
                 (entry, x, z) => entry with { Spawn = Slide(entry.Spawn, x, z) });
             return Seated(intent with { Wools = moved }, Carried(wools, moved)
-                .Select(entry => (entry.Id, entry.Spawn, entry.Protection, entry.Footprint)));
+                .Select(entry => (entry.Id, entry.Spawn, entry.Protection, entry.House?.Room)));
         }
         return null;
     }
@@ -229,22 +230,22 @@ public static class PlayPieceMove
         if (intent.Spawns.FindIndex(spawn => spawn.Id == id) is var spawnAt and >= 0)
         {
             if ((Unpartable(part, StructuralRoles.Spawn) ?? Unturnable(intent.Spawns[spawnAt].Protection,
-                    intent.Spawns[spawnAt].Footprint, building)) is { } stopped) return (null, stopped);
+                    intent.Spawns[spawnAt].House?.Bounds, building)) is { } stopped) return (null, stopped);
             var spawns = Images(intent.Spawns, spawnAt, entry => entry.Stamp, mode, alone,
                 (entry, step) => TurnSpawn(entry, building, Handed(quarters, mode, step)));
             return Checked(intent with { Spawns = spawns }, Carried(intent.Spawns, spawns)
-                .Select(entry => (entry.Id, entry.Protection, entry.Footprint)));
+                .Select(entry => (entry.Id, entry.Protection, entry.House?.Bounds)));
         }
 
         var wools = intent.Wools ?? [];
         if (wools.FindIndex(wool => wool.Id == id) is var woolAt and >= 0)
         {
             if ((Unpartable(part, StructuralRoles.WoolRoom) ?? Unturnable(wools[woolAt].Protection,
-                    wools[woolAt].Footprint, building)) is { } stopped) return (null, stopped);
+                    wools[woolAt].House?.Bounds, building)) is { } stopped) return (null, stopped);
             var turned = Images(wools, woolAt, entry => entry.Stamp, mode, alone,
                 (entry, step) => TurnWool(entry, building, Handed(quarters, mode, step)));
             return Checked(intent with { Wools = turned }, Carried(wools, turned)
-                .Select(entry => (entry.Id, entry.Protection, entry.Footprint)));
+                .Select(entry => (entry.Id, entry.Protection, entry.House?.Bounds)));
         }
 
         if (intent.Build is { } build && build.Areas.FindIndex(area => area.Id == id) is var areaAt and >= 0)
@@ -393,13 +394,13 @@ public static class PlayPieceMove
 
     private static SpawnIntent TurnSpawn(SpawnIntent spawn, bool building, int quarters)
     {
-        if (building) return spawn with { Footprint = Pivot.Of(spawn.Footprint!.Value, quarters).Rect(spawn.Footprint!.Value) };
+        if (building) return spawn with { House = Turned(spawn.House!, quarters) };
         var pivot = Pivot.Of(spawn.Protection[0], quarters);
         return spawn with
         {
             Protection = [pivot.Rect(spawn.Protection[0])],
             Point = pivot.Point(spawn.Point),
-            Footprint = spawn.Footprint is { } house ? pivot.Rect(house) : null,
+            House = spawn.House?.Mapped(pivot.Rect),
             Iron = [.. spawn.Iron.Select(pivot.Point)],
             Doors = [.. spawn.Doors.Select(pivot.Door)],
             Yaw = ((spawn.Yaw + 90 * pivot.Quarters) % 360 + 360) % 360,
@@ -408,13 +409,13 @@ public static class PlayPieceMove
 
     private static WoolIntent TurnWool(WoolIntent wool, bool building, int quarters)
     {
-        if (building) return wool with { Footprint = Pivot.Of(wool.Footprint!.Value, quarters).Rect(wool.Footprint!.Value) };
+        if (building) return wool with { House = Turned(wool.House!, quarters) };
         var pivot = Pivot.Of(wool.Protection[0], quarters);
         return wool with
         {
             Protection = [pivot.Rect(wool.Protection[0])],
             Spawn = pivot.Point(wool.Spawn),
-            Footprint = wool.Footprint is { } house ? pivot.Rect(house) : null,
+            House = wool.House?.Mapped(pivot.Rect),
             Entries = [.. wool.Entries.Select(pivot.Rect)],
         };
     }
@@ -426,7 +427,7 @@ public static class PlayPieceMove
             return Findings.Of(new Finding(RequestRules.Unreadable,
                 $"the room's `protection` has {protection.Count} rectangles, not 1", Field: "protection"));
         if (building && footprint is null)
-            return Findings.Of(new Finding(RequestRules.Unreadable, "the room states no `footprint`", Field: "part"));
+            return Findings.Of(new Finding(RequestRules.Unreadable, "the room states no `house`", Field: "part"));
         return null;
     }
 
@@ -492,7 +493,7 @@ public static class PlayPieceMove
         if (!building) return SpanOf(protection[0]) != SpanOf(placed) ? Resized(protection[0], placed) : null;
 
         if (footprint is not { } standing)
-            return Findings.Of(new Finding(RequestRules.Unreadable, "the room states no `footprint`", Field: "part"));
+            return Findings.Of(new Finding(RequestRules.Unreadable, "the room states no `house`", Field: "part"));
         if (SpanOf(standing) != SpanOf(placed)) return Resized(standing, placed);
         return null;
     }
@@ -549,7 +550,15 @@ public static class PlayPieceMove
     private static Rect Slide(Rect r, double dx, double dz) =>
         new(r.MinX + dx, r.MinZ + dz, r.MaxX + dx, r.MaxZ + dz);
 
-    private static Rect? Slide(Rect? r, double dx, double dz) => r is { } rect ? Slide(rect, dx, dz) : null;
+    private static RoomHouse? Slide(RoomHouse? house, double dx, double dz) => house?.Mapped(rect => Slide(rect, dx, dz));
+
+    /// <summary>The cells of wing <paramref name="index"/> of a house, or null where it has none by that number.</summary>
+    private static Rect? WingOf(RoomHouse? house, int index) =>
+        house is not null && index >= 0 && index < house.Wings.Count ? RoomHouse.RectOf(house.Wings[index]) : null;
+
+    /// <summary>A house turned about the middle of the rectangle round its wings.</summary>
+    private static RoomHouse Turned(RoomHouse house, int quarters) =>
+        house.Mapped(Pivot.Of(house.Bounds!.Value, quarters).Rect);
 
     /// <summary>A point on the moved ground. Its Y is the nominal surface it was stated at and is left alone:
     /// what it stands on is measured by the world build against the terrain it laid.</summary>

@@ -208,7 +208,7 @@ public static class PlanCompiler
                     Protection = [new Rect(prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ)],
                     // The building on it, where the plan states one. It is fanned like the region is, so an
                     // orbit image raises the same house on its own ground.
-                    Footprint = FanFootprint(d, piece.Value.Rect, s.Footprint, k),
+                    House = FanFootprint(d, piece.Value.Rect, s.Footprint, k) is { } spawnHouse ? RoomHouse.Over(spawnHouse) : null,
                     // Iron on a spawn-role piece rides the spawn — it resolves beside the room (WX8/WX9);
                     // iron elsewhere keeps the legacy StructureIntent path below.
                     Iron = piece.Value.Role == PlanRoles.Spawn
@@ -256,7 +256,7 @@ public static class PlanCompiler
                     Color = color,
                     // The whole wool-room piece: the room region, and the ground the cage is framed on.
                     Protection = [new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ)],
-                    Footprint = FanFootprint(d, piece.Value.Rect, w.Footprint, k),
+                    House = FanFootprint(d, piece.Value.Rect, w.Footprint, k) is { } woolHouse ? RoomHouse.Over(woolHouse) : null,
                     Entries = isRoomPiece
                         ? [.. WoolEntrySegments(d, w.Piece).Select(seg =>
                             {

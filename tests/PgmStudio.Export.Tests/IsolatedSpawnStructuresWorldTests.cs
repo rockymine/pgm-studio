@@ -1,6 +1,7 @@
 using System.Text.Json;
 using PgmStudio.Domain;
 using PgmStudio.Export;
+using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
@@ -36,7 +37,7 @@ public sealed class IsolatedSpawnStructuresWorldTests
 
     /// <summary>The first spawn-side renewable iron placement of the resolved intent (WX8).</summary>
     private static IronResolution SpawnIron(MapIntent resolved)
-        => resolved.Spawns.SelectMany(s => WorldBuilder.SpawnRoom(s, shellBound: true).Iron).First(i => i.Placeable);
+        => resolved.Spawns.SelectMany(s => WorldBuilder.SpawnRoom(s, HouseStyle.Spawn).Iron).First(i => i.Placeable);
 
     private static (VoxelWorld World, MapIntent Resolved, IReadOnlyDictionary<(int X, int Z), int> Surface) Build()
     {

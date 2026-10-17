@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Stamping;
@@ -129,10 +130,10 @@ public sealed class RoomPlinthPaintTests
         var framed = intent with
         {
             Wools = [.. intent.Wools!.Select((w, i) => i == 0
-                ? w with { Footprint = new Rect(23, 50, 28, 55) } : w)],
+                ? w with { House = RoomHouse.Over(new Rect(23, 50, 28, 55)) } : w)],
         };
         var built = WorldBuilder.Build(doc.ToJsonString(), framed);
-        var frame = WorldBuilder.WoolFrame(framed.Wools![0], shellBound: true);
+        var frame = WorldBuilder.WoolFrame(framed.Wools![0], HouseStyle.Wool);
         var floor = WorldBuilder.FrameFloor(frame, built.Surface);
 
         // A footprint this small carries no walls, so the plinth is the floor rather than something under it.

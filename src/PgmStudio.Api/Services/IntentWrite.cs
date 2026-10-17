@@ -2,6 +2,7 @@ using System.Text.Json;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
+using PgmStudio.Minecraft.Houses;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Editing;
 using PgmStudio.Vocabulary;
@@ -28,9 +29,11 @@ public static class IntentWrite
         MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features,
         PlayerLookup players, string slug, long mapId, string body, long? expected, CancellationToken ct)
     {
-        if (Unbindable(body) is { } unreadable) return new(new Refusal(400, "unreadable document", [unreadable]));
+        if ((Unbindable(body) ?? Footprinted(body)) is { } unreadable)
+            return new(new Refusal(400, "unreadable document", [unreadable]));
         var intent = Stated(body) ?? new MapIntent();
         if (Unnamable(intent) is { } named) return new(named);
+        if (Unbuildable(intent) is { } unbuildable) return new(unbuildable);
         if (PlayIds.Duplicates(intent).ToList() is { Count: > 0 } twice) return new(new Refusal(409, "id taken", twice));
         intent = PlayIds.Assign(intent);
 
@@ -146,6 +149,36 @@ public static class IntentWrite
         return refused.Count == 0 ? null : new Refusal(400, "not a name", refused);
     }
 
+    /// <summary>The refusal for a room's house the build cannot raise as stated, or null where every one can: a
+    /// house with no wing, a wing that is not two corners with an x and a z each, or a style of its own that
+    /// does not read or that its own checks refuse. Each finding names its field under
+    /// <paramref name="member"/>.</summary>
+    public static Refusal? Unbuildable(MapIntent intent, string member = "")
+    {
+        var prefix = member.Length == 0 ? "" : member + ".";
+        var rooms = intent.Spawns.Select((spawn, at) => (spawn.House, Field: $"{prefix}spawns[{at}].house"))
+            .Concat((intent.Wools ?? []).Select((wool, at) => (wool.House, Field: $"{prefix}wools[{at}].house")));
+        var refused = new List<Finding>();
+        foreach (var (house, field) in rooms)
+        {
+            if (house is null) continue;
+            if (house.Wings.Count == 0)
+                refused.Add(new Finding(RequestRules.Unreadable, $"`{field}.wings` holds no wing", Field: $"{field}.wings"));
+            for (var at = 0; at < house.Wings.Count; at++)
+                if (house.Wings[at].Corners is not { Count: 2 } corners || corners.Any(corner => corner.Length != 2))
+                    refused.Add(new Finding(RequestRules.Unreadable,
+                        $"wing {at} of `{field}` is not two corners with an x and a z each", Field: $"{field}.wings[{at}]"));
+            if (house.Style is not { ValueKind: JsonValueKind.Object } own) continue;
+            var node = System.Text.Json.Nodes.JsonNode.Parse(own.GetRawText());
+            HouseStyleJson.Upgrade(node);
+            if (HouseStyleJson.Unreadable(node, $"{field}.style") is { } unreadable)
+                refused.Add(new Finding(RequestRules.Unreadable, $"`{unreadable.Field}` {unreadable.Detail}", Field: unreadable.Field));
+            else refused.AddRange(HouseStyleValidation.Check(HouseStyleJson.Deserialize(own.GetRawText()))
+                .Under($"{field}.style").Refusals);
+        }
+        return refused.Count == 0 ? null : new Refusal(400, "not a house", refused);
+    }
+
     /// <summary>What a body states as an intent, or null where it states none or will not bind — the lenient
     /// read, for a caller only asking what the intent says. A body that will not bind is refused by
     /// <see cref="Unbindable"/> before anything is stored.</summary>
@@ -161,6 +194,26 @@ public static class IntentWrite
     /// beside other documents), or null where it binds.</summary>
     public static Finding? Unbindable(string json, string member = "") =>
         DocumentBinding.Unbindable(member, json, stated => Read(stated));
+
+    /// <summary>The <c>RQ1</c> finding for a room stating a <c>footprint</c>, which a room's building is not
+    /// stated as — it is the room's <c>house</c> — or null where none does. Refused by name, because the binder
+    /// passes over a member it does not know and the room would stand in the default building.</summary>
+    public static Finding? Footprinted(string json, string member = "")
+    {
+        var prefix = member.Length == 0 ? "" : member + ".";
+        System.Text.Json.Nodes.JsonNode? root;
+        try { root = System.Text.Json.Nodes.JsonNode.Parse(json); }
+        catch (JsonException) { return null; }
+        foreach (var list in new[] { "spawns", "wools" })
+            if (root?[list] is System.Text.Json.Nodes.JsonArray rooms)
+                for (var at = 0; at < rooms.Count; at++)
+                    if (rooms[at] is System.Text.Json.Nodes.JsonObject room && room.ContainsKey("footprint"))
+                        return new Finding(RequestRules.Unreadable,
+                            $"`{prefix}{list}[{at}].footprint` is not a field: a room's building is its `house`, "
+                            + "`{\"wings\": [{\"corners\": [[minX, minZ], [maxX, maxZ]]}]}` over its first and last cells",
+                            Field: $"{prefix}{list}[{at}].footprint");
+        return null;
+    }
 
     private static MapIntent? Read(string json) => JsonSerializer.Deserialize<MapIntent>(json, MapArtifactStore.Json);
 

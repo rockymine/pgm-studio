@@ -46,6 +46,10 @@ public sealed record WoolStructure
     public HouseStyle? Shell { get; init; } = HouseStyle.Wool;
 
     public bool Chests { get; init; } = true;
+
+    /// <summary>The room's house where it has more than the frame: the frame's own wing first, then the wings
+    /// joined to it, max-inclusive. Empty stamps the frame alone.</summary>
+    public IReadOnlyList<Wing> Wings { get; init; } = [];
 }
 
 /// <summary>Stamps a <see cref="WoolStructure"/> (docs/world-export/sketch-world-export.md §2).</summary>
@@ -55,12 +59,14 @@ public static class WoolStructureStamper
     {
         var frame = room.Frame;
         StructureStamper.StampFoundation(world, room.Ground, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ);
+        foreach (var wing in room.Wings.Skip(1))
+            StructureStamper.StampFoundation(world, room.Ground, wing.MinX, wing.MinZ, wing.MaxX + 1, wing.MaxZ + 1);
 
         // The frame says whether a building stands here, not the binding: a footprint that cannot carry walls
         // resolves with none (WX2), and stamping a style onto it would raise a house the room has no floor
         // for. The wool, the chests and the foundation are what a room is and go down either way.
         if (room.Shell is { } shell && frame.Wall > 0)
-            HouseStamper.Stamp(world, frame, room.FloorY, shell, BlockColors.BlockDamage(room.WoolSlug));
+            HouseStamper.Stamp(world, frame, room.FloorY, shell, BlockColors.BlockDamage(room.WoolSlug), room.Wings);
 
         // After the shell, so the pad is the floor the room's point sits on rather than whatever a style laid.
         var placed = PadStamp.Lay(world, frame.Pad, room.FloorY, Blocks.Wool,

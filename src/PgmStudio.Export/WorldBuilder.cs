@@ -171,6 +171,10 @@ public static class WorldBuilder
         // painter reads, which is the whole of what makes a room's ground the board's ground.
         var plinths = new Dictionary<(int X, int Z), int>();
 
+        // What the build could not raise as authored, in build order: the room loops below are the first to
+        // contribute, since a region with no house stated IS the building it raises.
+        var built = new List<Finding>();
+
         // ── Wool rooms (framed by their plan piece + entries, or the marker-anchored default) ────────
         var resolvedWools = new List<WoolIntent>(wools.Count);
         var woolFrame = new RoomFrame[wools.Count];
@@ -179,16 +183,25 @@ public static class WorldBuilder
         {
             var w = wools[i];
             var slug = ColorSlug(w, teams);
-            var frame = WoolFrame(w, woolStyle is not null);
+            var shell = RoomStyleScope.StyleOf(w.House, woolStyle, HouseStyle.Wool);
+            var frame = WoolFrame(w, woolStyle);
             // The storey this room was stated for, or the top one where it named none.
             var woolGround = terrain.SurfaceFor(w.Layer);
-            var fy = FrameFloor(frame, woolGround, woolStyle);
+            var fy = FrameFloor(frame, woolGround, shell);
+            var (wings, unjoined) = RoomHouses.Of(w.House, frame, w.Protection, w.Id);
+            built.AddRange(unjoined);
             WoolStructureStamper.Stamp(world, new WoolStructure
             {
-                Frame = frame, FloorY = fy, WoolSlug = slug, Ground = woolGround, Shell = woolStyle,
+                Frame = frame, FloorY = fy, WoolSlug = slug, Ground = woolGround, Shell = shell, Wings = wings,
             });
             Raise(plinths, StructureStamper.FoundationTops(
                 woolGround, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ));
+            foreach (var wing in wings.Skip(1))
+            {
+                Raise(plinths, StructureStamper.FoundationTops(woolGround, wing.MinX, wing.MinZ, wing.MaxX + 1, wing.MaxZ + 1));
+                provenance.Claim(StructureStamper.FoundationCells(wing.MinX, wing.MinZ, wing.MaxX + 1, wing.MaxZ + 1),
+                                 ProvenancePass.Structure, w.Stamp);
+            }
             // The cells the shell actually filled, walked from the stamper's own function. A RoomFrame's
             // bounds are grid lines — its Width is MaxX − MinX — so carrying them into a max-inclusive
             // provenance rect claims a row and a column of ground the room never touched, on the +x/+z side
@@ -205,9 +218,6 @@ public static class WorldBuilder
             resolvedWools.Add(w);   // monuments filled in below, once spawn cubes place them
         }
 
-        // What the build could not raise as authored, in build order. Declared here because the room loops
-        // below are the first to contribute: a region with no footprint stated IS the building it raises.
-        var built = new List<Finding>();
 
         // ── Spawn rooms + monuments; capture each monument's world air-cell coord ────────────────────
         // monLoc[(woolIndex, team)] = the air cell where that team places that wool.
@@ -216,21 +226,30 @@ public static class WorldBuilder
         for (var spawnIndex = 0; spawnIndex < intent.Spawns.Count; spawnIndex++)
         {
             var s = intent.Spawns[spawnIndex];
-            var room = SpawnRoom(s, spawnStyle is not null);
+            var shell = RoomStyleScope.StyleOf(s.House, spawnStyle, HouseStyle.Spawn);
+            var room = SpawnRoom(s, spawnStyle);
             var frame = room.Frame;
             if (OversizedRoom("spawn", s.Team, frame) is { } field) built.Add(field);
             var spawnGround = terrain.SurfaceFor(s.Layer);
-            var fy = FrameFloor(frame, spawnGround, spawnStyle);
+            var fy = FrameFloor(frame, spawnGround, shell);
+            var (wings, unjoined) = RoomHouses.Of(s.House, frame, s.Protection, s.Id);
+            built.AddRange(unjoined);
 
             var captured = wools.Select((w, i) => (w, i))
                 .Where(x => Capturers(x.w, teams).Contains(s.Team)).ToList();
             var placed = SpawnStructureStamper.Stamp(world, new SpawnStructure
             {
                 Frame = frame, FloorY = fy, TeamColor = WoolDataForTeam(s.Team, teams),
-                CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = spawnStyle,
+                CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = shell, Wings = wings,
             }).Monuments;
             Raise(plinths, StructureStamper.FoundationTops(
                 spawnGround, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ));
+            foreach (var wing in wings.Skip(1))
+            {
+                Raise(plinths, StructureStamper.FoundationTops(spawnGround, wing.MinX, wing.MinZ, wing.MaxX + 1, wing.MaxZ + 1));
+                provenance.Claim(StructureStamper.FoundationCells(wing.MinX, wing.MinZ, wing.MaxX + 1, wing.MaxZ + 1),
+                                 ProvenancePass.Structure, s.Stamp);
+            }
             provenance.Claim(StructureStamper.FoundationCells(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ),
                              ProvenancePass.Structure, s.Stamp);
 
@@ -954,7 +973,7 @@ public static class WorldBuilder
     {
         var footprints = new List<(int MinX, int MinZ, int MaxX, int MaxZ)>();
         foreach (var s in intent.Spawns)
-            foreach (var iron in SpawnRoom(s, shells.SpawnBound).Iron)
+            foreach (var iron in SpawnRoom(s, shells.Spawn).Iron)
                 if (iron.Placeable)
                     footprints.Add((iron.MinX, iron.MinZ, iron.MinX + iron.Size - 1, iron.MinZ + iron.Size - 1));
         if (intent.Structures is { } structures)
@@ -1037,8 +1056,9 @@ public static class WorldBuilder
     /// stamped shell cannot disagree. A wool with no region at all — a partial intent — falls back to the
     /// marker-anchored default. A reflected wool (<see cref="WoolIntent.Reflected"/>) resolves a reflected
     /// frame, so its cage is laid out as the mirror of the one it is an image of.</summary>
-    public static RoomFrame WoolFrame(WoolIntent w, bool shellBound) =>
-        UnreflectedWoolFrame(w, shellBound) with { Reflected = w.Reflected };
+    public static RoomFrame WoolFrame(WoolIntent w, HouseStyle? mapStyle) =>
+        UnreflectedWoolFrame(w, RoomStyleScope.StyleOf(w.House, mapStyle, HouseStyle.Wool) is not null)
+            with { Reflected = w.Reflected };
 
     private static RoomFrame UnreflectedWoolFrame(WoolIntent w, bool shellBound)
     {
@@ -1046,7 +1066,7 @@ public static class WorldBuilder
         {
             var (markerX, markerZ) = PositionSnap.SnapHalfXZ(w.Spawn.X, w.Spawn.Z);
             var frame = RoomFrames.Resolve(
-                ground, StatedFootprint(w.Footprint), shellBound, markerX, markerZ,
+                ground, StatedFootprint(w.House?.Room), shellBound, markerX, markerZ,
                 [.. w.Entries.Select(e => (e.MinX, e.MinZ, e.MaxX, e.MaxZ))], [], out _);
             if (frame is not null) return frame;
         }
@@ -1058,9 +1078,9 @@ public static class WorldBuilder
     /// the shell in the ring around it, and an unfittable marker comes back unplaceable (WX8/WX9) — nothing
     /// stamps for it. A reflected spawn (<see cref="SpawnIntent.Reflected"/>) resolves a reflected frame, so
     /// its hall and its monument seats are laid out as the mirror of the ones it is an image of.</remarks>
-    public static ResolvedRoom SpawnRoom(SpawnIntent s, bool shellBound)
+    public static ResolvedRoom SpawnRoom(SpawnIntent s, HouseStyle? mapStyle)
     {
-        var room = UnreflectedSpawnRoom(s, shellBound);
+        var room = UnreflectedSpawnRoom(s, RoomStyleScope.StyleOf(s.House, mapStyle, HouseStyle.Spawn) is not null);
         return room with { Frame = room.Frame with { Reflected = s.Reflected } };
     }
 
@@ -1071,7 +1091,7 @@ public static class WorldBuilder
         {
             var (markerX, markerZ) = PositionSnap.SnapHalfXZ(s.Point.X, s.Point.Z);
             var room = RoomFrames.ResolveRoom(
-                ground, StatedFootprint(s.Footprint), shellBound, markerX, markerZ, [], doorEdges,
+                ground, StatedFootprint(s.House?.Room), shellBound, markerX, markerZ, [], doorEdges,
                 [.. s.Iron.Select(iron => PositionSnap.SnapHalfXZ(iron.X, iron.Z))], out _);
             if (room is not null) return room;
         }
@@ -1100,10 +1120,10 @@ public static class WorldBuilder
     private static IEnumerable<Finding> BuiltInShells(
         IReadOnlyList<WoolIntent> wools, HouseStyle? woolStyle, IReadOnlyList<SpawnIntent> spawns, HouseStyle? spawnStyle)
     {
-        if (wools.Count > 0 && IsShipped(woolStyle, HouseStyle.Wool))
-            yield return Shipped("wool", wools.Count, [.. wools.Select(w => w.Stamp.Unit)]);
-        if (spawns.Count > 0 && IsShipped(spawnStyle, HouseStyle.Spawn))
-            yield return Shipped("spawn", spawns.Count, [.. spawns.Select(s => s.Stamp.Unit)]);
+        var shippedWools = wools.Where(w => IsShipped(RoomStyleScope.StyleOf(w.House, woolStyle, HouseStyle.Wool), HouseStyle.Wool)).ToList();
+        if (shippedWools.Count > 0) yield return Shipped("wool", shippedWools.Count, [.. shippedWools.Select(w => w.Stamp.Unit)]);
+        var shippedSpawns = spawns.Where(s => IsShipped(RoomStyleScope.StyleOf(s.House, spawnStyle, HouseStyle.Spawn), HouseStyle.Spawn)).ToList();
+        if (shippedSpawns.Count > 0) yield return Shipped("spawn", shippedSpawns.Count, [.. shippedSpawns.Select(s => s.Stamp.Unit)]);
 
         static bool IsShipped(HouseStyle? style, HouseStyle shipped) =>
             style is not null
