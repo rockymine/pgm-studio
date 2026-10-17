@@ -38,6 +38,7 @@ import { DressingController } from "../controllers/dressing-controller.js";
 import { DressingDoc } from "../dressing/dressing-doc.js";
 import { paintDressing } from "../render/dressing-render.js";
 import { ReliefController } from "../controllers/relief-controller.js";
+import { RoomHouseController } from "../controllers/room-house-controller.js";
 import { ReliefDoc } from "../relief/relief-doc.js";
 import { paintReliefMarks } from "../render/relief-render.js";
 import { paintDiff } from "../render/diff-render.js";
@@ -124,6 +125,7 @@ export class SketchCanvas extends CanvasBase {
   // solved over a group's fused footprint rather than placed loose on the map.
   #reliefDoc   = new ReliefDoc();
   #reliefTools = null;
+  #roomHouse   = null;        // a picked room's house, shaped in Layout
   #reliefOn    = false;      // only the Relief phase draws and edits marks
   // A placement hands the canvas back to select mid-press, so the click that finished it would arrive with
   // select already active and be read as "pick the group under the cursor" — deselecting the prop just put
@@ -394,6 +396,9 @@ export class SketchCanvas extends CanvasBase {
   setGroups(groups)        { this.#groups = groups ?? []; this.#paintWorld(); this.#renderTransformChrome(); }
   setGhostGroups(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; this.#renderSetup(); }
+  /** Let a picked room's house be shaped — on in Layout, off everywhere else. */
+  setHouseEditing(on) { this.#roomHouse?.setEnabled(on); this.#roomHouse?.refresh(this.#selectedStructuralId); }
+
   /** Show and edit placed dressing — on for the Dressing phase, off everywhere else. */
   setDressingMode(on) {
     this.#dressingOn = !!on;
@@ -465,6 +470,7 @@ export class SketchCanvas extends CanvasBase {
     if (this._readOnly && this.#level === "points") this.#setLevel("shape");
     this.#dressing?.refreshHandles();
     this.#reliefTools?.refreshHandles();
+    this.#roomHouse?.refresh(this.#selectedStructuralId);
     this.#renderTransformChrome();
   }
 
@@ -524,13 +530,13 @@ export class SketchCanvas extends CanvasBase {
   _onIsoEnter() { this.#draw?.cancel(); }
   // What the preview covers: the painted world, the (inert) viewport group, and every screen-space overlay.
   _isoLayers() {
-    const { handles, dressingHandles, reliefHandles, center, drawHandles, measureLabel, groupChrome } = this.#screen;
-    return [this.#canvasEl, this._viewportG, handles, dressingHandles, reliefHandles, center, drawHandles, measureLabel, groupChrome];
+    const { handles, dressingHandles, reliefHandles, roomHandles, center, drawHandles, measureLabel, groupChrome } = this.#screen;
+    return [this.#canvasEl, this._viewportG, handles, dressingHandles, reliefHandles, roomHandles, center, drawHandles, measureLabel, groupChrome];
   }
 
   // ── CanvasBase hooks ───────────────────────────────────────────────────────────
 
-  _onViewportChanged() { this.#paintWorld(); this.#edit?.refresh(); this.#dressing?.refreshHandles(); this.#reliefTools?.refreshHandles(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderTransformChrome(); }
+  _onViewportChanged() { this.#paintWorld(); this.#edit?.refresh(); this.#dressing?.refreshHandles(); this.#reliefTools?.refreshHandles(); this.#roomHouse?.refresh(this.#selectedStructuralId); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderTransformChrome(); }
   _onZoom(scale)       { if (this.#zoomEl) this.#zoomEl.textContent = `${Math.round(scale * 100)}%`; }
 
   _onToolMousedown(e, svgPt) {
@@ -571,6 +577,7 @@ export class SketchCanvas extends CanvasBase {
     this.#updateDim();
     this.#edit?.onPointerMove(svgPt.x, svgPt.y, this._activeTool);
     if (this.#dressingOn) this.#dressing?.onPointerHover(svgPt.x, svgPt.y, this._activeTool);
+    if (this._activeTool === "select") this.#roomHouse?.onPointerHover(svgPt.x, svgPt.y);
   }
 
   _onToolMouseup(e, svgPt) {
@@ -706,10 +713,11 @@ export class SketchCanvas extends CanvasBase {
   _onMouseleave() { if (this.#cursorEl) this.#cursorEl.textContent = ""; this.#updateDim(); }
 
   _onResizeMove(e) {
-    if (this.#dressing || this.#reliefTools) {
+    if (this.#dressing || this.#reliefTools || this.#roomHouse) {
       const p = this._clientToSvg(e.clientX, e.clientY);
       if (this.#dressing?.onHandleMove(p.x, p.y)) return true;
       if (this.#reliefTools?.onHandleMove(p.x, p.y)) return true;
+      if (this.#roomHouse?.onHandleMove(p.x, p.y)) return true;
     }
     if (this.#rotateState) { const p = this._clientToSvg(e.clientX, e.clientY); this.#rotateMove(p.x, p.y, e.shiftKey); return true; }
     if (this.#scaleState)  { const p = this._clientToSvg(e.clientX, e.clientY); this.#scaleMove(p.x, p.y, e.shiftKey, e.altKey); return true; }
@@ -720,6 +728,7 @@ export class SketchCanvas extends CanvasBase {
   _onResizeUp(e) {
     if (e.button === 0 && this.#dressing?.onHandleUp()) return true;
     if (e.button === 0 && this.#reliefTools?.onHandleUp()) return true;
+    if (e.button === 0 && this.#roomHouse?.onHandleUp()) return true;
     if (this.#rotateState) { if (e.button !== 0) return false; this.#rotateState = null; return true; }
     if (this.#scaleState)  { if (e.button !== 0) return false; this.#scaleState = null; return true; }
     const consumed = e.button === 0 ? (this.#edit?.onResizeUp() ?? false) : false;
@@ -1005,6 +1014,7 @@ export class SketchCanvas extends CanvasBase {
   setStructural(shapes) {
     this.#structural = shapes ?? [];
     if (!this.#structural.some(s => s.id === this.#selectedStructuralId)) this.#selectedStructuralId = null;
+    this.#roomHouse?.refresh(this.#selectedStructuralId);
     this.#paintWorld();
   }
 
@@ -1014,6 +1024,7 @@ export class SketchCanvas extends CanvasBase {
     const next = this.#structural.some(s => s.id === id) ? id : null;
     if (next === this.#selectedStructuralId) return;
     this.#selectedStructuralId = next;
+    this.#roomHouse?.refresh(next);
     // Picking a piece drops the terrain selection with it, chrome included: a transform box left standing
     // over the island is a second selection, and the handles on it act on ground the click did not choose.
     if (next) { this.#selectedId = null; this.#selectedGroupId = null; this.#setLevel("group"); }
@@ -1282,6 +1293,7 @@ export class SketchCanvas extends CanvasBase {
       handles:      null,
       dressingHandles: null,                       // the selected prop's point grips (Dressing phase)
       reliefHandles: null,                         // the selected mark's point grips (Relief phase)
+      roomHandles:  null,                          // the picked room's wing grips and wall marker (Layout)
       center:       INERT,
       drawHandles:  INERT,
       measureLabel: INERT,
@@ -1312,6 +1324,14 @@ export class SketchCanvas extends CanvasBase {
       // A marker (a tree, a boulder) may only land on the rasterized terrain — the export refuses one seated on
       // nothing, so the canvas refuses to drop it there in the first place.
       onTerrain: (bx, bz) => this.#cellOnTerrain(bx, bz),
+      isEditable: () => !this._readOnly,
+    });
+    // A room's house is shaped where the room is placed, with the gestures a dressed house takes; the house is the
+    // intent's, so the controller hands every edit to the host to write.
+    this.#roomHouse = new RoomHouseController(this.#screen.roomHandles, getViewport, () => this.#structural, {
+      onEdited: (room, wings) => this.#callbacks.onRoomHouseEdited?.(room, wings),
+      onRefused: (sentence) => this.#callbacks.onRoomHouseRefused?.(sentence),
+      onPreview: () => this.#paintWorld(),
       isEditable: () => !this._readOnly,
     });
     // Relief states the ground inside a group, so its tools live on the same canvas for the same reason

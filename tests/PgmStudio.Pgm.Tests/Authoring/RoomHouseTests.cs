@@ -54,4 +54,18 @@ public sealed class RoomHouseTests
         await Assert.That(json).Contains("\"ridge\":\"alongX\"");
         await Assert.That(json).Contains("\"form\":\"hip\"");
     }
+
+    [Test]
+    public async Task A_stated_null_style_reads_back_as_null_and_an_absent_one_stays_absent()
+    {
+        var options = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+
+        var open = System.Text.Json.JsonSerializer.Deserialize<RoomHouse>("""{"wings":[],"style":null}""", options)!;
+        var unstated = System.Text.Json.JsonSerializer.Deserialize<RoomHouse>("""{"wings":[]}""", options)!;
+
+        await Assert.That(open.Style.ValueKind).IsEqualTo(System.Text.Json.JsonValueKind.Null);
+        await Assert.That(System.Text.Json.JsonSerializer.Serialize(open, options)).Contains("\"style\":null");
+        await Assert.That(unstated.Style.ValueKind).IsEqualTo(System.Text.Json.JsonValueKind.Undefined);
+        await Assert.That(System.Text.Json.JsonSerializer.Serialize(unstated, options)).DoesNotContain("style");
+    }
 }

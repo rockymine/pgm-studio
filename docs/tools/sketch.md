@@ -808,9 +808,18 @@ a turn does; a field put back to its default writes null. A destroyable made of 
 { "key": "materials", "text": "gold block" }
 ```
 
-A room's house is written whole through `PUT /map/{slug}/intent/pieces/{id}/house`, the room's wing first and every
-other image of the room carried through the symmetry (`PlayPieceHouse`); a style left out wears the map's. A spawn's
-house of two wings:
+**A room's house is shaped where the room is placed.** Picking a wing of a room's building in Layout shows square
+grips on the corners of every wing of its house and the round insert marker on its free walls, the gestures a
+dressed house takes in Decoration (`RoomHouseController`): a corner drags to resize its wing, held to 4 blocks
+across and to the room's region, and a press on the marker adds a wing along that wall, 5 blocks deep and shrunk to
+fit the region, or says there is no room for one. The rail lists the wings with the room's own first, which stays;
+deletes any other the rest still meet through; sets the picked wing's **Storeys**, **Roof**, **Ridge** and whether its
+roof crosses the wing it meets; and dresses the house in a **Style** — the map's for its kind, a library shell copied
+onto it, or **Open ground**, the pad with no building over it (`SketchRoomHouse`).
+
+Every change writes the house whole through `PUT /map/{slug}/intent/pieces/{id}/house`, the room's wing first and
+every other image of the room carried through the symmetry (`PlayPieceHouse`). A style left out wears the map's, and
+a stated `null` is open ground. A spawn's house of two wings:
 
 ```json PUT /api/map/{slug}/intent/pieces/{id}/house
 { "house": { "wings": [ { "corners": [[-16, -16], [-5, -5]] }, { "corners": [[-4, -14], [-1, -7]] } ] } }

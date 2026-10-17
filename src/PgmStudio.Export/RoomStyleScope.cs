@@ -70,7 +70,7 @@ public static class RoomStyleScope
     /// null asking for open ground — else the map's for its kind, <paramref name="mapWide"/>. An own style
     /// that does not read wears the map's, or <paramref name="builtIn"/> where the map asks for none.</summary>
     public static HouseStyle? StyleOf(Pgm.Authoring.RoomHouse? house, HouseStyle? mapWide, HouseStyle builtIn) =>
-        house?.Style is { } own ? Shell(own, mapWide ?? builtIn) : mapWide;
+        house is { Style.ValueKind: not JsonValueKind.Undefined } ? Shell(house.Style, mapWide ?? builtIn) : mapWide;
 
     private static HouseStyle? Shell(JsonElement? snapshot, HouseStyle builtIn) => snapshot?.ValueKind switch
     {

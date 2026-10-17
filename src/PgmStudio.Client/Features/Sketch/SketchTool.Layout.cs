@@ -66,6 +66,7 @@ public partial class SketchTool
         drawStep = Math.Max(step, FirstDrawStep);
         openFlyout = null;
         await SetTool("select");
+        await PushHouseEditingAsync();
         await PushPlacesAsync();
     }
 

@@ -51,9 +51,11 @@
           ? "The marker, building, and iron on it move with it."
           : "The region under it stays where it is.")
       }
-      @if (!Piece.IsPoint) { <text>It can't be resized.</text> }
+      @if (House is not null) { <text>Drag a corner to resize a wing, or click the + on a free wall to add one.</text> }
+      else if (!Piece.IsPoint) { <text>It can't be resized.</text> }
       @if (!Piece.Piece) { <text>Rebuilding from the plan puts it back.</text> }
     </p>
+    @House
     @if (Yaw is { } yaw)
     {
       <Field Label="Facing">
