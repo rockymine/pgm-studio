@@ -22,10 +22,20 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [~] **TS171 — The plan's rules read the sketch.** The stamper cuts a sketch-authored wool's doors on the
-  sides of its region that meet ground, as `SketchSeamCheck` reads its entries, rather than on all four
-  (`WorldBuilder.WoolEntries`); a places document's targets are measured off the same ground. `sight` is the
-  one new read. `PlanValidator` is the source each rule moves out of. `docs/tools/sketch.md`.
+- [~] **TS171 — The plan's rules read the sketch.** A places document's targets are measured off the ground the
+  sketch builds, as `SketchSeamCheck` measures the intent's pieces. `sight` is the one new read. `PlanValidator`
+  is the source each rule moves out of. `docs/tools/sketch.md`.
+
+- [ ] **TS189 — A room's doors are stated, drawn and placed by hand.** One door shape for both rooms — the
+  edge a wall faces and the block along it — replaces `SpawnIntent.Doors` (edge words) and `WoolIntent.Entries`
+  (segments), with a migration (dry run first) carrying each spawn door to its wall's centre and each entry to
+  its midpoint. A door may stand on any wing's outer wall; `Doorways` already finds the wall facing its edge
+  that holds its point. A room stating none gets one door, on the side of its region meeting the most ground,
+  ties to the side nearer the symmetry centre — not one per wall (`WorldBuilder.WoolEntries`). In Layout's
+  house view doors are drawn on the outline, and shift-click on an outer edge adds or removes one there
+  (`room-house-controller.js`, a `PUT …/intent/pieces/{id}/doors`). `WL11` and `ST11` read the doors as a wool's
+  entries, and a wool door with no ground before it is a complaint. `docs/tools/sketch.md`,
+  `docs/world-export/structures.md`.
 
 - [ ] **RP131 — The plan retires as a level.** The Plan tool, `PUT …/sketch/from-plan` and the `plan` stage go;
   every stored plan stays as read-only history (D9), with the migration carrying no row away. `drive.py`, the
