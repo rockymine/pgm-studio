@@ -30,7 +30,7 @@ public sealed class RoomShapesTests
         [
             new SpawnIntent
             {
-                Id = "spawn-red", Team = "red", Protection = [new Rect(10, 10, 20, 20)], Footprint = new Rect(12, 12, 18, 18),
+                Id = "spawn-red", Team = "red", Protection = [new Rect(10, 10, 20, 20)], House = RoomHouse.Over(new Rect(12, 12, 18, 18)),
             },
         ],
         Wools = [new WoolIntent { Id = "wool-red-lime", Owner = "red", Color = "lime", Protection = [new Rect(30, 10, 40, 20)] }],

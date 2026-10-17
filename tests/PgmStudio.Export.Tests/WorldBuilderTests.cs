@@ -142,9 +142,9 @@ public sealed class WorldBuilderTests
             Owner = "red", Spawn = new Pt(-20, 1, 0), Protection = [new Rect(-30, -10, -10, 10)], Reflected = reflected,
         };
 
-        await Assert.That(WorldBuilder.SpawnRoom(region, shellBound: true).Frame.Reflected).IsEqualTo(reflected);
-        await Assert.That(WorldBuilder.SpawnRoom(bare, shellBound: true).Frame.Reflected).IsEqualTo(reflected);
-        await Assert.That(WorldBuilder.WoolFrame(wool, shellBound: true).Reflected).IsEqualTo(reflected);
+        await Assert.That(WorldBuilder.SpawnRoom(region, HouseStyle.Spawn).Frame.Reflected).IsEqualTo(reflected);
+        await Assert.That(WorldBuilder.SpawnRoom(bare, HouseStyle.Spawn).Frame.Reflected).IsEqualTo(reflected);
+        await Assert.That(WorldBuilder.WoolFrame(wool, HouseStyle.Wool).Reflected).IsEqualTo(reflected);
     }
 
     [Test]

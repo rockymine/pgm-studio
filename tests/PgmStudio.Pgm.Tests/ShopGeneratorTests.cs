@@ -227,7 +227,7 @@ public sealed class ShopGeneratorTests
     {
         var narrow = new MapIntent
         {
-            Spawns = [new SpawnIntent { Team = "red", Point = new Pt(0, 64, 0), Yaw = 0, Footprint = new Rect(-2, -4, 2, 4) }],
+            Spawns = [new SpawnIntent { Team = "red", Point = new Pt(0, 64, 0), Yaw = 0, House = RoomHouse.Over(new Rect(-2, -4, 2, 4)) }],
             Shops = [Shop()],
         };
         var at = (Dict)At(Keepers(Generate(narrow)), 0)["location"]!;

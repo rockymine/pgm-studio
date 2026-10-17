@@ -870,15 +870,13 @@ A building is dressing that already had a stamper. The shell a wool cage and a s
 footprint came from — so a **drawn rectangle** is as good an origin as a plan piece, and a house becomes the
 sixth prop.
 
-**A room's building is the single-wing case of this one**, and the studio says so rather than leaving it to be
-noticed. Both are a footprint and a shell; both reach the stamper through one `BuildingPlan`, whose
-single-rectangle constructor is what a room uses; both are held to one least span (`RoomFrames.MinFootprintSpan`,
-`WX2`/`HP2`); and both are drawn in one ink wherever they appear, so a house dressed onto the ground and a
+**A room's building is a house of this kind.** A spawn's and a wool's `house` is wings in the `AuthoredWing` shape
+a dressed house is drawn in, and a style it may state of its own; both reach the stamper through one
+`BuildingPlan`; both are held to one least span (`RoomFrames.MinFootprintSpan`, `WX2`/`HP2`) and one joint model
+(`WingJoints`); and both are drawn in one ink wherever they appear, so a house dressed onto the ground and a
 shell raised on a spawn read as one kind of thing. What a room adds is what being played through asks for — a
-pad, monuments, chests and an entry contract — and when it is stamped: **before** the painter rather than
-after it with the rest of the dressing. Spawns and wools still resolve their frames from pieces and markers,
-at the stage they always did; what changed is that the rectangle underneath is no longer a second model of a
-building.
+pad, monuments, chests and an entry contract, all laid in its first wing — and when it is stamped: **before** the
+painter rather than after it with the rest of the dressing (`structures.md` §1).
 
 One thing still differs by where a footprint came from, and it is the **ceiling**. A prop is capped at
 `MaxFootprint` covered cells; a room's building is bounded by the region it stands on (`WX12`) and capped at

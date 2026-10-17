@@ -6,36 +6,6 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Houses;
 
 /// <summary>
-/// Which roof a house wears. They are the same building underneath — every one of them is a height field over
-/// the same plan (<see cref="RoofField"/>) — which is why one stamper builds all six.
-/// </summary>
-public enum RoofForm
-{
-    /// <summary>Two slopes meeting at a ridge that runs the length of the building.</summary>
-    Gable,
-
-    /// <summary>A lid over the walls: the shell a wool structure and a spawn have always had, and the only form
-    /// that can carry a hole.</summary>
-    Flat,
-
-    /// <summary>Four slopes, one off every wall, meeting at a ridge along the building's length — a pyramid
-    /// where the footprint is square, because the ridge has no length left to run along.</summary>
-    Hip,
-
-    /// <summary>A barn roof: each slope steep for its first courses in from the eave, then shallow to the
-    /// ridge, so the building carries a usable volume under a roof that still sheds.</summary>
-    Gambrel,
-
-    /// <summary>One plane, low at the front wall and climbing to the back — a lean-to. Read and built, and
-    /// complained of wherever a style states it (<c>HS14</c>).</summary>
-    Shed,
-
-    /// <summary>A gable whose two slopes climb at different rates, so they meet off centre: short and steep
-    /// over the front, long and shallow over the back.</summary>
-    Saltbox,
-}
-
-/// <summary>
 /// The course players stand on, in plan. The courses <em>below</em> it are the floor part's stack, which reads
 /// downward and is the same everywhere; this is the one course that varies across the room, divided into zones
 /// by how far a cell stands from the walls: a <see cref="Border"/> ring just inside them, a

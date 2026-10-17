@@ -12,10 +12,9 @@ namespace PgmStudio.Export;
 /// <see cref="SketchLayout"/> read back into the stamper's model. <see cref="TerrainThemeScope"/>'s sibling,
 /// with one difference that is the point — there is no scope to resolve.
 ///
-/// <para>A terrain theme is per cell because a shape may override it. A room style is <b>map-wide</b>: one
-/// shell for every wool room, one for every spawn room. Rooms are fanned across the symmetry orbit so both
-/// sides face the same building, and a shell that differed between teams would be a sightline that differed
-/// between teams — so there is nothing per-room to look up, and this answers a pair rather than a function.</para>
+/// <para>The map binds one shell for every wool room and one for every spawn room, and a room's house may
+/// state a style of its own over it (<see cref="StyleOf"/>). A room is stored once and fanned across the
+/// symmetry orbit, so every team's image of it wears the same style either way.</para>
 /// </summary>
 public static class RoomStyleScope
 {
@@ -67,6 +66,12 @@ public static class RoomStyleScope
         };
     }
 
+    /// <summary>The style a room's <paramref name="house"/> is stamped in: its own where it states one —
+    /// null asking for open ground — else the map's for its kind, <paramref name="mapWide"/>. An own style
+    /// that does not read wears the map's, or <paramref name="builtIn"/> where the map asks for none.</summary>
+    public static HouseStyle? StyleOf(Pgm.Authoring.RoomHouse? house, HouseStyle? mapWide, HouseStyle builtIn) =>
+        house?.Style is { } own ? Shell(own, mapWide ?? builtIn) : mapWide;
+
     private static HouseStyle? Shell(JsonElement? snapshot, HouseStyle builtIn) => snapshot?.ValueKind switch
     {
         JsonValueKind.Null => null,                    // asked for open ground
@@ -78,15 +83,12 @@ public static class RoomStyleScope
 /// <summary>The shell each kind of room is stamped in, as <see cref="RoomStyleScope.StylesOf(string)"/> resolves it
 /// from a board's finish: a bound style, that kind's built-in shell, or <b>null</b> for open ground.
 ///
-/// <para>Null is what <c>shellBound</c> answers false for, and the reason this travels rather than being
-/// re-asked: a room with no building over it takes its whole footprint, while one with a shell is inset by a
-/// wall (<see cref="RoomFrames"/>) and sizes a different default rectangle. A caller that guesses names a
-/// different room from the one the export stamps.</para></summary>
+/// <para>It travels rather than being re-asked because a room with no building over it takes its whole
+/// region, while one with a shell is inset by a wall (<see cref="RoomFrames"/>) and sizes a different default
+/// rectangle; the frame resolvers take it and ask each room's house over it (<see cref="RoomStyleScope.StyleOf"/>).
+/// A caller that guesses names a different room from the one the export stamps.</para></summary>
 public readonly record struct RoomShells(HouseStyle? Wool, HouseStyle? Spawn)
 {
-    /// <summary>Whether a building stands over that kind of room — what the frame resolvers take.</summary>
-    public bool WoolBound => Wool is not null;
-    public bool SpawnBound => Spawn is not null;
 
     /// <summary>Both kinds on their built-in shell: what a board that bound nothing is stamped with, and the
     /// pair to state where there is no board to read one from.</summary>

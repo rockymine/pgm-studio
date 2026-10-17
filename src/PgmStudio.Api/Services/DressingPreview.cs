@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using PgmStudio.Contracts;
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft;

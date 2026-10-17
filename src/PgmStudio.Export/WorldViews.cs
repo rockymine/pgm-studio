@@ -84,7 +84,7 @@ public static class WorldViews
         {
             var team = TeamName(intent, spawn.Team);
             var name = $"{team} spawn";
-            if ((spawn.Footprint ?? Bounds(spawn.Protection)) is { } room)
+            if ((spawn.House?.Bounds ?? Bounds(spawn.Protection)) is { } room)
             {
                 var (dx, dz) = Step(spawn.Yaw);
                 var (centreX, centreZ) = Centre(room);
@@ -98,7 +98,7 @@ public static class WorldViews
         {
             var colour = wool.Color.Length > 0 ? wool.Color.Replace('_', ' ') : TeamName(intent, wool.Owner).ToLowerInvariant();
             var name = $"The {colour} wool";
-            views.Add((wool.Footprint ?? Bounds(wool.Protection)) is { } room
+            views.Add((wool.House?.Bounds ?? Bounds(wool.Protection)) is { } room
                 ? Framed($"wool-{index}", name, built, room, middle)
                 : At($"wool-{index}", name, wool.Spawn));
         }

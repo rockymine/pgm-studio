@@ -33,7 +33,7 @@ public sealed class WorldViewsTests
     {
         Team = team,
         Point = new Pt(minX + 3, Top + 1, minZ + 3),
-        Footprint = new Rect(minX, minZ, minX + 6, minZ + 6),
+        House = RoomHouse.Over(new Rect(minX, minZ, minX + 6, minZ + 6)),
         Yaw = yaw,
     };
 
@@ -120,7 +120,7 @@ public sealed class WorldViewsTests
                 for (var z = -1; z <= 1; z++)
                     for (var y = Top + 26; y <= Top + 28; y++)
                         world.SetBlock(x, y, z, 35, 14);
-        var intent = new MapIntent { Wools = [new WoolIntent { Owner = "red", Footprint = new Rect(10, -5, 17, 5) }] };
+        var intent = new MapIntent { Wools = [new WoolIntent { Owner = "red", House = RoomHouse.Over(new Rect(10, -5, 17, 5)) }] };
         return new BuiltWorld(world, 0, Top + 1, 0, intent, new WorldProvenance(), RoomShells.BuiltIn, Ground: Ground());
     }
 

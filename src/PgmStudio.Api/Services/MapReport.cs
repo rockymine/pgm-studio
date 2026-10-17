@@ -318,7 +318,7 @@ internal sealed class MapReport(
     {
         var intent = built.ResolvedIntent;
         foreach (var (spawn, index) in intent.Spawns.Select((spawn, index) => (spawn, index)))
-            yield return ($"spawn-{index}", (spawn.Footprint ?? Bounds(spawn.Protection)) is { } room
+            yield return ($"spawn-{index}", (spawn.House?.Bounds ?? Bounds(spawn.Protection)) is { } room
                 ? Box(room) : Around(spawn.Point, 6));
         foreach (var (wool, index) in (intent.Wools ?? []).Select((wool, index) => (wool, index)))
             yield return ($"wool-{index}", Around(wool.Spawn, 4));

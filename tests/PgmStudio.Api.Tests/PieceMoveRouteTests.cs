@@ -27,7 +27,7 @@ public sealed class PieceMoveRouteTests
          "teams":[{"id":"red","name":"Red","color":"red","size":8}],
          "spawns":[{"team":"red","point":{"x":5,"y":12,"z":5},
                     "protection":[{"minX":0,"minZ":0,"maxX":10,"maxZ":10}],
-                    "footprint":{"minX":2,"minZ":2,"maxX":8,"maxZ":8}}]}
+                    "house":{"wings":[{"corners":[[2,2],[7,7]]}]}}]}
         """;
 
     private static async Task<(HttpClient Client, string Slug)> BoardAsync()
@@ -93,7 +93,7 @@ public sealed class PieceMoveRouteTests
         // The marker and the building travelled the same hundred and fifty blocks.
         await Assert.That(spawn.GetProperty("point").GetProperty("x").GetDouble()).IsEqualTo(105);
         await Assert.That(spawn.GetProperty("point").GetProperty("z").GetDouble()).IsEqualTo(55);
-        await Assert.That(spawn.GetProperty("footprint").GetProperty("minX").GetDouble()).IsEqualTo(102);
+        await Assert.That(spawn.GetProperty("house").GetProperty("wings")[0].GetProperty("corners")[0][0].GetDouble()).IsEqualTo(102);
     }
 
     /// <summary>An id naming no piece is a subject the studio does not hold, which is a different fault

@@ -200,9 +200,9 @@ entry survives.
 The board is grouped by concept, which is what makes these visible. Each cause below is one change; the
 entries listed after it are what stop being separate work once it lands.
 
-**A building is a footprint and a shell, and the studio has two models of it.** A room states one `Rect`, a
-dressed `HouseProp` states `AuthoredWing[]`, and the author's ruling is that a room's building *is* the
-single-wing case of the dressed one. `WE71` landed that model — one least span, one ink on all three canvases.
+**A building is wings and a shell, and the studio has one model of it.** A room's `house` and a dressed
+`HouseProp` both state `AuthoredWing[]`, the author's ruling being that a room's building *is* a dressed one.
+`WE71` landed the shared least span and ink on all three canvases, and `WE166` the shared record.
 The interaction it makes possible is built, and the group is empty (`FEATURES.md`): the theme scope needed
 no hit-test at all (`B145`), the hit-test itself with the rail it opens is `B107`, and the drag that rides on
 that selection is `S25b` — a write back to the intent rather than a canvas affordance, since the sketch draws

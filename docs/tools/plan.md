@@ -474,8 +474,8 @@ relief solve at the piece's own surface, so the ground is solved knowing the flo
 Each spawn fans to one per team, with its yaw fanned from the facing; each wool fans team-outer, its entries
 the room's land seams and build-zone frontages. Both carry the same two rectangles, and they say different
 things: **`Protection`** is the whole piece — the anti-grief region *and* the ground the room is framed on,
-rather than the stamped cube — and **`Footprint`** is the building raised on it, the rectangle the placement
-states or the one `WX1` defaults. That is the split `ST9` and `ST10` cap separately. Destroyables and cores fan the same way but **only at orbit order 2**:
+rather than the stamped cube — and **`House`** is the building raised on it, one wing over the rectangle the
+placement states, or none where it states none and `WX1` defaults one. That is the split `ST9` and `ST10` cap separately. Destroyables and cores fan the same way but **only at orbit order 2**:
 PGM marks a goal shared whenever the team count is not two, and what a shared DTM goal should play like is
 undecided, so outside order 2 the validator refuses the plan and the preview declines to draw it. The build
 intent carries the fanned build-zone areas and holes, and **no** `MaxHeight` — the ceiling is the world

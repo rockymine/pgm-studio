@@ -9,7 +9,8 @@ namespace PgmStudio.Pgm.Sketch;
 /// <summary>
 /// What a layout states about the ground under one play room, keyed in <see cref="SketchLayout.Rooms"/> by the
 /// id of the shape the room is drawn as: a piece's id for its region, that id with <c>-building</c> after it
-/// for the building on it. Where the room is belongs to the intent; how the ground meets it belongs here.
+/// for the first wing of the house on it, and <c>-building-2</c> on for the rest. Where the room is belongs to the
+/// intent; how the ground meets it belongs here.
 /// Every field means what the same field means on a <see cref="SketchShape"/>.
 /// </summary>
 public sealed class RoomGround
@@ -119,24 +120,28 @@ public static class RoomShapes
 
         foreach (var spawn in expanded.Spawns)
             foreach (var shape in Room(spawn.Id, StructuralRoles.Spawn, TeamColor(spawn.Team), spawn.Protection,
-                                       spawn.Footprint, rooms))
+                                       spawn.House, rooms))
                 yield return shape;
 
         foreach (var wool in expanded.Wools ?? [])
             foreach (var shape in Room(wool.Id, StructuralRoles.WoolRoom,
                                        wool.Color.Length > 0 ? wool.Color : TeamColor(wool.Owner),
-                                       wool.Protection, wool.Footprint, rooms))
+                                       wool.Protection, wool.House, rooms))
                 yield return shape;
     }
 
     private static IEnumerable<SketchShape> Room(
-        string id, string role, string color, List<Geom.Rect> protection, Geom.Rect? footprint,
+        string id, string role, string color, List<Geom.Rect> protection, RoomHouse? house,
         IReadOnlyDictionary<string, RoomGround>? rooms)
     {
         // A region stated as a union has no one rectangle to draw, and the sketch draws rooms as rectangles.
         if (protection.Count != 1) yield break;
         yield return Shape(id, role, color, protection[0], rooms);
-        if (footprint is { } house) yield return Shape($"{id}-building", StructuralRoles.Building, color, house, rooms);
+        // Each wing is drawn as the building it is; the first, which holds the room, keeps the bare id.
+        var wing = 0;
+        foreach (var rect in house?.Rects() ?? [])
+            yield return Shape(++wing == 1 ? $"{id}-building" : $"{id}-building-{wing}",
+                StructuralRoles.Building, color, rect, rooms);
     }
 
     private static SketchShape Shape(

@@ -368,16 +368,16 @@ drawn under: `floor`, `base_height`, `anchor_heights`, `relief_scope`, `height_a
 (`RoomShapes.Fold`): the rectangles go, and what each room shape stated about its ground lands in its record.
 A room with no record is ordinary ground the relief does not pin.
 
-**A room is drawn as two shapes, because it is two rectangles.** `spawn` and `woolRoom` are the *region* — the
+**A room is drawn as its region and its house's wings.** `spawn` and `woolRoom` are the *region* — the
 ground the room stands on and the protection around it — drawn under the piece's id, with the `color` their
-labelled box is filled with, and the height the group's relief is held against. `building` is the *footprint*
-raised inside one of them, the rectangle the shell is stamped on (`docs/world-export/structures.md` WX1), drawn
-in the **building ink** — the same one a house dressed onto the ground takes, because a room's footprint is
-the single-wing case of that building — as an outline over the box rather than a second filled one. It carries
-no height of its own: the region is what a group's relief is held against and what an author corrects a height
-on. Its id is the region's plus `-building`. **Only a stated footprint is drawn** — a room that leaves it to
-`WX1`'s default shows its region alone, since drawing a rectangle nobody stated as though they had is the
-opacity a stated footprint exists against. A region stated as several rectangles is not drawn at all.
+labelled box is filled with, and the height the group's relief is held against. `building` is one *wing* of the
+house raised inside it (`docs/world-export/structures.md` §1), drawn in the **building ink** — the same one a
+house dressed onto the ground takes, because a room's building is that kind of house — as an outline over the
+box rather than a second filled one. It carries no height of its own: the region is what a group's relief is
+held against and what an author corrects a height on. The room's wing takes the region's id plus `-building`,
+and every wing after it `-building-2`, `-building-3` on. **Only a stated house is drawn** — a room that leaves it
+to `WX1`'s default shows its region alone, since drawing a rectangle nobody stated as though they had is the
+opacity a stated house exists against. A region stated as several rectangles is not drawn at all.
 
 **Its footprint stays inside the fused polygon, and has to.** A room places no terrain of its own, so the
 ground it stands on is the group's; that overlap is what binds the room to its group's relief, since an
@@ -2702,13 +2702,15 @@ chrome included: one click selects one thing, and a room and the ground under it
 **A picked piece drags, and where a room is belongs to the intent.** The drag is block-granular and snaps to
 nothing — a region's edges answer to the plan's grid rather than to the shapes drawn beside it — and the
 release **asks** rather than tells: it writes through `PATCH /map/{slug}/intent/pieces/{id}`, addressed by
-the play piece's id — a region's shape id is its piece's, a building's is that id with `-building` after it —
+the play piece's id — a region's shape id is its piece's, a wing's is that id with `-building` after it and
+`wing` naming which —
 and a refusal puts the rectangle back where it stood and says why on the rail. That is the whole of what keeps the
 two from diverging, since the sketch draws these rectangles out of the intent in the first place. Moving the
 **region carries the room seated on it** — the marker players or a wool arrive at, the building raised on it,
 the iron beside it, the entry interfaces its doors are cut on — because the region *is* the ground rather
 than a zone drawn beside it, and leaving any of them behind puts it off the ground it belongs to. Moving the
-**building** moves the building alone, and one carried outside its region is refused under `WX12`. Moving a
+**building** — any wing of it — moves the whole house alone, and one carried outside its region is refused
+under `WX12`. Moving a
 room's **point** moves the point alone, by whole blocks, and one carried outside the room's building — or its
 region, where the room states no building — is refused; its rail shows the point's `X` and `Z`, and it turns
 and is deleted only with its room. It **moves

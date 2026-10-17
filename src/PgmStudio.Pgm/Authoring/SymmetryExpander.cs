@@ -164,7 +164,7 @@ public static class SymmetryExpander
                     Point = TransformPt(src.Point, sym, k),
                     Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
                     Yaw = TransformYaw(src.Yaw, sym, k),
-                    Footprint = src.Footprint is { } footprint ? TransformRect(footprint, sym, k) : null,
+                    House = src.House?.Mapped(rect => TransformRect(rect, sym, k)),
                     Iron = [.. src.Iron.Select(iron => TransformPt(iron, sym, k))],
                     Doors = TransformDoors(src.Doors, sym, k),
                 });
@@ -195,7 +195,7 @@ public static class SymmetryExpander
                     Reflected = src.Reflected != Symmetry.Reflects(sym.Mode, k),
                     Color = "",   // orbit copies default to the new owner team's colour (WoolGenerator.ColorSlug)
                     Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
-                    Footprint = src.Footprint is { } footprint ? TransformRect(footprint, sym, k) : null,
+                    House = src.House?.Mapped(rect => TransformRect(rect, sym, k)),
                     Entries = [.. src.Entries.Select(entry => TransformRect(entry, sym, k))],
                     Spawn = TransformBlock(src.Spawn, sym, k),
                     Monuments = [.. src.Monuments.Select(m => m with

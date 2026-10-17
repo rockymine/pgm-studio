@@ -116,7 +116,7 @@ public static class MapSource
         [
             plan is null ? null : DocumentBinding.Unbindable("plan", plan, json => PlanModel.Parse(json)),
             drawnLayout is null ? null : DocumentBinding.Unbindable("layout", drawnLayout, json => SketchLayout.Parse(json)),
-            drawnIntent is null ? null : IntentWrite.Unbindable(drawnIntent, "intent"),
+            drawnIntent is null ? null : IntentWrite.Unbindable(drawnIntent, "intent") ?? IntentWrite.Footprinted(drawnIntent, "intent"),
             refinement is null ? null : DocumentBinding.Unbindable("refinement", refinement,
                 json => JsonSerializer.Deserialize<Refinement>(json, Refinement.Json)),
         ];
@@ -173,8 +173,9 @@ public static class MapSource
         var styles = SketchMaterialGate.Check(layoutJson);
         if (styles.Refuses) return new(new Refusal(400, "invalid style or theme", [.. styles.Refusals]));
         Complaints.Add(http, styles.Complaints);
-        if (IntentWrite.Stated(intentJson) is { } intent && IntentWrite.Unnamable(intent, "intent") is { } unnamable)
-            return new(unnamable);
+        if (IntentWrite.Stated(intentJson) is { } intent
+            && (IntentWrite.Unnamable(intent, "intent") ?? IntentWrite.Unbuildable(intent, "intent")) is { } unstorable)
+            return new(unstorable);
         var planBytes = Encoding.UTF8.GetBytes(plan ?? "{}");
         var prepared = SketchFinish.Prepare(
             RoomShapes.Project(layoutJson, IntentWrite.Stated(intentJson) ?? new MapIntent()), planBytes);

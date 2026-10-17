@@ -12,9 +12,8 @@ namespace PgmStudio.Export.Tests;
 
 /// <summary>
 /// The room styles a map binds (G34c, docs/world-export/structures.md §9): read off the sketch layout and
-/// carried into the export. Three things have to hold — a map that never picked one exports exactly as it did
-/// before the step existed, a map that did gets the shell it picked, and both are <b>map-wide</b>, so the two
-/// teams' rooms stay identical.
+/// carried into the export. A map that never picked one exports the built-in shells, a map that did gets the
+/// shell it picked, and a room's house stating a style of its own wears that one instead.
 /// </summary>
 public sealed class RoomStyleScopeTests
 {
@@ -55,6 +54,21 @@ public sealed class RoomStyleScopeTests
     };
 
     // ── what a map binds ───────────────────────────────────────────────────────────────────────────
+    [Test]
+    public async Task A_house_stating_its_own_style_wears_it_over_the_maps()
+    {
+        var stated = new RoomHouse { Style = System.Text.Json.JsonDocument.Parse(HouseStyleJson.Serialize(HouseStyle.Spawn)).RootElement };
+
+        await Assert.That(HouseStyleJson.Serialize(RoomStyleScope.StyleOf(stated, HouseStyle.Wool, HouseStyle.Wool)!))
+            .IsEqualTo(HouseStyleJson.Serialize(HouseStyle.Spawn)).Because("the house's own style, not the map's wool shell");
+        await Assert.That(RoomStyleScope.StyleOf(new RoomHouse(), HouseStyle.Wool, HouseStyle.Wool)).IsEqualTo(HouseStyle.Wool)
+            .Because("a house stating no style wears the map's");
+        await Assert.That(RoomStyleScope.StyleOf(null, null, HouseStyle.Wool)).IsNull();
+        var open = new RoomHouse { Style = System.Text.Json.JsonDocument.Parse("null").RootElement };
+        await Assert.That(RoomStyleScope.StyleOf(open, HouseStyle.Wool, HouseStyle.Wool)).IsNull()
+            .Because("a stated null asks for open ground");
+    }
+
     [Test]
     public async Task A_map_that_never_picked_one_gets_the_built_in_shells()
     {
@@ -154,13 +168,13 @@ public sealed class RoomStyleScopeTests
             ],
         };
 
-        var walled = WorldBuilder.SpawnRoom(intent.Spawns[0], shellBound: true).Frame;
-        var open = WorldBuilder.SpawnRoom(intent.Spawns[0], shellBound: false).Frame;
+        var walled = WorldBuilder.SpawnRoom(intent.Spawns[0], HouseStyle.Spawn).Frame;
+        var open = WorldBuilder.SpawnRoom(intent.Spawns[0], null).Frame;
         await Assert.That(open.MaxZ).IsNotEqualTo(walled.MaxZ);      // the premise a gate has to read
 
         foreach (var shells in (RoomShells[])[RoomShells.BuiltIn, new RoomShells(HouseStyle.Wool, null)])
         {
-            var frame = WorldBuilder.SpawnRoom(intent.Spawns[0], shells.SpawnBound).Frame;
+            var frame = WorldBuilder.SpawnRoom(intent.Spawns[0], shells.Spawn).Frame;
             var approach = DressingScope.ApproachAt(intent, shells);
 
             await Assert.That(approach(5, frame.MaxZ)).IsFalse();

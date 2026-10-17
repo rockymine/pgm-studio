@@ -49,43 +49,6 @@ public readonly record struct WallSegment(RoomEdge Facing, int Fixed, int Lo, in
 /// the same way.</summary>
 public readonly record struct WallOpening(WallSegment Wall, int Lo, int Width);
 
-/// <summary>Which way a wing's ridge runs, where its own proportions are not what should decide.</summary>
-public enum RidgeAxis
-{
-    /// <summary>Along x, so the slopes are taken across z.</summary>
-    AlongX,
-
-    /// <summary>Along z, so the slopes are taken across x.</summary>
-    AlongZ,
-}
-
-/// <summary>
-/// Everything a wing states about itself apart from where it stands — how tall, what roof, and how it meets
-/// its neighbour. <b>Stated once and read everywhere</b>: a <see cref="Wing"/> carries one, and so does the
-/// authored entry a dressing document draws one from, so the two cannot drift into different vocabularies for
-/// the same building.
-///
-/// <para><see cref="StoreysHigh"/> is how many of the house's storeys stand on this wing, and <b>nought takes
-/// them all</b> — which is what a building whose wings are all of a height wants, and what one wing on its own
-/// can only mean. A hall of one storey with a two-storey cross wing is the shape that needs the number. It is
-/// deliberately not <c>Storeys</c>: <c>HouseStyle.Storeys</c> is the <em>list of storey styles</em> a building
-/// is made of, and one name over a count and a list of styles reads as the same thing twice.</para>
-///
-/// <para><see cref="Form"/>, <see cref="Pitch"/> and <see cref="RoofSlab"/> are the roof this wing wears where
-/// it does not simply wear the building's; naming a slab is what makes a roof climb in halves, so a
-/// half-stepping wing is one that names one. Unset takes the style's.</para>
-///
-/// <para><b><see cref="Projects"/> is the one thing about a joint that the rectangles cannot say.</b> A wing
-/// running into a hall either <em>marches</em> — each course stepping on into the hall's roof until that roof
-/// already stands as tall, which draws the crossing as a valley and closes the building — or it
-/// <em>projects</em>, carrying its roof clean across the hall to the far wall and showing a second gable there.
-/// Both are buildings and neither is derivable: the same two rectangles make an L that closes and an L that
-/// pushes through. Marching is what a wing does unless it says otherwise, because it is the shape that reads as
-/// one house.</para></summary>
-public readonly record struct WingSpec(
-    int StoreysHigh = 0, RoofForm? Form = null, int Pitch = 0, int? RoofSlab = null,
-    RidgeAxis? Ridge = null, bool Projects = false);
-
 /// <summary>One rectangle of a building's plan, and what it states about itself. A house of a single rectangle
 /// is one wing; an L, a T or a U is several touching ones, which is what lets a building turn a corner as one
 /// house under one style rather than as two houses standing beside each other.
