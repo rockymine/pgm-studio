@@ -16,6 +16,14 @@ public partial class SketchTool
     private const int GroundStep = 1;
     private const int LayoutStep = 2;
     private int drawStep = GroundStep;
+
+    /// <summary>Whether the caller is an admin, who alone sees the Plan step and the places.</summary>
+    private bool planAllowed;
+
+    /// <summary>The first of Draw's steps the caller has: Plan for an admin, else Ground.</summary>
+    private int FirstDrawStep => planAllowed ? PlanStep : GroundStep;
+
+    private IReadOnlyList<string> DrawStepNames => DrawSteps[FirstDrawStep..];
     private string? openFlyout;
     private string pieceActive = PlayPieceKinds.Spawn;
     private string zoneActive = PlayPieceKinds.BuildArea;
@@ -55,7 +63,7 @@ public partial class SketchTool
 
     private async Task StepDraw(int step)
     {
-        drawStep = step;
+        drawStep = Math.Max(step, FirstDrawStep);
         openFlyout = null;
         await SetTool("select");
         await PushPlacesAsync();

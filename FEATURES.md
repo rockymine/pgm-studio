@@ -9454,6 +9454,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   one of the map's places, and a picked place's panel in Plan carries its threads; a point,
   box or lasso note is tagged with the place its ground falls in (`PlaceLookup`), and Review's Cameras step draws
   the places. (`Api/Services/PlaceLookup`, `Client/Features/Sketch/SketchPlaceNotes`, `docs/tools/sketch.md`)
+- **Plan and the places are an admin's (`TS187`).** Draw shows its Plan step, and Review's Cameras step the
+  places, only to an admin; `PUT …/places` and `places` in `PUT …/source` take the notes policy, refused `RQ8`
+  to anyone else. (`Client/Features/Sketch/SketchTool.Places`, `docs/access.md`, `docs/tools/sketch.md`)
 - **Draw's Plan step draws the places, before Ground (`TS181`).** A point, a box, a polygon, a lasso or a polyline
   draws a place over the board; the column lists them, a click picks one, and its panel names it and sets the
   play piece it holds, every change stored through `PUT …/places`. (`Client/Features/Sketch/SketchTool.Places`,

@@ -7,7 +7,7 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
-/// <summary>Draw's Plan step: the map's places, drawn over the board with the notes step's tools, listed, picked
+/// <summary>Draw's Plan step, an admin's only: the map's places, drawn over the board with the notes step's tools, listed, picked
 /// and named, and stored whole through <c>PUT /map/{slug}/places</c> after every change. Review's Cameras step
 /// draws them too.</summary>
 public partial class SketchTool
@@ -25,16 +25,18 @@ public partial class SketchTool
 
     private static string PlaceTool(string shape) => $"place:{shape}";
 
-    /// <summary>Open Draw on its Plan step, where a new map starts.</summary>
-    private async Task OpenPlan()
+    /// <summary>Open Draw on its first step, where a new map starts.</summary>
+    private async Task OpenDraw()
     {
         await GoDraw();
-        await StepDraw(PlanStep);
+        await StepDraw(FirstDrawStep);
     }
 
     /// <summary>Read the map's places and the play pieces one may hold.</summary>
     private async Task LoadPlacesAsync()
     {
+        planAllowed = await Access.IsAdminAsync();
+        if (!planAllowed) return;
         try
         {
             placesDocument = await Http.GetFromJsonAsync<PlacesDocument>($"api/map/{Slug}/places") ?? new();
@@ -44,13 +46,15 @@ public partial class SketchTool
         catch (HttpRequestException) { }
         await notes.LoadAsync();
         await PushPlacesAsync();
+        // The bar gains its Plan step once the caller is known to be an admin.
+        StateHasChanged();
     }
 
     /// <summary>Draw the places on the canvas while the Plan step or Review's Cameras step is up, and let a click
-    /// pick one in Plan.</summary>
+    /// pick one in Plan; for an admin only.</summary>
     private async Task PushPlacesAsync()
     {
-        if (handle is null) return;
+        if (handle is null || !planAllowed) return;
         await handle.InvokeVoidAsync("setPlacesPickable", PlanActive);
         await handle.InvokeVoidAsync("setPlaces",
             PlanActive || CamerasActive ? JsonSerializer.Serialize(PlaceList, PlacesJson) : "[]");

@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using FastEndpoints;
+using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
@@ -31,7 +32,8 @@ public sealed class PlacesGetEndpoint(MapRepository repo, MapArtifactStore artif
     }
 }
 
-/// <summary>PUT /api/map/{slug}/places — replace the map's places, as one change in its history. Refused where a
+/// <summary>PUT /api/map/{slug}/places — replace the map's places, as one change in its history: an admin's, or a
+/// token's carrying the notes permission, the same people the places' threads are with. Refused where a
 /// place has no id or shares one, its shape is not one or carries the wrong number of points, or it holds a play
 /// piece the map has none of (<see cref="PlacesCheck"/>).</summary>
 public sealed class PlacesPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<AppliedDto>
@@ -39,6 +41,7 @@ public sealed class PlacesPutEndpoint(MapRepository repo, MapArtifactStore artif
     public override void Configure()
     {
         Put("/map/{slug}/places");
+        Policies(AccessPolicies.Notes);
         Description(b => b.Accepts<PlacesDocument>("application/json").Refuses(400, 404, 409).Reads(
             new QueryWord("note", "What this write is, in a sentence, kept on the change it lands as. At most 1,000 "
                 + "characters.")));

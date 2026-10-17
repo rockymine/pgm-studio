@@ -126,7 +126,7 @@ public partial class SketchTool
                 var last = SketchInfoPhase.Steps.Count - 1;
                 return new("book-open-text", "Info", SketchInfoPhase.Steps, infoStep, infoStep == last ? "Continue" : "Next",
                     () => { infoStep = 0; return Task.CompletedTask; },
-                    () => { if (infoStep < last) { infoStep++; return Task.CompletedTask; } return OpenPlan(); },
+                    () => { if (infoStep < last) { infoStep++; return Task.CompletedTask; } return OpenDraw(); },
                     step => { infoStep = step; return Task.CompletedTask; });
             }
             if (ThemeActive) return new("palette", "Palette", [], 0, "Next", GoRelief, GoDressing, NoStep);
@@ -135,9 +135,9 @@ public partial class SketchTool
             if (HistoryActive) return new("history", "History", [], 0, "Draw", GoReview, GoDraw, NoStep);
             if (CamerasActive) return new("eye", "Review", ReviewSteps, 0, "Next", GoDressing, ShowNotes, StepReview);
             if (NotesActive) return new("eye", "Review", ReviewSteps, 1, "Next", ShowCameras, GoHistory, StepReview);
-            return new("pencil-ruler", "Draw", DrawSteps, drawStep, "Next",
-                drawStep == PlanStep ? GoInfo : () => StepDraw(drawStep - 1),
-                drawStep == LayoutStep ? GoRelief : () => StepDraw(drawStep + 1), StepDraw);
+            return new("pencil-ruler", "Draw", DrawStepNames, drawStep - FirstDrawStep, "Next",
+                drawStep == FirstDrawStep ? GoInfo : () => StepDraw(drawStep - 1),
+                drawStep == LayoutStep ? GoRelief : () => StepDraw(drawStep + 1), step => StepDraw(step + FirstDrawStep));
         }
     }
 

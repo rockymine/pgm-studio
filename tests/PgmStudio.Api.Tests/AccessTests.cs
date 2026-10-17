@@ -331,6 +331,24 @@ public sealed class AccessTests
     }
 
     [Test]
+    public async Task A_maps_places_are_written_by_an_admin_and_not_by_its_member_owner()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        using var member = InvitedFactory.As(Owner);
+        var slug = await OriginateAsync(member, "Fenmoor");
+
+        await AssertRefusedAsync(await member.PutAsJsonAsync($"/api/map/{slug}/places", new PlacesDocument()),
+            HttpStatusCode.Forbidden, "RQ8");
+        await AssertRefusedAsync(await member.PutAsync($"/api/map/{slug}/source",
+            new StringContent("""{"places":{}}""", System.Text.Encoding.UTF8, "application/json")), HttpStatusCode.Forbidden, "RQ8");
+
+        using var admin = InvitedFactory.As(Admin);
+        var put = await admin.PutAsJsonAsync($"/api/map/{slug}/places", new PlacesDocument());
+        await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());
+    }
+
+    [Test]
     public async Task Only_an_admins_token_may_carry_the_notes_permission()
     {
         await ApiTestFactory.ResetSchemaAsync();

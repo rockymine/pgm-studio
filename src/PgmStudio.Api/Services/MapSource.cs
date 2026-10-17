@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using PgmStudio.Api.Access;
 using PgmStudio.Api.Endpoints;
 using PgmStudio.Contracts;
@@ -91,6 +92,10 @@ public static class MapSource
         var drawnIntent = Raw(stated["intent"]);
         var refinement = Raw(stated["refinement"]);
         var places = Raw(stated["places"]);
+        if (places is not null && !(await http.RequestServices.GetRequiredService<Callers>().OfAsync(http, ct)).MayNote)
+            return Refuse(403, "not permitted", new Finding(RequestRules.NotPermitted,
+                "the source states `places`, and a map's places are written by an admin or by a token carrying the "
+                + "notes permission", Field: "places"));
         if ((drawnLayout is null) != (drawnIntent is null))
             return Refuse(400, "no base", new Finding(RequestRules.Unreadable,
                 $"the source states a drawn {(drawnLayout is null ? "game settings" : "layout")} and no "

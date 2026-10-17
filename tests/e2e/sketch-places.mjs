@@ -18,6 +18,7 @@ const page = await newPage(browser);
 checks.section("Draw opens on Ground, and Plan comes before it");
 await page.goto(`${BASE}/maps/${seed.sketchSlug}/sketch`, { waitUntil: "networkidle" });
 await page.locator(".flow-step--active", { hasText: "Ground" }).waitFor({ timeout: 60000 });
+await page.locator(".flow-steps .flow-step", { hasText: "Plan" }).waitFor({ timeout: 30000 }).catch(() => {});
 const steps = await page.$$eval(".flow-steps .flow-step", els => els.map(e => e.textContent.trim()));
 checks.add("Draw's steps are Plan, Ground and Layout", steps.join(",") === "Plan,Ground,Layout", steps.join(","));
 await page.click(".flow-step >> text=Plan");

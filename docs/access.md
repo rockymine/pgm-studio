@@ -257,6 +257,7 @@ configurator in `Program.cs` and decides from the verb and the path:
 | `DELETE` of anything else | an admin, since a library row is shared by every map using it | `admin` |
 | any other write | a person on the whitelist | `member` |
 | a map-notes route, reads included — `/notes`, `/map/{slug}/notes` | an admin, or a token carrying the notes permission | `notes` |
+| writing a map's places — `PUT /map/{slug}/places`, and `places` in `PUT /map/{slug}/source` | an admin, or a token carrying the notes permission, since the places are what their threads are about | `notes` |
 
 An endpoint that states its own access keeps it: the whitelist's routes are an admin's, list included,
 revoking one's own token is a member's, the notes routes are the `notes` policy's, reads included, and signing

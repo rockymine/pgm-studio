@@ -19,7 +19,7 @@ Decoration the Dressing phase. Info states what the
 board is and is its own body; Review is the board as a player sees it, with the author's notes on it, in two
 steps: Cameras, on the canvas, and Notes, a body of its own. The
 other phases share the one live canvas, which stays mounted while Info or Notes is up so the
-drawing state and the zoom survive the trip. Draw has three steps, Plan, Ground and Layout, on that one canvas. Terraform,
+drawing state and the zoom survive the trip. Draw has three steps, Plan, Ground and Layout, on that one canvas, and Plan is an admin's only. Terraform,
 Palette, Decoration and History have no steps: each swaps what the columns hold and which overlays the layer bar offers, and the canvas is reused as it stands.
 `?phase=review` opens the tool on Review and `?phase=history` on History. What a drive reads back about the board is not a phase: it is `GET /map/{slug}/report`, an agent's
 read (*The report*, under the API).
@@ -758,8 +758,13 @@ Draw.
 The canvas, and where the geometry is made. **It has three steps, Plan, Ground and Layout, one click apart in the
 bar**: Plan draws the places, Ground draws the shapes, and Layout places the play pieces. Ground and Layout draw
 every shape and every piece, and in both a piece is picked, dragged and turned the same way; only Layout adds or
-deletes one, and only Ground draws a shape. Draw opens on Ground, and Info's last step goes on to Plan, where a
-new map starts.
+deletes one, and only Ground draws a shape. Draw opens on Ground, and Info's last step goes on to Draw's first
+step, where a new map starts.
+
+**Plan and the places are an admin's.** The places are the plan an agent and an admin talk over, so they are
+written by the same people the notes are: an admin in a browser, or a token carrying the notes permission
+(`docs/access.md`). Anyone else's Draw has two steps, Ground and Layout, and Review's Cameras step draws no
+places for them.
 
 **Plan draws the places over whatever the board holds**, top-down, with the notes step's marks — a point, a box,
 a lasso — and a polygon and a polyline beside them; each draws a place rather than ground. A drawn place is
@@ -2256,7 +2261,7 @@ Every endpoint is rooted at `/api`; a read is open to anyone and a write needs s
 | `PATCH /map/{slug}/intent/pieces/{id}/settings` | `{key, text?, number?, flag?, alone?}` — `key` one of `name`, `color`, `style`, `materials`, `float`, `lava`, `lavaHeight`, `openTop`, `leak`, `facing`; `text` for a name, colour, design or material, `number` for the rest and for a facing's quarter turns clockwise, `flag` for `openTop`; none of the three puts it back to its default | `{}` — the setting stored, on every image of the unit for what a unit shares | **400 `RQ1`** a setting the piece's kind lacks, or a value it cannot take · **404 `RQ4`** the id names no piece · 409 · 422 |
 | `DELETE /map/{slug}/intent/pieces/{id}` | `?alone=true` to keep the other images | `{}` — the piece and every image of its unit taken out of the intent | **400 `RQ1`** a room's point, which goes with its room · **404 `RQ4`** the id names no piece · 409 · 422 |
 | `GET /map/{slug}/places` | — | the places as stored, or `{}`; the `ETag` is the revision to state on the next write | 404 |
-| `PUT /map/{slug}/places` | `{places: [{id, name, shape, points, holds?}], area?, verdict?}`; `?note=` kept on the change | `{}` — stored verbatim as one change in the map's history | **400 `RQ1`** a place with no id, a shape that is not `point`, `box`, `ring` or `line` or carries the wrong number of points, a point that is not `[x, z]`, an `area` whose max is not past its min, a `verdict` that is not `proposed`, `changes` or `approved` · **400 `RQ5`** two places stating one id · **400 `RQ4`** a place holding a play piece the map has none of · **409 `RQ13`** a stale `If-Match` · 404 |
+| `PUT /map/{slug}/places` | `{places: [{id, name, shape, points, holds?}], area?, verdict?}`; `?note=` kept on the change | `{}` — stored verbatim as one change in the map's history | **400 `RQ1`** a place with no id, a shape that is not `point`, `box`, `ring` or `line` or carries the wrong number of points, a point that is not `[x, z]`, an `area` whose max is not past its min, a `verdict` that is not `proposed`, `changes` or `approved` · **400 `RQ5`** two places stating one id · **400 `RQ4`** a place holding a play piece the map has none of · **403 `RQ8`** a caller who is neither an admin nor a token carrying the notes permission · **409 `RQ13`** a stale `If-Match` · 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick, but for the rooms: a room shape is stored as its `rooms` record and its rectangle is dropped; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
 | `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned, dropped}` — merges the finish, the relief and any author-corrected room height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge, and so does one `SK1` per group whose **posted** relief the carry replaced with the stored one. `dropped` names the stored shapes the rebuild does not keep — every one whose id the compile does not produce and which carries no `intentRef`, which is a shape drawn in the sketch — with one `SK29` complaint naming them | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built, and — where a plan is stored beside it — re-reads that plan's CTW strait over the drawn ground (`CT12`) | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
