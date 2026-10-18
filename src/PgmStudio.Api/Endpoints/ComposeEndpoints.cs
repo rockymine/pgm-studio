@@ -1,7 +1,12 @@
+using System.Text.Json;
 using FastEndpoints;
+using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Compose;
+using PgmStudio.Data.Features;
+using PgmStudio.Data.Map;
 using PgmStudio.Data.Plan;
+using PgmStudio.Data.Schema;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Render;
@@ -103,15 +108,18 @@ public sealed class ComposeBrowseEndpoint(ComposedBoardStore library) : Endpoint
 }
 
 /// <summary>
-/// POST /api/compose/pin — keep a browse card: the library board its descriptor names, saved as a generated plan
-/// row (<see cref="PlanStore.SaveGeneratedAsync"/>, idempotent by content hash) with its structure, labelled for
-/// the descriptor's player count. The board is the one the card showed, whichever composer version made it.
-/// Returns the stored <see cref="PlanDetail"/>; 404 for a board the library does not hold. The hold tray and
-/// unpin are the tray's other endpoints.
+/// POST /api/compose/map — make a map of a browse card: the library board its descriptor names, whichever composer
+/// version made it, labelled for the descriptor's player count and stored as a map's source would be
+/// (<see cref="MapSource"/>) — its layout and intent as the base, each island given its team — under the first free
+/// slug its name gives. Answers the slug; the Sketch tool opens it. 404 for a
+/// board the library does not hold.
 /// </summary>
-public sealed class ComposePinEndpoint(PlanStore store, ComposedBoardStore library) : Endpoint<ComposeRequestDto, PlanDetail>
+public sealed class ComposeMapEndpoint(
+    ComposedBoardStore library, MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
+    WorldFeatureWriter features, PgmDb db, PlayerLookup players, MapChangeLog log, LibraryNames names)
+    : Endpoint<ComposeRequestDto, OriginatedDto>
 {
-    public override void Configure() { Post("/compose/pin"); Description(b => b.Refuses(404)); }
+    public override void Configure() { Post("/compose/map"); Description(b => b.Refuses(404, 422)); }
 
     public override async Task HandleAsync(ComposeRequestDto req, CancellationToken ct)
     {
@@ -127,16 +135,28 @@ public sealed class ComposePinEndpoint(PlanStore store, ComposedBoardStore libra
             return;
         }
 
-        var plan = ComposedBoardLibrary.PlanOf(board, req.Players);
-        var descriptor = new ComposeDescriptor(ComposeDescriptor.CurrentSchema, board.ComposerVersion, req.Players,
-            ComposedBoardLibrary.Teams, board.Symmetry, board.Cell, board.Seed);
-        var row = await store.SaveGeneratedAsync(plan.ToJson(), descriptor, ComposedBoardLibrary.StructureOf(board), ct);
-        await Send.OkAsync(PlanStoreMapping.ToDetail(row), ct);
+        var sketch = ComposedBoardLibrary.SketchOf(board, req.Players);
+        PlanCompile.AssignIslands(sketch.Layout, sketch.Intent);
+        var source = JsonSerializer.Serialize(new
+        {
+            layout = sketch.Layout,
+            intent = sketch.Intent,
+            note = $"composed: {band} {board.Symmetry} seed {board.Seed} by composer {board.ComposerVersion}",
+        }, MapArtifactStore.Json);
+        var slug = await repo.UniqueSlugAsync(Slugs.Of(sketch.Name), ct);
+        var applied = await MapSource.ApplyAsync(HttpContext, slug, source, dry: false, discarding: null,
+            repo, reader, writer, artifacts, features, db, players, log, names, ct);
+        if (applied.Refusal is { } refusal)
+        {
+            await Refusals.WriteAsync(HttpContext, refusal, ct);
+            return;
+        }
+        await Send.OkAsync(new OriginatedDto(slug), ct);
     }
 }
 
-/// <summary>GET /api/plans/{id}/svg — render a stored plan to the same board SVG the browse feed uses, so the
-/// hold tray can show a thumbnail of a persisted plan. 404 when the plan is missing.</summary>
+/// <summary>GET /api/plans/{id}/svg — draw a stored plan row as the board SVG a plan is drawn in. 404 when the plan
+/// is missing.</summary>
 public sealed class PlanSvgEndpoint(PlanStore store) : EndpointWithoutRequest<SvgDto>
 {
     public override void Configure() { Get("/plans/{id}/svg"); Description(b => b.Refuses(404, 422)); }

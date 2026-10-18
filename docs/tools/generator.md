@@ -6,12 +6,12 @@ The generator shows whole boards. It is the one tool in the studio that authors 
 drawn, it is **composed** — out of a size band, a team count, a symmetry mode and a seed, and out of nothing
 else. The boards are composed ahead of time into a **library**, 500 for every size band and symmetry, and the
 tool browses it. Its route is `/generator`, and what it shows is a feed of those candidates, each one a
-complete plan document rendered as a picture of the fanned board.
+complete board — a sketch and the game settings it is played by — rendered as a picture of the fanned board.
 
 The work it supports is sieving, not editing. Every knob on the page decides which boards are *shown*; none
-of them changes a board. A candidate worth keeping is **pinned**, which stores it, and leaves the tool by
-being **authored**, which originates a map at `stage=plan` and hands it to the Plan tool. From there the
-map follows the ordinary lifecycle — plan, sketch, configure — and the generator is done with it.
+of them changes a board. A candidate worth taking leaves the tool by being **opened in Sketch**, which makes a
+map of it and opens the Sketch tool on that map. From there the map is an ordinary sketched map — its ground
+shaped, painted and dressed in Sketch, its play finished in Configure — and the generator is done with it.
 
 Its companion page is the shape catalog at `/catalog`, which shows the vocabulary the composer fills boxes
 with. That is `shapes.md`'s subject, and the two sit side by side in the studio's bar.
@@ -27,28 +27,24 @@ row the fill wrote (below); the feed has no way to compose a board on request.
 
 **Filling writes the library.** `PgmStudio.Import --compose-library` composes what the running composer
 version is missing, up to `ComposedBoardLibrary.PerBand` — 500 — boards for each of the four size bands and
-the two symmetries the feed offers, seed 0 upward, and stores each as a `composed_board` row: its plan with the
-partition written in as the `boxes` annotation, its score, wool count and structure as columns the feed
-filters and orders on, and the rest of its card — the fired hard terms, the top three soft terms and the land
-spend — as `card_json`. A seed that composes nothing is skipped. Once every band and symmetry holds its 500, the
+the two symmetries the feed offers, seed 0 upward, and stores each as a `composed_board` row: the board as it is
+handed over — its sketch layout and its intent (*What a compose produces*, below) — the
+picture of the pieces the composer laid, its score, wool count and structure as columns the feed filters and
+orders on, and the rest of its card — the fired hard terms, the top three soft terms and the land spend — as
+`card_json`. A seed that composes nothing is skipped. Once every band and symmetry holds its 500, the
 boards any other composer version made are deleted; they are the composer's output under settings the library
 states, so nothing is lost that the fill cannot make again.
 
-**Pinning writes a `plan` row** with origin `generated` (`PlanStore.SaveGeneratedAsync`), holding the library
-board's plan document labelled for the card's player count, the descriptor that names it, the composer version
-that made it, and its structural bucket key. The row is **deduplicated by content hash** — pinning a board
-whose document is already stored returns the existing row instead of a second copy.
+**Making a map writes a map**, through the road a map's source takes (`PUT /api/map/{slug}/source`,
+`docs/tools/flow.md`): the library board the card names, labelled for the card's player count, is stored as the
+base of a map — its layout and its intent, each island given its team — under the first free slug its name gives, `composed-p12-t2-2` and then `composed-p12-t2-2-2`. The world is built
+and the intent projected in the same call, so the map stands at `stage=configure` and the Sketch tool opens on it.
+The board stays in the library: the map holds its own copy from that moment on, and a second map of the same
+card is a second map.
 
-**Authoring writes a `map` row** at `stage=plan` (`POST /api/plan/{planId}/author`), seeded with the
-candidate's plan document and carrying a `plan_source_id` back to it. The candidate is left in the pool: the
-map holds its own copy from that moment on, and editing the map cannot disturb the candidate it came from.
-
-The hold tray is not a session — it *is* the generated half of the candidate pool. It lists every generated
-row the database holds, so a board pinned weeks ago is still in it, and unpinning is a delete.
-
-**A tray thumbnail opens its row in the Plan tool at `/plans/{id}`**, without originating a map. Looking at a
-candidate there costs nothing, and saving an edit forks it into a new `authored` row rather than altering what
-was pinned (`docs/tools/plan.md`, *What it is*).
+**Nothing is kept that is not a map.** There is no store of candidates between the feed and a map, and no
+second editor to look at one in: a board is seen in the feed and its drawer, and worked on once it is a map.
+The plan rows a candidate was once kept as are history (`docs/tools/plan.md`, *What it is*).
 
 ## The request
 
@@ -70,14 +66,9 @@ page starts and `count` how many boards it returns (clamped 1–48; the page ask
 deterministic one chosen for that reason rather than the platform's, and no clock or identifier enters it.
 Sampling *order* is part of the promise: draws come off in one fixed sequence, so inserting a draw anywhere
 re-rolls every seed downstream of it. That is why any change to composition geometry bumps
-`ComposerVersion.Current` — `walled-5` today — and why the version rides on every library board and every
-stored candidate.
+`ComposerVersion.Current` — `walled-5` today — and why the version rides on every library board.
 
-A stored row whose version is not the current one is **stale**, and the tray badges it. Nothing about the
-stored board has changed: it is loaded, never recomposed, and opens exactly as it was kept. What has lapsed is
-its descriptor's claim to reproduce it, so re-composing that same request today yields a different board.
-
-The descriptor is the card's identity and the whole of what a pin needs:
+The descriptor is the card's identity and the whole of what making a map needs:
 
 ```json ComposeRequestDto
 { "players": 12, "teams": 2, "symmetry": "rot_180", "cell": 4, "seed": 0,
@@ -103,7 +94,7 @@ and each neighbour to the width its own joint was granted. The finished unit is 
 face**, so the band it will meet is the face itself rather than the hull of two offset copies. The **carve**
 lays the mid band flush against the fronts. **Walling** then gives each wool approach its defence walls (below).
 **Assembly** turns labelled pieces into a plan, dropping the labels, and the plan is put to the evaluator's
-hard-term gate.
+hard-term gate. A plan that passes is **handed over** as a sketch (below).
 
 A rejected attempt is resampled whole; sixty are allowed before the compose throws, and a throw is skipped
 rather than reported (below). The gate is nine hard terms — structural integrity, the `PC-C` corner-contact
@@ -125,56 +116,37 @@ is two ways round its hole and takes **two walls**, one across each leg as near 
 qualifies, since one wall would leave the other way open. A unit with a donut stands its spawn behind the
 hub, at the end of the back edge nearer the donut, because a donut draws a unit lopsided toward its side.
 
-What comes out is a plan document, and it is the same format the Plan tool edits. This is seed 2 at twelve
-players under `rot_180`, exactly as `POST /api/compose/pin` stored it:
+**What a compose hands over is a sketch, not a plan.** The plan is the composer's own working document: the
+gate is asked of it, and then it is compiled once into what a map is made from (`ComposedSketch`) — a sketch
+layout and the intent it is played by. The compile is the Plan tool's (`PlanCompiler`) with one
+difference: abutting pieces fuse **by box** rather than by height. The hub's pieces are one shape, the front
+line's another, each wool approach and the spawn their own, each named for its box and its surface; a piece in no
+box — a mid stone — fuses with its own component as a plan's does. Every shape stays in the one mirrored group, so
+the Sketch tool moves the unit as a whole and a box is picked and reshaped alone.
 
-```json POST /api/plan/inspect
-{
-  "plan": 2,
-  "meta": { "name": "Composed p12 t2 #2" },
-  "globals": { "cell": 4, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
-  "pieces": [
-    { "id": "hub-t1",          "role": "piece",     "rect": [-5, 15, 11, 3] },
-    { "id": "hub-t2",          "role": "piece",     "rect": [-5, 9, 11, 3] },
-    { "id": "hub-t3",          "role": "piece",     "rect": [-5, 12, 3, 3] },
-    { "id": "hub-t4",          "role": "piece",     "rect": [3, 12, 3, 3] },
-    { "id": "spawn-t1",        "role": "piece",     "rect": [6, 13, 1, 3] },
-    { "id": "spawn-room",      "role": "spawn",     "rect": [7, 13, 2, 3] },
-    { "id": "wool-a-room",     "role": "wool-room", "rect": [-2, 22, 3, 2] },
-    { "id": "frontline-t1",    "role": "piece",     "rect": [-3, 4, 6, 5] },
-    { "id": "wool-a-t1",       "role": "piece",     "rect": [-2, 18, 3, 1] },
-    { "id": "wool-a-t1-inner", "role": "piece",     "rect": [-2, 19, 3, 3] }
-  ],
-  "zones": [ { "id": "mid-band", "rect": [-3, -4, 6, 8], "holes": [] } ],
-  "placements": {
-    "spawns": [ { "id": "spawn-1", "piece": "spawn-room", "at": [4, 6], "facing": "left" } ],
-    "wools":  [ { "id": "wool-1",  "piece": "wool-a-room", "at": [6, 4] } ],
-    "iron": [], "destroyables": [], "cores": []
-  },
-  "walls": [ { "a": "wool-a-t1", "b": "wool-a-t1-inner" } ],
-  "boxes": [
-    { "id": "hub",        "kind": "hub",        "rect": [-5, 9, 11, 9],   "members": ["hub-t1", "hub-t2", "hub-t3", "hub-t4"] },
-    { "id": "spawn",      "kind": "spawn",      "rect": [6, 13, 3, 3],    "members": ["spawn-t1", "spawn-room"] },
-    { "id": "wool-a",     "kind": "wool",       "rect": [-2, 18, 3, 6],   "members": ["wool-a-room", "wool-a-t1", "wool-a-t1-inner"] },
-    { "id": "frontline",  "kind": "frontline",  "rect": [-3, 4, 6, 5],    "members": ["frontline-t1"] }
-  ]
-}
+This is seed 2 at twelve players under `rot_180`, as `POST /api/compose/map` stores it:
+
+```text
+shape            operation  height  vertices (blocks)
+frontline-9      add        9       (-12,16) (12,16) (12,36) (-12,36)
+hub-9            add        9       (-20,36) (24,36) (24,72) (-20,72)
+spawn-9          add        9       (24,52) (36,52) (36,64) (24,64)
+wool-a-9         add        9       (-12,72) (0,72) (0,84) (12,84) (12,96) (-12,96)
+mid-stone-0-9    add        9       (-8,-4) (8,-4) (8,4) (-8,4)
+void-1-cut       subtract   —       (-8,48) (12,48) (12,60) (-8,60)
+group team (mirrored): every shape above
 ```
 
-That document compiles clean, evaluates at score 0 with no lint, and reports every box producible. Its hub is
-a ring whose hole is five cells by three; its spawn docks the hub's right side level with the hole and faces
-left, into the hub; and its one wool approach is cut a cell off the hub into `wool-a-t1` and
-`wool-a-t1-inner`, with the wall on that seam twelve blocks in front of the room. It also shows what a
-composed plan invariably lacks, and the empty arrays are the honest part of it. **No piece carries a
-`surface`**, so a
-generated board is flat at the global 9 and every height on it arrives later, in the Sketch tool's relief
-phase. **`iron`, `destroyables` and `cores` are always empty**: the composer makes CTW boards and places wools
-and one spawn, nothing else. There is exactly **one zone**, the mid band, and it is a build zone — no water
-lanes, no stepping stones, no centre island, and the `mid` box kind that would hold them appears in no
-annotation because the band is a zone rather than a piece.
+Its hub is a ring, so it is two things: the hub's outline and the cut that keeps its hole void, five cells by
+three. The spawn docks the hub's right side level with the hole, its room drawn from the intent over the far two thirds
+of `spawn-9`; the one wool approach is an L whose room closes its far end, with a defence wall on the seam the
+attack crosses twelve blocks in front of the room. The intent carries two spawns and two wools, one of each a team,
+named *Composed p12 t2 #2* for twelve players a team.
 
-The `boxes` annotation is the composer explaining itself. It is authoring annotation only — the compiler, the
-validator and the derivers ignore it — and it is what the Plan tool's feasibility panel reads a board against.
+It also shows what a composed board invariably lacks. **Every shape stands at the global 9**, so a generated
+board is flat and every height on it arrives later, in the Sketch tool's relief phase. **No iron, no destroyable
+and no core**: the composer makes CTW boards and places wools and one spawn, nothing else. There is exactly **one
+build zone**, the mid band — no water lanes and no centre island.
 
 ## The board a request produces
 
@@ -230,7 +202,7 @@ when a deploy brings a new composer version.
 **While a new composer's library is being filled, the feed shows the version before it.** For each band and
 symmetry the feed reads the running composer's boards once they number 500, else the boards of the version
 stored most recently, else whatever part of the running composer's set exists
-(`ComposedBoardStore.ServedVersionAsync`). A card carries the version that made its board, so keeping one from the older set keeps the board it showed.
+(`ComposedBoardStore.ServedVersionAsync`). A card carries the version that made its board, so a map made of one from the older set is the board it showed.
 Once the running composer's set is complete, the older boards are deleted.
 
 **The library is fixed at 500 per band and symmetry, and nothing composes more on request.** That is the
@@ -240,8 +212,7 @@ passes none of them.
 
 ## The feed
 
-One workspace, no phases. The rail on the left holds the filters, the grid in the middle holds the cards, and
-the hold tray sits above them when anything is pinned.
+One workspace, no phases. The rail on the left holds the filters and the grid in the middle holds the cards.
 
 **The rail has two sections, and both apply at once.** *Layout settings* — players per team, symmetry and
 wools per team — restart the page from the library's first board when a value changes. Players per team is
@@ -296,11 +267,10 @@ score, wool count and structure line are not on the card, and the score is shown
 
 **The drawer is the larger view, and it can tint one role at a time.** Opening a card gives a drawer 600 px wide that
 reads top to bottom. The header carries the layout's name (`composed-p{players}-t{teams}-{seed}`) as its title,
-with a *Pin* toggle (an icon button, pressed while the layout is held) and the close button at its right. Under
-it sit the picture, at most 48% of the viewport high; a *Highlight* row of six toggles (*Hub*, *Front line*,
+with the close button at its right. Under it sit the picture, at most 48% of the viewport high; a *Highlight* row of six toggles (*Hub*, *Front line*,
 *Approaches*, *Spawn*, *Wool rooms*, *Build zone*) with the key below it; a written description of the layout;
-three facts (players per team, wools per team, symmetry); and a footer with the one primary action, *Open in Plan Editor*, a text button
-beside a note saying it forks the layout into a new map and opens its plan.
+three facts (players per team, wools per team, symmetry); and a footer with the one primary action, *Open in Sketch*, a text button
+beside a note saying it makes a new map of the layout and opens it in the Sketch tool.
 Every piece in the SVG carries a `role-*` class from `BoardRoles` (`hub`, `frontline`, `approach`, `spawn`,
 `wool`, `other`, and `zone` for a zone), and a toggle adds `board-hl-{role}` to the picture's frame, which
 restyles those pieces in the accent by CSS: the picture is not requested again. None are on when the drawer
@@ -338,11 +308,9 @@ stands nearer the wool at the back than the one across the hub, however squarely
 one board in five crosses a middle thinner than its size's floor or longer than twice its width (`MD7`, `MD8`). A hard violation would add 1000 and dominate any
 soft sum.
 
-**Pinning and making a map are the two exits.** The pin toggle, in the top-right corner of a card's picture and in the drawer's header, keeps the library board the descriptor names and
-refreshes the tray; the tray's thumbnails come from the stored rows rather than from the cards, so a board held in an
-earlier session looks the same as one held a moment ago. *Open in Plan Editor* pins first if the board is not
-already held, then commits the candidate to a new map at the plan stage and opens that map's plan editor at
-`/maps/{slug}/plan`; the layout stays pinned.
+**Making a map is the one exit.** *Open in Sketch* makes a map of the library board the descriptor names
+(`POST /api/compose/map`) and opens it at `/maps/{slug}/sketch`; the button says *Making the map…* while the
+world is built, and a refusal leaves the drawer open with a sentence saying the map could not be made.
 
 ## What it refuses
 
@@ -360,52 +328,46 @@ surfacing deep inside generation.
 a `ComposeException`, and the fill catches it and moves to the next seed, so the library simply holds no board
 for that seed. One unusable seed is not a failure of the fill, and none has been seen in thousands.
 
-**A descriptor the library does not hold is 404 on pin.** `POST /api/compose/pin` keeps the stored board the
-descriptor names rather than anything the client sends, so a descriptor for a seed never filled, or from a
-composer version whose boards have been deleted, answers 404; a malformed one is 400.
+**A descriptor the library does not hold is 404.** `POST /api/compose/map` makes a map of the stored board the
+descriptor names rather than of anything the client sends, so a descriptor for a seed never filled, or from a
+composer version whose boards have been deleted, answers 404; a malformed one is 400. The map is stored as a
+source is, so what refuses a source refuses it too, and nothing is stored when it does.
 
 Nothing else is refused. There is no minimum board, no rule about what a candidate must contain, and no check
-that a pinned board is any good — the score is advice, and a board scoring 12 is as pinnable as one scoring 0.
+that a board is any good — the score is advice, and a board scoring 12 makes a map as one scoring 0 does.
 
 ## The API
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist
-([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The page greys *Pin* and
-*Open in Plan Editor* for anyone off the whitelist and unpinning for anyone but an admin, since a pin is a
-plan row and deleting one is an admin's.
+([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The page greys *Open in
+Sketch* for anyone off the whitelist.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `GET /compose?players=&symmetry=&from=&count=` | `{cards, next, end, matching, observed, key}` — a page of the library, best score first: each card its descriptor, score, wool count, structural read, hard terms, top three soft terms, board SVG and land spend; `next` the position to ask from, `end` whether this page reaches the last matching board, `matching` how many match, `observed` the census of every board held for the band and symmetry, `key` the four inks the SVGs are drawn in | 400 unsupported symmetry · 400 unsupported team count |
 | … `&maxScore=&woolCount=` | the same, sieved on the evaluator score and the wool count; `woolCount` is CSV and any-of (`1,3` takes boards with one or three wools), and the page sends it only, `maxScore` is for a script | — |
 | … `&wools=&hub=&front=` | the same, sieved structurally — `wools` must-include, `hub` and `front` any-of, all CSV | — |
-| `POST /compose/pin` | the stored `PlanDetail` — keeps the library board a **descriptor body** names, the `{players, teams, symmetry, seed, …}` record a card carries, labelled for its player count and saved as a generated row (idempotent by content hash) | 400 `RQ1` invalid descriptor · 404 a board the library does not hold |
-| `GET /plans?origin=generated` | the hold tray: summaries newest-touched first, each with its descriptor and whether it is stale | — |
-| `GET /plans/{id}` | the row plus its `planJson` | 404 |
-| `GET /plans/{id}/svg` · `GET /plans/{id}/png` | the stored board as a thumbnail or as an image an image reader can open — both off one shared scene, so the encodings cannot disagree | 404 unknown · 422 unreadable plan |
-| `DELETE /plans/{id}` | 204 — unpin | — |
-| `POST /plan/{planId}/author` | `{slug}` — a `map` row at `stage=plan` seeded from the candidate | 404 unknown candidate |
+| `POST /compose/map` | `{slug}` — makes a map of the library board a **descriptor body** names, the `{players, teams, symmetry, seed, …}` record a card carries: its layout and intent labelled for its player count and its islands given their teams, stored as a source is under the first free slug its name gives, with its world built | 400 `RQ1` invalid descriptor · 404 a board the library does not hold · 422 a board the source road refuses, as `PUT /map/{slug}/source` does |
 
-Every plan-side endpoint a composed board can be put to — compile, evaluate, feasibility, inspect — is the
-Plan tool's and takes the document as its body. `plan.md` has them.
+Every endpoint a map made here is put to after that is the Sketch tool's and Configure's, by its slug.
 
 ## Driving it without the UI
 
-The whole loop is three calls.
+The whole loop is two calls.
 
 ```
 GET  /api/compose?players=20&symmetry=rot_180&count=9
-POST /api/compose/pin        <the chosen card's descriptor verbatim>   → {"id": 18, …}
-POST /api/plan/18/author                                               → {"slug": "composed-p20-t2-42"}
+POST /api/compose/map        <the chosen card's descriptor verbatim>   → {"slug": "composed-p20-t2-42"}
 ```
 
-From there the map is an ordinary plan-stage map and `plan.md`'s six-call chain finishes it, and the slug is
-the candidate's name slugified — `Composed p20 t2 #42` becomes `composed-p20-t2-42`.
+From there the map is an ordinary sketched map, read and written by its slug — `GET /api/map/{slug}/sketch`,
+and `GET /api/map/{slug}/intent` hand over its two documents, and
+`PUT /api/map/{slug}/source` stores it again with a refinement on it. The slug is the board's name slugified —
+`Composed p20 t2 #42` becomes `composed-p20-t2-42`.
 
-**The feed never hands over a plan document**, which is the one thing worth knowing before scripting against
-it: a card carries its descriptor and a picture, so a page of 48 stays light, and the only call that hands over
-the document is `POST /api/compose/pin`. An agent that wants the JSON rather than a map therefore pins, reads
-`planJson` off the response, and deletes the row.
+**The feed never hands over a board's documents**, which is the one thing worth knowing before scripting
+against it: a card carries its descriptor and a picture, so a page of 48 stays light, and the only call that
+hands over the documents is the one that makes a map of them.
 
 Three habits make the feed usable from a script. **Walk with the position**: pass the previous response's
 `next` as the next `from` and stop on `end`, rather than guessing a stride. **Read the census first**: every
@@ -429,7 +391,7 @@ author's decision rather than a gap, and `--per-band` exists for tests and local
 
 **Nothing composed can be adjusted here.** There is no way to nudge a hub, re-roll one wool, or ask for the
 same board a little wider. The unit of work is a whole board, and the only response to a board that is nearly
-right is to author it and fix it in the Plan tool.
+right is to make a map of it and reshape it in the Sketch tool, where each box is a shape of its own.
 
 **Two of the four symmetries and one of the two team counts are unreachable.** The feed composes `rot_180` and
 `mirror_z` at two teams. `mirror_x`, `rot_90` and every team count but two are legal at the type level and

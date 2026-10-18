@@ -38,9 +38,16 @@ public static class PlanCompile
             return new(Refusal.At(400, "invalid plan structure", JsonFaults.Said(RequestRules.Unreadable, fault, document: "the plan")));
         }
 
+        AssignIslands(layout, intent);
+        return new(null, layout, intent, new Findings([.. completeness.Complaints]));
+    }
+
+    /// <summary>Fill in each island's team on the footprint <paramref name="layout"/> rasterizes to: a spawn's team
+    /// owns its island, else a wool's owner, else it stays neutral.</summary>
+    public static void AssignIslands(SketchLayout layout, MapIntent intent)
+    {
         var footprint = SketchRasterizer.RasterizeColumns(JsonSerializer.Serialize(layout, SketchLayout.Json))
             .Select(column => (column.X, column.Z));
         foreach (var (islandId, team) in TeamTerritory.Assign(footprint, intent)) intent.IslandTeams[islandId] = team;
-        return new(null, layout, intent, new Findings([.. completeness.Complaints]));
     }
 }

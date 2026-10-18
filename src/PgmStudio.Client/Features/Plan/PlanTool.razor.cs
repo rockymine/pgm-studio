@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
 using PgmStudio.Geom;
@@ -24,35 +23,13 @@ public partial class PlanTool
     /// before the plan is loaded into it.</summary>
     private bool showBoxes;
 
-    /// <summary>When routed as <c>/maps/{slug}/plan</c>, the plan is a <c>stage=plan</c> map row and the editor
-    /// loads/saves its <c>plan_json</c> artifact (GET/PUT <c>/api/map/{slug}/plan</c>) in place — no fork doctrine.
-    /// Null on a plan-row route.</summary>
-    [Parameter] public string? Slug { get; set; }
+    /// <summary>The map whose <c>plan_json</c> artifact the editor loads and saves in place
+    /// (GET/PUT <c>/api/map/{slug}/plan</c>).</summary>
+    [Parameter] public string Slug { get; set; } = "";
 
-    /// <summary>The plan row <c>/plans/{id}</c> opens (<c>GET</c>/<c>POST /api/plans</c>). Null on
-    /// <c>/plans/new</c>, which holds a blank plan until Save stores it as a row.</summary>
-    [Parameter] public long? PlanId { get; set; }
-
-    private bool MapBacked => Slug is { Length: > 0 };
-
-    /// <summary>What the route asks the editor to hold: a map, a plan row, or a new plan.</summary>
-    private string RouteKey => MapBacked ? $"map:{Slug}" : PlanId is { } id ? $"plan:{id}" : NewKey;
-
-    private const string NewKey = "new";
-
-    /// <summary>What the editor holds now, in <see cref="RouteKey"/>'s terms. It leads the route when Save
-    /// forks a row or Open picks one, and the URL is brought after it; it trails the route when the address
-    /// changes under a mounted editor, and <see cref="BindAsync"/> loads what the route names.</summary>
-    private string? boundKey;
-
-    /// <summary>The page component outlives a navigation between its own routes, and a route parameter
-    /// the new route does not name keeps its old value; both are cleared so each route states its binding.</summary>
-    public override Task SetParametersAsync(ParameterView parameters)
-    {
-        Slug = null;
-        PlanId = null;
-        return base.SetParametersAsync(parameters);
-    }
+    /// <summary>The map the editor holds now. It trails the route when the address changes under a mounted editor,
+    /// and <see cref="BindAsync"/> loads the map the route names.</summary>
+    private string? boundSlug;
 
     // ── Phases (the rail): Info (Identity + Settings steps) · Draw (the canvas). Draw stays mounted while
     //    Info is up (hidden, not torn down) so the plan doc + zoom survive the trip. ──
@@ -88,7 +65,7 @@ public partial class PlanTool
     /// while a binding loads is taken up when it finishes.</summary>
     protected override async Task OnParametersSetAsync()
     {
-        if (handle is null || !documentLoaded || RouteKey == boundKey) return;
+        if (handle is null || !documentLoaded || Slug == boundSlug) return;
         documentLoaded = false;
         try { await BindToRouteAsync(); }
         finally { documentLoaded = true; }
@@ -98,7 +75,7 @@ public partial class PlanTool
     private async Task BindToRouteAsync()
     {
         do await BindAsync();
-        while (handle is not null && RouteKey != boundKey);
+        while (handle is not null && Slug != boundSlug);
     }
 
     // Switching phases only flips which body renders: the canvas observes its own wrap and re-measures
@@ -133,10 +110,6 @@ public partial class PlanTool
     private string zoomLabel = "—";
     private string? importError;
 
-    // Plan-store binding: the DB row the editor currently holds (null = a fresh unsaved plan), its origin
-    // (generated | authored | imported — drives the fork-on-save doctrine), and the open-from-DB browser.
-    private long? planDbId;
-    private string? planOrigin;
     private bool saving;
     private string? saveState;          // a transient "Saved" / error note under the toolbar
 
@@ -145,11 +118,6 @@ public partial class PlanTool
     /// until it loads the plan again.</summary>
     private DocumentSave Document => document ??= new(Http);
     private DocumentSave? document;
-
-    private bool showOpenDb;
-    private bool dbBusy;
-    private string? dbError;
-    private List<PlanSummary> dbPlans = [];
 
     // Read-only 3-D height preview.
     private IsoView iso = default!;
@@ -303,41 +271,22 @@ public partial class PlanTool
         StateHasChanged();
     }
 
-    /// <summary>Load what the route names into the editor: a map's plan artifact, a plan row, or a blank plan.
-    /// A map left behind is offered the same discard the editor's disposal gives it, and everything read off
-    /// the previous binding — the selection, the open drawers, the map state — is dropped with it.</summary>
+    /// <summary>Load the map the route names into the editor. A map left behind is offered the same discard the
+    /// editor's disposal gives it, and everything read off it — the selection, the open drawers, the map state —
+    /// is dropped with it.</summary>
     private async Task BindAsync()
     {
         if (handle is null) return;
-        var previous = boundKey;
-        if (previous is not null && previous.StartsWith("map:", StringComparison.Ordinal))
-            await DiscardIfEmptyAsync(previous["map:".Length..]);
+        var previous = boundSlug;
+        if (previous is not null) await DiscardIfEmptyAsync(previous);
 
-        boundKey = RouteKey;
+        boundSlug = Slug;
         sel = null;
         buildDrawer?.Reset();
-        showOpenDb = false;
         importError = null;
-        ResetDbBinding();
+        saveState = null;
         if (previous is not null) active = Phase == "info" ? "info" : "draw";
-
-        if (MapBacked) await LoadFromMap(Slug!);
-        else if (PlanId is { } planId) await LoadFromDb(planId);
-        else if (previous is not null)
-        {
-            await handle.InvokeVoidAsync("newDoc");
-            SyncMeta(await handle.InvokeAsync<string>("getMeta"));
-        }
-    }
-
-    /// <summary>Bring the address to the plan row the editor now holds, without loading it again: a save
-    /// that forked, an Open, a New and an Import each change the row first and the URL after.</summary>
-    private void ShowBindingInUrl(bool replace = false)
-    {
-        if (MapBacked) return;
-        boundKey = planDbId is { } id ? $"plan:{id}" : NewKey;
-        if (boundKey == RouteKey) return;
-        Nav.NavigateTo(planDbId is { } row ? $"plans/{row}" : "plans/new", replace: replace);
+        await LoadFromMap(Slug);
     }
 
     // ── toolbar ────────────────────────────────────────────────────────────────
@@ -618,49 +567,7 @@ public partial class PlanTool
         catch { /* keep what is held — the inspector still renders */ }
     }
 
-    // ── plan file / lifecycle ────────────────────────────────────────────────────
-
-    private async Task NewPlan()
-    {
-        importError = null;
-        if (handle is null) return;
-        await handle.InvokeVoidAsync("newDoc");
-        SyncMeta(await handle.InvokeAsync<string>("getMeta"));
-        ResetDbBinding();
-        sel = null;
-        ShowBindingInUrl();
-        StateHasChanged();
-    }
-
-    private async Task OnImport(InputFileChangeEventArgs e)
-    {
-        importError = null;
-        if (handle is null) return;
-        try
-        {
-            using var reader = new StreamReader(e.File.OpenReadStream(1024 * 1024));
-            var text = await reader.ReadToEndAsync();
-            var err = await handle.InvokeAsync<string?>("importJson", text);
-            if (err is not null) { importError = err; }
-            // A file import is a fresh, not-yet-persisted plan — saving it creates a new authored row.
-            else { SyncMeta(await handle.InvokeAsync<string>("getMeta")); ResetDbBinding(); sel = null; ShowBindingInUrl(); }
-        }
-        catch { importError = "Couldn't read the file."; }
-        StateHasChanged();
-    }
-
-    // ── plan store (DB save / open-from-DB) ──────────────────────────────────────
-
-    private void ResetDbBinding() { planDbId = null; planOrigin = null; saveState = null; }
-
-    /// <summary>What the origin badge means for the next Save.</summary>
-    private string OriginTitle => planOrigin == "authored"
-        ? "Saving updates this plan"
-        : "Saving a generated or imported plan creates a new copy";
-
-    // Save the current plan to the DB. The server applies the fork-or-mutate doctrine: a fresh or authored
-    // plan is written in place; a loaded generated/imported plan forks a new authored row. The response is
-    // adopted so the editor flips onto whatever row now holds the work.
+    // Save the plan into its map's artifact, over the revision this tab loaded.
     private async Task SavePlan()
     {
         if (handle is null || saving) return;
@@ -668,79 +575,14 @@ public partial class PlanTool
         StateHasChanged();
         try
         {
-            // A map-backed plan mutates its artifact in place — it is already the authored map row, no forking.
-            if (MapBacked)
-            {
-                var outcome = await Document.PutAsync($"api/map/{Slug}/plan", () => PlanExport.BodyAsync(handle!));
-                saveState = outcome.Landed ? "Saved" : outcome.Message;
-                return;
-            }
-            var planJson = await handle.InvokeAsync<string>("exportJson");
-            using var resp = await Http.PostAsJsonAsync("api/plans", new PlanSaveRequest(planJson, planDbId));
-            if (resp.IsSuccessStatusCode)
-            {
-                var saved = await resp.Content.ReadFromJsonAsync<PlanDetail>();
-                if (saved is not null)
-                {
-                    planDbId = saved.Id;
-                    planOrigin = saved.Origin;
-                    saveState = "Saved";
-                    ShowBindingInUrl(replace: true);
-                }
-            }
-            else { saveState = $"Couldn't save (HTTP {(int)resp.StatusCode}). Try again."; }
+            var outcome = await Document.PutAsync($"api/map/{Slug}/plan", () => PlanExport.BodyAsync(handle!));
+            saveState = outcome.Landed ? "Saved" : outcome.Message;
         }
         catch { saveState = "Couldn't save. Try again."; }
         finally { saving = false; StateHasChanged(); }
     }
 
-    private async Task OpenDbBrowser()
-    {
-        showOpenDb = true;
-        dbBusy = true; dbError = null; dbPlans = [];
-        StateHasChanged();
-        try { dbPlans = await Http.GetFromJsonAsync<List<PlanSummary>>("api/plans") ?? []; }
-        catch { dbError = "Couldn't load plans. Try again."; }
-        finally { dbBusy = false; StateHasChanged(); }
-    }
-
-    private void CloseDbBrowser() => showOpenDb = false;
-
-    // A generated row made by an older composer opens exactly as stored — only its descriptor has stopped
-    // reproducing it, which matters when re-composing that request, not when loading the row.
-    private static string StaleTitle(PlanSummary p) =>
-        $"Made by generator version {p.ComposerVersion ?? "unknown"}. "
-        + "Generating it again today would give a different layout.";
-
-    // Open a plan row from the browser: load it, then bring the address to it.
-    private async Task OpenFromDb(long id)
-    {
-        await LoadFromDb(id);
-        if (planDbId == id) ShowBindingInUrl();
-    }
-
-    private async Task LoadFromDb(long id)
-    {
-        if (handle is null) return;
-        importError = null;
-        try
-        {
-            var detail = await Http.GetFromJsonAsync<PlanDetail>($"api/plans/{id}");
-            if (detail is null) { importError = dbError = "Plan not found."; return; }
-            var err = await handle.InvokeAsync<string?>("importJson", detail.PlanJson);
-            if (err is not null) { importError = err; return; }
-            SyncMeta(await handle.InvokeAsync<string>("getMeta"));
-            planDbId = detail.Id;
-            planOrigin = detail.Origin;
-            saveState = null;
-            sel = null;
-            showOpenDb = false;
-        }
-        catch { importError = dbError = "Couldn't open the plan."; }
-        StateHasChanged();
-    }
-
-    // Load a map-backed plan's artifact (GET /api/map/{slug}/plan). An empty {} body means the map has no
+    // Load the map's plan artifact (GET /api/map/{slug}/plan). An empty {} body means the map has no
     // stored plan yet — a fresh blank plan; the editor keeps its default doc rather than importing garbage.
     // That default is blank: the bridge restores no cached document at mount, so
     // "no stored plan" renders an empty board instead of whatever this browser last drew.
@@ -878,7 +720,7 @@ public partial class PlanTool
 
     public async ValueTask DisposeAsync()
     {
-        if (MapBacked) await DiscardIfEmptyAsync(Slug!);
+        await DiscardIfEmptyAsync(Slug);
         try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null)
         {

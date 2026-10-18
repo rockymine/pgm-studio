@@ -12,24 +12,19 @@ A plan is authored as **one symmetry unit**. Everything drawn belongs to team 0;
 other teams' images by the plan's symmetry mode. Nothing in the document is per-team, and there is no way to
 give one team a different board from another.
 
-The tool binds to one of two stores, and the route names which. `/maps/{slug}/plan` edits the plan artifact
-of a map row and is the normal entry: the map carries its plan, its sketch and its configuration on one row,
-and rebuilding refreshes them in place. `/plans/{id}` opens a **plan row** — what the generator pins a
-candidate as, and what Save writes when no map is behind the plan — and `/plans/new` holds a blank plan until
-Save stores it as one. A plan row has no map, so building it originates one.
+The tool edits the plan artifact of a map row at `/maps/{slug}/plan`: the map carries its plan, its sketch and
+its configuration on one row, and rebuilding refreshes them in place. It has no other binding. The `plan` table's
+rows — the plans the generator's candidates were once kept as, and the ones drawn or imported without a map — are
+kept read-only as history, read through `GET /plans` and drawn by `GET /plans/{id}/svg`, and no page opens them.
 
-Both bindings are the same tool: the rail's Info and Draw phases, the editor bar whose Next is Compile, and the
-Draw sidebar, which folds away to give the canvas the width. Only the bar's commands
-follow the binding, because only saving differs. The crumb is *Maps › the plan's name* on both, and the stage
-switcher beside it opens the map's Sketch and Configure on a map-backed plan; a plan row has no map, so its
-stage word is plain text. A map-backed plan's commands are *Save*, which writes the map's
+The tool is the rail's Info and Draw phases, the editor bar whose Next is Compile, and the Draw sidebar, which
+folds away to give the canvas the width. The crumb is *Maps › the plan's name*, and the stage switcher beside it
+opens the map's Sketch and Configure. The bar's one command is *Save*, which writes the map's
 artifact in place, **over the revision the tab loaded**: the plan was read with its `ETag`, which Save and the
 build's own plan write state as `If-Match`, so where the stored plan has moved on since — a second tab, an agent
 driving the API — the write is refused `RQ13` at 409 rather than overwriting it. The bar then says the plan was
 saved from somewhere else and that the page must be reloaded, and no further write is sent until it is; the
-sketch tool's save is the same helper (`DocumentSave`). A plan row's commands are what a row needs: *New*, *Import* a `*.plan.json`, *Open* a saved
-row, *Save*, and the row's origin as a badge — `authored` saves in place, while `generated` and `imported`
-fork into a new authored row on Save, and the address follows the copy.
+sketch tool's save is the same helper (`DocumentSave`).
 
 **New plan** creates the map row before anything is drawn, so a plan left without being saved is discarded
 on the way out: while it is still named *Untitled plan*, still holds the empty document it was created with,
@@ -45,9 +40,7 @@ building, which writes both onto a map and rasterizes the layout into world geom
 
 A map-backed plan is a `map` row at `stage=plan` whose `plan_json` artifact holds the document, read and
 written through `MapArtifactStore` like every other artifact. It sits outside the entity-replace codec
-that carries the rest of a map, exactly as the sketch layout does. A candidate is a row in the separate `plan`
-table with an origin of `generated`, `authored` or `imported`, its composer descriptor, and its own copy of
-the same document.
+that carries the rest of a map, exactly as the sketch layout does.
 
 Two things a plan tool edits are *not* in the plan document. The map's display name and its authors live on
 the map row and are saved through `PATCH /api/map/{slug}/metadata`; the document's own `meta.name` is synced
@@ -396,15 +389,14 @@ ground.
 `boxes` groups pieces into the partition they realize — a `wool` or `spawn` approach, the `hub` body they seat
 on, the `frontline` that fronts it, the `mid` between the fanned images. A box is drawn around its members
 rather than filled by them, boxes may overlap, and membership is by containment (every generating piece wholly
-inside the rect) unless `members` names the pieces explicitly, which a composed partition writes so a picked
-board reopens with the grouping that produced it.
+inside the rect) unless `members` names the pieces explicitly.
 
 Boxes are **authoring annotation only**. The compiler, the validator and the derivers ignore them, so drawing
 one can never change what a plan builds; they are how a generated board explains itself, and the unit the
 producibility read reports against. A hand-authored plan does not need them.
 
 **Boxes are an admin's view of the composer's model.** They stay in the document and are saved, loaded and
-carried by every route unchanged — an agent writes them, a composed board arrives with them — but the plan
+carried by every route unchanged — an agent writes them — but the plan
 editor shows them to an admin only. For anyone else the canvas draws no box, ghost or label, a click never
 picks one, they do not count in the fit, and the Boxes tool, its `G` chord, the box inspector and the
 Generator check are absent; the editor does not ask for the producibility read at all. The Generator check
@@ -496,9 +488,8 @@ its island, else a wool's owner, else neutral — so Configure opens pre-assigne
 ### Info
 
 Two steps. **Identity** is the plan's name, live-synced into the plan document as it is typed because the
-compile reads it. On a map-backed plan it is the map's display name and stands beside the authors, both loaded
-once from `GET /api/map/{slug}` and saved with `PATCH /api/map/{slug}/metadata`; a plan row has no map to
-credit anyone on, so its name is all Identity holds and the editor bar's Save stores it with the row.
+compile reads it. It is the map's display name and stands beside the authors, both loaded once from
+`GET /api/map/{slug}` and saved with `PATCH /api/map/{slug}/metadata`.
 **Settings** is the globals form — symmetry, cell size, height (the base surface), height step, max players — writing
 straight through to the live document. Continue on the last step advances to Draw. A plan opened with
 `?phase=info` starts here, which is how a blank map-backed plan is named; any other opens on Draw.
@@ -734,7 +725,7 @@ the document is empty — and `Completeness` reports it alone, returning before 
 ## The API
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist, or
-who may edit the map it names ([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The editor greys *New*, *Import*, *Save*, *Compile* and the build for a caller who may not write there, with the reason on hover, and leaves *Open* alone. A route that builds a world waits its turn in the build queue and answers 429 when it cannot, which no row repeats either. Inspect, evaluate, feasibility and compile all take a plan
+who may edit the map it names ([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The editor greys *Save*, *Compile* and the build for a caller who may not write there, with the reason on hover. A route that builds a world waits its turn in the build queue and answers 429 when it cannot, which no row repeats either. Inspect, evaluate, feasibility and compile all take a plan
 document as the body and need no map, which is what lets a plan be checked before it is stored anywhere.
 
 **Originating and storing**
@@ -742,7 +733,6 @@ document as the body and need no map, which is what lets a plan be checked befor
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
 | `POST /plan` | `{name?}` | `{slug}` — a new `map` row at `stage=plan`, gamemode `ctw`, empty plan artifact | — |
-| `POST /plan/{planId}/author` | — | `{slug}` — a map row seeded from a generator candidate | 404 unknown candidate |
 | `GET /map/{slug}/plan` | — | the stored document, or `{}`. The `ETag` is the revision to state on the next write | 404 unknown map |
 | `DELETE /map/{slug}/discard-if-empty` | — | `{discarded}` — drops a draft still named *Untitled plan*, never saved, not forked from a candidate and credited to nobody but its originator; the Sketch tool asks the same | — |
 | `PUT /map/{slug}/plan` | the document | `{}` — a verbatim replace; `warnings` carries any field the plan reader has nowhere to keep (`RQ3`), which the blob would otherwise store and nothing downstream would read. The `ETag` is the revision it landed at | 400 non-JSON · **409 `RQ5`** an `If-Match` naming a revision the plan is no longer at · 404 unknown map |
@@ -752,15 +742,13 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `GET /map/{slug}/plan/flow` | — | `text/plain` — how the board is come at and what that leaves unused: per objective, one reading per **demand set** (attack, back-run, defend, chase), each on the ground that side walks, with its distance, its ways and **one decision per door** — the hole, where the choice is made, how long it stays open, what the other way costs — plus whether the defence shares the attackers' road, and the ground no journey reaches, named with its pieces | 404 · 422 |
 | `GET /map/{slug}` · `PATCH /map/{slug}/metadata` | `{name, authors[]}` | the map's identity | 404 |
 
-**Plan rows** (the `/plans/{id}` and `/plans/new` routes)
+**Stored plan rows**, read-only history
 
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
-| `GET /plans[?origin=generated\|authored\|imported]` | — | summaries, newest touched first, each with its composer descriptor and whether that descriptor still reproduces it | — |
+| `GET /plans[?origin=generated\|authored\|imported]` | — | summaries, newest touched first, a generated row with the composer descriptor it was composed from | — |
 | `GET /plans/{id}` | — | the row plus its `planJson` | 404 |
-| `GET /plans/{id}/ascii[?every=N]` | — | the same grid for a candidate, by id rather than slug | 404 · 422 |
-| `POST /plans` | `{planJson, sourceId?}` | the saved row — an authored source is updated in place, a generated or imported one forks into a new authored row; `warnings` carries any field the plan reader has nowhere to keep (`RQ3`) | 400 malformed plan |
-| `DELETE /plans/{id}` | — | 204; forks survive with a null parent | — |
+| `GET /plans/{id}/ascii[?every=N]` · `/svg` · `/png` | — | the same board drawn, by id rather than slug | 404 · 422 |
 
 **The flow.** A render says *where* ground is dead; only the flow says *why*, and a model handed a red
 rectangle with no account of it will move the rectangle rather than the reason. `GET /map/{slug}/plan/flow`
@@ -825,7 +813,6 @@ draws the board as characters.
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
 | `POST /plan/compile` | the document | `{layout, intent}`, each half serialized with its consumer's options so both can be posted on verbatim; `warnings` rides beside them where the compile is complete enough to succeed and incomplete enough to remark on (today `PL3`, a map with no objective), and where the posted plan carried a field the reader has nowhere to keep (`RQ3`) | 422 `{findings}` structural or completeness errors · 400 malformed |
-| `POST /sketch` | `{name}` | `{slug}` — originates a map; only needed for a plan row | — |
 | `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{orphaned, dropped}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` rides beside them: what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers, and any field of the **posted** layout the reader had nowhere to keep (`RQ3`). `dropped` names every stored shape the compile does not produce and that carries no `intentRef` — a shape drawn in the sketch, which nothing carries since geometry is the plan's — with one `SK29` complaint beside it | 409 one `SK1` finding per orphaned group, subject = group id (`?force=true` accepts the loss) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes the layout into world geometry and moves the map to `stage=configure`, answering the stored document's own complaints under `warnings` on the way through | 404 unknown map · 422 the layout rasterizes to no ground · 422 `SK2` |
 | `PUT /map/{slug}/intent/from-plan` | the compiled `intent` | the projected map — carries the stored **authors and contributors** onto it and nothing else. `symmetry` and `islandTeams` are deliberately not carried, so a rebuild clears both | 404 · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |

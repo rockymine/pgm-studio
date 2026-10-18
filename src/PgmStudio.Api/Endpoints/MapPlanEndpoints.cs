@@ -18,8 +18,7 @@ namespace PgmStudio.Api.Endpoints;
 /// <summary>POST /api/plan — originate a blank authored plan: create a <c>map</c> row at <c>stage=plan</c>
 /// with an empty <c>plan_json</c> artifact (no candidate provenance). Returns the slug; the client navigates
 /// to <c>/maps/{slug}/plan</c>, where the editor keeps its default blank document until first save. Body:
-/// optional {name}. The generator's <c>plan</c> candidate rows are a separate pool; authoring one forks it
-/// into a map here.</summary>
+/// optional {name}.</summary>
 public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OriginatedDto>
 {
     public override void Configure()
@@ -42,28 +41,6 @@ public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore arti
         var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(
             repo, name, MapStage.Plan, await Callers.OriginatorOfAsync(HttpContext), ct);
         await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, "{}"u8.ToArray(), ct);
-        await Send.OkAsync(new OriginatedDto(slug), ct);
-    }
-}
-
-/// <summary>POST /api/plan/{planId}/author — commit a generator plan candidate to authoring: create a
-/// <c>map</c> row at <c>stage=plan</c> seeded with the candidate's <c>plan_json</c> (a <c>plan_json</c>
-/// artifact) and a <c>plan_source_id</c> back to the candidate. Returns the slug; the client navigates to
-/// <c>/maps/{slug}/plan</c>. 404 if the candidate doesn't exist.</summary>
-public sealed class AuthorPlanEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest<OriginatedDto>
-{
-    public override void Configure() { Post("/plan/{planId}/author"); Description(b => b.Refuses(404)); }
-
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        var planId = Route<long>("planId");
-        var candidate = await db.Plans.FirstOrDefaultAsync(p => p.Id == planId, ct);
-        if (candidate is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
-
-        var name = string.IsNullOrWhiteSpace(candidate.Name) ? DraftDiscard.PlanName : candidate.Name.Trim();
-        var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(
-            repo, name, MapStage.Plan, await Callers.OriginatorOfAsync(HttpContext), ct, planSource: candidate.Id);
-        await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, Encoding.UTF8.GetBytes(candidate.PlanJson), ct);
         await Send.OkAsync(new OriginatedDto(slug), ct);
     }
 }

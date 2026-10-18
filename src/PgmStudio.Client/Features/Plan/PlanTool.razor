@@ -1,24 +1,17 @@
-@page "/plans/new"
-@page "/plans/{PlanId:long}"
 @page "/maps/{Slug}/plan"
 @layout StudioLayout
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @implements IAsyncDisposable
 
-@* Plan editor — a coarse cell-grid layout tool, on one of two bindings: a map's plan artifact
-   (/maps/{slug}/plan) or a plan row (/plans/{id}, /plans/new). Both render the same tool: the rail's Info and
-   Draw phases, the editor bar, and a collapsible sidebar stacking Settings (an open studio only) over Checks.
-   Only the editor bar follows the binding, because only saving differs: a map-backed plan saves
-   into its map, a plan row saves as a row and forks when it was generated or imported. The PlanCanvas JS
-   (via bridge/plan-bridge.js) owns the plan document, the pointer tools and the live symmetry mirror ghost. *@
+@* Plan editor — a coarse cell-grid layout tool over a map's plan artifact (/maps/{slug}/plan): the rail's Info
+   and Draw phases, the editor bar, and a collapsible sidebar stacking Settings (an open studio only) over Checks.
+   The PlanCanvas JS (via bridge/plan-bridge.js) owns the plan document, the pointer tools and the live symmetry
+   mirror ghost. *@
 
 <StudioShell>
   <Bar>
-    @* A map-backed plan is the Plan stage of its map. A plan row has no map to switch within, so its stage word
-       is plain text, and what a row needs — starting one, importing a file, opening a saved one, and the origin
-       that decides whether Save writes in place or makes a copy — sits with Save. *@
-    <EditorBar MapName="@planName" Slug="@(MapBacked ? Slug : null)" Stage="@MapStage.Plan"
+    <EditorBar MapName="@planName" Slug="@Slug" Stage="@MapStage.Plan"
                PhaseIcon="@(InfoActive ? "book-open-text" : "pencil-ruler")" PhaseTitle="@(InfoActive ? "Info" : "Draw")"
                Steps="@(InfoActive ? PlanInfoPhase.Steps : [])" CurrentStep="@infoStep"
                BackEnabled="@(!InfoActive || infoStep > 0)"
@@ -30,21 +23,6 @@
         @if (saveState is not null) { <span>@saveState</span> }
       </State>
       <Commands>
-        @if (!MapBacked)
-        {
-          if (planOrigin is not null)
-          {
-            <Badge Kind="neutral" title="@OriginTitle">@planOrigin</Badge>
-          }
-          <Button OnClick="NewPlan" Title="Start a blank plan" Writes>New</Button>
-          <WriteGate Context="closed">
-            <label class="action-btn" title="@(closed ?? "Import a *.plan.json file")" aria-disabled="@(closed is not null ? "true" : null)">
-              Import
-              <InputFile OnChange="OnImport" accept=".json" class="control-input--hidden" disabled="@(closed is not null)" />
-            </label>
-          </WriteGate>
-          <Button OnClick="OpenDbBrowser" Title="Open a saved plan">Open</Button>
-        }
         <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save (Ctrl+S)" Writes>Save</Button>
       </Commands>
     </EditorBar>
@@ -226,38 +204,5 @@
 
   <PlanBuildDrawer @ref="buildDrawer" Handle="handle" Slug="@Slug" PlanName="@planName" Document="Document" />
 
-  <SideDrawer Open="showOpenDb" Title="Open plan" Icon="folder-open" OnClose="CloseDbBrowser">
-    <Body>
-      @if (dbBusy)
-      {
-        <p class="section-desc">Loading…</p>
-      }
-      else if (dbError is not null)
-      {
-        <div class="plan-compile-errors"><p class="section-desc">@dbError</p></div>
-      }
-      else if (dbPlans.Count == 0)
-      {
-        <p class="section-desc">No saved plans yet. Save a plan to see it here.</p>
-      }
-      else
-      {
-        <div class="plan-lint-list">
-          @foreach (var p in dbPlans)
-          {
-            <button class="plan-lint-row" @onclick="() => OpenFromDb(p.Id)" title="Open this plan">
-              <span class="plan-lint-chip">@p.Origin</span>
-              <span class="plan-lint-msg plan-db-name">@(string.IsNullOrWhiteSpace(p.Name) ? "Untitled plan" : p.Name)</span>
-              @if (p.StaleComposer)
-              {
-                <span class="plan-db-stale" title="@StaleTitle(p)">@(p.ComposerVersion ?? "No version")</span>
-              }
-              <span class="plan-db-date">@p.UpdatedAt.ToLocalTime().ToString("MMM d")</span>
-            </button>
-          }
-        </div>
-      }
-    </Body>
-  </SideDrawer>
   </ChildContent>
 </StudioShell>

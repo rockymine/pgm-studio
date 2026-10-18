@@ -1,13 +1,8 @@
 /**
- * One plan editor on two bindings. A plan opens on a map (`/maps/{slug}/plan`) or as a plan row
- * (`/plans/{id}`, `/plans/new`), and both are the same tool: the rail's Info and Draw phases, the editor bar,
- * one sidebar with no tabs, and the sidebar folding away. Only the bar's commands follow the binding, because
- * only saving differs — a map-backed plan saves into its map, a plan row saves as a row and forks when it was
- * generated or imported.
- *
- * So the check is a comparison rather than a list of selectors per route: the structure is read off each
- * route the same way and has to come out equal, and the bar's commands are the one reading that has to come out
- * different.
+ * The plan editor is bound to a map (`/maps/{slug}/plan`) and to nothing else: the rail's Info and Draw phases,
+ * the editor bar whose one command is Save, one sidebar with no tabs, and the sidebar folding away. A plan row
+ * has no editor — the stored rows are history, read through `/api/plans` — and a navigation from one map's plan
+ * to another's rebinds the mounted editor rather than carrying the first map's document.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, readSeed, api, apiRaw, BASE } from "./lib/harness.mjs";
@@ -52,49 +47,23 @@ const actions = () => texts(".editor-bar-commands .action-btn");
 
 let drove = false;
 try {
-  checks.section("the same tool on every route");
+  checks.section("the tool on a map");
 
   await open(`/maps/${seed.planSlug}/plan`);
   const onMap = await structure();
-  const mapActions = await actions();
-
-  await open(`/plans/${seed.planId}`);
-  const onRow = await structure();
-  const rowActions = await actions();
-
-  await open("/plans/new");
-  const onNew = await structure();
-
   const expected = JSON.stringify({
     rail: ["Info", "Draw"], phase: "Draw", next: "Compile",
     tablists: 0, folds: true,
   });
-  checks.add("a map-backed plan has the rail, the editor bar and one folding sidebar with no tabs", onMap === expected, onMap);
-  checks.add("a plan row has the same", onRow === onMap, onRow);
-  checks.add("and so does a new plan", onNew === onMap, onNew);
+  checks.add("a plan has the rail, the editor bar and one folding sidebar with no tabs", onMap === expected, onMap);
+  const mapActions = await actions();
+  checks.add("its commands are Save alone", JSON.stringify(mapActions) === '["Save"]', mapActions.join(", "));
 
-  checks.section("only the bar's commands follow the binding");
-  checks.add("a map-backed plan's commands are Save alone", JSON.stringify(mapActions) === '["Save"]', mapActions.join(", "));
-  checks.add("a plan row's commands start, import, open and save rows",
-    ["New", "Import", "Open", "Save"].every(word => rowActions.includes(word)), rowActions.join(", "));
-
-  checks.section("the generator's hand-off opens the row, and saving it forks");
-  await open(`/plans/${seed.planId}`);
-  const origin = (await texts(".editor-bar-commands .badge")).join();
-  checks.add("a pinned candidate opens as a generated row", origin === "generated", origin || "(no badge)");
-  checks.add("the studio bar lights Maps on a plan row",
-    (await texts(".app-nav-link--active")).join() === "Maps", (await texts(".app-nav-link--active")).join());
-
-  await page.click('.editor-bar-commands button:has-text("Save")');
-  await page.waitForURL(url => /\/plans\/\d+$/.test(url.pathname) && !url.pathname.endsWith(`/plans/${seed.planId}`),
-    { timeout: 10000 });
-  const forkId = Number(new URL(page.url()).pathname.split("/").pop());
-  checks.add("Save forks a generated row and the address follows the copy", forkId !== seed.planId, page.url());
-  checks.add("the copy is authored", (await texts(".editor-bar-commands .badge")).join() === "authored",
-    (await texts(".editor-bar-commands .badge")).join());
-  const original = await api(`/plans/${seed.planId}`);
-  checks.add("and the candidate is untouched", original.origin === "generated", original.origin);
-  await apiRaw(`/plans/${forkId}`, { method: "DELETE" });
+  checks.section("a plan row has no editor");
+  clearFaults(page);
+  await page.goto(`${BASE}/plans/new`, { waitUntil: "networkidle", timeout: 30000 });
+  checks.add("/plans/new opens no plan editor", await page.locator(".map-canvas-svg").count() === 0);
+  clearFaults(page);
 
   checks.section("starting a plan from the Maps page rebinds the editor");
   await open(`/maps/${seed.planSlug}/plan`);

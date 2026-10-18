@@ -13,10 +13,8 @@ namespace PgmStudio.Client.Features.Plan;
 // host forwards to the bridge (the same split the Sketch tool uses for its symmetry settings).
 public partial class PlanInfoPhase
 {
-    /// <summary>The map a map-backed plan belongs to; null on a plan row, which has no metadata of its own.</summary>
-    [Parameter] public string? Slug { get; set; }
-
-    private bool MapBacked => Slug is { Length: > 0 };
+    /// <summary>The map the plan belongs to.</summary>
+    [Parameter] public string Slug { get; set; } = "";
     /// <summary>The steps of the phase, in order; the host's editor bar lists them.</summary>
     public static readonly IReadOnlyList<string> Steps = ["Identity", "Settings"];
     /// <summary>The step shown, an index into <see cref="Steps"/>.</summary>
@@ -56,7 +54,6 @@ public partial class PlanInfoPhase
     // component by its map, so Slug is fixed for an instance.
     protected override async Task OnInitializedAsync()
     {
-        if (!MapBacked) return;
         try
         {
             var doc = await Http.GetFromJsonAsync<MapDocumentDto>($"api/map/{Slug}");
@@ -75,7 +72,7 @@ public partial class PlanInfoPhase
     {
         var v = e.Value?.ToString() ?? "";
         await OnNameChanged.InvokeAsync(v);   // live-sync the plan doc (compile reads doc.meta.name)
-        if (MapBacked) Dirty();
+        Dirty();
     }
 
     private void Dirty() { dirty = true; saveStatus = null; }

@@ -19,13 +19,18 @@ public static class PlanCompiler
     private static readonly (string Id, string Name, string Color)[] Palette =
         [("red", "Red", "red"), ("blue", "Blue", "blue"), ("yellow", "Yellow", "yellow"), ("green", "Green", "green")];
 
-    public static (SketchLayout Layout, MapIntent Intent) Compile(PlanModel plan)
+    /// <summary>The layout and intent <paramref name="plan"/> compiles to. A piece fuses with the abutting pieces
+    /// of its component at its surface; <paramref name="shapeOf"/>, where given, names the shape each piece joins
+    /// instead, so pieces fuse only with the pieces it names alike and the shape takes that name as its anchor —
+    /// how a composed board keeps its hub, its front line and each approach as shapes of their own. A piece it
+    /// names nothing for fuses by its component as without it.</summary>
+    public static (SketchLayout Layout, MapIntent Intent) Compile(PlanModel plan, Func<string, string?>? shapeOf = null)
     {
         // Declare the plan's negative space before reading it, so a compound's enclosed void is a buffer piece
         // whether or not the author drew one (PlanVoids). Idempotent, so compiling twice changes nothing.
         var declared = PlanVoids.Declare(plan);
         var d = ContactGraph.Build(declared);
-        var layout = BuildLayout(declared, d);
+        var layout = BuildLayout(declared, d, shapeOf);
         var intent = BuildIntent(declared, d, layout);
         return (layout, intent);
     }
@@ -62,7 +67,7 @@ public static class PlanCompiler
     private static string CutShapeId(string buffer, int ring) =>
         ring == 0 ? $"{buffer}-cut" : $"{buffer}-cut-{ring + 1}";
 
-    private static SketchLayout BuildLayout(PlanModel plan, ContactGraph d)
+    private static SketchLayout BuildLayout(PlanModel plan, ContactGraph d, Func<string, string?>? shapeOf)
     {
         var shapes = new List<SketchShape>();
         var islandShapes = new List<(bool Mirrors, string ShapeId)>();
@@ -73,22 +78,24 @@ public static class PlanCompiler
             if (pieces.Select(p => p.Mirrors).Distinct().Count() > 1)
                 throw new InvalidOperationException($"component [{string.Join(", ", component)}] mixes mirrored and non-mirrored pieces");
             var anchor = component.OrderBy(id => id, StringComparer.Ordinal).First();
-            // one shape per distinct surface within the component (a stepped island → stacked plateaus); a
-            // surface whose pieces fall into several disjoint patches (connected only through pieces of a
-            // different surface) emits one shape per patch, so no patch is dropped.
-            foreach (var group in pieces.GroupBy(p => p.Surface).OrderBy(g => g.Key))
+            // one shape per distinct surface within the component (a stepped island → stacked plateaus), or per
+            // surface and named shape where the caller names them; a group whose pieces fall into several
+            // disjoint patches (connected only through pieces of another group) emits one shape per patch, so
+            // no patch is dropped.
+            foreach (var group in pieces.GroupBy(p => (p.Surface, Shape: shapeOf?.Invoke(p.Id) ?? anchor))
+                         .OrderBy(g => g.Key.Surface).ThenBy(g => g.Key.Shape, StringComparer.Ordinal))
             {
                 var rects = group.Select(p => (p.Rect.MinX, p.Rect.MinZ, p.Rect.MaxX, p.Rect.MaxZ)).ToList();
                 var patch = 0;
                 foreach (var ring in RectilinearUnion.Outlines(rects))
                 {
-                    var id = TerrainShapeId(anchor, group.Key, patch++);
+                    var id = TerrainShapeId(group.Key.Shape, group.Key.Surface, patch++);
                     shapes.Add(new SketchShape
                     {
                         Id = id,
                         Type = "polygon",
                         Operation = "add",
-                        BaseHeight = group.Key,
+                        BaseHeight = group.Key.Surface,
                         Vertices = [.. ring],
                     });
                     islandShapes.Add((group.First().Mirrors, id));

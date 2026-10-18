@@ -57,7 +57,6 @@ public sealed class SchemaCompletenessTests
         "DELETE /api/biome-patterns/{id}",
         "DELETE /api/map/{slug}",
         "DELETE /api/boulder-styles/{id}",
-        "DELETE /api/plans/{id}",
         "DELETE /api/porch-styles/{id}",
         "DELETE /api/roof-styles/{id}",
         "DELETE /api/room-styles/{id}",
@@ -447,7 +446,6 @@ public sealed class SchemaCompletenessTests
     [
         "POST /api/map/{slug}/scan-world",
         "POST /api/map/{slug}/sketch/finish",
-        "POST /api/plan/{planId}/author",
         "POST /api/auth/sign-out",
         "POST /api/users/{uuid}/invite",
         "POST /api/map/{slug}/notes/{id}/read",

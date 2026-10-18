@@ -1,56 +1,62 @@
 /**
  * Seed the fixtures the specs need, and write them to `.tmp/e2e-seed.json`.
  *
- * The geometry comes from the **composer**, not from hand-drawn boxes: a composed board is a real
- * layout — spawns, wools, a hub, a frontline, connected build zones — so the pages under test render
- * something representative instead of two rectangles. It is also reproducible: `e2e.sh` composes the
- * board library the feed reads, and the same seeds compose the same boards every time, so the fixtures
- * are stable run to run without committing a fixture file.
+ * The plan fixtures come from `fixtures/composed.plan.json`, a plan the composer laid (twelve players, `rot_180`,
+ * seed 0, its boxes written in) — a real board with a spawn, a wool, a hub and a frontline at one height, so the
+ * pages under test render something representative instead of two rectangles, and the same every run. The composed fixture comes from the
+ * **composer**: `e2e.sh` composes the board library the feed reads, and a map is made of its first card the
+ * way the generator makes one.
  *
- * Three maps, one per stage the routes need:
- *   plan      — a composed candidate committed to authoring    → /maps/{slug}/plan
- *   sketch    — a draft carrying a compiled layout             → /maps/{slug}/sketch
- *   configure — that layout finished into world geometry       → /maps/{slug}/configure
+ * Four maps, one per stage the routes need:
+ *   plan      — the seed plan on a plan-stage map                → /maps/{slug}/plan
+ *   sketch    — a draft carrying its compiled layout             → /maps/{slug}/sketch
+ *   configure — that layout finished into world geometry         → /maps/{slug}/configure
+ *   composed  — a map the generator made of a library board      → /maps/{slug}/sketch
  */
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { api, BASE, TMP_DIR } from "./lib/harness.mjs";
 
 const REQUEST = "players=12&symmetry=rot_180&count=1";
+const SEED_PLAN = new URL("./fixtures/composed.plan.json", import.meta.url);
+
+/** A plan-stage map holding the seed plan. */
+async function planMap(name, planJson) {
+  const { slug } = await api("/plan", { method: "POST", body: { name } });
+  await api(`/map/${slug}/plan`, { method: "PUT", body: planJson });
+  return slug;
+}
 
 /**
- * Pin a composed board so it exists as a stored candidate, then commit it to authoring.
- *
- * The descriptor is taken from a browsed card rather than written out here. A descriptor carries the
- * composer's own version and schema, and a hand-built one goes stale the next time either moves — which is
- * what a pin refuses on (`RQ1`), leaving the whole gate unable to seed. Browsing first is also what the
- * studio does, so the seed exercises the path a user takes.
+ * A map made of the first card the feed shows. The descriptor is taken from a browsed card rather than written
+ * out here: it carries the composer's own version and schema, and a hand-built one goes stale the next time
+ * either moves. Browsing first is also what the studio does, so the seed exercises the path a user takes.
  */
-async function composedPlanMap() {
+async function composedMap() {
   const { cards } = await api(`/compose?${REQUEST}`);
-  if (!cards?.length) throw new Error(`/compose?${REQUEST} returned no cards to pin`);
-  const descriptor = cards[0].descriptor;
-  const pinned = await api("/compose/pin", { method: "POST", body: descriptor });
-  const { slug } = await api(`/plan/${pinned.id}/author`, { method: "POST" });
-  return { slug, planJson: pinned.planJson, planId: pinned.id, descriptor };
+  if (!cards?.length) throw new Error(`/compose?${REQUEST} returned no cards to make a map of`);
+  const { slug } = await api("/compose/map", { method: "POST", body: cards[0].descriptor });
+  return { slug, descriptor: cards[0].descriptor };
 }
 
 async function main() {
   console.log(`seeding against ${BASE}`);
 
-  // 1. a plan-stage map, straight from the composer
-  const plan = await composedPlanMap();
-  console.log(`  plan       ${plan.slug}`);
+  const planJson = await readFile(SEED_PLAN, "utf8");
 
-  // 2. a second composed board, carried all the way to world geometry
-  const carried = await composedPlanMap();
-  const compiled = await api("/plan/compile", { method: "POST", body: plan.planJson });
-  await api(`/map/${carried.slug}/sketch`, { method: "PUT", body: compiled.layout });
+  // 1. a plan-stage map holding the seed plan
+  const planSlug = await planMap("E2E plan", planJson);
+  console.log(`  plan       ${planSlug}`);
+
+  // 2. the same plan on a second map, carried all the way to world geometry
+  const carried = await planMap("E2E configure", planJson);
+  const compiled = await api("/plan/compile", { method: "POST", body: planJson });
+  await api(`/map/${carried}/sketch`, { method: "PUT", body: compiled.layout });
   // A finished map names its author: Configure unlocks every phase past Identity only once one is stated,
   // and a name with a space in it is a pseudonym, so no Mojang lookup is asked.
   const intent = { ...compiled.intent, meta: { ...compiled.intent.meta, authors: [{ name: "E2E fixture" }] } };
-  await api(`/map/${carried.slug}/intent`, { method: "PUT", body: intent });
-  const finished = await api(`/map/${carried.slug}/sketch/finish`, { method: "POST" });
+  await api(`/map/${carried}/intent`, { method: "PUT", body: intent });
+  const finished = await api(`/map/${carried}/sketch/finish`, { method: "POST" });
   console.log(`  configure  ${finished.slug} (finished to world geometry)`);
 
   // 3. a sketch-stage draft that still holds its layout, so the Sketch tool opens on real content — and its
@@ -60,14 +66,18 @@ async function main() {
   await api(`/map/${draft.slug}/intent`, { method: "PUT", body: intent });
   console.log(`  sketch     ${draft.slug}`);
 
+  // 4. a map the generator made of a library board
+  const composed = await composedMap();
+  console.log(`  composed   ${composed.slug}`);
+
   const seed = {
     base: BASE,
-    descriptor: plan.descriptor,
-    planSlug: plan.slug,
-    planId: plan.planId,
+    descriptor: composed.descriptor,
+    planSlug,
     sketchSlug: draft.slug,
     mapSlug: finished.slug,
-    planJson: plan.planJson,
+    composedSlug: composed.slug,
+    planJson,
   };
 
   const dir = TMP_DIR;

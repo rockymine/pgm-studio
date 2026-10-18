@@ -32,8 +32,7 @@ const ROUTES = [
   // an editor page is the half a browse grid cannot prove: its outline is built from the draft
   { path: "/library/styles/new",                  name: "style editor",   expect: ".lib-outline-row" },
   { path: "/library/houses/new",                  name: "house editor",   expect: ".lib-outline-row" },
-  { path: "/plans/new",                           name: "plan editor (new)", expect: ".map-canvas-svg" },
-  { path: `/plans/${seed.planId}`,                name: "plan editor (row)", expect: ".map-canvas-svg" },
+  { path: `/maps/${seed.composedSlug}/sketch`,    name: "composed map",   expect: "body" },
   { path: `/maps/${seed.planSlug}/plan`,          name: "plan tool",      expect: "body" },
   { path: `/maps/${seed.sketchSlug}/sketch`,      name: "sketch tool",    expect: "body" },
   { path: `/maps/${seed.mapSlug}/configure`,      name: "configure tool", expect: "body" },

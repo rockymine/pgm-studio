@@ -1,12 +1,14 @@
 using System.Diagnostics;
 using System.Text.Json;
 using PgmStudio.Contracts;
+using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Evaluate;
-using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Render;
+using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Data.Compose;
@@ -14,6 +16,9 @@ namespace PgmStudio.Data.Compose;
 /// <summary>The rest of a library board's card, kept as its <c>card_json</c>.</summary>
 internal sealed record ComposedBoardExtras(
     IReadOnlyList<string> HardTerms, IReadOnlyList<TermContribDto> TopSoft, LandSpendDto Spend);
+
+/// <summary>A library board as a map is made from it: its layout, and its intent labelled for a player count.</summary>
+public sealed record ComposedBoardSketch(string Name, SketchLayout Layout, MapIntent Intent);
 
 /// <summary>
 /// The composed-board library the Generator page browses: <see cref="PerBand"/> boards for every size band and
@@ -23,7 +28,11 @@ internal sealed record ComposedBoardExtras(
 /// <para>A board depends on the band rather than the player count: across one band's counts the same seed
 /// composes the same board, and only its label differs (<see cref="Composer.Label"/>). So a board is stored
 /// once per band, composed at the band's lowest count, and labelled with a caller's own count when it is shown
-/// or kept.</para>
+/// or made into a map.</para>
+///
+/// <para>A board is stored as the sketch it is handed over as (<see cref="ComposedSketch"/>) — one shape per box,
+/// and the intent its markers compile to — beside the picture of the pieces the composer laid,
+/// which keeps each piece's role so a page can tint one.</para>
 /// </summary>
 public static class ComposedBoardLibrary
 {
@@ -43,8 +52,7 @@ public static class ComposedBoardLibrary
     public static string WoolToken(string family) => $",{family},";
 
     /// <summary>The library board for <paramref name="band"/>, <paramref name="symmetry"/> and
-    /// <paramref name="seed"/>, or null where that seed composes nothing. It carries the partition that produced
-    /// it as the plan's boxes, so a kept board opens in the editor with them.</summary>
+    /// <paramref name="seed"/>, or null where that seed composes nothing.</summary>
     public static ComposedBoardRow? Compose(string band, string symmetry, ulong seed)
     {
         var request = new ComposeRequest(SizeBands.Players(band).Low, Teams, symmetry, seed, ComposeRequest.DefaultCell);
@@ -64,7 +72,7 @@ public static class ComposedBoardLibrary
                     .OrderByDescending(term => term.Contribution).Take(3),
             ],
             Spend(stages));
-        PlanBoxAnnotation.Apply(stages.Plan, stages.Unit);
+        var sketch = ComposedSketch.Of(stages);
 
         return new ComposedBoardRow
         {
@@ -79,7 +87,9 @@ public static class ComposedBoardLibrary
             Hub = StructureNames.Form(summary.Hub),
             Frontline = StructureNames.Form(summary.Frontline),
             CardJson = JsonSerializer.Serialize(extras, Json),
-            PlanJson = stages.Plan.ToJson(),
+            LayoutJson = JsonSerializer.Serialize(sketch.Layout, SketchLayout.Json),
+            IntentJson = JsonSerializer.Serialize(sketch.Intent, MapArtifactStore.Json),
+            Svg = PlanBoardSvg.Render(stages.Plan),
             CreatedAt = DateTime.UtcNow,
         };
     }
@@ -128,25 +138,22 @@ public static class ComposedBoardLibrary
     public static ComposeCard CardOf(ComposedBoardRow row, int players)
     {
         var extras = JsonSerializer.Deserialize<ComposedBoardExtras>(row.CardJson, Json)!;
-        var plan = PlanModel.Parse(row.PlanJson) ?? new PlanModel();
         return new ComposeCard(
             new ComposeRequestDto(players, Teams, row.Symmetry, row.Cell, row.Seed, row.ComposerVersion, ComposeDescriptor.CurrentSchema),
             row.Score, row.WoolCount,
             new StructureSummaryDto(Families(row.Wools), row.Hub, row.Frontline),
-            extras.HardTerms, extras.TopSoft, PlanBoardSvg.Render(plan), extras.Spend);
+            extras.HardTerms, extras.TopSoft, row.Svg, extras.Spend);
     }
 
-    /// <summary>The plan of <paramref name="row"/>, labelled for <paramref name="players"/> per team.</summary>
-    public static PlanModel PlanOf(ComposedBoardRow row, int players)
+    /// <summary>The sketch of <paramref name="row"/> a map is made from, labelled for <paramref name="players"/>
+    /// per team.</summary>
+    public static ComposedBoardSketch SketchOf(ComposedBoardRow row, int players)
     {
-        var plan = PlanModel.Parse(row.PlanJson) ?? new PlanModel();
-        Composer.Label(plan, players, Teams, row.Seed);
-        return plan;
+        var intent = Composer.Label(JsonSerializer.Deserialize<MapIntent>(row.IntentJson, MapArtifactStore.Json)!,
+            players, Teams, row.Seed);
+        return new ComposedBoardSketch(intent.Meta!.Name,
+            JsonSerializer.Deserialize<SketchLayout>(row.LayoutJson, SketchLayout.Json)!, intent);
     }
-
-    /// <summary>The structure <paramref name="row"/> was read as, in the canonical form a kept plan row stores.</summary>
-    public static string StructureOf(ComposedBoardRow row) =>
-        StructureSummary.CanonicalOf(Families(row.Wools), row.Hub, row.Frontline);
 
     /// <summary>How often each wool family, hub form and frontline form appears across <paramref name="forms"/>.
     /// A family counts once per board however many approaches of it the board has, so every count reads against

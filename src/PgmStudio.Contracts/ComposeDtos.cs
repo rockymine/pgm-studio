@@ -1,9 +1,9 @@
 using PgmStudio.Vocabulary;
 namespace PgmStudio.Contracts;
 
-/// <summary>The wire form of a generated plan's canonical versioned request descriptor — a browse card's
-/// identity. It names a board of the composed-board library, which the server keeps or opens from these fields,
-/// so a card never has to carry its plan JSON.</summary>
+/// <summary>The wire form of a composed board's canonical versioned request descriptor — a browse card's
+/// identity. It names a board of the composed-board library, which the server makes a map of from these fields,
+/// so a card never has to carry the board's documents.</summary>
 /// <param name="Players">Players per team, 6–47. The size band it falls in picks the board, and the count
 /// labels it.</param>
 /// <param name="Teams">2 or 4.</param>
@@ -13,7 +13,7 @@ namespace PgmStudio.Contracts;
 /// <param name="Seed">Drives every random draw the composer makes, so the same seed under the same composer
 /// version reproduces the same board.</param>
 /// <param name="ComposerVersion">Which composer built it. A card composed by an older one reproduces a
-/// different board from the same seed, which is what <c>staleComposer</c> on a plan row says.</param>
+/// different board from the same seed.</param>
 /// <param name="Schema">The descriptor's own shape version, so a stored descriptor written before these
 /// fields changed still reads.</param>
 public sealed record ComposeRequestDto(

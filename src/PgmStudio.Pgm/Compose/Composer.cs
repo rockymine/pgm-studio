@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Geom;
+using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Vocabulary;
@@ -156,14 +157,15 @@ public static class Composer
         return Math.Max(ownHi, -ownLo) - Math.Min(ownLo, -ownHi) - (ownHi - ownLo);
     }
 
-    /// <summary>Write the player count a composed plan is for into its name and its <c>maxPlayers</c> — the only
-    /// two places a board differs across the player counts of one size band.</summary>
-    public static void Label(PlanModel plan, int playersPerTeam, int teams, ulong seed)
+    /// <summary>The intent of a composed board with the player count it is for written into its name and its
+    /// <c>maxPlayers</c> — the only two places a board differs across the player counts of one size band.</summary>
+    public static MapIntent Label(MapIntent intent, int playersPerTeam, int teams, ulong seed) => intent with
     {
-        plan.Meta ??= new PlanMeta();
-        plan.Meta.Name = $"Composed p{playersPerTeam} t{teams} #{seed}";
-        plan.Globals.MaxPlayers = playersPerTeam;
-    }
+        MaxPlayers = playersPerTeam,
+        Meta = (intent.Meta ?? new MetaIntent()) with { Name = Name(playersPerTeam, teams, seed) },
+    };
+
+    private static string Name(int playersPerTeam, int teams, ulong seed) => $"Composed p{playersPerTeam} t{teams} #{seed}";
 
     internal static PlanModel Assemble(
         ComposeRequest request, ComposeEnvelope envelope, TeamUnit unit, MidResult mid,
@@ -178,7 +180,8 @@ public static class Composer
                 Surface = envelope.Surface,
             },
         };
-        Label(plan, request.PlayersPerTeam, request.Teams, request.Seed);
+        plan.Meta = new PlanMeta { Name = Name(request.PlayersPerTeam, request.Teams, request.Seed) };
+        plan.Globals.MaxPlayers = request.PlayersPerTeam;
 
         foreach (var piece in unit.Pieces)
             plan.Pieces.Add(new PlanPiece { Id = piece.Id, Role = piece.Role, Rect = piece.Rect });

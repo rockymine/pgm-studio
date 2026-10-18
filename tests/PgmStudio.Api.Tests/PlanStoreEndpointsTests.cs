@@ -6,59 +6,46 @@ using PgmStudio.Pgm.Plan;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The plan store's HTTP surface: POST /api/plans saves the plan open in the editor (returning the row it now
-/// holds), GET /api/plans lists them for the open-from-DB browser, GET /api/plans/{id} loads one, and DELETE
-/// forgets it. A malformed plan body is answered 400, never 500. Runs against <c>pgm_studio_test</c> (override
-/// with <c>PGM_STUDIO_TEST_DB</c>); each test resets the schema, so they run serially. The fork-vs-mutate
-/// doctrine itself is covered store-side in <c>PlanStoreTests</c>.
+/// The stored plan rows' HTTP surface, kept read-only as history: GET /api/plans lists them, GET /api/plans/{id}
+/// answers one with its document and GET /api/plans/{id}/svg draws it, and nothing writes one. Runs against
+/// <c>pgm_studio_test</c> (override with <c>PGM_STUDIO_TEST_DB</c>); each test resets the schema, so they run
+/// serially.
 /// </summary>
 [NotInParallel("api-db")]
 public sealed class PlanStoreEndpointsTests
 {
-    private static string PlanJson(string name) => new PlanModel { Meta = new PlanMeta { Name = name } }.ToJson();
-
     [Test]
-    public async Task Save_list_get_mutate_delete_round_trip()
+    public async Task A_stored_row_is_listed_read_and_drawn()
     {
         await ApiTestFactory.ResetSchemaAsync();
+        var plan = new PlanModel { Meta = new PlanMeta { Name = "kept" } };
+        plan.Pieces.Add(new PlanPiece { Id = "ground", Role = "piece", Rect = new(0, 2, 4, 3) });
+        await ApiTestFactory.ExecuteAsync(
+            "INSERT INTO plan (name, origin, plan_json, content_hash, seed, composer_version, created_at, updated_at) "
+            + $"VALUES ('kept', 'generated', '{plan.ToJson().Replace("'", "''")}', '{new string('0', 64)}', 7, 'walled-5', NOW(), NOW())");
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        // Save a fresh plan → an authored row.
-        var saved = await (await client.PostAsJsonAsync("/api/plans", new PlanSaveRequest(PlanJson("hand-drawn"), null)))
-            .Content.ReadFromJsonAsync<PlanDetail>();
-        await Assert.That(saved!.Id).IsGreaterThan(0L);
-        await Assert.That(saved.Origin).IsEqualTo("authored");
+        var list = (await client.GetFromJsonAsync<List<PlanSummary>>("/api/plans?origin=generated"))!;
+        await Assert.That(list.Single().Name).IsEqualTo("kept");
+        var id = list[0].Id;
 
-        // It shows up in the browser list.
-        var list = await client.GetFromJsonAsync<List<PlanSummary>>("/api/plans");
-        await Assert.That(list!.Count).IsEqualTo(1);
-        await Assert.That(list[0].Id).IsEqualTo(saved.Id);
-        await Assert.That(list[0].Name).IsEqualTo("hand-drawn");
-
-        // Loading it back carries the document.
-        var detail = await client.GetFromJsonAsync<PlanDetail>($"/api/plans/{saved.Id}");
-        await Assert.That(detail!.PlanJson).Contains("hand-drawn");
-
-        // Saving again with the source id mutates the authored row in place.
-        var mutated = await (await client.PostAsJsonAsync("/api/plans", new PlanSaveRequest(PlanJson("renamed"), saved.Id)))
-            .Content.ReadFromJsonAsync<PlanDetail>();
-        await Assert.That(mutated!.Id).IsEqualTo(saved.Id);
-        await Assert.That(mutated.Name).IsEqualTo("renamed");
-        await Assert.That((await client.GetFromJsonAsync<List<PlanSummary>>("/api/plans"))!.Count).IsEqualTo(1);
-
-        // Delete forgets it.
-        var del = await client.DeleteAsync($"/api/plans/{saved.Id}");
-        await Assert.That(del.StatusCode).IsEqualTo(HttpStatusCode.NoContent);
-        await Assert.That((await client.GetFromJsonAsync<List<PlanSummary>>("/api/plans"))!.Count).IsEqualTo(0);
+        var detail = await client.GetFromJsonAsync<PlanDetail>($"/api/plans/{id}");
+        await Assert.That(detail!.PlanJson).Contains("ground");
+        await Assert.That(await client.GetStringAsync($"/api/plans/{id}/svg")).Contains("<svg");
     }
 
     [Test]
-    public async Task A_malformed_plan_body_is_400_not_500()
+    [Arguments("POST", "/api/plans")]
+    [Arguments("DELETE", "/api/plans/1")]
+    public async Task Nothing_writes_a_stored_row(string method, string route)
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var resp = await client.PostAsJsonAsync("/api/plans", new PlanSaveRequest("{ this is not json", null));
-        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var resp = await client.SendAsync(new HttpRequestMessage(new HttpMethod(method), route)
+        {
+            Content = method == "POST" ? JsonContent.Create(new { planJson = "{}" }) : null,
+        });
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.MethodNotAllowed);
     }
 }

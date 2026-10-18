@@ -37,9 +37,9 @@ shipped.
 
 | Tool | Route | Works at | Writes |
 |---|---|---|---|
-| **Generator** | `/generator` | the board | nothing, until a candidate is kept |
+| **Generator** | `/generator` | the ground and the play | nothing, until a map is made of a candidate |
 | **Shape catalog** | `/catalog` | — | nothing; it is the vocabulary the generator builds from |
-| **Plan** | `/maps/{slug}/plan` · `/plans/{id}` | the board | `plan_json`, or a `plan` row |
+| **Plan** | `/maps/{slug}/plan` | the board | `plan_json` |
 | **Sketch** | `/maps/{slug}/sketch` | the ground | `sketch_layout_json` |
 | **Configure** | `/maps/{slug}/configure` | the play | `map_intent_json`, and the projected document |
 | **Library** | `/library` | — | its own tables, shared across every map |
@@ -59,9 +59,10 @@ document, and it is the one an agent should reach for.
 teams, no spawns and no objective, so a map begun here arrives at Configure with geometry and nothing else.
 
 **From the generator.** `/generator` browses a library of whole boards the composer made from a size band, a
-symmetry and a seed, 500 for each band and symmetry. Keeping one stores it as a candidate, which the Plan tool
-opens at `/plans/{id}` without a map behind it; authoring it originates a map at the plan stage. From that point it is an
-ordinary planned map.
+symmetry and a seed, 500 for each band and symmetry. Each is held as the sketch it is handed over as — a layout
+with a shape per box of the composer's team unit and the intent it is played by — and
+opening one in Sketch makes a map of it, stored as a source is and built, with no plan behind it. From that point
+it is an ordinary sketched map.
 
 **From a world built outside the studio.** `/maps/new` imports a Minecraft world that has terrain and no
 `map.xml`, scans it into the database, and hands it to Configure with an empty intent. Nothing upstream
@@ -468,7 +469,7 @@ separately addressable.
 
 | Document | Type | Where it lives | Read · written at |
 |---|---|---|---|
-| plan | `PlanModel` | its own layer | `GET·PUT /map/{slug}/plan`, `POST /plan/compile`, the `/plans` store |
+| plan | `PlanModel` | its own layer | `GET·PUT /map/{slug}/plan`, `POST /plan/compile`; the `/plans` rows are read-only history |
 | refinement | `Refinement` | its own layer, as the map's source stated it | `GET /map/{slug}/refinement`, `PUT /map/{slug}/source` |
 | places | `PlacesDocument` | its own layer, an admin's to write; a source that states none keeps the map's | `GET·PUT /map/{slug}/places`, `PUT /map/{slug}/source` |
 | sketch layout | `SketchLayout` | its own layer, whole | `GET·PUT /map/{slug}/sketch` |
@@ -506,7 +507,7 @@ parse, and Configure has no control for them. That is where the finish belongs r
 happened to be built: the sketch rasterizer is what makes the world, so a finish authored a level above it is
 authored before the thing it finishes exists, and a scope anchored to a plan piece would freeze at compile
 while the ground under it kept being edited. It is also the half of a map a generator cannot reach — a
-generator emits a plan, never a theme — so the finish is always hand-authored, at the level where the geometry
+generator emits ground and play, never a theme — so the finish is always hand-authored, at the level where the geometry
 is final.
 
 **Water lanes** are the Plan tool's alone. They survive a Configure save and generate their region, but

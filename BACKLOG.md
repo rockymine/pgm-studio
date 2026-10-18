@@ -625,11 +625,6 @@ is the standard the copy is held to.
   (`sketch-canvas.js`, the lazily loaded `iso-webgl`) first; the readout and the picture must answer the same
   zoom. `docs/tools/sketch.md`.
 
-- [ ] **TG2 — The generator's board detail is cramped.** *Copy JSON*, *Pin* and *Open in plan editor* sit
-  with no vertical gap between them, and the JSON box is a one-line slit. Give the action row the shared
-  `ctrl-row` spacing and the JSON a `textarea` of at least twelve rows, or a collapsible block.
-  `docs/tools/generator.md`.
-
 - [~] **TS151 — The notes overview and the change history, laid out for the work.** Review's notes overview heads
   its lists with four filter chips plus three grouped lists; put the filters into tabs (*This view · Whole map ·
   All*) with a status select. History: up to 60 edit lines sit above *Restore*, so pin it in the inspector's footer

@@ -12,7 +12,7 @@
  * back out of it — a panel that merely echoed its own input would keep saying what it said before.
  */
 
-import { openBrowser, newPage, Checks, BASE } from "./lib/harness.mjs";
+import { openBrowser, newPage, Checks, api, apiRaw, BASE } from "./lib/harness.mjs";
 
 const checks = new Checks("plan · objective variants");
 const browser = await openBrowser();
@@ -38,7 +38,8 @@ const body = () => page.textContent(".workspace");
 
 // A blank plan opens at the origin with rot_180 — an order-2 symmetry, which is what offers the objective
 // tools at all (a goal one team defends only means something when there is exactly one other).
-await page.goto(`${BASE}/plans/new`, { waitUntil: "networkidle", timeout: 30000 });
+const { slug: blank } = await api("/plan", { method: "POST", body: { name: "E2E objective variants" } });
+await page.goto(`${BASE}/maps/${blank}/plan`, { waitUntil: "networkidle", timeout: 30000 });
 await page.waitForSelector(".canvas-dock", { timeout: 20000 });
 await page.waitForSelector(".map-canvas-svg", { timeout: 20000 });
 
@@ -160,4 +161,5 @@ checks.add("and one drawn without it drops back to select", await pressed("Selec
 checks.add("varying an objective raised nothing", page.faults.length === 0, page.faults.join(" | "));
 
 await browser.close();
+await apiRaw(`/map/${blank}`, { method: "DELETE" });
 checks.finish();

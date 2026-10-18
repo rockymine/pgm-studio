@@ -4,7 +4,6 @@ using System.Text.Json;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Compose;
 using PgmStudio.Data.Schema;
-using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Compose;
 
 namespace PgmStudio.Api.Tests;
@@ -12,9 +11,8 @@ namespace PgmStudio.Api.Tests;
 /// <summary>
 /// The browse feed's HTTP surface over the composed-board library: GET /api/compose reads a page of the
 /// boards the library holds, best score first, filters them as queries and ends where the library does, and
-/// composes nothing on request; POST /api/compose/pin keeps the stored board a card names as a generated row
-/// (idempotent), labelled for the player count asked, which the tray endpoint then lists; GET
-/// /api/plans/{id}/svg re-renders a stored plan. Runs against <c>pgm_studio_test</c>; each test resets the
+/// composes nothing on request; POST /api/compose/map makes a map of the stored board a card names, labelled for the
+/// player count asked, as a sketch with a shape per box. Runs against <c>pgm_studio_test</c>; each test resets the
 /// schema and fills the few boards it reads with the library's own fill.
 /// </summary>
 [NotInParallel("api-db")]
@@ -199,50 +197,52 @@ public sealed class ComposeEndpointsTests
         await Assert.That(page!.Cards.Count).IsEqualTo(3);
         await Assert.That(page.Cards.All(card => card.Descriptor.ComposerVersion == "earlier-1")).IsTrue();
 
-        var kept = await client.PostAsJsonAsync("/api/compose/pin", page.Cards[0].Descriptor);
-        await Assert.That(kept.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var made = await client.PostAsJsonAsync("/api/compose/map", page.Cards[0].Descriptor);
+        await Assert.That(made.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }
 
+    /// <summary>A map made of a card is the stored board as a sketch: one shape per box of the team unit, named for
+    /// the box, all in the one mirrored group; the intent labelled for the players asked; and no places.</summary>
     [Test]
-    public async Task Pin_keeps_the_stored_board_labelled_for_the_players_asked_and_is_idempotent()
+    public async Task A_map_made_of_a_card_is_the_board_as_a_sketch_with_a_shape_per_box()
     {
         await ApiTestFactory.ResetSchemaAsync();
         await FillAsync("nano", 1);
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var page = await client.GetFromJsonAsync<ComposePage>("/api/compose?players=10&symmetry=rot_180&count=1");
-        var card = page!.Cards[0];
+        var card = (await client.GetFromJsonAsync<ComposePage>("/api/compose?players=10&symmetry=rot_180&count=1"))!.Cards[0];
+        var made = await (await client.PostAsJsonAsync("/api/compose/map", card.Descriptor)).Content.ReadFromJsonAsync<OriginatedDto>();
+        await Assert.That(made!.Slug).IsEqualTo($"composed-p10-t2-{card.Descriptor.Seed}");
 
-        var pinned1 = await (await client.PostAsJsonAsync("/api/compose/pin", card.Descriptor)).Content.ReadFromJsonAsync<PlanDetail>();
-        await Assert.That(pinned1!.Origin).IsEqualTo("generated");
-        var plan = JsonDocument.Parse(pinned1.PlanJson).RootElement;
-        await Assert.That(plan.GetProperty("globals").GetProperty("maxPlayers").GetInt32()).IsEqualTo(10);
-        await Assert.That(plan.GetProperty("meta").GetProperty("name").GetString()).IsEqualTo($"Composed p10 t2 #{card.Descriptor.Seed}");
-        await Assert.That(plan.GetProperty("boxes").GetArrayLength()).IsGreaterThan(0)
-            .Because("a kept board opens in the editor with the boxes that produced it");
+        var layout = JsonDocument.Parse(await client.GetStringAsync($"/api/map/{made.Slug}/sketch")).RootElement;
+        var ground = layout.GetProperty("layers")[0].GetProperty("layout");
+        var added = ground.GetProperty("shapes").EnumerateArray()
+            .Where(shape => shape.GetProperty("operation").GetString() == "add"
+                            && !(shape.TryGetProperty("role", out var role) && role.ValueKind == JsonValueKind.String))
+            .Select(shape => shape.GetProperty("id").GetString()!).ToList();
+        foreach (var box in new[] { "hub-", "spawn-", "wool-a-" })
+            await Assert.That(added.Count(id => id.StartsWith(box, StringComparison.Ordinal))).IsGreaterThanOrEqualTo(1)
+                .Because($"the {box.TrimEnd('-')} box is a shape of its own");
+        await Assert.That(added.Any(id => id.StartsWith("hub-t", StringComparison.Ordinal))).IsFalse()
+            .Because("a shape is named for its box, not for the first of its pieces");
+        var team = ground.GetProperty("groups").EnumerateArray().Single(group => group.GetProperty("id").GetString() == "team");
+        var grouped = team.GetProperty("shapeIds").EnumerateArray().Select(id => id.GetString()).ToHashSet();
+        await Assert.That(added.All(grouped.Contains)).IsTrue()
+            .Because($"the board's shapes stay one group, so the unit moves as a whole: {string.Join(", ", added)}");
 
-        await using (var db = new PgmDb(PgmDataOptions.ForConnectionString(ApiTestFactory.ConnectionString)))
-        {
-            var stored = PlanModel.Parse(db.ComposedBoards.Single().PlanJson)!;
-            await Assert.That(plan.GetProperty("pieces").GetArrayLength()).IsEqualTo(stored.Pieces.Count)
-                .Because("the kept board is the stored one, not a fresh composition");
-        }
+        var intent = JsonDocument.Parse(await client.GetStringAsync($"/api/map/{made.Slug}/intent")).RootElement;
+        await Assert.That(intent.GetProperty("maxPlayers").GetInt32()).IsEqualTo(10);
+        await Assert.That(intent.GetProperty("meta").GetProperty("name").GetString()).IsEqualTo($"Composed p10 t2 #{card.Descriptor.Seed}");
 
-        var pinned2 = await (await client.PostAsJsonAsync("/api/compose/pin", card.Descriptor)).Content.ReadFromJsonAsync<PlanDetail>();
-        await Assert.That(pinned2!.Id).IsEqualTo(pinned1.Id);   // dedup by content hash
+        var places = await client.GetFromJsonAsync<PlacesDocument>($"/api/map/{made.Slug}/places");
+        await Assert.That(places!.Places ?? []).IsEmpty().Because("a composed map states no places");
 
-        var tray = await client.GetFromJsonAsync<List<PlanSummary>>("/api/plans?origin=generated");
-        await Assert.That(tray!.Count).IsEqualTo(1);
-        await Assert.That(tray[0].Descriptor).IsNotNull();
-        await Assert.That(tray[0].Descriptor!.Seed).IsEqualTo(card.Descriptor.Seed);
-        await Assert.That(tray[0].StaleComposer).IsFalse().Because("it was kept from the composer that is running");
-
-        var svg = await client.GetFromJsonAsync<SvgDto>($"/api/plans/{pinned1.Id}/svg");
-        await Assert.That(svg!.Svg).Contains("<svg");
+        var second = await (await client.PostAsJsonAsync("/api/compose/map", card.Descriptor)).Content.ReadFromJsonAsync<OriginatedDto>();
+        await Assert.That(second!.Slug).IsEqualTo($"{made.Slug}-2").Because("a second map of one board is a second map");
     }
 
     [Test]
-    public async Task Pin_of_a_board_the_library_does_not_hold_is_404()
+    public async Task A_map_of_a_board_the_library_does_not_hold_is_404()
     {
         await ApiTestFactory.ResetSchemaAsync();
         await FillAsync("nano", 1);
@@ -250,36 +250,7 @@ public sealed class ComposeEndpointsTests
 
         var descriptor = new ComposeRequestDto(12, 2, "rot_180", ComposeRequest.DefaultCell, 999, ComposerVersion.Current,
             ComposeDescriptor.CurrentSchema);
-        var resp = await client.PostAsJsonAsync("/api/compose/pin", descriptor);
+        var resp = await client.PostAsJsonAsync("/api/compose/map", descriptor);
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
-
-    /// <summary>A row an older composer made is flagged. Its stored plan is untouched — geometry is stored, not
-    /// recomputed — but its descriptor no longer names a board the running composer makes.</summary>
-    [Test]
-    public async Task A_row_from_an_older_composer_reads_stale()
-    {
-        await ApiTestFactory.ResetSchemaAsync();
-        await FillAsync("nano", 1);
-        using var client = ApiTestFactory.Shared.CreateClient();
-
-        var page = await client.GetFromJsonAsync<ComposePage>("/api/compose?players=12&symmetry=rot_180&count=1");
-        var current = page!.Cards[0].Descriptor;
-        var pinned = await (await client.PostAsJsonAsync("/api/compose/pin", current)).Content.ReadFromJsonAsync<PlanDetail>();
-
-        // age the stored row's stamp — the same state a row pinned before a pipeline change is left in
-        await ApiTestFactory.ExecuteAsync($"UPDATE plan SET composer_version = 'box-0' WHERE id = {pinned!.Id}");
-
-        var listed = (await client.GetFromJsonAsync<List<PlanSummary>>("/api/plans?origin=generated"))!.Single();
-        await Assert.That(listed.ComposerVersion).IsEqualTo("box-0");
-        await Assert.That(listed.StaleComposer).IsTrue();
-
-        // an authored row has no descriptor to go stale, whatever it is stamped with
-        var authoredJson = new PlanModel { Meta = new PlanMeta { Name = "hand-drawn" } }.ToJson();
-        await client.PostAsJsonAsync("/api/plans", new PlanSaveRequest(authoredJson, null));
-        var authored = (await client.GetFromJsonAsync<List<PlanSummary>>("/api/plans?origin=authored"))!.Single();
-        await Assert.That(authored.StaleComposer).IsFalse();
-    }
-
-    private sealed record SvgDto(string Svg);
 }

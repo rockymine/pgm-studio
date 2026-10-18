@@ -155,15 +155,6 @@ try {
   checks.add("the bar runs commands, divider, move", group.order.join() === "editor-bar-commands,editor-bar-divider,editor-bar-move",
     group.order.join());
 
-  checks.section("a plan row has no map to switch within");
-  await open("/plans/new");
-  checks.add("the stage word is plain text", await page.locator(".editor-stage--button").count() === 0
-    && (await page.locator(".editor-crumb .editor-stage").textContent())?.trim() === "Plan");
-  const rowLabel = await measure(".editor-crumb .editor-stage > span");
-  const rowName = await measure(".editor-crumb-name");
-  checks.add("and still sits on the crumb's baseline", near(rowLabel.baseline, rowName.baseline), `${rowLabel.baseline} vs ${rowName.baseline}`);
-  checks.add("the first crumb is Maps", (await page.locator(".editor-crumb a").first().textContent())?.trim() === "Maps");
-
   checks.section("the bar is there in every phase");
   for (const [path, phase] of [[`/maps/${seed.sketchSlug}/sketch?phase=info`, "Info"],
                                [`/maps/${seed.sketchSlug}/sketch`, "History"],
