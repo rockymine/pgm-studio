@@ -256,13 +256,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   /**
-   * Pick one of the plan's own pieces, or let go of it. What rides to the rail is the piece rather than its
+   * Pick one of the room pieces, or let go of it. What rides to the rail is the piece rather than its
    * id: the shape is not in `canvas.getShape`, so nothing on the other side could look it up, and the rail
    * needs what it states — the role, who it belongs to, and the height a region carries.
    *
-   * `heightAuthored` is the fact the rail is for. A region's `base_height` tracks the plan's flat surface on
-   * every compile until an author corrects it; the flag is what tells the next recompile to carry the stored
-   * one forward instead, so the rail has to show which of the two an author is looking at.
+   * `heightAuthored` is the fact the rail is for. A region's `base_height` is the flat surface the layout was
+   * written with until an author corrects it, so the rail has to show which of the two an author is looking at.
    */
   function selectStructural(id) {
     canvas.selectStructural(id ?? null);
@@ -607,9 +606,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   /**
-   * Correct the height a plan piece was compiled at. It writes the number and the flag together, because
-   * either alone is a lie: the number without the flag is overwritten by the next recompile, and the flag
-   * without a number says an author corrected something to the value the plan already chose.
+   * Correct the height a room piece stands at. It writes the number and the flag together, because either
+   * alone is a lie: the number without the flag reads as the layout's own, and the flag without a number says
+   * an author corrected something to the value the layout already stated.
    *
    * A `building` carries no height — the region it stands in is what a group's relief is held against — so
    * there is nothing here for one to state and the rail offers no field.
@@ -1401,7 +1400,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     /** Which unit a plain click picks with no group entered — "group" or "shape". The phase states it. */
     setPickUnit(unit) { canvas.setPickUnit(unit); },
-    /** Correct the height a plan piece was compiled at, and mark it the author's so a recompile keeps it. */
+    /** Correct the height a room piece stands at, and mark it the author's. */
     setStructuralHeight(id, height) { setStructuralHeight(id, height); },
     /** Arm a theme so a click on a shape paints it; "" puts the brush down. */
     /** Turn the picked room, building or area `quarters` quarter turns clockwise. */
@@ -1635,8 +1634,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         // Dressing rides the same way, and is likewise omitted when empty so an undressed sketch serialises
         // exactly as it did before the phase existed.
         dressing: canvas.dressing.isEmpty ? undefined : canvas.dressing.toJSON(),
-        // Relief rides top-level keyed by group rather than on the shapes, because a plan recompile
-        // replaces every shape it produced and a relief is hand work a plan cannot express. Omitted when
+        // Relief rides top-level keyed by group rather than on the shapes, because a group outlives a
+        // redrawing of the shapes in it. Omitted when
         // nothing is stated, so opening the phase and leaving it cannot add a key to the layout.
         relief: canvas.relief.isEmpty ? undefined : canvas.relief.toJSON(),
         layers: layers.map(L => ({

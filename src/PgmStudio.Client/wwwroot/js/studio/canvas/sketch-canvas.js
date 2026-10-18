@@ -1024,9 +1024,9 @@ export class SketchCanvas extends CanvasBase {
     }
   }
 
-  /** The plan pieces. Reshaping them is the plan's business, but the phase that edits geometry may
-   *  pick one — a region carries the height an author corrects. A selection outliving its piece is dropped:
-   *  a recompile writes fresh shapes, and an id that no longer names one would draw chrome round nothing. */
+  /** The room pieces. A shape edit never reshapes one, but the phase that edits geometry may pick one — a
+   *  region carries the height an author corrects. A selection outliving its piece is dropped: an id that no
+   *  longer names one would draw chrome round nothing. */
   setStructural(shapes) {
     this.#structural = shapes ?? [];
     if (!this.#structural.some(s => s.id === this.#selectedStructuralId)) this.#selectedStructuralId = null;
