@@ -9490,6 +9490,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **A door may stand on any wing's outer wall (`TS189`).** A door stated beyond the room's span keeps its place
   and is cut in the wall of the wing it lands on, and the line it was stated on picks between two walls facing
   its way. (`Domain/RoomFrames`, `Minecraft/Houses/BuildingPlan.WallFacing`, `docs/world-export/structures.md`)
+- **A room's doors are drawn and placed by hand (`TS189`).** In Layout a picked room's doors are bars on its
+  house's outline where the stamper cuts them, a wool stating none showing the one its ground gives it, and a
+  shift-press on a free wall adds a door there or takes one away; `GET …/intent/pieces/{id}/doors` answers the
+  doors a room is built with and `PUT …/doors` sets them whole, carried to every image. (`RoomHouseController`,
+  `Pgm/Authoring/PlayPieceDoors`, `docs/tools/sketch.md`, `docs/tools/configure.md`)
 - **A drawn step is asked only where a match crosses it (`TS171`).** `SP8` at a spawn's door and `WL11` at a
   wool room's entries — the sides of its region that meet ground — read the sketch's built heights, and `ST11`
   says an approach wall crowding the entrance it stands before; the plan's `EL1` is not asked

@@ -102,6 +102,38 @@ public sealed class PieceMoveRouteTests
     }
 
     [Test]
+    public async Task A_rooms_doors_are_set_whole_and_read_back_as_built()
+    {
+        var (client, slug) = await BoardAsync();
+        using var _ = client;
+
+        var read = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/intent/pieces/spawn-red/doors");
+        await Assert.That(read.GetProperty("stated").GetBoolean()).IsFalse()
+            .Because("the spawn states none, and opens on the wall its yaw leans into");
+        await Assert.That(read.GetProperty("doors").GetArrayLength()).IsEqualTo(1);
+
+        var outside = await client.PutAsJsonAsync($"/api/map/{slug}/intent/pieces/spawn-red/doors",
+            new { doors = new[] { new { edge = "-z", x = 5.5, z = -4.0 } } });
+        await Assert.That(outside.StatusCode).IsEqualTo(HttpStatusCode.BadRequest).Because("the point stands off the region");
+
+        var none = await client.PutAsJsonAsync($"/api/map/{slug}/intent/pieces/spawn-red/doors", new { doors = Array.Empty<object>() });
+        await Assert.That(none.StatusCode).IsEqualTo(HttpStatusCode.BadRequest).Because("a room opens through at least one door");
+
+        var set = await client.PutAsJsonAsync($"/api/map/{slug}/intent/pieces/spawn-red/doors",
+            new { doors = new object[] { new { edge = "+x", x = 10.0, z = 4.5 }, new { edge = "-z" } } });
+        await Assert.That(set.IsSuccessStatusCode).IsTrue().Because(await set.Content.ReadAsStringAsync());
+        var stored = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/intent/pieces/spawn-red/doors");
+        await Assert.That(stored.GetProperty("stated").GetBoolean()).IsTrue();
+        await Assert.That(stored.GetProperty("doors")[0].GetProperty("edge").GetString()).IsEqualTo("+x");
+        await Assert.That(stored.GetProperty("doors")[0].GetProperty("z").GetDouble()).IsEqualTo(4.5);
+        await Assert.That(stored.GetProperty("doors")[1].TryGetProperty("x", out var _)).IsFalse()
+            .Because("a door stating no point is centred on its wall");
+
+        var missing = await client.GetAsync($"/api/map/{slug}/intent/pieces/spawn-blue/doors");
+        await Assert.That(missing.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    [Test]
     public async Task A_moved_region_is_stored_with_the_room_seated_on_it()
     {
         var (client, slug) = await BoardAsync();

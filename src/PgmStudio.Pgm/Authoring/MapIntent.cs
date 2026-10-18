@@ -597,7 +597,7 @@ public sealed record WoolIntent
 /// <param name="Z">The point's z, stated with <paramref name="X"/>.</param>
 [method: JsonConstructor]
 public readonly record struct StatedDoor(
-    string Edge,
+    [property: WordSet(typeof(EdgeWords))] string Edge,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? X = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? Z = null)
 {
@@ -623,6 +623,17 @@ public readonly record struct StatedDoor(
 
     /// <summary>The door moved by <paramref name="dx"/>, <paramref name="dz"/>.</summary>
     public StatedDoor Slid(double dx, double dz) => X is { } x && Z is { } z ? this with { X = x + dx, Z = z + dz } : this;
+
+    /// <summary>The door on image <paramref name="step"/> of a symmetry about (<paramref name="centerX"/>,
+    /// <paramref name="centerZ"/>): its point mapped, and its wall turned the way its outward step turns.</summary>
+    public StatedDoor Fanned(string? mode, double centerX, double centerZ, int step) => Mapped(
+        (x, z) => Symmetry.Point(x, z, mode, centerX, centerZ, step),
+        edge =>
+        {
+            var (ox, oz) = edge.Outward();
+            var (tx, tz) = Symmetry.Point(ox, oz, mode, 0, 0, step);
+            return RoomEdges.Nearest(((int)Math.Round(tx), (int)Math.Round(tz)), RoomEdges.All) ?? edge;
+        });
 
     /// <summary>The door carried by a map of points and a map of directions: its point through the one and the
     /// way its wall faces through the other.</summary>

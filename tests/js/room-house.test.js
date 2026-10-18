@@ -15,6 +15,7 @@ const shapes = () => [
 function controller(structural, edited) {
   const tools = new RoomHouseController(null, () => ({ scale: 1, panX: 0, panY: 0 }), () => structural, {
     onEdited: (room, wings) => edited.push({ room, wings }),
+    onDoorsEdited: (room, doors) => edited.push({ room, doors }),
     onRefused: (sentence) => edited.push({ refused: sentence }),
   });
   tools.setEnabled(true);
@@ -64,4 +65,47 @@ test("nothing is offered while house editing is off", () => {
   tools.onPointerHover(12, 10);
   tools.addWing();
   assert.deepEqual(edited, []);
+});
+
+// ── doors ────────────────────────────────────────────────────────────────────────────────────────────────────
+
+const wings = [{ min_x: 2, min_z: 2, max_x: 12, max_z: 18 }];
+
+test("a press on a free wall states a door on its outer edge, centred on the block pressed", () => {
+  const edited = [];
+  const tools = controller(shapes(), edited);
+  tools.setDoors("spawn-red", [{ edge: "-z" }]);
+  assert.equal(tools.toggleDoorAt(12.2, 9.7), true);   // the east wall, x = 12
+  assert.deepEqual(edited.at(-1).doors, [{ edge: "-z" }, { edge: "+x", x: 12, z: 9.5 }]);
+});
+
+test("a press on a door already cut takes it away, and the last door stays", () => {
+  const edited = [];
+  const tools = controller(shapes(), edited);
+  tools.setDoors("spawn-red", [{ edge: "+x", x: 12, z: 9.5 }, { edge: "-z" }]);
+  tools.toggleDoorAt(12.1, 10.6);                      // a block along the same wall
+  assert.deepEqual(edited.at(-1).doors, [{ edge: "-z" }]);
+
+  tools.setDoors("spawn-red", [{ edge: "-z" }]);
+  tools.toggleDoorAt(7, 2);                             // the centred door on the north wall
+  assert.deepEqual(edited.at(-1), { refused: "A room keeps at least one door." });
+});
+
+test("a press away from every wall is not about a door", () => {
+  const edited = [];
+  const tools = controller(shapes(), edited);
+  tools.setDoors("spawn-red", [{ edge: "-z" }]);
+  assert.equal(tools.toggleDoorAt(40, 40), false);   // further than the wall reach from every wall
+  assert.equal(edited.length, 0);
+});
+
+test("a door is drawn where the stamper cuts it: on the free wall holding it, nearest its line", async () => {
+  const { doorPoint } = await import("../../src/PgmStudio.Client/wwwroot/js/studio/controllers/room-house-controller.js");
+  // Centred on the room's wing's side.
+  assert.deepEqual(doorPoint({ edge: "+z" }, wings), { x: 7, z: 18 });
+  // Stated on the region's edge, a block out from the wall: drawn on the wall.
+  assert.deepEqual(doorPoint({ edge: "-x", x: 0, z: 6.5 }, wings), { x: 2, z: 6.5 });
+  // A second wing along the east wall carries a door stated on its own face.
+  const grown = [...wings, { min_x: 12, min_z: 4, max_x: 17, max_z: 14 }];
+  assert.deepEqual(doorPoint({ edge: "+x", x: 17, z: 9.5 }, grown), { x: 17, z: 9.5 });
 });

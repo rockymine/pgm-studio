@@ -553,14 +553,7 @@ public static class SymmetryExpander
     // The walls a room opens through, as the edges their outward normals point at once turned by the linear
     // part of the symmetry op. Order is kept, because the first door is the one a room is measured from.
     private static List<StatedDoor> TransformDoors(List<StatedDoor> doors, SymmetryIntent sym, int k) =>
-        [.. doors.Select(door => door.Mapped(
-            (x, z) => Symmetry.Point(x, z, sym.Mode, sym.CenterX, sym.CenterZ, k),
-            edge =>
-            {
-                var (ox, oz) = edge.Outward();
-                var (tx, tz) = Symmetry.Point(ox, oz, sym.Mode, 0, 0, k);
-                return RoomEdges.Nearest(((int)Math.Round(tx), (int)Math.Round(tz)), RoomEdges.All) ?? edge;
-            }))];
+        [.. doors.Select(door => door.Fanned(sym.Mode, sym.CenterX, sym.CenterZ, k))];
 
     // ── helpers ─────────────────────────────────────────────────────────────────────────
     private static bool IsKnown(string mode) => SymmetryModes.Fanned.Contains(mode);

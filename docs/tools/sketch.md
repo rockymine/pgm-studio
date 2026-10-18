@@ -825,6 +825,19 @@ a stated `null` is open ground. A spawn's house of two wings:
 { "house": { "wings": [ { "corners": [[-16, -16], [-5, -5]] }, { "corners": [[-4, -14], [-1, -7]] } ] } }
 ```
 
+**A room's doors are drawn on its house and placed by a shift-press.** While a wing is picked, each door the room
+is built with is a bar on the outline where the stamper cuts it — on the free wall facing its way that holds its
+place, nearest the line it was stated on — so a wool stating none shows the one its ground gives it. A shift-press
+on a free wall adds a door there, centred on the block pressed, or takes away the one cut within 2 blocks of it,
+and a room keeps at least one (`RoomHouseController`). The doors are read from `GET
+/map/{slug}/intent/pieces/{id}/doors`, which answers them with `stated` false where the room states none, and every
+change writes them whole through `PUT …/doors`, carried to every image of the room (`PlayPieceDoors`). A door on
+the room's east wall, and one centred on its south:
+
+```json PUT /api/map/{slug}/intent/pieces/{id}/doors
+{ "doors": [ { "edge": "+x", "x": 0, "z": -10 }, { "edge": "+z" } ] }
+```
+
 **A picked wall's ends drag apart.** In Layout a picked approach wall wears a square grip on each end of its line,
 and dragging one moves that end alone, by block corners, the other standing where it was
 (`WallEndController`). The end snaps to the nearest point on a drawn shape's outline within 3 blocks, so a

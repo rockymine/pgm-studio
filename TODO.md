@@ -22,11 +22,6 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [~] **TS189 — A room's doors are drawn and placed by hand.** In Layout's house view doors are drawn on
-  the outline, and shift-click on an outer edge adds or removes one there
-  (`room-house-controller.js`, a `PUT …/intent/pieces/{id}/doors`). `docs/tools/sketch.md`,
-  `docs/world-export/structures.md`.
-
 - [ ] **TS190 — A place states the numbers it is held to.** A place carries targets — a value and the band it
   must fall in — and each is measured off the sketch's ground and shown beside its band, a miss as a complaint,
   as pgmvox's checker prints one line per number (`freeform/lib/AGENT-GUIDE.md` § the plan). The walks the

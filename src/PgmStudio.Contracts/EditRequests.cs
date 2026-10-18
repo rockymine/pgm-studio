@@ -317,6 +317,27 @@ public sealed record PieceAddRequest(
 /// <param name="Alone">Set it on the named image only, rather than on every image of its unit.</param>
 public sealed record PieceHouseRequest(System.Text.Json.JsonElement House, bool Alone = false);
 
+/// <summary>A room's doors, whole — the body of <c>PUT /map/{slug}/intent/pieces/{id}/doors</c>.</summary>
+/// <param name="Doors">The doors, in the order they are cut — the first is the one a spawn's team walks out of.</param>
+/// <param name="Alone">Set them on the named image only, rather than on every image of its unit.</param>
+public sealed record PieceDoorsRequest(List<PieceDoor> Doors, bool Alone = false);
+
+/// <summary>One door of a room: the way the wall it is cut in faces, and the point on that wall it is centred on,
+/// or no point for a door centred on its wall.</summary>
+/// <param name="Edge">The way the wall faces.</param>
+/// <param name="X">The point's x, on the wall's outer edge, or absent for a door centred on its wall.</param>
+/// <param name="Z">The point's z, stated with <paramref name="X"/>.</param>
+public sealed record PieceDoor(
+    [property: WordSet(typeof(EdgeWords))] string Edge,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? X = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? Z = null);
+
+/// <summary>The doors a room is built with — the answer of <c>GET /map/{slug}/intent/pieces/{id}/doors</c>.</summary>
+/// <param name="Doors">The doors, in the order they are cut.</param>
+/// <param name="Stated">Whether the room states them; a room stating none is built with the one its ground gives
+/// it, which these are.</param>
+public sealed record RoomDoorsDto(List<PieceDoor> Doors, bool Stated);
+
 /// <summary>One setting of a play piece — the body of <c>PATCH /map/{slug}/intent/pieces/{id}/settings</c>: a
 /// goal's name, design, material, lava, float or leak, a wool's colour, or a spawn's facing.</summary>
 /// <param name="Key">Which setting.</param>
