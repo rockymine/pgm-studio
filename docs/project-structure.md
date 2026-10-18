@@ -103,7 +103,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 |---|---|---|---|
 | `Analysis` | 27 | 5,176 | `Playability/` 16 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
 | `Api` | 175 | 24,995 | `Endpoints/` 84 · `Services/` 70 · `Access/` 14 · `Http/` 3 · 4 at root |
-| `Client` | 278 | 33,382 | `Features/` 156 (nested) · `Components/` 92 (nested) · `Pages/` 17 · `Layout/` 5 · `Models/` 5 · 3 at root |
+| `Client` | 278 | 33,366 | `Features/` 156 (nested) · `Components/` 92 (nested) · `Pages/` 17 · `Layout/` 5 · `Models/` 5 · 3 at root |
 | `Contracts` | 38 | 4,346 | flat |
 | `Data` | 26 | 4,358 | `Map/` 7 · `Features/` 6 · `Theme/` 5 · `Access/` 3 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 33 | 4,306 | flat |
