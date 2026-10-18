@@ -235,7 +235,7 @@ landed.
   review, drawn on the sheet, and applied by the build.
 - A working area an agent may state in the places document; a person's board is cropped to what it draws.
 - The generator emits a sketch, shipped as `TG7`. Its piece model stays its own (`docs/generator/model.md`) and ends
-  in a layout with a shape per box, an intent and the boxes as places, and a candidate becomes a map in one step.
+  in a layout with a shape per box and an intent, and a candidate becomes a map in one step.
 - The rules move onto the sketch: the measures read off the sketch's rasterized ground, which never builds a
   world, and the refusals asked between play pieces. `sight` is the one new read (`TS191`); in-game notes are tagged with
   the place their ground falls in.

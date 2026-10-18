@@ -28,7 +28,7 @@ row the fill wrote (below); the feed has no way to compose a board on request.
 **Filling writes the library.** `PgmStudio.Import --compose-library` composes what the running composer
 version is missing, up to `ComposedBoardLibrary.PerBand` — 500 — boards for each of the four size bands and
 the two symmetries the feed offers, seed 0 upward, and stores each as a `composed_board` row: the board as it is
-handed over — its sketch layout, its intent and its boxes as places (*What a compose produces*, below) — the
+handed over — its sketch layout and its intent (*What a compose produces*, below) — the
 picture of the pieces the composer laid, its score, wool count and structure as columns the feed filters and
 orders on, and the rest of its card — the fired hard terms, the top three soft terms and the land spend — as
 `card_json`. A seed that composes nothing is skipped. Once every band and symmetry holds its 500, the
@@ -37,8 +37,7 @@ states, so nothing is lost that the fill cannot make again.
 
 **Making a map writes a map**, through the road a map's source takes (`PUT /api/map/{slug}/source`,
 `docs/tools/flow.md`): the library board the card names, labelled for the card's player count, is stored as the
-base of a map — its layout and its intent, each island given its team — with its boxes as the map's places,
-under the first free slug its name gives, `composed-p12-t2-2` and then `composed-p12-t2-2-2`. The world is built
+base of a map — its layout and its intent, each island given its team — under the first free slug its name gives, `composed-p12-t2-2` and then `composed-p12-t2-2-2`. The world is built
 and the intent projected in the same call, so the map stands at `stage=configure` and the Sketch tool opens on it.
 The board stays in the library: the map holds its own copy from that moment on, and a second map of the same
 card is a second map.
@@ -119,7 +118,7 @@ hub, at the end of the back edge nearer the donut, because a donut draws a unit 
 
 **What a compose hands over is a sketch, not a plan.** The plan is the composer's own working document: the
 gate is asked of it, and then it is compiled once into what a map is made from (`ComposedSketch`) — a sketch
-layout, the intent it is played by, and the unit's boxes. The compile is the Plan tool's (`PlanCompiler`) with one
+layout and the intent it is played by. The compile is the Plan tool's (`PlanCompiler`) with one
 difference: abutting pieces fuse **by box** rather than by height. The hub's pieces are one shape, the front
 line's another, each wool approach and the spawn their own, each named for its box and its surface; a piece in no
 box — a mid stone — fuses with its own component as a plan's does. Every shape stays in the one mirrored group, so
@@ -143,23 +142,6 @@ three. The spawn docks the hub's right side level with the hole, its room drawn 
 of `spawn-9`; the one wool approach is an L whose room closes its far end, with a defence wall on the seam the
 attack crosses twelve blocks in front of the room. The intent carries two spawns and two wools, one of each a team,
 named *Composed p12 t2 #2* for twelve players a team.
-
-**The boxes become places**, one box-shaped place per box at every orbit image, named for the team that image
-belongs to — *Red hub*, *Blue wool A*, *Red front line* — and holding nothing. A place makes no terrain and names
-no shape (`docs/tools/sketch.md`, *What it writes*), so it outlives the shape it was drawn around being reshaped.
-
-```json PlacesDocument
-{"places": [
-  {"id": "red-hub", "name": "Red hub", "shape": "box", "points": [[-20, 36], [24, 72]]},
-  {"id": "red-spawn", "name": "Red spawn", "shape": "box", "points": [[24, 52], [36, 64]]},
-  {"id": "red-wool-a", "name": "Red wool A", "shape": "box", "points": [[-12, 72], [12, 96]]},
-  {"id": "red-frontline", "name": "Red front line", "shape": "box", "points": [[-12, 16], [12, 36]]},
-  {"id": "blue-hub", "name": "Blue hub", "shape": "box", "points": [[-24, -72], [20, -36]]},
-  {"id": "blue-spawn", "name": "Blue spawn", "shape": "box", "points": [[-36, -64], [-24, -52]]},
-  {"id": "blue-wool-a", "name": "Blue wool A", "shape": "box", "points": [[-12, -96], [12, -72]]},
-  {"id": "blue-frontline", "name": "Blue front line", "shape": "box", "points": [[-12, -36], [12, -16]]}
-]}
-```
 
 It also shows what a composed board invariably lacks. **Every shape stands at the global 9**, so a generated
 board is flat and every height on it arrives later, in the Sketch tool's relief phase. **No iron, no destroyable
@@ -365,7 +347,7 @@ Sketch* for anyone off the whitelist.
 | `GET /compose?players=&symmetry=&from=&count=` | `{cards, next, end, matching, observed, key}` — a page of the library, best score first: each card its descriptor, score, wool count, structural read, hard terms, top three soft terms, board SVG and land spend; `next` the position to ask from, `end` whether this page reaches the last matching board, `matching` how many match, `observed` the census of every board held for the band and symmetry, `key` the four inks the SVGs are drawn in | 400 unsupported symmetry · 400 unsupported team count |
 | … `&maxScore=&woolCount=` | the same, sieved on the evaluator score and the wool count; `woolCount` is CSV and any-of (`1,3` takes boards with one or three wools), and the page sends it only, `maxScore` is for a script | — |
 | … `&wools=&hub=&front=` | the same, sieved structurally — `wools` must-include, `hub` and `front` any-of, all CSV | — |
-| `POST /compose/map` | `{slug}` — makes a map of the library board a **descriptor body** names, the `{players, teams, symmetry, seed, …}` record a card carries: its layout and intent labelled for its player count, its islands given their teams and its boxes as places, stored as a source is under the first free slug its name gives, with its world built | 400 `RQ1` invalid descriptor · 404 a board the library does not hold · what `PUT /map/{slug}/source` refuses |
+| `POST /compose/map` | `{slug}` — makes a map of the library board a **descriptor body** names, the `{players, teams, symmetry, seed, …}` record a card carries: its layout and intent labelled for its player count and its islands given their teams, stored as a source is under the first free slug its name gives, with its world built | 400 `RQ1` invalid descriptor · 404 a board the library does not hold · 422 a board the source road refuses, as `PUT /map/{slug}/source` does |
 
 Every endpoint a map made here is put to after that is the Sketch tool's and Configure's, by its slug.
 
@@ -379,7 +361,7 @@ POST /api/compose/map        <the chosen card's descriptor verbatim>   → {"slu
 ```
 
 From there the map is an ordinary sketched map, read and written by its slug — `GET /api/map/{slug}/sketch`,
-`GET /api/map/{slug}/intent` and `GET /api/map/{slug}/places` hand over its three documents, and
+and `GET /api/map/{slug}/intent` hand over its two documents, and
 `PUT /api/map/{slug}/source` stores it again with a refinement on it. The slug is the board's name slugified —
 `Composed p20 t2 #42` becomes `composed-p20-t2-42`.
 

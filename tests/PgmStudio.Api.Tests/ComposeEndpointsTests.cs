@@ -202,8 +202,7 @@ public sealed class ComposeEndpointsTests
     }
 
     /// <summary>A map made of a card is the stored board as a sketch: one shape per box of the team unit, named for
-    /// the box, all in the one mirrored group; the intent labelled for the players asked; and the boxes as places,
-    /// one per box at every orbit image.</summary>
+    /// the box, all in the one mirrored group; the intent labelled for the players asked; and no places.</summary>
     [Test]
     public async Task A_map_made_of_a_card_is_the_board_as_a_sketch_with_a_shape_per_box()
     {
@@ -235,10 +234,8 @@ public sealed class ComposeEndpointsTests
         await Assert.That(intent.GetProperty("maxPlayers").GetInt32()).IsEqualTo(10);
         await Assert.That(intent.GetProperty("meta").GetProperty("name").GetString()).IsEqualTo($"Composed p10 t2 #{card.Descriptor.Seed}");
 
-        var places = (await client.GetFromJsonAsync<PlacesDocument>($"/api/map/{made.Slug}/places"))!.Places!;
-        await Assert.That(places.Select(place => place.Id)).Contains("red-hub");
-        await Assert.That(places.Select(place => place.Id)).Contains("blue-hub");
-        await Assert.That(places.All(place => place.Shape == "box" && place.Holds is null)).IsTrue();
+        var places = await client.GetFromJsonAsync<PlacesDocument>($"/api/map/{made.Slug}/places");
+        await Assert.That(places!.Places ?? []).IsEmpty().Because("a composed map states no places");
 
         var second = await (await client.PostAsJsonAsync("/api/compose/map", card.Descriptor)).Content.ReadFromJsonAsync<OriginatedDto>();
         await Assert.That(second!.Slug).IsEqualTo($"{made.Slug}-2").Because("a second map of one board is a second map");

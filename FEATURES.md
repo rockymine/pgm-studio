@@ -4469,7 +4469,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **The generator hands over a sketch, and a candidate becomes a map in one step (`TG7`).** A composed board
   is compiled once into a sketch layout with **one shape per box** — the hub, the front line, each wool
   approach and the spawn, named `hub-9`, `wool-a-9`, a ring hub's hole its own cut — all in the one mirrored
-  group, beside the intent it is played by and its boxes as box-shaped places (`ComposedSketch`, an optional
+  group, beside the intent it is played by (`ComposedSketch`, an optional
   piece-to-shape partition on `PlanCompiler.Compile`). The library stores that sketch and the picture of the
   composer's pieces in place of a plan (`M0083`, which empties it for the fill to compose again).
   `POST /api/compose/map` makes a map of a card through `MapSource`, the road a source takes, and the drawer's

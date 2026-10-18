@@ -176,7 +176,7 @@ The **composer** runs the pipeline: budget → grow one unit → carve the mid �
 | `ComposeGeometry` | The **fanned-board geometry**: a rect's orbit image under a symmetry mode's axes, and the collinear-chain measurement behind `LN2`. |
 | `ComposeRng` | The **deterministic RNG**: a fixed draw order makes the same request reproduce byte-for-byte. |
 | `ComposedStages` | Everything **one compose attempt produced**, kept apart so tests gate each step. |
-| `ComposedSketch` · `ComposedBox` | What a composed board is **handed over as**: the plan compiled with its pieces fused by box (one shape per box, named for it, all in the mirrored group), the intent it is played by, and each box at every orbit image in blocks, which the library writes as the map's places. |
+| `ComposedSketch` | What a composed board is **handed over as**: the plan compiled with its pieces fused by box (one shape per box, named for it, all in the mirrored group), and the intent it is played by. |
 
 ## 10. The evaluator — judging
 

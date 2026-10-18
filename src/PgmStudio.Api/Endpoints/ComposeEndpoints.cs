@@ -110,8 +110,8 @@ public sealed class ComposeBrowseEndpoint(ComposedBoardStore library) : Endpoint
 /// <summary>
 /// POST /api/compose/map — make a map of a browse card: the library board its descriptor names, whichever composer
 /// version made it, labelled for the descriptor's player count and stored as a map's source would be
-/// (<see cref="MapSource"/>) — its layout and intent as the base, each island given its team, and its boxes as the
-/// map's places — under the first free slug its name gives. Answers the slug; the Sketch tool opens it. 404 for a
+/// (<see cref="MapSource"/>) — its layout and intent as the base, each island given its team — under the first free
+/// slug its name gives. Answers the slug; the Sketch tool opens it. 404 for a
 /// board the library does not hold.
 /// </summary>
 public sealed class ComposeMapEndpoint(
@@ -141,12 +141,11 @@ public sealed class ComposeMapEndpoint(
         {
             layout = sketch.Layout,
             intent = sketch.Intent,
-            places = sketch.Places,
             note = $"composed: {band} {board.Symmetry} seed {board.Seed} by composer {board.ComposerVersion}",
         }, MapArtifactStore.Json);
         var slug = await repo.UniqueSlugAsync(Slugs.Of(sketch.Name), ct);
         var applied = await MapSource.ApplyAsync(HttpContext, slug, source, dry: false, discarding: null,
-            mayPlace: true, repo, reader, writer, artifacts, features, db, players, log, names, ct);
+            repo, reader, writer, artifacts, features, db, players, log, names, ct);
         if (applied.Refusal is { } refusal)
         {
             await Refusals.WriteAsync(HttpContext, refusal, ct);

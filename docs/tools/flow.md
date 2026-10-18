@@ -60,7 +60,7 @@ teams, no spawns and no objective, so a map begun here arrives at Configure with
 
 **From the generator.** `/generator` browses a library of whole boards the composer made from a size band, a
 symmetry and a seed, 500 for each band and symmetry. Each is held as the sketch it is handed over as — a layout
-with a shape per box of the composer's team unit, the intent it is played by, and its boxes as places — and
+with a shape per box of the composer's team unit and the intent it is played by — and
 opening one in Sketch makes a map of it, stored as a source is and built, with no plan behind it. From that point
 it is an ordinary sketched map.
 

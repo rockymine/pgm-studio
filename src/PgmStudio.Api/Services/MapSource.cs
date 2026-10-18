@@ -48,11 +48,8 @@ public static class MapSource
     /// <summary>The members that say something about the source itself, which bind to its record.</summary>
     private static readonly string[] About = ["after", "name", "origin", "note"];
 
-    /// <summary>Store the source <paramref name="body"/> as the map at <paramref name="slug"/>. A source stating
-    /// <c>places</c> is refused unless <paramref name="mayPlace"/>: a person's places are written by an admin or a
-    /// token carrying the notes permission, and a map the studio makes states its own.</summary>
     public static async Task<MapSourceApplied> ApplyAsync(
-        HttpContext http, string slug, string body, bool dry, string? discarding, bool mayPlace,
+        HttpContext http, string slug, string body, bool dry, string? discarding,
         MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
         WorldFeatureWriter features, PgmDb db, PlayerLookup players, MapChangeLog log, LibraryNames names,
         CancellationToken ct)
@@ -95,7 +92,7 @@ public static class MapSource
         var drawnIntent = Raw(stated["intent"]);
         var refinement = Raw(stated["refinement"]);
         var places = Raw(stated["places"]);
-        if (places is not null && !mayPlace)
+        if (places is not null && !(await http.RequestServices.GetRequiredService<Callers>().OfAsync(http, ct)).MayNote)
             return Refuse(403, "not permitted", new Finding(RequestRules.NotPermitted,
                 "the source states `places`, and a map's places are written by an admin or by a token carrying the "
                 + "notes permission", Field: "places"));
