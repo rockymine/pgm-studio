@@ -135,15 +135,6 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Painting terrain
 
-- [ ] **TS179 — A room, a build area and a water lane resize on the canvas.** The piece route takes a new size for a
-  room's region, its building, a build area or a water lane, and the canvas shows resize handles on a picked one.
-  A resized room keeps its marker at the same fraction of the region and its building inside it (`WX12`), and is
-  refused over **20×30** (`ST10`) or under **4×4** with no building (`WX2`). `PlayPieceMove` holds the move it
-  extends. `docs/tools/sketch.md`.
-
-  *Evidence: `PlayPieceMove.Apply` refuses any placed span that differs from the standing one, so a piece is sized
-  only when it is drawn (D14).*
-
 - [ ] **WE60 — `repeat` names a cycle and holds a course.** `BandEnding.Repeat` makes the last band claim
   everything past the stack, which is what `BandStack.At` does and what the enum's own docstring says. The
   word says the opposite: a reader who has met a repeating texture anywhere else expects the bands to cycle.

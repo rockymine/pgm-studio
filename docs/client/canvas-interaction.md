@@ -273,9 +273,9 @@ ladder, the plan for a piece or a zone, and `WorldEditController` for a region â
 canvas step at once. A reader who has learnt the corners of a region has learnt a piece's and a shape's,
 which is the whole reason it is one emission and not three tables of eight.
 
-It carries **four** anchors, one per corner, drawn ON the selection's own bounds. Each edge is an invisible
-grab band instead: hovering it shows the one-dimensional double-headed arrow and dragging it stretches or
-squashes that axis alone. A band stops short of both corners so the anchor there always wins the press, and
+It carries **four** anchors, one per corner, drawn ON the selection's own bounds. Each edge is a grab band
+instead, unseen until the pointer is on it: hovering it draws the edge as a bar in the anchors' ink and shows the
+one-dimensional double-headed arrow, and dragging it stretches or squashes that axis alone. A band stops short of both corners so the anchor there always wins the press, and
 an edge with no room left between them gets no band at all.
 
 **That is what lets the box sit on the bounds with no offset.** A ninth grip at an edge midpoint is the one

@@ -24,8 +24,6 @@ public partial class SketchStructuralInspector
     /// move went through. The intent owns where a room is, so a refusal is an answer rather than a fault.</summary>
     [Parameter] public string? Note { get; set; }
 
-    [Parameter] public EventCallback OnClose { get; set; }
-
     /// <summary>What a goal or a wool states, read from the intent; null while it loads or for any other piece.</summary>
     [Parameter] public ObjectiveFieldValues? Settings { get; set; }
 
@@ -41,8 +39,9 @@ public partial class SketchStructuralInspector
     /// not one, or outside Layout.</summary>
     [Parameter] public RenderFragment? House { get; set; }
 
-    /// <summary>Whether a wall's ends drag apart here, which is Layout.</summary>
-    [Parameter] public bool EndsDrag { get; set; }
+    /// <summary>Whether the canvas reshapes the piece here — a wall's ends drag apart, a region, an area or a lane
+    /// resizes — which is Layout.</summary>
+    [Parameter] public bool Reshapes { get; set; }
 
     /// <summary>Turn a spawn's facing a quarter clockwise.</summary>
     [Parameter] public EventCallback OnFace { get; set; }

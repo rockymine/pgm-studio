@@ -187,7 +187,7 @@ export const ROTATE_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(ROTAT
 
 /**
  * Draw the box a selection is transformed by into a screen-space layer: four corner anchors on the
- * selection's own bounds, an invisible grab band along each edge, and — where a caller offers one — four
+ * selection's own bounds, a grab band along each edge that draws as a bar while the pointer is on it, and — where a caller offers one — four
  * rotate zones outside the corners. Every authoring surface draws this one box, so a reader who has learnt
  * the corners of a region has learnt a piece's and a shape's.
  *
@@ -220,8 +220,20 @@ export function renderTransformBox(layer, box, {
       : { x: l + grip.nx * spanX - EDGE_GRAB, y: t + EDGE_INSET, width: EDGE_GRAB * 2, height: along - EDGE_INSET * 2 });
     zone.setAttribute("fill", "transparent");
     zone.style.cursor = grip.cursor;
+    // The edge is drawn as the handle while the pointer is on it: a bar in the anchors' ink along the band, so
+    // a side shows it can be dragged the way a corner does, and nothing sits on the midpoint the rest of the
+    // time, where a house's add-a-wing marker appears.
+    const x1 = horizontal ? l + EDGE_INSET : l + grip.nx * spanX, x2 = horizontal ? r - EDGE_INSET : x1;
+    const y1 = horizontal ? t + grip.nz * spanZ : t + EDGE_INSET, y2 = horizontal ? y1 : b - EDGE_INSET;
+    const bar = svgEl("line", {
+      x1, y1, x2, y2, stroke, "stroke-width": "3", "stroke-linecap": "round", "pointer-events": "none", opacity: "0",
+    });
+    bar.setAttribute("data-edge", grip.key);
+    zone.addEventListener("mouseenter", () => bar.setAttribute("opacity", "1"));
+    zone.addEventListener("mouseleave", () => bar.setAttribute("opacity", "0"));
     zone.addEventListener("mousedown", (e) => onScale(grip, e));
     zone.addEventListener("click", (e) => e.stopPropagation());
+    layer.appendChild(bar);
     layer.appendChild(zone);
   }
 

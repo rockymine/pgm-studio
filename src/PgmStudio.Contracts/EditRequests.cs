@@ -277,8 +277,9 @@ public sealed record PieceMoveRequest(
 /// <param name="MinZ">Its north edge.</param>
 /// <param name="MaxX">Its east edge.</param>
 /// <param name="MaxZ">Its south edge.</param>
-/// <param name="Carried">True where the piece moves only with something else: an image the symmetry draws that
-/// the intent does not store, or an iron cube seated in a spawn room.</param>
+/// <param name="Carried">True where the sketch does not pick the piece on its own: an image the symmetry draws
+/// that the intent does not store, an image of an orbit other than its authored one, or an iron cube seated in a
+/// spawn room. A move of an image still names its id and moves the whole orbit.</param>
 /// <param name="Line">A wall's two ends, <c>[x1, z1, x2, z2]</c> on block corners; absent for every other piece.</param>
 public sealed record PlayPieceDto(
     string Id,

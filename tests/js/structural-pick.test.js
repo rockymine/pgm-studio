@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { recordingPainter } from "./_painter-stub.js";
 
-import { containsPoint } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/shape.js";
+import { structuralAt } from "../../src/PgmStudio.Client/wwwroot/js/studio/shared/pick.js";
 import { paintStructural } from "../../src/PgmStudio.Client/wwwroot/js/studio/render/sketch-render.js";
 
 const region = {
@@ -17,23 +17,25 @@ const building = {
   min_x: 10, min_z: 10, max_x: 20, max_z: 20,
 };
 
-// The canvas walks its structural list back to front, so the last containing piece wins. A building is
-// appended after the region it stands in, which is what makes the inner rectangle reachable at all.
-const hitStructural = (shapes, x, z) => {
-  for (let i = shapes.length - 1; i >= 0; i--) if (containsPoint(shapes[i], x, z)) return shapes[i].id;
-  return null;
-};
-
 test("a point inside a region picks it", () => {
-  assert.equal(hitStructural([region, building], 3, 3), "wool-red");
+  assert.equal(structuralAt([region, building], 3, 3), "wool-red");
 });
 
-test("a building inside a region is reached before the region it stands in", () => {
-  assert.equal(hitStructural([region, building], 15, 15), "wool-red-building");
+test("a press on a building picks its room whole first, and the wing once the room is picked", () => {
+  assert.equal(structuralAt([region, building], 15, 15), "wool-red");
+  assert.equal(structuralAt([region, building], 15, 15, "wool-red"), "wool-red-building");
+  const second = { ...building, id: "wool-red-building-2", min_x: 20, max_x: 26 };
+  assert.equal(structuralAt([region, building, second], 22, 15, "wool-red-building"), "wool-red-building-2",
+    "another wing of the picked house is one press away");
+});
+
+test("an orbit's image is never picked, and a building whose room is one picks the wing", () => {
+  assert.equal(structuralAt([{ ...region, carried: true }, building], 3, 3), null);
+  assert.equal(structuralAt([{ ...region, carried: true }, building], 15, 15), "wool-red-building");
 });
 
 test("a point outside every piece picks none", () => {
-  assert.equal(hitStructural([region, building], 40, 40), null);
+  assert.equal(structuralAt([region, building], 40, 40), null);
 });
 
 test("an unpicked board draws no selection ring", () => {

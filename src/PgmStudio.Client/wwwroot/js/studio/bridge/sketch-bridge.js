@@ -60,6 +60,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // Every play piece that is not a room, as the intent places it: drawn and moved with the rooms, never
   // written into the layout, because none of them is ground the layout states.
   let pieces = [];
+  let carriedRooms = new Set();   // the spawns and wool rooms that are an orbit's images, not its authored one
   let pieceKind = null;        // the play piece the Layout step places next, or null
   let placeShape = null;       // the shape of place the Plan step draws next, or null
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
@@ -520,6 +521,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     } catch {
       fire("OnStructuralNote", "Couldn't reach the studio, so the doors weren't changed. Try again.");
     }
+    iso.drop();
     await loadDoors(room);
   }
 
@@ -552,21 +554,28 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   /** The rooms of the layer being drawn on, and on the ground layer every other piece with them. */
+  // A room drawn from the intent is picked only as its orbit's authored image: the rest move with it.
   function showStructural() {
-    const rooms = layers[active].structural ?? [];
+    const rooms = (layers[active].structural ?? [])
+      .map(room => carriedRooms.has(structuralTarget(room).id) ? { ...room, carried: true } : room);
     canvas.setStructural(active === 0 ? [...rooms, ...pieces] : rooms);
   }
 
-  /** Read every piece that is not a room from the intent, where the studio says it stands. */
+  /** Read every piece that is not a room from the intent, where the studio says it stands. Every piece write
+   *  ends here, and the intent is no part of the document the 3-D preview's mesh is stamped against, so the
+   *  mesh is let go of too: a moved wall would otherwise be drawn where it stood. */
   async function refreshPieces() {
     if (!slug) return;
+    iso.drop();
     let list;
     try {
       const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces`);
       if (!res.ok) return;
       list = await res.json();
     } catch { return; }
-    pieces = (Array.isArray(list) ? list : [])
+    const read = Array.isArray(list) ? list : [];
+    carriedRooms = new Set(read.filter(p => (p.kind === "spawn" || p.kind === "woolRoom") && p.carried).map(p => p.id));
+    pieces = read
       .filter(p => p.kind !== "spawn" && p.kind !== "woolRoom")
       .map(p => ({
         id: p.id, type: "rectangle", role: p.kind, color: p.color || null, piece: true, carried: p.carried === true,
@@ -1394,8 +1403,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setPickUnit(unit) { canvas.setPickUnit(unit); },
     /** Correct the height a plan piece was compiled at, and mark it the author's so a recompile keeps it. */
     setStructuralHeight(id, height) { setStructuralHeight(id, height); },
-    /** Let go of the picked plan piece — what a rail's Close does. */
-    clearStructural() { selectStructural(null); },
     /** Arm a theme so a click on a shape paints it; "" puts the brush down. */
     /** Turn the picked room, building or area `quarters` quarter turns clockwise. */
     turnStructural(id, quarters) { return turnStructural(id, quarters); },

@@ -47,6 +47,20 @@ test("each edge is one band, and it stops short of both corners", () => {
   }
 });
 
+test("an edge draws its handle while the pointer is on its band, and only then", () => {
+  const g = layer();
+  renderTransformBox(g, box, { onScale: () => {} });
+  const bars = g.children.filter(c => c.tagName === "line" && c.getAttribute("data-edge"));
+  assert.equal(bars.length, 4);
+  assert.ok(bars.every(bar => bar.getAttribute("opacity") === "0"), "an edge handle shows before it is pointed at");
+  const north = bands(g).find(band => num(band, "y") < box.t + 10 && num(band, "width") > num(band, "height"));
+  north.fire("mouseenter");
+  const shown = bars.filter(bar => bar.getAttribute("opacity") === "1");
+  assert.deepEqual(shown.map(bar => bar.getAttribute("data-edge")), ["n"]);
+  north.fire("mouseleave");
+  assert.ok(bars.every(bar => bar.getAttribute("opacity") === "0"));
+});
+
 test("a band drives one axis and a corner drives both", () => {
   for (const grip of TRANSFORM_EDGES)
     assert.equal(Number(gripSideX(grip) !== 0) + Number(gripSideZ(grip) !== 0), 1,

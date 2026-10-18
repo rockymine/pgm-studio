@@ -9,9 +9,12 @@ namespace PgmStudio.Pgm.Authoring;
 /// approach wall, a defence chest or the observer — by its id, and every orbit image of it with it. The sketch draws the pieces out of the intent, so a drag on the canvas arrives here or the picture
 /// and the world build answer differently.
 ///
-/// <para><b>It moves and never resizes.</b> A room's marker is a fraction of its region and a goal's structure
-/// is centred on its anchor, so a placed rectangle whose span differs from the standing one is refused rather
-/// than accommodated.</para>
+/// <para><b>A room's region, a build area and a water lane also resize.</b> A placed rectangle of another span
+/// is the piece's new size: a room keeps everything on its region — the marker, the building, the iron, the
+/// doors — at the same fraction across it, and is refused under <see cref="RoomFrames.MinFootprintSpan"/> blocks
+/// across (<c>WX2</c>) or over a room region's 20×30 (<c>ST10</c>). Every image takes the image of the new
+/// rectangle. A goal's structure is centred on its anchor and a building is reshaped whole by its house, so
+/// either refuses a span other than its own.</para>
 ///
 /// <para><b>Moving a room's region carries the room on it</b> — the marker, the building, the iron, the
 /// entries — because the region is the ground they stand on. Moving the <b>building</b> moves the building
@@ -48,11 +51,29 @@ public static class PlayPieceMove
         {
             if (Unpartable(part, StructuralRoles.Spawn) is { } unpartable) return (null, unpartable);
             var spawn = intent.Spawns[spawnAt];
-            var stopped = Stopped(spawn.Protection, WingOf(spawn.House, wing), building, placed);
+            var stopped = Stopped(spawn.Protection, WingOf(spawn.Raised(), wing), building, placed);
             if (stopped is not null) return (null, stopped);
-            var (dx, dz) = Shift(building ? WingOf(spawn.House, wing)!.Value : spawn.Protection[0], placed);
+            if (!building && SpanOf(spawn.Protection[0]) != SpanOf(placed))
+            {
+                if (RegionRefused(placed, id) is { } refused) return (null, refused);
+                var stretched = Images(intent.Spawns, spawnAt, entry => entry.Stamp, mode, alone, (entry, step) =>
+                {
+                    var stretch = new Stretch(entry.Protection[0], ImageOf(placed, symmetry, step));
+                    return entry with
+                    {
+                        Protection = [stretch.To],
+                        Point = stretch.Point(entry.Point),
+                        House = entry.House?.Mapped(stretch.Rect),
+                        Doors = [.. entry.Doors.Select(stretch.Door)],
+                        Iron = [.. entry.Iron.Select(stretch.Point)],
+                    };
+                });
+                return Checked(intent with { Spawns = stretched }, Carried(intent.Spawns, stretched)
+                    .Select(entry => (entry.Id, entry.Protection, entry.House, entry.Point)));
+            }
+            var (dx, dz) = Shift(building ? WingOf(spawn.Raised(), wing)!.Value : spawn.Protection[0], placed);
             var spawns = Orbit(intent.Spawns, spawnAt, entry => entry.Stamp, mode, alone, dx, dz,
-                (entry, x, z) => building ? entry with { House = Slide(entry.House, x, z), Doors = Slide(entry.Doors, x, z) } : entry with
+                (entry, x, z) => building ? entry with { House = Slide(entry.Raised(), x, z), Doors = Slide(entry.Doors, x, z) } : entry with
                 {
                     Protection = [.. entry.Protection.Select(r => Slide(r, x, z))],
                     Doors = Slide(entry.Doors, x, z),
@@ -69,11 +90,28 @@ public static class PlayPieceMove
         {
             if (Unpartable(part, StructuralRoles.WoolRoom) is { } unpartable) return (null, unpartable);
             var wool = wools[woolAt];
-            var stopped = Stopped(wool.Protection, WingOf(wool.House, wing), building, placed);
+            var stopped = Stopped(wool.Protection, WingOf(wool.Raised(), wing), building, placed);
             if (stopped is not null) return (null, stopped);
-            var (dx, dz) = Shift(building ? WingOf(wool.House, wing)!.Value : wool.Protection[0], placed);
+            if (!building && SpanOf(wool.Protection[0]) != SpanOf(placed))
+            {
+                if (RegionRefused(placed, id) is { } refused) return (null, refused);
+                var stretched = Images(wools, woolAt, entry => entry.Stamp, mode, alone, (entry, step) =>
+                {
+                    var stretch = new Stretch(entry.Protection[0], ImageOf(placed, symmetry, step));
+                    return entry with
+                    {
+                        Protection = [stretch.To],
+                        Spawn = stretch.Point(entry.Spawn),
+                        House = entry.House?.Mapped(stretch.Rect),
+                        Doors = [.. entry.Doors.Select(stretch.Door)],
+                    };
+                });
+                return Checked(intent with { Wools = stretched }, Carried(wools, stretched)
+                    .Select(entry => (entry.Id, entry.Protection, entry.House, entry.Spawn)));
+            }
+            var (dx, dz) = Shift(building ? WingOf(wool.Raised(), wing)!.Value : wool.Protection[0], placed);
             var moved = Orbit(wools, woolAt, entry => entry.Stamp, mode, alone, dx, dz,
-                (entry, x, z) => building ? entry with { House = Slide(entry.House, x, z), Doors = Slide(entry.Doors, x, z) } : entry with
+                (entry, x, z) => building ? entry with { House = Slide(entry.Raised(), x, z), Doors = Slide(entry.Doors, x, z) } : entry with
                 {
                     Protection = [.. entry.Protection.Select(r => Slide(r, x, z))],
                     Spawn = Slide(entry.Spawn, x, z),
@@ -109,7 +147,10 @@ public static class PlayPieceMove
         if (intent.Build is { } build && build.Areas.FindIndex(area => area.Id == id) is var areaAt and >= 0)
         {
             if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
-            if (SameSpan(build.Areas[areaAt].Rect, placed) is { } stopped) return (null, stopped);
+            if (SpanOf(build.Areas[areaAt].Rect) != SpanOf(placed))
+                return OffGrid(placed) is { } offGrid ? (null, offGrid)
+                    : (intent with { Build = build with { Areas = StretchAreas(build.Areas, areaAt, placed, symmetry, alone) } },
+                       Findings.None);
             var (dx, dz) = Shift(build.Areas[areaAt].Rect, placed);
             return (intent with { Build = build with { Areas = MoveAreas(build.Areas, areaAt, dx, dz, symmetry, alone) } },
                     Findings.None);
@@ -118,7 +159,10 @@ public static class PlayPieceMove
         if (intent.WaterLanes is { } lanes && lanes.Rects.FindIndex(lane => lane.Id == id) is var laneAt and >= 0)
         {
             if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
-            if (SameSpan(lanes.Rects[laneAt].Rect, placed) is { } stopped) return (null, stopped);
+            if (SpanOf(lanes.Rects[laneAt].Rect) != SpanOf(placed))
+                return OffGrid(placed) is { } offGrid ? (null, offGrid)
+                    : (intent with { WaterLanes = lanes with { Rects = StretchAreas(lanes.Rects, laneAt, placed, symmetry, alone) } },
+                       Findings.None);
             var (dx, dz) = Shift(lanes.Rects[laneAt].Rect, placed);
             return (intent with { WaterLanes = lanes with { Rects = MoveAreas(lanes.Rects, laneAt, dx, dz, symmetry, alone) } },
                     Findings.None);
@@ -271,7 +315,7 @@ public static class PlayPieceMove
         if (intent.Spawns.FindIndex(spawn => spawn.Id == id) is var spawnAt and >= 0)
         {
             if ((Unpartable(part, StructuralRoles.Spawn) ?? Unturnable(intent.Spawns[spawnAt].Protection,
-                    intent.Spawns[spawnAt].House?.Bounds, building)) is { } stopped) return (null, stopped);
+                    intent.Spawns[spawnAt].Raised()?.Bounds, building)) is { } stopped) return (null, stopped);
             var spawns = Images(intent.Spawns, spawnAt, entry => entry.Stamp, mode, alone,
                 (entry, step) => TurnSpawn(entry, building, Handed(quarters, mode, step)));
             return Checked(intent with { Spawns = spawns }, Carried(intent.Spawns, spawns)
@@ -282,7 +326,7 @@ public static class PlayPieceMove
         if (wools.FindIndex(wool => wool.Id == id) is var woolAt and >= 0)
         {
             if ((Unpartable(part, StructuralRoles.WoolRoom) ?? Unturnable(wools[woolAt].Protection,
-                    wools[woolAt].House?.Bounds, building)) is { } stopped) return (null, stopped);
+                    wools[woolAt].Raised()?.Bounds, building)) is { } stopped) return (null, stopped);
             var turned = Images(wools, woolAt, entry => entry.Stamp, mode, alone,
                 (entry, step) => TurnWool(entry, building, Handed(quarters, mode, step)));
             return Checked(intent with { Wools = turned }, Carried(wools, turned)
@@ -435,7 +479,7 @@ public static class PlayPieceMove
 
     private static SpawnIntent TurnSpawn(SpawnIntent spawn, bool building, int quarters)
     {
-        if (building) return spawn with { House = Turned(spawn.House!, quarters), Doors = Turned(spawn.Doors, spawn.House!, quarters) };
+        if (building && spawn.Raised() is { } spawnHouse) return spawn with { House = Turned(spawnHouse, quarters), Doors = Turned(spawn.Doors, spawnHouse, quarters) };
         var pivot = Pivot.Of(spawn.Protection[0], quarters);
         return spawn with
         {
@@ -450,7 +494,7 @@ public static class PlayPieceMove
 
     private static WoolIntent TurnWool(WoolIntent wool, bool building, int quarters)
     {
-        if (building) return wool with { House = Turned(wool.House!, quarters), Doors = Turned(wool.Doors, wool.House!, quarters) };
+        if (building && wool.Raised() is { } woolHouse) return wool with { House = Turned(woolHouse, quarters), Doors = Turned(wool.Doors, woolHouse, quarters) };
         var pivot = Pivot.Of(wool.Protection[0], quarters);
         return wool with
         {
@@ -519,6 +563,101 @@ public static class PlayPieceMove
     private static IEnumerable<T> Carried<T>(List<T> was, List<T> moved) where T : class =>
         moved.Where((entry, index) => !ReferenceEquals(entry, was[index]));
 
+    /// <summary>What stops a room's region being resized to <paramref name="placed"/>: a rectangle off the block
+    /// grid, one too small to hold a room (<c>WX2</c>), or one larger than a room's region (<c>ST10</c>).</summary>
+    private static Findings? RegionRefused(Rect placed, string id)
+    {
+        if (OffGrid(placed) is { } offGrid) return offGrid;
+        var (width, depth) = SpanOf(placed);
+        if (Math.Min(width, depth) < RoomFrames.MinFootprintSpan)
+            return Findings.Of(new Finding(RoomFrameRules.FootprintTooSmall,
+                $"the region of '{id}' would be {Span(placed)} blocks, less than {RoomFrames.MinFootprintSpan} blocks "
+                + "across its shorter side", Field: "placed", Subjects: [id]));
+        if (Math.Min(width, depth) > RoomFrames.RegionCapAcross || Math.Max(width, depth) > RoomFrames.RegionCapAlong)
+            return Findings.Of(new Finding(LayoutRules.RoomRegionSize,
+                $"the region of '{id}' would be {Span(placed)} blocks, more than {RoomFrames.RegionCapAcross} by "
+                + $"{RoomFrames.RegionCapAlong} blocks", Field: "placed", Subjects: [id]));
+        return null;
+    }
+
+    private static Findings? OffGrid(Rect placed) =>
+        placed.MinX != Math.Floor(placed.MinX) || placed.MinZ != Math.Floor(placed.MinZ)
+        || placed.MaxX != Math.Floor(placed.MaxX) || placed.MaxZ != Math.Floor(placed.MaxZ)
+            ? Findings.Of(new Finding(RequestRules.Unreadable,
+                "the placed rectangle is off the block grid, and a piece is resized by whole blocks", Field: "placed"))
+            : placed.MaxX <= placed.MinX || placed.MaxZ <= placed.MinZ
+                ? Findings.Of(new Finding(RequestRules.Unreadable, "the placed rectangle has no area", Field: "placed"))
+                : null;
+
+    /// <summary>The rectangle <paramref name="placed"/> carried <paramref name="step"/> images round the orbit,
+    /// on the block grid.</summary>
+    private static Rect ImageOf(Rect placed, SymmetryIntent? symmetry, int step)
+    {
+        if (step == 0 || symmetry is null) return placed;
+        var (minX, minZ, maxX, maxZ) = Symmetry.Rect(placed.MinX, placed.MinZ, placed.MaxX, placed.MaxZ,
+            symmetry.Mode, symmetry.CenterX, symmetry.CenterZ, step);
+        return new Rect(Math.Round(minX), Math.Round(minZ), Math.Round(maxX), Math.Round(maxZ));
+    }
+
+    /// <summary>The areas with the one at <paramref name="at"/> made <paramref name="placed"/>, and unless
+    /// <paramref name="alone"/> each area standing where the symmetry carries it made the image of it.</summary>
+    private static List<PieceArea> StretchAreas(
+        List<PieceArea> areas, int at, Rect placed, SymmetryIntent? symmetry, bool alone) =>
+        AreaImages(areas, at, symmetry, alone, (area, step) =>
+        {
+            var to = ImageOf(placed, symmetry, step);
+            return area with { MinX = to.MinX, MinZ = to.MinZ, MaxX = to.MaxX, MaxZ = to.MaxZ };
+        });
+
+    /// <summary>The map a region resized from <see cref="From"/> to <see cref="To"/> carries what stands on it by:
+    /// each coordinate kept at the same fraction across the region, a rectangle's on the block grid and a point's
+    /// on the half-block it stood on, so a grid-line marker stays a grid line and a block-centre one a centre.</summary>
+    private readonly record struct Stretch(Rect From, Rect To)
+    {
+        private double X(double x) => To.MinX + (x - From.MinX) * (To.MaxX - To.MinX) / (From.MaxX - From.MinX);
+        private double Z(double z) => To.MinZ + (z - From.MinZ) * (To.MaxZ - To.MinZ) / (From.MaxZ - From.MinZ);
+
+        private static double OnLattice(double stretched, double was)
+        {
+            var half = was - Math.Floor(was);
+            return Math.Round(stretched - half, MidpointRounding.AwayFromZero) + half;
+        }
+
+        public Rect Rect(Rect r) => new(Math.Round(X(r.MinX)), Math.Round(Z(r.MinZ)), Math.Round(X(r.MaxX)), Math.Round(Z(r.MaxZ)));
+
+        public Pt Point(Pt p)
+        {
+            var (x, z) = Stretched(p.X, p.Z);
+            return p with { X = x, Z = z };
+        }
+
+        private (double X, double Z) Stretched(double x, double z) => (OnLattice(X(x), x), OnLattice(Z(z), z));
+
+        public StatedDoor Door(StatedDoor door) => door.Mapped(Stretched, edge => edge);
+    }
+
+    /// <summary>The resized intent, unless a room it carried now has a wing too small to hold a room
+    /// (<c>WX2</c>) or its marker outside its room's wing — on the image the request named or on one its orbit
+    /// resized.</summary>
+    private static (MapIntent? Intent, Findings Refused) Checked(
+        MapIntent intent, IEnumerable<(string Id, List<Rect> Protection, RoomHouse? House, Pt Marker)> rooms)
+    {
+        foreach (var (id, _, house, marker) in rooms)
+        {
+            if (house is null) continue;
+            if (house.Rects().Any(wing => Math.Min(wing.MaxX - wing.MinX, wing.MaxZ - wing.MinZ) < RoomFrames.MinFootprintSpan))
+                return (null, Findings.Of(new Finding(RoomFrameRules.FootprintTooSmall,
+                    $"a wing of the house of '{id}' would be less than {RoomFrames.MinFootprintSpan} blocks across",
+                    Field: "placed", Subjects: [id])));
+            if (house.Room is { } room && (Math.Floor(marker.X) < room.MinX || Math.Floor(marker.X) >= room.MaxX
+                                           || Math.Floor(marker.Z) < room.MinZ || Math.Floor(marker.Z) >= room.MaxZ))
+                return (null, Findings.Of(new Finding(RequestRules.Unreadable,
+                    $"the marker of '{id}' would stand outside its room's wing", Field: "placed",
+                    Subjects: [PlayIds.Marker(id)])));
+        }
+        return Checked(intent, rooms.Select(room => (room.Id, room.Protection, room.House?.Bounds)));
+    }
+
     /// <summary>What stops a room's move: a part it does not have, a region of several rectangles, a span
     /// that changed, or a building carried off its region.</summary>
     private static Findings? Stopped(IReadOnlyList<Rect> protection, Rect? footprint, bool building, Rect placed)
@@ -532,7 +671,7 @@ public static class PlayPieceMove
             return Findings.Of(new Finding(RequestRules.Unreadable,
                 $"the room's `protection` has {protection.Count} rectangles, more than 1", Field: "protection"));
 
-        if (!building) return SpanOf(protection[0]) != SpanOf(placed) ? Resized(protection[0], placed) : null;
+        if (!building) return null;
 
         if (footprint is not { } standing)
             return Findings.Of(new Finding(RequestRules.Unreadable, "the room states no `house`", Field: "part"));

@@ -80,7 +80,7 @@ in a room of one wing. The wings after it are building joined to the room, stamp
 held to the room's ground and to the joint model: one reaching outside the region (`WX12`), or meeting the rest at
 a joint a building cannot be made at (the `HJ` ids, `docs/world-export/decoration.md` §8), leaves the room standing
 alone, and the build says so as a complaint naming the room. A room stating no house takes `WX1`'s default, one
-wing. A plan placement's `footprint` compiles to a house of one wing over it, and the sketch draws each wing as a
+wing, which the sketch draws too (`SpawnIntent.Raised`, `WoolIntent.Raised`). A plan placement's `footprint` compiles to a house of one wing over it, and the sketch draws each wing as a
 `building` shape — `{id}-building` for the room, `{id}-building-2` on for the rest — where a drag of any one moves
 the whole house (`wing` on `PATCH …/intent/pieces/{id}`). An intent stating a room's `footprint` is refused by name.
 

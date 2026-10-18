@@ -804,8 +804,6 @@ public partial class SketchTool
             ? Task.CompletedTask
             : handle.InvokeVoidAsync("setStructuralHeight", selectedStructural.Id, height).AsTask();
 
-    private Task ClearStructural() => handle?.InvokeVoidAsync("clearStructural").AsTask() ?? Task.CompletedTask;
-
     /// <summary>The shift-marked surface-slope control set changed on the canvas — each entry is a vertex index
     /// + its current height, which the inspector lets the author edit before fitting the plane.</summary>
     [JSInvokable]

@@ -312,15 +312,24 @@ public sealed class PlanCompilerTests
     }
 
     [Test]
-    public async Task A_room_that_states_no_building_projects_only_its_region()
+    public async Task A_room_that_states_no_building_is_drawn_with_the_one_it_is_raised_as()
     {
-        // The shape is a picture of what the plan states, not of what WX1 would default: a rectangle nobody
-        // drew, shown as though they had, is the opacity a stated footprint exists against.
+        // A room stating no house is still a building in the world, so it is drawn as the default WX1 raises
+        // and a drag on it starts from there.
         var (layout, intent) = PlanCompiler.Compile(Plan(StructuralUnit));
         var shapes = Drawn(layout, intent);
-        await Assert.That(shapes.Where(s => s.Role == StructuralRoles.Building)).IsEmpty();
-        await Assert.That(shapes.Count(s => s.Role is StructuralRoles.Spawn or StructuralRoles.WoolRoom))
-            .IsEqualTo(4);
+        var raised = intent.Spawns.Select(spawn => (spawn.Id, spawn.Raised()!.Room!.Value))
+            .Concat((intent.Wools ?? []).Select(wool => (wool.Id, wool.Raised()!.Room!.Value)))
+            .Where(room => intent.Spawns.All(spawn => spawn.Id != room.Id || spawn.House is null)
+                           && (intent.Wools ?? []).All(wool => wool.Id != room.Id || wool.House is null))
+            .ToList();
+        await Assert.That(raised.Count).IsEqualTo(4);
+        foreach (var (id, room) in raised)
+        {
+            var building = shapes.Single(s => s.Id == $"{id}-building");
+            await Assert.That((building.MinX, building.MinZ, building.MaxX, building.MaxZ))
+                .IsEqualTo((room.MinX, room.MinZ, room.MaxX, room.MaxZ)).Because(id);
+        }
     }
 
     [Test]

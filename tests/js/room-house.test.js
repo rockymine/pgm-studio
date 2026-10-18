@@ -3,8 +3,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { RoomHouseController, wingOf }
+import { RoomHouseController }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/room-house-controller.js";
+import { wingOf } from "../../src/PgmStudio.Client/wwwroot/js/studio/shared/pick.js";
+import { TRANSFORM_CORNERS, TRANSFORM_EDGES }
+  from "../../src/PgmStudio.Client/wwwroot/js/studio/render/canvas-chrome.js";
 
 // A spawn region 0..20 square with its room's wing at 2..12 × 2..18, max-exclusive as the canvas holds them.
 const shapes = () => [
@@ -56,6 +59,21 @@ test("a wing is shrunk to the room's region, and refused where less than a wing 
   wide.onPointerHover(14, 10);
   wide.addWing();
   assert.deepEqual(fits[0].wings[1], { min_x: 14, min_z: 2, max_x: 19, max_z: 18 });
+});
+
+test("an edge of the picked wing drags that side alone, and a corner both, held to the region", () => {
+  const edited = [];
+  const structural = shapes();
+  const tools = controller(structural, edited);
+  tools.grab(TRANSFORM_EDGES.find(grip => grip.key === "e"));
+  tools.onHandleMove(15.4, 0);
+  tools.onHandleUp();
+  assert.deepEqual(edited[0].wings[0], { min_x: 2, min_z: 2, max_x: 15, max_z: 18 });
+
+  tools.grab(TRANSFORM_CORNERS.find(grip => grip.key === "nw"));
+  tools.onHandleMove(-5, 6);
+  tools.onHandleUp();
+  assert.deepEqual(edited[1].wings[0], { min_x: 0, min_z: 6, max_x: 15, max_z: 18 }, "the corner stops at the region's edge");
 });
 
 test("nothing is offered while house editing is off", () => {

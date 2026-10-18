@@ -26,10 +26,12 @@
 import { paintDressingPreview, paintMarkerGhost } from "../render/dressing-render.js";
 import { buildingsOverlap, defaultProp, isMarker, isRect, propAnchor, propReach, rectFootprint, rectsJoinUp,
          onLayer, translateProp, wingCorners, wingRects, withCorners } from "../dressing/dressing-doc.js";
-import { wallNear, wingOffWall } from "../shared/building.js";
+import { MIN_FOOTPRINT_SPAN, wallNear, wingOffWall } from "../shared/building.js";
 import { douglasPeucker, simplifyRing } from "../geometry/simplify.js";
 import { svgEl, handleRectAttrs, insertGhost } from "../render/svg.js";
 import { toScreen } from "../geometry/transform.js";
+import { renderTransformBox } from "../render/canvas-chrome.js";
+import { resizedRect } from "./piece-resize-controller.js";
 
 /** Tool name → the kind of prop it places. The canvas passes tool names through, so this is also the test for
  *  "is a dressing tool active at all". */
@@ -62,7 +64,8 @@ export class DressingController {
   #trace = null;          // the in-progress drag: { kind, points }
   #cursor = null;         // where a marker would drop
   #drag = null;           // moving an already-placed prop
-  #pointDrag = null;      // reshaping one: { id, idx, wing } — idx -1 is a marker's own anchor
+  #pointDrag = null;      // reshaping one: { id, idx } or { id, wing, grip, from } — idx -1 is a marker's own anchor, and a
+                          // building's wing is resized by a `grip` of its box from `from`, the rect it stood at
   #selectedId = null;
   #selectedWing = 0;      // which wing of a picked building its settings are edited for
   #wall = null;           // the free wall of the picked building the pointer is near, where a press adds a wing
@@ -311,9 +314,22 @@ export class DressingController {
    * Take hold of one of a prop's points — `idx` into its `points`, or -1 for a marker's own anchor. The
    * grip's mousedown is a thin adapter over this, so what a drag *does* is reachable without a DOM.
    */
-  beginPointDrag(id, idx, wing = 0) {
+  beginPointDrag(id, idx) {
     if (!this.#doc.byId(id)) return false;
-    this.#pointDrag = { id, idx, wing, moved: false };
+    this.#pointDrag = { id, idx, moved: false };
+    return true;
+  }
+
+  /**
+   * Take hold of wing `wing` of building `id` by one grip of its transform box — a corner or an edge — as a press
+   * on it does.
+   */
+  beginWingDrag(id, wing, grip) {
+    const prop = this.#doc.byId(id);
+    const rect = prop && isRect(prop) ? wingRects(prop)[wing] : null;
+    if (!rect) return false;
+    const from = { min_x: rect.minX, min_z: rect.minZ, max_x: rect.maxX + 1, max_z: rect.maxZ + 1 };
+    this.#pointDrag = { id, wing, grip, from, moved: false };
     return true;
   }
 
@@ -326,22 +342,23 @@ export class DressingController {
     const prop = this.#doc.byId(this.#pointDrag.id);
     if (!prop) { this.#pointDrag = null; return false; }
     const bx = Math.round(wx), bz = Math.round(wz);
-    if (this.#pointDrag.idx < 0) {
+    if (this.#pointDrag.grip) {
+      // A wing's grip resizes that wing alone, by whole blocks, the opposite side held; its siblings stay put, and
+      // the wing keeps whatever else it states — its layers, roof, ridge and joint.
+      const at = this.#pointDrag.wing;
+      const next = resizedRect(this.#pointDrag.from, this.#pointDrag.grip, wx, wz, MIN_FOOTPRINT_SPAN);
+      const points = [[next.min_x, next.min_z], [next.max_x - 1, next.max_z - 1]];
+      this.#doc.update(prop.id, { wings: (prop.wings ?? []).map((wing, i) => i === at ? withCorners(wing, points) : wing) });
+    } else if (this.#pointDrag.idx < 0) {
       // A marker seats on the ground, so its grip stops at the terrain edge rather than carrying it off.
       if (!this.#onTerrain(bx, bz)) return true;
       this.#doc.update(prop.id, { x: bx, z: bz });
     } else {
-      // A building's grip reshapes the wing that grip belongs to, leaving its siblings where they are; every
-      // other area prop reshapes its own traced points the same way it always did.
-      const rect = isRect(prop);
-      const at = this.#pointDrag.wing;
-      const points = (rect ? (wingCorners(prop.wings?.[at]) ?? []) : (prop.points ?? [])).map(([x, z]) => [x, z]);
+      // An area prop reshapes its own traced points, one at a time.
+      const points = (prop.points ?? []).map(([x, z]) => [x, z]);
       if (this.#pointDrag.idx >= points.length) { this.#pointDrag = null; return false; }
       points[this.#pointDrag.idx] = [bx, bz];
-      // Reshaping a wing keeps whatever else that wing states — its layers, roof, ridge and joint.
-      this.#doc.update(prop.id, rect
-        ? { wings: (prop.wings ?? []).map((wing, i) => i === at ? withCorners(wing, points) : wing) }
-        : { points });
+      this.#doc.update(prop.id, { points });
     }
     this.#pointDrag.moved = true;
     this.refreshHandles();
@@ -368,14 +385,26 @@ export class DressingController {
     while (layer.firstChild) layer.removeChild(layer.firstChild);
     const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
     if (!prop || !this.#editable()) return;
-    // A building wears grips on every wing it states, each carrying the wing it belongs to, so a joined L is
-    // reshaped a rectangle at a time rather than only through the one the canvas happened to draw first.
-    const grips = isMarker(prop) ? [{ point: propAnchor(prop), idx: -1, wing: 0 }]
-      : isRect(prop)
-        ? (prop.wings ?? []).flatMap((wing, at) =>
-            (wingCorners(wing) ?? []).map((point, i) => ({ point, idx: i, wing: at })))
-        : (prop.points ?? []).map((point, i) => ({ point, idx: i, wing: 0 }));
-    grips.forEach(({ point: [wx, wz], idx, wing }) => {
+    // A building's picked wing wears the transform box every rectangle wears, so a joined L is reshaped a
+    // rectangle at a time; a press inside another wing picks that one.
+    if (isRect(prop)) {
+      const rect = wingRects(prop)[this.#selectedWing];
+      if (!rect) return;
+      const viewport = this.#getViewport();
+      const a = toScreen(rect.minX, rect.minZ, viewport), b = toScreen(rect.maxX + 1, rect.maxZ + 1, viewport);
+      renderTransformBox(layer, { l: Math.min(a.x, b.x), r: Math.max(a.x, b.x), t: Math.min(a.y, b.y), b: Math.max(a.y, b.y) }, {
+        outline: false, gripHalf: POINT_HALF,
+        onScale: (grip, e) => {
+          if (e.button !== 0) return;
+          e.stopPropagation();   // the press is the grip's, not a canvas pan or a re-pick
+          this.beginWingDrag(prop.id, this.#selectedWing, grip);
+        },
+      });
+      return;
+    }
+    const grips = isMarker(prop) ? [{ point: propAnchor(prop), idx: -1 }]
+      : (prop.points ?? []).map((point, i) => ({ point, idx: i }));
+    grips.forEach(({ point: [wx, wz], idx }) => {
       const sp = toScreen(wx, wz, this.#getViewport());
       const grip = svgEl("rect", {
         ...handleRectAttrs(sp.x, sp.y, POINT_HALF),
@@ -384,7 +413,7 @@ export class DressingController {
       grip.addEventListener("mousedown", (e) => {
         if (e.button !== 0) return;
         e.stopPropagation();   // the press is the grip's, not a canvas pan or a re-pick
-        this.beginPointDrag(prop.id, idx, wing);
+        this.beginPointDrag(prop.id, idx);
       });
       grip.addEventListener("click", (e) => e.stopPropagation());
       layer.appendChild(grip);

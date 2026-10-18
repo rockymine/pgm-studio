@@ -46,10 +46,13 @@ export const layerAlpha = (prop, activeLayer) => (onLayer(prop, activeLayer) ? 1
 /**
  * Paint every prop, plus the mirror images of each. `mirrorPoint(x, z, k)` gives the k-th image of a point and
  * `order` how many images there are — the canvas already owns the map's symmetry, so this asks rather than
- * re-deriving it. `activeLayer` is the storey being drawn on; a prop on any other is dimmed.
+ * re-deriving it. `activeLayer` is the storey being drawn on; a prop on any other is dimmed. A building of
+ * several wings draws each wing's outline inside its silhouette, and the picked one's — `selectedWing` of the
+ * picked building — in the selection ink.
  */
-export function paintDressing(painter, props,
-                              { selectedId = null, mirrorPoint = null, order = 1, styles = {}, activeLayer = "" } = {}) {
+export function paintDressing(painter, props, {
+  selectedId = null, selectedWing = 0, mirrorPoint = null, order = 1, styles = {}, activeLayer = "",
+} = {}) {
   for (const prop of props ?? []) {
     const strength = layerAlpha(prop, activeLayer);
     for (let k = order - 1; k >= 0; k--) {          // images first, so the real prop draws over them
@@ -66,6 +69,19 @@ export function paintDressing(painter, props,
           alpha: (k === 0 ? 1 : 0.7) * strength,
         });
       }
+    }
+    // The wings of a joined building, inside the silhouette the union draws: each its own dashed box, so the
+    // seams between them show and a wing reads as the rectangle it is reshaped as.
+    if (isRect(prop) && (prop.wings?.length ?? 0) > 1) {
+      const kind = KIND_STYLE[prop.kind] ?? KIND_STYLE.boulder;
+      prop.wings.forEach((wing, at) => {
+        const ring = rectRing(wingCorners(wing) ?? []);
+        if (ring.length < 3) return;
+        const picked = prop.id === selectedId && at === selectedWing;
+        painter.ring(ring, picked
+          ? { stroke: "var(--accent)", width: SELECTED_WIDTH, alpha: strength }
+          : { stroke: kind.stroke, width: 1, dash: [3, 3], alpha: strength });
+      });
     }
     // The line an author dragged, over the band it implies — a path and a fluid channel are edited as their
     // route, so the route has to stay visible inside its own band.
@@ -146,9 +162,8 @@ function rectRing(points) {
 
 /** A rect prop's outline: one four-corner ring for the plain building every board carries, and for an L, a T
  *  or a U the traced silhouette of the wings together rather than a box each. What the stamp takes is the
- *  union, so the union is what an author is shown — drawn as separate boxes, a joined building reads as two
- *  buildings with a seam down the middle, which is the one thing joining them said it was not. Wings that do
- *  not meet still answer a ring each, because that is what they are. */
+ *  union, so the union is what is filled, and the wings are outlined inside it on their own. Wings that do not
+ *  meet still answer a ring each, because that is what they are. */
 function wingRings(prop) {
   const wings = prop?.wings ?? (prop?.points ? [prop.points] : []);
   const rings = wings.map(wing => rectRing(wingCorners(wing) ?? [])).filter(ring => ring.length >= 3);

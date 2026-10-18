@@ -10,8 +10,9 @@ namespace PgmStudio.Pgm.Authoring;
 /// <param name="Kind">What it is, a <see cref="PlayPieceKinds"/> word.</param>
 /// <param name="Color">The team or dye colour it is drawn in, or empty.</param>
 /// <param name="Rect">Where it stands, in blocks.</param>
-/// <param name="Carried">True where the piece does not move on its own: an image the symmetry draws and the
-/// intent does not store, or an iron cube seated in a room.</param>
+/// <param name="Carried">True where the piece is not picked on its own: an image the symmetry draws and the
+/// intent does not store, an image of an orbit other than its authored one, which moves with it, or an iron cube
+/// seated in a room.</param>
 /// <param name="Line">A wall's two ends, <c>[x1, z1, x2, z2]</c> on block corners; null for every other piece.</param>
 public readonly record struct PlayPiece(string Id, string Kind, string Color, Rect Rect, bool Carried, int[]? Line = null);
 
@@ -27,15 +28,17 @@ public static class PlayPieces
         var stored = new HashSet<string>(PlayIds.Stated(PlayIds.Assign(intent)), StringComparer.Ordinal);
         var expanded = PlayIds.Assign(SymmetryExpander.Expand(intent));
         string TeamColor(string team) => expanded.Teams?.FirstOrDefault(t => t.Id == team)?.Color ?? team;
-        PlayPiece Piece(string id, string kind, string color, Rect rect) => new(id, kind, color, rect, !stored.Contains(id));
+        bool Carried(string id, StampId stamp) => !stored.Contains(id) || stamp.Image > 0;
+        PlayPiece Piece(string id, string kind, string color, Rect rect, StampId stamp = default) =>
+            new(id, kind, color, rect, Carried(id, stamp));
 
         foreach (var spawn in expanded.Spawns)
         {
             if (spawn.Protection.Count > 0)
             {
-                yield return Piece(spawn.Id, PlayPieceKinds.Spawn, TeamColor(spawn.Team), spawn.Protection[0]);
+                yield return Piece(spawn.Id, PlayPieceKinds.Spawn, TeamColor(spawn.Team), spawn.Protection[0], spawn.Stamp);
                 yield return new PlayPiece(PlayIds.Marker(spawn.Id), PlayPieceKinds.SpawnPoint, TeamColor(spawn.Team),
-                                           Marker(spawn.Point), !stored.Contains(spawn.Id));
+                                           Marker(spawn.Point), Carried(spawn.Id, spawn.Stamp));
             }
             for (var at = 0; at < spawn.Iron.Count; at++)
                 yield return new PlayPiece($"{spawn.Id}-iron-{at + 1}", PlayPieceKinds.IronCube, TeamColor(spawn.Team),
@@ -46,24 +49,24 @@ public static class PlayPieces
             if (wool.Protection.Count > 0)
             {
                 var color = wool.Color.Length > 0 ? wool.Color : TeamColor(wool.Owner);
-                yield return Piece(wool.Id, PlayPieceKinds.WoolRoom, color, wool.Protection[0]);
+                yield return Piece(wool.Id, PlayPieceKinds.WoolRoom, color, wool.Protection[0], wool.Stamp);
                 yield return new PlayPiece(PlayIds.Marker(wool.Id), PlayPieceKinds.WoolSpawn, color, Marker(wool.Spawn),
-                                           !stored.Contains(wool.Id));
+                                           Carried(wool.Id, wool.Stamp));
             }
         foreach (var goal in expanded.Destroyables ?? [])
-            yield return Piece(goal.Id, PlayPieceKinds.Destroyable, TeamColor(goal.Owner), Destroyable(goal));
+            yield return Piece(goal.Id, PlayPieceKinds.Destroyable, TeamColor(goal.Owner), Destroyable(goal), goal.Stamp);
         foreach (var core in expanded.Cores ?? [])
-            yield return Piece(core.Id, PlayPieceKinds.Core, TeamColor(core.Owner), Core(core));
+            yield return Piece(core.Id, PlayPieceKinds.Core, TeamColor(core.Owner), Core(core), core.Stamp);
         foreach (var area in expanded.Build?.Areas ?? [])
             yield return Piece(area.Id, PlayPieceKinds.BuildArea, "", area.Rect);
         foreach (var lane in expanded.WaterLanes?.Rects ?? [])
             yield return Piece(lane.Id, PlayPieceKinds.WaterLane, "", lane.Rect);
         foreach (var cube in expanded.Structures?.IronCubes ?? [])
-            yield return Piece(cube.Id, PlayPieceKinds.IronCube, "", Iron(cube.MinX, cube.MinZ));
+            yield return Piece(cube.Id, PlayPieceKinds.IronCube, "", Iron(cube.MinX, cube.MinZ), cube.Stamp);
         foreach (var wall in expanded.Structures?.Walls ?? [])
-            yield return Piece(wall.Id, PlayPieceKinds.Wall, "", Wall(wall)) with { Line = [wall.X1, wall.Z1, wall.X2, wall.Z2] };
+            yield return Piece(wall.Id, PlayPieceKinds.Wall, "", Wall(wall), wall.Stamp) with { Line = [wall.X1, wall.Z1, wall.X2, wall.Z2] };
         foreach (var chest in expanded.Structures?.Chests ?? [])
-            yield return Piece(chest.Id, PlayPieceKinds.Chest, "", Chest(chest));
+            yield return Piece(chest.Id, PlayPieceKinds.Chest, "", Chest(chest), chest.Stamp);
         if (expanded.Observer is { } observer)
             yield return Piece(PlayIds.Observer, PlayPieceKinds.Observer, "", Observer(observer));
     }

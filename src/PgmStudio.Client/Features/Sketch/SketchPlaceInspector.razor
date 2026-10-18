@@ -6,7 +6,6 @@
   <DetailHeader Icon="@SketchPlaces.Icon(Place.Shape)" Label="Place">
     <span class="detail-header-badges">
       <Button Variant="icon" Icon="trash-2" Title="Delete this place" Writes OnClick="() => OnDelete.InvokeAsync()" />
-      <Button Variant="icon" Icon="x" Title="Deselect" OnClick="() => OnClose.InvokeAsync()" />
     </span>
   </DetailHeader>
   <Field Label="Name">
@@ -33,7 +32,6 @@
 
     [Parameter] public EventCallback<Place> OnChange { get; set; }
     [Parameter] public EventCallback OnDelete { get; set; }
-    [Parameter] public EventCallback OnClose { get; set; }
 
     /// <summary>What sits under the place's own fields: its notes.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
