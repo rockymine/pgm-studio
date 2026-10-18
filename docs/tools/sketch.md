@@ -790,7 +790,10 @@ destroyable and a core are offered at two teams only, as the plan offers them.
 Each writes through `POST /map/{slug}/intent/pieces`, which places the piece and every image the symmetry draws
 of it (`PlayPieceAdd`): a spawn goes to the first team that has none and faces the middle of the board, a team's
 first wool takes its colour and every later one the next dye no wool on the board has, and a goal takes the
-default structure. **A spawn or wool room placed where no ground lies also draws a rectangle of ground the size
+default structure. A map stating no teams takes the ones its symmetry gives — red and blue at two — with the first
+piece placed, so every piece names a team the map has. **Only an orbit's authored image is picked**: the images
+the symmetry draws of it are drawn dashed and fainter, a click on one picks nothing, and each moves, turns and goes
+with its authored image. **A spawn or wool room placed where no ground lies also draws a rectangle of ground the size
 of the room**, as an ordinary shape of the active layer, which Ground then reshapes like any other. A picked
 piece's rail offers **Delete** in Layout, which takes the piece and every image of it out of the intent; the
 ground a room brought stays, as the shape it is. Placing ends the tool unless Shift is held, as drawing does.

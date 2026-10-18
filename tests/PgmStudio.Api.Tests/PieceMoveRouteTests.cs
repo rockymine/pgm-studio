@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using PgmStudio.Contracts;
 
 namespace PgmStudio.Api.Tests;
 
@@ -305,5 +306,34 @@ public sealed class PieceMoveRouteTests
         var unknown = await client.PostAsJsonAsync($"/api/map/{slug}/intent/pieces",
             new { kind = "bridge", minX = 0, minZ = 0, maxX = 4, maxZ = 4 });
         await Assert.That((int)unknown.StatusCode).IsEqualTo(400);
+    }
+
+    /// <summary>A board whose intent states no teams — a sketch drawn from nothing — takes a spawn and a wool room
+    /// through the route, each with its image, and the map then states the teams that own them.</summary>
+    [Test]
+    public async Task A_spawn_and_a_wool_room_are_placed_on_a_map_stating_no_teams()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Teamless" }))
+            .Content.ReadFromJsonAsync<OriginatedDto>())!.Slug;
+        var sketch = await client.PutAsync($"/api/map/{slug}/sketch", new StringContent(
+            """{"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers":[{"id":"ground","shapes":[]}]}""",
+            Encoding.UTF8, "application/json"));
+        await Assert.That(sketch.IsSuccessStatusCode).IsTrue().Because(await sketch.Content.ReadAsStringAsync());
+
+        foreach (var (kind, minX) in new[] { ("spawn", -80), ("woolRoom", -60) })
+        {
+            var added = await client.PostAsJsonAsync($"/api/map/{slug}/intent/pieces",
+                new { kind, minX, minZ = 0, maxX = minX + 10, maxZ = 8 });
+            await Assert.That(added.IsSuccessStatusCode).IsTrue()
+                .Because($"{kind}: {await added.Content.ReadAsStringAsync()}");
+        }
+
+        var pieces = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/intent/pieces");
+        await Assert.That(pieces.EnumerateArray().Count(piece => piece.GetProperty("kind").GetString() == "spawn")).IsEqualTo(2);
+        await Assert.That(pieces.EnumerateArray().Count(piece => piece.GetProperty("kind").GetString() == "woolRoom")).IsEqualTo(2);
+        var intent = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/intent");
+        await Assert.That(intent.GetProperty("teams").GetArrayLength()).IsEqualTo(2);
     }
 }

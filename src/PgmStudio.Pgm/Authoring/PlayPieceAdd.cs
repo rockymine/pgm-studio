@@ -18,7 +18,8 @@ namespace PgmStudio.Pgm.Authoring;
 /// wall is a line between two ends (<see cref="Wall"/>).</b> A chest fronts away from a wall beside it. A spawn
 /// faces the middle of the board and opens its door on that side; a team's first wool takes its colour and
 /// every later one the next dye no wool on the board has; a goal takes the default structure, centred on the
-/// block the point is in. The symmetry is the intent's, or where it states none the board's.</para>
+/// block the point is in. The symmetry is the intent's, or where it states none the board's, and a map stating no
+/// teams takes the ones its symmetry gives, so the owner a piece names is a team the map has.</para>
 /// </summary>
 public static class PlayPieceAdd
 {
@@ -154,6 +155,8 @@ public static class PlayPieceAdd
                 return Refuse(RequestRules.Unreadable, "kind", $"'{kind}' is not a play piece the sketch places");
         }
 
+        // A piece is owned by a team the map states, so a map stating none takes the teams the piece was given.
+        if (intent.Teams is not { Count: > 0 }) added = added with { Teams = teams };
         return Named(added, named => Stamped(named, kind, stamp));
 
         MapIntent Orbit(MapIntent unit) => symmetry is null

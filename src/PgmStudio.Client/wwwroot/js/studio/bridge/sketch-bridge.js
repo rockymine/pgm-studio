@@ -60,6 +60,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // Every play piece that is not a room, as the intent places it: drawn and moved with the rooms, never
   // written into the layout, because none of them is ground the layout states.
   let pieces = [];
+  let carriedRooms = new Set();   // the spawns and wool rooms that are an orbit's images, not its authored one
   let pieceKind = null;        // the play piece the Layout step places next, or null
   let placeShape = null;       // the shape of place the Plan step draws next, or null
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
@@ -552,8 +553,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   /** The rooms of the layer being drawn on, and on the ground layer every other piece with them. */
+  // A room drawn from the intent is picked only as its orbit's authored image: the rest move with it.
   function showStructural() {
-    const rooms = layers[active].structural ?? [];
+    const rooms = (layers[active].structural ?? [])
+      .map(room => carriedRooms.has(structuralTarget(room).id) ? { ...room, carried: true } : room);
     canvas.setStructural(active === 0 ? [...rooms, ...pieces] : rooms);
   }
 
@@ -566,7 +569,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (!res.ok) return;
       list = await res.json();
     } catch { return; }
-    pieces = (Array.isArray(list) ? list : [])
+    const read = Array.isArray(list) ? list : [];
+    carriedRooms = new Set(read.filter(p => (p.kind === "spawn" || p.kind === "woolRoom") && p.carried).map(p => p.id));
+    pieces = read
       .filter(p => p.kind !== "spawn" && p.kind !== "woolRoom")
       .map(p => ({
         id: p.id, type: "rectangle", role: p.kind, color: p.color || null, piece: true, carried: p.carried === true,
