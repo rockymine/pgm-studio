@@ -825,6 +825,19 @@ a stated `null` is open ground. A spawn's house of two wings:
 { "house": { "wings": [ { "corners": [[-16, -16], [-5, -5]] }, { "corners": [[-4, -14], [-1, -7]] } ] } }
 ```
 
+**A room's doors are drawn on its house and placed by a shift-press.** While a wing is picked, each door the room
+is built with is a bar on the outline where the stamper cuts it — on the free wall facing its way that holds its
+place, nearest the line it was stated on — so a wool stating none shows the one its ground gives it. A shift-press
+on a free wall adds a door there, centred on the block pressed, or takes away the one cut within 2 blocks of it,
+and a room keeps at least one (`RoomHouseController`). The doors are read from `GET
+/map/{slug}/intent/pieces/{id}/doors`, which answers them with `stated` false where the room states none, and every
+change writes them whole through `PUT …/doors`, carried to every image of the room (`PlayPieceDoors`). A door on
+the room's east wall, and one centred on its south:
+
+```json PUT /api/map/{slug}/intent/pieces/{id}/doors
+{ "doors": [ { "edge": "+x", "x": 0, "z": -10 }, { "edge": "+z" } ] }
+```
+
 **A picked wall's ends drag apart.** In Layout a picked approach wall wears a square grip on each end of its line,
 and dragging one moves that end alone, by block corners, the other standing where it was
 (`WallEndController`). The end snaps to the nearest point on a drawn shape's outline within 3 blocks, so a
@@ -2281,6 +2294,82 @@ cannot ride there. `GET /map/{slug}/findings` walks the ground and answers all o
 does the **finish**, which is where a board carrying one is stopped. `SK2` is outside the split and answers
 under either reading — a board too large to realize is measured off the shapes' own boxes, and must refuse
 before anything walks a column of it.
+
+**The play pieces are asked of the intent.** `GET /map/{slug}/findings` asks a map holding an intent the rules
+about its pieces under the ids the plan answers them by (`IntentCheck`): a map with no spawn (`PL2`) or no
+objective (`PL3`, a complaint), a wool colour that is no dye (`PL14`), a monument form that is not one
+(`PL10`), a goal floated over its cap (`OB22`), a core's lava outside its range (`DC1`), monuments or cores on
+a map whose teams are not two (`OB14`), and four complaints about where pieces stand — an iron cube outside
+every spawn region (`ST2`), a spawn in the half of its region nearer the symmetry centre (`SP2`), a room's
+building over 20 by 20 blocks across all its wings (`ST9`) and a room's region over 20 by 30 (`ST10`). A unit
+is asked once, by its authored image, and the board's symmetry is the intent's or the sketch's.
+
+**So is every room the export stamps** (`RoomCheck`), resolved by the resolver the build itself calls, under the
+shell the map binds for its kind. A room that will not frame on its region is refused — a house too small
+(`WX2`) or reaching off its region (`WX12`), a marker half on a grid line (`WX3`), a pad that does not fit
+between the walls (`WX4`), a wool room whose stated entries reach no wall (`WX6`) — and the build stamps the
+default room around its marker in its place. A pad moved inward to clear the walls (`WX4`) and iron with no
+place for its cube (`WX8`) are complaints, and a spawn room seating fewer monuments than the wools its team
+captures is refused (`PL8`).
+
+**And the board's structure is read off the ground the sketch builds** (`SketchBoardCheck`), one block to a
+cell: every column the layout raises, owned by the group that draws it, and every spawn and wool region, owned
+by its room, a cell's team being the image of the spawn nearest it and building allowed over the intent's build
+areas (`SketchGround`). The board deriver reads it as it reads a plan's ground, and the same rules answer under
+their ids: a face's front line under a third of its void side or under 15 blocks (`FR8`, `FR9`), a gap beside a
+goal under 16 blocks, beside a team's own ground under 12, and a plain hole under 12 (`WL12`, `WL20`, `LN6`),
+and on a two-team wool board the strait outside 15 to 40 blocks (`CT12`), each read over the authored build
+areas where one is asked of an area. The plan's own strait, re-read off
+the sketch, is said only where the sketch's board does not report one, which is a strait the plan passed and
+the drawing closed. A build area running past the last ground it docks is `BZ9`, its id named. And a hop
+outside 10 to 20 blocks is `G5`: the straight span between the nearest cells of two landmasses one build
+region touches, where it runs inside that region and through no third one, asked within the authored team's
+ground — a gap to another team's ground is the strait, and one inside an image repeats the unit's. Ground no
+group mirrors carries the nearest spawn's team, so a hop from the unit to neutral ground on the far side is
+not asked.
+
+**And where the intent's pieces meet that ground** (`SketchSeamCheck`), the same rules answer under their
+ids, each piece asked once by its authored image. A build area or water lane under 10 blocks across its
+shorter side is `G2`, one touching a spawn's region `BZ5`, a lane over ground `BZ12`, and build areas that
+touch and together fill one rectangle `BZ11`. An approach wall beside or over a wool's region is refused
+(`PL13`); otherwise ground one block past either end, on either face, is `PL17`, and the mouth it bars — the
+blocks of its line with ground on both faces, so a line drawn on past the shore bars only the ground it
+crosses — outside 10 to 20 blocks is `ST8`. A spawn's first door with under 15 blocks of ground or build
+area ahead of it, stepped out of its region along the door, is `SP9`.
+
+**A step is asked only where a match crosses it**: at a spawn's door and at a wool room's entry. A wool's
+entries are the sides of its region its doors open through; a wool stating none takes one, on the side of
+its region meeting the most ground, the side facing the middle on a tie (`WoolDoors`), and a wool door whose
+doorstep — a block either side of its centre, just outside the region — is neither ground nor a build area is
+`WL21`. Where the easiest crossing
+from a region to one owner's ground steps two blocks or more, the step is `SP8` ahead of a spawn's first door —
+its own side, and the half of each flank side toward it — and `WL11` at a wool's entry, each with its number.
+A step anywhere else is a cliff the author drew, so the plan's `EL1` is not asked of a board that has a
+sketch. An approach wall under 10 blocks from the entrance it stands before — the nearest entry parallel to
+it that it overlaps along its line, joined to it by unbroken ground — is `ST11`. A wall farther out is not
+asked: a wool takes a wall per approach, and one standing out on an approach around a hole guards its own,
+which ground alone cannot tell from a wall seated too far back. Compiled from a seed, the sketch's seams say
+what its plan's do.
+
+**The board's measures are read off the same ground**, at the 5-block cell the corpus's bands were measured at
+(`SketchMeasures`): a cell stands where more than half its blocks do. The evaluator's own terms answer them.
+Off the board's structure: front faces per team and the widest (`FR4`, `FR6`), crossings, neutral and team
+stepping stones, cuts, enclosed holes and uncrossed middle holes (`CT1`, `CT4`, `CT13`, `CT5`, `CT8`, `CT9`),
+and the narrowest lane to a wool room (`LN1`). Off the walks, in blocks: wool to wool, spawn to wool and its
+spread and ratio, wool to the crossing and its balance, ratio and remoteness (`WL7`, `WL13`, `WL9`, `WL15`,
+`WL10`, `WL16`, `WL17`, `WL18`), each over the authored team's ground and its own build areas — an area that
+stands where an earlier one's symmetry image does is that one's copy — and on a two-team board a goal's walks
+over the whole closure (`GO1` to `GO4`). And the band between the fronts — the rectangle round the board's
+front-to-front build cells, which a composed plan names its mid band — measured across the fronts against its
+floor for the board's size and front to front against twice its width (`MD7`, `MD8`). And the flow of a match
+over the board, walked as the plan's flow is (`PlanNav` stated from the ground, every cell at one height): the
+share of ground no journey reaches and how far the attack's and the defence's routes lie over each other
+(`LN5`, `CT14`). A value outside its band is a complaint carrying the number and the
+band, and a term with no band yet says nothing. Nothing is summed or ranked: a measure says how the board will
+play and the author weighs it. Compiled from a seed plan, the sketch measures what the plan measures — 984 of
+989 values over the 49 seeds — and the rest are where a centre island straddles both images of a rot_180 board,
+whose team is the deriver's tie to break. Where the map
+still holds a plan, the plan answers every other rule and none of these.
 
 ## The API
 

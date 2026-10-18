@@ -127,9 +127,12 @@ public static class PlanFlow
         public double Interference => Legs.Count == 0 ? 0 : Legs.Average(leg => leg.Interference);
     }
 
-    public static Result Read(PlanModel plan)
+    public static Result Read(PlanModel plan) => Read(PlanNav.Of(plan), () => BoardDeriver.Derive(plan));
+
+    /// <summary>The flow over <paramref name="nav"/>, the board's structure derived by <paramref name="board"/>
+    /// where a leg asks which holes a defence may round.</summary>
+    public static Result Read(PlanNav nav, Func<BoardStructure> board)
     {
-        var nav = PlanNav.Of(plan);
         var cell = nav.Cell;
         var goals = nav.Waypoints().Where(w => w.Kind is "wool" or "destroyable" or "core").ToList();
         var gamemode = goals.Count == 0 ? "none"
@@ -167,7 +170,7 @@ public static class PlanFlow
                 .GroupBy(n => n).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal)
                 .Select(g => $"{g.Key} ({g.Count() * perCell})")])).ToList();
 
-        var legs = gamemode == "ctw" ? Legs(nav, plan, cell) : [];
+        var legs = gamemode == "ctw" ? Legs(nav, board, cell) : [];
         return new Result(gamemode, legs, nav.Ground.Count * perCell, dead.Count * perCell,
             places, unnamed, cell);
     }
@@ -219,11 +222,11 @@ public static class PlanFlow
             : theirs.Narrowed(theirs.Footprint.Where(cell => !crossing.Contains(cell)).ToHashSet());
     }
 
-    private static List<FlowLeg> Legs(PlanNav nav, PlanModel plan, int cell)
+    private static List<FlowLeg> Legs(PlanNav nav, Func<BoardStructure> derive, int cell)
     {
         // The deriver already classifies every enclosed void by what its boundary touches, which is what says
         // whether a hole is one a defence may round or one the crossing forms.
-        var board = BoardDeriver.Derive(plan);
+        var board = derive();
         var legs = new List<FlowLeg>();
         var attacker = nav.Waypoints().FirstOrDefault(w => w.Kind == "spawn" && w.K == 0);
         var defender = nav.Waypoints().FirstOrDefault(w => w.Kind == "spawn" && w.K == 1);

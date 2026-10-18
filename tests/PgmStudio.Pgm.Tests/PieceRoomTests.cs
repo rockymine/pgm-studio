@@ -73,7 +73,9 @@ public sealed class PieceRoomTests
             foreach (var bound in new[] { false, true })
             {
                 var room = RoomFrames.Resolve(piece, PlanMarkers.Footprint(piece, seed.Footprint), bound,
-                    piece.MinX + seed.At[0], piece.MinZ + seed.At[1], entries, doors, out var refusal);
+                    piece.MinX + seed.At[0], piece.MinZ + seed.At[1],
+                    doors.Count > 0 ? [.. doors.Select(door => new AskedDoor(door))] : RoomFrames.EntryDoors(entries, piece),
+                    spawn: doors.Count > 0, out var refusal);
                 await Assert.That(refusal).IsNull();
                 await Assert.That(room!.Pad.Shifted).IsFalse();
             }
@@ -92,7 +94,7 @@ public sealed class PieceRoomTests
         await Assert.That(spawn.Iron![1]).IsEqualTo(RoomFrames.IronSpan / 2.0);
 
         var room = RoomFrames.ResolveRoom(piece, PlanMarkers.Footprint(piece, spawn.Footprint), shellBound: true,
-            piece.MinX + spawn.At[0], piece.MinZ + spawn.At[1], [], [RoomEdge.NegZ],
+            piece.MinX + spawn.At[0], piece.MinZ + spawn.At[1], [new AskedDoor(RoomEdge.NegZ)], spawn: true,
             [(piece.MinX + spawn.Iron[0], piece.MinZ + spawn.Iron[1])], out _)!;
         var cube = room.Iron[0];
         await Assert.That(cube.Placeable).IsTrue();
@@ -118,7 +120,7 @@ public sealed class PieceRoomTests
         var door = RoomEdges.Nearest(SpawnFacings.Direction(facing), RoomEdges.All)!.Value;
         var seed = PieceRoom.ForPiece(piece, PlanRoles.Spawn, Doors(facing), facing)!.Value;
         var room = RoomFrames.ResolveRoom(piece, PlanMarkers.Footprint(piece, seed.Footprint), shellBound: true,
-            piece.MinX + seed.At[0], piece.MinZ + seed.At[1], [], [door],
+            piece.MinX + seed.At[0], piece.MinZ + seed.At[1], [new AskedDoor(door)], spawn: true,
             [(piece.MinX + seed.Iron![0], piece.MinZ + seed.Iron[1])], out _)!;
         var (cube, opening) = (room.Iron[0], room.Frame.Doors[0]);
         await Assert.That(cube.Placeable).IsTrue();
@@ -142,7 +144,7 @@ public sealed class PieceRoomTests
         await Assert.That(seed.At).IsEquivalentTo(new double[] { 7, 7 });
 
         var room = RoomFrames.ResolveRoom(piece, hall, shellBound: true,
-            piece.MinX + seed.At[0], piece.MinZ + seed.At[1], [], [RoomEdge.PosZ],
+            piece.MinX + seed.At[0], piece.MinZ + seed.At[1], [new AskedDoor(RoomEdge.PosZ)], spawn: true,
             [(piece.MinX + seed.Iron![0], piece.MinZ + seed.Iron[1])], out var refusal)!;
         await Assert.That(refusal).IsNull();
         await Assert.That(room.Iron[0].Placeable).IsTrue();

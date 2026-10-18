@@ -170,6 +170,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // A room's house shaped on the canvas — a wing resized or added — is written whole, keeping what each wing
     // and the house already stated.
     onRoomHouseEdited: (room, wings) => reshapeHouse(room, wings),
+    // A door shift-pressed onto or off a room's wall is written with the room's other doors, whole.
+    onRoomDoorsEdited: (room, doors) => writeDoors(room, doors),
     onRoomHouseRefused: (sentence) => fire("OnStructuralNote", sentence),
     // A wall's end dragged to a corner is asked of the intent the way a whole-wall drag is.
     onWallEndMoved: (piece, part, x, z, putBack) => moveWallEnd(piece, part, x, z, putBack),
@@ -268,6 +270,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // One click selects one thing. The canvas has already dropped the terrain selection; the panel and the
     // rail are told too, or the group list goes on lighting a row whose chrome is gone.
     if (s) { fire("OnShapeSelected", null); fire("OnGroupSelected", null); }
+    if (s?.role === "building") loadDoors(structuralTarget(s).id);
     fire("OnStructuralSelected", s ? JSON.stringify({
       id: s.id, role: s.role, color: s.color ?? null, piece: s.piece === true,
       baseHeight: s.base_height ?? null, heightAuthored: s.height_authored === true,
@@ -492,6 +495,32 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     await refreshRooms();
     await refreshPieces();
     selectStructural(pick > 0 ? `${room}-building-${pick + 1}` : `${room}-building`);
+  }
+
+  /** Read the doors `room` is built with and draw them on its house — a room stating none shows the one it is
+   *  given. */
+  async function loadDoors(room) {
+    if (!slug) return;
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(room)}/doors`);
+      if (!res.ok) return;
+      canvas.setRoomDoors(room, (await res.json()).doors ?? []);
+    } catch { /* the house keeps the doors it last drew */ }
+  }
+
+  /** Write `room`'s doors whole and draw them as built; a refusal keeps the doors as they were and says why. */
+  async function writeDoors(room, doors) {
+    if (!slug) return;
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(room)}/doors`, {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ doors }),
+      });
+      if (!res.ok) fire("OnStructuralNote", await refusalText(res));
+      else fire("OnStructuralNote", null);
+    } catch {
+      fire("OnStructuralNote", "Couldn't reach the studio, so the doors weren't changed. Try again.");
+    }
+    await loadDoors(room);
   }
 
   /** Take wing `wing` out of `room`'s house. The room's own wing stays, and so does any wing the rest would no

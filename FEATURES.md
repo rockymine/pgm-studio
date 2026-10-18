@@ -9459,6 +9459,53 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   moves that end alone by block corners, snapped to a drawn shape's outline within 3 blocks, and the piece route
   takes it as `part` `start` or `end`, every image moving its matching end.
   (`Pgm/Authoring/PlayPieceMove`, `Client/wwwroot/js/studio/controllers/wall-end-controller`, `docs/tools/sketch.md`)
+- **The play pieces are asked of the intent (`TS171`).** A map's findings ask the intent it builds the plan's
+  rules about its pieces — `PL2`, `PL3`, `PL10`, `PL14`, `OB22`, `DC1`, `OB14`, `ST2`, `SP2`, `ST9`, `ST10` — by
+  each unit's authored image, and a plan it still holds answers none of them twice.
+  (`Pgm/Authoring/IntentCheck`, `Api/Services/MapFindings`, `docs/tools/sketch.md`)
+- **The rooms the export stamps are asked before it does (`TS171`).** Each spawn and wool room is resolved as
+  the build resolves it and its refusals and complaints answered on the findings read — `WX2`, `WX12`, `WX3`,
+  `WX4`, `WX6`, `WX8`, `PL8`. A wool room stating no entry stands on its own house with a door per wall,
+  rather than on the default room around its marker. (`Export/RoomCheck`, `Export/WorldBuilder`,
+  `docs/world-export/structures.md`)
+- **The board's structure is read off the sketch's ground (`TS171`).** `BoardDeriver` reads a `BoardGround`, of
+  which a plan states one and the sketch another (`SketchGround`, one block to a cell), and the findings read
+  answers `FR8`, `FR9`, `WL12`, `WL20`, `LN6`, `CT12` and `BZ9` off the board the drawing builds.
+  (`Pgm/Derive/BoardGround`, `Pgm/Sketch/SketchBoardCheck`, `docs/tools/sketch.md`)
+- **The intent's pieces are asked where they meet the sketch's ground (`TS171`).** `G2`, `BZ5`, `BZ11`, `BZ12`,
+  `PL13`, `PL17`, `ST8` and `SP9` read the build areas, water lanes, walls and spawn doors against the ground the
+  drawing builds, and `G5` the hops between its landmasses; compiled from a seed, each says what the plan's does.
+  The plan's `SP8` and `SP9` read the door the room is cut with. (`Pgm/Sketch/SketchSeamCheck`,
+  `Pgm/Sketch/SketchBoardCheck`, `docs/tools/sketch.md`)
+- **A room's doors are stated in one shape (`TS189`).** Spawn and wool rooms both state `Doors`, each the way
+  its wall faces and the point it is centred on, or no point for a door centred on its wall; the plan states a
+  wool's at each entry interface's midpoint and a spawn's centred on each wall it cuts, and `M0082` carries
+  every stored door word and entry across. (`Pgm/Authoring/MapIntent` `StatedDoor`, `Domain/RoomFrames`
+  `AskedDoor`, `docs/world-export/structures.md`)
+- **A wool room takes one door, not one per wall (`TS189`).** A wool stating no door is given one, on the side
+  of its region the most ground or build area meets, the side facing the middle on a tie, wherever its intent
+  meets its layout — the world build, the export and the findings read; `WL11` and `ST11` read a wool's doors
+  as its entries, and a door with no ground just outside it is `WL21`. (`Pgm/Sketch/WoolDoors`,
+  `Pgm/Sketch/SketchSeamCheck`, `docs/world-export/structures.md`, `docs/generator/rules.md`)
+- **A door may stand on any wing's outer wall (`TS189`).** A door stated beyond the room's span keeps its place
+  and is cut in the wall of the wing it lands on, and the line it was stated on picks between two walls facing
+  its way. (`Domain/RoomFrames`, `Minecraft/Houses/BuildingPlan.WallFacing`, `docs/world-export/structures.md`)
+- **A room's doors are drawn and placed by hand (`TS189`).** In Layout a picked room's doors are bars on its
+  house's outline where the stamper cuts them, a wool stating none showing the one its ground gives it, and a
+  shift-press on a free wall adds a door there or takes one away; `GET …/intent/pieces/{id}/doors` answers the
+  doors a room is built with and `PUT …/doors` sets them whole, carried to every image. (`RoomHouseController`,
+  `Pgm/Authoring/PlayPieceDoors`, `docs/tools/sketch.md`, `docs/tools/configure.md`)
+- **A drawn step is asked only where a match crosses it (`TS171`).** `SP8` at a spawn's door and `WL11` at a
+  wool room's entries — the sides of its region that meet ground — read the sketch's built heights, and `ST11`
+  says an approach wall crowding the entrance it stands before; the plan's `EL1` is not asked
+  of a board that has a sketch. (`Pgm/Sketch/SketchSeamCheck`, `docs/tools/sketch.md`)
+- **The board's measures are read off the sketch's ground (`TS171`).** The evaluator's board terms — `FR4`,
+  `FR6`, `CT1`, `CT4`, `CT5`, `CT8`, `CT9`, `CT13`, `LN1` — and its walks — `WL7`, `WL9`, `WL10`, `WL13`,
+  `WL15`–`WL18`, `GO1`–`GO4` — its mid band — `MD7`, `MD8`, the rectangle round the front-to-front build
+  cells — and its flow — `LN5`, `CT14`, over a `PlanNav` stated from the ground — measure the sketch read at the corpus's 5-block cell and say a value outside its
+  band as a complaint with its number, never summed into a score; compiled from a seed, the sketch measures
+  what its plan does. (`Pgm/Sketch/SketchMeasures`, `Pgm/Evaluate/EvalContext`, `Pgm/Evaluate/BoardWalks`,
+  `docs/tools/sketch.md`)
 - **A place holds one thread, and the list counts what is new (`TS186`).** A picked place's panel shows its
   thread under its fields over one text box, and a second `place` note on it is refused 409 `RQ5`; a place's row
   carries a speech bubble, filled with the count of messages new to the caller or an outline once read. `MapNoteDto.unread`

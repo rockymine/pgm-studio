@@ -167,6 +167,68 @@ public sealed class IntentPieceHouseEndpoint(
     }
 }
 
+/// <summary>PUT /api/map/{slug}/intent/pieces/{id}/doors — set a room's doors whole, on every image of its unit
+/// unless <c>alone</c>. <see cref="PlayPieceDoors"/> holds what it refuses.</summary>
+public sealed class IntentPieceDoorsEndpoint(
+    MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features,
+    PlayerLookup players)
+    : Endpoint<PieceDoorsRequest>
+{
+    public override void Configure()
+    {
+        Put("/map/{slug}/intent/pieces/{id}/doors");
+        Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(400, 404, 409, 422));
+    }
+
+    public override async Task HandleAsync(PieceDoorsRequest req, CancellationToken ct)
+    {
+        var slug = Route<string>("slug")!;
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+        var (set, refused) = PlayPieceDoors.Apply(intent, Route<string>("id")!,
+            [.. (req.Doors ?? []).Select(door => new StatedDoor(door.Edge, door.X, door.Z))], req.Alone,
+            await IntentPieceMoveEndpoint.BoardAsync(artifacts, map.Id, ct));
+        if (set is null)
+        {
+            var missing = refused.Any(finding => finding.Rule == RequestRules.NoSuchSubject);
+            await Refusals.StopAsync(HttpContext, missing ? 404 : 400,
+                                     missing ? "no such piece" : "the doors cannot be cut", refused, ct);
+            return;
+        }
+        var applied = await IntentWrite.StoreAndProjectAsync(
+            repo, reader, writer, artifacts, features, players, slug, map.Id,
+            JsonSerializer.Serialize(set, MapArtifactStore.Json), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
+    }
+}
+
+/// <summary>GET /api/map/{slug}/intent/pieces/{id}/doors — the doors a room is built with, and whether it states
+/// them: a room stating none answers the one its build gives it.</summary>
+public sealed class IntentPieceDoorsReadEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<RoomDoorsDto>
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/intent/pieces/{id}/doors");
+        Description(b => b.Refuses(404));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+        var layout = await artifacts.LoadLayoutAsync(map.Id, ct);
+        var (doors, stated, refused) = PlayPieceDoors.Built(intent, Route<string>("id")!,
+            layout is { Length: > 0 } ? System.Text.Encoding.UTF8.GetString(layout) : null);
+        if (doors is null)
+        {
+            await Refusals.StopAsync(HttpContext, 404, "no such piece", refused, ct);
+            return;
+        }
+        await Send.OkAsync(new RoomDoorsDto([.. doors.Select(door => new PieceDoor(door.Edge, door.X, door.Z))], stated), ct);
+    }
+}
+
 /// <summary>DELETE /api/map/{slug}/intent/pieces/{id} — take one play piece out of the intent, and every image of
 /// it unless <c>?alone=true</c>.</summary>
 public sealed class IntentPieceDeleteEndpoint(

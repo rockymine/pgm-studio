@@ -2048,9 +2048,9 @@ public sealed class HouseStamperTests
             foreach (var door in RoomEdges.All)
             {
                 var room = RoomFrames.Resolve(new BlockRect(piece.MinX, piece.MinZ, piece.MaxX, piece.MaxZ), null,
-                    shellBound: true, piece.MarkerX, piece.MarkerZ, [], [door], out _)!;
+                    shellBound: true, piece.MarkerX, piece.MarkerZ, [new AskedDoor(door)], spawn: true, out _)!;
                 var image = RoomFrames.Resolve(new BlockRect(-piece.MaxX, -piece.MaxZ, -piece.MinX, -piece.MinZ),
-                    null, shellBound: true, -piece.MarkerX, -piece.MarkerZ, [], [door.Opposite()], out _)!;
+                    null, shellBound: true, -piece.MarkerX, -piece.MarkerZ, [new AskedDoor(door.Opposite())], spawn: true, out _)!;
                 var (world, turned) = (new VoxelWorld(), new VoxelWorld());
                 HouseStamper.Stamp(world, room, FloorY, named.Style);
                 HouseStamper.Stamp(turned, image, FloorY, named.Style);
@@ -2087,13 +2087,13 @@ public sealed class HouseStamperTests
                 foreach (var door in RoomEdges.All)
                 {
                     var room = RoomFrames.Resolve(new BlockRect(piece.MinX, piece.MinZ, piece.MaxX, piece.MaxZ),
-                        null, shellBound: true, piece.MarkerX, piece.MarkerZ, [], [door], out _)!;
+                        null, shellBound: true, piece.MarkerX, piece.MarkerZ, [new AskedDoor(door)], spawn: true, out _)!;
                     var mirroredDoor = door.AlongX() == acrossX ? door : door.Opposite();
                     var image = (acrossX
                         ? RoomFrames.Resolve(new BlockRect(-piece.MaxX, piece.MinZ, -piece.MinX, piece.MaxZ), null,
-                            shellBound: true, -piece.MarkerX, piece.MarkerZ, [], [mirroredDoor], out _)!
+                            shellBound: true, -piece.MarkerX, piece.MarkerZ, [new AskedDoor(mirroredDoor)], spawn: true, out _)!
                         : RoomFrames.Resolve(new BlockRect(piece.MinX, -piece.MaxZ, piece.MaxX, -piece.MinZ), null,
-                            shellBound: true, piece.MarkerX, -piece.MarkerZ, [], [mirroredDoor], out _)!)
+                            shellBound: true, piece.MarkerX, -piece.MarkerZ, [new AskedDoor(mirroredDoor)], spawn: true, out _)!)
                         with { Reflected = true };
                     var (world, mirrored) = (new VoxelWorld(), new VoxelWorld());
                     HouseStamper.Stamp(world, room, FloorY, named.Style);
@@ -2122,4 +2122,33 @@ public sealed class HouseStamperTests
 
     private static IEnumerable<(int X, int Z)> Perimeter(int width, int depth)
         => Cells(width, depth).Where(c => c.X == 0 || c.X == width - 1 || c.Z == 0 || c.Z == depth - 1);
+
+    /// <summary>A door stated on a wing's outer wall is cut there, and where two walls face its way and both hold
+    /// its place along them, the line it was stated on picks the one. The plan is a C opening to +x: a spine
+    /// down x 0..3 and two arms out to x 9, so a −z wall stands at z 0 across the top and another at z 9, the
+    /// lower arm's inner face.</summary>
+    [Test]
+    public async Task A_door_stated_on_a_wings_wall_is_cut_in_the_wall_on_its_line()
+    {
+        var plan = new BuildingPlan([
+            new Wing(0, 0, 3, 12, new WingSpec()), new Wing(4, 0, 9, 3, new WingSpec()), new Wing(4, 9, 9, 12, new WingSpec()),
+        ]);
+        var style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } };
+        VoxelWorld Stamped(int? line)
+        {
+            var world = new VoxelWorld();
+            HouseStamper.Stamp(world, plan, FloorY, style, doors: [new RoomDoor(RoomEdge.NegZ, 6, 2, line)]);
+            return world;
+        }
+        static bool Cut(VoxelWorld world, int z) =>
+            Enumerable.Range(5, 4).Any(x => world.GetBlock(x, FloorY + 1, z).Id == Blocks.Air);
+
+        var inner = Stamped(9);
+        var outer = Stamped(0);
+
+        await Assert.That(Cut(inner, 9)).IsTrue().Because("the door was stated on the lower arm's inner face");
+        await Assert.That(Cut(inner, 0)).IsFalse();
+        await Assert.That(Cut(outer, 0)).IsTrue();
+        await Assert.That(Cut(outer, 9)).IsFalse();
+    }
 }

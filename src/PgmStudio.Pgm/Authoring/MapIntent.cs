@@ -492,11 +492,10 @@ public sealed record SpawnIntent
     /// between them, so this is not a multiple of 90 on every board and no door is derivable from it.</summary>
     public double Yaw { get; init; }
 
-    /// <summary>The walls the hall opens through, as edge words (<c>-z</c>, <c>+z</c>, <c>-x</c>, <c>+x</c>),
-    /// in the order they are cut — the door the team walks out of first. Where a piece meets the board on two
-    /// sides it earns two (docs/world-export/structures.md <c>WX6</c>). Empty on a hand-authored intent, which
-    /// leaves the room a door on the wall its yaw leans into.</summary>
-    public List<string> Doors { get; init; } = new();
+    /// <summary>The doors the hall opens through, in the order they are cut — the door the team walks out of
+    /// first. Where a piece meets the board on two sides it earns two (docs/world-export/structures.md
+    /// <c>WX6</c>). Empty leaves the room a door on the wall its yaw leans into.</summary>
+    public List<StatedDoor> Doors { get; init; } = new();
 
     /// <summary>The house raised on the region, which the plan states and the author reshapes. Null leaves
     /// it to the default: one wing, the region inset by a block on every side and by up to the door gap in
@@ -508,6 +507,19 @@ public sealed record SpawnIntent
     /// stamps nothing and is flagged at validation (WX9). Empty on hand-authored intents and on spawns whose
     /// iron rides <see cref="StructureIntent.IronCubes"/> instead.</summary>
     public List<Pt> Iron { get; init; } = new();
+
+    /// <summary>The doors the hall opens through: the ones <see cref="Doors"/> states, in its order. An intent
+    /// stating none gets one centred on the wall its yaw leans into — a yaw is one angle and a board is not
+    /// obliged to have put a door there, so it answers one door rather than a door per wall.</summary>
+    public IReadOnlyList<AskedDoor> AskedDoors()
+    {
+        var stated = StatedDoor.Asked(Doors);
+        if (stated.Count > 0) return stated;
+        var yaw = ((Yaw % 360) + 360) % 360 * Math.PI / 180;
+        return RoomEdges.Nearest(
+            ((int)Math.Round(-Math.Sin(yaw)), (int)Math.Round(Math.Cos(yaw))), RoomEdges.All)
+            is { } edge ? [new AskedDoor(edge)] : [];
+    }
 }
 
 /// <summary>The observer/default spawn point.</summary>
@@ -569,11 +581,70 @@ public sealed record WoolIntent
     /// door, so no side of it is opened wider than the rest.</summary>
     public RoomHouse? House { get; init; }
 
-    /// <summary>The room's entry interfaces (WX6), as degenerate rects on the region's boundary (zero
-    /// thickness across the seam), already fanned: every terrain↔room land seam plus every abutting
-    /// build-zone edge. The exporter cuts the cage doors and lays the entrance redstone on exactly these.
-    /// Empty where the plan derived none, and a cage with no entry keeps a door per wall.</summary>
-    public List<Rect> Entries { get; init; } = new();
+    /// <summary>The doors the room opens through (WX6), already fanned: the plan states one where each land seam
+    /// or build-zone edge meets the region. The exporter cuts the cage doors and lays the entrance redstone on
+    /// exactly these. Empty takes one door, on the side of the region meeting the most ground
+    /// (<see cref="Sketch.WoolDoors"/>).</summary>
+    public List<StatedDoor> Doors { get; init; } = new();
+}
+
+/// <summary>
+/// A door a room states: the wall it is cut in, named by the way it faces, and the point on that wall it is
+/// centred on, in blocks. A door stating no point is centred on its wall.
+/// </summary>
+/// <param name="Edge">The way the wall faces, as an edge word (<c>-z</c>, <c>+z</c>, <c>-x</c>, <c>+x</c>).</param>
+/// <param name="X">The point's x, or null for a door centred on its wall.</param>
+/// <param name="Z">The point's z, stated with <paramref name="X"/>.</param>
+[method: JsonConstructor]
+public readonly record struct StatedDoor(
+    [property: WordSet(typeof(EdgeWords))] string Edge,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? X = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? Z = null)
+{
+    /// <summary>A door centred on the wall facing <paramref name="edge"/>.</summary>
+    public static StatedDoor Centred(RoomEdge edge) => new(edge.Word());
+
+    /// <summary>A door on the wall facing <paramref name="edge"/>, centred on the point.</summary>
+    public static StatedDoor At(RoomEdge edge, double x, double z) => new(edge.Word(), x, z);
+
+    /// <summary>The door asked of a frame, or null where the edge names no wall. A point names the wall's block
+    /// line too: the row or column just inside the edge it lies on.</summary>
+    public AskedDoor? Asked()
+    {
+        if (RoomEdges.OfWord(Edge) is not { } edge) return null;
+        if (X is not { } x || Z is not { } z) return new AskedDoor(edge);
+        var across = edge.AlongX() ? z : x;
+        return new AskedDoor(edge, edge.AlongX() ? x : z, (int)Math.Floor(edge.Positive() ? across - 1 : across));
+    }
+
+    /// <summary>The doors asked of a frame, in order, leaving out any whose edge names no wall.</summary>
+    public static List<AskedDoor> Asked(IEnumerable<StatedDoor> doors) =>
+        [.. doors.Select(door => door.Asked()).OfType<AskedDoor>()];
+
+    /// <summary>The door moved by <paramref name="dx"/>, <paramref name="dz"/>.</summary>
+    public StatedDoor Slid(double dx, double dz) => X is { } x && Z is { } z ? this with { X = x + dx, Z = z + dz } : this;
+
+    /// <summary>The door on image <paramref name="step"/> of a symmetry about (<paramref name="centerX"/>,
+    /// <paramref name="centerZ"/>): its point mapped, and its wall turned the way its outward step turns.</summary>
+    public StatedDoor Fanned(string? mode, double centerX, double centerZ, int step) => Mapped(
+        (x, z) => Symmetry.Point(x, z, mode, centerX, centerZ, step),
+        edge =>
+        {
+            var (ox, oz) = edge.Outward();
+            var (tx, tz) = Symmetry.Point(ox, oz, mode, 0, 0, step);
+            return RoomEdges.Nearest(((int)Math.Round(tx), (int)Math.Round(tz)), RoomEdges.All) ?? edge;
+        });
+
+    /// <summary>The door carried by a map of points and a map of directions: its point through the one and the
+    /// way its wall faces through the other.</summary>
+    public StatedDoor Mapped(Func<double, double, (double X, double Z)> point, Func<RoomEdge, RoomEdge> facing)
+    {
+        if (RoomEdges.OfWord(Edge) is not { } edge) return this;
+        var turned = facing(edge).Word();
+        if (X is not { } x || Z is not { } z) return new StatedDoor(turned);
+        var (mappedX, mappedZ) = point(x, z);
+        return new StatedDoor(turned, mappedX, mappedZ);
+    }
 }
 
 /// <summary>

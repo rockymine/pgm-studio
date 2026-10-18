@@ -196,7 +196,7 @@ public static class SymmetryExpander
                     Color = "",   // orbit copies default to the new owner team's colour (WoolGenerator.ColorSlug)
                     Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
                     House = src.House?.Mapped(rect => TransformRect(rect, sym, k)),
-                    Entries = [.. src.Entries.Select(entry => TransformRect(entry, sym, k))],
+                    Doors = TransformDoors(src.Doors, sym, k),
                     Spawn = TransformBlock(src.Spawn, sym, k),
                     Monuments = [.. src.Monuments.Select(m => m with
                     {
@@ -552,19 +552,8 @@ public static class SymmetryExpander
 
     // The walls a room opens through, as the edges their outward normals point at once turned by the linear
     // part of the symmetry op. Order is kept, because the first door is the one a room is measured from.
-    private static List<string> TransformDoors(List<string> doors, SymmetryIntent sym, int k)
-    {
-        var turned = new List<string>(doors.Count);
-        foreach (var door in doors)
-        {
-            if (RoomEdges.OfWord(door) is not { } edge) { turned.Add(door); continue; }
-            var (ox, oz) = edge.Outward();
-            var (tx, tz) = Symmetry.Point(ox, oz, sym.Mode, 0, 0, k);
-            var step = ((int)Math.Round(tx), (int)Math.Round(tz));
-            turned.Add(RoomEdges.Nearest(step, RoomEdges.All) is { } image ? image.Word() : door);
-        }
-        return turned;
-    }
+    private static List<StatedDoor> TransformDoors(List<StatedDoor> doors, SymmetryIntent sym, int k) =>
+        [.. doors.Select(door => door.Fanned(sym.Mode, sym.CenterX, sym.CenterZ, k))];
 
     // ── helpers ─────────────────────────────────────────────────────────────────────────
     private static bool IsKnown(string mode) => SymmetryModes.Fanned.Contains(mode);

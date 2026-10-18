@@ -779,6 +779,19 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
+    public async Task SP9_reads_the_door_the_room_is_cut_with_rather_than_the_facing_alone()
+    {
+        // facing front reads −z, but the spawn meets its egress only on +z, which is where its door is cut
+        var behind = Plan("""
+        { "plan":2, "globals":{"cell":1},
+          "pieces":[ {"id":"s","role":"spawn","rect":[0,0,10,10]} ],
+          "zones":[ {"id":"egress","rect":[0,10,10,15]} ],
+          "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ] } }
+        """);
+        await Assert.That(Lint(behind, "SP9")).IsFalse();
+    }
+
+    [Test]
     public async Task A_wall_too_close_to_the_entrance_fires_ST11_and_one_over_a_wide_edge_ST8()
     {
         // the wall seat 15 out from the room's entry, over a 10-block mouth — the author's geometry, clean

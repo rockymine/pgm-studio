@@ -557,6 +557,8 @@ export class SketchCanvas extends CanvasBase {
     if (this.#reliefOn && this.#reliefTools?.onMouseDown(bx, bz, this._activeTool)) return;
     if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool)) return;
     if (this._readOnly) return;
+    // A shift-press on a picked room's free wall adds a door there or takes one away.
+    if (e.shiftKey && this._activeTool === "select" && this.#roomHouse?.toggleDoorAt(svgPt.x, svgPt.y)) return;
     this.#draw?.onMouseDown(bx, bz, this._activeTool);
   }
 
@@ -1029,6 +1031,9 @@ export class SketchCanvas extends CanvasBase {
 
   /** Pick a plan piece, or `null` to let it go. The terrain selection is cleared with it: one click selects
    *  one thing, and a room and the ground under it are two. */
+  /** The doors a room is built with, drawn on its house's outline while one of its wings is picked. */
+  setRoomDoors(room, doors) { this.#roomHouse?.setDoors(room, doors); }
+
   selectStructural(id) {
     const next = this.#structural.some(s => s.id === id) ? id : null;
     if (next === this.#selectedStructuralId) return;
@@ -1341,6 +1346,7 @@ export class SketchCanvas extends CanvasBase {
     // intent's, so the controller hands every edit to the host to write.
     this.#roomHouse = new RoomHouseController(this.#screen.roomHandles, getViewport, () => this.#structural, {
       onEdited: (room, wings) => this.#callbacks.onRoomHouseEdited?.(room, wings),
+      onDoorsEdited: (room, doors) => this.#callbacks.onRoomDoorsEdited?.(room, doors),
       onRefused: (sentence) => this.#callbacks.onRoomHouseRefused?.(sentence),
       onPreview: () => this.#paintWorld(),
       isEditable: () => !this._readOnly,

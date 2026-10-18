@@ -229,7 +229,7 @@ public sealed class SymmetryExpanderCarryTests
                 new SpawnIntent
                 {
                     Team = "red-team", Point = new Pt(5, 12, 6), Protection = [new Rect(0, 0, 10, 12)],
-                    House = RoomHouse.Over(new Rect(2, 3, 8, 9)), Iron = [new Pt(1, 12, 1)], Doors = ["+x", "-z"],
+                    House = RoomHouse.Over(new Rect(2, 3, 8, 9)), Iron = [new Pt(1, 12, 1)], Doors = [new StatedDoor("+x"), new StatedDoor("-z")],
                 },
             ],
             Wools =
@@ -237,7 +237,7 @@ public sealed class SymmetryExpanderCarryTests
                 new WoolIntent
                 {
                     Owner = "red-team", Protection = [new Rect(20, 0, 30, 10)], Spawn = new Pt(25, 12, 5),
-                    House = RoomHouse.Over(new Rect(21, 1, 29, 9)), Entries = [new Rect(30, 2, 30, 6)],
+                    House = RoomHouse.Over(new Rect(21, 1, 29, 9)), Doors = [StatedDoor.At(RoomEdge.PosX, 30, 4)],
                 },
             ],
         };
@@ -248,8 +248,8 @@ public sealed class SymmetryExpanderCarryTests
 
         await Assert.That(spawn.House?.Room).IsEqualTo(new Rect(-8, -9, -2, -3));
         await Assert.That(spawn.Iron.Single()).IsEqualTo(new Pt(-1, 12, -1));
-        await Assert.That(spawn.Doors).IsEquivalentTo(new[] { "-x", "+z" });
+        await Assert.That(spawn.Doors.Select(door => door.Edge)).IsEquivalentTo(new[] { "-x", "+z" });
         await Assert.That(wool.House?.Room).IsEqualTo(new Rect(-29, -9, -21, -1));
-        await Assert.That(wool.Entries.Single()).IsEqualTo(new Rect(-30, -6, -30, -2));
+        await Assert.That(wool.Doors.Single()).IsEqualTo(StatedDoor.At(RoomEdge.NegX, -30, -4));
     }
 }

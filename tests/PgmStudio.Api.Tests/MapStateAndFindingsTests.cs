@@ -30,6 +30,25 @@ public sealed class MapStateAndFindingsTests
             .Because($"a plan with no pieces cannot build: {string.Join("; ", found.Findings.Select(f => f.Message))}");
     }
 
+    /// <summary>The play pieces are asked of the intent the map builds, and a rule the intent answers is said
+    /// once even where the map still holds its plan.</summary>
+    [Test]
+    public async Task The_pieces_a_map_holds_are_asked_of_its_intent()
+    {
+        using var client = await FreshAsync();
+        var slug = await PlanAsync(client, "Weirgate");
+        var stated = await client.PutAsync($"/api/map/{slug}/intent", new StringContent(
+            "{\"teams\":[{\"id\":\"red\",\"name\":\"Red\",\"color\":\"red\"}],\"spawns\":[{\"team\":\"red\","
+            + "\"point\":{\"x\":-10,\"y\":12,\"z\":-10},\"protection\":[{\"minX\":-20,\"minZ\":-20,\"maxX\":0,\"maxZ\":0}],"
+            + "\"id\":\"spawn-red\"}]}", Encoding.UTF8, "application/json"));
+        await Assert.That(stated.IsSuccessStatusCode).IsTrue();
+
+        var found = await client.GetFromJsonAsync<MapFindingsDto>($"/api/map/{slug}/findings");
+
+        await Assert.That(found!.Findings.Count(finding => finding.Message.Contains("no wool, monument, core or capture point")))
+            .IsEqualTo(1).Because("the intent holds a spawn and no objective");
+    }
+
     /// <summary>
     /// The gates a read cannot reach are <b>named</b>, and each says where it is asked instead.
     ///

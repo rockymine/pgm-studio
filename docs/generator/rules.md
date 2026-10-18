@@ -230,6 +230,10 @@ and a fall counted but not charged, routing around voids — never the straight 
   The crossing is measured as `WL12` measures it. Where its other end is the team's own ground away from
   the front — its hub, an approach — the floor is **12 blocks**, since the side that jumps that gap is the
   one already standing there (amendment 49).
+- **WL21 [author]** **A wool room's door opens onto ground.** The blocks just outside a door, a block
+  either side of its centre, are ground or a build area. A wool room is a house entered one or two ways, so
+  it states its doors; one stating none takes a single door on the side of its region meeting the most
+  ground, the side facing the middle on a tie, never one per wall (amendment 59).
 
 
 ## LN — Lane
@@ -1343,3 +1347,9 @@ same commit.
     corners, two blocks thick at any angle; its cobweb course is gone and it is bedrock to its top. Its chests
     left the wall's face for markers of their own, one block out from that face, so a chest is placed, moved
     and turned like any other piece. The height rule and the four-course cap are unchanged.
+59. **`WL21` added: a wool room's door opens onto ground, and a room states its doors (2026-10-17).** Author's
+    call. A house is entered one or two ways; a room with an entrance on every wall is the rare one standing on
+    an island ringed by build zone. So a wool room stating no door takes one, on the side of its region the
+    most ground meets, the side facing the middle on a tie, and an author places the rest. A door whose
+    doorstep is void is a complaint. On a sketched board `WL11` asks the step only at the sides a door opens
+    through.

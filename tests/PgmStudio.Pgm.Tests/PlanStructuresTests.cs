@@ -97,13 +97,13 @@ public sealed class PlanStructuresTests
     {
         var (_, intent) = PlanCompiler.Compile(PlanModel.Parse(NarrowEntryJson)!);
 
-        // A wool's Entries are the segments the cage cuts its doors on, and an empty set means the room is
-        // unreachable: the validator refuses on it and the stamper cuts nothing. A room whose only seam is
-        // narrow answering empty seals the wool inside a solid box.
+        // A wool's doors are the ones the cage is cut with, one per entry segment, and none from a plan means
+        // the room is unreachable: the validator refuses on it. A room whose only seam is narrow answering
+        // none seals the wool inside a solid box.
         await Assert.That(intent.Wools).IsNotNull();
         foreach (var wool in intent.Wools!)
-            await Assert.That(wool.Entries).IsNotEmpty()
-                .Because("an empty entry set seals the room, and this room is reachable");
+            await Assert.That(wool.Doors).IsNotEmpty()
+                .Because("no door seals the room, and this room is reachable");
     }
 
     [Test]

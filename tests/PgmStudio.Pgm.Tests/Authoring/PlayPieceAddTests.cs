@@ -27,7 +27,7 @@ public sealed class PlayPieceAddTests
         await Assert.That(refused.Count).IsEqualTo(0);
         await Assert.That(added!.Spawns.Select(spawn => spawn.Team)).IsEquivalentTo(new[] { "red", "blue" });
         var red = added.Spawns.Single(spawn => spawn.Id == id);
-        await Assert.That(red.Doors).IsEquivalentTo(new[] { "+x" }).Because("the middle of the board is in +x of it");
+        await Assert.That(red.Doors.Select(door => door.Edge)).IsEquivalentTo(new[] { "+x" }).Because("the middle of the board is in +x of it");
         await Assert.That(added.Spawns[1].Protection.Single()).IsEqualTo(new Rect(30, -6, 40, 6));
         await Assert.That(added.Spawns[1].Stamp.Identity).IsEqualTo(red.Stamp.Identity);
     }

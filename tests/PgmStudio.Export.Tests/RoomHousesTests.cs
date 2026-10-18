@@ -13,7 +13,7 @@ namespace PgmStudio.Export.Tests;
 public sealed class RoomHousesTests
 {
     private static readonly RoomFrame Frame =
-        RoomFrames.Resolve(new BlockRect(0, 0, 14, 10), new BlockRect(1, 1, 7, 9), shellBound: true, 4, 4, [], [RoomEdge.NegZ], out _)!;
+        RoomFrames.Resolve(new BlockRect(0, 0, 14, 10), new BlockRect(1, 1, 7, 9), shellBound: true, 4, 4, [new AskedDoor(RoomEdge.NegZ)], spawn: true, out _)!;
 
     private static RoomHouse House(params Rect[] wings) =>
         new() { Wings = [.. wings.SelectMany(wing => RoomHouse.Over(wing).Wings)] };

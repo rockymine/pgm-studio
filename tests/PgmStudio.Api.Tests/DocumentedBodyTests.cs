@@ -48,7 +48,8 @@ public sealed class DocumentedBodyTests
             if (route.Contains("/notes/{id}")) route = route.Replace("{id}", await NoteAsync(client, slug));
             if (route.Contains("/changes/{number}")) route = route.Replace("{number}", await ChangeAsync(client, slug));
             if (route.Contains("/intent/pieces/{id}"))
-                route = route.Replace("{id}", await PieceAsync(client, slug, room: route.EndsWith("/house", StringComparison.Ordinal),
+                route = route.Replace("{id}", await PieceAsync(client, slug, room: route.EndsWith("/house", StringComparison.Ordinal)
+                    || route.EndsWith("/doors", StringComparison.Ordinal),
                     wall: example.Json.Contains("\"part\": \"end\"", StringComparison.Ordinal)));
         }
         if (route == "/api/notes/handoff") await NoteAsync(client, await OriginateMapAsync(client));

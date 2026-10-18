@@ -237,7 +237,7 @@ landed.
 - The generator emits a sketch. Its piece model stays its own (`docs/generator/model.md`) and ends in a layout and
   an intent rather than a plan.
 - The rules move onto the sketch: the measures read off the sketch's rasterized ground, which never builds a
-  world, and the refusals asked between play pieces. `sight` is the one new read; in-game notes are tagged with
+  world, and the refusals asked between play pieces. `sight` is the one new read (`TS191`); in-game notes are tagged with
   the place their ground falls in.
 - The plan retires: the Plan tool and `from-plan` go, every stored plan is kept read-only as history, and
   `drive.py` and the skill move to sketch sources; the specs stay as they are (D11).

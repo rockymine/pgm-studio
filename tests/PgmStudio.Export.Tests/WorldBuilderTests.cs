@@ -125,6 +125,23 @@ public sealed class WorldBuilderTests
     }
 
     [Test]
+    public async Task A_wool_room_stating_no_door_stands_on_its_house_with_one_door_toward_the_middle()
+    {
+        // A wool room placed on the sketch states its house and no door: the cage is that house, and with no
+        // ground to read it takes one door, on the side of its region facing the board's middle.
+        var wool = new WoolIntent
+        {
+            Owner = "red", Spawn = new Pt(-20.5, 1, 0.5), Protection = [new Rect(-32, -12, -8, 12)],
+            House = RoomHouse.Over(new Rect(-27, -6, -13, 8)),
+        };
+
+        var frame = WorldBuilder.WoolFrame(wool, HouseStyle.Wool);
+
+        await Assert.That((frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)).IsEqualTo((-27, -6, -13, 8));
+        await Assert.That(frame.Doors.Select(door => door.Edge)).IsEquivalentTo(new[] { RoomEdge.PosX });
+    }
+
+    [Test]
     [Arguments(false)]
     [Arguments(true)]
     public async Task A_reflected_room_resolves_a_reflected_frame(bool reflected)
@@ -133,7 +150,7 @@ public sealed class WorldBuilderTests
         // recorded on the intent has to reach it — on the region-framed path and on the default one alike.
         var region = new SpawnIntent
         {
-            Team = "red", Point = new Pt(-20, 1, 0), Protection = [new Rect(-30, -10, -10, 10)], Doors = ["+x"],
+            Team = "red", Point = new Pt(-20, 1, 0), Protection = [new Rect(-30, -10, -10, 10)], Doors = [new StatedDoor("+x")],
             Reflected = reflected,
         };
         var bare = new SpawnIntent { Team = "red", Point = new Pt(-20, 1, 0), Reflected = reflected };
@@ -184,7 +201,7 @@ public sealed class WorldBuilderTests
                 new WoolIntent
                 {
                     Owner = "red", Color = "red", Spawn = new Pt(-10, 1, 10), Protection = [piece],
-                    Entries = [new Rect(piece.MinX, piece.MaxZ, piece.MaxX, piece.MaxZ)],
+                    Doors = [StatedDoor.At(RoomEdge.PosZ, (piece.MinX + piece.MaxX) / 2, piece.MaxZ)],
                     Monuments = [new MonumentIntent { Team = "blue" }],
                 },
             ],
@@ -532,7 +549,7 @@ public sealed class WorldBuilderTests
                 {
                     Owner = "red", Color = "red", Spawn = new Pt(-10, 1, 10), Protection = [piece],
                     Stamp = new StampId("wool", "w0", 0),
-                    Entries = [new Rect(piece.MinX, piece.MaxZ, piece.MaxX, piece.MaxZ)],
+                    Doors = [StatedDoor.At(RoomEdge.PosZ, (piece.MinX + piece.MaxX) / 2, piece.MaxZ)],
                     Monuments = [new MonumentIntent { Team = "blue" }],
                 },
             ],

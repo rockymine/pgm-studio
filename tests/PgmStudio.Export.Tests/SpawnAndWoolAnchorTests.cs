@@ -74,7 +74,7 @@ public sealed class SpawnAndWoolAnchorTests
             Wools = [.. honest.Wools!.Select(w => new WoolIntent
             {
                 Owner = w.Owner, Color = w.Color, Protection = w.Protection, House = w.House,
-                Entries = w.Entries,
+                Doors = w.Doors,
                 Spawn = new Pt(w.Spawn.X, 9, w.Spawn.Z),
             })],
         };

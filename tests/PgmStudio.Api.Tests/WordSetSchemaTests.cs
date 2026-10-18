@@ -30,7 +30,7 @@ public sealed class WordSetSchemaTests
         typeof(RoomParts), typeof(RoofForms), typeof(PorchEdges), typeof(WindowForms),
         typeof(DoorHeadForms), typeof(DoorHeadFills), typeof(Landform), typeof(EditZone),
         typeof(WoolColors), typeof(TreeForms), typeof(TreeSpeciesNames),
-        typeof(BoulderForms), typeof(BlockKinds), typeof(BiomeKinds), typeof(PieceParts),
+        typeof(BoulderForms), typeof(BlockKinds), typeof(BiomeKinds), typeof(PieceParts), typeof(EdgeWords),
         typeof(NegativeSpaceKinds), typeof(SizeBands), typeof(AccessModes), typeof(StudioRoles),
         typeof(NoteStatuses), typeof(NoteAnchors), typeof(MapDocuments), typeof(SymmetryModes),
         typeof(RuleLevels), typeof(RuleLevelSources), typeof(FlagCarriers), typeof(PlayPieceKinds), typeof(PieceSettings), typeof(PlaceShapes), typeof(PlanVerdicts),
@@ -45,7 +45,7 @@ public sealed class WordSetSchemaTests
     /// fields carries the mark once, on the base, and publishes it through <c>allOf</c> — so consolidating
     /// two records into one lowers this while the wire gains nothing and loses nothing. Lower it only for
     /// that reason, and never because a mark went missing.</para></summary>
-    private const int Published = 31;
+    private const int Published = 32;
 
     /// <summary>Every marked field publishes exactly the words its class declares, in that order — so a word
     /// added to a set reaches the document with no second edit, and one removed cannot linger there.</summary>

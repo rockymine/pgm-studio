@@ -22,10 +22,20 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-- [ ] **TS171 — The plan's rules read the sketch.** The measures (`GO`, `WL`, `CT`, `LN`, `FR`, `MD`) read off the
-  sketch's rasterized ground, as `StraitReadback` already reads `CT12`; the refusals (`PL*`, `WL14`, the pad
-  fits) are asked between play pieces, and a places document's targets are measured the same way. `sight` is
-  the one new read. `PlanValidator` is the source each rule moves out of. `docs/tools/sketch.md`.
+- [ ] **TS190 — A place states the numbers it is held to.** A place carries targets — a value and the band it
+  must fall in — and each is measured off the sketch's ground and shown beside its band, a miss as a complaint,
+  as pgmvox's checker prints one line per number (`freeform/lib/AGENT-GUIDE.md` § the plan). The walks the
+  sketch already measures (`BoardWalks`, `PlanNav.Of`) carry the first kinds: a team's walk from its spawns to a
+  place, and which team arrives first. Lands on `PlacesDocument`'s `Place` (`Contracts/PlacesDtos.cs`) and
+  `PlacesCheck`. **Open, the author's:** which kinds of target a place may state beyond walks and arrivals —
+  a width or a height reads the place's shape against the ground. `docs/tools/sketch.md`.
+
+- [ ] **TS191 — `sight`: who can see whom on the sketch's ground.** A line between an eye 1.62 blocks over the
+  feet and a target's chest 0.9 over its feet is clear when every block it passes, sampled each quarter block,
+  is above the ground the sketch builds and outside its houses; answered as each target's share of eyes that
+  see it, and the targets none sees, over HTTP with a `?format=text` twin (pgmvox `read/sight.py`). **Open, the
+  author's:** what the eyes and targets are — fixed points (spawns, goals, places) or every cell a team stands
+  on. `docs/tools/sketch.md`.
 
 - [ ] **RP131 — The plan retires as a level.** The Plan tool, `PUT …/sketch/from-plan` and the `plan` stage go;
   every stored plan stays as read-only history (D9), with the migration carrying no row away. `drive.py`, the

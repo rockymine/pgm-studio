@@ -6,11 +6,11 @@ namespace PgmStudio.Pgm.Derive;
 /// roles, stepping-stone kinds, build-zone kinds/widths/interfaces, per-wool approaches + lane shapes, the
 /// frontline/intra/self edges, frontline runs (per-team faces), wool-lane cells, the mid form, the negative
 /// spaces the pieces leave between them (each with the pieces walling it and its narrowest crossing), and enclosed
-/// voids classified by boundary. Computed by <see cref="BoardDeriver.Derive"/>; consumed by the deriver gallery,
+/// voids classified by boundary. Computed by <see cref="BoardDeriver.Derive(BoardGround)"/>; consumed by the deriver gallery,
 /// the evaluator, and the conformance sweep. All cell coordinates (×Cell = blocks).</summary>
 public sealed record BoardStructure(
     int Cell,
-    Dictionary<(int, int), (string PieceId, int K)> Filled,
+    Dictionary<(int, int), (string Owner, int K)> Filled,
     HashSet<(int, int)> Build,
     Dictionary<(int, int), string> BuildKindOf,
     List<(string Kind, int Neutrals, int Width, int IfaceMin, int IfaceMax)> Zones,

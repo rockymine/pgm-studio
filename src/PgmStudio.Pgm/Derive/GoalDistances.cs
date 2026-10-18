@@ -13,7 +13,7 @@ namespace PgmStudio.Pgm.Derive;
 /// <para><b>One field per goal answers all of it.</b> A goal is defended by the team it belongs to, attacked
 /// from the other spawn, and stands some way from the goals beside it and the ones across the axis; those
 /// are four questions about one walk out of the goal, so the walk is taken once and read four times.
-/// <see cref="Read"/> is the spawn reading and <see cref="Pairs"/> the goal-to-goal one, and both are laid
+/// <see cref="Read(GoalGround)"/> is the spawn reading and <see cref="Pairs(GoalGround)"/> the goal-to-goal one, and both are laid
 /// over the same closure, so a board cannot answer them in two different geometries.</para>
 ///
 /// <para>This is a <b>measurement surface</b>: it reports and never judges. The judging lives in the
@@ -39,9 +39,12 @@ public static class GoalDistances
 
     /// <summary>Every destroyable and core's walks, or empty where the symmetry is not order 2 (the only
     /// order those goals compile at) or the plan has no destroy goal or no spawn.</summary>
-    public static List<GoalWalk> Read(PlanModel plan)
+    public static List<GoalWalk> Read(PlanModel plan) => Read(Ground(plan));
+
+    /// <inheritdoc cref="Read(PlanModel)"/>
+    public static List<GoalWalk> Read(GoalGround? board)
     {
-        if (Closure.Over(plan) is not { } board) return [];
+        if (board is null) return [];
 
         var walks = new List<GoalWalk>(board.Goals.Count);
         foreach (var goal in board.Goals)
@@ -63,16 +66,19 @@ public static class GoalDistances
     }
 
     /// <summary>Every pair of destroy goals with the walk between them, over the same closure
-    /// <see cref="Read"/> walks. Empty on a board <see cref="Read"/> answers nothing for.
+    /// <see cref="Read(GoalGround)"/> walks. Empty on a board <see cref="Read(GoalGround)"/> answers nothing for.
     ///
     /// <para>Each unordered pair appears once. A team's own pairs are the authored goals against each other;
     /// the opposing pairs are each authored goal against the <em>image</em> of an authored one, its own
     /// included — a monument and its mirror are the pair every symmetric board carries, and the one the
     /// contest is usually measured by. By symmetry the walk from A to B's image equals the walk from B to
     /// A's, so the pair is stated once.</para></summary>
-    public static List<GoalPair> Pairs(PlanModel plan)
+    public static List<GoalPair> Pairs(PlanModel plan) => Pairs(Ground(plan));
+
+    /// <inheritdoc cref="Pairs(PlanModel)"/>
+    public static List<GoalPair> Pairs(GoalGround? board)
     {
-        if (Closure.Over(plan) is not { } board) return [];
+        if (board is null) return [];
 
         var pairs = new List<GoalPair>();
         for (var from = 0; from < board.Goals.Count; from++)
@@ -95,11 +101,11 @@ public static class GoalDistances
     /// fanned closure of pieces and build zones, each goal seated as it stands and as its orbit image
     /// stands, and the two spawn sets. Built once and read by both surfaces, which is what keeps the spawn
     /// walks and the goal-to-goal walks the same geometry rather than two that agree by coincidence.</summary>
-    private sealed record Closure(WalkGround Ground, List<Goal> Goals,
-                                  List<(int X, int Z)> OwnSpawns, List<(int X, int Z)> EnemySpawns)
+    public sealed record GoalGround(WalkGround Ground, IReadOnlyList<GoalSeat> Goals,
+                                    IReadOnlyList<(int X, int Z)> OwnSpawns, IReadOnlyList<(int X, int Z)> EnemySpawns)
     {
         /// <summary>The field out of one goal, or null where the goal has no cell to stand on at all.</summary>
-        public Dictionary<WalkPlace, WalkCost>? Reach(Goal goal)
+        public Dictionary<WalkPlace, WalkCost>? Reach(GoalSeat goal)
             => goal.Cell is { } cell && Ground.Stand(cell) is { } seat ? Walk.Field(seat, Ground) : null;
 
         /// <summary>The walk to one cell, in blocks, out of a field already walked — null where the cell is
@@ -110,7 +116,7 @@ public static class GoalDistances
 
         /// <summary>The nearest of a set, in blocks, out of a field already walked — null where none of them
         /// is reached.</summary>
-        public double? Nearest(Dictionary<WalkPlace, WalkCost> reach, List<(int X, int Z)> targets)
+        public double? Nearest(Dictionary<WalkPlace, WalkCost> reach, IReadOnlyList<(int X, int Z)> targets)
         {
             double? best = null;
             foreach (var target in targets)
@@ -120,55 +126,57 @@ public static class GoalDistances
             return best;
         }
 
-        /// <summary>The closure a plan's goals are measured over, or null where there is nothing to measure:
-        /// a symmetry that is not order 2 (the only order these goals compile at), no destroy goal, or no
-        /// spawn to walk from.</summary>
-        public static Closure? Over(PlanModel plan)
-        {
-            var mode = plan.Globals.Symmetry;
-            if (Symmetry.Order(mode) != 2) return null;
-
-            var placed = new List<(string Id, string Kind, string Piece, double[] At)>();
-            foreach (var destroyable in plan.Placements.Destroyables)
-                placed.Add((destroyable.Id, "destroyable", destroyable.Piece, destroyable.At));
-            foreach (var core in plan.Placements.Cores)
-                placed.Add((core.Id, "core", core.Piece, core.At));
-            if (placed.Count == 0 || plan.Placements.Spawns.Count == 0) return null;
-
-            // The fanned closure: both orbit images of every generating piece and every build zone. Distances
-            // here cross the team boundary (the enemy's spawn to this team's goal), so the un-fanned surface
-            // the intra-team terms walk would cut the route at the axis.
-            var walkable = new HashSet<(int, int)>();
-            foreach (var piece in plan.Pieces)
-                if (!PlanRoles.IsAnnotation(piece.Role))
-                    AddFanned(walkable, piece.Rect, mode);
-            foreach (var zone in plan.BuildZones)
-                AddFanned(walkable, zone.Rect, mode);
-
-            // Spawn cells per orbit image: image 0 is the authored team, image 1 its opponent.
-            List<(int X, int Z)> own = [], enemy = [];
-            foreach (var spawn in plan.Placements.Spawns)
-            {
-                if (SurfaceNav.MarkerCell(plan, spawn.Piece, spawn.At, walkable) is not { } authored) continue;
-                own.Add(authored);
-                if (Snap(ImageCell(authored, mode), walkable) is { } opposed) enemy.Add(opposed);
-            }
-            if (own.Count == 0) return null;
-
-            var goals = new List<Goal>(placed.Count);
-            foreach (var (id, kind, piece, at) in placed)
-            {
-                var cell = SurfaceNav.MarkerCell(plan, piece, at, walkable);
-                var image = cell is { } seated ? Snap(ImageCell(seated, mode), walkable) : null;
-                goals.Add(new Goal(id, kind, cell, image));
-            }
-            return new Closure(WalkGround.Over(walkable, plan.Globals.Cell), goals, own, enemy);
-        }
     }
 
-    /// <summary>One goal as the closure holds it: where it stands, and where the other team's copy of it
-    /// stands. Either is null where the closure has no walkable cell for it.</summary>
-    private sealed record Goal(string Id, string Kind, (int X, int Z)? Cell, (int X, int Z)? Image);
+    /// <summary>The closure a plan's goals are measured over, or null where there is nothing to measure:
+    /// a symmetry that is not order 2 (the only order these goals compile at), no destroy goal, or no
+    /// spawn to walk from.</summary>
+    public static GoalGround? Ground(PlanModel plan)
+    {
+        var mode = plan.Globals.Symmetry;
+        if (Symmetry.Order(mode) != 2) return null;
+
+        var placed = new List<(string Id, string Kind, string Piece, double[] At)>();
+        foreach (var destroyable in plan.Placements.Destroyables)
+            placed.Add((destroyable.Id, "destroyable", destroyable.Piece, destroyable.At));
+        foreach (var core in plan.Placements.Cores)
+            placed.Add((core.Id, "core", core.Piece, core.At));
+        if (placed.Count == 0 || plan.Placements.Spawns.Count == 0) return null;
+
+        // The fanned closure: both orbit images of every generating piece and every build zone. Distances
+        // here cross the team boundary (the enemy's spawn to this team's goal), so the un-fanned surface
+        // the intra-team terms walk would cut the route at the axis.
+        var walkable = new HashSet<(int, int)>();
+        foreach (var piece in plan.Pieces)
+            if (!PlanRoles.IsAnnotation(piece.Role))
+                AddFanned(walkable, piece.Rect, mode);
+        foreach (var zone in plan.BuildZones)
+            AddFanned(walkable, zone.Rect, mode);
+
+        // Spawn cells per orbit image: image 0 is the authored team, image 1 its opponent.
+        List<(int X, int Z)> own = [], enemy = [];
+        foreach (var spawn in plan.Placements.Spawns)
+        {
+            if (SurfaceNav.MarkerCell(plan, spawn.Piece, spawn.At, walkable) is not { } authored) continue;
+            own.Add(authored);
+            if (Snap(ImageCell(authored, mode), walkable) is { } opposed) enemy.Add(opposed);
+        }
+        if (own.Count == 0) return null;
+
+        var goals = new List<GoalSeat>(placed.Count);
+        foreach (var (id, kind, piece, at) in placed)
+        {
+            var cell = SurfaceNav.MarkerCell(plan, piece, at, walkable);
+            var image = cell is { } seated ? Snap(ImageCell(seated, mode), walkable) : null;
+            goals.Add(new GoalSeat(id, kind, piece, cell, image));
+        }
+        return new GoalGround(WalkGround.Over(walkable, plan.Globals.Cell), goals, own, enemy);
+    }
+
+    /// <summary>One goal as the closure holds it: what it is, the owner a finding highlights for it, where it
+    /// stands, and where the other team's copy of it stands. Either is null where the closure has no walkable
+    /// cell for it.</summary>
+    public sealed record GoalSeat(string Id, string Kind, string Owner, (int X, int Z)? Cell, (int X, int Z)? Image);
 
     // A cell under the second orbit image: carry its centre through the point fan and floor back to a cell,
     // which is exact for every order-2 mode (a rect corner fan would need the same rounding either way).

@@ -29,7 +29,8 @@ public sealed class RoomStyleTests
 
     private static RoomFrame Baseline(RoomEdge? spawnDoor = null) =>
         RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), new BlockRect(-4, -4, 4, 4), shellBound: true, 0, 0,
-            spawnDoor is null ? [(-5, -5, 5, -5)] : [], spawnDoor is { } door ? [door] : [], out _)!;
+            spawnDoor is { } door ? [new AskedDoor(door)] : RoomFrames.EntryDoors([(-5, -5, 5, -5)], new BlockRect(-5, -5, 5, 5)),
+            spawn: spawnDoor is not null, out _)!;
 
     // ── the shipped shell, unmoved ─────────────────────────────────────────────────────────────────
     [Test]

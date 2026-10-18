@@ -1,3 +1,5 @@
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Domain;
 
 /// <summary>The outward direction a room wall faces: the wall on the low-Z side faces <see cref="NegZ"/>.
@@ -52,19 +54,19 @@ public static class RoomEdges
     /// <summary>The edge's own name, for a document that has to carry which side a door is on.</summary>
     public static string Word(this RoomEdge edge) => edge switch
     {
-        RoomEdge.NegZ => "-z",
-        RoomEdge.PosZ => "+z",
-        RoomEdge.NegX => "-x",
-        _ => "+x",
+        RoomEdge.NegZ => EdgeWords.NegZ,
+        RoomEdge.PosZ => EdgeWords.PosZ,
+        RoomEdge.NegX => EdgeWords.NegX,
+        _ => EdgeWords.PosX,
     };
 
     /// <summary>An edge back from <see cref="Word"/>, or null where the word names none.</summary>
     public static RoomEdge? OfWord(string? word) => word switch
     {
-        "-z" => RoomEdge.NegZ,
-        "+z" => RoomEdge.PosZ,
-        "-x" => RoomEdge.NegX,
-        "+x" => RoomEdge.PosX,
+        EdgeWords.NegZ => RoomEdge.NegZ,
+        EdgeWords.PosZ => RoomEdge.PosZ,
+        EdgeWords.NegX => RoomEdge.NegX,
+        EdgeWords.PosX => RoomEdge.PosX,
         _ => null,
     };
 

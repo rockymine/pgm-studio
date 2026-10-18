@@ -31,7 +31,7 @@ export function insertGhost(onPress) {
   el.addEventListener("mousedown", (e) => {
     if (e.button !== 0) return;
     e.stopPropagation();
-    onPress();
+    onPress(e);
   });
   el.addEventListener("click", (e) => e.stopPropagation());
   return el;

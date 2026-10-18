@@ -336,8 +336,10 @@ public sealed class BuildingPlan
     /// along that side belongs to: the longest of those looking that way whose stretch reaches it, or simply the
     /// longest where none does. A rectangle has one run per side and answers it whatever the rule; the rule is
     /// what a plan that turns a corner needs, and length is the tiebreak because the wall a building is entered
-    /// by is its face rather than its return. Null only where the plan looks nowhere in that direction.</summary>
-    public WallSegment? WallFacing(RoomEdge facing, int about)
+    /// by is its face rather than its return. Where <paramref name="line"/> names the line a thing was placed
+    /// on, the run standing nearer it comes before the longer one. Null only where the plan looks nowhere in
+    /// that direction.</summary>
+    public WallSegment? WallFacing(RoomEdge facing, int about, int? line = null)
     {
         WallSegment? best = null;
         foreach (var wall in Segments)
@@ -345,6 +347,11 @@ public sealed class BuildingPlan
             if (wall.Facing != facing) continue;
             if (best is not { } chosen) { best = wall; continue; }
             if (wall.Holds(about) != chosen.Holds(about)) { if (wall.Holds(about)) best = wall; continue; }
+            if (line is { } placed && Math.Abs(wall.Fixed - placed) != Math.Abs(chosen.Fixed - placed))
+            {
+                if (Math.Abs(wall.Fixed - placed) < Math.Abs(chosen.Fixed - placed)) best = wall;
+                continue;
+            }
             if (wall.Length > chosen.Length) best = wall;
         }
         return best;

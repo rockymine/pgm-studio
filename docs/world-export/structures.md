@@ -56,11 +56,20 @@ fanned per orbit image) and as many as an author drew for a hand-authored one �
 framed on what that union encloses. There is no second rectangle naming the same ground: the
 building is the room's house (`House`, its room capped by `ST9`), the region is this one (capped
 by `ST10`), and an intent that states no region at all falls back to the marker-anchored default
-frame, the one a 10×10 piece would resolve to. The wool room's fanned entry interfaces ride beside
-it (`WoolIntent.Entries` — terrain↔room land seams plus build-zone frontline edges, as degenerate
-rects on the region's boundary); a cage with none keeps a door per wall. A spawn's walls ride the same way
-(`SpawnIntent.Doors`, edge words in the order they were cut), so nothing downstream re-derives a door from a
-yaw — a hall opening on two walls faces the corner between them and its yaw names no wall at all.
+frame, the one a 10×10 piece would resolve to. **Both rooms state their doors in one shape**,
+`Doors`, already fanned and in the order they are cut: each a `StatedDoor` — the way its wall faces, as an
+edge word, and the point on that wall it is centred on, `{"edge": "-z", "x": 12, "z": -40}`, or no point,
+`{"edge": "+x"}`, for a door centred on its wall. The plan states a wool's at the midpoint of each entry
+interface (terrain↔room land seams plus build-zone frontline edges) and a spawn's centred on each wall it
+cut. A cage stating none takes one door, on the side of its region meeting the most ground — terrain or a
+build area just outside it — the side facing the middle on a tie (`WoolDoors.Settled`, read off the layout
+the build stands on; with no layout to read, the side facing the middle). **A door may stand on any wing's
+outer wall.** One stated within the room's span along its wall is clamped onto the run between the room's
+corners; one beyond it keeps its place and is cut in the wall of the wing it lands on, the wall facing its
+edge that holds its point — and where two walls facing one way both hold it, the one on the line it was
+stated on. So nothing downstream re-derives a
+door from a yaw — a hall opening on two walls faces the corner between them and its yaw names no wall at
+all.
 
 **A room's building is a house, in the shape a dressed house takes.** `House` is a list of wings, each two
 opposite corners of the first and last cells it covers — the `AuthoredWing` a dressed house is drawn in, with the
@@ -206,8 +215,8 @@ because there is no smaller square centred on a corner than the four blocks shar
   room with four centred doors would open two of them into the bedrock ring. A room with **neither**
   interface is genuinely unreachable and is refused at validation.
 
-  **A spawn hall reads the same abutment and takes at most two of it.** Its doors are named as whole walls
-  rather than cut from a segment — the sides its piece meets more board on, widest opening first, capped at
+  **A spawn hall reads the same abutment and takes at most two of it.** Its doors are centred on whole walls
+  rather than on a segment — the sides its piece meets more board on, widest opening first, capped at
   `PieceDoors.SpawnMax` — so a corner spawn opens on both the ways out its team actually has and a piece
   fenced in on three sides is still a hall rather than a crossroads. The tie between two equally wide walls
   falls to the facing, so the door the player walks out of is `Doors[0]` — the one the chests, the monument

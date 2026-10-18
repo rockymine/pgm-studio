@@ -7,17 +7,24 @@
  * (`shared/building.js`). The house is the intent's, so nothing is kept here: a finished resize or an added wing
  * hands the room's wing rectangles to the host, which writes the house and draws the rooms again.
  *
+ * The room's doors are drawn on the outline, each a short bar where it is cut, and a shift-press on a free wall
+ * adds one there or takes away the one already there; the whole list goes to the host, which writes the doors. The
+ * host hands the doors in as the room is built with them, so a wool stating none shows the one it is given.
+ *
  * Wings are read off the canvas's structural shapes — `{room}-building` for the room's own wing, then
  * `{room}-building-2` on — whose bounds are max-exclusive, and handed back the same way.
  */
 
-import { MIN_FOOTPRINT_SPAN, wallNear, wingOffWall } from "../shared/building.js";
+import { MIN_FOOTPRINT_SPAN, freeWalls, wallNear, wingOffWall } from "../shared/building.js";
 import { svgEl, handleRectAttrs, insertGhost } from "../render/svg.js";
 import { toScreen } from "../geometry/transform.js";
 
 // Screen px: the corner grips match a dressed building's, and the marker shows at the outline editor's distance.
 const GRIP_HALF = 4;
 const WALL_REACH = 10;
+// Blocks: a door's bar is about a door wide, and a shift-press this close along its wall takes the door away.
+const DOOR_HALF = 1.5;
+const DOOR_REACH = 2;
 
 /** The room a building shape is a wing of, and which wing: `spawn-red-building-2` → `{ room: "spawn-red", wing: 1 }`. */
 export function wingOf(id) {
@@ -35,12 +42,15 @@ export class RoomHouseController {
   #drag = null;           // { wing, corner, moved } — corner 0 the min corner, 3 the max, 1 and 2 the others
   #wall = null;
   #ghost = null;
+  #hover = null;          // the world point the pointer last stood at
+  #doors = null;          // { room, doors } — the doors the picked room is built with, as the host read them
 
   /**
    * @param layer         SVGGElement — screen-space layer for the grips and the marker
    * @param getViewport   () => { scale, panX, panY }
    * @param getStructural () => the canvas's structural shapes, rooms and their wings among them
-   * @param callbacks     { onEdited(room, wings), onRefused(sentence), onPreview(), isEditable() }
+   * @param callbacks     { onEdited(room, wings), onDoorsEdited(room, doors), onRefused(sentence), onPreview(),
+   *                        isEditable() }
    */
   constructor(layer, getViewport, getStructural, callbacks = {}) {
     this.#layer = layer;
@@ -51,6 +61,12 @@ export class RoomHouseController {
 
   /** Whether a room's house may be shaped here — Layout, on a page the caller may write. */
   setEnabled(on) { this.#enabled = !!on; this.refresh(this.#room ? `${this.#room}-building` : null); }
+
+  /** The doors `room` is built with — `[{edge, x?, z?}]`, a door with no point centred on its wall. */
+  setDoors(room, doors) {
+    this.#doors = room ? { room, doors: doors ?? [] } : null;
+    this.refresh(this.#room ? `${this.#room}-building` : null);
+  }
 
   /** Follow the canvas's picked structural shape: a wing of a room picks that room's house. */
   refresh(selectedId) {
@@ -76,10 +92,41 @@ export class RoomHouseController {
         this.#layer.appendChild(grip);
       });
     });
+    const wings = this.#wings();
+    if (this.#doors?.room !== this.#room || wings.length === 0) return;
+    for (const door of this.#doors.doors) {
+      const at = doorPoint(door, wings);
+      if (!at) continue;
+      const alongX = !door.edge.endsWith("x");
+      const [ax, az] = alongX ? [at.x - DOOR_HALF, at.z] : [at.x, at.z - DOOR_HALF];
+      const [bx, bz] = alongX ? [at.x + DOOR_HALF, at.z] : [at.x, at.z + DOOR_HALF];
+      const a = toScreen(ax, az, this.#getViewport()), b = toScreen(bx, bz, this.#getViewport());
+      const bar = svgEl("line", {
+        x1: a.x, y1: a.y, x2: b.x, y2: b.y, stroke: "var(--accent)", "stroke-width": "4", "stroke-linecap": "round",
+        "pointer-events": "none",
+      });
+      bar.dataset.door = door.edge;
+      this.#layer.appendChild(bar);
+    }
+  }
+
+  /** A shift-press at (wx, wz): add a door on the free wall there, or take away the one already there. Returns
+   *  true when the press was about a door. */
+  toggleDoorAt(wx, wz) {
+    if (!this.#room || this.#doors?.room !== this.#room) return false;
+    const viewport = this.#getViewport();
+    const wings = this.#wings();
+    const wall = wallNear(wings.map(inclusive), wx, wz, WALL_REACH / (viewport.scale || 1));
+    if (!wall) return false;
+    const next = doorToggled(this.#doors.doors, doorOnWall(wall, wx, wz), wings);
+    if (next.length === 0) { this.#callbacks.onRefused?.("A room keeps at least one door."); return true; }
+    this.#callbacks.onDoorsEdited?.(this.#room, next);
+    return true;
   }
 
   /** Pointer move in world coordinates: show the marker on the free wall the pointer is near, or hide it. */
   onPointerHover(wx, wz) {
+    this.#hover = [wx, wz];
     if (!this.#room || this.#drag) return;
     const viewport = this.#getViewport();
     const wall = wallNear(this.#wings().map(inclusive), wx, wz, WALL_REACH / (viewport.scale || 1));
@@ -87,7 +134,7 @@ export class RoomHouseController {
     if (!this.#layer) return;
     if (!wall) { if (this.#ghost) this.#ghost.style.display = "none"; return; }
     if (!this.#ghost || !this.#ghost.isConnected) {
-      this.#ghost = insertGhost(() => this.addWing());
+      this.#ghost = insertGhost((e) => (e?.shiftKey && this.#hover ? this.toggleDoorAt(...this.#hover) : this.addWing()));
       this.#layer.appendChild(this.#ghost);
     }
     const sp = toScreen(wall.mid[0], wall.mid[1], viewport);
@@ -156,6 +203,54 @@ export class RoomHouseController {
     const region = this.#getStructural().find(s => s.id === this.#room);
     return region ? { min_x: region.min_x, min_z: region.min_z, max_x: region.max_x, max_z: region.max_z } : null;
   }
+}
+
+/** The door a press at (wx, wz) on `wall` states: on the wall's outer edge, centred on the block pressed. */
+export function doorOnWall(wall, wx, wz) {
+  const alongX = !wall.facing.endsWith("x");
+  const edge = wall.facing[0] === "-" ? wall.line + 1 : wall.line;
+  const along = Math.min(Math.max(Math.floor(alongX ? wx : wz), wall.lo), wall.hi) + 0.5;
+  return alongX ? { edge: wall.facing, x: along, z: edge } : { edge: wall.facing, x: edge, z: along };
+}
+
+/** Where a door is cut on the outline of a house of `wings` (max-exclusive, the room's first): on the free wall
+ *  facing its way whose run holds its place along it, the one nearest the line it was stated on, as the stamper
+ *  takes it. A door stating no point stands at the middle of the room's wing's side; one no free wall holds stands
+ *  where it was stated. */
+export function doorPoint(door, wings) {
+  const room = wings[0];
+  const stated = door.x != null && door.z != null ? { x: door.x, z: door.z }
+    : door.edge === "-z" ? { x: (room.min_x + room.max_x) / 2, z: room.min_z }
+    : door.edge === "+z" ? { x: (room.min_x + room.max_x) / 2, z: room.max_z }
+    : door.edge === "-x" ? { x: room.min_x, z: (room.min_z + room.max_z) / 2 }
+    : door.edge === "+x" ? { x: room.max_x, z: (room.min_z + room.max_z) / 2 }
+    : null;
+  if (!stated) return null;
+  const alongX = !door.edge.endsWith("x");
+  const along = alongX ? stated.x : stated.z, across = alongX ? stated.z : stated.x;
+  let best = null, bestDistance = Infinity;
+  for (const wall of freeWalls(wings.map(inclusive))) {
+    if (wall.facing !== door.edge || along < wall.lo || along > wall.hi + 1) continue;
+    const line = wall.facing[0] === "-" ? wall.line + 1 : wall.line;
+    if (Math.abs(line - across) < bestDistance) { best = line; bestDistance = Math.abs(line - across); }
+  }
+  if (best === null) return stated;
+  return alongX ? { x: along, z: best } : { x: best, z: along };
+}
+
+/** The doors with `door` added, or with the one cut on its wall within `DOOR_REACH` blocks of it taken away. */
+export function doorToggled(doors, door, wings) {
+  const alongX = !door.edge.endsWith("x");
+  const pressed = doorPoint(door, wings);
+  const near = doors.findIndex(other => {
+    if (other.edge !== door.edge) return false;
+    const at = doorPoint(other, wings);
+    if (!at || !pressed) return false;
+    const across = alongX ? Math.abs(at.z - pressed.z) : Math.abs(at.x - pressed.x);
+    const along = alongX ? Math.abs(at.x - pressed.x) : Math.abs(at.z - pressed.z);
+    return across < 0.5 && along <= DOOR_REACH;
+  });
+  return near >= 0 ? doors.filter((_, at) => at !== near) : [...doors, door];
 }
 
 function corners(r) {
