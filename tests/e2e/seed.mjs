@@ -1,9 +1,9 @@
 /**
  * Seed the fixtures the specs need, and write them to `.tmp/e2e-seed.json`.
  *
- * The plan fixtures come from a committed seed plan, `tools/seeds/rotate-wide-frontline.plan.json` — a real
- * board with a spawn, two wools, a hub and a frontline, so the pages under test render something
- * representative instead of two rectangles, and the same every run. The composed fixture comes from the
+ * The plan fixtures come from `fixtures/composed.plan.json`, a plan the composer laid (twelve players, `rot_180`,
+ * seed 0, its boxes written in) — a real board with a spawn, a wool, a hub and a frontline at one height, so the
+ * pages under test render something representative instead of two rectangles, and the same every run. The composed fixture comes from the
  * **composer**: `e2e.sh` composes the board library the feed reads, and a map is made of its first card the
  * way the generator makes one.
  *
@@ -18,7 +18,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { api, BASE, TMP_DIR } from "./lib/harness.mjs";
 
 const REQUEST = "players=12&symmetry=rot_180&count=1";
-const SEED_PLAN = new URL("../../tools/seeds/rotate-wide-frontline.plan.json", import.meta.url);
+const SEED_PLAN = new URL("./fixtures/composed.plan.json", import.meta.url);
 
 /** A plan-stage map holding the seed plan. */
 async function planMap(name, planJson) {
