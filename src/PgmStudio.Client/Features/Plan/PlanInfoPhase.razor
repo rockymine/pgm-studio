@@ -19,8 +19,6 @@
           </Field>
         </Section>
 
-        @if (MapBacked)
-        {
         <AuthorsEditor Authors="authors" OnChanged="Dirty" />
 
         <Section>
@@ -29,7 +27,6 @@
             <span class="panel-save-status">@saveStatus</span>
           </div>
         </Section>
-        }
       }
       else
       {

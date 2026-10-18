@@ -8,9 +8,8 @@ namespace PgmStudio.Client.Features.Generator;
 
 /// <summary>
 /// The generator browse feed: page through the composed-board library the server holds, sieve it by
-/// size band/symmetry/wool count, and keep the ones worth keeping. Cards carry only their descriptor + SVG;
-/// pinning or opening a card keeps the stored board the descriptor names. The hold tray is the persisted generated corpus; it
-/// survives reload because pinned means stored.
+/// size band/symmetry/wool count, and make a map of the one worth taking. Cards carry only their descriptor + SVG;
+/// opening a card makes a map of the stored board the descriptor names.
 /// </summary>
 public partial class GeneratorTool : IAsyncDisposable
 {
@@ -61,11 +60,6 @@ public partial class GeneratorTool : IAsyncDisposable
     private bool loading, atEnd;
     private string? feedError;
 
-    // ── hold tray (persisted generated plans, keyed by descriptor) ────────────────
-    private List<PlanSummary> pinned = [];
-    private readonly HashSet<string> pinnedKeys = [];
-    private readonly Dictionary<long, string> traySvg = [];
-
     // ── detail dialog ─────────────────────────────────────────────────────────────
     private ComposeCard? detail;
 
@@ -80,15 +74,11 @@ public partial class GeneratorTool : IAsyncDisposable
     private string HighlightClasses => string.Join(' ', highlights.Select(role => $"board-hl-{role}"));
     private void ToggleHighlight(string role) { if (!highlights.Remove(role)) highlights.Add(role); }
 
-    private static string Key(ComposeRequestDto d) => $"{d.Players}-{d.Teams}-{d.Symmetry}-{d.Cell}-{d.Seed}";
-    private bool IsPinned(ComposeCard c) => pinnedKeys.Contains(Key(c.Descriptor));
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("studio.icons");
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
-        await RefreshPinned();
         await Reload();
         try { observer = await JS.InvokeAsync<IJSObjectReference>("studio.onScrollEnd", sentinelRef, selfRef); }
         catch { /* infinite scroll unavailable — the Load more button still works */ }
@@ -213,60 +203,9 @@ public partial class GeneratorTool : IAsyncDisposable
     [JSInvokable]
     public Task LoadMore() => LoadPage();
 
-    // ── hold tray ──────────────────────────────────────────────────────────────────
-    private async Task RefreshPinned()
-    {
-        try
-        {
-            pinned = await Http.GetFromJsonAsync<List<PlanSummary>>("api/plans?origin=generated") ?? [];
-            pinnedKeys.Clear();
-            foreach (var p in pinned)
-                if (p.Descriptor is { } d) pinnedKeys.Add(Key(d));
-            foreach (var p in pinned.Where(p => !traySvg.ContainsKey(p.Id)))
-            {
-                try
-                {
-                    var r = await Http.GetFromJsonAsync<SvgResult>($"api/plans/{p.Id}/svg");
-                    if (r?.Svg is not null) traySvg[p.Id] = r.Svg;
-                }
-                catch { /* thumbnail is optional */ }
-            }
-        }
-        catch { /* tray stays as-is */ }
-    }
-
-    private async Task TogglePin(ComposeCard c)
-    {
-        if (IsPinned(c))
-        {
-            var row = pinned.FirstOrDefault(p => p.Descriptor is { } d && Key(d) == Key(c.Descriptor));
-            if (row is not null) { await Unpin(row.Id); return; }
-        }
-        else
-        {
-            try { await Http.PostAsJsonAsync("api/compose/pin", c.Descriptor); } catch { }
-            await RefreshPinned();
-        }
-        StateHasChanged();
-    }
-
-    private async Task Unpin(long id)
-    {
-        try { await Http.DeleteAsync($"api/plans/{id}"); } catch { }
-        traySvg.Remove(id);
-        await RefreshPinned();
-        StateHasChanged();
-    }
-
-    // A held board an older composer made. Its stored plan is intact and opens as-is; what has lapsed is the
-    // descriptor's claim to reproduce it, so re-composing the same seed today gives a different board.
-    private static string StaleTitle(PlanSummary p) =>
-        $"Made by an older generator version ({p.ComposerVersion ?? "unknown"}). It opens as saved, but its seed "
-        + "no longer produces this layout.";
-
     // ── detail dialog ──────────────────────────────────────────────────────────────
-    private void OpenDetail(ComposeCard c) => detail = c;
-    private void CloseDetail() => detail = null;
+    private void OpenDetail(ComposeCard c) { detail = c; openError = null; }
+    private void CloseDetail() { detail = null; openError = null; }
 
     private static IReadOnlyList<DescriptionPart> Describe(ComposeCard c) =>
         LayoutDescription.Of(c.Descriptor.Players, c.Descriptor.Teams, c.Descriptor.Symmetry, c.WoolCount,
@@ -278,32 +217,28 @@ public partial class GeneratorTool : IAsyncDisposable
     private static string SymmetryLabel(string symmetry) =>
         Symmetries.FirstOrDefault(s => s.Id == symmetry).Label ?? symmetry;
 
-    // Author a generated candidate into a map: ensure it is pinned as a candidate plan row (so it has an id),
-    // then commit it to a stage=plan map (POST /api/plan/{id}/author) and open the plan editor on that map.
-    // This begins the map lifecycle (plan → sketch → configure → edit); the candidate stays in the pool.
-    private async Task AuthorPlan(ComposeCard c)
+    // Make a map of the board (POST /api/compose/map) and open it in the Sketch tool. The board stays in the library,
+    // so making a second map of it makes a second map.
+    private bool opening;
+    private string? openError;
+
+    private async Task OpenInSketch(ComposeCard c)
     {
-        var id = pinned.FirstOrDefault(p => p.Descriptor is { } d && Key(d) == Key(c.Descriptor))?.Id;
-        if (id is null)
-        {
-            try
-            {
-                var resp = await Http.PostAsJsonAsync("api/compose/pin", c.Descriptor);
-                id = (await resp.Content.ReadFromJsonAsync<PlanDetail>())?.Id;
-            }
-            catch { /* fall through — no navigation if pin failed */ }
-        }
-        if (id is null) return;
+        opening = true;
+        openError = null;
         try
         {
-            var authored = await Http.PostAsync($"api/plan/{id}/author", null);
-            if (authored.IsSuccessStatusCode
-                && (await authored.Content.ReadFromJsonAsync<OriginatedDto>())?.Slug is { Length: > 0 } slug)
+            var made = await Http.PostAsJsonAsync("api/compose/map", c.Descriptor);
+            if (made.IsSuccessStatusCode
+                && (await made.Content.ReadFromJsonAsync<OriginatedDto>())?.Slug is { Length: > 0 } slug)
             {
-                Nav.NavigateTo($"maps/{slug}/plan");
+                Nav.NavigateTo($"maps/{slug}/sketch");
+                return;
             }
+            openError = "The map couldn't be made. Try again.";
         }
-        catch { /* pin succeeded but authoring failed — stay put so the user can retry */ }
+        catch { openError = "The map couldn't be made. Try again."; }
+        finally { opening = false; }
     }
 
     // ── filter inputs ──────────────────────────────────────────────────────────────
@@ -358,6 +293,4 @@ public partial class GeneratorTool : IAsyncDisposable
         }
         selfRef?.Dispose();
     }
-
-    private sealed record SvgResult(string Svg);
 }

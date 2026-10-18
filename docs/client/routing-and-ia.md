@@ -30,9 +30,7 @@ shown, never name one.
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
 | `/maps/{slug}/configure` | `ConfigureTool` | the configure wizard |
 | `/maps/new` | `ConfigureTool` | the same tool with no slug: its Import phase, which is how a world becomes a map row |
-| `/plans/{id}` | `PlanTool` | the same tool on a plan row rather than a map: a pinned generator candidate or a plan saved without one |
-| `/plans/new` | `PlanTool` | the same tool on a blank plan, which Save stores as a row and then moves to `/plans/{id}` |
-| `/generator` | `GeneratorTool` | the composer's browse-and-pin gallery |
+| `/generator` | `GeneratorTool` | the composer's browse gallery, whose one exit makes a map of a board and opens it in the sketch tool |
 | `/catalog` | `CatalogTool` | the shape catalog; not in the studio bar, it is linked from the generator |
 | `/library` | `LibraryTool` | the chooser — one card per library kind |
 | `/library/{kind}` | `LibraryTool` | one library's browse grid; `kind` is `styles\|themes\|roofs\|storeys\|porches\|houses` |
@@ -189,8 +187,7 @@ looking at is a view of that list rather than a place. The map's name follows as
 already open and a link to it would go nowhere. The phase is not in the crumb; the phase and its steps are the
 bar's middle, and the rail names them again. The surfaces that hold no map — the generator, the catalog, the
 library, the design showcase and the maps page itself — draw a `Topbar` with no home link, because the studio's
-bar above them is already the way home. A plan row (`/plans/{id}`, `/plans/new`) is an editor with no map: it
-keeps the `Maps` crumb and puts the plan's name after it.
+bar above them is already the way home.
 
 **The tool is a switcher, not a crumb.** After the map's name `StageSwitch` shows the tool the page is — *Plan*,
 *Sketch* or *Configure* — as a button whose menu lists the three. A tool is a link where the map holds that layer

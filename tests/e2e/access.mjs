@@ -63,7 +63,7 @@ async function settle(pattern, closed) {
   return control(pattern);
 }
 
-/** Open the first layout's details on the generator, where its pin and its plan editor are offered. */
+/** Open the first layout's details on the generator, where making a map of it is offered. */
 async function openFirstLayout() {
   await page.waitForSelector(".gen-grid .lib-card-fig", { timeout: 20000 }).catch(() => {});
   await page.click(".gen-grid .lib-card-fig").catch(() => {});
@@ -79,10 +79,8 @@ const WRITE_PAGES = [
     if (open) await page.fill("#lib-entry-name", "E2E access palette");
   },
     [["a library editor's save", /^Add to library$/]]],
-  [`/plans/${seed.planId}`, null, [["the plan editor's New", /^New$/], ["the plan editor's Import", /^Import$/],
-    ["the plan editor's Save", /^Save$/], ["the plan editor's Compile", /^Compile$/]]],
-  ["/generator", openFirstLayout, [["the generator's Pin", /^(Pin|Unpin)$/],
-    ["the generator's Open in Plan Editor", /^Open in Plan Editor$/]]],
+  [`/maps/${seed.planSlug}/plan`, null, [["the plan editor's Save", /^Save$/], ["the plan editor's Compile", /^Compile$/]]],
+  ["/generator", openFirstLayout, [["the generator's Open in Sketch", /^Open in Sketch$/]]],
 ];
 
 async function checkWrites(base, open) {
@@ -242,9 +240,6 @@ try {
 
   checks.section("a signed-out visitor is offered nothing that writes");
   await checkWrites(invited, false);
-  await visit(invited, `/plans/${seed.planId}`);
-  const openPlan = await settle(/^Open$/, false);
-  checks.add("the plan editor's Open still reads", openPlan?.closed === false, JSON.stringify(openPlan));
 
   await visit(invited, "/admin/users");
   await page.waitForFunction(() => /Only admins|Minecraft name/.test(document.body.textContent), null,

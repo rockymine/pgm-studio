@@ -205,7 +205,7 @@ landed, the rest is the idea.
   else grounds: named membership (`PlanBoxes.MembersOf`, the `Members` list) ignores geometry entirely, so a
   piece can be dragged *out* of its box and still be carried when the box moves (`plan-canvas.js`, the box
   drag translates `d.carried` in both modes). That is not an authoring mode — named membership exists for
-  **provenance**, so a pinned board can record the grouping that actually produced it off `BoxLayout.KeyOf`
+  **provenance**, so a composed partition can record the grouping that actually produced it off `BoxLayout.KeyOf`
   rather than having it re-derived approximately. Exposing it as a toggle asks the author to edit with a
   mechanism built to preserve history.
   The fix is not a third mode, it is separating two questions that are currently one button. **Which pieces
@@ -316,7 +316,7 @@ landed, the rest is the idea.
   2% of lopsided ones. The faces fall straight out of the mouth positions the box read already computes, so
   the work is small: add them to `StructureSummary` and to `StructureSummary.Canonical()`, which makes the
   arrangement a browse-sieve filter and a verdict/duel bucket key for free. **Land it before verdicts
-  accumulate**: `Canonical()` is persisted on a pinned plan as that bucket key, so extending the string
+  accumulate**: `Canonical()` is the bucket key the stored plan rows carry, so extending the string
   reshapes every bucket already stored, and a later change needs a key version rather than an edit.
 
 - [ ] **G166 — seating should prefer the canonical arrangement.** `UnitSeating` chooses which hub edge each

@@ -219,6 +219,22 @@ public sealed class PlanCompilerTests
         await Assert.That(SketchLayout.Stack(layout)[0].Groups[0].Mirrors).IsTrue();
     }
 
+    [Test]
+    public async Task Named_shapes_fuse_only_the_pieces_named_alike_and_stay_one_group()
+    {
+        // three abutting same-surface bars, the first two named one shape and the third another → two shapes, each
+        // named for its shape and its surface, in the one island
+        var p = Plan("""
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,2,4]}, {"id":"b","role":"lane","rect":[0,4,2,4]},
+                     {"id":"c","role":"lane","rect":[2,0,2,8]} ] }
+        """);
+        var (layout, _) = PlanCompiler.Compile(p, id => id == "c" ? "front" : "hub");
+        var ground = SketchLayout.Stack(layout)[0];
+        await Assert.That(ground.Shapes.Select(s => s.Id).Order().ToList()).IsEquivalentTo(new[] { "front-9", "hub-9" });
+        await Assert.That(ground.Groups.Single().ShapeIds.Order().ToList()).IsEquivalentTo(new[] { "front-9", "hub-9" });
+    }
+
     // A spawn-role piece abutting a wool-room-role piece at one surface, where the
     // single-height generator fuses same-plane pieces into one polygon.
     private const string StructuralUnit = """

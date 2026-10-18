@@ -14,14 +14,7 @@ internal static class PlanStoreMapping
 {
     public static PlanSummary ToSummary(PlanRow r) =>
         new(r.Id, r.Name, r.Origin, r.ParentId, r.Seed, r.ComposerVersion, r.CreatedAt, r.UpdatedAt,
-            DescriptorOf(r), IsStale(r));
-
-    /// <summary>Whether a generated row was made by an older composer than the one running. The row's stored
-    /// geometry is unaffected — it is loaded, never recomputed — but its descriptor has stopped reproducing it,
-    /// so re-composing that request now yields a different board. A row with no recorded version predates the
-    /// stamp and is treated as stale for the same reason: nothing says the current composer would make it.</summary>
-    internal static bool IsStale(PlanRow r) =>
-        r.Origin == PlanOrigin.Generated && r.ComposerVersion != ComposerVersion.Current;
+            DescriptorOf(r));
 
     /// <summary>The reproducible request behind a generated row, parsed from its stored descriptor (null for
     /// authored/imported, or if the stored JSON is unreadable — the list must never fail over one bad row).</summary>
@@ -39,8 +32,8 @@ internal static class PlanStoreMapping
         new(r.Id, r.Name, r.Origin, r.ParentId, r.Seed, r.ComposerVersion, r.CreatedAt, r.UpdatedAt, r.PlanJson);
 }
 
-/// <summary>GET /api/plans[?origin=generated|authored|imported] — the open-from-DB browser list, newest
-/// touched first. Summaries only (no plan JSON); the detail endpoint carries the document.</summary>
+/// <summary>GET /api/plans[?origin=generated|authored|imported] — the stored plan rows, kept read-only as history,
+/// newest touched first. Summaries only (no plan JSON); the detail endpoint carries the document.</summary>
 public sealed class PlanListEndpoint(PlanStore store) : EndpointWithoutRequest<List<PlanSummary>>
 {
     public override void Configure()
@@ -58,7 +51,7 @@ public sealed class PlanListEndpoint(PlanStore store) : EndpointWithoutRequest<L
     }
 }
 
-/// <summary>GET /api/plans/{id} — one plan with its <c>*.plan.json</c> document, to load into the editor.</summary>
+/// <summary>GET /api/plans/{id} — one stored plan row with its <c>*.plan.json</c> document.</summary>
 public sealed class PlanGetEndpoint(PlanStore store) : EndpointWithoutRequest<PlanDetail>
 {
     public override void Configure() { Get("/plans/{id}"); Description(b => b.Refuses(404)); }
@@ -68,42 +61,5 @@ public sealed class PlanGetEndpoint(PlanStore store) : EndpointWithoutRequest<Pl
         var row = await store.GetByIdAsync(Route<long>("id"), ct);
         if (row is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
         await Send.OkAsync(PlanStoreMapping.ToDetail(row), ct);
-    }
-}
-
-/// <summary>POST /api/plans — save the plan open in the editor. Applies the fork-or-mutate doctrine in
-/// <see cref="PlanStore.SaveFromEditorAsync"/> and returns the resulting row. A malformed plan body is
-/// answered 400, never 500.</summary>
-public sealed class PlanSaveEndpoint(PlanStore store) : Endpoint<PlanSaveRequest, PlanDetail>
-{
-    public override void Configure() { Post("/plans"); }
-
-    public override async Task HandleAsync(PlanSaveRequest req, CancellationToken ct)
-    {
-        var plan = PlanModel.Stated(req.PlanJson);
-        if (plan is null)
-        {
-            await Refusals.NotAPlanAsync(HttpContext, req.PlanJson, ct);
-            return;
-        }
-        // The row keeps the posted text, so a field the reader has nowhere to keep is stored with it and
-        // read by nothing that later opens the plan.
-        Complaints.Unread(HttpContext, req.PlanJson, plan);
-
-        var row = await store.SaveFromEditorAsync(req.PlanJson, req.SourceId, ct);
-        await Send.OkAsync(PlanStoreMapping.ToDetail(row), ct);
-    }
-}
-
-/// <summary>DELETE /api/plans/{id} — forget a plan (204). Forks of it survive: the self-FK sets their
-/// <c>parent_id</c> null rather than cascading.</summary>
-public sealed class PlanDeleteEndpoint(PlanStore store) : EndpointWithoutRequest
-{
-    public override void Configure() { Delete("/plans/{id}"); }
-
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        await store.DeleteAsync(Route<long>("id"), ct);
-        await Send.NoContentAsync(ct);
     }
 }

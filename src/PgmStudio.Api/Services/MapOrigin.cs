@@ -9,11 +9,11 @@ namespace PgmStudio.Api.Services;
 /// <summary>
 /// Bringing a map row into existence, which every way into the studio does exactly once.
 ///
-/// <para><b>Six callers, one row.</b> A plan created blank, a plan authored from a generator candidate, a
-/// sketch, a folder import, a URL import and a load from documents all begin here and differ only in the
-/// stage they start at, what they seed afterwards, and whether the slug they want is theirs to take. What a
-/// map row says about itself the moment it exists — the gamemode it is born at, the two timestamps a
-/// newest-touched-first list is ordered by — is the same sentence for all six, and is said here.</para>
+/// <para><b>Five callers, one row.</b> A plan created blank, a sketch, a folder import, a URL import and a load
+/// from documents — a composed board among them — all begin here and differ only in the stage they start at,
+/// what they seed afterwards, and whether the slug they want is theirs to take. What a map row says about itself
+/// the moment it exists — the gamemode it is born at, the two timestamps a newest-touched-first list is ordered
+/// by — is the same sentence for all five, and is said here.</para>
 ///
 /// <para><b>Every map has an owner from its first moment</b> — the person who originated it, who may always
 /// edit it whoever it later credits (<c>docs/access.md</c>) — and it is credited to them as its author, which
@@ -30,12 +30,11 @@ public static class MapOrigin
     /// <c>weirgate-2</c>. Answers the id and the slug it actually took, which is not always the one asked
     /// for.</summary>
     public static async Task<(long Id, string Slug)> UnderFreeSlugAsync(
-        MapRepository repo, string name, string stage, MapOriginator? originator, CancellationToken ct,
-        long? planSource = null)
+        MapRepository repo, string name, string stage, MapOriginator? originator, CancellationToken ct)
     {
         await EnsureRoomAsync(repo, originator, ct);
         var slug = await repo.UniqueSlugAsync(Slugs.Of(name), ct);
-        return (await RowAsync(repo, slug, name, stage, originator, originator?.Uuid, planSource), slug);
+        return (await RowAsync(repo, slug, name, stage, originator, originator?.Uuid), slug);
     }
 
     /// <summary>A map at exactly <paramref name="slug"/>, replacing whatever is stored there — the foreign
@@ -57,7 +56,7 @@ public static class MapOrigin
             await repo.DeleteMapAsync(existing.Id, ct);
         }
         else await EnsureRoomAsync(repo, originator, ct);
-        return await RowAsync(repo, slug, name, stage, originator, owner, planSource: null, revision, agentMade);
+        return await RowAsync(repo, slug, name, stage, originator, owner, revision, agentMade);
     }
 
     /// <summary>A map at a slug the caller has already established is free — a world import, which refuses a
@@ -67,7 +66,7 @@ public static class MapOrigin
         MapRepository repo, string slug, string name, string stage, MapOriginator? originator)
     {
         await EnsureRoomAsync(repo, originator, CancellationToken.None);
-        return await RowAsync(repo, slug, name, stage, originator, originator?.Uuid, planSource: null);
+        return await RowAsync(repo, slug, name, stage, originator, originator?.Uuid);
     }
 
     /// <summary>Refuse a new map to a person already owning as many as they may, <c>RQ20</c> at 403. Only a
@@ -85,13 +84,13 @@ public static class MapOrigin
     /// not been authored yet does not have.</summary>
     private static async Task<long> RowAsync(
         MapRepository repo, string slug, string name, string stage, MapOriginator? originator, string? owner,
-        long? planSource, long revision = 1, bool? agentMade = null)
+        long revision = 1, bool? agentMade = null)
     {
         var now = DateTime.UtcNow;
         var mapId = await repo.InsertAsync(new MapRow
         {
             Slug = slug, Name = name, Gamemode = "ctw", Stage = stage,
-            PlanSourceId = planSource, CreatedAt = now, UpdatedAt = now, OwnerUuid = owner, Revision = revision,
+            CreatedAt = now, UpdatedAt = now, OwnerUuid = owner, Revision = revision,
             AgentMade = agentMade ?? originator?.Agent ?? false,
         });
         if (originator is not null)

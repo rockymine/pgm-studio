@@ -79,7 +79,7 @@ public sealed class StudioAccess(HttpClient http)
     }
 
     /// <summary>
-    /// Why deleting a shared row — a library entry, a pinned plan — is closed on the page at
+    /// Why deleting a shared row — a library entry — is closed on the page at
     /// <paramref name="path"/>, or null where it is open: the page's write reason, and past it an admin's alone,
     /// since every map using the row loses it. A library entry belongs to whoever made it, so on the library the
     /// write reason is the whole of it and the server answers for each entry whose it is (<c>LB7</c>).

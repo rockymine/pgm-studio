@@ -2,12 +2,12 @@
  * Per-shape theming end-to-end (docs/tools/sketch.md, the Theme phase), on a board with more than one
  * themeable unit.
  *
- * The single-island seed can't exercise per-shape assignment — it has one shape at one height. So this composes
- * a generator plan and **randomizes its piece heights**, which makes `PlanCompiler` emit one shape per plateau
- * instead of fusing everything into one. Then it drives the sketch UI to assign a theme to an individual shape
- * and proves the assignment **persisted** (a GET of the saved layout carries the shape's theme — the thing the
- * earlier drive left ambiguous), and screenshots the Blocks overlay showing two shapes in two distinct theme
- * colours against the stone the rest is built from.
+ * The single-island seed can't exercise per-shape assignment — it has one shape at one height. A map the generator
+ * makes has one shape per box — the hub, the front line, each approach and the spawn — so this makes one of the
+ * first card the feed shows. Then it drives the sketch UI to assign a theme to an individual shape and proves the
+ * assignment **persisted** (a GET of the saved layout carries the shape's theme — the thing the earlier drive left
+ * ambiguous), and screenshots the Blocks overlay showing two shapes in two distinct theme colours against the
+ * stone the rest is built from.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, api, worldAimer, shapeAimPoints, BASE, TMP_DIR }
@@ -24,23 +24,20 @@ const checks = new Checks("theming · per-shape (sketch · Theme phase)");
 const terrainShapes = (l) => (l?.layers?.[0]?.layout?.shapes ?? l?.layout?.shapes ?? [])
   .filter(s => !s.role && s.operation !== "subtract");
 
-// ── build a multi-shape sketch from a height-randomized generator plan ─────────────────────────────────
-checks.section("a height-randomized plan compiles to several themeable shapes");
+// ── a composed map, which carries a shape per box ──────────────────────────────────────────────────────
+checks.section("a composed board is several themeable shapes");
 
 // The descriptor comes from a browsed card: it carries the composer's own version and schema, and a
 // hand-built one is refused (RQ1) the next time either moves.
 const { cards } = await api("/compose?players=12&symmetry=rot_180&count=1");
-const pinned = await api("/compose/pin", { method: "POST", body: cards[0].descriptor });
-const plan = JSON.parse(pinned.planJson);
-plan.pieces.forEach((p, i) => { p.surface = 9 + (i % 3) * 6; });   // 9 / 15 / 21 — distinct plateaus, so pieces don't all fuse
-const compiled = await api("/plan/compile", { method: "POST", body: JSON.stringify(plan) });
-const shapeCount = terrainShapes(compiled.layout).length;
-checks.add("plan yields multiple shapes", shapeCount >= 2, `${shapeCount} terrain shapes`);
+const { slug } = await api("/compose/map", { method: "POST", body: cards[0].descriptor });
+const composed = await api(`/map/${slug}/sketch`);
+const shapeCount = terrainShapes(composed).length;
+checks.add("the board yields multiple shapes", shapeCount >= 2, `${shapeCount} terrain shapes`);
 
-const { slug } = await api("/sketch", { method: "POST", body: { name: "theme multi" } });
 // The board's registry, put there over the API — the phase picks and places themes, it does not author them,
 // so a board with an empty registry has nothing for the strip to hand out.
-const seeded = structuredClone(compiled.layout);
+const seeded = structuredClone(composed);
 seeded.themes = { grass: { bedrock: { relative: false, value: 1 },
   surface: { material: { kind: "solid", id: 2 }, depth: 1, enabled: true },
   fill: { kind: "solid", id: 3 } } };

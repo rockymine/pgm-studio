@@ -14,15 +14,13 @@ public partial class PlanBuildDrawer
     /// <summary>The bridge that holds the plan document.</summary>
     [Parameter] public IJSObjectReference? Handle { get; set; }
 
-    /// <summary>The map the plan is stored on, or null for a plan row, whose build originates the map.</summary>
-    [Parameter] public string? Slug { get; set; }
+    /// <summary>The map the plan is stored on.</summary>
+    [Parameter] public string Slug { get; set; } = "";
 
     [Parameter] public string PlanName { get; set; } = "";
 
     /// <summary>The write of the map's plan artifact, which the build states the loaded revision on.</summary>
     [Parameter, EditorRequired] public DocumentSave Document { get; set; } = default!;
-
-    private bool MapBacked => Slug is { Length: > 0 };
 
     // The compiled pair (pretty-printed for preview, raw for the draft chain), the structural errors when
     // the compile is blocked, and the per-step state of the build.
@@ -46,8 +44,7 @@ public partial class PlanBuildDrawer
     // What the open map already holds, so the build can tell an origination from a rebuild before it runs.
     // A map with a sketch or a world has downstream work that the build replaces, which is worth saying
     // out loud once rather than discovering afterwards; a plan that has never been built has nothing to
-    // lose and gets no interruption. Null until the fetch lands, and on a plan row, where there is no map to
-    // ask about.
+    // lose and gets no interruption. Null until the fetch lands.
     private MapState? state;
     private bool confirmingRebuild;
 
@@ -59,7 +56,7 @@ public partial class PlanBuildDrawer
     private IReadOnlyList<string> droppedShapes = [];
 
     private bool Rebuilds => state is { Artifacts: { } held } && (held.Sketch || held.World);
-    private string BuildLabel => Rebuilds ? "Rebuild this map" : MapBacked ? "Build the map" : "Create draft";
+    private string BuildLabel => Rebuilds ? "Rebuild this map" : "Build the map";
 
     /// <summary>What the drawer's footer button says. <see cref="BuildLabel"/> answers only whether the map is
     /// built, which is the right word for the one state where the button can act; every other state is about
@@ -75,7 +72,6 @@ public partial class PlanBuildDrawer
 
     private async Task LoadStateAsync()
     {
-        if (!MapBacked) { state = null; return; }
         try { state = await Http.GetFromJsonAsync<MapState>($"api/map/{Slug}/state"); }
         catch { state = null; }   // unreachable / not a map row → treat as a first build, never block one
     }
@@ -259,10 +255,9 @@ public partial class PlanBuildDrawer
     // A map-backed plan builds onto its OWN row: one map carries plan → sketch → configure, keeps its plan
     // blob beside the layout it compiled into, and re-running refreshes it in place instead of leaving a
     // trail of near-identical maps. The intent write carries the plan's name, so the map's identity follows
-    // the plan without a second call. A plan row has no map, so building one originates the map: there the
-    // build IS the map's creation.
+    // the plan without a second call.
     //
-    // Either way the plan itself is written to the map first, so the map carries the document its layout was
+    // The plan itself is written to the map first, so the map carries the document its layout was
     // compiled from and opens in the plan editor on the board it was built from.
     //
     // Both writes go through their from-plan route rather than the plain PUT, for the same reason: a
@@ -279,26 +274,9 @@ public partial class PlanBuildDrawer
         try
         {
             var slug = Slug;
-            if (!MapBacked)
-            {
-                draftStep = "Creating draft"; StateHasChanged();
-                using var createResp = await Http.PostAsJsonAsync("api/sketch", new { name = PlanName });
-                if (!await Ok(createResp, "create the draft")) return;
-                slug = (await createResp.Content.ReadFromJsonAsync<OriginatedDto>())?.Slug;
-                if (string.IsNullOrEmpty(slug)) { draftError = "Couldn't create the draft. The server didn't return its name."; return; }
-            }
-
             draftStep = "Saving the plan"; StateHasChanged();
-            if (MapBacked)
-            {
-                var outcome = await Document.PutAsync($"api/map/{slug}/plan", () => PlanExport.BodyAsync(Handle!));
-                if (!outcome.Landed) { draftError = outcome.Message; return; }
-            }
-            else
-            {
-                using var planResp = await Http.PutAsync($"api/map/{slug}/plan", await PlanExport.BodyAsync(Handle));
-                if (!await Ok(planResp, "save the plan")) return;
-            }
+            var outcome = await Document.PutAsync($"api/map/{slug}/plan", () => PlanExport.BodyAsync(Handle!));
+            if (!outcome.Landed) { draftError = outcome.Message; return; }
 
             draftStep = "Saving the layout"; StateHasChanged();
             using var layoutResp = await Http.PutAsync(

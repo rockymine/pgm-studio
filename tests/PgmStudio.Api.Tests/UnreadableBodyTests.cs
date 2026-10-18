@@ -143,7 +143,7 @@ public sealed class UnreadableBodyTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var resp = await client.PostAsync("/api/compose/pin", Json(
+        var resp = await client.PostAsync("/api/compose/map", Json(
             """{"players":"lots","teams":2,"symmetry":"mirror_x","cell":8,"seed":1,"composerVersion":"v3","schema":1}"""));
         var body = await resp.Content.ReadFromJsonAsync<Refusal>();
 

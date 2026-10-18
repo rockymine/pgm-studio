@@ -101,8 +101,8 @@ public sealed class ObjectiveVocabularyEndpointTests
     [Test]
     public async Task It_answers_without_a_map()
     {
-        // The plan editor opens on /plans/new with no map behind it, so a map-scoped route could not serve
-        // the inspector at all.
+        // The vocabulary is the studio's, not a map's: the inspector reads it before anything about the map has
+        // loaded.
         using var client = ApiTestFactory.Shared.CreateClient();
         var resp = await client.GetAsync("/api/objectives/vocabulary");
         await Assert.That(resp.IsSuccessStatusCode).IsTrue();

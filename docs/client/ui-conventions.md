@@ -64,7 +64,7 @@ list; `Slim` is the narrower panel-row box and `Canvas` the floating control of 
 is the labelled coordinate cell; `SwatchRow` is the control a **colour** is chosen with, generic in what a swatch stands for — a block's data
 value in the library, a colour word in Configure — because a set of sixteen colours is picked by clicking the
 colour and a dropdown of their names makes the author read what they can already see; and
-`FilterGroup` is one facet of a filter rail (below); `PictureCard` is a picture over a name — the figure a link or a button, an optional overlay such as the generator's pin, then the name, a right-aligned meta and whatever body the page adds — and the library, the shape catalog and the generator all draw their cards with it; `AuthorsEditor` is the shared author/contributor block every tool's Identity step uses — each row's mark
+`FilterGroup` is one facet of a filter rail (below); `PictureCard` is a picture over a name — the figure a link or a button, then the name, a right-aligned meta and whatever body the page adds — and the library, the shape catalog and the generator all draw their cards with it; `AuthorsEditor` is the shared author/contributor block every tool's Identity step uses — each row's mark
 is an initial over a hue hashed from the row's own uuid or name, so a page carrying authors fetches nothing
 from outside the studio to draw them.
 
@@ -141,10 +141,9 @@ its `href` and with `aria-disabled`, so a *New* that opens an editor goes nowher
 that writes nothing, such as the map list, it is whether the caller may write at all, since an action there
 starts something on a page that does. Until the shell has asked, every such action is closed.
 
-**Deleting a shared row is an admin's, and `Deletes` says so.** A library entry or a pinned layout is shared
-by everyone, so a `DELETE` of one is refused to anyone but an admin; a `Button` marked `Deletes` reads
-`StudioDeleteReason` and closes the same way. A control that is not a `Button` (the generator's pin, the
-layer strip's add and remove) reads the same two answers through `WriteGate`, and an `EditorBar` whose Next
+**Deleting a shared row is an admin's, and `Deletes` says so.** A library entry is shared by everyone, so a
+`DELETE` of one is refused to anyone but an admin; a `Button` marked `Deletes` reads `StudioDeleteReason` and
+closes the same way. A control that is not a `Button` (the layer strip's add and remove) reads the same two answers through `WriteGate`, and an `EditorBar` whose Next
 writes takes `NextWrites`. Reading is never marked, so it stays open to a visitor.
 
 **A sidebar is greyed a control at a time, because it holds what is picked as well as what is changed.** A

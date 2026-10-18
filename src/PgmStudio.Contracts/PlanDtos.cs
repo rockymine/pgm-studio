@@ -1,15 +1,8 @@
 using System.Text.Json;
 namespace PgmStudio.Contracts;
 
-/// <summary>One row in the plan store list (GET /api/plans) — the open-from-DB browser's line. <paramref
-/// name="Origin"/> is <c>generated</c> | <c>authored</c> | <c>imported</c>. <paramref name="ParentId"/> is the
-/// fork this row was split from (null if none); <paramref name="Seed"/>/<paramref name="ComposerVersion"/> are
-/// present only for generated rows. <paramref name="Descriptor"/> carries the full reproducible request for a
-/// generated row (parsed from its stored descriptor) so the browse hold-tray can identify and re-open it;
-/// null for authored/imported rows. <paramref name="StaleComposer"/> is true when a generated row was made by
-/// an <b>older composer</b> than the one running: the stored plan is unaffected (its geometry is stored, not
-/// recomputed), but its descriptor no longer reproduces it, so re-composing that request now gives a different
-/// board. Always false for authored/imported rows, which have no descriptor to go stale.</summary>
+/// <summary>One stored plan row (GET /api/plans), kept read-only as history: the plans the generator's candidates
+/// were kept as, and the ones drawn or imported without a map behind them.</summary>
 /// <param name="Id">The row number every later route names it by.</param>
 /// <param name="Name">What the plan is called.</param>
 /// <param name="Origin">How the row came to be: <c>generated</c>, <c>authored</c> or <c>imported</c>.</param>
@@ -18,11 +11,8 @@ namespace PgmStudio.Contracts;
 /// <param name="ComposerVersion">Which composer composed it, present only on a generated row.</param>
 /// <param name="CreatedAt">When the row was made.</param>
 /// <param name="UpdatedAt">When it was last written.</param>
-/// <param name="Descriptor">The full reproducible request behind a generated row, so the browse hold-tray
-/// can identify and re-open it. Absent on an authored or imported row, which has none.</param>
-/// <param name="StaleComposer">Whether a generated row was made by an <b>older composer</b> than the one
-/// running. The stored plan is unaffected — its geometry is stored, not recomputed — but its descriptor no
-/// longer reproduces it. Always false for a row with no descriptor to go stale.</param>
+/// <param name="Descriptor">The request a generated row was composed from. Absent on an authored or imported row,
+/// which has none.</param>
 public sealed record PlanSummary(
     long Id,
     string Name,
@@ -32,11 +22,10 @@ public sealed record PlanSummary(
     string? ComposerVersion,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    ComposeRequestDto? Descriptor = null,
-    bool StaleComposer = false);
+    ComposeRequestDto? Descriptor = null);
 
-/// <summary>A full plan row (GET /api/plans/{id}, and the POST /api/plans save response) — a
-/// <see cref="PlanSummary"/> plus the canonical <c>*.plan.json</c> document to load into the editor.</summary>
+/// <summary>A full stored plan row (GET /api/plans/{id}) — a <see cref="PlanSummary"/> plus its canonical
+/// <c>*.plan.json</c> document.</summary>
 /// <param name="Id">The row number every later route names it by.</param>
 /// <param name="Name">What the plan is called.</param>
 /// <param name="Origin">How the row came to be: <c>generated</c>, <c>authored</c> or <c>imported</c>.</param>
@@ -45,7 +34,7 @@ public sealed record PlanSummary(
 /// <param name="ComposerVersion">Which composer composed it, present only on a generated row.</param>
 /// <param name="CreatedAt">When the row was made.</param>
 /// <param name="UpdatedAt">When it was last written.</param>
-/// <param name="PlanJson">The canonical <c>*.plan.json</c> document, as text — what the editor loads.</param>
+/// <param name="PlanJson">The canonical <c>*.plan.json</c> document, as text.</param>
 public sealed record PlanDetail(
     long Id,
     string Name,
@@ -56,16 +45,6 @@ public sealed record PlanDetail(
     DateTime CreatedAt,
     DateTime UpdatedAt,
     string PlanJson);
-
-/// <summary>Save the plan open in the editor (POST /api/plans). <paramref name="SourceId"/> is the row the
-/// editor loaded, if any: an authored source is updated in place, a generated/imported source is forked into a
-/// new authored row. Null saves a fresh authored plan.</summary>
-/// <param name="PlanJson">The plan document itself, as text — the same shape <c>PUT …/plan</c> takes and
-/// <c>GET /api/plans/{id}</c> answers.</param>
-/// <param name="SourceId">The row the editor loaded, if any.</param>
-public sealed record PlanSaveRequest(
-    string PlanJson,
-    long? SourceId);
 
 /// <summary>
 /// What a plan compiles to: the pair the draft pipeline consumes, each half serialized with its own

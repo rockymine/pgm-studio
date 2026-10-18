@@ -1,5 +1,5 @@
-/* Generator browse — a filter rail, a card grid of server-rendered boards with one key above them, and a
-   tray of pinned plans. The detail dialog reuses the plan editor's
+/* Generator browse — a filter rail and a card grid of server-rendered boards with one key above them. The
+   detail dialog reuses the plan editor's
    .plan-compile-* drawer classes. */
 
 .gen-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
@@ -9,35 +9,6 @@
 /* feed */
 .gen-main { flex: 1; min-width: 0; overflow-y: auto; padding: var(--space-3); }
 
-.gen-tray {
-  display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3);
-  padding: var(--space-2); background: var(--bg-panel, var(--bg));
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-}
-.gen-tray-label { flex-shrink: 0; font-size: var(--font-sm); color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
-.gen-tray-label svg { width: var(--icon-sm); height: var(--icon-sm); }
-.gen-tray-items { display: flex; gap: var(--space-2); overflow-x: auto; }
-.gen-tray-chip { flex-shrink: 0; width: calc(96px * var(--ui-scale)); display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
-.gen-tray-fig {
-  display: block; width: calc(96px * var(--ui-scale)); height: calc(72px * var(--ui-scale)); padding: 2px; cursor: pointer;
-  background: var(--board-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;
-}
-.gen-tray-fig svg { width: 100%; height: 100%; }
-.gen-tray-name { font-size: var(--font-xs); color: var(--text-secondary); max-width: calc(96px * var(--ui-scale)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gen-tray-x {
-  position: absolute; top: 2px; right: 2px; width: 18px; height: 18px;
-  display: grid; place-items: center; background: rgba(0, 0, 0, .5); color: #fff; border: none; border-radius: 50%; cursor: pointer;
-}
-.gen-tray-x svg { width: var(--icon-xs); height: var(--icon-xs); }
-.gen-tray-x:disabled { opacity: 0.4; cursor: default; }
-/* A held board an older composer made: its stored plan is intact, so the marker is an annotation on the
-   thumbnail rather than anything that blocks opening it. */
-.gen-tray-fig--stale { border-color: #d9a441; }
-.gen-tray-stale {
-  position: absolute; top: 2px; left: 2px; font-family: ui-monospace, monospace; font-size: calc(9px * var(--ui-scale));
-  line-height: 1.4; padding: 0 3px; border-radius: var(--radius-sm);
-  background: rgba(0, 0, 0, .55); color: #e8c579;
-}
 
 .gen-toolbar {
   display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4);
@@ -49,19 +20,6 @@
 
 /* A card is the shared picture card (lib-card): the board in a square frame, then the layout's id. */
 .gen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(230px * var(--ui-scale)), 1fr)); gap: var(--space-3); }
-.gen-card--pinned { border-color: var(--accent); box-shadow: var(--shadow-ring); }
-/* Pin floats over the picture's top-right corner, on the floating chrome's glass so it reads on the dark frame. */
-.gen-pin {
-  position: absolute; top: var(--space-2); right: var(--space-2); z-index: 1;
-  width: calc(30px * var(--ui-scale)); height: calc(30px * var(--ui-scale));
-  display: grid; place-items: center; color: var(--text-secondary);
-  background: var(--canvas-float-bg); backdrop-filter: blur(6px);
-  border: 1px solid var(--canvas-float-border); border-radius: var(--radius-sm); cursor: pointer;
-}
-.gen-pin:disabled { opacity: 0.4; cursor: default; }
-.gen-pin:not(:disabled):hover { color: var(--text-bright); border-color: var(--accent); }
-.gen-pin--on { color: var(--accent-lighter); background: var(--bg-selected); border-color: var(--accent); }
-.gen-pin svg { width: var(--icon-sm); height: var(--icon-sm); }
 
 .gen-status { text-align: center; color: var(--text-secondary); font-size: var(--font-sm); padding: var(--space-3); }
 .gen-sentinel { height: 1px; }
@@ -91,7 +49,6 @@
 }
 .gen-facts dt { font-size: var(--font-sm); color: var(--text-secondary); }
 .gen-facts dd { margin: 2px 0 0; font-size: var(--font-lg); font-weight: 600; color: var(--text-bright); }
-.gen-detail-pin--on { color: var(--accent-lighter); background: var(--bg-selected); border-color: var(--accent); }
 .gen-detail-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 .gen-detail-foot-note { margin: 0; flex: 1 1 14rem; font-size: var(--font-sm); color: var(--text-secondary); }
 

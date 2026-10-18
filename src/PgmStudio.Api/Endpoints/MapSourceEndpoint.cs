@@ -1,5 +1,7 @@
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using FastEndpoints;
+using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Features;
@@ -81,6 +83,7 @@ public sealed class MapSourceEndpoint(
             HttpContext, Route<string>("slug")!, await RawBody.ReadAsync(HttpContext, ct),
             string.Equals(Query<string?>("dry", isRequired: false), "true", StringComparison.OrdinalIgnoreCase),
             Query<string?>("discard", isRequired: false),
+            (await HttpContext.RequestServices.GetRequiredService<Callers>().OfAsync(HttpContext, ct)).MayNote,
             repo, reader, writer, artifacts, features, db, players, log, names, ct);
         if (applied.Refusal is { } refusal)
         {

@@ -4466,6 +4466,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wizard. (`9f645dc` → `45209a1`)
 
 ## Layout generation (G) — auto map generation (lane sketch generators)
+- **The generator hands over a sketch, and a candidate becomes a map in one step (`TG7`).** A composed board
+  is compiled once into a sketch layout with **one shape per box** — the hub, the front line, each wool
+  approach and the spawn, named `hub-9`, `wool-a-9`, a ring hub's hole its own cut — all in the one mirrored
+  group, beside the intent it is played by and its boxes as box-shaped places (`ComposedSketch`, an optional
+  piece-to-shape partition on `PlanCompiler.Compile`). The library stores that sketch and the picture of the
+  composer's pieces in place of a plan (`M0083`, which empties it for the fill to compose again).
+  `POST /api/compose/map` makes a map of a card through `MapSource`, the road a source takes, and the drawer's
+  *Open in Sketch* opens it. Pinning, the hold tray, `POST /plan/{id}/author` and the plan editor's plan-row
+  binding (`/plans/{id}`, `/plans/new`, `POST`·`DELETE /plans`) are gone; the stored plan rows stay read-only as
+  history. `docs/tools/generator.md`, `docs/tools/plan.md`.
 - **The budget is a size band, and composing eats it (`G265`, `G266`, `G267`).** The player count named a
   land budget nothing enforced: `LandPerPlayerAnchors` ran 65 blocks² a player at five to 185 at thirty-two
   where 331 corpus maps measure about **250 at every size**, and every consumer of it was a step function

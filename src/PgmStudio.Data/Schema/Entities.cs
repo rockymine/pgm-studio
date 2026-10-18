@@ -123,10 +123,11 @@ public sealed class MapNoteReadRow
     [Column("last_message_id"), NotNull] public long LastMessageId { get; set; }
 }
 
-/// <summary>One board of the composed-board library (M0047): what the composer made for a size band, a symmetry,
-/// a cell and a seed under one composer version. <c>wools</c> holds the wool families between commas
+/// <summary>One board of the composed-board library (M0047, M0083): what the composer made for a size band, a
+/// symmetry, a cell and a seed under one composer version. <c>wools</c> holds the wool families between commas
 /// (<c>,i,l,</c>) so a filter can ask for each; <c>card_json</c> is the rest of the card, its fired hard terms,
-/// costliest soft terms and land spend.</summary>
+/// costliest soft terms and land spend. The board itself is the sketch a map is made from — its layout, its intent
+/// and its boxes as places — and <c>svg</c> the picture of the pieces the composer laid.</summary>
 [Table("composed_board")]
 public sealed class ComposedBoardRow
 {
@@ -142,7 +143,10 @@ public sealed class ComposedBoardRow
     [Column("hub"), NotNull] public string Hub { get; set; } = "";
     [Column("frontline"), NotNull] public string Frontline { get; set; } = "";
     [Column("card_json"), NotNull] public string CardJson { get; set; } = "";
-    [Column("plan_json"), NotNull] public string PlanJson { get; set; } = "";
+    [Column("layout_json"), NotNull] public string LayoutJson { get; set; } = "";
+    [Column("intent_json"), NotNull] public string IntentJson { get; set; } = "";
+    [Column("places_json"), NotNull] public string PlacesJson { get; set; } = "";
+    [Column("svg"), NotNull] public string Svg { get; set; } = "";
     [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
 }
 

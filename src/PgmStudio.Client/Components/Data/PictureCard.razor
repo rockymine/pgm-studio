@@ -1,8 +1,7 @@
 @namespace PgmStudio.Client.Components
 
-@* A picture over a short body: the figure, which is a link when Href is set and a button otherwise, an
-   optional Overlay laid on the card (a pin, a menu), and a body holding the Name, its right-aligned Meta and
-   whatever ChildContent adds. A card with neither Name nor ChildContent is the picture alone. *@
+@* A picture over a short body: the figure, which is a link when Href is set and a button otherwise, and a body
+   holding the Name, its right-aligned Meta and whatever ChildContent adds. A card with neither Name nor ChildContent is the picture alone. *@
 
 <div class="lib-card @Class">
   @if (Href is not null)
@@ -13,7 +12,6 @@
   {
     <button class="lib-card-fig @FigClass" @onclick="OnClick" title="@Title">@((MarkupString)Svg)</button>
   }
-  @Overlay
   @if (Name is not null || ChildContent is not null)
   {
     <div class="lib-card-body">
@@ -41,6 +39,5 @@
     [Parameter] public EventCallback OnClick { get; set; }
     [Parameter] public string? Class { get; set; }
     [Parameter] public string? FigClass { get; set; }
-    [Parameter] public RenderFragment? Overlay { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 }

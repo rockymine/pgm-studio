@@ -102,17 +102,17 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 27 | 5,176 | `Playability/` 16 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 175 | 25,036 | `Endpoints/` 84 · `Services/` 70 · `Access/` 14 · `Http/` 3 · 4 at root |
-| `Client` | 278 | 33,731 | `Features/` 156 (nested) · `Components/` 92 (nested) · `Pages/` 17 · `Layout/` 5 · `Models/` 5 · 3 at root |
-| `Contracts` | 38 | 4,366 | flat |
-| `Data` | 26 | 4,455 | `Map/` 7 · `Features/` 6 · `Theme/` 5 · `Access/` 3 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
+| `Api` | 175 | 25,002 | `Endpoints/` 84 · `Services/` 70 · `Access/` 14 · `Http/` 3 · 4 at root |
+| `Client` | 278 | 33,377 | `Features/` 156 (nested) · `Components/` 92 (nested) · `Pages/` 17 · `Layout/` 5 · `Models/` 5 · 3 at root |
+| `Contracts` | 38 | 4,345 | flat |
+| `Data` | 26 | 4,386 | `Map/` 7 · `Features/` 6 · `Theme/` 5 · `Access/` 3 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 33 | 4,306 | flat |
 | `Export` | 24 | 5,245 | flat |
 | `Geom` | 57 | 7,338 | `Algorithms/` 20 · `Render/` 7 · `Relief/` 5 · 25 at root |
 | `Import` | 4 | 498 | flat |
-| `Migrations` | 83 | 5,776 | `Migrations/` 82 · 1 at root |
+| `Migrations` | 84 | 5,809 | `Migrations/` 83 · 1 at root |
 | `Minecraft` | 114 | 23,758 | `Render/` 22 · `Palette/` 18 · `Stamping/` 18 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
-| `Pgm` | 183 | 36,976 | `Authoring/` 43 · `Compose/` 38 (nested) · `Evaluate/` 24 (nested) · `Sketch/` 17 · `Editing/` 11 · `Plan/` 11 · `Derive/` 10 · `Shapes/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
+| `Pgm` | 184 | 37,030 | `Authoring/` 43 · `Compose/` 39 (nested) · `Evaluate/` 24 (nested) · `Sketch/` 17 · `Editing/` 11 · `Plan/` 11 · `Derive/` 10 · `Shapes/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
 | `Vocabulary` | 48 | 3,169 | flat |
 <!-- /census -->
 
