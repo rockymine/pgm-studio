@@ -50,7 +50,6 @@ public sealed class EditabilityEndpoint(MapRepository repo, MapReader reader, Fe
             ? []
             : [.. DeadGround.Check(zones,
                   await feature.WalkGroundAsync(map.Id, doc, (zones.MinX, zones.MinZ, zones.MaxX, zones.MaxZ), ct), doc),
-               .. BuildZoneGap.Check(zones, await feature.PlannedGroundAsync(map.Id, ct)),
                .. GoalEdits.Check(doc, zones)];
 
         var rows = Enumerable.Range(0, zones.Height)

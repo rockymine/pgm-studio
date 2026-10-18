@@ -58,6 +58,57 @@ public sealed class SketchBoardCheckTests
             .DoesNotContain(LayoutRules.TeamGapWidth);
     }
 
+    private static readonly string[] Routes = [LayoutRules.NoBuildRegion, PlanRules.WoolUnreachable, LayoutRules.SpawnOnWoolRoute];
+
+    [Test]
+    public async Task The_compiled_board_has_a_build_area_and_every_wool_a_route()
+    {
+        var (layout, intent) = Compiled();
+
+        await Assert.That(SketchBoardCheck.Check(layout, intent).Select(finding => finding.Rule).Intersect(Routes)).IsEmpty();
+    }
+
+    /// <summary>With the strait unbuildable each team's ground is an island, so neither spawn walks to the other's
+    /// wool.</summary>
+    [Test]
+    public async Task A_board_with_no_build_area_says_so_and_leaves_each_wool_out_of_the_other_teams_reach()
+    {
+        var (layout, intent) = Compiled();
+        var findings = SketchBoardCheck.Check(layout, intent with { Build = null }).ToList();
+
+        await Assert.That(findings.Count(finding => finding.Rule == LayoutRules.NoBuildRegion)).IsEqualTo(1);
+        await Assert.That(findings.Count(finding => finding.Rule == PlanRules.WoolUnreachable)).IsEqualTo(2)
+            .Because("each team's wool is cut off from the one other team");
+        await Assert.That(findings.Any(finding => finding.Rule == LayoutRules.SpawnOnWoolRoute)).IsFalse()
+            .Because("with no build area there is no front line to walk from");
+    }
+
+    /// <summary>A wool room on ground behind its spawn's room, away from the strait, is reached from the front line
+    /// only through that room.</summary>
+    [Test]
+    public async Task A_wool_behind_its_spawns_room_has_no_front_line_route_round_it()
+    {
+        var (_, compiled) = Compiled();
+        var red = compiled.Spawns.Single(spawn => spawn.Stamp.Image == 0).Protection[0];
+        var farMinZ = Math.Abs(red.MinZ) > Math.Abs(red.MaxZ);
+        var annex = farMinZ
+            ? new Geom.Rect(red.MinX, red.MinZ - 10, red.MaxX, red.MinZ)
+            : new Geom.Rect(red.MinX, red.MaxZ, red.MaxX, red.MaxZ + 10);
+        var (layout, intent) = Compiled(
+            $$"""{"id":"annex","type":"rectangle","operation":"add","min_x":{{annex.MinX}},"min_z":{{annex.MinZ}},"max_x":{{annex.MaxX}},"max_z":{{annex.MaxZ}},"base_height":9}""");
+        var wools = intent.Wools!.Select(wool => wool.Stamp.Image == 0
+            ? wool with { Protection = [annex], Spawn = wool.Spawn with { X = (annex.MinX + annex.MaxX) / 2, Z = (annex.MinZ + annex.MaxZ) / 2 } }
+            : wool).ToList();
+
+        var findings = SketchBoardCheck.Check(layout, intent with { Wools = wools }).ToList();
+        var behind = intent.Wools!.Single(wool => wool.Stamp.Image == 0).Id;
+
+        await Assert.That(findings.Where(finding => finding.Rule == LayoutRules.SpawnOnWoolRoute).SelectMany(finding => finding.Subjects!))
+            .IsEquivalentTo(new[] { behind });
+        await Assert.That(findings.Any(finding => finding.Rule == PlanRules.WoolUnreachable)).IsFalse()
+            .Because("a spawn's room is ground a capturing team may cross");
+    }
+
     [Test]
     public async Task A_quay_drawn_into_the_strait_narrows_it_out_of_band()
     {

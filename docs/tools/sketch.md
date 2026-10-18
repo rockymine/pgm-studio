@@ -2207,14 +2207,6 @@ subtract's floor puts the negative space back as ground, and `12-underpass` is t
 deck at `floor: 13` bridges the cut, and the same deck with `floor` left unset refills it bedrock to grass.
 The reading is per layer, since a floor is measured from its own layer's `base_y`.
 
-**And, on a board drawn from a plan, it re-reads the strait.** `CT12` is a plan rule — the direct crossing
-between the two team islands of a two-team wool board wants 15–40 blocks — and the plan measures it over
-rectangles, before a shape exists. The finish measures the same pairs again over the rasterized footprint and
-complains where the drawn board has moved one out of band, carrying both numbers. The pairs come from the
-plan, never from the raster: which crossing is the strait is a fact about roles and build regions that a
-footprint does not carry. It says nothing for a board with no plan stored beside it. `docs/tools/plan.md`
-§ *What a compile produces*.
-
 **And it complains about a board with no finish at all.** `SK8` rides on the success when the stored layout
 carries **no theme registry, no relief and no props** — the finding names which of the three are absent. Ground
 alone is a legitimate board, so this stops nothing; what it stops is the board shipping unremarked. Every other
@@ -2336,9 +2328,11 @@ areas (`SketchGround`). The board deriver reads it as it reads a plan's ground, 
 their ids: a face's front line under a third of its void side or under 15 blocks (`FR8`, `FR9`), a gap beside a
 goal under 16 blocks, beside a team's own ground under 12, and a plain hole under 12 (`WL12`, `WL20`, `LN6`),
 and on a two-team wool board the strait outside 15 to 40 blocks (`CT12`), each read over the authored build
-areas where one is asked of an area. The plan's own strait, re-read off
-the sketch, is said only where the sketch's board does not report one, which is a strait the plan passed and
-the drawing closed. A build area running past the last ground it docks is `BZ9`, its id named. And a hop
+areas where one is asked of an area. A build area running past the last ground it docks is `BZ9`, its id
+named, and a board with no build area at all is `SP11`. The walks a match needs to a wool are asked over the
+ground and the build cells together: a wool no spawn of a team that captures it can walk to is `PL9`, one per
+team, and one the front line — the build cells and the ground they meet — reaches only through a spawn's room
+is `SP1`, the wool's own room counting as open where a spawn's overlaps it. And a hop
 outside 10 to 20 blocks is `G5`: the straight span between the nearest cells of two landmasses one build
 region touches, where it runs inside that region and through no third one, asked within the authored team's
 ground — a gap to another team's ground is the strait, and one inside an image repeats the unit's. Ground no
@@ -2407,7 +2401,7 @@ Every endpoint is rooted at `/api`; a read is open to anyone and a write needs s
 | `PUT /map/{slug}/places` | `{places: [{id, name, shape, points, holds?}], area?, verdict?}`; `?note=` kept on the change | `{}` — stored verbatim as one change in the map's history | **400 `RQ1`** a place with no id, a shape that is not `point`, `box`, `ring` or `line` or carries the wrong number of points, a point that is not `[x, z]`, an `area` whose max is not past its min, a `verdict` that is not `proposed`, `changes` or `approved` · **400 `RQ5`** two places stating one id · **400 `RQ4`** a place holding a play piece the map has none of · **403 `RQ8`** a caller who is neither an admin nor a token carrying the notes permission · **409 `RQ13`** a stale `If-Match` · 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick, but for the rooms: a room shape is stored as its `rooms` record and its rectangle is dropped; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
 | `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned, dropped}` — merges the finish, the relief and any author-corrected room height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge, and so does one `SK1` per group whose **posted** relief the carry replaced with the stored one. `dropped` names the stored shapes the rebuild does not keep — every one whose id the compile does not produce and which carries no `intentRef`, which is a shape drawn in the sketch — with one `SK29` complaint naming them | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
-| `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built, and — where a plan is stored beside it — re-reads that plan's CTW strait over the drawn ground (`CT12`) | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
+| `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
 | `DELETE /map/{slug}/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name, credited to nobody but its originator, with nothing drawn; the Plan tool asks the same on the way out | — |
 
 **Previews over a live layout.** All four take the working document as the body rather than reading the stored

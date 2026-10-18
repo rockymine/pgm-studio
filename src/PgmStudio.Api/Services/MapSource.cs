@@ -176,9 +176,8 @@ public static class MapSource
         if (IntentWrite.Stated(intentJson) is { } intent
             && (IntentWrite.Unnamable(intent, "intent") ?? IntentWrite.Unbuildable(intent, "intent")) is { } unstorable)
             return new(unstorable);
-        var planBytes = Encoding.UTF8.GetBytes(plan ?? "{}");
         var prepared = SketchFinish.Prepare(
-            RoomShapes.Project(layoutJson, IntentWrite.Stated(intentJson) ?? new MapIntent()), planBytes);
+            RoomShapes.Project(layoutJson, IntentWrite.Stated(intentJson) ?? new MapIntent()));
         if (prepared.Refusal is { } unbuildable) return new(unbuildable);
         Complaints.Add(http, prepared.Judged.Complaints);
 
@@ -213,7 +212,7 @@ public static class MapSource
         {
             if (keptViews is not null) await artifacts.SaveAsync(mapId, ArtifactKind.MapViewsJson, keptViews, ct);
             if (keptPlaces is not null) await artifacts.SaveAsync(mapId, ArtifactKind.PlacesJson, keptPlaces, ct);
-            await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, planBytes, ct);
+            await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, Encoding.UTF8.GetBytes(plan ?? "{}"), ct);
             await artifacts.SaveAsync(mapId, ArtifactKind.RefinementJson, Encoding.UTF8.GetBytes(kept ?? "{}"), ct);
             var layoutRevision = await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson,
                 Encoding.UTF8.GetBytes(layoutJson), ct);

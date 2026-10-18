@@ -439,21 +439,9 @@ anywhere earlier in the plan, which is silent — the board stores, the export g
 simply on something else. The ids also make the board legible: `ruediger.plan.json` compiles to `hub-t2-7`
 through `hub-t6-16`, which says two components at ten surfaces without opening the file.
 
-**The strait the compile hands over is measured again once the board is drawn.** `CT12` judges the direct
-crossing between the two team islands of a two-team wool board, and it takes that reading over the plan's
-rectangles — before a shape exists. A finish is free to move it: a shape drawn across the gap bridges it, a
-quay pushed out from one shore narrows it, a fill closes it altogether, and the plan's verdict then stands
-over ground that no longer matches it. So `SketchFinish` re-reads it (`StraitReadback`): the same pairs, over
-the rasterized footprint, against the same 15–40 band, and a **complaint** carrying both numbers — what the
-plan put between the two islands and what the drawn board does.
-
-**The pairs come from the plan and never from the raster.** Which crossing is the strait is a fact about the
-board's roles and its build regions, and a rasterized footprint carries neither: `opus5-aerie` has six
-landmasses and fifteen gaps between them, of which one is a strait and the rest are authored water — so
-judging every pair against the band would report eleven faults on a board that has none. Taking the plan's own
-answer is what keeps this to the crossing `CT12` judged. Only a pair the plan **passed** is re-read, since a
-strait already out of band is the plan's own finding and saying it twice would read as two faults; and a board
-with no wool, or a symmetry that is not a mirror pair, is not this rule's to judge in the first place.
+**Once the board is drawn, the sketch answers for it.** A finish is free to move what the plan judged — a
+shape drawn across the strait bridges it, a quay narrows it — so a stored plan is asked nothing after the
+compile: the strait is the sketch's own `CT12`, measured on the drawn ground (`docs/tools/sketch.md`).
 
 **A room is the intent's, and the layout says only how the ground meets it.** The compiled layout holds no
 rectangle for a spawn or a wool room: the Sketch tool draws each one from the intent, with its building — the
@@ -737,7 +725,7 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `DELETE /map/{slug}/discard-if-empty` | — | `{discarded}` — drops a draft still named *Untitled plan*, never saved, not forked from a candidate and credited to nobody but its originator; the Sketch tool asks the same | — |
 | `PUT /map/{slug}/plan` | the document | `{}` — a verbatim replace; `warnings` carries any field the plan reader has nowhere to keep (`RQ3`), which the blob would otherwise store and nothing downstream would read. The `ETag` is the revision it landed at | 400 non-JSON · **409 `RQ5`** an `If-Match` naming a revision the plan is no longer at · 404 unknown map |
 | `GET /map/{slug}/state` | — | `{stage, artifacts, moves[]}` — where the map has got to, which documents it holds, and what may be done to it from here. Each move is `{does, route, next}`; several are open at once and `next` marks the ones the stage is waiting on | 404 |
-| `GET /map/{slug}/findings` | — | `{stage, findings[], unasked[], refuses}` — everything wrong with the map right now, from every gate its stored documents can answer, judged as the layout and scan stand now — Finish's own judgement (`CT12` straits included) and `EZ2` — plus the gates a read cannot reach and the route that does pay for them | 404 |
+| `GET /map/{slug}/findings` | — | `{stage, findings[], unasked[], refuses}` — everything wrong with the map right now, from every gate its stored documents can answer, judged as the intent and the layout stand now — the play pieces off the intent, the ground off the sketch and Finish's own judgement — plus the gates a read cannot reach and the route that does pay for them | 404 |
 | `GET /map/{slug}/plan/ascii[?every=N]` | — | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. `every` draws one character per N cells for a board wider than a terminal | 404 unknown map or no plan · 422 stored plan unreadable |
 | `GET /map/{slug}/plan/flow` | — | `text/plain` — how the board is come at and what that leaves unused: per objective, one reading per **demand set** (attack, back-run, defend, chase), each on the ground that side walks, with its distance, its ways and **one decision per door** — the hole, where the choice is made, how long it stays open, what the other way costs — plus whether the defence shares the attackers' road, and the ground no journey reaches, named with its pieces | 404 · 422 |
 | `GET /map/{slug}` · `PATCH /map/{slug}/metadata` | `{name, authors[]}` | the map's identity | 404 |
@@ -886,10 +874,9 @@ those steps call rather than restating them. It does not build: the export gates
 which is seconds a read would spend on every call, so each is named in `unasked` with the route that does pay
 — a list silent about what it skipped would read as *nothing is wrong*. What it can ask off the stored layout
 and scan it does ask, as drawn now rather than as Finish saw it: everything Finish judges
-(`SketchFinish.Judge` — the board's own gate, a board carrying no finish, and the plan's straits re-read off
-the ground, `CT12`), and a coast pulled back from a build zone (`EZ2`), off the scan brought up to the layout.
-A map holding an intent has its play pieces asked of the intent instead of the plan, under the same ids
-(`docs/tools/sketch.md`, `IntentCheck`).
+(`SketchFinish.Judge` — the board's own gate and a board carrying no finish). A map's play pieces are asked of
+its intent and its ground of its sketch, under the plan's ids (`docs/tools/sketch.md`, `IntentCheck`,
+`SketchBoardCheck`); a stored plan is asked nothing.
 Standing ground nobody may edit (`EZ1`) is judged over the built world and is named in `unasked` with
 `GET /api/map/{slug}/editability`. So a vertex moved or a coast bent after Finish is heard here without
 finishing again. `GET /api/map/{slug}/state` is the other half: what may be done next, with the route for

@@ -20,19 +20,6 @@ namespace PgmStudio.Pgm.Sketch;
 /// </summary>
 public static class SketchSeamCheck
 {
-    /// <summary>The rules asked here, which a map's plan no longer answers once its sketch is asked.</summary>
-    public static readonly IReadOnlySet<string> Asks = new HashSet<string>(
-    [
-        LayoutRules.CorridorWidth, LayoutRules.ZoneTouchesSpawn, LayoutRules.StitchedZones,
-        LayoutRules.WaterLaneOverGround, PlanRules.WallOnWoolRoom, PlanRules.WallAtJunction,
-        LayoutRules.ApproachWallEdgeLength, LayoutRules.SpawnDoorGround, LayoutRules.ApproachWallStandoff,
-        LayoutRules.SpawnExitStep, LayoutRules.WoolEntryStep, LayoutRules.WoolDoorGround,
-    ]);
-
-    /// <summary>The rules the plan raises that a drawn board does not: a step anywhere but a spawn's door or a
-    /// wool room's entry is a cliff the author drew.</summary>
-    public static readonly IReadOnlySet<string> Retires = new HashSet<string>([LayoutRules.UnwalkableStep]);
-
     /// <summary>The ground a spawn's door must open onto before bare void, in blocks.</summary>
     public const int DoorGroundBlocks = 15;
 

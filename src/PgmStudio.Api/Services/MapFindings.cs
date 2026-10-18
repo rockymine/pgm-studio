@@ -5,7 +5,6 @@ using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Export;
 using PgmStudio.Pgm.Authoring;
-using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
 using PgmStudio.Analysis.Playability;
@@ -30,8 +29,8 @@ namespace PgmStudio.Api.Services;
 /// wrong, so each is named in <c>unasked</c> with the route that does pay.</para>
 ///
 /// <para><b>Which documents the map holds decides how much can be answered</b>, and the stage only follows
-/// from that. A map at <c>configure</c> whose plan is still stored is asked the plan's questions too — the
-/// plan is still there to be wrong.</para>
+/// from that: the intent answers for the play pieces, and the sketch for the ground. A plan stored with a map is
+/// history and is asked nothing.</para>
 /// </summary>
 public static class MapFindings
 {
@@ -43,10 +42,7 @@ public static class MapFindings
         var intent = await artifacts.LoadJsonAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
 
         // The play pieces are asked of the intent where the map holds one, since that is what it builds, and the
-        // board's structure and its seams of the ground its sketch builds; the plan answers the rest, and none of
-        // those twice.
-        var asked = new HashSet<string>();
-        var boardFindings = Findings.None;
+        // board's structure and its seams of the ground its sketch builds.
         if (intent is not null)
         {
             var layoutJson = layoutBytes is { Length: > 0 } ? Encoding.UTF8.GetString(layoutBytes) : null;
@@ -55,47 +51,19 @@ public static class MapFindings
             if (layoutJson is not null) intent = WoolDoors.Settled(intent, layoutJson);
             findings.AddRange(IntentCheck.Check(intent, layout?.Setup?.Board));
             findings.AddRange(RoomCheck.Check(intent, RoomStyleScope.StylesOf(layout)));
-            asked.UnionWith(IntentCheck.Asks);
-            asked.UnionWith(RoomCheck.Asks);
             if (layoutJson is not null)
             {
-                boardFindings = SketchBoardCheck.Check(layoutJson, intent, layout?.Setup?.Board);
-                findings.AddRange(boardFindings);
-                asked.UnionWith(SketchBoardCheck.Asks);
+                findings.AddRange(SketchBoardCheck.Check(layoutJson, intent, layout?.Setup?.Board));
                 findings.AddRange(SketchSeamCheck.Check(layoutJson, intent, layout?.Setup?.Board));
-                asked.UnionWith(SketchSeamCheck.Asks);
-                asked.UnionWith(SketchSeamCheck.Retires);
                 findings.AddRange(SketchMeasures.Check(layoutJson, intent, layout?.Setup?.Board));
             }
-        }
-
-        var planBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
-        if (planBytes is { Length: > 0 } && PlanModel.Parse(Encoding.UTF8.GetString(planBytes)) is { } plan)
-        {
-            // Both halves, because they answer different questions and a driver wants both: whether what the
-            // plan says is coherent, and whether it yet says the things a map cannot exist without.
-            findings.AddRange(PlanValidator.Check(plan).Concat(PlanValidator.Completeness(plan))
-                .Where(finding => !asked.Contains(finding.Rule)));
         }
 
         if (layoutBytes is { Length: > 0 })
         {
             var layoutJson = Encoding.UTF8.GetString(layoutBytes);
             findings.AddRange(SketchMaterialGate.Check(layoutJson));
-            // The plan's strait re-read off the sketch is said unless the sketch's own board already reports the
-            // strait, which leaves it the case the board cannot see: a strait the plan passed, closed.
-            var measuredStrait = boardFindings.Any(finding => finding.Rule == LayoutRules.TeamGapWidth);
-            findings.AddRange(SketchFinish.Judge(layoutJson, planBytes)
-                .Where(finding => !(measuredStrait && finding.Rule == LayoutRules.TeamGapWidth)));
-        }
-
-        // A coast pulled back from a build zone, asked off the scan — which is brought up to the layout first,
-        // so an edit after Finish is judged as drawn.
-        if (await artifacts.HasAsync(map.Id, ArtifactKind.SurfaceParquet, ct))
-        {
-            var (zones, segments) = await feature.ZonesAsync(map.Id, await reader.ReadDocAsync(map, ct), ct);
-            if (segments is not null)
-                findings.AddRange(BuildZoneGap.Check(zones, await feature.PlannedGroundAsync(map.Id, ct)));
+            findings.AddRange(SketchFinish.Judge(layoutJson));
         }
 
         return new MapFindingsDto(map.Stage, findings, Unasked);

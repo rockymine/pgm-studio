@@ -15,23 +15,7 @@ namespace PgmStudio.Api.Tests;
 [NotInParallel("api-db")]
 public sealed class MapStateAndFindingsTests
 {
-    /// <summary>A blank plan has no land, which is the one thing a plan cannot be without — so the read
-    /// refuses, and says so by the same name every other gate answers.</summary>
-    [Test]
-    public async Task A_plan_with_nothing_in_it_is_refused_by_the_findings_read()
-    {
-        using var client = await FreshAsync();
-        var slug = await PlanAsync(client, "Weirgate");
-
-        var found = await client.GetFromJsonAsync<MapFindingsDto>($"/api/map/{slug}/findings");
-
-        await Assert.That(found!.Stage).IsEqualTo("plan");
-        await Assert.That(found.Refuses).IsTrue()
-            .Because($"a plan with no pieces cannot build: {string.Join("; ", found.Findings.Select(f => f.Message))}");
-    }
-
-    /// <summary>The play pieces are asked of the intent the map builds, and a rule the intent answers is said
-    /// once even where the map still holds its plan.</summary>
+    /// <summary>The play pieces are asked of the intent the map builds, and each rule it breaks is said once.</summary>
     [Test]
     public async Task The_pieces_a_map_holds_are_asked_of_its_intent()
     {

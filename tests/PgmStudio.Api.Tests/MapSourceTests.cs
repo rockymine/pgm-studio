@@ -5,6 +5,7 @@ using System.Text.Json;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Domain;
 
 namespace PgmStudio.Api.Tests;
 
@@ -408,9 +409,8 @@ public sealed class MapSourceTests
     }
 
     /// <summary><b>The findings list judges the board as drawn.</b> Two halves, laid <c>rot_180</c>, meet a
-    /// frontline build zone at x −5..5 across ground the plan states. Pulled back to x −10 after Finish, each
-    /// coast leaves void between it and the zone, and the findings read names that (<c>EZ2</c>) without another
-    /// Finish.</summary>
+    /// frontline build area at x −5..5. Pulled back to x −9 after Finish, each coast leaves the area running past
+    /// the last ground it touches, and the findings read names that (<c>BZ9</c>) without another Finish.</summary>
     [Test]
     public async Task The_findings_list_names_a_coast_pulled_back_after_the_finish()
     {
@@ -424,7 +424,6 @@ public sealed class MapSourceTests
         using var client = await FreshAsync();
         var body = new
         {
-            plan = JsonDocument.Parse("""{"cell":4,"pieces":[{"id":"field","role":"piece","rect":[-10,-5,20,10]}]}""").RootElement,
             layout = JsonDocument.Parse(halves).RootElement,
             intent = JsonDocument.Parse("""
                 {"meta":{"name":"Weirgate","authors":[],"contributors":[]},
@@ -434,13 +433,13 @@ public sealed class MapSourceTests
         };
         var loaded = await client.PutAsJsonAsync(Source, body);
         await Assert.That(loaded.IsSuccessStatusCode).IsTrue().Because(await loaded.Content.ReadAsStringAsync());
-        await Assert.That(await RulesAsync(client)).DoesNotContain("EZ2");
+        await Assert.That(await RulesAsync(client)).DoesNotContain(LayoutRules.ZoneOverhang);
 
         var pulled = halves.Replace("\"max_x\":-5", "\"max_x\":-9");
         var put = await client.PutAsync("/api/map/weirgate/sketch", new StringContent(pulled, Encoding.UTF8, "application/json"));
         await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());
 
-        await Assert.That(await RulesAsync(client)).Contains("EZ2");
+        await Assert.That(await RulesAsync(client)).Contains(LayoutRules.ZoneOverhang);
 
         static async Task<List<string>> RulesAsync(HttpClient client) =>
         [
