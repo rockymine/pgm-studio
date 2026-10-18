@@ -8,8 +8,8 @@ namespace PgmStudio.Pgm.Sketch;
 /// <summary>
 /// The wire form of a group's relief — the interior elevation an author states inside a landmass, as
 /// against the outline heights a shape already carries (docs/world-export/relief.md). It rides
-/// <b>top-level on the layout, keyed by group id</b>, not nested inside the shapes: a plan recompile
-/// replaces every shape it produced, and a relief is far more expensive hand work than a shape.
+/// <b>top-level on the layout, keyed by group id</b>, not nested inside the shapes: it is stated of a group,
+/// which several shapes fuse into.
 ///
 /// <para>One flat mark shape carries every kind, discriminated by <see cref="ReliefMarkJson.Kind"/>. That is
 /// deliberate rather than lazy — a relief is short enough to write by hand and is meant to be, so the

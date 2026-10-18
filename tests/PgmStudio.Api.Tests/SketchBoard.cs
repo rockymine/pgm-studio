@@ -30,7 +30,6 @@ internal static class SketchBoard
     {
         var made = await client.PutAsJsonAsync($"/api/map/{Slug}/source", new
         {
-            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(Layout).RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Dressed","authors":[],"contributors":[]}}""").RootElement,
             name = "Dressed",

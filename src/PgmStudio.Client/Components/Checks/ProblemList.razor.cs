@@ -38,15 +38,14 @@ public partial class ProblemList
     private static readonly ProblemKind[] Order = [ProblemKind.Problem, ProblemKind.OutOfRange, ProblemKind.LeftOut, ProblemKind.Warning];
 
     private IReadOnlyDictionary<string, RuleDto> rules = new Dictionary<string, RuleDto>();
-    private IReadOnlyList<TermDto> terms = [];
     private IReadOnlyList<Problem>? shown;
     private List<Row> rows = [];
     private readonly HashSet<string> open = [];
     private Problem? pressed;
     private bool relight;
 
-    /// <summary>One rule's row: its findings of one kind, and for a term out of range, its reading.</summary>
-    private sealed record Row(string Key, ProblemKind Kind, string Rule, string? Term, List<Problem> Places, Reading? Reading);
+    /// <summary>One rule's row: its findings of one kind, and for a measured value, its reading.</summary>
+    private sealed record Row(string Key, ProblemKind Kind, string Rule, List<Problem> Places, Reading? Reading);
 
     /// <summary>A measured value against its range: the value as the row's header shows it, a sentence, and a bar
     /// where both edges are known.</summary>
@@ -58,7 +57,6 @@ public partial class ProblemList
     protected override async Task OnInitializedAsync()
     {
         rules = await Book.RulesAsync();
-        terms = await Book.TermsAsync();
         rows = RowsOf(Problems);
     }
 
@@ -91,28 +89,24 @@ public partial class ProblemList
         var grouped = new List<Row>();
         foreach (var problem in problems)
         {
-            var key = $"{problem.Kind}|{problem.Finding.Rule}|{problem.Term}";
+            var key = $"{problem.Kind}|{problem.Finding.Rule}";
             if (grouped.FirstOrDefault(row => row.Key == key) is { } row) row.Places.Add(problem);
-            else grouped.Add(new Row(key, problem.Kind, problem.Finding.Rule, problem.Term, [problem], ReadingOf(problem)));
+            else grouped.Add(new Row(key, problem.Kind, problem.Finding.Rule, [problem], ReadingOf(problem)));
         }
         return grouped;
     }
 
-    private Reading? ReadingOf(Problem problem)
+    private static Reading? ReadingOf(Problem problem)
     {
         if (problem.Finding.Measured is not { } measured) return null;
         var value = measured.Value;
-        string Said(double number) => problem.Term is { } term
-            ? RuleWords.TermValue(term, number)
-            : number.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        static string Said(double number) => number.ToString("0.##", CultureInfo.InvariantCulture);
         if (measured is not { Low: { } low, High: { } high })
         {
             var edge = measured.Low is { } least ? $"At least {Said(least)}" : $"At most {Said(measured.High ?? value)}";
             return new Reading(Said(value), $"Measured {Said(value)}. {edge}.", null);
         }
-        var source = problem.Term is { } named && terms.FirstOrDefault(each => each.Term == named) is { } known
-            ? RuleWords.BandSource(known) : "as the rule states it";
-        var sentence = $"Measured {Said(value)}. Usually {Said(low)} to {Said(high)}, {source}.";
+        var sentence = $"Measured {Said(value)}. Usually {Said(low)} to {Said(high)}, as the rule states it.";
         var max = Math.Max(high * 1.6, value * 1.15);
         var bar = low < 0 || max <= 0 ? null
             : new Bar(low / max * 100, Math.Max(1.5, (high - low) / max * 100), Math.Min(100, value / max * 100));
@@ -121,12 +115,10 @@ public partial class ProblemList
 
     private RuleDto? RuleOf(string rule) => rules.GetValueOrDefault(rule);
 
-    /// <summary>What a row says on its one line: the term measured, else the rule's first sentence, else the
-    /// first finding's own message.</summary>
+    /// <summary>What a row says on its one line: the rule's first sentence, else the first finding's own
+    /// message.</summary>
     private static string Title(Row row, RuleDto? rule) =>
-        row.Term is not null && row.Reading is not null ? RuleWords.TermLabel(row.Term)
-        : rule is not null ? RuleWords.FirstSentence(rule.Means)
-        : row.Places[0].Finding.Message;
+        rule is not null ? RuleWords.FirstSentence(rule.Means) : row.Places[0].Finding.Message;
 
     private async Task ToggleAsync(Row row)
     {

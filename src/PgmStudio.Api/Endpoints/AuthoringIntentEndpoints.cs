@@ -296,48 +296,6 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
 }
 
 /// <summary>
-/// PUT /api/map/{slug}/intent/from-plan — store a freshly compiled intent, carrying the map's authored
-/// slices onto it first (<see cref="IntentCarry"/>), then project it exactly as a normal PUT does.
-///
-/// <para>The plan owns the map's structure, so a rebuild is meant to replace its teams, spawns, wools and
-/// build zones. What it does not own is who wrote the map, and two separate things keep that true. The
-/// projection leaves the map's people alone where the intent names none, which is the rule for every intent
-/// write and not only this one. And <see cref="IntentCarry.CarryAuthored"/> copies <c>meta.authors</c> and
-/// <c>meta.contributors</c> off the stored intent onto the compiled one, so the artifact this route stores
-/// still says who the map is by — the projection would keep them either way, and an intent that disagreed
-/// with the map about its own credits is the thing being avoided. <b>The confirmed symmetry and the island-team tags are deliberately NOT carried</b>
-/// — see <see cref="IntentCarry"/> for why each would do harm rather than preserve an answer — so a rebuild
-/// clears both and Configure's World and Teams phases are walked again. The layout write is the same shape for
-/// a different reason (<c>…/sketch/from-plan</c>), where the finish does ride across.</para>
-/// </summary>
-public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features, PlayerLookup players) : EndpointWithoutRequest
-{
-    public override void Configure()
-    {
-        Put("/map/{slug}/intent/from-plan");
-        Description(b => b.Accepts<MapIntent>("application/json").Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
-    }
-
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        var slug = Route<string>("slug")!;
-        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-
-        var compiled = await RawBody.ReadAsync(HttpContext, ct);
-        // Over the posted document rather than the merged one: the carry only adds back this map's own
-        // credits, so a field named here is one the caller wrote and can correct.
-        Complaints.Unread(HttpContext, compiled, IntentWrite.Stated(compiled));
-
-        var stored = await artifacts.LoadAsync(map.Id, ArtifactKind.MapIntentJson, ct);
-        var merged = IntentCarry.CarryAuthored(compiled, stored is null ? null : Encoding.UTF8.GetString(stored));
-
-        var applied = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, features, players, slug,
-            map.Id, merged, Revisions.Expected(HttpContext), ct);
-        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
-    }
-}
-
-/// <summary>
 /// PATCH /api/map/{slug}/intent/pieces/{id} — move one play piece, and every orbit image of it, where the
 /// sketch just dragged it, or turn a room or an area in place. <see cref="PlayPieceMove"/> holds what that means and what refuses it; this route
 /// reads the stored intent, hands it over, and stores and projects the answer the way an ordinary intent PUT

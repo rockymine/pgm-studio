@@ -29,11 +29,6 @@ public sealed class AcknowledgementTests
 
         await Empty(client.PatchAsJsonAsync("/api/map/ackmap/metadata", new { name = "Ack Map" }));
         await Empty(client.PatchAsJsonAsync("/api/map/ackmap/symmetry", new { status = "none" }));
-        // The plan is posted under the keys the reader keeps: a document write answers the acknowledgement
-        // alone only when no gate remarked, and a field the reader has nowhere to put is an RQ3 complaint
-        // riding under `warnings` on the same success.
-        await Empty(client.PutAsJsonAsync("/api/map/ackmap/plan",
-            new { plan = 1, meta = new { name = "Ack Map" }, pieces = Array.Empty<object>() }));
     }
 
     private static async Task Empty(Task<HttpResponseMessage> call)

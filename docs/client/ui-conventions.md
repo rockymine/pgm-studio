@@ -246,7 +246,7 @@ dark one.
 and a text field, which holds focus however it was reached, rings itself in the accent instead. A rule never
 removes the outline to make focus look like hover.
 
-**Instructions are `section-desc`; a computed fact is `plan-readout`.** Prose telling the author what to do
+**Instructions are `section-desc`; a computed fact is `inspector-readout`.** Prose telling the author what to do
 — *Press where the camera should stand*, *Drag to move it* — reads as panel body text in the secondary colour;
 a line the panel computed — a count, a height, a score — is a readout. The two look different because a
 reader skims one and reads the other.
@@ -262,8 +262,8 @@ constant somewhere. Where that somewhere is decides whether the form and the rea
 through `Contracts`, so the picker takes the same constant the reader does: `PlacedProp`'s
 `[JsonDerivedType]` attributes name `PropKinds`, the sketch gate judges against `ShapeKinds.All`, and
 `ReliefMarkJson.ToMark` switches on `MarkKinds`. There is one list, not two that agree.
-The plan editor's words are the same: a piece's roles (`PlanRoles`) and a box's kinds (`PlanBoxKinds`) are
-declared there, and `PlanPalette` adds only the label and the canvas token each is drawn in.
+The sketch's Layout dock spells its pieces the same way: every kind it places is a `PlayPieceKinds` constant
+declared there, and the dock adds only the label and the swatch each is drawn in.
 
 **A field name stays the client's.** `PropFields`, `MarkFields`, `SpecFields`, `PushFields`, `ReliefFields`
 and `GrainFields` name the JSON keys a form writes into a document the client holds as a `JsonObject`. They
@@ -323,7 +323,7 @@ back where the step left them standing, the way the shape already was.
 text styled like a readout is a control nobody presses: it sits in a column of readouts, in the readouts' own
 class, saying only the state it is already in. Two `Chip`s say it instead — the current state marked, the other
 one visibly available — which is pressable, keyboard-reachable, and shows what the alternative is before it is
-chosen. The pattern it replaces (`control-input--hidden` under a `plan-readout` span) was in three panels and
+chosen. The pattern it replaces (`control-input--hidden` under a `inspector-readout` span) was in three panels and
 is in none.
 
 **What survives as prose is a keymap, an empty state, or a fact with nowhere else to live.** *Move: arrow keys ·

@@ -34,7 +34,7 @@
       </Field>
       @if (standX is null)
       {
-        <p class="plan-readout">@(error ?? "Placing the camera…")</p>
+        <p class="inspector-readout">@(error ?? "Placing the camera…")</p>
       }
       else
       {
@@ -45,7 +45,7 @@
             <CoordField Prefix="Z" Type="number" Value="@standZ" step="1" OnChange="e => Set(ref standZ, e)" />
           </div>
         </Field>
-        <p class="plan-readout">
+        <p class="inspector-readout">
           @Height
           @if (AtEyeHeight is { } eye && !OnTheGround)
           {
@@ -65,7 +65,7 @@
             <CoordField Prefix="Z" Type="number" Value="@angleZ" step="1" OnChange="e => Aim(ref angleZ, e)" />
           </div>
         </Field>
-        <p class="plan-readout">@Looking</p>
+        <p class="inspector-readout">@Looking</p>
       }
       <label class="check-row">
         <input type="checkbox" checked="@picture" @onchange="e => picture = e.Value is true" />

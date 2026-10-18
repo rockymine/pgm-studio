@@ -21,8 +21,7 @@ namespace PgmStudio.Api.Tests;
 public sealed class WordSetSchemaTests
 {
     /// <summary>The word sets the wire carries: <c>MapStage</c>, the nine in <c>TerrainVocabulary</c>,
-    /// <c>Landform</c>, <c>EditZone</c>, <c>WoolColors</c>, the world-export sets, <c>NegativeSpaceKinds</c>
-    /// and <c>SizeBands</c>. A set added to that project and never marked on a field is a set the document
+    /// <c>Landform</c>, <c>EditZone</c>, <c>WoolColors</c>, the world-export sets and <c>SizeBands</c>. A set added to that project and never marked on a field is a set the document
     /// says nothing about, so it is named here rather than counted.</summary>
     private static readonly Type[] Sets =
     [
@@ -31,7 +30,7 @@ public sealed class WordSetSchemaTests
         typeof(DoorHeadForms), typeof(DoorHeadFills), typeof(Landform), typeof(EditZone),
         typeof(WoolColors), typeof(TreeForms), typeof(TreeSpeciesNames),
         typeof(BoulderForms), typeof(BlockKinds), typeof(BiomeKinds), typeof(PieceParts), typeof(EdgeWords),
-        typeof(NegativeSpaceKinds), typeof(SizeBands), typeof(AccessModes), typeof(StudioRoles),
+        typeof(SizeBands), typeof(AccessModes), typeof(StudioRoles),
         typeof(NoteStatuses), typeof(NoteAnchors), typeof(MapDocuments), typeof(SymmetryModes),
         typeof(RuleLevels), typeof(RuleLevelSources), typeof(FlagCarriers), typeof(PlayPieceKinds), typeof(PieceSettings), typeof(PlaceShapes), typeof(PlanVerdicts),
     ];

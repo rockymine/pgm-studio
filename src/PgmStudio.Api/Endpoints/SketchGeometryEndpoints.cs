@@ -309,10 +309,9 @@ public sealed class SketchShapeOfIdEndpoint(MapRepository repo, MapArtifactStore
 /// one call both writes a height and clears a relief scope. <c>id</c> is the address and is kept whatever the
 /// body says.</para>
 ///
-/// <para><c>role</c>, <c>intentRef</c> and <c>height_authored</c> are refused: the first two are the identity
-/// a plan recompile matches a shape by, and the third is the mark that a floor was corrected by hand. All
-/// three are the compiler's to write, and a caller has no way to state a coherent value for any of
-/// them.</para></summary>
+/// <para><c>role</c> and <c>height_authored</c> are refused: the first says a shape is a play room drawn in
+/// from the intent, which no patch can make or unmake, and the second is the mark that a floor was corrected
+/// by hand. A caller has no way to state a coherent value for either.</para></summary>
 public sealed class SketchShapeUpdateEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<PartWrittenDto>
 {
@@ -375,8 +374,8 @@ public sealed record VertexInsert(int After, double? X, double? Z);
 /// shapes abut, and an edit that drags a ring's other points opens ground between two that were flush, which
 /// is what a whole-ring transform does and what a hand pulling one corner does not.</para>
 ///
-/// <para>Refused where the shape carries a <c>role</c> — the plan compiles a room's rectangle and a recompile
-/// redraws it — where it states no <c>vertices</c> (a rectangle or a circle states its bounds), where the
+/// <para>Refused where the shape carries a <c>role</c> — a room drawn in from the intent, which says where it
+/// stands — where it states no <c>vertices</c> (a rectangle or a circle states its bounds), where the
 /// index names no point, and where the move folds the outline across its own far side.</para></summary>
 public sealed class SketchVertexMoveEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<OutlineDto>

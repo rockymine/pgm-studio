@@ -9,8 +9,7 @@ namespace PgmStudio.Pgm.Tests;
 /// enough to draw one and not enough to <em>refer</em> to one — a finding could name only the piece a marker
 /// stood on, and an agent holding "the second core" lost its reference the moment another core was deleted.
 ///
-/// <para>Ids are minted on parse, so a plan written before markers had identity gains it on load, and the
-/// server mints by the same rule the editor does (<c>plan-doc.js mintMarkerIds</c>).</para>
+/// <para>Ids are minted on parse, so a plan written before markers had identity gains it on load.</para>
 /// </summary>
 public sealed class PlanMarkerIdTests
 {

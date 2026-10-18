@@ -7,8 +7,8 @@
  *   1. an API check — the compiled layout stores no room, only what it says about each room's ground, and the
  *      sketch reads it back with role-tagged spawn/wool rectangles drawn from the intent ALONGSIDE the fused
  *      terrain, each under its piece's id and with the colour the sketch renders from;
- *   2. a visual check — the plan tool and the sketch tool are screenshotted (the sketch is the seed draft that
- *      carries that same compiled layout), so the surfaced pieces can be seen where the terrain has fused.
+ *   2. a visual check — the sketch tool is screenshotted on the seed draft that carries that same compiled
+ *      layout, so the surfaced pieces can be seen where the terrain has fused.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE, TMP_DIR }
@@ -94,8 +94,8 @@ if (point) {
   });
 }
 
-// ── 2. screenshot the plan tool and the sketch tool ───────────────────────────────────────────────────
-checks.section("plan → sketch, captured");
+// ── 2. screenshot the sketch tool ─────────────────────────────────────────────────────────────────────
+checks.section("the sketch, captured");
 
 const browser = await openBrowser();
 const page = await newPage(browser, { width: 1600, height: 1000 });
@@ -116,9 +116,7 @@ async function capture(path, file, waitFor) {
   checks.add(`${path} is clean`, page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
 }
 
-// The plan tool renders the generated plan (the source); the sketch draft carries the same compiled layout,
-// so the surfaced spawn/wool boxes appear over the fused island.
-await capture(`/maps/${seed.planSlug}/plan`, "s25-plan.png", "canvas, .map-canvas-svg");
+// The sketch draft carries the compiled layout, so the surfaced spawn/wool boxes appear over the fused island.
 await capture(`/maps/${seed.sketchSlug}/sketch`, "s25-sketch.png", "canvas");
 
 checks.finish();

@@ -301,9 +301,8 @@ public sealed class SketchReliefTests
         await Assert.That(stated.Pushes![0].Id).IsEqualTo("r5");
         await Assert.That(stated.Pushes[0].Amounts).IsEquivalentTo(new[] { 6d, 3d, 1d });
 
-        // And back out again, through the carry a recompile runs.
-        var carried = SketchLayout.CarryRelief(Layout(null), Layout(relief));
-        var round = SketchLayout.Parse(carried)!.Relief!["i1"];
+        // And back out again, through the layout's own writer.
+        var round = SketchLayout.Parse(state.ToJson())!.Relief!["i1"];
         await Assert.That(round.Marks![0].Id).IsEqualTo("r4");
         await Assert.That(round.Pushes![0].Amounts).IsEquivalentTo(new[] { 6d, 3d, 1d });
     }

@@ -165,10 +165,9 @@ export class CanvasBase {
   }
 
   /**
-   * Report a new zoom scale — on the next frame, not now. The readout is chrome like the rest, and on the
-   * plan canvas it crosses into .NET (`plan-bridge`'s `fire("OnZoom")`), so a per-tick call marshals an
-   * interop message and re-renders a component for every wheel event. Measured, that was the larger half of
-   * the zoom stall once the grid stopped rebuilding — the grid was only the visible part.
+   * Report a new zoom scale — on the next frame, not now. The readout is chrome like the rest, and where a
+   * canvas hands it to .NET (`onZoom`), a per-tick call marshals an interop message and re-renders a component
+   * for every wheel event, which is the larger half of a zoom stall.
    */
   _reportZoom(scale) {
     this.#pendingZoom = scale;

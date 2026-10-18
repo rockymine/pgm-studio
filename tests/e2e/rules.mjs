@@ -2,11 +2,11 @@
  * A rule id leads somewhere, and a check list reads by rule.
  *
  * The rules page answers `/rules?rule=ID` by opening on that rule, and its filters narrow the list; the studio
- * bar links it and the account menu links the API docs. The plan editor's Checks panel lists an evaluation as one row per rule, whose
- * id links to that page in a new tab and whose places can be pressed one at a time.
+ * bar links it and the account menu links the API docs. A check list reads one row per rule, whose id links to
+ * that page in a new tab.
  */
 
-import { openBrowser, newPage, Checks, api, apiRaw, BASE } from "./lib/harness.mjs";
+import { openBrowser, newPage, Checks, api, BASE } from "./lib/harness.mjs";
 
 const checks = new Checks("rules");
 const browser = await openBrowser();
@@ -47,42 +47,17 @@ const docs = page.locator('.account-menu a[href="/api-docs"]');
 checks.add("API docs, in the account menu, opens /api-docs in a new tab",
   (await docs.getAttribute("href")) === "/api-docs" && (await docs.getAttribute("target")) === "_blank");
 
-checks.section("the plan's Checks list one row per rule");
-// A spawn and a wool room sharing an edge: WL14 fires, a hard term with both pieces as its subjects.
-const plan = {
-  plan: 2,
-  globals: { cell: 5, symmetry: "none" },
-  pieces: [{ id: "spawn", role: "spawn", rect: [0, 0, 2, 2] }, { id: "wool", role: "wool-room", rect: [2, 0, 2, 2] }],
-  placements: { spawns: [{ piece: "spawn", at: [5, 5], facing: "front" }], wools: [{ piece: "wool", at: [5, 5] }], iron: [] },
-};
-const scored = await apiRaw("/plan/evaluate", { method: "POST", body: plan });
-checks.add("the fixture fires WL14", (scored.json?.violations ?? []).some((v) => v.finding.rule === "WL14"));
-
-const slug = (await api("/plan", { method: "POST", body: { name: "e2e rules" } })).slug;
-await api(`/map/${slug}/plan`, { method: "PUT", body: plan });
-await page.goto(`${BASE}/maps/${slug}/plan`, { waitUntil: "networkidle", timeout: 30000 });
-await page.waitForSelector("canvas.world-canvas-2d", { timeout: 20000 });
-
-const row = page.locator(".problem-row", { has: page.locator(".problem-id", { hasText: "WL14" }) }).first();
+checks.section("a check list reads one row per rule");
+// The design page's ProblemList is the component every check list draws, fed from the live rules.
+await page.goto(`${BASE}/design`, { waitUntil: "networkidle", timeout: 30000 });
+const row = page.locator(".ds-problems-sample .problem-row").first();
 await row.waitFor({ timeout: 20000 });
 const link = row.locator(".problem-id");
+const rule = ((await link.textContent()) ?? "").trim();
 checks.add("the rule id links to its page in a new tab",
-  (await link.getAttribute("href")) === "/rules?rule=WL14" && (await link.getAttribute("target")) === "_blank");
-await row.locator("summary").click({ position: { x: 4, y: 8 } });
-checks.add("opening the row shows where it fired", await row.locator(".problem-place").count() > 0);
-const place = row.locator(".problem-place").first();
-await place.click();
-checks.add("a place can be pressed on its own", (await place.getAttribute("aria-pressed")) === "true");
-const badge = ((await page.locator(".panel-section .badge").first().textContent()) ?? "").trim();
-checks.add("the badge counts problems", Number(badge) > 0, badge);
+  (await link.getAttribute("href")) === `/rules?rule=${rule}` && (await link.getAttribute("target")) === "_blank", rule);
+checks.add("the worst row opens first", (await row.getAttribute("open")) !== null);
 
-// WL2 is measured rather than enforced, so its row reads as the walk it measured against its floor.
-const measured = page.locator(".problem-row", { has: page.locator(".problem-id", { hasText: "WL2" }) }).first();
-await measured.locator("summary").click({ position: { x: 4, y: 8 } });
-const reading = ((await measured.locator(".problem-full").first().textContent()) ?? "").trim();
-checks.add("a measured rule reads as its number against its floor", /^Measured .+\. At least .+\.$/.test(reading), reading);
-
-await api(`/map/${slug}`, { method: "DELETE" });
 checks.add("rules is clean", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
 checks.finish();
 await browser.close();

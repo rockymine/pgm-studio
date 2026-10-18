@@ -10,7 +10,7 @@
     @if (mark is null)
     {
       <p class="section-desc">Pick a tool and click inside a group.</p>
-      <p class="plan-readout">@markCount terraform mark@(markCount == 1 ? "" : "s") on this map.</p>
+      <p class="inspector-readout">@markCount terraform mark@(markCount == 1 ? "" : "s") on this map.</p>
     }
     else
     {
@@ -42,7 +42,7 @@
             <NumberField Value="Num(MarkFields.Radius, 4)" ValueChanged="SetRadius" Min="0" />
           </ChildContent>
         </Field>
-        <p class="plan-readout">@PointReadout</p>
+        <p class="inspector-readout">@PointReadout</p>
       }
       else if (kind == MarkKinds.Line)
       {
@@ -52,7 +52,7 @@
             <NumberField Value="Num(MarkFields.Radius, 2)" ValueChanged="SetRadius" Min="0" />
           </ChildContent>
         </Field>
-        <p class="plan-readout">@LineReadout</p>
+        <p class="inspector-readout">@LineReadout</p>
         <div class="section-header section-header--ruled"><h2 class="section-title">Heights</h2></div>
         @for (var i = 0; i < HeightCount; i++)
         {
@@ -95,7 +95,7 @@
               <NumberField Value="Batter" ValueChanged="SetBatter" Min="0" Max="89" />
             </ChildContent>
           </Field>
-          <p class="plan-readout">@TreadReadout</p>
+          <p class="inspector-readout">@TreadReadout</p>
         }
       }
       else if (kind == MarkKinds.Area)
@@ -129,7 +129,7 @@
             <NumberField Value="Bevel" ValueChanged="SetBevel" Min="0" />
           </ChildContent>
         </Field>
-        <p class="plan-readout">@AreaReadout</p>
+        <p class="inspector-readout">@AreaReadout</p>
       }
       else if (kind == MarkKinds.Scarp)
       {
@@ -157,7 +157,7 @@
             <NumberField Value="Num(MarkFields.Band, 5)" ValueChanged="SetBand" Min="1" />
           </ChildContent>
         </Field>
-        <p class="plan-readout">@ScarpReadout</p>
+        <p class="inspector-readout">@ScarpReadout</p>
       }
       else if (kind == MarkKinds.Push)
       {
@@ -182,7 +182,7 @@
         <Field Label="Roughness">
           <NumberField Value="Num(PushFields.Roughness, 0.3)" ValueChanged="SetRoughness" Min="0" Step="0.05" />
         </Field>
-        <p class="plan-readout">@PushReadout</p>
+        <p class="inspector-readout">@PushReadout</p>
 
         @* Per-vertex lift. Only for a placed push: the numbers are one per corner of the ring that was drawn,
            so there is nothing to list until there is a ring. This is what makes a drawn ridge fall along its
@@ -191,7 +191,7 @@
         {
           @if (PushCornerReadout.Length > 0)
           {
-            <p class="plan-readout">@PushCornerReadout</p>
+            <p class="inspector-readout">@PushCornerReadout</p>
           }
           @for (var i = 0; i < amounts.Count; i++)
           {
@@ -219,7 +219,7 @@
         </Field>
         @if (MarkStepReadout.Length > 0)
         {
-          <p class="plan-readout">@MarkStepReadout</p>
+          <p class="inspector-readout">@MarkStepReadout</p>
         }
       }
 
@@ -238,7 +238,7 @@
   @if (groupId is not null && editingSelection)
   {
     <Section Title="@GroupTitle">
-      <p class="plan-readout">@GroupLine</p>
+      <p class="inspector-readout">@GroupLine</p>
       <p class="section-desc">Select the group in the list to edit these.</p>
     </Section>
   }
@@ -255,7 +255,7 @@
          replaces the top of every column of its group, so a base that differs from it moves the landmass. *@
       @if (groupTop is { } top)
       {
-        <p class="plan-readout">
+        <p class="inspector-readout">
           Group top is @top.
           @if (Math.Abs(Base - top) < 0.5) { <span>The ground stays where it is.</span> }
           else if (Base > top) { <b>The group rises @Blocks(Base - top).</b> }
@@ -273,7 +273,7 @@
       </Field>
       @if (StepReadout.Length > 0)
       {
-        <p class="plan-readout">@StepReadout</p>
+        <p class="inspector-readout">@StepReadout</p>
       }
       <Field Label="Landform">
         <LabelHint>(a check only, it doesn't shape the ground)</LabelHint>
@@ -283,7 +283,7 @@
       </Field>
 
       <div class="section-header section-header--ruled"><h2 class="section-title">Grain</h2></div>
-      <p class="plan-readout">@GrainReadout</p>
+      <p class="inspector-readout">@GrainReadout</p>
       <Field Label="Amount">
         <LabelHint>(blocks)</LabelHint>
         <ChildContent>
@@ -320,7 +320,7 @@
             <NumberField Value="RimDepth" ValueChanged="SetRimDepth" Min="1" />
           </ChildContent>
         </Field>
-        <p class="plan-readout">@RimReadout</p>
+        <p class="inspector-readout">@RimReadout</p>
       }
     </Section>
   }

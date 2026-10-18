@@ -457,11 +457,11 @@
 .slice-axis { display: flex; gap: 2px; flex-shrink: 0; }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   PLAN EDITOR (the seed studio)
+   INSPECTOR READOUTS
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* Inspector stepper / readout value. */
-.plan-stepper-value {
+.stepper-value {
   flex: 1;
   align-self: center;
   text-align: center;
@@ -469,7 +469,7 @@
   color: var(--text-bright);
   font-variant-numeric: tabular-nums;
 }
-.plan-readout {
+.inspector-readout {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -478,127 +478,3 @@
   color: var(--text-bright);
 }
 
-/* Lint panel (inspector) — click a row to pulse its subjects on the canvas. */
-.plan-lint-ok {
-  display: flex; align-items: center; gap: var(--space-2);
-  font-size: var(--font-sm); color: var(--text-muted); padding: var(--space-1) 0;
-}
-.plan-lint-ok svg { width: var(--icon-md); height: var(--icon-md); color: var(--color-success); }
-.plan-lint-list { display: flex; flex-direction: column; gap: 3px; }
-.plan-lint-row {
-  display: flex; align-items: flex-start; gap: var(--space-2);
-  width: 100%; text-align: left; padding: 5px 6px;
-  background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm);
-  color: var(--text-secondary); font-size: var(--font-sm); font-family: inherit; cursor: pointer;
-}
-.plan-lint-row:hover { background: var(--border); color: var(--text-bright); border-color: var(--accent); }
-.plan-lint-dot { flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; }
-.plan-lint-dot--error { background: #d9534f; }
-.plan-lint-dot--lint  { background: #d9a441; }
-.plan-lint-chip {
-  flex-shrink: 0; font-family: ui-monospace, monospace; font-size: var(--font-xs);
-  font-weight: 600; color: var(--accent-lighter); background: var(--bg-selected);
-  border-radius: var(--radius-sm); padding: 0 5px; line-height: 1.5;
-}
-.plan-lint-msg { line-height: 1.35; }
-.plan-lint-msg::first-letter { text-transform: uppercase; }
-/* Open-from-DB rows reuse .plan-lint-row: name takes the slack, the date sits right-aligned and muted. */
-.plan-db-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.plan-db-date { flex-shrink: 0; color: var(--text-secondary); font-size: var(--font-xs); }
-/* A generated row whose composer has moved on: the stored plan still opens as-is, but its descriptor no
-   longer reproduces it, so the marker sits on the origin chip rather than on the row. */
-.plan-db-stale {
-  flex-shrink: 0; font-family: ui-monospace, monospace; font-size: var(--font-xs);
-  color: #d9a441; border: 1px solid currentColor; border-radius: var(--radius-sm);
-  padding: 0 4px; line-height: 1.4; opacity: 0.85;
-}
-.plan-lint-row--static { cursor: default; }
-.plan-lint-row--static:hover { background: transparent; color: var(--text-secondary); border-color: transparent; }
-/* Selected violation — its evidence is isolated on the canvas; the row stays lit (persistent, unlike hover). */
-.plan-lint-row--active,
-.plan-lint-row--active:hover { background: var(--bg-selected); color: var(--text-bright); border-color: var(--accent); }
-
-/* Feasibility panel — one group per box, findings indented under their box's clickable head. The unit-level
-   findings sit in their own group above, rule-cited like the rest but belonging to no single box. */
-.plan-feas-unit { margin-bottom: var(--space-3); }
-.plan-feas-unit-title,
-.plan-feas-box + .plan-feas-box { border-top: 1px solid var(--border); }
-.plan-feas-unit-title {
-  border-top: 0; padding-bottom: var(--space-1);
-  font-size: var(--font-xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
-  color: var(--text-secondary);
-}
-.plan-feas-box { padding-top: var(--space-2); margin-top: var(--space-2); }
-.plan-feas-head {
-  display: flex; align-items: baseline; gap: var(--space-2);
-  width: 100%; text-align: left; padding: 4px 6px;
-  background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm);
-  color: var(--text-bright); font-size: var(--font-sm); font-family: inherit; cursor: pointer;
-}
-.plan-feas-head:hover:not(:disabled) { background: var(--border); border-color: var(--accent); }
-.plan-feas-head:disabled { cursor: default; }
-.plan-feas-head--active,
-.plan-feas-head--active:hover { background: var(--bg-selected); border-color: var(--accent); }
-.plan-feas-id { font-family: ui-monospace, monospace; font-weight: 600; }
-.plan-feas-identity { margin-left: auto; color: var(--text-secondary); font-size: var(--font-xs); }
-.plan-lint-dot--ok { background: var(--success, #3fae74); }
-/* A finding line: the cited id (if any) then the detail, indented under its box head. */
-.plan-feas-finding {
-  display: flex; align-items: flex-start; gap: var(--space-2);
-  padding: 3px 6px 3px 20px;
-  color: var(--text-secondary); font-size: var(--font-sm); line-height: 1.35;
-}
-.plan-feas-finding--ok { color: var(--success, #3fae74); font-family: ui-monospace, monospace; font-size: var(--font-xs); }
-
-/* Compile & test drawer body content — the walk-test loop's tabs/JSON/errors/draft. The drawer shell
-   itself (backdrop · panel · header · body · footer) is the reusable SideDrawer (.side-drawer-* in
-   components.css); these classes style what sits inside its Body/Footer. */
-.plan-compile-tabs {
-  display: flex; align-items: center; gap: var(--space-2);
-  flex-wrap: wrap;
-}
-.plan-compile-tab-actions { display: inline-flex; gap: var(--space-2); margin-left: auto; }
-.plan-compile-json {
-  flex: 1; min-height: 0; overflow: auto; margin: 0;
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-code, var(--bg-selected)); border: 1px solid var(--border); border-radius: var(--radius-sm);
-  font-family: ui-monospace, monospace; font-size: var(--font-xs); line-height: 1.45;
-  color: var(--text-bright); white-space: pre; tab-size: 2;
-}
-.plan-compile-errors { display: flex; flex-direction: column; gap: 3px; }
-.plan-compile-warnings { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
-.plan-compile-draft { display: flex; flex-direction: column; gap: var(--space-2); }
-.plan-compile-draft a.action-btn { text-decoration: none; justify-content: center; }
-.plan-compile-draft-error { color: var(--color-error); }
-
-/* The rebuild confirmation: what a second build trades, said before it happens rather than discovered
-   after. Two marked lines — what goes, what stays — so the shape of the answer is readable at a glance. */
-.plan-rebuild-warn {
-  display: flex; flex-direction: column; gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--color-warning);
-  border-radius: var(--radius-md);
-  background: var(--color-warning-bg);
-}
-
-.plan-rebuild-list { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
-.plan-rebuild-list li { display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--font-sm); color: var(--text-secondary); }
-.plan-rebuild-mark { flex-shrink: 0; display: flex; margin-top: 1px; }
-.plan-rebuild-mark svg { width: var(--icon-md); height: var(--icon-md); }
-.plan-rebuild-mark--drop svg { color: var(--color-warning); }
-.plan-rebuild-mark--keep svg { color: var(--color-success); }
-
-/* The plan sidebar's three panels, as one even three-way switch rather than chips that wrap, closed by the
-   button that folds the sidebar away. */
-.plan-panel-switch { display: flex; align-items: flex-end; gap: var(--space-2); margin-bottom: var(--space-3); }
-.plan-panel-switch > :last-child { margin-left: auto; }
-/* The folded plan sidebar: a strip holding only the button that opens it again. */
-.plan-sidebar-stub {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--space-2) var(--space-1);
-  background: var(--bg-panel);
-  border-right: 1px solid var(--border);
-}

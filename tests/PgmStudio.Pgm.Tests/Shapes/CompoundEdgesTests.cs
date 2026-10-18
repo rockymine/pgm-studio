@@ -1,4 +1,3 @@
-using PgmStudio.Vocabulary;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 

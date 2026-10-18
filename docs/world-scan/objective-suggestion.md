@@ -239,10 +239,11 @@ the world is built, so the field rides through untouched and the step says so in
 touches the world, so the casing's footprint, height, wall thickness, cap and float are read out rather than
 edited: on an imported map they measure obsidian that already exists, and changing them would recompute a
 region that no longer scopes it — the failure OB8 exists to prevent, since PGM builds the goal from the
-blocks matching the material *inside* the region. On a plan-built map they are what the stamper is about to
-place, which the plan states. `leak` is the exception and is one for a reason: nothing in the world says how
-far the lava must fall, because it is an attribute on the `<core>` element and nowhere else. Shaping a casing
-belongs to the plan tool's marker panel, where the structure and the terrain under it are authored together.
+blocks matching the material *inside* the region. On a map the studio builds they are what the stamper is
+about to place, which the sketch states. `leak` is the exception and is one for a reason: nothing in the world
+says how far the lava must fall, because it is an attribute on the `<core>` element and nowhere else. Shaping a
+casing belongs to the sketch's picked-piece inspector, where the structure and the terrain under it are
+authored together.
 
 The phase itself is additive. A PGM map may carry wools, destroyables and cores at once, so Cores is its own
 phase beside Wools rather than a branch that replaces it, and the objective phases share one completeness

@@ -180,14 +180,6 @@ window.studio = {
     return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, slug);
   },
 
-  // Mount the plan editor's canvas (the seed studio): a cell grid with rect pieces/zones + markers and a
-  // live symmetry mirror ghost. dotnetRef receives OnSelect / OnTool / OnZoom / OnMeta; the handle drives
-  // the tools, globals, inspector edits and plan import/export.
-  async mountPlan(svgEl, wrapEl, cursorEl, dotnetRef) {
-    const mod = await import("/js/studio/bridge/plan-bridge.js");
-    return mod.mount(svgEl, wrapEl, cursorEl, dotnetRef);
-  },
-
   // Mount the library editor's 3-D view of the building it has open. Answers null when WebGL cannot run, so
   // the editor can say why instead of showing an empty box. The handle draws a preview's `columns` node.
   async mountHouseIso(wrapEl) {

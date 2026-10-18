@@ -13,15 +13,15 @@
     }
     else
     {
-      <p class="plan-readout">@SketchHistoryList.Who(Change) · @Moments.Ago(Change.At) · changed the @SketchHistoryList.Documents(Change.Documents)</p>
+      <p class="inspector-readout">@SketchHistoryList.Who(Change) · @Moments.Ago(Change.At) · changed the @SketchHistoryList.Documents(Change.Documents)</p>
       @if (Change.Note is { Length: > 0 } note) { <p class="change-note">“@note”</p> }
       @if (Change.Discarded is { Count: > 0 } dropped)
       {
-        <p class="plan-readout">Discarded @string.Join(", ", dropped.Select(number => $"#{number}")), which its writer hadn't seen.</p>
+        <p class="inspector-readout">Discarded @string.Join(", ", dropped.Select(number => $"#{number}")), which its writer hadn't seen.</p>
       }
       @if (OriginLink is { } link)
       {
-        <p class="plan-readout"><a href="@link" target="_blank" rel="noopener">@OriginText</a></p>
+        <p class="inspector-readout"><a href="@link" target="_blank" rel="noopener">@OriginText</a></p>
       }
     }
   </Section>
@@ -36,11 +36,11 @@
       </div>
       @if (Diff is null)
       {
-        <p class="plan-readout">Comparing…</p>
+        <p class="inspector-readout">Comparing…</p>
       }
       else if (Diff.Edits.Count == 0)
       {
-        <p class="plan-readout">No edits.</p>
+        <p class="inspector-readout">No edits.</p>
       }
       else
       {
@@ -55,7 +55,7 @@
         </div>
         @if (Diff.Edits.Count > Shown)
         {
-          <p class="plan-readout">And @(Diff.Edits.Count - Shown) more.</p>
+          <p class="inspector-readout">And @(Diff.Edits.Count - Shown) more.</p>
         }
       }
     </Section>
@@ -90,11 +90,11 @@
       }
       else if (WorldError is not null)
       {
-        <p class="plan-readout">@WorldError</p>
+        <p class="inspector-readout">@WorldError</p>
       }
       else
       {
-        <p class="plan-readout">Building both versions…</p>
+        <p class="inspector-readout">Building both versions…</p>
       }
     </Section>
     <Section>
@@ -102,7 +102,7 @@
               BusyLabel="Restoring…" Writes OnClick="() => History.RestoreAsync(From)">
         Restore to #@From
       </Button>
-      <p class="plan-readout">@RestoreReadout</p>
+      <p class="inspector-readout">@RestoreReadout</p>
       @if (RestoreError is not null) { <p class="dressing-refusal">@RestoreError</p> }
     </Section>
   }

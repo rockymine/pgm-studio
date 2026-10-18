@@ -784,13 +784,12 @@ of the back wool room and whose skirt reaches ten blocks further, tilted a room 
 room, bedrock to y17 at the back, planks at y20 the whole way, and two courses of air under half the floor.
 
 `height_authored: true` marks a room whose `floor`/`base_height` the author corrected in the sketch rather than
-the compiler, and **it is what turns the seating off**: a height stated against real ground is a statement, and
-a room the author deliberately sank or raised keeps the height they gave it. These fields live in the layout's
-`rooms` record, keyed by the room's id — its piece's — and a recompile carries a marked record forward
-(`SketchLayout.CarryRoomGround`) instead of overwriting it with the plan's own number, since the piece keeps its
-id across a recompile. This is narrower than a relief's own carry: a relief is carried unconditionally because
-it cannot be re-derived from anything, while an unmarked room keeps tracking the plan's `surface` on every
-compile, so the mechanism never masks a deliberate plan-side height change the author never asked to keep.
+the layout's writer, and it records who stated the number rather than choosing a behaviour: **what the solve
+does with the height is the room's `relief_scope`**. `follow` seats the room as above; `hold` pins it at the top
+it states, which is how a room the author deliberately sank or raised keeps the height they gave it. These
+fields live in the layout's `rooms` record, keyed by the room's id — its piece's. The sketch's picked-piece
+inspector writes the number and the flag together, and a shape patch refuses the flag, since setting it by hand
+claims a correction that was never made.
 
 ## 12. What the corpus says, and what it says about this
 
@@ -871,7 +870,7 @@ reading of the surface and the way it is edited are the same object. The field i
 traced lines — §15 says why the relaxation is not twinned in JS the way `Geom.Symmetry` is.
 
 A relief rides **top-level on the layout, keyed by group id** (`SketchReliefJson`), because the group is the
-unit it is solved over (§11) and because a plan recompile replaces every shape it produced:
+unit it is solved over (§11):
 
 ```json
 "relief": { "group-3": {
@@ -1075,20 +1074,9 @@ looks** before its runs are joined, because a face is a thing that faces a direc
 it, a small block's four sides become one run whose cell count passes the cliff width, which is the exact call
 EL6 exists to get right.
 
-**A recompile refuses rather than guesses.** A relief is expensive hand work and it is *geometry*, so a recompile
-from a plan would replace it — the same rule that already replaces hand-drawn shapes, and a much worse loss. Two
-things follow, and the second is the one with teeth. A relief is stored top-level on the layout, keyed by group,
-rather than nested inside the shapes a recompile discards, and is carried across the compile under its own rule
-rather than as a finish key: theming is a finish, terrain is not. But group identity is itself derived from the
-geometry, so a board that re-fuses does not move a group — it produces a different one, and a relief authored
-against the old fusion has nowhere correct to land. Neither of the alternatives survives that. A stable authored
-id would keep the key alive while the ground under it changed shape, which is worse than losing it, because the
-terrain would still be applied. Re-binding by footprint overlap decides by area what the author decided by
-intent, and the case it gets wrong — one group split in two, most of the relief landing on the larger half — is
-exactly the case that matters. So `PUT /map/{slug}/sketch/from-plan` answers **409** in the refusal envelope,
-one `SK1` finding per group whose relief it cannot place — the group id riding as the finding's subject —
-and writes nothing; `?force=true` accepts the loss. Discarding hours of terrain is a decision, and it belongs
-to the author.
+**A relief is keyed by group and stored beside the shapes.** A relief is expensive hand work and it is
+*geometry*, so it is stored top-level on the layout, keyed by group, rather than nested inside the shapes it
+lies over: a shape redrawn keeps its group's terrain, and theming is a finish while terrain is not.
 
 ## 16. What is open
 

@@ -1,4 +1,4 @@
-namespace PgmStudio.Vocabulary;
+namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>
 /// How much a body encloses a connected patch of empty ground beside it, by how many of the four axis
@@ -9,8 +9,8 @@ namespace PgmStudio.Vocabulary;
 ///
 /// <para>The same four words name the space a composed body publishes as a vacancy and the space an
 /// authored plan leaves between two of its pieces, because it is one classification read off a cell set
-/// either way. Three parties spell them — the shape emitter that offers a vacancy, the lint that measures
-/// how narrow a space is before a goal stands beside it, and the wire that answers both.</para>
+/// either way: the shape emitter that offers a vacancy and the lint that measures how narrow a space is before
+/// a goal stands beside it both spell them.</para>
 /// </summary>
 public static class NegativeSpaceKinds
 {

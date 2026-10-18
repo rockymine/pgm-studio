@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// POST /api/plan/compile — the plan editor's compile step. A valid plan compiles to the pair the draft
-/// pipeline consumes ({ layout, intent }); a plan with structural errors is answered 422 with the error
+/// POST /api/plan/compile — a plan's one-way import. A valid plan compiles to the pair
+/// <c>PUT /map/{slug}/source</c> stores ({ layout, intent }); a plan with structural errors is answered 422 with the error
 /// findings; a malformed body is answered 400, never 500. The endpoint is DB-free, so a bare host suffices.
 /// </summary>
 [NotInParallel("api-db")]

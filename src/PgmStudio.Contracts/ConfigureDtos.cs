@@ -32,7 +32,7 @@ public sealed record ConfigureStateDto(
 /// this exists to prevent — a client offering float 4 while the stamper builds at 6 shows the author a
 /// structure at a height nothing asked for.</para>
 ///
-/// <para>Map-independent: the plan editor opens without a map.</para>
+/// <para>Map-independent: the same words hold on every map, so it is answered without one.</para>
 /// </summary>
 /// <param name="Destroyable">What a DTM goal may be made of, and what an unauthored one is.</param>
 /// <param name="Core">What a DTC goal may be made of, and what an unauthored one is.</param>

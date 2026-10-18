@@ -55,7 +55,7 @@ test("every event a bridge fires is a [JSInvokable] some host declares", () => {
     .flatMap((path) => [...read(path).matchAll(/\[JSInvokable\]\s*public\s+[\w<>?.]+\s+(\w+)\s*\(/g)].map((match) => match[1])));
   assert.ok(declared.size > 20, "the hosts' invokable methods were found");
 
-  for (const bridge of ["sketch-bridge.js", "plan-bridge.js"]) {
+  for (const bridge of ["sketch-bridge.js"]) {
     const fired = [...read(`src/PgmStudio.Client/wwwroot/js/studio/bridge/${bridge}`).matchAll(/\bfire\("(\w+)"/g)].map((match) => match[1]);
     assert.ok(fired.length > 5, `${bridge} fires events`);
     for (const name of new Set(fired)) assert.ok(declared.has(name), `${bridge} fires ${name}, which no host declares`);

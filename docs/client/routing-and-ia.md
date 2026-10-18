@@ -26,7 +26,6 @@ shown, never name one.
 |---|---|---|
 | `/` | `Index` | the landing — a hero with an in-game picture, the maps last changed as cards, the tools, a way into the glossary |
 | `/maps` | `Maps` | every map in one table; `?stage=`, `?author=`, `?gamemode=` and `?sort=` are its filters |
-| `/maps/{slug}/plan` | `PlanTool` | the plan tool on a map |
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
 | `/maps/{slug}/configure` | `ConfigureTool` | the configure wizard |
 | `/maps/new` | `ConfigureTool` | the same tool with no slug: its Import phase, which is how a world becomes a map row |
@@ -42,10 +41,10 @@ shown, never name one.
 | `/design` | `Design` | the design system: tokens and every shared component, grouped by role |
 | `/not-found` | `NotFound` | 404 |
 
-Two tools are carried more than once, and both times the slug-less route is the origination surface: a map has
-no id until Import creates its row, and a plan has no map until it is built or authored onto one. A plan row is
-a resource of its own, so it lives in the path the way a map does, and `new` stands where its id will be. Blazor discovers routes from
-`@page`, so this table is the only inventory there is — nothing in the app enumerates them.
+Configure is carried twice, and the slug-less route is the origination surface: a map has no id until Import
+creates its row. The client has no plan surface — a plan reaches the studio only as an import
+(`POST /api/plan/compile`) and is otherwise read-only history. Blazor discovers routes from `@page`, so this
+table is the only inventory there is — nothing in the app enumerates them.
 
 ## How the client is served
 
@@ -75,7 +74,7 @@ the **Clear** beside the sidebar's *Filters* heading drops them all. The sidebar
 
 | Filter | Address | Keeps |
 |---|---|---|
-| **Stage** | `?stage=plan\|sketch\|configure` | the maps standing at that stage |
+| **Stage** | `?stage=sketch\|configure` | the maps standing at that stage |
 | **Author** | `?author=` (repeated) | maps credited to any one of the ticked authors |
 | **Gamemode** | `?gamemode=ctw\|dtm\|dtc\|none` (repeated) | maps played for any one of the ticked gamemodes, `none` for a map with none |
 | **Sort** | `?sort=name\|author\|stage` | the order; absent is last changed |
@@ -96,12 +95,12 @@ left out of the filter and the column. The Author column shows the first credite
 rest.
 
 A search box over the table narrows it by name, slug or author and stays out of the address. The header
-carries **New plan**, **New sketch** and **Import a world** whatever the filters are.
+carries **New sketch** and **Import a world** whatever the filters are.
 
 **A row opens the tool at its map's stage.** A map at `edit` has no tool at its stage, so its row opens the
 last layer it holds — Configure, where it has a world — and one holding no layer opens nothing. The **Open in**
-column is three fixed slots, Plan · Sketch · Configure, in the same place on every row. A layer the map holds is
-a link straight into its tool, so a configured map's plan and sketch are one click away whatever stage filter is
+column is two fixed slots, Sketch · Configure, in the same place on every row. A layer the map holds is
+a link straight into its tool, so a configured map's sketch is one click away whatever stage filter is
 on; the one the row opens is outlined and carries the stage's dot, which is how the table says where a map
 stands; a layer it lacks is an empty dashed slot. Below 1200px the table drops Gamemode and keeps the slots.
 
@@ -109,7 +108,8 @@ stands; a layer it lacks is an empty dashed slot. Below 1200px the table drops G
 written, and `youWroteAt` — when the caller last changed its documents themselves, in a browser rather than
 through a token, read off the change log by account (or, for an open studio's local admin, by name) — filtered on
 the client. Its own `?stage=` keeps the collection meaning an agent drives it by —
-`plan` and `sketch` list the maps holding that layer — while the page's chips filter by where a map stands.
+`sketch` lists the maps holding a sketch, `configure` and `edit` the maps standing at that stage — while the
+page's chips filter by where a map stands.
 `GET /api/maps/stage-counts` gives the landing tallies, each counting what the page shows when that card opens
 it.
 
@@ -120,7 +120,7 @@ only the studio's own bar above the page. The page is one centred column, 1240px
 
 **The hero names what the studio makes and offers two ways in.** Two equal columns: an eyebrow naming the three
 modes, a title and lead describing the pipeline from layout to `map.xml`, and two 44px buttons (`Button` with
-`Size="lg"`) — **New map** opens the maps page at the plan stage, **Browse maps** opens it unfiltered. Beside the
+`Size="lg"`) — **New map** opens the maps page at the sketch stage (`maps?stage=sketch`), **Browse maps** opens it unfiltered. Beside the
 text sits a 16:9 `MapThumb` of the newest built map — a sketch layout and its world — drawn in game; with no such map it is
 the studio mark on a token-coloured panel.
 
@@ -136,7 +136,7 @@ stage pill of its furthest layer and a line of first credited author and when it
 changed none, or is signed out, sees the three most recently updated maps under *Latest maps*.
 
 **Tools and the guide close the page.** Four tiles — Generator, Shape catalog, Library, Rules — each an icon, a
-name and a line; plans start from the maps page, so the plan editor has none. A bordered row sends a new reader
+name and a line; a map's own tools start from the maps page, so neither has a tile. A bordered row sends a new reader
 to `/glossary`. Under 1000px the cards and tiles take two columns, and under 760px everything stacks in one with
 the hero picture first.
 
@@ -167,16 +167,16 @@ lifecycle position (no `map.xml` yet against has one), which is why the labels a
 
 **Every page carries a studio bar and a bar of its own, and each answers one question.** The studio's own bar (`AppNav`) is the same
 everywhere: home, then **Maps · Generator · Library · Rules · Glossary**, each lit on the page it names and every
-page under it (Maps is lit on every `/plans/…` route too, because a plan is entered from the Maps page's *New plan*);
+page under it, so Maps is lit in a map's tools;
 and at the right icon buttons for the keyboard shortcuts (the sheet `?` also opens) and the design reference
 (`/design`), then the text size, the theme and the account. The account menu carries Tokens, Users for an admin,
 and **API docs** (`/api-docs`, which opens in a new tab, being the API's own page rather than the client's); in an
 open studio the `local admin` button opens it with Users and API docs, and a visitor's sign-in has a menu beside it
 holding API docs. The page's bar under it is the trail to where the page is and the page's own state and actions: a
-`Topbar` on a browse or admin page, and the one `EditorBar` on the three editors. So getting to another tool is
+`Topbar` on a browse or admin page, and the one `EditorBar` on the two editors. So getting to another tool is
 always one click in the top bar, and the page's bar holds nothing that is not the page's.
 
-**The editors draw one bar, not two.** Plan, Sketch and Configure draw `EditorBar` in place of a `Topbar` and a
+**The editors draw one bar, not two.** Sketch and Configure draw `EditorBar` in place of a `Topbar` and a
 step strip, so the trail, the phase and the work's commands are one row of 44 px. Left to right it holds the
 crumb and the stage switcher, the phase's icon and name with its steps, and at the right the state, the tool's
 commands, a divider and Back/Next. The bar is present in every phase, Info included, so the crumb never moves.
@@ -189,12 +189,12 @@ bar's middle, and the rail names them again. The surfaces that hold no map — t
 library, the design showcase and the maps page itself — draw a `Topbar` with no home link, because the studio's
 bar above them is already the way home.
 
-**The tool is a switcher, not a crumb.** After the map's name `StageSwitch` shows the tool the page is — *Plan*,
-*Sketch* or *Configure* — as a button whose menu lists the three. A tool is a link where the map holds that layer
+**The tool is a switcher, not a crumb.** After the map's name `StageSwitch` shows the tool the page is —
+*Sketch* or *Configure* — as a button whose menu lists the two. A tool is a link where the map holds that layer
 and a dashed, disabled entry where it does not, the same distinction the Maps table draws in its *Open in*
 column and read from the same place: `GET /api/maps` and `MapLayers.Holds`, fetched when the menu opens, because
-saving a plan or a sketch is what makes the layer. The page's own tool is always offered, marked as current.
-Where the page has no map (a plan row, the import on `/maps/new`) the word is plain text in the same box. The
+saving a sketch is what makes the layer. The page's own tool is always offered, marked as current.
+Where the page has no map (the import on `/maps/new`) the word is plain text in the same box. The
 button is set in the crumb's own font, size, weight and line height with no vertical padding, so its text shares
 the crumb's baseline; its hover and focus are a shadow that paints around the text without moving it
 (`tests/e2e/editor-bar.mjs` measures the baseline to half a pixel).

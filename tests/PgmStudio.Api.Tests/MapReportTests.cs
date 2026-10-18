@@ -21,9 +21,13 @@ public sealed partial class MapReportTests
     private static async Task<string> StoredAsync(HttpClient client)
     {
         var slug = $"report-{Guid.NewGuid():N}"[..20];
+        var compiled = await (await client.PostAsync("/api/plan/compile",
+                new StringContent(Seeds.Read("base-2wool.plan.json"), System.Text.Encoding.UTF8, "application/json")))
+            .Content.ReadFromJsonAsync<JsonElement>();
         var resp = await client.PutAsJsonAsync($"/api/map/{slug}/source", new
         {
-            plan = JsonDocument.Parse(Seeds.Read("base-2wool.plan.json")).RootElement,
+            layout = compiled.GetProperty("layout"),
+            intent = compiled.GetProperty("intent"),
             refinement = JsonDocument.Parse("""
                 {"authors":["rockymine"],"addShapes":[
                   {"id":"knoll","type":"rectangle","operation":"add","min_x":-4,"max_x":4,"min_z":-2,"max_z":2,"base_height":16},
@@ -50,7 +54,7 @@ public sealed partial class MapReportTests
     }
 
     private static bool AnswersText(string route) =>
-        route.Contains("format=text", StringComparison.Ordinal) || route is "reach" or "plan/ascii" or "plan/flow";
+        route.Contains("format=text", StringComparison.Ordinal) || route is "reach";
 
     [Test]
     public async Task Every_reading_is_the_answer_its_own_route_gives()
@@ -177,8 +181,14 @@ public sealed partial class MapReportTests
     public async Task A_map_with_no_sketch_layout_is_answered_under_SK6()
     {
         using var client = ApiTestFactory.Shared.CreateClient();
-        using var made = await client.PostAsJsonAsync("/api/plan", new { name = "Report without a sketch" });
-        var slug = JsonDocument.Parse(await made.Content.ReadAsStringAsync()).RootElement.GetProperty("slug").GetString();
+        var slug = $"bare-{Guid.NewGuid():N}"[..20];
+        await using (var db = new PgmStudio.Data.Schema.PgmDb(
+                         PgmStudio.Data.Schema.PgmDataOptions.ForConnectionString(ApiTestFactory.ConnectionString)))
+            await new PgmStudio.Data.Map.MapRepository(db).InsertAsync(new PgmStudio.Data.Schema.MapRow
+            {
+                Slug = slug, Name = "Report without a sketch", Gamemode = "ctw",
+                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+            });
 
         var resp = await client.GetAsync($"/api/map/{slug}/report");
         var body = await resp.Content.ReadAsStringAsync();

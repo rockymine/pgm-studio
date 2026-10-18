@@ -6,9 +6,8 @@ namespace PgmStudio.Contracts;
 /// <para><paramref name="Gamemodes"/> is derived from the map's objective modules, not read off its
 /// <c>&lt;gamemode&gt;</c> label. It is a set because CTW/DTM/DTC coexist, and it is empty for a map
 /// carrying no objective we read — which is a fact about the map, not missing data.</para>
-/// <para>The three <c>Has…</c> flags are the map's <b>authoring layers</b>, and a map can hold all of them
-/// at once: <paramref name="HasPlan"/> a plan document, <paramref name="HasSketch"/> a drawn sketch layout,
-/// <paramref name="HasSurface"/> the rasterized world geometry the Configure wizard works on (which also
+/// <para>The two <c>Has…</c> flags are the map's <b>authoring layers</b>, and a map can hold both at once:
+/// <paramref name="HasSketch"/> a drawn sketch layout, <paramref name="HasSurface"/> the rasterized world geometry the Configure wizard works on (which also
 /// makes a top-down block render available, <c>GET /api/map/{slug}/top-surface</c>). They are what the
 /// list draws a row's layer links from, so every tool a map has been through is one click away wherever the
 /// map is listed. <paramref name="Stage"/> is separate: how far the map has got, not which layers it
@@ -25,7 +24,6 @@ namespace PgmStudio.Contracts;
 /// <param name="UpdatedAt">When the map's row was last written (UTC).</param>
 /// <param name="HasSurface">Whether the rasterized world geometry exists — the layer the Configure wizard
 /// works on, and what makes a top-down block render available.</param>
-/// <param name="HasPlan">Whether a plan document is stored.</param>
 /// <param name="HasSketch">Whether a drawn sketch layout is stored.</param>
 /// <param name="YouWroteAt">When the caller last changed the map's documents themselves, in a browser rather
 /// than through a token (UTC), or absent where they never have. It is what the landing page's continue card
@@ -42,7 +40,6 @@ public sealed record MapSummary(
     IReadOnlyList<MapAuthorDto> Authors,
     DateTime UpdatedAt,
     bool HasSurface = false,
-    bool HasPlan = false,
     bool HasSketch = false,
     DateTime? YouWroteAt = null,
     bool AgentMade = false);
@@ -55,15 +52,12 @@ public sealed record MapSummary(
 /// <param name="All">Every map in the studio.</param>
 public sealed record MapStageCounts(int Sketch, int Configure, int All);
 
-/// <summary>Which authoring artifacts one map holds (GET /api/map/{slug}/state) — the same four facts
-/// <see cref="MapSummary"/> carries per row, asked about a single map. A tool uses it to know whether an
-/// action of its own would land on work that already exists: the plan editor's build is an origination on a
-/// map with no <see cref="Sketch"/> or <see cref="World"/>, and a rebuild on one that has them.</summary>
-/// <param name="Plan">Whether a plan document is stored.</param>
+/// <summary>Which authoring artifacts one map holds (GET /api/map/{slug}/state), asked about a single map: what
+/// a move offered from here reads (<c>MapMoves</c>).</summary>
 /// <param name="Sketch">Whether a drawn sketch layout is stored.</param>
 /// <param name="World">Whether the rasterized world geometry exists.</param>
 /// <param name="Intent">Whether the map states what it is played for.</param>
-public sealed record MapArtifacts(bool Plan, bool Sketch, bool World, bool Intent);
+public sealed record MapArtifacts(bool Sketch, bool World, bool Intent);
 
 /// <summary>One thing a caller may do to a map from where it is.</summary>
 /// <param name="Does">What the move accomplishes, in the words the tool documents use.</param>
@@ -79,7 +73,7 @@ public sealed record MapMove(string Does, string Route, bool Next);
 /// a move can read, and the stage says which move is the one being waited on. Both, and the moves they
 /// imply, are answered together so a driver reads its options instead of learning them.</para></summary>
 /// <param name="Stage">How far the map has got. A progress marker rather than a lock: nothing refuses on
-/// it, so a plan-stage map is still offered the rebuild that reads its plan.</param>
+/// it, so a configured map that holds a sketch is still offered the move that draws it again.</param>
 /// <param name="Artifacts">Which documents the map holds, which is what says what a move can read.</param>
 /// <param name="Moves">What may be done from here, each with the route that does it.</param>
 /// <param name="Behind">The library names the map's refinement holds whose row has moved on since its source was
@@ -99,5 +93,5 @@ public sealed record MapState(
 public sealed record LibraryBehindDto(string Path, string Kind, long Row, string? Name, bool Gone);
 
 /// <summary>Whether the map came from a sketch — which is what drops the Monuments step.</summary>
-/// <param name="Sketch">Whether the map was originated from a drawing rather than imported or planned.</param>
+/// <param name="Sketch">Whether the map was originated from a drawing — drawn in the studio or stated as a source — rather than imported from a world.</param>
 public sealed record MapOriginDto(bool Sketch);

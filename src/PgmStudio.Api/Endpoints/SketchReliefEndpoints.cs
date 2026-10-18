@@ -66,10 +66,9 @@ public sealed class SketchReliefOfGroupEndpoint(MapRepository repo, MapArtifactS
 /// <summary>PUT /api/map/{slug}/sketch/relief/{groupId} — state one group's interior elevation, replacing
 /// whatever that group carried.
 ///
-/// <para>It does not check that the group exists. A relief is authored against a fusion the compiler
-/// produces, and whether the id still names one is the question <c>SK1</c> answers on the compile path —
-/// where losing hand-authored terrain is the risk worth refusing over. Answering it here would refuse a
-/// relief written before the geometry it belongs to, which is an order an author works in.</para></summary>
+/// <para>It does not check that the group exists: answering it here would refuse a relief written before the
+/// geometry it belongs to, which is an order an author works in. A relief naming no group is <c>SK3</c> on the
+/// stored document.</para></summary>
 public sealed class SketchReliefWriteEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<PartWrittenDto>
 {

@@ -6,7 +6,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// GET /api/objectives/vocabulary — what the plan tool's objective inspector is allowed to offer, and what
+/// GET /api/objectives/vocabulary — what the sketch's picked-piece inspector is allowed to offer, and what
 /// each field falls back to when a marker leaves it unset.
 ///
 /// <para>The reason it is served at all is the reason to test it: the Blazor client cannot reach

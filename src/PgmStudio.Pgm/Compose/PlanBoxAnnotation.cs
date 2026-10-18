@@ -7,9 +7,9 @@ namespace PgmStudio.Pgm.Compose;
 /// Writes a composed unit's partition into a plan as the authored <see cref="PlanBox"/> annotation — the one
 /// place the compose-internal grouping crosses into the plan document.
 ///
-/// <para>It is applied when a generated plan is <b>kept</b>, never while it is being browsed: the feed stays
-/// label-free, and a board the author picked opens in the editor with the boxes that produced it already
-/// drawn. Members are written <b>explicitly</b> (<see cref="PlanBox.Members"/>) rather than left to
+/// <para>It is applied where a composed plan's boxes are read back — the reproduction gate's producibility
+/// read (<see cref="Producibility"/>) — and never on the feed, which stays label-free. Members are written
+/// <b>explicitly</b> (<see cref="PlanBox.Members"/>) rather than left to
 /// containment, because the composer knows the grouping exactly — a wool box whose envelope happens to
 /// enclose a neighbour's run must still own only its own pieces.</para>
 /// </summary>

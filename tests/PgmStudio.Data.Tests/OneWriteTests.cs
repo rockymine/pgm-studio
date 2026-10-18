@@ -84,7 +84,7 @@ public sealed class OneWriteTests
     private static Task<long> InsertMapAsync(PgmDb db) =>
         db.InsertWithInt64IdentityAsync(new MapRow
         {
-            Slug = "one-write", Name = "one write", Gamemode = "ctw", Stage = MapStage.Plan,
+            Slug = "one-write", Name = "one write", Gamemode = "ctw", Stage = MapStage.Sketch,
             CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
         });
 }

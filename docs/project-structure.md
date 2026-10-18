@@ -102,18 +102,18 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 27 | 5,175 | `Playability/` 16 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 175 | 24,942 | `Endpoints/` 84 · `Services/` 70 · `Access/` 14 · `Http/` 3 · 4 at root |
-| `Client` | 278 | 33,366 | `Features/` 156 (nested) · `Components/` 92 (nested) · `Pages/` 17 · `Layout/` 5 · `Models/` 5 · 3 at root |
-| `Contracts` | 38 | 4,346 | flat |
-| `Data` | 26 | 4,358 | `Map/` 7 · `Features/` 6 · `Theme/` 5 · `Access/` 3 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
+| `Api` | 173 | 23,880 | `Endpoints/` 84 · `Services/` 68 · `Access/` 14 · `Http/` 3 · 4 at root |
+| `Client` | 266 | 31,271 | `Features/` 144 (nested) · `Components/` 92 (nested) · `Pages/` 17 · `Layout/` 5 · `Models/` 5 · 3 at root |
+| `Contracts` | 35 | 3,996 | flat |
+| `Data` | 26 | 4,357 | `Map/` 7 · `Features/` 6 · `Theme/` 5 · `Access/` 3 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 33 | 4,306 | flat |
 | `Export` | 24 | 5,238 | flat |
 | `Geom` | 57 | 7,338 | `Algorithms/` 20 · `Render/` 7 · `Relief/` 5 · 25 at root |
 | `Import` | 4 | 498 | flat |
-| `Migrations` | 84 | 5,808 | `Migrations/` 83 · 1 at root |
+| `Migrations` | 85 | 5,828 | `Migrations/` 84 · 1 at root |
 | `Minecraft` | 114 | 23,758 | `Render/` 22 · `Palette/` 18 · `Stamping/` 18 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
-| `Pgm` | 183 | 37,048 | `Authoring/` 43 · `Compose/` 39 (nested) · `Evaluate/` 24 (nested) · `Sketch/` 16 · `Editing/` 11 · `Plan/` 11 · `Derive/` 10 · `Shapes/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
-| `Vocabulary` | 48 | 3,169 | flat |
+| `Pgm` | 182 | 36,755 | `Authoring/` 42 · `Compose/` 39 (nested) · `Evaluate/` 24 (nested) · `Sketch/` 16 · `Editing/` 11 · `Derive/` 10 · `Plan/` 10 · `Shapes/` 10 · `Render/` 5 · `Detect/` 1 · 14 at root |
+| `Vocabulary` | 47 | 3,115 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest
@@ -150,7 +150,7 @@ The friction is that their names do not announce the order they come in.
 
 | # | Representation | Lives in | Is |
 |---|---|---|---|
-| 1 | `PlanModel` (`plan_json`) | `Pgm/Plan` | the coarse cell grid — the **plan** tool's document, and what the generator emits; `plan-doc.js` is its browser twin |
+| 1 | `PlanModel` (`plan_json`) | `Pgm/Plan` | the coarse cell grid — the composer's working document, the import `POST /plan/compile` reads, and a planned map's history |
 | 2 | `SketchLayout` (`sketch_layout_json`) | `Pgm/Sketch` | the real geometry at block resolution — the **sketch** tool's document |
 | 3 | `MapIntent` (`map_intent_json`) | `Pgm/Authoring` | what the author *wants*: teams, spawns, objectives, regions — the **configure** tool's input |
 | 4 | `MapXml` + entities | `Domain/MapModel.cs` | what a finished map *is*, parsed and typed |

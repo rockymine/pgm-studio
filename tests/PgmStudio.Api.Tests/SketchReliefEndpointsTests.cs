@@ -9,11 +9,8 @@ namespace PgmStudio.Api.Tests;
 /// declared a model for, so what these routes add is not a schema but the ability to state one island's
 /// terrain without restating the board's.
 ///
-/// <para>The judgement pinned here is that a write does <b>not</b> check the group exists. A relief is
-/// authored against a fusion the compiler produces, and whether the id still names one is <c>SK1</c>'s
-/// question on the compile path — where losing hand-authored terrain is the risk worth refusing over.
-/// Answering it here would refuse a relief written before the geometry it belongs to, which is an order an
-/// author works in.</para>
+/// <para>The judgement pinned here is that a write does <b>not</b> check the group exists: answering it here
+/// would refuse a relief written before the geometry it belongs to, which is an order an author works in.</para>
 ///
 /// <para>Runs against the <c>pgm_studio_test</c> schema, so it runs serially with the other DB suites.</para>
 /// </summary>

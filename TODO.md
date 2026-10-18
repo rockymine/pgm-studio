@@ -36,10 +36,3 @@ studio usable.
   see it, and the targets none sees, over HTTP with a `?format=text` twin (pgmvox `read/sight.py`). **Open, the
   author's:** what the eyes and targets are — fixed points (spawns, goals, places) or every cell a team stands
   on. `docs/tools/sketch.md`.
-
-- [ ] **RP131 — The plan retires as a level.** The Plan tool, `PUT …/sketch/from-plan` and the `plan` stage go;
-  every stored plan stays as read-only history (D9), with the migration carrying no row away. `drive.py`, the
-  `pgm-board` skill and `ORDER-OF-WORK.md` move to sketch sources; no plan spec moves (D11), and `POST
-  /plan/compile` stays as the one-way import.
-  `docs/tools/flow.md`, `docs/tools/plan.md`.
-

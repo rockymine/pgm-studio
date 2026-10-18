@@ -9,14 +9,13 @@ using PgmStudio.Data.Schema;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// <c>PUT /map/{slug}/intent</c> and <c>…/intent/from-plan</c> — what storing an intent may and may not
-/// overwrite in the map it projects into.
+/// <c>PUT /map/{slug}/intent</c> — what storing an intent may and may not overwrite in the map it projects
+/// into.
 ///
 /// <para>The intent owns the map's structure: its teams, spawns, wools and build zones are replaced from it,
 /// which is what makes a deletion in Configure stick. It does <b>not</b> own who wrote the map — that is
 /// stated through <c>PATCH …/metadata</c> and lives in the map's own rows — so a projection that clears the
-/// credits is overwriting an answer it was never given. The rebuild drawer promises exactly that in so many
-/// words: <i>Keeps your terrain themes, room shells and placed dressing, and the map's authors.</i></para>
+/// credits is overwriting an answer it was never given.</para>
 ///
 /// <para>Runs against the <c>pgm_studio_test</c> schema, so it runs serially with the other DB suites.</para>
 /// </summary>
@@ -57,26 +56,8 @@ public sealed class IntentWriteTests
     private static Task<HttpResponseMessage> PutIntentAsync(HttpClient client, string route, string intent) =>
         client.PutAsync(route, new StringContent(intent, Encoding.UTF8, "application/json"));
 
-    /// <summary>
-    /// <b>The rebuild keeps the credits.</b> A plan rebuild replaces everything the plan states and the
-    /// authors are not among them, so an intent that names nobody leaves the map's people alone. Were it
-    /// not so, the loop a driver actually runs — state the metadata, then rebuild — would answer 200 twice and lose
-    /// the author on the second call, with nothing in either body saying so.
-    /// </summary>
-    [Test]
-    public async Task A_rebuild_from_the_plan_keeps_the_authors_it_does_not_state()
-    {
-        var (client, slug) = await MapWithAnAuthorAsync();
-        using var _ = client;
-
-        var rebuilt = await PutIntentAsync(client, $"/api/map/{slug}/intent/from-plan", Compiled);
-        await Assert.That(rebuilt.IsSuccessStatusCode).IsTrue().Because(await rebuilt.Content.ReadAsStringAsync());
-
-        await Assert.That(await AuthorsOfAsync(client, slug)).IsEquivalentTo(new[] { "Opus 5" });
-    }
-
-    /// <summary>The plain write is the same rule: Configure edits the teams and the spawns, and says nothing
-    /// about the people, so it may not clear them either — and the intent it stores names them too, since the
+    /// <summary>A write of an intent naming nobody keeps the credits: Configure edits the teams and the spawns,
+    /// and says nothing about the people, so it may not clear them either — and the intent it stores names them too, since the
     /// export reads the intent and would otherwise say the map is by nobody.</summary>
     [Test]
     public async Task Storing_an_intent_that_names_nobody_keeps_the_authors()

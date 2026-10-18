@@ -743,9 +743,8 @@ public sealed record MonumentIntent
 /// structure's corner: the box is centred on it and floats <see cref="Float"/> blocks above the surface its
 /// footprint spans, so its Y is a function of the terrain rather than an authored number.</para>
 /// <para><see cref="Anchor"/>.Y carries the plan's flat nominal height (or the global surface, for a marker
-/// placed with no piece) purely as information for a caller with no built world to read yet, such as
-/// the plan editor's own preview; it is never authoritative and no consumer downstream of the world build may
-/// read it. <see cref="Box"/>.MinY, once the world is built, is the real answer — resolved by
+/// placed with no piece) purely as information for a caller with no built world to read yet; it is never
+/// authoritative and no consumer downstream of the world build may read it. <see cref="Box"/>.MinY, once the world is built, is the real answer — resolved by
 /// <c>WorldBuilder</c> from the terrain the relief actually solved under the column, plus
 /// <see cref="Float"/> — and the only place a compiled-but-unbuilt intent's height claim should be trusted at
 /// all is that it names the right ground column (Anchor.X/Z), not the right ground level.</para>

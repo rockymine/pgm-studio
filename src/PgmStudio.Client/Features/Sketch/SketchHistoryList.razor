@@ -7,15 +7,15 @@
   <div class="panel-list">
     @if (History.ChangesError is not null)
     {
-      <p class="plan-readout">@History.ChangesError</p>
+      <p class="inspector-readout">@History.ChangesError</p>
     }
     else if (Changes is null)
     {
-      <p class="plan-readout">Loading changes…</p>
+      <p class="inspector-readout">Loading changes…</p>
     }
     else if (Changes.Count == 0)
     {
-      <p class="plan-readout">No changes yet.</p>
+      <p class="inspector-readout">No changes yet.</p>
     }
     else
     {

@@ -8,7 +8,7 @@ geometry — a plan states rectangles on a coarse grid, and everything finer tha
 
 It is also one of the two tools a map can be started in. Opened empty it is a drawing surface and nothing
 more: a sketch alone produces geometry and states no intent, so a map begun here has no teams, no spawns and
-no objective until Configure gives it one. Opened on a map that came from a plan, it receives the compiled
+no objective until Configure gives it one. Opened on a map stored from a compiled plan, it receives the compiled
 layout — the plan's abutting same-height pieces already fused into single polygons — and refines it.
 
 The route is `/maps/{slug}/sketch`. Six phases sit on the rail in the order the work is done: **Info**,
@@ -75,8 +75,7 @@ old islands unless the author confirmed it. The connectivity reads walk the buil
 **A tab writes only what was drawn in it, and only over the board it read.** It holds the `ETag` the layout
 was read at and states it as `If-Match` on every save, so where the stored board has moved on since — an agent
 driving the API, a second tab — the save is refused `RQ13` at 409 rather than writing the older board back over
-the newer (the held revision, the serialised saves and the refusal's sentence are `DocumentSave`, which the plan
-tool's map-backed save uses too). The Problems button then says so, no further save is sent until the page is reloaded, and **Download**
+the newer (the held revision, the serialised saves and the refusal's sentence are `DocumentSave`). The Problems button then says so, no further save is sent until the page is reloaded, and **Download**
 stops rather than build a board that is not the one on screen. A flush with no edit behind it — entering Review,
 leaving the tool — sends nothing at all. What a layer states and the canvas has no control for — `kind`,
 `part_of`, `seat` — is held as it was read and written back with the layer, so a made thing an API caller
@@ -96,7 +95,7 @@ below from the phase that feeds it.
 The drawing is one artifact: the `sketch_layout_json` blob on the map row, read and written through `MapArtifactStore`
 like every other artifact. It is stored **verbatim** as the browser produced it —
 authoring source rather than a canonical document — which is why the editor's own save replaces the whole blob
-and a deletion therefore sticks. Only the plan-compile path merges (below).
+and a deletion therefore sticks. No write merges.
 
 The identity of the map — its display name and authors — lives on the map row and is saved through
 `PATCH /api/map/{slug}/metadata`, not in the layout.
@@ -148,10 +147,9 @@ shape whether a layout was hand-drawn or compiled from a plan.
 | `relief` | interior elevation, keyed by group id — and `landform`, the word the group states about what kind of ground it is meant to be |
 
 Seven of those are the map's **finish** rather than its shape — `themes`, `themeSources`, `mapTheme`,
-`roomStyles`, `dressing`, `biome`, `biomeSource` — and that grouping is load-bearing: a plan cannot express any of them, so when a plan is recompiled
-onto a map the compiled layout's geometry replaces what was there while the finish is carried across
-(`CarryFinish`). Relief is *not* in that set, because a relief is geometry: it decides what the rasterizer
-emits, and it is carried by its own rule with a refusal attached (below).
+`roomStyles`, `dressing`, `biome`, `biomeSource` — and that grouping is load-bearing: none of them decides where ground stands, so a compiled layout carries
+none and a refinement states them onto it. Relief is *not* in that set, because a relief is geometry: it
+decides what the rasterizer emits.
 
 The geometry half, with one shape of each flavour — a plain rectangle, a polygon carrying per-vertex heights
 and a Bézier edge, a carve, and an erected shape standing out of the relief:
@@ -336,7 +334,7 @@ taller add wins it, and the coil is continuous. `pgm-studio-mapgen`'s `geometry.
 example, and `maps/geometry-showcase` carries the spiral ramp it builds.
 
 The other curve is `controls` on a polygon or lasso ring — per-vertex Bézier handles, absolute coordinates,
-which is what a bend fits and what the *Reshaping ground the plan compiled* section below writes. The two are
+which is what a bend fits and what the *Reshaping ground a compile drew* section below writes. The two are
 not alternatives: a ring is a closed outline of ground and takes handles, a polyline is an open line and takes
 a spline it did not ask for.
 
@@ -784,12 +782,12 @@ bottom over one text box, with no filters and no New note step; the first messag
 opening the place reads what was new in it. The places are drawn in this step and in Review's Cameras step, and
 a click here picks a place and nothing under it.
 
-**Layout's dock is the plan editor's three families.** *Pieces* places a spawn piece or a wool room, *Zones* a
+**Layout's dock has three families.** *Pieces* places a spawn piece or a wool room, *Zones* a
 build area or a water lane — each dragged out as a rectangle, the size it is drawn at — and *Markers* puts down
 an iron marker, a destroyable, a core or a defence chest with a click, centred on the block clicked, or drags out a
 wall along the line from the block the drag starts at to the one it ends at, two blocks thick at whatever angle
 that runs. A chest placed beside a wall fronts away from it, and its rail turns it a quarter at a time. A
-destroyable and a core are offered at two teams only, as the plan offers them.
+destroyable and a core are offered at two teams only.
 Each writes through `POST /map/{slug}/intent/pieces`, which places the piece and every image the symmetry draws
 of it (`PlayPieceAdd`): a spawn goes to the first team that has none and faces the middle of the board, a team's
 first wool takes its colour and every later one the next dye no wool on the board has, and a goal takes the
@@ -801,7 +799,7 @@ of the room**, as an ordinary shape of the active layer, which Ground then resha
 piece's rail offers **Delete** in Layout, which takes the piece and every image of it out of the intent; the
 ground a room brought stays, as the shape it is. Placing ends the tool unless Shift is held, as drawing does.
 
-**A picked piece's rail carries the plan editor's settings for it**, in either step and in the plan's own words:
+**A picked piece's rail carries its settings**, in either step:
 a spawn's **Facing** with a turn, a destroyable's or core's **Name**, a destroyable's **Design**, **Material** and
 **Float**, a core's **Lava footprint**, **Lava height**, **Casing**, **Float** and **Leak** with the casing and
 the dig they imply, and a wool's **Colour** (`ObjectiveFields`, the one body both tools show). Each is read from
@@ -1965,9 +1963,8 @@ rather than a reference to a library row, so the style stored here is the style 
 `HouseProp.Check` reads only its wings and joints. Its findings name the prop —
 `field` is `dressing.props[3].style.verge` and `subjects` carries the prop's own id.
 
-**It is asked on every road a layout is stored through**, not only on this one: `PUT .../sketch/from-plan`
-runs it over the merged document, and `PUT /map/{slug}/source` over the layout its refinement produced. A gate
-wired to one of the three is a gate two thirds of the maps in this repository never met.
+**It is asked on both roads a layout is stored through**, not only on this one: `PUT /map/{slug}/source` runs
+it over the layout its refinement produced.
 
 Answers **400** `{error: "invalid style or theme", message, findings[]}` (`docs/refusals.md`), one finding
 per fault, and writes nothing. A layout with no `roomStyles`, no buildings and no themes — or one whose
@@ -2216,27 +2213,6 @@ between all three and exports as raw stone with every stage answering 200. It is
 than at the `PUT`, for the reason `SK6` and `SK7` are: a board mid-draw has every right to be bare, and only
 finishing declares the drawing done.
 
-**A recompile refuses to orphan a relief.** `PUT .../sketch/from-plan` answers **409** in the refusal envelope
-(`docs/refusals.md`) — one `SK1` finding per group the new geometry has no home for, the group id riding as
-the finding's subject — and writes nothing. Group identity is derived from the geometry, so a recompile that
-re-fuses the board does not merely move a group — it produces a different one, and terrain authored against
-the old fusion has nowhere correct to land. `?force=true` accepts the loss and proceeds, which is the author's
-call and not the server's.
-
-**A shape drawn in the sketch is not carried, and the rebuild names it.** Geometry is the plan's, so a stored
-shape the compile does not produce, and which is not a room, is not in the layout the rebuild stores. That is right, and it is not silent: the answer's `dropped` lists those shapes by id beside
-`orphaned`, and one `SK29` complaint names them on the 200.
-
-**And a relief in the posted body loses to the stored one, which the same route now says out loud.** The carry
-is what the route is for — a compiled layout carries no relief, because a plan cannot express one, so the
-stored relief is the only one there is — but a caller that compiled, patched a relief onto the result and
-posted it is on the road this route documents, and for that caller the stored terrain wins in silence. Worse
-than silent: `POST .../sketch/relief/read` measures the layout in the *request body* and reports the new
-numbers, while `GET .../render/heightmap` builds the *stored* document and draws the old ground, so an
-iteration loop watching the readback sees its edits land and one watching the render does not. Each group
-whose posted relief is not the stored one now rides back as an `SK1` complaint on the 200, naming the group
-and the route that writes it: `PUT .../sketch/relief/{groupId}`.
-
 **A building refuses a footprint it cannot stamp** and **a marker refuses the void**, as above. A footprint is
 unstampable for its own size — a wing under 3 × 3, or a plan covering more than 192 blocks — or because its
 wings make no building, which is the joint model's five rules: `HJ1` two rectangles sharing blocks, `HJ2` a
@@ -2305,7 +2281,7 @@ under either reading — a board too large to realize is measured off the shapes
 before anything walks a column of it.
 
 **The play pieces are asked of the intent.** `GET /map/{slug}/findings` asks a map holding an intent the rules
-about its pieces under the ids the plan answers them by (`IntentCheck`): a map with no spawn (`PL2`) or no
+about its pieces (`IntentCheck`): a map with no spawn (`PL2`) or no
 objective (`PL3`, a complaint), a wool colour that is no dye (`PL14`), a monument form that is not one
 (`PL10`), a goal floated over its cap (`OB22`), a core's lava outside its range (`DC1`), monuments or cores on
 a map whose teams are not two (`OB14`), and four complaints about where pieces stand — an iron cube outside
@@ -2324,8 +2300,7 @@ captures is refused (`PL8`).
 **And the board's structure is read off the ground the sketch builds** (`SketchBoardCheck`), one block to a
 cell: every column the layout raises, owned by the group that draws it, and every spawn and wool region, owned
 by its room, a cell's team being the image of the spawn nearest it and building allowed over the intent's build
-areas (`SketchGround`). The board deriver reads it as it reads a plan's ground, and the same rules answer under
-their ids: a face's front line under a third of its void side or under 15 blocks (`FR8`, `FR9`), a gap beside a
+areas (`SketchGround`). The board deriver reads it, and the rules answer under their ids: a face's front line under a third of its void side or under 15 blocks (`FR8`, `FR9`), a gap beside a
 goal under 16 blocks, beside a team's own ground under 12, and a plain hole under 12 (`WL12`, `WL20`, `LN6`),
 and on a two-team wool board the strait outside 15 to 40 blocks (`CT12`), each read over the authored build
 areas where one is asked of an area. A build area running past the last ground it docks is `BZ9`, its id
@@ -2355,12 +2330,10 @@ doorstep — a block either side of its centre, just outside the region — is n
 `WL21`. Where the easiest crossing
 from a region to one owner's ground steps two blocks or more, the step is `SP8` ahead of a spawn's first door —
 its own side, and the half of each flank side toward it — and `WL11` at a wool's entry, each with its number.
-A step anywhere else is a cliff the author drew, so the plan's `EL1` is not asked of a board that has a
-sketch. An approach wall under 10 blocks from the entrance it stands before — the nearest entry parallel to
+A step anywhere else is a cliff the author drew, so `EL1` is not asked of a sketch. An approach wall under 10 blocks from the entrance it stands before — the nearest entry parallel to
 it that it overlaps along its line, joined to it by unbroken ground — is `ST11`. A wall farther out is not
 asked: a wool takes a wall per approach, and one standing out on an approach around a hole guards its own,
-which ground alone cannot tell from a wall seated too far back. Compiled from a seed, the sketch's seams say
-what its plan's do.
+which ground alone cannot tell from a wall seated too far back.
 
 **The board's measures are read off the same ground**, at the 5-block cell the corpus's bands were measured at
 (`SketchMeasures`): a cell stands where more than half its blocks do. The evaluator's own terms answer them.
@@ -2379,8 +2352,7 @@ share of ground no journey reaches and how far the attack's and the defence's ro
 band, and a term with no band yet says nothing. Nothing is summed or ranked: a measure says how the board will
 play and the author weighs it. Compiled from a seed plan, the sketch measures what the plan measures — 984 of
 989 values over the 49 seeds — and the rest are where a centre island straddles both images of a rot_180 board,
-whose team is the deriver's tie to break. Where the map
-still holds a plan, the plan answers every other rule and none of these.
+whose team is the deriver's tie to break. A plan a map still holds as history is asked nothing.
 
 ## The API
 
@@ -2400,9 +2372,8 @@ Every endpoint is rooted at `/api`; a read is open to anyone and a write needs s
 | `GET /map/{slug}/places` | — | the places as stored, or `{}`; the `ETag` is the revision to state on the next write | 404 |
 | `PUT /map/{slug}/places` | `{places: [{id, name, shape, points, holds?}], area?, verdict?}`; `?note=` kept on the change | `{}` — stored verbatim as one change in the map's history | **400 `RQ1`** a place with no id, a shape that is not `point`, `box`, `ring` or `line` or carries the wrong number of points, a point that is not `[x, z]`, an `area` whose max is not past its min, a `verdict` that is not `proposed`, `changes` or `approved` · **400 `RQ5`** two places stating one id · **400 `RQ4`** a place holding a play piece the map has none of · **403 `RQ8`** a caller who is neither an admin nor a token carrying the notes permission · **409 `RQ13`** a stale `If-Match` · 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick, but for the rooms: a room shape is stored as its `rooms` record and its rectangle is dropped; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
-| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned, dropped}` — merges the finish, the relief and any author-corrected room height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge, and so does one `SK1` per group whose **posted** relief the carry replaced with the stored one. `dropped` names the stored shapes the rebuild does not keep — every one whose id the compile does not produce and which carries no `intentRef`, which is a shape drawn in the sketch — with one `SK29` complaint naming them | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
-| `DELETE /map/{slug}/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name, credited to nobody but its originator, with nothing drawn; the Plan tool asks the same on the way out | — |
+| `DELETE /map/{slug}/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name, credited to nobody but its originator, with nothing drawn | — |
 
 **Previews over a live layout.** All four take the working document as the body rather than reading the stored
 blob, so they track unsaved edits, and all four answer 400 rather than 500 on a layout they cannot process.
@@ -2453,7 +2424,7 @@ in the same two registers.
 | `PUT /map/{slug}/sketch/map-theme` | `{id}` — which registered theme covers every cell no shape's own scope claims. Body `{"theme": "<id>"}`; a null or absent theme clears it, which paints unthemed stone. Naming a theme the registry does not carry is stored and complained about (`SK3`) rather than refused | 400 `malformed request` `RQ1` · 409 · 404 |
 | `GET /map/{slug}/sketch/relief` | every group's relief, by the group id it is solved over — a group rather than a shape, because a relief solved per shape leaves a seam wherever two of them meet and disagree about the height they share | 404 |
 | `GET /map/{slug}/sketch/relief/{groupId}` | one `SketchReliefJson` | 404 the layout states none for that group, which is every group as flat as its shapes drew it |
-| `PUT /map/{slug}/sketch/relief/{groupId}` | `{id}` — state one group's interior elevation, replacing whatever that group carried. **It does not check the group exists**: whether the id still names a fusion is `SK1`'s question on the compile path, where losing hand-authored terrain is the risk worth refusing over, and answering it here would refuse a relief written before the geometry it belongs to | 400 `malformed relief` `RQ1` · 409 · 404 |
+| `PUT /map/{slug}/sketch/relief/{groupId}` | `{id}` — state one group's interior elevation, replacing whatever that group carried. **It does not check the group exists**: answering it here would refuse a relief written before the geometry it belongs to | 400 `malformed relief` `RQ1` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/relief/{groupId}` | `{id}` — take one group's relief off the board, leaving its ground as flat as the shapes drew it | 409 · 404 |
 | `GET /map/{slug}/sketch/room-styles` | `{wool, spawn}` — both shells **resolved**, which is what the stampers will read: a part that is absent answers its built-in shell and a part bound to open ground answers null. Raw snapshots would not say which of the three states a caller is in | 404 |
 | `PUT /map/{slug}/sketch/room-styles/{part}` | `{id}` — bind the shell one kind of room is stamped in; `part` is `wool` or `spawn`. **A body of literal `null` is a statement, not an omission**: it asks for open ground, a pad rather than a building over it, which is what a spawn on a plateau the plan already shaped often wants to be. A field no house style has is named on `warnings` as `RQ3` | 400 `unknown room part` / `malformed room style` `RQ1` · 400 `invalid style or theme` `HS*` · 409 · 404 |
@@ -2569,7 +2540,7 @@ other drop, so it needs no rule of its own.
 the terrain-paint library a theme is copied from or saved to; `/room-styles` is the shell library the Theme
 phase binds from, with `/room-styles/{id}/json` for the stamper's own form; `/roof-styles`, `/storey-styles` and
 `/porch-styles` are the parts a room style is composed from. `/terrain/blocks` is the
-block palette, and `/terrain/material-preview`, `/terrain/theme-preview`, `/terrain/theme-map-preview` and
+block palette, and `/terrain/material-preview`, `/terrain/theme-preview` and
 `/terrain/prop-preview` render what an edit will look like; `/terrain/stroke-styles`, `/terrain/fluid-forms`,
 `/terrain/boulder-forms` and `/terrain/species` are the dressing vocabularies.
 
@@ -2583,10 +2554,8 @@ PUT    /api/map/voidwatch/sketch      <the layout document>
 POST   /api/map/voidwatch/sketch/finish
 ```
 
-A map that already came from a plan needs only the last two — the layout is already there, and `GET
-/api/map/{slug}/sketch` returns it to be edited and put back. Note the difference between the two write paths:
-the plain `PUT` replaces the blob, so a document that omits `themes` deletes them, while
-`.../sketch/from-plan` merges the finish onto fresh geometry.
+A map that already has a layout needs only the last two: `GET /api/map/{slug}/sketch` returns it to be edited
+and put back. The `PUT` replaces the blob, so a document that omits `themes` deletes them.
 
 ### Answering the notes an author left
 
@@ -2644,7 +2613,7 @@ POST  /api/notes/handoff               the same, after the Routine is fired
 {"again": true}
 ```
 
-### Reshaping ground the plan compiled
+### Reshaping ground a compile drew
 
 A plan compiles to a staircase of rectangles. That is the board's *arrangement* — which ground is where, at
 what height, next to what — and it is not the board's *shape*. Turning the one into the other is the work this
@@ -2679,7 +2648,7 @@ Nine such calls take a one-piece plan's compiled rectangle — `island-12`, 4 ve
 put them. That is the whole workflow: a small plan for the arrangement, and the shape drawn on top of it.
 
 Three things are refused, and all three for the same reason — the edit would leave a shape nothing can build
-from. A `role` shape is the plan's own room rectangle, which a recompile redraws and a stamper seats a
+from. A `role` shape is a room's rectangle, which the intent places and a stamper seats a
 building on. A rectangle or a circle states its bounds rather than an outline and has no points to address. And
 a move, an insert or a delete that folds the ring across its own far side is refused rather than clamped,
 because a folded outline rasterizes as ground with a hole nobody drew. An index the outline does not carry is
@@ -2809,15 +2778,14 @@ alone is not a backup of the notes (`docs/deployment.md`).
 
 The rooms are drawn in from the intent, and **no shape edit reshapes one**. A spawn or wool room and the
 building inside it are rendered so they stay visible while the ground around them is refined; a vertex, bend
-or shape patch on one is refused, and a recompile places them from the plan again. The building is drawn where
-the plan tool draws it, so the two tools show one rectangle rather than each showing its own.
+or shape patch on one is refused, and a room is moved and resized as a play piece instead.
 
 **Every other play piece is drawn too, from `GET /map/{slug}/intent/pieces`**: each destroyable and core at its
 structure's footprint, each build area, water lane and iron cube at its rectangle, each approach wall as the
 band two blocks thick along its line, each defence chest at its block, and the
 observer at the block it stands in, and each room's point — where a spawn's team arrives (`spawnPoint`) and where
 a wool is dispensed (`woolSpawn`) — at the block-wide square centred on it, its id the room's with `-marker` after
-it, in the colour the plan tool draws the same thing in (`PlayPieces`). Unlike a
+it, in its kind's colour (`PlayPieces`). Unlike a
 room none of these is ground, so none is a shape of the layout: the canvas holds them beside the rooms and
 writes none of them into a save. An image the symmetry draws that the intent does not store, and an iron cube
 seated in a spawn room, is drawn dashed and cannot be picked, since it moves only with the piece it is an image
@@ -2828,9 +2796,8 @@ phase that edits geometry — a click lands on the piece under the cursor before
 the piece is drawn over that ground and is what the pointer is on; `ctrl`-click reaches past it to the island,
 the same modifier that already means *deeper*. The picked piece is ringed on the canvas and opens a rail of its
 own: what kind it is, whose it is, its extent, and — for a **region** — the height it was compiled at. That
-number is the plan's flat surface and every recompile writes it again, until an author corrects it here;
-correcting it writes the number and the author's-height flag together, which is what makes the correction
-survive the next compile (the room's record, matched by its id, `SketchLayout.CarryRoomGround`). A **building**
+number is the flat surface the layout was written with until an author corrects it here; correcting it writes
+the number and the author's-height flag together on the room's record. A **building**
 footprint carries no height of its own — the region it stands in is what a group's relief is held against —
 so its rail states that and offers no field, and a piece that is not a room has a rail of its kind and extent
 alone. Picking a piece drops whatever terrain selection was standing,
@@ -2863,11 +2830,10 @@ moves blue's five blocks west, and a building is held inside its own region on e
 stating no stamp is its own unit and moves alone, and the route's `alone` moves one image without the others.
 The rest move the same way, block by block for the pieces that stand on whole blocks, and a build area or a
 water lane, which carries no stamp, moves the areas standing where the symmetry carries it. Where the intent
-states no symmetry — an intent compiled from a plan states none — the route takes the board's from the sketch's
+states no symmetry — a compiled intent states none — the route takes the board's from the sketch's
 setup. The same route **turns a room** a quarter at a time about the middle of its region, its doors and the way
 its players face turning with it, and a mirror image turns the other way (`docs/tools/configure.md`); the rail of
-a picked room, building, build area or water lane turns it with its two turn buttons. And a plan rebuild draws the rectangle from the plan again, which is the
-standing rule for structure rather than anything about this edit.
+a picked room, building, build area or water lane turns it with its two turn buttons.
 
 The layout model carries one shape type the **Draw** dock cannot draw: a `circle`, which rasterizes as a 64-gon
 and arrives only in a document written outside the editor.
@@ -2881,10 +2847,9 @@ Symmetry here is a **preview and a mirror flag**, not a constraint. Shapes are d
 export for every group that opted in; nothing stops an author drawing across the axis, and nothing checks that
 the two halves agree. The relief readback reports a symmetry error precisely because nothing prevents one.
 
-Almost nothing validates a sketch. The only questions asked of it are whether anything was drawn at all,
-whether a recompile would orphan hand-authored terrain, and — since the house-style gate above — whether a
-bound room style is one its own geometry can be built from; there is no lint, no rule set and no score over the
-drawing itself. What a board plays like is Configure's pre-flight and, past that, a human's.
+Almost nothing refuses a sketch. The only questions that stop one are whether anything was drawn at all and
+whether a bound room style is one its own geometry can be built from; the board rules above are complaints a
+map's findings carry, and there is no score over the drawing itself. What a board plays like is Configure's pre-flight and, past that, a human's.
 
 **Only a stored board is pictured.** The world reads and the Review phase draw the world the *stored* layout
 and intent build, which is why the phase saves before it draws. A working layout posted as a body — what

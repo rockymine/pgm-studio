@@ -792,8 +792,8 @@ public partial class SketchTool
     [JSInvokable]
     public void OnEditNote(string? message) { editNote = message; StateHasChanged(); }
 
-    /// <summary>Correct the height the selected region was compiled at. The bridge writes the number and the
-    /// author's-height flag together, which is what makes the correction outlive the next recompile.</summary>
+    /// <summary>Correct the height the selected region is held at. The bridge writes the number and the
+    /// author's-height flag together.</summary>
     private Task TurnStructural(int quarters) =>
         selectedStructural is null || handle is null
             ? Task.CompletedTask

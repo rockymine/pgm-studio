@@ -58,7 +58,6 @@ public sealed class UnreadFieldTests
 
         await Silent(await client.PutAsync($"/api/map/{slug}/sketch", Json(Layout)), "PUT sketch");
         await Silent(await client.PutAsync($"/api/map/{slug}/intent", Json(Intent)), "PUT intent");
-        await Silent(await client.PutAsync($"/api/map/{slug}/plan", Json(Plan)), "PUT plan");
         await Silent(await client.PostAsync("/api/plan/compile", Json(Plan)), "POST plan/compile");
     }
 

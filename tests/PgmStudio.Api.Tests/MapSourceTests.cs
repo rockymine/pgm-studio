@@ -11,10 +11,9 @@ namespace PgmStudio.Api.Tests;
 
 /// <summary>
 /// <c>PUT /map/{slug}/source</c> — a map stored from its source. What it has to prove is that the map it leaves
-/// behind is a whole one: the plan is there to re-plan from, the drawing has been rasterized into geometry, the
-/// intent has been projected into the document, and the credits survived that projection; that a plan is
-/// compiled and its refinement applied in the same request; and that everything a source can be refused for is
-/// decided before the board it would replace is touched.
+/// behind is a whole one: the drawing has been rasterized into geometry, the intent has been projected into the
+/// document, and the credits survived that projection; that a refinement is applied in the same request; and
+/// that everything a source can be refused for is decided before the board it would replace is touched.
 ///
 /// <para>Runs against the <c>pgm_studio_test</c> schema, so it runs serially with the other DB suites.</para>
 /// </summary>
@@ -33,7 +32,6 @@ public sealed class MapSourceTests
 
     private static object Body(object? authors = null, string? name = "Weirgate") => new
     {
-        plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
         layout = JsonDocument.Parse(Layout).RootElement,
         intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate","authors":[],"contributors":[]}}""").RootElement,
         refinement = authors is null ? (object?)null : new { authors },
@@ -55,15 +53,14 @@ public sealed class MapSourceTests
         await Assert.That(loaded.GetProperty("cells").GetInt32()).IsGreaterThan(0);
         await Assert.That(loaded.GetProperty("islands").GetInt32()).IsEqualTo(1);
 
-        // The four layers a whole map carries — the plan to re-plan from, the drawing, the world geometry the
-        // finish wrote, and the intent. An imported world would have only the third.
+        // The three layers a whole map carries — the drawing, the world geometry the finish wrote, and the
+        // intent. An imported world would have only the second.
         var state = await client.GetFromJsonAsync<MapState>($"/api/map/{slug}/state");
-        await Assert.That(state!.Artifacts.Plan).IsTrue();
-        await Assert.That(state.Artifacts.Sketch).IsTrue();
+        await Assert.That(state!.Artifacts.Sketch).IsTrue();
         await Assert.That(state.Artifacts.World).IsTrue();
         await Assert.That(state.Artifacts.Intent).IsTrue();
 
-        // And a map holding all four is offered the export, which a map holding none of them is not.
+        // And a map holding all three is offered the export, which a map holding none of them is not.
         await Assert.That(state.Moves.Select(move => move.Route)).Contains("GET /api/map/{slug}/export");
     }
 
@@ -184,7 +181,6 @@ public sealed class MapSourceTests
 
         var nothingDrawn = await client.PutAsJsonAsync(Source, new
         {
-            plan = JsonDocument.Parse("{}").RootElement,
             layout = JsonDocument.Parse("""{"layers":[{"base_y":0,"layout":{"shapes":[],"groups":[]}}]}""").RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"}}""").RootElement,
             name = "Weirgate",
@@ -193,7 +189,6 @@ public sealed class MapSourceTests
 
         var unnamable = await client.PutAsJsonAsync(Source, new
         {
-            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(Layout).RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate","authors":[{"name":" not<a>name "}]}}""").RootElement,
             name = "Weirgate",
@@ -222,7 +217,6 @@ public sealed class MapSourceTests
 
         var nameless = await client.PutAsJsonAsync(Source, new
         {
-            plan = JsonDocument.Parse("{}").RootElement,
             layout = JsonDocument.Parse(Layout).RootElement,
             intent = JsonDocument.Parse("{}").RootElement,
         });
@@ -238,7 +232,6 @@ public sealed class MapSourceTests
 
         var resp = await client.PutAsJsonAsync("/api/map/empty/source", new
         {
-            plan = JsonDocument.Parse("{}").RootElement,
             layout = JsonDocument.Parse("""{"layers":[{"base_y":0,"layout":{"shapes":[],"groups":[]}}]}""").RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Empty"}}""").RootElement,
         });
@@ -251,9 +244,9 @@ public sealed class MapSourceTests
         await Assert.That(maps.EnumerateArray().Any(m => m.GetProperty("slug").GetString() == "empty")).IsFalse();
     }
 
-    /// <summary>Four documents in one body, so a name none of them can keep is named with the member it was
+    /// <summary>Several documents in one body, so a name none of them can keep is named with the member it was
     /// posted under. A single-document write answers <c>RQ3</c> for its own body; this one has to say which of
-    /// the four said it, or the complaint cannot be acted on — and a member the source itself does not have is
+    /// them said it, or the complaint cannot be acted on — and a member the source itself does not have is
     /// named bare.</summary>
     [Test]
     public async Task Every_document_answers_for_the_fields_it_could_not_keep()
@@ -262,7 +255,6 @@ public sealed class MapSourceTests
 
         var resp = await client.PutAsJsonAsync(Source, new
         {
-            plan = JsonDocument.Parse("""{"cell":9,"pieces":[],"celll":9}""").RootElement,
             layout = JsonDocument.Parse(Layout.Replace("\"setup\"", "\"setupp\":{},\"setup\"")).RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"},"teamz":[]}""").RootElement,
             refinement = JsonDocument.Parse("""{"themeByHeigth":{"12":"heath"}}""").RootElement,
@@ -277,20 +269,19 @@ public sealed class MapSourceTests
             .Select(warning => warning.GetProperty("field").GetString())
             .ToList();
 
-        await Assert.That(named).Contains("plan.celll");
         await Assert.That(named).Contains("layout.setupp");
         await Assert.That(named).Contains("intent.teamz");
         await Assert.That(named).Contains("refinement.themeByHeigth");
         await Assert.That(named).Contains("refinment");
     }
 
-    /// <summary>A source states its base: a plan, or a drawn layout together with the intent it is played for.
-    /// Half a drawn pair, or no base at all, is refused as the request's own fault, naming the member that is
-    /// missing — and nothing is stored.</summary>
+    /// <summary>A source states its base: a layout together with the intent it is played for. Half the pair, or
+    /// no base at all, is refused as the request's own fault, naming the member that is missing — and nothing is
+    /// stored.</summary>
     [Test]
     [Arguments("layout", """{"name":"nodoc","intent":{"meta":{"name":"nodoc"}}}""")]
-    [Arguments("intent", """{"name":"nodoc","plan":{"cell":9,"pieces":[]},"layout":{"layers":[]}}""")]
-    [Arguments("plan", """{"name":"nodoc","refinement":{"created":"2026-09-30"}}""")]
+    [Arguments("intent", """{"name":"nodoc","layout":{"layers":[]}}""")]
+    [Arguments("layout", """{"name":"nodoc","refinement":{"created":"2026-09-30"}}""")]
     public async Task A_source_stating_no_whole_base_names_what_it_lacks(string field, string body)
     {
         using var client = await FreshAsync();
@@ -307,6 +298,24 @@ public sealed class MapSourceTests
         await Assert.That(maps.EnumerateArray().Any(m => m.GetProperty("slug").GetString() == "nodoc")).IsFalse();
     }
 
+    /// <summary>A plan is not a source: it is compiled first, and a source stating one is refused naming the
+    /// route that does.</summary>
+    [Test]
+    public async Task A_source_stating_a_plan_is_refused_naming_the_compile()
+    {
+        using var client = await FreshAsync();
+        var refused = await client.PutAsJsonAsync("/api/map/nodoc/source", new
+        {
+            plan = JsonDocument.Parse(Seeds.Read("base-2wool.plan.json")).RootElement,
+            name = "nodoc",
+        });
+
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("plan");
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("POST /api/plan/compile");
+    }
+
     /// <summary>One field the binder cannot read is a refusal naming it, not a default intent with no teams,
     /// spawns or objectives stored at 200 — and nothing is stored, so the export gate has no empty map to
     /// open on. <c>modes</c> is a real field; it takes objects, not the bare words posted here.</summary>
@@ -317,7 +326,6 @@ public sealed class MapSourceTests
 
         var resp = await client.PutAsJsonAsync(Source, new
         {
-            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(Layout).RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"},"modes":["dtm"]}""").RootElement,
             name = "Weirgate",
@@ -448,17 +456,21 @@ public sealed class MapSourceTests
         ];
     }
 
-    /// <summary><b>A plan is the base, and its refinement lands in the request that stores it.</b> The board the
-    /// plan compiles to comes back with the relief, the date and the credits a plan has no words for, and the map
-    /// keeps all of it as one change carrying the note it was stated with.</summary>
+    /// <summary><b>A plan comes in through the compile, and its refinement lands in the request that stores
+    /// it.</b> The board the plan compiles to comes back with the relief, the date and the credits a plan has no
+    /// words for, and the map keeps all of it as one change carrying the note it was stated with.</summary>
     [Test]
-    public async Task A_plan_is_compiled_and_refined_in_the_one_change_that_stores_it()
+    public async Task A_compiled_plan_is_stored_and_refined_in_the_one_change()
     {
         using var client = await FreshAsync();
 
+        var compiled = await (await client.PostAsync("/api/plan/compile",
+                new StringContent(Seeds.Read("base-2wool.plan.json"), Encoding.UTF8, "application/json")))
+            .Content.ReadFromJsonAsync<JsonElement>();
         var resp = await client.PutAsJsonAsync("/api/map/twowool/source", new
         {
-            plan = JsonDocument.Parse(Seeds.Read("base-2wool.plan.json")).RootElement,
+            layout = compiled.GetProperty("layout"),
+            intent = compiled.GetProperty("intent"),
             refinement = JsonDocument.Parse("""
                 {"relief":{"*":{"base":3}},"created":"2026-09-30","authors":["Opus 5"]}
                 """).RootElement,
@@ -487,7 +499,7 @@ public sealed class MapSourceTests
             .GetProperty("changes").EnumerateArray().Single();
         await Assert.That(change.GetProperty("note").GetString()).IsEqualTo("the first pass");
         await Assert.That(change.GetProperty("documents").EnumerateArray().Select(document => document.GetString()!))
-            .IsEquivalentTo(["plan", "refinement", "layout", "intent"]);
+            .IsEquivalentTo(["refinement", "layout", "intent"]);
     }
 
     /// <summary><b>A dry run is decided and not stored.</b> It answers what the source would change in the documents
@@ -502,7 +514,7 @@ public sealed class MapSourceTests
             .Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(first.GetProperty("change").ValueKind).IsEqualTo(JsonValueKind.Null);
         await Assert.That(Edits(first).Select(edit => edit.Document).Distinct())
-            .IsEquivalentTo(["plan", "refinement", "layout", "intent"]);
+            .IsEquivalentTo(["refinement", "layout", "intent"]);
         await Assert.That(first.GetProperty("layout").GetProperty("layers")[0].GetProperty("layout")
             .GetProperty("shapes")[0].GetProperty("id").GetString()).IsEqualTo("s1");
         await Assert.That(first.GetProperty("intent").GetProperty("meta").GetProperty("authors")[0]
@@ -518,7 +530,6 @@ public sealed class MapSourceTests
         var smaller = Layout.Replace("\"max_x\":20", "\"max_x\":10");
         var dry = await client.PutAsJsonAsync($"{Source}?dry=true", new
         {
-            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(smaller).RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate","authors":[],"contributors":[]}}""").RootElement,
         });
@@ -526,7 +537,7 @@ public sealed class MapSourceTests
 
         await Assert.That(Edits(answer).Select(edit => (edit.Document, edit.Path, edit.Op)))
             .IsEquivalentTo([("layout", "layers[0].layout.shapes[s1].max_x", "set")])
-            .Because("the plan and the intent are the ones the map holds");
+            .Because("the refinement and the intent are the ones the map holds");
         await Assert.That(answer.GetProperty("replaced").GetBoolean()).IsTrue();
         await Assert.That(await StoredMaxXAsync(client)).IsEqualTo(20d);
         var changes = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/changes");
@@ -550,7 +561,6 @@ public sealed class MapSourceTests
 
         var refused = await client.PutAsJsonAsync(Source, new
         {
-            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(Layout).RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"}}""").RootElement,
             refinement = JsonDocument.Parse("""{"editShapes":{"s1":[{"x":1,"z":1}]}}""").RootElement,
@@ -564,7 +574,6 @@ public sealed class MapSourceTests
 
         var said = await client.PutAsJsonAsync(Source, new
         {
-            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(Layout).RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"}}""").RootElement,
             refinement = JsonDocument.Parse("""{"themeById":{"s9":"heath","s1":"heath"}}""").RootElement,
@@ -631,7 +640,6 @@ public sealed class MapSourceTests
         using var client = await HandEditedAsync();
         var seen = await client.PutAsJsonAsync(Source, new
         {
-            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(Layout).RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate","authors":[],"contributors":[]}}""").RootElement,
             refinement = new { authors = new object[] { "Opus 5" } },
@@ -673,7 +681,6 @@ public sealed class MapSourceTests
 
         var future = await client.PutAsJsonAsync(Source, new
         {
-            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(Layout).RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"}}""").RootElement,
             after = 9,

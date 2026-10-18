@@ -5,7 +5,7 @@ tree). This is the orientation document for the browser-side half of the studio:
 each module is for, which rules keep them from tangling, and where the known rough edges are. Blazor owns
 chrome, forms, state and persistence; this layer owns everything that draws or responds to a pointer.
 
-Read alongside `../tools/sketch.md` and `../tools/plan.md` (what the two drawing tools mean), and
+Read alongside `../tools/sketch.md` and `../tools/configure.md` (what the two map tools mean), and
 `../tools/flow.md` (which tool works at which level, and how a map moves between them).
 
 ## 1. The one fact that frames everything
@@ -22,11 +22,10 @@ breaking one breaks all of them. The `if`/mode branches that configure the canva
 (`IslandSelect`, `SymmetryMode`, `PointPick`, `RectDraw`) are intentional configuration, not
 duplication — leave them alone.
 
-The other three canvases are genuinely separate engines because they draw different things: `PlanCanvas`
-(the coarse cell grid of the plan editor), `SketchCanvas` (freeform shapes and boolean groups), and
-`SideviewCanvas` (a Canvas2D depth cross-section).
+The other two canvases are genuinely separate engines because they draw different things: `SketchCanvas`
+(freeform shapes and boolean groups) and `SideviewCanvas` (a Canvas2D depth cross-section).
 
-All three drawing surfaces — world, plan and sketch — are **hybrid**: the world layers are painted each
+Both drawing surfaces — world and sketch — are **hybrid**: the world layers are painted each
 frame to a 2-D `<canvas>` pinned under the `<svg>` (via `render/canvas-painter.js` — the fix for Firefox
 holding a stale rasterization across a zoom), while the screen-space chrome (labels, selection box, resize
 handles, the scale bar) stays in the svg, which is also the single pointer target. Two consequences run
@@ -38,12 +37,12 @@ paint order through `painter.layers` rather than through `data-layer`. The fixed
 (`ConfigureRenderer`) are retained SVG on purpose: with no viewport transform, they hold no rasterization
 that can go stale.
 
-`SideviewCanvas` is the fourth surface and the odd one: it is painted throughout, with no svg half at all.
+`SideviewCanvas` is the third surface and the odd one: it is painted throughout, with no svg half at all.
 It has no viewport matrix either — its viewport is a fitted integer scale with centring offsets, and it
 neither pans nor zooms, which is why it does not extend `CanvasBase`. It shares `CanvasPainter` for the
 backing store (the CSS box × device pixel ratio) and the colour-token cache, and it draws through the
 primitives whose call sites take plain numbers: `text`, `dot`, `line`. The box-shaped primitives are named
-for the plan's x/z axes while this surface's second axis is elevation, so `min_z` would name a Y — those
+for the map's x/z axes seen from above while this surface's second axis is elevation, so `min_z` would name a Y — those
 draws are raw context calls inside a `layer()` phase, which brackets them in save/restore.
 
 **Every colour a canvas draws in is a token, except the game's own.** The axis, a piece role, a box kind, a
@@ -53,32 +52,35 @@ zone, an objective, a building, a dressing prop, a seam, rule evidence, a diff a
 `var(--canvas-…)` with no fallback beside it, so the stylesheet is the one source. An svg attribute takes the
 reference as it stands; the painter resolves it through `token` and drops its cache when `data-theme` moves.
 
-The per-kind tables name those tokens rather than colours: `ROLE_COLORS`, `BOX_COLORS` and `ZONE_COLORS` in
-`plan/plan-doc.js`, `OBJECTIVE_COLORS`, `BUILDING_COLORS`, `UNKNOWN_KIND_COLOR` and `REFUSED_COLOR` in
-`render/primitive-style.js`, and `KIND_STYLE` in `render/dressing-render.js`. The role tokens stay `#rrggbb`,
-because the plan resolves one and tints it towards white by the piece's surface height.
+The per-kind tables name those tokens rather than colours: `OBJECTIVE_COLORS`, `BUILDING_COLORS`,
+`UNKNOWN_KIND_COLOR` and `REFUSED_COLOR` in `render/primitive-style.js`, `ROLE_FILL` and `PIECE_FILL` in
+`render/sketch-render.js`, and `KIND_STYLE` in `render/dressing-render.js`.
 
 Three kinds of colour stay literal. Minecraft's chat and dye colours are game data: `render/palette.js`
 mirrors `game-colors.json`, which the C# reads too, under a drift test, and a team, a wool or a monument is
-drawn in its own. A height ramp — the plan's height map, the relief marks, the side view's depth shading — is
+drawn in its own. A height ramp — the relief marks, the side view's depth shading — is
 a function of a value whose stops sit beside it. And the painter's fallback for a token it cannot read is a
 literal, because it is what paints when the token is missing.
 
-## 2. Five layers, one direction
+## 2. Seven layers, one direction
 
-Modules are grouped by archetype, and imports run strictly **downward** — verified, with no cycles:
+Modules are grouped by archetype, and imports run strictly **downward** — verified against the `import`
+statements, with no cycles. *documents* is the three document folders, `dressing/`, `relief/` and `theme/`:
 
 ```
-bridge      → canvas, plan, geometry, vendor
-canvas      → controllers, plan, render, geometry
-controllers → render, geometry
-plan        → render, geometry
-render      → geometry
+bridge      → canvas, controllers, render, documents, shared, geometry
+canvas      → controllers, render, documents, shared, geometry
+controllers → render, documents, shared, geometry
+render      → documents, shared, geometry, vendor
+documents   → shared, geometry
+shared      → geometry
 geometry    → (vendor only)
 ```
 
-`geometry/` and `plan/` are pure: point arrays and numbers, **no DOM**, which is exactly why they are the
-parts under unit test (§7). `render/` is stateless emit in two dialects. The **painted** dialect is the
+`geometry/` and the documents are pure: point arrays, numbers and wire-shaped state, **no DOM**, which is
+exactly why they are the parts under unit test (§7). `shared/` is mixed — `pick.js` and `building.js` are
+pure, while `keys.js`, `ui-scale.js` and `panel-resize.js` listen on the page.
+`render/` is stateless emit in two dialects. The **painted** dialect is the
 default and takes a `CanvasPainter` plus data: `shape-render`, `sketch-render`, `symmetry-render`,
 `canvas-chrome`'s working area, and `primitive-style`'s whole vocabulary speak it. The **retained** dialect
 (`svg.js`) covers what stays in the DOM — the screen-space overlays and the fixed-fit previews. Where both
@@ -100,28 +102,29 @@ canvas layer can then reuse or test it.
 | `geometry/decompose-cut.js` | lane decomposition: lasso enclosure, edge markers, splitting a piece at two seams |
 | `geometry/symmetry.js` | the JS twin of `PgmStudio.Geom.Symmetry` (see the warning in `CLAUDE.md`) |
 | `geometry/islands.js`, `region-convert.js` | GeoJSON coercion; PGM `+1`-rule bounds conversions |
-| `plan/plan-doc.js` | the plan document model + its geometry (pure; the wire format lives here) |
-| `plan/plan-inspect.js` | derived-structure overlay helpers for the plan inspect layer |
+| `dressing/dressing-doc.js` | the dressing document: the flat list of placed props, in the wire shape `DressingDoc` deserializes, and `onLayer` (§6) |
+| `relief/relief-doc.js`, `contour-drag.js` | the relief document, keyed by group id as `SketchLayout.Relief` is; and what dragging a contour means, as a `line` mark |
+| `theme/theme-model.js` | the unthemed ground a new terrain theme starts from, and the theme id uniquifier |
 | `render/svg.js` | the retained dialect: the element factory for the screen-space overlays and the fixed-fit previews, plus the path builders both dialects share |
 | `render/layer-stack.js` | the z-ordered **screen-space** layer groups, declared once per canvas (key order = paint order, bottom first); each group carries `data-layer="<name>"`, plus `showLayers`/`clearLayer` |
 | `render/canvas-painter.js` | the painted dialect, and the whole of it: a DPR-aware 2-D surface — `begin(scale, pan)` applies the viewport so draws are in world units, `layer(name, paint)` brackets each phase in save/restore and records its name (`painter.layers` is the queryable paint order), `screenPx` holds a constant screen size — a stroke width, and equally a label's `size`, since text asked for in world units grows with the map and a label states what a thing *is* rather than how big it is, `token`/`color` resolve and cache CSS custom properties (demoting any value the context won't parse), `toSurface` carries the world→surface fit, and the primitives (`rect`/`line`/`segments`/`circle`/`dot`/`ellipse`/`path`/`ring`/`poly`/`text`/`image`) take world coordinates and one style vocabulary |
 | `render/canvas-chrome.js` | viewport-derived chrome shared by the drawing canvases: the visible-world rect, the grid-step ladder, the painted working area, the scale bar, the dimension pill, and the **transform box** every surface scales a selection by (§5) |
 | `render/shape-render.js`, `sketch-render.js`, `symmetry-render.js`, `block-render.js` | shared stateless painting for primitives, sketch overlays, symmetry axes, block PNGs |
-| `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, across all four editors |
+| `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, for the world canvas and the sketch alike |
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
 | `render/column-mesh.js` | the server's per-column runs → the triangles that preview draws; decides which faces are seen, and drops the runs of any sketch layer the viewer has hidden before deciding |
 | `bridge/live-feed.js` | the one debounced, sequence-guarded POST of a bridge's document to a route, answering only the latest request, and the one `refusalText` that reads the sentence out of a refusal envelope |
-| `bridge/iso-preview.js` | the 3-D preview both authoring bridges drive: enter, the mesh kept against the document it came from, rotate, layer hiding, and the two reasons it cannot run |
+| `bridge/iso-preview.js` | the 3-D preview the sketch bridge drives: enter, the mesh kept against the document it came from, rotate, layer hiding, and the two reasons it cannot run |
 | `bridge/house-iso-bridge.js` | the library's 3-D building: an `IsoScene` on a wrap with no canvas under it (§6) |
 | `canvas/canvas-base.js` | the shared pan/zoom/drag machinery (§3) |
 | `canvas/world-canvas.js` | the world engine every Configure canvas step mounts (§1) |
-| `canvas/plan-canvas.js`, `sketch-canvas.js`, `sideview-canvas.js` | the plan grid, the sketch surface, the depth cross-section (all painted; the first two hybrid, the third painted throughout) |
+| `canvas/sketch-canvas.js`, `sideview-canvas.js` | the sketch surface, the depth cross-section (both painted; the first hybrid, the second painted throughout) |
 | `canvas/static-renderer.js`, `configure-renderer.js` | fixed-fit non-interactive previews |
 | `controllers/*` | one interaction mode each (§4) |
 | `bridge/*` | one `mount()` per surface (§6) |
 | `shared/panel-resize.js`, `studio.js` | sidebar drag bars; Lucide icons and small interop helpers |
 | `shared/keys.js`, `keys-overlay.js` | the one keyboard registry every owner binds into (§9), and the sheet/palette rendered from it |
-| `shared/pick.js` | the two-level selection rule both authoring canvases resolve a click with (§5) |
+| `shared/pick.js` | the two-level selection rule the sketch canvas resolves a click with (§5) |
 
 ## 3. The shared base
 
@@ -135,7 +138,7 @@ Subclasses do not override behaviour; they fill in hooks. `_onToolMousedown`, `_
 `_onToolMouseup`, `_onCanvasClick`, `_onViewportChanged`, `_onZoom` and `_onMouseleave` are notifications.
 `_onResizeMove` and `_onResizeUp` are *consume* hooks — returning `true` intercepts the event before pan
 logic runs, which is how a controller claims a drag. Body-drag is a small protocol of its own: `_toWorld`
-maps a point into world space (identity for sketch, an inverse transform for the editor), `_hitMovable`
+maps a point into world space (identity for the sketch, an inverse transform for the world canvas), `_hitMovable`
 decides whether something was grabbed, and `_moveStart`/`_moveTo`/`_moveBy`/`_commitMove` carry the drag
 through to persistence, with `_moveTo` offering a snap-aware absolute path and `_moveBy` the incremental
 fallback.
@@ -146,7 +149,7 @@ resize observer, the pending chrome frame and the iso renderer, and every subcla
 A bridge's `dispose` clears only what the bridge itself holds and then reaches `canvas.dispose()`, so a throw
 before that line leaks a whole canvas per mount. `SideviewCanvas` stands outside the base and ends a drag on a
 `window` `mouseup` for the same reason, which its own `dispose` removes. `tests/js/canvas-dispose.test.js` mounts
-the plan bridge under a stub and asserts both the clean dispose and the removed listeners, and holds the side-view
+the sketch bridge under a stub and asserts both the clean dispose and the removed listeners, and holds the side-view
 canvas to the same.
 
 **A canvas on a page the caller may not write is read-only, and refuses at the source.** `setReadOnly(on)` sets
@@ -154,9 +157,8 @@ canvas to the same.
 refuses its own edits rather than discarding their results. The sketch canvas treats it as select-only and
 more: no draw tool or placement begins, no brush paints, no edit handle, transform grip or point grip is
 drawn, and its delete, promote and join chords stand down; the dressing and relief controllers take an
-`isEditable` accessor that keeps a prop or a mark pickable and never placed, dragged or gripped. The plan
-canvas picks without starting a move or a resize and draws no resize grips, the world canvas draws, places
-and resizes nothing and drops its arrow nudge, and the side view's height line cannot be dragged. Each bridge
+`isEditable` accessor that keeps a prop or a mark pickable and never placed, dragged or gripped. The world
+canvas draws, places and resizes nothing and drops its arrow nudge, and the side view's height line cannot be dragged. Each bridge
 exposes `setReadOnly`; `sketch-bridge` also refuses a tool that changes the board, its nudge, undo, redo and
 duplicate, and marks nothing dirty, so nothing reaches a save.
 
@@ -191,7 +193,6 @@ drift:
 | `WorldCanvas.#hitTest` | smallest-area **AABB** containment, else nearest within a 2-block margin | forgiving region select — a 1-block point needs a clickable target, and a click inside a circle's bbox should still select it |
 | `WorldCanvas.#hitTestIsland` | exact **point-in-polygon** | islands are world polygons, where "inside" must mean inside |
 | `SketchCanvas` group pick | exact point-in-polygon, exterior minus holes | same, and holes must not swallow clicks |
-| `PlanCanvas.#selectDown` | cell-grid containment | the plan is a coarse cell frame; a cell either contains the point or does not |
 
 All of them route through the one predicate in `geometry/polygon.js`. That single home matters more than
 it looks: two subtly different copies of a point-in-polygon test is how a hit test starts behaving
@@ -218,19 +219,18 @@ either way, then any pair of edges meeting, over `[exterior, ...holes]` polygons
 clipper computes, without the sweep. An edge that only touches counts, since two shapes drawn to abut are one
 landmass. It runs on the error path alone, and the throw is logged rather than swallowed.
 
-**Sketch and Plan share one selection model built on top of these hit tests, not two.** Both are two levels: a
-plain click picks the unit its canvas states — a group in `SketchCanvas`, a box in `PlanCanvas` (an admin's view; a canvas without boxes picks pieces) — and two
-modifiers reach past it the same way in both. `Ctrl`/`⌘`+click reaches the member under the cursor directly
-and enters its group as the **scope** in the same motion; `SketchCanvas.#scopeGroupId` and
-`PlanCanvas.#scopeBoxId` are the field each canvas holds it in. `Alt`+click does the opposite: it resolves to
+**The sketch's selection model is built on top of these hit tests and has two levels.** A plain click picks
+the unit the canvas states — a group, or a shape where the phase sets the unit to shapes (`setPickUnit`) — and
+two modifiers reach past it. `Ctrl`/`⌘`+click reaches the member under the cursor directly and enters its
+group as the **scope** in the same motion; `SketchCanvas.#scopeGroupId` is the field the canvas holds it in.
+`Alt`+click does the opposite: it resolves to
 the group itself, whatever is under the cursor, and leaves any scope that was entered. Once a scope is
 entered, a plain click reaches a member and a click landing outside the group's footprint leaves the scope
 before landing normally.
 
 **Going deeper is a gesture, and coming back is the same gesture reversed.** A double-click steps one level
 in and `Escape` steps one out; `Enter` is the keyboard's way in, where the double-click is the pointer's. The
-sketch has one level more than the plan, because a shape is made of points and a cell rect is not, so its
-ladder runs group → shape → points where the plan's stops at the box. The rung the ladder is on is what
+sketch's ladder runs group → shape → points, because a shape is made of points. The rung the ladder is on is what
 decides which chrome is drawn (§5), and a double-click only ever goes *down* from what the two clicks that
 made it up have already selected — nothing re-resolves the press, so the gesture cannot land somewhere the
 single click would not have. `CanvasBase._onCanvasDblClick` is the hook, gated exactly as `_onCanvasClick`
@@ -238,11 +238,12 @@ is, and a surface that does not answer it keeps two levels. Closing a drawn poly
 it ends on `Enter`, or on a click landing back at its own first vertex, which is a coordinate test against
 that vertex rather than a test of how fast two clicks arrived.
 
-The rule itself is one function, `shared/pick.js`'s `resolvePick`, and each canvas calls it with whatever its
-own hit tests found: a group, a member, the scope currently entered, which level a plain click picks and the
-two modifiers. It answers what to select and what the scope becomes. The geometry stays in each canvas
-because a group is a polygon and a box is a cell rect; what could not differ between them is the rule, so
-it is written once — two tools with two grouping models is two things to learn for one idea.
+The rule itself is one function, `shared/pick.js`'s `resolvePick`, and `SketchCanvas` calls it with whatever
+its own hit tests found: a group, a member, the scope currently entered, which level a plain click picks and
+the two modifiers. It answers what to select and what the scope becomes. The geometry stays in the canvas,
+because a group is a polygon the canvas holds; the rule sits below it in `shared/`, pure, so
+`tests/js/pick.test.js` decides it without a canvas and a second surface that groups things takes the same
+rule rather than a second one to learn.
 
 **The sketch holds its selection in one place, the canvas.** `SketchCanvas` answers `selectedGroupId`, `selectedId`
 (the shape drilled to, which is a single-member group's lone member) and `placesOwnThings` (the Relief and Dressing
@@ -260,18 +261,19 @@ and narrow: with something in hand the modifiers are read against what is held r
 grouping, which is why `Alt` means eyedropper there and select-the-parent everywhere else. With an empty hand
 the shared rule applies unchanged.
 
-**Two pieces of selection chrome are one function, not three.** How big the selected thing is reads as a pill
+**Two pieces of selection chrome are one function, not one per surface.** How big the selected thing is reads as a pill
 under it — `render/canvas-chrome.js`'s `renderDimensionPill`, in screen space so it stays a fixed size and
-stays put at any zoom — and Configure, the plan and the sketch all draw it by calling that, so a region, a
-piece and a shape answer the same question in the same words in the same place. The objective colours are the
-same story: `render/primitive-style.js`'s `OBJECTIVE_COLORS` is what the plan draws a marker in and what the
-sketch shows a destroyable or a core in, so the two tools cannot drift into two conventions for one thing.
+stays put at any zoom — and Configure's world canvas and the sketch both draw it by calling that, so a region
+and a shape answer the same question in the same words in the same place. The objective colours are the same
+story: `render/primitive-style.js`'s `OBJECTIVE_COLORS` is the one table, and `render/sketch-render.js` reads
+the sketch's destroyables, cores, spawns and wools out of it rather than naming colours of its own.
 
 **One transform box, four anchors, and the edges are bands rather than things.** `renderTransformBox` is the
 box a selection is scaled by, and every authoring surface draws that one: the sketch at each rung of its
-ladder, the plan for a piece or a zone, and `WorldEditController` for a region — which is every Configure
-canvas step at once. A reader who has learnt the corners of a region has learnt a piece's and a shape's,
-which is the whole reason it is one emission and not three tables of eight.
+ladder, and for a placed prop, a wing of a room's house, and a room region, build area or water lane on the
+Layout canvas (through `dressing-controller`, `room-house-controller` and `piece-resize-controller`), and `WorldEditController` for a region — which is every Configure canvas step
+at once. A reader who has learnt the corners of a region has learnt a shape's, which is the whole reason it is
+one emission and not a table of eight per surface.
 
 It carries **four** anchors, one per corner, drawn ON the selection's own bounds. Each edge is a grab band
 instead, unseen until the pointer is on it: hovering it draws the edge as a bar in the anchors' ink and shows the
@@ -292,9 +294,9 @@ reader learn a second signal for something the shape already says, and would spe
 carrying state — a picked vertex fills accent, a shift-marked slope control goes `--warning`.
 
 Rotate zones are the one thing still outside the box, past the anchors they flank, and are drawn only where a
-caller offers a turn — the sketch does at both its box rungs, the plan and the world canvas do not. `nx`/`nz`
+caller offers a turn — the sketch does at both its box rungs, the world canvas does not. `nx`/`nz`
 are the shared vocabulary a grip is read through (`gripSideX`/`gripSideZ` answer which side it drags, −1, 0
-or 1), and each caller maps that to what it states: a bound, a cell edge, or a field name that depends on
+or 1), and each caller maps that to what it states: a bound, a rectangle's side, or a field name that depends on
 which way its transform is flipped.
 
 ## 6. Bridges — the interop seam
@@ -303,14 +305,15 @@ Each surface has one bridge exposing `async mount(...) → handle`. Blazor impor
 (`await JS.import`, no global and no load-order race), calls `mount` with the SVG and wrapper elements
 plus a `DotNetObjectReference`, and keeps the returned handle to drive the canvas. Traffic is asymmetric
 by design: **hot paths stay in JS** — cursor coordinates and zoom percentages are written straight to
-label elements per mousemove — and only decisions cross to C# (`OnSelect`, `OnRegionDraw`,
-`OnCanvasGroupSelect`, …).
+label elements per mousemove — and only decisions cross to C# (`OnCanvasSelect`, `OnRegionDraw`,
+`OnGroupSelected`, …).
 
-`world-bridge` mounts `WorldCanvas`, `plan-bridge` `PlanCanvas` (and owns the plan document and id minting;
-it persists nothing — saving is the host's, on the author's word), `sketch-bridge` `SketchCanvas`, `sideview-bridge` `SideviewCanvas`, and
-`scan-bridge` the non-interactive `ConfigureRenderer`. `fetch-json.js` is the shared no-store fetch. The
-bridges look repetitive but are not: each owns different document semantics. What `plan-bridge` and
-`sketch-bridge` share is three modules: the invoke wrapper `fire.js`, `live-feed.js` and `iso-preview.js`.
+`world-bridge` mounts `WorldCanvas`, `sketch-bridge` `SketchCanvas`, `sideview-bridge` `SideviewCanvas`,
+`scan-bridge` the non-interactive `ConfigureRenderer`, and `house-iso-bridge` an `IsoScene` with no canvas
+under it (below). `fetch-json.js` is the shared no-store fetch `world-bridge` and `scan-bridge` import. The
+bridges look repetitive but are not: each owns different document semantics. `sketch-bridge` is the one that
+imports the invoke wrapper `fire.js`, `live-feed.js` and `iso-preview.js`; each is a module of its own, so each
+is driven alone under test (§7).
 
 **A feed asks the server about the live document through `liveFeed`, and only the latest ask is answered.**
 `liveFeed({ url, body, delay, when, onAnswer, onRefused, onUnreachable })` returns `schedule()` (debounced; `now`
@@ -319,18 +322,17 @@ and `body` may be functions, read when the request is sent, so a debounced feed 
 when the edits settle. Every request takes a sequence number and a reply, a refusal or an unreadable body that
 is no longer the latest reaches none of the callbacks. A refusal arrives as the sentence out of the envelope
 (`message`, then `error`, then the bare status); a request that fails or returns an unreadable body arrives as
-`onUnreachable`, which a feed that keeps its last good answer leaves unset. The plan's inspect, evaluate and
-feasibility reads (300 ms; the last only while boxes show), the sketch's paint (120 ms) and relief (140 ms)
-overlays, the Board layer's columns and the preview's columns are each one feed. `moveStructural` is not a
+`onUnreachable`, which a feed that keeps its last good answer leaves unset. The sketch's paint (120 ms) and
+relief (140 ms) overlays, the Board layer's columns and the preview's columns are each one feed. `moveStructural` is not a
 feed — a PATCH whose refusal puts the piece back — and reads its refusal sentence with the same `refusalText`.
 
-**The 3-D preview is `isoPreview`, configured by what differs.** A bridge hands it its canvas, the columns
+**The 3-D preview is `isoPreview`, configured by what differs.** The sketch bridge hands it its canvas, the columns
 route, the document as a wire body (which is also the cache stamp), the bounds to fit and two callbacks:
 `onUnavailable(reason)`, and `onBuilt(payload, hidden)` where the sketch reports what the build left out and
 which layers it has. `show()` enters the preview and draws the cached mesh when the stamp still matches the
 document, else asks for the columns; `drop()` is what every edit calls; `hide()`, `rotate()` and
 `setLayerShown()` are the rest. On the Blazor side one `IsoView` (state, in `Components/Canvas`) and one
-`IsoToggle` (the 2D/3D switch with the note that says why it is disabled) serve both hosts.
+`IsoToggle` (the 2D/3D switch with the note that says why it is disabled) serve the sketch tool's host.
 
 **The sketch bridge's verb table is where an edit is gated.** `MUTATORS` in `sketch-bridge.js` names every handle verb
 that changes the document, and one wrapper makes each an undo step and refuses it while the page is read-only. A
@@ -403,13 +405,15 @@ it says, and every in-flight caller no-ops instead.
 `npm test` (or `tools/js-test.sh`) runs Node's built-in runner over `tests/js/` — no `node_modules`, so it
 works from the shared folder.
 
-Coverage splits cleanly along the DOM line. The modules the tests import average around 92% lines, several
-at 100% (`transform`, `symmetry`, `groups`, `polygon`, `plan-inspect`, `decompose-cut`, `shape-render`);
+Coverage splits cleanly along the DOM line. The modules the tests import average around 90% lines, several
+at 100% (`transform`, `symmetry`, `polygon`, `decompose-cut`, `shape-render`, `pick`, `live-feed`);
 `canvas-painter` is the one DOM-adjacent module under test, via a small context stub. The sketch's bridge and
-canvas are mounted whole by the harness below, and `canvas-dispose.test.js` mounts `plan-bridge` and
-`canvas-base` under a stub. The studio modules the tests never import at all are every other canvas, every other
-controller but the sketch's, `iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage`
-reports such files as *absent*, not as zero, so the report reads healthier than the tree is.
+canvas are mounted whole by the harness below, and `canvas-dispose.test.js` mounts `sketch-bridge` and
+`canvas-base` under a stub. The studio modules the tests never import at all are the world canvas and its
+`world-draw`, `world-edit` and `select` controllers, `static-renderer` and `configure-renderer`, every bridge but
+the sketch's and the three modules it imports (`world-bridge`, `sideview-bridge`, `scan-bridge`,
+`house-iso-bridge`, `fetch-json`), `iso-webgl`, `keys-overlay`, `panel-resize` and `studio.js`. Note that
+`node --test --experimental-test-coverage` reports such files as *absent*, not as zero, so the report reads healthier than the tree is.
 
 This is a coherent split rather than neglect: pure logic is tested, DOM-bound code is not. The painted
 render layer sits on the tested side of it because a stateless painter takes a stand-in — `_painter-stub.js`
@@ -431,21 +435,20 @@ and a mistake inside it reaches the browser as a `ReferenceError` that the C# bu
 
 Above the unit line, `tests/e2e/paint.mjs` is the one check that a painted surface actually paints. A blank
 canvas raises no error and leaves no elements behind, so it is exactly as "clean" as a working one to the
-smoke sweep; `paint.mjs` asserts on pixels instead, for each of the three hybrid surfaces: painted
+smoke sweep; `paint.mjs` asserts on pixels instead, for each of the two hybrid surfaces: painted
 coverage, buffer = CSS box × DPR, the screen chrome present in the svg, and that a wheel burst *changes*
 the pixel signature — which a stretched raster would not. It reaches the world canvas through the
 Configure tool's nav rail, on World · Scan, since that route opens on a phase with no canvas mounted.
 
 ## 8. Known duplication and open work
 
-The layer is about 6,600 lines of first-party code (the raw ~11,000 figure includes a 2,130-line vendored
-`polygon-clipping`, plus comments and blanks). It is not bloated, and the remaining duplication is small in
+The layer is about 10,000 lines of first-party code (the raw ~17,300 figure includes a 2,130-line vendored
+`polygon-clipping` and the 227-line icon subset, plus comments and blanks). It is not bloated, and the remaining duplication is small in
 line terms — a few hundred at most. What it costs is *consistency* rather than size.
 
 The **bridge invoke wrapper** is the live case. `bridge/fire.js` is the shared guard — two catches, because a
-host torn down mid-call rejects asynchronously as well as throwing — and `plan-bridge` and
-`sketch-bridge` import it. An event the host declares no `[JSInvokable]` for is not swallowed: on a `localhost`
-host it is a `console.error` naming the event, which the e2e sweep turns into a failed page. `world-bridge` and `sideview-bridge` call `invokeMethodAsync` directly, so an
+host torn down mid-call rejects asynchronously as well as throwing — and `sketch-bridge` imports it. An event the host declares no `[JSInvokable]` for is not swallowed: on a
+`localhost` host it is a `console.error` naming the event, which the e2e sweep turns into a failed page. `world-bridge` and `sideview-bridge` call `invokeMethodAsync` directly, so an
 unwired feed on either surfaces as an unhandled rejection and, in the e2e sweep, as a faulted page.
 
 One stale reference remains in a module header: `static-renderer.js` cites an `OverviewRenderer` that no
@@ -472,10 +475,10 @@ except those marked `inField`, so a bare letter in a name box is a letter rather
 **One modifier is held rather than pressed.** A finished draw, cut or placement drops its canvas back to
 select, so the next press can move or tune what was just put down; Shift held as it lands keeps the tool in hand
 instead, until `Escape` or `V` puts the tool down. `keepsTool()` is that rule, read off the modifiers of every key and pointer event the document sees
-(`noteModifiers`, installed in the capture phase so it is current when the release lands), and every
-drop-to-select site on both canvases asks it — the sketch bridge's `dropTool` and the plan canvas's own. A
+(`noteModifiers`, installed in the capture phase so it is current when the release lands), and the
+sketch's drop-to-select site asks it — the sketch bridge's `dropTool`. A
 `held` entry is how the sheet lists it: it is shown, it takes no `run`, and neither the dispatcher nor the
-palette ever offers it. `KEEP_TOOL` is that row, and each canvas that places things includes it in its set.
+palette ever offers it. `KEEP_TOOL` is that row, and `sketch-canvas` includes it in its set.
 
 The `?` sheet and the `Ctrl`/`⌘`+`K` command palette (`shared/keys-overlay.js`) are both rendered from this
 same registry, so neither can offer a chord the app does not have. The sheet lists every registered binding,
@@ -490,7 +493,8 @@ priority}` in `entriesJson`, each wired to call back `dotnetRef.invokeMethodAsyn
 `OnShortcut(id)` switch; the registry owns only whether the chord fires and how it is listed, so a binding's
 words and its effect stay in the language each is written in. The canvases and their bridges register
 directly against `keys.js` instead of through this interop seam, for chords their own JS state has to gate or
-run inline — `sketch-canvas`, `sketch-bridge` and `plan-canvas` are each their own owner.
+run inline — `sketch-canvas` (which also registers `sketch-draw`), `sketch-bridge` and `world-edit-controller` are
+each their own owner.
 
 ## 10. Where to look for what
 

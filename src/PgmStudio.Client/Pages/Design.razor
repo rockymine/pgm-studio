@@ -169,8 +169,8 @@
       <div class="ds-subsection">
         <h3>Chip</h3>
         <div class="ds-state-row">
-          <Chip Active='@chipsOn.Contains("plan")' OnClick='() => Toggle("plan")'>Plan</Chip>
           <Chip Active='@chipsOn.Contains("sketch")' OnClick='() => Toggle("sketch")'>Sketch</Chip>
+          <Chip Active='@chipsOn.Contains("configure")' OnClick='() => Toggle("configure")'>Configure</Chip>
           <Chip Active='@chipsOn.Contains("wool")' Count="12" OnClick='() => Toggle("wool")'>With a count</Chip>
           <Chip Disabled Count="0">Disabled</Chip>
         </div>
@@ -379,8 +379,7 @@
         <div class="ds-workspace-frame">
           <div class="app-body">
             <NavRail>
-              <NavButton Icon="layout-grid" Title="Plan" Active />
-              <NavButton Icon="pencil-ruler" Title="Sketch" Status="green" />
+              <NavButton Icon="pencil-ruler" Title="Sketch" Status="green" Active />
               <NavButton Icon="settings-2" Title="Configure" Status="yellow" />
               <NavButton Icon="box" Title="Export" Disabled />
             </NavRail>
@@ -421,7 +420,7 @@
 
       <div class="ds-subsection">
         <h3>Editor bar</h3>
-        <p class="ds-theming-note">The one bar the Plan, Sketch and Configure editors draw under the studio's own
+        <p class="ds-theming-note">The one bar the Sketch and Configure editors draw under the studio's own
            (<code>EditorBar</code>). Left, the crumb — <strong>Maps</strong>, the map's name — and the
            <strong>stage switcher</strong> (<code>StageSwitch</code>), a button naming the current tool whose menu
            opens the map's other tools, dashed where the map has no such layer. Middle, the
@@ -478,8 +477,8 @@
           <FilterSidebar>
             <FilterPanel Title="Filters" Active="@(chipsOn.Count > 0)" OnClear="@(() => chipsOn.Clear())">
               <FilterGroup Label="Stage">
-                <Chip Active='@chipsOn.Contains("plan")' Count="5" OnClick='() => Toggle("plan")'>Plan</Chip>
                 <Chip Active='@chipsOn.Contains("sketch")' Count="7" OnClick='() => Toggle("sketch")'>Sketch</Chip>
+                <Chip Active='@chipsOn.Contains("configure")' Count="5" OnClick='() => Toggle("configure")'>Configure</Chip>
               </FilterGroup>
               <FilterGroup Label="Kind" Hint="any of" Multi>
                 <Chip Active='@chipsOn.Contains("wool")' Count="4" OnClick='() => Toggle("wool")'>Wool</Chip>

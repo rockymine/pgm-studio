@@ -34,9 +34,7 @@ stands beside it), `transect` (a polyline as stations), `slopes` (the worst step
 runs as faces), `themes/census`, `sketch/dressing` (what the pass would place, and every cell's claim as
 digit rows), `coverage` (class and traffic grids as digit rows, the dead patches with coordinates),
 `editability` (digit rows), `sketch/columns` (every run of every column, with the layer that drew it),
-`sketch/relief/read` (range, steps, tiers, faces, crossings, the symmetry error) and `findings`. Before the
-store the plan tier is nearly all numbers and grids: `plan/evaluate`, `plan/inspect`, `plan/ascii`, and
-`plan/flow` as prose.
+`sketch/relief/read` (range, steps, tiers, faces, crossings, the symmetry error) and `findings`. A composed plan kept as history reads as a grid at `plans/{id}/ascii`.
 
 The driver (`pgm-studio-mapgen/tools/drive.py`) writes **37 files** for a board the size of Mossgill: two
 text (`00-board.txt`, the plan grid; `01-flow.txt`, the flow account) and 35 PNG — a swatch and a section per

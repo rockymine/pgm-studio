@@ -79,7 +79,6 @@ const WRITE_PAGES = [
     if (open) await page.fill("#lib-entry-name", "E2E access palette");
   },
     [["a library editor's save", /^Add to library$/]]],
-  [`/maps/${seed.planSlug}/plan`, null, [["the plan editor's Save", /^Save$/], ["the plan editor's Compile", /^Compile$/]]],
   ["/generator", openFirstLayout, [["the generator's Open in Sketch", /^Open in Sketch$/]]],
 ];
 
@@ -163,11 +162,11 @@ try {
   }
 
   checks.section("a signed-out visitor cannot start a map or keep the whitelist");
-  await visit(invited, "/maps?stage=plan");
+  await visit(invited, "/maps?stage=sketch");
   await page.waitForSelector("button.action-btn--primary", { timeout: 20000 }).catch(() => {});
-  const newPlan = await page.evaluate(() =>
-    [...document.querySelectorAll("button")].find(b => /New plan/.test(b.textContent))?.disabled ?? null);
-  checks.add("New plan is greyed", newPlan === true, String(newPlan));
+  const newSketch = await page.evaluate(() =>
+    [...document.querySelectorAll("button")].find(b => /New sketch/.test(b.textContent))?.disabled ?? null);
+  checks.add("New sketch is greyed", newSketch === true, String(newSketch));
   await visit(invited, "/maps?stage=configure");
   const importWorld = await settle(/^Import a world$/, true);
   checks.add("Import a world goes nowhere, and says why", importWorld?.closed === true

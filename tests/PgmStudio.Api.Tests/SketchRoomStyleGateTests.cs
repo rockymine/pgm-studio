@@ -9,8 +9,8 @@ namespace PgmStudio.Api.Tests;
 ///
 /// <para><b>The invariant is the road, not the rule.</b> <c>HouseStyleValidation</c> has its own tests; what
 /// this holds is that a board cannot reach the world without passing them, whichever way it was authored — the
-/// plain PUT a person uses, the compile path an editor rebuilds through, and the one-call load a headless
-/// author stores through. A rule wired to one of the three is a rule two thirds of the maps never meet.</para>
+/// plain PUT a person uses, and the one-call load a headless author stores through. A rule wired to one of the
+/// two is a rule half the maps never meet.</para>
 ///
 /// <para>Runs against the <c>pgm_studio_test</c> schema, so it runs serially with the other DB suites.</para>
 /// </summary>
@@ -73,14 +73,9 @@ public sealed class SketchMaterialGateTests
         await Assert.That(await RefusedAsync(
             await client.PutAsync("/api/map/gate/sketch", Body(LogVerge)))).IsEqualTo("HS3");
 
-        // 2 · the compile path — the road an editor rebuilds through, and an agent drives
-        await Assert.That(await RefusedAsync(
-            await client.PutAsync("/api/map/gate/sketch/from-plan", Body(LogVerge)))).IsEqualTo("HS3");
-
-        // 3 · the source — the road a headless author stores a whole map through
+        // 2 · the source — the road a headless author stores a whole map through
         var loaded = await client.PutAsJsonAsync("/api/map/gate-two/source", new
         {
-            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(LogVerge).RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Gate Two"}}""").RootElement,
             name = "Gate Two",
@@ -233,7 +228,5 @@ public sealed class SketchMaterialGateTests
 
         var put = await client.PutAsync("/api/map/bare/sketch", Body(Clean));
         await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());
-        var fromPlan = await client.PutAsync("/api/map/bare/sketch/from-plan", Body(Clean));
-        await Assert.That(fromPlan.IsSuccessStatusCode).IsTrue().Because(await fromPlan.Content.ReadAsStringAsync());
     }
 }

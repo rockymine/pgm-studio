@@ -1,59 +1,32 @@
-# The Plan tool
+# The plan
 
 ## What it is
 
-Plan authors a map at its coarsest scale: the board as rectangles on a proxy grid, and the intent the
-finished map is played by. It is one of the two tools a map can be started in — the other is Sketch — and the
-difference between them is what they write. A sketch alone produces geometry and says nothing about what the
-geometry is for; a plan states the gamemode, where the teams spawn, which objectives exist and where they sit,
-and lays down the terrain those things stand on.
+A plan is a map's board at its coarsest scale: rectangles on a proxy grid, and the play pieces the finished map
+is played by, written as one document. It is no longer a tool or a stage. A map's one document is its sketch
+(`docs/tools/sketch.md`); a plan comes into a map only through the **one-way compile**, which turns it into the
+layout and the intent a map is built from, and the composer writes one internally on the way to the sketch it
+hands over (`docs/tools/generator.md`).
 
-A plan is authored as **one symmetry unit**. Everything drawn belongs to team 0; the compiler fans it into the
+A plan is authored as **one symmetry unit**. Everything stated belongs to team 0; the compiler fans it into the
 other teams' images by the plan's symmetry mode. Nothing in the document is per-team, and there is no way to
 give one team a different board from another.
 
-The tool edits the plan artifact of a map row at `/maps/{slug}/plan`: the map carries its plan, its sketch and
-its configuration on one row, and rebuilding refreshes them in place. It has no other binding. The `plan` table's
-rows — the plans the generator's candidates were once kept as, and the ones drawn or imported without a map — are
-kept read-only as history, read through `GET /plans` and drawn by `GET /plans/{id}/svg`, and no page opens them.
-
-The tool is the rail's Info and Draw phases, the editor bar whose Next is Compile, and the Draw sidebar, which
-folds away to give the canvas the width. The crumb is *Maps › the plan's name*, and the stage switcher beside it
-opens the map's Sketch and Configure. The bar's one command is *Save*, which writes the map's
-artifact in place, **over the revision the tab loaded**: the plan was read with its `ETag`, which Save and the
-build's own plan write state as `If-Match`, so where the stored plan has moved on since — a second tab, an agent
-driving the API — the write is refused `RQ13` at 409 rather than overwriting it. The bar then says the plan was
-saved from somewhere else and that the page must be reloaded, and no further write is sent until it is; the
-sketch tool's save is the same helper (`DocumentSave`).
-
-**New plan** creates the map row before anything is drawn, so a plan left without being saved is discarded
-on the way out: while it is still named *Untitled plan*, still holds the empty document it was created with,
-was not forked from a generator candidate and credits nobody but its originator, leaving the tool deletes it
-and its slug is free for the next one (`DraftDiscard`). A plan is stored only by Save, so a drawing left
-unsaved goes with it.
-
-A plan leaves the tool by compiling — one call turns the document into a layout and an intent — and then by
-building, which writes both onto a map and rasterizes the layout into world geometry. The map lands at
-`stage=configure` with a sketch to refine and an intent to finish.
+**Every stored plan is history.** A map that was built from a plan keeps it as its `plan_json` artifact, and the
+`plan` table keeps the rows the generator's candidates and imported plans were once stored as. Both are read
+back exactly as stored — `GET /map/{slug}/plan`, `GET /plans`, `GET /plans/{id}` and its renders — and nothing
+else reads them: a map's findings are asked of its intent and its sketch, never of the plan it came from.
 
 ## What it writes
 
-A map-backed plan is a `map` row at `stage=plan` whose `plan_json` artifact holds the document, read and
-written through `MapArtifactStore` like every other artifact. It sits outside the entity-replace codec
-that carries the rest of a map, exactly as the sketch layout does.
-
-Two things a plan tool edits are *not* in the plan document. The map's display name and its authors live on
-the map row and are saved through `PATCH /api/map/{slug}/metadata`; the document's own `meta.name` is synced
-alongside them because the compile reads it. A plan may state `meta.authors` and `meta.contributors` of its
-own, which the compile carries onto the intent; the editor keeps them on a round trip and does not edit them. The height step — how many blocks a piece's height input moves by — is a browser preference in `localStorage`, never part of a plan.
-
-The document is not cached client-side. The database is its store, and the editor loads whatever the route
-names.
+The compile writes nothing. It answers the layout and the intent as `{layout, intent}`, and a caller stores
+them as the `layout` and `intent` of the map's source (`PUT /map/{slug}/source`, `docs/tools/flow.md`), which
+builds the map in one call.
 
 ## The plan document
 
-The wire format is `*.plan.json`, modelled by `PlanModel` (`src/PgmStudio.Pgm/Plan/PlanModel.cs`) on the
-server and mirrored by `plan-doc.js` on the client, which round-trip it identically. Both normalise on load:
+The wire format is `*.plan.json`, modelled by `PlanModel` (`src/PgmStudio.Pgm/Plan/PlanModel.cs`). It
+normalises on load:
 unknown piece roles, box kinds and zone kinds fold to their canonical value, and every marker without an id
 is given one. A document written under an older vocabulary therefore loads cleanly rather than failing.
 
@@ -117,9 +90,8 @@ expressible in fifths of itself, and the `WX` rules already state every minimum 
 Marker positions are stored **piece-relative**: a marker names the piece it rides and an `at` offset in
 **blocks** from that piece's minimum corner, snapped to the **half-block lattice** — the same one the export
 snaps to (`PositionSnap.SnapHalfXZ`), so a whole offset is a block grid line and a `.5` a block centre, which
-is the parity that sizes the pad (`WX3`). A marker that rides no piece cannot exist: the canvas refuses to
-drop one over empty grid, and the validator errors on a hand-written marker whose piece is unknown or is a
-buffer.
+is the parity that sizes the pad (`WX3`). A marker that rides no piece cannot exist: the validator errors on a
+marker whose piece is unknown or is a buffer.
 
 **The document states its own shape version**, `plan`, and this build reads **2**. A document stating another
 version is refused `PL15` rather than read: version 1 stated a marker's `at` in cells, which is the same
@@ -129,8 +101,7 @@ stating no version at all is read as the current one.
 **A destroyable and a core are the one exception.** `piece` may be empty, and `at` then reads as an
 **absolute** block offset from the symmetry centre — so a
 goal can stand on ground that exists only as an authored sketch shape, with no plan piece manufactured to
-carry it (`B128`). The canvas does not yet offer a way to draw this; a hand-written or agent-authored document
-can.
+carry it (`B128`).
 
 ### Globals
 
@@ -264,36 +235,6 @@ on every side, and by up to five in front of a spawn's door, which is an iron cu
 room it holds to the wall. A footprint smaller than a room can be (`WX2`) or reaching past its piece (`WX12`)
 is refused rather than clamped.
 
-**The footprint is drawn and dragged.** It appears on the canvas as a rectangle inside its piece, in the
-building ink every surface draws one in — the region and the building, both visible at once, which is the
-whole reason the footprint is stated. Clicking it
-selects it (between the marker that sits in it and the piece that holds it, in the pick order), and it wears
-the same transform box every authoring surface uses: drag the rectangle to move it, its grips to resize it,
-both a block at a time rather than a cell at a time. A drag is clamped rather than refused — held on the
-piece, held around the marker, and never shrunk past `4×4` — so the canvas cannot state a room the export
-would decline. Deleting it states no footprint, which is not a hole: the resolver's default answers, and it
-is the same rectangle the piece was drawn with.
-
-Drawing a `spawn` or `wool-room` piece **states its contents at once**. The editor asks
-`POST /api/plan/room` for the room that piece carries and writes the marker, the footprint and — on a spawn
-whose yard has room for one — the iron marker onto a new placement, so what the document says is what the
-export builds — a default nobody can see is the opacity the stated footprint is against. Asking again after
-the building has been resized answers for the building as it now stands, which is how an author who shrinks a
-hall inside its protection region gets the cube that belongs beside *that* door. The
-numbers are the resolver's own, so the seeded rectangle and the fallback are one number rather than two free
-to disagree. The footprint is sized for a shell, since a plan states no room style and a room that can carry a
-building is the one worth handing an author who has not said yet; where the piece is too small for that, the
-room it *can* have is seeded anyway and the building simply is not there (`WX2`). Only a piece too small to
-hold a room at all is left bare, which is the honest signal that nothing fits.
-
-**Turning a spawn carries the cube it seeded.** The iron stands beside the door on the player's right, and the
-facing is what picks the door, so cycling a spawn's facing — a click on the already-selected marker or the
-rail's *Cycle facing* — asks `POST /api/plan/room` again, once for the document as it stood and once as it
-now stands. A cube on that piece still at the first answer is the seeded one and moves to the second; a cube
-anywhere else is one the author placed or slid, and stays where it is. Nothing is remembered between the two
-asks, so a cube seeded in an earlier session is recognised the same way. The footprint does not move with
-the facing: it is stated on the placement, and the walls a door can open through are the piece's.
-
 A **wool** may name a `color`, one of the sixteen dyes PGM resolves — `white`, `orange`, `magenta`,
 `light_blue`, `yellow`, `lime`, `pink`, `gray`, `silver`, `cyan`, `purple`, `blue`, `brown`, `green`, `red`,
 `black`, which `GET /api/objectives/vocabulary` serves under `wool.colors` with each one's label and swatch.
@@ -395,14 +336,9 @@ Boxes are **authoring annotation only**. The compiler, the validator and the der
 one can never change what a plan builds; they are how a generated board explains itself, and the unit the
 producibility read reports against. A hand-authored plan does not need them.
 
-**Boxes are an admin's view of the composer's model.** They stay in the document and are saved, loaded and
-carried by every route unchanged — an agent writes them — but the plan
-editor shows them to an admin only. For anyone else the canvas draws no box, ghost or label, a click never
-picks one, they do not count in the fit, and the Boxes tool, its `G` chord, the box inspector and the
-Generator check are absent; the editor does not ask for the producibility read at all. The Generator check
-component (`PlanGeneratorCheck`) is built but mounted nowhere in the sidebar. A member who edits
-such a plan leaves its boxes exactly as they were stored: a box with an explicit member list keeps naming
-its pieces wherever they move, and a containment-grouped box regroups by what lies inside it at the next read.
+**Boxes are the composer's model, carried and never compiled.** They stay in the document as it was written;
+a box with an explicit member list names its pieces, and a containment-grouped box groups by what lies inside
+it.
 
 ### Reference
 
@@ -416,8 +352,8 @@ where the geometry is final; a plan carrying them compiles exactly as one withou
 
 ## What a compile produces
 
-`PlanCompiler.Compile` is pure and deterministic — the same plan compiles to the same pair on the server and
-in the editor — and one-way: nothing reads a layout or an intent back into a plan.
+`PlanCompiler.Compile` is pure and deterministic — the same plan always compiles to the same pair — and
+one-way: nothing reads a layout or an intent back into a plan.
 
 **The layout** (`SketchLayout`) is the terrain. Pieces joined by land interfaces form components; within a
 component each distinct surface becomes its own shape, so a stepped island emits stacked plateaus, and each
@@ -471,156 +407,9 @@ every entry seam, iron cubes, and the approach walls. On the way
 out of `POST /api/plan/compile` the endpoint additionally pre-fills island team ownership — a spawn's team owns
 its island, else a wool's owner, else neutral — so Configure opens pre-assigned.
 
-## Phases
-
-### Info
-
-Two steps. **Identity** is the plan's name, live-synced into the plan document as it is typed because the
-compile reads it. It is the map's display name and stands beside the authors, both loaded once from
-`GET /api/map/{slug}` and saved with `PATCH /api/map/{slug}/metadata`.
-**Settings** is the globals form — symmetry, cell size, height (the base surface), height step, max players — writing
-straight through to the live document. Continue on the last step advances to Draw. A plan opened with
-`?phase=info` starts here, which is how a blank map-backed plan is named; any other opens on Draw.
-
-### Draw
-
-The canvas, and where a plan is actually authored. The Draw workspace stays mounted while Info is up, so the
-document and the zoom survive the trip.
-
-The Draw phase is the `PlanTool` host with two bodies of its own, each a component beside it in
-`Features/Plan/`: `PlanInspector`, the form for the one selection, and `PlanBuildDrawer`, the compile and build
-drawer the editor bar's Next opens. The host owns the canvas, the dock, the sidebar panels, the editor bar and the save;
-the inspector writes its edits through the bridge and takes the objective vocabulary, the selection and the
-surface step from the host; the drawer takes the bridge, the map's slug, the plan's name and the plan's
-`DocumentSave`, and owns everything a compile and a build produce. The words the document is written in — a
-piece's roles (`PlanRoles`) and a box's kinds (`PlanBoxKinds`) — are `PgmStudio.Vocabulary`'s, which the
-dock, the role and kind dropdowns and the schema all read; `plan-doc.js` holds their twin, pinned to them by
-`PlanWordsTwinTests`.
-
-Four families of drawing tool, one armed at a time, each remembering the option last picked from it. **Terrain**
-draws a piece in the armed role; **technical** draws a build zone, a water lane, or a buffer; **markers** drop a
-spawn, wool, iron, destroyable, core, or cycle a wall; **boxes** draw an envelope in the armed kind, and are
-offered to an admin only. The
-destroyable and core tools are offered only when the symmetry's order is 2, and switching to a symmetry that is
-not order 2 disarms them. `V`, `H`, `R`, `Z`, `G` and `W` arm select, pan, piece, zone, box and wall
-respectively (`G` answers for an admin only), and `F` fits the plan to the window.
-
-Drawing a piece, zone or box is a click-drag over cells, always at least 1×1; the id is minted from the role
-(`piece`, `spawn`, `wool`, `buffer`, `zone`, `lane`, `<kind>-box`) and the tool reverts to select. A marker is
-placed by clicking a piece — a click over empty grid does nothing — and also reverts to select. Holding
-**Shift** as the drag is released or the click lands keeps the tool armed instead, so a row of pieces or a
-marker on every piece is one tool pick; `Escape` or `V` puts it down. The wall tool
-stays armed, and each click toggles the nearest land interface within one cell between no wall and a wall —
-which face its chests open on is derived from the seam, not chosen here.
-
-Selection is two-level, the same scope model the Sketch tool's groups use. A plain click picks the marker
-under the cursor first (markers paint on top and have a small hit radius), then the smallest containing box
-(an admin's canvas only; without boxes the pick runs marker, footprint, piece, zone), then the piece, then the
-zone. `Ctrl`/`⌘`+click reaches the piece past the box, entering the box as the scope
-in the same motion; `Alt`+click leaves any scope and resolves at the box, never drilling into what it groups.
-`Enter` enters a selected box as a scope from the keyboard; once entered, a click reaches the pieces it groups
-and a click outside it leaves the scope before landing normally. `Escape` first lets go of what is in hand —
-a rectangle being dragged out, then any tool but select and pan — and after that leaves an entered scope, selecting
-the box itself, and a further press clears the selection; Delete or Backspace removes it outright. Nothing
-here is a double-click. Dragging a box carries the pieces it groups, with membership resolved at
-grab time so nothing falls out mid-drag.
-
-**Pieces and zones can be selected together.** `Shift`+click toggles the piece or zone under the cursor in or
-out of the selection, resolving past any box and treating a marker or a building as the piece it sits on. With
-the select tool, pressing on **empty canvas** — nothing under the cursor, so not over any piece, zone, marker
-or box — and dragging draws a dashed marquee; on release the selection becomes every piece and zone whose rect
-lies **wholly inside** it, so a large zone lying under everything is taken only by a marquee that encloses it,
-and `Shift` held through the drag adds to the current selection instead of replacing it. A press on empty
-canvas without a drag clears the selection, as it does for one thing. A plain click on anything replaces the
-set with that one thing, and `Escape` clears it. Pan is the Move tool or the middle button, so a drag on empty
-canvas is free for the marquee.
-
-Dragging any member of a multi-selection moves every member by the same cell delta, with the snapping a
-single move has: a zone's holes travel with its rect, and markers and buildings, which are stored relative to
-their piece, ride along. A press that does not move narrows the selection to the member pressed. Delete or
-Backspace removes every member through the same removal a single piece or zone takes, so each piece's markers,
-cliff and wall marks and box member names go with it, and the plan is re-derived once. The inspector shows
-the count and the two gestures in place of any one item's fields. On a page the caller may not write, `Shift`
-and the marquee still select, and nothing moves or deletes.
-
-The tools are armed from the keyboard as well as the toolbar — `V` select, `H` pan, `R` piece, `Z` zone, `G`
-box (admin), `W` wall — and `F` fits the plan, `Ctrl`/`⌘`+`S` saves it. `?` lists every chord that is live and
-`Ctrl`/`⌘`+`K` runs one by name; both are drawn from the registry described in
-`docs/client/canvas-interaction.md` §9, so neither can name a chord this tool does not answer. A selected piece or zone wears the transform
-box every authoring surface uses (`docs/client/canvas-interaction.md` §5) — an anchor on each corner and a
-grab band along each edge that stretches that one axis — each keeping the extent at least one cell, and how
-big it is as a pill under it, the same pill Configure draws under a region and the sketch under a shape. Clicking an already-selected spawn cycles its facing. Deleting a piece takes its
-markers, its cliff and wall marks, and its name out of any box member list with it.
-
-The inspector edits a single selection: a piece's id, role, height (a y, stepped by the height-step preference) and
-mirror flag; a zone's id; a box's id, kind and whether its membership is frozen to a list (admin); a marker's position,
-a spawn's facing, a wool's dye, and every structure field of a destroyable or a core — each shown at its
-*effective* value, so an unset field renders as the number the stamper will use rather than as blank. The dye
-is the one field with no effective value to show: a wool that states no colour has one resolved against its
-team and the wools placed before it, which no single marker knows, so the picker offers *auto* as a word
-beside the sixteen dyes rather than naming a colour the compiler might not pick.
-
-The inspector reads its choices and defaults from `GET /api/objectives/vocabulary` (`ObjectiveVocabularyDto`)
-and holds no copy of them. The two numbers it derives from a core's stated interior are the casing it
-implies, `CoreCasing.Of`, and the dig depth, `CoreDig.Depth` — client twins of `ObjectiveDefaults.CoreCasing`
-and `ObjectiveDefaults.DigDepth`, which the WASM half cannot reach, each pinned to its authority by a drift
-test (`CoreCasingDriftTests`, `CoreDigDepthDriftTests`) and shared with the Configure wizard's casing step.
-
-The sidebar stacks its sections in one column, with the button that folds it away above them. **Settings**
-holds the tracing reference: a map whose top-down view is drawn as a backdrop on the
-canvas. It is offered only on an open studio, the same gate as Configure's world folders, because on a shared
-studio the one use of tracing another author's map is copying it; elsewhere the section is absent and the sidebar
-holds Checks alone. The overlays — land interfaces, frontline edges, labels, and a
-height-map fill that tints pieces by surface — are chips on the canvas itself. **Checks** lists the evaluation through `ProblemList` (`docs/client/ui-conventions.md`): one row per rule,
-grouped as Problems (a hard term or a structural refusal), Out of range (a soft term, its value drawn against
-its band) and Warnings (the `lint`), with the count of problems as a badge at its head. The evaluator's score
-is not shown. Opening a row isolates the evidence of every place it fired on the
-canvas, pressing one place isolates that place and pulses its subjects, and the rule id opens the rule's page
-in a new tab. The Rules overlay is drawn while the sidebar is open and dropped when it folds away. The
-evaluation feed is debounced by 300 ms after an edit and guards against stale responses. The producibility
-feed runs only while boxes are shown; its Generator check section is not part of the sidebar.
-
-A read-only 3-D preview draws **the world the plan compiles to**, not an extrusion of its pieces: entering it
-posts the document to `/api/plan/columns`, which compiles and builds it and answers every column's solid runs,
-and the browser meshes those. A compiled plan carries a full intent, so the wool cages, spawn cubes, monuments
-and build region stand in the picture along with the painted ground — a plan's preview shows more than a
-sketch's, because a sketch states no objectives to show. It can be rotated in 90° steps, and falls back to 2-D
-and disables itself where WebGL is unavailable.
-
-The compile and build cost about a second, so the fetch happens on entering the preview rather than on every
-edit; the view swaps at once and fills in when the columns land. It shares its renderer and its payload with
-the sketch tool's, which `sketch.md` describes.
-
-The compile drawer is the exit. It posts the document to `/api/plan/compile` and shows the plan, the compiled
-layout and the compiled intent as downloadable panes, or the structural findings that blocked it — each
-clickable to pulse its subjects on the canvas. Below them, the build button runs the whole chain. On a map that
-already holds a sketch or a world it asks first, because the same click means either originating the map or
-replacing a board someone has since been working on. The question names what the rebuild **replaces** — the
-terrain and islands, any shape drawn in the sketch that the plan does not produce, and the teams, spawns, wools
-and build zones — and what it **keeps**: the relief on every island that survives, a room height the author
-corrected, the themes, room shells and dressing, and the authors.
-
-**A rebuild that would orphan a relief is asked again, not failed.** The layout write answers `409` with one
-`SK1` per group the new board has no island for, and the drawer names those groups and offers *Delete and
-rebuild*, which reruns the chain with `?force=true`; *Cancel* leaves the map as it was. After a rebuild the
-drawer lists the sketch-drawn shapes the layout write reported as `dropped` (`SK29`).
-
-**The button under the panes reads the compile, not the map.** *Rebuild this map* / *Build the map* / *Create
-draft* is what it says in the one state where it can act; a compile that has not run yet reads *Compile
-first*, one that was refused reads *Fix N problems first* — the count of the findings listed
-directly above it — and one that failed to answer reads *Couldn't compile*. The hammer goes with the word:
-an icon for the act is wrong on a label that refuses it.
-
-**Compile does not open until the plan document has arrived.** The canvas and the toolbar are in the DOM
-before the document is, so the Draw phase's Next reads *Loading…* and stays disabled until the load
-settles. Without that gate a fast click on a map reached by an in-app hop posts
-the editor's blank default and is answered `422` `PL1`, *this plan has no pieces*, about a board that has
-them.
-
 ## Refusals and complaints
 
-Four separate questions are asked of a plan, and they are kept apart on purpose. Only the first two stop
-anything.
+Two questions are asked of a plan at the compile, and only they stop it.
 
 A refusal comes back as a list of findings, each naming the rule where it has one and the ids it indicts —
 moving the example's destroyable onto the wool-room piece answers:
@@ -659,236 +448,66 @@ wool room, whose own rules would cover it. An absolutely-placed goal carries no 
 judge this against, so the compile gate is silent about it and the export gate — over the ground the
 rasterizer actually produced — is the one that answers.
 
-**Completeness** (`PlanValidator.Completeness`) asks whether the plan carries what a map cannot exist without,
-and is checked only at the compile gate — a plan under construction is legitimately incomplete. No generating
-piece is an error and is reported alone. No spawn is an error: PGM would have nowhere to put a player. No
-objective of any kind is a **lint**, returned on the success response as a warning, because which goal a map
-carries is the author's and one can still be set in Configure.
+**Completeness** (`PlanValidator.Completeness`) asks whether the plan carries what a map cannot exist without.
+No generating piece is an error (`PL1`) and is reported alone. No spawn is an error: PGM would have nowhere to
+put a player. No objective of any kind is a complaint (`PL3`), returned on the success response under
+`warnings`, because which goal a map carries is the author's and one can still be set in Configure.
 
-**Lint** never blocks. The table is `PlanValidator.LintRules`, each entry citing a rule id: `PC-C` (a corner
-contact between otherwise-separate areas is not a connection), `G2` (a zone narrower than the 10-block corridor
-minimum), `G5` (a void hop outside 10–20), `SP2` (a spawn not near the back of its lane), `BZ5` (a zone of
-either kind touching a spawn piece), `BZ12` (a water lane covering terrain instead of void), `EL1` (a piece's
-surface delta from the base not a multiple of 2), `ST2` (an iron cube not standing wholly inside a spawn
-piece, so it is mined once rather than renewed), `WX4` (a pad shifted inward for wall clearance, moving the
-exported point with it) and `WX8` (an iron marker whose cube does not fit — beside a spawn room, or off the
-edge of any piece it rides). The piece-interface set quantifies over one shared read
-(`PieceInterfaces`, aggregating the contact graph and the board deriver) rather than private geometry:
-`SP8` (a spawn egress stepping Δ≥2 ahead of the door — the first door its room is cut with, `PieceDoors.ForSpawn`, which is the wall its facing leans into only where the piece meets nothing), `WL11` (the same step at a wool room's entry, measured
-at every one of them since a room has no facing, and met by the **attacker** — a team is kept out of its own
-wool), `SP9` (a door with under 15 blocks of ground or bridgeable zone before the void), `ST8` (an approach wall over an interface outside 10–20 blocks), `ST11` (one seated
-outside 10–20 blocks in front of the wool room's entrance), `ST9` (a building over 20×20 blocks — the footprint the
-placement states, or the one `WX1` defaults from its region; its edit sets the marker's `footprint` to that
-room cut to 20 by 20 blocks around the marker), `ST10` (a wool-room or spawn piece over 20×30 blocks in either
-orientation; its edit sets the piece's `rect` cut to the cap in whole cells from its minimum corner, and
-carries none where that would leave a marker or a stated footprint off the piece),
-`BZ11` (several zones stitching one rectangular region a single zone would have drawn), `BZ9` (a build zone
-reaching past the last ground it docks — measured across the axis its own contacts lie on, so the untouched
-span *between* two docked ends is the crossing rather than a fault, and a zone covering part of a face or
-running wider than one face to reach the mirrored corners is right), `FR9` (a crossing
-under fifteen blocks of frontline), `FR8` (a crossing turned into frontline over less than a third of the
-face it docks against) and `CT12` (a two-team wool
-board's direct team-island strait outside 15–40 blocks — read here over the plan's rectangles, and again over
-the drawn board at the finish, *What a compile produces*). The whole lint table now rides `/api/plan/evaluate`'s response as `lint[]` beside
-the scored terms — the compile endpoint returns errors alone, so the one call an authoring loop already makes
-is where every complaint, an unplaceable iron included, becomes visible.
-
-**The evaluator's `valid` is not the compile's.** `/api/plan/evaluate` is a critic built to rank composed
-candidates, and it promotes some of the lint above to hard terms — so a board that compiles cleanly can come
-back `valid: false` with a large score, and nothing about that stops it being built. The Ruediger map is the
-demonstration: no structural error, and an evaluation of `score` 2002 with four fired terms — `G2` and `G5`
-hard, `FR4` (too many front lines per team) and `LN1` (a lane wider than its band) soft.
-An agent should read the score as advice about a board's *shape* and the compile's 422 as the only refusal.
-
-**The one document they must not disagree about is the empty one.** `{"pieces": []}` used to come back
-`score 0, valid: true, violations: []` from the evaluator and `producible: true` from the feasibility read,
-while `/plan/compile` refused the same body outright with `PL1` — *this plan has no pieces, there is no land to
-build*. Every check in both reads quantifies over geometry, so with none they are all vacuously satisfied, and
-the shape of that answer is the shape of a perfect plan. Both now answer `PL1` in the validator's own sentence,
-cited rather than restated. It is `Completeness`'s finding rather than `Check`'s, and only that one: a plan
-under construction is legitimately missing a spawn and an objective, and saying so on every keystroke is what
-the split between the two exists to avoid. `PL1` is the finding that is not about being unfinished — it says
-the document is empty — and `Completeness` reports it alone, returning before it asks anything else.
+**The lint is not asked at the compile.** `PlanValidator.LintRules` — `PC-C`, `G2`, `G5`, `SP2`, `BZ5`, `BZ12`,
+`EL1`, `ST2`, `WX4`, `WX8`, `SP8`, `WL11`, `SP9`, `ST8`, `ST11`, `ST9`, `ST10`, `BZ11`, `BZ9`, `FR9`, `FR8`,
+`CT12` — is the composer's and the evaluator's, which rank candidates by it. A compiled board is asked the same
+ids of its own ground once it is a map, off the sketch and the intent (`GET /map/{slug}/findings`,
+`docs/tools/sketch.md`), which is where a coast moved after the compile is heard.
 
 ## The API
 
-Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist, or
-who may edit the map it names ([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The editor greys *Save*, *Compile* and the build for a caller who may not write there, with the reason on hover. A route that builds a world waits its turn in the build queue and answers 429 when it cannot, which no row repeats either. Inspect, evaluate, feasibility and compile all take a plan
-document as the body and need no map, which is what lets a plan be checked before it is stored anywhere.
+Every endpoint is rooted at `/api`, and every one here is open to anyone: the compile stores nothing, and the
+rest read history.
 
-**Originating and storing**
-
-| Endpoint | Body | Answers | Fails with |
-|---|---|---|---|
-| `POST /plan` | `{name?}` | `{slug}` — a new `map` row at `stage=plan`, gamemode `ctw`, empty plan artifact | — |
-| `GET /map/{slug}/plan` | — | the stored document, or `{}`. The `ETag` is the revision to state on the next write | 404 unknown map |
-| `DELETE /map/{slug}/discard-if-empty` | — | `{discarded}` — drops a draft still named *Untitled plan*, never saved, not forked from a candidate and credited to nobody but its originator; the Sketch tool asks the same | — |
-| `PUT /map/{slug}/plan` | the document | `{}` — a verbatim replace; `warnings` carries any field the plan reader has nowhere to keep (`RQ3`), which the blob would otherwise store and nothing downstream would read. The `ETag` is the revision it landed at | 400 non-JSON · **409 `RQ5`** an `If-Match` naming a revision the plan is no longer at · 404 unknown map |
-| `GET /map/{slug}/state` | — | `{stage, artifacts, moves[]}` — where the map has got to, which documents it holds, and what may be done to it from here. Each move is `{does, route, next}`; several are open at once and `next` marks the ones the stage is waiting on | 404 |
-| `GET /map/{slug}/findings` | — | `{stage, findings[], unasked[], refuses}` — everything wrong with the map right now, from every gate its stored documents can answer, judged as the intent and the layout stand now — the play pieces off the intent, the ground off the sketch and Finish's own judgement — plus the gates a read cannot reach and the route that does pay for them | 404 |
-| `GET /map/{slug}/plan/ascii[?every=N]` | — | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. `every` draws one character per N cells for a board wider than a terminal | 404 unknown map or no plan · 422 stored plan unreadable |
-| `GET /map/{slug}/plan/flow` | — | `text/plain` — how the board is come at and what that leaves unused: per objective, one reading per **demand set** (attack, back-run, defend, chase), each on the ground that side walks, with its distance, its ways and **one decision per door** — the hole, where the choice is made, how long it stays open, what the other way costs — plus whether the defence shares the attackers' road, and the ground no journey reaches, named with its pieces | 404 · 422 |
-| `GET /map/{slug}` · `PATCH /map/{slug}/metadata` | `{name, authors[]}` | the map's identity | 404 |
-
-**Stored plan rows**, read-only history
-
-| Endpoint | Body | Answers | Fails with |
-|---|---|---|---|
-| `GET /plans[?origin=generated\|authored\|imported]` | — | summaries, newest touched first, a generated row with the composer descriptor it was composed from | — |
-| `GET /plans/{id}` | — | the row plus its `planJson` | 404 |
-| `GET /plans/{id}/ascii[?every=N]` · `/svg` · `/png` | — | the same board drawn, by id rather than slug | 404 · 422 |
-
-**The flow.** A render says *where* ground is dead; only the flow says *why*, and a model handed a red
-rectangle with no account of it will move the rectangle rather than the reason. `GET /map/{slug}/plan/flow`
-answers that account in prose, off the plan alone, so it costs no build and can be read before the picture.
-
-For each enemy objective it states the attacker's walk and the defender's, and the ratio between them — the
-quantity the corpus reads match length off before any other geometry (`match-flow.md` §6.10). It says how many
-ways in there are, where they part and where they meet again, and how far short of the objective that merge
-sits. Then the relation that decides whether a board can be held: whether the defender's own shortest walk
-runs **through** that merge, so both sides come up the same road and the defence must be pushed forward to
-hold it, or whether going round is shorter, so the defence arrives **from behind** the objective while the
-attack arrives at its front. It flags a split or a merge narrower than `TightPassage` (8 blocks), which is a
-doorway rather than a place to fight over.
-
-Routes are a **capture board's** question. A wool is carried back, so the same ground is walked out and in and
-the two sides meet somewhere definite. A destroy board has no carry, so it gets the ground read and no
-invented flow.
-
-**The grid.** A plan is a list of rectangles measured in cells, and most of what goes wrong with one is a
-relation between two of them — a landform wider than the band that reaches it, a wall on the only throat, a
-room whose door opens onto its own apron. A render of the built world cannot show a relation between two
-rectangles, because by then they are terrain; a grid puts them on the same rows and the relation is one
-glance. `GET /map/{slug}/plan/ascii` answers it as `text/plain`, which is also the one render a caller with
-no image reader can act on. Terrain takes a letter per piece, a build zone is `+`, a water lane `~`, an
-enclosed void `o`, open void a space, and markers overprint their ground.
-
-**The grid and the flow read the stored plan, and neither refuses anything**, which is what makes them the
-two an authoring loop forgets: a call that cannot fail is a call nobody is made to run. So they are on the
-driver rather than left to be remembered — `pgm-studio-mapgen`'s `tools/drive.py` prints both between the
-`PUT …/plan` and the compile, which is the first moment either can answer and the last one before a board's
-shape is committed to a world.
-
-**Reading a plan.** All of these take **the plan document itself as the body** — unwrapped, exactly the shape
-`GET /map/{slug}/plan` hands back — and store nothing, so they can be asked of a document that has never been
-posted anywhere. That is what makes them the cheapest way to find out whether a board is well formed.
-
-**Six routes take a posted plan, and they answer three kinds of thing.** Reading five summaries in a row
-does not say which, so it is said here. One **transforms**: `compile` turns a plan into the layout and intent
-a map is built from, and is the only one whose answer a caller acts on. Two **judge**:
-`evaluate` scores the board against the rule law, and `feasibility` judges the *composer* — could it have
-produced this plan — which is a statement about what the generator cannot do yet rather than about the board,
-and is why it is tagged `Diagnostics` and kept out of the list a driver iterates through. Three **project**:
-`inspect` derives the geometry a canvas draws, `columns` builds the world the plan would make, and `ascii`
-draws the board as characters.
-
-```json POST /api/plan/inspect
-{"globals": {"cell": 4, "symmetry": "rot_180"}, "pieces": []}
+```json POST /api/plan/compile
+{
+  "plan": 2, "meta": {"name": "Weirgate"},
+  "globals": {"cell": 5, "symmetry": "rot_180", "maxPlayers": 8, "surface": 9},
+  "pieces": [
+    {"id": "spawn", "role": "spawn", "rect": [1, 9, 2, 2]},
+    {"id": "dale", "role": "piece", "rect": [-3, 4, 6, 5]},
+    {"id": "ford", "role": "piece", "rect": [-1, -4, 2, 8]},
+    {"id": "wool", "role": "wool-room", "rect": [-3, 9, 2, 2]}],
+  "placements": {"spawns": [{"piece": "spawn", "at": [5, 5], "facing": "front"}],
+                 "wools": [{"piece": "wool", "at": [5, 5]}]}
+}
 ```
 
-| Endpoint | Answers | Fails with |
-|---|---|---|
-| `POST /plan/inspect` | `{interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps, structures, goalDistances, goalPairs, spaces}` — the derived geometry, already in block coordinates: each interface with its `delta` (the surface step across it) and wall mark; the per-piece-side `frontages` (exposed blocks, frontline blocks, share — FR8's read); the `frontlineRuns` with widths in blocks (`FR9`'s fifteen-block floor is read off the same frontages); the `islandGaps` (each bridged pair's strait in blocks, `direct` when no third landmass shares the region — CT12's read); plus the destroy-goal walks, all of them blocks over the fanned closure: `goalDistances` is each goal's walk to its own and the enemy's spawn with the enemy÷own ratio — the numbers `goal-spawn-ratio` scores against GO1's band [3.0, 4.0] and `goal-spawn-distance` against GO4's [40, 90] — and `goalPairs` is the walk between the goals themselves, each unordered pair once, `opposing` false for a pair one team defends (GO2, [35, 65]) and true for a goal against one the other team defends (GO3, [85, 150]), a monument against its own mirror being the pair every symmetric board carries; and `spaces`, every patch of empty ground the pieces leave — its `kind` (`open` · `notch` · `bay` · `hole`, the wall count), the pieces walling it, and `narrowestBlocks`, the shortest line across it that terrain closes at **both** ends, which is what a player crosses and what `WL12`, `WL20` and `LN6` measure. Never withholds over structural errors; a failure degrades `structures` and the board aggregations to empty rather than failing the feed | 400 malformed or unreadable |
-| `POST /plan/room?piece=<id>` | `{at, footprint, iron}` — the room a `spawn` or `wool-room` piece carries, as piece-relative block offsets ready to store on the placement: the marker inside the room, the footprint the building stands on, and on a spawn whose yard has room for one the iron cube, beside the door on the player's right as they leave. The answer is for the piece **as the document states it** — a placement already on it supplies the facing and the building, so a small hall stated inside a wide protection region is answered with that hall's own marker and its own iron; a piece with no placement yet takes the drawing defaults, a front door and the footprint the resolver would have defaulted to (`WX1`), sized for a shell since a plan states no room style | 404 the piece carries no room, is too small to hold one (`WX2`), or states a building that does not lie on it |
-| `POST /plan/evaluate` | `{score, valid, violations[], lint[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence — and, for a term that measured one number, the finding's `measured`: the `value` and the `low` and `high` it was held to, a soft term's finding a complaint since a soft term only scores, and a hard floor in a measured family (`WL2`, `WL19`) a complaint too, with its floor alone — and `lint` the structural validator's complaints (an unplaceable iron `WX8`, a mid-lane spawn `SP2`, an odd elevation step `EL1`, …), which never move the score. The validator's **refusals** ride in `violations` under the `PL` id each was refused under, one entry per refusal pointing at its own subjects — so a board with four different overlaps answers four `PL4`s rather than a count, and the whole set arrives here rather than at the compile's 422 a phase later. They all carry `termId: "structural-integrity"`, the one measurement that noticed, and it is scored once however many fired. A plan with no generating piece answers `valid: false` carrying `PL1`, not an error and not an empty evaluation | 400 malformed: not JSON, or a plan the reader cannot hold (a list stated as `null`, a marker's `at` that is not two numbers, two pieces under one id), the field named in the finding |
-| `POST /plan/feasibility` | **a diagnostic, not a verdict on the board.** `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why, in `BX` findings (a box room in `ST1`) that cite the open task which would unblock a gap where one owns it. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit`. The route answers any caller; the plan editor asks it only for an admin, and the sidebar does not render it. Acting on one of these as though it were a fault in the plan means editing a board to satisfy a limitation that is the studio's | 400 malformed |
-| `POST /plan/ascii[?every=N]` | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. **The read that shows a relation between two rectangles**, which no number can: a sixteen-cell bar reached by a four-cell build zone is a landform 60% dead, visible at a glance here and invisible in every other read of the same board. `every` draws one character per N cells for a board wider than a terminal | 400 malformed |
-| `POST /plan/columns` | `{palette, cols, min_x, min_z, max_x, max_z}` — the world the plan compiles to, as per-column runs, in the encoding `sketch.md` documents, plus, under `warnings`, every prop the dressing pass declined (`DR-*`) and everything the compiled layout names that the studio does not have (`SK3`/`SK4`/`SK5`). It compiles and builds, so it is the heaviest read here and the only one that answers what stands above the ground. It does not gate: `/plan/compile` is where a plan is refused, and a preview of an incoherent plan is still worth looking at | 400 malformed or unbuildable |
-| `GET /objectives/vocabulary` | the destroyable styles and materials, the wool dyes with their labels and swatches, and every objective default | — |
-
-**Compiling and building**
-
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
-| `POST /plan/compile` | the document | `{layout, intent}`, each half serialized with its consumer's options so both can be posted on verbatim; `warnings` rides beside them where the compile is complete enough to succeed and incomplete enough to remark on (today `PL3`, a map with no objective), and where the posted plan carried a field the reader has nowhere to keep (`RQ3`) | 422 `{findings}` structural or completeness errors · 400 malformed |
-| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{orphaned, dropped}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` rides beside them: what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers, and any field of the **posted** layout the reader had nowhere to keep (`RQ3`). `dropped` names every stored shape the compile does not produce and that carries no `intentRef` — a shape drawn in the sketch, which nothing carries since geometry is the plan's — with one `SK29` complaint beside it | 409 one `SK1` finding per orphaned group, subject = group id (`?force=true` accepts the loss) · 400 · 404 |
-| `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes the layout into world geometry and moves the map to `stage=configure`, answering the stored document's own complaints under `warnings` on the way through | 404 unknown map · 422 the layout rasterizes to no ground · 422 `SK2` |
-| `PUT /map/{slug}/intent/from-plan` | the compiled `intent` | the projected map — carries the stored **authors and contributors** onto it and nothing else. `symmetry` and `islandTeams` are deliberately not carried, so a rebuild clears both | 404 · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |
-| `GET /map/{slug}/export` | — | the world ZIP | 401 signed out · 403 not on the whitelist · 404 unknown map · 409 and 422 as `/xml`, plus non-2xx with a message on a zip/IO failure |
+| `POST /plan/compile` | the document | `{layout, intent}`, each half serialized with its consumer's options so both can be posted on verbatim as a source's `layout` and `intent`; `warnings` rides beside them where the compile is complete enough to succeed and incomplete enough to remark on (today `PL3`, a map with no objective), and where the posted plan carried a field the reader has nowhere to keep (`RQ3`) | 422 `{findings}` structural or completeness errors · 400 malformed |
+| `GET /map/{slug}/plan` | — | the plan the map was built from, as stored, or `{}`. The `ETag` is its revision | 404 unknown map |
+| `GET /plans[?origin=generated\|authored\|imported]` | — | the stored plan rows' summaries, newest touched first, a generated row with the composer descriptor it was composed from | — |
+| `GET /plans/{id}` | — | the row plus its `planJson` | 404 |
+| `GET /plans/{id}/ascii[?every=N]` · `/svg` · `/png` | — | the same board drawn, by id | 404 · 422 |
+| `GET /objectives/vocabulary` | — | the destroyable styles and materials, the wool dyes with their labels and swatches, and every objective default | — |
 
 ## Driving it without the UI
 
-An agent authoring a plan writes the document itself and never touches the canvas. **The whole loop is one
-call**: the plan, and the refinement stating what a plan cannot, stored as the map's source.
+**A plan becomes a map in two calls**: the compile, and the source that stores what it answered, with the
+refinement stating what a plan cannot.
 
 ```
-PUT    /api/map/voidwatch/source      {plan, refinement, origin, note}
+POST   /api/plan/compile              <the plan document>   → {layout, intent} (+ warnings)
+PUT    /api/map/voidwatch/source      {layout, intent, refinement, origin, note}
                                       → {slug, change, replaced, edits, cells, islands, configureUrl}
 ```
 
-The store compiles the plan, applies the refinement onto what it compiled to, originates the map under the
-slug the route names, runs the finish that rasterizes the layout, stores the intent and projects the document
-from it, and writes the authors — so a caller sequences nothing, and a re-drive under the same slug
-**replaces** the map rather than leaving a second one behind it. `?dry=true` answers what a re-drive would
-change and stores nothing. The source, the refinement's members and what each refuses are
-`docs/tools/flow.md`'s § *A map's source is the way in, and the way back in*.
+The store applies the refinement onto the pair, originates the map under the slug the route names, runs the
+finish that rasterizes the layout, stores the intent and projects the document from it, and writes the authors
+— so a caller sequences nothing, and a re-drive under the same slug **replaces** the map rather than leaving a
+second one behind it. `?dry=true` answers what a re-drive would change and stores nothing. A source stating a
+`plan` is refused naming the compile. The source, the refinement's members and what each refuses are
+`docs/tools/flow.md`'s § *A map's source is the way in, and the way back in*. The map is a sketch from then
+on, and it is edited as one.
 
-**The staged path is the other caller's**, and it is six calls because each stage writes the document it has
-just drawn:
-
-```
-POST   /api/plan                      {"name": "Voidwatch"}      → {"slug": "voidwatch"}
-PUT    /api/map/voidwatch/plan        <the plan document>        → {}
-POST   /api/plan/compile              <the plan document>        → {layout, intent} (+ warnings)
-PUT    /api/map/voidwatch/sketch/from-plan   <layout verbatim>
-POST   /api/map/voidwatch/sketch/finish
-PUT    /api/map/voidwatch/intent/from-plan   <intent verbatim>
-```
-
-That is the editor's own order, and its two `…/from-plan` routes **merge** onto what is already stored, which
-is what recompiling a map somebody has drawn on needs and what a first store does not.
-
-`POST /api/plan/evaluate` and `POST /api/plan/feasibility` may be called on the document at any point before
-the compile, with no map in existence, and are the cheapest way to find out whether a board is well-formed.
-
-**A gap is measured by what closes it, not by how much of it there is.** The pieces a plan states leave empty
-ground between them, and `spaces` classes every connected patch of it by how many of the four directions
-terrain walls: `open` is outside space along a flat side and no feature of the board, a `notch` is the corner
-two pieces wrap, a `bay` a recess with one mouth, a `hole` a void the board rings. What a player actually
-crosses is narrower than any of that — the shortest straight line over the space with terrain closing **both**
-ends, since a run open at one end is a way out of the space rather than a gap over it — so that is the number
-`narrowestBlocks` carries, with the piece at each end named.
-
-Three rules read it against three floors, all in blocks so they hold at any grid scale. A crossing touching a
-wool room or a spawn wants **16** when its other end fronts the crossing's build band or is another goal
-(`WL12`), and **12** when it is the team's own ground away from the front — the hub, an approach (`WL20`). The
-narrowest crossing of a hole touching no goal wants **12** (`LN6`), since it is crossed on purpose. A crossing any build zone reaches is not asked at all — building over it is what the zone
-states. The fault it names is a short gap beside a goal: a player towers at one edge, jumps it, and the
-approach the board was drawn around is never walked.
-
-**A measure is printed beside the band the studio is enforcing, and the band is read rather than restated.**
-`inspect` answers `goalDistances` and `islandGaps` as bare numbers, and what makes one of them a fault is a
-band that belongs to a rule: `GET /api/rules/terms` answers each scored term with the band the scorer is
-using right now and where it came from — `goal-spawn-ratio` is `GO1`'s `[3, 4]`, `authored` — and
-`GET /api/rules?rule=<id>` answers the rule's own sentence, which is where a rule with no scored term states
-its number. A caller that writes either down instead goes on reporting the old one after the author moves
-it.
-`GET /api/map/{slug}/state` before the build says whether this is an origination or a rebuild, and what
-else may be done from here. `GET /api/map/{slug}/export` afterwards returns the world.
-
-**Two reads make the loop act-then-ask rather than act-and-hope.** Every other gate is reached through the
-step it lives behind, so a fault authored at one step is heard at another — a plan whose objectives cannot be
-placed is heard at the compile, a layout that rasterizes to nothing at the finish.
-`GET /api/map/{slug}/findings` asks all of them at once, off the stored documents, and calls the same methods
-those steps call rather than restating them. It does not build: the export gates need the rasterized world,
-which is seconds a read would spend on every call, so each is named in `unasked` with the route that does pay
-— a list silent about what it skipped would read as *nothing is wrong*. What it can ask off the stored layout
-and scan it does ask, as drawn now rather than as Finish saw it: everything Finish judges
-(`SketchFinish.Judge` — the board's own gate and a board carrying no finish). A map's play pieces are asked of
-its intent and its ground of its sketch, under the plan's ids (`docs/tools/sketch.md`, `IntentCheck`,
-`SketchBoardCheck`); a stored plan is asked nothing.
-Standing ground nobody may edit (`EZ1`) is judged over the built world and is named in `unasked` with
-`GET /api/map/{slug}/editability`. So a vertex moved or a coast bent after Finish is heard here without
-finishing again. `GET /api/map/{slug}/state` is the other half: what may be done next, with the route for
-each.
-
-**Two further calls belong after the intent, and the order is load-bearing.**
-`POST /api/map/{slug}/sketch/columns` answers every prop the dressing pass declined, under `warnings` — and
-`DR-KEEP` among them reads the spawn doors' approaches and the goal rings, which come off the **intent**, so
-the same call asked before it answers a shorter list. The map's authors reach the intent one of two ways: the
-plan states `meta.authors` and the compile carries them, or `PATCH /api/map/{slug}/metadata` sets them after
-the intent is stored. A plan that states none compiles to an intent naming nobody, and `intent/from-plan`
-carries authors only from a **previously stored intent**, which a first build does not have.
+The map's authors reach the intent one of two ways: the plan states `meta.authors` and the compile carries
+them, or the refinement states them.
 
 The smallest plan that survives the gate needs one generating piece, one spawn marker, and — for a CTW map —
 a wool that is reachable from every capturing team's spawn by a route that does not pass through a spawn piece.
@@ -903,21 +522,7 @@ between `wool-a-t1` and `wool-a-t3`, `rot_180` at 30 players. It compiles to 25 
 structure directives — two entrance redstone rows, two walls. It states no build ceiling,
 because none of them do: that is measured off the terrain the world build produces.
 
-Its `ruediger.layout.json` is worth reading for the **theme** as much as the geometry, and it is the reason
-the two are kept together. All three of its themes were written in shapes the model has since retired, and
-one of them cost something: the surface voronoi stated a `palette` of fills to pick between, which the reader
-upgrades by carrying the first entry and dropping the rest, so a three-material surface painted one flat band
-of sand for as long as the file said so. Nothing failed — a stored document that needs an upgrade to load is
-exactly the thing that keeps loading. It now states its own bands: sand on the cell boundary, sandstone the
-ring, birch planks the middle, over twelve-block cells with a two-deep rim, which is what it takes for a ramp
-measured inward from the boundary to read as cells at all.
-
-That plan also shows what lint is worth. It carries **sixteen findings and no errors**: eleven `EL1` (its
-elevation steps in ones, not the twos the height step defaults to), two `G2` (five-block zones) and one `G5` (a
-35-block hop). None of them stopped a good map being
-built, which is the difference between the lint table and the refusals above.
-
-Reading the trio together shows exactly where this tool stops. The compile emitted twenty-one polygons —
+Reading the trio together shows exactly where a plan stops. The compile emitted twenty-one polygons —
 `hub-t2-7` through `hub-t2-14` and `hub-t6-9` through `hub-t6-16`, two components across ten surfaces — and
 the four structural rectangles `spawn-red`, `spawn-blue`, `wool-red-red` and `wool-blue-blue`;
 everything else in `ruediger.layout.json` was added afterwards in the Sketch tool — one carved shape with a
@@ -931,38 +536,25 @@ monument per wool its team will capture, all of which are refusals rather than w
 
 ## Limits
 
-**The plan is retiring as a level.** The author ruled that the sketch becomes the map's one document (D8 in
-`docs/pgmvox-port.md`): its play pieces are placed, moved, turned and set in the sketch's Layout step, shipped as
-`TS169`; the generator emits a sketch (`G301`), and the Plan tool goes with every stored plan kept as read-only
-history (`RP131`). Until those land, everything below is the tool as it runs.
+**A plan is not edited in the studio.** The Plan tool retired with the plan as a level (`RP131`, D8 and D9 in
+`docs/pgmvox-port.md`): a plan is written by hand, by an agent or by the composer, and a map built from one is
+a sketch from then on.
 
-**Plan draws rectangles on a coarse grid, and that is the whole of its geometry.** Every footprint is an
+**A plan draws rectangles on a coarse grid, and that is the whole of its geometry.** Every footprint is an
 axis-aligned cell rect, so the smallest thing a plan can say is one cell wide — five blocks at the default
-scale — and nothing it draws has a diagonal, a curve or a notch. There is no polygon, no cut, no lasso.
-Refining the shape of the ground is the Sketch tool's, which takes the compiled layout and works on the fused
-outline. Height is the one property a plan states finely, and it states one flat surface per piece: valleys,
-slopes, contours and any interior elevation belong to the relief phase downstream.
+scale — and nothing it draws has a diagonal, a curve or a notch. Refining the shape of the ground is the Sketch
+tool's, which takes the compiled layout and works on the fused outline. Height is the one property a plan
+states finely, and it states one flat surface per piece: valleys, slopes, contours and any interior elevation
+belong to the relief downstream.
 
 **A plan states no stack.** The plan model is flat by decision rather than by omission — a storey is a fact
 about ground that has been drawn, and the sketch is where ground is drawn — so `layers[]` has no counterpart
-here and a compiled plan emits exactly one, id `ground`, at `base_y` 0. That the walk's node is a *place*
-rather than a cell costs a plan board nothing: it simply has one place per cell.
+here and a compiled plan emits exactly one, id `ground`, at `base_y` 0.
 
-It authors no paint and no dressing. Themes, styles, trees, paths, ponds, rocks and houses are all the Sketch
+It states no paint and no dressing. Themes, styles, trees, paths, ponds, rocks and houses are all the Sketch
 tool's; a plan carrying theme keys has them dropped on parse.
 
 It does not place the observer spawn. The compiled intent puts the observer at `x=0, z=0` at `observerY`, and
-the Configure tool is where an observer spawn is actually authored — there is no observer marker on the plan
-canvas, and no control writes `observerY`.
+the Configure tool is where an observer spawn is actually authored.
 
-It does not validate the finished map. The compile gate refuses the structural faults listed above and nothing
-else; the map's real pre-flight, its region tree and its XML are Configure's.
-
-Destroy objectives are offered only at symmetry order 2, and a hand-written plan that places them elsewhere is
-refused rather than compiled.
-
-Once a plan has been built, the rooms it placed are drawn into the sketch from the intent: the Sketch tool's
-Draw phase picks one and corrects the height it was compiled at, and the correction survives a recompile; and
-a picked piece drags, the move being written to the intent, which is where the room is. Every other piece the
-plan places — a goal, a build area, a wall — is drawn there too and moves the same way. What a drag does not do is resize, and a plan rebuild places the rooms from
-the plan again — the plan owns a board's structure.
+Destroy objectives are compiled only at symmetry order 2, and a plan that places them elsewhere is refused.

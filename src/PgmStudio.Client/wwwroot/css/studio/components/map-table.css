@@ -40,7 +40,6 @@ a.map-row-name:hover { text-decoration: underline; }
 .map-row-slug { color: var(--text-muted); font-size: var(--font-sm); font-family: ui-monospace, monospace; }
 
 .map-stage-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; margin-right: var(--space-1); }
-.map-stage-dot--plan { background: var(--canvas-axis); }
 .map-stage-dot--sketch { background: var(--canvas-add-fill); }
 .map-stage-dot--configure { background: var(--color-warning); }
 .map-stage-dot--edit { background: var(--color-success); }

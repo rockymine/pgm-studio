@@ -5,7 +5,7 @@
  * The smoke sweep can only see the absence of an error, and a blank canvas raises none — it is exactly as
  * "clean" as a working one. That gap matters more for a painted surface than a retained one, because there
  * are no elements left behind to inspect: if the paint code stopped running, nothing in the DOM would say
- * so. So this asserts positively, on pixels, for all three drawing surfaces.
+ * so. So this asserts positively, on pixels, for both drawing surfaces.
  *
  * The zoom check is the one that speaks to why the surfaces are painted at all. A transformed SVG keeps the
  * rasterization it was painted at and lets the browser stretch it, which is what leaves a zoomed picture
@@ -21,14 +21,13 @@ const checks = new Checks("paint");
 const browser = await openBrowser();
 const page = await newPage(browser);
 
-// The three surfaces, with what each is expected to keep in the svg once its world is painted. `floor` is
-// the share of the viewport the world must cover: well clear of blank, and set per surface because a plan
+// The two surfaces, with what each is expected to keep in the svg once its world is painted. `floor` is
+// the share of the viewport the world must cover: well clear of blank, and set per surface because a sketch
 // board fills more of its frame than a world map fills its bounding box. `enter` is for a surface whose
 // route does not land on it — the Configure tool opens on Identity, which mounts no canvas, so the world one
 // is reached through its nav rail on World · Scan (a state switch, so nothing is advanced or persisted to get
 // there).
 const SURFACES = [
-  { name: "plan",   path: `/maps/${seed.planSlug}/plan`,     floor: 5, screen: ["overlay", "scale"] },
   { name: "sketch", path: `/maps/${seed.sketchSlug}/sketch`, floor: 5, screen: ["groupChrome", "handles", "center", "scale"] },
   { name: "world",  path: `/maps/${seed.mapSlug}/configure`, floor: 1, screen: ["overlay"],
     enter: (page) => page.click('button.nav-btn[title="World"]') },

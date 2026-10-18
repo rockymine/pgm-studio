@@ -93,7 +93,7 @@ walls cannot centre from a hand, and a reflection swaps the hands, so the export
 frame and lays the image out as the mirror of the original (`docs/world-export/structures.md` WX1). Configure's
 coverage assignment stores separately placed spawns rather than images of one, so those carry `false`.
 
-**The canvases only draw.** The JS ghosts — `plan-doc`'s mirror images, the sketch mirror layer — and the
+**The canvases only draw.** The JS ghosts — the sketch mirror layer — and the
 Configure copies drawn as `ghost` author regions are previews. They store nothing and decide nothing.
 
 **A position and a cell do not turn the same way, and the leaf answers both.** A board whose extent is even
@@ -138,8 +138,7 @@ plan's stamped structures — were deleted on any intent carrying a symmetry, si
 One consequence is worth stating because it surprises people: **a compiled intent carries no symmetry on
 purpose.** The field is what switches the expander on, and the expander rebuilds an intent from a fixed
 property set; setting it on an intent that is already fanned would delete the structure directives it exists
-to deliver. So a plan-built map confirms its symmetry in Configure, and a rebuild clears that confirmation
-again (`IntentCarry`).
+to deliver. So a map stored from a compiled plan confirms its symmetry in Configure.
 
 ## 4. Coordinate flooring — match how PGM parses each field
 
