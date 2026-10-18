@@ -112,13 +112,6 @@ public partial class SketchTool
         await StorePlacesAsync([.. PlaceList.Where(place => place.Id != gone)]);
     }
 
-    private async Task ClosePlace()
-    {
-        selectedPlaceId = null;
-        placeNote = null;
-        if (handle is not null) await handle.InvokeVoidAsync("selectPlace", (string?)null);
-    }
-
     /// <summary>Say where the places stand with the author.</summary>
     private Task SetVerdict(string verdict) => StoreAsync(placesDocument with { Verdict = verdict });
 

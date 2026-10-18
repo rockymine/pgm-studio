@@ -28,7 +28,7 @@ import { CanvasPainter } from "../render/canvas-painter.js";
 import { containsPoint, toBounds, translateShape, boundsOfShapes, rotateShape, scaleShape, toRing, snapShape } from "../geometry/shape.js";
 import { pointInRing } from "../geometry/polygon.js";
 import * as Keys from "../shared/keys.js";
-import { resolvePick } from "../shared/pick.js";
+import { resolvePick, structuralAt, wingOf } from "../shared/pick.js";
 
 // How far below the selection's bounds its size pill sits, clear of the bottom edge's grab band and of the
 // corner anchors drawn on the bounds themselves.
@@ -40,6 +40,7 @@ import { paintDressing } from "../render/dressing-render.js";
 import { ReliefController } from "../controllers/relief-controller.js";
 import { RoomHouseController } from "../controllers/room-house-controller.js";
 import { WallEndController } from "../controllers/wall-end-controller.js";
+import { PieceResizeController } from "../controllers/piece-resize-controller.js";
 import { ReliefDoc } from "../relief/relief-doc.js";
 import { paintReliefMarks } from "../render/relief-render.js";
 import { paintDiff } from "../render/diff-render.js";
@@ -128,6 +129,7 @@ export class SketchCanvas extends CanvasBase {
   #reliefTools = null;
   #roomHouse   = null;        // a picked room's house, shaped in Layout
   #wallEnds    = null;        // a picked wall's two ends, dragged apart in Layout
+  #pieceResize = null;        // a picked room region, build area or water lane, resized in Layout
   #reliefOn    = false;      // only the Relief phase draws and edits marks
   // A placement hands the canvas back to select mid-press, so the click that finished it would arrive with
   // select already active and be read as "pick the group under the cursor" — deselecting the prop just put
@@ -402,6 +404,7 @@ export class SketchCanvas extends CanvasBase {
   setLayoutEditing(on) {
     this.#roomHouse?.setEnabled(on); this.#roomHouse?.refresh(this.#selectedStructuralId);
     this.#wallEnds?.setEnabled(on); this.#wallEnds?.refresh(this.#selectedStructuralId);
+    this.#pieceResize?.setEnabled(on); this.#pieceResize?.refresh(this.#selectedStructuralId);
   }
 
   /** Show and edit placed dressing — on for the Dressing phase, off everywhere else. */
@@ -477,6 +480,7 @@ export class SketchCanvas extends CanvasBase {
     this.#reliefTools?.refreshHandles();
     this.#roomHouse?.refresh(this.#selectedStructuralId);
     this.#wallEnds?.refresh(this.#selectedStructuralId);
+    this.#pieceResize?.refresh(this.#selectedStructuralId);
     this.#renderTransformChrome();
   }
 
@@ -536,13 +540,13 @@ export class SketchCanvas extends CanvasBase {
   _onIsoEnter() { this.#draw?.cancel(); }
   // What the preview covers: the painted world, the (inert) viewport group, and every screen-space overlay.
   _isoLayers() {
-    const { handles, dressingHandles, reliefHandles, roomHandles, wallHandles, center, drawHandles, measureLabel, groupChrome } = this.#screen;
-    return [this.#canvasEl, this._viewportG, handles, dressingHandles, reliefHandles, roomHandles, wallHandles, center, drawHandles, measureLabel, groupChrome];
+    const { handles, dressingHandles, reliefHandles, roomHandles, wallHandles, pieceHandles, center, drawHandles, measureLabel, groupChrome } = this.#screen;
+    return [this.#canvasEl, this._viewportG, handles, dressingHandles, reliefHandles, roomHandles, wallHandles, pieceHandles, center, drawHandles, measureLabel, groupChrome];
   }
 
   // ── CanvasBase hooks ───────────────────────────────────────────────────────────
 
-  _onViewportChanged() { this.#paintWorld(); this.#edit?.refresh(); this.#dressing?.refreshHandles(); this.#reliefTools?.refreshHandles(); this.#roomHouse?.refresh(this.#selectedStructuralId); this.#wallEnds?.refresh(this.#selectedStructuralId); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderTransformChrome(); }
+  _onViewportChanged() { this.#paintWorld(); this.#edit?.refresh(); this.#dressing?.refreshHandles(); this.#reliefTools?.refreshHandles(); this.#roomHouse?.refresh(this.#selectedStructuralId); this.#wallEnds?.refresh(this.#selectedStructuralId); this.#pieceResize?.refresh(this.#selectedStructuralId); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderTransformChrome(); }
   _onZoom(scale)       { if (this.#zoomEl) this.#zoomEl.textContent = `${Math.round(scale * 100)}%`; }
 
   _onToolMousedown(e, svgPt) {
@@ -721,12 +725,13 @@ export class SketchCanvas extends CanvasBase {
   _onMouseleave() { if (this.#cursorEl) this.#cursorEl.textContent = ""; this.#updateDim(); }
 
   _onResizeMove(e) {
-    if (this.#dressing || this.#reliefTools || this.#roomHouse || this.#wallEnds) {
+    if (this.#dressing || this.#reliefTools || this.#roomHouse || this.#wallEnds || this.#pieceResize) {
       const p = this._clientToSvg(e.clientX, e.clientY);
       if (this.#dressing?.onHandleMove(p.x, p.y)) return true;
       if (this.#reliefTools?.onHandleMove(p.x, p.y)) return true;
       if (this.#roomHouse?.onHandleMove(p.x, p.y)) return true;
       if (this.#wallEnds?.onHandleMove(p.x, p.y)) return true;
+      if (this.#pieceResize?.onHandleMove(p.x, p.y)) return true;
     }
     if (this.#rotateState) { const p = this._clientToSvg(e.clientX, e.clientY); this.#rotateMove(p.x, p.y, e.shiftKey); return true; }
     if (this.#scaleState)  { const p = this._clientToSvg(e.clientX, e.clientY); this.#scaleMove(p.x, p.y, e.shiftKey, e.altKey); return true; }
@@ -739,6 +744,7 @@ export class SketchCanvas extends CanvasBase {
     if (e.button === 0 && this.#reliefTools?.onHandleUp()) return true;
     if (e.button === 0 && this.#roomHouse?.onHandleUp()) return true;
     if (e.button === 0 && this.#wallEnds?.onHandleUp()) return true;
+    if (e.button === 0 && this.#pieceResize?.onHandleUp()) return true;
     if (this.#rotateState) { if (e.button !== 0) return false; this.#rotateState = null; return true; }
     if (this.#scaleState)  { if (e.button !== 0) return false; this.#scaleState = null; return true; }
     const consumed = e.button === 0 ? (this.#edit?.onResizeUp() ?? false) : false;
@@ -1026,6 +1032,7 @@ export class SketchCanvas extends CanvasBase {
     if (!this.#structural.some(s => s.id === this.#selectedStructuralId)) this.#selectedStructuralId = null;
     this.#roomHouse?.refresh(this.#selectedStructuralId);
     this.#wallEnds?.refresh(this.#selectedStructuralId);
+    this.#pieceResize?.refresh(this.#selectedStructuralId);
     this.#paintWorld();
   }
 
@@ -1040,6 +1047,7 @@ export class SketchCanvas extends CanvasBase {
     this.#selectedStructuralId = next;
     this.#roomHouse?.refresh(next);
     this.#wallEnds?.refresh(next);
+    this.#pieceResize?.refresh(next);
     // Picking a piece drops the terrain selection with it, chrome included: a transform box left standing
     // over the island is a second selection, and the handles on it act on ground the click did not choose.
     if (next) { this.#selectedId = null; this.#selectedGroupId = null; this.#setLevel("group"); }
@@ -1124,6 +1132,7 @@ export class SketchCanvas extends CanvasBase {
     const axes = orbitAxes(this.#mode);
     paintDressing(painter, this.#dressingDoc.props, {
       selectedId: this.#dressing?.selectedId ?? null,
+      selectedWing: this.#dressing?.selectedWing ?? 0,
       styles: this.#dressingDoc.styles,
       activeLayer: this.#dressingDoc.layer,
       order: axes.length + 1,
@@ -1310,6 +1319,7 @@ export class SketchCanvas extends CanvasBase {
       reliefHandles: null,                         // the selected mark's point grips (Relief phase)
       roomHandles:  null,                          // the picked room's wing grips and wall marker (Layout)
       wallHandles:  null,                          // the picked approach wall's end grips (Layout)
+      pieceHandles: null,                          // the picked room region's, area's or lane's resize box (Layout)
       center:       INERT,
       drawHandles:  INERT,
       measureLabel: INERT,
@@ -1358,6 +1368,13 @@ export class SketchCanvas extends CanvasBase {
         onPreview: () => this.#paintWorld(),
         isEditable: () => !this._readOnly,
       });
+    // A room's region, a build area and a water lane resize where they are placed; the release asks the intent,
+    // as a move does, and the studio carries what stands on the piece and every image of it.
+    this.#pieceResize = new PieceResizeController(this.#screen.pieceHandles, getViewport, () => this.#structural, {
+      onResized: (piece, putBack) => this.#callbacks.onStructuralMoved?.(piece, putBack),
+      onPreview: () => this.#paintWorld(),
+      isEditable: () => !this._readOnly,
+    });
     // Relief states the ground inside a group, so its tools live on the same canvas for the same reason
     // dressing's do — and its own controller for the same reason too.
     this.#reliefTools = new ReliefController(this.#reliefDoc, this.#screen.reliefHandles, getViewport, {
@@ -1444,8 +1461,8 @@ export class SketchCanvas extends CanvasBase {
   }
 
   /** Escape, in the order a press means them: an in-progress draw, then the brush or tool in hand, then one
-   *  rung back up the ladder — the points of a shape, then the group that was entered — then the selection
-   *  itself. */
+   *  rung back up the ladder — the points of a shape, a picked piece's wing to its room, the group that was
+   *  entered — then the selection itself. */
   #onEscape() {
     // A shape half drawn is let go of first, and the press that does it does nothing else.
     if (this.#draw.cancel()) return;
@@ -1459,6 +1476,14 @@ export class SketchCanvas extends CanvasBase {
       return;
     }
     if (this.#level === "points") { this.#setLevel("shape"); return; }
+    // A picked play piece steps back up the way a group does — a wing to its room, then nothing — and a
+    // picked place lets go.
+    if (this.#selectedStructuralId) {
+      const room = wingOf(this.#selectedStructuralId)?.room;
+      this.#callbacks.onStructuralSelected?.(room && this.#structural.some(s => s.id === room) ? room : null);
+      return;
+    }
+    if (this.#selectedPlaceId) { this.selectPlace(null); this.#callbacks.onPlaceSelected?.(null); return; }
     if (this.#scopeGroupId) {
       const parent = this.#scopeGroupId;
       this.#enterScope(null);
@@ -1683,13 +1708,7 @@ export class SketchCanvas extends CanvasBase {
 
   /** The topmost plan piece containing the point, or null. Walked back to front like the shape hit test, so
    *  a building drawn inside its region is reached before the region it stands in. */
-  #hitStructural(wx, wz) {
-    for (let i = this.#structural.length - 1; i >= 0; i--) {
-      const s = this.#structural[i];
-      if (!s.carried && containsPoint(s, wx, wz)) return s.id;
-    }
-    return null;
-  }
+  #hitStructural(wx, wz) { return structuralAt(this.#structural, wx, wz, this.#selectedStructuralId); }
 
   #hitTest(wx, wz) {
     const ids = [...this.#shapes.keys()];

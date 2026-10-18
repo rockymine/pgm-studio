@@ -49,7 +49,7 @@ public sealed class RoomGround
 
 /// <summary>
 /// The play rooms a layout is read with: a region shape for every spawn and wool whose protection is one
-/// rectangle, and a building shape for each that states a footprint, drawn from the intent and carrying what
+/// rectangle, and a building shape for each wing of the house it is raised as, drawn from the intent and carrying what
 /// <see cref="SketchLayout.Rooms"/> states about their ground. A stored layout holds no room shape;
 /// <see cref="Project"/> adds them for a reader and <see cref="Fold"/> takes them back out for a store, so a
 /// document read, edited and stored keeps the record and loses only the picture.
@@ -120,13 +120,13 @@ public static class RoomShapes
 
         foreach (var spawn in expanded.Spawns)
             foreach (var shape in Room(spawn.Id, StructuralRoles.Spawn, TeamColor(spawn.Team), spawn.Protection,
-                                       spawn.House, rooms))
+                                       spawn.Raised(), rooms))
                 yield return shape;
 
         foreach (var wool in expanded.Wools ?? [])
             foreach (var shape in Room(wool.Id, StructuralRoles.WoolRoom,
                                        wool.Color.Length > 0 ? wool.Color : TeamColor(wool.Owner),
-                                       wool.Protection, wool.House, rooms))
+                                       wool.Protection, wool.Raised(), rooms))
                 yield return shape;
     }
 

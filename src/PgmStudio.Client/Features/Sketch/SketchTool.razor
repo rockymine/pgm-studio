@@ -355,7 +355,7 @@
           @if (SelectedPlace is { } place)
           {
             <SketchPlaceInspector Place="place" Pieces="placePieces" Note="@placeNote"
-                                  OnChange="ChangePlace" OnDelete="DeletePlace" OnClose="ClosePlace">
+                                  OnChange="ChangePlace" OnDelete="DeletePlace">
               <SketchPlaceNotes Slug="@Slug" Place="place" Notes="notes" />
             </SketchPlaceInspector>
           }
@@ -372,11 +372,11 @@
              here is the height a region was compiled at. *@
           <div class="sidebar-handle"></div>
           <SketchStructuralInspector Piece="selectedStructural" Note="@structuralNote"
-                                     OnSetHeight="SetStructuralHeight" OnTurn="TurnStructural" OnClose="ClearStructural"
+                                     OnSetHeight="SetStructuralHeight" OnTurn="TurnStructural"
                                      OnDelete="@(LayoutActive ? DeleteStructural : null)"
                                      Settings="pieceSettings" Vocabulary="objectiveWords" Yaw="spawnYaw"
                                      OnSetting="SetObjectiveField" OnFace="FaceSpawn"
-                                   House="@RoomHouseBody" EndsDrag="LayoutActive" />
+                                   House="@RoomHouseBody" Reshapes="LayoutActive" />
         }
         else
         {

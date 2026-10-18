@@ -1,8 +1,9 @@
 /**
  * room-house-controller.js — a room's house, shaped on the Layout canvas the way Decoration shapes a dressed one.
  *
- * A picked room building wears square grips on the corners of every wing of its house; dragging one resizes that
- * wing, held to the least span a wing takes and to the room's region. Near the middle of a free wall the pointer
+ * A picked wing of a room's house wears the transform box every rectangle in the studio wears — a grip on each
+ * corner and a handle along each edge — and dragging one resizes that wing alone, held to the least span a wing
+ * takes and to the room's region; a press inside another wing picks it. Near the middle of a free wall the pointer
  * shows the insert marker, and a press there adds a wing along that wall, five deep and shrunk to fit the region
  * (`shared/building.js`). The house is the intent's, so nothing is kept here: a finished resize or an added wing
  * hands the room's wing rectangles to the host, which writes the house and draws the rooms again.
@@ -16,8 +17,11 @@
  */
 
 import { MIN_FOOTPRINT_SPAN, freeWalls, wallNear, wingOffWall } from "../shared/building.js";
-import { svgEl, handleRectAttrs, insertGhost } from "../render/svg.js";
+import { svgEl, insertGhost } from "../render/svg.js";
+import { renderTransformBox } from "../render/canvas-chrome.js";
 import { toScreen } from "../geometry/transform.js";
+import { resizedRect } from "./piece-resize-controller.js";
+import { wingOf } from "../shared/pick.js";
 
 // Screen px: the corner grips match a dressed building's, and the marker shows at the outline editor's distance.
 const GRIP_HALF = 4;
@@ -26,12 +30,6 @@ const WALL_REACH = 10;
 const DOOR_HALF = 1.5;
 const DOOR_REACH = 2;
 
-/** The room a building shape is a wing of, and which wing: `spawn-red-building-2` → `{ room: "spawn-red", wing: 1 }`. */
-export function wingOf(id) {
-  const found = /-building(?:-(\d+))?$/.exec(id ?? "");
-  return found ? { room: id.slice(0, found.index), wing: found[1] ? Number(found[1]) - 1 : 0 } : null;
-}
-
 export class RoomHouseController {
   #layer;
   #getViewport;
@@ -39,7 +37,8 @@ export class RoomHouseController {
   #callbacks;
   #enabled = false;
   #room = null;           // the picked room's id, while one of its wings is picked
-  #drag = null;           // { wing, corner, moved } — corner 0 the min corner, 3 the max, 1 and 2 the others
+  #wing = 0;              // which wing of it is picked, counted from 0
+  #drag = null;           // { wing, grip, putBack, moved } — grip a corner or an edge of the transform box
   #wall = null;
   #ghost = null;
   #hover = null;          // the world point the pointer last stood at
@@ -60,39 +59,40 @@ export class RoomHouseController {
   }
 
   /** Whether a room's house may be shaped here — Layout, on a page the caller may write. */
-  setEnabled(on) { this.#enabled = !!on; this.refresh(this.#room ? `${this.#room}-building` : null); }
+  setEnabled(on) { this.#enabled = !!on; this.refresh(this.#picked()); }
 
   /** The doors `room` is built with — `[{edge, x?, z?}]`, a door with no point centred on its wall. */
   setDoors(room, doors) {
     this.#doors = room ? { room, doors: doors ?? [] } : null;
-    this.refresh(this.#room ? `${this.#room}-building` : null);
+    this.refresh(this.#picked());
   }
 
   /** Follow the canvas's picked structural shape: a wing of a room picks that room's house. */
   refresh(selectedId) {
     const editable = this.#callbacks.isEditable?.() ?? true;
-    this.#room = this.#enabled && editable ? wingOf(selectedId)?.room ?? null : null;
+    const picked = this.#enabled && editable ? wingOf(selectedId) : null;
+    this.#room = picked?.room ?? null;
+    this.#wing = picked?.wing ?? 0;
     this.#wall = null;
     this.#ghost = null;
     while (this.#layer?.firstChild) this.#layer.removeChild(this.#layer.firstChild);
     if (!this.#room || !this.#layer) return;
-    this.#wings().forEach((wing, at) => {
-      corners(wing).forEach(([wx, wz], corner) => {
-        const sp = toScreen(wx, wz, this.#getViewport());
-        const grip = svgEl("rect", {
-          ...handleRectAttrs(sp.x, sp.y, GRIP_HALF),
-          fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5", style: "cursor:nwse-resize",
-        });
-        grip.addEventListener("mousedown", (e) => {
+    const wings = this.#wings();
+    const wing = wings[this.#wing];
+    if (wing) {
+      const viewport = this.#getViewport();
+      const a = toScreen(wing.min_x, wing.min_z, viewport), b = toScreen(wing.max_x, wing.max_z, viewport);
+      renderTransformBox(this.#layer, {
+        l: Math.min(a.x, b.x), r: Math.max(a.x, b.x), t: Math.min(a.y, b.y), b: Math.max(a.y, b.y),
+      }, {
+        outline: false, gripHalf: GRIP_HALF,
+        onScale: (grip, e) => {
           if (e.button !== 0) return;
           e.stopPropagation();
-          this.#drag = { wing: at, corner, moved: false };
-        });
-        grip.addEventListener("click", (e) => e.stopPropagation());
-        this.#layer.appendChild(grip);
+          this.grab(grip);
+        },
       });
-    });
-    const wings = this.#wings();
+    }
     if (this.#doors?.room !== this.#room || wings.length === 0) return;
     for (const door of this.#doors.doors) {
       const at = doorPoint(door, wings);
@@ -153,17 +153,19 @@ export class RoomHouseController {
     this.#callbacks.onEdited?.(this.#room, [...wings, exclusive(rect)]);
   }
 
-  /** Document mousemove while a corner grip is held. Returns true when consumed. */
+  /** Take hold of the picked wing by one grip of its box — a corner or an edge — as a press on it does. */
+  grab(grip) {
+    const piece = this.#piece(this.#wing);
+    if (piece) this.#drag = { wing: this.#wing, grip, putBack: structuredClone(piece), moved: false };
+  }
+
+  /** Document mousemove while a grip is held. Returns true when consumed. */
   onHandleMove(wx, wz) {
     if (!this.#drag) return false;
     const piece = this.#piece(this.#drag.wing);
     if (!piece) { this.#drag = null; return false; }
-    const x = Math.round(wx), z = Math.round(wz);
     const region = this.#region();
-    const left = this.#drag.corner % 2 === 0, top = this.#drag.corner < 2;
-    const next = { ...piece };
-    if (left) next.min_x = Math.min(x, piece.max_x - MIN_FOOTPRINT_SPAN); else next.max_x = Math.max(x, piece.min_x + MIN_FOOTPRINT_SPAN);
-    if (top) next.min_z = Math.min(z, piece.max_z - MIN_FOOTPRINT_SPAN); else next.max_z = Math.max(z, piece.min_z + MIN_FOOTPRINT_SPAN);
+    const next = resizedRect(this.#drag.putBack, this.#drag.grip, wx, wz, MIN_FOOTPRINT_SPAN);
     if (region) {
       next.min_x = Math.max(next.min_x, region.min_x); next.max_x = Math.min(next.max_x, region.max_x);
       next.min_z = Math.max(next.min_z, region.min_z); next.max_z = Math.min(next.max_z, region.max_z);
@@ -171,7 +173,7 @@ export class RoomHouseController {
     if (next.max_x - next.min_x < MIN_FOOTPRINT_SPAN || next.max_z - next.min_z < MIN_FOOTPRINT_SPAN) return true;
     Object.assign(piece, { min_x: next.min_x, min_z: next.min_z, max_x: next.max_x, max_z: next.max_z });
     this.#drag.moved = true;
-    this.refresh(`${this.#room}-building`);
+    this.refresh(this.#picked());
     this.#callbacks.onPreview?.();
     return true;
   }
@@ -183,6 +185,12 @@ export class RoomHouseController {
     this.#drag = null;
     if (moved) this.#callbacks.onEdited?.(this.#room, this.#wings());
     return true;
+  }
+
+  /** The id of the picked wing's shape, or null where none is picked. */
+  #picked() {
+    if (!this.#room) return null;
+    return this.#wing === 0 ? `${this.#room}-building` : `${this.#room}-building-${this.#wing + 1}`;
   }
 
   #piece(wing) {
@@ -251,10 +259,6 @@ export function doorToggled(doors, door, wings) {
     return across < 0.5 && along <= DOOR_REACH;
   });
   return near >= 0 ? doors.filter((_, at) => at !== near) : [...doors, door];
-}
-
-function corners(r) {
-  return [[r.min_x, r.min_z], [r.max_x, r.min_z], [r.min_x, r.max_z], [r.max_x, r.max_z]];
 }
 
 /** A max-exclusive shape rectangle as the inclusive cell rect the building law reads. */

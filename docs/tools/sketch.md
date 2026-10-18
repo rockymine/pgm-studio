@@ -375,9 +375,10 @@ house raised inside it (`docs/world-export/structures.md` §1), drawn in the **b
 house dressed onto the ground takes, because a room's building is that kind of house — as an outline over the
 box rather than a second filled one. It carries no height of its own: the region is what a group's relief is
 held against and what an author corrects a height on. The room's wing takes the region's id plus `-building`,
-and every wing after it `-building-2`, `-building-3` on. **Only a stated house is drawn** — a room that leaves it
-to `WX1`'s default shows its region alone, since drawing a rectangle nobody stated as though they had is the
-opacity a stated house exists against. A region stated as several rectangles is not drawn at all.
+and every wing after it `-building-2`, `-building-3` on. **A room stating no house is drawn with the one it is
+raised as** — `WX1`'s default, the region inset a block and further on a spawn's door sides, a walled room's
+(`RoomHouse.Default`) — so a composed or newly placed room shows its building, and a drag or a resize of it
+states the house where it was let go. A region stated as several rectangles is not drawn at all.
 
 **Its footprint stays inside the fused polygon, and has to.** A room places no terrain of its own, so the
 ground it stands on is the group's; that overlap is what binds the room to its group's relief, since an
@@ -650,7 +651,9 @@ shape whose points are already open leaves them open, so working point by point 
 touching what is being worked on.
 
 `Escape` walks the whole way out in the order a press means it: an in-progress draw, then the tool in hand,
-then the points, then the entered group, then the selection itself — one step a press. With a theme in hand
+then the points, then a picked wing to its room and a picked piece or place to nothing, then the entered group,
+then the selection itself — one step a press. Nothing on the rail deselects: `Escape` and a click on empty canvas
+are the two ways out. With a theme in hand
 it does none of that and puts the theme down instead. Finishing a drawn outline is no part of the ladder: a polygon closes on `Enter` or on a click landing back at
 its own first vertex, and a polyline ends on `Enter`, open where its last point was placed.
 
@@ -811,10 +814,17 @@ a turn does; a field put back to its default writes null. A destroyable made of 
 { "key": "materials", "text": "gold block" }
 ```
 
-**A room's house is shaped where the room is placed.** Picking a wing of a room's building in Layout shows square
-grips on the corners of every wing of its house and the round insert marker on its free walls, the gestures a
-dressed house takes in Decoration (`RoomHouseController`): a corner drags to resize its wing, held to 4 blocks
-across and to the room's region, and a press on the marker adds a wing along that wall, 5 blocks deep and shrunk to
+**A room is picked whole before its building.** A press on a room's building picks the room's region the first
+time, as a click on a group picks the group before its member, and the wing under the pointer once the room or
+another of its wings is picked (`structuralAt`). A picked region, build area or water lane wears the transform box
+every rectangle wears, and dragging a corner or an edge resizes it by whole blocks, the opposite side held
+(`PieceResizeController`); the release asks the piece route, which keeps what stands on a region at the same
+fraction across it (below).
+
+**A room's house is shaped where the room is placed.** Picking a wing of a room's building in Layout shows the
+transform box on that wing and the round insert marker on its free walls, the gestures a dressed house takes in
+Decoration (`RoomHouseController`): a corner or an edge drags to resize the wing, held to 4 blocks across and to
+the room's region, and a press on the marker adds a wing along that wall, 5 blocks deep and shrunk to
 fit the region, or says there is no room for one. The rail lists the wings with the room's own first, which stays;
 deletes any other the rest still meet through; sets the picked wing's **Storeys**, **Roof**, **Ridge** and whether its
 roof crosses the wing it meets; and dresses the house in a **Style** — the map's for its kind, a library shell copied
@@ -873,7 +883,7 @@ which keeps the tool in hand and selects nothing, so the next press draws again.
 
 **The top two rungs wear the same box, and the third wears none.** A group and a shape are each drawn with
 the **transform box** every surface in the studio uses (`docs/client/canvas-interaction.md` §5): four corner
-anchors on the selection's own bounds, an invisible grab band along each edge that stretches or squashes that
+anchors on the selection's own bounds, a grab band along each edge, drawn as a bar while hovered, that stretches or squashes that
 one axis, and four rotate zones outside the corners. What a grip *does* differs with what it holds — an
 group scales all its members proportionally, a rectangle moves the bound the grip names and snaps it to the
 other shapes' edges, an outline moves every vertex and every Bézier handle proportionally, because "the same
@@ -943,7 +953,10 @@ server is what makes the one view that exists to show height show the height mod
 The build is the cost, not the payload: on a full board it is around a second against forty milliseconds to
 read the columns back out. Nothing is drawn in 3-D, so the fetch happens on **entering** the preview rather
 than on every edit — the view swaps at once and fills in when the columns land. Rotating redraws the mesh
-already in hand, and re-entering an untouched board draws it again rather than rebuilding.
+already in hand, and re-entering an untouched board draws it again rather than rebuilding. A play piece written
+— placed, moved, turned, resized, a wall's end dragged, a house or its doors changed — touches the board too: it
+changes the intent rather than the layout, so the mesh is let go of on every piece write and the next entry
+builds again.
 
 The sidebar carries the active layer's settings — its name and its base Y — and the group→shape tree; the
 inspector on the right edits whatever is selected. Which layer is active, and which layers there are, is
@@ -1287,8 +1300,9 @@ Seven things can be placed, in three placement geometries.
 **A building grows a wing the way an outline grows a point.** A picked building shows the outline editor's round
 insert marker at the middle of the free wall nearest the pointer — a run of wall no other wing stands against, at
 least 4 blocks long — and a press on it adds a wing along that wall, the wall's length and 5 blocks deep, shrunk
-short of any building it would run into (`shared/building.js`). The new wing is picked, and its square corner grips
-resize it; a drag never adds one. The inspector lists the wings, deletes any but the last or one the others meet
+short of any building it would run into (`shared/building.js`). The new wing is picked, and the transform box on it —
+a grip on each corner, and a handle along each edge that shows while the pointer is on it — resizes it; a drag
+never adds one, and a press inside another wing picks that one. The inspector lists the wings, deletes any but the last or one the others meet
 through, and sets the picked wing's **Storeys**, **Roof**, **Ridge** and whether its roof crosses the wing it meets
 (`SketchHouseWings`). A room's house in Layout is the same building and takes the same gestures (Layout, below).
 
@@ -2843,9 +2857,12 @@ under `WX12`. Moving a
 room's **point** moves the point alone, by whole blocks, and one carried outside the room's building — or its
 region, where the room states no building — is refused; its rail shows the point's `X` and `Z`, and it turns
 and is deleted only with its room. A wall's **end**, dragged by its grip in Layout, moves alone and is the one
-drag that snaps, to the outline of a drawn shape (Layout, above). It **moves
-and does not resize**: a spawn or wool's marker is a fractional offset into its own rectangle, so a changed
-span shifts the marker inside it and every rule resolved against that frame with it. **The whole orbit
+drag that snaps, to the outline of a drawn shape (Layout, above). **A room's region, a build area and a water lane also resize**: a placed rectangle of another span is the
+piece's new size. A room keeps its marker, its building, its iron and its doors at the same fraction across the
+region — a point on the half-block it stood on, a wing on whole blocks — and is refused under 4 blocks across
+(`WX2`), over 20×30 (`ST10`), or where a wing would come out under 4 blocks or its marker outside its wing. A
+goal is centred on its anchor and a building is reshaped whole through its house, so either refuses a span other
+than its own. **The whole orbit
 moves**: every image of the piece's authored unit — the pieces of one kind sharing its stamp — moves by the
 drag's displacement turned through the symmetry, so dragging red's spawn five blocks east across a mirror in x
 moves blue's five blocks west, and a building is held inside its own region on every image it carries. A piece
@@ -2863,8 +2880,8 @@ and arrives only in a document written outside the editor.
 
 A placed building's `wings` can state an L, a T or a U, and `Decorator` composes them into one house under one
 style the way the stamper always could (`G177`). On the canvas each wing is drawn as its own rectangle and the
-rectangles are joined with `mod+g`; the joined building draws as one silhouette and each wing keeps its own
-grips.
+rectangles are joined with `mod+g`; the joined building is filled as one silhouette with each wing outlined
+dashed inside it, the picked wing in the selection ink and wearing the transform box.
 
 Symmetry here is a **preview and a mirror flag**, not a constraint. Shapes are drawn on one side and copied at
 export for every group that opted in; nothing stops an author drawing across the axis, and nothing checks that

@@ -377,24 +377,30 @@ test("a building of several wings anchors in the middle of the whole plan, not j
 // The layer is painted in one pass, so one prop that throws takes every other prop down with it — which is
 // how a wing shape the canvas did not recognise made the trees and boulders disappear along with the houses.
 
-test("a joined building paints one silhouette, not a box per wing", () => {
+test("a joined building paints one silhouette, and each wing's outline inside it", () => {
   const painter = recordingPainter();
   const ell = { id: "h1", kind: "house", front: "posZ",
                 wings: [{ corners: [[0, 0], [10, 6]] }, { corners: [[0, 7], [6, 12]], spec: { ridge: "AlongZ" } }] };
 
-  paintDressing(painter, [ell]);
+  paintDressing(painter, [ell], { selectedId: "h1", selectedWing: 1 });
 
-  // One building, one outline: the wings are stamped as a single shell under one roof, and drawn as a box
-  // each they read as two buildings with a seam down the middle.
-  const rings = painter.of("ring");
-  assert.equal(rings.length, 1);
-  const ring = rings[0][0];
+  // One building, one filled silhouette: the wings are stamped as a single shell under one roof.
+  const filled = painter.of("ring").filter(([, style]) => style.fill);
+  assert.equal(filled.length, 1);
+  const ring = filled[0][0];
   assert.equal(ring.length, 6, "an L has six corners");
   // The silhouette spans both wings and holds no point inside the notch the L cuts.
   const xs = ring.map(([x]) => x), zs = ring.map(([, z]) => z);
   assert.deepEqual([Math.min(...xs), Math.max(...xs)], [0, 11]);
   assert.deepEqual([Math.min(...zs), Math.max(...zs)], [0, 13]);
   assert.ok(!ring.some(([x, z]) => x === 11 && z === 13), "the notch is not filled in");
+
+  // Each wing is outlined inside it, unfilled, so the seam shows; the picked one in the selection ink.
+  const wings = painter.of("ring").filter(([, style]) => !style.fill);
+  assert.equal(wings.length, 2);
+  assert.deepEqual(wings[0][0], [[0, 0], [11, 0], [11, 7], [0, 7]]);
+  assert.ok(wings[0][1].dash, "a wing that is not picked is dashed");
+  assert.equal(wings[1][1].stroke, "var(--accent)");
 });
 
 test("wings that do not touch still paint an outline each", () => {
@@ -403,7 +409,13 @@ test("wings that do not touch still paint an outline each", () => {
                   wings: [{ corners: [[0, 0], [9, 7]] }, { corners: [[40, 0], [49, 7]] }] };
 
   paintDressing(painter, [apart]);
-  assert.equal(painter.of("ring").length, 2);
+  assert.equal(painter.of("ring").filter(([, style]) => style.fill).length, 2);
+});
+
+test("a building of one wing paints its one outline and nothing over it", () => {
+  const painter = recordingPainter();
+  paintDressing(painter, [{ id: "h3", kind: "house", wings: [{ corners: [[0, 0], [9, 7]] }] }], { selectedId: "h3" });
+  assert.equal(painter.of("ring").length, 1);
 });
 
 test("a prop the canvas cannot read is skipped, and the props beside it still paint", () => {

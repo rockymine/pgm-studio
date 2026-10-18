@@ -170,20 +170,23 @@ public sealed class PieceMoveRouteTests
     }
 
     [Test]
-    public async Task A_move_that_resizes_answers_400_and_stores_nothing()
+    public async Task A_resize_is_stored_and_one_over_a_rooms_region_answers_400_and_stores_nothing()
     {
         var (client, slug) = await BoardAsync();
         using var _ = client;
 
+        var resized = await MoveAsync(client, slug, "spawn-red", new { minX = 0, minZ = 0, maxX = 14, maxZ = 10 });
+        await Assert.That(resized.IsSuccessStatusCode).IsTrue().Because(await resized.Content.ReadAsStringAsync());
+
         var refused = await MoveAsync(client, slug, "spawn-red",
-            new { minX = 0, minZ = 0, maxX = 20, maxZ = 10 });
+            new { minX = 0, minZ = 0, maxX = 40, maxZ = 10 });
 
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
-        await Assert.That(await refused.Content.ReadAsStringAsync()).Contains("of the rectangle it replaces");
+        await Assert.That(await refused.Content.ReadAsStringAsync()).Contains("ST10");
 
-        // And the board is exactly as it was — a refused move is not a partial one.
+        // And the board is as the resize left it — a refused move is not a partial one.
         var region = (await SpawnAsync(client, slug)).GetProperty("protection").EnumerateArray().Single();
-        await Assert.That(region.GetProperty("maxX").GetDouble()).IsEqualTo(10);
+        await Assert.That(region.GetProperty("maxX").GetDouble()).IsEqualTo(14);
     }
 
     /// <summary>The building is the house on the region's ground, so one carried off it stands over whatever

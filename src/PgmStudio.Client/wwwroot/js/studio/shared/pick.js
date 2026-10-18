@@ -9,6 +9,8 @@
 // Two modifiers cut across both: `deep` reaches the member under the cursor whatever groups it, and `up`
 // reaches the group instead. Neither depends on how fast two presses land.
 
+import { containsPoint } from "../geometry/shape.js";
+
 /**
  * What a click selects, and what the scope becomes.
  *
@@ -38,4 +40,26 @@ export function resolvePick({ group = null, member = null, scope = null, unit = 
       : { pick: "none", id: null, scope: null };
   }
   return { pick: group ? "group" : "none", id: group, scope: null };
+}
+
+/** The room a building shape is a wing of, and which wing: `spawn-red-building-2` → `{ room: "spawn-red", wing: 1 }`. */
+export function wingOf(id) {
+  const found = /-building(?:-(\d+))?$/.exec(id ?? "");
+  return found ? { room: id.slice(0, found.index), wing: found[1] ? Number(found[1]) - 1 : 0 } : null;
+}
+
+/** The structural shape a press at (wx, wz) picks, walking `shapes` back to front so the last containing one
+ *  wins, an orbit's image never; null over none. A room is picked whole before its building, as a group is
+ *  before its members: a press on a wing picks the room's region, and the wing once `picked` is the room or
+ *  another of its wings. */
+export function structuralAt(shapes, wx, wz, picked = null) {
+  for (let i = shapes.length - 1; i >= 0; i--) {
+    const s = shapes[i];
+    if (s.carried || !containsPoint(s, wx, wz)) continue;
+    const room = s.role === "building" ? wingOf(s.id)?.room : null;
+    if (room && picked !== room && wingOf(picked)?.room !== room
+        && shapes.some(r => r.id === room && !r.carried)) return room;
+    return s.id;
+  }
+  return null;
 }

@@ -10762,6 +10762,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   phase with one body loads itself (Info); History and Review's views are state containers
   (`SketchHistory`, `SketchViews`) shared by their two bodies, and the notes are read once (`SketchNotes`). The
   host keeps the phase switch, save-first and the canvas mode: `SketchTool.razor.cs` 1,443 → 1,047 lines.
+- **Play pieces place on a map stating no teams, and only an orbit's authored image is picked (`TS192`).** The
+  first spawn or wool room placed on a fresh sketch states the teams its symmetry gives, so the piece route no
+  longer answers 400/409; an orbit's images are read back `carried`, drawn dashed and fainter, and a click or a
+  drag on one does nothing. Every piece write lets the 3-D preview's mesh go, so a moved wall is built where it
+  now stands; `Escape` steps a picked wing to its room and lets a picked piece or place go, and the rails carry
+  no Deselect. `tests/e2e/sketch-pieces.mjs` drives all of it.
+- **A room's region, a build area and a water lane resize on the canvas (`TS179`).** A picked one wears the
+  transform box, and the piece route takes a new span: a room keeps its marker, building, iron and doors at the
+  same fraction across it, every image resizes with it, and it is refused under 4 blocks (`WX2`) or over 20×30
+  (`ST10`). A room stating no house is drawn with the one `WX1` raises (`RoomHouse.Default`), so a composed or
+  placed room shows its building, is picked whole before it, and its wing resizes from any edge or corner; a joined
+  building in Dressing outlines each wing inside its silhouette, and an edge of every transform box draws as a
+  bar while the pointer is on it.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

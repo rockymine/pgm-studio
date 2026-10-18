@@ -3,7 +3,9 @@
  *
  * The board is a fresh sketch under `rot_180` whose intent states no teams — the map a person starts with. A spawn
  * and a wool room dragged out on it are stored with their images; a wall dragged on the canvas is stored and drawn
- * where it was dropped; and only the authored image of an orbit is picked, the image it draws moving with it.
+ * where it was dropped; a room is drawn with the building it is raised as, and its region and its building resize
+ * from an edge, the image following; and only the authored image of an orbit is picked, the image it draws moving
+ * with it.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, api, worldAimer, BASE } from "./lib/harness.mjs";
@@ -29,8 +31,10 @@ const byKind = async (kind) => (await pieces()).filter(piece => piece.kind === k
 const browser = await openBrowser();
 const page = await newPage(browser, { width: 1600, height: 1000 });
 const written = [];
+const builds = [];
 page.on("response", res => {
   if (res.url().includes("/intent/pieces") && res.request().method() !== "GET") written.push(res.status());
+  if (res.url().includes("/sketch/columns")) builds.push(res.status());
 });
 
 let drove = false;
@@ -80,14 +84,79 @@ try {
   await page.mouse.click(grab.x, grab.y);
   await page.waitForTimeout(300);
   const before = await page.locator(".svg-area").screenshot();
+  // The 3-D preview is built once before the move, so the move has a cached picture to make stale.
+  const toggle = page.locator(".canvas-mode-toggle").first();
+  const preview = async () => {
+    await toggle.click();
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(400);
+    await toggle.click();
+    await page.waitForTimeout(400);
+  };
+  await preview();
+  const builtBefore = builds.length;
+  await page.mouse.click(grab.x, grab.y);
+  await page.waitForTimeout(300);
   await drag(middle, { x: middle.x + 6, z: middle.z });
   const after = (await byKind("wall")).find(piece => piece.id === wallId);
   checks.add("the wall is stored six blocks east", after.minX === wall.minX + 6, `${wall.minX} → ${after.minX}`);
   const image = (await byKind("wall")).find(piece => piece.id !== wallId);
   checks.add("its image is stored six blocks west", image.minX === -after.maxX, `${image.minX} vs ${-after.maxX}`);
   checks.add("and the canvas drew the move", !before.equals(await page.locator(".svg-area").screenshot()));
+  await preview();
+  checks.add("and the 3-D preview is built again rather than drawn from before the move",
+    builtBefore === 0 || builds.length > builtBefore, `${builtBefore} build(s) before, ${builds.length} after`);
 
-  checks.section("an orbit's image is drawn and not picked");
+  checks.section("a room is drawn with its building, and its region and its wing resize from an edge");
+  await page.keyboard.press("Escape");
+  const sketch = await api(`/map/${slug}/sketch`);
+  const drawn = sketch.layers[0].layout.shapes.map(shape => shape.id);
+  const room = spawns.find(piece => !piece.carried);
+  checks.add("the placed spawn draws the building it is raised as", drawn.includes(`${room.id}-building`),
+    JSON.stringify(drawn.filter(id => id.includes("building"))));
+  // A quarter in from the corner: the room's middle is its marker, which is a piece of its own.
+  const middleZ = room.minZ + (room.maxZ - room.minZ) / 4;
+  const inside = at(room.minX + (room.maxX - room.minX) / 4, middleZ);
+  await page.mouse.click(inside.x, inside.y);
+  await page.waitForTimeout(300);
+  await drag({ x: room.maxX, z: middleZ }, { x: room.maxX + 4, z: middleZ });
+  const grown = (await byKind("spawn")).find(piece => piece.id === room.id);
+  const grownImage = (await byKind("spawn")).find(piece => piece.id !== room.id);
+  checks.add("the region is stored four blocks wider, its west side held",
+    grown.minX === room.minX && grown.maxX === room.maxX + 4, `${room.minX}..${room.maxX} → ${grown.minX}..${grown.maxX}`);
+  checks.add("and its image four blocks wider the other way", grownImage.minX === -grown.maxX,
+    `${grownImage.minX} vs ${-grown.maxX}`);
+
+  const spawnHouse = async () => (await api(`/map/${slug}/intent`)).spawns.find(entry => entry.id === room.id).house;
+  const roomShapes = (await api(`/map/${slug}/sketch`)).layers[0].layout.shapes;
+  const wing = roomShapes.find(shape => shape.id === `${room.id}-building`);
+  const wingMiddle = at(wing.min_x + (wing.max_x - wing.min_x) / 4, wing.min_z + (wing.max_z - wing.min_z) / 4);
+  await page.mouse.click(wingMiddle.x, wingMiddle.y);   // the room is picked, so a press on its building picks the wing
+  await page.waitForTimeout(400);
+  // A quarter along the wall, clear of the add-a-wing marker its middle shows.
+  const wingZ = wing.min_z + (wing.max_z - wing.min_z) / 4;
+  await drag({ x: wing.min_x, z: wingZ }, { x: wing.min_x + 2, z: wingZ });
+  const house = await spawnHouse();
+  const corners = house?.wings?.[0]?.corners ?? [];
+  checks.add("the wing is stored two blocks narrower from its west edge",
+    corners.length === 2 && Math.min(corners[0][0], corners[1][0]) === wing.min_x + 2
+      && Math.max(corners[0][0], corners[1][0]) === wing.max_x - 1, JSON.stringify(corners));
+
+    checks.section("Escape steps a picked wing back to its room, then lets the room go");
+  const pickedTitle = () => page.locator(".workspace-inspector .detail-header").first().innerText().catch(() => "");
+  await page.mouse.click(wingMiddle.x, wingMiddle.y);
+  await page.waitForTimeout(300);
+  checks.add("a press inside the picked room's building picks the wing", /building/i.test(await pickedTitle()),
+    await pickedTitle());
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+  checks.add("the first press picks the room", /spawn/i.test(await pickedTitle()) && !/building/i.test(await pickedTitle()),
+    await pickedTitle());
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+  checks.add("and the second picks nothing", !/spawn|building/i.test(await pickedTitle()), await pickedTitle());
+
+    checks.section("an orbit's image is drawn and not picked");
   checks.add("the read marks the wall's image carried", image.carried === true);
   checks.add("and the spawn's and the wool room's", spawns.some(p => p.carried) && wools.some(p => p.carried),
     JSON.stringify([...spawns, ...wools].map(p => `${p.id}:${p.carried}`)));

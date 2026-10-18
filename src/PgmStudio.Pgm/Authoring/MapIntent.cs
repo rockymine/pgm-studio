@@ -502,6 +502,10 @@ public sealed record SpawnIntent
     /// front of each door (WX1).</summary>
     public RoomHouse? House { get; init; }
 
+    /// <summary>The house the room is raised as: <see cref="House"/> where it states a wing, else
+    /// <see cref="RoomHouse.Default"/> opened wider on the side of each door it is cut with.</summary>
+    public RoomHouse? Raised() => RoomHouse.Raised(House, Protection, [.. AskedDoors().Select(door => door.Edge).Distinct()], Point);
+
     /// <summary>Iron markers on the spawn's ground (fanned world points). Each resolves to a renewable iron
     /// cube standing clear of the room shell in the ring around it (WX8), or to an unplaceable marker that
     /// stamps nothing and is flagged at validation (WX9). Empty on hand-authored intents and on spawns whose
@@ -580,6 +584,10 @@ public sealed record WoolIntent
     /// it to the default: one wing, the region inset by a block on every side (WX1). A wool room names no
     /// door, so no side of it is opened wider than the rest.</summary>
     public RoomHouse? House { get; init; }
+
+    /// <summary>The house the room is raised as: <see cref="House"/> where it states a wing, else
+    /// <see cref="RoomHouse.Default"/>, which opens no side wider than the rest.</summary>
+    public RoomHouse? Raised() => RoomHouse.Raised(House, Protection, [], Spawn);
 
     /// <summary>The doors the room opens through (WX6), already fanned: the plan states one where each land seam
     /// or build-zone edge meets the region. The exporter cuts the cage doors and lays the entrance redstone on
@@ -665,6 +673,23 @@ public sealed record RoomHouse
 
     /// <summary>The house of one wing covering <paramref name="room"/>, max-exclusive.</summary>
     public static RoomHouse Over(Rect room) => new() { Wings = [Wing(room)] };
+
+    /// <summary>The house a room stating none is raised as (WX1): one wing, <see cref="RoomFrames.DefaultFootprint"/>
+    /// of a walled room over the rectangle round <paramref name="region"/>; null for a region of no rectangle.</summary>
+    public static RoomHouse? Default(IReadOnlyList<Rect> region, IReadOnlyList<RoomEdge> doorEdges, Pt marker)
+    {
+        if (region.Count == 0) return null;
+        var ground = new BlockRect((int)region.Min(r => r.MinX), (int)region.Min(r => r.MinZ),
+            (int)region.Max(r => r.MaxX), (int)region.Max(r => r.MaxZ));
+        var footprint = RoomFrames.DefaultFootprint(ground, doorEdges, marker.X, marker.Z, walled: true);
+        return Over(new Rect(footprint.MinX, footprint.MinZ, footprint.MaxX, footprint.MaxZ));
+    }
+
+    /// <summary><paramref name="stated"/> where it holds a wing, else <see cref="Default"/> wearing the style it
+    /// states.</summary>
+    public static RoomHouse? Raised(RoomHouse? stated, IReadOnlyList<Rect> region, IReadOnlyList<RoomEdge> doorEdges, Pt marker) =>
+        stated is { Wings.Count: > 0 } ? stated
+        : Default(region, doorEdges, marker) is { } raised ? raised with { Style = stated?.Style ?? default } : null;
 
     /// <summary>The cells the first wing covers, max-exclusive — the room; null for a house with no wing.</summary>
     [JsonIgnore]

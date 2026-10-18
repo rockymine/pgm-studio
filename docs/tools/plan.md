@@ -456,8 +456,8 @@ strait already out of band is the plan's own finding and saying it twice would r
 with no wool, or a symmetry that is not a mirror pair, is not this rule's to judge in the first place.
 
 **A room is the intent's, and the layout says only how the ground meets it.** The compiled layout holds no
-rectangle for a spawn or a wool room: the Sketch tool draws each one from the intent, with its building where
-the placement states a footprint (`docs/tools/sketch.md`). What the compile writes for the authored image of a
+rectangle for a spawn or a wool room: the Sketch tool draws each one from the intent, with its building — the
+placement's footprint, or `WX1`'s default where it states none (`docs/tools/sketch.md`). What the compile writes for the authored image of a
 spawn-role or wool-room-role piece is its entry in the layout's `rooms` record, under the piece's id — the
 piece's surface as its top, `relief_scope: follow`, and the sides its doors stand on — which pins its group's
 relief solve at the piece's own surface, so the ground is solved knowing the floor must arrive there.

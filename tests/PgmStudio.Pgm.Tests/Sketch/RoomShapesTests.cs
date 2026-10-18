@@ -45,7 +45,7 @@ public sealed class RoomShapesTests
         var rooms = Rooms(RoomShapes.Project(Stored, Intent()));
 
         await Assert.That(rooms.Select(room => room.Id))
-            .IsEquivalentTo(new[] { "spawn-red", "spawn-red-building", "wool-red-lime" });
+            .IsEquivalentTo(new[] { "spawn-red", "spawn-red-building", "wool-red-lime", "wool-red-lime-building" });
         var spawn = rooms.Single(room => room.Id == "spawn-red");
         await Assert.That((spawn.MinX, spawn.MinZ, spawn.MaxX, spawn.MaxZ)).IsEqualTo((10.0, 10.0, 20.0, 20.0));
         await Assert.That(spawn.Role).IsEqualTo(StructuralRoles.Spawn);
@@ -104,7 +104,18 @@ public sealed class RoomShapesTests
         };
 
         await Assert.That(Rooms(RoomShapes.Project(Stored, intent)).Select(room => room.Id))
-            .IsEquivalentTo(new[] { "wool-red-lime" });
+            .IsEquivalentTo(new[] { "wool-red-lime", "wool-red-lime-building" });
+    }
+
+    /// <summary>A room stating no house is drawn with the building the world raises on it: its region inset a
+    /// block on every side, as a wool room opens no side wider.</summary>
+    [Test]
+    public async Task A_room_stating_no_house_is_drawn_with_the_building_it_is_raised_as()
+    {
+        var building = Rooms(RoomShapes.Project(Stored, Intent())).Single(room => room.Id == "wool-red-lime-building");
+
+        await Assert.That(building.Role).IsEqualTo(StructuralRoles.Building);
+        await Assert.That((building.MinX, building.MinZ, building.MaxX, building.MaxZ)).IsEqualTo((31.0, 11.0, 39.0, 19.0));
     }
 
     /// <summary>A room the symmetry fills is a room the world builds, so it is drawn, named the way an

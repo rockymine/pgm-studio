@@ -521,6 +521,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     } catch {
       fire("OnStructuralNote", "Couldn't reach the studio, so the doors weren't changed. Try again.");
     }
+    iso.drop();
     await loadDoors(room);
   }
 
@@ -560,9 +561,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     canvas.setStructural(active === 0 ? [...rooms, ...pieces] : rooms);
   }
 
-  /** Read every piece that is not a room from the intent, where the studio says it stands. */
+  /** Read every piece that is not a room from the intent, where the studio says it stands. Every piece write
+   *  ends here, and the intent is no part of the document the 3-D preview's mesh is stamped against, so the
+   *  mesh is let go of too: a moved wall would otherwise be drawn where it stood. */
   async function refreshPieces() {
     if (!slug) return;
+    iso.drop();
     let list;
     try {
       const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces`);
@@ -1399,8 +1403,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setPickUnit(unit) { canvas.setPickUnit(unit); },
     /** Correct the height a plan piece was compiled at, and mark it the author's so a recompile keeps it. */
     setStructuralHeight(id, height) { setStructuralHeight(id, height); },
-    /** Let go of the picked plan piece — what a rail's Close does. */
-    clearStructural() { selectStructural(null); },
     /** Arm a theme so a click on a shape paints it; "" puts the brush down. */
     /** Turn the picked room, building or area `quarters` quarter turns clockwise. */
     turnStructural(id, quarters) { return turnStructural(id, quarters); },

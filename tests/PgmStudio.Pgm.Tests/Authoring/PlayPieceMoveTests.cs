@@ -7,7 +7,7 @@ namespace PgmStudio.Pgm.Tests.Authoring;
 
 /// <summary>
 /// Moving a play piece back from the sketch, by its id. Three rules carry the weight. <b>A room's region is
-/// the ground</b>, so moving it carries what is seated on it. <b>A piece moves and does not resize</b>, since a
+/// the ground</b>, so moving it carries what is seated on it. <b>A room's region resizes and carries what stands on it at the same fraction</b>, since a
 /// marker is a fraction of its rectangle and a goal is centred on its anchor. And <b>the orbit moves
 /// together</b>: every image of the authored unit moves by the displacement turned through the step between
 /// the two images, so a mirrored board stays mirrored.
@@ -116,6 +116,20 @@ public sealed class PlayPieceMoveTests
         await Assert.That(spawn.Point.X).IsEqualTo(5);
     }
 
+    /// <summary>A room stating no house is raised as its region inset a block, and a drag on that building
+    /// states it where it was dropped.</summary>
+    [Test]
+    public async Task Moving_the_building_of_a_room_stating_no_house_states_the_one_it_was_raised_as()
+    {
+        var board = Board();
+        board = board with { Wools = [board.Wools![0] with { House = null }] };
+
+        var (moved, refused) = PlayPieceMove.Apply(board, "wool-red-blue", StructuralRoles.Building, new Rect(20, 0, 28, 8));
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        await Assert.That(moved!.Wools!.Single().House?.Room).IsEqualTo(new Rect(20, 0, 28, 8));
+    }
+
     [Test]
     public async Task Dragging_a_joined_wing_moves_the_whole_house()
     {
@@ -183,10 +197,8 @@ public sealed class PlayPieceMoveTests
     }
 
     [Test]
-    [Arguments("spawn-red", null, 0, 0, 12, 10)]                         // wider
-    [Arguments("spawn-red", null, 0, 0, 10, 8)]                          // shallower
-    [Arguments("spawn-red", StructuralRoles.Building, 2, 2, 9, 8)]       // the building too
-    [Arguments("destroyable-red", null, 39, 4, 43, 7)]                   // and a goal
+    [Arguments("spawn-red", StructuralRoles.Building, 2, 2, 9, 8)]       // a building, which its house reshapes
+    [Arguments("destroyable-red", null, 39, 4, 43, 7)]                   // and a goal, centred on its anchor
     public async Task A_move_that_resizes_is_refused(string id, string? part, int minX, int minZ, int maxX, int maxZ)
     {
         var (moved, refused) = PlayPieceMove.Apply(Board(), id, part, new Rect(minX, minZ, maxX, maxZ));
@@ -194,6 +206,56 @@ public sealed class PlayPieceMoveTests
         await Assert.That(moved).IsNull();
         await Assert.That(refused.Single().Rule).IsEqualTo(RequestRules.Unreadable);
         await Assert.That(refused.Single().Message).Contains("of the rectangle it replaces");
+    }
+
+    /// <summary>A region stretched to twice its width keeps its marker, its building and its iron at the same
+    /// fraction across it.</summary>
+    [Test]
+    public async Task A_resized_region_carries_what_stands_on_it_at_the_same_fraction()
+    {
+        var (resized, refused) = PlayPieceMove.Apply(Board(), "spawn-red", null, new Rect(0, 0, 20, 10));
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        var spawn = Spawn(resized!);
+        await Assert.That(spawn.Protection.Single()).IsEqualTo(new Rect(0, 0, 20, 10));
+        await Assert.That((spawn.Point.X, spawn.Point.Z)).IsEqualTo((10.0, 5.0));
+        await Assert.That(spawn.House!.Room).IsEqualTo(new Rect(4, 2, 16, 8));
+        await Assert.That((spawn.Iron.Single().X, spawn.Iron.Single().Z)).IsEqualTo((2.0, 1.0));
+    }
+
+    /// <summary>The image of a resized room takes the image of the new rectangle.</summary>
+    [Test]
+    public async Task A_resized_region_resizes_its_image()
+    {
+        var (resized, refused) = PlayPieceMove.Apply(Mirrored(), "spawn-red", null, new Rect(0, 0, 14, 10));
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        var blue = resized!.Spawns.Single(spawn => spawn.Id == "spawn-blue");
+        await Assert.That(blue.Protection.Single()).IsEqualTo(new Rect(86, 0, 100, 10));
+        await Assert.That(blue.House!.Room!.Value.MaxX).IsEqualTo(100 - Spawn(resized).House!.Room!.Value.MinX);
+    }
+
+    [Test]
+    [Arguments(0, 0, 3, 10, RoomFrameRules.FootprintTooSmall)]       // under the least room
+    [Arguments(0, 0, 31, 10, LayoutRules.RoomRegionSize)]            // over a room region's 20×30
+    [Arguments(0, 0, 21, 21, LayoutRules.RoomRegionSize)]
+    public async Task A_region_resized_out_of_a_rooms_bounds_is_refused(int minX, int minZ, int maxX, int maxZ, string rule)
+    {
+        var (resized, refused) = PlayPieceMove.Apply(Board(), "spawn-red", null, new Rect(minX, minZ, maxX, maxZ));
+
+        await Assert.That(resized).IsNull();
+        await Assert.That(refused.Single().Rule).IsEqualTo(rule);
+    }
+
+    /// <summary>A build area resized takes the new rectangle, and its image across the axis the image of it.</summary>
+    [Test]
+    public async Task A_build_area_resizes_with_its_image()
+    {
+        var (resized, refused) = PlayPieceMove.Apply(Fanned(), "build-1", null, new Rect(10, 20, 24, 30), board: MirrorX);
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        await Assert.That(resized!.Build!.Areas[0]).IsEqualTo(new PieceArea(10, 20, 24, 30, "build-1"));
+        await Assert.That(resized.Build.Areas[1]).IsEqualTo(new PieceArea(76, 20, 90, 30, "build-2"));
     }
 
     [Test]
