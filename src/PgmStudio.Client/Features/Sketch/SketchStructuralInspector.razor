@@ -5,7 +5,7 @@
 
 <Inspector>
   <Section>
-    <DetailHeader Icon="@Icon" Label="@Label">
+    <DetailHeader Icon="@Piece.Icon" Label="@Piece.Label">
       <span class="detail-header-badges">
         @if (Piece.Who.Length > 0) { <Badge Kind="neutral">@Piece.Who</Badge> }
         @if (!Piece.IsPoint) { <Badge Kind="neutral">@Piece.Dim</Badge> }

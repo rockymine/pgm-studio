@@ -215,6 +215,27 @@ try {
   await page.waitForTimeout(300);
   checks.add("in Layout a press on bare land picks nothing", !/rectangle|polygon|group/i.test(await pickedTitle()),
     await pickedTitle());
+  await page.mouse.dblclick(bare.x, bare.y);
+  await page.waitForTimeout(300);
+  checks.add("and a double press on it picks no shape either", !/rectangle|polygon|group/i.test(await pickedTitle()),
+    await pickedTitle());
+
+  checks.section("Layout's panel lists the pieces, not the shapes");
+  const rail = page.locator(".workspace-sidebar");
+  checks.add("the panel holds no shape tree", (await rail.locator(".region-tree").count()) === 0);
+  const row = rail.locator(".list-row", { hasText: room.id }).first();
+  checks.add("the panel lists the spawn room by its id", (await row.count()) === 1);
+  await row.click();
+  await page.waitForTimeout(300);
+  checks.add("choosing it picks the room", /spawn region/i.test(await pickedTitle()), await pickedTitle());
+  checks.add("and its row is lit", /list-row--selected/.test(await row.getAttribute("class") ?? ""));
+  const imageRow = rail.locator(".list-row.list-row--muted").first();
+  checks.add("an orbit's image is listed and muted", (await imageRow.count()) === 1);
+  // The row takes no pointer, so the click is sent to it directly: what is checked is that the list refuses it.
+  await imageRow.dispatchEvent("click");
+  await page.waitForTimeout(300);
+  checks.add("and choosing it leaves the pick where it was", /spawn region/i.test(await pickedTitle()), await pickedTitle());
+  await page.keyboard.press("Escape");
   await page.click(".flow-step >> text=Ground");
   await page.locator(".flow-step--active", { hasText: "Ground" }).waitFor({ timeout: 30000 });
   await page.mouse.click(centre.x, centre.y);

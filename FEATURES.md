@@ -10795,6 +10795,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   as the app does.
 - **Undo takes back a play piece (`TS193`).** Placing, moving, resizing, turning, deleting or setting a piece is one
   step of the board's undo, carrying the intent beside the layout; the room ground a placement brings rides it.
+- **Layout reaches no shape, and its panel lists the pieces (`TS203`).** In Layout a double-click picks no shape
+  and a click on empty canvas lets the pick go; the left panel lists the play pieces by kind (`SketchPiecesList`),
+  a row picking its piece and an orbit's image listed but not picked.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

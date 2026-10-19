@@ -1,0 +1,50 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* Layout's list: the play pieces the canvas draws, one section per kind in the order the toolbars offer them, a
+   room's building reached through its room. Choosing one picks it as a click on it would; an orbit's image is
+   listed beside the piece it copies and is not picked, as on the canvas. *@
+
+@if (Pieces.Count == 0)
+{
+  <Section Title="Pieces">
+    <p class="section-desc">Nothing is placed yet. Place a piece from the toolbar above the canvas.</p>
+  </Section>
+}
+@foreach (var kind in Kinds.Where(kind => Pieces.Any(piece => piece.Role == kind)))
+{
+  var named = Pieces.First(piece => piece.Role == kind);
+  <Section Title="@named.Label">
+    <div class="panel-list">
+      @foreach (var piece in Pieces.Where(piece => piece.Role == kind))
+      {
+        <ListRow Compact Selected="@(piece.Id == SelectedId)" Class="@(piece.Carried ? "list-row--muted" : null)" @key="piece.Id"
+                 OnClick="() => Pick(piece)">
+          <ChildContent>
+            <span class="geo-type-icon"><i data-lucide="@piece.Icon"></i></span>
+            <span class="list-label" title="@piece.Id">@piece.Id</span>
+            @if (piece.Carried)
+            {
+              <span class="list-tag" title="Drawn by the symmetry from the piece it copies">image</span>
+            }
+          </ChildContent>
+        </ListRow>
+      }
+    </div>
+  </Section>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<SketchStructuralRow> Pieces { get; set; } = [];
+    [Parameter] public string? SelectedId { get; set; }
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
+
+    /// <summary>The kinds in the order the Layout toolbars offer them, each room's point after its room.</summary>
+    private static readonly string[] Kinds =
+    [
+        PlayPieceKinds.Spawn, PlayPieceKinds.SpawnPoint, PlayPieceKinds.WoolRoom, PlayPieceKinds.WoolSpawn,
+        PlayPieceKinds.BuildArea, PlayPieceKinds.WaterLane, PlayPieceKinds.IronCube, PlayPieceKinds.Destroyable,
+        PlayPieceKinds.Core, PlayPieceKinds.Wall, PlayPieceKinds.Chest, PlayPieceKinds.Observer,
+    ];
+
+    private Task Pick(SketchStructuralRow piece) => piece.Carried ? Task.CompletedTask : OnSelect.InvokeAsync(piece.Id);
+}
