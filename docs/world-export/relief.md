@@ -18,7 +18,7 @@ are actually built at — a 45×30 room, a 90×135 team board, a 192×128 whole 
 
 Read alongside:
 
-- `docs/tools/sketch.md` — the tool this is a phase of: the layout document a relief rides in, the Relief
+- `docs/tools/sketch.md` — the tool this is a phase of: the layout document a relief rides in, the Terraform
   phase's own surface, and the column model (`floor`, `base_height`, `anchor_heights`) it extends.
 - `terrain-painting.md` — the pass that dresses the result. It reads elevation already; everything a relief
   produces is a shape the painter's rim/wall/plateau rules were written for.
@@ -1010,7 +1010,7 @@ went.
 
 **A relief is stated in a group, and the phase may not reshape one.** Picking a group is how its base,
 reach, step, grain and rim are reached, so the phase runs on the canvas as a **selection surface** — the same
-mode the Theme phase uses, for the same reason. Offering the edit handles here would make the gesture that
+mode the Palette phase uses, for the same reason. Offering the edit handles here would make the gesture that
 selects a group the gesture that reshapes it, and the group's outline is the footprint the relief was solved
 over: moving it re-fuses the board, and a re-fused board is a different group with nowhere for its relief to
 land (below). Geometry is Draw's.

@@ -15,7 +15,7 @@ alike. Read alongside:
   anchoring.
 - `docs/generator/rules.md` ST1–ST5 — the stamped-structure law; ST1/ST2 carry the footprint rule.
 - `docs/pgm/destroyables-and-cores.md` — the style-as-data precedent (§5 below).
-- `docs/tools/sketch.md` — the tool that binds the shells (its Theme phase) and stamps the same house as a
+- `docs/tools/sketch.md` — the tool that binds the shells (its Palette phase) and stamps the same house as a
   dressing prop.
 - `docs/world-export/decoration.md` §9 — every structural stamp here, and the house `decoration.md` §8
   stamps, claims `WorldProvenance`'s `Structure` layer as it is placed, which is what lets a stage image and
@@ -24,7 +24,7 @@ alike. Read alongside:
 **Two stamp concepts, not one.** A *structural* stamp — the spawn building, the wool cage, the bedrock
 approach wall, an objective marker — is objective-defining and generator-emittable, so it is authored in the
 Plan and Configure tools and precedes the `map.xml`. A *dressing* stamp — a house, a boulder, a tree — is
-placed in the Sketch tool's Dressing phase and defines nothing. The finishing passes therefore **read** the
+placed in the Sketch tool's Decoration phase and defines nothing. The finishing passes therefore **read** the
 structural stamps rather than owning them: the painter touches only stone, so a room is never repainted (TP6);
 the dressing pass keeps off what the map is played through — the intent's spawns, objectives and the
 structures stamped for them, plus any column whose surface is not the terrain's own (`DressingScope`); and the
@@ -145,7 +145,7 @@ rounding it away.
   same ring its four chest corners seat in. That is the span WX2 refuses under, everywhere and whatever is
   bound, because a pad, four chest corners and the monument seats are what a room *is* and they need that
   floor either way. **It is the least span any building footprint takes**, not a room's alone: a room's
-  footprint is the single-wing case of the building an author draws in the Dressing phase, and a dressed wing
+  footprint is the single-wing case of the building an author draws in the Decoration phase, and a dressed wing
   is held to the same 4 by `HP2` — two walls and an inside where a room has a pad and its ring. One number,
   `MinFootprintSpan`, and the author's. A **shell** adds the one course of wall it stands in on each side, so
   a footprint carrying one is at least **6×6** — that span plus `WallCost`, one derivation rather than two

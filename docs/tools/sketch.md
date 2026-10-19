@@ -14,14 +14,20 @@ layout — the plan's abutting same-height pieces already fused into single poly
 The route is `/maps/{slug}/sketch`. Six phases sit on the rail in the order the work is done: **Info**,
 **Draw**, **Terraform**, **Palette**, **Decoration** and **Review** — and one after them that is not a step in
 making the board: **History**, its changes. This
-document calls three of them by the code's words: Terraform is the Relief phase, Palette the Theme phase, and
+document names them as the app does; the code calls Terraform the Relief phase, Palette the Theme phase, and
 Decoration the Dressing phase. Info states what the
 board is and is its own body; Review is the board as a player sees it, with the author's notes on it, in two
 steps: Cameras, on the canvas, and Notes, a body of its own. The
 other phases share the one live canvas, which stays mounted while Info or Notes is up so the
-drawing state and the zoom survive the trip. Draw has three steps, Plan, Ground and Layout, on that one canvas, and Plan is an admin's only. Terraform,
+drawing state and the zoom survive the trip. Draw has three steps, Places, Ground and Layout, on that one canvas, and Places is an admin's only. Terraform,
 Palette, Decoration and History have no steps: each swaps what the columns hold and which overlays the layer bar offers, and the canvas is reused as it stands.
-`?phase=review` opens the tool on Review and `?phase=history` on History. What a drive reads back about the board is not a phase: it is `GET /map/{slug}/report`, an agent's
+
+**The address says where the author is.** It carries the phase by the rail's word — `info`, `draw`, `terraform`,
+`palette`, `decoration`, `review`, `history` — and its step by the bar's (`?phase=draw&step=layout`), and is
+rewritten in place as the author moves, so a reload or a shared link opens there; a step the caller does not have,
+Places for anyone but an admin, opens on the phase's first step they do.
+
+What a drive reads back about the board is not a phase: it is `GET /map/{slug}/report`, an agent's
 read (*The report*, under the API).
 
 **Each phase owns its state, in one of two shapes.** A phase whose truth is on the canvas — Terraform,
@@ -84,8 +90,8 @@ seated stays seated through a save from the browser.
 **What the later phases state, `docs/world-export/` executes**, and that folder is where the depth is. This
 document is the tool: what each phase authors, what it writes, and what refuses. Beside it sit five that each
 take one of those statements through to the blocks it becomes — `relief.md` (the elevation solver behind the
-Relief phase, with the measured terrain law), `terrain-painting.md` (what the painter makes of a theme, cell by
-cell), `structures.md` (the shells the Theme phase binds and the house the Dressing phase stamps),
+Terraform phase, with the measured terrain law), `terrain-painting.md` (what the painter makes of a theme, cell by
+cell), `structures.md` (the shells the Palette phase binds and the house the Decoration phase stamps),
 `decoration.md` (the dressing pass itself) and `tree-corpus.md` (the hand-built ground truth any generated
 foliage is scored against). `docs/world-export/sketch-world-export.md` is the world folder the export writes. Each is cited
 below from the phase that feeds it.
@@ -527,7 +533,7 @@ stacked sketch are one geometry seen twice**, differing only in provenance.
 
 In the editor, the active layer is the one being drawn on; the others ghost underneath in 2-D and stack in the
 isometric preview, and a new layer defaults to ten blocks above the highest existing one. A placed prop follows
-the same rule in the Dressing phase: one resting on another layer is drawn dimmed, and a click reaches only the
+the same rule in the Decoration phase: one resting on another layer is drawn dimmed, and a click reaches only the
 props of the layer being drawn on.
 
 ### A made thing, and the three words that say a layer is one
@@ -633,8 +639,8 @@ What becomes of those columns once the map is exported — the layer scheme the 
 ## Phases
 
 **Selection is a ladder of three rungs, and exactly one of them is on screen.** A plain click picks the unit
-the phase states: a group in Draw and Relief, because a landmass is what moves and one relief is solved per
-group; a shape in Theme, because a theme is assigned to one shape or to everything a group holds. A
+the phase states: a group in Draw and Terraform, because a landmass is what moves and one relief is solved per
+group; a shape in Palette, because a theme is assigned to one shape or to everything a group holds. A
 **double-click goes one rung down** — from a group to the member under the cursor, from a shape to that
 shape's points — and `Escape` comes back up one, so the two are the same gesture reversed. `Enter` is the
 keyboard's way down, where the double-click is the pointer's.
@@ -664,15 +670,15 @@ foot of the canvas beside the dock and is present in every phase that draws the 
 of layers is *changed* as well as switched: only Draw offers the `+` that adds one and the `×` that removes
 one, because both are drawing work, and the last layer has no `×` at all — a board always stands on one.
 Whatever is placed lands on the active layer — a placement takes it unless it already names one — so an
-author is never asked twice which layer something belongs to. The Theme phase's swatch strip is chrome for
+author is never asked twice which layer something belongs to. The Palette phase's swatch strip is chrome for
 the same reason and floats above the dock beside it.
 
 **A phase offers the overlays it can use, and switches on the ones it works with.** The layer bar is not a
 fixed six: a phase shows the layer it works on and the layer it works against, and an overlay that would draw
-a fact another shown layer already carries is not offered at all. Draw and Relief keep the shapes, the mirror,
+a fact another shown layer already carries is not offered at all. Draw and Terraform keep the shapes, the mirror,
 the chunk grid, the blocks and the contours; Draw offers the contours off, for the heights a shape builds while
-it is being placed, and Relief leads with them, because the paint has not run yet and the contours are the only
-view of what is being stated. Theme and Dressing open with **Blocks and
+it is being placed, and Terraform leads with them, because the paint has not run yet and the contours are the only
+view of what is being stated. Palette and Decoration open with **Blocks and
 Shapes on** — the paint is what they act on and the outlines say what carries it — and offer no contour chip,
 because the painted ground already carries the height. Snap is in none of them: it changes what a drag does
 rather than what is drawn, so it sits in the dock beside the shape tools, in Draw, the one phase that drags a
@@ -705,7 +711,7 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 
 | Chord | Does | Group |
 |---|---|---|
-| `1`–`7` | Go to Info · Draw · Relief · Theme · Dressing · Review · History | Phases |
+| `1`–`7` | Go to Info · Draw · Terraform · Palette · Decoration · Review · History | Phases |
 | `V` | Select | Tools |
 | `H` | Pan | Tools |
 | `R` | Rectangle | Tools |
@@ -728,9 +734,9 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `Ctrl`/`⌘`+`D` | Duplicate the selected shape | Canvas |
 | `Alt`+`1`…`5` | Toggle Shapes · Mirror · Chunks · Blocks · Relief, where the phase offers it | Overlays |
 | `Alt`+`6` | Snap while dragging | Tools |
-| `[` / `]` | Take the previous / next theme in hand — answers only in Theme | Theme |
-| `Shift`+click | Paint every shape the group holds, with a theme in hand | Theme |
-| `Alt`+click | Lift a shape's theme into the hand, with a theme in hand | Theme |
+| `[` / `]` | Take the previous / next theme in hand — answers only in Palette | Palette |
+| `Shift`+click | Paint every shape the group holds, with a theme in hand | Palette |
+| `Alt`+click | Lift a shape's theme into the hand, with a theme in hand | Palette |
 | `Ctrl`/`⌘`+`Z` | Undo | Everywhere |
 | `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) | Redo | Everywhere |
 | `Ctrl`/`⌘`+`S` | Save the sketch | Everywhere |
@@ -756,18 +762,18 @@ Draw.
 
 ### Draw
 
-The canvas, and where the geometry is made. **It has three steps, Plan, Ground and Layout, one click apart in the
-bar**: Plan draws the places, Ground draws the shapes, and Layout places the play pieces. Ground and Layout draw
+The canvas, and where the geometry is made. **It has three steps, Places, Ground and Layout, one click apart in the
+bar**: Places draws the places, Ground draws the shapes, and Layout places the play pieces. Ground and Layout draw
 every shape and every piece, and in both a piece is picked, dragged and turned the same way; only Layout adds or
 deletes one, and only Ground draws a shape. Draw opens on Ground, and Info's last step goes on to Draw's first
 step, where a new map starts.
 
-**Plan and the places are an admin's.** The places are the plan an agent and an admin talk over, so they are
+**Places is an admin's.** The places are the plan an agent and an admin talk over, so they are
 written by the same people the notes are: an admin in a browser, or a token carrying the notes permission
 (`docs/access.md`). Anyone else's Draw has two steps, Ground and Layout, and Review's Cameras step draws no
 places for them.
 
-**Plan draws the places over whatever the board holds**, top-down, with the notes step's marks — a point, a box,
+**Places draws the places over whatever the board holds**, top-down, with the notes step's marks — a point, a box,
 a lasso — and a polygon and a polyline beside them; each draws a place rather than ground. A drawn place is
 stored at once under the next free `place-{n}`, named *Place n*, and picked. The column lists the places, a click
 on one on the canvas or in the list picks it, and its panel names it, sets the play piece it holds and deletes
@@ -961,7 +967,7 @@ inspector on the right edits whatever is selected. Which layer is active, and wh
 the strip's alone: a layer is switched where it is drawn on, so the sidebar states what the layer **is**
 rather than offering a second list of the same rows.
 
-### Relief
+### Terraform
 
 One step, and the phase that turns flat plateaus into terrain. Everything here is stated **inside a group**,
 so the group tree is half the sidebar and the list of what has been stated is the other half. Which of the
@@ -1068,10 +1074,10 @@ line — `base 20 · reach 5 · step 2` — and the form that changes them appea
 which the list's own group row does. Six fields of frame under one field of subject is a panel an author
 reads past, and the base is the only part of the frame a stated height cannot be read without.
 
-**A phase that places its own things owns the selection while it is up.** Relief and Dressing keep a shape out
+**A phase that places its own things owns the selection while it is up.** Terraform and Decoration keep a shape out
 of reach: a click picks the group, `selectGroup` does not drill to a sole member, and `Delete` removes the
 selected mark or prop rather than a shape. Without that, picking a single-shape group to reach its base
-selected the island underneath, and `Delete` took the ground the relief was being stated on. Theme is
+selected the island underneath, and `Delete` took the ground the relief was being stated on. Palette is
 select-only too and is deliberately outside this — its inspector is about the selected shape.
 
 **Terraform, Palette and Decoration open with Select in hand**, so entering a phase never places anything by itself. **Arming a placing tool lets go of the selected mark or prop.** A placement selects what it put down and hands
@@ -1146,7 +1152,7 @@ is that rather than a weighting, what each knob costs measured on a room and on 
 decides where players can go, the symmetry fold that makes two halves identical rather than close, and the
 corpus reading the whole model is calibrated against.
 
-### Theme
+### Palette
 
 One step: the map's paint, picked and placed. A theme is not authored here — that is the library's, and
 `library.md` is where a bucket, a material and the fourteen material kinds are written out. This phase takes
@@ -1256,9 +1262,9 @@ one of the buckets from its neighbours alone, what each bucket claims when two c
 a theme resolves per cell through the shape/map scope, and the `TP*` rules the whole pass is written to. The
 stamp a room shell produces is `docs/world-export/structures.md`, whose §7 is also where a room style's own
 anatomy is written out — the roof as a height field, the storey stack, the porch taken out of the footprint —
-which is what the Dressing phase's building prop stamps too.
+which is what the Decoration phase's building prop stamps too.
 
-### Dressing
+### Decoration
 
 One step, because dressing has nothing to define up front: every part of it is a thing put somewhere. The
 sidebar is the list of what is placed, and the inspector edits either the selection or — with nothing selected
@@ -1587,7 +1593,7 @@ where that floor is. Naming a layer the board has no ground at is **declined** (
 on the top, because the top is exactly the storey the author was saying they did not mean. `decoration.md`
 carries the pass itself.
 
-**In the Dressing phase a prop takes the layer being drawn on, and the inspector moves it.** A placement
+**In the Decoration phase a prop takes the layer being drawn on, and the inspector moves it.** A placement
 records the canvas layer strip's active layer (`DressingDoc.add`); a prop that already names one keeps it.
 With a prop selected on a board of more than one layer, the inspector's **Storey** field offers the strip's
 own layers and writes the pick as `layer` through the same `updateProp` patch every other knob takes. Unlike
@@ -1612,7 +1618,7 @@ refusal names the recipe and the field (`shell.storeys[1].deck`). A document tha
 the whole export rather than exporting with fewer props than it was asked for; see *What it refuses* in
 `configure.md`, since the refusal fires at export, not while the sketch is merely saved.
 
-Dressing does not repaint the Blocks overlay, which shows the painter's surface colours — a prop adds blocks
+Decoration does not repaint the Blocks overlay, which shows the painter's surface colours — a prop adds blocks
 *above* the surface. Its **Next** leads on to Review, where what was placed is seen standing.
 
 ### Review
@@ -1734,13 +1740,13 @@ marked on a picture of a board that is gone.
 **An admin leaves a note pinned to exactly the place it is about; an agent answers it on the note; the author
 closes it.** Nobody types a coordinate: the anchor carries them. The notes column sits beside the picture for a
 caller who may read and answer notes — an admin, or a token an admin issued with the notes permission
-(`docs/access.md`) — and nobody else sees it. Notes exist in Review's Notes step, Draw's Plan step, where a picked
+(`docs/access.md`) — and nobody else sees it. Notes exist in Review's Notes step, Draw's Places step, where a picked
 place's panel carries that place's one thread, and History, which lists the threads written in a
 span; no other phase, page or rail item shows them, and the sketch surface never draws them.
 
 **A note is one piece of text with one anchor**, and the anchor is what makes it directed. A note written in Review
 is written on the picture in view, so every anchor there but `map` is a picture, and each of those keeps the
-exact camera the picture was drawn with and the picture's size; a note written in Plan is pinned to a place:
+exact camera the picture was drawn with and the picture's size; a note written in Places is pinned to a place:
 
 | Anchor | Made with | What it keeps |
 |---|---|---|
@@ -1749,7 +1755,7 @@ exact camera the picture was drawn with and the picture's size; a note written i
 | `lasso` | the **Lasso** tool: an outline | the outline, every ground column the rays through the pixels inside it hit, and the void they cross |
 | `view` | a new note with no mark | the camera and the picture |
 | `map` | **Pin to the whole map instead** | nothing spatial |
-| `place` | the first message written in a picked place's panel, in Plan | the place's id, under `place` |
+| `place` | the first message written in a picked place's panel, in Places | the place's id, under `place` |
 
 **A note on ground is tagged with the place the ground falls in.** A `point` takes the place its block stands in,
 and a `box` or a `lasso` the place holding most of the columns it hit — inside a box or a ring, or within two
@@ -2537,7 +2543,7 @@ clearance is `OB19`'s — the pass declines it and this preview carries the find
 other drop, so it needs no rule of its own.
 
 **The finish libraries**, all map-independent and all `library.md`'s to describe. `/styles` and `/themes` are
-the terrain-paint library a theme is copied from or saved to; `/room-styles` is the shell library the Theme
+the terrain-paint library a theme is copied from or saved to; `/room-styles` is the shell library the Palette
 phase binds from, with `/room-styles/{id}/json` for the stamper's own form; `/roof-styles`, `/storey-styles` and
 `/porch-styles` are the parts a room style is composed from. `/terrain/blocks` is the
 block palette, and `/terrain/material-preview`, `/terrain/theme-preview` and
@@ -2760,12 +2766,12 @@ Sketch draws the ground and everything on it, and it does not know what any of i
 no spawns, no objectives, no build regions and no protection: a map begun here reaches Configure with geometry
 and nothing else, and a map that came from a plan carries the plan's intent unchanged through this tool.
 
-**Only Draw edits geometry.** Theme, Relief and Dressing all run the canvas as a selection surface: a group
+**Only Draw edits geometry.** Palette, Terraform and Decoration all run the canvas as a selection surface: a group
 or a shape can be picked, and the view panned and zoomed, but nothing can be moved, resized, rotated,
 reshaped or given a vertex. Each of those phases reaches the ground the Draw phase owns by *picking* it — one
 to assign paint, one to state terrain inside it, one to place things on it — so an edit offered there makes
 the gesture that selects a group the gesture that reshapes it, from a rail with no snapping and no height
-controls to make sense of it. Dressing was the one that did not, and the way it showed was a plinth dragged
+controls to make sense of it. Decoration was the one that did not, and the way it showed was a plinth dragged
 out from under a spawn: the piece the plan projected stayed where it was, the ground under it did not, and
 the ground it left behind fused into an island of its own.
 

@@ -107,7 +107,7 @@
           {
             <SketchViewList Views="views" />
           }
-          else if (PlanActive)
+          else if (PlacesActive)
           {
             <SketchPlacesList Places="PlaceList" SelectedId="@selectedPlaceId" OnSelect="SelectPlace" Notes="notes.All"
                               Verdict="@placesDocument.Verdict" OnVerdict="SetVerdict" />
@@ -253,7 +253,7 @@
                 }
               </DockGroup>
             }
-            else if (PlanActive)
+            else if (PlacesActive)
             {
               @* A place is drawn with the notes step's marks — a point, a box, a lasso — and a polygon and a line
                  beside them. Each draws a place rather than ground. *@
@@ -349,7 +349,7 @@
                                 AddOpen="themeAddOpen" AddOpenChanged="v => themeAddOpen = v"
                                 OnHold="SetThemeBrush" />
         }
-        else if (PlanActive)
+        else if (PlacesActive)
         {
           <div class="sidebar-handle"></div>
           @if (SelectedPlace is { } place)

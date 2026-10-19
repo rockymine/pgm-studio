@@ -136,7 +136,7 @@ public partial class SketchTool
             if (CamerasActive) return new("eye", "Review", ReviewSteps, 0, "Next", GoDressing, ShowNotes, StepReview);
             if (NotesActive) return new("eye", "Review", ReviewSteps, 1, "Next", ShowCameras, GoHistory, StepReview);
             // A step's index is into the names this render draws, so the offset that maps it back is the one they
-            // were drawn with: the Plan step can arrive between a render and the click on it.
+            // were drawn with: the Places step can arrive between a render and the click on it.
             var first = FirstDrawStep;
             return new("pencil-ruler", "Draw", DrawStepNames, drawStep - first, "Next",
                 drawStep == first ? GoInfo : () => StepDraw(drawStep - 1),
@@ -327,7 +327,7 @@ public partial class SketchTool
         : [];
 
     // A freshly-created sketch lands on Info (?phase=info) to name it; opening an existing one goes
-    // straight to Draw.
+    // straight to Draw, or to the phase and step its address names (SketchTool.Address.cs).
     protected override void OnInitialized()
     {
         iso = new IsoView(() => handle, StateHasChanged);
@@ -578,7 +578,11 @@ public partial class SketchTool
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("studio.icons");
-        if (!firstRender) return;
+        if (!firstRender)
+        {
+            WriteAddress();
+            return;
+        }
         selfRef = DotNetObjectReference.Create(this);
         handle = await JS.InvokeAsync<IJSObjectReference>(
             "studio.mountSketch", svgRef, wrapRef, readout!.Cursor, readout.Zoom, readout.Size, selfRef, Slug);
@@ -594,9 +598,10 @@ public partial class SketchTool
         {
             await GoReview();
             await ShowNotes();
+            addressTaken = true;
+            WriteAddress();
         }
-        else if (Phase == "review") await GoReview();
-        else if (Phase == "history") await GoHistory();
+        else await TakeAddressAsync();
     }
 
     /// <summary>Take up the stored layout (an empty <c>{}</c> for a fresh sketch, which the bridge draws as

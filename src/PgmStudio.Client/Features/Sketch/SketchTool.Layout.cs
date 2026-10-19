@@ -5,22 +5,22 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
-/// <summary>Draw's three steps: Plan, where the places are drawn; Ground, where the shapes are drawn; and Layout,
+/// <summary>Draw's three steps: Places, where the places are drawn; Ground, where the shapes are drawn; and Layout,
 /// where the play pieces are placed from three toolbars. Ground and Layout draw every piece and pick, drag and turn
 /// any of them.</summary>
 public partial class SketchTool
 {
-    private static readonly string[] DrawSteps = ["Plan", "Ground", "Layout"];
-    private const int PlanStep = 0;
+    private static readonly string[] DrawSteps = ["Places", "Ground", "Layout"];
+    private const int PlacesStep = 0;
     private const int GroundStep = 1;
     private const int LayoutStep = 2;
     private int drawStep = GroundStep;
 
-    /// <summary>Whether the caller is an admin, who alone sees the Plan step and the places.</summary>
-    private bool planAllowed;
+    /// <summary>Whether the caller is an admin, who alone sees the Places step and the places.</summary>
+    private bool placesAllowed;
 
-    /// <summary>The first of Draw's steps the caller has: Plan for an admin, else Ground.</summary>
-    private int FirstDrawStep => planAllowed ? PlanStep : GroundStep;
+    /// <summary>The first of Draw's steps the caller has: Places for an admin, else Ground.</summary>
+    private int FirstDrawStep => placesAllowed ? PlacesStep : GroundStep;
 
     private IReadOnlyList<string> DrawStepNames => DrawSteps[FirstDrawStep..];
     private string? openFlyout;

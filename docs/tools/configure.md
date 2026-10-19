@@ -625,7 +625,7 @@ when it never got far enough to have one), `field` names the property inside it,
 sentence naming both, e.g. *"prop 'field-road' (#1): field 'kind' names kind 'boulderr', which is not one of
 stroke, fluid, tree, boulder, flora, house, chest."* A prop's own enum fields (`style`, `form`) are read
 case-insensitively, so this never fires on a case difference — only on a `kind` the reader does not know, a
-`kind` missing outright, or a field of the wrong JSON shape (`docs/tools/sketch.md`'s Dressing section).
+`kind` missing outright, or a field of the wrong JSON shape (`docs/tools/sketch.md`'s Decoration section).
 
 **Which gate runs does not depend on which door the caller came through.** A sketch map's whole chain —
 `OB20`, `SK2`, `OB17`, `EX1`, `EX2`/`EX3`/`EX4` — is inside `MapExportComposer.BuildAndCompose`, so the
@@ -865,7 +865,7 @@ goes from eight to nine — while nothing anywhere in the tool shows it. No tool
 
 **The buildings are not choosable.** Spawn points, wool sources, their protections and their rooms are all
 placed here, and on a plan-built map each of them gets a stamped shell at export — a spawn building, a wool
-cage. Which shell that is comes from the room styles bound in the **Sketch** tool's Theme phase, and Configure
+cage. Which shell that is comes from the room styles bound in the **Sketch** tool's Palette phase, and Configure
 offers no control for it.
 
 **Opening a corpus map does not make it configurable.** Any map in the database can be opened, but a corpus

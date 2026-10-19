@@ -482,7 +482,7 @@ is final.
 **Water lanes** come only from a compiled plan. They survive a Configure save and generate their region, but
 nothing in Configure renders them, and no tool draws one.
 
-**The shells stamped over spawns and wool rooms** come from the room styles bound in Sketch's Theme phase.
+**The shells stamped over spawns and wool rooms** come from the room styles bound in Sketch's Palette phase.
 Configure places the markers and draws the rooms; it cannot choose the building.
 
 **Kits** are nobody's. Every generated team gets one fixed preset, and the only kit statement in the studio is

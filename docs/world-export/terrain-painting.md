@@ -26,7 +26,7 @@ scratch prototype's figures (two real seeds — `mirror-tiny-map-cliff`, `isolat
 `PlanCompiler` and rasterized through `SketchRasterizer`) and is now covered by `TerrainPainterTests`. Rule
 ids here are `TP*` (terrain paint), local to this file the way `structures.md` owns `WX*`. Read alongside:
 
-- `docs/tools/sketch.md` — the tool a theme is authored in (the Theme phase), and the layout it is stored on.
+- `docs/tools/sketch.md` — the tool a theme is authored in (the Palette phase), and the layout it is stored on.
 - `docs/world-export/relief.md` — the elevation this pass dresses: a mesa's face and a scarp arrive here as
   edges with a known drop, which is what the rim/wall rules were written for.
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). Terrain materials attach here.
@@ -718,13 +718,13 @@ woods' leaves, and the water colour, which only swampland moves off white. Spruc
 deliberately absent — the game tints those constantly, so they are the same green in a desert as in a jungle.
 
 Two surfaces read it, and both take the biome off the world the pass has already painted rather than resolving
-the field a second time: the Theme phase's **Blocks overlay**, whose swatch is keyed by the colour a column
+the field a second time: the Palette phase's **Blocks overlay**, whose swatch is keyed by the colour a column
 resolved to rather than by the block pair, and the **3-D preview**, whose column palette is keyed the same
 way. Swampland is approximated rather than reproduced: its two colours and the scale of its mottling are
 vanilla's, and the field that places them is the studio's own `PatternNoise`, so the picture shows that swamp
 is two-tone at about the right size without claiming to be the same splotches the client will draw.
 
-**The Theme phase is where a board's field is chosen.** It sits in the board defaults beside the map default
+**The Palette phase is where a board's field is chosen.** It sits in the board defaults beside the map default
 theme, because it is the same kind of statement: what every column falls back to. It is a select over the
 library's rows and nothing more — the kinds, the numbers and the palette are the library editor's, where there
 is room for them.
@@ -934,7 +934,7 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP7** | Rim depth is configurable (`Rim.Depth`, default 1); the wall takes the height below it, and the rim never overrides the bedrock floor. |
 | **TP8** | Bedrock floor thickness is configurable — absolute, or terrain-relative (bedrock = column height − intended terrain depth); ≥1, ≤ column height. When it equals the height, no rim or wall. |
 | **TP9** | A toggle paints wall on exposed terrain-to-terrain faces (adjacent height difference ≥2 after the rim), not only void-facing ones. |
-| **TP10** | Theming is scoped: map default › shape, winner-takes-all (whole theme). A `themes` registry + `mapTheme` + each shape's own `theme` on the sketch layout; a per-cell `themeAt` resolver (`TerrainThemeScope`, the `TeamTerritory` shape) walking the rasterizer's shape footprints at export, the smaller shape winning an overlap. Authored in the Sketch tool's Theme phase. Resolves at interfaces with no special case. |
+| **TP10** | Theming is scoped: map default › shape, winner-takes-all (whole theme). A `themes` registry + `mapTheme` + each shape's own `theme` on the sketch layout; a per-cell `themeAt` resolver (`TerrainThemeScope`, the `TeamTerritory` shape) walking the rasterizer's shape footprints at export, the smaller shape winning an overlap. Authored in the Sketch tool's Palette phase. Resolves at interfaces with no special case. |
 | **TP11** | The surface is a layered stack to a configured depth (`Surface.Depth`; one block of stone by default, grass over two dirt in the seeded Meadow finish), clamped by the bedrock floor. |
 | **TP12** | Surface, rim and wall are toggleable; fill is required and claims the rest. Rim off → surface, then fill; wall/surface off → fill. |
 | **TP13** | Buckets take patterns, not just a block. Region: `VoronoiMaterial` (bands inward from the cell boundary — band 0 is the grid line, the last is the middle, a small cell never reaches it), `CellMaterial` (one material per warped region). Field: `NoiseMaterial` · `TurbulenceMaterial` · `ElectricMaterial` (an N-stop ramp over a fractal field, bent plain / folded / ridged; spread held constant across octave counts). Wall: `WallRunMaterial` (N stripes wrapping the void-facing perimeter arc). All deterministic, and each entry nests any material. |

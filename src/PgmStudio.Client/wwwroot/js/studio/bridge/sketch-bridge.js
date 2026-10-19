@@ -62,7 +62,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let pieces = [];
   let carriedRooms = new Set();   // the spawns and wool rooms that are an orbit's images, not its authored one
   let pieceKind = null;        // the play piece the Layout step places next, or null
-  let placeShape = null;       // the shape of place the Plan step draws next, or null
+  let placeShape = null;       // the shape of place the Places step draws next, or null
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let dressingMode = false;    // the Dressing phase is up: props are, and a shape is not reachable under them
   // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override

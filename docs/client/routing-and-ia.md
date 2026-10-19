@@ -17,7 +17,7 @@ query parameter reads as an optional filter, and an editor without a map is not 
 not stable across a rename.
 
 **Query parameters are transient view state only** — selection, zoom, the active layer, an open panel, the
-phase a tool opens on (`?phase=info`). The maps page's filters fit the rule: they narrow which maps are
+phase and step a tool is on (`?phase=draw&step=layout`, which the sketch rewrites as the author moves). The maps page's filters fit the rule: they narrow which maps are
 shown, never name one.
 
 ## The routes

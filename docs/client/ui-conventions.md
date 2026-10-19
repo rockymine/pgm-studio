@@ -97,7 +97,7 @@ picks between, where `DockModeButton` flips a two-state mode) and `DockFlyoutGro
 and `ViewModeToggle`. `IsoView` holds a host's 3-D preview state and `IsoToggle` renders the 2D/3D switch with
 the note that says why it is disabled, so the plan and the sketch share one.
 
-**Terrain** — the material vocabulary shared by the Sketch tool's Dressing phase and the library:
+**Terrain** — the material vocabulary shared by the Sketch tool's Decoration phase and the library:
 `MaterialEditor`, `BlockPicker`, `SlotSelect` (filling a slot with one block or a saved pattern — one list
 offering nothing, *A single block* or the patterns grouped by kind, the block picker under it once a block is
 chosen, and the bound pattern's own picture beside the control) and `HouseViews`.

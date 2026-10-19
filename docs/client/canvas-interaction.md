@@ -246,13 +246,13 @@ because a group is a polygon the canvas holds; the rule sits below it in `shared
 rule rather than a second one to learn.
 
 **The sketch holds its selection in one place, the canvas.** `SketchCanvas` answers `selectedGroupId`, `selectedId`
-(the shape drilled to, which is a single-member group's lone member) and `placesOwnThings` (the Relief and Dressing
+(the shape drilled to, which is a single-member group's lone member) and `placesOwnThings` (the Terraform and Decoration
 phases, which own the selection while up and so drill to no member); `sketch-bridge` reads them and keeps no copy.
 Every selection the canvas makes reaches the bridge through `onShapeSelected` / `onGroupSelected`, which call back
 into the canvas, so there is no second field to fall out of step with the first.
 
 **A brush pre-empts the rule, and is the only thing that does.** `SketchCanvas.#themeBrush` holds the theme
-the Theme phase has in hand; while it is set, a click on a shape paints it, `Shift`+click paints every shape
+the Palette phase has in hand; while it is set, a click on a shape paints it, `Shift`+click paints every shape
 its group holds and `Alt`+click lifts that shape's theme back into the hand — none of the three reaches
 `resolvePick` at all. `Escape` follows the same reading: a thing in hand is the first thing it lets go of, so
 with a brush armed it puts the brush down and touches neither the scope nor the selection, and with a drawing or

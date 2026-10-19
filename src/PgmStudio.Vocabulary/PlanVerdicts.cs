@@ -2,7 +2,7 @@ namespace PgmStudio.Vocabulary;
 
 /// <summary>
 /// Where a map's places stand with its author: drawn and waiting to be read, sent back with changes asked for,
-/// or approved to build on. The places document states one, the Plan step sets it, and an agent reads it before
+/// or approved to build on. The places document states one, the Places step sets it, and an agent reads it before
 /// it builds; nothing the studio stores is refused for it.
 /// </summary>
 public static class PlanVerdicts
