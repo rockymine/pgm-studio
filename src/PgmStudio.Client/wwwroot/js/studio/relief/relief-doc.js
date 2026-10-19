@@ -298,9 +298,13 @@ export class ReliefDoc {
     return { ...placed, groupId };
   }
 
+  /** Patch one mark or push. `groupId` is the read form's tag for the group stating an entry, never a field of
+   *  the entry, so a patch built from a read entry does not carry it into the document. */
   update(id, patch) {
     const found = this.#locate(id);
     if (!found) return null;
+    patch = { ...patch };
+    delete patch.groupId;
     if (found.kind === PUSH_KIND) {
       const at = found.list.findIndex(push => push.id === id);
       // `undefined` in a patch means "state this no longer" — how a per-vertex lift collapses back to one

@@ -262,6 +262,23 @@ test("a selected mark can be dragged past its group's edge", () => {
   assert.deepEqual(doc.marks[0].at, [40, 4]);
 });
 
+test("a dragged mark and a dragged push are stored without the group the read tags them with", () => {
+  const { controller, doc } = tools({ groupAt: () => "i1" });
+  controller.onMouseDown(4, 4, "relief:point");
+  doc.add("i1", { ...defaultPush(), ring: [[0, 0], [6, 0], [6, 6], [0, 6]] });
+  controller.setTool("select");
+  for (const entry of doc.statements) {
+    controller.select(entry.id);
+    const [x, z] = markAnchor(entry);
+    controller.onMouseDown(x, z, "select");
+    controller.onMouseMove(x + 3, z, "select");
+    controller.onMouseUp();
+  }
+  const stored = doc.toJSON().i1;
+  assert.equal(stored.marks.length + stored.pushes.length, 2);
+  for (const entry of [...stored.marks, ...stored.pushes]) assert.equal("groupId" in entry, false, JSON.stringify(entry));
+});
+
 // ── point grips ───────────────────────────────────────────────────────────────
 // A mark is reshaped the way a drawn polygon is: one grip per point, dragged in world coordinates. Without
 // these a traced ridgeline that runs two blocks wide of where it was wanted has to be traced again.
