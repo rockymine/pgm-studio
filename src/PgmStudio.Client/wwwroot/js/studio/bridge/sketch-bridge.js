@@ -608,7 +608,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   /**
    * Correct the height a room piece stands at. It writes the number and the flag together, because either
    * alone is a lie: the number without the flag reads as the layout's own, and the flag without a number says
-   * an author corrected something to the value the layout already stated.
+   * an author corrected something to the value the layout already stated. It writes `hold` with them, which is
+   * what makes the terraform keep the room at the number rather than settle it on the ground under it.
    *
    * A `building` carries no height — the region it stands in is what a group's relief is held against — so
    * there is nothing here for one to state and the rail offers no field.
@@ -619,6 +620,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     if (!s || s.role === "building") return;
     s.base_height = clampHeight(height);
     s.height_authored = true;
+    s.relief_scope = "hold";
     showStructural();
     canvas.selectStructural(id);
     selectStructural(id);

@@ -54,11 +54,10 @@
 import { buildTransform, buildInverseTransform } from "../geometry/transform.js";
 import { translateBounds } from "../geometry/shape.js";
 import { svgEl, polyToPath } from "../render/svg.js";
-import { renderDimensionPill } from "../render/canvas-chrome.js";
+import { renderSelectionMarks } from "../render/canvas-chrome.js";
 import { layerStack, clearLayer } from "../render/layer-stack.js";
 import { CanvasPainter } from "../render/canvas-painter.js";
 import { CanvasBase, ZOOM_MIN, ZOOM_MAX } from "./canvas-base.js";
-import { labelPx } from "../shared/ui-scale.js";
 import { WorldDrawController } from "../controllers/world-draw-controller.js";
 import { WorldEditController, RESIZABLE_TYPES } from "../controllers/world-edit-controller.js";
 import { SelectController } from "../controllers/select-controller.js";
@@ -784,20 +783,8 @@ export class WorldCanvas extends CanvasBase {
     const left = Math.min(s1.x, s2.x), right = Math.max(s1.x, s2.x);
     const top  = Math.min(s1.y, s2.y), bottom = Math.max(s1.y, s2.y);
 
-    const maxChars = 36;
-    const label = node.label ?? node.id ?? "";
-    const labelText = label.length > maxChars ? label.slice(0, maxChars-1) + "…" : label;
-    const nameEl = svgEl("text", {
-      x: left, y: top - 5,
-      "text-anchor": "start", "dominant-baseline": "alphabetic",
-      "font-size": labelPx(11), "font-family": "ui-monospace, monospace",
-      fill: color, "pointer-events": "none",
-    });
-    nameEl.textContent = labelText;
-    this.#screen.overlay.appendChild(nameEl);
-
-    renderDimensionPill(this.#screen.overlay, {
-      left, right, bottom, width: max_x - min_x, depth: max_z - min_z, color,
+    renderSelectionMarks(this.#screen.overlay, {
+      left, top, right, bottom, name: node.label ?? node.id ?? "", width: max_x - min_x, depth: max_z - min_z, color,
     });
 
     if (RESIZABLE_TYPES.has(node.type) && !this._readOnly) this.#editCtrl.renderHandles(node);

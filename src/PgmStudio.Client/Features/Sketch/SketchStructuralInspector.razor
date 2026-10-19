@@ -17,16 +17,20 @@
     {
       <div class="section-header section-header--ruled"><h2 class="section-title">Height</h2></div>
       <Field Label="Surface (blocks)">
-        <NumberField Value="@(Piece.BaseHeight ?? 0)" ValueChanged="HeightChanged" Min="1" />
+        <NumberField Value="@Piece.BaseHeight" ValueChanged="HeightChanged" Min="1" />
       </Field>
       <p class="section-desc">
         @if (Piece.HeightAuthored)
         {
-          <text>Set by you.</text>
+          <text>Held at this height. The ground around it meets it.</text>
+        }
+        else if (Piece.BaseHeight is null)
+        {
+          <text>Stands on the ground under it. State a height to hold it there.</text>
         }
         else
         {
-          <text>The height the layout was written with. Change it here to correct it.</text>
+          <text>Settles on the ground under it, from the height the layout was written with. Change it to hold it there.</text>
         }
       </p>
     }

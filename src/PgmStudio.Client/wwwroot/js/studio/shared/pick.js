@@ -47,16 +47,25 @@ export function wingOf(id) {
   return found ? { room: id.slice(0, found.index), wing: found[1] ? Number(found[1]) - 1 : 0 } : null;
 }
 
+/** The room a piece stands on: a wing's room, or the room a marker is the point of (`wool-red-marker` →
+ *  `wool-red`); null for anything else. */
+export function roomUnder(id) {
+  const wing = wingOf(id);
+  if (wing) return wing.room;
+  const marker = /-marker$/.exec(id ?? "");
+  return marker ? id.slice(0, marker.index) : null;
+}
+
 /** The structural shape a press at (wx, wz) picks, walking `shapes` back to front so the last containing one
- *  wins, an orbit's image never; null over none. A room is picked whole before its building, as a group is
- *  before its members: a press on a wing picks the room's region, and the wing once `picked` is the room or
- *  another of its wings. */
+ *  wins, an orbit's image never; null over none. A room is picked whole before what stands on it, as a group is
+ *  before its members: a press on a wing or the room's marker picks the room's region, and the wing or the
+ *  marker once `picked` is the room or something else standing on it. */
 export function structuralAt(shapes, wx, wz, picked = null) {
   for (let i = shapes.length - 1; i >= 0; i--) {
     const s = shapes[i];
     if (s.carried || !containsPoint(s, wx, wz)) continue;
-    const room = s.role === "building" ? wingOf(s.id)?.room : null;
-    if (room && picked !== room && wingOf(picked)?.room !== room
+    const room = roomUnder(s.id);
+    if (room && picked !== room && roomUnder(picked) !== room
         && shapes.some(r => r.id === room && !r.carried)) return room;
     return s.id;
   }

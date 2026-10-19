@@ -9,7 +9,6 @@
 import { paintShape } from "./shape-render.js";
 import { toRing } from "../geometry/shape.js";
 import { primitiveStyle, opColors, OBJECTIVE_COLORS, BUILDING_COLORS, UNKNOWN_KIND_COLOR } from "./primitive-style.js";
-import { dyeColorLabel } from "./palette.js";
 
 function shapeStyle(shape, selected) {
   const { fill, stroke } = opColors(shape.operation);
@@ -37,9 +36,6 @@ export function paintSketchShape(painter, shape, { selected = false, alpha = 1 }
   }
 }
 
-// Human-readable kind word for a structural role. Wool rooms read as "wool"; spawn stays "spawn".
-const STRUCT_KIND = { spawn: "spawn", woolRoom: "wool" };
-
 // The room roles' tokens, so a spawn and a wool room read in the colours every surface draws them in.
 const ROLE_FILL = { spawn: "var(--canvas-role-spawn)", woolRoom: "var(--canvas-role-wool-room)" };
 
@@ -59,17 +55,14 @@ const PIECE_FILL = {
 };
 
 /**
- * The plan's structural pieces — the spawn and wool-room regions the plan already placed, projected
- * from the map intent as **locked, labelled** rectangles so they stay visible while a plan is refined. They
- * are not terrain (the rasterizer skips them; the ground under them is the fused group): a filled box in the
- * plan's role colour (purple spawn / green wool), a solid border, and a centred label sized to fit. The colour
- * carries the role, so the label carries the identity — a spawn's team, a wool's dye colour + owning team.
- * Their geometry is the plan's, so nothing here is dragged or reshaped; `selectedId` is the one a click has
- * picked, ringed so an author can see which piece the rail is talking about.
+ * The play pieces the intent places, drawn over the board: a spawn and a wool room as a filled box in its role
+ * colour (purple spawn / green wool) with a solid border, and every other piece in its kind's colour. They are not
+ * terrain (the rasterizer skips them; the ground under them is the fused group). No piece carries a name on the
+ * board: the colour says what it is, and the picked one is named above its box (`renderSelectionMarks`).
+ * `selectedId` is the one a click has picked, ringed so an author can see which piece the rail is talking about.
  *
- * A `building` shape is the footprint raised inside one of those regions, and is drawn as a dashed outline
- * over it rather than a second filled box: it stands inside a rectangle that is already labelled, so a second
- * label and a second fill would say the same thing twice over the same ground.
+ * A `building` shape is the footprint raised inside one of those regions, and is drawn as an outline over it
+ * rather than a second filled box.
  */
 export function paintStructural(painter, shapes, selectedId = null) {
   for (const s of shapes ?? []) {
@@ -108,17 +101,6 @@ export function paintStructural(painter, shapes, selectedId = null) {
     }
     painter.rect({ min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z },
       { fill: colour, fillAlpha: 0.32, stroke: colour, strokeAlpha: 0.95, width: 2 });
-
-    const kind = STRUCT_KIND[s.role] ?? s.role ?? "";
-    // The box colour carries the role, so the label carries the identity as "<who> <role>": a spawn by its
-    // team's colour ("blue spawn"), a wool by its dye ("blue wool", "light blue wool").
-    const who = dyeColorLabel(s.color ?? "").toLowerCase();
-    const text = `${who} ${kind}`;
-    // World-space label, sized to fit inside the box in either axis so it never spills the footprint.
-    const w = s.max_x - s.min_x, h = s.max_z - s.min_z;
-    const size = Math.max(2, Math.min(h * 0.4, w / (0.6 * Math.max(1, text.length))));
-    painter.text(text, (s.min_x + s.max_x) / 2, (s.min_z + s.max_z) / 2,
-      { fill: "var(--canvas-ink)", halo: "var(--bg-canvas)", haloWidth: 3, size, weight: 600 });
   }
 }
 

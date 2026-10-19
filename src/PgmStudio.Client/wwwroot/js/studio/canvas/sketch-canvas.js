@@ -47,12 +47,12 @@ import { paintDiff } from "../render/diff-render.js";
 import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
-  paintSketchShape, paintGroups, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostGroups, paintRaster, paintStructural, paintPlaces, placeAt,
+  paintSketchShape, paintGroups, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostGroups, paintRaster, paintStructural, paintPlaces, placeAt, wallBand,
   paintContours, paintHeightMap, heightMapBitmap,
 } from "../render/sketch-render.js";
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
 import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
-import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar, renderDimensionPill, renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
+import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar, renderDimensionPill, renderSelectionMarks, renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
 import { labelPx } from "../shared/ui-scale.js";
 // iso-webgl is loaded lazily (on first 3-D toggle) so a missing/blocked WebGL stack — or any failure
 // to load that module — degrades to "no 3-D preview" instead of breaking the whole editor at page load.
@@ -102,7 +102,8 @@ export class SketchCanvas extends CanvasBase {
   #places      = [];          // the map's places — named shapes over the board, making no ground
   #selectedPlaceId = null;    // the picked place, where the step drawing places may pick one
   #placesPickable = false;    // whether a click lands on a place before anything under it
-  #selectedStructuralId = null;   // the picked plan piece, where the phase editing geometry may pick one
+  #selectedStructuralId = null;   // the picked play piece, in Layout
+  #layoutEditing = false;         // Layout is up: a click picks pieces and no shape
   #dragStartPiece = null;         // where the dragged piece stood, so a refused move can be answered
   #diff        = null;        // what a change did, from diffOverlay — drawn over the board while one is picked
   #selectedId  = null;        // drilled/single-member shape (drives the edit-controller handles)
@@ -400,8 +401,16 @@ export class SketchCanvas extends CanvasBase {
   setGroups(groups)        { this.#groups = groups ?? []; this.#paintWorld(); this.#renderTransformChrome(); }
   setGhostGroups(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; this.#renderSetup(); }
-  /** Let a picked room's house be shaped and a picked wall's ends dragged — on in Layout, off everywhere else. */
+  /** Layout's canvas: on, a click picks play pieces and nothing else, and a picked room's house is shaped and a
+   *  picked wall's ends dragged; off, the pieces are context a click passes over. Turning it either way lets go
+   *  of what the other step had picked, so nothing chosen in one step is dragged in the other. */
   setLayoutEditing(on) {
+    this.#layoutEditing = !!on;
+    if (on && (this.#selectedId || this.#selectedGroupId)) {
+      this.#enterScope(null);
+      this.#callbacks.onGroupSelected?.(null);
+    }
+    if (!on && this.#selectedStructuralId) this.#callbacks.onStructuralSelected?.(null);
     this.#roomHouse?.setEnabled(on); this.#roomHouse?.refresh(this.#selectedStructuralId);
     this.#wallEnds?.setEnabled(on); this.#wallEnds?.refresh(this.#selectedStructuralId);
     this.#pieceResize?.setEnabled(on); this.#pieceResize?.refresh(this.#selectedStructuralId);
@@ -645,18 +654,13 @@ export class SketchCanvas extends CanvasBase {
       return;
     }
 
-    // A plan piece is drawn over the ground and is therefore what a click on it lands on. Only where the
-    // phase edits geometry: everywhere else the pieces are context, and picking one would answer a rail that
-    // has nothing to say about it. The ground under a room stays reachable — the island is one polygon and
-    // the room covers a corner of it — and Ctrl reaches through to it where a room is all that is under the
-    // cursor, which is the same modifier that already means "deeper".
-    if (!this.#selectOnly && !(e.ctrlKey || e.metaKey)) {
-      const piece = this.#hitStructural(svgPt.x, svgPt.y);
-      if (piece) {
-        this.#enterScope(null);
-        this.#callbacks.onStructuralSelected?.(piece);
-        return;
-      }
+    // Layout is about the pieces and Ground about the ground: in Layout a click picks the piece under it or
+    // lets the picked one go, and never reaches a shape; everywhere else the pieces are context and the click
+    // goes to the ground.
+    if (this.#layoutEditing && !this.#selectOnly) {
+      this.#enterScope(null);
+      this.#callbacks.onStructuralSelected?.(this.#hitStructural(svgPt.x, svgPt.y));
+      return;
     }
 
     const picked = resolvePick({
@@ -1034,6 +1038,7 @@ export class SketchCanvas extends CanvasBase {
     this.#wallEnds?.refresh(this.#selectedStructuralId);
     this.#pieceResize?.refresh(this.#selectedStructuralId);
     this.#paintWorld();
+    this.#renderTransformChrome();
   }
 
   /** Pick a plan piece, or `null` to let it go. The terrain selection is cleared with it: one click selects
@@ -1052,6 +1057,7 @@ export class SketchCanvas extends CanvasBase {
     // over the island is a second selection, and the handles on it act on ground the click did not choose.
     if (next) { this.#selectedId = null; this.#selectedGroupId = null; this.#setLevel("group"); }
     else this.#paintWorld();
+    this.#renderTransformChrome();
   }
 
   /** The map's places, drawn over the board. A selection outliving its place is dropped. */
@@ -1185,6 +1191,7 @@ export class SketchCanvas extends CanvasBase {
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
     this.#renderSizePill(layer);
+    this.#renderPieceMarks(layer);
     if (this.#level !== "group" || !this.#selectedGroupId) return;
     const b = boundsOfShapes(this.#transformSubject());
     if (!b) return;
@@ -1213,8 +1220,26 @@ export class SketchCanvas extends CanvasBase {
     return shape ? [shape] : [];
   }
 
-  /** How big the selection is, under it — the same pill the plan and Configure draw, in the same place,
-   *  because it answers the same question. */
+  /** The picked play piece's id above its box and its size under it, as Configure marks a picked region. A wall's
+   *  box is the band its line is laid in. */
+  #renderPieceMarks(layer) {
+    const piece = this.#selectedStructuralId ? this.#structural.find(s => s.id === this.#selectedStructuralId) : null;
+    if (!piece) return;
+    const band = piece.line ? wallBand(piece.line) : null;
+    const b = band
+      ? { min_x: Math.min(...band.map(p => p[0])), max_x: Math.max(...band.map(p => p[0])),
+          min_z: Math.min(...band.map(p => p[1])), max_z: Math.max(...band.map(p => p[1])) }
+      : piece;
+    const p0 = this._toScreen(b.min_x, b.min_z), p1 = this._toScreen(b.max_x, b.max_z);
+    renderSelectionMarks(layer, {
+      left: Math.min(p0.x, p1.x), top: Math.min(p0.y, p1.y), right: Math.max(p0.x, p1.x),
+      bottom: Math.max(p0.y, p1.y) + PILL_CLEARANCE, name: piece.id,
+      width: Math.round(b.max_x - b.min_x), depth: Math.round(b.max_z - b.min_z),
+    });
+  }
+
+  /** How big the selection is, under it — the same pill Configure draws, in the same place, because it answers
+   *  the same question. */
   #renderSizePill(layer) {
     const bounds = boundsOfShapes(this.#transformSubject());
     if (!bounds) return;

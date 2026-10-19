@@ -264,7 +264,9 @@ the shared rule applies unchanged.
 **Two pieces of selection chrome are one function, not one per surface.** How big the selected thing is reads as a pill
 under it — `render/canvas-chrome.js`'s `renderDimensionPill`, in screen space so it stays a fixed size and
 stays put at any zoom — and Configure's world canvas and the sketch both draw it by calling that, so a region
-and a shape answer the same question in the same words in the same place. The objective colours are the same
+and a shape answer the same question in the same words in the same place. What a picked region or play piece is
+rides with it: `renderSelectionMarks` writes its name small and left-aligned above the box and draws the pill
+under it, and both canvases call that for a picked region or piece. The objective colours are the same
 story: `render/primitive-style.js`'s `OBJECTIVE_COLORS` is the one table, and `render/sketch-render.js` reads
 the sketch's destroyables, cores, spawns and wools out of it rather than naming colours of its own.
 

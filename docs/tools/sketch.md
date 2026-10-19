@@ -688,9 +688,11 @@ game is the one exception, and it takes nothing away either: the canvas draws th
 alone whatever the other chips say, offers no chip at all, and gives every other layer back as the author had
 it on the way out.
 
-**How big the selection is reads as a pill under it** — the same pill Configure draws under a region and the
-plan draws under a piece, from the one function all three call. The corner readout is for what is being drawn
-or measured right now; what the selection measures is under the selection.
+**How big the selection is reads as a pill under it** — the same pill Configure draws under a region, from the
+one function both call. A picked play piece is also named, by its id, small and left-aligned above its box, as
+Configure names a picked region; no piece carries a name on the board otherwise, its colour saying what it is.
+The corner readout is for what is being drawn or measured right now; what the selection measures is under the
+selection.
 
 **The map's destroyables and cores show as markers**, in the colours the plan places them in. The sketch draws
 the ground and owns no objective, so they arrive from the map's intent as positions and nothing else — no
@@ -764,8 +766,8 @@ Draw.
 
 The canvas, and where the geometry is made. **It has three steps, Places, Ground and Layout, one click apart in the
 bar**: Places draws the places, Ground draws the shapes, and Layout places the play pieces. Ground and Layout draw
-every shape and every piece, and in both a piece is picked, dragged and turned the same way; only Layout adds or
-deletes one, and only Ground draws a shape. Draw opens on Ground, and Info's last step goes on to Draw's first
+every shape and every piece, and each works on its own: Ground picks, moves and draws the shapes and passes over the
+pieces, and Layout picks, moves, resizes, turns, adds and deletes the pieces and passes over the shapes. Draw opens on Ground, and Info's last step goes on to Draw's first
 step, where a new map starts.
 
 **Places is an admin's.** The places are the plan an agent and an admin talk over, so they are
@@ -805,7 +807,7 @@ of the room**, as an ordinary shape of the active layer, which Ground then resha
 piece's rail offers **Delete** in Layout, which takes the piece and every image of it out of the intent; the
 ground a room brought stays, as the shape it is. Placing ends the tool unless Shift is held, as drawing does.
 
-**A picked piece's rail carries its settings**, in either step:
+**A picked piece's rail carries its settings**:
 a spawn's **Facing** with a turn, a destroyable's or core's **Name**, a destroyable's **Design**, **Material** and
 **Float**, a core's **Lava footprint**, **Lava height**, **Casing**, **Float** and **Leak** with the casing and
 the dig they imply, and a wool's **Colour** (`ObjectiveFields`, the one body both tools show). Each is read from
@@ -818,9 +820,9 @@ a turn does; a field put back to its default writes null. A destroyable made of 
 { "key": "materials", "text": "gold block" }
 ```
 
-**A room is picked whole before its building.** A press on a room's building picks the room's region the first
-time, as a click on a group picks the group before its member, and the wing under the pointer once the room or
-another of its wings is picked (`structuralAt`). A picked region, build area or water lane wears the transform box
+**A room is picked whole before what stands on it.** A press on a room's building or its marker picks the room's
+region the first time, as a click on a group picks the group before its member, and the wing or the marker under
+the pointer once the room or something else standing on it is picked (`structuralAt`). A picked region, build area or water lane wears the transform box
 every rectangle wears, and dragging a corner or an edge resizes it by whole blocks, the opposite side held
 (`PieceResizeController`); the release asks the piece route, which keeps what stands on a region at the same
 fraction across it (below).
@@ -2797,13 +2799,14 @@ writes none of them into a save. An image the symmetry draws that the intent doe
 seated in a spawn room, is drawn dashed and cannot be picked, since it moves only with the piece it is an image
 of or the room it stands in.
 
-**Any of them can be picked and moved, and a room corrected.** In the Draw phase — the only
-phase that edits geometry — a click lands on the piece under the cursor before the ground under it, because
-the piece is drawn over that ground and is what the pointer is on; `ctrl`-click reaches past it to the island,
-the same modifier that already means *deeper*. The picked piece is ringed on the canvas and opens a rail of its
-own: what kind it is, whose it is, its extent, and — for a **region** — the height it was compiled at. That
-number is the flat surface the layout was written with until an author corrects it here; correcting it writes
-the number and the author's-height flag together on the room's record. A **building**
+**Any of them can be picked and moved, and a room corrected.** In Layout a click lands on the piece under the
+cursor and never on the ground under it, and in Ground on the ground and never on a piece; changing step lets go
+of what the other step picked. The picked piece is ringed on the canvas and opens a rail of its own: what kind it
+is, whose it is, its extent, and — for a **region** — its height. A room
+stating no height stands on the ground under it and the field is empty; one the layout states a height for settles
+on the ground from that height. Correcting it writes the number, the author's-height flag and `hold` together on the
+room's record, so the terraform keeps the room at the number and the ground around it meets it
+(`docs/world-export/relief.md` §11). A **building**
 footprint carries no height of its own — the region it stands in is what a group's relief is held against —
 so its rail states that and offers no field, and a piece that is not a room has a rail of its kind and extent
 alone. Picking a piece drops whatever terrain selection was standing,

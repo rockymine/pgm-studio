@@ -30,37 +30,6 @@ studio usable.
   Evidence: a build area placed on a fresh sketch left Undo disabled, and `Ctrl+Z` left 16 pieces at 16.
   `docs/tools/sketch.md`.
 
-- [ ] **TS194 — A room is picked before what stands on it.** A press inside a room's region picks the room
-  first, whatever marker or building is under the pointer; the marker and the house are reached once the room
-  is picked (`structuralAt`, `shared/pick.js`). Evidence: two presses at a wool room's centre each picked its
-  *Wool spawn* marker and never the room. `docs/tools/sketch.md`.
-
-- [ ] **TS195 — A room's height says it follows the ground.** A room stating no height reads *Surface 0*
-  under "the height the layout was written with" while it stands on ground 9 high
-  (`SketchStructuralInspector`); the rail says the room sits on the ground under it, and offers the number as a
-  correction. `docs/tools/sketch.md`.
-
-- [ ] **TS196 — The phase and step are in the address.** A Draw step and every phase write `?phase=` and a step
-  word, so a reload opens where the author was. Evidence: a new sketch kept `?phase=info` through Draw and into
-  Terraform, and a reload in Layout opened on Ground. `docs/tools/sketch.md`.
-
-- [ ] **TS197 — A piece names itself only when picked.** The bold name inside every room goes
-  (`render/sketch-render.js`); a picked piece shows its name small and left-aligned above its box and its size
-  pill centred below, the one function Configure's selected region already draws (`world-canvas.js
-  #updateOverlay`), moved beside `renderDimensionPill` in `render/canvas-chrome.js`. Colour is not part of it.
-  `docs/tools/sketch.md`, `docs/client/canvas-interaction.md`.
-
-- [ ] **TS198 — Ground is the ground and Layout is the pieces.** Ground picks, moves and edits shapes and no
-  piece; Layout picks, moves, resizes, turns and deletes pieces and no shape, each drawing the other's work
-  as context. Evidence: a click on land in Layout opened the shape panel with *Delete*, and a spawn picked in
-  Ground read *It can't be resized*. `docs/tools/sketch.md`.
-
-- [ ] **TS199 — Draw's first step is Places.** The step that draws the places is named *Places* in the bar, the
-  keyboard sheet and the document, since *plan* names the retired board document. `docs/tools/sketch.md`.
-
-- [ ] **TS200 — `sketch.md` names the phases as the app does.** Terraform, Palette and Decoration, where the
-  document says Relief, Theme and Dressing; the code keeps its names. `docs/tools/sketch.md`.
-
 - [ ] **TS190 — A place states the numbers it is held to.** A place carries targets — a value and the band it
   must fall in — and each is measured off the sketch's ground and shown beside its band, a miss as a complaint,
   as pgmvox's checker prints one line per number (`freeform/lib/AGENT-GUIDE.md` § the plan). The walks the
