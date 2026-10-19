@@ -37,6 +37,9 @@ public partial class SketchTool
     {
         planAllowed = await Access.IsAdminAsync();
         if (!planAllowed) return;
+        // The bar gains its Plan step now, before the places are read, so what it draws matches the steps a click
+        // is mapped through.
+        StateHasChanged();
         try
         {
             placesDocument = await Http.GetFromJsonAsync<PlacesDocument>($"api/map/{Slug}/places") ?? new();
@@ -46,7 +49,6 @@ public partial class SketchTool
         catch (HttpRequestException) { }
         await notes.LoadAsync();
         await PushPlacesAsync();
-        // The bar gains its Plan step once the caller is known to be an admin.
         StateHasChanged();
     }
 
