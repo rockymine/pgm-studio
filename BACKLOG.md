@@ -22,6 +22,21 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [ ] **TS190 — A place states the numbers it is held to.** *Parked (author): agent-facing, and the rule measures already band a distance.* A place carries targets — a value and the band it
+  must fall in — and each is measured off the sketch's ground and shown beside its band, a miss as a complaint,
+  as pgmvox's checker prints one line per number (`freeform/lib/AGENT-GUIDE.md` § the plan). The walks the
+  sketch already measures (`BoardWalks`, `PlanNav.Of`) carry the first kinds: a team's walk from its spawns to a
+  place, and which team arrives first. Lands on `PlacesDocument`'s `Place` (`Contracts/PlacesDtos.cs`) and
+  `PlacesCheck`. **Open, the author's:** which kinds of target a place may state beyond walks and arrivals —
+  a width or a height reads the place's shape against the ground. `docs/tools/sketch.md`.
+
+- [ ] **TS191 — `sight`: who can see whom on the sketch's ground.** *Parked (author): agent-facing; a target is likely an objective.* A line between an eye 1.62 blocks over the
+  feet and a target's chest 0.9 over its feet is clear when every block it passes, sampled each quarter block,
+  is above the ground the sketch builds and outside its houses; answered as each target's share of eyes that
+  see it, and the targets none sees, over HTTP with a `?format=text` twin (pgmvox `read/sight.py`). **Open, the
+  author's:** what the eyes and targets are — fixed points (spawns, goals, places) or every cell a team stands
+  on. `docs/tools/sketch.md`.
+
 - [ ] **TS201 — The canvas keeps its width across Draw's steps.** *Parked (author): no layout decided yet.* The
   Places step's inspector is wider than Ground's and Layout's, so stepping into it narrows the canvas and moves
   the board under the pointer. `docs/tools/sketch.md`.

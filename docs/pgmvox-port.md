@@ -237,7 +237,7 @@ landed.
 - The generator emits a sketch, shipped as `TG7`. Its piece model stays its own (`docs/generator/model.md`) and ends
   in a layout with a shape per box and an intent, and a candidate becomes a map in one step.
 - The rules move onto the sketch: the measures read off the sketch's rasterized ground, which never builds a
-  world, and the refusals asked between play pieces. `sight` is the one new read (`TS191`); in-game notes are tagged with
+  world, and the refusals asked between play pieces. `sight` is the one new read, parked with the target numbers a place states (`TS191`, `TS190`); in-game notes are tagged with
   the place their ground falls in.
 - The plan retires: the Plan tool and `from-plan` go, every stored plan is kept read-only as history, and
   `drive.py` and the skill move to sketch sources; the specs stay as they are (D11).
@@ -263,7 +263,7 @@ before anything is built, and boards that stop looking alike because none of the
   moves 19% of columns and changes nothing a player sees.
 
 **What the author notices:** ground made of hills, canyons and rivers where they are drawn, editable one at a
-time. Shipped behind the author's choice of beta (decision D3).
+time. Shipped to the live studio with no beta (decision D3).
 
 ### Phase 3 — paint, lay and water
 
@@ -352,13 +352,13 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 
 ## The author's decisions
 
-**Twelve are taken and three are open; each open one blocks the phase named.**
+**All fifteen are taken.**
 
 | # | Decision | Blocks | Answer |
 |---|---|---|---|
 | D1 | Port to C#, or run pgmvox as a service beside the studio | 2 | **taken:** C#, one operation at a time, pgmvox as the laboratory |
-| D2 | Does the layer document replace the sketch (with a migration), or stand beside it first | 2 | open; recommended: replace, after a beta in which both exist |
-| D3 | Where the beta runs: a second instance on pgmstudio.de with a copy of the database, or a switch on the live one | 2 | open; recommended: a second instance, so the live studio does not change until the migration has run clean |
+| D2 | Does the layer document replace the sketch (with a migration), or stand beside it first | 2 | **taken:** replace. The sketch's ground becomes the layer document, carried by a migration; what a stored sketch's relief carries into layers is settled with the migration's design |
+| D3 | Where the beta runs: a second instance on pgmstudio.de with a copy of the database, or a switch on the live one | 2 | **taken:** neither. There is no beta: the layer document reaches the live studio when its migration has run clean in a dry run over every stored map |
 | D4 | Which rules are hard, which a hint, which a measure | 0 | **taken:** hard: valid XML and pieces, nothing built inside a house, a sensible goal, float and reach; hint: spacing, ground under a house, sketch overlaps, style; measure: walks, distances, gap widths, front lines (GO, WL, CT, LN, FR, MD) |
 | D5 | Phase order: the plan of places before the ground, or after it | 1 | **taken:** before; it is cheap, needs no engine, and the planning step is what made the freeform boards' places good |
 | D6 | The eight shape decisions (`INVENTORY.md` §5.6, P1–P8): names of places and paths, width as full width, units and one rounding step, noise as a statistical contract, every operation declaring its `mode`, its reads and writes, a seed per operation, symmetry stated once | 2 | **taken:** the inventory's proposals as written, before the first operation |
