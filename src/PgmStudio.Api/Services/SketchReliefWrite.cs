@@ -8,9 +8,8 @@ namespace PgmStudio.Api.Services;
 /// One group's relief, read and written without the caller holding the layout — the interior elevation half
 /// of what <see cref="SketchThemeWrite"/> does for the paint.
 ///
-/// <para>The relief rides at the layout's top level rather than inside the shapes because a plan recompile
-/// replaces every shape it produced and a relief is hand work a plan cannot express, so it is carried across
-/// one under its own rule. That is also what makes it addressable: it is keyed already.</para>
+/// <para>The relief rides at the layout's top level rather than inside the shapes, keyed by group id, because
+/// the group is the unit it is solved over. That is also what makes it addressable: it is keyed already.</para>
 /// </summary>
 public static class SketchReliefWrite
 {

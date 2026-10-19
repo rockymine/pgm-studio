@@ -204,8 +204,6 @@
 /* The cut-open sample plateau: one picture of a whole theme, so it gets the width a swatch grid doesn't. */
 .theme-section-figure { display: flex; justify-content: center; padding: var(--space-2); background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .theme-section-figure svg, .theme-section-figure img { width: 100%; max-width: 320px; height: auto; display: block; image-rendering: pixelated; }
-.theme-map-preview { display: flex; justify-content: center; padding: var(--space-3); background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: auto; }
-.theme-map-preview svg { max-width: 100%; height: auto; }
 
 /* Palette phase: the current selection's rows. */
 .theme-apply-sel-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) 0; flex-wrap: wrap; }

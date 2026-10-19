@@ -51,16 +51,16 @@ public static class SketchFinish
             return Refuse(422, "nothing to finish", new Finding(SketchRules.NothingStored,
                 "the map has no stored sketch layout"));
 
-        var prepared = Prepare(Encoding.UTF8.GetString(data), await artifacts.LoadAsync(mapId, ArtifactKind.PlanJson, ct));
+        var prepared = Prepare(Encoding.UTF8.GetString(data));
         return await WriteAsync(mapId, prepared, revision, repo, writer, ct);
     }
 
     /// <summary>Everything finishing a drawing can be refused for, and the geometry it would write, decided
     /// from the documents alone. A caller about to replace a stored map asks this first, so a drawing the
     /// finish would refuse never costs the board it was meant to replace.</summary>
-    public static SketchPrepared Prepare(string layoutJson, byte[]? planBytes)
+    public static SketchPrepared Prepare(string layoutJson)
     {
-        var checkedBoard = Judge(layoutJson, planBytes);
+        var checkedBoard = Judge(layoutJson);
         if (checkedBoard.Refuses)
             return Refused(Refusal.At(422, "the board cannot be built as drawn", [.. checkedBoard.Refusals]));
 
@@ -91,21 +91,13 @@ public static class SketchFinish
     ///
     /// <para>The document's own gate first: what the board names and does not have contributes no ground, so an
     /// island the author expected can be missing. Then a board carrying no finish at all, which the gate cannot
-    /// see because each of its checks needs something stated to disagree with. Then the plan's straits, re-read
-    /// off the ground rather than off the rectangles they were checked against — only a board drawn from a plan
-    /// has any, since the pairs come from the plan's roles and build regions.</para></summary>
-    public static Findings Judge(string layoutJson, byte[]? planBytes)
+    /// see because each of its checks needs something stated to disagree with.</para></summary>
+    public static Findings Judge(string layoutJson)
     {
         var stated = SketchLayout.Stated(layoutJson);
         var judged = SketchLayoutCheck.Check(stated);
         if (judged.Refuses) return judged;
-        if (SketchLayoutCheck.Unfinished(stated) is { } bare) judged = new Findings([.. judged, bare]);
-        if (planBytes is { Length: > 0 })
-        {
-            var moved = StraitReadback.Check(PlanModel.Stated(Encoding.UTF8.GetString(planBytes)), layoutJson);
-            if (moved.Count > 0) judged = new Findings([.. judged, .. moved]);
-        }
-        return judged;
+        return SketchLayoutCheck.Unfinished(stated) is { } bare ? new Findings([.. judged, bare]) : judged;
     }
 
     /// <summary>Rasterize a finished sketch again where the stored layout has moved past the scan: a vertex

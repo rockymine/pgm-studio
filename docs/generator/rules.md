@@ -275,7 +275,7 @@ and a fall counted but not charged, routing around voids — never the straight 
   authoring simplification (aligning a simple rect to one front-end). Build zones are simple
   rects; **overlapping terrain is allowed and harmless** — the alternative is carving with
   negative regions or region unions, needless complexity. What matters is the buildable span
-  over the void; the plan editor authors zones precisely.
+  over the void; the sketch's Layout step places build areas precisely.
 - **FR3 [corpus]** Defenders-hold-high-ground-behind-the-frontline is **common, never strict** —
   frontline towers are authored (`four-team-towers-big`, surfaces to 17 at the front;
   `rotate-wide-frontline`'s raised mid-facing steps).
@@ -315,8 +315,7 @@ and a fall counted but not charged, routing around voids — never the straight 
 - **FR9 [author; amendment 2026-08-31]** **A crossing is at least 15 blocks of frontline.** The
   share `FR8` measures cannot see a front that is narrow in blocks and wide in proportion: a
   10-block frontline on a 10-block exposed face reads **1.00** and is still a funnel. Lint fires on
-  any face carrying a frontline under **15** blocks. `/plan/inspect` serves the run widths raw
-  beside it, so the number a board is held to is visible without compiling.
+  any face carrying a frontline under **15** blocks.
 
 ## MD — Mid / stepping stones
 
@@ -894,8 +893,7 @@ between its two exits rather than at one of them.
     ground (ST9/SP9); the generated fault boards each fire on their measured fault (the foreshore funnel
     at share 0.25, the 90×15 hall, the flush strait, the void doorstep). FR8's absolute minimum front
     width is deliberately **left open** — the author's call is that the board's scale decides it and the
-    example boards were never sized honestly — so FR8 lands as the share rule and the run widths are
-    served raw by `POST /plan/inspect`. No existing rule changed; G5 (hop gaps) and CT12 (the strait)
+    example boards were never sized honestly — so FR8 lands as the share rule beside the 15-block floor. No existing rule changed; G5 (hop gaps) and CT12 (the strait)
     measure different things and coexist.
 
 18. **PC-C moved out of this file (2026-08-22).** No behaviour change: the corner lint fires on exactly the
@@ -1246,7 +1244,7 @@ same commit.
     negative space was: the deriver's void walk reports **enclosed** voids only and classes them by ownership
     with no width, `IslandGaps` measures between islands rather than within one, and the
     notch/bay/hole classification lived in the shape emitter and never saw an authored plan. The
-    classification is now `PgmStudio.Vocabulary.NegativeSpaceKinds`, the reader carries a
+    classification is now `PgmStudio.Pgm.Shapes.NegativeSpaceKinds`, the reader carries a
     `NarrowestCrossing`, and `BoardStructure.Spaces` runs it over the board's own terrain. Composed boards
     trip the new rule at ten blocks, which is what `G264` is for; the rule is lint, so composition is
     unaffected.

@@ -183,10 +183,15 @@ public sealed class PlanSvgEndpoint(PlanStore store) : EndpointWithoutRequest<Sv
 /// plan is missing, 422 when the stored document cannot be read.</para></summary>
 public sealed class PlanAsciiEndpoint(PlanStore store) : EndpointWithoutRequest
 {
+    /// <summary>The <c>every</c> word.</summary>
+    private static readonly QueryWord Every = new("every",
+        "Draw one character for every this many cells, each the top-left cell of its block, so a board too wide "
+        + "for a terminal still fits one. Absent is 1.", Min: 1);
+
     public override void Configure()
     {
         Get("/plans/{id}/ascii");
-        Description(b => b.PlainText().Refuses(404, 422).Reads(PlanAsciiPostEndpoint.Every));
+        Description(b => b.PlainText().Refuses(404, 422).Reads(Every));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

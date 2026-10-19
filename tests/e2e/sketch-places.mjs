@@ -1,6 +1,7 @@
 /**
  * Draw's Plan step: the places are drawn over the board with the notes step's tools, listed, named, and stored as
- * a change in the map's history.
+ * a change in the map's history. The step arrives once the caller is known to be an admin, and a step clicked on
+ * the bar drawn before it lands where it was clicked.
  */
 
 import { mkdir } from "node:fs/promises";
@@ -80,6 +81,29 @@ await page.screenshot({ path: `${OUT}sketch-places.png` });
 
 
 await api(`/map/${seed.sketchSlug}/places`, { method: "PUT", body: {} });
+
+checks.section("a step clicked while the Plan step is on its way lands where it was clicked");
+// The places read is held for eight seconds, which holds the bar between learning the caller is an admin and
+// drawing the Plan step; Layout is clicked inside that window, on the bar as it stands.
+const { slug: lateSlug } = await api("/sketch", { method: "POST", body: { name: "E2E late plan step" } });
+const late = await newPage(browser, { width: 1600, height: 1000 });
+await late.route("**/api/map/*/places", async route => {
+  await new Promise(resolve => setTimeout(resolve, 8000));
+  await route.continue();
+});
+const asked = late.waitForRequest(request => request.url().endsWith(`/map/${lateSlug}/places`), { timeout: 60000 });
+await late.goto(`${BASE}/maps/${lateSlug}/sketch`, { waitUntil: "domcontentloaded" });
+await late.locator(".flow-step--active", { hasText: "Ground" }).waitFor({ timeout: 60000 });
+await asked;
+const drawn = await late.$$eval(".flow-steps .flow-step", els => els.map(e => e.textContent.trim()));
+await late.click(".flow-step >> text=Layout");
+const landed = await late.locator(".flow-step--active", { hasText: "Layout" }).waitFor({ timeout: 20000 })
+  .then(() => true, () => false);
+const now = await late.$$eval(".flow-step--active", els => els.map(e => e.textContent.trim()));
+checks.add("Layout is the step it lands on", landed, `bar ${drawn.join(",")} → active ${now.join(",")}`);
+checks.add("and the late step raised nothing", late.faults.length === 0, late.faults.slice(0, 3).join(" | "));
+await api(`/map/${lateSlug}`, { method: "DELETE" });
+
 checks.add("sketch places is clean", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
 checks.finish();
 await browser.close();

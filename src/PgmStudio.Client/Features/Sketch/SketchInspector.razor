@@ -58,7 +58,7 @@
         </Field>
         @if (HeightModeReadout.Length > 0)
         {
-          <p class="plan-readout">@HeightModeReadout</p>
+          <p class="inspector-readout">@HeightModeReadout</p>
         }
         @if (!string.IsNullOrEmpty(Shape.HeightMode))
         {
@@ -68,7 +68,7 @@
               <NumberField Value="Shape.Skirt" ValueChanged="SkirtChanged" Min="0" />
             </ChildContent>
           </Field>
-          <p class="plan-readout">@SkirtReadout</p>
+          <p class="inspector-readout">@SkirtReadout</p>
         }
         else
         {
@@ -80,7 +80,7 @@
           </Field>
           @if (ReliefScopeReadout.Length > 0)
           {
-            <p class="plan-readout">@ReliefScopeReadout</p>
+            <p class="inspector-readout">@ReliefScopeReadout</p>
           }
         }
         <Field Label="Rotate (°)">
@@ -119,7 +119,7 @@
             <Button Full Writes OnClick="() => OnApplySlope.InvokeAsync()">
               <i data-lucide="move-3d"></i> Apply slope
             </Button>
-            <p class="plan-readout">
+            <p class="inspector-readout">
               Fits a @(SlopeControls.Count == 2 ? "ramp" : "plane") through @SlopeControls.Count points. Shift-click
               a marked vertex to unmark it.
             </p>

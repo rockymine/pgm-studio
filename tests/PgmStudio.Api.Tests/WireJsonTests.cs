@@ -50,7 +50,6 @@ public sealed class WireJsonTests
             {"id":"stone-1","kind":"boulder","seed":6,"x":-20,"z":20,"style":"stone"}],
            "styles":{"oak":{"kind":"tree","form":"template"},"stone":{"kind":"boulder","form":"round"},
                      "croft":{"kind":"house","shell":{}}}}},
-         "plan":{"pieces":[]},
          "intent":{"meta":{"name":"Wire","authors":[],"contributors":[]}},
          "name":"Wire"}
         """;

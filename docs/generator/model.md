@@ -19,7 +19,7 @@ matching it. **What it defers:**
 | `vocabulary.md` | The **living type catalog** — every type as a map concept, by pipeline order. This document defines the terms where they are used and §8 is the code map; this names the types that embody them. Extend it in the same commit a task adds/renames/retires a type. |
 | `audit.md` | The standing measured record of where the implementation and this model **disagree** — the evidence behind the open G-tasks. |
 | `ideas.md` | The G-track idea pool: open work not on the board. |
-| `../tools/plan.md` | The field-level `*.plan.json` schema and the editor that writes it (the Plan tool). |
+| `../tools/plan.md` | The field-level `*.plan.json` schema, and the compile that imports one. |
 
 **Where to check this against the code.** The studio is the twin: the Generator tool composes a board on
 demand, `GET /shapes/catalog` returns every shape card with its SVG, and `GET /shapes/probe` renders a single
@@ -110,9 +110,9 @@ plan.json ──compile──► layout.json (SketchLayout) ──rasterize─�
 | **sketch** (`layout.json`) | realized geometry: polygons, béziers, per-anchor heights, layers | the rasterizer |
 | **intent** (`intent.json`) | concrete objectives: block coords, yaws, wool colours, monument wiring | the XML generator |
 
-Sync is one-way while the staged loop runs: edit the plan, recompile, and whatever realize adds is
-re-rolled. Once an author takes the sketch into the editor for hand work that stops — the plan freezes
-as provenance and sketch and intent become the working artifacts. Recovering plan meaning back out of
+Sync is one-way: the composer's plan compiles once into a sketch and an intent, and from then on the plan
+is provenance and sketch and intent are the working artifacts. Nothing compiles a plan onto a stored map
+again. Recovering plan meaning back out of
 edited geometry is deliberately out of scope, for the same reason a finished map's shapes cannot be
 classified back to the forms that built them: the moves compose in one direction only.
 

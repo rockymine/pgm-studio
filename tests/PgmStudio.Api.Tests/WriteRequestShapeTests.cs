@@ -44,19 +44,6 @@ public sealed class WriteRequestShapeTests
         await Assert.That(setup.GetProperty("center").GetProperty("cz").GetDouble()).IsEqualTo(-8.0);
     }
 
-    /// <summary>A plan origination is one field, and the slug is derived from it — a name that went unread
-    /// originates <c>untitled-plan</c>.</summary>
-    [Test]
-    public async Task A_plan_is_originated_under_the_name_the_record_names()
-    {
-        using var client = await FreshAsync();
-
-        var made = await client.PostAsJsonAsync("/api/plan", new PlanOriginateRequest(Name: "Weirgate"));
-        await Assert.That(made.IsSuccessStatusCode).IsTrue().Because(await made.Content.ReadAsStringAsync());
-        await Assert.That((await made.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString())
-            .IsEqualTo("weirgate");
-    }
-
     /// <summary>The symmetry an author states, read back off both routes that answer it.</summary>
     [Test]
     public async Task A_symmetry_is_confirmed_as_the_record_states_it()

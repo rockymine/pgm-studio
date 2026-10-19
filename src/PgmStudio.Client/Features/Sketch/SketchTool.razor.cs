@@ -135,9 +135,12 @@ public partial class SketchTool
             if (HistoryActive) return new("history", "History", [], 0, "Draw", GoReview, GoDraw, NoStep);
             if (CamerasActive) return new("eye", "Review", ReviewSteps, 0, "Next", GoDressing, ShowNotes, StepReview);
             if (NotesActive) return new("eye", "Review", ReviewSteps, 1, "Next", ShowCameras, GoHistory, StepReview);
-            return new("pencil-ruler", "Draw", DrawStepNames, drawStep - FirstDrawStep, "Next",
-                drawStep == FirstDrawStep ? GoInfo : () => StepDraw(drawStep - 1),
-                drawStep == LayoutStep ? GoRelief : () => StepDraw(drawStep + 1), step => StepDraw(step + FirstDrawStep));
+            // A step's index is into the names this render draws, so the offset that maps it back is the one they
+            // were drawn with: the Plan step can arrive between a render and the click on it.
+            var first = FirstDrawStep;
+            return new("pencil-ruler", "Draw", DrawStepNames, drawStep - first, "Next",
+                drawStep == first ? GoInfo : () => StepDraw(drawStep - 1),
+                drawStep == LayoutStep ? GoRelief : () => StepDraw(drawStep + 1), step => StepDraw(step + first));
         }
     }
 
@@ -792,8 +795,8 @@ public partial class SketchTool
     [JSInvokable]
     public void OnEditNote(string? message) { editNote = message; StateHasChanged(); }
 
-    /// <summary>Correct the height the selected region was compiled at. The bridge writes the number and the
-    /// author's-height flag together, which is what makes the correction outlive the next recompile.</summary>
+    /// <summary>Correct the height the selected region is held at. The bridge writes the number and the
+    /// author's-height flag together.</summary>
     private Task TurnStructural(int quarters) =>
         selectedStructural is null || handle is null
             ? Task.CompletedTask

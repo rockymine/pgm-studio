@@ -7,8 +7,7 @@
  * **composer**: `e2e.sh` composes the board library the feed reads, and a map is made of its first card the
  * way the generator makes one.
  *
- * Four maps, one per stage the routes need:
- *   plan      — the seed plan on a plan-stage map                → /maps/{slug}/plan
+ * Three maps, one per stage the routes need, and a composed one:
  *   sketch    — a draft carrying its compiled layout             → /maps/{slug}/sketch
  *   configure — that layout finished into world geometry         → /maps/{slug}/configure
  *   composed  — a map the generator made of a library board      → /maps/{slug}/sketch
@@ -19,13 +18,6 @@ import { api, BASE, TMP_DIR } from "./lib/harness.mjs";
 
 const REQUEST = "players=12&symmetry=rot_180&count=1";
 const SEED_PLAN = new URL("./fixtures/composed.plan.json", import.meta.url);
-
-/** A plan-stage map holding the seed plan. */
-async function planMap(name, planJson) {
-  const { slug } = await api("/plan", { method: "POST", body: { name } });
-  await api(`/map/${slug}/plan`, { method: "PUT", body: planJson });
-  return slug;
-}
 
 /**
  * A map made of the first card the feed shows. The descriptor is taken from a browsed card rather than written
@@ -44,13 +36,9 @@ async function main() {
 
   const planJson = await readFile(SEED_PLAN, "utf8");
 
-  // 1. a plan-stage map holding the seed plan
-  const planSlug = await planMap("E2E plan", planJson);
-  console.log(`  plan       ${planSlug}`);
-
-  // 2. the same plan on a second map, carried all the way to world geometry
-  const carried = await planMap("E2E configure", planJson);
+  // 1. the seed plan compiled and carried all the way to world geometry
   const compiled = await api("/plan/compile", { method: "POST", body: planJson });
+  const { slug: carried } = await api("/sketch", { method: "POST", body: { name: "E2E configure" } });
   await api(`/map/${carried}/sketch`, { method: "PUT", body: compiled.layout });
   // A finished map names its author: Configure unlocks every phase past Identity only once one is stated,
   // and a name with a space in it is a pseudonym, so no Mojang lookup is asked.
@@ -59,21 +47,20 @@ async function main() {
   const finished = await api(`/map/${carried}/sketch/finish`, { method: "POST" });
   console.log(`  configure  ${finished.slug} (finished to world geometry)`);
 
-  // 3. a sketch-stage draft that still holds its layout, so the Sketch tool opens on real content — and its
+  // 2. a sketch-stage draft that still holds its layout, so the Sketch tool opens on real content — and its
   //    intent, which is where its rooms are drawn from
   const draft = await api("/sketch", { method: "POST", body: { name: "E2E sketch draft" } });
   await api(`/map/${draft.slug}/sketch`, { method: "PUT", body: compiled.layout });
   await api(`/map/${draft.slug}/intent`, { method: "PUT", body: intent });
   console.log(`  sketch     ${draft.slug}`);
 
-  // 4. a map the generator made of a library board
+  // 3. a map the generator made of a library board
   const composed = await composedMap();
   console.log(`  composed   ${composed.slug}`);
 
   const seed = {
     base: BASE,
     descriptor: composed.descriptor,
-    planSlug,
     sketchSlug: draft.slug,
     mapSlug: finished.slug,
     composedSlug: composed.slug,

@@ -14,9 +14,9 @@ using Ctx = AuthoringContext;
 // editable here. Footprint, height, wall thickness, capped-or-flush lava and float describe blocks: on an
 // imported map they are measurements of obsidian that already exists, and editing them would recompute a
 // region that no longer scopes it — the exact failure OB8 exists to prevent, since the goal is built from the
-// blocks matching the material INSIDE the region. On a plan-built map they are what the world-export stamper
-// is about to place, which is the plan's statement to make, not this tool's. So they are read out, not set;
-// the plan tool's marker panel is where a casing is shaped.
+// blocks matching the material INSIDE the region. On a map the studio builds they are what the world-export
+// stamper is about to place, which is the sketch's statement to make, not this tool's. So they are read out,
+// not set; the sketch's picked-piece inspector is where a casing is shaped.
 //
 // Leak is the exception, and it is the exception for a reason: it is a rule, not a structure. Nothing in the
 // world says how far the lava must fall before the core counts as breached — it is an attribute on the

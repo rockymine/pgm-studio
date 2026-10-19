@@ -259,7 +259,8 @@ are all live design questions with no canonical answer.
 **This is a real restriction, not a rare edge.** In `dtcm/` (302 maps): 2 teams 157 (51%), **4 teams 107
 (35%)**, 6 teams 19, plus a tail to 12+. Four-team DTM/DTC is a third of the corpus and the studio chooses not
 to generate it. **The parser and schema stay N-team** — reading, storing and round-tripping a 4-team DTM map
-works, and nothing outside the plan editor's placement palette may assume two teams.
+works, and nothing but the sketch's Layout dock, which offers a destroyable and a core on a two-team board
+only, may assume two teams.
 
 Beyond that, these objectives need **no wiring templates, no spawner, no room region, no dye, no team filters,
 no apply rules, and no subtraction from spawn protection**. A destroyable or core is `owner + region +

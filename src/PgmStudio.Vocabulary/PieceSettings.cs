@@ -2,8 +2,8 @@ namespace PgmStudio.Vocabulary;
 
 /// <summary>
 /// The settings a play piece states beside where it stands, each set on its own: a goal's name and structure, a
-/// wool's colour and a spawn's facing. The plan editor's marker fields are spelled the same, and the sketch
-/// writes them through <c>PATCH …/intent/pieces/{id}/settings</c>.
+/// wool's colour and a spawn's facing. The sketch writes them through
+/// <c>PATCH …/intent/pieces/{id}/settings</c>.
 /// </summary>
 public static class PieceSettings
 {

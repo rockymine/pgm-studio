@@ -16,14 +16,6 @@ namespace PgmStudio.Pgm.Authoring;
 /// </summary>
 public static class IntentCheck
 {
-    /// <summary>The rules asked here, which a map's plan no longer answers once it holds an intent.</summary>
-    public static readonly IReadOnlySet<string> Asks = new HashSet<string>(
-    [
-        PlanRules.NoSpawn, PlanRules.NoObjective, PlanRules.UnknownStyle, PlanRules.UnknownColor,
-        ObjectiveRules.FloatCap, ObjectiveRules.Casing, ObjectiveRules.TwoTeamOnly,
-        LayoutRules.IronInSpawn, LayoutRules.SpawnAtBack, LayoutRules.BuildingFootprint, LayoutRules.RoomRegionSize,
-    ]);
-
     /// <summary>What the intent's play pieces break, under <paramref name="board"/>'s symmetry where the intent
     /// states none.</summary>
     public static Findings Check(MapIntent intent, SymmetryIntent? board = null)

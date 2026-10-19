@@ -36,12 +36,12 @@
 
 @code {
     /// <summary>One page link. <paramref name="Also"/> is a second path it is lit under besides the page it
-    /// opens: plans are entered from the Maps page, so Maps is lit on every plan route too.</summary>
+    /// opens.</summary>
     private sealed record NavLink(string Href, string Label, string? Also = null);
 
     private static readonly NavLink[] Links =
     [
-        new("maps", "Maps", Also: "plans"),
+        new("maps", "Maps"),
         new("generator", "Generator"),
         new("library", "Library"),
         new("rules", "Rules"),

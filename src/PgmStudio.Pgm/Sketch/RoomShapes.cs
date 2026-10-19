@@ -29,7 +29,7 @@ public sealed class RoomGround
     [WordSet(typeof(ReliefScopes))]
     [JsonPropertyName("relief_scope")] public string? ReliefScope { get; set; }
 
-    /// <summary>Whether the author corrected the room's height, which a recompile then keeps.</summary>
+    /// <summary>Whether the author corrected the room's height.</summary>
     [JsonPropertyName("height_authored")] public bool? HeightAuthored { get; set; }
 
     /// <summary>The sides whose ground the room is level with, as edge words.</summary>

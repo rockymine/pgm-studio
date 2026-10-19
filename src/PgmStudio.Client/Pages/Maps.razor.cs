@@ -29,7 +29,7 @@ public partial class Maps
     /// opens.</summary>
     private static readonly (string Word, string Label)[] StageWords =
     [
-        (MapStage.Plan, "Plan"), (MapStage.Sketch, "Sketch"), (MapStage.Configure, "Configure"),
+        (MapStage.Sketch, "Sketch"), (MapStage.Configure, "Configure"),
     ];
 
     private static readonly (string Title, bool Agents)[] AuthorGroups = [("Agents", true), ("People", false)];
@@ -43,7 +43,6 @@ public partial class Maps
     private string search = "";
     private string authorSearch = "";
     private bool creatingSketch;
-    private bool creatingPlan;
     private string? loadError;
 
     private string? CurrentStage => StageWords.Any(entry => entry.Word == Stage) ? Stage : null;
@@ -52,24 +51,6 @@ public partial class Maps
     private IReadOnlyList<string> PickedGamemodes => Gamemode ?? [];
     private bool Filtering => CurrentStage is not null || Picked.Count > 0 || PickedGamemodes.Count > 0;
 
-
-    private async Task NewPlan()
-    {
-        if (creatingPlan) return;
-        creatingPlan = true;
-        try
-        {
-            var resp = await Http.PostAsJsonAsync("api/plan", new { name = "Untitled plan" });
-            if (resp.IsSuccessStatusCode
-                && await resp.Content.ReadFromJsonAsync<OriginatedDto>() is { Slug: { Length: > 0 } slug })
-            {
-                Nav.NavigateTo($"maps/{slug}/plan?phase=info");
-                return;
-            }
-        }
-        catch (HttpRequestException) { /* the button re-enables so the user can retry */ }
-        creatingPlan = false;
-    }
 
     private async Task NewSketch()
     {
@@ -97,7 +78,6 @@ public partial class Maps
 
     private static string LayerTitle(string layer) => layer switch
     {
-        MapStage.Plan => "Open this map's plan.",
         MapStage.Sketch => "Open this map's sketch.",
         _ => "Open this map's world in Configure.",
     };

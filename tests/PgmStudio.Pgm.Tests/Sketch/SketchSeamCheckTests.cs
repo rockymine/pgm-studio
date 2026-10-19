@@ -51,10 +51,19 @@ public sealed class SketchSeamCheckTests
     private static MapIntent WithWall(MapIntent intent, int x1, int z1, int x2, int z2) =>
         intent with { Structures = (intent.Structures ?? new StructureIntent()) with { Walls = [new WallStructure(x1, z1, x2, z2, 12, Id: "wall")] } };
 
+    // The rules the seam check raises, each under the id the plan raises it by.
+    private static readonly HashSet<string> Seams =
+    [
+        LayoutRules.CorridorWidth, LayoutRules.ZoneTouchesSpawn, LayoutRules.StitchedZones,
+        LayoutRules.WaterLaneOverGround, PlanRules.WallOnWoolRoom, PlanRules.WallAtJunction,
+        LayoutRules.ApproachWallEdgeLength, LayoutRules.SpawnDoorGround, LayoutRules.ApproachWallStandoff,
+        LayoutRules.SpawnExitStep, LayoutRules.WoolEntryStep, LayoutRules.WoolDoorGround,
+    ];
+
     [Test]
     public async Task The_compiled_board_breaks_the_seams_its_plan_breaks()
     {
-        var plan = PlanValidator.Check(PlanModel.Parse(Banded)!).Where(finding => SketchSeamCheck.Asks.Contains(finding.Rule));
+        var plan = PlanValidator.Check(PlanModel.Parse(Banded)!).Where(finding => Seams.Contains(finding.Rule));
 
         await Assert.That(Check(intent => intent).Select(finding => finding.Rule).Order())
             .IsEquivalentTo(plan.Select(finding => finding.Rule).Order())

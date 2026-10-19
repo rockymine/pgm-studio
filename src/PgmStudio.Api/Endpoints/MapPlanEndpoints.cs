@@ -1,51 +1,14 @@
-using System.Text;
 using System.Text.Json;
 using FastEndpoints;
-using LinqToDB;
-using LinqToDB.Async;
-using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
-using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
-using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
-using PgmStudio.Pgm.Render;
-using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
-/// <summary>POST /api/plan — originate a blank authored plan: create a <c>map</c> row at <c>stage=plan</c>
-/// with an empty <c>plan_json</c> artifact (no candidate provenance). Returns the slug; the client navigates
-/// to <c>/maps/{slug}/plan</c>, where the editor keeps its default blank document until first save. Body:
-/// optional {name}.</summary>
-public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OriginatedDto>
-{
-    public override void Configure()
-    {
-        Post("/plan");
-        Description(b => b.Accepts<PlanOriginateRequest>("application/json"));
-    }
-
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        var name = DraftDiscard.PlanName;
-        try
-        {
-            using var doc = await JsonDocument.ParseAsync(HttpContext.Request.Body, cancellationToken: ct);
-            if (doc.RootElement.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
-                && n.GetString() is { } s && !string.IsNullOrWhiteSpace(s)) name = s.Trim();
-        }
-        catch { /* empty / invalid body → default name */ }
-
-        var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(
-            repo, name, MapStage.Plan, await Callers.OriginatorOfAsync(HttpContext), ct);
-        await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, "{}"u8.ToArray(), ct);
-        await Send.OkAsync(new OriginatedDto(slug), ct);
-    }
-}
-
-/// <summary>GET /api/map/{slug}/plan — the stored plan blob for a plan-stage map, or {} if none.</summary>
+/// <summary>GET /api/map/{slug}/plan — the plan a map was built from, as it was stored, or {} where it was built
+/// from none. History: nothing writes it and nothing reads it again.</summary>
 public sealed class MapPlanGetEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure()
@@ -62,92 +25,5 @@ public sealed class MapPlanGetEndpoint(MapRepository repo, MapArtifactStore arti
         if (await artifacts.RevisionAsync(map.Id, ArtifactKind.PlanJson, ct) is { } revision)
             Revisions.Answer(HttpContext, revision);
         await Send.OkAsync(JsonSerializer.Deserialize<JsonElement>(data ?? "{}"u8.ToArray()), ct);
-    }
-}
-
-/// <summary>GET /api/map/{slug}/plan/ascii — the stored plan as a grid of characters, one per proxy cell.
-/// The map-scoped twin of <c>GET /plans/{id}/ascii</c>: the same render, reached by the slug an authoring
-/// driver already holds rather than by a candidate id. <c>?every=N</c> downsamples. 404 when the map or its
-/// plan is missing, 422 when the stored document cannot be read.</summary>
-public sealed class MapPlanAsciiEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
-{
-    public override void Configure()
-    {
-        Get("/map/{slug}/plan/ascii");
-        Description(b => b.PlainText().Refuses(404, 422).Reads(PlanAsciiPostEndpoint.Every));
-    }
-
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        var data = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
-        if (data is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
-
-        var plan = PlanModel.Parse(Encoding.UTF8.GetString(data));
-        if (plan is null) { await Refusals.StoredUnreadableAsync(HttpContext, "plan", ct); return; }
-
-        HttpContext.Response.ContentType = "text/plain; charset=utf-8";
-        await HttpContext.Response.WriteAsync(PlanBoardAscii.Render(plan, every: Query<int?>("every", false) ?? 1), ct);
-    }
-}
-
-/// <summary>GET /api/map/{slug}/plan/flow — what the board asks of the two sides, and what that leaves
-/// unused, in prose.
-///
-/// <para>The companion to the coverage picture and meant to be read <b>before</b> it: a render says where
-/// ground is dead and only the flow says why. It answers off the plan alone, so it costs no build.</para>
-///
-/// <para>Routes are read for a capture board only — a wool is carried back, so the two sides meet somewhere
-/// definite and a split, a merge and the defender's relation to them mean something. A destroy board gets
-/// the ground read and no invented flow. 404 when the map or its plan is missing, 422 when the stored
-/// document cannot be read.</para></summary>
-public sealed class MapPlanFlowEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
-{
-    public override void Configure()
-    {
-        Get("/map/{slug}/plan/flow");
-        Description(b => b.PlainText().Refuses(404, 422));
-    }
-
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        var data = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
-        if (data is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
-
-        var plan = PlanModel.Parse(Encoding.UTF8.GetString(data));
-        if (plan is null) { await Refusals.StoredUnreadableAsync(HttpContext, "plan", ct); return; }
-
-        HttpContext.Response.ContentType = "text/plain; charset=utf-8";
-        await HttpContext.Response.WriteAsync(PlanFlow.Describe(PlanFlow.Read(plan)), ct);
-    }
-}
-
-/// <summary>PUT /api/map/{slug}/plan — replace the stored plan blob (the plan editor's saved state).</summary>
-public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<AppliedDto>
-{
-    public override void Configure()
-    {
-        Put("/map/{slug}/plan");
-        Description(b => b.Accepts<PlanModel>("application/json").Refuses(404, 409));
-    }
-
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-
-        var bytes = await RawBody.BytesAsync(HttpContext, ct);
-
-        // The blob is stored verbatim, so a field the plan reader has nowhere to keep is stored too and
-        // silently ignored by everything downstream. Said here, where the author can still act on it.
-        var planJson = Encoding.UTF8.GetString(bytes);
-        Complaints.Unread(HttpContext, planJson, PlanModel.Stated(planJson));
-
-        var written = await DocumentWrite.StoreAsync(artifacts, map.Id, ArtifactKind.PlanJson, "plan",
-            bytes, Revisions.Expected(HttpContext), ct);
-        if (written.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
-
-        Revisions.Answer(HttpContext, written.Revision!.Value);
-        await Send.OkAsync(new AppliedDto(), ct);
     }
 }

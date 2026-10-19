@@ -101,7 +101,6 @@ public sealed class MapStateEndpoint(MapRepository repo, MapArtifactStore artifa
 
         var kinds = await artifacts.KindsAsync(map.Id, ct);
         var held = new MapArtifacts(
-            kinds.Contains(ArtifactKind.PlanJson),
             kinds.Contains(ArtifactKind.SketchLayoutJson),
             kinds.Contains(ArtifactKind.SurfaceParquet),
             kinds.Contains(ArtifactKind.MapIntentJson));

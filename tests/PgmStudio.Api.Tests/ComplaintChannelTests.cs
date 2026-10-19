@@ -24,8 +24,7 @@ public sealed class ComplaintChannelTests
     {
         using var client = await SeedAsync("warnmap");
 
-        var resp = await client.PutAsJsonAsync("/api/map/warnmap/plan",
-            new { plan = 1, meta = new { name = "Warn Map" }, thisFieldIsNotRead = 7 });
+        var resp = await client.PutAsync("/api/map/warnmap/sketch", Layout(", \"thisFieldIsNotRead\": 7"));
         var body = await resp.Content.ReadAsStringAsync();
 
         await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(body);
@@ -45,8 +44,7 @@ public sealed class ComplaintChannelTests
     {
         using var client = await SeedAsync("quietmap");
 
-        var resp = await client.PutAsJsonAsync("/api/map/quietmap/plan",
-            new { plan = 1, meta = new { name = "Quiet Map" }, pieces = Array.Empty<object>() });
+        var resp = await client.PutAsync("/api/map/quietmap/sketch", Layout(""));
         var body = await resp.Content.ReadAsStringAsync();
 
         await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(body);
@@ -132,6 +130,15 @@ public sealed class ComplaintChannelTests
     }
 
     /// <summary>Reset the test schema, seed one empty map, and return a client onto it.</summary>
+    /// <summary>A board of one grouped rectangle, with <paramref name="extra"/> written after its members.</summary>
+    private static StringContent Layout(string extra) => new($$$"""
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+         "layers":[{"base_y":0,"layout":{
+           "shapes":[{"id":"s1","type":"rectangle","operation":"add",
+                      "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}],
+           "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}]{{{extra}}}}
+        """, System.Text.Encoding.UTF8, "application/json");
+
     private static async Task<HttpClient> SeedAsync(string slug)
     {
         await ApiTestFactory.ResetSchemaAsync();

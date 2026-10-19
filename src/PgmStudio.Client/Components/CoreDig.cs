@@ -2,13 +2,13 @@ namespace PgmStudio.Client.Components;
 
 /// <summary>
 /// What a core's <c>float</c> and <c>leak</c> pair costs a player: how many blocks they must dig into the
-/// terrain under the casing before its lava can leak. Two steps read it live as an author drags the two
-/// numbers — the plan tool's marker panel and the Configure wizard's casing step — which is why it is a
+/// terrain under the casing before its lava can leak. Two surfaces read it live as an author drags the two
+/// numbers — the sketch's picked-piece inspector and the Configure wizard's casing step — which is why it is a
 /// derivation here and not a round trip for an integer.
 ///
 /// <para><b><c>PgmStudio.Domain.ObjectiveDefaults.DigDepth</c> is the authority</b>, and this is the client's
 /// copy of it because the WASM half references <c>Contracts</c> and <c>Geom</c> only and cannot reach
-/// <c>Domain</c>. It is <em>one</em> copy rather than the two the two steps had, and
+/// <c>Domain</c>. It is <em>one</em> copy, which both surfaces read, and
 /// <c>CoreDigDepthDriftTests</c> pins it to the authority so the pair cannot part.</para>
 /// </summary>
 public static class CoreDig

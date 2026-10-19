@@ -35,9 +35,8 @@ namespace PgmStudio.Api.Endpoints;
 /// <see cref="Contracts.RefusalDto"/>'s <c>findings</c>: the work did not happen, so nothing rides along with
 /// it.</para>
 ///
-/// <para><b>A report whose subject is findings is not this.</b> <c>/plan/evaluate</c>'s <c>lint</c> and
-/// <c>/plan/feasibility</c>'s per-box findings are the answer being asked for rather than a remark alongside
-/// one, and they stay named fields of their own documents.</para>
+/// <para><b>A report whose subject is findings is not this.</b> <c>/map/{slug}/findings</c>' list is the answer
+/// being asked for rather than a remark alongside one, and it stays a named field of its own document.</para>
 /// </summary>
 internal static class Complaints
 {

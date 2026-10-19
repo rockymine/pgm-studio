@@ -33,10 +33,9 @@ public sealed record SketchShapeRow(
 /// bridge keeps the plan's pieces apart from the shapes an author drew — so the row carries what it states
 /// rather than an id to look up.
 ///
-/// <para><see cref="HeightAuthored"/> is the fact the rail exists for. A region's <see cref="BaseHeight"/>
-/// tracks the plan's flat surface on every compile until an author corrects it; the flag is what tells the
-/// next recompile to carry the stored number forward instead. A <c>building</c> carries no height of its
-/// own — the region it stands in is what a group's relief is held against — so its fields read empty.</para>
+/// <para><see cref="HeightAuthored"/> says the region's <see cref="BaseHeight"/> is a number the author
+/// corrected rather than the one the layout was written with. A <c>building</c> carries no height of its own —
+/// the region it stands in is what a group's relief is held against — so its fields read empty.</para>
 /// </summary>
 public sealed record SketchStructuralRow(
     [property: JsonPropertyName("id")] string Id,

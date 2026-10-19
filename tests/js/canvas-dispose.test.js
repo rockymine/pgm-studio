@@ -1,4 +1,4 @@
-// A canvas lets go of the page when its tool unmounts. The claims under test: the plan bridge's `dispose`
+// A canvas lets go of the page when its tool unmounts. The claims under test: the sketch bridge's `dispose`
 // reaches the canvas's own dispose without throwing, the canvas base removes exactly the `document`
 // listeners it added, and the side-view canvas removes the `window` listener it added, so a mount followed
 // by an unmount leaves the page as it found it.
@@ -50,22 +50,24 @@ globalThis.document = {
   removeEventListener(type, listener) { removed.push({ type, listener }); },
 };
 
-const { mount } = await import("../../src/PgmStudio.Client/wwwroot/js/studio/bridge/plan-bridge.js");
+const { mount } = await import("../../src/PgmStudio.Client/wwwroot/js/studio/bridge/sketch-bridge.js");
 const { CanvasBase } = await import("../../src/PgmStudio.Client/wwwroot/js/studio/canvas/canvas-base.js");
 const { SideviewCanvas } = await import("../../src/PgmStudio.Client/wwwroot/js/studio/canvas/sideview-canvas.js");
 
 const dragTypes = new Set(["mousemove", "mouseup"]);
 const dragListeners = (log) => log.filter(entry => dragTypes.has(entry.type));
 
-test("disposing the plan bridge does not throw", async () => {
-  const handle = await mount(element(), element(), element(), null);
+const mountSketch = () => mount(element(), element(), element(), element(), element(), null, null);
+
+test("disposing the sketch bridge does not throw", async () => {
+  const handle = await mountSketch();
   assert.doesNotThrow(() => handle.dispose());
 });
 
-test("disposing the plan bridge removes every drag listener its canvas put on the document", async () => {
+test("disposing the sketch bridge removes every drag listener its canvas put on the document", async () => {
   added.length = 0;
   removed.length = 0;
-  const handle = await mount(element(), element(), element(), null);
+  const handle = await mountSketch();
   const mounted = dragListeners(added);
   assert.deepEqual(mounted.map(entry => entry.type).sort(), ["mousemove", "mouseup"]);
   handle.dispose();

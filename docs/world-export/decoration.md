@@ -1141,7 +1141,7 @@ answer there is.
 
 **One of the two is ordered, and the order is not obvious.** `DR-KEEP` reads the spawn doors' approaches
 and the goal rings, and those come off the map's **intent** — so `sketch/columns` asked before
-`PUT …/intent/from-plan` answers a shorter list than the same call asked after it. A driver that reads the
+`PUT …/intent` answers a shorter list than the same call asked after it. A driver that reads the
 declines at the end of the sketch stage sees every rule but that one. A stroke's per-cell skips stay unreported; a
 band crossing kept-clear ground one cell at a time is the ordinary shape of a stroke, not a decision an author
 needs restated.

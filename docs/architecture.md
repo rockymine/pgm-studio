@@ -148,8 +148,8 @@ operation named a response header. Both are published now by an operation proces
 is `allOf` the answer the route names plus the optional `warnings`, and every 2xx names `Pgm-Warnings` —
 which puts one fact in one place rather than a field on a hundred records that no handler fills. **198
 answers carry the key and 262 name the header.** The client reads it in one place too, `ServerWarnings`
-beside `ServerRefusal`, which is what let the plan tool take `/plan/compile` as `CompiledPlanDto` again
-instead of as a `JsonElement` it picked the key out of by hand.
+beside `ServerRefusal`, and every document save (`DocumentSave`) takes its warnings from it rather than
+picking the key out of the body by hand.
 
 **And a field says what it is, not only what type it is.** The schema publishes the docstrings the records
 carry, and a field with no `<param>` reaches a caller as a name and a type — with the type's own prose doing
@@ -234,8 +234,8 @@ than its own `{slug}` is doing something else and should say so.
 
 **All ten the board named are in `Api/Services` now, as operations rather than handlers** — and they came to
 seven, because several of the ten were one operation seen through different doors. `DocumentWrite` is the
-guarded replace behind `PUT …/plan`, `PUT …/sketch`, `PUT …/sketch/from-plan` and the intent write: a plan
-and a layout are stored the same way and refuse the same two things, and what differs is what each document
+guarded replace behind `PUT …/sketch` and the intent write: a layout and an intent are stored the same way and
+refuse the same two things, and what differs is what each document
 says about *itself*, which stays with the document that has it. `MapOrigin` is the row every one of the six
 ways into the studio writes. `IntentWrite` was already an operation and was simply misfiled. `DraftDiscard`,
 `MapMetadata`, `SymmetryConfirm` and `WorldFolderImport` are the four that were only ever one route's, and
@@ -272,10 +272,10 @@ The load-the-map-or-404 prologue appears **37 times** verbatim in `Api/Endpoints
 
 ## The lifecycle is data, and nothing reads it
 
-`map.stage` holds one of `plan`, `sketch`, `configure`, `edit`. It is written at map creation by
+`map.stage` holds one of `sketch`, `configure`, `edit`. It is written at map creation by
 `MapOrigin` and once more by `sketch/finish`. **No endpoint refuses anything because of it**, and that is the
 product statement rather than a gap: a stage is a progress marker, so the one-way flow means nothing reads
-back up and not that a built map may never be re-planned.
+back up and not that a built map may never be redrawn.
 
 **What a map at a stage may be asked for is answered by the map**, on `GET /map/{slug}/state`: the stage,
 the artifacts it holds, and the moves those allow, each with the route that performs it. `flow.md` states
@@ -300,9 +300,9 @@ one statement; a slug naming nothing is `RQ4` at 404. A world folder under a map
 scanned from rather than part of the map, and is left on disk.
 
 **A stage is a progress marker and not a lock**, which is the product statement the transition table rests
-on: `flow.md`'s one-way flow means nothing reads back up, not that a built map may never be re-planned. So no
+on: `flow.md`'s one-way flow means nothing reads back up, not that a built map may never be redrawn. So no
 endpoint refuses on `map.stage`, and what decides whether a move is offered is which documents are stored —
-rebuilding a drawing from a plan needs a plan, whatever stage the map is at. The stage only says which of the
+drawing a map again needs a drawing, whatever stage the map is at. The stage only says which of the
 open moves is the one being waited on.
 
 ## A fault carries an id, a class and what it is about

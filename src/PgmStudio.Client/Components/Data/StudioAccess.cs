@@ -41,8 +41,7 @@ public sealed class StudioAccess(HttpClient http)
     /// <summary>
     /// Why the page at <paramref name="path"/> opens read-only, or null where the caller may write there. A
     /// page under <c>/maps/{slug}/</c> edits that map; the map list, the catalogue and the design page write
-    /// nothing; every other page — a new map, the plan editor, the library, the generator — needs someone on
-    /// the whitelist.
+    /// nothing; every other page — a new map, the library, the generator — needs someone on the whitelist.
     /// </summary>
     public async Task<string?> ReadOnlyReasonAsync(string path)
     {

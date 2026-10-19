@@ -17,13 +17,6 @@ namespace PgmStudio.Export;
 /// </summary>
 public static class RoomCheck
 {
-    /// <summary>The rules asked here, which a map's plan no longer answers once it holds an intent.</summary>
-    public static readonly IReadOnlySet<string> Asks = new HashSet<string>(
-    [
-        RoomFrameRules.FootprintTooSmall, RoomFrameRules.FootprintOffPiece, RoomFrameRules.MarkerParity,
-        RoomFrameRules.PadClearance, RoomFrameRules.RoomUnreachable, RoomFrameRules.IronFit, PlanRules.MonumentSeats,
-    ]);
-
     /// <summary>What the intent's rooms break, each resolved under the shell <paramref name="shells"/> binds
     /// for its kind.</summary>
     public static Findings Check(MapIntent intent, RoomShells shells)

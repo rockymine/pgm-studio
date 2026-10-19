@@ -28,7 +28,7 @@
 
 /* SideDrawer — a reusable right-anchored overlay panel: a dimming backdrop plus a sliding drawer with a
    header (reusing .detail-header / .geo-type-icon / .detail-label), a scrolling body, and an optional
-   footer. Used by the plan editor (compile & test, open-from-DB) and the generator (board detail). */
+   footer. Used by the generator (board detail). */
 .side-drawer-backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, 0.45); }
 .side-drawer {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 41;

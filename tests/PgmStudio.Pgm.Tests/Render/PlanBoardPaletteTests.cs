@@ -36,7 +36,7 @@ public sealed class PlanBoardPaletteTests
         return Math.Max(r, Math.Max(g, b)) - Math.Min(r, Math.Min(g, b));
     }
 
-    // Spawn violet and wool-room green are the plan editor's role hues; the closest pair is spawn and zone.
+    // Spawn violet and wool-room green are the canvas's role hues; the closest pair is spawn and zone.
     private const double MinHueDegrees = 35;
 
     [Test]

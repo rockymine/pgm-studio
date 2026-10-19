@@ -69,8 +69,7 @@ public sealed class SketchLayout
     [JsonPropertyName("biomeSource")] public long? BiomeSource { get; set; }
 
     /// <summary>Interior elevation, keyed by group id. It rides at the top level rather than inside the
-    /// shapes because a plan recompile replaces every shape it produced and a relief is hand work a plan
-    /// cannot express, so it is carried across one under its own rule.</summary>
+    /// shapes because it is stated of a group, which several shapes fuse into.</summary>
     [JsonPropertyName("relief")] public Dictionary<string, SketchReliefJson>? Relief { get; set; }
 
     /// <summary>What the layout states about the ground under each play room, by the id of the shape the room
@@ -99,51 +98,6 @@ public sealed class SketchLayout
     public static readonly string[] FinishKeys =
         ["themes", "themeSources", "mapTheme", "roomStyles", "dressing", "biome", "biomeSource"];
 
-    /// <summary>
-    /// A freshly compiled layout with the finish of the layout the map already holds carried onto it.
-    /// Geometry always comes from <paramref name="compiledJson"/> — that is the point of recompiling — but a
-    /// plain replace would also drop every <see cref="FinishKeys">finish key</see>, because a plan cannot
-    /// express one and the compiler therefore never writes one. Rebuilding a themed, dressed map from its
-    /// plan would strip it back to bare stone; this keeps the theming while the board underneath it changes.
-    /// <para>Only the compile path merges. The sketch editor's own save replaces the blob verbatim, which is
-    /// what lets an author delete a theme or the last prop and have the deletion stick.</para>
-    /// </summary>
-    public static string CarryFinish(string compiledJson, string? storedJson)
-    {
-        if (string.IsNullOrWhiteSpace(storedJson)) return compiledJson;
-        JsonNode? compiled, stored;
-        try { compiled = JsonNode.Parse(compiledJson); stored = JsonNode.Parse(storedJson); }
-        catch (JsonException) { return compiledJson; }
-        if (compiled is not JsonObject target || stored is not JsonObject source) return compiledJson;
-
-        // An explicit null counts as absent, not as a stated empty finish: the compiler's layout is serialized
-        // from a typed model that writes every property, so it arrives carrying `"dressing": null` rather than
-        // no dressing key at all, and a plain ContainsKey test would decide the finish had already been spoken
-        // for and carry nothing.
-        var carried = false;
-        foreach (var key in FinishKeys)
-            if (target[key] is null && source[key] is { } value)
-            {
-                target[key] = value.DeepClone();
-                carried = true;
-            }
-        return carried ? target.ToJsonString(Json) : compiledJson;
-    }
-
-    /// <summary>The group ids a stored relief is bound to that the freshly compiled layout has no group
-    /// for. Each one is hand-authored terrain the recompile would silently discard, which is why the compile
-    /// path refuses rather than carrying what it can: group identity is derived from the geometry, so a
-    /// re-fused group does not merely move — it becomes a different group, and a relief authored against
-    /// the old fusion has nowhere correct to land.</summary>
-    public static IReadOnlyList<string> OrphanedRelief(string compiledJson, string? storedJson)
-    {
-        var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
-        if (stored?.Relief is not { Count: > 0 } relief) return [];
-
-        var groups = new HashSet<string>(GroupIds(Parse(compiledJson)));
-        return relief.Keys.Where(id => !groups.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToList();
-    }
-
     /// <summary>The layers a document draws, in draw order — the one place the stack is read, so a gate, a
     /// rasterizer and a theme scope cannot disagree about which shapes a document holds. A document stating
     /// none draws nothing, which is not the same as a document stating an empty layer.
@@ -171,99 +125,6 @@ public sealed class SketchLayout
                 if (group.Id is { Length: > 0 } id) yield return id;
     }
 
-    /// <summary>A freshly compiled layout with the stored relief carried onto it. Only call this once
-    /// <see cref="OrphanedRelief"/> is empty or the author has accepted the loss — it carries what still
-    /// binds and drops the rest.</summary>
-    public static string CarryRelief(string compiledJson, string? storedJson)
-    {
-        var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
-        if (stored?.Relief is not { Count: > 0 } relief) return compiledJson;
-
-        JsonNode? node;
-        try { node = JsonNode.Parse(compiledJson); } catch (JsonException) { return compiledJson; }
-        if (node is not JsonObject target) return compiledJson;
-
-        var groups = new HashSet<string>(GroupIds(Parse(compiledJson)));
-        var kept = relief.Where(entry => groups.Contains(entry.Key))
-                         .ToDictionary(entry => entry.Key, entry => entry.Value);
-        if (kept.Count == 0) return compiledJson;
-
-        target["relief"] = JsonNode.Parse(JsonSerializer.Serialize(kept, Json));
-        return target.ToJsonString(Json);
-    }
-
-    /// <summary>The group ids whose relief the posted body states and the carry replaces with a different
-    /// stored one — what a caller loses to <see cref="CarryRelief"/> and has no other way to notice.
-    ///
-    /// <para>The carry is right: a relief is hand work a plan cannot express, and a freshly compiled layout
-    /// carries none, so the stored one is the only one there is. A body that <em>does</em> state one is a
-    /// caller that compiled, patched a relief onto the result and posted it — which is the road this route
-    /// documents — and for that caller the stored relief silently wins. Naming the groups is what turns that
-    /// into something to act on.</para></summary>
-    public static IReadOnlyList<string> ReliefReplaced(string compiledJson, string? storedJson)
-    {
-        var posted = Parse(compiledJson)?.Relief;
-        if (posted is not { Count: > 0 }) return [];
-        var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
-        if (stored?.Relief is not { Count: > 0 } kept) return [];
-
-        var groups = new HashSet<string>(GroupIds(Parse(compiledJson)));
-        return posted.Keys
-            .Where(id => groups.Contains(id) && kept.TryGetValue(id, out var held)
-                         && JsonSerializer.Serialize(held, Json) != JsonSerializer.Serialize(posted[id], Json))
-            .OrderBy(id => id, StringComparer.Ordinal)
-            .ToList();
-    }
-
-    /// <summary>The stored shapes a rebuild from <paramref name="compiledJson"/> does not keep, by id: a shape
-    /// the author drew in the sketch, whose id the compile does not produce (<see
-    /// cref="SketchRules.ShapeDropped"/>). Geometry is the plan's, so nothing carries one across.</summary>
-    public static IReadOnlyList<string> DroppedShapes(string compiledJson, string? storedJson)
-    {
-        var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
-        if (stored is null) return [];
-        var compiled = new HashSet<string>(
-            Stack(Parse(compiledJson)).SelectMany(layer => layer.Shapes).Select(shape => shape.Id),
-            StringComparer.Ordinal);
-        return Stack(stored).SelectMany(layer => layer.Shapes)
-            .Where(shape => shape.Role is null && !compiled.Contains(shape.Id))
-            .Select(shape => shape.Id)
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-    }
-
-    /// <summary>A freshly compiled layout with every room height the author corrected carried onto it. A plan
-    /// recompile writes a fresh <see cref="RoomGround"/> for every room it holds a relief against, because the
-    /// plan's flat surface is the only height a plan-space piece can state; once an author corrects that
-    /// number in the sketch, <see cref="RoomGround.HeightAuthored"/> marks the record, and this carries its
-    /// floor, top and corners forward, held, instead of the plan's number. Matched by the room's id, which
-    /// is its piece's and survives a recompile.</summary>
-    public static string CarryRoomGround(string compiledJson, string? storedJson)
-    {
-        var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
-        var authored = (stored?.Rooms ?? new Dictionary<string, RoomGround>()).Where(room => room.Value.HeightAuthored == true).ToList();
-        if (authored.Count == 0) return compiledJson;
-
-        JsonNode? node;
-        try { node = JsonNode.Parse(compiledJson); } catch (JsonException) { return compiledJson; }
-        if (node is not JsonObject target) return compiledJson;
-
-        var rooms = target["rooms"] as JsonObject ?? new JsonObject();
-        foreach (var (id, height) in authored)
-        {
-            var ground = rooms[id]?.Deserialize<RoomGround>(Json) ?? new RoomGround();
-            ground.Floor = height.Floor;
-            ground.BaseHeight = height.BaseHeight;
-            ground.AnchorHeights = height.AnchorHeights;
-            ground.HeightAuthored = true;
-            // A corrected height is a height the author means against the relief, so the room holds it rather
-            // than following the surface the field settles on.
-            ground.ReliefScope = ReliefScopes.Hold;
-            rooms[id] = JsonSerializer.SerializeToNode(ground, Json);
-        }
-        target["rooms"] = rooms;
-        return target.ToJsonString(Json);
-    }
 }
 
 /// <summary>
@@ -582,8 +443,7 @@ public sealed class SketchShape
     [JsonPropertyName("color")]      public string? Color { get; set; }
 
     /// <summary>Whether a room shape's <see cref="Floor"/> and <see cref="BaseHeight"/> were stated by the
-    /// author rather than derived from the plan's flat surface. Absent, they track the plan on every compile;
-    /// true, a recompile keeps them (<see cref="SketchLayout.CarryRoomGround"/>). Never set by the compiler.</summary>
+    /// author rather than given by whatever wrote the layout. Never set by the compiler.</summary>
     [JsonPropertyName("height_authored")] public bool? HeightAuthored { get; set; }
 
     /// <summary>Which sides of a structural room its doors stand on (<c>-z</c>, <c>+z</c>, <c>-x</c>,

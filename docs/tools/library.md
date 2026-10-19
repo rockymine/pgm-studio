@@ -773,8 +773,8 @@ there — and the two `/porch-styles` verbs ask the porch's roof form of `CheckR
 wherever else a `HouseStyle` snapshot enters the studio: a stored sketch's bound `roomStyles.wool` and
 `roomStyles.spawn` and the shell of every building in its `dressing` (`docs/tools/sketch.md`'s Refusals) — the
 wool cage, the spawn and a placed house checked identically, since none of the three asks for a different
-rule, and there against the build ceiling as well (`WX10`, `docs/world-export/structures.md`). All three roads
-to a stored layout ask it: the plain `PUT …/sketch`, `PUT …/sketch/from-plan`, and `PUT …/source`. Every style
+rule, and there against the build ceiling as well (`WX10`, `docs/world-export/structures.md`). Both roads
+to a stored layout ask it: the plain `PUT …/sketch` and `PUT …/source`. Every style
 finding names a stable rule id (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` rather than
 parsing `message`. `HS1`–`HS6` and `HS20`–`HS22` refuse. `HS7`–`HS19` are complaints — the author's verdicts on how a house looks,
 and on how a porch and a stilt house stand — and ride on the success as `warnings` and the `Pgm-Warnings`
@@ -886,7 +886,7 @@ and *Save* for anyone off the whitelist, and *Delete* for anyone but an admin.
 | `GET`·`POST`·`PUT`·`DELETE /biome-patterns[/{id}]` | the biome library; each row `{id, name, kind, params, preview}`, the preview being a patch of grass under the field. `POST`/`PUT` answer 400 `malformed biome` when `params` does not read as a field. A delete asks nothing: a map holds a snapshot |
 | `POST /biome-patterns/preview` | what a draft field draws, saving nothing — body is a **bare** `BiomeField`, unwrapped, answering `{card}` |
 | `POST /terrain/material-preview` | one material drawn in plan and section — body is a **bare material**, `{kind, …}`, unwrapped. One column, not an area: a pattern cannot be judged from it |
-| `POST /terrain/theme-preview` · `POST /terrain/theme-map-preview` | a whole theme as it will paint — the first over a sample plateau cut open plus one swatch per themeable bucket, the second over a compiled plan, so a theme is judged against the board it will dress rather than against a sample. Body is a **bare theme**, unwrapped |
+| `POST /terrain/theme-preview` | a whole theme as it will paint, over a sample plateau cut open plus one swatch per themeable bucket. Body is a **bare theme**, unwrapped |
 | `POST /terrain/prop-preview` | one placed prop standing on the finish it will stand on — body `{propJson, themeJson}`, because what the paint leaves on top is what decides whether flora grows at all |
 | `GET /terrain/stroke-styles` · `/terrain/fluid-forms` · `/terrain/boulder-forms` · `/terrain/species` | the dressing vocabularies — every stroke style, fluid form, boulder form and tree species a prop may name, each with the fields it carries. What a picker offers, and the closed sets a prop document is refused against |
 

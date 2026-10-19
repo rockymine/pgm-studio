@@ -72,8 +72,7 @@
           <PageHeading Title="Maps">
             <Actions>
               <Badge Kind="dim">@CountLabel</Badge>
-              <Button Variant="primary" OnClick="NewPlan" Icon="plus" Class="action-btn--push-end" Writes Disabled="@creatingPlan">New plan</Button>
-              <Button OnClick="NewSketch" Icon="plus" Writes Disabled="@creatingSketch">New sketch</Button>
+              <Button Variant="primary" OnClick="NewSketch" Icon="plus" Class="action-btn--push-end" Writes Disabled="@creatingSketch">New sketch</Button>
               <Button Href="maps/new" Icon="import" Writes>Import a world</Button>
             </Actions>
           </PageHeading>
@@ -89,7 +88,7 @@
               <div class="list-empty">@loadError <Button OnClick="LoadAsync">Try again</Button></div>
             }
             else if (maps is null) { <div class="list-empty">Loading…</div> }
-            else if (maps.Count == 0) { <div class="list-empty">No maps yet. Plan one, draw a sketch, or import a world.</div> }
+            else if (maps.Count == 0) { <div class="list-empty">No maps yet. Draw a sketch, or import a world.</div> }
             else if (Shown.Count == 0)
             {
               <div class="list-empty">No map matches these filters. <Button OnClick="ClearFilters">Clear filters</Button></div>

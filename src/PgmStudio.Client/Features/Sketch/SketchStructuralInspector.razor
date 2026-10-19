@@ -1,7 +1,7 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* The plan's own piece, picked on the canvas. Its geometry belongs to the plan and is not editable here;
-   what a region carries and an author may correct is the height it was compiled at. *@
+@* A play piece picked on the canvas: where it stands and how big it is are the intent's, moved, turned and
+   resized on the canvas; what a region carries and an author may correct here is the height it is held at. *@
 
 <Inspector>
   <Section>
@@ -22,11 +22,11 @@
       <p class="section-desc">
         @if (Piece.HeightAuthored)
         {
-          <text>Set by you. Rebuilding from the plan keeps it.</text>
+          <text>Set by you.</text>
         }
         else
         {
-          <text>Set by the plan. Rebuilding from the plan resets it unless you change it here.</text>
+          <text>The height the layout was written with. Change it here to correct it.</text>
         }
       </p>
     }
@@ -40,8 +40,8 @@
     <div class="section-header section-header--ruled"><h2 class="section-title">Position</h2></div>
     @if (Piece.IsPoint)
     {
-      <Field Label="X"><span class="plan-stepper-value">@($"{Piece.Middle.X:0.#}")</span></Field>
-      <Field Label="Z"><span class="plan-stepper-value">@($"{Piece.Middle.Z:0.#}")</span></Field>
+      <Field Label="X"><span class="stepper-value">@($"{Piece.Middle.X:0.#}")</span></Field>
+      <Field Label="Z"><span class="stepper-value">@($"{Piece.Middle.Z:0.#}")</span></Field>
     }
     <p class="section-desc">
       Drag to move it.
@@ -58,14 +58,13 @@
         <text> Drag a corner or an edge to resize it@(Piece.IsRegion ? "; what stands on it keeps its place across it" : "").</text>
       }
       else if (!Piece.IsPoint) { <text> It can't be resized.</text> }
-      @if (!Piece.Piece) { <text> Rebuilding from the plan puts it back.</text> }
     </p>
     @House
     @if (Yaw is { } yaw)
     {
       <Field Label="Facing">
         <div class="ctrl-row">
-          <span class="plan-stepper-value">@($"{yaw:0}°")</span>
+          <span class="stepper-value">@($"{yaw:0}°")</span>
           <Button Variant="icon" Writes OnClick="() => OnFace.InvokeAsync()" Title="Turn"><i data-lucide="rotate-cw"></i></Button>
         </div>
       </Field>

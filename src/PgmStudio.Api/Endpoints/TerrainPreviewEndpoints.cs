@@ -332,29 +332,3 @@ public sealed class TreeSpeciesEndpoint : EndpointWithoutRequest<List<PropOption
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync([.. DressingPreview.SpeciesCards(SeedFolder.Meadow)], ct);
 }
-
-/// <summary>POST /api/terrain/theme-map-preview — body is a plan JSON; compiles it, paints the terrain through
-/// the scoped theme resolver, and returns a top-down SVG of the map's top blocks so the Theme rail's apply step
-/// can show the themes on the actual map (TP10). 400 when the plan can't be rendered.</summary>
-public sealed class ThemeMapPreviewEndpoint : EndpointWithoutRequest<ThemeMapPreviewDto>
-{
-    public override void Configure()
-    {
-        Post("/terrain/theme-map-preview");
-        Description(b => b.Accepts<PlanModel>("application/json"));
-    }
-
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        var json = await RawBody.ReadAsync(HttpContext, ct);
-        try
-        {
-            var paint = TerrainPreview.MapSvg(json);
-            await Send.OkAsync(new ThemeMapPreviewDto(paint.Svg, paint.MinX, paint.MinZ, paint.SpanX, paint.SpanZ), ct);
-        }
-        catch (Exception fault) when (fault is JsonException or ArgumentException
-                                          or InvalidOperationException or FormatException
-                                          or OverflowException or KeyNotFoundException)
-        { await Refusals.UnreadableAsync(HttpContext, "could not render plan", fault, ct); }
-    }
-}

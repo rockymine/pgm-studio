@@ -3,7 +3,7 @@ namespace PgmStudio.Vocabulary;
 /// <summary>
 /// The sixteen dyes a wool objective can be, and the swatch each one draws as — a closed set because four
 /// parties spell it: the plan validator refuses a word outside it, the compiler picks from it, two renderers
-/// colour a marker by it, and the plan editor offers it.
+/// colour a marker by it, and the sketch's picked piece offers it.
 ///
 /// <para>The names are the underscore form PGM's <c>DyeColors</c> resolves and the studio's <c>map.xml</c>
 /// carries. <c>silver</c> is 1.8's name for light gray; PGM accepts <c>light_gray</c> for the same dye, so

@@ -1,14 +1,13 @@
 using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
-using PgmStudio.Client.Features.Plan;
 using PgmStudio.Geom;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>Draw's three steps: Plan, where the places are drawn; Ground, where the shapes are drawn; and Layout,
-/// where the play pieces are placed from the plan editor's three toolbars. Ground and Layout draw every piece and
-/// pick, drag and turn any of them.</summary>
+/// where the play pieces are placed from three toolbars. Ground and Layout draw every piece and pick, drag and turn
+/// any of them.</summary>
 public partial class SketchTool
 {
     private static readonly string[] DrawSteps = ["Plan", "Ground", "Layout"];
@@ -45,19 +44,18 @@ public partial class SketchTool
         new(PlayPieceKinds.WaterLane, "Water lane", SwatchClass: "canvas-dock-swatch--water-lane"),
     ];
 
-    /// <summary>The markers a board may place. A destroyable and a core are offered at two teams only, as the
-    /// plan offers them (OB14).</summary>
+    /// <summary>The markers a board may place. A destroyable and a core are offered at two teams only (OB14).</summary>
     private DockItem[] MarkerItems =>
     [
-        new(PlayPieceKinds.IronCube, "Iron marker", Icon: PlanPalette.MarkerIcon("iron")),
+        new(PlayPieceKinds.IronCube, "Iron marker", Icon: "pickaxe"),
         .. Symmetry.Order(mode) == 2
             ? new DockItem[]
             {
-                new(PlayPieceKinds.Destroyable, "Destroyable", Icon: PlanPalette.MarkerIcon("destroyable")),
-                new(PlayPieceKinds.Core, "Core", Icon: PlanPalette.MarkerIcon("core")),
+                new(PlayPieceKinds.Destroyable, "Destroyable", Icon: "gem"),
+                new(PlayPieceKinds.Core, "Core", Icon: "flame"),
             }
             : [],
-        new(PlayPieceKinds.Wall, "Wall", Icon: PlanPalette.MarkerIcon("wall")),
+        new(PlayPieceKinds.Wall, "Wall", Icon: "brick-wall"),
         new(PlayPieceKinds.Chest, "Defence chest", Icon: "box"),
     ];
 

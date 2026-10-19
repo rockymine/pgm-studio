@@ -48,11 +48,10 @@ public static class Preflights
         var (zones, _) = await feature.ZonesAsync(map.Id, doc, ct);
         var build = BuildabilityCheck(zones, intent);
         // A map read from a world states its ground in the world itself, so all of it is ground a build zone was
-        // meant to reach; a drawn map without a plan says nothing about which void is a crossing it asked for.
-        var planned = await feature.PlannedGroundAsync(map.Id, ct)
-            ?? (await artifacts.HasAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) ? null : EveryColumn(zones));
+        // meant to reach; a drawn map's build areas are held to the ground it draws by the sketch's own BZ9.
+        var drawn = await artifacts.HasAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         var reach = (intent.Build ?? new BuildIntent()).ModeFor(intent) == BuildModes.Void
-            ? BuildZoneReachCheck(zones, planned)
+            ? BuildZoneReachCheck(zones, drawn ? null : EveryColumn(zones))
             : new Preflight.Check("buildzone", "Build areas", "skip", "Players don't build over the void on this map.");
 
         var trav = Traversability.Check(doc, await feature.WalkGroundAsync(map.Id, doc, ct: ct), DeclaredGoals.Of(doc, intent));
@@ -130,13 +129,13 @@ public static class Preflights
         [.. Enumerable.Range(0, zones.Height).SelectMany(iz => Enumerable.Range(0, zones.Width)
             .Select(ix => (zones.MinX + ix, zones.MinZ + iz)))];
 
-    private static Preflight.Check BuildZoneReachCheck(Editability.Result zones, HashSet<(int X, int Z)>? planned)
+    private static Preflight.Check BuildZoneReachCheck(Editability.Result zones, HashSet<(int X, int Z)>? ground)
     {
         if (!zones.HasY0)
             return new("buildzone", "Build areas", "skip", "The world has no scan of its lowest layer, so the void can't be told from ground.");
-        if (planned is null)
-            return new("buildzone", "Build areas", "skip", "This map has no plan, so nothing says where a build area should meet the ground.");
-        var gaps = BuildZoneGap.Check(zones, planned);
+        if (ground is null)
+            return new("buildzone", "Build areas", "skip", "This map is drawn, so its build areas are checked against the sketch.");
+        var gaps = BuildZoneGap.Check(zones, ground);
         if (gaps.Count == 0)
             return new("buildzone", "Build areas", "pass", "Every build area reaches the ground it was drawn to.");
         return new("buildzone", "Build areas", "fail",

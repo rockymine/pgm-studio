@@ -11,20 +11,13 @@ namespace PgmStudio.Pgm.Sketch;
 /// The rules a board's structure answers, read off the ground the sketch builds rather than the plan's
 /// rectangles (<see cref="SketchGround"/>): a face's front line (<c>FR8</c>, <c>FR9</c>), the narrowest run of
 /// each gap beside a goal, beside a team's own ground and in a plain hole (<c>WL12</c>, <c>WL20</c>,
-/// <c>LN6</c>), the strait between the two teams of a wool board (<c>CT12</c>), and a build area running past the
-/// last ground it docks (<c>BZ9</c>). Each is the rule the plan
-/// is asked under the same id, measured in blocks, and an owner it names is a group or a room.
+/// <c>LN6</c>), the strait between the two teams of a wool board (<c>CT12</c>), a build area running past the
+/// last ground it docks (<c>BZ9</c>), a board with no build area (<c>SP11</c>), a wool no capturing team's spawn
+/// can walk to (<c>PL9</c>) and one the front line reaches only through a spawn's room (<c>SP1</c>). Each is the
+/// rule the plan is asked under the same id, measured in blocks, and an owner it names is a group or a room.
 /// </summary>
 public static class SketchBoardCheck
 {
-    /// <summary>The rules asked here, which a map's plan no longer answers once its sketch is asked.</summary>
-    public static readonly IReadOnlySet<string> Asks = new HashSet<string>(
-    [
-        LayoutRules.FrontlineShare, LayoutRules.MinimumFrontline, LayoutRules.RoomFrontGapWidth,
-        LayoutRules.RoomHomeGapWidth, LayoutRules.HoleWidth, LayoutRules.TeamGapWidth, LayoutRules.ZoneOverhang,
-        LayoutRules.VoidHop,
-    ]);
-
     /// <summary>What the board the layout and the intent build breaks; nothing where it builds no ground.</summary>
     public static Findings Check(string layoutJson, MapIntent intent, SymmetryIntent? board = null)
     {
@@ -42,8 +35,58 @@ public static class SketchBoardCheck
                     zoneOf.TryAdd((x, z), area.Id);
         return new Findings([
             .. PlanValidator.BoardEdges(structure, rooms, strait), .. PlanValidator.ZoneReach(structure, zoneOf), .. Hops(structure),
+            .. Routes(ground, intent),
         ]);
     }
+
+    // SP11, PL9 and SP1: the walks a match needs to a wool, over the ground and the build cells together. Every team but
+    // the wool's owner captures it, so each of their spawns has to reach its room; and the front line — the ground
+    // a build area meets, and the build cells themselves — has to reach it without passing through a spawn's room.
+    private static IEnumerable<Finding> Routes(BoardGround ground, MapIntent intent)
+    {
+        var spawns = intent.Spawns.Where(spawn => spawn.Protection.Count > 0).ToList();
+        var wools = (intent.Wools ?? []).Where(wool => wool.Protection.Count > 0).ToList();
+        if (ground.Build.Count == 0)
+            yield return new Finding(LayoutRules.NoBuildRegion, "the map has no build area", Severity.Complaint);
+        if (spawns.Count == 0 || wools.Count == 0) yield break;
+
+        var closure = ground.Filled.Keys.Concat(ground.Build).ToHashSet();
+        var reached = new Dictionary<string, HashSet<(int, int)>>(StringComparer.Ordinal);
+        foreach (var spawn in spawns)
+        {
+            var seat = Geom.Cells.SnapToWalkable(((int)Math.Floor(spawn.Point.X), (int)Math.Floor(spawn.Point.Z)), closure, radius: 2);
+            var walked = seat is { } from ? Geom.Cells.Flood([from], closure) : [];
+            if (reached.TryGetValue(spawn.Team, out var team)) team.UnionWith(walked);
+            else reached[spawn.Team] = walked;
+        }
+
+        // A wool's own room is where the walk ends, so it is open even where a spawn's room overlaps it.
+        var spawnRooms = spawns.SelectMany(spawn => Region(spawn.Protection)).ToHashSet();
+        var front = ground.Build.Concat(ground.Filled.Keys.Where(cell => Geom.Cells.N4(cell).Any(ground.Build.Contains)))
+            .Where(cell => !spawnRooms.Contains(cell)).ToList();
+
+        foreach (var wool in wools)
+        {
+            var room = Region(wool.Protection).Where(closure.Contains).ToHashSet();
+            foreach (var (team, walked) in reached.Where(entry => entry.Key != wool.Owner))
+                if (!room.Any(walked.Contains))
+                    yield return new Finding(PlanRules.WoolUnreachable,
+                        $"wool '{wool.Id}' of team '{wool.Owner}' has no route from the spawn of team '{team}'",
+                        Subjects: [wool.Id]);
+            if (ground.Build.Count == 0) continue;
+            var open = closure.Where(cell => !spawnRooms.Contains(cell) || room.Contains(cell)).ToHashSet();
+            if (!room.Any(Geom.Cells.Flood(front, open).Contains))
+                yield return new Finding(LayoutRules.SpawnOnWoolRoute,
+                    $"wool '{wool.Id}' has no route from the front line that avoids the room of a spawn", Subjects: [wool.Id]);
+        }
+    }
+
+    /// <summary>The cells a region of rectangles covers.</summary>
+    private static IEnumerable<(int, int)> Region(IEnumerable<Geom.Rect> rects) =>
+        rects.SelectMany(rect =>
+            from x in Enumerable.Range((int)Math.Floor(rect.MinX), Math.Max(0, (int)Math.Ceiling(rect.MaxX) - (int)Math.Floor(rect.MinX)))
+            from z in Enumerable.Range((int)Math.Floor(rect.MinZ), Math.Max(0, (int)Math.Ceiling(rect.MaxZ) - (int)Math.Floor(rect.MinZ)))
+            select (x, z));
 
     // G5: the void between every two landmasses one build region touches, measured on the straight span between
     // their nearest cells, where that span runs inside the region and through no third landmass. A pair is asked

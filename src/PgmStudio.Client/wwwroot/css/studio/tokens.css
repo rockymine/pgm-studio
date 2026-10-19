@@ -110,7 +110,7 @@
 
   /* A server-drawn board picture (generator, shape catalog) sits on --board-bg and paints four inks: ground,
      spawn room, wool room and the build zone's outline, each a fill and an edge, plus the iron pip. Ground is a
-     tint of the plan editor's piece grey (--canvas-role-piece), so a board and the editor's pieces read as one. */
+     tint of the canvas's piece grey (--canvas-role-piece), so a board and the sketch's pieces read as one. */
   --board-bg: #0b1222;
   --board-ground:      color-mix(in srgb, var(--canvas-role-piece) 38%, var(--board-bg));
   --board-ground-edge: color-mix(in srgb, var(--canvas-role-piece) 75%, var(--board-bg));

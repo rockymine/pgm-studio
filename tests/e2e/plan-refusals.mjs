@@ -91,13 +91,6 @@ checks.section("an empty plan is refused, not answered with an empty map");
   checks.add("empty plan → 422", compiled.status === 422, `${compiled.status}`);
   const why = (compiled.json?.findings ?? []).map(f => f.message)[0] ?? "";
   checks.add("…naming the missing land", /has no piece that makes ground/.test(why), why.slice(0, 90));
-
-  // Its sibling endpoints must survive the same document — an empty plan is well-formed, just empty.
-  const evaluated = await apiRaw("/plan/evaluate", { method: "POST", body: empty });
-  checks.add("evaluate answers an empty plan with an empty score", evaluated.status === 200,
-    `${evaluated.status}: ${evaluated.text.slice(0, 120)}`);
-  const inspected = await apiRaw("/plan/inspect", { method: "POST", body: empty });
-  checks.add("inspect answers an empty plan", inspected.status === 200, `${inspected.status}`);
 }
 
 checks.section("malformed input is answered, not 500");

@@ -4,7 +4,7 @@ namespace PgmStudio.Vocabulary.Tests;
 
 /// <summary>
 /// The dye set four parties spell: the plan validator refuses a word outside it, the compiler picks from it,
-/// two renderers colour a marker by it and the plan editor offers it. What is worth pinning is not the list
+/// two renderers colour a marker by it and the sketch's picked piece offers it. What is worth pinning is not the list
 /// itself but the properties a caller relies on — that every name has a swatch, that no two dyes share one,
 /// and that the spellings PGM accepts all land on the same word.
 /// </summary>

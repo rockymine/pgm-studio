@@ -4,7 +4,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Analysis.Playability;
 
 /// <summary>
-/// Void between standing ground and a build zone that nobody may build across, where the plan put ground
+/// Void between standing ground and a build zone that nobody may build across, over ground the world states
 /// (<see cref="EditZoneRules.BuildZoneGap"/>).
 ///
 /// <para>Read along the four axes from every column with a block at y=0, up to <see cref="Reach"/> columns
@@ -12,10 +12,9 @@ namespace PgmStudio.Analysis.Playability;
 /// that meets ground again, or reaches no build zone within the reach, is open void between islands, which is
 /// the board's shape rather than this fault.</para>
 ///
-/// <para><b>Only void the plan filled is a gap.</b> A plan states its build zones against its own pieces, so
-/// a strip of void it leaves between a piece and a zone — a frontline standing on two legs — is the composed
-/// board. What this looks for is ground the plan put against a zone and the sketch pulled back, so a board
-/// built without a plan has nothing to compare against and answers nothing.</para>
+/// <para><b>Only void over <c>ground</c> is a gap.</b> A map read from a world states all of its columns as
+/// ground a zone was meant to reach. A drawn board's zones are held to its drawing by the sketch itself
+/// (<c>BZ9</c>), so it answers nothing here.</para>
 ///
 /// <para>Findings come one per connected patch, largest first, each with its box and the widest run through
 /// it — the number a build zone has to grow by to close it.</para>
@@ -31,12 +30,12 @@ public static class BuildZoneGap
 
     private static readonly (int X, int Z)[] Axes = [(1, 0), (-1, 0), (0, 1), (0, -1)];
 
-    /// <summary>Patches of void between ground and a build zone that nobody may build across, over ground
-    /// <paramref name="planned"/> — the plan's footprint in world blocks — says was there, largest first. Empty
-    /// without a Y=0 layer, where void cannot be told from ground, and without a plan.</summary>
-    public static IReadOnlyList<Finding> Check(Editability.Result zones, IReadOnlySet<(int X, int Z)>? planned)
+    /// <summary>Patches of void between ground and a build zone that nobody may build across, over the columns
+    /// <paramref name="ground"/> states, largest first. Empty without a Y=0 layer, where void cannot be told from
+    /// ground, and without ground to compare against.</summary>
+    public static IReadOnlyList<Finding> Check(Editability.Result zones, IReadOnlySet<(int X, int Z)>? ground)
     {
-        if (!zones.HasY0 || planned is null) return [];
+        if (!zones.HasY0 || ground is null) return [];
 
         // Each gap column, with the widest run found through it.
         var widest = new Dictionary<(int X, int Z), int>();
@@ -55,7 +54,7 @@ public static class BuildZoneGap
                     for (var back = 1; back < step; back++)
                     {
                         var cell = (zones.MinX + ix + dx * back, zones.MinZ + iz + dz * back);
-                        if (planned.Contains(cell)) widest[cell] = Math.Max(widest.GetValueOrDefault(cell), step - 1);
+                        if (ground.Contains(cell)) widest[cell] = Math.Max(widest.GetValueOrDefault(cell), step - 1);
                     }
                     break;
                 }

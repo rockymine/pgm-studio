@@ -46,9 +46,9 @@ reach. What stays here is the part a docstring has no room for: the negotiation 
 Every wool cage and spawn room is stamped from one resolved **`RoomFrame`**: the shell footprint,
 the interior, the pad, and the doors, derived by `RoomFrames.Resolve` from three authored inputs —
 the **region**, the **marker**, and the **entry interfaces** (a spawn substitutes the walls its piece
-meets the board on). The world builder and the plan editor's structure preview consume the same frame
-(`WorldBuilder.WoolFrame`/`SpawnRoom`), so the drawn box and the stamped shell cannot disagree —
-the OB8 discipline the destroyable/core boxes established.
+meets the board on). The world builder stamps from it, and the export's goal keep-outs and the dressing
+scope read the same frame (`WorldBuilder.WoolFrame`/`SpawnRoom`), so the stamped shell and what is
+measured against it cannot disagree — the OB8 discipline the destroyable/core boxes established.
 
 **The region is the ground, and it is the same field PGM's protection comes out of.** A wool and a
 spawn each carry one `Protection` — a union of rectangles, one for a plan-compiled room (its piece,
@@ -86,7 +86,7 @@ the whole house (`wing` on `PATCH …/intent/pieces/{id}`). An intent stating a 
 
 Two authoring facts frame the rules. The plan format is generic over scale: `PlanGlobals.Cell` is
 any blocks-per-cell value (default 5), so a room piece has no fixed block size and every minimum
-below is stated in blocks. And markers snap to the **half-cell lattice** (`plan-doc.js snapHalf`):
+below is stated in blocks. And markers snap to the **half-cell lattice**:
 a whole piece-relative offset is a cell corner, a `.5` offset a cell centre — so a marker's block
 coordinate is either a **grid line** (integer) or a **block centre** (`.5`, cell centres at odd
 cell sizes), and the export carries that parity through (`PositionSnap.SnapHalfXZ`) instead of

@@ -6,12 +6,6 @@ namespace PgmStudio.Pgm.Sketch;
 /// here, the way every gate family's are.</summary>
 public static class SketchRules
 {
-    /// <summary>A recompiled layout has no group for the terraform stored on a group.</summary>
-    /// <remarks>Either send the request again with <c>force</c> set to <c>true</c>, or change the <c>rect</c> of a
-    /// piece in <c>pieces</c> until the same group survives the compile.</remarks>
-    [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Terrain)]
-    public const string ReliefOrphaned = "SK1";
-
     /// <summary>The extent of a layout across its symmetry copies is more than 4,000,000 columns.</summary>
     /// <remarks>Either delete a shape from <c>shapes</c>, or move the shape closer to the symmetry centre until the
     /// layout covers fewer columns.</remarks>
@@ -188,18 +182,6 @@ public static class SketchRules
     /// centre until it touches its symmetry copies.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string BuiltOnOneImage = "SK28";
-
-    /// <summary>A shape drawn in the sketch has no counterpart in the plan the rebuild compiles.</summary>
-    /// <remarks>Either add a piece for the shape to <c>pieces</c> in the plan, or add the shape to <c>shapes</c>
-    /// again after the rebuild.</remarks>
-    [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Terrain)]
-    public const string ShapeDropped = "SK29";
-
-    /// <summary>The terraform a request posts for a group is not the terraform the studio stores for it.</summary>
-    /// <remarks>Send the terraform in the request that writes the terraform of one group, then send the layout
-    /// again.</remarks>
-    [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.Terrain)]
-    public const string ReliefReplaced = "SK30";
 
     /// <summary>A polygon, lasso or rectangle has no area.</summary>
     /// <remarks>Either change the shape until it encloses an area, or delete the shape from

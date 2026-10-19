@@ -138,9 +138,8 @@ protection rectangle, so it is a contested resource nobody may contest — again
 and it supplies the rule id `B169`'s dead-ground entry was missing: SP2.
 
 **The two rules fail differently, and only one of them is still missing.** SP2 is implemented —
-`PlanValidator` lints a spawn against the back half of its piece — and it is now reached: `POST
-/plan/evaluate` answers the whole lint table as `lint[]` beside the score, so the one call an authoring loop
-already makes carries it. A lint is still a complaint an author may ignore. SP7 has no code at all: it appears
+`PlanValidator` lints a spawn against the back half of its piece — and the sketch asks it too: `GET /map/{slug}/findings` answers it off the intent's
+spawns (`IntentCheck`), so the one read an authoring loop already makes carries it. A lint is still a complaint an author may ignore. SP7 has no code at all: it appears
 in `rules.md`, is served as prose by `GET /api/rules?rule=SP7`, and matches nothing in `src/`. Anything acting
 on this entry writes the SP7 check; writing a second SP2 is the failure mode.
 

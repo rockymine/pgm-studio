@@ -10775,6 +10775,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   placed room shows its building, is picked whole before it, and its wing resizes from any edge or corner; a joined
   building in Dressing outlines each wing inside its silhouette, and an edge of every transform box draws as a
   bar while the pointer is on it.
+- **The plan is an import and history, not a level (`RP131`).** The Plan tool, its inspect, evaluate,
+  feasibility and preview routes, `PUT …/sketch/from-plan`, `PUT …/intent/from-plan` and the `plan` stage are
+  gone (`M0084` moves every plan-stage map to `sketch`, giving one with no layout the ground layer a fresh draft starts with); a source states a layout and an intent, and one stating
+  a `plan` is refused naming `POST /plan/compile`, the one-way import. Every stored plan stays readable as
+  history, and a map's findings read its sketch alone (`SketchBoardCheck.Routes` asks `SP11`, `PL9` and `SP1`
+  over the drawn ground).
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

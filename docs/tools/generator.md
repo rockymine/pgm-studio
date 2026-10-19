@@ -118,7 +118,7 @@ hub, at the end of the back edge nearer the donut, because a donut draws a unit 
 
 **What a compose hands over is a sketch, not a plan.** The plan is the composer's own working document: the
 gate is asked of it, and then it is compiled once into what a map is made from (`ComposedSketch`) — a sketch
-layout and the intent it is played by. The compile is the Plan tool's (`PlanCompiler`) with one
+layout and the intent it is played by. The compile is the plan import's (`PlanCompiler`) with one
 difference: abutting pieces fuse **by box** rather than by height. The hub's pieces are one shape, the front
 line's another, each wool approach and the spawn their own, each named for its box and its surface; a piece in no
 box — a mid stone — fuses with its own component as a plan's does. Every shape stays in the one mirrored group, so
@@ -249,11 +249,11 @@ match these filters*. A library with nothing for the settings says it is still b
 **A card is the board and its id.** The picture is the whole fanned board in a square frame on the
 theme's board ground (`--board-bg`: white in the light theme, near-black in the dark one), server-rendered from
 the same scene the PNG endpoint draws, in four inks. Spawn rooms are violet and wool rooms green, each a pale fill
-with a strong edge, in the hues the plan editor draws those rooms in (`--canvas-role-spawn`,
+with a strong edge, in the hues the sketch's canvas draws those rooms in (`--canvas-role-spawn`,
 `--canvas-role-wool-room`: the page's `--board-spawn*` and `--board-wool*` tokens are `color-mix`es of them, so the
 two cannot drift apart); a build zone is a dashed blue outline; and everything else — hub, front line, approaches, any
-other piece — is one ground grey, a tint of the plan editor's piece colour (`--canvas-role-piece`), so a board
-and the editor's pieces read as one. Every half of the fan is drawn at full strength: the mirrored and rotated images are the same ground as the base
+other piece — is one ground grey, a tint of the canvas's piece colour (`--canvas-role-piece`), so a board
+and the sketch's pieces read as one. Every half of the fan is drawn at full strength: the mirrored and rotated images are the same ground as the base
 unit, and no ink fades with the symmetry (a deliberate difference from the whitepaper's figures). The names of the grey roles
 live in the structure line of the detail drawer, not in colour. The inks are `PlanBoardPalette`'s
 `Ground`, `Spawn`, `WoolRoom` and `Zone`; each reads its `--board-*` tokens first (`--board-ground`,

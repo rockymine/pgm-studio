@@ -3,24 +3,19 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Contracts;
 
 /// <summary>
-/// How a map is brought into being. Four routes create the <c>map</c> row every later call names by slug, and
-/// these are what each takes: two originate a blank document to author into, two read a world somebody else
-/// built. A fifth door, <c>PUT /map/{slug}/source</c>, takes a map's whole source rather than a few fields and
+/// How a map is brought into being. Three routes create the <c>map</c> row every later call names by slug, and
+/// these are what each takes: one originates a blank sketch to author into, two read a world somebody else
+/// built. A fourth door, <c>PUT /map/{slug}/source</c>, takes a map's whole source rather than a few fields and
 /// carries its own request beside them.
 ///
-/// <para>The slug is never stated to these four. It is derived from the name and made unique against what is
+/// <para>The slug is never stated to these three. It is derived from the name and made unique against what is
 /// stored, so a second map called the same thing is a second slug rather than a refusal, and the answer is
-/// what to use from then on. The fifth states it in its route, because storing a source again is storing the
+/// what to use from then on. The fourth states it in its route, because storing a source again is storing the
 /// same map.</para>
 /// </summary>
-/// <remarks>Originate a blank authored plan — a map at the plan stage with an empty plan document, which the
-/// plan editor fills. The whole body is optional, and an empty one originates <c>Untitled plan</c>.</remarks>
-/// <param name="Name">What the map is called, and what its slug is derived from.</param>
-public sealed record PlanOriginateRequest(string? Name = null);
-
-/// <summary>Originate a blank sketch — a map at the sketch stage with an empty board, which the sketch tool
+/// <remarks>Originate a blank sketch — a map at the sketch stage with an empty board, which the sketch tool
 /// draws on. The whole body is optional, and an empty one originates <c>Untitled sketch</c> on the default
-/// frame.</summary>
+/// frame.</remarks>
 /// <param name="Name">What the map is called, and what its slug is derived from. Absent means
 /// <c>Untitled sketch</c>, which is also the mark of a draft nobody has touched.</param>
 /// <param name="Width">The board's east–west extent, in blocks. Absent means 120.</param>

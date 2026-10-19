@@ -442,7 +442,6 @@ public sealed class AccessTests
         using var stranger = InvitedFactory.As(Stranger);
         using var refused = await stranger.PutAsJsonAsync($"/api/map/{slug}/source", new
         {
-            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse("""{"layers":[]}""").RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"}}""").RootElement,
         });

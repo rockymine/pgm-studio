@@ -24,7 +24,7 @@ namespace PgmStudio.Api.Services;
 
 /// <summary>
 /// Everything a drive reads back about a stored map, off one build (<c>docs/world-scan/read-backs.md</c>): the
-/// three numbers a board is wrong or right by, then the findings, the plan's grid and flow, the relief, what the
+/// three numbers a board is wrong or right by, then the findings, the relief, what the
 /// build could not do, pre-flight, coverage and every text read of the built world — a transect each way
 /// through every thing on it and a walk from every spawn to every goal — and the pictures, named by the routes
 /// that draw them and drawn too where they are asked for.
@@ -53,7 +53,6 @@ internal sealed class MapReport(
     /// <summary>The footprint the house seats are asked for — the smallest building the corpus stands up.</summary>
     private const int HouseWidth = 9, HouseDepth = 7;
 
-    private const string NoPlan = "this map holds no plan that reads";
     private const string NoGround = "this world has no ground column";
 
     /// <summary>The report of <paramref name="map"/>, or null where it holds no sketch layout and so no world
@@ -70,13 +69,6 @@ internal sealed class MapReport(
 
         var findings = await MapFindings.OfAsync(artifacts, feature, reader, map, ct);
         reads.Add(Answered("findings", "findings", () => FindingsText(findings)));
-
-        var plan = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct) is { } planBytes
-            ? PlanModel.Parse(Encoding.UTF8.GetString(planBytes)) : null;
-        reads.Add(Answered("grid", "plan/ascii",
-            () => plan is null ? null : PlanBoardAscii.Render(plan, every: 1), NoPlan));
-        reads.Add(Answered("flow", "plan/flow",
-            () => plan is null ? null : PlanFlow.Describe(PlanFlow.Read(plan)), NoPlan));
 
         reads.Add(Answered("relief", "POST sketch/relief/read",
             () => ReliefText(ReliefReads.Of(layoutJson, map.Id, warm))));

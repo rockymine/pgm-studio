@@ -10,8 +10,8 @@ namespace PgmStudio.Api.Tests;
 /// <para><see cref="ObjectiveDefaults.DigDepth"/> is the authority — it is what the compiler resolves, what
 /// the stamper builds against and what the intent reports — and <see cref="CoreDig.Depth"/> is the client's
 /// copy of it, which exists because the WASM half references <c>Contracts</c> and <c>Geom</c> only and cannot
-/// reach <c>Domain</c>. The plan tool's marker panel and the Configure wizard's casing step both read it live
-/// as an author drags the pair, so serving it would be a round trip for an integer.</para>
+/// reach <c>Domain</c>. The sketch's picked-piece inspector and the Configure wizard's casing step both read
+/// it live as an author drags the pair, so serving it would be a round trip for an integer.</para>
 ///
 /// <para>This is the only project that can see both, which is what makes it the gate's home: the copy was two
 /// copies and both were wrong by one course for as long as they existed, and nothing failed while they were.

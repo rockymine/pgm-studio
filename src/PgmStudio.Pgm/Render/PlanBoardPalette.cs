@@ -21,9 +21,9 @@ public static class PlanBoardPalette
     }
 
     public static readonly PlanInk Ground = new("ground", 0xe7eaee, 0xa8b0b9);
-    /// <summary>The spawn and wool-room inks restate the plan editor's <c>--canvas-role-spawn</c> and
+    /// <summary>The spawn and wool-room inks restate the canvas's <c>--canvas-role-spawn</c> and
     /// <c>--canvas-role-wool-room</c>: the edge is that colour and the fill is 30% of it over white. The tokens
-    /// derive the same pair from the editor's, so these values only matter where no page supplies them.</summary>
+    /// derive the same pair from the canvas's, so these values only matter where no page supplies them.</summary>
     public static readonly PlanInk Spawn = new("spawn", 0xddd7f3, 0x8f7bd6);
     public static readonly PlanInk WoolRoom = new("wool", 0xc5e7d5, 0x3fae74);
 

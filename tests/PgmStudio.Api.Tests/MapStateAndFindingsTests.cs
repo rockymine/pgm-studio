@@ -15,28 +15,12 @@ namespace PgmStudio.Api.Tests;
 [NotInParallel("api-db")]
 public sealed class MapStateAndFindingsTests
 {
-    /// <summary>A blank plan has no land, which is the one thing a plan cannot be without — so the read
-    /// refuses, and says so by the same name every other gate answers.</summary>
-    [Test]
-    public async Task A_plan_with_nothing_in_it_is_refused_by_the_findings_read()
-    {
-        using var client = await FreshAsync();
-        var slug = await PlanAsync(client, "Weirgate");
-
-        var found = await client.GetFromJsonAsync<MapFindingsDto>($"/api/map/{slug}/findings");
-
-        await Assert.That(found!.Stage).IsEqualTo("plan");
-        await Assert.That(found.Refuses).IsTrue()
-            .Because($"a plan with no pieces cannot build: {string.Join("; ", found.Findings.Select(f => f.Message))}");
-    }
-
-    /// <summary>The play pieces are asked of the intent the map builds, and a rule the intent answers is said
-    /// once even where the map still holds its plan.</summary>
+    /// <summary>The play pieces are asked of the intent the map builds, and each rule it breaks is said once.</summary>
     [Test]
     public async Task The_pieces_a_map_holds_are_asked_of_its_intent()
     {
         using var client = await FreshAsync();
-        var slug = await PlanAsync(client, "Weirgate");
+        var slug = await SketchAsync(client, "Weirgate");
         var stated = await client.PutAsync($"/api/map/{slug}/intent", new StringContent(
             "{\"teams\":[{\"id\":\"red\",\"name\":\"Red\",\"color\":\"red\"}],\"spawns\":[{\"team\":\"red\","
             + "\"point\":{\"x\":-10,\"y\":12,\"z\":-10},\"protection\":[{\"minX\":-20,\"minZ\":-20,\"maxX\":0,\"maxZ\":0}],"
@@ -60,7 +44,7 @@ public sealed class MapStateAndFindingsTests
     public async Task The_gates_a_read_cannot_reach_are_named_with_where_to_ask_them()
     {
         using var client = await FreshAsync();
-        var slug = await PlanAsync(client, "Weirgate");
+        var slug = await SketchAsync(client, "Weirgate");
 
         var found = await client.GetFromJsonAsync<MapFindingsDto>($"/api/map/{slug}/findings");
 
@@ -80,12 +64,11 @@ public sealed class MapStateAndFindingsTests
     public async Task Every_move_a_map_offers_is_a_route_the_api_serves()
     {
         using var client = await FreshAsync();
-        var slug = await PlanAsync(client, "Weirgate");
+        var slug = await SketchAsync(client, "Weirgate");
 
         var state = await client.GetFromJsonAsync<MapState>($"/api/map/{slug}/state");
 
-        await Assert.That(state!.Stage).IsEqualTo("plan");
-        await Assert.That(state.Artifacts.Plan).IsTrue();
+        await Assert.That(state!.Stage).IsEqualTo("sketch");
         await Assert.That(state.Moves).IsNotEmpty();
 
         var served = await ServedAsync(client);
@@ -97,19 +80,19 @@ public sealed class MapStateAndFindingsTests
     }
 
     /// <summary>A move is offered because the documents it reads are stored, not because the stage is right —
-    /// so a plan-stage map is already offered the rebuild that reads its plan, and a map holding no drawing is
-    /// not offered the write that replaces one.</summary>
+    /// so a fresh sketch, holding a drawing, is offered the write that replaces it and the finish.</summary>
     [Test]
     public async Task A_move_is_offered_on_what_is_stored_rather_than_on_the_stage()
     {
         using var client = await FreshAsync();
-        var slug = await PlanAsync(client, "Weirgate");
+        var slug = await SketchAsync(client, "Weirgate");
 
         var state = await client.GetFromJsonAsync<MapState>($"/api/map/{slug}/state");
         var routes = state!.Moves.Select(move => move.Route).ToList();
 
-        await Assert.That(routes).Contains("PUT /api/map/{slug}/sketch/from-plan");
-        await Assert.That(routes).DoesNotContain("PUT /api/map/{slug}/sketch");
+        await Assert.That(routes).Contains("PUT /api/map/{slug}/sketch");
+        await Assert.That(routes).DoesNotContain("GET /api/map/{slug}/export")
+            .Because("a map holding no world and no intent has nothing to export");
     }
 
     private static async Task<HashSet<string>> ServedAsync(HttpClient client)
@@ -123,9 +106,9 @@ public sealed class MapStateAndFindingsTests
         ];
     }
 
-    private static async Task<string> PlanAsync(HttpClient client, string name)
+    private static async Task<string> SketchAsync(HttpClient client, string name)
     {
-        var made = await client.PostAsync("/api/plan",
+        var made = await client.PostAsync("/api/sketch",
             new StringContent($$"""{"name":"{{name}}"}""", Encoding.UTF8, "application/json"));
         return (await made.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>())
             .GetProperty("slug").GetString()!;

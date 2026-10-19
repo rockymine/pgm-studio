@@ -3,7 +3,7 @@ namespace PgmStudio.Client.Components;
 /// <summary>
 /// The obsidian a core's stated interior implies: its width and depth are the lava's footprint walled in one
 /// block on every side, and its height the lava's courses plus the floor, plus the cap unless the top is open.
-/// The plan tool's marker panel and the Configure wizard's casing step both show it live as an author drags
+/// The sketch's picked-piece inspector and the Configure wizard's casing step both show it live as an author drags
 /// the lava numbers.
 ///
 /// <para><b><c>PgmStudio.Domain.ObjectiveDefaults.CoreCasing</c> is the authority</b>, and this is the

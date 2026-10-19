@@ -1,6 +1,4 @@
-/* Generator browse — a filter rail and a card grid of server-rendered boards with one key above them. The
-   detail dialog reuses the plan editor's
-   .plan-compile-* drawer classes. */
+/* Generator browse — a filter rail and a card grid of server-rendered boards with one key above them. */
 
 .gen-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 

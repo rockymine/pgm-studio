@@ -149,16 +149,6 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts, PgmStudio.
         return (PgmStudio.Export.BuiltWorlds.Of(layoutJson, intent), layoutJson);
     }
 
-    /// <summary>The ground the map's stored plan covers, in world blocks, or null for a map built without one
-    /// (<see cref="PgmStudio.Pgm.Derive.BoardDeriver.GroundBlocks"/>).</summary>
-    public async Task<HashSet<(int X, int Z)>?> PlannedGroundAsync(long mapId, CancellationToken ct = default)
-    {
-        if (await artifacts.LoadAsync(mapId, ArtifactKind.PlanJson, ct) is not { } data) return null;
-        return PgmStudio.Pgm.Plan.PlanModel.Stated(System.Text.Encoding.UTF8.GetString(data)) is { } plan
-            ? PgmStudio.Pgm.Derive.BoardDeriver.GroundBlocks(plan)
-            : null;
-    }
-
     public async Task<List<WoolSources.Source>> WoolSourcesAsync(long mapId, Dict doc, CancellationToken ct = default)
     {
         var sources = new List<WoolSources.Source>();

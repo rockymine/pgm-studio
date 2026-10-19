@@ -362,7 +362,7 @@ public static class PythonKit
         SolidMaterial(id=12) is {"kind": "solid", "id": 12}. library() and use() are a refinement's names.
 
             studio = Studio()                      # PGM_STUDIO_API, and PGM_STUDIO_TOKEN where one is needed
-            studio.put_map_source("weirgate", {"plan": plan, "refinement": Refinement(created="2026-10-01")})
+            studio.put_map_source("weirgate", {"layout": layout, "intent": intent, "refinement": Refinement(created="2026-10-01")})
 
         Studio calls every route under a name taken from it, waits out a 429, prints a success's warnings and
         raises Refusal with the findings of a refusal. find("coast") lists what the studio says about a word, and

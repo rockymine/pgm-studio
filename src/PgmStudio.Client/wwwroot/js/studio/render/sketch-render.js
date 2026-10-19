@@ -40,8 +40,7 @@ export function paintSketchShape(painter, shape, { selected = false, alpha = 1 }
 // Human-readable kind word for a structural role. Wool rooms read as "wool"; spawn stays "spawn".
 const STRUCT_KIND = { spawn: "spawn", woolRoom: "wool" };
 
-// The plan's role tokens (plan/plan-doc.js ROLE_COLORS names the same two), so the surfaced pieces read in the
-// colours the plan drew them in without the render leaf importing the plan module.
+// The room roles' tokens, so a spawn and a wool room read in the colours every surface draws them in.
 const ROLE_FILL = { spawn: "var(--canvas-role-spawn)", woolRoom: "var(--canvas-role-wool-room)" };
 
 // Every other play piece, in the colour the plan draws the same thing in. A goal, a cube and the observer are

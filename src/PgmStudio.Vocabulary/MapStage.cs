@@ -9,13 +9,12 @@ namespace PgmStudio.Vocabulary;
 /// </summary>
 public static class MapStage
 {
-    public const string Plan = "plan";
     public const string Sketch = "sketch";
     public const string Configure = "configure";
     public const string Edit = "edit";
 
-    /// <summary>The four, in the order a map moves through them.</summary>
-    public static readonly string[] All = [Plan, Sketch, Configure, Edit];
+    /// <summary>The three, in the order a map moves through them.</summary>
+    public static readonly string[] All = [Sketch, Configure, Edit];
 
-    public static bool IsValid(string? stage) => stage is Plan or Sketch or Configure or Edit;
+    public static bool IsValid(string? stage) => stage is Sketch or Configure or Edit;
 }

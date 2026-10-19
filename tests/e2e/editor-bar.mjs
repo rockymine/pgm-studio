@@ -1,5 +1,5 @@
 /**
- * The editor bar the Plan, Sketch and Configure tools share: Maps › the map's name, a stage switcher
+ * The editor bar the Sketch and Configure tools share: Maps › the map's name, a stage switcher
  * naming the tool, the phase and its steps, and at the right the state, the commands, a divider and
  * Back/Next.
  *
@@ -20,7 +20,6 @@ const page = await newPage(browser, { width: 1600, height: 1000 });
 const TOOLS = [
   ["sketch", `/maps/${seed.mapSlug}/sketch`],
   ["configure", `/maps/${seed.mapSlug}/configure`],
-  ["plan", `/maps/${seed.planSlug}/plan`],
 ];
 
 async function open(path) {
@@ -69,7 +68,7 @@ try {
     checks.add("no phase in the crumb", !(await page.locator(".editor-crumb").textContent())?.includes(
       (await page.locator(".editor-bar-phase").first().textContent())?.trim() ?? "?"));
 
-    const word = { sketch: "Sketch", configure: "Configure", plan: "Plan" }[tool];
+    const word = { sketch: "Sketch", configure: "Configure" }[tool];
     checks.add("the switcher names the tool", (await page.locator(".editor-stage--button span").first().textContent())?.trim() === word);
 
     // Alignment: the three crumb texts and the switcher's label share one baseline and one font.
@@ -92,22 +91,13 @@ try {
       text: el.textContent.trim(), disabled: el.getAttribute("aria-disabled") === "true",
       current: el.hasAttribute("aria-current"), href: el.getAttribute("href"),
     })));
-    checks.add("it lists Plan, Sketch and Configure", items.map(item => item.text).join() === "Plan,Sketch,Configure",
+    checks.add("it lists Sketch and Configure", items.map(item => item.text).join() === "Sketch,Configure",
       items.map(item => item.text).join());
     checks.add("the current tool is marked", items.filter(item => item.current).map(item => item.text).join() === word);
-    const slug = tool === "plan" ? seed.planSlug : seed.mapSlug;
     for (const item of items.filter(entry => !entry.current && !entry.disabled))
-      checks.add(`${item.text} links to this map's tool`, item.href === `maps/${slug}/${item.text.toLowerCase()}`, String(item.href));
-    if (tool === "plan") {
-      // The seed's plan holds a plan and nothing else.
-      checks.add("a layer the map lacks is shown disabled, not linked",
-        items.filter(item => item.disabled).map(item => item.text).join() === "Sketch,Configure"
-        && items.filter(item => item.disabled).every(item => item.href === null),
-        JSON.stringify(items));
-    } else {
-      checks.add("a map holding all three links the other two", items.every(item => item.current || (!item.disabled && item.href)),
-        JSON.stringify(items));
-    }
+      checks.add(`${item.text} links to this map's tool`, item.href === `maps/${seed.mapSlug}/${item.text.toLowerCase()}`, String(item.href));
+    checks.add("a map holding both links the other", items.every(item => item.current || (!item.disabled && item.href)),
+      JSON.stringify(items));
     await page.keyboard.press("Escape").catch(() => {});
     await page.click(".editor-menu-scrim");
   }
@@ -118,7 +108,7 @@ try {
   await page.waitForFunction(() => !document.querySelector('.editor-menu [title^="Checking"]'), null, { timeout: 10000 });
   const draft = await page.locator(".editor-menu .editor-menu-item").evaluateAll(els => els.map(el =>
     `${el.textContent.trim()}:${el.getAttribute("aria-disabled") === "true" ? "off" : "on"}`));
-  checks.add("Plan and Configure are off, Sketch is on", draft.join() === "Plan:off,Sketch:on,Configure:off", draft.join());
+  checks.add("Configure is off, Sketch is on", draft.join() === "Sketch:on,Configure:off", draft.join());
   await page.click(".editor-menu-scrim");
 
   checks.section("sketch: undo, redo and download are one group, apart from Back and Next");
@@ -158,7 +148,7 @@ try {
   checks.section("the bar is there in every phase");
   for (const [path, phase] of [[`/maps/${seed.sketchSlug}/sketch?phase=info`, "Info"],
                                [`/maps/${seed.sketchSlug}/sketch`, "History"],
-                               [`/maps/${seed.planSlug}/plan?phase=info`, "Info"]]) {
+                               [`/maps/${seed.mapSlug}/configure`, "Identity"]]) {
     await open(path);
     if (phase === "History") await page.click('.nav-btn[title="History"]');
     await page.waitForFunction((want) => document.querySelector(".editor-bar-phase")?.textContent.trim() === want, phase,

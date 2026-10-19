@@ -8,7 +8,7 @@ using PgmStudio.Data.Schema;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// Every write to a map's plan, sketch layout and intent is a change the map keeps: numbered per slug and never
+/// Every write to a map's sketch layout and intent is a change the map keeps: numbered per slug and never
 /// repeating, stamped with its writer, its origin and its note, and holding the documents it wrote. What is
 /// asserted is the invariant a reader leans on — numbers only count up, a document's revision is the number of
 /// the change that last wrote it, and the documents a change names read back as they were written.
@@ -30,7 +30,6 @@ public sealed class MapChangeLogTests
 
     private static object Body(object? origin = null, string? note = null) => new
     {
-        plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
         layout = JsonDocument.Parse(Layout).RootElement,
         intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate","authors":[],"contributors":[]}}""").RootElement,
         name = "Weirgate",
@@ -56,7 +55,7 @@ public sealed class MapChangeLogTests
 
         var then = await DocumentsAtAsync(changes[1].Number);
         await Assert.That(MaxX(then["sketch_layout_json"])).IsEqualTo(10d);
-        await Assert.That(then.Keys).IsEquivalentTo(["plan_json", "refinement_json", "sketch_layout_json", "map_intent_json"])
+        await Assert.That(then.Keys).IsEquivalentTo(["refinement_json", "sketch_layout_json", "map_intent_json"])
             .Because("the documents at a change are what the latest change at or before it wrote, per kind");
     }
 
@@ -69,7 +68,7 @@ public sealed class MapChangeLogTests
             note: "pass 5, notes 72–74"));
 
         var change = (await ChangesAsync()).Single();
-        await Assert.That(change.Kinds).IsEquivalentTo(["map_intent_json", "plan_json", "refinement_json", "sketch_layout_json"]);
+        await Assert.That(change.Kinds).IsEquivalentTo(["map_intent_json", "refinement_json", "sketch_layout_json"]);
         await Assert.That(change.Note).IsEqualTo("pass 5, notes 72–74");
         var origin = JsonDocument.Parse(change.OriginJson!).RootElement;
         await Assert.That(origin.GetProperty("commit").GetString()).IsEqualTo("5daa56f");

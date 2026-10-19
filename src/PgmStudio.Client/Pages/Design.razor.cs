@@ -139,7 +139,7 @@ public partial class Design
             Problem.Of(new Finding(rule.Rule, SampleFindings[index].Where, SampleFindings[index].Severity), index))];
     }
 
-    private readonly HashSet<string> chipsOn = ["plan", "wool"];
+    private readonly HashSet<string> chipsOn = ["sketch", "wool"];
     private readonly List<AuthorRow> authors = [new() { Name = "Annealing Team", Contribution = "Layout" }];
 
     private bool drawerOpen;
