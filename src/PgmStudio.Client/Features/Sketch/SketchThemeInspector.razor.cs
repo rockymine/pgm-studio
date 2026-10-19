@@ -8,7 +8,7 @@ using PgmStudio.Contracts;
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>
-/// The Theme phase's inspector (docs/tools/sketch.md, the Theme phase): what is in hand, what the selection is
+/// The Theme phase's inspector (docs/tools/sketch.md, the Palette phase): what is in hand, what the selection is
 /// painted with, and — with nothing selected — what the board falls back to.
 /// <para>It reads the registry the tool holds and writes through the sketch-bridge <see cref="Handle"/>. The
 /// previews and the library lists are its own, because they are HTTP and the tool has no use for them.</para>

@@ -21,9 +21,9 @@ boulders), each over the pictures of the newest three entries it holds and its c
 whatever else the kind filters by, and **New**, over a grid of cards. `/library/{kind}/{id}`, or
 `/library/{kind}/new`, opens one entry on a page of its own.
 
-Two tools consume the library. The Sketch tool's Theme phase pulls a theme in and pushes one back out, binds a
+Two tools consume the library. The Sketch tool's Palette phase pulls a theme in and pushes one back out, binds a
 room style as the shell every wool cage and spawn cube is stamped with, and picks the biome the board's columns
-carry; the Dressing phase names a room style, a tree recipe or a boulder recipe on each placement, pulling the
+carry; the Decoration phase names a room style, a tree recipe or a boulder recipe on each placement, pulling the
 row it picked into the map's own registry. Nothing else reads it.
 
 ## What it writes
@@ -38,7 +38,7 @@ parts it is built from. So editing a style reaches every theme and every room st
 says so when it saves — and deleting one is refused rather than allowed to break them.
 
 *Out of* the library, everything is **copied**. A theme applied to a sketch is stored as the painter's own JSON
-in that sketch's registry; the room shells bound in the Theme phase are snapshots; a placed building carries its
+in that sketch's registry; the room shells bound in the Palette phase are snapshots; a placed building carries its
 style rather than a library id. So a library edit can never rebuild a map that already shipped, and there is no
 mechanism by which it could — which is the guarantee, not an omission.
 
@@ -468,7 +468,7 @@ measured in blocks at the size an area pattern's style card uses, since a biome 
 exactly as one is, and it is drawn through the export's own palette and biome tints, so a card cannot promise
 a colour the game will not show.
 
-**A map takes a copy, never a key.** Picking a pattern in the sketch's Theme phase copies the field onto the
+**A map takes a copy, never a key.** Picking a pattern in the sketch's Palette phase copies the field onto the
 board (`biome`) and records the row it came from (`biomeSource`), the same doctrine a theme and a room shell
 follow: editing a library pattern must never silently retint a shipped map. Nothing binds a row, so forgetting
 one asks no question and changes no board.
@@ -476,7 +476,7 @@ one asks no question and changes no board.
 ### A tree and a boulder are recipes a click puts down
 
 A **placement is a position; what stands there is a recipe.** A path and a fluid channel are *traced* on the
-canvas, so pre-authoring one is authoring a shape without its place and their knobs stay in the Dressing
+canvas, so pre-authoring one is authoring a shape without its place and their knobs stay in the Decoration
 phase. A tree and a boulder are a *click* — there is no geometry to draw — so what is placed is a point plus a
 name, and the name is a row here (author).
 
@@ -546,7 +546,7 @@ builds them, and the editor's own stage draws the draft larger for the same reas
 watching one knob move the picture.
 
 **A pull copies the row into a map's own registry.** `GET /tree-styles/{id}/json` answers the recipe as a
-dressing document states it, and picking a card in the Dressing phase files it under the row's name in the
+dressing document states it, and picking a card in the Decoration phase files it under the row's name in the
 sketch's `dressing.styles` and names that key on the placement. The registry is the **document's**: the export
 reads a stored layout and has no database to resolve a row against, and a shipped map must build the same way
 next year as today — so retuning the library row changes the next pull, not a map already written. Retuning
@@ -622,7 +622,7 @@ end stone the base is in so the two ends of the building answer each other. Its 
 birch stairs in the two corners of the opening's top course, so the doorway loses its square top.
 
 This is what `GET /api/room-styles/{id}/json` answers for it, unwrapped from its `styleJson` string — the form
-the stamper takes, a sketch's Theme phase stores, and a placed building carries:
+the stamper takes, a sketch's Palette phase stores, and a placed building carries:
 
 ```json POST /api/room-styles/preview-snapshot
 {
@@ -951,7 +951,7 @@ shape's `theme` pointing at it. `POST /themes/import` collapses the first two wh
 
 A building is the same shape one level up: `POST /roof-styles`, `/storey-styles` and `/porch-styles` for the
 parts, `POST /room-styles` binding them with the shell's own knobs and courses, then `GET
-/room-styles/{id}/json` for the stamper's form — which a sketch's Theme phase stores as its `wool` or `spawn`
+/room-styles/{id}/json` for the stamper's form — which a sketch's Palette phase stores as its `wool` or `spawn`
 snapshot, or a placed building carries as its `style`.
 
 Both `/json` endpoints answer a **string in a field** rather than the document — `{themeJson: "…"}` and

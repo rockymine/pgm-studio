@@ -29,6 +29,15 @@ test("a press on a building picks its room whole first, and the wing once the ro
     "another wing of the picked house is one press away");
 });
 
+test("a press on a room's marker picks the room first, and the marker once the room is picked", () => {
+  const marker = { id: "wool-red-marker", type: "rectangle", role: "woolSpawn", min_x: 14, min_z: 14, max_x: 16, max_z: 16 };
+  const board = [region, building, marker];
+  assert.equal(structuralAt(board, 15, 15), "wool-red");
+  assert.equal(structuralAt(board, 15, 15, "wool-red"), "wool-red-marker");
+  assert.equal(structuralAt(board, 15, 15, "wool-red-building"), "wool-red-marker",
+    "a wing of the same room picked reaches the marker too");
+});
+
 test("an orbit's image is never picked, and a building whose room is one picks the wing", () => {
   assert.equal(structuralAt([{ ...region, carried: true }, building], 3, 3), null);
   assert.equal(structuralAt([{ ...region, carried: true }, building], 15, 15), "wool-red-building");
@@ -36,6 +45,12 @@ test("an orbit's image is never picked, and a building whose room is one picks t
 
 test("a point outside every piece picks none", () => {
   assert.equal(structuralAt([region, building], 40, 40), null);
+});
+
+test("no piece carries a name on the board, picked or not", () => {
+  const painter = recordingPainter();
+  paintStructural(painter, [region, building], "wool-red");
+  assert.equal(painter.of("text").length, 0);
 });
 
 test("an unpicked board draws no selection ring", () => {

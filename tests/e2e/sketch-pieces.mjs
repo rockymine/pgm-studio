@@ -76,6 +76,18 @@ try {
   checks.add("the map states the two teams that own them", intent.teams?.length === 2,
     JSON.stringify(intent.teams?.map(team => team.id)));
 
+  checks.section("a placed piece is a step of the board's undo");
+  const settle = async () => { await page.waitForLoadState("networkidle"); await page.waitForTimeout(400); };
+  await page.keyboard.press("Control+z");
+  await settle();
+  const undone = await byKind("woolRoom");
+  checks.add("undo takes the wool room back out", undone.length === 0, JSON.stringify(undone.map(p => p.id)));
+  checks.add("and leaves the spawn placed before it", (await byKind("spawn")).length === 2);
+  await page.keyboard.press("Control+Shift+z");
+  await settle();
+  const redone = await byKind("woolRoom");
+  checks.add("redo puts it back", redone.length === 2, JSON.stringify(redone.map(p => p.id)));
+
   checks.section("the authored wall moves where it is dropped, and the image moves with it");
   await page.keyboard.press("Escape");
   const wall = (await byKind("wall")).find(piece => piece.id === wallId);
@@ -169,6 +181,46 @@ try {
   const still = (await byKind("wall")).find(piece => piece.id === image.id);
   checks.add("a drag on the image moves nothing", still.minX === image.minX && written.length === count,
     `${image.minX} → ${still.minX}, ${written.length - count} write(s)`);
+
+  checks.section("a room is picked before its marker, named above itself, and held at a height it is given");
+  await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
+  const held = (await byKind("spawn")).find(piece => piece.id === room.id);
+  const centre = at((held.minX + held.maxX) / 2, (held.minZ + held.maxZ) / 2);
+  await page.mouse.click(centre.x, centre.y);
+  await page.waitForTimeout(300);
+  checks.add("a press on the room's marker picks the room", /spawn region/i.test(await pickedTitle()), await pickedTitle());
+  const named = await page.$$eval(".svg-area svg text", (els, id) => els.some(el => el.textContent === id), room.id);
+  checks.add("the picked room is named by its id above it", named);
+  const height = page.locator(".workspace-inspector input[type=number]").first();
+  checks.add("a room stating no height shows none, and says it stands on the ground",
+    (await height.inputValue()) === "" && /stands on the ground under it/i.test(await page.locator(".workspace-inspector").innerText()),
+    await height.inputValue());
+  await page.mouse.click(centre.x, centre.y);
+  await page.waitForTimeout(300);
+  checks.add("and the press after it picks the marker", /spawn point|marker/i.test(await pickedTitle()), await pickedTitle());
+  await page.keyboard.press("Escape");
+  await page.mouse.click(centre.x, centre.y);
+  await page.waitForTimeout(300);
+  await height.fill("14");
+  await height.press("Enter");
+  await page.waitForTimeout(2500);
+  const stored = (await api(`/map/${slug}/sketch`)).layers[0].layout.shapes.find(shape => shape.id === room.id);
+  checks.add("a height given to it is stored with hold", stored?.base_height === 14 && stored?.relief_scope === "hold"
+    && stored?.height_authored === true, JSON.stringify({ h: stored?.base_height, scope: stored?.relief_scope }));
+
+  checks.section("Layout picks the pieces and Ground the ground");
+  await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
+  const bare = at(20, -25);
+  await page.mouse.click(bare.x, bare.y);
+  await page.waitForTimeout(300);
+  checks.add("in Layout a press on bare land picks nothing", !/rectangle|polygon|group/i.test(await pickedTitle()),
+    await pickedTitle());
+  await page.click(".flow-step >> text=Ground");
+  await page.locator(".flow-step--active", { hasText: "Ground" }).waitFor({ timeout: 30000 });
+  await page.mouse.click(centre.x, centre.y);
+  await page.waitForTimeout(300);
+  checks.add("in Ground a press on a room reaches the ground under it", !/spawn/i.test(await pickedTitle()),
+    await pickedTitle());
 
   drove = true;
 } catch (e) {

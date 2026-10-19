@@ -113,6 +113,27 @@ export function renderDimensionPill(layer, { left, right, bottom, width, depth, 
 }
 
 /**
+ * What a picked thing is and how big, around its screen box: its name small and left-aligned just above the box,
+ * and its size as the pill centred under it. Drawn only for the picked thing, so a board carries no names until
+ * one is asked about. Screen space, like the pill.
+ */
+export function renderSelectionMarks(layer, { left, top, right, bottom, name, width, depth, color = "var(--accent)" }) {
+  if (!layer || !isFinite(left) || !isFinite(top)) return;
+  const MAX_CHARS = 36;
+  const text = name && name.length > MAX_CHARS ? `${name.slice(0, MAX_CHARS - 1)}…` : name;
+  if (text) {
+    const label = svgEl("text", {
+      x: left, y: top - 5, "text-anchor": "start", "dominant-baseline": "alphabetic",
+      "font-size": labelPx(11), "font-family": "ui-monospace, monospace",
+      fill: color, "pointer-events": "none",
+    });
+    label.textContent = text;
+    layer.appendChild(label);
+  }
+  renderDimensionPill(layer, { left, right, bottom, width, depth, color });
+}
+
+/**
  * The scale bar, bottom-right in SCREEN space (never scaled with the map). Picks the largest nice block
  * count that fits within ~TARGET_PX at the current zoom, so the bar length stays roughly constant and the
  * number does the moving.

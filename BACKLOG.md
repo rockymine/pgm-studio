@@ -22,6 +22,14 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [ ] **TS201 — The canvas keeps its width across Draw's steps.** *Parked (author): no layout decided yet.* The
+  Places step's inspector is wider than Ground's and Layout's, so stepping into it narrows the canvas and moves
+  the board under the pointer. `docs/tools/sketch.md`.
+
+- [ ] **TS202 — Ground and Layout as one step.** *Parked (author): needs a redesigned dock first.* The two were
+  split so the dock would not hold every tool at once; one step means the dock carries the shape tools and the
+  piece families together. `docs/tools/sketch.md`.
+
 - [ ] **WE168 — A room's interior is placed relative to its house.** *Parked (author): later; derived for now.*
   The chests (`WoolChests`, `RoomFrames.InteriorCorners`) and the monuments (`RoomFrames.MonumentSlots`) are
   stated on the room's `house` as positions relative to its first wing, movable in Layout, and a migration

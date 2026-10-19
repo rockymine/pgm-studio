@@ -10781,6 +10781,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a `plan` is refused naming `POST /plan/compile`, the one-way import. Every stored plan stays readable as
   history, and a map's findings read its sketch alone (`SketchBoardCheck.Routes` asks `SP11`, `PL9` and `SP1`
   over the drawn ground).
+- **Draw's steps each do one thing (`TS198`, `TS199`).** Draw's first step is *Places*. Ground picks and draws
+  the shapes and passes over the pieces; Layout picks, moves, resizes, turns, adds and deletes the pieces and passes
+  over the shapes, and changing step lets go of what the other picked.
+- **A room is picked before what stands on it, and named only when picked (`TS194`, `TS197`).** A press on a
+  room's building or marker picks the room first (`structuralAt`, `roomUnder`). No piece carries a name on the
+  board; a picked one is named by its id above its box with its size pill under it (`renderSelectionMarks`, the
+  function Configure's picked region uses too).
+- **A room's height says what it does (`TS195`).** A room stating no height shows none and stands on the ground;
+  a height given to it is written with `hold`, so the terraform keeps it there.
+- **The sketch's address says where the author is (`TS196`, `TS200`).** `?phase=draw&step=layout`, by the rail's
+  and the bar's words and rewritten as the author moves, so a reload opens there; the documents name the phases
+  as the app does.
+- **Undo takes back a play piece (`TS193`).** Placing, moving, resizing, turning, deleting or setting a piece is one
+  step of the board's undo, carrying the intent beside the layout; the room ground a placement brings rides it.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

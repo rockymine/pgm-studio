@@ -1,5 +1,5 @@
 /**
- * Draw's Plan step: the places are drawn over the board with the notes step's tools, listed, named, and stored as
+ * Draw's Places step: the places are drawn over the board with the notes step's tools, listed, named, and stored as
  * a change in the map's history. The step arrives once the caller is known to be an admin, and a step clicked on
  * the bar drawn before it lands where it was clicked.
  */
@@ -16,16 +16,16 @@ const checks = new Checks("sketch places");
 const browser = await openBrowser();
 const page = await newPage(browser);
 
-checks.section("Draw opens on Ground, and Plan comes before it");
+checks.section("Draw opens on Ground, and Places comes before it");
 await page.goto(`${BASE}/maps/${seed.sketchSlug}/sketch`, { waitUntil: "networkidle" });
 await page.locator(".flow-step--active", { hasText: "Ground" }).waitFor({ timeout: 60000 });
-await page.locator(".flow-steps .flow-step", { hasText: "Plan" }).waitFor({ timeout: 30000 }).catch(() => {});
+await page.locator(".flow-steps .flow-step", { hasText: "Places" }).waitFor({ timeout: 30000 }).catch(() => {});
 const steps = await page.$$eval(".flow-steps .flow-step", els => els.map(e => e.textContent.trim()));
-checks.add("Draw's steps are Plan, Ground and Layout", steps.join(",") === "Plan,Ground,Layout", steps.join(","));
-await page.click(".flow-step >> text=Plan");
-await page.locator(".flow-step--active", { hasText: "Plan" }).waitFor({ timeout: 30000 });
+checks.add("Draw's steps are Places, Ground and Layout", steps.join(",") === "Places,Ground,Layout", steps.join(","));
+await page.click(".flow-step >> text=Places");
+await page.locator(".flow-step--active", { hasText: "Places" }).waitFor({ timeout: 30000 });
 
-checks.section("a box drawn in Plan is a place, stored and listed");
+checks.section("a box drawn in Places is a place, stored and listed");
 await page.click('.canvas-dock button[aria-label="Box"]');
 const area = await page.locator(".svg-area").boundingBox();
 const from = { x: area.x + area.width * 0.45, y: area.y + area.height * 0.45 };
@@ -82,10 +82,10 @@ await page.screenshot({ path: `${OUT}sketch-places.png` });
 
 await api(`/map/${seed.sketchSlug}/places`, { method: "PUT", body: {} });
 
-checks.section("a step clicked while the Plan step is on its way lands where it was clicked");
+checks.section("a step clicked while the Places step is on its way lands where it was clicked");
 // The places read is held for eight seconds, which holds the bar between learning the caller is an admin and
-// drawing the Plan step; Layout is clicked inside that window, on the bar as it stands.
-const { slug: lateSlug } = await api("/sketch", { method: "POST", body: { name: "E2E late plan step" } });
+// drawing the Places step; Layout is clicked inside that window, on the bar as it stands.
+const { slug: lateSlug } = await api("/sketch", { method: "POST", body: { name: "E2E late places step" } });
 const late = await newPage(browser, { width: 1600, height: 1000 });
 await late.route("**/api/map/*/places", async route => {
   await new Promise(resolve => setTimeout(resolve, 8000));
@@ -103,6 +103,19 @@ const now = await late.$$eval(".flow-step--active", els => els.map(e => e.textCo
 checks.add("Layout is the step it lands on", landed, `bar ${drawn.join(",")} → active ${now.join(",")}`);
 checks.add("and the late step raised nothing", late.faults.length === 0, late.faults.slice(0, 3).join(" | "));
 await api(`/map/${lateSlug}`, { method: "DELETE" });
+
+checks.section("the address says where the author is");
+await page.click(".flow-step >> text=Layout");
+await page.locator(".flow-step--active", { hasText: "Layout" }).waitFor({ timeout: 30000 });
+await page.waitForFunction(() => location.search.includes("step=layout"), null, { timeout: 10000 }).catch(() => {});
+checks.add("Layout writes phase and step", new URL(page.url()).search === "?phase=draw&step=layout", new URL(page.url()).search);
+await page.reload({ waitUntil: "networkidle" });
+await page.locator(".flow-step--active", { hasText: "Layout" }).waitFor({ timeout: 60000 }).catch(() => {});
+const reopened = await page.$$eval(".flow-step--active", els => els.map(e => e.textContent.trim()));
+checks.add("a reload opens on Layout", reopened.join() === "Layout", reopened.join());
+await page.click(".editor-bar-move .action-btn--primary");
+await page.waitForFunction(() => location.search.includes("terraform"), null, { timeout: 10000 }).catch(() => {});
+checks.add("Next names Terraform by its rail word", new URL(page.url()).search === "?phase=terraform", new URL(page.url()).search);
 
 checks.add("sketch places is clean", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
 checks.finish();
