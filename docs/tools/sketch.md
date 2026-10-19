@@ -707,6 +707,12 @@ document and not the view: the camera and the layer being drawn on are where the
 it. The symmetry setup is part of the document, so a step back restores it too: the canvas announces
 `OnSetup(mirrorMode, cx, cz)` on every load, edit and step, and the Setup controls and Info read nothing else.
 
+**A play piece is a step too, though it is not in the layout.** A piece is the intent's, written on the server
+through `…/intent/pieces`, so placing, moving, resizing, turning, deleting or setting one keeps the intent's text
+beside the layout as one step, and stepping over it writes that text back with `PUT /api/map/{slug}/intent` before
+the layout is restored. The room ground a placement brings is part of the placement's step rather than one of its
+own. A step the studio refuses is not taken, and the note beside the rail says why.
+
 **Every chord below is also live in the sheet and the palette.** `?` opens the keyboard sheet grouped like the
 table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+`K` runs any of them by name.
 `docs/client/canvas-interaction.md` describes the mechanism both draw from.

@@ -65,8 +65,18 @@ public partial class SketchTool
     private async Task SetPieceSettingAsync(string key, object? value)
     {
         if (selectedStructural is not { } piece) return;
-        var response = await Http.PatchAsJsonAsync($"api/map/{Slug}/intent/pieces/{Uri.EscapeDataString(piece.Id)}/settings",
-            new PieceSettingRequest(key, value as string, value as int?, value as bool?));
+        // A setting is a step of the board's undo like a move is, so the bridge holds the intent it replaces.
+        if (handle is not null) await handle.InvokeVoidAsync("beginPieceStep");
+        HttpResponseMessage response;
+        try
+        {
+            response = await Http.PatchAsJsonAsync($"api/map/{Slug}/intent/pieces/{Uri.EscapeDataString(piece.Id)}/settings",
+                new PieceSettingRequest(key, value as string, value as int?, value as bool?));
+        }
+        finally
+        {
+            if (handle is not null) await handle.InvokeVoidAsync("endPieceStep");
+        }
         if (!response.IsSuccessStatusCode)
         {
             structuralNote = await ServerRefusal.SentenceAsync(response);

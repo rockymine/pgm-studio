@@ -56,7 +56,10 @@ public partial class SketchTool
         switch (phase)
         {
             case "info": infoStep = Math.Max(0, Named(SketchInfoPhase.Steps)); break;
-            case "draw" when Named(DrawSteps) is var step and >= 0: await StepDraw(step); break;
+            // The step already up is not stepped to again: that would put down a tool armed while the page opened.
+            case "draw" when Named(DrawSteps) is var step and >= 0 && Math.Max(step, FirstDrawStep) != drawStep:
+                await StepDraw(step);
+                break;
             case "relief": await GoRelief(); break;
             case "theme": await GoTheme(); break;
             case "dressing": await GoDressing(); break;

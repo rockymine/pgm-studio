@@ -149,7 +149,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   const canvas = new SketchCanvas(svgEl, wrapEl, {
     cursorEl: coordsEl, zoomEl, dimEl,
-    onShapeCreated: (partial) => pieceKind ? placePiece(pieceKind, partial)
+    onShapeCreated: (partial) => pieceKind ? pieceStep(() => placePiece(pieceKind, partial))
       : placeShape ? drawnPlace(placeShape, partial) : addShape(partial),
     onPlaceSelected: (id) => fire("OnPlaceSelected", id ?? null),
     onShapeUpdated: edit(() => { recompute(); markDirty(); }),
@@ -165,17 +165,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onThemeDrop: () => setThemeBrush(""),
     onGroupSelected: (id) => selectGroup(id),
     onStructuralSelected: (id) => selectStructural(id),
-    // The drag is already inside the step the pointer opened, so the whole of it is one undo; the release
-    // is where the intent is asked, and it is not a step of its own — it answers about a move already drawn.
-    onStructuralMoved: (piece, putBack) => moveStructural(piece, putBack),
+    // The release is where the intent is asked, and the write is the step: the drag's frames only drew it.
+    onStructuralMoved: (piece, putBack) => pieceStep(() => moveStructural(piece, putBack)),
     // A room's house shaped on the canvas — a wing resized or added — is written whole, keeping what each wing
     // and the house already stated.
-    onRoomHouseEdited: (room, wings) => reshapeHouse(room, wings),
+    onRoomHouseEdited: (room, wings) => pieceStep(() => reshapeHouse(room, wings)),
     // A door shift-pressed onto or off a room's wall is written with the room's other doors, whole.
-    onRoomDoorsEdited: (room, doors) => writeDoors(room, doors),
+    onRoomDoorsEdited: (room, doors) => pieceStep(() => writeDoors(room, doors)),
     onRoomHouseRefused: (sentence) => fire("OnStructuralNote", sentence),
     // A wall's end dragged to a corner is asked of the intent the way a whole-wall drag is.
-    onWallEndMoved: (piece, part, x, z, putBack) => moveWallEnd(piece, part, x, z, putBack),
+    onWallEndMoved: (piece, part, x, z, putBack) => pieceStep(() => moveWallEnd(piece, part, x, z, putBack)),
     // Placing, moving and picking a prop all happen on the canvas; the bridge only has to relay the result.
     onDressingChanged: edit(() => afterDressingChange()),
     onPropSelected:    () => fire("OnDressing", dressingState()),
@@ -867,13 +866,18 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // know which edit happened, only that one did. A step is opened before an edit and closed after it, and
   // closing compares the two: a press that changed nothing costs no step, and a drag that fires on every
   // frame between one open and one close costs exactly one.
+  //
+  // A play piece is not in the layout: it is the intent's, written on the server. So a step that took one is
+  // `{ layout, intent }`, the intent's text as it stood beside the layout, and stepping over it writes the
+  // intent back; a step of the drawing alone is `{ layout }`. While a piece write is open the layout's own steps
+  // are held, so the ground a room placement draws is part of the placement's step rather than one of its own.
   const HISTORY_DEPTH = 60;
   const history = {
-    past: [], future: [], pending: null,
+    past: [], future: [], pending: null, held: false, moving: false,
     /** Open a step, unless one is already open. Answers whether this call is the one that opened it — only
      *  that caller may close it, so an edit arriving mid-drag folds into the drag rather than ending it. */
     begin() {
-      if (this.pending !== null) return false;
+      if (this.held || this.pending !== null) return false;
       this.pending = snapshot();
       return true;
     },
@@ -881,8 +885,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (this.pending === null) return;
       const before = this.pending;
       this.pending = null;
-      if (snapshot() === before) return;
-      this.past.push(before);
+      if (this.held || snapshot() === before) return;
+      this.record({ layout: before });
+    },
+    /** Keep `entry` as the step back. */
+    record(entry) {
+      this.past.push(entry);
       if (this.past.length > HISTORY_DEPTH) this.past.shift();
       this.future.length = 0;
       pushHistory();
@@ -894,16 +902,81 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     undo() { return this.move(this.past, this.future); },
     redo() { return this.move(this.future, this.past); },
-    move(from, to) {
-      if (!from.length) return false;
-      to.push(snapshot());
-      restore(from.pop());
-      pushHistory();
-      return true;
+    /** Step from `from` to `to`. A step holding the intent writes it back before the drawing is restored; one
+     *  the studio refuses stays where it was and says why. One step at a time: a press while one is on its way
+     *  does nothing. */
+    async move(from, to) {
+      if (!from.length || this.moving) return false;
+      this.moving = true;
+      try {
+        const entry = from[from.length - 1];
+        const current = { layout: snapshot() };
+        if (entry.intent !== undefined) {
+          current.intent = await intentText();
+          if (current.intent === null || !(await writeIntent(entry.intent))) return false;
+        }
+        from.pop();
+        to.push(current);
+        restore(entry.layout);
+        if (entry.intent !== undefined) { await refreshRooms(); await refreshPieces(); }
+        pushHistory();
+        return true;
+      } finally {
+        this.moving = false;
+      }
     },
     get canUndo() { return this.past.length > 0; },
     get canRedo() { return this.future.length > 0; },
   };
+
+  /** The stored intent as text, or null where it could not be read. */
+  async function intentText() {
+    if (!slug) return null;
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent`);
+      return res.ok ? await res.text() : null;
+    } catch { return null; }
+  }
+
+  /** Write the intent back whole, as a step held it; a refusal says why. */
+  async function writeIntent(text) {
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent`, {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: text,
+      });
+      if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return false; }
+    } catch {
+      fire("OnStructuralNote", "Couldn't reach the studio, so the step wasn't taken. Try again.");
+      return false;
+    }
+    fire("OnStructuralNote", null);
+    iso.drop();
+    return true;
+  }
+
+  // A piece write as one step: the intent and the layout as they stood before it, kept where either changed.
+  // Writes nest — a house reshaped is written through the house write — so only the outermost opens and closes
+  // the step, and a write the studio refused changed nothing and costs none.
+  let pieceDepth = 0;
+  let pieceBefore = null;
+  async function beginPieceStep() {
+    if (pieceDepth++ > 0) return;
+    history.held = true;
+    pieceBefore = { layout: snapshot(), intent: await intentText() };
+  }
+  async function endPieceStep() {
+    if (--pieceDepth > 0) return;
+    history.held = false;
+    const before = pieceBefore;
+    pieceBefore = null;
+    if (!before || before.intent === null) return;
+    const intent = await intentText();
+    if (intent !== null && (intent !== before.intent || snapshot() !== before.layout)) history.record(before);
+  }
+  async function pieceStep(write) {
+    await beginPieceStep();
+    try { return await write(); } finally { await endPieceStep(); }
+  }
 
   const snapshot = () => JSON.stringify(handle.getState());
 
@@ -1406,7 +1479,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setStructuralHeight(id, height) { setStructuralHeight(id, height); },
     /** Arm a theme so a click on a shape paints it; "" puts the brush down. */
     /** Turn the picked room, building or area `quarters` quarter turns clockwise. */
-    turnStructural(id, quarters) { return turnStructural(id, quarters); },
+    turnStructural(id, quarters) { return pieceStep(() => turnStructural(id, quarters)); },
     /** Arm the Layout step's placing tool with a play piece kind. */
     armPiece(kind) { armPiece(kind); },
     armPlace(shape) { armPlace(shape); },
@@ -1415,7 +1488,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     selectPlace(id) { canvas.selectPlace(id ?? null); },
     setPlacesPickable(on) { canvas.setPlacesPickable(on); },
     /** Delete the picked play piece and its images. */
-    deleteStructural(id) { return deleteStructural(id); },
+    deleteStructural(id) { return pieceStep(() => deleteStructural(id)); },
     /** Read every piece that is not a room back from the intent — after a setting changed one's footprint. */
     refreshPieces() { return refreshPieces(); },
     setThemeBrush(id) { setThemeBrush(id); },
@@ -1446,10 +1519,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
      *  `pick` of it. */
     setRoomHouse(room, houseJson, pick) {
       let house; try { house = JSON.parse(houseJson); } catch { return; }
-      return writeHouse(room, house, pick ?? 0);
+      return pieceStep(() => writeHouse(room, house, pick ?? 0));
     },
     /** Take one wing out of a room's house, and pick the one before it. */
-    deleteRoomWing(room, wing) { return deleteRoomWing(room, wing); },
+    deleteRoomWing(room, wing) { return pieceStep(() => deleteRoomWing(room, wing)); },
+    /** Open and close a step around a piece write made from outside the canvas — a setting on the rail. */
+    beginPieceStep() { return beginPieceStep(); },
+    endPieceStep() { return endPieceStep(); },
     /** Pick a plan piece by its id, as a click on it would. */
     pickStructural(id) { selectStructural(id || null); },
     /** Shape a picked room's house and drag a picked wall's ends on the canvas — Layout only. */

@@ -22,14 +22,6 @@ studio usable.
 
 ### Phase 1 — one document: the sketch, its play pieces and its places
 
-#### Draw, reviewed: what its three steps get wrong
-
-- [ ] **TS193 — Undo takes back a piece.** Placing, moving, resizing, turning or deleting a play piece is one undo
-  step, and the room ground a placement brings rides the same step. The undo stack holds the layout alone
-  (`sketch-bridge.js`), while a piece writes the intent through `…/intent/pieces`; a step restores both.
-  Evidence: a build area placed on a fresh sketch left Undo disabled, and `Ctrl+Z` left 16 pieces at 16.
-  `docs/tools/sketch.md`.
-
 - [ ] **TS190 — A place states the numbers it is held to.** A place carries targets — a value and the band it
   must fall in — and each is measured off the sketch's ground and shown beside its band, a miss as a complaint,
   as pgmvox's checker prints one line per number (`freeform/lib/AGENT-GUIDE.md` § the plan). The walks the

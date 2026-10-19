@@ -76,6 +76,18 @@ try {
   checks.add("the map states the two teams that own them", intent.teams?.length === 2,
     JSON.stringify(intent.teams?.map(team => team.id)));
 
+  checks.section("a placed piece is a step of the board's undo");
+  const settle = async () => { await page.waitForLoadState("networkidle"); await page.waitForTimeout(400); };
+  await page.keyboard.press("Control+z");
+  await settle();
+  const undone = await byKind("woolRoom");
+  checks.add("undo takes the wool room back out", undone.length === 0, JSON.stringify(undone.map(p => p.id)));
+  checks.add("and leaves the spawn placed before it", (await byKind("spawn")).length === 2);
+  await page.keyboard.press("Control+Shift+z");
+  await settle();
+  const redone = await byKind("woolRoom");
+  checks.add("redo puts it back", redone.length === 2, JSON.stringify(redone.map(p => p.id)));
+
   checks.section("the authored wall moves where it is dropped, and the image moves with it");
   await page.keyboard.press("Escape");
   const wall = (await byKind("wall")).find(piece => piece.id === wallId);

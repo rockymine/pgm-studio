@@ -10793,6 +10793,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **The sketch's address says where the author is (`TS196`, `TS200`).** `?phase=draw&step=layout`, by the rail's
   and the bar's words and rewritten as the author moves, so a reload opens there; the documents name the phases
   as the app does.
+- **Undo takes back a play piece (`TS193`).** Placing, moving, resizing, turning, deleting or setting a piece is one
+  step of the board's undo, carrying the intent beside the layout; the room ground a placement brings rides it.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
