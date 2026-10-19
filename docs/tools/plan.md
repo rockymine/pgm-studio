@@ -3,7 +3,7 @@
 ## What it is
 
 A plan is a map's board at its coarsest scale: rectangles on a proxy grid, and the play pieces the finished map
-is played by, written as one document. It is no longer a tool or a stage. A map's one document is its sketch
+is played by, written as one document. It is neither a tool nor a stage. A map's one document is its sketch
 (`docs/tools/sketch.md`); a plan comes into a map only through the **one-way compile**, which turns it into the
 layout and the intent a map is built from, and the composer writes one internally on the way to the sketch it
 hands over (`docs/tools/generator.md`).
@@ -15,7 +15,9 @@ give one team a different board from another.
 **Every stored plan is history.** A map that was built from a plan keeps it as its `plan_json` artifact, and the
 `plan` table keeps the rows the generator's candidates and imported plans were once stored as. Both are read
 back exactly as stored — `GET /map/{slug}/plan`, `GET /plans`, `GET /plans/{id}` and its renders — and nothing
-else reads them: a map's findings are asked of its intent and its sketch, never of the plan it came from.
+else reads them: a map's findings are asked of its intent and its sketch, never of the plan it came from. A map
+that was planned and never drawn is a sketch like a fresh draft — its ground layer with nothing on it, its plan
+beside it.
 
 ## What it writes
 
