@@ -121,6 +121,11 @@
                          OnSelectShape="SelectShape" OnSelectGroup="SelectGroup" />
             <SketchReliefList StateJson="@reliefJson" Handle="handle" />
           }
+          else if (LayoutActive)
+          {
+            @* Layout is about the pieces, so its list is of them; the shapes are Ground's. *@
+            <SketchPiecesList Pieces="pieceRows" SelectedId="@selectedStructural?.Id" OnSelect="PickPiece" />
+          }
           else
           {
             <SketchLayers Layers="layerRows" ActiveId="@activeLayerId"

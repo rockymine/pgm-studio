@@ -270,12 +270,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // rail are told too, or the group list goes on lighting a row whose chrome is gone.
     if (s) { fire("OnShapeSelected", null); fire("OnGroupSelected", null); }
     if (s?.role === "building") loadDoors(structuralTarget(s).id);
-    fire("OnStructuralSelected", s ? JSON.stringify({
-      id: s.id, role: s.role, color: s.color ?? null, piece: s.piece === true,
-      baseHeight: s.base_height ?? null, heightAuthored: s.height_authored === true,
-      minX: s.min_x, minZ: s.min_z, maxX: s.max_x, maxZ: s.max_z,
-    }) : null);
+    fire("OnStructuralSelected", s ? JSON.stringify(structuralRow(s)) : null);
   }
+
+  /** A structural piece as the host reads it — `SketchStructuralRow`. */
+  const structuralRow = (s) => ({
+    id: s.id, role: s.role, color: s.color ?? null, piece: s.piece === true,
+    baseHeight: s.base_height ?? null, heightAuthored: s.height_authored === true,
+    minX: s.min_x, minZ: s.min_z, maxX: s.max_x, maxZ: s.max_z, carried: s.carried === true,
+  });
 
   /** The piece a structural shape is part of, and which wing of its house a building shape is. */
   function structuralTarget(piece) {
@@ -556,7 +559,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   function showStructural() {
     const rooms = (layers[active].structural ?? [])
       .map(room => carriedRooms.has(structuralTarget(room).id) ? { ...room, carried: true } : room);
-    canvas.setStructural(active === 0 ? [...rooms, ...pieces] : rooms);
+    const shown = active === 0 ? [...rooms, ...pieces] : rooms;
+    canvas.setStructural(shown);
+    // Layout's list: every piece but a room's building, which is reached through its room.
+    fire("OnPieces", JSON.stringify(shown.filter(s => s.role !== "building").map(structuralRow)));
   }
 
   /** Read every piece that is not a room from the intent, where the studio says it stands. Every piece write

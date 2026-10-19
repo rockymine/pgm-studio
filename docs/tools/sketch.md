@@ -776,6 +776,12 @@ every shape and every piece, and each works on its own: Ground picks, moves and 
 pieces, and Layout picks, moves, resizes, turns, adds and deletes the pieces and passes over the shapes. Draw opens on Ground, and Info's last step goes on to Draw's first
 step, where a new map starts.
 
+**Each step's panel lists what that step works on.** Places lists the places, Ground the layer and its group→shape
+tree, and Layout the play pieces: one section per kind, in the order the toolbars offer them, each piece under its
+id, with a room's point after its room and a room's building reached through the room. Choosing a row picks the
+piece as a click on it would, and the picked piece's row is lit. An orbit's image is listed beside the piece it
+copies, tagged *image*, and takes no click, as on the canvas.
+
 **Places is an admin's.** The places are the plan an agent and an admin talk over, so they are
 written by the same people the notes are: an admin in a browser, or a token carrying the notes permission
 (`docs/access.md`). Anyone else's Draw has two steps, Ground and Layout, and Review's Cameras step draws no
@@ -970,7 +976,7 @@ already in hand, and re-entering an untouched board draws it again rather than r
 changes the intent rather than the layout, so the mesh is let go of on every piece write and the next entry
 builds again.
 
-The sidebar carries the active layer's settings — its name and its base Y — and the group→shape tree; the
+In Ground the sidebar carries the active layer's settings — its name and its base Y — and the group→shape tree; the
 inspector on the right edits whatever is selected. Which layer is active, and which layers there are, is
 the strip's alone: a layer is switched where it is drawn on, so the sidebar states what the layer **is**
 rather than offering a second list of the same rows.
@@ -2806,8 +2812,9 @@ seated in a spawn room, is drawn dashed and cannot be picked, since it moves onl
 of or the room it stands in.
 
 **Any of them can be picked and moved, and a room corrected.** In Layout a click lands on the piece under the
-cursor and never on the ground under it, and in Ground on the ground and never on a piece; changing step lets go
-of what the other step picked. The picked piece is ringed on the canvas and opens a rail of its own: what kind it
+cursor and never on the ground under it, a double-click reaches no shape, and a click on empty canvas or Escape lets
+the pick go; in Ground a click lands on the ground and never on a piece. Changing step lets go of what the other
+step picked. The picked piece is ringed on the canvas and opens a rail of its own: what kind it
 is, whose it is, its extent, and — for a **region** — its height. A room
 stating no height stands on the ground under it and the field is empty; one the layout states a height for settles
 on the ground from that height. Correcting it writes the number, the author's-height flag and `hold` together on the

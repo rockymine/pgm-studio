@@ -36,6 +36,9 @@ public sealed record SketchShapeRow(
 /// <para><see cref="HeightAuthored"/> says the region's <see cref="BaseHeight"/> is a number the author
 /// corrected rather than the one the layout was written with. A <c>building</c> carries no height of its own —
 /// the region it stands in is what a group's relief is held against — so its fields read empty.</para>
+///
+/// <para><see cref="Carried"/> says the piece is an orbit's image rather than the one authored: it is drawn and
+/// listed, and never picked.</para>
 /// </summary>
 public sealed record SketchStructuralRow(
     [property: JsonPropertyName("id")] string Id,
@@ -47,7 +50,8 @@ public sealed record SketchStructuralRow(
     [property: JsonPropertyName("minX")] double MinX,
     [property: JsonPropertyName("minZ")] double MinZ,
     [property: JsonPropertyName("maxX")] double MaxX,
-    [property: JsonPropertyName("maxZ")] double MaxZ)
+    [property: JsonPropertyName("maxZ")] double MaxZ,
+    [property: JsonPropertyName("carried")] bool Carried = false)
 {
     /// <summary>Whether this piece is a region — the shape that carries a height — as against the building
     /// footprint drawn inside one or a play piece that is not a room.</summary>
@@ -66,8 +70,41 @@ public sealed record SketchStructuralRow(
     /// <summary>The piece's extent in blocks, the way every other selection on this canvas reads one.</summary>
     public string Dim => $"{MaxX - MinX:0.#} × {MaxZ - MinZ:0.#}";
 
-    /// <summary>Who it belongs to: a spawn's team colour, a wool's dye. What the canvas label says.</summary>
+    /// <summary>Who it belongs to: a spawn's team colour, a wool's dye.</summary>
     public string Who => Color ?? "";
+
+    /// <summary>The icon a piece of its kind is shown under, in the inspector and the Layout list.</summary>
+    public string Icon => Role switch
+    {
+        PlayPieceKinds.Destroyable => "gem",
+        PlayPieceKinds.Core => "flame",
+        PlayPieceKinds.IronCube => "pickaxe",
+        PlayPieceKinds.Wall => "brick-wall",
+        PlayPieceKinds.Chest => "box",
+        PlayPieceKinds.Observer => "eye",
+        PlayPieceKinds.SpawnPoint or PlayPieceKinds.WoolSpawn => "crosshair",
+        StructuralRoles.Building => "house",
+        _ => "square-dashed",
+    };
+
+    /// <summary>The name a piece of its kind is shown under, in the inspector and the Layout list.</summary>
+    public string Label => Role switch
+    {
+        StructuralRoles.Spawn => "Spawn region",
+        StructuralRoles.WoolRoom => "Wool room",
+        StructuralRoles.Building => "Building",
+        PlayPieceKinds.Destroyable => "Destroyable",
+        PlayPieceKinds.Core => "Core",
+        PlayPieceKinds.BuildArea => "Build area",
+        PlayPieceKinds.WaterLane => "Water lane",
+        PlayPieceKinds.IronCube => "Iron marker",
+        PlayPieceKinds.Wall => "Wall",
+        PlayPieceKinds.Chest => "Defence chest",
+        PlayPieceKinds.Observer => "Observer",
+        PlayPieceKinds.SpawnPoint => "Spawn point",
+        PlayPieceKinds.WoolSpawn => "Wool spawn",
+        _ => Role,
+    };
 }
 
 public sealed record SketchGroupRow(

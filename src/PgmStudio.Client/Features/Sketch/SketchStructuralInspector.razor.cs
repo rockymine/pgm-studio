@@ -54,36 +54,5 @@ public partial class SketchStructuralInspector
     /// <summary>Turn the piece a quarter at a time: 1 clockwise seen from above, -1 the other way.</summary>
     [Parameter] public EventCallback<int> OnTurn { get; set; }
 
-    private string Icon => Piece.Role switch
-    {
-        PlayPieceKinds.Destroyable => "gem",
-        PlayPieceKinds.Core => "flame",
-        PlayPieceKinds.IronCube => "pickaxe",
-        PlayPieceKinds.Wall => "brick-wall",
-        PlayPieceKinds.Chest => "box",
-        PlayPieceKinds.Observer => "eye",
-        PlayPieceKinds.SpawnPoint or PlayPieceKinds.WoolSpawn => "crosshair",
-        StructuralRoles.Building => "house",
-        _ => "square-dashed",
-    };
-
-    private string Label => Piece.Role switch
-    {
-        StructuralRoles.Spawn => "Spawn region",
-        StructuralRoles.WoolRoom => "Wool room",
-        StructuralRoles.Building => "Building",
-        PlayPieceKinds.Destroyable => "Destroyable",
-        PlayPieceKinds.Core => "Core",
-        PlayPieceKinds.BuildArea => "Build area",
-        PlayPieceKinds.WaterLane => "Water lane",
-        PlayPieceKinds.IronCube => "Iron marker",
-        PlayPieceKinds.Wall => "Wall",
-        PlayPieceKinds.Chest => "Defence chest",
-        PlayPieceKinds.Observer => "Observer",
-        PlayPieceKinds.SpawnPoint => "Spawn point",
-        PlayPieceKinds.WoolSpawn => "Wool spawn",
-        _ => Piece.Role,
-    };
-
     private Task HeightChanged(double value) => OnSetHeight.InvokeAsync(value);
 }

@@ -659,6 +659,7 @@ export class SketchCanvas extends CanvasBase {
     // goes to the ground.
     if (this.#layoutEditing && !this.#selectOnly) {
       this.#enterScope(null);
+      if (this.#selectedId || this.#selectedGroupId) this.#callbacks.onGroupSelected?.(null);
       this.#callbacks.onStructuralSelected?.(this.#hitStructural(svgPt.x, svgPt.y));
       return;
     }
@@ -717,6 +718,7 @@ export class SketchCanvas extends CanvasBase {
    *  already made their own selection, so this only ever has to go down from where they left off. */
   _onCanvasDblClick(e, svgPt) {
     if (this.#themeBrush) return;   // a brush in hand paints; it does not walk the ladder
+    if (this.#layoutEditing && !this.#selectOnly) return;   // Layout's ladder is a piece's, and a click walks it
     this.#deeper(svgPt.x, svgPt.y);
   }
 

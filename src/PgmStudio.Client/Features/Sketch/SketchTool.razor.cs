@@ -453,6 +453,7 @@ public partial class SketchTool
     // The plan piece a click picked. Not one of `shapes` — the bridge keeps the plan's own pieces apart from
     // the shapes an author drew — so the row itself is held rather than an id into a list.
     private SketchStructuralRow? selectedStructural;
+    private List<SketchStructuralRow> pieceRows = [];
     // Why the last drag on a plan piece was not made. The intent owns where a room is, so a move is asked
     // rather than told, and a refusal is the answer rather than a fault.
     private string? structuralNote;
@@ -790,6 +791,18 @@ public partial class SketchTool
         _ = LoadRoomHouseAsync();
         StateHasChanged();
     }
+
+    /// <summary>Every piece the canvas draws but a room's building, for Layout's list. The bridge holds the pieces,
+    /// so it announces them whenever they are drawn again.</summary>
+    [JSInvokable]
+    public void OnPieces(string json)
+    {
+        pieceRows = JsonSerializer.Deserialize<List<SketchStructuralRow>>(json) ?? [];
+        StateHasChanged();
+    }
+
+    private Task PickPiece(string id) =>
+        handle is null ? Task.CompletedTask : handle.InvokeVoidAsync("pickStructural", id).AsTask();
 
     /// <summary>Why a drag on a plan piece was not made — the intent's own sentence, or null where the move
     /// went through.</summary>
