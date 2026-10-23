@@ -25,8 +25,7 @@ The new ground document replaces the sketch's ground (D2), with no beta beside t
 settled (D16–D21): shapes on layers with a top and a bottom, then modifiers in a stack, then placements, with the
 stored format the sketch's own, changed in three places. What is left on paper is how Terraform looks over it.
 
-- [~] **RP133 — Terraform over the modifier stack, on paper.** The concept page redrawn under D16–D21, the
-  author's to review before any code: the modifier list (reorder, switch off, a mask
-  dragged, what a modifier changed), a shape's `follow`, `hold` and `ride` and its `on` in Draw, the primitives,
-  and today's Terraform faults read under the new model. Lands as a mock-up the author can click through, beside
-  `docs/pgmvox-port.md`'s *The shape it lands in*.
+- [~] **RP133 — Terraform over the modifier stack, on paper.** The concept page is drawn under D16–D21: a Shapes list
+  whose every shape follows, holds or rides, a Modifiers list in run order with masks, leave-outs and what each
+  changed, the strip stepping through shapes, modifiers and what stands on them, and the stored format. What
+  remains is the author's review of it; the page is linked from `docs/pgmvox-port.md`'s *The shape it lands in*.
