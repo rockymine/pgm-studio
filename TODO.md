@@ -27,5 +27,6 @@ stored format the sketch's own, changed in three places. What is left on paper i
 
 - [~] **RP133 — Terraform over the modifier stack, on paper.** The concept page is drawn under D16–D21: a Shapes list
   whose every shape follows, holds or rides, a Modifiers list in run order with masks, leave-outs and what each
-  changed, the strip stepping through shapes, modifiers and what stands on them, and the stored format. What
+  changed, the strip stepping through shapes, modifiers and what stands on them, the stored format, a mask's
+  edge (D23) and recipes (D22). What
   remains is the author's review of it; the page is linked from `docs/pgmvox-port.md`'s *The shape it lands in*.
