@@ -17,17 +17,16 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 **The author put this programme first.** `docs/pgmvox-port.md` is the programme: pgmvox's capabilities move
 into the studio one phase at a time, each proven against a pgmvox fixture, until a board built on pgmstudio.de
 reaches the ceiling a pgmvox board does. Phase 0 has shipped and Phase 1 has closed, its two agent-facing
-entries parked, and Phase 2 is open: the layer document and the ground. Its entries run in the order below, and each leaves the studio usable.
+entries parked, and Phase 2 is open: shapes, modifiers and the ground. Its entries run in the order below, and each leaves the studio usable.
 
-### Phase 2 — the layer document and the ground
+### Phase 2 — shapes, modifiers and the ground
 
-The layer document replaces the sketch's ground (D2), with no beta beside the live studio (D3). It is worked out
-on paper before it is built: what a layer is, which of today's shapes stay shapes and which become layers, and
-what the Terraform phase looks like over them.
+The new ground document replaces the sketch's ground (D2), with no beta beside the live studio (D3). Its model is
+settled (D16–D21): shapes on layers with a top and a bottom, then modifiers in a stack, then placements, with the
+stored format the sketch's own, changed in three places. What is left on paper is how Terraform looks over it.
 
-- [ ] **RP133 — The layer document, on paper.** A concept and mock-ups for Phase 2's first two steps, the author's
-  to review before any code: the document's fields under D6's eight shape rules, which of today's shapes and
-  relief statements become which layer kind and which stay shapes, the Layers tab in Terraform (reorder, toggle,
-  an area dragged, what a layer changed), and how today's Terraform faults read under it. Lands in
-  `docs/pgmvox-port.md`'s Phase 2 and a mock-up the author can click through. **Open, the author's:** what a
-  stored sketch's relief carries into layers, since the migration is what the few maps already made keep.
+- [~] **RP133 — Terraform over the modifier stack, on paper.** The concept page redrawn under D16–D21, the
+  author's to review before any code: the modifier list (reorder, switch off, a mask
+  dragged, what a modifier changed), a shape's `follow`, `hold` and `ride` and its `on` in Draw, the primitives,
+  and today's Terraform faults read under the new model. Lands as a mock-up the author can click through, beside
+  `docs/pgmvox-port.md`'s *The shape it lands in*.
