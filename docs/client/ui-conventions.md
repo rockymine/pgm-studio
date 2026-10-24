@@ -411,6 +411,12 @@ Blazor patching that node corrupts the reconciler. Any icon-bearing element whos
 the `<i>`, which lucide has already replaced. `Icon` carries that discipline in one place; it is built and
 **not yet adopted**, with 156 raw `<i data-lucide>` still standing across the client.
 
+**A glyph Lucide has no name for is the studio's own, and is named `terrain-*`.** `icons/terrain-icons.js`
+registers the terrain profiles and plans (`terrain-hill`, `terrain-river`, …) into the vendored set after
+`vendor/lucide-icons.js` loads, in Lucide's node format, so `<i data-lucide="terrain-hill">` renders and fails loudly
+like any other name. The vendored file is generated and never edited; `tools/vendor-icons.mjs` leaves the custom
+script out of its scan, and the script reports a name Lucide later defines rather than replacing it.
+
 ## What stays raw, and why
 
 Adoption is near-total for the atoms — two raw `action-btn`s and two raw `list-row`s remain, each a genuine

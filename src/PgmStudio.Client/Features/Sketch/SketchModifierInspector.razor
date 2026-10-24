@@ -12,6 +12,10 @@
     </span>
   </DetailHeader>
   <p class="section-desc">@SketchModifierState.Blurb(Op)</p>
+  @if (Changed is { } columns)
+  {
+    <p class="inspector-readout">@ChangedLine(columns)</p>
+  }
 
   <Field Label="Name">
     <input class="field-input" value="@(Modifier["name"]?.GetValue<string>() ?? "")" placeholder="@Id"
@@ -41,6 +45,64 @@
       @NumberRow("Flat out to", Inner, 1, "1 is the mask's rim", min: 0)
       @NumberRow("Skirt out to", Outer, 1.5, "where it has eased back to the ground", min: 0)
       break;
+    case ModifierOps.Ridge:
+      @NumberRow("Rise", Rise, 8, "blocks at the crest", step: "0.5")
+      @NumberRow("Wander", Wander, 2, "how far noise pushes the foot off the line", min: 0, step: "0.5")
+      break;
+    case ModifierOps.Butte:
+      @NumberRow("Top", Top, null, "the world y of its flat top; empty is the median ground plus 12")
+      @NumberRow("Cliff", Cliff, 1.5, "blocks over which its face drops", min: 0, step: "0.5")
+      @NumberRow("Talus", Talus, 6, "blocks of loose slope at its foot", min: 0)
+      @NumberRow("Apron", Apron, 0.3, "how much of the face's height the talus keeps", min: 0, max: 1, step: "0.05")
+      @NumberRow("Jag", Jag, 0.12, "how ragged the edge is", min: 0, step: "0.01")
+      break;
+    case ModifierOps.Spire:
+      @NumberRow("Top", Top, null, "the world y of its tip; empty is the median ground plus 20")
+      @NumberRow("Taper", Taper, 1.6, "above 1 it narrows faster toward the tip", min: 0.1, step: "0.1")
+      @NumberRow("Jag", Jag, 0.15, "how ragged the flanks are", min: 0, step: "0.01")
+      break;
+    case ModifierOps.Scarp:
+      @NumberRow("Height", Height, 6, "blocks the raised side stands above the other")
+      <Field Label="Raised side">
+        <LabelHint>(walking along the line as it was traced)</LabelHint>
+        <ChildContent>
+          <Select Slim="false" Options="Sides" Value="@(Number(Modifier, Side) == -1 ? "-1" : "1")"
+                  ValueChanged="SetSide" />
+        </ChildContent>
+      </Field>
+      @NumberRow("Cliff", Cliff, 2, "blocks over which the face rises", min: 0, step: "0.5")
+      @NumberRow("Talus", Talus, 5, "blocks of loose slope below the face", min: 0)
+      break;
+    case ModifierOps.Canyon:
+      @NumberRow("Depth", Depth, 12, "blocks below the ground it cuts", min: 0)
+      @NumberRow("Floor share", Bed, 0.35, "the share of the width that is flat floor", min: 0, max: 1, step: "0.05")
+      @NumberRow("Wall", Wall, 2.5, "how steep the walls are", min: 0.1, step: "0.1")
+      @NumberRow("Ledges", Ledges, 0, "steps cut into the walls", min: 0, max: 6)
+      break;
+    case ModifierOps.River:
+      @NumberRow("Bed depth", Depth, 2, "blocks the bed is cut below the ground", min: 0, step: "0.5")
+      @NumberRow("Water depth", Water, 1, "blocks of water standing in the bed", min: 0, step: "0.5")
+      @NumberRow("Bank", Bank, 4, "blocks over which the banks ease back into the ground", min: 0)
+      break;
+    case ModifierOps.Lake:
+      @NumberRow("Level", Level, null, "the world y of the water surface; empty is one below the lowest rim ground")
+      @NumberRow("Depth", Depth, 3, "blocks the basin is cut below the surface", min: 0, step: "0.5")
+      @NumberRow("Shore", Shore, 3, "blocks over which the shore eases into the ground", min: 0)
+      break;
+    case ModifierOps.Road:
+      @NumberRow("Grade", Grade, 0.25, "the most it may climb per block along its run", min: 0, step: "0.05")
+      @NumberRow("Shoulder", Shoulder, 4, "blocks over which its edges ease into the slope", min: 0)
+      break;
+    case ModifierOps.Gullies:
+      @NumberRow("Count", Count, 8, "how many channels", min: 1, max: 64)
+      @NumberRow("Depth", Depth, 3, "blocks each is cut", min: 0, step: "0.5")
+      @NumberRow("Wander", Wander, 0.9, "how much each meanders as it falls", min: 0, step: "0.1")
+      @NumberRow("Sharpness", Sharpness, 3, "how narrow and steep their sides are", min: 0.1, step: "0.1")
+      break;
+    case ModifierOps.Warp:
+      @NumberRow("Amount", Amount, 6, "blocks the ground is shifted by", min: 0, step: "0.5")
+      @NumberRow("Cell", Cell, 24, "the size of the noise that shifts it", min: 1)
+      break;
     case ModifierOps.Noise:
       <div class="section-header section-header--ruled"><h2 class="section-title">Sizes</h2></div>
       @for (var index = 0; index < Sizes.Count; index++)
@@ -55,10 +117,10 @@
         </div>
       }
       <Button Icon="plus" Writes OnClick="AddSize">Add a size</Button>
-      @NumberRow("Seed", Seed, 1, "which noise it reads", min: 1)
       break;
   }
 
+  @NumberRow("Seed", Seed, 1, "which noise it reads", min: 1)
   @NumberRow("Soft rim", Soft, null, "share of the mask over which the change fades in; empty is none", min: 0, max: 1, step: "0.05")
   @if (Op != ModifierOps.Level)
   {
@@ -73,7 +135,34 @@
     Mirrored by the map's symmetry
   </label>
   <p class="inspector-readout">@AreaLine</p>
-  <Button Icon="plus" Writes OnClick="AddOutline" Title="Trace another outline on the board; it joins this mask">Add an outline</Button>
+  @for (var index = 0; index < Areas.Count; index++)
+  {
+    @if (SketchModifierState.IsLine(Areas[index]))
+    {
+      var at = index;
+      <Field Label="@LineWidthLabel(at)">
+        <LabelHint>(blocks, the band either side of the line is half)</LabelHint>
+        <ChildContent>
+          <NumberField Value="Number(Areas[at], Width) ?? DefaultLineWidth" ValueChanged="v => SetLineWidth(at, v)" Min="1" />
+        </ChildContent>
+      </Field>
+    }
+  }
+  <Button Icon="plus" Writes OnClick="AddOutline"
+          Title="@(HasLine ? "Trace another line on the board; it joins this mask" : "Trace another outline on the board; it joins this mask")">@(HasLine ? "Add a line" : "Add an outline")</Button>
+
+  @if (Leavable.Count > 0)
+  {
+    <div class="section-header section-header--ruled"><h2 class="section-title">Leaves out</h2></div>
+    <p class="section-desc">Shapes ticked here keep their ground: this modifier does not touch their columns.</p>
+    @foreach (var shape in Leavable)
+    {
+      <label class="check-row" @key="shape.Id">
+        <input type="checkbox" checked="@Leaves.Contains(shape.Id)" @onchange="e => SetLeaves(shape.Id, e.Value is true)" />
+        @ShapeLabel(shape)
+      </label>
+    }
+  }
   @if (!string.IsNullOrEmpty(error))
   {
     <p class="field-error">@error</p>

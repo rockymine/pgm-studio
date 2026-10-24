@@ -66,6 +66,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let modifiers = [];          // the terraform stack, in the order it runs (`SketchLayout.Modifiers`)
   let pickedModifier = null;   // the modifier whose mask the board outlines, or null
+  let groundStep = null;     // the ground read after this many modifiers that are on; null reads all of them
+  let changes = {};            // columns each modifier moved, by id, as the server last counted them
   let dressingMode = false;    // the Dressing phase is up: props are, and a shape is not reachable under them
   // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override
   // rides on the shape (`shape.theme`), assigned via the Theme phase and resolved at export.
@@ -699,7 +701,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // whatever the shape says about being erected, and neither is derivable here without a second copy of the
   // solver. Extruding in the browser would take only the first of those three stages.
   const NO_MAP = "This sketch has no map to build.";
-  const columnsUrl = () => slug ? `/api/map/${encodeURIComponent(slug)}/sketch/columns` : null;
+  const columnsUrl = () => slug ? `/api/map/${encodeURIComponent(slug)}/sketch/columns${stepQuery("?")}` : null;
   const layoutBody = () => JSON.stringify(handle.getState());
 
   const iso = isoPreview({
@@ -1016,6 +1018,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     fire("OnModifiers", modifierState());
     paintMasks();
     syncRelief();                  // the statement moved, so the contours and the shading it produced have too
+    refreshChanges({ now: true });
     refreshPaint({ now: true });
     iso.drop();                 // and the meshed board is a picture of a document that is no longer open
   }
@@ -1159,7 +1162,18 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // The stack runs on the server, in the build every read takes, so the contours, the paint and the 3-D
   // preview are what show its effect. The board outlines every mask in Terraform, and the picked one with its
   // images under the map's symmetry.
-  const modifierState = () => JSON.stringify({ modifiers, selectedId: pickedModifier, addingTo });
+  const modifierState = () => JSON.stringify({ modifiers, selectedId: pickedModifier, addingTo, step: groundStep, changes });
+
+  /** The modifiers that run: the ones not switched off, which is what a step counts. */
+  const modifiersOn = () => modifiers.filter(modifier => !modifier.off).length;
+
+  /** `step=N` for a read of the ground after N modifiers, led by `lead`; empty when every modifier runs. */
+  const stepQuery = (lead) => groundStep === null ? "" : `${lead}step=${groundStep}`;
+
+  /** A step beyond the last modifier that is on is no step: the stack grew or a modifier was switched off. */
+  function clampStep() {
+    if (groundStep !== null && groundStep >= modifiersOn()) groundStep = null;
+  }
 
   // The modifier a trace adds an outline to rather than starting a new one, or null.
   let addingTo = null;
@@ -1185,6 +1199,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   function afterModifierChange() {
+    clampStep();
     markDirty();
     fire("OnModifiers", modifierState());
     paintMasks();
@@ -1208,13 +1223,39 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // the server, and the shading it draws is what makes the contours readable. Offline or mid-navigation, the
   // overlay keeps whatever it last drew.
   const reliefFeed = liveFeed({
-    url: () => `/api/map/${encodeURIComponent(slug)}/sketch/relief?heights=true`,
+    url: () => `/api/map/${encodeURIComponent(slug)}/sketch/relief?heights=true${stepQuery("&")}`,
     body: layoutBody,
     delay: RELIEF_DEBOUNCE_MS,
     onAnswer: (data) => canvas.loadReliefLayer(data),
   });
 
+  // How many columns each modifier moved, for the inspector. Asked of the same document by the same debounce as
+  // the contours, and only while the phase is up. A server that cannot answer leaves the counts out.
+  const changesFeed = liveFeed({
+    url: () => slug && reliefMode && modifiers.length ? `/api/map/${encodeURIComponent(slug)}/sketch/modifiers/changes` : null,
+    body: layoutBody,
+    delay: RELIEF_DEBOUNCE_MS,
+    onAnswer(data) {
+      changes = Object.fromEntries((data?.modifiers ?? []).map(entry => [entry.id, entry.columns]));
+      fire("OnModifiers", modifierState());
+    },
+    onRefused: () => forgetChanges(),
+    onUnreachable: () => forgetChanges(),
+  });
+
+  function forgetChanges() {
+    if (Object.keys(changes).length === 0) return;
+    changes = {};
+    fire("OnModifiers", modifierState());
+  }
+
+  function refreshChanges({ now = false } = {}) {
+    if (!reliefMode || !slug || !modifiers.length) { changesFeed.cancel(); forgetChanges(); return; }
+    changesFeed.schedule({ now });
+  }
+
   function refreshRelief({ now = false } = {}) {
+    refreshChanges({ now });
     if (!reliefOn || !slug) return;
     reliefFeed.schedule({ now });
   }
@@ -1394,7 +1435,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (!s) return;
       if (isReliefScope(scope)) s.relief_scope = scope;
       else delete s.relief_scope;
-      pushLayout(); markDirty();
+      pushLayout(); iso.drop(); markDirty();
+      refreshRelief(); refreshPaint();
     },
 
     // Panel-driven edits.
@@ -1570,8 +1612,23 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.setReliefMode(reliefMode);
       // The phase shows the stack and the ground it made together, so entering it turns the contour overlay on.
       if (reliefMode) { reliefOn = true; syncRelief(); fire("OnModifiers", modifierState()); }
-      else { addingTo = null; canvas.modifierTools?.select(null); }
+      else {
+        addingTo = null;
+        canvas.modifierTools?.select(null);
+        // Another phase reads the whole stack, so a step taken here does not follow it out.
+        if (groundStep !== null) { groundStep = null; fire("OnModifiers", modifierState()); iso.refresh(); syncRelief(); }
+        refreshChanges();
+      }
       paintMasks();
+    },
+    /** Read the ground after the first `count` modifiers that are on (0 is the shapes alone); a count past the
+     *  last, or none, reads them all. A view setting, not an edit. */
+    setStep(count) {
+      const wanted = count === null || count === undefined ? null : Math.max(0, Math.round(Number(count)));
+      groundStep = wanted === null || wanted >= modifiersOn() ? null : wanted;
+      fire("OnModifiers", modifierState());
+      iso.refresh();
+      syncRelief();
     },
     /** Patch one modifier; `patchJson` is a partial modifier, `mask` replaced whole. An error string on bad JSON. */
     updateModifier(id, patchJson) {
@@ -1623,6 +1680,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
       modifiers = Array.isArray(s.modifiers) ? structuredClone(s.modifiers) : [];
       if (!modifiers.some(modifier => modifier.id === pickedModifier)) pickedModifier = null;
+      clampStep();
       const raw = (s.layers && s.layers.length) ? s.layers : [];
       // A layer's shapes are partitioned on load: role-tagged shapes are the play rooms the studio drew in
       // from the intent — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (groups, raster,
@@ -1714,6 +1772,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     dispose() {
       paintFeed.cancel();
       reliefFeed.cancel();
+      changesFeed.cancel();
       boardFeed.cancel();
       window.removeEventListener("pointerup", endStep);
       Keys.unregister("sketch-bridge");

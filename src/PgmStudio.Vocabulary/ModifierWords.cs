@@ -21,7 +21,38 @@ public static class ModifierOps
     /// <summary>Roughness: noise in one or more sizes, added inside the mask.</summary>
     public const string Noise = "noise";
 
-    public static readonly string[] All = [Mound, Crater, Level, Noise];
+    /// <summary>A Ridge: a crest raised along a line, its foot wandering by noise.</summary>
+    public const string Ridge = "ridge";
+
+    /// <summary>A Butte: a flat-topped rise with a cliff face, a talus skirt and an apron.</summary>
+    public const string Butte = "butte";
+
+    /// <summary>A Spire: a narrow peak tapering from its mask to a point.</summary>
+    public const string Spire = "spire";
+
+    /// <summary>A Scarp: one side of a line raised as a step with a cliff and a talus slope.</summary>
+    public const string Scarp = "scarp";
+
+    /// <summary>A Canyon: a trench cut along a line with a floor, walls and optional ledges.</summary>
+    public const string Canyon = "canyon";
+
+    /// <summary>A River: a bed cut along a line and filled with water.</summary>
+    public const string River = "river";
+
+    /// <summary>A Lake: a basin cut inside the mask and filled with water to one level.</summary>
+    public const string Lake = "lake";
+
+    /// <summary>A Road: a line graded into the slope so it climbs no faster than its grade.</summary>
+    public const string Road = "road";
+
+    /// <summary>Gullies: channels cut down a slope inside the mask.</summary>
+    public const string Gullies = "gullies";
+
+    /// <summary>A Warp: the ground inside the mask resampled at noise-shifted positions.</summary>
+    public const string Warp = "warp";
+
+    public static readonly string[] All =
+        [Mound, Crater, Level, Noise, Ridge, Butte, Spire, Scarp, Canyon, River, Lake, Road, Gullies, Warp];
 
     /// <summary>What the screen calls an operation.</summary>
     public static string Label(string? op) => op switch
@@ -30,6 +61,16 @@ public static class ModifierOps
         Crater => "Hollow",
         Level => "Level",
         Noise => "Roughness",
+        Ridge => "Ridge",
+        Butte => "Butte",
+        Spire => "Spire",
+        Scarp => "Scarp",
+        Canyon => "Canyon",
+        River => "River",
+        Lake => "Lake",
+        Road => "Road",
+        Gullies => "Gullies",
+        Warp => "Warp",
         _ => op ?? "",
     };
 }
@@ -58,5 +99,8 @@ public static class MaskKinds
     /// <summary>All the ground there is, at full strength everywhere.</summary>
     public const string Board = "board";
 
-    public static readonly string[] All = [Ellipse, Polygon, Board];
+    /// <summary>An open run of points with a width, its depth measured from the line outward.</summary>
+    public const string Line = "line";
+
+    public static readonly string[] All = [Ellipse, Polygon, Board, Line];
 }

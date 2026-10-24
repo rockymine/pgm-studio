@@ -958,25 +958,65 @@ rather than offering a second list of the same rows.
 
 One step, and the phase that turns the flat ground Draw made into terrain. It edits one thing, the layout's
 **modifier stack**: terraform operations run over the built ground in list order, each inside its mask, so a
-modifier changes the ground as the ones before it left it. The left panel lists the stack, the dock holds one tool
-per operation, and the picked modifier takes the inspector.
+modifier changes the ground as the ones before it left it. The left panel lists the drawn shapes and the stack,
+the dock holds one tool per operation, the picked modifier takes the inspector, and a strip at the canvas foot
+steps the ground through the stack.
 
-**A modifier is added by tracing its outline.** Pick an operation in the dock, press on the board, drag round
-the ground it should shape and let go: the trace is simplified to the points at its real bends and becomes the
-new modifier's mask, and the new modifier is picked. Releasing with Shift held keeps the tool in hand for the
-next one. *Add an outline* in the inspector arms the picked modifier's own tool, and the next outline traced
-joins its mask.
+**The dock offers the operations in four families.** After Select and Move come four flyout groups, each showing
+the operation last picked from it and a chevron that lists the rest: *Ground* (Hill, Hollow, Level, Butte,
+Spire), *Lines* (Ridge, Scarp, Canyon, Road), *Water* (River, Lake) and *Texture* (Roughness, Gullies, Warp).
+Picking an operation arms its tool, `modifier:<op>`. A *Carve* button (a pickaxe) closes the dock; it is shown
+disabled, its tip saying carves come in Phase 4. Each operation has its own glyph, drawn as a profile or a plan
+of the ground (*Icons*, below).
+
+**A modifier is added by tracing its mask.** Pick an operation in the dock, press on the board, drag round the
+ground it should shape and let go: the trace is simplified to the points at its real bends and becomes the new
+modifier's mask, and the new modifier is picked. Releasing with Shift held keeps the tool in hand for the next
+one. *Add an outline* in the inspector (*Add a line* on a modifier whose mask is lines) arms the picked
+modifier's own tool, and the next trace joins its mask.
+
+**The line operations trace an open run.** Ridge, Scarp, Canyon, Road and River are dragged as a line rather than
+an outline, and the release keeps the run simplified with Douglas–Peucker at the same two-block tolerance. The
+mask area is `{ "kind": "line", "points": [[x, z], …], "width": 6 }`: the band the operation works in is `width`
+blocks across, half to either side of the run. A drag that travels under three blocks is a misfire and adds
+nothing. Every other operation traces an outline, as above.
 
 **With Select in hand the board edits masks the way Draw edits shapes.** Every mask is outlined; a press inside
-one picks its modifier, the smallest outline winning where they nest, and a drag moves the whole mask. The picked
-outline carries a grip on each point, and hovering an edge offers a new point there, which the press that adds it
-then drags. `Delete` removes the picked modifier. The picked mask is drawn bold and its images under the map's
-symmetry dashed, and a modifier switched off is drawn faint.
+an outline picks its modifier, the smallest outline winning where they nest, and a press within half a line's
+width of it picks that, and a drag moves the whole mask. The picked mask carries a grip on each point, and
+hovering an edge offers a new point there, which the press that adds it then drags. A line has no edge from its
+last point back to its first. `Delete` removes the picked modifier. The picked mask is drawn bold and its images
+under the map's symmetry dashed, a line with its band faintly beside it, and a modifier switched off is drawn faint.
 
-**The left panel is the stack in the order it runs.** A row picks its modifier; its own buttons move it earlier
-or later and switch it off, which keeps its numbers and leaves it out of the build. The inspector says what the
+**The left panel lists the shapes above the stack.** *Shapes* has a row for each drawn shape that is ground (a
+carve has no ground of its own) with its kind and size, and the relation the modifiers have to it, set from the
+row: *Follow* (the modifiers reshape it with the land around it, the default), *Hold* (`relief_scope` `hold`: it
+keeps its own height and the modifiers leave it out) or *Ride* (`relief_scope` `ride`: it keeps its form and
+moves by the median change the stack made to the ground under it). A shape that states a `height_mode` shows
+that mode in place of the choice, because it already meets the stack by its own statement. Setting a relation is
+the bridge's `setReliefScope`, so it is one undo step and the contours answer it.
+
+**Below it, the stack is in the order it runs.** A row picks its modifier; its own buttons move it earlier or
+later and switch it off, which keeps its numbers and leaves it out of the build. The inspector says what the
 operation does and edits its name, its numbers, its mode and soft rim, its seed, and whether the map's symmetry
 fans its mask. Every edit, on the board or in a panel, is one undo step.
+
+**The inspector carries every operation's numbers.** Each operation has the fields the table under *The modifier
+stack* gives it; Scarp adds a *Raised side* choice (the side of the run, walking along it as it was traced), and
+a mask with lines has a *Line width* field for each line. *Leaves out* lists the drawn shapes as checkboxes:
+each ticked shape's columns are left out of that one modifier (`mask.leaves`), which is how one Hill spares a
+plinth that the rest of the stack still shapes. *Changed N columns* under the operation's description is how many
+columns the modifier moved, read from `POST …/sketch/modifiers/changes` with the live layout after the same pause
+the contours wait for; where the studio cannot answer, the line is not shown.
+
+**The step strip reads the ground part-way through the stack.** At the canvas foot, in 2-D and in the 3-D
+picture alike, a range runs from 0 to the number of modifiers that are on, with a label naming where it stands:
+*the shapes* at 0, then the name of each modifier in the order it runs. Releasing the thumb sets the step, and the
+bridge adds `?step=N` to the contour overlay's read (`sketch/relief?heights=true`) and to the 3-D read
+(`sketch/columns`), so both show the ground after the first N modifiers that are on. The last step is the whole
+stack and sends no `step`. The step is a view, not an edit: it is not saved and not an undo step, a switched-off
+modifier or a deleted one that leaves it past the end returns it to the whole stack, and leaving Terraform does the
+same.
 
 **What the stack built is on the board as a shaded height map under contours**, on by default in this phase
 and offered as the *Contours* chip in every other. `POST …/sketch/relief?heights=true` returns each group's
@@ -984,6 +1024,11 @@ built surface (`SketchRasterizer.BuiltSurfaces`): the highest top of each column
 own columns with every layer stacked and every modifier run, as one block height per cell of the group's box
 with the lines traced half a block above each top. The ramp runs dark-low to light-high over each group's own
 range, and the group fill stands down underneath it.
+
+**Icons.** The dock, the list and the inspector draw each operation with a `terrain-*` glyph (`terrain-hill`,
+`terrain-ridge`, `terrain-river`, …) from `wwwroot/js/studio/icons/terrain-icons.js`, a hand-written script that
+registers them into the vendored lucide set after it loads. `tools/vendor-icons.mjs` generates the vendored file
+and leaves that script out of its scan.
 
 #### The modifier stack
 

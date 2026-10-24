@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import { openBrowser, newPage, clearFaults, Checks, readSeed, BASE } from "./lib/harness.mjs";
 
 const VENDORED = new URL("../../src/PgmStudio.Client/wwwroot/js/studio/vendor/lucide-icons.js", import.meta.url);
+const TERRAIN = new URL("../../src/PgmStudio.Client/wwwroot/js/studio/icons/terrain-icons.js", import.meta.url);
 const STUDIO_JS = new URL("../../src/PgmStudio.Client/wwwroot/js/studio.js", import.meta.url);
 
 const seed = await readSeed();
@@ -58,11 +59,13 @@ checks.section("the vendored shim matches lucide's semantics");
 clearFaults(page);
 await page.setContent(`<!doctype html><html><body>
   <i data-lucide="scissors" class="tool-icon"></i>
-  <i data-lucide="check-circle-2"></i>
+  <i data-lucide="grid"></i>
+  <i data-lucide="terrain-hill"></i>
   <i data-lucide="trash-2" aria-label="delete"></i>
   <i data-lucide="definitely-not-an-icon"></i>
 </body></html>`);
 await page.addScriptTag({ content: readFileSync(VENDORED, "utf8") });
+await page.addScriptTag({ content: readFileSync(TERRAIN, "utf8") });
 await page.addScriptTag({ content: readFileSync(STUDIO_JS, "utf8") });
 await page.evaluate(() => window.studio.icons());
 
@@ -78,8 +81,10 @@ const svgs = await page.$$eval("svg", els => els.map(e => ({
 const leftover = await page.$$eval("i[data-lucide]", els => els.map(e => e.getAttribute("data-lucide")));
 const by = (n) => svgs.find(s => s.name === n);
 
-checks.add("a renamed alias still resolves", (by("check-circle-2")?.kids ?? 0) > 0,
-  "check-circle-2 — lucide renamed it; the pinned vendor keeps the alias");
+checks.add("a renamed alias still resolves", (by("grid")?.kids ?? 0) > 0,
+  "grid — lucide renamed it; the pinned vendor keeps the alias");
+checks.add("a terrain glyph renders beside the vendored set", (by("terrain-hill")?.kids ?? 0) > 0,
+  "terrain-hill — registered by icons/terrain-icons.js");
 checks.add("the element keeps its own class", !!by("scissors")?.cls?.includes("tool-icon")
   && !!by("scissors")?.cls?.includes("lucide-scissors"), by("scissors")?.cls ?? "-");
 checks.add("studio.js attrs are applied", by("scissors")?.width === "16" && by("scissors")?.strokeWidth === "1.5",

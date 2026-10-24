@@ -41,7 +41,7 @@
               <div class="geo-row @(s.Id == SelectedShapeId ? "geo-row--selected" : null)"
                    @onclick="() => OnSelectShape.InvokeAsync(s.Id)">
                 <span class="geo-indent"><span class="indent-pipe"></span></span>
-                <span class="@(s.Operation == "subtract" ? "geo-type-icon geo-type-icon--subtract" : "geo-type-icon")"><i data-lucide="@TypeIcon(s.Type)"></i></span>
+                <span class="@(s.Operation == "subtract" ? "geo-type-icon geo-type-icon--subtract" : "geo-type-icon")"><i data-lucide="@s.Icon"></i></span>
                 <span class="geo-label">@s.Type</span>
                 <span class="list-tag">@s.Dim</span>
                 @if (s.Override)
@@ -58,7 +58,7 @@
         <div class="geo-row @(s.Id == SelectedShapeId ? "geo-row--selected" : null)"
              @onclick="() => OnSelectShape.InvokeAsync(s.Id)">
           <span class="geo-indent"></span>
-          <span class="@(s.Operation == "subtract" ? "geo-type-icon geo-type-icon--subtract" : "geo-type-icon")"><i data-lucide="@TypeIcon(s.Type)"></i></span>
+          <span class="@(s.Operation == "subtract" ? "geo-type-icon geo-type-icon--subtract" : "geo-type-icon")"><i data-lucide="@s.Icon"></i></span>
           <span class="geo-label">@s.Type</span>
           <span class="list-tag">@s.Dim</span>
           @if (s.Override)

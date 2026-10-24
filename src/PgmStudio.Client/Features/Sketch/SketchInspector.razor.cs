@@ -37,16 +37,6 @@ public partial class SketchInspector
     // value is always blank, so NumberField snaps back to blank after each entry and the same angle applies again.
     private Task RotateChanged(double degrees) => degrees != 0 ? OnRotate.InvokeAsync(degrees) : Task.CompletedTask;
 
-    private static string TypeIcon(string t) => t switch
-    {
-        ShapeKinds.Rectangle => "rectangle-horizontal",
-        ShapeKinds.Circle    => "circle",
-        ShapeKinds.Polygon   => "pentagon",
-        ShapeKinds.Lasso     => "lasso",
-        ShapeKinds.Polyline  => "spline",
-        _                    => "square",
-    };
-
     // How a path's two long sides are drawn. Its finish — gravel, a cell fabric, any pattern at all — is a
     // theme assigned to the shape, so what is offered here is only the shape of the band.
     private static readonly SelectOption[] StrokeEdges =
@@ -131,12 +121,16 @@ public partial class SketchInspector
     [
         new("",        "Follow", "The modifiers reshape it with the land around it."),
         new(Vocabulary.ReliefScopes.Hold, "Hold", "Stays at its own height; the modifiers leave it out."),
+        new(Vocabulary.ReliefScopes.Ride, "Ride", "Keeps its form and moves by the median change the modifiers made to the ground under it."),
     ];
 
-    /// <summary>What holding works out to, in the shape's own numbers. Empty for the default.</summary>
-    private string ReliefScopeReadout => Shape?.ReliefScope == Vocabulary.ReliefScopes.Hold
-        ? $"Stays at {Shape.Floor + Shape.BaseHeight} whatever the modifiers do around it."
-        : "";
+    /// <summary>What holding or riding works out to, in the shape's own numbers. Empty for the default.</summary>
+    private string ReliefScopeReadout => Shape?.ReliefScope switch
+    {
+        Vocabulary.ReliefScopes.Hold => $"Stays at {Shape.Floor + Shape.BaseHeight} whatever the modifiers do around it.",
+        Vocabulary.ReliefScopes.Ride => $"Keeps its {Shape.BaseHeight}-block form and rises or sinks with the ground the modifiers leave under it.",
+        _ => "",
+    };
 
     /// <summary>What the skirt does at the number it is set to. Zero is the one value worth a word, because a
     /// sheer face is right for a built thing and wrong for a landform.</summary>

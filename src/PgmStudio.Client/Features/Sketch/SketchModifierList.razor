@@ -1,13 +1,48 @@
 @namespace PgmStudio.Client.Features.Sketch
 @using PgmStudio.Vocabulary
 
-@* The modifier stack, in the order it runs: each row picks its modifier, switches it off and on, and moves it up
-   or down the order. A modifier is added by tracing its outline with its tool in the dock. *@
+@* The Terraform phase's left column. Shapes first, because they are what the stack works on: each drawn shape
+   with how the modifiers meet it. Then the stack, in the order it runs: each row picks its modifier, switches it
+   off and on, and moves it up or down the order. A modifier is added by tracing its outline or line with its
+   tool in the dock. *@
+
+<Section Title="Shapes">
+  @if (Ground.Count == 0)
+  {
+    <p class="section-desc">No shape yet. Draw the ground in the Draw phase.</p>
+  }
+  else
+  {
+    <div class="region-tree" aria-label="Shapes, and how the modifiers meet each">
+      @foreach (var shape in Ground)
+      {
+        <div class="geo-row shape-relation-row" @key="shape.Id">
+          <span class="geo-type-icon"><i data-lucide="@shape.Icon"></i></span>
+          <span class="geo-label" title="@shape.Type @shape.Dim">@shape.Type</span>
+          <span class="list-tag">@shape.Dim</span>
+          @if (!string.IsNullOrEmpty(shape.HeightMode))
+          {
+            @* A shape with a height mode stands at its own statement, so the modifiers never reshape it and
+               the relation is not asked of it. *@
+            <span class="shape-relation list-tag" title="@HeightModeNote(shape.HeightMode)">@Capitalised(shape.HeightMode)</span>
+          }
+          else
+          {
+            <span class="shape-relation">
+              <Select Options="Relations" Value="@shape.ReliefScope" Title="How the modifiers meet this shape"
+                      ValueChanged="word => Relate(shape.Id, word)" />
+            </span>
+          }
+        </div>
+      }
+    </div>
+  }
+</Section>
 
 <Section Title="Modifiers">
   @if (State.Modifiers.Count == 0)
   {
-    <p class="section-desc">No modifier yet. Pick one in the dock and drag its outline on the board; each changes the ground inside it, in this list's order.</p>
+    <p class="section-desc">No modifier yet. Pick one in the dock and drag its outline or line on the board; each changes the ground inside it, in this list's order.</p>
   }
   else
   {

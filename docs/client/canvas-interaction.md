@@ -103,18 +103,18 @@ canvas layer can then reuse or test it.
 | `geometry/symmetry.js` | the JS twin of `PgmStudio.Geom.Symmetry` (see the warning in `CLAUDE.md`) |
 | `geometry/islands.js`, `region-convert.js` | GeoJSON coercion; PGM `+1`-rule bounds conversions |
 | `dressing/dressing-doc.js` | the dressing document: the flat list of placed props, in the wire shape `DressingDoc` deserializes, and `onLayer` (§6) |
-| `relief/modifier-doc.js` | the modifier stack, in the wire shape `SketchLayout.Modifiers` is: a new modifier from a traced outline, a patch, a move in the order, a mask moved or reshaped, and every outline a mask is drawn with under the symmetry |
+| `relief/modifier-doc.js` | the modifier stack, in the wire shape `SketchLayout.Modifiers` is: the operations and which of them trace a line, a new modifier from a traced outline or run, a patch, a move in the order, a mask moved or reshaped, the distance to a line, and every area a mask is drawn with under the symmetry |
 | `theme/theme-model.js` | the unthemed ground a new terrain theme starts from, and the theme id uniquifier |
 | `render/svg.js` | the retained dialect: the element factory for the screen-space overlays and the fixed-fit previews, plus the path builders both dialects share |
 | `render/layer-stack.js` | the z-ordered **screen-space** layer groups, declared once per canvas (key order = paint order, bottom first); each group carries `data-layer="<name>"`, plus `showLayers`/`clearLayer` |
-| `render/canvas-painter.js` | the painted dialect, and the whole of it: a DPR-aware 2-D surface — `begin(scale, pan)` applies the viewport so draws are in world units, `layer(name, paint)` brackets each phase in save/restore and records its name (`painter.layers` is the queryable paint order), `screenPx` holds a constant screen size — a stroke width, and equally a label's `size`, since text asked for in world units grows with the map and a label states what a thing *is* rather than how big it is, `token`/`color` resolve and cache CSS custom properties (demoting any value the context won't parse), `toSurface` carries the world→surface fit, and the primitives (`rect`/`line`/`segments`/`circle`/`dot`/`ellipse`/`path`/`ring`/`poly`/`text`/`image`) take world coordinates and one style vocabulary |
+| `render/canvas-painter.js` | the painted dialect, and the whole of it: a DPR-aware 2-D surface — `begin(scale, pan)` applies the viewport so draws are in world units, `layer(name, paint)` brackets each phase in save/restore and records its name (`painter.layers` is the queryable paint order), `screenPx` holds a constant screen size — a stroke width, and equally a label's `size`, since text asked for in world units grows with the map and a label states what a thing *is* rather than how big it is, `token`/`color` resolve and cache CSS custom properties (demoting any value the context won't parse), `toSurface` carries the world→surface fit, and the primitives (`rect`/`line`/`polyline`/`segments`/`circle`/`dot`/`ellipse`/`path`/`ring`/`poly`/`text`/`image`) take world coordinates and one style vocabulary |
 | `render/canvas-chrome.js` | viewport-derived chrome shared by the drawing canvases: the visible-world rect, the grid-step ladder, the painted working area, the scale bar, the dimension pill, and the **transform box** every surface scales a selection by (§5) |
 | `render/shape-render.js`, `sketch-render.js`, `symmetry-render.js`, `block-render.js` | shared stateless painting for primitives, sketch overlays, symmetry axes, block PNGs |
 | `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, for the world canvas and the sketch alike |
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
 | `render/column-mesh.js` | the server's per-column runs → the triangles that preview draws; decides which faces are seen, and drops the runs of any sketch layer the viewer has hidden before deciding |
 | `bridge/live-feed.js` | the one debounced, sequence-guarded POST of a bridge's document to a route, answering only the latest request, and the one `refusalText` that reads the sentence out of a refusal envelope |
-| `bridge/iso-preview.js` | the 3-D preview the sketch bridge drives: enter, the mesh kept against the document it came from, rotate, layer hiding, and the two reasons it cannot run |
+| `bridge/iso-preview.js` | the 3-D preview the sketch bridge drives: enter, the mesh kept against the document it came from, rebuild on demand, rotate, layer hiding, and the two reasons it cannot run |
 | `bridge/house-iso-bridge.js` | the library's 3-D building: an `IsoScene` on a wrap with no canvas under it (§6) |
 | `canvas/canvas-base.js` | the shared pan/zoom/drag machinery (§3) |
 | `canvas/world-canvas.js` | the world engine every Configure canvas step mounts (§1) |
@@ -123,6 +123,7 @@ canvas layer can then reuse or test it.
 | `controllers/*` | one interaction mode each (§4) |
 | `bridge/*` | one `mount()` per surface (§6) |
 | `shared/panel-resize.js`, `studio.js` | sidebar drag bars; Lucide icons and small interop helpers |
+| `icons/terrain-icons.js` | the `terrain-*` glyphs, registered into the vendored Lucide set after it loads |
 | `shared/keys.js`, `keys-overlay.js` | the one keyboard registry every owner binds into (§9), and the sheet/palette rendered from it |
 | `shared/pick.js` | the two-level selection rule the sketch canvas resolves a click with (§5) |
 

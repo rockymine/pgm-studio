@@ -364,6 +364,11 @@
 .modifier-row.geo-row--selected .modifier-row-tools, .modifier-row--off .modifier-row-tools { visibility: visible; }
 .modifier-row--off .geo-label { text-decoration: line-through; color: var(--text-muted); }
 .modifier-row--off .geo-type-icon, .modifier-eye--off { opacity: .45; }
+/* The Shapes list above the stack: a shape's size reads quietly and its relation to the modifiers is the control at the row's end. */
+.shape-relation-row { cursor: default; gap: 6px; }
+.shape-relation-row .list-tag { margin-left: auto; }
+.shape-relation-row .shape-relation { margin-left: 0; }
+.shape-relation .field-input--slim { width: auto; flex: none; }
 .modifier-size { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
 .indent-pipe   { display: inline-block; width: 14px; flex-shrink: 0; }
 .geo-type-icon {

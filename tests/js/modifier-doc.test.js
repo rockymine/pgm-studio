@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mountSketchBridge } from "./_sketch-bridge-stub.js";
 import { newModifier, addArea, patchModifier, moveModifier, freshModifierId, areaPoints, withAreaPoints,
-         translateModifier, maskRings }
+         translateModifier, maskRings, isLineOp, distanceToLine, LINE_WIDTH, MODIFIER_OPS }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/relief/modifier-doc.js";
 import { ModifierController, opOfTool }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/modifier-controller.js";
@@ -109,4 +109,114 @@ test("an edit through the bridge is the layout's modifiers, and each is an undo 
   assert.deepEqual(handle.getState().modifiers.map(m => m.id), [hill.id]);
   handle.undo();
   assert.equal(handle.getState().modifiers.length, 2, "undo puts the deleted modifier back");
+});
+
+const RUN = [[0, 0], [20, 0], [20, 20]];
+
+test("a line operation's trace is a line of the standard width, and every other is a polygon", () => {
+  const ridge = newModifier([], "ridge", RUN);
+  assert.deepEqual(ridge.mask.areas, [{ kind: "line", points: RUN, width: LINE_WIDTH }]);
+  assert.equal(LINE_WIDTH, 6);
+  for (const op of ["scarp", "canyon", "road", "river"]) assert.ok(isLineOp(op), op);
+  for (const op of ["mound", "crater", "level", "butte", "spire", "lake", "noise", "gullies", "warp"])
+    assert.ok(!isLineOp(op), op);
+  assert.equal(newModifier([], "butte", SQUARE).mask.areas[0].kind, "polygon");
+});
+
+test("every operation names itself, starts with its own numbers and gets a unique id", () => {
+  assert.equal(MODIFIER_OPS.length, 14);
+  const stack = [];
+  for (const { op, label } of MODIFIER_OPS) {
+    const made = newModifier(stack, op, RUN);
+    assert.equal(made.id, label.toLowerCase());
+    stack.push(made);
+  }
+  const byOp = Object.fromEntries(stack.map(m => [m.op, m]));
+  assert.equal(byOp.scarp.side, 1);
+  assert.equal(byOp.canyon.bed, 0.35);
+  assert.equal(byOp.river.water, 1);
+  assert.equal(byOp.road.grade, 0.25);
+  assert.equal(byOp.gullies.count, 8);
+  assert.equal(byOp.warp.cell, 24);
+  assert.equal("top" in byOp.butte, false, "an absolute height is left for the server to read off the ground");
+  assert.equal("level" in byOp.lake, false);
+});
+
+test("a line modifier takes another line, and a line keeps its width when reshaped or moved", () => {
+  const ridge = newModifier([], "ridge", RUN);
+  assert.equal(addArea(ridge, RUN).mask.areas[1].kind, "line");
+  const wide = { ...ridge, mask: { ...ridge.mask, areas: [{ kind: "line", points: RUN, width: 10 }] } };
+  assert.equal(withAreaPoints(wide, 0, [[1, 1], [5, 5]]).mask.areas[0].width, 10);
+  assert.deepEqual(translateModifier(wide, 3, 4).mask.areas[0], { kind: "line", points: [[3, 4], [23, 4], [23, 24]], width: 10 });
+  assert.deepEqual(areaPoints(wide.mask.areas[0]), RUN);
+  assert.equal(areaPoints({ kind: "line", points: [[0, 0]], width: 6 }), null, "one point is not a run");
+});
+
+test("a line is outlined open, with its band, and each image under the symmetry", () => {
+  const ridge = newModifier([], "ridge", RUN);
+  const [own, image] = maskRings(ridge, "rot_180");
+  assert.equal(own.line, true);
+  assert.equal(own.width, 6);
+  assert.equal(image.image, true);
+  assert.equal(image.points.length, 3, "an open run is not closed by its image");
+  assert.equal(maskRings(newModifier([], "butte", SQUARE), "none")[0].line, false);
+});
+
+test("distance to a line is to its nearest segment, not to its ends", () => {
+  assert.equal(distanceToLine(RUN, 10, 4), 4);
+  assert.equal(distanceToLine(RUN, 24, 10), 4);
+  assert.equal(distanceToLine(RUN, -3, 0), 3);
+});
+
+function controllerOver(stack) {
+  const log = { traced: [], changed: 0 };
+  const tools = new ModifierController(null, null, {
+    getModifiers: () => stack.list,
+    onTraced: (op, points) => { log.traced.push([op, points]); stack.list = [...stack.list, newModifier(stack.list, op, points)]; },
+    onChanged: (next) => { stack.list = next; log.changed++; },
+    onPreview: (next) => { stack.list = next; },
+  });
+  return { tools, log };
+}
+
+test("a drag with a line tool traces an open run, dropping the points that lie on its bends' chords", () => {
+  const stack = { list: [] };
+  const { tools, log } = controllerOver(stack);
+  tools.onMouseDown(0, 0, "modifier:ridge");
+  for (const [x, z] of [[5, 0], [10, 0], [15, 0], [20, 0], [20, 5], [20, 10], [20, 20]]) tools.onMouseMove(x, z, "modifier:ridge");
+  tools.onMouseUp();
+  assert.equal(log.traced.length, 1);
+  assert.deepEqual(log.traced[0], ["ridge", [[0, 0], [20, 0], [20, 20]]]);
+  assert.equal(stack.list[0].mask.areas[0].kind, "line");
+});
+
+test("a line that goes nowhere is a misfire: a click, or a drag of a block or two", () => {
+  const stack = { list: [] };
+  const { tools, log } = controllerOver(stack);
+  tools.onMouseDown(4, 4, "modifier:river");
+  tools.onMouseUp();
+  tools.onMouseDown(4, 4, "modifier:river");
+  tools.onMouseMove(5, 5, "modifier:river");
+  tools.onMouseUp();
+  assert.equal(log.traced.length, 0);
+});
+
+test("Select picks a line within half its width and not beyond, and drags the whole run", () => {
+  const stack = { list: [newModifier([], "road", [[0, 0], [30, 0]])] };
+  const { tools } = controllerOver(stack);
+  assert.equal(tools.onMouseDown(10, 2, "select"), true, "two blocks off a six-wide line is on it");
+  assert.equal(tools.selectedId, "road");
+  tools.onMouseMove(10, 12, "select");
+  tools.onMouseUp();
+  assert.deepEqual(stack.list[0].mask.areas[0].points, [[0, 10], [30, 10]]);
+  assert.equal(tools.onMouseDown(10, 40, "select"), false, "thirty blocks off picks nothing");
+});
+
+test("a point inserted into a picked line goes in a real edge, and the last point has no edge back to the first", () => {
+  const stack = { list: [newModifier([], "ridge", [[0, 0], [10, 0], [10, 10]])] };
+  const { tools } = controllerOver(stack);
+  tools.select("ridge", 0);
+  assert.equal(tools.insertPoint(0), true);
+  assert.deepEqual(stack.list[0].mask.areas[0].points, [[0, 0], [5, 0], [10, 0], [10, 10]]);
+  assert.equal(tools.insertPoint(3), false, "the last point of an open run has no edge after it");
 });

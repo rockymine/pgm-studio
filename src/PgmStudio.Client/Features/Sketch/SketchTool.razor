@@ -114,7 +114,7 @@
           }
           else if (ReliefActive)
           {
-            <SketchModifierList Handle="handle" State="modifiers" />
+            <SketchModifierList Handle="handle" State="modifiers" Shapes="shapes" />
           }
           else if (LayoutActive)
           {
@@ -214,6 +214,12 @@
                               OnTake="TakeTheme" OnAdd="() => themeAddOpen = !themeAddOpen" />
           }
 
+          @* The ground read after the first few modifiers, in the picture and in 2-D alike. *@
+          @if (ReliefActive)
+          {
+            <SketchStepStrip State="modifiers" OnStep="SetStep" />
+          }
+
           @* Nothing is drawn in the isometric preview, so the dock goes with the tools it holds. *@
           @if (!iso.ThreeD)
           {
@@ -245,13 +251,29 @@
             }
             else if (ReliefActive)
             {
+              @* Four families of operation, each down to its last-picked one: the ground a mask raises or sinks,
+                 the lines a run is traced for, the water, and the texture laid over the ground. A carve is the
+                 fifth, which is not built, so it is shown and cannot be armed. *@
               <DockGroup>
-                @foreach (var op in ModifierOps.All)
-                {
-                  var armed = SketchModifierState.Tool(op);
-                  <DockButton Icon="@SketchModifierState.Icon(op)" Title="@($"{ModifierOps.Label(op)}: drag its outline")" @key="op"
-                              Active="@(tool == armed)" OnClick="() => SetTool(armed)" />
-                }
+                <DockFlyoutGroup Items="GroundItems" ActiveKey="@groundActive" Label="Ground"
+                                 Armed="@ModifierArmed(groundActive)"
+                                 Open="@(openFlyout == GroundFamily)" OnToggleOpen="() => ToggleFlyout(GroundFamily)"
+                                 OnPick="ArmModifier" />
+                <DockFlyoutGroup Items="LineItems" ActiveKey="@linesActive" Label="Lines"
+                                 Armed="@ModifierArmed(linesActive)"
+                                 Open="@(openFlyout == LinesFamily)" OnToggleOpen="() => ToggleFlyout(LinesFamily)"
+                                 OnPick="ArmModifier" />
+                <DockFlyoutGroup Items="WaterItems" ActiveKey="@waterActive" Label="Water"
+                                 Armed="@ModifierArmed(waterActive)"
+                                 Open="@(openFlyout == WaterFamily)" OnToggleOpen="() => ToggleFlyout(WaterFamily)"
+                                 OnPick="ArmModifier" />
+                <DockFlyoutGroup Items="TextureItems" ActiveKey="@textureActive" Label="Texture"
+                                 Armed="@ModifierArmed(textureActive)"
+                                 Open="@(openFlyout == TextureFamily)" OnToggleOpen="() => ToggleFlyout(TextureFamily)"
+                                 OnPick="ArmModifier" />
+              </DockGroup>
+              <DockGroup>
+                <DockButton Icon="pickaxe" Title="Carve — tunnels, chambers and shafts: Phase 4" Disabled />
               </DockGroup>
             }
             else if (PlacesActive)
@@ -341,7 +363,8 @@
           <div class="sidebar-handle"></div>
           @if (modifiers.Selected is { } pickedModifier)
           {
-            <SketchModifierInspector @key="SketchModifierState.Id(pickedModifier)" Handle="handle" Modifier="pickedModifier" />
+            <SketchModifierInspector @key="SketchModifierState.Id(pickedModifier)" Handle="handle" Modifier="pickedModifier"
+                                     Shapes="shapes" Groups="groups" Changed="@modifiers.ChangedBy(SketchModifierState.Id(pickedModifier))" />
           }
           else
           {

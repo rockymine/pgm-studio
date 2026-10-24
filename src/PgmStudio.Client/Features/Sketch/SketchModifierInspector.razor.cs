@@ -12,15 +12,37 @@ public partial class SketchModifierInspector
 {
     [Parameter] public IJSObjectReference? Handle { get; set; }
     [Parameter, EditorRequired] public JsonObject Modifier { get; set; } = [];
+
+    /// <summary>The drawn shapes a modifier may be told to leave out.</summary>
+    [Parameter] public IReadOnlyList<SketchShapeRow> Shapes { get; set; } = [];
+
+    /// <summary>The groups the shapes sit in, which name them where two shapes would read alike.</summary>
+    [Parameter] public IReadOnlyList<SketchGroupRow> Groups { get; set; } = [];
+
+    /// <summary>How many columns this modifier moved, as the server last counted; null when it has not.</summary>
+    [Parameter] public int? Changed { get; set; }
+
     [Inject] public IJSRuntime JS { get; set; } = default!;
 
     private const string Name = "name", Off = "off", Mode = "mode", Rise = "rise", Power = "power", Join = "join",
         Soft = "soft", Floor = "floor", Flat = "flat", Slope = "slope", Melt = "melt", Top = "top", Inner = "inner",
-        Outer = "outer", Seed = "seed", Cell = "cell", Octaves = "octaves";
+        Outer = "outer", Seed = "seed", Cell = "cell", Octaves = "octaves", Wander = "wander", Cliff = "cliff",
+        Talus = "talus", Apron = "apron", Jag = "jag", Taper = "taper", Height = "height", Side = "side",
+        Depth = "depth", Bed = "bed", Wall = "wall", Ledges = "ledges", Water = "water", Bank = "bank",
+        Level = "level", Shore = "shore", Grade = "grade", Shoulder = "shoulder", Count = "count",
+        Sharpness = "sharpness", Amount = "amount", Width = "width", Leaving = "leaves";
+
+    /// <summary>The width a line is traced with, which a mask that states none is read at.</summary>
+    private const double DefaultLineWidth = 6;
 
     private static readonly IReadOnlyList<SelectOption> Modes =
     [
         new("", "Both ways"), new(ModifierModes.Lift, "Only raise"), new(ModifierModes.Cut, "Only lower"),
+    ];
+
+    private static readonly IReadOnlyList<SelectOption> Sides =
+    [
+        new("1", "Right of the line"), new("-1", "Left of the line"),
     ];
 
     private string? error;
@@ -31,19 +53,54 @@ public partial class SketchModifierInspector
     private bool Mirrored => Mask["mirror"]?.GetValue<bool>() != false;
     private List<JsonObject> Areas => Mask["areas"] is JsonArray areas ? [.. areas.OfType<JsonObject>()] : [];
     private List<JsonObject> Sizes => Modifier["sizes"] is JsonArray sizes ? [.. sizes.OfType<JsonObject>()] : [];
+    private bool HasLine => Areas.Any(SketchModifierState.IsLine);
+
+    /// <summary>The ids of the shapes the mask leaves out.</summary>
+    private HashSet<string> Leaves => Mask[Leaving] is JsonArray leaves
+        ? [.. leaves.Select(leaf => leaf?.GetValue<string>()).OfType<string>()]
+        : [];
+
+    /// <summary>The shapes that are ground, which are the ones a modifier has columns of to leave out.</summary>
+    private IReadOnlyList<SketchShapeRow> Leavable => [.. Shapes.Where(shape => shape.Operation != "subtract")];
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
     private static double? Number(JsonObject node, string field) =>
         node[field] is JsonValue value && value.TryGetValue<double>(out var number) ? number : null;
 
+    private static string ChangedLine(int columns) =>
+        $"Changed {columns} column{(columns == 1 ? "" : "s")}.";
+
     /// <summary>What the mask holds, and how it is changed: on the board, as every outline is.</summary>
-    private string AreaLine => Areas.Count switch
+    private string AreaLine
     {
-        0 => "No outline: it works on the whole board.",
-        1 => "One outline. Drag it, or its points, on the board.",
-        var count => $"{count} outlines. Drag them, or their points, on the board.",
-    };
+        get
+        {
+            var lines = Areas.Count(SketchModifierState.IsLine);
+            var outlines = Areas.Count - lines;
+            if (lines == 0 && outlines == 0) return "No outline: it works on the whole board.";
+            var parts = new List<string>();
+            if (outlines > 0) parts.Add(outlines == 1 ? "one outline" : $"{outlines} outlines");
+            if (lines > 0) parts.Add(lines == 1 ? "one line" : $"{lines} lines");
+            var held = string.Join(" and ", parts);
+            return $"{char.ToUpperInvariant(held[0])}{held[1..]}. Drag {(Areas.Count == 1 ? "it" : "them")}, or their points, on the board.";
+        }
+    }
+
+    private string LineWidthLabel(int index)
+    {
+        var lines = Areas.Take(index + 1).Count(SketchModifierState.IsLine);
+        return Areas.Count(SketchModifierState.IsLine) > 1 ? $"Line {lines} width" : "Line width";
+    }
+
+    /// <summary>What a shape is called in the list of what the modifier may leave out: its kind and size, and the
+    /// group it belongs to where there is one.</summary>
+    private string ShapeLabel(SketchShapeRow shape)
+    {
+        var group = Groups.FirstOrDefault(entry => entry.ShapeIds.Contains(shape.Id));
+        var named = $"{shape.Type} {shape.Dim}";
+        return group is null ? named : $"{group.Name}: {named}";
+    }
 
     private Task SetNumber(string field, double value) => Patch(new JsonObject { [field] = value });
 
@@ -54,10 +111,31 @@ public partial class SketchModifierInspector
 
     private Task SetBool(string field, bool on) => Patch(new JsonObject { [field] = on });
 
-    private Task SetMirror(bool on)
+    private Task SetSide(string side) => Patch(new JsonObject { [Side] = side == "-1" ? -1 : 1 });
+
+    private Task SetMirror(bool on) => PatchMask(mask => mask["mirror"] = on);
+
+    private Task SetLineWidth(int index, double width) =>
+        PatchMask(mask => mask["areas"]![index]![Width] = width);
+
+    /// <summary>Ticks or clears one shape in the mask's <c>leaves</c>. The key is dropped when none is left, and
+    /// a shape that has since been deleted is dropped with it.</summary>
+    private Task SetLeaves(string shapeId, bool leave)
+    {
+        var present = Shapes.Select(shape => shape.Id).ToHashSet();
+        var kept = Leaves.Where(present.Contains).ToHashSet();
+        if (leave) kept.Add(shapeId); else kept.Remove(shapeId);
+        return PatchMask(mask =>
+        {
+            if (kept.Count == 0) mask.Remove(Leaving);
+            else mask[Leaving] = new JsonArray([.. Shapes.Where(shape => kept.Contains(shape.Id)).Select(shape => (JsonNode)shape.Id)]);
+        });
+    }
+
+    private Task PatchMask(Action<JsonObject> edit)
     {
         var mask = (JsonObject)Mask.DeepClone();
-        mask["mirror"] = on;
+        edit(mask);
         return Patch(new JsonObject { ["mask"] = mask });
     }
 

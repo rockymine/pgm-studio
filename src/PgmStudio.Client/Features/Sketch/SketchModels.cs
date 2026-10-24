@@ -26,7 +26,19 @@ public sealed record SketchShapeRow(
     // every other kind of shape, which is what the inspector reads to know whether to offer them.
     [property: JsonPropertyName("radius")] double Radius = 0,
     [property: JsonPropertyName("strokeEdge")] string StrokeEdge = "",
-    [property: JsonPropertyName("strokeSeed")] int StrokeSeed = 0);
+    [property: JsonPropertyName("strokeSeed")] int StrokeSeed = 0)
+{
+    /// <summary>The glyph a list draws beside the shape.</summary>
+    public string Icon => Type switch
+    {
+        ShapeKinds.Rectangle => "rectangle-horizontal",
+        ShapeKinds.Circle    => "circle",
+        ShapeKinds.Polygon   => "pentagon",
+        ShapeKinds.Lasso     => "lasso",
+        ShapeKinds.Polyline  => "spline",
+        _                    => "square",
+    };
+}
 
 /// <summary>The plan piece a click picked (sketch-bridge.js <c>OnStructuralSelected</c>): a spawn or wool
 /// room's region, or the building footprint inside one. It is not one of <see cref="SketchShapeRow"/> — the

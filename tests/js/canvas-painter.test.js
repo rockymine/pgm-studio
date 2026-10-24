@@ -299,6 +299,17 @@ test("segments draws many runs as one path — one beginPath, one stroke", () =>
   assert.equal(drawn(painter, "stroke").length, 1);
 });
 
+test("polyline strokes an open run as one path: moveTo, then lineTo for each point, and no close", () => {
+  const painter = drawingPainter(CanvasPainter);
+  painter.polyline([[0, 0], [10, 0], [10, 5]], { stroke: "#fff", width: 3, cap: "round" });
+  assert.deepEqual(drawn(painter, "moveTo"), [["moveTo", 0, 0]]);
+  assert.equal(drawn(painter, "lineTo").length, 2);
+  assert.equal(drawn(painter, "stroke").length, 1);
+  assert.equal(painter.ctx.lineCap, "round");
+  painter.polyline([[0, 0]], { stroke: "#fff" });
+  assert.equal(drawn(painter, "stroke").length, 1, "one point is not a run");
+});
+
 test("a world transform maps the primitives, but not the stroke width", () => {
   const doubled = (x, z) => ({ x: x * 2 + 100, y: z * 2 + 100 });
   const painter = drawingPainter(CanvasPainter, { scale: 2, toSurface: doubled });

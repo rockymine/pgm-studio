@@ -131,14 +131,21 @@ export function paintPlaces(painter, places, selectedId = null) {
 }
 
 /** The modifiers' masks: every outline thin, the picked modifier's bold with its images under the symmetry
- *  dashed, and a switched-off modifier's faint. */
+ *  dashed, and a switched-off modifier's faint. A line is stroked open with its band beside it. */
 export function paintMasks(painter, masks) {
   for (const mask of masks ?? []) {
     const strong = mask.picked && !mask.image;
+    const strokeAlpha = mask.off ? 0.3 : strong ? 0.95 : 0.6;
+    const dash = mask.image || mask.off ? [5, 4] : null;
+    if (mask.line) {
+      painter.polyline(mask.points, { stroke: "var(--accent)", strokeAlpha: strong ? 0.18 : mask.picked ? 0.08 : 0.05,
+                                      width: (mask.width ?? 0) / painter.screenPx(1), cap: "round", join: "round" });
+      painter.polyline(mask.points, { stroke: "var(--accent)", strokeAlpha, width: strong ? 2 : 1.5, dash, cap: "round", join: "round" });
+      continue;
+    }
     painter.ring(mask.points, {
       fill: "var(--accent)", fillAlpha: strong ? 0.1 : mask.picked ? 0.04 : 0.02, stroke: "var(--accent)",
-      strokeAlpha: mask.off ? 0.3 : strong ? 0.95 : 0.6, width: strong ? 2 : 1.5,
-      dash: mask.image || mask.off ? [5, 4] : null,
+      strokeAlpha, width: strong ? 2 : 1.5, dash,
     });
   }
 }

@@ -15,6 +15,7 @@ export function recordingPainter({ scale = 1, toSurface = (x, z) => ({ x, y: z }
     rect: record("rect"),
     line: record("line"),
     segments: record("segments"),
+    polyline: record("polyline"),
     circle: record("circle"),
     dot: record("dot"),
     ellipse: record("ellipse"),

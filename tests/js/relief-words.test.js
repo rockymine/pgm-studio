@@ -27,7 +27,7 @@ test("HEIGHT_MODES is HeightModes.All", () => {
   assert.deepEqual(HEIGHT_MODES, words);
 });
 
-test("every stated scope is accepted, including follow, and nothing else is", () => {
+test("hold and ride are accepted, and follow, exclude and nothing else is", () => {
   for (const word of ["hold", "ride"]) assert.ok(isReliefScope(word), word);
   for (const word of ["", "follow", "exclude", "Hold", "Ride", null, undefined]) assert.ok(!isReliefScope(word), String(word));
 });

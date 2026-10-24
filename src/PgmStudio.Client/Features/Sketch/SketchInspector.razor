@@ -7,7 +7,7 @@
     <Section>
       @if (Shape is not null)
       {
-        <DetailHeader Icon="@TypeIcon(Shape.Type)" Label="@Shape.Type">
+        <DetailHeader Icon="@Shape.Icon" Label="@Shape.Type">
           <span class="detail-header-badges">
             <Badge Class="@(Shape.Operation == "subtract" ? "badge--error" : "badge--success")">@Shape.Operation</Badge>
             @if (Shape.Override) { <Badge Kind="warning">override</Badge> }
@@ -160,7 +160,7 @@
         @foreach (var s in GroupShapes())
         {
           <ListRow Compact>
-            <span class="@(s.Operation == "subtract" ? "geo-type-icon geo-type-icon--subtract" : "geo-type-icon")"><i data-lucide="@TypeIcon(s.Type)"></i></span>
+            <span class="@(s.Operation == "subtract" ? "geo-type-icon geo-type-icon--subtract" : "geo-type-icon")"><i data-lucide="@s.Icon"></i></span>
             <span class="list-label">@s.Type</span>
             <span class="list-tag">@s.Dim</span>
           </ListRow>

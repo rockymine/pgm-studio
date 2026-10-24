@@ -4,20 +4,22 @@
  * the same way it routes to those.
  *
  * A modifier's mask is traced the way the lasso traces ground: press with a modifier's tool in hand, drag the
- * outline, release, and the trace is simplified to the points at its real bends. With Select in hand a press on
- * a mask picks its modifier and drags the whole mask; the picked outline carries a grip per point and offers a
- * new point on the edge under the pointer, as a drawn polygon does.
+ * outline, release, and the trace is simplified to the points at its real bends. A line operation (a ridge, a
+ * river) traces an open run instead, simplified the same way and kept with a width. With Select in hand a press
+ * on a mask picks its modifier and drags the whole mask; the picked outline carries a grip per point and offers
+ * a new point on the edge under the pointer, as a drawn polygon does.
  *
  * The controller holds no document. It reads the stack the bridge holds (`getModifiers`) and hands every
  * change back as a new stack (`onChanged`) or a finished trace (`onTraced`).
  */
 
-import { simplifyRing } from "../geometry/simplify.js";
+import { simplifyRing, douglasPeucker } from "../geometry/simplify.js";
 import { distToSegment } from "../geometry/shape.js";
 import { pointInRing } from "../geometry/polygon.js";
 import { svgEl, handleRectAttrs, insertGhost } from "../render/svg.js";
 import { toScreen } from "../geometry/transform.js";
-import { areaPoints, withAreaPoints, translateModifier } from "../relief/modifier-doc.js";
+import { areaPoints, withAreaPoints, translateModifier, isLineOp, isLineArea, distanceToLine, LINE_WIDTH }
+  from "../relief/modifier-doc.js";
 
 /** The dock tool that traces a modifier of an operation is `modifier:<op>`. */
 export const MODIFIER_TOOL_PREFIX = "modifier:";
@@ -29,6 +31,9 @@ export const opOfTool = (tool) => typeof tool === "string" && tool.startsWith(MO
 // The dressing traces' tolerance rather than the lasso's looser one: a mask's outline is the form of the hill
 // seen from above, so a bend the lasso can afford to round off is one the ground would visibly miss.
 const TRACE_SIMPLIFY_TOLERANCE = 2;
+
+// A line shorter than this, in blocks, is a click that moved, not a run.
+const MIN_LINE_LENGTH = 3;
 
 // How near an outline a press counts as on it, in blocks.
 const PICK_SLACK = 2;
@@ -43,7 +48,7 @@ export class ModifierController {
   #getViewport;
   #getModifiers;
   #editable;
-  #trace = null;          // the in-progress outline: { op, points }
+  #trace = null;          // the in-progress outline or run: { op, points, line }
   #drag = null;           // moving a picked mask: { id, fromX, fromZ, moved }
   #pointDrag = null;      // reshaping one outline: { id, area, idx, moved }
   #hoveredEdge = -1;
@@ -95,7 +100,7 @@ export class ModifierController {
     const op = opOfTool(activeTool);
     if (op) {
       if (!this.#editable()) return true;
-      this.#trace = { op, points: [[bx, bz]] };
+      this.#trace = { op, points: [[bx, bz]], line: isLineOp(op) };
       this.#callbacks.onPreviewChanged?.();
       return true;
     }
@@ -138,12 +143,15 @@ export class ModifierController {
   /** Release: the trace's last point is where the button came up, so there is no other way to finish. */
   onMouseUp() {
     if (this.#trace) {
-      const { op, points } = this.#trace;
+      const { op, points, line } = this.#trace;
       this.#trace = null;
-      const ring = simplifyRing(points, TRACE_SIMPLIFY_TOLERANCE);
-      // An outline has to enclose something; below three points the drag was a misfire.
-      if (ring.length < 3) { this.#callbacks.onPreviewChanged?.(); return true; }
-      this.#callbacks.onTraced?.(op, ring);
+      // An outline has to enclose something and a run has to go somewhere; below that the drag was a misfire.
+      const kept = line ? douglasPeucker(points, TRACE_SIMPLIFY_TOLERANCE) : simplifyRing(points, TRACE_SIMPLIFY_TOLERANCE);
+      if (line ? kept.length < 2 || runLength(kept) < MIN_LINE_LENGTH : kept.length < 3) {
+        this.#callbacks.onPreviewChanged?.();
+        return true;
+      }
+      this.#callbacks.onTraced?.(op, kept);
       this.#callbacks.onPlaced?.();
       return true;
     }
@@ -168,13 +176,20 @@ export class ModifierController {
     return modifier ? areaPoints(modifier.mask?.areas?.[this.#selectedArea]) : null;
   }
 
+  /** Whether the picked outline is an open run, whose last point has no edge back to its first. */
+  #pickedIsLine() {
+    const modifier = this.#selectedId ? this.#byId(this.#selectedId) : null;
+    return isLineArea(modifier?.mask?.areas?.[this.#selectedArea]);
+  }
+
   #offerInsert(bx, bz, activeTool) {
     const points = (!activeTool || activeTool === "select") && this.#editable() ? this.#pickedPoints() : null;
-    if (!points || points.length < 3) { this.#clearGhost(); return; }
+    if (!points || points.length < 2) { this.#clearGhost(); return; }
     const view = this.#getViewport();
     const at = toScreen(bx, bz, view);
+    const edges = this.#pickedIsLine() ? points.length - 1 : points.length;
     let best = EDGE_THRESHOLD, index = -1, mx = 0, my = 0;
-    for (let i = 0; i < points.length; i++) {
+    for (let i = 0; i < edges; i++) {
       const j = (i + 1) % points.length;
       const a = toScreen(points[i][0], points[i][1], view);
       const b = toScreen(points[j][0], points[j][1], view);
@@ -202,7 +217,7 @@ export class ModifierController {
    *  so the press that inserts is the drag that places. Returns true if it went in. */
   insertPoint(edge) {
     const points = this.#pickedPoints()?.map(point => [...point]);
-    if (!points || edge < 0 || edge >= points.length) return false;
+    if (!points || edge < 0 || edge >= (this.#pickedIsLine() ? points.length - 1 : points.length)) return false;
     const next = (edge + 1) % points.length;
     points.splice(next, 0, [Math.round((points[edge][0] + points[next][0]) / 2),
                             Math.round((points[edge][1] + points[next][1]) / 2)]);
@@ -268,9 +283,15 @@ export class ModifierController {
     });
   }
 
-  /** The outline being traced, as it will be kept. */
+  /** The outline or run being traced, as it will be kept. */
   paint(painter) {
     if (!this.#trace || this.#trace.points.length < 2) return;
+    if (this.#trace.line) {
+      painter.polyline(this.#trace.points, { stroke: "var(--accent)", strokeAlpha: 0.15, cap: "round", join: "round",
+                                             width: LINE_WIDTH / painter.screenPx(1) });
+      painter.polyline(this.#trace.points, { stroke: "var(--accent)", strokeAlpha: 0.95, width: 2, cap: "round", join: "round" });
+      return;
+    }
     painter.ring(this.#trace.points, { fill: "var(--accent)", fillAlpha: 0.12, stroke: "var(--accent)",
                                        strokeAlpha: 0.95, width: 2 });
   }
@@ -282,6 +303,15 @@ export class ModifierController {
     for (const modifier of this.#getModifiers()) {
       (modifier.mask?.areas ?? []).forEach((area, index) => {
         const points = areaPoints(area);
+        if (isLineArea(area)) {
+          // A run is picked within its band, and a thin one still within the slack, so it is never unreachable.
+          const reach = Math.max((area.width ?? LINE_WIDTH) / 2, PICK_SLACK);
+          if (points && bestFit > 0 && distanceToLine(points, bx + 0.5, bz + 0.5) <= reach) {
+            best = { id: modifier.id, area: index };
+            bestFit = 0;
+          }
+          return;
+        }
         if (!points || points.length < 3) return;
         const inside = pointInRing(bx + 0.5, bz + 0.5, points);
         const fit = inside ? ringArea(points) : nearestEdge(points, bx + 0.5, bz + 0.5) <= PICK_SLACK ? 0 : null;
@@ -290,6 +320,12 @@ export class ModifierController {
     }
     return best;
   }
+}
+
+function runLength(points) {
+  let length = 0;
+  for (let i = 1; i < points.length; i++) length += Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
+  return length;
 }
 
 function ringArea(points) {

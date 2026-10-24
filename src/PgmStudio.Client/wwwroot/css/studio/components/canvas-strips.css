@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   CANVAS STRIPS — the storey strip beside the dock and the theme strip above it.
+   CANVAS STRIPS — the storey strip beside the dock and the theme and step strips above it.
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* ── the storey strip ──
@@ -109,6 +109,26 @@
 .canvas-theme-add:not(:disabled):hover { background: var(--bg-vis-hover); color: var(--text-primary); }
 .canvas-theme-add--on { background: var(--bg-selected); color: var(--text-strong); }
 .canvas-theme-add svg { width: var(--icon-xs); height: var(--icon-xs); }
+/* ── the step strip ──
+   The ground at each point of the modifier stack, floating above the dock in the Terraform phase. The range is
+   the stack's length and the name is the step it stands at: the shapes alone, or the modifier it ends with. */
+.canvas-step-strip {
+  position: absolute; left: 50%; bottom: 62px; transform: translateX(-50%); z-index: 3;
+  display: flex; align-items: center; gap: 8px; padding: 3px 10px;
+  max-width: calc(100% - 20px);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-float-bg); backdrop-filter: blur(6px);
+  border: 1px solid var(--canvas-float-border); box-shadow: var(--canvas-float-shadow);
+}
+.canvas-step-strip-label {
+  flex: 0 0 auto;
+  font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
+}
+.canvas-step-strip .field-range { width: calc(160px * var(--ui-scale)); flex: 0 1 auto; }
+.canvas-step-strip-name {
+  flex: 0 0 auto; min-width: 9ch; max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--font-sm); color: var(--text-strong);
+}
 /* A strip control the caller may not use is greyed and says why on hover (WriteGate). */
 .canvas-layer-add:disabled, .canvas-theme-add:disabled { opacity: 0.4; cursor: default; }
 .canvas-layer-del:disabled { cursor: default; }

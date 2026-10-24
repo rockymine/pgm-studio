@@ -288,7 +288,7 @@ public partial class SketchTool
     // because the stack is geometry — it changes what the rasterizer emits — so it has to precede the two
     // passes that read the built surface.
     private bool ReliefActive => active == "relief";
-    private async Task GoRelief() { await SetPhase("relief"); await SetTool("select"); }
+    private async Task GoRelief() { openFlyout = null; await SetPhase("relief"); await SetTool("select"); }
 
     /// <summary>Whether the canvas is being used to place a scope rather than to draw — today only Theme,
     /// which selects shapes it does not edit.</summary>
