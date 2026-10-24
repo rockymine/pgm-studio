@@ -165,7 +165,7 @@ public sealed class RoomStyleJsonTests
         // not before, since a style ran no material upgrade at all.
         var nested = (LayeredMaterial)style.Wall.Stack.Bands[1].Material;
         await Assert.That(nested.Stack.Bands.Select(band => band.Thickness)).IsEquivalentTo([1, 2]);
-        await Assert.That(nested.Stack.Ending).IsEqualTo(BandEnding.Repeat);
+        await Assert.That(nested.Stack.Ending).IsEqualTo(BandEnding.Hold);
     }
 
     /// <summary>The material walk runs over a style, so a pattern stored before it had bands reads forward

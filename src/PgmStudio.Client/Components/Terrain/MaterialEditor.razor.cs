@@ -73,14 +73,14 @@ public partial class MaterialEditor
     /// and where they end and deliberately not the distance they are measured over.</summary>
     private string Axis => BandAxes.Canonical(JsonEdit.Text(Node, ThemeFields.Axis, BandAxes.Depth));
 
-    private string Ending => BandEndings.Canonical(JsonEdit.Text(Stack, ThemeFields.Ending, BandEndings.Repeat));
+    private string Ending => BandEndings.Canonical(JsonEdit.Text(Stack, ThemeFields.Ending, BandEndings.Hold));
 
     private JsonObject Beyond => JsonEdit.Child(Node, ThemeFields.Beyond, () => ThemeFields.Solid(2, 0));
 
     /// <summary>Whether anything the author states could ever show. Under <c>handOver</c> the stack leaves
     /// everything past its last band; on the inward axis it also answers off the footprint, where there is no
-    /// ring to be in. A depth stack that repeats claims every block it is asked about, so the slot would be a
-    /// control for something nothing can see.</summary>
+    /// ring to be in. A depth stack that holds or cycles claims every block it is asked about, so the slot would
+    /// be a control for something nothing can see.</summary>
     private bool ShowsBeyond => Ending == BandEndings.HandOver || Axis == BandAxes.Inward;
 
     private Task SetAxis(string axis)
@@ -112,10 +112,9 @@ public partial class MaterialEditor
         return Changed();
     }
 
-    private Task ToggleEnding()
+    private Task SetEnding(string ending)
     {
-        JsonEdit.Set(Stack, ThemeFields.Ending,
-            Ending == BandEndings.HandOver ? BandEndings.Repeat : BandEndings.HandOver);
+        JsonEdit.Set(Stack, ThemeFields.Ending, BandEndings.Canonical(ending));
         return Changed();
     }
 

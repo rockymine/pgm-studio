@@ -219,7 +219,7 @@ server-side reaches no editor, why three room-style fields have no control, and 
 authorable only over HTTP. `C51`. Four of it have landed. `B260`: the six room-style fields
 the editor could not reach are controls now, and the load that wrote them away goes through the one mapping
 that states them all. `B200`: the Theme phase's layered form wrote a shape the reader had to carry forward,
-and carrying it forward is what pinned every stack to `repeat` — it writes the wire shape now, so a ring stack
+and carrying it forward is what pinned every stack to `hold` — it writes the wire shape now, so a ring stack
 is authorable. And `B261`: the material editor reads `GET /api/terrain/patterns` for the kinds, their names,
 their help, their fields and their defaults, so a kind added server-side is offered with a seed that works and
 `laidLog` stopped silently becoming a stone block. And `WE54`: the biome the export writes had a route and no

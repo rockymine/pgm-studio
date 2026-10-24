@@ -370,21 +370,22 @@ wall and a roof **upward**. The direction is the load-bearing part of the model.
 would lift the pad and move the exported point; walls indexed from the floor are what keep a band at eye level
 and a slit near the top when the room's height changes, where the layer indices they replace would have slid.
 
-The **last band repeats** past the end of the stack, so `Extent` moves without the stack being re-authored: a
+The **last band holds** past the end of the stack, so `Extent` moves without the stack being re-authored: a
 taller wall grows in whatever its top course is. That is what makes height a knob at all — §4's note that room
 height stays out of G31 is answered here rather than through the frame.
 
-**Repeating is the stack's own statement, not the axis's.** Bands along a distance is one rule and the studio
+**The ending is the stack's own statement, not the axis's.** Bands along a distance is one rule and the studio
 reads it along three: depth from the top of a bucket for a layer stack, courses from the part's own base for a
 room part, rings from the edge for a floor's zoning. What is *not* shared between those is what happens where
-the bands run out, and assuming it is repeating builds the other case wrong. Repeating is right where the
+the bands run out, and assuming it holds builds the other case wrong. Holding is right where the
 stack **owns the whole space**, which is what a wall or a plate is: there is nothing under it to fall through
 to. Handing over is right where the stack is a band **inside** a larger space — a rim two blocks in and then
-the surface, rather than two blocks of rim and then rim forever. So a `BandStack` states its ending
+the surface, rather than two blocks of rim and then rim forever. Cycling is right where a short run of beds is
+meant to recur to any distance: the bands read again from the first. So a `BandStack` states its ending
 (`BandEnding`) and the caller states the axis, and neither is implied by the other.
 
-**A repeating band does not reseed a pattern.** A pattern's seed lives on the material and its field is
-sampled from world coordinates, so the second block of a repeat is one field read a step further along rather
+**A held or cycled band does not reseed a pattern.** A pattern's seed lives on the material and its field is
+sampled from world coordinates, so the second block of a held band is one field read a step further along rather
 than a second field starting over.
 
 Three fixed layers are ordinary courses, and that is the whole simplification. The coloured band was layer 4
@@ -787,7 +788,7 @@ resting on the door head is a porch nobody can walk under.
 
 Seating it under the house's eave instead is wrong for a reason worth keeping. On a house the two agree, since
 a five-course wall puts its eave about where a porch wants its roof anyway. On a **tower** they do not: a wall
-is a `RoomPart` extent and its last course repeats, so a building twenty-four courses tall is an ordinary
+is a `RoomPart` extent and its last course holds, so a building twenty-four courses tall is an ordinary
 style, and a canopy chasing that eave rides the wall the whole way up — a colonnade of posts with a roof at the
 top and the doorway it fronts left open to the sky twenty courses below.
 

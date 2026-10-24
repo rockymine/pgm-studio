@@ -176,10 +176,11 @@ and the one to read rather than guessing a field name off a kind's.
 
 **`layered` — a band stack read along a stated `axis`.** Grass over two dirt; a wall's banded riser. Each band
 states its thickness, and the stack states what it does where they run out: where the bucket is the stack's
-whole space it `repeat`s and a band deeper than declared never falls through to nothing. The other ending,
-`handOver`, claims nothing past the last band and leaves whatever is under the stack showing — which is what a
-band *inside* a larger space wants, and is why the ending is stated rather than assumed; `beyond` says what
-shows there.
+whole space it `hold`s the last band and a band deeper than declared never falls through to nothing. The
+ending `handOver` claims nothing past the last band and leaves whatever is under the stack showing — which is
+what a band *inside* a larger space wants, and is why the ending is stated rather than assumed; `beyond` says
+what shows there. The ending `cycle` reads the bands again from the first, so a short run of beds covers any
+distance (`terrain-painting.md`, §3.1).
 
 The axis is what the thickness is measured in. `depth` (the default) is courses down from the top of the
 bucket; `inward` is steps in from the landmass's void-facing edge, so the bands are concentric rings; `height`
@@ -189,16 +190,24 @@ side, so strata rise and fall with the land (TP26); `slope` is **degrees of incl
 another for the shoulder, another for the face of the same hill.
 
 ```json POST /api/terrain/material-preview
-{ "kind": "layered", "stack": { "ending": "repeat", "bands": [
+{ "kind": "layered", "stack": { "ending": "hold", "bands": [
   { "material": { "kind": "solid", "id": 2 }, "thickness": 1 },
   { "material": { "kind": "solid", "id": 3 }, "thickness": 2 } ] } }
 ```
 
 ```json POST /api/terrain/material-preview
-{ "kind": "layered", "axis": "slope", "stack": { "ending": "repeat", "bands": [
+{ "kind": "layered", "axis": "slope", "stack": { "ending": "hold", "bands": [
   { "material": { "kind": "solid", "id": 2 }, "thickness": 20 },
   { "material": { "kind": "solid", "id": 3, "data": 1 }, "thickness": 15 },
   { "material": { "kind": "solid", "id": 4 }, "thickness": 55 } ] } }
+```
+
+Strata that recur — three courses of sandstone then six of smooth sandstone, for as high as the face goes:
+
+```json POST /api/terrain/material-preview
+{ "kind": "layered", "axis": "height", "stack": { "ending": "cycle", "bands": [
+  { "material": { "kind": "solid", "id": 24, "data": 0 }, "thickness": 3 },
+  { "material": { "kind": "solid", "id": 24, "data": 2 }, "thickness": 6 } ] } }
 ```
 
 **`teamTint` — the block tinted by the team that owns the cell**, on the same 0–15 damage scale wool uses, so
@@ -375,7 +384,7 @@ a sketch stores in its `themes` registry, and the form the export consumes:
   "rimEdges": "drop",
   "wallOnTerrainFaces": true,
   "rim":     { "material": { "kind": "solid", "id": 155 }, "depth": 1, "enabled": true },
-  "surface": { "material": { "kind": "layered", "stack": { "ending": "repeat", "bands": [
+  "surface": { "material": { "kind": "layered", "stack": { "ending": "hold", "bands": [
                  { "material": { "kind": "solid", "id": 2 }, "thickness": 1 },
                  { "material": { "kind": "solid", "id": 3 }, "thickness": 2 } ] } },
                "depth": 3, "enabled": true },
@@ -631,7 +640,7 @@ the stamper takes, a sketch's Palette phase stores, and a placed building carrie
 ```json POST /api/room-styles/preview-snapshot
 {
   "foundation": {
-    "plate": { "extent": 1, "stack": { "ending": "repeat", "bands": [
+    "plate": { "extent": 1, "stack": { "ending": "hold", "bands": [
         { "material": { "kind": "solid", "id": 24, "data": 0 }, "thickness": 1 } ] } },
     "surface": { "field": null, "border": null, "borderWidth": 1,
                  "inlay": null, "inlayInset": 2, "isPlain": true },
@@ -646,7 +655,7 @@ the stamper takes, a sketch's Palette phase stores, and a placed building carrie
     "gableWindows": { "form": "none", "block": 102, "data": 0,
                       "hostBlock": -1, "hostData": 0,
                       "sill": 2, "width": 2, "height": 2, "spacing": 3 } },
-  "wall": { "extent": 7, "stack": { "ending": "repeat", "bands": [
+  "wall": { "extent": 7, "stack": { "ending": "hold", "bands": [
       { "material": { "kind": "solid", "id": 121, "data": 0 }, "thickness": 2 },
       { "material": { "kind": "solid", "id": 24,  "data": 0 }, "thickness": 5 } ] } },
   "post": { "kind": "solid", "id": 24, "data": 2 },

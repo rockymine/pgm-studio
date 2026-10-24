@@ -771,7 +771,7 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_tower_is_a_tall_wall_and_nothing_else()
     {
-        // Height is the wall part's extent and its last course repeats, so a tower needs no form of its own —
+        // Height is the wall part's extent and its last course holds, so a tower needs no form of its own —
         // and a hip over a square footprint comes to a point, which is the cap one wants.
         var style = new HouseStyle
         {

@@ -299,20 +299,28 @@ public static class BandAxes
 /// the axis, which is why it is stated: the two are independent choices.</summary>
 public static class BandEndings
 {
-    /// <summary>The last band claims everything beyond it — right where the stack owns its whole space.</summary>
-    public const string Repeat = "repeat";
+    /// <summary>The last band claims everything beyond it, carried on unchanged — right where the stack
+    /// owns its whole space.</summary>
+    public const string Hold = "hold";
 
     /// <summary>Nothing is claimed past the last band, and whatever is under the stack shows — right where the
     /// stack is a band inside a larger space.</summary>
     public const string HandOver = "handOver";
 
-    public static readonly string[] All = [Repeat, HandOver];
+    /// <summary>The bands recur: past the last band the stack reads again from its first — right where a short
+    /// run of beds is meant to cover any distance.</summary>
+    public const string Cycle = "cycle";
 
-    public static string Describe(string? ending) => Canonical(ending) == HandOver
-        ? "Nothing more is claimed"
-        : "The last band repeats";
+    public static readonly string[] All = [Hold, HandOver, Cycle];
 
-    public static string Canonical(string? ending) => All.Contains(ending) ? ending! : Repeat;
+    public static string Describe(string? ending) => Canonical(ending) switch
+    {
+        HandOver => "Nothing more is claimed",
+        Cycle => "The bands cycle",
+        _ => "The last band holds",
+    };
+
+    public static string Canonical(string? ending) => All.Contains(ending) ? ending! : Hold;
 }
 
 public static class RoofForms

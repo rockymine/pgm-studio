@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Painting;
 
@@ -124,7 +125,7 @@ public static class TerrainThemeJson
     }
 
     /// <summary>A stored list of bands as the stack it is now, reading each band's thickness from whichever key
-    /// that list spelled it with. Both lists this reads owned their whole space, so both repeat.</summary>
+    /// that list spelled it with. Both lists this reads owned their whole space, so both hold.</summary>
     internal static JsonObject Stacked(JsonArray bands, string thickness)
     {
         var carried = new JsonArray();
@@ -134,7 +135,7 @@ public static class TerrainThemeJson
                 ["material"] = band["material"]?.DeepClone(),
                 ["thickness"] = band[thickness]?.DeepClone() ?? 1,
             });
-        return new JsonObject { ["bands"] = carried, ["ending"] = "repeat" };
+        return new JsonObject { ["bands"] = carried, ["ending"] = BandEndings.Hold };
     }
 
     public static string Serialize(TerrainMaterial material) => JsonSerializer.Serialize(material, Options);

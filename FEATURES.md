@@ -7536,6 +7536,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a hill cut through the beds; a narrow one lays them along every bump. The Theme phase's material editor offers
   both on the height axis, and a stack that does not follow writes and reads exactly as before.
   `docs/world-export/terrain-painting.md` §3.1. (`WE142`)
+- **A band stack's ending says what it does: `hold`, `handOver` or `cycle` (`WE60`, `WE143`).** The ending that
+  carries the last band on is `hold` where it was `repeat`, a word that promised the bands would recur;
+  `cycle` is the one that does, reading `BandStack.At(step % span)` with a true modulo so a height stack that
+  cycles bands the ground below its datum too, and a ring stack is still never asked off the footprint. The
+  Theme phase's material editor offers all three, `BandEndings` in `PgmStudio.Vocabulary` spells them, and
+  `M0088` rewrites every stored `"ending":"repeat"` — library styles, boulder rock, composed boards, every map
+  document and every document a change recorded — to `"hold"`. `docs/world-export/terrain-painting.md` §3.1.
+  (`WE60`, `WE143`)
 - **A band stack reads the ground's inclination, which is the angle mask (`WE97`, `TP24`).** Every paintable
   column carries `ColumnProfile.Slope` — Horn's 3x3 gradient over the neighbouring surface tops, in whole
   degrees from level, 0-89 — and `BandAxis.Slope` reads it off `BucketContext.SlopeDegrees`, so a thickness on

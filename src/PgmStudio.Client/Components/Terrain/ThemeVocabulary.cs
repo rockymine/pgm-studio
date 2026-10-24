@@ -28,7 +28,7 @@ public static class ThemeFields
     /// <summary>What shows where a stack claims nothing: past its last band under <c>handOver</c>, and off the
     /// footprint entirely on the inward axis. Absent is stone.</summary>
     public const string Beyond = "beyond";
-    /// <summary>What a stack answers past its last band — <c>repeat</c> or <c>handOver</c>.</summary>
+    /// <summary>What a stack answers past its last band — <c>hold</c>, <c>handOver</c> or <c>cycle</c>.</summary>
     public const string Ending = "ending";
     /// <summary>The world Y a height stack's first band sits at. Read on no other axis.</summary>
     public const string From = "from";
@@ -193,7 +193,7 @@ public static class ThemeFields
 
     /// <summary>A stack of the given bands, claiming everything past the last of them.</summary>
     public static JsonObject NewStack(params JsonNode[] bands) =>
-        new() { [Ending] = BandEndings.Repeat, [ThemeFields.Bands] = new JsonArray(bands) };
+        new() { [Ending] = BandEndings.Hold, [ThemeFields.Bands] = new JsonArray(bands) };
 
     private static JsonObject Layer(JsonNode material, int thickness) => new() { [Material] = material, [Thickness] = thickness };
     private static JsonObject Stripe(JsonNode material, int width) => new() { [Material] = material, [Width] = width };
@@ -363,7 +363,7 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
             "Counted down from the course players stand on, so a deeper floor digs into the ground. The wool pad is placed on top.",
             "Courses deep"),
         new(RoomParts.Wall, "Walls",
-            "Counted up from the floor, and the last course repeats to the top. A coloured course takes the room's colour, and an air course leaves a light slit.",
+            "Counted up from the floor, and the last course holds to the top. A coloured course takes the room's colour, and an air course leaves a light slit.",
             "Courses tall"),
         new(RoomParts.Roof, "Roof",
             "One material over the walls, as deep at each point as the slope needs."),

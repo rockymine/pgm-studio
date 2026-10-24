@@ -132,7 +132,7 @@
      "thickness": 1
     }
    ],
-   "ending": "repeat"
+   "ending": "hold"
   },
   "axis": "depth"
  },

@@ -12,7 +12,7 @@
       "thickness": 1
      }
     ],
-    "ending": "repeat"
+    "ending": "hold"
    },
    "extent": 1
   },
@@ -83,7 +83,7 @@
      "thickness": 5
     }
    ],
-   "ending": "repeat"
+   "ending": "hold"
   },
   "extent": 7
  },
