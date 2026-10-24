@@ -22,7 +22,10 @@
              @key="id" role="option" aria-selected="@(id == State.SelectedId)" @onclick="() => Pick(id)">
           <span class="geo-type-icon"><i data-lucide="@SketchModifierState.Icon(SketchModifierState.Op(modifier))"></i></span>
           <span class="geo-label">@SketchModifierState.Name(modifier)</span>
-          <span class="list-tag">@ModifierOps.Label(SketchModifierState.Op(modifier))</span>
+          @if (SketchModifierState.Named(modifier))
+          {
+            <span class="list-tag">@ModifierOps.Label(SketchModifierState.Op(modifier))</span>
+          }
           <span class="modifier-row-tools" @onclick:stopPropagation>
             <Button Variant="icon" Icon="chevron-up" Writes Title="Run earlier" Disabled="@(at == 0)" OnClick="() => Move(id, -1)" />
             <Button Variant="icon" Icon="chevron-down" Writes Title="Run later" Disabled="@(at == State.Modifiers.Count - 1)" OnClick="() => Move(id, 1)" />

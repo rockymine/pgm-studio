@@ -32,6 +32,10 @@ public sealed record SketchModifierState(IReadOnlyList<JsonObject> Modifiers, st
     public static string Name(JsonObject modifier) =>
         modifier["name"]?.GetValue<string>() is { Length: > 0 } named ? named : Id(modifier);
 
+    /// <summary>Whether the author named the modifier, so its row says the operation beside the name; an unnamed
+    /// one's id already is the operation's name.</summary>
+    public static bool Named(JsonObject modifier) => modifier["name"]?.GetValue<string>() is { Length: > 0 };
+
     /// <summary>The dock tool that traces a new modifier of <paramref name="op"/>.</summary>
     public static string Tool(string op) => $"modifier:{op}";
 

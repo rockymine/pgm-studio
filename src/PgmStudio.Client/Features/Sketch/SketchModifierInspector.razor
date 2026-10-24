@@ -19,7 +19,7 @@
   </Field>
   <label class="check-row">
     <input type="checkbox" checked="@(!SketchModifierState.Off(Modifier))" @onchange="e => SetBool(Off, e.Value is not true)" />
-    Runs (off keeps its numbers)
+    On — switched off, it keeps its numbers and changes nothing
   </label>
 
   @switch (Op)
