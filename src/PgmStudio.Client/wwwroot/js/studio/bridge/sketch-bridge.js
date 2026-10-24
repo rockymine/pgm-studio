@@ -767,7 +767,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   // Push the layer list (id/name/base_y + active) to the Blazor layer panel.
   function pushLayers() {
-    fire("OnLayers", JSON.stringify({ active: layers[active].id, layers: layers.map(L => ({ id: L.id, name: L.name, baseY: L.baseY })) }));
+    fire("OnLayers", JSON.stringify({ active: layers[active].id, layers: layers.map(L => ({ id: L.id, name: L.name, baseY: L.baseY, underside: L.stated?.underside ?? null })) }));
   }
 
   /** Tell the canvas which layer is being drawn on, so whatever is placed lands on it. */
@@ -822,6 +822,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   function renameLayer(id, name) { const L = layers.find(l => l.id === id); if (!L) return; L.name = name; pushLayers(); markDirty(); }
+  // The underside rides in `stated` with the other layer fields the editor does not draw; null takes it off.
+  function setLayerUnderside(id, json) {
+    const L = layers.find(l => l.id === id); if (!L) return;
+    const { underside, ...rest } = L.stated ?? {};
+    L.stated = json ? { ...rest, underside: JSON.parse(json) } : rest;
+    pushLayers(); iso.drop(); markDirty();
+  }
   function setLayerBaseY(id, y) { const L = layers.find(l => l.id === id); if (!L) return; L.baseY = y; pushLayers(); iso.drop(); markDirty(); }
 
   // Move the selection by whole blocks. A group moves as its shapes; a drilled shape moves alone.
@@ -1456,6 +1463,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     deleteLayer(id)         { deleteLayer(id); },
     renameLayer(id, name)   { renameLayer(id, name); },
     setLayerBaseY(id, y)    { setLayerBaseY(id, y); },
+    setLayerUnderside(id, json) { setLayerUnderside(id, json); },
 
     // ── terrain-paint themes (docs/world-export/terrain-painting.md TP10) ──
     getThemes() { return themesState(); },
@@ -1791,7 +1799,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     "setStructuralHeight",
     "rotateSelected", "deleteShape", "promoteShape", "toggleOp", "toggleOverride", "toggleMirrors",
     "renameGroup",
-    "addLayer", "deleteLayer", "renameLayer", "setLayerBaseY",
+    "addLayer", "deleteLayer", "renameLayer", "setLayerBaseY", "setLayerUnderside",
     "setRoomStyle", "defineTheme", "deleteTheme", "setThemeJson", "setMapTheme",
     "setThemeSource", "setBiome",
     "assignShape", "assignGroup",

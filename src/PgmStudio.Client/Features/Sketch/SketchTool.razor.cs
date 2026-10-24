@@ -1,6 +1,8 @@
 using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using PgmStudio.Geom.Relief;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
@@ -768,6 +770,10 @@ public partial class SketchTool
     private Task DeleteLayer(string id) => handle?.InvokeVoidAsync("deleteLayer", id).AsTask() ?? Task.CompletedTask;
     private Task RenameLayer((string Id, string Name) e) => handle?.InvokeVoidAsync("renameLayer", e.Id, e.Name).AsTask() ?? Task.CompletedTask;
     private Task SetLayerBaseY((string Id, double BaseY) e) => handle?.InvokeVoidAsync("setLayerBaseY", e.Id, e.BaseY).AsTask() ?? Task.CompletedTask;
+    private Task SetLayerUnderside((string Id, UndersideSpec? Underside) e) =>
+        handle?.InvokeVoidAsync("setLayerUnderside", e.Id,
+            e.Underside is null ? null : JsonSerializer.Serialize(e.Underside, UndersideJson)).AsTask() ?? Task.CompletedTask;
+    private static readonly JsonSerializerOptions UndersideJson = new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
     private Task ToggleMirrors(string groupId) => handle?.InvokeVoidAsync("toggleMirrors", groupId).AsTask() ?? Task.CompletedTask;
     private Task RenameGroup((string Id, string Name) e) => handle?.InvokeVoidAsync("renameGroup", e.Id, e.Name).AsTask() ?? Task.CompletedTask;
 

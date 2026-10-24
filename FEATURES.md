@@ -10857,6 +10857,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Water falls off the edge (`WE173`).** A wet column beside a cell with no ground pours flowing water down the
   face past it to the lowest floor the board built (`Decorator.PourOffEdges`), so a river run to an island's edge
   ends in a fall rather than a wall of still water.
+- **A layer hangs rock under itself (`TS211`).** A layer's `underside` — `edge`, `taper`, `rough`, `seed` and a
+  `sheer` list of shape ids — lowers each column's floor to a rock 4 blocks thick at the rim and 0.9 more per
+  block inward, 26 and 1.2 beside a sheer side, and rests it on the terrain below where under 4 blocks would stay
+  clear (`Underside`, `SketchRasterizer.Hang`). The Draw phase's layer panel carries the toggle and the numbers.
+  `docs/tools/sketch.md` *A layer's underside*. (`TS211`)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

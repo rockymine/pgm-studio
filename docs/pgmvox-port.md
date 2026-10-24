@@ -120,7 +120,7 @@ stack already states them. A **modifier** is one terraform operation, and its **
 **placement** is a preset or a schematic put at a spot. What pgmvox calls a level is a layer here.
 
 **A shape states a top and a bottom.** The top is a y, or `on` another shape with a thickness, so a wall laid on
-the island follows the island up its slopes. The bottom is the layer's floor, down to whatever is under it, or an
+the island follows the island up its slopes. The bottom is the layer's floor, down to whatever is under it, or, stated on the layer, an
 underside that tapers the way a floating island's does. Beside the drawing tools' rectangle, circle, polygon,
 lasso and polyline stand the primitives: box, cylinder, wedge, sphere and torus, each turned, tilted and sunk, as
 Stratum sets its monolith and its fallen obelisk. Draw keeps level, a shape's base height,
@@ -337,8 +337,8 @@ time. Shipped to the live studio with no beta (decision D3).
 - Lay: soil depth by slope, rock in beds that dip and fold, merged with `TP26` so a bed follows the broad tilt.
   A band stack that cycles is the `cycle` ending (`docs/world-export/terrain-painting.md` §3.1).
 - Water from each river's level, with its bed's own stack; falls off the island's edge into the void.
-- A shape's underside per column, with a sheer side beside a rift, so a layer floats at its own height or rests
-  on the ground under it.
+- A layer's underside, with a sheer side beside a rift, so a layer floats at its own height or rests on the
+  ground under it (shipped as `TS211`, `docs/tools/sketch.md` *A layer's underside*).
 
 ### Phase 4 — space in three dimensions
 

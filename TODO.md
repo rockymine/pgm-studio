@@ -37,9 +37,3 @@ ported into the painter (`src/PgmStudio.Minecraft/Painting/`), proven by the boa
   `fold`, blocks of noise lift in cells of 24, added to its datum beside `follow` (TP26), so strata lean and bend
   across a cliff rather than lying level. pgmvox `bed_offset` (`surface/terrain.py:151`).
 
-- [ ] **TS211 — A layer's underside.** A layer's shapes state an underside that tapers in from the rim, 4 blocks
-  at the edge and 0.9 more per block inward, steeper beside a `sheer` side, and rest on the ground below where less
-  than 4 blocks would stay clear — pgmvox `island_bottom` and `_level` (`surface/terrain.py:272`,
-  `document/layers.py:1022`). Lands in `Geom` and sets each segment's floor in `SketchRasterizer`.
-  `docs/tools/sketch.md`.
-

@@ -2,6 +2,7 @@
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using PgmStudio.Geom;
+using PgmStudio.Geom.Relief;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Vocabulary;
 
@@ -208,6 +209,13 @@ public sealed class SketchLayer
     /// footprint, so a made thing settles into a slope instead of floating over it or being buried by
     /// it.</summary>
     [JsonPropertyName("seat")]   public string? Seat { get; set; }
+
+    /// <summary>The rock hanging under this layer's ground: absent, every column is the flat slab its shapes
+    /// state; stated, each column's floor is lowered to an underside that tapers in from the rim
+    /// (<see cref="UndersideSpec"/>), and rests on the terrain below where less than
+    /// <see cref="PgmStudio.Geom.Relief.Underside.Clear"/> blocks would stand clear of it. One layer is one landmass, so the underside
+    /// is the layer's and not a shape's: two shapes of a layer that touch hang as one island.</summary>
+    [JsonPropertyName("underside")] public UndersideSpec? Underside { get; set; }
 
     /// <summary>Whether this layer is a made thing rather than terrain.</summary>
     [JsonIgnore] public bool IsMade => string.Equals(Kind, MadeKind, StringComparison.OrdinalIgnoreCase);

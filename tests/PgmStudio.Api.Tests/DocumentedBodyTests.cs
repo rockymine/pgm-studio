@@ -44,7 +44,7 @@ public sealed class DocumentedBodyTests
         if (route.Contains("{slug}"))
         {
             var slug = await OriginateMapAsync(client);
-            route = route.Replace("{slug}", slug);
+            route = route.Replace("{slug}", slug).Replace("{layerId}", "island");
             if (route.Contains("/notes/{id}")) route = route.Replace("{id}", await NoteAsync(client, slug));
             if (route.Contains("/changes/{number}")) route = route.Replace("{number}", await ChangeAsync(client, slug));
             if (route.Contains("/intent/pieces/{id}"))
