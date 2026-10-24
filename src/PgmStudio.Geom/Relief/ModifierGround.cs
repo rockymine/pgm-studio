@@ -9,9 +9,12 @@ internal sealed class AreaView
     public double[]? Along { get; }
     public int[]? Side { get; }
 
+    private readonly double[] _xs, _zs;
+
     public AreaView(MaskArea area, double[] xs, double[] zs)
     {
         Area = area;
+        (_xs, _zs) = (xs, zs);
         E = new double[xs.Length];
         if (area.Shape == MaskShape.Line)
         {
@@ -30,6 +33,10 @@ internal sealed class AreaView
     /// <summary>How many blocks column <paramref name="i"/> lies from the middle or the line, in the mask's own
     /// measure.</summary>
     public double Blocks(int i) => E[i] * Area.Scale;
+
+    /// <summary>Where column <paramref name="i"/> stands in the frame of the outline as drawn
+    /// (<see cref="MaskArea.ToDrawn"/>): what noise and scatter are read at, so each image of an area is the same.</summary>
+    public (double X, double Z, string? Axis) Drawn(int i) => Area.ToDrawn(_xs[i], _zs[i]);
 
     public bool Is(params MaskShape[] shapes) => Array.IndexOf(shapes, Area.Shape) >= 0;
 }

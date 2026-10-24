@@ -10833,6 +10833,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   operation traces an open run into a `line` mask; River and Lake fill their beds with water through the same
   flood the Fluid prop places (`SketchRasterizer.WaterOf`, `Decorator.PlaceStackWater`). The dock groups them as
   Ground, Lines, Water and Texture in the concept page's terrain icons, with Carve shown for Phase 4.
+- **Profile, Coast, Lumps and Shatter, and noise that is as fair as the map (`TS210`).** A Profile sets a
+  cross-section of floor, cliffs and benches by distance from a line; a Coast floods an area as a sea with a falling
+  floor and a beach; Lumps strews hummocks and fallen blocks; a Shatter breaks the ground into lifted, tilted plates
+  with clefts. Every operation that reads noise or scatters by seed reads it in the drawn area's frame, so each
+  mirrored image, and a board under a symmetry, carries the same shape (`MaskArea.ToDrawn`).
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

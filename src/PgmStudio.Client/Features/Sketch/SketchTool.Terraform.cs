@@ -17,12 +17,12 @@ public partial class SketchTool
         ModifierItems(ModifierOps.Mound, ModifierOps.Crater, ModifierOps.Level, ModifierOps.Butte, ModifierOps.Spire);
 
     private static readonly DockItem[] LineItems =
-        ModifierItems(ModifierOps.Ridge, ModifierOps.Scarp, ModifierOps.Canyon, ModifierOps.Road);
+        ModifierItems(ModifierOps.Ridge, ModifierOps.Scarp, ModifierOps.Canyon, ModifierOps.Profile, ModifierOps.Road);
 
-    private static readonly DockItem[] WaterItems = ModifierItems(ModifierOps.River, ModifierOps.Lake);
+    private static readonly DockItem[] WaterItems = ModifierItems(ModifierOps.River, ModifierOps.Lake, ModifierOps.Coast);
 
     private static readonly DockItem[] TextureItems =
-        ModifierItems(ModifierOps.Noise, ModifierOps.Gullies, ModifierOps.Warp);
+        ModifierItems(ModifierOps.Noise, ModifierOps.Lumps, ModifierOps.Shatter, ModifierOps.Gullies, ModifierOps.Warp);
 
     private string groundActive = ModifierOps.Mound;
     private string linesActive = ModifierOps.Ridge;

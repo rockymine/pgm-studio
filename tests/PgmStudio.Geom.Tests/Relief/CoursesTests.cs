@@ -247,4 +247,34 @@ public sealed class CoursesTests
 
         await Assert.That(field.Heights.SequenceEqual(field.Original)).IsTrue();
     }
+
+    [Test]
+    public async Task A_coast_floods_its_area_to_the_sea_and_eases_the_land_down_to_a_beach()
+    {
+        var field = new ReliefField(40, 40, (x, _) => 50 + 0.5 * x);
+        var sea = MaskArea.Polygon([(0, 0), (12, 0), (12, 40), (0, 40)]);
+        field.Run(new ModifierSpec { Op = ModifierOp.Coast, Areas = [sea], Level = 52, Shelf = 8, Depth = 6, Slope = 0.5 });
+
+        for (var x = 0; x < 12; x++)
+        {
+            await Assert.That(field.At(x, 20)).IsLessThan(52).Because("nothing inside the sea stands at its surface");
+            await Assert.That(field.WaterAt(x, 20)).IsEqualTo(52);
+        }
+        await Assert.That(field.At(11, 20)).IsGreaterThan(field.At(5, 20)).Because("the floor falls away from the shore");
+        await Assert.That(field.At(1, 20)).IsGreaterThanOrEqualTo(46).Because("it falls no deeper than its depth");
+        await Assert.That(field.At(12, 20)).IsEqualTo(53).Within(0.1).Because("the column on the shore is a beach one over the sea");
+        await Assert.That(field.At(16, 20)).IsLessThan(field.Was(16, 20)).And.IsGreaterThanOrEqualTo(53);
+        await Assert.That(field.At(24, 20)).IsEqualTo(field.Was(24, 20)).Because("past the shelf the land is left");
+        await Assert.That(double.IsNaN(field.WaterAt(12, 20))).IsTrue();
+    }
+
+    [Test]
+    public async Task A_coast_with_no_level_stands_one_under_the_lowest_ground_on_its_rim()
+    {
+        var field = new ReliefField(40, 40, (x, _) => 50 + 0.5 * x);
+        var sea = MaskArea.Polygon([(0, 0), (12, 0), (12, 40), (0, 40)]);
+        field.Run(new ModifierSpec { Op = ModifierOp.Coast, Areas = [sea] });
+
+        await Assert.That(field.WaterAt(4, 20)).IsEqualTo(55).Because("the lowest ground beside the rim is column 12 at 56");
+    }
 }

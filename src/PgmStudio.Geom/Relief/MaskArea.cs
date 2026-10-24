@@ -24,20 +24,27 @@ public sealed class MaskArea
     private readonly (double X, double Z)[] _points = [];
     private readonly double[] _arc = [];
     private readonly bool _flipped;
+    private string? _axis;
+    private string[] _folding = [];
+    private double _aboutX, _aboutZ;
 
     public MaskShape Shape { get; }
+
+    /// <summary>The outline as the author drew it: this one, or the area this one is an image of.</summary>
+    public MaskArea Drawn { get; private set; }
 
     /// <summary>How many blocks one unit of <see cref="E"/> spans, for an operation that measures in blocks: the
     /// longer radius of an ellipse, the deepest interior distance of a polygon (at least one), half the width of a
     /// line, one for a board.</summary>
     public double Scale { get; }
 
-    private MaskArea(MaskShape shape, double scale) { Shape = shape; Scale = scale; }
+    private MaskArea(MaskShape shape, double scale) { Shape = shape; Scale = scale; Drawn = this; }
 
     private MaskArea(double centreX, double centreZ, double radiusX, double radiusZ,
                      (double X, double Z) alongX, (double X, double Z) alongZ)
     {
         Shape = MaskShape.Ellipse;
+        Drawn = this;
         (_centreX, _centreZ, _radiusX, _radiusZ) = (centreX, centreZ, radiusX, radiusZ);
         (_alongXx, _alongXz, _alongZx, _alongZz) = (alongX.X, alongX.Z, alongZ.X, alongZ.Z);
         Scale = Math.Max(radiusX, radiusZ);
@@ -46,6 +53,7 @@ public sealed class MaskArea
     private MaskArea((double X, double Z)[] points, double scale)
     {
         Shape = MaskShape.Polygon;
+        Drawn = this;
         _points = points;
         Scale = scale;
     }
@@ -53,6 +61,7 @@ public sealed class MaskArea
     private MaskArea((double X, double Z)[] points, double halfWidth, bool flipped)
     {
         Shape = MaskShape.Line;
+        Drawn = this;
         _points = points;
         _flipped = flipped;
         Scale = halfWidth;
@@ -193,7 +202,8 @@ public sealed class MaskArea
             }
         }
         curve.Add(_points[^1]);
-        return new MaskArea([.. curve], Scale, _flipped);
+        var smoothed = new MaskArea([.. curve], Scale, _flipped);
+        return _axis is null ? smoothed : smoothed.ImageOf(Drawn, _axis, _aboutX, _aboutZ);
     }
 
     /// <summary>How far out the point lies: 0 at the middle, 1 on the rim, over 1 outside.</summary>
@@ -218,7 +228,10 @@ public sealed class MaskArea
     /// <summary>This area as it stands under one concrete symmetry axis about a centre
     /// (<see cref="Symmetry.Apply"/>), measuring the same distances from the image's own middle. A board is its
     /// own image.</summary>
-    public MaskArea Image(string axis, double centreX, double centreZ)
+    public MaskArea Image(string axis, double centreX, double centreZ) =>
+        Shape == MaskShape.Board ? this : Imaged(axis, centreX, centreZ).ImageOf(this, axis, centreX, centreZ);
+
+    private MaskArea Imaged(string axis, double centreX, double centreZ)
     {
         switch (Shape)
         {
@@ -239,6 +252,54 @@ public sealed class MaskArea
         }
     }
 
+    private MaskArea ImageOf(MaskArea drawn, string axis, double centreX, double centreZ)
+    {
+        (Drawn, _axis, _aboutX, _aboutZ) = (drawn, axis, centreX, centreZ);
+        return this;
+    }
+
+    /// <summary>The point of the drawn outline's frame (<see cref="Drawn"/>) that a point of this one is the image
+    /// of, and the axis that carries it back here (null where the two frames are one). A drawn outline answers the
+    /// point itself; a board folded by a symmetry answers the member of the point's orbit that stands for all of
+    /// it. An operation that scatters or reads noise reads it there, so every image comes out as the same shape.</summary>
+    public (double X, double Z, string? Axis) ToDrawn(double x, double z)
+    {
+        if (_axis is not null)
+        {
+            var (drawnX, drawnZ) = Symmetry.Apply(x, z, Symmetry.Inverse(_axis), _aboutX, _aboutZ);
+            return (drawnX, drawnZ, _axis);
+        }
+        var best = (X: x, Z: z, Axis: (string?)null);
+        foreach (var axis in _folding)
+        {
+            var (imageX, imageZ) = Symmetry.Apply(x, z, axis, _aboutX, _aboutZ);
+            if (imageZ < best.Z - SameTolerance || (Math.Abs(imageZ - best.Z) <= SameTolerance && imageX < best.X - SameTolerance))
+                best = (imageX, imageZ, Symmetry.Inverse(axis));
+        }
+        return best;
+    }
+
+    /// <summary>Where a point of the drawn outline's frame stands here, carried by the axis
+    /// <see cref="ToDrawn"/> answered.</summary>
+    public (double X, double Z) FromDrawn(double x, double z, string? axis) =>
+        axis is null ? (x, z) : Symmetry.Apply(x, z, axis, _aboutX, _aboutZ);
+
+    /// <summary>The board folded by a symmetry's axes about a centre: it measures as the board does, and reads
+    /// its noise at one member of each orbit (<see cref="ToDrawn"/>).</summary>
+    public static MaskArea FoldedBoard(IReadOnlyList<string> axes, double centreX, double centreZ) =>
+        new(MaskShape.Board, 1) { _folding = [.. axes], _aboutX = centreX, _aboutZ = centreZ };
+
+    /// <summary>The bounds of the outline in blocks: an ellipse's box of its longer radius, a polygon's or a
+    /// line's points widened by its scale for a line; null for a board.</summary>
+    public (double MinX, double MinZ, double MaxX, double MaxZ)? Bounds => Shape switch
+    {
+        MaskShape.Ellipse => (_centreX - Scale, _centreZ - Scale, _centreX + Scale, _centreZ + Scale),
+        MaskShape.Polygon => (_points.Min(p => p.X), _points.Min(p => p.Z), _points.Max(p => p.X), _points.Max(p => p.Z)),
+        MaskShape.Line => (_points.Min(p => p.X) - Scale, _points.Min(p => p.Z) - Scale,
+                           _points.Max(p => p.X) + Scale, _points.Max(p => p.Z) + Scale),
+        _ => null,
+    };
+
     /// <summary>The areas and each of their images under every axis, in order, without any outline twice: an
     /// area standing on the symmetry, or an image the author also drew, would otherwise count double wherever
     /// areas add or melt.</summary>
@@ -247,8 +308,12 @@ public sealed class MaskArea
         var fanned = new List<MaskArea>();
         foreach (var area in areas)
         {
+            if (area.Shape == MaskShape.Board)
+            {
+                if (!fanned.Any(area.SameOutline)) fanned.Add(axes.Count > 0 ? FoldedBoard(axes, centreX, centreZ) : area);
+                continue;
+            }
             if (!fanned.Any(area.SameOutline)) fanned.Add(area);
-            if (area.Shape == MaskShape.Board) continue;
             foreach (var axis in axes)
             {
                 var image = area.Image(axis, centreX, centreZ);

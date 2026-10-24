@@ -964,7 +964,8 @@ steps the ground through the stack.
 
 **The dock offers the operations in four families.** After Select and Move come four flyout groups, each showing
 the operation last picked from it and a chevron that lists the rest: *Ground* (Hill, Hollow, Level, Butte,
-Spire), *Lines* (Ridge, Scarp, Canyon, Road), *Water* (River, Lake) and *Texture* (Roughness, Gullies, Warp).
+Spire), *Lines* (Ridge, Scarp, Canyon, Profile, Road), *Water* (River, Lake, Coast) and *Texture* (Roughness,
+Lumps, Shatter, Gullies, Warp).
 Picking an operation arms its tool, `modifier:<op>`. A *Carve* button (a pickaxe) closes the dock; it is shown
 disabled, its tip saying carves come in Phase 4. Each operation has its own glyph, drawn as a profile or a plan
 of the ground (*Icons*, below).
@@ -1041,10 +1042,10 @@ read off `column`. The contours, the paint, the 3-D preview, the export and `col
 whose `relief_scope` is `ride`: it moves with the change the stack made to the ground under it (*Groups and
 layers*).
 
-Fourteen operations run. Hill, Hollow, Level and Roughness are ported from pgmvox's ground layer
-(`pgmvox/document/layers.py`, `_ground_layer`), the other ten from its landform library
-(`pgmvox/ground/landform.py`), where each takes a centre and a radius that the mask supplies as its centroid and
-`scale`:
+Eighteen operations run. Hill, Hollow, Level and Roughness are ported from pgmvox's ground layer
+(`pgmvox/document/layers.py`, `_ground_layer`), Shatter from its broken-ground primitive (`pgmvox/geom/shapes.py`,
+`shatter`), and the other thirteen from its landform library (`pgmvox/ground/landform.py`), where each takes a
+centre and a radius that the mask supplies as its centroid and `scale`:
 
 | `op` | The screen calls it | What it does to each column inside its mask | Its numbers |
 |---|---|---|---|
@@ -1062,13 +1063,19 @@ Fourteen operations run. Hill, Hollow, Level and Roughness are ported from pgmvo
 | `road` | Road | on a `line`: grades the ground along it to climb or fall no more than `grade` blocks a block, its ends holding the ground they stand on, level across the mask's width with shoulders easing into the ground over `shoulder` blocks | `grade` 0.25, `shoulder` 4 |
 | `gullies` | Gullies | in an area: cuts `count` grooves running outward from its centroid between a quarter of `scale` and `scale`, each up to `depth` deep, bent by `wander` and narrowed by `sharpness`; only cuts | `count` 8, `depth` 3, `wander` 0.9, `sharpness` 3 |
 | `warp` | Warp | resamples the ground inside at positions shifted by noise, up to `amount` blocks, in swirls `cell` blocks across | `amount` 6, `cell` 24 |
+| `profile` | Profile | on a `line`: sets the ground by its distance from the line. Out to the first step the floor is the ground, or `floor` where stated; each of `steps[]`, `{start, end, rise}` in blocks out, eases from the level before it to `rise` over the floor and holds there beyond, so the first cliff rises out of the floor and never cuts it. The nominal floor a `rise` counts from is `floor`, or the median ground along the line. `talus` lifts the floor over that many blocks before the first step by `apron` of its rise, `jag` moves each step's edges in and out by noise, and `side` (1 or −1) keeps one hand of the line | `steps` (absent: two, from a quarter to two fifths and from three fifths to three quarters of the half width, rising 6 and 12), `jag` 1.5, `talus` 0, `apron` 0.3 |
+| `coast` | Coast | in an area, the sea: the floor falls from the shore `slope` blocks a block to `depth` under the surface; outside, the land within `shelf` blocks eases down to a beach one over the sea, low land beside it lifted to the beach; **makes water** | `level` (absent: one under the lowest ground on the rim), `shelf` 10, `depth` 6, `slope` 0.35 |
+| `lumps` | Lumps | in an area: strews up to `count` lumps whose middles fall inside it, each a hill on an ellipse `across` blocks long, its short axis `stretch` of that, turned at random or within 25° of `angle`, its foot roughened by `jag`, `heights` blocks high and falling as `1 − e^power`; overlapping lumps add; only lifts | `count` 12, `across` [6, 16], `heights` [2, 5], `stretch` [0.5, 1], `jag` 0.25, `power` 1.8 |
+| `shatter` | Shatter | breaks the ground inside into pieces about `cell` blocks across, their seams bent up to `wander` blocks; each piece is lifted or dropped up to `amount` and tilted up to `tilt` blocks a block, and within `gap` blocks of a seam the ground is cut up to `depth` into a cleft | `cell` 10, `amount` 3, `tilt` 0.25, `gap` 1, `depth` 4, `wander` 3 |
 
-**Which masks an operation reads.** Scarp, Canyon, River and Road read a `line` and nothing else; Butte, Spire, Lake
-and Gullies read an ellipse or a polygon; Ridge reads a line, an ellipse or a polygon; Warp reads any. An operation
+**Which masks an operation reads.** Scarp, Canyon, Profile, River and Road read a `line` and nothing else; Butte,
+Spire, Lake, Coast, Lumps and Gullies read an ellipse or a polygon; Shatter reads an ellipse, a polygon or the
+board; Ridge reads a line, an ellipse or a polygon; Warp reads any. An operation
 handed an outline it does not read changes nothing and raises no refusal. Hill, Hollow, Level and Roughness read
 every kind, a line included: their distance `e` is measured from it. Canyon, River and Road follow a line as a
 Catmull-Rom curve through its points rather than as straight segments. Heights an operation states (`top`, `floor`,
-`level`) are world y in the unit of a column's top: a Level at `top` 12 and a Lake at `level` 12 meet flush.
+`level`) are world y in the unit of a column's top: a Level at `top` 12 and a Lake at `level` 12 meet flush. A
+range (`across`, `heights`, `stretch`) is `[least, most]`, one number standing for both.
 
 **Every modifier states the same five things around its numbers.** `id` is what the list and every read name
 it by. `name` is what the author calls it. `off: true` switches it off and keeps its numbers. `mode` keeps half
@@ -1085,14 +1092,18 @@ half its `width`, so `e` is 1 at `width / 2` and `scale` is `width / 2`, and the
 With `mask.mirror` (the default) each area also stands at its images under the map's symmetry, through
 `PgmStudio.Geom.Symmetry`; an image that falls on an area the mask already holds, as a centred ellipse does under a
 half turn, counts once. A Scarp's image lifts the mirror image of the ground its original lifts, so a line lying
-on a mirror axis is two areas, one lifting each hand. Where a Hill's or a Hollow's areas overlap, `join` adds
-them: 0 keeps the larger change, and above 0 they sum as a p-norm, so the saddle between two hills fills into a
-ridge. Any other operation keeps the larger change of its areas column by column.
+on a mirror axis is two areas, one lifting each hand. **An image carries the same noise and the same pieces as the
+area it is an image of**: every operation that reads noise or scatters by seed reads it at the point of the drawn
+area the column is the image of (`MaskArea.ToDrawn`), and a `board` under a symmetry reads it at the member of
+each column's orbit that stands for all of it, so a Roughness, a Lumps or a Shatter is as fair as the map. Where
+a Hill's or a Hollow's areas overlap, `join` adds them: 0 keeps the larger change, and above 0 they sum as a
+p-norm, so the saddle between two hills fills into a ridge. Any other operation keeps the larger change of its
+areas column by column.
 
-**River and Lake make water, and the world build fills it.** Each wets the columns it cut and states the height its
-water surface stands at: a River's channel stands at its bed plus `water`, a Lake's cut at its `level`. A wet column
-is dry again where a later modifier raises its ground to the surface or above, so the stack answers only the cells that
-hold water at its end (`SketchRasterizer.WaterOf`), cached with the columns so a read of the water and of the ground
+**River, Lake and Coast make water, and the world build fills it.** Each wets the columns it cut and states the
+height its water surface stands at: a River's channel stands at its bed plus `water`, a Lake's cut at its `level`,
+a Coast's sea at its `level`. A wet column is dry again where a later modifier raises its ground to the surface
+or above, so the stack answers only the cells that hold water at its end (`SketchRasterizer.WaterOf`), cached with the columns so a read of the water and of the ground
 cannot disagree. The world build hands that map to the dressing pass, which fills it before any prop is placed and
 through the routine a `basin` fluid uses (*Decoration*): each wet column takes water from its ground top up to the
 block under its surface, writing only into air, the floor it covers is laid with the default fluid bank and a beach
@@ -2733,9 +2744,10 @@ and nothing else, and a map that came from a plan carries the plan's intent unch
 **A mask is a traced outline.** The canvas draws a mask by tracing it and edits it by its points; an ellipse area
 is written in the document and has no drawing tool, nor has a rectangle.
 
-**Fourteen operations are built, and pgmvox's profile, coast, lumps and shatter are not among them.** The stack
-has no sea that meets the board's edge, no cross-section set by distance from a line, no strewn rubble and no
-shattering of a mass; a Lake is an area the author draws, and a River's water stands in a bed it cut.
+**The stack shapes one height per column, and its water stands only over drawn ground.** No modifier carves under
+the ground or leaves an overhang: tunnels, chambers and shafts are the disabled *Carve* family, pgmvox's Phase 4.
+A Coast's sea floods the columns its mask covers that some shape built, so a sea meant to reach the board's edge is
+a shape drawn out to that edge with the Coast over it; past the last drawn column is void.
 
 **Only Draw edits geometry.** Palette and Decoration run the canvas as a selection surface: a group or a shape
 can be picked, and the view panned and zoomed, but nothing can be moved, resized, rotated, reshaped or given a

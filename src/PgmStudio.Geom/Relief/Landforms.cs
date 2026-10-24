@@ -20,7 +20,8 @@ internal static class Landforms
         for (var i = 0; i < change.Length; i++)
         {
             if (view.E[i] >= 1) continue;
-            var wandering = 0.5 + 0.5 * ValueNoise.Fractal(ground.Xs[i], ground.Zs[i], RidgeCell, 2, spec.Seed);
+            var (drawnX, drawnZ, _) = view.Drawn(i);
+            var wandering = 0.5 + 0.5 * ValueNoise.Fractal(drawnX, drawnZ, RidgeCell, 2, spec.Seed);
             var across = view.E[i] * (1 + share * wandering);
             if (across < 1) change[i] = rise * (1 - across * across);
         }
@@ -46,7 +47,8 @@ internal static class Landforms
         var reach = 1 + (cliff + talus) / scale;
         for (var i = 0; i < change.Length; i++)
         {
-            var across = view.E[i] * (1 + jag * ValueNoise.Fractal(ground.Xs[i], ground.Zs[i], ButteCell, 3, spec.Seed));
+            var (drawnX, drawnZ, _) = view.Drawn(i);
+            var across = view.E[i] * (1 + jag * ValueNoise.Fractal(drawnX, drawnZ, ButteCell, 3, spec.Seed));
             if (across >= reach) continue;
             var height = ground.Heights[i];
             var foot = height + (top - height) * apron;
@@ -73,7 +75,8 @@ internal static class Landforms
         var top = spec.Top ?? median + ModifierDefaults.SpireHeight;
         for (var i = 0; i < change.Length; i++)
         {
-            var across = view.E[i] * (1 + jag * ValueNoise.Fractal(ground.Xs[i], ground.Zs[i], SpireCell, 3, spec.Seed));
+            var (drawnX, drawnZ, _) = view.Drawn(i);
+            var across = view.E[i] * (1 + jag * ValueNoise.Fractal(drawnX, drawnZ, SpireCell, 3, spec.Seed));
             if (across >= 1) continue;
             var shaped = baseHeight + (top - baseHeight) * Math.Pow(1 - Math.Max(across, 0), 1 / Math.Max(taper, 1e-6));
             change[i] = Math.Max(0, shaped - ground.Heights[i]);
@@ -138,12 +141,13 @@ internal static class Landforms
         var count = spec.Count ?? ModifierDefaults.GulliesCount;
         double depth = Math.Abs(spec.Depth ?? ModifierDefaults.GulliesDepth), wander = spec.Wander ?? ModifierDefaults.GulliesWander;
         var sharpness = spec.Sharpness ?? ModifierDefaults.GulliesSharpness;
-        var (middleX, middleZ) = view.Area.Centre;
+        var (middleX, middleZ) = view.Area.Drawn.Centre;
         double inner = 0.25 * view.Area.Scale, outer = view.Area.Scale;
         for (var i = 0; i < change.Length; i++)
         {
             if (view.E[i] >= 1) continue;
-            double x = ground.Xs[i], z = ground.Zs[i], distance = view.Blocks(i);
+            var (x, z, _) = view.Drawn(i);
+            var distance = view.Blocks(i);
             var turns = Math.Atan2(z - middleZ, x - middleX) * count / (2 * Math.PI);
             if (wander != 0) turns += wander * ValueNoise.Fractal(x, z, 50, 3, spec.Seed);
             var groove = Math.Pow(1 - Math.Abs(Math.Sin(Math.PI * turns)), sharpness);
@@ -164,13 +168,67 @@ internal static class Landforms
         for (var i = 0; i < change.Length; i++)
         {
             if (view.E[i] >= 1) continue;
-            double x = ground.Xs[i], z = ground.Zs[i];
+            var (x, z, axis) = view.Drawn(i);
             var shiftX = amount * (0.75 * ValueNoise.Fractal(x, z, cell, 3, spec.Seed)
                                    + 0.25 * ValueNoise.Fractal(x, z, cell / 4, 2, spec.Seed + 2));
             var shiftZ = amount * (0.75 * ValueNoise.Fractal(x, z, cell, 3, spec.Seed + 1)
                                    + 0.25 * ValueNoise.Fractal(x, z, cell / 4, 2, spec.Seed + 3));
-            change[i] = ground.Sample(x + shiftX, z + shiftZ, ground.Heights[i]) - ground.Heights[i];
+            var (sampleX, sampleZ) = view.Area.FromDrawn(x + shiftX, z + shiftZ, axis);
+            change[i] = ground.Sample(sampleX, sampleZ, ground.Heights[i]) - ground.Heights[i];
         }
         return change;
+    }
+
+    private const double ProfileCell = 6;
+
+    /// <summary>A cross-section set by distance from a line. Out to the first step the floor is the ground, or
+    /// <c>floor</c> where it is stated; each step then eases from the level before it to <c>rise</c> blocks over
+    /// the floor between its start and its end, and holds there beyond, so a floor and two steps are a lower
+    /// cliff, a bench, an upper cliff and a plateau. The first cliff rises out of the floor and never cuts it.
+    /// <c>talus</c> lifts the floor over that many blocks before the first step by <c>apron</c> of its rise;
+    /// <c>jag</c> moves every step's edges in and out by noise; <c>side</c> keeps one hand of the line.</summary>
+    public static double[] Profile(ModifierSpec spec, AreaView view, Ground ground)
+    {
+        var change = None(view);
+        if (view.Side is not { } sides) return change;
+        var half = view.Area.Scale;
+        var steps = spec.Steps is { Count: > 0 } stated
+            ? stated.OrderBy(step => step.Start).ToArray()
+            : ModifierDefaults.ProfileSteps.Select(step => new ProfileStep(step.Start * half, step.End * half, step.Rise)).ToArray();
+        var nominal = spec.Floor ?? (ground.Along(view.Area.Points, 1) is { } profile ? Median(profile.Height) : double.NaN);
+        if (double.IsNaN(nominal)) return change;
+        double jag = spec.Jag ?? ModifierDefaults.ProfileJag, talus = spec.Talus ?? ModifierDefaults.ProfileTalus;
+        var apron = spec.Apron ?? ModifierDefaults.Apron;
+        for (var i = 0; i < change.Length; i++)
+        {
+            if (view.E[i] >= 1 || spec.Side is { } hand && sides[i] != (hand >= 0 ? 1 : -1)) continue;
+            var distance = view.Blocks(i);
+            var (drawnX, drawnZ, _) = view.Drawn(i);
+            var ragged = jag * ValueNoise.Fractal(drawnX, drawnZ, ProfileCell, 2, spec.Seed);
+            var height = ground.Heights[i];
+            var shaped = spec.Floor ?? height;
+            if (talus > 0)
+                shaped += apron * steps[0].Rise * Modifiers.SmoothStep(steps[0].Start - talus, steps[0].Start, distance);
+            var before = nominal;
+            for (var n = 0; n < steps.Length; n++)
+            {
+                var top = nominal + steps[n].Rise;
+                var cliff = before + (top - before) * Modifiers.SmoothStep(steps[n].Start + ragged, steps[n].End + ragged, distance);
+                if (n == 0) cliff = top >= before ? Math.Max(shaped, cliff) : Math.Min(shaped, cliff);
+                if (distance >= steps[n].Start + ragged) shaped = cliff;
+                if (distance >= steps[n].End + ragged) shaped = top;
+                before = top;
+            }
+            change[i] = shaped - height;
+        }
+        return change;
+    }
+
+    private static double Median(double[] values)
+    {
+        var sorted = values.Order().ToArray();
+        return sorted.Length == 0 ? double.NaN
+             : sorted.Length % 2 == 1 ? sorted[sorted.Length / 2]
+             : 0.5 * (sorted[sorted.Length / 2 - 1] + sorted[sorted.Length / 2]);
     }
 }

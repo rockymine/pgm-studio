@@ -210,6 +210,10 @@ internal static class SketchTerraform
             ModifierOps.Road => ModifierOp.Road,
             ModifierOps.Gullies => ModifierOp.Gullies,
             ModifierOps.Warp => ModifierOp.Warp,
+            ModifierOps.Profile => ModifierOp.Profile,
+            ModifierOps.Coast => ModifierOp.Coast,
+            ModifierOps.Lumps => ModifierOp.Lumps,
+            ModifierOps.Shatter => ModifierOp.Shatter,
             _ => null,
         };
         if (op is null) return null;
@@ -237,9 +241,21 @@ internal static class SketchTerraform
             Grade = modifier.Grade, Shoulder = modifier.Shoulder, Count = modifier.Count,
             Sharpness = modifier.Sharpness, Amount = modifier.Amount, Cell = modifier.Cell,
             Sizes = modifier.Sizes?.Select(size => new NoiseSize(size.Cell, size.Octaves, size.Rise)).ToList(),
+            Steps = modifier.Steps?.Select(step => new ProfileStep(step.Start, step.End, step.Rise)).ToList(),
+            Shelf = modifier.Shelf, Across = RangeOf(modifier.Across), Heights = RangeOf(modifier.Heights),
+            Stretch = RangeOf(modifier.Stretch), Angle = modifier.Angle, Tilt = modifier.Tilt, Gap = modifier.Gap,
             Seed = modifier.Seed,
         };
     }
+
+    // A stated [least, most]: one number is both ends, and two are taken in order whichever way they were written.
+    private static (double Least, double Most)? RangeOf(double[]? stated) => stated switch
+    {
+        [var only] when double.IsFinite(only) => (only, only),
+        [var first, var second, ..] when double.IsFinite(first) && double.IsFinite(second) =>
+            (Math.Min(first, second), Math.Max(first, second)),
+        _ => null,
+    };
 
     /// <summary>One outline as the operations measure it, or null where the document states too little to draw
     /// one: an ellipse without a centre or a positive radius, a polygon under three points, a line under two

@@ -81,6 +81,10 @@ public sealed record SketchModifierState(
         ModifierOps.Road => "terrain-road",
         ModifierOps.Gullies => "terrain-gullies",
         ModifierOps.Warp => "terrain-warp",
+        ModifierOps.Profile => "terrain-profile",
+        ModifierOps.Coast => "terrain-coast",
+        ModifierOps.Lumps => "terrain-lumps",
+        ModifierOps.Shatter => "terrain-shatter",
         _ => "shapes",
     };
 
@@ -101,6 +105,10 @@ public sealed record SketchModifierState(
         ModifierOps.Road => "Grades the ground along the line so it climbs no faster than its grade, shouldered into the slope.",
         ModifierOps.Gullies => "Cuts channels down the slope inside the mask, wandering as they fall.",
         ModifierOps.Warp => "Resamples the ground inside the mask at noise-shifted positions, so straight forms bend.",
+        ModifierOps.Profile => "Sets the ground by its distance from the line: a floor, then steps of cliff and bench out to a plateau.",
+        ModifierOps.Coast => "Floods the mask as a sea, its floor falling away from the shore, and eases the land around it down to a beach.",
+        ModifierOps.Lumps => "Strews hummocks and fallen blocks over the mask, each its own size, height and heading.",
+        ModifierOps.Shatter => "Breaks the ground into plates, each lifted and tilted on its own, with clefts cut along the seams.",
         _ => "",
     };
 }

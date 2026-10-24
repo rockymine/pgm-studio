@@ -394,4 +394,20 @@ public sealed class ModifiersTests
     {
         await Assert.That(Modifiers.SmoothStep(edge0, edge1, x)).IsEqualTo(expected).Within(1e-12);
     }
+
+    [Test]
+    public async Task Roughness_over_a_folded_board_and_over_a_fanned_area_reads_alike_at_every_image()
+    {
+        static bool Symmetric(ReliefField field) => Enumerable.Range(0, 40 * 40)
+            .All(index => Math.Abs(field.Heights[index] - field.Heights[40 * 40 - 1 - index]) < 1e-9);
+        var board = ReliefField.Flat(40, 40, 50);
+        var area = ReliefField.Flat(40, 40, 50);
+        var warped = new ReliefField(40, 40, (x, z) => 50 + 0.3 * x + 0.1 * z * z % 7);
+        board.Run(new ModifierSpec { Op = ModifierOp.Noise, Areas = MaskArea.Fanned([MaskArea.Board], ["rot_180"], 20, 20), Sizes = [new(9, 3, 3)] });
+        area.Run(new ModifierSpec { Op = ModifierOp.Noise, Areas = MaskArea.Fanned([MaskArea.Ellipse(9.5, 11.5, 8, 6)], ["rot_180"], 20, 20), Sizes = [new(5, 2, 2)] });
+
+        await Assert.That(board.Heights.Distinct().Count()).IsGreaterThan(100);
+        await Assert.That(Symmetric(board)).IsTrue();
+        await Assert.That(Symmetric(area)).IsTrue();
+    }
 }

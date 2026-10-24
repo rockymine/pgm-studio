@@ -25,7 +25,10 @@
     "terrain-marks": [["path",{"d":"M3 20h18"}],["line",{"x1":"7","y1":"20","x2":"7","y2":"15.5"}],["line",{"x1":"17","y1":"20","x2":"17","y2":"9.5"}],["circle",{"cx":"7","cy":"14","r":"1.5"}],["circle",{"cx":"17","cy":"8","r":"1.5"}],["path",{"d":"M8.5 14c4 0 5-6 7-6"}]],
     "terrain-rooms": [["path",{"d":"M3 19h18"}],["path",{"d":"M6 19v-6l6-5 6 5v6"}],["path",{"d":"M10 19v-3h4v3"}]],
     "terrain-warp": [["path",{"d":"M3 7h18"}],["path",{"d":"M3 15c3-4 6-4 9 0s6 4 9 0"}]],
-    "terrain-gullies": [["path",{"d":"M12 20v-8l-5-7"}],["path",{"d":"M12 12l5-7"}],["path",{"d":"M9.5 8.5 5 9"}],["path",{"d":"M14.5 8.5 19 9"}]]
+    "terrain-gullies": [["path",{"d":"M12 20v-8l-5-7"}],["path",{"d":"M12 12l5-7"}],["path",{"d":"M9.5 8.5 5 9"}],["path",{"d":"M14.5 8.5 19 9"}]],
+    "terrain-coast": [["path",{"d":"M2 7h5c4 0 5 7 9 7h6"}],["path",{"d":"M11 19q1.5-1.5 3 0t3 0 3 0"}]],
+    "terrain-lumps": [["path",{"d":"M2 19h20"}],["path",{"d":"M3 19c1-4 4-4 5 0"}],["path",{"d":"M9 19c1-7 5-7 6 0"}],["path",{"d":"M16 19c1-3 4-3 5 0"}]],
+    "terrain-shatter": [["path",{"d":"M3 5h18v14H3z"}],["path",{"d":"M3 11l6-1 3-5"}],["path",{"d":"M9 10l2 9"}],["path",{"d":"M11 14l5-2 5 1"}],["path",{"d":"M16 12l-1-7"}]]
   };
 
   var registry = window.lucide && window.lucide.icons;

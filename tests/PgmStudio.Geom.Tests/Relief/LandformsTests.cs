@@ -269,4 +269,50 @@ public sealed class LandformsTests
         var within = field.Inside(area, 0.999999).Select(index => field.Original[index]).Order().ToList();
         return within.Count % 2 == 1 ? within[within.Count / 2] : (within[within.Count / 2 - 1] + within[within.Count / 2]) / 2;
     }
+
+    [Test]
+    public async Task A_profile_climbs_its_steps_away_from_its_line_and_never_falls_outward()
+    {
+        var field = Flat(50);
+        var line = Along(36);
+        field.Run(new ModifierSpec
+        {
+            Op = ModifierOp.Profile, Areas = [line], Jag = 0,
+            Steps = [new ProfileStep(4, 6, 5), new ProfileStep(10, 12, 9)],
+        });
+
+        await Assert.That(field.At(20, 20)).IsEqualTo(50).Because("the floor follows the ground on the line");
+        await Assert.That(field.At(20, 28)).IsEqualTo(55).Within(1e-9).Because("eight out stands on the bench");
+        await Assert.That(field.At(20, 34)).IsEqualTo(59).Within(1e-9).Because("fourteen out stands on the plateau");
+        await Assert.That(field.At(20, 12)).IsEqualTo(55).Within(1e-9).Because("both hands climb alike");
+        for (var z = 21; z < 37; z++)
+            await Assert.That(field.At(20, z)).IsGreaterThanOrEqualTo(field.At(20, z - 1) - 1e-9);
+        foreach (var index in field.Outside(line, 1))
+            await Assert.That(field.Heights[index]).IsEqualTo(50);
+    }
+
+    [Test]
+    public async Task A_profile_with_a_side_shapes_one_hand_of_its_line_and_a_floor_holds_flat()
+    {
+        var field = new ReliefField(Size, Size, (x, _) => 50 + 0.2 * x);
+        field.Run(new ModifierSpec
+        {
+            Op = ModifierOp.Profile, Areas = [Along(30)], Jag = 0, Side = 1, Floor = 48,
+            Steps = [new ProfileStep(6, 8, 6)],
+        });
+
+        await Assert.That(field.At(5, 22)).IsEqualTo(48).Because("the floor is stated, so it is flat across the run");
+        await Assert.That(field.At(30, 22)).IsEqualTo(48);
+        await Assert.That(field.At(30, 31)).IsEqualTo(54).Within(1e-9);
+        await Assert.That(field.At(30, 12)).IsEqualTo(field.Was(30, 12)).Because("the other hand is left alone");
+    }
+
+    [Test]
+    public async Task A_profile_does_nothing_over_an_area()
+    {
+        var field = Flat(50);
+        field.Run(new ModifierSpec { Op = ModifierOp.Profile, Areas = [Round] });
+
+        await Assert.That(field.Heights.SequenceEqual(field.Original)).IsTrue();
+    }
 }

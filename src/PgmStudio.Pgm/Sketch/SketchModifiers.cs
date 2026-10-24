@@ -172,6 +172,40 @@ public sealed class SketchModifierJson
     [JsonPropertyName("cell"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Cell { get; set; }
 
+    /// <summary>A Profile's steps out from its line, nearest first; absent, two steps at a quarter and at
+    /// three fifths of its half width, rising 6 and 12.</summary>
+    [JsonPropertyName("steps"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<ProfileStepJson>? Steps { get; set; }
+
+    /// <summary>Over how many blocks inland a Coast's land eases down to its beach.</summary>
+    [JsonPropertyName("shelf"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Shelf { get; set; }
+
+    /// <summary>How long each of a Lumps' lumps is, least and most, as <c>[least, most]</c> blocks.</summary>
+    [JsonPropertyName("across"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double[]? Across { get; set; }
+
+    /// <summary>How high each of a Lumps' lumps stands, as <c>[least, most]</c> blocks.</summary>
+    [JsonPropertyName("heights"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double[]? Heights { get; set; }
+
+    /// <summary>A Lumps' short axis as a share of its long one, as <c>[least, most]</c>.</summary>
+    [JsonPropertyName("stretch"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double[]? Stretch { get; set; }
+
+    /// <summary>The heading a Lumps' lumps line up along, in degrees from east toward south, each within 25
+    /// either way; absent, each turns at random.</summary>
+    [JsonPropertyName("angle"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Angle { get; set; }
+
+    /// <summary>The steepest a Shatter's piece tilts, in blocks per block.</summary>
+    [JsonPropertyName("tilt"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Tilt { get; set; }
+
+    /// <summary>How many blocks either side of a seam between a Shatter's pieces a cleft is cut; zero cuts none.</summary>
+    [JsonPropertyName("gap"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Gap { get; set; }
+
     /// <summary>A Roughness's sizes, each its own noise added to the others.</summary>
     [JsonPropertyName("sizes"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<NoiseSizeJson>? Sizes { get; set; }
@@ -226,6 +260,20 @@ public sealed class MaskAreaJson
     /// <summary>A line's width in blocks; its edge lies half of it from the path.</summary>
     [JsonPropertyName("width"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Width { get; set; }
+}
+
+/// <summary>One step of a Profile: between <c>start</c> and <c>end</c> blocks out from the line the ground
+/// climbs, or falls, to <c>rise</c> blocks over the floor, and holds there beyond.</summary>
+public sealed class ProfileStepJson
+{
+    /// <summary>How many blocks out from the line the cliff begins.</summary>
+    [JsonPropertyName("start")] public double Start { get; set; }
+
+    /// <summary>How many blocks out from the line the cliff has reached its height.</summary>
+    [JsonPropertyName("end")] public double End { get; set; }
+
+    /// <summary>How far over the profile's floor the step stands, in blocks; negative falls.</summary>
+    [JsonPropertyName("rise")] public double Rise { get; set; }
 }
 
 /// <summary>One size of a Roughness: how wide its features are, how many finer octaves ride on it, and how far

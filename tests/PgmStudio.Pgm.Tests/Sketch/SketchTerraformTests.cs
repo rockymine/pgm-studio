@@ -563,6 +563,23 @@ public sealed class SketchTerraformTests
         await Assert.That(Top(layout, 20, 20)).IsEqualTo(8);
     }
 
+    [Test]
+    public async Task A_coast_floods_its_area_to_the_sea_and_leaves_a_beach_above_it()
+    {
+        var layout = Layout("""
+            { "id": "coast", "op": "coast", "level": 7, "shelf": 6, "depth": 4,
+              "mask": { "areas": [ { "kind": "polygon", "points": [[0, 0], [12, 0], [12, 40], [0, 40]] } ], "mirror": false } }
+            """);
+        var water = SketchRasterizer.WaterOf(layout);
+
+        await Assert.That(water[(4, 20)]).IsEqualTo(7);
+        await Assert.That(Top(layout, 4, 20)).IsLessThan(7);
+        await Assert.That(water.ContainsKey((14, 20))).IsFalse();
+        await Assert.That(Top(layout, 12, 20)).IsEqualTo(8).Because("the shore column is a beach one over the sea");
+        foreach (var (cell, surface) in water)
+            await Assert.That(Top(layout, cell.X, cell.Z)).IsLessThan(surface);
+    }
+
     private const string LineThroughTheHill =
         """{ "kind": "line", "points": [[2.5, 20.5], [20.5, 22.5], [38.5, 20.5]], "width": 8 }""";
 
@@ -579,6 +596,10 @@ public sealed class SketchTerraformTests
     [Arguments(ModifierOps.Road, LineThroughTheHill)]
     [Arguments(ModifierOps.Gullies, AreaOnTheHill)]
     [Arguments(ModifierOps.Warp, """{ "kind": "board" }""")]
+    [Arguments(ModifierOps.Profile, LineThroughTheHill)]
+    [Arguments(ModifierOps.Coast, AreaOnTheHill)]
+    [Arguments(ModifierOps.Lumps, AreaOnTheHill)]
+    [Arguments(ModifierOps.Shatter, """{ "kind": "board" }""")]
     public async Task Every_landform_word_the_vocabulary_names_runs_over_the_ground_a_hill_left(string op, string area)
     {
         var hill = Hill(radius: 14, rise: 10);

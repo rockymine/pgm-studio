@@ -44,6 +44,18 @@ public enum ModifierOp
 
     /// <summary>The ground inside resampled at noise-shifted positions.</summary>
     Warp,
+
+    /// <summary>A cross-section set by distance from a line: a floor, then steps of cliff and bench.</summary>
+    Profile,
+
+    /// <summary>A sea over an area: its floor falling from the shore, a beach easing the land down to it.</summary>
+    Coast,
+
+    /// <summary>Lumps strewn over an area: fallen blocks, rubble, hummocks.</summary>
+    Lumps,
+
+    /// <summary>The ground inside broken into pieces, each lifted and tilted on its own, clefts between.</summary>
+    Shatter,
 }
 
 /// <summary>Which way a modifier's change may move the ground.</summary>
@@ -62,6 +74,10 @@ public enum ModifierMode
 /// <summary>One size of a Roughness: the width of its largest feature, how many finer octaves ride on it, and
 /// how far it moves the ground either way.</summary>
 public readonly record struct NoiseSize(double Cell, int Octaves, double Rise);
+
+/// <summary>One step of a Profile: from <see cref="Start"/> to <see cref="End"/> blocks out from its line the
+/// ground climbs, or falls, to <see cref="Rise"/> blocks over the profile's floor, and holds there beyond.</summary>
+public readonly record struct ProfileStep(double Start, double End, double Rise);
 
 /// <summary>
 /// One terraform operation over a field of ground heights: which operation, how it may move the ground, where it
@@ -177,6 +193,31 @@ public sealed record ModifierSpec
     /// <summary>The width in blocks of a Warp's largest swirl.</summary>
     public double? Cell { get; init; }
 
+    /// <summary>A Profile's steps out from its line, nearest first.</summary>
+    public IReadOnlyList<ProfileStep>? Steps { get; init; }
+
+    /// <summary>Over how many blocks inland a Coast's land eases down to its beach.</summary>
+    public double? Shelf { get; init; }
+
+    /// <summary>How long each of a Lumps' lumps is across its long axis, least and most, in blocks.</summary>
+    public (double Least, double Most)? Across { get; init; }
+
+    /// <summary>How high each of a Lumps' lumps stands, least and most, in blocks.</summary>
+    public (double Least, double Most)? Heights { get; init; }
+
+    /// <summary>A Lumps' short axis as a share of its long one, least and most.</summary>
+    public (double Least, double Most)? Stretch { get; init; }
+
+    /// <summary>The heading a Lumps' lumps line up along, in degrees from east toward south, each within 25
+    /// either way; absent, each turns at random.</summary>
+    public double? Angle { get; init; }
+
+    /// <summary>The steepest a Shatter's piece tilts, in blocks per block.</summary>
+    public double? Tilt { get; init; }
+
+    /// <summary>How many blocks either side of a seam between a Shatter's pieces a cleft is cut; zero cuts none.</summary>
+    public double? Gap { get; init; }
+
     /// <summary>The noise row it reads; a size takes the seed plus thirty-seven times its place.</summary>
     public int Seed { get; init; } = 1;
 }
@@ -245,4 +286,34 @@ public static class ModifierDefaults
 
     public const double WarpAmount = 6;
     public const double WarpCell = 24;
+
+    /// <summary>The two steps a Profile with none stated climbs, as shares of its half width and blocks of rise.</summary>
+    public static readonly IReadOnlyList<ProfileStep> ProfileSteps = [new(0.25, 0.4, 6), new(0.6, 0.75, 12)];
+
+    /// <summary>How far a Profile's step edges wander in and out, in blocks.</summary>
+    public const double ProfileJag = 1.5;
+    public const double ProfileTalus = 0;
+
+    public const double CoastShelf = 10;
+    public const double CoastDepth = 6;
+    public const double CoastSlope = 0.35;
+
+    public const int LumpsCount = 12;
+    public static readonly (double Least, double Most) LumpsAcross = (6, 16);
+    public static readonly (double Least, double Most) LumpsHeights = (2, 5);
+    public static readonly (double Least, double Most) LumpsStretch = (0.5, 1);
+    public const double LumpsJag = 0.25;
+    public const double LumpsPower = 1.8;
+
+    /// <summary>How far apart a Shatter's pieces are, in blocks.</summary>
+    public const double ShatterCell = 10;
+
+    /// <summary>The most a Shatter lifts or drops one piece, in blocks.</summary>
+    public const double ShatterAmount = 3;
+    public const double ShatterTilt = 0.25;
+    public const double ShatterGap = 1;
+    public const double ShatterDepth = 4;
+
+    /// <summary>How far a Shatter's seams bend, in blocks.</summary>
+    public const double ShatterWander = 3;
 }

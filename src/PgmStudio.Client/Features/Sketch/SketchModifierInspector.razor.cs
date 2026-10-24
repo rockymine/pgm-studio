@@ -30,7 +30,9 @@ public partial class SketchModifierInspector
         Talus = "talus", Apron = "apron", Jag = "jag", Taper = "taper", Height = "height", Side = "side",
         Depth = "depth", Bed = "bed", Wall = "wall", Ledges = "ledges", Water = "water", Bank = "bank",
         Level = "level", Shore = "shore", Grade = "grade", Shoulder = "shoulder", Count = "count",
-        Sharpness = "sharpness", Amount = "amount", Width = "width", Leaving = "leaves";
+        Sharpness = "sharpness", Amount = "amount", Width = "width", Leaving = "leaves", Shelf = "shelf",
+        Across = "across", Heights = "heights", Stretch = "stretch", Angle = "angle", Tilt = "tilt", Gap = "gap",
+        StepsField = "steps", Start = "start", End = "end";
 
     /// <summary>The width a line is traced with, which a mask that states none is read at.</summary>
     private const double DefaultLineWidth = 6;
@@ -45,6 +47,11 @@ public partial class SketchModifierInspector
         new("1", "Right of the line"), new("-1", "Left of the line"),
     ];
 
+    private static readonly IReadOnlyList<SelectOption> ProfileSides =
+    [
+        new("", "Both sides"), new("1", "Right of the line"), new("-1", "Left of the line"),
+    ];
+
     private string? error;
 
     private string Id => SketchModifierState.Id(Modifier);
@@ -53,6 +60,7 @@ public partial class SketchModifierInspector
     private bool Mirrored => Mask["mirror"]?.GetValue<bool>() != false;
     private List<JsonObject> Areas => Mask["areas"] is JsonArray areas ? [.. areas.OfType<JsonObject>()] : [];
     private List<JsonObject> Sizes => Modifier["sizes"] is JsonArray sizes ? [.. sizes.OfType<JsonObject>()] : [];
+    private List<JsonObject> Steps => Modifier[StepsField] is JsonArray steps ? [.. steps.OfType<JsonObject>()] : [];
     private bool HasLine => Areas.Any(SketchModifierState.IsLine);
 
     /// <summary>The ids of the shapes the mask leaves out.</summary>
@@ -112,6 +120,36 @@ public partial class SketchModifierInspector
     private Task SetBool(string field, bool on) => Patch(new JsonObject { [field] = on });
 
     private Task SetSide(string side) => Patch(new JsonObject { [Side] = side == "-1" ? -1 : 1 });
+
+    private Task SetProfileSide(string side) =>
+        Patch(new JsonObject { [Side] = side switch { "-1" => -1, "1" => 1, _ => null } });
+
+    /// <summary>A stated <c>[least, most]</c>, or the operation's own range where none is stated.</summary>
+    private (double Least, double Most) RangeOf(string field, double least, double most) =>
+        Modifier[field] is JsonArray { Count: 2 } range && range[0] is JsonValue low && low.TryGetValue<double>(out var from)
+        && range[1] is JsonValue high && high.TryGetValue<double>(out var to) ? (from, to) : (least, most);
+
+    private Task SetRange(string field, double least, double most) =>
+        Patch(new JsonObject { [field] = new JsonArray(Math.Min(least, most), Math.Max(least, most)) });
+
+    private Task SetStep(int index, string field, double value) => EditSteps(steps => steps[index]![field] = value);
+
+    private Task RemoveStep(int index) => EditSteps(steps => steps.RemoveAt(index));
+
+    /// <summary>A new step a few blocks beyond the last, climbing six more.</summary>
+    private Task AddStep() => EditSteps(steps =>
+    {
+        var last = steps.OfType<JsonObject>().LastOrDefault();
+        var (end, rise) = last is null ? (0.0, 0.0) : (Number(last, End) ?? 0, Number(last, Rise) ?? 0);
+        steps.Add(new JsonObject { [Start] = end + 4, [End] = end + 7, [Rise] = rise + 6 });
+    });
+
+    private Task EditSteps(Action<JsonArray> edit)
+    {
+        var steps = Modifier[StepsField]?.DeepClone() as JsonArray ?? [];
+        edit(steps);
+        return Patch(new JsonObject { [StepsField] = steps });
+    }
 
     private Task SetMirror(bool on) => PatchMask(mask => mask["mirror"] = on);
 

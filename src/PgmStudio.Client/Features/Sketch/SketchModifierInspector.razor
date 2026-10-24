@@ -103,6 +103,56 @@
       @NumberRow("Amount", Amount, 6, "blocks the ground is shifted by", min: 0, step: "0.5")
       @NumberRow("Cell", Cell, 24, "the size of the noise that shifts it", min: 1)
       break;
+    case ModifierOps.Profile:
+      @NumberRow("Floor", Floor, null, "the world y of a flat floor; empty follows the ground")
+      <Field Label="Shaped side">
+        <LabelHint>(walking along the line as it was traced)</LabelHint>
+        <ChildContent>
+          <Select Slim="false" Options="ProfileSides" Value="@(Number(Modifier, Side) is { } hand ? (hand < 0 ? "-1" : "1") : "")"
+                  ValueChanged="SetProfileSide" />
+        </ChildContent>
+      </Field>
+      @NumberRow("Jag", Jag, 1.5, "blocks each step's edge wanders in and out", min: 0, step: "0.5")
+      @NumberRow("Talus", Talus, 0, "blocks of slope banked against the first cliff", min: 0)
+      @NumberRow("Apron", Apron, 0.3, "how much of the first step the talus climbs", min: 0, max: 1, step: "0.05")
+      <div class="section-header section-header--ruled"><h2 class="section-title">Steps</h2></div>
+      <p class="section-desc">Out from the line: where each cliff starts and ends, in blocks, and how far over the floor it climbs.</p>
+      @for (var index = 0; index < Steps.Count; index++)
+      {
+        var at = index;
+        var step = Steps[at];
+        <div class="modifier-size">
+          <Field Label="Start"><NumberField Value="Number(step, Start)" ValueChanged="v => SetStep(at, Start, v)" Min="0" /></Field>
+          <Field Label="End"><NumberField Value="Number(step, End)" ValueChanged="v => SetStep(at, End, v)" Min="0" /></Field>
+          <Field Label="Rise"><NumberField Value="Number(step, Rise)" ValueChanged="v => SetStep(at, Rise, v)" /></Field>
+          <Button Variant="icon" Icon="trash-2" Writes Title="Remove this step" Disabled="@(Steps.Count == 1)" OnClick="() => RemoveStep(at)" />
+        </div>
+      }
+      <Button Icon="plus" Writes OnClick="AddStep">Add a step</Button>
+      break;
+    case ModifierOps.Coast:
+      @NumberRow("Sea level", Level, null, "the world y of the sea; empty is one below the lowest rim ground")
+      @NumberRow("Shelf", Shelf, 10, "blocks inland over which the land eases down to the beach", min: 1)
+      @NumberRow("Depth", Depth, 6, "the deepest the sea floor lies under the surface", min: 0, step: "0.5")
+      @NumberRow("Floor slope", Slope, 0.35, "blocks the floor falls per block out from the shore", min: 0, step: "0.05")
+      break;
+    case ModifierOps.Lumps:
+      @NumberRow("Count", Count, 12, "how many are strewn; one whose middle misses the mask is not placed", min: 1, max: 200)
+      @RangeRow("Length", Across, 6, 16, "blocks along the long axis, least to most", min: 1)
+      @RangeRow("Height", Heights, 2, 5, "blocks high, least to most", min: 0)
+      @RangeRow("Width share", Stretch, 0.5, 1, "the short axis as a share of the long", min: 0.05, max: 1, step: "0.05")
+      @NumberRow("Heading", Angle, null, "degrees they line up along; empty turns each at random")
+      @NumberRow("Jag", Jag, 0.25, "how ragged each foot is", min: 0, step: "0.05")
+      @NumberRow("Shoulder", Power, 1.8, "above 1 each holds its height further out", min: 0.1, step: "0.1")
+      break;
+    case ModifierOps.Shatter:
+      @NumberRow("Piece size", Cell, 10, "blocks across one piece", min: 2)
+      @NumberRow("Lift", Amount, 3, "the most a piece rises or drops, in blocks", min: 0, step: "0.5")
+      @NumberRow("Tilt", Tilt, 0.25, "the steepest a piece leans, blocks per block", min: 0, step: "0.05")
+      @NumberRow("Cleft", Gap, 1, "blocks either side of a seam cut into a cleft; 0 for none", min: 0, step: "0.5")
+      @NumberRow("Cleft depth", Depth, 4, "how deep the clefts are cut", min: 0, step: "0.5")
+      @NumberRow("Wander", Wander, 3, "how far the seams bend", min: 0, step: "0.5")
+      break;
     case ModifierOps.Noise:
       <div class="section-header section-header--ruled"><h2 class="section-title">Sizes</h2></div>
       @for (var index = 0; index < Sizes.Count; index++)
@@ -170,6 +220,21 @@
 </Inspector>
 
 @code {
+    private RenderFragment RangeRow(string label, string field, double least, double most, string hint,
+                                    double? min = null, double? max = null, string step = "1") => __builder =>
+    {
+        var (low, high) = RangeOf(field, least, most);
+        <Field Label="@label">
+          <LabelHint>(@hint)</LabelHint>
+          <ChildContent>
+            <div class="modifier-size">
+              <NumberField Value="@low" ValueChanged="v => SetRange(field, v, high)" Min="min" Max="max" Step="@step" />
+              <NumberField Value="@high" ValueChanged="v => SetRange(field, low, v)" Min="min" Max="max" Step="@step" />
+            </div>
+          </ChildContent>
+        </Field>
+    };
+
     private RenderFragment NumberRow(string label, string field, double? fallback, string hint,
                                      double? min = null, double? max = null, string step = "1") => __builder =>
     {

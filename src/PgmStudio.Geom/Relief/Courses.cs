@@ -113,6 +113,42 @@ internal static class Courses
         return change;
     }
 
+    /// <summary>
+    /// A sea over an area, its surface at <c>level</c> or one under the lowest ground on its rim. Inside, the
+    /// floor falls from the shore <c>slope</c> blocks a block to <c>depth</c> under the surface, and the sea
+    /// stands over it; outside, the land eases down over <c>shelf</c> blocks to a beach one block over the sea, so
+    /// the shore is a beach and not a cliff. Only cuts inside; outside it cuts, and lifts low land beside the
+    /// water to the beach.
+    /// </summary>
+    public static double[] Coast(ModifierSpec spec, AreaView view, Ground ground, double[] waters)
+    {
+        var change = None(view);
+        if (!view.Is(MaskShape.Ellipse, MaskShape.Polygon)) return change;
+        double shelf = Math.Max(spec.Shelf ?? ModifierDefaults.CoastShelf, 1), depth = spec.Depth ?? ModifierDefaults.CoastDepth;
+        var slope = spec.Slope ?? ModifierDefaults.CoastSlope;
+        var scale = view.Area.Scale;
+        var sea = spec.Level is { } stated ? Math.Floor(stated) : LowestRim(view, ground, shelf) - 1;
+        if (!double.IsFinite(sea)) return change;
+        for (var i = 0; i < change.Length; i++)
+        {
+            var height = ground.Heights[i];
+            var e = view.E[i];
+            if (e <= 1)
+            {
+                var floor = Math.Floor(sea - Math.Min(depth, 1 + slope * (1 - e) * scale));
+                change[i] = Math.Min(height, floor) - height;
+                if (double.IsNaN(waters[i]) || waters[i] < sea) waters[i] = sea;
+                continue;
+            }
+            var inland = (e - 1) * scale;
+            if (inland >= shelf) continue;
+            var beach = sea + 1;
+            var land = beach + (height - beach) * Modifiers.SmoothStep(0, shelf, inland);
+            change[i] = Math.Max(Math.Min(height, land), beach) - height;
+        }
+        return change;
+    }
+
     // The lowest ground on the ring just outside the mask, or inside it where the board stops at the rim.
     private static double LowestRim(AreaView view, Ground ground, double reach)
     {

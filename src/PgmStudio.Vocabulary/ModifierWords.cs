@@ -51,8 +51,21 @@ public static class ModifierOps
     /// <summary>A Warp: the ground inside resampled at noise-shifted positions.</summary>
     public const string Warp = "warp";
 
+    /// <summary>A Profile: a cross-section set by distance from a line, a floor and steps of cliff and bench.</summary>
+    public const string Profile = "profile";
+
+    /// <summary>A Coast: a sea over an area, its floor falling from the shore and a beach easing the land to it.</summary>
+    public const string Coast = "coast";
+
+    /// <summary>Lumps: hummocks and fallen blocks strewn over an area.</summary>
+    public const string Lumps = "lumps";
+
+    /// <summary>A Shatter: the ground inside broken into plates, each lifted and tilted, clefts between.</summary>
+    public const string Shatter = "shatter";
+
     public static readonly string[] All =
-        [Mound, Crater, Level, Noise, Ridge, Butte, Spire, Scarp, Canyon, River, Lake, Road, Gullies, Warp];
+        [Mound, Crater, Level, Noise, Ridge, Butte, Spire, Scarp, Canyon, River, Lake, Road, Gullies, Warp,
+         Profile, Coast, Lumps, Shatter];
 
     /// <summary>What the screen calls an operation.</summary>
     public static string Label(string? op) => op switch
@@ -71,6 +84,10 @@ public static class ModifierOps
         Road => "Road",
         Gullies => "Gullies",
         Warp => "Warp",
+        Profile => "Profile",
+        Coast => "Coast",
+        Lumps => "Lumps",
+        Shatter => "Shatter",
         _ => op ?? "",
     };
 }

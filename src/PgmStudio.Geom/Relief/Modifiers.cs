@@ -44,7 +44,7 @@ public static class Modifiers
                 ModifierOp.Mound => MoundChange(spec, view.E),
                 ModifierOp.Crater => CraterChange(spec, area.Scale, view.E, heights),
                 ModifierOp.Level => LevelChange(spec, view.E, heights),
-                ModifierOp.Noise => NoiseChange(spec, view.E, xs, zs),
+                ModifierOp.Noise => NoiseChange(spec, view),
                 ModifierOp.Ridge => Landforms.Ridge(spec, view, ground),
                 ModifierOp.Butte => Landforms.Butte(spec, view, ground),
                 ModifierOp.Spire => Landforms.Spire(spec, view, ground),
@@ -55,6 +55,10 @@ public static class Modifiers
                 ModifierOp.River => Courses.River(spec, view, ground, stepWater),
                 ModifierOp.Lake => Courses.Lake(spec, view, ground, stepWater),
                 ModifierOp.Road => Courses.Road(spec, view, ground),
+                ModifierOp.Profile => Landforms.Profile(spec, view, ground),
+                ModifierOp.Coast => Courses.Coast(spec, view, ground, stepWater),
+                ModifierOp.Lumps => Scatter.Lumps(spec, view),
+                ModifierOp.Shatter => Scatter.Shatter(spec, view),
                 _ => new double[count],
             };
         }
@@ -149,16 +153,17 @@ public static class Modifiers
         return change;
     }
 
-    private static double[] NoiseChange(ModifierSpec spec, double[] distance, double[] xs, double[] zs)
+    private static double[] NoiseChange(ModifierSpec spec, AreaView view)
     {
         IReadOnlyList<NoiseSize> sizes = spec.Sizes is { Count: > 0 } stated ? stated : [ModifierDefaults.Size];
-        var change = new double[distance.Length];
+        var change = new double[view.E.Length];
         for (var i = 0; i < change.Length; i++)
         {
-            if (distance[i] >= 1) continue;
+            if (view.E[i] >= 1) continue;
+            var (x, z, _) = view.Drawn(i);
             var sum = 0.0;
             for (var size = 0; size < sizes.Count; size++)
-                sum += sizes[size].Rise * ValueNoise.Fractal(xs[i], zs[i], sizes[size].Cell, sizes[size].Octaves,
+                sum += sizes[size].Rise * ValueNoise.Fractal(x, z, sizes[size].Cell, sizes[size].Octaves,
                                                               unchecked(spec.Seed + size * SeedStride));
             change[i] = sum;
         }

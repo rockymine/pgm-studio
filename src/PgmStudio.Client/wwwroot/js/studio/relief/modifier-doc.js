@@ -6,7 +6,8 @@
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 import { distToSegment } from "../geometry/shape.js";
 
-/** The width a traced line starts with, in blocks: the band either side of it is half this. */
+/** The width a traced line starts with, in blocks: the band either side of it is half this. An operation that
+ *  states its own `width` below starts there instead. */
 export const LINE_WIDTH = 6;
 
 /**
@@ -22,10 +23,14 @@ export const MODIFIER_OPS = [
   { op: "ridge", label: "Ridge", trace: "line" },
   { op: "scarp", label: "Scarp", trace: "line" },
   { op: "canyon", label: "Canyon", trace: "line" },
+  { op: "profile", label: "Profile", trace: "line", width: 32 },
   { op: "road", label: "Road", trace: "line" },
   { op: "river", label: "River", trace: "line" },
   { op: "lake", label: "Lake", trace: "ring" },
+  { op: "coast", label: "Coast", trace: "ring" },
   { op: "noise", label: "Roughness", trace: "ring" },
+  { op: "lumps", label: "Lumps", trace: "ring" },
+  { op: "shatter", label: "Shatter", trace: "ring" },
   { op: "gullies", label: "Gullies", trace: "ring" },
   { op: "warp", label: "Warp", trace: "ring" },
 ];
@@ -47,6 +52,10 @@ const FRESH = {
   road: { grade: 0.25, shoulder: 4 },
   gullies: { count: 8, depth: 3, wander: 0.9, sharpness: 3 },
   warp: { amount: 6, cell: 24 },
+  profile: { steps: [{ start: 4, end: 7, rise: 6 }, { start: 10, end: 13, rise: 12 }], jag: 1.5 },
+  coast: { shelf: 10, depth: 6, slope: 0.35 },
+  lumps: { count: 12, across: [6, 16], heights: [2, 5], jag: 0.25 },
+  shatter: { cell: 10, amount: 3, tilt: 0.25, gap: 1, depth: 4, wander: 3 },
 };
 
 /** What the screen calls an operation. */
@@ -68,7 +77,8 @@ export function freshModifierId(modifiers, op) {
 /** The mask area an operation makes of a trace: a line for a line operation, else a polygon. */
 export function traceArea(op, points) {
   const copy = points.map(([x, z]) => [x, z]);
-  return isLineOp(op) ? { kind: "line", points: copy, width: LINE_WIDTH } : { kind: "polygon", points: copy };
+  const width = MODIFIER_OPS.find(entry => entry.op === op)?.width ?? LINE_WIDTH;
+  return isLineOp(op) ? { kind: "line", points: copy, width } : { kind: "polygon", points: copy };
 }
 
 /** A new modifier of `op` whose mask is the traced `points`. */
