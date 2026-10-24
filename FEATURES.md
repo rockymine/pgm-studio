@@ -47,6 +47,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **One filter rail (`C97`).** Maps, Catalog, Generator and `/design` build their rails from `FilterSidebar`,
   `FilterPanel` and `FilterGroup`, with counts on `Chip` and one Clear in each panel's heading.
   `docs/client/ui-conventions.md`.
+- **The map list names who made each map and filters by them (`RP100`).** Each `/maps` row shows the first
+  credited author's head and name (`AuthorMark`, with `+N` for the rest) from `MapSummary.Authors`, and the
+  rail carries an author search and one chip per author, grouped Agents and People, with counts and `?author=`
+  in the address (`Pages/Maps.razor`). `docs/client/routing-and-ia.md`.
 - **`/design` shows the studio as built (`C102`).** Tokens read live in both themes, then primitives, forms,
   data, layout and navigation, the filter rail, editor chrome, feedback and entry surfaces, each drawn by the
   real component. `docs/client/ui-conventions.md`.

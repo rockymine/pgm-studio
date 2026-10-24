@@ -81,12 +81,13 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds a map from declarative
 intent (`docs/pgm/new-map-authoring.md`; backend + every page-order step are landed —
-`FEATURES.md`). **Leave the existing Edit editor untouched** — a separate surface, not a refit.
+`FEATURES.md`).
 
 - [ ] **RP121 — A wool room the world builds is held to the room cap too.** `WX13` asks only a spawn room
-  (`WorldBuilder.OversizedRoom`, one call at `WorldBuilder.cs:210`), so a wool room whose protection Configure
-  redrew past 20 by 20 blocks builds with no finding, while `ST9` reads only the plan. The wool room loop calls
-  the same check, and `WX13`'s text names wool rooms beside spawn rooms. `docs/refusals.md`.
+  (`WorldBuilder.OversizedRoom`, one call at `WorldBuilder.cs:232`), so a wool room whose protection Configure
+  redrew past 20 by 20 blocks builds with no finding, while `ST9` asks only of a building the intent states
+  (`IntentCheck`). The wool room loop calls the same check, and `WX13`'s text names wool rooms beside spawn
+  rooms. `docs/refusals.md`.
 
 **A monument sits inside its capturing team's spawn, and that settles which map each entry is about**
 (author; `docs/design-decisions.md`). The studio's own maps derive it — `WorldBuilder` fills the location
@@ -99,19 +100,13 @@ never gets to choose on either kind.
 answerable over the API; what neither has is a step, so `TC7` and `TC9` sit with the surface that owes
 them one rather than with the contract work that shipped them.
 
-- [ ] **TC13 — An export with nothing in it is refused.** `GET /map/{slug}/export` on a map holding only a plan
-  (no intent, no sketch, no world) answers 200 with a five-line `map.xml`: name, an empty version, the
-  gamemode and an empty objective. EX1/EX2 gate only intent-authored maps, so nothing refuses it. Refuse it
-  in `MapExportLoader` with a finding that names what is missing (no game settings and no world), and the
-  matching `/xml` route the same way. `docs/tools/configure.md` § export gate.
-  *Evidence: `GET /api/map/composed-p12-t2-0/export` on a plan-stage map, 200, 144 bytes.*
-
 - [ ] **TC7 — The configure tool cannot place a hill.** The API is the way in — an agent adds
   `controlPoints` to the intent it already posts (`docs/pgm/control-points.md` §9) — and the wizard has no
   step for it. What the step states is a count and the anchors; the tuning is one shared block and already
   has its answer (`capture-time="5s"`, `points="1"`, `<score><limit>750</limit></score>`), so the step fills
-  it rather than asking. The anchors are the plan's to derive and it does (`FEATURES.md`), so the step asks
-  for a count on a board with no plan behind it and shows what the plan already worked out on one with.
+  it rather than asking. The anchors are derived when a plan is compiled (`FEATURES.md`), so the step asks for
+  a count on a board whose intent states none and shows the anchors the compile already worked out on one that
+  does.
 
 - [ ] **TC9 — The configure tool cannot place a shop.** The API is the way in — an agent adds `shops` to the
   intent it already posts (`docs/pgm/shops.md` §9) — and the wizard has no step for it. What the step states
@@ -361,7 +356,7 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   3 on an odd one, 2 at four across) and a style's `doorway.width` reaches only the dressing's houses. Honouring
   it is `clamp(stated, 2, interior − 2)`, dropped by one where its parity differs from the wall's so the door
   stays centred — carried on `RoomShells`, since `Domain` cannot see `HouseStyle`, and re-checked against the
-  iron cube the plan seats beside the door (`PieceRoom.Iron`, `WX8`). The field is `NOT NULL DEFAULT 2`
+  iron cube the room seats beside the door (`ResolvedRoom.Iron`, `WX8`). The field is `NOT NULL DEFAULT 2`
   (`M0027`), and 11 of the deployed 13 room styles hold 2, so read as stated every room door narrows: it has to
   become nullable with a migration, and whether a stored 2 is a statement is the author's. *Evidence: Sootcombe
   note 10 asks for a 2-wide wool-room door.* `docs/world-export/structures.md` §7.
@@ -404,8 +399,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   and it now draws the built world (`FEATURES.md`), but it is a modal swap rather than a companion view, so it
   confirms an edit after the fact rather than while it is being made.
 
-## World import: reading a map the studio did not build
-
 ## The shop: buying things in the middle of a match
 
 - [ ] **PG16 — A spawner's drop height is the author's and nothing checks it.** `SpawnerIntent.At` carries a
@@ -447,7 +440,7 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   author's bar is **40 blocks on the hole's longest side**. `HubBoxCells` sizes the hub from its budget share
   alone and the holed bodies build every wall one corridor thick, so the hole takes the whole difference as
   the box grows. Either the ring's walls thicken with the box or the body splits the void — a `double-hole`
-  where one ring's hole would run long. Lands in `TeamUnitAllocator.ChooseHubBody`/`ChooseHubWalls`;
+  where one ring's hole would run long. Lands in `TeamUnitAllocator.ChooseHubForm`/`ChooseHubWalls`;
   `docs/generator/model.md` and `rules.md` (`CT8` is the rule that states the envelope and measures nothing).
 
   *Evidence: 12 seeds a band, cell 4 — the hole run's median is 16 · 16 · 18 · 24 blocks up the ladder and
@@ -615,24 +608,10 @@ is the standard the copy is held to.
   guide entries in `docs/client/writing-for-the-ui.md` join the glossary as a longer field when a page needs
   them. `docs/client/`.
 
-- [ ] **RP100 — The map list says who made each map, and filters by them.** `/maps` rows carry no author;
-  add the first author's head and name to each row (`PlayerHead`, already used by `AuthorsEditor`) and an
-  author filter beside the search box. Needs the map summary DTO to carry the authors.
-  `docs/client/routing-and-ia.md`.
-
 - [ ] **C83 — Clicking the zoom readout resets the view.** The zoom percentage in `CanvasReadout` is
   pointer-transparent; a reader expects clicking it to return to 100% or fit. Make the zoom item a button
-  (the rest of the readout stays transparent) that calls each canvas's existing fit command, in the plan,
-  sketch and configure canvases. `docs/client/canvas-interaction.md`.
-
-- [ ] **TN25 — Undo and redo in the plan editor.** The sketch binds `mod+z` / `mod+shift+z` / `mod+y`
-  (`sketch-bridge.js`); the plan editor binds neither and keeps no history. A plan document is one JSON value,
-  so a step can be the whole `getState()` the way the sketch's is. `docs/tools/plan.md`.
-
-- [ ] **TN26 — A failed 3-D preview says why and can be tried again.** In the plan editor the 3-D toggle
-  flashes and then greys out as *3-D unavailable* (`PlanTool.razor.cs`, `IsoNote`), with the reason only on
-  hover and no way back short of a reload. Show the reason inline and keep the toggle pressable so a second
-  attempt re-runs the WebGL probe. `docs/tools/plan.md`.
+  (the rest of the readout stays transparent) that calls each canvas's existing fit command, in the sketch
+  and configure canvases. `docs/client/canvas-interaction.md`.
 
 - [ ] **TS150 — Zoom in the sketch's 3-D view.** Reported: in a map's Draw phase with 3-D on, the wheel moves
   the zoom readout and the scale bar but the picture stays still. Reproduce in the iso view
@@ -687,10 +666,6 @@ is the standard the copy is held to.
   Add a delete action on a row for its owner and admins, behind a confirm naming the map, greyed with the reason
   for anyone else (the `WriteGate` pattern). `docs/client/routing-and-ia.md`.
 
-- [ ] **TN29 — A saved plan can be deleted from the plan editor.** `DELETE /api/plans/{id}` is reached only by
-  the Generator's unpin; the plan editor's *Open a saved plan* list (`PlanTool.razor`) has no delete. Add one per
-  row, behind a confirm. `docs/tools/plan.md`.
-
 - [ ] **RP105 — An admin can issue a token that acts as another member.** `POST /api/users/{uuid}/tokens`
   exists and `Tokens.razor` only issues the caller's own (`/users/me/tokens`). Add the member picker to the
   admin's Tokens page. `docs/access.md`.
@@ -736,17 +711,11 @@ is the standard the copy is held to.
   `docs/architecture.md` say "thirty-six edit routes"; there are 20 `MapEdit.RunAsync` call sites. State the
   number nowhere, or derive it. `docs/architecture.md`.
 
-- [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
-  `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,
-  `PlanInspectDto:117`), and the two room families are the only ones naming a thing the rest of the studio
-  calls something else: the vocabulary beside them already says `woolRoom` (`StructuralRoles.WoolRoom`), and a
-  board binds a shell for a **wool** room and a **spawn** room (`roomStyles.wool`, `roomStyles.spawn`). Rename
-  the two to `wool-room` and `spawn-room`, and change the client that draws them. The words are this DTO's own
-  constant and nothing else spells them, so the surface is three source lines, three in
-  `PlanStructurePreviewTests` and four in `docs/` — one of which is a dated `rules.md` amendment and stays as
-  it reads. The prose goes with it: nine docstrings across `WorldBuilder`, `MapExportComposer`, `SketchRules`,
-  `SketchMaterialGate` and `PlanStructurePreview` still call the structures a wool cage and a spawn cube,
-  which is the same word under a different hat and wants renaming in one pass rather than in two.
+- [ ] **TN16 — The prose calls a wool room a wool cage and a spawn room a spawn cube.** The vocabulary already
+  says `woolRoom` (`StructuralRoles.WoolRoom`), and a board binds a shell for a **wool** room and a **spawn**
+  room (`roomStyles.wool`, `roomStyles.spawn`), yet docstrings in `WorldBuilder`, `SketchMaterialGate`,
+  `PieceDoors`, `WorldProvenance`, `MonumentStamper` and `StructureRenewables` still call the structures a wool
+  cage and a spawn cube, which is the same word under a different hat. Rename them in one pass.
 
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
@@ -870,4 +839,4 @@ list. `docs/pgm/supported-maps.md`.
   yet**, because which side `PlanCompiler` belongs to is not yet known — and it is the one thing the split
   turns on. The answer arrives when the generator next needs a structural change and the seam has to be
   argued about anyway; doing the rename as a standalone refactor before then buys nothing.
-  See `docs/project-structure.md` §6.1.
+  See `docs/project-structure.md` §7.1.
