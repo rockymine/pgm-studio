@@ -443,6 +443,34 @@ id still reads as stone; a guard testing the id alone counts it as unpainted gro
 straight through it. A plinth in polished diorite under a red prop comes back red. The read compares the pair
 — `(id, data)` against `(Stone, 0)` — which is what the write beside it has always compared.
 
+### 3.1b Paint rules — the ground's own conditions, read first
+
+**A board's paint rules lay a material where the ground is what they ask for, ahead of every theme (TP28).** A
+theme chooses its bucket by the column's place on its shape — edge, interior, riser — and a band stack by one axis
+of it; neither can say *sand beside the river* or *gravel on the steep high ground in patches*, which are facts
+about the ground and not about the shape that drew it. The layout's `paint[]` says them: each rule a `material`
+and any of `slope` `[above, upTo]` in degrees (steeper than the first, at most the second), `height` `[from, to]`
+of the top course's y, `noise` `{cell, above, seed}` — value noise `cell` blocks across, read 0 to 1, laying where
+it reads above `above` — and `near` `{modifier, width}`, the ground within `width` blocks of that modifier's mask
+on every image the symmetry fans it to. The rules are read in order, a column takes the first whose every stated
+condition holds, and it lays its `material` over that many top courses (`depth`, one unstated) of whatever band
+holds them, bedrock aside. A column no rule meets paints its theme, and a shape that states its own `material` is
+made of it and takes no rule. A rule `off` lays nothing and keeps its conditions.
+
+```json
+"paint": [
+  { "id": "scree", "material": { "kind": "solid", "id": 13 }, "slope": [40, null], "height": [70, null] },
+  { "id": "bank",  "material": { "kind": "solid", "id": 12 }, "depth": 2, "near": { "modifier": "river", "width": 3 } },
+  { "id": "moss",  "material": { "kind": "solid", "id": 48 }, "noise": { "cell": 8, "above": 0.6, "seed": 2 } }
+]
+```
+
+Gravel on anything steeper than 40° above y 70, two courses of sand within three blocks of the River `river`, and
+mossy cobblestone in patches over four tenths of what is left. The noise is read at the folded cell (TP21), so the
+two halves of a mirrored board meet the same rules; the water a River, Lake or Coast floods is laid after the
+paint, so its own beach covers the first blocks of a bank and the rule shows past it
+(`TerrainThemeScope.RulesOf`, `PaintRule`).
+
 ### 3.2 What a shape is made of, as against what paints the ground it is part of
 
 A theme is a recipe for **ground**, and which of its buckets a block takes is decided per column by whether
@@ -980,3 +1008,5 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP24** | Every paintable column carries how steeply its surface is inclined (`ColumnProfile.Slope`, `BucketContext.SlopeDegrees`): Horn's 3×3 gradient over the surface tops `TerrainProfile.SlopeWindow` cells either side, in whole degrees from level, 0–89. A ramp climbing one block a cell answers 45 exactly and level ground 0. A neighbour off the footprint or carrying a structure reads as level with the cell itself — the void is not a slope, and a building's roof is not the terrain's gradient (TP6's exclusion, applied to the same walk). `BandAxis.Slope` reads it, which makes a band stack an **angle mask**: a thickness on that axis is a span of degrees, not a count of blocks. It is the only thing in the model that tells a 45° hillside from a flat field — such a surface has no exposed riser, so the wall bucket never sees it and every other axis paints the two alike. The whole column takes the answer its surface gave, so a face's fill and the block on top of it resolve to the same band. **The window is two** because a gentle slope on ground quantised to whole blocks is a staircase, and a one-cell window reads the stair rather than the grade: it answers 27° on each riser and 0 on each tread, so a uniform grade paints speckled and a lone contour paints a stripe. A sustained slope reads the same angle at any window, so widening costs it nothing; a face softens (a six-block drop reads 72° at one, 56° at two, 45° at three) and that is what bounds it. `GET /map/{slug}/incline` is the reading — the tens of degrees per cell, and how much ground stands in each ten — and `?window=` tries another without rebuilding. |
 | **TP25** | A column something rests on — a higher layer's ground, a made thing's whole block or a stamp in the course over its top; a liquid counts, a block that does not fill its cube does not — has no rim or surface: the wall takes its top where exposed, the fill where not. A covered neighbour bounds like a structure: never a drop, always a `boundary` edge. |
 | **TP26** | A height stack may **follow the ground** (`follow`, 0–100%): its datum is `from` plus that share of `TerrainProfile.Ground`, the layer's surface averaged over the footprint cells `reach` either side (16 unstated, at most 64; void is not ground). A wide reach keeps the land's broad tilt and lets a hill cut the bands, a narrow one lays them along every bump. Read at the folded cell (TP21); with no ground supplied — a swatch, a house course — the stack reads world Y. `follow` 0, the default, is the level stack. |
+| **TP27** | The surface may state `soil`, its depth by slope — the first entry the column's slope is under gives its courses, none steeper than the last, so the rock under it shows on a face — and the paint reads a cell level with three of its four neighbours as a tread of at most 30° below 60° (`TerrainProfile.LedgeTread`, `LedgeFace`). |
+| **TP28** | A layout's `paint[]` lays a material over a column's top courses where its slope, height, noise or nearness to a modifier say so; the first rule a column meets wins over its theme, a shape stating its own `material` takes none, and bedrock is never laid on (§3.1b). |

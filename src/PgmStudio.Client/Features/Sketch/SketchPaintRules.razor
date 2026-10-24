@@ -1,0 +1,89 @@
+@namespace PgmStudio.Client.Features.Sketch
+@using PgmStudio.Client.Components
+
+@* The board's paint rules: a material laid over the top courses where the ground is steep, high, in patches or
+   beside a modifier, read in order with the first a column meets winning over its palette. Each edit replaces
+   the list through the bridge, so it is one undo step and the Blocks overlay repaints. *@
+
+<Section Title="Paint rules">
+  <Actions>
+    <Button Variant="icon" Icon="plus" Writes Title="Add a rule" OnClick="Add" />
+  </Actions>
+  <ChildContent>
+    <p class="section-desc">Read top to bottom: a column takes the first rule its ground meets, and one no rule
+      meets keeps its palette. A rule states only what it needs.</p>
+    @for (var index = 0; index < Rules.Count; index++)
+    {
+      var at = index;
+      var rule = Rules[at];
+      <div class="paint-rule" @key="Text(rule, Id)">
+        <div class="paint-rule-head">
+          <input type="checkbox" checked="@(rule[Off]?.GetValue<bool>() != true)" title="On"
+                 @onchange="e => Edit(at, edited => SetOrRemove(edited, Off, e.Value is true ? null : true))" />
+          <input class="field-input field-input--slim" value="@(Text(rule, Name) ?? "")" placeholder="@Text(rule, Id)"
+                 @onchange="e => Edit(at, edited => SetOrRemove(edited, Name, string.IsNullOrWhiteSpace(e.Value?.ToString()) ? null : e.Value!.ToString()!.Trim()))" />
+          <Button Variant="icon" Icon="arrow-up" Writes Title="Read it earlier" Disabled="@(at == 0)" OnClick="() => Move(at, -1)" />
+          <Button Variant="icon" Icon="arrow-down" Writes Title="Read it later" Disabled="@(at == Rules.Count - 1)" OnClick="() => Move(at, 1)" />
+          <Button Variant="icon" Icon="trash-2" Writes Title="Remove this rule" OnClick="() => Remove(at)" />
+        </div>
+        <Field Label="Lays">
+          <SlotSelect Styles="Styles" Blocks="Blocks" Value="@SlotOf(rule).StyleId" Block="@SlotOf(rule).Block"
+                      Unbound="Nothing yet" ValueChanged="fill => Fill(at, fill)" />
+        </Field>
+        <div class="paint-rule-pair">
+          <Field Label="Steeper than">
+            <NumberField Slim Value="@Pair(rule, Slope, 0)" Min="0" Max="89" ValueChanged="v => SetPair(at, Slope, 0, v)" OnCleared="() => SetPair(at, Slope, 0, null)" />
+          </Field>
+          <Field Label="At most (°)">
+            <NumberField Slim Value="@Pair(rule, Slope, 1)" Min="0" Max="89" ValueChanged="v => SetPair(at, Slope, 1, v)" OnCleared="() => SetPair(at, Slope, 1, null)" />
+          </Field>
+        </div>
+        <div class="paint-rule-pair">
+          <Field Label="From y">
+            <NumberField Slim Value="@Pair(rule, Height, 0)" ValueChanged="v => SetPair(at, Height, 0, v)" OnCleared="() => SetPair(at, Height, 0, null)" />
+          </Field>
+          <Field Label="To y">
+            <NumberField Slim Value="@Pair(rule, Height, 1)" ValueChanged="v => SetPair(at, Height, 1, v)" OnCleared="() => SetPair(at, Height, 1, null)" />
+          </Field>
+        </div>
+        <div class="paint-rule-pair">
+          <Field Label="Near">
+            <Select Options="NearOptions" Value="@(rule[Near]?[Modifier]?.GetValue<string>() ?? "")" Placeholder="Anywhere"
+                    ValueChanged="v => SetNear(at, v)" />
+          </Field>
+          @if (rule[Near] is not null)
+          {
+            <Field Label="Within (blocks)">
+              <NumberField Slim Value="@(Number(rule[Near], Width) ?? 3)" Min="0" ValueChanged="v => Edit(at, edited => edited[Near]![Width] = v)" />
+            </Field>
+          }
+        </div>
+        <div class="paint-rule-pair">
+          <Field Label="Courses">
+            <NumberField Slim Value="@(Number(rule, Depth) ?? 1)" Min="1" Max="8" ValueChanged="v => Edit(at, edited => SetOrRemove(edited, Depth, (int)v == 1 ? null : (int)v))" />
+          </Field>
+          <label class="check-row">
+            <input type="checkbox" checked="@(rule[Noise] is not null)" @onchange="e => SetPatches(at, e.Value is true)" />
+            In patches
+          </label>
+        </div>
+        @if (rule[Noise] is not null)
+        {
+          <div class="paint-rule-pair">
+            <Field Label="Patch size">
+              <NumberField Slim Value="@(Number(rule[Noise], Cell) ?? 8)" Min="1" ValueChanged="v => Edit(at, edited => edited[Noise]![Cell] = v)" />
+            </Field>
+            <Field Label="Bare share">
+              <NumberField Slim Value="@(Number(rule[Noise], Above) ?? 0.5)" Min="0" Max="1" Step="0.05" ValueChanged="v => Edit(at, edited => edited[Noise]![Above] = v)" />
+            </Field>
+          </div>
+        }
+      </div>
+    }
+    @if (Rules.Count == 0)
+    {
+      <p class="section-desc">No rules: every column paints its palette.</p>
+    }
+    @if (error is not null) { <p class="field-error">@error</p> }
+  </ChildContent>
+</Section>

@@ -20,6 +20,8 @@ namespace PgmStudio.Client.Features.Sketch;
 /// <param name="BiomeSource">Which library row the board's biome was copied from, or 0 for a board that states
 /// none and for one whose field came from outside the library.</param>
 /// <param name="BiomeJson">The board's biome field as JSON text, or empty for a board that states none.</param>
+/// <param name="PaintJson">The board's paint rules as JSON array text, in the order a column meets them.</param>
+/// <param name="ModifierIds">The ids of the board's modifiers, which a rule may be laid near.</param>
 public sealed record SketchThemes(
     IReadOnlyList<string> Ids,
     IReadOnlyDictionary<string, string> Documents,
@@ -30,7 +32,9 @@ public sealed record SketchThemes(
     IReadOnlyDictionary<string, string> RoomStyles,
     IReadOnlySet<string> OpenRooms,
     long BiomeSource,
-    string BiomeJson)
+    string BiomeJson,
+    string PaintJson = "[]",
+    IReadOnlyList<string>? ModifierIds = null)
 {
     /// <summary>A board with nothing stated, which is what the host holds until the bridge announces one.</summary>
     public static readonly SketchThemes Empty = new(
@@ -90,7 +94,11 @@ public sealed record SketchThemes(
             rooms,
             open,
             biomeSource,
-            biomeJson);
+            biomeJson,
+            root.TryGetProperty("paint", out var paint) && paint.ValueKind == JsonValueKind.Array ? paint.GetRawText() : "[]",
+            root.TryGetProperty("modifierIds", out var modifierIds) && modifierIds.ValueKind == JsonValueKind.Array
+                ? [.. modifierIds.EnumerateArray().Where(id => id.ValueKind == JsonValueKind.String).Select(id => id.GetString() ?? "")]
+                : []);
     }
 
     private static JsonElement? Object(JsonElement parent, string name) =>

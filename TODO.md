@@ -27,12 +27,6 @@ is steep, a river's bank is sand because it lies beside the river. Each entry is
 ported into the painter (`src/PgmStudio.Minecraft/Painting/`), proven by the board it builds, and
 `docs/world-export/terrain-painting.md` is the document each leaves correct.
 
-- [ ] **WE170 — Paint rules, first match winning.** A theme's surface gains `rules[]`: a material and any of
-  `slope` `(lo, hi]` degrees, `height` `[lo, hi]`, a noise range and `near`, a modifier id and a width that reads
-  that modifier's line or outline, so a River's bank is sand by naming the River. The first rule a column meets
-  paints it; none, and the surface material does. Rules sit ahead of the bucket's material in
-  `TerrainPainter.ColumnBlocks`; the band axes stay as they are.
-
 - [ ] **WE171 — Beds that dip and fold.** A `height` stack states `dip` `[x, z]`, blocks of lift per block, and
   `fold`, blocks of noise lift in cells of 24, added to its datum beside `follow` (TP26), so strata lean and bend
   across a cliff rather than lying level. pgmvox `bed_offset` (`surface/terrain.py:151`).

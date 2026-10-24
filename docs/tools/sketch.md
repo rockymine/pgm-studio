@@ -149,10 +149,12 @@ shape whether a layout was hand-drawn or compiled from a plan.
 | `roomStyles` | the two bound room shells — `wool` and `spawn` |
 | `dressing` | every placed prop |
 | `biome` · `biomeSource` | the biome every column carries, and the library row it was copied from |
+| `paint[]` | the paint rules: a material laid over a column's top courses where its slope, height, noise or nearness to a modifier say so, the first rule a column meets winning over its theme (`docs/world-export/terrain-painting.md`, TP28) |
 | `modifiers[]` | the terraform stack: operations run over the built ground in list order, each inside its mask (*Terraform*, below) |
 
-Seven of those are the map's **finish** rather than its shape — `themes`, `themeSources`, `mapTheme`,
-`roomStyles`, `dressing`, `biome`, `biomeSource` — and that grouping is load-bearing: none of them decides where ground stands, so a compiled layout carries
+Eight of those are the map's **finish** rather than its shape — `themes`, `themeSources`, `mapTheme`,
+`roomStyles`, `dressing`, `biome`, `biomeSource`, `paint` — and that grouping is load-bearing: none of them
+decides where ground stands, so a compiled layout carries
 none and a refinement states them onto it. `modifiers` is *not* in that set, because a modifier is geometry: it
 decides what the rasterizer emits.
 
@@ -1209,7 +1211,16 @@ two. **Every row there is one library row bound to
 the whole board** — the same statement four times over — so each row carries its own button through to the
 library that holds it and each says what it is bound to by name. The pictures are the library's, and a section
 describing what the board falls back to is a list of bindings rather than a gallery — no row of it draws what
-it is bound to. The order is the order a column is built: the paint under everything, the tint over it, then the finish stamped where a room stands.
+it is bound to. The order is the order a column is built: the paint under everything, the tint over it, then
+the finish stamped where a room stands.
+
+**The paint rules follow the bindings, because they are the board's own and no library row's.** *Paint rules*
+lists the board's `paint[]` in the order a column meets them: each with its on toggle, its name, the arrows that
+move it earlier or later and its removal; what it lays (a block or a library pattern); *Steeper than* and *At
+most* in degrees; *From y* and *To y*; *Near* one of the board's modifiers *Within* so many blocks of its mask;
+how many *Courses* it lays; and *In patches*, a noise *Patch size* wide that leaves a *Bare share* of the ground.
+Every edit replaces the list in one undo step and the Blocks overlay repaints. A rule naming a modifier is how a
+River's bank becomes sand: `docs/world-export/terrain-painting.md`, TP28, is the rule itself.
 
 **The map default is the board's; the built-in is stone.** Every bucket of `TerrainTheme.Default` is stone —
 what unpainted ground already is — so a board that names no theme exports as a board that names no theme, and

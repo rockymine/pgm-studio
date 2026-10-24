@@ -204,6 +204,22 @@ internal static class SketchTerraform
         segment.YTop > other.YTop || (segment.YTop == other.YTop && segment.YFloor < other.YFloor);
 
     /// <summary>The modifier as the operations read it, or null for a word this build does not know.</summary>
+    /// <summary>The <paramref name="cells"/> within <paramref name="width"/> blocks of a modifier's mask outline,
+    /// fanned as the modifier is; a board mask is near every cell.</summary>
+    internal static HashSet<(int X, int Z)> Near(SketchModifierJson modifier, IReadOnlyList<string> axes,
+                                                 double centreX, double centreZ, IEnumerable<(int X, int Z)> cells,
+                                                 double width)
+    {
+        var near = new HashSet<(int X, int Z)>();
+        if (SpecOf(modifier, axes, centreX, centreZ) is not { Areas: { Count: > 0 } areas }) return near;
+        foreach (var cell in cells)
+        {
+            double x = cell.X + 0.5, z = cell.Z + 0.5;
+            if (areas.Any(area => (area.E(x, z) - 1) * area.Scale <= width)) near.Add(cell);
+        }
+        return near;
+    }
+
     private static ModifierSpec? SpecOf(SketchModifierJson modifier, IReadOnlyList<string> axes, double centreX, double centreZ)
     {
         ModifierOp? op = modifier.Op switch

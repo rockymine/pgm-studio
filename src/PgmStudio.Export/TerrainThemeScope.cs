@@ -62,7 +62,8 @@ public static class TerrainThemeScope
                 else if (s.Theme is { } tid && themes.TryGetValue(tid, out var theme)) shapeTheme[(layer.Id!, s.Id)] = theme;
             }
 
-        var plain = new CellPaint(mapDefault);
+        var rules = RulesOf(layout);
+        var plain = new CellPaint(mapDefault, Rules: rules);
         if (shapeTheme.Count == 0) return (_, _, _) => plain;
 
         // A theme saying its edges are the ground's is composed against the map default, which is the board's
@@ -74,10 +75,42 @@ public static class TerrainThemeScope
         var symmetry = new DressingSymmetry(SketchLayout.MirrorModeOf(layout));
         var turns = Enumerable.Range(0, symmetry.Order).Select(symmetry.Turn).ToArray();
 
+        // A shape stating what it is made of is that material whole, so no rule lays over it.
+        var madeOf = MadeOfMaterial(layout);
         return (layer, x, z) => cellToShape.TryGetValue((layer, x, z), out var owner)
             && shapeTheme.TryGetValue((layer, owner.Shape), out var theme)
-                ? new CellPaint(TerrainTheme.OverGround(theme, mapDefault), turns[owner.Image])
+                ? new CellPaint(TerrainTheme.OverGround(theme, mapDefault), turns[owner.Image],
+                                madeOf.Contains((layer, owner.Shape)) ? null : rules)
                 : plain;
+
+        static HashSet<(string Layer, string Shape)> MadeOfMaterial(SketchLayout? layout) =>
+            [.. SketchLayout.Stack(layout).SelectMany(layer => layer.Shapes.Where(shape => MaterialOf(shape) is not null)
+                                                                            .Select(shape => (layer.Id!, shape.Id)))];
+    }
+
+    /// <summary>A layout's paint rules as the painter reads them, in order, with each <c>near</c> resolved to the
+    /// cells beside its modifier. A rule switched off, or one whose material will not read, is left out; a layout
+    /// stating none answers null.</summary>
+    public static IReadOnlyList<PaintRule>? RulesOf(SketchLayout? layout)
+    {
+        if (layout?.Paint is not { Count: > 0 } stated) return null;
+        var rules = new List<PaintRule>();
+        foreach (var rule in stated)
+        {
+            if (rule.Off || rule.Material is not { } json) continue;
+            TerrainMaterial material;
+            try { material = TerrainThemeJson.DeserializeMaterial(json.GetRawText()); }
+            catch (System.Text.Json.JsonException) { continue; }
+            rules.Add(new PaintRule(
+                material, Math.Max(1, rule.Depth ?? 1),
+                SlopeAbove: rule.Slope is { Length: > 0 } slope ? slope[0] : null,
+                SlopeUpTo: rule.Slope is { Length: > 1 } upTo ? upTo[1] : null,
+                HeightFrom: rule.Height is { Length: > 0 } height ? height[0] : null,
+                HeightTo: rule.Height is { Length: > 1 } to ? to[1] : null,
+                Noise: rule.Noise is { } noise ? new PaintNoise(Math.Max(1, noise.Cell), noise.Above, noise.Seed) : null,
+                Cells: rule.Near is { } near ? SketchRasterizer.NearCells(layout, near.Modifier, Math.Max(0, near.Width)) : null));
+        }
+        return rules.Count == 0 ? null : rules;
     }
 
     /// <summary>SK23 — every themed shape whose theme cannot show itself on it, because the shape has no

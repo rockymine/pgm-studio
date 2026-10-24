@@ -159,4 +159,32 @@ public sealed class TerraformWaterWorldTests
         await Assert.That(flowing).IsEqualTo(0);
         await Assert.That(Water(built, 0, 8, 25)).IsEqualTo(1);
     }
+
+    /// <summary>The highest block that is neither air nor water in a column, from the top of the plate down.</summary>
+    private static int TopSolid(BuiltWorld built, int x, int z)
+    {
+        for (var y = 30; y >= 0; y--)
+        {
+            var id = built.World.GetBlock(x, y, z).Id;
+            if (id != Blocks.Air && id != Blocks.StationaryWater) return id;
+        }
+        return Blocks.Air;
+    }
+
+    [Test]
+    public async Task A_paint_rule_near_a_river_lays_its_bank_and_leaves_the_rest_of_the_board_to_its_theme()
+    {
+        var layout = Board(River).TrimEnd().TrimEnd('}') + """
+            , "paint": [ { "id": "bank", "material": { "kind": "solid", "id": 12 }, "near": { "modifier": "river", "width": 6 } } ] }
+            """;
+        var built = BuiltWorlds.Of(layout, Intent());
+        var plain = BuiltWorlds.Of(Board(River), Intent());
+
+        // The water's own beach is laid over the first blocks of the bank after the paint; past it the rule shows.
+        foreach (var z in new[] { 31, 32, 33 })
+            await Assert.That((z, TopSolid(built, 0, z))).IsEqualTo((z, Blocks.Sand)).Because("the bank lies within six of the band");
+        await Assert.That(TopSolid(built, 0, 36)).IsNotEqualTo(Blocks.Sand).Because("past the width the theme paints");
+        await Assert.That(TopSolid(built, 0, 0)).IsEqualTo(TopSolid(plain, 0, 0)).Because("far from the river the theme paints");
+        await Assert.That(TopSolid(plain, 0, 32)).IsNotEqualTo(Blocks.Sand);
+    }
 }

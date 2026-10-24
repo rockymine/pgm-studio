@@ -298,3 +298,16 @@
 .field-affix-text { position: absolute; left: var(--space-2); color: var(--text-muted); font-size: var(--font-sm); pointer-events: none; }
 .field-affix .field-input { padding-left: calc(var(--space-2) + 1.1em); width: 100%; }
 
+
+/* A paint rule in the Palette's list: its head row (on, name, order, remove) and its conditions in pairs. */
+.paint-rule {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border);
+}
+.paint-rule-head { display: flex; align-items: center; gap: var(--space-1); }
+.paint-rule-head .field-input { flex: 1; min-width: 0; }
+.paint-rule-pair { display: flex; gap: var(--space-2); align-items: flex-end; }
+.paint-rule-pair > .field { flex: 1; min-width: 0; }

@@ -138,6 +138,8 @@
         <p class="section-desc">No room styles in the library yet.</p>
       }
     </Section>
+    <SketchPaintRules Handle="Handle" PaintJson="@Themes.PaintJson" ModifierIds="@(Themes.ModifierIds ?? [])"
+                      Styles="paintStyles" Blocks="paintBlocks" />
   }
   }
 </Inspector>

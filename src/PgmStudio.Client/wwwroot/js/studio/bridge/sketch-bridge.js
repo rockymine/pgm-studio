@@ -79,6 +79,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // Which library row that field was copied from, or 0 for a board whose field came from none — one written
   // over HTTP, or none at all. The field itself is the snapshot; this only says which row to show as held.
   let biomeSource = 0;
+  // The board's paint rules (terrain-painting.md TP28), in the order a column meets them: each a material laid
+  // over the top courses where the ground is what it asks for. Empty paints every column its theme.
+  let paint = [];
   // Which library row each theme was copied from, theme id -> row id. A theme authored on the board
   // has no entry. It is what a copy-in matches by, so a rename on either side still finds the one theme.
   let themeSources = {};
@@ -1087,6 +1090,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     return JSON.stringify({
       themes, themeSources, mapTheme: mapTheme || "", shapeThemes, shapeCount,
       roomStyles, biome: { field: biome ?? null, source: biomeSource },
+      paint, modifierIds: modifiers.map(modifier => modifier.id),
     });
   }
   const announceThemes = () => fire("OnThemes", themesState());
@@ -1479,6 +1483,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       biomeSource = Number.isFinite(source) && source > 0 ? source : 0;
       markDirty(); announceThemes(); return null;
     },
+    // ── paint rules (terrain-painting.md TP28) ──
+    // Replace the whole list with the JSON array text; returns an error string when it does not read.
+    setPaint(text) {
+      let parsed; try { parsed = JSON.parse(text || "[]"); } catch (e) { return e?.message || "This isn't valid JSON."; }
+      if (!Array.isArray(parsed)) return "Paint rules are a list.";
+      paint = parsed;
+      afterThemeChange(); return null;
+    },
     defineTheme(name) {
       const id = uniqueScopeId(Object.keys(themes), name || "theme");
       themes[id] = defaultThemeJson();
@@ -1677,6 +1689,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       };
       biome = (s.biome && typeof s.biome === "object") ? s.biome : undefined;
       biomeSource = (biome && Number.isFinite(s.biomeSource)) ? s.biomeSource : 0;
+      paint = Array.isArray(s.paint) ? structuredClone(s.paint) : [];
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
       modifiers = Array.isArray(s.modifiers) ? structuredClone(s.modifiers) : [];
       if (!modifiers.some(modifier => modifier.id === pickedModifier)) pickedModifier = null;
@@ -1746,13 +1759,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         // board that never opened the question exports as — and the library row it was copied from.
         biome,
         biomeSource: biomeSource || undefined,
+        // The paint rules, omitted when there are none.
+        paint: paint.length ? paint : undefined,
         // Dressing rides the same way, and is likewise omitted when empty so an undressed sketch serialises
         // exactly as it did before the phase existed.
         dressing: canvas.dressing.isEmpty ? undefined : canvas.dressing.toJSON(),
-        // Relief rides top-level keyed by group rather than on the shapes, because a group outlives a
-        // redrawing of the shapes in it. Omitted when
-        // nothing is stated, so opening the phase and leaving it cannot add a key to the layout.
-        // The terraform stack, omitted when empty for the same reason.
+        // The terraform stack, omitted when empty, so opening the phase and leaving it cannot add a key to the
+        // layout.
         modifiers: modifiers.length ? modifiers : undefined,
         layers: layers.map(L => ({
           ...L.stated,

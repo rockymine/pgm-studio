@@ -68,6 +68,11 @@ public sealed class SketchLayout
     /// the note a copied theme carries in <see cref="ThemeSources"/>, for one field rather than a registry.</summary>
     [JsonPropertyName("biomeSource")] public long? BiomeSource { get; set; }
 
+    /// <summary>The board's paint rules, in the order they are read: a material laid over a column's top courses
+    /// where its slope, height, noise or nearness to a modifier say so, the first rule a column meets winning over
+    /// its theme (<see cref="SketchPaintRuleJson"/>). Absent, every column paints its theme.</summary>
+    [JsonPropertyName("paint")] public List<SketchPaintRuleJson>? Paint { get; set; }
+
     /// <summary>The terraform operations run over the built ground, in the order they run
     /// (<see cref="SketchModifierJson"/>).</summary>
     [JsonPropertyName("modifiers")] public List<SketchModifierJson>? Modifiers { get; set; }
@@ -93,10 +98,10 @@ public sealed class SketchLayout
 
     /// <summary>The keys that hold a map's finish rather than its shape: the terrain-theme registry, where
     /// each of its themes was copied from and the map default, the two bound room shells, every placed prop,
-    /// and the biome the ground is tinted by. A plan states where the ground is and nothing about how it
-    /// looks, so a layout compiled from one carries none of them.</summary>
+    /// the biome the ground is tinted by, and the paint rules. A plan states where the ground is and nothing about
+    /// how it looks, so a layout compiled from one carries none of them.</summary>
     public static readonly string[] FinishKeys =
-        ["themes", "themeSources", "mapTheme", "roomStyles", "dressing", "biome", "biomeSource"];
+        ["themes", "themeSources", "mapTheme", "roomStyles", "dressing", "biome", "biomeSource", "paint"];
 
     /// <summary>The layers a document draws, in draw order — the one place the stack is read, so a gate, a
     /// rasterizer and a theme scope cannot disagree about which shapes a document holds. A document stating

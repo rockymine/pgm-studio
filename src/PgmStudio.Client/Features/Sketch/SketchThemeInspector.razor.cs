@@ -101,7 +101,12 @@ public partial class SketchThemeInspector
         rooms = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
         roomOfSnapshot.Clear();
         biomePatterns = await Library.ListAsync<BiomePatternSummary>(LibraryKinds.Biomes);
+        paintBlocks = await Library.BlocksAsync();
+        paintStyles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
     }
+
+    private IReadOnlyList<PaintBlockDto> paintBlocks = [];
+    private IReadOnlyList<StyleDto> paintStyles = [];
 
     /// <summary>The material document of the theme in hand, or null where none is held or the board no longer
     /// has it.</summary>

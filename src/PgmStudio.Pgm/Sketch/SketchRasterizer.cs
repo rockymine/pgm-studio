@@ -107,6 +107,19 @@ public static class SketchRasterizer
         return new BuiltColumns(Seat(state, output), water);
     }
 
+    /// <summary>The cells of the built ground within <paramref name="width"/> blocks of one modifier's mask, on
+    /// every image the symmetry fans it to: inside an outline or a line's band, and that far past its edge. A paint
+    /// rule naming the modifier lays there. An id naming no modifier, or one whose mask states too little, is
+    /// near nothing.</summary>
+    public static IReadOnlySet<(int X, int Z)> NearCells(SketchLayout? state, string modifierId, double width)
+    {
+        var modifier = state?.Modifiers?.FirstOrDefault(entry => entry.Id == modifierId);
+        if (modifier is null) return new HashSet<(int X, int Z)>();
+        var (cx, cz, axes) = FrameOf(state);
+        var cells = Built(state).Segments.Select(segment => (segment.X, segment.Z)).ToHashSet();
+        return SketchTerraform.Near(modifier, axes, cx, cz, cells, width);
+    }
+
     /// <summary>How many columns each modifier of <paramref name="state"/> moved, one entry per modifier in list
     /// order: the columns whose rounded top its own run changed, over the ground the modifiers before it left.
     /// A modifier switched off, or one this build does not know, answers zero. One pass over the stack, so the
