@@ -13,8 +13,8 @@ namespace PgmStudio.Api.Tests;
 /// holding the board they are on.
 ///
 /// <para>Two judgements are pinned here. A layer that already groups its shapes takes no shape that names
-/// none, because the orbit fan and the relief are both read off a group's list and an ungrouped shape on a
-/// grouped layer is built once, where it was drawn, on flat ground. And a shape patch refuses the two fields
+/// none, because the orbit fan is read off a group's list and an ungrouped shape on a
+/// grouped layer is built once, where it was drawn. And a shape patch refuses the two fields
 /// a room owns, because <c>role</c> is what makes a shape a room drawn in from the intent and
 /// <c>height_authored</c> is a claim that a floor was corrected by hand.</para>
 ///
@@ -89,7 +89,6 @@ public sealed class SketchGeometryEndpointsTests
         var island = groups.EnumerateArray().Single(group => group.GetProperty("id").GetString() == "i");
         await Assert.That(island.GetProperty("layer").GetString()).IsEqualTo("layer0");
         await Assert.That(island.GetProperty("shapeIds").GetArrayLength()).IsEqualTo(2);
-        await Assert.That(island.GetProperty("hasRelief").GetBoolean()).IsFalse();
 
         var moved = await client.PatchAsync($"{Sketch}/shapes/{id}", Body("""{"radius":12}"""));
         await Assert.That(moved.IsSuccessStatusCode).IsTrue();
@@ -146,9 +145,9 @@ public sealed class SketchGeometryEndpointsTests
     {
         using var client = await SketchBoard.FreshAsync();
 
-        await client.PatchAsync($"{Sketch}/shapes/s1", Body("""{"relief_scope":"exclude"}"""));
+        await client.PatchAsync($"{Sketch}/shapes/s1", Body("""{"relief_scope":"hold"}"""));
         await Assert.That((await ShapeAsync(client, "s1")).GetProperty("relief_scope").GetString())
-            .IsEqualTo("exclude");
+            .IsEqualTo("hold");
 
         await client.PatchAsync($"{Sketch}/shapes/s1", Body("""{"relief_scope":null}"""));
         var cleared = await ShapeAsync(client, "s1");
@@ -156,10 +155,9 @@ public sealed class SketchGeometryEndpointsTests
             .IsFalse();
     }
 
-    /// <summary>A group is stated and ungrouped without its shapes moving, and the relief keyed over it goes
-    /// with the group rather than being left naming nothing.</summary>
+    /// <summary>A group is stated and ungrouped without its shapes moving.</summary>
     [Test]
-    public async Task A_group_is_stated_and_ungrouped_and_its_relief_goes_with_it()
+    public async Task A_group_is_stated_and_ungrouped()
     {
         using var client = await SketchBoard.FreshAsync();
 
@@ -167,22 +165,12 @@ public sealed class SketchGeometryEndpointsTests
             Body("""{"name":"East","mirrors":false,"shapeIds":[]}"""));
         await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());
 
-        var relief = await client.PutAsJsonAsync($"{Sketch}/relief/east", new
-        {
-            @base = 6.0, reach = 40, step = 1,
-            marks = new[] { new { kind = "point", at = new[] { 0.0, 0.0 }, h = 14.0, r = 6.0 } },
-        });
-        await Assert.That(relief.IsSuccessStatusCode).IsTrue();
-
         var groups = await client.GetFromJsonAsync<JsonElement>($"{Sketch}/groups");
         var east = groups.EnumerateArray().Single(group => group.GetProperty("id").GetString() == "east");
         await Assert.That(east.GetProperty("mirrors").GetBoolean()).IsFalse();
-        await Assert.That(east.GetProperty("hasRelief").GetBoolean()).IsTrue();
 
         await Assert.That((await client.DeleteAsync($"{Sketch}/layers/layer0/groups/east")).StatusCode)
             .IsEqualTo(HttpStatusCode.OK);
-        await Assert.That((await client.GetAsync($"{Sketch}/relief/east")).StatusCode)
-            .IsEqualTo(HttpStatusCode.NotFound);
         await Assert.That((await client.GetFromJsonAsync<JsonElement>($"{Sketch}/layers/layer0/shapes"))
             .GetArrayLength()).IsEqualTo(1);
     }

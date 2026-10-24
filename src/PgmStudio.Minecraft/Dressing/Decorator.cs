@@ -630,7 +630,7 @@ public static class Decorator
     /// <summary>DR-DRY — a fluid standing against a hole in its own basin.
     ///
     /// <para>A pool fills the bed it carves. The hollow it sits in was very often dug by something else — a
-    /// relief mark, a shape's own floor — and the two are separate statements about one lake, so where the
+    /// modifier, a shape's own floor — and the two are separate statements about one lake, so where the
     /// hollow reaches further than the bed does the extra is excavated and never filled: a trench as deep as
     /// the fluid is, running alongside it, with the fluid standing against open air.</para>
     ///
@@ -1324,9 +1324,9 @@ public static class Decorator
     }
 
     /// <summary>Carve the terrain standing above a building's floor out of its footprint, before the stamp.
-    /// A building seats on the lowest column of its plan, so on a hillside or a relief mark the higher ground
+    /// A building seats on the lowest column of its plan, so on a hillside or a Hill the higher ground
     /// runs straight through where its rooms will be — and the stamper deliberately never cuts terrain (air
-    /// out of a material is a gap left open, not a hole punched), so without this the relief stands inside
+    /// out of a material is a gap left open, not a hole punched), so without this the hill stands inside
     /// the house. The building wins the ground it was drawn on (the author's ruling, the same rule that keeps
     /// a tree from rooting in one): every footprint column is cleared from the floor's own course up to its
     /// old surface, so the house sinks into the slope with its interior intact. Only the wall plan is carved —

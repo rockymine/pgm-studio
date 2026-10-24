@@ -26,7 +26,7 @@ public static class MapDocuments
 ///
 /// <para><b>Document</b> names which of the five the path is into (<see cref="MapDocuments"/>), or the request
 /// itself (<see cref="MapDocuments.Request"/>) where the change is a parameter to send it again with. <b>Path</b> is
-/// the field the change lands on, spelled the way an unread field is (<c>relief.team.marks</c>,
+/// the field the change lands on, spelled the way an unread field is (<c>modifiers[hill].mask</c>,
 /// <c>dressing.props[erratic-broken]</c>): members joined by dots, an array element by its <c>id</c> in brackets
 /// where the element carries one and by its index otherwise. <b>Op</b> is one of four: <c>add</c> appends
 /// <see cref="Value"/> to the array at the path; <c>set</c> replaces the value at the path with it; <c>move</c>

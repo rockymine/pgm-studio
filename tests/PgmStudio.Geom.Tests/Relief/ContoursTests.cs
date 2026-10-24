@@ -3,7 +3,7 @@ using PgmStudio.Geom.Relief;
 namespace PgmStudio.Geom.Tests.Relief;
 
 /// <summary>
-/// Tracing a solved surface into lines of constant height. What the tests hold is what makes the lines
+/// Tracing a surface into lines of constant height. What the tests hold is what makes the lines
 /// readable as topography: a contour separates the ground above it from the ground below it, a run arrives in
 /// walking order rather than as loose pieces, and a level that closes on itself says so.
 /// </summary>
@@ -134,22 +134,15 @@ public sealed class ContoursTests
     }
 
     [Test]
-    public async Task A_solved_relief_contours_without_stray_pieces()
+    public async Task A_grained_surface_contours_without_stray_pieces()
     {
-        // The case the overlay actually draws: the solver's own output, grain and all. Every line has to be
+        // The case the overlay actually draws: rolling ground with noise laid over it. Every line has to be
         // long enough to be a line — a level fragmenting into two-point stubs is the failure that makes an
         // overlay unreadable.
-        var footprint = Footprint.Of([([[0, 0], [80, 0], [80, 60], [0, 60]], false)]);
-        var field = ReliefSolver.Solve(footprint, new ReliefSpec
+        var field = Field(81, 61, (x, z) =>
         {
-            Base = 6,
-            Grain = 1.2,
-            Marks =
-            [
-                new RimMark(5),
-                new PointMark(20, 20, 18, 4),
-                new PointMark(62, 44, 14, 5),
-            ],
+            double Hill(int cx, int cz, double rise) => Math.Max(0, rise - Math.Sqrt((x - cx) * (x - cx) + (z - cz) * (z - cz)) * 0.6);
+            return 6 + Hill(20, 20, 12) + Hill(62, 44, 8) + 1.2 * ValueNoise.Fractal(x, z, 9, 2, 1);
         });
 
         var lines = Contours.Of(field);

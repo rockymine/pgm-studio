@@ -68,17 +68,13 @@ public sealed class SketchLayout
     /// the note a copied theme carries in <see cref="ThemeSources"/>, for one field rather than a registry.</summary>
     [JsonPropertyName("biomeSource")] public long? BiomeSource { get; set; }
 
-    /// <summary>Interior elevation, keyed by group id. It rides at the top level rather than inside the
-    /// shapes because it is stated of a group, which several shapes fuse into.</summary>
-    [JsonPropertyName("relief")] public Dictionary<string, SketchReliefJson>? Relief { get; set; }
-
     /// <summary>The terraform operations run over the built ground, in the order they run
     /// (<see cref="SketchModifierJson"/>).</summary>
     [JsonPropertyName("modifiers")] public List<SketchModifierJson>? Modifiers { get; set; }
 
     /// <summary>What the layout states about the ground under each play room, by the id of the shape the room
     /// is drawn as (<see cref="RoomGround"/>). The rooms themselves are the intent's, drawn in by
-    /// <see cref="RoomShapes.Project"/>; absent, every room is ordinary ground the relief does not pin.</summary>
+    /// <see cref="RoomShapes.Project"/>; absent, every room holds its own ground against the modifiers.</summary>
     [JsonPropertyName("rooms")] public Dictionary<string, RoomGround>? Rooms { get; set; }
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -298,7 +294,7 @@ public sealed class SketchShapes
 /// <summary>Groups shapes into a landmass and records whether the group is copied onto the mirror.</summary>
 public sealed class SketchGroup
 {
-    /// <summary>What the rest of the document names the group by — a relief is keyed on it.</summary>
+    /// <summary>What the rest of the document names the group by.</summary>
     [JsonPropertyName("id")]       public string? Id { get; set; }
 
     /// <summary>What the group is called on screen.</summary>
@@ -392,9 +388,10 @@ public sealed class SketchShape
     // spans [Floor, Floor + BaseHeight]. For a polygon/lasso whose AnchorHeights line up with its Vertices,
     // the thickness varies per vertex (TIN-interpolated across the footprint). All optional; absent = the
     // flat one-block Y=0 behaviour.
-    /// <summary>How this shape's top is decided, once a group carries a relief. Absent, the shape is
-    /// ordinary ground and the relief is the ground — which is what a shape drawn to make a landmass wants.
-    /// The words are for a shape that is meant to stand OUT of the field rather than be part of it:
+    /// <summary>How this shape's top is decided. Absent, the shape is ordinary ground, its top the height
+    /// it states, and the modifier stack shapes it — which is what a shape drawn to make a landmass wants.
+    /// The words are for a shape that is meant to stand OUT of the ground rather than be part of it, and the
+    /// modifiers leave its columns out:
     /// <c>level</c> cuts a flat top at an absolute height (a mesa, whose faces are cliffs), <c>raise</c> holds
     /// it a fixed amount above the middle of the ground under it (a monolith or a plinth, which keeps its
     /// prominence wherever it is dragged), <c>sink</c> the same downward (a quarry, a sunken arena), and
@@ -409,20 +406,11 @@ public sealed class SketchShape
     /// sits it IN the terrain instead of on it.</summary>
     [JsonPropertyName("skirt")]          public int? Skirt { get; set; }
 
-    /// <summary>Whether this shape's ground takes part in its group's relief. The group is the unit a relief
-    /// is solved over, because a relief solved per shape leaves a seam wherever two of them meet and disagree
-    /// about the height they share. The fusion is not always what an author wants, and the case that decides
-    /// it is a built thing standing on the ground — a city, a keep, a walled compound — whose floor is not
-    /// terrain and which is themed as a unit. The three words are <see cref="ReliefScopes"/>:
-    /// <c>follow</c> takes the height the field settles on under the shape and holds it flat there, so the
-    /// shape moves with the terrain and keeps a level floor; <c>hold</c> pins it at its own stated top
-    /// whatever the relief wants, so the surrounding surface is solved knowing where it has to arrive and
-    /// ground that disagrees meets it as a face; <c>exclude</c> pins nothing and takes the footprint out of
-    /// the solve entirely, so the land is whatever that outline would have produced and the shape keeps its
-    /// own height. Absent is <c>inherit</c> — the shape is part of the group's ground.
-    /// <para>Not read on a shape that declares a <see cref="HeightMode"/>: such a shape already stands out of
-    /// the field, and <c>raise</c>/<c>sink</c> read the ground under their own footprint to know where to
-    /// stand, which an excluded footprint would not have.</para></summary>
+    /// <summary>Whether the modifier stack leaves this shape's ground alone. <c>hold</c> keeps its columns at
+    /// the top the shape states — a city, a keep, a walled compound, whose floor is not terrain and is themed as
+    /// a unit — and the ground round it is shaped up to its edge. Absent, the shape is part of the ground and
+    /// the modifiers shape it (<see cref="ReliefScopes"/>).
+    /// <para>A shape that declares a <see cref="HeightMode"/> is held whatever this says.</para></summary>
     [JsonPropertyName("relief_scope")]   public string? ReliefScope { get; set; }
 
     /// <summary>The shape's thickness: its column spans <c>[floor, floor + base_height]</c>. Absent is the

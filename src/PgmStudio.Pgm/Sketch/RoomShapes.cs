@@ -24,8 +24,8 @@ public sealed class RoomGround
     /// <summary>A top per corner, interpolated across the region.</summary>
     [JsonPropertyName("anchor_heights")] public double[]? AnchorHeights { get; set; }
 
-    /// <summary>How the room takes part in its group's relief: <c>follow</c>, <c>hold</c> or <c>exclude</c>.
-    /// Absent pins nothing.</summary>
+    /// <summary>Whether the modifiers leave the room's ground alone: <c>hold</c>. A room's ground is held whether
+    /// or not this states it.</summary>
     [WordSet(typeof(ReliefScopes))]
     [JsonPropertyName("relief_scope")] public string? ReliefScope { get; set; }
 

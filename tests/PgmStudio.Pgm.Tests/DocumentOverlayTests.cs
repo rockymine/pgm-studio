@@ -81,14 +81,14 @@ public sealed class DocumentOverlayTests
     [Test]
     public async Task Nested_merges_recurse_more_than_one_level()
     {
-        var target = """{"relief":{"north":{"base":6,"marks":[{"kind":"point"}]}}}""";
-        var overlay = """{"relief":{"north":{"marks":[{"kind":"rim"}]},"south":{"base":4}}}""";
+        var target = """{"zones":{"north":{"size":6,"tags":["a"]}}}""";
+        var overlay = """{"zones":{"north":{"tags":["b"]},"south":{"size":4}}}""";
 
-        var merged = Parse(DocumentOverlay.Merge(target, overlay)).GetProperty("relief");
+        var merged = Parse(DocumentOverlay.Merge(target, overlay)).GetProperty("zones");
 
-        await Assert.That(merged.GetProperty("north").GetProperty("base").GetInt32()).IsEqualTo(6);
-        await Assert.That(merged.GetProperty("north").GetProperty("marks").GetArrayLength()).IsEqualTo(2);
-        await Assert.That(merged.GetProperty("south").GetProperty("base").GetInt32()).IsEqualTo(4);
+        await Assert.That(merged.GetProperty("north").GetProperty("size").GetInt32()).IsEqualTo(6);
+        await Assert.That(merged.GetProperty("north").GetProperty("tags").GetArrayLength()).IsEqualTo(2);
+        await Assert.That(merged.GetProperty("south").GetProperty("size").GetInt32()).IsEqualTo(4);
     }
 
     [Test]

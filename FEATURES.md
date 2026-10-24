@@ -10817,9 +10817,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   became). *Add an outline* joins another to a picked mask.
 - **The group relief is gone, and its maps carry modifiers (`TS206`).** A migration turned every stored relief's
   area and point marks into Levels, its pushes into Hills and its grain into Roughness and dropped its line, scarp
-  and rim marks; the solver, its endpoints, the readback and `RL1`–`RL6` left with it. `relief_scope` is `hold`
-  or absent: a held shape, a shape stating a `height_mode` and a play room keep their columns out of every
-  modifier. `docs/tools/sketch.md`.
+  and rim marks, wrote what it converted into each map's history (`M0086`), and folded `relief_scope` to `hold`
+  or absent; the solver, its endpoints, the readback, `SK14` and `RL1`–`RL6` left with it, and a refinement states
+  `modifiers`. A play room, a `hold` shape and a `level` shape keep their columns out of every modifier, and a
+  `raise`, `sink` or `drape` shape rides the ground the stack left. `docs/tools/sketch.md`.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

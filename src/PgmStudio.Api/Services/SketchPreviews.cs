@@ -27,19 +27,14 @@ internal static class SketchPreviews
     public static SketchPreview Of(BuiltWorld world, Func<SketchPreview> read) =>
         Worlds.GetValue(world, _ => new Lazy<SketchPreview>(read, LazyThreadSafetyMode.ExecutionAndPublication)).Value;
 
-    /// <summary>The preview of the world <paramref name="layoutJson"/> built: the layout's own findings, every
+    /// <summary>The preview of the world <paramref name="layout"/> built: the layout's own findings, every
     /// column's runs, and the findings read off the build — the goals standing over the void (<c>OB17</c>), asked
     /// here because this build already paid for the ground and the resolved goals, and a building whose
     /// neighbours have no ground to meet it on (<c>WX11</c>), which nothing else reports.</summary>
-    public static SketchPreview Of(BuiltWorld world, SketchLayout? layout, string layoutJson) =>
+    public static SketchPreview Of(BuiltWorld world, SketchLayout? layout) =>
         Of(world, () => new SketchPreview(
             SketchLayoutCheck.Check(layout),
             WorldColumnPayload.Of(world.World, world.Columns),
             MapExportComposer.CheckGoalPlacement(world.Columns!, world.ResolvedIntent, world.Shells),
-            MapExportComposer.CheckStructureSites(world.Surface, world.Provenance,
-                GroupLookup(SketchRasterizer.GroupOwners(layoutJson)))));
-
-    /// <summary>The relief group a cell's ground is solved under, for the finding that states a bench.</summary>
-    private static Func<(int X, int Z), string?> GroupLookup(Dictionary<(int X, int Z), string> owners) =>
-        cell => owners.TryGetValue(cell, out var group) ? group : null;
+            MapExportComposer.CheckStructureSites(world.Surface, world.Provenance)));
 }

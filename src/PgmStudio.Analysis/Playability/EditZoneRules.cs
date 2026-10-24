@@ -2,7 +2,7 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Analysis.Playability;
 
-/// <summary>The edit-zone rule ids the read-back cites. Like the relief rules beside them these are
+/// <summary>The edit-zone rule ids the read-back cites. Like the other playability rules these are
 /// <b>complaints</b>: where a player may build is the author's design, and the studio measures it rather than
 /// overruling it.</summary>
 public static class EditZoneRules

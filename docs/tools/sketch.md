@@ -305,7 +305,7 @@ ground reachable only by turning at the lip is the plateau the flight was cut in
 
 Four further fields decide how a shape meets the ground under it and the modifiers over it. `height_mode` —
 `level`, `raise`, `sink` or `drape` — makes a shape stand at its own statement over the ground rather than be
-part of it, and it holds against the modifiers: a mesa cut flat at an absolute height, a
+part of it: a mesa cut flat at an absolute height, a
 plinth held a fixed amount above the middle of the ground it sits on, a quarry the same downward, and a field
 wall or a hedge held that amount above the ground at every cell, so it climbs the hillside it is laid over.
 The Draw inspector names `base_height` by what it is under the mode: **Top at y** for `level`, edited as the
@@ -422,8 +422,10 @@ That is what makes a mixed board possible. A flat rectangle with a raised step a
 marking the step `hold` leaves it standing at exactly the height it was drawn at while a Hill beside it reshapes
 the ground around it.
 
-A shape declaring a `height_mode` stands at its own statement over the ground and holds against the modifiers
-without a scope.
+A shape declaring a `height_mode` meets the modifiers without a scope. A `level` shape holds: its flat top is an
+absolute height and no modifier moves it. A `raise`, `sink` or `drape` shape rides: the stack moves it with the
+change it made to the ground under it, a `drape` cell by cell, so a wall climbs the hill raised under it, and a
+`raise` or `sink` by the median change under it, so a plinth stays one flat thing standing proud.
 
 ### Layers, and what a stack of them is
 
@@ -985,8 +987,9 @@ range, and the group fill stands down underneath it.
 `SketchRasterizer.RasterizeColumns`, runs every modifier not switched off over the top of each column among the
 layers that are not made things, as a world y, so a Level's height and a Hollow's floor are heights a player would
 read off `column`. The contours, the paint, the 3-D preview, the export and `column`, `transect`, `slopes` and
-`walk` all answer it. A column holds, and no modifier moves it, under a play room, under a shape stating a
-`height_mode` (it stands at its own statement) and under a shape whose `relief_scope` is `hold`.
+`walk` all answer it. A column holds, and no modifier moves it, under a play room, under a shape whose
+`relief_scope` is `hold` and under a `level` shape. A `raise`, `sink` or `drape` shape rides: it moves with the
+change the stack made to the ground under it (*Groups and layers*).
 
 Four operations run, each ported from pgmvox's ground layer (`pgmvox/document/layers.py`, `_ground_layer`):
 
@@ -1989,18 +1992,16 @@ shape's own thickness, and a drawn shape sits on a stated `floor` where a compil
 sculpture's numbered parts are outside it, and a component whose own name ends in a number keeps it. Nine
 authored boards raise it, one component each.
 
-**Two silences an override add can meet, and both are named.** An override add is what a made thing is drawn
+**Two things can take an override add's statement away.** An override add is what a made thing is drawn
 as — a wall, a flight of stairs, a crop bed, a stepped mound — and it states two things at once: the column is
 its own, and this is its top. Each can be taken away by something that raises no other finding.
 
-A **modifier** replaces the top of the columns inside its mask, so an override add inside one builds to whatever
-the stack leaves and its stated top is nowhere in the world. Only a shape naming a `height_mode` stands at its own
-statement, and only a `relief_scope` of `hold` keeps its ground out of the stack; carrying neither is
-`SK14`, a complaint naming the shape and the top it asked for. The board still builds — that is exactly the
-problem, and a twenty-seven-course wall coming out level with the ground beside it is what it looks like. A top
-has to have been stated to be discarded, so an override add carrying no `base_height`, `floor` or
-`anchor_heights` is outside this: such a shape is a footprint holding a theme, and the ground the stack leaves
-under it is the ground it was drawn for — a scree apron over a swell is written exactly that way.
+A **modifier** moves the top of the columns inside its mask, so an override add inside one builds to whatever
+the stack leaves unless it says otherwise: a `relief_scope` of `hold` or a `level` height keeps its top where it
+was stated, and a `raise`, `sink` or `drape` carries it on the ground the stack left. Nothing complains about an
+override add that says neither, so a wall drawn under a Hill's mask comes out raised with the ground. An override
+add carrying no `base_height`, `floor` or `anchor_heights` is a footprint holding a theme, and the ground the
+stack leaves under it is the ground it was drawn for — a scree apron over a swell is written exactly that way.
 
 A **theme** follows the shape that forms the surface, so where two override adds share a column the taller
 wins both the ground and the paint. Where the smaller of the two is also the shorter, its theme is therefore on
@@ -2147,7 +2148,7 @@ And a prop whose kind the client does not know is silently **dropped on load** r
 nothing can edit is worse than an absence.
 
 **A write reads the document; a read walks the ground.** Nine of the rules above — `SK9`, `SK10`, `SK11`,
-`SK13`, `SK14`, `SK15`, `SK16`, `SK23` and `DR-TONE` — are answered off the **rasterized spans** rather than
+`SK13`, `SK15`, `SK16`, `SK23` and `DR-TONE` — are answered off the **rasterized spans** rather than
 off the JSON: what stacks over what, what a layer's slab drives into, what is standable and unreached, which
 theme paints a given cell. Answering them walks every column of the board's extent, which on a played-size
 board is seconds. So a **partial write** — a shape, a vertex, a layer, a group, a prop, a theme — takes the
@@ -2155,7 +2156,7 @@ document reading and leaves those nine for a read that asks: on `opus5-millrace`
 the nine calls that reshape a compiled rectangle drop from twelve seconds to under one.
 
 What a write leaves out it **names**, on its own header.
-`Pgm-Unwalked: SK9 SK10 SK11 SK13 SK14 SK15 SK16 SK23 DR-TONE` is on every partial
+`Pgm-Unwalked: SK9 SK10 SK11 SK13 SK15 SK16 SK23 DR-TONE` is on every partial
 write, and it is deliberately not folded into `Pgm-Warnings`: that key means *these were found* and its
 absence means *nothing was*, which is the one rule that makes it readable, so a rule that was never asked
 cannot ride there. `GET /map/{slug}/findings` walks the ground and answers all of them, and so

@@ -13,7 +13,7 @@ imported from.
 | Level | Is | Document | Authored in |
 |---|---|---|---|
 | **The board** | rectangles on a coarse cell grid, what each is for, and where the objectives sit | `PlanModel` — `*.plan.json` | outside the studio, or by the composer; compiled once |
-| **The ground** | the real geometry at block resolution: outlines, heights, relief, paint, props | `SketchLayout` — the sketch layout | Sketch |
+| **The ground** | the real geometry at block resolution: outlines, heights, modifiers, paint, props | `SketchLayout` — the sketch layout | Sketch |
 | **The play** | teams, spawns, protections, build regions, objectives and how they are captured | `MapIntent` | Configure |
 | **The map** | the voxel world and the `map.xml` a PGM server loads | `VoxelWorld` + `MapXml` | — (built) |
 
@@ -128,10 +128,10 @@ refused naming that route. Half the pair, or neither half, is `400 no base` nami
 missing.
 
 **The refinement is everything the base does not state, applied before anything is judged.** A compiled board
-has no coast, relief, theme or date of its own, so the refinement states them onto it.
+has no coast, modifier, theme or date of its own, so the refinement states them onto it.
 Each statement is the one a Sketch route makes, so a board stated here and one edited by hand end the same.
 They are applied in the order a hand works: the paint and fields on the shapes already drawn, the storeys, the
-shapes drawn onto them, the relief and the layout's registries, the outlines stated by their shape, the outlines
+shapes drawn onto them, the modifier stack and the layout's registries, the outlines stated by their shape, the outlines
 reshaped a point at a time and then bent, and last the intent's members. A bend resamples whatever ring it is
 given, which is why every point edit comes before it.
 
@@ -145,8 +145,8 @@ given, which is why every point edit comes before it.
 | `addShapes` | shapes, each carrying the `layer` and `group` it joins beside its own fields. One naming neither joins the compiled ground and its first group | `POST …/sketch/layers/{layerId}/shapes?group=` |
 | `editShapes` | `{shapeId: [edit, …]}`, in order, each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`), `remove` (drop that point) and `pulls` (`{edge: [[fraction, blocks], …]}` — points a fraction of the way along each named edge, moved that many blocks into the ring, or out of it where negative); on a shape the board's symmetry carries onto itself the edit is made at every image unless it states `fan: false` | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on the shape, once per image; a pull has none |
 | `bendShapes` | `{shapeId: {wander, step, seed, tension, side, edges, fan}}` — `edges` names the edges drawn as coast, each by the vertex it leaves, and every other edge stays as drawn; on a shape the board's symmetry carries onto itself the coast is its own image too unless `fan` is false | `POST …/sketch/shapes/{shapeId}/bend` |
-| `outlines` | `{id: {at, radius, radiusZ, points, lobes, wobble, phase, turn}}` — an ellipse pulled in and out by lobes, written as the points of whatever carries that id: a shape's vertices (a rectangle or a circle becoming a polygon), the ring of a relief `area` mark or a push, the points of a stroke, a fluid or a flora prop | the points stated on the thing itself |
-| `relief` | `{groupId: relief}`, where `*` stands for every group of the compiled ground | `PUT …/sketch/relief/{groupId}` |
+| `outlines` | `{id: {at, radius, radiusZ, points, lobes, wobble, phase, turn}}` — an ellipse pulled in and out by lobes, written as the points of whatever carries that id: a shape's vertices (a rectangle or a circle becoming a polygon), the points of a stroke, a fluid or a flora prop | the points stated on the thing itself |
+| `modifiers` | `[modifier, …]` — the terraform operations run in list order over the built ground, replacing the stack the base held (`docs/tools/sketch.md`, *The modifier stack*) | `PUT /map/{slug}/sketch` |
 | `themes` · `mapTheme` | the theme registry, and the map's default theme — the registry's first where none is stated | `PUT …/sketch/themes/{themeId}`, `PUT …/sketch/map-theme` |
 | `biome` · `roomStyles` · `dressing` | the layout's own members, each replacing what the base held | `PUT …/sketch/biome`, `PUT …/sketch/room-styles/{part}`, the props routes |
 | `created` · `authors` | the intent's `meta.created` and `meta.authors`; a person is a bare name or `{name, contribution}` | `PATCH /map/{slug}/metadata` |
@@ -184,10 +184,10 @@ what lies across it.
 **An outline is stated by its shape, and written as points.** `{at, radius}` is a circle of 28 points; `radiusZ`
 makes it an ellipse, `turn` turns it by degrees, and `lobes` bulges — three unless stated — each reaching
 `wobble` of the radius past the ellipse and drawing in as far between them, the first at `phase` radians. The
-id names everything carrying it, so a relief stated for every group outlines the same mark in each. What lands
+id names everything carrying it. What lands
 is the points, rounded to a tenth of a block, so the stored layout carries the ring a hand would have drawn and
 every later statement — a point edit, a bend — works on it. An id that reaches only things with no ring of their
-own (a room's rectangle, a point mark, a tree) is a complaint, as is one reaching nothing.
+own (a room's rectangle, a tree) is a complaint, as is one reaching nothing.
 
 **A statement about a symmetric board is made once, and the board's symmetry fans it.** The symmetry is the
 layout's own — `setup.mirror_mode` and its `center`. A capture point and a generator are each stated once and
@@ -202,8 +202,8 @@ too, a pull lands the same fraction along the image of its edge — counted from
 the other way — and a bend reads its wander at each point's canonical image and draws a named edge's images with
 it, so the outline stays its own image. `fan: false` on an edit or a bend makes it alone. A move that takes a point
 the symmetry holds in place off its line has no image that keeps the outline its own, so the point moves as
-stated and `SR8` says the outline is lopsided now. A relief mark needs none of this: the solve folds a group's
-surface across the axis (`docs/world-export/relief.md` §8).
+stated and `SR8` says the outline is lopsided now. A modifier needs none of this: its mask fans through the symmetry where it states `mirror`
+(`docs/tools/sketch.md`, *The modifier stack*).
 
 **A statement that does not say what it means refuses the whole source.** A storey stated under an id the board
 already has, or under none, is `SR3`, a point edit naming no single point is `SR4`, and an outline that draws no
@@ -232,7 +232,7 @@ intent's own, with both values.
 **Each kind of hand edit lands where the refinement states that kind of thing.** A theme painted on a compiled
 shape is `themeById`, and an outline redrawn is `shapePropsById` with the bend or point edits that would redraw
 it removed. A shape drawn onto the ground is an `addShapes` entry carrying its layer and group, and a prop moved
-is the same move in the refinement's `dressing`. A relief, a theme or a capture point edited is stated whole,
+is the same move in the refinement's `dressing`. The modifier stack, a theme or a capture point edited is stated whole,
 because an edit inside one would lose the rest of it. A change that was itself a source hands over its
 refinement, and the rest follows from it.
 
@@ -316,7 +316,8 @@ A drawing, what it is played for, its refinement, and where all three came from,
       "heath": {"rim": {"material": {"kind": "solid", "id": 3}, "depth": 1},
                 "surface": {"material": {"kind": "solid", "id": 2}, "depth": 1},
                 "wall": {"kind": "solid", "id": 1}, "fill": {"kind": "solid", "id": 3}}},
-    "relief": {"*": {"base": 3}},
+    "modifiers": [{"id": "knoll", "op": "mound", "rise": 6,
+                   "mask": {"areas": [{"kind": "ellipse", "at": [20, 32], "rx": 9, "rz": 9}], "mirror": true}}],
     "editShapes": {"dale": [{"pulls": {"0": [[0.5, 2]]}}]},
     "bendShapes": {"dale": {"wander": 1.5, "step": 5, "seed": 3, "side": "in", "edges": [2, 4]}},
     "outlines": {"tor": {"at": [20, 32], "radius": 5, "radiusZ": 7, "lobes": 3, "wobble": 0.12, "turn": 10}},
@@ -361,7 +362,7 @@ ids changed order is one `set` of the whole list, because a shape's place is its
 diff fable-hollin-tarn #1 → #2: 3 edits
 layout set    layers[ground].layout.shapes[dale-18].vertices  1 of 6 vertices moved (up to 3.6 blocks)
 layout move   dressing.props[fir-1]  moved 5 blocks, from (-40, -65) to (-36, -68)
-layout set    relief.team.base  base 12 → 14
+layout set    modifiers[knoll].rise  rise 12 → 14
 ```
 
 **And column by column.** `world=true` builds the board at both changes and adds the columns the two builds
@@ -447,7 +448,7 @@ separately addressable.
 | layers | `SketchLayer` | under the layout's `layers` | `GET /sketch/layers`, `GET·PUT·DELETE /sketch/layers/{layerId}` |
 | groups | `SketchGroup` | under a layer's `groups` | `GET /sketch/groups`, `PUT·DELETE /sketch/layers/{layerId}/groups/{groupId}` |
 | shapes | `SketchShape` | under a layer's `shapes` | `GET·POST /sketch/layers/{layerId}/shapes`, `GET·PATCH·DELETE /sketch/shapes/{shapeId}`, and `…/bend` and `…/vertices` on one |
-| relief | `SketchReliefJson` | under `relief`, **keyed by group id** | `GET·PUT·DELETE /sketch/relief/{groupId}` |
+| modifiers | `SketchModifierJson` | under `modifiers`, **in the order they run** | `GET·PUT /map/{slug}/sketch` |
 | themes | `TerrainTheme` | under `themes`, which a shape names | `GET /sketch/themes`, `GET·PUT·DELETE /sketch/themes/{themeId}`, `PUT /sketch/map-theme`; library at `/themes` |
 | dressing | `DressingDoc` | under `dressing` | `GET·POST /sketch/props`, `PATCH·DELETE /sketch/props/{propId}` |
 | biome | `BiomeField` | under `biome` | `GET·PUT·DELETE /sketch/biome` |
@@ -456,8 +457,8 @@ separately addressable.
 | intent | `MapIntent` | its own layer | `GET·PUT /map/{slug}/intent` |
 | map.xml | `MapXml` | written, never stored | `GET /map/{slug}/xml`; `MapParser` reads one back |
 
-**The relief rides beside the shapes rather than inside them.** It is keyed by group id because a group
-outlives a redrawing of the shapes in it, and the relief belongs to the ground rather than to any one shape.
+**The modifier stack rides beside the shapes rather than inside them.** It runs over the ground every layer
+built, so it belongs to the board rather than to any one shape or group.
 
 **A shape is addressed twice over.** It is created under the layer that holds it and edited by its own id
 alone, which is why a `PATCH` needs no layer and a `POST` does.
@@ -568,7 +569,7 @@ dropped rather than reported. Posting `{"style": {…}}` where the body should b
 with a preview of the defaults.
 
 **A document endpoint takes the document itself, unwrapped.** Anything whose subject is one of the studio's
-own documents — a plan, a sketch, an intent, a relief, a paint, a terrain material, a whole theme, a room
+own documents — a plan, a sketch, an intent, a paint, a terrain material, a whole theme, a room
 style — is posted as that document and nothing else. `POST /plan/compile` takes a plan; `POST
 /terrain/material-preview` takes a material; `POST /room-styles/preview-snapshot` takes a `HouseStyle`. There
 is no envelope and no field to name.
@@ -593,7 +594,7 @@ once rather than one per round trip. `docs/refusals.md` has the envelope.
 | Document | Read it for |
 |---|---|
 | `plan.md` | the board: the plan document field by field, what a compile produces, the refusals |
-| `sketch.md` | the ground: shapes, groups, relief, themes, dressing — the largest tool |
+| `sketch.md` | the ground: shapes, groups, modifiers, themes, dressing — the largest tool |
 | `configure.md` | the play: the intent, the import path, the objective phases, the export gate |
 | `generator.md` | composed boards: the request, what a compose produces, the library and the browse feed |
 | `shapes.md` | the vocabulary the generator fills boxes with, and how far each shape actually gets |

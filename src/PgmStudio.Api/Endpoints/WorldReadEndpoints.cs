@@ -424,7 +424,7 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
 }
 
 /// <summary>GET /api/map/{slug}/render/heightmap — elevation as tone, with contour lines every
-/// <c>contour</c> blocks (default 4). The read for whether a relief solved into the shape it was drawn as,
+/// <c>contour</c> blocks (default 4). The read for whether the ground came out in the shape it was drawn as,
 /// and the one that shows a flat pad butted against a hill as the ruled edge it is.</summary>
 internal sealed class HeightmapReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : WorldRenderEndpoint(repo, reader, artifacts)
@@ -601,7 +601,7 @@ internal sealed class InclineReadEndpoint(MapRepository repo, MapReader reader, 
 
 /// <summary>GET /api/map/{slug}/slopes — the worst step to a neighbour per sampled cell, classed by
 /// <see cref="Walk"/>'s own tiers: the grid a cliff reads as a line in, a ramp as a band crossing it, and an
-/// overdone relief as a page. JSON by default, the same reading as characters on <c>?format=text</c>.</summary>
+/// overdone ground as a page. JSON by default, the same reading as characters on <c>?format=text</c>.</summary>
 [Queued]
 internal sealed class SlopesReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest<SlopesDto>

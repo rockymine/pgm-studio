@@ -21,7 +21,7 @@ public sealed class DocumentDiffTests
              {"id":"s2","type":"circle","operation":"add","center_x":30,"center_z":0,"radius":6}],
            "groups":[{"id":"g1","name":"Isle","shapeIds":["s1","p1","s2"]}]}}],
          "themes":{"meadow":{"surface":"grass"}},
-         "relief":{"g1":{"base":4,"marks":[{"id":"m1","kind":"point","at":[0,0],"h":9}]}},
+         "modifiers":[{"id":"m1","op":"level","top":9,"mask":{"areas":[{"kind":"board"}],"mirror":true}}],
          "dressing":{"props":[{"kind":"tree","id":"t1","x":10,"z":4,"seed":3}]}}
         """;
 
@@ -153,13 +153,13 @@ public sealed class DocumentDiffTests
     [Test]
     public async Task A_changed_value_carries_both_values()
     {
-        var after = Edited(root => root["relief"]!["g1"]!["marks"]![0]!["h"] = 12);
+        var after = Edited(root => root["modifiers"]![0]!["top"] = 12);
 
-        var edit = await Only(Diff(after), "relief.g1.marks[m1].h");
+        var edit = await Only(Diff(after), "modifiers[m1].top");
         await Assert.That(edit.Op).IsEqualTo(DocumentEdit.Set);
         await Assert.That(edit.Before!.Value.GetDouble()).IsEqualTo(9d);
         await Assert.That(edit.Value.GetDouble()).IsEqualTo(12d);
-        await Assert.That(edit.Says).IsEqualTo("h 9 → 12");
+        await Assert.That(edit.Says).IsEqualTo("top 9 → 12");
     }
 
     [Test]
@@ -209,7 +209,7 @@ public sealed class DocumentDiffTests
             Shapes(root).Insert(0, JsonNode.Parse("""{"id":"s9","type":"circle","center_x":0,"center_z":0,"radius":3}"""));
             Shapes(root)[1]!["floor"] = 10;
             root["dressing"]!["props"]![0]!["x"] = 20;
-            root["relief"]!["g1"]!["base"] = 6;
+            root["modifiers"]![0]!["soft"] = 0.5;
             root["themes"]!["dunes"] = JsonNode.Parse("""{"surface":"sand"}""");
             root["layers"]![0]!["layout"]!["groups"]![0]!["shapeIds"] = JsonNode.Parse("""["s9","s1","p1"]""");
         });

@@ -197,7 +197,7 @@ public sealed record WalkGround(
     }
 
     /// <summary>Ground that is just a set of cells: everything in it is stood on for nothing, nothing is
-    /// bridged, and no cell states a height. What a plan is before its relief is solved — a climb it does not
+    /// bridged, and no cell states a height. What a plan is before its ground is terraformed — a climb it does not
     /// yet know about cannot be charged, and pretending otherwise would price a slope the author has not
     /// drawn. Every cell holds exactly one place, so a plan board is a stack of one the whole way through and
     /// needs no second reader.</summary>
@@ -283,7 +283,7 @@ public static class Walk
 
     /// <summary>The tallest step crossed by placing one block and climbing it: a scramble. Above it a step is
     /// a face, whatever the walk charges to build up it. The game's number, not a tuning choice, and the one
-    /// every read that classes a step reads — the relief read's tiers, a transect's words, a slope grid's
+    /// every read that classes a step reads — a transect's words, a slope grid's
     /// characters — so a step is the same kind of step wherever it is counted.</summary>
     public const int ScrambleStep = 2;
 

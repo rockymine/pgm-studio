@@ -59,7 +59,7 @@ public static class SketchLayoutCheck
     public static readonly string[] GroundRules =
     [
         SketchRules.StackedInOneLayer, SketchRules.LayersOverlap, SketchRules.MassUnreached,
-        SketchRules.DrawnOverSubtraction, SketchRules.ReliefOverStatedTop,
+        SketchRules.DrawnOverSubtraction,
         SketchRules.ThemeHiddenUnderAnother, SketchRules.SeatedOnNothing,
         // Raised by the theme gate rather than here, because it needs the theme registry as well as the
         // ground; named here because this is the list a caller taking the shallower reading is handed, and a
@@ -120,7 +120,7 @@ public static class SketchLayoutCheck
         Check(SketchLayout.Stated(layoutJson), reading);
 
     /// <summary>
-    /// Whether a board carries any finish at all — a theme registry, a relief, or props — and which of the
+    /// Whether a board carries any finish at all — a theme registry, a modifier stack, or props — and which of the
     /// three it does not, or null where it carries at least one.
     ///
     /// <para>Asked at the <b>finish</b> rather than in <see cref="Check(SketchLayout?, LayoutReading)"/>,
@@ -134,7 +134,7 @@ public static class SketchLayoutCheck
 
         var absent = new List<string>();
         if (layout.Themes is not { Count: > 0 }) absent.Add("no palettes");
-        if (layout.Relief is not { Count: > 0 }) absent.Add("no terraform");
+        if (layout.Modifiers is not { Count: > 0 }) absent.Add("no terraform");
         if (!HasProps(layout)) absent.Add("no props");
         if (absent.Count < 3) return null;
 
@@ -208,14 +208,6 @@ public static class SketchLayoutCheck
                     $"island of {places} places at ({x}, {y}, {z}) has open sky over it and no route onto it "
                     + "from the largest island",
                     Severity.Complaint));
-
-            // SK14 — a relief solves a surface over every column of its group, so an override add that does not
-            // stand out of that field builds to the field rather than to the top it stated.
-            foreach (var (shape, layerId, groupId, top) in SketchRasterizer.ReliefOverridesStatedTop(layout))
-                findings.Add(new Finding(SketchRules.ReliefOverStatedTop,
-                    $"override add '{shape}' on layer '{layerId}' states a top at y{top}, and group "
-                    + $"'{groupId}' states terraform that sets the top of the same columns",
-                    Severity.Complaint, Subjects: [shape]));
 
             // SK15 — the taller add wins the column and the paint follows what forms the surface, so where the
             // smaller shape is also the shorter its theme lands on none of the ground the two share.
@@ -363,10 +355,8 @@ public static class SketchLayoutCheck
                         Subjects: group.Id is { Length: > 0 } id ? [id] : null));
                 }
 
-        // SK12 — one id, two groups. The relief is stored under the id and so is a placement's group, so a
-        // board carrying it twice has no single answer to either. The layers are named because they decide
-        // which way it goes wrong: within one layer the last of them takes the terrain and the rest build
-        // flat, across two every one of them takes it over its own footprint.
+        // SK12 — one id, two groups. A placement names its group by the id, so a board carrying it twice has
+        // no single answer. The layers are named because they say where the second one is.
         foreach (var group in Groups(layout).Where(entry => entry.Group.Id is { Length: > 0 })
                                              .GroupBy(entry => entry.Group.Id!, StringComparer.Ordinal)
                                              .Where(group => group.Count() > 1)
@@ -378,22 +368,6 @@ public static class SketchLayoutCheck
                 + $"{Wording.Ids(layers)}, more than 1",
                 Severity.Complaint, Subjects: [group.Key]));
         }
-
-        foreach (var orphan in (layout.Relief ?? []).Keys.Where(key => !groups.Contains(key)).OrderBy(key => key, StringComparer.Ordinal))
-            findings.Add(new Finding(SketchRules.NamesNothing,
-                $"the terraform of the layout names group '{orphan}', which the layout does not have",
-                Severity.Complaint, Field: $"relief.{orphan}"));
-
-        // A landform outside the four words is not a word this reads, and the gate that would have judged the
-        // ground against it (RL1) skips a relief that states nothing — so a typo or the wrong case turns that
-        // gate off rather than failing it. Same rule as every other name matching nothing.
-        foreach (var (id, word) in (layout.Relief ?? [])
-                     .Where(entry => entry.Value?.Landform is { Length: > 0 } stated && !Landform.IsKnown(stated))
-                     .Select(entry => (entry.Key, entry.Value!.Landform!))
-                     .OrderBy(entry => entry.Key, StringComparer.Ordinal))
-            findings.Add(new Finding(SketchRules.NamesNothing,
-                $"group '{id}' names the landform '{word}', which is not one of {string.Join(", ", Landform.All)}",
-                Severity.Complaint, Field: $"relief.{id}.landform", Subjects: [id]));
 
         // A theme scope resolves shape → map default, and a shape naming a registry entry that is not there
         // falls all the way through to whatever the map default happens to be — which paints a board and says

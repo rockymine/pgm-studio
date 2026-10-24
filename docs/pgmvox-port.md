@@ -189,7 +189,7 @@ primitives and undersides run over `VoxelWorld`, so `SK13`'s cut-and-lid stops b
 **The modifier list makes the old addressing work unnecessary.** `B264` (Configure cannot address a storey), `WE28`
 (a relief keyed by layer and group) and `TS64` (a made thing as one row in the layer strip) were the planned way
 to make terrain addressable. Every modifier has an id of its own and every made thing becomes a schematic, so the
-three are not built: they retire, on the author's call, in the commit that lands Phase 2's document.
+three are not built: they retired, on the author's call, with the migration `M0086`.
 
 **A stored map is carried to its nearest new form, not held to its old heights (D20).** Each mark, push, grain and
 height mode becomes the shape field or modifier it already is, and the migration writes into the map's history
@@ -315,8 +315,8 @@ before anything is built, and boards that stop looking alike because none of the
 - The document as D19 states it: shapes with a top, a bottom, `on` and their relation to the modifiers, the
   primitives, the `modifiers[]` list with masks, modes, joins and seeds, numbers as fields, the cache, the
   per-modifier delta and diff, and the existing reads taken after any modifier with `?step=`.
-- The migration that carries every stored sketch to its nearest new form, after the archive (D20). `WE28`,
-  `B264` and `TS64` retire in the same commit.
+- The migration that carries every stored sketch to its nearest new form, after the archive (D20). It is `M0086`: `WE28`,
+  `B264` and `TS64` retired with it.
 - The modifier list in Terraform: the modifiers listed, reordered, switched off, a mask dragged, and what a modifier
   changed.
 - The ground operations, in the order `pgmvox-cleanup/INVENTORY.md` §4.3 ranks them by how much board code they

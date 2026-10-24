@@ -144,7 +144,7 @@ attack crosses twelve blocks in front of the room. The intent carries two spawns
 named *Composed p12 t2 #2* for twelve players a team.
 
 It also shows what a composed board invariably lacks. **Every shape stands at the global 9**, so a generated
-board is flat and every height on it arrives later, in the Sketch tool's relief phase. **No iron, no destroyable
+board is flat and every height on it arrives later, in the Sketch tool's Terraform phase. **No iron, no destroyable
 and no core**: the composer makes CTW boards and places wools and one spawn, nothing else. There is exactly **one
 build zone**, the mid band — no water lanes and no centre island.
 

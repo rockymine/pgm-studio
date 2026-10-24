@@ -36,8 +36,8 @@ where the collision cannot bite.
 Read alongside:
 
 - `docs/world-export/terrain-painting.md` — the pass this one runs immediately after; the surface it reads.
-- `docs/world-export/relief.md` — the elevation under all of it. Its §9 is what a channel owes ground that is
-  not flat, which is the one part of this stage the flat-plane assumption gets wrong (`S46`).
+- §7.1 below is what a channel owes ground that is not flat, which is the one part of this stage the
+  flat-plane assumption gets wrong (`S46`).
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). A dressing style attaches here.
 - `docs/tools/sketch.md` — the sketch document this stage stores its props beside.
 - `docs/world-export/ideas.md` — the dressing-stage gap pool: what turns these tools into one coherent
@@ -837,9 +837,9 @@ draw the body inside ground that is already level, or to state a `level` and let
 there is instead of making one.
 
 **A fluid standing against a hole is `DR-DRY`.** The bed a pool carves is the pool's own statement about the
-lake; the hollow it sits in is very often somebody else's — a relief mark, a shape's floor — and where that
+lake; the hollow it sits in is very often somebody else's — a Hollow, a shape's floor — and where that
 hollow reaches further than the bed does, the extra is excavated and never filled: a trench as deep as the
-fluid is, running alongside it. `opus5-scarrow-delph`'s tarn is the case. Its relief mark `pan` digs
+fluid is, running alongside it. `opus5-scarrow-delph`'s tarn is the case. Its Hollow `pan` digs
 z −8…7 down to y4 and the fluid prop fills z −7…6, so both end rows stand four courses of open air against the
 water for the lake's whole length, and nothing said so. The test is the line's own course at each of a
 wet cell's four neighbours: air there is a fault, **unless the neighbour has no terrain column at all**. That
@@ -862,6 +862,47 @@ flora overlay does not grow yet (its lily pads float on open water, §3) — on 
 bed grows none; and **ponds** — the closed
 version, an organic basin (the §5 boulder blob read concave), scattered onto low ground and joined to channels
 into one watershed on a single line.
+
+### 7.1 Routes and water on ground that is not flat
+
+Both stroke tools in the dressing stage were built against a flat plane, and this settles what each of them owes
+ground that is not.
+
+A **path** is a finish laid over ground that already exists, so it drapes over a slope and can run wherever it
+is drawn. That is **settled as correct**: a path repaints the top block of each column and adds no cell, which
+is what lets a road cross a slope without becoming a ramp. Two operations that would make it obey the terrain
+were built in the prototype and measured, and both were declined. **Routing** turns a drawn line into a shortest
+path whose cost counts climbing far more than distance — over a board with a ridge across it and one pass
+through, a straight line climbs 14 blocks and tops out at y21 where the routed line climbs **0** and tops out at
+y7. **Grading** cuts and fills a corridor so its surface never steps more than one block along its length; on
+the same board terraced at a three-block step, the drawn line's worst step is 3 and grading takes it to 1. Both
+work, and both decide where the author's road goes, which is the tool overruling the person. Terrain a route
+*emits* is the draw phase's polyline shape and the erected modes instead, and a polyline whose own height
+varies along its length states `anchor_heights` one to one with its drawn points (`docs/tools/sketch.md`).
+
+**Water** is the half that is genuinely wrong on ground with relief, because it has to obey the ground rather than sit on
+it, and this is `S46` — designed and measured, not built. Steepest descent from a source stops at the first
+cell with no lower neighbour, and a grained surface is full of one-block pits: measured, the descent stopped
+after **2 cells**. Water is therefore routed on a **depression-filled** copy of the surface, where every basin
+has been raised to the level of its lowest outlet, so a strictly-non-climbing path to the edge of the land
+always exists; the same run then covers **65 cells**. The filled copy is only ever used for routing — a pit an
+author dug is theirs to keep, and the carve goes into the real surface.
+
+Two consequences follow. The bed's floor is forced non-increasing downstream, so the channel cannot run uphill
+however the centerline wanders. And the water line steps down only where the bed does and holds level in
+between, which turns a single water line into a chain of pools — the measured run holds **14 distinct levels**,
+which is what a stream down a hillside actually looks like and what the single lowest-surface line above
+cannot express once the ground has relief. A basin is also where a channel *ends*, alongside the map edge:
+a cell the fill had to raise is announcing that it sits below its own way out, which is the definition of a
+pond.
+
+There is one case where all of that has to be given up, and it is the common one. **A river on the mirror axis
+cannot both fall and be fair.** A half-turn reverses the direction of flow, so a bed that descends from north to
+south descends from south to north in its own image, and the two cannot both be the built surface. The
+resolution is not a compromise but a different thing: on the axis a river is a **canal** — one water level for
+the whole run, a bed the same shape read from either end — which is what a river down the middle of a
+competitive map has always had to be. Falling water belongs to the flanks, where it is authored once and fanned
+like everything else.
 
 ## 8. Buildings — a rectangle and a shell (`DR-HO`)
 
@@ -939,7 +980,7 @@ two-storey barn may stand on a bank a cottage may not.
 The failure was generated for real, on `pgm-studio-mapgen`'s `opus5-ravensmere`: four of five houses sited
 on rolling downs came out on footprints spanning 8 to 13 courses of relief, and one of them landed inside a
 crevasse — declined by nothing, because every cell had ground under it. The fix at the authoring end is the
-same one an objective's ground gets: an `area` relief mark under the footprint, which states the plateau
+same one an objective's ground gets: a Level modifier under the footprint, which states the plateau
 rather than hoping for one.
 
 **And what the seat digs out is reported (`DR-DIG`).** Nothing bounds the carve: the floor is taken off the
@@ -1042,7 +1083,7 @@ are not part of this reading — a road is judged by `DR-CROSS` above, on whethe
 carries on past it — so a stroke is a finish on the ground here and never a way in its own right.
 
 **It carves the slope out of its own rooms.** Seating on the lowest column means that on a hillside or a
-relief mark the higher ground runs exactly where the rooms will be — and the stamper deliberately never cuts
+Hill the higher ground runs exactly where the rooms will be — and the stamper deliberately never cuts
 terrain (air resolved out of a material is a gap left open, never a hole punched), so without a carve the
 relief stands inside the house. The building wins the ground it was drawn on, the same rule that keeps a
 trunk from rooting in one: before the stamp, every footprint column is cleared from the floor's course up to

@@ -457,7 +457,7 @@ public sealed class MapSourceTests
     }
 
     /// <summary><b>A plan comes in through the compile, and its refinement lands in the request that stores
-    /// it.</b> The board the plan compiles to comes back with the relief, the date and the credits a plan has no
+    /// it.</b> The board the plan compiles to comes back with the modifiers, the date and the credits a plan has no
     /// words for, and the map keeps all of it as one change carrying the note it was stated with.</summary>
     [Test]
     public async Task A_compiled_plan_is_stored_and_refined_in_the_one_change()
@@ -472,7 +472,7 @@ public sealed class MapSourceTests
             layout = compiled.GetProperty("layout"),
             intent = compiled.GetProperty("intent"),
             refinement = JsonDocument.Parse("""
-                {"relief":{"*":{"base":3}},"created":"2026-09-30","authors":["Opus 5"]}
+                {"modifiers":[{"id":"knoll","op":"mound","rise":3,"mask":{"areas":[{"kind":"board"}],"mirror":true}}],"created":"2026-09-30","authors":["Opus 5"]}
                 """).RootElement,
             note = "the first pass",
         });
@@ -481,12 +481,9 @@ public sealed class MapSourceTests
         await Assert.That(JsonDocument.Parse(text).RootElement.GetProperty("change").GetInt64()).IsEqualTo(1);
 
         var layout = await client.GetFromJsonAsync<JsonElement>("/api/map/twowool/sketch");
-        var groups = layout.GetProperty("layers")[0].GetProperty("layout").GetProperty("groups").EnumerateArray()
-            .Select(group => group.GetProperty("id").GetString()!).ToList();
-        await Assert.That(groups).IsNotEmpty();
-        foreach (var group in groups)
-            await Assert.That(layout.GetProperty("relief").GetProperty(group).GetProperty("base").GetDouble())
-                .IsEqualTo(3d).Because($"'*' reaches every group of the compiled ground, {group} among them");
+        await Assert.That(layout.GetProperty("modifiers")[0].GetProperty("id").GetString()).IsEqualTo("knoll");
+        await Assert.That(layout.GetProperty("modifiers")[0].GetProperty("rise").GetDouble()).IsEqualTo(3d);
+        await Assert.That(layout.TryGetProperty("relief", out _)).IsFalse();
 
         var meta = (await client.GetFromJsonAsync<JsonElement>("/api/map/twowool/intent")).GetProperty("meta");
         await Assert.That(meta.GetProperty("created").GetString()).IsEqualTo("2026-09-30");

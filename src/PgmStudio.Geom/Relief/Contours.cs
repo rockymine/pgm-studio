@@ -6,9 +6,8 @@ namespace PgmStudio.Geom.Relief;
 public sealed record ContourLine(double Level, IReadOnlyList<(double X, double Z)> Points, bool Closed);
 
 /// <summary>
-/// Traces a solved surface into contour lines. This is how a height field is read at a glance — the shape of
-/// the ground, the direction it falls, and how hard, all from the spacing of the lines — and it is also the
-/// surface the field is edited through, since dragging a line at a height is stating that height along it.
+/// Traces a height field into contour lines. This is how the ground is read at a glance — the shape of the
+/// ground, the direction it falls, and how hard, all from the spacing of the lines.
 ///
 /// <para>The lines are traced from the <b>continuous</b> surface rather than the block one. A block surface is
 /// a staircase, so contouring it would return the staircase's own treads: outlines of flat plateaus rather
@@ -52,7 +51,7 @@ public static class Contours
         // A contour running exactly through a sampled height leaves both of that corner's edges crossing at
         // the corner itself, so the square emits a segment of no length. It is not a piece of the line — the
         // squares either side of it already carry the line through that point — and kept, it surfaces as a
-        // stray two-point stub on every level a mark stated a whole number at.
+        // stray two-point stub on every level a sampled height is a whole number at.
         void Emit((double X, double Z) from, (double X, double Z) to)
         {
             if (Math.Abs(from.X - to.X) > 1e-9 || Math.Abs(from.Z - to.Z) > 1e-9) segments.Add((from, to));

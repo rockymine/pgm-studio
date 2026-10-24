@@ -207,9 +207,8 @@ public static class StructureStamper
     /// <summary>Raise a solid bedrock wall in <paramref name="cells"/> from y=0 to <see cref="RoomFrames.WallCourses"/>
     /// courses over the ground they cross (ST4) — the columns of a wall's line (<c>WallLine.Cells</c>). The top it
     /// reached is returned, so a caller can say how tall the wall came out.
-    /// <para><b>The height comes from the ground the relief solved, not from the surface the plan drew.</b> A
-    /// piece states one surface and the relief then lifts the ground under the seam by whatever its marks and
-    /// pushes say, and a wall measured from the plan's own number does not move with it. <paramref name="topY"/>
+    /// <para><b>The height comes from the ground as built, not from the surface the plan drew.</b> A
+    /// piece states one surface and the modifiers then lift the ground under the seam by whatever they say, and a wall measured from the plan's own number does not move with it. <paramref name="topY"/>
     /// is the plan tier's answer and is used only where the surface has nothing to say about a column.</para>
     /// <para><b>The top is one level across the whole run, and that level is the highest ground the wall
     /// crosses.</b> A top that followed the ground per column would step with it and read as a curved wall; a top

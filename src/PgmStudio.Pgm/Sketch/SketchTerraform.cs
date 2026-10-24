@@ -10,7 +10,13 @@ namespace PgmStudio.Pgm.Sketch;
 /// <para>The ground of a column is its highest segment among the layers that are terrain: a made thing stands on
 /// the ground and a layer seated on it follows it, so neither is moved. The stack carries the heights as doubles
 /// from one modifier to the next and rounds once at the end; a top lowered below its segment's floor stops at
-/// the floor. A column under a play room is never moved.</para>
+/// the floor.</para>
+///
+/// <para>A held column is never moved: one under a play room, under a shape stating <c>relief_scope: hold</c>, or
+/// under a shape standing at a <c>level</c> height. A shape standing a stated amount over the ground rides the
+/// stack: a <c>drape</c> moves each column by the change the stack made to the ground there, so a wall climbs the
+/// hill raised under it, and a <c>raise</c> or <c>sink</c> moves by the median change under it, so it stays one
+/// flat thing standing proud (<see cref="SketchRasterizer.StackRelations"/>).</para>
 /// </summary>
 internal static class SketchTerraform
 {
@@ -35,21 +41,39 @@ internal static class SketchTerraform
             if (!topOf.TryGetValue(segment.Cell, out var held) || Higher(segment, segments[held])) topOf[segment.Cell] = index;
         }
 
-        var rooms = SketchRasterizer.RoomCells(state);
-        var free = topOf.Where(entry => !rooms.Contains(entry.Key)).Select(entry => entry.Value).ToArray();
-        if (free.Length == 0) return;
+        var (holding, riders) = SketchRasterizer.StackRelations(state);
+        var moving = topOf.Where(entry => !holding.Contains(entry.Key)).ToArray();
+        if (moving.Length == 0) return;
 
-        var xs = free.Select(index => segments[index].X + 0.5).ToArray();
-        var zs = free.Select(index => segments[index].Z + 0.5).ToArray();
-        var heights = free.Select(index => (double)segments[index].YTop).ToArray();
+        var xs = moving.Select(entry => entry.Key.X + 0.5).ToArray();
+        var zs = moving.Select(entry => entry.Key.Z + 0.5).ToArray();
+        var heights = moving.Select(entry => (double)segments[entry.Value].YTop).ToArray();
         var before = (double[])heights.Clone();
         foreach (var step in steps) Modifiers.Apply(step, heights, xs, zs);
 
-        for (var at = 0; at < free.Length; at++)
+        var changeAt = new Dictionary<(int X, int Z), double>(moving.Length);
+        for (var at = 0; at < moving.Length; at++)
+            if (double.IsFinite(heights[at])) changeAt[moving[at].Key] = heights[at] - before[at];
+
+        // A rider's columns take the ground's change rather than their own run through the stack.
+        var shifted = new Dictionary<(int X, int Z), double>();
+        foreach (var (mode, cells) in riders)
         {
-            if (heights[at] == before[at] || !double.IsFinite(heights[at])) continue;
-            var segment = segments[free[at]];
-            segments[free[at]] = segment with { YTop = Math.Max(segment.YFloor, (int)Math.Floor(heights[at] + 0.5)) };
+            var under = cells.Where(changeAt.ContainsKey).ToList();
+            if (under.Count == 0) continue;
+            var median = under.Select(cell => changeAt[cell]).Order().ElementAt(under.Count / 2);
+            foreach (var cell in under) shifted[cell] = mode == HeightModes.Drape ? changeAt[cell] : median;
+        }
+
+        foreach (var (cell, index) in moving)
+        {
+            var change = shifted.TryGetValue(cell, out var ride) ? ride : changeAt.GetValueOrDefault(cell);
+            if (change == 0) continue;
+            var segment = segments[index];
+            segments[index] = segment with
+            {
+                YTop = Math.Max(segment.YFloor, (int)Math.Floor(segment.YTop + change + 0.5)),
+            };
         }
     }
 

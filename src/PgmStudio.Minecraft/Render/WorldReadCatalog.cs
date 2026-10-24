@@ -45,15 +45,15 @@ public static class WorldReadCatalog
             + "dimmed by how far back it stands."),
 
         new("render/heightmap", "--heightmap",
-            "Elevation as tone, with contour lines every `contour` blocks. The read for whether a relief "
-            + "solved into the shape it was drawn as, and the one that shows a flat pad butted against a hill "
+            "Elevation as tone, with contour lines every `contour` blocks. The read for whether the ground "
+            + "came out in the shape it was drawn as, and the one that shows a flat pad butted against a hill "
             + "as the ruled edge it is. `?format=text` answers the same reading as a height-banded grid, "
             + "`every` blocks a character, with the spawns, goals, houses and fluids overprinted."),
 
         new("slopes", null,
             "The worst step to a neighbour per sampled cell, classed `.` walked, `:` scrambled with a block, "
             + "`#` a barrier — the same tiers a walk is priced in. A cliff reads as a line, a ramp as a band "
-            + "crossing it, and an overdone relief as a page. `faces` names the barrier runs worth checking, "
+            + "crossing it, and overdone ground as a page. `faces` names the barrier runs worth checking, "
             + "largest first, each with the box to find it in.",
             "The grid samples one block per cell, so a one-block lip inside a cell of four can hide; "
             + "`every=1` reads every block."),
@@ -209,7 +209,7 @@ public static class WorldReadCatalog
             + "or right by — how much of its ground steps further than a player walks, how many of its props "
             + "were declined, and the worst step on any route from a spawn to a goal — then every reading in the "
             + "order a reader meets them, each beside the route that answers it alone: the findings, the plan's "
-            + "grid and flow, the relief, what the build declined, pre-flight, coverage, the heightmap, the "
+            + "grid and flow, what the build declined, pre-flight, coverage, the heightmap, the "
             + "slopes, reach, two sections, a transect each way through every spawn, goal, house, fluid, boulder "
             + "and made thing, a walk from every spawn to every goal, the theme census, the dressing's claims, "
             + "the seats and the void scan. The pictures are named by the routes that draw them; "

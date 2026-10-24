@@ -136,7 +136,7 @@ public sealed class AccessTests
          "groups":[{"id":"g","name":"Plate","mirrors":false,"shapeIds":["a"]}]}}]}
         """;
 
-    /// <summary>The views a Sketch page is drawn from — its paint, its relief and the built world — are reads
+    /// <summary>The views a Sketch page is drawn from — its paint, its contours and the built world — are reads
     /// sent as a <c>POST</c>, so anyone signed in sees them on a map they may not change, and the same person is
     /// still refused a write to it. Signed out, they are refused like a write, and so is the map's export.</summary>
     [Test]

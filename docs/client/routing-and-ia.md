@@ -150,7 +150,7 @@ The visible label is deliberately decoupled from the concept the code is built o
 | **Sketch** | sketch | `/maps/{slug}/sketch` |
 | **Pattern** | **style** — `StyleDto`, `LibraryKinds.Styles` | `/library/styles` |
 | **Palette** | **theme** — `TerrainTheme`, `../world-export/terrain-painting.md` | `/library/themes`, the sketch's `theme` phase |
-| **Terraform** | **relief** — `../world-export/relief.md` | the sketch's `relief` phase |
+| **Terraform** | **modifiers** — `../tools/sketch.md` | the sketch's terraform phase |
 | **Decoration** | **dressing** — `../world-export/decoration.md` | the sketch's `dressing` phase |
 
 The reason is that "authoring" names what the tool *does* to a map and "Configure" names what a person came to

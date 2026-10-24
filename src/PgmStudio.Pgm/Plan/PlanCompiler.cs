@@ -36,15 +36,11 @@ public static class PlanCompiler
     }
 
     /// <summary>What the layout states about the ground under the authored image of a room the plan placed:
-    /// it binds into its island's relief as <c>follow</c>, taking the height the field settles on under it
-    /// and held flat there, starting from the plan's surface, level with the ground through its doors. Every
-    /// other orbit image needs no record — its ground comes back from the same solved field, reflected — and
-    /// an author who wants the stated height against the relief corrects it in the sketch, which writes
-    /// <c>hold</c> (docs/world-export/relief.md §11).</summary>
+    /// the plan's surface, level with the ground through its doors. The modifiers leave a room's ground
+    /// alone, and every other orbit image needs no record.</summary>
     private static RoomGround AuthoredRoom(int surface, IEnumerable<RoomEdge> doors) => new()
     {
         BaseHeight = surface,
-        ReliefScope = ReliefScopes.Follow,
         Doors = [.. doors.Distinct().Select(RoomEdges.Word)],
     };
 
@@ -206,7 +202,7 @@ public static class PlanCompiler
                     Reflected = Symmetry.Reflects(d.Mode, k),
                     // Y here is the plan's own flat nominal height, exactly as ResolveGoalAnchor's is:
                     // informational, carried for a caller with no built world to read yet, and never the
-                    // spawn's real Y. WorldBuilder resolves that against the terrain the relief
+                    // spawn's real Y. WorldBuilder resolves that against the terrain the modifiers
                     // actually left — FrameFloor over the room's own footprint, and the exported point is the
                     // pad it puts the player on (WX5). Reading this number as the answer would be a bug;
                     // it is not read, and SpawnAndWoolAnchorTests holds that.
@@ -356,7 +352,7 @@ public static class PlanCompiler
         var laneRects = FanRects(plan.WaterLanes.Select(z => z.Rect), d);
         var waterLanes = laneRects.Count > 0 ? new WaterLaneIntent { Rects = laneRects.ConvertAll<PieceArea>(rect => rect) } : null;
 
-        // A nominal height over the nominal ground: the plan states neither the relief that will roll under
+        // A nominal height over the nominal ground: the plan states neither the terrain that will roll under
         // the centre nor anything drawn over it, so this is a starting point rather than an answer. The
         // export seats the platform clear of what the world actually builds there and writes the height it
         // settled on back into the intent (EX5).
@@ -523,8 +519,8 @@ public static class PlanCompiler
             var (minX, minZ, maxX, maxZ) = ContactGraph.WallFootprint(pieceA, pieceB);
             // The plan tier's answer, from the surface the approach was drawn at. It is what the plan
             // preview draws and what the stamper falls back to where the solved surface has nothing to say
-            // about a column; the built wall takes its height from the ground the relief solved instead,
-            // because a piece's stated surface does not move when a mark or a push lifts the seam.
+            // about a column; the built wall takes its height from the ground as built instead,
+            // because a piece's stated surface does not move when a modifier lifts the seam.
             var topY = approach.Surface + RoomFrames.WallCourses - 1;
             // The chest opens on the approach — the same side the wall takes its height from, and the side
             // both teams reach the line across. Carried as a piece rather than a face so it survives the
@@ -635,7 +631,7 @@ public static class PlanCompiler
     // ground that exists only as an authored sketch shape with no plan piece behind it. `Surface` here is the
     // plan's own flat nominal height — informational only, carried on the compiled intent for a caller with
     // no built world to read yet — never the goal's real Y, which WorldBuilder resolves later against
-    // the terrain the relief actually left (Float is what measures that gap; see DestroyableIntent.Float).
+    // the terrain the modifiers actually left (Float is what measures that gap; see DestroyableIntent.Float).
     // Null when a named piece does not resolve — the validator has already reported the dangling reference.
     private static (double X, double Z, int Surface)? ResolveGoalAnchor(PlanModel plan, ContactGraph d, string pieceId, double[] at)
     {

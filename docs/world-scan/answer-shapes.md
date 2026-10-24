@@ -34,7 +34,7 @@ stands beside it), `transect` (a polyline as stations), `slopes` (the worst step
 runs as faces), `themes/census`, `sketch/dressing` (what the pass would place, and every cell's claim as
 digit rows), `coverage` (class and traffic grids as digit rows, the dead patches with coordinates),
 `editability` (digit rows), `sketch/columns` (every run of every column, with the layer that drew it),
-`sketch/relief/read` (range, steps, tiers, faces, crossings, the symmetry error) and `findings`. A composed plan kept as history reads as a grid at `plans/{id}/ascii`.
+`slopes` and `findings`. A composed plan kept as history reads as a grid at `plans/{id}/ascii`.
 
 The driver (`pgm-studio-mapgen/tools/drive.py`) writes **37 files** for a board the size of Mossgill: two
 text (`00-board.txt`, the plan grid; `01-flow.txt`, the flow account) and 35 PNG — a swatch and a section per
@@ -81,7 +81,7 @@ speaks to it, the shape that gate speaks in, and the read that shows it as a thi
 | the fault | what speaks today | in what shape | the read that shows it |
 |---|---|---|---|
 | a structure thrown in the players' way | `DR-KEEP` on a door's lane, `OB19` on a goal's clearance | a decline naming one column | a profile along each team's route to each goal, with every claim within two blocks of it — the driver's `04-routes.txt`, off `walk` |
-| relief overdone | `RL2`: barrier steps counted per group, "never graded" | one count | a slope grid, `#` where the ground steps three or more — the driver's `03-slopes.txt` — which shows a cliff as a line and an overdone relief as a page |
+| ground overdone | barrier steps counted over the board | one count | a slope grid, `#` where the ground steps three or more — the driver's `03-slopes.txt` — which shows a cliff as a line and an overdone ground as a page |
 | a path that does not work | `EL1` and `SP8` on the seams between pieces | a step size per seam | the same route profile: rises, falls, the worst step and where, along the cells a player actually walks |
 | many themes mashed together | nothing; `render/surface` counts tone families in a legend baked into a PNG | a picture | a theme census — cells per theme, distinct materials, which theme borders which — which no read answers yet |
 | a spawn platform raised, and a stair that makes no geometric sense | `SP8` on the egress, `WX11` on a foundation face | a step size, one coordinate | a transect through the spawn along both axes with eight blocks of overshoot, where a platform standing five over the ground beside it is `+5` at a coordinate — the driver's `transect-spawn-*.txt` |

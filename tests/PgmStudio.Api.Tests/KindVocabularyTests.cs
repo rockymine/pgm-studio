@@ -8,14 +8,12 @@ namespace PgmStudio.Api.Tests;
 
 /// <summary>
 /// A kind word is declared once, in <c>Vocabulary</c>, and every party that spells it takes it from there —
-/// the type hierarchy a placement deserializes by, the gate that judges a shape, the reader that turns a
-/// stated mark into a solved one, and the canvas that draws all three. What a shared constant cannot check
+/// the type hierarchy a placement deserializes by, the gate that judges a shape and the canvas that draws both. What a shared constant cannot check
 /// is whether each word still has a <b>reader</b>: a set may name a kind nothing builds, and the board loses
 /// it in silence rather than refusing.
 ///
-/// <para>So this asks the readers directly. A prop kind must name a derived type; a shape kind must
-/// rasterize; a mark kind must produce a mark. Adding a word to a set without teaching a reader is what the
-/// three below fail on.</para>
+/// <para>So this asks the readers directly. A prop kind must name a derived type and a shape kind must
+/// rasterize. Adding a word to a set without teaching a reader is what the two below fail on.</para>
 /// </summary>
 public sealed class KindVocabularyTests
 {
@@ -64,36 +62,5 @@ public sealed class KindVocabularyTests
             await Assert.That(SketchRasterizer.Rasterize(layout).Count).IsGreaterThan(0)
                 .Because($"'{kind}' is a shape kind and the rasterizer draws no ground for it");
         }
-    }
-
-    /// <summary>Every mark kind the set names is one the reader turns into a mark. A kind it does not name
-    /// reads as null and is dropped without a word, so the author's terrain is simply not on the board.</summary>
-    [Test]
-    public async Task Every_mark_kind_reads_as_a_mark()
-    {
-        foreach (var kind in MarkKinds.All)
-        {
-            var stated = new ReliefMarkJson
-            {
-                Kind = kind,
-                At = [0, 0],
-                Points = [[-10, 0], [10, 0]],
-                Ring = [[-10, -10], [10, -10], [0, 10]],
-                Heights = [12],
-            };
-            await Assert.That(stated.ToMark()).IsNotNull()
-                .Because($"'{kind}' is a mark kind and the reader makes nothing of it");
-        }
-    }
-
-    /// <summary>A push is the canvas's own word and is deliberately outside <see cref="MarkKinds.All"/>: the
-    /// stored form carries no kind, so the reader answering nothing for it is the contract rather than a
-    /// gap.</summary>
-    [Test]
-    public async Task A_push_is_not_a_mark_the_reader_answers_for()
-    {
-        await Assert.That(MarkKinds.All).DoesNotContain(MarkKinds.Push);
-        await Assert.That(new ReliefMarkJson { Kind = MarkKinds.Push, Ring = [[0, 0], [1, 0], [0, 1]] }.ToMark())
-            .IsNull();
     }
 }

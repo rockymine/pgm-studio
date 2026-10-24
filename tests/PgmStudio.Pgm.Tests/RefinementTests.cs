@@ -113,17 +113,20 @@ public sealed class RefinementTests
     }
 
     [Test]
-    public async Task A_relief_for_every_group_reaches_the_compiled_grounds_groups_under_a_storey_added_below()
+    public async Task Modifiers_land_on_the_layout_and_replace_the_ones_it_held()
     {
         var refined = Apply("""
-            {"addLayers":[{"id":"cellar","base_y":0,"below":true,"shapes":[],"groups":[{"id":"vault","shapeIds":[]}]}],
-             "relief":{"*":{"base":6},"vault":{"base":2}}}
+            {"modifiers":[
+              {"id":"knoll","op":"mound","rise":9,"mask":{"areas":[{"kind":"ellipse","at":[20,20],"rx":6,"rz":6}],"mirror":false}},
+              {"id":"flat","op":"level","top":12,"mask":{"areas":[{"kind":"board"}],"mirror":true}}]}
             """);
 
-        var relief = JsonNode.Parse(refined.LayoutJson)!["relief"]!.AsObject();
-        await Assert.That(relief.Select(pair => pair.Key)).IsEquivalentTo(["moor", "vault"]);
-        await Assert.That(relief["moor"]!["base"]!.GetValue<double>()).IsEqualTo(6d);
-        await Assert.That(relief["vault"]!["base"]!.GetValue<double>()).IsEqualTo(2d);
+        await Assert.That(refined.Findings.Count).IsEqualTo(0);
+        var modifiers = JsonNode.Parse(refined.LayoutJson)!["modifiers"]!.AsArray();
+        await Assert.That(modifiers.Select(modifier => modifier!["id"]!.GetValue<string>())).IsEquivalentTo(["knoll", "flat"]);
+        await Assert.That(modifiers[0]!["rise"]!.GetValue<double>()).IsEqualTo(9d);
+        await Assert.That(modifiers[1]!["mask"]!["areas"]![0]!["kind"]!.GetValue<string>()).IsEqualTo("board");
+        await Assert.That(JsonNode.Parse(refined.LayoutJson)!.AsObject().ContainsKey("relief")).IsFalse();
     }
 
     [Test]
@@ -186,14 +189,11 @@ public sealed class RefinementTests
     }
 
     [Test]
-    public async Task An_outline_is_written_as_the_points_of_every_shape_mark_push_and_prop_carrying_its_id()
+    public async Task An_outline_is_written_as_the_points_of_every_shape_and_prop_carrying_its_id()
     {
         var refined = Apply("""
-            {"relief":{"moor":{"marks":[{"id":"knoll","kind":"area","h":14}],"pushes":[{"id":"lift","amount":3}]}},
-             "dressing":{"props":[{"kind":"fluid","id":"mere","shape":"pool","seed":1}]},
+            {"dressing":{"props":[{"kind":"fluid","id":"mere","shape":"pool","seed":1}]},
              "outlines":{"crag-20":{"at":[50,10],"radius":8,"radiusZ":6,"points":20,"wobble":0.1},
-                         "knoll":{"at":[20,20],"radius":5,"points":16},
-                         "lift":{"at":[20,20],"radius":9,"points":18,"lobes":4,"wobble":0.15},
                          "mere":{"at":[10,30],"radius":4,"radiusZ":3,"points":12}}}
             """);
 
@@ -202,8 +202,6 @@ public sealed class RefinementTests
         await Assert.That(crag["type"]!.GetValue<string>()).IsEqualTo("polygon");
         await Assert.That(crag["vertices"]!.AsArray().Count).IsEqualTo(20);
         var layout = JsonNode.Parse(refined.LayoutJson)!;
-        await Assert.That(layout["relief"]!["moor"]!["marks"]![0]!["ring"]!.AsArray().Count).IsEqualTo(16);
-        await Assert.That(layout["relief"]!["moor"]!["pushes"]![0]!["ring"]!.AsArray().Count).IsEqualTo(18);
         await Assert.That(layout["dressing"]!["props"]![0]!["points"]!.AsArray().Count).IsEqualTo(12);
     }
 

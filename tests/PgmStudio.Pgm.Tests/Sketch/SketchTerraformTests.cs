@@ -198,4 +198,88 @@ public sealed class SketchTerraformTests
 
         await Assert.That(Top(layout, 20, 20)).IsEqualTo(9);       // 8 + 0.4 + 0.4 = 8.8; rounded each time it would stay 8
     }
+
+    private static string Pad(string extra) => $$"""
+        { "id": "pad", "type": "rectangle", "operation": "add", "min_x": 18, "min_z": 18, "max_x": 22, "max_z": 22,
+          "base_height": 8 {{extra}} }
+        """;
+
+    [Test]
+    public async Task A_shape_stating_hold_keeps_its_columns_out_of_the_stack()
+    {
+        var layout = Layout(Hill(), roomShapes: Pad(", \"relief_scope\": \"hold\""));
+
+        foreach (var (x, z) in new[] { (18, 18), (20, 20), (21, 21), (18, 21) })
+            await Assert.That(Top(layout, x, z)).IsEqualTo(8);
+        await Assert.That(Top(layout, 22, 20)).IsGreaterThan(8);
+        await Assert.That(Top(layout, 20, 22)).IsGreaterThan(8);
+    }
+
+    [Test]
+    public async Task A_shape_stating_no_scope_follows_the_stack()
+    {
+        var layout = Layout(Hill(), roomShapes: Pad(""));
+
+        await Assert.That(Top(layout, 20, 20)).IsEqualTo(14);
+    }
+
+    [Test]
+    public async Task A_word_the_build_does_not_know_follows_the_stack()
+    {
+        var layout = Layout(Hill(), roomShapes: Pad(", \"relief_scope\": \"exclude\""));
+
+        await Assert.That(Top(layout, 20, 20)).IsEqualTo(14);
+    }
+
+    [Test]
+    public async Task A_shape_standing_at_its_own_height_mode_is_held()
+    {
+        var layout = Layout(Hill(), roomShapes: Pad(", \"height_mode\": \"level\", \"base_height\": 11"));
+
+        foreach (var (x, z) in new[] { (18, 18), (20, 20), (21, 21) })
+            await Assert.That(Top(layout, x, z)).IsEqualTo(11);
+        await Assert.That(Top(layout, 22, 20)).IsGreaterThan(8);
+    }
+
+    [Test]
+    public async Task A_held_shape_is_held_at_its_image_under_the_symmetry()
+    {
+        const string held = """
+            { "id": "pad", "type": "rectangle", "operation": "add", "min_x": 6, "min_z": 9, "max_x": 11, "max_z": 14,
+              "base_height": 8, "relief_scope": "hold" }
+            """;
+        var tops = Tops(Layout(Hill(x: 8.5, z: 11.5, radius: 5, mirror: true), mode: "rot_180", roomShapes: held));
+        var image = Symmetry.ApplyCell(8, 11, "rot_180", 20, 20);
+
+        await Assert.That(tops[(8, 11)]).IsEqualTo(8);
+        await Assert.That(tops[image]).IsEqualTo(8);
+        await Assert.That(tops[(12, 11)]).IsGreaterThan(8);
+        await Assert.That(tops[Symmetry.ApplyCell(12, 11, "rot_180", 20, 20)]).IsGreaterThan(8);
+    }
+
+    private const string Wall = """
+        { "id": "wall", "type": "rectangle", "operation": "add", "min_x": 12, "min_z": 20, "max_x": 30, "max_z": 21,
+          "base_height": 2, "height_mode": "drape" }
+        """;
+
+    [Test]
+    public async Task A_draped_shape_climbs_the_ground_the_stack_raised_under_it()
+    {
+        var bare = Layout(Hill());
+        var draped = Layout(Hill(), roomShapes: Wall);
+
+        foreach (var x in new[] { 12, 16, 20, 24, 29 })
+            await Assert.That(Top(draped, x, 20)).IsEqualTo(Top(bare, x, 20) + 2);
+        await Assert.That(Top(draped, 20, 20)).IsGreaterThan(Top(draped, 12, 20));
+    }
+
+    [Test]
+    public async Task A_raised_shape_moves_with_the_ground_under_it_as_one_flat_thing()
+    {
+        var tops = Tops(Layout(Hill(), roomShapes: Pad(", \"height_mode\": \"raise\", \"base_height\": 3")));
+        var plinth = new[] { (18, 18), (20, 20), (21, 21), (18, 21) }.Select(cell => tops[cell]).Distinct().ToList();
+
+        await Assert.That(plinth.Count).IsEqualTo(1);
+        await Assert.That(plinth[0]).IsGreaterThan(Tops(Layout(""))[(20, 20)] + 3);
+    }
 }

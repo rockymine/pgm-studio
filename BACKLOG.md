@@ -61,8 +61,8 @@ about which section the entry sits in — the retired prefixes still on entries 
 - [ ] **TS130 — Point edits and bends reach every outline.** *Parked (author): tangled with how land is made,
   which the pgmvox port's Phase 2 redesigns; picked up when that work needs it.* `editShapes` and
   `bendShapes` address a shape's `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already
-  writes a relief `area` mark's and a push's `ring` and a stroke's, fluid's or flora's `points`
-  (`Refinement.Outlined`). Both reach those three, each refused where an edit folds the ring.
+  writes a stroke's, fluid's or flora's `points`
+  (`Refinement.Outlined`). Both reach those, each refused where an edit folds the ring.
   `docs/tools/flow.md`.
 
 - [ ] **C104 — Where a sketch's layers live.** *Parked (author): deciding the direction themselves.* The
@@ -210,103 +210,30 @@ what is gathered here is the parked and dormant slices of the same surface.
   voronois**, 44 are on the surface and none is in the fill. The earlier candidates (one family per pattern:
   157/201; a neutral family mixed with a warm one: 54) are superseded.*
 
-### Relief
+### The finished sketch's scan
 
 - [ ] **TS178 — A finished sketch's scan follows the intent's rooms.** The scan is redrawn when the layout's
   revision moves past the one it was drawn from (`SketchFinish.RefreshAsync`, `WorldFeatureWriter.SketchScanRevision`),
-  but a room pins the relief under it and lives in the intent, so a move through the piece route alone leaves the
+  but a room holds the ground under it and lives in the intent, so a move through the piece route alone leaves the
   scan describing the room where it stood. Key the scan on both revisions. `docs/tools/sketch.md`.
-
-- [ ] **WE28 — A relief is keyed by group id, and a stacked board's storeys share one namespace.**
-  `SketchReliefJson` rides top-level on the layout keyed by group, and a group id is unique across the stack
-  only by the author keeping it so: two storeys of one board are the same footprint one layer up, told apart
-  by a string nothing in the geometry distinguishes. A collision is a complaint (`SK12`) rather than a
-  refusal, and the two halves of the studio then disagree about what it means — the rasterizer solves the
-  stated relief onto **every** group answering to the id, each over its own footprint, while
-  `POST …/sketch/relief/read` and the contour overlay report the first alone.
-
-  **Settled (author): the key is the layer plus the group.** The pairing becomes structural rather than a
-  string equality two documents have to keep agreeing on, and it addresses a relief the way
-  `PUT …/sketch/layers/{layerId}/groups/{groupId}` already addresses the group it belongs to. Amend the model
-  in `docs/world-export/relief.md` first, then the key and the four `/sketch/relief/{groupId}` routes, then a
-  read-forward for a relief keyed by group alone — its layer is the one that carries that group. `SK12`
-  narrows to within a layer in the same commit.
-
-  *A stack keyed `team` on both `under` (`base_y` 0) and `ground` (`base_y` 40), one point mark at h 24:
-  both storeys build the solved surface — `under` y1..23, `ground` y40..63 — and the read answers one group.
-  Every key in the 24 stored relief-bearing layouts and the 76 in `pgm-studio-mapgen` resolves to exactly one
-  layer, so the read-forward is unambiguous.*
-
-- [ ] **S42 — Relief: the carve and the graded road fold too.** The solve folds, and so now does the stair cut
-  (`FEATURES.md`) — the first later pass to land, and the one that showed the rule is real rather than
-  theoretical. The other two are still open: a carve and a graded road each decide things by **walking** the
-  map, and a walk has a direction the half-turn does not preserve, so each folds again or it undoes what the
-  solve established (`world-export/relief.md` §8). Measured on the designed map, a carve that did not re-fold left
-  the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
-  machinery — `ReliefSolver.FoldBlocks` is the shape of it.
-
-- [ ] **WE148 — A mark or a push that lands nowhere says why.** `RL4` fires on a mark that pinned no cell
-  and names only "off its group's ground"; two causes read alike under it. A mark stated over ground another
-  group owns — a `team` mark on the mid stone — should name that group, which the rasterizer knows. A bevel of
-  at least half the ring's short side leaves every pin under weight 1, and `ReliefSolver` drops such pins over
-  unclaimed ground, so a small area mark with a wide bevel pins nothing; that is its own sentence. And a push
-  whose ring covers no cell has no finding at all: `ReliefReadback.Check` reads pushes only where `Cells > 0`,
-  so a push keyed on the wrong group is silent where a mark is `RL4`. *Evidence: a 10 × 6 area mark on Gypsum
-  Reach (note 52's wash rim) raised `RL4` and nothing else; Sootcombe's `mid-rise`/`mid-lip` pushes are keyed
-  `team` over the mid stone and cover 0 cells.* `docs/world-export/relief.md` §6.
-
-- [ ] **WE149 — Pushes that overlap, and a mark under a push.** *Parked (author): whether two pushes summing
-  over one cell is a fault or a tool.* `Sculpt` adds every push's lift (`ReliefSolver.cs`) and applies the sum
-  over the marked field, so two pushes stack and a mark under a push moves the base it lifts from — as
-  `relief.md` §5 states, on purpose. Nothing reports it: the read gives each push's gradients, not where two
-  meet. If the author rules it a fault, the finding is the push twin of `RL3` — the pair, the overlap's cell
-  count, and at the worst cell the summed lift against each push's own. *Evidence: a second push over Gypsum
-  Reach's wash rim dug a pit to y7, and a line mark there did the same by lowering the base.*
 
 ### Water
 
-- [ ] **S46 — Water reads the relief; a river on the axis is a canal.** A dressing path draping over whatever
+- [ ] **S46 — Water reads the ground; a river on the axis is a canal.** A dressing path draping over whatever
   it crosses is **settled as correct** — it repaints the top block of each column and adds no cell, which is
   what lets a road cross a slope without becoming a ramp, and routing or grading it would be the tool
   deciding where the author's road goes. Terrain that a route *emits* is the draw phase's path primitive
-  (`FEATURES.md`) and the erected-shape modes, not this. Water is the half that is genuinely wrong on a
-  relief, because it has to obey the ground rather than sit on it. It needs three things the flat model never
+  (`FEATURES.md`) and the erected-shape modes, not this. Water is the half that is genuinely wrong on
+  ground with relief, because it has to obey the ground rather than sit on it. It needs three things the flat model never
   did: routing on a **depression-filled** copy, because steepest descent stops at the first grain-made pit after 2 cells
   where the filled run covers 65; a bed floor forced non-increasing downstream; and **per-pool** water levels
   replacing `decoration.md` §7's single lowest-surface line — the measured run holds 14 distinct levels, and a
   basin is an outlet alongside the map edge, which is what a pond is. The exception is the case that matters
   most: **a river on the mirror axis cannot both fall and be fair**, because a half-turn reverses the flow, so
-  on the axis it is a canal at one level and falling water belongs to the flanks. And the cheapest good idea
-  here runs the other way — a drawn channel handed to the solver as a line mark below base level makes the
-  terrain form a valley around it (`world-export/relief.md` §9).
-
-### Placing something on a storey that is not the top one
-
-All six placement kinds carry an optional `Layer`, a prop carries one, and `BuiltTerrain.SurfaceFor(layer)`
-answers that storey's own surface — so what a document states, the world builds. Each entry below states what
-cannot state it.
-
-*Measured on a two-storey board (`under` y0..7 under `ground` y24..31), two wools alike but for the field: the
-one naming `layer: "under"` builds at **y7** with its cage around it, the one naming nothing at **y31**.
-`PUT /map/{slug}/intent` is what places an underground objective.*
-
-- [ ] **B264 — Configure cannot address a storey at all, so no objective can be authored below the top one.**
-  Not six missing fields. `SketchLayerStrip` appears in one file, `SketchTool.razor`, and every Configure
-  canvas runs base-layer-only by construction — `SpawnStep`, `TeamAssignStep`, `WorldIslandsStep` and
-  `WorldSymmetryStep` each say so in their own comments. So there is no active layer for a placement to take,
-  and the point-pick surface cannot pick a point on a lower floor even if there were.
-  Build in that order: the strip in Configure, a pick that resolves against the chosen storey's surface, then
-  the six write paths (spawn, wool, monument, iron cube, destroyable, core) and a field on each inspector.
-  `docs/tools/configure.md` gains the storey to its phases.
+  on the axis it is a canal at one level and falling water belongs to the flanks
+  (`world-export/decoration.md` §7.1).
 
 ### A made thing is a third kind, and it is drawn out of layers
-
-- [~] **TS64 — A made thing is one row in the strip, and one thing to drag.** The layer's `prop` field is
-  written and the rasterizer seats by it; the surface is not. `opus5-automaton` carries 31 layers, 24 of them
-  `colossus-L0…sentinel-L7`, so `SketchLayerStrip` shows 31 tabs and `GET …/render/topdown?layer=` prints all
-  31 in its `RQ4` refusal. Render the strip, the layer list and the topdown filter **by `prop`** — one row per
-  made thing with its layers folded under it. **A prop is also what moves**: dragging one has to take every
-  layer of it together, since a made thing standing half a block from where it was put is not a made thing.
 
 - [ ] **WE74 — A made thing fanned across the axis cannot change colour with the side it lands on.** The
   author's statue is red clay and wool on one island and blue on the other; a `teamTint` material answers
@@ -566,8 +493,7 @@ the skerry layout as the board that shows the over-warning is gone.
   ways and over-warn: on the skerry layout a small front piece makes the check ask a diagonal route through
   the void to a wool room. One measure: walk the land, then the straightest bridge from land edge to land
   edge. `docs/generator/`.
-- [ ] **G286 — A step a player cannot walk is 3 blocks.** `EL1`, `SP8`, `WL11` and `WX11` fire at 2, `RL3` at
-  3. A 2-block step is fine where a block can be placed; 3 or more is the fault, on plan seams and above all
+- [ ] **G286 — A step a player cannot walk is 3 blocks.** `EL1`, `SP8`, `WL11` and `WX11` fire at 2. A 2-block step is fine where a block can be placed; 3 or more is the fault, on plan seams and above all
   out of a spawn. Lower is always better, so a soft term prefers it. Read the thresholds from
   `Walk.FreeRise`/`Walk.ScrambleStep` rather than literals. `docs/generator/`.
 - [ ] **G287 — A corridor is its size band's width.** `G2` is three numbers today: the size band's text, 10
@@ -687,7 +613,7 @@ is the standard the copy is held to.
   removes work done in another phase. The sketch keeps one stack of whole-document snapshots across every
   phase (`history` in `sketch-bridge.js`), so the topbar Undo in Theme takes back the last shape drawn in Draw.
   Tag each step with the phase that made it and restore only that phase's slice of the document — Draw the
-  shapes, Theme the registry and each shape's theme, Dressing `dressing`, Relief `relief`, Info `setup` — so
+  shapes, Theme the registry and each shape's theme, Dressing `dressing`, Terraform `modifiers`, Info `setup` — so
   Undo in a phase walks back that phase's own steps and is greyed where it has none; `Ctrl`+`Z` follows the
   same rule. *Open (author): whether Info's mode needs an undo at all.* `docs/tools/sketch.md`.
 
@@ -776,7 +702,7 @@ server's backups.
 - [ ] **RP97 — The sketch layout's words are published sets.** `GET /api/kit.py` checks a word only where
   the schema lists it, and 44 of 574 string fields do: the layout an author writes most has none, so
   `SketchShape(relief_scope="hld")` is built and sent. Mark `[WordSet]` on `SketchShape.operation`,
-  `relief_scope`, `stroke_edge`, `SketchLayer.kind`, a relief mark's `kind` and
+  `relief_scope`, `stroke_edge`, `SketchLayer.kind` and
   `PlanGlobals.symmetry`, declaring each set in `Vocabulary` where it is not already; and publish `minimum`/
   `maximum` for the 0–1 shares (`FloraSpec`, `RoofStyle.Wear`) so the kit refuses `coverage=5`.
   `docs/architecture.md`. *Evidence: a constructor sweep against schema `a095aa2c71059f2c`.*

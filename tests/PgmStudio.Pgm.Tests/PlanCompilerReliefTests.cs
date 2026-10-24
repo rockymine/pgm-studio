@@ -1,21 +1,19 @@
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
-using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
-/// A spawn or wool-room piece binds into its island's relief solve (review.md MG5). The compiler states
-/// <c>relief_scope: hold</c> on the structural annotation it projects for the authored orbit image, at the
-/// piece's own surface — so a relief that later rolls across the island cannot cut the room's floor, even
-/// though the annotation carries no ShapeIds membership of its own (it is kept out of the terrain-ring
-/// lists that assume one).
+/// A spawn or wool-room piece stands out of its island's modifier stack: the room the compiler projects for the
+/// authored orbit image keeps the plan's surface however the stack reshapes the ground round it, though the
+/// annotation carries no ShapeIds membership of its own (it is kept out of the terrain-ring lists that assume
+/// one).
 /// </summary>
 public sealed class PlanCompilerReliefTests
 {
-    // A spawn piece abutting a large plain piece at the same surface, so the two fuse into one terrain
-    // shape big enough for a relief to roll across it. rot_180 about the origin, so the
-    // whole authored half sits at positive x/z and its image lands at negative x/z untouched.
+    // A spawn piece abutting a large plain piece at the same surface, so the two fuse into one terrain shape
+    // big enough for a modifier to move. rot_180 about the origin, so the whole authored half sits at positive
+    // x/z and its image lands at negative x/z untouched.
     private const string Json = """
         {
           "plan": 2,
@@ -29,116 +27,65 @@ public sealed class PlanCompilerReliefTests
         """;
 
     /// <summary>The compiled board as a world build reads it, with the rooms drawn in from the compiled
-    /// intent, and the id the authored spawn's room is drawn under.</summary>
-    private static (SketchLayout Layout, string SpawnShapeId) Compile()
+    /// intent.</summary>
+    private static SketchLayout Compile()
     {
         var (layout, intent) = PlanCompiler.Compile(PlanModel.Parse(Json)!);
-        return (SketchLayout.Parse(RoomShapes.Project(layout.ToJson(), intent))!, intent.Spawns[0].Id);
+        return SketchLayout.Parse(RoomShapes.Project(layout.ToJson(), intent))!;
     }
 
-    [Test]
-    public async Task The_authored_spawn_shape_states_follow_at_the_piece_surface()
+    // A Hill over the whole board, twelve blocks at its deepest, crossing straight through the spawn piece
+    // (x 80..100, z 20..40) were nothing holding it back.
+    private static string WithHill(SketchLayout layout)
     {
-        // A plan states a piece's height before any terrain exists, so what it carries is about a flat board
-        // — the room follows the ground the relief settles on rather than holding a number from before it.
-        var (layout, shapeId) = Compile();
-        var shape = SketchLayout.Stack(layout)[0].Shapes.Single(s => s.Id == shapeId);
-
-        await Assert.That(shape.ReliefScope).IsEqualTo(ReliefScopes.Follow);
-        await Assert.That(shape.BaseHeight).IsEqualTo(8d);
-    }
-
-    // Attaches a relief to the compiled island that climbs from 6 in the near corner to 26 in the far one,
-    // crossing straight through the spawn piece (x 80..100, z 20..40) were nothing holding it back.
-    private static string WithRelief(SketchLayout layout)
-    {
-        var islandId = SketchLayout.Stack(layout)[0].Groups.Single().Id!;
-        layout.Relief = new Dictionary<string, SketchReliefJson>
-        {
-            [islandId] = new SketchReliefJson
+        layout.Modifiers =
+        [
+            new SketchModifierJson
             {
-                Base = 8,
-                Marks =
-                [
-                    new ReliefMarkJson { Kind = "point", At = [5, 5], Heights = [6], Radius = 3 },
-                    new ReliefMarkJson { Kind = "point", At = [75, 55], Heights = [26], Radius = 3 },
-                ],
+                Id = "massif", Op = "mound", Rise = 12,
+                Mask = new ModifierMaskJson
+                {
+                    Mirror = false,
+                    Areas = [new MaskAreaJson
+                    {
+                        Kind = "polygon", Points = [[-60, -60], [160, -60], [160, 120], [-60, 120]],
+                    }],
+                },
             },
-        };
+        ];
         return layout.ToJson();
     }
 
-    [Test]
-    public async Task The_spawn_rooms_floor_stays_flat_and_seats_on_the_terrain_the_relief_makes()
+    private static Dictionary<(int X, int Z), int> Tops(string layoutJson)
     {
-        var (layout, _) = Compile();
-        var withRelief = WithRelief(layout);
-
         var tops = new Dictionary<(int X, int Z), int>();
-        foreach (var (x, z, _, top, _) in SketchRasterizer.RasterizeColumns(withRelief))
+        foreach (var (x, z, _, top, _) in SketchRasterizer.RasterizeColumns(layoutJson))
             if (!tops.TryGetValue((x, z), out var current) || top > current) tops[(x, z)] = top;
+        return tops;
+    }
+
+    [Test]
+    public async Task The_spawn_rooms_floor_keeps_the_plan_surface_under_the_stack()
+    {
+        var tops = Tops(WithHill(Compile()));
 
         var inRoom = new List<int>();
         for (var x = 81; x < 100; x++)
             for (var z = 21; z < 40; z++)
                 if (tops.TryGetValue((x, z), out var top)) inRoom.Add(top);
 
-        // The hold still holds: one height across the whole floor, because a room is a room.
         await Assert.That(inRoom).IsNotEmpty();
-        var floor = inRoom.Distinct().Single();
-
-        // What it holds at is the ground, not the plan's 8. A plan-space piece states its surface before any
-        // terrain exists, and this relief climbs from 6 to 26 across the board — so a room pinned to the
-        // number it arrived with is a room the terrain has since built a wall around.
-        await Assert.That(floor).IsNotEqualTo(8);
-
-        // Level enough to walk out of, all the way round: what the rule is actually about.
-        var outside = new List<int>();
-        for (var x = 79; x < 102; x++)
-            foreach (var z in (int[])[19, 41])
-                if (tops.TryGetValue((x, z), out var top)) outside.Add(top);
-        for (var z = 19; z < 42; z++)
-            foreach (var x in (int[])[79, 101])
-                if (tops.TryGetValue((x, z), out var top)) outside.Add(top);
-        await Assert.That(outside).IsNotEmpty();
-        await Assert.That(outside.Max(top => Math.Abs(top - floor))).IsLessThanOrEqualTo(1);
+        await Assert.That(inRoom.Distinct().Single()).IsEqualTo(8)
+            .Because("a room is a room: one height across the whole floor, the plan's, whatever the hill does round it");
     }
 
     [Test]
-    public async Task The_ground_outside_the_room_still_takes_the_relief()
+    public async Task The_ground_outside_the_room_still_takes_the_stack()
     {
-        var (layout, _) = Compile();
-        var withRelief = WithRelief(layout);
+        var plain = Tops(Compile().ToJson());
+        var hilled = Tops(WithHill(Compile()));
 
-        var tops = new Dictionary<(int X, int Z), int>();
-        foreach (var (x, z, _, top, _) in SketchRasterizer.RasterizeColumns(withRelief))
-            if (!tops.TryGetValue((x, z), out var current) || top > current) tops[(x, z)] = top;
-
-        // Near the h=26 mark, well outside the room and inside the ground piece: the solved surface reaches
-        // for the mark's height rather than sitting at the flat 8 the room is pinned to.
-        await Assert.That(tops[(75, 50)]).IsGreaterThan(8);
-    }
-
-    [Test]
-    public async Task Without_binding_the_shape_the_solve_would_have_cut_through_the_room()
-    {
-        // The counterfactual: the same relief over the same footprint, but with the authored shape's
-        // relief_scope stripped back to the default (inherit) — proving the room floor moving is really the
-        // relief crossing it, and not some other invariant already holding it flat.
-        var (layout, shapeId) = Compile();
-        var shape = SketchLayout.Stack(layout)[0].Shapes.Single(s => s.Id == shapeId);
-        shape.ReliefScope = null;
-        var withRelief = WithRelief(layout);
-
-        var tops = new Dictionary<(int X, int Z), int>();
-        foreach (var (x, z, _, top, _) in SketchRasterizer.RasterizeColumns(withRelief))
-            if (!tops.TryGetValue((x, z), out var current) || top > current) tops[(x, z)] = top;
-
-        var inRoom = new List<int>();
-        for (var x = 81; x < 100; x++)
-            for (var z = 21; z < 40; z++)
-                if (tops.TryGetValue((x, z), out var top)) inRoom.Add(top);
-
-        await Assert.That(inRoom.Distinct().Count()).IsGreaterThan(1);
+        await Assert.That(plain[(40, 30)]).IsEqualTo(8);
+        await Assert.That(hilled[(40, 30)]).IsGreaterThan(8);
     }
 }

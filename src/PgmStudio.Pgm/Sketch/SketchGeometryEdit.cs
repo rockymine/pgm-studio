@@ -11,7 +11,7 @@ namespace PgmStudio.Pgm.Sketch;
 /// <c>DressingEdit</c> does for the props.
 ///
 /// <para>Pure, and stated over <see cref="JsonNode"/> rather than over <see cref="SketchLayout"/>, for the
-/// reason the theme and relief writers are: a layout read into the model and written back out loses whatever
+/// reason the theme writers are: a layout read into the model and written back out loses whatever
 /// the reader has no field for, and a partial edit is the worst place to lose it — the caller touched one
 /// shape and paid for every property the model does not carry. Splicing the tree touches what was addressed
 /// and copies the rest through byte for byte.</para>
@@ -53,9 +53,7 @@ public static class SketchGeometryEdit
         return new(root.ToJsonString(), layerId);
     }
 
-    /// <summary>The layout without that layer, and without the relief of every group no remaining layer
-    /// carries — a relief keyed to a group that is gone builds nothing and reads as terrain the board still
-    /// has.</summary>
+    /// <summary>The layout without that layer.</summary>
     public static GeometryEdit RemoveLayer(string? layoutJson, string layerId)
     {
         var root = Root(layoutJson);
@@ -64,7 +62,6 @@ public static class SketchGeometryEdit
         if (at < 0) return GeometryEdit.Missing;
 
         layers.RemoveAt(at);
-        PruneRelief(root, layers);
         return new(root.ToJsonString(), layerId);
     }
 
@@ -91,7 +88,7 @@ public static class SketchGeometryEdit
     }
 
     /// <summary>The layer without that group. Its shapes stay on the layer and are drawn where they were
-    /// drawn; what goes with the group is the orbit fan and the relief keyed under its id.</summary>
+    /// drawn; what goes with the group is the orbit fan.</summary>
     public static GeometryEdit RemoveGroup(string? layoutJson, string layerId, string groupId)
     {
         var root = Root(layoutJson);
@@ -103,15 +100,13 @@ public static class SketchGeometryEdit
         if (at < 0) return GeometryEdit.Missing;
 
         groups.RemoveAt(at);
-        PruneRelief(root, layers);
         return new(root.ToJsonString(), groupId);
     }
 
     /// <summary>One shape drawn on a layer, listed in the group <paramref name="groupId"/> names.
     ///
     /// <para>The group is where the shape's ground is decided: the orbit fan is read off each mirroring
-    /// group's list and so is the relief, so a shape in no group is built once, where it was drawn, on flat
-    /// ground. A layer that carries groups therefore takes no shape that names none, and a name the layer
+    /// group's list, so a shape in no group is built once, where it was drawn. A layer that carries groups therefore takes no shape that names none, and a name the layer
     /// does not carry yet opens a group — the id is the caller's own vocabulary, and the alternative is a
     /// mandatory write before every first shape.</para>
     ///
@@ -621,9 +616,6 @@ public static class SketchGeometryEdit
         return null;
     }
 
-    private static IEnumerable<string> GroupIds(JsonArray groups) =>
-        groups.Select(group => Text((group as JsonObject)?["id"])).OfType<string>();
-
     /// <summary>The id the shape keeps, or the lowest free <c>{type}-{n}</c> where the one it states is
     /// taken or absent. Named for the type so a document read by hand says what each id draws.</summary>
     private static string FreeId(JsonArray layers, JsonObject shape)
@@ -640,16 +632,6 @@ public static class SketchGeometryEdit
         var next = 1;
         while (taken.Contains($"{type}-{next}")) next++;
         return $"{type}-{next}";
-    }
-
-    /// <summary>Drops every relief entry keyed to a group no layer carries any more.</summary>
-    private static void PruneRelief(JsonObject root, JsonArray layers)
-    {
-        if (root["relief"] is not JsonObject relief) return;
-        var live = layers.OfType<JsonObject>().SelectMany(layer => GroupIds(Groups(layer)))
-                         .ToHashSet(StringComparer.Ordinal);
-        foreach (var key in relief.Select(entry => entry.Key).Where(key => !live.Contains(key)).ToList())
-            relief.Remove(key);
     }
 }
 

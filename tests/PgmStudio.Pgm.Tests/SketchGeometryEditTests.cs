@@ -15,7 +15,6 @@ public sealed class SketchGeometryEditTests
     private const string Board = """
         {"setup":{"mirror_mode":"rot_180"},
          "unknownToEveryReader":{"kept":true},
-         "relief":{"i":{"base":8},"gone":{"base":3}},
          "layers":[
            {"id":"ground","base_y":0,"layout":{
              "shapes":[{"id":"s1","type":"rectangle","min_x":-4,"max_x":4,"min_z":-4,"max_z":4},
@@ -54,7 +53,7 @@ public sealed class SketchGeometryEditTests
     [Test]
     public async Task A_stated_null_takes_the_field_off()
     {
-        var written = SketchGeometryEdit.PatchShape(Board, "s1", new JsonObject { ["relief_scope"] = "exclude" });
+        var written = SketchGeometryEdit.PatchShape(Board, "s1", new JsonObject { ["relief_scope"] = "hold" });
         var cleared = SketchGeometryEdit.PatchShape(written.Layout, "s1", new JsonObject { ["relief_scope"] = null });
         await Assert.That(ShapeOf(cleared.Layout!, "s1").ContainsKey("relief_scope")).IsFalse();
     }
@@ -170,15 +169,6 @@ public sealed class SketchGeometryEditTests
         var layers = Root(edited.Layout!)["layers"]!.AsArray();
         await Assert.That(layers.Count).IsEqualTo(3);
         await Assert.That((string?)layers[2]!["id"]).IsEqualTo("roof");
-    }
-
-    [Test]
-    public async Task Removing_a_layer_drops_the_relief_of_every_group_that_lived_only_there()
-    {
-        var edited = SketchGeometryEdit.RemoveLayer(Board, "lid");
-        var relief = Root(edited.Layout!)["relief"]!.AsObject();
-        await Assert.That(relief.ContainsKey("i")).IsTrue();
-        await Assert.That(relief.ContainsKey("gone")).IsFalse();
     }
 
     [Test]

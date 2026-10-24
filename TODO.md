@@ -30,9 +30,10 @@ is gone. The entries below finish it, each against pgmvox's own operations (`pgm
   `sketch/relief`, `sketch/columns` and the reads, the strip at the canvas foot that sets it, and a count per
   modifier of the columns it moved, zero a complaint. Every intermediate state is keyed by a hash of the
   modifiers before it (*Every modifier is kept as it ran*, `docs/pgmvox-port.md`). `docs/tools/sketch.md`.
-- [ ] **TS208 — A shape rides the modifiers.** A shape follows them or holds against them today (`relief_scope:
-  hold`, a `height_mode`, a room). Add D18's third relation, a shape that keeps its form and moves with the change
-  in the ground under it, and a mask's leave-outs by shape id. `docs/tools/sketch.md`.
+- [ ] **TS208 — Any shape can ride the modifiers, and a mask can leave shapes out.** A `raise`, `sink` or
+  `drape` shape rides the stack and a `hold` or `level` one holds (`SketchRasterizer.StackRelations`); an
+  ordinary shape cannot yet say it rides, keeping its form while it moves with the ground. Add D18's `ride` as a
+  `relief_scope` word and a mask's leave-outs by shape id. `docs/tools/sketch.md`.
 - [ ] **TS209 — Ridge, River and the rest of the ground operations.** Port them from `pgmvox/ground/landform.py`
   in the inventory's order, each a new `ModifierOps` word with its row in *The modifier stack*.
   `docs/tools/sketch.md`.

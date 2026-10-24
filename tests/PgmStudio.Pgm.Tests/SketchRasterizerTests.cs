@@ -278,12 +278,12 @@ public sealed class SketchRasterizerTests
     }
 
     [Test]
-    public async Task A_push_reaching_a_structural_room_leaves_its_ground_flat()
+    public async Task A_hill_reaching_a_structural_room_leaves_its_ground_flat()
     {
         // A room's floor is one course over its whole frame and the bedrock under it is filled column by
-        // column, so ground that slopes under a room is a floor spanning air. The room is held, and a push
-        // whose skirt reaches it must therefore leave it alone — while the ground either side of it still
-        // takes the lift, which is what makes the push worth having.
+        // column, so ground that slopes under a room is a floor spanning air. The room is held, and a Hill
+        // whose mask reaches it must therefore leave it alone — while the ground either side of it still
+        // takes the lift, which is what makes the Hill worth having.
         const string board = """
         {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
          "layers":[{"id":"ground","base_y":0,"layout":{
@@ -291,12 +291,10 @@ public sealed class SketchRasterizerTests
              {"id":"s0","type":"polygon","operation":"add","base_height":14,
               "vertices":[[-20,0],[20,0],[20,60],[-20,60]]},
              {"id":"room","type":"rectangle","operation":"add","role":"woolRoom","intentRef":"red:blue",
-              "base_height":18,"relief_scope":"follow","min_x":-5,"min_z":40,"max_x":5,"max_z":50}],
+              "base_height":18,"min_x":-5,"min_z":40,"max_x":5,"max_z":50}],
            "groups":[{"id":"team","mirrors":false,"shapeIds":["s0"]}]}}],
-         "relief":{"team":{"base":14,"reach":0,"step":1,
-           "marks":[{"id":"m","kind":"area","h":14,"ring":[[-20,0],[20,0],[20,10],[-20,10]]}],
-           "pushes":[{"id":"rise","ring":[[-18,20],[18,20],[18,38],[-18,38]],
-                      "amount":6,"falloff":14,"crown":2,"seed":3}]}}}
+         "modifiers":[{"id":"rise","op":"mound","rise":6,"mask":{"mirror":false,
+           "areas":[{"kind":"polygon","points":[[-18,20],[18,20],[18,60],[-18,60]]}]}}]}
         """;
 
         var top = SketchRasterizer.RasterizeColumns(board).ToDictionary(c => (c.X, c.Z), c => c.YTop);
@@ -307,37 +305,6 @@ public sealed class SketchRasterizerTests
         await Assert.That(room[0]).IsGreaterThan(int.MinValue);
         // the push still did its job on the ground it was drawn over
         await Assert.That(top[(0, 30)]).IsGreaterThan(14);
-    }
-
-    [Test]
-    public async Task A_room_stating_no_door_seats_on_the_ground_outside_it()
-    {
-        // Which side a room is entered from is what decides the height it should be flat at, and a room
-        // stating no door is entered from wherever the ground reaches it. Reading the median under its own
-        // footprint instead splits the difference and leaves a step at the way in as well as at the back.
-        // Here the ground climbs along +z, so the two answers differ by more than a step.
-        const string board = """
-        {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
-         "layers":[{"id":"ground","base_y":0,"layout":{
-           "shapes":[
-             {"id":"s0","type":"polygon","operation":"add","base_height":10,
-              "vertices":[[-20,0],[20,0],[20,60],[-20,60]]},
-             {"id":"room","type":"rectangle","operation":"add","role":"woolRoom","intentRef":"red:blue",
-              "base_height":10,"relief_scope":"follow","min_x":-5,"min_z":40,"max_x":5,"max_z":50}],
-           "groups":[{"id":"team","mirrors":false,"shapeIds":["s0"]}]}}],
-         "relief":{"team":{"base":10,"reach":0,"step":1,"marks":[
-           {"id":"low","kind":"area","h":10,"ring":[[-20,0],[20,0],[20,6],[-20,6]]},
-           {"id":"high","kind":"area","h":24,"ring":[[-20,54],[20,54],[20,60],[-20,60]]}]}}}
-        """;
-
-        var top = SketchRasterizer.RasterizeColumns(board).ToDictionary(c => (c.X, c.Z), c => c.YTop);
-        var room = Enumerable.Range(-5, 10).SelectMany(x => Enumerable.Range(40, 10).Select(z => (x, z)))
-                             .Select(cell => top[cell]).ToList();
-
-        await Assert.That(room.Distinct().Count()).IsEqualTo(1);        // flat, as a room always is
-        // Flush with the ground either side of it, within the step a player takes for nothing.
-        await Assert.That(Math.Abs(room[0] - top[(0, 39)])).IsLessThanOrEqualTo(1);
-        await Assert.That(Math.Abs(room[0] - top[(0, 50)])).IsLessThanOrEqualTo(1);
     }
 
     [Test]
@@ -498,14 +465,11 @@ public sealed class SketchRasterizerTests
         await Assert.That(SketchRasterizer.DetachedMasses(made)).IsEmpty();
     }
 
-    /// <summary>A shape a relief is told to leave alone keeps its own top on <b>both</b> sides of a mirrored
-    /// board. The field answers for the ground the group gave it and an excluded shape is a hole in that, so
-    /// the primary leaves those columns as the shape drew them; an image cell over the same shape is the same
-    /// statement, and reading the field for it instead hands the excluded column whatever the ground beside it
-    /// settled at — a made terrace keeping its top at one end of a board and dropping to the meadow's at the
-    /// other, one row deep along every boundary it has.</summary>
+    /// <summary>A shape held against the modifier stack keeps its own top on <b>both</b> sides of a mirrored
+    /// board. The stack leaves the columns of the shape and of its image alone, so a made terrace keeps its top
+    /// at both ends of the board while the meadow beside it takes the stack.</summary>
     [Test]
-    public async Task An_excluded_shape_keeps_its_own_top_on_both_sides_of_a_mirror()
+    public async Task A_held_shape_keeps_its_own_top_on_both_sides_of_a_mirror()
     {
         var columns = SketchRasterizer.RasterizeColumns("""
         {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
@@ -513,9 +477,9 @@ public sealed class SketchRasterizerTests
             {"id":"meadow","type":"rectangle","operation":"add","min_x":-20,"max_x":20,"min_z":10,"max_z":30,
              "floor":0,"base_height":12},
             {"id":"terrace","type":"rectangle","operation":"add","min_x":-20,"max_x":20,"min_z":30,"max_z":50,
-             "floor":0,"base_height":18,"relief_scope":"exclude"}],
+             "floor":0,"base_height":18,"relief_scope":"hold"}],
           "groups":[{"id":"team","name":"Team","mirrors":true,"shapeIds":["meadow","terrace"]}]}}],
-         "relief":{"team":{"base":12,"reach":0,"step":1}}}
+         "modifiers":[{"id":"flat","op":"level","top":15,"mask":{"areas":[{"kind":"board"}],"mirror":true}}]}
         """);
 
         int Top(int x, int z) => columns.Single(column => column.X == x && column.Z == z).YTop;
@@ -531,21 +495,17 @@ public sealed class SketchRasterizerTests
         }
     }
 
-    /// <summary>A relief-bearing group under <c>rot_90</c> hands the same solved surface to all four of its
-    /// orbit images. A quarter-turn is not its own inverse, so an image's heights are read back through the
-    /// transform that undoes the one that placed it; reading them back through the same one lands on a
-    /// different image's ground, which the field does not cover, and two of the four teams get the shapes'
-    /// flat base heights instead of the terrain.</summary>
+    /// <summary>A mirrored Hill under <c>rot_90</c> hands the same lift to all four of its orbit images.</summary>
     [Test]
-    public async Task A_quarter_turn_orbit_carries_the_relief_onto_all_four_images()
+    public async Task A_quarter_turn_orbit_carries_the_stack_onto_all_four_images()
     {
         var columns = SketchRasterizer.RasterizeColumns("""
         {"setup":{"mirror_mode":"rot_90","center":{"cx":0,"cz":0}},
          "layers":[{"id":"ground","base_y":0,"layout":{"shapes":[
             {"id":"q","type":"rectangle","operation":"add","min_x":-40,"max_x":-10,"min_z":-40,"max_z":-10,"floor":0,"base_height":4}],
           "groups":[{"id":"team","name":"Team","mirrors":true,"shapeIds":["q"]}]}}],
-         "relief":{"team":{"base":4,"reach":0,"step":1,"marks":[
-            {"id":"knoll","kind":"area","h":14,"ring":[[-32,-32],[-18,-32],[-18,-18],[-32,-18]]}]}}}
+         "modifiers":[{"id":"knoll","op":"mound","rise":10,
+           "mask":{"areas":[{"kind":"ellipse","at":[-24.5,-24.5],"rx":7,"rz":7}],"mirror":true}}]}
         """);
 
         int Top(int x, int z) => columns.Single(column => column.X == x && column.Z == z).YTop;

@@ -426,7 +426,7 @@ public static class RoomFrames
     /// stop a player walking or jumping the line, short enough that both halves of the lane still read as one
     /// place.
     /// <para>It sits here rather than beside either user because both the plan compiler, which answers the
-    /// wall's height before a world exists, and the stamper, which lays it over the ground the relief
+    /// wall's height before a world exists, and the stamper, which lays it over the ground the modifiers
     /// solved, measure from it — and a second <c>const</c> aliasing one that exists is two rules.</para>
     /// </summary>
     public const int WallCourses = 3;

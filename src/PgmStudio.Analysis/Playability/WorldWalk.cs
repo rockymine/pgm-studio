@@ -10,7 +10,7 @@ using Dict = Dictionary<string, object?>;
 /// The built fidelity's answer to <see cref="Walk"/>: a board's own columns, its buildable void, and the
 /// height under each cell, in blocks.
 ///
-/// <para>A plan states a piece's surface and knows nothing of relief, a boulder or a pond; a built world
+/// <para>A plan states a piece's surface and knows nothing of terraforming, a boulder or a pond; a built world
 /// holds all three and states no pieces. Both fill in the same <see cref="WalkGround"/>, which is why one
 /// traversal serves them — what they share is the per-cell answer, not a reader.</para>
 ///

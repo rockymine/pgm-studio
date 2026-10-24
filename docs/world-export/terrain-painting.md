@@ -27,8 +27,8 @@ scratch prototype's figures (two real seeds — `mirror-tiny-map-cliff`, `isolat
 ids here are `TP*` (terrain paint), local to this file the way `structures.md` owns `WX*`. Read alongside:
 
 - `docs/tools/sketch.md` — the tool a theme is authored in (the Palette phase), and the layout it is stored on.
-- `docs/world-export/relief.md` — the elevation this pass dresses: a mesa's face and a scarp arrive here as
-  edges with a known drop, which is what the rim/wall rules were written for.
+- The elevation this pass dresses arrives as edges with a known drop — a mesa's face, a Hollow's wall — which is
+  what the rim/wall rules were written for.
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). Terrain materials attach here.
 - `docs/world-export/sketch-world-export.md` — the world the painter runs inside (layer scheme, `level.dat`).
 - `TerrainBuilder` (`PgmStudio.Minecraft`) — the terrain this pass consumes: bedrock at y=0, stone
@@ -71,7 +71,7 @@ consults splits by how a stamp is anchored:
   `StructureIntent.Walls`; rule ST4). Not a piece but a **barrier along a line**: two blocks thick across it
   at any angle, filled with bedrock from y=0 up to three courses over the **solved** surface — so it stands
   **above** the terrain on both sides. A plan-compiled wall runs down the shared edge between two pieces, the
-  interface width along it. It is the solved surface and not the piece's own that decides this: a relief lifts the ground under
+  interface width along it. It is the solved surface and not the piece's own that decides this: a modifier lifts the ground under
   a seam and the plan's number does not move with it, so a wall measured from the plan is left under the
   terrain (amendment 43). The top is one level over the whole run, taken from the highest ground it crosses.
 
@@ -377,15 +377,15 @@ another from painting a surface it does not form — the documented way to give 
 the tier below run beneath it, and by area alone that lower tier keeps its own paint over ground the upper one
 owns. Where two shapes tie on height nothing changes: two at one height are a theme scoped to a patch, and the
 smaller one is the scope. A shape stating a `height_mode` is outside the test both ways — it stands in the
-terrain rather than being it, and the top it settles at is read against ground the relief has not yet made
-when the owners are resolved.
+terrain rather than being it, and the top it settles at is read against the ground under its own
+footprint when the owners are resolved.
 
 **A stroke lying on ground has to state that ground's height, or it owns nothing.** A shape with no `floor`
 and no `base_height` is one course thick, so the top it is read at is 1 — below every terrace a board is cut
 at, and so never the surface of a cell it covers. A path, a worn patch or a road marking therefore states
 `floor: 0` and the `base_height` of the terrace it runs over: that ties it with the terrace and lets area
-decide, and where a group carries a relief the stated height changes nothing about where the stroke ends up,
-because the relief owns the ground. The failure is silent — the stroke rasterizes, the theme resolves, the
+decide, and where a modifier reshapes the ground the stated height changes nothing about where the stroke ends up,
+because the modifier owns the ground. The failure is silent — the stroke rasterizes, the theme resolves, the
 census counts the theme at zero cells and the board paints as though the shape were not there.
 
 **A structural annotation is a scope over ground it did not place, and that is how a room's floor is stated.**
@@ -397,7 +397,7 @@ against. Area still decides between an annotation and the island under it, so a 
 own footprint and the board keeps its own ground everywhere else; an annotation stating no theme states
 nothing. Without this there is no shape a room's ground can be scoped to, and the only reading available is
 whatever the fused component paints. The **group** read (`SketchRasterizer.GroupOwners`, which answers the
-relief a cell is solved under) excludes them through its own scope predicate: an annotation belongs to no
+group a cell belongs to) excludes them through its own scope predicate: an annotation belongs to no
 island's `shapeIds`, so letting one own a cell there would drop that cell's group rather than report it.
 The passes cannot tread on each other because of the stone-only invariant: a course a lower layer has already
 finished is no longer stone.

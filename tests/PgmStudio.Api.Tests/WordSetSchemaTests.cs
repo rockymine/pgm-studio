@@ -21,13 +21,13 @@ namespace PgmStudio.Api.Tests;
 public sealed class WordSetSchemaTests
 {
     /// <summary>The word sets the wire carries: <c>MapStage</c>, the nine in <c>TerrainVocabulary</c>,
-    /// <c>Landform</c>, <c>EditZone</c>, <c>WoolColors</c>, the world-export sets and <c>SizeBands</c>. A set added to that project and never marked on a field is a set the document
+    /// <c>EditZone</c>, <c>WoolColors</c>, the world-export sets and <c>SizeBands</c>. A set added to that project and never marked on a field is a set the document
     /// says nothing about, so it is named here rather than counted.</summary>
     private static readonly Type[] Sets =
     [
         typeof(MapStage), typeof(MaterialKind), typeof(ThemeBuckets), typeof(RimEdgeModes),
         typeof(RoomParts), typeof(RoofForms), typeof(PorchEdges), typeof(WindowForms),
-        typeof(DoorHeadForms), typeof(DoorHeadFills), typeof(Landform), typeof(EditZone),
+        typeof(DoorHeadForms), typeof(DoorHeadFills), typeof(EditZone),
         typeof(WoolColors), typeof(TreeForms), typeof(TreeSpeciesNames),
         typeof(BoulderForms), typeof(BlockKinds), typeof(BiomeKinds), typeof(PieceParts), typeof(EdgeWords),
         typeof(SizeBands), typeof(AccessModes), typeof(StudioRoles),

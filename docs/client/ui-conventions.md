@@ -257,11 +257,10 @@ A Razor markup lambda cannot contain a string literal, so every wire word an ins
 constant somewhere. Where that somewhere is decides whether the form and the reader can drift apart.
 
 **A kind is declared in `PgmStudio.Vocabulary` and taken from there by everyone who spells it.** `ShapeKinds`
-(rectangle, circle, polygon, lasso, polyline), `PropKinds` (stroke, fluid, flora, tree, boulder, house, chest) and
-`MarkKinds` (point, line, area, scarp, rim) are the three the client writes. `Client` reaches `Vocabulary`
+(rectangle, circle, polygon, lasso, polyline), and `PropKinds` (stroke, fluid, flora, tree, boulder, house, chest) are the two the client writes. `Client` reaches `Vocabulary`
 through `Contracts`, so the picker takes the same constant the reader does: `PlacedProp`'s
-`[JsonDerivedType]` attributes name `PropKinds`, the sketch gate judges against `ShapeKinds.All`, and
-`ReliefMarkJson.ToMark` switches on `MarkKinds`. There is one list, not two that agree.
+`[JsonDerivedType]` attributes name `PropKinds`, and the sketch gate judges against `ShapeKinds.All`.
+There is one list, not two that agree.
 The sketch's Layout dock spells its pieces the same way: every kind it places is a `PlayPieceKinds` constant
 declared there, and the dock adds only the label and the swatch each is drawn in.
 
@@ -270,14 +269,9 @@ and `GrainFields` name the JSON keys a form writes into a document the client ho
 have one consumer and are that consumer's constants, which is the rule `WordSet` states: a word set with only
 one party spelling it is not vocabulary.
 
-**`MarkKinds.Push` is the exception that proves where the line is.** A push is placed and edited through the
-relief phase like a mark, so the canvas needs a word for it, but the stored form carries no kind — the array a
-push sits in already says what it is. It sits in `MarkKinds` beside its siblings and outside `MarkKinds.All`,
-which is the set the reader answers for.
-
 **What a shared constant cannot check is whether a word still has a reader**, and that is what
 `KindVocabularyTests` is for: every prop kind must name a derived type and answer the pass's order question,
-every shape kind must rasterize to ground, and every mark kind must read as a mark. Adding a word to a set
+and every shape kind must rasterize to ground. Adding a word to a set
 without teaching a reader fails there rather than in a board that quietly lost a shape.
 
 ## What a panel says, and where each kind of saying goes
@@ -291,8 +285,8 @@ control and scanned against its siblings, so what belongs there is the word — 
 reading *"a monolith — this far above the ground"* makes the list a paragraph with a dropdown around it: it
 cannot be scanned, it cannot be compared, and the same sentence is usually repeated under the control anyway.
 
-**The word an option writes is the word the document uses.** `Inherit`, `Hold` and `Exclude` are what
-`Participation`, `relief_scope` and `docs/tools/sketch.md` all call them, so what an author picks can be
+**The word an option writes is the word the document uses.** `Hold` is what
+`relief_scope` and `docs/tools/sketch.md` both call it, so what an author picks can be
 grepped for in `docs/` and cited in a finding. A label invented for the picker — *"yes — its ground is the
 group's ground"* — is a third vocabulary for a thing that already had one, and it is the reason a reader
 cannot look up what they just chose.

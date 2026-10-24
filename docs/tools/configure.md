@@ -632,7 +632,7 @@ case-insensitively, so this never fires on a case difference — only on a `kind
 headless driver, which links that method and speaks no HTTP, is judged by exactly what `GET /export` is
 judged by. The traversability judgement is asked there over the world **this build** writes rather than
 over the segments the last `sketch/finish` stored, which is the same reason `OB17` is: a subtract cut, a
-relief solve or an edit after the finish each move where ground is without re-entering that stage. It is the
+modifier or an edit after the finish each move where ground is without re-entering that stage. It is the
 world and not the terrain the build stood on — a house is walked round and over, not through, a tree's trunk
 is solid, and a pool of lava is crossed a block a column where the document lets a block be placed over
 ground at y=0, and is a wall where it forbids one.
@@ -654,7 +654,7 @@ hand-edited label or a corpus-derived one the export would otherwise ship straig
 **A sketch-origin map's export answers two more 409s, from `MapExportComposer` itself rather than from
 pre-flight.** They exist because `BuildAndCompose` already builds that map's world and holds its resolved
 intent, so it can ask them against the ground the rasterizer actually produced instead of the plan's
-rectangles — the case a subtract cut, a relief solve, or a post-compile sketch edit opens, none of which
+rectangles — the case a subtract cut, a modifier, or a post-compile sketch edit opens, none of which
 re-enters the compile gate, and the case a map begun in Sketch never reaches at all.
 
 - **`OB17`, `OB30` and `OB31` — objective placement**, asked again here the same way the compile gate asks it

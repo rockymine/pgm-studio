@@ -103,6 +103,7 @@ public sealed class ModifierMaskJson
 /// <summary>One outline of a mask, discriminated by <see cref="Kind"/>.</summary>
 public sealed class MaskAreaJson
 {
+    /// <summary>Which outline it is.</summary>
     [JsonPropertyName("kind")] [WordSet(typeof(MaskKinds))] public string Kind { get; set; } = MaskKinds.Ellipse;
 
     /// <summary>An ellipse's centre, as <c>[x, z]</c>.</summary>

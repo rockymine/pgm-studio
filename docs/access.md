@@ -212,7 +212,7 @@ A page the caller may not write opens read-only: the tool's bar says *View only*
 panels and the sidebars grey every field that writes, and the canvas keeps only the tools that look: it pans,
 zooms, selects and measures, and a drag, a draw or a key that would change the map moves nothing and sends
 nothing. Signed in, a read-only Sketch page
-still draws the ground's relief, its paint and the 3-D preview; signed out, it draws the outlines alone.
+still draws the ground's contours, its paint and the 3-D preview; signed out, it draws the outlines alone.
 
 **An action the caller may not take is greyed wherever it sits, with the reason on hover.** That holds on a
 page that writes nothing as much as on one that writes: the map list's *New sketch* and *Import a
@@ -262,9 +262,9 @@ An endpoint that states its own access keeps it: the whitelist's routes are an a
 revoking one's own token is a member's, the notes routes are the `notes` policy's, reads included, and signing
 out is anyone's.
 
-**A read that carries a body is a `POST`, and it is still a read.** The Sketch page draws its paint, its relief
-contours and its 3-D world from the live layout, which it posts to `sketch/paint`, `sketch/relief` and
-`sketch/columns`; `sketch/relief/read`, `sketch/dressing`, `sketch/seats` and `sketch/probe-footprint` answer
+**A read that carries a body is a `POST`, and it is still a read.** The Sketch page draws its paint, its contour
+overlay and its 3-D world from the live layout, which it posts to `sketch/paint`, `sketch/relief` and
+`sketch/columns`; `sketch/dressing`, `sketch/seats` and `sketch/probe-footprint` answer
 the same way. Each computes an answer and stores nothing, and says so with `[CostlyRead]`, which gives it the
 `member` policy whichever map it names: anyone on the whitelist sees how a map they may not change is made. A
 visitor who is not signed in is refused them with `RQ7`, because each answer is a build — `sketch/columns`
