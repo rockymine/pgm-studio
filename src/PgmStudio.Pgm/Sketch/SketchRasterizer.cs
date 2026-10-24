@@ -81,19 +81,29 @@ public static class SketchRasterizer
     /// <para>The columns are kept for the layouts most recently asked about, keyed on the layout as it
     /// serializes: the build, the layout check and the theme scope each rasterize the board they are handed,
     /// and on a stored map they are all handed the same one. Each caller gets its own list.</para></summary>
-    public static List<ColumnSegment> RasterizeColumns(SketchLayout? state)
-        => state is null
-            ? ColumnsOf(null)
-            : [.. Columns.Of(Encoding.UTF8.GetBytes(state.ToJson()), () => ColumnsOf(state))];
+    public static List<ColumnSegment> RasterizeColumns(SketchLayout? state) => [.. Built(state).Segments];
 
-    private static readonly Remembered<List<ColumnSegment>> Columns = new(capacity: 8);
+    /// <summary>The water the modifier stack made, as each wet cell and the height its surface stands at, in the
+    /// unit of a column's top: water fills the blocks under it. Asked of the same build as the columns, so the
+    /// two cannot disagree; ground a later modifier raised to the surface is dry and absent.</summary>
+    public static IReadOnlyDictionary<(int X, int Z), int> WaterOf(SketchLayout? state) => Built(state).Water;
 
-    private static List<ColumnSegment> ColumnsOf(SketchLayout? state)
+    /// <summary>As above, off the layout's JSON.</summary>
+    public static IReadOnlyDictionary<(int X, int Z), int> WaterOf(string layoutJson) => WaterOf(SketchLayout.Parse(layoutJson));
+
+    private sealed record BuiltColumns(List<ColumnSegment> Segments, Dictionary<(int X, int Z), int> Water);
+
+    private static BuiltColumns Built(SketchLayout? state)
+        => state is null ? ColumnsOf(null) : Columns.Of(Encoding.UTF8.GetBytes(state.ToJson()), () => ColumnsOf(state));
+
+    private static readonly Remembered<BuiltColumns> Columns = new(capacity: 8);
+
+    private static BuiltColumns ColumnsOf(SketchLayout? state)
     {
         var (cx, cz, axes) = FrameOf(state);
         var output = LayerSegments(state, cx, cz, axes);
-        SketchTerraform.Run(state, output, axes, cx, cz);
-        return Seat(state, output);
+        var water = SketchTerraform.Run(state, output, axes, cx, cz);
+        return new BuiltColumns(Seat(state, output), water);
     }
 
     /// <summary>How many columns each modifier of <paramref name="state"/> moved, one entry per modifier in list

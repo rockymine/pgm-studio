@@ -663,7 +663,7 @@ public static class Glossary
             "The ground that belongs to one team: its spawn, its wool rooms and the land joining them, up to its front line.",
             ["team ground"], ["hub", "front line", "island"]),
         new("terraform",
-            "Shaping the built ground with the modifier stack: hills, hollows, levels and roughness, run in order, each inside its mask.",
+            "Shaping the built ground with the modifier stack: hills, hollows, ridges, canyons, rivers, lakes, roads and more, run in order, each inside its mask. Rivers and lakes hold water.",
             [], ["surface"]),
         new("timber frame",
             "A building's corner posts, beam ends and the laid log course they belong to; the three are one frame and one wood.",

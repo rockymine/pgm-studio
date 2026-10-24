@@ -49,6 +49,10 @@ namespace PgmStudio.Minecraft.Dressing;
 /// <param name="CliffAngleAt">The angle from which the theme painting a cell calls its ground a face, by layer
 /// and cell — what a prop is kept off a cliff against (<see cref="Incline"/>). Absent, no ground is a
 /// cliff.</param>
+/// <param name="StackWater">The water the sketch's modifier stack made: each wet cell and the height its surface
+/// stands at, in the unit of <paramref name="SurfaceTop"/>, so the fill reaches the block under it. It is filled
+/// the way a basin is — only the ground lower than the surface, writing into air — before any prop is placed.
+/// Absent, none.</param>
 public sealed record DressingContext(
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
     IReadOnlyList<PlacedProp> Props,
@@ -58,7 +62,8 @@ public sealed record DressingContext(
     Func<int, int, bool>? IsGoalClearance = null,
     IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? SurfaceByLayer = null,
     IReadOnlyList<(int X, int Z)>? Waypoints = null,
-    Func<string?, int, int, int>? CliffAngleAt = null)
+    Func<string?, int, int, int>? CliffAngleAt = null,
+    IReadOnlyDictionary<(int X, int Z), int>? StackWater = null)
 {
     public DressingContext(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IReadOnlyList<PlacedProp> props)
         : this(surfaceTop, props, (_, _) => null, DressingSymmetry.None) { }
@@ -219,6 +224,14 @@ public static class Decorator
                 Severity.Decline, Subjects: [stranded.Id]));
 
         UnheldFaces(context, declined);
+
+        if (context.StackWater is { Count: > 0 } stackWater)
+        {
+            var result = PlaceStackWater(world, context, stackWater, claims.On(null), declined);
+            Cover(result, PropKinds.Fluid, StackWaterId);
+            placed = placed with { FluidCells = placed.FluidCells + result.Count };
+            propIndex++;
+        }
 
         foreach (var prop in context.Props.OfType<FluidProp>())
         {
@@ -523,18 +536,44 @@ public static class Decorator
                                      GroundClaims.Storey claims, List<Finding> declined)
     {
         if (fluid.Points.Count < 3 || fluid.Level is not { } level) return Placed.None;
-        var ground = context.GroundFor(fluid);
         var line = (int)Math.Floor(level);
         var ring = FluidBed.BasinCells(fluid.Points, fluid.Edge, fluid.Seed).ToList();
+        return Flood(world, context, fluid, claims, declined, ring, (_, _) => line, context.Symmetry);
+    }
+
+    /// <summary>The id the water the modifier stack made is claimed under.</summary>
+    private const string StackWaterId = "terraform-water";
+
+    /// <summary>Fill the water the modifier stack made: each wet cell to the block under its surface, through the
+    /// same flood a basin uses, with a fluid prop's own defaults for the bank and the beach. The cells already
+    /// stand at every image of a symmetric board, so nothing is fanned.</summary>
+    private static Placed PlaceStackWater(VoxelWorld world, DressingContext context,
+                                          IReadOnlyDictionary<(int X, int Z), int> water,
+                                          GroundClaims.Storey claims, List<Finding> declined)
+    {
+        var fluid = new FluidProp { Id = StackWaterId, Shape = FluidShape.Basin };
+        var cells = water.Keys.OrderBy(cell => cell.X).ThenBy(cell => cell.Z).ToList();
+        return Flood(world, context, fluid, claims, declined, cells, (x, z) => water[(x, z)] - 1, DressingSymmetry.None);
+    }
+
+    /// <summary>The flood a basin and the modifier stack's water share. Each cell of <paramref name="ring"/>, at
+    /// every image of <paramref name="symmetry"/>, whose ground stands lower than <paramref name="lineAt"/>'s
+    /// answer there takes the fluid from its surface up to that line; the floor it covers is laid with the fluid's
+    /// bank, and a beach follows the fluid's own contour.</summary>
+    private static Placed Flood(VoxelWorld world, DressingContext context, FluidProp fluid, GroundClaims.Storey claims,
+                                List<Finding> declined, IReadOnlyList<(int X, int Z)> ring,
+                                Func<int, int, int> lineAt, DressingSymmetry symmetry)
+    {
+        var ground = context.GroundFor(fluid);
 
         (int Id, int Data) Bank(int x, int y, int z) => fluid.Bank.Resolve(
-            new BucketContext(x, y, z, TerrainBucket.Surface, 0) { Sample = context.Symmetry.Canonical(x, z) });
+            new BucketContext(x, y, z, TerrainBucket.Surface, 0) { Sample = symmetry.Canonical(x, z) });
 
         // Every image is filled before any beach is laid, so a beach never covers fluid another image put there.
         var images = new List<List<(int X, int Z)>>();
         var flooded = new List<HashSet<(int X, int Z)>>();
         var wet = new List<(int X, int Z, int Line)>();
-        for (var image = 0; image < context.Symmetry.Order; image++)
+        for (var image = 0; image < symmetry.Order; image++)
         {
             var covered = new List<(int X, int Z)>();
             var drawn = new HashSet<(int X, int Z)>();
@@ -542,9 +581,10 @@ public static class Decorator
             flooded.Add(drawn);
             foreach (var (cellX, cellZ) in ring)
             {
-                var (x, z) = context.Symmetry.ImageCell(cellX, cellZ, image);
+                var (x, z) = symmetry.ImageCell(cellX, cellZ, image);
                 if (!ground.TryGetValue((x, z), out var top) || top < 2) continue;
                 var surfaceSolid = top - 1;
+                var line = lineAt(cellX, cellZ);
                 if (surfaceSolid >= line) continue;
                 if (DressingPalette.IsStamp(world.GetBlock(x, surfaceSolid, z).Id)) continue;
 
@@ -571,10 +611,10 @@ public static class Decorator
 
         // The beach is measured in the author's own cells and carried to each image, so the two teams' shores
         // wander alike wherever their ground floods alike.
-        for (var image = 0; image < context.Symmetry.Order; image++)
+        for (var image = 0; image < symmetry.Order; image++)
             foreach (var (cellX, cellZ) in FluidBed.BasinShoreCells(flooded[image], fluid.Shore, fluid.ShoreWander, fluid.Seed))
             {
-                var (x, z) = context.Symmetry.ImageCell(cellX, cellZ, image);
+                var (x, z) = symmetry.ImageCell(cellX, cellZ, image);
                 if (claims.Holds(x, z) || context.IsKeptClear(x, z)) continue;
                 if (!ground.TryGetValue((x, z), out var top) || top < 1) continue;
                 var surfaceSolid = top - 1;

@@ -1702,6 +1702,71 @@ public sealed class DecoratorTests
         await Assert.That(world.GetBlock(23, 6, 17).Id).IsEqualTo(Blocks.Air);
     }
 
+    /// <summary>A trench dug along z 10, x 10..14, down to a floor at y4: the ground is air from y5 up.</summary>
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> SurfaceTop) Trench()
+    {
+        var (world, top) = Plateau();
+        for (var x = 10; x <= 14; x++)
+        {
+            for (var y = 5; y <= 7; y++) world.SetBlock(x, y, 10, Blocks.Air);
+            top[(x, 10)] = 5;
+        }
+        return (world, top);
+    }
+
+    /// <summary><b>The water the modifier stack made fills each wet column to its own surface.</b> The surface is
+    /// the height the water stands under, so a surface of 7 fills the courses from the ground up to y6; a column
+    /// whose ground stands at the surface or above is dry however the map lists it.</summary>
+    [Test]
+    public async Task Water_the_stack_made_fills_each_wet_column_up_to_its_own_surface()
+    {
+        var (world, top) = Trench();
+        var water = new Dictionary<(int X, int Z), int>
+        {
+            [(10, 10)] = 7, [(11, 10)] = 7, [(12, 10)] = 6, [(13, 10)] = 6, [(14, 10)] = 6,
+            [(20, 10)] = 7,
+        };
+        var tally = Decorator.Decorate(world, new DressingContext(top, [], (_, _) => null, DressingSymmetry.None,
+                                                                     StackWater: water));
+
+        foreach (var x in new[] { 10, 11 })
+        {
+            await Assert.That(world.GetBlock(x, 6, 10).Id).IsEqualTo(Blocks.StationaryWater);
+            await Assert.That(world.GetBlock(x, 5, 10).Id).IsEqualTo(Blocks.StationaryWater);
+            await Assert.That(world.GetBlock(x, 7, 10).Id).IsEqualTo(Blocks.Air);
+        }
+        foreach (var x in new[] { 12, 13, 14 })
+        {
+            await Assert.That(world.GetBlock(x, 5, 10).Id).IsEqualTo(Blocks.StationaryWater);
+            await Assert.That(world.GetBlock(x, 6, 10).Id).IsEqualTo(Blocks.Air);
+        }
+        await Assert.That(world.GetBlock(20, 7, 10).Id).IsEqualTo(Blocks.Grass)
+            .Because("ground at the surface is the bank, not the bed");
+        await Assert.That(tally.FluidCells).IsGreaterThanOrEqualTo(5);
+    }
+
+    [Test]
+    public async Task Water_the_stack_made_lays_the_floor_it_covers_with_the_default_bank()
+    {
+        var (world, top) = Trench();
+        var water = Enumerable.Range(10, 5).ToDictionary(x => (x, 10), _ => 7);
+        Decorator.Decorate(world, new DressingContext(top, [], (_, _) => null, DressingSymmetry.None, StackWater: water));
+
+        foreach (var x in Enumerable.Range(10, 5))
+            await Assert.That(new[] { Blocks.Gravel, Blocks.Dirt, Blocks.Sand }).Contains(world.GetBlock(x, 4, 10).Id);
+    }
+
+    [Test]
+    public async Task A_board_with_no_water_from_the_stack_is_dressed_as_before()
+    {
+        var (world, top) = Trench();
+        var tally = Decorator.Decorate(world, new DressingContext(top, [], (_, _) => null, DressingSymmetry.None,
+                                                                     StackWater: new Dictionary<(int X, int Z), int>()));
+
+        await Assert.That(tally.FluidCells).IsEqualTo(0);
+        await Assert.That(world.GetBlock(10, 5, 10).Id).IsEqualTo(Blocks.Air);
+    }
+
     [Test]
     public async Task A_channel_over_a_void_leaves_the_void_alone()
     {

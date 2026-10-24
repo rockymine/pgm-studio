@@ -108,9 +108,9 @@ masses, with full control over where they are and how high; modifiers, stacked i
 made; placements stand presets and schematics on the result. Painting the surface is apart from all three.
 Phase 2 builds it, and the concept page
 (https://claude.ai/artifact/PXyATVHg1XQ12BWoBmYaes) draws Terraform over it. Of this section the modifier stack
-runs in the studio: `modifiers[]` with Hill, Hollow, Level and Roughness, masked by ellipses, outlines and the
-board and fanned by the symmetry, listed and edited in Terraform (`docs/tools/sketch.md`, *The modifier stack*).
-The rest of it is not built yet. `pgmvox.document.layers` and
+runs in the studio: `modifiers[]` with Hill, Hollow, Level, Roughness, Ridge, Butte, Spire, Scarp, Canyon, River,
+Lake, Road, Gullies and Warp, masked by ellipses, outlines, lines and the board and fanned by the symmetry, listed
+and edited in Terraform (`docs/tools/sketch.md`, *The modifier stack*). The rest of it is not built yet. `pgmvox.document.layers` and
 `LAYER-DOCUMENT.md` (draft 4) are the laboratory it is drawn from, not its format.
 
 **Each thing has one word (D16).** A **layer** is where shapes sit, at a base height of its own. A **storey** is a

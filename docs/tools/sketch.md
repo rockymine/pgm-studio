@@ -1041,7 +1041,10 @@ read off `column`. The contours, the paint, the 3-D preview, the export and `col
 whose `relief_scope` is `ride`: it moves with the change the stack made to the ground under it (*Groups and
 layers*).
 
-Four operations run, each ported from pgmvox's ground layer (`pgmvox/document/layers.py`, `_ground_layer`):
+Fourteen operations run. Hill, Hollow, Level and Roughness are ported from pgmvox's ground layer
+(`pgmvox/document/layers.py`, `_ground_layer`), the other ten from its landform library
+(`pgmvox/ground/landform.py`), where each takes a centre and a radius that the mask supplies as its centroid and
+`scale`:
 
 | `op` | The screen calls it | What it does to each column inside its mask | Its numbers |
 |---|---|---|---|
@@ -1049,6 +1052,23 @@ Four operations run, each ported from pgmvox's ground layer (`pgmvox/document/la
 | `crater` | Hollow | lowers it to a bowl `floor + slope × max(0, e × scale − flat)`, the seam rounded over `melt` blocks | `floor`, `flat` 0, `slope` 1, `melt` 0 |
 | `level` | Level | holds it at `top` out to `inner` and eases it back to the ground by `outer`, both in the mask's units | `top` (absent: the median of the ground it holds), `inner` 1, `outer` 1.5 |
 | `noise` | Roughness | adds each of its `sizes[]`, `{cell, octaves, rise}`, as value noise from `seed` | `sizes`, `seed` |
+| `ridge` | Ridge | raises it by `rise × (1 − e²)` along a `line` or the spine of an area, the foot wandering in from the rim by up to `wander` blocks of half width, by noise | `rise` 8, `wander` 2 |
+| `butte` | Butte | holds it at `top` out to the mask's rim, then a cliff `cliff` blocks wide and a talus apron `talus` blocks wide from `apron` of the way up the cliff down to the ground; only lifts, and the cliff and apron lie outside the mask | `top` (absent: the median ground inside + 12), `cliff` 1.5, `talus` 6, `apron` 0.3, `jag` 0.12 |
+| `spire` | Spire | raises it to `base + (top − base) × (1 − e)^(1 / taper)`, `base` the ground at the mask's centroid, `e` roughened by `jag`; only lifts | `top` (absent: the median ground inside + 20), `taper` 1.6, `jag` 0.15 |
+| `scarp` | Scarp | on a `line`: lifts the ground on the `side` hand (1 right, −1 left, walking along the line) by `height`, rising over `cliff` blocks on the line, and eases the other hand up by `apron` of `height` falling to nothing over `talus` blocks; the lift ends at the mask's edge | `height` 6, `side` 1, `cliff` 2, `talus` 5, `apron` 0.3 |
+| `canyon` | Canyon | on a `line`: cuts a floor `bed` of the half width across, `depth` under the ground the line follows, its walls climbing to the rim as the distance across to the power `wall`, in steps of `ledges` blocks when it states any; only cuts | `depth` 12, `bed` 0.35, `wall` 2.5, `ledges` 0 |
+| `river` | River | on a `line`: cuts a bed `depth` under the ground the line follows that never climbs, held level in reaches and stepping down in falls (two blocks or more, after ten of reach), banks easing back to the ground over `bank` blocks, the ring beside the water raised to its surface; **makes water** | `depth` 2, `water` 1, `bank` 4 |
+| `lake` | Lake | in an area: cuts a bed `depth` under the surface in the middle and a block under it at the rim, holds the ground within `shore` blocks outside at the surface or above, easing back to the ground; **makes water** | `level` (absent: one under the lowest ground on the rim), `depth` 3, `shore` 3 |
+| `road` | Road | on a `line`: grades the ground along it to climb or fall no more than `grade` blocks a block, its ends holding the ground they stand on, level across the mask's width with shoulders easing into the ground over `shoulder` blocks | `grade` 0.25, `shoulder` 4 |
+| `gullies` | Gullies | in an area: cuts `count` grooves running outward from its centroid between a quarter of `scale` and `scale`, each up to `depth` deep, bent by `wander` and narrowed by `sharpness`; only cuts | `count` 8, `depth` 3, `wander` 0.9, `sharpness` 3 |
+| `warp` | Warp | resamples the ground inside at positions shifted by noise, up to `amount` blocks, in swirls `cell` blocks across | `amount` 6, `cell` 24 |
+
+**Which masks an operation reads.** Scarp, Canyon, River and Road read a `line` and nothing else; Butte, Spire, Lake
+and Gullies read an ellipse or a polygon; Ridge reads a line, an ellipse or a polygon; Warp reads any. An operation
+handed an outline it does not read changes nothing and raises no refusal. Hill, Hollow, Level and Roughness read
+every kind, a line included: their distance `e` is measured from it. Canyon, River and Road follow a line as a
+Catmull-Rom curve through its points rather than as straight segments. Heights an operation states (`top`, `floor`,
+`level`) are world y in the unit of a column's top: a Level at `top` 12 and a Lake at `level` 12 meet flush.
 
 **Every modifier states the same five things around its numbers.** `id` is what the list and every read name
 it by. `name` is what the author calls it. `off: true` switches it off and keeps its numbers. `mode` keeps half
@@ -1057,13 +1077,28 @@ and `cut` is a dish of its own shape. `soft` fades the whole change in over that
 in from its rim.
 
 **A mask is one or more areas, and the map's symmetry fans them.** An area is an `ellipse` (`at`, `rx`, `rz`,
-`angle` in degrees), a `polygon` (`points`) or the whole `board`. Its distance `e` is 0 at its middle or
-deepest point and 1 on its rim, and `scale` is how many blocks one unit of `e` spans: the larger radius of an
-ellipse, the deepest point of a polygon. With `mask.mirror` (the default) each area also stands at its images
-under the map's symmetry, through `PgmStudio.Geom.Symmetry`; an image that falls on an area the mask already
-holds, as a centred ellipse does under a half turn, counts once. Where a Hill's or a Hollow's areas overlap, `join`
-adds them: 0 keeps the larger change, and above 0 they sum as a p-norm, so the saddle between two hills fills
-into a ridge. Any other operation keeps the larger change of its areas column by column.
+`angle` in degrees), a `polygon` (`points`), a `line` (`points`, `width`) or the whole `board`. Its distance `e` is
+0 at its middle or deepest point and 1 on its rim, and `scale` is how many blocks one unit of `e` spans: the larger
+radius of an ellipse, the deepest point of a polygon. A line is an open polyline: its `e` is the distance to it over
+half its `width`, so `e` is 1 at `width / 2` and `scale` is `width / 2`, and the operations that vary along a run
+(River's fall, Road's grade) read the arc length of the nearest point on it, and Scarp the hand a column lies on.
+With `mask.mirror` (the default) each area also stands at its images under the map's symmetry, through
+`PgmStudio.Geom.Symmetry`; an image that falls on an area the mask already holds, as a centred ellipse does under a
+half turn, counts once. A Scarp's image lifts the mirror image of the ground its original lifts, so a line lying
+on a mirror axis is two areas, one lifting each hand. Where a Hill's or a Hollow's areas overlap, `join` adds
+them: 0 keeps the larger change, and above 0 they sum as a p-norm, so the saddle between two hills fills into a
+ridge. Any other operation keeps the larger change of its areas column by column.
+
+**River and Lake make water, and the world build fills it.** Each wets the columns it cut and states the height its
+water surface stands at: a River's channel stands at its bed plus `water`, a Lake's cut at its `level`. A wet column
+is dry again where a later modifier raises its ground to the surface or above, so the stack answers only the cells that
+hold water at its end (`SketchRasterizer.WaterOf`), cached with the columns so a read of the water and of the ground
+cannot disagree. The world build hands that map to the dressing pass, which fills it before any prop is placed and
+through the routine a `basin` fluid uses (*Decoration*): each wet column takes water from its ground top up to the
+block under its surface, writing only into air, the floor it covers is laid with the default fluid bank and a beach
+follows the water's own edge. Water is therefore part of the world every read sees — `sketch/columns`, `column`,
+`transect`, the export and the walk's swim set — and a later River over the same columns replaces the water of an
+earlier one. The cells carry the fan of the map's symmetry already, so nothing is mirrored a second time.
 
 **A mask can leave shapes out.** `mask.leaves` is a list of shape ids: the columns of those shapes, and of their
 images under the map's symmetry as a held shape's are counted, are out of that one modifier's run, so it neither
@@ -1088,6 +1123,8 @@ modifier switched off, or a word this build does not know, answers 0. The stack 
         { "kind": "ellipse", "at": [-40, 8], "rx": 14, "rz": 10 },
         { "kind": "ellipse", "at": [-26, 14], "rx": 9, "rz": 8 } ], "mirror": true },
       "rise": 9, "join": 2, "soft": 0.3, "seed": 1 },
+    { "id": "brook", "op": "river", "depth": 2, "water": 1, "bank": 4, "mask": { "areas": [
+        { "kind": "line", "points": [[-58, -20], [-20, -12], [20, -18], [58, -26]], "width": 6 } ], "mirror": true } },
     { "id": "plaza", "op": "level", "mask": { "areas": [ { "kind": "ellipse", "at": [0, 0], "rx": 10, "rz": 7 } ],
         "mirror": false }, "top": 12, "seed": 1 },
     { "id": "rough", "op": "noise", "mask": { "areas": [ { "kind": "board" } ] },
@@ -2690,8 +2727,9 @@ and nothing else, and a map that came from a plan carries the plan's intent unch
 **A mask is a traced outline.** The canvas draws a mask by tracing it and edits it by its points; an ellipse area
 is written in the document and has no drawing tool, nor has a rectangle.
 
-**Four operations are built.** Hill, Hollow, Level and Roughness run; Ridge, River and the rest of pgmvox's ground
-operations are not built (`TS209`).
+**Fourteen operations are built, and pgmvox's profile, coast, lumps and shatter are not among them.** The stack
+has no sea that meets the board's edge, no cross-section set by distance from a line, no strewn rubble and no
+shattering of a mass; a Lake is an area the author draws, and a River's water stands in a bed it cut.
 
 **Only Draw edits geometry.** Palette and Decoration run the canvas as a selection surface: a group or a shape
 can be picked, and the view panned and zoomed, but nothing can be moved, resized, rotated, reshaped or given a

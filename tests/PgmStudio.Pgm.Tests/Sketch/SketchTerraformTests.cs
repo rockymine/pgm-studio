@@ -1,6 +1,7 @@
 using System.Globalization;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests.Sketch;
 
@@ -439,5 +440,153 @@ public sealed class SketchTerraformTests
         var all = SketchRasterizer.ModifierChanges(Layout(Hill(), roomShapes: Pad(""))).Single().Columns;
 
         await Assert.That(changes.Single().Columns).IsEqualTo(all - 16);
+    }
+
+    private static string River(string id = "river", int depth = 2, int water = 1, string extra = "", bool mirror = false) =>
+        $$"""
+        { "id": "{{id}}", "op": "river", "depth": {{depth}}, "water": {{water}}, "bank": 3, {{extra}}
+          "mask": { "areas": [ { "kind": "line", "points": [[0.5, 20.5], [39.5, 20.5]], "width": 4 } ],
+                    "mirror": {{(mirror ? "true" : "false")}} } }
+        """;
+
+    private static string Lake(string extra = "") =>
+        $$"""
+        { "id": "lake", "op": "lake", "depth": 3, "shore": 3, {{extra}}
+          "mask": { "areas": [ { "kind": "ellipse", "at": [20.5, 20.5], "rx": 8, "rz": 8 } ], "mirror": false } }
+        """;
+
+    [Test]
+    public async Task A_river_cuts_its_bed_under_the_ground_and_wets_the_columns_it_cut()
+    {
+        var layout = Layout(River());
+        var water = SketchRasterizer.WaterOf(layout);
+
+        await Assert.That(Top(layout, 20, 20)).IsEqualTo(6);
+        await Assert.That(water[(20, 20)]).IsEqualTo(7);
+        await Assert.That(Top(layout, 20, 10)).IsEqualTo(8);
+        await Assert.That(water.ContainsKey((20, 10))).IsFalse();
+        await Assert.That(water.Count).IsEqualTo(5 * 40).Because("the channel is five rows across the whole board");
+        foreach (var (cell, surface) in water)
+            await Assert.That(Top(layout, cell.X, cell.Z)).IsLessThan(surface);
+    }
+
+    [Test]
+    public async Task A_lake_cuts_a_bowl_under_its_level_and_wets_it()
+    {
+        var layout = Layout(Lake("\"level\": 7,"));
+        var water = SketchRasterizer.WaterOf(layout);
+
+        await Assert.That(water[(20, 20)]).IsEqualTo(7);
+        await Assert.That(Top(layout, 20, 20)).IsEqualTo(4).Because("three blocks of water over the bed in the middle");
+        await Assert.That(water.ContainsKey((20, 34))).IsFalse();
+        await Assert.That(water.Keys.All(cell => Top(layout, cell.X, cell.Z) < 7)).IsTrue();
+    }
+
+    [Test]
+    public async Task Ground_a_later_modifier_raises_to_the_surface_is_dry()
+    {
+        const string plateau = """{ "id": "plateau", "op": "level", "top": 12, "mask": { "areas": [ { "kind": "ellipse", "at": [20.5, 20.5], "rx": 6, "rz": 6 } ], "mirror": false } }""";
+        var layout = Layout(River() + "," + plateau);
+        var water = SketchRasterizer.WaterOf(layout);
+
+        await Assert.That(Top(layout, 20, 20)).IsEqualTo(12);
+        await Assert.That(water.ContainsKey((20, 20))).IsFalse();
+        await Assert.That(water.ContainsKey((3, 20))).IsTrue();
+        await Assert.That(water.ContainsKey((38, 20))).IsTrue();
+    }
+
+    [Test]
+    public async Task A_river_drawn_after_another_replaces_its_water_where_they_cross()
+    {
+        var layout = Layout(River() + "," + River("deeper", depth: 4, water: 2));
+
+        await Assert.That(SketchRasterizer.WaterOf(layout)[(20, 20)]).IsEqualTo(Top(layout, 20, 20) + 2);
+    }
+
+    [Test]
+    public async Task A_mirrored_river_wets_the_columns_of_its_image_too()
+    {
+        const string bend = """
+            { "id": "stream", "op": "river", "depth": 2, "water": 1, "bank": 3,
+              "mask": { "areas": [ { "kind": "line", "points": [[2.5, 6.5], [18.5, 10.5]], "width": 4 } ], "mirror": true } }
+            """;
+        var layout = Layout(bend, mode: "rot_180");
+        var water = SketchRasterizer.WaterOf(layout);
+        var image = Symmetry.ApplyCell(10, 8, "rot_180", 20, 20);
+
+        await Assert.That(water.ContainsKey((10, 8))).IsTrue();
+        await Assert.That(water.ContainsKey(image)).IsTrue();
+        foreach (var (cell, surface) in water)
+            await Assert.That(water[Symmetry.ApplyCell(cell.X, cell.Z, "rot_180", 20, 20)]).IsEqualTo(surface);
+    }
+
+    [Test]
+    public async Task A_river_switched_off_makes_no_water_and_no_cut()
+    {
+        var layout = Layout(River(extra: "\"off\": true,"));
+
+        await Assert.That(SketchRasterizer.WaterOf(layout)).IsEmpty();
+        await Assert.That(Top(layout, 20, 20)).IsEqualTo(8);
+    }
+
+    [Test]
+    public async Task A_line_with_no_width_or_a_single_point_draws_nothing()
+    {
+        const string widthless = """{ "id": "r", "op": "river", "mask": { "areas": [ { "kind": "line", "points": [[0.5, 20.5], [39.5, 20.5]] } ], "mirror": false } }""";
+        const string single = """{ "id": "r", "op": "river", "mask": { "areas": [ { "kind": "line", "points": [[0.5, 20.5]], "width": 4 } ], "mirror": false } }""";
+
+        foreach (var modifier in new[] { widthless, single })
+        {
+            var layout = Layout(modifier);
+            await Assert.That(SketchRasterizer.WaterOf(layout)).IsEmpty();
+            await Assert.That(Top(layout, 20, 20)).IsEqualTo(8);
+        }
+    }
+
+    [Test]
+    public async Task Water_is_part_of_the_cached_build_and_follows_the_layout_it_was_built_from()
+    {
+        await Assert.That(SketchRasterizer.WaterOf(Layout(River())).Count).IsGreaterThan(0);
+        await Assert.That(SketchRasterizer.WaterOf(Layout("")).Count).IsEqualTo(0);
+        await Assert.That(SketchRasterizer.WaterOf(Layout(River())).Count).IsGreaterThan(0);
+    }
+
+    [Test]
+    public async Task A_ridge_a_scarp_and_a_canyon_move_the_built_ground()
+    {
+        const string ridge = """{ "id": "r", "op": "ridge", "rise": 5, "wander": 0, "mask": { "areas": [ { "kind": "line", "points": [[0.5, 10.5], [39.5, 10.5]], "width": 6 } ], "mirror": false } }""";
+        const string canyon = """{ "id": "c", "op": "canyon", "depth": 5, "mask": { "areas": [ { "kind": "line", "points": [[0.5, 30.5], [39.5, 30.5]], "width": 8 } ], "mirror": false } }""";
+        var layout = Layout(ridge + "," + canyon);
+
+        await Assert.That(Top(layout, 20, 10)).IsEqualTo(13);
+        await Assert.That(Top(layout, 20, 30)).IsEqualTo(3);
+        await Assert.That(Top(layout, 20, 20)).IsEqualTo(8);
+    }
+
+    private const string LineThroughTheHill =
+        """{ "kind": "line", "points": [[2.5, 20.5], [20.5, 22.5], [38.5, 20.5]], "width": 8 }""";
+
+    private const string AreaOnTheHill = """{ "kind": "ellipse", "at": [20.5, 20.5], "rx": 10, "rz": 10 }""";
+
+    [Test]
+    [Arguments(ModifierOps.Ridge, LineThroughTheHill)]
+    [Arguments(ModifierOps.Butte, AreaOnTheHill)]
+    [Arguments(ModifierOps.Spire, AreaOnTheHill)]
+    [Arguments(ModifierOps.Scarp, LineThroughTheHill)]
+    [Arguments(ModifierOps.Canyon, LineThroughTheHill)]
+    [Arguments(ModifierOps.River, LineThroughTheHill)]
+    [Arguments(ModifierOps.Lake, AreaOnTheHill)]
+    [Arguments(ModifierOps.Road, LineThroughTheHill)]
+    [Arguments(ModifierOps.Gullies, AreaOnTheHill)]
+    [Arguments(ModifierOps.Warp, """{ "kind": "board" }""")]
+    public async Task Every_landform_word_the_vocabulary_names_runs_over_the_ground_a_hill_left(string op, string area)
+    {
+        var hill = Hill(radius: 14, rise: 10);
+        var stacked = $$"""{ "id": "x", "op": "{{op}}", "seed": 4, "mask": { "areas": [ {{area}} ], "mirror": false } }""";
+
+        var alone = Tops(Layout(hill));
+        var with = Tops(Layout(hill + "," + stacked));
+
+        await Assert.That(with.Any(column => column.Value != alone[column.Key])).IsTrue();
     }
 }

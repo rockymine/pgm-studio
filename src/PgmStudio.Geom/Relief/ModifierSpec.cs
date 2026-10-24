@@ -14,6 +14,36 @@ public enum ModifierOp
 
     /// <summary>Noise in one or more sizes, added inside the mask.</summary>
     Noise,
+
+    /// <summary>A crest along a line or the spine of an area, its foot wandering.</summary>
+    Ridge,
+
+    /// <summary>A flat-topped mass on an area, a cliff round its top and a talus apron below.</summary>
+    Butte,
+
+    /// <summary>A needle standing on the middle of an area.</summary>
+    Spire,
+
+    /// <summary>One side of a line stepped up by a cliff, a talus apron on the other.</summary>
+    Scarp,
+
+    /// <summary>A trench along a line with a floor, walls and optional ledges.</summary>
+    Canyon,
+
+    /// <summary>A bed cut along a line that never climbs, holding water.</summary>
+    River,
+
+    /// <summary>A bowl cut into an area, holding water to a level.</summary>
+    Lake,
+
+    /// <summary>A route graded into the ground along a line.</summary>
+    Road,
+
+    /// <summary>Grooves cut outward from the middle of an area.</summary>
+    Gullies,
+
+    /// <summary>The ground inside resampled at noise-shifted positions.</summary>
+    Warp,
 }
 
 /// <summary>Which way a modifier's change may move the ground.</summary>
@@ -81,6 +111,72 @@ public sealed record ModifierSpec
     /// <summary>A Noise's sizes, each its own fractal added to the others.</summary>
     public IReadOnlyList<NoiseSize>? Sizes { get; init; }
 
+    /// <summary>How far a Ridge's foot wanders in from its mask, in blocks; also how far Gullies bend.</summary>
+    public double? Wander { get; init; }
+
+    /// <summary>Width in blocks of a Butte's or a Scarp's cliff.</summary>
+    public double? Cliff { get; init; }
+
+    /// <summary>Width in blocks of the talus apron below a Butte's or a Scarp's cliff.</summary>
+    public double? Talus { get; init; }
+
+    /// <summary>The share of the way up its cliff a Butte's or a Scarp's talus starts at.</summary>
+    public double? Apron { get; init; }
+
+    /// <summary>How much a Butte's or a Spire's outline is roughened, as a share of its radius.</summary>
+    public double? Jag { get; init; }
+
+    /// <summary>How a Spire's sides fall: above one they bulge out toward a dome, below one they hollow in to a needle.</summary>
+    public double? Taper { get; init; }
+
+    /// <summary>How far a Scarp lifts its raised side, in blocks.</summary>
+    public double? Height { get; init; }
+
+    /// <summary>Which hand of a Scarp's line is raised, +1 right and -1 left walking along it.</summary>
+    public int? Side { get; init; }
+
+    /// <summary>How deep a Canyon, River, Lake or Gully cuts, in blocks.</summary>
+    public double? Depth { get; init; }
+
+    /// <summary>The share of a Canyon's half width that is its flat floor.</summary>
+    public double? Bed { get; init; }
+
+    /// <summary>A Canyon wall's steepness: the wall climbs as its distance across to this power.</summary>
+    public double? Wall { get; init; }
+
+    /// <summary>Blocks between a Canyon's ledges; zero cuts smooth walls.</summary>
+    public double? Ledges { get; init; }
+
+    /// <summary>How many blocks of water stand in a River's bed.</summary>
+    public double? Water { get; init; }
+
+    /// <summary>Over how many blocks a River's banks ease back to the ground.</summary>
+    public double? Bank { get; init; }
+
+    /// <summary>The height a Lake's water surface stands at; absent, one under its lowest rim ground.</summary>
+    public double? Level { get; init; }
+
+    /// <summary>Over how many blocks a Lake's shore is held at the water and eases back to the ground.</summary>
+    public double? Shore { get; init; }
+
+    /// <summary>The steepest a Road climbs or falls, in blocks per block.</summary>
+    public double? Grade { get; init; }
+
+    /// <summary>Over how many blocks a Road's shoulders ease into the ground.</summary>
+    public double? Shoulder { get; init; }
+
+    /// <summary>How many grooves Gullies cuts round its middle.</summary>
+    public int? Count { get; init; }
+
+    /// <summary>How narrow each groove is against the ground between: higher is narrower.</summary>
+    public double? Sharpness { get; init; }
+
+    /// <summary>The farthest a Warp moves a position, in blocks.</summary>
+    public double? Amount { get; init; }
+
+    /// <summary>The width in blocks of a Warp's largest swirl.</summary>
+    public double? Cell { get; init; }
+
     /// <summary>The noise row it reads; a size takes the seed plus thirty-seven times its place.</summary>
     public int Seed { get; init; } = 1;
 }
@@ -100,4 +196,53 @@ public static class ModifierDefaults
 
     /// <summary>The one size a Noise with none stated is made of.</summary>
     public static readonly NoiseSize Size = new(12, 2, 1);
+
+    public const double RidgeRise = 8;
+    public const double RidgeWander = 2;
+
+    /// <summary>How far over the median ground inside its mask a Butte with no top stated stands.</summary>
+    public const double ButteHeight = 12;
+    public const double ButteCliff = 1.5;
+    public const double ButteTalus = 6;
+    public const double Apron = 0.3;
+    public const double ButteJag = 0.12;
+
+    /// <summary>How far over the median ground inside its mask a Spire with no top stated stands.</summary>
+    public const double SpireHeight = 20;
+    public const double SpireTaper = 1.6;
+    public const double SpireJag = 0.15;
+
+    public const double ScarpHeight = 6;
+    public const int ScarpSide = 1;
+    public const double ScarpCliff = 2;
+    public const double ScarpTalus = 5;
+
+    public const double CanyonDepth = 12;
+    public const double CanyonBed = 0.35;
+    public const double CanyonWall = 2.5;
+    public const double CanyonLedges = 0;
+
+    public const double RiverDepth = 2;
+    public const double RiverWater = 1;
+    public const double RiverBank = 4;
+
+    /// <summary>The drop in a River's bed that starts a fall, in blocks.</summary>
+    public const double RiverFall = 2;
+
+    /// <summary>The run a River's bed holds level before it may fall, in blocks.</summary>
+    public const double RiverReach = 10;
+
+    public const double LakeDepth = 3;
+    public const double LakeShore = 3;
+
+    public const double RoadGrade = 0.25;
+    public const double RoadShoulder = 4;
+
+    public const int GulliesCount = 8;
+    public const double GulliesDepth = 3;
+    public const double GulliesWander = 0.9;
+    public const double GulliesSharpness = 3;
+
+    public const double WarpAmount = 6;
+    public const double WarpCell = 24;
 }

@@ -21,34 +21,34 @@ public static class ModifierOps
     /// <summary>Roughness: noise in one or more sizes, added inside the mask.</summary>
     public const string Noise = "noise";
 
-    /// <summary>A Ridge: a crest raised along a line, its foot wandering by noise.</summary>
+    /// <summary>A Ridge: a crest along a line or the spine of an area, its foot wandering.</summary>
     public const string Ridge = "ridge";
 
-    /// <summary>A Butte: a flat-topped rise with a cliff face, a talus skirt and an apron.</summary>
+    /// <summary>A Butte: a flat top on an area, a cliff round it and a talus apron below.</summary>
     public const string Butte = "butte";
 
-    /// <summary>A Spire: a narrow peak tapering from its mask to a point.</summary>
+    /// <summary>A Spire: a needle rising to a stated top from the middle of an area.</summary>
     public const string Spire = "spire";
 
-    /// <summary>A Scarp: one side of a line raised as a step with a cliff and a talus slope.</summary>
+    /// <summary>A Scarp: one side of a line stepped up by a cliff, a talus apron on the other.</summary>
     public const string Scarp = "scarp";
 
-    /// <summary>A Canyon: a trench cut along a line with a floor, walls and optional ledges.</summary>
+    /// <summary>A Canyon: a trench along a line with a floor, walls and optional ledges.</summary>
     public const string Canyon = "canyon";
 
-    /// <summary>A River: a bed cut along a line and filled with water.</summary>
+    /// <summary>A River: a bed cut along a line that never climbs, holding water.</summary>
     public const string River = "river";
 
-    /// <summary>A Lake: a basin cut inside the mask and filled with water to one level.</summary>
+    /// <summary>A Lake: a bowl cut into an area, holding water to a level.</summary>
     public const string Lake = "lake";
 
-    /// <summary>A Road: a line graded into the slope so it climbs no faster than its grade.</summary>
+    /// <summary>A Road: a route graded into the ground along a line.</summary>
     public const string Road = "road";
 
-    /// <summary>Gullies: channels cut down a slope inside the mask.</summary>
+    /// <summary>Gullies: grooves cut outward from the middle of an area.</summary>
     public const string Gullies = "gullies";
 
-    /// <summary>A Warp: the ground inside the mask resampled at noise-shifted positions.</summary>
+    /// <summary>A Warp: the ground inside resampled at noise-shifted positions.</summary>
     public const string Warp = "warp";
 
     public static readonly string[] All =
@@ -99,7 +99,7 @@ public static class MaskKinds
     /// <summary>All the ground there is, at full strength everywhere.</summary>
     public const string Board = "board";
 
-    /// <summary>An open run of points with a width, its depth measured from the line outward.</summary>
+    /// <summary>An open polyline of points and a width; its distance is measured from the line.</summary>
     public const string Line = "line";
 
     public static readonly string[] All = [Ellipse, Polygon, Board, Line];

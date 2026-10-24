@@ -23,17 +23,12 @@ entries parked, and Phase 2 is open: shapes, modifiers and the ground. Its entri
 
 The new ground document replaces the sketch's ground (D2), with no beta beside the live studio (D3). Its model is
 settled (D16–D23) and Terraform's concept page has the author's approval. Terraform is the modifier stack alone:
-`modifiers[]` with Hill, Hollow, Level and Roughness, traced on the board, listed and edited, and the group relief
-is gone. The entries below finish it, each against pgmvox's own operations (`pgmvox/document/layers.py`).
+`modifiers[]`, traced on the board, listed and edited, and the group relief
+is gone. Fourteen ground operations run, River and Lake carry water into the world, the board steps through the
+stack, and a shape follows, holds or rides it; what remains of the operations is below.
 
-- [ ] **TS207 — The board steps through the stack, and each modifier says what it changed.** Add `?step=` to
-  `sketch/relief`, `sketch/columns` and the reads, the strip at the canvas foot that sets it, and a count per
-  modifier of the columns it moved, zero a complaint. Every intermediate state is keyed by a hash of the
-  modifiers before it (*Every modifier is kept as it ran*, `docs/pgmvox-port.md`). `docs/tools/sketch.md`.
-- [ ] **TS208 — Any shape can ride the modifiers, and a mask can leave shapes out.** A `raise`, `sink` or
-  `drape` shape rides the stack and a `hold` or `level` one holds (`SketchRasterizer.StackRelations`); an
-  ordinary shape cannot yet say it rides, keeping its form while it moves with the ground. Add D18's `ride` as a
-  `relief_scope` word and a mask's leave-outs by shape id. `docs/tools/sketch.md`.
-- [ ] **TS209 — Ridge, River and the rest of the ground operations.** Port them from `pgmvox/ground/landform.py`
-  in the inventory's order, each a new `ModifierOps` word with its row in *The modifier stack*.
+- [ ] **TS210 — Profile, coast, lumps and shatter.** The stack runs fourteen of pgmvox's ground operations; port
+  the four it does not from `pgmvox/ground/landform.py` (`profile`, `coast`, `lumps`) and the shatter study, each a
+  `ModifierOps` word with its row in *The modifier stack*, its dock family and icon, and its inspector fields.
   `docs/tools/sketch.md`.
+

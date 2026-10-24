@@ -35,7 +35,7 @@ public sealed class SketchModifierJson
     /// <summary>Where it works.</summary>
     [JsonPropertyName("mask")] public ModifierMaskJson Mask { get; set; } = new();
 
-    /// <summary>A Hill's height at its deepest point, in blocks.</summary>
+    /// <summary>A Hill's or a Ridge's height at its deepest point, in blocks.</summary>
     [JsonPropertyName("rise"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Rise { get; set; }
 
@@ -69,7 +69,8 @@ public sealed class SketchModifierJson
     [JsonPropertyName("melt"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Melt { get; set; }
 
-    /// <summary>A Level's height, as a world y; absent, the median of the ground it holds flat.</summary>
+    /// <summary>A Level's, Butte's or Spire's height, as a world y; absent, the median of the ground inside the
+    /// mask (a Level holds it flat, a Butte stands 12 over it and a Spire 20).</summary>
     [JsonPropertyName("top"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Top { get; set; }
 
@@ -80,6 +81,96 @@ public sealed class SketchModifierJson
     /// <summary>Where a Level's skirt has eased back to the ground, in the mask's units.</summary>
     [JsonPropertyName("outer"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Outer { get; set; }
+
+    /// <summary>How far a Ridge's foot wanders in from its mask, in blocks; how far Gullies' grooves bend, in
+    /// turns.</summary>
+    [JsonPropertyName("wander"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Wander { get; set; }
+
+    /// <summary>A Butte's or a Scarp's cliff, in blocks wide.</summary>
+    [JsonPropertyName("cliff"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Cliff { get; set; }
+
+    /// <summary>The talus apron below a Butte's or a Scarp's cliff, in blocks wide.</summary>
+    [JsonPropertyName("talus"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Talus { get; set; }
+
+    /// <summary>The share of the way up its cliff a Butte's or a Scarp's talus apron starts at.</summary>
+    [JsonPropertyName("apron"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Apron { get; set; }
+
+    /// <summary>How roughened a Butte's or a Spire's outline is, as a share of its radius.</summary>
+    [JsonPropertyName("jag"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Jag { get; set; }
+
+    /// <summary>How a Spire's sides fall: above one they bulge out toward a dome, below one they hollow in to a needle.</summary>
+    [JsonPropertyName("taper"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Taper { get; set; }
+
+    /// <summary>How far a Scarp lifts its raised side, in blocks.</summary>
+    [JsonPropertyName("height"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Height { get; set; }
+
+    /// <summary>Which hand of a Scarp's line is raised: 1 right, -1 left, walking along it.</summary>
+    [JsonPropertyName("side"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Side { get; set; }
+
+    /// <summary>How deep a Canyon, River, Lake or Gullies cuts, in blocks.</summary>
+    [JsonPropertyName("depth"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Depth { get; set; }
+
+    /// <summary>The share of a Canyon's half width that is its flat floor.</summary>
+    [JsonPropertyName("bed"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Bed { get; set; }
+
+    /// <summary>A Canyon wall's steepness: it climbs as the distance across to this power.</summary>
+    [JsonPropertyName("wall"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Wall { get; set; }
+
+    /// <summary>Blocks between a Canyon's ledges; absent or zero cuts smooth walls.</summary>
+    [JsonPropertyName("ledges"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Ledges { get; set; }
+
+    /// <summary>How many blocks of water stand in a River's bed.</summary>
+    [JsonPropertyName("water"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Water { get; set; }
+
+    /// <summary>Over how many blocks a River's banks ease back to the ground.</summary>
+    [JsonPropertyName("bank"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Bank { get; set; }
+
+    /// <summary>The height a Lake's water surface stands at, as a world y like <c>top</c>; absent, one under
+    /// the lowest ground on its rim.</summary>
+    [JsonPropertyName("level"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Level { get; set; }
+
+    /// <summary>Over how many blocks a Lake's shore is held at the water and eases back to the ground.</summary>
+    [JsonPropertyName("shore"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Shore { get; set; }
+
+    /// <summary>The steepest a Road climbs or falls, in blocks per block.</summary>
+    [JsonPropertyName("grade"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Grade { get; set; }
+
+    /// <summary>Over how many blocks a Road's shoulders ease into the ground.</summary>
+    [JsonPropertyName("shoulder"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Shoulder { get; set; }
+
+    /// <summary>How many grooves Gullies cuts round the middle of its mask.</summary>
+    [JsonPropertyName("count"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Count { get; set; }
+
+    /// <summary>How narrow each of Gullies' grooves is against the ground between: higher is narrower.</summary>
+    [JsonPropertyName("sharpness"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Sharpness { get; set; }
+
+    /// <summary>The farthest a Warp moves a position, in blocks.</summary>
+    [JsonPropertyName("amount"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Amount { get; set; }
+
+    /// <summary>The width in blocks of a Warp's largest swirl.</summary>
+    [JsonPropertyName("cell"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Cell { get; set; }
 
     /// <summary>A Roughness's sizes, each its own noise added to the others.</summary>
     [JsonPropertyName("sizes"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -128,9 +219,13 @@ public sealed class MaskAreaJson
     [JsonPropertyName("angle"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Angle { get; set; }
 
-    /// <summary>A polygon's outline, as <c>[x, z]</c> pairs.</summary>
+    /// <summary>A polygon's outline or a line's path, as <c>[x, z]</c> pairs.</summary>
     [JsonPropertyName("points"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double[][]? Points { get; set; }
+
+    /// <summary>A line's width in blocks; its edge lies half of it from the path.</summary>
+    [JsonPropertyName("width"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Width { get; set; }
 }
 
 /// <summary>One size of a Roughness: how wide its features are, how many finer octaves ride on it, and how far

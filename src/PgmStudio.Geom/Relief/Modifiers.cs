@@ -10,36 +10,57 @@ public static class Modifiers
 {
     private const int SeedStride = 37;
 
+    /// <summary>The spacing of the curve a River, a Canyon or a Road follows through the points of its line.</summary>
+    private const double PathStep = 1;
+
     /// <summary>
     /// Runs one modifier over <paramref name="heights"/>, in place. Column <c>i</c> stands at
     /// (<paramref name="xs"/>[i], <paramref name="zs"/>[i]) — its centre, not its corner — and the three arrays
-    /// are the same length.
+    /// are the same length. A River or a Lake writes the height its water surface stands at into
+    /// <paramref name="waters"/>[i] for each column it wets, replacing what an earlier modifier wrote there; a
+    /// caller that wants the water passes an array of the same length, filled with <see cref="double.NaN"/> where
+    /// there is none.
     /// </summary>
-    public static void Apply(ModifierSpec spec, double[] heights, double[] xs, double[] zs)
+    public static void Apply(ModifierSpec spec, double[] heights, double[] xs, double[] zs, double[]? waters = null)
     {
         var areas = spec.Areas;
         var count = heights.Length;
         if (areas.Count == 0 || count == 0) return;
 
+        var ground = new Ground(heights, xs, zs);
+        var stepWater = new double[count];
+        Array.Fill(stepWater, double.NaN);
         var nearest = new double[count];
         Array.Fill(nearest, double.PositiveInfinity);
         var changes = new double[areas.Count][];
         for (var at = 0; at < areas.Count; at++)
         {
-            var distance = new double[count];
-            for (var i = 0; i < count; i++)
-            {
-                distance[i] = areas[at].E(xs[i], zs[i]);
-                nearest[i] = Math.Min(nearest[i], distance[i]);
-            }
+            var area = areas[at];
+            if (spec.Op is ModifierOp.Canyon or ModifierOp.River or ModifierOp.Road) area = area.Smoothed(PathStep);
+            var view = new AreaView(area, xs, zs);
+            for (var i = 0; i < count; i++) nearest[i] = Math.Min(nearest[i], view.E[i]);
             changes[at] = spec.Op switch
             {
-                ModifierOp.Mound => MoundChange(spec, distance),
-                ModifierOp.Crater => CraterChange(spec, areas[at].Scale, distance, heights),
-                ModifierOp.Level => LevelChange(spec, distance, heights),
-                _ => NoiseChange(spec, distance, xs, zs),
+                ModifierOp.Mound => MoundChange(spec, view.E),
+                ModifierOp.Crater => CraterChange(spec, area.Scale, view.E, heights),
+                ModifierOp.Level => LevelChange(spec, view.E, heights),
+                ModifierOp.Noise => NoiseChange(spec, view.E, xs, zs),
+                ModifierOp.Ridge => Landforms.Ridge(spec, view, ground),
+                ModifierOp.Butte => Landforms.Butte(spec, view, ground),
+                ModifierOp.Spire => Landforms.Spire(spec, view, ground),
+                ModifierOp.Scarp => Landforms.Scarp(spec, view),
+                ModifierOp.Canyon => Landforms.Canyon(spec, view, ground),
+                ModifierOp.Gullies => Landforms.Gullies(spec, view, ground),
+                ModifierOp.Warp => Landforms.Warp(spec, view, ground),
+                ModifierOp.River => Courses.River(spec, view, ground, stepWater),
+                ModifierOp.Lake => Courses.Lake(spec, view, ground, stepWater),
+                ModifierOp.Road => Courses.Road(spec, view, ground),
+                _ => new double[count],
             };
         }
+        if (waters is not null)
+            for (var i = 0; i < count; i++)
+                if (!double.IsNaN(stepWater[i])) waters[i] = stepWater[i];
 
         var change = Combine(spec, changes);
         var soft = spec.Soft is > 0 ? spec.Soft : null;
@@ -176,7 +197,7 @@ public static class Modifiers
         return combined;
     }
 
-    private static double MedianWithin(double[] heights, double[] distance, double below)
+    internal static double MedianWithin(double[] heights, double[] distance, double below)
     {
         var within = new List<double>();
         for (var i = 0; i < heights.Length; i++)

@@ -10821,6 +10821,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   or absent; the solver, its endpoints, the readback, `SK14` and `RL1`–`RL6` left with it, and a refinement states
   `modifiers`. A play room, a `hold` shape and a `level` shape keep their columns out of every modifier, and a
   `raise`, `sink` or `drape` shape rides the ground the stack left. `docs/tools/sketch.md`.
+- **The board steps through the stack, and each modifier says what it moved (`TS207`).** `?step=N` on
+  `sketch/relief` and `sketch/columns` reads the ground after the first N modifiers (`SketchSteps.Through`), a step
+  strip at the canvas foot sets it, and `POST sketch/modifiers/changes` counts the columns each modifier's own run
+  moved, shown in its inspector.
+- **A shape follows, holds or rides the stack, and a mask can leave shapes out (`TS208`).** `relief_scope: ride`
+  keeps a shape's form and moves it by the median change under it; `mask.leaves` names shapes one modifier leaves
+  out. Terraform lists the drawn shapes with Follow, Hold or Ride above the stack.
+- **Fourteen ground operations, a line mask and water (`TS209`).** Ridge, Butte, Spire, Scarp, Canyon, River,
+  Lake, Road, Gullies and Warp join Hill, Hollow, Level and Roughness, ported from pgmvox's landforms; a line
+  operation traces an open run into a `line` mask; River and Lake fill their beds with water through the same
+  flood the Fluid prop places (`SketchRasterizer.WaterOf`, `Decorator.PlaceStackWater`). The dock groups them as
+  Ground, Lines, Water and Texture in the concept page's terrain icons, with Carve shown for Phase 4.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

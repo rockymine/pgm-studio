@@ -18,24 +18,32 @@ namespace PgmStudio.Pgm.Sketch;
 /// hill raised under it, and a <c>raise</c>, <c>sink</c> or <c>relief_scope: ride</c> shape moves by the median
 /// change under it, so it stays one flat thing standing proud (<see cref="SketchRasterizer.StackRelations"/>).
 /// One modifier can leave named shapes out of its own run (<see cref="ModifierMaskJson.Leaves"/>).</para>
+///
+/// <para>A river and a lake wet the columns they cut. The stack answers those as <see cref="Run"/>'s result: each
+/// wet cell and the height its water surface stands at, in the same unit as a column's top, so water fills the
+/// blocks under it. A cell whose ground a later modifier raised to the surface or above is dry and not
+/// listed.</para>
 /// </summary>
 internal static class SketchTerraform
 {
-    /// <summary>Applies every enabled modifier, in list order, to <paramref name="segments"/> in place. A layout
-    /// with no modifier leaves them untouched. Given <paramref name="changed"/>, it is filled with one count per
-    /// modifier in list order: the columns whose rounded top that modifier's own run changed, zero for one
-    /// switched off or unknown.</summary>
-    public static void Run(SketchLayout? state, List<ColumnSegment> segments,
-                           IReadOnlyList<string> axes, double centreX, double centreZ, List<int>? changed = null)
+    /// <summary>Applies every enabled modifier, in list order, to <paramref name="segments"/> in place, and
+    /// answers the water the stack made: each wet cell and the height its surface stands at. A layout with no
+    /// modifier leaves the segments untouched and makes no water. Given <paramref name="changed"/>, it is filled
+    /// with one count per modifier in list order: the columns whose rounded top that modifier's own run changed,
+    /// zero for one switched off or unknown.</summary>
+    public static Dictionary<(int X, int Z), int> Run(SketchLayout? state, List<ColumnSegment> segments,
+                                                      IReadOnlyList<string> axes, double centreX, double centreZ,
+                                                      List<int>? changed = null)
     {
+        var wet = new Dictionary<(int X, int Z), int>();
         changed?.Clear();
         changed?.AddRange(new int[state?.Modifiers?.Count ?? 0]);
-        if (state?.Modifiers is not { Count: > 0 } modifiers) return;
+        if (state?.Modifiers is not { Count: > 0 } modifiers) return wet;
         var steps = new List<(int At, SketchModifierJson Modifier, ModifierSpec Spec)>();
         for (var at = 0; at < modifiers.Count; at++)
             if (!modifiers[at].Off && SpecOf(modifiers[at], axes, centreX, centreZ) is { } spec)
                 steps.Add((at, modifiers[at], spec));
-        if (steps.Count == 0) return;
+        if (steps.Count == 0) return wet;
 
         var terrain = SketchLayout.Stack(state).Where(layer => !layer.IsMade && !layer.SeatsOnGround)
                                   .Select(layer => layer.Id!).ToHashSet(StringComparer.Ordinal);
@@ -49,18 +57,20 @@ internal static class SketchTerraform
 
         var (holding, riders) = SketchRasterizer.StackRelations(state);
         var moving = topOf.Where(entry => !holding.Contains(entry.Key)).ToArray();
-        if (moving.Length == 0) return;
+        if (moving.Length == 0) return wet;
 
         var xs = moving.Select(entry => entry.Key.X + 0.5).ToArray();
         var zs = moving.Select(entry => entry.Key.Z + 0.5).ToArray();
         var heights = moving.Select(entry => (double)segments[entry.Value].YTop).ToArray();
         var before = (double[])heights.Clone();
+        var surfaces = new double[moving.Length];
+        Array.Fill(surfaces, double.NaN);
         var previous = changed is null ? null : (double[])heights.Clone();
         var leftCells = SketchRasterizer.ShapeCells(state, steps.SelectMany(step => step.Modifier.Mask.Leaves ?? [])
                                                                   .ToHashSet(StringComparer.Ordinal));
         foreach (var step in steps)
         {
-            Apply(step.Spec, heights, xs, zs, LeftOut(step.Modifier.Mask.Leaves, leftCells, moving));
+            Apply(step.Spec, heights, xs, zs, surfaces, LeftOut(step.Modifier.Mask.Leaves, leftCells, moving));
             if (changed is null) continue;
             changed[step.At] = Moved(previous!, heights);
             Array.Copy(heights, previous!, heights.Length);
@@ -80,16 +90,22 @@ internal static class SketchTerraform
             foreach (var cell in under) shifted[cell] = mode == HeightModes.Drape ? changeAt[cell] : median;
         }
 
-        foreach (var (cell, index) in moving)
+        for (var at = 0; at < moving.Length; at++)
         {
+            var (cell, index) = moving[at];
             var change = shifted.TryGetValue(cell, out var ride) ? ride : changeAt.GetValueOrDefault(cell);
-            if (change == 0) continue;
-            var segment = segments[index];
-            segments[index] = segment with
+            if (change != 0)
             {
-                YTop = Math.Max(segment.YFloor, (int)Math.Floor(segment.YTop + change + 0.5)),
-            };
+                var segment = segments[index];
+                segments[index] = segment with
+                {
+                    YTop = Math.Max(segment.YFloor, (int)Math.Floor(segment.YTop + change + 0.5)),
+                };
+            }
+            if (double.IsFinite(surfaces[at]) && segments[index].YTop < surfaces[at])
+                wet[cell] = (int)Math.Floor(surfaces[at]);
         }
+        return wet;
     }
 
     /// <summary>The columns, by position in the moving set, that a modifier naming <paramref name="leaves"/>
@@ -106,13 +122,16 @@ internal static class SketchTerraform
 
     /// <summary>Runs one step over the heights, with the columns flagged in <paramref name="left"/> taken out of
     /// the run altogether: the operation neither moves them nor reads them.</summary>
-    private static void Apply(ModifierSpec spec, double[] heights, double[] xs, double[] zs, bool[]? left)
+    private static void Apply(ModifierSpec spec, double[] heights, double[] xs, double[] zs, double[] surfaces,
+                              bool[]? left)
     {
-        if (left is null) { Modifiers.Apply(spec, heights, xs, zs); return; }
+        if (left is null) { Modifiers.Apply(spec, heights, xs, zs, surfaces); return; }
         var kept = Enumerable.Range(0, heights.Length).Where(at => !left[at]).ToArray();
         var keptHeights = kept.Select(at => heights[at]).ToArray();
-        Modifiers.Apply(spec, keptHeights, kept.Select(at => xs[at]).ToArray(), kept.Select(at => zs[at]).ToArray());
-        for (var at = 0; at < kept.Length; at++) heights[kept[at]] = keptHeights[at];
+        var keptSurfaces = kept.Select(at => surfaces[at]).ToArray();
+        Modifiers.Apply(spec, keptHeights, kept.Select(at => xs[at]).ToArray(), kept.Select(at => zs[at]).ToArray(),
+                        keptSurfaces);
+        for (var at = 0; at < kept.Length; at++) { heights[kept[at]] = keptHeights[at]; surfaces[kept[at]] = keptSurfaces[at]; }
     }
 
     /// <summary>How many columns a step changed by a whole block once rounded.</summary>
@@ -137,6 +156,16 @@ internal static class SketchTerraform
             ModifierOps.Crater => ModifierOp.Crater,
             ModifierOps.Level => ModifierOp.Level,
             ModifierOps.Noise => ModifierOp.Noise,
+            ModifierOps.Ridge => ModifierOp.Ridge,
+            ModifierOps.Butte => ModifierOp.Butte,
+            ModifierOps.Spire => ModifierOp.Spire,
+            ModifierOps.Scarp => ModifierOp.Scarp,
+            ModifierOps.Canyon => ModifierOp.Canyon,
+            ModifierOps.River => ModifierOp.River,
+            ModifierOps.Lake => ModifierOp.Lake,
+            ModifierOps.Road => ModifierOp.Road,
+            ModifierOps.Gullies => ModifierOp.Gullies,
+            ModifierOps.Warp => ModifierOp.Warp,
             _ => null,
         };
         if (op is null) return null;
@@ -157,13 +186,20 @@ internal static class SketchTerraform
             Rise = modifier.Rise, Power = modifier.Power, Soft = modifier.Soft, Join = modifier.Join,
             Floor = modifier.Floor, Flat = modifier.Flat, Slope = modifier.Slope, Melt = modifier.Melt,
             Top = modifier.Top, Inner = modifier.Inner, Outer = modifier.Outer,
+            Wander = modifier.Wander, Cliff = modifier.Cliff, Talus = modifier.Talus, Apron = modifier.Apron,
+            Jag = modifier.Jag, Taper = modifier.Taper, Height = modifier.Height, Side = modifier.Side,
+            Depth = modifier.Depth, Bed = modifier.Bed, Wall = modifier.Wall, Ledges = modifier.Ledges,
+            Water = modifier.Water, Bank = modifier.Bank, Level = modifier.Level, Shore = modifier.Shore,
+            Grade = modifier.Grade, Shoulder = modifier.Shoulder, Count = modifier.Count,
+            Sharpness = modifier.Sharpness, Amount = modifier.Amount, Cell = modifier.Cell,
             Sizes = modifier.Sizes?.Select(size => new NoiseSize(size.Cell, size.Octaves, size.Rise)).ToList(),
             Seed = modifier.Seed,
         };
     }
 
     /// <summary>One outline as the operations measure it, or null where the document states too little to draw
-    /// one: an ellipse without a centre or a positive radius, a polygon under three points.</summary>
+    /// one: an ellipse without a centre or a positive radius, a polygon under three points, a line under two
+    /// points or without a positive width.</summary>
     private static MaskArea? AreaOf(MaskAreaJson area)
     {
         switch (area.Kind)
@@ -178,6 +214,11 @@ internal static class SketchTerraform
             case MaskKinds.Polygon:
                 if (area.Points is not { Length: >= 3 } points || points.Any(point => point is not { Length: >= 2 })) return null;
                 return MaskArea.Polygon(points.Select(point => (point[0], point[1])));
+            case MaskKinds.Line:
+                if (area.Points is not { Length: >= 2 } path || path.Any(point => point is not { Length: >= 2 })
+                    || !(area.Width > 0) || path.Any(point => !double.IsFinite(point[0]) || !double.IsFinite(point[1])))
+                    return null;
+                return MaskArea.Line(path.Select(point => (point[0], point[1])), area.Width.Value);
             default:
                 return null;
         }
