@@ -786,6 +786,17 @@ itself rather than from the ring (`FluidBed.BasinShoreCells`), so both follow th
 the ring stops short of leaves the fluid standing against air, which `DR-DRY` names as a wall with the ring as
 the thing to widen.
 
+**The water a sketch's modifier stack made is flooded through the same routine, one bed at a time.** The pass is
+handed a `StackedWater`: each wet cell with the height its surface stands at and the modifier whose water it is, the
+bed material each modifier states, and the lowest floor of the board's ground. The cells of a modifier that states a
+`bed_material` are flooded as a basin whose bank is that material, so the floor they cover and their beach are laid
+with it; every other modifier's cells are flooded together on the default bank. The same pass then pours the water
+off the ground: a wet column with a side that has no ground in the surface map lays flowing water (data 8, falling)
+into the cell past it, from the block under its surface down through air to the floor, stopping on any block that
+is not air. This is the one place the pass gives the void a fall; a prop's fluid still meets it as the wall
+`DR-DRY` passes over, and the falling cells are claimed by nothing. `docs/tools/sketch.md` states it from the
+modifier's side.
+
 **A fluid fills round what stands in it and never cuts under it.** The two halves of the pass are different
 acts on a column something else keeps clear: carving takes that thing's own ground out from beneath it, which
 is what a keep-out is for, while filling puts the fluid in the air beside a hull or a pier — and a harbour dry

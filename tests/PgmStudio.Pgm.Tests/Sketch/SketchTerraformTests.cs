@@ -43,6 +43,9 @@ public sealed class SketchTerraformTests
     private static int Top(SketchLayout layout, int x, int z, string layer = "ground") =>
         SketchRasterizer.RasterizeColumns(layout).Single(column => column.X == x && column.Z == z && column.Layer == layer).YTop;
 
+    private static Dictionary<(int X, int Z), int> Surfaces(SketchLayout layout) =>
+        SketchRasterizer.WaterOf(layout).ToDictionary(column => column.Key, column => column.Value.Surface);
+
     private static Dictionary<(int X, int Z), int> Tops(SketchLayout layout) =>
         SketchRasterizer.RasterizeColumns(layout).Where(column => column.Layer == "ground")
                         .ToDictionary(column => column.Cell, column => column.YTop);
@@ -459,7 +462,7 @@ public sealed class SketchTerraformTests
     public async Task A_river_cuts_its_bed_under_the_ground_and_wets_the_columns_it_cut()
     {
         var layout = Layout(River());
-        var water = SketchRasterizer.WaterOf(layout);
+        var water = Surfaces(layout);
 
         await Assert.That(Top(layout, 20, 20)).IsEqualTo(6);
         await Assert.That(water[(20, 20)]).IsEqualTo(7);
@@ -474,7 +477,7 @@ public sealed class SketchTerraformTests
     public async Task A_lake_cuts_a_bowl_under_its_level_and_wets_it()
     {
         var layout = Layout(Lake("\"level\": 7,"));
-        var water = SketchRasterizer.WaterOf(layout);
+        var water = Surfaces(layout);
 
         await Assert.That(water[(20, 20)]).IsEqualTo(7);
         await Assert.That(Top(layout, 20, 20)).IsEqualTo(4).Because("three blocks of water over the bed in the middle");
@@ -487,7 +490,7 @@ public sealed class SketchTerraformTests
     {
         const string plateau = """{ "id": "plateau", "op": "level", "top": 12, "mask": { "areas": [ { "kind": "ellipse", "at": [20.5, 20.5], "rx": 6, "rz": 6 } ], "mirror": false } }""";
         var layout = Layout(River() + "," + plateau);
-        var water = SketchRasterizer.WaterOf(layout);
+        var water = Surfaces(layout);
 
         await Assert.That(Top(layout, 20, 20)).IsEqualTo(12);
         await Assert.That(water.ContainsKey((20, 20))).IsFalse();
@@ -500,7 +503,7 @@ public sealed class SketchTerraformTests
     {
         var layout = Layout(River() + "," + River("deeper", depth: 4, water: 2));
 
-        await Assert.That(SketchRasterizer.WaterOf(layout)[(20, 20)]).IsEqualTo(Top(layout, 20, 20) + 2);
+        await Assert.That(Surfaces(layout)[(20, 20)]).IsEqualTo(Top(layout, 20, 20) + 2);
     }
 
     [Test]
@@ -511,7 +514,7 @@ public sealed class SketchTerraformTests
               "mask": { "areas": [ { "kind": "line", "points": [[2.5, 6.5], [18.5, 10.5]], "width": 4 } ], "mirror": true } }
             """;
         var layout = Layout(bend, mode: "rot_180");
-        var water = SketchRasterizer.WaterOf(layout);
+        var water = Surfaces(layout);
         var image = Symmetry.ApplyCell(10, 8, "rot_180", 20, 20);
 
         await Assert.That(water.ContainsKey((10, 8))).IsTrue();
@@ -570,7 +573,7 @@ public sealed class SketchTerraformTests
             { "id": "coast", "op": "coast", "level": 7, "shelf": 6, "depth": 4,
               "mask": { "areas": [ { "kind": "polygon", "points": [[0, 0], [12, 0], [12, 40], [0, 40]] } ], "mirror": false } }
             """);
-        var water = SketchRasterizer.WaterOf(layout);
+        var water = Surfaces(layout);
 
         await Assert.That(water[(4, 20)]).IsEqualTo(7);
         await Assert.That(Top(layout, 4, 20)).IsLessThan(7);
@@ -617,7 +620,7 @@ public sealed class SketchTerraformTests
     public async Task No_water_stands_over_a_dry_bank_where_a_river_meets_a_lake(bool riverFirst)
     {
         var layout = Layout(riverFirst ? River() + "," + Lake() : Lake() + "," + River());
-        var water = SketchRasterizer.WaterOf(layout);
+        var water = Surfaces(layout);
         var tops = Tops(layout);
 
         await Assert.That(water.Count).IsGreaterThan(0);
@@ -636,11 +639,64 @@ public sealed class SketchTerraformTests
     [Arguments(false)]
     public async Task Water_that_touches_stands_at_one_surface(bool riverFirst)
     {
-        var water = SketchRasterizer.WaterOf(Layout(riverFirst ? River() + "," + Lake() : Lake() + "," + River()));
+        var water = Surfaces(Layout(riverFirst ? River() + "," + Lake() : Lake() + "," + River()));
 
         foreach (var ((x, z), surface) in water)
             foreach (var beside in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })
                 if (water.TryGetValue(beside, out var other))
                     await Assert.That(other).IsEqualTo(surface).Because($"{(x, z)} and {beside} are one body of water");
+    }
+
+    [Test]
+    public async Task Each_wet_column_belongs_to_the_modifier_that_wet_it()
+    {
+        var river = SketchRasterizer.WaterOf(Layout(River()));
+        var lake = SketchRasterizer.WaterOf(Layout(Lake("\"level\": 7,")));
+
+        await Assert.That(river.Count).IsGreaterThan(0);
+        await Assert.That(river.Values.All(column => column.Body == "river")).IsTrue();
+        await Assert.That(lake.Count).IsGreaterThan(0);
+        await Assert.That(lake.Values.All(column => column.Body == "lake")).IsTrue();
+    }
+
+    [Test]
+    public async Task A_river_drawn_after_another_owns_the_columns_it_replaces_water_in()
+    {
+        var water = SketchRasterizer.WaterOf(Layout(River() + "," + River("deeper", depth: 4, water: 2)));
+
+        await Assert.That(water[(20, 20)].Body).IsEqualTo("deeper");
+    }
+
+    [Test]
+    public async Task A_lake_that_meets_a_higher_river_takes_its_surface_and_its_modifier()
+    {
+        var water = SketchRasterizer.WaterOf(Layout(River() + "," + Lake("\"level\": 6,")));
+
+        await Assert.That(water[(20, 26)]).IsEqualTo(new WetColumn(7, "river"))
+            .Because("the lake is one body with the river it meets, and stands at the river's surface");
+        await Assert.That(water.Values.Distinct().Single()).IsEqualTo(new WetColumn(7, "river"));
+    }
+
+    [Test]
+    public async Task A_coast_owns_the_sea_it_floods()
+    {
+        var water = SketchRasterizer.WaterOf(Layout("""
+            { "id": "sea", "op": "coast", "level": 7, "shelf": 6, "depth": 4,
+              "mask": { "areas": [ { "kind": "polygon", "points": [[0, 0], [12, 0], [12, 40], [0, 40]] } ], "mirror": false } }
+            """));
+
+        await Assert.That(water.Count).IsGreaterThan(0);
+        await Assert.That(water.Values.All(column => column.Body == "sea")).IsTrue();
+    }
+
+    [Test]
+    public async Task A_bed_material_a_modifier_states_survives_a_read_and_a_write_of_the_layout()
+    {
+        var layout = Layout(River(extra: "\"bed_material\": { \"kind\": \"solid\", \"id\": 13, \"data\": 0 },"));
+
+        var again = SketchLayout.Parse(layout.ToJson())!;
+
+        await Assert.That(again.Modifiers![0].BedMaterial!.Value.GetProperty("id").GetInt32()).IsEqualTo(13);
+        await Assert.That(Layout(River()).Modifiers![0].BedMaterial).IsNull();
     }
 }

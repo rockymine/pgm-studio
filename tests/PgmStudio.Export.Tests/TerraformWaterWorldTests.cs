@@ -101,4 +101,62 @@ public sealed class TerraformWaterWorldTests
         await Assert.That(water.Contains((0, 25))).IsTrue();
         await Assert.That(water.Contains((0, 5))).IsFalse();
     }
+
+    private const string ClayBed = "\"bed_material\": { \"kind\": \"solid\", \"id\": 82, \"data\": 0 },";
+
+    [Test]
+    public async Task A_river_lies_on_the_bed_it_states_and_one_that_states_none_on_the_default_bank()
+    {
+        var stated = BuiltWorlds.Of(Board(River.Replace("\"op\": \"river\",", "\"op\": \"river\"," + ClayBed)), Intent());
+        var plain = BuiltWorlds.Of(Board(River), Intent());
+
+        foreach (var x in new[] { -20, 0, 20 })
+        {
+            await Assert.That(stated.World.GetBlock(x, 7, 25).Id).IsEqualTo(Blocks.Clay);
+            await Assert.That(new[] { Blocks.Gravel, Blocks.Dirt, Blocks.Sand }).Contains(plain.World.GetBlock(x, 7, 25).Id);
+        }
+    }
+
+    [Test]
+    public async Task Two_waters_each_lie_on_their_own_bed()
+    {
+        const string sandLake =
+            """
+            { "id": "lake", "op": "lake", "level": 9, "depth": 3, "shore": 3,
+              "bed_material": { "kind": "solid", "id": 12, "data": 0 },
+              "mask": { "areas": [ { "kind": "ellipse", "at": [-20.5, -20.5], "rx": 8, "rz": 8 } ], "mirror": false } }
+            """;
+        var built = BuiltWorlds.Of(Board(River.Replace("\"op\": \"river\",", "\"op\": \"river\"," + ClayBed) + "," + sandLake), Intent());
+
+        await Assert.That(built.World.GetBlock(0, 7, 25).Id).IsEqualTo(Blocks.Clay);
+        await Assert.That(built.World.GetBlock(-21, 5, -21).Id).IsEqualTo(Blocks.Sand);
+    }
+
+    [Test]
+    public async Task A_river_run_to_the_edge_of_the_ground_falls_off_it()
+    {
+        var built = BuiltWorlds.Of(Board(River), Intent());
+
+        foreach (var past in new[] { -41, 40 })
+        {
+            for (var y = 0; y <= 8; y++)
+                await Assert.That(built.World.GetBlock(past, y, 25)).IsEqualTo((Blocks.Water, 8)).Because($"y{y} past the end of the river");
+            await Assert.That(built.World.GetBlock(past, 9, 25).Id).IsEqualTo(Blocks.Air);
+        }
+    }
+
+    [Test]
+    public async Task A_river_that_stops_short_of_the_edge_pours_nothing()
+    {
+        var short_ = River.Replace("[[-39.5, 25.5], [39.5, 25.5]]", "[[-30.5, 25.5], [30.5, 25.5]]");
+        var built = BuiltWorlds.Of(Board(short_), Intent());
+
+        var flowing = 0;
+        for (var x = -45; x <= 45; x++)
+        for (var z = 15; z <= 35; z++)
+        for (var y = 0; y <= 12; y++)
+            if (built.World.GetBlock(x, y, z).Id == Blocks.Water) flowing++;
+        await Assert.That(flowing).IsEqualTo(0);
+        await Assert.That(Water(built, 0, 8, 25)).IsEqualTo(1);
+    }
 }

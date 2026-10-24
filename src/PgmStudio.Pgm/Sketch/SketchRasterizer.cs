@@ -83,15 +83,16 @@ public static class SketchRasterizer
     /// and on a stored map they are all handed the same one. Each caller gets its own list.</para></summary>
     public static List<ColumnSegment> RasterizeColumns(SketchLayout? state) => [.. Built(state).Segments];
 
-    /// <summary>The water the modifier stack made, as each wet cell and the height its surface stands at, in the
-    /// unit of a column's top: water fills the blocks under it. Asked of the same build as the columns, so the
-    /// two cannot disagree; ground a later modifier raised to the surface is dry and absent.</summary>
-    public static IReadOnlyDictionary<(int X, int Z), int> WaterOf(SketchLayout? state) => Built(state).Water;
+    /// <summary>The water the modifier stack made, as each wet cell, the height its surface stands at, in the
+    /// unit of a column's top (water fills the blocks under it), and the modifier whose water it is. Asked of the
+    /// same build as the columns, so the two cannot disagree; ground a later modifier raised to the surface is dry
+    /// and absent.</summary>
+    public static IReadOnlyDictionary<(int X, int Z), WetColumn> WaterOf(SketchLayout? state) => Built(state).Water;
 
     /// <summary>As above, off the layout's JSON.</summary>
-    public static IReadOnlyDictionary<(int X, int Z), int> WaterOf(string layoutJson) => WaterOf(SketchLayout.Parse(layoutJson));
+    public static IReadOnlyDictionary<(int X, int Z), WetColumn> WaterOf(string layoutJson) => WaterOf(SketchLayout.Parse(layoutJson));
 
-    private sealed record BuiltColumns(List<ColumnSegment> Segments, Dictionary<(int X, int Z), int> Water);
+    private sealed record BuiltColumns(List<ColumnSegment> Segments, Dictionary<(int X, int Z), WetColumn> Water);
 
     private static BuiltColumns Built(SketchLayout? state)
         => state is null ? ColumnsOf(null) : Columns.Of(Encoding.UTF8.GetBytes(state.ToJson()), () => ColumnsOf(state));

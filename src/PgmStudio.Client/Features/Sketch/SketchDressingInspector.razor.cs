@@ -298,36 +298,13 @@ public partial class SketchDressingInspector
     /// is, or nothing where it is neither — a material edited by hand before patterns were picked.</summary>
     private SlotFill SlotOf(string field) => SlotOfMaterial(Material(field));
 
-    private SlotFill SlotOfMaterial(JsonObject? material)
-    {
-        if (material is null) return SlotFill.None;
-        var kindWord = material["kind"]?.GetValue<string>();
-        if (kindWord is "solid" or "laidLog" && material["id"] is { } id)
-            return new SlotFill(0, new SlotBlockDto(id.GetValue<int>(), material["data"]?.GetValue<int>() ?? 0, kindWord == "laidLog"));
-        var canonical = Canonical(material);
-        foreach (var style in styles)
-        {
-            JsonNode? parsed;
-            try { parsed = JsonNode.Parse(style.Params); } catch (JsonException) { continue; }
-            if (parsed is not null && Canonical(parsed) == canonical) return new SlotFill(style.Id, null);
-        }
-        return SlotFill.None;
-    }
+    private SlotFill SlotOfMaterial(JsonObject? material) => SlotFill.Of(material, styles);
 
     /// <summary>The unbound row of a slot that is always filled: offered only where the material is one no
     /// block or pattern names, which is then what it reads as.</summary>
     private string? UnboundLabel(string field) => Material(field) is not null && !SlotOf(field).Bound ? "Custom" : null;
 
-    private JsonObject? MaterialOf(SlotFill fill)
-    {
-        if (fill.Block is { } block)
-            return new JsonObject { ["kind"] = block.Laid ? "laidLog" : "solid", ["id"] = block.Id, ["data"] = block.Data };
-        if (styles.FirstOrDefault(style => style.Id == fill.StyleId) is { } picked)
-        {
-            try { return JsonNode.Parse(picked.Params) as JsonObject; } catch (JsonException) { return null; }
-        }
-        return null;
-    }
+    private JsonObject? MaterialOf(SlotFill fill) => fill.ToMaterial(styles);
 
     /// <summary>Copy the picked block or pattern onto the prop. The unbound row of an always-filled slot keeps
     /// what is there.</summary>
@@ -337,18 +314,6 @@ public partial class SketchDressingInspector
         await Set(field, material);
         if (field == PropFields.Pave) strokeStyles = await Library.StrokeStylesAsync(Spec(field));
     }
-
-    /// <summary>A JSON value with every object's keys in order, so two materials stated in different key orders
-    /// compare equal.</summary>
-    private static string Canonical(JsonNode node) => Sorted(node)?.ToJsonString() ?? "null";
-
-    private static JsonNode? Sorted(JsonNode? node) => node switch
-    {
-        JsonObject obj => new JsonObject(obj.OrderBy(entry => entry.Key, StringComparer.Ordinal)
-            .Select(entry => KeyValuePair.Create(entry.Key, Sorted(entry.Value)))),
-        JsonArray array => new JsonArray([.. array.Select(Sorted)]),
-        _ => node?.DeepClone(),
-    };
 
     /// <summary>Whether this kind reads its seed: a hand-built tree, a chest and a building build the same
     /// whatever it is.</summary>

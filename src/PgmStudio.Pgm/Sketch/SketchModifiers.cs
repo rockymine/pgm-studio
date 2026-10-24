@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using PgmStudio.Vocabulary;
 
@@ -147,6 +148,14 @@ public sealed class SketchModifierJson
     /// <summary>Over how many blocks a Lake's shore is held at the water and eases back to the ground.</summary>
     [JsonPropertyName("shore"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Shore { get; set; }
+
+    /// <summary>The material laid under a River's, Lake's or Coast's water: the floor it covers and the beach at
+    /// its edge. A terrain material in the form a theme's buckets take (<c>{"kind": "solid", "id": 13}</c>, a
+    /// pattern, a band stack), read by the world build; absent, the water lies on the default bank, a gravel,
+    /// coarse dirt and sand patchwork. The name differs from <see cref="Bed"/>, which is a Canyon's flat floor
+    /// share.</summary>
+    [JsonPropertyName("bed_material"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? BedMaterial { get; set; }
 
     /// <summary>The steepest a Road climbs or falls, in blocks per block.</summary>
     [JsonPropertyName("grade"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

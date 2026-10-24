@@ -10842,6 +10842,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   depth by steepness — three courses under 25°, two under 38°, one under 55°, rock on anything steeper — set in the
   theme editor with *Thins with the slope*; a cell level with three of its four neighbours paints as a tread of at
   most 30°, so a terrace and the lip of a face keep their turf (TP27, `docs/world-export/terrain-painting.md`).
+- **A water's own bed (`WE172`).** A River, Lake or Coast states `bed_material`, a terrain material, and the flood
+  lays it under that modifier's water and along its beach instead of the default bank; `SketchTerraform.Run` answers
+  each wet cell as a `WetColumn` carrying its surface and the modifier whose water it is, and the Terraform
+  inspector's Bed row picks a block or pattern.
+- **Water falls off the edge (`WE173`).** A wet column beside a cell with no ground pours flowing water down the
+  face past it to the lowest floor the board built (`Decorator.PourOffEdges`), so a river run to an island's edge
+  ends in a fall rather than a wall of still water.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
