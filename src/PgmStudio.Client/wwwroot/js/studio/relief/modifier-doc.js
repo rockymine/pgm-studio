@@ -5,12 +5,12 @@
  */
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 
-/** The operations, in the order their buttons stand, with what the screen calls each. */
+/** The operations, with what the screen calls each. */
 export const MODIFIER_OPS = [
-  { op: "mound", label: "Hill", icon: "mountain" },
-  { op: "crater", label: "Hollow", icon: "circle" },
-  { op: "level", label: "Level", icon: "ruler" },
-  { op: "noise", label: "Roughness", icon: "grip" },
+  { op: "mound", label: "Hill" },
+  { op: "crater", label: "Hollow" },
+  { op: "level", label: "Level" },
+  { op: "noise", label: "Roughness" },
 ];
 
 /** What a fresh modifier of each operation states besides its mask. */
