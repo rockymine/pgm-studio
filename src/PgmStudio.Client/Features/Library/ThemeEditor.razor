@@ -45,11 +45,34 @@
                     <SlotSelect Styles="styles" Blocks="blocks" Value="@binding.StyleId" Block="binding.Block"
                                 Unbound="Stone (default)" ValueChanged="fill => Fill(bucket.Id, fill)" />
                   </Field>
-                  @if (bucket.HasDepth && IsBound(binding))
+                  @if (bucket.HasDepth && IsBound(binding) && binding.Soil is not { Count: > 0 })
                   {
                     <Field Label="Courses deep">
                       <NumberField Slim Min="1" Value="binding.Depth" ValueChanged="value => SetDepth(bucket.Id, value)" />
                     </Field>
+                  }
+                  @if (bucket.Id == ThemeBuckets.Surface && IsBound(binding))
+                  {
+                    <label class="check-row">
+                      <input type="checkbox" checked="@(binding.Soil is { Count: > 0 })" @onchange="e => SetThinning(bucket.Id, e.Value is true)" />
+                      Thins with the slope — steep ground shows the rock under it
+                    </label>
+                    @if (binding.Soil is { Count: > 0 } soil)
+                    {
+                      @for (var index = 0; index < soil.Count; index++)
+                      {
+                        var at = index;
+                        <div class="lib-soil-row">
+                          <Field Label="Under (degrees)">
+                            <NumberField Slim Min="1" Max="90" Value="soil[at].Below" ValueChanged="value => SetSoil(bucket.Id, at, below: (int)value)" />
+                          </Field>
+                          <Field Label="Courses">
+                            <NumberField Slim Min="0" Value="soil[at].Depth" ValueChanged="value => SetSoil(bucket.Id, at, depth: (int)value)" />
+                          </Field>
+                        </div>
+                      }
+                      <p class="section-desc">Steeper than the last, no courses: the face is rock.</p>
+                    }
                   }
                 </div>
                 @* What this bucket alone paints, beside the control that says what it is made of — the same

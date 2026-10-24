@@ -346,7 +346,11 @@ them along it the way it lips a room (TP25).
 They **fall through** in that order: an unpainted rim falls to the surface, an unpainted surface or wall to the
 fill, and the fill to nothing — which is why the fill alone cannot be switched off. Only the rim and the
 surface carry a `depth`. Both, and the wall, may be disabled outright, and disabled is not the same as unbound:
-a theme that binds no rim keeps the built-in one, while a theme whose rim is *off* paints no rim at all.
+a theme that binds no rim keeps the built-in one, while a theme whose rim is *off* paints no rim at all. The
+surface may instead state `soil`, its depth by slope — `[{"below": 25, "depth": 3}, …]`, the first entry the
+column's slope is under giving the depth and none steeper than the last — which the editor's *Thins with the
+slope* sets to three, two and one course under 25°, 38° and 55° (`docs/world-export/terrain-painting.md`, TP27).
+It is stored on the surface's `theme_bucket` row and travels on `ThemeBucketDto.soil`.
 
 **The rim and the surface take a band, and the wall and the fill take a material.** A band is
 `{"material": …, "depth": N}`, because those two are the buckets with a depth to state; the other two are a

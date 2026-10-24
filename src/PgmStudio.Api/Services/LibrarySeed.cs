@@ -562,10 +562,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             var buckets = new List<ThemeBucketRow>();
             foreach (var binding in decomposed.Buckets)
             {
-                var row = new ThemeBucketRow
-                {
-                    Bucket = ThemeLibrary.FromBucket(binding.Bucket), Depth = binding.Depth, Enabled = binding.Enabled,
-                };
+                var row = ThemeLibrary.BucketRowOf(binding);
                 if (binding.MaterialJson is { } json)
                 {
                     var (styleId, block) = patterns.Fill(TerrainThemeJson.DeserializeMaterial(json));

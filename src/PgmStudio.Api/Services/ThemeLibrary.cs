@@ -49,7 +49,8 @@ public sealed class ThemeLibrary(ThemeStore store)
             .ToDictionary(style => style.Id);
         var bindings = draft.Buckets
             .Select(binding => Binding(
-                binding.Bucket, binding.Block, styles.GetValueOrDefault(binding.StyleId), binding.Depth, binding.Enabled))
+                binding.Bucket, binding.Block, styles.GetValueOrDefault(binding.StyleId), binding.Depth, binding.Enabled,
+                SoilOf(binding.Soil)))
             .ToList();
         return TerrainThemeComposer.Compose(new DecomposedTheme(
             draft.BedrockRelative, draft.BedrockValue, ToRimEdges(draft.RimEdges), draft.WallOnTerrainFaces, bindings));
@@ -66,7 +67,7 @@ public sealed class ThemeLibrary(ThemeStore store)
         var buckets = new List<ThemeBucketRow>();
         foreach (var binding in decomposed.Buckets)
         {
-            var row = new ThemeBucketRow { Bucket = FromBucket(binding.Bucket), Depth = binding.Depth, Enabled = binding.Enabled };
+            var row = BucketRowOf(binding);
             // A binding that names no material binds nothing: its depth and toggle are the whole of what it says.
             if (binding is { MaterialJson: { } json })
             {
@@ -114,15 +115,41 @@ public sealed class ThemeLibrary(ThemeStore store)
 
     /// <summary>One bucket as the composer reads it: the block it holds, else the pattern it binds, else
     /// nothing.</summary>
-    private static ThemeStyleBinding Binding(string bucket, SlotBlockDto? block, StyleRow? style, int depth, bool enabled)
+    private static ThemeStyleBinding Binding(string bucket, SlotBlockDto? block, StyleRow? style, int depth, bool enabled,
+                                             IReadOnlyList<SoilDepth>? soil)
     {
         if (block is not null)
         {
             var (kind, json) = Slots.Serialized(block);
-            return new ThemeStyleBinding(ToBucket(bucket), kind, json, depth, enabled);
+            return new ThemeStyleBinding(ToBucket(bucket), kind, json, depth, enabled, soil);
         }
-        return new ThemeStyleBinding(ToBucket(bucket), style?.Kind, style?.Params, depth, enabled);
+        return new ThemeStyleBinding(ToBucket(bucket), style?.Kind, style?.Params, depth, enabled, soil);
     }
+
+    /// <summary>A binding's bucket row with its depth, toggle and soil, and no material yet: the caller fills the
+    /// block or the pattern it binds.</summary>
+    public static ThemeBucketRow BucketRowOf(ThemeStyleBinding binding) => new()
+    {
+        Bucket = FromBucket(binding.Bucket), Depth = binding.Depth, Enabled = binding.Enabled,
+        Soil = SoilColumn(binding.Soil?.Select(entry => new SoilDepthDto(entry.Below, entry.Depth)).ToList()),
+    };
+
+    private static readonly System.Text.Json.JsonSerializerOptions SoilJson = new(System.Text.Json.JsonSerializerDefaults.Web);
+
+    /// <summary>A bucket's soil as its column stores it, or null for none.</summary>
+    public static string? SoilColumn(IReadOnlyList<SoilDepthDto>? soil) =>
+        soil is { Count: > 0 } ? System.Text.Json.JsonSerializer.Serialize(soil, SoilJson) : null;
+
+    /// <summary>A stored soil column on the wire; a column this build cannot read is no soil.</summary>
+    public static IReadOnlyList<SoilDepthDto>? SoilDtos(string? column)
+    {
+        if (string.IsNullOrWhiteSpace(column)) return null;
+        try { return System.Text.Json.JsonSerializer.Deserialize<List<SoilDepthDto>>(column, SoilJson) is { Count: > 0 } read ? read : null; }
+        catch (System.Text.Json.JsonException) { return null; }
+    }
+
+    private static IReadOnlyList<SoilDepth>? SoilOf(IReadOnlyList<SoilDepthDto>? soil) =>
+        soil is { Count: > 0 } ? [.. soil.Select(entry => new SoilDepth(entry.Below, entry.Depth))] : null;
 
     private static TerrainTheme Compose(ThemeRow theme, IReadOnlyList<(ThemeBucketRow Bucket, StyleRow? Style)> bindings)
     {
@@ -130,7 +157,7 @@ public sealed class ThemeLibrary(ThemeStore store)
             .Select(binding => Binding(
                 binding.Bucket.Bucket,
                 Slots.BlockOf(binding.Bucket.BlockId, binding.Bucket.BlockData, binding.Bucket.BlockLaid),
-                binding.Style, binding.Bucket.Depth, binding.Bucket.Enabled))
+                binding.Style, binding.Bucket.Depth, binding.Bucket.Enabled, SoilOf(SoilDtos(binding.Bucket.Soil))))
             .ToList();
         return TerrainThemeComposer.Compose(new DecomposedTheme(
             theme.BedrockRelative, theme.BedrockValue, ToRimEdges(theme.RimEdges), theme.WallOnTerrainFaces,

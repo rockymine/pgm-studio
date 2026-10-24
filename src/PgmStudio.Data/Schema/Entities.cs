@@ -936,6 +936,8 @@ public sealed class ThemeBucketRow
     [Column("block_laid")] public bool BlockLaid { get; set; }
     [Column("depth")] public int Depth { get; set; }
     [Column("enabled")] public bool Enabled { get; set; }
+    /// <summary>The surface's depth by slope, as JSON <c>[{"below", "depth"}, …]</c>; null takes <see cref="Depth"/>.</summary>
+    [Column("soil")] public string? Soil { get; set; }
 }
 
 /// <summary>A room shell's finish (see M0012): the per-part extents plus the knobs that are not materials —

@@ -194,9 +194,22 @@ public sealed class TerrainProfile
     /// itself. The void is not a slope — a coastline is flat ground that stops — and a building's roof is not
     /// the terrain's gradient, which is the same exclusion <see cref="Classify"/>'s drop test makes.</para>
     /// </summary>
-    private int Slope(int x, int z, CellFacts self) => SlopeAt(
-        (dx, dz) => _facts.TryGetValue((x + dx, z + dz), out var n) && !n.IsStructure ? n.Top : self.Top,
-        _slopeWindow);
+    private int Slope(int x, int z, CellFacts self)
+    {
+        int TopAt(int dx, int dz) => _facts.TryGetValue((x + dx, z + dz), out var n) && !n.IsStructure ? n.Top : self.Top;
+        var degrees = SlopeAt(TopAt, _slopeWindow);
+        if (degrees >= LedgeFace || degrees <= LedgeTread) return degrees;
+        var level = (TopAt(1, 0) == self.Top ? 1 : 0) + (TopAt(-1, 0) == self.Top ? 1 : 0)
+                    + (TopAt(0, 1) == self.Top ? 1 : 0) + (TopAt(0, -1) == self.Top ? 1 : 0);
+        return level >= 3 ? LedgeTread : degrees;
+    }
+
+    /// <summary>The steepest a ledge reads: a cell level with three of its four neighbours is a tread, whatever
+    /// the gradient over the risers around it says, so a terrace keeps its turf.</summary>
+    public const int LedgeTread = 30;
+
+    /// <summary>From this steepness a cell reads as the face it lies in, level neighbours or not.</summary>
+    public const int LedgeFace = 60;
 
     /// <summary>How steeply a surface is inclined at one cell, given the tops around it —
     /// <see cref="SurfaceGradient.Degrees(Func{int, int, int}, int)"/>, held in the leaf every reader of it

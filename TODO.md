@@ -27,11 +27,6 @@ is steep, a river's bank is sand because it lies beside the river. Each entry is
 ported into the painter (`src/PgmStudio.Minecraft/Painting/`), proven by the board it builds, and
 `docs/world-export/terrain-painting.md` is the document each leaves correct.
 
-- [ ] **WE169 — Soil thins with the slope.** A theme's surface states `soil`, depth by degrees, and a column takes
-  the depth of the first entry its slope reads under: pgmvox's `SOIL` `[[25, 3], [38, 2], [55, 1]]`, steeper bare
-  rock. A cell level with three of its four neighbours reads at most 30° unless it reads 60° or more
-  (`ledge_angle`), so a terrace tread keeps its turf. Lands in `TopBand` and `TerrainPainter.Resolve`.
-
 - [ ] **WE170 — Paint rules, first match winning.** A theme's surface gains `rules[]`: a material and any of
   `slope` `(lo, hi]` degrees, `height` `[lo, hi]`, a noise range and `near`, a modifier id and a width that reads
   that modifier's line or outline, so a River's bank is sand by naming the River. The first rule a column meets

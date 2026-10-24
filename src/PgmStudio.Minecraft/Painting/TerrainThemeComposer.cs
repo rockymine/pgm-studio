@@ -22,7 +22,9 @@ public sealed record DecomposedTheme(
 /// material and the binding is carried only for its depth and its toggle. That is what lets a theme say "no
 /// rim" — switching the rim off needs no material for it, and demanding one to store the refusal would be
 /// asking an author to pick the colour of something they have just said they do not want.</para></summary>
-public sealed record ThemeStyleBinding(TerrainBucket Bucket, string? Kind, string? MaterialJson, int Depth, bool Enabled);
+/// <para><see cref="Soil"/> is the surface's depth by slope (<see cref="TopBand.Soil"/>), absent everywhere else.</para>
+public sealed record ThemeStyleBinding(TerrainBucket Bucket, string? Kind, string? MaterialJson, int Depth, bool Enabled,
+                                       IReadOnlyList<SoilDepth>? Soil = null);
 
 /// <summary>
 /// Splits a <see cref="TerrainTheme"/> into its reusable library pieces and puts it back together — the pure
@@ -61,14 +63,16 @@ public static class TerrainThemeComposer
     /// <summary>Decompose a theme into its knobs + one style binding per themeable bucket.</summary>
     public static DecomposedTheme Decompose(TerrainTheme theme)
     {
-        ThemeStyleBinding Bind(TerrainBucket bucket, TerrainMaterial material, int depth, bool enabled)
-            => new(bucket, KindOf(material), TerrainThemeJson.Serialize(material), depth, enabled);
+        ThemeStyleBinding Bind(TerrainBucket bucket, TerrainMaterial material, int depth, bool enabled,
+                               IReadOnlyList<SoilDepth>? soil = null)
+            => new(bucket, KindOf(material), TerrainThemeJson.Serialize(material), depth, enabled, soil);
 
         return new DecomposedTheme(
             theme.Bedrock.Relative, theme.Bedrock.Value, theme.RimEdges, theme.WallOnTerrainFaces,
             [
                 Bind(TerrainBucket.Rim, theme.Rim.Material, theme.Rim.Depth, theme.Rim.Enabled),
-                Bind(TerrainBucket.Surface, theme.Surface.Material, theme.Surface.Depth, theme.Surface.Enabled),
+                Bind(TerrainBucket.Surface, theme.Surface.Material, theme.Surface.Depth, theme.Surface.Enabled,
+                     theme.Surface.Soil),
                 Bind(TerrainBucket.Wall, theme.Wall, depth: 0, theme.WallEnabled),
                 Bind(TerrainBucket.Fill, theme.Fill, depth: 0, enabled: true),
             ]);
@@ -97,7 +101,8 @@ public static class TerrainThemeComposer
             RimEdges = decomposed.RimEdges,
             WallOnTerrainFaces = decomposed.WallOnTerrainFaces,
             Rim = rim is null ? def.Rim : new TopBand(Material(rim) ?? def.Rim.Material, rim.Depth, rim.Enabled),
-            Surface = surface is null ? def.Surface : new TopBand(Material(surface) ?? def.Surface.Material, surface.Depth, surface.Enabled),
+            Surface = surface is null ? def.Surface
+                : new TopBand(Material(surface) ?? def.Surface.Material, surface.Depth, surface.Enabled, surface.Soil),
             Wall = Material(wall) ?? def.Wall,
             WallEnabled = wall?.Enabled ?? def.WallEnabled,
             Fill = Material(fill) ?? def.Fill,

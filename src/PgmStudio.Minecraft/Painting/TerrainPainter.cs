@@ -174,7 +174,8 @@ public static class TerrainPainter
         int topDepth;
         if (column.Covered) { topBucket = TerrainBucket.Fill; topDepth = 0; }
         else if (isRim && theme.Rim.Enabled) { topBucket = TerrainBucket.Rim; topDepth = Math.Max(1, theme.Rim.Depth); }
-        else if (theme.Surface.Enabled) { topBucket = TerrainBucket.Surface; topDepth = Math.Max(1, theme.Surface.Depth); }
+        else if (theme.Surface.Enabled && theme.Surface.DepthAt(column.Slope) is > 0 and var soil)
+        { topBucket = TerrainBucket.Surface; topDepth = soil; }
         else { topBucket = TerrainBucket.Fill; topDepth = 0; }
         var treatLo = topDepth > 0 ? Math.Max(paintFloor, top - topDepth) : top;
 

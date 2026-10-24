@@ -144,6 +144,13 @@ top-most block, when it is an edge), the **wall** (the exposed riser below the r
   the **surface** bucket (grass in the examples; layered to a depth under TP11) — everywhere the column is
   neither rim nor covered (TP25). The body beneath it is the **fill** bucket (§3).
 
+- **TP27** *The surface thins with the slope.* A theme's surface may state `soil`, its depth by how steep
+  the ground is: `[{"below": 25, "depth": 3}, {"below": 38, "depth": 2}, {"below": 55, "depth": 1}]` lays three
+  courses under 25°, two under 38°, one under 55°, and none steeper, so the fill — the rock under the turf —
+  shows on a face. The entries are read in order and the first the column's slope is under gives the depth;
+  absent, every column takes the surface's one `depth`. The theme editor's *Thins with the slope* sets those
+  three steps, each editable. The rim keeps its own depth.
+
 - **TP25** *A column something already rests on has no top course of its own.* The painter runs after every
   stamp and before the dressing, and paints made layers first and then the lowest layer, so a block in the
   course over a column's top is a higher layer's ground standing on it — a tunnel wall on the base it rises
@@ -255,6 +262,12 @@ surface climbing one block a cell has no riser at all — its drop is one course
 already claims — so every other axis paints the two alike. The void is deliberately not a slope: a neighbour
 off the footprint or carrying a structure reads as level with the cell itself, so a coastline is flat ground
 that stops and the ground beside a building does not take the building's roof for a gradient.
+
+**A tread reads as a ledge.** A cell standing level with three of its four neighbours reads at most 30° unless
+the gradient around it reads 60° or more (`TerrainProfile.LedgeTread`, `LedgeFace`): the lip of a six-block face
+reads 56° two cells either side, and painted as that it would take the cliff's material on its top course, where
+it is a terrace's tread with the face as the wall beneath it. The raw gradient the incline read and the rules
+measure (`TerrainProfile.SlopeAt`) is not adjusted; the ledge is the paint's reading of a column.
 
 **The gradient is read two cells either side, because a gentle slope in a voxel world is a staircase.** Ground
 falling one block every four cells is four flat treads and a one-block riser, and a window one cell wide reads

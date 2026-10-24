@@ -10838,6 +10838,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   floor and a beach; Lumps strews hummocks and fallen blocks; a Shatter breaks the ground into lifted, tilted plates
   with clefts. Every operation that reads noise or scatters by seed reads it in the drawn area's frame, so each
   mirrored image, and a board under a symmetry, carries the same shape (`MaskArea.ToDrawn`).
+- **A theme's surface thins with the slope, and a tread reads as a ledge (`WE169`).** `soil` gives the surface's
+  depth by steepness — three courses under 25°, two under 38°, one under 55°, rock on anything steeper — set in the
+  theme editor with *Thins with the slope*; a cell level with three of its four neighbours paints as a tread of at
+  most 30°, so a terrace and the lip of a face keep their turf (TP27, `docs/world-export/terrain-painting.md`).
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

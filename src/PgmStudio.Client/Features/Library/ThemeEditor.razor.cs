@@ -180,6 +180,20 @@ public partial class ThemeEditor
     private Task SetDepth(string bucket, double value)
         => Rebind(bucket, binding => binding with { Depth = Math.Max(1, (int)value) });
 
+    /// <summary>Three courses under 25°, two under 38°, one under 55°, rock steeper.</summary>
+    private static readonly IReadOnlyList<SoilDepthDto> Thinning = [new(25, 3), new(38, 2), new(55, 1)];
+
+    private Task SetThinning(string bucket, bool on)
+        => Rebind(bucket, binding => binding with { Soil = on ? Thinning : null });
+
+    private Task SetSoil(string bucket, int index, int? below = null, int? depth = null)
+        => Rebind(bucket, binding => binding with
+        {
+            Soil = [.. (binding.Soil ?? []).Select((entry, at) => at != index ? entry
+                       : new SoilDepthDto(Math.Clamp(below ?? entry.Below, 1, 90), Math.Max(0, depth ?? entry.Depth)))
+                       .OrderBy(entry => entry.Below)],
+        });
+
     private Task Rebind(string bucket, Func<ThemeBucketDto, ThemeBucketDto> edit)
     {
         if (draft is null) return Task.CompletedTask;

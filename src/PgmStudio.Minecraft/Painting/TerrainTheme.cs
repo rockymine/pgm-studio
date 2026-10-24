@@ -441,7 +441,37 @@ public sealed record TeamTintedMaterial(int BlockId, TerrainMaterial Neutral) : 
 /// so a depth past the column's own height never recolours bedrock.</param>
 /// <param name="Enabled">Whether the bucket paints at all. A disabled rim leaves its edge to the surface, and
 /// a disabled surface leaves its interior to the wall under it.</param>
-public sealed record TopBand(TerrainMaterial Material, int Depth = 1, bool Enabled = true);
+/// <param name="Soil">How deep the courses lie by how steep the ground is, read in order: a column takes the
+/// depth of the first entry its slope is under, and steeper than every entry it claims none, so the rock under it
+/// shows. Absent, every column takes <paramref name="Depth"/>. The surface reads it; a rim keeps its depth.</param>
+public sealed record TopBand(TerrainMaterial Material, int Depth = 1, bool Enabled = true,
+                             IReadOnlyList<SoilDepth>? Soil = null)
+{
+    /// <summary>How many top courses the band claims on ground <paramref name="slope"/> degrees steep.</summary>
+    public int DepthAt(int slope)
+    {
+        if (Soil is not { Count: > 0 } soil) return Math.Max(1, Depth);
+        foreach (var entry in soil)
+            if (slope < entry.Below) return Math.Max(0, entry.Depth);
+        return 0;
+    }
+
+    public bool Equals(TopBand? other) =>
+        other is not null && Material.Equals(other.Material) && Depth == other.Depth && Enabled == other.Enabled
+        && (Soil ?? []).SequenceEqual(other.Soil ?? []);
+
+    public override int GetHashCode() => HashCode.Combine(Material, Depth, Enabled, Soil?.Count ?? 0);
+}
+
+/// <summary>One step of a <see cref="TopBand.Soil"/>: on ground under <paramref name="Below"/> degrees the band
+/// claims <paramref name="Depth"/> courses.</summary>
+/// <param name="Below">The slope, in degrees, this depth holds under.</param>
+/// <param name="Depth">How many courses the band claims on such ground.</param>
+public readonly record struct SoilDepth(int Below, int Depth)
+{
+    /// <summary>Three courses under 25°, two under 38°, one under 55°, and bare rock steeper.</summary>
+    public static readonly IReadOnlyList<SoilDepth> Thinning = [new(25, 3), new(38, 2), new(55, 1)];
+}
 
 /// <summary>How thick the bedrock floor is (TP8): a fixed block count, or the remainder under a fixed painted
 /// terrain depth (bedrock = column height − terrain depth, per column). Always ≥1, never taller than the
