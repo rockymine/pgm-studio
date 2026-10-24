@@ -1100,6 +1100,12 @@ follows the water's own edge. Water is therefore part of the world every read se
 `transect`, the export and the walk's swim set — and a later River over the same columns replaces the water of an
 earlier one. The cells carry the fan of the map's symmetry already, so nothing is mirrored a second time.
 
+**Water that touches is one body, and the stack settles it before it answers.** Where a River runs into a Lake,
+or any two waters meet at different surfaces, the lower takes the higher as far as its own wet columns reach, so
+the junction stands at one level rather than a step of water hanging over a channel. Then every dry column beside
+water is raised to that water's surface, so no water stands over its bank where a later modifier — a Roughness,
+a second body's cut — left the bank lower. Both run after the whole stack, whatever order the modifiers take.
+
 **A mask can leave shapes out.** `mask.leaves` is a list of shape ids: the columns of those shapes, and of their
 images under the map's symmetry as a held shape's are counted, are out of that one modifier's run, so it neither
 moves them nor reads them (a Level's median ignores them). Every other modifier still shapes them, which is what

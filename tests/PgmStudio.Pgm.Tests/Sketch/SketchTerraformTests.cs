@@ -589,4 +589,37 @@ public sealed class SketchTerraformTests
 
         await Assert.That(with.Any(column => column.Value != alone[column.Key])).IsTrue();
     }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task No_water_stands_over_a_dry_bank_where_a_river_meets_a_lake(bool riverFirst)
+    {
+        var layout = Layout(riverFirst ? River() + "," + Lake() : Lake() + "," + River());
+        var water = SketchRasterizer.WaterOf(layout);
+        var tops = Tops(layout);
+
+        await Assert.That(water.Count).IsGreaterThan(0);
+        foreach (var ((x, z), surface) in water)
+            for (var dx = -1; dx <= 1; dx++)
+                for (var dz = -1; dz <= 1; dz++)
+                {
+                    var beside = (x + dx, z + dz);
+                    if (water.ContainsKey(beside) || !tops.TryGetValue(beside, out var top)) continue;
+                    await Assert.That(top).IsGreaterThanOrEqualTo(surface).Because($"{beside} borders water at {surface}");
+                }
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task Water_that_touches_stands_at_one_surface(bool riverFirst)
+    {
+        var water = SketchRasterizer.WaterOf(Layout(riverFirst ? River() + "," + Lake() : Lake() + "," + River()));
+
+        foreach (var ((x, z), surface) in water)
+            foreach (var beside in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })
+                if (water.TryGetValue(beside, out var other))
+                    await Assert.That(other).IsEqualTo(surface).Because($"{(x, z)} and {beside} are one body of water");
+    }
 }

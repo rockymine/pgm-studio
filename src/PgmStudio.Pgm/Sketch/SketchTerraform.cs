@@ -76,6 +76,8 @@ internal static class SketchTerraform
             Array.Copy(heights, previous!, heights.Length);
         }
 
+        HoldWater(moving, heights, surfaces);
+
         var changeAt = new Dictionary<(int X, int Z), double>(moving.Length);
         for (var at = 0; at < moving.Length; at++)
             if (double.IsFinite(heights[at])) changeAt[moving[at].Key] = heights[at] - before[at];
@@ -107,6 +109,48 @@ internal static class SketchTerraform
         }
         return wet;
     }
+
+    /// <summary>Settles the stack's water. Water that touches is one body, so where two meet at different surfaces
+    /// the lower takes the higher, as far as its own wet columns reach; then every dry column beside water is raised
+    /// to that water's surface, so no water stands over its bank where a later modifier or a second body cut the
+    /// bank lower.</summary>
+    private static void HoldWater(KeyValuePair<(int X, int Z), int>[] moving, double[] heights, double[] surfaces)
+    {
+        var indexOf = new Dictionary<(int X, int Z), int>(moving.Length);
+        for (var at = 0; at < moving.Length; at++) indexOf[moving[at].Key] = at;
+        bool Wet(int at) => double.IsFinite(surfaces[at]) && heights[at] < surfaces[at];
+
+        var queue = new PriorityQueue<int, double>();
+        for (var at = 0; at < moving.Length; at++)
+            if (Wet(at)) queue.Enqueue(at, -surfaces[at]);
+        if (queue.Count == 0) return;
+        while (queue.TryDequeue(out var at, out var priority))
+        {
+            if (-priority < surfaces[at]) continue;
+            var (x, z) = moving[at].Key;
+            foreach (var (dx, dz) in Sides)
+                if (indexOf.TryGetValue((x + dx, z + dz), out var beside) && Wet(beside) && surfaces[beside] < surfaces[at])
+                {
+                    surfaces[beside] = surfaces[at];
+                    queue.Enqueue(beside, -surfaces[beside]);
+                }
+        }
+
+        var raised = new double[moving.Length];
+        for (var at = 0; at < moving.Length; at++)
+        {
+            raised[at] = heights[at];
+            if (Wet(at)) continue;
+            var (x, z) = moving[at].Key;
+            for (var dx = -1; dx <= 1; dx++)
+                for (var dz = -1; dz <= 1; dz++)
+                    if (indexOf.TryGetValue((x + dx, z + dz), out var beside) && Wet(beside))
+                        raised[at] = Math.Max(raised[at], surfaces[beside]);
+        }
+        Array.Copy(raised, heights, heights.Length);
+    }
+
+    private static readonly (int Dx, int Dz)[] Sides = [(1, 0), (-1, 0), (0, 1), (0, -1)];
 
     /// <summary>The columns, by position in the moving set, that a modifier naming <paramref name="leaves"/>
     /// leaves alone; null where it names none that stand on moving ground.</summary>
