@@ -357,7 +357,6 @@
 .geo-indent { flex-shrink: 0; display: flex; align-items: center; }
 
 /* The Terraform phase's modifier stack: a row's order and switch sit at its end, shown on hover or when picked. */
-.modifier-add { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
 .modifier-row .list-tag { margin-left: 6px; }
 .modifier-row:hover .list-tag, .modifier-row:focus-within .list-tag, .modifier-row.geo-row--selected .list-tag { display: none; }
 .modifier-row-tools { display: flex; gap: 2px; margin-left: 6px; visibility: hidden; }
@@ -366,9 +365,6 @@
 .modifier-row--off .geo-label { text-decoration: line-through; color: var(--text-muted); }
 .modifier-row--off .geo-type-icon, .modifier-eye--off { opacity: .45; }
 .modifier-size { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
-.modifier-area { border-top: 1px dashed var(--border); padding-top: 6px; margin-top: 6px; }
-.modifier-area-head { display: flex; align-items: center; justify-content: space-between; }
-.modifier-area-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
 .indent-pipe   { display: inline-block; width: 14px; flex-shrink: 0; }
 .geo-type-icon {
   flex-shrink: 0;

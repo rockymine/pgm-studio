@@ -30,7 +30,7 @@ public partial class SketchTool
     private bool shapesOn = false;
     private bool chunksOn = true;
     private bool blocksOn = false;   // the rasterized block-footprint preview
-    private bool reliefOn = false;   // the height contours of whatever relief the groups carry
+    private bool reliefOn = false;   // the height contours of the built ground
     private bool snapOn = true;
     private IsoView iso = default!;
     private string? mapName;
@@ -282,13 +282,12 @@ public partial class SketchTool
         await views.LoadAsync(clear: false);
     }
 
-    // ── Relief phase (docs/world-export/relief.md §15) ──
-    // One step, like Dressing and for the same reason: every part of a relief is a thing stated somewhere, so
-    // the phase is the canvas with its own tools and an inspector for whatever is under the cursor. It sits
-    // between Draw and Theme because a relief is geometry — it changes what the rasterizer emits — so it has
-    // to precede the two passes that read the built surface.
+    // ── Terraform phase (docs/tools/sketch.md, Terraform) ──
+    // One step, like Dressing and for the same reason: every modifier is a thing traced somewhere, so the phase
+    // is the canvas with its own tools and an inspector for the modifier picked. It sits between Draw and Theme
+    // because the stack is geometry — it changes what the rasterizer emits — so it has to precede the two
+    // passes that read the built surface.
     private bool ReliefActive => active == "relief";
-    private string reliefJson = "";
     private async Task GoRelief() { await SetPhase("relief"); await SetTool("select"); }
 
     /// <summary>Whether the canvas is being used to place a scope rather than to draw — today only Theme,
@@ -361,9 +360,9 @@ public partial class SketchTool
     private async Task PushCanvasMode(string phase)
     {
         if (handle is null) return;
-        // Geometry is Draw's alone. Theme assigns paint to it and Relief states ground inside it, and both
-        // reach a group by picking one — so in both the canvas picks and never edits, or the gesture that
-        // selects a group is also the gesture that reshapes it. Dressing places props rather than shapes,
+        // Geometry is Draw's alone. Theme assigns paint to it and Terraform traces masks over it, so in both the
+        // canvas picks and never edits a shape, or the gesture that selects one is also the gesture that
+        // reshapes it. Dressing places props rather than shapes,
         // so it is not select-only in that sense: its own tools are armed and the shape tools are simply not
         // offered.
         await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief" or "dressing" or "review" or "history");
@@ -373,13 +372,12 @@ public partial class SketchTool
         // which is a judgement about the finish as much as about the planting.
         await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing" or "review");
         await handle.InvokeVoidAsync("setDressingMode", phase == "dressing");
-        // Entering Relief turns the contour overlay on with it: the phase shows the statement and the surface
-        // it produced at once, which is the only way a mark can be tuned by eye. Leaving does not turn it off
+        // Entering Terraform turns the contour overlay on with it: the phase shows the stack and the ground it
+        // made at once, which is the only way a modifier can be tuned by eye. Leaving does not turn it off
         // again — the chip is the author's, and a contour view they asked for should survive a phase change.
         await handle.InvokeVoidAsync("setReliefMode", phase == "relief");
-        // What a plain click picks. A group is the unit in Draw, where a landmass is what moves, and in
-        // Relief, where one relief is solved per group. In Theme the job is naming one shape, so a click
-        // picks the shape and the group is reached with Alt or from the tree.
+        // What a plain click picks. A group is the unit in Draw, where a landmass is what moves. In Theme the
+        // job is naming one shape, so a click picks the shape and the group is reached with Alt or from the tree.
         await handle.InvokeVoidAsync("setPickUnit", phase == "theme" ? "shape" : "group");
         // A brush and the panel that fills it only exist while the phase that hands one out is up.
         if (phase != "theme") { themeAddOpen = false; await SetThemeBrush(""); }
@@ -393,7 +391,7 @@ public partial class SketchTool
 
     // ── the overlays a phase offers, and which of them it turns on as it is entered ──
     // A phase shows the layer it works on and the layer it works against. An overlay that would draw a fact
-    // another shown layer already carries is not offered at all: the contour layer is the relief without the
+    // another shown layer already carries is not offered at all: the contour layer is the height without the
     // blocks, so wherever the blocks are shown it states the same thing twice. Snap is not among these — it
     // modifies a drag rather than showing anything, so it sits in the dock beside the tools that drag.
     private const string ChipShapes = "shapes";
@@ -862,9 +860,6 @@ public partial class SketchTool
     /// the selected prop itself, which is what the inspector and the list both read.</summary>
     [JSInvokable]
     public void OnDressing(string json) { dressingJson = json; StateHasChanged(); }
-
-    [JSInvokable]
-    public void OnRelief(string json) { reliefJson = json; StateHasChanged(); }
 
     /// <summary>The modifier stack and the one picked, as the bridge announces them.</summary>
     private SketchModifierState modifiers = SketchModifierState.Empty;

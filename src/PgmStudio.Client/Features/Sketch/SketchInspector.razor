@@ -50,9 +50,8 @@
             <NumberField Value="Shape.Floor" ValueChanged="FloorChanged" Min="0" aria-label="Floor y" /></div>
         </Field>
 
-        @* How the top is decided once the group carries a relief. Ordinary ground is the default and stays
-           it: a shape drawn to make a landmass IS the landmass, and the relief inside it is what the ground
-           does. The other three are for a shape meant to stand in the terrain rather than be it. *@
+        @* How the top is decided. Ordinary ground is the default: a shape drawn to make a landmass IS the
+           landmass. The other four are for a shape meant to stand in the terrain rather than be it. *@
         <Field Label="Height mode">
           <Select Options="HeightModes" Value="@Shape.HeightMode" ValueChanged="HeightModeChanged" />
         </Field>
@@ -72,9 +71,8 @@
         }
         else
         {
-          @* Whether the shape's ground joins its group's relief. Only asked of a shape that IS ground: one
-             standing out of the field already answers it, and a raise reads the ground under its own
-             footprint to know where to stand. *@
+          @* Whether the modifiers reshape the shape's ground. Only asked of a shape that IS ground: one with a
+             height mode already stands at its own statement and holds. *@
           <Field Label="Terraform">
             <Select Options="ReliefScopeOptions" Value="@Shape.ReliefScope" ValueChanged="ReliefScopeChanged" />
           </Field>

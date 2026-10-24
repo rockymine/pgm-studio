@@ -14,13 +14,13 @@ public sealed record SketchShapeRow(
     [property: JsonPropertyName("dim")] string Dim,
     [property: JsonPropertyName("baseHeight")] double BaseHeight = 1,   // a shape is never zero-height
     [property: JsonPropertyName("floor")] double Floor = 0,
-    // How the top is decided once the group carries a relief (docs/world-export/relief.md §7). Empty is ordinary
-    // ground; level / raise / sink make the shape something standing IN the terrain rather than being it.
+    // How the top is decided against the ground it stands on. Empty is ordinary ground; level / raise / sink /
+    // drape make the shape something standing IN the terrain rather than being it, which the modifiers leave out.
     [property: JsonPropertyName("heightMode")] string HeightMode = "",
     // How far in from its outline an erected shape eases into the ground it meets. Zero is a sheer face.
     [property: JsonPropertyName("skirt")] double Skirt = 0,
-    // Whether the shape's ground joins its group's relief. Empty inherits; hold pins it at its own level and
-    // the land is solved to meet it; exclude takes it out of the solve entirely.
+    // Whether the modifiers leave the shape's ground out: `hold` keeps it at its own height, empty lets them
+    // reshape it.
     [property: JsonPropertyName("reliefScope")] string ReliefScope = "",
     // A path's band: half-width, how its edges are drawn, and the seed a rough edge wanders by. Empty on
     // every other kind of shape, which is what the inspector reads to know whether to offer them.
@@ -35,7 +35,7 @@ public sealed record SketchShapeRow(
 ///
 /// <para><see cref="HeightAuthored"/> says the region's <see cref="BaseHeight"/> is a number the author
 /// corrected rather than the one the layout was written with. A <c>building</c> carries no height of its own —
-/// the region it stands in is what a group's relief is held against — so its fields read empty.</para>
+/// the region it stands in is what its ground is — so its fields read empty.</para>
 ///
 /// <para><see cref="Carried"/> says the piece is an orbit's image rather than the one authored: it is drawn and
 /// listed, and never picked.</para>

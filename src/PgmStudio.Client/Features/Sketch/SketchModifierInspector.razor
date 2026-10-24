@@ -72,37 +72,8 @@
     <input type="checkbox" checked="@Mirrored" @onchange="e => SetMirror(e.Value is true)" />
     Mirrored by the map's symmetry
   </label>
-  @for (var index = 0; index < Areas.Count; index++)
-  {
-    var at = index;
-    var area = Areas[at];
-    var kind = area[Kind]?.GetValue<string>() ?? MaskKinds.Ellipse;
-    <div class="modifier-area">
-      <div class="modifier-area-head">
-        <span class="list-tag">@AreaLabel(kind)</span>
-        <Button Variant="icon" Icon="trash-2" Writes Title="Remove this area" Disabled="@(Areas.Count == 1)" OnClick="() => RemoveArea(at)" />
-      </div>
-      @if (kind == MaskKinds.Ellipse)
-      {
-        <div class="modifier-area-grid">
-          <Field Label="x"><NumberField Value="Centre(area, 0)" ValueChanged="v => SetCentre(at, 0, v)" /></Field>
-          <Field Label="z"><NumberField Value="Centre(area, 1)" ValueChanged="v => SetCentre(at, 1, v)" /></Field>
-          <Field Label="Radius x"><NumberField Value="Number(area, Rx)" ValueChanged="v => SetArea(at, Rx, v)" Min="1" /></Field>
-          <Field Label="Radius z"><NumberField Value="Number(area, Rz)" ValueChanged="v => SetArea(at, Rz, v)" Min="1" /></Field>
-          <Field Label="Turn"><NumberField Value="Number(area, Angle) ?? 0" ValueChanged="v => SetArea(at, Angle, v)" /></Field>
-        </div>
-      }
-      else if (kind == MaskKinds.Polygon)
-      {
-        <p class="inspector-readout">@(area[Points]?.AsArray().Count ?? 0) points, stated in the document.</p>
-      }
-      else
-      {
-        <p class="inspector-readout">The whole board.</p>
-      }
-    </div>
-  }
-  <Button Icon="plus" Writes OnClick="AddArea">Add an area</Button>
+  <p class="inspector-readout">@AreaLine</p>
+  <Button Icon="plus" Writes OnClick="AddOutline" Title="Trace another outline on the board; it joins this mask">Add an outline</Button>
   @if (!string.IsNullOrEmpty(error))
   {
     <p class="field-error">@error</p>

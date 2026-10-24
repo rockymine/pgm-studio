@@ -37,12 +37,10 @@ import { SketchDrawController } from "../controllers/sketch-draw-controller.js";
 import { DressingController } from "../controllers/dressing-controller.js";
 import { DressingDoc } from "../dressing/dressing-doc.js";
 import { paintDressing } from "../render/dressing-render.js";
-import { ReliefController } from "../controllers/relief-controller.js";
+import { ModifierController } from "../controllers/modifier-controller.js";
 import { RoomHouseController } from "../controllers/room-house-controller.js";
 import { WallEndController } from "../controllers/wall-end-controller.js";
 import { PieceResizeController } from "../controllers/piece-resize-controller.js";
-import { ReliefDoc } from "../relief/relief-doc.js";
-import { paintReliefMarks } from "../render/relief-render.js";
 import { paintDiff } from "../render/diff-render.js";
 import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
@@ -124,15 +122,12 @@ export class SketchCanvas extends CanvasBase {
   #dressing    = null;
   #dressingOn  = false;      // only the Dressing phase draws and edits props
 
-  // The stated relief (docs/world-export/relief.md). Here for the same reason the dressing document is:
-  // this is where a mark is put, moved and picked. Unlike dressing it is keyed by group, because a relief is
-  // solved over a group's fused footprint rather than placed loose on the map.
-  #reliefDoc   = new ReliefDoc();
-  #reliefTools = null;
+  // The modifier stack's masks (docs/tools/sketch.md, Terraform): traced, picked and dragged here, as props are.
+  #modifierTools = null;
   #roomHouse   = null;        // a picked room's house, shaped in Layout
   #wallEnds    = null;        // a picked wall's two ends, dragged apart in Layout
   #pieceResize = null;        // a picked room region, build area or water lane, resized in Layout
-  #reliefOn    = false;      // only the Relief phase draws and edits marks
+  #reliefOn    = false;      // only the Terraform phase traces and edits masks
   // A placement hands the canvas back to select mid-press, so the click that finished it would arrive with
   // select already active and be read as "pick the group under the cursor" — deselecting the prop just put
   // down. This marks that click as spent. Cleared on the next press, so it can only ever swallow its own.
@@ -154,8 +149,7 @@ export class SketchCanvas extends CanvasBase {
   #scopeGroupId = null;
 
   // Which level a plain click picks when no group is entered, in `resolvePick`'s words. A phase states it
-  // in its own: a group is what moves in Draw and what a relief is solved over, and a shape is what a
-  // theme is applied to.
+  // in its own: a group is what moves in Draw, and a shape is what a theme is applied to.
   #pickUnit = "group";
 
   // The theme a click paints, "" when nothing is armed. Armed, the canvas is a brush: a click paints the
@@ -332,7 +326,7 @@ export class SketchCanvas extends CanvasBase {
   selectGroup(id) {
     this.#selectedGroupId = id ?? null;
     // A phase that places its own things has no use for a member selection, and a selected shape is what
-    // every shape-level chord acts on — which is how Delete reached the island a relief was being stated on.
+    // every shape-level chord acts on — which is how Delete would reach the island a mask is traced over.
     // The drill to a sole member exists to put the Draw inspector's actions one click away; Theme keeps it,
     // because its inspector is about the selected shape.
     this.#selectedId = this.placesOwnThings ? null : this.#soleMemberOf(this.#selectedGroupId);
@@ -381,7 +375,7 @@ export class SketchCanvas extends CanvasBase {
    *
    * A subtract states no ground and a role-tagged annotation is not terrain, so neither is counted. A shape
    * with per-vertex anchors is counted at its uniform `base_height`: an anchored top varies by definition and
-   * has no single level for a relief to fall back to.
+   * has no single level to report.
    */
   groupTop(groupId) {
     const group = this.#groups.find(one => one.id === groupId);
@@ -428,19 +422,15 @@ export class SketchCanvas extends CanvasBase {
   get dressing()      { return this.#dressingDoc; }
   get dressingTools() { return this.#dressing; }
 
-  /** Show and edit the stated relief — on for the Relief phase, off everywhere else. Distinct from the
-   *  Relief layer chip, which shows the *solved* contours and is available in every phase: one is the
-   *  statement, the other is what the statement produced, and seeing the second while editing the first is
-   *  the whole point of keeping them separate. */
+  /** Trace and edit masks — on for the Terraform phase, off everywhere else. Distinct from the Contours chip,
+   *  which shows the ground the stack made in every phase. */
   setReliefMode(on) {
     this.#reliefOn = !!on;
-    if (!on) { this.#reliefTools?.cancel(); this.#reliefTools?.select(null); }
-    this.#reliefTools?.refreshHandles();
+    if (!on) this.#modifierTools?.cancel();
+    this.#modifierTools?.refreshHandles();
     this.#paintWorld();
   }
-  setReliefDoc(stored) { this.#reliefDoc = ReliefDoc.from(stored); this.#reliefTools?.setDoc(this.#reliefDoc); this.#paintWorld(); }
-  get relief()      { return this.#reliefDoc; }
-  get reliefTools() { return this.#reliefTools; }
+  get modifierTools() { return this.#modifierTools; }
 
   setShapesVisible(v) { this.#shapesVisible = v; this.#paintWorld(); }
   setMirrorVisible(v) { this.#mirrorVisible = v; this.#paintWorld(); }
@@ -487,7 +477,7 @@ export class SketchCanvas extends CanvasBase {
     this.#draw?.cancel();
     if (this._readOnly && this.#level === "points") this.#setLevel("shape");
     this.#dressing?.refreshHandles();
-    this.#reliefTools?.refreshHandles();
+    this.#modifierTools?.refreshHandles();
     this.#roomHouse?.refresh(this.#selectedStructuralId);
     this.#wallEnds?.refresh(this.#selectedStructuralId);
     this.#pieceResize?.refresh(this.#selectedStructuralId);
@@ -531,7 +521,7 @@ export class SketchCanvas extends CanvasBase {
     this.#paintWorld();
   }
 
-  /** Whether a relief is on screen — what a phase asks before offering to read a height off it. */
+  /** Whether the contours are on screen — what a phase asks before offering to read a height off them. */
   get hasRelief() { return this.#relief !== null; }
 
   // One shaded height map per group, decoded when the payload lands and held until the next one.
@@ -556,7 +546,7 @@ export class SketchCanvas extends CanvasBase {
 
   // ── CanvasBase hooks ───────────────────────────────────────────────────────────
 
-  _onViewportChanged() { this.#paintWorld(); this.#edit?.refresh(); this.#dressing?.refreshHandles(); this.#reliefTools?.refreshHandles(); this.#roomHouse?.refresh(this.#selectedStructuralId); this.#wallEnds?.refresh(this.#selectedStructuralId); this.#pieceResize?.refresh(this.#selectedStructuralId); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderTransformChrome(); }
+  _onViewportChanged() { this.#paintWorld(); this.#edit?.refresh(); this.#dressing?.refreshHandles(); this.#modifierTools?.refreshHandles(); this.#roomHouse?.refresh(this.#selectedStructuralId); this.#wallEnds?.refresh(this.#selectedStructuralId); this.#pieceResize?.refresh(this.#selectedStructuralId); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderTransformChrome(); }
   _onZoom(scale)       { if (this.#zoomEl) this.#zoomEl.textContent = `${Math.round(scale * 100)}%`; }
 
   _onToolMousedown(e, svgPt) {
@@ -568,7 +558,7 @@ export class SketchCanvas extends CanvasBase {
     if (this._readOnly && this._activeTool !== "select") return;
     if (this._activeTool === "eye") { this.#view = this.#grabView(svgPt) ?? { ax: bx, az: bz, bx, bz, live: true, grab: "look" }; this.#paintWorld(); return; }
     if (this._activeTool === "split") { this.#onSplitClick(bx, bz); return; }
-    if (this.#reliefOn && this.#reliefTools?.onMouseDown(bx, bz, this._activeTool)) return;
+    if (this.#reliefOn && this.#modifierTools?.onMouseDown(bx, bz, this._activeTool)) return;
     if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool)) return;
     if (this._readOnly) return;
     // A shift-press on a picked room's free wall adds a door there or takes one away.
@@ -589,7 +579,7 @@ export class SketchCanvas extends CanvasBase {
       }
     } else if (this._activeTool === "split") {
       if (this.#split) { this.#split.bx = bx; this.#split.bz = bz; this.#paintWorld(); }
-    } else if (this.#reliefOn && this.#reliefTools?.onMouseMove(bx, bz, this._activeTool)) {
+    } else if (this.#reliefOn && this.#modifierTools?.onMouseMove(bx, bz, this._activeTool)) {
       // consumed by a trace, a spot ghost or a mark being dragged
     } else if (this.#dressingOn && this.#dressing?.onMouseMove(bx, bz, this._activeTool)) {
       // consumed by a trace, a marker ghost or a prop being dragged
@@ -605,7 +595,7 @@ export class SketchCanvas extends CanvasBase {
   _onToolMouseup(e, svgPt) {
     if (this._activeTool === "measure") { if (this.#measure) this.#measure.live = false; return; }
     if (this._activeTool === "eye") { this.#onViewReleased(); return; }
-    if (this.#reliefOn && this.#reliefTools?.onMouseUp()) return;
+    if (this.#reliefOn && this.#modifierTools?.onMouseUp()) return;
     if (this.#dressingOn && this.#dressing?.onMouseUp()) return;
     this.#draw?.onMouseUp();
   }
@@ -646,8 +636,7 @@ export class SketchCanvas extends CanvasBase {
     }
 
     // A phase that places its own things picks the group and stops there. Reaching a member would select a
-    // shape the phase cannot change and the chords can, and the group is the unit it is about anyway — a
-    // relief is solved over one, and its base, reach and step are what a click on the ground should reach.
+    // shape the phase cannot change and the chords can.
     if (this.placesOwnThings) {
       this.#enterScope(null);
       this.#callbacks.onShapeSelected?.(null);
@@ -732,10 +721,10 @@ export class SketchCanvas extends CanvasBase {
   _onMouseleave() { if (this.#cursorEl) this.#cursorEl.textContent = ""; this.#updateDim(); }
 
   _onResizeMove(e) {
-    if (this.#dressing || this.#reliefTools || this.#roomHouse || this.#wallEnds || this.#pieceResize) {
+    if (this.#dressing || this.#modifierTools || this.#roomHouse || this.#wallEnds || this.#pieceResize) {
       const p = this._clientToSvg(e.clientX, e.clientY);
       if (this.#dressing?.onHandleMove(p.x, p.y)) return true;
-      if (this.#reliefTools?.onHandleMove(p.x, p.y)) return true;
+      if (this.#modifierTools?.onHandleMove(p.x, p.y)) return true;
       if (this.#roomHouse?.onHandleMove(p.x, p.y)) return true;
       if (this.#wallEnds?.onHandleMove(p.x, p.y)) return true;
       if (this.#pieceResize?.onHandleMove(p.x, p.y)) return true;
@@ -748,7 +737,7 @@ export class SketchCanvas extends CanvasBase {
   }
   _onResizeUp(e) {
     if (e.button === 0 && this.#dressing?.onHandleUp()) return true;
-    if (e.button === 0 && this.#reliefTools?.onHandleUp()) return true;
+    if (e.button === 0 && this.#modifierTools?.onHandleUp()) return true;
     if (e.button === 0 && this.#roomHouse?.onHandleUp()) return true;
     if (e.button === 0 && this.#wallEnds?.onHandleUp()) return true;
     if (e.button === 0 && this.#pieceResize?.onHandleUp()) return true;
@@ -992,7 +981,7 @@ export class SketchCanvas extends CanvasBase {
     painter.layer("places", () => paintPlaces(painter, this.#places, this.#selectedPlaceId));
     painter.layer("masks", () => paintMasks(painter, this.#masks));
     painter.layer("selection", () => this.#paintSelectionHighlight());
-    painter.layer("marks",     () => this.#paintReliefMarks(painter));
+    painter.layer("marks",     () => this.#paintMaskTrace(painter));
     painter.layer("dressing",  () => this.#paintDressing(painter));
     painter.layer("diff",      () => paintDiff(painter, this.#diff));
     painter.layer("draw",      () => this.#draw?.paint(painter));
@@ -1074,12 +1063,6 @@ export class SketchCanvas extends CanvasBase {
   /** The picked modifier's mask outlines, drawn over the board; an empty list takes them away. */
   setMasks(masks) { this.#masks = masks ?? []; this.#paintWorld(); }
 
-  /** The world point at the middle of the view, where a thing added from a panel lands. */
-  viewCentre() {
-    const { w, h } = this._viewSize ?? this._size();
-    return [(w / 2 - this._panX) / (this._scale || 1), (h / 2 - this._panY) / (this._scale || 1)];
-  }
-
   /** Pick a place, or `null` to let it go. */
   selectPlace(id) {
     const next = this.#places.some(p => p.id === id) ? id : null;
@@ -1160,24 +1143,9 @@ export class SketchCanvas extends CanvasBase {
     this.#dressing?.paint(painter);
   }
 
-  // The stated marks, plus each mark's mirror images — a relief is folded across the symmetry at solve time,
-  // so an author who cannot see the other half is stating terrain blind. Only while the phase is up: on the
-  // draw canvas the marks would crowd the geometry being edited, and the contour chip is the read-only view
-  // that belongs there instead.
-  #paintReliefMarks(painter) {
-    if (!this.#reliefOn) return;
-    const axes = orbitAxes(this.#mode);
-    // Marks and pushes together: they are picked up the same way and differ only in what they do to the
-    // surface, so drawing them from one list is what makes the phase one phase.
-    paintReliefMarks(painter, this.#reliefDoc.statements, {
-      selectedId: this.#reliefTools?.selectedId ?? null,
-      // Per group: the rasterizer fans only the groups that opted into mirroring, so ghosting a mark on one
-      // that did not would draw ground the export will never build.
-      orderOf: (groupId) => (this.#groups.find(isl => isl.id === groupId)?.mirrors ? axes.length + 1 : 1),
-      mirrorPoint: (x, z, k) => applySymmetry(x, z, axes[k - 1], this.#center.cx, this.#center.cz),
-      baseOf: (groupId) => this.#reliefDoc.peek(groupId)?.base ?? 8,
-    });
-    this.#reliefTools?.paint(painter);
+  // The trace in flight, over the masks.
+  #paintMaskTrace(painter) {
+    if (this.#reliefOn) this.#modifierTools?.paint(painter);
   }
 
   // The ruler line in world coords (so it pans/zooms with the map); the live distance rides the line
@@ -1413,25 +1381,15 @@ export class SketchCanvas extends CanvasBase {
       onPreview: () => this.#paintWorld(),
       isEditable: () => !this._readOnly,
     });
-    // Relief states the ground inside a group, so its tools live on the same canvas for the same reason
-    // dressing's do — and its own controller for the same reason too.
-    this.#reliefTools = new ReliefController(this.#reliefDoc, this.#screen.reliefHandles, getViewport, {
-      onChanged: () => { this.#paintWorld(); this.#callbacks.onReliefChanged?.(); },
-      onSelected: (id) => this.#callbacks.onMarkSelected?.(id),
+    // A mask is traced, picked and dragged on the same canvas as props are, by its own controller.
+    this.#modifierTools = new ModifierController(this.#screen.reliefHandles, getViewport, {
+      getModifiers: () => this.#callbacks.getModifiers?.() ?? [],
+      onTraced: (op, points) => this.#callbacks.onModifierTraced?.(op, points),
+      onChanged: (modifiers) => this.#callbacks.onModifiersChanged?.(modifiers),
+      onPreview: (modifiers) => this.#callbacks.onModifiersPreview?.(modifiers),
+      onSelected: (id) => this.#callbacks.onModifierSelected?.(id),
       onPreviewChanged: () => this.#paintWorld(),
-      onPlaced: () => { this.#placementClick = true; this.#callbacks.onReliefPlaced?.(); },
-      // A mark belongs to the group it was started in. Unlike a prop it may then be dragged past that
-      // group's edge — a mark is clipped, not confined, and a hill authored into a corner is exactly that
-      // gesture — so this decides ownership at placement and never again.
-      onGroupAt: (bx, bz) => this.#hitGroup(bx + 0.5, bz + 0.5),
-      // The level a group's ground already stands at, so a fresh relief starts where the group was drawn
-      // rather than at a constant. A relief replaces the top of every column of its group, so this is the
-      // one number a new one has to agree with.
-      onGroupTop: (groupId) => this.groupTop(groupId),
-      // The contours on screen, so a press can grab one. They are the solver's answer rather than anything
-      // placed, which is why they are read from the overlay rather than kept by the controller: what an
-      // author grabs is exactly what is drawn, and when the overlay is off there is nothing to grab.
-      onContours: () => this.#relief,
+      onPlaced: () => { this.#placementClick = true; this.#callbacks.onModifierPlaced?.(); },
       isEditable: () => !this._readOnly,
     });
     this.#edit = new SketchEditController(this.#screen.handles, getViewport, (id) => this.#shapes.get(id), {
@@ -1458,10 +1416,10 @@ export class SketchCanvas extends CanvasBase {
       { id: "sketch.enter", keys: "enter", label: "Open the selected group or shape",
         group: "Canvas", when: () => live() && (this.#selectedId || this.#selectedGroupId),
         run: () => this.enterSelection() },
-      // Delete reaches whatever the phase in front of the author is editing. A relief phase leaves a shape
+      // Delete reaches whatever the phase in front of the author is editing. Terraform leaves a shape
       // selected — picking a single-member group selects its one member, which is what makes the Draw
-      // inspector reachable — so an ungated shape-delete takes the island out from under the marks being
-      // stated on it. Each phase answers for its own placed thing, and the shape chord stands down while one
+      // inspector reachable — so an ungated shape-delete takes the island out from under the masks traced
+      // over it. Each phase answers for its own placed thing, and the shape chord stands down while one
       // of them is up.
       // On the points rung with a point picked, the same keys take that one point out instead — the shape
       // chord stands down so the two never both answer one press.
@@ -1472,9 +1430,9 @@ export class SketchCanvas extends CanvasBase {
         group: "Canvas",
         when: () => writable() && !this.#reliefOn && !this.#dressingOn && !!this.#selectedId && !this.#pointPicked(),
         run: () => this.#callbacks.onShapeDeleted?.(this.#selectedId) },
-      { id: "relief.delete", keys: ["delete", "backspace"], label: "Delete the selected mark",
-        group: "Terraform", when: () => writable() && this.#reliefOn && !!this.#reliefTools?.selectedId,
-        run: () => this.#reliefTools?.deleteSelected() },
+      { id: "modifier.delete", keys: ["delete", "backspace"], label: "Delete the picked modifier",
+        group: "Terraform", when: () => writable() && this.#reliefOn && !!this.#modifierTools?.selectedId,
+        run: () => this.#modifierTools?.deleteSelected() },
       { id: "dressing.delete", keys: ["delete", "backspace"], label: "Delete the selected prop",
         group: "Decoration", when: () => writable() && this.#dressingOn && !!this.#dressing?.selectedId,
         run: () => this.#dressing?.deleteSelected() },

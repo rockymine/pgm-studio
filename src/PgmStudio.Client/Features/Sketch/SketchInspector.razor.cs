@@ -101,14 +101,12 @@ public partial class SketchInspector
     private Task FloorChanged(double v)
         => Shape is null ? Task.CompletedTask : OnSetHeight.InvokeAsync((Shape.Id, Shape.BaseHeight, v));
 
-    /// <summary>How a shape's top is decided once its group carries a relief (docs/world-export/relief.md §7).
-    /// The words are the document's own, so what an author picks here and what the layout stores are one
-    /// vocabulary. Ground is first and is the default: a shape is part of the landmass unless its author says
-    /// otherwise, and a default that made every shape a mesa would turn a drawn board into a staircase of
-    /// plates.</summary>
+    /// <summary>How a shape's top is decided against the ground it stands on (docs/tools/sketch.md). The words are
+    /// the document's own. Ground is first and is the default: a shape is part of the landmass unless its author
+    /// says otherwise. A shape with a mode stands at its own statement, and the modifiers leave it out.</summary>
     private static readonly SelectOption[] HeightModes =
     [
-        new("",      "Ground", "Part of the land. It follows the group's terraformed ground."),
+        new("",      "Ground", "Part of the land. The modifiers reshape it with the rest."),
         new("level", "Level",  "A flat top at a fixed height, whatever the ground does. Its sides are cliffs."),
         new("raise", "Raise",  "Stands this far above the ground it covers, wherever it is moved."),
         new("sink",  "Sink",   "Sits this far below the ground it covers."),
@@ -127,26 +125,18 @@ public partial class SketchInspector
         _ => "",
     };
 
-    /// <summary>Whether a shape's ground joins the relief its group is solved over (docs/world-export/relief.md §11).
-    /// Inherit is first and is the default: the group is the unit because a relief solved per shape leaves
-    /// a seam wherever two of them meet and disagree about the height they share.</summary>
+    /// <summary>Whether the modifier stack reshapes a shape's ground (docs/tools/sketch.md, Terraform). Follow is
+    /// first and is the default.</summary>
     private static readonly SelectOption[] ReliefScopeOptions =
     [
-        new("",        "Inherit", "Follows the group's terraformed ground, like the rest of the land."),
-        new(Vocabulary.ReliefScopes.Follow,  "Follow",  "Stays flat at the height the terraformed ground reaches under it. Suits rooms."),
-        new(Vocabulary.ReliefScopes.Hold,    "Hold",    "Stays flat at its own height. The land around it is shaped to meet it."),
-        new(Vocabulary.ReliefScopes.Exclude, "Exclude", "Left out of the terraforming. The land around it is shaped as if it weren't there."),
+        new("",        "Follow", "The modifiers reshape it with the land around it."),
+        new(Vocabulary.ReliefScopes.Hold, "Hold", "Stays at its own height; the modifiers leave it out."),
     ];
 
-    /// <summary>What this shape's scope works out to, in its own numbers. Empty for the default, which states
-    /// nothing about the shape that the group's own relief does not already say.</summary>
-    private string ReliefScopeReadout => Shape?.ReliefScope switch
-    {
-        Vocabulary.ReliefScopes.Follow => "Flat at the height of the terraformed ground under it. The land around it keeps its shape.",
-        Vocabulary.ReliefScopes.Hold => $"Flat at {Shape.Floor + Shape.BaseHeight}. The land around it is shaped to meet it.",
-        Vocabulary.ReliefScopes.Exclude => "Left out of the terraforming. The land around it ignores it.",
-        _ => "",
-    };
+    /// <summary>What holding works out to, in the shape's own numbers. Empty for the default.</summary>
+    private string ReliefScopeReadout => Shape?.ReliefScope == Vocabulary.ReliefScopes.Hold
+        ? $"Stays at {Shape.Floor + Shape.BaseHeight} whatever the modifiers do around it."
+        : "";
 
     /// <summary>What the skirt does at the number it is set to. Zero is the one value worth a word, because a
     /// sheer face is right for a built thing and wrong for a landform.</summary>

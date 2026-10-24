@@ -130,12 +130,16 @@ export function paintPlaces(painter, places, selectedId = null) {
   }
 }
 
-/** A modifier's mask: its own outlines solid, their images under the map's symmetry dashed. */
+/** The modifiers' masks: every outline thin, the picked modifier's bold with its images under the symmetry
+ *  dashed, and a switched-off modifier's faint. */
 export function paintMasks(painter, masks) {
   for (const mask of masks ?? []) {
-    const style = { fill: "var(--accent)", fillAlpha: mask.image ? 0.04 : 0.1, stroke: "var(--accent)",
-                    strokeAlpha: mask.image ? 0.6 : 0.95, width: mask.image ? 1.5 : 2, dash: mask.image ? [5, 4] : null };
-    painter.ring(mask.points, style);
+    const strong = mask.picked && !mask.image;
+    painter.ring(mask.points, {
+      fill: "var(--accent)", fillAlpha: strong ? 0.1 : mask.picked ? 0.04 : 0.02, stroke: "var(--accent)",
+      strokeAlpha: mask.off ? 0.3 : strong ? 0.95 : 0.6, width: strong ? 2 : 1.5,
+      dash: mask.image || mask.off ? [5, 4] : null,
+    });
   }
 }
 

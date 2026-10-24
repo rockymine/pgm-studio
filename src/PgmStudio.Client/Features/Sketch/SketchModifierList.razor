@@ -2,20 +2,12 @@
 @using PgmStudio.Vocabulary
 
 @* The modifier stack, in the order it runs: each row picks its modifier, switches it off and on, and moves it up
-   or down the order; the buttons under the heading add one of each operation round the middle of the view. *@
+   or down the order. A modifier is added by tracing its outline with its tool in the dock. *@
 
 <Section Title="Modifiers">
-  <div class="modifier-add">
-    @foreach (var op in ModifierOps.All)
-    {
-      var adding = op;
-      <Button Icon="@SketchModifierState.Icon(adding)" Writes Title="@($"Add a {ModifierOps.Label(adding)}")"
-              OnClick="() => Add(adding)">@ModifierOps.Label(adding)</Button>
-    }
-  </div>
   @if (State.Modifiers.Count == 0)
   {
-    <p class="section-desc">No modifier yet. Each one changes the ground inside its mask, in this list's order.</p>
+    <p class="section-desc">No modifier yet. Pick one in the dock and drag its outline on the board; each changes the ground inside it, in this list's order.</p>
   }
   else
   {

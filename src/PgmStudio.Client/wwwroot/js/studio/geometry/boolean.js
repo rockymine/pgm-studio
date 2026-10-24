@@ -187,8 +187,8 @@ export function settleGroups(shapes, stated = [], baseline = new Map(), previous
   const touchedStated = stated.filter(group => !keptIds.has(group.id));
   const matched = restoreGroupMeta(pieces, touchedStated, ["id", "name", "mirrors"]);
 
-  // A piece whose carried id another group already answers to takes a fresh one: an id is what a relief is
-  // keyed by, and two groups answering to it would hand one of them the other's ground.
+  // A piece whose carried id another group already answers to takes a fresh one: an id is what a group's name
+  // and mirroring are keyed by, and two groups answering to it would hand one of them the other's.
   const used = new Set([...keptIds, ...[...matched].map(piece => piece.id)]);
   let fresh = 0;
   pieces.forEach((piece, index) => {
@@ -364,9 +364,8 @@ function _transformRing(ring, axis, cx, cz) {
  * Apply saved group metadata to computed groups by matching on shapeId overlap.
  *
  * **A saved record is claimed by one group.** One of the fields carried across is the id, and an id is
- * what a relief is keyed by, so handing the same record to two groups writes a layout in which two
- * groups answer to one name — the relief then belongs to whichever of them the solver reaches first and
- * the rest of the board comes back flat. The pairing is therefore resolved greedily by overlap: the
+ * what a group's name and mirroring are keyed by, so handing the same record to two groups writes a layout
+ * in which two groups answer to one name. The pairing is therefore resolved greedily by overlap: the
  * strongest (group, record) pair first, then the next over what is left, and a group no record
  * reaches keeps the identity it was computed with.
  *

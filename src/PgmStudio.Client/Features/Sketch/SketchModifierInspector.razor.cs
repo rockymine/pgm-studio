@@ -16,8 +16,7 @@ public partial class SketchModifierInspector
 
     private const string Name = "name", Off = "off", Mode = "mode", Rise = "rise", Power = "power", Join = "join",
         Soft = "soft", Floor = "floor", Flat = "flat", Slope = "slope", Melt = "melt", Top = "top", Inner = "inner",
-        Outer = "outer", Seed = "seed", Cell = "cell", Octaves = "octaves", Kind = "kind", At = "at", Rx = "rx",
-        Rz = "rz", Angle = "angle", Points = "points";
+        Outer = "outer", Seed = "seed", Cell = "cell", Octaves = "octaves";
 
     private static readonly IReadOnlyList<SelectOption> Modes =
     [
@@ -38,15 +37,12 @@ public partial class SketchModifierInspector
     private static double? Number(JsonObject node, string field) =>
         node[field] is JsonValue value && value.TryGetValue<double>(out var number) ? number : null;
 
-    private static double? Centre(JsonObject area, int axis) =>
-        area[At] is JsonArray at && at.Count == 2 && at[axis] is JsonValue value && value.TryGetValue<double>(out var number)
-            ? number : null;
-
-    private static string AreaLabel(string kind) => kind switch
+    /// <summary>What the mask holds, and how it is changed: on the board, as every outline is.</summary>
+    private string AreaLine => Areas.Count switch
     {
-        MaskKinds.Polygon => "Outline",
-        MaskKinds.Board => "Whole board",
-        _ => "Ellipse",
+        0 => "No outline: it works on the whole board.",
+        1 => "One outline. Drag it, or its points, on the board.",
+        var count => $"{count} outlines. Drag them, or their points, on the board.",
     };
 
     private Task SetNumber(string field, double value) => Patch(new JsonObject { [field] = value });
@@ -62,38 +58,6 @@ public partial class SketchModifierInspector
     {
         var mask = (JsonObject)Mask.DeepClone();
         mask["mirror"] = on;
-        return Patch(new JsonObject { ["mask"] = mask });
-    }
-
-    private Task SetCentre(int index, int axis, double value)
-    {
-        var area = Areas[index];
-        double[] at = [Centre(area, 0) ?? 0, Centre(area, 1) ?? 0];
-        at[axis] = value;
-        return EditArea(index, edited => edited[At] = new JsonArray(at[0], at[1]));
-    }
-
-    private Task SetArea(int index, string field, double value) => EditArea(index, edited => edited[field] = value);
-
-    private Task RemoveArea(int index) => EditAreas(areas => areas.RemoveAt(index));
-
-    /// <summary>A new ellipse beside the last area, the size of the first ellipse in the mask.</summary>
-    private Task AddArea() => EditAreas(areas =>
-    {
-        var like = areas.OfType<JsonObject>().LastOrDefault(area => area[Kind]?.GetValue<string>() == MaskKinds.Ellipse);
-        var radius = like is null ? 12 : Number(like, Rx) ?? 12;
-        var x = (like is null ? 0 : Centre(like, 0) ?? 0) + radius * 1.5;
-        var z = like is null ? 0 : Centre(like, 1) ?? 0;
-        areas.Add(new JsonObject { [Kind] = MaskKinds.Ellipse, [At] = new JsonArray(x, z), [Rx] = radius, [Rz] = radius });
-    });
-
-    private Task EditArea(int index, Action<JsonObject> edit) => EditAreas(areas => edit((JsonObject)areas[index]!));
-
-    private Task EditAreas(Action<JsonArray> edit)
-    {
-        var mask = (JsonObject)Mask.DeepClone();
-        if (mask["areas"] is not JsonArray areas) mask["areas"] = areas = [];
-        edit(areas);
         return Patch(new JsonObject { ["mask"] = mask });
     }
 
@@ -119,6 +83,8 @@ public partial class SketchModifierInspector
         if (Handle is null) return;
         error = await Handle.InvokeAsync<string?>("updateModifier", Id, patch.ToJsonString());
     }
+
+    private Task AddOutline() => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("addOutline", Id).AsTask();
 
     private Task Close() => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("selectModifier", (string?)null).AsTask();
 

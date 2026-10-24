@@ -10811,6 +10811,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `off`; a room's ground holds. Terraform lists the stack (`SketchModifierList`), adds, reorders and switches
   each, edits the picked one (`SketchModifierInspector`) and outlines its mask, every edit one undo step.
   `docs/tools/sketch.md`, *The modifier stack*.
+- **Terraform traces masks on the board (`TS205`).** A modifier's tool in the dock traces its outline with a press,
+  a drag and a release, simplified to its bends; Select picks the smallest mask under the pointer, drags it, and
+  reshapes the picked outline by its points and edge inserts (`ModifierController`, which the marks controller
+  became). *Add an outline* joins another to a picked mask.
+- **The group relief is gone, and its maps carry modifiers (`TS206`).** A migration turned every stored relief's
+  area and point marks into Levels, its pushes into Hills and its grain into Roughness and dropped its line, scarp
+  and rim marks; the solver, its endpoints, the readback and `RL1`–`RL6` left with it. `relief_scope` is `hold`
+  or absent: a held shape, a shape stating a `height_mode` and a play room keep their columns out of every
+  modifier. `docs/tools/sketch.md`.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

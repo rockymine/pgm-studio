@@ -10,8 +10,8 @@ import { computeMirrorPreview, settleGroups, uniqueGroups, outlineKey } from "..
 import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape } from "../geometry/shape.js";
 import { surfaceHeights } from "../geometry/slope.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
-import { isPush, pushAmounts, pushAmountPatch } from "../relief/relief-doc.js";
-import { newModifier, patchModifier, moveModifier, maskRings } from "../relief/modifier-doc.js";
+import { newModifier, addArea, patchModifier, moveModifier, maskRings } from "../relief/modifier-doc.js";
+import { opOfTool } from "../controllers/modifier-controller.js";
 import { fireTo } from "./fire.js";
 import { isoPreview } from "./iso-preview.js";
 import { liveFeed, refusalText } from "./live-feed.js";
@@ -19,7 +19,6 @@ import * as Keys from "../shared/keys.js";
 import { isHeightMode, isReliefScope } from "../shared/relief-words.js";
 import { diffOverlay } from "../render/diff-render.js";
 import { DRESSING_TOOLS } from "../controllers/dressing-controller.js";
-import { RELIEF_TOOLS } from "../controllers/relief-controller.js";
 import { rectsJoinUp, wingRects } from "../dressing/dressing-doc.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
@@ -189,18 +188,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (result?.refused) fire("OnDressing", dressingState(result.refused));
       else afterDressingChange();
     }),
-    // Relief marks follow exactly the same three rules, for the same reasons.
-    onReliefChanged: edit(() => afterReliefChange()),
-    onMarkSelected:  () => {
-      // A mark and a modifier share the inspector, so picking one lets the other go.
-      if (canvas.reliefTools?.selectedId && pickedModifier) {
-        pickedModifier = null;
-        fire("OnModifiers", modifierState());
-        paintMasks();
-      }
-      fire("OnRelief", reliefState());
-    },
-    onReliefPlaced:  () => { if (!dropTool()) canvas.reliefTools?.select(null); },
+    // A modifier's mask follows the same three rules, for the same reasons.
+    getModifiers:       () => modifiers,
+    onModifierTraced:   edit((op, points) => traced(op, points)),
+    onModifiersChanged: edit((next) => { modifiers = next; afterModifierChange(); }),
+    onModifiersPreview: (next) => { modifiers = next; paintMasks(); },
+    onModifierSelected: (id) => { pickedModifier = id; fire("OnModifiers", modifierState()); paintMasks(); },
+    onModifierPlaced:   () => { dropTool(); },
     onToolDropped:   () => putDownTool(),
     onShapeDeleted:  edit((id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); }),
     // Taking a point out is one step, opened here because the key press that asks for it is not a pointer
@@ -627,7 +621,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
    * an author corrected something to the value the layout already stated. It writes `hold` with them, which is
    * what makes the terraform keep the room at the number rather than settle it on the ground under it.
    *
-   * A `building` carries no height — the region it stands in is what a group's relief is held against — so
+   * A `building` carries no height — the region it stands in is its ground — so
    * there is nothing here for one to state and the rail offers no field.
    */
   function setStructuralHeight(id, height) {
@@ -654,9 +648,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     selectStructural(null);
     fire("OnShapeSelected", single);
     fire("OnGroupSelected", single ? null : canvas.selectedGroupId);
-    // In the Relief phase the group IS the unit being edited — its base, reach, step and grain are what the
-    // marks are stated against — so picking one has to reach the inspector.
-    if (reliefMode) fire("OnRelief", reliefState());
   }
 
   // Rotate the current selection by `deg` degrees about its bbox centre (the inspector's numeric field; the
@@ -687,8 +678,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     groups = next;
     layers[active].groups = next;
     layers[active].shapes = shapes;
-    // `mirrors` rides along because the relief overlay ghosts a mark only on a group that opted in — the
-    // rasterizer fans only those, so a ghost anywhere else is terrain that will never be built.
+    // `mirrors` rides along because the rasterizer fans only the groups that opted in, so a ghost anywhere
+    // else is terrain that will never be built.
     canvas.setGroups(next.map(i => ({ id: i.id, shapeIds: i.shapeIds, exterior: i.exterior, holes: i.holes, mirrors: i.mirrors })));
     canvas.setGhostGroups(ghostPolys());
     refreshMirror();
@@ -696,8 +687,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     pushLayers();
     iso.drop();
     refreshPaint();   // the geometry moved, so the paint on it has too (no-op unless the overlay is on)
-    // A relief is solved over the group's own footprint, so moving the geometry re-shapes the ground under
-    // it — and a re-fused group can change which relief applies at all.
+    // The modifiers run over the ground the shapes build, so moving the geometry re-shapes what they make.
     refreshRelief();
   }
 
@@ -705,7 +695,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // The picture is the world the export builds, not a second guess at it: the live layout goes to
   // `sketch/columns`, which runs the real build over it and answers every column's solid runs, and
   // `column-mesh.js` turns those into triangles. The client decides nothing about height — which is the
-  // point, because it cannot: a shape's top is settled by the per-group relief solve and then again by
+  // point, because it cannot: a shape's top is settled by the modifier stack and then again by
   // whatever the shape says about being erected, and neither is derivable here without a second copy of the
   // solver. Extruding in the browser would take only the first of those three stages.
   const NO_MAP = "This sketch has no map to build.";
@@ -786,10 +776,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   //
   // `groups` is seeded from the layer being loaded before the recompute, because `recompute` carries
   // identity over from whatever `groups` holds: leaving the outgoing layer's there matches the incoming
-  // group against a stranger by centroid and adopts its id, and an id is what a relief is keyed by. Two
-  // layers of one board are centred on the same place, so the match always succeeds and the ground of a
-  // stacked board comes back named after the layer under it — losing its relief in the live layout and
-  // writing the wrong id into the document on the next save.
+  // group against a stranger by centroid and adopts its id. Two layers of one board are centred on the same
+  // place, so the match always succeeds and the ground of a stacked board comes back named after the layer
+  // under it, writing the wrong id into the document on the next save.
   function loadActiveToCanvas() {
     canvas.clearShapes();
     for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
@@ -999,18 +988,18 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   function restore(text) {
     let state; try { state = JSON.parse(text); } catch { return; }
-    // What was picked, in each of the three things that can be. Restoring the document rebuilds the mark and
-    // prop documents from scratch, and building one clears its selection — so each is taken back afterwards
-    // where the step left it standing.
+    // What was picked, in each of the things that can be. Restoring the document rebuilds the prop document
+    // from scratch, and building one clears its selection — so each is taken back afterwards where the step
+    // left it standing.
     const wasSelected = canvas.selectedId;
-    const wasMark = canvas.reliefTools?.selectedId ?? null;
+    const wasModifier = pickedModifier;
     const wasProp = canvas.dressingTools?.selectedId ?? null;
     const wasPiece = selectedStructuralId;
     handle.load(state, true);
     // A shape that survived the step keeps its selection; one the step created is gone, so the selection
     // clears rather than naming nothing.
     if (wasSelected && canvas.getShape(wasSelected)) selectShape(wasSelected); else selectShape(null);
-    if (wasMark && canvas.relief.byId(wasMark)) canvas.reliefTools?.select(wasMark);
+    canvas.modifierTools?.select(modifiers.some(modifier => modifier.id === wasModifier) ? wasModifier : null);
     if (wasProp && canvas.dressing.byId?.(wasProp)) canvas.dressingTools?.select(wasProp);
     // A plan piece survives every step — the plan writes it, not the author — so what a step back changes is
     // what it states, and the rail is re-announced rather than re-picked.
@@ -1019,12 +1008,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
     // A step replaces the WHOLE document, so every phase reading a part of it has to be told. `load` puts
     // the shapes back on the canvas and `selectShape` re-announces the selection, which is the Draw phase
-    // entire. The marks and the props are restored on the canvas by the same call and then not announced, so
+    // entire. The modifiers and the props are restored on the canvas by the same call and then not announced, so
     // their panels would go on listing what the step just undid, and the overlays drawn from the server would
     // go on showing the surface it was solved for. Each phase is told the way its own edits tell it; the
     // theme finish is announced by `load` itself.
     fire("OnDressing", dressingState());
-    fire("OnRelief", reliefState());
     fire("OnModifiers", modifierState());
     paintMasks();
     syncRelief();                  // the statement moved, so the contours and the shading it produced have too
@@ -1167,63 +1155,33 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     else { paintFeed.cancel(); canvas.loadPaintLayer(null); }
   }
 
-  // ── the stated relief (docs/world-export/relief.md) ────────────────────
-  // The group in play: the one stating the selected mark, else the one the author has picked on the canvas.
-  // Its own settings — base, reach, step, grain — are what the inspector shows and what it writes, so both
-  // ask this rather than each deciding: a write reaching a different group than the panel is reading is an
-  // edit that lands nowhere and says nothing.
-  function reliefGroup() {
-    const selectedId = canvas.reliefTools?.selectedId ?? null;
-    const selected = selectedId ? canvas.relief.byId(selectedId) : null;
-    return selected?.groupId ?? canvas.selectedGroupId ?? null;
-  }
-
-  // What an author has said about the ground inside each group. Distinct from the contour overlay below it:
-  // this is the statement, that is what the solver made of it. Both are on screen at once during the phase,
-  // which is the whole reason a mark can be tuned by eye.
-  function reliefState() {
-    const tools = canvas.reliefTools;
-    const selectedId = tools?.selectedId ?? null;
-    const selected = selectedId ? canvas.relief.byId(selectedId) : null;
-    const groupId = reliefGroup();
-    return JSON.stringify({
-      // Marks and pushes as one list, because that is how the phase treats them: the sidebar lists them
-      // together and the canvas selects across both. Which of the two a row is, its `kind` says.
-      marks: canvas.relief.statements,
-      selectedId,
-      selected,
-      // A push's per-vertex lifts, expanded to one number per ring vertex — what an inspector shows, since
-      // an author who wants one corner lower needs a number to change and "the amount, except there" is not
-      // one. Only for a selected push; null for everything else.
-      amounts: selected && isPush(selected) ? pushAmounts(selected) : null,
-      groupId,
-      groupName: groupId ? (groupById(groupId)?.name ?? groupId) : null,
-      // What every group stating a mark is called, so the list heads each one the way the group tree does.
-      // A relief is keyed by group id and an id is not a name — `isl_1788640472266_0` heads a list of marks
-      // an author placed under "Group 1".
-      groupNames: Object.fromEntries(groups.map(group => [group.id, group.name ?? group.id])),
-      // What the group's ground already stands at. The panel reads every stated height against it, and it
-      // is what an untouched base is: a relief replaces the top of every column of its group, so a base
-      // that differs from this moves the whole landmass.
-      groupTop: groupId ? canvas.groupTop(groupId) : null,
-      relief: groupId ? canvas.relief.peek(groupId) : null,
-    });
-  }
-
-  function afterReliefChange() {
-    markDirty();
-    fire("OnRelief", reliefState());
-    refreshRelief();   // the statement changed, so the contours it produced have too
-  }
-
   // ── the modifier stack ─────────────────────────────────────────────────────
   // The stack runs on the server, in the build every read takes, so the contours, the paint and the 3-D
-  // preview are what show its effect; the board outlines the picked modifier's mask and its images.
-  const modifierState = () => JSON.stringify({ modifiers, selectedId: pickedModifier });
+  // preview are what show its effect. The board outlines every mask in Terraform, and the picked one with its
+  // images under the map's symmetry.
+  const modifierState = () => JSON.stringify({ modifiers, selectedId: pickedModifier, addingTo });
+
+  // The modifier a trace adds an outline to rather than starting a new one, or null.
+  let addingTo = null;
 
   function paintMasks() {
-    const picked = reliefMode ? modifiers.find(modifier => modifier.id === pickedModifier) : null;
-    canvas.setMasks(picked ? maskRings(picked, setup.mirror_mode, setup.center?.cx ?? 0, setup.center?.cz ?? 0) : []);
+    if (!reliefMode) { canvas.setMasks([]); return; }
+    const centre = [setup.center?.cx ?? 0, setup.center?.cz ?? 0];
+    canvas.setMasks(modifiers.flatMap(modifier => modifier.id === pickedModifier
+      ? maskRings(modifier, setup.mirror_mode, ...centre).map(ring => ({ ...ring, picked: true }))
+      : maskRings(modifier, "none").map(ring => ({ ...ring, off: !!modifier.off }))));
+  }
+
+  /** A finished trace: a new modifier of `op` with that outline, or one more outline on the modifier being
+   *  added to. Either way it is the one picked. */
+  function traced(op, points) {
+    const into = addingTo ? modifiers.find(modifier => modifier.id === addingTo) : null;
+    addingTo = null;
+    const made = into ? addArea(into, points) : newModifier(modifiers, op, points);
+    modifiers = into ? modifiers.map(modifier => modifier.id === made.id ? made : modifier) : [...modifiers, made];
+    pickedModifier = made.id;
+    canvas.modifierTools?.select(made.id, made.mask.areas.length - 1);
+    afterModifierChange();
   }
 
   function afterModifierChange() {
@@ -1235,13 +1193,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     iso.drop();
   }
 
-  // ── the relief contour overlay ─────────────────────────────────────────────
-  // Same seam as the painted Blocks overlay, and for the same reason: the surface a relief produces is
-  // solved by the export's own solver, so the only honest preview is the one the server draws. The lines
+  // ── the contour overlay ─────────────────────────────────────────────────────
+  // Same seam as the painted Blocks overlay, and for the same reason: the ground the modifier stack makes is
+  // built by the export's own build, so the only honest preview is the one the server draws. The lines
   // come back as world points and are stroked at the live zoom, so unlike the block bitmap this does not
   // need re-fetching to stay sharp — only when the layout changes.
   //
-  // It follows the toggle alone rather than a phase. A relief is geometry: it is worth seeing while the
+  // It follows the toggle alone rather than a phase. Height is geometry: it is worth seeing while the
   // shapes over it are still being drawn, which is exactly when the paint overlay is not.
   const RELIEF_DEBOUNCE_MS = 140;
   let reliefOn = false;
@@ -1304,7 +1262,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       // Arming a placing tool lets go of the prop or mark picked last, so the inspector shows the knobs the
       // next placement takes — otherwise a recipe picked with the tool in hand restyles the one already down.
       if (DRESSING_TOOLS[tool]) canvas.dressingTools?.select(null);
-      if (RELIEF_TOOLS[tool]) canvas.reliefTools?.select(null);
+      if (opOfTool(tool) && !addingTo) canvas.modifierTools?.select(null);
     },
     // Selection-only: a phase that picks groups and shapes but edits none of them. Forcing the select tool
     // is part of the restriction — a draw tool left armed would add geometry, which is equally the Draw
@@ -1341,7 +1299,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.setBlocksVisible(blocksOn);
       syncPaint();
     },
-    // The contour overlay. Unlike Blocks it is not phase-gated: a relief is geometry, so it is worth seeing
+    // The contour overlay. Unlike Blocks it is not phase-gated: height is geometry, so it is worth seeing
     // while the shapes over it are still being drawn.
     setReliefVisible(v){
       reliefOn = !!v;
@@ -1411,7 +1369,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       recompute(); pushLayout(); iso.drop(); markDirty();
     },
 
-    // How a shape's top is decided once its group carries a relief, and how far in it eases into the ground
+    // How a shape's top is decided against the ground it stands on, and how far in it eases into the ground
     // it meets. Neither changes the footprint, so the group does not need recomputing — but both change the
     // column, so the iso and the saved document do.
     setHeightMode(id, mode) {
@@ -1429,7 +1387,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       pushLayout(); iso.drop(); markDirty();
     },
 
-    // Whether the shape's ground joins its group's relief. Solved on the server, so nothing here recomputes
+    // Whether the modifiers leave the shape's ground out. Built on the server, so nothing here recomputes
     // — the next preview is what shows it.
     setReliefScope(id, scope) {
       const s = canvas.getShape(id);
@@ -1605,26 +1563,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       fire("OnDressing", dressingState()); return null;
     },
 
-    // ── relief (docs/world-export/relief.md) ──
-    // Placing is the canvas's; the bridge exposes reading the document, editing the selected mark, the group
-    // settings the marks are stated against, and the per-kind settings a newly placed mark starts from.
+    // ── the modifier stack (docs/tools/sketch.md, Terraform) ──
+    // Tracing and dragging a mask are the canvas's; the bridge holds the stack and edits it by id.
     setReliefMode(on) {
       reliefMode = !!on;
       canvas.setReliefMode(reliefMode);
-      // The phase shows the statement and its result together, which is the only way a mark can be tuned by
-      // eye — so entering it turns the contour overlay on rather than leaving it to a second toggle.
-      if (reliefMode) { reliefOn = true; syncRelief(); fire("OnRelief", reliefState()); fire("OnModifiers", modifierState()); }
+      // The phase shows the stack and the ground it made together, so entering it turns the contour overlay on.
+      if (reliefMode) { reliefOn = true; syncRelief(); fire("OnModifiers", modifierState()); }
+      else { addingTo = null; canvas.modifierTools?.select(null); }
       paintMasks();
-    },
-
-    // ── the modifier stack (docs/tools/sketch.md, Terraform) ──
-    /** Add a modifier of `op` at the end of the stack, its mask round the middle of the view, and pick it. */
-    addModifier(op) {
-      const added = newModifier(modifiers, op, canvas.viewCentre());
-      modifiers = [...modifiers, added];
-      pickedModifier = added.id;
-      canvas.reliefTools?.select(null);
-      afterModifierChange();
     },
     /** Patch one modifier; `patchJson` is a partial modifier, `mask` replaced whole. An error string on bad JSON. */
     updateModifier(id, patchJson) {
@@ -1634,7 +1581,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     deleteModifier(id) {
       modifiers = modifiers.filter(modifier => modifier.id !== id);
-      if (pickedModifier === id) pickedModifier = null;
+      if (pickedModifier === id) canvas.modifierTools?.select(null);
       afterModifierChange();
     },
     /** Move one modifier `by` places in the order the stack runs. */
@@ -1642,61 +1589,18 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       modifiers = moveModifier(modifiers, id, Number(by));
       afterModifierChange();
     },
-    /** Pick a modifier to outline on the board, or null. Picking is not an edit. */
+    /** Pick a modifier, or null. Picking is not an edit. */
     selectModifier(id) {
-      pickedModifier = modifiers.some(modifier => modifier.id === id) ? id : null;
-      if (pickedModifier) canvas.reliefTools?.select(null);
+      canvas.modifierTools?.select(modifiers.some(modifier => modifier.id === id) ? id : null);
+    },
+    /** Put the picked modifier's own tool in hand so the next outline traced joins its mask. */
+    addOutline(id) {
+      const modifier = modifiers.find(entry => entry.id === id);
+      if (!modifier || readOnly) return;
+      addingTo = id;
       fire("OnModifiers", modifierState());
-      paintMasks();
-    },
-    selectMark(id) { canvas.reliefTools?.select(id || null); },
-    deleteMark() { if (canvas.reliefTools?.deleteSelected()) afterReliefChange(); },
-    /**
-     * Rename the selected mark. Its id is the name every finding calls it by — a seam is reported as a pair
-     * of them — so it is authored rather than minted, and a clash is refused with a sentence instead of
-     * silently making two marks one.
-     */
-    renameMark(next) {
-      const tools = canvas.reliefTools;
-      if (!tools) return "Nothing is selected.";
-      const refused = tools.renameSelected(next);
-      if (!refused) afterReliefChange();
-      return refused;
-    },
-    /** Patch the selected mark. `patchJson` is a partial mark; returns an error string on bad JSON, else null. */
-    updateMark(patchJson) {
-      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
-      canvas.reliefTools?.updateSelected(patch);
-      afterReliefChange(); return null;
-    },
-    /** Patch the group's own relief — base, reach, step, grain, and the rim it carries. Not a mark: these
-     *  are what every mark in the group is stated against, so changing one moves the whole surface. */
-    updateGroupRelief(patchJson) {
-      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
-      const groupId = reliefGroup();
-      if (!groupId) return "No group is selected.";
-      canvas.reliefTools?.updateRelief(groupId, patch);
-      afterReliefChange(); return null;
-    },
-    /**
-     * State the lift at ONE of a selected push's ring vertices — what makes a drawn ridge fall along its
-     * length instead of holding level. Collapses back to the single `amount` when every vertex agrees, so
-     * undoing a variation leaves the push an author started from rather than an array that happens to be
-     * flat. A no-op unless a push is selected: a mark has no lift to vary.
-     */
-    setPushAmount(index, value) {
-      const tools = canvas.reliefTools;
-      const selected = tools?.selectedId ? canvas.relief.byId(tools.selectedId) : null;
-      if (!selected || !isPush(selected)) return "No push is selected.";
-      tools.updateSelected(pushAmountPatch(selected, Number(index), Number(value)));
-      afterReliefChange(); return null;
-    },
-    /** The starting values the next mark of a kind takes — what the inspector edits with nothing selected. */
-    getMarkSettings(kind) { return JSON.stringify(canvas.reliefTools?.settingsFor(kind) ?? {}); },
-    setMarkSettings(kind, patchJson) {
-      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
-      canvas.reliefTools?.setSettings(kind, patch);
-      fire("OnRelief", reliefState()); return null;
+      canvas.setActiveTool(`modifier:${modifier.op}`);
+      fire("OnToolChanged", `modifier:${modifier.op}`);
     },
 
     // Load a persisted layout: setup + the layers[] array. A flat board is a stack of one.
@@ -1717,7 +1621,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       biome = (s.biome && typeof s.biome === "object") ? s.biome : undefined;
       biomeSource = (biome && Number.isFinite(s.biomeSource)) ? s.biomeSource : 0;
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
-      canvas.setReliefDoc(s.relief && typeof s.relief === "object" ? s.relief : null);
       modifiers = Array.isArray(s.modifiers) ? structuredClone(s.modifiers) : [];
       if (!modifiers.some(modifier => modifier.id === pickedModifier)) pickedModifier = null;
       const raw = (s.layers && s.layers.length) ? s.layers : [];
@@ -1791,7 +1694,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         // Relief rides top-level keyed by group rather than on the shapes, because a group outlives a
         // redrawing of the shapes in it. Omitted when
         // nothing is stated, so opening the phase and leaving it cannot add a key to the layout.
-        relief: canvas.relief.isEmpty ? undefined : canvas.relief.toJSON(),
         // The terraform stack, omitted when empty for the same reason.
         modifiers: modifiers.length ? modifiers : undefined,
         layers: layers.map(L => ({
@@ -1835,8 +1737,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     "setThemeSource", "setBiome",
     "assignShape", "assignGroup",
     "deleteProp", "deleteWing", "updateWing", "pullRecipe", "updateProp",
-    "deleteMark", "updateMark", "renameMark", "updateGroupRelief", "setPushAmount",
-    "addModifier", "updateModifier", "deleteModifier", "moveModifier",
+    "updateModifier", "deleteModifier", "moveModifier",
   ];
   for (const verb of MUTATORS) {
     const bare = handle[verb];

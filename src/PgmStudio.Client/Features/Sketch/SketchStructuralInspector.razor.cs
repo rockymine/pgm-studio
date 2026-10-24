@@ -9,7 +9,7 @@ namespace PgmStudio.Client.Features.Sketch;
 /// <summary>
 /// What a picked play piece states, and what about it an author may correct. A spawn or wool room's region
 /// carries the height its ground is held at, and a building footprint carries none, the region it stands in
-/// being what a group's relief is held against.
+/// being what its ground is.
 /// </summary>
 public partial class SketchStructuralInspector
 {

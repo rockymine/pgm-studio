@@ -14,8 +14,6 @@ public partial class SketchModifierList
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
-    private Task Add(string op) => Call("addModifier", op);
-
     private Task Pick(string id) => Call("selectModifier", id == State.SelectedId ? null : id);
 
     private Task Move(string id, int by) => Call("moveModifier", id, by);

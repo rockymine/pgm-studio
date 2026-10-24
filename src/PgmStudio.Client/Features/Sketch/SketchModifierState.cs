@@ -32,6 +32,9 @@ public sealed record SketchModifierState(IReadOnlyList<JsonObject> Modifiers, st
     public static string Name(JsonObject modifier) =>
         modifier["name"]?.GetValue<string>() is { Length: > 0 } named ? named : Id(modifier);
 
+    /// <summary>The dock tool that traces a new modifier of <paramref name="op"/>.</summary>
+    public static string Tool(string op) => $"modifier:{op}";
+
     public static string Icon(string op) => op switch
     {
         ModifierOps.Mound => "mountain",
