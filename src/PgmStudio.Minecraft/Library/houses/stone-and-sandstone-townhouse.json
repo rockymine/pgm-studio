@@ -12,7 +12,7 @@
       "thickness": 1
      }
     ],
-    "ending": "repeat"
+    "ending": "hold"
    },
    "extent": 2
   },
@@ -71,7 +71,7 @@
      "thickness": 1
     }
    ],
-   "ending": "repeat"
+   "ending": "hold"
   },
   "extent": 5
  },
@@ -141,7 +141,7 @@
        "thickness": 1
       }
      ],
-     "ending": "repeat"
+     "ending": "hold"
     },
     "extent": 4
    },
@@ -194,7 +194,7 @@
        "thickness": 3
       }
      ],
-     "ending": "repeat"
+     "ending": "hold"
     },
     "extent": 3
    },
@@ -251,7 +251,7 @@
        "thickness": 2
       }
      ],
-     "ending": "repeat"
+     "ending": "hold"
     },
     "extent": 3
    },

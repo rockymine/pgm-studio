@@ -317,7 +317,7 @@ time. Shipped to the live studio with no beta (decision D3).
 - Paint layers: a block chosen by slope, area, height band and noise, first match winning, an area that may name
   another layer's line (a river's sandy bank).
 - Lay: soil depth by slope, rock in beds that dip and fold, merged with `TP26` so a bed follows the broad tilt.
-  A band stack that cycles (`WE143`) lands here.
+  A band stack that cycles is the `cycle` ending (`docs/world-export/terrain-painting.md` §3.1).
 - Water from each river's level, with its bed's own stack; falls off the island's edge into the void.
 - A shape's underside per column, with a sheer side beside a rift, so a layer floats at its own height or rests
   on the ground under it.

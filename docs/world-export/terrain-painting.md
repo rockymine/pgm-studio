@@ -195,12 +195,22 @@ whichever way it is read and only the distance differs, so a second material rea
 have been the same code twice. `depth` is what a layered material always meant and stays the default, which is why
 nothing already stored has to be rewritten.
 
-**`ending` decides what happens past the last band, and `beyond` says what shows there.** Under `repeat` the
-last band claims everything further along, which is right where the stack owns its whole space — a bucket. A
-ring stack usually does not own its whole space: it is meant to run a few rings in and then stop, so it ends
-`handOver` and `beyond` answers for everything past it. Unset, `beyond` is stone, the fill every unclaimed
-block already falls to. Off the footprint the inward axis is -1, which is not "past the last band" — there is
-no ring to be in, so the stack is never asked and `beyond` answers directly.
+**`ending` decides what happens past the last band, and `beyond` says what shows there.** Under `hold` the
+last band claims everything further along — it is held, the bands are not repeated — which is right where the
+stack owns its whole space, a bucket. A ring stack usually does not own its whole space: it is meant to run a
+few rings in and then stop, so it ends `handOver` and `beyond` answers for everything past it. Unset, `beyond`
+is stone, the fill every unclaimed block already falls to. Off the footprint the inward axis is -1, which is
+not "past the last band" — there is no ring to be in, so the stack is never asked and `beyond` answers
+directly.
+
+**Under `cycle` the bands recur.** Past the last band the stack reads again from its first, as
+`BandStack.At(step % span)` with `span` the total thickness of the bands, so a short run of beds — the strata
+of a pillar, the courses of a banded wall — covers any distance without being written out longhand. The
+modulo is true rather than truncated: a step below the first band wraps from the end, so a `height` stack that
+cycles bands the ground below its datum as well, where one that holds hands that ground to `beyond`. A ring
+stack that cycles is still never asked off the footprint, and a stack with no thickness to cycle over claims
+nothing. A slope stack that cycles has no steepest band, so it names no face and `Materials.CliffAngle` reads
+the default.
 
 **The height axis reads the world and not the column, which is what a made thing needs.** `depth` and
 `inward` both measure from the shape the block is in, so a colour change along either splits nothing: the band
@@ -294,7 +304,7 @@ surface — stored:
 A slope mask, stored:
 
 ```json
-{"kind":"layered","axis":"slope","stack":{"ending":"repeat","bands":[
+{"kind":"layered","axis":"slope","stack":{"ending":"hold","bands":[
    {"material":{"kind":"solid","id":2,"data":0},"thickness":30},
    {"material":{"kind":"solid","id":3,"data":1},"thickness":15},
    {"material":{"kind":"solid","id":4,"data":0},"thickness":45}]}}
@@ -315,7 +325,7 @@ the `beyond` slot and — on the height axis — `from` and `follow`, with `reac
 different things. The offered words are `BandAxes` and `BandEndings` in `PgmStudio.Vocabulary`, because the
 client cannot see the enums, and a test pins each set against the enum it spells. A **stored** theme carrying
 the older flat `layers` list is still read forward, and reading it forward is why it could not author a ring:
-every such list owned its whole space, so it ends `repeat`. `ending` is now written as `"repeat"`/`"handOver"` rather than 0/1, the way `rimEdges` and `axis` are:
+every such list owned its whole space, so it ends `hold`. `ending` is written as `"hold"`/`"handOver"`/`"cycle"` rather than 0/1, the way `rimEdges` and `axis` are:
 it had never been read by a person before, because nothing authored a stack that ends.
 
 A disc and a cross are the two shapes worth walking this on, because an inner corner seeds ring 0 as surely as

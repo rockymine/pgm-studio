@@ -76,8 +76,8 @@
         case MaterialKind.Layered:
           <p>Bands of a set thickness, counted along a distance. <strong>Read along</strong> picks the distance:
             down from the top of the ground, in from the edge (as rings), or up from a world height.</p>
-          <p><strong>Past the last band</strong> picks whether the last band repeats, or hands over to another
-            material (stone unless you set one).</p>
+          <p><strong>Past the last band</strong> picks whether the last band holds, the bands cycle from the
+            first, or the stack hands over to another material (stone unless you set one).</p>
           break;
 
         case MaterialKind.Voronoi:
@@ -184,7 +184,7 @@
         }
         @ListFoot(ThemeFields.StackBands, "Add band")
         <Field Label="Past the last band">
-          <Chip Active="@(Ending == BandEndings.HandOver)" OnClick="ToggleEnding">@BandEndings.Describe(Ending)</Chip>
+          <Select Options="@Select.Words(BandEndings.All, BandEndings.Describe)" Value="@Ending" ValueChanged="SetEnding" />
         </Field>
         @if (ShowsBeyond)
         {

@@ -521,7 +521,7 @@ it — a rock keeping one family the ground does not have is a rock however much
 **A rock does not stand on a face either, and the board says where its faces are.** A surface graded by angle
 (`BandAxis.Slope`) is an angle mask: each band claims a span of degrees, the gradient under a cell decides
 which one paints it, and the band covering the steepest ground is the board's own statement of where it stopped
-calling the ground a meadow. `Materials.CliffAngle` reads that boundary back — under `repeat` the last band
+calling the ground a meadow. `Materials.CliffAngle` reads that boundary back — under `hold` the last band
 carries into the steepest ground, under `handOver` whatever the stack sits over does — and `DR-STEEP` complains
 where a boulder's cell is inclined at least that far. The slope is `SurfaceGradient.Degrees` over the surface
 the pass seats on, which is the same reading the bands themselves are cut by, so a rule and a band cannot

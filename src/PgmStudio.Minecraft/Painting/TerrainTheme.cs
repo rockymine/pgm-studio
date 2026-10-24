@@ -255,13 +255,16 @@ public static class Materials
         if (Graded(material) is not { } graded) return DefaultCliffAngle;
 
         var bands = graded.Stack?.Bands ?? [];
-        var ending = graded.Stack?.Ending ?? BandEnding.Repeat;
+        var ending = graded.Stack?.Ending ?? BandEnding.Hold;
         var span = bands.Sum(band => Math.Max(1, band.Thickness));
 
-        // One region is no grading: a single band that repeats paints every angle alike, and so does one that
+        // One region is no grading: a single band that is held paints every angle alike, and so does one that
         // hands over past ground no gradient reaches. Such a stack states nothing about where a face begins.
         var handsOver = ending == BandEnding.HandOver && span <= SurfaceGradient.Steepest;
         if (bands.Count + (handsOver ? 1 : 0) < 2) return DefaultCliffAngle;
+
+        // A stack that cycles bands every span of degrees and has no steepest band, so it names no face either.
+        if (ending == BandEnding.Cycle) return DefaultCliffAngle;
 
         int at = 0, start = 0;
         foreach (var band in bands)
@@ -270,9 +273,9 @@ public static class Materials
             at += Math.Max(1, band.Thickness);
             if (at > SurfaceGradient.Steepest) return start;
         }
-        // Nothing spans the steepest ground: under Repeat the last band carries on into it, under HandOver
+        // Nothing spans the steepest ground: under Hold the last band carries on into it, under HandOver
         // whatever the stack sits over takes it from where the bands run out.
-        return ending == BandEnding.Repeat ? start : at;
+        return ending == BandEnding.Hold ? start : at;
     }
 
     /// <summary>The outermost slope-axis stack in a material tree, or null where nothing grades by angle.</summary>
@@ -334,7 +337,7 @@ public static class Materials
 /// <para><b><see cref="Beyond"/> is what shows where the stack claims nothing</b>, which is the half <see
 /// cref="BandEnding.HandOver"/> leaves to whoever holds the axis. Unset it is stone, the fill every unclaimed
 /// block already falls to — right for a depth stack, whose bucket is its whole space, and wrong for a ring stack
-/// that is meant to stop a few rings in and let the ground it sits on show. Under <see cref="BandEnding.Repeat"/>
+/// that is meant to stop a few rings in and let the ground it sits on show. Under <see cref="BandEnding.Hold"/>
 /// nothing is ever unclaimed and this is never reached.</para>
 /// <para><b>From</b> — Where a <see cref="BandAxis.Height"/> stack's first band sits, in world Y. Read on no
 /// other axis, and zero everywhere else.</para>
@@ -346,7 +349,7 @@ public static class Materials
 /// <see cref="DefaultReach"/>; both are read on the height axis only.</para>
 /// <para><b>On the <see cref="BandAxis.Slope"/> axis a thickness is a span of degrees</b>, not of blocks: a
 /// stack of grass at 20 then coarse dirt at 15 is meadow up to 19° and coarse dirt from 20° to 34°, with
-/// <see cref="Beyond"/> — or the last band under <see cref="BandEnding.Repeat"/> — taking every steeper
+/// <see cref="Beyond"/> — or the last band under <see cref="BandEnding.Hold"/> — taking every steeper
 /// cell.</para></summary>
 public sealed record LayeredMaterial(
     BandStack Stack,
@@ -379,7 +382,9 @@ public sealed record LayeredMaterial(
         };
         // Off the footprint the inward axis has no answer, which is not the same as being past the last band:
         // there is no ring to be in, so the stack never gets asked.
-        if (step < 0) return Beyond?.Resolve(in ctx) ?? (Blocks.Stone, 0);
+        // A height stack that cycles has bands below its datum as well, so it is asked there.
+        var cyclesBelow = Axis == BandAxis.Height && Stack.Ending == BandEnding.Cycle;
+        if (step < 0 && !cyclesBelow) return Beyond?.Resolve(in ctx) ?? (Blocks.Stone, 0);
         return Stack.At(step).Material?.Resolve(in ctx)
             ?? Beyond?.Resolve(in ctx)
             ?? (Blocks.Stone, 0);

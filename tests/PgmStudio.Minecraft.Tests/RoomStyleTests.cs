@@ -104,7 +104,7 @@ public sealed class RoomStyleTests
 
     // ── the stack itself ───────────────────────────────────────────────────────────────────────────
     [Test]
-    public async Task A_stack_is_read_from_the_parts_own_base_and_its_last_course_repeats()
+    public async Task A_stack_is_read_from_the_parts_own_base_and_its_last_course_holds()
     {
         var part = new RoomPart(new BandStack(
             [new Band(new SolidMaterial(Blocks.Stone), 2), new Band(new SolidMaterial(Blocks.Dirt))]), 6);
