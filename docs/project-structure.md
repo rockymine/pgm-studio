@@ -102,17 +102,17 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 25 | 4,692 | `Playability/` 14 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 170 | 23,541 | `Endpoints/` 84 · `Services/` 65 · `Access/` 14 · `Http/` 3 · 4 at root |
-| `Client` | 271 | 30,935 | `Features/` 149 (nested) · `Components/` 92 (nested) · `Pages/` 17 · `Layout/` 5 · `Models/` 5 · 3 at root |
+| `Api` | 170 | 23,542 | `Endpoints/` 84 · `Services/` 65 · `Access/` 14 · `Http/` 3 · 4 at root |
+| `Client` | 271 | 30,986 | `Features/` 149 (nested) · `Components/` 92 (nested) · `Pages/` 17 · `Layout/` 5 · `Models/` 5 · 3 at root |
 | `Contracts` | 35 | 3,854 | flat |
 | `Data` | 26 | 4,357 | `Map/` 7 · `Features/` 6 · `Theme/` 5 · `Access/` 3 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 33 | 4,306 | flat |
-| `Export` | 24 | 5,244 | flat |
-| `Geom` | 63 | 7,710 | `Algorithms/` 20 · `Relief/` 11 · `Render/` 7 · 25 at root |
+| `Export` | 24 | 5,274 | flat |
+| `Geom` | 64 | 7,717 | `Algorithms/` 20 · `Relief/` 11 · `Render/` 7 · 26 at root |
 | `Import` | 4 | 498 | flat |
 | `Migrations` | 87 | 6,384 | `Migrations/` 86 · 1 at root |
-| `Minecraft` | 114 | 23,795 | `Render/` 22 · `Palette/` 18 · `Stamping/` 18 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
-| `Pgm` | 184 | 36,679 | `Authoring/` 42 · `Compose/` 39 (nested) · `Evaluate/` 24 (nested) · `Sketch/` 18 · `Editing/` 11 · `Derive/` 10 · `Plan/` 10 · `Shapes/` 10 · `Render/` 5 · `Detect/` 1 · 14 at root |
+| `Minecraft` | 115 | 23,855 | `Render/` 22 · `Palette/` 18 · `Stamping/` 18 · `Anvil/` 13 · `Dressing/` 13 · `Painting/` 12 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
+| `Pgm` | 184 | 36,706 | `Authoring/` 42 · `Compose/` 39 (nested) · `Evaluate/` 24 (nested) · `Sketch/` 18 · `Editing/` 11 · `Derive/` 10 · `Plan/` 10 · `Shapes/` 10 · `Render/` 5 · `Detect/` 1 · 14 at root |
 | `Vocabulary` | 47 | 3,136 | flat |
 <!-- /census -->
 

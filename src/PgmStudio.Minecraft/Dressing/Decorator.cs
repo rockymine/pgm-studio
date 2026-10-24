@@ -49,10 +49,11 @@ namespace PgmStudio.Minecraft.Dressing;
 /// <param name="CliffAngleAt">The angle from which the theme painting a cell calls its ground a face, by layer
 /// and cell — what a prop is kept off a cliff against (<see cref="Incline"/>). Absent, no ground is a
 /// cliff.</param>
-/// <param name="StackWater">The water the sketch's modifier stack made: each wet cell and the height its surface
-/// stands at, in the unit of <paramref name="SurfaceTop"/>, so the fill reaches the block under it. It is filled
-/// the way a basin is — only the ground lower than the surface, writing into air — before any prop is placed.
-/// Absent, none.</param>
+/// <param name="StackWater">The water the sketch's modifier stack made (<see cref="StackedWater"/>): each wet cell
+/// and the height its surface stands at, in the unit of <paramref name="SurfaceTop"/>, so the fill reaches the
+/// block under it. It is filled the way a basin is — only the ground lower than the surface, writing into air —
+/// over the bed its modifier states, before any prop is placed, and a wet column beside a cell with no ground
+/// pours down past it. Absent, none.</param>
 public sealed record DressingContext(
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
     IReadOnlyList<PlacedProp> Props,
@@ -63,7 +64,7 @@ public sealed record DressingContext(
     IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? SurfaceByLayer = null,
     IReadOnlyList<(int X, int Z)>? Waypoints = null,
     Func<string?, int, int, int>? CliffAngleAt = null,
-    IReadOnlyDictionary<(int X, int Z), int>? StackWater = null)
+    StackedWater? StackWater = null)
 {
     public DressingContext(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IReadOnlyList<PlacedProp> props)
         : this(surfaceTop, props, (_, _) => null, DressingSymmetry.None) { }
@@ -225,7 +226,7 @@ public static class Decorator
 
         UnheldFaces(context, declined);
 
-        if (context.StackWater is { Count: > 0 } stackWater)
+        if (context.StackWater is { Columns.Count: > 0 } stackWater)
         {
             var result = PlaceStackWater(world, context, stackWater, claims.On(null), declined);
             Cover(result, PropKinds.Fluid, StackWaterId);
@@ -544,16 +545,56 @@ public static class Decorator
     /// <summary>The id the water the modifier stack made is claimed under.</summary>
     private const string StackWaterId = "terraform-water";
 
+    /// <summary>The data bit that makes flowing water a falling column.</summary>
+    private const int FallingWater = 8;
+
     /// <summary>Fill the water the modifier stack made: each wet cell to the block under its surface, through the
-    /// same flood a basin uses, with a fluid prop's own defaults for the bank and the beach. The cells already
-    /// stand at every image of a symmetric board, so nothing is fanned.</summary>
-    private static Placed PlaceStackWater(VoxelWorld world, DressingContext context,
-                                          IReadOnlyDictionary<(int X, int Z), int> water,
+    /// same flood a basin uses, then pour it down past any edge of the ground. The cells already stand at every
+    /// image of a symmetric board, so nothing is fanned.
+    ///
+    /// <para>The cells are flooded one bed at a time. A body whose modifier states a bed lies on it, with its beach
+    /// measured from its own water; every other body lies on a fluid prop's default bank.</para></summary>
+    private static Placed PlaceStackWater(VoxelWorld world, DressingContext context, StackedWater water,
                                           GroundClaims.Storey claims, List<Finding> declined)
     {
-        var fluid = new FluidProp { Id = StackWaterId, Shape = FluidShape.Basin };
-        var cells = water.Keys.OrderBy(cell => cell.X).ThenBy(cell => cell.Z).ToList();
-        return Flood(world, context, fluid, claims, declined, cells, (x, z) => water[(x, z)] - 1, DressingSymmetry.None);
+        var covered = new List<(int X, int Z)>();
+        var beds = water.Beds;
+        var bedded = water.Columns.GroupBy(column => beds?.ContainsKey(column.Value.Body) == true ? column.Value.Body : null)
+                                  .OrderBy(group => group.Key, StringComparer.Ordinal);
+        foreach (var group in bedded)
+        {
+            var fluid = new FluidProp { Id = StackWaterId, Shape = FluidShape.Basin };
+            if (group.Key is { } body) fluid = fluid with { Bank = beds![body] };
+            var cells = group.Select(column => column.Key).OrderBy(cell => cell.X).ThenBy(cell => cell.Z).ToList();
+            var flooded = Flood(world, context, fluid, claims, declined, cells,
+                                (x, z) => water.Columns[(x, z)].Surface - 1, DressingSymmetry.None);
+            foreach (var image in flooded.Images) covered.AddRange(image);
+        }
+        PourOffEdges(world, context, water);
+        return new Placed(covered.Count, [covered]);
+    }
+
+    /// <summary>Water running off the ground. Each wet column whose water stands in the world and which has a
+    /// side with no ground drops a falling column of flowing water into the cell past it, from the height of its
+    /// surface down through air to <see cref="StackedWater.FallFloor"/>, stopping on whatever stands in the way.
+    /// Nothing is claimed: the fall is in the void, outside the ground every claim and count is made over.</summary>
+    private static void PourOffEdges(VoxelWorld world, DressingContext context, StackedWater water)
+    {
+        foreach (var ((x, z), wet) in water.Columns)
+        {
+            var lip = wet.Surface - 1;
+            if (world.GetBlock(x, lip, z).Id != Blocks.StationaryWater) continue;
+            foreach (var (dx, dz) in Sides)
+            {
+                var (pastX, pastZ) = (x + dx, z + dz);
+                if (context.SurfaceTop.ContainsKey((pastX, pastZ))) continue;
+                for (var y = lip; y >= water.FallFloor; y--)
+                {
+                    if (world.GetBlock(pastX, y, pastZ).Id != Blocks.Air) break;
+                    world.SetBlock(pastX, y, pastZ, Blocks.Water, FallingWater);
+                }
+            }
+        }
     }
 
     /// <summary>The flood a basin and the modifier stack's water share. Each cell of <paramref name="ring"/>, at

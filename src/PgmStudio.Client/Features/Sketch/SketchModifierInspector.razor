@@ -83,11 +83,13 @@
       @NumberRow("Bed depth", Depth, 2, "blocks the bed is cut below the ground", min: 0, step: "0.5")
       @NumberRow("Water depth", Water, 1, "blocks of water standing in the bed", min: 0, step: "0.5")
       @NumberRow("Bank", Bank, 4, "blocks over which the banks ease back into the ground", min: 0)
+      @BedRow
       break;
     case ModifierOps.Lake:
       @NumberRow("Level", Level, null, "the world y of the water surface; empty is one below the lowest rim ground")
       @NumberRow("Depth", Depth, 3, "blocks the basin is cut below the surface", min: 0, step: "0.5")
       @NumberRow("Shore", Shore, 3, "blocks over which the shore eases into the ground", min: 0)
+      @BedRow
       break;
     case ModifierOps.Road:
       @NumberRow("Grade", Grade, 0.25, "the most it may climb per block along its run", min: 0, step: "0.05")
@@ -135,6 +137,7 @@
       @NumberRow("Shelf", Shelf, 10, "blocks inland over which the land eases down to the beach", min: 1)
       @NumberRow("Depth", Depth, 6, "the deepest the sea floor lies under the surface", min: 0, step: "0.5")
       @NumberRow("Floor slope", Slope, 0.35, "blocks the floor falls per block out from the shore", min: 0, step: "0.05")
+      @BedRow
       break;
     case ModifierOps.Lumps:
       @NumberRow("Count", Count, 12, "how many are strewn; one whose middle misses the mask is not placed", min: 1, max: 200)
@@ -220,6 +223,17 @@
 </Inspector>
 
 @code {
+    private RenderFragment BedRow => __builder =>
+    {
+        <Field Label="Bed">
+          <LabelHint>(under its water and along its beach; empty is the default bank)</LabelHint>
+          <ChildContent>
+            <SlotSelect Styles="styles" Blocks="blocks" Value="@BedSlot.StyleId" Block="@BedSlot.Block"
+                        Unbound="@BedUnbound" ValueChanged="FillBed" />
+          </ChildContent>
+        </Field>
+    };
+
     private RenderFragment RangeRow(string label, string field, double least, double most, string hint,
                                     double? min = null, double? max = null, string step = "1") => __builder =>
     {

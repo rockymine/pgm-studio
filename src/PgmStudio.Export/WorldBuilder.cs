@@ -411,7 +411,7 @@ public static class WorldBuilder
             (layer, x, z) => Materials.CliffAngle(
                 themeAt(layer is { Length: > 0 } named ? named : SketchLayer.GroundId, x, z).Theme.Surface.Material),
             // The water the modifier stack made, filled before any prop is placed.
-            SketchRasterizer.WaterOf(layoutJson)));
+            DressingScope.StackWaterOf(layoutJson)));
         // A dressing-placed building is a structure the author chose, not scenery the way a tree or a boulder
         // is (docs/world-export/decoration.md) — its footprint claims Structure last, over whatever ground
         // provenance the terrain under it carried, the same "later pass wins" rule every stamp above follows.

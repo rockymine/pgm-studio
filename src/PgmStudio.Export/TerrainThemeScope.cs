@@ -187,6 +187,24 @@ public static class TerrainThemeScope
         catch (System.Text.Json.JsonException) { return null; }
     }
 
+    /// <summary>The material a River, Lake or Coast states for the bed under its water, or null where it states
+    /// none or one that will not read, which is dropped as an unreadable shape material is.</summary>
+    public static TerrainMaterial? BedOf(SketchModifierJson modifier)
+    {
+        if (modifier.BedMaterial is not { } json) return null;
+        try { return TerrainThemeJson.DeserializeMaterial(json.GetRawText()); }
+        catch (System.Text.Json.JsonException) { return null; }
+    }
+
+    /// <summary>Every bed a layout's modifiers state, by the id of the modifier that states it.</summary>
+    public static IReadOnlyDictionary<string, TerrainMaterial> BedsOf(SketchLayout? layout)
+    {
+        var beds = new Dictionary<string, TerrainMaterial>(StringComparer.Ordinal);
+        foreach (var modifier in layout?.Modifiers ?? [])
+            if (BedOf(modifier) is { } bed) beds[modifier.Id] = bed;
+        return beds;
+    }
+
     /// <summary>Every theme a layout carries, by the id it is registered under. What a gate reading the
     /// registry walks — the same deserialization the painter does, so a theme that will not parse as one is
     /// left out here exactly as it is dropped there.</summary>

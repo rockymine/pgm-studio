@@ -19,10 +19,10 @@ namespace PgmStudio.Pgm.Sketch;
 /// change under it, so it stays one flat thing standing proud (<see cref="SketchRasterizer.StackRelations"/>).
 /// One modifier can leave named shapes out of its own run (<see cref="ModifierMaskJson.Leaves"/>).</para>
 ///
-/// <para>A river and a lake wet the columns they cut. The stack answers those as <see cref="Run"/>'s result: each
-/// wet cell and the height its water surface stands at, in the same unit as a column's top, so water fills the
-/// blocks under it. A cell whose ground a later modifier raised to the surface or above is dry and not
-/// listed.</para>
+/// <para>A river, a lake and a coast wet the columns they cut. The stack answers those as <see cref="Run"/>'s result:
+/// each wet cell as a <see cref="WetColumn"/>, the height its water surface stands at in the same unit as a
+/// column's top, so water fills the blocks under it, and the modifier whose water it is. A cell whose ground a
+/// later modifier raised to the surface or above is dry and not listed.</para>
 /// </summary>
 internal static class SketchTerraform
 {
@@ -31,11 +31,11 @@ internal static class SketchTerraform
     /// modifier leaves the segments untouched and makes no water. Given <paramref name="changed"/>, it is filled
     /// with one count per modifier in list order: the columns whose rounded top that modifier's own run changed,
     /// zero for one switched off or unknown.</summary>
-    public static Dictionary<(int X, int Z), int> Run(SketchLayout? state, List<ColumnSegment> segments,
+    public static Dictionary<(int X, int Z), WetColumn> Run(SketchLayout? state, List<ColumnSegment> segments,
                                                       IReadOnlyList<string> axes, double centreX, double centreZ,
                                                       List<int>? changed = null)
     {
-        var wet = new Dictionary<(int X, int Z), int>();
+        var wet = new Dictionary<(int X, int Z), WetColumn>();
         changed?.Clear();
         changed?.AddRange(new int[state?.Modifiers?.Count ?? 0]);
         if (state?.Modifiers is not { Count: > 0 } modifiers) return wet;
@@ -65,18 +65,19 @@ internal static class SketchTerraform
         var before = (double[])heights.Clone();
         var surfaces = new double[moving.Length];
         Array.Fill(surfaces, double.NaN);
+        var owners = new int[moving.Length];
         var previous = changed is null ? null : (double[])heights.Clone();
         var leftCells = SketchRasterizer.ShapeCells(state, steps.SelectMany(step => step.Modifier.Mask.Leaves ?? [])
                                                                   .ToHashSet(StringComparer.Ordinal));
         foreach (var step in steps)
         {
-            Apply(step.Spec, heights, xs, zs, surfaces, LeftOut(step.Modifier.Mask.Leaves, leftCells, moving));
+            Apply(step.Spec, heights, xs, zs, surfaces, owners, step.At, LeftOut(step.Modifier.Mask.Leaves, leftCells, moving));
             if (changed is null) continue;
             changed[step.At] = Moved(previous!, heights);
             Array.Copy(heights, previous!, heights.Length);
         }
 
-        HoldWater(moving, heights, surfaces);
+        HoldWater(moving, heights, surfaces, owners);
 
         var changeAt = new Dictionary<(int X, int Z), double>(moving.Length);
         for (var at = 0; at < moving.Length; at++)
@@ -105,7 +106,7 @@ internal static class SketchTerraform
                 };
             }
             if (double.IsFinite(surfaces[at]) && segments[index].YTop < surfaces[at])
-                wet[cell] = (int)Math.Floor(surfaces[at]);
+                wet[cell] = new WetColumn((int)Math.Floor(surfaces[at]), modifiers[owners[at]].Id);
         }
         return wet;
     }
@@ -113,8 +114,9 @@ internal static class SketchTerraform
     /// <summary>Settles the stack's water. Water that touches is one body, so where two meet at different surfaces
     /// the lower takes the higher, as far as its own wet columns reach; then every dry column beside water is raised
     /// to that water's surface, so no water stands over its bank where a later modifier or a second body cut the
-    /// bank lower.</summary>
-    private static void HoldWater(KeyValuePair<(int X, int Z), int>[] moving, double[] heights, double[] surfaces)
+    /// bank lower. A column that takes a neighbour's surface takes its modifier with it.</summary>
+    private static void HoldWater(KeyValuePair<(int X, int Z), int>[] moving, double[] heights, double[] surfaces,
+                                  int[] owners)
     {
         var indexOf = new Dictionary<(int X, int Z), int>(moving.Length);
         for (var at = 0; at < moving.Length; at++) indexOf[moving[at].Key] = at;
@@ -132,6 +134,7 @@ internal static class SketchTerraform
                 if (indexOf.TryGetValue((x + dx, z + dz), out var beside) && Wet(beside) && surfaces[beside] < surfaces[at])
                 {
                     surfaces[beside] = surfaces[at];
+                    owners[beside] = owners[at];
                     queue.Enqueue(beside, -surfaces[beside]);
                 }
         }
@@ -165,17 +168,26 @@ internal static class SketchTerraform
     }
 
     /// <summary>Runs one step over the heights, with the columns flagged in <paramref name="left"/> taken out of
-    /// the run altogether: the operation neither moves them nor reads them.</summary>
+    /// the run altogether: the operation neither moves them nor reads them. A column the step wets takes the
+    /// step's surface in place of what an earlier step wrote and is owned by <paramref name="owner"/>, the
+    /// step's position in the stack.</summary>
     private static void Apply(ModifierSpec spec, double[] heights, double[] xs, double[] zs, double[] surfaces,
-                              bool[]? left)
+                              int[] owners, int owner, bool[]? left)
     {
-        if (left is null) { Modifiers.Apply(spec, heights, xs, zs, surfaces); return; }
-        var kept = Enumerable.Range(0, heights.Length).Where(at => !left[at]).ToArray();
+        var kept = left is null ? Enumerable.Range(0, heights.Length).ToArray()
+                                : Enumerable.Range(0, heights.Length).Where(at => !left[at]).ToArray();
         var keptHeights = kept.Select(at => heights[at]).ToArray();
-        var keptSurfaces = kept.Select(at => surfaces[at]).ToArray();
+        var keptSurfaces = new double[kept.Length];
+        Array.Fill(keptSurfaces, double.NaN);
         Modifiers.Apply(spec, keptHeights, kept.Select(at => xs[at]).ToArray(), kept.Select(at => zs[at]).ToArray(),
                         keptSurfaces);
-        for (var at = 0; at < kept.Length; at++) { heights[kept[at]] = keptHeights[at]; surfaces[kept[at]] = keptSurfaces[at]; }
+        for (var at = 0; at < kept.Length; at++)
+        {
+            heights[kept[at]] = keptHeights[at];
+            if (double.IsNaN(keptSurfaces[at])) continue;
+            surfaces[kept[at]] = keptSurfaces[at];
+            owners[kept[at]] = owner;
+        }
     }
 
     /// <summary>How many columns a step changed by a whole block once rounded.</summary>

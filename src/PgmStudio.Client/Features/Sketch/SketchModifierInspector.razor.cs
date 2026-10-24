@@ -2,6 +2,8 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
+using PgmStudio.Client.Features.Library;
+using PgmStudio.Contracts;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
@@ -23,6 +25,7 @@ public partial class SketchModifierInspector
     [Parameter] public int? Changed { get; set; }
 
     [Inject] public IJSRuntime JS { get; set; } = default!;
+    [Inject] public TerrainLibraryClient Library { get; set; } = default!;
 
     private const string Name = "name", Off = "off", Mode = "mode", Rise = "rise", Power = "power", Join = "join",
         Soft = "soft", Floor = "floor", Flat = "flat", Slope = "slope", Melt = "melt", Top = "top", Inner = "inner",
@@ -32,7 +35,7 @@ public partial class SketchModifierInspector
         Level = "level", Shore = "shore", Grade = "grade", Shoulder = "shoulder", Count = "count",
         Sharpness = "sharpness", Amount = "amount", Width = "width", Leaving = "leaves", Shelf = "shelf",
         Across = "across", Heights = "heights", Stretch = "stretch", Angle = "angle", Tilt = "tilt", Gap = "gap",
-        StepsField = "steps", Start = "start", End = "end";
+        StepsField = "steps", Start = "start", End = "end", BedMaterial = "bed_material";
 
     /// <summary>The width a line is traced with, which a mask that states none is read at.</summary>
     private const double DefaultLineWidth = 6;
@@ -53,6 +56,8 @@ public partial class SketchModifierInspector
     ];
 
     private string? error;
+    private IReadOnlyList<PaintBlockDto> blocks = [];
+    private IReadOnlyList<StyleDto> styles = [];
 
     private string Id => SketchModifierState.Id(Modifier);
     private string Op => SketchModifierState.Op(Modifier);
@@ -70,6 +75,27 @@ public partial class SketchModifierInspector
 
     /// <summary>The shapes that are ground, which are the ones a modifier has columns of to leave out.</summary>
     private IReadOnlyList<SketchShapeRow> Leavable => [.. Shapes.Where(shape => shape.Operation != "subtract")];
+
+    /// <summary>Whether this operation makes water, and so states the bed under it.</summary>
+    private bool WetOp => Op is ModifierOps.River or ModifierOps.Lake or ModifierOps.Coast;
+
+    private JsonObject? BedJson => Modifier[BedMaterial] as JsonObject;
+    private SlotFill BedSlot => SlotFill.Of(BedJson, styles);
+
+    /// <summary>The unbound row: the default bank where no bed is stated, and the material itself where one is
+    /// that no block or pattern names.</summary>
+    private string BedUnbound => BedJson is not null && !BedSlot.Bound ? "Custom" : "Default bank";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!WetOp) return;
+        blocks = await Library.BlocksAsync();
+        styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
+    }
+
+    /// <summary>Lays the picked block or pattern as the bed, or takes the bed back to the default bank.</summary>
+    private Task FillBed(SlotFill fill) =>
+        fill.ToMaterial(styles) is { } material ? Patch(new JsonObject { [BedMaterial] = material }) : Clear(BedMaterial);
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 

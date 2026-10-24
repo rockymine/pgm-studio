@@ -1004,7 +1004,8 @@ fans its mask. Every edit, on the board or in a panel, is one undo step.
 
 **The inspector carries every operation's numbers.** Each operation has the fields the table under *The modifier
 stack* gives it; Scarp adds a *Raised side* choice (the side of the run, walking along it as it was traced), and
-a mask with lines has a *Line width* field for each line. *Leaves out* lists the drawn shapes as checkboxes:
+a mask with lines has a *Line width* field for each line; River, Lake and Coast add a *Bed* row that picks the
+block or pattern under their water (`bed_material`). *Leaves out* lists the drawn shapes as checkboxes:
 each ticked shape's columns are left out of that one modifier (`mask.leaves`), which is how one Hill spares a
 plinth that the rest of the stack still shapes. *Changed N columns* under the operation's description is how many
 columns the modifier moved, read from `POST …/sketch/modifiers/changes` with the live layout after the same pause
@@ -1058,13 +1059,13 @@ centre and a radius that the mask supplies as its centroid and `scale`:
 | `spire` | Spire | raises it to `base + (top − base) × (1 − e)^(1 / taper)`, `base` the ground at the mask's centroid, `e` roughened by `jag`; only lifts | `top` (absent: the median ground inside + 20), `taper` 1.6, `jag` 0.15 |
 | `scarp` | Scarp | on a `line`: lifts the ground on the `side` hand (1 right, −1 left, walking along the line) by `height`, rising over `cliff` blocks on the line, and eases the other hand up by `apron` of `height` falling to nothing over `talus` blocks; the lift ends at the mask's edge | `height` 6, `side` 1, `cliff` 2, `talus` 5, `apron` 0.3 |
 | `canyon` | Canyon | on a `line`: cuts a floor `bed` of the half width across, `depth` under the ground the line follows, its walls climbing to the rim as the distance across to the power `wall`, in steps of `ledges` blocks when it states any; only cuts | `depth` 12, `bed` 0.35, `wall` 2.5, `ledges` 0 |
-| `river` | River | on a `line`: cuts a bed `depth` under the ground the line follows that never climbs, held level in reaches and stepping down in falls (two blocks or more, after ten of reach), banks easing back to the ground over `bank` blocks, the ring beside the water raised to its surface; **makes water** | `depth` 2, `water` 1, `bank` 4 |
-| `lake` | Lake | in an area: cuts a bed `depth` under the surface in the middle and a block under it at the rim, holds the ground within `shore` blocks outside at the surface or above, easing back to the ground; **makes water** | `level` (absent: one under the lowest ground on the rim), `depth` 3, `shore` 3 |
+| `river` | River | on a `line`: cuts a bed `depth` under the ground the line follows that never climbs, held level in reaches and stepping down in falls (two blocks or more, after ten of reach), banks easing back to the ground over `bank` blocks, the ring beside the water raised to its surface; **makes water** | `depth` 2, `water` 1, `bank` 4, `bed_material` (absent: the default bank) |
+| `lake` | Lake | in an area: cuts a bed `depth` under the surface in the middle and a block under it at the rim, holds the ground within `shore` blocks outside at the surface or above, easing back to the ground; **makes water** | `level` (absent: one under the lowest ground on the rim), `depth` 3, `shore` 3, `bed_material` (absent: the default bank) |
 | `road` | Road | on a `line`: grades the ground along it to climb or fall no more than `grade` blocks a block, its ends holding the ground they stand on, level across the mask's width with shoulders easing into the ground over `shoulder` blocks | `grade` 0.25, `shoulder` 4 |
 | `gullies` | Gullies | in an area: cuts `count` grooves running outward from its centroid between a quarter of `scale` and `scale`, each up to `depth` deep, bent by `wander` and narrowed by `sharpness`; only cuts | `count` 8, `depth` 3, `wander` 0.9, `sharpness` 3 |
 | `warp` | Warp | resamples the ground inside at positions shifted by noise, up to `amount` blocks, in swirls `cell` blocks across | `amount` 6, `cell` 24 |
 | `profile` | Profile | on a `line`: sets the ground by its distance from the line. Out to the first step the floor is the ground, or `floor` where stated; each of `steps[]`, `{start, end, rise}` in blocks out, eases from the level before it to `rise` over the floor and holds there beyond, so the first cliff rises out of the floor and never cuts it. The nominal floor a `rise` counts from is `floor`, or the median ground along the line. `talus` lifts the floor over that many blocks before the first step by `apron` of its rise, `jag` moves each step's edges in and out by noise, and `side` (1 or −1) keeps one hand of the line | `steps` (absent: two, from a quarter to two fifths and from three fifths to three quarters of the half width, rising 6 and 12), `jag` 1.5, `talus` 0, `apron` 0.3 |
-| `coast` | Coast | in an area, the sea: the floor falls from the shore `slope` blocks a block to `depth` under the surface; outside, the land within `shelf` blocks eases down to a beach one over the sea, low land beside it lifted to the beach; **makes water** | `level` (absent: one under the lowest ground on the rim), `shelf` 10, `depth` 6, `slope` 0.35 |
+| `coast` | Coast | in an area, the sea: the floor falls from the shore `slope` blocks a block to `depth` under the surface; outside, the land within `shelf` blocks eases down to a beach one over the sea, low land beside it lifted to the beach; **makes water** | `level` (absent: one under the lowest ground on the rim), `shelf` 10, `depth` 6, `slope` 0.35, `bed_material` (absent: the default bank) |
 | `lumps` | Lumps | in an area: strews up to `count` lumps whose middles fall inside it, each a hill on an ellipse `across` blocks long, its short axis `stretch` of that, turned at random or within 25° of `angle`, its foot roughened by `jag`, `heights` blocks high and falling as `1 − e^power`; overlapping lumps add; only lifts | `count` 12, `across` [6, 16], `heights` [2, 5], `stretch` [0.5, 1], `jag` 0.25, `power` 1.8 |
 | `shatter` | Shatter | breaks the ground inside into pieces about `cell` blocks across, their seams bent up to `wander` blocks; each piece is lifted or dropped up to `amount` and tilted up to `tilt` blocks a block, and within `gap` blocks of a seam the ground is cut up to `depth` into a cleft | `cell` 10, `amount` 3, `tilt` 0.25, `gap` 1, `depth` 4, `wander` 3 |
 
@@ -1104,16 +1105,33 @@ areas column by column.
 height its water surface stands at: a River's channel stands at its bed plus `water`, a Lake's cut at its `level`,
 a Coast's sea at its `level`. A wet column is dry again where a later modifier raises its ground to the surface
 or above, so the stack answers only the cells that hold water at its end (`SketchRasterizer.WaterOf`), cached with the columns so a read of the water and of the ground
-cannot disagree. The world build hands that map to the dressing pass, which fills it before any prop is placed and
+cannot disagree. Each cell answers its surface and the id of the modifier whose water it is (`WetColumn`). The world
+build hands that map to the dressing pass, which fills it before any prop is placed and
 through the routine a `basin` fluid uses (*Decoration*): each wet column takes water from its ground top up to the
-block under its surface, writing only into air, the floor it covers is laid with the default fluid bank and a beach
-follows the water's own edge. Water is therefore part of the world every read sees — `sketch/columns`, `column`,
-`transect`, the export and the walk's swim set — and a later River over the same columns replaces the water of an
-earlier one. The cells carry the fan of the map's symmetry already, so nothing is mirrored a second time.
+block under its surface, writing only into air, and a beach follows the water's own edge. Water is therefore part of the world every read sees — `sketch/columns`, `column`,
+`transect`, the export and the walk's swim set — and a later River over the same columns replaces the water, and
+the ownership, of an earlier one. The cells carry the fan of the map's symmetry already, so nothing is mirrored a
+second time.
+
+**A water's own bed is the modifier's `bed_material`.** The floor under the water and the beach at its edge are laid
+with the material the modifier states, a terrain material in the form a theme's buckets take (`{"kind": "solid",
+"id": 13}`, a pattern, a band stack); the inspector's *Bed* row picks a block or one of the library's patterns. The
+word is not `bed`, which is a Canyon's flat floor share. A modifier that states none lies on the default bank, a
+patchwork of gravel, coarse dirt and sand. The dressing pass floods the cells one bed at a time, so a river and a
+lake of two beds each keep their own and their beaches are measured from their own water. A `bed_material` that
+does not read as a material is dropped and the water lies on the default bank; it is not refused.
+
+**Water that runs off the ground falls.** A wet column with a side that has no ground — a cell no layer built
+terrain on, the board's edge or a hole in it — pours a column of flowing water (id 8, data 8) into the cell past
+it, from the block under its surface down through air to the lowest floor of the ground the board built, and stops
+on whatever stands in its way. A River drawn out to the edge therefore ends in a fall rather than a wall of
+still water. Only the stack's water does this; a placed `basin` or channel prop meets the void as a wall
+(`DR-DRY`), and the falling columns are in the void, so no read-back counts them as the water's cells.
 
 **Water that touches is one body, and the stack settles it before it answers.** Where a River runs into a Lake,
 or any two waters meet at different surfaces, the lower takes the higher as far as its own wet columns reach, so
-the junction stands at one level rather than a step of water hanging over a channel. Then every dry column beside
+the junction stands at one level rather than a step of water hanging over a channel, and each column that takes a
+surface takes the modifier it came from with it, and with that modifier's bed. Then every dry column beside
 water is raised to that water's surface, so no water stands over its bank where a later modifier — a Roughness,
 a second body's cut — left the bank lower. Both run after the whole stack, whatever order the modifiers take.
 

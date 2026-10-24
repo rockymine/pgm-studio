@@ -10838,6 +10838,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   floor and a beach; Lumps strews hummocks and fallen blocks; a Shatter breaks the ground into lifted, tilted plates
   with clefts. Every operation that reads noise or scatters by seed reads it in the drawn area's frame, so each
   mirrored image, and a board under a symmetry, carries the same shape (`MaskArea.ToDrawn`).
+- **A water's own bed (`WE172`).** A River, Lake or Coast states `bed_material`, a terrain material, and the flood
+  lays it under that modifier's water and along its beach instead of the default bank; `SketchTerraform.Run` answers
+  each wet cell as a `WetColumn` carrying its surface and the modifier whose water it is, and the Terraform
+  inspector's Bed row picks a block or pattern.
+- **Water falls off the edge (`WE173`).** A wet column beside a cell with no ground pours flowing water down the
+  face past it to the lowest floor the board built (`Decorator.PourOffEdges`), so a river run to an island's edge
+  ends in a fall rather than a wall of still water.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
