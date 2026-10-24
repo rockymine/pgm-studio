@@ -22,8 +22,8 @@
                  @onchange="e => Edit(at, edited => SetOrRemove(edited, Off, e.Value is true ? null : true))" />
           <input class="field-input field-input--slim" value="@(Text(rule, Name) ?? "")" placeholder="@Text(rule, Id)"
                  @onchange="e => Edit(at, edited => SetOrRemove(edited, Name, string.IsNullOrWhiteSpace(e.Value?.ToString()) ? null : e.Value!.ToString()!.Trim()))" />
-          <Button Variant="icon" Icon="arrow-up" Writes Title="Read it earlier" Disabled="@(at == 0)" OnClick="() => Move(at, -1)" />
-          <Button Variant="icon" Icon="arrow-down" Writes Title="Read it later" Disabled="@(at == Rules.Count - 1)" OnClick="() => Move(at, 1)" />
+          <Button Variant="icon" Icon="chevron-up" Writes Title="Read it earlier" Disabled="@(at == 0)" OnClick="() => Move(at, -1)" />
+          <Button Variant="icon" Icon="chevron-down" Writes Title="Read it later" Disabled="@(at == Rules.Count - 1)" OnClick="() => Move(at, 1)" />
           <Button Variant="icon" Icon="trash-2" Writes Title="Remove this rule" OnClick="() => Remove(at)" />
         </div>
         <Field Label="Lays">

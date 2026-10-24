@@ -80,8 +80,8 @@ internal static class Courses
     /// <summary>
     /// A lake in an area: its bed lies <c>depth</c> under the surface in the middle and rises to a block under it at
     /// the rim, and the ground within <c>shore</c> blocks outside is held at the surface or above, easing back to
-    /// the ground, so no water stands against air. The surface is <c>level</c>, or one block under the lowest ground
-    /// on the rim.
+    /// the ground, so no water stands against air. The surface is <c>level</c>, or one block under the ground a tenth
+    /// of the rim stands at or below.
     /// </summary>
     public static double[] Lake(ModifierSpec spec, AreaView view, Ground ground, double[] waters)
     {
@@ -89,7 +89,7 @@ internal static class Courses
         if (!view.Is(MaskShape.Ellipse, MaskShape.Polygon)) return change;
         double depth = spec.Depth ?? ModifierDefaults.LakeDepth, shore = spec.Shore ?? ModifierDefaults.LakeShore;
         var scale = view.Area.Scale;
-        var surface = spec.Level is { } stated ? Math.Floor(stated) : LowestRim(view, ground, Math.Max(shore, 1)) - 1;
+        var surface = spec.Level is { } stated ? Math.Floor(stated) : RimLevel(view, ground, Math.Max(shore, 1)) - 1;
         if (!double.IsFinite(surface)) return change;
 
         for (var i = 0; i < change.Length; i++)
@@ -114,8 +114,8 @@ internal static class Courses
     }
 
     /// <summary>
-    /// A sea over an area, its surface at <c>level</c> or one under the lowest ground on its rim. Inside, the
-    /// floor falls from the shore <c>slope</c> blocks a block to <c>depth</c> under the surface, and the sea
+    /// A sea over an area, its surface at <c>level</c> or one under the ground a tenth of its rim stands at or
+    /// below. Inside, the floor falls from the shore <c>slope</c> blocks a block to <c>depth</c> under the surface, and the sea
     /// stands over it; outside, the land eases down over <c>shelf</c> blocks to a beach one block over the sea, so
     /// the shore is a beach and not a cliff. Only cuts inside; outside it cuts, and lifts low land beside the
     /// water to the beach.
@@ -127,7 +127,7 @@ internal static class Courses
         double shelf = Math.Max(spec.Shelf ?? ModifierDefaults.CoastShelf, 1), depth = spec.Depth ?? ModifierDefaults.CoastDepth;
         var slope = spec.Slope ?? ModifierDefaults.CoastSlope;
         var scale = view.Area.Scale;
-        var sea = spec.Level is { } stated ? Math.Floor(stated) : LowestRim(view, ground, shelf) - 1;
+        var sea = spec.Level is { } stated ? Math.Floor(stated) : RimLevel(view, ground, shelf) - 1;
         if (!double.IsFinite(sea)) return change;
         for (var i = 0; i < change.Length; i++)
         {
@@ -149,18 +149,26 @@ internal static class Courses
         return change;
     }
 
-    // The lowest ground on the ring just outside the mask, or inside it where the board stops at the rim.
-    private static double LowestRim(AreaView view, Ground ground, double reach)
+    /// <summary>The share of the rim a water's level is read under: the ground a tenth of the ring stands at or
+    /// below, so one cleft or hole cut into the rim does not drain the whole water to its depth.</summary>
+    private const double RimShare = 0.1;
+
+    // The ground a tenth of the ring just outside the mask stands at or below, or of the ground inside it where the
+    // board stops at the rim.
+    private static double RimLevel(AreaView view, Ground ground, double reach)
     {
         var limit = 1 + reach / view.Area.Scale;
-        var rim = double.PositiveInfinity;
-        var inside = double.PositiveInfinity;
+        var rim = new List<double>();
+        var inside = new List<double>();
         for (var i = 0; i < view.E.Length; i++)
         {
-            if (view.E[i] <= 1) inside = Math.Min(inside, ground.Heights[i]);
-            else if (view.E[i] <= limit) rim = Math.Min(rim, ground.Heights[i]);
+            if (view.E[i] <= 1) inside.Add(ground.Heights[i]);
+            else if (view.E[i] <= limit) rim.Add(ground.Heights[i]);
         }
-        return Math.Floor(double.IsFinite(rim) ? rim : inside);
+        var ring = rim.Count > 0 ? rim : inside;
+        if (ring.Count == 0) return double.NaN;
+        ring.Sort();
+        return Math.Floor(ring[(int)Math.Floor(RimShare * (ring.Count - 1))]);
     }
 
     /// <summary>

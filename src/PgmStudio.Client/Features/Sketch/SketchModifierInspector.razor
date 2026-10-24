@@ -86,7 +86,7 @@
       @BedRow
       break;
     case ModifierOps.Lake:
-      @NumberRow("Level", Level, null, "the world y of the water surface; empty is one below the lowest rim ground")
+      @NumberRow("Level", Level, null, "the world y of the water surface; empty is one below the ground most of the rim stands above")
       @NumberRow("Depth", Depth, 3, "blocks the basin is cut below the surface", min: 0, step: "0.5")
       @NumberRow("Shore", Shore, 3, "blocks over which the shore eases into the ground", min: 0)
       @BedRow
@@ -133,7 +133,7 @@
       <Button Icon="plus" Writes OnClick="AddStep">Add a step</Button>
       break;
     case ModifierOps.Coast:
-      @NumberRow("Sea level", Level, null, "the world y of the sea; empty is one below the lowest rim ground")
+      @NumberRow("Sea level", Level, null, "the world y of the sea; empty is one below the ground most of the rim stands above")
       @NumberRow("Shelf", Shelf, 10, "blocks inland over which the land eases down to the beach", min: 1)
       @NumberRow("Depth", Depth, 6, "the deepest the sea floor lies under the surface", min: 0, step: "0.5")
       @NumberRow("Floor slope", Slope, 0.35, "blocks the floor falls per block out from the shore", min: 0, step: "0.05")

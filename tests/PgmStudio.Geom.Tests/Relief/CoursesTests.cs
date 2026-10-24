@@ -173,14 +173,14 @@ public sealed class CoursesTests
     }
 
     [Test]
-    public async Task A_lake_with_no_level_stands_one_under_the_lowest_ground_on_its_rim()
+    public async Task A_lake_with_no_level_stands_one_under_the_ground_a_tenth_of_its_rim_stands_at_or_below()
     {
         var field = new ReliefField(Width, Depth, (x, _) => 70 - 0.5 * x);
         field.Run(Lake(Pond, null));
 
-        var lowestRim = field.Outside(Pond, 1.0001).Where(index => Pond.E(field.Xs[index], field.Zs[index]) <= 1 + 3.0 / 8)
-                             .Min(index => field.Original[index]);
-        var surface = Math.Floor(lowestRim) - 1;
+        var rim = field.Outside(Pond, 1.0001).Where(index => Pond.E(field.Xs[index], field.Zs[index]) <= 1 + 3.0 / 8)
+                       .Select(index => field.Original[index]).Order().ToArray();
+        var surface = Math.Floor(rim[(int)Math.Floor(0.1 * (rim.Length - 1))]) - 1;
         foreach (var index in field.Inside(Pond, 1))
         {
             await Assert.That(field.Waters[index]).IsEqualTo(surface);
@@ -269,12 +269,24 @@ public sealed class CoursesTests
     }
 
     [Test]
-    public async Task A_coast_with_no_level_stands_one_under_the_lowest_ground_on_its_rim()
+    public async Task A_coast_with_no_level_stands_one_under_the_ground_a_tenth_of_its_rim_stands_at_or_below()
     {
         var field = new ReliefField(40, 40, (x, _) => 50 + 0.5 * x);
         var sea = MaskArea.Polygon([(0, 0), (12, 0), (12, 40), (0, 40)]);
         field.Run(new ModifierSpec { Op = ModifierOp.Coast, Areas = [sea] });
 
         await Assert.That(field.WaterAt(4, 20)).IsEqualTo(55).Because("the lowest ground beside the rim is column 12 at 56");
+    }
+
+    [Test]
+    [Arguments(ModifierOp.Lake)]
+    [Arguments(ModifierOp.Coast)]
+    public async Task One_cleft_cut_into_the_rim_does_not_drain_the_water(ModifierOp op)
+    {
+        // Flat ground at 50 with one column on the rim cut down to 2, as a Shatter's cleft cuts it.
+        var field = new ReliefField(40, 40, (x, z) => x == 29 && z == 20 ? 2 : 50);
+        field.Run(new ModifierSpec { Op = op, Areas = [Pond] });
+
+        await Assert.That(field.WaterAt(20, 20)).IsEqualTo(49).Because("the rim stands at 50 but for one column");
     }
 }

@@ -169,7 +169,7 @@ public sealed record ModifierSpec
     /// <summary>Over how many blocks a River's banks ease back to the ground.</summary>
     public double? Bank { get; init; }
 
-    /// <summary>The height a Lake's water surface stands at; absent, one under its lowest rim ground.</summary>
+    /// <summary>The height a Lake's water surface stands at; absent, one under the ground a tenth of its rim stands at or below.</summary>
     public double? Level { get; init; }
 
     /// <summary>Over how many blocks a Lake's shore is held at the water and eases back to the ground.</summary>

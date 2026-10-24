@@ -141,7 +141,7 @@ public sealed class SketchModifierJson
     public double? Bank { get; set; }
 
     /// <summary>The height a Lake's water surface stands at, as a world y like <c>top</c>; absent, one under
-    /// the lowest ground on its rim.</summary>
+    /// the ground a tenth of its rim stands at or below, so one cleft in the rim does not drain it.</summary>
     [JsonPropertyName("level"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Level { get; set; }
 
