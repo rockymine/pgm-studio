@@ -90,12 +90,31 @@ public static class SketchRasterizer
 
     private static List<ColumnSegment> ColumnsOf(SketchLayout? state)
     {
-        var cx = state?.Setup?.Center?.Cx ?? 0;
-        var cz = state?.Setup?.Center?.Cz ?? 0;
-        var axes = Symmetry.OrbitAxes(SketchLayout.MirrorModeOf(state));
+        var (cx, cz, axes) = FrameOf(state);
+        var output = LayerSegments(state, cx, cz, axes);
+        SketchTerraform.Run(state, output, axes, cx, cz);
+        return Seat(state, output);
+    }
 
-        // Stack every layer: each is rasterized in its own Y, then shifted by base_y. (x,z) may repeat
-        // across layers — a column with a gap (e.g. ground + a sky bridge) keeps both segments.
+    /// <summary>How many columns each modifier of <paramref name="state"/> moved, one entry per modifier in list
+    /// order: the columns whose rounded top its own run changed, over the ground the modifiers before it left.
+    /// A modifier switched off, or one this build does not know, answers zero. One pass over the stack, so the
+    /// counts cost a single build of the ground however many modifiers there are.</summary>
+    public static IReadOnlyList<(string Id, int Columns)> ModifierChanges(SketchLayout? state)
+    {
+        var (cx, cz, axes) = FrameOf(state);
+        var changed = new List<int>();
+        SketchTerraform.Run(state, LayerSegments(state, cx, cz, axes), axes, cx, cz, changed);
+        return [.. (state?.Modifiers ?? []).Select((modifier, at) => (modifier.Id, changed[at]))];
+    }
+
+    private static (double Cx, double Cz, IReadOnlyList<string> Axes) FrameOf(SketchLayout? state) =>
+        (state?.Setup?.Center?.Cx ?? 0, state?.Setup?.Center?.Cz ?? 0, Symmetry.OrbitAxes(SketchLayout.MirrorModeOf(state)));
+
+    /// <summary>Every layer rasterized in its own Y and shifted by its <c>base_y</c>. A cell may repeat across
+    /// layers: a column with a gap (ground and a sky bridge) keeps both segments.</summary>
+    private static List<ColumnSegment> LayerSegments(SketchLayout? state, double cx, double cz, IReadOnlyList<string> axes)
+    {
         var output = new List<ColumnSegment>();
         foreach (var layer in ResolveLayers(state))
         {
@@ -104,8 +123,7 @@ public static class SketchRasterizer
                 output.Add(new ColumnSegment(kv.Key.Item1, kv.Key.Item2,
                                             kv.Value.Floor + by, kv.Value.Top + by, layer.Id!));
         }
-        SketchTerraform.Run(state, output, axes, cx, cz);
-        return Seat(state, output);
+        return output;
     }
 
     /// <summary>The columns under every play room: a shape carrying a <see cref="SketchShape.Role"/>, which the
@@ -122,36 +140,58 @@ public static class SketchRasterizer
 
     /// <summary>How the shapes that do not simply follow the modifier stack meet it. <c>Held</c> are the columns
     /// it never moves: under a play room, a shape stating <c>relief_scope: hold</c>, or a shape standing at a
-    /// <c>level</c> height. <c>Riders</c> are the shapes standing a stated amount over the ground (<c>raise</c>,
-    /// <c>sink</c>, <c>drape</c>), each with its columns: the stack moves them with the change in the ground under
-    /// them. A shape counts at its symmetry images too, where its group mirrors or its layer has no groups.</summary>
+    /// <c>level</c> height. <c>Riders</c> are the shapes that keep their form over the ground: those standing a
+    /// stated amount over it (<c>raise</c>, <c>sink</c>, <c>drape</c>) and those stating <c>relief_scope:
+    /// ride</c>, each with its columns. A <c>drape</c> moves each column by the change the stack made to the
+    /// ground there; every other rider moves by the median change under it. A shape counts at its symmetry
+    /// images too, where its group mirrors or its layer has no groups.</summary>
     internal static (HashSet<(int X, int Z)> Held, List<(string Mode, HashSet<(int X, int Z)> Cells)> Riders)
         StackRelations(SketchLayout? state)
     {
         var held = RoomCells(state);
         var riders = new List<(string Mode, HashSet<(int X, int Z)> Cells)>();
-        var cx = state?.Setup?.Center?.Cx ?? 0;
-        var cz = state?.Setup?.Center?.Cz ?? 0;
-        var axes = Symmetry.OrbitAxes(SketchLayout.MirrorModeOf(state));
+        var (cx, cz, axes) = FrameOf(state);
         foreach (var layer in ResolveLayers(state))
         {
             var stated = layer.Shapes.Where(shape => Holds(shape) || RideMode(shape) is not null).ToList();
-            if (stated.Count == 0) continue;
-            var mirroring = layer.Groups.Count == 0
-                ? stated
-                : stated.Where(shape => layer.Groups.Any(group => group.Mirrors && group.ShapeIds.Contains(shape.Id))).ToList();
-            foreach (var shape in stated)
+            foreach (var (shape, copy) in WithImages(layer, stated, axes, cx, cz))
             {
-                var copies = new List<SketchShape> { shape };
-                if (mirroring.Contains(shape)) copies.AddRange(axes.Select(axis => MirrorShape(shape, axis, cx, cz)));
-                foreach (var copy in copies)
-                {
-                    if (RideMode(shape) is { } mode) riders.Add((mode, [.. CellsOf(copy)]));
-                    else held.UnionWith(CellsOf(copy));
-                }
+                if (RideMode(shape) is { } mode) riders.Add((mode, [.. CellsOf(copy)]));
+                else held.UnionWith(CellsOf(copy));
             }
         }
         return (held, riders);
+    }
+
+    /// <summary>The columns of each named shape, its symmetry images included as <see cref="StackRelations"/>
+    /// counts them. A shape id the document does not hold has no entry.</summary>
+    internal static Dictionary<string, HashSet<(int X, int Z)>> ShapeCells(SketchLayout? state, IReadOnlySet<string> ids)
+    {
+        var cells = new Dictionary<string, HashSet<(int X, int Z)>>(StringComparer.Ordinal);
+        var (cx, cz, axes) = FrameOf(state);
+        foreach (var layer in ResolveLayers(state))
+            foreach (var (shape, copy) in WithImages(layer, layer.Shapes.Where(shape => ids.Contains(shape.Id)).ToList(), axes, cx, cz))
+            {
+                if (!cells.TryGetValue(shape.Id, out var own)) cells[shape.Id] = own = [];
+                own.UnionWith(CellsOf(copy));
+            }
+        return cells;
+    }
+
+    /// <summary>Each shape of <paramref name="shapes"/> paired with itself and then, where its group mirrors or
+    /// its layer has no groups, with each of its images under the axes.</summary>
+    private static IEnumerable<(SketchShape Shape, SketchShape Copy)> WithImages(
+        SketchLayer layer, List<SketchShape> shapes, IReadOnlyList<string> axes, double cx, double cz)
+    {
+        var mirroring = layer.Groups.Count == 0
+            ? shapes
+            : shapes.Where(shape => layer.Groups.Any(group => group.Mirrors && group.ShapeIds.Contains(shape.Id))).ToList();
+        foreach (var shape in shapes)
+        {
+            yield return (shape, shape);
+            if (!mirroring.Contains(shape)) continue;
+            foreach (var axis in axes) yield return (shape, MirrorShape(shape, axis, cx, cz));
+        }
     }
 
     private static bool Holds(SketchShape shape)
@@ -160,9 +200,11 @@ public static class SketchRasterizer
                || IsErected(shape) && shape.HeightMode!.ToLowerInvariant() == HeightModes.Level);
 
     private static string? RideMode(SketchShape shape)
-        => shape.Role is null && shape.Operation != "subtract" && shape.ReliefScope != ReliefScopes.Hold
-           && IsErected(shape) && shape.HeightMode!.ToLowerInvariant() is var mode && mode != HeightModes.Level
-            ? mode : null;
+    {
+        if (shape.Role is not null || shape.Operation == "subtract" || shape.ReliefScope == ReliefScopes.Hold) return null;
+        if (shape.ReliefScope == ReliefScopes.Ride) return ReliefScopes.Ride;
+        return IsErected(shape) && shape.HeightMode!.ToLowerInvariant() is var mode && mode != HeightModes.Level ? mode : null;
+    }
 
     private static IEnumerable<(int X, int Z)> CellsOf(SketchShape shape)
         => RingOf(shape) is { Count: >= 3 } ring ? CellsOfRing(ring) : [];

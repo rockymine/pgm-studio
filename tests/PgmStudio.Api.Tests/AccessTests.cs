@@ -150,7 +150,7 @@ public sealed class AccessTests
         var slug = await OriginateAsync(owner, "Weirgate");
 
         using var stranger = InvitedFactory.As(Stranger);
-        foreach (var view in (string[])["paint", "relief", "columns"])
+        foreach (var view in (string[])["paint", "relief", "columns", "modifiers/changes"])
         {
             using var seen = await stranger.PostAsync($"/api/map/{slug}/sketch/{view}",
                 new StringContent(Plate, System.Text.Encoding.UTF8, "application/json"));

@@ -313,9 +313,10 @@ absolute y of the flat top (`floor + base_height`); **Height above ground** for 
 height of the ground under the shape; **Depth below ground** for `sink`; **Height above ground** *at every
 cell* for `drape`; and **Height above floor** for ordinary ground, its hint stating the top's y. `skirt` is how far in
 from its own outline an erected shape eases back into the ground it meets, in blocks; zero is a sheer face,
-which is right for a built thing and wrong for a hillside. `relief_scope` is `hold` or absent and
+which is right for a built thing and wrong for a hillside. `relief_scope` is `hold`, `ride` or absent and
 says how the shape meets the modifier stack (see *Groups and layers*): `hold` keeps its columns out of every
-modifier, and absent lets the modifiers reshape it. Play rooms always hold. The canvas
+modifier, `ride` keeps its form and moves it with the ground, and absent lets the modifiers reshape it. Play
+rooms always hold. The canvas
 bridge writes only the words `ReliefScopes` and `HeightModes` name, validated against one JS list
 (`shared/relief-words.js`) that a test holds equal to the C# sets. And a polyline carries `stroke_edge`
 (`solid`, `rough`, `tapered`) with a `stroke_seed`, since a polyline is stored as the open centreline it was
@@ -415,8 +416,10 @@ landmass are reshaped separately by two masks.
 **A shape can stand out of the modifiers, and this is where the fusion stops being a cage.** `relief_scope` on a
 shape says how it meets the stack (*Terraform*). `hold` keeps the shape's columns out of every
 modifier: it keeps its own column — its stated floor, its thickness and any per-vertex tilt — and the ground
-around it is reshaped up to its edge. No word lets the modifiers reshape the shape like any other
-ground. A play room always holds.
+around it is reshaped up to its edge. `ride` keeps the shape one thing standing proud: each of its columns
+moves by the median change the stack made to the ground under the shape, as a `raise` does, so a building on a
+hill the stack raises rises with it and is not itself reshaped. Absent lets the modifiers reshape the shape like
+any other ground. A play room always holds.
 
 That is what makes a mixed board possible. A flat rectangle with a raised step attached to it is one group;
 marking the step `hold` leaves it standing at exactly the height it was drawn at while a Hill beside it reshapes
@@ -425,7 +428,8 @@ the ground around it.
 A shape declaring a `height_mode` meets the modifiers without a scope. A `level` shape holds: its flat top is an
 absolute height and no modifier moves it. A `raise`, `sink` or `drape` shape rides: the stack moves it with the
 change it made to the ground under it, a `drape` cell by cell, so a wall climbs the hill raised under it, and a
-`raise` or `sink` by the median change under it, so a plinth stays one flat thing standing proud.
+`raise` or `sink` by the median change under it, so a plinth stays one flat thing standing proud. A shape stating
+`relief_scope: ride` moves by that median whatever its height mode.
 
 ### Layers, and what a stack of them is
 
@@ -988,8 +992,9 @@ range, and the group fill stands down underneath it.
 layers that are not made things, as a world y, so a Level's height and a Hollow's floor are heights a player would
 read off `column`. The contours, the paint, the 3-D preview, the export and `column`, `transect`, `slopes` and
 `walk` all answer it. A column holds, and no modifier moves it, under a play room, under a shape whose
-`relief_scope` is `hold` and under a `level` shape. A `raise`, `sink` or `drape` shape rides: it moves with the
-change the stack made to the ground under it (*Groups and layers*).
+`relief_scope` is `hold` and under a `level` shape. A `raise`, `sink` or `drape` shape rides, and so does one
+whose `relief_scope` is `ride`: it moves with the change the stack made to the ground under it (*Groups and
+layers*).
 
 Four operations run, each ported from pgmvox's ground layer (`pgmvox/document/layers.py`, `_ground_layer`):
 
@@ -1014,6 +1019,18 @@ under the map's symmetry, through `PgmStudio.Geom.Symmetry`; an image that falls
 holds, as a centred ellipse does under a half turn, counts once. Where a Hill's or a Hollow's areas overlap, `join`
 adds them: 0 keeps the larger change, and above 0 they sum as a p-norm, so the saddle between two hills fills
 into a ridge. Any other operation keeps the larger change of its areas column by column.
+
+**A mask can leave shapes out.** `mask.leaves` is a list of shape ids: the columns of those shapes, and of their
+images under the map's symmetry as a held shape's are counted, are out of that one modifier's run, so it neither
+moves them nor reads them (a Level's median ignores them). Every other modifier still shapes them, which is what
+separates `leaves` from `relief_scope: hold`. An id the document does not hold leaves nothing out.
+
+**The stack can be read a step at a time.** `?step=N` on `POST …/sketch/relief` and `POST …/sketch/columns`
+reads the ground after the first N modifiers that are not switched off: 0 is the shapes alone and a number past
+the end is the whole stack. `POST …/sketch/modifiers/changes` takes the layout and answers
+`{ "modifiers": [ { "id", "columns" } ] }`, one entry per modifier in list order: how many columns its own run
+moved, a column counting when its top, rounded to a block, differs from what the modifiers before it left. A
+modifier switched off, or a word this build does not know, answers 0. The stack runs once for all the counts.
 
 ```json PUT /api/map/{slug}/sketch
 {
@@ -1998,7 +2015,7 @@ its own, and this is its top. Each can be taken away by something that raises no
 
 A **modifier** moves the top of the columns inside its mask, so an override add inside one builds to whatever
 the stack leaves unless it says otherwise: a `relief_scope` of `hold` or a `level` height keeps its top where it
-was stated, and a `raise`, `sink` or `drape` carries it on the ground the stack left. Nothing complains about an
+was stated, and a `raise`, `sink`, `drape` or a scope of `ride` carries it on the ground the stack left. Nothing complains about an
 override add that says neither, so a wall drawn under a Hill's mask comes out raised with the ground. An override
 add carrying no `base_height`, `floor` or `anchor_heights` is a footprint holding a theme, and the ground the
 stack leaves under it is the ground it was drawn for — a scree apron over a swell is written exactly that way.
@@ -2267,8 +2284,9 @@ carry — the board an author is looking at is the one place those complaints ar
 | Endpoint | Answers |
 |---|---|
 | `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
-| `POST /map/{slug}/sketch/relief[?interval=][&heights=true]` | `{interval, groups[]}` — per group with ground its height range, its bounds and its traced contour lines — the contour overlay, over the highest built top of each column the group forms with every modifier run, the lines traced half a block above each top. `heights=true` adds `heights`, that surface itself: one block height per cell of that box, row-major from the north-west corner, `null` where the footprint holds no land |
-| `POST /map/{slug}/sketch/columns` | `{palette, cols, layers, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes. `cols` is one flat array walked as `[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, and `layerIndex` is into `layers` or `-1` for a run no layer accounts for; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
+| `POST /map/{slug}/sketch/relief[?interval=][&heights=true][&step=]` | `{interval, groups[]}` — per group with ground its height range, its bounds and its traced contour lines — the contour overlay, over the highest built top of each column the group forms with every modifier run, the lines traced half a block above each top. `heights=true` adds `heights`, that surface itself: one block height per cell of that box, row-major from the north-west corner, `null` where the footprint holds no land |
+| `POST /map/{slug}/sketch/modifiers/changes` | `{modifiers: [{id, columns}]}` — per modifier of the posted layout, in run order, how many columns its own run moved (the rounded top changed); one switched off answers 0. One pass over the stack | 400 `RQ1` a body that is not a layout · 404 |
+| `POST /map/{slug}/sketch/columns[?step=]` | `{palette, cols, layers, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes. `cols` is one flat array walked as `[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, and `layerIndex` is into `layers` or `-1` for a run no layer accounts for; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/dressing` | `{props[], declines[], claimedCells, claims}` — what the dressing pass would place, run and stopped before anything is written: per prop the columns it covers, where it rests and the height it resolved to, and every prop that did not land as its `DR-*` finding. `claims` is `{bounds, width, height, classes[], rows[]}`, digit rows over the board's own ground the way `coverage`'s own classes are, classing every cell as a prop's own claim, a goal's clearance, a keep-out, or free — so a candidate site is looked up on the raster rather than tried and read back as a decline. `?format=text` answers the same reading as characters, with the classes' key, a column-index line, the declines and a `placed n, declined n` line under it | 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/seats[?kind=&width=&depth=&style=]` | `{bounds, width, height, kind, standoff, footprintWidth, footprintDepth, rows[], seats, refused[], unasked[], slopeLimit}` — where a prop of that kind and footprint **may** stand, which the `DR-*` declines only ever answer backwards: `1` where a box of `width`×`depth` blocks seats with its minimum corner on that cell, `0` where it does not, a space off the board, and `refused` the tally of which rule turned the rest away. `kind` is one of the document's own prop kinds (absent: `tree`) and decides the route standoff; one number asks about a square. A `tree` is asked `DR-ROOT` as well — every cell whose surface is not grass or dirt is refused. For a `house`, `style` names the recipe whose height `DR-SLOPE` is asked against (absent: the default building), `slopeLimit` is that height and `unasked` names `DR-CROSS` and `DR-WAY`, the declines the query does not run; every other kind answers `unasked` empty. `?format=text` answers the same mask with its key and the tally under it | 422 `no such prop kind` `RQ4` · 422 `no such house recipe` `RQ4` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/probe-footprint` | `{cells, land, void, hole, voidCells[], holeCells[]}` — what a ring stands on, against the **rasterised** footprint rather than a model of the coast rebuilt outside the studio. The ring need not be a shape the layout carries, which is the point: it is asked before one is built on it. Body `{layout, ring}` | 422 `ring too short` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
@@ -2576,7 +2594,7 @@ drawing, and which answer in a raster it can actually open.
 
 **Three read the sketch itself.** `POST .../sketch/paint` runs the real painter and answers the surface as
 palette-indexed runs — the exact colour of every footprint cell, which is how a Voronoi reads as its cells
-rather than as an average. `POST .../sketch/relief[?interval=]` answers the traced contour lines per group
+rather than as an average. `POST .../sketch/relief[?interval=][&step=]` answers the traced contour lines per group
 over the built columns, with every modifier run, as flat `[x, z, x, z, …]` runs. The terrain in **numbers** is
 read off the stored board: `slopes`, `transect` and `column` (`docs/world-scan/read-backs.md`).
 `POST .../sketch/columns` answers the whole built world as per-column runs; it is the heaviest of the three (it builds the map, and the answer is kept with the built
@@ -2625,11 +2643,7 @@ no spawns, no objectives, no build regions and no protection: a map begun here r
 and nothing else, and a map that came from a plan carries the plan's intent unchanged through this tool.
 
 **A mask is a traced outline.** The canvas draws a mask by tracing it and edits it by its points; an ellipse area
-is written in the document and has no drawing tool, nor has a rectangle. Nothing steps the board through the
-stack one modifier at a time or counts the columns each changed (`TS207`).
-
-**A shape follows the modifiers or holds against them, and cannot ride them.** `relief_scope` says whether the
-modifiers reshape a shape's ground or leave it; the third word, *ride*, is `TS208`.
+is written in the document and has no drawing tool, nor has a rectangle.
 
 **Four operations are built.** Hill, Hollow, Level and Roughness run; Ridge, River and the rest of pgmvox's ground
 operations are not built (`TS209`).

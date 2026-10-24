@@ -15,20 +15,26 @@ namespace PgmStudio.Pgm.Sketch;
 /// <para>A held column is never moved: one under a play room, under a shape stating <c>relief_scope: hold</c>, or
 /// under a shape standing at a <c>level</c> height. A shape standing a stated amount over the ground rides the
 /// stack: a <c>drape</c> moves each column by the change the stack made to the ground there, so a wall climbs the
-/// hill raised under it, and a <c>raise</c> or <c>sink</c> moves by the median change under it, so it stays one
-/// flat thing standing proud (<see cref="SketchRasterizer.StackRelations"/>).</para>
+/// hill raised under it, and a <c>raise</c>, <c>sink</c> or <c>relief_scope: ride</c> shape moves by the median
+/// change under it, so it stays one flat thing standing proud (<see cref="SketchRasterizer.StackRelations"/>).
+/// One modifier can leave named shapes out of its own run (<see cref="ModifierMaskJson.Leaves"/>).</para>
 /// </summary>
 internal static class SketchTerraform
 {
     /// <summary>Applies every enabled modifier, in list order, to <paramref name="segments"/> in place. A layout
-    /// with no modifier leaves them untouched.</summary>
+    /// with no modifier leaves them untouched. Given <paramref name="changed"/>, it is filled with one count per
+    /// modifier in list order: the columns whose rounded top that modifier's own run changed, zero for one
+    /// switched off or unknown.</summary>
     public static void Run(SketchLayout? state, List<ColumnSegment> segments,
-                           IReadOnlyList<string> axes, double centreX, double centreZ)
+                           IReadOnlyList<string> axes, double centreX, double centreZ, List<int>? changed = null)
     {
+        changed?.Clear();
+        changed?.AddRange(new int[state?.Modifiers?.Count ?? 0]);
         if (state?.Modifiers is not { Count: > 0 } modifiers) return;
-        var steps = modifiers.Where(modifier => !modifier.Off)
-                             .Select(modifier => SpecOf(modifier, axes, centreX, centreZ))
-                             .OfType<ModifierSpec>().ToList();
+        var steps = new List<(int At, SketchModifierJson Modifier, ModifierSpec Spec)>();
+        for (var at = 0; at < modifiers.Count; at++)
+            if (!modifiers[at].Off && SpecOf(modifiers[at], axes, centreX, centreZ) is { } spec)
+                steps.Add((at, modifiers[at], spec));
         if (steps.Count == 0) return;
 
         var terrain = SketchLayout.Stack(state).Where(layer => !layer.IsMade && !layer.SeatsOnGround)
@@ -49,7 +55,16 @@ internal static class SketchTerraform
         var zs = moving.Select(entry => entry.Key.Z + 0.5).ToArray();
         var heights = moving.Select(entry => (double)segments[entry.Value].YTop).ToArray();
         var before = (double[])heights.Clone();
-        foreach (var step in steps) Modifiers.Apply(step, heights, xs, zs);
+        var previous = changed is null ? null : (double[])heights.Clone();
+        var leftCells = SketchRasterizer.ShapeCells(state, steps.SelectMany(step => step.Modifier.Mask.Leaves ?? [])
+                                                                  .ToHashSet(StringComparer.Ordinal));
+        foreach (var step in steps)
+        {
+            Apply(step.Spec, heights, xs, zs, LeftOut(step.Modifier.Mask.Leaves, leftCells, moving));
+            if (changed is null) continue;
+            changed[step.At] = Moved(previous!, heights);
+            Array.Copy(heights, previous!, heights.Length);
+        }
 
         var changeAt = new Dictionary<(int X, int Z), double>(moving.Length);
         for (var at = 0; at < moving.Length; at++)
@@ -75,6 +90,39 @@ internal static class SketchTerraform
                 YTop = Math.Max(segment.YFloor, (int)Math.Floor(segment.YTop + change + 0.5)),
             };
         }
+    }
+
+    /// <summary>The columns, by position in the moving set, that a modifier naming <paramref name="leaves"/>
+    /// leaves alone; null where it names none that stand on moving ground.</summary>
+    private static bool[]? LeftOut(List<string>? leaves, Dictionary<string, HashSet<(int X, int Z)>> cellsOf,
+                                   KeyValuePair<(int X, int Z), int>[] moving)
+    {
+        if (leaves is not { Count: > 0 }) return null;
+        var cells = leaves.Where(cellsOf.ContainsKey).SelectMany(id => cellsOf[id]).ToHashSet();
+        if (cells.Count == 0) return null;
+        var left = moving.Select(entry => cells.Contains(entry.Key)).ToArray();
+        return left.Any(flag => flag) ? left : null;
+    }
+
+    /// <summary>Runs one step over the heights, with the columns flagged in <paramref name="left"/> taken out of
+    /// the run altogether: the operation neither moves them nor reads them.</summary>
+    private static void Apply(ModifierSpec spec, double[] heights, double[] xs, double[] zs, bool[]? left)
+    {
+        if (left is null) { Modifiers.Apply(spec, heights, xs, zs); return; }
+        var kept = Enumerable.Range(0, heights.Length).Where(at => !left[at]).ToArray();
+        var keptHeights = kept.Select(at => heights[at]).ToArray();
+        Modifiers.Apply(spec, keptHeights, kept.Select(at => xs[at]).ToArray(), kept.Select(at => zs[at]).ToArray());
+        for (var at = 0; at < kept.Length; at++) heights[kept[at]] = keptHeights[at];
+    }
+
+    /// <summary>How many columns a step changed by a whole block once rounded.</summary>
+    private static int Moved(double[] before, double[] after)
+    {
+        var moved = 0;
+        for (var at = 0; at < before.Length; at++)
+            if (double.IsFinite(before[at]) && double.IsFinite(after[at])
+                && Math.Floor(before[at] + 0.5) != Math.Floor(after[at] + 0.5)) moved++;
+        return moved;
     }
 
     private static bool Higher(ColumnSegment segment, ColumnSegment other) =>

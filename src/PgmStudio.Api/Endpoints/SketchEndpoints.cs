@@ -217,6 +217,9 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 /// contour previews take, and the stored intent rides along so the structures a map has stated are standing in
 /// the picture.
 ///
+/// <para><c>?step=N</c> reads the ground after the first N modifiers that are not switched off (0 is the shapes
+/// alone), which is how the stack is stepped through.</para>
+///
 /// <para>This is the paint overlay widened from the surface to the whole column. That preview resolves every
 /// block and then keeps only each column's top because resolving the rest was the bulk of the call; here the
 /// rest is the answer, so nothing is thrown away. The cost is the build, seconds on a full board, which is why
@@ -239,14 +242,14 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
     public override void Configure()
     {
         Post("/map/{slug}/sketch/columns");
-        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 422));
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 422).Reads(StepQuery.Word));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
-        var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
+        var layoutJson = StepQuery.Cut(await RawBody.ReadAsync(HttpContext, ct), Query<int?>("step", isRequired: false));
 
         SketchLayout? layout;
         try { layout = SketchLayout.Stated(layoutJson); }
@@ -578,7 +581,8 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
 /// the only property that makes a preview worth drawing. Contours are traced from the <b>continuous</b> field
 /// rather than the block one, because contouring a staircase returns the outlines of its treads instead of lines
 /// of constant height. <c>?interval=</c> sets the spacing in blocks; a layout with no ground answers an empty
-/// list rather than a 404, so the client can draw nothing through the same path.</para></summary>
+/// list rather than a 404, so the client can draw nothing through the same path. <c>?step=N</c> reads the ground
+/// after the first N modifiers that are not switched off (0 is the shapes alone).</para></summary>
 [CostlyRead]
 public sealed class SketchReliefEndpoint(MapRepository repo)
     : EndpointWithoutRequest<ReliefContoursDto>
@@ -587,6 +591,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo)
     {
         Post("/map/{slug}/sketch/relief");
         Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404).Reads(
+            StepQuery.Word,
             new QueryWord("interval", "The height between contours, in blocks. Absent, or not above 0, is 1.",
                 Value: QueryValue.Number),
             new QueryWord("heights", "Answer each group's height field beside its contours. Absent answers the "
@@ -597,7 +602,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
-        var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
+        var layoutJson = StepQuery.Cut(await RawBody.ReadAsync(HttpContext, ct), Query<int?>("step", isRequired: false));
 
         var interval = Query<double>("interval", isRequired: false);
         if (interval <= 0) interval = 1;
@@ -640,6 +645,37 @@ public sealed class SketchReliefEndpoint(MapRepository repo)
         for (var index = 0; index < cells.Length; index++)
             if (footprint.InsideAt(index)) cells[index] = field.Blocks[index];
         return cells;
+    }
+}
+
+/// <summary>POST /api/map/{slug}/sketch/modifiers/changes — how many columns each modifier of the posted layout
+/// moved, in the order they run: <c>{ "modifiers": [ { "id", "columns" } ] }</c>. A column counts for a
+/// modifier when its top, rounded to a block, differs after that modifier's own run from what the modifiers
+/// before it left; one switched off answers 0. The stack is run once for the whole list. The body is the
+/// <em>live</em> layout, the same as the contour and columns reads take.</summary>
+[CostlyRead]
+public sealed class SketchModifierChangesEndpoint(MapRepository repo) : EndpointWithoutRequest<ModifierChangesDto>
+{
+    public override void Configure()
+    {
+        Post("/map/{slug}/sketch/modifiers/changes");
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { }) return;
+
+        var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
+
+        IReadOnlyList<(string Id, int Columns)> changes;
+        try { changes = SketchRasterizer.ModifierChanges(SketchLayout.Parse(layoutJson)); }
+        catch (Exception fault) when (fault is JsonException or ArgumentException
+                                          or InvalidOperationException or FormatException
+                                          or OverflowException or KeyNotFoundException)
+        { await Refusals.UnreadableAsync(HttpContext, "could not read layout", fault, ct); return; }
+
+        await Send.OkAsync(new ModifierChangesDto([.. changes.Select(change => new ModifierChangeDto(change.Id, change.Columns))]), ct);
     }
 }
 

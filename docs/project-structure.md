@@ -102,9 +102,9 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 25 | 4,692 | `Playability/` 14 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 169 | 23,488 | `Endpoints/` 83 · `Services/` 65 · `Access/` 14 · `Http/` 3 · 4 at root |
-| `Client` | 269 | 30,438 | `Features/` 147 (nested) · `Components/` 92 (nested) · `Pages/` 17 · `Layout/` 5 · `Models/` 5 · 3 at root |
-| `Contracts` | 35 | 3,843 | flat |
+| `Api` | 170 | 23,541 | `Endpoints/` 84 · `Services/` 65 · `Access/` 14 · `Http/` 3 · 4 at root |
+| `Client` | 269 | 30,445 | `Features/` 147 (nested) · `Components/` 92 (nested) · `Pages/` 17 · `Layout/` 5 · `Models/` 5 · 3 at root |
+| `Contracts` | 35 | 3,854 | flat |
 | `Data` | 26 | 4,357 | `Map/` 7 · `Features/` 6 · `Theme/` 5 · `Access/` 3 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 33 | 4,306 | flat |
 | `Export` | 24 | 5,242 | flat |
@@ -112,8 +112,8 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Import` | 4 | 498 | flat |
 | `Migrations` | 87 | 6,384 | `Migrations/` 86 · 1 at root |
 | `Minecraft` | 114 | 23,755 | `Render/` 22 · `Palette/` 18 · `Stamping/` 18 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
-| `Pgm` | 183 | 36,297 | `Authoring/` 42 · `Compose/` 39 (nested) · `Evaluate/` 24 (nested) · `Sketch/` 17 · `Editing/` 11 · `Derive/` 10 · `Plan/` 10 · `Shapes/` 10 · `Render/` 5 · `Detect/` 1 · 14 at root |
-| `Vocabulary` | 47 | 3,070 | flat |
+| `Pgm` | 184 | 36,430 | `Authoring/` 42 · `Compose/` 39 (nested) · `Evaluate/` 24 (nested) · `Sketch/` 18 · `Editing/` 11 · `Derive/` 10 · `Plan/` 10 · `Shapes/` 10 · `Render/` 5 · `Detect/` 1 · 14 at root |
+| `Vocabulary` | 47 | 3,075 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest

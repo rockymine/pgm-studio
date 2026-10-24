@@ -22,19 +22,22 @@ public sealed class SketchTerraformTests
     private static string Num(double value) => value.ToString(CultureInfo.InvariantCulture);
 
     private static string Hill(string id = "hill", string extra = "", double x = 20.5, double z = 20.5,
-                               double radius = 10, double rise = 6, bool mirror = false) =>
+                               double radius = 10, double rise = 6, bool mirror = false, string leaves = "") =>
         $$"""
         { "id": "{{id}}", "op": "mound", "rise": {{Num(rise)}}, {{extra}}
           "mask": { "areas": [ { "kind": "ellipse", "at": [{{Num(x)}}, {{Num(z)}}], "rx": {{Num(radius)}}, "rz": {{Num(radius)}} } ],
-                    "mirror": {{(mirror ? "true" : "false")}} } }
+                    "mirror": {{(mirror ? "true" : "false")}}{{leaves}} } }
         """;
 
-    private static SketchLayout Layout(string modifiers, string mode = "none", string roomShapes = "", string otherLayers = "") =>
-        SketchLayout.Parse($$"""
+    private static string LayoutJson(string modifiers, string mode = "none", string roomShapes = "", string otherLayers = "") =>
+        $$"""
         { "setup": { "mirror_mode": "{{mode}}", "center": { "cx": 20, "cz": 20 } },
           "layers": [ {{Ground.Replace("{0}", roomShapes.Length == 0 ? "" : "," + roomShapes)}} {{otherLayers}} ],
           "modifiers": [ {{modifiers}} ] }
-        """)!;
+        """;
+
+    private static SketchLayout Layout(string modifiers, string mode = "none", string roomShapes = "", string otherLayers = "") =>
+        SketchLayout.Parse(LayoutJson(modifiers, mode, roomShapes, otherLayers))!;
 
     private static int Top(SketchLayout layout, int x, int z, string layer = "ground") =>
         SketchRasterizer.RasterizeColumns(layout).Single(column => column.X == x && column.Z == z && column.Layer == layer).YTop;
@@ -281,5 +284,160 @@ public sealed class SketchTerraformTests
 
         await Assert.That(plinth.Count).IsEqualTo(1);
         await Assert.That(plinth[0]).IsGreaterThan(Tops(Layout(""))[(20, 20)] + 3);
+    }
+
+    private static string Stepped(string modifiers, int step) =>
+        SketchSteps.Through(LayoutJson(modifiers), step);
+
+    private static Dictionary<(int X, int Z), int> TopsOf(string layoutJson) =>
+        SketchRasterizer.RasterizeColumns(layoutJson).Where(column => column.Layer == "ground")
+                        .ToDictionary(column => column.Cell, column => column.YTop);
+
+    private const string BoardLevel =
+        """{ "id": "flat", "op": "level", "top": 10, "mask": { "areas": [{ "kind": "board" }], "mirror": false } }""";
+
+    [Test]
+    public async Task Step_zero_is_the_ground_the_shapes_alone_build()
+    {
+        var stack = Hill() + "," + BoardLevel;
+
+        await Assert.That(TopsOf(Stepped(stack, 0)).SequenceEqual(Tops(Layout("")))).IsTrue();
+    }
+
+    [Test]
+    public async Task Step_n_is_the_ground_after_the_first_n_modifiers()
+    {
+        var stack = Hill() + "," + BoardLevel;
+
+        await Assert.That(TopsOf(Stepped(stack, 1)).SequenceEqual(Tops(Layout(Hill())))).IsTrue();
+        await Assert.That(TopsOf(Stepped(stack, 2)).SequenceEqual(Tops(Layout(stack)))).IsTrue();
+        await Assert.That(TopsOf(Stepped(stack, 9)).SequenceEqual(Tops(Layout(stack)))).IsTrue();
+    }
+
+    [Test]
+    public async Task A_modifier_switched_off_is_not_a_step()
+    {
+        var off = Hill("idle", extra: "\"off\": true,", x: 8.5, z: 8.5, radius: 4);
+        var stack = off + "," + Hill() + "," + BoardLevel;
+
+        await Assert.That(TopsOf(Stepped(stack, 1)).SequenceEqual(Tops(Layout(Hill())))).IsTrue();
+        await Assert.That(TopsOf(Stepped(stack, 0)).SequenceEqual(Tops(Layout("")))).IsTrue();
+    }
+
+    [Test]
+    public async Task Cutting_the_stack_changes_nothing_else_in_the_document()
+    {
+        var cut = System.Text.Json.Nodes.JsonNode.Parse(Stepped(Hill() + "," + BoardLevel, 1))!;
+        var whole = System.Text.Json.Nodes.JsonNode.Parse(LayoutJson(Hill() + "," + BoardLevel))!;
+
+        await Assert.That(cut["modifiers"]!.AsArray().Count).IsEqualTo(1);
+        await Assert.That(cut["layers"]!.ToJsonString()).IsEqualTo(whole["layers"]!.ToJsonString());
+        await Assert.That(cut["setup"]!.ToJsonString()).IsEqualTo(whole["setup"]!.ToJsonString());
+    }
+
+    [Test]
+    public async Task Each_modifier_counts_the_columns_its_own_run_moved()
+    {
+        var off = Hill("idle", extra: "\"off\": true,");
+        var layout = Layout(Hill() + "," + off + "," + BoardLevel);
+
+        var changes = SketchRasterizer.ModifierChanges(layout);
+
+        var hilled = Tops(Layout(Hill()));
+        var levelled = Tops(layout);
+        await Assert.That(changes.Select(change => change.Id).SequenceEqual(new[] { "hill", "idle", "flat" })).IsTrue();
+        await Assert.That(changes[0].Columns).IsEqualTo(hilled.Count(column => column.Value != 8));
+        await Assert.That(changes[1].Columns).IsEqualTo(0);
+        await Assert.That(changes[2].Columns).IsEqualTo(hilled.Count(column => levelled[column.Key] != column.Value));
+        await Assert.That(changes[2].Columns).IsGreaterThan(0);
+    }
+
+    [Test]
+    public async Task A_layout_with_no_modifier_has_no_counts()
+    {
+        await Assert.That(SketchRasterizer.ModifierChanges(Layout("")).Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task A_shape_stating_ride_keeps_its_form_and_moves_by_the_median_change_under_it()
+    {
+        var bare = Tops(Layout(Hill()));
+        var padCells = Enumerable.Range(18, 4).SelectMany(x => Enumerable.Range(18, 4).Select(z => (x, z))).ToList();
+        var median = padCells.Select(cell => bare[cell]).Order().ElementAt(padCells.Count / 2);
+
+        var ridden = Tops(Layout(Hill(), roomShapes: Pad(", \"relief_scope\": \"ride\"")));
+
+        await Assert.That(padCells.Select(cell => ridden[cell]).Distinct().Single()).IsEqualTo(median);
+        await Assert.That(ridden[(18, 18)]).IsNotEqualTo(bare[(18, 18)]);
+        await Assert.That(ridden[(30, 20)]).IsEqualTo(bare[(30, 20)]);
+    }
+
+    [Test]
+    public async Task A_shape_stating_ride_rides_at_its_image_under_the_symmetry()
+    {
+        const string rider = """
+            { "id": "pad", "type": "rectangle", "operation": "add", "min_x": 6, "min_z": 9, "max_x": 11, "max_z": 14,
+              "base_height": 8, "relief_scope": "ride" }
+            """;
+        var tops = Tops(Layout(Hill(x: 8.5, z: 11.5, radius: 5, mirror: true), mode: "rot_180", roomShapes: rider));
+        var image = Symmetry.ApplyCell(8, 11, "rot_180", 20, 20);
+        var imageCells = Enumerable.Range(6, 5).SelectMany(x => Enumerable.Range(9, 5).Select(z => Symmetry.ApplyCell(x, z, "rot_180", 20, 20)));
+
+        await Assert.That(imageCells.Select(cell => tops[cell]).Distinct().Count()).IsEqualTo(1);
+        await Assert.That(tops[image]).IsEqualTo(tops[(8, 11)]);
+    }
+
+    [Test]
+    public async Task A_modifier_leaves_out_the_shapes_it_names()
+    {
+        var left = Layout(Hill(leaves: ", \"leaves\": [\"pad\"]"), roomShapes: Pad(""));
+        var tops = Tops(left);
+        var plain = Tops(Layout(Hill(), roomShapes: Pad("")));
+
+        foreach (var (x, z) in new[] { (18, 18), (20, 20), (21, 21), (18, 21) })
+            await Assert.That(tops[(x, z)]).IsEqualTo(8);
+        await Assert.That(tops[(23, 20)]).IsEqualTo(plain[(23, 20)]);
+        await Assert.That(plain[(20, 20)]).IsEqualTo(14);
+    }
+
+    [Test]
+    public async Task A_leave_out_binds_only_the_modifier_that_names_it()
+    {
+        var stack = Hill(leaves: ", \"leaves\": [\"pad\"]") + "," + Hill("second", rise: 4);
+        var tops = Tops(Layout(stack, roomShapes: Pad("")));
+
+        await Assert.That(tops[(20, 20)]).IsEqualTo(12);
+    }
+
+    [Test]
+    public async Task A_leave_out_holds_at_the_images_of_the_shape()
+    {
+        const string pad = """
+            { "id": "pad", "type": "rectangle", "operation": "add", "min_x": 6, "min_z": 9, "max_x": 11, "max_z": 14, "base_height": 8 }
+            """;
+        var tops = Tops(Layout(Hill(x: 8.5, z: 11.5, radius: 5, mirror: true, leaves: ", \"leaves\": [\"pad\"]"),
+                               mode: "rot_180", roomShapes: pad));
+        var image = Symmetry.ApplyCell(8, 11, "rot_180", 20, 20);
+
+        await Assert.That(tops[(8, 11)]).IsEqualTo(8);
+        await Assert.That(tops[image]).IsEqualTo(8);
+        await Assert.That(tops[(12, 11)]).IsGreaterThan(8);
+    }
+
+    [Test]
+    public async Task A_leave_out_naming_no_shape_changes_nothing()
+    {
+        var named = Tops(Layout(Hill(leaves: ", \"leaves\": [\"nothing\"]")));
+
+        await Assert.That(named.SequenceEqual(Tops(Layout(Hill())))).IsTrue();
+    }
+
+    [Test]
+    public async Task A_left_out_shape_is_not_counted_as_moved()
+    {
+        var changes = SketchRasterizer.ModifierChanges(Layout(Hill(leaves: ", \"leaves\": [\"pad\"]"), roomShapes: Pad("")));
+        var all = SketchRasterizer.ModifierChanges(Layout(Hill(), roomShapes: Pad(""))).Single().Columns;
+
+        await Assert.That(changes.Single().Columns).IsEqualTo(all - 16);
     }
 }

@@ -98,6 +98,12 @@ public sealed class ModifierMaskJson
     /// <summary>Whether every area also stands at each of its images under the map's symmetry, which is what a
     /// fair board wants; off, the modifier works where it is drawn and nowhere else.</summary>
     [JsonPropertyName("mirror")] public bool Mirror { get; set; } = true;
+
+    /// <summary>The ids of shapes this one modifier leaves alone: their columns, and the columns of their
+    /// images under the map's symmetry, are out of its run as though the mask did not reach them. Every other
+    /// modifier still shapes them.</summary>
+    [JsonPropertyName("leaves"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? Leaves { get; set; }
 }
 
 /// <summary>One outline of a mask, discriminated by <see cref="Kind"/>.</summary>

@@ -55,6 +55,17 @@ public sealed record ReliefGroupContoursDto(
 /// <param name="Points">A flat <c>[x, z, x, z, …]</c> run, strokable in pairs.</param>
 public sealed record ContourLineDto(double Level, bool Closed, IReadOnlyList<double> Points);
 
+/// <summary>What each modifier of a posted layout did to the ground (<c>POST /map/{slug}/sketch/modifiers/changes</c>),
+/// one entry per modifier in the order they run.</summary>
+/// <param name="Modifiers">One entry per modifier of the layout, in list order.</param>
+public sealed record ModifierChangesDto(IReadOnlyList<ModifierChangeDto> Modifiers);
+
+/// <summary>How much of the ground one modifier moved.</summary>
+/// <param name="Id">The modifier, by its id.</param>
+/// <param name="Columns">The columns whose top, rounded to a block, its own run changed over the ground the
+/// modifiers before it left. Zero for one switched off.</param>
+public sealed record ModifierChangeDto(string Id, int Columns);
+
 /// <summary>POST /api/map/{slug}/sketch/probe-footprint — what a ring stands on, against the layout's own
 /// rasterised footprint. The body is <c>{ "layout": …, "ring": [[x, z], …] }</c>; the ring need not be a shape
 /// the layout carries, which is the point — it is asked <em>before</em> a shape is built on it.

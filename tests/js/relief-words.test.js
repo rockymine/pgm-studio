@@ -28,8 +28,8 @@ test("HEIGHT_MODES is HeightModes.All", () => {
 });
 
 test("every stated scope is accepted, including follow, and nothing else is", () => {
-  assert.ok(isReliefScope("hold"));
-  for (const word of ["", "follow", "exclude", "Hold", null, undefined]) assert.ok(!isReliefScope(word), String(word));
+  for (const word of ["hold", "ride"]) assert.ok(isReliefScope(word), word);
+  for (const word of ["", "follow", "exclude", "Hold", "Ride", null, undefined]) assert.ok(!isReliefScope(word), String(word));
 });
 
 test("every height mode is accepted and nothing else is", () => {
