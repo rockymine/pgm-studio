@@ -186,7 +186,7 @@ The axis is what the thickness is measured in. `depth` (the default) is courses 
 bucket; `inward` is steps in from the landmass's void-facing edge, so the bands are concentric rings; `height`
 is courses up from the stack's own `from` in world Y, so the banding is pinned to the world rather than to the
 column — unless it states `follow` (0–100%), which carries the bands with the ground averaged `reach` cells either
-side, so strata rise and fall with the land (TP26); `slope` is **degrees of inclination**, which makes the stack an angle mask — one band for the flat,
+side, so strata rise and fall with the land (TP26), and which `dip` (`[east, south]` lift per block) tilts and `fold` (blocks of noise lift) bends; `slope` is **degrees of inclination**, which makes the stack an angle mask — one band for the flat,
 another for the shoulder, another for the face of the same hill.
 
 ```json POST /api/terrain/material-preview

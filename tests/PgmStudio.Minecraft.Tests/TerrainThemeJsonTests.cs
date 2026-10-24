@@ -164,4 +164,55 @@ public sealed class TerrainThemeJsonTests
         await Assert.That(level).DoesNotContain("follow");
         await Assert.That(level).DoesNotContain("reach");
     }
+
+    /// <summary>A stack that dips and folds writes <c>dip</c> as the array <c>[east, south]</c> and
+    /// <c>fold</c> as a number, reads both back with nothing left over, and a stack stating neither writes
+    /// neither.</summary>
+    [Test]
+    public async Task Dip_and_fold_round_trip_and_are_written_only_when_stated()
+    {
+        var bands = new BandStack([new Band(new SolidMaterial(Blocks.HardenedClay), 3),
+                                   new Band(new SolidMaterial(Blocks.StainedClay, 1), 2)]);
+        var bent = new LayeredMaterial(bands, BandAxis.Height, From: -8, Dip: new BedDip(0.5, -0.25), Fold: 3.5);
+        var json = TerrainThemeJson.Serialize(bent);
+        await Assert.That(json).Contains("\"dip\":[0.5,-0.25]");
+        await Assert.That(json).Contains("\"fold\":3.5");
+
+        var back = TerrainThemeJson.DeserializeMaterial(json, out var unread);
+        await Assert.That(unread).IsEmpty();
+        await Assert.That(back).IsEqualTo(bent);
+        await Assert.That(TerrainThemeJson.Serialize(back)).IsEqualTo(json);
+
+        var level = TerrainThemeJson.Serialize(new LayeredMaterial(bands, BandAxis.Height, From: 12));
+        await Assert.That(level).DoesNotContain("dip");
+        await Assert.That(level).DoesNotContain("fold");
+    }
+
+    /// <summary>The worked example in <c>terrain-painting.md</c> parses and reads back its dip and fold.</summary>
+    [Test]
+    public async Task The_documented_leaning_stack_parses()
+    {
+        const string Example = """
+            {"kind":"layered","axis":"height","from":-8,"follow":60,"reach":24,"dip":[0.25,-0.1],"fold":3,
+             "beyond":{"kind":"solid","id":172,"data":0},
+             "stack":{"ending":"handOver","bands":[
+               {"material":{"kind":"solid","id":172,"data":0},"thickness":3},
+               {"material":{"kind":"solid","id":159,"data":1},"thickness":2},
+               {"material":{"kind":"solid","id":172,"data":0},"thickness":2},
+               {"material":{"kind":"solid","id":159,"data":12},"thickness":1}]}}
+            """;
+        var material = (LayeredMaterial)TerrainThemeJson.DeserializeMaterial(Example, out var unread);
+        await Assert.That(unread).IsEmpty();
+        await Assert.That(material.Dip).IsEqualTo(new BedDip(0.25, -0.1));
+        await Assert.That(material.Fold).IsEqualTo(3.0);
+        await Assert.That(material.Follow).IsEqualTo(60);
+    }
+
+    /// <summary>A dip is two numbers; any other shape is a fault of the document, named at the read.</summary>
+    [Test]
+    [Arguments("""{"kind":"layered","axis":"height","dip":[1],"stack":{"bands":[]}}""")]
+    [Arguments("""{"kind":"layered","axis":"height","dip":[1,2,3],"stack":{"bands":[]}}""")]
+    [Arguments("""{"kind":"layered","axis":"height","dip":{"x":1,"z":2},"stack":{"bands":[]}}""")]
+    public async Task A_dip_that_is_not_two_numbers_is_refused(string json)
+        => await Assert.That(() => TerrainThemeJson.DeserializeMaterial(json)).Throws<JsonException>();
 }

@@ -170,6 +170,21 @@
                        value="@Int(ThemeFields.Reach, 16)" @onchange="SetReach" />
               </Field>
             }
+            <Field Label="Dip x">
+              <input class="field-input field-input--slim" type="number" min="-8" max="8" step="0.05"
+                     title="Blocks the bands rise for each block east. 0.5 lifts them one block every two blocks east."
+                     value="@DipAt(0).ToString(System.Globalization.CultureInfo.InvariantCulture)" @onchange="e => SetDip(0, e)" />
+            </Field>
+            <Field Label="Dip z">
+              <input class="field-input field-input--slim" type="number" min="-8" max="8" step="0.05"
+                     title="Blocks the bands rise for each block south."
+                     value="@DipAt(1).ToString(System.Globalization.CultureInfo.InvariantCulture)" @onchange="e => SetDip(1, e)" />
+            </Field>
+            <Field Label="Fold">
+              <input class="field-input field-input--slim" type="number" min="0" max="64" step="0.5"
+                     title="How many blocks a slow noise bends the bands up and down, across features about 24 blocks wide."
+                     value="@Fold.ToString(System.Globalization.CultureInfo.InvariantCulture)" @onchange="SetFold" />
+            </Field>
           }
         </div>
         @foreach (var layer in List(ThemeFields.StackBands))

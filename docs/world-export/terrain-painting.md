@@ -194,7 +194,7 @@ because the distance belongs to whoever is measuring it.
 |---|---|---|
 | `depth` *(default)* | `BucketContext.DepthFromTop`, courses down from the top of the bucket | grass over two dirt; a wall's banded riser (TP11) |
 | `inward` | `BucketContext.Inset`, steps in from the landmass's void-facing edge | a cobble rim, two rings of stone brick, then a field |
-| `height` | `BucketContext.Y` less the stack's own `from`, courses up from a stated world Y — or, with `follow`, from the smoothed ground (TP26) | a hull's waterline; a tower banded by course, whatever the ground beneath it does; strata carried with the land |
+| `height` | `BucketContext.Y` less the stack's own `from`, courses up from a stated world Y — or, with `follow`, from the smoothed ground (TP26), tilted by `dip` and bent by `fold` | a hull's waterline; a tower banded by course, whatever the ground beneath it does; strata carried with the land |
 | `slope` | `BucketContext.SlopeDegrees`, how steeply the ground is inclined here — 0–89 degrees from level | meadow on the flat, coarse dirt on the shoulder, bare rock on the face of the same hill (TP24) |
 
 **One type with the axis named, not four types.** The bands, the thicknesses and the run-out rule are identical
@@ -323,17 +323,48 @@ A slope mask, stored:
    {"material":{"kind":"solid","id":4,"data":0},"thickness":45}]}}
 ```
 
+**Beds can lean and bend (`dip`, `fold`).** Following the ground carries strata with the land but leaves them
+parallel to it; real beds also tilt across a whole cliff and ripple along it. `dip` is `[east, south]`, blocks of
+lift per block, so `[0.5, 0]` raises every bed one block for each two blocks east and `[0, -0.25]` lowers them one
+block for each four south. `fold` is blocks of lift from fractal noise (three octaves, cells of 24 blocks), at
+most `fold` up or down — `fold: 3` moves a bed boundary by no more than three blocks. Both add to the datum
+beside `follow`, so the step a block reads is `y − (from + follow share of the ground + dip·(x, z) +
+fold·noise)`, rounded once, and both apply whether or not the stack follows: a stack with `follow` 0 and a dip is
+level stratification tilted as a plane. Absent, `dip` leans nothing and `fold` is 0, and the stack reads exactly
+as before.
+
+**The dip is measured from the world origin, at the folded cell.** The plane is `east·x + south·z` over the cell
+the painter folds into the board's primary image (TP21), as the noise is, so a mirrored board paints the
+canonical half's plane and noise and every other image carries it mirrored — the beds of the two halves meet
+at the same heights. The origin is the world's, which is the centre a symmetry folds about; a board whose
+interesting ground sits far from it reaches a bed with `from`, since a dip of 0.5 at x = 200 is a lift of 100.
+Each component of the dip is held to ±8 and the fold to 64.
+
+A leaning, folding stack — four beds rising gently east and a little toward the north, rippling by up to three
+blocks, following the land at 60%:
+
+```json
+{"kind":"layered","axis":"height","from":-8,"follow":60,"reach":24,"dip":[0.25,-0.1],"fold":3,
+ "beyond":{"kind":"solid","id":172,"data":0},
+ "stack":{"ending":"handOver","bands":[
+   {"material":{"kind":"solid","id":172,"data":0},"thickness":3},
+   {"material":{"kind":"solid","id":159,"data":1},"thickness":2},
+   {"material":{"kind":"solid","id":172,"data":0},"thickness":2},
+   {"material":{"kind":"solid","id":159,"data":12},"thickness":1}]}}
+```
+
 **Where the cuts go is read off the board rather than guessed.** `GET /map/{slug}/incline` answers how much
 ground stands in each ten degrees, which is the only thing that says whether a cut lands where the author
 thinks it does — and `?window=` answers the same board read wider, so the two decisions a mask needs are both
 made without an export.
 
-**What the schema carries on `layered` beyond the stack itself is five optional fields** — `axis`, `beyond`
-and, for the height axis, `from`, `follow` and `reach`. A theme naming no axis reads `depth` with no `beyond`,
-which is what a layered material always meant, and a height stack naming no `follow` is level.
+**What the schema carries on `layered` beyond the stack itself is seven optional fields** — `axis`, `beyond`
+and, for the height axis, `from`, `follow`, `reach`, `dip` and `fold`. A theme naming no axis reads `depth` with no
+`beyond`, which is what a layered material always meant, and a height stack naming no `follow`, `dip` or `fold` is
+level. `dip` is the array `[east, south]`; any other shape is a fault of the document.
 
 **The editor writes this shape and no other.** A layered material's form offers the axis, the stack's ending,
-the `beyond` slot and — on the height axis — `from` and `follow`, with `reach` once the stack follows; the band list is reached at `stack/bands`, which is why
+the `beyond` slot and — on the height axis — `from` and `follow`, with `reach` once the stack follows, and `Dip x`, `Dip z` and `Fold` beside them; the band list is reached at `stack/bands`, which is why
 `MaterialTree` names a list by a path rather than by a field, `bands` alone naming two lists that measure
 different things. The offered words are `BandAxes` and `BandEndings` in `PgmStudio.Vocabulary`, because the
 client cannot see the enums, and a test pins each set against the enum it spells. A **stored** theme carrying
@@ -979,4 +1010,4 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP22** | A shape may state a **`material`** in place of a theme: one `TerrainMaterial` painted over its whole span, with no rim, no wall and no surface depth. A theme chooses its bucket per column by whether that column is an edge, so on a shape with no interior column — a stilt, a kerb, a tread, a rail — only the rim and the wall ever paint and the theme's own surface is nowhere on it; `material` is the statement for a thing that is *made of* something rather than ground with a top and a face. It reaches the painter as `TerrainTheme.OfMaterial` — the material in `fill`, the three geometry-chosen buckets off — which leaves one band over the shape's span, so a depth-axis stack reads from the shape's own top. It is a **shape** word about paint and says nothing about walking: `kind: "made"` is the *layer* word that takes a thing out of the walks and out of the ground everything rests on, and a stair needs the paint without the exile. A theme scoped to a shape it cannot show on is `SK23`, grouped per layer and theme; stating both is `SK24`. |
 | **TP24** | Every paintable column carries how steeply its surface is inclined (`ColumnProfile.Slope`, `BucketContext.SlopeDegrees`): Horn's 3×3 gradient over the surface tops `TerrainProfile.SlopeWindow` cells either side, in whole degrees from level, 0–89. A ramp climbing one block a cell answers 45 exactly and level ground 0. A neighbour off the footprint or carrying a structure reads as level with the cell itself — the void is not a slope, and a building's roof is not the terrain's gradient (TP6's exclusion, applied to the same walk). `BandAxis.Slope` reads it, which makes a band stack an **angle mask**: a thickness on that axis is a span of degrees, not a count of blocks. It is the only thing in the model that tells a 45° hillside from a flat field — such a surface has no exposed riser, so the wall bucket never sees it and every other axis paints the two alike. The whole column takes the answer its surface gave, so a face's fill and the block on top of it resolve to the same band. **The window is two** because a gentle slope on ground quantised to whole blocks is a staircase, and a one-cell window reads the stair rather than the grade: it answers 27° on each riser and 0 on each tread, so a uniform grade paints speckled and a lone contour paints a stripe. A sustained slope reads the same angle at any window, so widening costs it nothing; a face softens (a six-block drop reads 72° at one, 56° at two, 45° at three) and that is what bounds it. `GET /map/{slug}/incline` is the reading — the tens of degrees per cell, and how much ground stands in each ten — and `?window=` tries another without rebuilding. |
 | **TP25** | A column something rests on — a higher layer's ground, a made thing's whole block or a stamp in the course over its top; a liquid counts, a block that does not fill its cube does not — has no rim or surface: the wall takes its top where exposed, the fill where not. A covered neighbour bounds like a structure: never a drop, always a `boundary` edge. |
-| **TP26** | A height stack may **follow the ground** (`follow`, 0–100%): its datum is `from` plus that share of `TerrainProfile.Ground`, the layer's surface averaged over the footprint cells `reach` either side (16 unstated, at most 64; void is not ground). A wide reach keeps the land's broad tilt and lets a hill cut the bands, a narrow one lays them along every bump. Read at the folded cell (TP21); with no ground supplied — a swatch, a house course — the stack reads world Y. `follow` 0, the default, is the level stack. |
+| **TP26** | A height stack may **follow the ground** (`follow`, 0–100%): its datum is `from` plus that share of `TerrainProfile.Ground`, the layer's surface averaged over the footprint cells `reach` either side (16 unstated, at most 64; void is not ground). A wide reach keeps the land's broad tilt and lets a hill cut the bands, a narrow one lays them along every bump. Read at the folded cell (TP21); with no ground supplied — a swatch, a house course — the stack reads world Y. `follow` 0, the default, is the level stack. `dip` (`[east, south]`, blocks of lift per block from the world origin) and `fold` (blocks of noise lift, cells of 24) add to the same datum and are read at the same folded cell (WE171). |

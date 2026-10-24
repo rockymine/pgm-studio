@@ -934,6 +934,21 @@ public sealed class TerrainPainterTests
                         .IsEqualTo(level.Resolve(new BucketContext(5, y, 5, TerrainBucket.Fill, 0)));
     }
 
+    /// <summary><b>A dip adds to the ground a stack follows.</b> Fully following a ramp that climbs one block a
+    /// column, with a dip of −1 east, the datum is the ground less the climb: the same bands a level stack
+    /// starting at the ground's height at the origin lays, in every column the window is clear of the ends.</summary>
+    [Test]
+    public async Task A_dip_adds_to_the_ground_a_following_stack_reads()
+    {
+        var dipped = Beds(follow: 100, from: -12) with { Dip = new BedDip(-1, 0) };
+        for (var depth = 0; depth < 9; depth++)
+        {
+            var row = AtDepth(dipped, depth);
+            var level = AtDepth(Beds(follow: 0, from: -12 + 10), depth);
+            await Assert.That(row.Zip(level).Count(pair => pair.First != pair.Second)).IsLessThanOrEqualTo(2);
+        }
+    }
+
     // ── the angle mask (TP24) ──────────────────────────────────────────────────────────────────────────
 
     /// <summary>A board 27 wide: a level field at x 0..8, a ramp climbing one block a cell at x 9..17, and a

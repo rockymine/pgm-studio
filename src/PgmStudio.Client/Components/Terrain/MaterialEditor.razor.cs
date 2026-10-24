@@ -112,6 +112,33 @@ public partial class MaterialEditor
         return Changed();
     }
 
+    /// <summary>One component of the stack's dip, <c>0</c> east or <c>1</c> south; nought where none is stated.</summary>
+    /// <summary>The blocks of noise lift the stack states, nought where none.</summary>
+    private double Fold => JsonEdit.Double(Node, ThemeFields.Fold, 0);
+
+    private double DipAt(int component)
+        => Node[ThemeFields.Dip] is JsonArray { Count: 2 } dip && dip[component] is JsonValue value
+           && value.TryGetValue<double>(out var lean) ? lean : 0;
+
+    /// <summary>Writes the dip as <c>[east, south]</c>, and drops the field when both lean nowhere so a level
+    /// stack stores nothing.</summary>
+    private Task SetDip(int component, ChangeEventArgs e)
+    {
+        double[] dip = [DipAt(0), DipAt(1)];
+        dip[component] = Math.Clamp(ParseNumber(e), -8, 8);
+        if (dip[0] == 0 && dip[1] == 0) Node.Remove(ThemeFields.Dip);
+        else Node[ThemeFields.Dip] = new JsonArray(dip[0], dip[1]);
+        return Changed();
+    }
+
+    private Task SetFold(ChangeEventArgs e)
+    {
+        var fold = Math.Clamp(ParseNumber(e), 0, 64);
+        if (fold == 0) Node.Remove(ThemeFields.Fold);
+        else JsonEdit.Set(Node, ThemeFields.Fold, fold);
+        return Changed();
+    }
+
     private Task SetEnding(string ending)
     {
         JsonEdit.Set(Stack, ThemeFields.Ending, BandEndings.Canonical(ending));
@@ -275,6 +302,10 @@ public partial class MaterialEditor
 
     private static int Parse(ChangeEventArgs e, int fallback)
         => int.TryParse((string?)e.Value, out var value) ? value : fallback;
+
+    private static double ParseNumber(ChangeEventArgs e)
+        => double.TryParse((string?)e.Value, System.Globalization.NumberStyles.Float,
+                           System.Globalization.CultureInfo.InvariantCulture, out var value) ? value : 0;
 
     private Task Add(string field)
     {
