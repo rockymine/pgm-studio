@@ -10853,6 +10853,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Paint rules, first match winning (`WE170`).** A layout's `paint[]` lays a material over a column's top
   courses by slope, height, noise patches or nearness to a named modifier — a River's sandy bank — read in order
   ahead of every theme, edited in the Palette's *Paint rules* (TP28, `docs/world-export/terrain-painting.md`).
+- **Beds that dip and fold (`WE171`).** A height stack states `dip` `[east, south]`, blocks of lift per block from the world origin, and `fold`, blocks of noise lift in cells of 24; both add to its datum beside `follow` and are read at the folded cell, so strata lean across a cliff and ripple along it (TP26, `docs/world-export/terrain-painting.md`). The material editor offers *Dip x*, *Dip z* and *Fold*.
 - **A water's own bed (`WE172`).** A River, Lake or Coast states `bed_material`, a terrain material, and the flood
   lays it under that modifier's water and along its beach instead of the default bank; `SketchTerraform.Run` answers
   each wet cell as a `WetColumn` carrying its surface and the modifier whose water it is, and the Terraform

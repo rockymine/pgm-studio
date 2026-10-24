@@ -36,6 +36,10 @@ public static class ThemeFields
     public const string Follow = "follow";
     /// <summary>How many cells either side the ground a following height stack reads is averaged over.</summary>
     public const string Reach = "reach";
+    /// <summary>Blocks of lift per block east and south that lean a height stack's beds, written <c>[east, south]</c>.</summary>
+    public const string Dip = "dip";
+    /// <summary>Blocks of noise lift that bend a height stack's beds.</summary>
+    public const string Fold = "fold";
     /// <summary>The path from a layered material to its bands. A path rather than a field because the list is
     /// one level down, and <c>bands</c> alone names two lists — a voronoi's, measured in depth, and a stack's,
     /// measured in thickness.</summary>

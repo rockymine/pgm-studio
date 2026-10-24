@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using PgmStudio.Geom.Algorithms;
+using PgmStudio.Geom.Relief;
 using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Painting;
@@ -347,6 +348,12 @@ public static class Materials
 /// planes. A reach of a few cells lays the bands along every bump, so a slope only ever shows its top one; a wide
 /// reach keeps the broad shape of the land and lets a hill cut through the bands. Absent is
 /// <see cref="DefaultReach"/>; both are read on the height axis only.</para>
+/// <para><b>Dip</b> and <b>Fold</b> — beds that lean and bend. <c>dip</c> is a <see cref="BedDip"/>, blocks
+/// of lift per block east and south from the world origin, and <c>fold</c> is blocks of lift from fractal noise in
+/// cells of <see cref="FoldCell"/>, between −fold and +fold. Both add to the datum beside <c>follow</c>, whether or
+/// not the stack follows, so strata tilt and ripple across a cliff instead of lying level. Both are read at the
+/// folded cell (TP21): on a mirrored board the plane and the noise are the canonical half's, and the other
+/// images carry them mirrored.</para>
 /// <para><b>On the <see cref="BandAxis.Slope"/> axis a thickness is a span of degrees</b>, not of blocks: a
 /// stack of grass at 20 then coarse dirt at 15 is meadow up to 19° and coarse dirt from 20° to 34°, with
 /// <see cref="Beyond"/> — or the last band under <see cref="BandEnding.Hold"/> — taking every steeper
@@ -357,7 +364,9 @@ public sealed record LayeredMaterial(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TerrainMaterial? Beyond = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int From = 0,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Follow = 0,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Reach = null)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Reach = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] BedDip? Dip = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] double Fold = 0)
     : TerrainMaterial
 {
     /// <summary>How many cells either side the ground is averaged over when <see cref="Reach"/> is left out —
@@ -366,6 +375,15 @@ public sealed record LayeredMaterial(
 
     /// <summary>The widest reach a stack may state, in cells either side.</summary>
     public const int MaxReach = 64;
+
+    /// <summary>The width of one fold's lattice cell, in blocks.</summary>
+    public const int FoldCell = 24;
+
+    /// <summary>The most a stack may fold its beds, in blocks.</summary>
+    public const double MaxFold = 64;
+
+    private const int FoldOctaves = 3;
+    private const int FoldSeed = 171;
 
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
@@ -390,18 +408,23 @@ public sealed record LayeredMaterial(
             ?? (Blocks.Stone, 0);
     }
 
-    /// <summary>How far this column raises a following height stack: <see cref="Follow"/> percent of the ground
-    /// averaged over <see cref="Reach"/> cells round it. Read at the folded cell, as a pattern is (TP21), so the
-    /// two halves of a symmetric board band alike. Nought where the stack does not follow or no ground was
-    /// supplied.</summary>
+    /// <summary>How far this column raises the datum of a height stack: <see cref="Follow"/> percent of the ground
+    /// averaged over <see cref="Reach"/> cells round it, plus the <see cref="Dip"/> plane and the <see cref="Fold"/>
+    /// noise, rounded once. Read at the folded cell, as a pattern is (TP21), so the two halves of a symmetric
+    /// board band alike. The ground's share is nought where the stack does not follow or no ground was supplied;
+    /// the dip and the fold do not depend on it.</summary>
     private int Lift(in BucketContext ctx)
     {
-        var follow = Math.Clamp(Follow, 0, 100);
-        if (follow == 0 || ctx.Ground is not { } ground) return 0;
         var (x, z) = ctx.Sample;
-        return ground.Height(x, z, Math.Clamp(Reach ?? DefaultReach, 1, MaxReach)) is { } height
-            ? (int)Math.Round(height * follow / 100.0, MidpointRounding.AwayFromZero)
-            : 0;
+        var lift = 0.0;
+        var follow = Math.Clamp(Follow, 0, 100);
+        if (follow > 0 && ctx.Ground is { } ground
+            && ground.Height(x, z, Math.Clamp(Reach ?? DefaultReach, 1, MaxReach)) is { } height)
+            lift = height * follow / 100.0;
+        if (Dip is { } dip) lift += dip.LiftAt(x, z);
+        if (Fold > 0)
+            lift += Math.Clamp(Fold, 0, MaxFold) * ValueNoise.Fractal(x, z, FoldCell, FoldOctaves, FoldSeed);
+        return (int)Math.Round(lift, MidpointRounding.AwayFromZero);
     }
 }
 
