@@ -106,8 +106,11 @@ through the studio with it, as the evidence the capability arrived whole.
 **A map's ground is built in three stages, and each does one kind of thing (D17).** Shapes on layers make the
 masses, with full control over where they are and how high; modifiers, stacked in order, change what the shapes
 made; placements stand presets and schematics on the result. Painting the surface is apart from all three.
-Nothing in this section exists in the studio yet; Phase 2 builds it, and the concept page
-(https://claude.ai/artifact/PXyATVHg1XQ12BWoBmYaes) draws Terraform over it. `pgmvox.document.layers` and
+Phase 2 builds it, and the concept page
+(https://claude.ai/artifact/PXyATVHg1XQ12BWoBmYaes) draws Terraform over it. Of this section the modifier stack
+runs in the studio: `modifiers[]` with Hill, Hollow, Level and Roughness, masked by ellipses, outlines and the
+board and fanned by the symmetry, listed and edited in Terraform (`docs/tools/sketch.md`, *The modifier stack*).
+The rest of it is not built yet. `pgmvox.document.layers` and
 `LAYER-DOCUMENT.md` (draft 4) are the laboratory it is drawn from, not its format.
 
 **Each thing has one word (D16).** A **layer** is where shapes sit, at a base height of its own. A **storey** is a

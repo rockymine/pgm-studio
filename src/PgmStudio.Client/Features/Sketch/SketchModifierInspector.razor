@@ -1,0 +1,124 @@
+@namespace PgmStudio.Client.Features.Sketch
+@using PgmStudio.Vocabulary
+
+@* The picked modifier: what it does, its numbers, and the areas of its mask. Every field writes through the
+   bridge, so each change is one undo step and the board's contours, paint and 3-D answer it. *@
+
+<Inspector>
+  <DetailHeader Icon="@SketchModifierState.Icon(Op)" Label="@ModifierOps.Label(Op)">
+    <span class="detail-header-badges">
+      <Button Variant="icon" Icon="x" Title="Done: show the terraform marks" OnClick="Close" />
+      <Button Variant="icon" Icon="trash-2" Writes Title="Delete this modifier" OnClick="Delete" />
+    </span>
+  </DetailHeader>
+  <p class="section-desc">@SketchModifierState.Blurb(Op)</p>
+
+  <Field Label="Name">
+    <input class="field-input" value="@(Modifier["name"]?.GetValue<string>() ?? "")" placeholder="@Id"
+           @onchange="e => SetText(Name, e.Value?.ToString())" />
+  </Field>
+  <label class="check-row">
+    <input type="checkbox" checked="@(!SketchModifierState.Off(Modifier))" @onchange="e => SetBool(Off, e.Value is not true)" />
+    Runs (off keeps its numbers)
+  </label>
+
+  @switch (Op)
+  {
+    case ModifierOps.Mound:
+      @NumberRow("Rise", Rise, 8, "blocks at its deepest point; negative with Cut sinks a dish")
+      @NumberRow("Shoulder", Power, 1.6, "above 1 it holds full height further out", min: 0.1)
+      @NumberRow("Join", Join, 0, "0 keeps the higher of two areas; above, they melt into a ridge", min: 0)
+      break;
+    case ModifierOps.Crater:
+      @NumberRow("Floor", Floor, 0, "the world y of its floor")
+      @NumberRow("Flat floor", Flat, 0, "blocks out from its middle", min: 0)
+      @NumberRow("Wall slope", Slope, 1, "blocks up per block out", min: 0)
+      @NumberRow("Melt", Melt, 0, "blocks over which its rim rounds into the ground", min: 0)
+      @NumberRow("Join", Join, 0, "how overlapping areas add up", min: 0)
+      break;
+    case ModifierOps.Level:
+      @NumberRow("Height", Top, null, "the world y it holds; empty takes the median of the ground")
+      @NumberRow("Flat out to", Inner, 1, "1 is the mask's rim", min: 0)
+      @NumberRow("Skirt out to", Outer, 1.5, "where it has eased back to the ground", min: 0)
+      break;
+    case ModifierOps.Noise:
+      <div class="section-header section-header--ruled"><h2 class="section-title">Sizes</h2></div>
+      @for (var index = 0; index < Sizes.Count; index++)
+      {
+        var at = index;
+        var size = Sizes[at];
+        <div class="modifier-size">
+          <Field Label="Cell"><NumberField Value="Number(size, Cell)" ValueChanged="v => SetSize(at, Cell, v)" Min="1" /></Field>
+          <Field Label="Octaves"><NumberField Value="Number(size, Octaves)" ValueChanged="v => SetSize(at, Octaves, v)" Min="1" Max="6" /></Field>
+          <Field Label="Rise"><NumberField Value="Number(size, Rise)" ValueChanged="v => SetSize(at, Rise, v)" Step="0.5" /></Field>
+          <Button Variant="icon" Icon="trash-2" Writes Title="Remove this size" Disabled="@(Sizes.Count == 1)" OnClick="() => RemoveSize(at)" />
+        </div>
+      }
+      <Button Icon="plus" Writes OnClick="AddSize">Add a size</Button>
+      @NumberRow("Seed", Seed, 1, "which noise it reads", min: 1)
+      break;
+  }
+
+  @NumberRow("Soft rim", Soft, null, "share of the mask over which the change fades in; empty is none", min: 0, max: 1, step: "0.05")
+  @if (Op != ModifierOps.Level)
+  {
+    <Field Label="Mode">
+      <Select Slim="false" Options="Modes" Value="@(Modifier[Mode]?.GetValue<string>() ?? "")" ValueChanged="v => SetText(Mode, v)" />
+    </Field>
+  }
+
+  <div class="section-header section-header--ruled"><h2 class="section-title">Mask</h2></div>
+  <label class="check-row">
+    <input type="checkbox" checked="@Mirrored" @onchange="e => SetMirror(e.Value is true)" />
+    Mirrored by the map's symmetry
+  </label>
+  @for (var index = 0; index < Areas.Count; index++)
+  {
+    var at = index;
+    var area = Areas[at];
+    var kind = area[Kind]?.GetValue<string>() ?? MaskKinds.Ellipse;
+    <div class="modifier-area">
+      <div class="modifier-area-head">
+        <span class="list-tag">@AreaLabel(kind)</span>
+        <Button Variant="icon" Icon="trash-2" Writes Title="Remove this area" Disabled="@(Areas.Count == 1)" OnClick="() => RemoveArea(at)" />
+      </div>
+      @if (kind == MaskKinds.Ellipse)
+      {
+        <div class="modifier-area-grid">
+          <Field Label="x"><NumberField Value="Centre(area, 0)" ValueChanged="v => SetCentre(at, 0, v)" /></Field>
+          <Field Label="z"><NumberField Value="Centre(area, 1)" ValueChanged="v => SetCentre(at, 1, v)" /></Field>
+          <Field Label="Radius x"><NumberField Value="Number(area, Rx)" ValueChanged="v => SetArea(at, Rx, v)" Min="1" /></Field>
+          <Field Label="Radius z"><NumberField Value="Number(area, Rz)" ValueChanged="v => SetArea(at, Rz, v)" Min="1" /></Field>
+          <Field Label="Turn"><NumberField Value="Number(area, Angle) ?? 0" ValueChanged="v => SetArea(at, Angle, v)" /></Field>
+        </div>
+      }
+      else if (kind == MaskKinds.Polygon)
+      {
+        <p class="inspector-readout">@(area[Points]?.AsArray().Count ?? 0) points, stated in the document.</p>
+      }
+      else
+      {
+        <p class="inspector-readout">The whole board.</p>
+      }
+    </div>
+  }
+  <Button Icon="plus" Writes OnClick="AddArea">Add an area</Button>
+  @if (!string.IsNullOrEmpty(error))
+  {
+    <p class="field-error">@error</p>
+  }
+</Inspector>
+
+@code {
+    private RenderFragment NumberRow(string label, string field, double? fallback, string hint,
+                                     double? min = null, double? max = null, string step = "1") => __builder =>
+    {
+        <Field Label="@label">
+          <LabelHint>(@hint)</LabelHint>
+          <ChildContent>
+            <NumberField Value="@(Number(Modifier, field) ?? fallback)" ValueChanged="v => SetNumber(field, v)"
+                         OnCleared="() => Clear(field)" Min="min" Max="max" Step="@step" />
+          </ChildContent>
+        </Field>
+    };
+}

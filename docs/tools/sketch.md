@@ -151,6 +151,7 @@ shape whether a layout was hand-drawn or compiled from a plan.
 | `dressing` | every placed prop |
 | `biome` · `biomeSource` | the biome every column carries, and the library row it was copied from |
 | `relief` | interior elevation, keyed by group id — and `landform`, the word the group states about what kind of ground it is meant to be |
+| `modifiers[]` | the terraform stack: operations run over the built ground in list order, each inside its mask (*Terraform*, below) |
 
 Seven of those are the map's **finish** rather than its shape — `themes`, `themeSources`, `mapTheme`,
 `roomStyles`, `dressing`, `biome`, `biomeSource` — and that grouping is load-bearing: none of them decides where ground stands, so a compiled layout carries
@@ -1160,6 +1161,67 @@ stand, and `RL6` on a push whose two gradients run more than about twice apart.
 layout — a driver, an agent, `tools/drive.py` — and the phase draws none of it: nineteen fields, eleven of
 them a count against another count on the same row, is a shape a sidebar cannot hold. What the phase shows is
 the mark list and the group tree, which is what an author edits.
+
+#### The modifier stack
+
+**A modifier is one terraform operation, run over the ground already built, inside its mask.** The layout's
+top-level `modifiers[]` is the stack, and it runs in list order after every layer is rasterized and stacked,
+each modifier taking the ground as the one before it left it. The ground it works on is the top of each column
+among the layers that are not made things, as a world y, so a Level's height and a Hollow's floor are heights a
+player would read off `column`. A room's ground holds: no modifier moves a column a play room stands on. The
+stack runs inside `SketchRasterizer.RasterizeColumns`, which is the build every read takes, so the contours,
+the paint, the 3-D preview, the export and `column`, `transect`, `slopes` and `walk` all answer it.
+
+Four operations run, each ported from pgmvox's ground layer (`pgmvox/document/layers.py`, `_ground_layer`):
+
+| `op` | The screen calls it | What it does to each column inside its mask | Its numbers |
+|---|---|---|---|
+| `mound` | Hill | raises it by `rise × (1 − e^power)`, `e` 0 at the mask's deepest point and 1 at its rim | `rise` 8, `power` 1.6 |
+| `crater` | Hollow | lowers it to a bowl `floor + slope × max(0, e × scale − flat)`, the seam rounded over `melt` blocks | `floor`, `flat` 0, `slope` 1, `melt` 0 |
+| `level` | Level | holds it at `top` out to `inner` and eases it back to the ground by `outer`, both in the mask's units | `top` (absent: the median of the ground it holds), `inner` 1, `outer` 1.5 |
+| `noise` | Roughness | adds each of its `sizes[]`, `{cell, octaves, rise}`, as value noise from `seed` | `sizes`, `seed` |
+
+**Every modifier states the same five things around its numbers.** `id` is what the list and every read name
+it by. `name` is what the author calls it. `off: true` switches it off and keeps its numbers. `mode` keeps half
+of the change: `lift` only what raises, `cut` only what lowers, and absent both; a Hill with a negative `rise`
+and `cut` is a dish of its own shape. `soft` fades the whole change in over that share of the mask, measured
+in from its rim.
+
+**A mask is one or more areas, and the map's symmetry fans them.** An area is an `ellipse` (`at`, `rx`, `rz`,
+`angle` in degrees), a `polygon` (`points`) or the whole `board`. Its distance `e` is 0 at its middle or
+deepest point and 1 on its rim, and `scale` is how many blocks one unit of `e` spans: the larger radius of an
+ellipse, the deepest point of a polygon. With `mask.mirror` (the default) each area also stands at its images
+under the map's symmetry, through `PgmStudio.Geom.Symmetry`; an image that falls on an area the mask already
+holds, as a centred ellipse does under a half turn, counts once. Where a Hill's or a Hollow's areas overlap, `join`
+adds them: 0 keeps the larger change, and above 0 they sum as a p-norm, so the saddle between two hills fills
+into a ridge. Any other operation keeps the larger change of its areas column by column.
+
+```json PUT /api/map/{slug}/sketch
+{
+  "setup": { "mirror_mode": "rot_180", "center": { "cx": 0, "cz": 0 } },
+  "layers": [ { "id": "ground", "name": "Ground", "base_y": 0, "layout": { "shapes": [
+    { "id": "s0", "type": "rectangle", "operation": "add",
+      "min_x": -60, "min_z": -30, "max_x": 60, "max_z": 30, "floor": 0, "base_height": 10 } ], "groups": [] } } ],
+  "modifiers": [
+    { "id": "west-hills", "op": "mound", "mask": { "areas": [
+        { "kind": "ellipse", "at": [-40, 8], "rx": 14, "rz": 10 },
+        { "kind": "ellipse", "at": [-26, 14], "rx": 9, "rz": 8 } ], "mirror": true },
+      "rise": 9, "join": 2, "soft": 0.3, "seed": 1 },
+    { "id": "plaza", "op": "level", "mask": { "areas": [ { "kind": "ellipse", "at": [0, 0], "rx": 10, "rz": 7 } ],
+        "mirror": false }, "top": 12, "seed": 1 },
+    { "id": "rough", "op": "noise", "mask": { "areas": [ { "kind": "board" } ] },
+      "sizes": [ { "cell": 12, "octaves": 2, "rise": 1 } ], "seed": 7 }
+  ]
+}
+```
+
+**The phase lists the stack above the group tree, and the picked modifier takes the inspector.** The four
+buttons under *Modifiers* add a Hill, a Hollow, a Level or a Roughness, a Roughness over the whole board and
+the rest an ellipse round the middle of the view. A row picks its modifier, and its own buttons move it earlier
+or later in the run and switch it off. The picked modifier's inspector edits its numbers, its mode and soft
+rim, and its mask area by area. The board outlines the picked modifier's areas, solid where they are drawn and
+dashed at their images. Every edit is one undo step. Picking a mark lets the modifier go, and the inspector's
+close button gives it back to the marks.
 
 `docs/world-export/relief.md` is this phase written out in full: the relaxation between the marks and why it
 is that rather than a weighting, what each knob costs measured on a room and on a whole map, how steepness
@@ -2779,6 +2841,14 @@ assignment. It states no relief, no dressing and no room styles, so it is not a 
 Sketch draws the ground and everything on it, and it does not know what any of it is *for*. It has no teams,
 no spawns, no objectives, no build regions and no protection: a map begun here reaches Configure with geometry
 and nothing else, and a map that came from a plan carries the plan's intent unchanged through this tool.
+
+**The modifier stack is its first slice.** A mask is edited as numbers in the inspector and is not yet drawn or
+dragged on the canvas with Draw's tools (`TS205`). The group-keyed `relief` still runs beside the stack, solved
+before it, until the migration carries every mark, push and grain into modifiers (`TS206`). Nothing yet steps
+the board through the stack one modifier at a time or counts the columns each changed (`TS207`). A shape does not
+yet say whether it follows, holds or rides the modifiers; only a room's ground holds (`TS208`). Hill, Hollow,
+Level and Roughness are the four operations; Ridge, River and the rest of pgmvox's ground operations follow
+(`TS209`).
 
 **Only Draw edits geometry.** Palette, Terraform and Decoration all run the canvas as a selection surface: a group
 or a shape can be picked, and the view panned and zoomed, but nothing can be moved, resized, rotated,

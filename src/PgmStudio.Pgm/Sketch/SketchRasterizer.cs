@@ -109,7 +109,23 @@ public static class SketchRasterizer
                 output.Add(new ColumnSegment(kv.Key.Item1, kv.Key.Item2,
                                             kv.Value.Floor + by, kv.Value.Top + by, layer.Id!));
         }
+        SketchTerraform.Run(state, output, axes, cx, cz);
         return Seat(state, output);
+    }
+
+    /// <summary>The columns under every play room: a shape carrying a <see cref="SketchShape.Role"/>, which the
+    /// layout is read with as an annotation over the ground and not as ground. The intent has drawn each room's
+    /// images as shapes of their own, so the footprints are taken as they stand.</summary>
+    internal static HashSet<(int X, int Z)> RoomCells(SketchLayout? state)
+    {
+        var rooms = new HashSet<(int X, int Z)>();
+        foreach (var layer in ResolveLayers(state))
+            foreach (var shape in layer.Shapes.Where(shape => shape.Role is not null))
+            {
+                var ring = RingOf(shape);
+                if (ring.Count >= 3) rooms.UnionWith(CellsOfRing(ring));
+            }
+        return rooms;
     }
 
     /// <summary>Every made thing that seats on the ground, moved down onto it, and the terrain over its seat

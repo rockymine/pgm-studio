@@ -130,6 +130,15 @@ export function paintPlaces(painter, places, selectedId = null) {
   }
 }
 
+/** A modifier's mask: its own outlines solid, their images under the map's symmetry dashed. */
+export function paintMasks(painter, masks) {
+  for (const mask of masks ?? []) {
+    const style = { fill: "var(--accent)", fillAlpha: mask.image ? 0.04 : 0.1, stroke: "var(--accent)",
+                    strokeAlpha: mask.image ? 0.6 : 0.95, width: mask.image ? 1.5 : 2, dash: mask.image ? [5, 4] : null };
+    painter.ring(mask.points, style);
+  }
+}
+
 /** The place under (wx, wz), the last drawn first — inside a box or a ring, within `reach` blocks of a point or
  *  a line — or null. */
 export function placeAt(places, wx, wz, reach) {

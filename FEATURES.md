@@ -10802,6 +10802,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Layout reaches no shape, and its panel lists the pieces (`TS203`).** In Layout a double-click picks no shape
   and a click on empty canvas lets the pick go; the left panel lists the play pieces by kind (`SketchPiecesList`),
   a row picking its piece and an orbit's image listed but not picked.
+- **Terraform over the modifier stack, on paper (`RP133`).** The concept page
+  (https://claude.ai/artifact/PXyATVHg1XQ12BWoBmYaes) draws the Shapes and Modifiers lists, the strip, masks and
+  their edges, recipes and the stored format under D16–D23, and has the author's approval.
+- **The modifier stack runs over the built ground (`TS204`).** A sketch's `modifiers[]` run in list order inside
+  `RasterizeColumns`, so every read answers them: Hill, Hollow, Level and Roughness, ported from pgmvox's ground
+  layer, masked by ellipses, outlines and the board, fanned by the symmetry, with `join`, `soft`, `mode` and
+  `off`; a room's ground holds. Terraform lists the stack (`SketchModifierList`), adds, reorders and switches
+  each, edits the picked one (`SketchModifierInspector`) and outlines its mask, every edit one undo step.
+  `docs/tools/sketch.md`, *The modifier stack*.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

@@ -117,6 +117,7 @@
             @* Relief needs BOTH: the group tree, because the group is the unit a relief is solved over and
                picking one is how its base and grain are reached; and the list of what is stated, because a
                spot height under a broad bench is a small target on the canvas. *@
+            <SketchModifierList Handle="handle" State="modifiers" />
             <SketchPanel Groups="groups" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedGroupId="@selectedGroupId"
                          OnSelectShape="SelectShape" OnSelectGroup="SelectGroup" />
             <SketchReliefList StateJson="@reliefJson" Handle="handle" />
@@ -343,7 +344,14 @@
         else if (ReliefActive)
         {
           <div class="sidebar-handle"></div>
-          <SketchReliefInspector Handle="handle" ActiveTool="@tool" StateJson="@reliefJson" />
+          @if (modifiers.Selected is { } pickedModifier)
+          {
+            <SketchModifierInspector @key="SketchModifierState.Id(pickedModifier)" Handle="handle" Modifier="pickedModifier" />
+          }
+          else
+          {
+            <SketchReliefInspector Handle="handle" ActiveTool="@tool" StateJson="@reliefJson" />
+          }
         }
         else if (ThemeActive)
         {

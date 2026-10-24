@@ -47,7 +47,7 @@ import { paintDiff } from "../render/diff-render.js";
 import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
-  paintSketchShape, paintGroups, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostGroups, paintRaster, paintStructural, paintPlaces, placeAt, wallBand,
+  paintSketchShape, paintGroups, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostGroups, paintRaster, paintStructural, paintPlaces, paintMasks, placeAt, wallBand,
   paintContours, paintHeightMap, heightMapBitmap,
 } from "../render/sketch-render.js";
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
@@ -100,6 +100,7 @@ export class SketchCanvas extends CanvasBase {
   #shapes      = new Map();   // id → shape (source for paint / hit-test / edit)
   #structural  = [];          // locked plan pieces — the plan's own, never edited/rasterized as terrain
   #places      = [];          // the map's places — named shapes over the board, making no ground
+  #masks       = [];          // the picked modifier's mask outlines, `{ points, image }`
   #selectedPlaceId = null;    // the picked place, where the step drawing places may pick one
   #placesPickable = false;    // whether a click lands on a place before anything under it
   #selectedStructuralId = null;   // the picked play piece, in Layout
@@ -989,6 +990,7 @@ export class SketchCanvas extends CanvasBase {
       paintStructural(painter, this.#structural, this.#selectedStructuralId);
     });
     painter.layer("places", () => paintPlaces(painter, this.#places, this.#selectedPlaceId));
+    painter.layer("masks", () => paintMasks(painter, this.#masks));
     painter.layer("selection", () => this.#paintSelectionHighlight());
     painter.layer("marks",     () => this.#paintReliefMarks(painter));
     painter.layer("dressing",  () => this.#paintDressing(painter));
@@ -1067,6 +1069,15 @@ export class SketchCanvas extends CanvasBase {
     this.#places = places ?? [];
     if (!this.#places.some(p => p.id === this.#selectedPlaceId)) this.#selectedPlaceId = null;
     this.#paintWorld();
+  }
+
+  /** The picked modifier's mask outlines, drawn over the board; an empty list takes them away. */
+  setMasks(masks) { this.#masks = masks ?? []; this.#paintWorld(); }
+
+  /** The world point at the middle of the view, where a thing added from a panel lands. */
+  viewCentre() {
+    const { w, h } = this._viewSize ?? this._size();
+    return [(w / 2 - this._panX) / (this._scale || 1), (h / 2 - this._panY) / (this._scale || 1)];
   }
 
   /** Pick a place, or `null` to let it go. */

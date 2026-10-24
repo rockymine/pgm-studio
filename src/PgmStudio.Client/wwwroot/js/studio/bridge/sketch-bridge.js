@@ -11,6 +11,7 @@ import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape 
 import { surfaceHeights } from "../geometry/slope.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
 import { isPush, pushAmounts, pushAmountPatch } from "../relief/relief-doc.js";
+import { newModifier, patchModifier, moveModifier, maskRings } from "../relief/modifier-doc.js";
 import { fireTo } from "./fire.js";
 import { isoPreview } from "./iso-preview.js";
 import { liveFeed, refusalText } from "./live-feed.js";
@@ -64,6 +65,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let pieceKind = null;        // the play piece the Layout step places next, or null
   let placeShape = null;       // the shape of place the Places step draws next, or null
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
+  let modifiers = [];          // the terraform stack, in the order it runs (`SketchLayout.Modifiers`)
+  let pickedModifier = null;   // the modifier whose mask the board outlines, or null
   let dressingMode = false;    // the Dressing phase is up: props are, and a shape is not reachable under them
   // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override
   // rides on the shape (`shape.theme`), assigned via the Theme phase and resolved at export.
@@ -188,7 +191,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     }),
     // Relief marks follow exactly the same three rules, for the same reasons.
     onReliefChanged: edit(() => afterReliefChange()),
-    onMarkSelected:  () => fire("OnRelief", reliefState()),
+    onMarkSelected:  () => {
+      // A mark and a modifier share the inspector, so picking one lets the other go.
+      if (canvas.reliefTools?.selectedId && pickedModifier) {
+        pickedModifier = null;
+        fire("OnModifiers", modifierState());
+        paintMasks();
+      }
+      fire("OnRelief", reliefState());
+    },
     onReliefPlaced:  () => { if (!dropTool()) canvas.reliefTools?.select(null); },
     onToolDropped:   () => putDownTool(),
     onShapeDeleted:  edit((id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); }),
@@ -1014,6 +1025,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // theme finish is announced by `load` itself.
     fire("OnDressing", dressingState());
     fire("OnRelief", reliefState());
+    fire("OnModifiers", modifierState());
+    paintMasks();
     syncRelief();                  // the statement moved, so the contours and the shading it produced have too
     refreshPaint({ now: true });
     iso.drop();                 // and the meshed board is a picture of a document that is no longer open
@@ -1201,6 +1214,25 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     markDirty();
     fire("OnRelief", reliefState());
     refreshRelief();   // the statement changed, so the contours it produced have too
+  }
+
+  // ── the modifier stack ─────────────────────────────────────────────────────
+  // The stack runs on the server, in the build every read takes, so the contours, the paint and the 3-D
+  // preview are what show its effect; the board outlines the picked modifier's mask and its images.
+  const modifierState = () => JSON.stringify({ modifiers, selectedId: pickedModifier });
+
+  function paintMasks() {
+    const picked = reliefMode ? modifiers.find(modifier => modifier.id === pickedModifier) : null;
+    canvas.setMasks(picked ? maskRings(picked, setup.mirror_mode, setup.center?.cx ?? 0, setup.center?.cz ?? 0) : []);
+  }
+
+  function afterModifierChange() {
+    markDirty();
+    fire("OnModifiers", modifierState());
+    paintMasks();
+    refreshRelief();
+    refreshPaint();
+    iso.drop();
   }
 
   // ── the relief contour overlay ─────────────────────────────────────────────
@@ -1581,7 +1613,41 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.setReliefMode(reliefMode);
       // The phase shows the statement and its result together, which is the only way a mark can be tuned by
       // eye — so entering it turns the contour overlay on rather than leaving it to a second toggle.
-      if (reliefMode) { reliefOn = true; syncRelief(); fire("OnRelief", reliefState()); }
+      if (reliefMode) { reliefOn = true; syncRelief(); fire("OnRelief", reliefState()); fire("OnModifiers", modifierState()); }
+      paintMasks();
+    },
+
+    // ── the modifier stack (docs/tools/sketch.md, Terraform) ──
+    /** Add a modifier of `op` at the end of the stack, its mask round the middle of the view, and pick it. */
+    addModifier(op) {
+      const added = newModifier(modifiers, op, canvas.viewCentre());
+      modifiers = [...modifiers, added];
+      pickedModifier = added.id;
+      canvas.reliefTools?.select(null);
+      afterModifierChange();
+    },
+    /** Patch one modifier; `patchJson` is a partial modifier, `mask` replaced whole. An error string on bad JSON. */
+    updateModifier(id, patchJson) {
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
+      modifiers = patchModifier(modifiers, id, patch);
+      afterModifierChange(); return null;
+    },
+    deleteModifier(id) {
+      modifiers = modifiers.filter(modifier => modifier.id !== id);
+      if (pickedModifier === id) pickedModifier = null;
+      afterModifierChange();
+    },
+    /** Move one modifier `by` places in the order the stack runs. */
+    moveModifier(id, by) {
+      modifiers = moveModifier(modifiers, id, Number(by));
+      afterModifierChange();
+    },
+    /** Pick a modifier to outline on the board, or null. Picking is not an edit. */
+    selectModifier(id) {
+      pickedModifier = modifiers.some(modifier => modifier.id === id) ? id : null;
+      if (pickedModifier) canvas.reliefTools?.select(null);
+      fire("OnModifiers", modifierState());
+      paintMasks();
     },
     selectMark(id) { canvas.reliefTools?.select(id || null); },
     deleteMark() { if (canvas.reliefTools?.deleteSelected()) afterReliefChange(); },
@@ -1652,6 +1718,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       biomeSource = (biome && Number.isFinite(s.biomeSource)) ? s.biomeSource : 0;
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
       canvas.setReliefDoc(s.relief && typeof s.relief === "object" ? s.relief : null);
+      modifiers = Array.isArray(s.modifiers) ? structuredClone(s.modifiers) : [];
+      if (!modifiers.some(modifier => modifier.id === pickedModifier)) pickedModifier = null;
       const raw = (s.layers && s.layers.length) ? s.layers : [];
       // A layer's shapes are partitioned on load: role-tagged shapes are the play rooms the studio drew in
       // from the intent — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (groups, raster,
@@ -1693,6 +1761,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       // board.
       if (!keepView) canvas.fitToBbox();
       announceThemes();
+      fire("OnModifiers", modifierState());
+      paintMasks();
     },
     // The layout for the host to persist (the SketchLayoutJson shape — now layers[]).
     getState() {
@@ -1722,6 +1792,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         // redrawing of the shapes in it. Omitted when
         // nothing is stated, so opening the phase and leaving it cannot add a key to the layout.
         relief: canvas.relief.isEmpty ? undefined : canvas.relief.toJSON(),
+        // The terraform stack, omitted when empty for the same reason.
+        modifiers: modifiers.length ? modifiers : undefined,
         layers: layers.map(L => ({
           ...L.stated,
           id: L.id, name: L.name, base_y: L.baseY,
@@ -1764,6 +1836,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     "assignShape", "assignGroup",
     "deleteProp", "deleteWing", "updateWing", "pullRecipe", "updateProp",
     "deleteMark", "updateMark", "renameMark", "updateGroupRelief", "setPushAmount",
+    "addModifier", "updateModifier", "deleteModifier", "moveModifier",
   ];
   for (const verb of MUTATORS) {
     const bare = handle[verb];

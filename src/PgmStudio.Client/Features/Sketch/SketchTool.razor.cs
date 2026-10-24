@@ -866,6 +866,12 @@ public partial class SketchTool
     [JSInvokable]
     public void OnRelief(string json) { reliefJson = json; StateHasChanged(); }
 
+    /// <summary>The modifier stack and the one picked, as the bridge announces them.</summary>
+    private SketchModifierState modifiers = SketchModifierState.Empty;
+
+    [JSInvokable]
+    public void OnModifiers(string json) { modifiers = SketchModifierState.Parse(json); StateHasChanged(); }
+
     /// <summary>Which layers the board the preview just built is made of, and which of them it is leaving
     /// out. The bridge keeps a hidden layer hidden across a rebuild, so this is where the two agree again
     /// after an edit — including a layer the author deleted, which comes back neither listed nor hidden.

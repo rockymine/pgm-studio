@@ -72,6 +72,10 @@ public sealed class SketchLayout
     /// shapes because it is stated of a group, which several shapes fuse into.</summary>
     [JsonPropertyName("relief")] public Dictionary<string, SketchReliefJson>? Relief { get; set; }
 
+    /// <summary>The terraform operations run over the built ground, in the order they run
+    /// (<see cref="SketchModifierJson"/>).</summary>
+    [JsonPropertyName("modifiers")] public List<SketchModifierJson>? Modifiers { get; set; }
+
     /// <summary>What the layout states about the ground under each play room, by the id of the shape the room
     /// is drawn as (<see cref="RoomGround"/>). The rooms themselves are the intent's, drawn in by
     /// <see cref="RoomShapes.Project"/>; absent, every room is ordinary ground the relief does not pin.</summary>
