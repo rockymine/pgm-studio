@@ -1,4 +1,5 @@
 @namespace PgmStudio.Client.Features.Sketch
+@using PgmStudio.Geom.Relief
 
 @* The active layer's settings — its name and the y it is based at. Which layer is active, and which
    layers there are, is the canvas strip's: a layer is switched where it is drawn on, so the sidebar
@@ -13,5 +14,24 @@
     <Field Label="Base Y (blocks)">
       <NumberField Value="ActiveLayer.BaseY" ValueChanged="BaseYActive" />
     </Field>
+    <label class="check-row">
+      <input type="checkbox" checked="@(ActiveLayer.Underside is not null)" @onchange="e => ToggleUnderside(e.Value is true)" />
+      Underside — rock hangs under the ground, narrowing inward from the rim
+    </label>
+    @if (ActiveLayer.Underside is { } underside)
+    {
+      <Field Label="Depth at the rim (blocks)">
+        <NumberField Value="underside.Edge" Min="0" Max="64" ValueChanged="v => SetUnderside(underside with { Edge = v })" />
+      </Field>
+      <Field Label="Added per block inward">
+        <NumberField Value="underside.Taper" Min="0" Max="8" Step="0.1" ValueChanged="v => SetUnderside(underside with { Taper = v })" />
+      </Field>
+      <Field Label="Roughness (blocks)">
+        <NumberField Value="underside.Rough" Min="0" Max="16" Step="0.5" ValueChanged="v => SetUnderside(underside with { Rough = v })" />
+      </Field>
+      <Field Label="Seed">
+        <NumberField Value="underside.Seed" Min="0" ValueChanged="v => SetUnderside(underside with { Seed = (int)v })" />
+      </Field>
+    }
   }
 </Section>

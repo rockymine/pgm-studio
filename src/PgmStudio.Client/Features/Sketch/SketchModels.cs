@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using PgmStudio.Geom.Relief;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
@@ -142,7 +143,8 @@ public sealed class SketchSlopeControl
 public sealed record SketchLayerRow(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("baseY")] double BaseY);
+    [property: JsonPropertyName("baseY")] double BaseY,
+    [property: JsonPropertyName("underside")] UndersideSpec? Underside = null);
 
 public sealed record SketchLayersDto(
     [property: JsonPropertyName("active")] string Active,

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using PgmStudio.Geom.Relief;
 
 namespace PgmStudio.Client.Features.Sketch;
 
@@ -9,11 +10,18 @@ public partial class SketchLayers
     [Parameter] public EventCallback<(string Id, string Name)> OnRename { get; set; }
     [Parameter] public EventCallback<(string Id, double BaseY)> OnSetBaseY { get; set; }
 
+    [Parameter] public EventCallback<(string Id, UndersideSpec? Underside)> OnSetUnderside { get; set; }
+
     private SketchLayerRow? ActiveLayer => Layers.FirstOrDefault(l => l.Id == ActiveId);
 
     private Task RenameActive(ChangeEventArgs e)
         => ActiveLayer is { } L && e.Value?.ToString()?.Trim() is { Length: > 0 } n
             ? OnRename.InvokeAsync((L.Id, n)) : Task.CompletedTask;
+
+    private Task ToggleUnderside(bool on) => SetUnderside(on ? new UndersideSpec() : null);
+
+    private Task SetUnderside(UndersideSpec? underside)
+        => ActiveLayer is { } L ? OnSetUnderside.InvokeAsync((L.Id, underside)) : Task.CompletedTask;
 
     private Task BaseYActive(double v)
         => ActiveLayer is { } L ? OnSetBaseY.InvokeAsync((L.Id, v)) : Task.CompletedTask;

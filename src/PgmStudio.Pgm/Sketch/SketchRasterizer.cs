@@ -104,7 +104,7 @@ public static class SketchRasterizer
         var (cx, cz, axes) = FrameOf(state);
         var output = LayerSegments(state, cx, cz, axes);
         var water = SketchTerraform.Run(state, output, axes, cx, cz);
-        return new BuiltColumns(Seat(state, output), water);
+        return new BuiltColumns(Hang(state, Seat(state, output), cx, cz, axes), water);
     }
 
     /// <summary>The cells of the built ground within <paramref name="width"/> blocks of one modifier's mask, on
@@ -320,6 +320,64 @@ public static class SketchRasterizer
             if (segment.YFloor < top) settled.Add(segment with { YTop = top });
         }
         return settled;
+    }
+
+    /// <summary>Lowers the floor of every layer that states an <see cref="SketchLayer.Underside"/> to the
+    /// underside its columns' tops hang, once the modifiers and the seats have settled those tops.
+    ///
+    /// <para>A column's floor is the lower of the flat floor its shapes state and the tapered one, so an
+    /// underside only ever adds rock beneath the slab. Where the terrain of another layer stands under the
+    /// column and the floor would leave <see cref="Underside.Clear"/> blocks or fewer over it, the floor is that
+    /// terrain's top instead and the two join. Only terrain layers are rested on: a made thing is not ground.
+    /// A shape named in <see cref="UndersideSpec.Sheer"/> makes the air beside it, within the layer's footprint,
+    /// a sheer side.</para></summary>
+    private static List<ColumnSegment> Hang(SketchLayout? state, List<ColumnSegment> segments, double cx, double cz,
+                                            IReadOnlyList<string> axes)
+    {
+        var layers = ResolveLayers(state);
+        var hung = layers.Where(layer => layer.Underside is not null).ToList();
+        if (hung.Count == 0) return segments;
+
+        var mode = SketchLayout.MirrorModeOf(state);
+        var made = layers.Where(layer => layer.IsMade).Select(layer => layer.Id!).ToHashSet(StringComparer.Ordinal);
+        var ground = segments.Where(segment => !made.Contains(segment.Layer))
+                             .ToLookup(segment => segment.Cell);
+        var lowered = new Dictionary<(string Layer, int X, int Z), int>();
+        foreach (var layer in hung)
+        {
+            var spec = layer.Underside!;
+            var tops = new Dictionary<(int X, int Z), int>();
+            foreach (var segment in segments.Where(segment => segment.Layer == layer.Id))
+                tops[segment.Cell] = Math.Max(tops.GetValueOrDefault(segment.Cell, int.MinValue), segment.YTop);
+
+            var floors = Underside.Floors(tops, SheerSide(layer, spec, tops, axes, cx, cz), spec, mode, cx, cz);
+            foreach (var segment in segments.Where(segment => segment.Layer == layer.Id))
+            {
+                var floor = Math.Min(segment.YFloor, floors[segment.Cell]);
+                var below = ground[segment.Cell].Where(other => other.Layer != layer.Id && other.YTop <= segment.YFloor)
+                                                .Select(other => other.YTop).DefaultIfEmpty(int.MinValue).Max();
+                if (below != int.MinValue && Underside.Rests(floor, below)) floor = below;
+                lowered[(layer.Id!, segment.X, segment.Z)] = floor;
+            }
+        }
+        return [.. segments.Select(segment =>
+            lowered.TryGetValue((segment.Layer, segment.X, segment.Z), out var floor) ? segment with { YFloor = floor } : segment)];
+    }
+
+    /// <summary>The air cells beside the named shapes of <paramref name="layer"/>, symmetry images included:
+    /// the four neighbours of each of their columns that the layer does not hold.</summary>
+    private static HashSet<(int X, int Z)> SheerSide(SketchLayer layer, UndersideSpec spec,
+                                                     Dictionary<(int X, int Z), int> footprint,
+                                                     IReadOnlyList<string> axes, double cx, double cz)
+    {
+        var air = new HashSet<(int X, int Z)>();
+        if (spec.Sheer is not { Count: > 0 } named) return air;
+        var shapes = layer.Shapes.Where(shape => named.Contains(shape.Id)).ToList();
+        foreach (var (_, copy) in WithImages(layer, shapes, axes, cx, cz))
+            foreach (var (x, z) in CellsOf(copy).Where(footprint.ContainsKey))
+                foreach (var (dx, dz) in Neighbours4)
+                    if (!footprint.ContainsKey((x + dx, z + dz))) air.Add((x + dx, z + dz));
+        return air;
     }
 
     /// <summary>The columns covered by every shape that says it is not ground to dress

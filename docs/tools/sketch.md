@@ -144,7 +144,7 @@ shape whether a layout was hand-drawn or compiled from a plan.
 | Key | Holds |
 |---|---|
 | `setup` | `mirror_mode` — `none` for a board with no symmetry, and `rot_180` when unstated — the symmetry `center`, and the `bbox` the canvas frames on open |
-| `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, groups}}`, plus `kind`, `part_of` and `seat` where the layer holds a made thing. Always at least one; a flat board is a stack of one, called `ground` |
+| `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, groups}}`, plus `kind`, `part_of` and `seat` where the layer holds a made thing, and `underside` where it hangs rock under itself (*A layer's underside*). Always at least one; a flat board is a stack of one, called `ground` |
 | `themes` · `themeSources` · `mapTheme` | the terrain-paint registry, which library row each of its themes was copied from, and the map-wide default |
 | `roomStyles` | the two bound room shells — `wool` and `spawn` |
 | `dressing` | every placed prop |
@@ -578,6 +578,73 @@ which is nonsense for a hull flying at y24 — its fill band would claim the who
 layer's bands run over `[its own floor, its own top]` instead. `docs/world-export/terrain-painting.md` §5
 carries that half.
 
+### A layer's underside
+
+**A floating layer hangs rock under itself when it states an `underside`.** Without one a layer is the slab its
+shapes state, so ground standing over void ends in a flat bottom. With one, each column's floor drops to a rock
+that is `edge` blocks thick at the rim of the layer's footprint and `taper` blocks thicker for every block inward,
+which narrows an island to a keel and leaves the rim thin. The underside belongs to the **layer** and not to a
+shape, because one layer is one landmass: two shapes of a layer that touch hang as a single island, and a
+per-shape underside would cut a seam into the rock wherever they meet. A group is no owner either, since a group
+only decides what is copied onto the symmetry orbit.
+
+| Field | Takes | Says |
+|---|---|---|
+| `edge` | blocks, default 4 | the rock's thickness under a rim column, counted from the column's top |
+| `taper` | blocks per block, default 0.9 | the thickness added for each block inward, measured as the straight-line distance to the nearest cell the layer does not hold, so a corner narrows faster than a straight rim and a lake in the island has a rim of its own |
+| `rough` | blocks, default 0 | the amplitude of noise added to the thickness, in features about 12 blocks wide |
+| `seed` | integer, default 0 | the noise row; the same seed hangs the same underside on every build |
+| `sheer` | shape ids, default none | shapes of the layer whose outline beside open air is a rift side |
+
+**The thickness is measured from each column's own top, after the modifiers and the seats have settled it**, so
+terraform that raises a hill raises the rock under it with it. A column's floor is the lower of the flat floor its
+shapes state and the underside, which makes an underside only ever add rock: a slab already thicker than the rock
+under its rim keeps its own floor there and hangs only where the taper has gone deeper than the slab is thick.
+The floor never rises above the course under the top and never falls below course 1.
+
+**With `rough`, the noise is read at each cell's canonical member under the board's symmetry**
+(`PgmStudio.Geom.Symmetry.Canonical`), so a mirrored layer hangs the same on every image and the two halves of a
+rot_180 board cannot be told apart from underneath.
+
+**A `sheer` side drops far before it narrows.** The open air touching the outline of a named shape makes the
+columns beside it hang 26 blocks at the rim and 1.2 more per block inward, in place of `edge` and `taper`
+(`Underside.SheerEdge`, `Underside.SheerTaper`). Where a column is near both kinds of rim the shallower reading
+applies, so a sheer face on one side of an island does not deepen the others. A shape id that names no shape of
+the layer is ignored.
+
+**An underside rests on the terrain below where it would leave under four blocks clear.** When another terrain
+layer stands under the column, and the floor would sit fewer than `Underside.Clear` (4) blocks over that layer's
+top, the floor is that top instead and the two join, so an island hung low over a hill is one mass with it and
+no sliver of air is left to fall into. A column whose floor stays four blocks or more clear hangs free, so a rim
+can hang over a valley while the keel meets the ridge under it. Only terrain is rested on: a `made` layer below is
+not ground. Every reader sees the joined floor, because they all read `ColumnSegment` — the walk, the painter's
+bands (a column whose lowest stone is above course 1 is a floating one and takes a base), the export and
+`sketch/columns`.
+
+An island of one shape with a rough, sheer-edged underside, set 40 blocks over void:
+
+```json PUT /api/map/{slug}/sketch/layers/{layerId}
+{
+  "name": "Island",
+  "base_y": 40,
+  "underside": { "edge": 4, "taper": 0.9, "rough": 1.5, "seed": 1, "sheer": ["cliff"] },
+  "layout": {
+    "shapes": [
+      { "id": "cliff", "type": "rectangle", "operation": "add",
+        "min_x": 0, "min_z": 0, "max_x": 6, "max_z": 40, "floor": 0, "base_height": 1 },
+      { "id": "body", "type": "rectangle", "operation": "add",
+        "min_x": 6, "min_z": 0, "max_x": 40, "max_z": 40, "floor": 0, "base_height": 1 }
+    ],
+    "groups": []
+  }
+}
+```
+
+Read against the fields above: both shapes are one island of one layer, `base_height` 1 leaves the rock to the
+underside, and the west edge, which `cliff` draws, hangs 26 blocks at its rim where the other three hang 4. In the
+Draw phase the active layer's panel carries an *Underside* box with the four numbers; `sheer` is stated over the
+API and rides through a save from the browser untouched.
+
 ### What the rasterizer makes of it
 
 `SketchRasterizer.RasterizeColumns` turns the document into the solid runs of the finished world, one
@@ -605,7 +672,8 @@ Changing one without the other does not fail loudly; it produces a world whose e
 by a fraction of a block, which is why the constants carry cross-referencing comments on both sides.
 
 The modifiers run inside that build (`SketchTerraform.Run`), so the contour overlay and every read of the
-columns answer the same ground (*Terraform*).
+columns answer the same ground (*Terraform*). A layer's underside lowers its floors after the modifiers and the
+seats have settled the tops (`SketchRasterizer.Hang`).
 
 What becomes of those columns once the map is exported — the layer scheme the world folder is written in, its
 `level.dat`, the coordinate anchoring, the wool-cage chests and the observer platform — is

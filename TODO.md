@@ -18,18 +18,6 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 into the studio one phase at a time, each proven against a pgmvox fixture, until a board built on pgmstudio.de
 reaches the ceiling a pgmvox board does. Phase 0 has shipped, Phase 1 has closed with its two agent-facing
 entries parked, and Phase 2 has shipped: shapes, eighteen ground operations in the modifier stack, and the water
-they make. Phase 3, paint, lay and water, is open, and its entries run in the order below.
-
-### Phase 3 — paint, lay and water
-
-The ground's surface is chosen by what the ground is, not by which shape drew it: a steep face is rock because it
-is steep, a river's bank is sand because it lies beside the river. Each entry is pgmvox's `surface/terrain.py`
-ported into the painter (`src/PgmStudio.Minecraft/Painting/`), proven by the board it builds, and
-`docs/world-export/terrain-painting.md` is the document each leaves correct.
-
-- [ ] **TS211 — A layer's underside.** A layer's shapes state an underside that tapers in from the rim, 4 blocks
-  at the edge and 0.9 more per block inward, steeper beside a `sheer` side, and rest on the ground below where less
-  than 4 blocks would stay clear — pgmvox `island_bottom` and `_level` (`surface/terrain.py:272`,
-  `document/layers.py:1022`). Lands in `Geom` and sets each segment's floor in `SketchRasterizer`.
-  `docs/tools/sketch.md`.
-
+they make. Phase 3 has shipped too: soil by slope, paint rules, beds that dip, fold and cycle, a water's own bed
+and its fall off the edge, and a layer's underside. Phase 4, space in three dimensions, is next, and its entries
+are filed here as it is pulled.
