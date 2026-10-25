@@ -192,8 +192,8 @@ try {
   const named = await page.$$eval(".svg-area svg text", (els, id) => els.some(el => el.textContent === id), room.id);
   checks.add("the picked room is named by its id above it", named);
   const height = page.locator(".workspace-inspector input[type=number]").first();
-  checks.add("a room stating no height shows none, and says it stands on the ground",
-    (await height.inputValue()) === "" && /stands on the ground under it/i.test(await page.locator(".workspace-inspector").innerText()),
+  checks.add("a room stating no height shows none, and says it stands on the ground the terraform leaves",
+    (await height.inputValue()) === "" && /stands level on the ground the terraform leaves under it/i.test(await page.locator(".workspace-inspector").innerText()),
     await height.inputValue());
   await page.mouse.click(centre.x, centre.y);
   await page.waitForTimeout(300);

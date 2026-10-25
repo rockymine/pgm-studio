@@ -3031,9 +3031,10 @@ cursor and never on the ground under it, a double-click reaches no shape, and a 
 the pick go; in Ground a click lands on the ground and never on a piece. Changing step lets go of what the other
 step picked. The picked piece is ringed on the canvas and opens a rail of its own: what kind it
 is, whose it is, its extent, and — for a **region** — its height. A room
-stating no height stands on the ground under it and the field is empty; one the layout states a height for settles
-on the ground from that height. Correcting it writes the number, the author's-height flag and `hold` together on the
-room's record, so the room stays at the number whatever the modifiers do around it. A **building**
+stating no height stands level on the ground the terraform leaves under it and the field is empty; one the layout
+states a height for stands at that height. Correcting it writes the number, the author's-height flag and `hold`
+together on the room's record, so the room stays at the number whatever the modifiers do around it (*How a room
+meets the stack*). A **building**
 footprint carries no height of its own — the region it stands in is what the room's ground is held at —
 so its rail states that and offers no field, and a piece that is not a room has a rail of its kind and extent
 alone. Picking a piece drops whatever terrain selection was standing,
