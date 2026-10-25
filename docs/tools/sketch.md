@@ -1137,7 +1137,7 @@ centre and a radius that the mask supplies as its centroid and `scale`:
 | `coast` | Coast | in an area, the sea: the floor falls from the shore `slope` blocks a block to `depth` under the surface; outside, the land within `shelf` blocks eases down to a beach one over the sea, low land beside it lifted to the beach; **makes water** | `level` (absent: one under the ground a tenth of the rim stands at or below), `shelf` 10, `depth` 6, `slope` 0.35, `bed_material` (absent: the default bank) |
 | `lumps` | Lumps | in an area: strews up to `count` lumps whose middles fall inside it, each a hill on an ellipse `across` blocks long, its short axis `stretch` of that, turned at random or within 25° of `angle`, its foot roughened by `jag`, `heights` blocks high and falling as `1 − e^power`; overlapping lumps add; only lifts | `count` 12, `across` [6, 16], `heights` [2, 5], `stretch` [0.5, 1], `jag` 0.25, `power` 1.8 |
 | `shatter` | Shatter | breaks the ground inside into pieces about `cell` blocks across, their seams bent up to `wander` blocks; each piece is lifted or dropped up to `amount` and tilted up to `tilt` blocks a block, and within `gap` blocks of a seam the ground is cut up to `depth` into a cleft | `cell` 10, `amount` 3, `tilt` 0.25, `gap` 1, `depth` 4, `wander` 3 |
-| `tunnel` | Tunnel | on a `line`: **carves** a passage, a tube the line's `width` across whose axis runs 0.45 of its radius over a floor that lies level between the ends — each end's floor the ground there, a point's own third number `[x, z, y]` where it states one, a straight run between — dipped `sag` at the middle and breathing `wander` of its width; never nearer the surface than `cover` blocks, except within `mouth` blocks of an end, where it opens | `cover` 3, `mouth` 4, `sag` 0, `wander` 0.2, `dress` true |
+| `tunnel` | Tunnel | on a `line`: **carves** a passage, a tube the line's `width` across whose axis runs 0.45 of its radius over a floor that lies level between the ends — each end's floor the ground there, a point's own third number `[x, z, y]` where it states one, a straight run between — dipped `sag` at the middle and breathing `wander` of its width. Where its roof would be thinner than `cover` blocks it is cut open to the sky, so it enters a rising hill as a cutting and is never shut, and within `mouth` blocks of an end it is open whatever its roof | `cover` 3, `mouth` 4, `sag` 0, `wander` 0.2, `dress` true |
 | `chamber` | Chamber | in an area: **carves** a dome `height` high over its `floor`, falling to the rim, its wall roughened by `jag`, never nearer the surface than `cover` | `floor` (absent: `height` and `cover` under the lowest ground inside), `height` 6, `cover` 3, `jag` 0.15, `dress` true |
 | `shaft` | Shaft | in an area: **carves** a well from its `floor` up to the sky, a `ladder` up the wall at the south of its middle | `floor` (absent: 16 under the lowest ground inside), `ladder` true, `dress` true |
 
@@ -1176,10 +1176,11 @@ areas column by column.
 **A carve cuts the built world, after the paint, and keeps the ground over it.** Tunnel, Chamber and Shaft move no
 column's top, so the stack passes over them — they read no step and count no changed columns — and the world build
 cuts them in list order once the painter has finished the ground (`SketchRasterizer.CarvesOf`, `CaveCarver`): a
-cave's walls are the theme's fill, and the relief over it stays. A carve never cuts water, bedrock or a column a
-stamp claimed, so a wool room or a monument is never undermined, and its areas fan by the symmetry like any mask's.
+cave's walls are the theme's fill, and the relief over it stays. A carve never cuts water, the block under water,
+bedrock or a column a stamp claimed, so a wool room or a monument is never undermined, and its areas fan by the symmetry like any mask's.
 With `dress` (the default) what it cut is dressed as pgmvox's `dress_cave` dresses a cave: floors of gravel,
-andesite, clay and cobble, a mushroom here and there, stalactites from the roof and coal and iron in the faces,
+andesite, clay and cobble, a mushroom here and there, stalactites from the roof that always leave two blocks of
+headroom under them, and coal and iron in the faces,
 every draw hashed at the folded cell so the two halves of a board match. The sketch's 3-D view draws the ground's
 top and so does not show a carve; `render/eye`, `column` and `transect` read the built world and do.
 

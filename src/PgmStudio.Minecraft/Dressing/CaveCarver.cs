@@ -7,12 +7,15 @@ namespace PgmStudio.Minecraft.Dressing;
 /// <summary>
 /// Cuts a board's carves into its built world after the paint, so a cave's walls are the theme's fill, and dresses
 /// what it cut the way pgmvox's <c>dress_cave</c> does: floors of gravel, andesite, clay and cobble, a mushroom here
-/// and there, stalactites from the roof and ore in the faces. A carve never cuts water, bedrock or a column the
-/// world's own passes claimed for a structure. Every draw is hashed at the folded cell, so the halves of a mirrored
+/// and there, stalactites from the roof and ore in the faces. A carve never cuts water, the block under water,
+/// bedrock or a column the world's own passes claimed for a structure. Every draw is hashed at the folded cell, so the halves of a mirrored
 /// board are dressed alike.
 /// </summary>
 public static class CaveCarver
 {
+    /// <summary>The headroom a stalactite always leaves under it, so a passage stays one a player walks.</summary>
+    private const int StandingRoom = 2;
+
     private const int CobblestoneWall = 139, BrownMushroom = 39, RedMushroom = 40, CoalOre = 16, IronOre = 15;
 
     private static readonly (int Id, int Data)[] Floors =
@@ -36,6 +39,7 @@ public static class CaveCarver
                 var (id, _) = world.GetBlock(x, y, z);
                 if (id is Blocks.Air or Blocks.Bedrock or Blocks.Water or Blocks.StationaryWater
                        or Blocks.Lava or Blocks.StationaryLava) continue;
+                if (world.GetBlock(x, y + 1, z).Id is Blocks.Water or Blocks.StationaryWater) continue;
                 world.SetBlock(x, y, z, Blocks.Air);
                 opened.Add((x, y, z));
             }
@@ -70,8 +74,10 @@ public static class CaveCarver
             }
             if (Solid(x, y + 1, z) && below == Blocks.Air && Draw(x, y, z, 3) < 0.05)
             {
-                var drip = 1 + (int)(Draw(x, y, z, 4) * 2.5);
-                for (var k = 0; k < drip && world.GetBlock(x, y - k, z).Id == Blocks.Air && world.GetBlock(x, y - k - 1, z).Id == Blocks.Air; k++)
+                var headroom = 0;
+                while (headroom < 8 && world.GetBlock(x, y - headroom, z).Id == Blocks.Air) headroom++;
+                var drip = Math.Min(1 + (int)(Draw(x, y, z, 4) * 2.5), headroom - StandingRoom);
+                for (var k = 0; k < drip; k++)
                     world.SetBlock(x, y - k, z, k < drip - 1 ? Blocks.Stone : CobblestoneWall);
             }
         }

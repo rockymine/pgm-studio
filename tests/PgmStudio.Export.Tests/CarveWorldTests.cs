@@ -87,4 +87,19 @@ public sealed class CarveWorldTests
         await Assert.That(through.Places.Any(place => place.X == 0 && place.Y <= 12)).IsTrue()
             .Because("the route passes under the hill on the tunnel's floor");
     }
+
+    [Test]
+    public async Task A_dressed_tunnel_keeps_two_blocks_of_headroom_along_its_whole_run()
+    {
+        var shut = new List<(int Seed, int X, int Z)>();
+        for (var seed = 1; seed <= 12; seed++)
+        {
+            var built = BuiltWorlds.Of(Board(Tunnel.Replace("\"seed\": 3", $"\"seed\": {seed}")), Intent());
+            for (var x = -9; x <= 9; x++)
+                for (var z = -1; z <= 1; z++)
+                    if (Enumerable.Range(9, 6).Count(y => built.World.GetBlock(x, y, z).Id == Blocks.Air) < 2) shut.Add((seed, x, z));
+        }
+
+        await Assert.That(shut).IsEmpty().Because("no stalactite hangs a passage shut");
+    }
 }

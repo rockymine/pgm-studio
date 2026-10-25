@@ -29,11 +29,26 @@ public sealed class CarvesTests
     }
 
     [Test]
-    public async Task A_tunnel_never_comes_nearer_the_surface_than_its_cover_away_from_its_mouths()
+    public async Task Where_its_roof_would_be_thinner_than_its_cover_a_tunnel_is_cut_open_to_the_sky()
     {
-        var shallow = Carves.Cut(Tunnel(Through) with { Mouth = 0 }, (x, z) => 12).Air;
+        var shallow = Carves.Cut(Tunnel(Through) with { Mouth = 0, PointFloors = [[10.0, 10.0]] }, (x, z) => 13).Air.ToHashSet();
 
-        await Assert.That(shallow).IsEmpty().Because("ground two over the floor is under the three it keeps");
+        await Assert.That(shallow.Contains((20, 10, 20)) && shallow.Contains((20, 12, 20))).IsTrue()
+            .Because("ground three over the floor is too thin to roof it, so the run is a trench to the surface");
+        await Assert.That(shallow.Any(cell => cell.Y >= 13)).IsFalse();
+    }
+
+    [Test]
+    public async Task A_tunnel_into_a_gently_rising_hill_is_never_shut_between_its_mouth_and_its_roof()
+    {
+        int? Ramp(int x, int z) => x is >= 0 and < 41 ? 10 + Math.Min(Math.Min(x, 40 - x), 20) : null;
+        var air = Carves.Cut(Tunnel(Through), Ramp).Air.ToHashSet();
+        bool Open(int x, int y) => y >= Ramp(x, 20) || air.Contains((x, y, 20));
+
+        for (var x = 1; x < 40; x++)
+            await Assert.That((x, Open(x, 10) && Open(x, 11))).IsEqualTo((x, true))
+                .Because("two blocks of headroom run the whole way, a cutting where the hill is low and a tube where it is high");
+        await Assert.That(air.Where(cell => cell.X == 20).Max(cell => cell.Y)).IsLessThan(27).Because("the high middle keeps its cover");
     }
 
     [Test]

@@ -215,11 +215,12 @@ public sealed class SketchModifierJson
     [JsonPropertyName("gap"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Gap { get; set; }
 
-    /// <summary>The fewest blocks of ground a Tunnel or a Chamber keeps over it, away from a Tunnel's mouths.</summary>
+    /// <summary>The fewest blocks of ground a Tunnel keeps as its roof, or else it is cut open to the sky there, and
+    /// the fewest a Chamber keeps over it.</summary>
     [JsonPropertyName("cover"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Cover { get; set; }
 
-    /// <summary>How far in from each end a Tunnel opens through its cover, in blocks.</summary>
+    /// <summary>How far in from each end a Tunnel is cut open to the sky whatever its roof, in blocks.</summary>
     [JsonPropertyName("mouth"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Mouth { get; set; }
 

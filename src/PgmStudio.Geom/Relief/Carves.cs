@@ -35,10 +35,11 @@ public sealed record CarveSpec
     /// <summary>How high a Chamber's dome stands over its floor at its middle.</summary>
     public double? Height { get; init; }
 
-    /// <summary>The fewest blocks of ground kept over a Tunnel or a Chamber, away from a Tunnel's mouths.</summary>
+    /// <summary>The fewest blocks of ground a Tunnel keeps as its roof, or else it is cut open to the sky there; the
+    /// fewest a Chamber keeps over it.</summary>
     public double? Cover { get; init; }
 
-    /// <summary>How far in from each end a Tunnel opens through its cover.</summary>
+    /// <summary>How far in from each end a Tunnel is cut open to the sky whatever its roof.</summary>
     public double? Mouth { get; init; }
 
     /// <summary>How far a Tunnel's floor dips under the straight run between its ends, at the middle.</summary>
@@ -159,14 +160,13 @@ public static class Carves
                 if (fix.Distance > breathing) continue;
                 var floor = Math.Round(Ground.Interpolate(arc, floorAt, run) - sag * Math.Sin(Math.PI * run / length));
                 var axis = floor + CarveDefaults.TunnelLift * breathing;
-                var openMouth = run < mouth || run > length - mouth;
                 var reach = Math.Sqrt(breathing * breathing - fix.Distance * fix.Distance);
-                for (var y = (int)floor; y < axis + reach; y++)
+                var crown = (int)Math.Ceiling(axis + reach) - 1;
+                var cutting = run < mouth || run > length - mouth || crown >= top - cover;
+                for (var y = (int)floor; y < top; y++)
                 {
-                    if (!openMouth && y >= top - cover) break;
-                    if (y >= top) break;
                     var rise = y + 0.5 - axis;
-                    if (rise > 0 && rise * rise + fix.Distance * fix.Distance > breathing * breathing) break;
+                    if (!cutting && rise > 0 && rise * rise + fix.Distance * fix.Distance > breathing * breathing) break;
                     air.Add((x, y, z));
                 }
             }

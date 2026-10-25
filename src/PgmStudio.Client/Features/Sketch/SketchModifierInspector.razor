@@ -157,8 +157,8 @@
       @NumberRow("Wander", Wander, 3, "how far the seams bend", min: 0, step: "0.5")
       break;
     case ModifierOps.Tunnel:
-      @NumberRow("Cover", Cover, 3, "the fewest blocks of ground kept over it, away from its mouths", min: 0)
-      @NumberRow("Mouth", Mouth, 4, "blocks in from each end it opens through its cover", min: 0)
+      @NumberRow("Cover", Cover, 3, "the fewest blocks of roof it keeps; thinner, it is cut open to the sky", min: 0)
+      @NumberRow("Mouth", Mouth, 4, "blocks in from each end it is open to the sky", min: 0)
       @NumberRow("Sag", Sag, 0, "blocks its floor dips under the straight run between its ends at the middle")
       @NumberRow("Wander", Wander, 0.2, "how much its width breathes along the run", min: 0, max: 1, step: "0.05")
       <p class="section-desc">Each end's floor is the ground there; a point may state its own floor as a third number.</p>
