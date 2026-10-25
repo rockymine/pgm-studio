@@ -1032,12 +1032,11 @@ modifier changes the ground as the ones before it left it. The left panel lists 
 the dock holds one tool per operation, the picked modifier takes the inspector, and a strip at the canvas foot
 steps the ground through the stack.
 
-**The dock offers the operations in four families.** After Select and Move come four flyout groups, each showing
+**The dock offers the operations in five families.** After Select and Move come four flyout groups, each showing
 the operation last picked from it and a chevron that lists the rest: *Ground* (Hill, Hollow, Level, Butte,
-Spire), *Lines* (Ridge, Scarp, Canyon, Profile, Road), *Water* (River, Lake, Coast) and *Texture* (Roughness,
-Lumps, Shatter, Gullies, Warp).
-Picking an operation arms its tool, `modifier:<op>`. A *Carve* button (a pickaxe) closes the dock; it is shown
-disabled, its tip saying carves come in Phase 4. Each operation has its own glyph, drawn as a profile or a plan
+Spire), *Lines* (Ridge, Scarp, Canyon, Profile, Road), *Water* (River, Lake, Coast), *Texture* (Roughness,
+Lumps, Shatter, Gullies, Warp) and, in a group of its own, *Carve* (Tunnel, Chamber, Shaft).
+Picking an operation arms its tool, `modifier:<op>`. Each operation has its own glyph, drawn as a profile or a plan
 of the ground (*Icons*, below).
 
 **A modifier is added by tracing its mask.** Pick an operation in the dock, press on the board, drag round the
@@ -1138,6 +1137,9 @@ centre and a radius that the mask supplies as its centroid and `scale`:
 | `coast` | Coast | in an area, the sea: the floor falls from the shore `slope` blocks a block to `depth` under the surface; outside, the land within `shelf` blocks eases down to a beach one over the sea, low land beside it lifted to the beach; **makes water** | `level` (absent: one under the ground a tenth of the rim stands at or below), `shelf` 10, `depth` 6, `slope` 0.35, `bed_material` (absent: the default bank) |
 | `lumps` | Lumps | in an area: strews up to `count` lumps whose middles fall inside it, each a hill on an ellipse `across` blocks long, its short axis `stretch` of that, turned at random or within 25° of `angle`, its foot roughened by `jag`, `heights` blocks high and falling as `1 − e^power`; overlapping lumps add; only lifts | `count` 12, `across` [6, 16], `heights` [2, 5], `stretch` [0.5, 1], `jag` 0.25, `power` 1.8 |
 | `shatter` | Shatter | breaks the ground inside into pieces about `cell` blocks across, their seams bent up to `wander` blocks; each piece is lifted or dropped up to `amount` and tilted up to `tilt` blocks a block, and within `gap` blocks of a seam the ground is cut up to `depth` into a cleft | `cell` 10, `amount` 3, `tilt` 0.25, `gap` 1, `depth` 4, `wander` 3 |
+| `tunnel` | Tunnel | on a `line`: **carves** a passage, a tube the line's `width` across whose axis runs 0.45 of its radius over a floor that lies level between the ends — each end's floor the ground there, a point's own third number `[x, z, y]` where it states one, a straight run between — dipped `sag` at the middle and breathing `wander` of its width; never nearer the surface than `cover` blocks, except within `mouth` blocks of an end, where it opens | `cover` 3, `mouth` 4, `sag` 0, `wander` 0.2, `dress` true |
+| `chamber` | Chamber | in an area: **carves** a dome `height` high over its `floor`, falling to the rim, its wall roughened by `jag`, never nearer the surface than `cover` | `floor` (absent: `height` and `cover` under the lowest ground inside), `height` 6, `cover` 3, `jag` 0.15, `dress` true |
+| `shaft` | Shaft | in an area: **carves** a well from its `floor` up to the sky, a `ladder` up the wall at the south of its middle | `floor` (absent: 16 under the lowest ground inside), `ladder` true, `dress` true |
 
 **Which masks an operation reads.** Scarp, Canyon, Profile, River and Road read a `line` and nothing else; Butte,
 Spire, Lake, Coast, Lumps and Gullies read an ellipse or a polygon; Shatter reads an ellipse, a polygon or the
@@ -1170,6 +1172,16 @@ each column's orbit that stands for all of it, so a Roughness, a Lumps or a Shat
 a Hill's or a Hollow's areas overlap, `join` adds them: 0 keeps the larger change, and above 0 they sum as a
 p-norm, so the saddle between two hills fills into a ridge. Any other operation keeps the larger change of its
 areas column by column.
+
+**A carve cuts the built world, after the paint, and keeps the ground over it.** Tunnel, Chamber and Shaft move no
+column's top, so the stack passes over them — they read no step and count no changed columns — and the world build
+cuts them in list order once the painter has finished the ground (`SketchRasterizer.CarvesOf`, `CaveCarver`): a
+cave's walls are the theme's fill, and the relief over it stays. A carve never cuts water, bedrock or a column a
+stamp claimed, so a wool room or a monument is never undermined, and its areas fan by the symmetry like any mask's.
+With `dress` (the default) what it cut is dressed as pgmvox's `dress_cave` dresses a cave: floors of gravel,
+andesite, clay and cobble, a mushroom here and there, stalactites from the roof and coal and iron in the faces,
+every draw hashed at the folded cell so the two halves of a board match. The sketch's 3-D view draws the ground's
+top and so does not show a carve; `render/eye`, `column` and `transect` read the built world and do.
 
 **River, Lake and Coast make water, and the world build fills it.** Each wets the columns it cut and states the
 height its water surface stands at: a River's channel stands at its bed plus `water`, a Lake's cut at its `level`,
@@ -2841,8 +2853,9 @@ and nothing else, and a map that came from a plan carries the plan's intent unch
 **A mask is a traced outline.** The canvas draws a mask by tracing it and edits it by its points; an ellipse area
 is written in the document and has no drawing tool, nor has a rectangle.
 
-**The stack shapes one height per column, and its water stands only over drawn ground.** No modifier carves under
-the ground or leaves an overhang: tunnels, chambers and shafts are the disabled *Carve* family, pgmvox's Phase 4.
+**The stack shapes one height per column, and its water stands only over drawn ground.** The carves cut space
+under that height in the built world, and the walk, the plan-tier reads and the 3-D view still read the column's
+top, so a route through a tunnel is not walked (`WS91`) and no shape stands in the block grid yet (`TS212`).
 A Coast's sea floods the columns its mask covers that some shape built, so a sea meant to reach the board's edge is
 a shape drawn out to that edge with the Coast over it; past the last drawn column is void.
 

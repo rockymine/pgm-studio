@@ -117,7 +117,7 @@ test("a line operation's trace is a line of the standard width, and every other 
   const ridge = newModifier([], "ridge", RUN);
   assert.deepEqual(ridge.mask.areas, [{ kind: "line", points: RUN, width: LINE_WIDTH }]);
   assert.equal(LINE_WIDTH, 6);
-  for (const op of ["scarp", "canyon", "road", "river", "profile"]) assert.ok(isLineOp(op), op);
+  for (const op of ["scarp", "canyon", "road", "river", "profile", "tunnel"]) assert.ok(isLineOp(op), op);
   for (const op of ["mound", "crater", "level", "butte", "spire", "lake", "coast", "noise", "lumps", "shatter",
                     "gullies", "warp"])
     assert.ok(!isLineOp(op), op);
@@ -126,7 +126,7 @@ test("a line operation's trace is a line of the standard width, and every other 
 });
 
 test("every operation names itself, starts with its own numbers and gets a unique id", () => {
-  assert.equal(MODIFIER_OPS.length, 18);
+  assert.equal(MODIFIER_OPS.length, 21);
   const stack = [];
   for (const { op, label } of MODIFIER_OPS) {
     const made = newModifier(stack, op, RUN);
@@ -144,6 +144,8 @@ test("every operation names itself, starts with its own numbers and gets a uniqu
   assert.equal(byOp.coast.shelf, 10);
   assert.deepEqual(byOp.lumps.across, [6, 16]);
   assert.equal(byOp.shatter.cell, 10);
+  assert.equal(byOp.tunnel.cover, 3);
+  assert.equal(byOp.chamber.height, 6);
   assert.equal("top" in byOp.butte, false, "an absolute height is left for the server to read off the ground");
   assert.equal("level" in byOp.lake, false);
 });

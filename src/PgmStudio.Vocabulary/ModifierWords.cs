@@ -63,9 +63,25 @@ public static class ModifierOps
     /// <summary>A Shatter: the ground inside broken into plates, each lifted and tilted, clefts between.</summary>
     public const string Shatter = "shatter";
 
+    /// <summary>A Tunnel: a passage carved along a line under the ground, its floor level between its mouths.</summary>
+    public const string Tunnel = "tunnel";
+
+    /// <summary>A Chamber: a domed hall carved under an area.</summary>
+    public const string Chamber = "chamber";
+
+    /// <summary>A Shaft: a well carved from a floor up to the sky, with a ladder.</summary>
+    public const string Shaft = "shaft";
+
     public static readonly string[] All =
         [Mound, Crater, Level, Noise, Ridge, Butte, Spire, Scarp, Canyon, River, Lake, Road, Gullies, Warp,
-         Profile, Coast, Lumps, Shatter];
+         Profile, Coast, Lumps, Shatter, Tunnel, Chamber, Shaft];
+
+    /// <summary>The operations that carve space in the built world rather than move the ground's top: the column
+    /// stack passes over them and the world build cuts them after the paint.</summary>
+    public static readonly string[] Carving = [Tunnel, Chamber, Shaft];
+
+    /// <summary>Whether an operation carves rather than shapes the ground's top.</summary>
+    public static bool Carves(string? op) => Array.IndexOf(Carving, op) >= 0;
 
     /// <summary>What the screen calls an operation.</summary>
     public static string Label(string? op) => op switch
@@ -88,6 +104,9 @@ public static class ModifierOps
         Coast => "Coast",
         Lumps => "Lumps",
         Shatter => "Shatter",
+        Tunnel => "Tunnel",
+        Chamber => "Chamber",
+        Shaft => "Shaft",
         _ => op ?? "",
     };
 }

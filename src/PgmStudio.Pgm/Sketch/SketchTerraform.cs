@@ -220,6 +220,41 @@ internal static class SketchTerraform
         return near;
     }
 
+    /// <summary>A carving modifier as the world build cuts it, with its areas fanned as the stack fans them and each
+    /// area's stated point floors carried onto its images; null for a modifier that does not carve, is off, or
+    /// states too little to draw.</summary>
+    internal static CarveSpec? CarveOf(SketchModifierJson modifier, IReadOnlyList<string> axes, double centreX, double centreZ)
+    {
+        if (modifier.Off) return null;
+        CarveOp? op = modifier.Op switch
+        {
+            ModifierOps.Tunnel => CarveOp.Tunnel,
+            ModifierOps.Chamber => CarveOp.Chamber,
+            ModifierOps.Shaft => CarveOp.Shaft,
+            _ => null,
+        };
+        if (op is null) return null;
+        var areas = new List<MaskArea>();
+        var floors = new List<IReadOnlyList<double?>>();
+        foreach (var stated in modifier.Mask?.Areas ?? [])
+        {
+            if (AreaOf(stated) is not { } area) continue;
+            IReadOnlyList<double?> pointFloors = [.. (stated.Points ?? []).Select(point => point is { Length: >= 3 } && double.IsFinite(point[2]) ? point[2] : (double?)null)];
+            foreach (var image in modifier.Mask?.Mirror == true ? MaskArea.Fanned([area], axes, centreX, centreZ) : [area])
+            {
+                areas.Add(image);
+                floors.Add(pointFloors);
+            }
+        }
+        if (areas.Count == 0) return null;
+        return new CarveSpec
+        {
+            Op = op.Value, Areas = areas, PointFloors = floors, Floor = modifier.Floor, Height = modifier.Height,
+            Cover = modifier.Cover, Mouth = modifier.Mouth, Sag = modifier.Sag, Wander = modifier.Wander, Jag = modifier.Jag,
+            Ladder = modifier.Ladder ?? true, Dress = modifier.Dress ?? true, Seed = modifier.Seed,
+        };
+    }
+
     private static ModifierSpec? SpecOf(SketchModifierJson modifier, IReadOnlyList<string> axes, double centreX, double centreZ)
     {
         ModifierOp? op = modifier.Op switch

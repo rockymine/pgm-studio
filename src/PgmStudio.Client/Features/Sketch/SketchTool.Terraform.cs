@@ -4,11 +4,12 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
-/// <summary>Terraform's dock: the operations a modifier is traced with, in four families, and the step the
+/// <summary>Terraform's dock: the operations a modifier is traced with, in five families, and the step the
 /// ground is read at (<c>docs/tools/sketch.md</c>, <i>Terraform</i>).</summary>
 public partial class SketchTool
 {
-    private const string GroundFamily = "ground", LinesFamily = "lines", WaterFamily = "water", TextureFamily = "texture";
+    private const string GroundFamily = "ground", LinesFamily = "lines", WaterFamily = "water", TextureFamily = "texture",
+        CarveFamily = "carve";
 
     private static DockItem[] ModifierItems(params string[] ops) =>
         [.. ops.Select(op => new DockItem(op, ModifierOps.Label(op), Icon: SketchModifierState.Icon(op)))];
@@ -24,10 +25,13 @@ public partial class SketchTool
     private static readonly DockItem[] TextureItems =
         ModifierItems(ModifierOps.Noise, ModifierOps.Lumps, ModifierOps.Shatter, ModifierOps.Gullies, ModifierOps.Warp);
 
+    private static readonly DockItem[] CarveItems = ModifierItems(ModifierOps.Tunnel, ModifierOps.Chamber, ModifierOps.Shaft);
+
     private string groundActive = ModifierOps.Mound;
     private string linesActive = ModifierOps.Ridge;
     private string waterActive = ModifierOps.River;
     private string textureActive = ModifierOps.Noise;
+    private string carveActive = ModifierOps.Tunnel;
 
     private bool ModifierArmed(string op) => tool == SketchModifierState.Tool(op);
 
@@ -38,6 +42,7 @@ public partial class SketchTool
         if (GroundItems.Any(item => item.Key == op)) groundActive = op;
         else if (LineItems.Any(item => item.Key == op)) linesActive = op;
         else if (WaterItems.Any(item => item.Key == op)) waterActive = op;
+        else if (CarveItems.Any(item => item.Key == op)) carveActive = op;
         else textureActive = op;
         await SetTool(SketchModifierState.Tool(op));
     }

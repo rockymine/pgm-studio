@@ -85,6 +85,9 @@ public sealed record SketchModifierState(
         ModifierOps.Coast => "terrain-coast",
         ModifierOps.Lumps => "terrain-lumps",
         ModifierOps.Shatter => "terrain-shatter",
+        ModifierOps.Tunnel => "terrain-tunnel",
+        ModifierOps.Chamber => "terrain-chamber",
+        ModifierOps.Shaft => "terrain-shaft",
         _ => "shapes",
     };
 
@@ -109,6 +112,9 @@ public sealed record SketchModifierState(
         ModifierOps.Coast => "Floods the mask as a sea, its floor falling away from the shore, and eases the land around it down to a beach.",
         ModifierOps.Lumps => "Strews hummocks and fallen blocks over the mask, each its own size, height and heading.",
         ModifierOps.Shatter => "Breaks the ground into plates, each lifted and tilted on its own, with clefts cut along the seams.",
+        ModifierOps.Tunnel => "Carves a passage along the line, its floor level between mouths at the ground, the hill kept over it. Cut in the built world: 3-D shows the ground's top.",
+        ModifierOps.Chamber => "Carves a domed hall under the mask, keeping its cover of ground over it. Cut in the built world.",
+        ModifierOps.Shaft => "Carves a well from its floor up to the sky, with a ladder up its south wall. Cut in the built world.",
         _ => "",
     };
 }

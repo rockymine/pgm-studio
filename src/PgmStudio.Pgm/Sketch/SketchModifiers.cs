@@ -215,6 +215,26 @@ public sealed class SketchModifierJson
     [JsonPropertyName("gap"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Gap { get; set; }
 
+    /// <summary>The fewest blocks of ground a Tunnel or a Chamber keeps over it, away from a Tunnel's mouths.</summary>
+    [JsonPropertyName("cover"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Cover { get; set; }
+
+    /// <summary>How far in from each end a Tunnel opens through its cover, in blocks.</summary>
+    [JsonPropertyName("mouth"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Mouth { get; set; }
+
+    /// <summary>How far a Tunnel's floor dips under the straight run between its ends at its middle, in blocks.</summary>
+    [JsonPropertyName("sag"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Sag { get; set; }
+
+    /// <summary>Whether a Shaft hangs a ladder up one wall; absent, it does.</summary>
+    [JsonPropertyName("ladder"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Ladder { get; set; }
+
+    /// <summary>Whether a carve's cave is dressed with gravel and clay floors, stalactites and ore; absent, it is.</summary>
+    [JsonPropertyName("dress"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Dress { get; set; }
+
     /// <summary>A Roughness's sizes, each its own noise added to the others.</summary>
     [JsonPropertyName("sizes"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<NoiseSizeJson>? Sizes { get; set; }
@@ -262,7 +282,8 @@ public sealed class MaskAreaJson
     [JsonPropertyName("angle"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Angle { get; set; }
 
-    /// <summary>A polygon's outline or a line's path, as <c>[x, z]</c> pairs.</summary>
+    /// <summary>A polygon's outline or a line's path, as <c>[x, z]</c> pairs; a Tunnel's point may add its floor as a
+    /// third number, <c>[x, z, y]</c>.</summary>
     [JsonPropertyName("points"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double[][]? Points { get; set; }
 

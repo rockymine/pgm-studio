@@ -251,9 +251,9 @@
             }
             else if (ReliefActive)
             {
-              @* Four families of operation, each down to its last-picked one: the ground a mask raises or sinks,
-                 the lines a run is traced for, the water, and the texture laid over the ground. A carve is the
-                 fifth, which is not built, so it is shown and cannot be armed. *@
+              @* Five families of operation, each down to its last-picked one: the ground a mask raises or sinks,
+                 the lines a run is traced for, the water, the texture laid over the ground, and the space carved
+                 under it. *@
               <DockGroup>
                 <DockFlyoutGroup Items="GroundItems" ActiveKey="@groundActive" Label="Ground"
                                  Armed="@ModifierArmed(groundActive)"
@@ -273,7 +273,10 @@
                                  OnPick="ArmModifier" />
               </DockGroup>
               <DockGroup>
-                <DockButton Icon="pickaxe" Title="Carve — tunnels, chambers and shafts: Phase 4" Disabled />
+                <DockFlyoutGroup Items="CarveItems" ActiveKey="@carveActive" Label="Carve"
+                                 Armed="@ModifierArmed(carveActive)"
+                                 Open="@(openFlyout == CarveFamily)" OnToggleOpen="() => ToggleFlyout(CarveFamily)"
+                                 OnPick="ArmModifier" />
               </DockGroup>
             }
             else if (PlacesActive)

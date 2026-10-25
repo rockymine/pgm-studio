@@ -28,6 +28,9 @@
     "terrain-gullies": [["path",{"d":"M12 20v-8l-5-7"}],["path",{"d":"M12 12l5-7"}],["path",{"d":"M9.5 8.5 5 9"}],["path",{"d":"M14.5 8.5 19 9"}]],
     "terrain-coast": [["path",{"d":"M2 7h5c4 0 5 7 9 7h6"}],["path",{"d":"M11 19q1.5-1.5 3 0t3 0 3 0"}]],
     "terrain-lumps": [["path",{"d":"M2 19h20"}],["path",{"d":"M3 19c1-4 4-4 5 0"}],["path",{"d":"M9 19c1-7 5-7 6 0"}],["path",{"d":"M16 19c1-3 4-3 5 0"}]],
+    "terrain-tunnel": [["path",{"d":"M2 20h20"}],["path",{"d":"M2 9c4-5 16-5 20 0"}],["path",{"d":"M7 20v-4a5 5 0 0 1 10 0v4"}]],
+    "terrain-chamber": [["path",{"d":"M2 5h20"}],["path",{"d":"M4 19h16"}],["path",{"d":"M5 19c0-6 3-9 7-9s7 3 7 9"}]],
+    "terrain-shaft": [["path",{"d":"M2 5h7v15h6V5h7"}],["path",{"d":"M11 8h2M11 12h2M11 16h2"}]],
     "terrain-shatter": [["path",{"d":"M3 5h18v14H3z"}],["path",{"d":"M3 11l6-1 3-5"}],["path",{"d":"M9 10l2 9"}],["path",{"d":"M11 14l5-2 5 1"}],["path",{"d":"M16 12l-1-7"}]]
   };
 

@@ -19,5 +19,19 @@ into the studio one phase at a time, each proven against a pgmvox fixture, until
 reaches the ceiling a pgmvox board does. Phase 0 has shipped, Phase 1 has closed with its two agent-facing
 entries parked, and Phase 2 has shipped: shapes, eighteen ground operations in the modifier stack, and the water
 they make. Phase 3 has shipped too: soil by slope, paint rules, beds that dip, fold and cycle, a water's own bed
-and its fall off the edge, and a layer's underside. Phase 4, space in three dimensions, is next, and its entries
-are filed here as it is pulled.
+and its fall off the edge, and a layer's underside. Phase 4, space in three dimensions, is open, and its entries
+run in the order below.
+
+### Phase 4 — space in three dimensions
+
+The ground stays in columns and the carves run after it in the block grid of the built world, so a cave keeps
+the relief over it (`docs/pgmvox-port.md`, *The shape it lands in*). Each entry is pgmvox's `volume/` ported, and
+`docs/tools/sketch.md` is the document each leaves correct.
+
+- [ ] **TS212 — Primitives in the block grid.** A box, a cylinder, a wedge, a sphere and a torus as shapes, each
+  turned, tilted and sunk, and the natural arch as a shape whose deck is a surface — pgmvox `volume/solid.py`.
+
+- [ ] **WS91 — The walk crosses carved space.** The walk and the reads answer per surface, a tunnel's floor
+  among them, so a route through a hill is walked; `SK13` stops refusing, because the cut-and-lid is no longer
+  the only way down. `docs/world-scan/read-backs.md`.
+

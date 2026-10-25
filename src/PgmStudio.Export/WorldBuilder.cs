@@ -376,6 +376,15 @@ public static class WorldBuilder
                              TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
                              terrain.FloorByLayer, madeLayers);
 
+        // ── Carves — the stack's tunnels, chambers and shafts, cut into the finished ground so a cave's walls are
+        // the theme's fill and the relief over it stays. Before the dressing, which plants on what is left; never
+        // through a column a stamp above claimed.
+        var carveGround = terrain.Ground;
+        CaveCarver.Carve(world, SketchRasterizer.CarvesOf(SketchLayout.Stated(layoutJson)),
+                         (x, z) => carveGround.TryGetValue((x, z), out var top) ? top : null,
+                         (x, z) => provenance.PassAt(x, z) is { } pass && pass != ProvenancePass.Ground,
+                         symmetry.Canonical);
+
         // ── The generators' ground — the block each spawner's stack lands on, laid into the course under its
         // drop. After the finish for the reason a room's pad is stamped after its shell: the pad is the floor
         // the point sits on rather than whatever the painter laid, and a generator is a place before it is a

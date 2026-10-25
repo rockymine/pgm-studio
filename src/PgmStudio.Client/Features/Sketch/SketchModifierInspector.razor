@@ -12,7 +12,7 @@
     </span>
   </DetailHeader>
   <p class="section-desc">@SketchModifierState.Blurb(Op)</p>
-  @if (Changed is { } columns)
+  @if (Changed is { } columns && !ModifierOps.Carves(Op))
   {
     <p class="inspector-readout">@ChangedLine(columns)</p>
   }
@@ -156,6 +156,30 @@
       @NumberRow("Cleft depth", Depth, 4, "how deep the clefts are cut", min: 0, step: "0.5")
       @NumberRow("Wander", Wander, 3, "how far the seams bend", min: 0, step: "0.5")
       break;
+    case ModifierOps.Tunnel:
+      @NumberRow("Cover", Cover, 3, "the fewest blocks of ground kept over it, away from its mouths", min: 0)
+      @NumberRow("Mouth", Mouth, 4, "blocks in from each end it opens through its cover", min: 0)
+      @NumberRow("Sag", Sag, 0, "blocks its floor dips under the straight run between its ends at the middle")
+      @NumberRow("Wander", Wander, 0.2, "how much its width breathes along the run", min: 0, max: 1, step: "0.05")
+      <p class="section-desc">Each end's floor is the ground there; a point may state its own floor as a third number.</p>
+      @DressRow
+      break;
+    case ModifierOps.Chamber:
+      @NumberRow("Floor", Floor, null, "the world y of its floor; empty is its cover and height under the lowest ground")
+      @NumberRow("Height", Height, 6, "blocks its dome stands over the floor at the middle", min: 1)
+      @NumberRow("Cover", Cover, 3, "the fewest blocks of ground kept over it", min: 0)
+      @NumberRow("Jag", Jag, 0.15, "how ragged its wall is", min: 0, step: "0.05")
+      @DressRow
+      break;
+    case ModifierOps.Shaft:
+      @NumberRow("Floor", Floor, null, "the world y of its floor; empty is sixteen under the lowest ground")
+      <label class="check-row">
+        <input type="checkbox" checked="@(Modifier[LadderField]?.GetValue<bool>() != false)"
+               @onchange="e => SetBool(LadderField, e.Value is true)" />
+        A ladder up its south wall
+      </label>
+      @DressRow
+      break;
     case ModifierOps.Noise:
       <div class="section-header section-header--ruled"><h2 class="section-title">Sizes</h2></div>
       @for (var index = 0; index < Sizes.Count; index++)
@@ -223,6 +247,15 @@
 </Inspector>
 
 @code {
+    private RenderFragment DressRow => __builder =>
+    {
+        <label class="check-row">
+          <input type="checkbox" checked="@(Modifier[DressField]?.GetValue<bool>() != false)"
+                 @onchange="e => SetBool(DressField, e.Value is true)" />
+          Dressed — gravel and clay floors, stalactites, ore in the faces
+        </label>
+    };
+
     private RenderFragment BedRow => __builder =>
     {
         <Field Label="Bed">

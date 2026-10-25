@@ -346,8 +346,9 @@ time. Shipped to the live studio with no beta (decision D3).
 
 ### Phase 4 — space in three dimensions
 
-- Carve modifiers: a tunnel with cover, mouths and a level floor, a chamber, rooms joined by stepped halls, a
-  gallery, a shaft, a bore, and cave dressing (`TS140`).
+- Carve modifiers: a tunnel with cover, mouths and a level floor, a chamber and a shaft with its ladder, cut in the
+  built world and dressed as caves (`docs/tools/sketch.md`, *The modifier stack*); rooms joined by stepped halls,
+  a gallery and a bore are not ported yet.
 - The primitives in the block grid: a box, a cylinder, a wedge, a sphere and a torus, turned, tilted and sunk, and
   the natural arch as a shape whose deck is a surface.
 - The walk across surfaces over carved space. `SK13` stops refusing anything, because the cut-and-lid is no

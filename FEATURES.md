@@ -10861,6 +10861,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Water falls off the edge (`WE173`).** A wet column beside a cell with no ground pours flowing water down the
   face past it to the lowest floor the board built (`Decorator.PourOffEdges`), so a river run to an island's edge
   ends in a fall rather than a wall of still water.
+- **Carves: a tunnel, a chamber and a shaft (`TS140`).** Three operations in the dock's *Carve* family cut space
+  in the built world after the paint, keeping the ground over it: a Tunnel along a line on a level floor between
+  mouths at the ground, a domed Chamber and a Shaft to the sky with a ladder, each dressed as a cave and never
+  cutting a stamped structure (`CaveCarver`, `docs/tools/sketch.md`).
 - **A layer hangs rock under itself (`TS211`).** A layer's `underside` — `edge`, `taper`, `rough`, `seed` and a
   `sheer` list of shape ids — lowers each column's floor to a rock 4 blocks thick at the rim and 0.9 more per
   block inward, 26 and 1.2 beside a sheer side, and rests it on the terrain below where under 4 blocks would stay

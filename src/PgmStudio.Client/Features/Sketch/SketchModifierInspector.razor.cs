@@ -35,7 +35,8 @@ public partial class SketchModifierInspector
         Level = "level", Shore = "shore", Grade = "grade", Shoulder = "shoulder", Count = "count",
         Sharpness = "sharpness", Amount = "amount", Width = "width", Leaving = "leaves", Shelf = "shelf",
         Across = "across", Heights = "heights", Stretch = "stretch", Angle = "angle", Tilt = "tilt", Gap = "gap",
-        StepsField = "steps", Start = "start", End = "end", BedMaterial = "bed_material";
+        StepsField = "steps", Start = "start", End = "end", BedMaterial = "bed_material", Cover = "cover",
+        Mouth = "mouth", Sag = "sag", LadderField = "ladder", DressField = "dress";
 
     /// <summary>The width a line is traced with, which a mask that states none is read at.</summary>
     private const double DefaultLineWidth = 6;

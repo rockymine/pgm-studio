@@ -33,6 +33,9 @@ export const MODIFIER_OPS = [
   { op: "shatter", label: "Shatter", trace: "ring" },
   { op: "gullies", label: "Gullies", trace: "ring" },
   { op: "warp", label: "Warp", trace: "ring" },
+  { op: "tunnel", label: "Tunnel", trace: "line", width: 5 },
+  { op: "chamber", label: "Chamber", trace: "ring" },
+  { op: "shaft", label: "Shaft", trace: "ring" },
 ];
 
 /** What a fresh modifier of each operation states besides its mask. An absolute height left unstated (a
@@ -56,6 +59,9 @@ const FRESH = {
   coast: { shelf: 10, depth: 6, slope: 0.35 },
   lumps: { count: 12, across: [6, 16], heights: [2, 5], jag: 0.25 },
   shatter: { cell: 10, amount: 3, tilt: 0.25, gap: 1, depth: 4, wander: 3 },
+  tunnel: { cover: 3, mouth: 4, sag: 0, wander: 0.2 },
+  chamber: { height: 6, cover: 3, jag: 0.15 },
+  shaft: {},
 };
 
 /** What the screen calls an operation. */

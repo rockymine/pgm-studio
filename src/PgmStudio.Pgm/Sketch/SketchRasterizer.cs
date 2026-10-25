@@ -107,6 +107,14 @@ public static class SketchRasterizer
         return new BuiltColumns(Hang(state, Seat(state, output), cx, cz, axes), water);
     }
 
+    /// <summary>The carves a layout's stack states, in list order, each as the world build cuts it: a Tunnel, a
+    /// Chamber or a Shaft that is on, its areas fanned by the symmetry. The column stack passes over them.</summary>
+    public static IReadOnlyList<CarveSpec> CarvesOf(SketchLayout? state)
+    {
+        var (cx, cz, axes) = FrameOf(state);
+        return [.. (state?.Modifiers ?? []).Select(modifier => SketchTerraform.CarveOf(modifier, axes, cx, cz)).OfType<CarveSpec>()];
+    }
+
     /// <summary>The cells of the built ground within <paramref name="width"/> blocks of one modifier's mask, on
     /// every image the symmetry fans it to: inside an outline or a line's band, and that far past its edge. A paint
     /// rule naming the modifier lays there. An id naming no modifier, or one whose mask states too little, is

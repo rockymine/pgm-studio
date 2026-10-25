@@ -287,17 +287,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   `docs/tools/sketch.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-halcyon-cays.md`, the kit section — the
   spawn halls came out cyan clay over pink-white clay.*
 
-- [ ] **TS140 — A carve: a cave cut through ground that stays.** A subtract is a set of `(x, z)` cells
-  that empties the whole column (`SketchRasterizer.cs:349`), and underground space is that hole under a flat
-  override-add lid, so a chamber cannot keep the relief ground over it and every tunnel is a straight-walled
-  shaft. Add a carve stated in three dimensions: a polyline whose vertices each carry a radius and a centre
-  height, splined like a polyline's points so the bore swells and narrows smoothly between vertices, with a
-  `rough` seed wandering the wall; a single point is the negative boulder, a lumpy ellipsoid. It removes
-  `[y − r, y + r]` from the **built** column and leaves what is above it, so it runs after the raster the way a
-  fluid already carves built terrain (`decoration.md` §7), and its walls show the theme's fill. Decide first
-  what the plan-tier walks (`SK11`) and the export's reach say about a void they cannot see. `docs/tools/sketch.md`.
-  *Evidence: `sketch.md` "A subtract with a lid over it": the lid comes back as the column's only span.*
-
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
   then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag
