@@ -77,7 +77,7 @@ internal static class SketchTerraform
             Array.Copy(heights, previous!, heights.Length);
         }
 
-        HoldWater(moving, heights, surfaces, owners);
+        HoldWater(moving, heights, surfaces, owners, owner => modifiers[owner].Op == ModifierOps.River);
 
         var changeAt = new Dictionary<(int X, int Z), double>(moving.Length);
         for (var at = 0; at < moving.Length; at++)
@@ -111,16 +111,28 @@ internal static class SketchTerraform
         return wet;
     }
 
-    /// <summary>Settles the stack's water. Water that touches is one body, so where two meet at different surfaces
-    /// the lower takes the higher, as far as its own wet columns reach; then every dry column beside water is raised
-    /// to that water's surface, so no water stands over its bank where a later modifier or a second body cut the
-    /// bank lower. A column that takes a neighbour's surface takes its modifier with it.</summary>
+    /// <summary>Settles the stack's water. A body is one modifier's water at one surface, so a River's reaches are
+    /// bodies of their own and its falls stand. Where two bodies meet at different surfaces the lower takes the
+    /// higher, as far as its own wet columns reach, unless the higher is a River reach above that River's lowest,
+    /// which falls into the water it meets. Then every dry column beside water is raised to that water's surface, so
+    /// no water stands over its bank where a later modifier or a second body cut the bank lower. A column that takes
+    /// a neighbour's surface takes its modifier with it.</summary>
     private static void HoldWater(KeyValuePair<(int X, int Z), int>[] moving, double[] heights, double[] surfaces,
-                                  int[] owners)
+                                  int[] owners, Func<int, bool> flowing)
     {
         var indexOf = new Dictionary<(int X, int Z), int>(moving.Length);
         for (var at = 0; at < moving.Length; at++) indexOf[moving[at].Key] = at;
         bool Wet(int at) => double.IsFinite(surfaces[at]) && heights[at] < surfaces[at];
+
+        var reach = (double[])surfaces.Clone();
+        var body = (int[])owners.Clone();
+        var lowest = new Dictionary<int, double>();
+        for (var at = 0; at < moving.Length; at++)
+            if (Wet(at) && flowing(body[at]))
+                lowest[body[at]] = Math.Min(lowest.GetValueOrDefault(body[at], double.PositiveInfinity), reach[at]);
+        bool Falls(int from, int to) => body[from] == body[to]
+            ? reach[from] != reach[to]
+            : lowest.TryGetValue(owners[from], out var floor) && surfaces[from] > floor;
 
         var queue = new PriorityQueue<int, double>();
         for (var at = 0; at < moving.Length; at++)
@@ -131,7 +143,8 @@ internal static class SketchTerraform
             if (-priority < surfaces[at]) continue;
             var (x, z) = moving[at].Key;
             foreach (var (dx, dz) in Sides)
-                if (indexOf.TryGetValue((x + dx, z + dz), out var beside) && Wet(beside) && surfaces[beside] < surfaces[at])
+                if (indexOf.TryGetValue((x + dx, z + dz), out var beside) && Wet(beside) && surfaces[beside] < surfaces[at]
+                    && !Falls(at, beside))
                 {
                     surfaces[beside] = surfaces[at];
                     owners[beside] = owners[at];

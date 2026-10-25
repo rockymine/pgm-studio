@@ -635,6 +635,23 @@ public sealed class SketchTerraformTests
     }
 
     [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task A_river_down_a_slope_keeps_its_falls_and_stands_its_own_depth_everywhere(bool intoLake)
+    {
+        var layout = Layout(Hill(x: 0.5, z: 20.5, radius: 26, rise: 14) + "," + River() + (intoLake ? "," + Lake() : ""));
+        var water = SketchRasterizer.WaterOf(layout);
+        var tops = Tops(layout);
+        var river = water.Where(column => column.Value.Body == "river").ToList();
+
+        await Assert.That(river.Select(column => column.Value.Surface).Distinct().Count()).IsGreaterThan(1)
+                    .Because("the river falls as the hill does");
+        foreach (var ((x, z), column) in river)
+            await Assert.That(column.Surface - tops[(x, z)]).IsLessThan(5)
+                        .Because($"({x}, {z}) holds its own reach's water, not the height of a reach upstream");
+    }
+
+    [Test]
     [Arguments(true)]
     [Arguments(false)]
     public async Task Water_that_touches_stands_at_one_surface(bool riverFirst)

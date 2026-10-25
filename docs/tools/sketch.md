@@ -1332,10 +1332,13 @@ on whatever stands in its way. A River drawn out to the edge therefore ends in a
 still water. Only the stack's water does this; a placed `basin` or channel prop meets the void as a wall
 (`DR-DRY`), and the falling columns are in the void, so no read-back counts them as the water's cells.
 
-**Water that touches is one body, and the stack settles it before it answers.** Where a River runs into a Lake,
-or any two waters meet at different surfaces, the lower takes the higher as far as its own wet columns reach, so
-the junction stands at one level rather than a step of water hanging over a channel, and each column that takes a
-surface takes the modifier it came from with it, and with that modifier's bed. Then every dry column beside
+**Water that touches is one body, and the stack settles it before it answers.** A body is one modifier's water at
+one surface, so each reach of a River is a body and its falls stand. Where a River crosses a Lake, or any two
+bodies meet at different surfaces, the lower takes the higher as far as its own wet columns reach, so the junction
+stands at one level rather than a step of water hanging over a channel, and each column that takes a surface takes
+the modifier it came from with it, and with that modifier's bed. A River reach above that River's lowest one is a
+fall rather than a level: it spills into the water it meets and raises nothing, so a stream run down a fell into a
+tarn leaves the tarn at its own level and keeps its own falls. Then every dry column beside
 water is raised to that water's surface, so no water stands over its bank where a later modifier — a Roughness,
 a second body's cut — left the bank lower. Both run after the whole stack, whatever order the modifiers take.
 
