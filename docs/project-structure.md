@@ -111,8 +111,8 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Geom` | 69 | 8,347 | `Algorithms/` 21 · `Relief/` 13 · `Render/` 7 · 28 at root |
 | `Import` | 4 | 498 | flat |
 | `Migrations` | 89 | 6,562 | `Migrations/` 88 · 1 at root |
-| `Minecraft` | 118 | 24,150 | `Render/` 22 · `Palette/` 18 · `Stamping/` 18 · `Dressing/` 14 · `Painting/` 14 · `Anvil/` 13 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
-| `Pgm` | 186 | 37,259 | `Authoring/` 42 · `Compose/` 39 (nested) · `Evaluate/` 24 (nested) · `Sketch/` 20 · `Editing/` 11 · `Derive/` 10 · `Plan/` 10 · `Shapes/` 10 · `Render/` 5 · `Detect/` 1 · 14 at root |
+| `Minecraft` | 118 | 24,156 | `Render/` 22 · `Palette/` 18 · `Stamping/` 18 · `Dressing/` 14 · `Painting/` 14 · `Anvil/` 13 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
+| `Pgm` | 186 | 37,260 | `Authoring/` 42 · `Compose/` 39 (nested) · `Evaluate/` 24 (nested) · `Sketch/` 20 · `Editing/` 11 · `Derive/` 10 · `Plan/` 10 · `Shapes/` 10 · `Render/` 5 · `Detect/` 1 · 14 at root |
 | `Vocabulary` | 47 | 3,207 | flat |
 <!-- /census -->
 
